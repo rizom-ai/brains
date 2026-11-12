@@ -1,4 +1,5 @@
-import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
+import { internalFullScope } from "@brains/sdk/internal/service-runtime";
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
 import type { PublishResult } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import type { ProviderRegistry } from "./provider-registry";
@@ -8,6 +9,7 @@ import {
 } from "./schemas/publishable";
 import { preparePublishContent } from "./tools/publish-content";
 import { markEntityPublished } from "./publish-state-updater";
+import type { PipelineContext } from "./lib/pipeline-context";
 
 export interface PublishEntityInput {
   entityType: string;
@@ -42,7 +44,7 @@ export interface PublishEntityExecutor {
 }
 
 export interface PublishExecutorDeps {
-  context: ServicePluginContext;
+  context: PipelineContext;
   providerRegistry: ProviderRegistry;
   publishAssetPreflight?:
     | {
@@ -161,24 +163,34 @@ export class PublishExecutor implements PublishEntityExecutor {
     // why a non-public entity cannot be published; an unscoped read sees
     // public entities only and would report it as missing.
     if (id) {
-      return this.deps.context.entityService.getEntity(
-        { entityType, id, visibilityScope: "restricted" },
-        publishableEntitySchema,
-      );
+      const entity = await this.deps.context.entityService.getEntity({
+        entityType,
+        id,
+        visibilityScope: internalFullScope(
+          "publish gate rejects non-public entities",
+        ),
+      });
+      // Parsed as the entity service parses a read it is handed a schema for.
+      return entity ? publishableEntitySchema.parse(entity) : null;
     }
 
     if (!slug) return null;
 
-    const entities = await this.deps.context.entityService.listEntities(
-      {
-        entityType,
-        options: {
-          filter: { metadata: { slug }, visibilityScope: "restricted" },
-          limit: 1,
+    const entities = await this.deps.context.entityService.listEntities({
+      entityType,
+      options: {
+        filter: {
+          metadata: { slug },
+          visibilityScope: internalFullScope(
+            "publish gate rejects non-public entities",
+          ),
         },
+        limit: 1,
       },
-      publishableEntitySchema,
+    });
+    const [entity] = entities.map((found) =>
+      publishableEntitySchema.parse(found),
     );
-    return entities[0] ?? null;
+    return entity ?? null;
   }
 }

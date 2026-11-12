@@ -1,3 +1,4 @@
+import { CallerAuthorizer } from "../src/caller-authority";
 import { GenerationAuthorizer } from "../src/generation-authorization";
 import { PermissionService } from "@brains/templates";
 import { createMockAIService } from "@brains/ai-service/test";
@@ -36,6 +37,7 @@ describe("ContentService", () => {
     // Create mock DataSourceRegistry
     const mockDataSourceRegistry = createMockDataSourceRegistry();
 
+    const permissions = new PermissionService({});
     mockDependencies = {
       logger: mockLogger,
       entityService: mockEntityService,
@@ -43,8 +45,8 @@ describe("ContentService", () => {
       templateRegistry,
       dataSourceRegistry: mockDataSourceRegistry,
       generationAuthorizer: new GenerationAuthorizer(
-        new PermissionService({}),
-        async () => null,
+        permissions,
+        new CallerAuthorizer(permissions, async () => null),
       ),
     };
 

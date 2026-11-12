@@ -1,7 +1,8 @@
+import { permissionToVisibilityScope } from "@brains/sdk/internal/interface-runtime";
 import {
+  internalFullScope,
   assertStudioWorkspaceAdmin,
-  type ServicePluginContext,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/service-runtime";
 import { mailItemAdapter } from "./entity/adapters/mail-item-adapter";
 import {
   mailItemSchema,
@@ -19,13 +20,11 @@ import {
   type MailTriageStatusActionResult,
 } from "./schemas/operator";
 import { definedFields } from "@brains/utils/strip-undefined";
+import type { EmailContext } from "./lib/email-context";
 
 const INBOX_ITEM_LIMIT = 100;
 
-type OperatorContext = Pick<
-  ServicePluginContext,
-  "entityService" | "permissions"
->;
+type OperatorContext = Pick<EmailContext, "entityService" | "permissions">;
 
 interface OperatorActor {
   userPermissionLevel?: "admin" | "trusted" | "public" | undefined;
@@ -49,7 +48,9 @@ export class MailTriageOperatorService {
             sortFields: [{ field: "receivedAt", direction: "desc" }],
             filter: {
               metadata,
-              visibilityScope: "restricted",
+              visibilityScope: internalFullScope(
+                "mail triage list is admin-only",
+              ),
             },
           },
         },
@@ -60,7 +61,9 @@ export class MailTriageOperatorService {
         options: {
           filter: {
             metadata,
-            visibilityScope: "restricted",
+            visibilityScope: internalFullScope(
+              "mail triage count is admin-only",
+            ),
           },
         },
       }),
@@ -85,7 +88,9 @@ export class MailTriageOperatorService {
       {
         entityType: "mail-item",
         id,
-        visibilityScope: "restricted",
+        visibilityScope: permissionToVisibilityScope(
+          actor.userPermissionLevel ?? "public",
+        ),
       },
       mailItemSchema,
     );
@@ -110,7 +115,9 @@ export class MailTriageOperatorService {
       {
         entityType: "mail-item",
         id: action.id,
-        visibilityScope: "restricted",
+        visibilityScope: permissionToVisibilityScope(
+          actor.userPermissionLevel ?? "public",
+        ),
       },
       mailItemSchema,
     );

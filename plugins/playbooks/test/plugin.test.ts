@@ -1,13 +1,15 @@
 import { describe, expect, it, mock } from "bun:test";
+import { agentActionContract, agentContextContract } from "@brains/contracts";
 import {
-  AGENT_ACTION_REQUEST_CHANNEL,
-  AGENT_CONTEXT_REQUEST_CHANNEL,
-} from "@brains/contracts";
-import {
-  playbookAdapter,
+  createPlaybookContent,
   type PlaybookBody,
   type PlaybookFrontmatter,
+  type PlaybooksConfigInput,
+  type PlaybooksPackageDeps,
 } from "../src";
+import type { PluginCapabilities } from "@brains/plugins";
+import { computeContentHash } from "@brains/utils/hash";
+import { createPlaybooksPlugins } from "./playbooks-plugins";
 import { z } from "@brains/utils/zod";
 import {
   createPluginHarness,
@@ -16,14 +18,16 @@ import {
   expectSuccess,
 } from "@brains/plugins/test";
 import {
-  PLAYBOOKS_REGISTER_LIFECYCLE_STARTER,
+  lifecycleStarterRegistrationContract,
   playbookRunSchema,
   playbookManageOutputSchema,
   playbookStatusResponseSchema,
-  playbooksPlugin,
   type GoalCheck,
   type GoalCheckInput,
 } from "../src";
+
+/** The `playbooks:lifecycle-starters` answer, as the plugin builds it. */
+const startersAnswerSchema = z.object({ starters: z.array(z.unknown()) });
 
 async function tempStorageDir(): Promise<string> {
   return createTempDataDir("brains-playbooks-");
@@ -99,12 +103,15 @@ function addPlaybookEntity(
     completionMode: "agent-confirmed" as const,
     ...metadata,
   };
+  const content = createPlaybookContent(frontmatter, body);
   harness.addEntities([
     {
       id,
       entityType: "playbook",
-      content: playbookAdapter.createPlaybookContent(frontmatter, body),
+      content,
       metadata: frontmatter,
+      // The stored document's hash, as the entity store keeps it.
+      contentHash: computeContentHash(content),
     },
   ]);
 }
@@ -196,9 +203,27 @@ function goalCheck(evaluate: GoalCheck["evaluate"]): {
   return { goalCheck: { evaluate } };
 }
 
+/**
+ * The playbooks package, installed as the canonical brain composes it: the
+ * playbook type, then the service, whose capabilities it answers.
+ */
+async function installPlaybooks(
+  harness: PluginHarness,
+  config: PlaybooksConfigInput = {},
+  deps: PlaybooksPackageDeps = {},
+): Promise<PluginCapabilities> {
+  const capabilities: PluginCapabilities[] = [];
+  for (const plugin of createPlaybooksPlugins(config, deps)) {
+    capabilities.push(await harness.installPlugin(plugin));
+  }
+  const service = capabilities.at(-1);
+  if (!service) throw new Error("The playbooks package installs nothing");
+  return service;
+}
+
 async function installHarness(): Promise<PluginHarness> {
   const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-  await harness.installPlugin(playbooksPlugin({}));
+  await installPlaybooks(harness, {});
   addPlaybookEntity(harness);
   return harness;
 }
@@ -220,7 +245,7 @@ async function startRun(
 describe("PlaybooksPlugin", () => {
   it("stores runs in runtime state", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    await harness.installPlugin(playbooksPlugin({}));
+    await installPlaybooks(harness, {});
     addPlaybookEntity(harness);
 
     await startRun(harness, "conversation-uses-runtime-state");
@@ -260,7 +285,7 @@ describe("PlaybooksPlugin", () => {
         reason: "The outline was delivered in chat.",
       }));
       const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-      await harness.installPlugin(playbooksPlugin({}, goalCheck(evaluate)));
+      await installPlaybooks(harness, {}, goalCheck(evaluate));
       addPlaybookEntity(harness, {
         ...playbookBody,
         states: [state, completeState],
@@ -415,7 +440,7 @@ describe("PlaybooksPlugin", () => {
     };
 
     const evaluate = mock(async () => ({ met: true, reason: "goal met" }));
-    await harness.installPlugin(playbooksPlugin({}, goalCheck(evaluate)));
+    await installPlaybooks(harness, {}, goalCheck(evaluate));
 
     const handler = handlers.get("playbooks:goalCheck");
     expect(handler).toBeDefined();
@@ -454,7 +479,7 @@ describe("PlaybooksPlugin", () => {
 
   it("keeps conversation routing out of model-visible playbook tool schemas", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    const capabilities = await harness.installPlugin(playbooksPlugin({}));
+    const capabilities = await installPlaybooks(harness, {});
 
     for (const tool of capabilities.tools) {
       if (!tool.name.startsWith("playbook_")) continue;
@@ -464,7 +489,7 @@ describe("PlaybooksPlugin", () => {
 
   it("exposes only the small model-facing playbook tool surface", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    const capabilities = await harness.installPlugin(playbooksPlugin({}));
+    const capabilities = await installPlaybooks(harness, {});
 
     const toolNames = capabilities.tools
       .map((tool) => tool.name)
@@ -476,7 +501,7 @@ describe("PlaybooksPlugin", () => {
 
   it("instructs named status checks to include the playbook id", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    const capabilities = await harness.installPlugin(playbooksPlugin({}));
+    const capabilities = await installPlaybooks(harness, {});
     const manageTool = capabilities.tools.find(
       (tool) => tool.name === "playbook_manage",
     );
@@ -493,7 +518,7 @@ describe("PlaybooksPlugin", () => {
 
   it("tells the model that start requires the playbook id", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    const capabilities = await harness.installPlugin(playbooksPlugin({}));
+    const capabilities = await installPlaybooks(harness, {});
     const manageTool = capabilities.tools.find(
       (tool) => tool.name === "playbook_manage",
     );
@@ -505,7 +530,7 @@ describe("PlaybooksPlugin", () => {
 
   it("answers an action missing its required fields with a readable error", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    await harness.installPlugin(playbooksPlugin({}));
+    await installPlaybooks(harness, {});
     addPlaybookEntity(harness);
 
     const response = await harness.executeTool("playbook_manage", {
@@ -515,6 +540,7 @@ describe("PlaybooksPlugin", () => {
 
     expect(response).toEqual({
       success: false,
+      code: "invalid_input",
       error:
         "Invalid playbook_manage input: playbookId is required for action=start.",
     });
@@ -522,7 +548,7 @@ describe("PlaybooksPlugin", () => {
 
   it("declares playbook tool visibility and side effects", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    const capabilities = await harness.installPlugin(playbooksPlugin({}));
+    const capabilities = await installPlaybooks(harness, {});
 
     const metadata = Object.fromEntries(
       capabilities.tools
@@ -542,7 +568,7 @@ describe("PlaybooksPlugin", () => {
     "returns a definition summary without a run for an %s playbook",
     async (status) => {
       const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-      const capabilities = await harness.installPlugin(playbooksPlugin({}));
+      const capabilities = await installPlaybooks(harness, {});
       addPlaybookEntity(harness, playbookBody, "rover-onboarding", { status });
       const source = await harness
         .getEntityService()
@@ -584,7 +610,9 @@ describe("PlaybooksPlugin", () => {
       const manageTool = capabilities.tools.find(
         (tool) => tool.name === "playbook_manage",
       );
-      expect(manageTool?.outputSchema).toBe(playbookManageOutputSchema);
+      // A declared tool advertises the data it answers; the envelope around
+      // it is the runtime's.
+      expect(manageTool?.outputSchema).toBe(playbookStatusResponseSchema);
       expect(playbookManageOutputSchema.safeParse(response).success).toBe(true);
       expect(manageTool?.description).toContain(
         "system_get with entityType=playbook",
@@ -674,7 +702,7 @@ describe("PlaybooksPlugin", () => {
 
   it("routes status, start, and send-event through playbook_manage", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    await harness.installPlugin(playbooksPlugin({}));
+    await installPlaybooks(harness, {});
     addPlaybookEntity(harness);
 
     const started = await harness.executeTool(
@@ -738,18 +766,16 @@ describe("PlaybooksPlugin", () => {
 
   it("states each status fact once", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    await harness.installPlugin(
-      playbooksPlugin({
-        lifecycle: {
-          onboarding: {
-            trigger: "first-admin-web-chat",
-            playbookId: "rover-onboarding",
-            starterText: "Configured lifecycle starter text",
-            starterPrompt: "Start the Rover onboarding playbook.",
-          },
+    await installPlaybooks(harness, {
+      lifecycle: {
+        onboarding: {
+          trigger: "first-admin-web-chat",
+          playbookId: "rover-onboarding",
+          starterText: "Configured lifecycle starter text",
+          starterPrompt: "Start the Rover onboarding playbook.",
         },
-      }),
-    );
+      },
+    });
     addPlaybookEntity(harness);
     addPlaybookEntity(harness, playbookBody, "second-playbook", {
       title: "Second Playbook",
@@ -831,7 +857,7 @@ describe("PlaybooksPlugin", () => {
 
   it("tells agents to avoid duplicate advances after evidence-backed progress", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    const capabilities = await harness.installPlugin(playbooksPlugin({}));
+    const capabilities = await installPlaybooks(harness, {});
     const manageTool = capabilities.tools.find(
       (tool) => tool.name === "playbook_manage",
     );
@@ -853,7 +879,7 @@ describe("PlaybooksPlugin", () => {
 
   it("preserves an active run lifecycle when playbook_manage start is called again", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    await harness.installPlugin(playbooksPlugin({}));
+    await installPlaybooks(harness, {});
     addPlaybookEntity(harness);
 
     const conversationId = "resume-preserve-lifecycle";
@@ -884,7 +910,7 @@ describe("PlaybooksPlugin", () => {
 
   it("uses playbook metadata lifecycle over model-authored start lifecycle", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    await harness.installPlugin(playbooksPlugin({}));
+    await installPlaybooks(harness, {});
     addPlaybookEntity(harness, playbookBody, "rover-onboarding", {
       lifecycle: "onboarding",
     });
@@ -903,7 +929,7 @@ describe("PlaybooksPlugin", () => {
 
   it("deduplicates concurrent playbook_manage start calls for the same conversation", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    await harness.installPlugin(playbooksPlugin({}));
+    await installPlaybooks(harness, {});
     addPlaybookEntity(harness);
 
     const conversationId = "concurrent-start-same-conversation";
@@ -944,46 +970,30 @@ describe("PlaybooksPlugin", () => {
 
   it("returns lifecycle starters for active admin web-chat playbooks", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    await harness.installPlugin(
-      playbooksPlugin({
-        lifecycle: {
-          onboarding: {
-            trigger: "first-admin-web-chat",
-            playbookId: "rover-onboarding",
-            once: true,
-            starterText: "Set up Rover",
-            description: "Learn Rover by doing real setup work.",
-            starterPrompt: "Start the Rover onboarding playbook.",
-          },
+    await installPlaybooks(harness, {
+      lifecycle: {
+        onboarding: {
+          trigger: "first-admin-web-chat",
+          playbookId: "rover-onboarding",
+          once: true,
+          starterText: "Set up Rover",
+          description: "Learn Rover by doing real setup work.",
+          starterPrompt: "Start the Rover onboarding playbook.",
         },
-      }),
-    );
+      },
+    });
     addPlaybookEntity(harness);
 
-    const response = await harness.sendMessage<
-      {
-        lifecycle: string;
-        interfaceType: string;
-        userPermissionLevel: "admin";
-      },
-      {
-        starters: Array<{
-          id: string;
-          title: string;
-          description?: string;
-          playbookId: string;
-          lifecycle: string;
-          starterPrompt: string;
-        }>;
-      }
-    >("playbooks:lifecycle-starters", {
-      lifecycle: "onboarding",
-      interfaceType: "web-chat",
-      userPermissionLevel: "admin",
-    });
+    const response = startersAnswerSchema.parse(
+      await harness.sendMessage("playbooks:lifecycle-starters", {
+        lifecycle: "onboarding",
+        interfaceType: "web-chat",
+        userPermissionLevel: "admin",
+      }),
+    );
 
-    expect(response?.starters).toHaveLength(1);
-    expect(response?.starters[0]).toEqual({
+    expect(response.starters).toHaveLength(1);
+    expect(response.starters[0]).toEqual({
       id: "onboarding",
       title: "Set up Rover",
       description: "Learn Rover by doing real setup work.",
@@ -995,7 +1005,7 @@ describe("PlaybooksPlugin", () => {
 
   it("does not return metadata-triggered starters unless the trigger is enabled", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    await harness.installPlugin(playbooksPlugin({}));
+    await installPlaybooks(harness, {});
     addPlaybookEntity(harness, playbookBody, "rover-onboarding", {
       trigger: "first-admin-web-chat",
       lifecycle: "onboarding",
@@ -1003,34 +1013,20 @@ describe("PlaybooksPlugin", () => {
       starterPrompt: "Start the Rover onboarding playbook.",
     });
 
-    const response = await harness.sendMessage<
-      {
-        lifecycle: string;
-        interfaceType: string;
-        userPermissionLevel: "admin";
-      },
-      {
-        starters: Array<{
-          id: string;
-          title: string;
-          description?: string;
-          playbookId: string;
-          lifecycle: string;
-          starterPrompt: string;
-        }>;
-      }
-    >("playbooks:lifecycle-starters", {
-      lifecycle: "onboarding",
-      interfaceType: "web-chat",
-      userPermissionLevel: "admin",
-    });
+    const response = startersAnswerSchema.parse(
+      await harness.sendMessage("playbooks:lifecycle-starters", {
+        lifecycle: "onboarding",
+        interfaceType: "web-chat",
+        userPermissionLevel: "admin",
+      }),
+    );
 
-    expect(response?.starters).toEqual([]);
+    expect(response.starters).toEqual([]);
   });
 
   it("returns registered lifecycle starters without trigger config", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    await harness.installPlugin(playbooksPlugin({}));
+    await installPlaybooks(harness, {});
     addPlaybookEntity(harness, playbookBody, "rover-onboarding", {
       trigger: "first-admin-web-chat",
       lifecycle: "onboarding",
@@ -1038,19 +1034,8 @@ describe("PlaybooksPlugin", () => {
       starterPrompt: "Start the Rover onboarding playbook.",
     });
 
-    const registration = await harness.sendMessage<
-      {
-        id: string;
-        trigger: string;
-        playbookId: string;
-        once: boolean;
-        starterText: string;
-        description: string;
-        starterPrompt: string;
-      },
-      { registered: boolean; id: string }
-    >(
-      PLAYBOOKS_REGISTER_LIFECYCLE_STARTER,
+    const registration = await harness.sendMessage(
+      lifecycleStarterRegistrationContract.name,
       {
         id: "onboarding",
         trigger: "first-admin-web-chat",
@@ -1065,29 +1050,15 @@ describe("PlaybooksPlugin", () => {
 
     expect(registration).toEqual({ registered: true, id: "onboarding" });
 
-    const response = await harness.sendMessage<
-      {
-        lifecycle: string;
-        interfaceType: string;
-        userPermissionLevel: "admin";
-      },
-      {
-        starters: Array<{
-          id: string;
-          title: string;
-          description?: string;
-          playbookId: string;
-          lifecycle: string;
-          starterPrompt: string;
-        }>;
-      }
-    >("playbooks:lifecycle-starters", {
-      lifecycle: "onboarding",
-      interfaceType: "web-chat",
-      userPermissionLevel: "admin",
-    });
+    const response = startersAnswerSchema.parse(
+      await harness.sendMessage("playbooks:lifecycle-starters", {
+        lifecycle: "onboarding",
+        interfaceType: "web-chat",
+        userPermissionLevel: "admin",
+      }),
+    );
 
-    expect(response?.starters).toEqual([
+    expect(response.starters).toEqual([
       {
         id: "onboarding",
         title: "Set up Rover",
@@ -1101,7 +1072,7 @@ describe("PlaybooksPlugin", () => {
 
   it("treats duplicate lifecycle starter registration from the same source as idempotent", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    await harness.installPlugin(playbooksPlugin({}));
+    await installPlaybooks(harness, {});
     addPlaybookEntity(harness, playbookBody, "rover-onboarding", {
       trigger: "first-admin-web-chat",
       lifecycle: "onboarding",
@@ -1118,37 +1089,38 @@ describe("PlaybooksPlugin", () => {
       starterPrompt: "Start the Rover onboarding playbook.",
     };
 
-    const first = await harness.sendMessage<
-      typeof payload,
-      { registered: boolean; id: string }
-    >(PLAYBOOKS_REGISTER_LIFECYCLE_STARTER, payload, "rover-onboarding");
-    const second = await harness.sendMessage<
-      typeof payload,
-      { registered: boolean; id: string }
-    >(PLAYBOOKS_REGISTER_LIFECYCLE_STARTER, payload, "rover-onboarding");
+    const first = lifecycleStarterRegistrationContract.response.parse(
+      await harness.sendMessage(
+        lifecycleStarterRegistrationContract.name,
+        payload,
+        "rover-onboarding",
+      ),
+    );
+    const second = lifecycleStarterRegistrationContract.response.parse(
+      await harness.sendMessage(
+        lifecycleStarterRegistrationContract.name,
+        payload,
+        "rover-onboarding",
+      ),
+    );
 
     expect(first).toEqual({ registered: true, id: "onboarding" });
     expect(second).toEqual({ registered: true, id: "onboarding" });
 
-    const response = await harness.sendMessage<
-      {
-        lifecycle: string;
-        interfaceType: string;
-        userPermissionLevel: "admin";
-      },
-      { starters: Array<{ id: string }> }
-    >("playbooks:lifecycle-starters", {
-      lifecycle: "onboarding",
-      interfaceType: "web-chat",
-      userPermissionLevel: "admin",
-    });
+    const response = startersAnswerSchema.parse(
+      await harness.sendMessage("playbooks:lifecycle-starters", {
+        lifecycle: "onboarding",
+        interfaceType: "web-chat",
+        userPermissionLevel: "admin",
+      }),
+    );
 
-    expect(response?.starters).toHaveLength(1);
+    expect(response.starters).toHaveLength(1);
   });
 
   it("ignores conflicting lifecycle starter registration for an existing id", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    await harness.installPlugin(playbooksPlugin({}));
+    await installPlaybooks(harness, {});
     addPlaybookEntity(harness, playbookBody, "rover-onboarding", {
       trigger: "first-admin-web-chat",
       lifecycle: "onboarding",
@@ -1171,14 +1143,15 @@ describe("PlaybooksPlugin", () => {
     };
 
     await harness.sendMessage(
-      PLAYBOOKS_REGISTER_LIFECYCLE_STARTER,
+      lifecycleStarterRegistrationContract.name,
       firstPayload,
       "rover-onboarding",
     );
-    const conflict = await harness.sendMessage<
-      typeof conflictPayload,
-      { registered: boolean; id: string; ignored?: boolean; reason?: string }
-    >(PLAYBOOKS_REGISTER_LIFECYCLE_STARTER, conflictPayload, "other-plugin");
+    const conflict = await harness.sendMessage(
+      lifecycleStarterRegistrationContract.name,
+      conflictPayload,
+      "other-plugin",
+    );
 
     expect(conflict).toEqual(
       expect.objectContaining({
@@ -1188,20 +1161,15 @@ describe("PlaybooksPlugin", () => {
       }),
     );
 
-    const response = await harness.sendMessage<
-      {
-        lifecycle: string;
-        interfaceType: string;
-        userPermissionLevel: "admin";
-      },
-      { starters: Array<{ title: string; starterPrompt: string }> }
-    >("playbooks:lifecycle-starters", {
-      lifecycle: "onboarding",
-      interfaceType: "web-chat",
-      userPermissionLevel: "admin",
-    });
+    const response = startersAnswerSchema.parse(
+      await harness.sendMessage("playbooks:lifecycle-starters", {
+        lifecycle: "onboarding",
+        interfaceType: "web-chat",
+        userPermissionLevel: "admin",
+      }),
+    );
 
-    expect(response?.starters).toEqual([
+    expect(response.starters).toEqual([
       expect.objectContaining({
         title: "Set up Rover",
         starterPrompt: "Start the Rover onboarding playbook.",
@@ -1211,9 +1179,9 @@ describe("PlaybooksPlugin", () => {
 
   it("derives enabled lifecycle starters from active playbook metadata", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    await harness.installPlugin(
-      playbooksPlugin({ triggers: { "first-admin-web-chat": true } }),
-    );
+    await installPlaybooks(harness, {
+      triggers: { "first-admin-web-chat": true },
+    });
     addPlaybookEntity(harness, playbookBody, "rover-onboarding", {
       trigger: "first-admin-web-chat",
       lifecycle: "onboarding",
@@ -1221,29 +1189,15 @@ describe("PlaybooksPlugin", () => {
       starterPrompt: "Start the Rover onboarding playbook.",
     });
 
-    const response = await harness.sendMessage<
-      {
-        lifecycle: string;
-        interfaceType: string;
-        userPermissionLevel: "admin";
-      },
-      {
-        starters: Array<{
-          id: string;
-          title: string;
-          description?: string;
-          playbookId: string;
-          lifecycle: string;
-          starterPrompt: string;
-        }>;
-      }
-    >("playbooks:lifecycle-starters", {
-      lifecycle: "onboarding",
-      interfaceType: "web-chat",
-      userPermissionLevel: "admin",
-    });
+    const response = startersAnswerSchema.parse(
+      await harness.sendMessage("playbooks:lifecycle-starters", {
+        lifecycle: "onboarding",
+        interfaceType: "web-chat",
+        userPermissionLevel: "admin",
+      }),
+    );
 
-    expect(response?.starters).toEqual([
+    expect(response.starters).toEqual([
       {
         id: "onboarding",
         title: "Set up Rover",
@@ -1321,37 +1275,16 @@ describe("PlaybooksPlugin", () => {
     const harness = await installHarness();
     const runId = await startRun(harness, "web-action-next");
 
-    const response = await harness.sendMessage<
-      {
-        conversationId: string;
-        interfaceType: string;
-        channelName: string;
-        userPermissionLevel: "admin";
-        isAnchor: boolean;
-        action: { type: "event"; event: "NEXT" };
-      },
-      {
-        text: string;
-        cards?: unknown[];
-        toolResults?: Array<{
-          toolName: string;
-          args?: Record<string, unknown>;
-          data?: unknown;
-        }>;
-        usage: {
-          promptTokens: number;
-          completionTokens: number;
-          totalTokens: number;
-        };
-      }
-    >(AGENT_ACTION_REQUEST_CHANNEL, {
-      conversationId: "web-action-next",
-      interfaceType: "web-chat",
-      channelName: "Web Chat",
-      userPermissionLevel: "admin",
-      isAnchor: false,
-      action: { type: "event", event: "NEXT" },
-    });
+    const response = agentActionContract.response.parse(
+      await harness.sendMessage(agentActionContract.name, {
+        conversationId: "web-action-next",
+        interfaceType: "web-chat",
+        channelName: "Web Chat",
+        userPermissionLevel: "admin",
+        isAnchor: false,
+        action: { type: "event", event: "NEXT" },
+      }),
+    );
 
     expect(response).toBeDefined();
     expect(response?.text).toBe("What rough idea should Rover remember first?");
@@ -1381,7 +1314,7 @@ describe("PlaybooksPlugin", () => {
 
   it("starts and reports runs within the current conversation", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    await harness.installPlugin(playbooksPlugin({}));
+    await installPlaybooks(harness, {});
     addPlaybookEntity(harness);
 
     const first = await harness.executeTool(
@@ -1422,9 +1355,42 @@ describe("PlaybooksPlugin", () => {
     expect(statusData.otherRuns).toEqual([]);
   });
 
+  it("lists no other conversation's run when a run starts or moves", async () => {
+    const harness = createPluginHarness({ dataDir: await tempStorageDir() });
+    await installPlaybooks(harness, {});
+    addPlaybookEntity(harness);
+    await startRun(harness, "someone-else", "rover-onboarding");
+
+    const started = await harness.executeTool(
+      "playbook_manage",
+      {
+        action: "start",
+        playbookId: "rover-onboarding",
+        lifecycle: "onboarding",
+      },
+      { conversationId: "mine" },
+    );
+    expectSuccess(started);
+    const startedData = parsePlaybookToolData(started.data);
+    expect(startedData.otherRuns).toEqual([]);
+
+    const moved = await harness.executeTool(
+      "playbook_manage",
+      {
+        action: "send-event",
+        runId: startedData.activeRun.id,
+        event: "NEXT",
+        context: { operatorReady: true },
+      },
+      { conversationId: "mine" },
+    );
+    expectSuccess(moved);
+    expect(parsePlaybookToolData(moved.data).otherRuns).toEqual([]);
+  });
+
   it("tracks playbook transitions and completion", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    await harness.installPlugin(playbooksPlugin({}));
+    await installPlaybooks(harness, {});
     addPlaybookEntity(harness);
 
     const started = await harness.executeTool(
@@ -1475,7 +1441,7 @@ describe("PlaybooksPlugin", () => {
 
   it("reports the latest completed conversation run when no active run remains", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    await harness.installPlugin(playbooksPlugin({}));
+    await installPlaybooks(harness, {});
     addPlaybookEntity(harness);
 
     const started = await harness.executeTool(
@@ -1532,14 +1498,13 @@ describe("PlaybooksPlugin", () => {
 
   it("reports blocked gated NEXT with concise status guidance", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    await harness.installPlugin(
-      playbooksPlugin(
-        {},
-        goalCheck(async () => ({
-          met: false,
-          reason: "No matching evidence.",
-        })),
-      ),
+    await installPlaybooks(
+      harness,
+      {},
+      goalCheck(async () => ({
+        met: false,
+        reason: "No matching evidence.",
+      })),
     );
     addPlaybookEntity(harness, {
       ...playbookBody,
@@ -1611,7 +1576,7 @@ describe("PlaybooksPlugin", () => {
       usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
     }));
     Object.assign(harness.getMockShell(), { judge });
-    await harness.installPlugin(playbooksPlugin({}));
+    await installPlaybooks(harness, {});
     addPlaybookEntity(harness, {
       ...playbookBody,
       states: [
@@ -1670,7 +1635,7 @@ describe("PlaybooksPlugin", () => {
         throw new Error("judge unavailable");
       }),
     });
-    await harness.installPlugin(playbooksPlugin({}));
+    await installPlaybooks(harness, {});
     addPlaybookEntity(harness, {
       ...playbookBody,
       states: [
@@ -1732,7 +1697,7 @@ describe("PlaybooksPlugin", () => {
       return { met: true, reason: "The seed note was recorded." };
     });
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    await harness.installPlugin(playbooksPlugin({}, goalCheck(evaluate)));
+    await installPlaybooks(harness, {}, goalCheck(evaluate));
     addPlaybookEntity(harness, {
       ...playbookBody,
       states: [
@@ -1758,8 +1723,14 @@ describe("PlaybooksPlugin", () => {
         entityId: "seed-note",
         conversationId,
         entity: {
-          metadata: { title: "Seed note" },
+          id: "seed-note",
+          entityType: "note",
           content: "Rough idea worth remembering.",
+          contentHash: "seed-hash",
+          created: "2026-11-07T00:00:00.000Z",
+          updated: "2026-11-07T00:00:00.000Z",
+          visibility: "public",
+          metadata: { title: "Seed note" },
         },
       },
       "entity-service",
@@ -1788,7 +1759,7 @@ describe("PlaybooksPlugin", () => {
       reason: "The seed note was recorded.",
     }));
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    await harness.installPlugin(playbooksPlugin({}, goalCheck(evaluate)));
+    await installPlaybooks(harness, {}, goalCheck(evaluate));
     addPlaybookEntity(harness, {
       ...playbookBody,
       states: [
@@ -1837,7 +1808,7 @@ describe("PlaybooksPlugin", () => {
       };
     });
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    await harness.installPlugin(playbooksPlugin({}, goalCheck(evaluate)));
+    await installPlaybooks(harness, {}, goalCheck(evaluate));
     addPlaybookEntity(harness, {
       ...playbookBody,
       states: [
@@ -1903,14 +1874,13 @@ describe("PlaybooksPlugin", () => {
 
   it("blocks gated NEXT when the goal check returns not met", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    await harness.installPlugin(
-      playbooksPlugin(
-        {},
-        goalCheck(async () => ({
-          met: false,
-          reason: "No matching evidence.",
-        })),
-      ),
+    await installPlaybooks(
+      harness,
+      {},
+      goalCheck(async () => ({
+        met: false,
+        reason: "No matching evidence.",
+      })),
     );
     addPlaybookEntity(harness, {
       ...playbookBody,
@@ -1966,14 +1936,13 @@ describe("PlaybooksPlugin", () => {
 
   it("advances gated NEXT when the goal check returns met", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    await harness.installPlugin(
-      playbooksPlugin(
-        {},
-        goalCheck(async () => ({
-          met: true,
-          reason: "The profile exists in the KB.",
-        })),
-      ),
+    await installPlaybooks(
+      harness,
+      {},
+      goalCheck(async () => ({
+        met: true,
+        reason: "The profile exists in the KB.",
+      })),
     );
     addPlaybookEntity(harness, {
       ...playbookBody,
@@ -2197,7 +2166,7 @@ describe("PlaybooksPlugin", () => {
       });
     });
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    await harness.installPlugin(playbooksPlugin({}, goalCheck(evaluate)));
+    await installPlaybooks(harness, {}, goalCheck(evaluate));
     addPlaybookEntity(harness, {
       ...playbookBody,
       states: [
@@ -2283,24 +2252,16 @@ describe("PlaybooksPlugin", () => {
       }),
     );
 
-    const response = await harness.sendMessage<
-      {
-        conversationId: string;
-        interfaceType: string;
-        channelName: string;
-        userPermissionLevel: "admin";
-        isAnchor: boolean;
-        action: { type: "event"; event: "NEXT"; fromState: string };
-      },
-      { text: string }
-    >(AGENT_ACTION_REQUEST_CHANNEL, {
-      conversationId: "web-stale-action",
-      interfaceType: "web-chat",
-      channelName: "Web Chat",
-      userPermissionLevel: "admin",
-      isAnchor: false,
-      action: { type: "event", event: "NEXT", fromState: "welcome" },
-    });
+    const response = agentActionContract.response.parse(
+      await harness.sendMessage(agentActionContract.name, {
+        conversationId: "web-stale-action",
+        interfaceType: "web-chat",
+        channelName: "Web Chat",
+        userPermissionLevel: "admin",
+        isAnchor: false,
+        action: { type: "event", event: "NEXT", fromState: "welcome" },
+      }),
+    );
 
     expect(response?.text).toContain("I couldn't continue the playbook");
     expect(response?.text).toContain("Stale playbook event");
@@ -2383,40 +2344,32 @@ describe("PlaybooksPlugin", () => {
 
     await startRun(harness, "web-agent-context");
 
-    const response = await harness.sendMessage<
-      {
-        conversationId: string;
-        message: string;
-        interfaceType: string;
-        channelId: string;
-        channelName: string;
-        userPermissionLevel: "admin";
-      },
-      { items: Array<{ source: string; content: string }> }
-    >(AGENT_CONTEXT_REQUEST_CHANNEL, {
-      conversationId: "web-agent-context",
-      message: "what next?",
-      interfaceType: "web-chat",
-      channelId: "web-agent-context",
-      channelName: "Web Chat",
-      userPermissionLevel: "admin",
-    });
+    const response = agentContextContract.response.parse(
+      await harness.sendMessage(agentContextContract.name, {
+        conversationId: "web-agent-context",
+        message: "what next?",
+        interfaceType: "web-chat",
+        channelId: "web-agent-context",
+        channelName: "Web Chat",
+        userPermissionLevel: "admin",
+      }),
+    );
 
-    expect(response?.items).toHaveLength(1);
-    expect(response?.items[0]?.source).toBe("active-playbook");
-    expect(response?.items[0]?.content).toContain(
+    expect(response.items).toHaveLength(1);
+    expect(response.items[0]?.source).toBe("active-playbook");
+    expect(response.items[0]?.content).toContain(
       "Current state title: Welcome",
     );
-    expect(response?.items[0]?.content).toContain(
+    expect(response.items[0]?.content).toContain(
       "Current state id (tool use only): welcome",
     );
-    expect(response?.items[0]?.content).toContain(
+    expect(response.items[0]?.content).toContain(
       "Do not mention raw playbook state IDs to the operator",
     );
-    expect(response?.items[0]?.content).toContain(
+    expect(response.items[0]?.content).toContain(
       "pass fromState set to the current state id",
     );
-    expect(response?.items[0]?.content).toContain("NEXT -> seed");
+    expect(response.items[0]?.content).toContain("NEXT -> seed");
   });
 
   it("injects completed playbook states as agent context", async () => {
@@ -2430,27 +2383,19 @@ describe("PlaybooksPlugin", () => {
       }),
     );
 
-    const response = await harness.sendMessage<
-      {
-        conversationId: string;
-        message: string;
-        interfaceType: string;
-        channelId: string;
-        channelName: string;
-        userPermissionLevel: "admin";
-      },
-      { items: Array<{ source: string; content: string }> }
-    >(AGENT_CONTEXT_REQUEST_CHANNEL, {
-      conversationId: "web-agent-context-completed",
-      message: "transform it now",
-      interfaceType: "web-chat",
-      channelId: "web-agent-context-completed",
-      channelName: "Web Chat",
-      userPermissionLevel: "admin",
-    });
+    const response = agentContextContract.response.parse(
+      await harness.sendMessage(agentContextContract.name, {
+        conversationId: "web-agent-context-completed",
+        message: "transform it now",
+        interfaceType: "web-chat",
+        channelId: "web-agent-context-completed",
+        channelName: "Web Chat",
+        userPermissionLevel: "admin",
+      }),
+    );
 
-    const content = response?.items[0]?.content ?? "";
-    expect(response?.items[0]?.source).toBe("active-playbook");
+    const content = response.items[0]?.content ?? "";
+    expect(response.items[0]?.source).toBe("active-playbook");
     expect(content).toContain("Current state title: Seed");
     expect(content).toContain("Current state id (tool use only): seed");
     expect(content).toContain("Completed states:");
@@ -2459,7 +2404,7 @@ describe("PlaybooksPlugin", () => {
 
   it("injects actionable run identity, required details, and unsatisfied Done When gates as agent context", async () => {
     const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-    await harness.installPlugin(playbooksPlugin({}));
+    await installPlaybooks(harness, {});
     addPlaybookEntity(harness, {
       ...playbookBody,
       states: [
@@ -2496,27 +2441,19 @@ describe("PlaybooksPlugin", () => {
       }),
     );
 
-    const response = await harness.sendMessage<
-      {
-        conversationId: string;
-        message: string;
-        interfaceType: string;
-        channelId: string;
-        channelName: string;
-        userPermissionLevel: "admin";
-      },
-      { items: Array<{ source: string; content: string }> }
-    >(AGENT_CONTEXT_REQUEST_CHANNEL, {
-      conversationId: "web-actionable-context",
-      message: "what next?",
-      interfaceType: "web-chat",
-      channelId: "web-actionable-context",
-      channelName: "Web Chat",
-      userPermissionLevel: "admin",
-    });
+    const response = agentContextContract.response.parse(
+      await harness.sendMessage(agentContextContract.name, {
+        conversationId: "web-actionable-context",
+        message: "what next?",
+        interfaceType: "web-chat",
+        channelId: "web-actionable-context",
+        channelName: "Web Chat",
+        userPermissionLevel: "admin",
+      }),
+    );
 
-    expect(response?.items).toHaveLength(1);
-    const content = response?.items[0]?.content ?? "";
+    expect(response.items).toHaveLength(1);
+    const content = response.items[0]?.content ?? "";
     expect(content).toContain(`Run ID: ${runId}`);
     expect(content).toContain("Done when:");
     expect(content).toContain(

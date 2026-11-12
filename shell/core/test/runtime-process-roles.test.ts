@@ -16,6 +16,7 @@ import {
   type PluginCapabilities,
   type ServicePluginContext,
   ServicePlugin,
+  SYSTEM_CHANNELS,
   type Tool,
 } from "@brains/plugins";
 import { migrateRuntimeState } from "@brains/runtime-state/migrate";
@@ -280,13 +281,30 @@ describe("supervised runtime process roles", () => {
         return { rewritten: 0 };
       },
     );
+    spyOn(
+      shell.getEntityService(),
+      "reconcileDeclaredMetadata",
+    ).mockImplementation(async () => {
+      order.push("declared metadata");
+      return { reconciled: 0 };
+    });
+    shell
+      .getMessageBus()
+      .subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
+        order.push("plugins registered");
+        return { success: true };
+      });
     await shell.initialize();
 
-    // Stored entities lose retired frontmatter once groupings are current;
-    // the embedding backfill runs off the boot path.
+    // Stored entities lose retired frontmatter once groupings are current,
+    // then declared types' metadata is re-derived from what is stored, all
+    // before pluginsRegistered: the initial sync it queues plans its import
+    // against those rows. The embedding backfill runs off the boot path.
     expect(order.filter((step) => step !== "embeddings")).toEqual([
       "groupings",
       "retired fields",
+      "declared metadata",
+      "plugins registered",
     ]);
     expect(shell.getEntityService().areGroupingsReady()).toBe(true);
     expect(shell.isInitialized()).toBe(true);
@@ -355,9 +373,14 @@ describe("supervised runtime process roles", () => {
       "reprojectRegisteredGroupings",
     );
     const rewrite = spyOn(shell.getEntityService(), "rewriteRetiredFields");
+    const reconcile = spyOn(
+      shell.getEntityService(),
+      "reconcileDeclaredMetadata",
+    );
     await shell.initialize();
     expect(reproject).not.toHaveBeenCalled();
     expect(rewrite).not.toHaveBeenCalled();
+    expect(reconcile).not.toHaveBeenCalled();
 
     const registrations = shell
       .getJobQueueService()

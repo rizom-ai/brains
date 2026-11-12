@@ -241,7 +241,7 @@ function liveRuntimeEnv(
 ): NodeJS.ProcessEnv {
   return {
     ...process.env,
-    AI_API_KEY: apiKey,
+    OPENAI_API_KEY: apiKey,
     BRAIN_SKIP_LOCAL_REEXEC: "1",
     FIXTURE_EVENT_FEED_URL: transport.eventFeedUrl,
     FIXTURE_CAMPFIRE_BASE_URL: transport.campfireBaseUrl,
@@ -301,7 +301,7 @@ async function invokeTool(
     );
   } catch (error) {
     if (!(error instanceof Error)) throw error;
-    const apiKey = env["AI_API_KEY"];
+    const apiKey = env["OPENAI_API_KEY"];
     if (apiKey) {
       error.message = redact(error.message, apiKey);
       if (error.stack) error.stack = redact(error.stack, apiKey);
@@ -368,7 +368,7 @@ it("proves provider-backed public authoring behavior against one exact alpha", a
     "RIZOM_PUBLIC_API_SITE_VERSION",
     /^0\.2\.0(?:-alpha\.\d+)?$/u,
   );
-  const apiKey = requiredSecret("AI_API_KEY");
+  const apiKey = requiredSecret("OPENAI_API_KEY");
   const registryVersions: RegistryPackageVersions = {
     "@rizom/brain": brainVersion,
     "@rizom/site": siteVersion,
@@ -419,7 +419,7 @@ it("proves provider-backed public authoring behavior against one exact alpha", a
     const brainConfig = await readFile(brainConfigPath, "utf8");
     await writeFile(
       brainConfigPath,
-      `${brainConfig.replace("embedding:\n  enabled: false", "embedding:\n  enabled: true")}logLevel: debug\nadmins:\n  - campfire:live-reader\nanchors:\n  - campfire:live-reader\nplugins:\n  webserver:\n    productionPort: ${runtimePort}\n`,
+      `${brainConfig.replace("embedding:\n  enabled: false", "embedding:\n  enabled: true")}logLevel: debug\nadmins:\n  - campfire:live-reader\nanchors:\n  - campfire:live-reader\nport: ${runtimePort}\n`,
     );
 
     const env = liveRuntimeEnv(apiKey, transport);

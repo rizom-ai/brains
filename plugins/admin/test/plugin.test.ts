@@ -2,28 +2,28 @@ import { createMockShell } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
 import { AuthServicePlugin } from "@brains/auth-service";
 import {
-  STUDIO_OVERVIEW_REGISTER_MESSAGE,
-  STUDIO_WORKSPACE_REGISTER_MESSAGE,
+  studioOverviewContributionRegisterContract,
+  studioWorkspaceRegisterContract,
   type StudioOverviewContributionRegistration,
   type StudioWorkspaceRegistration,
 } from "@brains/plugins";
 import { createTempDir } from "@brains/test-utils";
-import { adminPlugin } from "../src";
+import { createAdminPlugin } from "./admin-plugin";
 
 describe("administration workspace provider", () => {
   it("rejects retired browser-route configuration", () => {
-    expect(() => adminPlugin({ routePath: "/admin" })).toThrow(
+    expect(() => createAdminPlugin({ routePath: "/admin" })).toThrow(
       /unrecognized key.*routePath/i,
     );
   });
 
   it("is headless and registers no independent console surface", async () => {
     const shell = createMockShell({ domain: "brain.test" });
-    const plugin = adminPlugin();
+    const plugin = createAdminPlugin();
 
     await plugin.register(shell);
 
-    expect(plugin.getWebRoutes()).toEqual([]);
+    expect(plugin.getWebRoutes?.()).toEqual([]);
     expect(
       shell.listEndpoints().filter((endpoint) => endpoint.pluginId === "admin"),
     ).toEqual([]);
@@ -45,7 +45,7 @@ describe("administration workspace provider", () => {
     shell
       .getMessageBus()
       .subscribe<StudioOverviewContributionRegistration>(
-        STUDIO_OVERVIEW_REGISTER_MESSAGE,
+        studioOverviewContributionRegisterContract.name,
         (message) => {
           overviewContributions.push(message.payload);
           return { success: true };
@@ -54,7 +54,7 @@ describe("administration workspace provider", () => {
     shell
       .getMessageBus()
       .subscribe<StudioWorkspaceRegistration, { workspaceUrl: string }>(
-        STUDIO_WORKSPACE_REGISTER_MESSAGE,
+        studioWorkspaceRegisterContract.name,
         async (message) => {
           registrations.push(message.payload);
           return {
@@ -65,10 +65,10 @@ describe("administration workspace provider", () => {
           };
         },
       );
-    const plugin = adminPlugin();
+    const plugin = createAdminPlugin();
 
     await plugin.register(shell);
-    await plugin.finalizeRegistration();
+    await plugin.finalizeRegistration?.();
 
     expect(registrations).toHaveLength(1);
     expect(registrations[0]).toMatchObject({

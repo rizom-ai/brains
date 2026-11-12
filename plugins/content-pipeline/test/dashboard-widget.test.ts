@@ -21,6 +21,7 @@ import {
 import { ProviderRegistry } from "../src/provider-registry";
 import { QueueManager } from "../src/queue-manager";
 import { RetryTracker } from "../src/retry-tracker";
+import { pipelineRuntime, pluginsRegistered } from "./pipeline-runtime";
 
 interface DashboardWidgetPayload {
   id: string;
@@ -89,7 +90,8 @@ describe("dashboard widget registration", () => {
   });
 
   it("registers the primary read-only publication widget", async () => {
-    await registerDashboardWidget(context, deps);
+    registerDashboardWidget(await pipelineRuntime(mockShell), context, deps);
+    await pluginsRegistered(mockShell);
 
     expect(widgetPayload).toMatchObject({
       id: "publication-pipeline",
@@ -132,7 +134,8 @@ describe("dashboard widget registration", () => {
     });
     await deps.queueManager.add("social-post", "queued-post");
 
-    await registerDashboardWidget(context, deps);
+    registerDashboardWidget(await pipelineRuntime(mockShell), context, deps);
+    await pluginsRegistered(mockShell);
     const data = await widgetPayload?.dataProvider(dashboardProviderContext);
 
     expect(data?.digest).toEqual({
@@ -171,7 +174,8 @@ describe("dashboard widget registration", () => {
       },
     });
 
-    await registerDashboardWidget(context, deps);
+    registerDashboardWidget(await pipelineRuntime(mockShell), context, deps);
+    await pluginsRegistered(mockShell);
     const data = await widgetPayload?.dataProvider(dashboardProviderContext);
 
     expect(data?.digest?.items).toContainEqual({
@@ -182,7 +186,8 @@ describe("dashboard widget registration", () => {
   });
 
   it("derives the host digest from normalized widget data", async () => {
-    await registerDashboardWidget(context, deps);
+    registerDashboardWidget(await pipelineRuntime(mockShell), context, deps);
+    await pluginsRegistered(mockShell);
     const data = await widgetPayload?.dataProvider(dashboardProviderContext);
     const derived = widgetPayload?.digestProvider(data);
 
@@ -195,7 +200,8 @@ describe("dashboard widget registration", () => {
   });
 
   it("uses a host launch instead of carrying a Studio management URL", async () => {
-    await registerDashboardWidget(context, deps);
+    registerDashboardWidget(await pipelineRuntime(mockShell), context, deps);
+    await pluginsRegistered(mockShell);
     const data = await widgetPayload?.dataProvider(dashboardProviderContext);
 
     expect(data?.view.blocks[2]).toEqual({
@@ -232,6 +238,7 @@ describe("dashboard widget registration", () => {
         retryCount: 0,
         maxRetries: 3,
         lastError: null,
+        lastErrorPublic: null,
         createdAt: 0,
         scheduledFor: 0,
         startedAt: null,
@@ -258,6 +265,7 @@ describe("dashboard widget registration", () => {
         retryCount: 0,
         maxRetries: 3,
         lastError: null,
+        lastErrorPublic: null,
         createdAt: 0,
         scheduledFor: 0,
         startedAt: null,
@@ -276,7 +284,8 @@ describe("dashboard widget registration", () => {
       },
     ];
 
-    await registerDashboardWidget(context, deps);
+    registerDashboardWidget(await pipelineRuntime(mockShell), context, deps);
+    await pluginsRegistered(mockShell);
     const data = await widgetPayload?.dataProvider(dashboardProviderContext);
 
     const stats = data?.view.blocks[0];

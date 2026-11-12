@@ -7,7 +7,7 @@ import {
   hasCanonicalDefinition,
   loadDefinition,
 } from "../lib/definition-registry";
-import { checkApiKey } from "../lib/preflight";
+import { checkModelKeys } from "../lib/preflight";
 import { formatBootError } from "../lib/boot-errors";
 import { getErrorMessage } from "@brains/utils/error";
 import { spawnBunRunner } from "../lib/spawn-bun-runner";
@@ -135,18 +135,30 @@ export async function start(
   }
 
   if (hasCanonicalDefinition()) {
-    const keyCheck = checkApiKey(process.env);
-    if (flags.mode !== "startup-check" && !keyCheck.ok) {
-      return {
-        success: false,
-        message: keyCheck.message ?? "AI_API_KEY is not set.",
-      };
-    }
-
     // In-process boot — the package bundles the canonical definition. Explicitly
     // scoped external definitions remain dynamically authorable.
     try {
       const definition = await loadDefinition(config.brain);
+
+      if (flags.mode !== "startup-check") {
+        const keyCheck = checkModelKeys(process.env, {
+          model: config.model ?? definition.model,
+          embeddingModel: config.embeddingModel,
+          answerModel: config.answerModel,
+          visionModel: config.visionModel,
+          imageModel: config.imageModel,
+          embeddingEnabled: config.embedding?.enabled,
+          modelRuntimeUrl:
+            config.modelRuntime?.url ?? process.env["MODEL_RUNTIME_URL"],
+        });
+        for (const warning of keyCheck.warnings) console.warn(warning);
+        if (!keyCheck.ok) {
+          return {
+            success: false,
+            message: keyCheck.message ?? "The brain's models cannot run.",
+          };
+        }
+      }
       const { bootBrain } = await import("../lib/boot");
 
       if (flags.mode === undefined && !flags.chat && childRole === undefined) {

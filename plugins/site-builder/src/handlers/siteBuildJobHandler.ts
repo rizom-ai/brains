@@ -1,17 +1,19 @@
-import { BaseJobHandler } from "@brains/plugins";
-import { SITE_CHANNELS } from "@brains/contracts";
-import type { ServicePluginContext } from "@brains/plugins";
+import {
+  firstPartyJobHandler,
+  type FirstPartyJobHandler,
+  type ServiceClassMessaging,
+} from "@brains/sdk/internal/service-runtime";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
 import type { ISiteBuilder } from "../types/site-builder-types";
 import type { LayoutComponent, LayoutSlots } from "@brains/site-engine";
-import type { EntityDisplayMap, SiteBuilderConfig } from "../config";
+import type { SiteBuilderConfig } from "../config";
 import {
   siteBuildJobSchema,
   type SiteBuildJobData,
   type SiteBuildJobResult,
 } from "../types/job-types";
-import { EntityUrlGenerator } from "@brains/site-composition";
+import type { RouteDefinition } from "@brains/site-composition";
 import { resolveSiteMetadata } from "../lib/site-metadata";
 import type {
   SiteBuildEnvironment,
@@ -36,8 +38,6 @@ import { getErrorMessage } from "@brains/utils/error";
 
 export interface SiteBuildJobHandlerConfig {
   siteBuilder: ISiteBuilder;
-  /** The site's entity display as the shell resolved it, for entity URLs. */
-  entityDisplay?: EntityDisplayMap | undefined;
   layouts: Record<string, LayoutComponent>;
   defaultSiteConfig: SiteBuilderConfig["siteInfo"];
   sharedImagesDir: string;
@@ -52,6 +52,7 @@ export interface SiteBuildJobHandlerConfig {
   getSlots?: (() => Promise<LayoutSlots>) | undefined;
   /** Asked on every build: the site package's scripts plus plugins' answers. */
   getHeadScripts?: (() => Promise<string[]>) | undefined;
+  getPages?: (() => Promise<RouteDefinition[]>) | undefined;
   /** Inline static assets supplied by the SitePackage (e.g. canvas scripts) */
   staticAssets?: Record<string, string> | undefined;
   /** The site's languages, the first its default. */
@@ -59,30 +60,47 @@ export interface SiteBuildJobHandlerConfig {
   statusService?: BuildStatusRecorder | undefined;
 }
 
+/** What a build asks the bus: the site metadata. */
+type SiteBuildMessaging = Pick<ServiceClassMessaging, "request">;
+
 /**
- * Job handler for site building operations
+ * The site build job, queued under site-builder:site-build: one build at a
+ * time, rendering the site for the environment it names and recording the
+ * outcome in the build status.
  */
-export class SiteBuildJobHandler extends BaseJobHandler<
-  "site-build",
-  SiteBuildJobData,
-  SiteBuildJobResult
-> {
-  private sendMessage: ServicePluginContext["messaging"]["send"];
-  private cfg: SiteBuildJobHandlerConfig;
+export function siteBuildJob(
+  logger: Logger,
+  messaging: SiteBuildMessaging,
+  cfg: SiteBuildJobHandlerConfig,
+): FirstPartyJobHandler {
+  return firstPartyJobHandler({
+    type: "site-build",
+    input: siteBuildJobSchema,
+    // One build at a time: two builds' memory peaks would add up.
+    exclusive: true,
+    // A book brain builds thousands of pages: Karl's 4,198 took 11 minutes.
+    executionTimeoutMs: 30 * 60_000,
+    summarize: (data) => ({
+      environment: data.environment,
+      outputDir: data.outputDir,
+    }),
+    process: ({ input, jobId, progress }) =>
+      new SiteBuild(logger, messaging, cfg).process(input, jobId, progress),
+  });
+}
+
+/** One build of the site, as the job runs it. */
+export class SiteBuild {
+  private readonly logger: Logger;
+  private readonly messaging: SiteBuildMessaging;
+  private readonly cfg: SiteBuildJobHandlerConfig;
   constructor(
     logger: Logger,
-    sendMessage: ServicePluginContext["messaging"]["send"],
+    messaging: SiteBuildMessaging,
     cfg: SiteBuildJobHandlerConfig,
   ) {
-    super(logger, {
-      schema: siteBuildJobSchema,
-      jobTypeName: "site-build",
-      // One build at a time: two builds' memory peaks would add up.
-      exclusive: true,
-      // A book brain builds thousands of pages: Karl's 4,198 took 11 minutes.
-      executionTimeoutMs: 30 * 60_000,
-    });
-    this.sendMessage = sendMessage;
+    this.logger = logger;
+    this.messaging = messaging;
     this.cfg = cfg;
   }
 
@@ -123,7 +141,7 @@ export class SiteBuildJobHandler extends BaseJobHandler<
       });
 
       const siteConfig = await resolveSiteMetadata(
-        this.sendMessage,
+        this.messaging,
         data.siteConfig ?? this.cfg.defaultSiteConfig,
       );
       const configuredSiteUrl =
@@ -149,6 +167,7 @@ export class SiteBuildJobHandler extends BaseJobHandler<
           themeCSS: this.cfg.themeCSS,
           slots: await this.cfg.getSlots?.(),
           headScripts: await this.cfg.getHeadScripts?.(),
+          pages: await this.cfg.getPages?.(),
           ...(this.cfg.staticAssets && {
             staticAssets: this.cfg.staticAssets,
           }),
@@ -218,32 +237,6 @@ export class SiteBuildJobHandler extends BaseJobHandler<
         cancelled: result.cancelled ?? false,
       });
 
-      // A skipped build publishes nothing, so completion hooks must not run.
-      if (result.success && !result.skipped) {
-        this.logger.info(
-          `Emitting site:build:completed event for ${environment} environment`,
-        );
-
-        await this.sendMessage({
-          type: SITE_CHANNELS.buildCompleted,
-          payload: {
-            outputDir: data.outputDir,
-            environment,
-            routesBuilt: result.routesBuilt,
-            siteConfig: {
-              ...siteConfig,
-              url: siteUrl,
-            },
-            generateEntityUrl: (entityType: string, slug: string) =>
-              new EntityUrlGenerator(this.cfg.entityDisplay).generateUrl(
-                entityType,
-                slug,
-              ),
-          },
-          broadcast: true,
-        });
-      }
-
       // A superseded build's request is served by the build that replaced
       // it, so its job is done; any other cancellation is retried.
       const completed = result.success || result.superseded === true;
@@ -307,14 +300,5 @@ export class SiteBuildJobHandler extends BaseJobHandler<
         error,
       });
     }
-  }
-
-  protected override summarizeDataForLog(
-    data: SiteBuildJobData,
-  ): Record<string, unknown> {
-    return {
-      environment: data.environment,
-      outputDir: data.outputDir,
-    };
   }
 }

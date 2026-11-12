@@ -1,11 +1,11 @@
-import type { AuthPrincipal } from "@brains/auth-service";
+import type { AuthPrincipal } from "@brains/contracts";
 import { createExternalActorId } from "@brains/contracts";
 import {
   buildCoalescedInput,
   buildMessageActorMetadata,
   buildMessageSourceMetadata,
   type ConversationMessageActor,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/interface-runtime";
 import {
   getSpaceId,
   getThreadIdParts,

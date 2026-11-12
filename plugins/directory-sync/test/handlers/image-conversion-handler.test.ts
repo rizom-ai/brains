@@ -12,10 +12,8 @@ import {
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
-import {
-  CoverImageConversionJobHandler,
-  type CoverImageConversionJobData,
-} from "../../src/handlers/image-conversion-handler";
+import { CoverImageConversionJobHandler } from "../../src/handlers/image-conversion-handler";
+import type { CoverImageConversionJobData } from "../../src/types";
 import { createSilentLogger } from "@brains/test-utils";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
@@ -24,6 +22,7 @@ import {
   type ProgressReporter,
 } from "@brains/utils/progress";
 import { TINY_PNG_DATA_URL as VALID_PNG_DATA_URL } from "../fixtures";
+import { queuedJob } from "../queued-job";
 
 describe("CoverImageConversionJobHandler", () => {
   let handler: CoverImageConversionJobHandler;
@@ -95,7 +94,9 @@ describe("CoverImageConversionJobHandler", () => {
         postSlug: "test-post",
       };
 
-      const result = handler.validateAndParse(validData);
+      const result = queuedJob("cover-image-convert", handler).validateAndParse(
+        validData,
+      );
 
       expect(result).not.toBeNull();
       expect(result?.filePath).toBe("/path/to/post.md");
@@ -113,7 +114,9 @@ describe("CoverImageConversionJobHandler", () => {
         customAlt: "Custom alt text for the image",
       };
 
-      const result = handler.validateAndParse(validData);
+      const result = queuedJob("cover-image-convert", handler).validateAndParse(
+        validData,
+      );
 
       expect(result).not.toBeNull();
       expect(result?.customAlt).toBe("Custom alt text for the image");
@@ -126,7 +129,9 @@ describe("CoverImageConversionJobHandler", () => {
         postSlug: "test-post",
       };
 
-      const result = handler.validateAndParse(invalidData);
+      const result = queuedJob("cover-image-convert", handler).validateAndParse(
+        invalidData,
+      );
 
       expect(result).toBeNull();
     });
@@ -138,7 +143,9 @@ describe("CoverImageConversionJobHandler", () => {
         postSlug: "test-post",
       };
 
-      const result = handler.validateAndParse(invalidData);
+      const result = queuedJob("cover-image-convert", handler).validateAndParse(
+        invalidData,
+      );
 
       expect(result).toBeNull();
     });
@@ -151,7 +158,9 @@ describe("CoverImageConversionJobHandler", () => {
         postSlug: "test-post",
       };
 
-      const result = handler.validateAndParse(invalidData);
+      const result = queuedJob("cover-image-convert", handler).validateAndParse(
+        invalidData,
+      );
 
       expect(result).toBeNull();
     });
@@ -163,7 +172,9 @@ describe("CoverImageConversionJobHandler", () => {
         postSlug: "test-post",
       };
 
-      const result = handler.validateAndParse(invalidData);
+      const result = queuedJob("cover-image-convert", handler).validateAndParse(
+        invalidData,
+      );
 
       expect(result).toBeNull();
     });
@@ -175,7 +186,9 @@ describe("CoverImageConversionJobHandler", () => {
         postTitle: "Test Post",
       };
 
-      const result = handler.validateAndParse(invalidData);
+      const result = queuedJob("cover-image-convert", handler).validateAndParse(
+        invalidData,
+      );
 
       expect(result).toBeNull();
     });

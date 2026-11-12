@@ -50,7 +50,6 @@ describe("verbatim update MCP eval contract", () => {
       expect(proposal?.argsContain).toEqual({
         entityType: "note",
         id,
-        "operation.kind": "source",
         "operation.source.kind": "user-message",
       });
       for (const absent of [
@@ -74,7 +73,7 @@ describe("verbatim update MCP eval contract", () => {
     expect(testCase.turns[4]?.confirmPendingAction).toBe(true);
     expect(
       testCase.turns[4]?.successCriteria?.expectedTools?.[0]?.resultContains,
-    ).toEqual({ success: true, "data.updated": id });
+    ).toEqual({ updated: id });
 
     const criteria = testCase.turns[5]?.successCriteria;
     if (!criteria) throw new Error("Missing saved content checks");

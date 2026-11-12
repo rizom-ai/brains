@@ -68,6 +68,34 @@ describe("evaluateCriteria", () => {
     ]);
   });
 
+  it.each([
+    ["2025-03-12", true],
+    ["2025-03-12T00:00:00Z", true],
+    ["2025-03-13", false],
+  ])("matches a tool argument by pattern: %s", (publishedAt, passed) => {
+    const results = evaluateCriteria(
+      {
+        expectedTools: [
+          {
+            toolName: "system_create",
+            argsMatch: { "fields.publishedAt": "^2025-03-12" },
+            shouldBeCalled: true,
+          },
+        ],
+      },
+      { text: "Confirmation required." },
+      [
+        {
+          toolName: "system_create",
+          args: { fields: { publishedAt } },
+          result: { needsConfirmation: true },
+        },
+      ],
+    );
+
+    expect(results.every((result) => result.passed)).toBe(passed);
+  });
+
   it("scopes negative expected tools to matching arguments", () => {
     const criteria = {
       expectedTools: [

@@ -1,9 +1,11 @@
-import { BaseJobHandler } from "@brains/plugins";
+import {
+  firstPartyJobHandler,
+  type FirstPartyJobHandler,
+} from "@brains/sdk/internal/service-runtime";
 import type { StockPhotoEntityWriter } from "../lib/set-cover-image";
-import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
-import { imageAdapter } from "@brains/image";
+import { createImageEntity } from "@brains/image";
 import type { FetchImageFn, StockPhotoProvider } from "../lib/types";
 import { setCoverImage } from "../lib/set-cover-image";
 
@@ -47,92 +49,83 @@ export interface SelectPhotoHandlerDeps {
   fetchImage: FetchImageFn;
 }
 
-export class SelectPhotoJobHandler extends BaseJobHandler<
-  "select-photo",
-  SelectPhotoJobData,
-  SelectPhotoJobResult
-> {
-  private readonly deps: SelectPhotoHandlerDeps;
-  constructor(logger: Logger, deps: SelectPhotoHandlerDeps) {
-    super(logger, {
-      schema: selectPhotoJobSchema,
-      jobTypeName: "select-photo",
-    });
-    this.deps = deps;
-  }
+/** One progress step, out of a hundred. */
+function step(
+  progress: ProgressReporter,
+  value: number,
+  message: string,
+): Promise<void> {
+  return progress.report({ progress: value, total: 100, message });
+}
 
-  async process(
-    data: SelectPhotoJobData,
-    _jobId: string,
-    progressReporter: ProgressReporter,
-  ): Promise<SelectPhotoJobResult> {
-    await this.reportProgress(progressReporter, {
-      progress: 10,
-      message: "Tracking stock photo download",
-    });
-
-    await this.deps.provider.triggerDownload(data.downloadLocation);
-
-    await this.reportProgress(progressReporter, {
-      progress: 35,
-      message: "Downloading stock photo",
-    });
-
-    const dataUrl = await this.deps.fetchImage(data.imageUrl);
-    const imageTitle = data.title ?? `Stock photo ${data.photoId}`;
-    const imageData = imageAdapter.createImageEntity({
-      dataUrl,
-      title: imageTitle,
-      alt: data.alt ?? imageTitle,
-    });
-
-    await this.reportProgress(progressReporter, {
-      progress: 75,
-      message: "Saving stock photo",
-    });
-
-    const { entityId } = await this.deps.entityService.createEntity({
-      entity: {
-        id: data.photoId,
-        ...imageData,
-        metadata: {
-          ...imageData.metadata,
-          sourceUrl: data.imageUrl,
-        },
-      },
-    });
-
-    const result: SelectPhotoJobResult = {
-      imageEntityId: entityId,
-      alreadyExisted: false,
-    };
-
-    if (data.targetEntityType && data.targetEntityId) {
-      result.coverSet = await setCoverImage(
-        this.deps.entityService,
-        data.targetEntityType,
-        data.targetEntityId,
-        entityId,
-      );
-      if (!result.coverSet) {
-        result.warning = `Target entity ${data.targetEntityType}:${data.targetEntityId} not found; cover image not set`;
-      }
-    }
-
-    await this.reportProgress(progressReporter, {
-      progress: 100,
-      message: "Stock photo selected",
-    });
-
-    return result;
-  }
-
-  protected override summarizeDataForLog(
-    data: SelectPhotoJobData,
-  ): Record<string, unknown> {
-    return {
+/**
+ * Materialize a selected stock photo: track the download, as the provider's
+ * terms require, store the photo as an image under the photo's id with its
+ * source URL, and set it as the target's cover when one is named. Queued
+ * by the select tool under stock-photo:select-photo, and run as the
+ * package: nobody is attributed and no action policy is checked.
+ */
+export function selectPhotoJob(
+  deps: SelectPhotoHandlerDeps,
+): FirstPartyJobHandler {
+  return firstPartyJobHandler({
+    type: "select-photo",
+    input: selectPhotoJobSchema,
+    summarize: (data) => ({
       photoId: data.photoId,
       hasTarget: data.targetEntityType !== undefined,
-    };
-  }
+    }),
+    process: async ({
+      input: data,
+      progress,
+    }): Promise<SelectPhotoJobResult> => {
+      await step(progress, 10, "Tracking stock photo download");
+
+      await deps.provider.triggerDownload(data.downloadLocation);
+
+      await step(progress, 35, "Downloading stock photo");
+
+      const dataUrl = await deps.fetchImage(data.imageUrl);
+      const imageTitle = data.title ?? `Stock photo ${data.photoId}`;
+      const imageData = createImageEntity({
+        dataUrl,
+        title: imageTitle,
+        alt: data.alt ?? imageTitle,
+      });
+
+      await step(progress, 75, "Saving stock photo");
+
+      const { entityId } = await deps.entityService.createEntity({
+        entity: {
+          id: data.photoId,
+          ...imageData,
+          metadata: {
+            ...imageData.metadata,
+            sourceUrl: data.imageUrl,
+          },
+        },
+      });
+
+      const result: SelectPhotoJobResult = {
+        imageEntityId: entityId,
+        alreadyExisted: false,
+      };
+
+      if (data.targetEntityType && data.targetEntityId) {
+        result.coverSet = await setCoverImage(
+          deps.entityService,
+          data.targetEntityType,
+          data.targetEntityId,
+          entityId,
+        );
+        if (!result.coverSet) {
+          result.warning = `Target entity ${data.targetEntityType}:${data.targetEntityId} not found; cover image not set`;
+        }
+      }
+
+      await step(progress, 100, "Stock photo selected");
+
+      return result;
+    },
+  });
 }

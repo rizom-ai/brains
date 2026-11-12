@@ -1,9 +1,10 @@
 import { afterEach, describe, expect, it, mock } from "bun:test";
 import { AuthService } from "@brains/auth-service";
-import { EmailInterface } from "@brains/email";
-import type {
-  ChannelDeliveryProvider,
-  ChannelDescriptor,
+import { createEmailInterface } from "@brains/email";
+import {
+  instantiatePluginPackageDefinition,
+  type ChannelDeliveryProvider,
+  type ChannelDescriptor,
 } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 import { mkdtemp, rm } from "node:fs/promises";
@@ -26,17 +27,19 @@ describe("canonical Email invitation delivery", () => {
           status: 200,
         }),
     );
-    const harness = createPluginHarness<EmailInterface>();
-    await harness.installPlugin(
-      new EmailInterface(
-        {
-          transport: "resend",
-          apiKey: "resend-key",
-          from: "Brain <setup@example.com>",
-        },
-        { fetchImpl },
-      ),
+    const harness = createPluginHarness();
+    const [email] = instantiatePluginPackageDefinition(
+      createEmailInterface({ fetchImpl }),
+      {
+        transport: "resend",
+        apiKey: "resend-key",
+        from: "Brain <setup@example.com>",
+      },
+      { name: "@brains/email", version: "0.0.0-test" },
+      { pluginId: "email" },
     );
+    if (!email) throw new Error("The Email definition created no plugin");
+    await harness.installPlugin(email);
     await harness.finalizeRegistration();
     const registry = harness.getMockShell().getChannelRegistry();
     const storageDir = await mkdtemp(join(tmpdir(), "canonical-email-invite-"));

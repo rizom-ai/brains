@@ -2,7 +2,7 @@
 
 ## Status
 
-**Partially implemented — revalidated on 2026-10-16; Phases 0 and 1 complete.** The normalized registry, startup conflict detection, immutable dispatch snapshot, internal manifest, and fail-closed shared-host admission are implemented. The stable `0.2` route-authoring contract is declarative `defineRoute()` from `@rizom/brain/interfaces` (security `public` or `protocol`), which the declarative interface plugin adapts to the internal `getWebRoutes()` getter, the registry's only ingress. Remaining security, matcher, advertising, and cleanup phases require separate approval and do not gate stable `v0.2.0`.
+**Partially implemented — revalidated on 2026-10-16; Phases 0 and 1 complete.** The normalized registry, startup conflict detection, immutable dispatch snapshot, internal manifest, and fail-closed shared-host admission are implemented. The stable `0.2` route-authoring contract is declarative `defineRoute()` from `@rizom/brain/interfaces` (security `public` or `protocol`), which the declarative interface plugin adapts to the internal `getWebRoutes()` getter, the registry's only ingress. Phase 5 step 1 is implemented for Dashboard, Chat and Studio (approved 2026-11-05). Remaining security, matcher, advertising, and cleanup phases require separate approval and do not gate stable `v0.2.0`.
 
 The [public-authoring release gate](./public-authoring-api-0.2.md) deliberately freezes only the existing handler-backed web-route contract. It excludes tool-backed API routes, non-public shared-host admission, centralized operator authentication, and `context.http.register()` from the `0.2` stable ledger. This plan must not widen that ledger accidentally.
 
@@ -28,11 +28,11 @@ HTTP behavior now has one finalized composition boundary:
 
 1. Internal service and interface plugins expose `getWebRoutes()`; service plugins may also expose `getApiRoutes()`. The stable external `0.2` authoring path remains narrower and covers handler-backed web routes only.
 2. `shell/core/src/http-route-registry.ts` invokes each route getter once after plugin registration-complete hooks, validates canonical paths, route-kind methods, reserved namespaces, and duplicate `(method, fullPath)` keys, then freezes one normalized snapshot plus a handler-free diagnostic manifest.
-3. `interfaces/webserver/src/server-manager.ts` resolves a normalized route snapshot once when the early webserver starts. Dispatch order remains exact handler, longest matching handler prefix, then exact tool-backed API route. Prefix matching respects segment boundaries; API routes remain exact-only.
+3. `shell/http-host/src/server-manager.ts`, which the shell starts as the runtime's HTTP host, resolves a normalized route snapshot once when the host starts before initial sync. Dispatch order remains exact handler, longest matching handler prefix, then exact tool-backed API route. Prefix matching respects segment boundaries; API routes remain exact-only.
 4. Routes with `public: false` now fail closed for both handlers and tools. `public: true` remains admission-only: protocol and session handlers still authenticate internally.
 5. Plugins separately call `context.endpoints.register()` to advertise important URLs through `appInfo` and Dashboard.
 
-The shared server also owns `/health/*`, `/images/*`, the blocked `/.site-build-manifest.json`, static files, clean URLs, and production-versus-preview host selection. Health is split across `/health/live`, `/health/ready`, and `/health/operate`; the aggregate `/health` endpoint is absent. Dynamic routes run on the production surface; a handler route reaches the preview host only when it declares `preview: true` (Web Chat's guest routes do), and tool-backed API routes never do. MCP HTTP mounts on the shared host, and production rejects configurations without the webserver. The unused standalone `ApiServer` export is absent; the MCP transport's test-only listener method remains cleanup work.
+The shared server also owns `/health/*`, `/images/*`, the blocked `/.site-build-manifest.json`, static files, clean URLs, and production-versus-preview host selection. Health is split across `/health/live`, `/health/ready`, and `/health/operate`; the aggregate `/health` endpoint is absent. Dynamic routes run on the production surface; a handler route reaches the preview host only when it declares `preview: true` (Web Chat's guest routes do), and tool-backed API routes never do. MCP HTTP mounts on the shared host, and MCP refuses an HTTP transport on a brain that serves no HTTP. The unused standalone `ApiServer` export is absent; the MCP transport's test-only listener method remains cleanup work.
 
 Canonical minimal, personal, publishing, team, docs, and Rizom manifests are checked and currently contain no method/path collisions. Configured Chat SDK routes and the newsletter tool route have focused inventory coverage. The packed external handler-route fixture installs and serves outside the monorepo through documented `@rizom/brain/*` entry points.
 
@@ -75,7 +75,7 @@ The unused standalone `ApiServer` class is removed. Production MCP composition u
 
 ### 1. Keep one shared HTTP host
 
-`@brains/webserver` remains the listener and static-file host. The shell owns route composition; plugins own handlers. No plugin should open its own production HTTP port.
+`@brains/http-host`, started by the shell, remains the listener and static-file host. The shell owns route composition; plugins own handlers. No plugin should open its own production HTTP port.
 
 ### 2. Add one normalized internal route model
 
@@ -138,7 +138,7 @@ Dynamic routes may intentionally shadow generated static pages—the root Dashbo
 
 ### 5. Finalize routes before the early webserver starts
 
-The shell already completes plugin registration before `ShellBootloader.startEarlyWebserver()`. Build the initial route table after all `onRegister` hooks and before that start.
+The shell already completes plugin registration before `ShellBootloader.startHttpHost()`. Build the initial route table after all `onRegister` hooks and before that start.
 
 Route declarations must therefore be stable by the end of `onRegister`. `onReady` may initialize data used by handlers, but must not be required to make the route itself discoverable.
 
@@ -229,6 +229,7 @@ Gate:
 ### Phase 5 — Advertising, diagnostics, and cleanup
 
 1. Add optional route advertisement metadata for Dashboard, Chat, Studio, MCP, and A2A.
+   - Dashboard, Chat and Studio: done. A web route claims a well-known role (`WebRouteDefinition.role`, vocabulary `WEB_ROUTE_ROLES` in `@brains/contracts`); `context.webRoutes.findByRole()` and the console strip resolve doors from it, with no plugin ids in shell. MCP and A2A remain.
 2. Keep manual endpoint registration for external/static URLs such as Site and Preview.
 3. Diagnose route-backed advertised URLs that do not resolve to a registered route.
 4. Document the route manifest and ownership model in architecture and external-plugin authoring docs.

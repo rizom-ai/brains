@@ -1,20 +1,12 @@
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
-import type { ICoreEntityService } from "@brains/plugins";
+import type { PublishCompletedPayload } from "@brains/contracts";
+import type {
+  BaseEntity,
+  GetEntityRequest,
+} from "@brains/sdk/internal/entity-runtime";
 import type { NewsletterDeliveryProvider } from "./contracts";
 import { blogPostSourceSchema } from "./types";
-
-/**
- * Payload from publish:completed message
- */
-export interface PublishCompletedPayload {
-  entityType: string;
-  entityId: string;
-  result: {
-    id: string;
-    url?: string;
-  };
-}
 
 /**
  * Result of handling publish completed event
@@ -33,7 +25,9 @@ export type PublishHandlerResult =
 export async function handlePublishCompleted(
   payload: PublishCompletedPayload,
   provider: NewsletterDeliveryProvider,
-  entityService: ICoreEntityService,
+  entityService: {
+    getEntity(request: GetEntityRequest): Promise<BaseEntity | null>;
+  },
   logger: Logger,
 ): Promise<PublishHandlerResult> {
   // Only handle post entity types
@@ -46,13 +40,12 @@ export async function handlePublishCompleted(
   }
 
   // Fetch the post
-  const post = await entityService.getEntity(
-    {
-      entityType: "post",
-      id: payload.entityId,
-    },
-    blogPostSourceSchema,
-  );
+  const found = await entityService.getEntity({
+    entityType: "post",
+    id: payload.entityId,
+  });
+  // Parsed as the entity service parses a read it is handed a schema for.
+  const post = found ? blogPostSourceSchema.parse(found) : null;
 
   if (!post) {
     return {

@@ -60,7 +60,7 @@ contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
 bundles:
   - core
-aiApiKey: SHARED_AI_KEY
+openaiApiKey: SHARED_AI_KEY
 gitSyncToken: SHARED_GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
 agePublicKey: ${agePublicKey}
@@ -68,7 +68,7 @@ agePublicKey: ${agePublicKey}
       "users/alice.yaml": `handle: alice
 discord:
   enabled: true
-aiApiKeyOverride: ALICE_AI_KEY
+openaiApiKeyOverride: ALICE_AI_KEY
 `,
       "cohorts/canary.yaml": `gitSyncTokenOverride: CANARY_GIT_SYNC_TOKEN
 members:
@@ -90,11 +90,11 @@ members:
     const result = await encryptPilotSecrets(root, "alice");
 
     expect([...result.encryptedKeys].sort()).toEqual([
-      "aiApiKey",
       "discordApplicationId",
       "discordBotToken",
       "discordPublicKey",
       "gitSyncToken",
+      "openaiApiKey",
     ]);
     expect(result.deletedPlaintext).toBe(true);
 
@@ -102,7 +102,7 @@ members:
       join(root, "users/alice.secrets.yaml.age"),
       identity,
     );
-    expect(decrypted).toContain("aiApiKey: alice-ai-key");
+    expect(decrypted).toContain("openaiApiKey: alice-ai-key");
     expect(decrypted).toContain("gitSyncToken: git-token");
     expect(decrypted).toContain("discordBotToken: discord-token");
     expect(decrypted).toContain("discordPublicKey: discord-public-key");
@@ -122,7 +122,7 @@ contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
 bundles:
   - core
-aiApiKey: AI_API_KEY
+openaiApiKey: OPENAI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
 agePublicKey: ${agePublicKey}
@@ -171,7 +171,7 @@ contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
 bundles:
   - core
-aiApiKey: AI_API_KEY
+openaiApiKey: OPENAI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
 agePublicKey: ${agePublicKey}
@@ -210,7 +210,7 @@ contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
 bundles:
   - core
-aiApiKey: AI_API_KEY
+openaiApiKey: OPENAI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
 agePublicKey: ${agePublicKey}
@@ -272,7 +272,7 @@ contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
 bundles:
   - core
-aiApiKey: AI_API_KEY
+openaiApiKey: OPENAI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
 agePublicKey: ${agePublicKey}
@@ -333,7 +333,7 @@ contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
 bundles:
   - core
-aiApiKey: AI_API_KEY
+openaiApiKey: OPENAI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
 agePublicKey: ${agePublicKey}
@@ -378,7 +378,7 @@ contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
 bundles:
   - core
-aiApiKey: AI_API_KEY
+openaiApiKey: OPENAI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
 agePublicKey: ${agePublicKey}
@@ -414,7 +414,7 @@ contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
 bundles:
   - core
-aiApiKey: AI_API_KEY
+openaiApiKey: OPENAI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
 agePublicKey: ${agePublicKey}
@@ -447,7 +447,7 @@ contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
 bundles:
   - core
-aiApiKey: AI_API_KEY
+openaiApiKey: OPENAI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
 agePublicKey: ${agePublicKey}
@@ -459,7 +459,7 @@ discord:
       "cohorts/canary.yaml": `members:
   - alice
 `,
-      ".env.local": "AI_API_KEY=shared-ai\n",
+      ".env.local": "OPENAI_API_KEY=shared-ai\n",
     });
 
     const logs: string[] = [];
@@ -486,7 +486,7 @@ contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
 bundles:
   - core
-aiApiKey: SHARED_AI_KEY
+openaiApiKey: SHARED_AI_KEY
 gitSyncToken: SHARED_GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
 agePublicKey: ${agePublicKey}
@@ -494,7 +494,7 @@ agePublicKey: ${agePublicKey}
       "users/alice.yaml": `handle: alice
 discord:
   enabled: true
-aiApiKeyOverride: ALICE_AI_KEY
+openaiApiKeyOverride: ALICE_AI_KEY
 `,
       "cohorts/canary.yaml": `members:
   - alice
@@ -515,7 +515,7 @@ aiApiKeyOverride: ALICE_AI_KEY
       "utf8",
     );
     expect(plaintextTemplate).toContain("# local per-user secret staging file");
-    expect(plaintextTemplate).toContain("aiApiKey: ");
+    expect(plaintextTemplate).toContain("openaiApiKey: ");
     expect(plaintextTemplate).toContain("discordBotToken: ");
     expect(plaintextTemplate).toContain("discordPublicKey: ");
     expect(plaintextTemplate).toContain("discordApplicationId: ");
@@ -534,7 +534,7 @@ contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
 bundles:
   - core
-aiApiKey: AI_API_KEY
+openaiApiKey: OPENAI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
 agePublicKey: ${agePublicKey}

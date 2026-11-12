@@ -1,11 +1,13 @@
 import { z } from "@brains/utils/zod";
-import type {
-  ContentVisibility,
-  Tool,
-  ToolResponse,
-  ParsedAgentCard,
-} from "@brains/plugins";
-import { internalFullScope, parseAgentCard } from "@brains/plugins";
+import type { UserPermissionLevel } from "@brains/sdk/interfaces";
+import {
+  type ContentVisibility,
+  type Tool,
+  type ToolResponse,
+  fetchVerifiedAgentCard,
+  isEndpointRefusal,
+  permissionToVisibilityScope,
+} from "@brains/sdk/internal/interface-runtime";
 import { runWithInterruptibleTimeout } from "./client-lifecycle";
 import { getErrorMessage } from "@brains/utils/error";
 import { SourceCitationSchema, type SourceCitation } from "@brains/contracts";
@@ -214,7 +216,7 @@ const a2aCallInputSchema = {
   agent: z
     .string()
     .describe(
-      "Exact domain-like agent target or saved local agent id such as yeehaa.io, docs.rizom.ai, or save-it-regression.example. If the user provides an HTTPS URL, pass only its hostname as the agent id (for https://docs.rizom.ai/a2a, pass docs.rizom.ai). Any bare string with a dot and no slash/protocol is domain-like, including .example test domains. The tool verifies unsaved exact domains with an Agent Card before contact and never auto-saves. Never pass a full URL, display name like Brain, or non-HTTPS URL.",
+      "Exact domain-like agent target, saved local agent id, or the name of a saved contact as the user calls it, such as partner-brain.example, save-it-regression.example, or Yeehaa. If the user provides an HTTPS URL, pass only its hostname as the agent id (for https://docs.example/a2a, pass docs.example). Any bare string with a dot and no slash/protocol is domain-like, including .example test domains. The tool verifies unsaved exact domains with an Agent Card before contact and never auto-saves. Never pass a full URL, a brain's display name like Brain, or a non-HTTPS URL.",
     ),
   message: z.string().describe("Message to send to the remote agent"),
 };
@@ -227,6 +229,40 @@ const a2aCallInputParserSchema = z.object({
 type NormalizedAgentTarget =
   | { ok: true; agentId: string; sourceUrl?: string | undefined }
   | { ok: false; error: string };
+
+/**
+ * The saved agent a person names by its contact name, such as "Yeehaa", or
+ * a question when two share it. A brain's display name, such as "Brain", is
+ * shared by many agents and names none.
+ */
+interface SavedAgent {
+  id: string;
+  content: string;
+  metadata: Record<string, unknown>;
+}
+
+async function savedAgentNamed(
+  entityService: NonNullable<A2AClientDeps["entityService"]>,
+  name: string,
+  visibilityScope: ReturnType<typeof permissionToVisibilityScope>,
+): Promise<SavedAgent | string | undefined> {
+  // A directory that cannot be listed names no contact.
+  if (!entityService.listEntities) return undefined;
+  const wanted = name.trim().toLowerCase();
+  const agents = await entityService.listEntities({
+    entityType: "agent",
+    options: { limit: 500, filter: { visibilityScope } },
+  });
+  const named = agents.filter(
+    (agent) =>
+      typeof agent.metadata["name"] === "string" &&
+      agent.metadata["name"].trim().toLowerCase() === wanted,
+  );
+  const [only, ...others] = named;
+  if (others.length > 0)
+    return `More than one saved agent is called "${name.trim()}": ${named.map((agent) => agent.id).join(", ")}. Give its id.`;
+  return only;
+}
 
 function normalizeAgentTarget(agent: string): NormalizedAgentTarget {
   const trimmed = agent.trim();
@@ -264,58 +300,6 @@ function normalizeAgentTarget(agent: string): NormalizedAgentTarget {
 
 function isExactDomainLikeAgentId(agentId: string): boolean {
   return /^[^\s/.][^\s/]*\.[^\s/]+$/.test(agentId);
-}
-
-/**
- * Validate a remote-supplied Agent Card endpoint URL before contacting it.
- * The card is fetched from https://<agentId>, so the endpoint must stay on
- * that host over HTTPS — anything else is an SSRF vector.
- */
-function validateCardEndpoint(
-  cardUrl: string,
-  agentId: string,
-): { ok: true } | { ok: false; error: string } {
-  let url: URL;
-  try {
-    url = new URL(cardUrl);
-  } catch {
-    return {
-      ok: false,
-      error: `Agent Card for ${agentId} has an invalid endpoint URL.`,
-    };
-  }
-  if (url.protocol !== "https:" || url.hostname.toLowerCase() !== agentId) {
-    return {
-      ok: false,
-      error: `Agent Card for ${agentId} has an untrusted endpoint URL (${cardUrl}). The endpoint must be https:// on ${agentId}.`,
-    };
-  }
-  return { ok: true };
-}
-
-async function fetchAgentCard(
-  agentUrl: string,
-  fetchFn: FetchFn,
-  requestTimeoutMs: number,
-  signal?: AbortSignal,
-): Promise<ParsedAgentCard | null> {
-  const cardUrl = agentUrl.replace(/\/$/, "") + "/.well-known/agent-card.json";
-  try {
-    const response = await fetchWithTimeout(
-      fetchFn,
-      cardUrl,
-      {},
-      requestTimeoutMs,
-      signal,
-    );
-    if (!response.ok) return null;
-    const data: unknown = await response.json();
-    signal?.throwIfAborted();
-    return parseAgentCard(data);
-  } catch {
-    if (signal?.aborted) throw signal.reason;
-    return null;
-  }
 }
 
 /**
@@ -612,17 +596,26 @@ export interface A2AClientDeps extends A2ANetworkOptions {
       entityType: string;
       id: string;
       visibilityScope?: ContentVisibility;
-    }): Promise<{
-      id: string;
-      content: string;
-      metadata: Record<string, unknown>;
-    } | null>;
+    }): Promise<SavedAgent | null>;
+    /** The saved agents a caller may read, to find a contact by its name. */
+    listEntities?(request: {
+      entityType: string;
+      options: {
+        limit: number;
+        filter: { visibilityScope: ContentVisibility };
+      };
+    }): Promise<SavedAgent[]>;
   };
 }
 
 export interface ExecuteAgentCallOptions {
   /** Refuse unknown domains instead of allowing the tool's one-shot mode. */
   requireSaved?: boolean;
+  /**
+   * Whose call this is. Saved agents resolve at this level's visibility, so
+   * an agent saved above it is an unsaved domain; absent reads public only.
+   */
+  userPermissionLevel?: UserPermissionLevel | undefined;
   /** Cancellation for this outbound call. */
   signal?: AbortSignal;
 }
@@ -646,11 +639,18 @@ export async function executeAgentCall(
     maxNetworkAttempts: deps.maxNetworkAttempts ?? DEFAULT_MAX_NETWORK_ATTEMPTS,
   };
   const normalized = normalizeAgentTarget(input.agent);
+  const visibilityScope = permissionToVisibilityScope(
+    options.userPermissionLevel,
+  );
 
   if (!normalized.ok) {
-    return { success: false, error: normalized.error };
+    // A saved contact's name, such as "Brain Labs", is no agent id.
+    const named = deps.entityService
+      ? await savedAgentNamed(deps.entityService, input.agent, visibilityScope)
+      : undefined;
+    if (typeof named === "string") return { success: false, error: named };
+    if (!named) return { success: false, error: normalized.error };
   }
-  const { agentId } = normalized;
 
   if (!deps.entityService) {
     return {
@@ -660,14 +660,31 @@ export async function executeAgentCall(
     };
   }
 
-  const entity = await deps.entityService.getEntity({
-    entityType: "agent",
-    id: agentId,
-    visibilityScope: internalFullScope(
-      "agent_call is admin-only and resolves saved remote agents at any visibility",
-    ),
-  });
+  // A saved agent is known only to callers who may read it: anyone else
+  // meets an unsaved domain, without its saved status.
+  let agentId = normalized.ok ? normalized.agentId : input.agent.trim();
+  let entity = normalized.ok
+    ? await deps.entityService.getEntity({
+        entityType: "agent",
+        id: agentId,
+        visibilityScope,
+      })
+    : null;
   signal?.throwIfAborted();
+  if (!entity && !isExactDomainLikeAgentId(agentId)) {
+    // A contact named as the user calls it: a person or an organization.
+    const named = await savedAgentNamed(
+      deps.entityService,
+      input.agent,
+      visibilityScope,
+    );
+    signal?.throwIfAborted();
+    if (typeof named === "string") return { success: false, error: named };
+    if (named) {
+      entity = named;
+      agentId = named.id;
+    }
+  }
   if (!entity) {
     if (options.requireSaved) {
       return {
@@ -684,14 +701,17 @@ export async function executeAgentCall(
       };
     }
 
-    const cardBaseUrl = `https://${agentId}`;
-    const card = await fetchAgentCard(
-      cardBaseUrl,
-      fetchFn,
-      networkOptions.requestTimeoutMs,
+    const verified = await fetchVerifiedAgentCard(agentId, {
+      fetch: fetchFn,
+      timeoutMs: networkOptions.requestTimeoutMs,
       signal,
-    );
-    if (!card) {
+    });
+    if (!verified.ok) {
+      // The endpoint must be HTTPS on the agent's own host: anything else is
+      // an SSRF vector, refused in words that name both hosts.
+      if (isEndpointRefusal(verified.reason)) {
+        return { success: false, error: verified.error };
+      }
       return {
         success: false,
         error: `Could not verify an A2A Agent Card for ${agentId}. Connect/save it first if you want to add it to the directory.`,
@@ -699,13 +719,8 @@ export async function executeAgentCall(
       };
     }
 
-    const oneShotEndpoint = validateCardEndpoint(card.url, agentId);
-    if (!oneShotEndpoint.ok) {
-      return { success: false, error: oneShotEndpoint.error };
-    }
-
     const oneShotResult = await sendMessage(
-      card.url,
+      verified.card.url,
       input.message,
       fetchFn,
       deps.requestSigner,
@@ -723,7 +738,11 @@ export async function executeAgentCall(
           ...baseData,
           agentCall: { mode: "one-shot", agent: agentId },
           agentContactCandidate: {
-            source: { kind: "url", url: normalized.sourceUrl ?? agentId },
+            source: {
+              kind: "url",
+              url:
+                (normalized.ok ? normalized.sourceUrl : undefined) ?? agentId,
+            },
           },
         },
       };
@@ -747,27 +766,23 @@ export async function executeAgentCall(
     };
   }
 
-  const cardBaseUrl = `https://${agentId}`;
-  const card = await fetchAgentCard(
-    cardBaseUrl,
-    fetchFn,
-    networkOptions.requestTimeoutMs,
+  const verified = await fetchVerifiedAgentCard(agentId, {
+    fetch: fetchFn,
+    timeoutMs: networkOptions.requestTimeoutMs,
     signal,
-  );
-  if (!card) {
+  });
+  if (!verified.ok) {
+    if (isEndpointRefusal(verified.reason)) {
+      return { success: false, error: verified.error };
+    }
     return {
       success: false,
-      error: `Could not fetch Agent Card from ${cardBaseUrl}`,
+      error: `Could not fetch Agent Card from https://${agentId}`,
     };
   }
 
-  const approvedEndpoint = validateCardEndpoint(card.url, agentId);
-  if (!approvedEndpoint.ok) {
-    return { success: false, error: approvedEndpoint.error };
-  }
-
   return sendMessage(
-    card.url,
+    verified.card.url,
     input.message,
     fetchFn,
     deps.requestSigner,
@@ -781,7 +796,7 @@ export function createAgentCallTool(deps: A2AClientDeps = {}): Tool {
   return {
     name: "agent_call",
     description:
-      "Call a remote A2A agent by exact domain-like target or saved local agent id. A domain-like id is bare text with a dot and no slash/protocol, such as yeehaa.io, docs.rizom.ai, or save-it-regression.example; .example test domains are exact domain-like ids. When the user asks to ask, message, talk to, or contact that id, asks what it has to say, or asks that agent for its skills/capabilities, call this tool directly in the same turn with no system_list/system_get preflight: the tool reports structured errors such as invalid Agent Card, not approved, or archived. Do not stop after listing the agent, drafting the question, searching local content, or reading its saved entity. If the user provides an HTTPS URL such as https://docs.rizom.ai/a2a, pass only the hostname docs.rizom.ai. Never pass a full URL, a display name like Brain, or a non-HTTPS URL; for a non-HTTPS URL, ask for the HTTPS agent URL or exact id instead. For saved agents, the tool enforces approved/not-archived status before network contact; a discovered but not approved agent must be approved first, so do not call it. For unsaved exact domains, the tool verifies the A2A Agent Card over HTTPS and may perform a one-shot call without saving; after success you may offer to save/connect it, but never auto-save. Answer from the agent's response without supplementing it with reads of the agent entity unless the user asks for its directory/profile details, and never save the user's question as a note in the same turn. If the call fails (auth, network, an invalid or unverifiable Agent Card, an unavailable agent), report that failure directly: do not say the agent was saved or connected, do not answer from memory, local docs, or general knowledge, and do not create a wish, reminder, todo, note, or other entity; you may offer to add the contact using the word add. Each new turn that asks the same id something, including short follow-ups like 'tell me more' and even after a refusal or error, needs its own fresh call with that same id. If a name matches several saved agents, ask a concise clarification naming their ids and end the turn without calling; never choose the first match.",
+      "Call a remote A2A agent by exact domain-like target, saved local agent id, or the name of a saved contact as the user calls it, such as Yeehaa. A domain-like id is bare text with a dot and no slash/protocol, such as partner-brain.example or save-it-regression.example; .example test domains are exact domain-like ids. When the user asks to ask, message, talk to, or contact that id, asks what it has to say, or asks that agent for its skills/capabilities, call this tool directly in the same turn with no system_list/system_get preflight: the tool reports structured errors such as invalid Agent Card, not approved, or archived. Do not stop after listing the agent, drafting the question, searching local content, or reading its saved entity. If the user provides an HTTPS URL such as https://docs.example/a2a, pass only the hostname docs.example. Never pass a full URL, a brain's display name like Brain, or a non-HTTPS URL; for a non-HTTPS URL, ask for the HTTPS agent URL or exact id instead. For saved agents, the tool enforces approved/not-archived status before network contact; a discovered but not approved agent must be approved first, so do not call it. For unsaved exact domains, the tool verifies the A2A Agent Card over HTTPS and may perform a one-shot call without saving; after success you may offer to save/connect it, but never auto-save. Answer from the agent's response without supplementing it with reads of the agent entity unless the user asks for its directory/profile details, and never save the user's question as a note in the same turn. If the call fails (auth, network, an invalid or unverifiable Agent Card, an unavailable agent), report that failure directly: do not say the agent was saved or connected, do not answer from memory, local docs, or general knowledge, and do not create a wish, reminder, todo, note, or other entity; you may offer to add the contact using the word add. Each new turn that asks the same id something, including short follow-ups like 'tell me more' and even after a refusal or error, needs its own fresh call with that same id. If a name matches several saved agents, ask a concise clarification naming their ids and end the turn without calling; never choose the first match.",
     inputSchema: a2aCallInputSchema,
     visibility: "trusted",
     sideEffects: "external",
@@ -794,6 +809,7 @@ export function createAgentCallTool(deps: A2AClientDeps = {}): Tool {
         };
       }
       return executeAgentCall(parsed.data, deps, {
+        userPermissionLevel: context.userPermissionLevel,
         ...(context.signal ? { signal: context.signal } : {}),
       });
     },

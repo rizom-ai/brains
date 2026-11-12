@@ -1,3 +1,7 @@
+import type {
+  AttachAuthIdentityInput,
+  ResolveAuthIdentityInput,
+} from "@brains/contracts";
 import { sha256Hex } from "@brains/utils/hash";
 import { createPrefixedId } from "@brains/utils/id";
 import { and, eq, isNotNull, isNull, sql } from "drizzle-orm";
@@ -23,8 +27,6 @@ export const AUTH_RESERVED_IDENTITY_TYPES = [
   "mcp",
 ] as const;
 
-const LEGACY_CHANNEL_IDENTITY_TYPES = ["email", "discord"] as const;
-
 export interface AuthIdentityStoreOptions {
   isChannelTypeRegistered?: (type: string) => boolean;
 }
@@ -32,24 +34,6 @@ export interface AuthIdentityStoreOptions {
 export interface AuthIdentityRecord extends AuthIdentity {
   evidence: AuthIdentityEvidence[];
   verifiedAt: number | null;
-}
-
-export interface AttachAuthIdentityInput {
-  userId: string;
-  type: AuthIdentityType;
-  subject: string;
-  issuer?: string;
-  deliverySubject?: string;
-  label?: string;
-  visibility?: AuthIdentityVisibility;
-  verifiedAt?: number;
-  source?: { kind: AuthIdentitySourceKind; id?: string };
-}
-
-export interface ResolveAuthIdentityInput {
-  type: AuthIdentityType;
-  subject: string;
-  issuer?: string;
 }
 
 export type AuthIdentityLookupResult =
@@ -341,11 +325,7 @@ export function assertValidIdentityType(
 ): void {
   if (
     AUTH_RESERVED_IDENTITY_TYPES.some((reserved) => reserved === type) ||
-    (isChannelTypeRegistered
-      ? isChannelTypeRegistered(type)
-      : LEGACY_CHANNEL_IDENTITY_TYPES.some(
-          (channelType) => channelType === type,
-        ))
+    (isChannelTypeRegistered?.(type) ?? false)
   ) {
     return;
   }

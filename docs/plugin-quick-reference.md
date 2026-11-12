@@ -7,7 +7,7 @@ Use this checklist when choosing a declarative extension family. For package and
 | Need                                                          | Entry point               | Use                                                             |
 | ------------------------------------------------------------- | ------------------------- | --------------------------------------------------------------- |
 | Durable markdown-backed entities and deterministic derivation | `@rizom/brain/entities`   | `defineEntity()`, `defineProjection()`, `defineEntityPackage()` |
-| Tools, resources, prompts, templates, views, or durable jobs  | `@rizom/brain/services`   | `defineServicePlugin()`, `defineTool()`, `defineJob()`          |
+| Tools, resources, prompts, templates, or durable jobs         | `@rizom/brain/services`   | `defineServicePlugin()`, `defineTool()`, `defineJob()`          |
 | HTTP routes or supervised event listeners                     | `@rizom/brain/interfaces` | `defineInterface()`, `defineRoute()`, `defineDaemon()`          |
 | Conversational or outbound channels                           | `@rizom/brain/interfaces` | `defineMessageInterface()`                                      |
 | Site layouts, routes, sections, content, and assets           | `@rizom/site`             | `defineSite()`, `defineSection()`, `sectionGroup()`             |
@@ -40,25 +40,29 @@ Declare one config schema. `use()` and `brain.yaml` accept its inferred input; d
 ```ts
 import { defineServicePlugin, defineTool, z } from "@rizom/brain/services";
 
-export default defineServicePlugin({
-  id: "demo",
-  config: z.object({ greeting: z.string().default("Hello") }),
-  setup: ({ config }) => ({
-    greet: (name: string) => `${config.greeting}, ${name}`,
-  }),
-  tools: ({ state }) => [
-    defineTool({
-      name: "greet",
-      description: "Return a greeting.",
-      input: z.object({ name: z.string() }),
-      output: z.object({ message: z.string() }),
-      execute: ({ input }) => ({ message: state.greet(input.name) }),
+export default defineServicePlugin(
+  {
+    id: "demo",
+    config: z.object({ greeting: z.string().default("Hello") }),
+    setup: ({ config }) => ({
+      greet: (name: string) => `${config.greeting}, ${name}`,
     }),
-  ],
-});
+  },
+  {
+    tools: ({ state }) => [
+      defineTool({
+        name: "greet",
+        description: "Return a greeting.",
+        input: z.object({ name: z.string() }),
+        output: z.object({ message: z.string() }),
+        execute: ({ input }) => ({ message: state.greet(input.name) }),
+      }),
+    ],
+  },
+);
 ```
 
-Package name, version, and runtime capability scoping are loader-owned.
+The first argument says what the package is and sets up the `state` it holds; the second says what it does with that state. Package name, version, and runtime capability scoping are loader-owned.
 
 ## Templates and entity data
 
@@ -71,7 +75,11 @@ and call the service-local formatter:
 ```ts
 const saved = await entities.get(bookmark, input.bookmarkId);
 if (!saved) {
-  throw new Error(`Bookmark not found: ${input.bookmarkId}`);
+  // The code reaches whoever reads the job's status; the message stays
+  // with the brain's diagnostics.
+  throw new SdkError("not_found", {
+    message: `Bookmark not found: ${input.bookmarkId}`,
+  });
 }
 
 const result = state.summarize(saved.id, saved.metadata.title, saved.content);
@@ -82,21 +90,20 @@ await progress.report({
   message: "Digest ready",
 });
 // Entity data reaches the template only through the declared render schema.
-await messaging.publish({
-  topic: "digest-ready",
-  data: { ...result, markdown: templates.format("digest", result) },
+await messaging.publish(digestReady, {
+  ...result,
+  markdown: templates.format("digest", result),
 });
 ```
 
 Declare `digest` under the owning service's `templates` field. The runtime
-validates `value` against that template's schema before formatting it. A service
-`view` adds web rendering and must reuse the exact schema object when it shares
-the template key.
+validates `value` against that template's schema before formatting it. The same
+template renders on the web when it declares `renderers.web`, a component given
+the parsed value as props.
 
 Do not confuse service templates with an entity's persistence `markdown` codec
-or a site's `namespace:section` route template. The generic
-`@rizom/brain/templates` subpath remains an advanced exact-version API. See
-[Entity data, templates, and views](./external-plugin-authoring.md#entity-data-templates-and-views)
+or a site's `namespace:section` route template. See
+[Entity data and templates](./external-plugin-authoring.md#entity-data-and-templates)
 for the complete rules and checked reference.
 
 ## Lifecycle ownership

@@ -2,16 +2,21 @@ import { rm } from "node:fs/promises";
 import { createTempDir } from "@brains/test-utils";
 import { join } from "node:path";
 import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
-import { ImagePlugin } from "../src/image-plugin";
+import { imagePlugin, type ImageEntityPlugin } from "./image-plugin";
+import {
+  imageGenerateJobContract,
+  imageRenderSourceJobContract,
+} from "@brains/contracts";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { JobHandler } from "@brains/plugins";
 import { CallbackProgressReporter } from "@brains/utils/progress";
 
 describe("ImagePlugin", () => {
   let harness: ReturnType<typeof createPluginHarness>;
-  let plugin: ImagePlugin;
+  let plugin: ImageEntityPlugin;
   let enqueuedJobs: Array<{ type: string; data: unknown; options?: unknown }>;
   let registeredHandlers: Map<string, JobHandler>;
+  let capabilities: Awaited<ReturnType<typeof harness.installPlugin>>;
 
   beforeEach(async () => {
     enqueuedJobs = [];
@@ -32,8 +37,8 @@ describe("ImagePlugin", () => {
       },
       getHandler: (type) => registeredHandlers.get(type),
     });
-    plugin = new ImagePlugin();
-    await harness.installPlugin(plugin);
+    plugin = imagePlugin();
+    capabilities = await harness.installPlugin(plugin);
   });
 
   afterEach(async () => {
@@ -52,8 +57,8 @@ describe("ImagePlugin", () => {
     ).toBe("data-url");
   });
 
-  it("should return zero tools", async () => {
-    const capabilities = await harness.installPlugin(plugin);
+  it("should return zero tools", () => {
+    // A type has one registration, so the plugin installed once is the one read.
     expect(capabilities.tools).toHaveLength(0);
   });
 
@@ -62,6 +67,16 @@ describe("ImagePlugin", () => {
       .getEntityRegistry()
       .getCreateInterceptor("image");
     expect(interceptor).toBeDefined();
+  });
+
+  it("registers each image job once, under its contract", () => {
+    expect([...registeredHandlers.keys()].sort()).toEqual(
+      [
+        imageGenerateJobContract.type,
+        imageRenderSourceJobContract.type,
+        "image:upload-promote",
+      ].sort(),
+    );
   });
 
   it("should register an image upload-save handler", () => {

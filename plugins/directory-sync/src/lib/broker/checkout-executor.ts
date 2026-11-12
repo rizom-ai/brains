@@ -49,7 +49,10 @@ export interface CheckoutExecutorOptions {
   timeoutMs: number;
   authorName?: string | undefined;
   authorEmail?: string | undefined;
-  /** Deterministic completion-boundary fault used by real-process recovery tests. */
+  /**
+   * Runs inside the turn once the operation itself has returned. In-process
+   * tests hold it to keep a turn owned after its work has landed.
+   */
   afterOperation?: ((operation: GitOperation) => Promise<void>) | undefined;
 }
 
@@ -95,9 +98,8 @@ export class CheckoutOperationExecutor {
     return this.#queue.run(async () => {
       runOptions.onStart?.();
       const value = await this.#dispatch(operation, runOptions);
-      // This seam is after the adapter returned: a fault here reproduces the
-      // affected Bun shape where Git exited and changed the checkout but the
-      // completion observed by the owner never settles.
+      // After the adapter returned, still inside the turn: holding here keeps
+      // the turn owned by an operation that has already changed the checkout.
       await this.#options.afterOperation?.(operation);
       return parseGitOperationResult<TOperation["name"]>(operation.name, value);
     }, runOptions.signal);
@@ -125,9 +127,8 @@ export class CheckoutOperationExecutor {
   /**
    * Network settings for one operation, including its progress signal.
    *
-   * Only `pull` used to carry it, so a clone or a push that ran longer
-   * than the stale-progress policy was terminated for making no progress
-   * while transferring perfectly well.
+   * Only `pull` used to carry it, so a clone or a push that ran long looked
+   * stalled to the role waiting on it while transferring perfectly well.
    */
   #netFor(runOptions: OperationRunOptions): {
     baseDir: string;

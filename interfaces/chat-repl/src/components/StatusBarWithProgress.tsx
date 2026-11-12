@@ -1,7 +1,7 @@
 /** @jsxImportSource react */
 import React, { useState, useEffect, useRef } from "react";
 import { Box, Text } from "ink";
-import type { JobProgressEvent } from "@brains/job-queue";
+import type { JobProgressEvent } from "@brains/sdk/internal/interface-runtime";
 import { ProgressBar } from "./ProgressBar";
 
 interface StatusBarWithProgressProps {

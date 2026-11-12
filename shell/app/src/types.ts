@@ -5,7 +5,9 @@ import {
   type Plugin,
 } from "@brains/plugins";
 import {
+  httpSettingsSchema,
   logLevelSchema,
+  providerKeysSchema,
   reasoningEffortSchema,
   type Shell,
 } from "@brains/core";
@@ -16,104 +18,28 @@ export { logLevelSchema, reasoningEffortSchema } from "@brains/core";
 export type ReasoningEffort = z.output<typeof reasoningEffortSchema>;
 export type LogLevel = z.output<typeof logLevelSchema>;
 
-type ProviderToggleSchema = z.ZodPrefault<
-  z.ZodObject<{
-    enabled: z.ZodDefault<z.ZodBoolean>;
-    provider: z.ZodDefault<z.ZodEnum<{ bunny: "bunny"; none: "none" }>>;
-  }>
->;
-
-type DeploymentConfigSchema = z.ZodObject<{
-  provider: z.ZodDefault<z.ZodEnum<{ hetzner: "hetzner"; docker: "docker" }>>;
-  serverSize: z.ZodDefault<z.ZodString>;
-  location: z.ZodDefault<z.ZodString>;
-  domain: z.ZodOptional<z.ZodString>;
-  docker: z.ZodPrefault<
-    z.ZodObject<{
-      enabled: z.ZodDefault<z.ZodBoolean>;
-      image: z.ZodOptional<z.ZodString>;
-    }>
-  >;
-  ports: z.ZodPrefault<
-    z.ZodObject<{
-      default: z.ZodDefault<z.ZodNumber>;
-      preview: z.ZodDefault<z.ZodNumber>;
-      production: z.ZodDefault<z.ZodNumber>;
-    }>
-  >;
-  cdn: ProviderToggleSchema;
-  dns: ProviderToggleSchema;
-  paths: z.ZodPrefault<
-    z.ZodObject<{
-      install: z.ZodOptional<z.ZodString>;
-      data: z.ZodOptional<z.ZodString>;
-    }>
-  >;
-}>;
-
-// Deployment configuration schema
-// This consolidates all deployment settings that were previously in deploy.config.json
-export const deploymentConfigSchema: DeploymentConfigSchema = z.object({
-  // Server configuration
-  provider: z.enum(["hetzner", "docker"]).default("hetzner"),
-  serverSize: z.string().default("cx33"),
-  location: z.string().default("fsn1"),
-
-  // Domain
-  domain: z.string().optional(),
-
-  // Docker configuration
-  docker: z
-    .object({
-      enabled: z.boolean().default(true),
-      image: z.string().optional(), // defaults to app name
-    })
-    .prefault({}),
-
-  // Port configuration (also used by WebserverInterface)
-  ports: z
-    .object({
-      default: z.number().default(3333),
-      preview: z.number().default(4321),
-      production: z.number().default(8080),
-    })
-    .prefault({}),
-
-  // CDN configuration
-  cdn: z
-    .object({
-      enabled: z.boolean().default(false),
-      provider: z.enum(["bunny", "none"]).default("none"),
-    })
-    .prefault({}),
-
-  // DNS configuration
-  dns: z
-    .object({
-      enabled: z.boolean().default(false),
-      provider: z.enum(["bunny", "none"]).default("none"),
-    })
-    .prefault({}),
-
-  // Paths (with sensible defaults based on app name)
-  paths: z
-    .object({
-      install: z.string().optional(), // defaults to /opt/{app-name}
-      data: z.string().optional(), // defaults to /opt/{app-name}/data
-    })
-    .prefault({}),
-});
-
-export type DeploymentConfig = z.output<typeof deploymentConfigSchema>;
-export type DeploymentConfigInput = z.input<typeof deploymentConfigSchema>;
+export {
+  deploymentConfigSchema,
+  type DeploymentConfig,
+  type DeploymentConfigInput,
+} from "@brains/sdk/internal/brain-config";
+import {
+  deploymentConfigSchema,
+  type DeploymentConfig,
+  type DeploymentConfigInput,
+} from "@brains/sdk/internal/brain-config";
 
 type AppConfigSchema = z.ZodObject<{
   name: z.ZodDefault<z.ZodString>;
   version: z.ZodDefault<z.ZodString>;
   database: z.ZodOptional<z.ZodString>;
-  aiApiKey: z.ZodOptional<z.ZodString>;
-  aiImageKey: z.ZodOptional<z.ZodString>;
+  aiProviderKeys: z.ZodOptional<typeof providerKeysSchema>;
   aiModel: z.ZodOptional<z.ZodString>;
+  aiEmbeddingModel: z.ZodOptional<z.ZodString>;
+  aiModelRuntimeUrl: z.ZodOptional<z.ZodString>;
+  aiAnswerModel: z.ZodOptional<z.ZodString>;
+  aiVisionModel: z.ZodOptional<z.ZodString>;
+  aiImageModel: z.ZodOptional<z.ZodString>;
   aiReasoningEffort: z.ZodOptional<typeof reasoningEffortSchema>;
   logLevel: z.ZodOptional<typeof logLevelSchema>;
   logFile: z.ZodOptional<z.ZodString>;
@@ -123,6 +49,7 @@ type AppConfigSchema = z.ZodObject<{
   identity: z.ZodOptional<typeof BrainCharacterSchema>;
   agentInstructions: z.ZodOptional<z.ZodArray<z.ZodString>>;
   deployment: z.ZodPrefault<typeof deploymentConfigSchema>;
+  http: z.ZodPrefault<typeof httpSettingsSchema>;
 }>;
 
 // App config focuses on app-level concerns, plugins come from Shell
@@ -131,9 +58,13 @@ export const appConfigSchema: AppConfigSchema = z.object({
   version: z.string().default("1.0.0"),
   // These map directly to Shell config but with simpler names
   database: z.string().optional(), // Maps to database.url in Shell
-  aiApiKey: z.string().optional(), // Maps to ai.apiKey in Shell
-  aiImageKey: z.string().optional(), // Optional override for image generation
+  aiProviderKeys: providerKeysSchema.optional(), // Each provider's key; maps to ai.providerKeys in Shell
   aiModel: z.string().optional(), // AI model — determines provider (e.g. "gpt-4o-mini", "openai:gpt-4o")
+  aiEmbeddingModel: z.string().optional(), // Embedding model, "provider:model"
+  aiModelRuntimeUrl: z.string().optional(), // Model runtime serving local: models
+  aiAnswerModel: z.string().optional(), // Local model answering tool results
+  aiVisionModel: z.string().optional(), // Local model describing images
+  aiImageModel: z.string().optional(), // Image model, "provider:model"
   aiReasoningEffort: reasoningEffortSchema.optional(),
   logLevel: logLevelSchema.optional(), // Maps to logging.level
   logFile: z.string().optional(), // Maps to logging.file
@@ -149,6 +80,8 @@ export const appConfigSchema: AppConfigSchema = z.object({
   agentInstructions: z.array(z.string()).optional(),
   // Deployment configuration
   deployment: deploymentConfigSchema.prefault({}),
+  // The runtime's HTTP host; it listens on deployment.ports.production
+  http: httpSettingsSchema.prefault({}),
 });
 
 type AppConfigSchemaOutput = Omit<

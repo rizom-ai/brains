@@ -2,10 +2,10 @@ import { createMockShell } from "../../src/test/mock-shell";
 import { describe, it, expect, mock } from "bun:test";
 import { z } from "@brains/utils/zod";
 import type { BaseMessage } from "@brains/messaging-service";
-import { defineChannel, isChannel } from "../../src/utils/channels";
+import { defineChannel } from "../../src";
 import { createBasePluginContext } from "../../src/base/context";
 
-import { createSilentLogger } from "@brains/test-utils";
+import { createMockLogger, createSilentLogger } from "@brains/test-utils";
 
 describe("Typed Message Channels", () => {
   describe("defineChannel", () => {
@@ -15,22 +15,6 @@ describe("Typed Message Channels", () => {
 
       expect(channel.name).toBe("test-channel");
       expect(channel.schema).toBe(schema);
-    });
-  });
-
-  describe("isChannel", () => {
-    it("should return true for Channel objects", () => {
-      const channel = defineChannel("test", z.object({}));
-      expect(isChannel(channel)).toBe(true);
-    });
-
-    it("should return false for strings", () => {
-      expect(isChannel("test-channel")).toBe(false);
-    });
-
-    it("should return false for null and undefined", () => {
-      expect(isChannel(null)).toBe(false);
-      expect(isChannel(undefined)).toBe(false);
     });
   });
 
@@ -100,6 +84,32 @@ describe("Typed Message Channels", () => {
       });
 
       expect(handler).not.toHaveBeenCalled();
+    });
+
+    it("refuses an invalid payload to the sender and logs a warning", async () => {
+      const warnings = createMockLogger();
+      const shell = createMockShell({ logger: warnings });
+      const context = createBasePluginContext(shell, "test-plugin");
+      const channel = defineChannel(
+        "publish:completed",
+        z.object({ entityId: z.string(), entityType: z.string() }),
+      );
+      context.messaging.subscribe(channel, async () => ({ success: true }));
+
+      const response = await shell.getMessageBus().send({
+        type: "publish:completed",
+        payload: { entityId: "123" },
+        sender: "other-plugin",
+      });
+
+      expect(response).toEqual({
+        success: false,
+        error: "Invalid publish:completed payload",
+      });
+      expect(warnings.warn).toHaveBeenCalledWith(
+        "Refused an invalid publish:completed payload",
+        expect.objectContaining({ error: expect.any(String) }),
+      );
     });
 
     it("should pass base message metadata as second argument", async () => {

@@ -7,7 +7,7 @@ The Brains repository is a monorepo with seven workspace directories (`shell/`, 
 ```
 brains/
 ├── shell/              # Core infrastructure & services
-├── shared/             # Shared utilities, themes, UI components
+├── shared/             # Shared utilities, themes, site engine
 ├── entities/           # Content type definitions (entity plugins)
 ├── plugins/            # Service plugins (tools + integrations)
 ├── interfaces/         # User interaction layers (chat, web, MCP)
@@ -22,6 +22,7 @@ A running brain is driven by a lightweight _instance directory_ centered on `bra
 | Package                      | Purpose                                                                 |
 | ---------------------------- | ----------------------------------------------------------------------- |
 | `shell/core`                 | Plugin lifecycle, daemon registry, initialization                       |
+| `shell/http-host`            | The one HTTP listener: site, preview, images, routes, split health      |
 | `shell/app`                  | Brain resolver, CLI runner, brain.yaml parsing                          |
 | `shell/plugins`              | Base plugin classes, context types, test harnesses                      |
 | `shell/entity-service`       | Entity CRUD, search, vector embeddings, frontmatter                     |
@@ -42,7 +43,6 @@ A running brain is driven by a lightweight _instance directory_ centered on `bra
 | -------------------------- | -------------------------------------------------------------------------- |
 | `shared/utils`             | Zod, slugify, markdown, YAML, logging, IDs, and other low-level primitives |
 | `shared/contracts`         | Shared result, job progress, and publish contracts                         |
-| `shared/ui-library`        | React components (Header, Footer, Cards, CTA)                              |
 | `shared/site-composition`  | Shared site composition contract and merge helpers                         |
 | `shared/site-engine`       | Renderer-agnostic site build engine utilities                              |
 | `shared/theme-base`        | `composeTheme()`, shared CSS utilities, Tailwind setup                     |
@@ -72,7 +72,6 @@ Entity plugins define content types with schemas, adapters, generation handlers,
 | `entities/image`               | AI-generated images                                 |
 | `entities/series`              | Derived from posts                                  |
 | `entities/prompt`              | Editable AI prompts                                 |
-| `entities/site-info`           | Site metadata                                       |
 | `entities/agent-discovery`     | Agent + skill entities (A2A)                        |
 | `entities/assessment`          | Derived assessment outputs (SWOT)                   |
 | `entities/doc`                 | Generic docs entity backing `/docs`                 |
@@ -92,9 +91,11 @@ Plugins that provide MCP tools, orchestration, or infrastructure operations.
 | `plugins/analytics`        | Cloudflare analytics + query tool                                |
 | `plugins/dashboard`        | Widget system                                                    |
 | `plugins/directory-sync`   | File + git sync                                                  |
+| `plugins/knowledge-map`    | Semantic map of the corpus: site section + Dashboard widget      |
 | `plugins/obsidian-vault`   | Obsidian template generation                                     |
 | `plugins/stock-photo`      | Unsplash stock photo search                                      |
 | `plugins/site-content`     | Site section content generation                                  |
+| `plugins/site-info`        | Compound site-info singleton + site metadata service             |
 | `plugins/atproto`          | AT Protocol identity, publishing, discovery, feeds               |
 | `plugins/atproto-registry` | Canonical Rizom AT Protocol lexicon registry                     |
 | `plugins/notifications`    | Notification routing for transactional + administrative messages |
@@ -103,15 +104,14 @@ Note: system tools (create/update/delete/search/status) are registered directly 
 
 ## Interfaces
 
-| Package                | Purpose                                                                                             |
-| ---------------------- | --------------------------------------------------------------------------------------------------- |
-| `interfaces/chat-repl` | Interactive Ink-based chat REPL                                                                     |
-| `interfaces/chat`      | Discord + Slack chat bot via the Chat SDK                                                           |
-| `interfaces/email`     | Outbound-first Email interface with configurable Resend transport                                   |
-| `interfaces/mcp`       | Model Context Protocol (stdio + HTTP)                                                               |
-| `interfaces/web-chat`  | Guest-facing in-browser chat surface (default route `/ask`); shared Chat APIs                       |
-| `interfaces/webserver` | In-process Hono server: site pages, dashboard/Studio routes, API routes, and split health endpoints |
-| `interfaces/a2a`       | Agent-to-Agent JSON-RPC (Agent Card, non-blocking tasks)                                            |
+| Package                | Purpose                                                                       |
+| ---------------------- | ----------------------------------------------------------------------------- |
+| `interfaces/chat-repl` | Interactive Ink-based chat REPL                                               |
+| `interfaces/chat`      | Discord + Slack chat bot via the Chat SDK                                     |
+| `interfaces/email`     | Outbound-first Email interface with configurable Resend transport             |
+| `interfaces/mcp`       | Model Context Protocol (stdio + HTTP)                                         |
+| `interfaces/web-chat`  | Guest-facing in-browser chat surface (default route `/ask`); shared Chat APIs |
+| `interfaces/a2a`       | Agent-to-Agent JSON-RPC (Agent Card, non-blocking tasks)                      |
 
 ## Sites
 
@@ -136,6 +136,7 @@ Standalone published packages.
 | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `packages/brain-cli`  | `@rizom/brain` — the published CLI: `brain init`, `brain start`, `brain diagnostics`, `brain eval`, `brain pin`. Bundles the runtime while `brain init` scaffolds the instance-local support files an app needs. |
 | `packages/brains-ops` | `@rizom/ops` — operator CLI for private fleets: wildcard TLS bootstrap, age-encrypted per-user secrets, content repo auto-create, and multi-user deploy management.                                              |
+| `packages/ui`         | `@rizom/brain-ui` — React components for sites and plugin views. Its public entry is the stable set in the authoring ledger; `@rizom/brain-ui/internal` holds the first-party components and is not published.   |
 
 ## App instances (lightweight instance directories, NOT a workspace category)
 

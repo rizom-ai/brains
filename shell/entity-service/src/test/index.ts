@@ -16,7 +16,11 @@ export {
   type MockEntityServiceOptions,
   type MockEntityServiceReturns,
 } from "./mock-entity-service";
-export { spyOnEntityCreate, spyOnEntityGet } from "./spy-on-entity-service";
+export {
+  spyOnEntityCreate,
+  spyOnEntityGet,
+  spyOnEntityGetRaw,
+} from "./spy-on-entity-service";
 export {
   createTestEntityAdapter,
   type TestEntityAdapterOptions,

@@ -1,5 +1,13 @@
+import { internalFullScope } from "./internal-scope";
 import { deleteEntityFts, insertEntityFts } from "./entity-fts";
-import { ENTITY_CHANNELS } from "@brains/contracts";
+import type { Channel } from "@brains/contracts";
+import { broadcastChannel } from "@brains/messaging-service";
+import {
+  entityCreatedChannel,
+  entityDeletedChannel,
+  entityUpdatedChannel,
+  type EntityChangePayload,
+} from "./entity-event-channels";
 import type { EntityDB } from "./db";
 import { EntityMutationReceiptStore } from "./entity-mutation-receipt-store";
 import {
@@ -416,7 +424,7 @@ export class EntityMutations {
     );
 
     await this.emitEntityEvent(
-      ENTITY_CHANNELS.created,
+      entityCreatedChannel,
       validatedEntity.entityType,
       finalId,
       {
@@ -462,7 +470,7 @@ export class EntityMutations {
     const priorData = await this.entityQueries.getEntityData(
       source.entityType,
       source.id,
-      "restricted",
+      internalFullScope("fold revision check, internal mutation"),
     );
     if (!priorData || entityRevision(priorData) !== source.expectedRevision) {
       throw new EntityWriteConflictError(source.entityType, source.id);
@@ -516,6 +524,21 @@ export class EntityMutations {
     return this.afterUpdateCommit(plan);
   }
 
+  /** The markdown an update replaces, when it is stored. */
+  private async storedContent(entity: BaseEntity): Promise<string | undefined> {
+    const rows = await this.db
+      .select({ content: entities.content })
+      .from(entities)
+      .where(
+        and(
+          eq(entities.id, entity.id),
+          eq(entities.entityType, entity.entityType),
+        ),
+      )
+      .limit(1);
+    return rows.at(0)?.content;
+  }
+
   /**
    * Validate and serialize an update, read the row it replaces, and settle
    * every check that can refuse or skip it before a transaction opens.
@@ -549,7 +572,9 @@ export class EntityMutations {
     const assertGroupingsCurrent =
       this.entityRegistry.captureGroupingWriteGuard(entity.entityType);
     // Validate and serialize first to compute the new content hash
-    const current = this.entitySerializer.withoutRetiredFields(entity);
+    const current = this.entitySerializer.withFrontmatterWrites(
+      this.entitySerializer.withoutRetiredFields(entity),
+    );
     const updatedEntity = {
       ...current,
       updated: new Date().toISOString(),
@@ -564,10 +589,14 @@ export class EntityMutations {
     await validatePersist(this.entityRegistry, validatedEntity, "update");
     options?.signal?.throwIfAborted();
 
+    const stored = this.entitySerializer.keepsStoredFrontmatter(validatedEntity)
+      ? await this.storedContent(validatedEntity)
+      : undefined;
     const { markdown, metadata } =
       this.entitySerializer.prepareEntityForStorage(
         validatedEntity,
         validatedEntity.entityType,
+        stored,
       );
 
     const contentHash = computeContentHash(markdown);
@@ -700,7 +729,7 @@ export class EntityMutations {
     );
     if (options?.eventContext) {
       await this.emitEntityEvent(
-        ENTITY_CHANNELS.updated,
+        entityUpdatedChannel,
         entity.entityType,
         entity.id,
         entity,
@@ -850,7 +879,7 @@ export class EntityMutations {
 
     if (fold)
       await this.emitEntityEvent(
-        ENTITY_CHANNELS.deleted,
+        entityDeletedChannel,
         fold.prior.entityType,
         fold.prior.id,
         fold.prior,
@@ -862,7 +891,7 @@ export class EntityMutations {
     );
 
     await this.emitEntityEvent(
-      ENTITY_CHANNELS.updated,
+      entityUpdatedChannel,
       entity.entityType,
       entity.id,
       entity,
@@ -936,7 +965,7 @@ export class EntityMutations {
     const priorData = await this.entityQueries.getEntityData(
       entityType,
       id,
-      "restricted",
+      internalFullScope("delete prior-state lookup, internal mutation"),
     );
     // A purged type is no longer registered: its rows have no adapter to parse.
     const prior =
@@ -1018,7 +1047,7 @@ export class EntityMutations {
     await this.notifyProjectionScheduler();
 
     await this.emitEntityEvent(
-      ENTITY_CHANNELS.deleted,
+      entityDeletedChannel,
       entityType,
       id,
       prior,
@@ -1096,7 +1125,7 @@ export class EntityMutations {
       targets.map(async (target) => {
         if (target.operation === "delete") {
           await this.emitEntityEvent(
-            ENTITY_CHANNELS.deleted,
+            entityDeletedChannel,
             target.entityType,
             target.entityId,
           );
@@ -1112,7 +1141,7 @@ export class EntityMutations {
           );
         }
         await this.emitEntityEvent(
-          ENTITY_CHANNELS.updated,
+          entityUpdatedChannel,
           target.entityType,
           target.entityId,
         );
@@ -1361,7 +1390,7 @@ export class EntityMutations {
    * Broadcast an entity lifecycle event via the message bus
    */
   private async emitEntityEvent(
-    event: string,
+    channel: Channel<EntityChangePayload>,
     entityType: string,
     entityId: string,
     entity?: BaseEntity,
@@ -1372,9 +1401,9 @@ export class EntityMutations {
       return;
     }
 
-    this.logger.debug(`Emitting ${event} for ${entityType}:${entityId}`);
+    this.logger.debug(`Emitting ${channel.name} for ${entityType}:${entityId}`);
 
-    const payload: Record<string, unknown> = {
+    const payload: EntityChangePayload = {
       entityType,
       entityId,
       ...(eventContext?.conversationId
@@ -1389,26 +1418,22 @@ export class EntityMutations {
       ...(eventContext?.interfaceType
         ? { interfaceType: eventContext.interfaceType }
         : {}),
+      ...(entity ? { entity: { ...entity } } : {}),
+      ...(previousMetadata ? { previousMetadata } : {}),
     };
-    if (entity) {
-      payload["entity"] = entity;
-    }
-    if (previousMetadata) {
-      payload["previousMetadata"] = previousMetadata;
-    }
 
     try {
-      await this.messageBus.send({
-        type: event,
-        payload: payload,
-        sender: "entity-service",
-        broadcast: true,
-      });
+      await broadcastChannel(
+        this.messageBus,
+        channel,
+        payload,
+        "entity-service",
+      );
     } catch (error) {
       // Lifecycle delivery is a wake-up optimization. The durable export and
       // projection journals remain available for startup/periodic recovery.
       this.logger.error(
-        `Failed to publish ${event} for ${entityType}:${entityId}`,
+        `Failed to publish ${channel.name} for ${entityType}:${entityId}`,
         error,
       );
     }

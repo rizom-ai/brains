@@ -1,10 +1,10 @@
 import { createHash } from "node:crypto";
+import { SdkError } from "@brains/contracts";
 import type {
-  IInboxFollowUpRegistry,
-  IInboxRegistry,
-  InboxActor,
   InboxSource,
-} from "@brains/plugins";
+  ServiceRuntime,
+} from "@brains/sdk/internal/service-runtime";
+import type { InboxActor } from "@brains/sdk/entities";
 import { sourceMetadata, type InboxDataSource } from "./inbox-datasource";
 import {
   normalizeInboxListFilter,
@@ -23,8 +23,8 @@ import {
   type InboxWorkspaceSnapshot,
 } from "./schemas";
 
-type InboxSourceRegistry = Pick<IInboxRegistry, "getSource" | "listSources">;
-type InboxFollowUpCatalog = Pick<IInboxFollowUpRegistry, "resolve">;
+type InboxSourceRegistry = ServiceRuntime["inbox"];
+type InboxFollowUpCatalog = ServiceRuntime["inboxFollowUps"];
 type InboxProjectionReader = Pick<InboxDataSource, "getInboxData">;
 
 interface SourceCounts {
@@ -186,7 +186,10 @@ export class InboxOperatorService {
       ? await findOfferedAction(source, request.itemId, request.actionId)
       : undefined;
     if (!source || !offered) {
-      throw new Error("Inbox item or action not found");
+      // Studio shows the operator a refusal by its code and public message.
+      throw new SdkError("not_found", {
+        publicMessage: "Inbox item or action not found",
+      });
     }
     return {
       summary: `${offered.action.label} "${offered.title}"?`,

@@ -5,6 +5,7 @@
     "moduleResolution": "Bundler",
     "strict": true,
     "skipLibCheck": false,
+    "types": [],
     "noEmit": true
   },
   "include": ["import-smoke.ts"]

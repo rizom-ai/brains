@@ -1,6 +1,5 @@
 import { z } from "@brains/utils/zod";
-
-export const AGENT_CONTEXT_REQUEST_CHANNEL = "agent:context:request";
+import { defineBusContract, type BusContract } from "./bus-contract";
 
 type AgentContextPermissionLevelSchema = z.ZodEnum<{
   admin: "admin";
@@ -66,19 +65,38 @@ export type AgentContextResponseInput = z.input<
   typeof agentContextResponseSchema
 >;
 
-/**
- * Parse a context-provider response leniently: drop individual items that fail
- * validation instead of throwing the whole batch. A single malformed item (e.g.
- * an empty excerpt failing `content.min(1)`) must not discard every other piece
- * of retrieved memory for the turn.
- */
-export function parseAgentContextItems(data: unknown): AgentContextItem[] {
-  const envelope = z.object({ items: z.array(z.unknown()).default([]) });
-  const parsed = envelope.safeParse(data);
-  if (!parsed.success) return [];
+type AgentContextAnswerSchema = z.ZodObject<{
+  items: z.ZodPipe<
+    z.ZodDefault<z.ZodArray<z.ZodUnknown>>,
+    z.ZodTransform<AgentContextItem[], unknown[]>
+  >;
+}>;
 
-  return parsed.data.items.flatMap((item) => {
-    const result = agentContextItemSchema.safeParse(item);
-    return result.success ? [result.data] : [];
-  });
-}
+/**
+ * A provider's answer, read leniently: an item that fails validation (an
+ * empty excerpt failing `content.min(1)`, say) is dropped, and never costs
+ * the turn the rest of the provider's retrieved memory.
+ */
+export const agentContextAnswerSchema: AgentContextAnswerSchema = z.object({
+  items: z
+    .array(z.unknown())
+    .default([])
+    .transform((items) =>
+      items.flatMap((item) => {
+        const parsed = agentContextItemSchema.safeParse(item);
+        return parsed.success ? [parsed.data] : [];
+      }),
+    ),
+});
+
+/** Gather context for an agent turn from every plugin that keeps some. */
+export const agentContextContract: BusContract<
+  AgentContextRequestSchema,
+  AgentContextAnswerSchema,
+  "collect"
+> = defineBusContract({
+  channel: "agent:context:request",
+  request: agentContextRequestSchema,
+  response: agentContextAnswerSchema,
+  delivery: "collect",
+});

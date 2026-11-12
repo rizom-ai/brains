@@ -21,9 +21,10 @@ import {
   validateAtprotoRecord,
   type AtprotoBrainCardRecord,
 } from "@brains/atproto-contracts";
-import type { ServicePluginContext } from "@brains/plugins";
+import { createSilentLogger } from "@brains/test-utils";
+import type { AtprotoContext } from "../src/atproto-context";
 import { AtprotoPdsClient } from "../src/pds-client";
-import { atprotoPlugin } from "../src/plugin";
+import { AtprotoService } from "../src/plugin";
 
 const PDS_ENDPOINT =
   process.env["ATPROTO_PDS_ENDPOINT"] ?? "https://bsky.social";
@@ -128,19 +129,22 @@ async function main(): Promise<void> {
   const events: Array<{ type: string; payload: unknown }> = [];
   const context = {
     messaging: {
-      send: async (message: { type: string; payload: unknown }) => {
-        events.push({ type: message.type, payload: message.payload });
-        return { success: true };
+      broadcast: async (channel: { name: string }, payload: unknown) => {
+        events.push({ type: channel.name, payload });
       },
     },
-  } as unknown as ServicePluginContext;
+  } as unknown as AtprotoContext;
 
-  const plugin = atprotoPlugin({
-    enabled: true,
-    pdsEndpoint: PDS_ENDPOINT,
-    identifier: IDENTIFIER,
-    appPassword: APP_PASSWORD,
-  });
+  const plugin = new AtprotoService(
+    {
+      enabled: true,
+      pdsEndpoint: PDS_ENDPOINT,
+      identifier: IDENTIFIER,
+      appPassword: APP_PASSWORD,
+    },
+    {},
+    createSilentLogger(),
+  );
 
   // 2. seed a valid nested-schema card
   const good = validCard();

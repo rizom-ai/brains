@@ -221,8 +221,6 @@ type BatchOutcome =
 export class TopicExtractionRun {
   /** AI calls spent; the job stops calling at MAX_AI_CALLS. */
   calls = 0;
-  /** Topics created, removed or merged; announced when the job ends. */
-  changed = 0;
   private sources: SourceRef[] = [];
   private saved = new Map<string, TopicVote>();
   private failed = new Map<string, SourceFailure>();
@@ -419,7 +417,6 @@ export class TopicExtractionRun {
   private async removeTopic(id: string): Promise<void> {
     await this.deps.topics.deleteTopic(id);
     this.active = this.active.filter((topic) => topic.id !== id);
-    this.changed++;
   }
 
   /** A duplicate leaves, and its votes count for the topic it duplicates. */
@@ -605,7 +602,6 @@ export class TopicExtractionRun {
       slug: candidate.slug,
       title: candidate.title,
     });
-    this.changed++;
   }
 
   private async voteOn(

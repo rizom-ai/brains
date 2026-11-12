@@ -31,6 +31,7 @@ export const guideFrontmatterSchema: z.ZodObject<{
   recipe: z.ZodDefault<z.ZodNullable<typeof guideRecipeSchema>>;
   brings: z.ZodDefault<z.ZodNullable<z.ZodArray<z.ZodString>>>;
   section: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+  summary: z.ZodDefault<z.ZodNullable<z.ZodString>>;
   material: z.ZodArray<typeof guideMaterialSchema>;
 }> = z.object({
   title: z.string(),
@@ -48,6 +49,10 @@ export const guideFrontmatterSchema: z.ZodObject<{
    *  docs page can show each section's guides beside its docs. Absent reads
    *  as null; the guide is then listed on its own. */
   section: z.string().min(1).nullable().default(null),
+  /** A short line under the persona where a docs section lists the guide:
+   *  what the reader brings, where `for` is the guide's own opening. Absent
+   *  reads as null; the listing then shows the persona alone. */
+  summary: z.string().min(1).nullable().default(null),
   material: z.array(guideMaterialSchema),
 });
 

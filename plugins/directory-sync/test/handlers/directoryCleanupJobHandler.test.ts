@@ -1,11 +1,9 @@
 import { createMockServicePluginContext } from "@brains/plugins/test";
 import { describe, it, expect, mock, beforeEach } from "bun:test";
 import { DirectoryCleanupJobHandler } from "../../src/handlers/directoryCleanupJobHandler";
-import {
-  createSilentLogger,
-  createMockProgressReporter,
-} from "@brains/test-utils";
+import { createMockProgressReporter } from "@brains/test-utils";
 import { createMockDirectorySync } from "../fixtures";
+import { queuedJob } from "../queued-job";
 
 describe("DirectoryCleanupJobHandler", () => {
   let removeOrphanedEntitiesMock: ReturnType<typeof mock>;
@@ -18,7 +16,6 @@ describe("DirectoryCleanupJobHandler", () => {
     }));
 
     handler = new DirectoryCleanupJobHandler(
-      createSilentLogger("test"),
       createMockServicePluginContext(),
       createMockDirectorySync({
         removeOrphanedEntities: removeOrphanedEntitiesMock,
@@ -27,7 +24,7 @@ describe("DirectoryCleanupJobHandler", () => {
   });
 
   it("should validate correct job data", () => {
-    const result = handler.validateAndParse({});
+    const result = queuedJob("directory-cleanup", handler).validateAndParse({});
     expect(result).not.toBeNull();
   });
 

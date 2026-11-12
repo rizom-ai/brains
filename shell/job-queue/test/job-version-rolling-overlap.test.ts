@@ -195,22 +195,29 @@ describe("rolling deploy overlap on one queue database", () => {
       "the new worker to run new work",
     );
 
-    // Both web processes ask for the same singleton; it runs once.
+    // Both web processes ask for the same singleton; it runs once. The
+    // second asks a moment later, as a loaded runner may: a skip only joins
+    // a job still pending, and an exclusive singleton stays pending behind
+    // the old container's exclusive job however long that moment is.
     const singleton: Partial<JobOptions> = {
       deduplication: "skip",
       deduplicationKey: "sync",
     };
+    const firstAsk = await enqueue(
+      old,
+      "singleton",
+      "test:exclusive",
+      singleton,
+    );
+    await Bun.sleep(100);
     const asked = [
-      await enqueue(old, "singleton", "test:job", singleton),
-      await enqueue(next, "singleton", "test:job", singleton),
+      firstAsk,
+      await enqueue(next, "singleton", "test:exclusive", singleton),
     ];
     expect(new Set(asked).size).toBe(1);
     // An exclusive type stays exclusive across both containers.
     const exclusive = await enqueue(next, "exclusive-next", "test:exclusive");
-    await waitUntil(
-      async () => (await statusOf(next, asked[0] ?? "")) === "completed",
-      "the new worker to run the singleton",
-    );
+    expect(await statusOf(next, firstAsk)).toBe("pending");
     expect(await statusOf(next, exclusive)).toBe("pending");
 
     // The old worker keeps its session across many heartbeats.
@@ -222,8 +229,10 @@ describe("rolling deploy overlap on one queue database", () => {
       "the old worker to finish its in-flight job",
     );
     await waitUntil(
-      async () => (await statusOf(next, exclusive)) === "completed",
-      "the new worker to run the exclusive job once the old one settled",
+      async () =>
+        (await statusOf(next, firstAsk)) === "completed" &&
+        (await statusOf(next, exclusive)) === "completed",
+      "the new worker to run the exclusive jobs once the old one settled",
     );
     await old.worker.stop();
 

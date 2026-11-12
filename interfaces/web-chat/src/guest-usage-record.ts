@@ -1,8 +1,8 @@
 import { createHash, randomBytes } from "node:crypto";
 import type {
-  IRuntimeStateNamespace,
-  IRuntimeStateStore,
-} from "@brains/plugins";
+  ClassRuntimeState,
+  ClassRuntimeStateStore,
+} from "@brains/sdk/internal/interface-runtime";
 import { z } from "@brains/utils/zod";
 import {
   guestRefusalCategorySchema,
@@ -240,7 +240,7 @@ export class GuestUsageRecord {
     );
   }
 
-  private readonly state: IRuntimeStateNamespace;
+  private readonly state: ClassRuntimeState;
   private readonly bounds: GuestUsageBounds;
   private readonly now: () => number;
   /** Counted denials not yet written, by day and reason; flushed on maintenance. */
@@ -252,7 +252,7 @@ export class GuestUsageRecord {
   >();
 
   constructor(
-    state: IRuntimeStateNamespace,
+    state: ClassRuntimeState,
     bounds: GuestUsageBounds,
     now: () => number,
   ) {
@@ -261,28 +261,28 @@ export class GuestUsageRecord {
     this.now = now;
   }
 
-  private ledger(): IRuntimeStateStore<Ledger> {
+  private ledger(): ClassRuntimeStateStore<Ledger> {
     return this.state.scoped({
       namespace: LEDGER_NAMESPACE,
       schema: ledgerSchema,
     });
   }
 
-  private denialLedger(): IRuntimeStateStore<DenialLedger> {
+  private denialLedger(): ClassRuntimeStateStore<DenialLedger> {
     return this.state.scoped({
       namespace: DENIAL_LEDGER_NAMESPACE,
       schema: denialLedgerSchema,
     });
   }
 
-  private denialEvents(): IRuntimeStateStore<GuestUsageDenial> {
+  private denialEvents(): ClassRuntimeStateStore<GuestUsageDenial> {
     return this.state.scoped({
       namespace: DENIALS_NAMESPACE,
       schema: guestUsageDenialSchema,
     });
   }
 
-  private denialCountRows(): IRuntimeStateStore<DenialCounts> {
+  private denialCountRows(): ClassRuntimeStateStore<DenialCounts> {
     return this.state.scoped({
       namespace: COUNTS_NAMESPACE,
       schema: denialCountsSchema,
@@ -304,7 +304,7 @@ export class GuestUsageRecord {
     return created.salt;
   }
 
-  private events(): IRuntimeStateStore<GuestUsageEvent> {
+  private events(): ClassRuntimeStateStore<GuestUsageEvent> {
     return this.state.scoped({
       namespace: EVENTS_NAMESPACE,
       schema: guestUsageEventSchema,
@@ -684,8 +684,8 @@ export class GuestUsageRecord {
     L extends { places: Record<string, { retainUntil: number }> },
     E,
   >(
-    ledgers: IRuntimeStateStore<L>,
-    events: IRuntimeStateStore<E>,
+    ledgers: ClassRuntimeStateStore<L>,
+    events: ClassRuntimeStateStore<E>,
     now: number,
   ): Promise<void> {
     const ledger = await ledgers.get(LEDGER_KEY);

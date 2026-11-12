@@ -1,11 +1,11 @@
 import { createMockShell } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
 import {
-  STUDIO_WORKSPACE_REGISTER_MESSAGE,
+  studioWorkspaceRegisterContract,
   type StudioWorkspaceRegistration,
 } from "@brains/plugins";
 
-import { studioPlugin } from "../src";
+import { studioPlugin } from "./studio-plugins";
 import {
   STUDIO_ACCOUNT_WORKSPACE,
   listBuiltInStudioWorkspaces,
@@ -51,7 +51,7 @@ describe("Studio Account workspace declaration", () => {
     };
 
     const response = await shell.getMessageBus().send({
-      type: STUDIO_WORKSPACE_REGISTER_MESSAGE,
+      type: studioWorkspaceRegisterContract.name,
       sender: "external",
       payload: registration,
     });

@@ -6,7 +6,7 @@ import type {
   RegisteredWebRoute,
   ResolvedInboxFollowUp,
 } from "@brains/plugins";
-import { studioPlugin } from "../src";
+import { studioPlugin } from "./studio-plugins";
 import { STUDIO_CHAT_ROUTE_PATH } from "../src/chat-workspace";
 import { createStudioChatHandoffState } from "../src/chat-handoff-contract";
 
@@ -34,6 +34,7 @@ describe("Studio owns operator Chat navigation", () => {
             definition: {
               path,
               method: "POST",
+              ...(path === "/api/talk" ? { role: "chat-api" as const } : {}),
               handler: (): Response => new Response(),
             },
           }));

@@ -1,5 +1,255 @@
 # @brains/utils
 
+## 0.2.0-alpha.688
+
+No changes in this release.
+
+## 0.2.0-alpha.687
+
+No changes in this release.
+
+## 0.2.0-alpha.686
+
+No changes in this release.
+
+## 0.2.0-alpha.685
+
+No changes in this release.
+
+## 0.2.0-alpha.684
+
+No changes in this release.
+
+## 0.2.0-alpha.683
+
+No changes in this release.
+
+## 0.2.0-alpha.682
+
+No changes in this release.
+
+## 0.2.0-alpha.681
+
+No changes in this release.
+
+## 0.2.0-alpha.680
+
+No changes in this release.
+
+## 0.2.0-alpha.679
+
+No changes in this release.
+
+## 0.2.0-alpha.678
+
+No changes in this release.
+
+## 0.2.0-alpha.677
+
+No changes in this release.
+
+## 0.2.0-alpha.676
+
+No changes in this release.
+
+## 0.2.0-alpha.675
+
+No changes in this release.
+
+## 0.2.0-alpha.674
+
+No changes in this release.
+
+## 0.2.0-alpha.673
+
+No changes in this release.
+
+## 0.2.0-alpha.672
+
+No changes in this release.
+
+## 0.2.0-alpha.671
+
+No changes in this release.
+
+## 0.2.0-alpha.670
+
+No changes in this release.
+
+## 0.2.0-alpha.669
+
+No changes in this release.
+
+## 0.2.0-alpha.668
+
+No changes in this release.
+
+## 0.2.0-alpha.667
+
+No changes in this release.
+
+## 0.2.0-alpha.666
+
+No changes in this release.
+
+## 0.2.0-alpha.665
+
+No changes in this release.
+
+## 0.2.0-alpha.664
+
+No changes in this release.
+
+## 0.2.0-alpha.663
+
+No changes in this release.
+
+## 0.2.0-alpha.662
+
+No changes in this release.
+
+## 0.2.0-alpha.661
+
+No changes in this release.
+
+## 0.2.0-alpha.660
+
+No changes in this release.
+
+## 0.2.0-alpha.659
+
+No changes in this release.
+
+## 0.2.0-alpha.658
+
+No changes in this release.
+
+## 0.2.0-alpha.657
+
+No changes in this release.
+
+## 0.2.0-alpha.656
+
+No changes in this release.
+
+## 0.2.0-alpha.655
+
+No changes in this release.
+
+## 0.2.0-alpha.654
+
+No changes in this release.
+
+## 0.2.0-alpha.653
+
+No changes in this release.
+
+## 0.2.0-alpha.652
+
+No changes in this release.
+
+## 0.2.0-alpha.651
+
+No changes in this release.
+
+## 0.2.0-alpha.650
+
+No changes in this release.
+
+## 0.2.0-alpha.649
+
+No changes in this release.
+
+## 0.2.0-alpha.648
+
+No changes in this release.
+
+## 0.2.0-alpha.647
+
+No changes in this release.
+
+## 0.2.0-alpha.646
+
+No changes in this release.
+
+## 0.2.0-alpha.645
+
+No changes in this release.
+
+## 0.2.0-alpha.644
+
+### Patch Changes
+
+- [#840](https://github.com/rizom-ai/brains/pull/840) [`7963f25`](https://github.com/rizom-ai/brains/commit/7963f256c4c11009fd333643bffc805a0e9119d8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A service writes its own account settings for an account the runtime vouches for. The `tools` and `routes` slots of a service that declares `accountSettings` are given `accountSettings`: `save(values)` writes the current caller's own account, `claim()` returns a single-use state naming the caller's account and, through a browser session, that session's account, and `redeem(state, produce)` consumes a claim before `produce` runs and writes what it returns, from a session of the same account when the claim was made in one. A refused value is named by its field alone. The consent-state lifetime main's LinkedIn import uses, ten minutes and twenty waiting, is now `CONSENT_STATE_LIFETIME` in `@brains/utils/single-use-store`, which the import and the runtime share.
+
+- [#840](https://github.com/rizom-ai/brains/pull/840) [`4a8d3c7`](https://github.com/rizom-ai/brains/commit/4a8d3c708b793f738f7fb95d29b7d9254ccacee6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A literal returned inline from a `defineTool` `execute` keeps its literal type, with or without parameters, so an enum value in the output no longer needs a cast. A tool's `confirmation` may be a function of its parsed input. A service tool's failure reaches its caller in its public form, `{ success: false, code, error }`: an `SdkError`'s code and `publicMessage`, or else the code's standard message, never the message a failure was thrown with, which stays in the brain's debug log. Refused input is `invalid_input`, and its message names each offending path and why, as main's class tools always have, cut between whole issues to the 1024-character public bound; another error from `execute` is `handler_failed`, an answer outside the output schema is `invalid_response`, and a call whose caller has gone is `cancelled`. Content-generation limits keep their message as `invalid_input`.
+
+## 0.2.0-alpha.643
+
+No changes in this release.
+
+## 0.2.0-alpha.642
+
+No changes in this release.
+
+## 0.2.0-alpha.641
+
+No changes in this release.
+
+## 0.2.0-alpha.640
+
+No changes in this release.
+
+## 0.2.0-alpha.639
+
+No changes in this release.
+
+## 0.2.0-alpha.638
+
+No changes in this release.
+
+## 0.2.0-alpha.637
+
+No changes in this release.
+
+## 0.2.0-alpha.636
+
+No changes in this release.
+
+## 0.2.0-alpha.635
+
+No changes in this release.
+
+## 0.2.0-alpha.634
+
+No changes in this release.
+
+## 0.2.0-alpha.633
+
+### Patch Changes
+
+- [#828](https://github.com/rizom-ai/brains/pull/828) [`a449334`](https://github.com/rizom-ai/brains/commit/a449334d9d2fd31f95a161444008e3ab5b959891) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A new opt-in `oauth-broker` plugin lets brains connect LinkedIn without their own LinkedIn app. One central brain holds the shared app and its single callback; each instance brain configures `plugins.linkedin-import.broker` (`url`, `instanceId`, `secret`, `returnUri` ending at `/linkedin/oauth/broker/return`) in place of `oauth`. Connecting starts at the broker, LinkedIn returns to the broker, and the broker sends the owner back with a two-minute, single-use grant that only that instance can redeem for the token. Each instance may start ten connections per ten minutes.
+
+## 0.2.0-alpha.632
+
+No changes in this release.
+
+## 0.2.0-alpha.631
+
+No changes in this release.
+
+## 0.2.0-alpha.630
+
+No changes in this release.
+
+## 0.2.0-alpha.629
+
+No changes in this release.
+
+## 0.2.0-alpha.628
+
+No changes in this release.
+
 ## 0.2.0-alpha.627
 
 No changes in this release.

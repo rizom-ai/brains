@@ -1,7 +1,10 @@
 import { createTestEntity } from "@brains/entity-service/test";
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { SYSTEM_CHANNELS } from "@brains/plugins";
-import { DirectorySyncPlugin } from "../src/plugin";
+import { SYSTEM_CHANNELS, initialSyncCompletedChannel } from "@brains/plugins";
+import {
+  createDirectorySyncPlugin,
+  type DirectorySyncPlugin,
+} from "./directory-sync-plugins";
 import { baseEntitySchema, createPluginHarness } from "@brains/plugins/test";
 import { join } from "path";
 import { tmpdir } from "os";
@@ -43,15 +46,18 @@ describe("DirectorySyncPlugin - Initial Sync Completion", () => {
   async function installAndTriggerInitialSync(): Promise<{
     plugin: DirectorySyncPlugin;
     events: string[];
+    outcomes: unknown[];
   }> {
     const events: string[] = [];
+    const outcomes: unknown[] = [];
 
-    harness.subscribe(SYSTEM_CHANNELS.initialSyncCompleted, async () => {
+    harness.subscribe(SYSTEM_CHANNELS.initialSyncCompleted, async (message) => {
       events.push(SYSTEM_CHANNELS.initialSyncCompleted);
+      outcomes.push(message.payload);
       return { success: true };
     });
 
-    const plugin = new DirectorySyncPlugin({
+    const plugin = createDirectorySyncPlugin({
       syncPath,
       initialSync: true,
       autoSync: false,
@@ -65,7 +71,7 @@ describe("DirectorySyncPlugin - Initial Sync Completion", () => {
     });
     await Bun.sleep(0);
 
-    return { plugin, events };
+    return { plugin, events, outcomes };
   }
 
   it("queues the content's import instead of importing it, and completes with its batch", async () => {
@@ -86,6 +92,16 @@ describe("DirectorySyncPlugin - Initial Sync Completion", () => {
     const { events } = await installAndTriggerInitialSync();
 
     expect(events).toContain(SYSTEM_CHANNELS.initialSyncCompleted);
+  });
+
+  it("announces its outcome as the channel declares it", async () => {
+    const { outcomes } = await installAndTriggerInitialSync();
+
+    expect(
+      outcomes.map((outcome) =>
+        initialSyncCompletedChannel.schema.safeParse(outcome),
+      ),
+    ).toEqual([{ success: true, data: { success: true } }]);
   });
 
   it("exports a service-created entity whose lifecycle event was previously lost", async () => {

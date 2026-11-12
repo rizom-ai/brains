@@ -1,6 +1,6 @@
-import { A2A_CHANNELS } from "@brains/contracts";
+import { type Tool, type ToolResponse } from "@brains/plugins";
+import { a2aAskContract, toSdkError } from "@brains/contracts";
 import type { ServicePluginContext } from "@brains/plugins";
-import type { Tool, ToolResponse } from "@brains/mcp-service";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import { AgentAdapter } from "../adapters/agent-adapter";
@@ -25,7 +25,7 @@ const networkAskInputSchema = z.object({
 
 type NetworkAskContext = Pick<
   ServicePluginContext,
-  "entityService" | "messaging" | "semantic"
+  "entityService" | "logger" | "messaging" | "semantic"
 >;
 
 const BRAIN_CHARACTER = {
@@ -92,26 +92,24 @@ async function hasApprovedPeer(context: NetworkAskContext): Promise<boolean> {
   return approved > 0;
 }
 
-/** One peer's reply over the A2A ask channel, however the bus answered. */
+/** One peer's reply to the A2A ask contract; a refused question is a failure. */
 async function askPeer(
   context: NetworkAskContext,
   peer: PeerCandidate,
   question: string,
 ): Promise<PeerReply> {
   try {
-    const reply = await context.messaging.send({
-      type: A2A_CHANNELS.askRequest,
-      payload: { agent: peer.id, question },
+    return await context.messaging.request(a2aAskContract, {
+      agent: peer.id,
+      question,
     });
-    if ("noop" in reply) return reply;
-    return reply.success
-      ? { success: true, data: reply.data }
-      : { success: false, ...(reply.error ? { error: reply.error } : {}) };
   } catch (error) {
-    return {
-      success: false,
-      error: getErrorMessage(error, "network unavailable"),
-    };
+    // The visitor's turn hears the failure's public form; the diagnostic
+    // stays in this brain's log.
+    context.logger.warn(`Could not ask ${peer.id}`, {
+      error: getErrorMessage(error),
+    });
+    return { status: "failed", error: toSdkError(error).toJSON() };
   }
 }
 

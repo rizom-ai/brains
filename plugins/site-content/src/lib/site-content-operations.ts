@@ -1,79 +1,64 @@
+import { formatVoiceGuidance, styleGuideFromRecord } from "@brains/contracts";
+import type {
+  ToolContext,
+  ServiceClassMessaging,
+  ServiceEntityReads,
+  ServiceRuntime,
+} from "@brains/sdk/internal/service-runtime";
+import type { Logger } from "@brains/utils/logger";
 import {
-  formatVoiceGuidance,
-  parseStyleGuideContent,
-  SITE_BUILDER_CHANNELS,
-} from "@brains/contracts";
-import type { ServicePluginContext, ToolContext } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
-import type { GenerateOptions } from "../schemas/generate-options";
+  siteBuilderRoutesContract,
+  type RouteDefinition,
+} from "@brains/site-composition";
+import type {
+  GenerateOptions,
+  GenerateResult,
+} from "../schemas/generate-options";
 
-const routeSectionSchema = z.looseObject({
-  id: z.string(),
-  template: z.string().optional(),
-  content: z.unknown().optional(),
-});
-
-const routeSchema = z.looseObject({
-  id: z.string(),
-  title: z.string().optional(),
-  description: z.string().optional(),
-  sections: z.array(routeSectionSchema),
-});
-
-const routesResponseSchema = z.array(routeSchema);
-
-type SiteContentRoute = z.output<typeof routeSchema>;
+/** What generating a site's content reads and asks, as the class did. */
+export interface SiteContentOperationsDeps {
+  readonly logger: Logger;
+  readonly entities: Pick<ServiceEntityReads, "getEntity">;
+  readonly messaging: Pick<ServiceClassMessaging, "request">;
+  readonly generateContent: ServiceRuntime["generateContent"];
+}
 
 export class SiteContentOperations {
-  private readonly context: ServicePluginContext;
-  constructor(context: ServicePluginContext) {
-    this.context = context;
+  private readonly deps: SiteContentOperationsDeps;
+  constructor(deps: SiteContentOperationsDeps) {
+    this.deps = deps;
   }
 
   /** Site copy is public, so only a public style guide may shape it. */
   private async fetchPublicVoiceGuidance(): Promise<string> {
-    const styleGuide = await this.context.entityService.getEntity({
+    const styleGuide = await this.deps.entities.getEntity({
       entityType: "style-guide",
       id: "style-guide",
     });
     return styleGuide?.visibility === "public"
-      ? formatVoiceGuidance(parseStyleGuideContent(styleGuide.content))
+      ? formatVoiceGuidance(styleGuideFromRecord(styleGuide))
       : "";
   }
 
-  private async fetchRoutes(): Promise<SiteContentRoute[]> {
-    const response = await this.context.messaging.send({
-      type: SITE_BUILDER_CHANNELS.routesList,
-      payload: {},
-    });
-    if ("noop" in response) {
-      throw new Error(
-        "No handler for site-builder:routes:list — is site-builder plugin loaded?",
-      );
-    }
-    if (!response.success || !response.data) {
+  private async fetchRoutes(): Promise<RouteDefinition[]> {
+    const result = await this.deps.messaging.request(
+      siteBuilderRoutesContract,
+      {},
+    );
+    if (result.status !== "answered") {
       throw new Error("Failed to fetch routes from site-builder");
     }
-    const parsed = routesResponseSchema.safeParse(response.data);
-    if (!parsed.success) {
-      throw new Error("Failed to parse routes from site-builder");
-    }
-    return parsed.data;
+    return result.data;
   }
 
   /** Discovers site targets; the tool context carries the caller and cancellation. */
   async generate(
     options: GenerateOptions,
     toolContext?: ToolContext,
-  ): Promise<{
-    jobs: Array<{ jobId: string; routeId: string; sectionId: string }>;
-    totalSections: number;
-    queuedSections: number;
-    batchId: string;
-  }> {
+  ): Promise<GenerateResult> {
     const signal = toolContext?.signal;
     signal?.throwIfAborted();
-    const logger = this.context.logger.child("SiteContentOperations");
+    const logger = this.deps.logger.child("SiteContentOperations");
 
     const routes = await this.fetchRoutes();
     signal?.throwIfAborted();
@@ -131,10 +116,8 @@ export class SiteContentOperations {
             data: {
               routeId: route.id,
               sectionId: section.id,
-              ...(route.title !== undefined && { routeTitle: route.title }),
-              ...(route.description !== undefined && {
-                routeDescription: route.description,
-              }),
+              routeTitle: route.title,
+              routeDescription: route.description,
             },
             ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
           },
@@ -147,7 +130,7 @@ export class SiteContentOperations {
       }
     }
 
-    const result = await this.context.content.generate({
+    const result = await this.deps.generateContent({
       targets,
       toolContext,
       ...(options.force !== undefined && { force: options.force }),
@@ -161,8 +144,16 @@ export class SiteContentOperations {
       return [{ jobId: item.jobId, routeId, sectionId }];
     });
 
+    // A dry run queues nothing: what it planned is what it can say.
+    const planned = result.items.flatMap((item) => {
+      if (item.status !== "planned") return [];
+      const [routeId, sectionId] = item.destination.idPath;
+      return routeId && sectionId ? [{ routeId, sectionId }] : [];
+    });
+
     return {
       jobs,
+      planned,
       totalSections: result.plannedTargets,
       queuedSections: result.queuedTargets,
       batchId: result.batchId ?? "",

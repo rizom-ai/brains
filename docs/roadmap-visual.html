@@ -70,7 +70,7 @@
     <header class="header">
       <h1>Brains Strategic Roadmap</h1>
       <p>One brain, composed from capability bundles. Posture—from private personal use to public professional publishing or shared team memory—is configuration, not a separate product.</p>
-      <div class="updated">Last updated: 2026-10-08 · generated from docs/roadmap.md</div>
+      <div class="updated">Last updated: 2026-11-05 · generated from docs/roadmap.md</div>
     </header>
     <div class="legend">
         <span class="legend-item"><span class="legend-dot dot-active"></span>Active</span>
@@ -99,6 +99,14 @@
           <div class="card-desc">make the style guide govern voice and form over templates, send each template once, and keep materialized prompt copies fresh, correctly keyed, and editable without restart.</div>
           <div class="card-file">generation-voice-and-prompt-freshness.md</div>
         </div>
+        <div class="card status-active">
+          <div class="card-head">
+            <span class="card-name">LinkedIn Import</span>
+            <span class="badge badge-active">Active</span>
+          </div>
+          <div class="card-desc">an opt-in plugin that imports the owner's LinkedIn profile, skills and history into <code>anchor-profile</code> from Studio, through LinkedIn's DMA portability API (EEA) or an uploaded data export, merging without overwriting what the owner wrote.</div>
+          <div class="card-file">linkedin-import.md</div>
+        </div>
         <div class="card status-proposed">
           <div class="card-head">
             <span class="card-name">Web search as an explicit tool capability</span>
@@ -114,6 +122,14 @@
           </div>
           <div class="card-desc">a <code>guide</code> entity in the doc-brain with designed walkthroughs per kind of user (writer, researcher, consultant, team) plus one for running your own brain, synced from <code>docs/guides/</code> with the docs.</div>
           <div class="card-file">moving-in-guides.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">Forms — an engine for a brain site's public forms</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">a <code>forms</code> engine for every public form on a brain's site, whose submissions become domain entities owned by their packages: <code>contact</code> rebuilt on it, a <code>quiz</code> package for scored forms, and The Fourth's brand test replacing its Tally form.</div>
+          <div class="card-file">forms-plugin.md</div>
         </div>
         </div>
       </details>
@@ -249,6 +265,14 @@
         </div>
         <div class="card status-proposed">
           <div class="card-head">
+            <span class="card-name">WhatsApp Interface</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">WhatsApp direct messages and groups through our own Baileys adapter in <code>@brains/chat</code>: unofficial, on a dedicated number.</div>
+          <div class="card-file">whatsapp-interface.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
             <span class="card-name">Bilingual sites</span>
             <span class="badge badge-proposed">Proposed</span>
           </div>
@@ -289,7 +313,7 @@
             <span class="card-name">Public authoring API compatibility for <code>v0.2.0</code></span>
             <span class="badge badge-active">Active</span>
           </div>
-          <div class="card-desc">**P0 release gate**, including integration of the completed declarative-boundary/DX branch, final-alpha evidence, release authorization, stable publication, and baseline freezing.</div>
+          <div class="card-desc">**P0 release gate**: the declarative boundary on <code>main</code>, final-alpha evidence, release authorization, stable publication, and baseline freezing.</div>
           <div class="card-file">public-authoring-api-0.2.md</div>
         </div>
         <div class="card status-active">
@@ -307,6 +331,14 @@
           </div>
           <div class="card-desc">**P0 release gate**: move image and PDF bytes into same-database content-addressed storage as staged chunk rows published atomically with their entity, cut <code>yeehaa.io</code> over, soak, and remove the legacy bridge before stable <code>0.2.0</code>.</div>
           <div class="card-file">durable-binary-assets.md</div>
+        </div>
+        <div class="card status-proposed">
+          <div class="card-head">
+            <span class="card-name">Re-apply the Authoring Boundary on Main</span>
+            <span class="badge badge-proposed">Proposed</span>
+          </div>
+          <div class="card-desc">the public authoring API from #301 landed on <code>main</code> first, then every package converted onto it.</div>
+          <div class="card-file">authoring-boundary-reapply.md</div>
         </div>
         <div class="card status-proposed">
           <div class="card-head">
@@ -353,6 +385,14 @@
       <details class="group" open>
         <summary class="group-title"><span class="group-num">§7</span>Keep the framework sustainable</summary>
         <div class="cards">
+        <div class="card status-active">
+          <div class="card-head">
+            <span class="card-name">Local Model Runtime</span>
+            <span class="badge badge-active">Active</span>
+          </div>
+          <div class="card-desc">per-brain model selection for embeddings, text and images, with a local runtime sidecar; a fully local proof-of-concept brain (text + embeddings) by 2026-11-20 for the Mozilla Human-Scale AI application.</div>
+          <div class="card-file">local-model-runtime.md</div>
+        </div>
         <div class="card status-partial">
           <div class="card-head">
             <span class="card-name">HTTP route registry hardening</span>
@@ -360,14 +400,6 @@
           </div>
           <div class="card-desc">continue security, matching, advertising, and cleanup beyond the shipped normalized registry.</div>
           <div class="card-file">http-route-registry-hardening.md</div>
-        </div>
-        <div class="card status-partial">
-          <div class="card-head">
-            <span class="card-name">Directory-sync DB→git auto-export silent permanent stall</span>
-            <span class="badge badge-partial">In progress</span>
-          </div>
-          <div class="card-desc">retain fresh incident attribution/recovery work after the shipped semantic Git broker and health checks.</div>
-          <div class="card-file">directory-sync-export-stall.md</div>
         </div>
         <div class="card status-proposed">
           <div class="card-head">
@@ -392,14 +424,6 @@
           </div>
           <div class="card-desc">keep entity frontmatter to what a person authors or reads: a retired-fields mechanism with a rewrite on start, then verified trims of conversation memory, agents, publishing and small types.</div>
           <div class="card-file">frontmatter-hygiene.md</div>
-        </div>
-        <div class="card status-proposed">
-          <div class="card-head">
-            <span class="card-name">Local Model Runtime</span>
-            <span class="badge badge-proposed">Proposed</span>
-          </div>
-          <div class="card-desc">per-brain model selection for embeddings, text and images, with a local runtime sidecar; a fully local proof-of-concept brain (text + embeddings) by 2026-11-20 for the Mozilla Human-Scale AI application.</div>
-          <div class="card-file">local-model-runtime.md</div>
         </div>
         <div class="card status-parked">
           <div class="card-head">

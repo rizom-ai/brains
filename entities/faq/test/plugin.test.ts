@@ -4,7 +4,8 @@ import {
   CONVERSATION_GUEST_MESSAGE_ADDED_CHANNEL,
   CONVERSATION_MESSAGE_ADDED_CHANNEL,
 } from "@brains/plugins";
-import { GUEST_ASKED_BEFORE_CHANNEL } from "@brains/contracts";
+import { askedBeforeContract } from "@brains/contracts";
+import { createTestEntity } from "@brains/entity-service/test";
 import {
   createMockShell,
   createPluginHarness,
@@ -12,6 +13,18 @@ import {
 } from "@brains/plugins/test";
 import { createSilentLogger, waitUntil } from "@brains/test-utils";
 import { FaqPlugin } from "../src";
+
+/** What the embedding job announces once an entity's embedding is stored. */
+function embeddingReady(
+  entityType: string,
+  entityId: string,
+): { entityType: string; entityId: string; entity: object } {
+  return {
+    entityType,
+    entityId,
+    entity: createTestEntity(entityType, { id: entityId }),
+  };
+}
 
 describe("FaqPlugin", () => {
   let harness: ReturnType<typeof createPluginHarness>;
@@ -48,16 +61,15 @@ describe("FaqPlugin", () => {
   }
 
   it("answers the shell's asked-before question, with nothing when no FAQ asks it", async () => {
-    const response = await harness.sendMessage(GUEST_ASKED_BEFORE_CHANNEL, {
+    const response = await harness.sendMessage(askedBeforeContract.name, {
       question: "How does Rizom keep memory?",
     });
     expect(response).toEqual({});
-    // A question that is not one is no answer either, never an error.
-    const blank: unknown = await harness.sendMessage(
-      GUEST_ASKED_BEFORE_CHANNEL,
-      { question: "" },
-    );
-    expect(blank).toEqual({});
+    // A question that is not one is refused, so the shell hears no hit.
+    const blank: unknown = await harness.sendMessage(askedBeforeContract.name, {
+      question: "",
+    });
+    expect(blank).toBeUndefined();
   });
 
   it("leaves the shell's asked-before question unanswered while FAQs are off", async () => {
@@ -65,10 +77,9 @@ describe("FaqPlugin", () => {
       dataDir: `/tmp/test-faq-plugin-off-${randomUUID()}`,
     });
     await off.installPlugin(new FaqPlugin({ enabled: false }));
-    const response: unknown = await off.sendMessage(
-      GUEST_ASKED_BEFORE_CHANNEL,
-      { question: "How does Rizom keep memory?" },
-    );
+    const response: unknown = await off.sendMessage(askedBeforeContract.name, {
+      question: "How does Rizom keep memory?",
+    });
     expect(response).toBeUndefined();
   });
 
@@ -184,10 +195,10 @@ describe("FaqPlugin refused enqueues", () => {
     const queue = harness.getMockShell().getJobQueueService();
     refuseEnqueues(queue, 1);
 
-    await harness.sendMessage("entity:embedding:ready", {
-      entityType: "faq",
-      entityId: "faq-1",
-    });
+    await harness.sendMessage(
+      "entity:embedding:ready",
+      embeddingReady("faq", "faq-1"),
+    );
 
     await waitUntil(
       async () =>
@@ -323,14 +334,14 @@ describe("FaqPlugin reconciliation", () => {
     });
     await harness.installPlugin(new FaqPlugin());
 
-    await harness.sendMessage("entity:embedding:ready", {
-      entityType: "note",
-      entityId: "note-1",
-    });
-    await harness.sendMessage("entity:embedding:ready", {
-      entityType: "faq",
-      entityId: "faq-1",
-    });
+    await harness.sendMessage(
+      "entity:embedding:ready",
+      embeddingReady("note", "note-1"),
+    );
+    await harness.sendMessage(
+      "entity:embedding:ready",
+      embeddingReady("faq", "faq-1"),
+    );
 
     const jobs = await harness
       .getMockShell()
@@ -375,7 +386,7 @@ describe("FaqPlugin evals", () => {
 
     await shell.getMessageBus().send({
       type: "entity:embedding:ready",
-      payload: { entityType: "faq", entityId: "faq-1" },
+      payload: embeddingReady("faq", "faq-1"),
       sender: "embedding",
       broadcast: true,
     });

@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { createSilentLogger } from "@brains/test-utils";
 import { MessageBus } from "@brains/messaging-service";
 import {
-  NOTIFICATIONS_SEND,
+  notificationsSendContract,
   type SendNotificationInput,
   type SendNotificationResult,
 } from "@brains/contracts";
@@ -31,7 +31,7 @@ describe("recurring-check notification delivery", () => {
     const messageBus = MessageBus.createFresh(logger);
     let payload: SendNotificationInput | undefined;
     messageBus.subscribe<SendNotificationInput, SendNotificationResult>(
-      NOTIFICATIONS_SEND,
+      notificationsSendContract.name,
       (message) => {
         payload = message.payload;
         return { success: true, data: { status: "sent" } };
@@ -40,9 +40,11 @@ describe("recurring-check notification delivery", () => {
     const delivery = createRecurringCheckDelivery(messageBus);
 
     expect(await delivery.deliver(alert)).toBe(true);
+    // The contract normalizes the request before it leaves, defaults included.
     expect(payload).toEqual({
       title: alert.title,
       body: alert.body,
+      sensitivity: "normal",
     });
   });
 });

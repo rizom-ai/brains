@@ -1,6 +1,7 @@
+import { existsSync, readFileSync } from "node:fs";
 import { readFile, rename, stat, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { parseJsonObject } from "./json";
+import { isJsonObject, parseJsonObject } from "./json";
 
 const BACKUP_FILENAME = "package.json.publish-backup";
 
@@ -86,6 +87,18 @@ export async function publishManifestFor(
   return Object.fromEntries(Object.entries(parsed));
 }
 
+/**
+ * The manifest a package's source declares, whatever state a publish has
+ * left it in: the backup while its publish manifest is prepared, the
+ * manifest itself otherwise.
+ */
+export function readSourceManifestText(packageDir: string): string {
+  const backupPath = join(packageDir, BACKUP_FILENAME);
+  return existsSync(backupPath)
+    ? readFileSync(backupPath, "utf8")
+    : readFileSync(join(packageDir, "package.json"), "utf8");
+}
+
 export async function restorePublishManifest(
   packageDir: string,
   options: RestorePublishManifestOptions = {},
@@ -130,7 +143,7 @@ async function createPublishManifestText(
     "optionalDependencies",
   ]) {
     const deps = manifest[field];
-    if (!isRecord(deps)) {
+    if (!isJsonObject(deps)) {
       continue;
     }
     for (const [name, range] of Object.entries(deps)) {
@@ -142,13 +155,6 @@ async function createPublishManifestText(
   }
 
   return `${JSON.stringify(manifest, null, 2)}\n`;
-}
-
-// Kept local: @brains/build-tools declares no runtime dependencies, and
-// pulling in @brains/utils for a three-line guard would give this build-time
-// package a dependency tree it deliberately does not have.
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 async function resolveWorkspaceRange(

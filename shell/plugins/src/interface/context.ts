@@ -1,3 +1,5 @@
+import type { WebRouteRole } from "@brains/contracts";
+import { findRouteByRole } from "../types/web-routes";
 import type {
   BasePluginContext,
   IConversationsNamespace,
@@ -28,11 +30,7 @@ import type {
   AddConversationMessageRequest,
   UpdateConversationMetadataRequest,
 } from "@brains/conversation-service";
-import type { RegisteredApiRoute } from "../types/api-routes";
 import type { RegisteredWebRoute } from "../types/web-routes";
-import type { RegisteredHttpRoute } from "../types/http-routes";
-import { getHttpRouteSnapshot } from "@brains/plugins/internal/http-route-snapshot";
-import type { IMessageBus } from "@brains/messaging-service";
 import type { ToolInfo } from "@brains/mcp-service";
 
 /**
@@ -68,25 +66,11 @@ export interface IToolsNamespace {
   listForPermissionLevel: (level: UserPermissionLevel) => ToolInfo[];
 }
 
-/**
- * API Routes namespace for InterfacePluginContext
- * Provides access to plugin-declared API routes
- */
-export interface IApiRoutesNamespace {
-  /** Get all registered API routes from plugins */
-  getRoutes: () => RegisteredApiRoute[];
-  /** Get the message bus for handling route requests */
-  getMessageBus: () => IMessageBus;
-}
-
 export interface IWebRoutesNamespace {
   /** Get all registered web routes from plugins */
   getRoutes: () => RegisteredWebRoute[];
-}
-
-export interface IHttpRoutesNamespace {
-  /** Get the finalized normalized HTTP route snapshot. */
-  getRoutes: () => readonly RegisteredHttpRoute[];
+  /** The route claiming a well-known role, whichever plugin registered it. */
+  findByRole: (role: WebRouteRole) => RegisteredWebRoute | undefined;
 }
 
 export interface IPluginsNamespace {
@@ -187,21 +171,11 @@ export interface InterfacePluginContext
   readonly tools: IToolsNamespace;
 
   // ============================================================================
-  // API Routes (Plugin-declared HTTP endpoints)
+  // Web Routes (Plugin-declared HTTP endpoints)
   // ============================================================================
-
-  /**
-   * API Routes namespace for webserver interfaces
-   * - `apiRoutes.getRoutes()` - Get all registered API routes from plugins
-   * - `apiRoutes.getMessageBus()` - Get message bus for route handling
-   */
-  readonly apiRoutes: IApiRoutesNamespace;
 
   /** Plugin-contributed web routes for the shared HTTP surface */
   readonly webRoutes: IWebRoutesNamespace;
-
-  /** Finalized normalized routes for the shared HTTP server. */
-  readonly httpRoutes: IHttpRoutesNamespace;
 
   /** Plugin registry visibility for interface coordination */
   readonly plugins: IPluginsNamespace;
@@ -300,25 +274,12 @@ export function createInterfacePluginContext(
       },
     },
 
-    // API Routes namespace
-    apiRoutes: {
-      getRoutes: (): RegisteredApiRoute[] => {
-        return shell.getPluginApiRoutes();
-      },
-      getMessageBus: (): IMessageBus => {
-        return shell.getMessageBus();
-      },
-    },
-
     webRoutes: {
       getRoutes: (): RegisteredWebRoute[] => {
         return shell.getPluginWebRoutes();
       },
-    },
-
-    httpRoutes: {
-      getRoutes: (): readonly RegisteredHttpRoute[] =>
-        getHttpRouteSnapshot(shell),
+      findByRole: (role): RegisteredWebRoute | undefined =>
+        findRouteByRole(shell.getPluginWebRoutes(), role),
     },
 
     plugins: {

@@ -45,8 +45,7 @@ turns:
       expectedTools:
         - toolName: system_create
           resultContains:
-            success: true
-            data.entityId: three-rules
+            entityId: three-rules
       responseNotContains:
         - "failed"
   - userMessage: Read deck 'three-rules' from storage with part body. Do not change anything.

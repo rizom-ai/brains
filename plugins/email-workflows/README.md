@@ -4,11 +4,11 @@ Safe derived mailbox attention for brain instances.
 
 `email-workflows` answers "what arrived and needs me?" without copying the mailbox into Brain storage. Obvious bulk mail is discarded conservatively, meaningful mail becomes a restricted derived `mail-item`, and the original message stays exclusively in the mailbox.
 
-The capability is explicit opt-in. Its active runtime composition contains the triage service and `mail-item` entity. The package retains a tested reply-drafting and confirmed-delivery backend, but does not compose its entity, follow-up, prompt, or workspace while that product surface is dormant. The package enters the canonical catalog but no fixed bundle, and `brain init` never emits it.
+The capability is explicit opt-in. It is a declarative service the canonical brain composes as the `email-workflows` capability, under the plugin id `email-workflows`, with its `mail-item` type installed as `mail-item`. The package retains a tested reply-drafting and confirmed-delivery backend, but does not compose its entity, follow-up, prompt, or workspace while that product surface is dormant. The package enters the canonical catalog but no fixed bundle, and `brain init` never emits it.
 
 ## What it does
 
-- subscribes to the at-least-once `EMAIL_INBOUND` contract published by `interfaces/email`
+- answers the at-least-once `email:inbound` contract (`inboundEmailContract`) sent by `interfaces/email`
 - discards obvious bulk mail deterministically, before any model call
 - classifies each remaining message with one structured model call into a `mail-item`
 - owns acknowledgement of raw inbound mail, so a failure holds the mailbox cursor rather than losing a message
@@ -31,6 +31,8 @@ Observability holds to the same line. Logs never contain source bodies, exact su
 ## `mail-item` entity
 
 Every item has `restricted` visibility. The markdown body is only the concise derived summary.
+
+The file keeps the full header below; metadata indexes only its routing fields (title, category, priority, status, needs-reply, received time) and the thread position under `source`. That is a deliberate exception to the usual declared-type pattern, where metadata is the frontmatter: the source locator, sender label, organization and requested actions stay out of metadata, so no address or sender detail is indexed. A read hands back the whole document, and a write keeps the header once, in the document's order.
 
 ```ts
 const mailCategorySchema = z.enum([

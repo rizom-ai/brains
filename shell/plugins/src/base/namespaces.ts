@@ -1,26 +1,33 @@
+import {
+  answerContract,
+  broadcastChannel,
+  collectContract,
+  commandContract,
+  requestContract,
+} from "@brains/messaging-service";
 import type { GetMessagesOptions } from "@brains/conversation-service";
 import type { JobsNamespace } from "@brains/job-queue";
 import {
   createEnqueueBatchFn,
   createEnqueueJobFn,
+  createHasJobFn,
   createRegisterHandlerFn,
 } from "@brains/job-queue";
-import type { MessageHandler, MessageSender } from "@brains/messaging-service";
+import type { MessageHandler } from "@brains/messaging-service";
 import type { Logger } from "@brains/utils/logger";
 import type { AppInfo } from "../contracts/app-info";
 import type { Conversation, Message } from "../contracts/conversations";
 import type { IShell } from "../interfaces";
 import type { EvalHandler } from "../contracts/handlers";
-import type { Channel } from "../utils/channels";
-import { isChannel } from "../utils/channels";
-import { ENTITY_CHANNELS } from "@brains/contracts";
+import { ENTITY_CHANNELS, isChannel, type Channel } from "@brains/contracts";
 
 const ENTITY_CHANNEL_NAMES: ReadonlySet<string> = new Set(
   Object.values(ENTITY_CHANNELS),
 );
 
 /**
- * The two ways `subscribe` may be called, as one discriminated pair.
+ * The two ways `subscribe`, `subscribeExecution` and `observe` may be called,
+ * as one discriminated pair.
  *
  * Written as a tuple rather than two parameters so that a single check can
  * narrow the channel and its handler together — see the note on `subscribe`.
@@ -34,6 +41,34 @@ function isChannelSubscription<T, R>(
   subscription: SubscribeArgs<T, R>,
 ): subscription is [Channel<T, R>, TypedMessageHandler<T, R>] {
   return isChannel(subscription[0]);
+}
+
+/**
+ * Hand a subscription to the bus through `attach`. A typed channel's handler
+ * sees only payloads its schema accepts: a malformed one is refused and
+ * logged, never read as whatever fields it happens to lack.
+ */
+function attachSubscription<T, R>(
+  subscription: SubscribeArgs<T, R>,
+  logger: Logger,
+  attach: <P>(name: string, handler: MessageHandler<P, R>) => () => void,
+): () => void {
+  if (!isChannelSubscription(subscription)) {
+    const [name, handler] = subscription;
+    return attach(name, handler);
+  }
+  const [channel, typedHandler] = subscription;
+  return attach(channel.name, async (message) => {
+    const parsed = channel.schema.safeParse(message.payload);
+    if (!parsed.success) {
+      logger.warn(`Refused an invalid ${channel.name} payload`, {
+        error: parsed.error.message,
+      });
+      return { success: false, error: `Invalid ${channel.name} payload` };
+    }
+    const { payload: _payload, ...baseMessage } = message;
+    return typedHandler(parsed.data, baseMessage);
+  });
 }
 import { toPublicAppInfo } from "./public-app-info";
 import { toPublicConversation, toPublicMessage } from "./public-conversations";
@@ -165,16 +200,23 @@ export function createMessagingNamespace(
   executionOnly: boolean = false,
 ): IMessagingNamespace {
   const messageBus = shell.getMessageBus();
-  const sendMessage: MessageSender = async (request) => {
-    return messageBus.send({
-      ...request,
-      sender: pluginId,
-    });
-  };
-
   return {
-    send: sendMessage,
-    collect: (request) => messageBus.collect({ ...request, sender: pluginId }),
+    broadcast: (channel, payload) =>
+      broadcastChannel(messageBus, channel, payload, pluginId),
+    request: (contract, payload) =>
+      requestContract(messageBus, contract, payload, pluginId),
+    gather: (contract, payload) =>
+      collectContract(messageBus, contract, payload, pluginId),
+    command: (contract, payload) =>
+      commandContract(messageBus, contract, payload, pluginId),
+    answer: (contract, handler, options): (() => void) => {
+      if (executionOnly && options?.everyProcess !== true)
+        return (): void => {};
+      return answerContract(messageBus, contract, handler, {
+        owner: pluginId,
+        logger,
+      });
+    },
     /**
      * The channel and its handler are correlated — a Channel takes a
      * TypedMessageHandler, a name takes a MessageHandler — and the public
@@ -197,37 +239,24 @@ export function createMessagingNamespace(
         );
       }
       if (executionOnly) return () => {};
-      if (isChannelSubscription(subscription)) {
-        const [channel, typedHandler] = subscription;
-
-        const wrappedHandler: MessageHandler<unknown, R> = async (message) => {
-          const parseResult = channel.schema.safeParse(message.payload);
-          if (!parseResult.success) {
-            logger.warn(`Invalid payload for channel ${channel.name}`, {
-              error: parseResult.error.message,
-            });
-            return { noop: true };
-          }
-
-          const { payload: _payload, ...baseMessage } = message;
-          return typedHandler(parseResult.data, baseMessage);
-        };
-
-        return messageBus.subscribe(channel.name, wrappedHandler);
-      }
-
-      const [name, handler] = subscription;
-      return messageBus.subscribe(name, handler);
+      return attachSubscription(subscription, logger, (name, handler) =>
+        messageBus.subscribe(name, handler),
+      );
     },
     subscribeExecution: <T = unknown, R = unknown>(
-      channel: string,
-      handler: MessageHandler<T, R>,
-    ): (() => void) => messageBus.subscribe(channel, handler),
-    observe: <T = unknown, R = unknown>(
-      channel: string,
-      handler: MessageHandler<T, R>,
+      ...subscription: SubscribeArgs<T, R>
     ): (() => void) =>
-      executionOnly ? (): void => {} : messageBus.observe(channel, handler),
+      attachSubscription(subscription, logger, (name, handler) =>
+        messageBus.subscribe(name, handler),
+      ),
+    observe: <T = unknown, R = unknown>(
+      ...subscription: SubscribeArgs<T, R>
+    ): (() => void) =>
+      executionOnly
+        ? (): void => {}
+        : attachSubscription(subscription, logger, (name, handler) =>
+            messageBus.observe(name, handler),
+          ),
   };
 }
 
@@ -241,6 +270,7 @@ export function createJobsNamespace(
     enqueue: createEnqueueJobFn(jobQueueService, pluginId, true),
     enqueueBatch: createEnqueueBatchFn(shell.jobs, pluginId),
     registerHandler: createRegisterHandlerFn(jobQueueService, pluginId),
+    has: createHasJobFn(jobQueueService),
   };
 }
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
-import { SITE_METADATA_GET_CHANNEL } from "@brains/site-composition";
-import { SiteBuilderPlugin } from "../../src/plugin";
+import { siteMetadataContract } from "@brains/site-composition";
+import { createSiteBuilderPlugin } from "../site-builder-plugin";
 import { z } from "@brains/utils/zod";
 
 /** The site resource body, parsed rather than asserted: it arrives as JSON text. */
@@ -20,7 +20,7 @@ const siteResourceContentSchema = z.looseObject({
 describe("site-builder metadata provider contract", () => {
   it("uses metadata from the shared provider channel for brain://site", async () => {
     const harness = createPluginHarness();
-    harness.subscribe(SITE_METADATA_GET_CHANNEL, () => ({
+    harness.subscribe(siteMetadataContract.name, () => ({
       success: true,
       data: {
         title: "Provided Site",
@@ -33,7 +33,9 @@ describe("site-builder metadata provider contract", () => {
       },
     }));
 
-    const capabilities = await harness.installPlugin(new SiteBuilderPlugin({}));
+    const capabilities = await harness.installPlugin(
+      createSiteBuilderPlugin({}),
+    );
     const resource = capabilities.resources.find(
       (r) => r.uri === "brain://site",
     );
@@ -51,7 +53,7 @@ describe("site-builder metadata provider contract", () => {
 
   it("keeps the site's chrome in its other languages", async () => {
     const harness = createPluginHarness();
-    harness.subscribe(SITE_METADATA_GET_CHANNEL, () => ({
+    harness.subscribe(siteMetadataContract.name, () => ({
       success: true,
       data: {
         title: "The Fourth",
@@ -60,7 +62,9 @@ describe("site-builder metadata provider contract", () => {
       },
     }));
 
-    const capabilities = await harness.installPlugin(new SiteBuilderPlugin({}));
+    const capabilities = await harness.installPlugin(
+      createSiteBuilderPlugin({}),
+    );
     const resource = capabilities.resources.find(
       (r) => r.uri === "brain://site",
     );
@@ -84,7 +88,7 @@ describe("site-builder metadata provider contract", () => {
   it("falls back to configured metadata when no provider is registered", async () => {
     const harness = createPluginHarness();
     const capabilities = await harness.installPlugin(
-      new SiteBuilderPlugin({
+      createSiteBuilderPlugin({
         siteInfo: {
           title: "Fallback Site",
           description: "Fallback metadata",

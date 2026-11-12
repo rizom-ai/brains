@@ -106,20 +106,29 @@ export async function installOneShotSlowPreCommit(
  * Holding a checkout turn used to be staged with a slow `pre-commit` hook, but
  * managed operations no longer run hooks — so the turn is held the way
  * production actually can hold one: a network operation waiting on a remote
- * that never answers. `release()` closes the connection, which lets Git fail
- * and the turn finish.
+ * that never answers. `connected` resolves once Git has reached it, which is
+ * when the turn is provably held; `release()` closes the connection, which
+ * lets Git fail and the turn finish.
  */
 export function stallingRemote(): {
   gitUrl: string;
+  connected: Promise<void>;
   release(): void;
 } {
+  const connected = Promise.withResolvers<void>();
   const server = Bun.listen({
     hostname: "127.0.0.1",
     port: 0,
-    socket: { data: (): void => {}, open: (): void => {} },
+    socket: {
+      data: (): void => {},
+      open: (): void => {
+        connected.resolve();
+      },
+    },
   });
   return {
     gitUrl: `git://127.0.0.1:${server.port}/repo.git`,
+    connected: connected.promise,
     release: (): void => {
       server.stop(true);
     },

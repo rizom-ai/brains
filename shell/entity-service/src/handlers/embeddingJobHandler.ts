@@ -1,4 +1,5 @@
-import { ENTITY_CHANNELS } from "@brains/contracts";
+import { broadcastChannel } from "@brains/messaging-service";
+import { embeddingReadyChannel } from "../entity-event-channels";
 import { ConsoleLogger, type Logger } from "@brains/utils/logger";
 import { type ProgressReporter } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
@@ -8,6 +9,7 @@ import type {
   EntityEventBus,
 } from "../types";
 import type { IEmbeddingService } from "../embedding-types";
+import { entityTitle } from "../frontmatter";
 import type { JobHandler } from "@brains/job-queue";
 import { internalFullScope } from "../internal-scope";
 /**
@@ -20,6 +22,11 @@ const embeddingJobDataSchema = z.object({
   contentHash: z.string().min(1, "Content hash is required"),
   operation: z.enum(["create", "update"]),
 });
+
+function splitModel(qualified: string): [string, string] {
+  const colon = qualified.indexOf(":");
+  return [qualified.slice(0, colon), qualified.slice(colon + 1)];
+}
 
 /**
  * Job handler for embedding generation
@@ -73,12 +80,15 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
 
       // Fetch fresh entity - content is NOT stored in job data to avoid
       // large base64 data bloating job queue and dashboard hydration props.
+      // The embedding is of the stored record: a declared type reads back
+      // its body alone, and its frontmatter is part of what search matches.
       const currentEntity = await this.entityService.getEntity({
         entityType: data.entityType,
         id: data.id,
         visibilityScope: internalFullScope(
           "embedding regeneration must index every entity, no user surface",
         ),
+        source: true,
       });
 
       if (!currentEntity) {
@@ -106,15 +116,27 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
         return;
       }
 
-      // Generate embedding using fresh content from entity
-      const { embedding, usage } =
-        await this.embeddingService.generateEmbedding(currentEntity.content);
+      // Embed the fresh content as a document, titled when the entity is
+      const title = entityTitle(currentEntity);
+      const {
+        embeddings: [embedding],
+        usage,
+      } = await this.embeddingService.embedDocuments([
+        {
+          ...(title !== null ? { title } : {}),
+          content: currentEntity.content,
+        },
+      ]);
+      if (!embedding) throw new Error("Embedding provider returned no vector");
 
-      // Log usage event for monitoring
+      // Log usage event for monitoring; identity names `provider:model`
+      const [provider, model] = splitModel(
+        this.embeddingService.identity.model,
+      );
       this.logger.info("ai:usage", {
         operation: "embedding",
-        provider: "openai",
-        model: "text-embedding-3-small",
+        provider,
+        model,
         inputTokens: usage.tokens,
         outputTokens: 0,
       });
@@ -134,16 +156,16 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
           `Emitting entity:embedding:ready event for ${data.entityType}:${data.id}`,
         );
 
-        await this.messageBus.send({
-          type: ENTITY_CHANNELS.embeddingReady,
-          payload: {
+        await broadcastChannel(
+          this.messageBus,
+          embeddingReadyChannel,
+          {
             entityType: data.entityType,
             entityId: data.id,
-            entity: currentEntity,
+            entity: { ...currentEntity },
           },
-          sender: "entity-service",
-          broadcast: true,
-        });
+          "entity-service",
+        );
       }
 
       this.logger.debug("Embedding job completed successfully", {

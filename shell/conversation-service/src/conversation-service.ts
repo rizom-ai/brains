@@ -17,9 +17,10 @@ import type {
   UpdateConversationMetadataRequest,
 } from "./types";
 import {
-  CONVERSATION_GUEST_MESSAGE_ADDED_CHANNEL,
-  CONVERSATION_MESSAGE_ADDED_CHANNEL,
-  CONVERSATION_STARTED_CHANNEL,
+  conversationGuestMessageAddedChannel,
+  conversationMessageAddedChannel,
+  type ConversationGuestMessageAddedPayload,
+  type ConversationMessageAddedPayload,
 } from "./types";
 import type {
   Conversation,
@@ -35,7 +36,7 @@ import { conversations, messages, summaryTracking } from "./schema";
 const messageInsertionOrder = sql`"messages"."rowid"`;
 import type { Logger } from "@brains/utils/logger";
 import { createId } from "@brains/utils/id";
-import type { MessageBus } from "@brains/messaging-service";
+import { broadcastChannel, type MessageBus } from "@brains/messaging-service";
 import {
   and,
   eq,
@@ -233,19 +234,6 @@ export class ConversationService implements IConversationService {
       interfaceType,
     });
 
-    // Emit event for plugins
-    await this.messageBus.send({
-      type: CONVERSATION_STARTED_CHANNEL,
-      payload: {
-        conversationId: sessionId,
-        sessionId,
-        interfaceType,
-        timestamp: now,
-      },
-      sender: "conversation-service",
-      broadcast: true,
-    });
-
     return sessionId;
   }
 
@@ -301,17 +289,18 @@ export class ConversationService implements IConversationService {
       }
       // Where the message is, never what it says; its position is its
       // place in the conversation once written.
-      await this.messageBus.send({
-        type: CONVERSATION_GUEST_MESSAGE_ADDED_CHANNEL,
-        payload: {
-          conversationId,
-          messageId,
-          role,
-          position: await this.countMessages(conversationId),
-        },
-        sender: "conversation-service",
-        broadcast: true,
-      });
+      const payload: ConversationGuestMessageAddedPayload = {
+        conversationId,
+        messageId,
+        role,
+        position: await this.countMessages(conversationId),
+      };
+      await broadcastChannel(
+        this.messageBus,
+        conversationGuestMessageAddedChannel,
+        payload,
+        "conversation-service",
+      );
       return;
     } else {
       await this.db.insert(messages).values(newMessage);
@@ -340,19 +329,20 @@ export class ConversationService implements IConversationService {
     });
 
     // Emit event for plugins (non-blocking)
-    await this.messageBus.send({
-      type: CONVERSATION_MESSAGE_ADDED_CHANNEL,
-      payload: {
-        conversationId,
-        messageId,
-        role,
-        content,
-        metadata,
-        timestamp: now,
-      },
-      sender: "conversation-service",
-      broadcast: true,
-    });
+    const payload: ConversationMessageAddedPayload = {
+      conversationId,
+      messageId,
+      role,
+      content,
+      metadata,
+      timestamp: now,
+    };
+    await broadcastChannel(
+      this.messageBus,
+      conversationMessageAddedChannel,
+      payload,
+      "conversation-service",
+    );
   }
 
   /**

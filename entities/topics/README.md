@@ -24,7 +24,6 @@ Topics are normal entities:
 
 ```ts
 interface TopicsPluginConfig {
-  includeEntityTypes?: string[]; // Deprecated allow-list. Default: ["*"]
   excludeEntityTypes?: string[]; // Entity types to omit. Default: []
   minRelevanceScore?: number; // Default: 0.5
   createRelevanceThreshold?: number; // Default: 0.7
@@ -33,7 +32,7 @@ interface TopicsPluginConfig {
     Record<ProjectionSourceRole, TopicSourceRolePolicy>
   >;
   sourceRoleOverrides?: Record<string, ProjectionSourceRole>;
-  mergeSimilarityThreshold?: number; // Default: 0.85
+  semanticMergeDistance?: number; // Default: 0.35
   autoMerge?: boolean; // Default: true
   extractableStatuses?: string[]; // Default: ["published"]
   excludeTitleTerms?: string[]; // Default: []; e.g. a book brain's author
@@ -60,12 +59,10 @@ Default role policies:
 
 ### Notes
 
-- By default, all registered projection-source entity types are processed (`includeEntityTypes: ["*"]`).
+- By default, all registered projection-source entity types are processed.
 - Use `excludeEntityTypes` as the normal blacklist when a brain should omit a source type.
-- `includeEntityTypes` remains as a deprecated compatibility allow-list for constrained evals or unusual instances.
 - Entity types declare their default derivation authority via `projectionSourceRole`; the topics plugin maps roles to mint/reinforce behavior instead of knowing about package-specific entity names.
 - Brain and instance configs can adapt authority with `excludeEntityTypes`, `sourceRoleOverrides`, and `sourceRolePolicies`.
-- Legacy `sourceWeights` and `mintableEntityTypes` remain supported for compatibility, but role-based policy is preferred.
 - Topic entities themselves are never reprocessed as sources.
 - Entities with `status: published` and entities without a status field are extractable by default. Brains can opt in additional statuses such as `draft`.
 - `reinforceRelevanceThreshold` applies to legacy batch/eval extraction, not automatic ranked selection.
@@ -77,7 +74,7 @@ Default role policies:
 
 When `enableAutoExtraction` is enabled, source create/update/delete events and the shell's startup-content-settled signal enqueue a deduplicated `topics:extract` job. Execution subscriptions also observe imports in the worker process.
 
-Votes are runtime working data in `topics.votes`, keyed by source type and ID, with the source's content hash. Jobs scan sources in pages and keep only keys and hashes; full content is loaded for the sources in each prompt. Jobs remove ineligible/deleted votes, extract stale sources, checkpoint each batch, and enqueue a successor while extraction or selection remains. A title not copied exactly from the listed topics is dropped. A source whose call failed or went unanswered is retried alone; after three counted failures it receives an empty vote until its content changes. Failures count only in a job where the provider answered at least one call, so an outage fails the job instead. A durable lease serializes overlapping jobs and expires after an abandoned attempt. All AI calls receive the job's abort signal.
+Votes are runtime working data in `topics.votes`, keyed by source type and ID, with the source's content hash. Jobs scan sources in pages and keep only keys and hashes; full content is loaded for the sources in each prompt. Jobs remove ineligible/deleted votes, extract stale sources, checkpoint each batch, and enqueue a successor while extraction or selection remains. A title not copied exactly from the listed topics is dropped. A source whose call failed or went unanswered is retried alone; after three counted failures it receives an empty vote until its content changes. Failures count only in a job where the provider answered at least one call, so an outage fails the job instead. Extraction jobs run one at a time: a job woken during a run waits in the queue until that run ends. A durable lease also keeps a job from overlapping an attempt the queue gave up on, and expires after an abandoned attempt. All AI calls receive the job's abort signal.
 
 Selection sums role weight × relevance for each slug. Below the cap, the best qualified challenger enters; at the cap it replaces the weakest topic only with a greater-than-25% lead, and only once every source has been read, so existing topics are not displaced before their votes exist. Description synthesis shares the ten-call job budget and uses up to eight strongest proposals. Retained topics are not rewritten, and new IDs remain visibility-scoped title slugs. Old projection ownership is released once per brain without deleting topic content; the topic ATProto projection is unchanged.
 
@@ -132,8 +129,8 @@ new topics; unknown legacy fields on existing entities are stripped on read.
 
 ### Dependency boundary follow-up
 
-- `@brains/ui-library` and `@brains/utils` are direct workspace dependencies today.
-- Before publishing this package externally, either publish those packages too or expose the needed stable APIs through `@brains/plugins`.
+- `@brains/utils` and `@rizom/brain-ui/internal` (the first-party components) are direct workspace dependencies today.
+- Before publishing this package externally, either expose the needed stable APIs through `@brains/plugins` and `@rizom/brain-ui`, or replace them.
 
 ## Refactor notes
 

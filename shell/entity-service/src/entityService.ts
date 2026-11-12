@@ -1,3 +1,4 @@
+import { internalFullScope } from "./internal-scope";
 import type { AssetRef, AssetStat, AssetVerification } from "@brains/assets";
 import type {
   QueryGroupingCatalogRequest,
@@ -74,7 +75,7 @@ import type { ProjectionChangedTarget } from "./schema/projection-state";
 import { sql } from "drizzle-orm";
 import { ConsoleLogger, type Logger } from "@brains/utils/logger";
 import { RetryScope } from "@brains/utils/retry-backoff";
-import type { IEmbeddingService } from "./embedding-types";
+import type { EmbeddingIdentity, IEmbeddingService } from "./embedding-types";
 import type { IJobQueueService } from "@brains/job-queue";
 import { EmbeddingJobHandler } from "./handlers/embeddingJobHandler";
 import { EntitySearch } from "./entity-search";
@@ -352,7 +353,7 @@ export class EntityService implements IEntityService {
       // Initialize databases (WAL, migrations, ATTACH) — awaited by Shell.initialize()
       this.dbInitPromise = this.initializeDatabase(
         options.embeddingDbConfig,
-        options.embeddingService.dimensions,
+        options.embeddingService.identity,
       );
       // Failures surface in initialize(); this no-op handler only prevents an
       // unhandled rejection in the window before initialize() awaits.
@@ -400,7 +401,7 @@ export class EntityService implements IEntityService {
 
   private async initializeDatabase(
     embeddingDbConfig: EntityDbConfig,
-    embeddingDimensions: number,
+    embeddingIdentity: EmbeddingIdentity,
   ): Promise<void> {
     // WAL pragmas are a performance setting — failure is non-fatal
     try {
@@ -431,7 +432,16 @@ export class EntityService implements IEntityService {
     // Everything below is required for search/embedding correctness —
     // failures must propagate so Shell.initialize() fails loudly.
     await ensureFtsTable(this.dbClient);
-    await migrateEmbeddingDatabase(this.embeddingDbClient, embeddingDimensions);
+    const migration = await migrateEmbeddingDatabase(
+      this.embeddingDbClient,
+      embeddingIdentity,
+    );
+    if (migration.rebuilt) {
+      this.logger.info("Embedding model changed; rebuilding the index", {
+        from: migration.previous,
+        to: embeddingIdentity,
+      });
+    }
     await attachEmbeddingDatabase(
       this.searchDbClient,
       dbUrlToPath(embeddingDbConfig.url),
@@ -699,6 +709,30 @@ export class EntityService implements IEntityService {
     return { rewritten };
   }
 
+  /**
+   * Re-derive the stored metadata of every type whose metadata is its
+   * frontmatter from the stored markdown, the metadata column alone. A type
+   * converted from an entity plugin class kept its fields in the content
+   * and may have stored other metadata; the declaration reads the
+   * frontmatter as metadata.
+   */
+  public async reconcileDeclaredMetadata(): Promise<{ reconciled: number }> {
+    await this.initialize();
+    const types = this.entityRegistry
+      .getAllEntityTypes()
+      .filter(
+        (type) =>
+          this.entityRegistry.getAdapter(type).metadataFromFrontmatter === true,
+      );
+    const reconciled = await types.reduce<Promise<number>>(
+      async (total, type) =>
+        (await total) +
+        (await this.entityQueries.reconcileDeclaredMetadata(type)),
+      Promise.resolve(0),
+    );
+    return { reconciled };
+  }
+
   /** Entities of one type still carrying a retired field, rewritten one by one. */
   private async rewriteType(type: string): Promise<number> {
     const ids = await this.entityQueries.idsCarryingFrontmatterFields(
@@ -710,7 +744,9 @@ export class EntityService implements IEntityService {
       const entity = await this.getEntity({
         entityType: type,
         id,
-        visibilityScope: "restricted",
+        visibilityScope: internalFullScope(
+          "retired frontmatter field rewrite migration",
+        ),
       });
       // Reads already parse past retired fields; writing re-serializes without them.
       if (entity) await this.updateEntity({ entity });
@@ -889,7 +925,10 @@ export class EntityService implements IEntityService {
       return null;
     }
 
-    const entity = await this.entitySerializer.convertToEntity(entityData);
+    const entity = await this.entitySerializer.convertToEntity(
+      entityData,
+      request.source,
+    );
     request.signal?.throwIfAborted();
     return entity && schema ? schema.parse(entity) : entity;
   }

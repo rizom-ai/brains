@@ -3,7 +3,8 @@ import {
   isTextUploadMediaType,
   uploadTitle,
   type ResolvedRuntimeUpload,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/entity-runtime";
+import { bufferView } from "@brains/utils/bytes";
 import { generateMarkdown } from "@brains/utils/markdown";
 import { slugify } from "@brains/utils/string-utils";
 
@@ -62,7 +63,7 @@ export function readTextUploadMarkdown(
   upload: ResolvedRuntimeUpload,
 ): string | undefined {
   return isTextUploadMediaType(upload.record.mediaType)
-    ? upload.content.toString("utf8")
+    ? bufferView(upload.content).toString("utf8")
     : undefined;
 }
 

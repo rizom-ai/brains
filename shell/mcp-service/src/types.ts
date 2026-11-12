@@ -1,4 +1,4 @@
-import type { McpServer, ToolAnnotations } from "@modelcontextprotocol/server";
+import type { McpServer } from "@modelcontextprotocol/server";
 import { type ProgressNotification } from "@brains/utils/progress";
 import { z, type ZodRawShape } from "@brains/utils/zod";
 import { actorRefSchema, type ActorRef } from "@brains/contracts";
@@ -98,6 +98,7 @@ export const toolSuccessSchema: z.ZodObject<
     success: z.ZodLiteral<true>;
     data: z.ZodOptional<z.ZodUnknown>;
     message: z.ZodOptional<z.ZodString>;
+    completionDetail: z.ZodOptional<z.ZodString>;
     cached: z.ZodOptional<z.ZodLiteral<true>>;
   },
   z.core.$strict
@@ -105,6 +106,8 @@ export const toolSuccessSchema: z.ZodObject<
   success: z.literal(true),
   data: z.unknown().optional(),
   message: z.string().optional(),
+  /** What a confirmed action verified, shown after its completion summary. */
+  completionDetail: z.string().optional(),
   cached: z.literal(true).optional(),
 });
 
@@ -178,6 +181,20 @@ export type ToolOutputSchema = z.ZodType;
 export type MCPProtocolMode = "basic" | "debug";
 
 /**
+ * MCP protocol hints a tool advertises to external clients. Restated from
+ * the MCP SDK so a tool's public type does not import the server SDK, whose
+ * declarations need Node; test/tool-annotations-soundness.ts keeps the two
+ * assignable both ways.
+ */
+export interface ToolAnnotations {
+  title?: string | undefined;
+  readOnlyHint?: boolean | undefined;
+  destructiveHint?: boolean | undefined;
+  idempotentHint?: boolean | undefined;
+  openWorldHint?: boolean | undefined;
+}
+
+/**
  * Tool definition
  * @template TOutput - The output type, defaults to ToolResponse for backward compatibility
  */
@@ -202,6 +219,22 @@ export interface Tool<TOutput = ToolResponse> {
   directMcpExposure?: DirectMcpExposure;
   /** MCP protocol annotations advertised to external clients. Derived from sideEffects when omitted. */
   annotations?: ToolAnnotations;
+  /**
+   * The input a model held to strict tools writes, when strict mode cannot
+   * hold inputSchema: a shape read from the brain's state as the tool list
+   * is sent, and how a call in it becomes this tool's input, which
+   * inputSchema then validates. Other models, and an absent modelInput,
+   * write inputSchema.
+   */
+  modelInput?: {
+    /**
+     * Reads what inputSchema is built from, such as groupings the brain
+     * loads only when asked, before the tool list is sent.
+     */
+    prepare?: () => Promise<void>;
+    inputSchema: () => ToolInputSchema;
+    toToolInput: (input: Record<string, unknown>) => Record<string, unknown>;
+  };
   /** Optional CLI metadata — makes this tool invocable as a brain CLI command */
   cli?: {
     /** CLI command name (e.g. "list", "sync", "build") */

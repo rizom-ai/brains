@@ -1,65 +1,11 @@
-import type {
-  StudioWorkspaceActor,
-  StudioWorkspaceDescriptor,
-  StudioWorkspaceRegistration,
-  UserPermissionLevel,
-} from "@brains/plugins";
-import { z } from "@brains/utils/zod";
-
-const workspaceRegistrationSchema = z.object({
-  id: z.string().trim().min(1),
-  pluginId: z.string().trim().min(1),
-  label: z.string().trim().min(1),
-  rendererName: z.literal("DeclarativeOperatorWorkspace"),
-  priority: z.number().int(),
-  permission: z.enum(["public", "trusted", "admin"]).default("trusted"),
-  urlQuery: z.literal(true).optional(),
-  aliases: z
-    .array(
-      z
-        .object({
-          id: z.string().trim().min(1),
-          query: z.record(z.string().trim().min(1), z.string()),
-        })
-        .strict(),
-    )
-    .max(20)
-    .optional(),
-  entityTypes: z
-    .union([
-      z.array(z.string().trim().min(1)),
-      z.custom<
-        Extract<
-          StudioWorkspaceRegistration["entityTypes"],
-          (actor: never) => unknown
-        >
-      >((value) => typeof value === "function", {
-        message: "Expected Studio workspace entity types resolver function",
-      }),
-    ])
-    .default([]),
-  publishesEntityTypes: z.literal(true).optional(),
-  accessHandler: z.custom<StudioWorkspaceRegistration["accessHandler"]>(
-    (value) => typeof value === "function",
-    { message: "Expected Studio workspace access handler function" },
-  ),
-  dataProvider: z.custom<StudioWorkspaceRegistration["dataProvider"]>(
-    (value) => typeof value === "function",
-    { message: "Expected Studio workspace data provider function" },
-  ),
-  actionHandler: z
-    .custom<NonNullable<StudioWorkspaceRegistration["actionHandler"]>>(
-      (value) => typeof value === "function",
-      { message: "Expected Studio workspace action handler function" },
-    )
-    .optional(),
-  badgeProvider: z
-    .custom<NonNullable<StudioWorkspaceRegistration["badgeProvider"]>>(
-      (value) => typeof value === "function",
-      { message: "Expected Studio workspace badge provider function" },
-    )
-    .optional(),
-});
+import { SdkError } from "@brains/contracts";
+import {
+  studioWorkspaceRegistrationSchema,
+  type StudioWorkspaceActor,
+  type StudioWorkspaceDescriptor,
+  type StudioWorkspaceRegistration,
+} from "@brains/sdk/internal/service-runtime";
+import type { UserPermissionLevel } from "@brains/sdk/interfaces";
 
 export interface StoredStudioWorkspace extends Omit<
   StudioWorkspaceDescriptor,
@@ -100,9 +46,11 @@ export class StudioWorkspaceRegistry {
   private readonly workspaces = new Map<string, StoredStudioWorkspace>();
 
   register(input: StudioWorkspaceRegistration): StoredStudioWorkspace {
-    const parsed = workspaceRegistrationSchema.parse(input);
+    const parsed = studioWorkspaceRegistrationSchema.parse(input);
     if (this.workspaces.has(parsed.id)) {
-      throw new Error(`Studio workspace already registered: ${parsed.id}`);
+      throw new SdkError("conflict", {
+        publicMessage: `Studio workspace already registered: ${parsed.id}`,
+      });
     }
     const occupiedIds = new Set(
       Array.from(this.workspaces.values()).flatMap((workspace) => [
@@ -118,9 +66,9 @@ export class StudioWorkspaceRegistry {
       (id, index) => requestedIds.indexOf(id) !== index,
     );
     if (duplicateRequested || requestedIds.some((id) => occupiedIds.has(id))) {
-      throw new Error(
-        `Studio workspace id or alias already registered: ${duplicateRequested ?? requestedIds.find((id) => occupiedIds.has(id)) ?? parsed.id}`,
-      );
+      throw new SdkError("conflict", {
+        publicMessage: `Studio workspace id or alias already registered: ${duplicateRequested ?? requestedIds.find((id) => occupiedIds.has(id)) ?? parsed.id}`,
+      });
     }
     const sourceEntityTypes = parsed.entityTypes;
     const entityTypes =

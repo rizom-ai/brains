@@ -1,11 +1,15 @@
-import type { BaseEntity } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/sdk/entities";
+
+/** Any entity, as far as its series fields are concerned. */
+interface SeriesSource {
+  readonly metadata: unknown;
+}
 
 /**
  * Helpers for reading the opt-in series fields that any entity type may carry
- * in its metadata. Centralized so the manager, datasource, and generation
- * handler all agree on how `seriesName`/`seriesIndex` are extracted, and so the
- * extraction goes through zod rather than unchecked casts.
+ * in its metadata. Centralized so the data source and the projection agree
+ * on how `seriesName`/`seriesIndex` are extracted, and so the extraction
+ * goes through zod rather than unchecked casts.
  */
 const seriesSourceMetadataSchema: z.ZodObject<{
   seriesName: z.ZodOptional<z.ZodString>;
@@ -24,12 +28,12 @@ export function parseSeriesFields(metadata: unknown): SeriesSourceFields {
 }
 
 /** Extract `seriesName` from any entity's metadata, if present and a string. */
-export function getSeriesName(entity: BaseEntity): string | undefined {
+export function getSeriesName(entity: SeriesSource): string | undefined {
   return parseSeriesFields(entity.metadata).seriesName;
 }
 
 /** Extract `seriesIndex` from any entity's metadata, if present and a number. */
-export function getSeriesIndex(entity: BaseEntity): number | undefined {
+export function getSeriesIndex(entity: SeriesSource): number | undefined {
   return parseSeriesFields(entity.metadata).seriesIndex;
 }
 
@@ -38,7 +42,7 @@ export function getSeriesIndex(entity: BaseEntity): number | undefined {
  * an index sort after those that have one (rather than being dropped or pinned
  * to an arbitrary magic position).
  */
-export function compareBySeriesIndex(a: BaseEntity, b: BaseEntity): number {
+export function compareBySeriesIndex(a: SeriesSource, b: SeriesSource): number {
   const ai = getSeriesIndex(a) ?? Number.MAX_SAFE_INTEGER;
   const bi = getSeriesIndex(b) ?? Number.MAX_SAFE_INTEGER;
   return ai - bi;

@@ -24,6 +24,9 @@ const nominatedBrainPeerRange = ">=0.2.0-alpha.272 <0.3.0";
 const accountSettingsBrainPeerRange = ">=0.2.0-alpha.304 <0.3.0";
 const operatorCompositionBrainPeerRange = ">=0.2.0-alpha.339 <0.3.0";
 const nominatedSiteVersion = "0.2.0-alpha.233";
+// The first release that publishes the component library. It versions with
+// @rizom/brain, so its floor is a Brain release number.
+const nominatedBrainUiVersion = "0.2.0-alpha.649";
 
 const categories = [
   "stable",
@@ -46,7 +49,7 @@ interface ExportLedger {
 interface GoldenPackageExpectation {
   directory: string;
   packageName: string;
-  publicEntryPoint: string;
+  publicEntryPoints: string[];
   requiredVocabulary: string[];
 }
 
@@ -59,7 +62,7 @@ const goldenPackages: GoldenPackageExpectation[] = [
   {
     directory: "entity",
     packageName: "@fixture/reading-entities",
-    publicEntryPoint: "@rizom/brain/entities",
+    publicEntryPoints: ["@rizom/brain/entities"],
     requiredVocabulary: [
       "defineEntity",
       "defineEntityPackage",
@@ -71,37 +74,106 @@ const goldenPackages: GoldenPackageExpectation[] = [
   {
     directory: "service",
     packageName: "@fixture/reading-insights",
-    publicEntryPoint: "@rizom/brain/services",
-    requiredVocabulary: ["defineJob", "defineServicePlugin", "defineTool", "z"],
+    publicEntryPoints: ["@rizom/brain/entities", "@rizom/brain/services"],
+    requiredVocabulary: [
+      "defineEntity",
+      "defineJob",
+      "defineServicePlugin",
+      "defineTool",
+      "entities: [readingRequest]",
+      "z",
+    ],
+  },
+  {
+    directory: "profile-steward",
+    packageName: "@fixture/reader-profile",
+    publicEntryPoints: ["@rizom/brain/entities", "@rizom/brain/services"],
+    requiredVocabulary: [
+      "defineBusContract",
+      "entities: [readerProfile]",
+      "answer(fillReaderProfile",
+      "sender",
+    ],
+  },
+  {
+    directory: "profile-import",
+    packageName: "@fixture/reader-import",
+    publicEntryPoints: ["@rizom/brain/services"],
+    requiredVocabulary: [
+      "messaging.request(fillReaderProfile",
+      "entities.get(readerProfile",
+      "accountSettings.claim(",
+      "accountSettings.redeem(",
+    ],
+  },
+  {
+    directory: "reminders",
+    packageName: "@fixture/reminders",
+    publicEntryPoints: [
+      "@rizom/brain",
+      "@rizom/brain/entities",
+      "@rizom/brain/services",
+      "@rizom/brain/testing",
+    ],
+    requiredVocabulary: [
+      "entities: [reminder]",
+      "runtimeState(",
+      "answer(dueCount",
+      "fireReminder.handle(",
+      "defineRoute(",
+      "templates.format(",
+      "startTestBrain({ plugins: [use(reminders)] })",
+      "brain.jobs.wait(fireReminder",
+      "brain.request(dueCount",
+    ],
   },
   {
     directory: "site",
     packageName: "@fixture/reading-site",
-    publicEntryPoint: "@rizom/site",
-    requiredVocabulary: ["defineSection", "defineSite", "sectionGroup", "z"],
+    publicEntryPoints: ["@rizom/site", "@rizom/brain-ui"],
+    requiredVocabulary: [
+      "defineSection",
+      "defineSite",
+      "sectionGroup",
+      "z",
+      "<Card",
+      "<CardTitle",
+      "<CardMetadata",
+      "<TagsList",
+      "<MarkdownContent",
+      "formatDate(",
+    ],
   },
   {
     directory: "interface",
     packageName: "@fixture/reading-webhook",
-    publicEntryPoint: "@rizom/brain/interfaces",
+    publicEntryPoints: ["@rizom/brain/interfaces"],
     requiredVocabulary: [
       "defineDaemon",
       "defineInterface",
       "defineRoute",
       "protocol",
+      "runtimeState(",
+      'new SdkError("conflict"',
       "z",
     ],
   },
   {
     directory: "message-interface",
     packageName: "@fixture/campfire-interface",
-    publicEntryPoint: "@rizom/brain/interfaces",
-    requiredVocabulary: ["defineMessageInterface", "z"],
+    publicEntryPoints: ["@rizom/brain/interfaces"],
+    requiredVocabulary: [
+      "defineMessageInterface",
+      "defineMessageInterfacePackage",
+      "runtimeState(",
+      "read: (): Promise<Uint8Array>",
+      "z",
+    ],
   },
   {
     directory: "brain-definition",
     packageName: "@fixture/reader-brain",
-    publicEntryPoint: "@rizom/brain",
+    publicEntryPoints: ["@rizom/brain"],
     requiredVocabulary: ["defineBrain", "defineBundle", "use"],
   },
 ];
@@ -151,7 +223,7 @@ function publicNamedImports(source: string): Map<string, string[]> {
   const imports = new Map<string, string[]>();
 
   for (const match of source.matchAll(
-    /import\s+\{([^}]*)\}\s+from\s+["'](@rizom\/(?:brain(?:\/[\w-]+)?|site(?:-sections)?))["'];/gu,
+    /import\s+(?:type\s+)?\{([^}]*)\}\s+from\s+["'](@rizom\/(?:brain-ui|brain(?:\/[\w-]+)?|site(?:-sections)?))["'];/gu,
   )) {
     const specifier = match[2];
     if (!specifier) continue;
@@ -205,11 +277,20 @@ describe("public authoring 0.2 golden packages", () => {
       operatorCompositionBrainPeerRange,
     );
     expect(tsconfig.extends).toBeUndefined();
-    expect([...publicNamedImports(source).keys()]).toEqual([
+    expect([...publicNamedImports(source).keys()].sort()).toEqual([
+      "@rizom/brain/entities",
       "@rizom/brain/services",
     ]);
 
     for (const symbol of [
+      "entities: [queuedReading]",
+      "entities.create(queuedReading",
+      "launch: { origins: [READING_PROVIDER] }",
+      "accountSettings.claim(",
+      "accountSettings.redeem(",
+      "returnTo: readingWorkspace",
+      "accountSettings.read()",
+      "accessToken.reveal()",
       "defineAccountSettings",
       "defineStudioWorkspace",
       "defineDashboardWidget",
@@ -253,11 +334,76 @@ describe("public authoring 0.2 golden packages", () => {
     expect(ports).toContain("connected-channel ownership decision");
   });
 
-  it("compiles the approved Phase 1 operator contract fixtures", async () => {
+  it("compiles the entity, service, interface and site canaries and the approved Phase 1 operator contract fixtures", async () => {
     const cases = [
+      {
+        directory: "entity",
+        paths: {
+          "@rizom/brain/entities": [
+            "./packages/brain-cli/src/entries/entities.ts",
+          ],
+        },
+      },
+      {
+        directory: "service",
+        paths: {
+          "@rizom/brain/entities": [
+            "./packages/brain-cli/src/entries/entities.ts",
+          ],
+          "@rizom/brain/services": [
+            "./packages/brain-cli/src/entries/services.ts",
+          ],
+          "@fixture/reading-entities": [
+            "./packages/brain-cli/test/fixtures/public-authoring/entity/src/index.ts",
+          ],
+        },
+      },
+      {
+        directory: "reminders",
+        paths: {
+          "@rizom/brain": ["./packages/brain-cli/src/entries/index.ts"],
+          "@rizom/brain/entities": [
+            "./packages/brain-cli/src/entries/entities.ts",
+          ],
+          "@rizom/brain/services": [
+            "./packages/brain-cli/src/entries/services.ts",
+          ],
+          "@rizom/brain/testing": [
+            "./packages/brain-cli/src/entries/testing.ts",
+          ],
+        },
+      },
+      {
+        directory: "profile-steward",
+        paths: {
+          "@rizom/brain/entities": [
+            "./packages/brain-cli/src/entries/entities.ts",
+          ],
+          "@rizom/brain/services": [
+            "./packages/brain-cli/src/entries/services.ts",
+          ],
+        },
+      },
+      {
+        directory: "profile-import",
+        paths: {
+          "@rizom/brain/entities": [
+            "./packages/brain-cli/src/entries/entities.ts",
+          ],
+          "@rizom/brain/services": [
+            "./packages/brain-cli/src/entries/services.ts",
+          ],
+          "@fixture/reader-profile": [
+            "./packages/brain-cli/test/fixtures/public-authoring/profile-steward/src/index.ts",
+          ],
+        },
+      },
       {
         directory: "operator-surface",
         paths: {
+          "@rizom/brain/entities": [
+            "./packages/brain-cli/src/entries/entities.ts",
+          ],
           "@rizom/brain/services": [
             "./packages/brain-cli/src/entries/services.ts",
           ],
@@ -277,49 +423,127 @@ describe("public authoring 0.2 golden packages", () => {
           ],
         },
       },
+      {
+        directory: "interface",
+        paths: {
+          "@rizom/brain/entities": [
+            "./packages/brain-cli/src/entries/entities.ts",
+          ],
+          "@rizom/brain/services": [
+            "./packages/brain-cli/src/entries/services.ts",
+          ],
+          "@rizom/brain/interfaces": [
+            "./packages/brain-cli/src/entries/interfaces.ts",
+          ],
+          "@fixture/reading-entities": [
+            "./packages/brain-cli/test/fixtures/public-authoring/entity/src/index.ts",
+          ],
+          "@fixture/reading-insights": [
+            "./packages/brain-cli/test/fixtures/public-authoring/service/src/index.tsx",
+          ],
+        },
+      },
+      {
+        directory: "message-interface",
+        paths: {
+          "@rizom/brain/interfaces": [
+            "./packages/brain-cli/src/entries/interfaces.ts",
+          ],
+        },
+      },
+      {
+        directory: "site",
+        paths: {
+          "@rizom/site": ["./packages/site/src/index.ts"],
+          "@rizom/brain-ui": ["./packages/ui/src/index.ts"],
+        },
+      },
+      {
+        directory: "brain-definition",
+        paths: {
+          "@rizom/brain": ["./packages/brain-cli/src/entries/index.ts"],
+          "@rizom/brain/entities": [
+            "./packages/brain-cli/src/entries/entities.ts",
+          ],
+          "@rizom/brain/services": [
+            "./packages/brain-cli/src/entries/services.ts",
+          ],
+          "@rizom/brain/interfaces": [
+            "./packages/brain-cli/src/entries/interfaces.ts",
+          ],
+          "@rizom/site": ["./packages/site/src/index.ts"],
+          "@rizom/brain-ui": ["./packages/ui/src/index.ts"],
+          "@fixture/reading-entities": [
+            "./packages/brain-cli/test/fixtures/public-authoring/entity/src/index.ts",
+          ],
+          "@fixture/reading-insights": [
+            "./packages/brain-cli/test/fixtures/public-authoring/service/src/index.tsx",
+          ],
+          "@fixture/reading-webhook": [
+            "./packages/brain-cli/test/fixtures/public-authoring/interface/src/index.ts",
+          ],
+          "@fixture/campfire-interface": [
+            "./packages/brain-cli/test/fixtures/public-authoring/message-interface/src/index.ts",
+          ],
+          "@fixture/reading-site": [
+            "./packages/brain-cli/test/fixtures/public-authoring/site/src/index.tsx",
+          ],
+        },
+      },
     ] as const;
 
-    for (const fixture of cases) {
-      const tsconfigPath = join(
-        repositoryRoot,
-        `.public-authoring-${fixture.directory}.tsconfig.json`,
-      );
-      try {
-        writeFileSync(
-          tsconfigPath,
-          JSON.stringify({
-            extends: `./packages/brain-cli/test/fixtures/public-authoring/${fixture.directory}/tsconfig.json`,
-            compilerOptions: {
-              rootDir: ".",
-              declaration: false,
-              jsx: "react-jsx",
-              jsxImportSource: "react",
-              types: ["bun"],
-              noUnusedLocals: false,
-              noUnusedParameters: false,
-              paths: fixture.paths,
+    // Each case is a whole tsc run over the public entries, and none reads
+    // another's tsconfig, so they run side by side; the bound covers the
+    // slowest CI runner rather than the sum of the cases.
+    const compiled = await Promise.all(
+      cases.map(async (fixture) => {
+        const tsconfigPath = join(
+          repositoryRoot,
+          `.public-authoring-${fixture.directory}.tsconfig.json`,
+        );
+        try {
+          writeFileSync(
+            tsconfigPath,
+            JSON.stringify({
+              extends: `./packages/brain-cli/test/fixtures/public-authoring/${fixture.directory}/tsconfig.json`,
+              compilerOptions: {
+                rootDir: ".",
+                declaration: false,
+                jsx: "react-jsx",
+                jsxImportSource: "react",
+                types: ["bun"],
+                noUnusedLocals: false,
+                noUnusedParameters: false,
+                paths: fixture.paths,
+              },
+              include: [
+                `./packages/brain-cli/test/fixtures/public-authoring/${fixture.directory}/src/**/*.ts`,
+                `./packages/brain-cli/test/fixtures/public-authoring/${fixture.directory}/src/**/*.tsx`,
+                // A package's own tests and their canaries compile with it.
+                `./packages/brain-cli/test/fixtures/public-authoring/${fixture.directory}/test/**/*.ts`,
+              ],
+            }),
+          );
+          const result = await runProcess(
+            ["bunx", "tsc", "--noEmit", "-p", tsconfigPath],
+            {
+              cwd: repositoryRoot,
+              env: process.env,
             },
-            include: [
-              `./packages/brain-cli/test/fixtures/public-authoring/${fixture.directory}/src/**/*.ts`,
-            ],
-          }),
-        );
-        const result = await runProcess(
-          ["bunx", "tsc", "--noEmit", "-p", tsconfigPath],
-          {
-            cwd: repositoryRoot,
-            env: process.env,
-          },
-        );
-        expect(
-          result.exitCode,
-          `${fixture.directory} failed to compile:\n${result.stdout}${result.stderr}`,
-        ).toBe(0);
-      } finally {
-        rmSync(tsconfigPath, { force: true });
-      }
+          );
+          return { directory: fixture.directory, result };
+        } finally {
+          rmSync(tsconfigPath, { force: true });
+        }
+      }),
+    );
+    for (const { directory, result } of compiled) {
+      expect(
+        result.exitCode,
+        `${directory} failed to compile:\n${result.stdout}${result.stderr}`,
+      ).toBe(0);
     }
-  }, 15_000);
+  }, 120_000);
 
   it("keeps the account-settings interface contract lifecycle-owned", () => {
     const directory = join(fixtureRoot, "account-settings-interface");
@@ -395,6 +619,9 @@ describe("public authoring 0.2 golden packages", () => {
         expect(manifest.dependencies?.["@rizom/site"]).toBe(
           nominatedSiteVersion,
         );
+        expect(manifest.dependencies?.["@rizom/brain-ui"]).toBe(
+          nominatedBrainUiVersion,
+        );
       }
       expect(
         tsconfig.extends,
@@ -403,7 +630,10 @@ describe("public authoring 0.2 golden packages", () => {
       expect(manifest.dependencies?.zod).toBeUndefined();
       expect(manifest.devDependencies?.zod).toBeUndefined();
       expect(manifest.peerDependencies?.zod).toBeUndefined();
-      expect(publicImports).toEqual([fixture.publicEntryPoint]);
+      // An import inventory, independent of source file traversal order.
+      expect(publicImports.sort()).toEqual(
+        [...fixture.publicEntryPoints].sort(),
+      );
 
       for (const symbol of fixture.requiredVocabulary) {
         expect(source).toContain(symbol);
@@ -419,6 +649,7 @@ describe("public authoring 0.2 golden packages", () => {
     for (const forbidden of [
       "@brains/",
       "@rizom/brain/site",
+      "@rizom/brain-ui/internal",
       "@rizom/site-sections",
       'from "zod',
       "package.json",
@@ -466,15 +697,20 @@ describe("public authoring 0.2 golden packages", () => {
     expect(entity).toContain("type Bookmark = EntityOf<typeof bookmark>");
     expect(entity).toContain("source: bookmark");
     expect(entity).toContain("target: readingDigest");
+    // A provider and a job bound from the package's config.
+    expect(entity).toContain('name: "reading-archive"');
+    expect(entity).toContain("archive: defineEntityJob(");
 
     for (const capability of [
       "instructions:",
       "resources:",
       "prompts:",
       "templates:",
-      "views:",
+      "renderers:",
       "jobs:",
       "tools:",
+      "subscriptions:",
+      "routes:",
     ]) {
       expect(service).toContain(capability);
     }
@@ -498,7 +734,7 @@ describe("public authoring 0.2 golden packages", () => {
 describe("public authoring 0.2 export ledger", () => {
   it("exposes only Studio-named workspace authoring contracts", () => {
     const exports = exportedNames(
-      join(repositoryRoot, "packages/brain-cli/src/entries/services.ts"),
+      join(repositoryRoot, "packages/brain-sdk/src/services.ts"),
     );
 
     expect(exports).toEqual(
@@ -530,6 +766,11 @@ describe("public authoring 0.2 export ledger", () => {
       expect(missing, `${specifier} has unclassified current exports`).toEqual(
         [],
       );
+      const listed = [...entry.stable, ...entry["advanced-with-consumer"]];
+      expect(
+        listed.filter((name) => !current.includes(name)),
+        `${specifier} lists exports its source does not have`,
+      ).toEqual([]);
       const removable = current.filter((name) =>
         entry["internal/removable"].includes(name),
       );
@@ -562,6 +803,32 @@ describe("public authoring 0.2 export ledger", () => {
     }
   });
 
+  it("has a fixture that imports every stable name", () => {
+    const ledger = readLedger();
+    // The authoring fixtures with their own tests and canaries, the packed
+    // operator consumer, and the headless Chat consumer.
+    const consumers = [
+      fixtureRoot,
+      join(import.meta.dir, "fixtures", "public-authoring-operator-consumer"),
+      join(import.meta.dir, "fixtures", "public-chat-consumer"),
+    ];
+    const imports = publicNamedImports(
+      consumers
+        .flatMap((directory) => listSourceFiles(directory))
+        .filter((path) => !path.includes("/node_modules/"))
+        .map((path) => readFileSync(path, "utf8"))
+        .join("\n"),
+    );
+
+    for (const [specifier, entry] of Object.entries(ledger.entries)) {
+      const imported = imports.get(specifier) ?? [];
+      expect(
+        entry.stable.filter((name) => !imported.includes(name)),
+        `${specifier} has stable names no fixture imports`,
+      ).toEqual([]);
+    }
+  });
+
   it("uses only named exports the scanner can classify in ledger sources", () => {
     const ledger = readLedger();
 
@@ -588,6 +855,8 @@ describe("public authoring 0.2 export ledger", () => {
     expect(ledger.entries["@rizom/brain/site"]).toBeUndefined();
     expect(ledger.entries["@rizom/site-sections"]).toBeUndefined();
     expect(brainManifest.exports["./site"]).toBeUndefined();
+    expect(brainManifest.exports["./plugins"]).toBeUndefined();
+    expect(brainManifest.exports["./templates"]).toBeUndefined();
     expect(
       existsSync(join(repositoryRoot, "packages/site-sections")),
     ).toBeFalse();
@@ -608,18 +877,12 @@ describe("public authoring 0.2 export ledger", () => {
         "z",
       ]),
     );
+    // The class API's subpaths are gone, with everything they carried.
+    expect(ledger.entries["@rizom/brain/plugins"]).toBeUndefined();
+    expect(ledger.entries["@rizom/brain/templates"]).toBeUndefined();
     expect(
-      ledger.entries["@rizom/brain/plugins"]?.["internal/removable"],
-    ).toEqual(
-      expect.arrayContaining([
-        "EntityPlugin",
-        "InterfacePlugin",
-        "MessageInterfacePlugin",
-        "ServicePlugin",
-        "createTool",
-        "toolSuccess",
-      ]),
-    );
+      ledger.entries["@rizom/brain/entities"]?.["internal/removable"],
+    ).toContain("BaseEntity");
     expect(
       ledger.entries["@rizom/brain/interfaces"]?.["internal/removable"],
     ).toContain("WebRouteDefinition");

@@ -6,16 +6,12 @@ import type {
   Template,
 } from "@brains/plugins";
 import {
-  CONVERSATION_GUEST_MESSAGE_ADDED_CHANNEL,
-  CONVERSATION_MESSAGE_ADDED_CHANNEL,
   EntityPlugin,
-  UserPermissionLevelSchema,
+  conversationGuestMessageAddedChannel,
+  conversationMessageAddedChannel,
+  embeddingReadyChannel,
 } from "@brains/plugins";
-import {
-  ENTITY_CHANNELS,
-  GUEST_ASKED_BEFORE_CHANNEL,
-  askedBeforeRequestSchema,
-} from "@brains/contracts";
+import { askedBeforeContract } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { faqAdapter, type FaqAdapter } from "./adapters/faq-adapter";
 import {
@@ -52,28 +48,6 @@ const faqConfigSchema: z.ZodObject<{
 
 export type FaqConfig = z.output<typeof faqConfigSchema>;
 export type FaqConfigInput = z.input<typeof faqConfigSchema>;
-
-/** The part of a message-added event a capture needs. */
-const assistantReplySchema = z.object({
-  conversationId: z.string(),
-  messageId: z.string(),
-  role: z.literal("assistant"),
-  metadata: z.object({ userPermissionLevel: UserPermissionLevelSchema }),
-});
-
-/** A reply to a site visitor: where it is, never what it says. */
-const guestReplySchema = z.object({
-  conversationId: z.string(),
-  messageId: z.string(),
-  role: z.literal("assistant"),
-  position: z.number().int().positive(),
-});
-
-/** The part of an embedding-ready event reconciliation needs. */
-const embeddingReadySchema = z.object({
-  entityType: z.string(),
-  entityId: z.string(),
-});
 
 const faqEntityType = "faq";
 
@@ -158,16 +132,8 @@ export class FaqPlugin extends EntityPlugin<
         sameQuestionDistance: this.config.sameQuestionDistance,
         ai: context.ai,
       };
-      context.messaging.subscribe(
-        GUEST_ASKED_BEFORE_CHANNEL,
-        async (message) => {
-          const request = askedBeforeRequestSchema.safeParse(message.payload);
-          if (!request.success) return { success: true, data: {} };
-          return {
-            success: true,
-            data: await answerAskedBefore(askedBeforeDeps, request.data),
-          };
-        },
+      context.messaging.answer(askedBeforeContract, (request) =>
+        answerAskedBefore(askedBeforeDeps, request),
       );
     }
 
@@ -178,11 +144,10 @@ export class FaqPlugin extends EntityPlugin<
     // when a duplicate captured moments earlier can be folded away. The
     // embedding is made where the job runs, so that process queues the fold.
     context.messaging.subscribeExecution(
-      ENTITY_CHANNELS.embeddingReady,
-      async (message) => {
-        const ready = embeddingReadySchema.safeParse(message.payload);
-        if (ready.success && ready.data.entityType === "faq") {
-          const data: FaqReconcileJobData = { entityId: ready.data.entityId };
+      embeddingReadyChannel,
+      async (ready) => {
+        if (ready.entityType === faqEntityType) {
+          const data: FaqReconcileJobData = { entityId: ready.entityId };
           await this.retries.run(
             () => context.jobs.enqueue({ type: "faq-reconcile", data }),
             "queue a FAQ fold",
@@ -196,21 +161,22 @@ export class FaqPlugin extends EntityPlugin<
     // brain is not a question a FAQ answers. Replies without a recorded
     // permission level have no known visibility and are never captured.
     context.messaging.subscribe(
-      CONVERSATION_MESSAGE_ADDED_CHANNEL,
-      async (message) => {
-        const reply = assistantReplySchema.safeParse(message.payload);
-        if (!reply.success) return { success: true };
-        if (reply.data.metadata.userPermissionLevel !== "public")
+      conversationMessageAddedChannel,
+      async (reply) => {
+        if (
+          reply.role !== "assistant" ||
+          reply.metadata?.["userPermissionLevel"] !== "public"
+        )
           return { success: true };
 
         // The reply is the newest message now, so the count is its position.
         const position = await context.conversations.countMessages(
-          reply.data.conversationId,
+          reply.conversationId,
         );
         const data: FaqCaptureJobData = {
-          conversationId: reply.data.conversationId,
-          messageId: reply.data.messageId,
-          userPermissionLevel: reply.data.metadata.userPermissionLevel,
+          conversationId: reply.conversationId,
+          messageId: reply.messageId,
+          userPermissionLevel: "public",
           position,
         };
         await this.retries.run(
@@ -224,15 +190,14 @@ export class FaqPlugin extends EntityPlugin<
     // A site visitor's reply answered a public turn, so its FAQ is a public
     // draft the owner reviews before anything is published.
     context.messaging.subscribe(
-      CONVERSATION_GUEST_MESSAGE_ADDED_CHANNEL,
-      async (message) => {
-        const reply = guestReplySchema.safeParse(message.payload);
-        if (!reply.success) return { success: true };
+      conversationGuestMessageAddedChannel,
+      async (reply) => {
+        if (reply.role !== "assistant") return { success: true };
         const data: FaqCaptureJobData = {
-          conversationId: reply.data.conversationId,
-          messageId: reply.data.messageId,
+          conversationId: reply.conversationId,
+          messageId: reply.messageId,
           userPermissionLevel: "public",
-          position: reply.data.position,
+          position: reply.position,
         };
         await this.retries.run(
           () => context.jobs.enqueue({ type: "faq-capture", data }),

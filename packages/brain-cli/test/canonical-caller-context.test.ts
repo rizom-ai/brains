@@ -1,3 +1,4 @@
+import type { AuthPrincipal } from "@brains/contracts";
 import { createMockMCPService } from "@brains/mcp-service/test";
 import { afterEach, describe, expect, it } from "bun:test";
 import {
@@ -7,11 +8,16 @@ import {
   type BrainAgentResult,
   type BrainCallOptions,
 } from "@brains/ai-service";
-import { AuthService, type AuthPrincipal } from "@brains/auth-service";
-import type { IConversationService } from "@brains/plugins";
+import { AuthService } from "@brains/auth-service";
+import {
+  instantiatePluginPackageDefinition,
+  type IConversationService,
+  type Plugin,
+  type WebRouteDefinition,
+} from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 import { createSilentLogger } from "@brains/test-utils";
-import { WebChatInterface } from "@brains/web-chat";
+import { createWebChatInterface, type WebChatDeps } from "@brains/web-chat";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -91,7 +97,7 @@ function createMemoryConversationService(): IConversationService {
 }
 
 async function sendChat(
-  plugin: WebChatInterface,
+  plugin: WebChatPlugin,
   sessionCookie: string,
   conversationId: string,
 ): Promise<void> {
@@ -161,7 +167,7 @@ describe("canonical authenticated caller context", () => {
       },
     });
     const logger = createSilentLogger("canonical-caller-context");
-    const harness = createPluginHarness<WebChatInterface>({ logger });
+    const harness = createPluginHarness<WebChatPlugin>({ logger });
     const shell = harness.getMockShell();
     shell.setConversationService(createMemoryConversationService());
     const agent = AgentService.createFresh(
@@ -175,13 +181,10 @@ describe("canonical authenticated caller context", () => {
     services.push({ close: (): Promise<void> => agent.shutdown() });
     harness.setAgentService(agent);
 
-    const plugin = new WebChatInterface(
-      {},
-      {
-        resolveAuthPrincipal: (request): Promise<AuthPrincipal | undefined> =>
-          auth.resolveSession(request),
-      },
-    );
+    const plugin = createWebChatPlugin({
+      resolveAuthPrincipal: (request): Promise<AuthPrincipal | undefined> =>
+        auth.resolveSession(request),
+    });
     await harness.installPlugin(plugin);
 
     await sendChat(plugin, anchorSession.cookie, "anchor-conversation");
@@ -209,3 +212,24 @@ describe("canonical authenticated caller context", () => {
     }
   });
 });
+
+/** The web chat plugin as the shell holds it: its routes. */
+type WebChatPlugin = Plugin & { getWebRoutes(): WebRouteDefinition[] };
+
+/** Web chat as the canonical brain creates it, with the test's principal lookup. */
+function createWebChatPlugin(deps: WebChatDeps): WebChatPlugin {
+  const [plugin] = instantiatePluginPackageDefinition(
+    createWebChatInterface(deps),
+    {},
+    { name: "@brains/web-chat", version: "0.0.0-test" },
+    { pluginId: "web-chat" },
+  );
+  if (!plugin || !isWebChatPlugin(plugin)) {
+    throw new Error("Web chat created no routes");
+  }
+  return plugin;
+}
+
+function isWebChatPlugin(plugin: Plugin): plugin is WebChatPlugin {
+  return typeof plugin.getWebRoutes === "function";
+}

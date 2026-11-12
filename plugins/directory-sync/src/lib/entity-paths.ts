@@ -1,5 +1,9 @@
-import { entityIdPathSchema, type BaseEntity } from "@brains/plugins";
-import { decodeEntityIdPath, encodeEntityIdPath } from "@brains/entity-service";
+import {
+  decodeEntityIdPath,
+  encodeEntityIdPath,
+  entityIdPathSchema,
+  type BaseEntity,
+} from "@brains/sdk/internal/entity-runtime";
 import { extname, join } from "path";
 import { readString } from "@brains/utils/record-fields";
 import { IMAGE_EXTENSIONS, getExtensionForFormat } from "./image-file-utils";

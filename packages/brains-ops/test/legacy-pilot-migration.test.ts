@@ -59,7 +59,7 @@ describe("offline legacy pilot migration", () => {
       githubOrg: "rizom-ai",
       contentRepoPrefix: "rover-",
       domainSuffix: ".rizom.ai",
-      aiApiKey: "PILOT_AI_API_KEY",
+      openaiApiKey: "PILOT_AI_API_KEY",
       gitSyncToken: "PILOT_GIT_SYNC_TOKEN",
       contentRepoAdminToken: "CONTENT_REPO_ADMIN_TOKEN",
       agePublicKey: "age1pilotpublickey",
@@ -75,7 +75,7 @@ describe("offline legacy pilot migration", () => {
       members: ["alice", "bob"],
       brainVersionOverride: "0.2.0-alpha.232",
       bundlesOverride: ["core", "media", "web", "chat"],
-      aiApiKeyOverride: "CANARY_AI_API_KEY",
+      openaiApiKeyOverride: "CANARY_AI_API_KEY",
       gitSyncTokenOverride: "CANARY_GIT_SYNC_TOKEN",
     });
     expect(cohortSchema.parse(migrated)).toEqual(migrated);

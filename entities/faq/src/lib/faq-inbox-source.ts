@@ -1,3 +1,7 @@
+import {
+  permissionToVisibilityScope,
+  internalFullScope,
+} from "@brains/plugins";
 import type {
   EntityPluginContext,
   InboxAction,
@@ -105,7 +109,9 @@ export class FaqInboxSource implements InboxSource {
         options: {
           limit: 1000,
           sortFields: [{ field: "updated", direction: "desc" }],
-          filter: { visibilityScope: "restricted" },
+          filter: {
+            visibilityScope: internalFullScope("faq inbox is admin-only"),
+          },
         },
       },
       faqSchema,
@@ -120,8 +126,10 @@ export class FaqInboxSource implements InboxSource {
   ): Promise<InboxItemDetail> {
     requireAdmin(actor);
     signal.throwIfAborted();
-    const { frontmatter, answer, alternatives, sources } =
-      await this.load(itemId);
+    const { frontmatter, answer, alternatives, sources } = await this.load(
+      itemId,
+      actor,
+    );
     signal.throwIfAborted();
     const sections = [
       frontmatter.question,
@@ -151,7 +159,7 @@ export class FaqInboxSource implements InboxSource {
     actor: InboxActor,
   ): Promise<void> {
     requireAdmin(actor);
-    const faq = await this.load(itemId);
+    const faq = await this.load(itemId, actor);
     if (actionId === "decline") {
       this.allow("delete", actor);
       const deleted = await this.context.entityService.deleteEntity({
@@ -211,9 +219,13 @@ export class FaqInboxSource implements InboxSource {
     });
   }
 
-  private async load(itemId: string): Promise<ParsedFaq> {
+  private async load(itemId: string, actor: InboxActor): Promise<ParsedFaq> {
     const faq = await this.context.entityService.getEntity(
-      { entityType: "faq", id: itemId, visibilityScope: "restricted" },
+      {
+        entityType: "faq",
+        id: itemId,
+        visibilityScope: permissionToVisibilityScope(actor.permissionLevel),
+      },
       faqSchema,
     );
     if (!faq) throw new Error("FAQ not found");

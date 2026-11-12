@@ -86,9 +86,39 @@ describe("the epilogue", () => {
     );
   });
 
-  test("shows the guides by name, under an arch and in a circle, when the brain has their portraits", () => {
+  test("introduces the team: each guide's name, bio and areas of expertise", () => {
+    const html = renderSection("epilogue");
+    expect(html).toMatch(
+      /<article class="tf-member[^"]*">[^]*<h3 class="tf-member__name">Samantha Shao<\/h3><p class="tf-member__bio">Samantha Shao is co-founder of The Fourth, where she leads brand strategy and client partnerships/,
+    );
+    expect(html).toMatch(
+      /<h3 class="tf-member__name">Becca Chen<\/h3><p class="tf-member__bio">Becca Chen is co-founder and CEO of The Fourth/,
+    );
+    expect(html).toContain(
+      '<span class="tf-eyebrow tf-member__label">Areas of expertise</span>',
+    );
+    for (const area of [
+      "Strategic Communications",
+      "CSR/ESG Communications",
+      "Short-form video and content strategy",
+      "Video production",
+    ]) {
+      expect(html).toContain(`<li class="tf-member__tag">${area}</li>`);
+    }
+  });
+
+  test("leaves the bio and the tags out for a guide who has none", () => {
+    const html = renderSection("epilogue", {
+      ...fallback("epilogue"),
+      guides: [{ name: "Samantha Shao" }],
+    });
+    expect(html).toContain('<h3 class="tf-member__name">Samantha Shao</h3>');
+    expect(html).not.toContain("tf-member__bio");
+    expect(html).not.toContain("Areas of expertise");
+  });
+
+  test("shows the guides under an arch and in a circle, when the brain has their portraits", () => {
     expect(renderSection("epilogue")).not.toContain("<img");
-    expect(renderSection("epilogue")).not.toContain("<figcaption");
     const html = renderSection("epilogue", {
       ...fallback("epilogue"),
       guides: [
@@ -105,16 +135,14 @@ describe("the epilogue", () => {
     expect(html).toContain('src="/images/samantha-shao.webp"');
     expect(html).toContain('alt="Becca Chen"');
     expect(html).toMatch(
-      /tf-guide tf-guide--arch[^]*<figcaption[^>]*>Samantha Shao<\/figcaption>[^]*tf-guide tf-guide--disc[^]*<figcaption[^>]*>Becca Chen<\/figcaption>/,
+      /tf-member__portrait tf-member__portrait--arch[^]*Samantha Shao<\/h3>[^]*tf-member__portrait tf-member__portrait--circle[^]*Becca Chen<\/h3>/,
     );
-    expect(html).not.toContain("Meet us");
   });
 
-  test("starts the fourth act by email, and leaves the address to the footer", () => {
+  test("ends the story without a way out: no button, no meeting, no address", () => {
     const html = renderSection("epilogue");
-    expect(html).toContain(
-      'href="mailto:nihao.fourth@gmail.com">Start your fourth act →</a>',
-    );
-    expect(html).not.toContain(">nihao.fourth@gmail.com</a>");
+    expect(html).not.toContain("<a ");
+    expect(html).not.toContain("Start your fourth act");
+    expect(html).not.toContain("Meet us");
   });
 });

@@ -1,23 +1,30 @@
-export { StyleGuidePlugin, styleGuidePlugin } from "./plugin";
-export { StyleGuideAdapter, styleGuideAdapter } from "./adapter";
+import { styleGuidePackage } from "./definition";
+
+export default styleGuidePackage;
+
+export {
+  styleGuide,
+  styleGuidePackage,
+  type StyleGuideEntity,
+} from "./definition";
+export { createStyleGuideContent } from "./markdown";
 export {
   DEFAULT_STYLE_GUIDE,
   fetchStyleGuide,
+  fetchVoiceGuidance,
   formatStyleGuidance,
-  formatVoiceGuidance,
   formatVisualGuidance,
-  type FormattedStyleGuidance,
-} from "./resolver";
-export {
-  styleGuideEntitySchema,
+  formatVoiceGuidance,
+  parseStyleGuideContent,
+  styleGuideFromRecord,
   styleGuideFrontmatterSchema,
   styleGuideMessagingSchema,
-  styleGuideVoiceSchema,
   styleGuideVisualSchema,
+  styleGuideVoiceSchema,
+  type FormattedStyleGuidance,
   type StyleGuide,
-  type StyleGuideEntity,
   type StyleGuideFrontmatter,
   type StyleGuideMessaging,
-  type StyleGuideVoice,
   type StyleGuideVisual,
-} from "./schema";
+  type StyleGuideVoice,
+} from "@brains/contracts";

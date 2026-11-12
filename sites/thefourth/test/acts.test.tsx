@@ -36,14 +36,14 @@ describe("Act I, the hero", () => {
     expect(html).toContain(
       "We find it, shape it into a story, and hand it to the people your audience trusts.",
     );
+    expect(html).not.toContain("tf-key-tag__thread");
   });
 
-  test("starts with a diagnosis by email, and points down to how it works", () => {
+  test("points down to how it works as its one way on", () => {
     const html = renderSection("act-one");
-    expect(html).toContain(
-      'href="mailto:nihao.fourth@gmail.com">Start with a diagnosis →</a>',
-    );
     expect(html).toContain('href="#guide">How it works ↓</a>');
+    expect(html).not.toContain("Start with a diagnosis");
+    expect(html.match(/<a /g)?.length).toBe(1);
   });
 
   test("frames the brain's photo in a keyhole, an eye watching, and stands without one", () => {

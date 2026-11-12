@@ -1,12 +1,13 @@
-import type { ServiceEntityService } from "@brains/plugins";
+import { internalFullScope } from "@brains/sdk/internal/service-runtime";
+import type { EmailEntityService } from "./lib/email-context";
 import { mailItemSchema } from "./entity/schemas/mail-item";
 import type { MailItemProjection } from "./lib/mail-item-projection";
 import type { MailItemRepository } from "./triage-processor";
 
 export class EntityMailItemRepository implements MailItemRepository {
-  private readonly entityService: ServiceEntityService;
+  private readonly entityService: EmailEntityService;
 
-  constructor(entityService: ServiceEntityService) {
+  constructor(entityService: EmailEntityService) {
     this.entityService = entityService;
   }
 
@@ -15,7 +16,7 @@ export class EntityMailItemRepository implements MailItemRepository {
       {
         entityType: "mail-item",
         id,
-        visibilityScope: "restricted",
+        visibilityScope: internalFullScope("mail ingestion dedupe check"),
       },
       mailItemSchema,
     );

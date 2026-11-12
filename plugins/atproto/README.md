@@ -4,7 +4,7 @@ AT Protocol integration for Rizom brains.
 
 This package currently covers AT Protocol identity, outbound publishing, and the first discovery slice:
 
-- `ServicePlugin` package skeleton
+- a declarative service the canonical brain composes as the `atproto` capability, under the plugin id `atproto`
 - canonical `ai.rizom.brain.card` contract consumed from `@brains/atproto-contracts`
 - `did:web` document route at `/.well-known/did.json` when configured
 - app-password PDS client wrapper for mocked authentication, record reads/writes/deletes, and blob upload tests
@@ -14,27 +14,7 @@ This package currently covers AT Protocol identity, outbound publishing, and the
 
 ## Configuration
 
-In the canonical member configuration or an instance plugin override:
-
-```ts
-atprotoPlugin({
-  pdsEndpoint: "https://bsky.social",
-  identifier: "example.com",
-  repoDid: "did:plc:...",
-  // Optional; defaults from the active web channel or PDS repo DID.
-  brainDid: "did:web:example.com",
-  anchorDid: "did:web:example.com:anchor",
-  // Only for the DNS-designated ai.rizom.brain.* authority account.
-  lexiconAuthority: true,
-  // Canary opt-in; disabled by default.
-  jetstream: {
-    enabled: true,
-    queueLimit: 64,
-    concurrency: 2,
-  },
-  appPassword: "${ATPROTO_APP_PASSWORD}",
-});
-```
+The package default-exports the definition; `createAtprotoPackage(deps)` takes a test's PDS client, fetch and Jetstream socket.
 
 In an instance `brain.yaml`, non-secret values belong under the plugin id:
 
@@ -89,7 +69,7 @@ Brain cards use one public-skill projection across A2A and ATProto: valid public
 
 Projection registration is the consent gate: entities without a registered projection are ignored. Custom records are validated locally before an idempotent PDS `putRecord`; source entity IDs become stable record keys. The local entity remains the source of truth.
 
-A PDS outage never fails the local publish/update/delete operation. Failures are logged and broadcast as `atproto:publish:failed` with the operation, entity type/id, collection, and error. This scoped event deliberately does not use the publish pipeline's `publish:report:failure`, which belongs to the source publish provider.
+A PDS outage never fails the local publish/update/delete operation. Failures are logged and broadcast as `atproto:publish:failed` with the operation, entity type/id, collection, and error.
 
 The internal `publishBrainCard`, `publishEntity`, `publishPost`, and `validatePdsCredentials` methods remain available to trusted runtime code and tests. `discoverBrainCards` likewise remains an internal bounded discovery operation: it accepts at most 50 repo DIDs/handles, validates `ai.rizom.brain.card/self`, deduplicates within a batch, and emits discovery events for reviewable agent-directory candidates.
 

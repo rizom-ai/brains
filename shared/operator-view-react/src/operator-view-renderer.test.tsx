@@ -1050,6 +1050,43 @@ describe("OperatorViewRenderer confirmations", () => {
     expect(invocations[0]?.actionId).toBe("purge");
   });
 
+  it("sends the browser where a launch action answers, and only to https", async () => {
+    const launched: string[] = [];
+    let destination = "https://consent.example/authorize?state=one";
+    await act(async () => {
+      root.render(
+        createElement(OperatorViewRenderer, {
+          data: {
+            view: {
+              blocks: [
+                {
+                  type: "action",
+                  actionId: "connect",
+                  label: "Connect provider",
+                  input: {},
+                  launch: true,
+                },
+              ],
+            },
+          },
+          onAction: async () => ({ kind: "launch", url: destination }),
+          onExternalLaunch: (url: string) => launched.push(url),
+          onOpenEntity: () => {},
+        }),
+      );
+    });
+
+    await clickButton("Connect provider");
+    expect(launched).toEqual(["https://consent.example/authorize?state=one"]);
+
+    destination = "javascript:alert(document.cookie)";
+    await clickButton("Connect provider");
+    expect(launched).toHaveLength(1);
+    expect(container.textContent).toContain(
+      "This action did not answer with a safe address to open",
+    );
+  });
+
   it("keeps disclosure forms collapsed until summoned and follows the selected field label", async () => {
     const action: RuntimeOperatorActionControl = {
       actionId: "invite",

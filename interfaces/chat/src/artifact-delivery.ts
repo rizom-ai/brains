@@ -1,13 +1,13 @@
+import type { ChatHost } from "./chat-host";
+import type { UserPermissionLevel } from "@brains/sdk/interfaces";
+import type { StructuredChatCard } from "@brains/contracts";
 import {
   canReceiveNativeArtifactFile,
   getArtifactEntityFilename,
   parseArtifactDataUrl,
   resolveArtifactEntityRefFromCard,
   resolveMessageArtifactAccess,
-  type InterfacePluginContext,
-  type StructuredChatCard,
-  type UserPermissionLevel,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/interface-runtime";
 import type { FileUpload } from "chat";
 
 const CHAT_NATIVE_ARTIFACT_MAX_BYTES = 8 * 1024 * 1024;
@@ -19,7 +19,7 @@ const NON_DELIVERABLE_ARTIFACT_STATUSES = new Set([
 ]);
 
 interface ArtifactDeliveryDeps {
-  getContext: () => InterfacePluginContext | undefined;
+  getContext: () => ChatHost | undefined;
   getDisplayBaseUrl: () => string | undefined;
   logger: {
     debug: (message: string, context?: Record<string, unknown>) => void;
@@ -30,7 +30,7 @@ interface ArtifactDeliveryDeps {
  * Resolves which generated artifacts to deliver to a chat caller: native files
  * for artifacts visible to their permission level, plus the ids of cards whose
  * artifact exists but is out of scope (so their links/metadata can be
- * suppressed). Pure delivery policy — extracted from ChatInterface and shared by
+ * suppressed). Pure delivery policy — extracted from the chat interface and shared by
  * both the normal-response and confirmation-response render paths.
  */
 export class ArtifactDeliveryResolver {
@@ -93,7 +93,7 @@ export class ArtifactDeliveryResolver {
       entityRef,
       userLevel,
       getEntity: (ref, visibilityScope) =>
-        context.entityService.getEntity({ ...ref, visibilityScope }),
+        context.entityReads.getEntity({ ...ref, visibilityScope }),
     });
     if (access.status === "denied") return { denied: true };
     if (access.status !== "visible") return {};

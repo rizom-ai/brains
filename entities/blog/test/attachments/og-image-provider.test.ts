@@ -19,20 +19,17 @@ function createContext(): MediaAttachmentContext {
         getEntity: {
           id: "resilience",
           entityType: "post",
-          content: `---
-title: Resilience Is Not Redundancy
-slug: resilience
-status: published
-excerpt: Robust systems are not piles of backups.
-author: Test Author
-publishedAt: "2026-01-10T12:00:00.000Z"
-coverImageId: cover-image
----
-Body`,
+          // As a declared post reads back: its body, its metadata.
+          content: "Body",
           metadata: {
             title: "Resilience Is Not Redundancy",
             slug: "resilience",
+            authoredSlug: true,
             status: "published",
+            excerpt: "Robust systems are not piles of backups.",
+            author: "Test Author",
+            publishedAt: "2026-01-10T12:00:00.000Z",
+            coverImageId: "cover-image",
           },
           contentHash: "hash",
           visibility: "public",
@@ -49,42 +46,7 @@ Body`,
     },
     themeCSS: "",
     identity: {
-      get: () => ({
-        name: "Rizom",
-        role: "test",
-        purpose: "testing",
-        values: [],
-      }),
       getProfile: () => ({ name: "Rizom" }),
-      getAppInfo: async () => ({
-        entities: 0,
-        embeddings: 0,
-        version: "0.0.0",
-        model: "test",
-        uptime: 0,
-        entityCounts: [],
-        backgroundWork: {
-          status: "operational" as const,
-          reasons: [],
-          worker: {
-            state: "active" as const,
-            activeSessions: 1,
-            staleSessions: 0,
-            latestHeartbeatAgeMs: 0,
-          },
-          queue: {
-            duePending: 0,
-            processing: 0,
-            oldestDuePendingAgeMs: null,
-            latestClaimAgeMs: null,
-            stalled: false,
-          },
-        },
-        ai: { model: "test", embeddingModel: "test" },
-        daemons: [],
-        endpoints: [],
-        interactions: [],
-      }),
     },
     domain: "example.com",
   };

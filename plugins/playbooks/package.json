@@ -1,18 +1,18 @@
 {
   "name": "@brains/playbooks",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.627",
+  "version": "0.2.0-alpha.688",
   "description": "Runtime orchestration for chat-native playbook runs",
   "dependencies": {
     "@brains/content-formatters": "workspace:*",
     "@brains/contracts": "workspace:*",
-    "@brains/plugins": "workspace:*",
-    "@brains/runtime-state": "workspace:*",
+    "@brains/sdk": "workspace:*",
     "@brains/utils": "workspace:*",
     "xstate": "^5.32.1"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
+    "@brains/plugins": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.4.0",

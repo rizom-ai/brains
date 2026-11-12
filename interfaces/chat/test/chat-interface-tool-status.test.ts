@@ -1,7 +1,7 @@
 import { describe, it, expect, mock, afterEach, setSystemTime } from "bun:test";
 import { PermissionService } from "@brains/plugins/test";
 import {
-  ChatInterface,
+  createChatPlugin,
   MockChatSdk,
   baseSlackConfig,
   createMessage,
@@ -202,7 +202,7 @@ describe("ChatInterface tool status and progress", () => {
   });
 
   it("removes completed Slack tool status when the final response arrives", async () => {
-    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    const plugin = createChatPlugin({ adapters: { slack: baseSlackConfig } });
     const toolInterface = withToolActivity(plugin);
     const threadId = "slack:C123:1712345678.000100";
     suite.agentService.chat.mockImplementationOnce(
@@ -308,7 +308,7 @@ describe("ChatInterface tool status and progress", () => {
       adapter: { name: "slack" },
       post: mock((_message: MockPostMessage) => Promise.resolve(sentMessage)),
     });
-    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    const plugin = createChatPlugin({ adapters: { slack: baseSlackConfig } });
     await suite.harness.installPlugin(plugin);
     const chat = MockChatSdk.instances[0];
 
@@ -377,7 +377,7 @@ describe("ChatInterface tool status and progress", () => {
       adapter: { name: "slack" },
       post: mock((_message: MockPostMessage) => Promise.resolve(sentMessage)),
     });
-    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    const plugin = createChatPlugin({ adapters: { slack: baseSlackConfig } });
     await suite.harness.installPlugin(plugin);
     const chat = MockChatSdk.instances[0];
 

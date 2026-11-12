@@ -1,5 +1,5 @@
 import { createChatApiPaths } from "@brains/contracts/chat";
-import type { WebRouteDefinition } from "@brains/plugins";
+import type { WebRouteDefinition } from "@brains/sdk/internal/interface-runtime";
 
 interface WebChatRouteHandlers {
   handleChatPage(request: Request): Promise<Response>;
@@ -38,12 +38,14 @@ export function createWebChatRoutes({
       method: "GET",
       public: true,
       preview: true,
+      role: "ask",
       handler: (request): Promise<Response> => handlers.handleChatPage(request),
     },
     {
       path: paths.stream,
       method: "POST",
       public: true,
+      role: "chat-api",
       handler: (request): Promise<Response> =>
         handlers.handleChatRequest(request),
     },

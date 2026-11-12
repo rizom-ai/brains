@@ -1,8 +1,8 @@
 import { createMockShell } from "@brains/plugins/test";
 import {
   DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
-  createServicePluginContext,
-  STUDIO_WORKSPACE_REGISTER_MESSAGE,
+  instantiatePluginPackageDefinition,
+  studioWorkspaceRegisterContract,
   type StudioWorkspaceActor,
   type StudioWorkspaceRegistration,
 } from "@brains/plugins";
@@ -10,11 +10,8 @@ import {
   StudioOverviewRegistry,
   createStudioOverviewWorkspace,
 } from "../../plugins/studio/src/overview-workspace";
-import {
-  InboxDataSource,
-  InboxOperatorService,
-  registerUnifiedInboxStudioWorkspace,
-} from "../../plugins/unified-inbox/src";
+import { studioContextOn } from "../../plugins/studio/test/studio-plugins";
+import unifiedInboxPackage from "../../plugins/unified-inbox/src";
 
 import type { StudioStudyState } from "./studio-study-state";
 
@@ -97,6 +94,10 @@ export async function createWorkViewFixtures(
       status: "completed",
       message: "Pulled 14 changes from git.",
       jobDetails: { jobType: "directory-sync", priority: 0, retryCount: 0 },
+      metadata: {
+        rootJobId: "directory-sync",
+        operationType: "data_processing",
+      },
     });
     clock = now - 12 * MINUTE;
     await registry.recordEntity("updated", {
@@ -111,10 +112,14 @@ export async function createWorkViewFixtures(
       message:
         "Preview render failed. Inspect the retained build diagnostics before retrying.",
       jobDetails: { jobType: "site-build", priority: 0, retryCount: 0 },
+      metadata: {
+        rootJobId: "preview-build",
+        operationType: "data_processing",
+      },
     });
   }
   const overview = createStudioOverviewWorkspace({
-    context: createServicePluginContext(shell, "studio"),
+    context: await studioContextOn(shell),
     registry,
     now: (): number => now,
   });
@@ -169,7 +174,7 @@ export async function createWorkViewFixtures(
   shell
     .getMessageBus()
     .subscribe<StudioWorkspaceRegistration, { workspaceUrl: string }>(
-      STUDIO_WORKSPACE_REGISTER_MESSAGE,
+      studioWorkspaceRegisterContract.name,
       async (message) => {
         inbox = message.payload;
         return {
@@ -178,14 +183,16 @@ export async function createWorkViewFixtures(
         };
       },
     );
-  await registerUnifiedInboxStudioWorkspace(
-    createServicePluginContext(shell, "unified-inbox"),
-    new InboxOperatorService(
-      inboxSources,
-      new InboxDataSource(inboxSources),
-      shell.getInboxFollowUpRegistry(),
-    ),
+  // The unified inbox as the canonical brain composes it.
+  const [unifiedInbox] = instantiatePluginPackageDefinition(
+    unifiedInboxPackage,
+    {},
+    { name: "@brains/unified-inbox", version: "0.0.0-visual" },
+    { pluginId: "unified-inbox" },
   );
+  if (!unifiedInbox) throw new Error("The unified inbox installs no plugin");
+  await unifiedInbox.register(shell);
+  await unifiedInbox.finalizeRegistration?.();
   const workspace = inbox;
   if (!workspace) throw new Error("Inbox fixture did not register");
   return {

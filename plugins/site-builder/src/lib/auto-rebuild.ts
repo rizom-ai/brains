@@ -1,8 +1,8 @@
 import {
-  PROJECTION_CHANNELS,
-  ProjectionWaveReadySchema,
+  projectionWaveReadyContract,
   type ProjectionWaveReady,
 } from "@brains/contracts";
+import type { ServiceRuntime } from "@brains/sdk/internal/service-runtime";
 import type { Logger } from "@brains/utils/logger";
 import { LeadingTrailingDebounce } from "@brains/utils/debounce";
 import {
@@ -12,21 +12,10 @@ import {
 import type { SiteBuilderConfig } from "../config";
 import type { SiteBuildStatusService } from "./site-build-status";
 
-interface ProjectionWaveReadyMessage {
-  payload: ProjectionWaveReady;
-}
-
 type BuildEnvironment = "preview" | "production";
 
 interface AutoRebuildContext {
-  messaging: {
-    subscribeExecution(
-      type: string,
-      handler: (
-        message: ProjectionWaveReadyMessage,
-      ) => Promise<{ success: boolean }> | { success: boolean },
-    ): () => void;
-  };
+  answer: ServiceRuntime["answer"];
   jobs: {
     enqueue(request: {
       type: "site-build";
@@ -84,7 +73,6 @@ export class RebuildManager {
     BuildEnvironment,
     AbortController
   >();
-  private unsubscribeFunctions: Array<() => void> = [];
   private readonly activeTasks = new Set<Promise<void>>();
   private disposePromise: Promise<void> | null = null;
   private disposed = false;
@@ -149,9 +137,8 @@ export class RebuildManager {
     const excludedTypes = new Set(["note"]);
 
     const waveReadyHandler = async (
-      message: ProjectionWaveReadyMessage,
-    ): Promise<{ success: boolean }> => {
-      const summary = ProjectionWaveReadySchema.parse(message.payload);
+      summary: ProjectionWaveReady,
+    ): Promise<Record<string, never>> => {
       const changedTypes = new Set([
         ...summary.sourceTypes,
         ...summary.changedTargetTypes,
@@ -162,14 +149,14 @@ export class RebuildManager {
         );
         await this.requestAutomaticBuild();
       }
-      return { success: true };
+      return {};
     };
 
-    this.unsubscribeFunctions.push(
-      this.context.messaging.subscribeExecution(
-        PROJECTION_CHANNELS.waveReady,
-        waveReadyHandler,
-      ),
+    // Released with the package, as the class's answer was.
+    this.context.answer(
+      projectionWaveReadyContract,
+      ({ request }) => waveReadyHandler(request),
+      { everyProcess: true },
     );
 
     this.logger.debug(
@@ -199,15 +186,6 @@ export class RebuildManager {
     this.debounces.clear();
     for (const retry of this.enqueueRetries.values()) retry.abort();
     this.enqueueRetries.clear();
-
-    for (const unsubscribe of this.unsubscribeFunctions) {
-      try {
-        unsubscribe();
-      } catch (error) {
-        cleanupErrors.push(error);
-      }
-    }
-    this.unsubscribeFunctions = [];
 
     await Promise.all([...this.activeTasks]);
     if (cleanupErrors.length > 0) throw cleanupErrors[0];

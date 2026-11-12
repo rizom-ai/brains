@@ -1,50 +1,36 @@
+import type { PluginPackageDefinition } from "@brains/sdk";
+import { defineInterface } from "@brains/sdk/interfaces";
 import {
-  InterfacePlugin,
-  type InterfacePluginContext,
-  type Tool,
-} from "@brains/plugins";
+  interfaceRuntime,
+  withTools,
+} from "@brains/sdk/internal/interface-runtime";
 import { createMCPTools } from "./tools";
 import { setupJobProgressListener } from "./handlers";
-import {
-  mcpProtocolConfigSchema,
-  type MCPProtocolConfig,
-  type MCPProtocolConfigInput,
-} from "./config";
-import packageJson from "../package.json";
-
-/** Shared registration and handler lifecycle; no transport I/O or host policy. */
-export abstract class MCPProtocolPlugin<
-  TConfig,
-  TInput,
-> extends InterfacePlugin<TConfig, TInput> {
-  protected override async getTools(): Promise<Tool[]> {
-    return createMCPTools(this.id, () => this.context);
-  }
-
-  protected override async onRegister(
-    context: InterfacePluginContext,
-  ): Promise<void> {
-    setupJobProgressListener(context, this.logger);
-  }
-}
+import { mcpProtocolConfigSchema } from "./config";
 
 /**
- * The MCP protocol surface for an embedding-owned connection. The embedding
- * creates SDK servers through the shell's MCP service and owns their lifetime
- * and trusted caller context. This plugin opens no HTTP or stdio host.
+ * The MCP protocol surface for an embedding-owned connection: the chat and
+ * confirm tools, job progress logged, and the protocol mode set on the
+ * brain's MCP service. The embedding creates SDK servers through that
+ * service and owns their lifetime and trusted caller context; this opens no
+ * HTTP or stdio host.
  */
-export class MCPProtocol extends MCPProtocolPlugin<
-  MCPProtocolConfig,
-  MCPProtocolConfigInput
-> {
-  constructor(config: MCPProtocolConfigInput = {}) {
-    super("mcp", packageJson, config, mcpProtocolConfigSchema);
-  }
-
-  protected override async onRegister(
-    context: InterfacePluginContext,
-  ): Promise<void> {
-    await super.onRegister(context);
-    context.mcpTransport.setProtocolMode(this.config.mode);
-  }
-}
+export const mcpProtocol: PluginPackageDefinition<
+  typeof mcpProtocolConfigSchema,
+  "interface"
+> = withTools(
+  defineInterface({
+    id: "mcp",
+    config: mcpProtocolConfigSchema,
+    setup: (context): Record<never, never> => {
+      const runtime = interfaceRuntime(context);
+      setupJobProgressListener(runtime, runtime.logger);
+      runtime.mcpTransport.setProtocolMode(context.config.mode);
+      return {};
+    },
+  }),
+  (context) => {
+    const runtime = interfaceRuntime(context);
+    return createMCPTools("mcp", () => runtime);
+  },
+);

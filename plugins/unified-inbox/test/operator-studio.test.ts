@@ -1,9 +1,8 @@
+import { toSdkError } from "@brains/contracts";
 import { createMockShell } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
 import {
-  STUDIO_WORKSPACE_REGISTER_MESSAGE,
-  InboxRegistry,
-  createServicePluginContext,
+  studioWorkspaceRegisterContract,
   type StudioWorkspaceActor,
   type StudioWorkspaceRegistration,
   type InboxActor,
@@ -11,11 +10,7 @@ import {
 } from "@brains/plugins";
 
 import { z } from "@brains/utils/zod";
-import {
-  InboxDataSource,
-  InboxOperatorService,
-  registerUnifiedInboxStudioWorkspace,
-} from "../src";
+import { createUnifiedInboxPlugin } from "./unified-inbox-plugin";
 
 const admin: StudioWorkspaceActor = {
   interfaceType: "studio",
@@ -102,7 +97,7 @@ async function setup(options?: {
   shell
     .getMessageBus()
     .subscribe<StudioWorkspaceRegistration, { workspaceUrl: string }>(
-      STUDIO_WORKSPACE_REGISTER_MESSAGE,
+      studioWorkspaceRegisterContract.name,
       async (message) => {
         workspace = message.payload;
         return {
@@ -114,7 +109,7 @@ async function setup(options?: {
   let open = true;
   const actors: InboxActor[] = [];
   const detailActors: InboxActor[] = [];
-  const registry = new InboxRegistry();
+  const registry = shell.getInboxRegistry();
   registry.registerSource("mail-plugin", {
     sourceId: "mail-items",
     displayName: "Email Triage",
@@ -170,15 +165,16 @@ async function setup(options?: {
     resolve: () => ({ href: "/private/create/path" }),
   });
   followUps.finalize();
-  const operator = new InboxOperatorService(
-    registry,
-    new InboxDataSource(registry),
-    followUps,
-  );
-  const context = createServicePluginContext(shell, "unified-inbox");
-  expect(await registerUnifiedInboxStudioWorkspace(context, operator)).toBe(
-    "/studio/workspaces/inbox",
-  );
+  const plugin = createUnifiedInboxPlugin();
+  await plugin.register(shell);
+  await plugin.finalizeRegistration?.();
+  await plugin.ready?.();
+  // Studio's URL for the workspace is where the Inbox's way in points.
+  expect(
+    (await shell.getAppInfo()).interactions.find(
+      ({ id }) => id === "unified-inbox",
+    )?.href,
+  ).toBe("/studio/workspaces/inbox");
   if (!workspace) throw new Error("Unified inbox workspace was not registered");
   return {
     workspace,
@@ -346,6 +342,18 @@ describe("unified inbox Studio registration", () => {
       ),
     ).rejects.toThrow("invalid or stale");
     expect(fixture.actors).toEqual([]);
+    // A withdrawn action cannot be prepared again, and Studio says why.
+    expect(
+      await fixture.workspace
+        .actionHandler(
+          { actionId: "run-inbox-action", input, mode: "prepare" },
+          admin,
+        )
+        .then(
+          () => "prepared",
+          (error: unknown) => toSdkError(error).toJSON(),
+        ),
+    ).toEqual({ code: "not_found", message: "Inbox item or action not found" });
   });
 
   it("maps only the Studio permission and fixes source exceptions", async () => {

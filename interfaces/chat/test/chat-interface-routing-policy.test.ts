@@ -1,7 +1,7 @@
 import { describe, it, expect } from "bun:test";
 import { chunkMessage } from "@brains/utils/chunk-message";
 import {
-  ChatInterface,
+  createChatPlugin,
   MockChatSdk,
   baseDiscordConfig,
   baseSlackConfig,
@@ -105,7 +105,7 @@ describe("ChatInterface routing policy", () => {
   });
 
   it("keeps mention policy isolated when Discord and Slack run together", async () => {
-    const plugin = new ChatInterface({
+    const plugin = createChatPlugin({
       adapters: {
         discord: baseDiscordConfig,
         slack: { ...baseSlackConfig, requireMention: false },

@@ -1,12 +1,13 @@
-import type {
-  RuntimeOperatorActionControl,
-  RuntimeStudioOperatorBlock,
-  RuntimeStudioWorkspaceData,
-  ServicePluginContext,
-  StudioWorkspaceActor,
-  StudioWorkspaceRegistration,
-} from "@brains/plugins";
-import { DECLARATIVE_STUDIO_WORKSPACE_RENDERER } from "@brains/plugins";
+import {
+  type ServiceRuntime,
+  type ServiceStudio,
+  type RuntimeOperatorActionControl,
+  type RuntimeStudioOperatorBlock,
+  type RuntimeStudioWorkspaceData,
+  type StudioWorkspaceActor,
+  DECLARATIVE_STUDIO_WORKSPACE_RENDERER,
+} from "@brains/sdk/internal/service-runtime";
+import { SdkError } from "@brains/contracts";
 import { queryInteger } from "@brains/utils/query";
 import { z } from "@brains/utils/zod";
 import { createAuditTabSource } from "./audit-workspace";
@@ -23,7 +24,7 @@ import {
   createPeopleTabSource,
 } from "./people-workspace";
 import {
-  requireAuthService,
+  requireAuthBackend,
   type AdminWorkspaceSource,
 } from "./workspace-format";
 import { definedFields } from "@brains/utils/strip-undefined";
@@ -44,7 +45,7 @@ const administrationQuerySchema = z.strictObject({
   action: z.string().trim().min(1).max(200).optional(),
 });
 
-type ChildRegistration = Omit<StudioWorkspaceRegistration, "pluginId">;
+type ChildRegistration = Parameters<ServiceStudio["register"]>[0];
 type AdministrationTabBlock = Exclude<
   RuntimeStudioOperatorBlock,
   { type: "tabs" }
@@ -158,13 +159,13 @@ function administrationAttention(
 }
 
 export async function registerAdministrationWorkspace(
-  context: ServicePluginContext,
+  runtime: ServiceRuntime,
 ): Promise<string | undefined> {
-  if (context.executionOnly || !context.studio.isAvailable()) return undefined;
-  const peopleSource = createPeopleTabSource(context);
-  const invitationsSource = createInvitationsTabSource(context);
-  const peerSource = createPeerTabSource(context);
-  const auditSource = createAuditTabSource(context);
+  if (!runtime.studio.isAvailable()) return undefined;
+  const peopleSource = createPeopleTabSource(runtime);
+  const invitationsSource = createInvitationsTabSource(runtime);
+  const peerSource = createPeerTabSource(runtime);
+  const auditSource = createAuditTabSource(runtime);
   const routes = actionRoutes([
     peopleSource,
     invitationsSource,
@@ -176,7 +177,7 @@ export async function registerAdministrationWorkspace(
   const peers = peerSource.registration;
   const audit = auditSource.registration;
 
-  const result = await context.studio.registerWorkspace({
+  return runtime.studio.register({
     id: "admin:administration",
     label: "Administration",
     rendererName: DECLARATIVE_STUDIO_WORKSPACE_RENDERER,
@@ -308,15 +309,25 @@ export async function registerAdministrationWorkspace(
       } satisfies RuntimeStudioWorkspaceData;
     },
     actionHandler: async (request, actor, signal) => {
+      // Studio answers a failure in its public form, so a refused request
+      // says why by its code and public message.
       const actionId = requestActionId(request);
-      if (!actionId) throw new Error("Administration action id is required");
+      if (!actionId) {
+        throw new SdkError("invalid_input", {
+          publicMessage: "Administration action id is required",
+        });
+      }
       const source = routes.get(actionId);
-      if (!source)
-        throw new Error(`Unknown Administration action: ${actionId}`);
+      if (!source) {
+        throw new SdkError("not_found", {
+          publicMessage: `Unknown Administration action: ${actionId}`,
+        });
+      }
       return runChildAction(source, request, actor, signal);
     },
     badgeProvider: async () =>
-      administrationAttention(await requireAuthService().listAdminUsers()),
+      administrationAttention(
+        await requireAuthBackend(runtime).listAdminUsers(),
+      ),
   });
-  return result ? result.workspaceUrl : undefined;
 }

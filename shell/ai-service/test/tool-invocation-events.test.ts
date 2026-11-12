@@ -1,8 +1,13 @@
 import { describe, expect, it, mock } from "bun:test";
 import {
+  TOOL_EVENT_CHANNELS,
   createMessageBusEmitter,
   createToolExecuteWrapper,
+  toolCompletedChannel,
+  toolFailedChannel,
+  toolInvokingChannel,
   type ToolEventEmitter,
+  type ToolInvocationEvent,
 } from "../src/tool-events";
 import { z } from "@brains/utils/zod";
 
@@ -59,8 +64,8 @@ function recordEvents(): EventRecorder {
     events,
     types: (): string[] => events.map((e) => e.type),
     emitter: {
-      emit: (type, payload): void => {
-        events.push({ type, payload });
+      emit: (channel, payload): void => {
+        events.push({ type: channel.name, payload });
       },
     },
   };
@@ -584,15 +589,22 @@ describe("tool invocation events", () => {
   });
 
   describe("message bus emitter", () => {
+    const invoking: ToolInvocationEvent = {
+      toolName: "test_tool",
+      conversationId: "test-conv",
+      interfaceType: "test",
+      actor: { kind: "agent", agentId: "brain-agent" },
+    };
+
     it("broadcasts tool events to all interface subscribers", async () => {
       const send = mock(async () => ({ success: true }));
       const emitter = createMessageBusEmitter({ send });
 
-      await emitter.emit("tool:invoking", { toolName: "test_tool" });
+      await emitter.emit(toolInvokingChannel, invoking);
 
       expect(send).toHaveBeenCalledWith({
         type: "tool:invoking",
-        payload: { toolName: "test_tool" },
+        payload: invoking,
         sender: "brain-agent",
         broadcast: true,
       });
@@ -604,22 +616,31 @@ describe("tool invocation events", () => {
       });
       const emitter = createMessageBusEmitter({ send });
 
-      await emitter.emit("tool:invoking", { toolName: "test_tool" });
+      await emitter.emit(toolInvokingChannel, invoking);
 
       expect(send).toHaveBeenCalledWith({
         type: "tool:invoking",
-        payload: { toolName: "test_tool" },
+        payload: invoking,
         sender: "brain-agent",
         broadcast: true,
       });
     });
 
+    it("sends nothing for an event its channel refuses", async () => {
+      const send = mock(async () => ({ success: true }));
+      const emitter = createMessageBusEmitter({ send });
+
+      await emitter.emit(toolInvokingChannel, { ...invoking, toolName: "" });
+
+      expect(send).not.toHaveBeenCalled();
+    });
+
     it("awaits invoking event delivery before executing the tool", async () => {
       const order: string[] = [];
       const emitter: ToolEventEmitter = {
-        emit: async (type) => {
+        emit: async (channel) => {
           await Promise.resolve();
-          order.push(`${type} delivered`);
+          order.push(`${channel.name} delivered`);
         },
       };
       const handler = mock(async () => {
@@ -692,5 +713,84 @@ describe("tool invocation events", () => {
       expect(handler).toHaveBeenCalledWith(inputArgs);
       expect(result.data).toEqual({ receivedArgs: inputArgs });
     });
+  });
+});
+
+// A channel is the contract between the tool wrapper and every interface that
+// shows tool activity: what the wrapper sends must be what the channel takes.
+describe("tool event channels", () => {
+  const channels = [
+    toolInvokingChannel,
+    toolCompletedChannel,
+    toolFailedChannel,
+  ];
+
+  it("name the tool events", () => {
+    expect(channels.map((channel) => channel.name)).toEqual([
+      TOOL_EVENT_CHANNELS.invoking,
+      TOOL_EVENT_CHANNELS.completed,
+      TOOL_EVENT_CHANNELS.failed,
+    ]);
+  });
+
+  it("take every event the wrapper sends", async () => {
+    const recorder = recordEvents();
+    const succeeding = createToolExecuteWrapper(
+      "system_get",
+      async () => "ok",
+      {
+        ...defaultContextInfo,
+        displayName: "Ada",
+        actor: { kind: "user", userId: "usr_ada" },
+      },
+      recorder.emitter,
+    );
+    const failing = createToolExecuteWrapper(
+      "system_get",
+      async () => {
+        throw new Error("Entity not found");
+      },
+      { conversationId: "test-conv", interfaceType: "test" },
+      recorder.emitter,
+    );
+
+    await succeeding({ id: "note-1" }, { toolCallId: "call-1" });
+    await rejection(failing({}));
+
+    expect(recorder.types()).toEqual([
+      "tool:invoking",
+      "tool:completed",
+      "tool:invoking",
+      "tool:failed",
+    ]);
+    for (const event of recorder.events) {
+      const channel = channels.find(({ name }) => name === event.type);
+      const parsed = channel?.schema.safeParse(event.payload);
+      expect(parsed?.success).toBe(true);
+      // Nothing the wrapper sends is lost to the schema.
+      expect(event.payload).toEqual(parsed?.success ? parsed.data : undefined);
+    }
+  });
+
+  it("refuses a failure without its error", () => {
+    expect(
+      toolFailedChannel.schema.safeParse({
+        toolName: "system_get",
+        conversationId: "test-conv",
+        interfaceType: "test",
+        actor: { kind: "agent", agentId: "brain-agent" },
+      }).success,
+    ).toBe(false);
+  });
+
+  it("refuses an event that names no conversation", () => {
+    expect(
+      toolInvokingChannel.schema.safeParse({
+        toolName: "system_get",
+        conversationId: "",
+        interfaceType: "test",
+        actor: { kind: "agent", agentId: "brain-agent" },
+      }).success,
+    ).toBe(false);
   });
 });

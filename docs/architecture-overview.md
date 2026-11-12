@@ -122,6 +122,7 @@ A running brain is driven by an _instance directory_ centered on `brain.yaml` pl
 | ------------------------------------------------------- | ------------------------------------------------------------------------ |
 | `shell/app`                                             | Brain resolver, `defineBrain()`, instance loading, runtime bootstrap     |
 | `shell/core`                                            | Core shell, lifecycle orchestration, system tools/resources/prompts      |
+| `shell/http-host`                                       | The one HTTP listener: site, preview, images, routes and split health    |
 | `shell/ai-service`                                      | AI querying, orchestration, provider abstraction                         |
 | `shell/content-service`                                 | Template-based generation, multi-target planning and durable admission   |
 | `shell/conversation-service`                            | Conversation state and message history                                   |
@@ -154,12 +155,12 @@ Entity packages live in `entities/`. Most packages define one entity type; a few
 | `entities/portfolio`           | `project`                            | Case studies and portfolio entries                  |
 | `entities/prompt`              | `prompt`                             | Editable AI prompt entities                         |
 | `entities/series`              | `series`                             | Derived post grouping                               |
-| `entities/site-info`           | `site-info`                          | Site metadata                                       |
 | `entities/social-media`        | `social-post`                        | Social publishing content                           |
 | `entities/conversation-memory` | `summary`, `decision`, `action-item` | Conversation memory                                 |
 | `entities/faq`                 | `faq`                                | Chat Q&A captured as draft FAQs                     |
 | `entities/topics`              | `topic`                              | Derived topic/tag entities                          |
 | `entities/wishlist`            | `wish`                               | Unfulfilled requests / backlog                      |
+| `entities/form`                | `form`                               | Site forms defined in content                       |
 | `entities/agent-discovery`     | `agent`, `skill`                     | Agent directory + discoverable skills               |
 | `entities/assessment`          | `swot`                               | Derived assessment outputs                          |
 
@@ -173,15 +174,20 @@ Service plugins live in `plugins/` and provide tools, handlers, routes, orchestr
 | `plugins/atproto`          | AT Protocol identity, publishing, discovery, feeds                                                 |
 | `plugins/atproto-registry` | Canonical Rizom AT Protocol lexicon registry                                                       |
 | `plugins/content-pipeline` | Publishing queue, scheduling, retries                                                              |
-| `plugins/contact`          | Default-off bounded public contact intake with restricted Inbox records and durable notification   |
+| `plugins/contact`          | The contact form on the forms engine, its restricted `contact-request` records and Inbox source    |
 | `plugins/dashboard`        | Dashboard widgets and UI slots                                                                     |
 | `plugins/directory-sync`   | File sync + git operations                                                                         |
 | `plugins/email-workflows`  | Restricted mail triage, Inbox detail, and a dormant tested reply backend                           |
+| `plugins/linkedin-import`  | Anchor-only Studio import of the owner's LinkedIn profile into `anchor-profile`, through `profile` |
 | `plugins/newsletter`       | Compound newsletter entity with selectable Buttondown or Resend delivery                           |
 | `plugins/notifications`    | Notification routing for transactional and administrative messages                                 |
+| `plugins/oauth-broker`     | Managed OAuth broker: one central callback per provider, one-time grants for instance brains       |
+| `plugins/knowledge-map`    | The corpus in semantic space with topic territories: a site section and a Dashboard widget         |
 | `plugins/obsidian-vault`   | Obsidian export/templates                                                                          |
+| `plugins/quiz`             | Quizzes defined in content on the forms engine, each one taken a restricted `quiz-result`          |
 | `plugins/site-builder`     | Static site build orchestration                                                                    |
 | `plugins/site-content`     | Site route/section discovery over the shell's generic content generation                           |
+| `plugins/site-info`        | The `site-info` singleton and the site metadata it answers for                                     |
 | `plugins/stock-photo`      | Stock-photo search and selection                                                                   |
 | `plugins/unified-inbox`    | Live inbox projection, source facets, resolved launches, registered Studio triage, summary, digest |
 | `plugins/studio`           | Browser authoring routes + Studio config                                                           |
@@ -190,15 +196,14 @@ Service plugins live in `plugins/` and provide tools, handlers, routes, orchestr
 
 Interface packages live in `interfaces/`. Some chat-style interfaces use `MessageInterfacePlugin`, which is a specialized interface base class for conversational transports.
 
-| Package                | Purpose                                                                                                     |
-| ---------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `interfaces/a2a`       | Agent-to-agent protocol, Agent Card, async tasks                                                            |
-| `interfaces/chat-repl` | Local chat REPL / development chat interface                                                                |
-| `interfaces/chat`      | Discord + Slack bot interface via the Chat SDK                                                              |
-| `interfaces/email`     | Email interface with configurable Resend delivery, threaded replies, and IMAP intake/source reads           |
-| `interfaces/mcp`       | MCP transport over stdio and HTTP                                                                           |
-| `interfaces/web-chat`  | Guest-facing in-browser chat surface (default route `/ask`); shared Chat APIs                               |
-| `interfaces/webserver` | Browser-facing HTTP surface for site pages, dashboard/Studio routes, API routes, and split health endpoints |
+| Package                | Purpose                                                                                           |
+| ---------------------- | ------------------------------------------------------------------------------------------------- |
+| `interfaces/a2a`       | Agent-to-agent protocol, Agent Card, async tasks                                                  |
+| `interfaces/chat-repl` | Local chat REPL / development chat interface                                                      |
+| `interfaces/chat`      | Discord + Slack bot interface via the Chat SDK                                                    |
+| `interfaces/email`     | Email interface with configurable Resend delivery, threaded replies, and IMAP intake/source reads |
+| `interfaces/mcp`       | MCP transport over stdio and HTTP                                                                 |
+| `interfaces/web-chat`  | Guest-facing in-browser chat surface (default route `/ask`); shared Chat APIs                     |
 
 ### Sites, themes, and the canonical definition
 
@@ -206,7 +211,9 @@ Interface packages live in `interfaces/`. Some chat-style interfaces use `Messag
 | --------------------- | ---------------------------------------------------------------------------------------- |
 | `sites/`              | `default`, `personal`, `professional`, `rizom` and app-specific compositions             |
 | `shared/theme-*`      | `default`, `rizom`, `signal`, and related theme packages                                 |
+| `shared/forms`        | The forms engine: definitions, admission, intake, delivery and rendering for site forms  |
 | `packages/brain-cli`  | canonical catalog/bundles, recipes, runtime assets, and the published `@rizom/brain` CLI |
+| `packages/brain-sdk`  | `@brains/sdk`, the authoring surface the `@rizom/brain` entries re-export                |
 | `packages/brains-ops` | published `@rizom/ops` fleet tooling                                                     |
 
 ## Plugin model
@@ -315,7 +322,7 @@ Interface plugins are how users or other agents interact with a brain:
 
 - MCP clients connect through `interfaces/mcp`
 - chat users connect through `interfaces/chat` (Discord, Slack) or `interfaces/chat-repl`
-- browsers connect through `interfaces/webserver` for public pages, dashboard/Studio routes, and browser-facing APIs
+- browsers connect through the runtime's HTTP host (`shell/http-host`) for public pages, dashboard/Studio routes, and browser-facing APIs
 - peer agents connect through `interfaces/a2a`
 
 ## Operator browser state
@@ -410,15 +417,16 @@ Current deployment paths:
 
 Each deployed instance stays lightweight: a package centered on explicit `brain.yaml` bundles plus instance-owned content, site/theme choices, and deployment artifacts.
 
-The shared webserver separates dependency-free liveness (`/health/live`) from
+The runtime's HTTP host separates dependency-free liveness (`/health/live`) from
 web routing readiness (`/health/ready`) and full operational health
 (`/health/operate`). Routing readiness covers web-critical database access.
 Operational health additionally covers durable worker sessions, stale attempt
 leases, daemon health, and projection circuit state; both reports include
 bounded process, queue, and causal-work resource signals. Operational health
-also carries app version, entity counts, and daemon metadata for operator
-diagnostics. Generated containers probe liveness, while generated host
-deployment artifacts install a restart-budgeted systemd
+also carries app version, uptime, and daemon state; it answers without a
+session, so entity counts and totals stay on authenticated surfaces. Generated
+containers probe liveness, while generated host deployment artifacts install a
+restart-budgeted systemd
 watchdog that preserves container diagnostics before restarting a persistently
 unhealthy Brain container.
 

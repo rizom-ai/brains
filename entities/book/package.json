@@ -1,16 +1,15 @@
 {
   "name": "@brains/book",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.627",
+  "version": "0.2.0-alpha.688",
   "description": "Book entity type — published books as read-only, citable sections",
   "dependencies": {
     "@brains/contracts": "workspace:*",
     "@brains/media-page-composer": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/site-atlas": "workspace:*",
-    "@brains/templates": "workspace:*",
-    "@brains/ui-library": "workspace:*",
     "@brains/utils": "workspace:*",
+    "@rizom/brain-ui": "workspace:*",
     "react": "^19.2.7"
   },
   "devDependencies": {

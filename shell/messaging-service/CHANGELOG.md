@@ -1,5 +1,616 @@
 # @brains/messaging-service
 
+## 0.2.0-alpha.688
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.688
+  - @brains/operation-context@0.2.0-alpha.688
+  - @brains/utils@0.2.0-alpha.688
+  - @brains/templates@0.2.0-alpha.688
+
+## 0.2.0-alpha.687
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.687
+  - @brains/operation-context@0.2.0-alpha.687
+  - @brains/utils@0.2.0-alpha.687
+  - @brains/templates@0.2.0-alpha.687
+
+## 0.2.0-alpha.686
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.686
+  - @brains/operation-context@0.2.0-alpha.686
+  - @brains/utils@0.2.0-alpha.686
+  - @brains/templates@0.2.0-alpha.686
+
+## 0.2.0-alpha.685
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.685
+  - @brains/operation-context@0.2.0-alpha.685
+  - @brains/utils@0.2.0-alpha.685
+  - @brains/templates@0.2.0-alpha.685
+
+## 0.2.0-alpha.684
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.684
+  - @brains/operation-context@0.2.0-alpha.684
+  - @brains/utils@0.2.0-alpha.684
+  - @brains/templates@0.2.0-alpha.684
+
+## 0.2.0-alpha.683
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.683
+  - @brains/operation-context@0.2.0-alpha.683
+  - @brains/utils@0.2.0-alpha.683
+  - @brains/templates@0.2.0-alpha.683
+
+## 0.2.0-alpha.682
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.682
+  - @brains/operation-context@0.2.0-alpha.682
+  - @brains/utils@0.2.0-alpha.682
+  - @brains/templates@0.2.0-alpha.682
+
+## 0.2.0-alpha.681
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.681
+  - @brains/operation-context@0.2.0-alpha.681
+  - @brains/utils@0.2.0-alpha.681
+  - @brains/templates@0.2.0-alpha.681
+
+## 0.2.0-alpha.680
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.680
+  - @brains/operation-context@0.2.0-alpha.680
+  - @brains/utils@0.2.0-alpha.680
+  - @brains/templates@0.2.0-alpha.680
+
+## 0.2.0-alpha.679
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.679
+  - @brains/operation-context@0.2.0-alpha.679
+  - @brains/utils@0.2.0-alpha.679
+  - @brains/templates@0.2.0-alpha.679
+
+## 0.2.0-alpha.678
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.678
+  - @brains/operation-context@0.2.0-alpha.678
+  - @brains/utils@0.2.0-alpha.678
+  - @brains/templates@0.2.0-alpha.678
+
+## 0.2.0-alpha.677
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.677
+  - @brains/operation-context@0.2.0-alpha.677
+  - @brains/utils@0.2.0-alpha.677
+  - @brains/templates@0.2.0-alpha.677
+
+## 0.2.0-alpha.676
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.676
+  - @brains/operation-context@0.2.0-alpha.676
+  - @brains/utils@0.2.0-alpha.676
+  - @brains/templates@0.2.0-alpha.676
+
+## 0.2.0-alpha.675
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.675
+  - @brains/operation-context@0.2.0-alpha.675
+  - @brains/utils@0.2.0-alpha.675
+  - @brains/templates@0.2.0-alpha.675
+
+## 0.2.0-alpha.674
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.674
+  - @brains/operation-context@0.2.0-alpha.674
+  - @brains/utils@0.2.0-alpha.674
+  - @brains/templates@0.2.0-alpha.674
+
+## 0.2.0-alpha.673
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.673
+  - @brains/operation-context@0.2.0-alpha.673
+  - @brains/utils@0.2.0-alpha.673
+  - @brains/templates@0.2.0-alpha.673
+
+## 0.2.0-alpha.672
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.672
+  - @brains/operation-context@0.2.0-alpha.672
+  - @brains/utils@0.2.0-alpha.672
+  - @brains/templates@0.2.0-alpha.672
+
+## 0.2.0-alpha.671
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.671
+  - @brains/operation-context@0.2.0-alpha.671
+  - @brains/utils@0.2.0-alpha.671
+  - @brains/templates@0.2.0-alpha.671
+
+## 0.2.0-alpha.670
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.670
+  - @brains/operation-context@0.2.0-alpha.670
+  - @brains/utils@0.2.0-alpha.670
+  - @brains/templates@0.2.0-alpha.670
+
+## 0.2.0-alpha.669
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.669
+  - @brains/operation-context@0.2.0-alpha.669
+  - @brains/utils@0.2.0-alpha.669
+  - @brains/templates@0.2.0-alpha.669
+
+## 0.2.0-alpha.668
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.668
+  - @brains/operation-context@0.2.0-alpha.668
+  - @brains/utils@0.2.0-alpha.668
+  - @brains/templates@0.2.0-alpha.668
+
+## 0.2.0-alpha.667
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.667
+  - @brains/operation-context@0.2.0-alpha.667
+  - @brains/utils@0.2.0-alpha.667
+  - @brains/templates@0.2.0-alpha.667
+
+## 0.2.0-alpha.666
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.666
+  - @brains/operation-context@0.2.0-alpha.666
+  - @brains/utils@0.2.0-alpha.666
+  - @brains/templates@0.2.0-alpha.666
+
+## 0.2.0-alpha.665
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.665
+  - @brains/operation-context@0.2.0-alpha.665
+  - @brains/utils@0.2.0-alpha.665
+  - @brains/templates@0.2.0-alpha.665
+
+## 0.2.0-alpha.664
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.664
+  - @brains/operation-context@0.2.0-alpha.664
+  - @brains/utils@0.2.0-alpha.664
+  - @brains/templates@0.2.0-alpha.664
+
+## 0.2.0-alpha.663
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.663
+  - @brains/operation-context@0.2.0-alpha.663
+  - @brains/utils@0.2.0-alpha.663
+  - @brains/templates@0.2.0-alpha.663
+
+## 0.2.0-alpha.662
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.662
+  - @brains/operation-context@0.2.0-alpha.662
+  - @brains/utils@0.2.0-alpha.662
+  - @brains/templates@0.2.0-alpha.662
+
+## 0.2.0-alpha.661
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.661
+  - @brains/operation-context@0.2.0-alpha.661
+  - @brains/utils@0.2.0-alpha.661
+  - @brains/templates@0.2.0-alpha.661
+
+## 0.2.0-alpha.660
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.660
+  - @brains/operation-context@0.2.0-alpha.660
+  - @brains/utils@0.2.0-alpha.660
+  - @brains/templates@0.2.0-alpha.660
+
+## 0.2.0-alpha.659
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.659
+  - @brains/operation-context@0.2.0-alpha.659
+  - @brains/utils@0.2.0-alpha.659
+  - @brains/templates@0.2.0-alpha.659
+
+## 0.2.0-alpha.658
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.658
+  - @brains/operation-context@0.2.0-alpha.658
+  - @brains/utils@0.2.0-alpha.658
+  - @brains/templates@0.2.0-alpha.658
+
+## 0.2.0-alpha.657
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.657
+  - @brains/operation-context@0.2.0-alpha.657
+  - @brains/utils@0.2.0-alpha.657
+  - @brains/templates@0.2.0-alpha.657
+
+## 0.2.0-alpha.656
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.656
+  - @brains/operation-context@0.2.0-alpha.656
+  - @brains/utils@0.2.0-alpha.656
+  - @brains/templates@0.2.0-alpha.656
+
+## 0.2.0-alpha.655
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.655
+  - @brains/operation-context@0.2.0-alpha.655
+  - @brains/utils@0.2.0-alpha.655
+  - @brains/templates@0.2.0-alpha.655
+
+## 0.2.0-alpha.654
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.654
+  - @brains/operation-context@0.2.0-alpha.654
+  - @brains/utils@0.2.0-alpha.654
+  - @brains/templates@0.2.0-alpha.654
+
+## 0.2.0-alpha.653
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.653
+  - @brains/operation-context@0.2.0-alpha.653
+  - @brains/utils@0.2.0-alpha.653
+  - @brains/templates@0.2.0-alpha.653
+
+## 0.2.0-alpha.652
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.652
+  - @brains/operation-context@0.2.0-alpha.652
+  - @brains/utils@0.2.0-alpha.652
+  - @brains/templates@0.2.0-alpha.652
+
+## 0.2.0-alpha.651
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.651
+  - @brains/operation-context@0.2.0-alpha.651
+  - @brains/utils@0.2.0-alpha.651
+  - @brains/templates@0.2.0-alpha.651
+
+## 0.2.0-alpha.650
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.650
+  - @brains/operation-context@0.2.0-alpha.650
+  - @brains/utils@0.2.0-alpha.650
+  - @brains/templates@0.2.0-alpha.650
+
+## 0.2.0-alpha.649
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.649
+  - @brains/operation-context@0.2.0-alpha.649
+  - @brains/utils@0.2.0-alpha.649
+  - @brains/templates@0.2.0-alpha.649
+
+## 0.2.0-alpha.648
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.648
+  - @brains/operation-context@0.2.0-alpha.648
+  - @brains/utils@0.2.0-alpha.648
+  - @brains/templates@0.2.0-alpha.648
+
+## 0.2.0-alpha.647
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.647
+  - @brains/operation-context@0.2.0-alpha.647
+  - @brains/utils@0.2.0-alpha.647
+  - @brains/templates@0.2.0-alpha.647
+
+## 0.2.0-alpha.646
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.646
+  - @brains/operation-context@0.2.0-alpha.646
+  - @brains/utils@0.2.0-alpha.646
+  - @brains/templates@0.2.0-alpha.646
+
+## 0.2.0-alpha.645
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.645
+  - @brains/operation-context@0.2.0-alpha.645
+  - @brains/utils@0.2.0-alpha.645
+  - @brains/templates@0.2.0-alpha.645
+
+## 0.2.0-alpha.644
+
+### Patch Changes
+
+- [#840](https://github.com/rizom-ai/brains/pull/840) [`916c62b`](https://github.com/rizom-ai/brains/commit/916c62b52017fe7c34a1ee46bd7d07f3d3d28763) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A bus contract's failure reaches the asker in its public form. `BusResult`'s `failed` carries `error: SdkErrorData` (`{ code, message }`) and `BusCollection.failures` is `SdkErrorData[]`: an owner that throws an `SdkError` keeps its code and public message, any other error is `handler_failed`, an answer outside the contract is `invalid_response` and an invalid request `invalid_input`. The message a failure was thrown with stays in the owner's log. Askers that pass a failure on raise it again with `sdkErrorFrom`, keeping its code. The A2A ask and call owners report a directory refusal as `permission_denied`, a timeout as `deadline_exceeded` and a peer's refusal in its own words, cut to the public bound with `clipPublicMessage`; Studio's workspace host refuses a reserved id as `invalid_input` and a taken one as `conflict`. Studio's ask-agent route answers a failure with `{ error, code }` and the code's HTTP status, and `network_ask` gives each unanswered peer's public message as its reason.
+- Updated dependencies [[`916c62b`](https://github.com/rizom-ai/brains/commit/916c62b52017fe7c34a1ee46bd7d07f3d3d28763), [`d697803`](https://github.com/rizom-ai/brains/commit/d697803dd88bad270aeca682009b91e3ba678fcd), [`7963f25`](https://github.com/rizom-ai/brains/commit/7963f256c4c11009fd333643bffc805a0e9119d8), [`4a8d3c7`](https://github.com/rizom-ai/brains/commit/4a8d3c708b793f738f7fb95d29b7d9254ccacee6), [`4f8e07e`](https://github.com/rizom-ai/brains/commit/4f8e07ea9afdd7aea384403373287698ae4371e0)]:
+  - @brains/contracts@0.2.0-alpha.644
+  - @brains/utils@0.2.0-alpha.644
+  - @brains/operation-context@0.2.0-alpha.644
+  - @brains/templates@0.2.0-alpha.644
+
+## 0.2.0-alpha.643
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.643
+  - @brains/operation-context@0.2.0-alpha.643
+  - @brains/utils@0.2.0-alpha.643
+  - @brains/templates@0.2.0-alpha.643
+
+## 0.2.0-alpha.642
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.642
+  - @brains/operation-context@0.2.0-alpha.642
+  - @brains/utils@0.2.0-alpha.642
+  - @brains/templates@0.2.0-alpha.642
+
+## 0.2.0-alpha.641
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.641
+  - @brains/operation-context@0.2.0-alpha.641
+  - @brains/utils@0.2.0-alpha.641
+  - @brains/templates@0.2.0-alpha.641
+
+## 0.2.0-alpha.640
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.640
+  - @brains/operation-context@0.2.0-alpha.640
+  - @brains/utils@0.2.0-alpha.640
+  - @brains/templates@0.2.0-alpha.640
+
+## 0.2.0-alpha.639
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.639
+  - @brains/operation-context@0.2.0-alpha.639
+  - @brains/utils@0.2.0-alpha.639
+  - @brains/templates@0.2.0-alpha.639
+
+## 0.2.0-alpha.638
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.638
+  - @brains/operation-context@0.2.0-alpha.638
+  - @brains/utils@0.2.0-alpha.638
+  - @brains/templates@0.2.0-alpha.638
+
+## 0.2.0-alpha.637
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.637
+  - @brains/operation-context@0.2.0-alpha.637
+  - @brains/utils@0.2.0-alpha.637
+  - @brains/templates@0.2.0-alpha.637
+
+## 0.2.0-alpha.636
+
+### Patch Changes
+
+- Updated dependencies [[`11b7280`](https://github.com/rizom-ai/brains/commit/11b72805aacd377e1ea1db3b36109c57c541eca5)]:
+  - @brains/contracts@0.2.0-alpha.636
+  - @brains/operation-context@0.2.0-alpha.636
+  - @brains/templates@0.2.0-alpha.636
+  - @brains/utils@0.2.0-alpha.636
+
+## 0.2.0-alpha.635
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.635
+  - @brains/operation-context@0.2.0-alpha.635
+  - @brains/utils@0.2.0-alpha.635
+  - @brains/templates@0.2.0-alpha.635
+
+## 0.2.0-alpha.634
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.634
+  - @brains/operation-context@0.2.0-alpha.634
+  - @brains/utils@0.2.0-alpha.634
+  - @brains/templates@0.2.0-alpha.634
+
+## 0.2.0-alpha.633
+
+### Patch Changes
+
+- Updated dependencies [[`a449334`](https://github.com/rizom-ai/brains/commit/a449334d9d2fd31f95a161444008e3ab5b959891)]:
+  - @brains/contracts@0.2.0-alpha.633
+  - @brains/utils@0.2.0-alpha.633
+  - @brains/operation-context@0.2.0-alpha.633
+  - @brains/templates@0.2.0-alpha.633
+
+## 0.2.0-alpha.632
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.632
+  - @brains/operation-context@0.2.0-alpha.632
+  - @brains/utils@0.2.0-alpha.632
+  - @brains/templates@0.2.0-alpha.632
+
+## 0.2.0-alpha.631
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.631
+  - @brains/operation-context@0.2.0-alpha.631
+  - @brains/utils@0.2.0-alpha.631
+  - @brains/templates@0.2.0-alpha.631
+
+## 0.2.0-alpha.630
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.630
+  - @brains/operation-context@0.2.0-alpha.630
+  - @brains/utils@0.2.0-alpha.630
+  - @brains/templates@0.2.0-alpha.630
+
+## 0.2.0-alpha.629
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.629
+  - @brains/operation-context@0.2.0-alpha.629
+  - @brains/utils@0.2.0-alpha.629
+  - @brains/templates@0.2.0-alpha.629
+
+## 0.2.0-alpha.628
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.628
+  - @brains/operation-context@0.2.0-alpha.628
+  - @brains/utils@0.2.0-alpha.628
+  - @brains/templates@0.2.0-alpha.628
+
 ## 0.2.0-alpha.627
 
 ### Patch Changes

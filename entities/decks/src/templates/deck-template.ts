@@ -1,6 +1,9 @@
+import {
+  createTemplate,
+  type Template,
+} from "@brains/sdk/internal/presentation";
 import { z } from "@brains/utils/zod";
-import { PresentationLayout } from "@brains/ui-library";
-import { createTemplate, type Template } from "@brains/templates";
+import { PresentationLayout } from "@rizom/brain-ui/internal";
 import { deckViewSchema } from "./deck-view-schema";
 
 /**

@@ -3,6 +3,7 @@ import {
   DEFAULT_STYLE_GUIDE,
   fetchStyleGuide,
   fetchVoiceGuidance,
+  styleGuideFromRecord,
 } from "../src";
 
 const guideContent = `---
@@ -65,5 +66,43 @@ describe("fetchVoiceGuidance", () => {
     });
 
     expect(guidance).toBe("");
+  });
+});
+
+describe("styleGuideFromRecord", () => {
+  it("reads a record whose content carries the frontmatter", () => {
+    expect(
+      styleGuideFromRecord({ content: guideContent, metadata: {} }),
+    ).toEqual({
+      name: "Test guide",
+      voice: { summary: "Friendly" },
+      guidance: "Write clearly.",
+    });
+  });
+
+  it("reads a declared record, its frontmatter being its metadata", () => {
+    expect(
+      styleGuideFromRecord({
+        content: "Write clearly.",
+        metadata: { name: "Test guide", voice: { summary: "Friendly" } },
+      }),
+    ).toEqual({
+      name: "Test guide",
+      voice: { summary: "Friendly" },
+      guidance: "Write clearly.",
+    });
+  });
+
+  it("is what fetchStyleGuide answers for a declared record", async () => {
+    const guide = await fetchStyleGuide({
+      getEntity: () =>
+        Promise.resolve({
+          id: "style-guide",
+          content: "Write clearly.",
+          metadata: { name: "Test guide" },
+        }),
+    });
+
+    expect(guide).toEqual({ name: "Test guide", guidance: "Write clearly." });
   });
 });

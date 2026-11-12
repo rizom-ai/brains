@@ -1,18 +1,17 @@
 import {
-  CHAT_CHANNELS,
-  JOB_CHANNELS,
-  spaceNoticeActionSchema,
-  spaceNoticeResultSchema,
-} from "@brains/contracts";
-import {
+  internalFullScope,
   BaseJobHandler,
-  CONVERSATION_MESSAGE_ADDED_CHANNEL,
   SYSTEM_CHANNELS,
+  conversationMessageAddedChannel,
+  jobProgressChannel,
   type ContentVisibility,
   type EntityPluginContext,
 } from "@brains/plugins";
+import {
+  spaceNoticeActionContract,
+  spaceNoticeContract,
+} from "@brains/contracts";
 import { ACTION_ITEM_ENTITY_TYPE } from "@brains/action-items";
-import { assignableMembers, getActiveAuthService } from "@brains/auth-service";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import type { ProgressReporter } from "@brains/utils/progress";
@@ -146,8 +145,8 @@ export function registerChannelActionItems(
     new ChannelPickupHandler(options.logger.child("ChannelActionItems"), {
       conversations: context.conversations,
       bookmarks,
-      members: async (): Promise<BrainMember[]> =>
-        assignableMembers((await getActiveAuthService()?.listUsers()) ?? []),
+      members: (): Promise<BrainMember[]> =>
+        context.auth.listAssignableMembers(),
       extractor: new ChannelActionItemExtractor(
         context,
         options.logger.child("ChannelActionItemExtractor"),
@@ -166,9 +165,9 @@ export function registerChannelActionItems(
     },
   };
   context.messaging.subscribe(
-    CONVERSATION_MESSAGE_ADDED_CHANNEL,
+    conversationMessageAddedChannel,
     async (message) => {
-      await wakeUpChannel(trigger, message.payload);
+      await wakeUpChannel(trigger, message);
       return { success: true };
     },
   );
@@ -179,35 +178,33 @@ export function registerChannelActionItems(
       (await context.entityService.getEntity({
         entityType: ACTION_ITEM_ENTITY_TYPE,
         id,
-        visibilityScope: "restricted",
+        visibilityScope: internalFullScope(
+          "card existence check for channel notices",
+        ),
       })) !== null,
     post: async (request) => {
-      const response = await context.messaging.send({
-        type: CHAT_CHANNELS.spaceNotice,
-        payload: request,
-      });
-      if ("noop" in response || !response.success) return undefined;
-      return spaceNoticeResultSchema.safeParse(response.data).data?.messageId;
+      const posted = await context.messaging.request(
+        spaceNoticeContract,
+        request,
+      );
+      return posted.status === "answered" ? posted.data.messageId : undefined;
     },
   };
-  context.messaging.subscribe(
-    CHAT_CHANNELS.spaceNoticeAction,
-    async (message) => {
-      const action = spaceNoticeActionSchema.safeParse(message.payload);
-      if (!action.success) return { noop: true };
-      const answer = await undoNoticeCard(
+  // Every plugin hears the click; only the notice's poster has new content.
+  context.messaging.answer(
+    spaceNoticeActionContract,
+    async (action) =>
+      (await undoNoticeCard(
         {
           bookmarks,
           entityService: context.entityService,
           visibility: options.visibility,
         },
-        action.data,
-      );
-      return answer ? { success: true, data: answer } : { noop: true };
-    },
+        action,
+      )) ?? null,
   );
-  context.messaging.subscribe(JOB_CHANNELS.progress, async (message) => {
-    const conversationId = finishedPickupOf(message.payload);
+  context.messaging.subscribe(jobProgressChannel, async (event) => {
+    const conversationId = finishedPickupOf(event);
     if (conversationId) await postPendingNotices(notices, conversationId);
     return { success: true };
   });

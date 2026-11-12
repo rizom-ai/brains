@@ -29,13 +29,13 @@ import { createMockJobQueueService } from "@brains/job-queue/test";
 import { createMockAIService } from "@brains/ai-service/test";
 import { PermissionService, InMemoryTemplateRegistry } from "@brains/templates";
 import {
+  CallerAuthorizer,
   ContentService,
   ContentGenerationJobHandler,
   GenerationAuthorizer,
   GenerationLimitError,
   type ContentGenerationTargetInput,
 } from "@brains/content-service";
-import { resetPromptMaterialization } from "@brains/plugins";
 import { EntityUrlGenerator } from "@brains/site-composition";
 import { AIContentDataSource } from "../src/datasources/ai-content-datasource";
 
@@ -53,7 +53,6 @@ describe("scoped durable content generation", () => {
   const ambientProfile = mock(() => "AMBIENT_INTERNAL_PROFILE");
 
   beforeEach(async () => {
-    resetPromptMaterialization();
     ambientIdentity.mockClear();
     ambientProfile.mockClear();
     database = await createTestDatabase({
@@ -83,11 +82,11 @@ describe("scoped durable content generation", () => {
       jobQueueService: createMockJobQueueService(),
       embeddingsEnabled: false,
       embeddingService: {
-        dimensions: 3,
-        generateEmbedding: async () => {
+        identity: { model: "test:mock", dimensions: 3, promptRevision: 0 },
+        embedQuery: async () => {
           throw new Error("Embeddings disabled");
         },
-        generateEmbeddings: async () => {
+        embedDocuments: async () => {
           throw new Error("Embeddings disabled");
         },
       },
@@ -128,7 +127,7 @@ describe("scoped durable content generation", () => {
       dataSourceRegistry: sources,
       generationAuthorizer: new GenerationAuthorizer(
         permissions,
-        async () => null,
+        new CallerAuthorizer(permissions, async () => null),
       ),
     });
     for (const [id, content, visibility] of [
@@ -161,7 +160,6 @@ describe("scoped durable content generation", () => {
   });
 
   afterEach(async () => {
-    resetPromptMaterialization();
     entities.close();
     await database.cleanup();
   });

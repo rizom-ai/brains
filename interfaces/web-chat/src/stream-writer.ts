@@ -1,8 +1,8 @@
+import type { StructuredChatCard } from "@brains/contracts";
 import {
   redactUploadRefsInStructuredCard,
   type ResponsePlan,
-  type StructuredChatCard,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/interface-runtime";
 import type { UIMessage, UIMessageStreamWriter } from "ai";
 
 /**

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import type { ContentVisibility } from "@brains/entity-service";
 import { z } from "@brains/utils/zod";
-import { DASHBOARD_CHANNELS } from "@brains/contracts";
+import { dashboardWidgetRegisterContract } from "../src/contracts/dashboard-widget-contracts";
 import { createMockEntityPluginContext } from "../src/test/mock-entity-plugin-context";
 import { defineDashboardWidget } from "../src/operator/operator-definition-contract";
 import { registerBuiltInDashboardWidget } from "../src/operator/dashboard-widget-runtime";
@@ -30,7 +30,7 @@ describe("built-in dashboard widget scope", () => {
     const context = createMockEntityPluginContext();
     // The dashboard counts as available once something answers registrations.
     context.messaging.subscribe(
-      DASHBOARD_CHANNELS.registerWidget,
+      dashboardWidgetRegisterContract.name,
       async () => ({
         success: true,
       }),

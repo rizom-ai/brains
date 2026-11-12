@@ -1,4 +1,4 @@
-import type { MessageInterfaceOutput } from "@brains/plugins";
+import type { MessageInterfaceOutput } from "@brains/sdk/internal/interface-runtime";
 import { z } from "@brains/utils/zod";
 import type { CardElement } from "chat";
 import { parseChatPlatform } from "./chat-platform";

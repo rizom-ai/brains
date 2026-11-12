@@ -310,10 +310,10 @@ describe("renderDashboardPageHtml", () => {
         entityCounts: [{ entityType: "post", count: 2 }],
       }),
       widgets: {
-        "topics:topics-knowledge-map": {
+        "knowledge-map:knowledge-map": {
           widget: {
-            id: "topics-knowledge-map",
-            pluginId: "topics",
+            id: "knowledge-map",
+            pluginId: "knowledge-map",
             title: "Knowledge Map",
             group: "knowledge",
             section: "primary",

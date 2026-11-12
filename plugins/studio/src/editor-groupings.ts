@@ -1,12 +1,11 @@
-import type { ServicePluginContext } from "@brains/plugins";
 import {
+  decodeEntityIdPath,
   GROUPING_PAGE_LIMIT,
   GROUPING_MAX_PAGE_LIMIT,
   groupingSearchSchema,
   groupingSortSchema,
   groupingValueSchema,
-} from "@brains/plugins";
-import { decodeEntityIdPath } from "@brains/entity-service";
+} from "@brains/sdk/internal/entity-runtime";
 import { z } from "@brains/utils/zod";
 import { getTypeCapabilities } from "./editor-access";
 import type {
@@ -20,8 +19,9 @@ import type {
   GroupingDefinitionsFrontmatter,
   StudioGrouping,
 } from "./grouping-definitions-contract";
-import { isGroupingContributorType } from "./grouping-definitions";
+import { isGroupingContributorType } from "./studio-context";
 import { studioGroupingUsageQuerySchema } from "./grouping-query";
+import type { StudioContext } from "./studio-context";
 
 const querySchema = studioGroupingUsageQuerySchema.extend({
   type: z.string().min(1).max(100).optional(),
@@ -64,7 +64,7 @@ export function studioGroupDescriptors(
 }
 
 export async function handleGroupingRead(
-  context: ServicePluginContext,
+  context: StudioContext,
   request: Request,
   access: StudioRequestAccess,
   mode: "catalog" | "members" | "usage",
@@ -134,6 +134,7 @@ export async function handleGroupingRead(
   const page = await context.entityService.queryGroupingMembers({
     ...input,
     ...pagination,
+    source: true,
     value: query.data.value ?? "",
     q: query.data.q,
     sort: query.data.sort,

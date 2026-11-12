@@ -237,31 +237,38 @@ async function executePromptGenerate(
     };
   }
 
+  const data = {
+    entityId: resolvedEntityId,
+    prompt,
+    ...(createInput.title && { title: createInput.title }),
+    ...(createInput.sourceEntityType && {
+      sourceEntityType: createInput.sourceEntityType,
+    }),
+    ...(createInput.sourceEntityId && {
+      sourceEntityId: createInput.sourceEntityId,
+    }),
+    ...(createInput.sourceEntityIds && {
+      sourceEntityIds: createInput.sourceEntityIds,
+    }),
+    ...(createInput.targetEntityType && {
+      targetEntityType: createInput.targetEntityType,
+    }),
+    ...(createInput.targetEntityId && {
+      targetEntityId: createInput.targetEntityId,
+    }),
+  };
+  // A type that records who started its generation queues it itself.
+  const enqueue = services.entityRegistry.getGenerationEnqueuer(
+    createInput.entityType,
+  );
   try {
-    const jobId = await jobs.enqueue({
-      type: `${createInput.entityType}:generation`,
-      data: {
-        entityId: resolvedEntityId,
-        prompt,
-        ...(createInput.title && { title: createInput.title }),
-        ...(createInput.sourceEntityType && {
-          sourceEntityType: createInput.sourceEntityType,
-        }),
-        ...(createInput.sourceEntityId && {
-          sourceEntityId: createInput.sourceEntityId,
-        }),
-        ...(createInput.sourceEntityIds && {
-          sourceEntityIds: createInput.sourceEntityIds,
-        }),
-        ...(createInput.targetEntityType && {
-          targetEntityType: createInput.targetEntityType,
-        }),
-        ...(createInput.targetEntityId && {
-          targetEntityId: createInput.targetEntityId,
-        }),
-      },
-      toolContext,
-    });
+    const jobId = enqueue
+      ? await enqueue(data, toolContext)
+      : await jobs.enqueue({
+          type: `${createInput.entityType}:generation`,
+          data,
+          toolContext,
+        });
     return {
       success: true,
       data: { entityId: resolvedEntityId, status: "generating", jobId },

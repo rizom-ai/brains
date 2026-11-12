@@ -1,5 +1,5 @@
 ---
-"@brains/webserver": patch
+"@brains/http-host": patch
 ---
 
 Set an explicit Bun.serve idle timeout so long streaming responses survive. The

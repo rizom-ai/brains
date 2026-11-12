@@ -1,18 +1,19 @@
+import {
+  a2aAgentsContract,
+  a2aCallContract,
+  type AuthPrincipal,
+} from "@brains/contracts";
 import { createMockShell } from "@brains/plugins/test";
 import { describe, expect, it, spyOn } from "bun:test";
-import type { AuthPrincipal } from "@brains/auth-service";
 import type { ZodType } from "@brains/utils/zod";
 import type { BaseEntity, WebRouteDefinition } from "@brains/plugins";
-import {
-  BaseEntityAdapter,
-  baseEntitySchema,
-  createServicePluginContext,
-} from "@brains/plugins";
+import { BaseEntityAdapter, baseEntitySchema } from "@brains/plugins";
 import { PermissionService } from "@brains/templates";
 
 import { z } from "@brains/utils/zod";
 import { createEditorRoutes } from "../src/editor-routes";
 import { StudioWorkspaceRegistry } from "../src/workspace-registry";
+import { studioContextOn } from "./studio-plugins";
 
 const frontmatterSchema = z.object({
   title: z.string(),
@@ -82,7 +83,7 @@ async function setup(updatePermission: "trusted" | "admin"): Promise<{
       visibility: "restricted",
     },
   });
-  const context = createServicePluginContext(shell, "studio");
+  const context = await studioContextOn(shell);
   return {
     shell,
     routes: createEditorRoutes({
@@ -189,7 +190,7 @@ describe("Studio assist policy", () => {
     const calls: unknown[] = [];
     fixture.shell
       .getMessageBus()
-      .subscribe("a2a:call:agents", async (message) => {
+      .subscribe(a2aAgentsContract.name, async (message) => {
         calls.push(message.payload);
         return {
           success: true,
@@ -198,11 +199,15 @@ describe("Studio assist policy", () => {
       });
     fixture.shell
       .getMessageBus()
-      .subscribe("a2a:call:request", async (message) => {
+      .subscribe(a2aCallContract.name, async (message) => {
         calls.push(message.payload);
         return {
           success: true,
-          data: { state: "completed", response: "Looks accurate." },
+          data: {
+            state: "completed",
+            response: "Looks accurate.",
+            sources: [],
+          },
         };
       });
 
@@ -241,6 +246,7 @@ describe("Studio assist policy", () => {
           canonicalId: trustedPrincipal.canonicalId,
         },
         interfaceType: "studio",
+        userPermissionLevel: "trusted",
       },
       {
         agent: "reviewer",
@@ -254,6 +260,7 @@ describe("Studio assist policy", () => {
           canonicalId: trustedPrincipal.canonicalId,
         },
         interfaceType: "studio",
+        userPermissionLevel: "trusted",
       },
     ]);
   });

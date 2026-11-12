@@ -1,5 +1,6 @@
+import type { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import type { IAgentService, IAIService } from "@brains/ai-service";
-import type { ContentService } from "@brains/content-service";
+import type { CallerAuthorizer, ContentService } from "@brains/content-service";
 import type { IConversationService } from "@brains/conversation-service";
 import type { DaemonRegistry } from "../daemon-registry";
 import type {
@@ -29,6 +30,7 @@ import type {
 import type {
   AccountSettingsRegistry,
   AttachmentRegistry,
+  AuthRegistry,
   ChannelRegistry,
   InboxFollowUpRegistry,
   InboxRegistry,
@@ -85,6 +87,8 @@ export interface ShellServices {
   aiService: IAIService;
   conversationService: IConversationService;
   contentService: ContentService;
+  /** Requester authority for generation and package jobs, built once. */
+  callerAuthorizer: CallerAuthorizer;
   jobQueueService: IJobQueueService;
   jobQueueWorker: IJobQueueWorker;
   batchJobManager: IBatchJobManager;
@@ -100,6 +104,8 @@ export interface ShellServices {
   inboxFollowUpRegistry: InboxFollowUpRegistry;
   operationalHealthRegistry: OperationalHealthRegistry;
   accountSettingsRegistry: AccountSettingsRegistry;
+  authRegistry: AuthRegistry;
+  atprotoProjectionRegistry: AtprotoProjectionRegistry;
   agentService: IAgentService;
   attachmentRegistry: AttachmentRegistry;
   runtimeUploadRegistry: RuntimeUploadRegistry;

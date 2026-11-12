@@ -5,7 +5,7 @@ import type {
   ContentVisibility,
 } from "@brains/plugins";
 import type { z } from "@brains/utils/zod";
-import { TrafficSnapshotPlugin } from "../../src/entity/plugin";
+import { createTrafficSnapshotPlugin } from "../analytics-plugins";
 import { entitySnapshotStore } from "../../src/lib/traffic-capture";
 import { trafficSnapshotAdapter } from "../../src/entity/adapter";
 import { isoWeekOf } from "../../src/lib/iso-week";
@@ -45,14 +45,14 @@ type EntityService = ReturnType<
 /** Stores the days as the capture would: one snapshot per ISO week. */
 async function brainWith(days: TrafficDay[]): Promise<EntityService> {
   const harness = createPluginHarness();
-  await harness.installPlugin(new TrafficSnapshotPlugin());
+  await harness.installPlugin(createTrafficSnapshotPlugin());
   const entityService = harness.getMockShell().getEntityService();
   const weeks = days.reduce((byWeek, d) => {
     const id = isoWeekOf(d.date).id;
     byWeek.set(id, [...(byWeek.get(id) ?? []), d]);
     return byWeek;
   }, new Map<string, TrafficDay[]>());
-  const store = entitySnapshotStore(entityService);
+  const store = entitySnapshotStore(entityService, entityService);
   for (const [id, weekDays] of weeks) {
     const week = isoWeekOf(weekDays[0]?.date ?? TODAY);
     const frontmatter = {

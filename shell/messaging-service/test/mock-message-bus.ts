@@ -25,7 +25,7 @@ export interface MockMessageBusOptions {
  * this one, so importing it back would cycle. The limitation is the same —
  * `mock(fn)` returns `Mock<typeof fn>`, which captures one instantiation and
  * drops the type parameters, so it can never be assigned to a generic member
- * like `send<T, R>`. Nothing else may use it.
+ * like `subscribe<T, R>`. Nothing else may use it.
  */
 function genericSpy<TMember>(spy: unknown): TMember {
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the whole point of the helper; see the comment above

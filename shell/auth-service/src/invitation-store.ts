@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { and, eq, isNull } from "drizzle-orm";
 import { createPrefixedId } from "@brains/utils/id";
-import type { AuthSetupDeliveryInput } from "./admin-contracts";
+import type { AuthSetupDeliveryInput } from "@brains/contracts";
 import { hashIdentityKey, normalizeIdentityKey } from "./identity-store";
 import {
   authInvitationDeliveryAttempts,

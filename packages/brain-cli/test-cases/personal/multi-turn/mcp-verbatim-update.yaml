@@ -185,7 +185,6 @@ turns:
           argsContain:
             entityType: note
             id: mcp-verbatim-update
-            operation.kind: source
             operation.source.kind: user-message
           argsAbsent:
             - operation.content
@@ -215,8 +214,7 @@ turns:
       expectedTools:
         - toolName: system_update
           resultContains:
-            success: true
-            data.updated: mcp-verbatim-update
+            updated: mcp-verbatim-update
   - userMessage: Read note 'mcp-verbatim-update' from storage again. Do not change anything. Briefly report its first heading.
     successCriteria:
       expectedTools:

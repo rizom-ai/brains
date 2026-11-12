@@ -1,8 +1,7 @@
 import { z } from "@brains/utils/zod";
+import { defineBusContract, type BusContract } from "./bus-contract";
 
-export const NOTIFICATIONS_SEND = "notifications:send" as const;
-
-/** Why notifications:send refused: its response error, stable for senders to read. */
+/** How notifications logs a refusal; senders read the answer's `failure` instead. */
 export const NOTIFICATION_FAILURES: {
   readonly recipientMissing: "Notification recipient missing";
   readonly transportMissing: "Notification transport missing";
@@ -12,24 +11,6 @@ export const NOTIFICATION_FAILURES: {
   transportMissing: "Notification transport missing",
   deliveryFailed: "Notification delivery failed",
 };
-
-const TRANSPORT_FAILURE = new RegExp(
-  `^${NOTIFICATION_FAILURES.deliveryFailed}: ([a-z0-9_:.-]{1,80})$`,
-);
-
-/**
- * A refusal as a short code: the transport's own code after a failed delivery.
- * Free text never becomes a code, so it can be kept and shown.
- */
-export function notificationFailureCode(error: string | undefined): string {
-  if (error === NOTIFICATION_FAILURES.recipientMissing)
-    return "recipient-missing";
-  if (error === NOTIFICATION_FAILURES.transportMissing)
-    return "transport-missing";
-  if (error?.startsWith(NOTIFICATION_FAILURES.deliveryFailed))
-    return TRANSPORT_FAILURE.exec(error)?.[1] ?? "delivery-failed";
-  return "unconfirmed";
-}
 
 type NotificationRecipientSchema = z.ZodDiscriminatedUnion<
   [
@@ -58,6 +39,7 @@ type SendNotificationSchema = z.ZodObject<
       z.ZodEnum<{ normal: "normal"; secret: "secret" }>
     >;
     idempotencyKey: z.ZodOptional<z.ZodString>;
+    replyTo: z.ZodOptional<z.ZodEmail>;
   },
   z.core.$strict
 >;
@@ -70,7 +52,21 @@ export const sendNotificationSchema: SendNotificationSchema = z.strictObject({
   html: z.string().min(1).optional(),
   sensitivity: z.enum(["normal", "secret"]).default("normal"),
   idempotencyKey: z.string().trim().min(1).max(200).optional(),
+  /** Where the recipient's answer goes, such as the person a form alert is about. */
+  replyTo: z.email().optional(),
 });
+
+/** Why a notification was not sent: a refusal is an answer, not a failure. */
+export const notificationFailureSchema: z.ZodEnum<{
+  "recipient-missing": "recipient-missing";
+  "transport-missing": "transport-missing";
+  "delivery-failed": "delivery-failed";
+}> = z.enum(["recipient-missing", "transport-missing", "delivery-failed"]);
+
+/** A transport's own short failure code: no message content, so it can be kept and shown. */
+export const notificationTransportCodeSchema: z.ZodString = z
+  .string()
+  .regex(/^[a-z0-9_:.-]{1,80}$/u);
 
 type SendNotificationResultSchema = z.ZodDiscriminatedUnion<
   [
@@ -78,7 +74,14 @@ type SendNotificationResultSchema = z.ZodDiscriminatedUnion<
       { status: z.ZodLiteral<"sent">; deliveryId: z.ZodOptional<z.ZodString> },
       z.core.$strict
     >,
-    z.ZodObject<{ status: z.ZodLiteral<"failed"> }, z.core.$strict>,
+    z.ZodObject<
+      {
+        status: z.ZodLiteral<"failed">;
+        failure: typeof notificationFailureSchema;
+        transportCode: z.ZodOptional<typeof notificationTransportCodeSchema>;
+      },
+      z.core.$strict
+    >,
   ]
 >;
 
@@ -88,16 +91,29 @@ export const sendNotificationResultSchema: SendNotificationResultSchema =
       status: z.literal("sent"),
       deliveryId: z.string().optional(),
     }),
-    z.strictObject({ status: z.literal("failed") }),
+    z.strictObject({
+      status: z.literal("failed"),
+      failure: notificationFailureSchema,
+      transportCode: notificationTransportCodeSchema.optional(),
+    }),
   ]);
 
 export type NotificationRecipient = z.output<
   typeof notificationRecipientSchema
 >;
-export type EmailNotificationRecipient = NotificationRecipient;
 export type SendNotificationInput = z.input<typeof sendNotificationSchema>;
-export type ParsedSendNotification = z.output<typeof sendNotificationSchema>;
-export type NotificationSensitivity = ParsedSendNotification["sensitivity"];
 export type SendNotificationResult = z.output<
   typeof sendNotificationResultSchema
 >;
+
+/** Deliver a notification to its recipient; the notifications plugin owns it. */
+export const notificationsSendContract: BusContract<
+  SendNotificationSchema,
+  SendNotificationResultSchema,
+  "request"
+> = defineBusContract({
+  channel: "notifications:send",
+  request: sendNotificationSchema,
+  response: sendNotificationResultSchema,
+  delivery: "request",
+});

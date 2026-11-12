@@ -6,14 +6,7 @@ import {
   resolveConsoleThemeCSS,
 } from "@brains/console-theme";
 import { operatorApplicationDocumentClasses } from "@brains/operator-view-react";
-
-function escapeAttribute(value: string): string {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;");
-}
+import { escapeHtml } from "@brains/utils/string-utils";
 
 export interface EditorShellPrincipal {
   displayName: string;
@@ -49,11 +42,7 @@ export interface EditorShellOptions {
  * app owns its compact context and identity chrome.
  */
 export function renderEditorShellHtml(options: EditorShellOptions): string {
-  const basePath = options.basePath
-    .replaceAll("&", "&amp;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;");
+  const basePath = escapeHtml(options.basePath);
   const classes = operatorApplicationDocumentClasses();
   return `<!doctype html>
 <html lang="en" data-climate="paper" data-theme="light">
@@ -75,16 +64,16 @@ ${CONSOLE_THEME_CSS}
       html, body { height: 100%; }
       ::selection { background: color-mix(in srgb, var(--console-accent) 22%, transparent); }
     </style>
-    ${options.stylesheetPath ? `<link data-studio-app-styles rel="stylesheet" href="${escapeAttribute(options.stylesheetPath)}" />` : ""}
+    ${options.stylesheetPath ? `<link data-studio-app-styles rel="stylesheet" href="${escapeHtml(options.stylesheetPath)}" />` : ""}
   </head>
   <body data-console-host="studio" class="${classes.body}">
-    <div id="root" class="${classes.mount}" data-studio-root data-studio-base-path="${basePath}" data-studio-session-href="${escapeAttribute(options.sessionHref)}" data-studio-dashboard-href="${escapeAttribute(options.dashboardHref)}" data-studio-brand-name="${escapeAttribute(options.brandName)}"${
+    <div id="root" class="${classes.mount}" data-studio-root data-studio-base-path="${basePath}" data-studio-session-href="${escapeHtml(options.sessionHref)}" data-studio-dashboard-href="${escapeHtml(options.dashboardHref)}" data-studio-brand-name="${escapeHtml(options.brandName)}"${
       options.principal
-        ? ` data-studio-principal-name="${escapeAttribute(options.principal.displayName)}" data-studio-principal-role="${escapeAttribute(options.principal.role)}"`
+        ? ` data-studio-principal-name="${escapeHtml(options.principal.displayName)}" data-studio-principal-role="${escapeHtml(options.principal.role)}"`
         : ""
     }${
       options.mcpUrl
-        ? ` data-studio-mcp-url="${escapeAttribute(options.mcpUrl)}"`
+        ? ` data-studio-mcp-url="${escapeHtml(options.mcpUrl)}"`
         : ""
     }><p class="${classes.boot}">Opening the content studio…</p></div>
     <script type="module" src="${options.assetPath}"></script>

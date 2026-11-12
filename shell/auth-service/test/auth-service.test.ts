@@ -1,3 +1,4 @@
+import { normalizeIssuer } from "@brains/plugins";
 import {
   CHAT_INTERACTION_ID,
   MCP_INTERACTION_ID,
@@ -13,21 +14,21 @@ import { PluginTestHarness, expectSuccess } from "@brains/plugins/test";
 import { PermissionService } from "@brains/templates";
 import { ConsoleLogger, LogLevel } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
-import { NOTIFICATIONS_SEND } from "@brains/notifications";
+import { notificationsSendContract } from "@brains/contracts";
 import {
-  AUTH_PRINCIPAL_RESOLVE_CHANNEL,
+  authPrincipalResolveContract,
   createExternalActorId,
 } from "@brains/contracts";
 import {
   AuthService,
   AuthServicePlugin,
   authServicePlugin,
-  normalizeIssuer,
   reinitializeAuthAccessStorage,
   type AuthServiceConfig,
 } from "../src";
 import { resolveAuthStorageDir } from "../src/auth-service-plugin";
 import { seedRuntimePasskeyCredential } from "./runtime-passkey-fixture";
+import { registeredTestChannels } from "./fixtures/registered-channels";
 
 function getTestChannelDescriptor(
   channelType: string,
@@ -126,7 +127,7 @@ async function sendAnchorSetupEmail(
     });
   }
   const notifications: unknown[] = [];
-  harness.subscribe(NOTIFICATIONS_SEND, async (message) => {
+  harness.subscribe(notificationsSendContract.name, async (message) => {
     notifications.push(message.payload);
     return { success: true, data: { status: "sent" } };
   });
@@ -159,6 +160,25 @@ describe("AuthService", () => {
     expect(() => normalizeIssuer("https://brain.example.com/auth")).toThrow(
       "OAuth issuer must be an origin",
     );
+  });
+
+  it("serves its service to other plugins through context.auth until shutdown", async () => {
+    const harness = new PluginTestHarness<AuthServicePlugin>({
+      domain: "brain.example.com",
+    });
+    await harness.installPlugin(
+      authServicePlugin({
+        storageDir: await tempStorageDir(),
+        issuer: "https://brain.example.com",
+      }),
+    );
+    const registry = harness.getMockShell().getAuthRegistry();
+    expect(registry.get()).toBeInstanceOf(AuthService);
+    expect(registry.get()?.getIssuer()).toBe("https://brain.example.com");
+
+    await harness.reset();
+
+    expect(registry.get()).toBeUndefined();
   });
 
   it("keeps default auth storage outside the synchronized content tree", () => {
@@ -885,6 +905,7 @@ describe("AuthService", () => {
 
   it("binds the delivered channel once when targeted setup is claimed", async () => {
     const service = new AuthService({
+      ...registeredTestChannels,
       storageDir: await tempStorageDir(),
       issuer: "https://brain.example.com",
     });
@@ -1000,7 +1021,7 @@ describe("AuthService", () => {
       .getMockShell()
       .getMessageBus()
       .send({
-        type: AUTH_PRINCIPAL_RESOLVE_CHANNEL,
+        type: authPrincipalResolveContract.name,
         sender: "test",
         payload: {
           actor: {
@@ -1111,7 +1132,7 @@ describe("AuthService", () => {
       }),
     );
 
-    harness.subscribe(NOTIFICATIONS_SEND, async (message) => {
+    harness.subscribe(notificationsSendContract.name, async (message) => {
       notifications.push(message.payload);
       return { success: true, data: { status: "sent" } };
     });
@@ -1152,7 +1173,7 @@ describe("AuthService", () => {
       domain: "brain.example.com",
       logContext: "auth-service-test",
     });
-    harness.subscribe(NOTIFICATIONS_SEND, async () => ({
+    harness.subscribe(notificationsSendContract.name, async () => ({
       success: false,
       error: "delivery failed",
     }));
@@ -1182,7 +1203,7 @@ describe("AuthService", () => {
       logContext: "auth-service-test",
     });
     const firstNotifications: unknown[] = [];
-    firstHarness.subscribe(NOTIFICATIONS_SEND, async (message) => {
+    firstHarness.subscribe(notificationsSendContract.name, async (message) => {
       firstNotifications.push(message.payload);
       return { success: true, data: { status: "sent", deliveryId: "email_1" } };
     });
@@ -1209,7 +1230,7 @@ describe("AuthService", () => {
       logContext: "auth-service-test",
     });
     const secondNotifications: unknown[] = [];
-    secondHarness.subscribe(NOTIFICATIONS_SEND, async (message) => {
+    secondHarness.subscribe(notificationsSendContract.name, async (message) => {
       secondNotifications.push(message.payload);
       return { success: true, data: { status: "sent", deliveryId: "email_2" } };
     });
@@ -1246,7 +1267,7 @@ describe("AuthService", () => {
       domain: "brain.example.com",
       logContext: "auth-service-test",
     });
-    harness.subscribe(NOTIFICATIONS_SEND, async () => ({
+    harness.subscribe(notificationsSendContract.name, async () => ({
       success: true,
       data: { status: "sent", deliveryId: "email_1" },
     }));
@@ -1297,7 +1318,7 @@ describe("AuthService", () => {
       logContext: "auth-service-test",
     });
     const failedNotifications: unknown[] = [];
-    firstHarness.subscribe(NOTIFICATIONS_SEND, async (message) => {
+    firstHarness.subscribe(notificationsSendContract.name, async (message) => {
       failedNotifications.push(message.payload);
       return { success: false, error: "delivery failed" };
     });
@@ -1317,7 +1338,7 @@ describe("AuthService", () => {
       logContext: "auth-service-test",
     });
     const retriedNotifications: unknown[] = [];
-    secondHarness.subscribe(NOTIFICATIONS_SEND, async (message) => {
+    secondHarness.subscribe(notificationsSendContract.name, async (message) => {
       retriedNotifications.push(message.payload);
       return { success: true, data: { status: "sent", deliveryId: "email_2" } };
     });
@@ -1359,7 +1380,7 @@ describe("AuthService", () => {
       logContext: "auth-service-test",
     });
     const notifications: unknown[] = [];
-    harness.subscribe(NOTIFICATIONS_SEND, async (message) => {
+    harness.subscribe(notificationsSendContract.name, async (message) => {
       notifications.push(message.payload);
       return { success: true, data: { status: "sent", deliveryId: "email_1" } };
     });
@@ -1387,7 +1408,7 @@ describe("AuthService", () => {
     });
     const notifications: unknown[] = [];
 
-    harness.subscribe(NOTIFICATIONS_SEND, async (message) => {
+    harness.subscribe(notificationsSendContract.name, async (message) => {
       notifications.push(message.payload);
       return { success: true, data: { status: "sent" } };
     });
@@ -1411,7 +1432,7 @@ describe("AuthService", () => {
     });
     const notifications: unknown[] = [];
 
-    harness.subscribe(NOTIFICATIONS_SEND, async (message) => {
+    harness.subscribe(notificationsSendContract.name, async (message) => {
       notifications.push(message.payload);
       return { success: true, data: { status: "sent" } };
     });

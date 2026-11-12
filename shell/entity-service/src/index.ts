@@ -68,7 +68,11 @@ export type {
 } from "./entity-mutation-receipt";
 export { EmbeddingJobHandler } from "./handlers/embeddingJobHandler";
 export { BaseEntityFormatter } from "./base-entity-formatter";
-export { BaseEntityAdapter, FallbackEntityAdapter } from "./adapters";
+export {
+  BaseEntityAdapter,
+  FallbackEntityAdapter,
+  parseTypedFrontmatter,
+} from "./adapters";
 export type {
   BaseEntityAdapterConfig,
   BaseEntityFrontmatterSchema,
@@ -126,6 +130,8 @@ export {
 // Embedding
 export type {
   IEmbeddingService,
+  EmbeddingIdentity,
+  EmbeddingDocument,
   EmbeddingUsage,
   EmbeddingResult,
   BatchEmbeddingResult,
@@ -160,11 +166,13 @@ export type {
   CreateInput,
   CreateExecutionContext,
   CreateResult,
+  CreateResultAttachment,
   CreateQuestion,
   CreateCheck,
   CreateCheckResult,
   CreateInterceptionResult,
   CreateInterceptor,
+  GenerationEnqueuer,
   UploadSaveInput,
   UploadSaveHandler,
   UploadSaveHandlerRegistration,
@@ -173,7 +181,6 @@ export type {
   SearchResult,
   EntityAdapter,
   EntitySchema,
-  EntitySchemaParser,
   FrontmatterSchema,
   ListOptions,
   SearchOptions,
@@ -239,6 +246,16 @@ export {
   permissionToVisibilityScope,
 } from "./types";
 
+export {
+  embeddingReadyChannel,
+  embeddingReadyPayloadSchema,
+  entityChangePayloadSchema,
+  entityCreatedChannel,
+  entityDeletedChannel,
+  entityUpdatedChannel,
+  type EmbeddingReadyPayload,
+  type EntityChangePayload,
+} from "./entity-event-channels";
 export { buildGenerationStubEntity } from "./generation-stub";
 export { internalFullScope } from "./internal-scope";
 export { scopeEntityReads } from "./scoped-entity-reads";
@@ -286,3 +303,4 @@ export type {
 } from "./pagination";
 export { findEntityByIdentifier, resolveEntityOrError } from "./find-entity";
 export type { EntityLookupOptions, ResolvedEntity } from "./find-entity";
+export { editableFieldsOf } from "./editable-fields";

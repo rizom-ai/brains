@@ -15,15 +15,12 @@ import type {
 } from "@brains/runtime-state";
 import { SerializedStatusStore } from "../../src/service/serialized-status-store";
 
-interface Counter {
-  total: number;
-  notes: string[];
-}
-
-const counterSchema: z.ZodType<Counter> = z.object({
+const counterSchema = z.object({
   total: z.number().int().nonnegative(),
   notes: z.array(z.string()).max(3),
 });
+
+type Counter = z.output<typeof counterSchema>;
 
 const NAMESPACE = "test.counter";
 
@@ -47,9 +44,9 @@ function createMemoryNamespace(): MemoryNamespace {
   let writes = 0;
 
   const runtimeState: IRuntimeStateNamespace = {
-    scoped: <T>(
-      options: RuntimeStateScopeOptions<T>,
-    ): IRuntimeStateStore<T> => ({
+    scoped: <T, TInput = T>(
+      options: RuntimeStateScopeOptions<T, TInput>,
+    ): IRuntimeStateStore<T, TInput> => ({
       get: async (key): Promise<T | null> => {
         reads += 1;
         const record = records.get(`${options.namespace}:${key}`);

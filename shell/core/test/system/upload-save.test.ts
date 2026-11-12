@@ -66,6 +66,7 @@ function buildServices(input: {
     throw new Error(name + " was not expected in this test");
   };
   const runtimeUploads: IRuntimeUploadsNamespace = {
+    retire: unexpected("retire"),
     scoped: (): ScopedRuntimeUploadStore => ({
       readRecord: async (): Promise<RuntimeUploadRecord> => ({
         id: uploadId,
@@ -116,13 +117,72 @@ function context(): ToolContext {
 }
 
 describe("system_create upload preserve", () => {
-  it("exposes preserve as an upload transform and removes system_upload_save", () => {
+  it("takes the upload id in the source, not a nested upload object", () => {
     expect(
       createInputSchema.safeParse({
         entityType: "document",
         source: {
           kind: "upload",
           upload: { kind: "upload", id: uploadId },
+          transform: "preserve",
+        },
+      }).success,
+    ).toBe(false);
+    expect(
+      createInputSchema.safeParse({
+        entityType: "note",
+        source: {
+          kind: "uploads",
+          items: [
+            {
+              upload: { kind: "upload", id: "upload-1" },
+              transform: "preserve",
+            },
+            {
+              upload: { kind: "upload", id: "upload-2" },
+              transform: "preserve",
+            },
+          ],
+        },
+      }).success,
+    ).toBe(false);
+  });
+
+  it("says where the upload id goes when a caller sends the removed nested shape", () => {
+    const single = createInputSchema.safeParse({
+      entityType: "document",
+      source: {
+        kind: "upload",
+        upload: { kind: "upload", id: uploadId },
+        transform: "preserve",
+      },
+    });
+    expect(single.success).toBe(false);
+    expect(
+      single.error?.issues.map((issue) => issue.message).join(" "),
+    ).toContain("The upload id goes in `source.id`");
+    const several = createInputSchema.safeParse({
+      entityType: "note",
+      source: {
+        kind: "uploads",
+        items: [
+          { upload: { kind: "upload", id: "upload-1" }, transform: "preserve" },
+          { upload: { kind: "upload", id: "upload-2" }, transform: "preserve" },
+        ],
+      },
+    });
+    expect(
+      several.error?.issues.map((issue) => issue.message).join(" "),
+    ).toContain("Each file is `{ id, transform }`");
+  });
+
+  it("exposes preserve as an upload transform and removes system_upload_save", () => {
+    expect(
+      createInputSchema.safeParse({
+        entityType: "document",
+        source: {
+          kind: "upload",
+          id: uploadId,
           transform: "preserve",
         },
       }).success,
@@ -155,7 +215,7 @@ describe("system_create upload preserve", () => {
         visibility: "shared",
         source: {
           kind: "upload",
-          upload: { kind: "upload", id: uploadId },
+          id: uploadId,
           transform: "preserve",
         },
       },
@@ -215,7 +275,7 @@ describe("system_create upload preserve", () => {
         title: "Quarterly Report",
         source: {
           kind: "upload",
-          upload: { kind: "upload", id: uploadId },
+          id: uploadId,
           transform: "preserve",
         },
       },
@@ -234,7 +294,12 @@ describe("system_create upload preserve", () => {
 
     const confirmed = await tool.handler(confirmationArgs, context());
 
-    expect(confirmed).toMatchObject({ success: true });
+    // The result names the upload it saved and the entity it became, so a
+    // later turn knows the file is kept without reading the call that made it.
+    expect(confirmed).toMatchObject({
+      success: true,
+      data: { entityId: "report", entityType: "document", uploadId },
+    });
     expect(calls).toEqual([
       { upload: { kind: "upload", id: uploadId }, title: "Quarterly Report" },
     ]);
@@ -259,7 +324,7 @@ describe("system_create upload preserve", () => {
         title: "Quarterly Report",
         source: {
           kind: "upload",
-          upload: { kind: "upload", id: uploadId },
+          id: uploadId,
           transform: "preserve",
         },
       },
@@ -288,7 +353,7 @@ describe("system_create upload preserve", () => {
         entityType: "document",
         source: {
           kind: "upload",
-          upload: { kind: "upload", id: uploadId },
+          id: uploadId,
           transform: "preserve",
         },
       },

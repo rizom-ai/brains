@@ -1,7 +1,8 @@
 import type { JSX } from "react";
 import type { ProjectView } from "./project-view";
-import type { PaginationInfo } from "@brains/plugins";
-import { Card, CardTitle, Head, Pagination } from "@brains/ui-library";
+import type { PaginationInfo } from "@brains/sdk/internal/presentation";
+import { Card, CardTitle } from "@rizom/brain-ui";
+import { Head, Pagination } from "@rizom/brain-ui/internal";
 
 export interface ProjectListProps {
   projects: ProjectView[];

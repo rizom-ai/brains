@@ -9,7 +9,7 @@ tags:
   - quality
   - conciseness
   - repetition
-  - preset-core
+  - recipe-headless
 
 turns:
   - userMessage: "Show me my identity and my profile"
@@ -19,9 +19,10 @@ successCriteria:
   toolCountRange:
     max: 0
   responseContains:
-    - "Rover"
     - "Alex Chen"
+  responseCriteria:
+    - "Describes the assistant's own identity or role as well as the anchor's profile, each once."
 
 efficiency:
   maxToolCalls: 4
-  maxTokens: 20000
+  maxTokens: 14000

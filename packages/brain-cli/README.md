@@ -8,7 +8,7 @@ Canonical brain runtime and CLI.
 bun add -g @rizom/brain
 brain init my-brain --recipe personal
 cd my-brain
-# set AI_API_KEY in .env
+# set OPENAI_API_KEY in .env
 brain start
 ```
 
@@ -58,8 +58,9 @@ Commands exposed by plugins are discovered from the running tool registry.
 
 - `@rizom/brain` — definition and bundle contracts
 - `@rizom/brain/model` — canonical definition
-- `@rizom/brain/plugins`, `/entities`, `/services`, `/interfaces`
-- `@rizom/site` for site authoring; `@rizom/brain/templates` and `@rizom/brain/deploy` for advanced consumers
+- `@rizom/brain/entities`, `/services`, `/interfaces`, and `/testing` for a package's own tests
+- `@rizom/brain/chat` — headless Chat transport
+- `@rizom/site` and `@rizom/brain-ui` for site authoring; `@rizom/brain/deploy` for advanced consumers
 
 ## Documentation
 

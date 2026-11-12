@@ -8,4 +8,10 @@ describe("theme-rizom export", () => {
     expect(themeCSS).toContain(themeCSSOnly);
     expect(themeCSS).not.toBe(themeCSSOnly);
   });
+
+  test("leaves the .reveal container reveal.js decks render in unstyled", () => {
+    // A theme rule on .reveal (such as a hidden-until-scrolled fade) hides
+    // every deck: reveal.js names its own container .reveal.
+    expect(themeCSSOnly).not.toMatch(/(^|[\s,}])\.reveal\b/);
+  });
 });

@@ -1,3 +1,4 @@
+import type { EntityChangePayload } from "@brains/plugins";
 import { createMockShell } from "@brains/plugins/test";
 import { describe, it, expect } from "bun:test";
 
@@ -170,19 +171,22 @@ describe("transitionRun", () => {
 });
 
 describe("recordEntityEventEvidence", () => {
-  const payload = (run: PlaybookRun): Record<string, unknown> => ({
+  const payload = (run: PlaybookRun): EntityChangePayload => ({
     entityType: "note",
     entityId: "note-1",
     runId: run.id,
   });
 
-  it("ignores payloads without entity identifiers or active runs", async () => {
+  it("ignores a change no active run asked for", async () => {
     const { engine, store } = createEngine();
     const run = await startRun(engine);
 
-    expect(await engine.recordEntityEventEvidence("created", {})).toEqual({
-      recorded: false,
-    });
+    expect(
+      await engine.recordEntityEventEvidence("created", {
+        entityType: "note",
+        entityId: "note-1",
+      }),
+    ).toEqual({ recorded: false });
 
     await store.upsert({ ...run, status: "dismissed" });
     expect(

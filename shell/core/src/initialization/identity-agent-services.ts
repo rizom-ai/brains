@@ -3,6 +3,7 @@ import {
   AgentService,
   createBrainAgentId,
   createBrainAgentFactory,
+  createMessageBusEmitter,
   openAiGuestPricing,
   type ChatAttachment,
   type EmbeddingUsageMeter,
@@ -12,18 +13,18 @@ import {
   type IAIService,
 } from "@brains/ai-service";
 import {
-  AGENT_CONTEXT_REQUEST_CHANNEL,
-  GUEST_ASKED_BEFORE_CHANNEL,
-  firstAskedBeforeHit,
-  ENTITY_CHANNELS,
-  parseAgentContextItems,
   type AgentContextRequest,
+  agentContextContract,
+  askedBeforeContract,
 } from "@brains/contracts";
 import type { IConversationService } from "@brains/conversation-service";
-import type {
-  IEntityRegistry,
-  IEntityService,
-  IEmbeddingService,
+import {
+  entityCreatedChannel,
+  entityDeletedChannel,
+  entityUpdatedChannel,
+  type IEntityRegistry,
+  type IEntityService,
+  type IEmbeddingService,
 } from "@brains/entity-service";
 import {
   AnchorProfileService,
@@ -33,10 +34,17 @@ import {
 import type { IMCPService } from "@brains/mcp-service";
 import {
   SYSTEM_CHANNELS,
+  identityChangedChannel,
+  sharedUploadScope,
   type ResolvedRuntimeUpload,
   type RuntimeUploadRegistry,
 } from "@brains/plugins";
-import { type IMessageBus, type MessageBus } from "@brains/messaging-service";
+import {
+  broadcastChannel,
+  collectContract,
+  type IMessageBus,
+  type MessageBus,
+} from "@brains/messaging-service";
 import type { Logger } from "@brains/utils/logger";
 import type { ShellConfig } from "../config";
 import { SHELL_ENTITY_TYPES } from "../constants";
@@ -81,29 +89,23 @@ function subscribeToEntityCacheInvalidation(
   refreshCache: () => Promise<void>,
   logger: Logger,
 ): (() => void)[] {
-  const events = [
-    ENTITY_CHANNELS.created,
-    ENTITY_CHANNELS.updated,
-    ENTITY_CHANNELS.deleted,
-  ] as const;
-
   // Observed, not subscribed: the identity follows writes from the runtime's
   // other process too, such as content the worker syncs from git.
-  return events.map((event) =>
-    messageBus.observe<{ entityType: string; entityId: string }, void>(
-      event,
-      async (message) => {
+  return [entityCreatedChannel, entityUpdatedChannel, entityDeletedChannel].map(
+    (channel) =>
+      messageBus.observe(channel.name, async (message) => {
+        const change = channel.schema.safeParse(message.payload);
         if (
-          message.payload.entityType === entityType &&
-          (entityId === null || message.payload.entityId === entityId)
+          change.success &&
+          change.data.entityType === entityType &&
+          (entityId === null || change.data.entityId === entityId)
         ) {
           await refreshCache();
-          const action = event.replace("entity:", "");
+          const action = channel.name.replace("entity:", "");
           logger.debug(`${entityType} entity ${action}, cache refreshed`);
         }
         return { success: true };
-      },
-    ),
+      }),
   );
 }
 
@@ -124,12 +126,12 @@ export function subscribeToIdentityRefresh(
     entityType,
     async () => {
       await refreshCache();
-      await messageBus.send({
-        type: SYSTEM_CHANNELS.identityChanged,
-        payload: { entityType },
-        sender: "shell",
-        broadcast: true,
-      });
+      await broadcastChannel(
+        messageBus,
+        identityChangedChannel,
+        { entityType },
+        "shell",
+      );
     },
     logger,
   );
@@ -163,7 +165,9 @@ async function resolveRuntimeUploadAttachment(
 }
 
 function getRuntimeUploadNamespace(refKind: string): string | null {
-  return refKind === "upload" ? "upload" : null;
+  return refKind === sharedUploadScope.refKind
+    ? sharedUploadScope.namespace
+    : null;
 }
 
 function toChatAttachment(
@@ -258,10 +262,10 @@ export function initializeIdentityAndAgentServices(
     // otherwise their cost is unknown and charged the answer cap.
     guestPricing: openAiGuestPricing(aiService.getConfig().model),
     model: aiService.getModel(),
+    answerModel: aiService.getAnswerModel?.(),
     modelId: aiService.getConfig().model,
     webSearch: aiService.getConfig().webSearch,
     temperature: aiService.getConfig().temperature,
-    maxTokens: aiService.getConfig().maxTokens,
     reasoningEffort: aiService.getConfig().reasoningEffort,
     messageBus,
   });
@@ -285,6 +289,7 @@ export function initializeIdentityAndAgentServices(
     logger,
     {
       agentFactory,
+      turnEvents: createMessageBusEmitter(messageBus),
       canonicalIdentityResolver: canonicalIdentityService,
       // A turn's sources link to the pages the site shows them on.
       entityLinks,
@@ -310,27 +315,26 @@ export function initializeIdentityAndAgentServices(
       // A visitor's question a published FAQ already answers, asked of the
       // plugins that keep FAQs; the hit's data is an answer only when it parses.
       guestAskedBefore: async (request) => {
-        const responses = await messageBus.collect({
-          type: GUEST_ASKED_BEFORE_CHANNEL,
-          sender: "shell:agent-service",
-          payload: request,
-        });
-        return firstAskedBeforeHit(
-          responses.flatMap((response) =>
-            "noop" in response || !response.success ? [] : [response.data],
-          ),
+        const asked = await collectContract(
+          messageBus,
+          askedBeforeContract,
+          request,
+          "shell:agent-service",
         );
+        return asked.status === "answered"
+          ? asked.answers.find((answer) => answer.hit)?.hit
+          : undefined;
       },
       agentContextProvider: async (request: AgentContextRequest) => {
-        const responses = await messageBus.collect({
-          type: AGENT_CONTEXT_REQUEST_CHANNEL,
-          sender: "shell:agent-service",
-          payload: request,
-        });
-        return responses.flatMap((response) => {
-          if ("noop" in response || !response.success) return [];
-          return parseAgentContextItems(response.data);
-        });
+        const context = await collectContract(
+          messageBus,
+          agentContextContract,
+          request,
+          "shell:agent-service",
+        );
+        return context.status === "answered"
+          ? context.answers.flatMap((answer) => answer.items)
+          : [];
       },
       ...(assistantAgentId ? { assistantAgentId } : {}),
       ...(config.agentInstructions && {

@@ -1,50 +1,42 @@
-import { parseMarkdownWithFrontmatter } from "@brains/plugins";
-import { canonicalAtprotoLexicons } from "@brains/atproto-contracts";
-import type {
-  AtprotoBrainDeckRecord,
-  AtprotoProjection,
-  AtprotoProjectionBuildInput,
+import {
+  atprotoProvenance,
+  canonicalAtprotoLexicons,
 } from "@brains/atproto-contracts";
-import { deckFrontmatterSchema, deckSchema } from "./schemas/deck";
+import type { AtprotoBrainDeckRecord } from "@brains/atproto-contracts";
+import type {
+  EntityAtprotoProjection,
+  EntityAtprotoRecordInput,
+  EntityDefinition,
+  EntityOf,
+} from "@brains/sdk/entities";
+import type { deckMetadataSchema } from "./schemas/deck";
 
+type DeckRecord = EntityOf<EntityDefinition<"deck", typeof deckMetadataSchema>>;
+
+/** A deck as its ai.rizom.brain.deck record: its fields and its slides. */
 export async function buildDeckAtprotoRecord({
   entity,
   config,
   pageUrl,
-}: AtprotoProjectionBuildInput): Promise<AtprotoBrainDeckRecord> {
-  const deck = deckSchema.parse(entity);
-  const parsed = parseMarkdownWithFrontmatter(
-    deck.content,
-    deckFrontmatterSchema,
-  );
-  const frontmatter = parsed.metadata;
-
+}: EntityAtprotoRecordInput<DeckRecord>): Promise<AtprotoBrainDeckRecord> {
+  const { metadata } = entity;
   return {
     $type: "ai.rizom.brain.deck",
-    title: frontmatter.title,
-    ...(frontmatter.slug && { slug: frontmatter.slug }),
-    ...(frontmatter.description && { description: frontmatter.description }),
-    body: parsed.content,
+    title: metadata.title,
+    slug: metadata.slug,
+    ...(metadata.description && { description: metadata.description }),
+    body: entity.content,
     format: "text/markdown",
-    ...(frontmatter.author && { author: frontmatter.author }),
-    ...(frontmatter.event && { event: frontmatter.event }),
-    ...(frontmatter.publishedAt && { publishedAt: frontmatter.publishedAt }),
-    ...(config.brainDid && { brainDid: config.brainDid }),
-    ...(config.anchorDid && { anchorDid: config.anchorDid }),
-    ...(pageUrl && { canonicalUrl: pageUrl }),
-    sourceEntityType: "deck",
-    sourceEntityId: deck.id,
-    createdAt: deck.created,
-    ...(deck.updated && { updatedAt: deck.updated }),
+    ...(metadata.author && { author: metadata.author }),
+    ...(metadata.event && { event: metadata.event }),
+    ...(metadata.publishedAt && { publishedAt: metadata.publishedAt }),
+    ...atprotoProvenance({ config, pageUrl }, entity),
   };
 }
 
-export function createDeckAtprotoProjection(): AtprotoProjection<AtprotoBrainDeckRecord> {
-  return {
-    entityType: "deck",
-    collection: "ai.rizom.brain.deck",
-    lexicon: canonicalAtprotoLexicons["ai.rizom.brain.deck"],
-    validate: false,
-    buildRecord: buildDeckAtprotoRecord,
-  };
-}
+/** Deck records go out unvalidated, under the canonical deck lexicon. */
+export const deckAtproto: EntityAtprotoProjection<DeckRecord> = {
+  lexicon: canonicalAtprotoLexicons["ai.rizom.brain.deck"],
+  validate: false,
+  buildRecord: buildDeckAtprotoRecord,
+};

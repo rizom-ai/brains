@@ -9,6 +9,7 @@ import {
   genericSpy,
 } from "@brains/test-utils";
 import { createMockDirectorySync } from "../fixtures";
+import { queuedJob } from "../queued-job";
 
 describe("DirectoryImportJobHandler", () => {
   let handler: DirectoryImportJobHandler;
@@ -42,7 +43,7 @@ describe("DirectoryImportJobHandler", () => {
   describe("validateAndParse", () => {
     it("should validate empty object (all fields optional)", () => {
       const result = expectDefined(
-        handler.validateAndParse({}),
+        queuedJob("directory-import", handler).validateAndParse({}),
         "validateAndParse result",
       );
       // batchSize is optional, defaults applied in process()
@@ -51,7 +52,9 @@ describe("DirectoryImportJobHandler", () => {
 
     it("should validate with paths array", () => {
       const data = { paths: ["/path/to/file1.md", "/path/to/file2.md"] };
-      const result = handler.validateAndParse(data);
+      const result = queuedJob("directory-import", handler).validateAndParse(
+        data,
+      );
 
       expect(result).not.toBeNull();
       expect(result?.paths).toEqual(["/path/to/file1.md", "/path/to/file2.md"]);
@@ -59,7 +62,9 @@ describe("DirectoryImportJobHandler", () => {
 
     it("should validate with custom batchSize", () => {
       const data = { batchSize: 50 };
-      const result = handler.validateAndParse(data);
+      const result = queuedJob("directory-import", handler).validateAndParse(
+        data,
+      );
 
       expect(result).not.toBeNull();
       expect(result?.batchSize).toBe(50);
@@ -67,19 +72,25 @@ describe("DirectoryImportJobHandler", () => {
 
     it("should validate with batchIndex", () => {
       const data = { batchIndex: 2 };
-      const result = handler.validateAndParse(data);
+      const result = queuedJob("directory-import", handler).validateAndParse(
+        data,
+      );
 
       expect(result).not.toBeNull();
       expect(result?.batchIndex).toBe(2);
     });
 
     it("should return null for invalid batchSize", () => {
-      const result = handler.validateAndParse({ batchSize: 0 });
+      const result = queuedJob("directory-import", handler).validateAndParse({
+        batchSize: 0,
+      });
       expect(result).toBeNull();
     });
 
     it("should return null for invalid paths type", () => {
-      const result = handler.validateAndParse({ paths: "not-an-array" });
+      const result = queuedJob("directory-import", handler).validateAndParse({
+        paths: "not-an-array",
+      });
       expect(result).toBeNull();
     });
   });

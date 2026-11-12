@@ -1,54 +1,52 @@
-import { canonicalAtprotoLexicons } from "@brains/atproto-contracts";
-import type {
-  AtprotoBrainSocialPostRecord,
-  AtprotoProjection,
-  AtprotoProjectionBuildInput,
+import {
+  atprotoProvenance,
+  canonicalAtprotoLexicons,
 } from "@brains/atproto-contracts";
-import { socialPostAdapter } from "./adapters/social-post-adapter";
-import { socialPostSchema } from "./schemas/social-post";
+import type { AtprotoBrainSocialPostRecord } from "@brains/atproto-contracts";
+import type {
+  EntityAtprotoProjection,
+  EntityAtprotoRecordInput,
+  EntityDefinition,
+  EntityOf,
+} from "@brains/sdk/entities";
+import { parseMarkdown } from "@brains/utils/markdown-frontmatter";
+import type { socialPostMetadataSchema } from "./schemas/social-post";
 
+type SocialPostRecord = EntityOf<
+  EntityDefinition<"social-post", typeof socialPostMetadataSchema>
+>;
+
+/** A social post as its ai.rizom.brain.socialPost record: its fields and its text. */
 export async function buildSocialPostAtprotoRecord({
   entity,
   config,
   pageUrl,
-}: AtprotoProjectionBuildInput): Promise<AtprotoBrainSocialPostRecord> {
-  const socialPost = socialPostSchema.parse(entity);
-  const frontmatter = socialPostAdapter.parsePostFrontmatter(socialPost);
-  const body = socialPostAdapter.getPostContent(socialPost);
-
+}: EntityAtprotoRecordInput<SocialPostRecord>): Promise<AtprotoBrainSocialPostRecord> {
+  const { metadata } = entity;
   return {
     $type: "ai.rizom.brain.socialPost",
-    title: frontmatter.title,
-    platform: frontmatter.platform,
-    body,
+    title: metadata.title,
+    platform: metadata.platform,
+    body: parseMarkdown(entity.content).content,
     format: "text/markdown",
-    status: frontmatter.status,
-    ...(frontmatter.publishedAt && { publishedAt: frontmatter.publishedAt }),
-    ...(frontmatter.platformPostId && {
-      platformPostId: frontmatter.platformPostId,
+    status: metadata.status,
+    ...(metadata.publishedAt && { publishedAt: metadata.publishedAt }),
+    ...(metadata.platformPostId && {
+      platformPostId: metadata.platformPostId,
     }),
-    ...(frontmatter.sourceEntityType && {
-      sourceLocalEntityType: frontmatter.sourceEntityType,
+    ...(metadata.sourceEntityType && {
+      sourceLocalEntityType: metadata.sourceEntityType,
     }),
-    ...(frontmatter.sourceEntityId && {
-      sourceLocalEntityId: frontmatter.sourceEntityId,
+    ...(metadata.sourceEntityId && {
+      sourceLocalEntityId: metadata.sourceEntityId,
     }),
-    ...(config.brainDid && { brainDid: config.brainDid }),
-    ...(config.anchorDid && { anchorDid: config.anchorDid }),
-    ...(pageUrl && { canonicalUrl: pageUrl }),
-    sourceEntityType: "social-post",
-    sourceEntityId: socialPost.id,
-    createdAt: socialPost.created,
-    ...(socialPost.updated && { updatedAt: socialPost.updated }),
+    ...atprotoProvenance({ config, pageUrl }, entity),
   };
 }
 
-export function createSocialPostAtprotoProjection(): AtprotoProjection<AtprotoBrainSocialPostRecord> {
-  return {
-    entityType: "social-post",
-    collection: "ai.rizom.brain.socialPost",
-    lexicon: canonicalAtprotoLexicons["ai.rizom.brain.socialPost"],
-    validate: false,
-    buildRecord: buildSocialPostAtprotoRecord,
-  };
-}
+/** Social post records go out unvalidated, under the canonical social post lexicon. */
+export const socialPostAtproto: EntityAtprotoProjection<SocialPostRecord> = {
+  lexicon: canonicalAtprotoLexicons["ai.rizom.brain.socialPost"],
+  validate: false,
+  buildRecord: buildSocialPostAtprotoRecord,
+};

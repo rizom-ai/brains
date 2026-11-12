@@ -8,7 +8,6 @@ export type {
   MediaFormat,
   RuntimeScript,
   TemplateDataSchema,
-  TemplateSchemaParser,
 } from "./types";
 export {
   TemplateSchema,

@@ -1,11 +1,10 @@
 import { createMockEntityService } from "@brains/entity-service/test";
 import { describe, it, expect, spyOn } from "bun:test";
-import { expectDefined } from "@brains/utils/expect-defined";
-import { createSilentLogger } from "@brains/test-utils";
+import { createMockLogger, createSilentLogger } from "@brains/test-utils";
 import { createPluginHarness } from "@brains/plugins/test";
 import { ButtondownNewsletterProvider } from "../src/provider/buttondown-provider";
 import type { ButtondownFetch } from "../src/provider/lib/buttondown-client";
-import { ButtondownPlugin } from "../src/provider/plugin";
+import { createButtondownPlugin } from "./newsletter-plugins";
 import { z } from "@brains/utils/zod";
 
 // The client is built with a delegate to this, so a test can stub before or
@@ -54,8 +53,8 @@ describe("Newsletter Auto-Send on Publish", () => {
           status: "published",
         },
         contentHash: "",
-        created: "",
-        updated: "",
+        created: "2026-01-01T00:00:00.000Z",
+        updated: "2026-01-01T00:00:00.000Z",
       });
 
       const result = await handlePublishCompleted(
@@ -156,8 +155,8 @@ describe("Newsletter Auto-Send on Publish", () => {
         visibility: "public",
         metadata: { title: "Test", slug: "test", status: "published" },
         contentHash: "",
-        created: "",
-        updated: "",
+        created: "2026-01-01T00:00:00.000Z",
+        updated: "2026-01-01T00:00:00.000Z",
       });
 
       const result = await handlePublishCompleted(
@@ -183,13 +182,16 @@ describe("Newsletter Auto-Send on Publish", () => {
   });
 
   describe("publish:completed subscriber", () => {
-    it("should propagate handler failure to the bus response", async () => {
-      const harness = createPluginHarness();
+    it("logs a failed auto-send, which no publisher reads back", async () => {
+      // The pipeline broadcasts publish:completed and reads no reply, so the
+      // failure is the log line the class wrote, and nothing is sent.
+      const logger = createMockLogger();
+      const harness = createPluginHarness({ logger });
       await harness.installPlugin(
-        new ButtondownPlugin({ apiKey: "test-key", autoSendOnPublish: true }),
+        createButtondownPlugin({ apiKey: "test-key", autoSendOnPublish: true }),
       );
 
-      const response = await harness
+      await harness
         .getMockShell()
         .getMessageBus()
         .send({
@@ -202,12 +204,35 @@ describe("Newsletter Auto-Send on Publish", () => {
           sender: "test",
         });
 
-      expect(response).toMatchObject({ success: false });
-      const failure = expectDefined(
-        "error" in response ? response : undefined,
-        "failure response carrying an error",
+      expect(logger.error).toHaveBeenCalledWith(
+        "Newsletter auto-send failed",
+        expect.objectContaining({
+          entityId: "missing-post",
+          error: "Post missing-post not found",
+        }),
       );
-      expect(failure.error).toContain("not found");
+      await harness.reset();
+    });
+
+    it("refuses a publish event without its entity instead of looking up undefined", async () => {
+      const harness = createPluginHarness();
+      await harness.installPlugin(
+        createButtondownPlugin({ apiKey: "test-key", autoSendOnPublish: true }),
+      );
+
+      const response = await harness
+        .getMockShell()
+        .getMessageBus()
+        .send({
+          type: "publish:completed",
+          payload: { entityType: "post", result: { id: "remote" } },
+          sender: "test",
+        });
+
+      expect(response).toEqual({
+        success: false,
+        error: "Invalid publish:completed payload",
+      });
       await harness.reset();
     });
   });

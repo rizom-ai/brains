@@ -1,2 +1,4 @@
 plugin: "@brains/blog"
+export: default
+pluginId: blog
 model: gpt-5.4-mini

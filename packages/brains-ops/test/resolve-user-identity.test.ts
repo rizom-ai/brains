@@ -28,7 +28,7 @@ const pilot: PilotConfigInput = {
   githubOrg: "rizom-ai",
   contentRepoPrefix: "rover-",
   domainSuffix: ".rizom.ai",
-  aiApiKey: "AI_API_KEY",
+  openaiApiKey: "OPENAI_API_KEY",
   gitSyncToken: "GIT_SYNC_TOKEN",
   contentRepoAdminToken: "CONTENT_REPO_ADMIN_TOKEN",
   agePublicKey: "age1testpublickey",
@@ -52,7 +52,7 @@ const baseIdentity: ExpectedIdentity = {
   domain: "ada-lovelace.rizom.ai",
   contentRepo: "rover-ada-lovelace-content",
   discordEnabled: false,
-  effectiveAiApiKey: "AI_API_KEY",
+  effectiveOpenaiApiKey: "OPENAI_API_KEY",
   effectiveGitSyncToken: "GIT_SYNC_TOKEN",
   anchorProfile: { name: "Ada Lovelace" },
 };
@@ -132,26 +132,26 @@ const cases: IdentityCase[] = [
   {
     name: "prefers cohort secrets over pilot secrets",
     cohort: {
-      aiApiKeyOverride: "COHORT_AI_API_KEY",
+      openaiApiKeyOverride: "COHORT_AI_API_KEY",
       gitSyncTokenOverride: "COHORT_GIT_SYNC_TOKEN",
     },
     expected: {
-      effectiveAiApiKey: "COHORT_AI_API_KEY",
+      effectiveOpenaiApiKey: "COHORT_AI_API_KEY",
       effectiveGitSyncToken: "COHORT_GIT_SYNC_TOKEN",
     },
   },
   {
     name: "prefers user secrets over cohort secrets",
     cohort: {
-      aiApiKeyOverride: "COHORT_AI_API_KEY",
+      openaiApiKeyOverride: "COHORT_AI_API_KEY",
       gitSyncTokenOverride: "COHORT_GIT_SYNC_TOKEN",
     },
     user: {
-      aiApiKeyOverride: "USER_AI_API_KEY",
+      openaiApiKeyOverride: "USER_AI_API_KEY",
       gitSyncTokenOverride: "USER_GIT_SYNC_TOKEN",
     },
     expected: {
-      effectiveAiApiKey: "USER_AI_API_KEY",
+      effectiveOpenaiApiKey: "USER_AI_API_KEY",
       effectiveGitSyncToken: "USER_GIT_SYNC_TOKEN",
     },
   },
@@ -170,6 +170,7 @@ const cases: IdentityCase[] = [
       profileKind: "organization",
       anchorKind: "team",
       embeddingEnabled: true,
+      embeddingModel: "local:embeddinggemma-2:270m",
       spaces: ["discord:1"],
       plugins: { directory: { enabled: true } },
       topicExtractionEnabled: true,
@@ -201,6 +202,7 @@ const cases: IdentityCase[] = [
       profileKind: "organization",
       anchorKind: "team",
       embeddingEnabled: true,
+      embeddingModel: "local:embeddinggemma-2:270m",
       spaces: ["discord:1"],
       plugins: { directory: { enabled: true } },
       topicExtractionEnabled: true,
@@ -330,7 +332,7 @@ const cohortCases: CohortCase[] = [
       bundlesOverride: ["core", "publishing"],
       addOverride: ["cohort-add"],
       removeOverride: ["cohort-remove"],
-      aiApiKeyOverride: "COHORT_AI_API_KEY",
+      openaiApiKeyOverride: "COHORT_AI_API_KEY",
       gitSyncTokenOverride: "COHORT_GIT_SYNC_TOKEN",
     },
     expected: {
@@ -338,7 +340,7 @@ const cohortCases: CohortCase[] = [
       bundlesOverride: ["core", "publishing"],
       addOverride: ["cohort-add"],
       removeOverride: ["cohort-remove"],
-      aiApiKeyOverride: "COHORT_AI_API_KEY",
+      openaiApiKeyOverride: "COHORT_AI_API_KEY",
       gitSyncTokenOverride: "COHORT_GIT_SYNC_TOKEN",
     },
   },

@@ -1,11 +1,11 @@
 import { type MockShell } from "@brains/plugins/test";
 import {
-  STUDIO_WORKSPACE_REGISTER_MESSAGE,
+  studioWorkspaceRegisterContract,
   type StudioWorkspaceActor,
   type StudioWorkspaceRegistration,
 } from "@brains/plugins";
 
-import { adminPlugin } from "../src";
+import { createAdminPlugin } from "./admin-plugin";
 
 export const adminActor: StudioWorkspaceActor = {
   interfaceType: "studio",
@@ -32,7 +32,7 @@ export async function captureAdminWorkspaces(
   shell
     .getMessageBus()
     .subscribe<StudioWorkspaceRegistration, { workspaceUrl: string }>(
-      STUDIO_WORKSPACE_REGISTER_MESSAGE,
+      studioWorkspaceRegisterContract.name,
       async (message) => {
         registrations.push(message.payload);
         return {
@@ -43,9 +43,9 @@ export async function captureAdminWorkspaces(
         };
       },
     );
-  const plugin = adminPlugin();
+  const plugin = createAdminPlugin();
   await plugin.register(shell);
-  await plugin.finalizeRegistration();
+  await plugin.finalizeRegistration?.();
   return registrations;
 }
 

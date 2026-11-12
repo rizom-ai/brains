@@ -2,7 +2,8 @@ import type {
   BaseDataSourceContext,
   ServicePluginContext,
 } from "@brains/plugins";
-import { parseAskContent, type AskContent } from "@brains/contracts";
+import { findRouteByRole } from "@brains/plugins/contracts/web-routes";
+import { askContentFromRecord, type AskContent } from "@brains/contracts";
 
 type OpeningRuntime = Pick<
   ServicePluginContext,
@@ -12,10 +13,11 @@ type OpeningRuntime = Pick<
 export type HomepageOpeningData = AskContent & { contactUrl: string | null };
 
 /**
- * Where the door leads: the contact form, when a matching public form route
- * serves where this build is served (for a preview build, on preview, where
- * the door leads to the preview host). Routes are declared in every process;
- * endpoint advertisement is not, and a separate worker runs site builds.
+ * Where the door leads: the contact form, found by its role, when it serves
+ * both its page and its post publicly where this build is served (for a
+ * preview build, on preview, where the door leads to the preview host).
+ * Routes are declared in every process; endpoint advertisement is not, and a
+ * separate worker runs site builds.
  */
 function contactUrl(
   context: BaseDataSourceContext,
@@ -32,15 +34,20 @@ function contactUrl(
     .getRoutes()
     .filter(
       (route) =>
-        route.pluginId === "contact" &&
-        route.fullPath === "/contact" &&
+        route.definition.role === "contact-form" &&
         route.definition.public &&
         (!preview || route.definition.preview),
     );
-  return ["GET", "POST"].every((method) =>
-    routes.some((route) => (route.definition.method ?? "GET") === method),
-  )
-    ? new URL("/contact", origin).href
+  const path = findRouteByRole(routes, "contact-form")?.fullPath;
+  return path &&
+    ["GET", "POST"].every((method) =>
+      routes.some(
+        (route) =>
+          route.fullPath === path &&
+          (route.definition.method ?? "GET") === method,
+      ),
+    )
+    ? new URL(path, origin).href
     : null;
 }
 
@@ -59,7 +66,7 @@ export async function loadAskContent(
       visibilityScope: "public",
     });
     if (entity?.visibility !== "public") return null;
-    const content = parseAskContent(entity.content);
+    const content = askContentFromRecord(entity);
     return content.title || content.introduction || content.topics?.length
       ? content
       : null;

@@ -3,40 +3,24 @@ import { basename, dirname, join } from "path";
 import { z } from "@brains/utils/zod";
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
+import { isNotFoundError } from "@brains/utils/predicates";
 
-export const runtimeUploadIdPattern: RegExp =
-  /^upload-[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+/** An upload id as the registry mints it: `upload-` and a UUID. */
+export const runtimeUploadIdSource: string =
+  "upload-[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}";
+export const runtimeUploadIdPattern: RegExp = new RegExp(
+  `^${runtimeUploadIdSource}$`,
+  "i",
+);
 export const defaultRuntimeUploadRetentionMs: number = 24 * 60 * 60 * 1000;
 export const defaultRuntimeUploadMaxCount: number = 200;
 
-export interface RuntimeUploadRef {
-  kind: string;
-  id: string;
-}
-
-export interface RuntimeUploadRecord {
-  id: string;
-  ref: RuntimeUploadRef;
-  filename: string;
-  mediaType: string;
-  sizeBytes: number;
-  createdAt: string;
-  metadata?: Record<string, unknown> | undefined;
-}
+export type RuntimeUploadRecord = z.output<typeof runtimeUploadRecordSchema>;
+export type RuntimeUploadRef = RuntimeUploadRecord["ref"];
 
 export interface RuntimeUploadResponseBody extends RuntimeUploadRecord {
   url: string;
   downloadUrl: string;
-}
-
-/** True for "no such file or directory" — the only benign read failure here. */
-function isNoEntryError(error: unknown): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    error.code === "ENOENT"
-  );
 }
 
 export interface RuntimeUploadScopeOptions {
@@ -52,6 +36,20 @@ export interface RuntimeUploadScopeOptions {
   now?: (() => Date) | undefined;
 }
 
+/**
+ * The runtime's shared upload store: the interfaces that accept a file write
+ * it, and an `upload` reference anywhere in the brain points into it — a
+ * create request's, a conversation's prior upload the agent restores, an
+ * entity promoted from an upload. Writers and readers name it here, so they
+ * cannot drift apart.
+ */
+export const sharedUploadScope: Readonly<RuntimeUploadScopeOptions> =
+  Object.freeze({
+    namespace: "upload",
+    refKind: "upload",
+    routePath: "/api/chat/uploads",
+  });
+
 export interface RuntimeUploadRegistryOptions {
   dataDir: string;
   /** Reports pruning faults, which must not fail a save but must be seen. */
@@ -61,13 +59,13 @@ export interface RuntimeUploadRegistryOptions {
 export interface SaveRuntimeUploadInput {
   filename: string;
   mediaType: string;
-  content: Buffer;
+  content: Uint8Array;
   metadata?: Record<string, unknown> | undefined;
 }
 
 export interface ResolvedRuntimeUpload {
   record: RuntimeUploadRecord;
-  content: Buffer;
+  content: Uint8Array;
 }
 
 export type RuntimeUploadStoreErrorCode =
@@ -82,7 +80,15 @@ export class RuntimeUploadStoreError extends Error {
   }
 }
 
-const runtimeUploadRecordSchema = z.object({
+const runtimeUploadRecordSchema: z.ZodObject<{
+  id: z.ZodString;
+  ref: z.ZodObject<{ kind: z.ZodString; id: z.ZodString }>;
+  filename: z.ZodString;
+  mediaType: z.ZodString;
+  sizeBytes: z.ZodNumber;
+  createdAt: z.ZodString;
+  metadata: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+}> = z.object({
   id: z.string().regex(runtimeUploadIdPattern),
   ref: z.object({
     kind: z.string().min(1),
@@ -116,7 +122,15 @@ export type ScopedRuntimeUploadStore = Pick<
 export interface IRuntimeUploadsNamespace {
   /** Create a scoped runtime upload store for an interface/plugin namespace. */
   scoped(options: RuntimeUploadScopeOptions): ScopedRuntimeUploadStore;
+  /**
+   * Delete a retired namespace's uploads directory, and nothing beside it.
+   * Answers whether there was one to delete. The shared store is never
+   * retired, and a name that is not a namespace is refused.
+   */
+  retire(namespace: string): Promise<boolean>;
 }
+
+const uploadNamespacePattern = /^[a-z][a-z0-9-]*$/;
 
 export function createRuntimeUploadsNamespace(
   registry: RuntimeUploadRegistry,
@@ -124,6 +138,7 @@ export function createRuntimeUploadsNamespace(
   return {
     scoped: (options: RuntimeUploadScopeOptions): RuntimeUploadStore =>
       registry.scoped(options),
+    retire: (namespace: string): Promise<boolean> => registry.retire(namespace),
   };
 }
 
@@ -154,6 +169,26 @@ export class RuntimeUploadRegistry {
       dataDir: this.dataDir,
       ...(this.logger !== undefined && { logger: this.logger }),
     });
+  }
+
+  async retire(namespace: string): Promise<boolean> {
+    if (!uploadNamespacePattern.test(namespace)) {
+      throw new Error(`"${namespace}" is not an upload namespace`);
+    }
+    if (namespace === sharedUploadScope.namespace) {
+      throw new Error(
+        `"${namespace}" is the runtime's shared upload store; the runtime's shared upload store is never retired`,
+      );
+    }
+    const uploads = join(this.dataDir, namespace, "uploads");
+    try {
+      await stat(uploads);
+    } catch (error) {
+      if (isNotFoundError(error)) return false;
+      throw error;
+    }
+    await rm(uploads, { recursive: true, force: true });
+    return true;
   }
 }
 
@@ -228,7 +263,7 @@ export class RuntimeUploadStore {
     } catch (error) {
       // The metadata resolved, so the upload exists. A content file we cannot
       // read is a damaged upload, not an absent one.
-      if (isNoEntryError(error)) {
+      if (isNotFoundError(error)) {
         throw new RuntimeUploadStoreError("not_found", "Upload not found");
       }
       throw new RuntimeUploadStoreError(
@@ -264,7 +299,7 @@ export class RuntimeUploadStore {
       // No metadata file means no upload. A file that is present but will not
       // read or parse means a damaged one, and calling that "not found" sends
       // the caller looking for a problem they do not have.
-      if (isNoEntryError(error)) {
+      if (isNotFoundError(error)) {
         throw new RuntimeUploadStoreError("not_found", "Upload not found");
       }
       throw new RuntimeUploadStoreError(
@@ -297,7 +332,7 @@ export class RuntimeUploadStore {
     try {
       entries = await readdir(root);
     } catch (error) {
-      if (isNoEntryError(error)) return;
+      if (isNotFoundError(error)) return;
       throw error;
     }
 
@@ -308,7 +343,7 @@ export class RuntimeUploadStore {
           return info.isDirectory() ? { entry, mtimeMs: info.mtimeMs } : null;
         } catch (error) {
           // An upload directory can be removed between listing and stat.
-          if (isNoEntryError(error)) return null;
+          if (isNotFoundError(error)) return null;
           throw error;
         }
       }),

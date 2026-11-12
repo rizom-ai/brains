@@ -1,31 +1,25 @@
 import {
   CHAT_INTERACTION_ID,
-  CONSOLE_CHANNELS,
   STUDIO_INTERACTION_ID,
-  type ConsoleJumpDestination,
+  SdkError,
+  consoleJumpDestinationsContract,
 } from "@brains/contracts";
-import { assignableMembers, getActiveAuthService } from "@brains/auth-service";
-import type {
-  StudioOverviewContributionRegistration,
-  StudioOverviewContributionUnregistration,
-  StudioWorkspaceRegistration,
-  StudioWorkspaceRegistrationResult,
-  StudioWorkspaceUnregistration,
-  ServicePluginContext,
-  UserPermissionLevel,
-  WebRouteDefinition,
-} from "@brains/plugins";
+import type { UserPermissionLevel } from "@brains/sdk/interfaces";
 import {
-  STUDIO_OVERVIEW_REGISTER_MESSAGE,
-  STUDIO_OVERVIEW_UNREGISTER_MESSAGE,
-  STUDIO_WORKSPACE_REGISTER_MESSAGE,
-  STUDIO_WORKSPACE_UNREGISTER_MESSAGE,
-  ServicePlugin,
-} from "@brains/plugins";
+  studioOverviewContributionRegisterContract,
+  studioOverviewContributionUnregisterContract,
+  studioWorkspaceRegisterContract,
+  studioWorkspaceUnregisterContract,
+  serviceRuntime,
+  withWebRoutes,
+} from "@brains/sdk/internal/service-runtime";
+import {
+  defineServicePlugin,
+  type ServicePackageDefinition,
+} from "@brains/sdk/services";
 import { z } from "@brains/utils/zod";
 import type { StudioEntityDisplayMap } from "./config";
 import {
-  normalizeStudioBasePath,
   studioCreatePath,
   studioEntityPath,
   studioWorkspacePath,
@@ -36,13 +30,11 @@ import { studioJumpDestinations } from "./jump-destinations";
 import { createStudioChatHandoffState } from "./chat-handoff-contract";
 import { registerGroupingDefinitions } from "./grouping-definitions";
 import type { GroupingDefinitionSource } from "./grouping-definition-source";
+import type { GroupingDefinitionsSnapshot } from "./grouping-definitions-contract";
+import { groupingDefinitionsEntity } from "./entity/grouping-definitions-entity";
 import { StudioWorkspaceRegistry } from "./workspace-registry";
-import packageJson from "../package.json";
+import { studioContextOf, type StudioContext } from "./studio-context";
 
-const jumpDestinationsRequestSchema = z.object({
-  permissionLevel: z.enum(["public", "trusted", "admin"]),
-});
-import { getErrorMessage } from "@brains/utils/error";
 import { STUDIO_ACCOUNT_WORKSPACE_ID } from "./account-workspace";
 import {
   STUDIO_CHAT_ROUTE_PATH,
@@ -69,7 +61,7 @@ const entityDisplaySchema: z.ZodRecord<
   typeof entityDisplayEntrySchema
 > = z.record(z.string(), entityDisplayEntrySchema);
 
-const studioPluginConfigSchema: z.ZodObject<
+export const studioPluginConfigSchema: z.ZodObject<
   {
     entityDisplay: z.ZodOptional<typeof entityDisplaySchema>;
     routePath: z.ZodDefault<z.ZodString>;
@@ -77,23 +69,10 @@ const studioPluginConfigSchema: z.ZodObject<
   z.core.$strict
 > = z.strictObject({
   entityDisplay: entityDisplaySchema.optional(),
-  routePath: z
-    .string()
-    .default("/studio")
-    .refine(
-      (routePath) =>
-        !["/cms", "/account", "/admin"].includes(
-          normalizeStudioBasePath(routePath),
-        ),
-      {
-        message:
-          '"/cms", "/account", and "/admin" are reserved for Studio redirects',
-      },
-    ),
+  routePath: z.string().default("/studio"),
 });
 
-type StudioPluginConfig = z.output<typeof studioPluginConfigSchema>;
-type StudioPluginConfigInput = z.input<typeof studioPluginConfigSchema>;
+export type StudioPluginConfigInput = z.input<typeof studioPluginConfigSchema>;
 
 function parseEntityDisplay(
   value: unknown,
@@ -109,7 +88,7 @@ function parseEntityDisplay(
  * entry — and so a denied actor does not construct an exception per entry.
  */
 function createNoteCapability(
-  context: ServicePluginContext,
+  context: StudioContext,
 ): (permissionLevel: UserPermissionLevel) => boolean {
   const cache = new Map<UserPermissionLevel, boolean>();
   return (permissionLevel) => {
@@ -124,7 +103,7 @@ function createNoteCapability(
 }
 
 function allowsNoteCreation(
-  context: ServicePluginContext,
+  context: StudioContext,
   permissionLevel: UserPermissionLevel,
 ): boolean {
   try {
@@ -141,50 +120,62 @@ function entityBacklink(entityType: string, entityId: string): string {
   return `entity://${encodeURIComponent(entityType)}/${encodeURIComponent(entityId)}`;
 }
 
+/** What Studio holds once set up, which its editor routes are built from. */
+interface StudioState {
+  readonly context: StudioContext;
+  readonly workspaceRegistry: StudioWorkspaceRegistry;
+  /** The grouping definitions as last read; none until every plugin registered. */
+  readonly groupingDefinitions: () => GroupingDefinitionsSnapshot;
+  readonly entityDisplay: () => StudioEntityDisplayMap | undefined;
+}
+
 /**
  * First-party Studio editor: a React app served at `routePath`, gated on the
  * authenticated passkey session, whose reads and writes go through the entity
  * service. Git persistence follows via directory-sync + git-sync — no
- * repository credential is ever sent to the browser.
+ * repository credential is ever sent to the browser. It owns the brain's
+ * grouping definitions type, installed beside it as grouping-definitions.
  */
-export class StudioPlugin extends ServicePlugin<
-  StudioPluginConfig,
-  StudioPluginConfigInput
-> {
-  private readonly workspaceRegistry = new StudioWorkspaceRegistry();
-  private readonly overviewRegistry = new StudioOverviewRegistry();
-  private definitionSource: GroupingDefinitionSource | undefined;
+const studioService = defineServicePlugin({
+  id: "studio",
+  config: studioPluginConfigSchema,
+  entities: [groupingDefinitionsEntity],
+  setup: (slot): StudioState => {
+    const runtime = serviceRuntime(slot);
+    const context = studioContextOf(runtime);
+    const { routePath } = slot.config;
+    const entityDisplay = (): StudioEntityDisplayMap | undefined =>
+      slot.config.entityDisplay ?? parseEntityDisplay(context.entityDisplay);
+    const workspaceRegistry = new StudioWorkspaceRegistry();
+    const overviewRegistry = new StudioOverviewRegistry();
+    let definitionSource: GroupingDefinitionSource | undefined;
 
-  constructor(config: StudioPluginConfigInput = {}) {
-    super("studio", packageJson, config, studioPluginConfigSchema);
-  }
-
-  protected override async onRegistrationComplete(
-    context: ServicePluginContext,
-  ): Promise<void> {
-    if (context.entities.getGroupings().length > 0)
-      throw new Error(
-        "Studio groupings must be defined in the Groupings document, not registered by another owner.",
+    // Once every plugin has registered, as the class's
+    // onRegistrationComplete ran: the definitions document is the only
+    // source of groupings.
+    runtime.registered(() => {
+      if (runtime.groupings().getGroupings().length > 0)
+        throw new Error(
+          "Studio groupings must be defined in the Groupings document, not registered by another owner.",
+        );
+      definitionSource = registerGroupingDefinitions(
+        context,
+        runtime.groupings(),
       );
-    this.definitionSource = registerGroupingDefinitions(context);
-  }
+    });
 
-  protected override async onRegister(
-    context: ServicePluginContext,
-  ): Promise<void> {
-    await super.onRegister(context);
     // The shell catalogs plugins before registration, but HTTP routes are
     // readable only after finalization. Use the same presence gate as the
     // Chat shell; it resolves the configured API path when handling requests.
-    if (context.plugins.has("web-chat")) {
-      context.endpoints.register({
+    if (runtime.hasPlugin("web-chat")) {
+      runtime.endpoint({
         label: "Chat",
         url: STUDIO_CHAT_ROUTE_PATH,
         priority: 15,
         visibility: "trusted",
         requiresActiveSession: true,
       });
-      context.interactions.register({
+      runtime.interaction({
         id: CHAT_INTERACTION_ID,
         label: "Chat",
         description: "Chat with this brain in the browser.",
@@ -194,7 +185,7 @@ export class StudioPlugin extends ServicePlugin<
         visibility: "trusted",
         requiresActiveSession: true,
       });
-      context.inboxFollowUps.registerKind({
+      runtime.inboxFollowUpKind({
         kind: "discuss-in-chat",
         label: "Discuss in chat",
         priority: 10,
@@ -202,7 +193,7 @@ export class StudioPlugin extends ServicePlugin<
         permissionLevel: "trusted",
         applies: () => true,
         resolve: ({ sourceId, item }) => {
-          if (!context.inbox.getSource(sourceId)?.resolveDetail)
+          if (!runtime.inbox.getSource(sourceId)?.resolveDetail)
             return undefined;
           const label = item.title
             .replace(/[\p{Cc}\p{Cf}]/gu, " ")
@@ -219,83 +210,59 @@ export class StudioPlugin extends ServicePlugin<
         },
       });
     }
-    context.endpoints.register({
+    runtime.endpoint({
       label: "Studio",
-      url: this.config.routePath,
+      url: routePath,
       priority: 40,
       visibility: "public",
       requiresActiveSession: true,
     });
-    context.interactions.register({
+    runtime.interaction({
       id: STUDIO_INTERACTION_ID,
       label: "Studio",
       description: "Edit and manage content through the browser Studio.",
-      href: this.config.routePath,
+      href: routePath,
       kind: "admin",
       priority: 40,
       visibility: "public",
       requiresActiveSession: true,
     });
-    this.workspaceRegistry.register(
-      createStudioOverviewWorkspace({
-        context,
-        registry: this.overviewRegistry,
-      }),
+    workspaceRegistry.register(
+      createStudioOverviewWorkspace({ context, registry: overviewRegistry }),
     );
     registerStudioOverviewActivity(
       context,
-      this.overviewRegistry,
-      () =>
-        this.config.entityDisplay ??
-        parseEntityDisplay(this.getContext().entityDisplay),
+      runtime.listen,
+      overviewRegistry,
+      entityDisplay,
     );
-    context.messaging.subscribe<unknown, ConsoleJumpDestination[]>(
-      CONSOLE_CHANNELS.jumpDestinations,
-      (message) => {
-        const request = jumpDestinationsRequestSchema.safeParse(
-          message.payload,
-        );
-        if (!request.success) return { success: false, error: "Bad request" };
-        return {
-          success: true,
-          data: studioJumpDestinations({
-            context,
-            routePath: this.config.routePath,
-            permissionLevel: request.data.permissionLevel,
-            workspaceRegistry: this.workspaceRegistry,
-            hasChat: resolveStudioChatApiPath(context) !== undefined,
-            entityDisplay:
-              this.config.entityDisplay ??
-              parseEntityDisplay(context.entityDisplay),
-          }),
-        };
+    runtime.answer(
+      consoleJumpDestinationsContract,
+      async ({ request: { permissionLevel } }) =>
+        studioJumpDestinations({
+          context,
+          routePath,
+          permissionLevel,
+          workspaceRegistry,
+          hasChat: resolveStudioChatApiPath(context) !== undefined,
+          entityDisplay: entityDisplay(),
+        }),
+    );
+    runtime.answer(
+      studioOverviewContributionRegisterContract,
+      async ({ request }) => {
+        overviewRegistry.register(request);
       },
     );
-    context.messaging.subscribe<StudioOverviewContributionRegistration>(
-      STUDIO_OVERVIEW_REGISTER_MESSAGE,
-      (message) => {
-        try {
-          this.overviewRegistry.register(message.payload);
-          return { success: true };
-        } catch (error) {
-          return { success: false, error: getErrorMessage(error) };
-        }
-      },
-    );
-    context.messaging.subscribe<StudioOverviewContributionUnregistration>(
-      STUDIO_OVERVIEW_UNREGISTER_MESSAGE,
-      (message) => {
-        try {
-          this.overviewRegistry.unregister(message.payload);
-          return { success: true };
-        } catch (error) {
-          return { success: false, error: getErrorMessage(error) };
-        }
+    runtime.answer(
+      studioOverviewContributionUnregisterContract,
+      async ({ request }) => {
+        overviewRegistry.unregister(request);
       },
     );
 
     const canCreateNote = createNoteCapability(context);
-    context.inboxFollowUps.registerKind({
+    runtime.inboxFollowUpKind({
       kind: "capture-as-note",
       label: "Capture as note",
       priority: 20,
@@ -308,7 +275,7 @@ export class StudioPlugin extends ServicePlugin<
           return undefined;
         }
         return {
-          href: studioCreatePath(this.config.routePath, "note"),
+          href: studioCreatePath(routePath, "note"),
           state: createStudioCreatePrefillState(
             item.title,
             entityBacklink(item.entityRef.entityType, item.entityRef.entityId),
@@ -317,7 +284,7 @@ export class StudioPlugin extends ServicePlugin<
         };
       },
     });
-    context.inboxFollowUps.registerKind({
+    runtime.inboxFollowUpKind({
       kind: "open-entity",
       label: "Open source entity",
       priority: 30,
@@ -328,7 +295,7 @@ export class StudioPlugin extends ServicePlugin<
         item.entityRef
           ? {
               href: studioEntityPath(
-                this.config.routePath,
+                routePath,
                 item.entityRef.entityType,
                 item.entityRef.entityId,
               ),
@@ -336,123 +303,69 @@ export class StudioPlugin extends ServicePlugin<
           : undefined,
     });
 
-    context.messaging.subscribe<
-      StudioWorkspaceRegistration,
-      StudioWorkspaceRegistrationResult
-    >(STUDIO_WORKSPACE_REGISTER_MESSAGE, async (message) => {
-      try {
+    runtime.answer(
+      studioWorkspaceRegisterContract,
+      async ({ request: registration }) => {
         if (
-          message.payload.id === STUDIO_ACCOUNT_WORKSPACE_ID ||
-          message.payload.id === STUDIO_CHAT_WORKSPACE_ID ||
-          message.payload.id === STUDIO_OVERVIEW_WORKSPACE_ID
+          registration.id === STUDIO_ACCOUNT_WORKSPACE_ID ||
+          registration.id === STUDIO_CHAT_WORKSPACE_ID ||
+          registration.id === STUDIO_OVERVIEW_WORKSPACE_ID
         ) {
-          throw new Error(
-            `Studio workspace id is reserved by the host: ${message.payload.id}`,
-          );
+          throw new SdkError("invalid_input", {
+            publicMessage: `Studio workspace id is reserved by the host: ${registration.id}`,
+          });
         }
-        const workspace = this.workspaceRegistry.register(message.payload);
+        const workspace = workspaceRegistry.register(registration);
         return {
-          success: true,
-          data: {
-            workspaceUrl: studioWorkspacePath(
-              this.config.routePath,
-              workspace.id,
-            ),
-          },
+          workspaceUrl: studioWorkspacePath(routePath, workspace.id),
         };
-      } catch (error) {
-        return {
-          success: false,
-          error: getErrorMessage(error),
-        };
-      }
-    });
-    context.messaging.subscribe<StudioWorkspaceUnregistration>(
-      STUDIO_WORKSPACE_UNREGISTER_MESSAGE,
-      (message) => {
-        if (message.payload.pluginId !== "studio") {
-          this.workspaceRegistry.unregister(
-            message.payload.pluginId,
-            message.payload.workspaceId,
-          );
-        }
-        return { success: true };
       },
     );
-  }
+    runtime.answer(
+      studioWorkspaceUnregisterContract,
+      async ({ request: { pluginId, workspaceId } }) => {
+        if (pluginId !== "studio") {
+          workspaceRegistry.unregister(pluginId, workspaceId);
+        }
+      },
+    );
 
-  override getWebRoutes(): WebRouteDefinition[] {
-    const editorRoutes = createEditorRoutes({
-      routePath: this.config.routePath,
-      getContext: () => this.getContext(),
-      resolveAuthPrincipal: (request) =>
-        getActiveAuthService()?.resolveSession(request) ??
-        Promise.resolve(undefined),
-      getEntityDisplay: () =>
-        this.config.entityDisplay ??
-        parseEntityDisplay(this.getContext().entityDisplay),
-      workspaceRegistry: this.workspaceRegistry,
-      getGroupingDefinitions: () =>
-        this.definitionSource?.getSnapshot() ?? {
+    return {
+      context,
+      workspaceRegistry,
+      entityDisplay,
+      groupingDefinitions: () =>
+        definitionSource?.getSnapshot() ?? {
           groupings: {},
           issues: [],
           excludedTypes: [],
         },
-      recordAuditEvent: async (event) => {
-        const authService = getActiveAuthService();
-        if (authService) await authService.recordAuditEvent(event);
-      },
-      listMembers: async () =>
-        assignableMembers((await getActiveAuthService()?.listUsers()) ?? []),
-    });
-    return [...legacySurfaceRedirects(this.config.routePath), ...editorRoutes];
-  }
-}
+    };
+  },
+});
 
-function permanentRedirect(location: string): Response {
-  return new Response(null, {
-    status: 308,
-    headers: { Location: location, "Cache-Control": "no-store" },
-  });
-}
-
-function legacySurfaceRedirects(routePath: string): WebRouteDefinition[] {
-  const studioBase = normalizeStudioBasePath(routePath);
-  const studioHome = studioBase || "/";
-  return [
-    {
-      path: "/cms",
-      match: "prefix",
-      method: "GET",
-      public: true,
-      handler: (request): Response => {
-        const source = new URL(request.url);
-        const suffix =
-          source.pathname === "/cms" ? "" : source.pathname.slice(4);
-        const destinationPath = `${studioBase}${suffix}` || "/";
-        return permanentRedirect(`${destinationPath}${source.search}`);
-      },
-    },
-    {
-      path: "/account",
-      match: "prefix",
-      method: "GET",
-      public: true,
-      handler: (request): Response => {
-        const source = new URL(request.url);
-        return permanentRedirect(
-          `${studioWorkspacePath(studioHome, STUDIO_ACCOUNT_WORKSPACE_ID)}${source.search}`,
-        );
-      },
-    },
-    {
-      path: "/admin",
-      match: "prefix",
-      method: "GET",
-      public: true,
-      handler: (): Response => permanentRedirect(studioHome),
-    },
-  ];
+/** Studio, as a brain composes it: the editor and the type it owns. */
+export function createStudioPackage(): ServicePackageDefinition<
+  typeof studioPluginConfigSchema
+> {
+  return withWebRoutes<typeof studioPluginConfigSchema, StudioState>(
+    studioService,
+    ({ config, state }) =>
+      createEditorRoutes({
+        routePath: config.routePath,
+        getContext: () => state.context,
+        resolveAuthPrincipal: (request) =>
+          state.context.auth()?.resolveSession(request) ??
+          Promise.resolve(undefined),
+        getEntityDisplay: state.entityDisplay,
+        workspaceRegistry: state.workspaceRegistry,
+        getGroupingDefinitions: state.groupingDefinitions,
+        recordAuditEvent: async (event) => {
+          await state.context.auth()?.recordAuditEvent(event);
+        },
+        listMembers: () => state.context.assignableMembers(),
+      }),
+  );
 }
 
 function safeInboxSummary(summary: string | undefined): string | undefined {
@@ -468,10 +381,4 @@ function safeInboxSummary(summary: string | undefined): string | undefined {
     .join("")
     .trim();
   return normalized || undefined;
-}
-
-export function studioPlugin(
-  config: StudioPluginConfigInput = {},
-): StudioPlugin {
-  return new StudioPlugin(config);
 }

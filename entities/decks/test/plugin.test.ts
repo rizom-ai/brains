@@ -1,22 +1,11 @@
-import { describe, it, expect, beforeEach } from "bun:test";
-import { DecksPlugin } from "../src";
+import { describe, it, expect } from "bun:test";
+import { decksPlugin } from "./decks-plugin";
 
-describe("DecksPlugin", () => {
-  let plugin: DecksPlugin;
-
-  beforeEach(() => {
-    plugin = new DecksPlugin();
-  });
-
-  it("should be instantiable", () => {
+describe("the decks package", () => {
+  it("installs one entity plugin under its class's id", () => {
+    const plugin = decksPlugin();
     expect(plugin).toBeDefined();
-  });
-
-  it("should have correct plugin name", () => {
     expect(plugin.id).toBe("decks");
-  });
-
-  it("should have plugin metadata", () => {
     expect(plugin.version).toBeDefined();
   });
 });

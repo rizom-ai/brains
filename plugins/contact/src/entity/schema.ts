@@ -1,4 +1,4 @@
-import { baseEntityParserSchema } from "@brains/plugins";
+import { baseEntityParserSchema } from "@brains/sdk/internal/entity-runtime";
 import { z } from "@brains/utils/zod";
 
 /** Intake fields only. In particular, visibility and conversation locators are not input. */
@@ -33,15 +33,15 @@ type ContactFrontmatterSchema = z.ZodObject<
     name: z.ZodString;
     email: z.ZodString;
     receivedAt: z.ZodISODateTime;
-    expiresAt: z.ZodISODateTime;
+    expiresAt: z.ZodOptional<z.ZodISODateTime>;
     status: typeof statusSchema;
     notification: typeof notificationSchema;
   },
   z.core.$strict
 >;
 
-export const contactFrontmatterSchema: ContactFrontmatterSchema = z
-  .strictObject({
+export const contactFrontmatterSchema: ContactFrontmatterSchema =
+  z.strictObject({
     // Who wrote in and what happened since: facts, not fields to edit.
     name: contactSubmissionSchema.shape.name.meta({
       studioWidget: "provenance",
@@ -50,28 +50,23 @@ export const contactFrontmatterSchema: ContactFrontmatterSchema = z
       studioWidget: "provenance",
     }),
     receivedAt: z.iso.datetime().meta({ studioWidget: "provenance" }),
-    expiresAt: z.iso.datetime().meta({ studioWidget: "provenance" }),
+    // Written while requests expired after a day; read, never written: a
+    // request is kept until its owner deletes it.
+    expiresAt: z.iso.datetime().optional().meta({ studioWidget: "provenance" }),
     status: statusSchema,
     notification: notificationSchema.meta({ studioWidget: "provenance" }),
-  })
-  .refine((value) => {
-    const lifetime = Date.parse(value.expiresAt) - Date.parse(value.receivedAt);
-    // An upper bound, not a default or an approved deployment retention policy.
-    return lifetime > 0 && lifetime <= 90 * 86400 * 1000;
-  }, "Contact retention must be positive and at most 90 days");
+  });
 export type ContactFrontmatter = z.output<typeof contactFrontmatterSchema>;
 
 type ContactMetadataSchema = z.ZodObject<{
   title: z.ZodLiteral<"Contact request">;
   receivedAt: z.ZodISODateTime;
-  expiresAt: z.ZodISODateTime;
   status: typeof statusSchema;
   notification: typeof notificationSchema;
 }>;
 export const contactMetadataSchema: ContactMetadataSchema = z.object({
   title: z.literal("Contact request"),
   receivedAt: z.iso.datetime(),
-  expiresAt: z.iso.datetime(),
   status: statusSchema,
   notification: notificationSchema,
 });

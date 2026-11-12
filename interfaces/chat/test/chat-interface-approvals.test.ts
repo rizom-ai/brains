@@ -1,7 +1,7 @@
 import { describe, it, expect, mock } from "bun:test";
 import { PermissionService } from "@brains/plugins/test";
 import {
-  ChatInterface,
+  createChatPlugin,
   MockChatSdk,
   baseSlackConfig,
   stubFetch,
@@ -117,7 +117,7 @@ describe("ChatInterface approvals", () => {
         },
       ],
     });
-    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    const plugin = createChatPlugin({ adapters: { slack: baseSlackConfig } });
     await suite.harness.installPlugin(plugin);
     const chat = MockChatSdk.instances[0];
     const thread = createThread({
@@ -186,7 +186,7 @@ describe("ChatInterface approvals", () => {
         },
       ],
     });
-    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    const plugin = createChatPlugin({ adapters: { slack: baseSlackConfig } });
     await suite.harness.installPlugin(plugin);
     const chat = MockChatSdk.instances[0];
     const approvalMessage = createSentMessage("slack-approval-message-1");
@@ -320,7 +320,7 @@ describe("ChatInterface approvals", () => {
         },
       ],
     });
-    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    const plugin = createChatPlugin({ adapters: { slack: baseSlackConfig } });
     await suite.harness.installPlugin(plugin);
     const chat = MockChatSdk.instances[0];
     const thread = createThread({
@@ -362,7 +362,7 @@ describe("ChatInterface approvals", () => {
   });
 
   it("consolidates successful Slack approvals into the resolved card", async () => {
-    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    const plugin = createChatPlugin({ adapters: { slack: baseSlackConfig } });
     const toolInterface = withToolActivity(plugin);
     const threadId = "slack:C123:1712345678.000100";
     suite.agentService.chat.mockImplementationOnce(
@@ -492,7 +492,7 @@ describe("ChatInterface approvals", () => {
       text: "Action cancelled.",
       usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
     });
-    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    const plugin = createChatPlugin({ adapters: { slack: baseSlackConfig } });
     await suite.harness.installPlugin(plugin);
     const chat = MockChatSdk.instances[0];
     const approvalMessage = createSentMessage("slack-cancel-approval");
@@ -533,7 +533,7 @@ describe("ChatInterface approvals", () => {
   });
 
   it("consolidates failed Slack approvals into the resolved card", async () => {
-    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    const plugin = createChatPlugin({ adapters: { slack: baseSlackConfig } });
     const toolInterface = withToolActivity(plugin);
     const threadId = "slack:C123:1712345678.000100";
     suite.agentService.chat.mockResolvedValueOnce({
@@ -626,7 +626,7 @@ describe("ChatInterface approvals", () => {
         },
       ],
     });
-    const plugin = new ChatInterface({
+    const plugin = createChatPlugin({
       adapters: { slack: { ...baseSlackConfig, allowDMs: false } },
     });
     await suite.harness.installPlugin(plugin);
@@ -679,7 +679,7 @@ describe("ChatInterface approvals", () => {
         },
       ],
     });
-    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    const plugin = createChatPlugin({ adapters: { slack: baseSlackConfig } });
     await suite.harness.installPlugin(plugin);
     const chat = MockChatSdk.instances[0];
     const thread = createThread({

@@ -1,11 +1,11 @@
+import type { DirectorySyncContext } from "./sync-context";
 import { getErrorMessage } from "@brains/utils/error";
 import {
-  JobProgressEventSchema,
-  SYSTEM_CHANNELS,
+  initialSyncCompletedChannel,
+  type InitialSyncOutcome,
   type PluginsRegisteredAnswer,
-  type ServicePluginContext,
-} from "@brains/plugins";
-import { JOB_CHANNELS } from "@brains/contracts";
+} from "@brains/sdk/internal/service-runtime";
+import { jobProgressChannel } from "@brains/sdk/internal/interface-runtime";
 import type { Logger } from "@brains/utils/logger";
 import type {
   BatchResult,
@@ -25,7 +25,7 @@ export interface InitialSyncRecovery {
 }
 
 export interface InitialSyncOptions {
-  context: ServicePluginContext;
+  context: DirectorySyncContext;
   getDirectorySync: () => IDirectorySync;
   config: DirectorySyncConfig;
   logger: Logger;
@@ -41,8 +41,6 @@ export interface InitialSyncOptions {
       >
     | undefined;
 }
-
-type InitialSyncOutcome = { success: true } | { success: false; error: string };
 
 const INITIAL_SYNC_SOURCE = "initial-sync";
 
@@ -80,7 +78,7 @@ export function setupInitialSync(options: InitialSyncOptions): void {
       logger.error("Initial sync failed", error);
       await requireRescan(options);
       await options.recovery?.onGitRecoveryFailed(error);
-      await sendCompleted(context, {
+      await context.runtime.messaging.broadcast(initialSyncCompletedChannel, {
         success: false,
         error: getErrorMessage(error),
       });
@@ -91,7 +89,9 @@ export function setupInitialSync(options: InitialSyncOptions): void {
 
     const { batchIds, runId } = startup;
     if (batchIds.length === 0) {
-      await sendCompleted(context, { success: true });
+      await context.runtime.messaging.broadcast(initialSyncCompletedChannel, {
+        success: true,
+      });
       return { initialSyncPending: false };
     }
 
@@ -99,7 +99,10 @@ export function setupInitialSync(options: InitialSyncOptions): void {
     void followBatches(context, batchIds)
       .then(async (outcome) => {
         await settleStartupRun(options, runId, outcome);
-        await sendCompleted(context, outcome);
+        await context.runtime.messaging.broadcast(
+          initialSyncCompletedChannel,
+          outcome,
+        );
       })
       .catch((error: unknown) => {
         logger.error("Unable to report initial sync completion", error);
@@ -107,10 +110,9 @@ export function setupInitialSync(options: InitialSyncOptions): void {
     return { initialSyncPending: true };
   };
 
-  context.messaging.subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
+  context.runtime.initialSync(async () => {
     logger.debug("Plugins registered, queueing initial sync");
-    const answer = await queueInitialSync();
-    return { success: true, data: answer };
+    return queueInitialSync();
   });
 }
 
@@ -216,7 +218,7 @@ async function settleStartupRun(
  * a batch that settled before the subscription is not waited on forever.
  */
 function followBatches(
-  context: ServicePluginContext,
+  context: DirectorySyncContext,
   batchIds: string[],
 ): Promise<InitialSyncOutcome> {
   return new Promise((resolve) => {
@@ -240,17 +242,15 @@ function followBatches(
       );
     };
 
-    const unsubscribe = context.messaging.subscribe(
-      JOB_CHANNELS.progress,
-      async (message) => {
-        const event = JobProgressEventSchema.safeParse(message.payload);
-        if (event.success && event.data.type === "batch") {
-          if (event.data.status === "completed") settle(event.data.id, null);
-          if (event.data.status === "failed") {
-            settle(event.data.id, event.data.batchDetails?.errors ?? []);
+    const unsubscribe = context.runtime.listen(
+      jobProgressChannel,
+      ({ payload: event }) => {
+        if (event.type === "batch") {
+          if (event.status === "completed") settle(event.id, null);
+          if (event.status === "failed") {
+            settle(event.id, event.batchDetails?.errors ?? []);
           }
         }
-        return { success: true };
       },
     );
 
@@ -282,15 +282,4 @@ async function requireRescan(options: InitialSyncOptions): Promise<void> {
   } catch (error) {
     options.logger.error("Unable to require a full rescan", error);
   }
-}
-
-async function sendCompleted(
-  context: ServicePluginContext,
-  outcome: InitialSyncOutcome,
-): Promise<void> {
-  await context.messaging.send({
-    type: SYSTEM_CHANNELS.initialSyncCompleted,
-    payload: outcome,
-    broadcast: true,
-  });
 }

@@ -5,7 +5,7 @@ type: tool_invocation
 setup:
   interfaceType: evaluation
 tags:
-  - requires-external-network
+  - recipe-network
   - core
   - system
   - link
@@ -25,16 +25,10 @@ permissions:
         shouldBeCalled: false
     responseCriteria:
       - "Does not claim that anything was created, or that the request is done."
+  # Trusted capture is team-bundle policy; on this brain links are Admin-only.
   trusted:
-    expectedTools:
-      - toolName: system_create
-        shouldBeCalled: true
-        resultRefused: false
-        argsContain:
-          entityType: "link"
-          source.kind: "url"
-          source.url: "https://anthropic.com/research"
     responseCriteria:
+      - "Says the link cannot be saved at the caller's permission level."
       - "Does not claim that anything was created, or that the request is done."
   admin:
     expectedTools:

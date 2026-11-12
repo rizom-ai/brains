@@ -1,20 +1,13 @@
 import type { JSX } from "react";
-import type { PaginationInfo } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
 import {
+  type PaginationInfo,
   createTemplate,
   paginationInfoSchema,
   type Template,
-} from "@brains/plugins";
-import {
-  Head,
-  Pagination,
-  formatDate,
-  StatusBadge,
-  Card,
-  CardTitle,
-  CardMetadata,
-} from "@brains/ui-library";
+} from "@brains/sdk/internal/presentation";
+import { z } from "@brains/utils/zod";
+import { formatDate, Card, CardTitle, CardMetadata } from "@rizom/brain-ui";
+import { Head, Pagination, StatusBadge } from "@rizom/brain-ui/internal";
 import { newsletterStatusSchema } from "../schemas/newsletter";
 
 /**

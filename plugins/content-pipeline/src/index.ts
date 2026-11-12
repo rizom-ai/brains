@@ -6,6 +6,8 @@
  * for all publishable entity types.
  */
 
+import { createContentPipelinePackage } from "./plugin";
+
 // Schemas
 export * from "./schemas/publishable";
 
@@ -17,28 +19,15 @@ export * from "./types/config";
 // Service components (for direct use or testing)
 export { QueueManager, type QueueEntry } from "./queue-manager";
 export { ProviderRegistry } from "./provider-registry";
-export {
-  ContentScheduler,
-  type SchedulerConfig,
-  type PublishSuccessEvent,
-  type PublishFailedEvent,
-  type GenerateExecuteEvent,
-  type GenerationConditionResult,
-} from "./scheduler";
+export { ContentScheduler } from "./scheduler";
+export type {
+  SchedulerConfig,
+  PublishSuccessEvent,
+  GenerateExecuteEvent,
+  GenerationConditionResult,
+} from "./types/scheduler";
 export { RetryTracker, type RetryInfo } from "./retry-tracker";
-export {
-  BunSchedulerBackend,
-  type CronScheduleOptions,
-  type SchedulerBackend,
-  type ScheduledJob,
-} from "./scheduler-backend";
-export {
-  PublishAssetRegistry,
-  publishAssetDefinitionSchema,
-  publishAssetTargetFieldSchema,
-  type PublishAssetDefinition,
-  type PublishAssetTargetField,
-} from "./publish-assets";
+export { PublishAssetRegistry } from "./publish-assets";
 export {
   PublishAssetPreflight,
   type PublishAssetPreflightResult,
@@ -81,5 +70,15 @@ export {
   type EnsurePublishAssetsOptions,
 } from "./tools";
 
-// Plugin
-export { ContentPipelinePlugin, contentPipelinePlugin } from "./plugin";
+// Package
+export {
+  createContentPipelinePackage,
+  type ContentPipelineDeps,
+  type ContentPipelineServices,
+} from "./plugin";
+export type { PipelineContext } from "./lib/pipeline-context";
+
+/** The publishing pipeline as a brain composes it. */
+const contentPipelinePackage: ReturnType<typeof createContentPipelinePackage> =
+  createContentPipelinePackage();
+export default contentPipelinePackage;

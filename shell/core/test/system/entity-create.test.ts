@@ -88,6 +88,8 @@ function createSeededSystemServices(
 
 /** Every upload ref reads as the PDF `brief.pdf`. */
 const briefPdfUploads: MockServices["runtimeUploads"] = {
+  // No retired namespace holds anything here.
+  retire: async (): Promise<boolean> => false,
   scoped: () => ({
     readRecord: async (id: string) => ({
       id,
@@ -216,7 +218,7 @@ function registerLinkCreateInterceptor(services: MockServices): void {
         input.url ?? extractFirstUrl(input.content, input.prompt, input.title);
       if (url) {
         const jobId = await services.jobs.enqueue({
-          type: "link-capture",
+          type: "link:capture",
           data: {
             url,
             metadata: {
@@ -486,8 +488,13 @@ describe("system_create tool", () => {
     if (typeof url === "string" && url.trim().length > 0) {
       return { ...rest, source: { kind: "url", url } };
     }
-    if (upload && transform === "extract-markdown") {
-      return { ...rest, source: { kind: "upload", upload, transform } };
+    if (
+      typeof upload === "object" &&
+      upload !== null &&
+      "id" in upload &&
+      transform === "extract-markdown"
+    ) {
+      return { ...rest, source: { kind: "upload", id: upload.id, transform } };
     }
     if (sourceAttachment && typeof sourceAttachment === "object") {
       return { ...rest, source: { kind: "attachment", ...sourceAttachment } };
@@ -1089,6 +1096,7 @@ status: draft
     expect(capturedContext).toEqual({
       interfaceType: "matrix",
       actor: { kind: "user", userId: "alice" },
+      userPermissionLevel: "public",
       channelId: "!room:test",
       channelName: "#general",
     });
@@ -1150,7 +1158,12 @@ status: draft
 
     expect(result).toEqual({
       success: true,
-      data: { status: "created", entityId: "brief" },
+      data: {
+        status: "created",
+        entityId: "brief",
+        entityType: "note",
+        uploadId: "upload-00000000-0000-4000-8000-000000000301",
+      },
     });
     expect(capturedInput).toEqual({
       entityType: "note",
@@ -1228,7 +1241,12 @@ status: draft
 
       expect(result).toEqual({
         success: true,
-        data: { status: "created", entityId: "brief-note" },
+        data: {
+          status: "created",
+          entityId: "brief-note",
+          entityType,
+          uploadId: "upload-00000000-0000-4000-8000-000000000304",
+        },
       });
       expect(capturedInput).toEqual({
         entityType,
@@ -1409,7 +1427,12 @@ status: draft
 
     expect(result).toEqual({
       success: true,
-      data: { status: "created", entityId: "brief" },
+      data: {
+        status: "created",
+        entityId: "brief",
+        entityType: "note",
+        uploadId: "upload-00000000-0000-4000-8000-000000000303",
+      },
     });
     expect(capturedInput?.from).toEqual({
       kind: "upload",
@@ -1497,6 +1520,43 @@ status: draft
       prompt: "Rewritten prompt",
       title: "Rewritten Title",
     });
+  });
+
+  it("queues a generation through the enqueuer its type registered", async () => {
+    const queued: { data: Record<string, unknown>; toolContext: unknown }[] =
+      [];
+    services.entityRegistry.registerGenerationEnqueuer(
+      "note",
+      async (data, toolContext) => {
+        queued.push({ data, toolContext });
+        return "job-recorded";
+      },
+    );
+
+    const result = await execGenerate(
+      { entityType: "note", prompt: "Write about tides", title: "Tides" },
+      { userId: "usr_writer", userPermissionLevel: "trusted" },
+    );
+
+    expect(result).toMatchObject({
+      success: true,
+      data: { entityId: "tides", status: "generating", jobId: "job-recorded" },
+    });
+    expect(queued).toEqual([
+      {
+        data: {
+          entityId: "tides",
+          prompt: "Write about tides",
+          title: "Tides",
+        },
+        toolContext: expect.objectContaining({
+          actor: { kind: "user", userId: "usr_writer" },
+          userPermissionLevel: "trusted",
+        }),
+      },
+    ]);
+    // The type's enqueuer queued it; nothing went to the queue as written.
+    expect(services.getLastEnqueuedJob()).toBeUndefined();
   });
 
   it("removes the generation stub when the job queue refuses the generation job", async () => {
@@ -1795,7 +1855,7 @@ status: draft
 
     const enqueuedJob = services.getLastEnqueuedJob();
     if (!enqueuedJob) throw new Error("No job was enqueued");
-    expect(enqueuedJob.type).toBe("link-capture");
+    expect(enqueuedJob.type).toBe("link:capture");
     const jobData = enqueuedLinkJobSchema.parse(enqueuedJob.data);
     expect(jobData.url).toBe("https://anthropic.com/research");
   });
@@ -1813,7 +1873,7 @@ status: draft
 
     const enqueuedJob = services.getLastEnqueuedJob();
     if (!enqueuedJob) throw new Error("No job was enqueued");
-    expect(enqueuedJob.type).toBe("link-capture");
+    expect(enqueuedJob.type).toBe("link:capture");
     const jobData = enqueuedLinkJobSchema.parse(enqueuedJob.data);
     expect(jobData.url).toBe("https://anthropic.com/research");
     expect(jobData.metadata.interfaceId).toBe("test");
@@ -1871,7 +1931,7 @@ A saved research link.`;
 
     const enqueuedJob = services.getLastEnqueuedJob();
     if (!enqueuedJob) throw new Error("No job was enqueued");
-    expect(enqueuedJob.type).toBe("link-capture");
+    expect(enqueuedJob.type).toBe("link:capture");
     const jobData = enqueuedLinkJobSchema.parse(enqueuedJob.data);
     expect(jobData.url).toBe("https://en.wikipedia.org/wiki/The_Drama_(film)");
   });
@@ -2213,7 +2273,7 @@ A saved research link.`;
         entityType: "note",
         source: {
           kind: "upload",
-          upload: { kind: "upload", id: "upload-1" },
+          id: "upload-1",
           transform: "extract-markdown",
         },
       },

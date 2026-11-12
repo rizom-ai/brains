@@ -13,7 +13,7 @@ tags:
   - recipe-professional
 
 turns:
-  - userMessage: "Approve approval-candidate.io"
+  - userMessage: "Approve approval-candidate.example"
 
 successCriteria: {}
 
@@ -30,8 +30,7 @@ permissions:
         shouldBeCalled: true
         argsContain:
           entityType: "agent"
-          id: "approval-candidate.io"
-          operation.kind: fields
+          id: "approval-candidate.example"
           operation.fields.status: "approved"
       - toolName: agent_connect
         shouldBeCalled: false
@@ -45,8 +44,7 @@ permissions:
         shouldBeCalled: true
         argsContain:
           entityType: "agent"
-          id: "approval-candidate.io"
-          operation.kind: fields
+          id: "approval-candidate.example"
           operation.fields.status: "approved"
         argsAbsent:
           - confirmed

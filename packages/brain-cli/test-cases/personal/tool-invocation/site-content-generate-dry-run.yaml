@@ -1,0 +1,33 @@
+id: tool-invocation-site-content-generate-dry-run
+name: Plan site content without generating it
+description: Tests that a request to see what site content would be generated plans it with a dry run, so no generation jobs are queued.
+type: tool_invocation
+setup:
+  permissionLevel: admin
+tags:
+  - recipe-professional
+  - site
+  - site-content
+
+turns:
+  - userMessage: "Which sections of my site would get new content? Just plan it; don't generate anything yet."
+
+successCriteria:
+  expectedTools:
+    - toolName: site-content_generate
+      shouldBeCalled: true
+      argsContain:
+        dryRun: true
+    - toolName: site-content_generate
+      shouldBeCalled: false
+      argsContain:
+        dryRun: false
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+  responseCriteria:
+    - "Reports the plan without claiming that any content was generated or queued."
+
+efficiency:
+  maxToolCalls: 2
+  maxTokens: 49000

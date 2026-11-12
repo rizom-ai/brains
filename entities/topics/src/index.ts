@@ -1,4 +1,8 @@
 import {
+  entityCreatedChannel,
+  entityDeletedChannel,
+  entityUpdatedChannel,
+  internalFullScope,
   EntityPlugin,
   type EntityPluginContext,
   type EntityTypeConfig,
@@ -7,13 +11,9 @@ import {
   type BaseEntity,
   SYSTEM_CHANNELS,
 } from "@brains/plugins";
-import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import {
-  ENTITY_CHANNELS,
-  TOPIC_SOURCE_TYPES_MESSAGE,
-  TOPIC_TITLES_MESSAGE,
-  type TopicSourceTypesResponse,
-  type TopicTitlesResponse,
+  topicSourceTypesContract,
+  topicTitlesContract,
 } from "@brains/contracts";
 import { getTopicTitle } from "./lib/topic-presenter";
 import { z } from "@brains/utils/zod";
@@ -28,12 +28,9 @@ import { topicMergeSynthesisTemplate } from "./templates/merge-synthesis-templat
 import { topicListTemplate } from "./templates/topic-list";
 import { topicDetailTemplate } from "./templates/topic-detail";
 import { TopicsDataSource } from "./datasources/topics-datasource";
-import { KnowledgeMapDataSource } from "./datasources/knowledge-map-datasource";
-import { getKnowledgeMapTemplate } from "./templates/knowledge-map-template";
 import { topicEntitySchema, type TopicEntity } from "./schemas/topic";
 import { createTopicDistributionReport } from "./reports/topic-distribution";
 import { registerTopicsDashboardWidget } from "./lib/dashboard-widget";
-import { registerKnowledgeMapDashboardWidget } from "./lib/knowledge-map-widget";
 import { registerTopicEvalHandlers } from "./lib/eval-handlers";
 import {
   createRankedTopicJobHandler,
@@ -56,14 +53,10 @@ import { TOPIC_ENTITY_TYPE, TOPICS_PLUGIN_ID } from "./lib/constants";
 import { createTopicAtprotoProjection } from "./atproto-projection";
 import packageJson from "../package.json";
 
-interface SourceMetadata {
-  status?: unknown;
-}
-
 /** Runtime-state marker: the retired topics projection rule released its entities. */
 const PROJECTION_OWNERSHIP_RELEASED = "projection-ownership-released";
 const topicAdapter: TopicAdapter = new TopicAdapter();
-const sourceMetadataSchema: z.ZodType<SourceMetadata, unknown> = z.looseObject({
+const sourceMetadataSchema = z.looseObject({
   status: z.unknown().optional(),
 });
 
@@ -75,7 +68,6 @@ export class TopicsPlugin extends EntityPlugin<
   readonly entityType: typeof TOPIC_ENTITY_TYPE = TOPIC_ENTITY_TYPE;
   readonly schema: typeof topicEntitySchema = topicEntitySchema;
   readonly adapter: TopicAdapter = topicAdapter;
-  private unregisterAtprotoProjection: (() => void) | undefined;
 
   declare protected config: TopicsPluginConfig;
 
@@ -99,17 +91,11 @@ export class TopicsPlugin extends EntityPlugin<
       "merge-synthesis": topicMergeSynthesisTemplate,
       "topic-list": topicListTemplate,
       "topic-detail": topicDetailTemplate,
-      "knowledge-map": getKnowledgeMapTemplate(),
     };
   }
 
   protected override getDataSources(): DataSource[] {
-    return [
-      new TopicsDataSource(this.logger.child("TopicsDataSource")),
-      new KnowledgeMapDataSource((entityService) =>
-        topicSourceTypes(entityService, this.config),
-      ),
-    ];
+    return [new TopicsDataSource(this.logger.child("TopicsDataSource"))];
   }
 
   protected override async onRegister(
@@ -124,7 +110,13 @@ export class TopicsPlugin extends EntityPlugin<
     if (!(await migrations.get(PROJECTION_OWNERSHIP_RELEASED))) {
       for (const topic of await context.entityService.listEntities({
         entityType: TOPIC_ENTITY_TYPE,
-        options: { filter: { visibilityScope: "restricted" } },
+        options: {
+          filter: {
+            visibilityScope: internalFullScope(
+              "one-shot projection ownership migration",
+            ),
+          },
+        },
       })) {
         await context.entityService.releaseProjectionOwnership({
           entityType: TOPIC_ENTITY_TYPE,
@@ -138,22 +130,19 @@ export class TopicsPlugin extends EntityPlugin<
         "topics:extract",
         createRankedTopicJobHandler(context, this.config, this.logger),
       );
-      const eventSchema = z.object({ entityType: z.string() });
       for (const channel of [
-        ENTITY_CHANNELS.created,
-        ENTITY_CHANNELS.updated,
-        ENTITY_CHANNELS.deleted,
+        entityCreatedChannel,
+        entityUpdatedChannel,
+        entityDeletedChannel,
       ]) {
         // Execution subscriptions run in both processes, exactly once: worker
         // imports need the same trigger as ordinary web-side mutations. A
         // refused enqueue is retried until the queue admits it: the event is
         // not delivered again, and one keyed retry stands for all of them.
-        context.messaging.subscribeExecution(channel, async (message) => {
-          const event = eventSchema.safeParse(message.payload);
+        context.messaging.subscribeExecution(channel, async (change) => {
           if (
-            event.success &&
             this.shouldProcessEntityType(
-              event.data.entityType,
+              change.entityType,
               context.entityService,
             )
           ) {
@@ -185,31 +174,29 @@ export class TopicsPlugin extends EntityPlugin<
 
     // What the brain's public work is about, for other plugins: for example
     // the site's subjects when a visitor's question is screened.
-    context.messaging.subscribe<unknown, TopicTitlesResponse>(
-      TOPIC_TITLES_MESSAGE,
-      async () => {
-        const topics = await context.entityService.listEntities(
-          {
-            entityType: TOPIC_ENTITY_TYPE,
-            options: { filter: { visibilityScope: "public" } },
-          },
-          topicEntitySchema,
-        );
-        const titles = topics
-          .map((topic) => getTopicTitle(topic))
-          .sort((a, b) => a.localeCompare(b))
-          .slice(0, 20);
-        return { success: true, data: { titles } };
-      },
-    );
+    context.messaging.answer(topicTitlesContract, async () => {
+      const topics = await context.entityService.listEntities(
+        {
+          entityType: TOPIC_ENTITY_TYPE,
+          options: { filter: { visibilityScope: "public" } },
+        },
+        topicEntitySchema,
+      );
+      const titles = topics
+        .map((topic) => getTopicTitle(topic))
+        .sort((a, b) => a.localeCompare(b))
+        .slice(0, 20);
+      return { titles };
+    });
     // Which types topics are drawn from, for other plugins: a map of the
-    // corpus measures its territories against the same sources.
-    context.messaging.subscribe<unknown, TopicSourceTypesResponse>(
-      TOPIC_SOURCE_TYPES_MESSAGE,
+    // corpus measures its territories against the same sources. Answered in
+    // every process: the worker builds the site the map is drawn on.
+    context.messaging.answer(
+      topicSourceTypesContract,
       async () => ({
-        success: true,
-        data: { types: topicSourceTypes(context.entityService, this.config) },
+        types: topicSourceTypes(context.entityService, this.config),
       }),
+      { everyProcess: true },
     );
     const extractionStores = topicExtractionStores(context);
     context.analytics.register(
@@ -237,12 +224,9 @@ export class TopicsPlugin extends EntityPlugin<
       }),
     );
 
-    // Dashboard widgets: the topic list and the knowledge map
+    // Dashboard widget: the topic list. The knowledge map is its own
+    // package, @brains/knowledge-map.
     registerTopicsDashboardWidget({ context });
-    registerKnowledgeMapDashboardWidget({
-      context,
-      sourceTypes: () => topicSourceTypes(context.entityService, this.config),
-    });
 
     // Eval handlers
     registerTopicEvalHandlers({
@@ -251,15 +235,7 @@ export class TopicsPlugin extends EntityPlugin<
       config: this.config,
     });
 
-    this.unregisterAtprotoProjection =
-      AtprotoProjectionRegistry.getInstance().register(
-        createTopicAtprotoProjection(),
-      );
-  }
-
-  protected override async onShutdown(): Promise<void> {
-    this.unregisterAtprotoProjection?.();
-    this.unregisterAtprotoProjection = undefined;
+    context.atprotoProjections.register(createTopicAtprotoProjection());
   }
 
   // ── Public helpers (used by tests) ──
@@ -303,9 +279,3 @@ export {
   buildTopicAtprotoRecord,
   createTopicAtprotoProjection,
 } from "./atproto-projection";
-export {
-  buildKnowledgeMapData,
-  knowledgeMapDataSchema,
-  type KnowledgeMapData,
-  type KnowledgeMapDataContext,
-} from "./lib/knowledge-map-data";

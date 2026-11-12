@@ -4,7 +4,7 @@
 "@brains/operator-view-react": patch
 "@brains/app-ui-react": patch
 "@brains/dashboard": patch
-"@brains/ui-library": patch
+"@rizom/brain-ui": patch
 "@brains/agent-discovery": patch
 "@brains/topics": patch
 "@brains/plugins": patch

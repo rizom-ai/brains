@@ -1,5 +1,9 @@
-import { entityViewFields, type EntityViewFields } from "@brains/plugins";
-import { renderedLinkFields, viewLinkFields } from "@brains/templates";
+import {
+  renderedLinkFields,
+  viewLinkFields,
+  entityViewFields,
+  type EntityViewFields,
+} from "@brains/sdk/internal/presentation";
 import { z } from "@brains/utils/zod";
 import { blogPostStatusSchema } from "../schemas/blog-post";
 
@@ -85,20 +89,13 @@ export const blogViewSchema: z.ZodObject<
 
 export type BlogSchemaData = z.output<typeof blogViewSchema>;
 
-export type BlogPostView = Omit<
-  BlogSchemaData,
-  "url" | "typeLabel" | "listUrl" | "listLabel"
-> & {
-  url: string;
-  typeLabel: string;
-  listUrl: string;
-  listLabel: string;
-};
-
 /**
  * A post once site-builder has filled the link fields the datasource leaves
  * null. Components read them as required, so the render path parses against
  * this rather than trusting that the enrichment ran.
  */
-export const blogRenderSchema: z.ZodType<BlogPostView> =
-  blogViewSchema.extend(renderedLinkFields);
+export const blogRenderSchema: ReturnType<
+  typeof blogViewSchema.extend<typeof renderedLinkFields>
+> = blogViewSchema.extend(renderedLinkFields);
+
+export type BlogPostView = z.output<typeof blogRenderSchema>;

@@ -28,16 +28,14 @@ import {
 import { createMockJobQueueService } from "@brains/job-queue/test";
 import { createMockAIService } from "@brains/ai-service/test";
 import { InMemoryTemplateRegistry, PermissionService } from "@brains/templates";
-import {
-  GenerationAuthorizer,
-  type GenerationCaller,
-} from "../src/generation-authorization";
+import { GenerationAuthorizer } from "../src/generation-authorization";
+import { CallerAuthorizer, type Caller } from "../src/caller-authority";
 import { z } from "@brains/utils/zod";
 import { ContentService } from "../src/content-service";
 import { ContentGenerationJobHandler } from "../src/handlers/contentGenerationJobHandler";
 import type { ContentGenerationJobData } from "../src/generation-contracts";
 
-const caller: GenerationCaller = {
+const caller: Caller = {
   actor: { kind: "service", serviceId: "books" },
   permissionLevel: "trusted",
 };
@@ -70,11 +68,11 @@ describe("generation persistence and recovery (real SQLite, mocked AI)", () => {
       jobQueueService: createMockJobQueueService(),
       embeddingsEnabled: false,
       embeddingService: {
-        dimensions: 3,
-        generateEmbedding: async () => {
+        identity: { model: "test:mock", dimensions: 3, promptRevision: 0 },
+        embedQuery: async () => {
           throw new Error("Indexing disabled in test");
         },
-        generateEmbeddings: async () => {
+        embedDocuments: async () => {
           throw new Error("Indexing disabled in test");
         },
       },
@@ -107,7 +105,7 @@ describe("generation persistence and recovery (real SQLite, mocked AI)", () => {
       aiService: createMockAIService(),
       generationAuthorizer: new GenerationAuthorizer(
         permissions,
-        async () => null,
+        new CallerAuthorizer(permissions, async () => null),
       ),
     });
     handler = ContentGenerationJobHandler.createFresh(service, entities);

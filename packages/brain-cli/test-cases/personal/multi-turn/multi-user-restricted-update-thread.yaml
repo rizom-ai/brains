@@ -27,8 +27,9 @@ turns:
     context:
       userPermissionLevel: admin
       actor:
-        actorId: eval-anchor-alice
-        canonicalId: eval-anchor-alice
+        identity:
+          kind: external
+          externalActorId: eval-anchor-alice
         interfaceType: evaluation
         role: user
         displayName: Alice Anchor
@@ -58,8 +59,9 @@ turns:
     context:
       userPermissionLevel: public
       actor:
-        actorId: eval-public-bob
-        canonicalId: eval-public-bob
+        identity:
+          kind: external
+          externalActorId: eval-public-bob
         interfaceType: evaluation
         role: user
         displayName: Bob Public
@@ -84,4 +86,4 @@ successCriteria: {}
 
 efficiency:
   maxToolCalls: 5
-  maxTokens: 35000
+  maxTokens: 37000

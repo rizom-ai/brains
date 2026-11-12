@@ -1,5 +1,4 @@
 import { z } from "@brains/utils/zod";
-import { issuerFromRequest } from "./issuer";
 import type { RegisteredOAuthClient } from "./types";
 
 const jsonRequestBodySchema = z.record(z.string(), z.unknown());
@@ -35,36 +34,6 @@ export async function readJsonRequest(request: Request): Promise<unknown> {
   } catch {
     return undefined;
   }
-}
-
-// Deployed brains sit behind a TLS-terminating proxy, so the request URL's
-// scheme is the internal http hop; the browser's Origin must be compared
-// against the forwarded origin instead.
-export function isSameOriginRequest(request: Request): boolean {
-  const origin = request.headers.get("origin");
-  if (origin === null) return false;
-  try {
-    return origin === issuerFromRequest(request);
-  } catch {
-    return false;
-  }
-}
-
-export function requireSameOriginRequest(
-  request: Request,
-): Response | undefined {
-  return isSameOriginRequest(request)
-    ? undefined
-    : privateJsonResponse({ error: "Same-origin request required" }, 403);
-}
-
-export function requireSameOriginJson(request: Request): Response | undefined {
-  const originError = requireSameOriginRequest(request);
-  if (originError) return originError;
-  if (!request.headers.get("content-type")?.startsWith("application/json")) {
-    return privateJsonResponse({ error: "JSON request required" }, 415);
-  }
-  return undefined;
 }
 
 export function htmlResponse(body: string, status = 200): Response {

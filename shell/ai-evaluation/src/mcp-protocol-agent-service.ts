@@ -1,20 +1,48 @@
-import { Client } from "@modelcontextprotocol/client";
+import {
+  Client,
+  StreamableHTTPClientTransport,
+  type FetchLike,
+} from "@modelcontextprotocol/client";
 import { InMemoryTransport } from "@modelcontextprotocol/server";
 import type { McpServer } from "@modelcontextprotocol/server";
 import type { IAgentService } from "@brains/ai-service";
 import type { ChatContext, AgentResponse } from "@brains/ai-service";
-import { parseAgentResponse } from "@brains/contracts";
+import { agentTurnCompletedChannel } from "@brains/ai-service";
+import { parseAgentResponse, type ToolResultData } from "@brains/contracts";
+import { isRecord } from "@brains/utils/is-record";
 import type { IMCPTransport } from "@brains/mcp-service";
 import type { UserPermissionLevel } from "@brains/templates";
 
 interface ProtocolConnection {
   client: Client;
-  server: McpServer;
+  close(): Promise<void>;
+}
+
+/** Opens the protocol client one kind of caller talks through. */
+type OpenConnection = (
+  permissionLevel: UserPermissionLevel,
+  isAnchor: boolean,
+) => Promise<ProtocolConnection>;
+
+export interface RemoteMCPConnectionOptions {
+  /** The running brain's base URL; its MCP endpoint is `<url>/mcp`. */
+  url: string;
+  /** The brain's static development bearer token (`MCP_AUTH_TOKEN`). */
+  token?: string | undefined;
+  /** Injected so a test can answer requests without a server. */
+  fetch?: FetchLike;
+}
+
+/** The brain's bus, as far as hearing its finished turns goes. */
+export interface TurnEventBus {
+  subscribe(
+    type: string,
+    handler: (message: { payload: unknown }) => { noop: true },
+  ): () => void;
 }
 
 interface ChatSuccessPayload {
   text: string;
-  toolResults?: unknown;
 }
 
 interface ConfirmationPayload {
@@ -42,20 +70,69 @@ const EMPTY_USAGE = {
  * surface other than chat + confirm before the first evaluation starts.
  */
 export class MCPProtocolAgentService implements IAgentService {
+  /**
+   * Whether a turn's tool calls reach this adapter. The protocol replies with
+   * the answer alone; in process, the brain's turn events carry the calls.
+   */
+  public readonly toolCallsObservable: boolean;
   private readonly connections = new Map<string, Promise<ProtocolConnection>>();
-  private readonly mcpTransport: IMCPTransport;
+  private readonly open: OpenConnection;
+  /** Each finished turn's tool results, by the brain's conversation id. */
+  private readonly turnResults = new Map<string, ToolResultData[]>();
+  private readonly stopHearingTurns: () => void;
 
-  private constructor(mcpTransport: IMCPTransport) {
-    this.mcpTransport = mcpTransport;
+  private constructor(open: OpenConnection, turns?: TurnEventBus) {
+    this.open = open;
+    this.toolCallsObservable = turns !== undefined;
+    this.stopHearingTurns =
+      turns?.subscribe(agentTurnCompletedChannel.name, (message) => {
+        const turn = agentTurnCompletedChannel.schema.safeParse(
+          message.payload,
+        );
+        if (turn.success)
+          this.turnResults.set(turn.data.conversationId, turn.data.toolResults);
+        return { noop: true };
+      }) ?? ((): void => undefined);
   }
 
+  /** Evaluate the booted eval brain's own MCP surface, in process. */
   public static async connect(
     mcpTransport: IMCPTransport,
+    turns: TurnEventBus,
   ): Promise<MCPProtocolAgentService> {
     mcpTransport.setProtocolMode("basic");
-    const service = new MCPProtocolAgentService(mcpTransport);
+    return MCPProtocolAgentService.verified(
+      new MCPProtocolAgentService(
+        (permissionLevel, isAnchor) =>
+          openInProcess(mcpTransport, permissionLevel, isAnchor),
+        turns,
+      ),
+      PERMISSION_LEVELS,
+    );
+  }
 
-    for (const permissionLevel of PERMISSION_LEVELS) {
+  /**
+   * Evaluate a running brain through its HTTP MCP endpoint, for cases that need
+   * what only a supervised brain has, such as Git. The static token always
+   * authenticates a non-Anchor Admin, so a case needing any other caller is
+   * refused rather than run as the wrong one.
+   */
+  public static async connectRemote(
+    options: RemoteMCPConnectionOptions,
+  ): Promise<MCPProtocolAgentService> {
+    return MCPProtocolAgentService.verified(
+      new MCPProtocolAgentService((permissionLevel, isAnchor) =>
+        openRemote(options, permissionLevel, isAnchor),
+      ),
+      ["admin"],
+    );
+  }
+
+  private static async verified(
+    service: MCPProtocolAgentService,
+    permissionLevels: UserPermissionLevel[],
+  ): Promise<MCPProtocolAgentService> {
+    for (const permissionLevel of permissionLevels) {
       const { client } = await service.getConnection(permissionLevel, false);
       const listed = await client.listTools();
       const names = listed.tools.map(({ name }) => name).sort();
@@ -77,6 +154,14 @@ export class MCPProtocolAgentService implements IAgentService {
     context?: ChatContext,
     signal?: AbortSignal,
   ): Promise<AgentResponse> {
+    // The protocol's chat takes a message only. Sending the turn without
+    // its files would evaluate a different request than the case asks.
+    const attachments = context?.attachments ?? [];
+    if (attachments.length > 0) {
+      throw new Error(
+        `Basic MCP chat carries no attachments: ${attachments.map((attachment) => attachment.filename).join(", ")} cannot reach the brain through it`,
+      );
+    }
     return this.callProtocolTool(
       "chat",
       { message, conversationId },
@@ -106,13 +191,12 @@ export class MCPProtocolAgentService implements IAgentService {
   }
 
   public async close(): Promise<void> {
+    this.stopHearingTurns();
     const connections = await Promise.allSettled(this.connections.values());
     this.connections.clear();
     await Promise.all(
       connections.flatMap((result) =>
-        result.status === "fulfilled"
-          ? [result.value.client.close(), result.value.server.close()]
-          : [],
+        result.status === "fulfilled" ? [result.value.close()] : [],
       ),
     );
   }
@@ -129,7 +213,26 @@ export class MCPProtocolAgentService implements IAgentService {
     const { client } = await this.getConnection(permissionLevel, isAnchor);
     const result = await client.callTool({ name, arguments: args });
     signal?.throwIfAborted();
-    return protocolPayloadToAgentResponse(parseProtocolPayload(result));
+    const response = protocolPayloadToAgentResponse(
+      parseProtocolPayload(result),
+    );
+    const toolResults = this.takeTurnResults(String(args["conversationId"]));
+    return toolResults ? { ...response, toolResults } : response;
+  }
+
+  /**
+   * The tool results of the turn the brain just finished for this handle. The
+   * brain scopes a protocol conversation to its caller, `mcp:<scope>:<handle>`,
+   * and announces the turn before its reply leaves.
+   */
+  private takeTurnResults(handle: string): ToolResultData[] | undefined {
+    const conversationId = [...this.turnResults.keys()].find((id) =>
+      id.endsWith(`:${handle}`),
+    );
+    if (conversationId === undefined) return undefined;
+    const toolResults = this.turnResults.get(conversationId);
+    this.turnResults.delete(conversationId);
+    return toolResults;
   }
 
   private getConnection(
@@ -140,30 +243,62 @@ export class MCPProtocolAgentService implements IAgentService {
     const existing = this.connections.get(key);
     if (existing) return existing;
 
-    const connection = this.connect(permissionLevel, isAnchor);
+    const connection = this.open(permissionLevel, isAnchor);
     this.connections.set(key, connection);
     return connection;
   }
+}
 
-  private async connect(
-    permissionLevel: UserPermissionLevel,
-    isAnchor: boolean,
-  ): Promise<ProtocolConnection> {
-    this.mcpTransport.setAnchorStatus?.(isAnchor);
-    const server = this.mcpTransport.createMcpServer(permissionLevel);
-    const [clientTransport, serverTransport] =
-      InMemoryTransport.createLinkedPair();
-    const client = new Client({
-      name: "brains-ai-evaluation",
-      version: "1.0.0",
-    });
+function createClient(): Client {
+  return new Client({ name: "brains-ai-evaluation", version: "1.0.0" });
+}
 
-    await Promise.all([
-      server.connect(serverTransport),
-      client.connect(clientTransport),
-    ]);
-    return { client, server };
+async function openInProcess(
+  mcpTransport: IMCPTransport,
+  permissionLevel: UserPermissionLevel,
+  isAnchor: boolean,
+): Promise<ProtocolConnection> {
+  mcpTransport.setAnchorStatus?.(isAnchor);
+  const server: McpServer = mcpTransport.createMcpServer(permissionLevel);
+  const [clientTransport, serverTransport] =
+    InMemoryTransport.createLinkedPair();
+  const client = createClient();
+  await Promise.all([
+    server.connect(serverTransport),
+    client.connect(clientTransport),
+  ]);
+  return {
+    client,
+    close: async (): Promise<void> => {
+      await Promise.all([client.close(), server.close()]);
+    },
+  };
+}
+
+async function openRemote(
+  options: RemoteMCPConnectionOptions,
+  permissionLevel: UserPermissionLevel,
+  isAnchor: boolean,
+): Promise<ProtocolConnection> {
+  if (permissionLevel !== "admin" || isAnchor) {
+    throw new Error(
+      `A remote MCP eval runs as the token's caller, a non-Anchor Admin; this case needs ${isAnchor ? `an ${permissionLevel} Anchor` : `a ${permissionLevel}`} caller`,
+    );
   }
+  const client = createClient();
+  await client.connect(
+    new StreamableHTTPClientTransport(new URL("/mcp", options.url), {
+      ...(options.token
+        ? {
+            requestInit: {
+              headers: { Authorization: `Bearer ${options.token}` },
+            },
+          }
+        : {}),
+      ...(options.fetch ? { fetch: options.fetch } : {}),
+    }),
+  );
+  return { client, close: () => client.close() };
 }
 
 function parseProtocolPayload(result: unknown): unknown {
@@ -234,24 +369,13 @@ function protocolPayloadToAgentResponse(payload: unknown): AgentResponse {
   }
 
   const success = parseChatSuccessPayload(normalizedPayload);
-  return parseAgentResponse({
-    text: success.text,
-    ...(success.toolResults !== undefined
-      ? { toolResults: success.toolResults }
-      : {}),
-    usage: EMPTY_USAGE,
-  });
+  return parseAgentResponse({ text: success.text, usage: EMPTY_USAGE });
 }
 
 function parseChatSuccessPayload(
   payload: Record<string, unknown>,
 ): ChatSuccessPayload {
-  return {
-    text: requireString(payload["text"], "text"),
-    ...(payload["toolResults"] !== undefined
-      ? { toolResults: payload["toolResults"] }
-      : {}),
-  };
+  return { text: requireString(payload["text"], "text") };
 }
 
 function parseConfirmationPayload(
@@ -283,8 +407,4 @@ function requireString(value: unknown, field: string): string {
     throw new Error(`MCP tool payload is missing ${field}`);
   }
   return value;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

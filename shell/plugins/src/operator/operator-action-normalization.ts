@@ -3,6 +3,7 @@ import type { UserPermissionLevel } from "@brains/templates";
 import type { AnyWorkspaceActionDefinition } from "./workspace-action-definition-contract";
 import type { WorkspaceActionFormFieldDefinition } from "./operator-view-contract";
 import { meetsPermission } from "./contract-assertions";
+import { isRecord } from "@brains/utils/is-record";
 import { z } from "@brains/utils/zod";
 import {
   getKind,
@@ -60,10 +61,6 @@ export interface SourceActionControl {
 }
 
 const jsonValueSchema: ReturnType<typeof z.json> = z.json();
-
-function isPlainRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
-}
 
 function formControlSupportsSchema(
   control: SourceActionFormField["control"],
@@ -233,7 +230,7 @@ function normalizeActionForm(
     };
   }
   const initial = control.input ?? {};
-  if (!isPlainRecord(initial)) {
+  if (!isRecord(initial)) {
     return {
       issues: [
         {
@@ -431,6 +428,13 @@ export function normalizeActionControls(
       });
       continue;
     }
+    if (control.action.launch && control.result) {
+      issues.push({
+        path: [...actionPath, "result"],
+        message: `Action "${control.action.name}" sends the browser elsewhere, so it has no result to show`,
+      });
+      continue;
+    }
     const normalizedForm = normalizeActionForm(control, actionPath);
     const normalizedResult = normalizeActionResult(control, actionPath);
     issues.push(...normalizedForm.issues, ...normalizedResult.issues);
@@ -447,8 +451,13 @@ export function normalizeActionControls(
           })),
         );
       } else {
-        const jsonInput = jsonValueSchema.safeParse(parsedInput.data);
-        if (!jsonInput.success) {
+        // The browser sends the schema's input back, and the runtime parses
+        // it once for the callback; both forms must survive JSON.
+        const jsonInput = jsonValueSchema.safeParse(control.input);
+        if (
+          !jsonInput.success ||
+          !jsonValueSchema.safeParse(parsedInput.data).success
+        ) {
           issues.push({
             path: [...actionPath, "input"],
             message: "Workspace action input must be JSON-native",
@@ -485,6 +494,7 @@ export function normalizeActionControls(
         ...(normalizedResult.result ? { result: normalizedResult.result } : {}),
         ...(control.disabled ? { disabled: true } : {}),
         ...(confirmation ? { confirmation } : {}),
+        ...(control.action.launch ? { launch: true } : {}),
         ...(control.dropTarget ? { dropTarget: control.dropTarget } : {}),
       }),
     );

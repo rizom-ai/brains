@@ -99,6 +99,8 @@ export default defineBrain({
 
 Definition authors may use arbitrary ordered bundles over their own catalog. Canonical instances may select only the fixed built-in bundle IDs; YAML cannot inject policy bundles.
 
+`@rizom/brain/model` publishes the canonical definition as `CanonicalBrainDefinition` and its bundles as `CanonicalBundleDefinition`: its name, version, bundle contract, defaults and bundles. The capability and interface catalog and the site package are read by the brain itself and are not part of the public type, so a consumer compiles the entry without the runtime database or the MCP server.
+
 ## Fixed bundles
 
 - `core` — identity, markdown knowledge, Inbox, MCP stdio, A2A, and agent discovery;
@@ -158,7 +160,7 @@ Team posture grants trusted create/update for selected collaborative entity type
 `.env.schema` is generated from the canonical environment declaration. Secrets remain environment-backed and may be referenced as `${NAME}` in YAML.
 
 ```dotenv
-AI_API_KEY=
+OPENAI_API_KEY=
 GIT_SYNC_TOKEN=
 DISCORD_BOT_TOKEN=
 ```

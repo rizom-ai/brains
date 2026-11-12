@@ -1,4 +1,4 @@
-import { SITE_CHANNELS } from "@brains/contracts";
+import { siteBuildStagingContract } from "@brains/contracts";
 import { EntityUrlGenerator } from "@brains/site-composition";
 import type { PreparedSiteBuild } from "@brains/site-engine";
 import type { Logger } from "@brains/utils/logger";
@@ -15,7 +15,7 @@ import type {
 } from "../types/site-builder-types";
 import { SiteBuilderOptionsSchema } from "../types/site-builder-types";
 import type { SiteBuildStagingPayload } from "../types/job-types";
-import { collectBuildRoutes } from "./collect-build-routes";
+import { collectBuildRoutes, withGatheredPages } from "./collect-build-routes";
 import { createBuildContext } from "./create-build-context";
 import { createStaticSiteBuilder } from "./create-static-site-builder";
 import { generateSiteRoutes } from "./generate-site-routes";
@@ -92,7 +92,10 @@ export async function runSiteBuild(
     options.signal.throwIfAborted();
 
     const buildRoutes = await collectBuildRoutes(
-      options.pipelineContext.routeRegistry,
+      withGatheredPages(
+        options.pipelineContext.routeRegistry,
+        options.buildOptions.pages,
+      ),
       {
         languages: parsedOptions.languages,
         siteTranslations: parsedOptions.siteConfig.translations,
@@ -222,11 +225,11 @@ export async function runSiteBuild(
         stagingFailures.push(detail);
       },
     };
-    await options.pipelineContext.services.sendMessage({
-      type: SITE_CHANNELS.buildStaging,
-      payload: stagingPayload,
-      broadcast: true,
-    });
+    // Every extension hears the command, and it settles once all have run.
+    await options.pipelineContext.services.command(
+      siteBuildStagingContract,
+      stagingPayload,
+    );
     options.signal.throwIfAborted();
     if (stagingFailures.length > 0) {
       failureCode = "staged-artifact-failed";
@@ -268,7 +271,7 @@ export async function runSiteBuild(
       layouts: parsedOptions.layouts,
       getViewTemplate: options.pipelineContext.services.getViewTemplate,
       staticSiteBuilderFactory: options.staticSiteBuilderFactory,
-      sendMessage: options.pipelineContext.services.sendMessage,
+      command: options.pipelineContext.services.command,
       rendererIdentity: options.rendererIdentity ?? RENDERER_PROCESS_IDENTITY,
     });
     const currentManifest = await outputLifecycle.getCurrentManifest?.(

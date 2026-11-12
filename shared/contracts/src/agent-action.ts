@@ -1,6 +1,6 @@
 import { z } from "@brains/utils/zod";
-
-export const AGENT_ACTION_REQUEST_CHANNEL = "agent:action:request";
+import { agentResponseAnswerSchema } from "./agent-response";
+import { defineBusContract, type BusContract } from "./bus-contract";
 
 type AgentEventActionSchema = z.ZodObject<{
   type: z.ZodLiteral<"event">;
@@ -42,3 +42,26 @@ export const agentActionRequestSchema: AgentActionRequestSchema = z.object({
 });
 
 export type AgentActionRequest = z.output<typeof agentActionRequestSchema>;
+
+type AgentActionResponseSchema = z.ZodNullable<
+  typeof agentResponseAnswerSchema
+>;
+
+/** The runtime's reply to an action, or null when it has none for this request. */
+export const agentActionResponseSchema: AgentActionResponseSchema =
+  agentResponseAnswerSchema.nullable();
+
+/**
+ * A chat interface hands a rendered action (a button press) to the runtime
+ * that rendered it, such as the playbook run the action advances.
+ */
+export const agentActionContract: BusContract<
+  AgentActionRequestSchema,
+  AgentActionResponseSchema,
+  "request"
+> = defineBusContract({
+  channel: "agent:action:request",
+  request: agentActionRequestSchema,
+  response: agentActionResponseSchema,
+  delivery: "request",
+});

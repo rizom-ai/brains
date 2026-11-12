@@ -128,7 +128,7 @@ async function loadBrainEvalConfigIfPresent(
     .replace(/\/src\/.*$/, "");
   const testCasesDirs = resolveTestCaseDirectories(brainModulePath);
 
-  // Re-resolve reads current process.env (picks up EVAL_GIT_REMOTE, AI_API_KEY).
+  // Re-resolve reads current process.env (picks up EVAL_GIT_REMOTE and the provider keys).
   // The initial parse above already threw on any parse error, so at this
   // point we can assume the YAML is valid — if re-parsing fails later
   // (e.g. an env var disappeared), surface the error loud.
@@ -622,18 +622,20 @@ async function parseRawBrainEvalYaml(
   return {};
 }
 
+/** The shell's own cases, loaded into every brain eval run. */
+export const shellTestCasesDirectory: string = resolvePath(
+  import.meta.dir,
+  "..",
+  "evals",
+  "test-cases",
+);
+
 function resolveTestCaseDirectories(brainModulePath: string): string[] {
-  const shellTestCases = resolvePath(
-    import.meta.dir,
-    "..",
-    "evals",
-    "test-cases",
-  );
   const brainModelTestCases = resolvePath(brainModulePath, "test-cases");
   const appTestCases = resolvePath(process.cwd(), "test-cases");
 
-  return [shellTestCases, brainModelTestCases, appTestCases].filter((dir) =>
-    existsSync(dir),
+  return [shellTestCasesDirectory, brainModelTestCases, appTestCases].filter(
+    (dir) => existsSync(dir),
   );
 }
 

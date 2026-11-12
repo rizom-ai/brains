@@ -2,7 +2,7 @@ import { createTestEntity } from "@brains/entity-service/test";
 import { afterEach, describe, expect, it } from "bun:test";
 import { baseEntitySchema, createPluginHarness } from "@brains/plugins/test";
 import { waitUntil } from "@brains/test-utils";
-import { DirectorySyncPlugin } from "../src/plugin";
+import { createDirectorySyncPlugin } from "./directory-sync-plugins";
 import { MockEntityAdapter } from "./fixtures";
 
 describe("startup durable entity-export recovery", () => {
@@ -16,7 +16,7 @@ describe("startup durable entity-export recovery", () => {
     harness
       .getEntityRegistry()
       .registerEntityType("note", baseEntitySchema, new MockEntityAdapter());
-    const plugin = new DirectorySyncPlugin({
+    const plugin = createDirectorySyncPlugin({
       autoSync: false,
       initialSync: false,
       commitDebounce: 100,

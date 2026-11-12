@@ -8,7 +8,7 @@
  * fakes; real `Thread`/`Message` values are assignable.
  */
 
-import type { PermissionLookupContext } from "@brains/plugins";
+import type { PermissionLookupContext } from "@brains/sdk/internal/interface-runtime";
 import { isPlainRecord } from "@brains/utils/predicates";
 import type {
   DiscordChatAdapterConfig,
@@ -119,10 +119,6 @@ export function shouldRouteChatMessage(
   if (message.author.isBot && !message.isMention) return false;
   return isAllowedChannel(thread, config);
 }
-
-/** @deprecated Use shouldRouteChatMessage for transport-neutral routing. */
-export const shouldRouteDiscordMessage: typeof shouldRouteChatMessage =
-  shouldRouteChatMessage;
 
 export function shouldHandleChatAction(
   thread: RoutedThread,

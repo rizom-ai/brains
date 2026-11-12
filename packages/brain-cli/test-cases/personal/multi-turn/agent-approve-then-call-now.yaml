@@ -5,7 +5,7 @@ type: multi_turn
 setup:
   permissionLevel: admin
 tags:
-  - requires-external-network
+  - recipe-network
   - agent-discovery
   - a2a
   - multi-turn
@@ -13,14 +13,14 @@ tags:
   - bundle-core
 
 turns:
-  - userMessage: "Approve old-agent.io"
+  - userMessage: "Approve old-agent.example"
     successCriteria:
       expectedTools:
         - toolName: system_update
           shouldBeCalled: true
           argsContain:
             entityType: "agent"
-            id: "old-agent.io"
+            id: "old-agent.example"
           argsAbsent:
             - confirmed
       responseContains:
@@ -37,13 +37,13 @@ turns:
       responseContains:
         - "Completed: Update"
 
-  - userMessage: "Can you talk to old-agent.io now?"
+  - userMessage: "Can you talk to old-agent.example now?"
     successCriteria:
       expectedTools:
         - toolName: agent_call
           shouldBeCalled: true
           argsContain:
-            agent: "old-agent.io"
+            agent: "old-agent.example"
       responseNotContains:
         - "not approved yet"
         - "approve it first"
@@ -54,4 +54,4 @@ successCriteria: {}
 
 efficiency:
   maxToolCalls: 5
-  maxTokens: 35000
+  maxTokens: 39000

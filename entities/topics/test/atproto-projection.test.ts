@@ -1,6 +1,5 @@
-import { describe, expect, it, beforeEach } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
-import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { createTopicAtprotoProjection } from "../src/atproto-projection";
 import { TopicsPlugin } from "../src";
 import type { TopicEntity } from "../src/schemas/topic";
@@ -18,10 +17,6 @@ const topic: TopicEntity = {
 };
 
 describe("topic ATProto projection", () => {
-  beforeEach(() => {
-    AtprotoProjectionRegistry.resetInstance();
-  });
-
   it("maps topics to ai.rizom.brain.topic records", async () => {
     const projection = createTopicAtprotoProjection();
 
@@ -72,7 +67,10 @@ describe("topic ATProto projection", () => {
       new TopicsPlugin({ enableAutoExtraction: false }),
     );
 
-    const projection = AtprotoProjectionRegistry.getInstance().get("topic");
+    const projection = harness
+      .getMockShell()
+      .getAtprotoProjectionRegistry()
+      .get("topic");
 
     expect(projection).toBeDefined();
     expect(projection?.collection).toBe("ai.rizom.brain.topic");

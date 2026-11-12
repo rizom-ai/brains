@@ -1,17 +1,17 @@
-import type { AuthAuditEvent } from "@brains/auth-service";
+import type { ServiceRuntime } from "@brains/sdk/internal/service-runtime";
+import type { AuthAuditEvent } from "@brains/contracts";
 import {
-  createBuiltInStudioWorkspaceRegistration,
   defineStudioWorkspace,
   type OperatorViewBlock,
-  type ServicePluginContext,
-} from "@brains/plugins";
+} from "@brains/sdk/services";
 import { queryInteger } from "@brains/utils/query";
+import { capitalize } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import {
   adminUserOptions,
   adminWorkspaceSource,
   formatWorkspaceDate,
-  requireAuthService,
+  requireAuthBackend,
   type AdminWorkspaceSource,
 } from "./workspace-format";
 
@@ -47,9 +47,7 @@ function actionLabel(action: string): string {
   const known = actionLabels[action];
   if (known) return known;
   const words = action.replaceAll(/[._-]+/g, " ").trim();
-  return words.length === 0
-    ? action
-    : `${words.slice(0, 1).toUpperCase()}${words.slice(1)}`;
+  return words.length === 0 ? action : capitalize(words);
 }
 
 const auditWorkspaceQuerySchema = z.strictObject({
@@ -252,15 +250,14 @@ const studioAuditWorkspace = defineStudioWorkspace({
 });
 
 export function createAuditTabSource(
-  context: ServicePluginContext,
+  runtime: ServiceRuntime,
 ): AdminWorkspaceSource {
-  const registration = createBuiltInStudioWorkspaceRegistration({
-    context,
+  const registration = runtime.studio.source({
     definition: studioAuditWorkspace,
     bind: (bindingContext) =>
       studioAuditWorkspace.bind(bindingContext, {
         load: async ({ query }) => {
-          const authService = requireAuthService();
+          const authService = requireAuthBackend(runtime);
           const normalized = query.get(auditWorkspaceQuerySchema);
           const [audit, users] = await Promise.all([
             authService.queryAuditEvents({

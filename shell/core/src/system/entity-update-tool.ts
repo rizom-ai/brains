@@ -7,15 +7,19 @@ import type { BaseEntity } from "@brains/entity-service";
 import type { Tool, ToolContext, ToolResponse } from "@brains/mcp-service";
 import type { z } from "@brains/utils/zod";
 import { getErrorMessage } from "@brains/utils/error";
-import { updateInputSchema } from "./schemas";
+import { updateInputSchema, exactlyOneUpdateOperation } from "./schemas";
+import { uneditableFieldsError, updateModelInput } from "./field-changes";
 import { applyContentEdits } from "./content-edits";
 import { assertEntityActionAllowed } from "./entity-action-policy";
 import {
   applyUpdateOperation,
   buildUpdateDiff,
+  describeStoredChange,
   requiredUpdateAction,
   resolveReplacementContent,
+  sourceFieldKeys,
   validateUpdateOperation,
+  withStoredSourceFields,
   type UpdateOperation,
 } from "./entity-update-operation";
 import {
@@ -69,34 +73,31 @@ async function normalizeOperation(
     );
 
   const requested = input.operation;
-  switch (requested.kind) {
-    case "fields":
-      return { operation: requested };
-    case "edits":
-      return {
-        operation: {
-          kind: "content",
-          content: applyContentEdits(entity.content, requested.edits),
-        },
-      };
-    case "content":
-      return withReplacementContent(services, entity, requested.content);
-    case "source": {
-      const resolved = await resolveConversationMessageContent(
-        services,
-        requested.source,
-        context,
-        { confirmed: input.confirmed === true },
-      );
-      if (!resolved.success) return resolved;
-      return withReplacementContent(
-        services,
-        entity,
-        resolved.content,
-        freezeUserMessageSource(requested.source, resolved),
-      );
-    }
-  }
+  if (requested.fields !== undefined)
+    return { operation: { kind: "fields", fields: requested.fields } };
+  if (requested.edits !== undefined)
+    return {
+      operation: {
+        kind: "content",
+        content: applyContentEdits(entity.content, requested.edits),
+      },
+    };
+  if (requested.content !== undefined)
+    return withReplacementContent(services, entity, requested.content);
+  if (requested.source === undefined) return failure(exactlyOneUpdateOperation);
+  const resolved = await resolveConversationMessageContent(
+    services,
+    requested.source,
+    context,
+    { confirmed: input.confirmed === true },
+  );
+  if (!resolved.success) return resolved;
+  return withReplacementContent(
+    services,
+    entity,
+    resolved.content,
+    freezeUserMessageSource(requested.source, resolved),
+  );
 }
 
 function withReplacementContent(
@@ -160,7 +161,51 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
     } catch (error) {
       return failure(getErrorMessage(error, "Failed to update entity"));
     }
-    return { success: true, data: { updated: entity.id } };
+    // Read the entity back, so the confirmation shows what storage holds.
+    const stored = await entityService.getEntity({
+      entityType: entity.entityType,
+      id: entity.id,
+      visibilityScope: permissionToVisibilityScope(context.userPermissionLevel),
+    });
+    const completionDetail = stored
+      ? describeStoredChange(entity, stored)
+      : undefined;
+    return {
+      success: true,
+      data: { updated: entity.id },
+      ...(completionDetail !== undefined && { completionDetail }),
+    };
+  };
+
+  /**
+   * A field update to a declared type's grouping or other frontmatter
+   * extension reads the stored document those fields live in.
+   */
+  const withSourceFieldsRead = async (
+    entity: BaseEntity,
+    operation: UpdateOperation,
+    visibilityScope: ReturnType<typeof permissionToVisibilityScope>,
+  ): Promise<BaseEntity> => {
+    if (operation.kind !== "fields") return entity;
+    if (
+      entityRegistry.getAdapter(entity.entityType).metadataFromFrontmatter !==
+      true
+    ) {
+      return entity;
+    }
+    const sourceFields = sourceFieldKeys(entity.entityType, entityRegistry);
+    if (!Object.keys(operation.fields).some((key) => sourceFields.has(key))) {
+      return entity;
+    }
+    const stored = await entityService.getEntity({
+      entityType: entity.entityType,
+      id: entity.id,
+      visibilityScope,
+      source: true,
+    });
+    return stored
+      ? withStoredSourceFields(entity, stored.content, entityRegistry)
+      : entity;
   };
 
   const proposeUpdate = (
@@ -179,7 +224,7 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
       preview: buildUpdateDiff(entity, operation, entityRegistry),
       args: confirmationGate.buildArgs((confirmationToken) => ({
         ...input,
-        ...(source ? { operation: { kind: "source", source } } : {}),
+        ...(source ? { operation: { source } } : {}),
         id: entity.id,
         confirmed: true,
         confirmationToken,
@@ -188,11 +233,23 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
     };
   };
 
-  return createSystemTool(
+  const tool = createSystemTool(
     "update",
     "Update an entity with exactly one typed operation: fields for partial frontmatter/metadata changes, content for full replacement text you wrote, edits for exact text patches, or source for replacement text the user supplied. For a fields change to an entity the user names, call this tool directly without reading the entity first. For small content changes, fetch the entity (an upload ref marked saved already holds its text, so edit that note without fetching it) and use the edits operation with exact oldText/newText pairs, several non-overlapping edits in one call, instead of regenerating the whole document. Never replace unchanged content with placeholders or ellipses. For a large rewrite whose text the user supplied, use the source operation with exact user-message boundaries instead of copying it into content. Requires confirmation; call this tool without confirmed to request that confirmation instead of asking for plain-text approval. For direct requests that provide exact IDs to set an existing image as an entity cover, call this tool on the target entity with the fields operation setting coverImageId to the image ID, even when ogImageId already points at that image; do not stop after lookup. Cover images use coverImageId and OG/social previews ogImageId; they are not interchangeable. To generate a new cover, use system_generate cover-image. For explicit publish requests, use the publishing tool if available instead of changing status here; a follow-up like 'publish it' targets the entity just read or updated.",
     updateInputSchema,
     async (input, context) => {
+      // Grouping fields come from a definitions entity, read when first
+      // needed: read them before checking which fields a caller may set.
+      await entityRegistry.ensureGroupingsCurrent(input.entityType);
+      // Visibility is not frontmatter, and image references have setters
+      // and checks of their own: a fields change is how update sets them.
+      const uneditable = uneditableFieldsError(
+        entityRegistry,
+        input.entityType,
+        input.operation.fields,
+        { on: "update", allow: ["visibility", "coverImageId", "ogImageId"] },
+      );
+      if (uneditable) return failure(uneditable);
       const resolved = await resolveEntityOrError(
         entityService,
         input.entityType,
@@ -202,16 +259,20 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
         permissionToVisibilityScope(context.userPermissionLevel),
       );
       if (!resolved.ok) return failure(resolved.error);
-      const { entity } = resolved;
 
       const normalized = await normalizeOperation(
         services,
         input,
-        entity,
+        resolved.entity,
         context,
       );
       if ("success" in normalized) return normalized;
       const { operation } = normalized;
+      const entity = await withSourceFieldsRead(
+        resolved.entity,
+        operation,
+        permissionToVisibilityScope(context.userPermissionLevel),
+      );
 
       const invalid = validateUpdateOperation(
         entity,
@@ -235,4 +296,6 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
     },
     { visibility: "trusted", sideEffects: "writes" },
   );
+  // The model writes field changes as a list, which strict mode can hold.
+  return { ...tool, modelInput: updateModelInput(services.entityRegistry) };
 }

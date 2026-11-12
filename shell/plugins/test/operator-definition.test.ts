@@ -73,43 +73,47 @@ const widget = defineDashboardWidget({
 
 describe("public operator definitions", () => {
   it("keeps contracts at module scope and infers factory-bound executors", () => {
-    const definition = defineServicePlugin({
-      id: "reading-operator",
-      config: z.object({ prefix: z.string() }),
-      accountSettings,
-      setup: ({ config }) => ({ offset: config.prefix.length }),
-      dashboardWidgets: (context) => {
-        expectTypeOf(context.accountSettings).toEqualTypeOf<
-          typeof accountSettings
-        >();
-        return [
-          widget.bind(context, async ({ config, state, settings }) => {
-            expectTypeOf(config.prefix).toEqualTypeOf<string>();
-            expectTypeOf(state.offset).toEqualTypeOf<number>();
-            // The token field is declared secret, so operator callbacks never
-            // receive it: view data is serialized to the browser.
-            expectTypeOf(settings).toEqualTypeOf<{
-              endpoint: string;
-            } | null>();
-            return {
-              label: settings?.endpoint ?? config.prefix,
-              count: state.offset,
-            };
-          }),
-        ];
+    const definition = defineServicePlugin(
+      {
+        id: "reading-operator",
+        config: z.object({ prefix: z.string() }),
+        accountSettings,
+        setup: ({ config }) => ({ offset: config.prefix.length }),
       },
-      studioWorkspaces: (context) => {
-        const action = refresh.bind(context, ({ input, config, state }) => ({
-          refreshed: `${config.prefix}:${input.id}:${state.offset}`,
-        }));
-        return [
-          workspace.bind(context, {
-            actions: [action],
-            load: ({ state }) => ({ count: state.offset }),
-          }),
-        ];
+      {
+        dashboardWidgets: (context) => {
+          expectTypeOf(context.accountSettings).toEqualTypeOf<
+            typeof accountSettings
+          >();
+          return [
+            widget.bind(context, async ({ config, state, settings }) => {
+              expectTypeOf(config.prefix).toEqualTypeOf<string>();
+              expectTypeOf(state.offset).toEqualTypeOf<number>();
+              // The token field is declared secret, so operator callbacks never
+              // receive it: view data is serialized to the browser.
+              expectTypeOf(settings).toEqualTypeOf<{
+                endpoint: string;
+              } | null>();
+              return {
+                label: settings?.endpoint ?? config.prefix,
+                count: state.offset,
+              };
+            }),
+          ];
+        },
+        studioWorkspaces: (context) => {
+          const action = refresh.bind(context, ({ input, config, state }) => ({
+            refreshed: `${config.prefix}:${input.id}:${state.offset}`,
+          }));
+          return [
+            workspace.bind(context, {
+              actions: [action],
+              load: ({ state }) => ({ count: state.offset }),
+            }),
+          ];
+        },
       },
-    });
+    );
 
     expect(definition.family).toBe("service");
     expect(Object.isFrozen(widget)).toBeTrue();
@@ -136,6 +140,11 @@ describe("public operator definitions", () => {
       actions: [actionBinding],
       load: ({ state }) => ({ count: state.offset }),
     });
+    // A binding that owns no types writes none.
+    const refuse = async (): Promise<never> => {
+      throw new Error("owns no types");
+    };
+    const refusedWrites = { create: refuse, update: refuse, delete: refuse };
     const runtimeContext: OperatorBaseContext<
       { prefix: string },
       { offset: number },
@@ -148,13 +157,14 @@ describe("public operator definitions", () => {
       entities: {
         get: async () => null,
         list: async () => [],
-        search: async () => [],
+        count: async () => 0,
       },
       jobs: {
         enqueue: async () => ({ id: "job-1", status: async () => null }),
         status: async () => null,
       },
       permissions: { allows: () => true },
+      accountSettings: { read: refuse },
       signal: new AbortController().signal,
     };
 
@@ -164,6 +174,13 @@ describe("public operator definitions", () => {
     expect(
       await getWorkspaceActionExecutor(actionBinding).execute({
         ...runtimeContext,
+        entities: { ...runtimeContext.entities, ...refusedWrites },
+        accountSettings: {
+          read: refuse,
+          save: refuse,
+          claim: refuse,
+          redeem: refuse,
+        },
         input: { id: "saved" },
       }),
     ).toEqual({ refreshed: "saved" });

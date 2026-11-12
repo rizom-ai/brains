@@ -1,18 +1,20 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { expectDefined } from "@brains/utils/expect-defined";
-import { SiteBuildJobHandler } from "../../src/handlers/siteBuildJobHandler";
+import { messagingFor } from "../test-helpers";
+import {
+  createSiteBuildJobHandler,
+  type SiteBuildTestHandler,
+} from "../site-build-job";
 import type { ISiteBuilder } from "../../src/types/site-builder-types";
 import type { SiteBuilderConfig } from "../../src/config";
 import { UISlotRegistry } from "@brains/site-engine";
-import {
-  createSilentLogger,
-  createMockMessageSender,
-} from "@brains/test-utils";
+import { siteMetadataContract } from "@brains/site-composition";
+import { createSilentLogger } from "@brains/test-utils";
 import { CallbackProgressReporter } from "@brains/utils/progress";
 import type { BuildStatusRecorder } from "../../src/handlers/siteBuildJobHandler";
 
-describe("SiteBuildJobHandler", () => {
-  let handler: SiteBuildJobHandler;
+describe("SiteBuildTestHandler", () => {
+  let handler: SiteBuildTestHandler;
   let mockSiteBuilder: ISiteBuilder;
 
   beforeEach(() => {
@@ -27,20 +29,22 @@ describe("SiteBuildJobHandler", () => {
       ),
     };
 
-    const { sendMessage } = createMockMessageSender();
-
     const defaultSiteConfig: SiteBuilderConfig["siteInfo"] = {
       represents: "anchor",
       title: "Test Site",
       description: "Test Description",
     };
 
-    handler = new SiteBuildJobHandler(createSilentLogger("test"), sendMessage, {
-      siteBuilder: mockSiteBuilder,
-      layouts: {},
-      defaultSiteConfig,
-      sharedImagesDir: "./dist/images",
-    });
+    handler = createSiteBuildJobHandler(
+      createSilentLogger("test"),
+      messagingFor(),
+      {
+        siteBuilder: mockSiteBuilder,
+        layouts: {},
+        defaultSiteConfig,
+        sharedImagesDir: "./dist/images",
+      },
+    );
   });
 
   it("builds one site at a time, with room for a large site", () => {
@@ -141,16 +145,15 @@ describe("SiteBuildJobHandler", () => {
         },
       };
 
-      const { sendMessage: slotsSendMessage } = createMockMessageSender();
       const defaultSiteConfig: SiteBuilderConfig["siteInfo"] = {
         represents: "anchor",
         title: "Test Site",
         description: "Test Description",
       };
 
-      const handlerWithSlots = new SiteBuildJobHandler(
+      const handlerWithSlots = createSiteBuildJobHandler(
         createSilentLogger("test"),
-        slotsSendMessage,
+        messagingFor(),
         {
           siteBuilder: mockSiteBuilderWithSlots,
           layouts: {},
@@ -187,10 +190,9 @@ describe("SiteBuildJobHandler", () => {
         };
       },
     };
-    const { sendMessage } = createMockMessageSender();
-    const bilingualHandler = new SiteBuildJobHandler(
+    const bilingualHandler = createSiteBuildJobHandler(
       createSilentLogger("test"),
-      sendMessage,
+      messagingFor(),
       {
         siteBuilder,
         layouts: {},
@@ -216,7 +218,7 @@ describe("SiteBuildJobHandler", () => {
     expect(capturedLanguages).toEqual(["en", "zh-TW"]);
   });
 
-  it("records a cancelled build without emitting completion", async () => {
+  it("records a cancelled build", async () => {
     const markCancelled = mock(async () => undefined);
     // All four transitions, because the handler optional-chains the service
     // rather than each method. Only markCancelled is asserted; the rest are
@@ -239,10 +241,9 @@ describe("SiteBuildJobHandler", () => {
         errors: ["[build-cancelled] Site build cancelled: superseded"],
       })),
     };
-    const { sendMessage, sentMessages } = createMockMessageSender();
-    const cancelledHandler = new SiteBuildJobHandler(
+    const cancelledHandler = createSiteBuildJobHandler(
       createSilentLogger("test"),
-      sendMessage,
+      messagingFor(),
       {
         siteBuilder: cancelledBuilder,
         layouts: {},
@@ -270,9 +271,6 @@ describe("SiteBuildJobHandler", () => {
       "job-cancelled",
       "[build-cancelled] Site build cancelled: superseded",
     );
-    expect(
-      sentMessages.some((message) => message.type === "site:build:completed"),
-    ).toBe(false);
   });
 
   for (const [label, superseded, completes] of [
@@ -299,10 +297,9 @@ describe("SiteBuildJobHandler", () => {
           errors: ["[build-cancelled] Site build cancelled"],
         })),
       };
-      const { sendMessage } = createMockMessageSender();
-      const handler = new SiteBuildJobHandler(
+      const handler = createSiteBuildJobHandler(
         createSilentLogger("test"),
-        sendMessage,
+        messagingFor(),
         {
           siteBuilder: builder,
           layouts: {},
@@ -338,10 +335,9 @@ describe("SiteBuildJobHandler", () => {
         errors: ["tailwindcss: Can't resolve 'tailwindcss'", "Second problem"],
       })),
     };
-    const { sendMessage } = createMockMessageSender();
-    const handler = new SiteBuildJobHandler(
+    const handler = createSiteBuildJobHandler(
       createSilentLogger("test"),
-      sendMessage,
+      messagingFor(),
       {
         siteBuilder: builder,
         layouts: {},
@@ -388,10 +384,9 @@ describe("SiteBuildJobHandler", () => {
         routesBuilt: 10,
       })),
     };
-    const { sendMessage, sentMessages } = createMockMessageSender();
-    const unchangedHandler = new SiteBuildJobHandler(
+    const unchangedHandler = createSiteBuildJobHandler(
       createSilentLogger("test"),
-      sendMessage,
+      messagingFor(),
       {
         siteBuilder: unchangedBuilder,
         layouts: {},
@@ -416,9 +411,6 @@ describe("SiteBuildJobHandler", () => {
     expect(result).toMatchObject({ success: true, skipped: true });
     expect(markSkipped).toHaveBeenCalledWith("production", "job-skipped", 10);
     expect(markSuccess).not.toHaveBeenCalled();
-    expect(
-      sentMessages.some((message) => message.type === "site:build:completed"),
-    ).toBe(false);
   });
 
   for (const lastBuildFailed of [true, false]) {
@@ -437,9 +429,9 @@ describe("SiteBuildJobHandler", () => {
         filesGenerated: 10,
         routesBuilt: 10,
       }));
-      const retryHandler = new SiteBuildJobHandler(
+      const retryHandler = createSiteBuildJobHandler(
         createSilentLogger("test"),
-        createMockMessageSender().sendMessage,
+        messagingFor(),
         {
           siteBuilder: { build },
           layouts: {},
@@ -479,10 +471,9 @@ describe("SiteBuildJobHandler", () => {
       markFailure: mock(async () => undefined),
       markCancelled: mock(async () => undefined),
     };
-    const { sendMessage, sentMessages } = createMockMessageSender();
-    const failingWriteHandler = new SiteBuildJobHandler(
+    const failingWriteHandler = createSiteBuildJobHandler(
       createSilentLogger("test"),
-      sendMessage,
+      messagingFor(),
       {
         siteBuilder: mockSiteBuilder,
         layouts: {},
@@ -505,8 +496,38 @@ describe("SiteBuildJobHandler", () => {
     );
 
     expect(result).toMatchObject({ success: true });
-    expect(
-      sentMessages.some((message) => message.type === "site:build:completed"),
-    ).toBe(true);
+  });
+
+  it("broadcasts nothing when a build publishes", async () => {
+    // Extensions write into staging through the staging contract; nothing
+    // listens for a completion broadcast, so a published build sends none.
+    // Its messaging can only ask, and all it asks for is the site's metadata.
+    const asked: string[] = [];
+    const publishingHandler = createSiteBuildJobHandler(
+      createSilentLogger("test"),
+      messagingFor(asked),
+      {
+        siteBuilder: mockSiteBuilder,
+        layouts: {},
+        defaultSiteConfig: {
+          represents: "anchor",
+          title: "Test Site",
+          description: "Test Description",
+        },
+        sharedImagesDir: "./dist/images",
+      },
+    );
+    const progressReporter = expectDefined(
+      CallbackProgressReporter.from(async () => {}),
+    );
+
+    const result = await publishingHandler.process(
+      { outputDir: "/tmp/output", environment: "preview" },
+      "job-published",
+      progressReporter,
+    );
+
+    expect(result).toMatchObject({ success: true, routesBuilt: 10 });
+    expect(asked).toEqual([siteMetadataContract.name]);
   });
 });

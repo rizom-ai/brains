@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { ContentScheduler } from "../src/scheduler";
-import type { SchedulerConfig } from "../src/scheduler";
+import type { SchedulerConfig } from "../src/types/scheduler";
 import { QueueManager } from "../src/queue-manager";
 import { ProviderRegistry } from "../src/provider-registry";
 import { RetryTracker } from "../src/retry-tracker";
@@ -8,7 +8,7 @@ import {
   type ScheduledJob,
   type SchedulerBackend,
   type SchedulerCallback,
-} from "../src/scheduler-backend";
+} from "@brains/scheduler";
 import { TestSchedulerBackend } from "@brains/scheduler/test";
 import { createMockLogger } from "@brains/test-utils";
 

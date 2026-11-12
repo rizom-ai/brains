@@ -2,6 +2,7 @@ import {
   createMockServicePluginContext,
   refuseEnqueues,
 } from "@brains/plugins/test";
+import { imageRenderSourceJobContract } from "@brains/contracts";
 import { createSilentLogger, waitUntil } from "@brains/test-utils";
 import { isRecord } from "@brains/utils/is-record";
 import { RetryScope } from "@brains/utils/retry-backoff";
@@ -47,7 +48,6 @@ function createPreflight(
     targetEntityField: { location: "frontmatter", field: "ogImageId" },
     requiredWhen: { status: "published" },
     autoGenerate: true,
-    jobType: "image:image-render-source",
   });
 
   // The factory's namespaces are real and spied, so the preflight runs against
@@ -80,9 +80,9 @@ describe("PublishAssetPreflight", () => {
     const result = await preflight.ensureForEntity(createPublishedPost());
 
     expect(result).toEqual({ checked: 1, enqueued: 1, skipped: 0 });
-    expect(enqueue).toHaveBeenCalledWith({
-      type: "image:image-render-source",
-      data: {
+    expect(enqueue).toHaveBeenCalledWith(
+      imageRenderSourceJobContract,
+      {
         sourceEntityType: "post",
         sourceEntityId: "post-1",
         attachmentType: "og-image",
@@ -92,15 +92,17 @@ describe("PublishAssetPreflight", () => {
         targetEntityId: "post-1",
         targetImageField: "ogImageId",
       },
-      options: {
-        source: "content-pipeline",
-        metadata: {
-          operationType: "content_operations",
+      {
+        options: {
+          source: "content-pipeline",
+          metadata: {
+            operationType: "content_operations",
+          },
+          deduplication: "skip",
+          deduplicationKey: "publish-asset:og-image:post:post-1",
         },
-        deduplication: "skip",
-        deduplicationKey: "publish-asset:og-image:post:post-1",
       },
-    });
+    );
   });
 
   it("skips drafts", async () => {
@@ -130,6 +132,32 @@ Body`,
 
     expect(result).toEqual({ checked: 1, enqueued: 0, skipped: 1 });
     expect(enqueue).not.toHaveBeenCalled();
+  });
+
+  it("skips a declared record whose metadata carries the target field", async () => {
+    const { preflight, enqueue } = createPreflight();
+
+    // A declared type reads back as its body, its frontmatter its metadata.
+    const result = await preflight.ensureForEntity(
+      createPublishedPost({
+        content: "Body",
+        metadata: { status: "published", slug: "post-1", ogImageId: "og-1" },
+      }),
+    );
+
+    expect(result).toEqual({ checked: 1, enqueued: 0, skipped: 1 });
+    expect(enqueue).not.toHaveBeenCalled();
+  });
+
+  it("enqueues for a declared record whose metadata lacks the target field", async () => {
+    const { preflight, enqueue } = createPreflight();
+
+    const result = await preflight.ensureForEntity(
+      createPublishedPost({ content: "Body" }),
+    );
+
+    expect(result).toEqual({ checked: 1, enqueued: 1, skipped: 0 });
+    expect(enqueue).toHaveBeenCalledTimes(1);
   });
 
   it("skips when no attachment provider exists", async () => {

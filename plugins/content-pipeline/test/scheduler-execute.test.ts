@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { ContentScheduler } from "../src/scheduler";
-import type { SchedulerConfig } from "../src/scheduler";
+import type { SchedulerConfig } from "../src/types/scheduler";
 import { QueueManager } from "../src/queue-manager";
 import { ProviderRegistry } from "../src/provider-registry";
 import { RetryTracker } from "../src/retry-tracker";
 import { TestSchedulerBackend } from "@brains/scheduler/test";
-import { PUBLISH_MESSAGES } from "../src/types/messages";
+import { PUBLISH_CHANNELS } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import {
   createMockLogger,
@@ -48,18 +48,6 @@ describe("ContentScheduler - provider execution", () => {
   });
 
   describe("queued publishing", () => {
-    it("should not emit publish:execute messages", async () => {
-      await queueManager.add("social-post", "post-1");
-      await scheduler.start();
-
-      await backend.tick();
-
-      const executeMessages = messageBus.sentMessages.filter(
-        (m) => m.type === "publish:execute",
-      );
-      expect(executeMessages.length).toBe(0);
-    });
-
     it("should remove entity from queue after processing", async () => {
       await queueManager.add("social-post", "post-1");
       await scheduler.start();
@@ -105,12 +93,7 @@ describe("ContentScheduler - provider execution", () => {
       });
       expect(
         messageBus.sentMessages.some(
-          (message) => message.type === "publish:execute",
-        ),
-      ).toBe(false);
-      expect(
-        messageBus.sentMessages.some(
-          (message) => message.type === PUBLISH_MESSAGES.COMPLETED,
+          (message) => message.type === PUBLISH_CHANNELS.completed,
         ),
       ).toBe(true);
     });
@@ -125,15 +108,13 @@ describe("ContentScheduler - provider execution", () => {
         url: "https://example.com/post/123",
       });
 
-      expect(messageBus.send).toHaveBeenCalledWith({
-        type: PUBLISH_MESSAGES.COMPLETED,
+      expect(messageBus.sentMessages).toContainEqual({
+        type: PUBLISH_CHANNELS.completed,
         payload: expect.objectContaining({
           entityType: "social-post",
           entityId: "post-1",
           result: { id: "platform-123", url: "https://example.com/post/123" },
         }),
-        sender: "publish-service",
-        broadcast: true,
       });
     });
 
@@ -154,15 +135,13 @@ describe("ContentScheduler - provider execution", () => {
 
       scheduler.failPublish("social-post", "post-1", "Network error");
 
-      expect(messageBus.send).toHaveBeenCalledWith({
-        type: PUBLISH_MESSAGES.FAILED,
+      expect(messageBus.sentMessages).toContainEqual({
+        type: PUBLISH_CHANNELS.failed,
         payload: expect.objectContaining({
           entityType: "social-post",
           entityId: "post-1",
           error: "Network error",
         }),
-        sender: "publish-service",
-        broadcast: true,
       });
     });
 
@@ -180,7 +159,7 @@ describe("ContentScheduler - provider execution", () => {
       scheduler.failPublish("social-post", "post-1", "Error 1");
 
       const failedMessage = messageBus.sentMessages.find(
-        (m) => m.type === PUBLISH_MESSAGES.FAILED,
+        (m) => m.type === PUBLISH_CHANNELS.failed,
       );
       expect(
         z.looseObject({ willRetry: z.boolean() }).parse(failedMessage?.payload)

@@ -1,13 +1,14 @@
+import type {
+  ServiceRuntime,
+  RuntimeStudioOperatorBlock,
+  RuntimeStudioOperatorRegionBlock,
+} from "@brains/sdk/internal/service-runtime";
 import {
-  createBuiltInStudioWorkspaceRegistration,
   defineStudioWorkspace,
   defineWorkspaceAction,
-  type OperatorCaller,
   type OperatorViewBlock,
-  type RuntimeStudioOperatorBlock,
-  type RuntimeStudioOperatorRegionBlock,
-  type ServicePluginContext,
-} from "@brains/plugins";
+} from "@brains/sdk/services";
+import { capitalize } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import {
   invitationChannelSchema,
@@ -23,7 +24,8 @@ import {
   adminWorkspaceSource,
   formatWorkspaceDate,
   peerOriginLabel,
-  requireAuthService,
+  mutationContext,
+  requireAuthBackend,
   type AdminWorkspaceSource,
 } from "./workspace-format";
 
@@ -44,10 +46,6 @@ const linkInputSchema = z.strictObject({
   peerId: z.string().trim().min(1).max(2_000),
   userId: z.string().min(1),
 });
-
-function titleCase(value: string): string {
-  return `${value.slice(0, 1).toUpperCase()}${value.slice(1)}`;
-}
 
 const invitePeer = defineWorkspaceAction({
   name: "invite-external-peer-person",
@@ -254,12 +252,12 @@ const peerTabProvider = defineStudioWorkspace({
             title: peerOriginLabel(peer.peerId),
             metadata: [
               peer.displayName,
-              titleCase(peer.role),
+              capitalize(peer.role),
               formatWorkspaceDate(peer.createdAt),
             ],
             badges: [
               {
-                label: titleCase(peer.verificationStatus),
+                label: capitalize(peer.verificationStatus),
                 tone: peer.verificationStatus === "verified" ? "good" : "warn",
               },
             ],
@@ -278,19 +276,11 @@ const peerTabProvider = defineStudioWorkspace({
   },
 });
 
-function mutationContext(caller: OperatorCaller | null): {
-  actorUserId: string;
-} {
-  if (!caller) throw new Error("Peer action requires a signed-in actor");
-  return { actorUserId: caller.actor.id };
-}
-
 export function createPeerTabSource(
-  context: ServicePluginContext,
+  runtime: ServiceRuntime,
 ): AdminWorkspaceSource {
-  const authService = requireAuthService();
-  const registration = createBuiltInStudioWorkspaceRegistration({
-    context,
+  const authService = requireAuthBackend(runtime);
+  const registration = runtime.studio.source({
     definition: peerTabProvider,
     bind: (bindingContext) => {
       const invite = invitePeer.bind(

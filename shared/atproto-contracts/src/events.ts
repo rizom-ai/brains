@@ -1,4 +1,5 @@
 import { z } from "@brains/utils/zod";
+import { defineChannel, type Channel } from "@brains/contracts";
 import { canonicalAtprotoRecordSchemas } from "./record-schemas";
 import type { AtprotoBrainCardRecord } from "./records";
 
@@ -141,3 +142,58 @@ export const atprotoJetstreamGapPayloadSchema: z.ZodObject<
 export type AtprotoJetstreamGapPayload = z.output<
   typeof atprotoJetstreamGapPayloadSchema
 >;
+
+/**
+ * The discovery events as channels: a subscriber gets the validated payload,
+ * and a malformed one never reaches it. Publishers send to `channel.name`.
+ */
+export const atprotoBrainCardDiscoveredChannel: Channel<
+  AtprotoBrainCardDiscoveredPayload,
+  unknown,
+  typeof ATPROTO_BRAIN_CARD_DISCOVERED
+> = defineChannel(
+  ATPROTO_BRAIN_CARD_DISCOVERED,
+  atprotoBrainCardDiscoveredPayloadSchema,
+);
+
+export const atprotoBrainDiscoveredChannel: Channel<
+  AtprotoBrainDiscoveryEventPayload,
+  unknown,
+  typeof ATPROTO_BRAIN_DISCOVERED
+> = defineChannel(
+  ATPROTO_BRAIN_DISCOVERED,
+  atprotoBrainDiscoveryEventPayloadSchema,
+);
+
+export const atprotoBrainCardRefreshedChannel: Channel<
+  AtprotoBrainDiscoveryEventPayload,
+  unknown,
+  typeof ATPROTO_BRAIN_CARD_REFRESHED
+> = defineChannel(
+  ATPROTO_BRAIN_CARD_REFRESHED,
+  atprotoBrainDiscoveryEventPayloadSchema,
+);
+
+export const atprotoBrainCardUnavailableChannel: Channel<
+  AtprotoBrainCardUnavailablePayload,
+  unknown,
+  typeof ATPROTO_BRAIN_CARD_UNAVAILABLE
+> = defineChannel(
+  ATPROTO_BRAIN_CARD_UNAVAILABLE,
+  atprotoBrainCardUnavailablePayloadSchema,
+);
+
+export const atprotoBrainCardConflictChannel: Channel<
+  AtprotoBrainCardConflictPayload,
+  unknown,
+  typeof ATPROTO_BRAIN_CARD_CONFLICT
+> = defineChannel(
+  ATPROTO_BRAIN_CARD_CONFLICT,
+  atprotoBrainCardConflictPayloadSchema,
+);
+
+export const atprotoJetstreamGapChannel: Channel<
+  AtprotoJetstreamGapPayload,
+  unknown,
+  typeof ATPROTO_JETSTREAM_GAP
+> = defineChannel(ATPROTO_JETSTREAM_GAP, atprotoJetstreamGapPayloadSchema);

@@ -1,29 +1,20 @@
-import type { InterfacePluginContext } from "@brains/plugins";
+import {
+  type InterfaceRuntime,
+  jobProgressChannel,
+} from "@brains/sdk/internal/interface-runtime";
 import type { Logger } from "@brains/utils/logger";
-import { JobProgressEventSchema } from "@brains/plugins";
-import { JOB_CHANNELS } from "@brains/contracts";
 
 /**
  * Set up listener for job progress events
  * This is primarily for debugging and logging purposes
  */
 export function setupJobProgressListener(
-  context: InterfacePluginContext,
+  runtime: Pick<InterfaceRuntime, "listen">,
   logger: Logger,
 ): void {
-  // Subscribe to job-progress events for debugging
-  context.messaging.subscribe(JOB_CHANNELS.progress, async (message) => {
-    const validationResult = JobProgressEventSchema.safeParse(message.payload);
-
-    if (!validationResult.success) {
-      logger.warn("Received invalid job-progress message", {
-        error: validationResult.error.message,
-      });
-      return { success: false };
-    }
-
-    const event = validationResult.data;
-
+  // Subscribe to job-progress events for debugging; the channel refuses and
+  // logs a malformed one.
+  runtime.listen(jobProgressChannel, ({ payload: event }) => {
     // Log different types of progress events
     const eventType = event.type; // "job" or "batch"
     const status = event.status;
@@ -55,8 +46,6 @@ export function setupJobProgressListener(
         retryCount: event.jobDetails.retryCount,
       });
     }
-
-    return { success: true };
   });
 
   logger.debug("Subscribed to job progress events");

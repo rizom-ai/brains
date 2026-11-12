@@ -1,4 +1,3 @@
-import type { ServicePluginContext } from "@brains/plugins";
 import {
   recordStudioMutationAudit,
   requireEntityAction,
@@ -8,12 +7,13 @@ import type {
   EditorRouteOptions,
 } from "./editor-contracts";
 import { jsonResponse } from "./editor-response";
+import type { StudioContext } from "./studio-context";
 
 const UPLOAD_FORM_FIELD = "file";
 const UPLOAD_MAX_BYTES = 10 * 1024 * 1024;
 
 export async function handleUpload(
-  context: ServicePluginContext,
+  context: StudioContext,
   request: Request,
   routePath: string,
   access: StudioRequestAccess,
@@ -65,11 +65,7 @@ export async function handleUpload(
     return actionError;
   }
 
-  const store = context.uploads.scoped({
-    namespace: "upload",
-    refKind: "upload",
-    routePath,
-  });
+  const store = context.sharedUploads({ routePath });
   const record = await store.save({
     filename: file.name,
     mediaType: file.type,
@@ -83,6 +79,7 @@ export async function handleUpload(
       {
         interfaceType: "studio",
         actor: access.actor,
+        userPermissionLevel: access.permissionLevel,
       },
     );
   } catch {

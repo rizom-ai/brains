@@ -1,16 +1,16 @@
 {
   "name": "@brains/site-builder-plugin",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.627",
+  "version": "0.2.0-alpha.688",
   "description": "Static site generation plugin for Brain system",
   "dependencies": {
     "@brains/contracts": "workspace:*",
     "@brains/image": "workspace:*",
-    "@brains/plugins": "workspace:*",
+    "@brains/sdk": "workspace:*",
     "@brains/site-composition": "workspace:*",
     "@brains/site-engine": "workspace:*",
-    "@brains/ui-library": "workspace:*",
     "@brains/utils": "workspace:*",
+    "@rizom/brain-ui": "workspace:*",
     "@tailwindcss/typography": "^0.5.20",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"
@@ -19,6 +19,7 @@
     "@brains/entity-service": "workspace:*",
     "@brains/eslint-config": "workspace:*",
     "@brains/job-queue": "workspace:*",
+    "@brains/plugins": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@libsql/client": "^0.17.4",

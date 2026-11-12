@@ -1,7 +1,8 @@
 import type { ImportResult } from "../types.js";
-import { isEntityValidationError } from "@brains/plugins";
+import { isEntityValidationError } from "@brains/sdk/internal/entity-runtime";
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
+import { isNotFoundError } from "@brains/utils/predicates";
 import { appendFile, readFile, rename, rm } from "fs/promises";
 import { join } from "path";
 import { resolveInSyncPath } from "./path-utils";
@@ -98,15 +99,11 @@ export class Quarantine {
         path: filePath,
       });
     } catch (error) {
-      if (isMissingFileError(error)) return;
+      if (isNotFoundError(error)) return;
       this.logger.debug("Could not update error log for recovered file", {
         path: filePath,
         error,
       });
     }
   }
-}
-
-function isMissingFileError(error: unknown): boolean {
-  return error instanceof Error && "code" in error && error.code === "ENOENT";
 }

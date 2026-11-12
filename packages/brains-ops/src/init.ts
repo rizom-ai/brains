@@ -11,6 +11,7 @@ import {
   renderDockerfile,
   stripDeployVolumes,
   renderKamalDeploy,
+  withoutDeployModelRuntime,
   renderPreDeployHook,
   type DeployScriptName,
 } from "@brains/deploy-support";
@@ -37,6 +38,7 @@ const starterFilePaths = [
   "deploy/scripts/create-predeploy-backup.ts",
   "deploy/scripts/install-health-watchdog.ts",
   "deploy/scripts/provision-server.ts",
+  "deploy/scripts/pull-local-models.ts",
   "deploy/scripts/update-dns.ts",
   "deploy/scripts/write-ssh-key.ts",
   "deploy/scripts/decrypt-user-secrets.ts",
@@ -72,49 +74,6 @@ const firstRunOnlyStarterFilePaths = new Set<(typeof starterFilePaths)[number]>(
 const templateRootDir = fileURLToPath(
   new URL("../templates/rover-pilot/", import.meta.url),
 );
-
-const legacyDeployYmlContents = [
-  `service: rover
-image: <%= ENV['IMAGE_REPOSITORY'] %>
-
-servers:
-  web:
-    hosts:
-      - <%= ENV['SERVER_IP'] %>
-
-proxy:
-  ssl:
-    certificate_pem: CERTIFICATE_PEM
-    private_key_pem: PRIVATE_KEY_PEM
-  hosts:
-    - <%= ENV['BRAIN_DOMAIN'] %>
-    - <%= ENV['PREVIEW_DOMAIN'] %>
-  app_port: 80
-  healthcheck:
-    path: /health
-
-registry:
-  server: ghcr.io
-  username: <%= ENV['REGISTRY_USERNAME'] %>
-  password:
-    - KAMAL_REGISTRY_PASSWORD
-
-builder:
-  arch: amd64
-
-env:
-  clear:
-    NODE_ENV: production
-  secret:
-    - AI_API_KEY
-    - GIT_SYNC_TOKEN
-    - DISCORD_BOT_TOKEN
-
-volumes:
-  - /opt/brain-data:/app/brain-data
-  - /opt/brain.yaml:/app/brain.yaml
-`,
-];
 
 type StarterFilePath = (typeof starterFilePaths)[number];
 type StalenessCheck = (current: string, template: string) => boolean;
@@ -159,7 +118,9 @@ function isStalePilotDeploySecrets(current: string): boolean {
     normalizePilotDeploySecretList(current),
   );
   const normalizedTemplate = stripDeployVolumes(
-    normalizePilotDeploySecretList(renderKamalDeploy({ serviceName: "rover" })),
+    normalizePilotDeploySecretList(
+      withoutDeployModelRuntime(renderKamalDeploy({ serviceName: "rover" })),
+    ),
   );
 
   return normalizedCurrent === normalizedTemplate;
@@ -175,14 +136,38 @@ const envSchemaOptionalBlocks = [
   /\n# AT Protocol publishing\/discovery \(optional, per-user\)\n# Comes from the decrypted users\/<handle>\.secrets\.yaml\.age file when configured\.\n# @sensitive\nATPROTO_APP_PASSWORD=\n/,
 ];
 
+/**
+ * The provider key blocks of the current template and of the single-AI-key
+ * vintage, normalized to one placeholder so either compares equal.
+ */
+const envSchemaProviderKeyBlocks = [
+  /# OpenAI, the provider of the canonical chat and embedding models\n[^]*?\nGOOGLE_GENERATIVE_AI_API_KEY=\n/,
+  /# AI provider\n[^]*?\nAI_API_KEY=\n/,
+];
+
 function isStalePilotEnvSchema(current: string, template: string): boolean {
   const strip = (content: string): string =>
     envSchemaOptionalBlocks.reduce(
       (stripped, block) => stripped.replace(block, "\n"),
-      content,
+      envSchemaProviderKeyBlocks.reduce(
+        (normalized, block) => normalized.replace(block, "__PROVIDER_KEYS__\n"),
+        content,
+      ),
     );
   return strip(current) === strip(template);
 }
+
+/** Lines of the single-AI-key vintage, and the lines that replaced them. */
+const decryptUserSecretsPriorLines: ReadonlyArray<[string, string]> = [
+  [
+    'writeSecretGitHubEnv("AI_API_KEY", secrets["aiApiKey"]);',
+    'writeSecretGitHubEnv("OPENAI_API_KEY", secrets["openaiApiKey"]);',
+  ],
+  [
+    '"shared_ai_api_key_secret_name",\n  requireFlatValue(pilot, "aiApiKey", "pilot.yaml"),',
+    '"shared_openai_api_key_secret_name",\n  requireFlatValue(pilot, "openaiApiKey", "pilot.yaml"),',
+  ],
+];
 
 const decryptUserSecretsOptionalSnippets = [
   'writeSecretGitHubEnv("DISCORD_PUBLIC_KEY", secrets["discordPublicKey"]);\nwriteSecretGitHubEnv("DISCORD_APPLICATION_ID", secrets["discordApplicationId"]);\n',
@@ -196,7 +181,10 @@ function isStaleDecryptUserSecretsScript(
   const strip = (content: string): string =>
     decryptUserSecretsOptionalSnippets.reduce(
       (stripped, snippet) => stripped.replace(snippet, ""),
-      content,
+      decryptUserSecretsPriorLines.reduce(
+        (current, [prior, replacement]) => current.replace(prior, replacement),
+        content,
+      ),
     );
   return strip(current) === strip(template);
 }
@@ -215,9 +203,7 @@ const stalenessChecks: Partial<Record<StarterFilePath, StalenessCheck>> = {
   ".env.schema": isStalePilotEnvSchema,
   "deploy/Dockerfile": (current) => isStaleDeployDockerfile(current),
   "deploy/kamal/deploy.yml": (current) =>
-    legacyDeployYmlContents.includes(current) ||
-    isStalePilotDeployYml(current) ||
-    isStalePilotDeploySecrets(current),
+    isStalePilotDeployYml(current) || isStalePilotDeploySecrets(current),
   "deploy/scripts/decrypt-user-secrets.ts": isStaleDecryptUserSecretsScript,
   "deploy/scripts/resolve-deploy-handles.ts": (current) =>
     isStaleResolveDeployHandlesScript(current),

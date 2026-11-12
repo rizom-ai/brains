@@ -28,6 +28,7 @@ import {
   findInternalDeclarationImports,
   formatDeclarationLeakError,
   productionReactJsx,
+  workspaceSourceExports,
 } from "@brains/build-tools";
 
 const packageDir = join(import.meta.dir, "..");
@@ -40,6 +41,7 @@ copyDeployScripts(join(packageDir, "templates", "deploy", "scripts"), [
   "create-predeploy-backup.ts",
   "install-health-watchdog.ts",
   "provision-server.ts",
+  "pull-local-models.ts",
   "update-dns.ts",
   "write-ssh-key.ts",
 ]);
@@ -161,6 +163,13 @@ const sharedExternals = [
   "react-dom/server",
 ];
 
+// The bundle reads first-party workspace packages from the exports their
+// source declares. A release builds this from prepublishOnly while every
+// core-lane publish manifest is prepared, and a prepared manifest exports only
+// what it publishes: @rizom/brain-ui/internal, which the entity templates
+// import, would not resolve (the alpha.649 failure).
+const sourcePlugins = [workspaceSourceExports({ root: monorepoRoot })];
+
 async function bundle(opts: {
   name: string;
   source: string;
@@ -175,6 +184,7 @@ async function bundle(opts: {
     sourcemap: opts.sourcemap,
     jsx: productionReactJsx,
     external: sharedExternals,
+    plugins: sourcePlugins,
     naming: `${opts.name}.js`,
   });
   if (!result.success) {
@@ -201,10 +211,6 @@ const libraryEntries = [
     source: join(import.meta.dir, "..", "src", "entries", "model.ts"),
   },
   {
-    name: "plugins",
-    source: join(import.meta.dir, "..", "src", "entries", "plugins.ts"),
-  },
-  {
     name: "entities",
     source: join(import.meta.dir, "..", "src", "entries", "entities.ts"),
   },
@@ -221,8 +227,8 @@ const libraryEntries = [
     source: join(import.meta.dir, "..", "src", "entries", "chat.ts"),
   },
   {
-    name: "templates",
-    source: join(import.meta.dir, "..", "src", "entries", "templates.ts"),
+    name: "testing",
+    source: join(import.meta.dir, "..", "src", "entries", "testing.ts"),
   },
   {
     name: "deploy",
@@ -247,6 +253,7 @@ async function bundleLibraries(): Promise<void> {
     sourcemap: "linked",
     jsx: productionReactJsx,
     external: sharedExternals,
+    plugins: sourcePlugins,
     naming: {
       entry: "[name].js",
       chunk: "chunks/[name]-[hash].js",
@@ -271,6 +278,7 @@ async function bundleLibraries(): Promise<void> {
     splitting: false,
     sourcemap: "linked",
     external: sharedExternals,
+    plugins: sourcePlugins,
     naming: "[name].js",
   });
   if (!browserResult.success) {
@@ -372,13 +380,10 @@ const cliBuild = bundle({
 
 // Removed alpha authoring subpaths must not survive from an earlier build in
 // the package-wide dist directory.
-for (const legacySiteArtifact of [
-  "site.js",
-  "site.js.map",
-  "site.d.ts",
-  "site.d.ts.map",
-]) {
-  rmSync(join(outdir, legacySiteArtifact), { force: true });
+for (const removedEntry of ["site", "plugins", "templates"]) {
+  for (const extension of [".js", ".js.map", ".d.ts", ".d.ts.map"]) {
+    rmSync(join(outdir, `${removedEntry}${extension}`), { force: true });
+  }
 }
 
 const libraryBuild = bundleLibraries();

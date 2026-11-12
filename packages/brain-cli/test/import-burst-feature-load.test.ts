@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { availableParallelism, tmpdir } from "node:os";
 import { Shell, type ProjectionRuleDiagnostic } from "@brains/core";
 import { MigrationManager, resolve } from "@brains/app";
-import { DirectorySyncPlugin } from "@brains/directory-sync";
+import { withObservedDirectorySync } from "./helpers/observed-directory-sync";
 import { OperationContext } from "@brains/operation-context";
 import { ConsoleLogger, LogLevel } from "@brains/utils/logger";
 import { canonicalBrain } from "../src/model/canonical-brain";
@@ -319,6 +319,14 @@ describe("directory import burst with locally mocked AI features", () => {
         runtimeStateDatabase: runtimeStateDatabaseUrl,
       });
 
+      const directorySyncOverrides = {
+        autoSync: false,
+
+        seedContent: false,
+
+        initialSync: true,
+      };
+
       const resolved = resolve(
         canonicalBrain,
         {},
@@ -338,17 +346,12 @@ describe("directory import burst with locally mocked AI features", () => {
             "dashboard",
             "admin",
             "mcp",
-            "webserver",
             "web-chat",
             "chat",
             "a2a",
           ],
           plugins: {
-            "directory-sync": {
-              autoSync: false,
-              seedContent: false,
-              initialSync: true,
-            },
+            "directory-sync": directorySyncOverrides,
             topics: {
               enableAutoExtraction: true,
               maxEntitiesPerBatch: 4,
@@ -356,12 +359,17 @@ describe("directory import burst with locally mocked AI features", () => {
           },
         },
       );
+      const observed = withObservedDirectorySync(resolved.plugins ?? [], {
+        // The canonical brain's seed path, under the test's overrides.
+        seedContentPath: "./seed-content",
+        ...directorySyncOverrides,
+      });
 
       shell = Shell.createFresh(
         {
           name: resolved.name,
           version: resolved.version,
-          plugins: resolved.plugins ?? [],
+          plugins: observed.plugins,
           permissions: resolved.permissions ?? {},
           spaces: resolved.spaces ?? [],
           database: { url: databaseUrl },
@@ -371,7 +379,7 @@ describe("directory import burst with locally mocked AI features", () => {
           embeddingDatabase: { url: embeddingDatabaseUrl },
           dataDir,
           ai: {
-            apiKey: MOCK_LOAD_API_KEY,
+            providerKeys: { openai: MOCK_LOAD_API_KEY },
             model: MOCK_LOAD_MODEL,
           },
           embedding: { enabled: true },
@@ -429,14 +437,7 @@ describe("directory import burst with locally mocked AI features", () => {
         },
       );
 
-      const directoryPlugin = runningShell
-        .getPluginManager()
-        .getPlugin("directory-sync");
-      if (!(directoryPlugin instanceof DirectorySyncPlugin)) {
-        throw new Error("Directory sync plugin was not registered");
-      }
-      const directorySync = directoryPlugin.getDirectorySync();
-      if (!directorySync) throw new Error("Directory sync was not initialized");
+      const directorySync = observed.directorySync();
 
       const runPhase = async (
         phase: "add" | "update",
@@ -644,7 +645,16 @@ describe("directory import burst with locally mocked AI features", () => {
           maxObjectCallsPerPhase,
         );
         // Each imported or updated source costs exactly one topic vote read.
-        expect(phase.ai.sourceReads).toEqual(
+        // Extraction scans the whole corpus, so a starter entity's first vote
+        // may land inside a phase on a slow runner; it is checked across the
+        // run below, not here.
+        expect(
+          Object.fromEntries(
+            Object.entries(phase.ai.sourceReads).filter(([source]) =>
+              source.startsWith("note:"),
+            ),
+          ),
+        ).toEqual(
           Object.fromEntries(
             Array.from({ length: IMPORT_COUNT }, (_unused, index) => [
               `note:mocked-feature-load-${index.toString().padStart(4, "0")}`,
@@ -690,6 +700,13 @@ describe("directory import burst with locally mocked AI features", () => {
 
       assertPhase(add, 0);
       assertPhase(update, IMPORT_COUNT);
+      // Sources the import never touched are voted on once, whenever the
+      // corpus scan reaches them, and never again.
+      expect(
+        Object.entries(snapshot.sourceReads).filter(
+          ([source, reads]) => !source.startsWith("note:") && reads !== 1,
+        ),
+      ).toEqual([]);
       expect(resources.samples).toBeGreaterThan(1);
       expect(resources.maxCpuCores).toBeGreaterThan(0);
       if (!resourceAcceptanceEnabled) {

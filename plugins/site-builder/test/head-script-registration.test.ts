@@ -1,8 +1,11 @@
 import { describe, it, expect, afterEach } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
 import { createServicePluginContext } from "@brains/plugins";
-import { SITE_BUILDER_CHANNELS } from "@brains/contracts";
-import { SiteBuilderPlugin } from "../src/plugin";
+import { siteHeadScriptsContract } from "@brains/contracts";
+import {
+  createSiteBuilderPlugin,
+  type SiteBuilderTestPlugin,
+} from "./site-builder-plugin";
 
 // The site builds in the worker process, which registers plugins but takes
 // no ordinary subscriptions and never runs their ready phase. Head scripts
@@ -16,8 +19,8 @@ describe("Head scripts at build time", () => {
 
   async function workerSiteBuilder(
     headScripts: string[] = [],
-  ): Promise<SiteBuilderPlugin> {
-    const plugin = new SiteBuilderPlugin({ headScripts });
+  ): Promise<SiteBuilderTestPlugin> {
+    const plugin = createSiteBuilderPlugin({ headScripts });
     await plugin.register(harness.getMockShell(), { executionOnly: true });
     return plugin;
   }
@@ -25,10 +28,10 @@ describe("Head scripts at build time", () => {
   function contribute(pluginId: string, data: unknown): void {
     createServicePluginContext(harness.getMockShell(), pluginId, {
       executionOnly: true,
-    }).messaging.subscribeExecution(
-      SITE_BUILDER_CHANNELS.headScripts,
-      async () => ({ success: true, data }),
-    );
+    }).messaging.subscribeExecution(siteHeadScriptsContract.name, async () => ({
+      success: true,
+      data,
+    }));
   }
 
   it("collects contributed scripts in the worker, after the site package's own", async () => {

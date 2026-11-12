@@ -1,9 +1,11 @@
 {
   "name": "@brains/core",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.627",
+  "version": "0.2.0-alpha.688",
   "dependencies": {
+    "@brains/atproto-contracts": "workspace:*",
     "@brains/contracts": "workspace:*",
+    "@brains/http-host": "workspace:*",
     "@brains/image": "workspace:*",
     "@brains/operation-context": "workspace:*",
     "@brains/plugins": "workspace:*",
@@ -18,7 +20,6 @@
   "devDependencies": {
     "@brains/ai-service": "workspace:*",
     "@brains/atproto": "workspace:*",
-    "@brains/atproto-contracts": "workspace:*",
     "@brains/content-service": "workspace:*",
     "@brains/conversation-service": "workspace:*",
     "@brains/entity-service": "workspace:*",

@@ -33,7 +33,7 @@ const it = bunIt.skipIf(!packedCompatibilityEvidenceEnabled());
 
 const runtimeEnv = {
   ...process.env,
-  AI_API_KEY: "packed-hermetic-runtime",
+  OPENAI_API_KEY: "packed-hermetic-runtime",
   BRAIN_SKIP_LOCAL_REEXEC: "1",
 };
 
@@ -314,7 +314,6 @@ describe("public authoring Phase 2 packed entity contract", () => {
           entityType: "bookmark",
           id: "deep-focus",
           operation: {
-            kind: "fields",
             fields: { title: "Deep Focus Revised" },
           },
         },

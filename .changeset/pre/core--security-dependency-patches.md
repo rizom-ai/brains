@@ -3,12 +3,12 @@
 "@brains/email": patch
 "@brains/directory-sync": patch
 "@brains/mcp": patch
-"@brains/webserver": patch
+"@brains/http-host": patch
 "@brains/unified-inbox": patch
 "@brains/content-formatters": patch
 "@brains/document": patch
 "@brains/site-engine": patch
-"@brains/ui-library": patch
+"@rizom/brain-ui": patch
 "@brains/utils": patch
 "@brains/ai-evaluation": patch
 "@brains/mcp-service": patch

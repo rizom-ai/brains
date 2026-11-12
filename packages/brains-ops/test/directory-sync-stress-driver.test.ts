@@ -1,5 +1,6 @@
 import { caughtError, createTempDir } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
+import { Database } from "bun:sqlite";
 import { describe, expect, it } from "bun:test";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
@@ -34,6 +35,8 @@ interface ScriptedSystemOptions {
   unreadableContainerInspect?: boolean;
   /** Make /health/operate answer 200 with a body of the wrong shape. */
   malformedQueuePayload?: boolean;
+  /** Make the in-container entity count print something we cannot read. */
+  unreadableEntityCounts?: boolean;
 }
 
 const environment = {
@@ -52,7 +55,7 @@ contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
 bundles:
   - core
-aiApiKey: AI_API_KEY
+openaiApiKey: OPENAI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
 agePublicKey: age1testpublickey
@@ -83,6 +86,7 @@ class ScriptedStressSystem {
   readonly options: ScriptedSystemOptions;
   checkoutDir: string | undefined;
   healthPayloadCalls = 0;
+  entityCountReads = 0;
   renamePayloadReads = 0;
   private clockMs = Date.parse("2026-08-06T06:00:00.000Z");
   private revParseHeadCalls = 0;
@@ -206,29 +210,11 @@ class ScriptedStressSystem {
       }
     }
 
-    const probes = this.checkoutDir
-      ? await listProbeFiles(this.checkoutDir)
-      : [];
-    let probeNotes = probes.length;
-    if (
-      isPayloadPoll &&
-      probes.some((file) => file.includes("stress-renamed-")) &&
-      this.options.renameNoteCounts !== undefined
-    ) {
-      this.renamePayloadReads += 1;
-      probeNotes =
-        this.renameNoteCounts.shift() ??
-        this.options.renameNoteCounts.at(-1) ??
-        probes.length;
-    }
+    // The public payload: health fields only, no entity counts.
     return Response.json({
       status: "ready",
       operationalStatus: "operational",
-      app: {
-        version: "0.2.0-alpha.253",
-        entities: 41 + probeNotes,
-        entityCounts: [{ entityType: "note", count: 7 + probeNotes }],
-      },
+      app: { version: "0.2.0-alpha.253", uptime: 60, daemons: [] },
       resources: {
         queue: {
           totals: { pending: 0, processing: 0 },
@@ -243,6 +229,30 @@ class ScriptedStressSystem {
       },
     });
   };
+
+  /** What the runtime's database holds: 7 notes and 34 others, plus probes. */
+  private async entityCounts(): Promise<
+    Array<{ entityType: string; count: number }>
+  > {
+    const probes = this.checkoutDir
+      ? await listProbeFiles(this.checkoutDir)
+      : [];
+    let probeNotes = probes.length;
+    if (
+      probes.some((file) => file.includes("stress-renamed-")) &&
+      this.options.renameNoteCounts !== undefined
+    ) {
+      this.renamePayloadReads += 1;
+      probeNotes =
+        this.renameNoteCounts.shift() ??
+        this.options.renameNoteCounts.at(-1) ??
+        probes.length;
+    }
+    return [
+      { entityType: "note", count: 7 + probeNotes },
+      { entityType: "topic", count: 34 },
+    ];
+  }
 
   commandRunner: StressCommandRunner = async (
     command: string,
@@ -350,6 +360,18 @@ class ScriptedStressSystem {
       }
       if (remote[0] === "docker" && remote[1] === "logs") {
         return ok(this.options.runtimeLog ?? "runtime evidence\n");
+      }
+      if (
+        remote[0] === "docker" &&
+        remote[1] === "exec" &&
+        remote[3] === "bun" &&
+        remote[4] === "-e"
+      ) {
+        this.entityCountReads += 1;
+        if (this.options.unreadableEntityCounts) {
+          return ok("not json at all");
+        }
+        return ok(`${JSON.stringify(await this.entityCounts())}\n`);
       }
       if (remote[0] === "docker" && remote[1] === "exec") {
         return ok();
@@ -549,6 +571,75 @@ describe("deployed directory-sync stress driver", () => {
     );
 
     expect(outcome).toContain("Unexpected /health/operate payload");
+  });
+
+  it("reads entity counts from the runtime database over SSH", async () => {
+    // /health/operate answers without a session and carries no counts, so
+    // baselines come from the runtime container the harness reaches by SSH.
+    const system = new ScriptedStressSystem();
+    const { artifactsDir, result } = await runScriptedProfile(
+      "regression",
+      system,
+    );
+
+    expect(result.report.success).toBe(true);
+    expect(result.report.baseline).toEqual({
+      entities: 41,
+      notes: 7,
+      version: "0.2.0-alpha.253",
+    });
+    expect(result.report.cleanup).toMatchObject({
+      finalEntities: 41,
+      finalNotes: 7,
+    });
+    expect(system.entityCountReads).toBeGreaterThan(0);
+    const countReads = relevantGitAndSshCalls(system.calls).filter(
+      (command) =>
+        command.startsWith("ssh docker exec rover-web-smoke bun -e '") &&
+        command.includes("bun:sqlite") &&
+        command.includes("brain.db") &&
+        command.endsWith("'"),
+    );
+    expect(countReads).toHaveLength(system.entityCountReads);
+
+    // The program the remote shell receives runs against a real database.
+    const quoted = countReads[0] ?? "";
+    const program = quoted.slice(quoted.indexOf("'") + 1, -1);
+    expect(program).not.toContain("'");
+    const dataDir = await createTempDir("brains-ops-entity-counts-");
+    const database = new Database(join(dataDir, "brain.db"));
+    database.run('CREATE TABLE entities (id TEXT, "entityType" TEXT)');
+    database.run("INSERT INTO entities VALUES ('a', 'note'), ('b', 'note')");
+    database.run("INSERT INTO entities VALUES ('c', 'topic')");
+    database.close();
+    const child = Bun.spawn(["bun", "-e", program], {
+      env: { ...process.env, XDG_DATA_HOME: dataDir },
+      stdout: "pipe",
+    });
+    expect(await child.exited).toBe(0);
+    expect(JSON.parse(await new Response(child.stdout).text())).toEqual([
+      { entityType: "note", count: 2 },
+      { entityType: "topic", count: 1 },
+    ]);
+
+    expect(
+      JSON.parse(await readFile(join(artifactsDir, "state.json"), "utf8")),
+    ).toMatchObject({
+      baseline: { entities: 41, notes: 7, version: "0.2.0-alpha.253" },
+    });
+  });
+
+  it("fails the run when the entity counts cannot be read", async () => {
+    // An answer we cannot parse is not "no reading yet": polling on would
+    // burn the whole baseline window and then blame health.
+    const system = new ScriptedStressSystem({ unreadableEntityCounts: true });
+
+    const outcome = await runScriptedProfile("regression", system).then(
+      ({ result }) => `reported success=${result.report.success}`,
+      (error: unknown) => caughtError(error).message,
+    );
+
+    expect(outcome).toContain("Could not read entity counts");
   });
 
   it("fails the run when the container state cannot be read", async () => {

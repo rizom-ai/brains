@@ -1,12 +1,15 @@
 import { createMockShell } from "../src/test/mock-shell";
 import { describe, expect, it } from "bun:test";
-import { DASHBOARD_CHANNELS } from "@brains/contracts";
+import { SdkError } from "@brains/contracts";
 import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import {
   DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
-  STUDIO_OVERVIEW_REGISTER_MESSAGE,
-  STUDIO_OVERVIEW_UNREGISTER_MESSAGE,
+  createServicePluginContext,
+  dashboardWidgetRegisterContract,
+  dashboardWidgetUnregisterContract,
+  studioOverviewContributionRegisterContract,
+  studioOverviewContributionUnregisterContract,
   defineAccountSettings,
   defineDashboardWidget,
   defineEntity,
@@ -110,24 +113,35 @@ describe("declarative dashboard widget runtime", () => {
         ],
       }),
     });
-    const definition = defineServicePlugin({
-      id: "reading-operator",
-      config: z.object({}),
-      accountSettings: settings,
-      setup: () => ({ title: "My library" }),
-      dashboardWidgets: (context) => [
-        widget.bind(context, async ({ entities, settings: current }) => ({
-          title: context.state.title,
-          connected:
-            current?.endpoint === "https://reading.example" &&
-            !Object.hasOwn(current, "token"),
-          count: (await entities.list(readingItem)).length,
-        })),
-      ],
-    });
+    const definition = defineServicePlugin(
+      {
+        id: "reading-operator",
+        config: z.object({}),
+        accountSettings: settings,
+        setup: () => ({ title: "My library" }),
+      },
+      {
+        dashboardWidgets: (context) => [
+          widget.bind(context, async ({ entities, settings: current }) => ({
+            title: context.state.title,
+            connected:
+              current?.endpoint === "https://reading.example" &&
+              !Object.hasOwn(current, "token"),
+            count: (await entities.list(readingItem)).length,
+          })),
+        ],
+      },
+    );
 
     const logger = createSilentLogger("declarative-dashboard-runtime");
-    const shell = createMockShell({ logger });
+    // The viewer signed in to the Dashboard with a trusted account.
+    const shell = createMockShell({
+      logger,
+      resolvePrincipal: async (actor) =>
+        actor.kind === "user" && actor.userId === "actor-1"
+          ? { userId: "actor-1", permissionLevel: "trusted" }
+          : null,
+    });
     shell.getAccountSettingsRegistry().bindBackend(
       accountBackend({
         "actor-1": {
@@ -166,7 +180,7 @@ describe("declarative dashboard widget runtime", () => {
     shell
       .getMessageBus()
       .subscribe<HostRegistration>(
-        DASHBOARD_CHANNELS.registerWidget,
+        dashboardWidgetRegisterContract.name,
         (message) => {
           registrations.push(message.payload);
           return { success: true };
@@ -175,7 +189,7 @@ describe("declarative dashboard widget runtime", () => {
     shell
       .getMessageBus()
       .subscribe<HostRegistration>(
-        STUDIO_OVERVIEW_REGISTER_MESSAGE,
+        studioOverviewContributionRegisterContract.name,
         (message) => {
           overviewRegistrations.push(message.payload);
           return { success: true };
@@ -184,7 +198,7 @@ describe("declarative dashboard widget runtime", () => {
     shell
       .getMessageBus()
       .subscribe<{ widgetId?: string }>(
-        DASHBOARD_CHANNELS.unregisterWidget,
+        dashboardWidgetUnregisterContract.name,
         (message) => {
           if (message.payload.widgetId) {
             unregistered.push(message.payload.widgetId);
@@ -195,7 +209,7 @@ describe("declarative dashboard widget runtime", () => {
     shell
       .getMessageBus()
       .subscribe<{ contributionId?: string }>(
-        STUDIO_OVERVIEW_UNREGISTER_MESSAGE,
+        studioOverviewContributionUnregisterContract.name,
         (message) => {
           if (message.payload.contributionId) {
             overviewUnregistered.push(message.payload.contributionId);
@@ -288,27 +302,36 @@ describe("declarative dashboard widget runtime", () => {
         ],
       }),
     });
-    const definition = defineServicePlugin({
-      id: "job-backed-operator",
-      config: z.object({}),
-      jobs: () => [refreshDigest.handle(async () => ({ refreshed: true }))],
-      dashboardWidgets: (context) => [
-        widget.bind(context, async ({ caller, jobs }) => {
-          const reference = await jobs.enqueue(refreshDigest, {
-            actorId: caller?.actor.id ?? "public",
-          });
-          return { jobId: reference.id };
-        }),
-      ],
-    });
+    const definition = defineServicePlugin(
+      {
+        id: "job-backed-operator",
+        config: z.object({}),
+      },
+      {
+        jobs: () => [refreshDigest.handle(async () => ({ refreshed: true }))],
+        dashboardWidgets: (context) => [
+          widget.bind(context, async ({ caller, jobs }) => {
+            const reference = await jobs.enqueue(refreshDigest, {
+              actorId: caller?.actor.id ?? "public",
+            });
+            return { jobId: reference.id };
+          }),
+        ],
+      },
+    );
     const shell = createMockShell({
       logger: createSilentLogger("dashboard-typed-job"),
+      // The viewer starts the job, so its account must resolve.
+      resolvePrincipal: async () => ({
+        userId: "actor-1",
+        permissionLevel: "trusted",
+      }),
     });
     const registrations: HostRegistration[] = [];
     shell
       .getMessageBus()
       .subscribe<HostRegistration>(
-        DASHBOARD_CHANNELS.registerWidget,
+        dashboardWidgetRegisterContract.name,
         (message) => {
           registrations.push(message.payload);
           return { success: true };
@@ -406,15 +429,19 @@ describe("declarative dashboard widget runtime", () => {
         ],
       }),
     });
-    const definition = defineServicePlugin({
-      id: "invalid-operator",
-      config: z.object({}),
-      dashboardWidgets: (context) => [
-        invalidDataWidget.bind(context, () => ({ count: "wrong" })),
-        unsafeViewWidget.bind(context, () => ({ count: 1 })),
-        invalidSpatialWidget.bind(context, () => ({})),
-      ],
-    });
+    const definition = defineServicePlugin(
+      {
+        id: "invalid-operator",
+        config: z.object({}),
+      },
+      {
+        dashboardWidgets: (context) => [
+          invalidDataWidget.bind(context, () => ({ count: "wrong" })),
+          unsafeViewWidget.bind(context, () => ({ count: 1 })),
+          invalidSpatialWidget.bind(context, () => ({})),
+        ],
+      },
+    );
     const shell = createMockShell({
       logger: createSilentLogger("invalid-dashboard-runtime"),
     });
@@ -422,7 +449,7 @@ describe("declarative dashboard widget runtime", () => {
     shell
       .getMessageBus()
       .subscribe<HostRegistration>(
-        DASHBOARD_CHANNELS.registerWidget,
+        dashboardWidgetRegisterContract.name,
         (message) => {
           registrations.set(message.payload.id, message.payload);
           return { success: true };
@@ -430,7 +457,7 @@ describe("declarative dashboard widget runtime", () => {
       );
     shell
       .getMessageBus()
-      .subscribe(DASHBOARD_CHANNELS.unregisterWidget, () => ({
+      .subscribe(dashboardWidgetUnregisterContract.name, () => ({
         success: true,
       }));
 
@@ -609,22 +636,28 @@ describe("declarative dashboard widget runtime", () => {
       data: z.object({}),
       view: () => ({ blocks: [] }),
     });
-    const definition = defineServicePlugin({
-      id: "duplicate-operator",
-      config: z.object({}),
-      dashboardWidgets: (context) => [
-        widget.bind(context, () => ({})),
-        widget.bind(context, () => ({})),
-      ],
-    });
+    const definition = defineServicePlugin(
+      {
+        id: "duplicate-operator",
+        config: z.object({}),
+      },
+      {
+        dashboardWidgets: (context) => [
+          widget.bind(context, () => ({})),
+          widget.bind(context, () => ({})),
+        ],
+      },
+    );
     const shell = createMockShell({
       logger: createSilentLogger("dashboard-duplicate"),
     });
     let registrations = 0;
-    shell.getMessageBus().subscribe(DASHBOARD_CHANNELS.registerWidget, () => {
-      registrations += 1;
-      return { success: true };
-    });
+    shell
+      .getMessageBus()
+      .subscribe(dashboardWidgetRegisterContract.name, () => {
+        registrations += 1;
+        return { success: true };
+      });
 
     const plugin = instantiate(definition);
     await plugin.register(shell);
@@ -653,14 +686,18 @@ describe("declarative dashboard widget runtime", () => {
       data: z.object({}),
       view: () => ({ blocks: [] }),
     });
-    const definition = defineServicePlugin({
-      id: "rollback-operator",
-      config: z.object({}),
-      dashboardWidgets: (context) => [
-        first.bind(context, () => ({})),
-        second.bind(context, () => ({})),
-      ],
-    });
+    const definition = defineServicePlugin(
+      {
+        id: "rollback-operator",
+        config: z.object({}),
+      },
+      {
+        dashboardWidgets: (context) => [
+          first.bind(context, () => ({})),
+          second.bind(context, () => ({})),
+        ],
+      },
+    );
     const shell = createMockShell({
       logger: createSilentLogger("dashboard-rollback"),
     });
@@ -669,7 +706,7 @@ describe("declarative dashboard widget runtime", () => {
     shell
       .getMessageBus()
       .subscribe<HostRegistration>(
-        DASHBOARD_CHANNELS.registerWidget,
+        dashboardWidgetRegisterContract.name,
         (message) => {
           registered.push(message.payload.id);
           return message.payload.id === "second"
@@ -680,7 +717,7 @@ describe("declarative dashboard widget runtime", () => {
     shell
       .getMessageBus()
       .subscribe<{ widgetId?: string }>(
-        DASHBOARD_CHANNELS.unregisterWidget,
+        dashboardWidgetUnregisterContract.name,
         (message) => {
           if (message.payload.widgetId) {
             unregistered.push(message.payload.widgetId);
@@ -711,25 +748,31 @@ describe("declarative dashboard widget runtime", () => {
     });
     let factories = 0;
     let registrations = 0;
-    const definition = defineServicePlugin({
-      id: "worker-operator",
-      config: z.object({}),
-      dashboardWidgets: (context) => {
-        factories += 1;
-        return [widget.bind(context, () => ({}))];
+    const definition = defineServicePlugin(
+      {
+        id: "worker-operator",
+        config: z.object({}),
       },
-      studioWorkspaces: () => {
-        factories += 1;
-        return [];
+      {
+        dashboardWidgets: (context) => {
+          factories += 1;
+          return [widget.bind(context, () => ({}))];
+        },
+        studioWorkspaces: () => {
+          factories += 1;
+          return [];
+        },
       },
-    });
+    );
     const shell = createMockShell({
       logger: createSilentLogger("dashboard-worker-exclusion"),
     });
-    shell.getMessageBus().subscribe(DASHBOARD_CHANNELS.registerWidget, () => {
-      registrations += 1;
-      return { success: true };
-    });
+    shell
+      .getMessageBus()
+      .subscribe(dashboardWidgetRegisterContract.name, () => {
+        registrations += 1;
+        return { success: true };
+      });
 
     const plugin = instantiate(definition);
     await plugin.register(shell, { executionOnly: true });
@@ -750,21 +793,25 @@ describe("declarative dashboard widget runtime", () => {
       data: z.object({ done: z.boolean() }),
       view: () => ({ blocks: [] }),
     });
-    const definition = defineServicePlugin({
-      id: "slow-operator",
-      config: z.object({}),
-      dashboardWidgets: (context) => [
-        widget.bind(
-          context,
-          ({ signal }) =>
-            new Promise<{ done: boolean }>((resolve, reject) => {
-              const onAbort = (): void => reject(signal.reason);
-              signal.addEventListener("abort", onAbort, { once: true });
-              void resolve;
-            }),
-        ),
-      ],
-    });
+    const definition = defineServicePlugin(
+      {
+        id: "slow-operator",
+        config: z.object({}),
+      },
+      {
+        dashboardWidgets: (context) => [
+          widget.bind(
+            context,
+            ({ signal }) =>
+              new Promise<{ done: boolean }>((resolve, reject) => {
+                const onAbort = (): void => reject(signal.reason);
+                signal.addEventListener("abort", onAbort, { once: true });
+                void resolve;
+              }),
+          ),
+        ],
+      },
+    );
     const shell = createMockShell({
       logger: createSilentLogger("dashboard-shutdown"),
     });
@@ -772,7 +819,7 @@ describe("declarative dashboard widget runtime", () => {
     shell
       .getMessageBus()
       .subscribe<HostRegistration>(
-        DASHBOARD_CHANNELS.registerWidget,
+        dashboardWidgetRegisterContract.name,
         (message) => {
           registrations.push(message.payload);
           return { success: true };
@@ -780,7 +827,7 @@ describe("declarative dashboard widget runtime", () => {
       );
     shell
       .getMessageBus()
-      .subscribe(DASHBOARD_CHANNELS.unregisterWidget, () => ({
+      .subscribe(dashboardWidgetUnregisterContract.name, () => ({
         success: true,
       }));
 
@@ -796,5 +843,117 @@ describe("declarative dashboard widget runtime", () => {
     const shutdown = plugin.shutdown?.();
     expect(pending).rejects.toThrow("shutting down");
     await shutdown;
+  });
+});
+
+describe("dashboard namespace on the widget contracts", () => {
+  const widget: DashboardWidgetRegistration = {
+    id: "library",
+    title: "Library",
+    group: "knowledge",
+    rendererName: DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
+    visibility: "trusted",
+    dataProvider: async () => ({ view: { blocks: [] } }),
+  };
+
+  it("contributes nothing when no host is mounted", async () => {
+    const context = createServicePluginContext(createMockShell(), "reading");
+
+    expect(context.dashboard.isAvailable()).toBe(false);
+    expect(await context.dashboard.registerWidget(widget)).toBe(false);
+    expect(await context.dashboard.unregisterWidget("library")).toBe(false);
+  });
+
+  it("leaves a widget unchecked by a host that is not mounted", async () => {
+    const shell = createMockShell();
+    createServicePluginContext(shell, "host").messaging.answer(
+      dashboardWidgetRegisterContract,
+      async () => {},
+    );
+    const context = createServicePluginContext(shell, "reading");
+
+    // Overview's limits (an integer priority) apply only where Studio runs.
+    expect(
+      await context.dashboard.registerWidget({ ...widget, priority: 1.5 }),
+    ).toBe(true);
+  });
+
+  it("sends the widget, stamped with its plugin, to both hosts", async () => {
+    const shell = createMockShell();
+    const dashboard: unknown[] = [];
+    const overview: unknown[] = [];
+    const withdrawn: unknown[] = [];
+    const host = createServicePluginContext(shell, "host");
+    host.messaging.answer(dashboardWidgetRegisterContract, async (request) => {
+      dashboard.push(request.pluginId);
+    });
+    host.messaging.answer(
+      studioOverviewContributionRegisterContract,
+      async (request) => {
+        overview.push(request.pluginId);
+      },
+    );
+    host.messaging.answer(
+      dashboardWidgetUnregisterContract,
+      async (request) => {
+        withdrawn.push(request);
+      },
+    );
+    host.messaging.answer(
+      studioOverviewContributionUnregisterContract,
+      async (request) => {
+        withdrawn.push(request);
+      },
+    );
+    const context = createServicePluginContext(shell, "reading");
+
+    expect(await context.dashboard.registerWidget(widget)).toBe(true);
+    expect(await context.dashboard.unregisterWidget("library")).toBe(true);
+    expect(dashboard).toEqual(["reading"]);
+    expect(overview).toEqual(["reading"]);
+    expect(withdrawn).toEqual([
+      { pluginId: "reading", widgetId: "library" },
+      { pluginId: "reading", contributionId: "library" },
+    ]);
+  });
+
+  it("throws the host's refusal with its code and public message", async () => {
+    const shell = createMockShell();
+    createServicePluginContext(shell, "host").messaging.answer(
+      dashboardWidgetRegisterContract,
+      async () => {
+        throw new SdkError("conflict", {
+          publicMessage: "host rejected widget",
+        });
+      },
+    );
+    const context = createServicePluginContext(shell, "reading");
+
+    const refusal: unknown = await context.dashboard
+      .registerWidget(widget)
+      .catch((error: unknown) => error);
+    expect(refusal).toBeInstanceOf(SdkError);
+    expect(refusal).toMatchObject({
+      code: "conflict",
+      publicMessage: "host rejected widget",
+      message: "Dashboard widget register failed: host rejected widget",
+    });
+  });
+
+  it("keeps a host's diagnostic out of the refusal the plugin is told", async () => {
+    const shell = createMockShell();
+    createServicePluginContext(shell, "host").messaging.answer(
+      dashboardWidgetRegisterContract,
+      async () => {
+        throw new Error("widget store at /var/brain is locked");
+      },
+    );
+    const context = createServicePluginContext(shell, "reading");
+
+    const refusal: unknown = await context.dashboard
+      .registerWidget(widget)
+      .catch((error: unknown) => error);
+    expect(refusal).toMatchObject({ code: "handler_failed" });
+    expect(String(refusal)).not.toContain("/var/brain");
   });
 });

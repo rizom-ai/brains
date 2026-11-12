@@ -11,11 +11,13 @@ import { createMockEntityService } from "@brains/entity-service/test";
  * same functions were exempt for the same reason, just implicitly.
  */
 import type { SystemServices } from "../../src/system/types";
+import { createEnqueueJobFn } from "@brains/job-queue";
 import { createSilentLogger } from "@brains/test-utils";
 import {
   EntityRegistry,
   getVisibleContentVisibilities,
   parseMarkdownWithFrontmatter,
+  editableFieldsOf,
   type BaseEntity,
   type EntitySearchRequest,
   type ListEntitiesRequest,
@@ -38,6 +40,7 @@ interface Parser<T> {
 }
 
 import { createAnalyticsRegistry } from "../../src/system/analytics";
+import { DEFAULT_SEARCH_BUDGET } from "../../src/system/search-excerpt";
 
 /**
  * Create mock SystemServices for testing system tools.
@@ -48,6 +51,21 @@ import { createAnalyticsRegistry } from "../../src/system/analytics";
  * service: a test that stubs `getMessages` used to have to assert the gap away,
  * and then had no working implementation of anything else on it.
  */
+/** A post's frontmatter, as the blog plugin declares it. */
+export const postFrontmatter: z.ZodObject = z.object({
+  title: z.string(),
+  slug: z.string().optional(),
+  status: z.enum(["draft", "queued", "published"]),
+  publishedAt: z.string().optional(),
+  excerpt: z.string().optional(),
+  author: z.string().optional(),
+  coverImageId: z.string().optional(),
+  ogImageId: z.string().optional(),
+  seriesName: z.string().optional(),
+  seriesIndex: z.number().optional(),
+  canonicalUrl: z.string().optional(),
+});
+
 export function createMockSystemServices(
   overrides: Partial<Omit<SystemServices, "conversationService">> & {
     conversationService?: Partial<SystemServices["conversationService"]>;
@@ -58,7 +76,14 @@ export function createMockSystemServices(
   /** Seed entities for testing */
   addEntities: (entities: SeedEntity[]) => void;
   /** Register entity types without seeding entities (mirrors plugin registration) */
-  registerEntityTypes: (types: string[]) => void;
+  /**
+   * Register entity types without seeding entities (mirrors plugin
+   * registration), each with the frontmatter its adapter declares when given.
+   */
+  registerEntityTypes: (
+    types: string[],
+    frontmatter?: Record<string, z.ZodObject>,
+  ) => void;
   /** Get the last job enqueued via jobs.enqueue */
   getLastEnqueuedJob: () => { type: string; data: unknown } | undefined;
   /** Get the last direct create request */
@@ -88,15 +113,26 @@ export function createMockSystemServices(
     }
   };
 
-  const registerEntityTypes = (types: string[]): void => {
+  // Frontmatter a test declares for a registered type, as its adapter would.
+  const declaredFrontmatter = new Map<string, z.ZodObject>();
+  const registerEntityTypes = (
+    types: string[],
+    frontmatter: Record<string, z.ZodObject> = {},
+  ): void => {
     for (const type of types) {
       registeredTypes.add(type);
+      const schema = frontmatter[type];
+      if (schema) declaredFrontmatter.set(type, schema);
     }
   };
 
   const createInterceptors = new Map<
     string,
     (...args: unknown[]) => Promise<unknown>
+  >();
+  const generationEnqueuers = new Map<
+    string,
+    (data: Record<string, unknown>, toolContext: unknown) => Promise<string>
   >();
   const uploadSaveHandlers: Array<{
     entityType: string;
@@ -108,6 +144,13 @@ export function createMockSystemServices(
     title: z.string().optional(),
     status: z.string().optional(),
   });
+
+  const editableFields = (type: string): z.ZodObject | undefined => {
+    const schema =
+      declaredFrontmatter.get(type) ??
+      (entityTypes.has(type) ? defaultFrontmatterSchema : undefined);
+    return schema && editableFieldsOf(schema);
+  };
 
   const parseFrontMatter = <T>(markdown: string, schema: Parser<T>): T =>
     parseMarkdownWithFrontmatter(markdown, schema).metadata;
@@ -230,7 +273,13 @@ export function createMockSystemServices(
       return {};
     },
     getEffectiveFrontmatterSchema: (type: string) =>
-      entityTypes.has(type) ? defaultFrontmatterSchema : undefined,
+      declaredFrontmatter.get(type) ??
+      (entityTypes.has(type) ? defaultFrontmatterSchema : undefined),
+    getEditableFieldsSchema: editableFields,
+    // The mock declares no groupings: they are always current.
+    ensureGroupingsCurrent: async (): Promise<void> => {},
+    // The mock's types take no fields on create alone.
+    getCreateFieldsSchema: editableFields,
     registerCreateInterceptor: (
       type: string,
       interceptor: (...args: unknown[]) => Promise<unknown>,
@@ -238,6 +287,16 @@ export function createMockSystemServices(
       createInterceptors.set(type, interceptor);
     },
     getCreateInterceptor: (type: string) => createInterceptors.get(type),
+    registerGenerationEnqueuer: (
+      type: string,
+      enqueuer: (
+        data: Record<string, unknown>,
+        toolContext: unknown,
+      ) => Promise<string>,
+    ) => {
+      generationEnqueuers.set(type, enqueuer);
+    },
+    getGenerationEnqueuer: (type: string) => generationEnqueuers.get(type),
     registerUploadSaveHandler: (registration: {
       entityType: string;
       mediaTypes: string[];
@@ -454,16 +513,19 @@ export function createMockSystemServices(
     data: unknown;
   }> = [];
   const jobs = {
-    enqueue: async (request: {
-      type: string;
-      data: unknown;
-    }): Promise<string> => {
-      enqueuedJobs.push({
-        type: request.type,
-        data: request.data,
-      });
-      return `job-${Date.now()}`;
-    },
+    // The system tools' own enqueue, over a queue that records what it gets.
+    enqueue: createEnqueueJobFn(
+      {
+        enqueue: async (request): Promise<string> => {
+          enqueuedJobs.push({ type: request.type, data: request.data });
+          return `job-${Date.now()}`;
+        },
+      },
+      "system",
+      false,
+    ),
+    // No job's owner is installed in this fake.
+    has: () => false,
     enqueueBatch: async () => `batch-${Date.now()}`,
     getLastEnqueued: () => enqueuedJobs[enqueuedJobs.length - 1],
     registerHandler: () => {},
@@ -501,6 +563,7 @@ export function createMockSystemServices(
   };
 
   const runtimeUploads: SystemServices["runtimeUploads"] = {
+    retire: unreached("retire"),
     scoped: () => ({
       readRecord: async (): Promise<never> => {
         throw new Error("Upload ref not found");
@@ -599,7 +662,7 @@ export function createMockSystemServices(
       endpoints: [],
       interactions: [],
     }),
-    searchLimit: 10,
+    searchBudget: DEFAULT_SEARCH_BUDGET,
     analytics: createAnalyticsRegistry(entityRegistry),
     permissionService: new PermissionService({}),
     ...overrides,

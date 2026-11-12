@@ -65,6 +65,7 @@ const testJob: JobInfo = {
   retryCount: 0,
   maxRetries: 3,
   lastError: null,
+  lastErrorPublic: null,
   createdAt: Date.now(),
   scheduledFor: Date.now(),
   startedAt: Date.now(),

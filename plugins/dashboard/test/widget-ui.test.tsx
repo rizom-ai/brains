@@ -10,7 +10,7 @@ import {
   WidgetList,
   WidgetListItem,
   WidgetTabs,
-} from "@brains/ui-library";
+} from "@rizom/brain-ui/internal";
 import { DeclarativeWidgetBody } from "../src/render/declarative-widget";
 import type { RenderableWidgetData } from "../src/render/types";
 

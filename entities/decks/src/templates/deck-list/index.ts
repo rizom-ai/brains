@@ -1,4 +1,7 @@
-import { createTemplate, type Template } from "@brains/templates";
+import {
+  createTemplate,
+  type Template,
+} from "@brains/sdk/internal/presentation";
 import {
   enrichedDeckListSchema,
   renderedDeckListSchema,

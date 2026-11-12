@@ -1,13 +1,20 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
-  PLAYBOOKS_REGISTER_LIFECYCLE_STARTER,
+  lifecycleStarterRegistrationContract,
+  playbookSeedContract,
   type LifecycleStarterRegistration,
 } from "@brains/contracts";
-import type { Plugin, ServicePluginContext } from "@brains/plugins";
-import { ServicePlugin, SYSTEM_CHANNELS } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
-import packageJson from "../package.json";
+import {
+  defineServicePlugin,
+  z,
+  type ServicePackageDefinition,
+} from "@brains/sdk/services";
+import {
+  SYSTEM_CHANNELS,
+  serviceRuntime,
+} from "@brains/sdk/internal/service-runtime";
+import { isNotFoundError } from "@brains/utils/predicates";
 
 const onboardingConfigSchema: z.ZodObject<
   { enabled: z.ZodDefault<z.ZodBoolean> },
@@ -48,70 +55,6 @@ const bundledPlaybooks: BundledPlaybook[] = [
   },
 ];
 
-export class OnboardingPlugin extends ServicePlugin<
-  OnboardingConfig,
-  OnboardingConfigInput
-> {
-  readonly dependencies: string[] = ["playbook", "playbooks"];
-
-  constructor(config: OnboardingConfigInput = {}) {
-    super("onboarding", packageJson, config, onboardingConfigSchema);
-  }
-
-  protected override async onRegister(
-    context: ServicePluginContext,
-  ): Promise<void> {
-    if (!this.config.enabled) return;
-
-    // Seeded once startup content settles, so a content repo's own playbooks
-    // are imported first and never preceded by the bundled ones.
-    context.messaging.subscribe(
-      SYSTEM_CHANNELS.startupContentSettled,
-      async () => {
-        for (const playbook of bundledPlaybooks) {
-          await this.seedPlaybookIfMissing(context, playbook);
-        }
-        return { success: true };
-      },
-    );
-  }
-
-  protected override async onReady(
-    context: ServicePluginContext,
-  ): Promise<void> {
-    if (!this.config.enabled) return;
-
-    for (const playbook of bundledPlaybooks) {
-      if (!playbook.starter) continue;
-      await context.messaging.send({
-        type: PLAYBOOKS_REGISTER_LIFECYCLE_STARTER,
-        payload: playbook.starter,
-      });
-    }
-  }
-
-  private async seedPlaybookIfMissing(
-    context: ServicePluginContext,
-    playbook: BundledPlaybook,
-  ): Promise<void> {
-    const existing = await context.entityService.getEntity({
-      entityType: "playbook",
-      id: playbook.id,
-      visibilityScope: "restricted",
-    });
-    if (existing) return;
-
-    const markdown = await readBundledPlaybook(playbook.fileName);
-    await context.entityService.createEntityFromMarkdown({
-      input: {
-        entityType: "playbook",
-        id: playbook.id,
-        markdown,
-      },
-    });
-  }
-}
-
 async function readBundledPlaybook(fileName: string): Promise<string> {
   try {
     return await readFile(
@@ -119,18 +62,55 @@ async function readBundledPlaybook(fileName: string): Promise<string> {
       "utf8",
     );
   } catch (error) {
-    if (
-      !(error instanceof Error) ||
-      !("code" in error) ||
-      error.code !== "ENOENT"
-    ) {
-      throw error;
-    }
+    if (!isNotFoundError(error)) throw error;
   }
 
   return readFile(join(import.meta.dir, "onboarding", fileName), "utf8");
 }
 
-export function onboardingPlugin(config: OnboardingConfigInput = {}): Plugin {
-  return new OnboardingPlugin(config);
-}
+/**
+ * Onboarding: the bundled playbooks that set a new brain up, and the
+ * starter that offers the first one to the first admin in web chat.
+ */
+const onboardingPackage: ServicePackageDefinition<
+  typeof onboardingConfigSchema
+> = defineServicePlugin(
+  { id: "onboarding", config: onboardingConfigSchema },
+  {
+    subscriptions: (context) => {
+      if (!context.config.enabled) return [];
+      const { messaging } = context;
+      const runtime = serviceRuntime(context);
+
+      // Seeded once startup content settles, so a content repo's own
+      // playbooks are imported first and never preceded by the bundled ones.
+      // The playbook type's steward writes each only where none exists.
+      runtime.listen(SYSTEM_CHANNELS.startupContentSettled, async () => {
+        for (const playbook of bundledPlaybooks) {
+          const seeded = await messaging.request(playbookSeedContract, {
+            id: playbook.id,
+            markdown: await readBundledPlaybook(playbook.fileName),
+          });
+          if (seeded.status !== "answered") {
+            throw new Error(
+              `Bundled playbook "${playbook.id}" was not seeded: ${seeded.status === "failed" ? seeded.error.message : "no playbook plugin answers"}`,
+            );
+          }
+        }
+      });
+
+      runtime.ready(async () => {
+        for (const playbook of bundledPlaybooks) {
+          if (!playbook.starter) continue;
+          await messaging.request(
+            lifecycleStarterRegistrationContract,
+            playbook.starter,
+          );
+        }
+      });
+      return [];
+    },
+  },
+);
+
+export default onboardingPackage;

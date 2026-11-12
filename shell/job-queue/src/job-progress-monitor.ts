@@ -1,4 +1,3 @@
-import { JOB_CHANNELS } from "@brains/contracts";
 import type { Logger } from "@brains/utils/logger";
 import {
   CallbackProgressReporter,
@@ -9,11 +8,11 @@ import type {
   IJobProgressMonitor,
   ProgressNotification,
 } from "@brains/utils/progress";
-import type { IMessageBus } from "@brains/messaging-service";
+import { broadcastChannel, type IMessageBus } from "@brains/messaging-service";
 import type { IBatchJobManager, IJobQueueService, JobInfo } from "./types";
 import { JobContextSchema, type JobContext } from "./schema/types";
 import type { BatchJobStatus } from "./batch-schemas";
-import type { JobProgressEvent } from "./schemas";
+import { jobProgressChannel, type JobProgressEvent } from "./schemas";
 
 const jobResultRecordSchema = z.preprocess(
   (value) => {
@@ -194,12 +193,12 @@ export class JobProgressMonitor implements IJobProgressMonitor {
         };
       }
 
-      await this.messageBus.send({
-        type: JOB_CHANNELS.progress,
-        payload: event,
-        sender: "job-progress-monitor",
-        broadcast: true,
-      });
+      await broadcastChannel(
+        this.messageBus,
+        jobProgressChannel,
+        event,
+        "job-progress-monitor",
+      );
 
       this.logger.debug("Emitted batch progress update", {
         batchId,
@@ -224,12 +223,12 @@ export class JobProgressMonitor implements IJobProgressMonitor {
   }
 
   private async broadcastEvent(event: JobProgressEvent): Promise<void> {
-    await this.messageBus.send({
-      type: JOB_CHANNELS.progress,
-      payload: event,
-      sender: "job-progress-monitor",
-      broadcast: true,
-    });
+    await broadcastChannel(
+      this.messageBus,
+      jobProgressChannel,
+      event,
+      "job-progress-monitor",
+    );
   }
 
   private async emitJobProgress(

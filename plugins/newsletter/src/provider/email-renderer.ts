@@ -1,5 +1,6 @@
-import { markdownToHtml } from "@brains/ui-library";
+import { markdownToHtml } from "@rizom/brain-ui/internal";
 import { stripMarkdown } from "@brains/utils/markdown";
+import { escapeHtml } from "@brains/utils/string-utils";
 
 export interface RenderNewsletterEmailInput {
   subject: string;
@@ -57,13 +58,4 @@ export function renderNewsletterEmail(
 </html>`,
     text: stripMarkdown(input.content),
   };
-}
-
-function escapeHtml(value: string): string {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
 }

@@ -33,6 +33,7 @@ import {
 } from "./progress-message-coordinator";
 import type { Logger } from "@brains/utils/logger";
 import {
+  captureUrlViaAgent,
   extractCaptureableUrls,
   formatFileUploadMessage,
   isFileSizeAllowed,
@@ -247,19 +248,13 @@ export abstract class MessageInterfacePlugin<
     permissionContext?: PermissionLookupContext,
   ): Promise<void> {
     if (!this.context) return;
-    const userPermissionLevel = this.context.permissions.getUserLevel(
-      interfaceType,
+    await captureUrlViaAgent(
+      this.context,
+      url,
+      channelId,
       authorId,
+      interfaceType,
       permissionContext,
-    );
-    await this.context.agent.chat(
-      `Save this link: ${url}`,
-      `links-${channelId}`,
-      {
-        userPermissionLevel,
-        interfaceType,
-        channelId,
-      },
     );
   }
 
@@ -402,11 +397,6 @@ export abstract class MessageInterfacePlugin<
           interfaceId: this.id,
         });
       },
-      onInvalidSchema: () => {
-        this.logger.warn("Invalid progress event schema", {
-          interfaceId: this.id,
-        });
-      },
     });
 
     setupToolActivityHandler(context, {
@@ -416,11 +406,6 @@ export abstract class MessageInterfacePlugin<
       onError: (error) => {
         this.logger.error("Error handling tool activity event", {
           error,
-          interfaceId: this.id,
-        });
-      },
-      onInvalidSchema: () => {
-        this.logger.warn("Invalid tool activity event schema", {
           interfaceId: this.id,
         });
       },

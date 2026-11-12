@@ -1,17 +1,17 @@
-import type {
-  BaseEntity,
-  EntityIdPath,
-  ServicePluginContext,
-} from "@brains/plugins";
-import { decodeEntityIdPath } from "@brains/entity-service";
+import {
+  decodeEntityIdPath,
+  type BaseEntity,
+  type EntityIdPath,
+} from "@brains/sdk/internal/entity-runtime";
 import { getTypeCapabilities } from "./editor-access";
 import type { StudioRequestAccess } from "./editor-contracts";
+import type { StudioContext } from "./studio-context";
 
 type QueryEntityHierarchyRequest = Parameters<
-  ServicePluginContext["entityService"]["queryEntityHierarchy"]
+  StudioContext["entityService"]["queryEntityHierarchy"]
 >[0];
 type EntityHierarchyPage = Awaited<
-  ReturnType<ServicePluginContext["entityService"]["queryEntityHierarchy"]>
+  ReturnType<StudioContext["entityService"]["queryEntityHierarchy"]>
 >;
 
 /** What every query of one Studio collection request shares. */
@@ -39,7 +39,7 @@ export interface ContainerPage {
 
 /** The type contained in a container, if this caller may browse it. */
 export async function containedTypeOf(
-  context: ServicePluginContext,
+  context: StudioContext,
   container: string,
   access: StudioRequestAccess,
 ): Promise<string | undefined> {
@@ -66,7 +66,7 @@ const QUERY_PAGE = 100;
  * and contents alike, containers first.
  */
 export async function containerPage(
-  context: ServicePluginContext,
+  context: StudioContext,
   input: {
     container: string;
     contained: string;

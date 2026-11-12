@@ -1,15 +1,18 @@
 # Public authoring `0.2` reference packages
 
-The six original standalone packages plus the two additive operator packages
-are the executable reference for the external `0.2.x` authoring API. They are deliberately one cohesive example rather than
-six unrelated snippets: a Brain that saves bookmarks, derives reading digests,
-accepts webhook and Campfire events, and renders a reading-library site.
+These eleven standalone packages are the executable reference for the external
+`0.2.x` authoring API. They are one cohesive example rather than unrelated
+snippets: a Brain that saves bookmarks, derives reading digests, keeps a reader
+profile under one steward, keeps reminders, accepts webhook and Campfire events,
+and renders a reading-library site.
 
-> **Last exact eight-package registry baseline:** `@rizom/brain@0.2.0-alpha.313`
-> and `@rizom/site@0.2.0-alpha.233`. These are review candidates, not stable release
-> recommendations. The original six fixtures retain their proven
-> `>=0.2.0-alpha.272` compatibility floor; account settings retains
-> `>=0.2.0-alpha.304`, and operator composition requires `>=0.2.0-alpha.313`.
+Each package's `@rizom/brain` peer floor is the first release containing the
+contract it was written for: `>=0.2.0-alpha.272` for the original packages,
+`>=0.2.0-alpha.304` for account settings and `>=0.2.0-alpha.339` for
+operator composition. Floors move to the first published release containing
+every contract a package uses when a stable release is nominated. The npm
+registry matrix last ran against `@rizom/brain@0.2.0-alpha.313` and
+`@rizom/site@0.2.0-alpha.233`.
 
 Start with the practical guide at `docs/external-plugin-authoring.md`. Use this
 directory when you want complete source, manifests, and TypeScript
@@ -33,7 +36,8 @@ configuration that have actually passed the package boundary.
   authenticated inbound chat + send/edit/deliver
 
 @fixture/reading-site
-  layout + route + schema-backed hero + entity display + assets
+  layout + route + schema-backed hero + shelf of @rizom/brain-ui cards
+  + entity display + assets
 
 @fixture/reader-brain
   use() + bundle + identity + site composition
@@ -41,16 +45,19 @@ configuration that have actually passed the package boundary.
 
 ## Read in this order
 
-| Step | Package                                                                   | What it demonstrates                                                                                          |
-| ---- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| 1    | [`entity`](./entity/src/index.ts)                                         | `defineEntity`, inferred `EntityOf`, definition-based projection, typed target writes                         |
-| 2    | [`service`](./service/src/index.tsx)                                      | Parsed config/setup state, resources/prompts/templates/views, reusable job contract, handler, tools           |
-| 3    | [`interface`](./interface/src/index.ts)                                   | Public and protocol routes, runtime-derived caller, cross-package job enqueue, supervised daemon              |
-| 4    | [`message-interface`](./message-interface/src/index.ts)                   | Channel/recipient declaration, authenticated inbound messages, lazy attachments, normalized send/edit/deliver |
-| 5    | [`site`](./site/src/index.tsx)                                            | One-import site definition, typed content, routes/layout, entity display, CSS, head script, static asset      |
-| 6    | [`brain-definition`](./brain-definition/src/index.ts)                     | Typed `use()`, configured definitions, bundle membership, identity, and site selection                        |
-| 7    | [`operator-surface`](./operator-surface/src/index.ts)                     | Account settings, Dashboard semantics, Studio query state/catalogs/actions, and prepared confirmation         |
-| 8    | [`account-settings-interface`](./account-settings-interface/src/index.ts) | Interface-family account settings and runtime-owned account daemon lifecycle                                  |
+| Step | Package                                                                   | What it demonstrates                                                                                         |
+| ---- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| 1    | [`entity`](./entity/src/index.ts)                                         | `defineEntity`, inferred `EntityOf`, definition-based projection, typed target writes                        |
+| 2    | [`service`](./service/src/index.tsx)                                      | Parsed config/setup state, resources/prompts/templates, reusable job contract, handler, tools                |
+| 3    | [`interface`](./interface/src/index.ts)                                   | Two-stage definition, protocol routes, idempotent deliveries in runtime state, cross-package jobs, daemon    |
+| 4    | [`message-interface`](./message-interface/src/index.ts)                   | Channel/recipient declaration, a resume cursor in runtime state, authenticated inbound, normalized transport |
+| 5    | [`site`](./site/src/index.tsx)                                            | Site definition, typed content, routes/layout, public UI components, entity display, CSS, head script, asset |
+| 6    | [`brain-definition`](./brain-definition/src/index.ts)                     | Typed `use()`, configured definitions, bundle membership, identity, and site selection                       |
+| 7    | [`operator-surface`](./operator-surface/src/index.ts)                     | Account settings, Dashboard semantics, Studio query state/catalogs/actions, and prepared confirmation        |
+| 8    | [`account-settings-interface`](./account-settings-interface/src/index.ts) | Interface-family account settings and runtime-owned account daemon lifecycle                                 |
+| 9    | [`profile-steward`](./profile-steward/src/index.ts)                       | Stewardship: the one package that writes the reader profile, and the contract it answers for changes         |
+| 10   | [`profile-import`](./profile-import/src/index.ts)                         | An importer that asks the steward through its contract instead of writing the profile itself                 |
+| 11   | [`reminders`](./reminders/src/index.ts)                                   | One service end to end, and [its own test](./reminders/test/reminders.exercise.ts) on `@rizom/brain/testing` |
 
 The message transport keeps its ordinary protocol client in
 [`campfire-client.ts`](./message-interface/src/campfire-client.ts). That split
@@ -67,18 +74,17 @@ owns inbound connection lifecycle. Their approved exports are classified in
 the stable ledger, and the Phase 6 packed consumer installs both with the
 entity/service dependencies from one immutable Brain tarball. The operator
 fixture compiles typed Dashboard and Studio profiles, host-owned query state,
-dynamic entity catalogs, prepared confirmation, and bounded view composition
-without UI code. The account-settings fixture retains its
-`>=0.2.0-alpha.304` floor; the operator fixture requires
-`>=0.2.0-alpha.313`, the first release containing its complete card/columns
-contract. The operator fixture's
+prepared confirmation, and bounded view composition without UI code. The
+account-settings fixture's floor is `>=0.2.0-alpha.304`, and the operator
+fixture's `>=0.2.0-alpha.339`. The operator fixture's
 [capability inventory](./operator-surface/CAPABILITY_INVENTORY.md) records the
 checked built-in equivalence boundary.
 
 ## Entity-to-template flow
 
-Entity packages do not declare presentation templates. The service fixture
-shows the stable composition path:
+The reference entity package declares no presentation templates; its
+`presentation-type-canary.ts` shows the entity `templates` and `feed` slots and
+a package's `dataSources`. The service fixture shows the composition path:
 
 1. export the `bookmark` entity definition from the entity package;
 2. import it into the service package;
@@ -135,8 +141,7 @@ Every reference package has:
 - one default definition export;
 - generated JavaScript/declaration export paths;
 - a self-contained strict `tsconfig.json` with no monorepo `extends`;
-- the applicable proven Brain peer lower bound: alpha.272 for the original six,
-  alpha.304 for account settings, and alpha.313 for operator composition;
+- the Brain peer floor for the contract it was written for;
 - only public family imports in author source.
 
 The test harness injects exact SDK development dependencies while building the
@@ -145,16 +150,18 @@ fixtures. A real external package should declare both:
 ```json
 {
   "peerDependencies": {
-    "@rizom/brain": ">=0.2.0-alpha.313 <0.3.0"
+    "@rizom/brain": ">=0.2.0 <0.3.0"
   },
   "devDependencies": {
-    "@rizom/brain": "0.2.0-alpha.313"
+    "@rizom/brain": "0.2.0"
   }
 }
 ```
 
-A site package also carries an exact direct dependency on
-`@rizom/site@0.2.0-alpha.233` during the preview.
+A site package also carries exact direct dependencies on
+`@rizom/site@0.2.0-alpha.233` during the preview, and on
+`@rizom/brain-ui@0.2.0-alpha.649`, the first release that publishes the
+component library. The library versions with `@rizom/brain`.
 
 ## How the evidence works
 
@@ -187,7 +194,7 @@ each scenario keeps isolated mutable state:
 bun run test:packed:compat
 ```
 
-The six local packed files are intentionally skipped by ordinary `bun test`
+The packed files the matrix runs are skipped by ordinary `bun test`
 unless `RIZOM_PUBLIC_API_PACKED_EVIDENCE=1`; use the command above rather than
 setting the flag directly. The canonical packed consumer remains in ordinary
 tests.
@@ -202,7 +209,8 @@ bun test packages/brain-cli/test/public-authoring-registry-packed.test.ts
 ```
 
 It verifies installed versions, licenses, declarations, export maps, removed
-entry points, all eight fixture builds, and standalone startup. It refuses
+entry points, the builds of the eight fixtures it covers, and standalone
+startup. It refuses
 ranges and preserves each fixture's first-containing-release floor while
 requiring the nominated alpha to satisfy every peer range.
 
@@ -214,14 +222,18 @@ and never reads repository secret files:
 RIZOM_PUBLIC_API_LIVE_EVIDENCE=1 \
 RIZOM_PUBLIC_API_BRAIN_VERSION=<final-alpha> \
 RIZOM_PUBLIC_API_SITE_VERSION=<published-compatible-site> \
-AI_API_KEY=<provider-secret> \
+OPENAI_API_KEY=<provider-secret> \
 bun test packages/brain-cli/test/public-authoring-live-packed.test.ts
 ```
 
 ## Contract files
 
 - [`export-ledger.json`](./export-ledger.json) classifies every authoring export
-  as stable, advanced-with-consumer, or internal/removable.
+  as stable, advanced-with-consumer, or internal/removable. Every stable name
+  is imported by a fixture, a fixture's own test or canary, or one of the
+  packed consumers, and the golden test checks it. The ledger lists as stable
+  or advanced only names its entry exports; internal/removable names are not
+  exported.
 - `docs/public-release/AUTHORING_API_0.2.md` is the human-readable patch-stable
   symbol ledger.
 - `docs/public-release/AUTHORING_0.2_MIGRATION.md` maps removed alpha signatures

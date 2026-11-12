@@ -35,7 +35,11 @@ const GuideLinks = ({ guides }: { guides: GuideWithData[] }): JSX.Element => (
           <span className="guide-sections__persona">
             {item.metadata.persona}
           </span>
-          <span className="guide-sections__for">{item.metadata.for}</span>
+          {item.frontmatter.summary && (
+            <span className="guide-sections__summary">
+              {item.frontmatter.summary}
+            </span>
+          )}
         </a>
       </li>
     ))}
@@ -72,7 +76,11 @@ export const GuideSectionsTemplate = ({
               </h2>
               {section.guides.length > 0 && (
                 <>
-                  <h3 className="guide-sections__label">Guides</h3>
+                  <h3 className="guide-sections__label">
+                    {section.guides.length > 1
+                      ? "Which one are you?"
+                      : "Walk it through"}
+                  </h3>
                   <GuideLinks guides={section.guides} />
                 </>
               )}

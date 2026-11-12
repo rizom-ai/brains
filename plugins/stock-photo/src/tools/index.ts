@@ -1,25 +1,34 @@
 import { z } from "@brains/utils/zod";
-import type {
-  Tool,
-  ServiceEntityService,
-  ServicePluginContext,
-} from "@brains/plugins";
-import { createTool } from "@brains/plugins";
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
+import {
+  type EnqueueJobRequest,
+  type Tool,
+  type ServiceEntityReads,
+  createTool,
+} from "@brains/sdk/internal/service-runtime";
 import type {
   StockPhotoProvider,
   FetchImageFn,
   SelectResult,
 } from "../lib/types";
-import { setCoverImage } from "../lib/set-cover-image";
+import {
+  setCoverImage,
+  type StockPhotoEntityWriter,
+} from "../lib/set-cover-image";
 import { getErrorMessage } from "@brains/utils/error";
 import { definedFields } from "@brains/utils/strip-undefined";
 
 export interface StockPhotoToolsDeps {
   provider: StockPhotoProvider;
-  entityService: ServiceEntityService;
+  /** Reads and the writes the class made, as the package. */
+  entityService: StockPhotoEntityWriter & {
+    listEntities(
+      request: Parameters<ServiceEntityReads["listEntities"]>[0],
+    ): Promise<BaseEntity[]>;
+  };
   fetchImage: FetchImageFn;
-  /** Only enqueue is used; asking for the whole job service would be a claim these tools do not make. */
-  jobs: Pick<ServicePluginContext["jobs"], "enqueue">;
+  /** Only enqueue by job type is used; asking for the whole job service would be a claim these tools do not make. */
+  jobs: { enqueue(request: EnqueueJobRequest): Promise<string> };
 }
 
 const searchInputSchema = z.object({

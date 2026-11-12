@@ -2,7 +2,7 @@ import type {
   AuthAccountMutation,
   AuthAccountPluginSettingsMutation,
   AuthAccountSnapshot,
-} from "@brains/auth-service/account-contracts";
+} from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { isRecord } from "@brains/utils/is-record";
 import type { FetchLike } from "@brains/utils/fetch-like";

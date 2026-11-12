@@ -1,3 +1,4 @@
+import { createMailItemPlugin } from "./email-workflows-plugins";
 import { describe, expect, it } from "bun:test";
 import type { InboundEmail } from "@brains/contracts";
 import type {
@@ -8,7 +9,6 @@ import type {
 import { createPluginHarness } from "@brains/plugins/test";
 
 import {
-  MailItemPlugin,
   MailTriageOperatorService,
   createMailItemProjection,
   mailTriageFilterSchema,
@@ -117,7 +117,7 @@ describe("mail triage operator service", () => {
 
   it("applies combined filters and returns only restricted derived fields", async () => {
     const harness = createOperatorHarness();
-    await harness.installPlugin(new MailItemPlugin());
+    await harness.installPlugin(createMailItemPlugin());
     await persistItem(harness, {
       id: "matching",
       title: "Matching opportunity",
@@ -203,7 +203,7 @@ describe("mail triage operator service", () => {
 
   it("keeps inbox attention new-only while retaining reviewed history", async () => {
     const harness = createOperatorHarness();
-    await harness.installPlugin(new MailItemPlugin());
+    await harness.installPlugin(createMailItemPlugin());
     await persistItem(harness, {
       id: "new-high",
       title: "Urgent administration",
@@ -241,7 +241,7 @@ describe("mail triage operator service", () => {
 
   it("enforces Admin status actions and updates through one typed path", async () => {
     const harness = createOperatorHarness();
-    await harness.installPlugin(new MailItemPlugin());
+    await harness.installPlugin(createMailItemPlugin());
     const id = await persistItem(harness, {
       id: "status-action",
       title: "Status action",

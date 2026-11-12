@@ -117,17 +117,9 @@ import packageJson from "../package.json";
 
 const swotAdapter = new SwotAdapter();
 
-export interface AssessmentConfig {
-  enableSwotDerivation: boolean;
-}
-
-export interface AssessmentConfigInput {
-  enableSwotDerivation?: boolean | undefined;
-}
-
-export const assessmentConfigSchema: z.ZodType<
-  AssessmentConfig,
-  AssessmentConfigInput
+export const assessmentConfigSchema: z.ZodObject<
+  { enableSwotDerivation: z.ZodDefault<z.ZodBoolean> },
+  z.core.$strict
 > = z
   .object({
     enableSwotDerivation: z
@@ -138,6 +130,9 @@ export const assessmentConfigSchema: z.ZodType<
       ),
   })
   .strict();
+
+export type AssessmentConfig = z.output<typeof assessmentConfigSchema>;
+export type AssessmentConfigInput = z.input<typeof assessmentConfigSchema>;
 
 export class SwotAssessmentPlugin extends EntityPlugin<
   SwotEntity,

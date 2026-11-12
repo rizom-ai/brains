@@ -1,27 +1,21 @@
-import type {
-  DashboardWidgetProviderContext,
-  Tool,
-  ServicePluginContext,
-  WebRouteDefinition,
-} from "@brains/plugins";
+import type { WebRouteDefinition } from "@brains/sdk/internal/interface-runtime";
 import {
-  DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
-  PermissionService,
-  ServicePlugin,
-} from "@brains/plugins";
+  dashboardWidgetRegisterContract,
+  dashboardWidgetUnregisterContract,
+  hasPermission,
+  serviceRuntime,
+  withWebRoutes,
+  type ServiceRuntime,
+} from "@brains/sdk/internal/service-runtime";
 import {
-  CONSOLE_CHANNELS,
-  DASHBOARD_CHANNELS,
-  consoleJumpDestinationSchema,
-} from "@brains/contracts";
+  defineServicePlugin,
+  type ServicePackageDefinition,
+} from "@brains/sdk/services";
+import { consoleJumpDestinationsContract } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import { DashboardWidgetRegistry } from "./widget-registry";
-import type {
-  RegisteredWidget,
-  WidgetComponent,
-  WidgetDigestProvider,
-} from "./widget-registry";
+import type { RegisteredWidget } from "./widget-registry";
 import { DashboardAssetRegistry } from "./dashboard-assets";
 import { DashboardDataSource } from "./dashboard-datasource";
 import { resolveWidgetsForRender } from "./render/resolve-widgets";
@@ -29,17 +23,14 @@ import {
   renderDashboardPageHtml,
   type DashboardRenderInput,
 } from "./dashboard-page";
-import { deriveConsoleSurfaces, entityDisplayTitle } from "@brains/plugins";
 import {
   buildConsoleJumpGroups,
   jumpEntityHit,
   type ConsoleJumpEntityHit,
 } from "./console-jump";
 import type { DashboardAssetUrls } from "./render/types";
-import { getActiveAuthService } from "@brains/auth-service";
-import packageJson from "../package.json";
 
-const dashboardConfigSchema: z.ZodObject<{
+export const dashboardConfigSchema: z.ZodObject<{
   version: z.ZodDefault<z.ZodString>;
   routePath: z.ZodDefault<z.ZodString>;
   ask: z.ZodDefault<z.ZodBoolean>;
@@ -54,58 +45,8 @@ const dashboardConfigSchema: z.ZodObject<{
 export type DashboardConfig = z.output<typeof dashboardConfigSchema>;
 export type DashboardConfigInput = z.input<typeof dashboardConfigSchema>;
 
-const registerWidgetPayloadSchema = z
-  .object({
-    id: z.string(),
-    pluginId: z.string(),
-    title: z.string(),
-    description: z.string().optional(),
-    group: z.string().min(1),
-    priority: z.number().default(50),
-    section: z.enum(["primary", "secondary", "sidebar"]).default("primary"),
-    rendererName: z.literal(DECLARATIVE_DASHBOARD_WIDGET_RENDERER),
-    visibility: z.enum(["public", "trusted", "admin"]).default("public"),
-    needsAttention: z.number().int().nonnegative().optional(),
-    digest: z
-      .array(
-        z.object({
-          label: z.string(),
-          value: z.string(),
-          tone: z.enum(["plain", "good", "warn"]).optional(),
-        }),
-      )
-      .max(4)
-      .optional(),
-    dataProvider: z.custom<
-      (context: DashboardWidgetProviderContext) => Promise<unknown>
-    >((value) => typeof value === "function", {
-      message: "Expected dashboard widget data provider function",
-    }),
-    digestProvider: z
-      .custom<WidgetDigestProvider>((value) => typeof value === "function", {
-        message: "Expected dashboard widget digest provider function",
-      })
-      .optional(),
-    renderer: z
-      .object({
-        component: z.custom<WidgetComponent>(
-          (value) => typeof value === "function",
-          { message: "Expected dashboard widget component function" },
-        ),
-        clientStyles: z.string().optional(),
-        clientScript: z.string().optional(),
-      })
-      .optional(),
-  })
-  .strict();
-
-const unregisterWidgetPayloadSchema = z.object({
-  pluginId: z.string(),
-  widgetId: z.string().optional(),
-});
-
 function createRegisteredWidget(
-  payload: z.output<typeof registerWidgetPayloadSchema>,
+  payload: z.output<typeof dashboardWidgetRegisterContract.schema>,
 ): RegisteredWidget {
   return {
     id: payload.id,
@@ -129,337 +70,303 @@ function createRegisteredWidget(
   };
 }
 
-export class DashboardPlugin extends ServicePlugin<
-  DashboardConfig,
-  DashboardConfigInput
-> {
-  private readonly assetRegistry: DashboardAssetRegistry;
-  private readonly assetUrls: DashboardAssetUrls;
-  private widgetRegistry: DashboardWidgetRegistry | null = null;
-  private datasource: DashboardDataSource | null = null;
-  private siteUrl: string | undefined;
-  private ctx: ServicePluginContext | undefined;
+/** What Dashboard holds once set up, which its routes are built from. */
+export interface DashboardState {
+  readonly runtime: ServiceRuntime;
+  readonly widgetRegistry: DashboardWidgetRegistry;
+  readonly datasource: DashboardDataSource;
+  readonly assetRegistry: DashboardAssetRegistry;
+  readonly assetUrls: DashboardAssetUrls;
+}
 
-  constructor(config: DashboardConfigInput = {}) {
-    super("dashboard", packageJson, config, dashboardConfigSchema);
-    this.assetRegistry = new DashboardAssetRegistry(this.config.routePath);
-    this.assetUrls = this.assetRegistry.createRenderUrls({
-      themeCSS: this.config.themeCSS,
-    });
-  }
+/** A test's view of the package's state once set up. */
+export interface DashboardDeps {
+  readonly onSetup?: ((state: DashboardState) => void) | undefined;
+}
 
-  protected override async onRegister(
-    context: ServicePluginContext,
-  ): Promise<void> {
-    this.siteUrl = context.siteUrl;
-    this.ctx = context;
+/**
+ * The public Dashboard: the brain's identity, knowledge, network and
+ * system health on one page at `routePath`, built from the widgets other
+ * plugins register, and the admin console jump palette.
+ */
+export function createDashboardPackage(
+  deps: DashboardDeps = {},
+): ServicePackageDefinition<typeof dashboardConfigSchema> {
+  const service = defineServicePlugin({
+    id: "dashboard",
+    config: dashboardConfigSchema,
+    setup: (context): DashboardState => {
+      const runtime = serviceRuntime(context);
+      const { config } = context;
+      const { logger } = runtime;
+      const assetRegistry = new DashboardAssetRegistry(config.routePath);
+      const assetUrls = assetRegistry.createRenderUrls({
+        themeCSS: config.themeCSS,
+      });
+      const widgetRegistry = new DashboardWidgetRegistry(logger);
+      const datasource = new DashboardDataSource(widgetRegistry, logger);
+      runtime.endpoint({
+        label: "Dashboard",
+        url: config.routePath,
+        priority: 30,
+        visibility: "public",
+      });
+      runtime.interaction({
+        id: "dashboard",
+        label: "Dashboard",
+        description:
+          "Explore this brain's public identity, knowledge, network, and system health.",
+        href: config.routePath,
+        kind: "human",
+        priority: 30,
+        visibility: "public",
+      });
 
-    this.widgetRegistry = new DashboardWidgetRegistry(this.logger);
-    this.datasource = new DashboardDataSource(this.widgetRegistry, this.logger);
-    context.entities.registerDataSource(this.datasource);
-    context.endpoints.register({
-      label: "Dashboard",
-      url: this.config.routePath,
-      priority: 30,
-      visibility: "public",
-    });
-    context.interactions.register({
-      id: "dashboard",
-      label: "Dashboard",
-      description:
-        "Explore this brain's public identity, knowledge, network, and system health.",
-      href: this.config.routePath,
-      kind: "human",
-      priority: 30,
-      visibility: "public",
-    });
-
-    context.messaging.subscribe(
-      DASHBOARD_CHANNELS.registerWidget,
-      async (message) => {
-        try {
-          const payload = registerWidgetPayloadSchema.parse(message.payload);
-          const widget = createRegisteredWidget(payload);
-          this.widgetRegistry?.register(widget);
-          this.logger.debug("Widget registered via messaging", {
+      runtime.answer(
+        dashboardWidgetRegisterContract,
+        async ({ request: payload }) => {
+          try {
+            widgetRegistry.register(createRegisteredWidget(payload));
+          } catch (error) {
+            logger.error("Failed to register widget", {
+              error: getErrorMessage(error),
+              widgetId: payload.id,
+              pluginId: payload.pluginId,
+            });
+            throw new Error("Widget registration failed", { cause: error });
+          }
+          logger.debug("Widget registered via messaging", {
             widgetId: payload.id,
             pluginId: payload.pluginId,
             rendererName: payload.rendererName,
           });
-          return { success: true };
-        } catch (error) {
-          this.logger.error("Failed to register widget", {
-            error: getErrorMessage(error),
-            payload: message.payload,
-          });
-          return { success: false, error: "Widget registration failed" };
-        }
-      },
-    );
+        },
+      );
 
-    context.messaging.subscribe(
-      DASHBOARD_CHANNELS.unregisterWidget,
-      async (message) => {
-        try {
-          const payload = unregisterWidgetPayloadSchema.parse(message.payload);
-          this.widgetRegistry?.unregister(payload.pluginId, payload.widgetId);
-          this.logger.debug("Widget unregistered via messaging", {
+      runtime.answer(
+        dashboardWidgetUnregisterContract,
+        async ({ request: payload }) => {
+          widgetRegistry.unregister(payload.pluginId, payload.widgetId);
+          logger.debug("Widget unregistered via messaging", {
             pluginId: payload.pluginId,
             widgetId: payload.widgetId,
           });
-          return { success: true };
-        } catch (error) {
-          this.logger.error("Failed to unregister widget", {
-            error: getErrorMessage(error),
-            payload: message.payload,
-          });
-          return { success: false, error: "Widget unregistration failed" };
-        }
-      },
-    );
-
-    this.logger.info("Dashboard plugin registered");
-  }
-
-  override getWebRoutes(): WebRouteDefinition[] {
-    return [
-      {
-        path: this.config.routePath,
-        method: "GET",
-        public: true,
-        handler: async (request: Request): Promise<Response> => {
-          if (!this.datasource || !this.ctx) {
-            return new Response("Dashboard unavailable", {
-              status: 503,
-              headers: { "Content-Type": "text/plain; charset=utf-8" },
-            });
-          }
-
-          const ctx = this.ctx;
-          const principal =
-            await getActiveAuthService()?.resolveSession(request);
-          const requestUrl = new URL(request.url);
-          const registeredRoutes = ctx.webRoutes.getRoutes();
-          const studioPath = registeredRoutes
-            .filter(
-              (route) =>
-                route.pluginId === "studio" && route.fullPath !== "/chat",
-            )
-            .map((route) => route.fullPath)
-            .sort((left, right) => left.length - right.length)[0];
-          if (
-            principal &&
-            studioPath &&
-            requestUrl.searchParams.get("view") !== "public"
-          ) {
-            return new Response(null, {
-              status: 302,
-              headers: {
-                Location: studioPath,
-                "Cache-Control": "no-store",
-              },
-            });
-          }
-          const askHref = registeredRoutes
-            .filter((route) => route.pluginId === "web-chat")
-            .map((route) => route.fullPath)
-            .sort((left, right) => left.length - right.length)[0];
-          // The card is invariant across sessions. Public providers always see
-          // an anonymous Public caller, and non-public providers never run.
-          const visibleWidgets =
-            this.widgetRegistry?.list({ permissionLevel: "public" }) ?? [];
-          const [dashboardData, appInfo, publicEntityCounts] =
-            await Promise.all([
-              this.datasource.getDashboardData({
-                permissionLevel: "public",
-                widgets: visibleWidgets,
-                providerContext: {
-                  caller: null,
-                  signal: request.signal,
-                },
-              }),
-              ctx.appInfo(),
-              ctx.entityService.getEntityCounts("public"),
-            ]);
-          const character = ctx.identity.get();
-          const profile = ctx.identity.getProfile();
-
-          const baseUrl =
-            this.siteUrl ??
-            ((): string | undefined => {
-              try {
-                return new URL(request.url).origin;
-              } catch {
-                return undefined;
-              }
-            })();
-
-          const visibleAppInfo = {
-            ...appInfo,
-            entities: publicEntityCounts.reduce(
-              (total, entry) => total + entry.count,
-              0,
-            ),
-            entityCounts: publicEntityCounts,
-            embeddings: 0,
-            daemons: [],
-            endpoints: appInfo.endpoints.filter(
-              (endpoint) =>
-                PermissionService.hasPermission(
-                  "public",
-                  endpoint.visibility,
-                ) && endpoint.requiresActiveSession !== true,
-            ),
-            interactions: appInfo.interactions.filter(
-              (interaction) =>
-                PermissionService.hasPermission(
-                  "public",
-                  interaction.visibility,
-                ) && interaction.requiresActiveSession !== true,
-            ),
-          };
-
-          const title = profile.name || "Public Brain";
-          const returnTo =
-            studioPath ?? `${requestUrl.pathname}${requestUrl.search}`;
-          const encodedReturnTo = encodeURIComponent(returnTo);
-          const resolved = resolveWidgetsForRender(
-            dashboardData.widgets,
-            this.widgetRegistry,
-          );
-
-          const input: DashboardRenderInput = {
-            title,
-            baseUrl,
-            widgets: resolved.widgets,
-            widgetStyles: resolved.widgetStyles,
-            widgetScripts: resolved.widgetScripts,
-            assetUrls: this.assetUrls,
-            dashboardPath: this.config.routePath,
-            askEnabled:
-              this.config.ask &&
-              registeredRoutes.some(
-                (route) =>
-                  route.pluginId === "web-chat" && route.fullPath === "/ask",
-              ),
-            ...(askHref ? { askHref } : {}),
-            character,
-            profile,
-            appInfo: visibleAppInfo,
-            ...(this.config.themeCSS !== undefined && {
-              themeCSS: this.config.themeCSS,
-            }),
-            authAccess: {
-              loginUrl: `/login?return_to=${encodedReturnTo}`,
-              logoutUrl: `/logout?return_to=${encodedReturnTo}`,
-            },
-          };
-
-          return new Response(renderDashboardPageHtml(input), {
-            headers: {
-              "Cache-Control": "private, no-store",
-              "Content-Type": "text/html; charset=utf-8",
-            },
-          });
         },
-      },
-      {
-        path: "/api/console/jump",
-        method: "GET",
-        public: true,
-        handler: async (request: Request): Promise<Response> => {
-          const principal =
-            await getActiveAuthService()?.resolveSession(request);
-          if (!principal) {
-            return Response.json(
-              { error: "Authentication required" },
-              { status: 401 },
-            );
-          }
-          if (principal.permissionLevel !== "admin") {
-            return Response.json(
-              { error: "Admin access required" },
-              { status: 403 },
-            );
-          }
-          const ctx = this.ctx;
-          if (!ctx) {
-            return Response.json({ groups: [] });
-          }
+      );
 
-          const query =
-            new URL(request.url).searchParams.get("q")?.trim() ?? "";
-
-          let entities: ConsoleJumpEntityHit[] = [];
-          if (query.length >= 2) {
-            // Only the search is tolerated: it degrades to no entity doors
-            // while the index warms. Shaping the rows below is ours, and a
-            // fault there is not a warming index.
-            let results;
-            try {
-              results = await ctx.entityService.search({
-                query,
-                options: { limit: 6 },
-              });
-            } catch {
-              results = undefined;
-            }
-
-            if (results) {
-              entities = results.map((result) =>
-                jumpEntityHit(
-                  result.entity,
-                  entityDisplayTitle(ctx.entities, result.entity),
-                ),
-              );
-            }
-          }
-
-          const surfaces = deriveConsoleSurfaces(ctx.webRoutes.getRoutes(), {
-            activeId: "dashboard",
-            permissionLevel: principal.permissionLevel,
-            hasActiveSession: true,
-          });
-          const studioPath = surfaces.find(
-            (surface) => surface.id === "studio",
-          )?.href;
-          const answers = await ctx.messaging.collect({
-            type: CONSOLE_CHANNELS.jumpDestinations,
-            payload: { permissionLevel: principal.permissionLevel },
-          });
-          const destinations = answers.flatMap((answer) => {
-            const parsed =
-              "data" in answer
-                ? z.array(consoleJumpDestinationSchema).safeParse(answer.data)
-                : null;
-            return parsed?.success ? parsed.data : [];
-          });
-          return Response.json({
-            groups: buildConsoleJumpGroups({
-              query,
-              dashboardPath: this.config.routePath,
-              studioPath,
-              entities,
-              destinations,
-            }),
-          });
-        },
-      },
-      ...this.assetRegistry.getRoutes(),
-    ];
-  }
-
-  protected override async getTools(): Promise<Tool[]> {
-    return [];
-  }
-
-  getWidgetRegistry(): DashboardWidgetRegistry | null {
-    return this.widgetRegistry;
-  }
+      logger.info("Dashboard plugin registered");
+      const state = {
+        runtime,
+        widgetRegistry,
+        datasource,
+        assetRegistry,
+        assetUrls,
+      };
+      deps.onSetup?.(state);
+      return state;
+    },
+  });
+  return withWebRoutes<typeof dashboardConfigSchema, DashboardState>(
+    service,
+    ({ config, state }) => dashboardRoutes(config, state),
+  );
 }
 
-export function dashboardPlugin(
-  config: DashboardConfigInput = {},
-): DashboardPlugin {
-  return new DashboardPlugin(config);
+/** The dashboard page, the console jump and the page's assets. */
+function dashboardRoutes(
+  config: DashboardConfig,
+  {
+    runtime,
+    widgetRegistry,
+    datasource,
+    assetRegistry,
+    assetUrls,
+  }: DashboardState,
+): WebRouteDefinition[] {
+  return [
+    {
+      path: config.routePath,
+      method: "GET",
+      public: true,
+      role: "dashboard",
+      handler: async (request: Request): Promise<Response> => {
+        const principal = await runtime.auth()?.resolveSession(request);
+        const requestUrl = new URL(request.url);
+        const studioPath = runtime.routeByRole("studio")?.fullPath;
+        if (
+          principal &&
+          studioPath &&
+          requestUrl.searchParams.get("view") !== "public"
+        ) {
+          return new Response(null, {
+            status: 302,
+            headers: {
+              Location: studioPath,
+              "Cache-Control": "no-store",
+            },
+          });
+        }
+        const askHref = runtime.routeByRole("ask")?.fullPath;
+        // The card is invariant across sessions. Public providers always see
+        // an anonymous Public caller, and non-public providers never run.
+        const visibleWidgets = widgetRegistry.list({
+          permissionLevel: "public",
+        });
+        const [dashboardData, appInfo, publicEntityCounts] = await Promise.all([
+          datasource.getDashboardData({
+            permissionLevel: "public",
+            widgets: visibleWidgets,
+            providerContext: {
+              caller: null,
+              signal: request.signal,
+            },
+          }),
+          runtime.identity.getAppInfo(),
+          runtime.entityReads.getEntityCounts("public"),
+        ]);
+        const character = runtime.identity.get();
+        const profile = runtime.identity.getProfile();
+
+        const baseUrl =
+          runtime.siteUrl ??
+          ((): string | undefined => {
+            try {
+              return new URL(request.url).origin;
+            } catch {
+              return undefined;
+            }
+          })();
+
+        const visibleAppInfo = {
+          ...appInfo,
+          entities: publicEntityCounts.reduce(
+            (total, entry) => total + entry.count,
+            0,
+          ),
+          entityCounts: publicEntityCounts,
+          embeddings: 0,
+          daemons: [],
+          endpoints: appInfo.endpoints.filter(
+            (endpoint) =>
+              hasPermission("public", endpoint.visibility) &&
+              endpoint.requiresActiveSession !== true,
+          ),
+          interactions: appInfo.interactions.filter(
+            (interaction) =>
+              hasPermission("public", interaction.visibility) &&
+              interaction.requiresActiveSession !== true,
+          ),
+        };
+
+        const title = profile.name || "Public Brain";
+        const returnTo =
+          studioPath ?? `${requestUrl.pathname}${requestUrl.search}`;
+        const encodedReturnTo = encodeURIComponent(returnTo);
+        const resolved = resolveWidgetsForRender(
+          dashboardData.widgets,
+          widgetRegistry,
+        );
+
+        const input: DashboardRenderInput = {
+          title,
+          baseUrl,
+          widgets: resolved.widgets,
+          widgetStyles: resolved.widgetStyles,
+          widgetScripts: resolved.widgetScripts,
+          assetUrls,
+          dashboardPath: config.routePath,
+          askEnabled: config.ask && askHref !== undefined,
+          ...(askHref ? { askHref } : {}),
+          character,
+          profile,
+          appInfo: visibleAppInfo,
+          ...(config.themeCSS !== undefined && {
+            themeCSS: config.themeCSS,
+          }),
+          authAccess: {
+            loginUrl: `/login?return_to=${encodedReturnTo}`,
+            logoutUrl: `/logout?return_to=${encodedReturnTo}`,
+          },
+        };
+
+        return new Response(renderDashboardPageHtml(input), {
+          headers: {
+            "Cache-Control": "private, no-store",
+            "Content-Type": "text/html; charset=utf-8",
+          },
+        });
+      },
+    },
+    {
+      path: "/api/console/jump",
+      method: "GET",
+      public: true,
+      handler: async (request: Request): Promise<Response> => {
+        const principal = await runtime.auth()?.resolveSession(request);
+        if (!principal) {
+          return Response.json(
+            { error: "Authentication required" },
+            { status: 401 },
+          );
+        }
+        if (principal.permissionLevel !== "admin") {
+          return Response.json(
+            { error: "Admin access required" },
+            { status: 403 },
+          );
+        }
+        const query = new URL(request.url).searchParams.get("q")?.trim() ?? "";
+
+        let entities: ConsoleJumpEntityHit[] = [];
+        if (query.length >= 2) {
+          // Only the search is tolerated: it degrades to no entity doors
+          // while the index warms. Shaping the rows below is ours, and a
+          // fault there is not a warming index.
+          let results;
+          try {
+            results = await runtime.entityReads.search({
+              query,
+              options: { limit: 6 },
+            });
+          } catch {
+            results = undefined;
+          }
+
+          if (results) {
+            entities = results.map((result) =>
+              jumpEntityHit(
+                result.entity,
+                runtime.entityShapes.displayTitle(result.entity),
+              ),
+            );
+          }
+        }
+
+        const surfaces = runtime.consoleSurfaces({
+          activeId: "dashboard",
+          permissionLevel: principal.permissionLevel,
+          hasActiveSession: true,
+        });
+        const studioPath = surfaces.find(
+          (surface) => surface.id === "studio",
+        )?.href;
+        const offered = await runtime.messaging.gather(
+          consoleJumpDestinationsContract,
+          { permissionLevel: principal.permissionLevel },
+        );
+        const destinations =
+          offered.status === "answered" ? offered.answers.flat() : [];
+        return Response.json({
+          groups: buildConsoleJumpGroups({
+            query,
+            dashboardPath: config.routePath,
+            studioPath,
+            entities,
+            destinations,
+          }),
+        });
+      },
+    },
+    ...assetRegistry.getRoutes(),
+  ];
 }

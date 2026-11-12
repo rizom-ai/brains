@@ -1,20 +1,17 @@
-import { createMockShell } from "@brains/plugins/test";
-import { describe, expect, it } from "bun:test";
 import type {
   AppendAuthAuditEventInput,
   AuthPrincipal,
-} from "@brains/auth-service";
+} from "@brains/contracts";
+import { createMockShell } from "@brains/plugins/test";
+import { describe, expect, it } from "bun:test";
 import type { BaseEntity, WebRouteDefinition } from "@brains/plugins";
-import {
-  BaseEntityAdapter,
-  baseEntitySchema,
-  createServicePluginContext,
-} from "@brains/plugins";
+import { BaseEntityAdapter, baseEntitySchema } from "@brains/plugins";
 import { PermissionService } from "@brains/templates";
 
 import { z } from "@brains/utils/zod";
 import { createEditorRoutes } from "../src/editor-routes";
 import { StudioWorkspaceRegistry } from "../src/workspace-registry";
+import { studioContextOn } from "./studio-plugins";
 
 const frontmatterSchema = z.object({ title: z.string() });
 
@@ -50,11 +47,11 @@ function principal(permissionLevel: "trusted" | "admin"): AuthPrincipal {
   };
 }
 
-function setup(permissionLevel: "trusted" | "admin"): {
+async function setup(permissionLevel: "trusted" | "admin"): Promise<{
   shell: ReturnType<typeof createMockShell>;
   routes: WebRouteDefinition[];
   events: AppendAuthAuditEventInput[];
-} {
+}> {
   const shell = createMockShell({ domain: "yeehaa.io" });
   const registry = shell.getEntityRegistry();
   registry.registerEntityType("post", baseEntitySchema, new AuditAdapter());
@@ -72,7 +69,7 @@ function setup(permissionLevel: "trusted" | "admin"): {
     },
   });
   shell.getPermissionService = (): PermissionService => permissions;
-  const context = createServicePluginContext(shell, "studio");
+  const context = await studioContextOn(shell);
   const events: AppendAuthAuditEventInput[] = [];
   return {
     shell,
@@ -121,7 +118,7 @@ const createResponseSchema = z.object({ entityId: z.string() });
 
 describe("Studio mutation audit events", () => {
   it("records content-free allowed events for create, update, and delete", async () => {
-    const fixture = setup("admin");
+    const fixture = await setup("admin");
     const created = await route(fixture.routes, "POST").handler(
       request("POST", {
         entityType: "post",
@@ -171,7 +168,7 @@ describe("Studio mutation audit events", () => {
   });
 
   it("records policy denials without invoking private mutation code", async () => {
-    const fixture = setup("trusted");
+    const fixture = await setup("trusted");
     await fixture.shell.getEntityService().createEntity({
       entity: {
         id: "existing-post",

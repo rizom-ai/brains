@@ -93,13 +93,10 @@ export const listInputSchema: z.ZodObject<{
     .describe("Maximum number of results (default: 20)"),
 });
 
-const createUploadInputSchema: z.ZodObject<{
-  kind: z.ZodLiteral<"upload">;
-  id: z.ZodString;
-}> = z.object({
-  kind: z.literal("upload").describe("Upload ref kind"),
-  id: z.string().min(1).describe("Upload ID"),
-});
+const uploadIdInputSchema: z.ZodString = z
+  .string()
+  .min(1)
+  .describe("Upload id from the conversation's upload refs");
 
 // Models fill unused optional fields with empty strings, so an empty string
 // here means omitted rather than an invalid call.
@@ -169,7 +166,7 @@ type UploadsSourceInputSchema = StrictObjectSchema<{
   kind: z.ZodLiteral<"uploads">;
   items: z.ZodArray<
     StrictObjectSchema<{
-      upload: typeof createUploadInputSchema;
+      id: typeof uploadIdInputSchema;
       transform: typeof uploadTransformSchema;
       title: z.ZodOptional<z.ZodString>;
       fields: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
@@ -178,7 +175,7 @@ type UploadsSourceInputSchema = StrictObjectSchema<{
 }>;
 
 /** Several uploads saved from one request under one confirmation. */
-const uploadsSourceInputSchema: UploadsSourceInputSchema = z
+export const uploadsSourceInputSchema: UploadsSourceInputSchema = z
   .object({
     kind: z
       .literal("uploads")
@@ -187,11 +184,9 @@ const uploadsSourceInputSchema: UploadsSourceInputSchema = z
       ),
     items: z
       .array(
-        z
-          .object({
-            upload: createUploadInputSchema.describe(
-              "Exact upload candidate object from the current conversation",
-            ),
+        z.strictObject(
+          {
+            id: uploadIdInputSchema,
             transform: uploadTransformSchema,
             title: z
               .string()
@@ -203,8 +198,15 @@ const uploadsSourceInputSchema: UploadsSourceInputSchema = z
               .describe(
                 "Frontmatter the user stated for this file alone, such as the date and address it was first published at: { publishedAt, canonicalUrl }; facts shared by every file go in the top-level fields.",
               ),
-          })
-          .strict(),
+          },
+          {
+            error: (issue) =>
+              issue.code === "unrecognized_keys" &&
+              issue.keys.includes("upload")
+                ? "Each file is `{ id, transform }`; its `upload` object was removed."
+                : undefined,
+          },
+        ),
       )
       .min(2)
       .max(20),
@@ -224,7 +226,7 @@ export const createPreferredSourceInputSchema: z.ZodDiscriminatedUnion<
     }>,
     StrictObjectSchema<{
       kind: z.ZodLiteral<"upload">;
-      upload: typeof createUploadInputSchema;
+      id: typeof uploadIdInputSchema;
       transform: z.ZodEnum<{
         "extract-markdown": "extract-markdown";
         preserve: "preserve";
@@ -272,19 +274,23 @@ export const createPreferredSourceInputSchema: z.ZodDiscriminatedUnion<
         ),
     })
     .strict(),
-  z
-    .object({
+  z.strictObject(
+    {
       kind: z
         .literal("upload")
         .describe(
           "Use extract-markdown to import upload text into a note, or preserve only when the user explicitly wants to save the uploaded file/document bytes themselves. Do not use for saving a previous assistant summary about an upload; use prior-response for that.",
         ),
-      upload: createUploadInputSchema.describe(
-        "Exact upload candidate object from the current conversation",
-      ),
+      id: uploadIdInputSchema,
       transform: uploadTransformSchema,
-    })
-    .strict(),
+    },
+    {
+      error: (issue) =>
+        issue.code === "unrecognized_keys" && issue.keys.includes("upload")
+          ? 'The upload id goes in `source.id`: `{ kind: "upload", id, transform }`; `source.upload` was removed.'
+          : undefined,
+    },
+  ),
   uploadsSourceInputSchema,
   z
     .object({
@@ -534,7 +540,12 @@ export const createInputSchema: StrictObjectSchema<{
       .describe(
         "Entity type to create. Use wish for explicitly saved or tracked unmet requested capabilities or outcomes.",
       ),
-    title: z.string().optional().describe("Title for a new entity."),
+    title: z
+      .string()
+      .optional()
+      .describe(
+        "Title for a new entity. Leave it out when saving several uploads: each item in source.items takes its own title.",
+      ),
     visibility: canonicalContentVisibilitySchema
       .optional()
       .describe(
@@ -598,77 +609,66 @@ export const contentEditSchema: z.ZodObject<{
 
 export type ContentEdit = z.output<typeof contentEditSchema>;
 
-type UpdateOperationInputSchema = z.ZodDiscriminatedUnion<
-  [
-    StrictObjectSchema<{
-      kind: z.ZodLiteral<"fields">;
-      fields: z.ZodRecord<z.ZodString, z.ZodUnknown>;
-    }>,
-    StrictObjectSchema<{
-      kind: z.ZodLiteral<"content">;
-      content: z.ZodString;
-    }>,
-    StrictObjectSchema<{
-      kind: z.ZodLiteral<"edits">;
-      edits: z.ZodArray<typeof contentEditSchema>;
-    }>,
-    StrictObjectSchema<{
-      kind: z.ZodLiteral<"source">;
-      source: typeof userMessageSourceInputSchema;
-    }>,
-  ],
-  "kind"
->;
+type UpdateOperationInputSchema = StrictObjectSchema<{
+  fields: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+  content: z.ZodOptional<z.ZodString>;
+  edits: z.ZodOptional<z.ZodArray<typeof contentEditSchema>>;
+  source: z.ZodOptional<typeof userMessageSourceInputSchema>;
+}>;
 
-export const updateOperationInputSchema: UpdateOperationInputSchema =
-  z.discriminatedUnion("kind", [
-    z
-      .object({
-        kind: z
-          .literal("fields")
-          .describe("Update partial frontmatter or metadata fields"),
-        fields: z
-          .record(z.string(), z.unknown())
-          .describe(
-            "Partial frontmatter fields to update. Use this for status, title, coverImageId, ogImageId, and metadata changes such as approving an agent. To set an existing image as an entity cover, set coverImageId to that image id. To remove or clear a cover image, set coverImageId to null, not an empty string. Do not use fields for anchor-profile; anchor-profile updates require the content operation.",
-          ),
-      })
-      .strict(),
-    z
-      .object({
-        kind: z.literal("content").describe("Replace the stored Markdown"),
-        content: z
-          .string()
-          .describe(
-            "Full replacement text you wrote yourself, stored literally. Text without frontmatter replaces the body and keeps the stored frontmatter; text with frontmatter replaces the whole document. When the user supplied the replacement text, use the source operation instead of copying it here. For small changes, use the edits operation instead of regenerating the whole document.",
-          ),
-      })
-      .strict(),
-    z
-      .object({
-        kind: z
-          .literal("edits")
-          .describe("Apply exact text replacements to the stored Markdown"),
-        edits: z
-          .array(contentEditSchema)
-          .min(1)
-          .max(50)
-          .describe(
-            "Preferred for small content edits, especially long notes. Exact, unique, non-overlapping replacements matched against the original Markdown, applied atomically after confirmation. Fetch the entity first; an upload ref marked saved already holds its text, so edit that note without fetching it. Unchanged text is preserved without regeneration.",
-          ),
-      })
-      .strict(),
-    z
-      .object({
-        kind: z
-          .literal("source")
-          .describe("Replace the stored Markdown with user-supplied text"),
-        source: userMessageSourceInputSchema.describe(
-          "Full replacement taken verbatim from a user message, for large rewrites the user supplied. Select the text with exact boundaries instead of copying it into content. Text without frontmatter replaces the body and keeps the stored frontmatter; text with frontmatter replaces the whole document.",
+export const exactlyOneUpdateOperation =
+  "An update operation is exactly one of `fields`, `content`, `edits` or `source`.";
+
+/** Exactly one operation, named by the one field it carries. */
+export const updateOperationInputSchema: UpdateOperationInputSchema = z
+  .strictObject(
+    {
+      fields: z
+        .record(z.string(), z.unknown())
+        .optional()
+        .describe(
+          "Update partial frontmatter or metadata fields. Partial frontmatter fields to update. Use this for status, title, coverImageId, ogImageId, and metadata changes such as approving an agent. To set an existing image as an entity cover, set coverImageId to that image id. To remove or clear a cover image, set coverImageId to null, not an empty string. Do not use fields for anchor-profile; anchor-profile updates require the content operation.",
         ),
-      })
-      .strict(),
-  ]);
+      content: z
+        .string()
+        .optional()
+        .describe(
+          "Replace the stored Markdown. Full replacement text you wrote yourself, stored literally. Text without frontmatter replaces the body and keeps the stored frontmatter; text with frontmatter replaces the whole document. When the user supplied the replacement text, use the source operation instead of copying it here. For small changes, use the edits operation instead of regenerating the whole document.",
+        ),
+      edits: z
+        .array(contentEditSchema)
+        .min(1)
+        .max(50)
+        .optional()
+        .describe(
+          "Apply exact text replacements to the stored Markdown. Preferred for small content edits, especially long notes. Exact, unique, non-overlapping replacements matched against the original Markdown, applied atomically after confirmation. Fetch the entity first; an upload ref marked saved already holds its text, so edit that note without fetching it. Unchanged text is preserved without regeneration.",
+        ),
+      source: userMessageSourceInputSchema
+        .optional()
+        .describe(
+          "Replace the stored Markdown with user-supplied text. Full replacement taken verbatim from a user message, for large rewrites the user supplied. Select the text with exact boundaries instead of copying it into content. Text without frontmatter replaces the body and keeps the stored frontmatter; text with frontmatter replaces the whole document.",
+        ),
+    },
+    {
+      error: (issue) => {
+        if (issue.code !== "unrecognized_keys") return undefined;
+        if (issue.keys.includes("kind"))
+          return "An update operation has no `kind`: name it by its field, as in `{ edits: [...] }`.";
+        return `Unrecognized key ${issue.keys.map((key) => `"${key}"`).join(", ")}: ${exactlyOneUpdateOperation}`;
+      },
+    },
+  )
+  .refine(
+    (operation) =>
+      [
+        operation.fields,
+        operation.content,
+        operation.edits,
+        operation.source,
+      ].filter((field) => field !== undefined).length === 1,
+    { message: exactlyOneUpdateOperation },
+  )
+  .describe(exactlyOneUpdateOperation);
 
 export type UpdateOperationInput = z.output<typeof updateOperationInputSchema>;
 

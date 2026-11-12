@@ -1,13 +1,15 @@
 import { AuthServicePlugin } from "@brains/auth-service";
+import { createTestEntity } from "@brains/entity-service/test";
 import { ENTITY_CHANNELS, JOB_CHANNELS } from "@brains/contracts";
 import {
   DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
   createServicePluginContext,
-  STUDIO_OVERVIEW_REGISTER_MESSAGE,
-  STUDIO_OVERVIEW_UNREGISTER_MESSAGE,
-  STUDIO_WORKSPACE_REGISTER_MESSAGE,
-  STUDIO_WORKSPACE_UNREGISTER_MESSAGE,
+  studioOverviewContributionRegisterContract,
+  studioOverviewContributionUnregisterContract,
+  studioWorkspaceRegisterContract,
+  studioWorkspaceUnregisterContract,
   type DashboardWidgetProviderContext,
+  type JobProgressEvent,
   type RuntimeStudioOperatorCardBlock,
   type RuntimeStudioOperatorColumnsBlock,
   type RuntimeStudioWorkspaceData,
@@ -24,7 +26,11 @@ import {
 
 import { afterEach, describe, expect, it } from "bun:test";
 import { isRecord } from "@brains/utils/is-record";
-import { studioPlugin, type StudioPlugin } from "../src";
+import {
+  studioPlugin,
+  type StudioPlugin,
+  studioContextOn,
+} from "./studio-plugins";
 import {
   STUDIO_OVERVIEW_WORKSPACE_ID,
   StudioOverviewRegistry,
@@ -32,10 +38,16 @@ import {
   overviewStatusFacts,
 } from "../src/overview-workspace";
 
+/** The routing the job queue gives every job it reports on. */
+const JOB_METADATA: JobProgressEvent["metadata"] = {
+  rootJobId: "root-job",
+  operationType: "data_processing",
+};
+
 it("combines an empty attention/activity state without hiding standing runtime information", async () => {
   const registry = new StudioOverviewRegistry();
   const workspace = createStudioOverviewWorkspace({
-    context: createServicePluginContext(createMockShell(), "studio"),
+    context: await studioContextOn(createMockShell()),
     registry,
   });
   const actor: StudioWorkspaceActor = {
@@ -176,12 +188,13 @@ describe("Overview composition", () => {
     registry.recordJob({
       id: "preview-build",
       type: "job",
+      metadata: JOB_METADATA,
       status: "failed",
       message: "Preview render failed.",
       jobDetails: { jobType: "site-build", priority: 0, retryCount: 0 },
     });
     const workspace = createStudioOverviewWorkspace({
-      context: createServicePluginContext(createMockShell(), "studio"),
+      context: await studioContextOn(createMockShell()),
       registry,
     });
 
@@ -202,11 +215,12 @@ describe("Overview composition", () => {
     registry.recordJob({
       id: "preview-build",
       type: "job",
+      metadata: JOB_METADATA,
       status: "failed",
       jobDetails: { jobType: "site-build", priority: 0, retryCount: 0 },
     });
     const workspace = createStudioOverviewWorkspace({
-      context: createServicePluginContext(createMockShell(), "studio"),
+      context: await studioContextOn(createMockShell()),
       registry,
     });
 
@@ -227,11 +241,12 @@ describe("Overview composition", () => {
     registry.recordJob({
       id: "sync",
       type: "job",
+      metadata: JOB_METADATA,
       status: "completed",
       jobDetails: { jobType: "directory-sync", priority: 0, retryCount: 0 },
     });
     const workspace = createStudioOverviewWorkspace({
-      context: createServicePluginContext(createMockShell(), "studio"),
+      context: await studioContextOn(createMockShell()),
       registry,
       now: (): number => now,
     });
@@ -259,11 +274,27 @@ describe("Overview composition", () => {
     ]);
   });
 
+  it("cuts a long job message to a feed line instead of dropping the event", () => {
+    const registry = new StudioOverviewRegistry();
+    registry.recordJob({
+      id: "import-1",
+      type: "job",
+      metadata: JOB_METADATA,
+      status: "failed",
+      message: "word ".repeat(200),
+    });
+
+    const description = registry.listActivity()[0]?.description ?? "";
+    expect(description.length).toBeLessThanOrEqual(500);
+    expect(description.endsWith("...")).toBe(true);
+  });
+
   it("names jobs in words rather than by their job type", () => {
     const registry = new StudioOverviewRegistry();
     registry.recordJob({
       id: "dispatch-1",
       type: "job",
+      metadata: JOB_METADATA,
       status: "completed",
       jobDetails: {
         jobType: "newsletter:dispatch",
@@ -322,7 +353,7 @@ describe("Overview composition", () => {
       }),
     );
     const workspace = createStudioOverviewWorkspace({
-      context: createServicePluginContext(createMockShell(), "studio"),
+      context: await studioContextOn(createMockShell()),
       registry,
     });
 
@@ -353,11 +384,12 @@ describe("Overview composition", () => {
     registry.recordJob({
       id: "preview-build",
       type: "job",
+      metadata: JOB_METADATA,
       status: "failed",
       jobDetails: { jobType: "site-build", priority: 0, retryCount: 0 },
     });
     const workspace = createStudioOverviewWorkspace({
-      context: createServicePluginContext(createMockShell(), "studio"),
+      context: await studioContextOn(createMockShell()),
       registry,
       now: (): number => now,
     });
@@ -398,7 +430,7 @@ describe("Overview composition", () => {
       }),
     );
     const workspace = createStudioOverviewWorkspace({
-      context: createServicePluginContext(createMockShell(), "studio"),
+      context: await studioContextOn(createMockShell()),
       registry,
     });
 
@@ -444,7 +476,10 @@ it("names entity activity by its title and readable type", async () => {
     {
       entityType: "post",
       entityId: "resilience-in-distributed-systems",
-      entity: { metadata: { title: "Resilience Is Not Redundancy" } },
+      entity: createTestEntity("post", {
+        id: "resilience-in-distributed-systems",
+        metadata: { title: "Resilience Is Not Redundancy" },
+      }),
     },
     (entityType, entity) => ({
       title: entity ? "Resilience Is Not Redundancy" : undefined,
@@ -570,7 +605,7 @@ async function registerContribution(
   registration: StudioOverviewContributionRegistration,
 ): Promise<unknown> {
   return shell.getMessageBus().send({
-    type: STUDIO_OVERVIEW_REGISTER_MESSAGE,
+    type: studioOverviewContributionRegisterContract.name,
     sender: registration.pluginId,
     payload: registration,
   });
@@ -765,6 +800,7 @@ describe("Studio Overview workspace", () => {
       payload: {
         id: "build-1",
         type: "job",
+        metadata: JOB_METADATA,
         status: "completed",
         message: "Preview built",
         jobDetails: { jobType: "site:build", priority: 0, retryCount: 0 },
@@ -776,6 +812,7 @@ describe("Studio Overview workspace", () => {
       payload: {
         id: "dispatch-1",
         type: "job",
+        metadata: JOB_METADATA,
         status: "failed",
         message: "Transport rejected the payload",
         jobDetails: {
@@ -845,7 +882,7 @@ describe("Studio Overview workspace", () => {
 
     expect(
       await shell.getMessageBus().send({
-        type: STUDIO_OVERVIEW_UNREGISTER_MESSAGE,
+        type: studioOverviewContributionUnregisterContract.name,
         sender: "content-pipeline",
         payload: {
           pluginId: "content-pipeline",
@@ -855,7 +892,7 @@ describe("Studio Overview workspace", () => {
     ).toMatchObject({ success: true });
 
     await shell.getMessageBus().send({
-      type: STUDIO_WORKSPACE_UNREGISTER_MESSAGE,
+      type: studioWorkspaceUnregisterContract.name,
       sender: "external",
       payload: { pluginId: "studio" },
     });
@@ -881,7 +918,7 @@ describe("Studio Overview workspace", () => {
     };
     expect(
       await shell.getMessageBus().send({
-        type: STUDIO_WORKSPACE_REGISTER_MESSAGE,
+        type: studioWorkspaceRegisterContract.name,
         sender: "external",
         payload: external,
       }),
@@ -889,5 +926,75 @@ describe("Studio Overview workspace", () => {
       success: false,
       error: expect.stringContaining("reserved by the host"),
     });
+  });
+});
+
+describe("Dashboard namespace on the Overview contracts", () => {
+  it("answers the contribution contracts as their one owner", async () => {
+    const shell = createMockShell({ domain: "brain.test" });
+    await studioPlugin().register(shell);
+    const imposter = createServicePluginContext(shell, "imposter");
+
+    expect(() =>
+      imposter.messaging.answer(
+        studioOverviewContributionRegisterContract,
+        async () => undefined,
+      ),
+    ).toThrow("already has an owner");
+    expect(() =>
+      imposter.messaging.answer(
+        studioOverviewContributionUnregisterContract,
+        async () => undefined,
+      ),
+    ).toThrow("already has an owner");
+  });
+
+  it("re-homes a non-public semantic widget into Overview and withdraws it", async () => {
+    const shell = createMockShell({ domain: "brain.test" });
+    const cookie = await createSession(shell, "trusted");
+    const plugin = studioPlugin();
+    await plugin.register(shell);
+    const context = createServicePluginContext(shell, "content-pipeline");
+    const { pluginId: _pluginId, ...widget } = contribution();
+    const badge = async (): Promise<unknown> => {
+      const navigation = await findRoute(plugin, "/studio/api/types").handler(
+        request("/studio/api/types", cookie),
+      );
+      const body: unknown = await navigation.json();
+      if (!isRecord(body) || !Array.isArray(body["workspaces"])) return null;
+      const overview: unknown = body["workspaces"][0];
+      return isRecord(overview) ? overview["badge"] : null;
+    };
+
+    expect(context.dashboard.isAvailable()).toBe(true);
+    // Overview draws the semantic view; a widget with its own renderer is refused.
+    expect(
+      context.dashboard.registerWidget({
+        ...widget,
+        id: "own-renderer",
+        renderer: { component: () => null },
+      }),
+    ).rejects.toThrow("Unrecognized key");
+    expect(await context.dashboard.registerWidget(widget)).toBe(true);
+    expect(await badge()).toBe(2);
+
+    expect(
+      await context.dashboard.unregisterWidget("publication-pipeline"),
+    ).toBe(true);
+    expect(await badge()).toBe(0);
+  });
+
+  it("keeps a public widget out of Overview", async () => {
+    const shell = createMockShell({ domain: "brain.test" });
+    await studioPlugin().register(shell);
+    const context = createServicePluginContext(shell, "content-pipeline");
+    const { pluginId: _pluginId, ...widget } = contribution();
+
+    expect(
+      await context.dashboard.registerWidget({
+        ...widget,
+        visibility: "public",
+      }),
+    ).toBe(false);
   });
 });

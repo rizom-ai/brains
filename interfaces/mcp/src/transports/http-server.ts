@@ -1,3 +1,8 @@
+import {
+  type InterfaceRuntime,
+  type ToolVisibility,
+  ToolVisibilitySchema,
+} from "@brains/sdk/internal/interface-runtime";
 import { timingSafeEqual } from "node:crypto";
 import {
   createMcpHandler,
@@ -6,8 +11,6 @@ import {
   type McpServer,
 } from "@modelcontextprotocol/server";
 import type { ActorRef } from "@brains/contracts";
-import type { IMCPTransport, ToolVisibility } from "@brains/mcp-service";
-import { ToolVisibilitySchema } from "@brains/mcp-service";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import type { TransportLogger } from "./types";
@@ -71,7 +74,7 @@ function requestOrigin(request: Request): string {
  * registry or permission changes.
  */
 export class StreamableHTTPServer {
-  private mcpTransport: IMCPTransport | null = null;
+  private mcpTransport: InterfaceRuntime["mcpTransport"] | null = null;
   private mcpHandler: McpHttpHandler | null = null;
   private server: ReturnType<typeof Bun.serve> | null = null;
   private boundPort: number | null = null;
@@ -93,7 +96,7 @@ export class StreamableHTTPServer {
     ) {
       throw new Error(
         "MCP HTTP transport requires an auth token or bearer token verifier. " +
-          "Set MCP_AUTH_TOKEN, configure OAuth verification, or pass auth: { disabled: true } for local dev.",
+          "Configure OAuth verification, or for local development set MCP_AUTH_TOKEN or pass auth: { disabled: true }.",
       );
     }
   }
@@ -364,7 +367,7 @@ export class StreamableHTTPServer {
 
   public connectMCPServer(
     mcpServer: McpServer,
-    mcpTransport?: IMCPTransport,
+    mcpTransport?: InterfaceRuntime["mcpTransport"],
   ): void {
     this.mcpTransport = mcpTransport ?? null;
     this.mcpHandler = createMcpHandler(

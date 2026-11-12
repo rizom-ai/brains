@@ -1,0 +1,34 @@
+id: team-tool-docs-search
+name: Search Team Brain docs
+description: Tests that the agent searches the saved handbook docs when asked to explain how Team Brain captures and synthesizes team memory.
+type: tool_invocation
+setup:
+  permissionLevel: admin
+tags:
+  - recipe-team
+  - team
+  - docs
+  - search
+
+turns:
+  - userMessage: "Use the current Team Brain handbook docs to explain how Team Brain captures and synthesizes team memory."
+
+successCriteria:
+  toolCountRange:
+    min: 1
+    max: 6
+  responseContains:
+    - "Team Brain"
+  responseNotContains:
+    - "newsletter"
+    - "blog"
+
+  minHelpfulnessScore: 3
+  minAccuracyScore: 3
+  minInstructionFollowingScore: 3
+  responseCriteria:
+    - "Grounds the explanation in the saved handbook docs, such as notes capturing team-local context and summaries turning conversations into durable memory."
+
+efficiency:
+  maxToolCalls: 6
+  maxTokens: 46000

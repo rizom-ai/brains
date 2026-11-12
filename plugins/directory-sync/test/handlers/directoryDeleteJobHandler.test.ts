@@ -7,6 +7,7 @@ import {
   createMockProgressReporter,
 } from "@brains/test-utils";
 import { createMockDirectorySync } from "../fixtures";
+import { queuedJob } from "../queued-job";
 
 describe("DirectoryDeleteJobHandler", () => {
   const logger = createSilentLogger();
@@ -287,7 +288,9 @@ describe("DirectoryDeleteJobHandler", () => {
       // BaseJobHandler runs it before a job is durably enqueued, so this is the
       // guard that actually keeps malformed data out of the queue. It accepts
       // unknown, so the invalid object goes in as it is, with no cast.
-      expect(handler.validateAndParse(invalidData)).toBeNull();
+      expect(
+        queuedJob("directory-delete", handler).validateAndParse(invalidData),
+      ).toBeNull();
     });
 
     it("should report progress correctly", async () => {
@@ -337,7 +340,7 @@ describe("DirectoryDeleteJobHandler", () => {
       };
       const jobId = "job-456";
 
-      await handler.onError(
+      await queuedJob("directory-delete", handler, spyLogger).onError(
         error,
         data,
         jobId,

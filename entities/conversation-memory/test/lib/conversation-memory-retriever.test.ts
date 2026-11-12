@@ -8,7 +8,10 @@ import {
   createMockShell,
 } from "@brains/plugins/test";
 import { ConversationMemoryRetriever } from "../../src/lib/conversation-memory-retriever";
-import type { DecisionEntity } from "../../src/schemas/conversation-memory";
+import {
+  decisionSchema,
+  type DecisionEntity,
+} from "../../src/schemas/conversation-memory";
 import { summarySchema, type SummaryEntity } from "../../src/schemas/summary";
 import { summaryConfigSchema } from "../../src/schemas/summary-config";
 
@@ -394,10 +397,14 @@ describe("ConversationMemoryRetriever", () => {
     expect(result.results.map((item) => item.id)).toEqual(["summary-linked"]);
   });
 
-  it("matches opaque aliases retained from legacy actor references", async () => {
+  it("matches a participant by an identity alias", async () => {
     const context = createMockEntityPluginContext();
+    const discordJan = {
+      kind: "external" as const,
+      externalActorId: createExternalActorId("discord", "discord:42"),
+    };
     const currentSummary = createSummary({
-      id: "summary-legacy",
+      id: "summary-aliased",
       channelId: "team",
     });
     const summary = summarySchema.parse({
@@ -406,36 +413,57 @@ describe("ConversationMemoryRetriever", () => {
         ...currentSummary.metadata,
         participants: [
           {
-            actorId: "discord:42",
-            canonicalId: "person-jan",
-            sourceActorIds: ["discord:42"],
+            identity: {
+              kind: "external",
+              externalActorId: createExternalActorId("canonical", "person-jan"),
+            },
+            identityAliases: [discordJan],
             displayName: "Jan",
             roles: ["user"],
           },
         ],
       },
     });
-    expect(summary.metadata.participants?.[0]?.identityAliases).toEqual([
-      {
-        kind: "external",
-        externalActorId: createExternalActorId("discord", "discord:42"),
-      },
-    ]);
     spyOn(context.entityService, "search").mockResolvedValue(
-      asSearchResults([{ entity: summary, score: 0.8, excerpt: "Legacy Jan" }]),
+      asSearchResults([
+        { entity: summary, score: 0.8, excerpt: "Aliased Jan" },
+      ]),
     );
 
     const result = await new ConversationMemoryRetriever(context).retrieve({
       query: "Jan",
       interfaceType: "mcp",
       channelId: "team",
-      identity: {
-        kind: "external",
-        externalActorId: createExternalActorId("discord", "discord:42"),
-      },
+      identity: discordJan,
     });
 
-    expect(result.results.map((item) => item.id)).toEqual(["summary-legacy"]);
+    expect(result.results.map((item) => item.id)).toEqual(["summary-aliased"]);
+  });
+
+  it("refuses summary participants and decision makers stored as bare actor ids", () => {
+    const bareActor = {
+      actorId: "discord:42",
+      canonicalId: "person-jan",
+      displayName: "Jan",
+    };
+    const summary = createSummary({ id: "summary-bare", channelId: "team" });
+    const decision = createDecision({ id: "decision-bare", channelId: "team" });
+
+    expect(
+      summarySchema.safeParse({
+        ...summary,
+        metadata: {
+          ...summary.metadata,
+          participants: [{ ...bareActor, roles: ["user"] }],
+        },
+      }).success,
+    ).toBe(false);
+    expect(
+      decisionSchema.safeParse({
+        ...decision,
+        metadata: { ...decision.metadata, decidedBy: [bareActor] },
+      }).success,
+    ).toBe(false);
   });
 
   it("can expand resolved user retrieval across spaces when requested", async () => {

@@ -48,6 +48,14 @@ describe("asset references", () => {
 });
 
 describe("asset preparation", () => {
+  test("copies a Buffer source rather than viewing it", () => {
+    const source = Buffer.from([1, 2, 3]);
+    const prepared = prepareAsset(source);
+    source[0] = 9;
+
+    expect(prepared.bytes).toEqual(Uint8Array.from([1, 2, 3]));
+  });
+
   test("owns a bounded copy and derives its canonical identity", () => {
     const source = Uint8Array.from([1, 2, 3, 4]);
     const prepared = prepareAsset(source, { expectedSize: 4, maxBytes: 4 });

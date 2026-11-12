@@ -1,4 +1,8 @@
-import type { IRuntimeStateStore, ServiceEntityService } from "@brains/plugins";
+import {
+  internalFullScope,
+  type ClassRuntimeStateStore,
+} from "@brains/sdk/internal/service-runtime";
+import type { EmailEntityService } from "./lib/email-context";
 import { KeyedSerialQueue, SerialQueue } from "@brains/utils/serial-queue";
 import { z } from "@brains/utils/zod";
 import { mailItemAdapter } from "./entity/adapters/mail-item-adapter";
@@ -30,8 +34,8 @@ export const threadOrdinalStateSchema: ThreadOrdinalStateSchema =
 export type ThreadOrdinalState = z.output<typeof threadOrdinalStateSchema>;
 
 interface MailThreadOrdinalCoordinatorOptions {
-  entityService: ServiceEntityService;
-  state: IRuntimeStateStore<ThreadOrdinalState>;
+  entityService: EmailEntityService;
+  state: ClassRuntimeStateStore<ThreadOrdinalState>;
   pageSize?: number | undefined;
 }
 
@@ -39,8 +43,8 @@ type ProjectionWriter = (projection: MailItemProjection) => Promise<void>;
 
 /** Coordinates migration and ingress over the indexed mail thread position. */
 export class MailThreadOrdinalCoordinator {
-  private readonly entityService: ServiceEntityService;
-  private readonly state: IRuntimeStateStore<ThreadOrdinalState>;
+  private readonly entityService: EmailEntityService;
+  private readonly state: ClassRuntimeStateStore<ThreadOrdinalState>;
   private readonly pageSize: number;
   private readonly ingressGate = new SharedExclusiveGate();
   private readonly threadQueues = new KeyedSerialQueue();
@@ -97,13 +101,21 @@ export class MailThreadOrdinalCoordinator {
     await this.state.set(THREAD_ORDINAL_STATE_KEY, { kind: "building" });
     const initialCount = await this.entityService.countEntities({
       entityType: "mail-item",
-      options: { filter: { visibilityScope: "restricted" } },
+      options: {
+        filter: {
+          visibilityScope: internalFullScope("mail thread ordinal reindex"),
+        },
+      },
     });
     await this.reindex(initialCount);
     await this.ingressGate.withExclusive(async () => {
       const finalCount = await this.entityService.countEntities({
         entityType: "mail-item",
-        options: { filter: { visibilityScope: "restricted" } },
+        options: {
+          filter: {
+            visibilityScope: internalFullScope("mail thread ordinal reindex"),
+          },
+        },
       });
       await this.reindex(finalCount);
       await this.state.set(THREAD_ORDINAL_STATE_KEY, { kind: "ready" });
@@ -124,7 +136,9 @@ export class MailThreadOrdinalCoordinator {
               { field: "receivedAt", direction: "asc" },
               { field: "id", direction: "asc" },
             ],
-            filter: { visibilityScope: "restricted" },
+            filter: {
+              visibilityScope: internalFullScope("mail thread ordinal reindex"),
+            },
           },
         },
         mailItemSchema,
@@ -182,7 +196,9 @@ export class MailThreadOrdinalCoordinator {
           sortFields: [{ field: "threadOrdinal", direction: "desc" }],
           filter: {
             metadata: { threadKey },
-            visibilityScope: "restricted",
+            visibilityScope: internalFullScope(
+              "mail thread ordinal allocation",
+            ),
           },
         },
       },
@@ -196,7 +212,7 @@ export class MailThreadOrdinalCoordinator {
       (await this.entityService.getEntity({
         entityType: "mail-item",
         id,
-        visibilityScope: "restricted",
+        visibilityScope: internalFullScope("mail ingestion dedupe check"),
       })) !== null
     );
   }

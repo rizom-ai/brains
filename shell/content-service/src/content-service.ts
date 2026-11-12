@@ -16,10 +16,8 @@ import {
 } from "./generation-submission";
 import { planContentGeneration } from "./generation-planner";
 import { createGenerationReadContext } from "./generation-read-context";
-import type {
-  GenerationAccess,
-  GenerationAuthorizer,
-} from "./generation-authorization";
+import type { CallerAccess } from "./caller-authority";
+import type { GenerationAuthorizer } from "./generation-authorization";
 import { authorizeGenerationWrite } from "./generation-write-authorization";
 import { scopeTemplateName } from "./template-scope";
 import type { BaseEntity, IEntityService } from "@brains/entity-service";
@@ -87,7 +85,7 @@ export class ContentService implements IContentService {
   authorizeGenerationWrite(
     data: ContentGenerationJobData,
     persisted?: Readonly<BaseEntity>,
-  ): Promise<GenerationAccess> {
+  ): Promise<CallerAccess> {
     return authorizeGenerationWrite(
       {
         ...this.dependencies,
@@ -231,10 +229,13 @@ export class ContentService implements IContentService {
         try {
           // Raw: the template parses the stored markdown itself, and the site
           // maps image references to the images it builds. The resolving
-          // lookup would inline every image as a data URL.
+          // lookup would inline every image as a data URL. As stored: a
+          // declared type's ordinary read is its body alone, and the
+          // formatter reads the document, frontmatter and all.
           const entity = await scopedEntityService.getEntityRaw({
             entityType: options.savedContent.entityType,
             id: options.savedContent.entityId,
+            source: true,
           });
           if (entity?.content) {
             this.dependencies.logger.debug(
@@ -291,10 +292,11 @@ export class ContentService implements IContentService {
     scopedEntityService: IEntityService,
   ): Promise<unknown> {
     try {
-      // Raw for the same reason as saved content: references stay references.
+      // Raw and as stored, for the same reasons as saved content.
       const entity = await scopedEntityService.getEntityRaw({
         entityType: savedContent.entityType,
         id: savedContent.entityId,
+        source: true,
       });
       if (!entity?.content) {
         return base;

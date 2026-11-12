@@ -1,10 +1,20 @@
-import type { MessageSender, ServiceEntityService } from "@brains/plugins";
+import type {
+  ServiceClassMessaging,
+  ServiceEntityReads,
+} from "@brains/sdk/internal/service-runtime";
 import type { SiteContentResolutionOptions } from "./site-content-contracts";
 import type { SiteViewTemplate } from "./site-view-template";
 
+/** The entity reads a build makes, at the scope each read names. */
+export type SiteEntityReads = Pick<
+  ServiceEntityReads,
+  "getEntityTypes" | "listEntities" | "getEntity"
+>;
+
 export interface SiteBuilderServices {
-  entityService: ServiceEntityService;
-  sendMessage: MessageSender;
+  entityService: SiteEntityReads;
+  /** Sends the staging command extensions write their artifacts on. */
+  command: ServiceClassMessaging["command"];
   /** Resolved against the template's own schema; callers narrow what they read. */
   resolveTemplateContent: (
     templateName: string,

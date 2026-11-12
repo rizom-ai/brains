@@ -16,6 +16,7 @@ describe("GuideAdapter", () => {
       recipe: "professional",
       brings: null,
       section: null,
+      summary: null,
       material: [
         {
           from: "Drafts and fragments",

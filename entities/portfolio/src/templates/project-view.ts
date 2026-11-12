@@ -1,6 +1,10 @@
-import { entityViewFields, type EntityViewFields } from "@brains/plugins";
+import {
+  renderedLinkFields,
+  viewLinkFields,
+  entityViewFields,
+  type EntityViewFields,
+} from "@brains/sdk/internal/presentation";
 import { z } from "@brains/utils/zod";
-import { renderedLinkFields, viewLinkFields } from "@brains/templates";
 import { projectStatusSchema } from "../schemas/project";
 
 const nullableString: z.ZodDefault<z.ZodNullable<z.ZodString>> = z
@@ -88,14 +92,15 @@ export const projectViewSchema: z.ZodObject<
 
 export type ProjectSchemaData = z.output<typeof projectViewSchema>;
 
-export type ProjectView = Omit<ProjectSchemaData, "url" | "typeLabel"> & {
-  url: string;
-  typeLabel: string;
-};
-
 /** A project once site-builder has filled the link fields it renders. */
-export const projectRenderSchema: z.ZodType<ProjectView> =
-  projectViewSchema.extend({
-    url: renderedLinkFields.url,
-    typeLabel: renderedLinkFields.typeLabel,
-  });
+export const projectRenderSchema: ReturnType<
+  typeof projectViewSchema.extend<{
+    url: typeof renderedLinkFields.url;
+    typeLabel: typeof renderedLinkFields.typeLabel;
+  }>
+> = projectViewSchema.extend({
+  url: renderedLinkFields.url,
+  typeLabel: renderedLinkFields.typeLabel,
+});
+
+export type ProjectView = z.output<typeof projectRenderSchema>;

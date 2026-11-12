@@ -1,20 +1,32 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { PUBLISH_CHANNELS } from "@brains/contracts";
 import {
   createPluginHarness,
   type PluginTestHarness,
 } from "@brains/plugins/test";
-import { ContentPipelinePlugin } from "../src/plugin";
-import { PUBLISH_MESSAGES } from "../src/types/messages";
+import {
+  createContentPipelinePlugin,
+  type ContentPipelineTestPlugin,
+} from "./content-pipeline-plugins";
 
 describe("ContentPipelinePlugin queue storage integration", () => {
-  let harness: PluginTestHarness<ContentPipelinePlugin>;
-  let plugin: ContentPipelinePlugin;
+  let harness: PluginTestHarness<ContentPipelineTestPlugin>;
+  let plugin: ContentPipelineTestPlugin;
+
+  async function manage(input: Record<string, unknown>): Promise<void> {
+    const result = await harness.executeTool("publishing_manage", input, {
+      interfaceType: "studio",
+      actor: { kind: "user", userId: "operator" },
+      userPermissionLevel: "admin",
+    });
+    expect("success" in result && result.success).toBe(true);
+  }
 
   beforeEach(async () => {
     harness = createPluginHarness({
       dataDir: "/tmp/content-pipeline-queue-storage-test",
     });
-    plugin = new ContentPipelinePlugin({});
+    plugin = createContentPipelinePlugin({});
     await harness.installPlugin(plugin);
     harness.addEntities([
       {
@@ -36,22 +48,19 @@ describe("ContentPipelinePlugin queue storage integration", () => {
     await plugin.shutdown();
   });
 
-  it("routes message mutations through durable queue storage", async () => {
-    await harness.sendMessage(PUBLISH_MESSAGES.QUEUE, {
+  it("routes queue mutations through durable queue storage", async () => {
+    await manage({
+      action: "queue-add",
       entityType: "social-post",
       entityId: "post-1",
-      authContext: {
-        interfaceType: "studio",
-        actor: { kind: "user", userId: "operator" },
-        userPermissionLevel: "admin",
-        authorization: "user" as const,
-      },
     });
-    await harness.sendMessage(PUBLISH_MESSAGES.QUEUE, {
+    await manage({
+      action: "queue-add",
       entityType: "social-post",
       entityId: "post-2",
     });
-    await harness.sendMessage(PUBLISH_MESSAGES.REORDER, {
+    await manage({
+      action: "queue-reorder",
       entityType: "social-post",
       entityId: "post-2",
       position: 1,
@@ -76,7 +85,8 @@ describe("ContentPipelinePlugin queue storage integration", () => {
       )?.metadata["status"],
     ).toBe("queued");
 
-    await harness.sendMessage(PUBLISH_MESSAGES.REMOVE, {
+    await manage({
+      action: "queue-remove",
       entityType: "social-post",
       entityId: "post-1",
     });
@@ -97,12 +107,13 @@ describe("ContentPipelinePlugin queue storage integration", () => {
   });
 
   it("persists terminal failures and clears recoverable queue order", async () => {
-    await harness.sendMessage(PUBLISH_MESSAGES.QUEUE, {
+    await manage({
+      action: "queue-add",
       entityType: "social-post",
       entityId: "post-1",
     });
 
-    await harness.sendMessage(PUBLISH_MESSAGES.FAILED, {
+    await harness.sendMessage(PUBLISH_CHANNELS.failed, {
       entityType: "social-post",
       entityId: "post-1",
       error: "Provider unavailable",
@@ -123,22 +134,46 @@ describe("ContentPipelinePlugin queue storage integration", () => {
     ).toMatchObject({ status: "failed", error: "Provider unavailable" });
   });
 
-  it("routes publishing_manage queue-add through the same storage boundary", async () => {
-    const result = await harness.executeTool(
-      "publishing_manage",
-      {
-        action: "queue-add",
-        entityType: "social-post",
-        entityId: "post-1",
-      },
-      {
-        interfaceType: "studio",
-        actor: { kind: "user", userId: "operator" },
-        userPermissionLevel: "admin",
-      },
-    );
+  it.each([
+    [
+      PUBLISH_CHANNELS.failed,
+      { entityType: "social-post", entityId: "post-1" },
+    ],
+    [
+      PUBLISH_CHANNELS.completed,
+      { entityType: "social-post", entityId: "post-1" },
+    ],
+  ])("refuses a malformed %s and keeps the queue", async (channel, payload) => {
+    await manage({
+      action: "queue-add",
+      entityType: "social-post",
+      entityId: "post-1",
+    });
 
-    expect("success" in result && result.success).toBe(true);
+    await harness.sendMessage(channel, payload, "test", true);
+
+    expect(
+      (await plugin.getPublicationQueueService().listStored("social-post")).map(
+        (entry) => entry.entityId,
+      ),
+    ).toEqual(["post-1"]);
+    expect(
+      (
+        await harness.getEntityService().getEntity({
+          entityType: "social-post",
+          id: "post-1",
+        })
+      )?.metadata["status"],
+    ).toBe("queued");
+  });
+
+  it("routes publishing_manage queue-add through the same storage boundary", async () => {
+    await manage({
+      action: "queue-add",
+      entityType: "social-post",
+      entityId: "post-1",
+    });
+
     expect(
       await plugin.getPublicationQueueService().listStored("social-post"),
     ).toEqual([

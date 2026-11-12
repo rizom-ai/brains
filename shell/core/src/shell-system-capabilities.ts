@@ -1,20 +1,19 @@
 import {
   createEnqueueBatchFn,
   createEnqueueJobFn,
+  createHasJobFn,
   createRegisterHandlerFn,
   type IJobsNamespace,
 } from "@brains/job-queue";
-import type {
-  DefaultQueryResponse,
-  IAnalyticsRegistry,
-  QueryContext,
-} from "@brains/plugins";
+import type { DefaultQueryResponse } from "@brains/contracts";
+import type { IAnalyticsRegistry, QueryContext } from "@brains/plugins";
 import {
   createAttachmentsNamespace,
   type RuntimeAppInfo,
 } from "@brains/plugins";
 import type { ShellServices } from "./types/shell-types";
 import { registerSystemCapabilities } from "./system/register";
+import { searchBudgetFor } from "./system/search-excerpt";
 
 export interface ShellSystemCapabilityOptions {
   services: ShellServices;
@@ -43,6 +42,7 @@ export function registerShellSystemCapabilities(
         enqueue: createEnqueueJobFn(jobQueueService, "system", false),
         enqueueBatch: createEnqueueBatchFn(jobs, "system"),
         registerHandler: createRegisterHandlerFn(jobQueueService, "system"),
+        has: createHasJobFn(jobQueueService),
       },
       conversationService: services.conversationService,
       runtimeUploads: services.runtimeUploadRegistry,
@@ -52,7 +52,7 @@ export function registerShellSystemCapabilities(
       getIdentity: () => services.identityService.getCharacter(),
       getProfile: () => services.profileService.getProfile(),
       getAppInfo,
-      searchLimit: 10,
+      searchBudget: searchBudgetFor(services.aiService.getConfig().model),
       analytics,
       permissionService: services.permissionService,
     },

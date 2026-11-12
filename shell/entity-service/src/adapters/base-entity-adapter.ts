@@ -32,6 +32,25 @@ function systemTolerant<T>(schema: { parse(data: unknown): T }): {
   };
 }
 
+/**
+ * A type's own frontmatter read from a document: the system visibility
+ * the exported file carries is set aside before the type's schema sees
+ * the header, and a header the schema refuses fails as the type's
+ * validation error. What every adapter's parseFrontMatter reads.
+ */
+export function parseTypedFrontmatter<T>(
+  entityType: string,
+  markdown: string,
+  schema: { parse(data: unknown): T },
+): T {
+  try {
+    return parseMarkdownWithFrontmatter(markdown, systemTolerant(schema))
+      .metadata;
+  } catch (error) {
+    throw new EntityValidationError(entityType, error);
+  }
+}
+
 export type DefaultEntityFrontmatter<TMetadata extends object> = {
   [K in keyof TMetadata]?: TMetadata[K] | undefined;
 };
@@ -48,6 +67,7 @@ export interface BaseEntityAdapterConfig<
   purpose: string;
   schema: EntitySchema<TEntity>;
   frontmatterSchema: BaseEntityFrontmatterSchema<TFrontmatter>;
+  createFieldsSchema?: z.ZodObject<z.ZodRawShape>;
   isSingleton?: boolean;
   hasBody?: boolean;
   supportsCoverImage?: boolean;
@@ -73,6 +93,7 @@ export abstract class BaseEntityAdapter<
   public readonly purpose: string;
   public readonly schema: EntitySchema<TEntity>;
   public readonly frontmatterSchema: z.ZodObject<z.ZodRawShape>;
+  public readonly createFieldsSchema?: z.ZodObject<z.ZodRawShape>;
   public readonly isSingleton?: boolean;
   public readonly hasBody?: boolean;
   public readonly supportsCoverImage?: boolean;
@@ -91,6 +112,8 @@ export abstract class BaseEntityAdapter<
     this.frontmatterSchema = config.frontmatterSchema;
     this.fmSchema = config.frontmatterSchema;
     this.bodyFormatter = config.bodyFormatter ?? defaultBodyFormatter;
+    if (config.createFieldsSchema !== undefined)
+      this.createFieldsSchema = config.createFieldsSchema;
     if (config.isSingleton !== undefined) this.isSingleton = config.isSingleton;
     if (config.hasBody !== undefined) this.hasBody = config.hasBody;
     if (config.supportsCoverImage !== undefined)
@@ -156,12 +179,7 @@ export abstract class BaseEntityAdapter<
     markdown: string,
     schema: { parse(data: unknown): T },
   ): T {
-    try {
-      return parseMarkdownWithFrontmatter(markdown, systemTolerant(schema))
-        .metadata;
-    } catch (error) {
-      throw new EntityValidationError(this.entityType, error);
-    }
+    return parseTypedFrontmatter(this.entityType, markdown, schema);
   }
 
   public getBodyTemplate(): string {

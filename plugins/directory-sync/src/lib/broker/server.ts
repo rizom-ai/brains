@@ -15,9 +15,7 @@ import type {
   RegisterCheckoutPayload,
 } from "./rpc-contract";
 import { brokerRpcServerProtocol } from "./rpc-server-protocol";
-import { ActiveRequests } from "./active-requests";
 import { canonicalCheckoutPath } from "./checkout-identity";
-import type { ActivitySnapshot } from "./active-requests";
 import { CheckoutOperationExecutor } from "./checkout-executor";
 import { isMutatingOperation } from "./operations";
 import type { GitOperationName } from "./operations";
@@ -54,8 +52,6 @@ export interface GitBrokerServerOptions {
   /** Instance-owned runtime directory; never inside a checkout. */
   runtimeDir: string;
   brokerId?: string | undefined;
-  /** Injected so supervision facts can be asserted without waiting. */
-  now?: (() => number) | undefined;
   /** How many answered reads stay replayable; mutations are never dropped. */
   answeredWindow?: number | undefined;
   /** Durable record override for failure-boundary tests. */
@@ -121,10 +117,7 @@ export class GitBrokerServer {
   readonly brokerId: string;
 
   readonly #executors = new Map<string, CheckoutOperationExecutor>();
-  /** Request id to when that operation last showed it was still moving. */
-  readonly #active = new ActiveRequests();
   readonly #resolveCheckout: GitBrokerServerOptions["resolveCheckout"];
-  readonly #now: () => number;
   /**
    * Every request this generation has been asked to run, by id.
    *
@@ -153,14 +146,12 @@ export class GitBrokerServer {
     socketPath: string,
     brokerId: string,
     resolveCheckout: GitBrokerServerOptions["resolveCheckout"],
-    now: () => number,
     journal: GitBrokerJournal | null,
     answeredWindow: number,
   ) {
     this.socketPath = socketPath;
     this.brokerId = brokerId;
     this.#resolveCheckout = resolveCheckout;
-    this.#now = now;
     this.#journal = journal;
     this.#answeredWindow = answeredWindow;
     // A settled broker record proves only that Git returned to the broker. It
@@ -176,8 +167,8 @@ export class GitBrokerServer {
     this.#admitsMutations = true;
   }
 
-  /** A durable-boundary or supervisor failure makes mutation unsafe. */
-  closeAdmission(): void {
+  /** Stopping, or a durable-boundary failure, makes mutation unsafe. */
+  #closeAdmission(): void {
     this.#recoveryPending = true;
     this.#admitsMutations = false;
   }
@@ -191,24 +182,6 @@ export class GitBrokerServer {
    */
   get ambiguousRequests(): readonly AmbiguousRequest[] {
     return this.#journal?.ambiguous ?? [];
-  }
-
-  /**
-   * What supervision reads to tell a wedged owner from a busy one.
-   *
-   * A wedged broker does not exit, so there is no process event to wait for.
-   * These are the durable facts instead.
-   */
-  /**
-   * What supervision reads to tell a wedged owner from a busy one.
-   *
-   * A wedged broker does not exit, so there is no process event to wait
-   * for. These are the durable facts instead — and they separate the one
-   * request holding the checkout from those still waiting for it, because
-   * a queue that is waiting is not a broker that is stuck.
-   */
-  get activity(): ActivitySnapshot {
-    return this.#active.snapshot();
   }
 
   static async start(
@@ -244,11 +217,7 @@ export class GitBrokerServer {
       socketPath,
       options.brokerId ?? createId(10),
       options.resolveCheckout,
-      options.now ?? Date.now,
-      options.journal ??
-        (await BrokerJournal.open(options.runtimeDir, {
-          ...(options.now ? { now: options.now } : {}),
-        })),
+      options.journal ?? (await BrokerJournal.open(options.runtimeDir)),
       options.answeredWindow ?? ANSWERED_WINDOW,
     );
     try {
@@ -262,7 +231,7 @@ export class GitBrokerServer {
 
   stop(): Promise<void> {
     if (this.#stopping) return this.#stopping;
-    this.closeAdmission();
+    this.#closeAdmission();
     this.#stopping = this.#stopTransport();
     return this.#stopping;
   }
@@ -340,7 +309,6 @@ export class GitBrokerServer {
     return {
       brokerId: this.brokerId,
       checkouts: this.registeredCheckouts,
-      ...this.activity,
       ambiguousRequestIds: this.ambiguousRequests.map(
         (request) => request.requestId,
       ),
@@ -492,94 +460,80 @@ export class GitBrokerServer {
     executor: CheckoutOperationExecutor,
     progress: (event: BrokerRpcEvent) => void,
   ): Promise<Settled> {
-    // Accepted, not started: it may sit behind another operation, and that
-    // wait must not read as this broker failing to make progress.
-    this.#active.accept(message.operationId, message.checkoutPath, this.#now());
+    try {
+      await this.#journal?.recordStart({
+        requestId: message.operationId,
+        checkoutPath: message.checkoutPath,
+        operation: message.operation.name,
+      });
+    } catch (error) {
+      // Nothing may execute unless ownership is durable. More importantly,
+      // the correlated error keeps the caller from waiting forever on a
+      // request the broker silently abandoned.
+      this.#closeAdmission();
+      return {
+        ok: false,
+        error: new Error(
+          `Git broker journal start failed; mutation admission is closed: ${getErrorMessage(error)}`,
+        ),
+      };
+    }
+
+    // Keeps the caller's operation-status heartbeat fresh from the moment the
+    // operation holds the turn and through a long clone or pull; without it a
+    // healthy slow operation looks stalled to the role that asked for it.
+    const running = (): void => {
+      progress({
+        _tag: "Progress",
+        phase: "running",
+        observedAt: new Date().toISOString(),
+      });
+    };
+    let settled: Settled;
+    try {
+      const value = await executor.execute(message.operation, {
+        onStart: running,
+        onProgress: running,
+      });
+      // Checked before it is recorded. An oversized answer used to be
+      // remembered first and found unsendable second, which left a stored
+      // value that every retry re-derived and re-failed on.
+      const json = JSON.stringify(value ?? null);
+      const encoded = Buffer.byteLength(json);
+      if (encoded > MAX_PAYLOAD_BYTES) {
+        throw new Error(
+          `Operation ${message.operation.name} produced ${encoded} bytes; the limit is ${MAX_PAYLOAD_BYTES}`,
+        );
+      }
+      // Match the actual JSON wire value before Effect's JSON codec sees it;
+      // adapter objects may contain optional properties set to undefined.
+      const wireValue: unknown = JSON.parse(json);
+      settled = { ok: true, value: wireValue };
+    } catch (error) {
+      // Terminal for this id. A caller that wants another attempt asks with
+      // a new one: whether this attempt mutated is not knowable from here.
+      settled = { ok: false, error };
+    }
 
     try {
-      try {
-        await this.#journal?.recordStart({
-          requestId: message.operationId,
-          checkoutPath: message.checkoutPath,
-          operation: message.operation.name,
-        });
-      } catch (error) {
-        // Nothing may execute unless ownership is durable. More importantly,
-        // the correlated error keeps the caller from waiting forever on a
-        // request the broker silently abandoned.
-        this.closeAdmission();
-        return {
-          ok: false,
-          error: new Error(
-            `Git broker journal start failed; mutation admission is closed: ${getErrorMessage(error)}`,
-          ),
-        };
-      }
-
-      let settled: Settled;
-      try {
-        const value = await executor.execute(message.operation, {
-          onStart: (): void => {
-            this.#active.start(message.operationId, this.#now());
-            progress({
-              _tag: "Progress",
-              phase: "running",
-              observedAt: new Date().toISOString(),
-            });
-          },
-          // Keeps the caller's operation-status heartbeat fresh through a long
-          // clone or pull; without it a healthy slow operation looks stalled.
-          onProgress: (): void => {
-            this.#active.progress(message.operationId, this.#now());
-            progress({
-              _tag: "Progress",
-              phase: "running",
-              observedAt: new Date().toISOString(),
-            });
-          },
-        });
-        // Checked before it is recorded. An oversized answer used to be
-        // remembered first and found unsendable second, which left a stored
-        // value that every retry re-derived and re-failed on.
-        const json = JSON.stringify(value ?? null);
-        const encoded = Buffer.byteLength(json);
-        if (encoded > MAX_PAYLOAD_BYTES) {
-          throw new Error(
-            `Operation ${message.operation.name} produced ${encoded} bytes; the limit is ${MAX_PAYLOAD_BYTES}`,
-          );
-        }
-        // Match the actual JSON wire value before Effect's JSON codec sees it;
-        // adapter objects may contain optional properties set to undefined.
-        const wireValue: unknown = JSON.parse(json);
-        settled = { ok: true, value: wireValue };
-      } catch (error) {
-        // Terminal for this id. A caller that wants another attempt asks with
-        // a new one: whether this attempt mutated is not knowable from here.
-        settled = { ok: false, error };
-      }
-
-      try {
-        await this.#journal?.recordSettled(
-          message.operationId,
-          settled.ok ? "ok" : "error",
-        );
-      } catch (error) {
-        // Git may already have changed the checkout. Without a durable settle
-        // record its outcome is ambiguous, so fail closed and make that fact a
-        // terminal correlated answer rather than losing completion again.
-        this.closeAdmission();
-        return {
-          ok: false,
-          error: new Error(
-            `Git broker journal settled write failed; mutation admission is closed: ${getErrorMessage(error)}`,
-          ),
-        };
-      }
-
-      return settled;
-    } finally {
-      this.#active.finish(message.operationId);
+      await this.#journal?.recordSettled(
+        message.operationId,
+        settled.ok ? "ok" : "error",
+      );
+    } catch (error) {
+      // Git may already have changed the checkout. Without a durable settle
+      // record its outcome is ambiguous, so fail closed and make that fact a
+      // terminal correlated answer rather than losing completion again.
+      this.#closeAdmission();
+      return {
+        ok: false,
+        error: new Error(
+          `Git broker journal settled write failed; mutation admission is closed: ${getErrorMessage(error)}`,
+        ),
+      };
     }
+
+    return settled;
   }
 
   /**

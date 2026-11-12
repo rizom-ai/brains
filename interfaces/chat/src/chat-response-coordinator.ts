@@ -1,3 +1,6 @@
+import type { ChatHost } from "./chat-host";
+import type { UserPermissionLevel } from "@brains/sdk/interfaces";
+import type { AgentResponse, StructuredChatCard } from "@brains/contracts";
 import {
   buildConfirmationResponseParts,
   buildResponsePlan,
@@ -8,14 +11,10 @@ import {
   PendingApprovalTracker,
   parseConfirmationIntent,
   routeConfirmationResponse,
-  type AgentResponse,
-  type InterfacePluginContext,
   type JobProgressEvent,
   type MessageInterfaceOutput,
   type ResponsePlan,
-  type StructuredChatCard,
-  type UserPermissionLevel,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/interface-runtime";
 import type { FileUpload, SentMessage } from "chat";
 import { ApprovalCardTracker } from "./approval-card-tracker";
 import { ArtifactDeliveryResolver } from "./artifact-delivery";
@@ -39,7 +38,7 @@ interface PendingJobArtifactDelivery {
 }
 
 interface ChatResponseCoordinatorDeps {
-  getContext: () => InterfacePluginContext | undefined;
+  getContext: () => ChatHost | undefined;
   getDisplayBaseUrl: () => string | undefined;
   registerPromptAction: (
     threadId: string,

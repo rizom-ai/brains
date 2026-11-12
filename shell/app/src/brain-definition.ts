@@ -4,19 +4,17 @@ import type { DeploymentConfigInput, ReasoningEffort } from "./types";
 import type { SitePackage } from "./site-package";
 import type { CapabilityBundleDefinition } from "./bundle-definition";
 
-import { z } from "@brains/utils/zod";
-
-export const modeSchema: z.ZodEnum<{ eval: "eval" }> = z.enum(["eval"]);
-export type BrainMode = z.output<typeof modeSchema>;
-
-export const brainAnchorConfigKindSchema: z.ZodEnum<{
-  person: "person";
-  team: "team";
-  organization: "organization";
-}> = z.enum(["person", "team", "organization"]);
-export type BrainAnchorConfigKind = z.output<
-  typeof brainAnchorConfigKindSchema
->;
+import type {
+  BrainAnchorConfigKind,
+  BrainIdentity,
+} from "@brains/sdk/internal/brain-config";
+export {
+  modeSchema,
+  brainAnchorConfigKindSchema,
+  type BrainMode,
+  type BrainAnchorConfigKind,
+  type BrainIdentity,
+} from "@brains/sdk/internal/brain-config";
 
 /**
  * Environment record — the deployment-specific variables
@@ -64,30 +62,18 @@ export type CapabilityEntry = [
 ];
 
 /**
- * An interface entry is an [id, constructor, envMapper] tuple.
+ * An interface entry is an [id, factory, envMapper] tuple.
  * The id is used for disable checks and override matching in brain.yaml.
  * The envMapper receives the deployment environment and returns the interface config,
  * or null to skip this interface (e.g. when credentials are missing).
- * The constructor is called with `new` to create a fresh interface instance.
+ * The factory is called with that config to create fresh interface plugins:
+ * a class it constructs, or a package definition it instantiates.
  */
-export type InterfaceConstructor = new (config: PluginConfig) => Plugin;
-
 export type InterfaceEntry = [
   id: string,
-  constructor: InterfaceConstructor,
+  factory: PluginFactory,
   envMapper: (env: BrainEnvironment) => PluginConfig | null,
 ];
-
-/**
- * Brain identity — who this brain is.
- * Pure data, no code references.
- */
-export interface BrainIdentity {
-  characterName: string;
-  role: string;
-  purpose: string;
-  values: string[];
-}
 
 /**
  * The brain definition — a reusable model that describes what a brain IS.
@@ -184,6 +170,12 @@ export interface BrainDefinition {
   deployment?: DeploymentConfigInput;
 
   /**
+   * Whether the runtime hosts HTTP for this brain whatever its bundles. A
+   * brain whose bundles host it says so on the bundle instead.
+   */
+  http?: boolean;
+
+  /**
    * Plugin/interface IDs to disable when running in eval mode.
    * These are plugins with external side effects (chat, email, analytics, etc.)
    * that should not run during evaluation.
@@ -208,7 +200,6 @@ export interface BrainDefinition {
  * ```typescript
  * import { defineBrain } from "@brains/app";
  * import { notePlugin } from "@brains/note";
- * import { MCPInterface } from "@brains/mcp";
  *
  * export default defineBrain({
  *   name: "my-brain",
@@ -222,9 +213,9 @@ export interface BrainDefinition {
  *   capabilities: [
  *     ["note", notePlugin, {}],
  *   ],
- *   interfaces: [
- *     ["mcp", MCPInterface, (env) => ({ domain: env.DOMAIN })],
- *   ],
+ *   interfaces: [],
+ *   // The runtime serves the brain's routes, health and site over HTTP.
+ *   http: true,
  * });
  * ```
  */

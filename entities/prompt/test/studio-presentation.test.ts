@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { promptFrontmatterSchema } from "../src/schemas/prompt";
+import { promptFrontmatterSchema, promptMetadataSchema } from "../src";
+import { promptPlugin } from "./prompt-plugin";
 
 function widget(field: { meta(): unknown }): unknown {
   const meta = field.meta();
@@ -8,16 +9,27 @@ function widget(field: { meta(): unknown }): unknown {
     : undefined;
 }
 
+function widgets(shape: Record<string, { meta(): unknown }>): unknown {
+  return Object.fromEntries(
+    Object.entries(shape)
+      .map(([name, field]) => [name, widget(field)])
+      .filter(([, value]) => value !== undefined),
+  );
+}
+
 describe("a prompt in Studio", () => {
   it("shows where it came from as facts and hides its bookkeeping", () => {
-    const shape = promptFrontmatterSchema.shape;
-    expect(
-      Object.fromEntries(
-        Object.entries(shape)
-          .map(([name, field]) => [name, widget(field)])
-          .filter(([, value]) => value !== undefined),
-      ),
-    ).toEqual({
+    expect(widgets(promptFrontmatterSchema.shape)).toEqual({
+      defaultHash: "hidden",
+    });
+  });
+
+  it("edits the frontmatter its class declared; its derived slug stays metadata, hidden", () => {
+    expect(promptPlugin().adapter.frontmatterSchema).toBe(
+      promptFrontmatterSchema,
+    );
+    expect(widgets(promptMetadataSchema.shape)).toEqual({
+      slug: "hidden",
       defaultHash: "hidden",
     });
   });

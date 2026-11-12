@@ -2,16 +2,25 @@ import { createHash } from "node:crypto";
 import {
   defineStudioWorkspace,
   defineWorkspaceAction,
-  registerBuiltInStudioWorkspace,
-  type InterfacePluginContext,
-} from "@brains/plugins";
+} from "@brains/sdk/services";
+import type { InterfaceRuntime } from "@brains/sdk/internal/interface-runtime";
+
+/** What the guest monitor reads and asks of the brain. */
+type GuestMonitorHost = Pick<
+  InterfaceRuntime,
+  "studio" | "entityReads" | "request"
+>;
 import { z } from "@brains/utils/zod";
 import { formatByteSize } from "@brains/utils/string-utils";
-import {
-  NOTE_CAPTURE_MESSAGE,
-  type NoteCaptureRequest,
-  type NoteCaptureResponse,
-} from "@brains/contracts";
+import { SdkError, noteCaptureContract, sdkErrorFrom } from "@brains/contracts";
+
+/** A refusal Studio shows the owner: its code and why. */
+function refused(
+  code: "conflict" | "not_found" | "no_handler",
+  publicMessage: string,
+): SdkError {
+  return new SdkError(code, { publicMessage });
+}
 import {
   guestRefusalCategorySchema,
   type GuestRefusalCategory,
@@ -476,7 +485,7 @@ export interface GuestMonitorDeps {
 
 async function load(
   deps: GuestMonitorDeps,
-  context: InterfacePluginContext,
+  context: GuestMonitorHost,
 ): Promise<MonitorData> {
   const { record, bounds, control } = deps;
   const now = new Date(deps.now());
@@ -565,7 +574,7 @@ async function load(
       maxStoredBytes: bounds.maxStoredBytes,
       retentionDays: Math.ceil(bounds.retentionSeconds / 86_400),
     },
-    canSaveQuestions: context.entityService.hasEntityType("note"),
+    canSaveQuestions: context.entityReads.hasEntityType("note"),
   };
 }
 
@@ -580,85 +589,92 @@ function digest(text: string): string {
  * through its own confirmed action.
  */
 export async function registerGuestMonitor(
-  context: InterfacePluginContext,
+  context: GuestMonitorHost,
   deps: GuestMonitorDeps,
 ): Promise<void> {
-  await registerBuiltInStudioWorkspace({
-    context,
-    definition: guestMonitor,
-    bind: (binding) =>
-      guestMonitor.bind(binding, {
-        load: () => load(deps, context),
-        actions: [
-          switchOnAction.bind(
-            binding,
-            async ({ input }) => {
-              const switched = await deps.control?.switchOn(
-                Math.round(input.monthlyUsd * 1_000_000),
-              );
-              if (switched !== "on")
-                throw new Error(
-                  switched === "not-ready"
-                    ? "Guest profile unavailable"
-                    : "Guest chat cannot be switched here",
+  if (!context.studio.isAvailable()) return;
+  await context.studio.register(
+    context.studio.source({
+      definition: guestMonitor,
+      bind: (binding) =>
+        guestMonitor.bind(binding, {
+          load: () => load(deps, context),
+          actions: [
+            switchOnAction.bind(
+              binding,
+              async ({ input }) => {
+                const switched = await deps.control?.switchOn(
+                  Math.round(input.monthlyUsd * 1_000_000),
                 );
+                if (switched !== "on")
+                  throw refused(
+                    "conflict",
+                    switched === "not-ready"
+                      ? "Guest profile unavailable"
+                      : "Guest chat cannot be switched here",
+                  );
+                await deps.afterSwitch();
+                return { open: true };
+              },
+              async ({ input }) => {
+                const status = await deps.control?.status();
+                if (!status)
+                  throw refused(
+                    "conflict",
+                    "Guest chat cannot be switched here",
+                  );
+                const budget = Math.round(input.monthlyUsd * 1_000_000);
+                return {
+                  summary: `Turn on guest chat on ${status.origin} with a monthly budget of ${dollars(budget)}? Each answer is charged what it measurably cost, or ${dollars(status.answerCapMicroUsd)} when that cannot be measured. ${dollars(status.chargedMicroUsd)} is already spent this month; the budget starts over on the 1st (UTC).`,
+                  revision: `${status.enabled}:${status.budgetMicroUsd}:${status.chargedMicroUsd}`,
+                };
+              },
+            ),
+            switchOffAction.bind(binding, async () => {
+              if ((await deps.control?.switchOff()) !== "off")
+                throw refused("conflict", "Guest chat cannot be switched here");
               await deps.afterSwitch();
-              return { open: true };
-            },
-            async ({ input }) => {
-              const status = await deps.control?.status();
-              if (!status)
-                throw new Error("Guest chat cannot be switched here");
-              const budget = Math.round(input.monthlyUsd * 1_000_000);
-              return {
-                summary: `Turn on guest chat on ${status.origin} with a monthly budget of ${dollars(budget)}? Each answer is charged what it measurably cost, or ${dollars(status.answerCapMicroUsd)} when that cannot be measured. ${dollars(status.chargedMicroUsd)} is already spent this month; the budget starts over on the 1st (UTC).`,
-                revision: `${status.enabled}:${status.budgetMicroUsd}:${status.chargedMicroUsd}`,
-              };
-            },
-          ),
-          switchOffAction.bind(binding, async () => {
-            if ((await deps.control?.switchOff()) !== "off")
-              throw new Error("Guest chat cannot be switched here");
-            await deps.afterSwitch();
-            return { open: false };
-          }),
-          saveQuestionAction.bind(
-            binding,
-            async ({ input }) => {
-              const event = await deps.record.get(input.recordId);
-              if (!event?.question)
-                throw new Error("This record kept no question text");
-              // Notes are the note plugin's to write; it keeps them private.
-              const response = await context.messaging.send<
-                NoteCaptureRequest,
-                NoteCaptureResponse
-              >({
-                type: NOTE_CAPTURE_MESSAGE,
-                payload: {
+              return { open: false };
+            }),
+            saveQuestionAction.bind(
+              binding,
+              async ({ input }) => {
+                const event = await deps.record.get(input.recordId);
+                if (!event?.question)
+                  throw refused(
+                    "not_found",
+                    "This record kept no question text",
+                  );
+                // Notes are the note plugin's to write; it keeps them private.
+                const saved = await context.request(noteCaptureContract, {
                   id: `visitor-question-${input.recordId.slice(0, 16)}`,
                   title: "Visitor question",
                   body: event.question,
-                },
-              });
-              if ("noop" in response || !response.success || !response.data)
-                throw new Error("Notes are unavailable");
-              return { noteId: response.data.noteId };
-            },
-            async ({ input }) => {
-              const event = await deps.record.get(input.recordId);
-              if (!event?.question)
-                throw new Error("This record kept no question text");
-              const shown =
-                event.question.length > 300
-                  ? `${event.question.slice(0, 300)}…`
-                  : event.question;
-              return {
-                summary: `Save this visitor question as a private note? “${shown}”`,
-                revision: digest(event.question),
-              };
-            },
-          ),
-        ],
-      }),
-  });
+                });
+                if (saved.status === "unavailable")
+                  throw refused("no_handler", "Notes are unavailable");
+                if (saved.status === "failed") throw sdkErrorFrom(saved.error);
+                return { noteId: saved.data.noteId };
+              },
+              async ({ input }) => {
+                const event = await deps.record.get(input.recordId);
+                if (!event?.question)
+                  throw refused(
+                    "not_found",
+                    "This record kept no question text",
+                  );
+                const shown =
+                  event.question.length > 300
+                    ? `${event.question.slice(0, 300)}…`
+                    : event.question;
+                return {
+                  summary: `Save this visitor question as a private note? “${shown}”`,
+                  revision: digest(event.question),
+                };
+              },
+            ),
+          ],
+        }),
+    }),
+  );
 }

@@ -1,5 +1,253 @@
 # @brains/build-tools
 
+## 0.2.0-alpha.688
+
+No changes in this release.
+
+## 0.2.0-alpha.687
+
+No changes in this release.
+
+## 0.2.0-alpha.686
+
+No changes in this release.
+
+## 0.2.0-alpha.685
+
+No changes in this release.
+
+## 0.2.0-alpha.684
+
+No changes in this release.
+
+## 0.2.0-alpha.683
+
+No changes in this release.
+
+## 0.2.0-alpha.682
+
+No changes in this release.
+
+## 0.2.0-alpha.681
+
+No changes in this release.
+
+## 0.2.0-alpha.680
+
+No changes in this release.
+
+## 0.2.0-alpha.679
+
+No changes in this release.
+
+## 0.2.0-alpha.678
+
+No changes in this release.
+
+## 0.2.0-alpha.677
+
+No changes in this release.
+
+## 0.2.0-alpha.676
+
+No changes in this release.
+
+## 0.2.0-alpha.675
+
+No changes in this release.
+
+## 0.2.0-alpha.674
+
+No changes in this release.
+
+## 0.2.0-alpha.673
+
+No changes in this release.
+
+## 0.2.0-alpha.672
+
+No changes in this release.
+
+## 0.2.0-alpha.671
+
+No changes in this release.
+
+## 0.2.0-alpha.670
+
+No changes in this release.
+
+## 0.2.0-alpha.669
+
+No changes in this release.
+
+## 0.2.0-alpha.668
+
+No changes in this release.
+
+## 0.2.0-alpha.667
+
+No changes in this release.
+
+## 0.2.0-alpha.666
+
+No changes in this release.
+
+## 0.2.0-alpha.665
+
+No changes in this release.
+
+## 0.2.0-alpha.664
+
+No changes in this release.
+
+## 0.2.0-alpha.663
+
+No changes in this release.
+
+## 0.2.0-alpha.662
+
+No changes in this release.
+
+## 0.2.0-alpha.661
+
+No changes in this release.
+
+## 0.2.0-alpha.660
+
+No changes in this release.
+
+## 0.2.0-alpha.659
+
+No changes in this release.
+
+## 0.2.0-alpha.658
+
+No changes in this release.
+
+## 0.2.0-alpha.657
+
+No changes in this release.
+
+## 0.2.0-alpha.656
+
+No changes in this release.
+
+## 0.2.0-alpha.655
+
+No changes in this release.
+
+## 0.2.0-alpha.654
+
+No changes in this release.
+
+## 0.2.0-alpha.653
+
+No changes in this release.
+
+## 0.2.0-alpha.652
+
+### Patch Changes
+
+- [#859](https://github.com/rizom-ai/brains/pull/859) [`92b3bb7`](https://github.com/rizom-ai/brains/commit/92b3bb74eeffc14b522eb91f55e9fe9f159af195) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Every package a release publishes lands on the `latest` dist-tag, the tag third parties install. In prerelease mode changesets chose each package's tag from its registry history: `latest` while every published version was an alpha, `alpha` once any other version existed. The `0.0.0-stage` placeholder left by `@rizom/brain-ui`'s trusted-publishing bootstrap sent it to `alpha` at alpha.650 while `@rizom/brain` and `@rizom/ops` went to `latest`, so `npm install @rizom/brain-ui` got alpha.649. The publish wrapper now sets the prerelease state aside for the publish in both lanes, which leaves `latest` for every package; the thefourth site and theme, whose `latest` stayed at alpha.1 the same way, follow from their next site release.
+
+## 0.2.0-alpha.651
+
+No changes in this release.
+
+## 0.2.0-alpha.650
+
+### Patch Changes
+
+- [#856](https://github.com/rizom-ai/brains/pull/856) [`eb649b0`](https://github.com/rizom-ai/brains/commit/eb649b00d6cbb591a531c07704e5f0d648544f21) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The brain builds while a core release has the publish manifests prepared. The release prepares every core-lane publish manifest before `changeset publish` and restores them afterwards, so `@rizom/brain`'s `prepublishOnly` build ran while `@rizom/brain-ui` exported only its published entry, and the entity templates' `@rizom/brain-ui/internal` imports no longer resolved. The alpha.649 release published `@rizom/brain-ui` and `@rizom/ops` but not `@rizom/brain`, so `@rizom/brain@0.2.0-alpha.649` will never exist; this release republishes the core group. The brain's bundle now reads first-party workspace packages from the exports their source declares, whatever state their manifest is in, and the packed compatibility run builds and packs the brain with the core-lane manifests prepared, as the release does.
+
+## 0.2.0-alpha.649
+
+No changes in this release.
+
+## 0.2.0-alpha.648
+
+No changes in this release.
+
+## 0.2.0-alpha.647
+
+No changes in this release.
+
+## 0.2.0-alpha.646
+
+No changes in this release.
+
+## 0.2.0-alpha.645
+
+No changes in this release.
+
+## 0.2.0-alpha.644
+
+No changes in this release.
+
+## 0.2.0-alpha.643
+
+No changes in this release.
+
+## 0.2.0-alpha.642
+
+No changes in this release.
+
+## 0.2.0-alpha.641
+
+No changes in this release.
+
+## 0.2.0-alpha.640
+
+No changes in this release.
+
+## 0.2.0-alpha.639
+
+No changes in this release.
+
+## 0.2.0-alpha.638
+
+No changes in this release.
+
+## 0.2.0-alpha.637
+
+No changes in this release.
+
+## 0.2.0-alpha.636
+
+No changes in this release.
+
+## 0.2.0-alpha.635
+
+No changes in this release.
+
+## 0.2.0-alpha.634
+
+No changes in this release.
+
+## 0.2.0-alpha.633
+
+No changes in this release.
+
+## 0.2.0-alpha.632
+
+No changes in this release.
+
+## 0.2.0-alpha.631
+
+No changes in this release.
+
+## 0.2.0-alpha.630
+
+No changes in this release.
+
+## 0.2.0-alpha.629
+
+No changes in this release.
+
+## 0.2.0-alpha.628
+
+No changes in this release.
+
 ## 0.2.0-alpha.627
 
 No changes in this release.

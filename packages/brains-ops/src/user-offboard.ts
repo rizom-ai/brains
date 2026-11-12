@@ -2,6 +2,7 @@ import { access, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 
 import type { FetchLike } from "@brains/utils/fetch-like";
+import { isRecord } from "@brains/utils/is-record";
 import { isScalar, isSeq, parseDocument } from "yaml";
 
 import { loadPilotRegistry, type PilotRegistry } from "./load-registry";
@@ -518,10 +519,6 @@ function requireEnv(env: NodeJS.ProcessEnv, name: string): string {
   const value = env[name];
   if (!value) throw new Error(`Missing required environment variable: ${name}`);
   return value;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function asRecord(value: unknown): Record<string, unknown> {

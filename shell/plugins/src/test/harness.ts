@@ -20,6 +20,7 @@ import type {
   IEntityService,
   IEntityRegistry,
 } from "@brains/entity-service";
+import type { PrincipalResolver } from "@brains/content-service";
 import { createMockShell, type MockShell } from "./mock-shell";
 import {
   createServicePluginContext,
@@ -40,12 +41,18 @@ export interface HarnessOptions {
   localSiteUrl?: string;
   /** Prefer local runtime URLs over public domain URLs */
   preferLocalUrls?: boolean;
+  /** Run as a production brain rather than local development */
+  production?: boolean;
+  /** Serve the brain's HTTP surface, as a web brain's serving process does */
+  servesHttp?: boolean;
   /** Optional composition-selected semantic profile kind */
   profileKind?: string;
   /** Broker endpoint supplied to service-plugin contexts in integration tests. */
   gitBrokerSocket?: string;
   /** Absolute broker-owned checkout supplied with that endpoint. */
   gitBrokerCheckout?: string;
+  /** Who an account-bound caller is now, for jobs that run as their requester. */
+  resolvePrincipal?: PrincipalResolver;
 }
 
 /**
@@ -70,9 +77,12 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
       domain?: string;
       localSiteUrl?: string;
       preferLocalUrls?: boolean;
+      production?: boolean;
+      servesHttp?: boolean;
       profileKind?: string;
       gitBrokerSocket?: string;
       gitBrokerCheckout?: string;
+      resolvePrincipal?: PrincipalResolver;
     } = { logger };
     if (options.dataDir !== undefined) {
       mockShellOptions.dataDir = options.dataDir;
@@ -86,6 +96,12 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
     if (options.preferLocalUrls !== undefined) {
       mockShellOptions.preferLocalUrls = options.preferLocalUrls;
     }
+    if (options.production !== undefined) {
+      mockShellOptions.production = options.production;
+    }
+    if (options.servesHttp !== undefined) {
+      mockShellOptions.servesHttp = options.servesHttp;
+    }
     if (options.profileKind !== undefined) {
       mockShellOptions.profileKind = options.profileKind;
     }
@@ -94,6 +110,9 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
     }
     if (options.gitBrokerCheckout !== undefined) {
       mockShellOptions.gitBrokerCheckout = options.gitBrokerCheckout;
+    }
+    if (options.resolvePrincipal !== undefined) {
+      mockShellOptions.resolvePrincipal = options.resolvePrincipal;
     }
     this.mockShell = createMockShell(mockShellOptions);
   }
@@ -117,9 +136,12 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
         domain?: string;
         localSiteUrl?: string;
         preferLocalUrls?: boolean;
+        production?: boolean;
+        servesHttp?: boolean;
         profileKind?: string;
         gitBrokerSocket?: string;
         gitBrokerCheckout?: string;
+        resolvePrincipal?: PrincipalResolver;
       } = {
         logger: createSilentLogger(context),
       };
@@ -135,6 +157,12 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
       if (this.options.preferLocalUrls !== undefined) {
         mockShellOptions.preferLocalUrls = this.options.preferLocalUrls;
       }
+      if (this.options.production !== undefined) {
+        mockShellOptions.production = this.options.production;
+      }
+      if (this.options.servesHttp !== undefined) {
+        mockShellOptions.servesHttp = this.options.servesHttp;
+      }
       if (this.options.profileKind !== undefined) {
         mockShellOptions.profileKind = this.options.profileKind;
       }
@@ -143,6 +171,9 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
       }
       if (this.options.gitBrokerCheckout !== undefined) {
         mockShellOptions.gitBrokerCheckout = this.options.gitBrokerCheckout;
+      }
+      if (this.options.resolvePrincipal !== undefined) {
+        mockShellOptions.resolvePrincipal = this.options.resolvePrincipal;
       }
       this.mockShell = createMockShell(mockShellOptions);
     }
@@ -313,15 +344,17 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
   }
 
   /**
-   * Send a message through the message bus
+   * Send a message through the message bus. The reply's data comes back
+   * unchecked; a test reading a contract's answer parses it with the
+   * contract's response schema.
    */
-  async sendMessage<T = unknown, R = unknown>(
+  async sendMessage<T = unknown>(
     channel: string,
     payload: T,
     source = "test",
     broadcast?: boolean,
-  ): Promise<R | undefined> {
-    const response = await this.mockShell.getMessageBus().send<T, R>({
+  ): Promise<unknown> {
+    const response = await this.mockShell.getMessageBus().send<T>({
       type: channel,
       payload,
       sender: source,

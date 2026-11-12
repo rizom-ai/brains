@@ -16,11 +16,14 @@ import {
   GenerationAuthorizer,
   GenerationAuthorizationError,
   generationAuthoritySchema,
-  type GenerationCaller,
-  type GenerationPrincipal,
 } from "../src/generation-authorization";
+import {
+  CallerAuthorizer,
+  type Caller,
+  type CallerPrincipal,
+} from "../src/caller-authority";
 
-const caller: GenerationCaller = {
+const caller: Caller = {
   actor: { kind: "user", userId: "usr_author" },
   permissionLevel: "admin",
 };
@@ -44,7 +47,7 @@ async function rejection(operation: Promise<unknown>): Promise<unknown> {
 
 function fixture(): {
   permissions: PermissionService;
-  principal: Mock<() => Promise<GenerationPrincipal | null>>;
+  principal: Mock<() => Promise<CallerPrincipal | null>>;
   authorizer: GenerationAuthorizer;
   entities: ReturnType<typeof createMockEntityService>;
   templates: InMemoryTemplateRegistry;
@@ -59,11 +62,14 @@ function fixture(): {
       },
     },
   });
-  const principal = mock(async (): Promise<GenerationPrincipal | null> => ({
+  const principal = mock(async (): Promise<CallerPrincipal | null> => ({
     userId: "usr_author",
     permissionLevel: "admin",
   }));
-  const authorizer = new GenerationAuthorizer(permissions, principal);
+  const authorizer = new GenerationAuthorizer(
+    permissions,
+    new CallerAuthorizer(permissions, principal),
+  );
   const logger = createSilentLogger();
   const entities = createMockEntityService({ entityTypes: ["book-section"] });
   const templates = InMemoryTemplateRegistry.createFresh(logger);
@@ -149,7 +155,10 @@ describe("generation delegation", () => {
   test("service authority comes from current configured grants, not an admin ceiling", async () => {
     const permissions = new PermissionService({ trusted: ["service:books"] });
     const principal = mock(async () => null);
-    const authorizer = new GenerationAuthorizer(permissions, principal);
+    const authorizer = new GenerationAuthorizer(
+      permissions,
+      new CallerAuthorizer(permissions, principal),
+    );
     const { authority } = await authorizer.admit({
       actor: { kind: "service", serviceId: "books" },
       permissionLevel: "admin",

@@ -1,34 +1,27 @@
 import {
   MessageUploadContinuity,
   type ChatAttachment,
-  type InterfacePluginContext,
   type ScopedRuntimeUploadStore,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/interface-runtime";
+import type { ChatHost } from "./chat-host";
 import {
   chatAttachmentFromStoredUpload,
   type AgentInput,
 } from "./chat-input-builder";
 import type { ChatPlatform } from "./types";
-import {
-  canonicalChatUploadRefKind,
-  createCanonicalChatUploadStoreScope,
-  createDiscordChatUploadStoreScope,
-  createSlackChatUploadStoreScope,
-  discordChatUploadRefKind,
-  slackChatUploadRefKind,
-} from "./upload-store";
+import { canonicalChatUploadRefKind } from "./upload-store";
 
 interface ChatUploadCoordinatorDeps {
-  getContext: () => InterfacePluginContext | undefined;
+  getContext: () => ChatHost | undefined;
   logger: {
     debug: (message: string, context?: Record<string, unknown>) => void;
   };
 }
 
 /**
- * Owns upload-store selection and cross-turn upload continuity for every Chat
- * SDK platform. Platform upload stores remain isolated while restored
- * agent-facing attachments are migrated to canonical runtime upload refs.
+ * Owns the upload store and cross-turn upload continuity for every Chat SDK
+ * platform: uploads are kept in, and prior uploads restored from, the
+ * runtime's shared upload store.
  */
 export class ChatUploadCoordinator {
   private readonly deps: ChatUploadCoordinatorDeps;
@@ -50,19 +43,7 @@ export class ChatUploadCoordinator {
   }
 
   getCanonicalStore(): ScopedRuntimeUploadStore | undefined {
-    return this.deps
-      .getContext()
-      ?.uploads.scoped(createCanonicalChatUploadStoreScope());
-  }
-
-  getPlatformStore(
-    platform: ChatPlatform,
-  ): ScopedRuntimeUploadStore | undefined {
-    const scope =
-      platform === "discord"
-        ? createDiscordChatUploadStoreScope()
-        : createSlackChatUploadStoreScope();
-    return this.deps.getContext()?.uploads.scoped(scope);
+    return this.deps.getContext()?.sharedUploads();
   }
 
   async selectPriorUploads(input: {
@@ -103,11 +84,6 @@ export class ChatUploadCoordinator {
   private createContinuity(platform: ChatPlatform): MessageUploadContinuity {
     return new MessageUploadContinuity({
       sourceKind: canonicalChatUploadRefKind,
-      legacySourceKinds: [
-        platform === "discord"
-          ? discordChatUploadRefKind
-          : slackChatUploadRefKind,
-      ],
       loadMessages: async (conversationId): Promise<readonly unknown[]> => {
         return (
           (await this.deps
@@ -115,34 +91,10 @@ export class ChatUploadCoordinator {
             ?.conversations.getMessages(conversationId, { limit: 50 })) ?? []
         );
       },
-      restoreAttachment: async (
-        uploadId,
-        sourceKind,
-      ): Promise<ChatAttachment> => {
-        const uploadStore =
-          sourceKind === canonicalChatUploadRefKind
-            ? this.getCanonicalStore()
-            : this.getPlatformStore(platform);
+      restoreAttachment: async (uploadId): Promise<ChatAttachment> => {
+        const uploadStore = this.getCanonicalStore();
         if (!uploadStore) throw new Error("Chat upload store unavailable");
         const resolved = await uploadStore.read(uploadId);
-        if (sourceKind !== canonicalChatUploadRefKind) {
-          const canonicalStore = this.getCanonicalStore();
-          if (!canonicalStore) throw new Error("Chat upload store unavailable");
-          const canonical = await canonicalStore.save({
-            filename: resolved.record.filename,
-            mediaType: resolved.record.mediaType,
-            content: resolved.content,
-            ...(resolved.record.metadata
-              ? { metadata: resolved.record.metadata }
-              : {}),
-          });
-          return chatAttachmentFromStoredUpload(
-            canonical.filename,
-            canonical.mediaType,
-            resolved.content,
-            canonical.ref,
-          );
-        }
         return chatAttachmentFromStoredUpload(
           resolved.record.filename,
           resolved.record.mediaType,

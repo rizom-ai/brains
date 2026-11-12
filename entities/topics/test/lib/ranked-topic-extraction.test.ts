@@ -38,6 +38,8 @@ interface Fixture {
   config: TopicsPluginConfig;
   store: IRuntimeStateStore<TopicVote>;
   sourceListLimits: (number | undefined)[];
+  /** Topics the run created; a brain's first run also writes its prompt defaults. */
+  createdTopics: string[];
   calls: {
     prompt: string;
     signal: AbortSignal | undefined;
@@ -88,9 +90,11 @@ function fixture(
           : (options.offset ?? 0) + options.limit,
       );
   });
+  const createdTopics: string[] = [];
   service.createEntity = mock(async ({ entity }) => {
     const saved = createTestEntity(entity.entityType, { ...entity });
     entities.set(`${saved.entityType}:${saved.id}`, saved);
+    if (saved.entityType === "topic") createdTopics.push(saved.id);
     return { entityId: saved.id, jobId: "embedding", skipped: false };
   });
   service.deleteEntity = mock(async ({ entityType, id }) =>
@@ -174,6 +178,7 @@ function fixture(
     config,
     store,
     sourceListLimits,
+    createdTopics,
     calls,
     run,
     addTopic,
@@ -260,7 +265,7 @@ describe("bounded ranked topic extraction", () => {
     for (const title of ["Other", "Another", "Last", "Weak"]) f.addTopic(title);
     await f.run();
     expect(f.entities.get("topic:architecture")).toEqual(renamed);
-    expect(f.service.createEntity).not.toHaveBeenCalled();
+    expect(f.createdTopics).toEqual([]);
     expect(f.service.deleteEntity).not.toHaveBeenCalled();
     await f.run("unchanged");
     expect(f.calls).toHaveLength(1);
@@ -270,7 +275,7 @@ describe("bounded ranked topic extraction", () => {
     const f = fixture(40, { propose: true });
     await f.run();
     expect(f.calls).toHaveLength(10);
-    expect(f.service.createEntity).not.toHaveBeenCalled();
+    expect(f.createdTopics).toEqual([]);
     await f.run("selection");
     expect(f.calls).toHaveLength(11);
     expect(f.calls.at(-1)?.templateName).toBe("topics:description");
@@ -697,7 +702,7 @@ describe("bounded ranked topic extraction", () => {
       return result;
     };
     await f.run();
-    expect(f.service.createEntity).not.toHaveBeenCalled();
+    expect(f.createdTopics).toEqual([]);
     expect(await f.store.list()).toHaveLength(0);
   });
 
@@ -730,7 +735,7 @@ describe("bounded ranked topic extraction", () => {
       config: { sourceRoleOverrides: { note: "supporting" } },
     });
     await f.run();
-    expect(f.service.createEntity).not.toHaveBeenCalled();
+    expect(f.createdTopics).toEqual([]);
     expect(
       (await f.store.list()).every(({ value }) => value.proposal === null),
     ).toBe(true);
@@ -780,9 +785,21 @@ describe("topic extraction lease", () => {
     const { context, leases } = setup();
     await leases.set("lease", { owner: "dead-worker", expiresAt: 0 });
     const lease = await acquireExtractionLease(context, leases);
-    expect(lease?.owner).not.toBe("dead-worker");
+    if (!lease) throw new Error("expired lease was not taken over");
+    expect(lease.owner).not.toBe("dead-worker");
     expect(await leases.get("lease")).toEqual(lease);
     expect(context.jobs.enqueue).not.toHaveBeenCalled();
+  });
+
+  it("leaves a job woken during a run queued until that run ends", () => {
+    // Claimed while the run holds the lease, it would defer the next run by
+    // the held-lease delay instead of following the run as it ends.
+    const handler = createRankedTopicJobHandler(
+      setup().context,
+      topicsPluginConfigSchema.parse({}),
+      createSilentLogger(),
+    );
+    expect(handler.exclusive).toBe(true);
   });
 
   it("does not release a lease another worker took over", async () => {

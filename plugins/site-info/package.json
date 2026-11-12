@@ -1,0 +1,32 @@
+{
+  "name": "@brains/site-info",
+  "license": "AGPL-3.0-only",
+  "version": "0.2.0-alpha.688",
+  "description": "Site info — the site's metadata, title, description and CTA, and the service that answers for it",
+  "dependencies": {
+    "@brains/sdk": "workspace:*",
+    "@brains/site-composition": "workspace:*",
+    "@brains/utils": "workspace:*"
+  },
+  "devDependencies": {
+    "@brains/eslint-config": "workspace:*",
+    "@brains/plugins": "workspace:*",
+    "@brains/test-utils": "workspace:*",
+    "@brains/typescript-config": "workspace:*",
+    "@types/bun": "^1.4.0",
+    "bun-types": "^1.4.0",
+    "eslint": "^10.5.0",
+    "typescript": "^7.0.2"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "private": true,
+  "scripts": {
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --max-warnings 0 --fix",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "type": "module"
+}

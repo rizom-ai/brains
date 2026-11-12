@@ -1,4 +1,5 @@
-import type { IEntityService } from "@brains/plugins";
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
+import type { ServiceEntityWrites } from "@brains/sdk/internal/service-runtime";
 
 /**
  * Set an image entity as the cover image on a target entity.
@@ -9,13 +10,18 @@ import type { IEntityService } from "@brains/plugins";
 /**
  * The entity reads and writes stock-photo performs.
  *
- * IEntityService is a large surface; asking for all of it meant a test could
+ * The entity service is a large surface; asking for all of it meant a test could
  * not supply three methods without asserting it was the whole service.
  */
-export type StockPhotoEntityWriter = Pick<
-  IEntityService,
-  "createEntity" | "getEntity" | "updateEntity"
->;
+export interface StockPhotoEntityWriter extends Pick<
+  ServiceEntityWrites,
+  "createEntity" | "updateEntity"
+> {
+  getEntity(request: {
+    entityType: string;
+    id: string;
+  }): Promise<BaseEntity | null>;
+}
 
 export async function setCoverImage(
   entityService: StockPhotoEntityWriter,

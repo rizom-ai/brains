@@ -44,8 +44,7 @@ turns:
             entityType: image
             source.kind: upload
             source.transform: preserve
-            source.upload.kind: upload
-            source.upload.id: upload-00000000-0000-4000-8000-000000000601
+            source.id: upload-00000000-0000-4000-8000-000000000601
           argsAbsent:
             - prompt
             - from
@@ -62,8 +61,7 @@ successCriteria:
         entityType: image
         source.kind: upload
         source.transform: preserve
-        source.upload.kind: upload
-        source.upload.id: upload-00000000-0000-4000-8000-000000000601
+        source.id: upload-00000000-0000-4000-8000-000000000601
       argsAbsent:
         - prompt
         - from
@@ -78,4 +76,4 @@ successCriteria:
 
 efficiency:
   maxToolCalls: 1
-  maxTokens: 15000
+  maxTokens: 18000

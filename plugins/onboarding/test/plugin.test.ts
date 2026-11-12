@@ -1,13 +1,17 @@
 import { createTempDataDir } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
-import {
-  playbookAdapter,
-  playbookPlugin,
-  playbooksPlugin,
-} from "@brains/playbooks";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
+import { createPlaybooksPackage, parsePlaybookBody } from "@brains/playbooks";
+import { instantiatePluginPackageDefinition } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 import { SYSTEM_CHANNELS } from "@brains/plugins";
-import { onboardingPlugin } from "../src";
+import { z } from "@brains/utils/zod";
+import onboardingPackage from "../src";
+import { onboardingPlugin } from "./onboarding-plugin";
+
+/** The `playbooks:lifecycle-starters` answer, as the plugin builds it. */
+const startersAnswerSchema = z.object({ starters: z.array(z.unknown()) });
 
 async function tempStorageDir(): Promise<string> {
   return createTempDataDir("brains-onboarding-");
@@ -24,12 +28,49 @@ async function installHarness(): Promise<
   ReturnType<typeof createPluginHarness>
 > {
   const harness = createPluginHarness({ dataDir: await tempStorageDir() });
-  await harness.installPlugin(playbookPlugin({}));
-  await harness.installPlugin(playbooksPlugin({}));
+  // The playbooks package as the canonical brain composes it: the playbook
+  // type, then the service.
+  for (const plugin of instantiatePluginPackageDefinition(
+    createPlaybooksPackage(),
+    {},
+    { name: "@brains/playbooks", version: "0.0.0-test" },
+    { pluginId: "playbooks" },
+  )) {
+    await harness.installPlugin(plugin);
+  }
   return harness;
 }
 
-describe("OnboardingPlugin", () => {
+describe("onboarding", () => {
+  it("default-exports its service package definition", () => {
+    expect(onboardingPackage).toMatchObject({
+      kind: "rizom-plugin-package",
+      family: "service",
+      id: "onboarding",
+    });
+  });
+
+  it("registers under the plugin id its class had, after the playbook plugins", async () => {
+    const harness = await installHarness();
+    const plugin = onboardingPlugin({ enabled: true });
+    const capabilities = await harness.installPlugin(plugin);
+
+    expect([plugin.id, plugin.type, plugin.packageName]).toEqual([
+      "onboarding",
+      "service",
+      "@brains/onboarding",
+    ]);
+    expect(plugin.dependencies).toEqual(["playbook", "playbooks"]);
+    expect(capabilities.tools).toEqual([]);
+    expect(capabilities.resources).toEqual([]);
+  });
+
+  it("refuses an unknown config key", () => {
+    // The config is strict, as the class's was.
+    const config = { enabled: true, extra: 1 };
+    expect(() => onboardingPlugin(config)).toThrow(/extra/);
+  });
+
   it("does nothing when disabled", async () => {
     const harness = await installHarness();
     const plugin = onboardingPlugin({});
@@ -42,21 +83,16 @@ describe("OnboardingPlugin", () => {
       id: "onboarding",
       visibilityScope: "restricted",
     });
-    const response = await harness.sendMessage<
-      {
-        lifecycle: string;
-        interfaceType: string;
-        userPermissionLevel: "admin";
-      },
-      { starters: Array<{ id: string }> }
-    >("playbooks:lifecycle-starters", {
-      lifecycle: "onboarding",
-      interfaceType: "web-chat",
-      userPermissionLevel: "admin",
-    });
+    const response = startersAnswerSchema.parse(
+      await harness.sendMessage("playbooks:lifecycle-starters", {
+        lifecycle: "onboarding",
+        interfaceType: "web-chat",
+        userPermissionLevel: "admin",
+      }),
+    );
 
     expect(setup).toBeNull();
-    expect(response?.starters).toEqual([]);
+    expect(response.starters).toEqual([]);
   });
 
   it("seeds bundled onboarding playbooks once startup content has settled", async () => {
@@ -92,9 +128,7 @@ describe("OnboardingPlugin", () => {
       lifecycle: "onboarding",
     });
     expect(
-      setup?.content.match(
-        /operation: \{ kind: "content", content: <full markdown> \}/g,
-      ),
+      setup?.content.match(/operation: \{ content: <full markdown> \}/g),
     ).toHaveLength(2);
     expect(setup?.content).not.toContain("the `content` argument");
     expect(firstLoop?.metadata).toMatchObject({
@@ -102,9 +136,8 @@ describe("OnboardingPlugin", () => {
       lifecycle: "onboarding",
     });
     // Only the step whose outcome is an answer in chat accepts a reply as proof.
-    const loopStates = playbookAdapter.parsePlaybookContent(
-      firstLoop?.content ?? "",
-    ).body.states;
+    // A declared playbook reads back its body; its metadata is checked above.
+    const loopStates = parsePlaybookBody(firstLoop?.content ?? "").states;
     expect(
       loopStates.find((state) => state.id === "retrieve-and-transform")
         ?.provenBy,
@@ -116,7 +149,16 @@ describe("OnboardingPlugin", () => {
 
   it("does not overwrite existing onboarding playbooks", async () => {
     const harness = await installHarness();
-    const existingContent = "---\ntitle: Custom Onboarding\n---\n\n# Custom";
+    // A playbook the owner rewrote: still one the playbook type can read.
+    const bundled = await readFile(
+      join(import.meta.dir, "..", "content", "playbook", "onboarding.md"),
+      "utf8",
+    );
+    const existingContent = bundled.replace(
+      "title: Brain Onboarding",
+      "title: Custom Onboarding",
+    );
+    expect(existingContent).not.toBe(bundled);
     harness.addEntities([
       {
         id: "onboarding",
@@ -136,6 +178,8 @@ describe("OnboardingPlugin", () => {
       entityType: "playbook",
       id: "onboarding",
       visibilityScope: "restricted",
+      // As stored: a declared type reads back its body alone.
+      source: true,
     });
 
     expect(setup?.content).toBe(existingContent);
@@ -149,29 +193,15 @@ describe("OnboardingPlugin", () => {
     await plugin.ready?.();
     await settleStartupContent(harness);
 
-    const response = await harness.sendMessage<
-      {
-        lifecycle: string;
-        interfaceType: string;
-        userPermissionLevel: "admin";
-      },
-      {
-        starters: Array<{
-          id: string;
-          title: string;
-          description?: string;
-          playbookId: string;
-          lifecycle: string;
-          starterPrompt: string;
-        }>;
-      }
-    >("playbooks:lifecycle-starters", {
-      lifecycle: "onboarding",
-      interfaceType: "web-chat",
-      userPermissionLevel: "admin",
-    });
+    const response = startersAnswerSchema.parse(
+      await harness.sendMessage("playbooks:lifecycle-starters", {
+        lifecycle: "onboarding",
+        interfaceType: "web-chat",
+        userPermissionLevel: "admin",
+      }),
+    );
 
-    expect(response?.starters).toEqual([
+    expect(response.starters).toEqual([
       {
         id: "onboarding",
         title: "Set up your brain",

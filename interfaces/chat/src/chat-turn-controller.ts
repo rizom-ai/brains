@@ -1,9 +1,9 @@
-import { CHAT_CHANNELS } from "@brains/contracts";
-import { matchSpaceSelector } from "@brains/plugins";
-import type {
-  InterfacePluginContext,
-  PermissionLookupContext,
-} from "@brains/plugins";
+import type { ChatHost } from "./chat-host";
+import { spaceNoticeActionContract } from "@brains/contracts";
+import {
+  matchSpaceSelector,
+  type PermissionLookupContext,
+} from "@brains/sdk/internal/interface-runtime";
 import type { ActionEvent, Message, MessageContext } from "chat";
 import type {
   ChatConfig,
@@ -58,7 +58,7 @@ const URL_PATTERN = /https?:\/\/\S+/i;
 const ANY_MESSAGE_PATTERN = /[\s\S]+/;
 
 interface ChatTurnHost {
-  getContext: () => InterfacePluginContext | undefined;
+  getContext: () => ChatHost | undefined;
   startProcessingInput: (channelId: string) => void;
   endProcessingInput: () => void;
   extractCaptureableUrls: (
@@ -94,7 +94,7 @@ interface ChatTurnControllerDeps {
 
 /**
  * Owns inbound Chat SDK handler registration and agent-turn routing. Daemon,
- * outbound-message, progress, and tool-status lifecycle stays in ChatInterface.
+ * outbound-message, progress, and tool-status lifecycle stays in the chat interface.
  */
 export class ChatTurnController {
   private readonly deps: ChatTurnControllerDeps;
@@ -187,15 +187,13 @@ export class ChatTurnController {
       if (!shouldHandleChatAction(event.thread, platformConfig)) return;
       // Every plugin hears the click; only the notice's poster answers.
       await handleSpaceNoticeAction(async (action) => {
-        const responses = await context.messaging.collect({
-          type: CHAT_CHANNELS.spaceNoticeAction,
-          payload: action,
-        });
-        return responses.flatMap((response) =>
-          "noop" in response || !response.success || !response.data
-            ? []
-            : [response.data],
-        )[0];
+        const gathered = await context.gather(
+          spaceNoticeActionContract,
+          action,
+        );
+        return gathered.status === "answered"
+          ? gathered.answers.find((answer) => answer !== null)
+          : undefined;
       }, event);
     });
   }

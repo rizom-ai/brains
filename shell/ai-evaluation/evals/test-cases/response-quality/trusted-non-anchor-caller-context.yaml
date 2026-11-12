@@ -9,7 +9,7 @@ tags:
   - identity
   - permissions
   - regression
-  - preset-core
+  - recipe-headless
 
 setup:
   permissionLevel: trusted
@@ -45,4 +45,4 @@ successCriteria:
 
 efficiency:
   maxToolCalls: 0
-  maxTokens: 30000
+  maxTokens: 27000

@@ -1,7 +1,7 @@
 import type {
-  IRuntimeStateNamespace,
-  IRuntimeStateStore,
-} from "@brains/plugins";
+  ClassRuntimeState,
+  ClassRuntimeStateStore,
+} from "@brains/sdk/internal/interface-runtime";
 import { z } from "@brains/utils/zod";
 
 /**
@@ -100,12 +100,12 @@ function add(tally: Tally, messages: number, tokens: number): Tally {
 /** The allowance kept in runtime state, one record per UTC day. */
 export class RuntimePublicAskAllowance implements PublicAskAllowance {
   private readonly config: PublicAsksConfig;
-  private readonly store: IRuntimeStateStore<DayState>;
+  private readonly store: ClassRuntimeStateStore<DayState>;
   private readonly now: () => number;
 
   constructor(
     config: PublicAsksConfig,
-    runtimeState: IRuntimeStateNamespace,
+    runtimeState: ClassRuntimeState,
     options: { now?: () => number } = {},
   ) {
     this.config = config;

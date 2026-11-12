@@ -82,11 +82,11 @@ async function fixture(
     jobQueueService: createMockShell().getJobQueueService(),
     embeddingsEnabled: false,
     embeddingService: {
-      dimensions: 1536,
-      generateEmbedding: async () => {
+      identity: { model: "test:mock", dimensions: 1536, promptRevision: 0 },
+      embedQuery: async () => {
         throw new Error("Unexpected embedding");
       },
-      generateEmbeddings: async () => {
+      embedDocuments: async () => {
         throw new Error("Unexpected embedding");
       },
     },
@@ -132,7 +132,6 @@ test("extension updates confirm source values and persist through owner strippin
     entityType: "entry",
     id: "same",
     operation: {
-      kind: "fields",
       fields: { clients: ["Beta"], projects: null },
     },
   };
@@ -183,7 +182,7 @@ test("extension updates confirm source values and persist through owner strippin
     await exec({
       entityType: "entry",
       id: "same",
-      operation: { kind: "fields", fields: { clients: null } },
+      operation: { fields: { clients: null } },
     }),
   );
   expect(removal.preview).toContain('clients: ["Beta"] → (removed)');
@@ -207,7 +206,7 @@ test("a persist policy changed after confirmation preparation refuses the tool w
     await exec({
       entityType: "entry",
       id: "same",
-      operation: { kind: "fields", fields: { clients: ["Beta"] } },
+      operation: { fields: { clients: ["Beta"] } },
     }),
   );
   registry.registerPersistValidator("entry", async () => {
@@ -238,7 +237,7 @@ test.each([null, "Acme", { name: "Acme" }, [3]])(
       await exec({
         entityType: "entry",
         id: "same",
-        operation: { kind: "fields", fields: { clients: ["Beta"] } },
+        operation: { fields: { clients: ["Beta"] } },
       }),
     );
     expect(result.preview).toContain(
@@ -250,7 +249,6 @@ test.each([null, "Acme", { name: "Acme" }, [3]])(
         entityType: "entry",
         id: "same",
         operation: {
-          kind: "content",
           content: "---\ntitle: Brief\n---\n\nReplacement",
         },
       }),
@@ -273,7 +271,7 @@ test("invalid extension writes cannot request confirmation or change source", as
     await exec({
       entityType: "entry",
       id: "same",
-      operation: { kind: "fields", fields: { clients: [12] } },
+      operation: { fields: { clients: [12] } },
     }),
   ).toMatchObject({ success: false });
   expect(

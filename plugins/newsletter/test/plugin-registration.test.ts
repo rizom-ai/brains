@@ -1,4 +1,8 @@
 import { describe, expect, it } from "bun:test";
+import {
+  generateExecuteContract,
+  publishRegisterContract,
+} from "@brains/contracts";
 import { SYSTEM_CHANNELS } from "@brains/plugins";
 import {
   baseEntitySchema,
@@ -7,15 +11,17 @@ import {
   refuseEnqueues,
 } from "@brains/plugins/test";
 import { waitUntil } from "@brains/test-utils";
-import { NewsletterPlugin } from "../src/entity/plugin";
+import { createNewsletterEntityPlugin } from "./newsletter-plugins";
 
 describe("NewsletterPlugin registration", () => {
   it("declares newsletter publish statuses and secondary topic authority", async () => {
-    const harness = createPluginHarness<NewsletterPlugin>({
+    const harness = createPluginHarness({
       dataDir: "/tmp/test-newsletter-policy",
     });
 
-    const capabilities = await harness.installPlugin(new NewsletterPlugin({}));
+    const capabilities = await harness.installPlugin(
+      createNewsletterEntityPlugin(),
+    );
 
     expect(
       harness.getEntityRegistry().getEntityTypeConfig("newsletter"),
@@ -30,15 +36,15 @@ describe("NewsletterPlugin registration", () => {
   });
 
   it("does not register a delivery provider itself", async () => {
-    const harness = createPluginHarness<NewsletterPlugin>({
+    const harness = createPluginHarness({
       dataDir: "/tmp/test-newsletter-publish-registration",
     });
     const messages: unknown[] = [];
-    harness.subscribe("publish:register", async (msg) => {
+    harness.subscribe(publishRegisterContract.name, async (msg) => {
       messages.push(msg.payload);
       return { success: true };
     });
-    await harness.installPlugin(new NewsletterPlugin({}));
+    await harness.installPlugin(createNewsletterEntityPlugin());
 
     await harness.sendMessage(
       SYSTEM_CHANNELS.pluginsRegistered,
@@ -53,7 +59,7 @@ describe("NewsletterPlugin registration", () => {
 
 describe("NewsletterPlugin scheduled generation", () => {
   it("queues a scheduled generation the queue refused once it admits it", async () => {
-    const harness = createPluginHarness<NewsletterPlugin>({
+    const harness = createPluginHarness({
       dataDir: "/tmp/test-newsletter-refused-generation",
     });
     harness
@@ -74,9 +80,9 @@ describe("NewsletterPlugin scheduled generation", () => {
     });
     const queue = harness.getMockShell().getJobQueueService();
     const refusals = refuseEnqueues(queue, 1);
-    await harness.installPlugin(new NewsletterPlugin({}));
+    await harness.installPlugin(createNewsletterEntityPlugin());
 
-    await harness.sendMessage("generate:execute", {
+    await harness.sendMessage(generateExecuteContract.name, {
       entityType: "newsletter",
     });
     expect(refusals.count).toBe(1);

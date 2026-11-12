@@ -1,12 +1,12 @@
-import type { EmailSourceMessage } from "@brains/contracts";
+import { permissionToVisibilityScope } from "@brains/sdk/internal/interface-runtime";
 import {
-  assertStudioWorkspaceAdmin,
   inboxItemIdSchema,
   type ChannelDeliveryProvider,
-  type IEntityAINamespace,
-  type InboxActor,
-  type ServicePluginContext,
-} from "@brains/plugins";
+  assertStudioWorkspaceAdmin,
+  type ServiceAI,
+} from "@brains/sdk/internal/service-runtime";
+import type { InboxActor } from "@brains/sdk/entities";
+import type { EmailSourceMessage } from "@brains/contracts";
 import { sha256Hex } from "@brains/utils/hash";
 import { KeyedSerialQueue } from "@brains/utils/serial-queue";
 import { z } from "@brains/utils/zod";
@@ -25,6 +25,7 @@ import {
   type EmailReplyDraftWorkspaceSnapshot,
   type SentDraftView,
 } from "./schemas";
+import type { EmailContext } from "../lib/email-context";
 
 const generatedReplySchema = z.strictObject({
   replyText: z.string().trim().min(1).max(20_000),
@@ -38,10 +39,7 @@ Answer the sender's request directly. Ask a brief clarifying question when requi
 Do not invent commitments, dates, prices, facts, or prior conversations.
 Return only newly authored reply text. Do not quote the source message or include transport headers.`;
 
-type DraftOperatorContext = Pick<
-  ServicePluginContext,
-  "channels" | "entityService" | "permissions"
->;
+type DraftOperatorContext = EmailContext;
 
 interface DraftActor {
   userPermissionLevel?: "admin" | "trusted" | "public" | undefined;
@@ -49,7 +47,7 @@ interface DraftActor {
 
 export class EmailReplyDraftOperator {
   private readonly context: DraftOperatorContext;
-  private readonly ai: Pick<IEntityAINamespace, "generateObject">;
+  private readonly ai: Pick<ServiceAI, "generateObject">;
   private readonly sourceReader: Pick<EmailWorkflowsSourceReader, "read">;
   private readonly prompt: string;
   private readonly now: () => Date;
@@ -57,7 +55,7 @@ export class EmailReplyDraftOperator {
 
   constructor(options: {
     context: DraftOperatorContext;
-    ai: Pick<IEntityAINamespace, "generateObject">;
+    ai: Pick<ServiceAI, "generateObject">;
     sourceReader: Pick<EmailWorkflowsSourceReader, "read">;
     prompt: string;
     now?: (() => Date) | undefined;
@@ -75,7 +73,7 @@ export class EmailReplyDraftOperator {
   ): Promise<EmailReplyDraftWorkspaceSnapshot> {
     assertDraftAdmin(actor);
     const mailItemId = inboxItemIdSchema.parse(rawItemId);
-    const draft = await this.load(mailItemId);
+    const draft = await this.load(mailItemId, actor);
     return emailReplyDraftWorkspaceSnapshotSchema.parse({
       mailItemId,
       draft: draft ? toDraftView(draft) : null,
@@ -135,7 +133,7 @@ export class EmailReplyDraftOperator {
       if (operationSignal.aborted) throw operationSignal.reason;
       const generated = generatedReplySchema.parse(object);
       assertGeneratedReplyIsAuthored(generated.replyText, source.message);
-      const current = await this.load(mailItemId);
+      const current = await this.load(mailItemId, actor);
       return this.persist(
         mailItemId,
         generated.replyText,
@@ -155,7 +153,7 @@ export class EmailReplyDraftOperator {
     const mailItemId = inboxItemIdSchema.parse(rawItemId);
     const replyText = emailReplyTextSchema.parse(text);
     return this.operations.run(mailItemId, async () => {
-      const current = await this.load(mailItemId);
+      const current = await this.load(mailItemId, actor);
       if ((current?.metadata.revision ?? 0) !== baseRevision) {
         throw new DraftRevisionConflictError();
       }
@@ -178,7 +176,7 @@ export class EmailReplyDraftOperator {
     const mailItemId = inboxItemIdSchema.parse(rawItemId);
     const expectedRevision = z.number().int().positive().parse(revision);
     return this.operations.run(mailItemId, async () => {
-      const current = await this.load(mailItemId);
+      const current = await this.load(mailItemId, actor);
       if (current?.metadata.revision !== expectedRevision) {
         throw new DraftSendRevisionConflictError();
       }
@@ -274,12 +272,13 @@ export class EmailReplyDraftOperator {
 
   private async load(
     mailItemId: string,
+    actor: InboxActor,
   ): Promise<EmailReplyDraftEntity | undefined> {
     const entity = await this.context.entityService.getEntity(
       {
         entityType: "email-reply-draft",
         id: draftId(mailItemId),
-        visibilityScope: "restricted",
+        visibilityScope: permissionToVisibilityScope(actor.permissionLevel),
       },
       emailReplyDraftSchema,
     );

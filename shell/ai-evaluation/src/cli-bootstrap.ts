@@ -1,4 +1,5 @@
 import { join } from "path";
+import { KEY_PROVIDER_IDS, keyEnvVar } from "@brains/ai-service";
 
 async function loadCliEnvironment(): Promise<void> {
   const { config } = await import("dotenv");
@@ -6,12 +7,9 @@ async function loadCliEnvironment(): Promise<void> {
 }
 
 /** Environment variables any of which lets an eval run reach a model. */
-export const API_KEY_VARIABLES = [
-  "AI_API_KEY",
-  "OPENAI_API_KEY",
-  "ANTHROPIC_API_KEY",
-  "GOOGLE_GENERATIVE_AI_API_KEY",
-] as const;
+export const API_KEY_VARIABLES: readonly string[] = KEY_PROVIDER_IDS.map(
+  (provider) => keyEnvVar(provider),
+);
 
 /**
  * Whether the environment can reach any provider.
@@ -33,7 +31,7 @@ export function hasConfiguredApiKey(
 export function assertApiKeyConfigured(): void {
   if (!hasConfiguredApiKey(process.env)) {
     console.error(
-      "No API key found. Set AI_API_KEY (or provider-specific keys) in shell/ai-evaluation/.env",
+      `No API key found. Set ${API_KEY_VARIABLES.join(", ")} for the models you evaluate in shell/ai-evaluation/.env`,
     );
     process.exit(1);
   }

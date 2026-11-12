@@ -1,3 +1,13 @@
+import {
+  DEFAULT_EMBEDDING_MODEL,
+  findEmbeddingProfile,
+  isSupportedTextModel,
+  providerKeysSchema,
+  selectImageProvider,
+  selectTextProvider,
+  unsupportedEmbeddingModelMessage,
+} from "@brains/ai-service";
+import { reasoningEffortSchema } from "@brains/contracts";
 import { dbConfigSchema } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { definedFields } from "@brains/utils/strip-undefined";
@@ -15,6 +25,7 @@ import {
   type StandardConfig,
   type StandardPaths,
 } from "./standardConfig";
+import { httpHostConfigSchema, type HttpHostConfigInput } from "./http-config";
 
 export type { StandardConfig } from "./standardConfig";
 
@@ -64,14 +75,7 @@ export const logLevelSchema: z.ZodEnum<{
   error: "error";
 }> = z.enum(["debug", "info", "warn", "error"]);
 
-export const reasoningEffortSchema: z.ZodEnum<{
-  none: "none";
-  low: "low";
-  medium: "medium";
-  high: "high";
-  xhigh: "xhigh";
-  max: "max";
-}> = z.enum(["none", "low", "medium", "high", "xhigh", "max"]);
+export { reasoningEffortSchema };
 
 export const shellConfigSchema: z.ZodObject<{
   name: z.ZodDefault<z.ZodString>;
@@ -85,11 +89,14 @@ export const shellConfigSchema: z.ZodObject<{
   runtimeStateDatabase: typeof dbConfigSchema;
   embeddingDatabase: typeof dbConfigSchema;
   ai: z.ZodObject<{
-    apiKey: z.ZodDefault<z.ZodString>;
-    imageApiKey: z.ZodOptional<z.ZodString>;
+    providerKeys: z.ZodDefault<typeof providerKeysSchema>;
     model: z.ZodString;
+    embeddingModel: z.ZodDefault<z.ZodString>;
+    modelRuntimeUrl: z.ZodOptional<z.ZodString>;
+    answerModel: z.ZodOptional<z.ZodString>;
+    visionModel: z.ZodOptional<z.ZodString>;
+    imageModel: z.ZodOptional<z.ZodString>;
     temperature: z.ZodDefault<z.ZodNumber>;
-    maxTokens: z.ZodDefault<z.ZodNumber>;
     webSearch: z.ZodDefault<z.ZodBoolean>;
     reasoningEffort: z.ZodOptional<typeof reasoningEffortSchema>;
   }>;
@@ -111,11 +118,13 @@ export const shellConfigSchema: z.ZodObject<{
   siteBaseUrl: z.ZodOptional<z.ZodString>;
   localSiteUrl: z.ZodOptional<z.ZodString>;
   preferLocalUrls: z.ZodDefault<z.ZodBoolean>;
+  production: z.ZodDefault<z.ZodBoolean>;
   themeCSS: z.ZodDefault<z.ZodString>;
   entityDisplay: z.ZodOptional<
     z.ZodRecord<z.ZodString, typeof entityDisplayEntrySchema>
   >;
   profileKind: z.ZodOptional<z.ZodString>;
+  http: z.ZodPrefault<typeof httpHostConfigSchema>;
 }> = z.object({
   name: z.string().default("brain-app"),
   version: z.string().default("1.0.0"),
@@ -131,16 +140,71 @@ export const shellConfigSchema: z.ZodObject<{
   runtimeStateDatabase: dbConfigSchema,
   embeddingDatabase: dbConfigSchema,
 
-  ai: z.object({
-    /** Absent when the AI provider is configured later or not at all. */
-    apiKey: z.string().default(""),
-    imageApiKey: z.string().optional(),
-    model: z.string(),
-    temperature: z.number().min(0).max(2).default(0.7),
-    maxTokens: z.number().positive().default(1000),
-    webSearch: z.boolean().default(true),
-    reasoningEffort: reasoningEffortSchema.optional(),
-  }),
+  ai: z
+    .object({
+      /** Each provider's key; empty when none is configured yet. */
+      providerKeys: providerKeysSchema.default({}),
+      model: z.string().refine(isSupportedTextModel, {
+        error: (issue) => `Unsupported model "${String(issue.input)}"`,
+      }),
+      /** `provider:model`; changing it rebuilds the semantic index. */
+      embeddingModel: z
+        .string()
+        .refine((model) => findEmbeddingProfile(model) !== undefined, {
+          error: (issue) =>
+            unsupportedEmbeddingModelMessage(String(issue.input)),
+        })
+        .default(DEFAULT_EMBEDDING_MODEL),
+      /** The model runtime serving `local:` models (brain.yaml `modelRuntime.url`). */
+      modelRuntimeUrl: z.string().url().optional(),
+      /** A `local:` model that answers tool results in place of `model`. */
+      answerModel: z.string().optional(),
+      /** A `local:` model that describes images for a model reading only text. */
+      visionModel: z.string().optional(),
+      /** The image model, `provider:model`; `local:` runs on the model runtime. */
+      imageModel: z.string().optional(),
+      temperature: z.number().min(0).max(2).default(0.7),
+      webSearch: z.boolean().default(true),
+      reasoningEffort: reasoningEffortSchema.optional(),
+    })
+    .superRefine((ai, context) => {
+      if (ai.answerModel && selectTextProvider(ai.answerModel) !== "local") {
+        context.addIssue({
+          code: "custom",
+          path: ["answerModel"],
+          message: `answerModel must be a local: model, not ${ai.answerModel}`,
+        });
+      }
+      if (ai.visionModel && selectTextProvider(ai.visionModel) !== "local") {
+        context.addIssue({
+          code: "custom",
+          path: ["visionModel"],
+          message: `visionModel must be a local: model, not ${ai.visionModel}`,
+        });
+      }
+      if (ai.modelRuntimeUrl) return;
+      const localModels = [
+        ...(selectTextProvider(ai.model) === "local" ? [ai.model] : []),
+        ...[ai.answerModel, ai.visionModel].filter(
+          (role): role is string =>
+            role !== undefined && selectTextProvider(role) === "local",
+        ),
+        ...(ai.imageModel &&
+        selectImageProvider(ai.imageModel).provider === "local"
+          ? [ai.imageModel]
+          : []),
+        ...(findEmbeddingProfile(ai.embeddingModel)?.provider === "local"
+          ? [ai.embeddingModel]
+          : []),
+      ];
+      for (const model of localModels) {
+        context.addIssue({
+          code: "custom",
+          path: ["modelRuntimeUrl"],
+          message: `${model} needs modelRuntime.url`,
+        });
+      }
+    }),
 
   embedding: z.object({
     enabled: z.boolean().default(true),
@@ -170,9 +234,13 @@ export const shellConfigSchema: z.ZodObject<{
   siteBaseUrl: z.string().optional(),
   localSiteUrl: z.string().optional(),
   preferLocalUrls: z.boolean().default(false),
+  /** Whether the runtime environment is production, read by the app layer. */
+  production: z.boolean().default(false),
   themeCSS: z.string().default(""),
   entityDisplay: z.record(z.string(), entityDisplayEntrySchema).optional(),
   profileKind: z.string().trim().min(1).optional(),
+  /** The runtime's HTTP listener, resolved by the app layer. */
+  http: httpHostConfigSchema.prefault({}),
 });
 
 export type ShellConfigSchemaOutput = z.output<typeof shellConfigSchema>;
@@ -193,13 +261,14 @@ export type ShellConfig = Omit<
 export type ShellConfigInput = Partial<
   Omit<
     ShellConfig,
-    "ai" | "logging" | "database" | "embedding" | "jobQueue"
+    "ai" | "logging" | "database" | "embedding" | "jobQueue" | "http"
   > & {
     ai?: Partial<ShellConfig["ai"]>;
     logging?: Partial<ShellConfig["logging"]>;
     database?: Partial<ShellConfig["database"]>;
     embedding?: Partial<ShellConfig["embedding"]>;
     jobQueue?: Partial<ShellConfig["jobQueue"]>;
+    http?: HttpHostConfigInput;
   }
 >;
 

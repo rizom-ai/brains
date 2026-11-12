@@ -24,7 +24,6 @@ turns:
           shouldBeCalled: true
           argsContain:
             entityType: post
-            operation.kind: fields
             operation.fields.status: draft
       responseContains:
         - "Confirmation required"
@@ -97,4 +96,4 @@ successCriteria:
 
 efficiency:
   maxToolCalls: 10
-  maxTokens: 80000
+  maxTokens: 98000

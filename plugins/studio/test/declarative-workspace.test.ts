@@ -9,9 +9,10 @@ import {
   type WebRouteDefinition,
 } from "@brains/plugins";
 
+import { SdkError } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { afterEach, describe, expect, it } from "bun:test";
-import { studioPlugin, type StudioPlugin } from "../src";
+import { studioPlugin, type StudioPlugin } from "./studio-plugins";
 
 const authPlugins: AuthServicePlugin[] = [];
 const servicePlugins: Plugin[] = [];
@@ -74,22 +75,26 @@ const library = defineStudioWorkspace({
   }),
 });
 
-const definition = defineServicePlugin({
-  id: "reading-operator",
-  config: z.object({}),
-  setup: () => ({ count: 3 }),
-  studioWorkspaces: (context) => {
-    const action = refresh.bind(context, ({ input }) => ({
-      refreshed: input.id,
-    }));
-    return [
-      library.bind(context, {
-        actions: [action],
-        load: ({ state }) => ({ count: state.count }),
-      }),
-    ];
+const definition = defineServicePlugin(
+  {
+    id: "reading-operator",
+    config: z.object({}),
+    setup: () => ({ count: 3 }),
   },
-});
+  {
+    studioWorkspaces: (context) => {
+      const action = refresh.bind(context, ({ input }) => ({
+        refreshed: input.id,
+      }));
+      return [
+        library.bind(context, {
+          actions: [action],
+          load: ({ state }) => ({ count: state.count }),
+        }),
+      ];
+    },
+  },
+);
 
 function instantiateService(): Plugin {
   const [plugin] = instantiatePluginPackageDefinition(
@@ -245,35 +250,56 @@ describe("public declarative Studio workspace", () => {
   });
 });
 
+const SECRET = "Snapshots unreadable at /srv/brain/private";
+
+const reserve = defineWorkspaceAction({
+  name: "reserve",
+  label: "Reserve",
+  permission: "trusted",
+  input: z.object({ seats: z.number().int().positive() }),
+  output: z.object({ reserved: z.number() }),
+});
+
 const broken = defineStudioWorkspace({
   id: "broken",
   label: "Broken",
   permission: "trusted",
   data: z.object({ count: z.number() }),
-  actions: [],
+  actions: [reserve],
   view: ({ data }) => ({
     blocks: [{ type: "stats", items: [{ label: "Saved", value: data.count }] }],
   }),
 });
 
-const failingDefinition = defineServicePlugin({
-  id: "failing-operator",
-  config: z.object({}),
-  setup: () => ({}),
-  studioWorkspaces: (context) => [
-    broken.bind(context, {
-      actions: [],
-      load: () => {
-        throw new Error("Snapshots unreadable");
-      },
-    }),
-  ],
-});
+const failingDefinition = defineServicePlugin(
+  {
+    id: "failing-operator",
+    config: z.object({}),
+    setup: () => ({}),
+  },
+  {
+    studioWorkspaces: (context) => [
+      broken.bind(context, {
+        actions: [
+          reserve.bind(context, () => {
+            throw new SdkError("conflict", {
+              message: SECRET,
+              publicMessage: "Those seats were just taken",
+            });
+          }),
+        ],
+        load: () => {
+          throw new Error(SECRET);
+        },
+      }),
+    ],
+  },
+);
 
-describe("a workspace whose data cannot be loaded", () => {
+describe("a workspace whose data or action fails", () => {
   // A proxy in front of the brain (Cloudflare) replaces an origin 502 with
-  // its own HTML page, so the reason never reached Studio.
-  it("answers 500 with the reason, not a gateway error", async () => {
+  // its own HTML page, so a failure is never answered as a gateway error.
+  it("answers in public form with the status its code names, never the diagnostic", async () => {
     const shell = createMockShell({ domain: "yeehaa.io" });
     const auth = new AuthServicePlugin({
       storageDir: await createTempDataDir("brains-failing-studio-auth-"),
@@ -317,7 +343,33 @@ describe("a workspace whose data cannot be loaded", () => {
 
     expect(response.status).toBe(500);
     expect(await responseJson(response)).toEqual({
-      error: expect.stringContaining('workspace "broken" data loader failed'),
+      error: "The operation failed",
+      code: "handler_failed",
+    });
+
+    const act = async (action: object): Promise<Response> =>
+      findRoute(studio, "/studio/api/workspace", "POST").handler(
+        new Request("https://yeehaa.io/studio/api/workspace", {
+          method: "POST",
+          headers: {
+            ...headers,
+            "Content-Type": "application/json",
+            Origin: "https://yeehaa.io",
+          },
+          body: JSON.stringify({ id, action }),
+        }),
+      );
+    const refused = await act({ actionId: "reserve", input: { seats: 2 } });
+    expect(refused.status).toBe(409);
+    expect(await responseJson(refused)).toEqual({
+      error: "Those seats were just taken",
+      code: "conflict",
+    });
+    const invalid = await act({ actionId: "reserve", input: { seats: -1 } });
+    expect(invalid.status).toBe(400);
+    expect(await responseJson(invalid)).toEqual({
+      error: expect.stringContaining("seats"),
+      code: "invalid_input",
     });
   });
 });

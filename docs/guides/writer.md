@@ -5,6 +5,7 @@ order: 10
 section: Use a brain
 persona: The writer
 for: You have years of essays and a folder of drafts. Some of it is published on platforms you don't own. Most of it never left Google Docs.
+summary: Years of essays and drafts
 recipe: professional
 material:
   - from: Drafts and fragments

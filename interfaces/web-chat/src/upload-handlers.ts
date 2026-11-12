@@ -6,7 +6,7 @@ import {
   type ResolvedRuntimeUpload,
   type RuntimeUploadRecord,
   type ScopedRuntimeUploadStore,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/interface-runtime";
 import {
   defaultWebChatUploadFilename,
   sanitizeUploadFilename,
@@ -178,7 +178,7 @@ async function readStoredUpload(
 
 function validateStoredUpload(
   record: RuntimeUploadRecord,
-  content: Buffer,
+  content: Uint8Array,
 ): ValidatedWebChatUpload | Response {
   const validated = validateWebChatUpload({
     filename: record.filename,

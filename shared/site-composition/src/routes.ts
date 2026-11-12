@@ -1,3 +1,4 @@
+import { defineBusContract, type BusContract } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { languageTagSchema, routeTranslationSchema } from "@rizom/site";
 export {
@@ -114,6 +115,7 @@ export const RouteDefinitionSchema: z.ZodObject<{
   translations: z.ZodOptional<
     z.ZodRecord<typeof languageTagSchema, typeof routeTranslationSchema>
   >;
+  languages: z.ZodOptional<z.ZodArray<typeof languageTagSchema>>;
 }> = z.object({
   id: z.string(),
   path: z.string(),
@@ -129,6 +131,12 @@ export const RouteDefinitionSchema: z.ZodObject<{
   external: z.boolean().optional(),
   navigation: NavigationMetadataSchema,
   translations: z.record(languageTagSchema, routeTranslationSchema).optional(),
+  /**
+   * Languages its plugin fills this page in per request, such as a form's
+   * translations: built in each without saved copy, its sections as they
+   * are. Other routes are translated by their saved copy.
+   */
+  languages: z.array(languageTagSchema).optional(),
 });
 
 /** Message payload schemas for route operations. */
@@ -144,46 +152,78 @@ export type RegisterRoutesPayload = z.output<
   typeof RegisterRoutesPayloadSchema
 >;
 
-export const UnregisterRoutesPayloadSchema: z.ZodObject<{
-  paths: z.ZodOptional<z.ZodArray<z.ZodString>>;
-  pluginId: z.ZodOptional<z.ZodString>;
-}> = z.object({
-  paths: z.array(z.string()).optional(),
-  pluginId: z.string().optional(),
+/**
+ * A plugin declares its site pages; the site builder registers them. Heard in
+ * every process, as the site builds in the worker. Declared here, beside its
+ * schema, because `@brains/contracts` sits below site composition.
+ */
+export const siteBuilderRouteRegisterContract: BusContract<
+  typeof RegisterRoutesPayloadSchema,
+  z.ZodVoid,
+  "command"
+> = defineBusContract({
+  channel: "plugin:site-builder:route:register",
+  request: RegisterRoutesPayloadSchema,
+  response: z.void(),
+  delivery: "command",
 });
 
-export type UnregisterRoutesPayload = z.output<
-  typeof UnregisterRoutesPayloadSchema
+type SiteBuilderRoutesRequestSchema = z.ZodObject<
+  Record<string, never>,
+  z.core.$strict
 >;
 
-export const ListRoutesPayloadSchema: z.ZodObject<{
-  pluginId: z.ZodOptional<z.ZodString>;
-}> = z.object({
-  pluginId: z.string().optional(),
+export const siteBuilderRoutesRequestSchema: SiteBuilderRoutesRequestSchema =
+  z.strictObject({});
+
+type SiteBuilderRoutesResponseSchema = z.ZodArray<typeof RouteDefinitionSchema>;
+
+export const siteBuilderRoutesResponseSchema: SiteBuilderRoutesResponseSchema =
+  z.array(RouteDefinitionSchema);
+
+/** Every route the site builder knows, for plugins that fill them. */
+export const siteBuilderRoutesContract: BusContract<
+  SiteBuilderRoutesRequestSchema,
+  SiteBuilderRoutesResponseSchema,
+  "request"
+> = defineBusContract({
+  channel: "site-builder:routes:list",
+  request: siteBuilderRoutesRequestSchema,
+  response: siteBuilderRoutesResponseSchema,
+  delivery: "request",
 });
 
-export type ListRoutesPayload = z.output<typeof ListRoutesPayloadSchema>;
+type SiteBuilderPagesRequestSchema = z.ZodObject<
+  Record<string, never>,
+  z.core.$strict
+>;
 
-export const GetRoutePayloadSchema: z.ZodObject<{ path: z.ZodString }> =
-  z.object({
-    path: z.string(),
-  });
+export const siteBuilderPagesRequestSchema: SiteBuilderPagesRequestSchema =
+  z.strictObject({});
 
-export type GetRoutePayload = z.output<typeof GetRoutePayloadSchema>;
+type SiteBuilderPagesResponseSchema = z.ZodArray<typeof RouteDefinitionSchema>;
 
-export interface RouteOperationResponse {
-  success: boolean;
-  message?: string;
-  error?: string;
-}
+export const siteBuilderPagesResponseSchema: SiteBuilderPagesResponseSchema =
+  z.array(RouteDefinitionSchema);
 
-export interface ListRoutesResponse {
-  routes: RouteDefinition[];
-}
-
-export interface GetRouteResponse {
-  route?: RouteDefinition | undefined;
-}
+/**
+ * Collected when a site builds: each plugin answers with the pages it adds
+ * to this build, such as one per form defined in the brain's content. Asked
+ * for at build time, like slots, because the worker that builds never hears
+ * a registration made after it booted; answer in every process. A page
+ * names its templates in full (`<pluginId>:<name>`) and never displaces a
+ * registered route at the same path.
+ */
+export const siteBuilderPagesContract: BusContract<
+  SiteBuilderPagesRequestSchema,
+  SiteBuilderPagesResponseSchema,
+  "collect"
+> = defineBusContract({
+  channel: "plugin:site-builder:pages",
+  request: siteBuilderPagesRequestSchema,
+  response: siteBuilderPagesResponseSchema,
+  delivery: "collect",
+});
 
 /** Navigation item shape for extracted navigation data. */
 export const NavigationItemSchema: z.ZodObject<{

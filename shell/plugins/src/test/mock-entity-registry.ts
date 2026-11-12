@@ -1,9 +1,12 @@
 import {
+  editableFieldsOf,
   type BaseEntity,
   type CreateCheck,
   type CreateInterceptor,
+  type GenerationEnqueuer,
   type EntityAdapter,
   type IEntityRegistry,
+  type PersistValidator,
   type UploadSaveHandlerRegistration,
 } from "@brains/entity-service";
 import type { MockEntityStore } from "./mock-entity-store";
@@ -20,20 +23,34 @@ export function createMockEntityRegistry(
 ): IEntityRegistry {
   const createInterceptors = new Map<string, CreateInterceptor>();
   const createChecks = new Map<string, CreateCheck>();
+  const generationEnqueuers = new Map<string, GenerationEnqueuer>();
   const uploadSaveHandlers: UploadSaveHandlerRegistration[] = [];
+  const persistValidators = new Map<string, PersistValidator>();
+  // The types registered here, apart from the store's, which the service
+  // double also fills when a test writes an entity of a type nobody registered.
+  const registered = new Set<string>();
 
   const registry: IEntityRegistry = {
     registerEntityType: (type, _schema, adapter, config) => {
+      // As the real registry: a type has one registration.
+      if (registered.has(type)) {
+        throw new Error(
+          `Entity type registration failed for ${type}: Entity type is already registered`,
+        );
+      }
+      registered.add(type);
       store.types.add(type);
       store.adapters.set(type, adapter);
       store.typeConfigs.set(type, config ?? {});
     },
     unregisterEntityType: (type): void => {
+      registered.delete(type);
       store.types.delete(type);
       store.adapters.delete(type);
       store.typeConfigs.delete(type);
       createInterceptors.delete(type);
       createChecks.delete(type);
+      generationEnqueuers.delete(type);
     },
     getSchema: (): never => {
       throw new Error("Not implemented");
@@ -78,6 +95,10 @@ export function createMockEntityRegistry(
       createChecks.set(type, check);
     },
     getCreateCheck: (type) => createChecks.get(type),
+    registerGenerationEnqueuer: (type, enqueuer) => {
+      generationEnqueuers.set(type, enqueuer);
+    },
+    getGenerationEnqueuer: (type) => generationEnqueuers.get(type),
     registerUploadSaveHandler: (registration): void => {
       uploadSaveHandlers.push(registration);
     },
@@ -89,10 +110,39 @@ export function createMockEntityRegistry(
             : mediaType === pattern,
         ),
       ),
-    registerPersistValidator: (): void => {},
-    getPersistValidator: () => undefined,
+    // As the real registry: a type's validators are kept for its writes,
+    // each run after the ones registered before it.
+    registerPersistValidator: (type, validator): void => {
+      const existing = persistValidators.get(type);
+      persistValidators.set(
+        type,
+        existing
+          ? async (entity, context): Promise<void> => {
+              await existing(entity, context);
+              await validator(entity, context);
+            }
+          : validator,
+      );
+    },
+    getPersistValidator: (type) => persistValidators.get(type),
     extendFrontmatterSchema: (): void => {},
-    getEffectiveFrontmatterSchema: () => undefined,
+    // As the real registry: the adapter's schema, with the extensions this
+    // double never records merged in.
+    getEffectiveFrontmatterSchema: (type: string) =>
+      store.adapters.get(type)?.frontmatterSchema,
+    getEditableFieldsSchema: (type: string) => {
+      const schema = store.adapters.get(type)?.frontmatterSchema;
+      return schema && editableFieldsOf(schema);
+    },
+    getCreateFieldsSchema: (type: string) => {
+      const adapter = store.adapters.get(type);
+      const editable =
+        adapter?.frontmatterSchema &&
+        editableFieldsOf(adapter.frontmatterSchema);
+      const createOnly = adapter?.createFieldsSchema;
+      if (!createOnly) return editable;
+      return editable ? editable.extend(createOnly.shape) : createOnly;
+    },
     getFrontmatterExtensions: () => [],
     getGroupings: () => [],
     registerGroupingSource: (): never => {

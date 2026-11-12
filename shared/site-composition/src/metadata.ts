@@ -1,3 +1,10 @@
+import {
+  defineBusContract,
+  defineChannel,
+  socialLinkSchema,
+  type BusContract,
+  type Channel,
+} from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import type {
   SiteLayoutInfo,
@@ -16,7 +23,6 @@ export type {
   SiteMetadataTranslation,
 } from "@rizom/site";
 
-export const SITE_METADATA_GET_CHANNEL = "site:metadata:get";
 export const SITE_METADATA_UPDATED_CHANNEL = "site:metadata:updated";
 
 export const siteMetadataCTASchema: z.ZodObject<{
@@ -109,6 +115,41 @@ export const siteMetadataSchema: SiteMetadataSchema = z.object({
     ),
 });
 
+type SiteMetadataRequestSchema = z.ZodObject<
+  Record<string, never>,
+  z.core.$strict
+>;
+
+/** The question carries nothing; a brain has one site. */
+export const siteMetadataRequestSchema: SiteMetadataRequestSchema =
+  z.strictObject({});
+
+/**
+ * The site's metadata as its owner (site-info) keeps it. Declared here, beside
+ * its schema, because `@brains/contracts` sits below site composition.
+ * Answered in every process: the worker builds the site.
+ */
+export const siteMetadataContract: BusContract<
+  SiteMetadataRequestSchema,
+  SiteMetadataSchema,
+  "request"
+> = defineBusContract({
+  channel: "site:metadata:get",
+  request: siteMetadataRequestSchema,
+  response: siteMetadataSchema,
+  delivery: "request",
+});
+
+/**
+ * Broadcast by site-info whenever the site's metadata changes, carrying the
+ * metadata as its owner now keeps it.
+ */
+export const siteMetadataUpdatedChannel: Channel<
+  SiteMetadata,
+  unknown,
+  typeof SITE_METADATA_UPDATED_CHANNEL
+> = defineChannel(SITE_METADATA_UPDATED_CHANNEL, siteMetadataSchema);
+
 /**
  * Accepted input for {@link siteMetadataSchema}. Differs from `SiteMetadata` in
  * that defaulted fields (`represents`) may be omitted. Consumers that validate
@@ -150,24 +191,6 @@ function expectSiteMetadataTranslation(
 void expectSiteMetadataTranslation;
 void expectSiteMetadataSection;
 
-const socialLinkSchema: z.ZodObject<{
-  platform: z.ZodEnum<{
-    github: "github";
-    instagram: "instagram";
-    linkedin: "linkedin";
-    email: "email";
-    website: "website";
-  }>;
-  url: z.ZodString;
-  label: z.ZodOptional<z.ZodString>;
-}> = z.object({
-  platform: z
-    .enum(["github", "instagram", "linkedin", "email", "website"])
-    .describe("Social media platform"),
-  url: z.string().describe("Profile or contact URL"),
-  label: z.string().optional().describe("Optional display label"),
-});
-
 /**
  * Complete site information passed to layout components.
  *
@@ -185,6 +208,7 @@ export const siteLayoutInfoSchema: ReturnType<
       secondary: z.ZodArray<typeof NavigationItemSchema>;
     }>;
     socialLinks: z.ZodOptional<z.ZodArray<typeof socialLinkSchema>>;
+    photo: z.ZodOptional<z.ZodString>;
   }>
 > = siteMetadataSchema.extend({
   copyright: z.string(),
@@ -196,6 +220,10 @@ export const siteLayoutInfoSchema: ReturnType<
     .array(socialLinkSchema)
     .optional()
     .describe("Social media links from profile metadata"),
+  photo: z
+    .string()
+    .optional()
+    .describe("The anchor's photo, as ![alt](entity://image/<id>)"),
 });
 
 type SiteLayoutInfoSchemaOutput = z.infer<typeof siteLayoutInfoSchema>;

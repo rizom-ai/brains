@@ -114,7 +114,7 @@ const nodes = [
   { id:'cli',       label:'Chat REPL', sub:'interfaces/chat-repl',  desc:'Interactive terminal chat',        x:520, y:28, w:100, h:H, layer:'interfaces' },
   { id:'mcp-if',    label:'MCP',       sub:'interfaces/mcp',       desc:'Model Context Protocol (stdio+HTTP)', x:630, y:28, w:100, h:H, layer:'interfaces' },
   { id:'discord',   label:'Discord',   sub:'interfaces/discord',   desc:'Discord chat bot',                x:740, y:28, w:100, h:H, layer:'interfaces' },
-  { id:'webserver', label:'Webserver', sub:'interfaces/webserver', desc:'Static site + preview server',     x:850, y:28, w:100, h:H, layer:'interfaces' },
+  { id:'webserver', label:'HTTP Host', sub:'shell/http-host', desc:'The runtime\'s one HTTP listener: site, preview, routes, health', x:850, y:28, w:100, h:H, layer:'shell' },
   { id:'a2a',       label:'A2A',       sub:'interfaces/a2a',       desc:'Agent-to-Agent protocol + Agent Card', x:960, y:28, w:100, h:H, layer:'interfaces' },
   { id:'email',     label:'Email',     sub:'interfaces/email',     desc:'Outbound-first Email interface with configurable Resend transport.', x:1070, y:28, w:100, h:H, layer:'interfaces' },
 
@@ -132,7 +132,7 @@ const nodes = [
   { id:'topics',       label:'Topics',       sub:'entities/topics',       desc:'Derived topics with batched extraction, canonicalization, merge, and rebuild support.',x:756, y:166, w:W, h:H, layer:'entities' },
   { id:'conversation-memory', label:'Conversation Memory', sub:'entities/conversation-memory', desc:'Conversation summaries, decisions, and action items.', x:900, y:166, w:W, h:H, layer:'entities' },
   { id:'prompt',       label:'Prompt',       sub:'entities/prompt',       desc:'AI prompts as editable markdown entities. EntityPlugin.',    x:900, y:110, w:W, h:H, layer:'entities' },
-  { id:'site-info',    label:'Site Info',    sub:'entities/site-info',    desc:'Site metadata (title, description). EntityPlugin.',           x:1044,y:110, w:W, h:H, layer:'entities' },
+  { id:'site-info',    label:'Site Info',    sub:'plugins/site-info',     desc:'Site metadata (title, description). Declarative service with its own type.',           x:1044,y:110, w:W, h:H, layer:'entities' },
   { id:'doc',          label:'Doc',          sub:'entities/doc',          desc:'Generic docs entity. EntityPlugin with schema/adapter/datasource and componentized list/detail templates rendering /docs and /docs/:slug.', x:1188,y:110, w:W, h:H, layer:'entities' },
   { id:'document-entity', label:'Document',  sub:'entities/document',     desc:'Generated PDF document entities and durable attachment generation. Saves deck carousel PDFs and attaches them to social-post.documents[].', x:1332,y:110, w:W, h:H, layer:'entities' },
   { id:'agent-disc',   label:'Agent Discovery', sub:'entities/agent-discovery', desc:'Agent contacts, remote agent-card ingestion, approval state, and skill evidence.',  x:1044,y:166, w:W, h:H, layer:'entities' },
@@ -176,7 +176,7 @@ const nodes = [
 
   // Shared (row 8)
   { id:'utils',        label:'Utils',       sub:'shared/utils',           desc:'Zod re-export plus low-level primitives: strings, markdown/YAML, IDs, progress, logger, generic helpers. Domain-specific helpers are moving to owning packages.', x:36,  y:596, w:100, h:H, layer:'shared' },
-  { id:'ui-lib',       label:'UI Library',  sub:'shared/ui-library',      desc:'Header, Footer, ThemeToggle, Card.', x:146, y:596, w:100, h:H, layer:'shared' },
+  { id:'ui-lib',       label:'@rizom/brain-ui', sub:'packages/ui',          desc:'Header, Footer, ThemeToggle, Card. Published; first-party components in @rizom/brain-ui/internal.', x:146, y:596, w:100, h:H, layer:'shared' },
   { id:'test-utils',   label:'Test Utils',  sub:'shared/test-utils',      desc:'Mock factories, harness helpers.',  x:366, y:596, w:100, h:H, layer:'shared' },
   { id:'image-lib',    label:'Image Lib',   sub:'shared/image',           desc:'Image schema, adapter, utilities.',    x:586, y:596, w:100, h:H, layer:'shared' },
   { id:'site-engine',  label:'Site Engine', sub:'shared/site-engine',      desc:'Renderer-agnostic site build engine utilities. Used by site-builder.', x:696, y:596, w:100, h:H, layer:'shared' },

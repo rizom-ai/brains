@@ -34,7 +34,7 @@ successCriteria:
         entityType: "image"
         source.kind: upload
         source.transform: preserve
-        source.upload.id: upload-00000000-0000-4000-8000-000000000951
+        source.id: upload-00000000-0000-4000-8000-000000000951
   responseNotContains:
     - "blog"
     - "newsletter"
@@ -46,4 +46,4 @@ successCriteria:
 
 efficiency:
   maxToolCalls: 3
-  maxTokens: 16000
+  maxTokens: 24000

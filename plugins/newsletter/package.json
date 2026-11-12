@@ -1,18 +1,20 @@
 {
   "name": "@brains/newsletter",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.627",
+  "version": "0.2.0-alpha.688",
   "description": "Newsletter composite with selectable Buttondown and Resend delivery providers",
   "dependencies": {
     "@brains/contracts": "workspace:*",
-    "@brains/plugins": "workspace:*",
-    "@brains/ui-library": "workspace:*",
+    "@brains/sdk": "workspace:*",
+    "@brains/site-composition": "workspace:*",
     "@brains/utils": "workspace:*",
+    "@rizom/brain-ui": "workspace:*",
     "react": "^19.2.7"
   },
   "devDependencies": {
     "@brains/entity-service": "workspace:*",
     "@brains/eslint-config": "workspace:*",
+    "@brains/plugins": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.4.0",
@@ -27,6 +29,7 @@
   },
   "private": true,
   "scripts": {
+    "eval": "cd evals && bun run brain-eval",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --max-warnings 0 --fix",
     "test": "bun test",

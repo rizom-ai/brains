@@ -19,6 +19,8 @@ const attachment = z.object({
 
 interface ListenOptions {
   signal: AbortSignal;
+  /** Resume after this message id rather than from the room's start. */
+  after?: string | undefined;
   onReady(): void;
   onWarning(message: string): void;
   onMessage(message: z.output<typeof incomingMessage>): Promise<void>;
@@ -33,6 +35,7 @@ export class CampfireClient {
 
   async listen({
     signal,
+    after,
     onReady,
     onWarning,
     onMessage,
@@ -48,6 +51,7 @@ export class CampfireClient {
             type: "authenticate",
             workspace: this.workspace,
             token: this.token,
+            ...(after === undefined ? {} : { after }),
           }),
         );
         onReady();
@@ -111,6 +115,20 @@ export class CampfireClient {
       `/messages/${encodeURIComponent(messageId)}/attachments`,
     );
     return z.array(attachment).parse(await response.json());
+  }
+
+  /** An attachment's bytes; Campfire serves them only to a signed request. */
+  async download(url: string): Promise<Uint8Array> {
+    const response = await fetch(url, {
+      headers: {
+        authorization: `Bearer ${this.token}`,
+        "x-campfire-workspace": this.workspace,
+      },
+    });
+    if (!response.ok) {
+      throw new Error(`Campfire download failed (${response.status})`);
+    }
+    return new Uint8Array(await response.arrayBuffer());
   }
 
   private async request(path: string, init?: RequestInit): Promise<Response> {

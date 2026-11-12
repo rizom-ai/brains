@@ -1,9 +1,9 @@
+import {
+  internalFullScope,
+  type ClassRuntimeStateStore,
+} from "@brains/sdk/internal/service-runtime";
 import { actorRefSchema } from "@brains/contracts";
-import type {
-  BaseEntity,
-  IRuntimeStateStore,
-  ServicePluginContext,
-} from "@brains/plugins";
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
 import { updateFrontmatterField } from "@brains/utils/markdown";
 import { z } from "@brains/utils/zod";
 import type { QueueEntry, QueueManager } from "./queue-manager";
@@ -11,6 +11,7 @@ import {
   SYSTEM_PUBLISH_AUTH_CONTEXT,
   type PublishAuthContext,
 } from "./types/messages";
+import type { PipelineContext } from "./lib/pipeline-context";
 
 const QUEUE_STATE_NAMESPACE = "content-pipeline.queue.v1";
 const RANK_STEP = 1024;
@@ -72,12 +73,12 @@ export type PublicationQueueRecord = z.output<
  * Entity status owns membership; runtimeState owns rank and enqueue metadata.
  */
 export class PublicationQueueService {
-  private readonly context: ServicePluginContext;
+  private readonly context: PipelineContext;
   private readonly queueManager: QueueManager;
-  private readonly store: IRuntimeStateStore<PublicationQueueRecord>;
+  private readonly store: ClassRuntimeStateStore<PublicationQueueRecord>;
   private mutationTail: Promise<void> = Promise.resolve();
 
-  constructor(context: ServicePluginContext, queueManager: QueueManager) {
+  constructor(context: PipelineContext, queueManager: QueueManager) {
     this.context = context;
     this.queueManager = queueManager;
     this.store = context.runtimeState.scoped({
@@ -168,7 +169,7 @@ export class PublicationQueueService {
       const entity = await this.context.entityService.getEntity({
         entityType,
         id: entityId,
-        visibilityScope: "restricted",
+        visibilityScope: internalFullScope("publish failure bookkeeping"),
       });
       if (entity) await this.persistStatus(entity, "failed", error);
       await this.queueManager.remove(entityType, entityId);
@@ -189,7 +190,9 @@ export class PublicationQueueService {
           options: {
             filter: {
               metadata: { status: "queued" },
-              visibilityScope: "restricted",
+              visibilityScope: internalFullScope(
+                "publication queue reconciliation",
+              ),
             },
           },
         });
@@ -320,7 +323,9 @@ export class PublicationQueueService {
     const entity = await this.context.entityService.getEntity({
       entityType,
       id: entityId,
-      visibilityScope: "restricted",
+      visibilityScope: internalFullScope(
+        "queue position check; callers pre-scoped",
+      ),
     });
     if (!entity) throw new Error(`Entity not found: ${entityType}:${entityId}`);
     return entity;

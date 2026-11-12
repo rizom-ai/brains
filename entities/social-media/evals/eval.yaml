@@ -1,2 +1,4 @@
 plugin: "@brains/social-media"
+export: default
+pluginId: social-media
 model: gpt-5.4-mini

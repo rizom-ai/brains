@@ -1,108 +1,95 @@
-import { BaseEntityDataSource } from "@brains/plugins";
-import type {
-  BaseQuery,
-  EntityDataSourceConfig,
-  IEntityService,
-  NavigationResult,
-  PaginationInfo,
-} from "@brains/plugins";
-import type { Logger } from "@brains/utils/logger";
-import { resolveEntityCoverImage } from "@brains/image";
+import { imageMetadataSchema } from "@brains/image";
 import {
-  deckSchema,
-  type DeckEntity,
+  defineDataSource,
+  defineEntity,
+  type EntityDataSourceDefinition,
+  type EntityDefinition,
+  type EntityOf,
+  type EntityReader,
+} from "@brains/sdk/entities";
+import type { JsonObject } from "@brains/contracts";
+import {
+  deckFrontmatterSchema,
   type DeckWithData,
+  type deckMetadataSchema,
 } from "../schemas/deck";
-import { parseDeckData } from "./parse-helpers";
-import {
-  deckViewSchema,
-  type DeckSchemaData,
-} from "../templates/deck-view-schema";
+import { deckDocument } from "../lib/deck-markdown";
+import { deckViewSchema } from "../templates/deck-view-schema";
 
-interface DeckDetailData {
-  markdown: string;
-  deck: DeckWithData;
-}
-
-interface DeckListData {
-  decks: DeckSchemaData[];
-}
+type DeckDefinition = EntityDefinition<"deck", typeof deckMetadataSchema>;
 
 /**
- * DataSource for fetching and transforming deck entities.
- * Handles both detail views (single deck) and list views (all decks).
+ * The image a deck's cover names, read for its data URL. The image type is
+ * the images package's; a deck reads it by this shape and never installs it.
  */
-export class DeckDataSource extends BaseEntityDataSource<
-  DeckEntity,
-  DeckWithData,
-  DeckListData
-> {
-  readonly id: string = "decks:entities";
-  readonly name: string = "Deck Entity DataSource";
-  readonly description: string =
-    "Fetches and transforms deck entities for rendering";
+const imageShape = defineEntity({
+  type: "image",
+  purpose: "An image a deck shows as its cover.",
+  metadata: imageMetadataSchema,
+});
 
-  protected readonly config: EntityDataSourceConfig<DeckEntity> = {
-    entityType: "deck",
-    entitySchema: deckSchema,
-    defaultSort: [
-      { field: "publishedAt" as const, direction: "desc" as const },
-    ],
-    defaultLimit: 100,
+/**
+ * A deck as the site reads it, as the deck plugin class's data source read
+ * it: its record, its content the document it is stored as, its metadata
+ * the fields the class indexed, its frontmatter and its slides.
+ */
+function deckWithData(entity: EntityOf<DeckDefinition>): DeckWithData {
+  const { metadata } = entity;
+  const document = deckDocument(entity);
+  return {
+    ...entity,
+    content: document,
+    metadata: {
+      title: metadata.title,
+      ...(metadata.description !== undefined && {
+        description: metadata.description,
+      }),
+      status: metadata.status,
+      ...(metadata.publishedAt !== undefined && {
+        publishedAt: metadata.publishedAt,
+      }),
+      ...(metadata.coverImageId !== undefined && {
+        coverImageId: metadata.coverImageId,
+      }),
+      slug: metadata.slug,
+      ...(metadata.error !== undefined && { error: metadata.error }),
+    },
+    frontmatter: deckFrontmatterSchema.parse(metadata),
+    body: entity.content,
   };
+}
 
-  constructor(logger: Logger) {
-    super(logger);
-    this.logger.debug("DeckDataSource initialized");
-  }
+/** The cover image, as a slide directive on the first slide. */
+async function withCover(
+  deck: DeckWithData,
+  entities: EntityReader,
+): Promise<DeckWithData> {
+  const coverImageId = deck.frontmatter.coverImageId;
+  if (!coverImageId) return deck;
+  const image = await entities.get(imageShape, coverImageId);
+  if (!image) return deck;
+  const directive = `<!-- .slide: data-background-image="${image.content}" data-background-opacity="0.4" -->`;
+  return { ...deck, body: `${directive}\n${deck.body}` };
+}
 
-  protected transformEntity(entity: DeckEntity): DeckWithData {
-    return parseDeckData(entity);
-  }
-
-  protected override async fetchDetail(
-    id: string,
-    entityService: IEntityService,
-  ): Promise<{
-    item: DeckWithData;
-    navigation: NavigationResult<DeckWithData> | null;
-  }> {
-    const result = await super.fetchDetail(id, entityService);
-
-    // Inject cover image as a slide directive on the first slide
-    const coverImage = await resolveEntityCoverImage(
-      result.item,
-      entityService,
-    );
-
-    if (coverImage) {
-      const directive = `<!-- .slide: data-background-image="${coverImage.url}" data-background-opacity="0.4" -->`;
-      result.item = {
-        ...result.item,
-        body: `${directive}\n${result.item.body}`,
-      };
-    }
-
-    return result;
-  }
-
-  protected override buildDetailResult(
-    item: DeckWithData,
-    _navigation: NavigationResult<DeckWithData> | null,
-  ): DeckDetailData {
-    return { markdown: item.body, deck: item };
-  }
-
-  protected buildListResult(
-    items: DeckWithData[],
-    _pagination: PaginationInfo | null,
-    _query: BaseQuery,
-  ): DeckListData {
-    this.logger.debug("Creating deck list data", {
-      deckCount: items.length,
-      firstDeck: items[0]?.id,
-    });
-
-    return { decks: items.map((item) => deckViewSchema.parse(item)) };
-  }
+/** Fetches and transforms decks for rendering: one deck, or all of them. */
+export function deckDataSource(
+  deck: DeckDefinition,
+): EntityDataSourceDefinition<DeckDefinition, DeckWithData, JsonObject> {
+  return defineDataSource({
+    id: "entities",
+    name: "Deck Entity DataSource",
+    description: "Fetches and transforms deck entities for rendering",
+    entity: deck,
+    defaultSort: [{ field: "publishedAt", direction: "desc" }],
+    defaultLimit: 100,
+    transform: deckWithData,
+    list: (items) => ({
+      decks: items.map((item) => deckViewSchema.parse(item)),
+    }),
+    detail: async ({ item, entities }) => {
+      const shown = await withCover(item, entities);
+      return { markdown: shown.body, deck: shown };
+    },
+  });
 }

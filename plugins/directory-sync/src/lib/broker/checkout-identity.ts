@@ -1,4 +1,4 @@
-import { resolve } from "path";
+import { basename, dirname, join, resolve } from "path";
 import { realpath } from "fs/promises";
 
 /**
@@ -10,9 +10,23 @@ import { realpath } from "fs/promises";
  * that already has an owner, which is two owners for one repository.
  *
  * `realpath` answers the question the string only approximates. A path that
- * does not exist yet has no physical identity to resolve, so its lexical form
- * is the best available answer until it does.
+ * does not exist yet has no physical identity of its own, so it takes its
+ * nearest existing ancestor's and keeps the missing tail. Its lexical form
+ * alone would change identity once the path is created, whenever an ancestor
+ * is a symlink.
  */
 export async function canonicalCheckoutPath(path: string): Promise<string> {
-  return realpath(path).catch(() => resolve(path));
+  const missing: string[] = [];
+  let existing = resolve(path);
+  for (;;) {
+    try {
+      return join(await realpath(existing), ...missing);
+    } catch {
+      // Not resolvable (usually not created yet): try its parent.
+      const parent = dirname(existing);
+      if (parent === existing) return resolve(path);
+      missing.unshift(basename(existing));
+      existing = parent;
+    }
+  }
 }

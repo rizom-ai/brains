@@ -12,6 +12,7 @@ import type {
   UserPermissionLevel,
 } from "@brains/templates";
 import { getErrorMessage } from "@brains/utils/error";
+import { capitalize } from "@brains/utils/string-utils";
 import type { z } from "@brains/utils/zod";
 import { assertEntityActionAllowed } from "./entity-action-policy";
 import type { SystemServices } from "./types";
@@ -38,7 +39,7 @@ export function checkEntityActionPermission(
   );
   if (!requiredLevel) return undefined;
 
-  const verb = `${action[0]?.toUpperCase()}${action.slice(1)}`;
+  const verb = capitalize(action);
 
   if (requiredLevel === "never") {
     return {
@@ -111,6 +112,7 @@ export function createExecutionContextFrom(
   return {
     interfaceType: toolContext.interfaceType,
     actor: toolContext.actor,
+    userPermissionLevel: toolContext.userPermissionLevel ?? "public",
     ...(toolContext.channelId && { channelId: toolContext.channelId }),
     ...(toolContext.channelName && { channelName: toolContext.channelName }),
   };

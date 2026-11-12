@@ -8,20 +8,19 @@ description: "Connect MCP, web chat, Discord, Slack, A2A and local chat"
 
 # Interface Setup Guide
 
-Interfaces are how users, tools, web clients, and peer agents talk to a running brain. Built-in interfaces include MCP, the webserver and operator web chat, multi-platform chat through Discord or Slack, A2A, and the local chat REPL.
+Interfaces are how users, tools, web clients, and peer agents talk to a running brain. Built-in interfaces include MCP, operator web chat, multi-platform chat through Discord or Slack, A2A, and the local chat REPL. The runtime itself serves HTTP: the site, Studio, dashboard and every interface's routes share one listener.
 
 Interfaces are selected by the active capability bundles, then refined with `add` / `remove` and configured under `plugins:` in `brain.yaml`.
 
 ## Quick reference
 
-| Interface | Plugin id   | Local surface                        | Common use                                          |
-| --------- | ----------- | ------------------------------------ | --------------------------------------------------- |
-| MCP       | `mcp`       | `http://localhost:8080/mcp` or stdio | Claude Desktop, Cursor, CLI remote/tooling          |
-| Webserver | `webserver` | `http://localhost:8080`              | Site, Studio, dashboard, Admin, shared HTTP routes  |
-| Web chat  | `web-chat`  | `http://localhost:8080/ask`          | Guest-facing browser surface; currently fail-closed |
-| Chat      | `chat`      | Discord and/or Slack                 | Community, team, and authenticated chat             |
-| A2A       | `a2a`       | `http://localhost:8080/a2a`          | Agent-to-agent communication                        |
-| Chat REPL | command     | `brain chat`                         | Local terminal chat                                 |
+| Interface | Plugin id  | Local surface                        | Common use                                          |
+| --------- | ---------- | ------------------------------------ | --------------------------------------------------- |
+| MCP       | `mcp`      | `http://localhost:8080/mcp` or stdio | Claude Desktop, Cursor, CLI remote/tooling          |
+| Web chat  | `web-chat` | `http://localhost:8080/ask`          | Guest-facing browser surface; currently fail-closed |
+| Chat      | `chat`     | Discord and/or Slack                 | Community, team, and authenticated chat             |
+| A2A       | `a2a`      | `http://localhost:8080/a2a`          | Agent-to-agent communication                        |
+| Chat REPL | command    | `brain chat`                         | Local terminal chat                                 |
 
 ## Shared setup
 
@@ -32,7 +31,7 @@ bun add -g @rizom/brain
 brain init mybrain
 cd mybrain
 cp .env.example .env
-# set AI_API_KEY in .env
+# set OPENAI_API_KEY in .env
 brain start
 ```
 
@@ -75,7 +74,7 @@ MCP is the main assistant/tooling interface. Its default surface routes clients 
 
 ### HTTP MCP
 
-The default MCP transport is HTTP. It is mounted on the shared webserver at `/mcp`.
+The default MCP transport is HTTP when the brain serves HTTP. It is mounted on the shared HTTP host at `/mcp`.
 
 Start the brain:
 
@@ -102,11 +101,11 @@ When `auth-service` is enabled, HTTP MCP is protected by the brain's built-in OA
 3. OAuth-capable MCP clients discover metadata from the brain, identify themselves through a Client ID Metadata Document (or deprecated Dynamic Client Registration fallback), open a browser authorization flow, and request the `mcp` scope.
 4. The brain verifies the passkey-backed auth session and issues MCP-scoped bearer tokens.
 
-`MCP_AUTH_TOKEN` is still supported as a deprecated static fallback. Use it only for older clients that cannot complete OAuth. If `plugins.mcp.authToken` or `MCP_AUTH_TOKEN` is set, clients must send that value as `Authorization: Bearer <token>` and the OAuth path is bypassed for MCP.
+`MCP_AUTH_TOKEN` is a static token for local development only; a production brain refuses it at boot, so deployed brains use OAuth. If `plugins.mcp.authToken` or `MCP_AUTH_TOKEN` is set, clients must send that value as `Authorization: Bearer <token>` and the OAuth path is bypassed for MCP.
 
 ```yaml
 plugins:
-  # Optional deprecated fallback for non-OAuth MCP clients:
+  # Static MCP token, local development only; a production brain refuses it:
   # mcp:
   #   authToken: ${MCP_AUTH_TOKEN}
 ```
@@ -167,13 +166,13 @@ Stdio clients should run from the instance directory that contains `brain.yaml`.
 brain tool system_status
 brain tool system_search '{"query":"what content exists?"}'
 
-# Deprecated static-token fallback only:
-brain --remote https://your-domain.com --token "$MCP_AUTH_TOKEN" status
+# Static-token mode, local development only; a production brain refuses it:
+brain --remote http://localhost:8080 --token "$MCP_AUTH_TOKEN" status
 ```
 
-## Webserver
+## HTTP host
 
-The webserver is the shared HTTP surface for the site, Studio, dashboard, MCP HTTP, A2A, health routes, and plugin API routes. Account and administration presentation lives inside Studio.
+The runtime's HTTP host is the shared HTTP surface for the site, Studio, dashboard, MCP HTTP, A2A, health routes, and plugin API routes. Account and administration presentation lives inside Studio. A brain serves HTTP when its bundles include `web`; it listens on `port` (default `8080`), and the preview site shares that port, chosen by a `preview.` or `-preview.` host.
 
 Common local URLs:
 
@@ -192,14 +191,19 @@ http://localhost:8080/a2a        # A2A when enabled
 Relevant config fields:
 
 ```yaml
-plugins:
-  webserver:
-    enablePreview: true
-    previewDistDir: ./dist/site-preview
-    productionDistDir: ./dist/site-production
-    sharedImagesDir: ./dist/images
-    productionPort: 8080
+port: 8080
+http:
+  enabled: true # default: whether the selected bundles include web
+  preview: true # default: whether a site builder runs
+  hostname: 127.0.0.1 # bind address; default: all interfaces
+  # Only for a site no site builder writes; a site builder's own output
+  # directories are the ones served.
+  productionDistDir: ./dist/site-production
+  previewDistDir: ./dist/site-preview
+  sharedImagesDir: ./dist/images
 ```
+
+`plugins.webserver` is retired and refused: its port is top-level `port`, its other settings are under `http`.
 
 The old separate internal preview/API listener model has converged on the shared HTTP host for normal app verification. Prefer testing through `http://localhost:8080` or through `brain --remote` against the running app.
 
@@ -368,11 +372,11 @@ The chat REPL is useful for quick local testing because it runs against the same
 
 | Symptom                      | Check                                                                                                                                                      |
 | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| MCP HTTP 404                 | Ensure `webserver` and `mcp` are both enabled. MCP HTTP mounts on the shared webserver.                                                                    |
-| MCP HTTP unauthorized        | For OAuth clients, clear stale client auth and repeat the browser/passkey flow. For deprecated static-token mode, pass `MCP_AUTH_TOKEN` as a bearer token. |
+| MCP HTTP 404                 | Ensure the brain serves HTTP (the `web` bundle or `http.enabled`) and `mcp` is enabled. MCP HTTP mounts on the shared HTTP host.                           |
+| MCP HTTP unauthorized        | For OAuth clients, clear stale client auth and repeat the browser/passkey flow. For local-only static-token mode, pass `MCP_AUTH_TOKEN` as a bearer token. |
 | Discord bot does not respond | Check all three Discord credentials, Message Content Intent, bot permissions, `requireMention`, and `allowedChannels`.                                     |
 | Slack app does not respond   | Check bot/app or signing-secret credentials, installed scopes, Socket Mode/webhook setup, `requireMention`, and `allowedChannels`.                         |
-| A2A card missing             | Ensure `a2a` and `webserver` are enabled and the brain has a domain or local webserver.                                                                    |
+| A2A card missing             | Ensure `a2a` is enabled and the brain serves HTTP, on its domain or locally.                                                                               |
 | Remote CLI command fails     | Use `brain --remote <url> --token <token> ...` and verify `/mcp` is reachable.                                                                             |
 
 ## Related docs

@@ -1,21 +1,22 @@
 import type {
-  CreateCheckResult,
-  CreateInput,
-  CreateInterceptionResult,
-  EntityPluginContext,
-  EntityTextResult,
-} from "@brains/plugins";
+  EntityCreateContext,
+  EntityCreateRoute,
+} from "@brains/sdk/entities";
 import {
   checkEntityText,
-  continueWithEntityText,
+  entityRuntime,
   entityTextError,
   readEntityText,
   statedDateSchema,
-} from "@brains/plugins";
-import { fetchStyleGuide, formatVoiceGuidance } from "@brains/contracts";
+  type EntityTextResult,
+} from "@brains/sdk/internal/entity-runtime";
+import { generateMarkdown } from "@brains/utils/markdown-frontmatter";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
-import { projectFrontmatterSchema } from "../schemas/project";
+import {
+  projectFrontmatterSchema,
+  type projectMetadataSchema,
+} from "../schemas/project";
 import {
   projectFromTextSchema,
   type ProjectFromText,
@@ -32,18 +33,15 @@ const projectTextFieldsSchema = z.object({
 });
 
 async function deriveFromText(
-  context: Pick<EntityPluginContext, "ai" | "entityService">,
+  context: EntityCreateContext,
   project: { title: string; body: string },
 ): Promise<ProjectFromText> {
-  const voiceGuidance = formatVoiceGuidance(
-    await fetchStyleGuide(context.entityService),
-  );
-  return context.ai.generate(
+  return entityRuntime(context).generate(
     {
+      template: "from-text",
       prompt: `Title: ${project.title}\n\nText:\n${project.body}`,
-      templateName: "portfolio:from-text",
       representedIdentity: "none",
-      ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
+      voice: true,
     },
     projectFromTextSchema,
   );
@@ -69,12 +67,11 @@ type ProjectTextFields = z.output<typeof projectTextFieldsSchema>;
  * description that cannot be found is asked for.
  */
 async function readProjectText(
-  input: CreateInput,
-  context: Pick<EntityPluginContext, "ai" | "entityService">,
+  context: EntityCreateContext,
 ): Promise<
   EntityTextResult<ProjectTextFields & { year: number; description: string }>
 > {
-  const read = readEntityText(input, {
+  const read = readEntityText(context.input, {
     noun: "project",
     fieldsSchema: projectTextFieldsSchema,
     isComplete: (frontmatter) =>
@@ -120,52 +117,91 @@ async function readProjectText(
 }
 
 /**
- * Before a project from the writer's text is confirmed: ask for the year
- * the text does not name, and fill in the title, year and card description
- * the confirmation shows and the confirmed save receives.
+ * system_create for a portfolio project from the writer's own text: the text
+ * stays as written, titled from its first heading, saved as a draft with a
+ * card description written from it and the year it names. Before the save
+ * is confirmed it asks for the year the text does not name, and fills in
+ * the title, year and card description the confirmation shows. Anything
+ * that is not the writer's text goes on to the ordinary create.
  */
-export async function checkProjectText(
-  input: CreateInput,
-  context: Pick<EntityPluginContext, "ai" | "entityService">,
-): Promise<CreateCheckResult> {
-  return checkEntityText(
-    await readProjectText(input, context),
-    ({ title, fields }) => ({
-      title,
-      fields: { year: fields.year, description: fields.description },
-    }),
-  );
+export const projectFromText: EntityCreateRoute<typeof projectMetadataSchema> =
+  {
+    check: async (context) =>
+      checkEntityText(await readProjectText(context), ({ title, fields }) => ({
+        title,
+        fields: { year: fields.year, description: fields.description },
+      })),
+    resolve: async (context) => {
+      const read = await readProjectText(context);
+      const runtime = entityRuntime(context);
+      if (read.kind === "not-text") return runtime.ordinaryCreate();
+      if (read.kind !== "text") {
+        const refused = entityTextError(read);
+        return {
+          refuse:
+            refused.kind === "handled" && !refused.result.success
+              ? refused.result.error
+              : "This text cannot be saved as a project",
+        };
+      }
+      const { title, body, fields } = read.text;
+      const { year, description } = fields;
+      const status = fields.status ?? "draft";
+      const frontmatter = Object.fromEntries(
+        Object.entries({
+          title,
+          status,
+          description,
+          year,
+          url: fields.url,
+          publishedAt:
+            fields.publishedAt ??
+            (status === "published" ? new Date().toISOString() : undefined),
+          coverImageId: fields.coverImageId,
+        }).filter(([, value]) => value !== undefined),
+      );
+      return runtime.ordinaryCreate({
+        title,
+        content: generateMarkdown(frontmatter, body),
+      });
+    },
+  };
+
+/** The year a request names, in its title or its prompt. */
+function extractProjectYear(
+  title: string | undefined,
+  prompt: string | undefined,
+): number | null {
+  for (const value of [title, prompt]) {
+    const match = value?.match(/\b(19\d{2}|20\d{2})\b/);
+    if (match?.[1]) return Number(match[1]);
+  }
+  return null;
 }
 
 /**
- * system_create for a portfolio project from the writer's own text: the text
- * stays as written, titled from its first heading, saved as a draft with a
- * card description written from it and the year it names.
+ * system_create for a project from a prompt that names the year it began:
+ * the type's own generation writes it, for the caller who asked. A prompt
+ * that names no year goes on to the ordinary create.
  */
-export async function createProjectFromText(
-  input: CreateInput,
-  context: Pick<EntityPluginContext, "ai" | "entityService">,
-): Promise<CreateInterceptionResult> {
-  const read = await readProjectText(input, context);
-  if (read.kind === "not-text") return { kind: "continue", input };
-  if (read.kind !== "text") return entityTextError(read);
-  const { title, body, fields } = read.text;
-  const { year, description } = fields;
-
-  const status = fields.status ?? "draft";
-  return continueWithEntityText(input, {
-    title,
-    body,
-    frontmatter: {
-      title,
-      status,
-      description,
-      year,
-      url: fields.url,
-      publishedAt:
-        fields.publishedAt ??
-        (status === "published" ? new Date().toISOString() : undefined),
-      coverImageId: fields.coverImageId,
-    },
-  });
-}
+export const projectFromPrompt: EntityCreateRoute<
+  typeof projectMetadataSchema
+> = {
+  resolve: async (context) => {
+    const { input } = context;
+    const year = extractProjectYear(input.title, input.prompt);
+    if (!input.prompt || year === null) {
+      return entityRuntime(context).ordinaryCreate();
+    }
+    return {
+      delegate: {
+        job: "generation",
+        input: {
+          prompt: input.prompt,
+          ...(input.title ? { title: input.title } : {}),
+          year,
+        },
+      },
+    };
+  },
+};

@@ -9,7 +9,8 @@ import type { Logger } from "@brains/utils/logger";
 import { pluralize } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import type { SiteImageLookup } from "@brains/site-engine";
-import type { BaseEntity, ServiceEntityService } from "@brains/plugins";
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
+import type { SiteEntityReads } from "./site-builder-services";
 import type { BuildPipelineContext } from "./build-pipeline-context";
 
 const entityWithSlugSchema: z.ZodObject<
@@ -221,7 +222,7 @@ function toAbsoluteUrl(url: string, siteUrl: string | undefined): string {
 
 async function resolveCoverImage(
   imageId: string | undefined,
-  entityService: ServiceEntityService,
+  entityService: SiteEntityReads,
 ): Promise<
   | {
       url: string;
@@ -257,7 +258,7 @@ async function resolveCoverImage(
  * prepared.
  */
 export async function collectAllImageIds(
-  entityService: ServiceEntityService,
+  entityService: SiteEntityReads,
   logger: Logger,
 ): Promise<string[]> {
   const imageIds = new Set<string>();
@@ -303,7 +304,7 @@ const SCAN_PAGE_SIZE = 1000;
 
 /** Visit every entity of a type, one page at a time, in stable id order. */
 async function forEachEntityPage(
-  entityService: ServiceEntityService,
+  entityService: SiteEntityReads,
   entityType: string,
   visit: (entities: BaseEntity[]) => void,
   offset = 0,
@@ -314,6 +315,9 @@ async function forEachEntityPage(
       limit: SCAN_PAGE_SIZE,
       offset,
       sortFields: [{ field: "id", direction: "asc" }],
+      // The stored record: a declared type reads back its body alone, and
+      // its cover and OG images are named in its frontmatter.
+      source: true,
     },
   });
   visit(page);

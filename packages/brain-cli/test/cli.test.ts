@@ -459,7 +459,7 @@ describe("brain init (end-to-end)", () => {
     expect(existsSync(join(outDir, "README.md"))).toBe(true);
   });
 
-  it("should write .env when --ai-api-key is provided non-interactively", async () => {
+  it("should write .env when --openai-api-key is provided non-interactively", async () => {
     const { runCommand } = await import("../src/run-command");
     const outDir = join(testDir, "mybrain");
     const result = await runCommand(
@@ -467,7 +467,7 @@ describe("brain init (end-to-end)", () => {
         command: "init",
         flags: {
           recipe: "personal",
-          "ai-api-key": "sk-test-12345",
+          "openai-api-key": "sk-test-12345",
           "no-interactive": true,
         },
         args: ["mybrain"],
@@ -477,10 +477,10 @@ describe("brain init (end-to-end)", () => {
 
     expect(result.success).toBe(true);
     const env = readFileSync(join(outDir, ".env"), "utf-8");
-    expect(env).toContain("AI_API_KEY=sk-test-12345");
+    expect(env).toContain("OPENAI_API_KEY=sk-test-12345");
   });
 
-  it("should not write .env when --ai-api-key is missing in non-interactive mode", async () => {
+  it("should not write .env when no key flag is given in non-interactive mode", async () => {
     const { runCommand } = await import("../src/run-command");
     const outDir = join(testDir, "mybrain");
     const result = await runCommand(
@@ -496,6 +496,56 @@ describe("brain init (end-to-end)", () => {
     expect(existsSync(join(outDir, ".env"))).toBe(false);
   });
 
+  it("refuses key flags that leave a model without its provider's key", async () => {
+    const { runCommand } = await import("../src/run-command");
+    const result = await runCommand(
+      {
+        command: "init",
+        flags: {
+          recipe: "personal",
+          "anthropic-api-key": "sk-ant-test",
+          model: "claude-sonnet-5",
+          "no-interactive": true,
+        },
+        args: ["mybrain"],
+      },
+      testDir,
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain(
+      "openai:text-embedding-3-small needs OPENAI_API_KEY",
+    );
+    expect(existsSync(join(testDir, "mybrain"))).toBe(false);
+  });
+
+  it("writes a key per provider and the chat model they cover", async () => {
+    const { runCommand } = await import("../src/run-command");
+    const outDir = join(testDir, "mybrain");
+    const result = await runCommand(
+      {
+        command: "init",
+        flags: {
+          recipe: "personal",
+          "anthropic-api-key": "sk-ant-test",
+          "openai-api-key": "sk-proj-test",
+          model: "claude-sonnet-5",
+          "no-interactive": true,
+        },
+        args: ["mybrain"],
+      },
+      testDir,
+    );
+
+    expect(result.success).toBe(true);
+    const env = readFileSync(join(outDir, ".env"), "utf-8");
+    expect(env).toContain("ANTHROPIC_API_KEY=sk-ant-test");
+    expect(env).toContain("OPENAI_API_KEY=sk-proj-test");
+    expect(readFileSync(join(outDir, "brain.yaml"), "utf-8")).toContain(
+      "model: claude-sonnet-5",
+    );
+  });
+
   it("should activate git block when --content-repo is provided non-interactively", async () => {
     const { runCommand } = await import("../src/run-command");
     const outDir = join(testDir, "mybrain");
@@ -505,7 +555,7 @@ describe("brain init (end-to-end)", () => {
         flags: {
           recipe: "personal",
           "content-repo": "user/brain-data",
-          "ai-api-key": "sk-test-12345",
+          "openai-api-key": "sk-test-12345",
           "no-interactive": true,
         },
         args: ["mybrain"],
@@ -530,7 +580,7 @@ describe("brain init (end-to-end)", () => {
         flags: {
           recipe: "personal",
           backend: "env",
-          "ai-api-key": "sk-test-12345",
+          "openai-api-key": "sk-test-12345",
           "no-interactive": true,
         },
         args: ["mybrain"],

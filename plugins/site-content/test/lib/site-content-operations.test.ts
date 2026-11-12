@@ -1,3 +1,4 @@
+import { siteContentDepsOf } from "../site-content-deps";
 import {
   createMockServicePluginContext,
   type MockServicePluginContext,
@@ -5,8 +6,8 @@ import {
 import { createTestEntity } from "@brains/entity-service/test";
 import { describe, test, expect, beforeEach, mock, spyOn } from "bun:test";
 import { SiteContentOperations } from "../../src/lib/site-content-operations";
-import type { MessageResponse, MessageSendRequest } from "@brains/plugins";
 import type { RouteDefinitionInput } from "@brains/plugins";
+import { siteBuilderRoutesContract } from "@brains/site-composition";
 
 const testRoutes: RouteDefinitionInput[] = [
   {
@@ -41,15 +42,13 @@ const testRoutes: RouteDefinitionInput[] = [
   },
 ];
 
-function createRoutesMessaging(
-  routes: unknown[],
-): (request: MessageSendRequest) => Promise<MessageResponse> {
-  return async (request: MessageSendRequest) => {
-    if (request.type === "site-builder:routes:list") {
-      return { success: true, data: routes };
-    }
-    return { noop: true };
-  };
+/** A context whose site builder answers with these routes. */
+function contextWithRoutes(
+  routes: RouteDefinitionInput[],
+): MockServicePluginContext {
+  const context = createMockServicePluginContext();
+  context.messaging.answer(siteBuilderRoutesContract, async () => routes);
+  return context;
 }
 
 function mockSuccessfulGeneration(
@@ -95,10 +94,8 @@ describe("SiteContentOperations", () => {
   let operations: SiteContentOperations;
 
   beforeEach(() => {
-    context = createMockServicePluginContext({
-      returns: { messagingSend: createRoutesMessaging(testRoutes) },
-    });
-    operations = new SiteContentOperations(context);
+    context = contextWithRoutes(testRoutes);
+    operations = new SiteContentOperations(siteContentDepsOf(context));
     mockSuccessfulGeneration(context);
   });
 
@@ -135,6 +132,8 @@ describe("SiteContentOperations", () => {
         { jobId: "batch-123-2", routeId: "about", sectionId: "main" },
         { jobId: "batch-123-3", routeId: "dashboard", sectionId: "main" },
       ],
+      // A run that queues work plans none of its own.
+      planned: [],
       totalSections: 4,
       queuedSections: 4,
       batchId: "batch-123",
@@ -244,6 +243,17 @@ describe("SiteContentOperations", () => {
     });
   });
 
+  test("names the sections a dry run would generate", async () => {
+    const result = await operations.generate({ dryRun: true });
+
+    expect(result.planned).toEqual([
+      { routeId: "landing", sectionId: "hero" },
+      { routeId: "landing", sectionId: "features" },
+      { routeId: "about", sectionId: "main" },
+      { routeId: "dashboard", sectionId: "main" },
+    ]);
+  });
+
   test("returns no invented batch reference when nothing is eligible", async () => {
     context.content.generate.mockResolvedValueOnce({
       items: [],
@@ -255,6 +265,7 @@ describe("SiteContentOperations", () => {
 
     expect(await operations.generate({})).toEqual({
       jobs: [],
+      planned: [],
       totalSections: 0,
       queuedSections: 0,
       batchId: "",
@@ -262,28 +273,24 @@ describe("SiteContentOperations", () => {
   });
 
   test("skips static and untemplated sections before generation", async () => {
-    context = createMockServicePluginContext({
-      returns: {
-        messagingSend: createRoutesMessaging([
+    context = contextWithRoutes([
+      {
+        id: "mixed",
+        path: "/mixed",
+        layout: "default",
+        sections: [
           {
-            id: "mixed",
-            path: "/mixed",
-            layout: "default",
-            sections: [
-              {
-                id: "static",
-                template: "site-builder:content",
-                content: "Static copy",
-              },
-              { id: "untemplated" },
-              { id: "dynamic", template: "site-builder:content" },
-            ],
-            pluginId: "site-builder",
+            id: "static",
+            template: "site-builder:content",
+            content: "Static copy",
           },
-        ]),
+          { id: "untemplated", template: "" },
+          { id: "dynamic", template: "site-builder:content" },
+        ],
+        pluginId: "site-builder",
       },
-    });
-    operations = new SiteContentOperations(context);
+    ]);
+    operations = new SiteContentOperations(siteContentDepsOf(context));
     mockSuccessfulGeneration(context);
 
     await operations.generate({});
@@ -302,13 +309,11 @@ describe("SiteContentOperations", () => {
   });
 
   test("throws when site-builder route discovery is unavailable", async () => {
-    context = createMockServicePluginContext({
-      returns: { messagingSend: async () => ({ noop: true }) },
-    });
-    operations = new SiteContentOperations(context);
+    context = createMockServicePluginContext();
+    operations = new SiteContentOperations(siteContentDepsOf(context));
 
     expect(operations.generate({})).rejects.toThrow(
-      "No handler for site-builder:routes:list",
+      "Failed to fetch routes from site-builder",
     );
   });
 });

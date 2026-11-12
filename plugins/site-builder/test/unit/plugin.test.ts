@@ -1,12 +1,14 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { expectDefined } from "@brains/utils/expect-defined";
-import { createTempDataDir } from "@brains/plugins/test";
 import { waitUntil } from "@brains/test-utils";
-import { SiteBuilderPlugin } from "../../src/plugin";
+import {
+  createSiteBuilderPlugin,
+  type SiteBuilderTestPlugin,
+} from "../site-builder-plugin";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
 import {
   DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
+  SYSTEM_CHANNELS,
   createTemplate,
   safeParseRuntimeDashboardWidgetData,
   type AnchorProfile,
@@ -14,11 +16,11 @@ import {
   type StudioWorkspaceActor,
   type StudioWorkspaceRegistration,
 } from "@brains/plugins";
+import { siteBuilderRoutesContract } from "@brains/site-composition";
 import { z } from "@brains/utils/zod";
 import { createElement as h } from "react";
 import { createTestConfig } from "../test-helpers";
 import { mkdtemp, readFile, rm } from "fs/promises";
-import { existsSync } from "fs";
 import { join } from "path";
 
 const adminWorkspaceActor: StudioWorkspaceActor = {
@@ -73,13 +75,13 @@ function findTableById(value: unknown, id: string): unknown {
   return undefined;
 }
 
-describe("SiteBuilderPlugin", () => {
-  let harness: ReturnType<typeof createPluginHarness<SiteBuilderPlugin>>;
-  let plugin: SiteBuilderPlugin;
+describe("SiteBuilderTestPlugin", () => {
+  let harness: ReturnType<typeof createPluginHarness<SiteBuilderTestPlugin>>;
+  let plugin: SiteBuilderTestPlugin;
   let capabilities: PluginCapabilities;
 
   beforeEach(async () => {
-    harness = createPluginHarness<SiteBuilderPlugin>();
+    harness = createPluginHarness<SiteBuilderTestPlugin>();
   });
 
   afterEach(async () => {
@@ -87,7 +89,7 @@ describe("SiteBuilderPlugin", () => {
   });
 
   it("should initialize with valid config", async () => {
-    plugin = new SiteBuilderPlugin(
+    plugin = createSiteBuilderPlugin(
       createTestConfig({
         previewOutputDir: "/tmp/test-output",
         productionOutputDir: "/tmp/test-output-production",
@@ -100,7 +102,7 @@ describe("SiteBuilderPlugin", () => {
   });
 
   it("should register successfully and provide capabilities", async () => {
-    plugin = new SiteBuilderPlugin(
+    plugin = createSiteBuilderPlugin(
       createTestConfig({
         previewOutputDir: "/tmp/test-output",
         productionOutputDir: "/tmp/test-output-production",
@@ -127,7 +129,7 @@ describe("SiteBuilderPlugin", () => {
     });
 
     try {
-      plugin = new SiteBuilderPlugin(
+      plugin = createSiteBuilderPlugin(
         createTestConfig({
           previewOutputDir: outputDir,
           productionOutputDir: outputDir,
@@ -196,7 +198,7 @@ describe("SiteBuilderPlugin", () => {
       },
     });
 
-    plugin = new SiteBuilderPlugin(
+    plugin = createSiteBuilderPlugin(
       createTestConfig({
         previewOutputDir: "/tmp/test-output",
         productionOutputDir: "/tmp/test-output-production",
@@ -230,7 +232,7 @@ describe("SiteBuilderPlugin", () => {
       },
     });
 
-    plugin = new SiteBuilderPlugin(
+    plugin = createSiteBuilderPlugin(
       createTestConfig({
         previewOutputDir: "/tmp/test-output",
         productionOutputDir: "/tmp/test-output-production",
@@ -266,7 +268,7 @@ describe("SiteBuilderPlugin", () => {
       },
     );
 
-    plugin = new SiteBuilderPlugin(
+    plugin = createSiteBuilderPlugin(
       createTestConfig({
         routes: [
           {
@@ -281,6 +283,8 @@ describe("SiteBuilderPlugin", () => {
       }),
     );
     await harness.installPlugin(plugin);
+    // As the brain boots: every plugin has registered, then each is ready.
+    await harness.sendMessage(SYSTEM_CHANNELS.pluginsRegistered, {}, "shell");
     await plugin.ready();
 
     expect(registration).toMatchObject({
@@ -501,7 +505,7 @@ describe("SiteBuilderPlugin", () => {
     harness.getMockShell().getPermissionService =
       (): typeof permissionService => permissionService;
 
-    plugin = new SiteBuilderPlugin(
+    plugin = createSiteBuilderPlugin(
       createTestConfig({
         routes: [
           {
@@ -551,7 +555,7 @@ describe("SiteBuilderPlugin", () => {
   });
 
   it("should provide site builder tools", async () => {
-    plugin = new SiteBuilderPlugin(
+    plugin = createSiteBuilderPlugin(
       createTestConfig({
         previewOutputDir: "/tmp/test-output",
         productionOutputDir: "/tmp/test-output-production",
@@ -569,7 +573,7 @@ describe("SiteBuilderPlugin", () => {
   });
 
   it("should set environment on routes", async () => {
-    plugin = new SiteBuilderPlugin(
+    plugin = createSiteBuilderPlugin(
       createTestConfig({
         previewOutputDir: "/tmp/test-output",
         productionOutputDir: "/tmp/test-output-production",
@@ -608,48 +612,13 @@ describe("SiteBuilderPlugin", () => {
       studio: {},
     };
 
-    plugin = new SiteBuilderPlugin(config);
+    plugin = createSiteBuilderPlugin(config);
     await harness.installPlugin(plugin);
 
-    const result = await harness.sendMessage<
-      { path: string },
-      { route?: { path: string } }
-    >("plugin:site-builder:route:get", { path: "/studio/" });
+    const routes = siteBuilderRoutesContract.response.parse(
+      await harness.sendMessage(siteBuilderRoutesContract.name, {}),
+    );
 
-    expect(expectDefined(result, "route:get response").route).toBeUndefined();
-  });
-
-  it("should not generate Studio files on site:build:completed", async () => {
-    const outputDir = await createTempDataDir("site-builder-no-studio-");
-    const config = {
-      ...createTestConfig({
-        previewOutputDir: outputDir,
-        productionOutputDir: outputDir,
-      }),
-      studio: {},
-    };
-
-    harness.subscribe("git-sync:get-repo-info", async () => ({
-      success: true,
-      data: { repo: "owner/repo", branch: "main" },
-    }));
-
-    plugin = new SiteBuilderPlugin(config);
-    await harness.installPlugin(plugin);
-
-    await harness.sendMessage("site:build:completed", {
-      outputDir,
-      environment: "preview",
-      routesBuilt: 0,
-      siteConfig: {
-        title: "Test",
-        description: "Test",
-        url: "https://example.com",
-      },
-      generateEntityUrl: (_entityType: string, slug: string) => `/${slug}`,
-    });
-
-    expect(existsSync(join(outputDir, "studio"))).toBe(false);
-    expect(existsSync(join(outputDir, "admin"))).toBe(false);
+    expect(routes.map((route) => route.path)).not.toContain("/studio/");
   });
 });

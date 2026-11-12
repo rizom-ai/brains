@@ -1,6 +1,7 @@
 import { isDeepStrictEqual } from "node:util";
 import { diffArrays } from "diff";
 import {
+  generateMarkdown,
   parseMarkdown,
   updateFrontmatterField,
 } from "@brains/utils/markdown-frontmatter";
@@ -21,10 +22,12 @@ import type { UpdateOperationInput } from "./schemas";
  * What an update asks for once edits are applied and a source is resolved: a
  * full content replacement or a set of field changes, never both.
  */
-export type UpdateOperation = Extract<
-  UpdateOperationInput,
-  { kind: "fields" | "content" }
->;
+export type UpdateOperation =
+  | {
+      kind: "fields";
+      fields: NonNullable<UpdateOperationInput["fields"]>;
+    }
+  | { kind: "content"; content: string };
 
 /**
  * Changed lines a replacement preview still lists. Beyond it the preview says
@@ -54,7 +57,7 @@ export function fieldPersists(
   return Object.hasOwn(store, key) && isDeepStrictEqual(store[key], requested);
 }
 
-function sourceFieldKeys(
+export function sourceFieldKeys(
   entityType: string,
   registry: SystemServices["entityRegistry"],
 ): Set<string> {
@@ -77,6 +80,37 @@ function currentFieldValue(
   if (sourceFields.has(key))
     return parseMarkdown(entity.content).frontmatter[key];
   return key === "visibility" ? entity.visibility : entity.metadata[key];
+}
+
+/**
+ * A declared type's entity, with the stored frontmatter its own fields do
+ * not cover laid over its body, so a field update to a grouping or other
+ * frontmatter extension sees the value stored and keeps every other field
+ * the document carries. Its reads hand back its body alone, and those
+ * fields live only in the stored document; an entity plugin class's
+ * content is the stored document already.
+ */
+export function withStoredSourceFields(
+  entity: BaseEntity,
+  stored: string,
+  registry: SystemServices["entityRegistry"],
+): BaseEntity {
+  // The type's own fields come from its metadata; the source fields
+  // (groupings and extensions), and fields no one claims, from the file.
+  const sourceFields = sourceFieldKeys(entity.entityType, registry);
+  const owned = new Set(
+    Object.keys(
+      registry.getAdapter(entity.entityType).frontmatterSchema?.shape ?? {},
+    ).filter((key) => !sourceFields.has(key)),
+  );
+  const kept = Object.fromEntries(
+    Object.entries(parseMarkdown(stored).frontmatter).filter(
+      ([key]) => !owned.has(key),
+    ),
+  );
+  return Object.keys(kept).length > 0
+    ? { ...entity, content: generateMarkdown(kept, entity.content) }
+    : entity;
 }
 
 export function applyFieldUpdates(
@@ -144,6 +178,19 @@ export function applyFieldUpdates(
       nextEntity.content,
       nextMetadata,
     );
+  // Where metadata is the frontmatter, covers and social cards are metadata
+  // too. Such a type is read back as its body alone, so a cleared one has no
+  // frontmatter to be removed from; the metadata carries the change.
+  if (registry.getAdapter(entity.entityType).metadataFromFrontmatter === true) {
+    const metadata = { ...nextEntity.metadata };
+    for (const key of ["coverImageId", "ogImageId"]) {
+      if (!Object.hasOwn(fields, key)) continue;
+      const value = fields[key];
+      if (typeof value === "string") metadata[key] = value;
+      else delete metadata[key];
+    }
+    nextEntity.metadata = metadata;
+  }
   return nextEntity;
 }
 
@@ -257,10 +304,16 @@ function validateFieldUpdatePersistence(
       error: getErrorMessage(error, "Invalid field update"),
     };
   }
+  // Where covers and social cards are metadata (see applyFieldUpdates),
+  // whether a write keeps them is settled the same way as any field.
+  const imageFieldsAreMetadata =
+    entityRegistry.getAdapter(entity.entityType).metadataFromFrontmatter ===
+    true;
   const requested = Object.keys(fields).filter(
     (key) =>
       !sourceFields.has(key) &&
-      !NON_METADATA_FIELD_KEYS.has(key) &&
+      (!NON_METADATA_FIELD_KEYS.has(key) ||
+        (imageFieldsAreMetadata && key !== "visibility")) &&
       key in frontmatterSchema.shape,
   );
   if (requested.length === 0) return undefined;
@@ -371,11 +424,19 @@ function validateContentReplacement(
     };
   }
 
+  const adapter = entityRegistry.getAdapter(entityType);
+  // A type whose metadata is decoded from its file derives some of it, such
+  // as a social post's slug, which the file never states: a replacement with
+  // frontmatter is checked as the file will be stored. Its content is the
+  // body, so a body alone keeps the stored metadata.
+  const decoded = adapter.metadataFromFrontmatter === true;
+  if (decoded && !FRONTMATTER_BLOCK.test(operation.content)) return undefined;
   try {
-    entityRegistry
-      .getAdapter(entityType)
-      .parseFrontMatter(operation.content, frontmatterSchema);
+    if (decoded) adapter.fromMarkdown(operation.content);
+    else adapter.parseFrontMatter(operation.content, frontmatterSchema);
   } catch {
+    // Only the replacement's own frontmatter is parsed here: a failure is
+    // the caller's text not decoding, answered with what to send instead.
     return {
       success: false,
       error:
@@ -540,4 +601,79 @@ export function applyUpdateOperation(
   return operation.kind === "content"
     ? applyContentUpdate(entity, operation.content, entityRegistry)
     : applyFieldUpdates(entity, operation.fields, entityRegistry);
+}
+
+const storedLinesShown = 5;
+const storedLineLength = 160;
+
+function clipStoredLine(line: string): string {
+  return line.length > storedLineLength
+    ? `${line.slice(0, storedLineLength)}…`
+    : line;
+}
+
+function formatStoredValue(value: unknown): string {
+  if (value === undefined) return "(removed)";
+  return typeof value === "string" ? value : JSON.stringify(value);
+}
+
+function nonBlank(line: string): boolean {
+  return line.trim().length > 0;
+}
+
+/** Lines under a heading, quoted: the first few, then how many more. */
+function quoteStored(heading: string, lines: string[]): string | undefined {
+  if (lines.length === 0) return undefined;
+  const hidden = lines.length - storedLinesShown;
+  return [
+    heading,
+    ...lines
+      .slice(0, storedLinesShown)
+      .map((line) => `> ${clipStoredLine(line)}`),
+    ...(hidden > 0 ? [`… and ${hidden} more changed lines`] : []),
+  ].join("\n");
+}
+
+/** The metadata fields that moved, as storage now holds them. */
+function changedFieldLines(before: BaseEntity, stored: BaseEntity): string[] {
+  return [
+    ...new Set([
+      ...Object.keys(before.metadata),
+      ...Object.keys(stored.metadata),
+    ]),
+  ]
+    .filter(
+      (key) => !isDeepStrictEqual(before.metadata[key], stored.metadata[key]),
+    )
+    .map((key) => `${key}: ${formatStoredValue(stored.metadata[key])}`);
+}
+
+/**
+ * What storage holds after an update, read back once it was written: the
+ * changed lines of the stored Markdown, the lines an edit removed, or
+ * the changed fields when only metadata moved. Undefined when the read-back
+ * shows no change.
+ */
+export function describeStoredChange(
+  before: BaseEntity,
+  stored: BaseEntity,
+): string | undefined {
+  if (stored.content === before.content)
+    return quoteStored("Stored now:", changedFieldLines(before, stored));
+  const parts = diffArrays(
+    before.content.split("\n"),
+    stored.content.split("\n"),
+  );
+  const added = parts
+    .filter((part) => part.added)
+    .flatMap((part) => part.value)
+    .filter(nonBlank);
+  if (added.length > 0) return quoteStored("Stored now:", added);
+  return quoteStored(
+    "No longer stored:",
+    parts
+      .filter((part) => part.removed)
+      .flatMap((part) => part.value)
+      .filter(nonBlank),
+  );
 }

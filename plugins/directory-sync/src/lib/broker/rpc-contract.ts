@@ -2,82 +2,81 @@ import { Rpc, RpcGroup, Schema } from "@brains/utils/effect/rpc";
 import type { RpcMessage } from "@brains/utils/effect/rpc";
 import { z } from "@brains/utils/zod";
 import { gitOperationSchema } from "./operations";
-import type { GitOperation } from "./operations";
 
-// Private wire contracts: declarations adapt authoritative Zod validation.
-// No Effect Schema or RPC types cross the Promise-based broker facade.
-export interface RegisterCheckoutPayload {
-  readonly checkoutPath: string;
-  readonly branch: string;
-  readonly remoteFingerprint: string;
-}
-export interface ExecuteOperationPayload {
-  readonly operationId: string;
-  readonly checkoutPath: string;
-  readonly operation: GitOperation;
-}
-export interface BrokerRpcStatus {
-  readonly brokerId: string;
-  readonly checkouts: string[];
-  readonly activeRequestIds: string[];
-  readonly queuedRequestIds: string[];
-  readonly ambiguousRequestIds: string[];
-  readonly evidenceComplete: boolean;
-  readonly recoveryPending: boolean;
-  readonly admitsMutations: boolean;
-  readonly oldestActiveProgressAt: number | null;
-}
-export interface BrokerRpcFailure {
-  readonly _tag: "BrokerError";
-  readonly message: string;
-}
-export type BrokerRpcEvent =
-  | {
-      readonly _tag: "Progress";
-      readonly phase: "running";
-      readonly observedAt: string;
-    }
-  | {
-      readonly _tag: "Result";
-      readonly outcome: "ok" | "error";
-      readonly value?: unknown;
-      readonly error: string | null;
-    };
+// Private wire contracts: the Zod validation is authoritative and the types
+// derive from it. No Effect Schema or RPC types cross the Promise-based
+// broker facade.
+type Strict<Shape extends z.ZodRawShape> = z.ZodObject<Shape, z.core.$strict>;
 
-const operationIdSchema = z
+const operationIdSchema: z.ZodString = z
   .string()
   .min(8)
   .max(64)
   .regex(/^[A-Za-z0-9_-]+$/);
-const registerCheckoutPayloadSchema: z.ZodType<RegisterCheckoutPayload> =
-  z.strictObject({
-    checkoutPath: z.string().min(1),
-    branch: z.string().min(1),
-    remoteFingerprint: z.string().min(1),
-  });
-const executeOperationPayloadSchema: z.ZodType<ExecuteOperationPayload> =
-  z.strictObject({
-    operationId: operationIdSchema,
-    checkoutPath: z.string().min(1),
-    operation: gitOperationSchema,
-  });
+const registerCheckoutPayloadSchema: Strict<{
+  checkoutPath: z.ZodString;
+  branch: z.ZodString;
+  remoteFingerprint: z.ZodString;
+}> = z.strictObject({
+  checkoutPath: z.string().min(1),
+  branch: z.string().min(1),
+  remoteFingerprint: z.string().min(1),
+});
+export type RegisterCheckoutPayload = z.output<
+  typeof registerCheckoutPayloadSchema
+>;
+const executeOperationPayloadSchema: Strict<{
+  operationId: z.ZodString;
+  checkoutPath: z.ZodString;
+  operation: typeof gitOperationSchema;
+}> = z.strictObject({
+  operationId: operationIdSchema,
+  checkoutPath: z.string().min(1),
+  operation: gitOperationSchema,
+});
+export type ExecuteOperationPayload = z.output<
+  typeof executeOperationPayloadSchema
+>;
 const emptyPayloadSchema = z.strictObject({});
-const statusSchema: z.ZodType<BrokerRpcStatus> = z.strictObject({
+const statusSchema: Strict<{
+  brokerId: z.ZodString;
+  checkouts: z.ZodArray<z.ZodString>;
+  ambiguousRequestIds: z.ZodArray<z.ZodString>;
+  evidenceComplete: z.ZodBoolean;
+  recoveryPending: z.ZodBoolean;
+  admitsMutations: z.ZodBoolean;
+}> = z.strictObject({
   brokerId: z.string().min(1),
   checkouts: z.array(z.string()),
-  activeRequestIds: z.array(operationIdSchema),
-  queuedRequestIds: z.array(operationIdSchema),
   ambiguousRequestIds: z.array(operationIdSchema),
   evidenceComplete: z.boolean(),
   recoveryPending: z.boolean(),
   admitsMutations: z.boolean(),
-  oldestActiveProgressAt: z.number().int().nonnegative().nullable(),
 });
-const failureSchema: z.ZodType<BrokerRpcFailure> = z.strictObject({
+export type BrokerRpcStatus = z.output<typeof statusSchema>;
+const failureSchema: Strict<{
+  _tag: z.ZodLiteral<"BrokerError">;
+  message: z.ZodString;
+}> = z.strictObject({
   _tag: z.literal("BrokerError"),
   message: z.string().min(1),
 });
-const eventSchema: z.ZodType<BrokerRpcEvent> = z.discriminatedUnion("_tag", [
+export type BrokerRpcFailure = z.output<typeof failureSchema>;
+const eventSchema: z.ZodDiscriminatedUnion<
+  [
+    Strict<{
+      _tag: z.ZodLiteral<"Progress">;
+      phase: z.ZodLiteral<"running">;
+      observedAt: z.ZodString;
+    }>,
+    Strict<{
+      _tag: z.ZodLiteral<"Result">;
+      outcome: z.ZodEnum<{ ok: "ok"; error: "error" }>;
+      value: z.ZodUnknown;
+      error: z.ZodNullable<z.ZodString>;
+    }>,
+  ]
+> = z.discriminatedUnion("_tag", [
   z.strictObject({
     _tag: z.literal("Progress"),
     phase: z.literal("running"),
@@ -90,6 +89,7 @@ const eventSchema: z.ZodType<BrokerRpcEvent> = z.discriminatedUnion("_tag", [
     error: z.string().nullable(),
   }),
 ]);
+export type BrokerRpcEvent = z.output<typeof eventSchema>;
 
 function wireSchema<T>(schema: z.ZodType<T>): Schema.declare<T> {
   return Schema.declare<T>(

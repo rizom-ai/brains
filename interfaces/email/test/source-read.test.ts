@@ -1,12 +1,11 @@
 import { describe, expect, it } from "bun:test";
 import {
-  EMAIL_SOURCE_READ,
-  emailSourceReadResponseSchema,
+  emailSourceReadContract,
   type EmailSourceReadResponse,
 } from "@brains/contracts";
 import { createPluginHarness } from "@brains/plugins/test";
+import { createEmailPlugin } from "./email-plugin";
 import {
-  EmailInterface,
   createInboundEmailSourceRef,
   type EmailImapConfig,
   type InboundEmailClient,
@@ -66,25 +65,22 @@ function sourceClient(options: {
 }
 
 async function sendRead(
-  harness: ReturnType<typeof createPluginHarness<EmailInterface>>,
+  harness: ReturnType<typeof createPluginHarness>,
   sourceRef: string,
   permissionLevel: "admin" | "trusted" | "public",
   signal?: AbortSignal,
 ): Promise<EmailSourceReadResponse> {
-  const response = await harness
+  const result = await harness
     .getServiceContext("source-read-test")
-    .messaging.send({
-      type: EMAIL_SOURCE_READ,
-      payload: {
-        sourceRef,
-        actor: { permissionLevel },
-        ...(signal ? { signal } : {}),
-      },
+    .messaging.request(emailSourceReadContract, {
+      sourceRef,
+      actor: { permissionLevel },
+      ...(signal ? { signal } : {}),
     });
-  if ("noop" in response || !response.success) {
+  if (result.status !== "answered") {
     throw new Error("Email source read was not handled");
   }
-  return emailSourceReadResponseSchema.parse(response.data);
+  return result.data;
 }
 
 describe("email source read", () => {
@@ -92,9 +88,9 @@ describe("email source read", () => {
     const message = await sourceMessage();
     let observedSignal: AbortSignal | undefined;
     let observedMaxBytes: number | undefined;
-    const harness = createPluginHarness<EmailInterface>();
+    const harness = createPluginHarness();
     await harness.installPlugin(
-      new EmailInterface(
+      createEmailPlugin(
         { imap: imapConfig },
         {
           imapClientFactory: (): InboundEmailClient =>
@@ -203,9 +199,9 @@ describe("email source read", () => {
       beginFetch = resolve;
     });
     let disconnected = false;
-    const harness = createPluginHarness<EmailInterface>();
+    const harness = createPluginHarness();
     await harness.installPlugin(
-      new EmailInterface(
+      createEmailPlugin(
         { imap: imapConfig },
         {
           imapClientFactory: (): InboundEmailClient => ({
@@ -256,9 +252,9 @@ describe("email source read", () => {
   it("fails closed for non-Admins, unknown locators, and mailbox generations", async () => {
     const message = await sourceMessage();
     let clientCreations = 0;
-    const harness = createPluginHarness<EmailInterface>();
+    const harness = createPluginHarness();
     await harness.installPlugin(
-      new EmailInterface(
+      createEmailPlugin(
         { imap: imapConfig },
         {
           imapClientFactory: (): InboundEmailClient => {

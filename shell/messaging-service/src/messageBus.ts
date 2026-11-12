@@ -87,24 +87,24 @@ export class MessageBus implements IMessageBus {
   /**
    * Send a message and get response (implements IMessageBus interface)
    */
-  async send<T = unknown, R = unknown>(
+  async send<T = unknown>(
     request: MessageBusSendRequest<T>,
-  ): Promise<MessageResponse<R>> {
+  ): Promise<MessageResponse> {
     const response = await this.dispatchWithProvenance(request, (message) =>
       this.publisher.publish(message, request.broadcast),
     );
-    return toMessageResponse<R>(request.type, response);
+    return toMessageResponse(request.type, response);
   }
 
   /** Collect one response from every matching handler in registration order. */
-  async collect<T = unknown, R = unknown>(
+  async collect<T = unknown>(
     request: MessageBusSendRequest<T>,
-  ): Promise<MessageResponse<R>[]> {
+  ): Promise<MessageResponse[]> {
     const responses = await this.dispatchWithProvenance(request, (message) =>
       this.publisher.collect(message),
     );
     return responses.map((response) =>
-      toMessageResponse<R>(request.type, response),
+      toMessageResponse(request.type, response),
     );
   }
 

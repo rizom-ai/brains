@@ -8,11 +8,14 @@ import {
   type CreateCheckResult,
   type CreateInput,
 } from "@brains/entity-service";
+import { sharedUploadScope } from "@brains/plugins";
+import { bufferView } from "@brains/utils/bytes";
 import { generateMarkdown } from "@brains/utils/markdown";
 import type { Tool, ToolResponse } from "@brains/mcp-service";
 import { slugify } from "@brains/utils/string-utils";
 import type { z } from "@brains/utils/zod";
 import { createInputSchema } from "./schemas";
+import { createModelInput, uneditableFieldsError } from "./field-changes";
 import { assertEntityActionAllowed } from "./entity-action-policy";
 import {
   freezeUserMessageSource,
@@ -41,6 +44,7 @@ import {
   type FailedCreateTarget,
 } from "./tool-helpers";
 import { getErrorMessage } from "@brains/utils/error";
+import { isPlainRecord } from "@brains/utils/predicates";
 import {
   isTextUploadMediaType,
   repeatsUploadFileName,
@@ -55,11 +59,6 @@ import {
 // Reads entirely from the canonical createInput: the resolved source
 // attachment is already baked into `from` by normalizeCreateSource, and
 // `content` already holds the resolved text or conversation-message content.
-const uploadScope = {
-  namespace: "upload",
-  refKind: "upload",
-  routePath: "/api/chat/uploads",
-} as const;
 
 function buildUploadPreserveConfirmation(input: {
   title?: string;
@@ -146,12 +145,10 @@ function normalizeCreateSource(
       return { content: source.content };
     case "url":
       return { url: source.url };
-    case "upload":
-      return {
-        from: source.upload,
-        uploadRef: source.upload,
-        transform: source.transform,
-      };
+    case "upload": {
+      const uploadRef = { kind: "upload" as const, id: source.id };
+      return { from: uploadRef, uploadRef, transform: source.transform };
+    }
     case "prior-response":
     case "user-message":
       return { conversationMessageRef: source };
@@ -344,6 +341,8 @@ interface PreparedCreate {
   eventContext: CreateEventContext;
   /** The uploaded file's name, when the source is an upload. */
   uploadFilename?: string;
+  /** The upload this create saves, named in its result. */
+  uploadId?: string;
   /** The failed placeholder this create replaces once confirmed. */
   replacesFailed?: FailedCreateTarget;
   uploadPreserve?: {
@@ -455,9 +454,9 @@ async function readUploadMarkdown(
 ): Promise<string | undefined> {
   if (!isTextUploadMediaType(upload.mediaType)) return undefined;
   const { content } = await services.runtimeUploads
-    .scoped(uploadScope)
+    .scoped(sharedUploadScope)
     .read(upload.id);
-  return content.toString("utf8");
+  return bufferView(content).toString("utf8");
 }
 
 /**
@@ -487,7 +486,7 @@ async function resolveUploadSource(
   let markdown: string | undefined;
   try {
     uploadRecord = await services.runtimeUploads
-      .scoped(uploadScope)
+      .scoped(sharedUploadScope)
       .readRecord(input.uploadRef.id);
     markdown =
       input.transform === "extract-markdown"
@@ -926,14 +925,44 @@ async function prepareCreate(
       interceptor,
       eventContext: buildEntityMutationEventContext(toolContext),
       ...(upload && { uploadFilename: upload.value.filename }),
+      ...(uploadRef && { uploadId: uploadRef.id }),
       ...(target.value && { replacesFailed: target.value }),
       ...(uploadPreserve && { uploadPreserve }),
     },
   };
 }
 
-/** Run a prepared create once it is confirmed. */
+/**
+ * Run a prepared create once it is confirmed. A saved upload's result names
+ * the upload and the entity it became, so a later turn knows the file is kept.
+ */
 async function executePreparedCreate(
+  services: SystemServices,
+  prepared: PreparedCreate,
+  toolContext: CreateToolContext,
+  pending: PendingCreateTexts,
+): Promise<ToolResponse> {
+  const result = await runPreparedCreate(
+    services,
+    prepared,
+    toolContext,
+    pending,
+  );
+  const { uploadId } = prepared;
+  if (uploadId === undefined || !("success" in result) || !result.success)
+    return result;
+  if (!isPlainRecord(result.data)) return result;
+  return {
+    ...result,
+    data: {
+      entityType: prepared.createInput.entityType,
+      ...result.data,
+      uploadId,
+    },
+  };
+}
+
+async function runPreparedCreate(
   services: SystemServices,
   prepared: PreparedCreate,
   toolContext: CreateToolContext,
@@ -1017,7 +1046,7 @@ async function prepareUploadItem(
         : {}),
       source: {
         kind: "upload",
-        upload: item.upload,
+        id: item.id,
         transform: item.transform,
       },
       ...(Object.keys(fields).length > 0 && { fields }),
@@ -1033,7 +1062,7 @@ async function prepareUploadItem(
   return {
     kind: "ok",
     value: {
-      filename: prepared.uploadFilename ?? item.upload.id,
+      filename: prepared.uploadFilename ?? item.id,
       entityType: prepared.createInput.entityType,
       title: prepared.createInput.title ?? prepared.uploadFilename ?? "",
       ...(prepared.createInput.fields && {
@@ -1055,11 +1084,31 @@ export function createEntityCreateTool(services: SystemServices): Tool {
   });
   const pending = new PendingCreateTexts();
 
-  return createSystemTool(
+  const tool = createSystemTool(
     "create",
     "Create a new entity from existing material. Never create a duplicate to save edits: use system_update for entities already created or imported in this conversation, even while an upload import is generating. Requires confirmation; call this tool without confirmed to request that confirmation instead of asking for plain-text approval. Use visibility shared for team/collaborator content such as a team note, restricted for private/admin-only content, and omit it for public content; keep visibility separate from exact source text. Public callers may write only public content, Trusted callers public or shared, and Admin callers all three. If the user only says 'not public' without saying team/shared or private/admin-only, ask which scope they mean. Entity-specific instructions may direct proactive capture of the user's request itself; in that case the request is concrete text and no separate save verb is required. Use system_generate for AI generation, generated images, cover images, and source-derived artifacts such as carousel/printable PDFs or OG images. If the user includes content in the same direct save request, use source.kind user-message, omitting messageId for the latest user message; that content is sufficient even when it is a short sentence or fragment after a colon or embedded in the request phrase (for example, 'Save this memo about the launch timeline'), so never ask the user to paste it again. For standalone delimiter lines, use boundaryMode lines with startAfter/endBefore set to the exact marker line text WITHOUT newline characters; the server preserves all intervening bytes, including final newlines. To save a pasted document that opens with --- frontmatter, use boundaryMode frontmatter without startAfter or endBefore: the server selects it from its opening fence, and the fences are content, never boundaries. For inline content, use literal startAfter/endBefore boundaries to exclude the save instruction. Omit boundaries only when saving the whole message. Never retype, shorten, correct, or include delimiter text in pasted source material, and never ask for a smaller copy just because it is long. For 'Save this as a note: ...', startAfter can be the exact 'Save this as a note: ' prefix. If boundaries are ambiguous, ask for clarification. If the user says save it/that/this after your immediately preceding upload summary/answer, use entityType note with source.kind prior-response unless they explicitly ask to save the uploaded file/document itself; do this even when the prior answer says there was limited readable content, and do not ask whether they meant the summary or the file after you just summarized/answered about the upload. A bare upload receipt like 'I got filename. What would you like me to do?' is not a summary/answer: for a following 'save it', preserve the latest uploaded file itself with upload transform preserve (image uploads as entityType image). Only use source.kind upload when the runtime supplies an actual upload reference/attachment, and then use it even though the file text also appears in the message; only a pasted uploaded-file transcript (for example, User uploaded a file \"name.md\": ...) with no listed upload ref is saved with source.kind user-message boundaries.",
     createInputSchema,
     async (input, toolContext) => {
+      // Grouping fields come from a definitions entity, read when first
+      // needed: read them before checking which fields a caller may set.
+      await services.entityRegistry.ensureGroupingsCurrent(input.entityType);
+      // Visibility has its own parameter and its own refusal below.
+      const uneditable = [
+        input.fields,
+        ...(input.source.kind === "uploads"
+          ? input.source.items.map((item) => item.fields)
+          : []),
+      ]
+        .map((fields) =>
+          uneditableFieldsError(
+            services.entityRegistry,
+            input.entityType,
+            fields,
+            { on: "create", allow: ["visibility"] },
+          ),
+        )
+        .find((error) => error !== undefined);
+      if (uneditable) return { success: false, error: uneditable };
       if (input.source.kind === "uploads") {
         return createFromUploads({
           input: { ...input, source: input.source },
@@ -1142,4 +1191,6 @@ export function createEntityCreateTool(services: SystemServices): Tool {
     },
     { visibility: "trusted", sideEffects: "writes" },
   );
+  // The model writes field changes as a list, which strict mode can hold.
+  return { ...tool, modelInput: createModelInput(services.entityRegistry) };
 }

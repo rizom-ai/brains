@@ -3,7 +3,6 @@ import {
   BaseMessageSchema,
   MessageResponseSchema,
   type MessageResponse,
-  type MessageSender,
 } from "../../src/contracts/messaging";
 
 describe("public messaging contracts", () => {
@@ -38,22 +37,6 @@ describe("public messaging contracts", () => {
       target: "other-plugin",
       metadata: { trace: "abc" },
     });
-  });
-
-  it("keeps MessageSender options on the public contract", async () => {
-    const sender: MessageSender<{ value: number }, { accepted: true }> = async (
-      request,
-    ) => {
-      expect(request.broadcast).toBe(true);
-      return { success: true, data: { accepted: true } };
-    };
-
-    const response = await sender({
-      type: "example:event",
-      payload: { value: 1 },
-      broadcast: true,
-    });
-    expect(response).toEqual({ success: true, data: { accepted: true } });
   });
 
   it("rejects the empty identifiers the bus rejects", () => {

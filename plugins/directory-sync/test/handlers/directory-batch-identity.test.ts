@@ -96,8 +96,8 @@ describe("directory job projection-batch identity", () => {
   });
 
   it("runs orphan cleanup under the same durable root", async () => {
-    const { sync, context, logger, identities } = setup();
-    const handler = new DirectoryCleanupJobHandler(logger, context, sync);
+    const { sync, context, identities } = setup();
+    const handler = new DirectoryCleanupJobHandler(context, sync);
     await handler.process(
       {
         projectionBatch: {
@@ -121,7 +121,7 @@ describe("directory job projection-batch identity", () => {
       "standalone-import",
       reporter,
     );
-    await new DirectoryCleanupJobHandler(logger, context, sync).process(
+    await new DirectoryCleanupJobHandler(context, sync).process(
       {},
       "standalone-cleanup",
       reporter,

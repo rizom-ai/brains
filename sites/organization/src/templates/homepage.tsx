@@ -1,5 +1,5 @@
 import type { JSX } from "react";
-import { Head } from "@brains/ui-library";
+import { Head } from "@rizom/brain-ui/internal";
 import {
   HomepageAtlas,
   HomepageFaqs,

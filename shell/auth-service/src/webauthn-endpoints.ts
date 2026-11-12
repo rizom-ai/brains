@@ -1,3 +1,4 @@
+import { issuerFromRequest } from "@brains/plugins";
 import { TargetedSetupError } from "./targeted-setup-service";
 import {
   authenticationResponseSchema,
@@ -10,7 +11,7 @@ import type {
 } from "./passkey-service";
 import type { AuthSessionPersistence } from "./session-store";
 import type { ResolvedSetupToken, SetupFlow } from "./setup-flow";
-import { issuerFromRequest, isSecureRequest } from "./issuer";
+import { isSecureRequest } from "./issuer";
 import { jsonResponse, oauthErrorResponse } from "./http-responses";
 
 /** The passkey operations these endpoints drive. */

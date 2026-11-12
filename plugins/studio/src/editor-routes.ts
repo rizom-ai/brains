@@ -1,23 +1,23 @@
-import { join } from "node:path";
-import { studioAssetManifestSchema, studioAssetPathSchema } from "./ui-assets";
 import {
   issuerFromRequest,
   requireSameOriginJson,
   requireSameOriginRequest,
-} from "@brains/auth-service";
-import type {
-  ServicePluginContext,
-  UserPermissionLevel,
-  WebRouteDefinition,
-} from "@brains/plugins";
+  permissionToVisibilityScope,
+  type WebRouteDefinition,
+} from "@brains/sdk/internal/interface-runtime";
 import {
-  PermissionService,
   canWriteVisibility,
   entityTypeClassificationSchema,
-  permissionToVisibilityScope,
-} from "@brains/plugins";
-import { DIRECTORY_SYNC_CHANNELS, MCP_INTERACTION_ID } from "@brains/contracts";
-import { DEFAULT_CHAT_API_PATH } from "@brains/contracts/chat";
+} from "@brains/sdk/internal/entity-runtime";
+import { hasPermission } from "@brains/sdk/internal/service-runtime";
+import { join } from "node:path";
+import { sdkErrorHttpStatus, toSdkError } from "@brains/contracts";
+import { studioAssetManifestSchema, studioAssetPathSchema } from "./ui-assets";
+import type { UserPermissionLevel } from "@brains/sdk/interfaces";
+import {
+  MCP_INTERACTION_ID,
+  directorySyncStatusContract,
+} from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import {
   entityTypeLabels,
@@ -34,11 +34,10 @@ import {
   STUDIO_CHAT_ROUTE_PATH,
 } from "./chat-workspace";
 import type { StudioWorkspaceRegistry } from "./workspace-registry";
-import { getErrorMessage } from "@brains/utils/error";
 import { jsonResponse } from "./editor-response";
 import { handleGroupingRead, studioGroupDescriptors } from "./editor-groupings";
 import { GROUPING_DEFINITIONS_TYPE } from "./grouping-definitions-contract";
-import { isGroupingContributorType } from "./grouping-definitions";
+import { isGroupingContributorType } from "./studio-context";
 import {
   handleCreateEntity,
   handleDeleteEntity,
@@ -67,6 +66,7 @@ import type {
   StudioRequestAccessResolution,
   EditorRouteOptions,
 } from "./editor-contracts";
+import type { StudioContext } from "./studio-context";
 
 export type {
   StudioRequestAccess,
@@ -77,28 +77,9 @@ export type {
 const CONTENT_VISIBILITIES = ["public", "shared", "restricted"] as const;
 
 export function resolveStudioChatApiPath(
-  context: ServicePluginContext,
+  context: StudioContext,
 ): string | undefined {
-  if (!context.plugins.has("web-chat")) return undefined;
-  const routes = context.webRoutes
-    .getRoutes()
-    .filter((route) => route.pluginId === "web-chat");
-  const actionsRoute = routes.find(
-    (route) =>
-      route.fullPath.endsWith("/actions") &&
-      (route.definition.method ?? "GET") === "POST" &&
-      route.definition.match !== "prefix",
-  );
-  if (!actionsRoute) return DEFAULT_CHAT_API_PATH;
-  const apiPath = actionsRoute.fullPath.slice(0, -"/actions".length);
-  return routes.some(
-    (route) =>
-      route.fullPath === apiPath &&
-      (route.definition.method ?? "GET") === "POST" &&
-      route.definition.match !== "prefix",
-  )
-    ? apiPath
-    : DEFAULT_CHAT_API_PATH;
+  return context.routeByRole("chat-api")?.fullPath;
 }
 
 // Studio and web-chat share dist/ui in the bundled @rizom/brain. Studio's
@@ -119,21 +100,6 @@ async function readStudioAssetManifest(): Promise<
 const workspaceActionPayloadSchema = z.object({
   id: z.string().trim().min(1),
   action: z.unknown(),
-});
-
-const syncStatusMessageSchema = z.object({
-  watchEnabled: z.boolean(),
-  lastSync: z.string().nullable(),
-  git: z
-    .object({
-      branch: z.string(),
-      hasChanges: z.boolean(),
-      ahead: z.number(),
-      behind: z.number(),
-      lastCommit: z.string().nullable(),
-      remote: z.string().nullable(),
-    })
-    .nullable(),
 });
 
 function isSafeStudioAssetPath(value: string): boolean {
@@ -277,11 +243,7 @@ export function createEditorRoutes(
       return new Response("Chat is not configured", { status: 404 });
     }
     const context = getContext();
-    const dashboardHref = context.webRoutes
-      .getRoutes()
-      .filter((route) => route.pluginId === "dashboard")
-      .map((route) => route.fullPath)
-      .sort((left, right) => left.length - right.length)[0];
+    const dashboardHref = context.routeByRole("dashboard")?.fullPath;
     const profileName = context.identity.getProfile().name.trim();
     const mcpUrl = await resolveMcpUrl(
       context,
@@ -327,12 +289,14 @@ export function createEditorRoutes(
       path: STUDIO_CHAT_ROUTE_PATH,
       method: "GET",
       public: true,
+      role: "studio-chat",
       handler: serveShell,
     },
     {
       path: shellPath,
       method: "GET",
       public: true,
+      role: "studio",
       handler: serveShell,
     },
     {
@@ -354,6 +318,7 @@ export function createEditorRoutes(
       match: "prefix",
       method: "GET",
       public: true,
+      role: "studio-workspaces",
       handler: serveShell,
     },
     {
@@ -606,34 +571,26 @@ export function createEditorRoutes(
  * over the message bus; when it (or git) is absent the payload degrades to
  * nulls and the strip simply doesn't render those stations.
  */
-async function handleSyncStatus(
-  context: ServicePluginContext,
-): Promise<Response> {
-  const unavailable = { directorySync: null, git: null };
-  const response = await context.messaging.send({
-    type: DIRECTORY_SYNC_CHANNELS.statusRequest,
-    payload: {},
-  });
-  if (!("success" in response) || !response.success) {
-    return jsonResponse(unavailable);
-  }
-
-  const parsed = syncStatusMessageSchema.safeParse(response.data);
-  if (!parsed.success) {
-    return jsonResponse(unavailable);
+async function handleSyncStatus(context: StudioContext): Promise<Response> {
+  const result = await context.messaging.request(
+    directorySyncStatusContract,
+    {},
+  );
+  if (result.status !== "answered") {
+    return jsonResponse({ directorySync: null, git: null });
   }
 
   return jsonResponse({
     directorySync: {
-      lastSync: parsed.data.lastSync,
-      watching: parsed.data.watchEnabled,
+      lastSync: result.data.lastSync,
+      watching: result.data.watchEnabled,
     },
-    git: parsed.data.git,
+    git: result.data.git,
   });
 }
 
 async function handleListTypes(
-  context: ServicePluginContext,
+  context: StudioContext,
   entityDisplay: StudioEntityDisplayMap | undefined,
   workspaceRegistry: StudioWorkspaceRegistry,
   access: StudioRequestAccess,
@@ -666,7 +623,6 @@ async function handleListTypes(
         access,
       );
       if (!capabilities) continue;
-      const adapter = context.entities.getAdapter(entityType);
       const containedIn =
         context.entityService.getEntityTypeConfig(entityType).containedIn;
       const labels = entityTypeLabels(entityType, entityDisplay?.[entityType]);
@@ -677,8 +633,8 @@ async function handleListTypes(
         ),
         label: labels.pluralLabel,
         singularLabel: labels.label,
-        isSingleton: adapter?.isSingleton === true,
-        hasBody: adapter?.hasBody !== false,
+        isSingleton: context.shapes.isSingleton(entityType),
+        hasBody: context.shapes.hasBody(entityType),
         count,
         capabilities,
         // A container's ids are flat; its folders hold its contents.
@@ -749,15 +705,22 @@ async function handleGetWorkspace(
       },
     });
   } catch (error) {
-    // 500, not 502: a proxy in front of the brain (Cloudflare) replaces an
-    // origin 502 with its own page, and the reason never reaches the caller.
-    return jsonResponse(
-      {
-        error: getErrorMessage(error, "Studio workspace data provider failed"),
-      },
-      500,
-    );
+    return workspaceFailure(error, request);
   }
+}
+
+/**
+ * A workspace's failure in its public form, `{ error, code }`, with the status
+ * its code names: never 502, which a proxy in front of the brain (Cloudflare)
+ * replaces with its own page. The diagnostic is the declaring package's to
+ * log, and the runtime has logged it there.
+ */
+function workspaceFailure(error: unknown, request: Request): Response {
+  const { code, message } = toSdkError(
+    error,
+    request.signal.aborted ? "cancelled" : "handler_failed",
+  ).toJSON();
+  return jsonResponse({ error: message, code }, sdkErrorHttpStatus(code));
 }
 
 function workspaceQueryFromSearchParams(
@@ -809,17 +772,12 @@ async function handleWorkspaceAction(
       ),
     });
   } catch (error) {
-    return jsonResponse(
-      {
-        error: getErrorMessage(error, "Studio workspace action failed"),
-      },
-      400,
-    );
+    return workspaceFailure(error, request);
   }
 }
 
 async function handleGetSchema(
-  context: ServicePluginContext,
+  context: StudioContext,
   request: Request,
   access: StudioRequestAccess,
   options: EditorRouteOptions,
@@ -838,7 +796,6 @@ async function handleGetSchema(
     return jsonResponse({ error: `Unknown entity type: ${entityType}` }, 404);
   }
 
-  const adapter = context.entities.getAdapter(entityType);
   const raw = isRawEntityType(entityType, context.entities);
   // Raw types edit the whole document as body; their domain frontmatter
   // bookkeeping must not surface. Visibility is system-owned and applies to
@@ -911,8 +868,8 @@ async function handleGetSchema(
     }),
     entityType,
     format: raw ? "raw" : "frontmatter",
-    isSingleton: adapter?.isSingleton === true,
-    hasBody: raw || adapter?.hasBody !== false,
+    isSingleton: context.shapes.isSingleton(entityType),
+    hasBody: raw || context.shapes.hasBody(entityType),
     fields,
   });
 }
@@ -923,7 +880,7 @@ async function handleGetSchema(
  * one OAuth issues tokens for.
  */
 async function resolveMcpUrl(
-  context: ServicePluginContext,
+  context: StudioContext,
   request: Request,
   role: UserPermissionLevel,
 ): Promise<string | undefined> {
@@ -932,7 +889,7 @@ async function resolveMcpUrl(
     (interaction) =>
       interaction.id === MCP_INTERACTION_ID && interaction.href.startsWith("/"),
   );
-  if (!mcp || !PermissionService.hasPermission(role, mcp.visibility)) {
+  if (!mcp || !hasPermission(role, mcp.visibility)) {
     return undefined;
   }
   return `${issuerFromRequest(request)}${mcp.href}`;

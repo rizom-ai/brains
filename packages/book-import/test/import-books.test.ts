@@ -3,6 +3,7 @@ import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { bookAdapter, bookSectionAdapter } from "@brains/book";
+import { deferred } from "@brains/utils/deferred";
 import {
   fetchVolumeHocr,
   firstOfEachVolume,
@@ -336,6 +337,54 @@ books:
     expect(title).toContain("Deutsches Textarchiv");
     expect(title).toContain(
       "source: 'https://www.deutschestextarchiv.de/book/show/marx_kapital01_1867'",
+    );
+  });
+
+  /** The Kapital fixture, its header linking another licence. */
+  async function underLicence(target: string): Promise<string> {
+    return (
+      await readFile(
+        join(import.meta.dir, "fixtures", "dta-kapital.xml"),
+        "utf8",
+      )
+    ).replace(/<licence target="[^"]*"/u, `<licence target="${target}"`);
+  }
+
+  const kapital = parseManifest(`
+source: dta-tei
+books:
+  - id: marx_kapital01_1867
+    citation: Kapital I
+    slug: das-kapital-1
+    title: Das Kapital. Erster Band
+    edition: "Das Kapital. Buch I: Der Produktionsprocess des Kapitals. Hamburg: Otto Meissner, 1867"
+    author: Karl Marx
+    year: 1867
+    kind: work
+`);
+
+  it("reads a work the Textarchiv dedicates to the public domain as public domain", async () => {
+    const licence = "http://creativecommons.org/publicdomain/zero/1.0/";
+    await importBooks(kapital, brainData, async () => underLicence(licence));
+    const title = await readFile(
+      join(brainData, "book", "das-kapital-1.md"),
+      "utf8",
+    );
+
+    expect(title).toContain("license: public-domain");
+    // The front matter folds long values over lines.
+    expect(title.replace(/\s+/gu, " ")).toContain(
+      `Deutsches Textarchiv (deutschestextarchiv.de), ${licence}`,
+    );
+  });
+
+  it("refuses a work under a licence that does not allow its reuse", async () => {
+    expect(
+      importBooks(kapital, brainData, async () =>
+        underLicence("https://creativecommons.org/licenses/by-nc/4.0/"),
+      ),
+    ).rejects.toThrow(
+      "marx_kapital01_1867 is neither under CC BY-SA nor in the public domain",
     );
   });
 });
@@ -794,6 +843,165 @@ books:
       "frk binarised https://archive.org/download/freud-1940-gw-13/page/n0_w1600.jpg",
     );
     expect(await files(join(brainData, "book"))).toEqual(fromArchive);
+  });
+
+  it("reads a work that quotes Greek with the Greek model as well, page by page", async () => {
+    const volume = await readFile(
+      join(import.meta.dir, "fixtures", "archive-ocr-gw.html"),
+      "utf8",
+    );
+    const pages = volume.split(/(?=<div class='ocr_page')/).slice(1);
+    const recognised: string[] = [];
+
+    const results = await importBooks(
+      parseManifest(ocrManifest + "    ocr: deu\n    greek: true\n"),
+      brainData,
+      fetchArchive,
+      {
+        pageOcr:
+          ({ model }) =>
+          async (url): Promise<string> => {
+            recognised.push(`${model} ${url}`);
+            const leaf = Number(/\/n(\d+)_w1600\.jpg$/.exec(url)?.[1]);
+            const page = (pages[leaf] ?? "").replace(/<\/body>[\s\S]*$/, "");
+            return `<html><body>${page}</body></html>`;
+          },
+      },
+    );
+
+    const first =
+      "https://archive.org/download/freud-1940-gw-13/page/n0_w1600.jpg";
+    expect(results).toEqual([
+      { slug: "jenseits-des-lustprinzips", entries: 3 },
+    ]);
+    const greekRead = recognised
+      .filter((entry) => entry.startsWith("grc_agocr "))
+      .map((entry) => entry.slice("grc_agocr ".length));
+    expect(recognised).toContain(`deu ${first}`);
+    expect(greekRead.length).toBeGreaterThan(0);
+    expect(greekRead.every((url) => recognised.includes(`deu ${url}`))).toBe(
+      true,
+    );
+  });
+
+  it("reads several of a volume's pages at once", async () => {
+    const volume = await readFile(
+      join(import.meta.dir, "fixtures", "archive-ocr-gw.html"),
+      "utf8",
+    );
+    const pages = volume.split(/(?=<div class='ocr_page')/).slice(1);
+    // The first page is read only once the second is being read: a reader
+    // that reads one page after another never gets to the second.
+    const secondStarted = deferred();
+
+    const results = await importBooks(
+      parseManifest(ocrManifest + "    ocr: deu\n"),
+      brainData,
+      fetchArchive,
+      {
+        pageOcr:
+          () =>
+          async (url): Promise<string> => {
+            const leaf = Number(/\/n(\d+)_w1600\.jpg$/.exec(url)?.[1]);
+            if (leaf === 1) secondStarted.resolve();
+            if (leaf === 0) await secondStarted.promise;
+            const page = (pages[leaf] ?? "").replace(/<\/body>[\s\S]*$/, "");
+            return `<html><body>${page}</body></html>`;
+          },
+      },
+    );
+
+    expect(results).toEqual([
+      { slug: "jenseits-des-lustprinzips", entries: 3 },
+    ]);
+  });
+
+  it("reads a binarised work's Greek from its page as scanned", async () => {
+    const volume = await readFile(
+      join(import.meta.dir, "fixtures", "archive-ocr-gw.html"),
+      "utf8",
+    );
+    const pages = volume.split(/(?=<div class='ocr_page')/).slice(1);
+    const readings = new Set<string>();
+
+    await importBooks(
+      parseManifest(
+        ocrManifest + "    ocr: deu\n    binarise: true\n    greek: true\n",
+      ),
+      brainData,
+      fetchArchive,
+      {
+        pageOcr:
+          ({ model, binarise }) =>
+          async (url): Promise<string> => {
+            readings.add(`${model}${binarise ? " binarised" : ""}`);
+            const leaf = Number(/\/n(\d+)_w1600\.jpg$/.exec(url)?.[1]);
+            const page = (pages[leaf] ?? "").replace(/<\/body>[\s\S]*$/, "");
+            return `<html><body>${page}</body></html>`;
+          },
+      },
+    );
+
+    expect([...readings].sort()).toEqual(["deu binarised", "grc_agocr"]);
+  });
+
+  it("keeps a page as its own model read it where the Greek model fails on it", async () => {
+    const volume = await readFile(
+      join(import.meta.dir, "fixtures", "archive-ocr-gw.html"),
+      "utf8",
+    );
+    const pages = volume.split(/(?=<div class='ocr_page')/).slice(1);
+    const page = (url: string): string => {
+      const leaf = Number(/\/n(\d+)_w1600\.jpg$/.exec(url)?.[1]);
+      return `<html><body>${(pages[leaf] ?? "").replace(/<\/body>[\s\S]*$/, "")}</body></html>`;
+    };
+
+    const results = await importBooks(
+      parseManifest(ocrManifest + "    ocr: deu\n    greek: true\n"),
+      brainData,
+      fetchArchive,
+      {
+        pageOcr:
+          ({ model }) =>
+          async (url): Promise<string> => {
+            if (model === "grc_agocr")
+              throw new Error("tesseract failed (134)");
+            return page(url);
+          },
+      },
+    );
+
+    expect(results).toEqual([
+      { slug: "jenseits-des-lustprinzips", entries: 3 },
+    ]);
+  });
+
+  it("reads no page with the Greek model that its own model read no words on", async () => {
+    const recognised: string[] = [];
+    const blank =
+      "<html><body><div class='ocr_page' id='page_1' title='bbox 0 0 2600 4400'></div></body></html>";
+
+    await importBooks(
+      parseManifest(ocrManifest + "    ocr: deu\n    greek: true\n"),
+      brainData,
+      fetchArchive,
+      {
+        pageOcr:
+          ({ model }) =>
+          async (url): Promise<string> => {
+            recognised.push(`${model} ${url}`);
+            return blank;
+          },
+      },
+    ).catch((error: unknown) => {
+      // A volume of blank pages holds no work; only the readings matter here.
+      expect(String(error)).toContain("jenseits-des-lustprinzips");
+    });
+
+    expect(recognised.length).toBeGreaterThan(0);
+    expect(recognised.filter((entry) => entry.startsWith("grc_agocr"))).toEqual(
+      [],
+    );
   });
 
   it("reads a scan another library holds from the page images the work lists, and names that library", async () => {

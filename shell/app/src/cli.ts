@@ -91,10 +91,12 @@ function parseJsonFlag<T>(
   return value ? schema.parse(JSON.parse(value)) : defaultValue;
 }
 
+/** A one-shot command runs no interface and serves no HTTP. */
 function createHeadlessConfig(config: AppConfig): AppConfig {
   return {
     ...config,
     plugins: (config.plugins ?? []).filter((p) => p.type !== "interface"),
+    http: { ...config.http, enabled: false },
   };
 }
 
@@ -325,7 +327,7 @@ async function runCliCommand(io: CliIo, config: AppConfig): Promise<void> {
  * Headless mode: boot brain register-only, invoke a tool, print result, exit.
  *
  * Used by `brain list`, `brain get`, `brain sync`, etc.
- * Skips all interface plugins (MCP, Discord, webserver) — only loads
+ * Skips all interface plugins (MCP, Discord) and the HTTP host — only loads
  * entity plugins and service plugins.
  *
  * Register-only, never a full boot: a one-shot process owns no runtime work.
@@ -376,7 +378,6 @@ async function runDiagnostics(
 ): Promise<void> {
   const { ConsoleLogger, LogLevel } = await import("@brains/utils/logger");
   // Suppress plugin registration noise — only show warnings and errors
-  ConsoleLogger.resetInstance();
   ConsoleLogger.getInstance({ level: LogLevel.WARN, useStderr: true });
 
   const subcommand = args[0] ?? "";

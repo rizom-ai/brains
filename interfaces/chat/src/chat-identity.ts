@@ -1,8 +1,6 @@
-import type { AuthPrincipal } from "@brains/auth-service";
-import type {
-  PermissionLookupContext,
-  UserPermissionLevel,
-} from "@brains/plugins";
+import type { AuthPrincipal } from "@brains/contracts";
+import type { UserPermissionLevel } from "@brains/sdk/interfaces";
+import type { PermissionLookupContext } from "@brains/sdk/internal/interface-runtime";
 import type { ChatPlatform } from "./types";
 
 /**

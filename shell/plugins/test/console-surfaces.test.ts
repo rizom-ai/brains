@@ -1,15 +1,33 @@
 import { describe, expect, it } from "bun:test";
-import { deriveConsoleSurfaces } from "../src";
+import type { WebRouteRole } from "@brains/contracts";
+import {
+  deriveConsoleSurfaces,
+  findRouteByRole,
+  type RegisteredWebRoute,
+} from "../src";
 
+/** A registered route; only routes that claim a role can be a door. */
 const route = (
   pluginId: string,
   fullPath: string,
-): { pluginId: string; fullPath: string } => ({ pluginId, fullPath });
+  role?: WebRouteRole,
+): RegisteredWebRoute => ({
+  pluginId,
+  fullPath,
+  definition: {
+    path: fullPath,
+    handler: (): Response => new Response(null),
+    ...(role ? { role } : {}),
+  },
+});
 
 describe("deriveConsoleSurfaces", () => {
-  it("derives the canonical Studio door from the Studio plugin", () => {
+  it("derives each surface's door from the route that claims its role", () => {
     const surfaces = deriveConsoleSurfaces(
-      [route("dashboard", "/dashboard"), route("studio", "/studio")],
+      [
+        route("dashboard", "/dashboard", "dashboard"),
+        route("studio", "/studio", "studio"),
+      ],
       {
         activeId: "dashboard",
         permissionLevel: "trusted",
@@ -34,13 +52,59 @@ describe("deriveConsoleSurfaces", () => {
     ]);
   });
 
-  it("never offers Studio's redirect aliases as its door", () => {
+  it("takes a surface's door from whichever plugin claims its role", () => {
+    const studio = deriveConsoleSurfaces(
+      [route("operator-console", "/console", "studio")],
+      {
+        activeId: "dashboard",
+        permissionLevel: "admin",
+        hasActiveSession: true,
+      },
+    ).find((surface) => surface.id === "studio");
+
+    expect(studio?.href).toBe("/console");
+  });
+
+  it("leaves Studio's chat route out of Chat's door unless it claims the role", () => {
+    const chat = deriveConsoleSurfaces(
+      [
+        route("web-chat", "/ask", "ask"),
+        route("web-chat", "/api/chat", "chat-api"),
+        route("studio", "/chat"),
+      ],
+      {
+        activeId: "dashboard",
+        permissionLevel: "admin",
+        hasActiveSession: true,
+      },
+    ).find((surface) => surface.id === "web-chat");
+
+    expect(chat?.href).toBe("/ask");
+  });
+
+  it("shows no Chat door without a chat backend", () => {
+    const surfaces = deriveConsoleSurfaces(
+      [
+        route("studio", "/chat", "studio-chat"),
+        route("studio", "/studio", "studio"),
+      ],
+      {
+        activeId: "dashboard",
+        permissionLevel: "admin",
+        hasActiveSession: true,
+      },
+    );
+
+    expect(surfaces.map((surface) => surface.id)).toEqual(["studio"]);
+  });
+
+  it("never offers a route that claims no role as a door", () => {
     const studio = deriveConsoleSurfaces(
       [
         route("studio", "/cms"),
         route("studio", "/admin"),
         route("studio", "/account"),
-        route("studio", "/studio"),
+        route("studio", "/studio", "studio"),
       ],
       {
         activeId: "dashboard",
@@ -53,11 +117,11 @@ describe("deriveConsoleSurfaces", () => {
   });
 
   const allSurfaceRoutes = [
-    route("dashboard", "/dashboard"),
-    route("web-chat", "/ask"),
-    route("web-chat", "/api/chat/messages"),
-    route("studio", "/chat"),
-    route("studio", "/studio"),
+    route("dashboard", "/dashboard", "dashboard"),
+    route("web-chat", "/ask", "ask"),
+    route("web-chat", "/api/chat", "chat-api"),
+    route("studio", "/chat", "studio-chat"),
+    route("studio", "/studio", "studio"),
     route("studio", "/studio/api/types"),
   ];
 
@@ -92,6 +156,22 @@ describe("deriveConsoleSurfaces", () => {
     ]);
   });
 
+  it("falls back to the Ask page as Chat's door without Studio's chat", () => {
+    const chat = deriveConsoleSurfaces(
+      [
+        route("web-chat", "/ask", "ask"),
+        route("web-chat", "/api/chat", "chat-api"),
+      ],
+      {
+        activeId: "dashboard",
+        permissionLevel: "admin",
+        hasActiveSession: true,
+      },
+    ).find((surface) => surface.id === "web-chat");
+
+    expect(chat?.href).toBe("/ask");
+  });
+
   it("shows the same consolidated strip to Trusted and Admin callers", () => {
     const surfaces = deriveConsoleSurfaces(allSurfaceRoutes, {
       activeId: "dashboard",
@@ -120,7 +200,10 @@ describe("deriveConsoleSurfaces", () => {
 
   it("shows Studio to an active Public-rank caller", () => {
     const surfaces = deriveConsoleSurfaces(
-      [route("dashboard", "/dashboard"), route("studio", "/studio")],
+      [
+        route("dashboard", "/dashboard", "dashboard"),
+        route("studio", "/studio", "studio"),
+      ],
       {
         activeId: "dashboard",
         permissionLevel: "public",
@@ -155,7 +238,11 @@ describe("deriveConsoleSurfaces", () => {
 
   it("marks the rendering surface active from any surface", () => {
     const surfaces = deriveConsoleSurfaces(
-      [route("dashboard", "/dashboard"), route("web-chat", "/ask")],
+      [
+        route("dashboard", "/dashboard", "dashboard"),
+        route("web-chat", "/ask", "ask"),
+        route("web-chat", "/api/chat", "chat-api"),
+      ],
       {
         activeId: "web-chat",
         permissionLevel: "admin",
@@ -167,9 +254,13 @@ describe("deriveConsoleSurfaces", () => {
     expect(surfaces.find((s) => s.id === "dashboard")?.isActive).toBe(false);
   });
 
-  it("omits surfaces whose plugin registered no routes", () => {
+  it("omits surfaces no route claims", () => {
     const surfaces = deriveConsoleSurfaces(
-      [route("dashboard", "/dashboard"), route("web-chat", "/ask")],
+      [
+        route("dashboard", "/dashboard", "dashboard"),
+        route("web-chat", "/ask", "ask"),
+        route("web-chat", "/api/chat", "chat-api"),
+      ],
       {
         activeId: "dashboard",
         permissionLevel: "admin",
@@ -180,12 +271,11 @@ describe("deriveConsoleSurfaces", () => {
     expect(surfaces.map((s) => s.id)).toEqual(["dashboard", "web-chat"]);
   });
 
-  it("uses the shortest registered path as the surface door", () => {
+  it("uses the shortest path among routes claiming the same role", () => {
     const surfaces = deriveConsoleSurfaces(
       [
-        route("studio", "/studio/api/entities/post"),
-        route("studio", "/chat"),
-        route("studio", "/studio"),
+        route("studio", "/studio/home", "studio"),
+        route("studio", "/studio", "studio"),
         route("studio", "/studio/assets/app.js"),
       ],
       {
@@ -216,7 +306,7 @@ describe("deriveConsoleSurfaces", () => {
 
   it("prefers the self-declared door over the registry's", () => {
     const surfaces = deriveConsoleSurfaces(
-      [route("dashboard", "/dashboard/deep/route")],
+      [route("dashboard", "/dashboard/deep/route", "dashboard")],
       {
         activeId: "dashboard",
         self: { id: "dashboard", href: "/custom-dashboard" },
@@ -228,12 +318,37 @@ describe("deriveConsoleSurfaces", () => {
     );
   });
 
-  it("ignores routes from non-surface plugins", () => {
+  it("ignores routes that claim no surface role", () => {
     const surfaces = deriveConsoleSurfaces(
-      [route("dashboard", "/dashboard"), route("site-builder", "/")],
+      [
+        route("dashboard", "/dashboard", "dashboard"),
+        route("site-builder", "/"),
+        route("web-chat", "/api/chat", "chat-api"),
+      ],
       { activeId: "dashboard" },
     );
 
     expect(surfaces.map((s) => s.id)).toEqual(["dashboard"]);
+  });
+});
+
+describe("findRouteByRole", () => {
+  it("finds the shortest route claiming a role, from any plugin", () => {
+    expect(
+      findRouteByRole(
+        [
+          route("studio", "/studio/home", "studio"),
+          route("operator-console", "/studio", "studio"),
+          route("studio", "/s"),
+        ],
+        "studio",
+      )?.fullPath,
+    ).toBe("/studio");
+  });
+
+  it("finds nothing for a role no route claims", () => {
+    expect(
+      findRouteByRole([route("studio", "/studio", "studio")], "ask"),
+    ).toBeUndefined();
   });
 });

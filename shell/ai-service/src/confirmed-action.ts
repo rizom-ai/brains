@@ -9,6 +9,7 @@ import {
   buildAttachmentCardFromToolData,
   buildEntityMemoryRefs,
   savedItems,
+  toolResultFrom,
   type EntityMemoryRef,
 } from "./agent-results";
 
@@ -82,15 +83,24 @@ export function buildConfirmedActionResult(
       ? pendingConfirmation.summary
       : (pendingConfirmation.completionSummary ?? pendingConfirmation.summary),
   );
-  const resultText = errorMessage
-    ? `${prefix}: ${actionLabel}\n\n${errorMessage}`
+  const successResult = toolSuccessSchema.safeParse(result);
+  // What the action verified, such as what storage now holds after a write.
+  const detail = errorMessage ?? successResult.data?.completionDetail;
+  const resultText = detail
+    ? `${prefix}: ${actionLabel}\n\n${detail}`
     : `${prefix}: ${actionLabel}`;
   const pendingArgs = parseRecord(pendingConfirmation.args);
-  const toolResult: ToolResultData = {
-    toolName: pendingConfirmation.toolName,
-    data: result,
-    ...(pendingArgs ? { args: pendingArgs } : {}),
-  };
+  // Recorded the way any turn records a tool's result, so a confirmed write
+  // reads like one the agent made without asking.
+  const toolResult: ToolResultData = toolResultFrom({
+    toolResult: {
+      toolCallId: pendingConfirmation.toolCallId ?? pendingConfirmation.id,
+      toolName: pendingConfirmation.toolName,
+      output: result,
+    },
+    args: pendingArgs,
+    links: undefined,
+  })?.result ?? { toolName: pendingConfirmation.toolName };
   const approvalInput = toApprovalCardInput(pendingConfirmation.args);
   const approvalCard: StructuredChatCard = {
     kind: "tool-approval",
@@ -110,7 +120,6 @@ export function buildConfirmedActionResult(
       ? { error: getStringField(result, "error") ?? "Action failed" }
       : {}),
   };
-  const successResult = toolSuccessSchema.safeParse(result);
   // A save of several files shows each saved file's attachment.
   const attachmentCards = successResult.success
     ? [successResult.data.data, ...savedItems(successResult.data.data)].flatMap(
@@ -119,12 +128,7 @@ export function buildConfirmedActionResult(
     : [];
   const cards: StructuredChatCard[] = [approvalCard, ...attachmentCards];
   const entityMemoryRefs = successResult.success
-    ? buildEntityMemoryRefs([
-        {
-          ...toolResult,
-          data: successResult.data.data,
-        },
-      ])
+    ? buildEntityMemoryRefs([toolResult])
     : [];
 
   return { resultText, toolResult, cards, entityMemoryRefs };

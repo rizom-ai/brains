@@ -9,6 +9,7 @@ import {
 import { cp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { packPublishable } from "@brains/build-tools";
 import { getErrorMessage } from "@brains/utils/error";
 import { packedBrainTarball } from "./packed-evidence";
 import { isRecord } from "@brains/utils/is-record";
@@ -393,6 +394,21 @@ async function readManifest(directory: string): Promise<PackageManifest> {
       `dependencies: ${directory}/package.json`,
     ),
   };
+}
+
+/**
+ * Build and pack a package that publishes a prepared manifest (`prepack:
+ * publish-manifest prepare`), the way its release does: from a copy, so the
+ * live manifest is never rewritten.
+ */
+export async function packBuiltPublishable(
+  directory: string,
+  destination: string,
+): Promise<readonly [string, string]> {
+  const manifest = await readManifest(directory);
+  await runCommand(["bun", "run", "build"], directory, { timeoutMs: 120_000 });
+  await mkdir(destination, { recursive: true });
+  return [manifest.name, await packPublishable(directory, destination)];
 }
 
 export async function packPackages(

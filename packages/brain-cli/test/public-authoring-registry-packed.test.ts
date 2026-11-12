@@ -71,8 +71,10 @@ it.skipIf(!runRegistryEvidence)(
       "RIZOM_PUBLIC_API_SITE_VERSION",
       /^0\.2\.0(?:-alpha\.\d+)?$/u,
     );
+    // The component library versions with the brain: one release names both.
     const registryVersions: RegistryPackageVersions = {
       "@rizom/brain": brainVersion,
+      "@rizom/brain-ui": brainVersion,
       "@rizom/site": siteVersion,
     };
     const temporaryDirectory = await mkdtemp(
@@ -146,6 +148,17 @@ it.skipIf(!runRegistryEvidence)(
       expect(brainManifest["license"]).toBe("AGPL-3.0-only");
       expect(siteManifest["version"]).toBe(siteVersion);
       expect(siteManifest["license"]).toBe("Apache-2.0");
+      const uiManifest = await packageManifest(
+        consumerDirectory,
+        "@rizom/brain-ui",
+      );
+      expect(uiManifest["version"]).toBe(brainVersion);
+      expect(uiManifest["license"]).toBe("Apache-2.0");
+      expect(
+        await declarationText(
+          join(consumerDirectory, "node_modules", "@rizom", "brain-ui", "dist"),
+        ),
+      ).not.toContain('from "@brains/');
       expect(brainManifest["exports"]).not.toHaveProperty("./site");
 
       const brainDeclarations = await declarationText(
@@ -174,7 +187,7 @@ it.skipIf(!runRegistryEvidence)(
         {
           env: {
             ...process.env,
-            AI_API_KEY: "registry-startup-check",
+            OPENAI_API_KEY: "registry-startup-check",
             BRAIN_SKIP_LOCAL_REEXEC: "1",
           },
           timeoutMs: 120_000,

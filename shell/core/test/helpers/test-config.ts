@@ -16,7 +16,11 @@ export function createTestShellConfig(
     embeddingDatabase: { url: `file:${dir}/test-embeddings.db` },
     ai: {
       model: "claude-haiku-4-5",
-      apiKey: "test-key",
+      providerKeys: {
+        anthropic: "test-key",
+        openai: "test-key",
+        google: "test-key",
+      },
     },
     embedding: {
       enabled: true,

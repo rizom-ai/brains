@@ -40,7 +40,4 @@ export interface SiteBuildJobResult {
   diagnostics?: SiteBuildDiagnostic[];
 }
 
-export type {
-  SiteBuildCompletedPayload,
-  SiteBuildStagingPayload,
-} from "@brains/contracts";
+export type { SiteBuildStagingPayload } from "@brains/contracts";

@@ -1,14 +1,11 @@
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
 import { createTempDir } from "@brains/test-utils";
-import { NotePlugin } from "../src/plugin";
+import { notePlugin, type NoteEntityPlugin } from "./note-plugin";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
 import type { EntityMutationResult, JobHandler } from "@brains/plugins";
 import { CallbackProgressReporter } from "@brains/utils/progress";
-import {
-  NOTE_CAPTURE_MESSAGE,
-  type NoteCaptureResponse,
-} from "@brains/contracts";
+import { noteCaptureContract } from "@brains/contracts";
 
 const webChatOperatorContext = {
   interfaceType: "web-chat",
@@ -20,7 +17,7 @@ const primerPdfBase64 =
 
 describe("NotePlugin", () => {
   let harness: ReturnType<typeof createPluginHarness>;
-  let plugin: NotePlugin;
+  let plugin: NoteEntityPlugin;
   let capabilities: PluginCapabilities;
   let enqueuedJobs: Array<{ type: string; data: unknown; options?: unknown }>;
   let registeredHandlers: Map<string, JobHandler>;
@@ -46,7 +43,7 @@ describe("NotePlugin", () => {
       getHandler: (type) => registeredHandlers.get(type),
     });
 
-    plugin = new NotePlugin({});
+    plugin = notePlugin();
     capabilities = await harness.installPlugin(plugin);
   });
 
@@ -157,15 +154,20 @@ describe("NotePlugin", () => {
 
       await runQueuedUploadImport();
 
+      // The stored document: a declared note reads back as its body.
       entity = await harness.getEntityService().getEntity({
         entityType: "note",
         id: "research-notes",
         visibilityScope: "shared",
+        source: true,
       });
       expect(entity?.content).toBe(
         `---\ntitle: Research Notes\n---\n${rawMarkdown}\n`,
       );
-      expect(entity?.metadata).toEqual({ title: "Research Notes" });
+      expect(entity?.metadata).toEqual({
+        title: "Research Notes",
+        titleStated: true,
+      });
       expect(entity?.visibility).toBe("shared");
     });
 
@@ -205,7 +207,10 @@ describe("NotePlugin", () => {
         entityType: "note",
         id: "planning",
       });
-      expect(entity?.metadata).toEqual({ title: "Planning" });
+      expect(entity?.metadata).toEqual({
+        title: "Planning",
+        titleStated: true,
+      });
     });
 
     it("reads an uploaded file's own frontmatter into the note's one frontmatter block", async () => {
@@ -241,11 +246,17 @@ describe("NotePlugin", () => {
       const entity = await harness.getEntityService().getEntity({
         entityType: "note",
         id: "the-draft",
+        source: true,
       });
+      // Folded into the one block, as the brain's entity service stores it:
+      // the file's own author kept beside the title.
       expect(entity?.content).toBe(
-        "---\ntitle: The Draft\n---\n# The Draft\n\nBody text.\n",
+        "---\ntitle: The Draft\nauthor: Jan\n---\n# The Draft\n\nBody text.\n",
       );
-      expect(entity?.metadata).toEqual({ title: "The Draft" });
+      expect(entity?.metadata).toEqual({
+        title: "The Draft",
+        titleStated: true,
+      });
     });
 
     it("does not overwrite a note edited while its upload import is queued", async () => {
@@ -297,7 +308,8 @@ describe("NotePlugin", () => {
         entityType: "note",
         id: "launch-plan",
       });
-      expect(current?.contentHash).not.toBe(stub.contentHash);
+      if (!current) throw new Error("edited note not found");
+      expect(current.contentHash).not.toBe(stub.contentHash);
       expect(enqueuedJobs[0]).toMatchObject({
         data: { stubContentHash: stub.contentHash },
       });
@@ -596,7 +608,7 @@ describe("NotePlugin note capture", () => {
     harness = createPluginHarness({
       dataDir: await createTempDir("test-datadir-note-capture-"),
     });
-    await harness.installPlugin(new NotePlugin({}));
+    await harness.installPlugin(notePlugin());
   });
 
   afterEach(async () => {
@@ -604,14 +616,11 @@ describe("NotePlugin note capture", () => {
   });
 
   it("keeps another plugin's text as a private note, never a public one", async () => {
-    const response = await harness.sendMessage<unknown, NoteCaptureResponse>(
-      NOTE_CAPTURE_MESSAGE,
-      {
-        id: "visitor-question-abc123",
-        title: "Visitor question",
-        body: "How do institutions forget?",
-      },
-    );
+    const response = await harness.sendMessage(noteCaptureContract.name, {
+      id: "visitor-question-abc123",
+      title: "Visitor question",
+      body: "How do institutions forget?",
+    });
     expect(response).toEqual({
       noteId: "visitor-question-abc123",
       created: true,
@@ -632,12 +641,12 @@ describe("NotePlugin note capture", () => {
       title: "Visitor question",
       body: "How do institutions forget?",
     };
-    await harness.sendMessage(NOTE_CAPTURE_MESSAGE, request);
+    await harness.sendMessage(noteCaptureContract.name, request);
     expect(
-      await harness.sendMessage<unknown, NoteCaptureResponse>(
-        NOTE_CAPTURE_MESSAGE,
-        { ...request, body: "Changed" },
-      ),
+      await harness.sendMessage(noteCaptureContract.name, {
+        ...request,
+        body: "Changed",
+      }),
     ).toEqual({ noteId: "visitor-question-abc123", created: false });
     const note = await harness.getEntityService().getEntity({
       entityType: "note",
@@ -649,14 +658,11 @@ describe("NotePlugin note capture", () => {
 
   it("refuses a request it cannot parse, creating nothing", async () => {
     expect(
-      await harness.sendMessage<unknown, NoteCaptureResponse>(
-        NOTE_CAPTURE_MESSAGE,
-        {
-          id: "Not A Slug",
-          title: "Visitor question",
-          body: "Text",
-        },
-      ),
+      await harness.sendMessage(noteCaptureContract.name, {
+        id: "Not A Slug",
+        title: "Visitor question",
+        body: "Text",
+      }),
     ).toBeUndefined();
     expect(
       await harness.getEntityService().listEntities({ entityType: "note" }),

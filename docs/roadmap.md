@@ -1,6 +1,6 @@
 # brains roadmap
 
-Last updated: 2026-10-08
+Last updated: 2026-11-05
 
 This is the public-facing view of where `brains` is headed. It records product direction and release readiness; implementation detail belongs in the active plans under [`docs/plans`](./plans/README.md).
 
@@ -43,7 +43,7 @@ An existing worktree does not automatically outrank release work.
 
 | Priority | Outcome                              | Current execution                                                                                                                                                                               |
 | -------- | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **P0**   | Freeze the public authoring boundary | Finish review and integration of `work/plugin-api-boundaries`; preserve the declarative outside-author path and do not retain superseded alpha APIs.                                            |
+| **P0**   | Freeze the public authoring boundary | Land the public authoring API from `work/plugin-api-boundaries` on `main` first, tested by the public-authoring fixtures, then move every package onto it; no superseded alpha APIs.            |
 | **P0**   | Durable binary assets                | Land the staged asset stack (#447–#476), migrate `yeehaa.io`, soak, remove the legacy bridge, then move PDFs. Gates stable `v0.2.0` so its persisted format is final.                           |
 | **P0**   | Nominate and release stable `v0.2.0` | Publish one final alpha, rerun exact registry/packed/live/eval evidence, certify canaries and `yeehaa.io`, then request explicit stable-release authorization.                                  |
 | **P1**   | Make Public Ask observable           | Record guest requests, denials and settled spend durably, then surface them in an admin Studio workspace with a reachable kill switch. Keep production guest admission off on every deployment. |
@@ -82,6 +82,8 @@ Plans:
 - [books.md](./plans/books.md) — a `book` plugin whose id paths carry book structure, an importer, and three read-only book brains (Friedrich, Karl, Sigmund) holding the authors' German works from openly licensed sources.
 - [generation-voice-and-prompt-freshness.md](./plans/generation-voice-and-prompt-freshness.md) — make the style guide govern voice and form over templates, send each template once, and keep materialized prompt copies fresh, correctly keyed, and editable without restart.
 - [moving-in-guides.md](./plans/moving-in-guides.md) — a `guide` entity in the doc-brain with designed walkthroughs per kind of user (writer, researcher, consultant, team) plus one for running your own brain, synced from `docs/guides/` with the docs.
+- [linkedin-import.md](./plans/linkedin-import.md) — an opt-in plugin that imports the owner's LinkedIn profile, skills and history into `anchor-profile` from Studio, through LinkedIn's DMA portability API (EEA) or an uploaded data export, merging without overwriting what the owner wrote.
+- [forms-plugin.md](./plans/forms-plugin.md) — a `forms` engine for every public form on a brain's site, whose submissions become domain entities owned by their packages: `contact` rebuilt on it, a `quiz` package for scored forms, and The Fourth's brand test replacing its Tally form.
 
 ### 2. The collective posture
 
@@ -126,6 +128,7 @@ Plans:
 - [studio-ux-improvements.md](./plans/studio-ux-improvements.md) — the remaining release-candidate and manual accessibility acceptance, and the draft-recovery decision.
 - [studio-grouping-definitions.md](./plans/studio-grouping-definitions.md) — document-owned groupings with convention-first type exclusions, shipped and deployed to smoke; live smoke acceptance remains.
 - [operator-console-pwa.md](./plans/operator-console-pwa.md) — optional network-first installable shell without an offline-authoring claim.
+- [whatsapp-interface.md](./plans/whatsapp-interface.md) — WhatsApp direct messages and groups through our own Baileys adapter in `@brains/chat`: unofficial, on a dedicated number.
 - [brain-web-chat-sdk-adapter.md](./plans/brain-web-chat-sdk-adapter.md) — parked strategy for deeper Chat SDK semantic alignment.
 - [chat-interface-forms-modals.md](./plans/chat-interface-forms-modals.md) — parked transport-neutral structured forms.
 - [message-feedback.md](./plans/message-feedback.md) — parked transport-neutral response feedback pending a real sink.
@@ -139,7 +142,8 @@ Site and theme packages already publish independently with standard peer metadat
 
 Plans:
 
-- [public-authoring-api-0.2.md](./plans/public-authoring-api-0.2.md) — **P0 release gate**, including integration of the completed declarative-boundary/DX branch, final-alpha evidence, release authorization, stable publication, and baseline freezing.
+- [public-authoring-api-0.2.md](./plans/public-authoring-api-0.2.md) — **P0 release gate**: the declarative boundary on `main`, final-alpha evidence, release authorization, stable publication, and baseline freezing.
+- [authoring-boundary-reapply.md](./plans/authoring-boundary-reapply.md) — the public authoring API from #301 landed on `main` first, then every package converted onto it.
 - [durable-binary-assets.md](./plans/durable-binary-assets.md) — **P0 release gate**: move image and PDF bytes into same-database content-addressed storage as staged chunk rows published atomically with their entity, cut `yeehaa.io` over, soak, and remove the legacy bridge before stable `0.2.0`.
 - [npm-package-boundaries.md](./plans/npm-package-boundaries.md) — narrow official package dependencies and prove an official package through public-only imports.
 - [atproto-integration.md](./plans/atproto-integration.md) — finish the safe known-peer discovery tail before any Jetstream canary; later ingestion/feed work remains demand-gated.
@@ -156,7 +160,6 @@ Active cleanup and infrastructure plans:
 
 - [parallel-eval-workers.md](./plans/parallel-eval-workers.md) — parallelize multi-model eval subprocesses.
 - [http-route-registry-hardening.md](./plans/http-route-registry-hardening.md) — continue security, matching, advertising, and cleanup beyond the shipped normalized registry.
-- [directory-sync-export-stall.md](./plans/directory-sync-export-stall.md) — retain fresh incident attribution/recovery work after the shipped semantic Git broker and health checks.
 - [turso-salvage.md](./plans/turso-salvage.md) — carry the engine-independent parts of the frozen Turso branch onto libSQL; `0.3` stays on libSQL.
 - [frontmatter-hygiene.md](./plans/frontmatter-hygiene.md) — keep entity frontmatter to what a person authors or reads: a retired-fields mechanism with a rewrite on start, then verified trims of conversation memory, agents, publishing and small types.
 - [local-model-runtime.md](./plans/local-model-runtime.md) — per-brain model selection for embeddings, text and images, with a local runtime sidecar; a fully local proof-of-concept brain (text + embeddings) by 2026-11-20 for the Mozilla Human-Scale AI application.

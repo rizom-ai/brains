@@ -23,7 +23,7 @@ turns:
       - kind: file
         filename: drunken-robot.png
         mediaType: image/png
-        dataBase64: iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==
+        dataBase64: iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAAeUlEQVR4nO3PQQkAMAzAwCqpf1ETMxF7HINABFzm7H7dcEEDWtCAFjSgBQ1oQQNa0IAWNKAFDWhBA1rQgBY0oAUNaEEDWtCAFjSgBQ1oQQNa0IAWNKAFDWhBA1rQgBY0oAUNaEEDWtCAFjSgBQ1oQQNa0IAWNKAFj13PLIEAOXyUUwAAAABJRU5ErkJggg==
         source:
           kind: upload
           id: upload-00000000-0000-4000-8000-000000001101
@@ -53,7 +53,7 @@ turns:
       - kind: file
         filename: flirty-robot.png
         mediaType: image/png
-        dataBase64: iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADUlEQVR42mP8z8BQDwAFgwJ/lHnqJQAAAABJRU5ErkJggg==
+        dataBase64: iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAAe0lEQVR4nO3PUQkAIBTAwJfEJPZPYRhD+HEIgwW4zdrn64YLGtCCBrSgAS1oQAsa0IIGtKABLWhACxrQgga0oAEtaEALGtCCBrSgAS1oQAsa0IIGtKABLWhACxrQgga0oAEtaEALGtCCBrSgAS1oQAsa0IIGtKABLXjsArR1YR6a53LGAAAAAElFTkSuQmCC
         source:
           kind: upload
           id: upload-00000000-0000-4000-8000-000000001103
@@ -65,6 +65,8 @@ turns:
 
   - userMessage: "Describe the uploaded image."
     successCriteria:
+      responseContains:
+        - "blue"
       toolCountRange:
         max: 0
       responseNotContains:
@@ -84,4 +86,4 @@ successCriteria:
 
 efficiency:
   maxToolCalls: 0
-  maxTokens: 0
+  maxTokens: 18000

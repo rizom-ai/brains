@@ -1,16 +1,14 @@
 {
   "name": "@brains/studio",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.627",
+  "version": "0.2.0-alpha.688",
   "description": "Studio plugin for config and browser authoring routes",
   "dependencies": {
     "@brains/app-ui-react": "workspace:*",
-    "@brains/auth-service": "workspace:*",
     "@brains/console-theme": "workspace:*",
     "@brains/contracts": "workspace:*",
-    "@brains/entity-service": "workspace:*",
     "@brains/operator-view-react": "workspace:*",
-    "@brains/plugins": "workspace:*",
+    "@brains/sdk": "workspace:*",
     "@brains/utils": "workspace:*",
     "@codemirror/lang-markdown": "^6.5.0",
     "@codemirror/language": "^6.12.4",
@@ -30,8 +28,11 @@
     "streamdown": "^2.5.0"
   },
   "devDependencies": {
+    "@brains/auth-service": "workspace:*",
     "@brains/build-tools": "workspace:*",
+    "@brains/entity-service": "workspace:*",
     "@brains/eslint-config": "workspace:*",
+    "@brains/plugins": "workspace:*",
     "@brains/templates": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",

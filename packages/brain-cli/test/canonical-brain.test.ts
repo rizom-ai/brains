@@ -25,7 +25,7 @@ const expectedCatalogIds = [
   "auth-service",
   "notifications",
   "contact",
-  "playbook",
+  "quiz",
   "playbooks",
   "onboarding",
   "studio",
@@ -34,6 +34,7 @@ const expectedCatalogIds = [
   "site-info",
   "site-content",
   "site-builder",
+  "form",
   "analytics",
   "blog",
   "series",
@@ -52,9 +53,10 @@ const expectedCatalogIds = [
   "obsidian-vault",
   "email-workflows",
   "unified-inbox",
+  "linkedin-import",
+  "oauth-broker",
   "mcp",
   "email",
-  "webserver",
   "web-chat",
   "chat",
   "a2a",
@@ -185,12 +187,12 @@ describe("canonical brain core", () => {
       "starterIdentity.anchorKind",
     );
 
-    const resolvedIds =
-      resolve(
-        canonicalBrain,
-        {},
-        { bundleContract, bundles: ["core"] },
-      ).plugins?.map((plugin) => plugin.id) ?? [];
+    const headless = resolve(
+      canonicalBrain,
+      {},
+      { bundleContract, bundles: ["core"] },
+    );
+    const resolvedIds = headless.plugins?.map((plugin) => plugin.id) ?? [];
     expect(resolvedIds).toEqual([
       "prompt",
       "profile",
@@ -198,6 +200,8 @@ describe("canonical brain core", () => {
       "note",
       "link",
       "topics",
+      // The knowledge map comes with topics.
+      "knowledge-map",
       "directory-sync",
       "agent-discovery",
       "agent",
@@ -207,7 +211,7 @@ describe("canonical brain core", () => {
       "a2a",
     ]);
     expect(resolvedIds).toContain("unified-inbox");
-    expect(resolvedIds).not.toContain("webserver");
+    expect(headless.http.enabled).toBe(false);
     expect(resolvedIds).not.toContain("notifications");
   });
 

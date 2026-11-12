@@ -3,10 +3,12 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { getErrorMessage } from "@brains/utils/error";
+import { z } from "@brains/utils/zod";
 import {
   buildAndPackFixturePackage,
   combinedOutput,
   installPackedConsumer,
+  packBuiltPublishable,
   packedCompatibilityEvidenceEnabled,
   packPackages,
   runCommand,
@@ -17,6 +19,7 @@ import {
 
 const brainPackageDirectory = join(import.meta.dir, "..");
 const siteSdkDirectory = join(import.meta.dir, "../../site");
+const uiDirectory = join(import.meta.dir, "../../ui");
 const siteFixture = join(
   import.meta.dir,
   "fixtures",
@@ -33,7 +36,7 @@ const it = bunIt.skipIf(!packedCompatibilityEvidenceEnabled());
 const remoteToken = "packed-phase4-static-operator-token-0001";
 const runtimeEnv = {
   ...process.env,
-  AI_API_KEY: "packed-hermetic-runtime",
+  OPENAI_API_KEY: "packed-hermetic-runtime",
   MCP_AUTH_TOKEN: remoteToken,
   BRAIN_SKIP_LOCAL_REEXEC: "1",
 };
@@ -49,8 +52,8 @@ async function stopRuntime(runtime: StartedCommand): Promise<string> {
   return combinedOutput(await runtime.completed);
 }
 
-const publishedBuildMarker =
-  "Emitting site:build:completed event for preview environment";
+// Logged once per build that goes on to publish, as its staging is finished.
+const publishedBuildMarker = "Generated staged SEO files with";
 const unchangedBuildMarker =
   "Skipping site publication because inputs are unchanged";
 
@@ -103,7 +106,7 @@ async function waitForBuiltFile(
 }
 
 describe("public authoring Phase 4 packed site contract", () => {
-  it("builds every stable one-import site field through the running app", async () => {
+  it("builds every stable site field and public UI component through the running app", async () => {
     const temporaryDirectory = await mkdtemp(
       join(tmpdir(), "public-authoring-phase4-"),
     );
@@ -115,6 +118,11 @@ describe("public authoring Phase 4 packed site contract", () => {
           [brainPackageDirectory, siteSdkDirectory],
           tarballDirectory,
         ),
+      );
+      // The site compiles against the library's packed declarations and the
+      // brain renders it from the packed build.
+      tarballs.set(
+        ...(await packBuiltPublishable(uiDirectory, tarballDirectory)),
       );
       const site = await buildAndPackFixturePackage(
         siteFixture,
@@ -209,12 +217,49 @@ describe("public authoring Phase 4 packed site contract", () => {
       expect(html).toContain("application/ld+json");
       expect(html).toContain("CollectionPage");
 
+      // The shelf renders with the packed @rizom/brain-ui components.
+      expect(html).toContain("On the shelf");
+      expect(html).toContain(
+        '<a href="https://example.com/maintenance" class="hover:text-brand">The maintenance of things</a>',
+      );
+      expect(html).toContain("Saved March 14, 2026");
+      expect(html).toContain(">infrastructure</span>");
+      expect(html).toContain("<strong>slowly</strong>");
+      expect(html).toContain('class="prose prose-lg');
+
       const css = await readFile(
         join(outputDirectory, "styles/main.css"),
         "utf8",
       );
       expect(css).toContain("max-width: 48rem");
       expect(css).toContain("letter-spacing: 0.12em");
+      // The components' utilities reach the build's stylesheet.
+      expect(css).toContain(".prose-lg");
+
+      const installedUi = z
+        .looseObject({
+          license: z.string(),
+          exports: z.record(z.string(), z.unknown()),
+          dependencies: z.record(z.string(), z.string()),
+        })
+        .parse(
+          JSON.parse(
+            await readFile(
+              join(
+                consumerDirectory,
+                "node_modules/@rizom/brain-ui/package.json",
+              ),
+              "utf8",
+            ),
+          ),
+        );
+      expect(installedUi.license).toBe("Apache-2.0");
+      expect(Object.keys(installedUi.exports)).toEqual(["."]);
+      expect(
+        Object.keys(installedUi.dependencies).filter((name) =>
+          name.startsWith("@brains/"),
+        ),
+      ).toEqual([]);
 
       const robots = await readFile(
         join(outputDirectory, "robots.txt"),

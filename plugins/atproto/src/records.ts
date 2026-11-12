@@ -1,4 +1,4 @@
-import type { ServicePluginContext } from "@brains/plugins";
+import type { AtprotoContext } from "./atproto-context";
 import type {
   AtprotoBrainCardRecord,
   AtprotoBrainCardSkill,
@@ -34,7 +34,7 @@ function configuredFederationDid(
 }
 
 export async function buildBrainCardRecord(
-  context: ServicePluginContext,
+  context: AtprotoContext,
   config: AtprotoConfig,
   runtimeRepoDid?: string,
   now: Date = new Date(),
@@ -48,7 +48,7 @@ export async function buildBrainCardRecord(
     );
   }
   const appInfo = await context.identity.getAppInfo();
-  const hasWebChannel = context.plugins.has("webserver");
+  const hasWebChannel = context.servesHttp;
   const siteUrl = hasWebChannel
     ? normalizePublicUrl(context.siteUrl ?? profile.website)
     : undefined;

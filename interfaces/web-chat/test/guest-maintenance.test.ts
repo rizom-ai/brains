@@ -1,7 +1,7 @@
 import { describe, expect, it, spyOn } from "bun:test";
 import { BunSchedulerBackend } from "@brains/scheduler";
 import { TestSchedulerBackend } from "@brains/scheduler/test";
-import { WebChatInterface } from "../src/web-chat-interface";
+import { createWebChatPlugin, type WebChatPlugin } from "./web-chat-plugin";
 import { randomUUID } from "node:crypto";
 import { z } from "@brains/utils/zod";
 import {
@@ -73,7 +73,7 @@ describe("guest state maintenance", () => {
     ).mockImplementation((interval, callback) =>
       scheduler.scheduleInterval(interval, callback),
     );
-    const harness = createPluginHarness<WebChatInterface>();
+    const harness = createPluginHarness<WebChatPlugin>();
     const shell = harness.getMockShell();
     const registry = shell.getDaemonRegistry();
     const visitors = shell
@@ -92,7 +92,7 @@ describe("guest state maintenance", () => {
         },
       }),
     );
-    const plugin = new WebChatInterface(
+    const plugin = createWebChatPlugin(
       {},
       { resolveAuthPrincipal: async (): Promise<undefined> => undefined },
     );
@@ -197,9 +197,9 @@ describe("guest state maintenance", () => {
       await store.set(key, original);
       let raced = false;
       const concurrent: IRuntimeStateNamespace = {
-        scoped: <T>(
-          options: RuntimeStateScopeOptions<T>,
-        ): IRuntimeStateStore<T> => {
+        scoped: <T, TInput = T>(
+          options: RuntimeStateScopeOptions<T, TInput>,
+        ): IRuntimeStateStore<T, TInput> => {
           const scoped = state.scoped(options);
           return {
             ...scoped,
@@ -243,9 +243,9 @@ describe("guest state maintenance", () => {
     await store.set(nextKey, original);
     let attempts = 0;
     const busy: IRuntimeStateNamespace = {
-      scoped: <T>(
-        options: RuntimeStateScopeOptions<T>,
-      ): IRuntimeStateStore<T> => {
+      scoped: <T, TInput = T>(
+        options: RuntimeStateScopeOptions<T, TInput>,
+      ): IRuntimeStateStore<T, TInput> => {
         const scoped = state.scoped(options);
         return {
           ...scoped,

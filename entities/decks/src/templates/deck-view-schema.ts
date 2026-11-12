@@ -1,6 +1,10 @@
-import { entityViewFields, type EntityViewFields } from "@brains/plugins";
+import {
+  renderedLinkFields,
+  viewLinkFields,
+  entityViewFields,
+  type EntityViewFields,
+} from "@brains/sdk/internal/presentation";
 import { z } from "@brains/utils/zod";
-import { renderedLinkFields, viewLinkFields } from "@brains/templates";
 import { deckStatusSchema } from "../schemas/deck";
 
 const frontmatterSchema: z.ZodObject<{
@@ -64,19 +68,12 @@ export const deckViewSchema: z.ZodObject<
 
 export type DeckSchemaData = z.output<typeof deckViewSchema>;
 
-export type DeckView = Omit<
-  DeckSchemaData,
-  "url" | "typeLabel" | "listUrl" | "listLabel"
-> & {
-  url: string;
-  typeLabel: string;
-  listUrl: string;
-  listLabel: string;
-};
-
 /**
  * A deck once site-builder has filled its link fields; components read them
  * as required, so the render path parses against this.
  */
-export const deckRenderSchema: z.ZodType<DeckView> =
-  deckViewSchema.extend(renderedLinkFields);
+export const deckRenderSchema: ReturnType<
+  typeof deckViewSchema.extend<typeof renderedLinkFields>
+> = deckViewSchema.extend(renderedLinkFields);
+
+export type DeckView = z.output<typeof deckRenderSchema>;

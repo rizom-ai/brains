@@ -1,18 +1,17 @@
+import type { AuthPrincipal } from "@brains/contracts";
 import { describe, expect, it } from "bun:test";
-import type { AuthPrincipal } from "@brains/auth-service";
 import {
   BaseEntityAdapter,
   baseEntitySchema,
   type BaseEntity,
 } from "@brains/plugins";
-import {
-  createMockShell,
-  createServicePluginContext,
-} from "@brains/plugins/test";
+import { createMockShell } from "@brains/plugins/test";
 import { z } from "@brains/utils/zod";
 import { entityDisplayTitle } from "../src/editor-entities";
 import { createEditorRoutes } from "../src/editor-routes";
 import { StudioWorkspaceRegistry } from "../src/workspace-registry";
+import type { StudioContext } from "../src/studio-context";
+import { studioContextOn } from "./studio-plugins";
 
 const frontmatterSchema = z.object({
   title: z.string().optional(),
@@ -49,10 +48,10 @@ const trusted: AuthPrincipal = {
   isAnchor: false,
 };
 
-function studio(): {
-  context: ReturnType<typeof createServicePluginContext>;
+async function studio(): Promise<{
+  context: StudioContext;
   schemaRoute: ReturnType<typeof createEditorRoutes>[number];
-} {
+}> {
   const shell = createMockShell();
   const registry = shell.getEntityRegistry();
   registry.registerEntityType("card", baseEntitySchema, new HeadingAdapter());
@@ -60,7 +59,7 @@ function studio(): {
     entityType,
   ): typeof frontmatterSchema | undefined =>
     entityType === "card" ? frontmatterSchema : undefined;
-  const context = createServicePluginContext(shell, "studio");
+  const context = await studioContextOn(shell);
   const routes = createEditorRoutes({
     routePath: "/studio",
     getContext: () => context,
@@ -77,7 +76,7 @@ function studio(): {
 
 describe("how Studio presents an entity", () => {
   it("leaves out fields the schema hides", async () => {
-    const { schemaRoute } = studio();
+    const { schemaRoute } = await studio();
     const response = await schemaRoute.handler(
       new Request("https://brain.test/studio/api/schema?type=card"),
     );
@@ -89,8 +88,8 @@ describe("how Studio presents an entity", () => {
     expect(body.fields.map((field) => field.name)).not.toContain("checksum");
   });
 
-  it("names an entity by its adapter's display title", () => {
-    const { context } = studio();
+  it("names an entity by its adapter's display title", async () => {
+    const { context } = await studio();
     expect(
       entityDisplayTitle(context, {
         id: "order-name-badges-k3f9a2",

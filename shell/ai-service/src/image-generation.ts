@@ -18,7 +18,7 @@ export async function generateImageResult(
   const signal = options?.signal;
   signal?.throwIfAborted();
   const { provider, modelId } = selectImageProvider(imageModel);
-  const model = getImageModel(clients, provider, modelId);
+  const model = getImageModel(clients, imageModel);
 
   logger.debug("Generating image", {
     prompt: prompt.slice(0, 100),
@@ -41,9 +41,9 @@ export async function generateImageResult(
             prompt,
             size: ASPECT_RATIO_TO_OPENAI_SIZE[aspectRatio],
             ...(signal ? { abortSignal: signal } : {}),
-            providerOptions: {
-              openai: { quality: "medium" },
-            },
+            ...(provider === "openai" && {
+              providerOptions: { openai: { quality: "medium" } },
+            }),
           });
 
     const base64 = result.image.base64;

@@ -25,9 +25,10 @@ describe("buildConfirmedActionResult", () => {
     });
 
     expect(result.resultText).toBe('Completed: Update "My Note"');
+    // Recorded as any turn's tool result is: what the tool returned as data.
     expect(result.toolResult).toEqual({
       toolName: "system_update",
-      data: { success: true, data: { entityId: "my-note", status: "updated" } },
+      data: { entityId: "my-note", status: "updated" },
       args: z.record(z.string(), z.unknown()).parse(pending.args),
     });
     expect(result.entityMemoryRefs).toEqual([
@@ -50,6 +51,18 @@ describe("buildConfirmedActionResult", () => {
     });
   });
 
+  test("shows what the action verified after its completion", () => {
+    const result = buildConfirmedActionResult(pending, {
+      success: true,
+      data: { updated: "my-note" },
+      completionDetail: "Stored now:\n> Review cadence: weekly.",
+    });
+
+    expect(result.resultText).toBe(
+      'Completed: Update "My Note"\n\nStored now:\n> Review cadence: weekly.',
+    );
+  });
+
   test("strips internal confirmation fields from the approval card input", () => {
     const result = buildConfirmedActionResult(pending, {
       success: true,
@@ -69,6 +82,11 @@ describe("buildConfirmedActionResult", () => {
     });
 
     expect(result.resultText).toBe('Failed: Update "My Note"\n\nboom');
+    expect(result.toolResult).toEqual({
+      toolName: "system_update",
+      error: { message: "boom" },
+      args: z.record(z.string(), z.unknown()).parse(pending.args),
+    });
     expect(result.entityMemoryRefs).toEqual([]);
     expect(result.cards[0]).toMatchObject({
       state: "output-error",
@@ -93,7 +111,7 @@ describe("buildConfirmedActionResult", () => {
 
     expect(result.toolResult).toEqual({
       toolName: "system_update",
-      data: { success: true, data: { status: "done" } },
+      data: { status: "done" },
     });
     expect(result.cards[0]).not.toHaveProperty("input");
   });

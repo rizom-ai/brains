@@ -1,5 +1,8 @@
-import { z } from "@brains/utils/zod";
-import { createTemplate, type Template } from "@brains/templates";
+import {
+  createTemplate,
+  type Template,
+} from "@brains/sdk/internal/presentation";
+import { z } from "@brains/sdk/entities";
 
 export const seriesDescriptionSchema: z.ZodObject<{
   description: z.ZodString;

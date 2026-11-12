@@ -1,5 +1,31 @@
 # @rizom/site
 
+## 0.2.0-alpha.245
+
+### Patch Changes
+
+- [#857](https://github.com/rizom-ai/brains/pull/857) [`b48235b`](https://github.com/rizom-ai/brains/commit/b48235b1589bfcfe46398086b35a678ae0ac7863) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A site route may name the languages its plugin fills it in per request (`languages`); the site builds the page in each without saved copy, so a form's pages exist in every language it is translated to. The Fourth dresses the brain's forms, the brand test among them, on its paper stage: each step a card, each answer a cut-out that turns mustard when picked, its ink pills for buttons and its red for errors. Deploy with the brain release that serves forms from content.
+
+## 0.2.0-alpha.244
+
+### Patch Changes
+
+- [#851](https://github.com/rizom-ai/brains/pull/851) [`60bd903`](https://github.com/rizom-ai/brains/commit/60bd90309108aaa24bf8597d8245260dbc479e39) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The entity display description sits on `EntityDisplayEntry`, where editors show it, and `SectionDefinitionInput` says what it is: one section placed on a route, by its id, its `namespace:name` template and its content or data query. It had carried the entity display description.
+
+## 0.2.0-alpha.243
+
+### Patch Changes
+
+- [#835](https://github.com/rizom-ai/brains/pull/835) [`804a82c`](https://github.com/rizom-ai/brains/commit/804a82c4759f9301bf3fc38948d4529b7c877251) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `SiteLayoutInfo` carries the anchor's `photo`. The Fourth's footer follows Sam's mockup: the wordmark beside the profiles, stacked, and the email; then the anchor's photo, the places of the privacy, terms and cookie pages, and the language switch as a pill over the copyright and the credit to Rizom.
+
+## 0.2.0-alpha.242
+
+### Patch Changes
+
+- [#832](https://github.com/rizom-ai/brains/pull/832) [`e760242`](https://github.com/rizom-ai/brains/commit/e76024214dbe73dda4eb588cfb487fee6ab190c4) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `@rizom/site` exports `SocialLinkPlatform` and `SOCIAL_LINK_PLATFORM_LABELS`, and a layout's social links can name a podcast. The docs and Rizom sites name their links from that one list.
+
+  The Fourth's homepage follows Sam's one-page design. Act I has one way on, "How it works", and no thread on the key's tag. Act III names each program in bold. Act IV pins the clients' words on paper beside the stories, Rizom's on the right and TWTN's on the left, with no links on the cards. The epilogue introduces the team: each guide's portrait, name, bio and areas of expertise, stacked on a phone, with no button. The footer lists the brain's profiles (each in a new tab) and credits Rizom in place of the city line.
+
 ## 0.2.0-alpha.241
 
 ### Minor Changes

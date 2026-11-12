@@ -1,5 +1,5 @@
 import { createMemoryState } from "@chat-adapter/state-memory";
-import type { IRuntimeStateNamespace } from "@brains/plugins";
+import type { ClassRuntimeState } from "@brains/sdk/internal/interface-runtime";
 import { z } from "@brains/utils/zod";
 import type { Lock, QueueEntry, StateAdapter } from "chat";
 import type { ChatPlatform } from "./types";
@@ -44,7 +44,7 @@ function getSubscriptionNamespace(platform: ChatPlatform): string {
 }
 
 export function createThreadSubscriptionStore(
-  runtimeState: IRuntimeStateNamespace,
+  runtimeState: ClassRuntimeState,
   platform: ChatPlatform,
 ): ChatThreadSubscriptionStore {
   return runtimeState.scoped({
@@ -54,13 +54,13 @@ export function createThreadSubscriptionStore(
 }
 
 export function createDiscordThreadSubscriptionStore(
-  runtimeState: IRuntimeStateNamespace,
+  runtimeState: ClassRuntimeState,
 ): DiscordThreadSubscriptionStore {
   return createThreadSubscriptionStore(runtimeState, "discord");
 }
 
 export function createSlackThreadSubscriptionStore(
-  runtimeState: IRuntimeStateNamespace,
+  runtimeState: ClassRuntimeState,
 ): ChatThreadSubscriptionStore {
   return createThreadSubscriptionStore(runtimeState, "slack");
 }
@@ -70,7 +70,7 @@ export function createSlackThreadSubscriptionStore(
  * cache, lists, and queues remain process-local in the memory adapter.
  */
 export function createChatSubscriptionStateAdapter(
-  runtimeState: IRuntimeStateNamespace,
+  runtimeState: ClassRuntimeState,
   platforms: readonly ChatPlatform[],
   memoryState: StateAdapter = createMemoryState(),
 ): StateAdapter {
@@ -85,7 +85,7 @@ export function createChatSubscriptionStateAdapter(
 }
 
 export function createDiscordSubscriptionStateAdapter(
-  runtimeState: IRuntimeStateNamespace,
+  runtimeState: ClassRuntimeState,
   memoryState: StateAdapter = createMemoryState(),
 ): StateAdapter {
   return createChatSubscriptionStateAdapter(

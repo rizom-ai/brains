@@ -32,55 +32,59 @@ test("mixed checked targets retain template keys and bind the submitting caller,
       }),
     }),
   });
-  const definition = defineServicePlugin({
-    id: "mixed-content",
-    config: z.object({}),
-    templates: {
-      chapter: {
-        schema: z.string(),
-        generation: { prompt: "Write chapter" },
-        format: ({ value }) => value,
+  const definition = defineServicePlugin(
+    {
+      id: "mixed-content",
+      config: z.object({}),
+    },
+    {
+      templates: {
+        chapter: {
+          schema: z.string(),
+          generation: { prompt: "Write chapter" },
+          format: ({ value }) => value,
+        },
+        summary: {
+          schema: z.string(),
+          generation: { prompt: "Write summary" },
+          format: ({ value }) => value,
+        },
       },
-      summary: {
-        schema: z.string(),
-        generation: { prompt: "Write summary" },
-        format: ({ value }) => value,
+      tools: ({ content }) => {
+        // Constructed once, before any caller executes a tool.
+        const first = content.target({
+          template: "chapter",
+          destination: {
+            entity: chapter,
+            idPath: ["intro"],
+            metadata: { title: "Intro", bookId: "book" },
+          },
+        });
+        const second = content.target({
+          template: "summary",
+          destination: {
+            entity: summary,
+            idPath: ["book", "summary"],
+            metadata: { audience: "beginner", edition: "2" },
+          },
+        });
+        return [
+          defineTool({
+            name: "generate",
+            description: "Generate mixed entities",
+            input: z.object({ dryRun: z.boolean() }),
+            output: contentGenerationResultSchema,
+            sideEffects: "writes",
+            execute: ({ input }) =>
+              content.generate({
+                targets: [first, second],
+                dryRun: input.dryRun,
+              }),
+          }),
+        ];
       },
     },
-    tools: ({ content }) => {
-      // Constructed once, before any caller executes a tool.
-      const first = content.target({
-        template: "chapter",
-        destination: {
-          entity: chapter,
-          idPath: ["intro"],
-          metadata: { title: "Intro", bookId: "book" },
-        },
-      });
-      const second = content.target({
-        template: "summary",
-        destination: {
-          entity: summary,
-          idPath: ["book", "summary"],
-          metadata: { audience: "beginner", edition: "2" },
-        },
-      });
-      return [
-        defineTool({
-          name: "generate",
-          description: "Generate mixed entities",
-          input: z.object({ dryRun: z.boolean() }),
-          output: contentGenerationResultSchema,
-          sideEffects: "writes",
-          execute: ({ input }) =>
-            content.generate({
-              targets: [first, second],
-              dryRun: input.dryRun,
-            }),
-        }),
-      ];
-    },
-  });
+  );
   const harness = createPluginHarness({ logger: createSilentLogger() });
   harness.setPermissionService(
     new PermissionService({ admins: ["service:first", "service:second"] }),

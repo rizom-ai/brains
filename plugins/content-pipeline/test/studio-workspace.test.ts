@@ -1,3 +1,4 @@
+import { toSdkError } from "@brains/contracts";
 import { describe, expect, it } from "bun:test";
 import {
   baseEntitySchema,
@@ -17,6 +18,7 @@ import { RetryTracker } from "../src/retry-tracker";
 import { PublicationQueueService } from "../src/publication-queue-service";
 import { PublishExecutor } from "../src/publish-executor";
 import { registerStudioWorkspace } from "../src/lib/studio-workspace";
+import { pipelineRuntime } from "./pipeline-runtime";
 
 const fixtureFrontmatterSchema = z.object({});
 
@@ -63,10 +65,8 @@ const successResultSchema = z.object({ success: z.literal(true) });
 
 describe("content-pipeline Studio workspace registration", () => {
   it("shows one rest notice without an empty queue tab", async () => {
-    const context = createServicePluginContext(
-      createMockShell(),
-      "content-pipeline",
-    );
+    const shell = createMockShell();
+    const context = createServicePluginContext(shell, "content-pipeline");
     context.entities.register(
       "social-post",
       baseEntitySchema,
@@ -89,16 +89,20 @@ describe("content-pipeline Studio workspace registration", () => {
         data: { workspaceUrl: "/studio/workspaces/publishing" },
       };
     });
-    await registerStudioWorkspace(context, {
-      providerRegistry: providers,
-      queueManager: queue,
-      publicationQueueService: new PublicationQueueService(context, queue),
-      retryTracker: RetryTracker.createFresh(),
-      publishExecutor: new PublishExecutor({
-        context,
+    await registerStudioWorkspace(
+      (await pipelineRuntime(shell)).studio,
+      context,
+      {
         providerRegistry: providers,
-      }),
-    });
+        queueManager: queue,
+        publicationQueueService: new PublicationQueueService(context, queue),
+        retryTracker: RetryTracker.createFresh(),
+        publishExecutor: new PublishExecutor({
+          context,
+          providerRegistry: providers,
+        }),
+      },
+    );
     if (!registration) throw Error("Workspace was not registered");
     const result = JSON.stringify(await registration.dataProvider(adminActor));
     expect(result).toContain('"id":"publishing-at-rest"');
@@ -109,23 +113,25 @@ describe("content-pipeline Studio workspace registration", () => {
     expect(result).not.toContain('"id":"publishing-summary"');
   });
   it("is a no-op when the Studio is absent", async () => {
-    const context = createServicePluginContext(
-      createMockShell(),
-      "content-pipeline",
-    );
+    const shell = createMockShell();
+    const context = createServicePluginContext(shell, "content-pipeline");
 
     const queueManager = QueueManager.createFresh();
     const providerRegistry = ProviderRegistry.createFresh();
-    const href = await registerStudioWorkspace(context, {
-      providerRegistry,
-      queueManager,
-      publicationQueueService: new PublicationQueueService(
-        context,
+    const href = await registerStudioWorkspace(
+      (await pipelineRuntime(shell)).studio,
+      context,
+      {
+        providerRegistry,
         queueManager,
-      ),
-      retryTracker: RetryTracker.createFresh(),
-      publishExecutor: new PublishExecutor({ context, providerRegistry }),
-    });
+        publicationQueueService: new PublicationQueueService(
+          context,
+          queueManager,
+        ),
+        retryTracker: RetryTracker.createFresh(),
+        publishExecutor: new PublishExecutor({ context, providerRegistry }),
+      },
+    );
 
     expect(href).toBeUndefined();
   });
@@ -180,16 +186,20 @@ describe("content-pipeline Studio workspace registration", () => {
       };
     });
 
-    const href = await registerStudioWorkspace(context, {
-      providerRegistry: providers,
-      queueManager: queue,
-      publicationQueueService: new PublicationQueueService(context, queue),
-      retryTracker: RetryTracker.createFresh(),
-      publishExecutor: new PublishExecutor({
-        context,
+    const href = await registerStudioWorkspace(
+      (await pipelineRuntime(shell)).studio,
+      context,
+      {
         providerRegistry: providers,
-      }),
-    });
+        queueManager: queue,
+        publicationQueueService: new PublicationQueueService(context, queue),
+        retryTracker: RetryTracker.createFresh(),
+        publishExecutor: new PublishExecutor({
+          context,
+          providerRegistry: providers,
+        }),
+      },
+    );
 
     expect(href).toBe("/studio/workspaces/publishing");
     expect(registration).toMatchObject({
@@ -319,16 +329,20 @@ describe("content-pipeline Studio workspace registration", () => {
         data: { workspaceUrl: "/studio/workspaces/publishing" },
       };
     });
-    await registerStudioWorkspace(context, {
-      providerRegistry: providers,
-      queueManager: queue,
-      publicationQueueService: queueService,
-      retryTracker: RetryTracker.createFresh(),
-      publishExecutor: new PublishExecutor({
-        context,
+    await registerStudioWorkspace(
+      (await pipelineRuntime(shell)).studio,
+      context,
+      {
         providerRegistry: providers,
-      }),
-    });
+        queueManager: queue,
+        publicationQueueService: queueService,
+        retryTracker: RetryTracker.createFresh(),
+        publishExecutor: new PublishExecutor({
+          context,
+          providerRegistry: providers,
+        }),
+      },
+    );
     const act = registration?.actionHandler;
     expect(act).toBeFunction();
     const actor = adminActor;
@@ -503,16 +517,20 @@ describe("content-pipeline Studio workspace registration", () => {
         data: { workspaceUrl: "/studio/workspaces/publishing" },
       };
     });
-    await registerStudioWorkspace(context, {
-      providerRegistry: providers,
-      queueManager: queue,
-      publicationQueueService: new PublicationQueueService(context, queue),
-      retryTracker: RetryTracker.createFresh(),
-      publishExecutor: new PublishExecutor({
-        context,
+    await registerStudioWorkspace(
+      (await pipelineRuntime(shell)).studio,
+      context,
+      {
         providerRegistry: providers,
-      }),
-    });
+        queueManager: queue,
+        publicationQueueService: new PublicationQueueService(context, queue),
+        retryTracker: RetryTracker.createFresh(),
+        publishExecutor: new PublishExecutor({
+          context,
+          providerRegistry: providers,
+        }),
+      },
+    );
     if (!registration?.actionHandler) {
       throw new Error("Workspace was not registered");
     }
@@ -599,16 +617,20 @@ describe("content-pipeline Studio workspace registration", () => {
         data: { workspaceUrl: "/studio/workspaces/publishing" },
       };
     });
-    await registerStudioWorkspace(context, {
-      providerRegistry: providers,
-      queueManager: queue,
-      publicationQueueService: queueService,
-      retryTracker: RetryTracker.createFresh(),
-      publishExecutor: new PublishExecutor({
-        context,
+    await registerStudioWorkspace(
+      (await pipelineRuntime(shell)).studio,
+      context,
+      {
         providerRegistry: providers,
-      }),
-    });
+        queueManager: queue,
+        publicationQueueService: queueService,
+        retryTracker: RetryTracker.createFresh(),
+        publishExecutor: new PublishExecutor({
+          context,
+          providerRegistry: providers,
+        }),
+      },
+    );
     const actor = adminActor;
     const publishInput = {
       entityType: "social-post",
@@ -679,5 +701,29 @@ describe("content-pipeline Studio workspace registration", () => {
         })
       )?.metadata["status"],
     ).toBe("published");
+
+    // Why a publish cannot be prepared reaches the operator by code.
+    const refusal = async (input: object): Promise<unknown> =>
+      Promise.resolve(
+        registration?.actionHandler?.(
+          { actionId: "publish", input, mode: "prepare" },
+          actor,
+        ),
+      ).then(
+        () => {
+          throw new Error("Expected the publish to be refused");
+        },
+        (error: unknown) => toSdkError(error).toJSON(),
+      );
+    expect(await refusal(publishInput)).toEqual({
+      code: "conflict",
+      message: "Entity is already published",
+    });
+    expect(
+      await refusal({ entityType: "social-post", entityId: "missing-post" }),
+    ).toEqual({
+      code: "not_found",
+      message: "Entity not found: social-post:missing-post",
+    });
   });
 });

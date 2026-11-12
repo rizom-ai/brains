@@ -22,7 +22,7 @@ turns:
       - kind: file
         filename: misleading-robot.png
         mediaType: image/png
-        dataBase64: iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=
+        dataBase64: iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAAeklEQVR4nO3PUQkAIBTAwJfEJIY1qiH8OITBAtxmnf11wwUNaEEDWtCAFjSgBQ1oQQNa0IAWNKAFDWhBA1rQgBY0oAUNaEEDWtCAFjSgBQ1oQQNa0IAWNKAFDWhBA1rQgBY0oAUNaEEDWtCAFjSgBQ1oQQNa0IAWPHYBZ7ig4npy15oAAAAASUVORK5CYII=
         source:
           kind: upload
           id: upload-00000000-0000-4000-8000-000000000901
@@ -34,6 +34,8 @@ turns:
 
   - userMessage: "Describe the uploaded image."
     successCriteria:
+      responseContains:
+        - "green"
       toolCountRange:
         max: 0
       responseNotContains:
@@ -66,4 +68,4 @@ successCriteria:
 
 efficiency:
   maxToolCalls: 0
-  maxTokens: 0
+  maxTokens: 18000

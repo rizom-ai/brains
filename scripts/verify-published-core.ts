@@ -13,6 +13,7 @@ try {
   for (const [directory, archiveName] of [
     ["brain-cli", "brain"],
     ["brains-ops", "ops"],
+    ["ui", "brain-ui"],
   ] as const) {
     const target = packageIdentitySchema.parse(
       await Bun.file(join(root, "packages", directory, "package.json")).json(),

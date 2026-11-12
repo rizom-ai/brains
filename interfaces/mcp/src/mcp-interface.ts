@@ -1,82 +1,146 @@
+import {
+  interfaceRuntime,
+  withDaemon,
+  withProtocolPlugin,
+  withTools,
+  withWebRoutes,
+  type FirstPartySlotContext,
+  type InterfaceRuntime,
+  FatalPluginConfigurationError,
+  type DaemonHealth,
+  type WebRouteDefinition,
+} from "@brains/sdk/internal/interface-runtime";
+import {
+  defineInterface,
+  type UserPermissionLevel,
+} from "@brains/sdk/interfaces";
 import { MCP_INTERACTION_ID } from "@brains/contracts";
-import type {
-  InterfacePluginContext,
-  WebRouteDefinition,
-  ProtocolPluginProvider,
-} from "@brains/plugins";
-import type { Daemon, DaemonHealth } from "@brains/plugins";
+import type { PluginPackageDefinition } from "@brains/sdk";
 import { StdioMCPServer } from "./transports/stdio-server";
 import { StreamableHTTPServer } from "./transports/http-server";
-import type { IMCPTransport } from "@brains/mcp-service";
-import { getActiveAuthService } from "@brains/auth-service";
-import { mcpConfigSchema, type MCPConfig, type MCPConfigInput } from "./config";
-import { MCPProtocol, MCPProtocolPlugin } from "./mcp-protocol";
-import packageJson from "../package.json";
+import { mcpConfigSchema, type MCPConfig } from "./config";
+import { mcpProtocol } from "./mcp-protocol";
+import { createMCPTools } from "./tools";
+import { setupJobProgressListener } from "./handlers";
 
 /**
- * MCP Interface Plugin
- * Provides Model Context Protocol server functionality with transport-based permissions
- *
- * Usage:
- * - For STDIO: new MCPInterface({ transport: "stdio" })
- * - For HTTP: new MCPInterface({ transport: "http", httpPort: 3333 })
- * - For both: Add two instances with different configs
+ * The MCP host a running interface keeps: the brain's MCP service once the
+ * daemon connects it, and the stdio or shared-HTTP transport it serves.
  */
-export class MCPInterface
-  extends MCPProtocolPlugin<MCPConfig, MCPConfigInput>
-  implements ProtocolPluginProvider
-{
-  // After validation with defaults, config is complete
-  declare protected config: MCPConfig;
+interface MCPHost {
+  mcpTransport: InterfaceRuntime["mcpTransport"] | undefined;
+  stdioServer: StdioMCPServer | undefined;
+  httpServer: StreamableHTTPServer | undefined;
+}
 
-  private mcpTransport: IMCPTransport | undefined;
-  private stdioServer: StdioMCPServer | undefined;
-  private httpServer: StreamableHTTPServer | undefined;
-  private domain: string | undefined;
+type MCPSlotContext = FirstPartySlotContext<MCPConfig, MCPHost>;
 
-  constructor(config: MCPConfigInput = {}) {
-    // Default authToken from environment if not provided
-    const configWithDefaults = {
-      ...config,
-      authToken: config.authToken ?? process.env["MCP_AUTH_TOKEN"],
-    };
-    super("mcp", packageJson, configWithDefaults, mcpConfigSchema);
+/**
+ * The HTTP transport over the shared webserver, created once: a static
+ * bearer token when configured, the auth backend's bearer grants when the
+ * brain has one, and none otherwise.
+ */
+function httpServerOf(
+  host: MCPHost,
+  config: MCPConfig,
+  runtime: InterfaceRuntime,
+): StreamableHTTPServer {
+  if (host.httpServer) {
+    return host.httpServer;
   }
 
-  /** A fresh registration of this protocol, without its transport host. */
-  public createProtocolPlugin(): MCPProtocol {
-    return new MCPProtocol({ mode: this.config.mode });
-  }
+  const authService = runtime.auth();
 
-  /**
-   * Override onRegister to set up MCP server during plugin registration
-   */
-  protected override async onRegister(
-    context: InterfacePluginContext,
-  ): Promise<void> {
-    this.domain = context.domain;
+  host.httpServer = StreamableHTTPServer.createFresh({
+    port: config.httpPort,
+    logger: runtime.logger,
+    auth: config.authToken
+      ? { token: config.authToken }
+      : authService
+        ? {
+            requiredScopes: ["mcp"],
+            verifyBearerToken: async (
+              request,
+            ): Promise<
+              | {
+                  subject: string;
+                  scope?: string[];
+                  permissionLevel?: "admin" | "trusted" | "public";
+                  isAnchor?: boolean;
+                  actor?: {
+                    kind: "user";
+                    userId: string;
+                    canonicalId?: string;
+                  };
+                  displayName?: string;
+                }
+              | undefined
+            > => {
+              const grant = await authService.resolveBearerGrant(request);
+              if (!grant) return undefined;
+              return {
+                subject: grant.token.subject,
+                scope: grant.token.scope,
+                permissionLevel: grant.principal.permissionLevel,
+                isAnchor: grant.principal.isAnchor,
+                actor: {
+                  kind: "user",
+                  userId: grant.principal.userId,
+                  ...(grant.principal.canonicalId
+                    ? { canonicalId: grant.principal.canonicalId }
+                    : {}),
+                },
+                displayName: grant.principal.displayName,
+              };
+            },
+          }
+        : { disabled: true },
+  });
 
-    if (this.config.transport === "http" && !context.plugins.has("webserver")) {
-      throw new Error(
-        "MCP HTTP transport requires the webserver interface. Standalone HTTP listeners have been removed.",
+  return host.httpServer;
+}
+
+/**
+ * MCP: the Model Context Protocol server, with transport-based permissions.
+ * Over stdio it serves the process's own client as admin; over HTTP it
+ * mounts /mcp on the shared webserver and resolves each caller's
+ * permission from a static token or the auth backend's bearer grants.
+ */
+const mcp = defineInterface({
+  id: "mcp",
+  config: mcpConfigSchema,
+  setup: (context): MCPHost => {
+    const { config } = context;
+    const runtime = interfaceRuntime(context);
+
+    if (runtime.production && config.authToken) {
+      throw new FatalPluginConfigurationError(
+        "mcp",
+        "MCP static bearer token (plugins.mcp.authToken / MCP_AUTH_TOKEN) is for local development only; a production brain refuses it. Remove it and connect MCP clients through OAuth with passkeys.",
       );
     }
 
-    this.logger.debug(
-      `MCP interface initialized with ${this.config.transport} transport`,
+    if (config.transport === "http" && !runtime.servesHttp) {
+      throw new Error(
+        "MCP HTTP transport requires the brain to serve HTTP (http.enabled). Standalone HTTP listeners have been removed.",
+      );
+    }
+
+    runtime.logger.debug(
+      `MCP interface initialized with ${config.transport} transport`,
     );
 
     // Advertise the MCP endpoint so it surfaces in the dashboard's
-    // Endpoints card. HTTP transport mounts on the shared webserver
-    // at `/mcp`; stdio has no URL to advertise.
-    if (this.config.transport === "http") {
-      context.endpoints.register({
+    // Endpoints card. HTTP transport mounts on the shared webserver at
+    // `/mcp`; stdio has no URL to advertise.
+    if (config.transport === "http") {
+      runtime.endpoint({
         label: "MCP",
         url: "/mcp",
         priority: 30,
         visibility: "trusted",
       });
-      context.interactions.register({
+      runtime.interaction({
         id: MCP_INTERACTION_ID,
         label: "MCP",
         description:
@@ -88,203 +152,87 @@ export class MCPInterface
       });
     }
 
-    await super.onRegister(context);
-  }
+    setupJobProgressListener(runtime, runtime.logger);
 
-  private getOrCreateHttpServer(): StreamableHTTPServer {
-    if (this.httpServer) {
-      return this.httpServer;
-    }
-
-    const authService = getActiveAuthService();
-
-    this.httpServer = StreamableHTTPServer.createFresh({
-      port: this.config.httpPort,
-      logger: this.logger,
-      auth: this.config.authToken
-        ? { token: this.config.authToken }
-        : authService
-          ? {
-              requiredScopes: ["mcp"],
-              verifyBearerToken: async (
-                request,
-              ): Promise<
-                | {
-                    subject: string;
-                    scope?: string[];
-                    permissionLevel?: "admin" | "trusted" | "public";
-                    isAnchor?: boolean;
-                    actor?: {
-                      kind: "user";
-                      userId: string;
-                      canonicalId?: string;
-                    };
-                    displayName?: string;
-                  }
-                | undefined
-              > => {
-                const grant = await authService.resolveBearerGrant(request);
-                if (!grant) return undefined;
-                return {
-                  subject: grant.token.subject,
-                  scope: grant.token.scope,
-                  permissionLevel: grant.principal.permissionLevel,
-                  isAnchor: grant.principal.isAnchor,
-                  actor: {
-                    kind: "user",
-                    userId: grant.principal.userId,
-                    ...(grant.principal.canonicalId
-                      ? { canonicalId: grant.principal.canonicalId }
-                      : {}),
-                  },
-                  displayName: grant.principal.displayName,
-                };
-              },
-            }
-          : { disabled: true },
-    });
-
-    return this.httpServer;
-  }
-
-  override getWebRoutes(): WebRouteDefinition[] {
-    if (this.config.transport !== "http") {
-      return [];
-    }
-
-    const handleWithSharedTransport = (request: Request): Promise<Response> =>
-      this.getOrCreateHttpServer().handleRequest(request);
-
-    return [
-      {
-        path: "/status",
-        method: "GET",
-        public: true,
-        handler: handleWithSharedTransport,
-      },
-      {
-        path: "/mcp",
-        method: "GET",
-        public: true,
-        handler: handleWithSharedTransport,
-      },
-      {
-        path: "/mcp",
-        method: "POST",
-        public: true,
-        handler: handleWithSharedTransport,
-      },
-      {
-        path: "/mcp",
-        method: "DELETE",
-        public: true,
-        handler: handleWithSharedTransport,
-      },
-      {
-        path: "/mcp",
-        method: "OPTIONS",
-        public: true,
-        handler: handleWithSharedTransport,
-      },
-    ];
-  }
-
-  /**
-   * Create daemon for managing MCP server lifecycle
-   */
-  protected override createDaemon(): Daemon | undefined {
     return {
-      start: async (): Promise<void> => {
-        await this.startServer();
-      },
-      stop: async (): Promise<void> => {
-        await this.stopServer();
-      },
-      healthCheck: async (): Promise<DaemonHealth> => {
-        const isRunning = this.isServerRunning();
-
-        let message = "MCP server not running";
-        if (isRunning) {
-          if (this.config.transport === "http") {
-            const apiUrl = this.domain
-              ? `https://${this.domain}/mcp`
-              : "http://localhost:8080/mcp";
-            message = `MCP HTTP: ${apiUrl}`;
-          } else {
-            message = "MCP stdio server running";
-          }
-        }
-
-        return {
-          status: isRunning ? "healthy" : "error",
-          message,
-          lastCheck: new Date(),
-          details: {
-            transport: this.config.transport,
-            mode: this.config.mode,
-            url:
-              this.config.transport === "http"
-                ? this.domain
-                  ? `https://${this.domain}/mcp`
-                  : "http://localhost:8080/mcp"
-                : undefined,
-            running: isRunning,
-          },
-        };
-      },
+      mcpTransport: undefined,
+      stdioServer: undefined,
+      httpServer: undefined,
     };
+  },
+});
+
+/** The shared-host routes, over HTTP only, each served by the MCP transport. */
+const withRoutes = withWebRoutes(mcp, (context: MCPSlotContext) => {
+  const { config, state } = context;
+  if (config.transport !== "http") {
+    return [];
   }
+  const runtime = interfaceRuntime(context);
+  const handleWithSharedTransport = (request: Request): Promise<Response> =>
+    httpServerOf(state, config, runtime).handleRequest(request);
+  const route = (
+    path: string,
+    method: NonNullable<WebRouteDefinition["method"]>,
+  ): WebRouteDefinition => ({
+    path,
+    method,
+    public: true,
+    handler: handleWithSharedTransport,
+  });
 
-  /**
-   * Check if the server is running
-   */
-  private isServerRunning(): boolean {
-    if (this.config.transport === "stdio") {
-      return this.stdioServer !== undefined && this.mcpTransport !== undefined;
-    } else {
-      return this.httpServer !== undefined && this.mcpTransport !== undefined;
-    }
-  }
+  return [
+    route("/status", "GET"),
+    route("/mcp", "GET"),
+    route("/mcp", "POST"),
+    route("/mcp", "DELETE"),
+    route("/mcp", "OPTIONS"),
+  ];
+});
 
-  /**
-   * Start the MCP server
-   */
-  private async startServer(): Promise<void> {
-    // Get MCP transport from context when starting
-    // Context is guaranteed to be set by the time daemon starts
-    if (!this.context) {
-      throw new Error("Context not initialized");
-    }
+/** The MCP server's lifecycle, mcp:mcp, as its class ran it. */
+const withServer = withDaemon(withRoutes, (context: MCPSlotContext) => {
+  const { config, state } = context;
+  const runtime = interfaceRuntime(context);
+  const { logger } = runtime;
+  const apiUrl = (): string =>
+    runtime.domain
+      ? `https://${runtime.domain}/mcp`
+      : "http://localhost:8080/mcp";
 
-    const context = this.context;
-    this.mcpTransport = context.mcpTransport;
+  const isServerRunning = (): boolean =>
+    config.transport === "stdio"
+      ? state.stdioServer !== undefined && state.mcpTransport !== undefined
+      : state.httpServer !== undefined && state.mcpTransport !== undefined;
 
-    // Determine the user ID based on transport for permission rules
-    // This will be used by the centralized PermissionService to determine actual permissions
-    const transportUserId =
-      this.config.transport === "stdio" ? "stdio" : "http";
+  const startServer = async (): Promise<void> => {
+    const mcpTransport = runtime.mcpTransport;
+    state.mcpTransport = mcpTransport;
 
-    let userLevel = this.context.permissions.getUserLevel(
+    // The user ID permission rules key the transport by.
+    const transportUserId = config.transport === "stdio" ? "stdio" : "http";
+
+    let userLevel: UserPermissionLevel = runtime.permissions.getUserLevel(
       "mcp",
       transportUserId,
     );
 
-    const activeAuthService = getActiveAuthService();
+    const authBackend = runtime.auth();
     const hasHttpAuth =
-      this.config.transport === "http" &&
-      (this.config.authToken ? true : activeAuthService !== undefined);
+      config.transport === "http" &&
+      (config.authToken ? true : authBackend !== undefined);
 
     // Static-token auth uses administrator permissions. OAuth requests replace
     // this fallback with the authenticated principal's level on every call.
     if (hasHttpAuth) {
       userLevel = "admin";
-      this.logger.debug(
+      logger.debug(
         "HTTP authentication configured; caller permissions resolve per request",
       );
     }
 
-    if (this.config.mode === "debug") {
-      if (this.config.transport === "http" && !hasHttpAuth) {
+    if (config.mode === "debug") {
+      if (config.transport === "http" && !hasHttpAuth) {
         throw new Error(
           "MCP debug mode requires authenticated HTTP transport; configure authToken or OAuth auth service.",
         );
@@ -295,59 +243,90 @@ export class MCPInterface
       }
     }
 
-    // Pass the determined protocol mode and permission level to the MCP transport
-    this.mcpTransport.setProtocolMode(this.config.mode);
-    this.mcpTransport.setPermissionLevel(userLevel);
-    this.mcpTransport.setAnchorStatus?.(
-      this.context.permissions.isAnchor("mcp", transportUserId),
+    // Pass the protocol mode and permission level to the MCP transport
+    mcpTransport.setProtocolMode(config.mode);
+    mcpTransport.setPermissionLevel(userLevel);
+    mcpTransport.setAnchorStatus?.(
+      runtime.permissions.isAnchor("mcp", transportUserId),
     );
 
-    this.logger.debug(
-      `Starting MCP ${this.config.transport} transport in ${this.config.mode} mode with ${userLevel} permissions`,
+    logger.debug(
+      `Starting MCP ${config.transport} transport in ${config.mode} mode with ${userLevel} permissions`,
     );
 
-    if (this.config.transport === "stdio") {
-      // Start STDIO transport
+    if (config.transport === "stdio") {
       // Don't pass the regular logger for stdio - it will use stderr logger
-      this.stdioServer = StdioMCPServer.createFresh();
-
-      // Connect MCP server from service to STDIO transport
-      const mcpServer = this.mcpTransport.getMcpServer();
-      this.stdioServer.connectMCPServer(mcpServer);
-
-      // Start STDIO server
-      await this.stdioServer.start();
-      this.logger.debug("MCP STDIO transport started");
+      state.stdioServer = StdioMCPServer.createFresh();
+      state.stdioServer.connectMCPServer(mcpTransport.getMcpServer());
+      await state.stdioServer.start();
+      logger.debug("MCP STDIO transport started");
     } else {
       // HTTP transport — auth required unless token is absent
-      this.httpServer = this.getOrCreateHttpServer();
-
-      // Connect MCP server from service to HTTP transport
-      const mcpServer = this.mcpTransport.getMcpServer();
-      this.httpServer.connectMCPServer(mcpServer, this.mcpTransport);
-
-      this.logger.debug("MCP HTTP transport mounted on shared webserver host");
+      const httpServer = httpServerOf(state, config, runtime);
+      httpServer.connectMCPServer(mcpTransport.getMcpServer(), mcpTransport);
+      logger.debug("MCP HTTP transport mounted on shared webserver host");
     }
-  }
+  };
 
-  /**
-   * Stop the MCP server
-   */
-  private async stopServer(): Promise<void> {
-    this.logger.debug(`Stopping MCP ${this.config.transport} transport`);
+  const stopServer = async (): Promise<void> => {
+    logger.debug(`Stopping MCP ${config.transport} transport`);
 
-    if (this.stdioServer) {
-      this.stdioServer.stop();
-      this.stdioServer = undefined;
+    if (state.stdioServer) {
+      state.stdioServer.stop();
+      state.stdioServer = undefined;
     }
 
-    if (this.httpServer) {
-      await this.httpServer.stop();
-      this.httpServer = undefined;
+    if (state.httpServer) {
+      await state.httpServer.stop();
+      state.httpServer = undefined;
     }
 
-    // MCPService manages the lifecycle of mcpServer
-    // We just clear our reference
-    this.mcpTransport = undefined;
-  }
-}
+    // The MCP service manages the lifecycle of its server; only the
+    // reference goes.
+    state.mcpTransport = undefined;
+  };
+
+  return {
+    id: "mcp",
+    start: startServer,
+    stop: stopServer,
+    healthCheck: async (): Promise<DaemonHealth> => {
+      const isRunning = isServerRunning();
+
+      let message = "MCP server not running";
+      if (isRunning) {
+        message =
+          config.transport === "http"
+            ? `MCP HTTP: ${apiUrl()}`
+            : "MCP stdio server running";
+      }
+
+      return {
+        status: isRunning ? "healthy" : "error",
+        message,
+        lastCheck: new Date(),
+        details: {
+          transport: config.transport,
+          mode: config.mode,
+          url: config.transport === "http" ? apiUrl() : undefined,
+          running: isRunning,
+        },
+      };
+    },
+  };
+});
+
+/** The chat and confirm tools, which route a client's requests to the agent. */
+const withMCPTools = withTools(withServer, (context) => {
+  const runtime = interfaceRuntime(context);
+  return createMCPTools("mcp", () => runtime);
+});
+
+/**
+ * MCP, hosted, with the protocol-only registration a host that serves the
+ * protocol itself builds from it, in the configured mode.
+ */
+export const mcpInterface: PluginPackageDefinition<
+  typeof mcpConfigSchema,
+  "interface"
+> = withProtocolPlugin(withMCPTools, mcpProtocol, ({ mode }) => ({ mode }));

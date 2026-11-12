@@ -16,13 +16,7 @@ import {
 } from "@brains/build-tools";
 
 const pkgDir = join(import.meta.dir, "..");
-const subpaths = [
-  "plugins",
-  "entities",
-  "services",
-  "interfaces",
-  "templates",
-] as const;
+const subpaths = ["entities", "services", "interfaces", "testing"] as const;
 
 function listDeclarationFiles(dir: string): string[] {
   return readdirSync(dir).flatMap((entry) => {
@@ -176,6 +170,46 @@ describe("@rizom/brain public plugin API surface", () => {
     }
   });
 
+  it("publishes the test brain without the runtime it runs", async () => {
+    const testingTypes = stripDeclarationComments(
+      readFileSync(join(pkgDir, "dist", "testing.d.ts"), "utf-8"),
+    );
+    const exported = [
+      ...testingTypes.matchAll(/export \{([\s\S]*?)\};/gu),
+    ].flatMap((block) =>
+      (block[1] ?? "")
+        .split(",")
+        .map((part) =>
+          part
+            .trim()
+            .replace(/^type\s+/u, "")
+            .split(/\s+as\s+/u)
+            .at(-1)
+            ?.trim(),
+        )
+        .filter((name) => name !== undefined && name !== ""),
+    );
+
+    expect(exported.sort()).toEqual([
+      "TestBrain",
+      "TestBrainOptions",
+      "TestToolResult",
+      "startTestBrain",
+    ]);
+    for (const runtimeName of [
+      "IShell",
+      "declare class Shell",
+      "PluginManager",
+      "MockShell",
+      "JobQueueService",
+      "MCPService",
+      "TestBrainRuntime",
+      "temporaryRoot",
+    ]) {
+      expect(testingTypes).not.toContain(runtimeName);
+    }
+  });
+
   it("compiles the Phase 1 fixtures against generated declarations", async () => {
     const tempDir = mkdtempSync(join(pkgDir, ".tmp-operator-declarations-"));
     try {
@@ -205,6 +239,9 @@ describe("@rizom/brain public plugin API surface", () => {
             },
           },
           include: [
+            "../test/fixtures/public-authoring/entity/src/**/*.ts",
+            "../test/fixtures/public-authoring/service/src/**/*.ts",
+            "../test/fixtures/public-authoring/service/src/**/*.tsx",
             "../test/fixtures/public-authoring/operator-surface/src/**/*.ts",
             "../test/fixtures/public-authoring/account-settings-interface/src/**/*.ts",
           ],
@@ -243,55 +280,54 @@ describe("@rizom/brain public plugin API surface", () => {
     }
   });
 
+  it("keeps Node-only globals and modules out of public declarations", async () => {
+    // A consumer compiling without Node types must still read every public
+    // declaration, so none may name Node's globals or built-in modules.
+    const nodeBuiltin =
+      /^(?:node:.*|buffer|child_process|crypto|events|fs|fs\/promises|http|https|net|os|path|stream|url|util|worker_threads)$/;
+    for (const publicExport of listTypedPublicExports()) {
+      const types = stripDeclarationComments(
+        readFileSync(join(pkgDir, publicExport.types), "utf-8"),
+      );
+      const globals = [
+        ...types.matchAll(/\b(?:Buffer|NodeJS\.\w+|typeof process)\b/g),
+      ].map((match) => match[0]);
+      const modules = [
+        ...types.matchAll(/(?:\bfrom\s*|\bimport\s*\(?\s*)["']([^"']+)["']/g),
+      ]
+        .map((match) => match[1] ?? "")
+        .filter((specifier) => nodeBuiltin.test(specifier));
+      expect({ entry: publicExport.specifier, globals, modules }).toEqual({
+        entry: publicExport.specifier,
+        globals: [],
+        modules: [],
+      });
+    }
+  });
+
+  it("keeps runtime-only packages out of public declarations", async () => {
+    // The database and MCP server are runtime machinery. Their declarations
+    // need Node types, and the brain does not install the database for its
+    // consumers, so a public declaration that imports them cannot compile.
+    const runtimeOnly = /^(?:drizzle-orm(?:\/.*)?|@modelcontextprotocol\/.*)$/;
+    const leaks = listTypedPublicExports().flatMap((publicExport) =>
+      [
+        ...stripDeclarationComments(
+          readFileSync(join(pkgDir, publicExport.types), "utf-8"),
+        ).matchAll(/(?:\bfrom\s*|\bimport\s*\(?\s*)["']([^"']+)["']/g),
+      ]
+        .map((match) => match[1] ?? "")
+        .filter((specifier) => runtimeOnly.test(specifier))
+        .map((specifier) => `${publicExport.specifier} imports ${specifier}`),
+    );
+    expect(leaks).toEqual([]);
+  });
+
   it("keeps Effect and private /effect imports out of public declarations", async () => {
     for (const publicExport of listTypedPublicExports()) {
       const types = readFileSync(join(pkgDir, publicExport.types), "utf-8");
       expect(findEffectDeclarationImports(types)).toEqual([]);
     }
-  });
-
-  it("keeps shell internals out of public plugin types", async () => {
-    const pluginsTypes = readFileSync(
-      join(pkgDir, "dist", "plugins.d.ts"),
-      "utf-8",
-    );
-
-    expect(pluginsTypes).toContain("PluginPackageDefinition");
-    expect(pluginsTypes).not.toContain("declare abstract class EntityPlugin");
-    expect(pluginsTypes).not.toContain(
-      "declare abstract class InterfacePlugin",
-    );
-    expect(pluginsTypes).not.toContain(
-      "declare abstract class MessageInterfacePlugin",
-    );
-    expect(pluginsTypes).not.toContain("declare abstract class ServicePlugin");
-    expect(pluginsTypes).not.toContain("PluginFactory");
-    expect(pluginsTypes).not.toContain("declare function toolSuccess");
-    expect(pluginsTypes).toContain("ExtensionMetadataSchema");
-    expect(pluginsTypes).toContain("ExtensionMetadata");
-    expect(pluginsTypes).not.toContain("IShell");
-    expect(pluginsTypes).not.toContain("PluginManager");
-    expect(pluginsTypes).not.toContain("PluginRegistrationContext");
-    expect(pluginsTypes).not.toContain("PluginCapabilities");
-    expect(pluginsTypes).not.toContain("RuntimeInterfacePlugin");
-    expect(pluginsTypes).not.toContain("RuntimeMessageInterfacePlugin");
-    expect(pluginsTypes).not.toContain("isUploadableTextFile");
-    expect(pluginsTypes).not.toContain("isFileSizeAllowed");
-    expect(pluginsTypes).not.toContain("formatFileUploadMessage");
-    expect(pluginsTypes).not.toContain("extractCaptureableUrls");
-    expect(pluginsTypes).not.toContain("captureUrlViaAgent");
-    expect(pluginsTypes).not.toContain("InterfacePluginDelegate");
-    expect(pluginsTypes).not.toContain("MessageInterfacePluginDelegate");
-    expect(pluginsTypes).not.toContain("register(shell");
-    expect(pluginsTypes).not.toContain("SYSTEM_CHANNELS");
-    expect(pluginsTypes).not.toContain("createEntityPluginContext");
-    expect(pluginsTypes).not.toContain("createServicePluginContext");
-    expect(pluginsTypes).not.toContain("createInterfacePluginContext");
-    expect(pluginsTypes).not.toContain("AttachmentRegistry");
-    expect(pluginsTypes).not.toContain("IAttachmentsNamespace");
-    expect(pluginsTypes).not.toContain("AttachmentProvider");
-    expect(pluginsTypes).not.toContain("AttachmentResolveRequest");
-    expect(pluginsTypes).not.toContain("themeCSS");
   });
 
   it("resolves every typed package export against generated dist declarations", async () => {

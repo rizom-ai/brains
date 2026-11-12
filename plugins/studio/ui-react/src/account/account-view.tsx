@@ -11,10 +11,7 @@ import {
   accountClass,
   accountStyles as accountLayout,
 } from "../studio-account.styles";
-import type {
-  AuthAccountRole,
-  AuthAccountSnapshot,
-} from "@brains/auth-service/account-contracts";
+import type { AuthAccountRole, AuthAccountSnapshot } from "@brains/contracts";
 import { STUDIO_AI_TOOLS_SECTION } from "@brains/contracts";
 import { useMemo, useState } from "react";
 import { AccountClient } from "./account-api";

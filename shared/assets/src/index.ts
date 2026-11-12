@@ -106,7 +106,8 @@ export function prepareAsset(
   }
 
   // Own a stable copy so preparation is not invalidated by caller mutation.
-  const bytes = Uint8Array.from(input);
+  // The typed-array constructor copies in bulk, even from a Buffer.
+  const bytes = new Uint8Array(input);
   const digest = computeAssetDigest(bytes);
   return {
     ref: createAssetRef(digest),

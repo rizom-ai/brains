@@ -1,7 +1,12 @@
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
-import { CONSOLE_CHANNELS } from "@brains/contracts";
+import {
+  consoleJumpDestinationsContract,
+  directorySyncStatusContract,
+} from "@brains/contracts";
 import {
   DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
+  dashboardWidgetRegisterContract,
+  dashboardWidgetUnregisterContract,
   type DashboardWidgetProviderContext,
   type EntityCount,
   type WebRouteDefinition,
@@ -14,7 +19,7 @@ import type {
 } from "@brains/plugins";
 import { createTempDir } from "@brains/test-utils";
 import { AuthServicePlugin } from "@brains/auth-service";
-import { DashboardPlugin } from "../src/plugin";
+import { dashboardPlugin, type DashboardPlugin } from "./dashboard-plugins";
 import { consoleJumpResponseSchema } from "../src/console-jump";
 import {
   baseEntitySchema,
@@ -28,7 +33,7 @@ describe("DashboardPlugin", () => {
 
   beforeEach(async () => {
     harness = createPluginHarness({ dataDir: "/tmp/test-datadir" });
-    plugin = new DashboardPlugin();
+    plugin = dashboardPlugin();
     await harness.installPlugin(plugin);
   });
 
@@ -44,12 +49,23 @@ describe("DashboardPlugin", () => {
     });
 
     it("should not require site-builder as a plugin dependency", () => {
-      expect(Object.hasOwn(plugin, "dependencies")).toBe(false);
+      expect(plugin.dependencies ?? []).toEqual([]);
+    });
+
+    it("keeps its dashboard data off the shared data-source registry", () => {
+      expect(
+        harness
+          .getMockShell()
+          .getDataSourceRegistry()
+          .has("dashboard:dashboard"),
+      ).toBe(false);
     });
 
     it("should expose no tools", async () => {
-      const capabilities = await harness.installPlugin(new DashboardPlugin());
+      const fresh = createPluginHarness({ dataDir: "/tmp/test-datadir" });
+      const capabilities = await fresh.installPlugin(dashboardPlugin());
       expect(capabilities.tools).toHaveLength(0);
+      await fresh.reset();
     });
 
     it("should advertise the dashboard endpoint and interaction", () => {
@@ -125,8 +141,9 @@ describe("DashboardPlugin", () => {
 
     it("should declare configured theme assets before the route snapshot", async () => {
       const themeCSS = ":root { --dashboard-accent: lime; }";
-      const themedPlugin = new DashboardPlugin({ themeCSS });
-      await harness.installPlugin(themedPlugin);
+      const themedPlugin = dashboardPlugin({ themeCSS });
+      const themed = createPluginHarness({ dataDir: "/tmp/test-datadir" });
+      await themed.installPlugin(themedPlugin);
 
       const routes = themedPlugin.getWebRoutes();
       const pageRoute = routes.find((route) => route.path === "/dashboard");
@@ -152,6 +169,7 @@ describe("DashboardPlugin", () => {
         "text/css; charset=utf-8",
       );
       expect(await themeResponse?.text()).toBe(themeCSS);
+      await themed.reset();
     });
 
     it("builds anonymous card holdings from public scope only", async () => {
@@ -236,6 +254,7 @@ describe("DashboardPlugin", () => {
         getWebRoutes: () => [
           {
             path: "/studio",
+            role: "studio",
             method: "GET" as const,
             public: true,
             handler: async (): Promise<Response> => new Response("ok"),
@@ -246,7 +265,7 @@ describe("DashboardPlugin", () => {
       harness
         .getMockShell()
         .getMessageBus()
-        .subscribe(CONSOLE_CHANNELS.jumpDestinations, async (message) => {
+        .subscribe(consoleJumpDestinationsContract.name, async (message) => {
           asked.push(message.payload);
           return {
             success: true,
@@ -323,6 +342,7 @@ describe("DashboardPlugin", () => {
         getWebRoutes: () => [
           {
             path: "/studio",
+            role: "studio",
             method: "GET" as const,
             public: true,
             handler: async (): Promise<Response> => new Response("ok"),
@@ -573,6 +593,7 @@ describe("DashboardPlugin", () => {
         getWebRoutes: (): WebRouteDefinition[] => [
           {
             path: "/studio",
+            role: "studio",
             method: "GET",
             public: true,
             handler: async (): Promise<Response> => new Response("ok"),
@@ -610,7 +631,7 @@ describe("DashboardPlugin", () => {
     });
 
     it("should remove a tab when all widgets in that group are hidden", async () => {
-      await harness.sendMessage("dashboard:register-widget", {
+      await harness.sendMessage(dashboardWidgetRegisterContract.name, {
         id: "pipeline",
         pluginId: "content-pipeline",
         title: "Publication Pipeline",
@@ -640,7 +661,7 @@ describe("DashboardPlugin", () => {
       await harness.installPlugin(authPlugin);
       const session = await authPlugin.getService().createAuthSession();
       let privateProviderCalls = 0;
-      await harness.sendMessage("dashboard:register-widget", {
+      await harness.sendMessage(dashboardWidgetRegisterContract.name, {
         id: "private-operations",
         pluginId: "operations",
         title: "Private operations",
@@ -669,7 +690,7 @@ describe("DashboardPlugin", () => {
 
     it("keeps private operator diagnostics out of the public System tab", async () => {
       let syncStatusCalls = 0;
-      harness.subscribe("sync:status:request", async () => {
+      harness.subscribe(directorySyncStatusContract.name, async () => {
         syncStatusCalls += 1;
         return {
           success: true,
@@ -755,7 +776,7 @@ describe("DashboardPlugin", () => {
       const providerContexts: DashboardWidgetProviderContext[] = [];
       let hiddenProviderCalls = 0;
 
-      await harness.sendMessage("dashboard:register-widget", {
+      await harness.sendMessage(dashboardWidgetRegisterContract.name, {
         id: "skills",
         pluginId: "reader",
         group: "network",
@@ -784,7 +805,7 @@ describe("DashboardPlugin", () => {
           };
         },
       });
-      await harness.sendMessage("dashboard:register-widget", {
+      await harness.sendMessage(dashboardWidgetRegisterContract.name, {
         id: "anchor-only",
         pluginId: "reader",
         group: "knowledge",
@@ -879,8 +900,70 @@ describe("DashboardPlugin", () => {
   });
 
   describe("Widget Registration via Messaging", () => {
+    it("answers the widget contracts as their one owner", () => {
+      const imposter = harness.getServiceContext("imposter");
+
+      expect(() =>
+        imposter.messaging.answer(
+          dashboardWidgetRegisterContract,
+          async () => undefined,
+        ),
+      ).toThrow("already has an owner");
+      expect(() =>
+        imposter.messaging.answer(
+          dashboardWidgetUnregisterContract,
+          async () => undefined,
+        ),
+      ).toThrow("already has an owner");
+    });
+
+    it("registers and withdraws a widget through the dashboard namespace", async () => {
+      const context = harness.getServiceContext("reading");
+      const registry = plugin.getWidgetRegistry();
+
+      expect(context.dashboard.isAvailable()).toBe(true);
+      expect(
+        await context.dashboard.registerWidget({
+          id: "library",
+          title: "Library",
+          group: "knowledge",
+          rendererName: DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
+          renderer: { component: () => null, clientStyles: ".library {}" },
+          dataProvider: async () => ({ view: { blocks: [] } }),
+        }),
+      ).toBe(true);
+      expect(registry?.get("reading", "library")).toMatchObject({
+        id: "library",
+        pluginId: "reading",
+        priority: 50,
+        section: "primary",
+        visibility: "public",
+        renderer: { clientStyles: ".library {}" },
+      });
+
+      expect(await context.dashboard.unregisterWidget("library")).toBe(true);
+      expect(registry?.get("reading", "library")).toBeUndefined();
+    });
+
+    it("refuses an invalid widget before it reaches the dashboard", async () => {
+      const context = harness.getServiceContext("reading");
+
+      expect(
+        context.dashboard.registerWidget({
+          id: "library",
+          title: "Library",
+          group: "",
+          rendererName: DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
+          dataProvider: async () => ({ view: { blocks: [] } }),
+        }),
+      ).rejects.toThrow("group");
+      expect(plugin.getWidgetRegistry()?.get("reading", "library")).toBe(
+        undefined,
+      );
+    });
+
     it("should register widget when receiving dashboard:register-widget message", async () => {
-      await harness.sendMessage("dashboard:register-widget", {
+      await harness.sendMessage(dashboardWidgetRegisterContract.name, {
         id: "test-widget",
         pluginId: "test-plugin",
         group: "knowledge",
@@ -903,7 +986,7 @@ describe("DashboardPlugin", () => {
     });
 
     it("should unregister widget when receiving dashboard:unregister-widget message", async () => {
-      await harness.sendMessage("dashboard:register-widget", {
+      await harness.sendMessage(dashboardWidgetRegisterContract.name, {
         id: "test-widget",
         pluginId: "test-plugin",
         group: "knowledge",
@@ -914,7 +997,7 @@ describe("DashboardPlugin", () => {
         dataProvider: async () => ({ count: 42 }),
       });
 
-      await harness.sendMessage("dashboard:unregister-widget", {
+      await harness.sendMessage(dashboardWidgetUnregisterContract.name, {
         pluginId: "test-plugin",
         widgetId: "test-widget",
       });
@@ -926,7 +1009,7 @@ describe("DashboardPlugin", () => {
     });
 
     it("should unregister all widgets for a plugin", async () => {
-      await harness.sendMessage("dashboard:register-widget", {
+      await harness.sendMessage(dashboardWidgetRegisterContract.name, {
         id: "widget-1",
         pluginId: "test-plugin",
         group: "knowledge",
@@ -937,7 +1020,7 @@ describe("DashboardPlugin", () => {
         dataProvider: async () => ({}),
       });
 
-      await harness.sendMessage("dashboard:register-widget", {
+      await harness.sendMessage(dashboardWidgetRegisterContract.name, {
         id: "widget-2",
         pluginId: "test-plugin",
         group: "knowledge",
@@ -955,7 +1038,7 @@ describe("DashboardPlugin", () => {
 
       expect(testPluginCount()).toBe(2);
 
-      await harness.sendMessage("dashboard:unregister-widget", {
+      await harness.sendMessage(dashboardWidgetUnregisterContract.name, {
         pluginId: "test-plugin",
       });
 
@@ -967,28 +1050,41 @@ describe("DashboardPlugin", () => {
         .getMockShell()
         .getMessageBus()
         .send({
-          type: "dashboard:unregister-widget",
+          type: dashboardWidgetUnregisterContract.name,
           payload: { widgetId: 42 },
           sender: "test",
         });
 
       expect(response).toEqual({
         success: false,
-        error: "Widget unregistration failed",
+        error: "Invalid dashboard:unregister-widget request",
+        code: "invalid_input",
       });
     });
 
     it("should reject a widget registration without a group", async () => {
-      await harness.sendMessage("dashboard:register-widget", {
-        id: "legacy-widget",
-        pluginId: "test-plugin",
-        title: "Legacy Widget",
-        section: "primary",
-        priority: 10,
-        rendererName: "DeclarativeOperatorWidget",
-        dataProvider: async () => ({ ok: true }),
-      });
+      const response = await harness
+        .getMockShell()
+        .getMessageBus()
+        .send({
+          type: dashboardWidgetRegisterContract.name,
+          payload: {
+            id: "legacy-widget",
+            pluginId: "test-plugin",
+            title: "Legacy Widget",
+            section: "primary",
+            priority: 10,
+            rendererName: "DeclarativeOperatorWidget",
+            dataProvider: async () => ({ ok: true }),
+          },
+          sender: "test",
+        });
 
+      expect(response).toEqual({
+        success: false,
+        error: "Invalid dashboard:register-widget request",
+        code: "invalid_input",
+      });
       const registry = plugin.getWidgetRegistry();
       const testPluginWidgets =
         registry?.list().filter((w) => w.pluginId === "test-plugin") ?? [];
@@ -996,7 +1092,7 @@ describe("DashboardPlugin", () => {
     });
 
     it("should reject nondeclarative renderer names", async () => {
-      await harness.sendMessage("dashboard:register-widget", {
+      await harness.sendMessage(dashboardWidgetRegisterContract.name, {
         id: "broken-widget",
         pluginId: "test-plugin",
         group: "knowledge",
@@ -1014,7 +1110,7 @@ describe("DashboardPlugin", () => {
     });
 
     it("should reject plugin-owned browser assets", async () => {
-      await harness.sendMessage("dashboard:register-widget", {
+      await harness.sendMessage(dashboardWidgetRegisterContract.name, {
         id: "private-browser-widget",
         pluginId: "test-plugin",
         group: "knowledge",

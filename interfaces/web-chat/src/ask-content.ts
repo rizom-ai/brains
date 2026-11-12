@@ -1,12 +1,16 @@
-import { parseAskContent, type AskContent } from "@brains/contracts";
-import type { InterfacePluginContext } from "@brains/plugins";
+import { askContentFromRecord, type AskContent } from "@brains/contracts";
+import type { InterfaceRuntime } from "@brains/sdk/internal/interface-runtime";
 
 export function publicAskContent(
-  entity: { visibility: string; content: string } | null,
+  entity: {
+    visibility: string;
+    content: string;
+    metadata?: Record<string, unknown>;
+  } | null,
 ): AskContent | undefined {
   if (entity?.visibility !== "public") return undefined;
   try {
-    return parseAskContent(entity.content);
+    return askContentFromRecord(entity);
   } catch {
     // Malformed optional copy is omitted, never replaced with fallback prose.
     return undefined;
@@ -15,7 +19,7 @@ export function publicAskContent(
 
 /** Optional public copy: absence, private content and invalid authoring fail closed. */
 export async function loadAskContent(
-  entities: InterfacePluginContext["entityService"],
+  entities: InterfaceRuntime["entityReads"],
 ): Promise<AskContent | undefined> {
   try {
     const entity = await entities.getEntity({

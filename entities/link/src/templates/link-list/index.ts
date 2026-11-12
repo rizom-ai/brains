@@ -1,4 +1,4 @@
-import { createTemplate } from "@brains/templates";
+import { createTemplate } from "@brains/sdk/internal/presentation";
 import { linkListSchema, type LinkListData } from "./schema";
 import { LinkListLayout } from "./layout";
 

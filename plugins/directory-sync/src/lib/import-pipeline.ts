@@ -1,7 +1,10 @@
-import type { BaseEntity, EntityServiceClient } from "@brains/plugins";
+import {
+  type ServiceEntityMirrorClient,
+  internalFullScope,
+} from "@brains/sdk/internal/service-runtime";
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
 import type { DirectoryImportPlan } from "../types/jobs";
 import { captureImportPlan } from "./import-plan";
-import { internalFullScope } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { ImportResult, RawEntity } from "../types";
 import type { FileOperations } from "./file-operations";
@@ -25,7 +28,7 @@ import {
 } from "./import-result";
 
 export interface ImportPipelineDeps {
-  entityService: EntityServiceClient;
+  entityService: ServiceEntityMirrorClient;
   logger: Logger;
   fileOperations: FileOperations;
   quarantine: Quarantine;
@@ -119,7 +122,9 @@ async function processEntityImport(
   rawEntity: RawEntity,
   filePath: string,
   result: ImportResult,
-  snapshot: Awaited<ReturnType<EntityServiceClient["getEntityWriteSnapshot"]>>,
+  snapshot: Awaited<
+    ReturnType<ServiceEntityMirrorClient["getEntityWriteSnapshot"]>
+  >,
 ): Promise<void> {
   const contentSkipReason = getImportContentSkipReason(rawEntity);
   if (contentSkipReason) {

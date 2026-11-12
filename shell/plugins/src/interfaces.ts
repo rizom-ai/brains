@@ -3,19 +3,13 @@ import type {
   EntityActionPolicyConfig,
   UserPermissionLevel,
 } from "@brains/templates";
-import {
-  defaultQueryResponseSchema,
-  simpleTextResponseSchema,
-  createEntityResponseSchema,
-  updateEntityResponseSchema,
-  type DefaultQueryResponse,
-  type SimpleTextResponse,
-  type CreateEntityResponse,
-  type UpdateEntityResponse,
-} from "@brains/contracts";
+import type { DefaultQueryResponse } from "@brains/contracts";
 import type { IMessageBus } from "@brains/messaging-service";
 import type { Daemon } from "./manager/daemon-types";
-import type { IContentService } from "@brains/content-service";
+import type {
+  CallerAuthorizer,
+  IContentService,
+} from "@brains/content-service";
 import type { Template } from "@brains/templates";
 import type { Logger } from "@brains/utils/logger";
 import type { IEntityService, IEntityRegistry } from "@brains/entity-service";
@@ -53,6 +47,8 @@ import type { IInboxRegistry } from "./inbox-registry";
 import type { IInboxFollowUpRegistry } from "./inbox-follow-up-registry";
 import type { IOperationalHealthRegistry } from "./operational-health-registry";
 import type { AccountSettingsRegistry } from "./operator/account-settings-registry";
+import type { AuthRegistry } from "./auth-registry";
+import type { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import type {
   AnchorProfile,
   BrainCharacter,
@@ -65,6 +61,7 @@ import type { IRecurringChecksNamespace } from "@brains/recurring-checks";
 import type { IRuntimeStateNamespace } from "@brains/runtime-state";
 import type { IRuntimeUploadsNamespace } from "./service/upload-registry";
 import type { RuntimeReadiness } from "./contracts/runtime-health";
+import type { StaticSiteOutput } from "./internal/http-host";
 import type { ProjectionRule } from "./entity/projection-rule";
 import type {
   AIGenerationSchema,
@@ -204,6 +201,8 @@ export interface IShell {
   // Core service accessors
   getMessageBus(): IMessageBus;
   getContentService(): IContentService;
+  /** Requester authority for durable work, shared with generation. */
+  getCallerAuthorizer(): CallerAuthorizer;
   getLogger(): Logger;
   getEntityService(): IEntityService;
   getEntityRegistry(): IEntityRegistry;
@@ -229,11 +228,16 @@ export interface IShell {
   getInboxFollowUpRegistry(): IInboxFollowUpRegistry;
   getOperationalHealthRegistry(): IOperationalHealthRegistry;
   getAccountSettingsRegistry(): AccountSettingsRegistry;
+  getAuthRegistry(): AuthRegistry;
+  getAtprotoProjectionRegistry(): AtprotoProjectionRegistry;
 
   // Domain — bare domain string (e.g. "yeehaa.io"), undefined for local dev
   getDomain(): string | undefined;
   getLocalSiteUrl(): string | undefined;
   shouldPreferLocalUrls(): boolean;
+  isProduction(): boolean;
+  /** Whether this process serves the brain's HTTP surface. */
+  servesHttp(): boolean;
   getThemeCSS(): string;
 
   // Shared conversation spaces for this brain/team
@@ -272,7 +276,7 @@ export interface IShell {
   }>;
   query(prompt: string, context?: QueryContext): Promise<DefaultQueryResponse>;
 
-  // Image generation (requires AI_API_KEY)
+  // Image generation (requires the image model's provider key)
   generateImage(
     prompt: string,
     options?: ImageGenerationOptions,
@@ -331,18 +335,6 @@ export interface IShell {
   // Web routes from plugins
   getPluginWebRoutes(): RegisteredWebRoute[];
 }
-
-// Re-export response schemas for backward compatibility
-export {
-  defaultQueryResponseSchema,
-  simpleTextResponseSchema,
-  createEntityResponseSchema,
-  updateEntityResponseSchema,
-  type DefaultQueryResponse,
-  type SimpleTextResponse,
-  type CreateEntityResponse,
-  type UpdateEntityResponse,
-};
 
 // Re-export MCP transport interface
 export type { IMCPTransport } from "@brains/mcp-service";
@@ -428,4 +420,9 @@ export type Plugin = z.output<typeof pluginMetadataSchema> & {
   requiresDaemonStartup?(): boolean;
   getApiRoutes?(): ApiRouteDefinition[];
   getWebRoutes?(): WebRouteDefinition[];
+  /**
+   * Where this plugin writes the site the runtime's HTTP host serves. Read
+   * once, when the host starts.
+   */
+  getStaticSiteOutput?(): StaticSiteOutput | undefined;
 };

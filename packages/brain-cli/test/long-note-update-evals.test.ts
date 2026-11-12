@@ -44,20 +44,19 @@ describe("long-note agent eval coverage", () => {
       expect(criteria?.expectedTools?.map((tool) => tool.toolName)).toEqual([
         "system_update",
       ]);
+      // An edit is judged by the note it stores, read back after approval,
+      // not by the exact text it quotes: any edits operation may propose it.
       expect(criteria?.expectedTools?.[0]?.argsContain).toEqual({
         entityType: "note",
         id,
-        operation: {
-          kind: "edits",
-          edits: [
-            { oldText: "# Working Plan", newText: "# Approved Plan" },
-            {
-              oldText: "Review cadence: monthly.",
-              newText: "Review cadence: weekly.",
-            },
-          ],
-        },
       });
+      expect(criteria?.expectedTools?.[0]?.argsAbsent).toEqual(
+        expect.arrayContaining([
+          "operation.fields",
+          "operation.content",
+          "operation.source",
+        ]),
+      );
       expect(criteria?.expectedTools?.[0]?.resultContains).toEqual({
         needsConfirmation: true,
       });
@@ -79,15 +78,11 @@ describe("long-note agent eval coverage", () => {
     // Approval checks the executed operation and storage result, not a success phrase.
     expect(
       testCase.turns[4]?.successCriteria?.expectedTools?.[0]?.resultContains,
-    ).toEqual({ success: true, "data.updated": id });
+    ).toEqual({ updated: id });
   });
 
-  it.each([
-    { id: "long-note-update-7kb", bytes: 7_000 },
-    { id: "long-note-update-14kb", bytes: 14_000 },
-    { id: "long-note-update-17kb", bytes: 17_000 },
-    { id: "long-note-update-title-and-body", bytes: 1_000 },
-  ])(
+  // 17 KB and a combined title and body edit are mcp-long-note-update's.
+  it.each([{ id: "long-note-update-7kb", bytes: 7_000 }])(
     "checks exact proposals, cancelled state, and saved state: $id",
     async ({ id, bytes }) => {
       const testCase = await load(id);
@@ -111,31 +106,25 @@ describe("long-note agent eval coverage", () => {
       // normal agent read results, which expose the data directly.
       expect(
         testCase.turns[4]?.successCriteria?.expectedTools?.[0]?.resultContains,
-      ).toEqual({ success: true, "data.updated": id });
+      ).toEqual({ updated: id });
       for (const index of [0, 3]) {
+        // An edit needs no fresh read: the update matches its old text
+        // against the stored note and refuses a note changed since the
+        // model read it. Only the turns that report stored content must read.
+        expect(
+          testCase.turns[index]?.successCriteria?.expectedTools?.map(
+            (tool) => tool.toolName,
+          ),
+        ).toEqual(["system_update"]);
         const proposal = testCase.turns[
           index
         ]?.successCriteria?.expectedTools?.find(
           (tool) => tool.toolName === "system_update",
         );
-        expect(proposal?.argsContain).toMatchObject({
-          entityType: "note",
-          id,
-          operation: {
-            kind: "edits",
-            edits: [
-              ...(combined
-                ? [{ oldText: "# Working Plan", newText: "# Approved Plan" }]
-                : []),
-              {
-                oldText: "Review cadence: monthly.",
-                newText: "Review cadence: weekly.",
-              },
-            ],
-          },
-        });
+        expect(proposal?.argsContain).toEqual({ entityType: "note", id });
         expect(proposal?.argsAbsent).toContain("operation.fields");
         expect(proposal?.argsAbsent).toContain("operation.content");
+        expect(proposal?.argsAbsent).toContain("operation.source");
         expect(proposal?.resultContains).toEqual({ needsConfirmation: true });
       }
       const cancelledRead =

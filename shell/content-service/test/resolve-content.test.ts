@@ -1,3 +1,4 @@
+import { CallerAuthorizer } from "../src/caller-authority";
 import { GenerationAuthorizer } from "../src/generation-authorization";
 import { PermissionService } from "@brains/templates";
 import { createMockAIService } from "@brains/ai-service/test";
@@ -35,6 +36,7 @@ describe("ContentService.resolveContent", () => {
     // Create a fresh TemplateRegistry for each test
     templateRegistry = InMemoryTemplateRegistry.createFresh(mockLogger);
 
+    const permissions = new PermissionService({});
     mockDependencies = {
       logger: mockLogger,
       entityService: mockEntityService,
@@ -42,8 +44,8 @@ describe("ContentService.resolveContent", () => {
       templateRegistry,
       dataSourceRegistry: mockDataSourceRegistry,
       generationAuthorizer: new GenerationAuthorizer(
-        new PermissionService({}),
-        async () => null,
+        permissions,
+        new CallerAuthorizer(permissions, async () => null),
       ),
     };
 
@@ -195,7 +197,42 @@ describe("ContentService.resolveContent", () => {
       expect(mockDependencies.entityService.getEntityRaw).toHaveBeenCalledWith({
         entityType: "site-content-preview",
         id: "article-123",
+        source: true,
       });
+    });
+
+    it("parses saved content as stored, its frontmatter included", async () => {
+      // A declared type reads its body alone; its stored document keeps a
+      // hand-written file's frontmatter, which the formatter always read.
+      const stored = "---\nnote: kept by hand\n---\n# About\n";
+      const parsed: string[] = [];
+      templateRegistry.register("about", {
+        name: "about",
+        description: "About section",
+        schema: z.string(),
+        formatter: {
+          format: (data) => String(data),
+          parse: (content) => {
+            parsed.push(content);
+            return content;
+          },
+        },
+        requiredPermission: "public",
+      });
+      getEntitySpy.mockImplementation(
+        async (request: { source?: boolean }) => ({
+          id: "about:main",
+          entityType: "site-content",
+          content: request.source === true ? stored : "# About\n",
+        }),
+      );
+
+      const result = await contentService.resolveContent("about", {
+        savedContent: { entityType: "site-content", entityId: "about:main" },
+      });
+
+      expect(result).toBe(stored);
+      expect(parsed).toEqual([stored]);
     });
 
     it("should skip saved content when no formatter is available", async () => {
@@ -1250,6 +1287,7 @@ describe("ContentService.resolveContent", () => {
         entityType: "site-content",
         id: "section-id",
         visibilityScope: "public",
+        source: true,
       });
     });
 
@@ -1457,6 +1495,44 @@ describe("ContentService.resolveContent", () => {
       });
 
       expect(result).toEqual({ count: 7, heading: "Authored" });
+    });
+
+    it("overlays saved content as stored, its frontmatter included", async () => {
+      const stored = '---\nnote: kept by hand\n---\n{"heading":"Authored"}';
+      const read: string[] = [];
+      templateRegistry.register("map-stored", {
+        name: "map-stored",
+        description: "Overlay read from the stored document",
+        dataSourceId: "shell:map-stored-source",
+        schema: overlaySchema,
+        overlayFormatter: {
+          format: (data: unknown): string => JSON.stringify(data),
+          parse: (content: string): unknown => {
+            read.push(content);
+            return JSON.parse(content.replace(/^---\n[\s\S]*?\n---\n/u, ""));
+          },
+        },
+        requiredPermission: "public",
+      });
+      dataSourceGetSpy.mockReturnValue({
+        id: "shell:map-stored-source",
+        fetch: mock().mockResolvedValue({ count: 5 }),
+      });
+      getEntitySpy.mockImplementation(
+        async (request: { source?: boolean }) => ({
+          id: "home:network",
+          entityType: "site-content",
+          content: request.source === true ? stored : '{"heading":"Body"}',
+        }),
+      );
+
+      const result = await contentService.resolveContent("map-stored", {
+        dataParams: {},
+        savedContent: { entityType: "site-content", entityId: "home:network" },
+      });
+
+      expect(result).toEqual({ count: 5, heading: "Authored" });
+      expect(read).toEqual([stored]);
     });
 
     it("returns the pure datasource base when no saved content exists", async () => {

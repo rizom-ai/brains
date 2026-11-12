@@ -1,7 +1,7 @@
 import {
   defineAnalyticsReport,
   type AnalyticsReportDefinition,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/service-runtime";
 import { z } from "@brains/utils/zod";
 import { addDays, datesBetween, isoWeekOf } from "../lib/iso-week";
 import {
@@ -20,7 +20,7 @@ import {
  */
 const OWNER_PATH_PREFIXES = [
   "/studio",
-  // Studio's path before it was renamed; old links and bookmarks still use it.
+  // Studio's path before it was renamed: old owner bookmarks still request it.
   "/cms",
   "/login",
   "/logout",

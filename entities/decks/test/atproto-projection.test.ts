@@ -1,15 +1,13 @@
-import { describe, expect, it, beforeEach } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
-import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
-import { createDeckAtprotoProjection } from "../src/atproto-projection";
-import { DecksPlugin } from "../src/plugin";
-import type { DeckEntity } from "../src/schemas/deck";
+import { buildDeckAtprotoRecord } from "../src/atproto-projection";
+import { decksPlugin } from "./decks-plugin";
 
-const deck: DeckEntity = {
+// A deck as a declared type reads it: its metadata and its slides.
+const deck: Parameters<typeof buildDeckAtprotoRecord>[0]["entity"] = {
   id: "deck-1",
   entityType: "deck",
-  content:
-    "---\ntitle: Network Deck\nslug: network-deck\ndescription: A deck about networks.\nauthor: Ada\nstatus: published\npublishedAt: 2026-05-28T10:00:00.000Z\nevent: Rizom Summit\n---\n# Network Deck\n\n---\n\n## Slide Two",
+  content: "# Network Deck\n\n---\n\n## Slide Two",
   created: "2026-05-28T09:00:00.000Z",
   updated: "2026-05-28T11:00:00.000Z",
   visibility: "public",
@@ -17,27 +15,39 @@ const deck: DeckEntity = {
   metadata: {
     title: "Network Deck",
     slug: "network-deck",
+    authoredSlug: true,
     description: "A deck about networks.",
+    author: "Ada",
     status: "published",
     publishedAt: "2026-05-28T10:00:00.000Z",
+    event: "Rizom Summit",
   },
 };
 
+function recordInput(
+  overrides: Partial<Parameters<typeof buildDeckAtprotoRecord>[0]> = {},
+): Parameters<typeof buildDeckAtprotoRecord>[0] {
+  return {
+    entity: deck,
+    config: {},
+    dryRun: false,
+    entities: {
+      get: async () => null,
+      list: async () => [],
+      count: async () => 0,
+    },
+    uploadBlob: async (): Promise<never> => {
+      throw new Error("not used");
+    },
+    ...overrides,
+  };
+}
+
 describe("deck ATProto projection", () => {
-  beforeEach(() => {
-    AtprotoProjectionRegistry.resetInstance();
-  });
-
   it("maps decks to ai.rizom.brain.deck records", async () => {
-    const projection = createDeckAtprotoProjection();
-
-    const record = await projection.buildRecord({
-      entity: deck,
-      context: createPluginHarness().getServiceContext("decks"),
-      config: {
-        brainDid: "did:web:brain.example.com",
-      },
-    });
+    const record = await buildDeckAtprotoRecord(
+      recordInput({ config: { brainDid: "did:web:brain.example.com" } }),
+    );
 
     expect(record).toEqual({
       $type: "ai.rizom.brain.deck",
@@ -58,28 +68,22 @@ describe("deck ATProto projection", () => {
   });
 
   it("names its page when the site gives the deck one, and nothing otherwise", async () => {
-    const projection = createDeckAtprotoProjection();
-    const context = createPluginHarness().getServiceContext("decks");
-    const placed = await projection.buildRecord({
-      entity: deck,
-      context,
-      config: {},
-      pageUrl: "https://brain.example.com/decks/deck-1",
-    });
+    const placed = await buildDeckAtprotoRecord(
+      recordInput({ pageUrl: "https://brain.example.com/decks/deck-1" }),
+    );
     expect(placed.canonicalUrl).toBe("https://brain.example.com/decks/deck-1");
-    const unplaced = await projection.buildRecord({
-      entity: deck,
-      context,
-      config: {},
-    });
+    const unplaced = await buildDeckAtprotoRecord(recordInput());
     expect(unplaced.canonicalUrl).toBeUndefined();
   });
 
   it("registers the deck projection when the decks plugin registers", async () => {
     const harness = createPluginHarness({ dataDir: "/tmp/test-deck-atproto" });
-    await harness.installPlugin(new DecksPlugin());
+    await harness.installPlugin(decksPlugin());
 
-    const projection = AtprotoProjectionRegistry.getInstance().get("deck");
+    const projection = harness
+      .getMockShell()
+      .getAtprotoProjectionRegistry()
+      .get("deck");
 
     expect(projection).toBeDefined();
     expect(projection?.collection).toBe("ai.rizom.brain.deck");

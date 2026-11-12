@@ -1,4 +1,8 @@
-import type { AppInfo, EntityCount } from "@brains/plugins";
+import type { SocialLinkPlatform } from "@brains/contracts";
+import type {
+  AppInfo,
+  EntityCount,
+} from "@brains/sdk/internal/service-runtime";
 import type { WidgetComponent } from "../widget-registry";
 import type { WidgetData } from "../widget-schema";
 
@@ -18,7 +22,7 @@ export interface ProfileInput {
   email?: string | undefined;
   socialLinks?:
     | readonly {
-        platform: "github" | "instagram" | "linkedin" | "email" | "website";
+        platform: SocialLinkPlatform;
         url: string;
         label?: string | undefined;
       }[]

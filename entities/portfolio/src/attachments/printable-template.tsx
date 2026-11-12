@@ -1,7 +1,10 @@
 import type { JSX } from "react";
-import { MarkdownContent } from "@brains/ui-library";
+import { MarkdownContent } from "@rizom/brain-ui";
 import { z } from "@brains/utils/zod";
-import { createTemplate, type Template } from "@brains/plugins";
+import {
+  createTemplate,
+  type Template,
+} from "@brains/sdk/internal/presentation";
 
 export const PROJECT_PRINTABLE_ATTACHMENT_TYPE = "printable";
 export const PROJECT_PRINTABLE_TEMPLATE_NAME = "portfolio:project-printable";

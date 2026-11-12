@@ -152,16 +152,16 @@ describe("builtin process supervision", () => {
       join(testDir, "brain.yaml"),
       "brain: brain\nbundleContract: capability-bundles-v1\nbundles: [core]\n",
     );
-    previousApiKey = process.env["AI_API_KEY"];
-    process.env["AI_API_KEY"] = "test-key";
+    previousApiKey = process.env["OPENAI_API_KEY"];
+    process.env["OPENAI_API_KEY"] = "test-key";
     setCanonicalDefinition(definition);
   });
 
   afterEach(() => {
     if (previousApiKey === undefined) {
-      delete process.env["AI_API_KEY"];
+      delete process.env["OPENAI_API_KEY"];
     } else {
-      process.env["AI_API_KEY"] = previousApiKey;
+      process.env["OPENAI_API_KEY"] = previousApiKey;
     }
     rmSync(testDir, { recursive: true, force: true });
     resetBootFn();
@@ -341,9 +341,9 @@ describe("resolveRunnerType", () => {
     expect(resolveRunnerType(import.meta.dir)).toBe("builtin");
   });
 
-  it("should pass startup-check mode through to builtin boot without requiring AI_API_KEY", async () => {
-    const previousApiKey = process.env["AI_API_KEY"];
-    delete process.env["AI_API_KEY"];
+  it("should pass startup-check mode through to builtin boot without requiring OPENAI_API_KEY", async () => {
+    const previousApiKey = process.env["OPENAI_API_KEY"];
+    delete process.env["OPENAI_API_KEY"];
 
     const brainDir = join(
       tmpdir(),
@@ -386,9 +386,9 @@ describe("resolveRunnerType", () => {
       expect(stop).toHaveBeenCalledTimes(1);
     } finally {
       if (previousApiKey === undefined) {
-        delete process.env["AI_API_KEY"];
+        delete process.env["OPENAI_API_KEY"];
       } else {
-        process.env["AI_API_KEY"] = previousApiKey;
+        process.env["OPENAI_API_KEY"] = previousApiKey;
       }
       rmSync(brainDir, { recursive: true, force: true });
     }

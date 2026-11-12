@@ -194,14 +194,5 @@ describe("DataSourceRegistry", () => {
       expect(registry.has("shell:test-fetch")).toBe(false);
       expect(registry.get("shell:test-fetch")).toBeUndefined();
     });
-
-    test("should clear all data sources", () => {
-      registry.register(mockFetchDataSource);
-      registry.register(mockGenerateDataSource);
-      expect(registry.list()).toHaveLength(2);
-
-      registry.clear();
-      expect(registry.list()).toHaveLength(0);
-    });
   });
 });

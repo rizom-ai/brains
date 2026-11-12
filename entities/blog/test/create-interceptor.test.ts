@@ -1,11 +1,19 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { CreateInput } from "@brains/plugins";
-import { BlogPlugin } from "../src/plugin";
+import { blogPlugin } from "./blog-plugin";
 
 const executionContext = {
   interfaceType: "test",
   actor: { kind: "user" as const, userId: "test-user" },
+  userPermissionLevel: "admin" as const,
+};
+
+/** What a job the caller starts through the route records about them. */
+const authority = {
+  actor: executionContext.actor,
+  permissionCeiling: "admin",
+  principalId: "test-user",
 };
 
 const essay =
@@ -13,7 +21,7 @@ const essay =
 const body =
   "I write slowly, and I keep it that way.\n\n> A quote I chose.\n\nThe last paragraph, exactly as written.";
 
-describe("BlogPlugin create interceptor", () => {
+describe("the post create route", () => {
   let harness: ReturnType<typeof createPluginHarness>;
   let enqueued: Array<{ type: string; data: unknown }>;
 
@@ -21,6 +29,11 @@ describe("BlogPlugin create interceptor", () => {
     harness = createPluginHarness({
       dataDir: "/tmp/test-datadir-blog-create",
       logContext: "blog-create-test",
+      // The caller who creates through system_create is signed in.
+      resolvePrincipal: async () => ({
+        userId: "test-user",
+        permissionLevel: "admin",
+      }),
     });
     enqueued = [];
     const mockShell = harness.getMockShell();
@@ -34,7 +47,7 @@ describe("BlogPlugin create interceptor", () => {
         return "job-1";
       },
     });
-    await harness.installPlugin(new BlogPlugin({}));
+    await harness.installPlugin(blogPlugin());
   });
 
   afterEach(async () => {
@@ -62,7 +75,12 @@ describe("BlogPlugin create interceptor", () => {
     expect(enqueued).toEqual([
       {
         type: "post:generation",
-        data: { entityId: "on-slowness", title: "On slowness", content: body },
+        // The post's own generation, for the caller, filling the stub.
+        data: {
+          authority,
+          input: { title: "On slowness", content: body },
+          entityId: "on-slowness",
+        },
       },
     ]);
     const stub = await harness.getEntityService().getEntity({
@@ -83,8 +101,7 @@ describe("BlogPlugin create interceptor", () => {
       content: essay,
     });
     expect(enqueued[0]?.data).toMatchObject({
-      title: "On Slowness",
-      content: body,
+      input: { title: "On Slowness", content: body },
     });
   });
 
@@ -95,8 +112,7 @@ describe("BlogPlugin create interceptor", () => {
       content: essay,
     });
     expect(enqueued[0]?.data).toMatchObject({
-      title: "Slow writing",
-      content: essay,
+      input: { title: "Slow writing", content: essay },
     });
   });
 
@@ -145,12 +161,15 @@ describe("BlogPlugin create interceptor", () => {
       },
     });
     expect(enqueued[0]?.data).toEqual({
+      authority,
+      input: {
+        title: "On slowness",
+        content: body,
+        status: "published",
+        publishedAt: "2025-03-12T00:00:00.000Z",
+        canonicalUrl: "https://example.substack.com/p/on-slowness",
+      },
       entityId: "on-slowness",
-      title: "On slowness",
-      content: body,
-      status: "published",
-      publishedAt: "2025-03-12T00:00:00.000Z",
-      canonicalUrl: "https://example.substack.com/p/on-slowness",
     });
   });
 
@@ -160,10 +179,12 @@ describe("BlogPlugin create interceptor", () => {
       content: `---\nexcerpt: My own summary.\nauthor: Someone\n---\n\n${essay}`,
     });
     expect(enqueued[0]?.data).toMatchObject({
-      title: "On slowness",
-      content: body,
-      excerpt: "My own summary.",
-      author: "Someone",
+      input: {
+        title: "On slowness",
+        content: body,
+        excerpt: "My own summary.",
+        author: "Someone",
+      },
     });
   });
 

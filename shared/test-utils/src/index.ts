@@ -21,11 +21,8 @@ export {
 // Progress reporter mocks
 export { createMockProgressReporter } from "./mock-progress-reporter";
 
-// Message sender mocks
-export {
-  createMockMessageSender,
-  createMockMessagePublisher,
-} from "./mock-message-sender";
+// Message publisher mock
+export { createMockMessagePublisher } from "./mock-message-publisher";
 
 // Isolated file-backed database for one test, with one cleanup contract
 export {

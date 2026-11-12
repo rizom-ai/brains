@@ -14,6 +14,7 @@ import {
   unwrittenFields,
 } from "./frontmatter-extensions";
 import { z } from "@brains/utils/zod";
+import { editableFieldsOf } from "./editable-fields";
 import {
   getArrayElement,
   getObjectShape,
@@ -31,6 +32,7 @@ import {
 import type {
   BaseEntity,
   CreateCheck,
+  GenerationEnqueuer,
   CreateInterceptor,
   UploadSaveHandlerRegistration,
   EntityAdapter,
@@ -49,6 +51,7 @@ export class EntityRegistry implements IEntityRegistry {
   private entityConfigs = new Map<string, EntityTypeConfig>();
   private createInterceptors = new Map<string, CreateInterceptor>();
   private createChecks = new Map<string, CreateCheck>();
+  private generationEnqueuers = new Map<string, GenerationEnqueuer>();
   private uploadSaveHandlers: UploadSaveHandlerRegistration[] = [];
   private persistValidators = new Map<string, PersistValidator>();
   private frontmatterExtensions = new Map<string, FrontmatterSchema[]>();
@@ -143,6 +146,7 @@ export class EntityRegistry implements IEntityRegistry {
     this.entityConfigs.delete(type);
     this.createInterceptors.delete(type);
     this.createChecks.delete(type);
+    this.generationEnqueuers.delete(type);
     this.persistValidators.delete(type);
     this.frontmatterExtensions.delete(type);
     this.groupingExtensions.delete(type);
@@ -335,6 +339,14 @@ export class EntityRegistry implements IEntityRegistry {
 
   getCreateCheck(type: string): CreateCheck | undefined {
     return this.createChecks.get(type);
+  }
+
+  registerGenerationEnqueuer(type: string, enqueuer: GenerationEnqueuer): void {
+    this.generationEnqueuers.set(type, enqueuer);
+  }
+
+  getGenerationEnqueuer(type: string): GenerationEnqueuer | undefined {
+    return this.generationEnqueuers.get(type);
   }
 
   registerUploadSaveHandler(registration: UploadSaveHandlerRegistration): void {
@@ -685,6 +697,33 @@ export class EntityRegistry implements IEntityRegistry {
   }
 
   /**
+   * The fields of an entity type's effective frontmatter that callers may
+   * set, typed as the frontmatter types them: all but the brain's own
+   * record, which a schema marks as Studio's provenance or hidden fields.
+   */
+  getEditableFieldsSchema(type: string): FrontmatterSchema | undefined {
+    const effective = this.getEffectiveFrontmatterSchema(type);
+    if (effective) return editableFieldsOf(effective);
+    // A type without frontmatter, such as a stored file, keeps what callers
+    // set in its metadata.
+    const entitySchema = this.entitySchemas.get(type);
+    const metadata =
+      entitySchema instanceof z.ZodObject
+        ? entitySchema.shape["metadata"]
+        : undefined;
+    return metadata instanceof z.ZodObject
+      ? editableFieldsOf(metadata)
+      : undefined;
+  }
+
+  getCreateFieldsSchema(type: string): FrontmatterSchema | undefined {
+    const editable = this.getEditableFieldsSchema(type);
+    const createOnly = this.entityAdapters.get(type)?.createFieldsSchema;
+    if (!createOnly) return editable;
+    return editable ? editable.extend(createOnly.shape) : createOnly;
+  }
+
+  /**
    * Merge registered frontmatter extensions into a base schema.
    * Returns the base schema unchanged if no extensions exist,
    * or undefined if the base schema is undefined.
@@ -730,13 +769,16 @@ export class EntityRegistry implements IEntityRegistry {
 
 /**
  * The top-level metadata keys an entity schema declares. A retired field is
- * dropped from stored metadata, so the schema must not require it.
+ * dropped from stored metadata, so the schema must not require it. A
+ * metadata migration (`z.preprocess`) is looked through to the shape it
+ * migrates into.
  */
 function declaredMetadataKeys(
   schema: UnknownEntitySchema,
 ): ReadonlySet<string> {
   if (!(schema instanceof z.ZodObject)) return new Set();
-  const metadata: unknown = schema.shape["metadata"];
+  const declared: unknown = schema.shape["metadata"];
+  const metadata = declared instanceof z.ZodPipe ? declared.out : declared;
   return metadata instanceof z.ZodObject
     ? new Set(Object.keys(metadata.shape))
     : new Set();

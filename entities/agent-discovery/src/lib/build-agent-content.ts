@@ -1,7 +1,7 @@
 import { slugifyUrl } from "@brains/utils/string-utils";
 import { AgentAdapter } from "../adapters/agent-adapter";
 import type { AgentStatus } from "../schemas/agent";
-import type { ParsedAgentCard } from "./fetch-agent-card";
+import type { ParsedAgentCard } from "@brains/plugins";
 import { normalizeTags } from "./tag-vocabulary";
 
 const agentAdapter = new AgentAdapter();

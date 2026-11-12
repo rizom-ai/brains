@@ -1,4 +1,4 @@
-import type { ServicePluginContext } from "@brains/plugins";
+import type { ServiceRuntime } from "@brains/sdk/internal/service-runtime";
 import { pluralize, resolveUrl } from "@brains/utils/string-utils";
 import type { InboxDataSource } from "./inbox-datasource";
 import type {
@@ -20,11 +20,11 @@ interface RegisterInboxDigestOptions {
   now?: (() => Date) | undefined;
 }
 
-interface InboxDigestContext {
-  siteUrl: ServicePluginContext["siteUrl"];
-  recurringChecks: ServicePluginContext["recurringChecks"];
-  webRoutes: Pick<ServicePluginContext["webRoutes"], "getRoutes">;
-}
+/** Where the digest is registered and what it points at, as the runtime offers them. */
+type InboxDigestContext = Pick<
+  ServiceRuntime,
+  "siteUrl" | "recurringCheck" | "routeByRole"
+>;
 
 interface DigestSourceGroup {
   displayName: string;
@@ -89,7 +89,7 @@ export function registerUnifiedInboxDigest(
   dataSource: Pick<InboxDataSource, "getInboxData">,
   options: RegisterInboxDigestOptions = {},
 ): void {
-  context.recurringChecks.register({
+  context.recurringCheck({
     id: "daily-digest",
     cadence: "daily",
     includeInInbox: false,
@@ -139,14 +139,6 @@ function resolveDestinationUrl(
   workspaceUrl?: string,
 ): string {
   const path =
-    workspaceUrl ??
-    context.webRoutes
-      .getRoutes()
-      .find(
-        (route) =>
-          route.pluginId === "dashboard" &&
-          (route.definition.method ?? "GET") === "GET",
-      )?.fullPath ??
-    "/dashboard";
+    workspaceUrl ?? context.routeByRole("dashboard")?.fullPath ?? "/dashboard";
   return resolveUrl(path, context.siteUrl);
 }

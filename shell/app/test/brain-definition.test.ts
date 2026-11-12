@@ -52,7 +52,7 @@ function createMockPluginFactory(
 
 const mockPluginFactory = createMockPluginFactory();
 
-// Minimal mock interface constructor — satisfies InterfaceConstructor
+// Minimal mock interface, built by an interface entry's factory
 class MockInterface implements Plugin {
   public readonly id: string = "mock-interface";
   public readonly version: string = "1.0.0";
@@ -95,7 +95,7 @@ describe("defineBrain", () => {
       interfaces: [
         [
           "mock-interface",
-          MockInterface,
+          (config: PluginConfig): Plugin => new MockInterface(config),
           (env: BrainEnvironment): PluginConfig => ({ token: env["TOKEN"] }),
         ],
       ],
@@ -171,7 +171,7 @@ describe("resolve", () => {
       interfaces: [
         [
           "mock-interface",
-          TrackingInterface,
+          (config: PluginConfig): Plugin => new TrackingInterface(config),
           (env: BrainEnvironment): PluginConfig => ({
             token: env["MY_TOKEN"],
             host: env["MY_HOST"],
@@ -264,12 +264,14 @@ describe("resolve", () => {
     });
 
     const config = resolve(def, {
-      AI_API_KEY: "sk-test-123",
-      AI_IMAGE_KEY: "sk-img-456",
+      OPENAI_API_KEY: "sk-test-123",
+      GOOGLE_GENERATIVE_AI_API_KEY: "AIza-img-456",
     });
 
-    expect(config.aiApiKey).toBe("sk-test-123");
-    expect(config.aiImageKey).toBe("sk-img-456");
+    expect(config.aiProviderKeys).toEqual({
+      openai: "sk-test-123",
+      google: "AIza-img-456",
+    });
   });
 
   test("should resolve model and provider from overrides", () => {
@@ -282,11 +284,54 @@ describe("resolve", () => {
 
     const config = resolve(
       def,
-      { AI_API_KEY: "sk-test" },
+      { OPENAI_API_KEY: "sk-test" },
       { model: "gpt-4o-mini" },
     );
 
     expect(config.aiModel).toBe("gpt-4o-mini");
+  });
+
+  test("should resolve the embedding model from overrides", () => {
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      capabilities: [],
+      interfaces: [],
+    });
+
+    expect(resolve(def, {}).aiEmbeddingModel).toBeUndefined();
+    expect(
+      resolve(def, {}, { embeddingModel: "openai:text-embedding-3-large" })
+        .aiEmbeddingModel,
+    ).toBe("openai:text-embedding-3-large");
+  });
+
+  test("should resolve the answer model from overrides", () => {
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      capabilities: [],
+      interfaces: [],
+    });
+
+    expect(
+      resolve(def, {}, { answerModel: "local:qwen3:30b-a3b-instruct" })
+        .aiAnswerModel,
+    ).toBe("local:qwen3:30b-a3b-instruct");
+  });
+
+  test("should resolve the model runtime URL from overrides", () => {
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      capabilities: [],
+      interfaces: [],
+    });
+
+    expect(
+      resolve(def, {}, { modelRuntime: { url: "http://models:11434" } })
+        .aiModelRuntimeUrl,
+    ).toBe("http://models:11434");
   });
 
   test("should resolve and override reasoning effort", () => {
@@ -324,7 +369,7 @@ describe("resolve", () => {
       interfaces: [
         [
           "config-capture",
-          ConfigCapture,
+          (config: PluginConfig): Plugin => new ConfigCapture(config),
           (env: BrainEnvironment): PluginConfig => ({
             accessToken: env["TOKEN"] ?? "",
           }),
@@ -395,7 +440,13 @@ describe("resolve", () => {
       version: "1.0.0",
       bundles: [{ id: "core", members: [] }],
       capabilities: [],
-      interfaces: [["mock-interface", MockInterface, (): PluginConfig => ({})]],
+      interfaces: [
+        [
+          "mock-interface",
+          (config: PluginConfig): Plugin => new MockInterface(config),
+          (): PluginConfig => ({}),
+        ],
+      ],
     });
 
     const config = resolve(def, {}, { bundles: ["core"] });
@@ -413,7 +464,7 @@ describe("resolve", () => {
       interfaces: [
         [
           "mock-interface",
-          MockInterface,
+          (config: PluginConfig): Plugin => new MockInterface(config),
           (_env: BrainEnvironment): PluginConfig | null => null,
         ],
       ],
@@ -454,7 +505,7 @@ describe("resolve", () => {
       interfaces: [
         [
           "validating",
-          ValidatingInterface,
+          (config: PluginConfig): Plugin => new ValidatingInterface(config),
           (): PluginConfig => ({}), // no botToken
         ],
       ],
@@ -499,7 +550,8 @@ describe("resolve", () => {
       interfaces: [
         [
           "bundled-validating",
-          BundledValidatingInterface,
+          (config: PluginConfig): Plugin =>
+            new BundledValidatingInterface(config),
           (): PluginConfig => ({}),
         ],
       ],
@@ -525,7 +577,13 @@ describe("resolve", () => {
       name: "test",
       version: "1.0.0",
       capabilities: [],
-      interfaces: [["buggy", BuggyInterface, (): PluginConfig => ({})]],
+      interfaces: [
+        [
+          "buggy",
+          (config: PluginConfig): Plugin => new BuggyInterface(config),
+          (): PluginConfig => ({}),
+        ],
+      ],
     });
 
     expect(() => resolve(def, {})).toThrow("unexpected null reference");

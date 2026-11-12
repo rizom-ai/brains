@@ -14,15 +14,15 @@ import {
   type GuestTurnSettlement,
 } from "@brains/contracts/chat";
 import {
-  TOPIC_TITLES_MESSAGE,
-  NOTE_CAPTURE_MESSAGE,
+  topicTitlesContract,
+  noteCaptureContract,
   type NoteCaptureRequest,
   type NoteCaptureResponse,
 } from "@brains/contracts";
 import {
   BaseEntityAdapter,
   baseEntitySchema,
-  STUDIO_WORKSPACE_REGISTER_MESSAGE,
+  studioWorkspaceRegisterContract,
   type BaseEntity,
   type IAgentService,
   type IConversationService,
@@ -35,7 +35,7 @@ import {
   type PluginTestHarness,
 } from "@brains/plugins/test";
 import { deferred } from "@brains/utils/deferred";
-import { WebChatInterface } from "../src/web-chat-interface";
+import { createWebChatPlugin, type WebChatPlugin } from "./web-chat-plugin";
 import { resolveGuestPreset } from "../src/guest-preset";
 import { testGuestPolicy } from "./fixtures/guest-policy";
 import {
@@ -51,7 +51,7 @@ type Conversation = NonNullable<
 type Message = Awaited<ReturnType<IConversationService["getMessages"]>>[number];
 const origin = testGuestPolicy.origin;
 const base = "/api/chat/guest";
-const harnesses: PluginTestHarness<WebChatInterface>[] = [];
+const harnesses: PluginTestHarness<WebChatPlugin>[] = [];
 afterEach(async (): Promise<void> => {
   for (const harness of harnesses.splice(0)) await harness.reset();
 });
@@ -90,7 +90,7 @@ interface Fixture {
   health: () => ReturnType<
     ReturnType<
       ReturnType<
-        PluginTestHarness<WebChatInterface>["getMockShell"]
+        PluginTestHarness<WebChatPlugin>["getMockShell"]
       >["getOperationalHealthRegistry"]
     >["getChecks"]
   >;
@@ -112,7 +112,7 @@ async function setup(
   } = {},
 ): Promise<Fixture> {
   const deploymentOrigin = options.origin ?? origin;
-  const harness = createPluginHarness<WebChatInterface>(
+  const harness = createPluginHarness<WebChatPlugin>(
     options.managed ? { domain: "brain.test" } : {},
   );
   harnesses.push(harness);
@@ -258,7 +258,7 @@ async function setup(
     .getMockShell()
     .getMessageBus()
     .subscribe<StudioWorkspaceRegistration>(
-      STUDIO_WORKSPACE_REGISTER_MESSAGE,
+      studioWorkspaceRegisterContract.name,
       (registration) => {
         workspaces.push(registration.payload);
         return {
@@ -277,7 +277,7 @@ async function setup(
     harness
       .getMockShell()
       .getMessageBus()
-      .subscribe(TOPIC_TITLES_MESSAGE, () => ({
+      .subscribe(topicTitlesContract.name, () => ({
         success: true,
         data: { titles: topics },
       }));
@@ -290,7 +290,7 @@ async function setup(
       .getMockShell()
       .getMessageBus()
       .subscribe<NoteCaptureRequest, NoteCaptureResponse>(
-        NOTE_CAPTURE_MESSAGE,
+        noteCaptureContract.name,
         (message) => {
           captured.push(message.payload);
           return {
@@ -302,7 +302,7 @@ async function setup(
   }
   const defaults = resolveGuestPreset("local-test", "gpt-5.6-luna");
   if (!defaults.enabled) throw new Error("Expected shared guest defaults");
-  const plugin = new WebChatInterface(
+  const plugin = createWebChatPlugin(
     {},
     {
       ...(options.managed

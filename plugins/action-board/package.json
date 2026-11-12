@@ -1,11 +1,10 @@
 {
   "name": "@brains/action-board",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.627",
+  "version": "0.2.0-alpha.688",
   "description": "The team's Board over action items, blocked items in the Inbox, and moves from chat",
   "dependencies": {
     "@brains/action-items": "workspace:*",
-    "@brains/auth-service": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/utils": "workspace:*"
   },

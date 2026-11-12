@@ -3,20 +3,16 @@ import {
   type MockServicePluginContext,
 } from "@brains/plugins/test";
 import { describe, test, expect, mock, beforeEach, spyOn } from "bun:test";
-import {
-  createEnqueueJobFn,
-  JobQueueService,
-  type EnqueueJobRequest,
-} from "@brains/job-queue";
+import { createEnqueueJobFn, JobQueueService } from "@brains/job-queue";
 import { migrateJobQueue } from "@brains/job-queue/migrate";
 import { createClient } from "@libsql/client";
 import { RebuildManager } from "../../src/lib/auto-rebuild";
 import { z } from "@brains/utils/zod";
-import { createTestConfig } from "../test-helpers";
+import { projectionWaveReadyContract } from "@brains/contracts";
+import { createTestConfig, withRuntimeAnswer } from "../test-helpers";
 import {
   createSilentLogger,
   createTestDatabase,
-  genericSpy,
   waitUntil,
 } from "@brains/test-utils";
 
@@ -25,15 +21,6 @@ const buildJobDataSchema = z.looseObject({
   environment: z.string().optional(),
   outputDir: z.string().optional(),
 });
-
-/** The projection-wave handler these tests capture from the subscription. */
-type WaveReadyHandler = (message: {
-  payload: {
-    waveId: string;
-    sourceTypes: string[];
-    changedTargetTypes: string[];
-  };
-}) => Promise<{ success: boolean }>;
 
 describe("RebuildManager", () => {
   let context: MockServicePluginContext;
@@ -51,32 +38,18 @@ describe("RebuildManager", () => {
   });
 
   test("successful projection waves enqueue a build before acknowledgment", async () => {
-    let waveReadyHandler: WaveReadyHandler | undefined;
-    // mock() erases the type parameters subscribeExecution declares;
-    // genericSpy names that as the only reason.
-    context.messaging.subscribeExecution = genericSpy<
-      typeof context.messaging.subscribeExecution
-    >(
-      mock((_type: string, handler: WaveReadyHandler): (() => void) => {
-        waveReadyHandler = handler;
-        return () => {};
-      }),
-    );
     const manager = new RebuildManager(
       createTestConfig({ rebuildDebounce: 1 }),
-      context,
+      withRuntimeAnswer(context),
       "site-builder",
       context.logger,
     );
     manager.setupAutoRebuild();
-    if (!waveReadyHandler) throw new Error("Expected wave subscription");
 
-    await waveReadyHandler({
-      payload: {
-        waveId: "wave-1",
-        sourceTypes: ["post"],
-        changedTargetTypes: ["topic"],
-      },
+    await context.messaging.gather(projectionWaveReadyContract, {
+      waveId: "wave-1",
+      sourceTypes: ["post"],
+      changedTargetTypes: ["topic"],
     });
 
     expect(context.jobs.enqueue).toHaveBeenCalledTimes(1);
@@ -84,32 +57,18 @@ describe("RebuildManager", () => {
   });
 
   test("does not rebuild for note-only waves", async () => {
-    let waveReadyHandler: WaveReadyHandler | undefined;
-    // mock() erases the type parameters subscribeExecution declares;
-    // genericSpy names that as the only reason.
-    context.messaging.subscribeExecution = genericSpy<
-      typeof context.messaging.subscribeExecution
-    >(
-      mock((_type: string, handler: WaveReadyHandler): (() => void) => {
-        waveReadyHandler = handler;
-        return () => {};
-      }),
-    );
     const manager = new RebuildManager(
       createTestConfig(),
-      context,
+      withRuntimeAnswer(context),
       "site-builder",
       context.logger,
     );
     manager.setupAutoRebuild();
-    if (!waveReadyHandler) throw new Error("Expected wave subscription");
 
-    await waveReadyHandler({
-      payload: {
-        waveId: "wave-note",
-        sourceTypes: ["note"],
-        changedTargetTypes: [],
-      },
+    await context.messaging.gather(projectionWaveReadyContract, {
+      waveId: "wave-note",
+      sourceTypes: ["note"],
+      changedTargetTypes: [],
     });
 
     expect(context.jobs.enqueue).not.toHaveBeenCalled();
@@ -121,29 +80,19 @@ describe("RebuildManager", () => {
     // manager never hears a build start or finish. The queue keeps at most one
     // pending build per environment; a wave during a running build leaves one
     // pending behind it.
-    let waveReadyHandler: WaveReadyHandler | undefined;
-    // mock() erases the type parameters subscribeExecution declares;
-    // genericSpy names that as the only reason.
-    context.messaging.subscribeExecution = genericSpy<
-      typeof context.messaging.subscribeExecution
-    >(
-      mock((_type: string, handler: WaveReadyHandler): (() => void) => {
-        waveReadyHandler = handler;
-        return () => {};
-      }),
-    );
     const manager = new RebuildManager(
       createTestConfig({ rebuildDebounce: 1 }),
-      context,
+      withRuntimeAnswer(context),
       "site-builder",
       context.logger,
     );
     manager.setupAutoRebuild();
-    if (!waveReadyHandler) throw new Error("Expected wave subscription");
 
     for (const waveId of ["wave-1", "wave-2"]) {
-      await waveReadyHandler({
-        payload: { waveId, sourceTypes: ["book"], changedTargetTypes: [] },
+      await context.messaging.gather(projectionWaveReadyContract, {
+        waveId,
+        sourceTypes: ["book"],
+        changedTargetTypes: [],
       });
     }
 
@@ -163,7 +112,7 @@ describe("RebuildManager", () => {
     // not keep its site unbuilt until every section is embedded and read.
     const manager = new RebuildManager(
       createTestConfig(),
-      context,
+      withRuntimeAnswer(context),
       "site-builder",
       context.logger,
     );
@@ -182,7 +131,7 @@ describe("RebuildManager", () => {
   test("uses environment-specific job deduplication keys", async () => {
     const manager = new RebuildManager(
       createTestConfig(),
-      context,
+      withRuntimeAnswer(context),
       "site-builder",
       context.logger,
     );
@@ -204,7 +153,7 @@ describe("RebuildManager", () => {
     const config = createTestConfig();
     const manager = new RebuildManager(
       config,
-      context,
+      withRuntimeAnswer(context),
       "site-builder",
       context.logger,
     );
@@ -230,7 +179,7 @@ describe("RebuildManager", () => {
     const config = createTestConfig({ previewOutputDir: "" });
     const manager = new RebuildManager(
       config,
-      context,
+      withRuntimeAnswer(context),
       "site-builder",
       context.logger,
     );
@@ -264,7 +213,7 @@ describe("RebuildManager", () => {
     });
     const manager = new RebuildManager(
       createTestConfig(),
-      context,
+      withRuntimeAnswer(context),
       "site-builder",
       context.logger,
     );
@@ -286,7 +235,7 @@ describe("RebuildManager", () => {
   test("does not admit builds after disposal", async () => {
     const manager = new RebuildManager(
       createTestConfig(),
-      context,
+      withRuntimeAnswer(context),
       "site-builder",
       context.logger,
     );
@@ -321,16 +270,15 @@ describe("RebuildManager", () => {
         true,
       );
       const failures: unknown[] = [];
-      context.jobs.enqueue = mock(
-        (request: EnqueueJobRequest): Promise<string> =>
-          enqueueThroughQueue(request).catch((error: unknown) => {
-            failures.push(error);
-            throw error;
-          }),
+      context.jobs.enqueue.mockImplementation((request): Promise<string> =>
+        enqueueThroughQueue(request).catch((error: unknown) => {
+          failures.push(error);
+          throw error;
+        }),
       );
       manager = new RebuildManager(
         createTestConfig({ rebuildDebounce: 100 }),
-        context,
+        withRuntimeAnswer(context),
         "site-builder",
         logger,
       );
@@ -376,7 +324,7 @@ describe("RebuildManager", () => {
     context.jobs.enqueue = refusingEnqueue;
     const manager = new RebuildManager(
       createTestConfig({ rebuildDebounce: 10 }),
-      context,
+      withRuntimeAnswer(context),
       "site-builder",
       context.logger,
     );
@@ -397,7 +345,7 @@ describe("RebuildManager", () => {
     const config = createTestConfig();
     const manager = new RebuildManager(
       config,
-      context,
+      withRuntimeAnswer(context),
       "site-builder",
       context.logger,
     );

@@ -46,7 +46,7 @@ export class MyPlugin extends ServicePlugin<MyConfig> {
 
 ### InterfacePlugin
 
-Transport layers — MCP, CLI, Discord, A2A, webserver.
+Transport layers — MCP, CLI, Discord, A2A, web chat. The runtime itself hosts HTTP (`@brains/http-host`); interfaces declare routes it serves.
 
 ```typescript
 import { InterfacePlugin } from "@brains/plugins";

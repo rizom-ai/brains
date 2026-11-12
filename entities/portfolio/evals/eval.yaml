@@ -1,2 +1,4 @@
 plugin: "@brains/portfolio"
+export: default
+pluginId: portfolio
 model: gpt-5.4-mini

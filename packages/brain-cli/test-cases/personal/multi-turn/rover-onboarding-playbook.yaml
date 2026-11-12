@@ -129,7 +129,11 @@ turns:
             - system_get
             - system_search
           shouldBeCalled: true
+      # The seed was found by retrieval, not recited from playbook state.
+      responseContains:
+        - climate
       responseNotContains:
+        - "playbook_manage"
         - "another first"
         - "share a first"
         - "save a first idea"
@@ -196,4 +200,4 @@ successCriteria:
 
 efficiency:
   maxToolCalls: 22
-  maxTokens: 362000
+  maxTokens: 367000

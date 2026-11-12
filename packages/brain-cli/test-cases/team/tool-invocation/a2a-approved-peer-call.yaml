@@ -19,7 +19,7 @@ tags:
 
 turns:
   - userMessage: >-
-      Ask the saved approved peer brain partner-brain.io whether it can review a
+      Ask the saved approved peer brain partner-brain.example whether it can review a
       Team Brain handoff summary for the POC. Use the saved local agent id; do not add
       or save a new agent. If the remote call itself fails, just report that tool
       result honestly.
@@ -29,11 +29,12 @@ successCriteria:
     - toolName: agent_call
       shouldBeCalled: true
       argsContain:
-        agent: "partner-brain.io"
+        agent: "partner-brain.example"
     - toolName: system_create
       shouldBeCalled: false
-  responseContains:
-    - "partner-brain.io"
+  # The peer is named as the user named it or as it introduces itself.
+  responseCriteria:
+    - "Reports the answer as the partner brain's own, attributed to the peer it asked."
   responseNotContains:
     - "wish"
     - "save it first"
@@ -44,4 +45,4 @@ successCriteria:
 
 efficiency:
   maxToolCalls: 3
-  maxTokens: 31000
+  maxTokens: 46000

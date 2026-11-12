@@ -22,7 +22,7 @@ turns:
       - kind: file
         filename: flirty-robot.png
         mediaType: image/png
-        dataBase64: iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=
+        dataBase64: iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAAe0lEQVR4nO3PUQkAIBTAwJfEJPZPYRhD+HEIgwW4zdrn64YLGtCCBrSgAS1oQAsa0IIGtKABLWhACxrQgga0oAEtaEALGtCCBrSgAS1oQAsa0IIGtKABLWhACxrQgga0oAEtaEALGtCCBrSgAS1oQAsa0IIGtKABLXjsArR1YR6a53LGAAAAAElFTkSuQmCC
     successCriteria:
       responseContains:
         - "What would you like me to do"
@@ -32,6 +32,8 @@ turns:
   - userMessage: "can you describe that picture for me"
     reusePreviousAttachments: true
     successCriteria:
+      responseContains:
+        - "blue"
       toolCountRange:
         max: 0
       responseNotContains:
@@ -57,4 +59,4 @@ successCriteria:
 
 efficiency:
   maxToolCalls: 0
-  maxTokens: 0
+  maxTokens: 17000

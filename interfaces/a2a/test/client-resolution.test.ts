@@ -3,7 +3,7 @@ import {
   createTestEntity,
 } from "@brains/entity-service/test";
 import { describe, it, expect, mock } from "bun:test";
-import { createAgentCallTool } from "../src/client";
+import { createAgentCallTool, type A2AClientDeps } from "../src/client";
 import type {
   ICoreEntityService,
   ToolResponse,
@@ -98,6 +98,7 @@ function createEntityServiceFrom(
   return createSharedEntityService({
     entityTypes: ["agent"],
     getEntityImpl: async (request) => entities.get(request.id) ?? null,
+    listEntitiesImpl: async () => [...entities.values()],
   });
 }
 
@@ -146,6 +147,72 @@ describe("agent_call agent resolution", () => {
 
     expect(isError(result)).toBe(false);
     expect(fetchFn).toHaveBeenCalled();
+  });
+
+  it("calls a saved contact by the name the user calls it", async () => {
+    const entities = new Map([
+      [
+        "yeehaa.example",
+        createTestEntity<BaseEntity>("agent", {
+          id: "yeehaa.example",
+          content:
+            "---\nname: Yeehaa\nurl: 'https://yeehaa.example/a2a'\nstatus: approved\n---",
+          metadata: {
+            name: "Yeehaa",
+            url: "https://yeehaa.example/a2a",
+            status: "approved",
+          },
+        }),
+      ],
+    ]);
+    const fetchFn = createMockFetch();
+    const tool = createAgentCallTool({
+      fetch: fetchFn,
+      entityService: createEntityServiceFrom(entities),
+    });
+
+    const result = await tool.handler(
+      { agent: "yeehaa", message: "hello" },
+      toolContext,
+    );
+
+    expect(isError(result)).toBe(false);
+    expect(fetchFn.mock.calls[0]?.[0]).toBe(
+      "https://yeehaa.example/.well-known/agent-card.json",
+    );
+  });
+
+  it("asks which contact when two saved agents share the name", async () => {
+    const saved = (id: string): BaseEntity =>
+      createTestEntity<BaseEntity>("agent", {
+        id,
+        content: `---\nname: Yeehaa\nurl: 'https://${id}/a2a'\nstatus: approved\n---`,
+        metadata: {
+          name: "Yeehaa",
+          url: `https://${id}/a2a`,
+          status: "approved",
+        },
+      });
+    const entities = new Map([
+      ["yeehaa.example", saved("yeehaa.example")],
+      ["yeehaa.test", saved("yeehaa.test")],
+    ]);
+    const fetchFn = createMockFetch();
+    const tool = createAgentCallTool({
+      fetch: fetchFn,
+      entityService: createEntityServiceFrom(entities),
+    });
+
+    const result = await tool.handler(
+      { agent: "Yeehaa", message: "hello" },
+      toolContext,
+    );
+
+    assertIsError(result);
+    expect(result.error).toBe(
+      'More than one saved agent is called "Yeehaa": yeehaa.example, yeehaa.test. Give its id.',
+    );
+    expect(fetchFn).not.toHaveBeenCalled();
   });
 
   it("should normalize an HTTPS URL for a saved agent to its hostname and contact over HTTPS", async () => {
@@ -436,5 +503,179 @@ describe("agent_call agent resolution", () => {
       "Invalid agent URL. Agent URLs must use https://.",
     );
     expect(fetchFn).not.toHaveBeenCalled();
+  });
+});
+
+describe("agent_call reads saved agents at the caller's access", () => {
+  const visibleAt: Record<
+    BaseEntity["visibility"],
+    ReadonlyArray<BaseEntity["visibility"]>
+  > = {
+    public: ["public"],
+    shared: ["public", "shared"],
+    restricted: ["public", "shared", "restricted"],
+  };
+
+  function savedAgent(
+    id: string,
+    status: "approved" | "archived",
+    visibility: BaseEntity["visibility"],
+  ): BaseEntity {
+    return createTestEntity<BaseEntity>("agent", {
+      id,
+      visibility,
+      content: `---\nname: Saved\nurl: 'https://${id}/a2a'\nstatus: ${status}\n---`,
+      metadata: { name: "Saved", url: `https://${id}/a2a`, status },
+    });
+  }
+
+  /** Answers reads the way the entity service does: only what the scope shows. */
+  function scopedEntityService(entities: BaseEntity[]): {
+    getEntity: NonNullable<A2AClientDeps["entityService"]>["getEntity"];
+    scopes: Array<string | undefined>;
+  } {
+    const scopes: Array<string | undefined> = [];
+    return {
+      scopes,
+      getEntity: async ({
+        id,
+        visibilityScope,
+      }): Promise<BaseEntity | null> => {
+        scopes.push(visibilityScope);
+        const entity = entities.find((candidate) => candidate.id === id);
+        if (!entity) return null;
+        return visibleAt[visibilityScope ?? "public"].includes(
+          entity.visibility,
+        )
+          ? entity
+          : null;
+      },
+    };
+  }
+
+  function unreachableFetch(): ReturnType<typeof mock> {
+    return mock(async () => new Response("not found", { status: 404 }));
+  }
+
+  it("does not show a trusted caller the status of an agent saved restricted", async () => {
+    const entityService = scopedEntityService([
+      savedAgent("hidden.example", "archived", "restricted"),
+    ]);
+    const fetchFn = unreachableFetch();
+    const tool = createAgentCallTool({ fetch: fetchFn, entityService });
+
+    const admin = await tool.handler(
+      { agent: "hidden.example", message: "hello" },
+      { ...toolContext, userPermissionLevel: "admin" },
+    );
+    const trusted = await tool.handler(
+      { agent: "hidden.example", message: "hello" },
+      { ...toolContext, userPermissionLevel: "trusted" },
+    );
+
+    expect(admin).toMatchObject({ success: false, code: "agent_archived" });
+    // The trusted caller meets an unsaved domain: verified from scratch.
+    expect(trusted).toMatchObject({
+      success: false,
+      code: "agent_card_unavailable",
+    });
+    expect(entityService.scopes).toEqual(["restricted", "shared"]);
+  });
+
+  it("calls an agent saved restricted as a saved contact only for an admin", async () => {
+    const entityService = scopedEntityService([
+      savedAgent("restricted.example", "approved", "restricted"),
+    ]);
+    const tool = createAgentCallTool({
+      fetch: createMockFetch(),
+      entityService,
+    });
+
+    const admin = await tool.handler(
+      { agent: "restricted.example", message: "hello" },
+      { ...toolContext, userPermissionLevel: "admin" },
+    );
+    const trusted = await tool.handler(
+      { agent: "restricted.example", message: "hello" },
+      { ...toolContext, userPermissionLevel: "trusted" },
+    );
+
+    expect(admin).toMatchObject({ success: true });
+    expect(admin).not.toHaveProperty("data.agentCall");
+    expect(trusted).toHaveProperty("data.agentCall", {
+      mode: "one-shot",
+      agent: "restricted.example",
+    });
+  });
+
+  it("reads public agents only when the caller's level is unknown", async () => {
+    const entityService = scopedEntityService([
+      savedAgent("shared.example", "archived", "shared"),
+    ]);
+    const tool = createAgentCallTool({
+      fetch: unreachableFetch(),
+      entityService,
+    });
+
+    const result = await tool.handler(
+      { agent: "shared.example", message: "hello" },
+      toolContext,
+    );
+
+    expect(result).toMatchObject({
+      success: false,
+      code: "agent_card_unavailable",
+    });
+    expect(entityService.scopes).toEqual(["public"]);
+  });
+});
+
+describe("agent_call Agent Card verification", () => {
+  it("times out an Agent Card whose body never finishes", async () => {
+    const fetchFn = mock(
+      async () =>
+        new Response(
+          new ReadableStream<Uint8Array>({
+            start(controller): void {
+              controller.enqueue(new TextEncoder().encode('{"name":'));
+            },
+          }),
+        ),
+    );
+    const tool = createAgentCallTool({
+      fetch: fetchFn,
+      entityService: createEntityServiceFrom(new Map()),
+      requestTimeoutMs: 10,
+    });
+
+    const result = await tool.handler(
+      { agent: "slow.example", message: "hello" },
+      toolContext,
+    );
+
+    expect(result).toMatchObject({
+      success: false,
+      code: "agent_card_unavailable",
+    });
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+  });
+
+  it("names both hosts when a card points at another host", async () => {
+    const fetchFn = createCardFetch("https://attacker.example/a2a");
+    const tool = createAgentCallTool({
+      fetch: fetchFn,
+      entityService: createEntityServiceFrom(new Map()),
+    });
+
+    const result = await tool.handler(
+      { agent: "unknown.io", message: "hello" },
+      toolContext,
+    );
+
+    expect(result).toEqual({
+      success: false,
+      error:
+        "Agent Card for unknown.io has an endpoint URL on another host, attacker.example (https://attacker.example/a2a). The endpoint must be https:// on unknown.io.",
+    });
   });
 });

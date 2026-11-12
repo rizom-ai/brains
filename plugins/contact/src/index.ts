@@ -1,13 +1,9 @@
-import { ContactPlugin } from "./plugin";
-import { ContactRequestPlugin } from "./entity/plugin";
-import type { ContactPluginConfig } from "./config";
+import { formPackageDependencies } from "@brains/forms";
+import { createContactPackage } from "./plugin";
 
-export { ContactHttpHandlers, contactHttpPolicySchema } from "./http";
-export { ContactDelivery, contactDeliveryPolicySchema } from "./delivery";
-export type {
-  ContactDeliveryPolicy,
-  ContactDeliveryDependencies,
-} from "./delivery";
+export { CONTACT_ADMISSION, CONTACT_SLOTS } from "./state";
+export { CONTACT_COPY, CONTACT_FORM } from "./form";
+export { contactRequestTarget } from "./target";
 export {
   CONTACT_INTAKE_DEFAULTS,
   contactPluginConfigSchema,
@@ -18,26 +14,9 @@ export type {
   ContactIntakeOverrides,
   ContactIntakePolicy,
 } from "./config";
-export type { ContactHttpOptions, ContactHttpPolicy } from "./http";
-export { ContactIntake } from "./intake";
-export type {
-  ContactIntakeDependencies,
-  ContactSaveResult,
-  ContactMaintenanceReport,
-} from "./intake";
-export { contactStoragePolicySchema } from "./storage-slots";
-export type { ContactStoragePolicy } from "./storage-slots";
-export { ContactPlugin, ContactRequestPlugin };
-export { ContactInboxSource } from "./inbox-source";
-export { ContactAdmission } from "./admission";
-export type {
-  ContactDenialReason,
-  ContactFormResult,
-  ContactReservationResult,
-} from "./admission";
-export { contactAdmissionPolicySchema } from "./admission-state";
-export type { ContactAdmissionPolicy } from "./admission-state";
-export { ContactRequestAdapter, contactRequestAdapter } from "./entity/adapter";
+export { createContactPackage } from "./plugin";
+export { contactRequestEntity } from "./entity/contact-request-entity";
+export { contactRequestAdapter } from "./entity/adapter";
 export {
   contactSubmissionSchema,
   contactFrontmatterSchema,
@@ -51,9 +30,15 @@ export type {
   ContactRequest,
 } from "./entity/schema";
 
-/** Explicit compound composition; no site or default bundle activates intake. */
-export function contactPlugin(
-  config: ContactPluginConfig = {},
-): [ContactRequestPlugin, ContactPlugin] {
-  return [new ContactRequestPlugin(), new ContactPlugin(config)];
-}
+/**
+ * The contact form and its contact-request type, as a brain composes them:
+ * explicitly, as no site or default bundle activates intake.
+ */
+const contactPackage: ReturnType<typeof createContactPackage> =
+  createContactPackage();
+export default contactPackage;
+
+/** The plugins the contact service registers after, as its class declared. */
+export const CONTACT_DEPENDENCIES: readonly string[] = Object.freeze(
+  formPackageDependencies("contact-request"),
+);

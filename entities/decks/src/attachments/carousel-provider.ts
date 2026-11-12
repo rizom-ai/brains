@@ -1,4 +1,4 @@
-import type { AttachmentProvider } from "@brains/plugins";
+import type { AttachmentProvider } from "@brains/sdk/entities";
 import type { PublishMediaData } from "@brains/contracts";
 import {
   createMediaContentHelpers,
@@ -7,7 +7,7 @@ import {
   type MediaAttachmentContext,
   type RenderPdf,
 } from "@brains/media-page-composer";
-import { parseMarkdown } from "@brains/utils/markdown";
+import { fetchSiteInfo } from "@brains/site-composition";
 import { deckSchema, type DeckEntity } from "../schemas/deck";
 import {
   DECK_CAROUSEL_TEMPLATE_NAME,
@@ -105,16 +105,13 @@ function buildCarouselContent(
   deck: DeckEntity,
   options: { brandLabel?: string | undefined } = {},
 ): DeckCarouselTemplateInput {
-  const { frontmatter, content } = parseMarkdown(deck.content);
-  const title =
-    typeof frontmatter["title"] === "string"
-      ? frontmatter["title"]
-      : deck.metadata.title;
+  // A deck reads back as its slides, its frontmatter its metadata.
+  const title = deck.metadata.title;
   const eyebrow =
-    typeof frontmatter["event"] === "string" && frontmatter["event"].length > 0
-      ? frontmatter["event"]
+    deck.metadata.event !== undefined && deck.metadata.event.length > 0
+      ? deck.metadata.event
       : undefined;
-  const slides = content
+  const slides = deck.content
     .split(/^---$/gm)
     .map((slide) => slide.trim())
     .filter((slide) => slide.length > 0)
@@ -126,4 +123,36 @@ function buildCarouselContent(
     ...(options.brandLabel ? { brandLabel: options.brandLabel } : {}),
     ...(eyebrow ? { eyebrow } : {}),
   };
+}
+
+/**
+ * The site's theme mode, which a deck carousel is drawn in: dark until the
+ * site says otherwise, and when its site-info cannot be read.
+ */
+export async function siteThemeMode(
+  entityService: Parameters<typeof fetchSiteInfo>[0],
+): Promise<"light" | "dark"> {
+  try {
+    const info = await fetchSiteInfo(entityService);
+    return info.themeMode ?? "dark";
+  } catch {
+    // No site-info yet, or one that does not parse: the carousel's default.
+    return "dark";
+  }
+}
+
+/**
+ * The carousel provider a deck declares, drawn in the site's theme mode
+ * unless the caller supplies another.
+ */
+export function createDeckCarouselProvider(
+  context: MediaAttachmentContext,
+  deps: DeckCarouselAttachmentProviderDeps = {},
+): DeckCarouselAttachmentProvider {
+  return new DeckCarouselAttachmentProvider(context, {
+    ...deps,
+    getThemeMode:
+      deps.getThemeMode ??
+      ((): Promise<"light" | "dark"> => siteThemeMode(context.entityService)),
+  });
 }

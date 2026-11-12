@@ -1,22 +1,23 @@
 {
   "name": "@brains/portfolio",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.627",
+  "version": "0.2.0-alpha.688",
   "description": "Portfolio showcase for projects and case studies",
   "dependencies": {
     "@brains/atproto-contracts": "workspace:*",
     "@brains/content-formatters": "workspace:*",
     "@brains/contracts": "workspace:*",
     "@brains/media-page-composer": "workspace:*",
-    "@brains/plugins": "workspace:*",
-    "@brains/templates": "workspace:*",
-    "@brains/ui-library": "workspace:*",
-    "@brains/utils": "workspace:*"
+    "@brains/sdk": "workspace:*",
+    "@brains/utils": "workspace:*",
+    "@rizom/brain-ui": "workspace:*"
   },
   "devDependencies": {
     "@brains/app": "workspace:*",
     "@brains/entity-service": "workspace:*",
     "@brains/eslint-config": "workspace:*",
+    "@brains/plugins": "workspace:*",
+    "@brains/style-guide": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.4.0",

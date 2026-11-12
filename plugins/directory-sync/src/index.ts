@@ -3,8 +3,19 @@
  * Provides file-based entity synchronization
  */
 
-export { directorySync, directorySyncPlugin } from "./plugin";
-export { DirectorySyncPlugin } from "./plugin";
+import { createDirectorySyncPackage } from "./plugin";
+
+export {
+  createDirectorySyncPackage,
+  type DirectorySyncDeps,
+  type DirectorySyncState,
+} from "./plugin";
+export { DirectorySyncService, resolveRuntimeSyncPath } from "./service";
+
+/** Directory sync, as a brain composes it. */
+const directorySyncPackage: ReturnType<typeof createDirectorySyncPackage> =
+  createDirectorySyncPackage();
+export default directorySyncPackage;
 export { DirectorySync } from "./lib/directory-sync";
 export { DirectorySyncStatusFormatter } from "./formatters/directorySyncStatusFormatter";
 
@@ -24,11 +35,8 @@ export {
   GIT_BROKER_SOCKET_ENV,
 } from "./lib/broker/connect";
 export {
-  BROKER_PROGRESS_TIMEOUT_MS,
-  GIT_BROKER_TEST_PROGRESS_TIMEOUT_ENV,
   createBrokerHealthCheck,
   probeBrokerActivity,
-  resolveBrokerProgressTimeoutMs,
 } from "./lib/broker/health";
 export { getGitRemoteFingerprint } from "./lib/git-options";
 

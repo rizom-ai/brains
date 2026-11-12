@@ -11,6 +11,8 @@ import type {
 } from "./entity-grouping";
 import type { EntityIdPath, EntityIdPathInput } from "./entity-id-path";
 import type { ActorRef } from "@brains/contracts";
+import type { EnqueueJobRouting } from "@brains/job-queue";
+import type { BroadcastBus } from "@brains/messaging-service";
 import type { ProjectionStore } from "./projection-store";
 import type {
   BulkMutationInput,
@@ -261,8 +263,6 @@ export const emptyFrontmatterSchema: z.ZodObject<Record<string, never>> =
   z.object({});
 
 export type EntitySchema<T> = z.ZodType<T, unknown>;
-/** @deprecated Use EntitySchema<T>. */
-export type EntitySchemaParser<T> = EntitySchema<T>;
 
 export type UnknownEntitySchema = EntitySchema<unknown>;
 export type FrontmatterSchema = z.ZodObject<z.ZodRawShape>;
@@ -367,6 +367,8 @@ export interface CreateInput {
 export interface CreateExecutionContext {
   interfaceType: string;
   actor: ActorRef;
+  /** The caller's permission level; absent reads as public, failing closed. */
+  userPermissionLevel?: "admin" | "trusted" | "public";
   channelId?: string;
   channelName?: string;
 }
@@ -473,6 +475,22 @@ export type CreateInterceptor = (
   executionContext: CreateExecutionContext,
 ) => Promise<CreateInterceptionResult>;
 
+/**
+ * How `system_generate` queues one entity type's `{type}:generation` job.
+ *
+ * It exists so a generation runs with the authority of the caller who asked
+ * for it: a public-SDK entity type records that caller beside the job data
+ * when the job is queued, and resolves them again when it runs, refusing one
+ * who was revoked meanwhile. `system_generate` hands it the job data it built
+ * (the allocated `entityId`, the prompt, any source and target) and the
+ * caller's routing, and reports the job id it answers. A type that registers
+ * none, such as a class-based one, is queued with that data as written.
+ */
+export type GenerationEnqueuer = (
+  data: Record<string, unknown>,
+  toolContext: NonNullable<EnqueueJobRouting["toolContext"]>,
+) => Promise<string>;
+
 export interface UploadSaveInput {
   upload: CreateFromUploadInput;
   title?: string;
@@ -503,19 +521,10 @@ export type PersistValidator<T extends BaseEntity = BaseEntity> = (
 ) => Promise<void>;
 
 /**
- * Minimal event bus contract used by entity-service for lifecycle events.
- * Kept structural to avoid coupling this package to a concrete messaging service.
+ * The part of the message bus entity-service uses: it broadcasts its
+ * lifecycle events on their typed channels, as `broadcastChannel` sends them.
  */
-export interface EntityEventBus {
-  send(request: {
-    type: string;
-    payload: Record<string, unknown>;
-    sender: string;
-    target?: string;
-    metadata?: Record<string, unknown>;
-    broadcast?: boolean;
-  }): Promise<unknown>;
-}
+export type EntityEventBus = BroadcastBus;
 
 /**
  * Interface for entity adapter - handles conversion between entities and markdown
@@ -567,6 +576,22 @@ export interface EntityAdapter<
   /** Optional: Zod schema for frontmatter fields. Used by Studio config generation. */
   frontmatterSchema?: z.ZodObject<z.ZodRawShape>;
 
+  /**
+   * Optional: the frontmatter fields the type writes itself, when they are
+   * more than the frontmatter it presents: a declared type whose metadata
+   * holds fields its class kept out of the file presents the class's
+   * header, and still writes, or leaves out, every field its metadata
+   * names. The serializer keeps from the source only fields neither names.
+   */
+  writtenFrontmatterSchema?: z.ZodObject<z.ZodRawShape>;
+
+  /**
+   * Optional: fields a creator may state that the type does not store, such
+   * as where a deck's slides break. The brain's create tool takes them with
+   * the editable fields; nothing updates them.
+   */
+  createFieldsSchema?: z.ZodObject<z.ZodRawShape>;
+
   /** Optional: Declares this entity type is a singleton (one file, e.g., identity/identity.md). Used by Studio to generate files collection. */
   isSingleton?: boolean;
 
@@ -578,6 +603,24 @@ export interface EntityAdapter<
 
   /** Optional: Declares that this entity type supports cover images via coverImageId in frontmatter */
   supportsCoverImage?: boolean;
+
+  /**
+   * Optional: the type's metadata is its frontmatter. Reads hand back the
+   * body as `content` and the decoded frontmatter as `metadata`, so
+   * frontmatter an update carries in its content is a write — a cover or a
+   * social card recorded by id — and the metadata follows it.
+   */
+  metadataFromFrontmatter?: boolean;
+
+  /**
+   * Optional: keep the frontmatter order of the document a write replaces
+   * (the one handed in whole, or the one stored when an update carries the
+   * body alone): written values land where that document has them, an
+   * unchanged nested value keeps its own key order, and a field it lacks
+   * follows the rest, as an entity plugin class's adapter wrote over
+   * existing frontmatter. For types whose files people write by hand.
+   */
+  writesInDocumentOrder?: boolean;
 
   /**
    * Optional: the `metadata.status` values that count as published for
@@ -654,7 +697,15 @@ export interface ListOptions<
   };
   /** Filter to only entities with metadata.status = "published" */
   publishedOnly?: boolean;
+  source?: SourceReadOption;
 }
+
+/**
+ * Hand back each record's content as stored: the markdown document, its
+ * frontmatter included, as an editor edits it. A declared type's ordinary
+ * reads carry its body alone; every other type reads the same either way.
+ */
+export type SourceReadOption = boolean | undefined;
 
 /**
  * Search options
@@ -764,6 +815,7 @@ export interface GetEntityRequest extends EntityReadOptions {
   visibilityScope?: ContentVisibility | undefined;
   /** Only an entity its type counts as published, as for published-only listings. */
   publishedOnly?: boolean | undefined;
+  source?: SourceReadOption;
 }
 
 export type GetEntityRawRequest = GetEntityRequest;
@@ -797,6 +849,7 @@ export interface QueryEntityHierarchyRequest {
       }
     | undefined;
   signal?: AbortSignal | undefined;
+  source?: SourceReadOption;
 }
 
 export interface EntityHierarchyPage {
@@ -1239,6 +1292,15 @@ export interface IEntitiesNamespace {
   /** Register the check a create of this plugin's entity type passes before it is confirmed */
   registerCreateCheck(entityType: string, check: CreateCheck): void;
 
+  /**
+   * Register how system_generate queues this plugin's entity type's
+   * generation, so the job carries the caller's authority.
+   */
+  registerGenerationEnqueuer(
+    entityType: string,
+    enqueuer: GenerationEnqueuer,
+  ): void;
+
   /** Register a raw-upload durable save handler for this plugin's entity type */
   registerUploadSaveHandler(registration: UploadSaveHandlerRegistration): void;
 
@@ -1352,6 +1414,8 @@ export interface EntityServiceClient extends ICoreEntityService {
   backfillMissingEmbeddings(): Promise<EmbeddingBackfillResult>;
   /** Rewrite stored entities whose content still carries a retired frontmatter field. */
   rewriteRetiredFields(): Promise<{ rewritten: number }>;
+  /** Re-derive declared types' stored metadata from their stored markdown, the metadata column alone. */
+  reconcileDeclaredMetadata(): Promise<{ reconciled: number }>;
   isIndexReady(): boolean;
   awaitIndexReady(
     options: IndexReadinessOptions,
@@ -1460,6 +1524,10 @@ export interface EntityRegistry {
 
   getCreateCheck(type: string): CreateCheck | undefined;
 
+  registerGenerationEnqueuer(type: string, enqueuer: GenerationEnqueuer): void;
+
+  getGenerationEnqueuer(type: string): GenerationEnqueuer | undefined;
+
   registerUploadSaveHandler(registration: UploadSaveHandlerRegistration): void;
 
   getUploadSaveHandler(
@@ -1528,6 +1596,22 @@ export interface EntityRegistry {
   getEffectiveFrontmatterSchema(
     type: string,
   ): z.ZodObject<z.ZodRawShape> | undefined;
+
+  /**
+   * The fields of an entity type's effective frontmatter that callers may
+   * set through the brain's create and update tools, typed as the
+   * frontmatter types them: every field but those a schema marks as the
+   * brain's own record, `studioWidget: "provenance"` or `"hidden"`, the
+   * marks by which Studio shows a field read-only or leaves it off its
+   * form. Undefined when the type has no frontmatter.
+   */
+  getEditableFieldsSchema(type: string): z.ZodObject<z.ZodRawShape> | undefined;
+
+  /**
+   * The fields a caller may state when creating an entity of this type: its
+   * editable fields and those its adapter takes only on create.
+   */
+  getCreateFieldsSchema(type: string): z.ZodObject<z.ZodRawShape> | undefined;
 }
 
 /**
@@ -1550,6 +1634,7 @@ export type { DbConfig as EntityDbConfig } from "@brains/contracts";
 export type ReadOnlyEntityService = Pick<
   ICoreEntityService,
   | "getEntity"
+  | "getEntityRaw"
   | "listEntities"
   | "search"
   | "searchWithDistances"

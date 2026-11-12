@@ -1,16 +1,20 @@
 import { describe, expect, it } from "bun:test";
 import { webChatConfigSchema } from "../src/config";
+import { resolveGuestPreset } from "../src/guest-preset";
 import { guestPolicySchema, guestRequestOrigin } from "../src/guest-policy";
 
 import { testGuestPolicy } from "./fixtures/guest-policy";
 
 describe("guest policy", () => {
   it("defaults guest access off without changing authenticated chat routes", () => {
+    // Unset is off, and leaves the owner's runtime switch available.
     expect(webChatConfigSchema.parse({})).toEqual({
       routePath: "/ask",
       apiPath: "/api/chat",
-      guest: false,
     });
+    expect(
+      resolveGuestPreset(webChatConfigSchema.parse({}).guest, "gpt-5.6-luna"),
+    ).toEqual({ enabled: false });
   });
 
   it("requires a complete internal policy after preset resolution", () => {

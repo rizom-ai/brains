@@ -1,3 +1,5 @@
+import type { WebRouteRole } from "@brains/contracts";
+
 export const WebRouteMethods = [
   "GET",
   "POST",
@@ -17,19 +19,29 @@ export type WebRouteHandler = (
   transport?: WebRouteTransportContext,
 ) => Response | Promise<Response>;
 
-export type WebRouteMatch = "exact" | "prefix";
+export type WebRouteMatch = "exact" | "prefix" | "claim";
 
 export interface WebRouteDefinition {
   /** Absolute mounted path (e.g. "/studio" or "/studio-config") */
   path: string;
-  /** Match only `path` (default) or descendants on a segment boundary. */
+  /**
+   * Match only `path` (default), its descendants on a segment boundary
+   * (`prefix`), or whatever `claims` says per request (`claim`): asked only
+   * when no exact or prefix route matches, before the site's static pages,
+   * so a plugin serves paths it learns after the routes are fixed. `path`
+   * then only names the route.
+   */
   match?: WebRouteMatch;
+  /** For a `claim` route: whether it serves this request path right now. */
+  claims?: (path: string) => boolean;
   /** HTTP method */
   method?: WebRouteMethod;
   /** Allow unauthenticated access */
   public?: boolean;
   /** Also serve on the preview host. Reachability only; admission checks still apply. */
   preview?: boolean;
+  /** The well-known route this is, for other plugins to find it by. */
+  role?: WebRouteRole;
   /** Request handler */
   handler: WebRouteHandler;
 }
@@ -105,4 +117,13 @@ export interface RegisteredWebRoute {
   fullPath: string;
   /** The original route definition */
   definition: WebRouteDefinition;
+}
+
+/** The route claiming `role`, the shortest path when several do. */
+export function findRouteByRole<
+  T extends Pick<RegisteredWebRoute, "fullPath" | "definition">,
+>(routes: readonly T[], role: WebRouteRole): T | undefined {
+  return routes
+    .filter((route) => route.definition.role === role)
+    .sort((left, right) => left.fullPath.length - right.fullPath.length)[0];
 }

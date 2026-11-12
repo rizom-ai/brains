@@ -1,8 +1,6 @@
 import {
-  ATPROTO_BRAIN_CARD_CONFLICT,
-  ATPROTO_BRAIN_DISCOVERED,
-  atprotoBrainCardConflictPayloadSchema,
-  atprotoBrainDiscoveryEventPayloadSchema,
+  atprotoBrainCardConflictChannel,
+  atprotoBrainDiscoveredChannel,
 } from "@brains/atproto-contracts";
 import type { Plugin, ServicePluginContext, Tool } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
@@ -15,19 +13,9 @@ import {
 } from "../tools/agent-scan-directories";
 import { createAgentSetTrustLevelTool } from "../tools/agent-set-trust-level";
 import { createNetworkAskTool } from "../tools/network-ask";
-import type { FetchFn } from "../lib/fetch-agent-card";
+import type { FetchLike } from "@brains/utils/fetch-like";
 import { AgentSightingsInboxSource } from "../inbox-source";
 import packageJson from "../../package.json";
-
-export interface AgentToolsConfig {
-  /** Emit an operational notification when a directory scan discovers agents. */
-  notifyOnNewAgents: boolean;
-}
-
-export interface AgentToolsConfigInput {
-  /** Opt in to new-agent notifications. Daily scans remain enabled. */
-  notifyOnNewAgents?: boolean | undefined;
-}
 
 const atprotoNotificationCandidateSchema = z
   .object({
@@ -69,13 +57,18 @@ export const agentToolsConfigSchema: z.ZodObject<{
   })
   .strict();
 
+/** Opt in to new-agent notifications. Daily scans remain enabled. */
+export type AgentToolsConfigInput = z.input<typeof agentToolsConfigSchema>;
+/** Whether an operational notification is emitted when a directory scan discovers agents. */
+export type AgentToolsConfig = z.output<typeof agentToolsConfigSchema>;
+
 export class AgentToolsPlugin extends ServicePlugin<
   AgentToolsConfig,
   AgentToolsConfigInput
 > {
-  private readonly fetchFn: FetchFn | undefined;
+  private readonly fetchFn: FetchLike | undefined;
 
-  constructor(fetchFn?: FetchFn, config: AgentToolsConfigInput = {}) {
+  constructor(fetchFn?: FetchLike, config: AgentToolsConfigInput = {}) {
     super("agent", packageJson, config, agentToolsConfigSchema);
     this.fetchFn = fetchFn;
   }
@@ -96,31 +89,28 @@ export class AgentToolsPlugin extends ServicePlugin<
 
     context.inbox.registerSource(new AgentSightingsInboxSource(context));
 
-    context.messaging.subscribe(ATPROTO_BRAIN_DISCOVERED, async (message) => {
-      if (!this.config.notifyOnNewAgents) return { success: true };
-      const payload = atprotoBrainDiscoveryEventPayloadSchema.parse(
-        message.payload,
-      );
-      if (payload.status !== "discovered") return { success: true };
-      const key = `candidate:${payload.cardCid ?? payload.repoDid ?? payload.agentId}`;
-      await atprotoNotifications.setIfNotExists(key, {
-        agentId: payload.agentId,
-        name: payload.name,
-        ...(payload.repoDid && { repoDid: payload.repoDid }),
-        ...(payload.cardCid && { cardCid: payload.cardCid }),
-        observedAt: new Date().toISOString(),
-        status: "pending",
-      });
-      return { success: true };
-    });
+    context.messaging.subscribe(
+      atprotoBrainDiscoveredChannel,
+      async (payload) => {
+        if (!this.config.notifyOnNewAgents) return { success: true };
+        if (payload.status !== "discovered") return { success: true };
+        const key = `candidate:${payload.cardCid ?? payload.repoDid ?? payload.agentId}`;
+        await atprotoNotifications.setIfNotExists(key, {
+          agentId: payload.agentId,
+          name: payload.name,
+          ...(payload.repoDid && { repoDid: payload.repoDid }),
+          ...(payload.cardCid && { cardCid: payload.cardCid }),
+          observedAt: new Date().toISOString(),
+          status: "pending",
+        });
+        return { success: true };
+      },
+    );
 
     context.messaging.subscribe(
-      ATPROTO_BRAIN_CARD_CONFLICT,
-      async (message) => {
+      atprotoBrainCardConflictChannel,
+      async (payload) => {
         if (!this.config.notifyOnNewAgents) return { success: true };
-        const payload = atprotoBrainCardConflictPayloadSchema.parse(
-          message.payload,
-        );
         const key = `conflict:${computeContentHash(
           `${payload.domain}\0${payload.existingRepoDid ?? ""}\0${payload.candidateRepoDid}`,
         )}`;

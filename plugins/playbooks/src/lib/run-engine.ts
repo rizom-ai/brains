@@ -10,12 +10,14 @@
 
 import { getErrorMessage } from "@brains/utils/error";
 import { createPrefixedId } from "@brains/utils/id";
-import { isPlainRecord } from "@brains/utils/predicates";
 import {
   ASSISTANT_TURN_METADATA_KEY,
   assistantTurnSchema,
 } from "@brains/contracts";
-import { z } from "@brains/utils/zod";
+import type {
+  ConversationMessageAddedPayload,
+  EntityChangePayload,
+} from "@brains/sdk/internal/service-runtime";
 import type { PlaybookBody, PlaybookState } from "../entity";
 import {
   createPlaybookRun,
@@ -91,47 +93,23 @@ function gateVerdictKey(verdict: PlaybookGateVerdict): string {
 
 const MAX_REPLY_EVIDENCE_CHARACTERS = 4000;
 
-const assistantReplySchema = z.object({
-  conversationId: z.string().min(1),
-  messageId: z.string().min(1),
-  role: z.literal("assistant"),
-  content: z.string(),
-  metadata: z.object({ [ASSISTANT_TURN_METADATA_KEY]: assistantTurnSchema }),
-});
-
-function stringFromPayload(
-  payload: Record<string, unknown>,
-  key: string,
-): string | undefined {
-  const value = payload[key];
-  return typeof value === "string" && value.length > 0 ? value : undefined;
-}
-
 function entityEvidenceDetails(
-  payload: Record<string, unknown>,
+  entity: EntityChangePayload["entity"],
 ): Record<string, string> {
-  const entity = recordFromUnknown(payload["entity"]);
   if (!entity) return {};
 
-  const metadata = recordFromUnknown(entity["metadata"]);
   const title = firstNonEmptyString(
-    metadata?.["title"],
-    metadata?.["name"],
+    entity.metadata["title"],
+    entity.metadata["name"],
     entity["title"],
   );
-  const content = firstNonEmptyString(entity["content"]);
+  const content = firstNonEmptyString(entity.content);
   const contentPreview = content ? previewText(content) : undefined;
 
   return {
     ...(title ? { title } : {}),
     ...(contentPreview ? { contentPreview } : {}),
   };
-}
-
-function recordFromUnknown(
-  value: unknown,
-): Record<string, unknown> | undefined {
-  return isPlainRecord(value) ? value : undefined;
 }
 
 function firstNonEmptyString(...values: unknown[]): string | undefined {
@@ -230,16 +208,11 @@ export class RunEngine {
 
   public async recordEntityEventEvidence(
     operation: "created" | "updated",
-    payload: Record<string, unknown>,
+    change: EntityChangePayload,
   ): Promise<{ recorded: boolean }> {
-    const entityType = stringFromPayload(payload, "entityType");
-    const entityId = stringFromPayload(payload, "entityId");
-    if (!entityType || !entityId) return { recorded: false };
-
-    const explicitRunId = stringFromPayload(payload, "runId");
-    const conversationId = stringFromPayload(payload, "conversationId");
-    const run = explicitRunId
-      ? await this.deps.store.findById(explicitRunId)
+    const { entityType, entityId, runId, conversationId, toolCallId } = change;
+    const run = runId
+      ? await this.deps.store.findById(runId)
       : conversationId
         ? await this.deps.store.findActiveByConversation(conversationId)
         : undefined;
@@ -254,11 +227,9 @@ export class RunEngine {
         entityType,
         entityId,
         operation,
-        ...entityEvidenceDetails(payload),
+        ...entityEvidenceDetails(change.entity),
         ...(conversationId ? { conversationId } : {}),
-        ...(stringFromPayload(payload, "toolCallId")
-          ? { toolCallId: stringFromPayload(payload, "toolCallId") }
-          : {}),
+        ...(toolCallId ? { toolCallId } : {}),
       },
     };
     const updatedRun = await this.deps.store.appendEvidence(run.id, evidence);
@@ -274,13 +245,17 @@ export class RunEngine {
    */
   public async recordAssistantReplyEvidence(
     sender: string,
-    payload: unknown,
+    reply: ConversationMessageAddedPayload,
   ): Promise<{ recorded: boolean }> {
-    if (sender !== "conversation-service") return { recorded: false };
-    const reply = assistantReplySchema.safeParse(payload);
-    if (!reply.success) return { recorded: false };
-    const { conversationId, messageId, content, metadata } = reply.data;
-    const turn = metadata[ASSISTANT_TURN_METADATA_KEY];
+    if (sender !== "conversation-service" || reply.role !== "assistant")
+      return { recorded: false };
+    // The host records the reply's turn under its own metadata key.
+    const recordedTurn = assistantTurnSchema.safeParse(
+      reply.metadata?.[ASSISTANT_TURN_METADATA_KEY],
+    );
+    if (!recordedTurn.success) return { recorded: false };
+    const turn = recordedTurn.data;
+    const { conversationId, messageId, content } = reply;
 
     const run = await this.deps.store.findActiveByConversation(conversationId);
     if (run?.status !== "active") return { recorded: false };

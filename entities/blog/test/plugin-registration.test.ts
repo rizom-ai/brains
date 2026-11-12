@@ -1,12 +1,15 @@
 import { describe, it, expect, beforeEach } from "bun:test";
+import {
+  publishAssetRegisterContract,
+  publishRegisterContract,
+  siteBuildStagingContract,
+} from "@brains/contracts";
 import { SYSTEM_CHANNELS } from "@brains/plugins";
-import { BlogPlugin } from "../src/plugin";
-import { PermissionService } from "@brains/templates";
+import { blogPlugin, type BlogEntityPlugin } from "./blog-plugin";
 import {
   createPluginHarness,
   type PluginTestHarness,
 } from "@brains/plugins/test";
-import { blogPostSchema } from "../src/schemas/blog-post";
 import { createMockPost } from "./fixtures/blog-entities";
 import { promises as fs } from "fs";
 import { tmpdir } from "os";
@@ -19,19 +22,19 @@ const sampleDraftPost = createMockPost(
   "draft",
 );
 
-describe("BlogPlugin - Publish Pipeline Integration", () => {
-  let harness: PluginTestHarness<BlogPlugin>;
+describe("the blog in the publish pipeline and the site build", () => {
+  let harness: PluginTestHarness<BlogEntityPlugin>;
   let receivedMessages: Array<{ type: string; payload: unknown }>;
 
   beforeEach(async () => {
-    harness = createPluginHarness<BlogPlugin>({ dataDir: "/tmp/test-blog" });
+    harness = createPluginHarness<BlogEntityPlugin>({
+      dataDir: "/tmp/test-blog",
+    });
     receivedMessages = [];
 
     for (const eventType of [
-      "publish:register",
-      "publish:report:success",
-      "publish:report:failure",
-      "publish-assets:register",
+      publishRegisterContract.name,
+      publishAssetRegisterContract.name,
     ]) {
       harness.subscribe(eventType, async (msg) => {
         receivedMessages.push({ type: eventType, payload: msg.payload });
@@ -42,21 +45,21 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
 
   describe("entity policy registration", () => {
     it("declares newest-published-first list ordering", async () => {
-      await harness.installPlugin(new BlogPlugin({}));
+      await harness.installPlugin(blogPlugin());
       expect(
         harness.getEntityRegistry().getEntityTypeConfig("post").defaultSort,
       ).toEqual([{ field: "publishedAt", direction: "desc" }]);
     });
 
     it("retires frontmatter fields posts no longer use", async () => {
-      await harness.installPlugin(new BlogPlugin({}));
+      await harness.installPlugin(blogPlugin());
       expect(
         harness.getEntityRegistry().getEntityTypeConfig("post").retiredFields,
       ).toEqual(["ogDescription", "twitterCard", "atprotoUri"]);
     });
 
     it("declares post publish statuses", async () => {
-      await harness.installPlugin(new BlogPlugin({}));
+      await harness.installPlugin(blogPlugin());
 
       expect(
         harness.getEntityRegistry().getEntityTypeConfig("post").publish,
@@ -68,10 +71,10 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
 
   describe("provider registration", () => {
     it("should send publish:register message after plugins-registered with internal provider", async () => {
-      await harness.installPlugin(new BlogPlugin({}));
+      await harness.installPlugin(blogPlugin());
 
       expect(
-        receivedMessages.find((m) => m.type === "publish:register"),
+        receivedMessages.find((m) => m.type === publishRegisterContract.name),
       ).toBeUndefined();
 
       await harness.sendMessage(
@@ -82,7 +85,7 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
       );
 
       const registerMessage = receivedMessages.find(
-        (m) => m.type === "publish:register",
+        (m) => m.type === publishRegisterContract.name,
       );
       expect(registerMessage).toBeDefined();
       expect(registerMessage?.payload).toMatchObject({
@@ -92,10 +95,12 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
     });
 
     it("should register post OG images as publish assets after plugins-registered", async () => {
-      await harness.installPlugin(new BlogPlugin({}));
+      await harness.installPlugin(blogPlugin());
 
       expect(
-        receivedMessages.find((m) => m.type === "publish-assets:register"),
+        receivedMessages.find(
+          (m) => m.type === publishAssetRegisterContract.name,
+        ),
       ).toBeUndefined();
 
       await harness.sendMessage(
@@ -106,7 +111,7 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
       );
 
       const registerMessage = receivedMessages.find(
-        (m) => m.type === "publish-assets:register",
+        (m) => m.type === publishAssetRegisterContract.name,
       );
       expect(registerMessage?.payload).toMatchObject({
         entityType: "post",
@@ -115,17 +120,19 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
         targetEntityField: { location: "frontmatter", field: "ogImageId" },
         requiredWhen: { status: "published" },
         autoGenerate: true,
-        jobType: "image:image-render-source",
       });
     });
 
     it("delivers deferred publish registrations to subscribers installed after blog", async () => {
-      const localHarness = createPluginHarness<BlogPlugin>({
+      const localHarness = createPluginHarness<BlogEntityPlugin>({
         dataDir: "/tmp/test-blog-late-publish-subscriber",
       });
-      await localHarness.installPlugin(new BlogPlugin({}));
+      await localHarness.installPlugin(blogPlugin());
       const lateMessages: Array<{ type: string; payload: unknown }> = [];
-      for (const eventType of ["publish:register", "publish-assets:register"]) {
+      for (const eventType of [
+        publishRegisterContract.name,
+        publishAssetRegisterContract.name,
+      ]) {
         localHarness.subscribe(eventType, async (msg) => {
           lateMessages.push({ type: eventType, payload: msg.payload });
           return { success: true };
@@ -140,164 +147,21 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
       );
 
       expect(lateMessages.map((m) => m.type).sort()).toEqual([
-        "publish-assets:register",
-        "publish:register",
+        publishAssetRegisterContract.name,
+        publishRegisterContract.name,
       ]);
     });
   });
 
-  describe("publish:execute handler", () => {
-    it("should subscribe to publish:execute messages", async () => {
-      await harness.installPlugin(new BlogPlugin({}));
-
-      await harness.sendMessage("publish:execute", {
-        entityType: "post",
-        entityId: "non-existent",
-      });
-
-      const failureMessage = receivedMessages.find(
-        (m) => m.type === "publish:report:failure",
-      );
-      expect(failureMessage).toBeDefined();
-    });
-
-    it("should report failure when entity not found", async () => {
-      await harness.installPlugin(new BlogPlugin({}));
-
-      await harness.sendMessage("publish:execute", {
-        entityType: "post",
-        entityId: "non-existent",
-      });
-
-      const failureMessage = receivedMessages.find(
-        (m) => m.type === "publish:report:failure",
-      );
-      expect(failureMessage).toBeDefined();
-      expect(failureMessage?.payload).toMatchObject({
-        entityType: "post",
-        entityId: "non-existent",
-      });
-    });
-
-    it("should skip non-post entity types", async () => {
-      await harness.installPlugin(new BlogPlugin({}));
-
-      await harness.sendMessage("publish:execute", {
-        entityType: "social-post",
-        entityId: "post-1",
-      });
-
-      const reportMessages = receivedMessages.filter((m) =>
-        m.type.startsWith("publish:report"),
-      );
-      expect(reportMessages).toHaveLength(0);
-    });
-
-    it("requires publish permission before publishing a draft post", async () => {
-      const localHarness = createPluginHarness<BlogPlugin>({
-        dataDir: "/tmp/test-blog-permissions",
-      });
-      localHarness.setPermissionService(
-        new PermissionService({
-          entityActions: { post: { publish: "admin" } },
-        }),
-      );
-      const messages: Array<{ type: string; payload: unknown }> = [];
-      localHarness.subscribe("publish:report:failure", async (msg) => {
-        messages.push({ type: "publish:report:failure", payload: msg.payload });
-        return { success: true };
-      });
-      await localHarness.installPlugin(new BlogPlugin({}));
-      const entityService = localHarness.getEntityService();
-      await entityService.createEntity({ entity: sampleDraftPost });
-
-      await localHarness.sendMessage("publish:execute", {
-        entityType: "post",
-        entityId: "post-1",
-        authContext: { userPermissionLevel: "trusted" },
-      });
-
-      const updatedPost = await entityService.getEntity(
-        {
-          entityType: "post",
-          id: "post-1",
-        },
-        blogPostSchema,
-      );
-      expect(updatedPost?.metadata.status).toBe("draft");
-      expect(messages[0]?.payload).toMatchObject({
-        entityType: "post",
-        entityId: "post-1",
-      });
-    });
-
-    it("should report success when publishing draft post", async () => {
-      await harness.installPlugin(new BlogPlugin({}));
-
-      const entityService = harness.getEntityService();
-      await entityService.createEntity({ entity: sampleDraftPost });
-
-      await harness.sendMessage("publish:execute", {
-        entityType: "post",
-        entityId: "post-1",
-      });
-
-      const successMessage = receivedMessages.find(
-        (m) => m.type === "publish:report:success",
-      );
-      expect(successMessage).toBeDefined();
-      expect(successMessage?.payload).toMatchObject({
-        entityType: "post",
-        entityId: "post-1",
-      });
-
-      const updatedPost = await entityService.getEntity(
-        {
-          entityType: "post",
-          id: "post-1",
-        },
-        blogPostSchema,
-      );
-      expect(updatedPost?.metadata.status).toBe("published");
-    });
-
-    it("should skip already published posts", async () => {
-      await harness.installPlugin(new BlogPlugin({}));
-
-      const publishedPost = createMockPost(
-        "post-1",
-        "Test Post",
-        "test-post",
-        "published",
-        { publishedAt: "2025-01-01T00:00:00.000Z" },
-      );
-
-      const entityService = harness.getEntityService();
-      await entityService.createEntity({ entity: publishedPost });
-
-      await harness.sendMessage("publish:execute", {
-        entityType: "post",
-        entityId: "post-1",
-      });
-
-      const reportMessages = receivedMessages.filter((m) =>
-        m.type.startsWith("publish:report"),
-      );
-      expect(reportMessages).toHaveLength(0);
-    });
-  });
-
   describe("RSS staging", () => {
-    it("writes feed.xml before publication and ignores completion notifications", async () => {
-      await harness.installPlugin(new BlogPlugin({}));
+    it("writes feed.xml before publication", async () => {
+      await harness.installPlugin(blogPlugin());
       await harness
         .getEntityService()
         .createEntity({ entity: sampleDraftPost });
       const testDir = await fs.mkdtemp(join(tmpdir(), "blog-rss-staging-"));
       const stagingDir = join(testDir, "staging");
-      const completedDir = join(testDir, "completed");
       await fs.mkdir(stagingDir, { recursive: true });
-      await fs.mkdir(completedDir, { recursive: true });
       const payload = {
         environment: "preview" as const,
         routesBuilt: 1,
@@ -315,7 +179,7 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
 
       try {
         await harness.sendMessage(
-          "site:build:staging",
+          siteBuildStagingContract.name,
           { ...payload, outputDir: stagingDir },
           "site-builder",
           true,
@@ -323,19 +187,6 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
         expect(
           await fs.readFile(join(stagingDir, "feed.xml"), "utf8"),
         ).toContain("Test Post");
-
-        await harness.sendMessage(
-          "site:build:completed",
-          { ...payload, outputDir: completedDir },
-          "site-builder",
-          true,
-        );
-        expect(
-          await fs
-            .access(join(completedDir, "feed.xml"))
-            .then(() => true)
-            .catch(() => false),
-        ).toBe(false);
       } finally {
         await fs.rm(testDir, { recursive: true, force: true });
       }
@@ -344,20 +195,23 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
     it("reports a staging failure instead of leaving the feed silently missing", async () => {
       // The message bus swallows subscriber errors on broadcast, so throwing
       // here would publish a generation with no feed and still report success.
-      await harness.installPlugin(new BlogPlugin({}));
+      await harness.installPlugin(blogPlugin());
       await harness
         .getEntityService()
         .createEntity({ entity: sampleDraftPost });
       const testDir = await fs.mkdtemp(join(tmpdir(), "blog-rss-failure-"));
       const failures: string[] = [];
+      // A staging directory that is a file cannot take the feed.
+      const notADirectory = join(testDir, "not-a-directory");
+      await fs.writeFile(notADirectory, "");
 
       try {
         await harness.sendMessage(
-          "site:build:staging",
+          siteBuildStagingContract.name,
           {
             environment: "preview" as const,
             routesBuilt: 1,
-            outputDir: join(testDir, "missing-generation"),
+            outputDir: notADirectory,
             siteConfig: {
               title: "Test Blog",
               description: "Test feed",
@@ -374,7 +228,7 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
         );
 
         expect(failures).toHaveLength(1);
-        expect(failures[0]).toContain("RSS feed generation failed");
+        expect(failures[0]).toContain("post feed generation failed");
       } finally {
         await fs.rm(testDir, { recursive: true, force: true });
       }

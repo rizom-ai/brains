@@ -1,14 +1,15 @@
 import { describe, expect, test } from "bun:test";
 import {
+  createStyleGuideContent,
   formatStyleGuidance,
   formatVisualGuidance,
   formatVoiceGuidance,
-  styleGuideAdapter,
+  parseStyleGuideContent,
 } from "../src";
 
 describe("style guide", () => {
   test("round-trips structured guidance and markdown body", () => {
-    const content = styleGuideAdapter.createStyleGuideContent(
+    const content = createStyleGuideContent(
       {
         name: "Default",
         messaging: { audiences: ["builders"] },
@@ -18,7 +19,7 @@ describe("style guide", () => {
       "Use concrete examples.",
     );
 
-    const parsed = styleGuideAdapter.parseStyleGuide(content);
+    const parsed = parseStyleGuideContent(content);
     expect(parsed.voice?.summary).toBe("Clear and direct");
     expect(parsed.guidance).toBe("Use concrete examples.");
     expect(formatVoiceGuidance(parsed)).toContain("Clear and direct");
@@ -26,8 +27,8 @@ describe("style guide", () => {
   });
 
   test("includes shared body guidance once when composing both facets", () => {
-    const styleGuide = styleGuideAdapter.parseStyleGuide(
-      styleGuideAdapter.createStyleGuideContent(
+    const styleGuide = parseStyleGuideContent(
+      createStyleGuideContent(
         {
           name: "Combined",
           voice: { summary: "Direct and grounded" },
@@ -49,29 +50,6 @@ describe("style guide", () => {
     );
   });
 
-  test("preserves imported extension fields during markdown serialization", () => {
-    const content = `---
-name: Imported
-voice:
-  summary: Precise
-customExamples:
-  - Keep this extension
----
-
-Long-form guidance.`;
-    const output = styleGuideAdapter.toMarkdown({
-      id: "style-guide",
-      entityType: "style-guide",
-      content,
-      metadata: {},
-      visibility: "public",
-      contentHash: "hash",
-      created: "2026-01-01T00:00:00.000Z",
-      updated: "2026-01-01T00:00:00.000Z",
-    });
-
-    expect(output).toContain("customExamples:");
-    expect(output).toContain("Keep this extension");
-    expect(output).toContain("Long-form guidance.");
-  });
+  // Imported extension fields are kept by the runtime's serialization of
+  // the declared type: packages/brain-cli/test/style-guide-runtime.test.ts.
 });

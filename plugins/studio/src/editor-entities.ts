@@ -1,22 +1,18 @@
-import type {
-  BaseEntity,
-  EntityIdPath,
-  GetEntityRequest,
-  ServicePluginContext,
-} from "@brains/plugins";
-import { encodeEntityIdPath } from "@brains/entity-service";
 import {
-  DIRECTORY_SYNC_CHANNELS,
-  directorySyncPathResponseSchema,
-} from "@brains/contracts";
-import {
+  encodeEntityIdPath,
   canWriteVisibility,
   generateMarkdownWithFrontmatter,
   preserveSourceFrontmatter,
   getPublishBoundaryState,
   entityIdPathSchema,
-  entityDisplayTitle as sharedEntityDisplayTitle,
-} from "@brains/plugins";
+  type BaseEntity,
+  type EntityIdPath,
+  type GetEntityRequest,
+} from "@brains/sdk/internal/entity-runtime";
+import {
+  directorySyncPathContract,
+  type directorySyncPathResponseSchema,
+} from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { isRawEntityType } from "./config";
 import {
@@ -49,29 +45,48 @@ import {
   studioCollectionQuerySchema,
   studioCollectionQueryFromParams,
 } from "./collection-query";
+import type { StudioContext } from "./studio-context";
 
 /** Entity adapters own title derivation; Studio must not reinterpret source. */
 /** How Studio names an entry; the same rule the ⌘K palette uses. */
 export function entityDisplayTitle(
-  context: ServicePluginContext,
+  context: StudioContext,
   entity: BaseEntity,
 ): string | undefined {
-  return sharedEntityDisplayTitle(context.entities, entity);
+  // Studio reads a declared type as stored, while its title is derived from
+  // the record as the type reads it: the body, not the document.
+  const declared = context.shapes.metadataFromFrontmatter(entity.entityType);
+  return context.shapes.displayTitle(
+    declared
+      ? {
+          ...entity,
+          content: splitEntityContent(
+            entity.entityType,
+            entity.content,
+            context,
+          ).body,
+        }
+      : entity,
+  );
 }
 
-/** Authoring reads preserve source; rendering must never change a save draft. */
+/**
+ * Authoring reads preserve source; rendering must never change a save draft.
+ * The source is the stored document, frontmatter included, which a declared
+ * type's ordinary reads leave out.
+ */
 function readEditorEntity(
-  context: ServicePluginContext,
+  context: StudioContext,
   request: GetEntityRequest,
 ): Promise<BaseEntity | null> {
-  return context.entityService.getEntityRaw(request);
+  return context.entityService.getEntityRaw({ ...request, source: true });
 }
 
 const imagePreviewQuerySchema = z.object({ id: z.string().min(1) });
 
 /** Binary images are readable for previews, not editable frontmatter types. */
 export async function handleGetImagePreview(
-  context: ServicePluginContext,
+  context: StudioContext,
   request: Request,
   access: StudioRequestAccess,
 ): Promise<Response> {
@@ -141,29 +156,22 @@ function invalidCreatePayload(error: unknown, input: unknown): Response {
 
 /** Directory-sync is optional; only an explicit placement denial blocks creation. */
 async function resolvePlacement(
-  context: ServicePluginContext,
+  context: StudioContext,
   entityType: string,
   entityId: string,
   entity: Pick<BaseEntity, "metadata" | "content">,
 ): Promise<z.output<typeof directorySyncPathResponseSchema> | null> {
-  const response = await context.messaging.send({
-    type: DIRECTORY_SYNC_CHANNELS.pathRequest,
-    payload: {
-      entityType,
-      entityId,
-      metadata: entity.metadata,
-      content: entity.content,
-    },
+  const placement = await context.messaging.request(directorySyncPathContract, {
+    entityType,
+    entityId,
+    metadata: entity.metadata,
+    content: entity.content,
   });
-  return "success" in response &&
-    response.success &&
-    response.data !== undefined
-    ? directorySyncPathResponseSchema.parse(response.data)
-    : null;
+  return placement.status === "answered" ? placement.data : null;
 }
 
 export async function handlePreviewDestination(
-  context: ServicePluginContext,
+  context: StudioContext,
   request: Request,
   access: StudioRequestAccess,
 ): Promise<Response> {
@@ -217,7 +225,7 @@ const deleteEntityPayloadSchema = z.object({
 });
 
 export async function handleGetEntities(
-  context: ServicePluginContext,
+  context: StudioContext,
   request: Request,
   access: StudioRequestAccess,
 ): Promise<Response> {
@@ -280,6 +288,7 @@ export async function handleGetEntities(
     context.entityService.listEntities({
       entityType,
       options: {
+        source: true,
         offset: query.data.offset,
         limit: query.data.limit,
         sortFields: [
@@ -316,7 +325,7 @@ export async function handleGetEntities(
 }
 
 export async function handleGetEntityHierarchy(
-  context: ServicePluginContext,
+  context: StudioContext,
   request: Request,
   access: StudioRequestAccess,
 ): Promise<Response> {
@@ -335,6 +344,7 @@ export async function handleGetEntityHierarchy(
     query.data;
   const base: HierarchyQueryBase = {
     visibilityScope: access.visibilityScope,
+    source: true,
     filter: {
       ...(q && { contentContains: q }),
       ...(visibility !== "all" && { visibility }),
@@ -434,7 +444,7 @@ export async function handleGetEntityHierarchy(
 }
 
 export async function handleUpdateEntity(
-  context: ServicePluginContext,
+  context: StudioContext,
   request: Request,
   access: StudioRequestAccess,
   recordAuditEvent: EditorRouteOptions["recordAuditEvent"],
@@ -645,7 +655,7 @@ export async function handleUpdateEntity(
 }
 
 function deserializeStudioEntity(
-  context: ServicePluginContext,
+  context: StudioContext,
   entityType: string,
   content: string,
 ): Partial<BaseEntity> | Response {
@@ -659,7 +669,7 @@ function deserializeStudioEntity(
 }
 
 function prepareStudioCreation(
-  context: ServicePluginContext,
+  context: StudioContext,
   payload: z.infer<typeof createEntityPayloadSchema>,
 ):
   | (Partial<BaseEntity> &
@@ -724,7 +734,7 @@ function prepareStudioCreation(
 }
 
 export async function handleCreateEntity(
-  context: ServicePluginContext,
+  context: StudioContext,
   request: Request,
   access: StudioRequestAccess,
   recordAuditEvent: EditorRouteOptions["recordAuditEvent"],
@@ -882,7 +892,7 @@ export async function handleCreateEntity(
 }
 
 export async function handleDeleteEntity(
-  context: ServicePluginContext,
+  context: StudioContext,
   request: Request,
   access: StudioRequestAccess,
   recordAuditEvent: EditorRouteOptions["recordAuditEvent"],

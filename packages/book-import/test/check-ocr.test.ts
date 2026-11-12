@@ -179,6 +179,15 @@ describe("referenceCorrections", () => {
     ]);
   });
 
+  it("leaves a word read in Greek script, which a transcription that misreads Greek cannot better", () => {
+    expect(
+      referenceCorrections(
+        [{ page: 8, text: "Ich habe die μέλη nach Hause zu gehen," }],
+        "Ich habe die fxeXr) nach Hause zu gehen, wenn es dunkel wird.",
+      ),
+    ).toEqual([]);
+  });
+
   it("replaces a run of scraps with the transcription's words between", () => {
     expect(
       referenceCorrections(

@@ -6,6 +6,7 @@ import {
 import { describe, expect, it } from "bun:test";
 import type { CreateInput } from "@brains/entity-service";
 import { createInputSchema } from "../../src/system/schemas";
+import { postFrontmatter } from "./mock-services";
 import { uploadContext, uploadFixture } from "./upload-fixtures";
 
 const draftUpload = {
@@ -33,7 +34,7 @@ function item(
   title?: string,
 ): Record<string, unknown> {
   return {
-    upload: { kind: "upload", id: upload.id },
+    id: upload.id,
     transform,
     ...(title !== undefined ? { title } : {}),
   };
@@ -103,12 +104,23 @@ describe("system_create several uploads", () => {
         status: "generating",
         items: [
           {
+            uploadId: draftUpload.id,
             filename: "draft-one.md",
             entityType: "note",
             title: "Field Notes",
           },
-          { filename: "essay.md", entityType: "note", title: "essay" },
-          { filename: "harbor.png", entityType: "image", title: "harbor" },
+          {
+            uploadId: essayUpload.id,
+            filename: "essay.md",
+            entityType: "note",
+            title: "essay",
+          },
+          {
+            uploadId: photoUpload.id,
+            filename: "harbor.png",
+            entityType: "image",
+            title: "harbor",
+          },
         ],
       },
     });
@@ -297,7 +309,8 @@ function withPostType(
   fixture: ReturnType<typeof uploadFixture>,
 ): CreateInput[] {
   const posts: CreateInput[] = [];
-  fixture.services.registerEntityTypes(["post"]);
+  // The fields a post's frontmatter declares, as the blog plugin's does.
+  fixture.services.registerEntityTypes(["post"], { post: postFrontmatter });
   fixture.services.entityRegistry.registerCreateInterceptor(
     "post",
     async (input) => {
@@ -326,7 +339,7 @@ describe("system_create uploads as another type's text", () => {
         entityType: "post",
         source: {
           kind: "upload",
-          upload: { kind: "upload", id: slownessUpload.id },
+          id: slownessUpload.id,
           transform: "extract-markdown",
         },
         fields: { status: "published", publishedAt: "2025-03-12" },
@@ -477,7 +490,7 @@ describe("system_create uploads as another type's text", () => {
         entityType: "post",
         source: {
           kind: "upload",
-          upload: { kind: "upload", id: reportUpload.id },
+          id: reportUpload.id,
           transform: "extract-markdown",
         },
       },

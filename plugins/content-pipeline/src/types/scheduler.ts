@@ -1,26 +1,34 @@
-import type { PublishResult } from "@brains/contracts";
+import type {
+  BusContract,
+  Channel,
+  PublishFailedPayload,
+  PublishResult,
+} from "@brains/contracts";
+import type { z } from "@brains/utils/zod";
 import type { Logger } from "@brains/utils/logger";
 import type { QueueManager } from "../queue-manager";
 import type { ProviderRegistry } from "../provider-registry";
 import type { RetryTracker } from "../retry-tracker";
 import type { GenerationCondition } from "./config";
-import type { SchedulerBackend } from "../scheduler-backend";
+import type { SchedulerBackend } from "@brains/scheduler";
 import type { PublishEntityExecutor } from "../publish-executor";
 
 /**
- * The publish side of the message bus, which is all the scheduler uses.
- *
- * Non-generic on purpose: the real bus's send<T, R> is assignable to this, and
- * a test can supply a plain function without the type parameters bun's mock()
- * erases. No caller here reads the response — every send is fire-and-forget.
+ * The publish side of the message bus, which is all the scheduler uses: the
+ * events it broadcasts and the commands it sends, as the messaging namespace
+ * sends them. Neither reads a reply.
  */
 export interface SchedulerMessagePublisher {
-  send(request: {
-    type: string;
-    payload: unknown;
-    sender?: string;
-    broadcast?: boolean;
-  }): Promise<unknown>;
+  /** An event every subscriber hears, as `IMessagingNamespace.broadcast`. */
+  broadcast<TPayload>(
+    channel: Channel<TPayload>,
+    payload: NoInfer<TPayload>,
+  ): Promise<void>;
+  /** A command every owner hears, as `IMessagingNamespace.command`. */
+  command<TRequest extends z.ZodType>(
+    contract: BusContract<TRequest, z.ZodType, "command">,
+    payload: z.input<TRequest>,
+  ): Promise<void>;
 }
 
 export interface GenerateExecuteEvent {
@@ -36,14 +44,6 @@ export interface PublishSuccessEvent {
   entityType: string;
   entityId: string;
   result: PublishResult;
-}
-
-export interface PublishFailedEvent {
-  entityType: string;
-  entityId: string;
-  error: string;
-  retryCount: number;
-  willRetry: boolean;
 }
 
 export interface SchedulerConfig {
@@ -78,7 +78,7 @@ export interface SchedulerConfig {
   /** Callback on successful publish */
   onPublish?: (event: PublishSuccessEvent) => void;
   /** Callback on failed publish (provider mode) */
-  onFailed?: (event: PublishFailedEvent) => void;
+  onFailed?: (event: PublishFailedPayload) => void;
   /** Callback to check generation conditions */
   onCheckGenerationConditions?: (
     entityType: string,

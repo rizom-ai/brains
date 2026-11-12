@@ -3,12 +3,8 @@ import {
   preferredSlug,
   type PrintableProviderFactory,
 } from "@brains/media-page-composer";
-import { parseMarkdown } from "@brains/utils/markdown";
 import type { BlogPost } from "../schemas/blog-post";
-import {
-  blogPostFrontmatterSchema,
-  blogPostSchema,
-} from "../schemas/blog-post";
+import { blogPostSchema } from "../schemas/blog-post";
 import {
   BLOG_PRINTABLE_ATTACHMENT_TYPE,
   BLOG_PRINTABLE_TEMPLATE_NAME,
@@ -23,8 +19,9 @@ export const createBlogPrintableProvider: PrintableProviderFactory =
     templateName: BLOG_PRINTABLE_TEMPLATE_NAME,
     themeMode: "light",
     buildContent: async (post, helpers) => {
-      const { frontmatter, content } = parseMarkdown(post.content);
-      const parsed = blogPostFrontmatterSchema.parse(frontmatter);
+      // A declared post reads back as its body, its frontmatter its metadata.
+      const parsed = post.metadata;
+      const content = post.content;
       const coverImageUrl = await helpers.resolveImageDataUrl(
         parsed.coverImageId,
       );

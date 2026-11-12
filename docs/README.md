@@ -40,6 +40,7 @@ If you are new, read these in order:
 - [Theming Guide](./theming-guide.md) — theme tokens, CSS layers, and custom themes
 - [Plugin System](./plugin-system.md) — how built-in and custom plugins are organized
 - [Plugin Quick Reference](./plugin-quick-reference.md) — concise plugin API reference
+- [Package Quickstart](./package-quickstart.md) — write, test and compose one package with the two-stage definition
 - [External Plugin Authoring](./external-plugin-authoring.md) — package and load external plugins
 - [External Site and Theme Authoring](./external-site-authoring.md) — publish independently hosted site and theme packages through the public npm contract
 

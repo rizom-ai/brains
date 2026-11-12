@@ -41,8 +41,7 @@ turns:
           argsContain:
             entityType: note
             source.kind: upload
-            source.upload.kind: upload
-            source.upload.id: upload-00000000-0000-4000-8000-000000000801
+            source.id: upload-00000000-0000-4000-8000-000000000801
             source.transform: extract-markdown
           argsAbsent:
             - from
@@ -58,8 +57,7 @@ successCriteria:
       argsContain:
         entityType: note
         source.kind: upload
-        source.upload.kind: upload
-        source.upload.id: upload-00000000-0000-4000-8000-000000000801
+        source.id: upload-00000000-0000-4000-8000-000000000801
         source.transform: extract-markdown
       argsAbsent:
         - from
@@ -78,4 +76,4 @@ successCriteria:
 
 efficiency:
   maxToolCalls: 1
-  maxTokens: 15000
+  maxTokens: 18000

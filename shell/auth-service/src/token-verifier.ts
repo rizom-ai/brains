@@ -1,13 +1,6 @@
-import { createLocalJWKSet, jwtVerify, type JWTPayload } from "jose";
+import type { VerifiedAccessToken } from "@brains/contracts";
+import { createLocalJWKSet, jwtVerify } from "jose";
 import type { JwksResponse } from "./types";
-
-export interface VerifiedAccessToken {
-  subject: string;
-  issuer: string;
-  audience: string | string[] | undefined;
-  scope: string[];
-  claims: JWTPayload;
-}
 
 export interface VerifyAccessTokenOptions {
   issuer: string;

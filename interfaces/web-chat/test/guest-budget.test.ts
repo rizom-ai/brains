@@ -8,6 +8,7 @@ import { migrateRuntimeState } from "@brains/runtime-state/migrate";
 import { createMemoryRuntimeStateNamespace } from "@brains/plugins/test";
 import { guestInterfaceType } from "@brains/contracts/chat";
 import { webChatConfigSchema } from "../src/config";
+import { resolveGuestPreset } from "../src/guest-preset";
 import { createDefaultGuestPolicy } from "../src/guest-preset";
 import { GuestAdmission } from "../src/guest-admission";
 import {
@@ -96,7 +97,10 @@ async function answer(
 
 describe("an owner-set monthly budget for guest chat", () => {
   it("does not take a budget from product configuration", () => {
-    expect(webChatConfigSchema.parse({}).guest).toBe(false);
+    // Unset is off, and leaves the owner's runtime switch available.
+    expect(
+      resolveGuestPreset(webChatConfigSchema.parse({}).guest, "gpt-5.6-luna"),
+    ).toEqual({ enabled: false });
     for (const guest of [
       { origin: "https://preview.brain.test", budgeted: true },
       { origin: "https://preview.brain.test", monthlyUsd: 10 },

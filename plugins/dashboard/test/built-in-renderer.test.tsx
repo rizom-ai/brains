@@ -57,12 +57,15 @@ describe("built-in widget renderers", () => {
   it("reunites a widget's data with the renderer its plugin registered", () => {
     const resolved = resolveWidgetsForRender(
       {
-        "topics:knowledge-map": widgetData({ view: {}, source: { zones: 2 } }),
+        "knowledge-map:knowledge-map": widgetData({
+          view: {},
+          source: { zones: 2 },
+        }),
       },
       registryWithMap(),
     );
 
-    const widget = resolved.widgets["topics:knowledge-map"];
+    const widget = resolved.widgets["knowledge-map:knowledge-map"];
     if (!widget) throw new Error("widget was not resolved");
     expect(typeof widget.component).toBe("function");
     expect(resolved.widgetStyles).toEqual([".kmap-field { display: block; }"]);
@@ -71,14 +74,14 @@ describe("built-in widget renderers", () => {
   it("draws the component with its own data instead of the declarative body", () => {
     const resolved = resolveWidgetsForRender(
       {
-        "topics:knowledge-map": widgetData({
+        "knowledge-map:knowledge-map": widgetData({
           view: { blocks: [] },
           source: { zones: 2 },
         }),
       },
       registryWithMap(),
     );
-    const widget = resolved.widgets["topics:knowledge-map"];
+    const widget = resolved.widgets["knowledge-map:knowledge-map"];
     if (!widget) throw new Error("widget was not resolved");
 
     const html = render(<WidgetCard widget={widget} />);

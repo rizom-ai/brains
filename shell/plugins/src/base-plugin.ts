@@ -7,16 +7,12 @@ import type {
   Resource,
   ToolContext,
 } from "./interfaces";
-import type { MessageHandler, MessageSender } from "@brains/messaging-service";
+import type { MessageHandler } from "@brains/messaging-service";
 import type { IShell } from "./interfaces";
 import { getErrorMessage } from "@brains/utils/error";
 import { ConsoleLogger, type Logger } from "@brains/utils/logger";
 import { RetryScope } from "@brains/utils/retry-backoff";
-import {
-  CallbackProgressReporter,
-  type ProgressNotification,
-  type ProgressReporter,
-} from "@brains/utils/progress";
+import type { ProgressNotification } from "@brains/utils/progress";
 import type { UserPermissionLevel } from "@brains/templates";
 import { actorRefSchema } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
@@ -27,7 +23,11 @@ const toolExecuteRequestSchema = z.object({
   toolName: z.string(),
   args: z.unknown(),
   progressToken: z.union([z.string(), z.number()]).optional(),
-  hasProgress: z.boolean().optional(),
+  sendProgress: z
+    .custom<(notification: ProgressNotification) => Promise<void>>(
+      (value) => typeof value === "function",
+    )
+    .optional(),
   interfaceType: z.string(),
   actor: actorRefSchema,
   displayName: z.string().optional(),
@@ -43,16 +43,11 @@ const toolExecuteRequestSchema = z.object({
     .optional(),
 });
 
-const resourceGetRequestSchema = z.object({
-  resourceUri: z.string(),
-});
-
 // Core context interface - minimal requirements for all plugins
 export interface CoreContext {
   pluginId: string;
   logger: Logger;
   messaging: {
-    send: MessageSender;
     subscribe: <T = unknown, R = unknown>(
       channel: string,
       handler: MessageHandler<T, R>,
@@ -76,6 +71,12 @@ export abstract class BasePlugin<
   protected config: TConfig;
   protected context?: TContext;
   private retryScope: RetryScope | undefined;
+  /**
+   * The tools this plugin built, once: the bus runs the same instances the
+   * plugin registered, so a tool's state (a confirmation it is waiting on)
+   * holds from one call to the next.
+   */
+  private builtTools: Promise<Tool[]> | undefined;
 
   /**
    * Get the logger - uses context logger if available, creates temp logger otherwise
@@ -126,9 +127,11 @@ export abstract class BasePlugin<
   abstract register(shell: IShell): Promise<PluginCapabilities>;
 
   /**
-   * Set up message handlers for tool and resource execution
+   * Set up the message handler for tool execution
    */
   protected setupMessageHandlers(context: TContext): void {
+    // A registration builds its tools afresh, against its own context.
+    this.builtTools = undefined;
     // Subscribe to tool execution requests for this specific plugin
     context.messaging.subscribe(
       PLUGIN_CHANNELS.toolExecute(this.id),
@@ -149,7 +152,7 @@ export abstract class BasePlugin<
             toolName,
             args,
             progressToken,
-            hasProgress,
+            sendProgress,
             interfaceType,
             actor,
             displayName,
@@ -163,7 +166,7 @@ export abstract class BasePlugin<
             signal,
           } = parsedRequest.data;
 
-          const tools = await this.getTools();
+          const tools = await this.registeredTools();
           const tool = tools.find((t) => t.name === toolName);
 
           if (!tool) {
@@ -173,7 +176,7 @@ export abstract class BasePlugin<
             };
           }
 
-          // Create context with routing metadata and optional progress callback
+          // Routing metadata, and the caller's progress callback if it asked for one
           const toolContext: ToolContext = {
             interfaceType,
             actor,
@@ -186,22 +189,8 @@ export abstract class BasePlugin<
             ...(userPermissionLevel && { userPermissionLevel }),
             ...(isAnchor !== undefined && { isAnchor }),
             ...(signal && { signal }),
-            ...(hasProgress &&
-              progressToken !== undefined && {
-                progressToken,
-                sendProgress: async (
-                  notification: ProgressNotification,
-                ): Promise<void> => {
-                  // Send progress notification back through message bus
-                  await context.messaging.send({
-                    type: PLUGIN_CHANNELS.progress(this.id),
-                    payload: {
-                      progressToken,
-                      notification,
-                    },
-                  });
-                },
-              }),
+            ...(progressToken !== undefined &&
+              sendProgress && { progressToken, sendProgress }),
           };
 
           // Response shape is validated at the consumer boundary
@@ -213,49 +202,6 @@ export abstract class BasePlugin<
           };
         } catch (error) {
           this.logger.error("Tool execution error", error);
-          return {
-            success: false,
-            error: getErrorMessage(error),
-          };
-        }
-      },
-    );
-
-    // Subscribe to resource get requests for this specific plugin
-    context.messaging.subscribe(
-      PLUGIN_CHANNELS.resourceGet(this.id),
-      async (message) => {
-        try {
-          // Validate and parse the message payload
-          const parsedRequest = resourceGetRequestSchema.safeParse(
-            message.payload,
-          );
-          if (!parsedRequest.success) {
-            return {
-              success: false,
-              error: "Invalid resource get request format",
-            };
-          }
-          const { resourceUri } = parsedRequest.data;
-
-          const resources = await this.getResources();
-          const resource = resources.find((r) => r.uri === resourceUri);
-
-          if (!resource) {
-            return {
-              success: false,
-              error: `Resource not found: ${resourceUri}`,
-            };
-          }
-
-          // Get the resource
-          const result = await resource.handler();
-          return {
-            success: true,
-            data: result,
-          };
-        } catch (error) {
-          this.logger.error("Resource fetch error", error);
           return {
             success: false,
             error: getErrorMessage(error),
@@ -311,7 +257,7 @@ export abstract class BasePlugin<
   protected async getCapabilities(): Promise<PluginCapabilities> {
     const instructions = await this.getInstructions();
     return {
-      tools: await this.getTools(),
+      tools: await this.registeredTools(),
       resources: await this.getResources(),
       ...(instructions && { instructions }),
     };
@@ -323,6 +269,12 @@ export abstract class BasePlugin<
    */
   protected async getTools(): Promise<Tool[]> {
     return [];
+  }
+
+  /** The tools getTools builds, built on first use and kept. */
+  private registeredTools(): Promise<Tool[]> {
+    this.builtTools ??= this.getTools();
+    return this.builtTools;
   }
 
   /**
@@ -375,35 +327,5 @@ export abstract class BasePlugin<
    */
   public determineUserPermissionLevel(_userId: string): UserPermissionLevel {
     return "public";
-  }
-
-  /**
-   * Create a progress bridge that converts job queue ProgressReporter to MCP progress events
-   * Used by job-based tools to report progress via MCP progressToken
-   */
-  protected createProgressBridge(
-    progressToken?: string | number,
-  ): ProgressReporter | undefined {
-    if (!progressToken) return undefined;
-
-    const context = this.context;
-    if (!context) return undefined;
-
-    const pluginId = this.id;
-    return CallbackProgressReporter.from(
-      async (notification: ProgressNotification) => {
-        await context.messaging.send({
-          type: PLUGIN_CHANNELS.progress(pluginId),
-          payload: {
-            progressToken,
-            notification: {
-              progress: notification.progress,
-              total: notification.total,
-              message: notification.message,
-            },
-          },
-        });
-      },
-    );
   }
 }

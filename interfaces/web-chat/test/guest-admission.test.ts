@@ -520,9 +520,9 @@ describe("guest admission", () => {
       const state = createMemoryRuntimeStateNamespace();
       let attempts = 0;
       const failing: IRuntimeStateNamespace = {
-        scoped: <T>(
-          options: RuntimeStateScopeOptions<T>,
-        ): IRuntimeStateStore<T> => {
+        scoped: <T, TInput = T>(
+          options: RuntimeStateScopeOptions<T, TInput>,
+        ): IRuntimeStateStore<T, TInput> => {
           const store = state.scoped(options);
           return {
             ...store,
