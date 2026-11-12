@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.693
+
+### Patch Changes
+
+- [#930](https://github.com/rizom-ai/brains/pull/930) [`d488bf3`](https://github.com/rizom-ai/brains/commit/d488bf3f6dc4c673fd5857a0f22d0f7c0b7db110) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `brain init /absolute/path` now creates the brain at that path instead of under the current directory; relative targets still resolve against the current directory.
+
 ## 0.2.0-alpha.692
 
 ### Patch Changes
