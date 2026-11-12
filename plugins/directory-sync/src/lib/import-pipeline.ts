@@ -1,8 +1,10 @@
-import type { ServiceEntityMirrorClient } from "@brains/sdk/internal/service-runtime";
-import type { BaseEntity } from "@brains/plugins";
+import {
+  type ServiceEntityMirrorClient,
+  internalFullScope,
+} from "@brains/sdk/internal/service-runtime";
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
 import type { DirectoryImportPlan } from "../types/jobs";
 import { captureImportPlan } from "./import-plan";
-import { internalFullScope } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { ImportResult, RawEntity } from "../types";
 import type { FileOperations } from "./file-operations";

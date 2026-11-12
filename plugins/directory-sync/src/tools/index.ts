@@ -1,6 +1,12 @@
 import type { DirectorySyncCore } from "../lib/sync-context";
-import type { Tool, ToolResult, ToolContext } from "@brains/plugins";
-import { createTool, toolSuccess, toolError } from "@brains/plugins";
+import {
+  type Tool,
+  type ToolResult,
+  type ToolContext,
+  createTool,
+  toolSuccess,
+  toolError,
+} from "@brains/sdk/internal/service-runtime";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import type { IDirectorySync, IGitSync } from "../types";

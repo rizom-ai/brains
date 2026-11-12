@@ -1,6 +1,8 @@
-import type { ServiceEntityMirrorClient } from "@brains/sdk/internal/service-runtime";
+import {
+  type ServiceEntityMirrorClient,
+  internalFullScope,
+} from "@brains/sdk/internal/service-runtime";
 import { readFile } from "node:fs/promises";
-import { internalFullScope } from "@brains/plugins";
 import { computeContentHash } from "@brains/utils/hash";
 import type { IFileOperations } from "../types/interfaces";
 import { resolveInSyncPath } from "./path-utils";

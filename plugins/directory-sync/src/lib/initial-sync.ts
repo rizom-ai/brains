@@ -2,10 +2,10 @@ import type { DirectorySyncContext } from "./sync-context";
 import { getErrorMessage } from "@brains/utils/error";
 import {
   initialSyncCompletedChannel,
-  jobProgressChannel,
   type InitialSyncOutcome,
   type PluginsRegisteredAnswer,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/service-runtime";
+import { jobProgressChannel } from "@brains/sdk/internal/interface-runtime";
 import type { Logger } from "@brains/utils/logger";
 import type {
   BatchResult,

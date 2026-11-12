@@ -1,5 +1,5 @@
 import type { DirectorySyncCore } from "./sync-context";
-import type { ToolContext } from "@brains/plugins";
+import type { ToolContext } from "@brains/sdk/internal/service-runtime";
 import type { BatchResult, IDirectorySync, IGitSync } from "../types";
 import type { DirectorySyncOperationStatusService } from "./directory-sync-operation-status";
 import { getErrorMessage } from "@brains/utils/error";

@@ -1,6 +1,7 @@
 import type { ServiceEntityMirrorClient } from "@brains/sdk/internal/service-runtime";
 import type { DirectorySyncCore } from "./sync-context";
-import { createId, type BaseEntity } from "@brains/plugins";
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
+import { createId } from "@brains/utils/id";
 import type { BatchMetadata, BatchResult } from "../types";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";

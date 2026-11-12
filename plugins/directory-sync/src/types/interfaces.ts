@@ -1,5 +1,5 @@
 import type { DirectorySyncCore } from "../lib/sync-context";
-import type { BaseEntity } from "@brains/plugins";
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
 import type { ProgressReporter } from "@brains/utils/progress";
 import type { BatchMetadata } from "./batch";
 import type { MatchesHead } from "../lib/file-watcher";

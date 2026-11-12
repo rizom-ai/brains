@@ -1,6 +1,11 @@
-import type { ServiceEntityMirrorClient } from "@brains/sdk/internal/service-runtime";
-import type { BaseEntity, ContentVisibility } from "@brains/plugins";
-import { EntityWriteConflictError } from "@brains/plugins";
+import type {
+  ServiceEntityMirrorClient,
+  ContentVisibility,
+} from "@brains/sdk/internal/service-runtime";
+import {
+  type BaseEntity,
+  EntityWriteConflictError,
+} from "@brains/sdk/internal/entity-runtime";
 import type { Logger } from "@brains/utils/logger";
 import { getErrorMessage } from "@brains/utils/error";
 import { computeContentHash } from "@brains/utils/hash";

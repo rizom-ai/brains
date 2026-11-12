@@ -1,6 +1,4 @@
 import type { DirectorySyncCore } from "../lib/sync-context";
-import { BaseJobHandler } from "@brains/plugins";
-import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
 import type { GitReconciliationService } from "../lib/git-reconciliation";
 import type { DirectorySyncOperationStatusService } from "../lib/directory-sync-operation-status";
@@ -20,11 +18,10 @@ export interface DirectorySyncRequestJobResult {
   totalFiles?: number;
 }
 
-export class DirectorySyncRequestJobHandler extends BaseJobHandler<
-  "sync-request",
-  DirectorySyncRequestJobData,
-  DirectorySyncRequestJobResult
-> {
+export class DirectorySyncRequestJobHandler {
+  /** The data the queue hands this job, as its schema parses it. */
+  readonly schema: typeof directorySyncRequestJobSchema =
+    directorySyncRequestJobSchema;
   private readonly context: DirectorySyncCore;
   private readonly getDirectorySync: () => IDirectorySync;
   private readonly getGitSync: () => IGitSync;
@@ -37,7 +34,6 @@ export class DirectorySyncRequestJobHandler extends BaseJobHandler<
     | Pick<DirectorySyncOperationStatusService, "createProgressObserver">
     | undefined;
   constructor(
-    logger: Logger,
     context: DirectorySyncCore,
     getDirectorySync: () => IDirectorySync,
     getGitSync: () => IGitSync,
@@ -47,10 +43,6 @@ export class DirectorySyncRequestJobHandler extends BaseJobHandler<
       "createProgressObserver"
     >,
   ) {
-    super(logger, {
-      schema: directorySyncRequestJobSchema,
-      jobTypeName: "sync-request",
-    });
     this.context = context;
     this.getDirectorySync = getDirectorySync;
     this.getGitSync = getGitSync;
@@ -108,7 +100,7 @@ export class DirectorySyncRequestJobHandler extends BaseJobHandler<
     return toJobResult(result);
   }
 
-  public override summarizeDataForLog(
+  public summarizeDataForLog(
     data: DirectorySyncRequestJobData,
   ): Record<string, unknown> {
     return {

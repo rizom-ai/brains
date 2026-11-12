@@ -1,5 +1,5 @@
 import type { DirectorySyncContext, DirectorySyncCore } from "./sync-context";
-import { createId } from "@brains/plugins";
+import { createId } from "@brains/utils/id";
 import {
   entityCreatedChannel,
   entityDeletedChannel,

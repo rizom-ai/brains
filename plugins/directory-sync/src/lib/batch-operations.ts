@@ -1,7 +1,7 @@
 import type { DirectorySyncCore } from "./sync-context";
-import type { BatchOperation } from "@brains/plugins";
+import type { BatchOperation } from "@brains/sdk/internal/service-runtime";
 import type { Logger } from "@brains/utils/logger";
-import { createId } from "@brains/plugins";
+import { createId } from "@brains/utils/id";
 import { captureImportPlan } from "./import-plan";
 import { containmentOf, parseEntityPath } from "./entity-paths";
 import type {

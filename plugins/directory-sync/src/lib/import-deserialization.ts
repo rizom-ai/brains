@@ -1,5 +1,5 @@
 import type { ServiceEntityMirrorClient } from "@brains/sdk/internal/service-runtime";
-import type { BaseEntity } from "@brains/plugins";
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
 import type { Logger } from "@brains/utils/logger";
 import { getErrorMessage } from "@brains/utils/error";
 import type { ImportResult, RawEntity } from "../types";

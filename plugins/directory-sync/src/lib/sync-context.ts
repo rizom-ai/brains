@@ -1,8 +1,6 @@
 import type {
-  DurableBulkMutationCoordinator,
-  IRuntimeStateNamespace,
-} from "@brains/plugins";
-import type {
+  ServiceEntityMirror,
+  ClassRuntimeState,
   ServiceClassJobs,
   ServiceEntityMirrorClient,
   ServiceRuntime,
@@ -23,8 +21,8 @@ export interface DirectorySyncCore {
   readonly gitBrokerSocket: string | undefined;
   readonly gitBrokerCheckout: string | undefined;
   readonly entityService: ServiceEntityMirrorClient;
-  readonly bulkMutations: DurableBulkMutationCoordinator;
-  readonly runtimeState: Pick<IRuntimeStateNamespace, "scoped">;
+  readonly bulkMutations: ServiceEntityMirror["coordination"];
+  readonly runtimeState: ClassRuntimeState;
   readonly jobs: Pick<
     ServiceClassJobs,
     "enqueue" | "enqueueBatch" | "getBatchStatus" | "getStatus"

@@ -1,6 +1,8 @@
 import type { DirectorySyncContext } from "./lib/sync-context";
-import type { Tool } from "@brains/plugins";
-import type { FirstPartyJobHandler } from "@brains/sdk/internal/service-runtime";
+import type {
+  Tool,
+  FirstPartyJobHandler,
+} from "@brains/sdk/internal/service-runtime";
 import type { Logger } from "@brains/utils/logger";
 import { DirectorySync } from "./lib/directory-sync";
 import { connectGitSync } from "./lib/broker/connect";
@@ -23,7 +25,6 @@ import {
   classJob,
   directorySyncJobHandlers,
 } from "./lib/register-job-handlers";
-import { directorySyncRequestJobSchema } from "./types/jobs";
 import { RetryScope } from "@brains/utils/retry-backoff";
 import { setupAutoSync, setupFileWatcher } from "./lib/auto-sync";
 import { setupInitialSync } from "./lib/initial-sync";
@@ -312,9 +313,7 @@ export class DirectorySyncService {
     if (this.isGitConfigured()) {
       this.syncRequestJob = classJob(
         "sync-request",
-        directorySyncRequestJobSchema,
         new DirectorySyncRequestJobHandler(
-          this.logger.child("DirectorySyncRequestJobHandler"),
           context,
           () => this.requireDirectorySync(),
           () => this.requireGitSync(),

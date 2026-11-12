@@ -1,5 +1,4 @@
 import type { DirectorySyncCore } from "../lib/sync-context";
-import { BaseJobHandler } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
 import type { IDirectorySync } from "../types";
@@ -15,11 +14,10 @@ import {
   settleDirectoryProjectionBatchChild,
 } from "../lib/projection-batch-job";
 
-export class DirectoryDeleteJobHandler extends BaseJobHandler<
-  "directory-delete",
-  DirectoryDeleteJobData,
-  DirectoryDeleteJobResult
-> {
+export class DirectoryDeleteJobHandler {
+  /** The data the queue hands this job, as its schema parses it. */
+  readonly schema: typeof directoryDeleteJobSchema = directoryDeleteJobSchema;
+  private readonly logger: Logger;
   private context: DirectorySyncCore;
   private readonly directorySync: IDirectorySync;
 
@@ -28,10 +26,7 @@ export class DirectoryDeleteJobHandler extends BaseJobHandler<
     context: DirectorySyncCore,
     directorySync: IDirectorySync,
   ) {
-    super(logger, {
-      schema: directoryDeleteJobSchema,
-      jobTypeName: "directory-delete",
-    });
+    this.logger = logger;
     this.context = context;
     this.directorySync = directorySync;
   }
@@ -104,7 +99,7 @@ export class DirectoryDeleteJobHandler extends BaseJobHandler<
     );
   }
 
-  public override summarizeDataForLog(
+  public summarizeDataForLog(
     data: DirectoryDeleteJobData,
   ): Record<string, unknown> {
     if ("deletions" in data) return { deletionCount: data.deletions.length };

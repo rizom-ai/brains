@@ -1,6 +1,4 @@
 import type { DirectorySyncCore } from "../lib/sync-context";
-import { BaseJobHandler } from "@brains/plugins";
-import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
 import {
   directoryProjectionBatchRefSchema,
@@ -21,23 +19,13 @@ export const directoryCleanupJobSchema: z.ZodObject<{
 
 type DirectoryCleanupJobData = z.output<typeof directoryCleanupJobSchema>;
 
-export class DirectoryCleanupJobHandler extends BaseJobHandler<
-  "directory-cleanup",
-  DirectoryCleanupJobData,
-  CleanupResult
-> {
+export class DirectoryCleanupJobHandler {
+  /** The data the queue hands this job, as its schema parses it. */
+  readonly schema: typeof directoryCleanupJobSchema = directoryCleanupJobSchema;
   private readonly context: DirectorySyncCore;
   private directorySync: IDirectorySync;
 
-  constructor(
-    logger: Logger,
-    context: DirectorySyncCore,
-    directorySync: IDirectorySync,
-  ) {
-    super(logger, {
-      schema: directoryCleanupJobSchema,
-      jobTypeName: "directory-cleanup",
-    });
+  constructor(context: DirectorySyncCore, directorySync: IDirectorySync) {
     this.context = context;
     this.directorySync = directorySync;
   }
@@ -94,12 +82,5 @@ export class DirectoryCleanupJobHandler extends BaseJobHandler<
       jobId,
       "failed",
     );
-  }
-
-  /** What a log line says of the job: its data, as the base logs it. */
-  public override summarizeDataForLog(
-    data: DirectoryCleanupJobData,
-  ): Record<string, unknown> {
-    return super.summarizeDataForLog(data);
   }
 }

@@ -1,11 +1,11 @@
 import type { DirectorySyncCore } from "./sync-context";
 import {
-  createId,
   SerializedStatusStore,
-  type IRuntimeStateNamespace,
-  type IRuntimeStateStore,
   type RuntimeHealthCheck,
-} from "@brains/plugins";
+  type ClassRuntimeState,
+  type ClassRuntimeStateStore,
+} from "@brains/sdk/internal/service-runtime";
+import { createId } from "@brains/utils/id";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import { isAbsolute, relative } from "path";
@@ -195,7 +195,7 @@ export interface DirectorySyncOperationStatusOptions {
  */
 export class DirectorySyncOperationStatusService {
   private readonly store: SerializedStatusStore<DirectorySyncOperationSnapshot>;
-  private readonly progressStore: IRuntimeStateStore<
+  private readonly progressStore: ClassRuntimeStateStore<
     z.infer<typeof progressSchema>
   >;
   private readonly jobs: Pick<
@@ -211,7 +211,7 @@ export class DirectorySyncOperationStatusService {
   private syncPath: string;
 
   constructor(
-    runtimeState: IRuntimeStateNamespace,
+    runtimeState: ClassRuntimeState,
     jobs: DirectorySyncCore["jobs"],
     logger: Logger,
     syncPath: string,

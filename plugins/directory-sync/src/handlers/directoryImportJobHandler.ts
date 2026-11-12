@@ -1,5 +1,4 @@
 import type { DirectorySyncCore } from "../lib/sync-context";
-import { BaseJobHandler } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
 import {
@@ -16,11 +15,10 @@ import {
   settleDirectoryProjectionBatchChild,
 } from "../lib/projection-batch-job";
 
-export class DirectoryImportJobHandler extends BaseJobHandler<
-  "directory-import",
-  DirectoryImportJobData,
-  ImportResult
-> {
+export class DirectoryImportJobHandler {
+  /** The data the queue hands this job, as its schema parses it. */
+  readonly schema: typeof directoryImportJobSchema = directoryImportJobSchema;
+  private readonly logger: Logger;
   private directorySync: IDirectorySync;
   private readonly context: DirectorySyncCore;
   private readonly operationStatus:
@@ -35,10 +33,7 @@ export class DirectoryImportJobHandler extends BaseJobHandler<
     operationStatus?: DirectorySyncOperationStatusService,
     reconciliation?: Pick<GitReconciliationService, "requireFullScan">,
   ) {
-    super(logger, {
-      schema: directoryImportJobSchema,
-      jobTypeName: "directory-import",
-    });
+    this.logger = logger;
     this.context = context;
     this.directorySync = directorySync;
     this.operationStatus = operationStatus;
@@ -140,7 +135,7 @@ export class DirectoryImportJobHandler extends BaseJobHandler<
     );
   }
 
-  public override summarizeDataForLog(
+  public summarizeDataForLog(
     data: DirectoryImportJobData,
   ): Record<string, unknown> {
     return {

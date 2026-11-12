@@ -1,5 +1,5 @@
 import type { ServiceEntityMirrorClient } from "@brains/sdk/internal/service-runtime";
-import type { BaseEntity } from "@brains/plugins";
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
 import { basename, dirname, extname } from "path";
 import { resolveInSyncPath, toSyncRelativePath } from "./path-utils";
 import {

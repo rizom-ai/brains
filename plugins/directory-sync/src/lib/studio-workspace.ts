@@ -4,8 +4,8 @@ import {
   defineWorkspaceAction,
   type OperatorRegionBlock,
   type OperatorViewBlock,
-  type ToolContext,
-} from "@brains/plugins";
+} from "@brains/sdk/services";
+import type { ToolContext } from "@brains/sdk/internal/service-runtime";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import { basename } from "path";

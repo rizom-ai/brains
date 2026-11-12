@@ -1,5 +1,4 @@
 import type { DirectorySyncCore } from "../lib/sync-context";
-import { BaseJobHandler } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
 import {
@@ -12,11 +11,10 @@ import {
 } from "../types";
 import { waitForImportJobs } from "../lib/import-job-polling";
 
-export class DirectorySyncJobHandler extends BaseJobHandler<
-  "directory-sync",
-  DirectorySyncJobData,
-  SyncResult
-> {
+export class DirectorySyncJobHandler {
+  /** The data the queue hands this job, as its schema parses it. */
+  readonly schema: typeof directorySyncJobSchema = directorySyncJobSchema;
+  private readonly logger: Logger;
   private readonly getDirectorySync: () => IDirectorySync;
   private context: DirectorySyncCore;
 
@@ -25,10 +23,7 @@ export class DirectorySyncJobHandler extends BaseJobHandler<
     context: DirectorySyncCore,
     getDirectorySync: () => IDirectorySync,
   ) {
-    super(logger, {
-      schema: directorySyncJobSchema,
-      jobTypeName: "directory-sync",
-    });
+    this.logger = logger;
     this.context = context;
     this.getDirectorySync = getDirectorySync;
   }
@@ -180,7 +175,7 @@ export class DirectorySyncJobHandler extends BaseJobHandler<
     });
   }
 
-  public override summarizeDataForLog(
+  public summarizeDataForLog(
     data: DirectorySyncJobData,
   ): Record<string, unknown> {
     return {

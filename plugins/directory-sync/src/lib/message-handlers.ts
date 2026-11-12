@@ -1,5 +1,5 @@
 import type { DirectorySyncContext } from "./sync-context";
-import { decodeEntityIdPath } from "@brains/plugins";
+import { decodeEntityIdPath } from "@brains/sdk/internal/entity-runtime";
 import {
   directorySyncPathContract,
   directorySyncStatusContract,

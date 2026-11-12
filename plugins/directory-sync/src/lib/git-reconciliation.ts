@@ -1,9 +1,9 @@
 import type { DirectorySyncCore } from "./sync-context";
 import {
-  createId,
   SerializedStatusStore,
-  type IRuntimeStateNamespace,
-} from "@brains/plugins";
+  type ClassRuntimeState,
+} from "@brains/sdk/internal/service-runtime";
+import { createId } from "@brains/utils/id";
 import { z } from "@brains/utils/zod";
 import type {
   BatchMetadata,
@@ -76,7 +76,7 @@ function matchingHead(gitSync: IGitSync): MatchesHead {
 export class GitReconciliationService {
   private readonly store: SerializedStatusStore<StoredCheckpoint>;
 
-  constructor(runtimeState: IRuntimeStateNamespace) {
+  constructor(runtimeState: ClassRuntimeState) {
     this.store = new SerializedStatusStore({
       runtimeState,
       namespace: CHECKPOINT_NAMESPACE,
