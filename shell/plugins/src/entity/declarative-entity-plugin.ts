@@ -66,6 +66,7 @@ import {
   entityAnswersOf,
   bodyTemplateOf,
   folderTitlesOf,
+  recordDisplayTitleOf,
   ordinaryCreateOf,
   restatedMetadataOf,
   urlRouteOf,
@@ -584,11 +585,26 @@ function entityAdapter(definition: AnyEntityDefinition): DeclaredAdapter {
     ...(definition.create?.fields && {
       createFieldsSchema: definition.create.fields,
     }),
-    ...(definition.displayTitle && {
-      displayTitle: (entity): string | undefined =>
-        displayTitle(definition, entity),
-    }),
+    ...displayTitleAdapter(definition),
   };
+}
+
+/** A type's display title, from the whole record or its content and metadata. */
+function displayTitleAdapter(
+  definition: AnyEntityDefinition,
+): Pick<DeclaredAdapter, "displayTitle"> {
+  const recordTitle = recordDisplayTitleOf(definition);
+  if (recordTitle)
+    return {
+      displayTitle: (entity): string | undefined =>
+        recordTitle(entity, currentMetadata(definition, entity.metadata)),
+    };
+  return definition.displayTitle
+    ? {
+        displayTitle: (entity): string | undefined =>
+          displayTitle(definition, entity),
+      }
+    : {};
 }
 
 /**

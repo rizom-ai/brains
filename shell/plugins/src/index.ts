@@ -978,6 +978,8 @@ export {
   restatingMetadata,
   withBodyTemplate,
   withFolderTitles,
+  withDisplayTitle,
+  type RecordDisplayTitle,
   withUrlRoute,
   writesInDocumentOrder,
   storedDocumentCodec,

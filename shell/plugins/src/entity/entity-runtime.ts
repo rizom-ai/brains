@@ -879,6 +879,74 @@ export function bodyTemplateOf(definition: object): string {
   return typeof found === "string" ? found : "";
 }
 
+const displayTitleKey = Symbol("rizom.display-title");
+
+/** How a record is named from the whole record read, as its adapter named it. */
+export type RecordDisplayTitle<TDefinition extends AnyEntityDefinition> =
+  (record: {
+    readonly id: string;
+    readonly content: string;
+    readonly metadata: z.output<TDefinition["metadata"]>;
+    readonly created: string;
+    readonly updated: string;
+  }) => string | undefined;
+
+/**
+ * A first-party definition whose adapter named a record from the whole
+ * record, its dates among it: the definition, carrying how it names a
+ * record under a key no public type names, which the runtime gives as its
+ * adapter's display title (a summary with no recorded start is named by the
+ * day it was stored). A definition that declares the public displayTitle
+ * is refused: one record has one name.
+ *
+ * Tracked in docs/legacy-code-inventory.json (first-party-entity-runtime).
+ */
+export function withDisplayTitle<TDefinition extends AnyEntityDefinition>(
+  definition: TDefinition,
+  title: RecordDisplayTitle<TDefinition>,
+): TDefinition {
+  if (definition.displayTitle) {
+    throw new Error(
+      `Entity "${definition.type}" already declares a display title`,
+    );
+  }
+  return Object.freeze({ ...definition, [displayTitleKey]: title });
+}
+
+/**
+ * The whole-record title a definition carries, read from a record as read:
+ * none for a record whose metadata the type does not read, or for a
+ * definition that carries none.
+ */
+export function recordDisplayTitleOf(definition: AnyEntityDefinition):
+  | ((
+      entity: {
+        readonly id: string;
+        readonly content: string;
+        readonly created: string;
+        readonly updated: string;
+      },
+      metadata: unknown,
+    ) => string | undefined)
+  | undefined {
+  const found: unknown = Reflect.get(definition, displayTitleKey);
+  if (typeof found !== "function") return undefined;
+  return (entity, metadata) => {
+    const parsed = definition.metadata.safeParse(metadata);
+    if (!parsed.success) return undefined;
+    const title: unknown = Reflect.apply(found, undefined, [
+      {
+        id: entity.id,
+        content: entity.content,
+        metadata: parsed.data,
+        created: entity.created,
+        updated: entity.updated,
+      },
+    ]);
+    return typeof title === "string" ? title : undefined;
+  };
+}
+
 const folderTitlesKey = Symbol("rizom.folder-titles");
 
 /** How a record names the folders above it, as its adapter did. */
