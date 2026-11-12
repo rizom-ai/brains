@@ -190,6 +190,11 @@ export {
   type SemanticSpacePoint,
 } from "@brains/plugins";
 export {
+  skillDataSchema,
+  type AgentBody,
+  type SkillData,
+} from "@brains/plugins";
+export {
   conversationMessageMetadataSchema,
   jobProgressChannel,
   matchSpaceSelector,
