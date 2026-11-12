@@ -2027,6 +2027,7 @@ function entityMutationsOf(
     foldEntity: (request) => entityService.foldEntity(request),
     releaseProjectionOwnership: (request) =>
       entityService.releaseProjectionOwnership(request),
+    purgeEntityType: (entityType) => entityService.purgeEntityType(entityType),
   } satisfies ServiceEntityMutations);
 }
 

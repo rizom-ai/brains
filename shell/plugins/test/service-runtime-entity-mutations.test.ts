@@ -102,6 +102,10 @@ describe("a first-party service's conditional and once-only writes", () => {
       }) => {
         calls.push(["releaseProjectionOwnership", request]);
       },
+      purgeEntityType: async (entityType: string) => {
+        calls.push(["purgeEntityType", entityType]);
+        return 2;
+      },
       searchWithDistances: async (request: SearchWithDistancesRequest) => {
         calls.push(["searchWithDistances", request]);
         return [{ entityId: "reach", entityType: "faq", distance: 0.1 }];
@@ -140,6 +144,10 @@ describe("a first-party service's conditional and once-only writes", () => {
       entityType: "topic",
       id: "tides",
     });
+    // A retired type purged, rows and files, as agent discovery purged it.
+    expect(await runtime.entityMutations.purgeEntityType("network-piece")).toBe(
+      2,
+    );
     const search: SearchWithDistancesRequest = {
       query: "How?",
       types: ["faq"],
@@ -156,6 +164,7 @@ describe("a first-party service's conditional and once-only writes", () => {
       ["applyEntityMutationOnce", once],
       ["foldEntity", fold],
       ["releaseProjectionOwnership", { entityType: "topic", id: "tides" }],
+      ["purgeEntityType", "network-piece"],
       ["searchWithDistances", search],
     ]);
     expect(Object.keys(runtime.entityMutations).sort()).toEqual([
@@ -163,6 +172,7 @@ describe("a first-party service's conditional and once-only writes", () => {
       "foldEntity",
       "getEntityMutationReceipt",
       "getEntityWriteSnapshot",
+      "purgeEntityType",
       "releaseProjectionOwnership",
     ]);
   });
