@@ -29,7 +29,7 @@ import { formPlugin } from "@brains/form";
 import quizPackage, { QUIZ_DEPENDENCIES } from "@brains/quiz";
 import { conversationMemoryPlugin } from "@brains/conversation-memory";
 import { faqPlugin } from "@brains/faq";
-import { dashboardPlugin } from "@brains/dashboard";
+import dashboardPackage from "@brains/dashboard";
 import decksPackage from "@brains/decks";
 import directorySyncPackage from "@brains/directory-sync";
 import docsPackage from "@brains/doc";
@@ -293,7 +293,9 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     packageCapability("studio", "@brains/studio", studioPackage, {
       pluginId: "studio",
     }),
-    ["dashboard", dashboardPlugin, undefined],
+    packageCapability("dashboard", "@brains/dashboard", dashboardPackage, {
+      pluginId: "dashboard",
+    }),
     packageCapability("admin", "@brains/admin", adminPackage, {
       pluginId: "admin",
     }),

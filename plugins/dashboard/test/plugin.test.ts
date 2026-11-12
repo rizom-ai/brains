@@ -19,7 +19,7 @@ import type {
 } from "@brains/plugins";
 import { createTempDir } from "@brains/test-utils";
 import { AuthServicePlugin } from "@brains/auth-service";
-import { DashboardPlugin } from "../src/plugin";
+import { dashboardPlugin, type DashboardPlugin } from "./dashboard-plugins";
 import { consoleJumpResponseSchema } from "../src/console-jump";
 import {
   baseEntitySchema,
@@ -33,7 +33,7 @@ describe("DashboardPlugin", () => {
 
   beforeEach(async () => {
     harness = createPluginHarness({ dataDir: "/tmp/test-datadir" });
-    plugin = new DashboardPlugin();
+    plugin = dashboardPlugin();
     await harness.installPlugin(plugin);
   });
 
@@ -49,7 +49,7 @@ describe("DashboardPlugin", () => {
     });
 
     it("should not require site-builder as a plugin dependency", () => {
-      expect(Object.hasOwn(plugin, "dependencies")).toBe(false);
+      expect(plugin.dependencies ?? []).toEqual([]);
     });
 
     it("keeps its dashboard data off the shared data-source registry", () => {
@@ -63,7 +63,7 @@ describe("DashboardPlugin", () => {
 
     it("should expose no tools", async () => {
       const fresh = createPluginHarness({ dataDir: "/tmp/test-datadir" });
-      const capabilities = await fresh.installPlugin(new DashboardPlugin());
+      const capabilities = await fresh.installPlugin(dashboardPlugin());
       expect(capabilities.tools).toHaveLength(0);
       await fresh.reset();
     });
@@ -141,7 +141,7 @@ describe("DashboardPlugin", () => {
 
     it("should declare configured theme assets before the route snapshot", async () => {
       const themeCSS = ":root { --dashboard-accent: lime; }";
-      const themedPlugin = new DashboardPlugin({ themeCSS });
+      const themedPlugin = dashboardPlugin({ themeCSS });
       const themed = createPluginHarness({ dataDir: "/tmp/test-datadir" });
       await themed.installPlugin(themedPlugin);
 

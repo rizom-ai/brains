@@ -1,6 +1,12 @@
-// Main plugin export
-export { DashboardPlugin, dashboardPlugin } from "./plugin";
-export type { DashboardConfig, DashboardConfigInput } from "./plugin";
+import { createDashboardPackage } from "./plugin";
+
+// The package, as a brain composes it
+export { createDashboardPackage, dashboardConfigSchema } from "./plugin";
+export type {
+  DashboardConfig,
+  DashboardConfigInput,
+  DashboardState,
+} from "./plugin";
 
 // Widget registry exports
 export {
@@ -29,3 +35,8 @@ export type {
 // Page renderer, exposed for the root console visual-regression script
 export { renderDashboardPageHtml } from "./dashboard-page";
 export type { DashboardRenderInput } from "./dashboard-page";
+
+/** The Dashboard, as a brain composes it. */
+const dashboardPackage: ReturnType<typeof createDashboardPackage> =
+  createDashboardPackage();
+export default dashboardPackage;
