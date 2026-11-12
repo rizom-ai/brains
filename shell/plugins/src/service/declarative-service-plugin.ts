@@ -2,6 +2,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { unscopeTemplateName } from "@brains/content-service";
 import type { OperationalHealthProvider } from "../operational-health-registry";
 import { entityMirrorOf } from "./entity-mirror";
+import { createDeclaredDataSource } from "../public/entity-data-source";
 import { sharedUploadScope } from "./upload-registry";
 import {
   SDK_ERROR_MESSAGE_MAX_LENGTH,
@@ -1407,13 +1408,23 @@ class DeclarativeServicePlugin<
         judge: (input) => context.judge(input),
       }),
       dataSource: (declaration, options = {}): void => {
+        const id =
+          options.asWritten === true
+            ? declaration.id
+            : `${this.id}:${declaration.id}`;
+        if ("kind" in declaration) {
+          const type = declaration.entity.type;
+          if (!this.definition.entities.some((entity) => entity.type === type))
+            throw new Error(
+              `Data source "${declaration.id}" reads "${type}", which the package does not declare`,
+            );
+          context.entities.registerDataSource(
+            createDeclaredDataSource(declaration, id, this.logger),
+          );
+          return;
+        }
         context.entities.registerDataSource(
-          firstPartyDataSource(
-            options.asWritten === true
-              ? declaration.id
-              : `${this.id}:${declaration.id}`,
-            declaration,
-          ),
+          firstPartyDataSource(id, declaration),
         );
       },
       template: (name, template, options = {}): void => {

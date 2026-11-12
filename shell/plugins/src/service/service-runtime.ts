@@ -40,6 +40,7 @@ import type {
   ProjectionWaveInput,
   ProjectionWriteIntent,
 } from "../entity/projection-rule";
+import type { AnyEntityDataSourceDefinition } from "../entity/entity-definition-contract";
 import type { IEntityAINamespace } from "../entity/ai-types";
 import type { IServiceContentNamespace } from "./context";
 import type { IPromptsNamespace, IViewsNamespace } from "../entity/namespaces";
@@ -610,10 +611,14 @@ export interface ServiceRuntime {
    * the entity service the build hands the data source, and the runtime
    * validates what it returns against the caller's schema. With
    * `asWritten`, under its id as written, as a service class registered one
-   * it named in full (`site:navigation`).
+   * it named in full (`site:navigation`). An entity data source built with
+   * defineDataSource over one of the package's own types is served with
+   * the runtime's own list, filter, sort, limit, lookup and navigation,
+   * under the service's id as its entity plugin class served it
+   * (`agent-discovery:entities`); one over any other type is refused.
    */
   dataSource(
-    declaration: ServiceDataSourceDeclaration,
+    declaration: ServiceDataSourceDeclaration | AnyEntityDataSourceDefinition,
     options?: ServiceDataSourceOptions,
   ): void;
   /**
@@ -976,10 +981,7 @@ export interface ServiceRuntimeBinding {
   readonly claim: (type: string) => ClaimedSystemType;
   readonly profileKinds: IProfileKindsNamespace;
   readonly ai: ServiceAI;
-  readonly dataSource: (
-    declaration: ServiceDataSourceDeclaration,
-    options?: ServiceDataSourceOptions,
-  ) => void;
+  readonly dataSource: ServiceRuntime["dataSource"];
   readonly template: (
     name: string,
     template: Template,
