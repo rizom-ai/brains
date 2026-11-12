@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync } from "fs";
-import { join } from "path";
+import { join, resolve } from "path";
 import { execSync } from "child_process";
 import {
   createCommandRegistry,
@@ -151,7 +151,7 @@ const initCommand: BrainCommand = defineCommand({
       }
     }
 
-    const dir = join(cwd, target);
+    const dir = resolve(cwd, target);
     mkdirSync(dir, { recursive: true });
 
     // Build the initial options from flags. These act as defaults / pre-filled
