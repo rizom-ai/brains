@@ -1,5 +1,8 @@
-import { defineServicePlugin, z } from "@brains/sdk/services";
-import type { ServicePackageDefinition } from "@brains/sdk/services";
+import {
+  defineServicePlugin,
+  z,
+  type ServicePackageDefinition,
+} from "@brains/sdk/services";
 import {
   serviceRuntime,
   withApiRoutes,

@@ -6,8 +6,8 @@ import {
 import {
   entityRuntime,
   type AnyEntityReads,
+  parseMarkdownWithFrontmatter,
 } from "@brains/sdk/internal/entity-runtime";
-import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import { readString } from "@brains/utils/record-fields";
 import { truncateText } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";

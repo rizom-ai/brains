@@ -1,11 +1,14 @@
-import { defineServicePlugin, z } from "@brains/sdk/services";
-import type { ServicePackageDefinition } from "@brains/sdk/services";
+import {
+  defineServicePlugin,
+  z,
+  type ServicePackageDefinition,
+} from "@brains/sdk/services";
 import {
   serviceRuntime,
   withApiRoutes,
   withTools,
+  type ApiRouteDefinition,
 } from "@brains/sdk/internal/service-runtime";
-import type { ApiRouteDefinition } from "@brains/plugins";
 import { ButtondownNewsletterProvider } from "./buttondown-provider";
 import type { ButtondownClientDeps } from "./lib/buttondown-client";
 import { registerNewsletterProvider } from "./register-provider";

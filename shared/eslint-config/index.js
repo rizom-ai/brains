@@ -75,6 +75,7 @@ const convertedPackages = [
   "plugins/atproto-registry",
   "plugins/content-pipeline",
   "plugins/knowledge-map",
+  "plugins/newsletter",
   "plugins/notifications",
   "plugins/obsidian-vault",
   "plugins/onboarding",

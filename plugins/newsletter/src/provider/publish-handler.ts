@@ -1,7 +1,10 @@
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
 import type { PublishCompletedPayload } from "@brains/contracts";
-import type { BaseEntity, GetEntityRequest } from "@brains/plugins";
+import type {
+  BaseEntity,
+  GetEntityRequest,
+} from "@brains/sdk/internal/entity-runtime";
 import type { NewsletterDeliveryProvider } from "./contracts";
 import { blogPostSourceSchema } from "./types";
 

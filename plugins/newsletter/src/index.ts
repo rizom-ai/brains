@@ -1,7 +1,5 @@
-import {
-  PluginConfigValidationError,
-  type PluginPackageDefinition,
-} from "@brains/plugins";
+import { PluginConfigValidationError } from "@brains/sdk/internal/service-runtime";
+import type { PluginPackageDefinition } from "@brains/sdk";
 import { z } from "@brains/utils/zod";
 import { newsletterEntityPackage } from "./entity";
 import { createButtondownPackage, createResendPackage } from "./provider";

@@ -1,6 +1,8 @@
-import { withFrontmatterSchema } from "@brains/sdk/internal/entity-runtime";
+import {
+  withFrontmatterSchema,
+  generateMarkdownWithFrontmatter,
+} from "@brains/sdk/internal/entity-runtime";
 import { defineEntity, z, type EntityDefinition } from "@brains/sdk/entities";
-import { generateMarkdownWithFrontmatter } from "@brains/plugins";
 import { newsletterGeneration, generatedNewsletterSchema } from "./generation";
 import {
   newsletterFrontmatterSchema,
