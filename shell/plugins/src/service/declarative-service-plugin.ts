@@ -1323,6 +1323,7 @@ class DeclarativeServicePlugin<
         context.interactions.register(interaction);
       },
       workspaceUrl: (workspace) => this.workspaceUrls.get(workspace),
+      spaces: context.spaces,
       siteUrl: context.siteUrl,
       previewUrl: context.previewUrl,
       localSiteUrl: context.localSiteUrl,

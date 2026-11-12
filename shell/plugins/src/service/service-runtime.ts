@@ -483,6 +483,11 @@ export interface ServiceRuntime {
    * took it; none before, or without a Studio.
    */
   workspaceUrl(workspace: AnyStudioWorkspaceDefinition): string | undefined;
+  /**
+   * The shared conversation spaces the brain is configured with
+   * (`discord:<channel id>`), as the class read `context.spaces`.
+   */
+  readonly spaces: readonly string[];
   /** The brain's site URL, when it has a domain. */
   readonly siteUrl: string | undefined;
   /** The preview site's URL, when the brain has a domain. */
@@ -926,6 +931,7 @@ export interface ServiceRuntimeBinding {
   readonly workspaceUrl: (
     workspace: AnyStudioWorkspaceDefinition,
   ) => string | undefined;
+  readonly spaces: readonly string[];
   readonly siteUrl: string | undefined;
   readonly previewUrl: string | undefined;
   readonly localSiteUrl: string | undefined;
@@ -1021,6 +1027,7 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
     recurringCheck: binding.recurringCheck,
     interaction: binding.interaction,
     workspaceUrl: binding.workspaceUrl,
+    spaces: Object.freeze([...binding.spaces]),
     siteUrl: binding.siteUrl,
     previewUrl: binding.previewUrl,
     localSiteUrl: binding.localSiteUrl,
