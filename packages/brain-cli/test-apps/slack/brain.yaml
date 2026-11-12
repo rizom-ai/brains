@@ -30,4 +30,4 @@ plugins:
     initialSync: true
     git:
       repo: rizom-ai/canonical-slack-test-content
-      gitUrl: file:///tmp/canonical-slack-test-content.git
+      gitUrl: file:///tmp/canonical-slack-offline-test-content.git

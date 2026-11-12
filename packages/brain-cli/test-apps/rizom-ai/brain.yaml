@@ -59,3 +59,6 @@ remove:
   - social-media
   - newsletter
   - stock-photo
+  # The live content's agents are real brains, approved as peers: without
+  # an agent directory the local brain never scans or calls them.
+  - agents
