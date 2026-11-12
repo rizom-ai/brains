@@ -1,9 +1,9 @@
 import { createHash, randomUUID } from "node:crypto";
 import { z } from "@brains/utils/zod";
 import type {
-  IRuntimeStateNamespace,
-  IRuntimeStateStore,
-} from "@brains/plugins";
+  ClassRuntimeState,
+  ClassRuntimeStateStore,
+} from "@brains/sdk/internal/interface-runtime";
 import { attempt, retry } from "./cas-retry";
 import {
   guestIssuanceLimitsSchema,
@@ -64,12 +64,9 @@ export const guestIssuanceNamespace = "web-chat.guest-issuance";
  * Expiry is NOT evidence that an unacknowledged write cannot still commit.
  */
 export class GuestIssuance {
-  private readonly store: IRuntimeStateStore<GuestIssuanceState>;
+  private readonly store: ClassRuntimeStateStore<GuestIssuanceState>;
   private readonly now: () => number;
-  constructor(
-    runtime: Pick<IRuntimeStateNamespace, "scoped">,
-    now: () => number = Date.now,
-  ) {
+  constructor(runtime: ClassRuntimeState, now: () => number = Date.now) {
     this.store = runtime.scoped({
       namespace: guestIssuanceNamespace,
       schema: guestIssuanceStateSchema,

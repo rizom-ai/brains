@@ -24,6 +24,7 @@
     "./internal/configured-plugin": "./src/configured-plugin.ts",
     "./internal/entity-runtime": "./src/internal/entity-runtime.ts",
     "./internal/interface-runtime": "./src/internal/interface-runtime.ts",
+    "./internal/message-display": "./src/internal/message-display.ts",
     "./internal/presentation": "./src/internal/presentation.ts",
     "./internal/service-runtime": "./src/internal/service-runtime.ts",
     "./entities": "./src/entities.ts",

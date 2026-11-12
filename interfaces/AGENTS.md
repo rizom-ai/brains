@@ -17,7 +17,7 @@ The runtime hosts HTTP itself (`shell/http-host`): an interface declares the rou
 
 ## Required conventions
 
-- A converted interface is a declarative definition: `defineInterface` from `@brains/sdk/interfaces`, with what the public contract does not offer from `@brains/sdk/internal/interface-runtime` (`interfaceRuntime(context)`, `withDaemon`, `withMessageTransport`). It imports no plugin class base; lint refuses one.
+- A converted interface is a declarative definition: `defineInterface` from `@brains/sdk/interfaces`, with what the public contract does not offer from `@brains/sdk/internal/interface-runtime` (`interfaceRuntime(context)`, `withDaemon`, `withMessageTransport`) and, for its browser UI, `@brains/sdk/internal/message-display`. Its production code imports nothing from `@brains/plugins`; lint refuses it.
 - An interface not yet converted uses `InterfacePlugin` for HTTP/API-style transports and `MessageInterfacePlugin` for conversational transports.
 - Track conversations for any message-based interface.
 - Use daemon lifecycle hooks carefully.

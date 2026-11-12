@@ -1,5 +1,5 @@
 import type { InterfaceRuntime } from "@brains/sdk/internal/interface-runtime";
-import type { UserPermissionLevel } from "@brains/plugins";
+import type { UserPermissionLevel } from "@brains/sdk/interfaces";
 
 import { guestInterfaceType } from "@brains/contracts/chat";
 

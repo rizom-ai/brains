@@ -41,7 +41,7 @@ One `main` SHA where the public authoring API is complete and frozen for `0.2.0`
   - conversation-memory: `main` removed the summary pipeline, so the branch's reworked pipeline is not ported;
   - agent-discovery: `main` removed network pieces, so the branch's network-piece entity is not ported.
 - **Migrations are renumbered** after `main`'s latest at the time of the change (entity-service after `0012`, job-queue after `0008`).
-- **Imports during the migration.** Converted packages import `@brains/sdk`; the #821 ESLint rule admits `@brains/sdk` beside `@brains/plugins`. The last conversion replaces it with the branch's dependency-cruiser rule `declared-packages-import-only-the-sdk`. Class-based packages keep working until then.
+- **Imports during the migration.** A converted package's production code imports `@brains/sdk` and its `@brains/sdk/internal/*` entries only; the #821 ESLint rule refuses `@brains/plugins` there, and each conversion adds its package to the rule's list. Class-based packages keep importing `@brains/plugins` until the last conversion replaces the rule with the branch's dependency-cruiser rule `declared-packages-import-only-the-sdk`.
 - **Not ported:** the branch commits `main` already has its own way (dependency bumps, Simple Git 4, pragma budgets, the seven fixes whose changesets exist on both sides), and the branch's stale plan docs (`brain-model-unification.md`, `contract-drift-fixes.md`, its verbose `public-authoring-api-0.2.md`).
 - **Every PR lands on `main` green:** tests first, the public-authoring fixtures passing, the export ledger current, a changeset for every published package it changes.
 

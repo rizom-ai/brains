@@ -1,9 +1,9 @@
 import { z } from "@brains/utils/zod";
 import { createChatApiPaths } from "@brains/contracts/chat";
 import type {
-  IRuntimeStateNamespace,
+  ClassRuntimeState,
   WebRouteDefinition,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/interface-runtime";
 import { createDefaultGuestPolicy } from "./guest-preset";
 import { GuestAdmission, type GuestBudgetStatus } from "./guest-admission";
 import type { EnabledGuestPolicy } from "./guest-policy";
@@ -28,7 +28,7 @@ interface BrowserAccess {
   permissionLevel: string;
 }
 interface ControlContext {
-  readonly runtimeState: Pick<IRuntimeStateNamespace, "scoped">;
+  readonly runtimeState: ClassRuntimeState;
   readonly siteUrl: string | undefined;
   readonly previewUrl: string | undefined;
 }

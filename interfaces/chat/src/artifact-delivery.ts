@@ -1,13 +1,13 @@
 import type { ChatHost } from "./chat-host";
+import type { UserPermissionLevel } from "@brains/sdk/interfaces";
+import type { StructuredChatCard } from "@brains/contracts";
 import {
   canReceiveNativeArtifactFile,
   getArtifactEntityFilename,
   parseArtifactDataUrl,
   resolveArtifactEntityRefFromCard,
   resolveMessageArtifactAccess,
-  type StructuredChatCard,
-  type UserPermissionLevel,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/interface-runtime";
 import type { FileUpload } from "chat";
 
 const CHAT_NATIVE_ARTIFACT_MAX_BYTES = 8 * 1024 * 1024;

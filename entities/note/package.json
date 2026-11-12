@@ -7,7 +7,6 @@
     "@brains/atproto-contracts": "workspace:*",
     "@brains/contracts": "workspace:*",
     "@brains/document": "workspace:*",
-    "@brains/plugins": "workspace:*",
     "@brains/sdk": "workspace:*",
     "@brains/utils": "workspace:*"
   },
@@ -15,6 +14,7 @@
     "@brains/app": "workspace:*",
     "@brains/entity-service": "workspace:*",
     "@brains/eslint-config": "workspace:*",
+    "@brains/plugins": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.4.0",

@@ -12,7 +12,7 @@ import {
   type RuntimeUploadScopeOptions,
   type RuntimeUploadStoreErrorCode,
   type SaveRuntimeUploadInput,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/interface-runtime";
 
 export const webChatUploadRefKind = "upload" as const;
 export const webChatUploadIdPattern: typeof runtimeUploadIdPattern =

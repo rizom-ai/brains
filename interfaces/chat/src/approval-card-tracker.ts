@@ -1,8 +1,8 @@
+import type { PendingConfirmation } from "@brains/contracts";
 import {
   formatPendingConfirmationHelp,
   formatPendingConfirmationsFallback,
-  type PendingConfirmation,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/interface-runtime";
 import type { SentMessage } from "chat";
 import type { ChatCardBuilder } from "./chat-cards";
 import type { ChatThread } from "./types";

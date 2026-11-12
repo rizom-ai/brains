@@ -1,13 +1,3 @@
-import { FatalPluginConfigurationError } from "@brains/plugins";
-import type {
-  DaemonHealth,
-  IMCPTransport,
-  UserPermissionLevel,
-  WebRouteDefinition,
-} from "@brains/plugins";
-import { MCP_INTERACTION_ID } from "@brains/contracts";
-import type { PluginPackageDefinition } from "@brains/sdk";
-import { defineInterface } from "@brains/sdk/interfaces";
 import {
   interfaceRuntime,
   withDaemon,
@@ -16,7 +6,16 @@ import {
   withWebRoutes,
   type FirstPartySlotContext,
   type InterfaceRuntime,
+  FatalPluginConfigurationError,
+  type DaemonHealth,
+  type WebRouteDefinition,
 } from "@brains/sdk/internal/interface-runtime";
+import {
+  defineInterface,
+  type UserPermissionLevel,
+} from "@brains/sdk/interfaces";
+import { MCP_INTERACTION_ID } from "@brains/contracts";
+import type { PluginPackageDefinition } from "@brains/sdk";
 import { StdioMCPServer } from "./transports/stdio-server";
 import { StreamableHTTPServer } from "./transports/http-server";
 import { mcpConfigSchema, type MCPConfig } from "./config";
@@ -29,7 +28,7 @@ import { setupJobProgressListener } from "./handlers";
  * daemon connects it, and the stdio or shared-HTTP transport it serves.
  */
 interface MCPHost {
-  mcpTransport: IMCPTransport | undefined;
+  mcpTransport: InterfaceRuntime["mcpTransport"] | undefined;
   stdioServer: StdioMCPServer | undefined;
   httpServer: StreamableHTTPServer | undefined;
 }

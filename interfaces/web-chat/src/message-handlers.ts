@@ -1,9 +1,9 @@
-import type { InterfaceRuntime } from "@brains/sdk/internal/interface-runtime";
-import { chatMessagesResponseSchema } from "@brains/contracts/chat";
 import {
+  type InterfaceRuntime,
   getStoredMessageAttachments as getSharedStoredMessageAttachments,
   getStoredMessageCards,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/interface-runtime";
+import { chatMessagesResponseSchema } from "@brains/contracts/chat";
 import { stripInternalEntityMemoryNote } from "./display-content";
 import type { WebChatConversationAccess } from "./conversation-access";
 import { resolveWebChatSession } from "./session-handlers";

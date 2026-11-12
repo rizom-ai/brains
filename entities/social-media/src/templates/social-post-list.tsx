@@ -1,6 +1,6 @@
 import type { JSX } from "react";
 import { truncateText } from "@brains/utils/string-utils";
-import type { PaginationInfo } from "@brains/plugins";
+import type { PaginationInfo } from "@brains/sdk/internal/presentation";
 import { Card, formatDate } from "@rizom/brain-ui";
 import { Head, Pagination, StatusBadge } from "@rizom/brain-ui/internal";
 import type { SocialPostView } from "./social-post-view";

@@ -6,8 +6,8 @@ import {
 import {
   serviceRuntime,
   type ServiceRuntime,
+  normalizeSameOriginPath,
 } from "@brains/sdk/internal/service-runtime";
-import { normalizeSameOriginPath } from "@brains/plugins";
 import { inboxWidget, loadInboxWidget } from "./dashboard-widget";
 import { InboxDataSource } from "./inbox-datasource";
 import { registerUnifiedInboxDigest } from "./digest";

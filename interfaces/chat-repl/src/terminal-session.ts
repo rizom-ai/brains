@@ -1,4 +1,11 @@
 import {
+  createExternalActorId,
+  type AgentResponse,
+  type StructuredChatCard,
+  type ToolApprovalCard,
+} from "@brains/contracts";
+import {
+  type InterfaceRuntime,
   PendingApprovalTracker,
   buildApprovalResultView,
   buildResponsePlan,
@@ -8,13 +15,8 @@ import {
   getResolvedApprovalCard,
   parseConfirmationIntent,
   routeConfirmationResponse,
-  type AgentResponse,
   type ApprovalResolution,
-  type StructuredChatCard,
-  type ToolApprovalCard,
-} from "@brains/plugins";
-import type { InterfaceRuntime } from "@brains/sdk/internal/interface-runtime";
-import { createExternalActorId } from "@brains/contracts";
+} from "@brains/sdk/internal/interface-runtime";
 import { getErrorMessage } from "@brains/utils/error";
 
 const APPROVAL_RESULT_MARKERS: Record<ApprovalResolution, string> = {
