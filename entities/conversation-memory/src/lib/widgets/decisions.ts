@@ -6,7 +6,6 @@ import {
   registerBuiltInDashboardWidget,
   type EntityPluginContext,
 } from "@brains/plugins";
-import { compareIds } from "@brains/utils/sort";
 import { z } from "@brains/utils/zod";
 import { firstSentence } from "@brains/utils/string-utils";
 import {
@@ -107,10 +106,7 @@ export async function buildDecisionsWidgetData(
     const statusDiff =
       statusOrder(a.metadata.status) - statusOrder(b.metadata.status);
     if (statusDiff !== 0) return statusDiff;
-    return (
-      b.metadata.timeRange.end.localeCompare(a.metadata.timeRange.end) ||
-      compareIds(a.id, b.id)
-    );
+    return b.metadata.timeRange.end.localeCompare(a.metadata.timeRange.end);
   });
 
   return {

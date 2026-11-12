@@ -1,6 +1,5 @@
 import type { ContentVisibility } from "@brains/plugins";
 import type { EntityPluginContext } from "@brains/plugins";
-import { compareIds } from "@brains/utils/sort";
 import { z } from "@brains/utils/zod";
 import {
   summarySchema,
@@ -102,10 +101,7 @@ export async function buildRecentConversationMemoryData(
   );
 
   const expanded = summaries.flatMap(expandSummary);
-  expanded.sort(
-    (a, b) =>
-      b.timeRange.end.localeCompare(a.timeRange.end) || compareIds(a.id, b.id),
-  );
+  expanded.sort((a, b) => b.timeRange.end.localeCompare(a.timeRange.end));
 
   const all = expanded.slice(0, MAX_ITEMS).map(toRow);
 

@@ -551,6 +551,26 @@ describe("ConversationMemoryRetriever", () => {
     ]);
   });
 
+  it("lists recent memory of different types updated at the same moment by id", async () => {
+    const shell = createMockShell();
+    shell.addEntities([
+      createSummary({ id: "summary-z", channelId: "team" }),
+      createDecision({ id: "decision-a", channelId: "team" }),
+    ]);
+    const context = createEntityPluginContext(shell, "conversation-memory");
+
+    const result = await new ConversationMemoryRetriever(context).retrieve({
+      visibilityScope: "restricted",
+    });
+
+    // Read type by type, summaries first: the merged list has no order of
+    // its own, so the id decides.
+    expect(result.results.map((memory) => memory.id)).toEqual([
+      "decision-a",
+      "summary-z",
+    ]);
+  });
+
   it("dedupes results that resolve to the same entity id", async () => {
     const context = createMockEntityPluginContext();
     const summary = createSummary({ id: "summary-team", channelId: "team" });

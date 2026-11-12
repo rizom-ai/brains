@@ -13,7 +13,7 @@ function titled(slug: string, order: number, title: string): GuideWithData {
 }
 
 describe("sortGuides", () => {
-  it("lists guides by order, then title, then id", () => {
+  it("lists guides by order, then title, keeping the given order for ties", () => {
     const sorted = sortGuides([
       titled("writer-b", 1, "Writer"),
       titled("team", 2, "Team"),
@@ -22,8 +22,8 @@ describe("sortGuides", () => {
     ]);
     expect(sorted.map((guide) => guide.id)).toEqual([
       "artist",
-      "writer-a",
       "writer-b",
+      "writer-a",
       "team",
     ]);
   });

@@ -28,7 +28,7 @@ const createDoc = (id: string, title: string, order: number): DocWithData => ({
 });
 
 describe("sortDocs", () => {
-  test("lists docs by order, then title, then id", () => {
+  test("lists docs by order, then title, keeping the given order for ties", () => {
     const sorted = sortDocs([
       createDoc("setup-b", "Setup", 1),
       createDoc("intro", "Intro", 2),
@@ -37,8 +37,8 @@ describe("sortDocs", () => {
     ]);
     expect(sorted.map((doc) => doc.id)).toEqual([
       "about",
-      "setup-a",
       "setup-b",
+      "setup-a",
       "intro",
     ]);
   });

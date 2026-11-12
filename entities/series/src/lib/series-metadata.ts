@@ -1,5 +1,4 @@
 import { z } from "@brains/sdk/entities";
-import { compareIds } from "@brains/utils/sort";
 
 /** Any entity, as far as its series fields are concerned. */
 interface SeriesSource {
@@ -38,22 +37,13 @@ export function getSeriesIndex(entity: SeriesSource): number | undefined {
   return parseSeriesFields(entity.metadata).seriesIndex;
 }
 
-/** A series member, of any entity type. */
-interface SeriesMember extends SeriesSource {
-  readonly id: string;
-  readonly entityType: string;
-}
-
 /**
  * Compare two entities by `seriesIndex` for stable ordering. Entities without
  * an index sort after those that have one (rather than being dropped or pinned
- * to an arbitrary magic position); members with the same index list by id,
- * then type.
+ * to an arbitrary magic position).
  */
-export function compareBySeriesIndex(a: SeriesMember, b: SeriesMember): number {
+export function compareBySeriesIndex(a: SeriesSource, b: SeriesSource): number {
   const ai = getSeriesIndex(a) ?? Number.MAX_SAFE_INTEGER;
   const bi = getSeriesIndex(b) ?? Number.MAX_SAFE_INTEGER;
-  return (
-    ai - bi || compareIds(a.id, b.id) || compareIds(a.entityType, b.entityType)
-  );
+  return ai - bi;
 }

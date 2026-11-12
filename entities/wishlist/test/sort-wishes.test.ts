@@ -14,7 +14,7 @@ const wish = (
 });
 
 describe("sortWishesByDemand", () => {
-  it("lists wishes by requests, then priority, then id", () => {
+  it("lists wishes by requests, then priority, keeping the given order for ties", () => {
     const sorted = sortWishesByDemand([
       wish("wish-c", 2, "medium"),
       wish("wish-a", 2, "medium"),
@@ -24,8 +24,8 @@ describe("sortWishesByDemand", () => {
     expect(sorted.map((entry) => entry.id)).toEqual([
       "wish-d",
       "wish-b",
-      "wish-a",
       "wish-c",
+      "wish-a",
     ]);
   });
 });

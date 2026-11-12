@@ -1,4 +1,3 @@
-import { compareIds } from "@brains/utils/sort";
 import { escapeXml } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 
@@ -78,10 +77,10 @@ function itemXml(item: ValidFeedItem, url: string): string {
 }
 
 /**
- * Render an RSS 2.0 document. Items are emitted newest first, by slug when
- * published at the same moment, and the channel's lastBuildDate follows the
- * newest item so a reader can tell whether anything changed without parsing
- * the body. The document ends at its closing tag.
+ * Render an RSS 2.0 document. Items are emitted newest first, and the
+ * channel's lastBuildDate follows the newest item so a reader can tell
+ * whether anything changed without parsing the body. The document ends at
+ * its closing tag.
  */
 export function renderRssFeed(
   items: readonly ValidFeedItem[],
@@ -90,8 +89,7 @@ export function renderRssFeed(
 ): string {
   const ordered = [...items].sort(
     (left, right) =>
-      Date.parse(right.publishedAt) - Date.parse(left.publishedAt) ||
-      compareIds(left.slug, right.slug),
+      Date.parse(right.publishedAt) - Date.parse(left.publishedAt),
   );
   const lastBuildDate = rfc822(
     ordered[0]?.publishedAt ?? new Date().toISOString(),

@@ -72,11 +72,11 @@ describe("BookAskDataSource", () => {
     });
   });
 
-  it("lists books of the same year by id", async () => {
+  it("lists books of the same year in store order, newest first", async () => {
     const shell = createMockShell();
     shell.addEntities([
       titleEntry("zwei", "Das zweite Buch", 1882),
-      // Older, so the store lists it second: the year alone must not decide.
+      // Older, so the store lists it second, though its id sorts first.
       {
         ...titleEntry("eins", "Das erste Buch", 1882),
         updated: "2026-10-01T00:00:00.000Z",
@@ -91,7 +91,7 @@ describe("BookAskDataSource", () => {
       entityService: shell.getEntityService(),
     });
 
-    expect(result.books.map((book) => book.book)).toEqual(["eins", "zwei"]);
+    expect(result.books.map((book) => book.book)).toEqual(["zwei", "eins"]);
   });
 });
 

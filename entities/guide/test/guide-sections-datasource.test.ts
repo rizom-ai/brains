@@ -100,10 +100,10 @@ describe("GuideSectionsDataSource", () => {
     ]);
   });
 
-  it("lists docs with the same order and title by id", async () => {
+  it("lists docs with the same order and title in store order, newest first", async () => {
     shell.addEntities([
       doc("tied-b", "Use a brain", 15, "Tied"),
-      // Older, so the store lists it second.
+      // Older, so the store lists it second, though its id sorts first.
       {
         ...doc("tied-a", "Use a brain", 15, "Tied"),
         updated: "2026-11-01T00:00:00.000Z",
@@ -113,8 +113,8 @@ describe("GuideSectionsDataSource", () => {
 
     expect(sections[0]?.docs.map((item) => item.slug)).toEqual([
       "feature-overview",
-      "tied-a",
       "tied-b",
+      "tied-a",
       "content-management",
     ]);
   });

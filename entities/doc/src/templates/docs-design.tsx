@@ -1,18 +1,15 @@
-import { compareIds } from "@brains/utils/sort";
 import type { DocWithData } from "../schemas/doc";
 
 export type GroupedDocs = Array<{ section: string; docs: DocWithData[] }>;
 
 const numerals = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
 
-/** Docs in reading order: by order, then title, then id. */
 export function sortDocs(docs: DocWithData[]): DocWithData[] {
-  return [...docs].sort(
-    (a, b) =>
-      a.metadata.order - b.metadata.order ||
-      a.metadata.title.localeCompare(b.metadata.title) ||
-      compareIds(a.id, b.id),
-  );
+  return [...docs].sort((a, b) => {
+    const order = a.metadata.order - b.metadata.order;
+    if (order !== 0) return order;
+    return a.metadata.title.localeCompare(b.metadata.title);
+  });
 }
 
 export function groupDocs(docs: DocWithData[]): GroupedDocs {

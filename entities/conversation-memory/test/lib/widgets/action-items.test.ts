@@ -105,7 +105,7 @@ describe("buildActionItemsWidgetData", () => {
     expect(data.blockedCount).toBe(1);
   });
 
-  it("lists items captured at the same moment by id", async () => {
+  it("keeps the listed order for items captured at the same moment", async () => {
     const items = ["item-c", "item-a", "item-b"].map((id) =>
       createActionItem({ id, title: id }),
     );
@@ -115,9 +115,9 @@ describe("buildActionItemsWidgetData", () => {
 
     const data = await buildActionItemsWidgetData(context, "restricted");
     expect(data.items.map((item) => item.id)).toEqual([
+      "item-c",
       "item-a",
       "item-b",
-      "item-c",
     ]);
   });
 

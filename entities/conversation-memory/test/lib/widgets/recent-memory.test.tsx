@@ -104,4 +104,27 @@ describe("buildRecentConversationMemoryData", () => {
     expect(ops?.keyPoint).toBe("deploy plan");
     expect(ops?.messageCount).toBe(9);
   });
+
+  it("keeps the listed order for entries that end at the same moment", async () => {
+    const same = "2026-05-09T00:00:00.000Z";
+    const summaries: SummaryEntity[] = [
+      buildSummary({
+        id: "s-zulu",
+        channelId: "zulu",
+        entries: [entry({ title: "Zulu", end: same })],
+      }),
+      buildSummary({
+        id: "s-alpha",
+        channelId: "alpha",
+        entries: [entry({ title: "Alpha", end: same })],
+      }),
+    ];
+    const context = createMockEntityPluginContext({
+      listEntitiesImpl: async () => summaries,
+    });
+
+    const data = await buildRecentConversationMemoryData(context, "restricted");
+
+    expect(data.all.map((row) => row.title)).toEqual(["Zulu", "Alpha"]);
+  });
 });

@@ -3,7 +3,6 @@ import type {
   DataSource,
   DataSourceSchema,
 } from "@brains/plugins";
-import { compareIds } from "@brains/utils/sort";
 import { z } from "@brains/utils/zod";
 import { guideSchema, guideWithDataSchema } from "../schemas/guide";
 import { sortGuides } from "../lib/guide-order";
@@ -53,12 +52,11 @@ export type GuideSection = z.output<typeof guideSectionSchema>;
 export type GuideSectionsData = z.output<typeof guideSectionsSchema>;
 
 function sortDocs(docs: SectionDoc[]): SectionDoc[] {
-  return [...docs].sort(
-    (a, b) =>
-      a.order - b.order ||
-      a.title.localeCompare(b.title) ||
-      compareIds(a.id, b.id),
-  );
+  return [...docs].sort((a, b) => {
+    const order = a.order - b.order;
+    if (order !== 0) return order;
+    return a.title.localeCompare(b.title);
+  });
 }
 
 /**

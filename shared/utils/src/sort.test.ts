@@ -104,7 +104,7 @@ describe("sortByPublicationDate", () => {
     expect(sorted[1]?.id).toBe("old");
   });
 
-  it("lists entities published at the same moment by id", () => {
+  it("keeps the given order for entities published at the same moment", () => {
     const entities = ["post-c", "post-a", "post-b"].map((id) => ({
       id,
       created: "2024-01-01T00:00:00Z",
@@ -114,9 +114,9 @@ describe("sortByPublicationDate", () => {
     const sorted = [...entities].sort(sortByPublicationDate);
 
     expect(sorted.map((entity) => entity.id)).toEqual([
+      "post-c",
       "post-a",
       "post-b",
-      "post-c",
     ]);
   });
 

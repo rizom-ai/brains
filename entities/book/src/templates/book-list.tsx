@@ -1,5 +1,4 @@
 import type { JSX } from "react";
-import { compareIds } from "@brains/utils/sort";
 import type { BookWithData } from "../schemas/book";
 import { count } from "../lib/count";
 import { bookClasses, bookHref } from "./book-design";
@@ -75,10 +74,7 @@ function spinesOf(books: BookWithData[]): Spine[] {
     ...dated.map((book) => book.frontmatter.length ?? 0),
   );
   return [...dated]
-    .sort(
-      (a, b) =>
-        a.frontmatter.year - b.frontmatter.year || compareIds(a.id, b.id),
-    )
+    .sort((a, b) => a.frontmatter.year - b.frontmatter.year)
     .map((book) => ({
       book,
       year: book.frontmatter.year,

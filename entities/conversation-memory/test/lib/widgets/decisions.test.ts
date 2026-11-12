@@ -82,7 +82,7 @@ describe("buildDecisionsWidgetData", () => {
     expect(first?.meta).toEqual(["#design", "May 9"]);
   });
 
-  it("lists decisions that end at the same moment by id", async () => {
+  it("keeps the listed order for decisions that end at the same moment", async () => {
     const items = ["decision-c", "decision-a", "decision-b"].map((id) =>
       createDecision({ id, title: id }),
     );
@@ -92,9 +92,9 @@ describe("buildDecisionsWidgetData", () => {
 
     const data = await buildDecisionsWidgetData(context, "restricted");
     expect(data.items.map((item) => item.id)).toEqual([
+      "decision-c",
       "decision-a",
       "decision-b",
-      "decision-c",
     ]);
   });
 

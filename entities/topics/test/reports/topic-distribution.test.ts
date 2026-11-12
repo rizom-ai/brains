@@ -169,7 +169,7 @@ describe("topic-distribution report", () => {
     ]);
   });
 
-  it("lists topics with the same support and title by id", async () => {
+  it("lists topics with the same support and title in store order, newest first", async () => {
     const shell = topicShell([
       makeTopicEntity(
         "learning-b",
@@ -188,8 +188,8 @@ describe("topic-distribution report", () => {
     const result = await runReport(options)(shell.getEntityService(), "public");
 
     expect(getTopicDistribution(result).map((entry) => entry.topic)).toEqual([
-      "learning-a",
       "learning-b",
+      "learning-a",
     ]);
   });
 

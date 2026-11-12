@@ -16,7 +16,6 @@ import {
   type EntityPluginContext,
 } from "@brains/plugins";
 import { firstSentence } from "@brains/utils/string-utils";
-import { compareIds } from "@brains/utils/sort";
 import { z } from "@brains/utils/zod";
 
 const MAX_ITEMS = 6;
@@ -155,10 +154,7 @@ export async function buildActionItemsWidgetData(
     const statusDiff =
       statusOrder(a.metadata.status) - statusOrder(b.metadata.status);
     if (statusDiff !== 0) return statusDiff;
-    return (
-      actionItemCapturedAt(b).localeCompare(actionItemCapturedAt(a)) ||
-      compareIds(a.id, b.id)
-    );
+    return actionItemCapturedAt(b).localeCompare(actionItemCapturedAt(a));
   });
 
   return {

@@ -15,7 +15,8 @@ const member = (
 });
 
 describe("compareBySeriesIndex", () => {
-  it("lists members by index, unindexed last, ties by id then type", () => {
+  it("lists members by index, unindexed last, keeping the listed order for ties", () => {
+    // Listed as the store reads them: each type most recently updated first.
     const sorted = [
       member("b", "post"),
       member("c", "post", 1),
@@ -28,9 +29,9 @@ describe("compareBySeriesIndex", () => {
       "post:c",
       "deck:a",
       "post:a",
-      "deck:a",
-      "post:a",
       "post:b",
+      "post:a",
+      "deck:a",
     ]);
   });
 });
