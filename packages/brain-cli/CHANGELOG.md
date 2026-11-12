@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.692
+
+### Patch Changes
+
+- [#929](https://github.com/rizom-ai/brains/pull/929) [`96f2deb`](https://github.com/rizom-ai/brains/commit/96f2deb4b263e61d106899994f7e5759bb16c079) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `brain chat` from the installed package opens the chat REPL. The bundled runtime asked for the terminal interface through an option the app never read, and the app only looked for `--cli` on the command line, which `brain chat` does not carry, so the command booted the brain without its REPL. The bundled runtime now asks the app for the terminal interface directly.
+
 ## 0.2.0-alpha.691
 
 ### Patch Changes

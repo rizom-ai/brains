@@ -1,5 +1,14 @@
 # @brains/linkedin-import
 
+## 0.2.0-alpha.692
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.692
+  - @brains/utils@0.2.0-alpha.692
+  - @brains/plugins@0.2.0-alpha.692
+
 ## 0.2.0-alpha.691
 
 ### Patch Changes

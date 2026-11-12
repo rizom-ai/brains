@@ -1,5 +1,17 @@
 # @brains/series
 
+## 0.2.0-alpha.692
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.692
+  - @rizom/brain-ui@0.2.0-alpha.692
+  - @brains/atproto-contracts@0.2.0-alpha.692
+  - @brains/content-formatters@0.2.0-alpha.692
+  - @brains/contracts@0.2.0-alpha.692
+  - @brains/utils@0.2.0-alpha.692
+
 ## 0.2.0-alpha.691
 
 ### Patch Changes
