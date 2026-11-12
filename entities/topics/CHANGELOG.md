@@ -1,5 +1,17 @@
 # @brains/topics
 
+## 0.2.0-alpha.689
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/brain-ui@0.2.0-alpha.689
+  - @brains/atproto-contracts@0.2.0-alpha.689
+  - @brains/content-formatters@0.2.0-alpha.689
+  - @brains/contracts@0.2.0-alpha.689
+  - @brains/utils@0.2.0-alpha.689
+  - @brains/plugins@0.2.0-alpha.689
+
 ## 0.2.0-alpha.688
 
 ### Patch Changes
