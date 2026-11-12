@@ -526,6 +526,15 @@ export interface ServiceRuntime {
    */
   evalHandler(handlerId: string, handler: EvalHandler): void;
   /**
+   * The entity service's conditional and once-only writes, as the class
+   * made them through `context.entityService`: the snapshot a guarded write
+   * reads, a mutation's receipt, a mutation applied once under its receipt,
+   * and a fold of one record into another. Each request is handed on as
+   * written, attributed to whoever it names and to nobody otherwise, with no
+   * check beyond the store's own.
+   */
+  readonly entityMutations: ServiceEntityMutations;
+  /**
    * The brain's conversations, as the class read them through
    * `context.conversations`: a conversation's messages in the range a
    * read names, and how many it has. Nothing that lists, searches or writes.
@@ -715,6 +724,11 @@ export interface ServiceEntityReads {
   getEntityRaw(request: GetEntityRawRequest): Promise<BaseEntity | null>;
   /** A search of the brain at the scope the request names. */
   search(request: EntitySearchRequest): Promise<SearchResult<BaseEntity>[]>;
+  /**
+   * The records nearest a query by embedding distance, at the scope the
+   * request names: ids and raw cosine distances, closest first.
+   */
+  searchWithDistances: IEntityService["searchWithDistances"];
   /** A type's records as their containment hierarchy, at the request's scope. */
   queryEntityHierarchy: IEntityService["queryEntityHierarchy"];
   /** A registered type's config. */
@@ -741,6 +755,15 @@ export type ServicePermissions = Pick<
 export type ServiceAttachments = Pick<
   IAttachmentsNamespace,
   "resolve" | "hasProvider"
+>;
+
+/** The conditional and once-only writes a class made through its entity service. */
+export type ServiceEntityMutations = Pick<
+  IEntityService,
+  | "getEntityWriteSnapshot"
+  | "getEntityMutationReceipt"
+  | "applyEntityMutationOnce"
+  | "foldEntity"
 >;
 
 /** The conversation reads a class made, and nothing that lists or writes. */
@@ -905,6 +928,7 @@ export interface ServiceRuntimeBinding {
   readonly toolCall: () => ServiceToolCall | undefined;
   readonly classRuntimeState: ClassRuntimeState;
   readonly evalHandler: (handlerId: string, handler: EvalHandler) => void;
+  readonly entityMutations: ServiceEntityMutations;
   readonly conversations: ServiceConversations;
   readonly entityReads: ServiceEntityReads;
   readonly permissions: ServicePermissions;
@@ -996,6 +1020,7 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
     toolCall: binding.toolCall,
     classRuntimeState: binding.classRuntimeState,
     evalHandler: binding.evalHandler,
+    entityMutations: binding.entityMutations,
     conversations: binding.conversations,
     entityReads: binding.entityReads,
     permissions: binding.permissions,

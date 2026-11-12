@@ -21,6 +21,7 @@ export {
   type ClassRuntimeState,
   type ClassRuntimeStateStore,
   type ServiceConversations,
+  type ServiceEntityMutations,
   type ServiceCorpusReads,
   type ServiceDashboardWidget,
   type ServiceInteraction,

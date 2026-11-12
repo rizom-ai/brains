@@ -108,6 +108,7 @@ import {
   type ServiceCorpusReads,
   type ServiceDataSourceDeclaration,
   type ServiceConversations,
+  type ServiceEntityMutations,
   type ServiceEntityReads,
   type ServiceEntityShapes,
   type ServiceEntityWrites,
@@ -1349,6 +1350,7 @@ class DeclarativeServicePlugin<
             })
           : undefined;
       },
+      entityMutations: entityMutationsOf(context),
       conversations: Object.freeze({
         getMessages: (conversationId, options) =>
           context.conversations.getMessages(conversationId, options),
@@ -1993,12 +1995,30 @@ function entityReadsOf(context: ServicePluginContext): ServiceEntityReads {
     getEntity: (request) => entityService.getEntity(request),
     getEntityRaw: (request) => entityService.getEntityRaw(request),
     search: (request) => entityService.search(request),
+    searchWithDistances: (request) =>
+      entityService.searchWithDistances(request),
     queryEntityHierarchy: (request) =>
       entityService.queryEntityHierarchy(request),
     getEntityTypeConfig: (type) => entityService.getEntityTypeConfig(type),
     deserializeEntity: (markdown, entityType) =>
       entityService.deserializeEntity(markdown, entityType),
   } satisfies ServiceEntityReads);
+}
+
+/** The conditional and once-only writes a class made, each bound on its own. */
+function entityMutationsOf(
+  context: ServicePluginContext,
+): ServiceEntityMutations {
+  const { entityService } = context;
+  return Object.freeze({
+    getEntityWriteSnapshot: (request) =>
+      entityService.getEntityWriteSnapshot(request),
+    getEntityMutationReceipt: (key) =>
+      entityService.getEntityMutationReceipt(key),
+    applyEntityMutationOnce: (request) =>
+      entityService.applyEntityMutationOnce(request),
+    foldEntity: (request) => entityService.foldEntity(request),
+  } satisfies ServiceEntityMutations);
 }
 
 /** The read-only projection of the entity service, each read bound on its own. */

@@ -688,6 +688,7 @@ describe("a first-party service's read-only view of the entity service", () => {
       "listEntities",
       "queryEntityHierarchy",
       "search",
+      "searchWithDistances",
     ]);
   });
 });
