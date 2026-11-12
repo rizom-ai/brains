@@ -62,3 +62,33 @@ export {
   type BaseEntity,
   type ResolvedRuntimeUpload,
 } from "@brains/plugins";
+export {
+  baseEntitySchema,
+  canWriteVisibility,
+  decodeEntityIdPath,
+  encodeEntityIdPath,
+  entityIdPathSchema,
+  entityTypeClassificationSchema,
+  findEntityByIdentifier,
+  getPublishBoundaryState,
+  isEntityValidationError,
+  preserveSourceFrontmatter,
+  EntityWriteConflictError,
+  type EntityIdPath,
+  type EntityIdPathInput,
+  type EntitySchema,
+  type GetEntityRequest,
+} from "@brains/plugins";
+export {
+  GROUPING_MAX_PAGE_LIMIT,
+  GROUPING_PAGE_LIMIT,
+  entityGroupingSchema,
+  groupingKeySchema,
+  groupingSearchSchema,
+  groupingSortSchema,
+  groupingValueSchema,
+  isGroupingContributor,
+  queryGroupingUsageSchema,
+  type EntityGrouping,
+  type EntityGroupingUsage,
+} from "@brains/plugins";
