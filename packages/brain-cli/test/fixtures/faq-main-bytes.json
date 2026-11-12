@@ -1,0 +1,122 @@
+{
+  "source": "main f348645477, the faq entity plugin class on the entity store",
+  "current": {
+    "file": "---\nquestion: How do I reach you?\nstatus: published\nasked: 3\nrank: 2\n---\n\n# FAQ\n\n## Answer\n\nWrite to the address on the contact page.\n\n## Sources\n\n- [Contact](https://example.org/contact \"contact-page\") — from [Other Brain](https://other.example)\n\n## Alternative answers\n\n### Item 1\n\n#### Answer\n\nUse the contact form.\n",
+    "stored": {
+      "content": "---\nquestion: How do I reach you?\nstatus: published\nasked: 3\nrank: 2\n---\n# FAQ\n\n## Answer\n\nWrite to the address on the contact page.\n\n## Sources\n\n- [Contact](https://example.org/contact \"contact-page\") — from [Other Brain](https://other.example)\n\n## Alternative answers\n\n### Item 1\n\n#### Answer\n\nUse the contact form.\n",
+      "metadata": "{\"question\":\"How do I reach you?\",\"status\":\"published\",\"asked\":3,\"rank\":2}"
+    },
+    "read": {
+      "content": "---\nquestion: How do I reach you?\nstatus: published\nasked: 3\nrank: 2\n---\n# FAQ\n\n## Answer\n\nWrite to the address on the contact page.\n\n## Sources\n\n- [Contact](https://example.org/contact \"contact-page\") — from [Other Brain](https://other.example)\n\n## Alternative answers\n\n### Item 1\n\n#### Answer\n\nUse the contact form.\n",
+      "metadata": {
+        "question": "How do I reach you?",
+        "status": "published",
+        "asked": 3,
+        "rank": 2
+      }
+    }
+  },
+  "sparse": {
+    "file": "---\nquestion: What do you write about?\nstatus: draft\n---\n# FAQ\n\n## Answer\n\nDistributed systems.",
+    "stored": {
+      "content": "---\nquestion: What do you write about?\nstatus: draft\nasked: 1\n---\n# FAQ\n\n## Answer\n\nDistributed systems.\n",
+      "metadata": "{\"question\":\"What do you write about?\",\"status\":\"draft\",\"asked\":1}"
+    },
+    "read": {
+      "content": "---\nquestion: What do you write about?\nstatus: draft\nasked: 1\n---\n# FAQ\n\n## Answer\n\nDistributed systems.\n",
+      "metadata": {
+        "question": "What do you write about?",
+        "status": "draft",
+        "asked": 1
+      }
+    }
+  },
+  "legacyBody": {
+    "file": "---\nquestion: Old layout?\nstatus: draft\nasked: 2\n---\nThe answer at the top.\n\n## Alternative answers\n\n### First\n\nAnother answer.\n",
+    "stored": {
+      "content": "---\nquestion: Old layout?\nstatus: draft\nasked: 2\n---\n# FAQ\n\n## Answer\nThe answer at the top.\n\n## Alternative answers\n\n### Alternative answer 1\n\n#### Answer\nAnother answer.\n",
+      "metadata": "{\"question\":\"Old layout?\",\"status\":\"draft\",\"asked\":2}"
+    },
+    "read": {
+      "content": "---\nquestion: Old layout?\nstatus: draft\nasked: 2\n---\n# FAQ\n\n## Answer\nThe answer at the top.\n\n## Alternative answers\n\n### Alternative answer 1\n\n#### Answer\nAnother answer.\n",
+      "metadata": {
+        "question": "Old layout?",
+        "status": "draft",
+        "asked": 2
+      }
+    }
+  },
+  "frontmatterSources": {
+    "file": "---\nquestion: Where are the sources?\nstatus: published\nasked: 1\nsources:\n  - id: post-1\n    title: A Post\n    url: https://example.org/post-1\n---\n# FAQ\n\n## Answer\n\nIn the body now.\n",
+    "stored": {
+      "content": "---\nquestion: Where are the sources?\nstatus: published\nasked: 1\n---\n# FAQ\n\n## Answer\nIn the body now.\n\n## Sources\n\n- [A Post](https://example.org/post-1 \"post-1\")\n",
+      "metadata": "{\"question\":\"Where are the sources?\",\"status\":\"published\",\"asked\":1}"
+    },
+    "read": {
+      "content": "---\nquestion: Where are the sources?\nstatus: published\nasked: 1\n---\n# FAQ\n\n## Answer\nIn the body now.\n\n## Sources\n\n- [A Post](https://example.org/post-1 \"post-1\")\n",
+      "metadata": {
+        "question": "Where are the sources?",
+        "status": "published",
+        "asked": 1
+      }
+    }
+  },
+  "quotedSources": {
+    "file": "---\nquestion: Quoted?\nstatus: draft\nasked: 1\n---\n# FAQ\n\n## Answer\n\nYes.\n\n## Sources\n\n- [A Post](post-1)\n  > what it once quoted\n",
+    "stored": {
+      "content": "---\nquestion: Quoted?\nstatus: draft\nasked: 1\n---\n# FAQ\n\n## Answer\nYes.\n\n## Sources\n\n- [A Post](post-1)\n",
+      "metadata": "{\"question\":\"Quoted?\",\"status\":\"draft\",\"asked\":1}"
+    },
+    "read": {
+      "content": "---\nquestion: Quoted?\nstatus: draft\nasked: 1\n---\n# FAQ\n\n## Answer\nYes.\n\n## Sources\n\n- [A Post](post-1)\n",
+      "metadata": {
+        "question": "Quoted?",
+        "status": "draft",
+        "asked": 1
+      }
+    }
+  },
+  "captured": {
+    "stored": {
+      "content": "---\nquestion: Do you take commissions?\nstatus: draft\nasked: 1\n---\n# FAQ\n\n## Answer\nYes, by email.\n\n## Sources\n\n- [About](https://example.org/about \"about\")\n",
+      "metadata": "{\"question\":\"Do you take commissions?\",\"status\":\"draft\",\"asked\":1}"
+    },
+    "read": {
+      "content": "---\nquestion: Do you take commissions?\nstatus: draft\nasked: 1\n---\n# FAQ\n\n## Answer\nYes, by email.\n\n## Sources\n\n- [About](https://example.org/about \"about\")\n",
+      "metadata": {
+        "question": "Do you take commissions?",
+        "status": "draft",
+        "asked": 1
+      }
+    }
+  },
+  "merged": {
+    "stored": {
+      "content": "---\nquestion: How do I reach you?\nstatus: published\nasked: 5\nrank: 2\n---\n# FAQ\n\n## Answer\nWrite to the address on the contact page.\n\n## Sources\n\n- [Contact](https://example.org/contact \"contact-page\") — from [Other Brain](https://other.example)\n\n## Alternative answers\n\n### Alternative answer 1\n\n#### Answer\nUse the contact form.\n\n### Alternative answer 2\n\n#### Answer\nCall us.\n",
+      "metadata": "{\"question\":\"How do I reach you?\",\"status\":\"published\",\"asked\":5,\"rank\":2}"
+    },
+    "read": {
+      "content": "---\nquestion: How do I reach you?\nstatus: published\nasked: 5\nrank: 2\n---\n# FAQ\n\n## Answer\nWrite to the address on the contact page.\n\n## Sources\n\n- [Contact](https://example.org/contact \"contact-page\") — from [Other Brain](https://other.example)\n\n## Alternative answers\n\n### Alternative answer 1\n\n#### Answer\nUse the contact form.\n\n### Alternative answer 2\n\n#### Answer\nCall us.\n",
+      "metadata": {
+        "question": "How do I reach you?",
+        "status": "published",
+        "asked": 5,
+        "rank": 2
+      }
+    }
+  },
+  "legacyMerged": {
+    "stored": {
+      "content": "---\nquestion: Old layout?\nstatus: draft\nasked: 3\n---\n# FAQ\n\n## Answer\nThe answer at the top.\n\n## Alternative answers\n\n### Alternative answer 1\n\n#### Answer\nAnother answer.\n",
+      "metadata": "{\"question\":\"Old layout?\",\"status\":\"draft\",\"asked\":3}"
+    },
+    "read": {
+      "content": "---\nquestion: Old layout?\nstatus: draft\nasked: 3\n---\n# FAQ\n\n## Answer\nThe answer at the top.\n\n## Alternative answers\n\n### Alternative answer 1\n\n#### Answer\nAnother answer.\n",
+      "metadata": {
+        "question": "Old layout?",
+        "status": "draft",
+        "asked": 3
+      }
+    }
+  }
+}
