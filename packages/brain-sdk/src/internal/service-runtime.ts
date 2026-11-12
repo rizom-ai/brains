@@ -176,6 +176,12 @@ export {
   type ToolResult,
 } from "@brains/plugins";
 export {
+  findRelatedEntities,
+  type RelatedEntitiesQuery,
+  type RelatedEntity,
+  type RelatedEntityReader,
+} from "@brains/plugins";
+export {
   PluginConfigValidationError,
   SerialQueue,
   SerializedStatusStore,
