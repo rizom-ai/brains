@@ -58,7 +58,7 @@ const canonicalPilot = {
   githubOrg: "rizom-ai",
   contentRepoPrefix: "rover-",
   domainSuffix: ".rizom.ai",
-  aiApiKey: "PILOT_AI_API_KEY",
+  openaiApiKey: "PILOT_AI_API_KEY",
   gitSyncToken: "PILOT_GIT_SYNC_TOKEN",
   contentRepoAdminToken: "CONTENT_REPO_ADMIN_TOKEN",
   agePublicKey: "age1pilotpublickey",
@@ -77,6 +77,13 @@ describe("ops clean canonical crossover", () => {
       pilotSchema.safeParse({
         ...canonicalPilot,
         imageContract: "shared-fleet-v1",
+      }).success,
+    ).toBe(false);
+    const { openaiApiKey, ...pilotWithoutOpenaiKey } = canonicalPilot;
+    expect(
+      pilotSchema.safeParse({
+        ...pilotWithoutOpenaiKey,
+        aiApiKey: openaiApiKey,
       }).success,
     ).toBe(false);
     const { bundleContract: _bundleContract, ...unversionedPilot } =
@@ -109,6 +116,9 @@ describe("ops clean canonical crossover", () => {
       false,
     );
     expect(graph.has(join(packageRoot, "src/legacy-pilot-migration.ts"))).toBe(
+      false,
+    );
+    expect(graph.has(join(packageRoot, "src/provider-key-migration.ts"))).toBe(
       false,
     );
   });

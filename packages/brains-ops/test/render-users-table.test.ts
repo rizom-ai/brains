@@ -27,7 +27,7 @@ contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
 bundles:
   - core
-aiApiKey: AI_API_KEY
+openaiApiKey: OPENAI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
 agePublicKey: age1testpublickey

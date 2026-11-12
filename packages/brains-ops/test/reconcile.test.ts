@@ -27,7 +27,7 @@ async function createPilotRepo(files: Record<string, string>): Promise<string> {
 function createRunner(calls: string[]): (user: ResolvedUser) => Promise<void> {
   return async (user: ResolvedUser): Promise<void> => {
     calls.push(
-      `${user.handle}:${user.cohort}:${user.bundles.join(",")}:${user.brainVersion}:${user.effectiveAiApiKey}:${user.effectiveGitSyncToken}`,
+      `${user.handle}:${user.cohort}:${user.bundles.join(",")}:${user.brainVersion}:${user.effectiveOpenaiApiKey}:${user.effectiveGitSyncToken}`,
     );
   };
 }
@@ -37,7 +37,7 @@ function createSnapshotRunner(
 ): (user: ResolvedUser) => Promise<{ brainYaml: string }> {
   return async (user: ResolvedUser): Promise<{ brainYaml: string }> => {
     calls.push(
-      `${user.handle}:${user.cohort}:${user.bundles.join(",")}:${user.brainVersion}:${user.effectiveAiApiKey}:${user.effectiveGitSyncToken}`,
+      `${user.handle}:${user.cohort}:${user.bundles.join(",")}:${user.brainVersion}:${user.effectiveOpenaiApiKey}:${user.effectiveGitSyncToken}`,
     );
 
     const bundles = user.bundles.map((bundle) => `  - ${bundle}`).join("\n");
@@ -55,7 +55,7 @@ contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
 bundles:
   - core
-aiApiKey: AI_API_KEY
+openaiApiKey: OPENAI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
 agePublicKey: age1testpublickey
@@ -75,7 +75,7 @@ discord:
   "users/cara.yaml": `handle: cara
 discord:
   enabled: false
-aiApiKeyOverride: CARA_AI_API_KEY
+openaiApiKeyOverride: CARA_AI_API_KEY
 gitSyncTokenOverride: CARA_GIT_SYNC_TOKEN
 `,
   "cohorts/canary.yaml": `brainVersionOverride: 0.1.1-alpha.15
@@ -83,7 +83,7 @@ bundlesOverride:
   - core
   - site
   - publishing
-aiApiKeyOverride: CANARY_AI_API_KEY
+openaiApiKeyOverride: CANARY_AI_API_KEY
 members:
   - bob
   - alice
@@ -374,7 +374,7 @@ contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
 bundles:
   - core
-aiApiKey: AI_API_KEY
+openaiApiKey: OPENAI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
 agePublicKey: age1testpublickey

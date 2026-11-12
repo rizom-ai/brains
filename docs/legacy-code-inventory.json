@@ -108,6 +108,18 @@
       "targetRelease": "0.3.0-or-later"
     },
     {
+      "id": "single-ai-key-pilot-migration",
+      "paths": ["packages/brains-ops/src/provider-key-migration.ts"],
+      "symbol": "migrate:provider-keys",
+      "owner": "@rizom/ops",
+      "class": "offline-migration",
+      "behavior": "Moves a pilot repo from the single AI_API_KEY to OPENAI_API_KEY: renames aiApiKey selectors and overrides in desired state, the .env.schema variable, the deploy secret list, and the field in overriding users' encrypted secrets.",
+      "currentConsumers": "Pilot repos created before per-provider AI keys, including rover-pilot.",
+      "removalPrerequisite": "Every pilot repo has run migrate:provider-keys and deployed a brain that reads OPENAI_API_KEY.",
+      "rollbackDependency": "Active desired-state loading never imports it; the pre-migration files stay in the pilot repo's git history.",
+      "targetRelease": "0.3.0-or-later"
+    },
+    {
       "id": "private-pilot-crossover",
       "paths": [
         "packages/brains-ops/src/capability-bundle-migration.ts",

@@ -73,7 +73,7 @@ env:
   clear:
     NODE_ENV: production
   secret:
-    - AI_API_KEY
+    - OPENAI_API_KEY
     - GIT_SYNC_TOKEN
     - DISCORD_BOT_TOKEN
 
@@ -114,7 +114,7 @@ env:
   clear:
     NODE_ENV: production
   secret:
-    - AI_API_KEY
+    - OPENAI_API_KEY
     - GIT_SYNC_TOKEN
     - DISCORD_BOT_TOKEN
 
@@ -234,7 +234,7 @@ describe("initPilotRepo", () => {
     expect(pilotYaml).not.toContain("imageContract:");
     expect(pilotYaml).toContain("githubOrg: <github-org>");
     expect(pilotYaml).toContain("contentRepoPrefix: rover-");
-    expect(pilotYaml).toContain("aiApiKey: AI_API_KEY");
+    expect(pilotYaml).toContain("openaiApiKey: OPENAI_API_KEY");
     expect(pilotYaml).toContain("gitSyncToken: GIT_SYNC_TOKEN");
     expect(pilotYaml).toContain(
       "contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN",
@@ -246,7 +246,7 @@ describe("initPilotRepo", () => {
     const envSchema = await readFile(join(repo, ".env.schema"), "utf8");
     expect(envSchema).toContain("# Rover pilot instance env schema");
     expect(envSchema).toContain("single source of truth");
-    expect(envSchema).toContain("AI_API_KEY=");
+    expect(envSchema).toContain("OPENAI_API_KEY=");
     expect(envSchema).toContain("DISCORD_PUBLIC_KEY=");
     expect(envSchema).toContain("DISCORD_APPLICATION_ID=");
     expect(envSchema).toContain("ATPROTO_APP_PASSWORD=");
@@ -599,7 +599,7 @@ describe("initPilotRepo", () => {
     // Optional per-user ATProto and custom-domain TLS values override shared
     // deploy env only when they are present in the encrypted user payload.
     expect(decryptUserSecretsScript).toContain(
-      'writeSecretGitHubEnv("AI_API_KEY"',
+      'writeSecretGitHubEnv("OPENAI_API_KEY"',
     );
     expect(decryptUserSecretsScript).toContain('"STUDIO_CONTENT_REPO_PAT"');
     expect(decryptUserSecretsScript).toContain("maskGitHubSecret");
@@ -901,6 +901,57 @@ describe("initPilotRepo", () => {
     expect(await readFile(syncScriptPath, "utf8")).toBe(canonicalSyncScript);
   });
 
+  it("reconciles the single-AI-key vintage of its generated files on rerun", async () => {
+    const root = await createTempDir("brains-ops-init-");
+    const repo = join(root, "rover-pilot");
+
+    await initPilotRepo(repo);
+
+    const decryptPath = join(
+      repo,
+      "deploy",
+      "scripts",
+      "decrypt-user-secrets.ts",
+    );
+    const envSchemaPath = join(repo, ".env.schema");
+    const canonicalDecrypt = await readFile(decryptPath, "utf8");
+    const canonicalEnvSchema = await readFile(envSchemaPath, "utf8");
+
+    await writeFile(
+      decryptPath,
+      canonicalDecrypt
+        .replace(
+          'writeSecretGitHubEnv("OPENAI_API_KEY", secrets["openaiApiKey"]);',
+          'writeSecretGitHubEnv("AI_API_KEY", secrets["aiApiKey"]);',
+        )
+        .replace(
+          '"shared_openai_api_key_secret_name",\n  requireFlatValue(pilot, "openaiApiKey", "pilot.yaml"),',
+          '"shared_ai_api_key_secret_name",\n  requireFlatValue(pilot, "aiApiKey", "pilot.yaml"),',
+        ),
+    );
+    await writeFile(
+      envSchemaPath,
+      [
+        "# Rover pilot instance env schema",
+        "# This file is the single source of truth for required and sensitive deploy vars.",
+        "# @defaultRequired=false @defaultSensitive=false",
+        "# ----------",
+        "",
+        "# AI provider",
+        "# Shared GitHub secret by default; a per-user override may come from the decrypted",
+        "# users/<handle>.secrets.yaml.age file at deploy time.",
+        "# @required @sensitive",
+        "AI_API_KEY=",
+        canonicalEnvSchema.slice(canonicalEnvSchema.indexOf("\n# Git sync\n")),
+      ].join("\n"),
+    );
+
+    await initPilotRepo(repo);
+
+    expect(await readFile(decryptPath, "utf8")).toBe(canonicalDecrypt);
+    expect(await readFile(envSchemaPath, "utf8")).toBe(canonicalEnvSchema);
+  });
+
   it("keeps operator-owned deploy script content on rerun", async () => {
     const root = await createTempDir("brains-ops-init-");
     const repo = join(root, "rover-pilot");
@@ -1162,14 +1213,14 @@ describe("initPilotRepo", () => {
     await mkdir(repo, { recursive: true });
     await writeFile(
       join(repo, "pilot.yaml"),
-      "brainVersion: 0.1.1-alpha.99\nbundleContract: capability-bundles-v1\ngithubOrg: custom-org\ncontentRepoPrefix: rover-\ndomainSuffix: .rizom.ai\nbundles:\n  - core\naiApiKey: CUSTOM_AI_API_KEY\ngitSyncToken: CUSTOM_GIT_SYNC_TOKEN\ncontentRepoAdminToken: CUSTOM_CONTENT_REPO_ADMIN_TOKEN\nagePublicKey: age1custompublickey\n",
+      "brainVersion: 0.1.1-alpha.99\nbundleContract: capability-bundles-v1\ngithubOrg: custom-org\ncontentRepoPrefix: rover-\ndomainSuffix: .rizom.ai\nbundles:\n  - core\nopenaiApiKey: CUSTOM_AI_API_KEY\ngitSyncToken: CUSTOM_GIT_SYNC_TOKEN\ncontentRepoAdminToken: CUSTOM_CONTENT_REPO_ADMIN_TOKEN\nagePublicKey: age1custompublickey\n",
     );
 
     await initPilotRepo(repo);
 
     const pilotYaml = await readFile(join(repo, "pilot.yaml"), "utf8");
     expect(pilotYaml).toContain("githubOrg: custom-org");
-    expect(pilotYaml).toContain("aiApiKey: CUSTOM_AI_API_KEY");
+    expect(pilotYaml).toContain("openaiApiKey: CUSTOM_AI_API_KEY");
     expect(pilotYaml).not.toContain("<github-org>");
     expect(existsSync(join(repo, "views", "users.md"))).toBe(true);
   });
