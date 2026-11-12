@@ -178,6 +178,20 @@ export {
   type ToolResult,
 } from "@brains/plugins";
 export {
+  UserPermissionLevelSchema,
+  conversationGuestMessageAddedChannel,
+  embeddingReadyChannel,
+  findNearestEntity,
+  waitForEmbeddingsToDrain,
+  type InboxAction,
+  type InboxActor,
+  type InboxItem,
+  type InboxItemDetail,
+  type Message,
+  type NearestEntityDeps,
+  type NearestEntityQuery,
+} from "@brains/plugins";
+export {
   findRelatedEntities,
   type RelatedEntitiesQuery,
   type RelatedEntity,
