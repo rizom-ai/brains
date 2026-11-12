@@ -1378,6 +1378,9 @@ class DeclarativeServicePlugin<
       ai: Object.freeze<ServiceAI>({
         generateObject: (prompt, schema, signal) =>
           context.ai.generateObject(prompt, schema, signal),
+        // Through a template named in full, as the class generated.
+        generate: (config, schema, signal) =>
+          context.ai.generate(config, schema, signal),
         judge: (input) => context.judge(input),
       }),
       dataSource: (declaration, options = {}): void => {

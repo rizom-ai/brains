@@ -846,7 +846,10 @@ export interface ServiceGitBroker {
 }
 
 /** What a first-party service asks the brain's AI. */
-export interface ServiceAI extends Pick<IEntityAINamespace, "generateObject"> {
+export interface ServiceAI extends Pick<
+  IEntityAINamespace,
+  "generateObject" | "generate"
+> {
   readonly judge: IShell["judge"];
 }
 
