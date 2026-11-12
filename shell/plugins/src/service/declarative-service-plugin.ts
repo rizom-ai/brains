@@ -2000,6 +2000,7 @@ function entityReadsOf(context: ServicePluginContext): ServiceEntityReads {
     search: (request) => entityService.search(request),
     searchWithDistances: (request) =>
       entityService.searchWithDistances(request),
+    nearestToEntity: (request) => entityService.nearestToEntity(request),
     queryEntityHierarchy: (request) =>
       entityService.queryEntityHierarchy(request),
     getEntityTypeConfig: (type) => entityService.getEntityTypeConfig(type),

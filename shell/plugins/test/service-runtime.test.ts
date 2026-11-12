@@ -686,6 +686,7 @@ describe("a first-party service's read-only view of the entity service", () => {
       "getEntityTypeConfig",
       "getEntityTypes",
       "listEntities",
+      "nearestToEntity",
       "queryEntityHierarchy",
       "search",
       "searchWithDistances",

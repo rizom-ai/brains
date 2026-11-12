@@ -729,6 +729,11 @@ export interface ServiceEntityReads {
    * request names: ids and raw cosine distances, closest first.
    */
   searchWithDistances: IEntityService["searchWithDistances"];
+  /**
+   * The records nearest one record by their stored embeddings, at the scope
+   * the request names: no query is embedded.
+   */
+  nearestToEntity: IEntityService["nearestToEntity"];
   /** A type's records as their containment hierarchy, at the request's scope. */
   queryEntityHierarchy: IEntityService["queryEntityHierarchy"];
   /** A registered type's config. */
