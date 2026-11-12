@@ -178,6 +178,18 @@ export {
   type ToolResult,
 } from "@brains/plugins";
 export {
+  DEFAULT_AGENT_CARD_TIMEOUT_MS,
+  anchorProfileKindSchema,
+  fetchVerifiedAgentCard,
+  formatAgentBody,
+  isEndpointRefusal,
+  parseAgentBody,
+  type AnchorProfileKind,
+  type ParsedAgentCard,
+  type SemanticSpaceNeighbor,
+  type SemanticSpacePoint,
+} from "@brains/plugins";
+export {
   conversationMessageMetadataSchema,
   jobProgressChannel,
   matchSpaceSelector,
