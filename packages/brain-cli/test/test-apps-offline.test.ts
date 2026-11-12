@@ -1,13 +1,29 @@
 import { describe, expect, it } from "bun:test";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
 import { join, relative, resolve, sep } from "node:path";
+import { fileURLToPath } from "node:url";
 import { isSafeSeedAgentUrl } from "@brains/ai-evaluation";
+import {
+  prepareTestAppRemote,
+  remoteAgentProblems,
+} from "../scripts/test-app-remote";
 import { z } from "@brains/utils/zod";
 import { parse as parseYaml } from "yaml";
 
 const REPOSITORY_ROOT = resolve(import.meta.dir, "..", "..", "..");
 const TEST_APPS = join(import.meta.dir, "..", "test-apps");
 const URL_VALUE = /^(?:https?|wss?):\/\//;
+const START_SCRIPT = readFileSync(
+  join(import.meta.dir, "..", "scripts", "start-test-app.sh"),
+  "utf8",
+);
 
 /** A host a test app may name: a reserved `.example` host or loopback. */
 function isOfflineHost(hostname: string): boolean {
@@ -21,8 +37,15 @@ const testAppConfigSchema = z.object({
     .object({
       "directory-sync": z
         .object({
+          seedContent: z.boolean().optional(),
           seedContentPath: z.string().optional(),
-          git: z.object({ gitUrl: z.string().optional() }).optional(),
+          git: z
+            .object({
+              gitUrl: z.string().optional(),
+              branch: z.string().optional(),
+              bootstrapFromSeed: z.boolean().optional(),
+            })
+            .optional(),
         })
         .optional(),
     })
@@ -127,18 +150,38 @@ describe("canonical test apps stay offline", () => {
         expect(git.gitUrl ?? "").toStartWith("file://");
       });
 
-      it("seeds offline peers only", () => {
-        const seedPath =
-          app.config.plugins?.["directory-sync"]?.seedContentPath;
-        if (seedPath === undefined) return;
-        const seed = resolve(app.dir, seedPath);
+      it("seeds offline peers only", async () => {
+        const sync = app.config.plugins?.["directory-sync"];
+        if (sync?.seedContentPath === undefined) return;
+        const seed = resolve(app.dir, sync.seedContentPath);
         if (seed.startsWith(REPOSITORY_ROOT + sep)) {
           expect(seedAgentProblems(seed)).toEqual([]);
           return;
         }
-        // A seed outside this repository can carry peers this check never
-        // sees, so the app composes no agent directory to save them in.
-        expect(app.config.remove ?? []).toContain("agents");
+        // A seed outside this repository can carry real peers. The brain never
+        // reads it: it boots from the remote the start script prepares, with
+        // every agent withheld.
+        expect(sync.seedContent).toBe(false);
+        expect(sync.git?.bootstrapFromSeed).toBe(false);
+        expect(START_SCRIPT).toContain("prepare-test-app-remote.ts");
+        const gitUrl = sync.git?.gitUrl ?? "";
+        const branch = sync.git?.branch ?? "main";
+        if (existsSync(fileURLToPath(gitUrl))) {
+          expect(await remoteAgentProblems(gitUrl, branch)).toEqual([]);
+        }
+        if (!existsSync(seed)) return;
+        const scratch = mkdtempSync(join(tmpdir(), "test-app-remote-"));
+        try {
+          const prepared = `file://${join(scratch, "content.git")}`;
+          await prepareTestAppRemote({
+            seedPath: seed,
+            gitUrl: prepared,
+            branch,
+          });
+          expect(await remoteAgentProblems(prepared, branch)).toEqual([]);
+        } finally {
+          rmSync(scratch, { recursive: true, force: true });
+        }
       });
     });
   }

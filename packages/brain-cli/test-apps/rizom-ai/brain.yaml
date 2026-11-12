@@ -44,14 +44,18 @@ plugins:
   # Local acceptance of the contact form behind rizom.ai's "Book an audit",
   # on the forms engine's own policy and the loopback origin.
   contact: {}
+  # The live content's agents are real brains. The brain never reads this
+  # seed: the start script builds the remote from a copy in which every agent
+  # is discovered, not approved, so nothing scans or calls them.
   directory-sync:
     seedContentPath: /home/yeehaa/Documents/rizom-content
+    seedContent: false
     autoSync: true
     initialSync: true
     git:
       repo: rizom-ai/rizom-ai-test-content
-      gitUrl: file:///tmp/rizom-ai-test-content.git
-      bootstrapFromSeed: true
+      gitUrl: file:///tmp/rizom-ai-offline-test-content.git
+      bootstrapFromSeed: false
 remove:
   - series
   - portfolio
@@ -59,6 +63,3 @@ remove:
   - social-media
   - newsletter
   - stock-photo
-  # The live content's agents are real brains, approved as peers: without
-  # an agent directory the local brain never scans or calls them.
-  - agents
