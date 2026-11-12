@@ -1,5 +1,17 @@
 # @brains/forms
 
+## 0.2.0-alpha.688
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.688
+  - @brains/console-theme@0.2.0-alpha.688
+  - @brains/contracts@0.2.0-alpha.688
+  - @brains/site-composition@0.2.0-alpha.688
+  - @brains/utils@0.2.0-alpha.688
+  - @brains/plugins@0.2.0-alpha.688
+
 ## 0.2.0-alpha.687
 
 ### Patch Changes

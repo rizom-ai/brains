@@ -1,5 +1,159 @@
 # @rizom/brain
 
+## 0.2.0-alpha.688
+
+### Patch Changes
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`f1a8598`](https://github.com/rizom-ai/brains/commit/f1a8598e56bf95a831e7a8c6f5e84a135ad563e8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Atproto is a declarative service: the same brain card, canonical lexicon and projected-entity publishing, Jetstream discovery and did:web documents as before, composed under the plugin id `atproto`.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`a463037`](https://github.com/rizom-ai/brains/commit/a463037af6357b5b5522eac6de45c474608c5543) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Content-pipeline is a declarative service: the same publishing_manage tool, publish and generation contracts, scheduler, Publishing workspace and pipeline widget as before, composed under the plugin id `content-pipeline`.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`f967904`](https://github.com/rizom-ai/brains/commit/f96790476738f514f8a55b7377846f613ac1ced3) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Analytics is a declarative service with its traffic-snapshot type, keeping the plugin ids, reports, beacon, daily capture, stored bytes and Studio surface its classes had. The Dashboard widget now registers once every plugin has, as a first-party service's widget does, rather than once the brain is ready. Traffic snapshots are a deliberate exception to metadata being the frontmatter: a read hands back the whole stored document and metadata indexes only the week's title and totals, so the per-day numbers never enter metadata.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`1f6c9ce`](https://github.com/rizom-ai/brains/commit/1f6c9ce49b07ccb75b1f5d32641fed9e579681fb) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Dashboard is a declarative service: its page, widgets, console jump palette and assets are served as before.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`7399cd6`](https://github.com/rizom-ai/brains/commit/7399cd68e52860b788018594271a086a2f4866e8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Directory sync is a declarative service, keeping the plugin id, tool, jobs, status template, health checks, Studio workspace, startup import, durable export, Git broker connection and replay, and the files it writes that its class had. It reaches the brain's records through the entity mirror and registers its Git and serving work once its own jobs are registered, as its class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`5bf68b0`](https://github.com/rizom-ai/brains/commit/5bf68b0534db51f8b78f6b1755a4b23bfbe21ef3) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Contact and quiz are declarative services on the forms engine, keeping the plugin ids, dependencies, routes, pages, alert job, maintenance, Inbox sources, health and stored bytes their classes had. Contact requests and quiz results are a deliberate exception to metadata being the frontmatter, as mail items and traffic snapshots are: a read hands back the whole stored document, and metadata indexes only the title, times, status and alert state (and, for a quiz result, its quiz and whether the taker left an email), so names, email addresses, messages, answers and results never enter metadata.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`56b6f72`](https://github.com/rizom-ai/brains/commit/56b6f72f4d70be89e35fb3d266dcd9e2f81ee256) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Studio is a declarative service: its editor, workspaces, Inbox follow-ups and jump destinations are served as before, and its grouping definitions type installs as its own plugin, grouping-definitions, when the brain registers its plugins rather than once they have all registered.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`281a9a0`](https://github.com/rizom-ai/brains/commit/281a9a0d73211d99d8809fa16485ce98b1aeaab2) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The "Inbound email classification failed" warning names its cause: the model call failed, the decision failed its schema, or the classification was not derived from the mail. No mail content travels with it.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`aaf33cf`](https://github.com/rizom-ai/brains/commit/aaf33cf3b2256e59b1da6b23481adb8b957fc065) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Email-workflows is a declarative service: the same triage, Inbox source, triage list tool and inbound contract as before, composed under the plugin id `email-workflows` with its `mail-item` type. As a deliberate exception to the declared-type pattern, a mail item's metadata indexes only its routing fields and thread position, never its source locator, sender label, organization or requested actions, and a read hands back the whole document as before. The reply-draft type is declared but, as on main, installed in no brain.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`bd9d6c7`](https://github.com/rizom-ai/brains/commit/bd9d6c78f07f76a504d123a933c8b5e030589095) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party entity data source's detail view reads records of other types at the build's scope, as a fetching source does.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`93f0a1f`](https://github.com/rizom-ai/brains/commit/93f0a1fe68937787813e937f036cb97af02a8498) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service converted from a class registers a Dashboard widget that draws its declared view, as well as one that draws itself, once every plugin has registered.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`d3354c1`](https://github.com/rizom-ai/brains/commit/d3354c10250f492dbefc7f6f076115ff591953cd) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service serves the tool-backed API routes its class served, from its config.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`97d817a`](https://github.com/rizom-ai/brains/commit/97d817aa41b596d088cf8b22f8d53f69b37004d3) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service converted from a class queues a job as its class queued it: scoped and sourced to its plugin, attributed to the call the request names or to nobody.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`339f494`](https://github.com/rizom-ai/brains/commit/339f4944bbdb6de52bcbfbfaaabf31051e805596) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service converted from a class writes another package's types as its class wrote them, with the attribution its request names and no more.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`77eafa2`](https://github.com/rizom-ai/brains/commit/77eafa2b8ea8fc0db27992402c6d29695e820878) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service converted from a class runs the jobs its class handled under the types its class registered, on the data its class queued, as the package, so jobs queued before an upgrade or by another package keep running.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`5b16f29`](https://github.com/rizom-ai/brains/commit/5b16f29f0191a6bd83904565c40ee2bcc865e8ed) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party site builder converted from a class declares where it writes the site the runtime's HTTP host serves, from its parsed config, as its class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`bba2d19`](https://github.com/rizom-ai/brains/commit/bba2d1903931452965d51a0209984f6c117d1b1c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service converted from a class registers the tools its class built as written, with their names, visibility, side effects and success messages, beside the tools its definition declares, each run as its caller.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`578c977`](https://github.com/rizom-ai/brains/commit/578c9770dd85ac3f891036c66ec2f58e118b0be4) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service serves the HTTP routes its class served, as written.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`c00807c`](https://github.com/rizom-ai/brains/commit/c00807cbf0a8041b028328948752def068bcd6df) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service converted from a class takes a Studio workspace it registered off Studio when it shuts down, as its class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`e1abb98`](https://github.com/rizom-ai/brains/commit/e1abb98cd2209349f113780afad30fc22c463eac) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The test entity service keeps the frontmatter a document carries beyond its type's own, as the real entity service does.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`f6d78cb`](https://github.com/rizom-ai/brains/commit/f6d78cbf96722b21578e1c9b2db4a54d98d0a92c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The newsletter is a declared entity beside declared Buttondown and Resend services: the same issues, templates, data source, generation, subscriber tools, signup route and slot, publishing and auto-send as before, composed under newsletter, buttondown and resend. Scheduled issues now run through the declared scheduled generation, as social posts do, in place of the class's own generate:execute answer: the ten most recent published posts in one batch, read at the newsletter's own grant and queued as the newsletter.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`7241d48`](https://github.com/rizom-ai/brains/commit/7241d48e242c6c48b472c86435058b3ad951591f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service that keeps the plugin id its owned type has installs the type under a plugin id the composer names for it, so a class that registered its type inside itself converts without its service changing id.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`b8e0dd4`](https://github.com/rizom-ai/brains/commit/b8e0dd4dbd45d627143f52eab65d69da4e72bfc7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A site section's saved content is read as stored, so a declared type's frontmatter reaches the section's formatter as it did from a class type.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`142da38`](https://github.com/rizom-ai/brains/commit/142da38e25d454bc799a9a8af58b578bf6c65db1) Thanks [@yeehaa123](https://github.com/yeehaa123)! - First-party services that read their records parsed by a schema, as their classes did, share one entity service built on their runtime.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`f724a95`](https://github.com/rizom-ai/brains/commit/f724a9510f69b5e669006ed2426baf67afb74d33) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service converted from a class serves a data source under the id its class gave it in full, such as site-builder's `site:navigation`, as well as under its plugin's id.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`6ccb563`](https://github.com/rizom-ai/brains/commit/6ccb563114cb72956403ba6675b3d541f1c6cbcf) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service reads the active jobs and a record as stored, as its class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`b7b54ac`](https://github.com/rizom-ai/brains/commit/b7b54acc3dfbac84f6741d200a0ae8314f2ffc60) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service registers a report the analytics tool answers, as its class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`b31b3c3`](https://github.com/rizom-ai/brains/commit/b31b3c3aae2fb58f33b6d39a1136dd41ae27a94f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service lists the people work can be assigned to, as Studio's class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`f49beb0`](https://github.com/rizom-ai/brains/commit/f49beb0c12d26d1464703046928d9a3244368740) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service reads the AT Protocol projections entity packages registered, as its class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`e1604df`](https://github.com/rizom-ai/brains/commit/e1604dfcd67ed9c4fb25855c293a0358dda3cde5) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service reads the attachments other packages provide as its class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`a4327c1`](https://github.com/rizom-ai/brains/commit/a4327c1910430cc85aa165684c048682643178d2) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service queues a batch of jobs and reads its status, as its class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`bd6a170`](https://github.com/rizom-ai/brains/commit/bd6a170606be844c89e98aac77418b0dd740d607) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service broadcasts an event on its typed channel as its class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`0575f9f`](https://github.com/rizom-ai/brains/commit/0575f9f9da5e6d62853ba2d9bdbf51ed53197a26) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service lists the brain's channel descriptors, as its class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`ddc2338`](https://github.com/rizom-ai/brains/commit/ddc23386daa910e9b1c85392a6645533742ad611) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service derives the console surface strip for a caller from the registered web routes, as Dashboard's class did, without reaching the route table.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`01b1a18`](https://github.com/rizom-ai/brains/commit/01b1a182788e9a66e39aad8cfebd86fdbe50cacc) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service registers the section templates its config defines under each one's namespace and generates content as its class asked, with the tool call's caller or its own grant.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`751b4ba`](https://github.com/rizom-ai/brains/commit/751b4ba2af55aaa7968619ddd610a3cd4bf23cfe) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service queues another package's job through its contract as its class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`89a1788`](https://github.com/rizom-ai/brains/commit/89a178832013147a7ff78c438dcaa2259d4e5fc3) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service deletes a record as its class did through the entity service.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`9d078dc`](https://github.com/rizom-ai/brains/commit/9d078dc9f37b56b16e002b4e864ffa0af589201e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service names a record as its type's adapter names it, as Studio's class did, without reaching the adapter.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`01763ae`](https://github.com/rizom-ai/brains/commit/01763aec732b016e279d0a65b304098ece9aec77) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service reads a type's hierarchy and config and parses a document, as Studio's class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`9a41d59`](https://github.com/rizom-ai/brains/commit/9a41d59cb6b9d652eae828495f4aa4ebf9ebbb1a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service advertises its URLs in the brain's endpoints, as its class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`3c36b7d`](https://github.com/rizom-ai/brains/commit/3c36b7d4c5ea8b455659aaef8a9d9a0af0d661dc) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service checks the entity action policy for a caller as its class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`c3b596c`](https://github.com/rizom-ai/brains/commit/c3b596c8038a88fc229df1b5f754ed8dad79f4e0) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service converted from a class reads the site's entity display, which names each type's page, as its class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`8741e00`](https://github.com/rizom-ai/brains/commit/8741e007521984f09d59cc9727bff35a85640b3b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service mirrors the brain's records to files across every type, with the export ledger and the bulk coordination, as directory-sync's class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`8164c05`](https://github.com/rizom-ai/brains/commit/8164c05977169ca377418d9ae7ec9aba5b7b601c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service reads what a type's adapter says of its records, as Studio's class did, without reaching the adapter.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`6710dd6`](https://github.com/rizom-ai/brains/commit/6710dd6fbe54649fccdf4b4a33de121b8de9c7bc) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service finds the brain's git broker and its checkout, as its class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`9d855a1`](https://github.com/rizom-ai/brains/commit/9d855a1571e9f425d250dfa47f83be700f4d06fb) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Studio keeps grouping fields valid on the types that contribute groupings, as its class did; no other type can be guarded this way.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`7ee8fd8`](https://github.com/rizom-ai/brains/commit/7ee8fd8096b70d4fc3990a11aa3ff787d48863e4) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Studio, as a first-party service, reaches the brain's groupings as its class did; no other package can.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`85a8711`](https://github.com/rizom-ai/brains/commit/85a87116901521bd9dd42aa1ec1442821de6fff3) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service reads whether another plugin is installed, as its class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`64e9385`](https://github.com/rizom-ai/brains/commit/64e938548ca553f8af89ada6105e99059ed29a7f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service offers its Inbox follow-ups under its plugin id, as its class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`030c45b`](https://github.com/rizom-ai/brains/commit/030c45b8f0094e370a1e4ccf1fcedc4c15e21647) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service tells the shell whether its startup import is still pending once every plugin has registered, as its class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`adb9f08`](https://github.com/rizom-ai/brains/commit/adb9f086006bdc0117a260f18352af5181d68efe) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service converted from a class registers its agent instructions again when what they say changes, as its class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`0329b35`](https://github.com/rizom-ai/brains/commit/0329b35d3bee97784965fcd95c9fbf3589d2cc77) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service converted from a class reads a job's status and the recent jobs of its types, as its class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`6bffd3e`](https://github.com/rizom-ai/brains/commit/6bffd3e0b558ed240fc1b67dbf71bf78e9bdc4c6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service stops hearing a channel when it asks, as its class unsubscribed.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`908c123`](https://github.com/rizom-ai/brains/commit/908c12372046007808a58efbb007bc15e787575b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service offers an Inbox source, resolves an editable prompt, counts records and knows whether it runs in a job worker, as its class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`ca2b279`](https://github.com/rizom-ai/brains/commit/ca2b2795d03b29c6572cb35bbcc94027731f5de0) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service converted from a class asks the bus as its class did, from setup too: requests, commands and gathered answers, as the package.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`32fa179`](https://github.com/rizom-ai/brains/commit/32fa179bf17ede1a61aff418644125718f6aafb6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service reports its operational health under its plugin id, as its class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`a88c79a`](https://github.com/rizom-ai/brains/commit/a88c79ace67822d81499e48993d2f9a890bc16e2) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service reads the plugin id it installed under, as its class read its own id.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`8ee1d3c`](https://github.com/rizom-ai/brains/commit/8ee1d3cdee84db677375f34eaea86b571be2919f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service reads the brain's readiness, as its class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`0e4d8f5`](https://github.com/rizom-ai/brains/commit/0e4d8f5c831dcc16ccf18e1cdabd3c08b4c1485e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service's recurring checks are taken off when it shuts down, as contact's and quiz's maintenance checks were; analytics' traffic capture and the unified Inbox's daily digest, whose classes left theirs registered, now release theirs too.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`dc80453`](https://github.com/rizom-ai/brains/commit/dc80453f4eb764db9cb0375047826a28001ee44a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service finishes its registration after its own job handlers are registered, as its class's onRegister did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`a4aefc5`](https://github.com/rizom-ai/brains/commit/a4aefc520ce2228ef5433b3c6da5a4dad9717637) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service hands its own analytics reports the read-only entity service, as its class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`d5b8a3c`](https://github.com/rizom-ai/brains/commit/d5b8a3c53944b8aef2f2a209c2a6dc837e312c1d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service retries work a refusal must not lose as its class did, stopping when it shuts down.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`a949f7e`](https://github.com/rizom-ai/brains/commit/a949f7e253af1bc45c6bb1cbd07203193b795759) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service reads the app's metadata, whether it serves HTTP, and the brain's public skills, as its class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`6623053`](https://github.com/rizom-ai/brains/commit/662305324f06b29a58fc1a25ed6399f9ec6077e8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service reaches its internal runtime from its setup and its jobs and routes slots, so a service converted from a class builds what its class built at registration where its class built it.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`75980e2`](https://github.com/rizom-ai/brains/commit/75980e2ea03ceb582262dd7eec6ed3cbcf00b40d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service saves uploads to the shared store and finds their promotion handler, as Studio's class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`a7e2f1f`](https://github.com/rizom-ai/brains/commit/a7e2f1ffc2563d5590a75c87b66d029fda678cc9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party site builder converted from a class reads the site's preview URL, its local URL and whether links prefer it, as its class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`210c6e7`](https://github.com/rizom-ai/brains/commit/210c6e780a1f7146df046fb9e771a414cc155ee5) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service reads the brain's theme stylesheet for the pages it serves, as its class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`7985951`](https://github.com/rizom-ai/brains/commit/7985951eb4516f3fb7ad489d5eacfa6b4680fb39) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service writes a record whether or not it is stored yet, as its class did through the entity service's upsert.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`7e8a80e`](https://github.com/rizom-ai/brains/commit/7e8a80e728011fe76e5772a2e600afe4ec206660) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party site builder converted from a class reads the brain's view templates and resolves a section's content through a template as its class did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`243963f`](https://github.com/rizom-ai/brains/commit/243963fd87eab99c6078c638fdc61fccd99f907c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The site builder is a declarative service: the same tool, build job, resources, navigation data source, templates, route contracts, Studio workspace, Dashboard widget and served directories as before, composed under the plugin id `site-builder`.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`d0d2a0c`](https://github.com/rizom-ai/brains/commit/d0d2a0cc1c98d149edb3e841759fc81219b26877) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Site-content is a declarative service: its type installs as its own plugin, and it stores, reads and generates site sections as before.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`2b7d25d`](https://github.com/rizom-ai/brains/commit/2b7d25d8ed4a3bbffa1dd968467600d9873bb26c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Stock photos are a declarative service: the same tools, job and writes as before, composed under the plugin id `stock-photo`.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`3abbf16`](https://github.com/rizom-ai/brains/commit/3abbf1641c9fe369ebcfd5dc0fd83f571fc12870) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party declared type can keep its stored document as its read and derive its metadata from part of its header, as an entity plugin class did; mail items use it.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`0e14ba7`](https://github.com/rizom-ai/brains/commit/0e14ba775b3f324c7308ba88e3170107d1f542ee) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party stored-document type can read its document as written, byte for byte, and still read a document whose header does not parse, as an entity plugin class's adapter did.
+
+- [#913](https://github.com/rizom-ai/brains/pull/913) [`0909d53`](https://github.com/rizom-ai/brains/commit/0909d53bc09cfd931d301000fdd36cc3990f0d58) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The traffic-by-entity report orders pieces with the same pageviews by type, then id, so its order and its limit no longer depend on when the store wrote them.
+
 ## 0.2.0-alpha.687
 
 ### Patch Changes

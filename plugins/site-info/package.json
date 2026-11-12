@@ -1,7 +1,7 @@
 {
   "name": "@brains/site-info",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.687",
+  "version": "0.2.0-alpha.688",
   "description": "Site info — the site's metadata, title, description and CTA, and the service that answers for it",
   "dependencies": {
     "@brains/sdk": "workspace:*",
