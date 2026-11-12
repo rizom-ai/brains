@@ -1,4 +1,7 @@
-import { createTemplate, type Template } from "@brains/plugins";
+import {
+  createTemplate,
+  type Template,
+} from "@brains/sdk/internal/presentation";
 import { z } from "@brains/utils/zod";
 
 export const topicMergeSynthesisSchema: z.ZodObject<{

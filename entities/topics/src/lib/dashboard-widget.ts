@@ -1,9 +1,5 @@
-import {
-  SYSTEM_CHANNELS,
-  defineDashboardWidget,
-  registerBuiltInDashboardWidget,
-  type EntityPluginContext,
-} from "@brains/plugins";
+import { defineDashboardWidget } from "@brains/sdk/services";
+import type { ServiceRuntime } from "@brains/sdk/internal/service-runtime";
 import { firstSentence } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import { TOPIC_ENTITY_TYPE, TOPICS_PLUGIN_ID } from "./constants";
@@ -52,45 +48,40 @@ const topicsWidget = defineDashboardWidget({
   }),
 });
 
-export function registerTopicsDashboardWidget(params: {
-  context: EntityPluginContext;
-}): void {
-  const { context } = params;
-
-  context.messaging.subscribe(
-    SYSTEM_CHANNELS.pluginsRegistered,
-    async (): Promise<{ success: boolean }> => {
-      await registerBuiltInDashboardWidget({
-        context,
-        definition: topicsWidget,
-        load: async ({ visibilityScope, signal }) => {
-          signal.throwIfAborted();
-          const topics = await context.entityService.listEntities(
-            {
-              entityType: TOPIC_ENTITY_TYPE,
-              options: {
-                limit: 10,
-                sortFields: [{ field: "updated", direction: "desc" }],
-                filter: { visibilityScope },
-              },
-            },
-            topicEntitySchema,
-          );
-          signal.throwIfAborted();
+/**
+ * The topic list on the Dashboard, as the class's built-in widget drew it:
+ * the ten most recently updated topics the viewer may read, registered once
+ * every plugin has registered.
+ */
+export function registerTopicsDashboardWidget(
+  runtime: Pick<ServiceRuntime, "dashboardWidget">,
+): void {
+  runtime.dashboardWidget({
+    definition: topicsWidget,
+    load: async ({ corpus, visibilityScope, signal }) => {
+      signal.throwIfAborted();
+      const topics = (
+        await corpus.listEntities({
+          entityType: TOPIC_ENTITY_TYPE,
+          options: {
+            limit: 10,
+            sortFields: [{ field: "updated", direction: "desc" }],
+            filter: { visibilityScope },
+          },
+        })
+      ).map((topic) => topicEntitySchema.parse(topic));
+      signal.throwIfAborted();
+      return {
+        items: topics.map((topic) => {
+          const projected = toTopicContentProjection(topic);
+          const description = firstSentence(projected.content);
           return {
-            items: topics.map((topic) => {
-              const projected = toTopicContentProjection(topic);
-              const description = firstSentence(projected.content);
-              return {
-                id: topic.id,
-                name: projected.title || topic.id,
-                ...(description ? { description } : {}),
-              };
-            }),
+            id: topic.id,
+            name: projected.title || topic.id,
+            ...(description ? { description } : {}),
           };
-        },
-      });
-      return { success: true };
+        }),
+      };
     },
-  );
+  });
 }

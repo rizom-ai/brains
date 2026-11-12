@@ -1215,6 +1215,13 @@
         "rank": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }
       },
       "required": ["question", "status"]
+    },
+    "topic": {
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "description": "Topic title" }
+      },
+      "required": ["title"]
     }
   },
   "obsidian": {

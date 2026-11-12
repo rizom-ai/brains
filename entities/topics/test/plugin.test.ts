@@ -1,18 +1,56 @@
 import { createTestEntity } from "@brains/entity-service/test";
 import { describe, it, expect, beforeEach } from "bun:test";
-import { TopicsPlugin } from "../src";
+import { createTopicsPlugins, installTopics } from "./topics-plugins";
 import { createPluginHarness } from "@brains/plugins/test";
-import { TopicAdapter } from "../src/lib/topic-adapter";
+import { topicDocument } from "../src/lib/topic-document";
+import {
+  isTopicSourceEligible,
+  isTopicSourceType,
+} from "../src/lib/topic-source-policy";
+import {
+  topicsPluginConfigSchema,
+  type TopicsPluginConfigInput,
+} from "../src/schemas/config";
+import type { BaseEntity } from "@brains/plugins";
+
+/**
+ * The source rules the package's listeners and extraction apply, as the
+ * topics class exposed them: whether a record is published enough to be
+ * read, and whether a type is a topic source.
+ */
+function sourceRules(input: TopicsPluginConfigInput = {}): {
+  id: string;
+  isEntityPublished(entity: BaseEntity): boolean;
+  shouldProcessEntityType(
+    entityType: string,
+    entityService: {
+      getEntityTypeConfig: (type: string) => { projectionSource?: boolean };
+    },
+  ): boolean;
+} {
+  const config = topicsPluginConfigSchema.parse(input);
+  const service = createTopicsPlugins(input).at(-1);
+  return {
+    id: service?.id ?? "",
+    isEntityPublished: (entity) => isTopicSourceEligible(entity, config),
+    shouldProcessEntityType: (entityType, entityService) =>
+      isTopicSourceType(
+        entityType,
+        config,
+        entityService.getEntityTypeConfig(entityType),
+      ),
+  };
+}
 import {
   topicExtractionStores,
   topicVotePromptVersion,
 } from "../src/lib/topic-extraction-run";
 
-describe("TopicsPlugin", () => {
-  let plugin: TopicsPlugin;
+describe("the topics package", () => {
+  let plugin: ReturnType<typeof sourceRules>;
 
   beforeEach(() => {
-    plugin = new TopicsPlugin();
+    plugin = sourceRules();
   });
 
   it("should have correct plugin name", () => {
@@ -56,7 +94,7 @@ describe("TopicsPlugin", () => {
     });
 
     it("should allow additional statuses when configured", () => {
-      const pluginWithDrafts = new TopicsPlugin({
+      const pluginWithDrafts = sourceRules({
         extractableStatuses: ["published", "draft"],
       });
       const draftEntity = createTestEntity("post", {
@@ -76,7 +114,7 @@ describe("TopicsPlugin", () => {
     };
 
     it("should always skip topic entity type to prevent recursion", () => {
-      const pluginWithRoleOverride = new TopicsPlugin({
+      const pluginWithRoleOverride = sourceRules({
         sourceRoleOverrides: { topic: "primary" },
       });
       expect(
@@ -85,8 +123,8 @@ describe("TopicsPlugin", () => {
     });
 
     it("should register topic entity type with projectionSource: false", async () => {
-      const harness = createPluginHarness<TopicsPlugin>({});
-      const capabilities = await harness.installPlugin(new TopicsPlugin());
+      const harness = createPluginHarness({});
+      const capabilities = await installTopics(harness);
 
       expect(
         harness.getEntityRegistry().getEntityTypeConfig("topic")
@@ -104,7 +142,7 @@ describe("TopicsPlugin", () => {
     });
 
     it("uses excludeEntityTypes as the normal source blacklist", () => {
-      const pluginWithBlacklist = new TopicsPlugin({
+      const pluginWithBlacklist = sourceRules({
         excludeEntityTypes: ["note"],
       });
       expect(
@@ -119,12 +157,10 @@ describe("TopicsPlugin", () => {
 
 describe("topic-distribution report wiring", () => {
   it("counts sources from the extraction votes the plugin recorded", async () => {
-    const harness = createPluginHarness<TopicsPlugin>({});
+    const harness = createPluginHarness({});
     // Resolving the votes prompt stores a prompt entity; in a brain the
     // prompt plugin excludes its type from topic sources.
-    await harness.installPlugin(
-      new TopicsPlugin({ excludeEntityTypes: ["prompt"] }),
-    );
+    await installTopics(harness, { excludeEntityTypes: ["prompt"] });
     const context = harness.getEntityContext("topics");
     const note = createTestEntity("note", {
       id: "read",
@@ -135,7 +171,7 @@ describe("topic-distribution report wiring", () => {
     harness.getMockShell().addEntities([
       createTestEntity("topic", {
         id: "ethics",
-        content: new TopicAdapter().createTopicBody({
+        content: topicDocument.createTopicBody({
           title: "Ethics",
           content: "",
         }),

@@ -1,5 +1,6 @@
 import {
   atprotoProvenance,
+  canonicalAtprotoLexicons,
   defineAtprotoProjection,
 } from "@brains/atproto-contracts";
 import type {
@@ -7,18 +8,20 @@ import type {
   AtprotoProjection,
   AtprotoProjectionBuildInput,
 } from "@brains/atproto-contracts";
-import { TopicAdapter } from "./lib/topic-adapter";
-import { topicEntitySchema } from "./schemas/topic";
-
-const topicAdapter = new TopicAdapter();
+import type { EntityAtprotoProjection } from "@brains/sdk/entities";
+import { topicDocument } from "./lib/topic-document";
+import { topicEntitySchema, type TopicEntity } from "./schemas/topic";
 
 export async function buildTopicAtprotoRecord({
   entity,
   config,
   pageUrl,
-}: AtprotoProjectionBuildInput): Promise<AtprotoBrainTopicRecord> {
+}: Pick<
+  AtprotoProjectionBuildInput,
+  "entity" | "config" | "pageUrl"
+>): Promise<AtprotoBrainTopicRecord> {
   const topic = topicEntitySchema.parse(entity);
-  const parsed = topicAdapter.parseTopicBody(topic.content);
+  const parsed = topicDocument.parseTopicBody(topic.content);
 
   return {
     $type: "ai.rizom.brain.topic",
@@ -36,3 +39,18 @@ export function createTopicAtprotoProjection(): AtprotoProjection<AtprotoBrainTo
     buildRecord: buildTopicAtprotoRecord,
   });
 }
+
+/**
+ * Topic records, under the canonical topic lexicon and unvalidated by the
+ * PDS, as the topics class registered them: every public topic.
+ */
+export const topicAtproto: EntityAtprotoProjection<TopicEntity> = {
+  lexicon: canonicalAtprotoLexicons["ai.rizom.brain.topic"],
+  validate: false,
+  buildRecord: ({ entity, config, pageUrl }) =>
+    buildTopicAtprotoRecord({
+      entity,
+      config,
+      ...(pageUrl !== undefined && { pageUrl }),
+    }),
+};

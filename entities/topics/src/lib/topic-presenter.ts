@@ -1,10 +1,10 @@
-import type { BaseEntity } from "@brains/plugins";
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
 import { truncateText } from "@brains/utils/string-utils";
 import type { TopicDetailData } from "../templates/topic-detail/schema";
 import type { TopicSummary } from "../templates/topic-list/schema";
-import { TopicAdapter } from "./topic-adapter";
+import { topicDocument } from "./topic-document";
 
-const adapter = new TopicAdapter();
+const adapter = topicDocument;
 
 export interface TopicContentProjection {
   id: string;

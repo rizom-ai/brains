@@ -91,13 +91,13 @@ const EVALS = [
 
 /**
  * What the topics package registers, pinned as the topics entity plugin
- * class registered it: brains and sites read topics by this type, the
+ * class registered it and held on the definition: brains and sites read topics by this type, the
  * extraction job runs under topics:extract, other packages ask for the
  * public titles and the source types, and system_analytics, the Dashboard
  * and AT Protocol publishing read topics through what it registers.
  */
 describe("the topics package's registered surface", () => {
-  it("is the topics plugin, with no tools, resources, instructions or routes", async () => {
+  it("is the topics service beside its type, with no tools, resources, instructions or routes", async () => {
     const { plugins, capabilities } = await installed();
     expect(
       plugins.map(({ id, type, packageName, dependencies }) => [
@@ -106,7 +106,12 @@ describe("the topics package's registered surface", () => {
         packageName,
         dependencies ?? [],
       ]),
-    ).toEqual([["topics", "entity", "@brains/topics", []]]);
+    ).toEqual([
+      // The class registered the topic type inside itself, under topics;
+      // the type now installs as its own plugin, apart from the service.
+      ["topic", "entity", "@brains/topics", []],
+      ["topics", "service", "@brains/topics", []],
+    ]);
     expect(capabilities.flatMap(({ tools }) => tools)).toEqual([]);
     expect(capabilities.flatMap(({ resources }) => resources)).toEqual([]);
     expect(

@@ -1,9 +1,9 @@
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
 import type {
-  BaseEntity,
   ContentVisibility,
-  EntityPluginContext,
   ProjectionSourceRole,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/service-runtime";
+import type { TopicsContext } from "./topics-context";
 import type { Logger } from "@brains/utils/logger";
 import { getErrorMessage } from "@brains/utils/error";
 import {
@@ -84,7 +84,7 @@ export interface ExtractTopicsBatchedResult {
  */
 export async function extractTopicsBatched(
   entities: BaseEntity[],
-  context: EntityPluginContext,
+  context: TopicsContext,
   logger: Logger,
   options: ExtractTopicsBatchedOptions = {},
 ): Promise<ExtractTopicsBatchedResult> {

@@ -65,6 +65,7 @@ const convertedPackages = [
   "entities/series",
   "entities/social-media",
   "entities/style-guide",
+  "entities/topics",
   "entities/wishlist",
   "interfaces/a2a",
   "interfaces/chat",

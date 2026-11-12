@@ -43,7 +43,8 @@
     {
       "id": "topic-entity-shape",
       "paths": [
-        "entities/topics/src/lib/topic-adapter.ts",
+        "entities/topics/src/lib/topic-document.ts",
+        "entities/topics/src/topic-entity.ts",
         "entities/topics/src/schemas/topic.ts"
       ],
       "symbol": "topic stored-shape compatibility",

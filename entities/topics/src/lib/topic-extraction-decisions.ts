@@ -1,4 +1,5 @@
-import { scopedDerivedId, type BaseEntity } from "@brains/plugins";
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
+import { scopedDerivedId } from "@brains/sdk/internal/service-runtime";
 import { generateIdFromText } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import type { TopicsPluginConfig } from "../schemas/config";

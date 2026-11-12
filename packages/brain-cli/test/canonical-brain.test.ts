@@ -199,6 +199,8 @@ describe("canonical brain core", () => {
       "style-guide",
       "note",
       "link",
+      // The topics service installs its topic type as itself, first.
+      "topic",
       "topics",
       // The knowledge map comes with topics.
       "knowledge-map",

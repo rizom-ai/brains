@@ -64,7 +64,7 @@ import socialMediaPackage from "@brains/social-media";
 import stockPhotoPackage from "@brains/stock-photo";
 import styleGuidePackage from "@brains/style-guide";
 import askContentPackage from "@brains/ask-content";
-import { topicsPlugin } from "@brains/topics";
+import topicsPackage from "@brains/topics";
 import knowledgeMapPackage from "@brains/knowledge-map";
 import unifiedInboxPackage from "@brains/unified-inbox";
 import { actionBoardPlugin } from "@brains/action-board";
@@ -231,7 +231,14 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     [
       "topics",
       (config): Plugin[] => [
-        topicsPlugin(config),
+        // Under the id its class had, which registered the topic type
+        // inside itself: the type installs as itself.
+        ...instantiatePluginPackageDefinition(
+          topicsPackage,
+          config,
+          { name: "@brains/topics", version: packageJson.version },
+          { pluginId: "topics" },
+        ),
         ...instantiatePluginPackageDefinition(
           knowledgeMapPackage,
           {},

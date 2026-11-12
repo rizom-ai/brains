@@ -8,7 +8,7 @@ import {
 import type { BaseEntity, ContentVisibility } from "@brains/plugins";
 import { generateIdFromText } from "@brains/utils/string-utils";
 
-import { TopicAdapter } from "../../src/lib/topic-adapter";
+import { topicDocument } from "../../src/lib/topic-document";
 import { countTopicSources } from "../../src/lib/topic-source-counts";
 import { isTopicSourceEligible } from "../../src/lib/topic-source-policy";
 import {
@@ -30,7 +30,7 @@ const coverageSchema = z.object({
 const PROMPT = "votes-prompt";
 const config = topicsPluginConfigSchema.parse({});
 
-const adapter = new TopicAdapter();
+const adapter = topicDocument;
 
 /** The report's handler, called as the registry calls it. */
 function runReport(

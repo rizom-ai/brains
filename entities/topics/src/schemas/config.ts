@@ -1,4 +1,4 @@
-import type { ProjectionSourceRole } from "@brains/plugins";
+import type { ProjectionSourceRole } from "@brains/sdk/internal/service-runtime";
 import { z } from "@brains/utils/zod";
 
 /**

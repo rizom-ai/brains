@@ -9,11 +9,11 @@ import {
   createMockShell,
 } from "@brains/plugins/test";
 import { createSilentLogger } from "@brains/test-utils";
-import { TopicAdapter } from "../../src/lib/topic-adapter";
+import { topicDocument } from "../../src/lib/topic-document";
 import type { ITopicMergeSynthesizer } from "../../src/lib/topic-merge-synthesizer";
 import type { TopicMergeSynthesisResult } from "../../src/templates/merge-synthesis-template";
 
-const topicAdapter = new TopicAdapter();
+const topicAdapter = topicDocument;
 
 function makeEntity(
   id: string,

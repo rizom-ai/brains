@@ -1,18 +1,16 @@
-import {
-  createMockEntityPluginContext,
-  createMockMessageBus,
-} from "@brains/plugins/test";
-import { describe, expect, it } from "bun:test";
+import { createMockShell, type MockShell } from "@brains/plugins/test";
+import { describe, expect, it, spyOn } from "bun:test";
 import {
   DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
   dashboardWidgetRegisterContract,
   SYSTEM_CHANNELS,
   type BaseEntity,
+  type ListEntitiesRequest,
 } from "@brains/plugins";
-import { registerTopicsDashboardWidget } from "../../src/lib/dashboard-widget";
-import { TopicAdapter } from "../../src/lib/topic-adapter";
+import { topicDocument } from "../../src/lib/topic-document";
+import { createTopicsPlugins } from "../topics-plugins";
 
-const adapter = new TopicAdapter();
+const adapter = topicDocument;
 
 function createTopic(id: string, title: string, content: string): BaseEntity {
   const now = new Date().toISOString();
@@ -28,46 +26,55 @@ function createTopic(id: string, title: string, content: string): BaseEntity {
   };
 }
 
-describe("registerTopicsDashboardWidget", () => {
+interface RegisteredWidget {
+  id: string;
+  group: string;
+  rendererName: string;
+  digestProvider: unknown;
+  dataProvider(context: {
+    caller: unknown;
+    signal: AbortSignal;
+  }): Promise<unknown>;
+}
+
+/** The topics package on a shell, its widget as the Dashboard receives it. */
+async function topicsWidget(
+  shell: MockShell,
+): Promise<RegisteredWidget | undefined> {
+  const registered: RegisteredWidget[] = [];
+  shell
+    .getMessageBus()
+    .subscribe<RegisteredWidget>(
+      dashboardWidgetRegisterContract.name,
+      async (message) => {
+        registered.push(message.payload);
+        return { success: true };
+      },
+    );
+  for (const plugin of createTopicsPlugins()) await plugin.register(shell);
+  await shell.getMessageBus().send({
+    type: SYSTEM_CHANNELS.pluginsRegistered,
+    payload: {},
+    sender: "shell",
+    broadcast: true,
+  });
+  return registered.find(({ id }) => id === "topics");
+}
+
+describe("the topics Dashboard widget", () => {
   it("registers a dashboard widget with topic items", async () => {
-    const topics = [
+    const shell = createMockShell();
+    shell.addEntities([
       createTopic(
         "human-ai-collaboration",
         "Human-AI Collaboration",
         "Humans and AI systems work together. More detail follows.",
       ),
-    ];
-    // The factory's namespaces are real and spied, so the registration runs
-    // against the actual messaging and dashboard implementations and the
-    // captured arguments are read back off the spies — no stand-in namespace,
-    // and nothing asserting a narrower signature than the real one.
-    const messageBus = createMockMessageBus();
-    const context = createMockEntityPluginContext({
-      listEntitiesImpl: async (): Promise<BaseEntity[]> => topics,
-      messageBus,
-    });
-    context.messaging.subscribe(
-      dashboardWidgetRegisterContract.name,
-      async () => ({ success: true }),
-    );
+    ]);
+    const registeredWidget = await topicsWidget(shell);
+    if (!registeredWidget) throw new Error("Widget was not registered");
 
-    registerTopicsDashboardWidget({ context });
-
-    expect(context.messaging.subscribe).toHaveBeenCalledWith(
-      SYSTEM_CHANNELS.pluginsRegistered,
-      expect.any(Function),
-    );
-
-    // Collect on the bus as the shell does rather than fishing the handler out
-    // of a spy: this drives the same path production takes, and the widget
-    // registration below is the evidence it ran.
-    await messageBus.collect({
-      type: SYSTEM_CHANNELS.pluginsRegistered,
-      payload: {},
-      sender: "shell",
-    });
-
-    expect(context.dashboard.registerWidget).toHaveBeenCalledWith(
+    expect(registeredWidget).toEqual(
       expect.objectContaining({
         id: "topics",
         group: "knowledge",
@@ -76,13 +83,7 @@ describe("registerTopicsDashboardWidget", () => {
       }),
     );
 
-    const [registerCall] = context.dashboard.registerWidget.mock.calls;
-    const registeredWidget = registerCall?.[0];
-    if (!registeredWidget) throw new Error("Widget was not registered");
-
-    // dataProvider takes the provider context and is declared Promise<unknown>,
-    // so assert the whole value rather than narrowing to a shape first —
-    // toEqual checks every key, where narrowing checks only the ones named.
+    // Assert the whole value: toEqual checks every key.
     const data = await registeredWidget.dataProvider({
       caller: null,
       signal: new AbortController().signal,
@@ -119,32 +120,22 @@ describe("registerTopicsDashboardWidget", () => {
   // An unscoped read sees public topics only, so the owner saw none of the
   // topics derived from their non-public work.
   it("reads topics at the caller's scope", async () => {
-    const requests: Array<{ entityType: string }> = [];
-    const messageBus = createMockMessageBus();
-    const context = createMockEntityPluginContext({
-      listEntitiesImpl: async (request): Promise<BaseEntity[]> => {
-        requests.push(request);
-        return [];
-      },
-      messageBus,
-    });
-    context.messaging.subscribe(
-      dashboardWidgetRegisterContract.name,
-      async () => ({ success: true }),
-    );
-    registerTopicsDashboardWidget({ context });
-    await messageBus.collect({
-      type: SYSTEM_CHANNELS.pluginsRegistered,
-      payload: {},
-      sender: "shell",
-    });
-    const registered = context.dashboard.registerWidget.mock.calls[0]?.[0];
+    const requests: ListEntitiesRequest[] = [];
+    const shell = createMockShell();
+    const listEntities = spyOn(shell.getEntityService(), "listEntities");
+    const registered = await topicsWidget(shell);
     if (!registered) throw new Error("Widget was not registered");
 
+    listEntities.mockClear();
     await registered.dataProvider({
       caller: { actor: { id: "owner" }, permission: "admin", isAnchor: true },
       signal: new AbortController().signal,
     });
+    requests.push(
+      ...listEntities.mock.calls
+        .map(([request]) => request)
+        .filter((request) => request.entityType === "topic"),
+    );
 
     expect(requests).toEqual([
       expect.objectContaining({

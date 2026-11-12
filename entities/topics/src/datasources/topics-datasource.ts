@@ -1,89 +1,66 @@
-import { BaseEntityDataSource } from "@brains/plugins";
 import type {
-  BaseQuery,
-  PaginationInfo,
-  BaseDataSourceContext,
-  DataSourceSchema,
-  EntityDataSourceConfig,
-} from "@brains/plugins";
-import { topicEntitySchema, type TopicEntity } from "../schemas/topic";
+  ServiceCorpusReads,
+  ServiceDataSourceDeclaration,
+} from "@brains/sdk/internal/service-runtime";
 import type { Logger } from "@brains/utils/logger";
+import { z } from "@brains/utils/zod";
+import { topicEntitySchema } from "../schemas/topic";
 import { TOPIC_ENTITY_TYPE } from "../lib/constants";
 import { toTopicDetail, toTopicSummary } from "../lib/topic-presenter";
 import type { TopicDetailData } from "../templates/topic-detail/schema";
-import type {
-  TopicListData,
-  TopicSummary,
-} from "../templates/topic-list/schema";
+import type { TopicListData } from "../templates/topic-list/schema";
+
+/** What a template asks the topics source: one topic, or a page of them. */
+const topicsQuerySchema = z.looseObject({
+  query: z
+    .looseObject({
+      id: z.string().optional(),
+      limit: z.number().optional(),
+      page: z.number().optional(),
+      pageSize: z.number().optional(),
+    })
+    .optional(),
+});
 
 /**
- * DataSource for fetching and transforming topic entities.
- * Handles both list and detail views for topics.
+ * Topics as the site renders them: a page of summaries, most recently
+ * updated first, or one topic's detail with its full content.
  */
-export class TopicsDataSource extends BaseEntityDataSource<
-  TopicEntity,
-  TopicSummary,
-  TopicListData
-> {
-  readonly id: string = "topics:entities";
-  readonly name: string = "Topics Entity DataSource";
-  readonly description: string =
-    "Fetches and transforms topic entities for rendering";
-
-  protected readonly config: EntityDataSourceConfig<TopicEntity> = {
+export async function fetchTopics(
+  query: unknown,
+  reads: Pick<ServiceCorpusReads, "listEntities" | "getEntity">,
+): Promise<TopicListData | TopicDetailData> {
+  const params = topicsQuerySchema.parse(query).query ?? {};
+  if (params.id) {
+    const entity = await reads.getEntity({
+      entityType: TOPIC_ENTITY_TYPE,
+      id: params.id,
+    });
+    if (!entity) throw new Error(`Entity not found: ${params.id}`);
+    return toTopicDetail(entity);
+  }
+  const perPage = params.pageSize ?? params.limit ?? 100;
+  const entities = await reads.listEntities({
     entityType: TOPIC_ENTITY_TYPE,
-    entitySchema: topicEntitySchema,
-    defaultSort: [{ field: "updated" as const, direction: "desc" as const }],
-    defaultLimit: 100,
-    lookupField: "id" as const,
+    options: {
+      limit: perPage,
+      offset: ((params.page ?? 1) - 1) * perPage,
+      sortFields: [{ field: "updated", direction: "desc" }],
+    },
+  });
+  const topics = entities.map((entity) =>
+    toTopicSummary(topicEntitySchema.parse(entity)),
+  );
+  return { topics, totalCount: topics.length };
+}
+
+/** The topics source as the brain registers it: `topics:entities`. */
+export function topicsDataSource(logger: Logger): ServiceDataSourceDeclaration {
+  logger.debug("TopicsDataSource initialized");
+  return {
+    id: "entities",
+    name: "Topics Entity DataSource",
+    description: "Fetches and transforms topic entities for rendering",
+    fetch: (query, { corpus }) => fetchTopics(query, corpus),
   };
-
-  constructor(logger: Logger) {
-    super(logger);
-    this.logger.debug("TopicsDataSource initialized");
-  }
-
-  protected transformEntity(entity: TopicEntity): TopicSummary {
-    return toTopicSummary(entity);
-  }
-
-  protected buildListResult(
-    items: TopicSummary[],
-    _pagination: PaginationInfo | null,
-    _query: BaseQuery,
-  ): TopicListData {
-    return {
-      topics: items,
-      totalCount: items.length,
-    };
-  }
-
-  /**
-   * Override fetch to handle detail view — detail needs full content.
-   */
-  override async fetch<T>(
-    query: unknown,
-    outputSchema: DataSourceSchema<T>,
-    context: BaseDataSourceContext,
-  ): Promise<T> {
-    const { query: parsedQuery } = this.parseQuery(query);
-
-    if (parsedQuery.id) {
-      const entityService = context.entityService;
-      const entity = await entityService.getEntity({
-        entityType: this.config.entityType,
-        id: parsedQuery.id,
-      });
-
-      if (!entity) {
-        throw new Error(`Entity not found: ${parsedQuery.id}`);
-      }
-
-      return outputSchema.parse(
-        toTopicDetail(entity) satisfies TopicDetailData,
-      );
-    }
-
-    return super.fetch(query, outputSchema, context);
-  }
 }
