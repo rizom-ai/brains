@@ -248,17 +248,56 @@ describe("a service package instantiated under a legacy plugin id", () => {
     ]);
   });
 
-  it("is refused for a service that owns more than one type", () => {
+  it("installs each type it owns under its own id, as a class registering several did", () => {
     const owning = defineServicePlugin({
       id: "registry",
       config: z.object({}),
       entities: [registryEntry, doc],
     });
-    expect(() =>
+    const plugins = instantiatePluginPackageDefinition(
+      owning,
+      {},
+      serviceMetadata,
+      { pluginId: "registry" },
+    );
+    expect(plugins.map(({ id, type }) => [id, type])).toEqual([
+      ["registry-entry", "entity"],
+      ["doc", "entity"],
+      ["registry", "service"],
+    ]);
+  });
+
+  it("scopes the templates each owned type declares to that type's plugin", async () => {
+    const owning = defineServicePlugin({
+      id: "registry",
+      config: z.object({}),
+      entities: [registryEntry, doc],
+    });
+    const harness = await installAll(
       instantiatePluginPackageDefinition(owning, {}, serviceMetadata, {
         pluginId: "registry",
       }),
-    ).toThrow(/at most one entity type/);
+    );
+    expect([...harness.getTemplates().keys()]).toEqual(["doc:doc-list"]);
+    await harness.reset();
+  });
+
+  it("keeps several owned types scoped by the package without one", () => {
+    const owning = defineServicePlugin({
+      id: "registry",
+      config: z.object({}),
+      entities: [registryEntry, doc],
+    });
+    const plugins = instantiatePluginPackageDefinition(
+      owning,
+      {},
+      serviceMetadata,
+    );
+    expect(plugins.map(({ id }) => id)).toEqual([
+      "@brains/registry:registry-entry",
+      "@brains/registry:doc",
+      "@brains/registry:registry",
+    ]);
   });
 });
 
@@ -315,6 +354,36 @@ describe("a service keeping the id its owned type has", () => {
       }),
     ).toThrow(
       'Service "registry" cannot install its owned type under its own plugin id "registry-entry"',
+    );
+  });
+
+  it("installs one of several owned types under the id the composer names, when it is the service's", () => {
+    const named = defineEntity({
+      type: "registry",
+      purpose: "The registry's own record.",
+      metadata: z.object({ title: z.string() }),
+    });
+    const owning = defineServicePlugin({
+      id: "registry-service",
+      config: z.object({}),
+      entities: [named, registryEntry],
+    });
+    expect(
+      instantiatePluginPackageDefinition(owning, {}, serviceMetadata, {
+        pluginId: "registry",
+        ownedTypePluginId: "registry-entity",
+      }).map(({ id, type }) => [id, type]),
+    ).toEqual([
+      ["registry-entity", "entity"],
+      ["registry-entry", "entity"],
+      ["registry", "service"],
+    ]);
+    expect(() =>
+      instantiatePluginPackageDefinition(owning, {}, serviceMetadata, {
+        pluginId: "registry",
+      }),
+    ).toThrow(
+      'Service "registry-service" cannot keep legacy plugin id "registry", which its entity type is installed under',
     );
   });
 

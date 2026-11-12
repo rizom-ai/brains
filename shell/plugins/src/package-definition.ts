@@ -52,8 +52,8 @@ export interface PluginPackageInstantiationContext<TConfig extends object> {
   /** The plugins a first-party service's class declared it depends on. */
   readonly dependencies?: readonly string[] | undefined;
   /**
-   * The plugin id a first-party service's one owned type installs under,
-   * when the service keeps the id the type has.
+   * The plugin id a first-party service's owned type installs under, when
+   * the service keeps the id the type has.
    */
   readonly ownedTypePluginId?: string | undefined;
 }
@@ -77,10 +77,12 @@ export interface PluginPackageInstantiationOptions {
    */
   readonly dependencies?: readonly string[] | undefined;
   /**
-   * The plugin id a converted first-party service's one owned type
-   * installs under, when the service keeps a legacy plugin id the type
-   * itself has: its class registered the type inside itself, under that one
-   * id (`site-content`), and a type and its service cannot share one.
+   * The plugin id a converted first-party service's owned type installs
+   * under, when the service keeps a legacy plugin id the type itself has:
+   * its class registered the type inside itself, under that one id
+   * (`site-content`, `book`), and a type and its service cannot share one.
+   * A service owning several types installs the others under their own
+   * names, as a class registering several types did (`book-section`).
    */
   readonly ownedTypePluginId?: string | undefined;
 }
