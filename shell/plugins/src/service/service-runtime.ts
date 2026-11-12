@@ -742,6 +742,11 @@ export interface ServiceEntityReads {
    * the request names: no query is embedded.
    */
   nearestToEntity: IEntityService["nearestToEntity"];
+  /**
+   * The brain's semantic space, projected around an origin, at the scope
+   * the request names, as the class read it through context.semantic.
+   */
+  projectSemanticSpace: IEntityService["projectSemanticSpace"];
   /** A type's records as their containment hierarchy, at the request's scope. */
   queryEntityHierarchy: IEntityService["queryEntityHierarchy"];
   /** A registered type's config. */

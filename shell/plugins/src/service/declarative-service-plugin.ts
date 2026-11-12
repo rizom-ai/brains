@@ -2004,6 +2004,8 @@ function entityReadsOf(context: ServicePluginContext): ServiceEntityReads {
     searchWithDistances: (request) =>
       entityService.searchWithDistances(request),
     nearestToEntity: (request) => entityService.nearestToEntity(request),
+    projectSemanticSpace: (request) =>
+      entityService.projectSemanticSpace(request),
     queryEntityHierarchy: (request) =>
       entityService.queryEntityHierarchy(request),
     getEntityTypeConfig: (type) => entityService.getEntityTypeConfig(type),
