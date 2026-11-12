@@ -38,10 +38,8 @@ describe("the agent type's content", () => {
     const shell = createMockShell();
     for (const plugin of agentDiscoveryPlugins()) await plugin.register(shell);
     expect(
-      shell.getEntityRegistry().getEntityTypeConfig("agent").publish,
-    ).toEqual({
-      publishStatuses: ["approved"],
-    });
+      shell.getEntityRegistry().getAdapter("agent").publishedStatuses,
+    ).toEqual(["approved"]);
   });
 
   describe("createAgentContent", () => {

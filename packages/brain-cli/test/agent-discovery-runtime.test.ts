@@ -368,5 +368,27 @@ describe("the declared agent and skill types on the entity store", () => {
         ]);
       }
     }
+    // A production build reads public records, published only.
+    const production = {
+      entityService: scopeEntityReads(opened.service, {
+        visibilityScope: "public",
+      }),
+      publishedOnly: true,
+    };
+    for (const [name, query] of Object.entries(queries)) {
+      const answered = await opened
+        .fetchData("agent-discovery:entities", query, z.unknown(), production)
+        .then(
+          (result) => result,
+          (error: unknown) => ({
+            error: error instanceof Error ? error.message : String(error),
+          }),
+        );
+      expect(["production", name, untimed(answered)]).toEqual([
+        "production",
+        name,
+        untimed(expected[`production:${name}`]),
+      ]);
+    }
   });
 });
