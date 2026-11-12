@@ -178,6 +178,14 @@ export {
   type ToolResult,
 } from "@brains/plugins";
 export {
+  SemanticIndexingDisabledError,
+  isVisibleWithinScope,
+  scopedDerivedId,
+  type ListEntitiesRequest,
+  type ProjectionSourceRole,
+  type SearchResult,
+} from "@brains/plugins";
+export {
   UserPermissionLevelSchema,
   conversationGuestMessageAddedChannel,
   embeddingReadyChannel,
