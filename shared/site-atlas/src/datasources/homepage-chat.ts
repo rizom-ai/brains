@@ -17,7 +17,7 @@ import {
  */
 export async function homepageChatAvailable(
   context: Pick<BaseDataSourceContext, "publishedOnly">,
-  runtime: { runtimeState: IRuntimeStateNamespace },
+  runtime: { runtimeState: Pick<IRuntimeStateNamespace, "scoped"> },
 ): Promise<boolean> {
   const preview = context.publishedOnly === false;
   try {

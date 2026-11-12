@@ -66,7 +66,9 @@ export async function declaredEntityStore(
   // The plugin id it installs under, or the composer's options in full,
   // such as a service that installs its owned type apart.
   pluginId: string | PluginPackageInstantiationOptions,
-  config: EntityTypeConfig = {},
+  // Each type's config, or one per type when the package owns several
+  // that differ, as a book's sections are contained in their book.
+  config: EntityTypeConfig | ((entityType: string) => EntityTypeConfig) = {},
   // Packages installed beside it under their own scoped ids, such as the
   // types a cross-type package reads.
   companions: readonly PluginPackageDefinition[] = [],
@@ -107,7 +109,7 @@ export async function declaredEntityStore(
       plugin.entityType,
       plugin.schema,
       plugin.adapter,
-      config,
+      typeof config === "function" ? config(plugin.entityType) : config,
     );
   }
   const service = EntityService.createFresh({

@@ -4,10 +4,9 @@ import { renderToStaticMarkup as render } from "react-dom/server";
 import { Window } from "happy-dom";
 import { createMockShell } from "@brains/plugins/test";
 import type { BaseDataSourceContext, BaseEntity } from "@brains/plugins";
-import { createMockLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
-import { bookAdapter } from "../src/adapters/book-adapter";
-import { BookAskDataSource } from "../src/datasources/book-ask-datasource";
+import { bookAdapter } from "./helpers/adapters";
+import { bookAskSource } from "./helpers/sources";
 import { BookAskTemplate } from "../src/templates/book-ask";
 
 function titleEntry(book: string, title: string, year: number): BaseEntity {
@@ -55,7 +54,7 @@ describe("BookAskDataSource", () => {
     const context: BaseDataSourceContext = {
       entityService: shell.getEntityService(),
     };
-    const source = new BookAskDataSource(createMockLogger(), {
+    const source = bookAskSource({
       name: (): string => "Friedrich",
       chatAvailable: async (): Promise<boolean> => true,
     });
@@ -82,7 +81,7 @@ describe("BookAskDataSource", () => {
         updated: "2026-10-01T00:00:00.000Z",
       },
     ]);
-    const source = new BookAskDataSource(createMockLogger(), {
+    const source = bookAskSource({
       name: (): string => "Friedrich",
       chatAvailable: async (): Promise<boolean> => true,
     });

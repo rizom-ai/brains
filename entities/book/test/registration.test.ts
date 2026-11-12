@@ -37,12 +37,12 @@ const readOnly = {
 
 /**
  * What the book package registers, pinned as the book entity plugin class
- * registered it: brains search and cite books and their sections by these
+ * registered it and held on the definition: brains search and cite books and their sections by these
  * types, sites render them through these templates and data sources, and
  * every site build stages each book's EPUB.
  */
 describe("the book package's registered surface", () => {
-  it("is the book plugin, with no tools, resources, routes or jobs", async () => {
+  it("is the book service beside its two types, with no tools, resources, routes or jobs", async () => {
     const { shell, plugins, capabilities } = await installed();
     expect(
       plugins.map(({ id, type, packageName, dependencies }) => [
@@ -51,7 +51,13 @@ describe("the book package's registered surface", () => {
         packageName,
         dependencies ?? [],
       ]),
-    ).toEqual([["book", "entity", "@brains/book", []]]);
+    ).toEqual([
+      // The class registered both types inside itself, under book; the
+      // types now install as their own plugins, book apart from the service.
+      ["book-entity", "entity", "@brains/book", []],
+      ["book-section", "entity", "@brains/book", []],
+      ["book", "service", "@brains/book", []],
+    ]);
     expect(capabilities.flatMap(({ tools }) => tools)).toEqual([]);
     expect(capabilities.flatMap(({ resources }) => resources)).toEqual([]);
     for (const plugin of plugins) {
@@ -87,7 +93,11 @@ describe("the book package's registered surface", () => {
 
   it("tells the agent to search and cite the sections", async () => {
     const { capabilities } = await installed();
-    expect(capabilities.map(({ instructions }) => instructions)).toEqual([
+    expect(
+      capabilities.flatMap(({ instructions }) =>
+        instructions === undefined ? [] : [instructions],
+      ),
+    ).toEqual([
       [
         'Books (entityType "book") hold an author\'s works; their text is in their sections (entityType "book-section"), whose `section` is their siglum.',
         'When a question concerns the author\'s ideas or texts, search the sections first: system_search with scope { kind: "type", entityType: "book-section" }.',

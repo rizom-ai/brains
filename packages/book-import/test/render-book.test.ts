@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { bookAdapter, bookSectionAdapter } from "@brains/book";
+import { bookFields, sectionFields } from "./helpers/book-fields";
 import { germanSlug, renderBook, type BookSource } from "../src/render-book";
 
 const source: BookSource = {
@@ -45,14 +45,11 @@ const source: BookSource = {
 };
 
 function bookOf(markdown: string): Record<string, unknown> {
-  return bookAdapter.parseFrontMatter(markdown, bookAdapter.frontmatterSchema);
+  return bookFields(markdown);
 }
 
 function frontmatterOf(markdown: string): Record<string, unknown> {
-  return bookSectionAdapter.parseFrontMatter(
-    markdown,
-    bookSectionAdapter.frontmatterSchema,
-  );
+  return sectionFields(markdown);
 }
 
 describe("renderBook", () => {
@@ -274,11 +271,9 @@ describe("renderBook", () => {
   it("writes only files their schemas accept", () => {
     const [book, ...sections] = renderBook(source);
 
-    expect(() => bookAdapter.fromMarkdown(book?.markdown ?? "")).not.toThrow();
+    expect(() => bookFields(book?.markdown ?? "")).not.toThrow();
     for (const file of sections) {
-      expect(() =>
-        bookSectionAdapter.fromMarkdown(file.markdown),
-      ).not.toThrow();
+      expect(() => sectionFields(file.markdown)).not.toThrow();
     }
   });
 

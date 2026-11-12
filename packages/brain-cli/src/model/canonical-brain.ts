@@ -34,7 +34,7 @@ import decksPackage from "@brains/decks";
 import directorySyncPackage from "@brains/directory-sync";
 import docsPackage from "@brains/doc";
 import { guidesPlugin } from "@brains/guide";
-import { bookPlugin } from "@brains/book";
+import bookPackage from "@brains/book";
 import documentPackage from "@brains/document-plugin";
 import emailInterface from "@brains/email";
 import emailWorkflowsPackage from "@brains/email-workflows";
@@ -368,7 +368,12 @@ export const canonicalBrain: BrainDefinition = defineBrain({
       pluginId: "docs",
     }),
     ["guides", guidesPlugin, undefined],
-    ["book", bookPlugin, undefined],
+    packageCapability("book", "@brains/book", bookPackage, {
+      // Under the id its class had, which registered book and book-section
+      // inside itself: book-section installs as itself, book apart.
+      pluginId: "book",
+      ownedTypePluginId: "book-entity",
+    }),
 
     packageCapability(
       "obsidian-vault",

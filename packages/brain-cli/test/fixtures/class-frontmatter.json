@@ -1079,6 +1079,126 @@
       "type": "object",
       "properties": {},
       "additionalProperties": {}
+    },
+    "book": {
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "source": {
+          "type": "string",
+          "format": "uri",
+          "studioWidget": "provenance"
+        },
+        "author": {
+          "default": null,
+          "anyOf": [{ "type": "string" }, { "type": "null" }]
+        },
+        "year": {
+          "default": null,
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            { "type": "null" }
+          ]
+        },
+        "kind": {
+          "default": null,
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": ["work", "nachlass", "letters", "excerpt"]
+            },
+            { "type": "null" }
+          ]
+        },
+        "edition": {
+          "default": null,
+          "anyOf": [{ "type": "string" }, { "type": "null" }]
+        },
+        "license": {
+          "default": null,
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": ["public-domain", "CC-BY-SA-4.0", "CC-BY-NC-ND-4.0"]
+            },
+            { "type": "null" }
+          ]
+        },
+        "attribution": {
+          "default": null,
+          "anyOf": [{ "type": "string" }, { "type": "null" }]
+        },
+        "published": {
+          "default": null,
+          "anyOf": [{ "type": "boolean" }, { "type": "null" }]
+        },
+        "length": {
+          "default": null,
+          "studioWidget": "provenance",
+          "anyOf": [
+            { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+            { "type": "null" }
+          ]
+        },
+        "sections": {
+          "default": null,
+          "studioWidget": "provenance",
+          "anyOf": [
+            { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+            { "type": "null" }
+          ]
+        },
+        "continuations": {
+          "default": [],
+          "studioWidget": "hidden",
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 2,
+            "maximum": 9007199254740991
+          }
+        },
+        "shortTitle": {
+          "default": null,
+          "anyOf": [{ "type": "string" }, { "type": "null" }]
+        }
+      },
+      "required": ["title", "source"]
+    },
+    "book-section": {
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "book": { "type": "string", "minLength": 1 },
+        "order": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "section": {
+          "default": null,
+          "anyOf": [{ "type": "string" }, { "type": "null" }]
+        },
+        "page": {
+          "default": null,
+          "anyOf": [{ "type": "string" }, { "type": "null" }]
+        },
+        "headings": {
+          "default": [],
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "source": {
+          "type": "string",
+          "format": "uri",
+          "studioWidget": "provenance"
+        }
+      },
+      "required": ["title", "book", "order", "source"]
     }
   },
   "obsidian": {

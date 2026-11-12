@@ -159,6 +159,9 @@ export async function containerPage(
         entityType: container,
         id: containerId,
         visibilityScope: input.base.visibilityScope,
+        // As stored, as its contents are listed: a declared type reads
+        // back its body alone.
+        source: true,
       })
     : null;
   // The container's own record opens its folder.

@@ -1,15 +1,16 @@
 import { describe, expect, it } from "bun:test";
-import { BookPlugin } from "../src/plugin";
+import { createMockShell } from "@brains/plugins/test";
+import { createBookPlugins } from "./book-plugins";
 
-class TestBookPlugin extends BookPlugin {
-  public instructions(): Promise<string | undefined> {
-    return this.getInstructions();
-  }
-}
-
-describe("BookPlugin instructions", () => {
+describe("the book package's instructions", () => {
   it("grounds answers in the books, cited by siglum and quoted verbatim", async () => {
-    const instructions = (await new TestBookPlugin().instructions()) ?? "";
+    const shell = createMockShell();
+    const registered = await Promise.all(
+      createBookPlugins().map((plugin) => plugin.register(shell)),
+    );
+    const instructions = registered
+      .map((capabilities) => capabilities.instructions ?? "")
+      .join("\n");
 
     expect(instructions).toContain(
       'system_search with scope { kind: "type", entityType: "book-section" }',

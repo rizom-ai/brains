@@ -1,15 +1,15 @@
 import { promises as fs } from "fs";
 import { dirname, join } from "path";
 import { siteBuildStagingContract } from "@brains/contracts";
-import type { EntityPluginContext } from "@brains/plugins";
+import type { ServiceRuntime } from "@brains/sdk/internal/service-runtime";
 import { renderEpub } from "@brains/media-page-composer";
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
 import {
   groupContinuations,
   listBookSections,
-  parseBookData,
 } from "../datasources/book-datasource";
+import { parseBookData } from "./book-records";
 import { bookSchema } from "../schemas/book";
 import { bookHref, licenseLabel } from "../templates/book-design";
 
@@ -22,14 +22,14 @@ export const BOOK_EPUB_TEMPLATE = "book:epub";
  * pages built with it.
  */
 export function subscribeToBookEpubStaging(
-  context: EntityPluginContext,
+  runtime: Pick<ServiceRuntime, "answer" | "views" | "entityReads">,
   logger: Logger,
 ): void {
-  context.messaging.answer(
+  runtime.answer(
     siteBuildStagingContract,
-    async (payload) => {
+    async ({ request: payload }) => {
       try {
-        await writeBookEpubs(context, payload.outputDir);
+        await writeBookEpubs(runtime, payload.outputDir);
       } catch (error) {
         // A thrown error would be swallowed by the broadcast; reporting it fails
         // the build and keeps the previous generation, links and files intact.
@@ -44,19 +44,20 @@ export function subscribeToBookEpubStaging(
 }
 
 async function writeBookEpubs(
-  context: EntityPluginContext,
+  runtime: Pick<ServiceRuntime, "views" | "entityReads">,
   outputDir: string,
 ): Promise<void> {
-  const template = context.views.get(BOOK_EPUB_TEMPLATE);
+  const template = runtime.views.get(BOOK_EPUB_TEMPLATE);
   if (!template) throw new Error(`${BOOK_EPUB_TEMPLATE} is not registered`);
-  const books = await context.entityService.listEntities(
-    { entityType: "book", options: { limit: 1000 } },
-    bookSchema,
-  );
+  // As stored: a book's colophon and a section's headings are in its file.
+  const books = await runtime.entityReads.listEntities({
+    entityType: "book",
+    options: { limit: 1000, source: true },
+  });
   for (const entity of books) {
-    const book = parseBookData(entity);
+    const book = parseBookData(bookSchema.parse(entity));
     const sections = groupContinuations(
-      await listBookSections(book.id, context.entityService),
+      await listBookSections(book.id, runtime.entityReads),
       new Set(book.frontmatter.continuations),
     );
     if (sections.length === 0) continue;
