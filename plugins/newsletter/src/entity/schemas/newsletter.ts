@@ -1,4 +1,4 @@
-import { baseEntityParserSchema } from "@brains/plugins";
+import { baseEntityParserSchema } from "@brains/sdk/internal/entity-runtime";
 import { computeContentHash } from "@brains/utils/hash";
 import { slugify } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";

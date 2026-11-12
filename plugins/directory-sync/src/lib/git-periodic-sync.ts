@@ -1,4 +1,4 @@
-import type { ServicePluginContext } from "@brains/plugins";
+import type { DirectorySyncCore } from "./sync-context";
 import type { Logger } from "@brains/utils/logger";
 import type { IGitSync, IDirectorySync } from "../types";
 import type { DirectorySyncRuntime } from "./directory-sync-runtime";
@@ -16,7 +16,7 @@ import { getErrorMessage } from "@brains/utils/error";
 export interface PeriodicGitSyncOptions {
   gitSync: IGitSync;
   directorySync: IDirectorySync;
-  context: ServicePluginContext;
+  context: DirectorySyncCore;
   intervalMinutes: number;
   logger: Logger;
   runtime: DirectorySyncRuntime;

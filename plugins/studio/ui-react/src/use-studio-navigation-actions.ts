@@ -1,7 +1,5 @@
-import type {
-  RuntimeOperatorLaunchIntent,
-  EntityIdPath,
-} from "@brains/plugins";
+import type { RuntimeOperatorLaunchIntent } from "@brains/sdk/internal/service-runtime";
+import type { EntityIdPath } from "@brains/sdk/internal/entity-runtime";
 import { useCallback } from "react";
 import {
   studioCollectionPath,

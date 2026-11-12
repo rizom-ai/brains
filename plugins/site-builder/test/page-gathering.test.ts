@@ -7,7 +7,10 @@ import {
 } from "@brains/site-composition";
 import { RouteRegistry } from "@brains/site-engine";
 import { createSilentLogger } from "@brains/test-utils";
-import { SiteBuilderPlugin } from "../src/plugin";
+import {
+  createSiteBuilderPlugin,
+  type SiteBuilderTestPlugin,
+} from "./site-builder-plugin";
 import { withGatheredPages } from "../src/lib/collect-build-routes";
 
 const page = (id: string, path: string): unknown => ({
@@ -28,8 +31,8 @@ describe("pages at build time", () => {
     await harness.reset();
   });
 
-  async function workerSiteBuilder(): Promise<SiteBuilderPlugin> {
-    const plugin = new SiteBuilderPlugin({});
+  async function workerSiteBuilder(): Promise<SiteBuilderTestPlugin> {
+    const plugin = createSiteBuilderPlugin({});
     await plugin.register(harness.getMockShell(), { executionOnly: true });
     return plugin;
   }

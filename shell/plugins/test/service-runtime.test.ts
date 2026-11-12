@@ -657,14 +657,36 @@ describe("a first-party service's read-only view of the entity service", () => {
     ).toBeNull();
   });
 
+  it("reads a record raw, at the scope it names, as an identifier lookup does", async () => {
+    const view = await reads(seeded());
+
+    expect(
+      (
+        await view.getEntityRaw({
+          entityType: "note",
+          id: "private-note",
+          visibilityScope: "restricted",
+        })
+      )?.content,
+    ).toBe("Private");
+    expect(
+      await view.getEntityRaw({ entityType: "note", id: "private-note" }),
+    ).toBeNull();
+  });
+
   it("offers no writes", async () => {
     const view = await reads(seeded());
 
     expect(Object.keys(view).sort()).toEqual([
+      "countEntities",
+      "deserializeEntity",
       "getEntity",
       "getEntityCounts",
+      "getEntityRaw",
+      "getEntityTypeConfig",
       "getEntityTypes",
       "listEntities",
+      "queryEntityHierarchy",
       "search",
     ]);
   });
@@ -1075,6 +1097,42 @@ describe("a first-party service's data source, template and widget", () => {
     ).toEqual({ count: 1 });
   });
 
+  it("serves a data source under the id its class gave it, unscoped, when it asks to", async () => {
+    const shell = noted();
+    await install(
+      shell,
+      defineServicePlugin(
+        { id: "probe", config: z.object({}) },
+        {
+          subscriptions: (context) => {
+            serviceRuntime(context).dataSource(
+              {
+                id: "site:navigation",
+                name: "Site Navigation",
+                description: "Navigation items",
+                fetch: async () => ({ count: 2 }),
+              },
+              { asWritten: true },
+            );
+            return [];
+          },
+        },
+      ),
+    );
+
+    expect(shell.getDataSourceRegistry().get("probe:site:navigation")).toBe(
+      undefined,
+    );
+    const source = shell.getDataSourceRegistry().get("site:navigation");
+    if (!source?.fetch) throw new Error("No site:navigation data source");
+    expect(source.name).toBe("Site Navigation");
+    expect(
+      await source.fetch({}, mapData, {
+        entityService: shell.getEntityService(),
+      }),
+    ).toEqual({ count: 2 });
+  });
+
   it("registers a built template under the plugin's id, naming its data source", async () => {
     const shell = noted();
     await install(shell, mapping([]));
@@ -1082,6 +1140,75 @@ describe("a first-party service's data source, template and widget", () => {
     const template = shell.getTemplates().get("probe:map");
     expect(template?.dataSourceId).toBe("probe:map");
     expect(template?.requiredPermission).toBe("public");
+  });
+
+  it("registers a declarative widget, with no renderer of its own, as its class did", async () => {
+    const shell = noted();
+    const registrations: DashboardWidgetRegistration[] = [];
+    shell
+      .getMessageBus()
+      .subscribe<DashboardWidgetRegistration>(
+        "dashboard:register-widget",
+        (message) => {
+          registrations.push(message.payload);
+          return { success: true };
+        },
+      );
+    await install(
+      shell,
+      defineServicePlugin(
+        { id: "probe", config: z.object({}) },
+        {
+          subscriptions: (context) => {
+            serviceRuntime(context).dashboardWidget({
+              definition: defineDashboardWidget({
+                id: "health",
+                title: "Health",
+                group: "publishing",
+                placement: "sidebar",
+                priority: 50,
+                permission: "public",
+                data: mapData,
+                view: ({ data }) => ({
+                  blocks: [
+                    {
+                      type: "stats",
+                      id: "builds",
+                      items: [{ label: "Built", value: data.count }],
+                    },
+                  ],
+                }),
+              }),
+              load: async () => ({ count: 3 }),
+            });
+            return [];
+          },
+        },
+      ),
+    );
+    await shell.getMessageBus().send({
+      type: SYSTEM_CHANNELS.pluginsRegistered,
+      payload: {},
+      sender: "shell",
+    });
+
+    const [registration] = registrations;
+    if (!registration) throw new Error("The widget was not registered");
+    expect(registration).toMatchObject({
+      id: "health",
+      rendererName: "DeclarativeOperatorWidget",
+    });
+    expect(registration.renderer).toBeUndefined();
+    expect(
+      await registration.dataProvider({
+        caller: null,
+        signal: new AbortController().signal,
+      }),
+    ).toMatchObject({
+      view: {
+        blocks: [{ type: "stats", items: [{ label: "Built", value: 3 }] }],
+      },
+    });
   });
 
   it("registers its widget with its own renderer once every plugin has registered", async () => {

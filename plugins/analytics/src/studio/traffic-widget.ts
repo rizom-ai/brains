@@ -1,12 +1,9 @@
-import {
-  defineDashboardWidget,
-  registerBuiltInDashboardWidget,
-  type ServicePluginContext,
-} from "@brains/plugins";
+import { defineDashboardWidget } from "@brains/sdk/services";
 import { z } from "@brains/utils/zod";
 import { changeCaption } from "../lib/change-caption";
 import { shortDate } from "../lib/short-date";
 import type { TrafficReports } from "../reports/traffic-reports";
+import type { ServiceRuntime } from "@brains/sdk/internal/service-runtime";
 
 const WEEK = 7;
 
@@ -83,18 +80,20 @@ const trafficWidget = defineDashboardWidget({
   }),
 });
 
-/** Registers the Traffic widget; a no-op where the dashboard does not run. */
-export async function registerTrafficWidget(
-  context: ServicePluginContext,
+/**
+ * Registers the Traffic widget; the runtime registers it once every plugin
+ * has, never in a worker.
+ */
+export function registerTrafficWidget(
+  runtime: Pick<ServiceRuntime, "dashboardWidget" | "reportEntityService">,
   reports: TrafficReports,
-): Promise<boolean> {
-  return registerBuiltInDashboardWidget({
-    context,
+): void {
+  runtime.dashboardWidget({
     definition: trafficWidget,
     load: async ({ visibilityScope, signal }) => {
       signal.throwIfAborted();
       const reportContext = {
-        entityService: context.entityService,
+        entityService: runtime.reportEntityService,
         visibilityScope,
       };
       const [overview, series] = await Promise.all([

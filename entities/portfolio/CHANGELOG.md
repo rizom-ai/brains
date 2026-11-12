@@ -1,5 +1,31 @@
 # @brains/portfolio
 
+## 0.2.0-alpha.688
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.688
+  - @rizom/brain-ui@0.2.0-alpha.688
+  - @brains/atproto-contracts@0.2.0-alpha.688
+  - @brains/content-formatters@0.2.0-alpha.688
+  - @brains/contracts@0.2.0-alpha.688
+  - @brains/media-page-composer@0.2.0-alpha.688
+  - @brains/utils@0.2.0-alpha.688
+
+## 0.2.0-alpha.687
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.687
+  - @rizom/brain-ui@0.2.0-alpha.687
+  - @brains/atproto-contracts@0.2.0-alpha.687
+  - @brains/content-formatters@0.2.0-alpha.687
+  - @brains/contracts@0.2.0-alpha.687
+  - @brains/media-page-composer@0.2.0-alpha.687
+  - @brains/utils@0.2.0-alpha.687
+
 ## 0.2.0-alpha.686
 
 ### Patch Changes

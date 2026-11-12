@@ -2,11 +2,13 @@ import { createMockShell } from "@brains/plugins/test";
 import {
   BaseEntityAdapter,
   baseEntitySchema,
+  createBuiltInStudioWorkspaceRegistration,
   createServicePluginContext,
   type BaseEntity,
   type StudioWorkspaceActor,
   type StudioWorkspaceRegistration,
 } from "@brains/plugins";
+import type { ServiceStudio } from "@brains/sdk/internal/service-runtime";
 import { z } from "@brains/utils/zod";
 import { RouteRegistry } from "@brains/site-engine";
 import { siteBuilderConfigSchema } from "../../plugins/site-builder/src/config";
@@ -39,6 +41,29 @@ class FixtureAdapter extends BaseEntityAdapter<BaseEntity> {
 }
 
 /** Only source records are seeded; production providers compile the views. */
+
+/**
+ * Studio as a first-party service reaches it: a workspace built under the
+ * plugin's id and registered with the fixture's Studio.
+ */
+export function fixtureStudio(
+  context: ReturnType<typeof createServicePluginContext>,
+): ServiceStudio {
+  return {
+    isAvailable: (): boolean => context.studio.isAvailable(),
+    source: (
+      input,
+    ): ReturnType<typeof createBuiltInStudioWorkspaceRegistration> =>
+      createBuiltInStudioWorkspaceRegistration({ ...input, context }),
+    register: async (registration): Promise<string | undefined> => {
+      const result = await context.studio.registerWorkspace(registration);
+      return result === false ? undefined : result.workspaceUrl;
+    },
+    unregister: (workspaceId): Promise<boolean> =>
+      context.studio.unregisterWorkspace(workspaceId),
+  };
+}
+
 export async function createDeliveryViewFixtures(
   state?: StudioStudyState,
 ): Promise<{
@@ -180,7 +205,10 @@ export async function createDeliveryViewFixtures(
     }
   }
   await new FixtureSiteProvider({
-    context: siteContext,
+    messaging: siteContext.messaging,
+    siteUrl: siteContext.siteUrl,
+    previewUrl: siteContext.previewUrl,
+    studio: fixtureStudio(siteContext),
     config: siteBuilderConfigSchema.parse({}),
     routeRegistry: new RouteRegistry(siteContext.logger),
     statusService: new SiteBuildStatusService(
@@ -298,7 +326,7 @@ export async function createDeliveryViewFixtures(
       "field-notes",
       "Provider rejected the last delivery attempt.",
     );
-  await registerStudioWorkspace(context, {
+  await registerStudioWorkspace(fixtureStudio(context), context, {
     providerRegistry: providers,
     queueManager: queue,
     retryTracker: retries,

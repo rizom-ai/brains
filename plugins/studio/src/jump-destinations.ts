@@ -2,11 +2,11 @@ import type {
   ConsoleJumpDestination,
   SurfacePermissionLevel,
 } from "@brains/contracts";
-import type { ServicePluginContext } from "@brains/plugins";
 import { listBuiltInStudioWorkspaces } from "./account-workspace";
 import { STUDIO_CHAT_ROUTE_PATH } from "./chat-workspace";
 import { entityTypeLabels, type EntityDisplayLabel } from "./config";
 import type { StudioWorkspaceRegistry } from "./workspace-registry";
+import type { StudioContext } from "./studio-context";
 
 const RANK: Record<SurfacePermissionLevel, number> = {
   public: 0,
@@ -20,7 +20,7 @@ const RANK: Record<SurfacePermissionLevel, number> = {
  * Floors here only decide what is offered; each page still checks access.
  */
 export function studioJumpDestinations(options: {
-  context: ServicePluginContext;
+  context: StudioContext;
   routePath: string;
   permissionLevel: SurfacePermissionLevel;
   workspaceRegistry: StudioWorkspaceRegistry;

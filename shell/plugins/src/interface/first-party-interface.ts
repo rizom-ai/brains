@@ -14,6 +14,20 @@ import type { ToolStatusUpdate } from "../message-interface/tool-status";
 import type { AgentResponse } from "../contracts/agent";
 import type { PluginPackageDefinition } from "../package-definition";
 import type { InterfaceConfigSchema } from "./interface-definition-contract";
+import type {
+  FirstPartySlot,
+  FirstPartySlotContext,
+} from "../internal/first-party-slot";
+
+export type {
+  FirstPartySlot,
+  FirstPartySlotContext,
+} from "../internal/first-party-slot";
+import {
+  isServicePackage,
+  withServiceTools,
+  withServiceWebRoutes,
+} from "../service/first-party-service";
 
 /**
  * Internal, first-party only: what a first-party interface converted from a
@@ -23,17 +37,6 @@ import type { InterfaceConfigSchema } from "./interface-definition-contract";
  *
  * Tracked in docs/legacy-code-inventory.json (first-party-interface-runtime).
  */
-
-/**
- * What a first-party slot is given once: the parsed config and the state
- * setup returned, with the interface runtime attached
- * (`interfaceRuntime(context)`). The slot names the state its definition's
- * setup returns.
- */
-export interface FirstPartySlotContext<TConfig, TState> {
-  readonly config: TConfig;
-  readonly state: TState;
-}
 
 /**
  * A daemon as its class registered it: started and stopped by the brain,
@@ -128,16 +131,6 @@ export interface MessageTransport {
   ): Promise<void>;
 }
 
-/**
- * A slot as the runtime keeps it, whatever config and state it declared: the
- * runtime hands it the config its schema parsed and the state its setup
- * returned, which is what the slot declares it reads. A method, so a slot
- * declared over its own config and state is one.
- */
-export interface FirstPartySlot<TResult> {
-  run(context: FirstPartySlotContext<unknown, unknown>): TResult;
-}
-
 /** What the wrappers have added to a definition, in the order they were added. */
 export interface FirstPartyInterfaceDeclarations {
   readonly daemons: readonly FirstPartySlot<FirstPartyDaemon | undefined>[];
@@ -171,6 +164,29 @@ export const noFirstPartyDeclarations: FirstPartyInterfaceDeclarations =
 
 type InterfacePackage<TConfigSchema extends InterfaceConfigSchema> =
   PluginPackageDefinition<TConfigSchema, "interface">;
+
+type ServicePackage<TConfigSchema extends InterfaceConfigSchema> =
+  PluginPackageDefinition<TConfigSchema, "service">;
+
+/** An interface's definition, or the refusal a wrapper gives anything else. */
+function asInterfacePackage<TConfigSchema extends InterfaceConfigSchema>(
+  definition: PluginPackageDefinition<TConfigSchema>,
+  wrapper: string,
+): InterfacePackage<TConfigSchema> {
+  if (!isFamily(definition, "interface")) {
+    throw new Error(
+      `${wrapper} takes a definition defineInterface returned; "${definition.id}" is not one`,
+    );
+  }
+  return definition;
+}
+
+function isFamily<TConfigSchema extends InterfaceConfigSchema>(
+  definition: PluginPackageDefinition<TConfigSchema>,
+  family: "interface",
+): definition is InterfacePackage<TConfigSchema> {
+  return definition.family === family;
+}
 
 /** How each interface package is rebuilt with more first-party declarations. */
 const rebuilders = new WeakMap<
@@ -312,21 +328,48 @@ export function withWebRoutes<
   routes: (
     context: FirstPartySlotContext<z.output<TConfigSchema>, TState>,
   ) => readonly WebRouteDefinition[],
-): InterfacePackage<TConfigSchema> {
-  return rebuildWith(definition, "withWebRoutes", (declarations) => {
-    if (declarations.webRoutes) {
-      throw new Error(
-        `Interface "${definition.id}" declares its web routes more than once`,
-      );
-    }
-    return { ...declarations, webRoutes: erased(routes) };
-  });
+): InterfacePackage<TConfigSchema>;
+export function withWebRoutes<
+  TConfigSchema extends InterfaceConfigSchema,
+  TState extends object = Record<never, never>,
+>(
+  definition: ServicePackage<TConfigSchema>,
+  routes: (
+    context: FirstPartySlotContext<z.output<TConfigSchema>, TState>,
+  ) => readonly WebRouteDefinition[],
+): ServicePackage<TConfigSchema>;
+export function withWebRoutes<
+  TConfigSchema extends InterfaceConfigSchema,
+  TState extends object = Record<never, never>,
+>(
+  definition: PluginPackageDefinition<TConfigSchema>,
+  routes: (
+    context: FirstPartySlotContext<z.output<TConfigSchema>, TState>,
+  ) => readonly WebRouteDefinition[],
+): PluginPackageDefinition<TConfigSchema> {
+  if (isServicePackage(definition)) {
+    return withServiceWebRoutes(definition, routes);
+  }
+  return rebuildWith(
+    asInterfacePackage(definition, "withWebRoutes"),
+    "withWebRoutes",
+    (declarations) => {
+      if (declarations.webRoutes) {
+        throw new Error(
+          `Interface "${definition.id}" declares its web routes more than once`,
+        );
+      }
+      return { ...declarations, webRoutes: erased(routes) };
+    },
+  );
 }
 
 /**
  * The tools its class registered, under their names as written, with the
  * class's visibility, side effects and MCP exposure, run with the call the
- * brain hands them. Declared once.
+ * brain hands them. Declared once. An interface's run through its plugin's
+ * tool-execute channel; a service's beside the tools its definition
+ * declares, each run as its caller, as a declared tool is.
  */
 export function withTools<
   TConfigSchema extends InterfaceConfigSchema,
@@ -336,15 +379,40 @@ export function withTools<
   tools: (
     context: FirstPartySlotContext<z.output<TConfigSchema>, TState>,
   ) => readonly Tool[],
-): InterfacePackage<TConfigSchema> {
-  return rebuildWith(definition, "withTools", (declarations) => {
-    if (declarations.tools) {
-      throw new Error(
-        `Interface "${definition.id}" declares its tools more than once`,
-      );
-    }
-    return { ...declarations, tools: erased(tools) };
-  });
+): InterfacePackage<TConfigSchema>;
+export function withTools<
+  TConfigSchema extends InterfaceConfigSchema,
+  TState extends object = Record<never, never>,
+>(
+  definition: ServicePackage<TConfigSchema>,
+  tools: (
+    context: FirstPartySlotContext<z.output<TConfigSchema>, TState>,
+  ) => readonly Tool[],
+): ServicePackage<TConfigSchema>;
+export function withTools<
+  TConfigSchema extends InterfaceConfigSchema,
+  TState extends object = Record<never, never>,
+>(
+  definition: PluginPackageDefinition<TConfigSchema>,
+  tools: (
+    context: FirstPartySlotContext<z.output<TConfigSchema>, TState>,
+  ) => readonly Tool[],
+): PluginPackageDefinition<TConfigSchema> {
+  if (isServicePackage(definition)) {
+    return withServiceTools(definition, tools);
+  }
+  return rebuildWith(
+    asInterfacePackage(definition, "withTools"),
+    "withTools",
+    (declarations) => {
+      if (declarations.tools) {
+        throw new Error(
+          `Interface "${definition.id}" declares its tools more than once`,
+        );
+      }
+      return { ...declarations, tools: erased(tools) };
+    },
+  );
 }
 
 /**

@@ -1,4 +1,4 @@
-import type { ServicePluginContext } from "@brains/plugins";
+import type { AtprotoContext } from "./atproto-context";
 import type { Logger } from "@brains/utils/logger";
 import { getErrorMessage } from "@brains/utils/error";
 import type { AtprotoPublishFailedPayload } from "./publish-contracts";
@@ -53,7 +53,7 @@ export class PublishingTaskQueue {
    * A brain without publishing credentials silently does nothing.
    */
   async runTrigger(
-    context: ServicePluginContext,
+    context: AtprotoContext,
     details: Omit<AtprotoPublishFailedPayload, "error">,
     operation: () => Promise<unknown>,
   ): Promise<void> {
@@ -67,7 +67,7 @@ export class PublishingTaskQueue {
   }
 
   async reportFailure(
-    context: ServicePluginContext,
+    context: AtprotoContext,
     details: Omit<AtprotoPublishFailedPayload, "error">,
     error: unknown,
   ): Promise<void> {

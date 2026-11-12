@@ -1,5 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { SiteBuilderPlugin } from "../../src/plugin";
+import {
+  createSiteBuilderPlugin,
+  type SiteBuilderTestPlugin,
+} from "../site-builder-plugin";
 import { createPluginHarness } from "@brains/plugins/test";
 import { createTemplate } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
@@ -29,11 +32,11 @@ const mockDataSource: DataSource = {
 };
 
 describe("Site Builder Content Resolution", () => {
-  let harness: ReturnType<typeof createPluginHarness<SiteBuilderPlugin>>;
-  let plugin: SiteBuilderPlugin;
+  let harness: ReturnType<typeof createPluginHarness<SiteBuilderTestPlugin>>;
+  let plugin: SiteBuilderTestPlugin;
 
   beforeEach(async () => {
-    harness = createPluginHarness<SiteBuilderPlugin>();
+    harness = createPluginHarness<SiteBuilderTestPlugin>();
   });
 
   afterEach(async () => {
@@ -54,7 +57,7 @@ describe("Site Builder Content Resolution", () => {
       },
     });
 
-    plugin = new SiteBuilderPlugin(
+    plugin = createSiteBuilderPlugin(
       createTestConfig({
         previewOutputDir: "/tmp/test-output",
         workingDir: "/tmp/test-working",
@@ -107,7 +110,7 @@ describe("Site Builder Content Resolution", () => {
       },
     });
 
-    plugin = new SiteBuilderPlugin(
+    plugin = createSiteBuilderPlugin(
       createTestConfig({
         previewOutputDir: "/tmp/test-output",
         workingDir: "/tmp/test-working",

@@ -1,0 +1,65 @@
+{
+  "firstDay": {
+    "stored": {
+      "content": "---\ndays:\n  - date: '2026-01-05'\n    pageviews: 100\n    visits: 50\n    estimated: false\n    paths:\n      - path: /\n        pageviews: 100\n    referrers:\n      - host: example.org\n        visits: 3\n    pathReferrers:\n      - path: /\n        host: example.org\n        visits: 2\n    countries:\n      - country: NL\n        visits: 4\nvisibility: restricted\n---\n# Traffic 2026-W02\n\n100 pageviews and 50 visits from 2026-01-05 to 2026-01-11.\n\n| Date | Pageviews | Visits |\n| --- | --- | --- |\n| 2026-01-05 | 100 | 50 |\n",
+      "metadata": "{\"title\":\"Traffic 2026-W02\",\"pageviews\":100,\"visits\":50}"
+    },
+    "read": {
+      "content": "---\ndays:\n  - date: '2026-01-05'\n    pageviews: 100\n    visits: 50\n    estimated: false\n    paths:\n      - path: /\n        pageviews: 100\n    referrers:\n      - host: example.org\n        visits: 3\n    pathReferrers:\n      - path: /\n        host: example.org\n        visits: 2\n    countries:\n      - country: NL\n        visits: 4\nvisibility: restricted\n---\n# Traffic 2026-W02\n\n100 pageviews and 50 visits from 2026-01-05 to 2026-01-11.\n\n| Date | Pageviews | Visits |\n| --- | --- | --- |\n| 2026-01-05 | 100 | 50 |\n",
+      "metadata": {
+        "title": "Traffic 2026-W02",
+        "pageviews": 100,
+        "visits": 50
+      }
+    },
+    "exported": "---\ndays:\n  - date: '2026-01-05'\n    pageviews: 100\n    visits: 50\n    estimated: false\n    paths:\n      - path: /\n        pageviews: 100\n    referrers:\n      - host: example.org\n        visits: 3\n    pathReferrers:\n      - path: /\n        host: example.org\n        visits: 2\n    countries:\n      - country: NL\n        visits: 4\nvisibility: restricted\n---\n# Traffic 2026-W02\n\n100 pageviews and 50 visits from 2026-01-05 to 2026-01-11.\n\n| Date | Pageviews | Visits |\n| --- | --- | --- |\n| 2026-01-05 | 100 | 50 |\n"
+  },
+  "secondDay": {
+    "stored": {
+      "content": "---\ndays:\n  - date: '2026-01-05'\n    pageviews: 100\n    visits: 50\n    estimated: false\n    paths:\n      - path: /\n        pageviews: 100\n    referrers:\n      - host: example.org\n        visits: 3\n    pathReferrers:\n      - path: /\n        host: example.org\n        visits: 2\n    countries:\n      - country: NL\n        visits: 4\n  - date: '2026-01-06'\n    pageviews: 42\n    visits: 21\n    estimated: true\n    paths:\n      - path: /\n        pageviews: 42\n    referrers:\n      - host: example.org\n        visits: 3\n    pathReferrers:\n      - path: /\n        host: example.org\n        visits: 2\n    countries:\n      - country: NL\n        visits: 4\nvisibility: restricted\n---\n# Traffic 2026-W02\n\n142 pageviews and 71 visits from 2026-01-05 to 2026-01-11.\n\n| Date | Pageviews | Visits |\n| --- | --- | --- |\n| 2026-01-05 | 100 | 50 |\n| 2026-01-06 | 42 (estimate) | 21 |\n",
+      "metadata": "{\"title\":\"Traffic 2026-W02\",\"pageviews\":142,\"visits\":71}"
+    },
+    "read": {
+      "content": "---\ndays:\n  - date: '2026-01-05'\n    pageviews: 100\n    visits: 50\n    estimated: false\n    paths:\n      - path: /\n        pageviews: 100\n    referrers:\n      - host: example.org\n        visits: 3\n    pathReferrers:\n      - path: /\n        host: example.org\n        visits: 2\n    countries:\n      - country: NL\n        visits: 4\n  - date: '2026-01-06'\n    pageviews: 42\n    visits: 21\n    estimated: true\n    paths:\n      - path: /\n        pageviews: 42\n    referrers:\n      - host: example.org\n        visits: 3\n    pathReferrers:\n      - path: /\n        host: example.org\n        visits: 2\n    countries:\n      - country: NL\n        visits: 4\nvisibility: restricted\n---\n# Traffic 2026-W02\n\n142 pageviews and 71 visits from 2026-01-05 to 2026-01-11.\n\n| Date | Pageviews | Visits |\n| --- | --- | --- |\n| 2026-01-05 | 100 | 50 |\n| 2026-01-06 | 42 (estimate) | 21 |\n",
+      "metadata": {
+        "title": "Traffic 2026-W02",
+        "pageviews": 142,
+        "visits": 71
+      }
+    },
+    "exported": "---\ndays:\n  - date: '2026-01-05'\n    pageviews: 100\n    visits: 50\n    estimated: false\n    paths:\n      - path: /\n        pageviews: 100\n    referrers:\n      - host: example.org\n        visits: 3\n    pathReferrers:\n      - path: /\n        host: example.org\n        visits: 2\n    countries:\n      - country: NL\n        visits: 4\n  - date: '2026-01-06'\n    pageviews: 42\n    visits: 21\n    estimated: true\n    paths:\n      - path: /\n        pageviews: 42\n    referrers:\n      - host: example.org\n        visits: 3\n    pathReferrers:\n      - path: /\n        host: example.org\n        visits: 2\n    countries:\n      - country: NL\n        visits: 4\nvisibility: restricted\n---\n# Traffic 2026-W02\n\n142 pageviews and 71 visits from 2026-01-05 to 2026-01-11.\n\n| Date | Pageviews | Visits |\n| --- | --- | --- |\n| 2026-01-05 | 100 | 50 |\n| 2026-01-06 | 42 (estimate) | 21 |\n"
+  },
+  "retired": {
+    "stored": {
+      "content": "---\ndays:\n  - date: '2025-12-29'\n    pageviews: 10\n    visits: 5\n    estimated: false\n    paths: []\n    referrers: []\n    pathReferrers: []\n    countries: []\nvisibility: restricted\n---\n# Traffic 2026-W01\n",
+      "metadata": "{\"title\":\"Traffic 2026-W01\",\"pageviews\":10,\"visits\":5}"
+    },
+    "read": {
+      "content": "---\ndays:\n  - date: '2025-12-29'\n    pageviews: 10\n    visits: 5\n    estimated: false\n    paths: []\n    referrers: []\n    pathReferrers: []\n    countries: []\nvisibility: restricted\n---\n# Traffic 2026-W01\n",
+      "metadata": {
+        "title": "Traffic 2026-W01",
+        "pageviews": 10,
+        "visits": 5
+      }
+    },
+    "exported": "---\ndays:\n  - date: '2025-12-29'\n    pageviews: 10\n    visits: 5\n    estimated: false\n    paths: []\n    referrers: []\n    pathReferrers: []\n    countries: []\nvisibility: restricted\n---\n# Traffic 2026-W01\n"
+  },
+  "retiredRewrite": {
+    "rewritten": 0
+  },
+  "afterRetire": {
+    "stored": {
+      "content": "---\ndays:\n  - date: '2025-12-29'\n    pageviews: 10\n    visits: 5\n    estimated: false\n    paths: []\n    referrers: []\n    pathReferrers: []\n    countries: []\nvisibility: restricted\n---\n# Traffic 2026-W01\n",
+      "metadata": "{\"title\":\"Traffic 2026-W01\",\"pageviews\":10,\"visits\":5}"
+    },
+    "read": {
+      "content": "---\ndays:\n  - date: '2025-12-29'\n    pageviews: 10\n    visits: 5\n    estimated: false\n    paths: []\n    referrers: []\n    pathReferrers: []\n    countries: []\nvisibility: restricted\n---\n# Traffic 2026-W01\n",
+      "metadata": {
+        "title": "Traffic 2026-W01",
+        "pageviews": 10,
+        "visits": 5
+      }
+    },
+    "exported": "---\ndays:\n  - date: '2025-12-29'\n    pageviews: 10\n    visits: 5\n    estimated: false\n    paths: []\n    referrers: []\n    pathReferrers: []\n    countries: []\nvisibility: restricted\n---\n# Traffic 2026-W01\n"
+  }
+}

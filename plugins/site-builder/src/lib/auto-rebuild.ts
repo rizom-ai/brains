@@ -2,7 +2,7 @@ import {
   projectionWaveReadyContract,
   type ProjectionWaveReady,
 } from "@brains/contracts";
-import type { IMessagingNamespace } from "@brains/plugins";
+import type { ServiceRuntime } from "@brains/sdk/internal/service-runtime";
 import type { Logger } from "@brains/utils/logger";
 import { LeadingTrailingDebounce } from "@brains/utils/debounce";
 import {
@@ -15,7 +15,7 @@ import type { SiteBuildStatusService } from "./site-build-status";
 type BuildEnvironment = "preview" | "production";
 
 interface AutoRebuildContext {
-  messaging: Pick<IMessagingNamespace, "answer">;
+  answer: ServiceRuntime["answer"];
   jobs: {
     enqueue(request: {
       type: "site-build";
@@ -73,7 +73,6 @@ export class RebuildManager {
     BuildEnvironment,
     AbortController
   >();
-  private unsubscribeFunctions: Array<() => void> = [];
   private readonly activeTasks = new Set<Promise<void>>();
   private disposePromise: Promise<void> | null = null;
   private disposed = false;
@@ -153,12 +152,11 @@ export class RebuildManager {
       return {};
     };
 
-    this.unsubscribeFunctions.push(
-      this.context.messaging.answer(
-        projectionWaveReadyContract,
-        waveReadyHandler,
-        { everyProcess: true },
-      ),
+    // Released with the package, as the class's answer was.
+    this.context.answer(
+      projectionWaveReadyContract,
+      ({ request }) => waveReadyHandler(request),
+      { everyProcess: true },
     );
 
     this.logger.debug(
@@ -188,15 +186,6 @@ export class RebuildManager {
     this.debounces.clear();
     for (const retry of this.enqueueRetries.values()) retry.abort();
     this.enqueueRetries.clear();
-
-    for (const unsubscribe of this.unsubscribeFunctions) {
-      try {
-        unsubscribe();
-      } catch (error) {
-        cleanupErrors.push(error);
-      }
-    }
-    this.unsubscribeFunctions = [];
 
     await Promise.all([...this.activeTasks]);
     if (cleanupErrors.length > 0) throw cleanupErrors[0];

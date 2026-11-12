@@ -215,12 +215,19 @@ function createEntityDataSource(
         ),
       ]);
       return outputSchema.parse(
-        await detail({
-          item: resolved.item,
-          navigation: resolved.navigation,
-          siblings: siblings.items,
-          entities: createEntityReader(entityService),
-        }),
+        await detail(
+          // First-party detail views reach untyped reads at the build's
+          // scope through entityRuntime(context), as a fetching source does.
+          withDataSourceRuntime(
+            {
+              item: resolved.item,
+              navigation: resolved.navigation,
+              siblings: siblings.items,
+              entities: createEntityReader(entityService),
+            },
+            entityService,
+          ),
+        ),
       );
     }
   }

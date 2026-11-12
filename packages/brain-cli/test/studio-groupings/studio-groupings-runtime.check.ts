@@ -23,7 +23,6 @@ import wishlistPackage from "@brains/wishlist";
 import { z } from "@brains/utils/zod";
 import {
   EntityPlugin,
-  createServicePluginContext,
   defineEntity,
   defineEntityPackage,
   instantiatePluginPackageDefinition,
@@ -40,7 +39,7 @@ import {
   type EntityActionPolicyRule,
 } from "@brains/templates";
 import {
-  registerGroupingDefinitions,
+  installStudioGroupings,
   type GroupingDefinitionSource,
   createEditorRoutes,
   StudioWorkspaceRegistry,
@@ -153,8 +152,7 @@ async function open(
       },
     ),
   );
-  const context = createServicePluginContext(shell, "studio");
-  const source = registerGroupingDefinitions(context);
+  const { context, source } = await installStudioGroupings(shell);
   const routes = createEditorRoutes({
     routePath: "/studio",
     getContext: () => context,

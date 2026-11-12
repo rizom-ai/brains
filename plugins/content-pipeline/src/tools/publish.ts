@@ -1,12 +1,10 @@
 import { createHash } from "node:crypto";
-import type {
-  BaseEntity,
-  ToolContext,
-  ServicePluginContext,
-} from "@brains/plugins";
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
+import type { ToolContext } from "@brains/sdk/internal/service-runtime";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import type { PublishEntityExecutor } from "../publish-executor";
+import type { PipelineContext } from "../lib/pipeline-context";
 
 /**
  * Input of the publishing_manage publish action, parsed by handlePublishAction
@@ -113,7 +111,7 @@ export type PublishOutput = z.output<typeof publishOutputSchema>;
 const CONFIRMATION_TTL_MS = 15 * 60 * 1000;
 
 export async function handlePublishAction(input: {
-  context: ServicePluginContext;
+  context: PipelineContext;
   executor: PublishEntityExecutor;
   toolName: string;
   rawInput: unknown;

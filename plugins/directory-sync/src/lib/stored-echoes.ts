@@ -1,12 +1,15 @@
+import {
+  type ServiceEntityMirrorClient,
+  internalFullScope,
+} from "@brains/sdk/internal/service-runtime";
 import { readFile } from "node:fs/promises";
-import { internalFullScope, type EntityServiceClient } from "@brains/plugins";
 import { computeContentHash } from "@brains/utils/hash";
 import type { IFileOperations } from "../types/interfaces";
 import { resolveInSyncPath } from "./path-utils";
 
 export interface StoredEchoDeps {
   syncPath: string;
-  entityService: Pick<EntityServiceClient, "getEntityWriteSnapshot">;
+  entityService: Pick<ServiceEntityMirrorClient, "getEntityWriteSnapshot">;
   fileOperations: Pick<IFileOperations, "parseEntityFromPath">;
 }
 

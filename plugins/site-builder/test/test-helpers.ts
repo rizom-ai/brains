@@ -13,7 +13,9 @@ import type {
   SiteBuildOutputLifecycle,
   SiteBuildOutputTarget,
 } from "../src/lib/site-build-output-lifecycle";
-import type { ServicePluginContext } from "@brains/plugins";
+import type { ServicePluginContext, ServiceRuntime } from "@brains/plugins";
+import type { BusContract } from "@brains/contracts";
+import type { z } from "@brains/utils/zod";
 import type {
   RouteDefinition,
   SiteLayoutInfo,
@@ -309,4 +311,29 @@ export function messagingFor(
     },
   };
   return messaging;
+}
+
+/**
+ * A class context's answer in the shape the service runtime's answer
+ * takes, for a test that drives a site-builder part answering through
+ * runtime.answer on a class test context.
+ */
+export function withRuntimeAnswer<
+  T extends {
+    readonly messaging: Pick<ServicePluginContext["messaging"], "answer">;
+  },
+>(context: T): T & Pick<ServiceRuntime, "answer"> {
+  return Object.assign(context, {
+    answer: ((contract, handler, options): void => {
+      // The bus checks the answer against the contract's own schema, as
+      // the runtime's answer erases the response type to hand it on.
+      const erased: BusContract<typeof contract.schema, z.ZodType> = contract;
+      context.messaging.answer(
+        erased,
+        async (request, { sender }): Promise<unknown> =>
+          handler({ request, sender }),
+        options?.everyProcess === true ? { everyProcess: true } : undefined,
+      );
+    }) satisfies ServiceRuntime["answer"],
+  });
 }

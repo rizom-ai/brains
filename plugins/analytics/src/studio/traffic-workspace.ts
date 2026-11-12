@@ -1,11 +1,12 @@
 import {
   defineEntityCatalog,
   defineStudioWorkspace,
-  permissionToVisibilityScope,
-  registerBuiltInStudioWorkspace,
-  type AnalyticsReportContext,
-  type ServicePluginContext,
-} from "@brains/plugins";
+} from "@brains/sdk/services";
+import { permissionToVisibilityScope } from "@brains/sdk/internal/interface-runtime";
+import type {
+  AnalyticsReportContext,
+  ServiceRuntime,
+} from "@brains/sdk/internal/service-runtime";
 import { z } from "@brains/utils/zod";
 import { shortDate } from "../lib/short-date";
 import { addDays } from "../lib/iso-week";
@@ -331,20 +332,24 @@ async function rangeFor(
 
 /** Registers the Traffic workspace; a no-op where Studio does not run. */
 export async function registerTrafficWorkspace(
-  context: ServicePluginContext,
+  runtime: Pick<
+    ServiceRuntime,
+    "studio" | "entityDisplay" | "reportEntityService"
+  >,
   reports: TrafficWorkspaceReports,
 ): Promise<string | undefined> {
-  const result = await registerBuiltInStudioWorkspace({
-    context,
+  const { studio } = runtime;
+  if (!studio.isAvailable()) return undefined;
+  const registration = studio.source({
     definition: trafficWorkspace,
     bind: (bindingContext) =>
       trafficWorkspace.bind(bindingContext, {
-        listEntityTypes: () => Object.keys(context.entityDisplay ?? {}),
+        listEntityTypes: () => Object.keys(runtime.entityDisplay ?? {}),
         load: async ({ caller, query }) => {
           if (!caller) throw new Error("Traffic requires authentication");
           const days = periodOf(query.get(querySchema).days);
           const reportContext = {
-            entityService: context.entityService,
+            entityService: runtime.reportEntityService,
             visibilityScope: permissionToVisibilityScope(caller.permission),
           };
           const range = await rangeFor(days, reportContext, reports.today);
@@ -372,5 +377,5 @@ export async function registerTrafficWorkspace(
         actions: [],
       }),
   });
-  return result === false ? undefined : result.workspaceUrl;
+  return studio.register(registration);
 }

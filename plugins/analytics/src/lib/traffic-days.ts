@@ -1,4 +1,4 @@
-import type { AnalyticsReportContext } from "@brains/plugins";
+import type { AnalyticsReportContext } from "@brains/sdk/internal/service-runtime";
 import { z } from "@brains/utils/zod";
 import { trafficSnapshotAdapter } from "../entity/adapter";
 import { trafficSnapshotSchema, type TrafficDay } from "../entity/schema";

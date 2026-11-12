@@ -1,4 +1,5 @@
-import type { IRuntimeStateStore, ServicePluginContext } from "@brains/plugins";
+import type { ClassRuntimeStateStore } from "@brains/sdk/internal/service-runtime";
+import type { AtprotoContext } from "./atproto-context";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import type { AtprotoJetstreamConfig } from "./config";
@@ -80,7 +81,7 @@ export interface JetstreamConsumerCallbacks {
 }
 
 export interface JetstreamConsumerOptions {
-  context: ServicePluginContext;
+  context: AtprotoContext;
   config: AtprotoJetstreamConfig;
   callbacks: JetstreamConsumerCallbacks;
   createSocket?: CreateJetstreamSocket | undefined;
@@ -165,13 +166,13 @@ function createDefaultSocket(url: string): JetstreamSocket {
  * remains in agent entities; this class owns only operational cursor state.
  */
 export class JetstreamConsumer {
-  private readonly context: ServicePluginContext;
+  private readonly context: AtprotoContext;
   private readonly config: AtprotoJetstreamConfig;
   private readonly callbacks: JetstreamConsumerCallbacks;
   private readonly createSocket: CreateJetstreamSocket;
   private readonly now: () => number;
   private readonly random: () => number;
-  private readonly store: IRuntimeStateStore<JetstreamState>;
+  private readonly store: ClassRuntimeStateStore<JetstreamState>;
   private readonly queue: QueuedCandidate[] = [];
   private readonly queuedByDid = new Map<string, QueuedCandidate>();
   private readonly terminal = new Map<number, TerminalSequence>();

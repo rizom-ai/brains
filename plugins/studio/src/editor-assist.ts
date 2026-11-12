@@ -1,4 +1,4 @@
-import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
 import {
   a2aAgentsContract,
   a2aCallContract,
@@ -10,6 +10,7 @@ import { requireEntityAction } from "./editor-access";
 import { zodFieldToStudioWidget } from "./config";
 import { splitEntityContent } from "./editor-content";
 import { jsonResponse } from "./editor-response";
+import type { StudioContext } from "./studio-context";
 
 const assistContextShape = {
   entityType: z.string(),
@@ -58,7 +59,7 @@ interface StudioAssistEntityContext {
 }
 
 async function resolveStudioAssistEntity(
-  context: ServicePluginContext,
+  context: StudioContext,
   entityType: string,
   id: string,
   access: StudioRequestAccess,
@@ -94,7 +95,7 @@ function requireStoredSelection(
 }
 
 export async function handleAssist(
-  context: ServicePluginContext,
+  context: StudioContext,
   request: Request,
   access: StudioRequestAccess,
 ): Promise<Response> {
@@ -219,7 +220,7 @@ export async function handleAssist(
 }
 
 export async function handleListAgents(
-  context: ServicePluginContext,
+  context: StudioContext,
   request: Request,
   access: StudioRequestAccess,
 ): Promise<Response> {
@@ -255,7 +256,7 @@ export async function handleListAgents(
 }
 
 export async function handleAskAgent(
-  context: ServicePluginContext,
+  context: StudioContext,
   request: Request,
   access: StudioRequestAccess,
 ): Promise<Response> {

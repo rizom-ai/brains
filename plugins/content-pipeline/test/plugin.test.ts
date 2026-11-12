@@ -8,7 +8,11 @@ import {
   spyOn,
   type Mock,
 } from "bun:test";
-import { ContentPipelinePlugin } from "../src/plugin";
+import {
+  createContentPipelinePlugin,
+  type ContentPipelineTestPlugin,
+} from "./content-pipeline-plugins";
+import { pluginsRegistered } from "./pipeline-runtime";
 import {
   publishAssetRegisterContract,
   publishRegisterContract,
@@ -44,12 +48,12 @@ function jobQueueWithSpiedEnqueue(): {
 }
 
 describe("ContentPipelinePlugin", () => {
-  let harness: PluginTestHarness<ContentPipelinePlugin>;
-  let plugin: ContentPipelinePlugin;
+  let harness: PluginTestHarness<ContentPipelineTestPlugin>;
+  let plugin: ContentPipelineTestPlugin;
 
   beforeEach(async () => {
     harness = createPluginHarness({ dataDir: "/tmp/test-datadir" });
-    plugin = new ContentPipelinePlugin({});
+    plugin = createContentPipelinePlugin({});
     await harness.installPlugin(plugin);
   });
 
@@ -114,6 +118,9 @@ describe("ContentPipelinePlugin", () => {
         return { success: true };
       });
 
+      // The widget is registered once every plugin has, the workspace once
+      // the brain is ready.
+      await pluginsRegistered(harness.getMockShell());
       await plugin.ready();
 
       const data = await dashboardDataProvider?.({
@@ -268,7 +275,7 @@ describe("ContentPipelinePlugin", () => {
     /** A pipeline whose post OG images are publish assets, with its queue spied. */
     async function preflightPipeline(): Promise<{
       localHarness: ReturnType<typeof createPluginHarness>;
-      localPlugin: ContentPipelinePlugin;
+      localPlugin: ContentPipelineTestPlugin;
       enqueue: ReturnType<typeof jobQueueWithSpiedEnqueue>["enqueue"];
     }> {
       const localHarness = createPluginHarness({
@@ -277,7 +284,7 @@ describe("ContentPipelinePlugin", () => {
       const { service: jobQueue, enqueue } = jobQueueWithSpiedEnqueue();
       localHarness.getMockShell().getJobQueueService =
         (): TestJobQueueService => jobQueue;
-      const localPlugin = new ContentPipelinePlugin({});
+      const localPlugin = createContentPipelinePlugin({});
       await localHarness.installPlugin(localPlugin);
       localHarness
         .getMockShell()

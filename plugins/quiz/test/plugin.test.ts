@@ -16,13 +16,12 @@ import { FormInboxSource, parseFormMarkdown } from "@brains/forms";
 import notificationsPackage from "@brains/notifications";
 import { CallbackProgressReporter } from "@brains/utils/progress";
 import {
-  quizPlugin,
   quizResultAdapter,
   quizResultSchema,
   quizResultTarget,
-  type QuizPlugin,
   type QuizResult,
 } from "../src";
+import { createQuizPluginPair, type QuizService } from "./quiz-plugins";
 
 const origin = "https://brain.test";
 const peer = "192.0.2.1";
@@ -91,7 +90,7 @@ type Harness = ReturnType<typeof createPluginHarness>;
 
 async function setup(): Promise<{
   h: Harness;
-  plugin: QuizPlugin;
+  plugin: QuizService;
   sent: ChannelDeliveryInput[];
   handlers: Map<string, JobHandler>;
 }> {
@@ -152,7 +151,7 @@ async function setup(): Promise<{
   );
   if (!notifications) throw new Error("Notifications installs no plugin");
   await notifications.register(shell);
-  const [results, plugin] = quizPlugin();
+  const [results, plugin] = createQuizPluginPair();
   await results.register(shell);
   await plugin.register(shell);
   const { title, target, path } = parseFormMarkdown("brand-test", brandTest);
@@ -170,7 +169,7 @@ async function setup(): Promise<{
 }
 
 function routeFor(
-  plugin: QuizPlugin,
+  plugin: QuizService,
   path: string,
   method: "GET" | "POST",
 ): WebRouteDefinition | undefined {
@@ -185,7 +184,7 @@ function routeFor(
 }
 
 async function take(
-  plugin: QuizPlugin,
+  plugin: QuizService,
   path: string,
   answers: string[][],
 ): Promise<Response> {
@@ -209,7 +208,7 @@ async function take(
   );
 }
 
-async function thanks(plugin: QuizPlugin, location: string): Promise<string> {
+async function thanks(plugin: QuizService, location: string): Promise<string> {
   const response = await routeFor(
     plugin,
     location.split("?")[0] ?? "",

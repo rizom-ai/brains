@@ -1,448 +1,398 @@
-import type {
-  Plugin,
-  Tool,
-  Resource,
-  ServicePluginContext,
-} from "@brains/plugins";
 import { access } from "node:fs/promises";
 import { join } from "node:path";
-import { ServicePlugin, SYSTEM_CHANNELS } from "@brains/plugins";
 import { siteHeadScriptsContract } from "@brains/contracts";
-import { SiteBuilder, type SiteBuilderServices } from "./lib/site-builder";
-import type {
-  SiteBuildProfile,
-  SiteBuildProfileService,
-} from "./lib/site-build-profile-service";
 import {
-  RouteRegistry,
-  UISlotRegistry,
-  type LayoutComponent,
-} from "@brains/site-engine";
-import { RebuildManager } from "./lib/auto-rebuild";
-import { setupRouteHandlers } from "./lib/route-handlers";
-import { registerConfigRoutes } from "./lib/route-helpers";
-import { SiteBuildJobHandler } from "./handlers/siteBuildJobHandler";
-import { NavigationDataSource } from "./datasources/navigation-datasource";
+  defineServicePlugin,
+  type ServicePackageDefinition,
+} from "@brains/sdk/services";
+import {
+  SYSTEM_CHANNELS,
+  serviceRuntime,
+  withJobHandlers,
+  withStaticSiteOutput,
+  withTools,
+  type ServiceRuntime,
+} from "@brains/sdk/internal/service-runtime";
 import {
   siteBuilderPagesContract,
   siteBuilderSlotsContract,
   siteMetadataUpdatedChannel,
   type RouteDefinition,
 } from "@brains/site-composition";
+import { RouteRegistry, UISlotRegistry } from "@brains/site-engine";
+import type { Logger } from "@brains/utils/logger";
+import { SiteBuilder, type SiteBuilderServices } from "./lib/site-builder";
+import { RebuildManager } from "./lib/auto-rebuild";
+import { setupRouteHandlers } from "./lib/route-handlers";
+import { registerConfigRoutes } from "./lib/route-helpers";
+import { siteBuildJob } from "./handlers/siteBuildJobHandler";
+import { navigationDataSource } from "./datasources/navigation-datasource";
 import { resolveSiteMetadata } from "./lib/site-metadata";
 import { createSiteBuilderTools } from "./tools/index";
 import { SiteBuildStatusService } from "./lib/site-build-status";
 import { SiteWorkspaceProvider } from "./lib/site-workspace";
 import { registerSiteHealthWidget } from "./lib/dashboard-widget";
-import type { SiteBuilderConfig, SiteBuilderConfigInput } from "./config";
-import { siteBuilderConfigSchema } from "./config";
+import {
+  siteBuilderConfigSchema,
+  type SiteBuilderConfig,
+  type SiteBuilderConfigInput,
+} from "./config";
 
-import type { StaticSiteOutput } from "@brains/plugins/internal/http-host";
-import packageJson from "../package.json";
+export type { SiteBuilderConfig, SiteBuilderConfigInput };
 
-/**
- * Site Builder Plugin
- * Provides static site generation capabilities
- */
-export class SiteBuilderPlugin extends ServicePlugin<
-  SiteBuilderConfig,
-  SiteBuilderConfigInput
-> {
-  private siteBuilder?: SiteBuilder;
-  private pluginContext?: ServicePluginContext;
-  private _routeRegistry?: RouteRegistry;
-  private profileService?: SiteBuildProfileService;
-  private layouts: Record<string, LayoutComponent>;
-  private rebuildManager?: RebuildManager;
-  private buildStatusService?: SiteBuildStatusService;
-  private siteWorkspaceProvider?: SiteWorkspaceProvider;
+/** What the site builder holds while it runs, built once when it registers. */
+export interface SiteBuilderState {
+  readonly routes: RouteRegistry;
+  readonly builder: SiteBuilder;
+  readonly status: SiteBuildStatusService;
+  readonly rebuilds: RebuildManager;
+  readonly workspace: SiteWorkspaceProvider;
+  /** Every page's head scripts: the site package's own, then each plugin's. */
+  getHeadScripts(): Promise<string[]>;
+  /** The pages plugins add to one build, such as forms defined in content. */
+  getPages(): Promise<RouteDefinition[]>;
+  /** The layout slots plugins fill for one build. */
+  getSlots(): Promise<UISlotRegistry>;
+  /** The agent instructions naming the site. */
+  instructions(): Promise<string>;
+  /** The site's metadata, domain and URLs, for the brain://site resource. */
+  siteResource(): Promise<string>;
+  /** Every registered view template, for the site://templates resource. */
+  viewTemplatesResource(): string;
+}
 
-  private get routeRegistry(): RouteRegistry {
-    if (!this._routeRegistry) {
-      throw new Error("RouteRegistry not initialized - plugin not registered");
-    }
-    return this._routeRegistry;
-  }
-
-  constructor(config: SiteBuilderConfigInput = {}) {
-    const layouts = config.layouts ?? {};
-    super(
-      "site-builder",
-      packageJson,
-      {
-        ...config,
-        layouts,
-      },
-      siteBuilderConfigSchema,
-    );
-    this.layouts = layouts;
-  }
-
-  /** Where this builder writes the site the runtime's HTTP host serves. */
-  public getStaticSiteOutput(): StaticSiteOutput {
-    return {
-      productionOutputDir: this.config.productionOutputDir,
-      previewOutputDir: this.config.previewOutputDir,
-      sharedImagesDir: this.config.sharedImagesDir,
-    };
-  }
-
-  protected override async onRegister(
-    context: ServicePluginContext,
-  ): Promise<void> {
-    this.pluginContext = context;
-
-    // Initialize registries
-    this._routeRegistry = new RouteRegistry(context.logger);
-
-    // Register data sources
-    context.entities.registerDataSource(
-      new NavigationDataSource(
-        this._routeRegistry,
-        context.logger.child("NavigationDataSource"),
-      ),
-    );
-
-    this.profileService = {
-      getProfile: (): SiteBuildProfile => context.identity.getProfile(),
-    };
-    this.buildStatusService = new SiteBuildStatusService(
-      context.runtimeState,
-      context.jobs,
-    );
-    await this.buildStatusService.initialize();
-
-    setupRouteHandlers(context, this._routeRegistry, this.logger);
-
-    if (this.config.templates) {
-      context.templates.register(this.config.templates);
-    }
-
-    if (this.config.routes) {
-      registerConfigRoutes(this.config.routes, this.id, this.routeRegistry);
-    }
-
-    const siteBuilderServices: SiteBuilderServices = {
-      entityService: context.entityService,
-      command: context.messaging.command,
-      resolveTemplateContent: (templateName, options) =>
-        context.templates.resolve(templateName, options),
-      getViewTemplate: (name) => context.views.get(name),
-      listViewTemplateNames: (): string[] =>
-        context.views.list().map((template) => template.name),
-      hasSavedContent: async (id): Promise<boolean> =>
-        (await context.entityService.getEntity({
-          entityType: "site-content",
-          id,
-        })) !== null,
-    };
-
-    // Initialize site builder
-    this.siteBuilder = SiteBuilder.createFresh(
-      context.logger.child("SiteBuilder"),
-      siteBuilderServices,
-      this.routeRegistry,
-      this.profileService,
-      undefined,
-      context.entityDisplay,
-    );
-
-    // Register site-build job handler
-    context.jobs.registerHandler(
-      "site-build",
-      new SiteBuildJobHandler(
-        this.logger.child("SiteBuildJobHandler"),
-        context.messaging,
-        {
-          siteBuilder: this.siteBuilder,
-          layouts: this.layouts,
-          defaultSiteConfig: this.config.siteInfo,
-          sharedImagesDir: this.config.sharedImagesDir,
-          siteUrl: context.siteUrl,
-          previewUrl: context.previewUrl,
-          localSiteUrl: context.localSiteUrl,
-          preferLocalUrls: context.preferLocalUrls,
-          themeCSS: this.config.themeCSS,
-          getSlots: (): Promise<UISlotRegistry> => this.getSlots(),
-          getHeadScripts: (): Promise<string[]> => this.getHeadScripts(),
-          getPages: (): Promise<RouteDefinition[]> => this.getPages(),
-          ...(this.config.staticAssets && {
-            staticAssets: this.config.staticAssets,
-          }),
-          ...(this.config.languages && { languages: this.config.languages }),
-          statusService: this.buildStatusService,
-        },
-      ),
-    );
-
-    // Set up rebuild manager (handles debounced builds and auto-rebuild)
-    this.rebuildManager = new RebuildManager(
-      this.config,
-      context,
-      this.id,
-      this.logger,
-      this.buildStatusService,
-    );
-
-    this.siteWorkspaceProvider = new SiteWorkspaceProvider({
-      context,
-      config: this.config,
-      routeRegistry: this.routeRegistry,
-      statusService: this.buildStatusService,
-      requestBuild: (environment): void => {
-        this.rebuildManager?.requestBuild(environment);
-      },
-    });
-
-    if (this.config.autoRebuild) {
-      this.logger.debug("Auto-rebuild enabled");
-      this.rebuildManager.setupAutoRebuild();
-    }
-
-    // Rebuilt once startup content has settled, so a queued startup import
-    // is in the site before it renders.
-    context.messaging.subscribe(
-      SYSTEM_CHANNELS.startupContentSettled,
-      async () => {
-        await this.rebuildOutputsAfterStart();
-        return { success: true };
-      },
-    );
-
-    // Re-register instructions when site metadata changes so the prompt stays fresh.
-    context.messaging.subscribe(siteMetadataUpdatedChannel, async () => {
-      const instructions = await this.getInstructions();
-      if (instructions) {
-        context.registerInstructions(instructions);
-      }
-      return { success: true };
-    });
-  }
-
-  protected override async onReady(
-    context: ServicePluginContext,
-  ): Promise<void> {
-    if (!this.siteWorkspaceProvider) return;
-    await this.siteWorkspaceProvider.registerStudioWorkspace();
-    await registerSiteHealthWidget(context, this.siteWorkspaceProvider);
-  }
-
-  /**
-   * A start, an upgrade included, may bring new renderer code that the input
-   * fingerprint cannot see; the renderer identity is fresh per process, so a
-   * requested build renders again. Every environment that already has an
-   * output is built again; one never built stays untouched.
-   */
-  private async rebuildOutputsAfterStart(): Promise<void> {
-    const outputs = [
-      ["production", this.config.productionOutputDir],
-      ["preview", this.config.previewOutputDir],
-    ] as const;
-    const built = await Promise.all(
-      outputs.map(async ([environment, dir]) => ({
-        environment,
-        exists: await access(join(dir, "index.html")).then(
-          () => true,
-          () => false,
-        ),
-      })),
-    );
-    for (const { environment, exists } of built) {
-      if (exists) this.rebuildManager?.requestBuild(environment);
-    }
-  }
-
-  /**
-   * The scripts for every page's head: the site package's own, then each
-   * plugin's answer, asked for at build time so it works in the worker and
-   * whatever order plugins registered in.
-   */
-  public async getHeadScripts(): Promise<string[]> {
-    const collection = await this.getContext().messaging.gather(
-      siteHeadScriptsContract,
-      {},
-    );
-    const contributed =
-      collection.status === "answered" ? collection.answers : [];
-    return [...this.config.headScripts, ...contributed];
-  }
-
-  /**
-   * The pages plugins add to one build, such as forms defined in content:
-   * asked for at build time, like the head scripts, so they reach the worker.
-   */
-  public async getPages(): Promise<RouteDefinition[]> {
-    const collection = await this.getContext().messaging.gather(
-      siteBuilderPagesContract,
-      {},
-    );
-    return collection.status === "answered" ? collection.answers.flat() : [];
-  }
-
-  /**
-   * The layout slots for one build, from each plugin's answer: asked for at
-   * build time, like the head scripts, so they reach the worker.
-   */
-  public async getSlots(): Promise<UISlotRegistry> {
-    const collection = await this.getContext().messaging.gather(
-      siteBuilderSlotsContract,
-      {},
-    );
-    const slots = new UISlotRegistry();
-    const answers = collection.status === "answered" ? collection.answers : [];
-    for (const { slotName, pluginId, render, priority } of answers.flat())
-      slots.register(slotName, {
-        pluginId,
-        render,
-        ...(priority !== undefined && { priority }),
-      });
-    return slots;
-  }
-
-  protected override async getTools(): Promise<Tool[]> {
-    if (!this.pluginContext || !this.rebuildManager) {
-      throw new Error("Plugin context not initialized");
-    }
-
-    const rebuildManager = this.rebuildManager;
-    return createSiteBuilderTools(this.id, (env) =>
-      rebuildManager.requestBuild(env),
-    );
-  }
-
-  protected override async getResources(): Promise<Resource[]> {
-    const context = this.getContext();
-    return [
-      {
-        uri: "brain://site",
-        name: "Site Metadata",
-        description: "Site metadata — title, description, domain, URLs",
-        mimeType: "application/json",
-        handler: async (): Promise<{
-          contents: Array<{ uri: string; mimeType: string; text: string }>;
-        }> => {
-          const siteMetadata = await resolveSiteMetadata(
-            context.messaging,
-            this.config.siteInfo,
-          );
-          return {
-            contents: [
-              {
-                uri: "brain://site",
-                mimeType: "application/json",
-                text: JSON.stringify(
-                  {
-                    ...siteMetadata,
-                    domain: context.domain,
-                    siteUrl: context.siteUrl,
-                    previewUrl: context.previewUrl,
-                  },
-                  null,
-                  2,
-                ),
-              },
-            ],
-          };
-        },
-      },
-      {
-        uri: "site://routes",
-        name: "Site Routes",
-        description: "All registered routes with sections and templates",
-        mimeType: "application/json",
-        handler: async (): Promise<{
-          contents: Array<{ uri: string; mimeType: string; text: string }>;
-        }> => {
-          const routes = this.routeRegistry.list();
-          return {
-            contents: [
-              {
-                uri: "site://routes",
-                mimeType: "application/json",
-                text: JSON.stringify(
-                  routes.map((route) => ({
-                    id: route.id,
-                    path: route.path,
-                    title: route.title,
-                    description: route.description,
-                    sections: route.sections.map((s) => ({
-                      id: s.id,
-                      template: s.template,
-                    })),
-                  })),
-                  null,
-                  2,
-                ),
-              },
-            ],
-          };
-        },
-      },
-      {
-        uri: "site://templates",
-        name: "View Templates",
-        description: "All registered view templates",
-        mimeType: "application/json",
-        handler: async (): Promise<{
-          contents: Array<{ uri: string; mimeType: string; text: string }>;
-        }> => {
-          const templates = context.views.list();
-          return {
-            contents: [
-              {
-                uri: "site://templates",
-                mimeType: "application/json",
-                text: JSON.stringify(
-                  templates.map((t) => ({
-                    name: t.name,
-                    description: t.description,
-                    hasWebRenderer: !!t.renderers.web,
-                  })),
-                  null,
-                  2,
-                ),
-              },
-            ],
-          };
-        },
-      },
-    ];
-  }
-
-  public getSiteBuilder(): SiteBuilder | undefined {
-    return this.siteBuilder;
-  }
-
-  protected override async getInstructions(): Promise<string | undefined> {
-    const context = this.getContext();
-
-    const siteMetadata = await resolveSiteMetadata(
-      context.messaging,
-      this.config.siteInfo,
-    );
-    const parts = [
-      `**Title:** ${siteMetadata.title}`,
-      `**Description:** ${siteMetadata.description}`,
-      context.domain && `**Domain:** ${context.domain}`,
-      context.siteUrl && `**URL:** ${context.siteUrl}`,
-    ].filter(Boolean);
-    return `## Your Site\n${parts.join("\n")}`;
-  }
-
-  protected override async onShutdown(): Promise<void> {
-    this.logger.debug("Shutting down site-builder plugin");
-    await this.siteWorkspaceProvider?.unregisterStudioWorkspace();
-    await this.rebuildManager?.dispose();
-    await this.siteBuilder?.cancelActiveBuilds();
-    delete this.rebuildManager;
-    delete this.siteBuilder;
-    this.logger.debug("Cleaned up all event subscriptions");
-  }
+/** What a test hands the package to watch it set up. */
+export interface SiteBuilderDeps {
+  /** Told the state once setup has built it. */
+  onSetup?: ((state: SiteBuilderState) => void) | undefined;
 }
 
 /**
- * Factory function to create the plugin
+ * A start, an upgrade included, may bring new renderer code that the input
+ * fingerprint cannot see; the renderer identity is fresh per process, so a
+ * requested build renders again. Every environment that already has an
+ * output is built again; one never built stays untouched.
  */
-export function siteBuilderPlugin(config: SiteBuilderConfigInput = {}): Plugin {
-  return new SiteBuilderPlugin(config);
+async function rebuildOutputsAfterStart(
+  config: SiteBuilderConfig,
+  rebuilds: RebuildManager,
+): Promise<void> {
+  const outputs = [
+    ["production", config.productionOutputDir],
+    ["preview", config.previewOutputDir],
+  ] as const;
+  const built = await Promise.all(
+    outputs.map(async ([environment, dir]) => ({
+      environment,
+      exists: await access(join(dir, "index.html")).then(
+        () => true,
+        () => false,
+      ),
+    })),
+  );
+  for (const { environment, exists } of built) {
+    if (exists) rebuilds.requestBuild(environment);
+  }
+}
+
+/** The site's metadata, as the brain://site resource and the instructions read it. */
+function siteDescription(
+  runtime: ServiceRuntime,
+  config: SiteBuilderConfig,
+): {
+  instructions(): Promise<string>;
+  resource(): Promise<string>;
+} {
+  return {
+    instructions: async (): Promise<string> => {
+      const siteMetadata = await resolveSiteMetadata(
+        runtime.messaging,
+        config.siteInfo,
+      );
+      const parts = [
+        `**Title:** ${siteMetadata.title}`,
+        `**Description:** ${siteMetadata.description}`,
+        runtime.domain && `**Domain:** ${runtime.domain}`,
+        runtime.siteUrl && `**URL:** ${runtime.siteUrl}`,
+      ].filter(Boolean);
+      return `## Your Site\n${parts.join("\n")}`;
+    },
+    resource: async (): Promise<string> => {
+      const siteMetadata = await resolveSiteMetadata(
+        runtime.messaging,
+        config.siteInfo,
+      );
+      return JSON.stringify(
+        {
+          ...siteMetadata,
+          domain: runtime.domain,
+          siteUrl: runtime.siteUrl,
+          previewUrl: runtime.previewUrl,
+        },
+        null,
+        2,
+      );
+    },
+  };
+}
+
+/** Build the site builder's pipeline, as its class built it when it registered. */
+async function setUpSiteBuilder(
+  runtime: ServiceRuntime,
+  config: SiteBuilderConfig,
+  onCleanup: (cleanup: () => void | Promise<void>) => void,
+): Promise<SiteBuilderState> {
+  const logger: Logger = runtime.logger;
+  const routes = new RouteRegistry(logger);
+  runtime.dataSource(
+    navigationDataSource(routes, logger.child("NavigationDataSource")),
+    { asWritten: true },
+  );
+
+  const status = new SiteBuildStatusService(
+    runtime.classRuntimeState,
+    runtime.jobs,
+  );
+  await status.initialize();
+
+  setupRouteHandlers(runtime, routes, logger);
+
+  for (const [name, template] of Object.entries(config.templates ?? {})) {
+    runtime.template(name, template);
+  }
+  if (config.routes) {
+    registerConfigRoutes(config.routes, "site-builder", routes);
+  }
+
+  const services: SiteBuilderServices = {
+    entityService: runtime.entityReads,
+    command: runtime.messaging.command,
+    resolveTemplateContent: (templateName, options) =>
+      runtime.resolveTemplate(templateName, options),
+    getViewTemplate: (name) => runtime.views.get(name),
+    listViewTemplateNames: (): string[] =>
+      runtime.views.list().map((template) => template.name),
+    hasSavedContent: async (id): Promise<boolean> =>
+      (await runtime.entityReads.getEntity({
+        entityType: "site-content",
+        id,
+      })) !== null,
+  };
+  const builder = SiteBuilder.createFresh(
+    logger.child("SiteBuilder"),
+    services,
+    routes,
+    { getProfile: () => runtime.identity.getProfile() },
+    undefined,
+    runtime.entityDisplay,
+  );
+
+  const rebuilds = new RebuildManager(
+    config,
+    { answer: runtime.answer, jobs: runtime.jobs },
+    "site-builder",
+    logger,
+    status,
+  );
+  const workspace = new SiteWorkspaceProvider({
+    messaging: runtime.messaging,
+    siteUrl: runtime.siteUrl,
+    previewUrl: runtime.previewUrl,
+    studio: runtime.studio,
+    config,
+    routeRegistry: routes,
+    statusService: status,
+    requestBuild: (environment): void => {
+      rebuilds.requestBuild(environment);
+    },
+  });
+
+  if (config.autoRebuild) {
+    logger.debug("Auto-rebuild enabled");
+    rebuilds.setupAutoRebuild();
+  }
+
+  // Rebuilt once startup content has settled, so a queued startup import
+  // is in the site before it renders.
+  runtime.listen(SYSTEM_CHANNELS.startupContentSettled, async () => {
+    await rebuildOutputsAfterStart(config, rebuilds);
+  });
+
+  const description = siteDescription(runtime, config);
+  // Registered again when site metadata changes, so the prompt stays fresh.
+  runtime.listen(siteMetadataUpdatedChannel, async () => {
+    runtime.instructions(await description.instructions());
+  });
+
+  registerSiteHealthWidget(runtime, workspace);
+  runtime.ready(async () => {
+    await workspace.registerStudioWorkspace();
+  });
+
+  // Run last first when the package shuts down: the workspace comes off
+  // Studio, pending rebuilds stop, then running builds are cancelled.
+  onCleanup(() => builder.cancelActiveBuilds());
+  onCleanup(() => rebuilds.dispose());
+  onCleanup(() => workspace.unregisterStudioWorkspace());
+
+  return {
+    routes,
+    builder,
+    status,
+    rebuilds,
+    workspace,
+    // Asked at build time, so they reach the worker whatever order plugins
+    // registered in.
+    getHeadScripts: async (): Promise<string[]> => {
+      const collection = await runtime.messaging.gather(
+        siteHeadScriptsContract,
+        {},
+      );
+      const contributed =
+        collection.status === "answered" ? collection.answers : [];
+      return [...config.headScripts, ...contributed];
+    },
+    getPages: async (): Promise<RouteDefinition[]> => {
+      const collection = await runtime.messaging.gather(
+        siteBuilderPagesContract,
+        {},
+      );
+      return collection.status === "answered" ? collection.answers.flat() : [];
+    },
+    getSlots: async (): Promise<UISlotRegistry> => {
+      const collection = await runtime.messaging.gather(
+        siteBuilderSlotsContract,
+        {},
+      );
+      const slots = new UISlotRegistry();
+      const answers =
+        collection.status === "answered" ? collection.answers : [];
+      for (const { slotName, pluginId, render, priority } of answers.flat())
+        slots.register(slotName, {
+          pluginId,
+          render,
+          ...(priority !== undefined && { priority }),
+        });
+      return slots;
+    },
+    instructions: description.instructions,
+    siteResource: description.resource,
+    viewTemplatesResource: (): string =>
+      JSON.stringify(
+        runtime.views.list().map((t) => ({
+          name: t.name,
+          description: t.description,
+          hasWebRenderer: !!t.renderers.web,
+        })),
+        null,
+        2,
+      ),
+  };
+}
+
+/**
+ * The brain's static site: the routes it serves, the templates that fill
+ * them and the builds that write them out, to the directories the runtime's
+ * HTTP host serves.
+ */
+export function createSiteBuilderPackage(
+  deps: SiteBuilderDeps = {},
+): ServicePackageDefinition<typeof siteBuilderConfigSchema> {
+  const service = defineServicePlugin(
+    {
+      id: "site-builder",
+      config: siteBuilderConfigSchema,
+      setup: async (context): Promise<SiteBuilderState> => {
+        const state = await setUpSiteBuilder(
+          serviceRuntime(context),
+          context.config,
+          context.lifecycle.onCleanup,
+        );
+        deps.onSetup?.(state);
+        return state;
+      },
+    },
+    {
+      instructions: ({ state }) => state.instructions(),
+      resources: ({ state }) => ({
+        "Site Metadata": {
+          uri: "brain://site",
+          description: "Site metadata — title, description, domain, URLs",
+          mimeType: "application/json",
+          read: (): Promise<string> => state.siteResource(),
+        },
+        "Site Routes": {
+          uri: "site://routes",
+          description: "All registered routes with sections and templates",
+          mimeType: "application/json",
+          read: (): string =>
+            JSON.stringify(
+              state.routes.list().map((route) => ({
+                id: route.id,
+                path: route.path,
+                title: route.title,
+                description: route.description,
+                sections: route.sections.map((s) => ({
+                  id: s.id,
+                  template: s.template,
+                })),
+              })),
+              null,
+              2,
+            ),
+        },
+        "View Templates": {
+          uri: "site://templates",
+          description: "All registered view templates",
+          mimeType: "application/json",
+          read: (): string => state.viewTemplatesResource(),
+        },
+      }),
+    },
+  );
+  return withStaticSiteOutput(
+    withTools<typeof siteBuilderConfigSchema, SiteBuilderState>(
+      withJobHandlers<typeof siteBuilderConfigSchema, SiteBuilderState>(
+        service,
+        (context) => {
+          const runtime = serviceRuntime(context);
+          const { config, state } = context;
+          return [
+            siteBuildJob(
+              runtime.logger.child("SiteBuildJobHandler"),
+              runtime.messaging,
+              {
+                siteBuilder: state.builder,
+                layouts: config.layouts ?? {},
+                defaultSiteConfig: config.siteInfo,
+                sharedImagesDir: config.sharedImagesDir,
+                siteUrl: runtime.siteUrl,
+                previewUrl: runtime.previewUrl,
+                localSiteUrl: runtime.localSiteUrl,
+                preferLocalUrls: runtime.preferLocalUrls,
+                themeCSS: config.themeCSS,
+                getSlots: () => state.getSlots(),
+                getHeadScripts: () => state.getHeadScripts(),
+                getPages: () => state.getPages(),
+                ...(config.staticAssets && {
+                  staticAssets: config.staticAssets,
+                }),
+                ...(config.languages && { languages: config.languages }),
+                statusService: state.status,
+              },
+            ),
+          ];
+        },
+      ),
+      ({ state }) =>
+        createSiteBuilderTools("site-builder", (environment) =>
+          state.rebuilds.requestBuild(environment),
+        ),
+    ),
+    ({ config }) => ({
+      productionOutputDir: config.productionOutputDir,
+      previewOutputDir: config.previewOutputDir,
+      sharedImagesDir: config.sharedImagesDir,
+    }),
+  );
 }

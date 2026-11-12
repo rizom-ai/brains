@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { availableParallelism, tmpdir } from "node:os";
 import { Shell, type ProjectionRuleDiagnostic } from "@brains/core";
 import { MigrationManager, resolve } from "@brains/app";
-import { DirectorySyncPlugin } from "@brains/directory-sync";
+import { withObservedDirectorySync } from "./helpers/observed-directory-sync";
 import { OperationContext } from "@brains/operation-context";
 import { ConsoleLogger, LogLevel } from "@brains/utils/logger";
 import { canonicalBrain } from "../src/model/canonical-brain";
@@ -319,6 +319,14 @@ describe("directory import burst with locally mocked AI features", () => {
         runtimeStateDatabase: runtimeStateDatabaseUrl,
       });
 
+      const directorySyncOverrides = {
+        autoSync: false,
+
+        seedContent: false,
+
+        initialSync: true,
+      };
+
       const resolved = resolve(
         canonicalBrain,
         {},
@@ -343,11 +351,7 @@ describe("directory import burst with locally mocked AI features", () => {
             "a2a",
           ],
           plugins: {
-            "directory-sync": {
-              autoSync: false,
-              seedContent: false,
-              initialSync: true,
-            },
+            "directory-sync": directorySyncOverrides,
             topics: {
               enableAutoExtraction: true,
               maxEntitiesPerBatch: 4,
@@ -355,12 +359,17 @@ describe("directory import burst with locally mocked AI features", () => {
           },
         },
       );
+      const observed = withObservedDirectorySync(resolved.plugins ?? [], {
+        // The canonical brain's seed path, under the test's overrides.
+        seedContentPath: "./seed-content",
+        ...directorySyncOverrides,
+      });
 
       shell = Shell.createFresh(
         {
           name: resolved.name,
           version: resolved.version,
-          plugins: resolved.plugins ?? [],
+          plugins: observed.plugins,
           permissions: resolved.permissions ?? {},
           spaces: resolved.spaces ?? [],
           database: { url: databaseUrl },
@@ -428,14 +437,7 @@ describe("directory import burst with locally mocked AI features", () => {
         },
       );
 
-      const directoryPlugin = runningShell
-        .getPluginManager()
-        .getPlugin("directory-sync");
-      if (!(directoryPlugin instanceof DirectorySyncPlugin)) {
-        throw new Error("Directory sync plugin was not registered");
-      }
-      const directorySync = directoryPlugin.getDirectorySync();
-      if (!directorySync) throw new Error("Directory sync was not initialized");
+      const directorySync = observed.directorySync();
 
       const runPhase = async (
         phase: "add" | "update",

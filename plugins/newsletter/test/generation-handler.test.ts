@@ -1,342 +1,202 @@
-import { beforeEach, describe, expect, it, spyOn } from "bun:test";
-import {
-  GenerationJobHandler,
-  generatedNewsletterSchema,
-  generationJobSchema,
-  type GenerationJobData,
-} from "../src/entity/handlers/generation-handler";
+import { beforeEach, describe, expect, it } from "bun:test";
+import { createPluginHarness } from "@brains/plugins/test";
+import type { ContentGenerationConfig, JobHandler } from "@brains/plugins";
+import { createMockProgressReporter } from "@brains/test-utils";
+import { generationJobSchema } from "../src/entity/generation";
+import { newsletterMetadataSchema } from "../src/entity/schemas/newsletter";
+import { z } from "@brains/utils/zod";
+import { createNewsletterEntityPlugin } from "./newsletter-plugins";
 
-import { createSilentLogger } from "@brains/test-utils";
-import {
-  createMockShell,
-  type MockShell,
-  createEntityPluginContext,
-  type EntityPluginContext,
-  type Logger,
-} from "@brains/plugins/test";
-import type { EntityMutationResult } from "@brains/plugins";
-import {
-  CallbackProgressReporter,
-  type ProgressReporter,
-} from "@brains/utils/progress";
-import {
-  newsletterMetadataSchema,
-  type NewsletterMetadata,
-} from "../src/entity/schemas/newsletter";
+const generationResult = z.looseObject({
+  success: z.boolean(),
+  entityId: z.string().optional(),
+  error: z.string().optional(),
+});
 
-describe("GenerationJobHandler", () => {
-  let handler: GenerationJobHandler;
-  let context: EntityPluginContext;
-  let logger: Logger;
-  let mockShell: MockShell;
-  let progressReporter: ProgressReporter;
-  let progressCalls: Array<{ progress: number; message?: string }>;
+/** A job the newsletter queued for itself, as the runtime queues it. */
+function asPackage(input: unknown): unknown {
+  return {
+    authority: {
+      actor: { kind: "service", serviceId: "newsletter" },
+      permissionCeiling: "public",
+    },
+    input,
+    byPackage: true,
+  };
+}
 
-  beforeEach(() => {
-    logger = createSilentLogger();
-    mockShell = createMockShell({ logger });
-    context = createEntityPluginContext(mockShell, "newsletter");
-    handler = new GenerationJobHandler(logger, context);
+const firstPost = {
+  id: "post-1",
+  entityType: "post",
+  content: "Content here.",
+  metadata: {
+    title: "First Post",
+    slug: "post-1",
+    status: "published",
+    excerpt: "Introduction to the topic",
+  },
+};
 
-    // Track progress calls
-    progressCalls = [];
-    const reporter = CallbackProgressReporter.from(async (notification) => {
-      const entry: { progress: number; message?: string } = {
-        progress: notification.progress,
-      };
-      if (notification.message !== undefined) {
-        entry.message = notification.message;
-      }
-      progressCalls.push(entry);
-    });
-    if (!reporter) {
-      throw new Error("Failed to create progress reporter");
-    }
-    progressReporter = reporter;
+describe("the newsletter generation", () => {
+  let harness: ReturnType<typeof createPluginHarness>;
+  let handler: JobHandler;
+  let configs: ContentGenerationConfig[];
+
+  beforeEach(async () => {
+    harness = createPluginHarness();
+    await harness.installPlugin(createNewsletterEntityPlugin());
+    configs = [];
+    harness.getMockShell().generateContent = async (
+      config: ContentGenerationConfig,
+    ): Promise<unknown> => {
+      configs.push(config);
+      return { subject: "Weekly Digest", content: "Here are the posts..." };
+    };
+    const registered = harness
+      .getMockShell()
+      .getJobQueueService()
+      .getHandler("newsletter:generation");
+    if (!registered) throw new Error("No newsletter generation");
+    handler = registered;
   });
+
+  async function run(
+    input: unknown,
+  ): Promise<z.output<typeof generationResult>> {
+    const result = await handler.process(
+      handler.validateAndParse(asPackage(input)),
+      "job-123",
+      createMockProgressReporter(),
+      new AbortController().signal,
+    );
+    return generationResult.parse(result);
+  }
+
+  async function stored(
+    id: string,
+  ): Promise<ReturnType<typeof newsletterMetadataSchema.parse> | undefined> {
+    const entity = await harness.getEntityService().getEntity({
+      entityType: "newsletter",
+      id,
+      visibilityScope: "restricted",
+    });
+    return entity ? newsletterMetadataSchema.parse(entity.metadata) : undefined;
+  }
 
   describe("generationJobSchema", () => {
-    it("should validate job data with prompt", () => {
-      const data = {
-        prompt: "Create a newsletter about AI",
-      };
-      const result = generationJobSchema.safeParse(data);
-      expect(result.success).toBe(true);
+    it("accepts a prompt, direct content, and source posts", () => {
+      for (const data of [
+        { prompt: "Create a newsletter about AI" },
+        { subject: "Weekly Update", content: "Hello subscribers!" },
+        { sourceEntityIds: ["post-1", "post-2"], sourceEntityType: "post" },
+      ]) {
+        expect(generationJobSchema.safeParse(data).success).toBe(true);
+      }
     });
 
-    it("should validate job data with direct content", () => {
-      const data = {
-        subject: "Weekly Update",
-        content: "Hello subscribers!",
-      };
-      const result = generationJobSchema.safeParse(data);
-      expect(result.success).toBe(true);
+    it("leaves addToQueue unset when the input does", () => {
+      expect(generationJobSchema.parse({ prompt: "Test" }).addToQueue).toBe(
+        undefined,
+      );
     });
 
-    it("should validate job data with source entity IDs", () => {
-      const data = {
-        sourceEntityIds: ["post-1", "post-2"],
-        sourceEntityType: "post",
-      };
-      const result = generationJobSchema.safeParse(data);
-      expect(result.success).toBe(true);
-    });
-
-    it("should accept undefined addToQueue (defaults applied in handler)", () => {
-      const data = { prompt: "Test" };
-      const result = generationJobSchema.parse(data);
-      expect(result.addToQueue).toBeUndefined();
-    });
-  });
-
-  describe("validateAndParse", () => {
-    it("should validate correct job data", () => {
-      const validData = {
-        prompt: "Create a newsletter",
-        addToQueue: true,
-      };
-      const result = handler.validateAndParse(validData);
-      expect(result).not.toBeNull();
-      expect(result?.prompt).toBe("Create a newsletter");
-    });
-
-    it("should reject invalid sourceEntityType", () => {
-      const invalidData = {
-        sourceEntityIds: ["post-1"],
-        sourceEntityType: "invalid", // Not supported
-      };
-      const result = handler.validateAndParse(invalidData);
-      expect(result).toBeNull();
+    it("refuses a source type it does not write from", () => {
+      expect(
+        generationJobSchema.safeParse({
+          sourceEntityIds: ["post-1"],
+          sourceEntityType: "invalid",
+        }).success,
+      ).toBe(false);
     });
   });
 
   describe("process", () => {
-    it("classifies newsletter generation as anchor-authored voice content", async () => {
-      spyOn(context.ai, "generate").mockResolvedValue({
-        subject: "Grounded systems update",
-        content: "Newsletter content",
-      });
+    it("asks for an anchor-authored issue against the generation template", async () => {
+      await run({ prompt: "Write a systems update" });
 
-      await handler.process(
-        { prompt: "Write a systems update" },
-        "job-123",
-        progressReporter,
-      );
-
-      expect(context.ai.generate).toHaveBeenCalledWith(
-        {
+      expect(configs).toEqual([
+        expect.objectContaining({
           prompt: "Write a systems update",
           templateName: "newsletter:generation",
           representedIdentity: "anchor",
-        },
-        generatedNewsletterSchema,
-      );
+        }),
+      ]);
     });
 
-    it("should fail when no content source provided", async () => {
-      const jobData: GenerationJobData = {
-        addToQueue: true,
-      };
-
-      const result = await handler.process(
-        jobData,
-        "job-123",
-        progressReporter,
-      );
+    it("fails when no content source is provided", async () => {
+      const result = await run({ addToQueue: true });
 
       expect(result.success).toBe(false);
       expect(result.error).toContain("No content source");
     });
 
-    it("should create newsletter from direct content with subject", async () => {
-      const jobData: GenerationJobData = {
+    it("creates an issue from direct content with its subject, as a draft", async () => {
+      const result = await run({
         subject: "Weekly Update",
         content: "Hello subscribers! Here are this week's highlights...",
-        addToQueue: false,
-      };
+      });
 
-      const result = await handler.process(
-        jobData,
-        "job-123",
-        progressReporter,
-      );
-
-      expect(result.success).toBe(true);
-      expect(result.entityId).toBeDefined();
+      expect(result).toMatchObject({
+        success: true,
+        entityId: "weekly-update",
+      });
+      expect((await stored("weekly-update"))?.status).toBe("draft");
+      expect(configs).toEqual([]);
     });
 
-    it("should default to draft status when addToQueue not specified", async () => {
-      let createdStatus: NewsletterMetadata["status"] | undefined;
-      const originalCreate = context.entityService.createEntity.bind(
-        context.entityService,
-      );
-      context.entityService.createEntity = async (
-        input,
-      ): Promise<EntityMutationResult> => {
-        createdStatus = newsletterMetadataSchema.parse(
-          input.entity.metadata,
-        ).status;
-        return originalCreate(input);
-      };
+    it("queues the issue when asked to", async () => {
+      await run({
+        subject: "Queued Update",
+        content: "Content",
+        addToQueue: true,
+      });
 
-      const jobData: GenerationJobData = {
-        subject: "Draft Newsletter",
-        content: "Content without addToQueue specified",
-        // addToQueue intentionally not specified - should default to false
-      };
-
-      const result = await handler.process(
-        jobData,
-        "job-123",
-        progressReporter,
-      );
-
-      expect(result.success).toBe(true);
-      expect(createdStatus).toBe("draft");
+      expect((await stored("queued-update"))?.status).toBe("queued");
     });
 
-    it("should fail when content provided without subject", async () => {
-      const jobData: GenerationJobData = {
-        content: "Hello subscribers!",
-        addToQueue: false,
-      };
-
-      const result = await handler.process(
-        jobData,
-        "job-123",
-        progressReporter,
-      );
+    it("fails when content is given without a subject", async () => {
+      const result = await run({ content: "Hello subscribers!" });
 
       expect(result.success).toBe(false);
       expect(result.error).toContain("Subject is required");
     });
 
-    it("should report progress during generation", async () => {
-      const jobData: GenerationJobData = {
-        subject: "Test Newsletter",
-        content: "Test content",
-        addToQueue: true,
-      };
-
-      await handler.process(jobData, "job-123", progressReporter);
-
-      expect(progressCalls.length).toBeGreaterThan(0);
-      expect(progressCalls[0]?.progress).toBe(0);
-    });
-
-    it("should fail when source entities not found", async () => {
-      const jobData: GenerationJobData = {
+    it("fails when none of the source posts exist", async () => {
+      const result = await run({
         sourceEntityIds: ["non-existent-post"],
         sourceEntityType: "post",
-        addToQueue: true,
-      };
-
-      const result = await handler.process(
-        jobData,
-        "job-123",
-        progressReporter,
-      );
+      });
 
       expect(result.success).toBe(false);
       expect(result.error).toContain("No source entities found");
     });
 
-    it("should include entityIds in metadata when source entities are used", async () => {
-      // Create mock posts
-      const entityService = context.entityService;
-      await entityService.createEntity({
-        entity: {
-          id: "post-1",
-          entityType: "post",
-          content: `---
-title: "First Post"
-slug: post-1
-status: published
-excerpt: "Introduction to the topic"
----
-
-# First Post
-
-Content here.`,
-          metadata: {
-            title: "First Post",
-            slug: "post-1",
-            status: "published",
-            excerpt: "Introduction to the topic",
-          },
+    it("records the posts it presents, and asks for them without voice rules of its own", async () => {
+      harness.getMockShell().addEntities([
+        {
+          ...firstPost,
+          contentHash: "post-1",
+          visibility: "public",
+          created: new Date(0).toISOString(),
+          updated: new Date(0).toISOString(),
         },
-      });
+      ]);
 
-      // Mock AI generate to return expected shape
-      spyOn(context.ai, "generate").mockImplementation(
-        async (_config, schema) =>
-          schema.parse({
-            subject: "Weekly Digest",
-            content: "Here are the latest posts...",
-          }),
-      );
-
-      let capturedMetadata: NewsletterMetadata | undefined;
-      const originalCreate = entityService.createEntity.bind(entityService);
-      entityService.createEntity = async (
-        input,
-      ): Promise<EntityMutationResult> => {
-        capturedMetadata = newsletterMetadataSchema.parse(
-          input.entity.metadata,
-        );
-        return originalCreate(input);
-      };
-
-      const jobData: GenerationJobData = {
+      const result = await run({
         sourceEntityIds: ["post-1"],
         sourceEntityType: "post",
-        addToQueue: false,
-      };
-
-      const result = await handler.process(
-        jobData,
-        "job-123",
-        progressReporter,
-      );
+      });
 
       expect(result.success).toBe(true);
-      expect(capturedMetadata?.entityIds).toEqual(["post-1"]);
-    });
-
-    it("asks for a newsletter from source posts without voice instructions of its own", async () => {
-      await context.entityService.createEntity({
-        entity: {
-          id: "post-1",
-          entityType: "post",
-          content: `---
-title: "First Post"
-slug: post-1
-status: published
-excerpt: "Introduction to the topic"
----
-
-Content here.`,
-          metadata: {
-            title: "First Post",
-            slug: "post-1",
-            status: "published",
-            excerpt: "Introduction to the topic",
-          },
-        },
+      expect(await stored("weekly-digest")).toMatchObject({
+        subject: "Weekly Digest",
+        status: "draft",
+        entityIds: ["post-1"],
+        sourceEntityType: "post",
       });
-      const generate = spyOn(context.ai, "generate").mockImplementation(
-        async (_config, schema) =>
-          schema.parse({ subject: "Digest", content: "Body" }),
-      );
-
-      await handler.process(
-        { sourceEntityIds: ["post-1"], sourceEntityType: "post" },
-        "job-123",
-        progressReporter,
-      );
-
-      const prompt = generate.mock.calls[0]?.[0].prompt ?? "";
+      const prompt = configs[0]?.prompt ?? "";
       expect(prompt).toContain("First Post");
+      expect(prompt).toContain("Introduction to the topic");
       for (const voiceRule of ["engaging", "compelling", "friendly sign-off"]) {
         expect(prompt).not.toContain(voiceRule);
       }

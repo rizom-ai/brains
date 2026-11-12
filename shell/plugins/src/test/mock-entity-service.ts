@@ -271,7 +271,10 @@ export function createMockEntityService(
     ): Promise<EntityMutationResult> => {
       const entity = request.entity;
       if (!entity.id) throw new Error("Entity must have an id");
-      const { content, metadata } = store.serialize(entity);
+      const { content, metadata } = store.serialize(
+        entity,
+        store.entities.get(entity.id)?.content,
+      );
       const contentHash = computeContentHash(content);
       // Mirror the real entity service: a byte-identical write is skipped —
       // no store, no event, no job.

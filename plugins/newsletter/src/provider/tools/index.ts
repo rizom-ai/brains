@@ -1,5 +1,10 @@
-import type { Tool, ToolResult } from "@brains/plugins";
-import { createTool, toolSuccess, toolError } from "@brains/plugins";
+import {
+  type Tool,
+  type ToolResult,
+  createTool,
+  toolSuccess,
+  toolError,
+} from "@brains/sdk/internal/service-runtime";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import type { NewsletterDeliveryProvider } from "../contracts";

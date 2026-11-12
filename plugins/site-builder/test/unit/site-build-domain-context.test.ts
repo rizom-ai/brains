@@ -1,9 +1,10 @@
 import { describe, test, expect, beforeEach, mock } from "bun:test";
 import { messagingFor } from "../test-helpers";
+import type { SiteBuildJobHandlerConfig } from "../../src/handlers/siteBuildJobHandler";
 import {
-  SiteBuildJobHandler,
-  type SiteBuildJobHandlerConfig,
-} from "../../src/handlers/siteBuildJobHandler";
+  createSiteBuildJobHandler,
+  type SiteBuildTestHandler,
+} from "../site-build-job";
 import type { ISiteBuilder } from "../../src/types/site-builder-types";
 import type { ProgressReporter } from "@brains/utils/progress";
 import {
@@ -14,10 +15,10 @@ import {
 type SiteBuildJobHandlerConfigOverrides = Partial<SiteBuildJobHandlerConfig>;
 
 /**
- * Tests that SiteBuildJobHandler resolves canonical, preview, and local URLs
+ * Tests that SiteBuildTestHandler resolves canonical, preview, and local URLs
  * from the runtime context passed through its config.
  */
-describe("SiteBuildJobHandler - Domain URLs", () => {
+describe("SiteBuildTestHandler - Domain URLs", () => {
   let mockSiteBuilder: ISiteBuilder;
   let mockProgressReporter: ProgressReporter;
 
@@ -39,8 +40,8 @@ describe("SiteBuildJobHandler - Domain URLs", () => {
 
   function createHandler(
     overrides: SiteBuildJobHandlerConfigOverrides = {},
-  ): SiteBuildJobHandler {
-    return new SiteBuildJobHandler(createSilentLogger(), messagingFor(), {
+  ): SiteBuildTestHandler {
+    return createSiteBuildJobHandler(createSilentLogger(), messagingFor(), {
       siteBuilder: mockSiteBuilder,
       layouts: {},
       defaultSiteConfig: {

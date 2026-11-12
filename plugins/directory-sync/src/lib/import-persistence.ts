@@ -1,9 +1,11 @@
 import type {
-  BaseEntity,
+  ServiceEntityMirrorClient,
   ContentVisibility,
-  EntityServiceClient,
-} from "@brains/plugins";
-import { EntityWriteConflictError } from "@brains/plugins";
+} from "@brains/sdk/internal/service-runtime";
+import {
+  type BaseEntity,
+  EntityWriteConflictError,
+} from "@brains/sdk/internal/entity-runtime";
 import type { Logger } from "@brains/utils/logger";
 import { getErrorMessage } from "@brains/utils/error";
 import { computeContentHash } from "@brains/utils/hash";
@@ -14,7 +16,10 @@ import { resolveInSyncPath } from "./path-utils";
 import { recordImportIssue, recordSkippedImport } from "./import-result";
 
 export interface ImportPersistenceDeps {
-  entityService: Pick<EntityServiceClient, "serializeEntity" | "upsertEntity">;
+  entityService: Pick<
+    ServiceEntityMirrorClient,
+    "serializeEntity" | "upsertEntity"
+  >;
   logger: Logger;
   quarantine: {
     isValidationError(error: unknown): boolean;
@@ -95,7 +100,9 @@ export async function persistImportEntity(
   parsedEntity: Partial<BaseEntity>,
   filePath: string,
   result: ImportResult,
-  snapshot: Awaited<ReturnType<EntityServiceClient["getEntityWriteSnapshot"]>>,
+  snapshot: Awaited<
+    ReturnType<ServiceEntityMirrorClient["getEntityWriteSnapshot"]>
+  >,
 ): Promise<void> {
   try {
     const existing = snapshot?.entity ?? null;

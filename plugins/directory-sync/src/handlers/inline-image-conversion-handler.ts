@@ -1,8 +1,8 @@
+import type { DirectorySyncCore } from "../lib/sync-context";
 import { readFile } from "fs/promises";
 import { writeFileAtomic } from "../lib/atomic-write";
-import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
-import { BaseJobHandler } from "@brains/plugins";
+import { reportProgress } from "../lib/report-progress";
 import type { ProgressReporter } from "@brains/utils/progress";
 import { fetchImageAsBase64 } from "@brains/image";
 import { getErrorMessage } from "@brains/utils/error";
@@ -30,22 +30,19 @@ export interface InlineImageConversionResult {
  * 4. Replaces URLs with entity://image/{id} references
  * 5. Writes updated content back to file
  */
-export class InlineImageConversionJobHandler extends BaseJobHandler<
-  "inline-image-convert",
-  InlineImageConversionJobData,
-  InlineImageConversionResult
-> {
+export class InlineImageConversionJobHandler {
+  /** The data the queue hands this job, as its schema parses it. */
+  readonly schema: typeof inlineImageConversionJobSchema =
+    inlineImageConversionJobSchema;
+  private readonly logger: Logger;
   private readonly converter: MarkdownImageConverter;
 
   constructor(
-    context: ServicePluginContext,
+    context: DirectorySyncCore,
     logger: Logger,
     fetcher: ImageFetcher = fetchImageAsBase64,
   ) {
-    super(logger, {
-      schema: inlineImageConversionJobSchema,
-      jobTypeName: "inline-image-convert",
-    });
+    this.logger = logger;
     this.converter = new MarkdownImageConverter(
       context.entityService,
       logger,
@@ -67,7 +64,7 @@ export class InlineImageConversionJobHandler extends BaseJobHandler<
     });
 
     try {
-      await this.reportProgress(progressReporter, {
+      await reportProgress(progressReporter, {
         progress: PROGRESS_STEPS.INIT,
         message: `Reading file: ${filePath}`,
       });
@@ -82,7 +79,7 @@ export class InlineImageConversionJobHandler extends BaseJobHandler<
         return { success: false, error: message };
       }
 
-      await this.reportProgress(progressReporter, {
+      await reportProgress(progressReporter, {
         progress: PROGRESS_STEPS.FETCH,
         message: "Detecting inline images",
       });
@@ -95,7 +92,7 @@ export class InlineImageConversionJobHandler extends BaseJobHandler<
 
       if (detections.length === 0) {
         this.logger.debug("No inline images to convert", { filePath });
-        await this.reportProgress(progressReporter, {
+        await reportProgress(progressReporter, {
           progress: PROGRESS_STEPS.COMPLETE,
           message: "No images to convert",
         });
@@ -107,7 +104,7 @@ export class InlineImageConversionJobHandler extends BaseJobHandler<
         count: detections.length,
       });
 
-      await this.reportProgress(progressReporter, {
+      await reportProgress(progressReporter, {
         progress: PROGRESS_STEPS.PROCESS,
         message: `Converting ${detections.length} images`,
       });
@@ -117,14 +114,14 @@ export class InlineImageConversionJobHandler extends BaseJobHandler<
 
       if (!result.converted) {
         this.logger.debug("No images were converted", { filePath });
-        await this.reportProgress(progressReporter, {
+        await reportProgress(progressReporter, {
           progress: PROGRESS_STEPS.COMPLETE,
           message: "No images converted",
         });
         return { success: true, skipped: true, convertedCount: 0 };
       }
 
-      await this.reportProgress(progressReporter, {
+      await reportProgress(progressReporter, {
         progress: PROGRESS_STEPS.SAVE,
         message: "Writing updated file",
       });
@@ -138,7 +135,7 @@ export class InlineImageConversionJobHandler extends BaseJobHandler<
         return { success: false, error: message };
       }
 
-      await this.reportProgress(progressReporter, {
+      await reportProgress(progressReporter, {
         progress: PROGRESS_STEPS.COMPLETE,
         message: "Conversion complete",
       });
@@ -160,7 +157,7 @@ export class InlineImageConversionJobHandler extends BaseJobHandler<
     }
   }
 
-  protected override summarizeDataForLog(
+  public summarizeDataForLog(
     data: InlineImageConversionJobData,
   ): Record<string, unknown> {
     return {

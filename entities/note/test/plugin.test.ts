@@ -248,8 +248,10 @@ describe("NotePlugin", () => {
         id: "the-draft",
         source: true,
       });
+      // Folded into the one block, as the brain's entity service stores it:
+      // the file's own author kept beside the title.
       expect(entity?.content).toBe(
-        "---\ntitle: The Draft\n---\n# The Draft\n\nBody text.\n",
+        "---\ntitle: The Draft\nauthor: Jan\n---\n# The Draft\n\nBody text.\n",
       );
       expect(entity?.metadata).toEqual({
         title: "The Draft",

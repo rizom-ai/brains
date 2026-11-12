@@ -98,9 +98,18 @@ export {
 } from "./policy";
 export type { FormEnginePolicy, FormPolicyOverrides } from "./policy";
 export { FormService } from "./service";
-export { FormPlugin, formPluginConfigSchema } from "./plugin";
-export type { FormPluginConfig, FormPluginOptions } from "./plugin";
-export type { BuiltInForm, FormServiceOptions } from "./service";
+export {
+  defineFormPackage,
+  formPackageDependencies,
+  formPluginConfigSchema,
+} from "./plugin";
+export type {
+  FormPackageOptions,
+  FormPackageState,
+  FormPluginConfig,
+} from "./plugin";
+export type { BuiltInForm, FormRuntime, FormServiceOptions } from "./service";
+export type { FormEntityService } from "./records";
 export { formFrontmatterSchema } from "./definition";
 export type { FormFrontmatter } from "./definition";
 export { formMarkdown, parseFormMarkdown } from "./form-markdown";

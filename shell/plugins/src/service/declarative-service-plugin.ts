@@ -1,5 +1,8 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { unscopeTemplateName } from "@brains/content-service";
+import type { OperationalHealthProvider } from "../operational-health-registry";
+import { entityMirrorOf } from "./entity-mirror";
+import { sharedUploadScope } from "./upload-registry";
 import {
   SDK_ERROR_MESSAGE_MAX_LENGTH,
   SdkError,
@@ -25,8 +28,12 @@ import type {
   NearestEntity,
   NearestToEntityRequest,
   ProjectSemanticSpaceRequest,
+  ReadOnlyEntityService,
   SemanticSpaceProjection,
 } from "@brains/entity-service";
+import { isGroupingContributor } from "@brains/entity-service";
+import { entityDisplayTitle } from "../entity/display-title";
+import { deriveConsoleSurfaces } from "../console-surfaces";
 import type { JobHandler } from "@brains/job-queue";
 import type { ProgressReporter } from "@brains/utils/progress";
 import {
@@ -49,7 +56,11 @@ import {
 } from "@brains/utils/single-use-store";
 import { z } from "@brains/utils/zod";
 import { emptyPluginState } from "../base/empty-state";
-import { SYSTEM_CHANNELS } from "../system-channels";
+import {
+  SYSTEM_CHANNELS,
+  pluginsRegisteredAnswerSchema,
+  type PluginsRegisteredAnswer,
+} from "../system-channels";
 import type {
   PluginCapabilities,
   PluginRegistrationContext,
@@ -98,9 +109,17 @@ import {
   type ServiceDataSourceDeclaration,
   type ServiceEntityReads,
   type ServiceEntityShapes,
+  type ServiceEntityWrites,
+  type ServiceGroupings,
   type ServiceAI,
 } from "./service-runtime";
 import { ServicePlugin } from "./service-plugin";
+import {
+  firstPartyJobHandlerOf,
+  noFirstPartyServiceDeclarations,
+  type FirstPartyServiceDeclarations,
+} from "./first-party-service";
+
 import type { ServicePluginContext } from "./context";
 import type {
   AnyServiceJobDefinition,
@@ -152,6 +171,8 @@ import {
 } from "../interface/route-definition-contract";
 import { createDeclaredRoute } from "../internal/declared-route";
 import type { WebRouteDefinition } from "../types/web-routes";
+import type { StaticSiteOutput } from "../internal/http-host";
+import type { ApiRouteDefinition } from "../types/api-routes";
 
 const confirmationTokenField = "_rizomConfirmationToken";
 
@@ -291,6 +312,8 @@ class DeclarativeServicePlugin<
   private readonly calls = new AsyncLocalStorage<ServiceCall>();
   private entityAccessCache: ServiceEntityAccess<TEntities[number]> | undefined;
   private readonly publicId: string;
+  /** What a first-party class declared beside the definition, as written. */
+  private readonly declarations: FirstPartyServiceDeclarations;
   /** Registered before this plugin; a first-party class's, named by the composer. */
   public readonly dependencies: string[];
   private readonly toolContext = new AsyncLocalStorage<ToolContext>();
@@ -302,6 +325,8 @@ class DeclarativeServicePlugin<
   private readonly readyHandlers: Array<() => Promise<void>> = [];
   /** What a first-party package runs once every plugin has registered. */
   private readonly registeredHandlers: Array<() => Promise<void>> = [];
+  private initialSyncAnswered = false;
+  private readonly registeringHandlers: Array<() => Promise<void>> = [];
   private routes: WebRouteDefinition[] = [];
   private readonly operatorAbortController = new AbortController();
   private readonly registeredStudioWorkspaceIds: string[] = [];
@@ -347,9 +372,11 @@ class DeclarativeServicePlugin<
     metadata: InstalledPluginPackageMetadata,
     id: string,
     dependencies: readonly string[],
+    declarations: FirstPartyServiceDeclarations,
   ) {
     super(id, metadata, config, identityConfigSchema());
     this.definition = definition;
+    this.declarations = declarations;
     this.publicId = definition.id;
     this.dependencies = [...dependencies];
   }
@@ -375,18 +402,20 @@ class DeclarativeServicePlugin<
       });
     }
     this.state = this.definition.setup
-      ? await this.definition.setup({
-          config: this.config,
-          lifecycle: {
-            onCleanup: (cleanup): void => {
-              this.cleanups.push(cleanup);
+      ? await this.definition.setup(
+          this.withRuntime(context, {
+            config: this.config,
+            lifecycle: {
+              onCleanup: (cleanup): void => {
+                this.cleanups.push(cleanup);
+              },
             },
-          },
-          runtimeState: packageRuntimeState(
-            context.runtimeState,
-            this.packageName,
-          ),
-        })
+            runtimeState: packageRuntimeState(
+              context.runtimeState,
+              this.packageName,
+            ),
+          }),
+        )
       : emptyPluginState<TState>();
 
     const templates = this.templateFormatter();
@@ -394,13 +423,15 @@ class DeclarativeServicePlugin<
     this.registerPrompts();
 
     const bindings =
-      this.definition.jobs?.({
-        config: this.config,
-        state: this.state,
-        entities: this.entityAccess(),
-        messaging: this.messaging(),
-        templates,
-      }) ?? [];
+      this.definition.jobs?.(
+        this.withRuntime(context, {
+          config: this.config,
+          state: this.state,
+          entities: this.entityAccess(),
+          messaging: this.messaging(),
+          templates,
+        }),
+      ) ?? [];
     const names = new Set<string>();
     for (const binding of bindings) {
       const job = binding.definition;
@@ -419,21 +450,66 @@ class DeclarativeServicePlugin<
         ),
       );
     }
+    // As its class registered them, each run as the package.
+    const asWritten =
+      this.declarations.jobHandlers?.run(
+        this.withRuntime(context, { config: this.config, state: this.state }),
+      ) ?? [];
+    for (const job of asWritten) {
+      if (names.has(job.type)) {
+        throw new Error(
+          `Service "${this.publicId}" registers job "${job.type}" more than once`,
+        );
+      }
+      names.add(job.type);
+      context.jobs.registerHandler(
+        job.type,
+        firstPartyJobHandlerOf(job, {
+          logger: this.logger,
+          // As its class's handler ran: as the package.
+          run: (process) => this.calls.run(this.packageCall(), process),
+        }),
+      );
+    }
     this.registerSubscriptions(context);
     this.routes = (
-      this.definition.routes?.({
-        config: this.config,
-        state: this.state,
-        entities: this.entityAccess(),
-        jobs: this.jobs(),
-        messaging: this.messaging(),
-        accountSettings: this.accountSettingsWriter(),
-      }) ?? []
+      this.definition.routes?.(
+        this.withRuntime(context, {
+          config: this.config,
+          state: this.state,
+          entities: this.entityAccess(),
+          jobs: this.jobs(),
+          messaging: this.messaging(),
+          accountSettings: this.accountSettingsWriter(),
+        }),
+      ) ?? []
     ).map((route) => this.runtimeRoute(route));
+    // As its class served them, after the routes the definition declares.
+    this.routes.push(
+      ...(this.declarations.webRoutes?.run(
+        this.withRuntime(context, { config: this.config, state: this.state }),
+      ) ?? []),
+    );
+    // Where the rest of its class's onRegister ran, as the package.
+    for (const handler of this.registeringHandlers.splice(0)) {
+      await this.calls.run(this.packageCall(), handler);
+    }
   }
 
   override getWebRoutes(): WebRouteDefinition[] {
     return [...this.routes];
+  }
+
+  /** The tool-backed API routes its class served, as written. */
+  override getApiRoutes(): ApiRouteDefinition[] {
+    return [
+      ...(this.declarations.apiRoutes?.run({ config: this.config }) ?? []),
+    ];
+  }
+
+  /** Where its class wrote the site the runtime's HTTP host serves, if it did. */
+  public getStaticSiteOutput(): StaticSiteOutput | undefined {
+    return this.declarations.staticSiteOutput?.run({ config: this.config });
   }
 
   /** A declared route, served as its caller. */
@@ -575,16 +651,25 @@ class DeclarativeServicePlugin<
           content: this.content(),
         }),
       ) ?? [];
+    const declared = definitions.map((definition) =>
+      this.runtimeTool(definition),
+    );
+    // As its class registered them, each run as its caller.
+    const asWritten = (
+      this.declarations.tools?.run(
+        this.withRuntime(this.getContext(), { config: this.config, state }),
+      ) ?? []
+    ).map((tool) => this.toolAsWritten(tool));
     const names = new Set<string>();
-    this.tools = definitions.map((definition) => {
-      if (names.has(definition.name)) {
+    for (const { name } of [...declared, ...asWritten]) {
+      if (names.has(name)) {
         throw new Error(
-          `Service "${this.publicId}" defines tool "${definition.name}" more than once`,
+          `Service "${this.publicId}" defines tool "${name}" more than once`,
         );
       }
-      names.add(definition.name);
-      return this.runtimeTool(definition);
-    });
+      names.add(name);
+    }
+    this.tools = [...declared, ...asWritten];
     return this.tools;
   }
 
@@ -638,6 +723,7 @@ class DeclarativeServicePlugin<
     for (const release of this.answered.splice(0).reverse()) release();
     this.readyHandlers.splice(0);
     this.registeredHandlers.splice(0);
+    this.initialSyncAnswered = false;
     for (const cleanup of this.cleanups.splice(0).reverse()) {
       await cleanup();
     }
@@ -966,6 +1052,77 @@ class DeclarativeServicePlugin<
     return Object.freeze(messaging);
   }
 
+  /** The brain's groupings, which Studio owns; refused to any other package. */
+  private groupingsOf(context: ServicePluginContext): ServiceGroupings {
+    if (this.id !== "studio") {
+      throw new Error(
+        `Service "${this.id}" cannot reach the brain's groupings: Studio owns them`,
+      );
+    }
+    const { entities, entityService } = context;
+    const sourceTypes = new Set<string>();
+    return Object.freeze({
+      validateGroupings: (groupings) => entities.validateGroupings(groupings),
+      replaceGroupings: (groupings, options) =>
+        entities.replaceGroupings(groupings, options),
+      registerGroupingSource: (source): void => {
+        entities.registerGroupingSource(source);
+        sourceTypes.add(source.entityType);
+      },
+      registerPersistValidator: (type, validator): void => {
+        if (
+          !sourceTypes.has(type) &&
+          !isGroupingContributor(
+            entities.getAdapter(type),
+            entityService.getEntityTypeConfig(type),
+          )
+        ) {
+          throw new Error(
+            `Studio enforces groupings only on a contributing type or its grouping source: ${type} is neither`,
+          );
+        }
+        entities.registerPersistValidator(type, validator);
+      },
+      getGroupings: () => entities.getGroupings(),
+      ensureGroupingsCurrent: () => entities.ensureGroupingsCurrent(),
+      ensureGroupingsReady: () => entityService.ensureGroupingsReady(),
+      queryGroupingUsage: (request) =>
+        entityService.queryGroupingUsage(request),
+      queryGroupingMembers: (request) =>
+        entityService.queryGroupingMembers(request),
+      queryGroupingCatalog: (request) =>
+        entityService.queryGroupingCatalog(request),
+    } satisfies ServiceGroupings);
+  }
+
+  /**
+   * Answer pluginsRegistered with whether startup content is still
+   * importing, as the package, in the main process only and once.
+   */
+  private answerInitialSync(
+    context: ServicePluginContext,
+    handler: () => Promise<PluginsRegisteredAnswer>,
+  ): void {
+    if (this.initialSyncAnswered) {
+      throw new Error(
+        `Service "${this.publicId}" answers its initial sync more than once`,
+      );
+    }
+    this.initialSyncAnswered = true;
+    if (context.executionOnly) return;
+    this.answered.push(
+      context.messaging.subscribe(
+        SYSTEM_CHANNELS.pluginsRegistered,
+        async () => ({
+          success: true,
+          data: pluginsRegisteredAnswerSchema.parse(
+            await this.calls.run(this.packageCall(), handler),
+          ),
+        }),
+      ),
+    );
+  }
+
   /**
    * Answer the contracts the `subscriptions` slot binds. Each answer acts as
    * the package, whoever asked, and is released when the package shuts down.
@@ -1050,9 +1207,13 @@ class DeclarativeServicePlugin<
   ): TContext {
     return withServiceRuntime(slotContext, {
       logger: this.logger,
+      pluginId: this.id,
       messaging: context.messaging,
       deliveryProvider: (channelType) =>
         context.channels.getDeliveryProvider(channelType),
+      instructions: (instructions: string): void => {
+        context.registerInstructions(instructions);
+      },
       asPackage: (run) => this.calls.run(this.packageCall(), run),
       onRelease: (release) => {
         this.answered.push(release);
@@ -1064,33 +1225,110 @@ class DeclarativeServicePlugin<
         this.registeredHandlers.push(handler);
       },
       entityShapes: entityShapesOf(context),
+      views: Object.freeze({
+        get: (name: string) => context.views.get(name),
+        list: () => context.views.list(),
+      }),
+      resolveTemplate: (templateName, options) =>
+        context.templates.resolve(templateName, options),
+      jobs: Object.freeze({
+        enqueue: context.jobs.enqueue,
+        getStatus: (jobId: string) => context.jobs.getStatus(jobId),
+        getRecentJobs: (types?: string[], limit?: number) =>
+          context.jobs.getRecentJobs(types, limit),
+        getActiveJobs: (types?: string[]) => context.jobs.getActiveJobs(types),
+        enqueueBatch: context.jobs.enqueueBatch,
+        getBatchStatus: (batchId: string) =>
+          context.jobs.getBatchStatus(batchId),
+      }),
+      entityWrites: entityWritesOf(context),
       dataDir: context.dataDir,
       identity: Object.freeze({
         get: () => context.identity.get(),
         getProfile: () => context.identity.getProfile(),
+        getAppInfo: () => context.identity.getAppInfo(),
       }),
       domain: context.domain,
+      servesHttp: context.servesHttp,
+      publicSkills: Object.freeze({
+        list: () => context.publicSkills.list(),
+      }),
+      // The registry itself, read through its own get and its post overload.
+      atprotoProjections: context.atprotoProjections,
       auth: () => context.auth.get(),
       studio: firstPartyStudioOf(context),
       inbox: Object.freeze({
         listSources: () => context.inbox.listSources(),
         getSource: (sourceId: string) => context.inbox.getSource(sourceId),
       }),
+      inboxSource: (source): void => {
+        context.inbox.registerSource(source);
+      },
+      prompts: Object.freeze({
+        resolve: (target: string, fallback: string) =>
+          context.prompts.resolve(target, fallback),
+      }),
+      executionOnly: context.executionOnly,
+      assignableMembers: () => context.auth.listAssignableMembers(),
+      groupings: () => this.groupingsOf(context),
+      sharedUploads: (options = {}) =>
+        context.uploads.scoped({
+          ...sharedUploadScope,
+          ...(options.routePath ? { routePath: options.routePath } : {}),
+        }),
+      uploadSaveHandler: (mediaType: string) =>
+        context.entities.getUploadSaveHandler(mediaType),
+      channelDescriptors: () => context.channels.listDescriptors(),
+      readiness: () => context.readiness(),
+      inboxFollowUpKind: (kind): void => {
+        context.inboxFollowUps.registerKind(kind);
+      },
+      registering: (handler): void => {
+        this.registeringHandlers.push(handler);
+      },
+      entityMirror: entityMirrorOf(context),
+      gitBroker: Object.freeze({
+        socket: context.gitBrokerSocket,
+        checkout: context.gitBrokerCheckout,
+      }),
+      initialSync: (handler): void => {
+        this.answerInitialSync(context, handler);
+      },
+      operationalHealth: Object.freeze({
+        register: (name: string, provider: OperationalHealthProvider) =>
+          context.operationalHealth.register(name, provider),
+      }),
+      endpoint: (endpoint): void => {
+        context.endpoints.register(endpoint);
+      },
+      hasPlugin: (pluginId: string) => context.plugins.has(pluginId),
+      themeCSS: context.themeCSS,
+      analyticsReport: (report): void => {
+        context.analytics.register(report);
+      },
+      reportEntityService: readOnlyEntityServiceOf(context),
       inboxFollowUps: Object.freeze({
         resolve: (
           input: Parameters<typeof context.inboxFollowUps.resolve>[0],
         ) => context.inboxFollowUps.resolve(input),
       }),
       recurringCheck: (check): void => {
-        // As the class registered it: in every process, for as long as it runs.
-        context.recurringChecks.register(check);
+        // In every process, taken off when the package shuts down, as every
+        // runtime registration is.
+        this.answered.push(context.recurringChecks.register(check));
       },
       interaction: (interaction): void => {
         context.interactions.register(interaction);
       },
       workspaceUrl: (workspace) => this.workspaceUrls.get(workspace),
       siteUrl: context.siteUrl,
+      previewUrl: context.previewUrl,
+      localSiteUrl: context.localSiteUrl,
+      preferLocalUrls: context.preferLocalUrls,
+      entityDisplay: context.entityDisplay,
       routeByRole: (role) => context.webRoutes.findByRole(role),
+      consoleSurfaces: (options) =>
+        deriveConsoleSurfaces(context.webRoutes.getRoutes(), options),
       evalHandler: (handlerId, handler): void => {
         context.eval.registerHandler(handlerId, handler);
       },
@@ -1111,6 +1349,21 @@ class DeclarativeServicePlugin<
           : undefined;
       },
       entityReads: entityReadsOf(context),
+      permissions: Object.freeze({
+        assertEntityActionAllowed: (entityType, action, caller): void => {
+          context.permissions.assertEntityActionAllowed(
+            entityType,
+            action,
+            caller,
+          );
+        },
+      }),
+      attachments: Object.freeze({
+        resolve: (request) => context.attachments.resolve(request),
+        hasProvider: (sourceEntityType: string, attachmentType: string) =>
+          context.attachments.hasProvider(sourceEntityType, attachmentType),
+      }),
+      retries: this.retries,
       claim: (type) => this.claimSystemType(context, type),
       profileKinds: context.profileKinds,
       ai: Object.freeze<ServiceAI>({
@@ -1118,14 +1371,23 @@ class DeclarativeServicePlugin<
           context.ai.generateObject(prompt, schema, signal),
         judge: (input) => context.judge(input),
       }),
-      dataSource: (declaration): void => {
+      dataSource: (declaration, options = {}): void => {
         context.entities.registerDataSource(
-          firstPartyDataSource(`${this.id}:${declaration.id}`, declaration),
+          firstPartyDataSource(
+            options.asWritten === true
+              ? declaration.id
+              : `${this.id}:${declaration.id}`,
+            declaration,
+          ),
         );
       },
-      template: (name, template): void => {
-        context.templates.register({ [name]: template }, this.id);
+      template: (name, template, options = {}): void => {
+        context.templates.register(
+          { [name]: template },
+          options.namespace ?? this.id,
+        );
       },
+      generateContent: (request) => context.content.generate(request),
       dashboardWidget: (widget): void => {
         // Once the Dashboard host has mounted, as the class registered it.
         this.answered.push(
@@ -1546,6 +1808,19 @@ class DeclarativeServicePlugin<
     };
   }
 
+  /** A tool its class built, run with the call the brain hands it, as its caller. */
+  private toolAsWritten(tool: Tool): Tool {
+    return {
+      ...tool,
+      handler: (input, toolContext): Promise<ToolResponse> =>
+        this.toolContext.run(toolContext, () =>
+          this.calls.run(this.toolCall(toolContext), () =>
+            Promise.resolve(tool.handler(input, toolContext)),
+          ),
+        ),
+    };
+  }
+
   private runtimeTool(definition: AnyServiceToolDefinition): Tool {
     const name = isBareNamedTool(definition)
       ? definition.name
@@ -1705,11 +1980,48 @@ function entityReadsOf(context: ServicePluginContext): ServiceEntityReads {
   const { entityService } = context;
   return Object.freeze({
     getEntityTypes: () => entityService.getEntityTypes(),
+    countEntities: (request) => entityService.countEntities(request),
     getEntityCounts: (scope) => entityService.getEntityCounts(scope),
     listEntities: (request) => entityService.listEntities(request),
     getEntity: (request) => entityService.getEntity(request),
+    getEntityRaw: (request) => entityService.getEntityRaw(request),
     search: (request) => entityService.search(request),
+    queryEntityHierarchy: (request) =>
+      entityService.queryEntityHierarchy(request),
+    getEntityTypeConfig: (type) => entityService.getEntityTypeConfig(type),
+    deserializeEntity: (markdown, entityType) =>
+      entityService.deserializeEntity(markdown, entityType),
   } satisfies ServiceEntityReads);
+}
+
+/** The read-only projection of the entity service, each read bound on its own. */
+function readOnlyEntityServiceOf(
+  context: ServicePluginContext,
+): ReadOnlyEntityService {
+  const { entityService } = context;
+  return Object.freeze({
+    getEntity: entityService.getEntity.bind(entityService),
+    getEntityRaw: entityService.getEntityRaw.bind(entityService),
+    listEntities: entityService.listEntities.bind(entityService),
+    search: entityService.search.bind(entityService),
+    searchWithDistances: entityService.searchWithDistances.bind(entityService),
+    getEntityTypes: entityService.getEntityTypes.bind(entityService),
+    hasEntityType: entityService.hasEntityType.bind(entityService),
+    countEntities: entityService.countEntities.bind(entityService),
+    getEntityCounts: entityService.getEntityCounts.bind(entityService),
+    getEntityTypeConfig: entityService.getEntityTypeConfig.bind(entityService),
+  } satisfies ReadOnlyEntityService);
+}
+
+/** The entity service's writes a class made, each bound on its own. */
+function entityWritesOf(context: ServicePluginContext): ServiceEntityWrites {
+  const { entityService } = context;
+  return Object.freeze({
+    createEntity: (request) => entityService.createEntity(request),
+    updateEntity: (request) => entityService.updateEntity(request),
+    upsertEntity: (request) => entityService.upsertEntity(request),
+    deleteEntity: (request) => entityService.deleteEntity(request),
+  } satisfies ServiceEntityWrites);
 }
 
 /** What every registered entity type looks like, read through the plugin's context. */
@@ -1722,6 +2034,18 @@ function entityShapesOf(context: ServicePluginContext): ServiceEntityShapes {
       context.entities.getAdapter(type)?.isSingleton === true,
     bodyTemplate: (type: string) =>
       context.entities.getAdapter(type)?.getBodyTemplate() ?? "",
+    hasBody: (type: string) =>
+      context.entities.getAdapter(type)?.hasBody !== false,
+    metadataFromFrontmatter: (type: string) =>
+      context.entities.getAdapter(type)?.metadataFromFrontmatter === true,
+    folderTitles: (type: string) => {
+      const adapter = context.entities.getAdapter(type);
+      return adapter?.getFolderTitles?.bind(adapter);
+    },
+    isGroupingContributor: (type: string) =>
+      context.entities.isGroupingContributor(type),
+    displayTitle: (entity: BaseEntity) =>
+      entityDisplayTitle(context.entities, entity),
   });
 }
 
@@ -1748,6 +2072,8 @@ export function createDeclarativeServicePlugin<
   id: string,
   /** The plugins a first-party class declared it depends on; none otherwise. */
   dependencies: readonly string[] = [],
+  /** What a first-party class declared beside the definition, as written. */
+  declarations: FirstPartyServiceDeclarations = noFirstPartyServiceDeclarations,
 ): DeclarativeServicePlugin<
   TConfigSchema,
   TState,
@@ -1763,5 +2089,6 @@ export function createDeclarativeServicePlugin<
     metadata,
     id,
     dependencies,
+    declarations,
   );
 }

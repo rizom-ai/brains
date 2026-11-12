@@ -1,3 +1,4 @@
+import { createAtprotoPlugin, type AtprotoTestPlugin } from "./atproto-plugins";
 import { createMockShell as createBaseMockShell } from "@brains/plugins/test";
 import { describe, expect, it, mock } from "bun:test";
 import { SYSTEM_CHANNELS, type BaseEntity } from "@brains/plugins";
@@ -5,7 +6,6 @@ import { waitUntil } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import {
   ATPROTO_PUBLISH_FAILED,
-  AtprotoPlugin,
   AtprotoProjectionRegistry,
   listCanonicalAtprotoLexicons,
   type AtprotoLexicon,
@@ -146,8 +146,8 @@ function createConfiguredPlugin(
   registry: AtprotoProjectionRegistry,
   client: AtprotoPdsClientLike,
   config: { lexiconAuthority?: boolean } = {},
-): AtprotoPlugin {
-  return new AtprotoPlugin(
+): AtprotoTestPlugin {
+  return createAtprotoPlugin(
     {
       identifier: "brain.example.com",
       appPassword: "secret",
@@ -467,7 +467,7 @@ describe("AT Protocol ambient publishing triggers", () => {
 
   it("skips the ready trigger when publishing credentials are absent", async () => {
     const createPdsClient = mock(() => createClientMocks().client);
-    const plugin = new AtprotoPlugin(
+    const plugin = createAtprotoPlugin(
       { lexiconAuthority: true },
       { projectionRegistry: createRegistry(), createPdsClient },
     );
@@ -485,7 +485,7 @@ describe("AT Protocol ambient publishing triggers", () => {
     // The credentials gate lives on the trigger path, not just at the PDS
     // client. Without it an unconfigured brain would attempt every ambient
     // publish, fail, and broadcast a publish-failed event for each one.
-    const plugin = new AtprotoPlugin(
+    const plugin = createAtprotoPlugin(
       { lexiconAuthority: true },
       { projectionRegistry: createRegistry() },
     );

@@ -1,7 +1,5 @@
-import type {
-  RuntimeOperatorActionControl,
-  EntityIdPathInput,
-} from "@brains/plugins";
+import type { RuntimeOperatorActionControl } from "@brains/sdk/internal/service-runtime";
+import type { EntityIdPathInput } from "@brains/sdk/internal/entity-runtime";
 import type { StudioApi } from "./api";
 
 export type SaveEntityInput =

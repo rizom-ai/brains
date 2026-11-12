@@ -277,6 +277,59 @@ describe("a service's legacy plugin id beside the type it owns", () => {
   });
 });
 
+describe("a service keeping the id its owned type has", () => {
+  const owning = defineServicePlugin({
+    id: "registry",
+    config: z.object({}),
+    entities: [registryEntry],
+  });
+
+  it("installs its type under the plugin id the composer names for it", () => {
+    const plugins = instantiatePluginPackageDefinition(
+      owning,
+      {},
+      serviceMetadata,
+      {
+        pluginId: "registry-entry",
+        ownedTypePluginId: "registry-entry-entity",
+      },
+    );
+    expect(plugins.map(({ id, type }) => [id, type])).toEqual([
+      ["registry-entry-entity", "entity"],
+      ["registry-entry", "service"],
+    ]);
+  });
+
+  it("is refused without a legacy plugin id, or when it is the service's own", () => {
+    expect(() =>
+      instantiatePluginPackageDefinition(owning, {}, serviceMetadata, {
+        ownedTypePluginId: "registry-entry-entity",
+      }),
+    ).toThrow(
+      'Service "registry" names a plugin id for its owned type only beside a legacy plugin id',
+    );
+    expect(() =>
+      instantiatePluginPackageDefinition(owning, {}, serviceMetadata, {
+        pluginId: "registry-entry",
+        ownedTypePluginId: "registry-entry",
+      }),
+    ).toThrow(
+      'Service "registry" cannot install its owned type under its own plugin id "registry-entry"',
+    );
+  });
+
+  it("is refused for a package that is not a service", () => {
+    expect(() =>
+      instantiatePluginPackageDefinition(docs, {}, metadata, {
+        pluginId: "docs",
+        ownedTypePluginId: "docs-entity",
+      }),
+    ).toThrow(
+      'Plugin definition "docs" is not a service package; only a service names a plugin id for the type it owns',
+    );
+  });
+});
+
 describe("a first-party service's plugin dependencies", () => {
   it("are the ones the composer names, as its class declared them", () => {
     const [plugin] = instantiatePluginPackageDefinition(

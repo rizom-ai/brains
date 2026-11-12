@@ -424,5 +424,5 @@ export type Plugin = z.output<typeof pluginMetadataSchema> & {
    * Where this plugin writes the site the runtime's HTTP host serves. Read
    * once, when the host starts.
    */
-  getStaticSiteOutput?(): StaticSiteOutput;
+  getStaticSiteOutput?(): StaticSiteOutput | undefined;
 };

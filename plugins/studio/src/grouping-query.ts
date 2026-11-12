@@ -6,7 +6,7 @@ import {
   groupingSearchSchema,
   groupingSortSchema,
   groupingValueSchema,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/entity-runtime";
 
 /**
  * The URL-facing grouping query. Entity-service owns the vocabulary; this adds

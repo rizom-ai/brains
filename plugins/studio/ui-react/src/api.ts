@@ -2,10 +2,12 @@ import type { StudioMember } from "../../src/editor-contracts";
 import type {
   RuntimeStudioWorkspaceData,
   StudioWorkspaceDescriptor,
+} from "@brains/sdk/internal/service-runtime";
+import type {
   EntityIdPath,
   EntityIdPathInput,
   EntityGroupingUsage,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/entity-runtime";
 import {
   studioGroupingQuerySchema,
   studioGroupingUsageQuerySchema,

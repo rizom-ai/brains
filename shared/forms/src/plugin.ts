@@ -1,14 +1,19 @@
+import type { BaseEntity } from "@brains/plugins";
 import {
-  ServicePlugin,
-  type BaseEntity,
-  type ServicePluginContext,
-  type WebRouteDefinition,
-} from "@brains/plugins";
+  defineServicePlugin,
+  type ServicePackageDefinition,
+} from "@brains/sdk/services";
+import type { EntityDefinition } from "@brains/sdk/entities";
+import {
+  serviceRuntime,
+  withJobHandlers,
+  withWebRoutes,
+} from "@brains/sdk/internal/service-runtime";
 import { z } from "@brains/utils/zod";
 import { formPolicyOverridesSchema } from "./policy";
 import { FormService, type FormServiceOptions } from "./service";
 
-/** A target plugin's configuration: the values its owner wants different
+/** A target package's configuration: the values its owner wants different
  * from the forms engine's policy. */
 export const formPluginConfigSchema: z.ZodObject<
   { intake: z.ZodOptional<typeof formPolicyOverridesSchema> },
@@ -16,65 +21,68 @@ export const formPluginConfigSchema: z.ZodObject<
 > = z.strictObject({ intake: formPolicyOverridesSchema.optional() });
 export type FormPluginConfig = z.input<typeof formPluginConfigSchema>;
 
-export interface FormPluginOptions<E extends BaseEntity> extends Omit<
+export interface FormPackageOptions<E extends BaseEntity> extends Omit<
   FormServiceOptions<E>,
   "overrides"
 > {
+  /** The service's plugin id, such as "contact". */
   id: string;
-  packageJson: {
-    name: string;
-    version: string;
-    description?: string;
-  };
+  /** The target's declared type, which the package owns. */
+  entity: EntityDefinition;
+}
+
+/** What a target package holds once set up: its one form service. */
+export interface FormPackageState<E extends BaseEntity = BaseEntity> {
+  readonly forms: FormService<E>;
 }
 
 /**
- * A target package's service plugin: one `FormService` for its target, run
- * from the plugin's lifecycle. The target's entity plugin, notifications,
- * site-builder, Studio and the unified Inbox register first.
+ * The plugins a target package's service registers after, as the forms
+ * engine's service class declared them: its target's type, notifications,
+ * site-builder (listening when the site's form pages are declared), Studio
+ * and the unified Inbox. The composer installs the service with them.
  */
-export class FormPlugin<
-  E extends BaseEntity = BaseEntity,
-> extends ServicePlugin<FormPluginConfig, unknown> {
-  readonly dependencies: string[];
-  private readonly forms: FormService<E>;
+export function formPackageDependencies(entityType: string): string[] {
+  return [
+    entityType,
+    "notifications",
+    "site-builder",
+    "studio",
+    "unified-inbox",
+  ];
+}
 
-  constructor(options: FormPluginOptions<E>, config: FormPluginConfig = {}) {
-    super(options.id, options.packageJson, config, formPluginConfigSchema);
-    // site-builder registers first, so it is listening when the site's form
-    // pages are declared.
-    this.dependencies = [
-      options.target.entityType,
-      "notifications",
-      "site-builder",
-      "studio",
-      "unified-inbox",
-    ];
-    this.forms = new FormService({
-      label: options.label,
-      target: options.target,
-      forms: options.forms,
-      overrides: this.config.intake,
-    });
-  }
-
-  protected override async onRegister(
-    context: ServicePluginContext,
-  ): Promise<void> {
-    await this.forms.register(context, this.id);
-  }
-
-  override getWebRoutes(): WebRouteDefinition[] {
-    return this.forms.webRoutes();
-  }
-
-  protected override async onReady(
-    context: ServicePluginContext,
-  ): Promise<void> {
-    await this.forms.ready(context);
-  }
-
-  protected override async onShutdown(): Promise<void> {
-    await this.forms.shutdown();
-  }
+/**
+ * A target package: its declared type and one `FormService` for its
+ * target, run from the service's lifecycle. Its routes serve the forms;
+ * its notify job alerts the owner; once the brain is ready it serves.
+ */
+export function defineFormPackage<E extends BaseEntity>(
+  options: FormPackageOptions<E>,
+): ServicePackageDefinition<typeof formPluginConfigSchema> {
+  const service = defineServicePlugin({
+    id: options.id,
+    config: formPluginConfigSchema,
+    entities: [options.entity],
+    setup: async (context): Promise<FormPackageState<E>> => {
+      const runtime = serviceRuntime(context);
+      const forms = new FormService<E>({
+        label: options.label,
+        target: options.target,
+        forms: options.forms,
+        overrides: context.config.intake,
+      });
+      await forms.register(runtime);
+      runtime.ready(() => forms.ready());
+      context.lifecycle.onCleanup(() => forms.shutdown());
+      return { forms };
+    },
+  });
+  return withJobHandlers<typeof formPluginConfigSchema, FormPackageState<E>>(
+    withWebRoutes<typeof formPluginConfigSchema, FormPackageState<E>>(
+      service,
+      ({ state }) => state.forms.webRoutes(),
+    ),
+    ({ state }) => [state.forms.notificationJob()],
+  );
 }
