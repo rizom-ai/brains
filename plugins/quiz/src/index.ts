@@ -6,7 +6,7 @@ export type { QuizPluginConfig } from "./config";
 export { createQuizPackage } from "./plugin";
 export { quizResultEntity } from "./entity/quiz-result-entity";
 export { quizResultTarget } from "./target";
-export { QuizResultAdapter, quizResultAdapter } from "./entity/adapter";
+export { quizResultAdapter } from "./entity/adapter";
 export {
   quizResultFrontmatterSchema,
   quizResultMetadataSchema,

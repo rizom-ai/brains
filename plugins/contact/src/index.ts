@@ -16,7 +16,7 @@ export type {
 } from "./config";
 export { createContactPackage } from "./plugin";
 export { contactRequestEntity } from "./entity/contact-request-entity";
-export { ContactRequestAdapter, contactRequestAdapter } from "./entity/adapter";
+export { contactRequestAdapter } from "./entity/adapter";
 export {
   contactSubmissionSchema,
   contactFrontmatterSchema,
