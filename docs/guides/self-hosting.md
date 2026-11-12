@@ -25,7 +25,7 @@ material:
 
 You need Bun 1.4 or later and an AI API key.
 
-Install the brain and create one from a recipe: `bun add -g @rizom/brain`, then `brain init my-brain --recipe personal`. In the new folder, put your key in `.env` as `AI_API_KEY` and run `brain start`. The log prints a one-time setup link; open it and register a passkey to sign in. To have setup links and invitations sent by email, also set `SETUP_EMAIL_TO`, `SETUP_EMAIL_FROM` and `SETUP_EMAIL_API_KEY`, a Resend API key.
+Install the brain and create one from a recipe: `bun add -g @rizom/brain`, then `brain init my-brain --recipe personal`. In the new folder, put your OpenAI key in `.env` as `OPENAI_API_KEY` and run `brain start`. The log prints a one-time setup link; open it and register a passkey to sign in. To have setup links and invitations sent by email, also set `SETUP_EMAIL_TO`, `SETUP_EMAIL_FROM` and `SETUP_EMAIL_API_KEY`, a Resend API key.
 
 Exact steps: [Getting started](../../packages/brain-cli/docs/getting-started.md), [CLI reference](../../packages/brain-cli/docs/cli-reference.md).
 

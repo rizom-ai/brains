@@ -15,11 +15,11 @@ A brain is a private AI runtime whose durable knowledge is markdown. One canonic
 bun add -g @rizom/brain
 brain init my-brain --recipe personal
 cd my-brain
-# edit .env: set AI_API_KEY
+# edit .env: set OPENAI_API_KEY
 brain start
 ```
 
-`AI_API_KEY` is the only required variable; a brain whose `model` and `embeddingModel` are both `local:` (see the brain.yaml reference) runs without it. On first start the brain prints a one-time `/setup` link in the terminal; open it to register your passkey.
+`OPENAI_API_KEY` is the only required variable for the default models. A brain on other models needs the key of each model's provider (`ANTHROPIC_API_KEY`, `GOOGLE_GENERATIVE_AI_API_KEY`), and `brain start` names any that is missing; a brain whose `model` and `embeddingModel` are both `local:` (see the brain.yaml reference) runs without a key. On first start the brain prints a one-time `/setup` link in the terminal; open it to register your passkey.
 
 To receive setup links and invitations by email instead, set `SETUP_EMAIL_TO` (the address to send the first setup link to), `SETUP_EMAIL_API_KEY` (a Resend API key), and `SETUP_EMAIL_FROM` (a verified Resend sender). The personal, professional, and team recipes wire these into `brain.yaml`; with them unset, team members are added through Admin → Add a person with a manual invite link.
 
@@ -60,7 +60,7 @@ Each recipe also copies instance-owned starter content into `seed-content/`.
 --domain <domain>      defaults to {directory}.rizom.ai
 --content-repo <repo>  owner/name or github:owner/name
 --backend <name>       secret backend; default none
---ai-api-key <key>     writes the initial local .env
+--openai-api-key <key> writes the initial local .env (also --anthropic-api-key, --google-api-key)
 --deploy               include deployment scaffolding
 --regen                regenerate derived deployment files
 --no-interactive       disable prompts

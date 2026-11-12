@@ -10,7 +10,7 @@ import {
   type InstalledPluginPackageMetadata,
   type Plugin,
 } from "@brains/plugins";
-import { resolveProviderKey } from "./multi-model";
+import { readProviderKeys } from "@brains/ai-service";
 import { getErrorMessage } from "@brains/utils/error";
 
 /**
@@ -192,14 +192,14 @@ export async function loadPluginEvalConfig(
   // databases sit directly under /tmp.
   const evalDbBase = `/tmp/${pluginId.replace(/[^\w.-]/g, "-")}-eval-${Date.now()}`;
   const resolvedModel = evalConfig.model ?? process.env["AI_MODEL"];
-  const resolvedApiKey = resolvedModel
-    ? resolveProviderKey(resolvedModel, process.env)
-    : process.env["AI_API_KEY"];
+  const providerKeys = readProviderKeys(process.env);
 
   return defineConfig({
     name: `${pluginId}-eval`,
     version: "0.1.0",
-    ...(resolvedApiKey ? { aiApiKey: resolvedApiKey } : {}),
+    ...(Object.keys(providerKeys).length > 0
+      ? { aiProviderKeys: providerKeys }
+      : {}),
     ...(resolvedModel ? { aiModel: resolvedModel } : {}),
     plugins,
     shellConfig: {

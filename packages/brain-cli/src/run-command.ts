@@ -264,7 +264,8 @@ const secretsPush: BrainCommand = defineCommand({
     only: {
       type: "string",
       placeholder: "<keys>",
-      description: "Comma-separated allowlist (e.g. AI_API_KEY,HCLOUD_TOKEN)",
+      description:
+        "Comma-separated allowlist (e.g. OPENAI_API_KEY,HCLOUD_TOKEN)",
     },
     "dry-run": {
       type: "boolean",

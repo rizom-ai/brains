@@ -59,7 +59,7 @@ The dedicated Rover trial validates credentials and starts with one command:
 ```bash
 export SLACK_BOT_TOKEN='xoxb-...'
 export SLACK_APP_TOKEN='xapp-...'
-export AI_API_KEY='...'
+export OPENAI_API_KEY='...'
 export GIT_SYNC_TOKEN='...'
 
 cd brains/rover

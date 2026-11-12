@@ -276,7 +276,7 @@ export interface IShell {
   }>;
   query(prompt: string, context?: QueryContext): Promise<DefaultQueryResponse>;
 
-  // Image generation (requires AI_API_KEY)
+  // Image generation (requires the image model's provider key)
   generateImage(
     prompt: string,
     options?: ImageGenerationOptions,
