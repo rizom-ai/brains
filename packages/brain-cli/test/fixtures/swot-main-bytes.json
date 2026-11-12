@@ -1,0 +1,71 @@
+{
+  "source": "main f61f73989e, the swot entity plugin class on the entity store",
+  "imported": {
+    "id": "swot",
+    "file": "---\nstrengths:\n  - title: Research edge\n    detail: Use it.\nweaknesses: []\nopportunities:\n  - title: Partner network\nthreats:\n  - title: Thin coverage\n    detail: Few peers.\nderivedAt: '2026-05-01T00:00:00.000Z'\n---\n",
+    "stored": {
+      "content": "---\nstrengths:\n  - title: Research edge\n    detail: Use it.\nweaknesses: []\nopportunities:\n  - title: Partner network\nthreats:\n  - title: Thin coverage\n    detail: Few peers.\nderivedAt: '2026-05-01T00:00:00.000Z'\n---\n\n",
+      "metadata": "{\"derivedAt\":\"2026-05-01T00:00:00.000Z\"}",
+      "visibility": "public"
+    },
+    "read": {
+      "content": "---\nstrengths:\n  - title: Research edge\n    detail: Use it.\nweaknesses: []\nopportunities:\n  - title: Partner network\nthreats:\n  - title: Thin coverage\n    detail: Few peers.\nderivedAt: '2026-05-01T00:00:00.000Z'\n---\n\n",
+      "metadata": {
+        "derivedAt": "2026-05-01T00:00:00.000Z"
+      },
+      "visibility": "public"
+    },
+    "exported": "---\nstrengths:\n  - title: Research edge\n    detail: Use it.\nweaknesses: []\nopportunities:\n  - title: Partner network\nthreats:\n  - title: Thin coverage\n    detail: Few peers.\nderivedAt: '2026-05-01T00:00:00.000Z'\n---\n\n"
+  },
+  "importedExtra": {
+    "id": "swot-extra",
+    "file": "---\nstrengths: []\nweaknesses: []\nopportunities: []\nthreats: []\nderivedAt: \"2026-05-02T00:00:00.000Z\"\nnote: kept\n---\n\nHand note.\n",
+    "stored": {
+      "content": "---\nstrengths: []\nweaknesses: []\nopportunities: []\nthreats: []\nderivedAt: '2026-05-02T00:00:00.000Z'\nnote: kept\n---\nHand note.\n",
+      "metadata": "{\"derivedAt\":\"2026-05-02T00:00:00.000Z\"}",
+      "visibility": "public"
+    },
+    "read": {
+      "content": "---\nstrengths: []\nweaknesses: []\nopportunities: []\nthreats: []\nderivedAt: '2026-05-02T00:00:00.000Z'\nnote: kept\n---\nHand note.\n",
+      "metadata": {
+        "derivedAt": "2026-05-02T00:00:00.000Z"
+      },
+      "visibility": "public"
+    },
+    "exported": "---\nstrengths: []\nweaknesses: []\nopportunities: []\nthreats: []\nderivedAt: '2026-05-02T00:00:00.000Z'\nnote: kept\n---\nHand note.\n"
+  },
+  "derived": {
+    "id": "swot-derived",
+    "written": "---\nstrengths:\n  - title: Synthesis\nweaknesses:\n  - title: Gaps\n    detail: Some.\nopportunities: []\nthreats: []\nderivedAt: '2026-06-01T00:00:00.000Z'\n---\n\n",
+    "stored": {
+      "content": "---\nstrengths:\n  - title: Synthesis\nweaknesses:\n  - title: Gaps\n    detail: Some.\nopportunities: []\nthreats: []\nderivedAt: '2026-06-01T00:00:00.000Z'\n---\n\n",
+      "metadata": "{\"derivedAt\":\"2026-06-01T00:00:00.000Z\"}",
+      "visibility": "public"
+    },
+    "read": {
+      "content": "---\nstrengths:\n  - title: Synthesis\nweaknesses:\n  - title: Gaps\n    detail: Some.\nopportunities: []\nthreats: []\nderivedAt: '2026-06-01T00:00:00.000Z'\n---\n\n",
+      "metadata": {
+        "derivedAt": "2026-06-01T00:00:00.000Z"
+      },
+      "visibility": "public"
+    },
+    "exported": "---\nstrengths:\n  - title: Synthesis\nweaknesses:\n  - title: Gaps\n    detail: Some.\nopportunities: []\nthreats: []\nderivedAt: '2026-06-01T00:00:00.000Z'\n---\n\n"
+  },
+  "rederived": {
+    "id": "swot-derived",
+    "written": "---\nstrengths:\n  - title: Synthesis\nweaknesses:\n  - title: Gaps\n    detail: Some.\nopportunities: []\nthreats:\n  - title: Churn\nderivedAt: '2026-06-02T00:00:00.000Z'\n---\n\n",
+    "stored": {
+      "content": "---\nstrengths:\n  - title: Synthesis\nweaknesses:\n  - title: Gaps\n    detail: Some.\nopportunities: []\nthreats:\n  - title: Churn\nderivedAt: '2026-06-02T00:00:00.000Z'\n---\n\n",
+      "metadata": "{\"derivedAt\":\"2026-06-02T00:00:00.000Z\"}",
+      "visibility": "public"
+    },
+    "read": {
+      "content": "---\nstrengths:\n  - title: Synthesis\nweaknesses:\n  - title: Gaps\n    detail: Some.\nopportunities: []\nthreats:\n  - title: Churn\nderivedAt: '2026-06-02T00:00:00.000Z'\n---\n\n",
+      "metadata": {
+        "derivedAt": "2026-06-02T00:00:00.000Z"
+      },
+      "visibility": "public"
+    },
+    "exported": "---\nstrengths:\n  - title: Synthesis\nweaknesses:\n  - title: Gaps\n    detail: Some.\nopportunities: []\nthreats:\n  - title: Churn\nderivedAt: '2026-06-02T00:00:00.000Z'\n---\n\n"
+  }
+}
