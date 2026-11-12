@@ -696,6 +696,26 @@ describe("a declared type's authored source", () => {
     expect(browsed.entities).toHaveLength(1);
   });
 
+  it("takes a write snapshot as stored when its source is asked for", async () => {
+    const service = await authoredCard();
+
+    const asStored = await service.getEntityWriteSnapshot({
+      entityType: "card",
+      id: "tide",
+      visibilityScope: "restricted",
+      source: true,
+    });
+    const ordinary = await service.getEntityWriteSnapshot({
+      entityType: "card",
+      id: "tide",
+      visibilityScope: "restricted",
+    });
+    expect(asStored?.entity.content).toBe((await source(service)).content);
+    // The revision is the row's either way; an ordinary snapshot reads the body.
+    expect(asStored?.revision).toBe(ordinary?.revision);
+    expect(ordinary?.entity.content.trim()).toBe("A card about tides.");
+  });
+
   it("keeps authored frontmatter it does not own through a body-only update", async () => {
     const service = await authoredCard();
     const read = await service.getEntity({

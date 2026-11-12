@@ -244,7 +244,8 @@ export class EntityQueries {
       request,
     );
     if (!data) return null;
-    const entity = await this.serializer.convertToEntity(data);
+    // As stored when asked: a declared type otherwise reads back its body.
+    const entity = await this.serializer.convertToEntity(data, request.source);
     if (!entity) throw new Error("Cannot deserialize entity write snapshot");
     return { entity, revision: entityRevision(data) };
   }
