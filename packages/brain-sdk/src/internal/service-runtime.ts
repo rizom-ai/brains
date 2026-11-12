@@ -110,6 +110,7 @@ export {
   type StudioWorkspaceActor,
 } from "@brains/plugins";
 export {
+  assertStudioWorkspaceAdmin,
   studioWorkspaceRegisterContract,
   studioWorkspaceRegistrationSchema,
   studioWorkspaceUnregisterContract,
