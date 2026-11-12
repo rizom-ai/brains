@@ -1,6 +1,9 @@
-import { SerializedStatusStore } from "@brains/plugins";
-import type { IRuntimeStateNamespace, JobInfo } from "@brains/plugins";
-import type { ServiceClassJobs } from "@brains/sdk/internal/service-runtime";
+import {
+  SerializedStatusStore,
+  type JobInfo,
+  type ClassRuntimeState,
+  type ServiceClassJobs,
+} from "@brains/sdk/internal/service-runtime";
 import { z } from "@brains/utils/zod";
 
 export const siteBuildEnvironmentSchema: z.ZodEnum<{
@@ -174,7 +177,7 @@ export class SiteBuildStatusService {
   private readonly jobs: Pick<ServiceClassJobs, "getStatus" | "getRecentJobs">;
 
   constructor(
-    runtimeState: IRuntimeStateNamespace,
+    runtimeState: ClassRuntimeState,
     jobs: Pick<ServiceClassJobs, "getStatus" | "getRecentJobs">,
   ) {
     this.store = new SerializedStatusStore({

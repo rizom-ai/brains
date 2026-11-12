@@ -1,10 +1,10 @@
 import {
   defineStudioWorkspace,
-  defineEntity,
   defineWorkspaceAction,
   type OperatorRegionBlock,
   type OperatorViewBlock,
-} from "@brains/plugins";
+} from "@brains/sdk/services";
+import { defineEntity } from "@brains/sdk/entities";
 import type {
   ServiceClassMessaging,
   ServiceStudio,

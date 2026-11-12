@@ -1,8 +1,10 @@
 import { access } from "node:fs/promises";
 import { join } from "node:path";
 import { siteHeadScriptsContract } from "@brains/contracts";
-import { defineServicePlugin } from "@brains/sdk/services";
-import type { ServicePackageDefinition } from "@brains/sdk/services";
+import {
+  defineServicePlugin,
+  type ServicePackageDefinition,
+} from "@brains/sdk/services";
 import {
   SYSTEM_CHANNELS,
   serviceRuntime,
@@ -11,7 +13,6 @@ import {
   withTools,
   type ServiceRuntime,
 } from "@brains/sdk/internal/service-runtime";
-import type { IMessagingNamespace } from "@brains/plugins";
 import {
   siteBuilderPagesContract,
   siteBuilderSlotsContract,
@@ -64,26 +65,6 @@ export interface SiteBuilderState {
 export interface SiteBuilderDeps {
   /** Told the state once setup has built it. */
   onSetup?: ((state: SiteBuilderState) => void) | undefined;
-}
-
-/**
- * Answer as the class answered through context.messaging.answer: the
- * runtime answers as the package and releases the answer when the package
- * shuts down, so the release handed back has nothing left to do.
- */
-function classAnswer(
-  runtime: ServiceRuntime,
-): Pick<IMessagingNamespace, "answer"> {
-  return {
-    answer: (contract, handler, options) => {
-      runtime.answer(
-        contract,
-        ({ request, sender }) => handler(request, { sender }),
-        options?.everyProcess === true ? { everyProcess: true } : {},
-      );
-      return (): void => {};
-    },
-  };
 }
 
 /**
@@ -174,8 +155,7 @@ async function setUpSiteBuilder(
   );
   await status.initialize();
 
-  const messaging = classAnswer(runtime);
-  setupRouteHandlers({ messaging }, routes, logger);
+  setupRouteHandlers(runtime, routes, logger);
 
   for (const [name, template] of Object.entries(config.templates ?? {})) {
     runtime.template(name, template);
@@ -209,7 +189,7 @@ async function setUpSiteBuilder(
 
   const rebuilds = new RebuildManager(
     config,
-    { messaging, jobs: runtime.jobs },
+    { answer: runtime.answer, jobs: runtime.jobs },
     "site-builder",
     logger,
     status,

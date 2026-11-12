@@ -9,7 +9,7 @@ import type { Logger } from "@brains/utils/logger";
 import { pluralize } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import type { SiteImageLookup } from "@brains/site-engine";
-import type { BaseEntity } from "@brains/plugins";
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
 import type { SiteEntityReads } from "./site-builder-services";
 import type { BuildPipelineContext } from "./build-pipeline-context";
 

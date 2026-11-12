@@ -78,6 +78,7 @@ const convertedPackages = [
   "plugins/onboarding",
   "plugins/playbooks",
   "plugins/profile",
+  "plugins/site-builder",
   "plugins/site-info",
   "plugins/stock-photo",
   "plugins/unified-inbox",

@@ -1,7 +1,7 @@
 import {
   defineDashboardWidget,
   type DashboardOperatorViewBlock,
-} from "@brains/plugins";
+} from "@brains/sdk/services";
 import type { ServiceRuntime } from "@brains/sdk/internal/service-runtime";
 import { z } from "@brains/utils/zod";
 import { createElement as h, type ReactNode } from "react";
