@@ -282,12 +282,14 @@ A package's plugin evals live in `evals/` and run with the package's `bun run ev
 
 ```yaml
 plugin: "@brains/faq" # the module to import
-export: faqPlugin # the export providing the plugin; the default export when omitted
+export: default # the export providing the plugin; the default export when omitted
+pluginId: faq # the plugin id the canonical brain installs the package under
+ownedTypePluginId: faq-entity # where a service keeping its type's id installs that type
 model: gpt-5.4-mini
-config: {} # optional, passed to the plugin class or factory
+config: {} # optional, passed to the package, plugin class or factory
 ```
 
-The loader takes only the named export, so adding an export never changes which plugin the evals run against. An export that is a plugin package definition, such as a declarative entity package's default export, is instantiated with `config`, as a brain installs it. `pluginId: wishlist` installs a first-party entity package under the plugin id the canonical brain keeps for it. Each plugin test case addresses its handler by that plugin's id (`plugin: faq`). A plugin that exists only for its evals, such as the SWOT eval plugin, is served from an eval-only `./eval` subpath (`src/eval/`), which production code never imports.
+The loader takes only the named export, so adding an export never changes which plugin the evals run against. An export that is a plugin package definition, such as a declarative entity package's default export, is instantiated with `config`, as a brain installs it. `pluginId: wishlist` installs a first-party entity package under the plugin id the canonical brain keeps for it. A first-party service that keeps an id its own type has, as faq does, also names where that type installs (`ownedTypePluginId: faq-entity`), as the canonical brain installs it. Each plugin test case addresses its handler by that plugin's id (`plugin: faq`). A plugin that exists only for its evals, such as the SWOT eval plugin, is served from an eval-only `./eval` subpath (`src/eval/`), which production code never imports.
 
 ### Example Unit Tests
 
@@ -295,17 +297,22 @@ Testing a plugin with the provided harness:
 
 ```typescript
 import { describe, it, expect, beforeEach } from "bun:test";
+import { instantiatePluginPackageDefinition } from "@brains/plugins";
 import { createServicePluginHarness } from "@brains/plugins/test";
-import { FaqPlugin } from "../src";
+import faqPackage from "../src";
 
-describe("FaqPlugin", () => {
+describe("the faq package", () => {
   let harness: ReturnType<typeof createServicePluginHarness>;
-  let plugin: FaqPlugin;
 
   beforeEach(async () => {
     harness = createServicePluginHarness();
-    plugin = new FaqPlugin();
-    await harness.installPlugin(plugin);
+    for (const plugin of instantiatePluginPackageDefinition(
+      faqPackage,
+      {},
+      { name: "@brains/faq", version: "0.0.0" },
+      { pluginId: "faq", ownedTypePluginId: "faq-entity" },
+    ))
+      await harness.installPlugin(plugin);
   });
 
   it("registers the faq entity type on install", async () => {

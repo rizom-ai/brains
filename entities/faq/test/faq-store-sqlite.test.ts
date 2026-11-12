@@ -4,8 +4,9 @@ import { migrateEntities } from "@brains/entity-service/migrate";
 import { internalFullScope, type ContentVisibility } from "@brains/plugins";
 import { createMockShell } from "@brains/plugins/test";
 import { createSilentLogger, createTestDirectory } from "@brains/test-utils";
-import { faqAdapter, faqMetadata } from "../src/adapters/faq-adapter";
+import { faqDocument, faqMetadata, readFaq } from "../src/lib/faq-body";
 import { mergeIntoFaq } from "../src/lib/faq-store";
+import { faqType } from "./helpers/faq-type";
 import {
   faqSchema,
   type FaqEntity,
@@ -22,7 +23,8 @@ describe("FAQ merge retry eligibility with real SQLite", () => {
     const dbConfig = { url: `file:${directory.dir}/entities.db` };
     await migrateEntities(dbConfig, logger);
     const registry = EntityRegistry.createFresh(logger);
-    registry.registerEntityType("faq", faqSchema, faqAdapter, {
+    const { schema, adapter } = faqType();
+    registry.registerEntityType("faq", schema, adapter, {
       publish: { publishStatuses: ["published"] },
     });
     service = EntityService.createFresh({
@@ -73,7 +75,7 @@ describe("FAQ merge retry eligibility with real SQLite", () => {
         id: "target",
         entityType: "faq",
         visibility,
-        content: faqAdapter.createFaqContent(fields, "Original answer"),
+        content: faqDocument(fields, "Original answer"),
         metadata: faqMetadata(fields),
       },
     });
@@ -90,10 +92,7 @@ describe("FAQ merge retry eligibility with real SQLite", () => {
       entity: {
         ...entity,
         visibility,
-        content: faqAdapter.createFaqContent(
-          fields,
-          "Separately reviewed answer",
-        ),
+        content: faqDocument(fields, "Separately reviewed answer"),
         metadata: faqMetadata(fields),
       },
     });
@@ -162,7 +161,7 @@ describe("FAQ merge retry eligibility with real SQLite", () => {
     const stored = await read();
     expect(stored.visibility).toBe("restricted");
     expect(stored.metadata.asked).toBe(3);
-    expect(faqAdapter.parseFaqContent(stored.content)).toMatchObject({
+    expect(readFaq(stored)).toMatchObject({
       answer: "Separately reviewed answer",
       alternatives: [{ answer: "PRIVATE_MERGE_TEST_MARKER" }],
     });

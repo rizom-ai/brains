@@ -1199,6 +1199,22 @@
         }
       },
       "required": ["title", "book", "order", "source"]
+    },
+    "faq": {
+      "type": "object",
+      "properties": {
+        "question": { "type": "string" },
+        "status": { "type": "string", "enum": ["draft", "published"] },
+        "asked": {
+          "default": 1,
+          "studioWidget": "provenance",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "rank": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }
+      },
+      "required": ["question", "status"]
     }
   },
   "obsidian": {

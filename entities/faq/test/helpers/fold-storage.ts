@@ -1,20 +1,19 @@
 import { EntityRegistry, EntityService } from "@brains/entity-service";
 import { migrateEntities } from "@brains/entity-service/migrate";
 import { createMockShell } from "@brains/plugins/test";
-import {
-  createSilentLogger,
-  createMockProgressReporter,
-} from "@brains/test-utils";
-import { faqAdapter, faqMetadata } from "../../src/adapters/faq-adapter";
+import { createSilentLogger } from "@brains/test-utils";
+import { faqDocument, faqMetadata } from "../../src/lib/faq-body";
 import { faqSchema, type FaqEntity } from "../../src/schemas/faq";
-import { FaqReconcileHandler } from "../../src/handlers/faq-reconcile-handler";
+import { reconcileFaq } from "../../src/handlers/faq-reconcile-handler";
+import { faqType } from "./faq-type";
 
 export async function openFoldStorage(dir: string): Promise<EntityService> {
   const logger = createSilentLogger();
   const dbConfig = { url: `file:${dir}/entities.db` };
   await migrateEntities(dbConfig, logger);
   const registry = EntityRegistry.createFresh(logger);
-  registry.registerEntityType("faq", faqSchema, faqAdapter, {
+  const { schema, adapter } = faqType();
+  registry.registerEntityType("faq", schema, adapter, {
     publish: { publishStatuses: ["published"] },
   });
   return EntityService.createFresh({
@@ -52,7 +51,7 @@ export async function seedFold(service: EntityService): Promise<void> {
         entityType: "faq",
         visibility: "restricted",
         created,
-        content: faqAdapter.createFaqContent(fields, `Answer ${id}`),
+        content: faqDocument(fields, `Answer ${id}`),
         metadata: faqMetadata(fields),
       },
     });
@@ -61,26 +60,24 @@ export async function seedFold(service: EntityService): Promise<void> {
 
 export function reconcileFold(
   service: EntityService,
-): ReturnType<FaqReconcileHandler["process"]> {
-  const handler = new FaqReconcileHandler(createSilentLogger(), {
-    entityService: service,
-    sameQuestionDistance: 0.2,
-    searchWithDistances: async (): Promise<
-      { entityId: string; entityType: string; distance: number }[]
-    > => [{ entityId: "target", entityType: "faq", distance: 0.01 }],
-    ai: {
-      generateObject: async <T>(
-        _prompt: string,
-        schema: { parse(value: unknown): T },
-      ): Promise<{ object: T }> => ({
-        object: schema.parse({ same: true }),
-      }),
+): ReturnType<typeof reconcileFaq> {
+  return reconcileFaq(
+    {
+      entityService: service,
+      sameQuestionDistance: 0.2,
+      searchWithDistances: async (): Promise<
+        { entityId: string; entityType: string; distance: number }[]
+      > => [{ entityId: "target", entityType: "faq", distance: 0.01 }],
+      ai: {
+        generateObject: async <T>(
+          _prompt: string,
+          schema: { parse(value: unknown): T },
+        ): Promise<{ object: T }> => ({
+          object: schema.parse({ same: true }),
+        }),
+      },
     },
-  });
-  return handler.process(
     { entityId: "source" },
-    "fold-job",
-    createMockProgressReporter(),
   );
 }
 

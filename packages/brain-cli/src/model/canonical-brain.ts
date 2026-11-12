@@ -28,7 +28,7 @@ import contactPackage, { CONTACT_DEPENDENCIES } from "@brains/contact";
 import { formPlugin } from "@brains/form";
 import quizPackage, { QUIZ_DEPENDENCIES } from "@brains/quiz";
 import { conversationMemoryPlugin } from "@brains/conversation-memory";
-import { faqPlugin } from "@brains/faq";
+import faqPackage from "@brains/faq";
 import dashboardPackage from "@brains/dashboard";
 import decksPackage from "@brains/decks";
 import directorySyncPackage from "@brains/directory-sync";
@@ -363,7 +363,12 @@ export const canonicalBrain: BrainDefinition = defineBrain({
 
     ["conversation-memory", conversationMemoryPlugin, undefined],
     ["action-board", actionBoardPlugin, undefined],
-    ["faq", faqPlugin, undefined],
+    packageCapability("faq", "@brains/faq", faqPackage, {
+      // Under the id its class had, which registered the faq type inside
+      // itself: the type installs apart.
+      pluginId: "faq",
+      ownedTypePluginId: "faq-entity",
+    }),
     packageCapability("docs", "@brains/doc", docsPackage, {
       pluginId: "docs",
     }),

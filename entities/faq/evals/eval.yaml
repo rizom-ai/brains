@@ -1,3 +1,5 @@
 plugin: "@brains/faq"
-export: faqPlugin
+export: default
+pluginId: faq
+ownedTypePluginId: faq-entity
 model: gpt-6-luna

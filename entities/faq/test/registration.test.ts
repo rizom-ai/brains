@@ -56,13 +56,13 @@ function heard(shell: MockShell): Record<string, number> {
 
 /**
  * What the faq package registers, pinned as the faq entity plugin class
- * registered it: chats are captured into FAQs by the jobs queued under
+ * registered it and held on the definition: chats are captured into FAQs by the jobs queued under
  * these types, a guest's question a published FAQ answers is answered
  * from it, the owner reviews drafts in the Inbox, and sites render the
  * published ones.
  */
 describe("the faq package's registered surface", () => {
-  it("is the faq plugin, with no tools, resources or routes", async () => {
+  it("is the faq service beside its type, with no tools, resources or routes", async () => {
     const { plugins, capabilities } = await installed();
     expect(
       plugins.map(({ id, type, packageName, dependencies }) => [
@@ -71,7 +71,12 @@ describe("the faq package's registered surface", () => {
         packageName,
         dependencies ?? [],
       ]),
-    ).toEqual([["faq", "entity", "@brains/faq", []]]);
+    ).toEqual([
+      // The class registered the faq type inside itself, under faq; the
+      // type now installs as its own plugin, apart from the service.
+      ["faq-entity", "entity", "@brains/faq", []],
+      ["faq", "service", "@brains/faq", []],
+    ]);
     expect(capabilities.flatMap(({ tools }) => tools)).toEqual([]);
     expect(capabilities.flatMap(({ resources }) => resources)).toEqual([]);
     expect(

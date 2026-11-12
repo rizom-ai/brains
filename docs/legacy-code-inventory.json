@@ -406,7 +406,7 @@
     },
     {
       "id": "faq-stored-body",
-      "paths": ["entities/faq/src/adapters/stored-body.ts"],
+      "paths": ["entities/faq/src/lib/stored-body.ts"],
       "symbol": "FAQ body read path from before the structured content formatter",
       "owner": "@brains/faq",
       "class": "durable-data-compatibility",

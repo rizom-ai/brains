@@ -55,6 +55,7 @@ const convertedPackages = [
   "entities/book",
   "entities/decks",
   "entities/doc",
+  "entities/faq",
   "entities/document",
   "entities/image",
   "entities/link",

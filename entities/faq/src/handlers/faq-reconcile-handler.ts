@@ -1,13 +1,12 @@
-import type { EntityPluginContext } from "@brains/plugins";
+import { EntityWriteConflictError } from "@brains/sdk/internal/entity-runtime";
 import {
-  BaseJobHandler,
+  firstPartyJobHandler,
   internalFullScope,
-  EntityWriteConflictError,
-} from "@brains/plugins";
-import type { Logger } from "@brains/utils/logger";
-import type { ProgressReporter } from "@brains/utils/progress";
+  type FirstPartyJobHandler,
+  type ServiceEntityMutations,
+} from "@brains/sdk/internal/service-runtime";
 import { z } from "@brains/utils/zod";
-import { faqAdapter } from "../adapters/faq-adapter";
+import { readFaq } from "../lib/faq-body";
 import {
   findSameFaq,
   prepareFaqMerge,
@@ -25,10 +24,8 @@ export type FaqReconcileResult =
   | { outcome: "kept" | "unique" | "published" | "gone" | "changed" };
 
 export interface FaqReconcileDeps extends FaqStoreDeps {
-  entityService: Pick<
-    EntityPluginContext["entityService"],
-    "getEntity" | "updateEntity" | "getEntityWriteSnapshot" | "foldEntity"
-  >;
+  entityService: FaqStoreDeps["entityService"] &
+    Pick<ServiceEntityMutations, "getEntityWriteSnapshot" | "foldEntity">;
 }
 
 /** Whether `faq` is the one of a same-question pair that folds away. */
@@ -46,37 +43,33 @@ function foldsInto(faq: FaqEntity, other: FaqEntity): boolean {
  * that stays. A draft folds into a published FAQ; of two drafts the newer
  * folds, so both pair members' jobs agree. A published FAQ never folds.
  */
-export class FaqReconcileHandler extends BaseJobHandler<
-  "faq-reconcile",
-  FaqReconcileJobData,
-  FaqReconcileResult
-> {
-  private readonly deps: FaqReconcileDeps;
+export function faqReconcileJob(deps: FaqReconcileDeps): FirstPartyJobHandler {
+  return firstPartyJobHandler<FaqReconcileJobData>({
+    type: "faq-reconcile",
+    input: faqReconcileJobSchema,
+    process: ({ input, signal }) => reconcileFaq(deps, input, signal),
+  });
+}
 
-  constructor(logger: Logger, deps: FaqReconcileDeps) {
-    super(logger, {
-      schema: faqReconcileJobSchema,
-      jobTypeName: "faq-reconcile",
-    });
-    this.deps = deps;
-  }
-
-  async process(
-    data: FaqReconcileJobData,
-    _jobId: string,
-    _progressReporter: ProgressReporter,
-    signal?: AbortSignal,
-  ): Promise<FaqReconcileResult> {
-    const source = await this.deps.entityService.getEntityWriteSnapshot({
+/** One FAQ folded into the one it repeats, or left as it is. */
+export async function reconcileFaq(
+  deps: FaqReconcileDeps,
+  data: FaqReconcileJobData,
+  signal?: AbortSignal,
+): Promise<FaqReconcileResult> {
+  {
+    // As stored: it is searched and checked as the document it is.
+    const source = await deps.entityService.getEntityWriteSnapshot({
       entityType: "faq",
       id: data.entityId,
       visibilityScope: internalFullScope("faq reconciliation"),
+      source: true,
     });
     if (!source) return { outcome: "gone" };
     const faq = faqSchema.parse(source.entity);
     if (faq.metadata.status === "published") return { outcome: "published" };
 
-    const same = await findSameFaq(this.deps, {
+    const same = await findSameFaq(deps, {
       content: faq.content,
       visibility: faq.visibility,
       excludeIds: [faq.id],
@@ -84,32 +77,29 @@ export class FaqReconcileHandler extends BaseJobHandler<
     });
     signal?.throwIfAborted();
     if (!same) return { outcome: "unique" };
-    const question = faqAdapter.parseFaqContent(same.content).frontmatter
-      .question;
-    const { frontmatter, answer, alternatives } = faqAdapter.parseFaqContent(
-      faq.content,
-    );
+    const question = readFaq(same).frontmatter.question;
+    const { frontmatter, answer, alternatives } = readFaq(faq);
     const attempt = async (
       attemptsLeft: number,
     ): Promise<FaqReconcileResult> => {
       // Refresh only the same question and visibility that semantic matching
       // admitted. Concurrent answer/count edits can still be merged safely.
-      const target = await this.deps.entityService.getEntityWriteSnapshot({
+      const target = await deps.entityService.getEntityWriteSnapshot({
         entityType: "faq",
         id: same.id,
         visibilityScope: faq.visibility,
+        source: true,
       });
       if (!target) return { outcome: "changed" };
       const destination = faqSchema.parse(target.entity);
       if (
         destination.visibility !== faq.visibility ||
-        faqAdapter.parseFaqContent(destination.content).frontmatter.question !==
-          question
+        readFaq(destination).frontmatter.question !== question
       )
         return { outcome: "changed" };
       if (!foldsInto(faq, destination)) return { outcome: "kept" };
       try {
-        await this.deps.entityService.foldEntity({
+        await deps.entityService.foldEntity({
           source: {
             entityType: "faq",
             id: faq.id,
@@ -124,12 +114,11 @@ export class FaqReconcileHandler extends BaseJobHandler<
       } catch (error) {
         // Never compensate a possible committed fold by recreating its source.
         if (!(error instanceof EntityWriteConflictError)) throw error;
-        const currentSource =
-          await this.deps.entityService.getEntityWriteSnapshot({
-            entityType: "faq",
-            id: faq.id,
-            visibilityScope: faq.visibility,
-          });
+        const currentSource = await deps.entityService.getEntityWriteSnapshot({
+          entityType: "faq",
+          id: faq.id,
+          visibilityScope: faq.visibility,
+        });
         if (currentSource?.revision !== source.revision)
           return { outcome: "changed" };
         if (attemptsLeft <= 1)

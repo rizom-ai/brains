@@ -1,14 +1,13 @@
 import { StructuredContentFormatter } from "@brains/content-formatters";
-import { BaseEntityAdapter } from "@brains/plugins";
+import { frontmatterRecordFields } from "@brains/contracts";
+import { generateMarkdownWithFrontmatter } from "@brains/sdk/internal/entity-runtime";
 import { z } from "@brains/utils/zod";
 import {
   faqBodySchema,
   faqFrontmatterSchema,
-  faqSchema,
   faqSourceSchema,
   type FaqAlternative,
   type FaqBody,
-  type FaqEntity,
   type FaqFrontmatter,
   type FaqFrontmatterInput,
   type FaqMetadata,
@@ -132,105 +131,115 @@ export const faqBodyFormatter: StructuredContentFormatter<FaqBody> =
 export const faqBodyCodec: typeof faqBodyFormatter.codec =
   faqBodyFormatter.codec;
 
+/** A FAQ as its readers take it: its fields, its answer, sources and alternatives. */
+export interface FaqParts {
+  frontmatter: FaqFrontmatter;
+  answer: string;
+  sources: FaqSource[];
+  alternatives: FaqAlternative[];
+}
+
+/** The body in the formatter's layout; empty lists are left out. */
+export function faqBody(
+  answer: string,
+  sources: FaqSource[] = [],
+  alternatives: FaqAlternative[] = [],
+): string {
+  return z.encode(faqBodyCodec, {
+    answer,
+    ...(sources.length > 0 ? { sources } : {}),
+    ...(alternatives.length > 0 ? { alternatives } : {}),
+  });
+}
+
+/** A body's answer, sources and alternatives, whichever layout it is in. */
+function bodyParts(
+  body: string,
+  frontmatterSources: FaqSource[],
+): Omit<FaqParts, "frontmatter"> {
+  const parsed = isStoredFaqBody(body)
+    ? parseStoredFaqBody(body)
+    : z.decode(faqBodyCodec, body);
+  const sources = "sources" in parsed ? (parsed.sources ?? []) : [];
+  return {
+    answer: parsed.answer,
+    sources: sources.length > 0 ? sources : frontmatterSources,
+    alternatives: parsed.alternatives ?? [],
+  };
+}
+
+/**
+ * The body as stored, unless the FAQ is still in the layout from before
+ * the formatter, keeps its sources in frontmatter or keeps what they
+ * quoted: then it is written in the formatter's layout, sources in the
+ * body without quotes, as the class wrote it on its next write.
+ */
+export function currentFaqBody(
+  body: string,
+  frontmatterSources: FaqSource[],
+): string {
+  if (
+    !isStoredFaqBody(body) &&
+    !hasStoredExcerpts(body) &&
+    frontmatterSources.length === 0
+  )
+    return body;
+  const { answer, sources, alternatives } = bodyParts(body, frontmatterSources);
+  return faqBody(answer, sources, alternatives);
+}
+
 /** Sources an FAQ kept in its frontmatter before they moved to the body. */
-const storedSourcesSchema = z.object({
+const storedSourcesSchema = z.looseObject({
   sources: z.array(faqSourceSchema).optional(),
 });
 
-export class FaqAdapter extends BaseEntityAdapter<
-  FaqEntity,
-  FaqMetadata,
-  FaqFrontmatter
-> {
-  constructor() {
-    super({
-      entityType: "faq",
-      purpose:
-        "A reusable question and answer captured from a chat conversation, kept at the visibility of the turn that answered it.",
-      schema: faqSchema,
-      frontmatterSchema: faqFrontmatterSchema,
-    });
-  }
-
-  public createFaqContent(
-    frontmatter: FaqFrontmatterInput,
-    answer: string,
-    alternatives: FaqAlternative[] = [],
-    sources: FaqSource[] = [],
-  ): string {
-    return this.buildMarkdown(
-      this.encodeBody(answer, sources, alternatives),
-      faqFrontmatterSchema.parse(frontmatter),
-    );
-  }
-
-  public parseFaqContent(content: string): {
-    frontmatter: FaqFrontmatter;
-    answer: string;
-    sources: FaqSource[];
-    alternatives: FaqAlternative[];
-  } {
-    // Parse through the schema to apply defaults (asked)
-    const raw = this.parseFrontMatter(content, faqFrontmatterSchema);
-    const body = this.extractBody(content);
-    const parsed = isStoredFaqBody(body)
-      ? parseStoredFaqBody(body)
-      : z.decode(faqBodyCodec, body);
-    const sources = "sources" in parsed ? (parsed.sources ?? []) : [];
-    return {
-      frontmatter: faqFrontmatterSchema.parse(raw),
-      answer: parsed.answer,
-      sources: sources.length > 0 ? sources : this.storedSources(content),
-      alternatives: parsed.alternatives ?? [],
-    };
-  }
-
-  public fromMarkdown(markdown: string): Partial<FaqEntity> {
-    const { frontmatter } = this.parseFaqContent(markdown);
-    return {
-      content: markdown,
-      entityType: "faq",
-      metadata: faqMetadata(frontmatter),
-    };
-  }
-
-  /**
-   * The body as stored, unless the FAQ is still in the layout from before
-   * the formatter, keeps its sources in frontmatter or keeps what they
-   * quoted: then it is written in the formatter's layout, sources in the
-   * body without quotes.
-   */
-  protected override renderBody(entity: FaqEntity): string {
-    const body = this.extractBody(entity.content);
-    if (
-      !isStoredFaqBody(body) &&
-      !hasStoredExcerpts(body) &&
-      this.storedSources(entity.content).length === 0
-    )
-      return body;
-    const { answer, sources, alternatives } = this.parseFaqContent(
-      entity.content,
-    );
-    return this.encodeBody(answer, sources, alternatives);
-  }
-
-  /** Empty lists are left out, so the body has no empty sections. */
-  private encodeBody(
-    answer: string,
-    sources: FaqSource[],
-    alternatives: FaqAlternative[],
-  ): string {
-    return z.encode(faqBodyCodec, {
-      answer,
-      ...(sources.length > 0 ? { sources } : {}),
-      ...(alternatives.length > 0 ? { alternatives } : {}),
-    });
-  }
-
-  /** Sources still in an FAQ's frontmatter, from before they moved. */
-  private storedSources(content: string): FaqSource[] {
-    return this.parseFrontMatter(content, storedSourcesSchema).sources ?? [];
-  }
+/** The sources a FAQ's frontmatter still holds, from before they moved. */
+export function frontmatterSources(frontmatter: unknown): FaqSource[] {
+  const parsed = storedSourcesSchema.safeParse(frontmatter);
+  return parsed.success ? (parsed.data.sources ?? []) : [];
 }
 
-export const faqAdapter: FaqAdapter = new FaqAdapter();
+/**
+ * A FAQ as read: its fields from the stored document when it is read as
+ * stored, from its metadata otherwise, and its body's answer, sources and
+ * alternatives.
+ */
+export function readFaq(record: {
+  readonly content: string;
+  readonly metadata?: Readonly<Record<string, unknown>> | undefined;
+}): FaqParts {
+  const { fields, body } = frontmatterRecordFields(record);
+  return {
+    frontmatter: faqFrontmatterSchema.parse(fields),
+    ...bodyParts(body, frontmatterSources(fields)),
+  };
+}
+
+/**
+ * The document a FAQ is stored and embedded as: its fields over its body.
+ * A same-question search and check measure a FAQ in this form.
+ */
+export function faqDocument(
+  frontmatter: FaqFrontmatterInput,
+  answer: string,
+  alternatives: FaqAlternative[] = [],
+  sources: FaqSource[] = [],
+): string {
+  return generateMarkdownWithFrontmatter(
+    faqBody(answer, sources, alternatives),
+    faqFrontmatterSchema.parse(frontmatter),
+  );
+}
+
+/** What a FAQ write stores: its body, and its fields as metadata. */
+export function faqRecord(
+  frontmatter: FaqFrontmatterInput,
+  answer: string,
+  alternatives: FaqAlternative[] = [],
+  sources: FaqSource[] = [],
+): { content: string; metadata: FaqMetadata } {
+  return {
+    content: faqBody(answer, sources, alternatives),
+    metadata: faqMetadata(faqFrontmatterSchema.parse(frontmatter)),
+  };
+}

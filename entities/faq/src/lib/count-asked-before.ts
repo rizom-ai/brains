@@ -1,10 +1,10 @@
-import {
-  EntityWriteConflictError,
-  type IEntityService,
-  type Message,
-} from "@brains/plugins";
+import { EntityWriteConflictError } from "@brains/sdk/internal/entity-runtime";
+import type {
+  Message,
+  ServiceEntityMutations,
+} from "@brains/sdk/internal/service-runtime";
 import { z } from "@brains/utils/zod";
-import { faqAdapter } from "../adapters/faq-adapter";
+import { readFaq } from "./faq-body";
 import { faqSchema } from "../schemas/faq";
 import { prepareFaqMerge } from "./faq-store";
 
@@ -19,11 +19,11 @@ const markerSchema = z.object({
 /** Undefined means an ordinary reply; false means its answered FAQ is no longer eligible. */
 export async function countAskedBefore(
   entities: Pick<
-    IEntityService,
+    ServiceEntityMutations,
     "getEntityWriteSnapshot" | "applyEntityMutationOnce"
   >,
   answer: Message,
-  receipt: Parameters<IEntityService["getEntityMutationReceipt"]>[0],
+  receipt: Parameters<ServiceEntityMutations["getEntityMutationReceipt"]>[0],
 ): Promise<{ entityId: string; merged: boolean } | false | undefined> {
   if (answer.metadata["askedBefore"] === undefined) return undefined;
   const parsed = markerSchema.safeParse(answer.metadata);
@@ -48,7 +48,7 @@ export async function countAskedBefore(
     });
     if (!snapshot) return false;
     const faq = faqSchema.parse(snapshot.entity);
-    const content = faqAdapter.parseFaqContent(faq.content);
+    const content = readFaq(faq);
     if (
       faq.visibility !== "public" ||
       faq.metadata.status !== "published" ||

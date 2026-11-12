@@ -1,12 +1,9 @@
 import { RuntimeStateService } from "@brains/runtime-state";
 import { migrateRuntimeState } from "@brains/runtime-state/migrate";
 import type { Message } from "@brains/plugins";
+import { createSilentLogger } from "@brains/test-utils";
 import {
-  createSilentLogger,
-  createMockProgressReporter,
-} from "@brains/test-utils";
-import {
-  FaqCaptureHandler,
+  captureReply,
   type FaqClassification,
 } from "../../src/handlers/faq-capture-handler";
 import { SAME_QUESTION_CHECK } from "../../src/lib/faq-store";
@@ -23,7 +20,7 @@ export const captureData = {
 export interface CaptureFixture {
   service: EntityService;
   replies: ReturnType<typeof capturedReplyStore>;
-  process: () => ReturnType<FaqCaptureHandler["process"]>;
+  process: () => ReturnType<typeof captureReply>;
   close: () => void;
 }
 export async function openCaptureStorage(
@@ -61,7 +58,7 @@ export async function openCaptureStorage(
       metadata: options.replyMetadata ?? {},
     },
   ];
-  const handler = new FaqCaptureHandler(logger, {
+  const deps: Parameters<typeof captureReply>[0] = {
     replies,
     entityService: service,
     sameQuestionDistance: 0.2,
@@ -91,12 +88,11 @@ export async function openCaptureStorage(
         };
       },
     },
-  });
+  };
   return {
     replies,
     service,
-    process: () =>
-      handler.process(captureData, "capture-job", createMockProgressReporter()),
+    process: () => captureReply(deps, captureData),
     close: (): void => {
       service.close();
       state.close();

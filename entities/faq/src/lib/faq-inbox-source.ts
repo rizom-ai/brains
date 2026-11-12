@@ -1,16 +1,16 @@
+import { permissionToVisibilityScope } from "@brains/sdk/internal/interface-runtime";
 import {
-  permissionToVisibilityScope,
   internalFullScope,
-} from "@brains/plugins";
-import type {
-  EntityPluginContext,
-  InboxAction,
-  InboxActor,
-  InboxItem,
-  InboxItemDetail,
-  InboxSource,
-} from "@brains/plugins";
-import { faqAdapter, faqMetadata } from "../adapters/faq-adapter";
+  type InboxAction,
+  type InboxActor,
+  type InboxItem,
+  type InboxItemDetail,
+  type InboxSource,
+  type ServiceEntityReads,
+  type ServiceEntityWrites,
+  type ServicePermissions,
+} from "@brains/sdk/internal/service-runtime";
+import { faqRecord, readFaq } from "./faq-body";
 import {
   faqSchema,
   type FaqAlternative,
@@ -19,12 +19,11 @@ import {
   type FaqFrontmatter,
 } from "../schemas/faq";
 
-type FaqInboxContext = Pick<EntityPluginContext, "entityService"> & {
-  permissions: Pick<
-    EntityPluginContext["permissions"],
-    "assertEntityActionAllowed"
-  >;
-};
+interface FaqInboxContext {
+  entityService: Pick<ServiceEntityReads, "listEntities" | "getEntity"> &
+    Pick<ServiceEntityWrites, "updateEntity" | "deleteEntity">;
+  permissions: ServicePermissions;
+}
 
 interface ParsedFaq {
   entity: FaqEntity;
@@ -44,7 +43,7 @@ function requireAdmin(actor: InboxActor): void {
 }
 
 function parse(entity: FaqEntity): ParsedFaq {
-  return { entity, ...faqAdapter.parseFaqContent(entity.content) };
+  return { entity, ...readFaq(entity) };
 }
 
 function asked(count: number): string {
@@ -103,20 +102,17 @@ export class FaqInboxSource implements InboxSource {
   }
 
   async list(): Promise<InboxItem[]> {
-    const faqs = await this.context.entityService.listEntities(
-      {
-        entityType: "faq",
-        options: {
-          limit: 1000,
-          sortFields: [{ field: "updated", direction: "desc" }],
-          filter: {
-            visibilityScope: internalFullScope("faq inbox is admin-only"),
-          },
+    const faqs = await this.context.entityService.listEntities({
+      entityType: "faq",
+      options: {
+        limit: 1000,
+        sortFields: [{ field: "updated", direction: "desc" }],
+        filter: {
+          visibilityScope: internalFullScope("faq inbox is admin-only"),
         },
       },
-      faqSchema,
-    );
-    return faqs.flatMap((faq) => toItem(parse(faq)));
+    });
+    return faqs.flatMap((faq) => toItem(parse(faqSchema.parse(faq))));
   }
 
   async resolveDetail(
@@ -182,13 +178,12 @@ export class FaqInboxSource implements InboxSource {
       entity: {
         ...faq.entity,
         // Settling drops the alternatives; publishing keeps them for later.
-        content: faqAdapter.createFaqContent(
+        ...faqRecord(
           frontmatter,
           chosen,
           actionId === "publish" ? faq.alternatives : [],
           faq.sources,
         ),
-        metadata: faqMetadata(frontmatter),
       },
       options: { expectedContentHash: faq.entity.contentHash },
     });
@@ -220,15 +215,12 @@ export class FaqInboxSource implements InboxSource {
   }
 
   private async load(itemId: string, actor: InboxActor): Promise<ParsedFaq> {
-    const faq = await this.context.entityService.getEntity(
-      {
-        entityType: "faq",
-        id: itemId,
-        visibilityScope: permissionToVisibilityScope(actor.permissionLevel),
-      },
-      faqSchema,
-    );
+    const faq = await this.context.entityService.getEntity({
+      entityType: "faq",
+      id: itemId,
+      visibilityScope: permissionToVisibilityScope(actor.permissionLevel),
+    });
     if (!faq) throw new Error("FAQ not found");
-    return parse(faq);
+    return parse(faqSchema.parse(faq));
   }
 }
