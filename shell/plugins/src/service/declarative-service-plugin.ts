@@ -107,6 +107,7 @@ import {
   type ClaimedSystemType,
   type ServiceCorpusReads,
   type ServiceDataSourceDeclaration,
+  type ServiceConversations,
   type ServiceEntityReads,
   type ServiceEntityShapes,
   type ServiceEntityWrites,
@@ -1348,6 +1349,12 @@ class DeclarativeServicePlugin<
             })
           : undefined;
       },
+      conversations: Object.freeze({
+        getMessages: (conversationId, options) =>
+          context.conversations.getMessages(conversationId, options),
+        countMessages: (conversationId) =>
+          context.conversations.countMessages(conversationId),
+      } satisfies ServiceConversations),
       entityReads: entityReadsOf(context),
       permissions: Object.freeze({
         assertEntityActionAllowed: (entityType, action, caller): void => {

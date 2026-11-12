@@ -1025,6 +1025,7 @@ export {
   type ClaimedSystemType,
   type ClassRuntimeState,
   type ClassRuntimeStateStore,
+  type ServiceConversations,
   type ServiceCorpusReads,
   type ServiceDashboardWidget,
   type ServiceInteraction,

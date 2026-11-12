@@ -24,6 +24,7 @@ import type {
 /** Who a console surface strip is for, as deriveConsoleSurfaces reads it. */
 export type ConsoleSurfaceOptions = Parameters<typeof deriveConsoleSurfaces>[1];
 import type {
+  IConversationsNamespace,
   IEndpointsNamespace,
   IInboxFollowUpsNamespace,
   IInboxNamespace,
@@ -525,6 +526,12 @@ export interface ServiceRuntime {
    */
   evalHandler(handlerId: string, handler: EvalHandler): void;
   /**
+   * The brain's conversations, as the class read them through
+   * `context.conversations`: a conversation's messages in the range a
+   * read names, and how many it has. Nothing that lists, searches or writes.
+   */
+  readonly conversations: ServiceConversations;
+  /**
    * Read-only reads of the brain's entities, passed through to the entity
    * service at the scope each call names, as the class read them: the
    * registered types, counts by type, a page of a type and one record. It
@@ -736,6 +743,12 @@ export type ServiceAttachments = Pick<
   "resolve" | "hasProvider"
 >;
 
+/** The conversation reads a class made, and nothing that lists or writes. */
+export type ServiceConversations = Pick<
+  IConversationsNamespace,
+  "getMessages" | "countMessages"
+>;
+
 /** The view templates a class read, and nothing that registers one. */
 export type ServiceViews = Pick<IViewsNamespace, "get" | "list">;
 
@@ -892,6 +905,7 @@ export interface ServiceRuntimeBinding {
   readonly toolCall: () => ServiceToolCall | undefined;
   readonly classRuntimeState: ClassRuntimeState;
   readonly evalHandler: (handlerId: string, handler: EvalHandler) => void;
+  readonly conversations: ServiceConversations;
   readonly entityReads: ServiceEntityReads;
   readonly permissions: ServicePermissions;
   readonly attachments: ServiceAttachments;
@@ -982,6 +996,7 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
     toolCall: binding.toolCall,
     classRuntimeState: binding.classRuntimeState,
     evalHandler: binding.evalHandler,
+    conversations: binding.conversations,
     entityReads: binding.entityReads,
     permissions: binding.permissions,
     attachments: binding.attachments,
