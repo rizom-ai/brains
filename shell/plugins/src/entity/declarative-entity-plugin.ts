@@ -65,6 +65,7 @@ import {
   contractJobOf,
   entityAnswersOf,
   bodyTemplateOf,
+  folderTitlesOf,
   ordinaryCreateOf,
   restatedMetadataOf,
   urlRouteOf,
@@ -524,6 +525,14 @@ function binaryStorage(
   };
 }
 
+/** A type's folder titles, left off when it names none. */
+function folderTitlesAdapter(
+  definition: AnyEntityDefinition,
+): Pick<DeclaredAdapter, "getFolderTitles"> {
+  const titles = folderTitlesOf(definition);
+  return titles ? { getFolderTitles: titles } : {};
+}
+
 function entityAdapter(definition: AnyEntityDefinition): DeclaredAdapter {
   const schema = entitySchema(definition);
   const stub = definition.stub;
@@ -539,6 +548,7 @@ function entityAdapter(definition: AnyEntityDefinition): DeclaredAdapter {
     extractMetadata: (entity) =>
       restatedMetadataOf(definition)?.(entity.metadata) ?? entity.metadata,
     getBodyTemplate: () => bodyTemplateOf(definition),
+    ...folderTitlesAdapter(definition),
     ...(writesInDocumentOrderOf(definition) && { writesInDocumentOrder: true }),
     // Left off when undeclared: system_generate reads its absence as "this
     // type does not support queued generation" and says so.

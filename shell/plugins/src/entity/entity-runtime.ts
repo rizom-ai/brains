@@ -879,6 +879,54 @@ export function bodyTemplateOf(definition: object): string {
   return typeof found === "string" ? found : "";
 }
 
+const folderTitlesKey = Symbol("rizom.folder-titles");
+
+/** How a record names the folders above it, as its adapter did. */
+export type FolderTitles<TDefinition extends AnyEntityDefinition> = (record: {
+  readonly content: string;
+  readonly metadata: z.output<TDefinition["metadata"]>;
+}) => Array<string | undefined>;
+
+/**
+ * A first-party definition whose records stand in folders the type can
+ * name: the definition, carrying how a record names the folders above it
+ * under a key no public type names, which the runtime gives as its
+ * adapter's folder titles (a book section's headings title the parts its
+ * id stands in, in Studio's tree).
+ */
+export function withFolderTitles<TDefinition extends AnyEntityDefinition>(
+  definition: TDefinition,
+  titles: FolderTitles<TDefinition>,
+): TDefinition {
+  return Object.freeze({ ...definition, [folderTitlesKey]: titles });
+}
+
+/**
+ * The folder titles a definition carries, read from a record as read: none
+ * for a record whose metadata the type does not read, or for a definition
+ * that carries none.
+ */
+export function folderTitlesOf(
+  definition: AnyEntityDefinition,
+):
+  | ((entity: { readonly content: string }) => Array<string | undefined>)
+  | undefined {
+  const found: unknown = Reflect.get(definition, folderTitlesKey);
+  if (typeof found !== "function") return undefined;
+  return (entity) => {
+    const metadata = definition.metadata.safeParse(
+      Reflect.get(entity, "metadata"),
+    );
+    if (!metadata.success) return [];
+    const titles: unknown = Reflect.apply(found, undefined, [
+      { content: entity.content, metadata: metadata.data },
+    ]);
+    return Array.isArray(titles)
+      ? titles.map((title) => (typeof title === "string" ? title : undefined))
+      : [];
+  };
+}
+
 const restatedMetadataKey = Symbol("rizom.restated-metadata");
 
 /** The metadata as the document a type wrote states it. */
