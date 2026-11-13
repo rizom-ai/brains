@@ -1,14 +1,12 @@
 import {
-  permissionToVisibilityScope,
   internalFullScope,
-} from "@brains/plugins";
-import type {
-  ServicePluginContext,
-  InboxActor,
-  InboxItem,
-  InboxItemDetail,
-  InboxSource,
-} from "@brains/plugins";
+  permissionToVisibilityScope,
+  type InboxActor,
+  type InboxItem,
+  type InboxItemDetail,
+  type InboxSource,
+} from "@brains/sdk/internal/service-runtime";
+import type { BoardContext } from "./board-context";
 import { truncateText } from "@brains/utils/string-utils";
 import { ACTION_ITEM_ENTITY_TYPE } from "@brains/action-items";
 import {
@@ -42,9 +40,9 @@ const LIST_LIMIT = 100;
 export class ActionItemInboxSource implements InboxSource {
   readonly sourceId: string = "action-items";
   readonly displayName: string = "Action items";
-  private readonly context: Pick<ServicePluginContext, "entityService">;
+  private readonly context: Pick<BoardContext, "entityService">;
 
-  constructor(context: Pick<ServicePluginContext, "entityService">) {
+  constructor(context: Pick<BoardContext, "entityService">) {
     this.context = context;
   }
 

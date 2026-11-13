@@ -1,5 +1,7 @@
 export {
-  LinkedInImportPlugin,
-  linkedInImportPlugin,
+  createLinkedInImportPackage,
+  linkedInImportConfigSchema,
+  linkedInImportPackage,
   type LinkedInImportDeps,
+  type LinkedInImportState,
 } from "./plugin";

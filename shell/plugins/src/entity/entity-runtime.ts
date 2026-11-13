@@ -970,6 +970,49 @@ export function recordDisplayTitleOf(definition: AnyEntityDefinition):
   };
 }
 
+const persistValidatorKey = Symbol("rizom.persist-validator");
+
+/** A persistence check that reads the record's id, as an entity plugin class's did. */
+export type RecordPersistValidator = (entity: {
+  readonly id: string;
+  readonly content: string;
+  readonly visibility: EntityVisibility;
+}) => void | Promise<void>;
+
+/**
+ * A first-party definition whose class checked every write against the
+ * record's id as well as its document: the definition, carrying the check
+ * under a key no public type names, which the runtime runs before every
+ * create and update of the type, as it runs the public validatePersist (a
+ * form whose id is not a slug is refused). A definition that declares the
+ * public validatePersist is refused: one type has one check.
+ *
+ * Tracked in docs/legacy-code-inventory.json (first-party-entity-runtime).
+ */
+export function withPersistValidator<TDefinition extends AnyEntityDefinition>(
+  definition: TDefinition,
+  validator: RecordPersistValidator,
+): TDefinition {
+  if (definition.validatePersist) {
+    throw new Error(
+      `Entity "${definition.type}" already declares a persist check`,
+    );
+  }
+  return Object.freeze({ ...definition, [persistValidatorKey]: validator });
+}
+
+/** The id-reading persist check a definition carries, or none. */
+export function recordPersistValidatorOf(
+  definition: object,
+): RecordPersistValidator | undefined {
+  const found: unknown = Reflect.get(definition, persistValidatorKey);
+  return typeof found === "function"
+    ? async (entity): Promise<void> => {
+        await Reflect.apply(found, undefined, [entity]);
+      }
+    : undefined;
+}
+
 const folderTitlesKey = Symbol("rizom.folder-titles");
 
 /** How a record names the folders above it, as its adapter did. */

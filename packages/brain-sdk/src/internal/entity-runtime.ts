@@ -21,6 +21,8 @@ export {
   withBodyTemplate,
   withFolderTitles,
   withDisplayTitle,
+  withPersistValidator,
+  type RecordPersistValidator,
   withPublishedStatuses,
   withUrlRoute,
   writesInDocumentOrder,

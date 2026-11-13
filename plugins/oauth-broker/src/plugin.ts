@@ -3,10 +3,14 @@ import {
   type OAuthBrokerProvider,
 } from "@brains/contracts";
 import {
-  ServicePlugin,
-  type ServicePluginContext,
-  type WebRouteDefinition,
-} from "@brains/plugins";
+  defineServicePlugin,
+  type ServicePackageDefinition,
+} from "@brains/sdk/services";
+import type { WebRouteDefinition } from "@brains/sdk/internal/interface-runtime";
+import {
+  serviceRuntime,
+  withWebRoutes,
+} from "@brains/sdk/internal/service-runtime";
 import { SingleUseStore } from "@brains/utils/single-use-store";
 import { z } from "@brains/utils/zod";
 import { BrokerInstances } from "./instances";
@@ -15,7 +19,6 @@ import {
   type PendingAuthorization,
   type PendingGrant,
 } from "./routes";
-import packageJson from "../package.json";
 
 const AUTHORIZATION_TTL_MS = 10 * 60 * 1000;
 const GRANT_TTL_MS = 2 * 60 * 1000;
@@ -43,7 +46,7 @@ const instanceSchema: z.ZodObject<{
     .describe("Per provider, the one address the browser returns to"),
 });
 
-const oauthBrokerConfigSchema: z.ZodObject<{
+export const oauthBrokerConfigSchema: z.ZodObject<{
   publicUrl: z.ZodURL;
   providers: z.ZodDefault<
     z.ZodRecord<typeof oauthBrokerProviderIdSchema, typeof appSchema>
@@ -61,8 +64,6 @@ const oauthBrokerConfigSchema: z.ZodObject<{
 });
 
 type OAuthBrokerConfig = z.output<typeof oauthBrokerConfigSchema>;
-/** Brains pass raw config records; the schema validates them at parse time. */
-type OAuthBrokerConfigInput = Record<string, unknown>;
 
 /** Builds a provider's adapter from the shared app the broker holds for it. */
 export type ProviderFactory = (app: ProviderAppConfig) => OAuthBrokerProvider;
@@ -72,72 +73,72 @@ export interface OAuthBrokerDeps {
   now?: () => number;
 }
 
+/** What the broker holds once set up: the routes it serves, if any. */
+export interface OAuthBrokerState {
+  readonly routes: readonly WebRouteDefinition[];
+}
+
+/** Each configured provider's adapter, refusing one without or unlike its id. */
+function providersOf(
+  config: OAuthBrokerConfig,
+  deps: OAuthBrokerDeps,
+): OAuthBrokerProvider[] {
+  return Object.entries(config.providers).map(([id, app]) => {
+    const factory = deps.providers[id];
+    if (!factory) {
+      throw new Error(`oauth-broker: no adapter for provider "${id}"`);
+    }
+    const provider = factory(app);
+    if (provider.id !== id) {
+      throw new Error(
+        `oauth-broker: adapter for "${id}" reports provider "${provider.id}"`,
+      );
+    }
+    return provider;
+  });
+}
+
 /**
  * The managed OAuth broker: one central brain holds each provider's app
  * secret and its single callback, and hands instance brains a one-time grant
  * they redeem for the credential. Pending state lives in memory only.
  */
-export class OAuthBrokerPlugin extends ServicePlugin<
-  OAuthBrokerConfig,
-  OAuthBrokerConfigInput
-> {
-  private readonly deps: OAuthBrokerDeps;
-  /** Built once, so the routes share one instance registry and start limit. */
-  private routes: WebRouteDefinition[] = [];
-  private readonly authorizations: SingleUseStore<PendingAuthorization>;
-  private readonly grants: SingleUseStore<PendingGrant>;
-
-  constructor(config: OAuthBrokerConfigInput, deps: OAuthBrokerDeps) {
-    super("oauth-broker", packageJson, config, oauthBrokerConfigSchema);
-    this.deps = deps;
-    this.authorizations = new SingleUseStore({
-      ttlMs: AUTHORIZATION_TTL_MS,
-      maxPending: MAX_PENDING,
-      now: deps.now,
-    });
-    this.grants = new SingleUseStore({
-      ttlMs: GRANT_TTL_MS,
-      maxPending: MAX_PENDING,
-      now: deps.now,
-    });
-  }
-
-  protected override async onRegister(
-    _context: ServicePluginContext,
-  ): Promise<void> {
-    const providers = Object.entries(this.config.providers).map(([id, app]) => {
-      const factory = this.deps.providers[id];
-      if (!factory) {
-        throw new Error(`oauth-broker: no adapter for provider "${id}"`);
-      }
-      const provider = factory(app);
-      if (provider.id !== id) {
-        throw new Error(
-          `oauth-broker: adapter for "${id}" reports provider "${provider.id}"`,
-        );
-      }
-      return provider;
-    });
-    if (this.config.instances.length === 0 || providers.length === 0) return;
-    this.routes = createBrokerRoutes({
-      publicUrl: this.config.publicUrl,
-      providers,
-      instances: new BrokerInstances(this.config.instances),
-      authorizations: this.authorizations,
-      grants: this.grants,
-      now: this.deps.now ?? Date.now,
-      logger: this.logger,
-    });
-  }
-
-  override getWebRoutes(): WebRouteDefinition[] {
-    return this.routes;
-  }
-}
-
-export function oauthBrokerPlugin(
-  config: OAuthBrokerConfigInput,
+export function createOAuthBrokerPackage(
   deps: OAuthBrokerDeps,
-): OAuthBrokerPlugin {
-  return new OAuthBrokerPlugin(config, deps);
+): ServicePackageDefinition<typeof oauthBrokerConfigSchema> {
+  const service = defineServicePlugin({
+    id: "oauth-broker",
+    config: oauthBrokerConfigSchema,
+    setup: (context): OAuthBrokerState => {
+      const { config } = context;
+      const providers = providersOf(config, deps);
+      if (config.instances.length === 0 || providers.length === 0) {
+        return { routes: [] };
+      }
+      // Built once, so the routes share one instance registry and start limit.
+      return {
+        routes: createBrokerRoutes({
+          publicUrl: config.publicUrl,
+          providers,
+          instances: new BrokerInstances(config.instances),
+          authorizations: new SingleUseStore<PendingAuthorization>({
+            ttlMs: AUTHORIZATION_TTL_MS,
+            maxPending: MAX_PENDING,
+            now: deps.now,
+          }),
+          grants: new SingleUseStore<PendingGrant>({
+            ttlMs: GRANT_TTL_MS,
+            maxPending: MAX_PENDING,
+            now: deps.now,
+          }),
+          now: deps.now ?? Date.now,
+          logger: serviceRuntime(context).logger,
+        }),
+      };
+    },
+  });
+  return withWebRoutes<typeof oauthBrokerConfigSchema, OAuthBrokerState>(
+    service,
+    ({ state }) => state.routes,
+  );
 }

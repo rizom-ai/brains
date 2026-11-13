@@ -35,7 +35,7 @@ import chatInterface, { chatConfigFromEnv } from "@brains/chat";
 import studioPackage from "@brains/studio";
 import contentPipelinePackage from "@brains/content-pipeline";
 import contactPackage, { CONTACT_DEPENDENCIES } from "@brains/contact";
-import { formPlugin } from "@brains/form";
+import formPackage from "@brains/form";
 import quizPackage, { QUIZ_DEPENDENCIES } from "@brains/quiz";
 import conversationMemoryPackage from "@brains/conversation-memory";
 import faqPackage from "@brains/faq";
@@ -43,7 +43,7 @@ import dashboardPackage from "@brains/dashboard";
 import decksPackage from "@brains/decks";
 import directorySyncPackage from "@brains/directory-sync";
 import docsPackage from "@brains/doc";
-import { guidesPlugin } from "@brains/guide";
+import guidesPackage from "@brains/guide";
 import bookPackage from "@brains/book";
 import documentPackage from "@brains/document-plugin";
 import emailInterface from "@brains/email";
@@ -54,12 +54,9 @@ import mcpInterface from "@brains/mcp";
 import { selectNewsletterPackages } from "@brains/newsletter";
 import notePackage from "@brains/note";
 import notificationsPackage from "@brains/notifications";
-import { linkedInImportPlugin } from "@brains/linkedin-import";
+import { linkedInImportPackage } from "@brains/linkedin-import";
 import { createLinkedInBrokerProvider } from "@brains/linkedin-import/broker-provider";
-import {
-  oauthBrokerPlugin,
-  type OAuthBrokerPlugin,
-} from "@brains/oauth-broker";
+import { createOAuthBrokerPackage } from "@brains/oauth-broker";
 import obsidianVaultPackage from "@brains/obsidian-vault";
 import playbooksPackage from "@brains/playbooks";
 import portfolioPackage from "@brains/portfolio";
@@ -77,7 +74,7 @@ import askContentPackage from "@brains/ask-content";
 import topicsPackage from "@brains/topics";
 import knowledgeMapPackage from "@brains/knowledge-map";
 import unifiedInboxPackage from "@brains/unified-inbox";
-import { actionBoardPlugin } from "@brains/action-board";
+import { actionBoardPackage } from "@brains/action-board";
 import webChatInterface from "@brains/web-chat";
 import wishlistPackage from "@brains/wishlist";
 import { CANONICAL_CHAT_MODEL } from "./canonical-model";
@@ -383,7 +380,9 @@ export const canonicalBrain: BrainDefinition = defineBrain({
       siteBuilderPackage,
       { pluginId: "site-builder" },
     ),
-    ["form", formPlugin, undefined],
+    packageCapability("form", "@brains/form", formPackage, {
+      pluginId: "form",
+    }),
     packageCapability("analytics", "@brains/analytics", analyticsPackage, {
       // Under the id its class had; its traffic-snapshot type installs as
       // itself.
@@ -437,7 +436,14 @@ export const canonicalBrain: BrainDefinition = defineBrain({
         pluginId: "conversation-memory",
       },
     ),
-    ["action-board", actionBoardPlugin, undefined],
+    packageCapability(
+      "action-board",
+      "@brains/action-board",
+      actionBoardPackage,
+      {
+        pluginId: "action-board",
+      },
+    ),
     packageCapability("faq", "@brains/faq", faqPackage, {
       // Under the id its class had, which registered the faq type inside
       // itself: the type installs apart.
@@ -447,7 +453,9 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     packageCapability("docs", "@brains/doc", docsPackage, {
       pluginId: "docs",
     }),
-    ["guides", guidesPlugin, undefined],
+    packageCapability("guides", "@brains/guide", guidesPackage, {
+      pluginId: "guides",
+    }),
     packageCapability("book", "@brains/book", bookPackage, {
       // Under the id its class had, which registered book and book-section
       // inside itself: book-section installs as itself, book apart.
@@ -475,15 +483,21 @@ export const canonicalBrain: BrainDefinition = defineBrain({
       unifiedInboxPackage,
       { pluginId: "unified-inbox" },
     ),
-    ["linkedin-import", linkedInImportPlugin, undefined],
-    [
+    packageCapability(
+      "linkedin-import",
+      "@brains/linkedin-import",
+      linkedInImportPackage,
+      // Under the id its class had: the sender profile admits by default.
+      { pluginId: "linkedin-import" },
+    ),
+    packageCapability(
       "oauth-broker",
-      (config): OAuthBrokerPlugin =>
-        oauthBrokerPlugin(config, {
-          providers: { linkedin: createLinkedInBrokerProvider },
-        }),
-      undefined,
-    ],
+      "@brains/oauth-broker",
+      createOAuthBrokerPackage({
+        providers: { linkedin: createLinkedInBrokerProvider },
+      }),
+      { pluginId: "oauth-broker" },
+    ),
   ],
   interfaces: [
     packageInterface(

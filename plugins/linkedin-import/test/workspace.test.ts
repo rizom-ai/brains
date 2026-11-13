@@ -21,11 +21,12 @@ import {
 import { toSdkError } from "@brains/contracts";
 import { computeContentHash } from "@brains/utils/hash";
 import { z } from "@brains/utils/zod";
-import { LinkedInImportPlugin } from "../src/plugin";
+import type { Plugin } from "@brains/plugins";
+import { createLinkedInImportPlugins } from "./linkedin-plugins";
 import type { LinkedInFetch } from "../src/lib/linkedin-client";
 import profileSnapshot from "./fixtures/profile-snapshot.json" with { type: "json" };
 
-const harnesses: PluginTestHarness<LinkedInImportPlugin>[] = [];
+const harnesses: PluginTestHarness<Plugin>[] = [];
 afterEach(async () => {
   for (const harness of harnesses.splice(0)) await harness.reset();
 });
@@ -33,16 +34,16 @@ afterEach(async () => {
 const oauth = {
   clientId: "client-1",
   clientSecret: "secret-1",
-  redirectUri: "https://brain.test/linkedin/oauth/callback",
+  redirectUri: "https://brain.example/linkedin/oauth/callback",
 };
 const ownerProfile =
   "---\nname: Ada M.\nemail: ada@example.com\n---\n\nMy own story.\n";
 const future = "2099-01-01T00:00:00.000Z";
 const broker = {
-  url: "https://connect.test",
+  url: "https://connect.example",
   instanceId: "ada",
   secret: "s".repeat(40),
-  returnUri: "https://brain.test/linkedin/oauth/broker/return",
+  returnUri: "https://brain.example/linkedin/oauth/broker/return",
 };
 
 type Session = Awaited<ReturnType<AuthBackend["resolveSession"]>>;
@@ -171,7 +172,7 @@ function linkedIn(calls: LinkedInCalls, status = 200): LinkedInFetch {
 }
 
 interface Fixture {
-  plugin: LinkedInImportPlugin;
+  plugins: Plugin[];
   workspace: StudioWorkspaceRegistration | undefined;
   calls: LinkedInCalls;
   backend: MemoryBackend;
@@ -188,19 +189,31 @@ async function fixture(
     oauth?: boolean;
     mode?: "direct" | "broker" | "both";
     token?: { accessToken: string; expiresAt?: string };
+    /** A token row in the store before the plugin starts, as main stored it. */
+    storedToken?: { accessToken: string; expiresAt?: string };
     linkedInStatus?: number;
     /** Who profile lets fill the anchor profile; its default otherwise. */
     importers?: string[];
   } = {},
 ): Promise<Fixture> {
   // A log context keeps the shell this fixture seeds; install would replace it.
-  const harness = createPluginHarness<LinkedInImportPlugin>({
+  const harness = createPluginHarness<Plugin>({
     logContext: "linkedin-import-test",
   });
   harnesses.push(harness);
   const shell = harness.getMockShell();
   const backend = new MemoryBackend();
   shell.getAccountSettingsRegistry().bindBackend(backend);
+  if (options.storedToken) {
+    await backend.write(
+      {
+        packageName: "@brains/linkedin-import",
+        definitionId: "linkedin",
+        actorId: "owner",
+      },
+      options.storedToken,
+    );
+  }
   let current: Session = session();
   shell
     .getAuthRegistry()
@@ -266,11 +279,11 @@ async function fixture(
         : options.mode === "both"
           ? { oauth, broker }
           : { oauth };
-  const plugin = new LinkedInImportPlugin(connection, {
+  const plugins = createLinkedInImportPlugins(connection, {
     fetch: linkedIn(calls, options.linkedInStatus),
   });
-  await harness.installPlugin(plugin);
-  await plugin.finalizeRegistration();
+  for (const plugin of plugins) await harness.installPlugin(plugin);
+  for (const plugin of plugins) await plugin.finalizeRegistration?.();
   if (options.token) {
     const registry = shell.getAccountSettingsRegistry();
     const registration = registry
@@ -284,7 +297,7 @@ async function fixture(
   );
   const signal = (): AbortSignal => new AbortController().signal;
   return {
-    plugin,
+    plugins,
     workspace,
     calls,
     backend,
@@ -295,9 +308,9 @@ async function fixture(
       return workspace.actionHandler(request, actor(), signal());
     },
     get: async (path): Promise<Response> => {
-      const url = new URL(path, "https://brain.test");
-      const route = plugin
-        .getWebRoutes()
+      const url = new URL(path, "https://brain.example");
+      const route = plugins
+        .flatMap((plugin) => plugin.getWebRoutes?.() ?? [])
         .find((candidate) => candidate.path === url.pathname);
       if (!route) return new Response("Not found", { status: 404 });
       return route.handler(new Request(url), { remoteAddress: "127.0.0.1" });
@@ -342,7 +355,9 @@ describe("LinkedIn workspace", () => {
     const state = await fixture({ oauth: false });
 
     expect(state.workspace).toBeUndefined();
-    expect(state.plugin.getWebRoutes()).toEqual([]);
+    expect(
+      state.plugins.flatMap((plugin) => plugin.getWebRoutes?.() ?? []),
+    ).toEqual([]);
   });
 
   it("belongs to the Anchor alone", async () => {
@@ -371,7 +386,7 @@ describe("LinkedIn workspace", () => {
     const state = await fixture();
 
     const shown = await state.view();
-    expect(shown).toContain("https://brain.test/linkedin/oauth/start");
+    expect(shown).toContain("https://brain.example/linkedin/oauth/start");
     expect(shown).not.toContain("import-profile");
     expect(state.calls.authorizations).toEqual([]);
   });
@@ -469,7 +484,7 @@ describe("LinkedIn workspace", () => {
 
     const shown = await state.view();
     expect(shown).toContain("expired");
-    expect(shown).toContain("https://brain.test/linkedin/oauth/start");
+    expect(shown).toContain("https://brain.example/linkedin/oauth/start");
     expect(shown).not.toContain("import-profile");
   });
 
@@ -482,8 +497,29 @@ describe("LinkedIn workspace", () => {
 
     expect(state.backend.records.size).toBe(0);
     expect(await state.view()).toContain(
-      "https://brain.test/linkedin/oauth/start",
+      "https://brain.example/linkedin/oauth/start",
     );
+  });
+
+  it("reads the token row main stored, and Disconnect deletes it", async () => {
+    const state = await fixture({
+      storedToken: { accessToken: "member-token", expiresAt: future },
+    });
+
+    expect(await state.view()).toContain("import-profile");
+    expect(new Set(state.calls.authorizations)).toEqual(
+      new Set(["Bearer member-token"]),
+    );
+
+    await state.act({ actionId: "disconnect", input: {} });
+
+    expect(
+      await state.backend.read({
+        packageName: "@brains/linkedin-import",
+        definitionId: "linkedin",
+        actorId: "owner",
+      }),
+    ).toBeNull();
   });
 
   it("lets the Anchor inspect the rich domains' shapes without member values", async () => {
@@ -630,7 +666,7 @@ describe("LinkedIn workspace", () => {
 
     const shown = await state.view();
     expect(shown).toContain("LinkedIn refused");
-    expect(shown).toContain("https://brain.test/linkedin/oauth/start");
+    expect(shown).toContain("https://brain.example/linkedin/oauth/start");
     expect(shown).not.toContain("import-profile");
     expect(importProfile(state)).rejects.toThrow();
     expect(await state.profile()).toBe(ownerProfile);

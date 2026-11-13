@@ -68,6 +68,14 @@ import type { AuthBackend } from "../contracts/auth";
 import type { AssignableMember } from "@brains/contracts";
 import type { FirstPartyStudio } from "../operator/studio-workspace-runtime";
 import type {
+  AccountSettingsValue,
+  AnyAccountSettingsDefinition,
+} from "../operator/account-settings-definition-contract";
+import type {
+  AccountSettingsRegistration,
+  RegisterAccountSettingsInput,
+} from "../operator/account-settings-registry";
+import type {
   BaseEntity,
   ContentVisibility,
   CountEntitiesRequest,
@@ -383,6 +391,27 @@ export interface ServiceRuntime {
    * any other package is refused.
    */
   groupings(): ServiceGroupings;
+  /**
+   * The brain's groupings read by any first-party service, as the action
+   * board's class read them through context.entities and
+   * context.entityService: the definitions brought current and read, a
+   * grouping's catalog and a value's members at the scope each read names.
+   * Bringing the definitions current runs the grouping source Studio
+   * registered, as every entity read does: when the stored definitions
+   * changed, it replaces them and may mark existing records for grouping
+   * reprojection. Nothing else here writes; definitions, sources and
+   * validators stay Studio's, through `groupings()`.
+   */
+  readonly groupingReads: ServiceGroupingReads;
+  /**
+   * The package's own account settings, as its class kept them through
+   * context.accountSettings: registered under its plugin id and the
+   * definition id the class named, and read, written and forgotten for the
+   * account its own code names, such as the one an OAuth callback's session
+   * proved. Only the registrations it made: another package's settings, or
+   * a registration under another plugin id, are refused.
+   */
+  readonly accountSettings: ServiceAccountSettingsRegistry;
   /**
    * The runtime's shared upload store (`upload`), which create requests,
    * attachment restore and entity promotion read, served at `routePath`:
@@ -884,6 +913,32 @@ export interface ServiceGroupings
   registerPersistValidator(type: string, validator: PersistValidator): void;
 }
 
+/** A first-party service's own account settings, as its class kept them. */
+export interface ServiceAccountSettingsRegistry {
+  register<TDefinition extends AnyAccountSettingsDefinition>(
+    input: RegisterAccountSettingsInput<TDefinition>,
+  ): AccountSettingsRegistration<TDefinition>;
+  getForActor<TDefinition extends AnyAccountSettingsDefinition>(
+    registration: AccountSettingsRegistration<TDefinition>,
+    actorId: string,
+  ): Promise<AccountSettingsValue<TDefinition> | null>;
+  save(
+    registrationId: string,
+    actorId: string,
+    values: Readonly<Record<string, unknown>>,
+  ): Promise<void>;
+  delete(registrationId: string, actorId: string): Promise<boolean>;
+}
+
+/** What any first-party service reads of the brain's groupings. */
+export type ServiceGroupingReads = Pick<
+  ServiceGroupings,
+  | "ensureGroupingsCurrent"
+  | "getGroupings"
+  | "queryGroupingCatalog"
+  | "queryGroupingMembers"
+>;
+
 /** Where the brain's git broker listens and keeps its checkout; none without Git. */
 export interface ServiceGitBroker {
   readonly socket: string | undefined;
@@ -942,6 +997,8 @@ export interface ServiceRuntimeBinding {
   readonly executionOnly: boolean;
   readonly assignableMembers: () => Promise<AssignableMember[]>;
   readonly groupings: () => ServiceGroupings;
+  readonly groupingReads: ServiceGroupingReads;
+  readonly accountSettings: ServiceAccountSettingsRegistry;
   readonly sharedUploads: ServiceRuntime["sharedUploads"];
   readonly uploadSaveHandler: ServiceRuntime["uploadSaveHandler"];
   readonly channelDescriptors: () => ChannelDescriptor[];
@@ -1036,6 +1093,8 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
     executionOnly: binding.executionOnly,
     assignableMembers: binding.assignableMembers,
     groupings: binding.groupings,
+    groupingReads: binding.groupingReads,
+    accountSettings: binding.accountSettings,
     sharedUploads: binding.sharedUploads,
     uploadSaveHandler: binding.uploadSaveHandler,
     channelDescriptors: binding.channelDescriptors,

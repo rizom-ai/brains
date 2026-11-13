@@ -1,4 +1,5 @@
-import type { ContentVisibility, ServicePluginContext } from "@brains/plugins";
+import type { ContentVisibility } from "@brains/sdk/internal/service-runtime";
+import type { BoardContext } from "./board-context";
 import {
   ACTION_ITEM_ENTITY_TYPE,
   actionItemSchema,
@@ -14,11 +15,11 @@ type VisibilityScope = ContentVisibility;
 
 /** The grouping key when the brain defines it over action items; otherwise there are no projects. */
 export async function definedProjectGrouping(
-  context: ServicePluginContext,
+  context: BoardContext,
   key: string,
 ): Promise<string | undefined> {
-  await context.entities.ensureGroupingsCurrent();
-  return context.entities
+  await context.groupings.ensureGroupingsCurrent();
+  return context.groupings
     .getGroupings()
     .some(
       (grouping) =>
@@ -31,11 +32,11 @@ export async function definedProjectGrouping(
 
 /** Each project the caller can see, with how many action items it holds. */
 export async function projectOptions(
-  context: ServicePluginContext,
+  context: BoardContext,
   grouping: string,
   visibilityScope: VisibilityScope,
 ): Promise<{ value: string; label: string; count: number }[]> {
-  const catalog = await context.entityService.queryGroupingCatalog({
+  const catalog = await context.groupings.queryGroupingCatalog({
     grouping,
     entityTypes: [ACTION_ITEM_ENTITY_TYPE],
     visibilityScope,
@@ -53,7 +54,7 @@ export async function projectOptions(
 
 /** Every action item in a project, newest first, read page by page. */
 export async function projectMembers(
-  context: ServicePluginContext,
+  context: BoardContext,
   request: {
     grouping: string;
     value: string;
@@ -61,7 +62,7 @@ export async function projectMembers(
   },
   offset = 0,
 ): Promise<ActionItemEntity[]> {
-  const page = await context.entityService.queryGroupingMembers({
+  const page = await context.groupings.queryGroupingMembers({
     grouping: request.grouping,
     value: request.value,
     entityTypes: [ACTION_ITEM_ENTITY_TYPE],

@@ -1,35 +1,29 @@
-import { afterEach, describe, expect, it } from "bun:test";
-import {
-  createPluginHarness,
-  type PluginTestHarness,
-} from "@brains/plugins/test";
+import { describe, expect, it } from "bun:test";
 import type { JsonObject, OAuthBrokerProvider } from "@brains/contracts";
+import type { Plugin } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
-import { OAuthBrokerPlugin } from "../src/plugin";
-
-const harnesses: PluginTestHarness<OAuthBrokerPlugin>[] = [];
-afterEach(async () => {
-  for (const harness of harnesses.splice(0)) await harness.reset();
-});
+import { brokerRoutes, installBroker } from "./broker-plugins";
 
 const instanceSecret = "i".repeat(40);
 const otherSecret = "o".repeat(40);
 const brainState = "b".repeat(43);
 
 const config = {
-  publicUrl: "https://connect.test",
+  publicUrl: "https://connect.example",
   providers: { linkedin: { clientId: "app", clientSecret: "app-secret" } },
   instances: [
     {
       id: "ada",
       secret: instanceSecret,
-      returnUris: { linkedin: "https://ada.test/linkedin/oauth/broker/return" },
+      returnUris: {
+        linkedin: "https://ada.example/linkedin/oauth/broker/return",
+      },
     },
     {
       id: "other",
       secret: otherSecret,
       returnUris: {
-        linkedin: "https://other.test/linkedin/oauth/broker/return",
+        linkedin: "https://other.example/linkedin/oauth/broker/return",
       },
     },
   ],
@@ -52,7 +46,7 @@ function fakeLinkedIn(
     return {
       id: "linkedin",
       authorizationUrl: ({ redirectUri, state }): URL => {
-        const url = new URL("https://provider.test/authorize");
+        const url = new URL("https://provider.example/authorize");
         url.searchParams.set("redirect_uri", redirectUri);
         url.searchParams.set("state", state);
         return url;
@@ -71,7 +65,7 @@ function fakeLinkedIn(
 }
 
 interface Fixture {
-  plugin: OAuthBrokerPlugin;
+  plugins: Plugin[];
   exchanges: Exchanges;
   clock: { now: number };
   request(
@@ -85,30 +79,25 @@ interface Fixture {
 async function fixture(
   overrides: Partial<typeof config> = {},
 ): Promise<Fixture> {
-  const harness = createPluginHarness<OAuthBrokerPlugin>();
-  harnesses.push(harness);
   const exchanges: Exchanges = {
     codes: [],
     redirectUris: [],
     appConfig: undefined,
   };
   const clock = { now: 0 };
-  const plugin = new OAuthBrokerPlugin(
+  const { plugins } = await installBroker(
     { ...config, ...overrides },
     {
       providers: { linkedin: fakeLinkedIn(exchanges) },
       now: (): number => clock.now,
     },
   );
-  await harness.installPlugin(plugin);
   const request: Fixture["request"] = async (method, path, options = {}) => {
-    const url = new URL(path, "https://connect.test");
-    const route = plugin
-      .getWebRoutes()
-      .find(
-        (candidate) =>
-          candidate.path === url.pathname && candidate.method === method,
-      );
+    const url = new URL(path, "https://connect.example");
+    const route = brokerRoutes(plugins).find(
+      (candidate) =>
+        candidate.path === url.pathname && candidate.method === method,
+    );
     if (!route) return new Response("Not found", { status: 404 });
     const [id, secret] = options.instance ?? [];
     return route.handler(
@@ -143,7 +132,7 @@ async function fixture(
       .parse(await response.json());
     return new URL(authorizationUrl).searchParams.get("state") ?? "";
   };
-  return { plugin, exchanges, clock, request, authorize };
+  return { plugins, exchanges, clock, request, authorize };
 }
 
 function returned(response: Response): URL {
@@ -162,7 +151,7 @@ async function grantFor(state: Fixture, code = "code-1"): Promise<string> {
 describe("OAuth broker", () => {
   it("serves nothing without registered instances", async () => {
     const state = await fixture({ instances: [] });
-    expect(state.plugin.getWebRoutes()).toEqual([]);
+    expect(brokerRoutes(state.plugins)).toEqual([]);
   });
 
   it("refuses an unknown or wrongly authenticated instance", async () => {
@@ -202,7 +191,7 @@ describe("OAuth broker", () => {
       .parse(await response.json());
     const consent = new URL(authorizationUrl);
     expect(consent.searchParams.get("redirect_uri")).toBe(
-      "https://connect.test/oauth-broker/callback/linkedin",
+      "https://connect.example/oauth-broker/callback/linkedin",
     );
     expect(consent.searchParams.get("state")).not.toBe(brainState);
     expect(state.exchanges.appConfig).toEqual(config.providers.linkedin);
@@ -235,14 +224,14 @@ describe("OAuth broker", () => {
     expect(callback.status).toBe(303);
     const back = returned(callback);
     expect(back.origin + back.pathname).toBe(
-      "https://ada.test/linkedin/oauth/broker/return",
+      "https://ada.example/linkedin/oauth/broker/return",
     );
     expect(back.searchParams.get("provider")).toBe("linkedin");
     expect(back.searchParams.get("state")).toBe(brainState);
     expect(back.searchParams.get("grant")?.length).toBeGreaterThanOrEqual(43);
     expect(back.toString()).not.toContain("member-token");
     expect(state.exchanges.redirectUris).toEqual([
-      "https://connect.test/oauth-broker/callback/linkedin",
+      "https://connect.example/oauth-broker/callback/linkedin",
     ]);
   });
 
@@ -340,10 +329,8 @@ describe("OAuth broker", () => {
   });
 
   it("refuses to start without an adapter for a configured provider", async () => {
-    const harness = createPluginHarness<OAuthBrokerPlugin>();
-    harnesses.push(harness);
-    const plugin = new OAuthBrokerPlugin(config, { providers: {} });
-
-    expect(harness.installPlugin(plugin)).rejects.toThrow("linkedin");
+    expect(installBroker(config, { providers: {} })).rejects.toThrow(
+      "linkedin",
+    );
   });
 });

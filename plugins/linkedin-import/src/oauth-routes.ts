@@ -1,5 +1,6 @@
 import { oauthBrokerReturnSchema } from "@brains/contracts";
-import type { AuthBackend, WebRouteDefinition } from "@brains/plugins";
+import type { WebRouteDefinition } from "@brains/sdk/internal/interface-runtime";
+import type { AuthBackend } from "@brains/sdk/internal/service-runtime";
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
 import type { SingleUseStore } from "@brains/utils/single-use-store";

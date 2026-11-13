@@ -9,7 +9,7 @@ import {
   type OAuthBrokerReturnError,
 } from "@brains/contracts";
 import type { JsonObject } from "@brains/contracts";
-import type { WebRouteDefinition } from "@brains/plugins";
+import type { WebRouteDefinition } from "@brains/sdk/internal/interface-runtime";
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
 import type { SingleUseStore } from "@brains/utils/single-use-store";
