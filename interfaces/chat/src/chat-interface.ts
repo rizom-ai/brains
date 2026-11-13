@@ -135,7 +135,6 @@ export function createChatInterface(
       const { config } = context;
       const runtime = interfaceRuntime(context);
       const { logger, messages } = runtime;
-      const getContext = (): InterfaceRuntime => runtime;
 
       // The platform upload stores chat kept before it wrote the shared one
       // hold only expired uploads, and nothing reads them.
@@ -152,7 +151,7 @@ export function createChatInterface(
       const promptActions = new PromptActionStore(MAX_PROMPT_ACTIONS);
       const toolStatusMessenger = new ToolStatusMessenger(threadRegistry);
       const uploadCoordinator = new ChatUploadCoordinator({
-        getContext,
+        host: runtime,
         logger,
       });
       const state: ChatState = {
@@ -161,7 +160,7 @@ export function createChatInterface(
         compactingSlackApprovalToolStatuses: new Set<string>(),
         uploadCoordinator,
         responseCoordinator: new ChatResponseCoordinator({
-          getContext,
+          host: runtime,
           getDisplayBaseUrl: (): string | undefined => displayBaseUrl(runtime),
           registerPromptAction: (threadId, action): string =>
             promptActions.register(threadId, action),
@@ -235,7 +234,7 @@ export function createChatInterface(
           ((): ChatIdentityAccess | undefined => runtime.auth()),
         config,
         host: {
-          getContext,
+          context: runtime,
           startProcessingInput: (channelId): void => {
             messages.startProcessingInput(channelId);
           },

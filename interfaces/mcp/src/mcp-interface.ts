@@ -17,7 +17,10 @@ import {
 import { MCP_INTERACTION_ID } from "@brains/contracts";
 import type { PluginPackageDefinition } from "@brains/sdk";
 import { StdioMCPServer } from "./transports/stdio-server";
-import { StreamableHTTPServer } from "./transports/http-server";
+import {
+  StreamableHTTPServer,
+  type VerifiedBearerToken,
+} from "./transports/http-server";
 import { mcpConfigSchema, type MCPConfig } from "./config";
 import { mcpProtocol } from "./mcp-protocol";
 import { createMCPTools } from "./tools";
@@ -61,21 +64,7 @@ function httpServerOf(
             requiredScopes: ["mcp"],
             verifyBearerToken: async (
               request,
-            ): Promise<
-              | {
-                  subject: string;
-                  scope?: string[];
-                  permissionLevel?: "admin" | "trusted" | "public";
-                  isAnchor?: boolean;
-                  actor?: {
-                    kind: "user";
-                    userId: string;
-                    canonicalId?: string;
-                  };
-                  displayName?: string;
-                }
-              | undefined
-            > => {
+            ): Promise<VerifiedBearerToken | undefined> => {
               const grant = await authService.resolveBearerGrant(request);
               if (!grant) return undefined;
               return {
@@ -319,7 +308,7 @@ const withServer = withDaemon(withRoutes, (context: MCPSlotContext) => {
 /** The chat and confirm tools, which route a client's requests to the agent. */
 const withMCPTools = withTools(withServer, (context) => {
   const runtime = interfaceRuntime(context);
-  return createMCPTools("mcp", () => runtime);
+  return createMCPTools(runtime);
 });
 
 /**

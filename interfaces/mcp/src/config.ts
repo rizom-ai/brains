@@ -31,4 +31,3 @@ export const mcpConfigSchema: MCPConfigSchema = mcpProtocolConfigSchema.extend({
 
 export type MCPConfig = z.output<typeof mcpConfigSchema>;
 export type MCPConfigInput = z.input<typeof mcpConfigSchema>;
-export type MCPMode = MCPConfig["mode"];

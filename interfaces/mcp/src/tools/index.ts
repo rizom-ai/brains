@@ -92,10 +92,7 @@ function getChatContext(
  * reads, mutations, and reasoned requests through the brain agent. Debug mode
  * may separately expose raw system tools to Admin operators.
  */
-export function createMCPTools(
-  _pluginId: string,
-  getContext: () => MCPToolHost | undefined,
-): Tool[] {
+export function createMCPTools(context: MCPToolHost): Tool[] {
   return [
     {
       name: "chat",
@@ -108,14 +105,6 @@ export function createMCPTools(
       directMcpExposure: "basic",
       handler: async (rawInput, toolContext): Promise<ToolResponse> => {
         const input = chatInputSchema.parse(rawInput);
-        const context = getContext();
-        if (!context) {
-          return {
-            success: false,
-            error: "MCP chat tool is not initialized.",
-          };
-        }
-
         const conversation = getConversationRef(
           input,
           actorRefKey(toolContext.actor),
@@ -152,14 +141,6 @@ export function createMCPTools(
       directMcpExposure: "basic",
       handler: async (rawInput, toolContext): Promise<ToolResponse> => {
         const input = confirmInputSchema.parse(rawInput);
-        const context = getContext();
-        if (!context) {
-          return {
-            success: false,
-            error: "MCP confirm tool is not initialized.",
-          };
-        }
-
         const conversation = getConversationRef(
           input,
           actorRefKey(toolContext.actor),

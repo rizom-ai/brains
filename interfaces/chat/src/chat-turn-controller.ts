@@ -58,7 +58,7 @@ const URL_PATTERN = /https?:\/\/\S+/i;
 const ANY_MESSAGE_PATTERN = /[\s\S]+/;
 
 interface ChatTurnHost {
-  getContext: () => ChatHost | undefined;
+  context: ChatHost;
   startProcessingInput: (channelId: string) => void;
   endProcessingInput: () => void;
   extractCaptureableUrls: (
@@ -180,8 +180,8 @@ export class ChatTurnController {
     });
 
     app.onAction(SPACE_NOTICE_ACTION, async (event) => {
-      const context = this.deps.host.getContext();
-      if (!context || !event.thread) return;
+      const { context } = this.deps.host;
+      if (!event.thread) return;
       if (!isEnabledChatPlatform(this.deps.config, event.adapter.name)) return;
       const platformConfig = this.getPlatformConfig(event.thread);
       if (!shouldHandleChatAction(event.thread, platformConfig)) return;
@@ -199,8 +199,8 @@ export class ChatTurnController {
   }
 
   private async handlePromptAction(event: ActionEvent): Promise<void> {
-    const context = this.deps.host.getContext();
-    if (!context || !event.thread || !event.value) return;
+    const { context } = this.deps.host;
+    if (!event.thread || !event.value) return;
     const platform = event.adapter.name;
     if (!isEnabledChatPlatform(this.deps.config, platform)) return;
 
@@ -241,8 +241,7 @@ export class ChatTurnController {
       channelId,
       logLabel: "Error handling chat prompt action",
       body: async () => {
-        const currentContext = this.deps.host.getContext();
-        if (!currentContext) return;
+        const currentContext = this.deps.host.context;
         const attachments =
           await this.deps.uploadCoordinator.selectPriorUploads({
             platform,
@@ -283,8 +282,8 @@ export class ChatTurnController {
   }
 
   private async handleApprovalAction(event: ActionEvent): Promise<void> {
-    const context = this.deps.host.getContext();
-    if (!context || !event.thread || !event.value) return;
+    const { context } = this.deps.host;
+    if (!event.thread || !event.value) return;
     const platform = event.adapter.name;
     if (!isEnabledChatPlatform(this.deps.config, platform)) return;
 
@@ -336,7 +335,6 @@ export class ChatTurnController {
     message: Message,
     context?: MessageContext,
   ): Promise<void> {
-    if (!this.deps.host.getContext()) return;
     const platform = this.getPlatform(thread);
     if (!isEnabledChatPlatform(this.deps.config, platform)) return;
 
@@ -398,8 +396,7 @@ export class ChatTurnController {
     message: Message,
     context?: MessageContext,
   ): Promise<void> {
-    const pluginContext = this.deps.host.getContext();
-    if (!pluginContext) return;
+    const pluginContext = this.deps.host.context;
 
     this.deps.threadRegistry.set(thread);
     const conversationId = getChatConversationId(platform, thread.id);
@@ -440,8 +437,7 @@ export class ChatTurnController {
       channelId,
       logLabel: "Error handling chat message",
       body: async () => {
-        const currentContext = this.deps.host.getContext();
-        if (!currentContext) return;
+        const currentContext = this.deps.host.context;
 
         const pendingApprovalIds =
           await this.deps.responseCoordinator.getPendingApprovalIds(
@@ -516,8 +512,7 @@ export class ChatTurnController {
     thread: ChatThread,
     message: Message,
   ): Promise<void> {
-    const context = this.deps.host.getContext();
-    if (!context) return;
+    const { context } = this.deps.host;
     const platform = this.getPlatform(thread);
     if (!isEnabledChatPlatform(this.deps.config, platform)) return;
     const platformConfig = this.getPlatformConfig(thread);

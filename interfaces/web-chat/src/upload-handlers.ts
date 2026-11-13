@@ -1,19 +1,17 @@
 import { chatUploadResponseSchema } from "@brains/contracts/chat";
 import {
   RuntimeUploadStoreError,
+  defaultMessageUploadFilename,
   formatContentDispositionHeader,
+  messageUploadMaxBytes,
+  sanitizeUploadFilename,
+  validateMessageUpload,
   type ChatAttachment,
   type ResolvedRuntimeUpload,
   type RuntimeUploadRecord,
   type ScopedRuntimeUploadStore,
+  type ValidatedMessageUpload,
 } from "@brains/sdk/internal/interface-runtime";
-import {
-  defaultWebChatUploadFilename,
-  sanitizeUploadFilename,
-  validateWebChatUpload,
-  webChatUploadMaxBytes,
-  type ValidatedWebChatUpload,
-} from "./upload-policy";
 import { webChatUploadRefKind } from "./upload-store";
 
 const webChatUploadFormField = "file";
@@ -42,7 +40,7 @@ export async function handleUploadRequest(
   const declaredSize = Number(request.headers.get("content-length"));
   if (
     Number.isFinite(declaredSize) &&
-    declaredSize > webChatUploadMaxBytes + webChatUploadEnvelopeSlackBytes
+    declaredSize > messageUploadMaxBytes + webChatUploadEnvelopeSlackBytes
   ) {
     return new Response("File upload too large", { status: 400 });
   }
@@ -60,7 +58,7 @@ export async function handleUploadRequest(
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
-  const validated = validateWebChatUpload({
+  const validated = validateMessageUpload({
     filename: file.name,
     mediaType: file.type,
     content: buffer,
@@ -124,7 +122,7 @@ export function resolveInlineUploadPart(file: {
   url: string;
 }): ChatAttachment | Response {
   const filename = sanitizeUploadFilename(
-    file.filename ?? defaultWebChatUploadFilename,
+    file.filename ?? defaultMessageUploadFilename,
   );
   const decoded = decodeUploadedDataUrl(file.url);
   if (!decoded) {
@@ -133,7 +131,7 @@ export function resolveInlineUploadPart(file: {
     });
   }
 
-  const validated = validateWebChatUpload({
+  const validated = validateMessageUpload({
     filename,
     mediaType: file.mediaType,
     content: decoded.buffer,
@@ -179,8 +177,8 @@ async function readStoredUpload(
 function validateStoredUpload(
   record: RuntimeUploadRecord,
   content: Uint8Array,
-): ValidatedWebChatUpload | Response {
-  const validated = validateWebChatUpload({
+): ValidatedMessageUpload | Response {
+  const validated = validateMessageUpload({
     filename: record.filename,
     mediaType: record.mediaType,
     content,
@@ -192,7 +190,7 @@ function validateStoredUpload(
 }
 
 function toChatAttachment(
-  upload: ValidatedWebChatUpload,
+  upload: ValidatedMessageUpload,
   content: Uint8Array,
   source?: ChatAttachment["source"],
 ): ChatAttachment {
