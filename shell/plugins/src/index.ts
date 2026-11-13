@@ -1034,6 +1034,7 @@ export {
 export { withOwnedDataSources } from "./public/service-definition";
 export {
   firstPartyJobHandler,
+  withAuthAuthority,
   withJobHandlers,
   withStaticSiteOutput,
   withApiRoutes,

@@ -34,6 +34,8 @@ export interface FirstPartyServiceDeclarations {
   /** The HTTP routes its class served, as written. */
   readonly webRoutes?:
     FirstPartySlot<readonly WebRouteDefinition[]> | undefined;
+  /** Whether it is the brain's auth authority (`withAuthAuthority`). */
+  readonly authAuthority?: true | undefined;
 }
 
 /** The API routes a class served, from its config, as the runtime keeps them. */
@@ -250,6 +252,25 @@ export function withServiceWebRoutes<
       );
     }
     return { ...declarations, webRoutes: { run: routes } };
+  });
+}
+
+/**
+ * The brain's auth authority: the one service that binds the auth backend,
+ * the account-settings backend and the runtime principal state, reached
+ * through `serviceRuntime(context).authAuthority`. Declared once; a second
+ * package declaring it is refused when it registers.
+ */
+export function withAuthAuthority<
+  TConfigSchema extends z.ZodType<object, object>,
+>(definition: ServicePackage<TConfigSchema>): ServicePackage<TConfigSchema> {
+  return rebuildServiceWith(definition, "withAuthAuthority", (declarations) => {
+    if (declarations.authAuthority) {
+      throw new Error(
+        `Service "${definition.id}" declares the auth authority more than once`,
+      );
+    }
+    return { ...declarations, authAuthority: true };
   });
 }
 
