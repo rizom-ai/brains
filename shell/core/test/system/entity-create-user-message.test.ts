@@ -434,6 +434,17 @@ describe("system_create user-message source from model-shaped requests", () => {
     expect(await saved(source)).toBe(document);
   });
 
+  test("selects between two whole marker lines as lines without a mode", async () => {
+    const body = "# Plan\n\nStep one.\n";
+    const text = `Save a note.\nBEGIN EXACT CONTENT\n${body}END EXACT CONTENT`;
+    const source = {
+      kind: "user-message",
+      startAfter: "BEGIN EXACT CONTENT",
+      endBefore: "END EXACT CONTENT",
+    };
+    expect(await saved(source, text)).toBe(body);
+  });
+
   test("pins an approval without the empty fields a request carried", async () => {
     const { tool } = fixture([message(pasted)]);
     const args = confirmationSchema.parse(

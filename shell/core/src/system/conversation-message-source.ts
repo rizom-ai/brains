@@ -82,7 +82,10 @@ export async function resolveConversationMessageContent(
     return { success: true, messageId: message.id, content: message.content };
   }
 
-  const source = fenceBoundariesAsFrontmatter(input, message.content);
+  const source = markerLinesAsLines(
+    fenceBoundariesAsFrontmatter(input, message.content),
+    message.content,
+  );
   // Name the failing boundary and the way out: a generic refusal led models
   // to ask the user to resend content that a literal prefix selects uniquely.
   const boundary = (
@@ -227,6 +230,28 @@ function fenceBoundariesAsFrontmatter(
     ...(isFence(startAfter) ? {} : { startAfter }),
     ...(isFence(endBefore) ? {} : { endBefore }),
   };
+}
+
+/**
+ * Models leave out the mode when they copy two marker lines, as in a BEGIN
+ * line and its END line. Read literally, the text would start with the
+ * opening line's line ending; when each marker is one whole line of the
+ * message, the markers can only mean the lines between them.
+ */
+function markerLinesAsLines(
+  source: UserMessageSource,
+  content: string,
+): UserMessageSource {
+  const { startAfter, endBefore } = source;
+  if (source.boundaryMode !== undefined || !startAfter || !endBefore) {
+    return source;
+  }
+  const wholeLine = (marker: string): boolean =>
+    !/[\r\n]/.test(marker) &&
+    lineBoundaryOffsets(content, marker, true).length === 1;
+  return wholeLine(startAfter) && wholeLine(endBefore)
+    ? { ...source, boundaryMode: "lines" }
+    : source;
 }
 
 /**
