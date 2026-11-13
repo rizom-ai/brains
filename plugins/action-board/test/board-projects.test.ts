@@ -19,6 +19,7 @@ import {
   type ActionItemStatus,
 } from "@brains/action-items";
 import { registerBoardWorkspace } from "../src/board-workspace";
+import { createActionBoardPlugins } from "./board-plugins";
 
 const NOW = new Date("2026-10-15T12:00:00.000Z");
 
@@ -349,6 +350,108 @@ describe("projects on the Board", () => {
       doing: [],
       blocked: [],
       done: [],
+    });
+  });
+});
+
+describe("projects on the installed Board, by the caller's visibility", () => {
+  it("reads a project at the caller's scope, and refuses a public caller", async () => {
+    const { service } = await brain([]);
+    const write = async (
+      id: string,
+      text: string,
+      projects: string[],
+      visibility: "public" | "shared" | "restricted",
+    ): Promise<void> => {
+      await service.createEntity({
+        entity: {
+          id,
+          entityType: "action-item",
+          visibility,
+          content: contentFor({ id, text, status: "open", projects }),
+          metadata: metadataFor("open"),
+        },
+      });
+    };
+    await write("p1", "Announce the fair", ["Fair"], "public");
+    await write("p2", "Book the tent", ["Fair"], "shared");
+    await write("p3", "Pay the deposit", ["Fair"], "restricted");
+    await write("p4", "Plan the retreat", ["Retreat"], "shared");
+
+    // The package as a brain installs it, on the same store and groupings.
+    const shell = createMockShell();
+    shell.getEntityService = (): EntityService => service;
+    const registry = EntityRegistry.createFresh(createSilentLogger());
+    registry.registerEntityType(
+      "action-item",
+      actionItemSchema,
+      new ActionItemAdapter(),
+    );
+    registry.registerGrouping({
+      key: "projects",
+      field: "projects",
+      label: "Projects",
+      types: ["action-item"],
+    });
+    shell.getEntityRegistry = (): EntityRegistry => registry;
+    let registration: StudioWorkspaceRegistration | undefined;
+    shell
+      .getMessageBus()
+      .subscribe<StudioWorkspaceRegistration, { workspaceUrl: string }>(
+        "studio:register-workspace",
+        async ({ payload }) => {
+          registration = payload;
+          return {
+            success: true,
+            data: { workspaceUrl: "/studio/workspaces/action-board%3Aboard" },
+          };
+        },
+      );
+    for (const plugin of createActionBoardPlugins({
+      cardVisibility: "shared",
+    })) {
+      await plugin.register(shell);
+      await plugin.ready?.();
+    }
+    if (!registration) throw new Error("Board was not registered");
+
+    const visitor: StudioWorkspaceActor = {
+      ...niels,
+      userPermissionLevel: "public",
+      visibilityScope: "public",
+    };
+    const view = async (
+      actor: StudioWorkspaceActor,
+      query: Record<string, string>,
+    ): Promise<{ projects: string[]; titles: string[] }> => {
+      const { view: shown } = z
+        .object({ view: z.object({ blocks: z.array(blockSchema) }) })
+        .parse(await registration?.dataProvider(actor, query));
+      const control = projectControlSchema.safeParse(
+        shown.blocks.find((block) => block.type === "query"),
+      );
+      const detail = matrixSchema.parse(
+        shown.blocks.find((block) => block.id === "board-detail"),
+      );
+      return {
+        projects: control.success
+          ? (control.data.controls[0]?.options ?? []).map(({ value }) => value)
+          : [],
+        titles: detail.master.cells
+          .flatMap((cell) => cell.items.map((item) => item.title))
+          .sort(),
+      };
+    };
+
+    // The Board is the team's: a public caller is refused before it reads.
+    expect(view(visitor, { project: "Fair" })).rejects.toThrow(
+      "below its admission policy",
+    );
+    // A trusted member reads at the shared scope: no restricted card or
+    // project, in the filter or under it.
+    expect(await view(niels, { project: "Fair" })).toEqual({
+      projects: ["Fair", "Retreat"],
+      titles: ["Announce the fair", "Book the tent"],
     });
   });
 });
