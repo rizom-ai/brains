@@ -719,6 +719,12 @@ export function createDeclarativeInterfacePlugin<
   declarations: FirstPartyInterfaceDeclarations = noFirstPartyDeclarations,
 ): InterfacePlugin<z.output<TConfigSchema>, z.output<TConfigSchema>> {
   if (declarations.protocol) {
+    // A protocol host is not a message interface: it would register neither.
+    if (declarations.transport ?? declarations.channels) {
+      throw new Error(
+        `Interface "${id}" hosts a protocol and cannot also declare a message transport or channels`,
+      );
+    }
     return new DeclarativeProtocolHostInterfacePlugin(
       definition,
       declarations,

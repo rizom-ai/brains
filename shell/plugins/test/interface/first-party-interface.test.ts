@@ -846,6 +846,15 @@ describe("withProtocolPlugin", () => {
     expect(shell.getDaemonRegistry().getAll()).toEqual([]);
   });
 
+  it("is refused beside a message transport, which a protocol host would drop", () => {
+    const both = withMessageTransport(hosted, () => ({
+      send: (): void => {},
+    }));
+    expect(() => instantiate(both, { mode: "debug", port: 1 })).toThrow(
+      'Interface "terminal" hosts a protocol and cannot also declare a message transport or channels',
+    );
+  });
+
   it("offers none for a definition that declares none", () => {
     const plugin = instantiate(defineInterface({ id: "terminal", config }));
 
