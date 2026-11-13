@@ -4,7 +4,6 @@ import type { Logger } from "@brains/utils/logger";
 import type { Tool } from "@brains/mcp-service";
 import type { JobProgressEvent } from "@brains/job-queue";
 import type { AnyAccountSettingsDefinition } from "../operator/account-settings-definition-contract";
-import { createAccountDaemon } from "../operator/account-daemon-supervisor";
 import type { AccountSettingsRegistration } from "../operator/account-settings-registry";
 import type { z } from "@brains/utils/zod";
 import {
@@ -25,7 +24,6 @@ import { packageRuntimeState } from "../internal/state-namespace";
 import { anonymousCaller } from "../service/job-authority";
 import type { WebRouteDefinition } from "../types/web-routes";
 import { createDeclaredRoute } from "../internal/declared-route";
-import { createDeclarativeDaemon } from "./declarative-daemon";
 import type { InterfacePluginContext } from "./context";
 import { InterfacePlugin } from "./interface-plugin";
 import { firstPartyStudioOf } from "../operator/studio-workspace-runtime";
@@ -54,6 +52,7 @@ import type { JobContext } from "@brains/job-queue";
 import type { ToolActivityEvent } from "../message-interface/tool-event-handler";
 import type { ToolStatusUpdate } from "../message-interface/tool-status";
 import type { AgentResponse } from "../contracts/agent";
+import { declaredDaemon } from "./declarative-daemon";
 
 /** The plugin a declaration is registered as, as the declaration reads it. */
 interface DeclarationOwner {
@@ -174,25 +173,16 @@ class InterfaceDeclaration<
     for (const daemon of daemonDefinitions) {
       claimDaemonId(daemon.id);
       this.hasRequiredDaemon ||= daemon.required;
-      if (daemon.forAccounts) {
-        if (daemon.forAccounts !== this.definition.accountSettings) {
-          throw new Error(
-            `Interface "${this.definition.id}" account-bound daemon "${daemon.id}" must reference its attached account settings`,
-          );
-        }
-        const registration = this.accountSettingsRegistration;
-        if (!registration) {
-          throw new Error(
-            `Interface "${this.definition.id}" account-bound daemon "${daemon.id}" has no registered account settings`,
-          );
-        }
-        context.daemons.register(
-          daemon.id,
-          createAccountDaemon(daemon, registration, context.accountSettings),
-        );
-        continue;
-      }
-      context.daemons.register(daemon.id, createDeclarativeDaemon(daemon));
+      context.daemons.register(
+        daemon.id,
+        declaredDaemon({
+          owner: `Interface "${this.definition.id}"`,
+          daemon,
+          attached: this.definition.accountSettings,
+          registration: this.accountSettingsRegistration,
+          accountSettings: context.accountSettings,
+        }),
+      );
     }
 
     const slotContext = (): FirstPartySlotContext<unknown, unknown> =>

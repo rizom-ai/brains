@@ -7,6 +7,10 @@ import type { StaticSiteOutput } from "../internal/http-host";
 import type { ApiRouteDefinition } from "../types/api-routes";
 import type { WebRouteDefinition } from "../types/web-routes";
 import type { PluginPackageDefinition } from "../package-definition";
+import {
+  createRebuilderRegistry,
+  type RebuilderRegistry,
+} from "../internal/rebuilder-registry";
 import type {
   FirstPartySlot,
   FirstPartySlotContext,
@@ -148,26 +152,12 @@ type ServicePackage<TConfigSchema extends z.ZodType<object, object>> =
   PluginPackageDefinition<TConfigSchema, "service">;
 
 /** How each service package is rebuilt with more first-party declarations. */
-const rebuilders = new WeakMap<
-  PluginPackageDefinition,
-  {
-    readonly declarations: FirstPartyServiceDeclarations;
-    rebuild(
-      declarations: FirstPartyServiceDeclarations,
-    ): PluginPackageDefinition;
-  }
->();
+const rebuilders: RebuilderRegistry<FirstPartyServiceDeclarations> =
+  createRebuilderRegistry("defineServicePlugin");
 
 /** Called by defineServicePlugin: how its result is rebuilt by a wrapper. */
-export function registerServiceRebuilder(
-  definition: PluginPackageDefinition,
-  declarations: FirstPartyServiceDeclarations,
-  rebuild: (
-    declarations: FirstPartyServiceDeclarations,
-  ) => PluginPackageDefinition,
-): void {
-  rebuilders.set(definition, { declarations, rebuild });
-}
+export const registerServiceRebuilder: RebuilderRegistry<FirstPartyServiceDeclarations>["register"] =
+  rebuilders.register;
 
 /** Whether a definition is a service's, which the wrappers then rebuild. */
 export function isServicePackage<
@@ -188,13 +178,7 @@ export function rebuildServiceWith<
     declarations: FirstPartyServiceDeclarations,
   ) => FirstPartyServiceDeclarations,
 ): ServicePackage<TConfigSchema> {
-  const entry = rebuilders.get(definition);
-  if (!entry) {
-    throw new Error(
-      `${wrapper} takes a definition defineServicePlugin returned; "${definition.id}" is not one`,
-    );
-  }
-  const rebuilt = entry.rebuild(add(entry.declarations));
+  const rebuilt = rebuilders.rebuildWith(definition, wrapper, add);
   // The rebuilt definition is the same package: same family, id and config.
   if (!isSameService(rebuilt, definition.config)) {
     throw new Error(`Service "${definition.id}" did not rebuild as itself`);
