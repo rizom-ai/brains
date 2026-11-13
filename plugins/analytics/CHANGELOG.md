@@ -1,5 +1,15 @@
 # @brains/analytics
 
+## 0.2.0-alpha.703
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.703
+  - @brains/contracts@0.2.0-alpha.703
+  - @brains/site-composition@0.2.0-alpha.703
+  - @brains/utils@0.2.0-alpha.703
+
 ## 0.2.0-alpha.702
 
 ### Patch Changes

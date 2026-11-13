@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.703
+
+### Patch Changes
+
+- [#941](https://github.com/rizom-ai/brains/pull/941) [`2c52bce`](https://github.com/rizom-ai/brains/commit/2c52bcef0b82ed09f69510e2262884bc309ec345) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A save that names no upload, right after the brain's answer about one, offers only that answer to save: "save it" after a summary saves the summary, while "save the PDF" or the file's name still saves the file.
+
 ## 0.2.0-alpha.702
 
 ### Patch Changes
