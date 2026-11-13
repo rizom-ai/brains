@@ -567,6 +567,35 @@ describe("buildMessageWithAttachments", () => {
     );
   });
 
+  describe("text pasted between marker lines", () => {
+    const pasted = [
+      "Replace the body of note 'plan' with the text between the lines below.",
+      "",
+      "BEGIN EXACT CONTENT",
+      "# Plan",
+      "",
+      "Step one.",
+      "END EXACT CONTENT",
+    ].join("\n");
+
+    it("is offered as a source read from the message, not copied", () => {
+      const content = buildMessageWithAttachments(pasted, undefined);
+
+      expect(content).toStartWith(pasted);
+      expect(content).toContain(
+        'Available source for the text between the lines "BEGIN EXACT CONTENT" and "END EXACT CONTENT" of this message, read from the message instead of copied, as system_create source or system_update operation.source: { kind: "user-message", boundaryMode: "lines", startAfter: "BEGIN EXACT CONTENT", endBefore: "END EXACT CONTENT" }',
+      );
+    });
+
+    it("is not offered without one matching pair of marker lines", () => {
+      const unmatched = pasted.replace("END EXACT CONTENT", "END OTHER");
+      const repeated = `${pasted}\nBEGIN EXACT CONTENT`;
+
+      expect(buildMessageWithAttachments(unmatched, undefined)).toBe(unmatched);
+      expect(buildMessageWithAttachments(repeated, undefined)).toBe(repeated);
+    });
+  });
+
   describe("the newest upload as the save candidate", () => {
     const ref = (
       filename: string,
