@@ -2,6 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import formPackage from "@brains/form";
+import { parseFormMarkdown } from "@brains/forms";
 import { z } from "@brains/utils/zod";
 import {
   declaredEntityStore,
@@ -14,8 +15,10 @@ import {
  * captured from the form entity plugin class). A form reads as its stored
  * document, as the class read it: the forms engine parses its steps, copy
  * and scoring from the content. Metadata indexes its title, target and
- * path, which the engine lists forms by. A row main stored reads, lists
- * and is found by its target before the boot pass and after, unchanged.
+ * path, which the engine lists forms by; a form whose file names no path
+ * has none. A row main stored reads, lists and is found by its target
+ * before the boot pass and after, unchanged, and a row main stored with
+ * an empty path reads as a form without one.
  */
 
 const recordSchema = z.object({
@@ -49,6 +52,24 @@ const main = z
       ),
     ),
   );
+
+/**
+ * A form whose file names no path, stored as the sparse form is but without
+ * one: main wrote `path: ''` into it, which no read took. The forms engine
+ * serves such a form beneath /forms, as it serves any form without a path.
+ */
+const pathless = {
+  content: main.pathless.stored.content.replace("path: ''\n", ""),
+  metadata: JSON.stringify({ title: "Fit: a check", target: "quiz-result" }),
+};
+
+/** Where the forms engine serves each form its listing finds. */
+function servedAt(record: { listed: Array<[string, string]> }): string[][] {
+  return record.listed.map(([id, content]) => [
+    id,
+    parseFormMarkdown(id, content).path,
+  ]);
+}
 
 const EVERY = { visibilityScope: "restricted" } as const;
 
@@ -152,7 +173,7 @@ describe("the declared form on the entity store", () => {
     expect(await recordOf(opened, main.full.id)).toEqual(asMain(main.updated));
   });
 
-  test("stores a form whose file names no path as main did, which no read takes", async () => {
+  test("stores a form whose file names no path without one, reads it, and the engine serves it beneath /forms", async () => {
     const opened = await store();
     await opened.service.createEntityFromMarkdown({
       input: {
@@ -161,17 +182,89 @@ describe("the declared form on the entity store", () => {
         markdown: main.pathless.file,
       },
     });
-    const stored = await opened.stored("form", "pathless");
-    expect(
-      stored && { content: stored.content, metadata: stored.metadata },
-    ).toEqual(main.pathless.stored);
-    expect(
-      await opened.service.getEntity({
+    const record = await recordOf(opened, "pathless");
+    expect(record).toEqual({
+      id: "pathless",
+      stored: pathless,
+      read: {
+        content: pathless.content,
+        metadata: { title: "Fit: a check", target: "quiz-result" },
+        visibility: "public",
+      },
+      exported: pathless.content,
+      listed: [["pathless", pathless.content]],
+    });
+    expect(servedAt(record)).toEqual([["pathless", "/forms/pathless"]]);
+  });
+
+  test("writes an edited form that names no path without one", async () => {
+    const opened = await store();
+    await opened.service.createEntityFromMarkdown({
+      input: {
         entityType: "form",
         id: "pathless",
-        ...EVERY,
-      }),
-    ).toBeNull();
+        markdown: main.pathless.file,
+      },
+    });
+    const read = await opened.service.getEntity({
+      entityType: "form",
+      id: "pathless",
+      ...EVERY,
+    });
+    if (!read) throw new Error("Missing form");
+    await opened.service.updateEntity({
+      entity: {
+        ...read,
+        content: read.content.replace("Question one", "The first question"),
+      },
+    });
+    expect((await recordOf(opened, "pathless")).stored).toEqual({
+      ...pathless,
+      content: pathless.content.replace("Question one", "The first question"),
+    });
+  });
+
+  test("reads a row main stored with an empty path as a form without one, before the boot pass and after, and drops it on the next write", async () => {
+    const opened = await store();
+    await opened.service.createEntityFromMarkdown({
+      input: {
+        entityType: "form",
+        id: "pathless",
+        markdown: main.pathless.file,
+      },
+    });
+    await opened.rewrite(
+      "form",
+      "pathless",
+      main.pathless.stored.content,
+      main.pathless.stored.metadata,
+    );
+    await opened.setCreated("form", "pathless", 1_700_000_000_000);
+    const expectReadable = async (): Promise<void> => {
+      const record = await recordOf(opened, "pathless");
+      expect(record.read).toEqual({
+        content: main.pathless.stored.content,
+        metadata: { title: "Fit: a check", target: "quiz-result" },
+        visibility: "public",
+      });
+      expect(servedAt(record)).toEqual([["pathless", "/forms/pathless"]]);
+    };
+    await expectReadable();
+    expect(await opened.service.reconcileDeclaredMetadata()).toEqual({
+      reconciled: 1,
+    });
+    await expectReadable();
+    expect((await opened.stored("form", "pathless"))?.metadata).toBe(
+      pathless.metadata,
+    );
+    const read = await opened.service.getEntity({
+      entityType: "form",
+      id: "pathless",
+      ...EVERY,
+    });
+    if (!read) throw new Error("Missing form");
+    await opened.service.updateEntity({ entity: read });
+    expect((await recordOf(opened, "pathless")).stored).toEqual(pathless);
   });
 
   test("refuses a form whose id is not a slug, as main did", async () => {

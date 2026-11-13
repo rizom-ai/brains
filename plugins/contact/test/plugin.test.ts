@@ -787,6 +787,32 @@ describe("forms defined in the brain's content", () => {
     await f.plugin.shutdown();
   });
 
+  it("serves a form whose file states no path, or an empty one, beneath /forms", async () => {
+    const f = await setup();
+    await f.plugin.ready();
+    await addForm(
+      f,
+      "pathless",
+      workWithUs.replace("path: /work-with-us\n", ""),
+    );
+    await addForm(
+      f,
+      "empty-path",
+      workWithUs.replace("path: /work-with-us", "path: ''"),
+    );
+    for (const path of ["/forms/pathless", "/forms/empty-path"]) {
+      const page = await routeFor(f, path, "GET")?.handler(
+        new Request(`${origin}${path}`),
+        { remoteAddress: peer },
+      );
+      expect(await page?.text()).toContain("<h1>Work with us</h1>");
+      const sent = await send(f, path);
+      expect(sent.status).toBe(303);
+      expect(sent.headers.get("location")).toBe(`${path}/thanks`);
+    }
+    await f.plugin.shutdown();
+  });
+
   it("lets content override the built-in contact form's words, never its path", async () => {
     const f = await setup();
     await addForm(

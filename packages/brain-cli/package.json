@@ -68,6 +68,7 @@
     "@brains/eslint-config": "workspace:*",
     "@brains/faq": "workspace:*",
     "@brains/form": "workspace:*",
+    "@brains/forms": "workspace:*",
     "@brains/guide": "workspace:*",
     "@brains/http-host": "workspace:*",
     "@brains/image": "workspace:*",

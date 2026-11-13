@@ -35,4 +35,32 @@ describe("forms in the brain's content", () => {
     });
     expect(parsed.content).toBe(markdown);
   });
+
+  it("finds a form whose file states no path, or an empty one, by its title and target alone, and writes no path", async () => {
+    const shell = createMockShell();
+    for (const plugin of createFormPlugins()) await plugin.register(shell);
+    const adapter = shell.getEntityRegistry().getAdapter("form");
+    for (const file of [
+      markdown.replace("path: /work-with-us\n", ""),
+      markdown.replace("path: /work-with-us", "path: ''"),
+    ]) {
+      const parsed = adapter.fromMarkdown(file);
+      expect(parsed.metadata).toEqual({
+        title: "Work with us",
+        target: "contact-request",
+      });
+      expect(
+        adapter.generateFrontMatter({
+          id: "work-with-us",
+          entityType: "form",
+          content: file,
+          contentHash: "",
+          created: "",
+          updated: "",
+          visibility: "public",
+          metadata: parsed.metadata ?? {},
+        }),
+      ).not.toContain("path");
+    }
+  });
 });
