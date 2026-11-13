@@ -27,7 +27,8 @@ export function toModelMessages(messages: Message[]): ModelMessage[] {
               text:
                 msg.content +
                 getEntityMemoryNote(msg.metadata) +
-                getAgentContactCandidateNote(msg.metadata),
+                getAgentContactCandidateNote(msg.metadata) +
+                getCancelledProposalNote(msg.metadata),
             },
           ],
         },
@@ -38,6 +39,44 @@ function getEntityMemoryNote(metadata: Message["metadata"]): string {
   const parsedMetadata = parseMessageMetadata(metadata);
   const refs = parseEntityMemoryRefs(parsedMetadata?.["entityMemoryRefs"]);
   return buildEntityMemoryContext(refs);
+}
+
+/** A proposal the user cancelled, as its tool approval card holds it. */
+const cancelledProposalCardSchema = z.looseObject({
+  kind: z.literal("tool-approval"),
+  toolName: z.string(),
+  input: z.record(z.string(), z.unknown()),
+  state: z.literal("output-denied"),
+});
+
+/** Arguments longer than this are not repeated on every later turn. */
+const cancelledProposalMaxLength = 2000;
+
+/**
+ * The call behind each proposal the user cancelled, so a request made again
+ * can repeat it: the reply holds only the proposal's summary. Confirmation
+ * fields are left out, since the cancelled approval cannot be confirmed.
+ */
+function getCancelledProposalNote(metadata: Message["metadata"]): string {
+  const cards = parseMessageMetadata(metadata)?.["cards"];
+  if (!Array.isArray(cards)) return "";
+  return cards
+    .flatMap((card) => {
+      const parsed = cancelledProposalCardSchema.safeParse(card);
+      if (!parsed.success) return [];
+      const {
+        confirmed: _confirmed,
+        confirmationToken: _token,
+        ...args
+      } = parsed.data.input;
+      const call = JSON.stringify(args);
+      return call.length > cancelledProposalMaxLength
+        ? []
+        : [
+            `\n\nThe user cancelled this ${parsed.data.toolName} proposal: ${call}`,
+          ];
+    })
+    .join("");
 }
 
 function getAgentContactCandidateNote(metadata: Message["metadata"]): string {

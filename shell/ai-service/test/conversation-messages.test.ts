@@ -81,6 +81,68 @@ describe("toModelMessages", () => {
   });
 });
 
+describe("a cancelled proposal in history", () => {
+  const args = {
+    entityType: "note",
+    title: "Verbatim plan",
+    visibility: "restricted",
+    source: {
+      kind: "user-message",
+      boundaryMode: "lines",
+      startAfter: "BEGIN EXACT CONTENT",
+      endBefore: "END EXACT CONTENT",
+    },
+  };
+
+  function cancelled(input: Record<string, unknown>): string {
+    return JSON.stringify(
+      toModelMessages([
+        {
+          id: "message-1",
+          conversationId: "conversation-1",
+          role: "assistant",
+          content: 'Action cancelled: Create "Verbatim plan"?',
+          metadata: JSON.stringify({
+            cards: [
+              {
+                kind: "tool-approval",
+                id: "approval-1",
+                toolName: "system_create",
+                input,
+                summary: 'Create "Verbatim plan"?',
+                state: "output-denied",
+              },
+            ],
+          }),
+          timestamp: new Date().toISOString(),
+        },
+      ]),
+    );
+  }
+
+  it("reaches the model with the call the user cancelled", () => {
+    const text = cancelled({
+      ...args,
+      confirmed: true,
+      confirmationToken: "token-1",
+    });
+
+    expect(text).toContain(
+      JSON.stringify(
+        `The user cancelled this system_create proposal: ${JSON.stringify(args)}`,
+      ).slice(1, -1),
+    );
+    expect(text).not.toContain("confirmationToken");
+    expect(text).not.toContain("token-1");
+  });
+
+  it("leaves out a proposal too long to repeat", () => {
+    const text = cancelled({ ...args, content: "x".repeat(3000) });
+
+    expect(text).not.toContain("cancelled this system_create proposal");
+  });
+});
+
 describe("filterConversationHistoryForPermission", () => {
   const message = (
     id: string,
