@@ -13,7 +13,7 @@
     "request": "GET localhost/health/live",
     "status": 200,
     "headers": {
-      "content-length": "68",
+      "content-length": "<length>",
       "content-type": "application/json",
       "date": "<date>"
     },
@@ -48,7 +48,7 @@
     "request": "GET localhost/health/ready",
     "status": 200,
     "headers": {
-      "content-length": "1922",
+      "content-length": "<length>",
       "content-type": "application/json",
       "date": "<date>"
     },
@@ -132,7 +132,7 @@
     "request": "GET localhost/health/operate",
     "status": 200,
     "headers": {
-      "content-length": "2584",
+      "content-length": "<length>",
       "content-type": "application/json",
       "date": "<date>"
     },
@@ -266,7 +266,7 @@
     "request": "GET preview.localhost/health/live",
     "status": 200,
     "headers": {
-      "content-length": "68",
+      "content-length": "<length>",
       "content-type": "application/json",
       "date": "<date>"
     },
@@ -284,7 +284,7 @@
       "access-control-allow-methods": "GET, POST, DELETE, OPTIONS",
       "access-control-allow-origin": "*",
       "access-control-allow-private-network": "true",
-      "content-length": "38",
+      "content-length": "<length>",
       "content-type": "application/json",
       "date": "<date>",
       "x-content-type-options": "nosniff"
@@ -302,7 +302,7 @@
       "access-control-allow-methods": "GET, POST, DELETE, OPTIONS",
       "access-control-allow-origin": "*",
       "access-control-allow-private-network": "true",
-      "content-length": "99",
+      "content-length": "<length>",
       "content-type": "application/json",
       "date": "<date>",
       "www-authenticate": "Bearer resource_metadata=\"http://127.0.0.1:<port>/.well-known/oauth-protected-resource\", realm=\"mcp\"",
@@ -375,7 +375,7 @@
       "access-control-allow-origin": "*",
       "access-control-allow-private-network": "true",
       "cache-control": "no-store",
-      "content-length": "203",
+      "content-length": "<length>",
       "content-type": "application/json",
       "date": "<date>",
       "x-content-type-options": "nosniff"
@@ -397,7 +397,7 @@
       "access-control-allow-origin": "*",
       "access-control-allow-private-network": "true",
       "cache-control": "no-store",
-      "content-length": "751",
+      "content-length": "<length>",
       "content-type": "application/json",
       "date": "<date>",
       "x-content-type-options": "nosniff"
@@ -492,7 +492,7 @@
     "request": "GET localhost/api/chat/sessions",
     "status": 403,
     "headers": {
-      "content-length": "9",
+      "content-length": "<length>",
       "content-type": "text/plain;charset=utf-8",
       "date": "<date>"
     },
@@ -503,7 +503,7 @@
     "status": 401,
     "headers": {
       "cache-control": "no-store",
-      "content-length": "35",
+      "content-length": "<length>",
       "content-type": "application/json;charset=utf-8",
       "date": "<date>",
       "vary": "Cookie"
