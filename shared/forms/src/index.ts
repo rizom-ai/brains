@@ -112,7 +112,11 @@ export type { BuiltInForm, FormRuntime, FormServiceOptions } from "./service";
 export type { FormEntityService } from "./records";
 export { formFrontmatterSchema } from "./definition";
 export type { FormFrontmatter } from "./definition";
-export { formMarkdown, parseFormMarkdown } from "./form-markdown";
+export {
+  formMarkdown,
+  parseFormMarkdown,
+  withoutEmptyPath,
+} from "./form-markdown";
 export { answerText } from "./validate";
 export type { FormChoiceField, FormTextField } from "./definition";
 export type { FormStepCopy } from "./steps-script";

@@ -1,4 +1,8 @@
-import { formFrontmatterSchema, parseFormMarkdown } from "@brains/forms";
+import {
+  formFrontmatterSchema,
+  parseFormMarkdown,
+  withoutEmptyPath,
+} from "@brains/forms";
 import {
   defineEntity,
   defineEntityPackage,
@@ -16,19 +20,22 @@ import {
 type FormMetadataSchema = z.ZodObject<{
   title: z.ZodString;
   target: z.ZodString;
-  path: z.ZodString;
+  path: z.ZodOptional<z.ZodString>;
 }>;
-/** What forms are found by: the type their submissions become, and where. */
+/** What forms are found by: the type their submissions become, and where,
+ * when the form names its path. A form that names none is served beneath
+ * /forms; an empty path is none. */
 export const formMetadataSchema: FormMetadataSchema = z.object({
   title: z.string(),
   target: z.string(),
-  path: z.string(),
+  path: z.string().min(1).optional(),
 });
 export type FormMetadata = z.output<typeof formMetadataSchema>;
 
 // A form reads as its stored document, metadata what it is found by. The
 // class wrote its body from the line under its header; the codec stays the
-// one storedDocumentCodec made, which is what reads as written.
+// one storedDocumentCodec made, which is what reads as written. A form
+// stored with an empty path reads as one without a path.
 const storedForm = storedDocumentCodec<
   typeof formFrontmatterSchema,
   typeof formMetadataSchema
@@ -37,7 +44,7 @@ const storedForm = storedDocumentCodec<
   deriveMetadata: ({ title, target, path }) => ({
     title,
     target,
-    path: path ?? "",
+    ...(path !== undefined && { path }),
   }),
   readAsWritten: true,
 });
@@ -46,6 +53,7 @@ Object.assign(storedForm, {
   decode: (document: Parameters<typeof storedDecode>[0]) =>
     storedDecode({
       ...document,
+      frontmatter: withoutEmptyPath(document.frontmatter),
       content: document.content.replace(/^\n+/u, ""),
     }),
 });

@@ -1,6 +1,6 @@
 {
   "name": "@rizom/brain",
-  "version": "0.2.0-alpha.703",
+  "version": "0.2.0-alpha.705",
   "description": "Brain runtime + CLI — scaffold, run, and manage AI brain instances",
   "keywords": [
     "brain",
@@ -68,6 +68,7 @@
     "@brains/eslint-config": "workspace:*",
     "@brains/faq": "workspace:*",
     "@brains/form": "workspace:*",
+    "@brains/forms": "workspace:*",
     "@brains/guide": "workspace:*",
     "@brains/http-host": "workspace:*",
     "@brains/image": "workspace:*",

@@ -1,5 +1,29 @@
 # @brains/link
 
+## 0.2.0-alpha.705
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.705
+  - @rizom/brain-ui@0.2.0-alpha.705
+  - @brains/atproto-contracts@0.2.0-alpha.705
+  - @brains/content-formatters@0.2.0-alpha.705
+  - @brains/contracts@0.2.0-alpha.705
+  - @brains/utils@0.2.0-alpha.705
+
+## 0.2.0-alpha.704
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.704
+  - @rizom/brain-ui@0.2.0-alpha.704
+  - @brains/atproto-contracts@0.2.0-alpha.704
+  - @brains/content-formatters@0.2.0-alpha.704
+  - @brains/contracts@0.2.0-alpha.704
+  - @brains/utils@0.2.0-alpha.704
+
 ## 0.2.0-alpha.703
 
 ### Patch Changes
