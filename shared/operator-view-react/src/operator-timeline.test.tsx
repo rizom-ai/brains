@@ -81,6 +81,40 @@ describe("timeline block", () => {
   it("marks a list row as the subject of the light that names it", () => {
     expect(render()).toContain('data-row-id="row-recent"');
   });
+
+  it("stacks crowded lights a whole 24px target apart so none covers another", () => {
+    const html = renderToStaticMarkup(
+      <OperatorViewRenderer
+        data={{
+          view: {
+            blocks: [
+              {
+                type: "timeline",
+                id: "crowded",
+                label: "Last 24 hours",
+                start: "2026-07-10T16:40:00.000Z",
+                end: "2026-07-11T16:40:00.000Z",
+                items: ["16:00", "16:10", "16:20"].map((time) => ({
+                  id: `light-${time}`,
+                  at: `2026-07-11T${time}:00.000Z`,
+                  title: `Event at ${time}`,
+                })),
+              },
+            ],
+          },
+        }}
+        onAction={async () => ({})}
+        onOpenEntity={() => {}}
+        renderHead={false}
+      />,
+    );
+
+    const tops = Array.from(
+      html.matchAll(/<button[^>]*style="[^"]*top:([^;"]+)/g),
+      (match) => match[1],
+    );
+    expect(tops).toEqual(["50%", "calc(50% - 24px)", "calc(50% + 24px)"]);
+  });
 });
 
 describe("timeline block in the browser", () => {
