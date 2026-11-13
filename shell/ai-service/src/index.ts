@@ -6,7 +6,7 @@
  */
 
 export { AIService } from "./aiService";
-export { AIOutputValidationError } from "./errors";
+export { AIOutputValidationError, aiProviderDeclinedMessage } from "./errors";
 export {
   isSupportedTextModel,
   resolveTextProvider,
