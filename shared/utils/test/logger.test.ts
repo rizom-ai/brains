@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach, afterEach, spyOn } from "bun:test";
-import { ConsoleLogger, LogLevel } from "../src/logger";
+import { ConsoleLogger, LogLevel, withProcessRole } from "../src/logger";
 import { z } from "../src/zod";
 
 const logRecordSchema = z.record(z.string(), z.unknown());
@@ -178,6 +178,17 @@ describe("Logger", () => {
       spy.mockRestore();
     });
 
+    test("labels a line written outside any logger", () => {
+      ConsoleLogger.setProcessRole("worker");
+      expect(withProcessRole("❌ brain crashed:")).toBe(
+        "[worker] ❌ brain crashed:",
+      );
+    });
+
+    test("leaves a line written outside any logger as is without a role", () => {
+      expect(withProcessRole("❌ brain crashed:")).toBe("❌ brain crashed:");
+    });
+
     test("leaves lines unlabeled when no role is set", () => {
       const spy = spyOn(console, "info").mockImplementation(() => {});
       ConsoleLogger.createFresh({ format: "json" }).info("hello");
@@ -194,6 +205,22 @@ describe("Logger", () => {
       logger.info("stderr msg");
       expect(spy).toHaveBeenCalledTimes(1);
       spy.mockRestore();
+    });
+
+    test("every level writes to stderr when useStderr is true", () => {
+      const stderr = spyOn(console, "error").mockImplementation(() => {});
+      const stdout = spyOn(console, "debug").mockImplementation(() => {});
+      const logger = ConsoleLogger.createFresh({
+        useStderr: true,
+        level: LogLevel.SILLY,
+      });
+      logger.silly("s");
+      logger.verbose("v");
+      logger.debug("d");
+      expect(stderr).toHaveBeenCalledTimes(3);
+      expect(stdout).not.toHaveBeenCalled();
+      stderr.mockRestore();
+      stdout.mockRestore();
     });
   });
 });

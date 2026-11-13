@@ -157,6 +157,7 @@ export class App {
       ConsoleLogger.getInstance().setUseStderr(true);
     }
 
+    logger.info(`🚀 Starting ${this.config.name} v${this.config.version}...`);
     try {
       await this.initialize(undefined, runtimeOptions);
       await this.start();

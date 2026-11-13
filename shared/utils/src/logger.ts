@@ -49,17 +49,27 @@ export interface LoggerOptions {
   logFile?: string;
 }
 
+/**
+ * Which of its runtime's processes this one is, such as `web`, `worker` or
+ * `git-broker`. Process-wide, because every line the process writes shares
+ * the stdout the supervisor gives all its children. Set through
+ * `ConsoleLogger.setProcessRole`.
+ */
+let processRole: string | undefined;
+
+/**
+ * Prefix a line written outside any logger (a crash handler, a startup
+ * failure) with this process's role, as the loggers' own text lines are.
+ * Unchanged when the process has no role.
+ */
+export function withProcessRole(line: string): string {
+  return processRole ? `[${processRole}] ${line}` : line;
+}
+
 /** The logger the runtime constructs: console output, optionally mirrored to a file. */
 export class ConsoleLogger implements Logger {
   /** The singleton instance */
   private static instance: ConsoleLogger | null = null;
-
-  /**
-   * Which of its runtime's processes this one is, such as `web`, `worker` or
-   * `git-broker`. Process-wide, because every logger in the process writes to
-   * the same stdout the supervisor shares with its other children.
-   */
-  private static processRole: string | undefined;
 
   private level: LogLevel;
   private context: string | undefined;
@@ -111,16 +121,17 @@ export class ConsoleLogger implements Logger {
    */
   public static resetInstance(): void {
     ConsoleLogger.instance = null;
-    ConsoleLogger.processRole = undefined;
+    processRole = undefined;
   }
 
   /**
    * Label every line this process logs, from any logger, with its role: a
-   * `[role]` prefix on text lines and a `role` field on JSON lines. A process
-   * that is not one of several sharing an output sets none.
+   * `[role]` prefix on text lines and a `role` field on JSON lines, and lines
+   * written outside any logger through `withProcessRole`. A process that is
+   * not one of several sharing an output sets none.
    */
   public static setProcessRole(role: string | undefined): void {
-    ConsoleLogger.processRole = role;
+    processRole = role;
   }
 
   /**
@@ -140,13 +151,13 @@ export class ConsoleLogger implements Logger {
     if (this.format === "json") {
       return this.formatJsonEntry(level, message, args);
     }
-    const role = ConsoleLogger.processRole;
-    return [
-      ...(role ? [`[${role}]`] : []),
-      `[${new Date().toISOString()}]`,
-      ...(this.context ? [`[${this.context}]`] : []),
-      message,
-    ].join(" ");
+    return withProcessRole(
+      [
+        `[${new Date().toISOString()}]`,
+        ...(this.context ? [`[${this.context}]`] : []),
+        message,
+      ].join(" "),
+    );
   }
 
   /**
@@ -196,7 +207,7 @@ export class ConsoleLogger implements Logger {
     const entry: Record<string, unknown> = {
       ts: new Date().toISOString(),
       level,
-      ...(ConsoleLogger.processRole && { role: ConsoleLogger.processRole }),
+      ...(processRole && { role: processRole }),
       msg: message,
     };
     if (this.context) entry["ctx"] = this.context;
@@ -204,21 +215,28 @@ export class ConsoleLogger implements Logger {
     return JSON.stringify(entry);
   }
 
+  /** Below info, lines go to stdout unless this logger was asked for stderr. */
+  private debugStream(): (...data: unknown[]) => void {
+    return this.useStderr
+      ? console.error.bind(console)
+      : console.debug.bind(console);
+  }
+
   public silly(message: string, ...args: unknown[]): void {
     if (this.level <= LogLevel.SILLY) {
-      this.write(console.debug.bind(console), "silly", message, args);
+      this.write(this.debugStream(), "silly", message, args);
     }
   }
 
   public verbose(message: string, ...args: unknown[]): void {
     if (this.level <= LogLevel.VERBOSE) {
-      this.write(console.debug.bind(console), "verbose", message, args);
+      this.write(this.debugStream(), "verbose", message, args);
     }
   }
 
   public debug(message: string, ...args: unknown[]): void {
     if (this.level <= LogLevel.DEBUG) {
-      this.write(console.debug.bind(console), "debug", message, args);
+      this.write(this.debugStream(), "debug", message, args);
     }
   }
 

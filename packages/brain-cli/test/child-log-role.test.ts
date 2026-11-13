@@ -6,7 +6,6 @@ import { join } from "node:path";
 import { ConsoleLogger, type LogFormat } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import { start } from "../src/commands/start";
-import { runGitBrokerChild } from "../src/lib/git-broker-child";
 import { resetBootFn, setBootFn } from "../src/lib/boot";
 import {
   resetCanonicalDefinition,
@@ -16,13 +15,15 @@ import { GIT_BROKER_SOCKET_ENV } from "../src/lib/process-supervisor";
 
 /**
  * Every supervised child shares the supervisor's stdout, so each line a child
- * logs names the child that wrote it. The role comes from what the child
+ * writes names the child that wrote it. The role comes from what the child
  * already knows at startup, not from rewriting its output in the supervisor.
  */
 
 const jsonLineSchema = z.object({ role: z.string(), msg: z.string() });
 
 const formats: LogFormat[] = ["text", "json"];
+
+const SRC = join(import.meta.dir, "..", "src");
 
 /** One line logged the way the runtime's own loggers log, in `format`. */
 function logOneLine(format: LogFormat, message: string): void {
@@ -48,20 +49,49 @@ function expectRole(
   expect(line).toEndWith(`[directory-sync] ${message}`);
 }
 
+function createTestDir(): string {
+  const dir = join(
+    tmpdir(),
+    `brain-log-role-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+  );
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(
+    join(dir, "brain.yaml"),
+    "brain: brain\nbundleContract: capability-bundles-v1\nbundles: [core]\n",
+  );
+  return dir;
+}
+
+/** A child's environment without the supervisor's handoff to the broker. */
+function childEnv(cwd: string): Record<string, string> {
+  const env: Record<string, string> = { INIT_CWD: cwd };
+  for (const [key, value] of Object.entries(process.env)) {
+    if (value !== undefined && key !== GIT_BROKER_SOCKET_ENV && !(key in env))
+      env[key] = value;
+  }
+  return env;
+}
+
+async function runChild(
+  args: string[],
+  cwd: string,
+): Promise<{ exitCode: number; stderr: string }> {
+  const child = Bun.spawn(["bun", ...args], {
+    cwd,
+    env: childEnv(cwd),
+    stdout: "ignore",
+    stderr: "pipe",
+  });
+  const stderr = await new Response(child.stderr).text();
+  return { exitCode: await child.exited, stderr };
+}
+
 describe("a supervised child's log lines carry its role", () => {
   let testDir: string;
   let infoSpy: ReturnType<typeof spyOn<Console, "info">>;
 
   beforeEach(() => {
-    testDir = join(
-      tmpdir(),
-      `brain-log-role-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-    );
-    mkdirSync(testDir, { recursive: true });
-    writeFileSync(
-      join(testDir, "brain.yaml"),
-      "brain: brain\nbundleContract: capability-bundles-v1\nbundles: [core]\n",
-    );
+    testDir = createTestDir();
     infoSpy = spyOn(console, "info").mockImplementation(() => {});
   });
 
@@ -110,12 +140,14 @@ describe("a supervised child's log lines carry its role", () => {
     const processImpl = Object.assign(new EventEmitter(), {
       env: { [GIT_BROKER_SOCKET_ENV]: "/run/brain/git-broker.sock" },
       send: (): void => {},
+      kill: (): boolean => true,
     });
 
-    const running = runGitBrokerChild(
+    const running = start(
       testDir,
-      { plugins: { "directory-sync": {} } },
+      { chat: false },
       {
+        argv: ["start", "--child=git-broker"],
         processImpl,
         startHost: async () => {
           logOneLine(format, "checkout ready");
@@ -133,5 +165,38 @@ describe("a supervised child's log lines carry its role", () => {
       "git-broker",
       "checkout ready",
     );
+  });
+});
+
+describe("a supervised child's startup failure carries its role", () => {
+  let testDir: string;
+
+  beforeEach(() => {
+    testDir = createTestDir();
+  });
+
+  afterEach(() => {
+    rmSync(testDir, { recursive: true, force: true });
+  });
+
+  it("labels the packaged broker's failure to start", async () => {
+    const { exitCode, stderr } = await runChild(
+      [join(SRC, "git-broker-entrypoint.ts")],
+      testDir,
+    );
+
+    expect(exitCode).toBe(1);
+    expect(stderr).toStartWith("[git-broker] [");
+    expect(stderr).toContain(`${GIT_BROKER_SOCKET_ENV} is unset`);
+  });
+
+  it("labels an app child's failure to start", async () => {
+    const { exitCode, stderr } = await runChild(
+      [join(SRC, "index.ts"), "start", "--child=worker"],
+      testDir,
+    );
+
+    expect(exitCode).toBe(1);
+    expect(stderr).toStartWith("[worker] Could not find brain runner");
   });
 });

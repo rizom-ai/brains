@@ -303,9 +303,10 @@ kamal details
 ```
 
 A deployed brain runs as a supervisor with child processes that share one log
-stream, so each line a child logs names it: text lines start with `[web]`,
+stream, so each line a child writes names it: text lines start with `[web]`,
 `[worker]` or `[git-broker]`, and JSON lines (the `logFile` output) carry a
-`role` field. Unlabeled lines come from the supervisor itself.
+`role` field. Unlabeled lines come from the supervisor itself, or from
+third-party code and Bun writing to the console directly.
 
 ```text
 [web] [2026-11-13T18:02:07.106Z] [directory-sync] Initial sync queued for the worker

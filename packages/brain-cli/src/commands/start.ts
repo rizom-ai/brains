@@ -87,13 +87,6 @@ export async function start(
   flags: { chat: boolean; mode?: BootMode },
   dependencies: StartDependencies = {},
 ): Promise<CommandResult> {
-  if (!existsSync(join(cwd, "brain.yaml"))) {
-    return {
-      success: false,
-      message: `No brain.yaml found in ${cwd}. Run 'brain init <dir>' first.`,
-    };
-  }
-
   let childRole: SupervisedChildRole | undefined;
   try {
     childRole = parseBrainChildRole(dependencies.argv ?? process.argv.slice(2));
@@ -104,9 +97,16 @@ export async function start(
     };
   }
   // A supervised child shares the supervisor's stdout with its siblings, so
-  // every line it logs names it. The process the operator started (the
-  // supervisor, or a combined runtime) stays unlabeled.
+  // every line it writes names it, from its first. The process the operator
+  // started (the supervisor, or a combined runtime) stays unlabeled.
   if (childRole) ConsoleLogger.setProcessRole(childRole);
+
+  if (!existsSync(join(cwd, "brain.yaml"))) {
+    return {
+      success: false,
+      message: `No brain.yaml found in ${cwd}. Run 'brain init <dir>' first.`,
+    };
+  }
   const config = parseBrainYaml(cwd);
 
   // The broker child must be recognized before monorepo runner selection;
@@ -156,7 +156,8 @@ export async function start(
           modelRuntimeUrl:
             config.modelRuntime?.url ?? process.env["MODEL_RUNTIME_URL"],
         });
-        for (const warning of keyCheck.warnings) console.warn(warning);
+        const logger = ConsoleLogger.getInstance();
+        for (const warning of keyCheck.warnings) logger.warn(warning);
         if (!keyCheck.ok) {
           return {
             success: false,
