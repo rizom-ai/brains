@@ -416,16 +416,14 @@ export function buildMessageWithAttachments(
 
   if (fileAttachments.length === 0) return text;
 
-  // The files come first, then the request about them: a model read an
-  // image wrongly when it came after the upload refs' text.
   return [
+    ...(text.length > 0 ? [{ type: "text" as const, text }] : []),
     ...fileAttachments.map((attachment) => ({
       type: "file" as const,
       data: attachment.data,
       mediaType: attachment.mediaType,
       filename: attachment.filename,
     })),
-    ...(text.length > 0 ? [{ type: "text" as const, text }] : []),
   ];
 }
 
