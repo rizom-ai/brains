@@ -222,3 +222,71 @@ describe("a stored-document codec read as written", () => {
     expect(read?.metadata).toEqual({});
   });
 });
+
+describe("a stored-document codec that prepares its document", () => {
+  const titled = z.object({ title: z.string() });
+  const prepared = storedDocumentCodec<typeof titled, typeof titled>({
+    header: titled,
+    deriveMetadata: ({ title }) => ({ title }),
+    readAsWritten: true,
+    // Its class wrote the body from the line under its header.
+    prepare: (stored) => ({
+      ...stored,
+      content: stored.content.replace(/^\n+/u, ""),
+    }),
+  });
+
+  it("decodes what prepare hands on", () => {
+    expect(
+      prepared.decode({
+        content: "\n\nThe body.",
+        frontmatter: { title: "First" },
+      }),
+    ).toEqual({
+      content: "---\ntitle: First\n---\nThe body.\n",
+      metadata: { title: "First" },
+    });
+  });
+
+  it("still reads as written, as the codec it is", () => {
+    const [plugin] = instantiatePluginPackageDefinition(
+      defineEntityPackage({
+        id: "prepared",
+        entities: [
+          defineEntity({
+            type: "prepared",
+            purpose: "A record read as written.",
+            metadata: z.object({ title: z.string() }),
+            markdown: prepared,
+          }),
+        ],
+      }),
+      {},
+      { name: "@fixture/prepared", version: "0.1.0" },
+    );
+    if (!(plugin instanceof EntityPlugin)) throw new Error("No plugin");
+    const written = "---\ntitle: First\n---\n\nThe body.\n";
+    const adapter: EntityAdapter<BaseEntity> = plugin.adapter;
+    expect(adapter.fromMarkdown(written).content).toBe(written);
+  });
+});
+
+describe("a stored-document codec with its own write", () => {
+  it("encodes through the write it is given", () => {
+    const titled = z.object({ title: z.string() });
+    const codec = storedDocumentCodec<typeof titled, typeof titled>({
+      header: titled,
+      deriveMetadata: ({ title }) => ({ title }),
+      encode: ({ content, metadata }) => ({
+        content: content.toUpperCase(),
+        frontmatter: { title: metadata.title, written: true },
+      }),
+    });
+    expect(
+      codec.encode?.({ content: "body", metadata: { title: "First" } }),
+    ).toEqual({
+      content: "BODY",
+      frontmatter: { title: "First", written: true },
+    });
+  });
+});

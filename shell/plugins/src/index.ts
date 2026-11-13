@@ -975,6 +975,8 @@ export {
   withUrlRoute,
   writesInDocumentOrder,
   storedDocumentCodec,
+  bodyUnderHeader,
+  type StoredDocument,
   withFrontmatterSchema,
   type EntityAnswerContext,
   type EntityAnswerDeclaration,

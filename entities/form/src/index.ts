@@ -12,6 +12,7 @@ import {
 } from "@brains/sdk/entities";
 import {
   storedDocumentCodec,
+  bodyUnderHeader,
   withFrontmatterSchema,
   withPersistValidator,
   writesInDocumentOrder,
@@ -33,9 +34,8 @@ export const formMetadataSchema: FormMetadataSchema = z.object({
 export type FormMetadata = z.output<typeof formMetadataSchema>;
 
 // A form reads as its stored document, metadata what it is found by. The
-// class wrote its body from the line under its header; the codec stays the
-// one storedDocumentCodec made, which is what reads as written. A form
-// stored with an empty path reads as one without a path.
+// class wrote its body from the line under its header. A form stored with
+// an empty path reads as one without a path.
 const storedForm = storedDocumentCodec<
   typeof formFrontmatterSchema,
   typeof formMetadataSchema
@@ -47,14 +47,10 @@ const storedForm = storedDocumentCodec<
     ...(path !== undefined && { path }),
   }),
   readAsWritten: true,
-});
-const storedDecode = storedForm.decode;
-Object.assign(storedForm, {
-  decode: (document: Parameters<typeof storedDecode>[0]) =>
-    storedDecode({
+  prepare: (document) =>
+    bodyUnderHeader({
       ...document,
       frontmatter: withoutEmptyPath(document.frontmatter),
-      content: document.content.replace(/^\n+/u, ""),
     }),
 });
 

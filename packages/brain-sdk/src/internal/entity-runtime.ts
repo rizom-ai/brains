@@ -26,6 +26,8 @@ export {
   withUrlRoute,
   writesInDocumentOrder,
   storedDocumentCodec,
+  bodyUnderHeader,
+  type StoredDocument,
   withFrontmatterSchema,
   afterGeneration,
   loggedProvider,
