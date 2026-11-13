@@ -1,7 +1,7 @@
 {
   "name": "@brains/quiz",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.697",
+  "version": "0.2.0-alpha.698",
   "description": "Quizzes on a Brain's site, their results kept as quiz-result records",
   "dependencies": {
     "@brains/forms": "workspace:*",
