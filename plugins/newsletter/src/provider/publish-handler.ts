@@ -87,3 +87,12 @@ export async function handlePublishCompleted(
     };
   }
 }
+
+/** The subject a newsletter is sent under; a newsletter without one is not sent. */
+export function readSubject(metadata: Record<string, unknown>): string {
+  const subject = metadata["subject"];
+  if (typeof subject !== "string" || subject.trim().length === 0) {
+    throw new Error("Newsletter subject is required for publishing");
+  }
+  return subject;
+}

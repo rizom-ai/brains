@@ -1,18 +1,9 @@
 import type { FormDefinition, FormField, FormTranslation } from "./definition";
+import { languageEntry } from "@brains/utils/language-entry";
 
 /** The languages a form is served in besides the one it is written in. */
 export function formLanguages(form: FormDefinition): string[] {
   return Object.keys(form.translations ?? {});
-}
-
-function translationFor(
-  form: FormDefinition,
-  language: string,
-): FormTranslation | undefined {
-  const tag = language.toLowerCase();
-  return Object.entries(form.translations ?? {}).find(
-    ([key]) => key.toLowerCase() === tag,
-  )?.[1];
 }
 
 function localizeField(
@@ -41,7 +32,7 @@ export function localizeForm(
   form: FormDefinition,
   language: string,
 ): FormDefinition {
-  const translation = translationFor(form, language);
+  const translation = languageEntry(form.translations, language);
   if (!translation) return form;
   return {
     ...form,

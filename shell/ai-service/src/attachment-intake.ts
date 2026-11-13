@@ -64,8 +64,8 @@ function isImageAttachment(attachment: ChatAttachment): boolean {
   return attachment.mediaType.startsWith("image/");
 }
 
-function isPdfAttachment(attachment: ChatAttachment): boolean {
-  return attachment.mediaType === "application/pdf";
+export function isPdfAttachment(attachment: ChatAttachment): boolean {
+  return attachment.mediaType.toLowerCase() === "application/pdf";
 }
 
 function isTextAttachment(attachment: ChatAttachment): boolean {

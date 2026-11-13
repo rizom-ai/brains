@@ -1,4 +1,5 @@
 import { z } from "@brains/utils/zod";
+import { registrationOwner } from "./utils/registration-owner";
 
 const inboxIdPattern = /^[a-z][a-z0-9-]*$/;
 
@@ -312,7 +313,7 @@ export class InboxRegistry implements IInboxRegistry {
 
   registerSource(pluginId: string, source: InboxSource): void {
     this.assertRegistrationOpen();
-    const owner = normalizePluginId(pluginId);
+    const owner = registrationOwner(pluginId, "Inbox");
     const descriptor = inboxSourceDescriptorSchema.parse({
       sourceId: source.sourceId,
       displayName: source.displayName,
@@ -505,12 +506,6 @@ function createSourceFacetsSchema(
       }
     }
   });
-}
-
-function normalizePluginId(pluginId: string): string {
-  const normalized = pluginId.trim();
-  if (!normalized) throw new Error("Inbox registration plugin id is required");
-  return normalized;
 }
 
 function normalizeSourceId(sourceId: string): string {

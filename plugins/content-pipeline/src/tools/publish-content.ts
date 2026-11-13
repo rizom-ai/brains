@@ -4,6 +4,7 @@ import { z } from "@brains/utils/zod";
 import type { PublishImageData, PublishMediaData } from "@brains/contracts";
 import type { PublishableMetadata } from "../schemas/publishable";
 import type { PipelineContext } from "../lib/pipeline-context";
+import { parseBase64DataUrl } from "@brains/utils/data-url";
 
 type PublishableEntity = BaseEntity<PublishableMetadata>;
 
@@ -183,18 +184,6 @@ async function fetchPublishDocumentItem(
     data: parsed.data,
     mimeType: "application/pdf",
     filename: getFilename(entity, reference.id),
-  };
-}
-
-function parseBase64DataUrl(
-  content: string,
-): { mimeType: string; data: Buffer } | undefined {
-  // A data URL read from a markdown file keeps that file's newline.
-  const match = content.trim().match(/^data:([^;]+);base64,(.+)$/);
-  if (!match?.[1] || !match[2]) return undefined;
-  return {
-    mimeType: match[1],
-    data: Buffer.from(match[2], "base64"),
   };
 }
 

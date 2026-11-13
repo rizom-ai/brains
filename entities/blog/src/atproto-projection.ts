@@ -9,6 +9,7 @@ import {
   type EntityOf,
 } from "@brains/sdk/entities";
 import type { blogPostMetadataSchema } from "./schemas/blog-post";
+import { parseBase64DataUrl } from "@brains/utils/data-url";
 
 type PostRecord = EntityOf<
   EntityDefinition<"post", typeof blogPostMetadataSchema>
@@ -26,21 +27,6 @@ const imageShape = defineEntity({
   metadata: imageMetadataSchema,
 });
 
-function dataUrlToUploadInput(dataUrl: string): {
-  data: Buffer;
-  mimeType: string;
-} {
-  // A data URL read from a markdown file keeps that file's newline.
-  const match = /^data:([^;,]+);base64,(.*)$/.exec(dataUrl.trim());
-  if (!match?.[1] || !match[2]) {
-    throw new Error("Cover image must be a base64 data URL");
-  }
-  return {
-    data: Buffer.from(match[2], "base64"),
-    mimeType: match[1],
-  };
-}
-
 /**
  * The post's cover, stored on the PDS: a public image the post names, with
  * its alt text and size. The record is built from public entries only, so
@@ -57,7 +43,9 @@ async function uploadCoverImage({
   if (!coverImageId) return undefined;
   const image = await entities.get(imageShape, coverImageId);
   if (!image) return undefined;
-  const blob = await uploadBlob(dataUrlToUploadInput(image.content));
+  const cover = parseBase64DataUrl(image.content);
+  if (!cover) throw new Error("Cover image must be a base64 data URL");
+  const blob = await uploadBlob(cover);
   const { alt, width, height } = image.metadata;
   return {
     blob,
