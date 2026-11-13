@@ -1,12 +1,11 @@
-import type {
-  BaseDataSourceContext,
-  DataSource,
-  DataSourceSchema,
-} from "@brains/plugins";
-import { z } from "@brains/utils/zod";
-import { guideSchema, guideWithDataSchema } from "../schemas/guide";
-import { sortGuides } from "../lib/guide-order";
-import { parseGuideData } from "./guide-datasource";
+import {
+  defineDataSource,
+  z,
+  type DataSourceDefinition,
+} from "@brains/sdk/entities";
+import { entityRuntime } from "@brains/sdk/internal/entity-runtime";
+import { guideWithDataSchema } from "../schemas/guide";
+import { listGuides } from "./guide-datasource";
 
 /** The slug of the docs landing page, which the sections introduce. */
 const DOCS_INDEX_SLUG = "index";
@@ -15,7 +14,7 @@ const LIST_LIMIT = 1000;
 /**
  * What a section lists of a doc, read from the doc entity's metadata. Entity
  * packages do not import one another, so the guides read docs by this
- * contract rather than through the docs plugin.
+ * contract rather than through the docs package.
  */
 export const sectionDocSchema: z.ZodObject<{
   id: z.ZodString;
@@ -65,53 +64,44 @@ function sortDocs(docs: SectionDoc[]): SectionDoc[] {
  * the order of their docs; a guide joins the section it names, and a guide
  * naming no section, or one without docs, is left to list on its own.
  */
-export class GuideSectionsDataSource implements DataSource {
-  readonly id = "guides:sections";
-  readonly name = "Guides by Docs Section DataSource";
-  readonly description =
-    "Each docs section's docs, with the guides listed with that section";
+export function guideSectionsDataSource(): DataSourceDefinition {
+  return defineDataSource({
+    id: "sections",
+    name: "Guides by Docs Section DataSource",
+    description:
+      "Each docs section's docs, with the guides listed with that section",
+    fetch: async (_query, entities, context) => {
+      const [docEntities, guides] = await Promise.all([
+        entityRuntime(context).anyEntities.listEntities({
+          entityType: "doc",
+          options: { limit: LIST_LIMIT },
+        }),
+        listGuides(entities),
+      ]);
 
-  async fetch<T>(
-    _query: unknown,
-    outputSchema: DataSourceSchema<T>,
-    context: BaseDataSourceContext,
-  ): Promise<T> {
-    const [docEntities, guideEntities] = await Promise.all([
-      context.entityService.listEntities({
-        entityType: "doc",
-        options: { limit: LIST_LIMIT },
-      }),
-      context.entityService.listEntities(
-        { entityType: "guide", options: { limit: LIST_LIMIT } },
-        guideSchema,
-      ),
-    ]);
+      const docs = sortDocs(
+        docEntities.map((entity) =>
+          sectionDocSchema.parse({ ...entity.metadata, id: entity.id }),
+        ),
+      ).filter((item) => item.slug !== DOCS_INDEX_SLUG);
 
-    const docs = sortDocs(
-      docEntities.map((entity) =>
-        sectionDocSchema.parse({ ...entity.metadata, id: entity.id }),
-      ),
-    ).filter((item) => item.slug !== DOCS_INDEX_SLUG);
-    const guides = sortGuides(guideEntities.map(parseGuideData));
+      const sections = new Map<string, GuideSection>();
+      for (const item of docs) {
+        const section = sections.get(item.section) ?? {
+          name: item.section,
+          guides: [],
+          docs: [],
+        };
+        section.docs.push(item);
+        sections.set(item.section, section);
+      }
+      for (const item of guides) {
+        const name = item.frontmatter.section;
+        if (name) sections.get(name)?.guides.push(item);
+      }
 
-    const sections = new Map<string, GuideSection>();
-    for (const item of docs) {
-      const section = sections.get(item.section) ?? {
-        name: item.section,
-        guides: [],
-        docs: [],
-      };
-      section.docs.push(item);
-      sections.set(item.section, section);
-    }
-    for (const item of guides) {
-      // The section comes from the guide's content, not its stored metadata,
-      // which a brain imported before the field existed and kept unchanged.
-      const name = item.frontmatter.section;
-      if (name) sections.get(name)?.guides.push(item);
-    }
-
-    const data: GuideSectionsData = { sections: [...sections.values()] };
-    return outputSchema.parse(data);
-  }
+      const data: GuideSectionsData = { sections: [...sections.values()] };
+      return data;
+    },
+  });
 }

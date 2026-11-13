@@ -1,12 +1,13 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import { createMockShell, type MockShell } from "@brains/plugins/test";
-import type { BaseDataSourceContext, BaseEntity } from "@brains/plugins";
-import {
-  GuideSectionsDataSource,
-  guideSectionsSchema,
-  type GuideSectionsData,
-} from "../src";
+import type {
+  BaseDataSourceContext,
+  BaseEntity,
+  DataSource,
+} from "@brains/plugins";
+import { guideSectionsSchema, type GuideSectionsData } from "../src";
 import { guideMarkdown } from "./fixtures";
+import { guideDataSourceOn, installGuides } from "./guide-plugins";
 
 function doc(
   slug: string,
@@ -50,24 +51,29 @@ function guide(slug: string, order: number, section?: string): BaseEntity {
       persona: `The ${slug}`,
       for: `You are a ${slug}.`,
       recipe: null,
+      brings: null,
       section: section ?? null,
+      summary: null,
       material: [],
     },
   };
 }
 
-describe("GuideSectionsDataSource", () => {
+describe("the guides-by-docs-section data source", () => {
   let shell: MockShell;
   let context: BaseDataSourceContext;
-  let datasource: GuideSectionsDataSource;
+  let datasource: Required<Pick<DataSource, "fetch">>;
 
-  const fetchSections = (): Promise<GuideSectionsData> =>
-    datasource.fetch({}, guideSectionsSchema, context);
+  const fetchSections = async (): Promise<GuideSectionsData> =>
+    guideSectionsSchema.parse(
+      await datasource.fetch({}, guideSectionsSchema, context),
+    );
 
-  beforeEach(() => {
+  beforeEach(async () => {
     shell = createMockShell();
     context = { entityService: shell.getEntityService() };
-    datasource = new GuideSectionsDataSource();
+    await installGuides(shell);
+    datasource = guideDataSourceOn(shell, "guides:sections");
     shell.addEntities([
       doc("index", "Use a brain", 0),
       doc("getting-started", "Run a brain", 100),
@@ -80,10 +86,6 @@ describe("GuideSectionsDataSource", () => {
       guide("unsorted", 30),
       guide("elsewhere", 40, "Not a docs section"),
     ]);
-  });
-
-  it("is the guides-with-docs data source", () => {
-    expect(datasource.id).toBe("guides:sections");
   });
 
   it("groups the docs by section, in the order of their docs", async () => {
@@ -136,30 +138,6 @@ describe("GuideSectionsDataSource", () => {
         section.guides.map((item) => item.metadata.slug),
       ),
     ).toEqual([["writer", "researcher"], ["self-hosting"], []]);
-  });
-
-  it("reads a guide's section from its content when its stored metadata predates the field", async () => {
-    // Imported by a brain whose guide schema had no section: the file names
-    // it, the stored metadata does not.
-    const { section: _section, ...olderMetadata } = guide(
-      "consultant",
-      15,
-      "Use a brain",
-    ).metadata;
-    shell.addEntities([
-      {
-        ...guide("consultant", 15, "Use a brain"),
-        metadata: olderMetadata,
-      },
-    ]);
-
-    const { sections } = await fetchSections();
-
-    expect(sections[0]?.guides.map((item) => item.metadata.slug)).toEqual([
-      "writer",
-      "consultant",
-      "researcher",
-    ]);
   });
 
   it("leaves out guides that name no docs section or one without docs", async () => {

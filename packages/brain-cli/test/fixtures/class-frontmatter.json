@@ -1,5 +1,59 @@
 {
   "schemas": {
+    "guide": {
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "slug": { "type": "string" },
+        "order": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "persona": { "type": "string" },
+        "for": { "type": "string" },
+        "recipe": {
+          "default": null,
+          "anyOf": [
+            { "type": "string", "enum": ["personal", "professional", "team"] },
+            { "type": "null" }
+          ]
+        },
+        "brings": {
+          "default": null,
+          "anyOf": [
+            {
+              "minItems": 1,
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 }
+            },
+            { "type": "null" }
+          ]
+        },
+        "section": {
+          "default": null,
+          "anyOf": [{ "type": "string", "minLength": 1 }, { "type": "null" }]
+        },
+        "summary": {
+          "default": null,
+          "anyOf": [{ "type": "string", "minLength": 1 }, { "type": "null" }]
+        },
+        "material": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "from": { "type": "string" },
+              "where": { "type": "string" },
+              "becomes": { "type": "string" },
+              "how": { "type": "string" }
+            },
+            "required": ["from", "where", "becomes", "how"]
+          }
+        }
+      },
+      "required": ["title", "slug", "order", "persona", "for", "material"]
+    },
     "ask-content": {
       "type": "object",
       "properties": {

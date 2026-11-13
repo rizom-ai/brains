@@ -43,7 +43,7 @@ import dashboardPackage from "@brains/dashboard";
 import decksPackage from "@brains/decks";
 import directorySyncPackage from "@brains/directory-sync";
 import docsPackage from "@brains/doc";
-import { guidesPlugin } from "@brains/guide";
+import guidesPackage from "@brains/guide";
 import bookPackage from "@brains/book";
 import documentPackage from "@brains/document-plugin";
 import emailInterface from "@brains/email";
@@ -447,7 +447,9 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     packageCapability("docs", "@brains/doc", docsPackage, {
       pluginId: "docs",
     }),
-    ["guides", guidesPlugin, undefined],
+    packageCapability("guides", "@brains/guide", guidesPackage, {
+      pluginId: "guides",
+    }),
     packageCapability("book", "@brains/book", bookPackage, {
       // Under the id its class had, which registered book and book-section
       // inside itself: book-section installs as itself, book apart.

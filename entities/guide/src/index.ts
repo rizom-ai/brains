@@ -1,11 +1,40 @@
-export { GuidesPlugin, guidesPlugin } from "./plugin";
-export { GuideAdapter, guideAdapter } from "./adapters/guide-adapter";
+import {
+  defineEntityPackage,
+  type EntityPackageDefinition,
+} from "@brains/sdk/entities";
+import { guidesConfigSchema } from "./config";
+import { guideDataSource } from "./datasources/guide-datasource";
+import { guideSectionsDataSource } from "./datasources/guide-sections-datasource";
+import { guide } from "./guide";
+
+/**
+ * The guides: one entity, a guide, rendered by the guide templates through
+ * the guide data sources, which hand every page the configured chrome, and
+ * list each docs section's guides beside its docs.
+ */
+export const guidesPackage: EntityPackageDefinition<
+  readonly [typeof guide],
+  readonly [],
+  typeof guidesConfigSchema
+> = defineEntityPackage({
+  id: "guides",
+  config: guidesConfigSchema,
+  entities: [guide],
+  configure: ({ config }) => ({
+    dataSources: [guideDataSource(config), guideSectionsDataSource()],
+  }),
+});
+
+export default guidesPackage;
+
+export { guide, statedGuideFields } from "./guide";
 export {
-  GuideDataSource,
+  guideDataSource,
+  listGuides,
   parseGuideData,
 } from "./datasources/guide-datasource";
 export {
-  GuideSectionsDataSource,
+  guideSectionsDataSource,
   guideSectionSchema,
   guideSectionsSchema,
   sectionDocSchema,

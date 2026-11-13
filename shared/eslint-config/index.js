@@ -59,6 +59,7 @@ const convertedPackages = [
   "entities/decks",
   "entities/doc",
   "entities/faq",
+  "entities/guide",
   "entities/document",
   "entities/image",
   "entities/link",

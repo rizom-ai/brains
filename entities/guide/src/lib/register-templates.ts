@@ -1,8 +1,8 @@
 import {
+  contentVisibilitySchema,
   createTemplate,
   type Template,
-  contentVisibilitySchema,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/presentation";
 import { z } from "@brains/utils/zod";
 import { docsChromeSchema } from "@brains/docs-chrome";
 import { guideMetadataSchema } from "../schemas/guide";
