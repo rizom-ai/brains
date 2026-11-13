@@ -189,7 +189,8 @@ async function fetchPublishDocumentItem(
 function parseBase64DataUrl(
   content: string,
 ): { mimeType: string; data: Buffer } | undefined {
-  const match = content.match(/^data:([^;]+);base64,(.+)$/);
+  // A data URL read from a markdown file keeps that file's newline.
+  const match = content.trim().match(/^data:([^;]+);base64,(.+)$/);
   if (!match?.[1] || !match[2]) return undefined;
   return {
     mimeType: match[1],

@@ -53,6 +53,18 @@ describe("artifact entity helpers", () => {
     );
   });
 
+  it("decodes a stored data URL that ends in a newline to its exact bytes", () => {
+    // An image imported from a markdown file stores the file's newline.
+    const bytes = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    const parsed = parseArtifactDataUrl(
+      "image",
+      `data:image/png;base64,${bytes.toString("base64")}\n`,
+    );
+
+    expect(parsed?.mimeType).toBe("image/png");
+    expect(Buffer.from(parsed?.data ?? new ArrayBuffer(0))).toEqual(bytes);
+  });
+
   it("rejects mismatched artifact media types", () => {
     expect(
       parseArtifactDataUrl(

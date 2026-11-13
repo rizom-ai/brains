@@ -241,7 +241,8 @@ export class FileOperations {
       const dataUrlPattern = isImage
         ? /^data:image\/[a-z+]+;base64,(.+)$/i
         : /^data:application\/pdf;base64,(.+)$/i;
-      const match = entity.content.match(dataUrlPattern);
+      // A data URL read from a markdown file keeps that file's newline.
+      const match = entity.content.trim().match(dataUrlPattern);
       const contentToWrite = match?.[1]
         ? Buffer.from(match[1], "base64")
         : Buffer.from(entity.content, "base64");

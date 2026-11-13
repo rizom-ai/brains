@@ -18,7 +18,7 @@ import type { BaseEntity, EntityMutationResult } from "@brains/plugins";
 import { imageMetadataFor } from "@brains/image";
 import { createSilentLogger } from "@brains/test-utils";
 import { DirectorySync } from "../src/lib/directory-sync";
-import { TINY_PNG_DATA_URL } from "./fixtures";
+import { TINY_PNG_BYTES, TINY_PNG_DATA_URL } from "./fixtures";
 
 /** A 1x1 JPEG, to change the image's bytes and format. */
 const TINY_JPEG_DATA_URL =
@@ -143,6 +143,23 @@ describe("an image kept as a markdown data URL file", () => {
       "relay-diagram-placeholder.md",
     ]);
     expect(readFileSync(markdownPath(), "utf8")).toBe(TINY_JPEG_DATA_URL);
+  });
+
+  it("writes the exact bytes of a stored data URL that ends in a newline", async () => {
+    // The row import stores from the markdown file keeps the file's newline.
+    await dirSync.fileOps.writeEntity(
+      createTestEntity("image", {
+        id: "binary-copy",
+        content: MARKDOWN_FILE,
+        metadata: { format: "png" },
+      }),
+    );
+
+    expect(
+      readFileSync(join(testDir, "image", "binary-copy.png")).equals(
+        TINY_PNG_BYTES,
+      ),
+    ).toBe(true);
   });
 
   it("clears a pulled deletion of its markdown file once cleanup deletes it", async () => {
