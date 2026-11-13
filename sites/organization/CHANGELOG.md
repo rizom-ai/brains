@@ -1,5 +1,35 @@
 # @brains/site-organization
 
+## 0.2.0-alpha.695
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/agent-discovery@0.2.0-alpha.695
+  - @brains/faq@0.2.0-alpha.695
+  - @rizom/brain-ui@0.2.0-alpha.695
+  - @brains/profile@0.2.0-alpha.695
+  - @brains/site-atlas@0.2.0-alpha.695
+  - @brains/site-composition@0.2.0-alpha.695
+  - @brains/utils@0.2.0-alpha.695
+  - @brains/plugins@0.2.0-alpha.695
+  - @brains/templates@0.2.0-alpha.695
+
+## 0.2.0-alpha.694
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/agent-discovery@0.2.0-alpha.694
+  - @brains/faq@0.2.0-alpha.694
+  - @rizom/brain-ui@0.2.0-alpha.694
+  - @brains/profile@0.2.0-alpha.694
+  - @brains/site-atlas@0.2.0-alpha.694
+  - @brains/site-composition@0.2.0-alpha.694
+  - @brains/utils@0.2.0-alpha.694
+  - @brains/plugins@0.2.0-alpha.694
+  - @brains/templates@0.2.0-alpha.694
+
 ## 0.2.0-alpha.693
 
 ### Patch Changes

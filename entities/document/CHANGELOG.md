@@ -1,5 +1,27 @@
 # @brains/document-plugin
 
+## 0.2.0-alpha.695
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.695
+  - @brains/contracts@0.2.0-alpha.695
+  - @brains/document@0.2.0-alpha.695
+  - @brains/media-renderer@0.2.0-alpha.695
+  - @brains/utils@0.2.0-alpha.695
+
+## 0.2.0-alpha.694
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.694
+  - @brains/contracts@0.2.0-alpha.694
+  - @brains/document@0.2.0-alpha.694
+  - @brains/media-renderer@0.2.0-alpha.694
+  - @brains/utils@0.2.0-alpha.694
+
 ## 0.2.0-alpha.693
 
 ### Patch Changes

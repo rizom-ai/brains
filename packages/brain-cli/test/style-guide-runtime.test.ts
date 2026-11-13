@@ -82,7 +82,7 @@ describe("the declared style guide on the entity store", () => {
     expect(after.content.trim()).toBe("Revised guidance.");
   });
 
-  test("reads a guide the class wrote once its metadata is reconciled", async () => {
+  test("reads a guide the class wrote before and after its metadata is reconciled", async () => {
     const { service, settleStartupContent, stored, rewrite } = await store();
     await settleStartupContent();
     // As the class stored a house guide: fields in content, empty metadata.
@@ -92,9 +92,11 @@ describe("the declared style guide on the entity store", () => {
     );
     await rewrite("style-guide", "style-guide", classWritten, "{}");
 
+    // Unreconciled, a read derives the guide's metadata from its content.
     expect(await fetchStyleGuide(service)).toEqual({
-      name: "Default style guide",
-      guidance: "",
+      name: "House",
+      voice: { summary: "Plain words" },
+      guidance: "Write plainly.",
     });
     expect(await service.reconcileDeclaredMetadata()).toEqual({
       reconciled: 1,
@@ -110,7 +112,7 @@ describe("the declared style guide on the entity store", () => {
     );
   });
 
-  test("plans an import over a guide the class wrote only once it is reconciled", async () => {
+  test("plans an import over a guide the class wrote before it is reconciled", async () => {
     const { service, settleStartupContent, rewrite } = await store();
     await settleStartupContent();
     await rewrite(
@@ -127,11 +129,9 @@ describe("the declared style guide on the entity store", () => {
         visibilityScope: internalFullScope("plan a directory import"),
       });
 
-    // Startup reconciles before it queues the import: a class-written row
-    // fails the plan, and with it the whole initial sync.
-    expect(snapshot()).rejects.toThrow(
-      "Cannot deserialize entity write snapshot",
-    );
+    // A boot that serves before it reconciles, or never reconciles, still
+    // plans the import against the guide the class wrote.
+    expect((await snapshot())?.entity.metadata).toEqual({ name: "House" });
     await service.reconcileDeclaredMetadata();
     expect((await snapshot())?.entity.metadata).toEqual({ name: "House" });
   });

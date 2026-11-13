@@ -222,9 +222,53 @@ export class EntitySerializer {
 
   /**
    * Reconstruct a typed entity from a database row by merging DB fields,
-   * metadata, and adapter-parsed content, then validating against the schema
+   * metadata, and adapter-parsed content, then validating against the schema.
+   *
+   * A type whose metadata is its frontmatter may hold rows an entity plugin
+   * class stored, whose metadata the declaration no longer accepts until the
+   * boot pass re-derives it. Such a row reads with the metadata re-derived
+   * from its stored markdown, as the pass derives it; nothing is written. A
+   * row whose markdown does not decode either fails as it would have.
    */
   public reconstructEntity(
+    entityData: EntityData,
+    source?: SourceReadOption,
+  ): BaseEntity {
+    try {
+      return this.reconstructFromRow(entityData, source);
+    } catch (error) {
+      const derived = this.declaredMetadataFromMarkdown(entityData);
+      if (!derived) throw error;
+      return this.reconstructFromRow(
+        { ...entityData, metadata: derived },
+        source,
+      );
+    }
+  }
+
+  /**
+   * A declared type's metadata as its stored markdown declares it, or
+   * undefined for another type or markdown that does not decode.
+   */
+  private declaredMetadataFromMarkdown(
+    entityData: EntityData,
+  ): Record<string, unknown> | undefined {
+    const { entityType, content } = entityData;
+    if (
+      !this.entityRegistry.hasEntityType(entityType) ||
+      this.entityRegistry.getAdapter(entityType).metadataFromFrontmatter !==
+        true
+    ) {
+      return undefined;
+    }
+    try {
+      return this.deserializeEntity(content, entityType).metadata ?? {};
+    } catch {
+      return undefined;
+    }
+  }
+
+  private reconstructFromRow(
     entityData: EntityData,
     source?: SourceReadOption,
   ): BaseEntity {

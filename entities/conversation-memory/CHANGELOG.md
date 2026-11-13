@@ -1,5 +1,33 @@
 # @brains/conversation-memory
 
+## 0.2.0-alpha.695
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/brain-ui@0.2.0-alpha.695
+  - @brains/dashboard@0.2.0-alpha.695
+  - @brains/action-items@0.2.0-alpha.695
+  - @brains/content-formatters@0.2.0-alpha.695
+  - @brains/contracts@0.2.0-alpha.695
+  - @brains/utils@0.2.0-alpha.695
+  - @brains/conversation-service@0.2.0-alpha.695
+  - @brains/plugins@0.2.0-alpha.695
+
+## 0.2.0-alpha.694
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/brain-ui@0.2.0-alpha.694
+  - @brains/dashboard@0.2.0-alpha.694
+  - @brains/action-items@0.2.0-alpha.694
+  - @brains/content-formatters@0.2.0-alpha.694
+  - @brains/contracts@0.2.0-alpha.694
+  - @brains/utils@0.2.0-alpha.694
+  - @brains/conversation-service@0.2.0-alpha.694
+  - @brains/plugins@0.2.0-alpha.694
+
 ## 0.2.0-alpha.693
 
 ### Patch Changes

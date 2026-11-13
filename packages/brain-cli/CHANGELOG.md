@@ -1,5 +1,17 @@
 # @rizom/brain
 
+## 0.2.0-alpha.695
+
+### Patch Changes
+
+- [#933](https://github.com/rizom-ai/brains/pull/933) [`3cb14f0`](https://github.com/rizom-ai/brains/commit/3cb14f04628f57bf91f76f23c267b68e96b819b8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Posts, links, projects and the style guide stored before their types became declarations read correctly before the startup pass repairs their metadata. A read whose stored metadata lacks a field the type now requires takes that metadata from the entity's stored markdown, so gets, lists, searches, import plans and retired-field rewrites find the entity on the HTTP host before the pass runs and on boots that never run it (`brain list`, `get`, `search`, `status`, `sync`, `build`, `operate` and `--startup-check`). Reads write nothing; the startup pass still stores the repaired metadata. An entity whose markdown does not decode either is still left out.
+
+## 0.2.0-alpha.694
+
+### Patch Changes
+
+- [#931](https://github.com/rizom-ai/brains/pull/931) [`d9ae3c0`](https://github.com/rizom-ai/brains/commit/d9ae3c0c2a01634e7302071c0ada0ced17440c12) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Entity listings now order deterministically: after the requested sort, entities that tie list by id, so lists, MCP resource reads, Studio collections and every page under a limit no longer depend on the order the store wrote them. Search results and nearest-neighbor reads with equal scores or distances list by id, then type; ranking is unchanged. Sorts that merge entities from several reads (the book theme strand, conversation memory recalled without a query, publication failures) break their own ties by id too; sorts over one listing keep its order for ties, most recently updated first.
+
 ## 0.2.0-alpha.693
 
 ### Patch Changes
