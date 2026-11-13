@@ -299,11 +299,21 @@ export function resolveConversationUploadContinuity(params: {
     refs.length > 0
       ? selectPriorResponseRef(params.historyMessages)
       : undefined;
+  // Right after the brain's answer, a save that names no upload is about the
+  // answer: "save it" saves what the brain said, not the file it read.
+  const savesAnswer =
+    priorResponseRef !== undefined &&
+    savePattern.test(params.message) &&
+    params.currentAttachments.length === 0 &&
+    params.historyMessages
+      .filter((message) => message.role === "assistant")
+      .at(-1)?.id === priorResponseRef.messageId &&
+    !namesUpload(params.message, refs);
 
   return {
     kind: "selected",
     message: params.message,
-    refs,
+    refs: savesAnswer ? [] : refs,
     attachments: params.currentAttachments,
     ...(priorResponseRef ? { priorResponseRef } : {}),
   };
@@ -357,6 +367,20 @@ function dedupeUploadRefs(
     deduped.push(ref);
   }
   return deduped;
+}
+
+const savePattern = /\b(?:save|keep|store)\b/i;
+
+/** Words that point at an uploaded file rather than at an answer. */
+const uploadWords =
+  /\b(?:upload(?:s|ed)?|files?|attachments?|pdfs?|images?|photos?|pictures?|documents?)\b/i;
+
+function namesUpload(message: string, refs: ConversationUploadRef[]): boolean {
+  const lower = message.toLowerCase();
+  return (
+    uploadWords.test(message) ||
+    refs.some((ref) => lower.includes(ref.filename.toLowerCase()))
+  );
 }
 
 function selectPriorResponseRef(

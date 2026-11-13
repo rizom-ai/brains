@@ -306,6 +306,66 @@ describe("resolveConversationUploadContinuity", () => {
     }
   });
 
+  describe("a follow-up to the brain's answer about an upload", () => {
+    const answer = {
+      id: "answer",
+      conversationId: "conversation-1",
+      role: "assistant" as const,
+      content: "The primer covers consensus, replication and Raft.",
+      metadata: null,
+      timestamp: new Date().toISOString(),
+    };
+    const afterAnswer = [...historyMessages, answer];
+
+    it("offers only the answer when it names no upload", () => {
+      for (const message of ["can you save it", "save this as a note for me"]) {
+        const result = resolveConversationUploadContinuity({
+          message,
+          currentAttachments: [],
+          historyMessages: afterAnswer,
+        });
+
+        expect(result.refs).toEqual([]);
+        expect(result.priorResponseRef).toEqual({ messageId: "answer" });
+      }
+    });
+
+    it("keeps the uploads when it names one", () => {
+      for (const message of [
+        "save the PDF",
+        "save it as a document",
+        "keep the uploaded image",
+        "save file_76007A31-ADF6-408A-93B4-46BCF8860AE1.pdf",
+      ]) {
+        const result = resolveConversationUploadContinuity({
+          message,
+          currentAttachments: [],
+          historyMessages: afterAnswer,
+        });
+
+        expect(result.refs.length).toBeGreaterThan(0);
+      }
+    });
+
+    it("keeps the uploads when an upload came after the answer", () => {
+      const acknowledged = {
+        ...answer,
+        id: "acknowledgement",
+        content: "I got `IMG_8963.jpeg`. What would you like me to do with it?",
+        metadata: JSON.stringify({
+          cards: [{ kind: "actions", id: "actions:upload-intent" }],
+        }),
+      };
+      const result = resolveConversationUploadContinuity({
+        message: "save it",
+        currentAttachments: [],
+        historyMessages: [...afterAnswer, acknowledged],
+      });
+
+      expect(result.refs).toEqual([newestUploadRef, oldestUploadRef]);
+    });
+  });
+
   it("selects the newest matching upload for singular image/pdf references", () => {
     const refs = [
       {
