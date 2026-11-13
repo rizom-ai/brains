@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.697
+
+### Patch Changes
+
+- [#935](https://github.com/rizom-ai/brains/pull/935) [`6c52bf4`](https://github.com/rizom-ai/brains/commit/6c52bf4e7261c9c7a900d4aef476de949bbd5c3c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A local `model` that sees images can be named as `visionModel` too, and then gets uploaded images itself instead of a description of them. A `model` that reads only text is still told what `visionModel` saw.
+
 ## 0.2.0-alpha.696
 
 ### Patch Changes

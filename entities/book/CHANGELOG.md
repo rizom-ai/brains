@@ -1,5 +1,17 @@
 # @brains/book
 
+## 0.2.0-alpha.697
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/brain-ui@0.2.0-alpha.697
+  - @brains/contracts@0.2.0-alpha.697
+  - @brains/media-page-composer@0.2.0-alpha.697
+  - @brains/site-atlas@0.2.0-alpha.697
+  - @brains/utils@0.2.0-alpha.697
+  - @brains/plugins@0.2.0-alpha.697
+
 ## 0.2.0-alpha.696
 
 ### Patch Changes
