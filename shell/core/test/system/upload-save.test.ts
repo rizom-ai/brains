@@ -344,6 +344,27 @@ describe("system_create upload preserve", () => {
     expect(calls).toEqual([]);
   });
 
+  // A model preserved Markdown uploads as documents and, told only that no
+  // plugin saves them, asked the user instead of importing them as notes.
+  it("names the note import when a text upload cannot be preserved", async () => {
+    const services = buildServices({ mediaType: "text/markdown" });
+    const tool = getCreateTool(createSystemTools(services));
+
+    const result = await tool.handler(
+      {
+        entityType: "document",
+        source: { kind: "upload", id: uploadId, transform: "preserve" },
+      },
+      context(),
+    );
+
+    expect(result).toMatchObject({
+      success: false,
+      error:
+        'No installed plugin can save uploads with media type "text/markdown". Keep a text upload as a note: entityType "note" with transform "extract-markdown".',
+    });
+  });
+
   it("rejects accessible preserve uploads when no plugin registered a media handler", async () => {
     const services = buildServices({ mediaType: "application/zip" });
     const tool = getCreateTool(createSystemTools(services));
