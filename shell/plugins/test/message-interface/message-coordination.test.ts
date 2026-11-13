@@ -1,134 +1,90 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { MessageInterfacePlugin } from "../../src/message-interface/message-interface-plugin";
+import { createSilentLogger } from "@brains/test-utils";
+import { createMessageCoordinator } from "../../src/message-interface/message-coordination";
+import type {
+  MessageInterfaceOutput,
+  ProgressMessageCoordinator,
+} from "../../src/message-interface/progress-message-coordinator";
 import type {
   ToolActivityEvent,
   ToolStatusUpdate,
 } from "../../src/message-interface";
 import type { JobProgressEvent, JobContext } from "@brains/job-queue";
-import { z } from "@brains/utils/zod";
 
-const testConfigSchema = z.object({
-  testOption: z.string().default("default"),
-});
-
-type TestMessageInterfaceConfig = z.output<typeof testConfigSchema>;
-type TestMessageInterfaceConfigInput = z.input<typeof testConfigSchema>;
-
-class TestMessageInterface extends MessageInterfacePlugin<
-  TestMessageInterfaceConfig,
-  TestMessageInterfaceConfigInput
-> {
-  public sentMessages: Array<{ channelId: string | null; message: string }> =
-    [];
-  public progressUpdates: JobProgressEvent[] = [];
-  public toolStatuses: ToolStatusUpdate[] = [];
-
-  constructor() {
-    super(
-      "test-interface",
-      { name: "test-interface", version: "1.0.0" },
-      { testOption: "value" },
-      testConfigSchema,
-    );
-  }
-
-  protected override sendMessageToChannel({
-    channelId,
-    message,
-  }: {
+/**
+ * A message interface's coordination, recording what it sends and the tool
+ * statuses it renders, driven as its subscriptions drive it.
+ */
+function testMessageInterface(): {
+  sentMessages: Array<{
     channelId: string | null;
-    message: string;
-  }): void {
-    this.sentMessages.push({ channelId, message });
-  }
-
-  public get sentResponses(): string[] {
-    return this.sentMessages.map((m) => m.message);
-  }
-
-  protected override async onProgressUpdate(
-    event: JobProgressEvent,
-  ): Promise<void> {
-    this.progressUpdates.push(event);
-  }
-
-  public async testHandleProgressEvent(
+    message: MessageInterfaceOutput;
+  }>;
+  toolStatuses: ToolStatusUpdate[];
+  readonly sentResponses: MessageInterfaceOutput[];
+  testHandleProgressEvent(
     event: JobProgressEvent,
     context: JobContext,
-  ): Promise<void> {
-    await this.handleProgressEvent(event, context);
-  }
-
-  public async testHandleToolActivityEvent(
-    event: ToolActivityEvent,
-  ): Promise<void> {
-    await this.handleToolActivityEvent(event);
-  }
-
-  public async testHandleAgentResponseToolStatuses(response: {
-    cards?: Array<{
-      kind: "tool-approval";
-      id: string;
-      toolName: string;
-      summary: string;
-      state: "approval-requested";
-    }>;
-    pendingConfirmations?: Array<{
-      id: string;
-      toolName: string;
-      summary: string;
-      args: unknown;
-    }>;
-  }): Promise<void> {
-    await this.handleAgentResponseToolStatuses(response, "conv-1");
-  }
-
-  protected override async handleToolStatusUpdate(
-    update: ToolStatusUpdate,
-  ): Promise<void> {
-    this.toolStatuses.push(update);
-  }
-
-  /** Same view the old protected map gave, built from the public accessor. */
-  public getProgressEventsMap(): Map<string, JobProgressEvent> {
-    return new Map(this.getProgressEvents().map((event) => [event.id, event]));
-  }
-
-  public override startProcessingInput(): void {
-    super.startProcessingInput();
-  }
-
-  public override endProcessingInput(): void {
-    super.endProcessingInput();
-  }
-
-  // Expose file upload utilities for testing
-  public testIsUploadableTextFile(
-    filename: string,
-    mimetype?: string,
-  ): boolean {
-    return this.isUploadableTextFile(filename, mimetype);
-  }
-
-  public testIsFileSizeAllowed(size: number): boolean {
-    return this.isFileSizeAllowed(size);
-  }
-
-  public testFormatFileUploadMessage(
-    filename: string,
-    content: string,
-  ): string {
-    return this.formatFileUploadMessage(filename, content);
-  }
-
-  public testGetMaxFileUploadBytes(): number {
-    return this.getMaxFileUploadBytes();
-  }
-
-  public testIsLikelyTextContent(bytes: Uint8Array): boolean {
-    return this.isLikelyTextContent(bytes);
-  }
+  ): Promise<void>;
+  testHandleToolActivityEvent(event: ToolActivityEvent): Promise<void>;
+  testHandleAgentResponseToolStatuses(
+    response: Parameters<
+      ProgressMessageCoordinator["handleAgentResponseToolStatuses"]
+    >[0],
+  ): Promise<void>;
+  getProgressEventsMap(): Map<string, JobProgressEvent>;
+  getActiveProgressEvents(): JobProgressEvent[];
+  registerProgressCallback(
+    callback: (events: JobProgressEvent[]) => void,
+  ): void;
+  startProcessingInput(): void;
+  endProcessingInput(): void;
+  shutdown(): Promise<void>;
+} {
+  const sentMessages: Array<{
+    channelId: string | null;
+    message: MessageInterfaceOutput;
+  }> = [];
+  const toolStatuses: ToolStatusUpdate[] = [];
+  const progress = createMessageCoordinator({
+    id: "test-interface",
+    logger: () => createSilentLogger(),
+    sendMessageToChannel: ({ channelId, message }): void => {
+      sentMessages.push({ channelId, message });
+    },
+    supportsMessageEditing: () => false,
+    handleToolStatusUpdate: async (update): Promise<void> => {
+      toolStatuses.push(update);
+    },
+  });
+  return {
+    sentMessages,
+    toolStatuses,
+    get sentResponses(): MessageInterfaceOutput[] {
+      return sentMessages.map((sent) => sent.message);
+    },
+    testHandleProgressEvent: (event) => progress.handleProgressEvent(event),
+    testHandleToolActivityEvent: (event) =>
+      progress.handleToolActivityEvent(event),
+    testHandleAgentResponseToolStatuses: (response) =>
+      progress.handleAgentResponseToolStatuses(response, "conv-1"),
+    getProgressEventsMap: () =>
+      new Map(progress.getProgressEvents().map((event) => [event.id, event])),
+    getActiveProgressEvents: () => progress.getActiveProgressEvents(),
+    registerProgressCallback: (callback): void => {
+      progress.registerProgressCallback(callback);
+    },
+    startProcessingInput: (): void => {
+      progress.startProcessingInput();
+    },
+    endProcessingInput: (): void => {
+      progress.endProcessingInput();
+    },
+    shutdown: () => progress.close(),
+  };
 }
+
+type TestMessageInterface = ReturnType<typeof testMessageInterface>;
 
 function createProgressEvent(
   overrides: Partial<JobProgressEvent> = {},
@@ -176,11 +132,11 @@ function createToolActivityEvent(
   };
 }
 
-describe("MessageInterfacePlugin", () => {
+describe("message coordination", () => {
   let plugin: TestMessageInterface;
 
   beforeEach(() => {
-    plugin = new TestMessageInterface();
+    plugin = testMessageInterface();
   });
 
   afterEach(async () => {
@@ -195,15 +151,6 @@ describe("MessageInterfacePlugin", () => {
 
       expect(plugin.getProgressEventsMap().has("job-123")).toBe(true);
       expect(plugin.getProgressEventsMap().get("job-123")).toEqual(event);
-    });
-
-    it("should call onProgressUpdate for each event", async () => {
-      const event = createProgressEvent();
-
-      await plugin.testHandleProgressEvent(event, createJobContext());
-
-      expect(plugin.progressUpdates).toHaveLength(1);
-      expect(plugin.progressUpdates[0]).toEqual(event);
     });
 
     it("should send response on completion", async () => {
@@ -469,11 +416,11 @@ describe("MessageInterfacePlugin", () => {
   });
 });
 
-describe("MessageInterfacePlugin - background job filtering", () => {
+describe("message coordination - background job filtering", () => {
   let plugin: TestMessageInterface;
 
   beforeEach(() => {
-    plugin = new TestMessageInterface();
+    plugin = testMessageInterface();
   });
 
   it("should NOT send messages for background jobs without channelId", async () => {
@@ -545,11 +492,11 @@ describe("MessageInterfacePlugin - background job filtering", () => {
   });
 });
 
-describe("MessageInterfacePlugin - completion message ordering", () => {
+describe("message coordination - completion message ordering", () => {
   let plugin: TestMessageInterface;
 
   beforeEach(() => {
-    plugin = new TestMessageInterface();
+    plugin = testMessageInterface();
   });
 
   describe("input processing lifecycle", () => {
@@ -608,7 +555,6 @@ describe("MessageInterfacePlugin - completion message ordering", () => {
 
       await plugin.testHandleProgressEvent(event, contextForEvent(event));
 
-      expect(plugin.progressUpdates).toHaveLength(1);
       expect(plugin.getProgressEventsMap().has("job-123")).toBe(true);
 
       plugin.endProcessingInput();
@@ -687,135 +633,6 @@ describe("MessageInterfacePlugin - completion message ordering", () => {
       expect(plugin.sentResponses).toHaveLength(2);
       expect(plugin.sentResponses[0]).toContain("✅");
       expect(plugin.sentResponses[1]).toContain("❌");
-    });
-  });
-});
-
-describe("MessageInterfacePlugin - file upload utilities", () => {
-  let plugin: TestMessageInterface;
-
-  beforeEach(() => {
-    plugin = new TestMessageInterface();
-  });
-
-  describe("isUploadableTextFile", () => {
-    it("should accept .md files", () => {
-      expect(plugin.testIsUploadableTextFile("notes.md")).toBe(true);
-    });
-
-    it("should accept .txt files", () => {
-      expect(plugin.testIsUploadableTextFile("notes.txt")).toBe(true);
-    });
-
-    it("should accept .markdown files", () => {
-      expect(plugin.testIsUploadableTextFile("notes.markdown")).toBe(true);
-    });
-
-    it("should reject non-text files", () => {
-      expect(plugin.testIsUploadableTextFile("image.png")).toBe(false);
-      expect(plugin.testIsUploadableTextFile("doc.pdf")).toBe(false);
-      expect(plugin.testIsUploadableTextFile("archive.zip")).toBe(false);
-    });
-
-    it("should accept text/plain mimetype", () => {
-      expect(plugin.testIsUploadableTextFile("file.bin", "text/plain")).toBe(
-        true,
-      );
-    });
-
-    it("should accept text/markdown mimetype", () => {
-      expect(plugin.testIsUploadableTextFile("file.bin", "text/markdown")).toBe(
-        true,
-      );
-    });
-
-    it("should accept text/x-markdown mimetype", () => {
-      expect(
-        plugin.testIsUploadableTextFile("file.bin", "text/x-markdown"),
-      ).toBe(true);
-    });
-
-    it("should reject non-text mimetypes with non-text extensions", () => {
-      expect(plugin.testIsUploadableTextFile("image.png", "image/png")).toBe(
-        false,
-      );
-    });
-
-    it("should be case-insensitive for extensions", () => {
-      expect(plugin.testIsUploadableTextFile("NOTES.MD")).toBe(true);
-      expect(plugin.testIsUploadableTextFile("file.TXT")).toBe(true);
-    });
-  });
-
-  describe("isFileSizeAllowed", () => {
-    it("should accept files under 100KB", () => {
-      expect(plugin.testIsFileSizeAllowed(50_000)).toBe(true);
-    });
-
-    it("should accept files exactly at the limit", () => {
-      expect(plugin.testIsFileSizeAllowed(100_000)).toBe(true);
-    });
-
-    it("should reject files over 100KB", () => {
-      expect(plugin.testIsFileSizeAllowed(100_001)).toBe(false);
-    });
-
-    it("should accept zero-byte files", () => {
-      expect(plugin.testIsFileSizeAllowed(0)).toBe(true);
-    });
-  });
-
-  describe("formatFileUploadMessage", () => {
-    it("should format file content with filename", () => {
-      const result = plugin.testFormatFileUploadMessage(
-        "notes.md",
-        "# Hello\n\nSome content",
-      );
-      expect(result).toContain("notes.md");
-      expect(result).toContain("# Hello\n\nSome content");
-    });
-
-    it("should include the filename in a way the agent can see", () => {
-      const result = plugin.testFormatFileUploadMessage(
-        "my-doc.txt",
-        "content",
-      );
-      expect(result).toContain("my-doc.txt");
-    });
-  });
-
-  describe("getMaxFileUploadBytes", () => {
-    it("should expose the shared 100KB upload limit", () => {
-      expect(plugin.testGetMaxFileUploadBytes()).toBe(100_000);
-    });
-  });
-
-  describe("isLikelyTextContent", () => {
-    it("should accept UTF-8 text", () => {
-      expect(
-        plugin.testIsLikelyTextContent(
-          new TextEncoder().encode("# Notes\n\nplain text — émojis ✅"),
-        ),
-      ).toBe(true);
-    });
-
-    it("should accept an empty buffer", () => {
-      expect(plugin.testIsLikelyTextContent(new Uint8Array())).toBe(true);
-    });
-
-    it("should reject content containing NUL bytes", () => {
-      expect(
-        plugin.testIsLikelyTextContent(
-          new Uint8Array([0x68, 0x69, 0x00, 0x21]),
-        ),
-      ).toBe(false);
-    });
-
-    it("should reject invalid UTF-8 byte sequences", () => {
-      // 0xff is never a valid UTF-8 lead byte
-      expect(
-        plugin.testIsLikelyTextContent(new Uint8Array([0xff, 0xfe, 0xfd])),
-      ).toBe(false);
     });
   });
 });

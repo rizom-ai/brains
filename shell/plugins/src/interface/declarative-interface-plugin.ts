@@ -12,7 +12,13 @@ import {
   instantiatePluginPackageDefinition,
   type InstalledPluginPackageMetadata,
 } from "../package-definition";
-import type { Plugin, ProtocolPluginProvider } from "../interfaces";
+import type {
+  IShell,
+  Plugin,
+  PluginCapabilities,
+  PluginRegistrationContext,
+  ProtocolPluginProvider,
+} from "../interfaces";
 import type {
   AnyDeclaredRouteDefinition,
   InterfaceDefinitionInput,
@@ -26,8 +32,13 @@ import { anonymousCaller } from "../service/job-authority";
 import type { WebRouteDefinition } from "../types/web-routes";
 import { createDeclaredRoute } from "../internal/declared-route";
 import { createDeclarativeDaemon } from "./declarative-daemon";
-import type { InterfacePluginContext } from "./context";
-import { InterfacePlugin } from "./interface-plugin";
+import {
+  createInterfacePluginContext,
+  createMessageInterfacePluginContext,
+  type InterfacePluginContext,
+  type MessageInterfacePluginContext,
+} from "./context";
+import { PluginCore } from "../plugin-core";
 import { firstPartyStudioOf } from "../operator/studio-workspace-runtime";
 import {
   noFirstPartyDeclarations,
@@ -42,17 +53,18 @@ import {
   type InterfaceMessages,
   type InterfaceRuntime,
 } from "./interface-runtime";
-import type { MessageInterfacePluginContext } from "./context";
-import { MessageInterfacePlugin } from "../message-interface/message-interface-plugin";
+import {
+  createMessageCoordinator,
+  subscribeMessageCoordination,
+} from "../message-interface/message-coordination";
 import type {
+  ProgressMessageCoordinator,
   EditMessageRequest,
   MessageInterfaceOutput,
   SendMessageToChannelRequest,
   SendMessageWithIdRequest,
 } from "../message-interface/progress-message-coordinator";
-import type { JobContext } from "@brains/job-queue";
 import type { ToolActivityEvent } from "../message-interface/tool-event-handler";
-import type { ToolStatusUpdate } from "../message-interface/tool-status";
 import type { AgentResponse } from "../contracts/agent";
 
 /** The plugin a declaration is registered as, as the declaration reads it. */
@@ -387,7 +399,12 @@ class DeclarativeInterfacePlugin<
   TConfigSchema extends z.ZodType<object, object>,
   TState extends object,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
-> extends InterfacePlugin<z.output<TConfigSchema>, z.output<TConfigSchema>> {
+> extends PluginCore<
+  z.output<TConfigSchema>,
+  z.output<TConfigSchema>,
+  InterfacePluginContext
+> {
+  public readonly type = "interface" as const;
   private readonly declaration: InterfaceDeclaration<
     TConfigSchema,
     TState,
@@ -414,10 +431,24 @@ class DeclarativeInterfacePlugin<
     );
   }
 
+  override async register(
+    shell: IShell,
+    registrationContext?: PluginRegistrationContext,
+  ): Promise<PluginCapabilities> {
+    const context = createInterfacePluginContext(
+      shell,
+      this.id,
+      registrationContext,
+    );
+    this.context = context;
+    this.setupMessageHandlers(context);
+    await this.onRegister(context);
+    return this.getCapabilities();
+  }
+
   protected override async onRegister(
     context: InterfacePluginContext,
   ): Promise<void> {
-    await super.onRegister(context);
     await this.declaration.register(context, undefined);
   }
 
@@ -435,17 +466,16 @@ class DeclarativeInterfacePlugin<
     return this.declaration.declaredTools();
   }
 
-  override getWebRoutes(): WebRouteDefinition[] {
+  getWebRoutes(): WebRouteDefinition[] {
     return this.declaration.webRoutes();
   }
 
-  override requiresDaemonStartup(): boolean {
+  requiresDaemonStartup(): boolean {
     return this.declaration.requiresDaemonStartup();
   }
 
   protected override async onShutdown(): Promise<void> {
     await this.declaration.shutdown();
-    await super.onShutdown();
   }
 }
 
@@ -505,10 +535,14 @@ class DeclarativeTransportInterfacePlugin<
   TConfigSchema extends z.ZodType<object, object>,
   TState extends object,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
-> extends MessageInterfacePlugin<
+> extends PluginCore<
   z.output<TConfigSchema>,
-  z.output<TConfigSchema>
+  z.output<TConfigSchema>,
+  MessageInterfacePluginContext
 > {
+  public readonly type = "interface" as const;
+  /** Job progress and tool statuses, sent through its transport. */
+  private readonly progress: ProgressMessageCoordinator;
   private readonly declaration: InterfaceDeclaration<
     TConfigSchema,
     TState,
@@ -533,12 +567,67 @@ class DeclarativeTransportInterfacePlugin<
       config,
       { id, packageName: this.packageName, logger: (): Logger => this.logger },
     );
+    this.progress = createMessageCoordinator({
+      id,
+      logger: (): Logger => this.logger,
+      sendMessageToChannel: (request): void => {
+        this.declaration.send(request);
+      },
+      sendMessageWithId: (request): Promise<string | undefined> =>
+        this.sendMessageWithId(request),
+      editMessage: (request): Promise<boolean> => this.editMessage(request),
+      supportsMessageEditing: (): boolean => this.supportsMessageEditing(),
+      formatProgressOutput: (event): MessageInterfaceOutput | undefined =>
+        this.declaration.messageTransport?.formatProgress?.(event),
+      formatCompletionOutput: (event): MessageInterfaceOutput | undefined =>
+        this.declaration.messageTransport?.formatCompletion?.(event),
+      handleToolStatusUpdate: async (update): Promise<void> => {
+        await this.declaration.messageTransport?.toolStatus?.(update);
+      },
+    });
+  }
+
+  override async register(
+    shell: IShell,
+    registrationContext?: PluginRegistrationContext,
+  ): Promise<PluginCapabilities> {
+    const context = createMessageInterfacePluginContext(
+      shell,
+      this.id,
+      registrationContext,
+    );
+    this.context = context;
+    this.setupMessageHandlers(context);
+    await this.onRegister(context);
+    return this.getCapabilities();
+  }
+
+  /**
+   * Worker registration: its declared channels and senders, and nothing
+   * else of it, so a background job can send on them.
+   */
+  async registerChannelsForExecution(
+    shell: IShell,
+    registrationContext?: PluginRegistrationContext,
+  ): Promise<void> {
+    const context = createMessageInterfacePluginContext(shell, this.id, {
+      ...registrationContext,
+      executionOnly: true,
+    });
+    this.context = context;
+    this.registerChannels(context);
   }
 
   protected override async onRegister(
     context: MessageInterfacePluginContext,
   ): Promise<void> {
-    await super.onRegister(context);
+    this.registerChannels(context);
+    subscribeMessageCoordination(context, {
+      id: this.id,
+      logger: (): Logger => this.logger,
+      handleProgressEvent: (event) => this.handleProgressEvent(event),
+      handleToolActivityEvent: (event) => this.handleToolActivityEvent(event),
+    });
     await this.declaration.register(context, this.messages());
   }
 
@@ -556,28 +645,20 @@ class DeclarativeTransportInterfacePlugin<
     return this.declaration.declaredTools();
   }
 
-  override getWebRoutes(): WebRouteDefinition[] {
+  getWebRoutes(): WebRouteDefinition[] {
     return this.declaration.webRoutes();
   }
 
-  override requiresDaemonStartup(): boolean {
+  requiresDaemonStartup(): boolean {
     return this.declaration.requiresDaemonStartup();
   }
 
   /** Its declared channels and senders; the worker runs only this. */
-  protected override registerChannels(
-    context: MessageInterfacePluginContext,
-  ): void {
+  private registerChannels(context: MessageInterfacePluginContext): void {
     this.declaration.registerChannels(context, this.messages());
   }
 
-  protected override sendMessageToChannel(
-    request: SendMessageToChannelRequest,
-  ): void {
-    this.declaration.send(request);
-  }
-
-  protected override async sendMessageWithId(
+  private async sendMessageWithId(
     request: SendMessageWithIdRequest,
   ): Promise<string | undefined> {
     const transport = this.declaration.messageTransport;
@@ -586,12 +667,10 @@ class DeclarativeTransportInterfacePlugin<
           channelId: request.channelId,
           message: request.message,
         })
-      : super.sendMessageWithId(request);
+      : undefined;
   }
 
-  protected override async editMessage(
-    request: EditMessageRequest,
-  ): Promise<boolean> {
+  private async editMessage(request: EditMessageRequest): Promise<boolean> {
     const transport = this.declaration.messageTransport;
     return transport?.edit
       ? transport.edit({
@@ -599,104 +678,81 @@ class DeclarativeTransportInterfacePlugin<
           messageId: request.messageId,
           message: request.newMessage,
         })
-      : super.editMessage(request);
+      : false;
   }
 
-  protected override supportsMessageEditing(): boolean {
+  private supportsMessageEditing(): boolean {
     return this.declaration.messageTransport?.edit !== undefined;
   }
 
-  protected override formatProgressOutput(
-    event: JobProgressEvent,
-  ): MessageInterfaceOutput {
-    return (
-      this.declaration.messageTransport?.formatProgress?.(event) ??
-      super.formatProgressOutput(event)
-    );
-  }
-
-  protected override formatCompletionOutput(
-    event: JobProgressEvent,
-  ): MessageInterfaceOutput {
-    return (
-      this.declaration.messageTransport?.formatCompletion?.(event) ??
-      super.formatCompletionOutput(event)
-    );
-  }
-
-  protected override async handleProgressEvent(
-    event: JobProgressEvent,
-    context: JobContext,
-  ): Promise<void> {
+  private async handleProgressEvent(event: JobProgressEvent): Promise<void> {
     const hook = this.declaration.messageTransport?.progressEvent;
     if (!hook) {
-      await super.handleProgressEvent(event, context);
+      await this.progress.handleProgressEvent(event);
       return;
     }
-    await hook(event, (routed) =>
-      super.handleProgressEvent(routed, routed.metadata),
-    );
+    await hook(event, (routed) => this.progress.handleProgressEvent(routed));
   }
 
-  protected override async handleToolActivityEvent(
+  private async handleToolActivityEvent(
     event: ToolActivityEvent,
   ): Promise<void> {
     const hook = this.declaration.messageTransport?.toolActivity;
     if (!hook) {
-      await super.handleToolActivityEvent(event);
+      await this.progress.handleToolActivityEvent(event);
       return;
     }
-    await hook(event, (routed) => super.handleToolActivityEvent(routed));
+    await hook(event, (routed) =>
+      this.progress.handleToolActivityEvent(routed),
+    );
   }
 
-  protected override async handleToolStatusUpdate(
-    update: ToolStatusUpdate,
-  ): Promise<void> {
-    await this.declaration.messageTransport?.toolStatus?.(update);
-  }
-
-  protected override async handleAgentResponseToolStatuses(
+  private async handleAgentResponseToolStatuses(
     response: Pick<AgentResponse, "cards" | "pendingConfirmations">,
     conversationId: string,
   ): Promise<void> {
     const hook = this.declaration.messageTransport?.agentResponseToolStatuses;
     if (!hook) {
-      await super.handleAgentResponseToolStatuses(response, conversationId);
+      await this.progress.handleAgentResponseToolStatuses(
+        response,
+        conversationId,
+      );
       return;
     }
     await hook(response, conversationId, () =>
-      super.handleAgentResponseToolStatuses(response, conversationId),
+      this.progress.handleAgentResponseToolStatuses(response, conversationId),
     );
   }
 
   protected override async onShutdown(): Promise<void> {
     await this.declaration.shutdown();
-    await super.onShutdown();
+    // Interrupt delayed cleanup before the progress state is released.
+    await this.progress.close();
   }
 
   private messages(): InterfaceMessages {
     return Object.freeze({
       startProcessingInput: (channelId?: string | null): void => {
-        this.startProcessingInput(channelId);
+        this.progress.startProcessingInput(channelId);
       },
       endProcessingInput: (): void => {
-        this.endProcessingInput();
+        this.progress.endProcessingInput();
       },
       registerProgressCallback: (
         callback: (events: JobProgressEvent[]) => void,
       ): void => {
-        this.registerProgressCallback(callback);
+        this.progress.registerProgressCallback(callback);
       },
       unregisterProgressCallback: (): void => {
-        this.unregisterProgressCallback();
+        this.progress.unregisterProgressCallback();
       },
-      hasProgressCallback: (): boolean => this.hasProgressCallback(),
+      hasProgressCallback: (): boolean => this.progress.hasProgressCallback(),
       trackAgentResponseForJob: (
         jobId: string,
         messageId: string,
         channelId: string,
       ): void => {
-        this.trackAgentResponseForJob(jobId, messageId, channelId);
+        this.progress.trackAgentResponseForJob(jobId, messageId, channelId);
       },
       handleAgentResponseToolStatuses: (
         response: Pick<AgentResponse, "cards" | "pendingConfirmations">,
@@ -717,7 +773,7 @@ export function createDeclarativeInterfacePlugin<
   metadata: InstalledPluginPackageMetadata,
   id: string,
   declarations: FirstPartyInterfaceDeclarations = noFirstPartyDeclarations,
-): InterfacePlugin<z.output<TConfigSchema>, z.output<TConfigSchema>> {
+): Plugin {
   if (declarations.protocol) {
     return new DeclarativeProtocolHostInterfacePlugin(
       definition,

@@ -2,11 +2,11 @@ import {
   isConfiguredPluginDefinition,
   type ConfiguredPluginDefinition,
 } from "./configured-plugin";
-import { assertIdentifier as assertId } from "@brains/plugins";
-import type {
-  PluginPackageConfigInput,
-  PluginPackageDefinition,
-} from "@brains/plugins/public/plugin-api";
+import {
+  assertIdentifier as assertId,
+  type PluginPackageConfigInput,
+  type PluginPackageDefinition,
+} from "@brains/plugins";
 import type { PermissionConfig } from "@brains/templates";
 import type { SiteDefinition } from "@rizom/site";
 import type { DeploymentConfigInput, ReasoningEffort } from "./brain-config";

@@ -132,14 +132,17 @@ import {
   type ServiceAI,
   type ServiceAuthAuthority,
 } from "./service-runtime";
-import { ServicePlugin } from "./service-plugin";
+import { PluginCore } from "../plugin-core";
 import {
   firstPartyJobHandlerOf,
   noFirstPartyServiceDeclarations,
   type FirstPartyServiceDeclarations,
 } from "./first-party-service";
 
-import type { ServicePluginContext } from "./context";
+import {
+  createServicePluginContext,
+  type ServicePluginContext,
+} from "./context";
 import type {
   AnyServiceJobDefinition,
   AnyServiceToolDefinition,
@@ -317,7 +320,13 @@ class DeclarativeServicePlugin<
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
   TTemplateDefinitions extends ServiceTemplateShapeMap,
   TEntities extends readonly AnyEntityDefinition[],
-> extends ServicePlugin<z.output<TConfigSchema>, z.output<TConfigSchema>> {
+> extends PluginCore<
+  z.output<TConfigSchema>,
+  z.output<TConfigSchema>,
+  ServicePluginContext
+> {
+  public readonly type = "service" as const;
+
   private readonly definition: NormalizedServiceDefinitionInput<
     TConfigSchema,
     TState,
@@ -413,18 +422,25 @@ class DeclarativeServicePlugin<
     );
   }
 
-  public override register(
+  public override async register(
     shell: IShell,
     registrationContext?: PluginRegistrationContext,
   ): Promise<PluginCapabilities> {
     this.scopedShell = shell;
-    return super.register(shell, registrationContext);
+    const context = createServicePluginContext(
+      shell,
+      this.id,
+      registrationContext,
+    );
+    this.context = context;
+    this.setupMessageHandlers(context);
+    await this.onRegister(context);
+    return this.getCapabilities();
   }
 
   protected override async onRegister(
     context: ServicePluginContext,
   ): Promise<void> {
-    await super.onRegister(context);
     if (this.definition.accountSettings && !context.executionOnly) {
       this.accountSettingsRegistration = context.accountSettings.register({
         ownerPluginId: this.id,
@@ -528,12 +544,12 @@ class DeclarativeServicePlugin<
     }
   }
 
-  override getWebRoutes(): WebRouteDefinition[] {
+  getWebRoutes(): WebRouteDefinition[] {
     return [...this.routes];
   }
 
   /** The tool-backed API routes its class served, as written. */
-  override getApiRoutes(): ApiRouteDefinition[] {
+  getApiRoutes(): ApiRouteDefinition[] {
     return [
       ...(this.declarations.apiRoutes?.run({ config: this.config }) ?? []),
     ];

@@ -14,11 +14,11 @@ import { join } from "node:path";
  * runtime required the full one.
  *
  * A published name is in scope when some package declares the same name — not
- * only `@brains/plugins` itself. `Logger` and `PluginFactory` are restated
- * here from `@brains/utils` and `@brains/app`, are not re-exported by this
- * package's index, and so went unchecked while the check looked no further
- * than that index. A published type nothing else declares has nothing to be
- * checked against and is left alone.
+ * only `@brains/plugins` itself. `Logger` is restated here from
+ * `@brains/utils`, is not re-exported by this package's index, and so went
+ * unchecked while the check looked no further than that index. A published
+ * type nothing else declares has nothing to be checked against and is left
+ * alone.
  */
 
 const repositoryRoot = join(import.meta.dir, "..", "..", "..");
@@ -40,12 +40,6 @@ const NOT_ASSIGNABILITY = new Map([
     "PluginConfigInput",
     "runtime takes a ZodType; the SDK takes a structural `{ _input }` stand-in " +
       "for the same reason",
-  ],
-  [
-    "PluginFactory",
-    "its runtime counterpart is `@brains/app`'s, and app depends on this " +
-      "package — importing it back would close a cycle turbo cannot schedule, " +
-      "so the assertion lives in app's brain-definition.test.ts instead",
   ],
 ]);
 

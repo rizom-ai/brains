@@ -659,7 +659,7 @@ Props and options:
 
 The advanced names classified in `export-ledger.json` are alpha contracts outside the patch-stable commitment; pin an exact version when using them.
 
-Internal `@brains/*` packages, runtime classes, contexts, registries, queue types, package metadata, root `z`, `PLUGIN_API_VERSION`, tuple factories, positional tools, and the removed entry points (`@rizom/brain/site`, `@rizom/brain/plugins`, `@rizom/brain/templates` and `@rizom/site-sections`) are not public authoring contracts.
+Internal `@brains/*` packages, runtime classes, contexts, registries, queue types, package metadata, root `z`, `PLUGIN_API_VERSION`, tuple factories, positional tools, and the removed entry points (`@rizom/brain/site`, `@rizom/brain/plugins`, `@rizom/brain/templates` and `@rizom/site-sections`) are not public authoring contracts. The runtime has no plugin class bases: every package, first-party included, is a declarative definition.
 
 ## Compatibility rule
 

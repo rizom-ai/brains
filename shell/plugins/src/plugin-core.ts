@@ -56,9 +56,13 @@ export interface CoreContext {
 }
 
 /**
- * Base abstract class for plugins that provides common functionality
+ * The one internal core the declarative adapters share: a declared
+ * service, entity type, interface or message interface registers through
+ * it, with its tools built once per registration, its message handlers, its
+ * lifecycle hooks and its retries. Exported from no entry, and imported
+ * nowhere outside @brains/plugins.
  */
-export abstract class BasePlugin<
+export abstract class PluginCore<
   TConfig,
   TConfigInput,
   TContext extends CoreContext = CoreContext,

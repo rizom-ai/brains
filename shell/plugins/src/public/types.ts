@@ -118,8 +118,6 @@ export interface Plugin {
   requiresDaemonStartup?(): boolean;
 }
 
-export type PluginFactory = (config: PluginConfig) => Plugin | Plugin[];
-
 export interface Logger {
   debug(message: string, data?: unknown): void;
   info(message: string, data?: unknown): void;
@@ -146,15 +144,6 @@ export {
   toolSuccess,
   toolError,
 } from "@brains/mcp-service";
-
-export interface BaseJobTrackingInfo {
-  rootJobId: string;
-}
-
-export interface MessageJobTrackingInfo extends BaseJobTrackingInfo {
-  messageId?: string;
-  channelId?: string;
-}
 
 export type JobProgressStatus =
   "pending" | "processing" | "completed" | "failed";

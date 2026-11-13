@@ -125,10 +125,6 @@ type _RuntimeUploadStore = RuntimeSatisfiesPublic<
   Runtime.RuntimeUploadStore,
   Public.RuntimeUploadStore
 >;
-type _BaseJobTrackingInfo = RuntimeSatisfiesPublic<
-  Runtime.BaseJobTrackingInfo,
-  Public.BaseJobTrackingInfo
->;
 type _JobProgressEvent = RuntimeSatisfiesPublic<
   Runtime.JobProgressEvent,
   Public.JobProgressEvent
@@ -164,10 +160,6 @@ type _Channel = RuntimeSatisfiesPublic<
 type _defineChannel = RuntimeSatisfiesPublic<
   typeof Runtime.defineChannel,
   typeof Public.defineChannel
->;
-type _MessageJobTrackingInfo = RuntimeSatisfiesPublic<
-  Runtime.MessageJobTrackingInfo,
-  Public.MessageJobTrackingInfo
 >;
 type _IRuntimeUploadsNamespace = RuntimeSatisfiesPublic<
   Runtime.IRuntimeUploadsNamespace,
@@ -238,7 +230,6 @@ export type PublicSurfaceAssertions = [
   _IViewsNamespace,
   _IEntityService,
   _RuntimeUploadStore,
-  _BaseJobTrackingInfo,
   _JobProgressEvent,
   _JudgeInput,
   _EvalHandler,
@@ -247,7 +238,6 @@ export type PublicSurfaceAssertions = [
   _urlCaptureConfigSchema,
   _Channel,
   _defineChannel,
-  _MessageJobTrackingInfo,
   _IRuntimeUploadsNamespace,
   _RuntimeUploadRecord,
   _ResolvedRuntimeUpload,

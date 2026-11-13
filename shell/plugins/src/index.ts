@@ -8,12 +8,6 @@ export {
   type EntityTypeClassification,
 } from "@brains/entity-service";
 
-// Base plugin classes
-export { ServicePlugin } from "./service/service-plugin";
-export {
-  EntityPlugin,
-  emptyEntityPluginConfigSchema,
-} from "./entity/entity-plugin";
 export { computeProjectionInputFingerprint } from "./entity/projection-input-fingerprint";
 export { findNearestEntity } from "./entity/nearest-entity";
 export { waitForEmbeddingsToDrain } from "./entity/embedding-drain";
@@ -91,7 +85,6 @@ export {
   uploadTitle,
 } from "./entity/upload-title";
 
-export { InterfacePlugin } from "./interface/interface-plugin";
 export {
   AccountSettingsRegistry,
   type AccountSettingsBackend,
@@ -492,7 +485,6 @@ export type {
   EntityCount,
   InteractionInfo,
   InteractionInfoInput,
-  BaseJobTrackingInfo,
   // Types needed by test harness and shell packages
   IShell,
   QueryContext,
@@ -827,7 +819,6 @@ export type { ProgressCallback } from "@brains/utils/progress";
 
 // Message interface plugin (for CLI, Matrix, etc.)
 export {
-  MessageInterfacePlugin,
   MessageUploadContinuity,
   buildCoalescedInput,
   buildConfirmationResponseParts,
@@ -844,11 +835,8 @@ export {
   type MessageArtifactAccessInput,
   type MessageArtifactAccessResult,
   type MessageArtifactEntity,
-  type MessageJobTrackingInfo,
   type MessageProgressDisplay,
   type MessageSourceInput,
-  type NativeArtifactDelivery,
-  type NativeArtifactFile,
   type MessageUploadAttachmentRestorer,
   type MessageUploadContinuityOptions,
   type MessageUploadConversationLoader,
