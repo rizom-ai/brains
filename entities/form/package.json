@@ -5,11 +5,13 @@
   "description": "Forms defined in a Brain's content, served by the package their submissions belong to",
   "dependencies": {
     "@brains/forms": "workspace:*",
-    "@brains/plugins": "workspace:*",
+    "@brains/sdk": "workspace:*",
     "@brains/utils": "workspace:*"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
+    "@brains/plugins": "workspace:*",
+    "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.4.0",
     "bun-types": "^1.4.0",

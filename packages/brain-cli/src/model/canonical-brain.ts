@@ -35,7 +35,7 @@ import chatInterface, { chatConfigFromEnv } from "@brains/chat";
 import studioPackage from "@brains/studio";
 import contentPipelinePackage from "@brains/content-pipeline";
 import contactPackage, { CONTACT_DEPENDENCIES } from "@brains/contact";
-import { formPlugin } from "@brains/form";
+import formPackage from "@brains/form";
 import quizPackage, { QUIZ_DEPENDENCIES } from "@brains/quiz";
 import conversationMemoryPackage from "@brains/conversation-memory";
 import faqPackage from "@brains/faq";
@@ -380,7 +380,9 @@ export const canonicalBrain: BrainDefinition = defineBrain({
       siteBuilderPackage,
       { pluginId: "site-builder" },
     ),
-    ["form", formPlugin, undefined],
+    packageCapability("form", "@brains/form", formPackage, {
+      pluginId: "form",
+    }),
     packageCapability("analytics", "@brains/analytics", analyticsPackage, {
       // Under the id its class had; its traffic-snapshot type installs as
       // itself.
