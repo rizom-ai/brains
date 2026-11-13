@@ -1,5 +1,17 @@
 # @rizom/brain
 
+## 0.2.0-alpha.708
+
+### Patch Changes
+
+- [#949](https://github.com/rizom-ai/brains/pull/949) [`75a3d08`](https://github.com/rizom-ai/brains/commit/75a3d08c1a784c9b94b6591f263e4e44f1843034) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The eval reply judge reads asking or offering to do something as no claim that it was done, so a reply asking whether to save meets "Does not claim that anything was created or saved".
+
+## 0.2.0-alpha.707
+
+### Patch Changes
+
+- [#947](https://github.com/rizom-ai/brains/pull/947) [`7fe0f59`](https://github.com/rizom-ai/brains/commit/7fe0f59025fbaeb1e59558c62295c2db251734d6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Every line a supervised child process writes now names that process: its log lines, its startup failures and its crash reports. Text lines start with `[web]`, `[worker]` or `[git-broker]`, and JSON lines (the `logFile` output) carry a `role` field, so an error from one process can no longer be read as coming from another. Lines from the supervisor itself, and from a brain started in a single process (chat, startup checks, development), stay unlabeled.
+
 ## 0.2.0-alpha.706
 
 ### Patch Changes

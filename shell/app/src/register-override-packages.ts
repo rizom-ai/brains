@@ -3,6 +3,7 @@ import { collectOverridePackageRefs } from "./override-package-refs";
 import { hasPackage, registerPackage } from "./package-registry";
 import { resolveInstalledPackageManifest } from "./installed-package-metadata";
 import { getErrorMessage } from "@brains/utils/error";
+import { ConsoleLogger, type Logger } from "@brains/utils/logger";
 
 /**
  * Import function signature used to resolve `@-prefixed` package
@@ -19,12 +20,13 @@ export type PackageImportFn = (
  * and register each one in the package registry so `resolve()` can
  * look them up.
  *
- * Errors importing a referenced package are logged to stderr and
- * skipped — the caller proceeds with whatever did resolve.
+ * Errors importing a referenced package are logged and skipped — the
+ * caller proceeds with whatever did resolve.
  */
 export async function registerOverridePackages(
   overrides: InstanceOverrides,
   importFn: PackageImportFn = (ref) => import(ref),
+  logger: Logger = ConsoleLogger.getInstance(),
 ): Promise<void> {
   const refs = collectOverridePackageRefs(overrides);
 
@@ -47,7 +49,7 @@ export async function registerOverridePackages(
         );
       } catch (err) {
         const message = getErrorMessage(err);
-        console.error(
+        logger.error(
           `❌ brain.yaml: failed to import package "${ref}": ${message}`,
         );
       }

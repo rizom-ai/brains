@@ -1,5 +1,29 @@
 # @brains/site-atlas
 
+## 0.2.0-alpha.708
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/brain-ui@0.2.0-alpha.708
+  - @brains/contracts@0.2.0-alpha.708
+  - @brains/site-composition@0.2.0-alpha.708
+  - @brains/site-engine@0.2.0-alpha.708
+  - @brains/utils@0.2.0-alpha.708
+  - @brains/plugins@0.2.0-alpha.708
+
+## 0.2.0-alpha.707
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/brain-ui@0.2.0-alpha.707
+  - @brains/contracts@0.2.0-alpha.707
+  - @brains/site-composition@0.2.0-alpha.707
+  - @brains/site-engine@0.2.0-alpha.707
+  - @brains/utils@0.2.0-alpha.707
+  - @brains/plugins@0.2.0-alpha.707
+
 ## 0.2.0-alpha.706
 
 ### Patch Changes

@@ -1,7 +1,7 @@
 {
   "name": "@brains/linkedin-import",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.706",
+  "version": "0.2.0-alpha.708",
   "description": "Import the owner's LinkedIn profile into the anchor profile from Studio",
   "dependencies": {
     "@brains/contracts": "workspace:*",

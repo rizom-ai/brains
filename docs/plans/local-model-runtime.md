@@ -93,11 +93,13 @@ Agent evals, 2026-11-12 to 2026-11-13, personal suite (31 cases), the runtime se
 | `qwen3:30b-a3b` deciding, instruct-2507 answering, `qwen3-vl:8b` describing | 24.3/31 (78%) | 36 s         |
 | `qwen3.6:35b` deciding and describing, instruct-2507 answering              | 26.0/31 (84%) | 67 s         |
 | `qwen3.6:35b` deciding and seeing images itself, instruct-2507 answering    | 26.0/31 (84%) | 57 s         |
+| the same, after #939–#946                                                   | 27.7/31 (89%) | 52 s         |
 
 - `qwen3.6:35b` reads stored content when asked (the long-note read-backs 3 of 3 and 3 of 3, against 1 of 3 and 0 of 3), asks what to do with a bare label after an upload (2 of 3, against 0 of 3) and keeps every attached file (2 of 3, against 0 of 3). It saves the upload instead of its summary when "save it" follows a summary (1 of 3 and 0 of 3, against 3 of 3 and 2 of 3).
 - Seeing images itself, `qwen3.6:35b` passes as many cases as describing them first (23, 28 and 27 of 31), saves a call per image and passed "save it" after a summary once. In one run a turn on a solid green image ran past the runtime request's 300-second timeout.
 - The verbatim create and update cases pass 3 of 3 each, against 0 of 3 and 1 of 3, once text pasted between a BEGIN and an END line reaches `qwen3.6:35b` as a ready source, the brain reads two whole marker lines as lines, and a cancelled proposal reaches the model with its call, which a request made again repeats.
 - A save naming no upload right after an answer is offered only that answer: `qwen3.6:35b` saves the summary on "save it" 2 of 3 times, against 1 of 6, and the other upload saves pass 3 of 3.
+- After #939–#946 the suite passes 29, 29 and 25 of 31. What still fails: a bare label after an image upload, where the reply judge read an offer to save as a claim of saving (0 of 3); a turn past the 300-second request timeout; a re-sent image the model says it cannot see; keep-all asked about in prose instead of called; and a read-only PDF summary that says "saved as".
 - At its default 262,144-token context, `qwen3.6:35b` ran the GPU out of memory (`vk::DeviceLostError`) 13 times in one run; the deploy's `OLLAMA_CONTEXT_LENGTH: 32768` prevents it. With the cap, `qwen3:30b-a3b` also passed one case more.
 - Two measures against the Qwen3 model's choices did not pay: reading each turn's intent first, to withhold tools that write and require a read, took the suite from 23 to 8 of 31, since the classifier marked explicit saves as asking no change; hiding an update's quote of what it stored left the read-back cases skipping the read (2 of 9).
 

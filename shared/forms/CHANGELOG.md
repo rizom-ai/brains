@@ -1,5 +1,29 @@
 # @brains/forms
 
+## 0.2.0-alpha.708
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.708
+  - @brains/console-theme@0.2.0-alpha.708
+  - @brains/contracts@0.2.0-alpha.708
+  - @brains/site-composition@0.2.0-alpha.708
+  - @brains/utils@0.2.0-alpha.708
+  - @brains/plugins@0.2.0-alpha.708
+
+## 0.2.0-alpha.707
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.707
+  - @brains/console-theme@0.2.0-alpha.707
+  - @brains/contracts@0.2.0-alpha.707
+  - @brains/site-composition@0.2.0-alpha.707
+  - @brains/utils@0.2.0-alpha.707
+  - @brains/plugins@0.2.0-alpha.707
+
 ## 0.2.0-alpha.706
 
 ### Patch Changes

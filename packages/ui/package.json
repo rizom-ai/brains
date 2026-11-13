@@ -1,6 +1,6 @@
 {
   "name": "@rizom/brain-ui",
-  "version": "0.2.0-alpha.706",
+  "version": "0.2.0-alpha.708",
   "description": "React components for Rizom Brain sites and plugin views",
   "type": "module",
   "exports": {

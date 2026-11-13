@@ -254,7 +254,9 @@ Semantic-only operations fail clearly while indexing is disabled.
 
 ### `logLevel`, `logFile`
 
-Configure logging. Levels are `debug`, `info`, `warn`, and `error`.
+Configure logging. Levels are `debug`, `info`, `warn`, and `error`. `logFile`
+receives one JSON object per line; when the brain runs supervised, each line
+carries the `role` (`web` or `worker`) of the process that wrote it.
 
 ## Site and theme
 
