@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.702
+
+### Patch Changes
+
+- [#940](https://github.com/rizom-ai/brains/pull/940) [`ac2344e`](https://github.com/rizom-ai/brains/commit/ac2344e701d0c1dcb8ccf73c4b0de6c62282f918) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A proposal the user cancelled reaches the model with its call, without its confirmation fields, so a request made again repeats it.
+
 ## 0.2.0-alpha.701
 
 ### Patch Changes
