@@ -15,8 +15,16 @@ export const ASK_BOX_STATE_KEY = "availability";
 const askBoxAvailabilitySchema: z.ZodObject<{
   public: z.ZodBoolean;
   preview: z.ZodBoolean;
-}> = z.object({ public: z.boolean(), preview: z.boolean() });
+}> = /* @__PURE__ */ z.object({
+  public: z.boolean(),
+  preview: z.boolean(),
+});
 export type AskBoxAvailability = z.output<typeof askBoxAvailabilitySchema>;
 /** The record Web Chat shares, which a site's data source reads. */
+// Pure, so a browser bundle that imports the contracts without this record
+// drops it rather than carrying its name.
 export const askBoxAvailabilityState: SharedState<AskBoxAvailability> =
-  defineSharedState("@brains/web-chat:ask-box", askBoxAvailabilitySchema);
+  /* @__PURE__ */ defineSharedState(
+    "@brains/web-chat:ask-box",
+    askBoxAvailabilitySchema,
+  );
