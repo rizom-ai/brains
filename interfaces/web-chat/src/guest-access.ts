@@ -1,4 +1,4 @@
-import { createHash, randomBytes, randomUUID } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import {
   coerceConversationMetadata,
   type ClassRuntimeState,
@@ -19,6 +19,7 @@ import {
   guestInterfaceType,
   guestConversationOwnershipSchema,
 } from "@brains/contracts/chat";
+import { sha256Hex } from "@brains/utils/hash";
 
 const visitorSchema: z.ZodObject<
   {
@@ -281,9 +282,7 @@ export class GuestVisitorStore {
   }
 
   private key(token: string, policy: EnabledGuestPolicy): string {
-    return createHash("sha256")
-      .update(`${policy.origin}\0${token}`)
-      .digest("hex");
+    return sha256Hex(`${policy.origin}\0${token}`);
   }
 
   private secure(policy: EnabledGuestPolicy): boolean {

@@ -1,10 +1,11 @@
-import { createHash, randomBytes } from "node:crypto";
+import { randomBytes } from "node:crypto";
 import type {
   IRuntimeStateNamespace,
   IRuntimeStateStore,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import type { FormResult } from "./score";
+import { sha256Hex } from "@brains/utils/hash";
 
 const MAX_RECEIPTS = 1000;
 const resultSchema = z.strictObject({
@@ -24,10 +25,6 @@ const receiptsSchema = z.strictObject({
     .refine((receipts) => Object.keys(receipts).length <= MAX_RECEIPTS),
 });
 type Receipts = z.output<typeof receiptsSchema>;
-
-function digest(receipt: string): string {
-  return createHash("sha256").update(receipt).digest("hex");
-}
 
 /**
  * What the thanks page after a scored submission shows it: an opaque
@@ -70,7 +67,7 @@ export class FormReceipts {
       revision: stored.revision + 1,
       receipts: {
         ...Object.fromEntries(kept),
-        [digest(receipt)]: {
+        [sha256Hex(receipt)]: {
           expiresAt: now + this.ttlSeconds * 1000,
           results,
         },
@@ -82,7 +79,9 @@ export class FormReceipts {
   /** The results a receipt stands for, or nothing once it has expired. */
   async read(receipt: string): Promise<FormResult[] | null> {
     if (!/^[a-f0-9]{64}$/.test(receipt)) return null;
-    const entry = (await this.store.get("receipts"))?.receipts[digest(receipt)];
+    const entry = (await this.store.get("receipts"))?.receipts[
+      sha256Hex(receipt)
+    ];
     return entry && entry.expiresAt > this.now() ? entry.results : null;
   }
 }

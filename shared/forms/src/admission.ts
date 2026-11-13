@@ -1,4 +1,4 @@
-import { createHash, createHmac, randomBytes } from "node:crypto";
+import { createHmac, randomBytes } from "node:crypto";
 import type {
   IRuntimeStateNamespace,
   IRuntimeStateStore,
@@ -10,6 +10,7 @@ import {
   type FormAdmissionState,
 } from "./admission-state";
 import { peerNetwork } from "./network";
+import { sha256Hex } from "@brains/utils/hash";
 
 export type FormDenialReason =
   | "invalid-network"
@@ -35,9 +36,6 @@ interface Transition<T> {
 
 function denied(reason: FormDenialReason): Denied {
   return { kind: "denied", reason };
-}
-function hash(value: string): string {
-  return createHash("sha256").update(value).digest("hex");
 }
 const tokenPattern = /^[a-f0-9]{64}$/;
 function emptyCounters(): FormAdmissionState["global"] {
@@ -92,7 +90,7 @@ export class FormAdmission {
     const network = peerNetwork(trustedPeer);
     if (!network) return denied("invalid-network");
     return this.mutate<FormRequestResult>((state) => {
-      const key = hash(`${state.salt}:${network}`);
+      const key = sha256Hex(`${state.salt}:${network}`);
       const bucket = state.networks[key] ?? emptyCounters();
       if (
         state.global.requests >= this.policy.globalRequests ||
@@ -119,9 +117,9 @@ export class FormAdmission {
     const network = peerNetwork(trustedPeer);
     if (!network) return denied("invalid-network");
     const token = randomBytes(32).toString("hex");
-    const key = hash(token);
+    const key = sha256Hex(token);
     return this.mutate<FormIssueResult>((state, now) => {
-      const bucketKey = hash(`${state.salt}:${network}`);
+      const bucketKey = sha256Hex(`${state.salt}:${network}`);
       const bucket = state.networks[bucketKey] ?? emptyCounters();
       if (
         state.global.forms >= this.policy.globalForms ||
@@ -163,14 +161,14 @@ export class FormAdmission {
     const network = peerNetwork(trustedPeer);
     if (!network) return denied("invalid-network");
     if (!tokenPattern.test(token)) return denied("invalid-token");
-    const key = hash(token);
+    const key = sha256Hex(token);
     // Key the payload digest with the unpersisted high-entropy form credential.
     // An operator-state copy cannot dictionary-attack low-entropy submitted fields.
     const digest = createHmac("sha256", token)
       .update(JSON.stringify(payload))
       .digest("hex");
     return this.mutate<FormReservationResult>((state, now) => {
-      const bucketKey = hash(`${state.salt}:${network}`);
+      const bucketKey = sha256Hex(`${state.salt}:${network}`);
       const entry = state.entries[key];
       if (entry?.network !== bucketKey)
         return { result: denied("invalid-token") };

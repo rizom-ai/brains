@@ -4,7 +4,7 @@ import type {
   ChatContext,
   Tool,
 } from "@brains/sdk/internal/interface-runtime";
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { actorRefKey } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 
@@ -16,6 +16,7 @@ export interface MCPToolHost {
   >;
 }
 import { agentResponseToToolResponse } from "./agent-response-adapter";
+import { sha256Hex } from "@brains/utils/hash";
 
 const chatInputSchema = z.object({
   message: z.string().min(1),
@@ -55,10 +56,7 @@ function getConversationRef(
     contextConversationId ??
     channelId ??
     `conversation-${randomUUID()}`;
-  const subjectScope = createHash("sha256")
-    .update(actorKey)
-    .digest("hex")
-    .slice(0, 16);
+  const subjectScope = sha256Hex(actorKey).slice(0, 16);
   return {
     handle,
     internalId: `mcp:${subjectScope}:${handle}`,

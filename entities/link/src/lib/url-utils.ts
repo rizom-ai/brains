@@ -1,4 +1,4 @@
-import { createHash } from "crypto";
+import { sha256Hex } from "@brains/utils/hash";
 
 /**
  * Utility class for URL processing and deterministic ID generation
@@ -38,7 +38,7 @@ export class UrlUtils {
    */
   static generateEntityId(url: string): string {
     const normalized = this.normalizeUrl(url);
-    const hash = createHash("sha256").update(normalized).digest("hex");
+    const hash = sha256Hex(normalized);
 
     try {
       const parsed = new URL(normalized);

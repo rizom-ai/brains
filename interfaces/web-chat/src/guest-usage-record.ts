@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from "node:crypto";
+import { randomBytes } from "node:crypto";
 import type {
   ClassRuntimeState,
   ClassRuntimeStateStore,
@@ -14,6 +14,7 @@ import {
 import { attempt, retry } from "./cas-retry";
 import { guestAdmissionDenialSchema } from "./guest-admission-state";
 import type { GuestUsageBounds } from "./guest-policy";
+import { digest } from "./guest-digest";
 
 export type { GuestUsageBounds } from "./guest-policy";
 
@@ -201,10 +202,6 @@ function within(text: string, bytes: number): string {
     { text: "", size: 0, full: false },
   );
   return kept.text;
-}
-
-function digest(...parts: string[]): string {
-  return createHash("sha256").update(JSON.stringify(parts)).digest("hex");
 }
 
 /**
