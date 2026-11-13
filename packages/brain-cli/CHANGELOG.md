@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.708
+
+### Patch Changes
+
+- [#949](https://github.com/rizom-ai/brains/pull/949) [`75a3d08`](https://github.com/rizom-ai/brains/commit/75a3d08c1a784c9b94b6591f263e4e44f1843034) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The eval reply judge reads asking or offering to do something as no claim that it was done, so a reply asking whether to save meets "Does not claim that anything was created or saved".
+
 ## 0.2.0-alpha.707
 
 ### Patch Changes
