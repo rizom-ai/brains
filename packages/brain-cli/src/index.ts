@@ -5,6 +5,7 @@ import { runCommand } from "./run-command";
 import { checkBunVersion } from "./lib/preflight";
 import { findLocalBrain } from "./lib/local-reexec";
 import { getInvocationCwd } from "./lib/invocation-cwd";
+import { printCommandResult } from "./lib/print-command-result";
 
 const bunCheck = checkBunVersion(Bun.version);
 if (!bunCheck.ok) {
@@ -39,13 +40,5 @@ if (!process.env["BRAIN_SKIP_LOCAL_REEXEC"]) {
 }
 
 const parsed = parseArgs(process.argv.slice(2));
-const result = await runCommand(parsed, cwd);
-
-if (!result.success) {
-  console.error(result.message);
-  process.exit(1);
-}
-
-if (result.message) {
-  console.log(result.message);
-}
+const status = printCommandResult(await runCommand(parsed, cwd));
+if (status !== 0) process.exit(status);

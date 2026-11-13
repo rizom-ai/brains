@@ -7,6 +7,7 @@ import {
 } from "./cli-operator";
 import type { ToolResponse } from "@brains/mcp-service";
 import { getErrorMessage } from "@brains/utils/error";
+import { withProcessRole } from "@brains/utils/logger";
 
 export interface AppFactory {
   create: typeof AppClass.create;
@@ -34,18 +35,26 @@ type InitializeOptions = Parameters<
   ReturnType<typeof AppClass.create>["initialize"]
 >[0];
 
+/**
+ * End the process on a crash, saying so. No logger can be relied on by then,
+ * so the line carries the process's role itself.
+ */
+export function installCrashHandlers(name: string): void {
+  process.on("uncaughtException", (error) => {
+    console.error(withProcessRole(`❌ ${name} crashed:`), error);
+    process.exit(1);
+  });
+  process.on("unhandledRejection", (reason) => {
+    console.error(withProcessRole(`❌ ${name} unhandled rejection:`), reason);
+    process.exit(1);
+  });
+}
+
 async function productionIo(config: AppConfig): Promise<CliIo> {
   // Imported here rather than at the top to avoid a circular dependency.
   const { App } = await import("./app");
 
-  process.on("uncaughtException", (error) => {
-    console.error(`❌ ${config.name} crashed:`, error);
-    process.exit(1);
-  });
-  process.on("unhandledRejection", (reason) => {
-    console.error(`❌ ${config.name} unhandled rejection:`, reason);
-    process.exit(1);
-  });
+  installCrashHandlers(config.name);
 
   return {
     argv: process.argv.slice(2),
@@ -252,7 +261,6 @@ export async function handleCLI(
     await runTool(cli, config);
   } else {
     // Default: run the app
-    cli.log(`🚀 Starting ${config.name} v${config.version}...`);
     if (runtimeOptions) {
       await cli.app.run(config, undefined, runtimeOptions);
     } else {
