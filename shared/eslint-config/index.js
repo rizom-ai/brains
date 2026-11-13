@@ -52,6 +52,7 @@ function shellImportBan(packages, message = shellImportMessage) {
 const convertedPackages = [
   "entities/agent-discovery",
   "entities/ask-content",
+  "entities/assessment",
   "entities/blog",
   "entities/book",
   "entities/conversation-memory",

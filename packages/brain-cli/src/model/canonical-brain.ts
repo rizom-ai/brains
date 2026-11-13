@@ -22,7 +22,11 @@ import {
   skillPackage,
 } from "@brains/agent-discovery";
 import analyticsPackage from "@brains/analytics";
-import { assessment } from "@brains/assessment";
+import {
+  assessmentConfigSchema,
+  derivedSwotPackage,
+  swotPackage,
+} from "@brains/assessment";
 import atprotoPackage from "@brains/atproto";
 import atprotoRegistryPackage from "@brains/atproto-registry";
 import { authServicePlugin } from "@brains/auth-service";
@@ -310,7 +314,21 @@ export const canonicalBrain: BrainDefinition = defineBrain({
       },
       undefined,
     ],
-    ["assessment", assessment, undefined],
+    // The SWOT, under the id its class had. Derivation on or off picks the
+    // swot type with or without its rule.
+    [
+      "assessment",
+      (config): Plugin[] =>
+        instantiatePluginPackageDefinition(
+          assessmentConfigSchema.parse(config).enableSwotDerivation
+            ? derivedSwotPackage
+            : swotPackage,
+          {},
+          { name: "@brains/assessment", version: packageJson.version },
+          { pluginId: "swot" },
+        ),
+      undefined,
+    ],
     ["auth-service", authServicePlugin, undefined],
     packageCapability(
       "notifications",

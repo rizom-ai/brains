@@ -5,7 +5,9 @@ import {
   SYSTEM_CHANNELS,
 } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
-import { SwotAssessmentPlugin } from "../src";
+import type { Plugin } from "@brains/plugins";
+import type { AssessmentConfigInput } from "../src";
+import { createAssessmentPlugins } from "./assessment-plugins";
 import { z } from "@brains/utils/zod";
 
 /** The fields this test reads off a dashboard widget registration. */
@@ -15,7 +17,14 @@ const widgetRegistrationSchema = z.looseObject({
   rendererName: z.string(),
 });
 
-describe("SwotAssessmentPlugin", () => {
+/** The swot plugin, as the canonical brain installs it. */
+function swotPlugin(config: AssessmentConfigInput = {}): Plugin {
+  const [plugin] = createAssessmentPlugins(config);
+  if (!plugin) throw new Error("No swot plugin");
+  return plugin;
+}
+
+describe("the swot plugin", () => {
   let harness: ReturnType<typeof createPluginHarness>;
 
   beforeEach(() => {
@@ -25,7 +34,7 @@ describe("SwotAssessmentPlugin", () => {
   });
 
   it("registers SWOT as a terminal scheduler-owned projection", async () => {
-    const plugin = new SwotAssessmentPlugin();
+    const plugin = swotPlugin();
     const capabilities = await harness.installPlugin(plugin);
 
     expect(plugin.type).toBe("entity");
@@ -47,14 +56,14 @@ describe("SwotAssessmentPlugin", () => {
   });
 
   it("does not register the AI-backed rule when derivation is disabled", async () => {
-    const plugin = new SwotAssessmentPlugin({ enableSwotDerivation: false });
+    const plugin = swotPlugin({ enableSwotDerivation: false });
     const capabilities = await harness.installPlugin(plugin);
 
     expect(capabilities.projectionRules).toBeUndefined();
   });
 
   it("registers deriveSwot eval handler", async () => {
-    const plugin = new SwotAssessmentPlugin();
+    const plugin = swotPlugin();
     const registrations: Array<{ pluginId: string; handlerId: string }> = [];
     const mockShell = harness.getMockShell();
 
@@ -70,7 +79,7 @@ describe("SwotAssessmentPlugin", () => {
   });
 
   it("registers the standalone SWOT dashboard widget", async () => {
-    const plugin = new SwotAssessmentPlugin();
+    const plugin = swotPlugin();
     const registrations: Array<{
       id: string;
       group: string;
@@ -109,7 +118,7 @@ describe("SwotAssessmentPlugin", () => {
       registerHandler,
     });
 
-    await harness.installPlugin(new SwotAssessmentPlugin());
+    await harness.installPlugin(swotPlugin());
     await harness.sendMessage("sync:initial:completed", {}, "directory-sync");
     await harness.sendMessage(
       "entity:updated",

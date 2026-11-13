@@ -1,16 +1,5 @@
 import { z } from "@brains/utils/zod";
 
-export const swotDerivationJobSchema: z.ZodObject<{
-  reason: z.ZodDefault<z.ZodString>;
-}> = z.object({
-  reason: z.string().default("entity-change"),
-});
-
-export type SwotDerivationJobData = z.output<typeof swotDerivationJobSchema>;
-export type SwotDerivationJobDataInput = z.input<
-  typeof swotDerivationJobSchema
->;
-
 export const swotDraftGenerationItemSchema: z.ZodObject<{
   theme: z.ZodString;
   evidence: z.ZodString;

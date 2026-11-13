@@ -1,12 +1,12 @@
 import {
   ProjectionJsonObjectSchema,
   defineProjectionRule,
-  type BaseEntity,
   type ProjectionRule,
   type ProjectionWriteIntent,
-} from "@brains/plugins";
+} from "@brains/sdk/entities";
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
 import { z } from "@brains/utils/zod";
-import { SwotAdapter } from "../adapters/swot-adapter";
+import { createSwotContent } from "./swot-content";
 import {
   buildDraftPrompt,
   buildDraftPromptFallback,
@@ -15,7 +15,7 @@ import {
   buildRefinementPromptFromContext,
   getSemanticContent,
   validateRefinement,
-} from "../handlers/swot-derivation-handler";
+} from "./swot-prompts";
 import {
   swotDraftGenerationSchema,
   swotGenerationSchema,
@@ -152,7 +152,7 @@ async function deriveSwotIntent(
   }
 
   const semantic = getSemanticContent(generated);
-  const content = new SwotAdapter().createSwotContent({
+  const content = createSwotContent({
     ...semantic,
     derivedAt: input.derivedAt,
   });
@@ -170,11 +170,24 @@ async function deriveSwotIntent(
   ];
 }
 
-export function createSwotProjectionRule(): ProjectionRule {
+/** The rule that derives the brain's SWOT. Its id is durable and brain-wide. */
+export const SWOT_DERIVATION_RULE_ID = "swot-derivation";
+
+/**
+ * The swot-derivation rule. A brain's scheduler runs it when its agents or
+ * skills change. Unscheduled, it names no sources, so no change queues it,
+ * and it runs only when an eval runs it.
+ */
+export function createSwotProjectionRule(
+  options: { readonly scheduled?: boolean } = {},
+): ProjectionRule {
   return defineProjectionRule({
-    id: "swot-derivation",
+    id: SWOT_DERIVATION_RULE_ID,
     version: "1",
-    sources: [{ kind: "entity", types: ["agent", "skill"] }],
+    sources:
+      options.scheduled === false
+        ? []
+        : [{ kind: "entity", types: ["agent", "skill"] }],
     targetType: "swot",
     inputSchema: swotProjectionInputSchema,
     selectInput: async (_trigger, context) => selectSwotInput(context),
