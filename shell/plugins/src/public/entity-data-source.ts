@@ -28,7 +28,7 @@ import { isSharedState, sharedStateNamespace } from "./shared-state";
 import {
   attachSiteDataSourceRuntime,
   type SiteDataSourceRuntime,
-} from "../site/site-runtime";
+} from "../site/site-data-source-runtime";
 import {
   BaseEntityDataSource,
   type BaseQuery,

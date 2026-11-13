@@ -254,6 +254,7 @@
       "paths": [
         "packages/brain-sdk/src/internal/site-runtime.ts",
         "shared/site-composition/src/site-runtime.ts",
+        "shell/plugins/src/site/site-data-source-runtime.ts",
         "shell/plugins/src/site/site-runtime.ts"
       ],
       "symbol": "withSiteRuntime, siteDataSourceRuntime(context)",
