@@ -71,12 +71,13 @@ export const timelineStyles: Record<
     width: 2,
     backgroundColor: "var(--console-accent)",
   },
+  // The 24px hit target matches the lane spacing in operator-timeline.tsx.
   light: {
     position: "absolute",
     display: "grid",
     placeItems: "center",
-    width: 28,
-    height: 28,
+    width: 24,
+    height: 24,
     padding: 0,
     borderWidth: 0,
     borderRadius: "50%",

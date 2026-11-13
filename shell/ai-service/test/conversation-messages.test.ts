@@ -81,6 +81,68 @@ describe("toModelMessages", () => {
   });
 });
 
+describe("a cancelled proposal in history", () => {
+  const args = {
+    entityType: "note",
+    title: "Verbatim plan",
+    visibility: "restricted",
+    source: {
+      kind: "user-message",
+      boundaryMode: "lines",
+      startAfter: "BEGIN EXACT CONTENT",
+      endBefore: "END EXACT CONTENT",
+    },
+  };
+
+  function cancelled(input: Record<string, unknown>): string {
+    return JSON.stringify(
+      toModelMessages([
+        {
+          id: "message-1",
+          conversationId: "conversation-1",
+          role: "assistant",
+          content: 'Action cancelled: Create "Verbatim plan"?',
+          metadata: JSON.stringify({
+            cards: [
+              {
+                kind: "tool-approval",
+                id: "approval-1",
+                toolName: "system_create",
+                input,
+                summary: 'Create "Verbatim plan"?',
+                state: "output-denied",
+              },
+            ],
+          }),
+          timestamp: new Date().toISOString(),
+        },
+      ]),
+    );
+  }
+
+  it("reaches the model with the call the user cancelled", () => {
+    const text = cancelled({
+      ...args,
+      confirmed: true,
+      confirmationToken: "token-1",
+    });
+
+    expect(text).toContain(
+      JSON.stringify(
+        `The user cancelled this system_create proposal: ${JSON.stringify(args)}`,
+      ).slice(1, -1),
+    );
+    expect(text).not.toContain("confirmationToken");
+    expect(text).not.toContain("token-1");
+  });
+
+  it("leaves out a proposal too long to repeat", () => {
+    const text = cancelled({ ...args, content: "x".repeat(3000) });
+
+    expect(text).not.toContain("cancelled this system_create proposal");
+  });
+});
+
 describe("filterConversationHistoryForPermission", () => {
   const message = (
     id: string,
@@ -565,6 +627,35 @@ describe("buildMessageWithAttachments", () => {
     expect(content).toContain(
       'Available system_create candidate for saving the prior assistant response (call without confirmed to request confirmation): { entityType: "note", source: { kind: "prior-response", messageId: "message-summary" } }',
     );
+  });
+
+  describe("text pasted between marker lines", () => {
+    const pasted = [
+      "Replace the body of note 'plan' with the text between the lines below.",
+      "",
+      "BEGIN EXACT CONTENT",
+      "# Plan",
+      "",
+      "Step one.",
+      "END EXACT CONTENT",
+    ].join("\n");
+
+    it("is offered as a source read from the message, not copied", () => {
+      const content = buildMessageWithAttachments(pasted, undefined);
+
+      expect(content).toStartWith(pasted);
+      expect(content).toContain(
+        'Available source for the text between the lines "BEGIN EXACT CONTENT" and "END EXACT CONTENT" of this message, read from the message instead of copied, as system_create source or system_update operation.source: { kind: "user-message", boundaryMode: "lines", startAfter: "BEGIN EXACT CONTENT", endBefore: "END EXACT CONTENT" }',
+      );
+    });
+
+    it("is not offered without one matching pair of marker lines", () => {
+      const unmatched = pasted.replace("END EXACT CONTENT", "END OTHER");
+      const repeated = `${pasted}\nBEGIN EXACT CONTENT`;
+
+      expect(buildMessageWithAttachments(unmatched, undefined)).toBe(unmatched);
+      expect(buildMessageWithAttachments(repeated, undefined)).toBe(repeated);
+    });
   });
 
   describe("the newest upload as the save candidate", () => {

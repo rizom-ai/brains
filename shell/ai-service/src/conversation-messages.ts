@@ -27,7 +27,8 @@ export function toModelMessages(messages: Message[]): ModelMessage[] {
               text:
                 msg.content +
                 getEntityMemoryNote(msg.metadata) +
-                getAgentContactCandidateNote(msg.metadata),
+                getAgentContactCandidateNote(msg.metadata) +
+                getCancelledProposalNote(msg.metadata),
             },
           ],
         },
@@ -38,6 +39,44 @@ function getEntityMemoryNote(metadata: Message["metadata"]): string {
   const parsedMetadata = parseMessageMetadata(metadata);
   const refs = parseEntityMemoryRefs(parsedMetadata?.["entityMemoryRefs"]);
   return buildEntityMemoryContext(refs);
+}
+
+/** A proposal the user cancelled, as its tool approval card holds it. */
+const cancelledProposalCardSchema = z.looseObject({
+  kind: z.literal("tool-approval"),
+  toolName: z.string(),
+  input: z.record(z.string(), z.unknown()),
+  state: z.literal("output-denied"),
+});
+
+/** Arguments longer than this are not repeated on every later turn. */
+const cancelledProposalMaxLength = 2000;
+
+/**
+ * The call behind each proposal the user cancelled, so a request made again
+ * can repeat it: the reply holds only the proposal's summary. Confirmation
+ * fields are left out, since the cancelled approval cannot be confirmed.
+ */
+function getCancelledProposalNote(metadata: Message["metadata"]): string {
+  const cards = parseMessageMetadata(metadata)?.["cards"];
+  if (!Array.isArray(cards)) return "";
+  return cards
+    .flatMap((card) => {
+      const parsed = cancelledProposalCardSchema.safeParse(card);
+      if (!parsed.success) return [];
+      const {
+        confirmed: _confirmed,
+        confirmationToken: _token,
+        ...args
+      } = parsed.data.input;
+      const call = JSON.stringify(args);
+      return call.length > cancelledProposalMaxLength
+        ? []
+        : [
+            `\n\nThe user cancelled this ${parsed.data.toolName} proposal: ${call}`,
+          ];
+    })
+    .join("");
 }
 
 function getAgentContactCandidateNote(metadata: Message["metadata"]): string {
@@ -360,6 +399,7 @@ export function buildMessageWithAttachments(
     .map(formatTextAttachment);
   const text = [
     message,
+    formatPastedTextSource(message),
     ...textAttachments,
     formatUploadRefs(
       nativeAttachments,
@@ -385,6 +425,28 @@ export function buildMessageWithAttachments(
       filename: attachment.filename,
     })),
   ];
+}
+
+/**
+ * The source for text pasted between a BEGIN line and its END line, so the
+ * model names the block instead of copying it: a long paste copied into a
+ * tool call is where a model drops or rewrites the text.
+ */
+function formatPastedTextSource(message: string): string {
+  const lines = message.split(/\r?\n/).map((line) => line.trim());
+  const once = (line: string): boolean =>
+    lines.indexOf(line) === lines.lastIndexOf(line);
+  const start = lines.findIndex(
+    (line, index) =>
+      /^BEGIN\s+\S/.test(line) &&
+      once(line) &&
+      lines.indexOf(`END${line.slice("BEGIN".length)}`) > index &&
+      once(`END${line.slice("BEGIN".length)}`),
+  );
+  const startAfter = lines[start];
+  if (startAfter === undefined) return "";
+  const endBefore = `END${startAfter.slice("BEGIN".length)}`;
+  return `Available source for the text between the lines ${JSON.stringify(startAfter)} and ${JSON.stringify(endBefore)} of this message, read from the message instead of copied, as system_create source or system_update operation.source: { kind: "user-message", boundaryMode: "lines", startAfter: ${JSON.stringify(startAfter)}, endBefore: ${JSON.stringify(endBefore)} }`;
 }
 
 function formatTextAttachment(

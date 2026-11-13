@@ -1,5 +1,60 @@
 # @brains/web-chat
 
+## 0.2.0-alpha.702
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.702
+  - @brains/app-ui-react@0.2.0-alpha.702
+  - @brains/console-theme@0.2.0-alpha.702
+  - @brains/contracts@0.2.0-alpha.702
+  - @brains/utils@0.2.0-alpha.702
+
+## 0.2.0-alpha.701
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.701
+  - @brains/app-ui-react@0.2.0-alpha.701
+  - @brains/console-theme@0.2.0-alpha.701
+  - @brains/contracts@0.2.0-alpha.701
+  - @brains/utils@0.2.0-alpha.701
+
+## 0.2.0-alpha.700
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.700
+  - @brains/app-ui-react@0.2.0-alpha.700
+  - @brains/console-theme@0.2.0-alpha.700
+  - @brains/contracts@0.2.0-alpha.700
+  - @brains/utils@0.2.0-alpha.700
+
+## 0.2.0-alpha.699
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.699
+  - @brains/app-ui-react@0.2.0-alpha.699
+  - @brains/console-theme@0.2.0-alpha.699
+  - @brains/contracts@0.2.0-alpha.699
+  - @brains/utils@0.2.0-alpha.699
+
+## 0.2.0-alpha.698
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.698
+  - @brains/app-ui-react@0.2.0-alpha.698
+  - @brains/console-theme@0.2.0-alpha.698
+  - @brains/contracts@0.2.0-alpha.698
+  - @brains/utils@0.2.0-alpha.698
+
 ## 0.2.0-alpha.697
 
 ### Patch Changes

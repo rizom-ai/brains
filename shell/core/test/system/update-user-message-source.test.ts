@@ -123,6 +123,24 @@ describe("system_update user-message source", () => {
     expect(services.getLastUpdateRequest()?.entity.content).toBe(document);
   });
 
+  test("pins the lines mode two whole marker lines imply", async () => {
+    const { tool } = fixture([
+      message(pasted("# Working plan\n\nNew body.\n")),
+    ]);
+    const { boundaryMode: _mode, ...withoutMode } = source;
+    const args = confirmationSchema.parse(
+      expectConfirmationArgs(
+        await tool.handler(
+          { ...input(), operation: { source: withoutMode } },
+          context,
+        ),
+      ),
+    );
+    expect(args["operation"]).toMatchObject({
+      source: { boundaryMode: "lines" },
+    });
+  });
+
   test("rejects a confirmation that omits the operation", async () => {
     const { services, tool } = fixture([message(pasted("New body.\n"))]);
     const args = confirmationSchema.parse(

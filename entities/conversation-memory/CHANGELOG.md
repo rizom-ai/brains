@@ -1,5 +1,75 @@
 # @brains/conversation-memory
 
+## 0.2.0-alpha.702
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.702
+  - @rizom/brain-ui@0.2.0-alpha.702
+  - @brains/dashboard@0.2.0-alpha.702
+  - @brains/action-items@0.2.0-alpha.702
+  - @brains/content-formatters@0.2.0-alpha.702
+  - @brains/contracts@0.2.0-alpha.702
+  - @brains/utils@0.2.0-alpha.702
+  - @brains/conversation-service@0.2.0-alpha.702
+
+## 0.2.0-alpha.701
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.701
+  - @rizom/brain-ui@0.2.0-alpha.701
+  - @brains/dashboard@0.2.0-alpha.701
+  - @brains/action-items@0.2.0-alpha.701
+  - @brains/content-formatters@0.2.0-alpha.701
+  - @brains/contracts@0.2.0-alpha.701
+  - @brains/utils@0.2.0-alpha.701
+  - @brains/conversation-service@0.2.0-alpha.701
+
+## 0.2.0-alpha.700
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.700
+  - @rizom/brain-ui@0.2.0-alpha.700
+  - @brains/dashboard@0.2.0-alpha.700
+  - @brains/action-items@0.2.0-alpha.700
+  - @brains/content-formatters@0.2.0-alpha.700
+  - @brains/contracts@0.2.0-alpha.700
+  - @brains/utils@0.2.0-alpha.700
+  - @brains/conversation-service@0.2.0-alpha.700
+
+## 0.2.0-alpha.699
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.699
+  - @rizom/brain-ui@0.2.0-alpha.699
+  - @brains/dashboard@0.2.0-alpha.699
+  - @brains/action-items@0.2.0-alpha.699
+  - @brains/content-formatters@0.2.0-alpha.699
+  - @brains/contracts@0.2.0-alpha.699
+  - @brains/utils@0.2.0-alpha.699
+  - @brains/conversation-service@0.2.0-alpha.699
+
+## 0.2.0-alpha.698
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.698
+  - @rizom/brain-ui@0.2.0-alpha.698
+  - @brains/dashboard@0.2.0-alpha.698
+  - @brains/action-items@0.2.0-alpha.698
+  - @brains/content-formatters@0.2.0-alpha.698
+  - @brains/contracts@0.2.0-alpha.698
+  - @brains/utils@0.2.0-alpha.698
+  - @brains/conversation-service@0.2.0-alpha.698
+
 ## 0.2.0-alpha.697
 
 ### Patch Changes

@@ -1,5 +1,55 @@
 # @brains/doc
 
+## 0.2.0-alpha.702
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.702
+  - @rizom/brain-ui@0.2.0-alpha.702
+  - @brains/docs-chrome@0.2.0-alpha.702
+  - @brains/utils@0.2.0-alpha.702
+
+## 0.2.0-alpha.701
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.701
+  - @rizom/brain-ui@0.2.0-alpha.701
+  - @brains/docs-chrome@0.2.0-alpha.701
+  - @brains/utils@0.2.0-alpha.701
+
+## 0.2.0-alpha.700
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.700
+  - @rizom/brain-ui@0.2.0-alpha.700
+  - @brains/docs-chrome@0.2.0-alpha.700
+  - @brains/utils@0.2.0-alpha.700
+
+## 0.2.0-alpha.699
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.699
+  - @rizom/brain-ui@0.2.0-alpha.699
+  - @brains/docs-chrome@0.2.0-alpha.699
+  - @brains/utils@0.2.0-alpha.699
+
+## 0.2.0-alpha.698
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.698
+  - @rizom/brain-ui@0.2.0-alpha.698
+  - @brains/docs-chrome@0.2.0-alpha.698
+  - @brains/utils@0.2.0-alpha.698
+
 ## 0.2.0-alpha.697
 
 ### Patch Changes

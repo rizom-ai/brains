@@ -20,7 +20,11 @@ interface PlacedEvent {
 const TICKS = 4;
 /** Events closer than this share a moment, so they stack instead of overlap. */
 const CROWDED_MS = 40 * 60 * 1000;
-const LANE_TOPS = ["50%", "28%", "72%"] as const;
+/**
+ * Stacked lanes sit one light apart: each light's 24px hit target (WCAG 2.2
+ * target size) ends where its neighbor's begins, so none covers another.
+ */
+const LANE_TOPS = ["50%", "calc(50% - 24px)", "calc(50% + 24px)"] as const;
 const LIGHT_STAGGER_MS = 70;
 
 const clock = new Intl.DateTimeFormat(undefined, {
