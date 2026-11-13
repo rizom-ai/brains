@@ -24,11 +24,11 @@ function answering(response: Response): {
   };
 }
 
-const callback = "https://connect.test/oauth-broker/callback/linkedin";
+const callback = "https://connect.example/oauth-broker/callback/linkedin";
 const brainState = "b".repeat(43);
 const grant = "g".repeat(43);
 const broker = {
-  url: "https://connect.test",
+  url: "https://connect.example",
   instanceId: "ada",
   secret: "s".repeat(40),
 };
@@ -88,7 +88,7 @@ describe("LinkedInBrokerClient", () => {
 
     expect(consent.hostname).toBe("www.linkedin.com");
     expect(requests[0]?.url).toBe(
-      "https://connect.test/oauth-broker/authorizations",
+      "https://connect.example/oauth-broker/authorizations",
     );
     const headers = new Headers(requests[0]?.init?.headers);
     expect(headers.get("Authorization")).toBe(
@@ -118,7 +118,7 @@ describe("LinkedInBrokerClient", () => {
       },
     );
     expect(requests[0]?.url).toBe(
-      "https://connect.test/oauth-broker/grants/redeem",
+      "https://connect.example/oauth-broker/grants/redeem",
     );
   });
 

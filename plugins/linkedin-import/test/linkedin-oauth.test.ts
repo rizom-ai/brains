@@ -8,7 +8,7 @@ import {
 const config = {
   clientId: "client-1",
   clientSecret: "secret-1",
-  redirectUri: "https://brain.test/linkedin/oauth/callback",
+  redirectUri: "https://brain.example/linkedin/oauth/callback",
 };
 
 function tokenEndpoint(response: Response): {
@@ -35,7 +35,7 @@ describe("LinkedInOAuthClient", () => {
     expect(Object.fromEntries(url.searchParams)).toEqual({
       response_type: "code",
       client_id: "client-1",
-      redirect_uri: "https://brain.test/linkedin/oauth/callback",
+      redirect_uri: "https://brain.example/linkedin/oauth/callback",
       state: "state-1",
       scope: "r_dma_portability_3rd_party",
     });
@@ -67,7 +67,7 @@ describe("LinkedInOAuthClient", () => {
       code: "code-1",
       client_id: "client-1",
       client_secret: "secret-1",
-      redirect_uri: "https://brain.test/linkedin/oauth/callback",
+      redirect_uri: "https://brain.example/linkedin/oauth/callback",
     });
   });
 
