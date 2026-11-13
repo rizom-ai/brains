@@ -7,7 +7,7 @@ In progress. Phases 1, 2 and 4 are built and Phase 3 is built opt-in; Phase 0 ha
 - Embeddings: `embeddingModel` selects `openai:text-embedding-3-small`, `-large` or `local:embeddinggemma-2:270m` (served from `modelRuntime.url`), and the index records its identity and rebuilds on change. The Gemma profile chunks to 2,048 tokens: Ollama serves that context by default and silently truncates longer input on `/v1/embeddings`, ignoring per-request options. Failed embeddings retry on the next start.
 - Text: `model: local:<name>` runs the agent on the runtime's chat API, with object generation constrained to its schema (`supportsStructuredOutputs`); `reasoningEffort` reaches the runtime as `reasoning_effort`, and `none` turns a model's thinking off.
 - Answer model: `answerModel` names a `local:` model that writes while `model` chooses tools: it answers tool results and runs text and object generation (background derivations, drafts). Without it, a local `model` answers tool results with reasoning off. A local text model's searches return five hits of at most 800 characters.
-- Vision model: `visionModel` names a `local:` model that describes uploaded images for a local `model`; the description, cached per image, reaches `model` in place of the image, and without it an image reaches a local `model` as its name and type.
+- Vision model: `visionModel` names a `local:` model that sees images. For a local `model` that reads only text it describes each upload, and the description, cached per image, reaches `model` in place of the image; a `model` named as `visionModel` too sees images itself. Without it an image reaches a local `model` as its name and type.
 - No key: a brain whose `model` and `embeddingModel` are both `local:` starts without a provider key; `no-cloud-key-boot.test.ts` boots one against an OpenAI-compatible runtime, indexes and answers a chat turn with no request leaving the runtime.
 - Sidecar: naming a `local:` model in `brain.yaml` adds a pinned Ollama `models` accessory, pulls the models before Kamal starts the brain and passes `MODEL_RUNTIME_URL`; `local:` embeddings are priced at zero. No fleet brain has opted in.
 - Images: open. `selectImageProvider` supports a model string, but no config sets `imageModel` (`createAIModelConfig` in `service-config.ts` omits it), so every brain uses `gpt-image-1.5`.
@@ -62,7 +62,7 @@ Local chat turns, 2026-11-05, on the separate brain holding the yeehaa rover's 2
 - A turn's cost is generation, not the prompt: Ollama reuses the cached system prompt (17–29 new tokens per first call). On 14B, thinking was 1,100–1,400 tokens per turn at ~20 tokens/s and the search results 6–10k tokens at ~240 tokens/s; the MoE generates at ~55–60 tokens/s with 3B parameters active.
 - Flash attention and a q8 KV cache made no measurable difference on Vulkan. ROCm (`gfx1151`) processes prompts 19–44% faster and generates ~10% slower, so Vulkan stays.
 - With derivations on, the brain is ready 50 s after a clean start; the first boot's derivation backlog then runs about 8.5 minutes, during which chat turns take 43–181 s.
-- The local configuration runs `model: local:qwen3:30b-a3b` and `answerModel: local:qwen3:30b-a3b-instruct-2507-q4_K_M` (each 30.5B total, 3B active, Q4_K_M, 18.6 GB; both fit the Z13 together) with `embeddingModel: local:embeddinggemma-2:270m`. No production brain switches its text model on these numbers.
+- The local configuration runs `model` and `visionModel: local:qwen3.6:35b` (35.5B total, 3B active, Q4_K_M, 23 GB) with `answerModel: local:qwen3:30b-a3b-instruct-2507-q4_K_M` (18.6 GB) and `embeddingModel: local:embeddinggemma-2:270m`; the runtime serves a 32,768-token context. No production brain switches its text model on these numbers.
 
 Agent evals, 2026-11-05 to 2026-11-06, personal suite (33 runs: uploads, long-note edits, verbatim saves), judge `gpt-5.4-mini`, same runtime:
 
@@ -85,6 +85,17 @@ Agent evals, 2026-11-05 to 2026-11-06, personal suite (33 runs: uploads, long-no
 - `gpt-oss:120b`, four times the size, makes the same first attempts: upload saves write `source: { kind: "upload", id }` and edits omit `operation.kind`. Its repairs return no output inside an agent conversation ("the model did not return a response") while the same repair outside one returns the right arguments (4 of 4, 8–23 s); the cause is not found, and no request reached the 32,768-token context. On the headless suite it matches the cloud model alone, at 37 tokens/s and 64.4 GB resident.
 - With #841's shapes (`source: { kind: "upload", id, transform }`, an operation named by its one field) no call fails validation. What fails is choice: 6 edits skip the read the user asked for, 4 image cases need a model that sees images, 2 multi-file saves never call `system_create`, and 2 pick a different operation or transform.
 - `visionModel` describes uploaded images, and the four image cases pass. A Qwen3 thinking turn that settles on a call in its reasoning and stops with no reply is run again with a call required; Ollama ignores `tool_choice: "required"`, so a local model's required step is constrained to a call of one of its tools, and multi-PDF notes passes 3 of 3. What fails: 4 stored-state reads answered from the conversation though the user asks for a read, keep-all saving the Markdown files and leaving the image out (about 1 in 3 passes), a bare label after an image upload acted on, and a link saved from the message instead of its URL.
+
+Agent evals, 2026-11-12 to 2026-11-13, personal suite (31 cases), the runtime serving a 32,768-token context, three runs each:
+
+| Model                                                                       | Pass (mean)   | Avg duration |
+| --------------------------------------------------------------------------- | ------------- | ------------ |
+| `qwen3:30b-a3b` deciding, instruct-2507 answering, `qwen3-vl:8b` describing | 24.3/31 (78%) | 36 s         |
+| `qwen3.6:35b` deciding and describing, instruct-2507 answering              | 26.0/31 (84%) | 67 s         |
+
+- `qwen3.6:35b` reads stored content when asked (the long-note read-backs 3 of 3 and 3 of 3, against 1 of 3 and 0 of 3), asks what to do with a bare label after an upload (2 of 3, against 0 of 3) and keeps every attached file (2 of 3, against 0 of 3). It saves the upload instead of its summary when "save it" follows a summary (1 of 3 and 0 of 3, against 3 of 3 and 2 of 3).
+- At its default 262,144-token context, `qwen3.6:35b` ran the GPU out of memory (`vk::DeviceLostError`) 13 times in one run; the deploy's `OLLAMA_CONTEXT_LENGTH: 32768` prevents it. With the cap, `qwen3:30b-a3b` also passed one case more.
+- Two measures against the Qwen3 model's choices did not pay: reading each turn's intent first, to withhold tools that write and require a read, took the suite from 23 to 8 of 31, since the classifier marked explicit saves as asking no change; hiding an update's quote of what it stored left the read-back cases skipping the read (2 of 9).
 
 ## Goal
 

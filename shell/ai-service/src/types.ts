@@ -23,7 +23,10 @@ export interface AIModelConfig {
   modelRuntimeUrl?: string;
   /** A `local:` model that answers tool results in place of `model`. */
   answerModel?: string;
-  /** A `local:` model that describes images for a model that reads only text. */
+  /**
+   * A `local:` model that sees images: it describes them for a model that
+   * reads only text, and the model it names as `model` too sees them itself.
+   */
   visionModel?: string;
 }
 

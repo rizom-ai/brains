@@ -68,11 +68,18 @@ export class AIService implements IAIService {
    */
   public getModel(): LanguageModel {
     // Without an answer model, a local model answers tool results itself.
+    // A model named as the vision model too sees images itself; any other
+    // is told what the vision model saw.
+    const seesImages =
+      this.config.visionModel !== undefined &&
+      this.config.visionModel === this.config.model;
     this.cachedModel ??= getLanguageModel(
       this.providers,
       this.requireTextModel(),
       {
-        describeImagesWith: this.getVisionModel(),
+        ...(seesImages
+          ? { readsImages: true }
+          : { describeImagesWith: this.getVisionModel() }),
         answersWithoutThinking: !this.config.answerModel,
       },
     );
