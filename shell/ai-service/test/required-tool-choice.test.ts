@@ -2,10 +2,8 @@ import { describe, expect, it } from "bun:test";
 import { generateText, jsonSchema, tool, type JSONSchema7 } from "ai";
 import { isPlainRecord } from "@brains/utils/predicates";
 import { z } from "@brains/utils/zod";
-import {
-  createLocalRuntimeClient,
-  localChatModel,
-} from "../src/provider-clients";
+import { createLocalRuntimeClient } from "../src/provider-clients";
+import { withLocalRuntime } from "../src/local-runtime-model";
 
 /** A runtime that answers each chat request with the next message in turn. */
 function runtime(messages: Record<string, unknown>[]): {
@@ -64,7 +62,7 @@ async function generate(
 }> {
   const client = createLocalRuntimeClient("http://models:11434", fetchImpl);
   const result = await generateText({
-    model: localChatModel(client, "qwen3:30b-a3b"),
+    model: withLocalRuntime(client.chatModel("qwen3:30b-a3b"), {}),
     prompt: "Keep these files.",
     tools: { system_create: save },
     toolChoice,
@@ -207,7 +205,7 @@ describe("a required call to a tool whose schema refers to its own definitions",
     const client = createLocalRuntimeClient("http://models:11434", fetch);
 
     await generateText({
-      model: localChatModel(client, "qwen3:30b-a3b"),
+      model: withLocalRuntime(client.chatModel("qwen3:30b-a3b"), {}),
       prompt: "Sync.",
       tools: { system_create: save, directory_sync: manage },
       toolChoice: "required",

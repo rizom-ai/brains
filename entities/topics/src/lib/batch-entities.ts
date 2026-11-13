@@ -26,13 +26,6 @@ function estimateEntityBatchTokens(entity: BaseEntity, index: number): number {
   return estimateTokens(header) + estimateTokens(entity.content) + 1;
 }
 
-export function estimateBatchPromptTokens(entities: BaseEntity[]): number {
-  return entities.reduce(
-    (sum, entity, index) => sum + estimateEntityBatchTokens(entity, index + 1),
-    0,
-  );
-}
-
 /**
  * Split entities into batches that fit within a token budget.
  *

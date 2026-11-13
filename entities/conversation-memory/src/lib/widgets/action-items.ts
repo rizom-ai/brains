@@ -50,7 +50,6 @@ const actionItemsWidgetDataSchema: z.ZodObject<{
 export type ActionItemsWidgetData = z.output<
   typeof actionItemsWidgetDataSchema
 >;
-export type ActionItemWidgetItem = ActionItemsWidgetData["items"][number];
 
 const actionItemsWidget = defineDashboardWidget({
   id: WIDGET_ID,
@@ -194,5 +193,3 @@ export function registerActionItemsWidget(
     },
   });
 }
-
-export const ACTION_ITEMS_WIDGET_ID: typeof WIDGET_ID = WIDGET_ID;

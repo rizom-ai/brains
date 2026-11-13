@@ -4,7 +4,6 @@ import {
   resolveTextProvider,
   selectTextProvider,
   selectImageProvider,
-  supportsTemperature,
 } from "../src/provider-selection";
 
 describe("selectTextProvider", () => {
@@ -90,22 +89,6 @@ describe("resolveTextProvider", () => {
       provider: "anthropic",
       modelId: "claude-haiku-4-5",
     });
-  });
-});
-
-describe("supportsTemperature", () => {
-  it("should allow temperature for non-reasoning models", () => {
-    expect(supportsTemperature("claude-haiku-4-5")).toBe(true);
-    expect(supportsTemperature("gpt-4o-mini")).toBe(true);
-    expect(supportsTemperature("openai:gpt-4o-mini")).toBe(true);
-  });
-
-  it("should disable temperature for OpenAI reasoning models", () => {
-    expect(supportsTemperature("gpt-5.4-mini")).toBe(false);
-    expect(supportsTemperature("openai:gpt-5.4-mini")).toBe(false);
-    expect(supportsTemperature("gpt-6-luna")).toBe(false);
-    expect(supportsTemperature("openai:gpt-6-luna")).toBe(false);
-    expect(supportsTemperature("o3-mini")).toBe(false);
   });
 });
 

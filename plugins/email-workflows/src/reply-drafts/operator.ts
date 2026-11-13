@@ -31,9 +31,6 @@ const generatedReplySchema = z.strictObject({
   replyText: z.string().trim().min(1).max(20_000),
 });
 
-export const EMAIL_REPLY_DRAFT_PROMPT_TARGET: string =
-  "email-workflows:reply-drafting";
-
 export const DEFAULT_EMAIL_REPLY_DRAFT_PROMPT: string = `Write a concise, useful email reply in the operator's voice.
 Answer the sender's request directly. Ask a brief clarifying question when required information is missing.
 Do not invent commitments, dates, prices, facts, or prior conversations.

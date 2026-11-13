@@ -7,36 +7,28 @@ import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import type { IGitSync } from "../types";
 
-const historyInputSchema: z.ZodObject<{
+/** The history action as the sync tool parses it. */
+export const historyActionSchema: z.ZodObject<{
+  action: z.ZodLiteral<"history">;
   entityType: z.ZodString;
   id: z.ZodString;
   sha: z.ZodOptional<z.ZodString>;
   limit: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
 }> = z.object({
-  entityType: z.string(),
-  id: z.string(),
+  action: z.literal("history"),
+  entityType: z.string().min(1),
+  id: z.string().min(1),
   sha: z.string().optional(),
   limit: z.number().int().positive().optional().default(10),
 });
 
-export type HistoryInput = z.input<typeof historyInputSchema>;
-
-export function parseHistoryInput(input: unknown): HistoryInput {
-  const parsed = historyInputSchema.parse(input);
-  return {
-    entityType: parsed.entityType,
-    id: parsed.id,
-    ...(parsed.sha ? { sha: parsed.sha } : {}),
-    limit: parsed.limit,
-  };
-}
+export type HistoryInput = z.output<typeof historyActionSchema>;
 
 export async function handleHistory(
   input: HistoryInput,
   gitSync: IGitSync,
 ): Promise<ToolResult> {
   const filePath = `${input.entityType}/${input.id}.md`;
-  const limit = input.limit ?? 10;
 
   try {
     if (input.sha) {
@@ -52,7 +44,7 @@ export async function handleHistory(
       );
     }
 
-    const commits = await gitSync.log(filePath, limit);
+    const commits = await gitSync.log(filePath, input.limit);
 
     if (commits.length === 0) {
       return toolSuccess(

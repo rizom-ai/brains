@@ -121,9 +121,12 @@ export {
   linkedinTemplate,
   linkedinPostSchema,
   type LinkedInPost,
-  getTemplateName,
+} from "./templates/linkedin-template";
+export {
   SocialPostListTemplate,
   type SocialPostListProps,
+} from "./templates/social-post-list";
+export {
   SocialPostDetailTemplate,
   type SocialPostDetailProps,
-} from "./templates";
+} from "./templates/social-post-detail";

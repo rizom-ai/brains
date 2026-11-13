@@ -105,15 +105,6 @@ export function createLocalRuntimeClient(
   });
 }
 
-/** A chat model on the model runtime, with what the runtime does not do for it. */
-export function localChatModel(
-  client: ReturnType<typeof createOpenAICompatible>,
-  modelId: string,
-  options: LocalRuntimeOptions = {},
-): LanguageModel {
-  return withLocalRuntime(client.chatModel(modelId), options);
-}
-
 type ModelKind = "languageModel" | "imageModel" | "embeddingModel";
 
 const KIND_NAMES: Readonly<Record<ModelKind, string>> = {

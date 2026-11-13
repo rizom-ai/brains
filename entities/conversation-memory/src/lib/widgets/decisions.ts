@@ -40,7 +40,6 @@ const decisionsWidgetDataSchema: z.ZodObject<{
 });
 
 export type DecisionsWidgetData = z.output<typeof decisionsWidgetDataSchema>;
-export type DecisionWidgetItem = DecisionsWidgetData["items"][number];
 
 const decisionsWidget = defineDashboardWidget({
   id: WIDGET_ID,
@@ -142,5 +141,3 @@ export function registerDecisionsWidget(
     },
   });
 }
-
-export const DECISIONS_WIDGET_ID: typeof WIDGET_ID = WIDGET_ID;

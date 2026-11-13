@@ -40,19 +40,6 @@ export interface ToolContext {
   isAnchor?: boolean;
 }
 
-export interface ToolContextRouting {
-  interfaceType: string;
-  actor: ActorRef;
-  displayName?: string | undefined;
-  conversationId?: string | undefined;
-  channelId?: string | undefined;
-  channelName?: string | undefined;
-  runId?: string | undefined;
-  toolCallId?: string | undefined;
-  userPermissionLevel?: UserPermissionLevel | undefined;
-  isAnchor?: boolean | undefined;
-}
-
 interface ToolContextRoutingSchemaShape extends ZodRawShape {
   interfaceType: z.ZodString;
   actor: typeof actorRefSchema;

@@ -62,16 +62,6 @@ const INTERNAL_CONFIRMATION_FIELDS = new Set([
   "expiresAt",
 ]);
 
-const MODEL_HIDDEN_FLAT_CREATE_SOURCE_FIELDS = new Set([
-  "content",
-  "prompt",
-  "url",
-  "from",
-  "upload",
-  "transform",
-  "sourceAttachment",
-]);
-
 const attachmentToolOutputSchema = z.looseObject({
   success: z.literal(true),
   data: z.looseObject({
@@ -108,21 +98,10 @@ function isModelVisibleInputField(value: unknown): value is z.ZodType {
 
 export function toModelVisibleInputSchema(
   inputSchema: Tool["inputSchema"],
-  options: {
-    toolName?: string;
-    enableCreateUpload?: boolean;
-    enableCreateTransform?: boolean;
-  } = {},
 ): ModelVisibleInputSchema {
   const visibleSchema: ModelVisibleInputSchema = {};
   for (const [key, schema] of Object.entries(inputSchema)) {
     if (INTERNAL_CONFIRMATION_FIELDS.has(key)) continue;
-    if (
-      options.toolName === "system_create" &&
-      MODEL_HIDDEN_FLAT_CREATE_SOURCE_FIELDS.has(key)
-    ) {
-      continue;
-    }
     if (isModelVisibleInputField(schema)) {
       visibleSchema[key] = schema;
     }
@@ -327,30 +306,18 @@ export function convertToSDKTools(
       guest ? undefined : emitter,
     );
 
-    const visibility = {
-      toolName: t.name,
-      ...(contextInfo.enableCreateUpload !== undefined && {
-        enableCreateUpload: contextInfo.enableCreateUpload,
-      }),
-      ...(contextInfo.enableCreateTransform !== undefined && {
-        enableCreateTransform: contextInfo.enableCreateTransform,
-      }),
-    };
     const strictTools = options.strictTools ?? false;
     // A model input exists for strict mode, which cannot hold the tool's own
     // form; a model not held to strict tools writes that form.
     const modelInput =
       strictTools && t.modelInput
         ? {
-            shape: toModelVisibleInputSchema(
-              t.modelInput.inputSchema(),
-              visibility,
-            ),
+            shape: toModelVisibleInputSchema(t.modelInput.inputSchema()),
             toToolInput: t.modelInput.toToolInput,
           }
         : undefined;
     const { inputSchema, strict } = toSDKInputSchema(
-      toModelVisibleInputSchema(t.inputSchema, visibility),
+      toModelVisibleInputSchema(t.inputSchema),
       strictTools,
       modelInput,
     );

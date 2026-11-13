@@ -33,7 +33,6 @@ export {
   resolveEmbeddingProfile,
   unsupportedEmbeddingModelMessage,
 } from "./embedding-profiles";
-export type { EmbeddingProfile } from "./embedding-profiles";
 
 // Re-export from ai SDK
 export { ToolLoopAgent, stepCountIs, dynamicTool } from "ai";
@@ -82,11 +81,7 @@ export {
   toolInvocationEventSchema,
   toolInvokingChannel,
 } from "./tool-events";
-export {
-  agentTurnCompletedChannel,
-  agentTurnCompletedEventSchema,
-  type AgentTurnCompletedEvent,
-} from "./turn-events";
+export { agentTurnCompletedChannel } from "./turn-events";
 
 export type {
   AgentConfig,
