@@ -3,7 +3,6 @@ import {
   generateMarkdown,
   parseMarkdown,
 } from "@brains/utils/markdown-frontmatter";
-import { slugify } from "@brains/utils/string-utils";
 import { ProjectBodyFormatter } from "../formatters/project-formatter";
 import {
   projectFrontmatterSchema,
@@ -11,7 +10,10 @@ import {
   type ProjectMetadata,
   type projectMetadataSchema,
 } from "../schemas/project";
-import { definedFields } from "@brains/utils/strip-undefined";
+import {
+  slugStatingFrontmatter,
+  slugStatingMetadata,
+} from "@brains/sdk/internal/entity-runtime";
 
 const bodyFormatter = new ProjectBodyFormatter();
 
@@ -37,10 +39,7 @@ export function projectSections(body: string): ProjectContent {
 export function projectFrontmatter(
   metadata: ProjectMetadata,
 ): Record<string, unknown> {
-  const authored = metadata.authoredSlug === true;
-  return definedFields({
-    title: metadata.title,
-    ...(authored && { slug: metadata.slug }),
+  return slugStatingFrontmatter(metadata, {
     status: metadata.status,
     publishedAt: metadata.publishedAt,
     description: metadata.description,
@@ -48,8 +47,6 @@ export function projectFrontmatter(
     coverImageId: metadata.coverImageId,
     ogImageId: metadata.ogImageId,
     url: metadata.url,
-    ...(!authored && { slug: metadata.slug }),
-    error: metadata.error,
   });
 }
 
@@ -73,16 +70,7 @@ export const projectMarkdown: EntityMarkdownCodec<
 > = {
   decode: ({ content, frontmatter }) => {
     const parsed = projectFrontmatterSchema.parse(frontmatter);
-    const error = frontmatter["error"];
-    return {
-      content,
-      metadata: {
-        ...parsed,
-        slug: parsed.slug ?? slugify(parsed.title),
-        ...(parsed.slug !== undefined && { authoredSlug: true }),
-        ...(typeof error === "string" && { error }),
-      },
-    };
+    return { content, metadata: slugStatingMetadata(parsed, frontmatter) };
   },
   // A whole document handed in has had its frontmatter decoded into the
   // metadata already; the body is written as the adapter wrote it.

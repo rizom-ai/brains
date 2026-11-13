@@ -73,6 +73,11 @@ export {
   type PendingIngestionStatus,
 } from "./entity/pending-ingestion";
 export { entityViewFields, type EntityViewFields } from "./entity/entity-view";
+export {
+  slugStatingFrontmatter,
+  slugStatingMetadata,
+  type SlugStating,
+} from "./entity/slug-stating";
 export { createUploadSaveHandler } from "./entity/upload-save";
 export {
   isTextUploadMediaType,

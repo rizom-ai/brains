@@ -4,7 +4,6 @@ import {
   generateMarkdown,
   parseMarkdown,
 } from "@brains/utils/markdown-frontmatter";
-import { slugify } from "@brains/utils/string-utils";
 import {
   blogPostFrontmatterSchema,
   blogPostWithDataSchema,
@@ -13,7 +12,10 @@ import {
   type BlogPostWithData,
   type blogPostMetadataSchema,
 } from "../schemas/blog-post";
-import { definedFields } from "@brains/utils/strip-undefined";
+import {
+  slugStatingFrontmatter,
+  slugStatingMetadata,
+} from "@brains/sdk/internal/entity-runtime";
 
 /**
  * A post's frontmatter, in the order the blog post adapter wrote it: its
@@ -24,10 +26,7 @@ import { definedFields } from "@brains/utils/strip-undefined";
 export function postFrontmatter(
   metadata: BlogPostMetadata,
 ): Record<string, unknown> {
-  const authored = metadata.authoredSlug === true;
-  return definedFields({
-    title: metadata.title,
-    ...(authored && { slug: metadata.slug }),
+  return slugStatingFrontmatter(metadata, {
     status: metadata.status,
     publishedAt: metadata.publishedAt,
     excerpt: metadata.excerpt,
@@ -38,8 +37,6 @@ export function postFrontmatter(
     seriesIndex: metadata.seriesIndex,
     ogImage: metadata.ogImage,
     canonicalUrl: metadata.canonicalUrl,
-    ...(!authored && { slug: metadata.slug }),
-    error: metadata.error,
   });
 }
 
@@ -59,16 +56,7 @@ export const postMarkdown: EntityMarkdownCodec<typeof blogPostMetadataSchema> =
   {
     decode: ({ content, frontmatter }) => {
       const parsed = blogPostFrontmatterSchema.parse(frontmatter);
-      const error = frontmatter["error"];
-      return {
-        content,
-        metadata: {
-          ...parsed,
-          slug: parsed.slug ?? slugify(parsed.title),
-          ...(parsed.slug !== undefined && { authoredSlug: true }),
-          ...(typeof error === "string" && { error }),
-        },
-      };
+      return { content, metadata: slugStatingMetadata(parsed, frontmatter) };
     },
     // A whole document handed in has had its frontmatter decoded into the
     // metadata already; the body is written as the adapter wrote it.

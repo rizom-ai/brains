@@ -26,6 +26,8 @@ export {
   withUrlRoute,
   writesInDocumentOrder,
   storedDocumentCodec,
+  slugStatingFrontmatter,
+  slugStatingMetadata,
   bodyUnderHeader,
   type StoredDocument,
   withFrontmatterSchema,

@@ -1,17 +1,19 @@
-import { EntityValidationError } from "@brains/sdk/internal/entity-runtime";
+import {
+  EntityValidationError,
+  slugStatingFrontmatter,
+  slugStatingMetadata,
+} from "@brains/sdk/internal/entity-runtime";
 import type { EntityMarkdownCodec } from "@brains/sdk/entities";
 import {
   generateMarkdown,
   parseMarkdown,
 } from "@brains/utils/markdown-frontmatter";
-import { slugify } from "@brains/utils/string-utils";
 import {
   assertPublishedDeckHasPublishedAt,
   deckFrontmatterSchema,
   type DeckMetadata,
   type deckMetadataSchema,
 } from "../schemas/deck";
-import { definedFields } from "@brains/utils/strip-undefined";
 
 const MISSING_SLIDES_MESSAGE =
   "Invalid deck: markdown must contain slide separators (---) to be a valid presentation";
@@ -47,10 +49,7 @@ export function deckFrontmatter(
     readonly authoredSlug?: boolean | undefined;
   },
 ): Record<string, unknown> {
-  const authored = metadata.authoredSlug === true;
-  return definedFields({
-    title: metadata.title,
-    ...(authored && { slug: metadata.slug }),
+  return slugStatingFrontmatter(metadata, {
     description: metadata.description,
     author: metadata.author,
     status: metadata.status,
@@ -58,8 +57,6 @@ export function deckFrontmatter(
     event: metadata.event,
     coverImageId: metadata.coverImageId,
     ogImageId: metadata.ogImageId,
-    ...(!authored && { slug: metadata.slug }),
-    error: metadata.error,
   });
 }
 
@@ -86,16 +83,7 @@ export const deckMarkdown: EntityMarkdownCodec<typeof deckMetadataSchema> = {
     const parsed = deckFrontmatterSchema.parse(frontmatter);
     assertPublishedDeckHasPublishedAt(parsed);
     assertSlides(content);
-    const error = frontmatter["error"];
-    return {
-      content,
-      metadata: {
-        ...parsed,
-        slug: parsed.slug ?? slugify(parsed.title),
-        ...(parsed.slug !== undefined && { authoredSlug: true }),
-        ...(typeof error === "string" && { error }),
-      },
-    };
+    return { content, metadata: slugStatingMetadata(parsed, frontmatter) };
   },
   // A whole document handed in, as an import or an editor writes it, has
   // had its frontmatter decoded into the metadata already: its slides are
