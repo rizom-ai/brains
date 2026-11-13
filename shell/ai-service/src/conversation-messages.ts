@@ -14,7 +14,7 @@ import {
 } from "./agent-results";
 import { isRecord } from "@brains/utils/is-record";
 import { z } from "@brains/utils/zod";
-import { isPdfAttachment } from "./attachment-intake";
+import { isPdfAttachment } from "./attachment-kind";
 
 export function toModelMessages(messages: Message[]): ModelMessage[] {
   return messages.map((msg) =>
