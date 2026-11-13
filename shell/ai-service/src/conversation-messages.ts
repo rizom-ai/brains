@@ -370,6 +370,7 @@ function dedupeUploadRefs(
 }
 
 const savePattern = /\b(?:save|keep|store)\b/i;
+const notePattern = /\bnotes?\b/i;
 
 /** Words that point at an uploaded file rather than at an answer. */
 const uploadWords =
@@ -426,6 +427,7 @@ export function buildMessageWithAttachments(
     formatPastedTextSource(message),
     ...textAttachments,
     formatUploadRefs(
+      message,
       nativeAttachments,
       options.uploadRefs ?? [],
       options.priorResponseRef,
@@ -535,6 +537,7 @@ function formatKeepAllCandidate(attachments: ChatAttachment[]): string[] {
 }
 
 function formatUploadRefs(
+  message: string,
   attachments: ChatAttachment[],
   uploadRefs: ConversationUploadRef[],
   priorResponseRef: ConversationPriorResponseRef | undefined,
@@ -557,8 +560,12 @@ function formatUploadRefs(
 
   const keepAllCandidate = formatKeepAllCandidate(attachments);
   // With no answer of its own to save, "save it" means the newest upload.
+  // Only a request to save or for a note is offered it: a cloud model read
+  // an image as another color when this candidate came before it.
   const newestCandidate =
-    priorResponseRef === undefined && keepAllCandidate.length === 0
+    priorResponseRef === undefined &&
+    keepAllCandidate.length === 0 &&
+    (savePattern.test(message) || notePattern.test(message))
       ? formatNewestUploadCandidate(refs[0])
       : "";
   return [
