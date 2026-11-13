@@ -89,6 +89,7 @@ const convertedPackages = [
   "plugins/directory-sync",
   "plugins/email-workflows",
   "plugins/knowledge-map",
+  "plugins/linkedin-import",
   "plugins/newsletter",
   "plugins/notifications",
   "plugins/oauth-broker",

@@ -54,7 +54,7 @@ import mcpInterface from "@brains/mcp";
 import { selectNewsletterPackages } from "@brains/newsletter";
 import notePackage from "@brains/note";
 import notificationsPackage from "@brains/notifications";
-import { linkedInImportPlugin } from "@brains/linkedin-import";
+import { linkedInImportPackage } from "@brains/linkedin-import";
 import { createLinkedInBrokerProvider } from "@brains/linkedin-import/broker-provider";
 import { createOAuthBrokerPackage } from "@brains/oauth-broker";
 import obsidianVaultPackage from "@brains/obsidian-vault";
@@ -483,7 +483,13 @@ export const canonicalBrain: BrainDefinition = defineBrain({
       unifiedInboxPackage,
       { pluginId: "unified-inbox" },
     ),
-    ["linkedin-import", linkedInImportPlugin, undefined],
+    packageCapability(
+      "linkedin-import",
+      "@brains/linkedin-import",
+      linkedInImportPackage,
+      // Under the id its class had: the sender profile admits by default.
+      { pluginId: "linkedin-import" },
+    ),
     packageCapability(
       "oauth-broker",
       "@brains/oauth-broker",
