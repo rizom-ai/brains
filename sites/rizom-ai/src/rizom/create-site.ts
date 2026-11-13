@@ -1,9 +1,9 @@
 import { extendSite } from "@brains/site-composition";
 import {
   withSiteRuntime,
+  type DataSourceDefinition,
   type SiteRuntimeDeclaration,
 } from "@brains/sdk/internal/site-runtime";
-import type { DataSourceDefinition } from "@brains/sdk/entities";
 import type { Template } from "@brains/templates";
 import { z } from "@brains/utils/zod";
 import type {

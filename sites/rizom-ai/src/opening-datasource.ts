@@ -1,10 +1,11 @@
 import { proximityMapDataSchema } from "@brains/agent-discovery/proximity-map";
 import { askBoxAvailabilityState } from "@brains/contracts";
+// A published site bundles its declarations; this entry carries no runtime.
 import {
   defineDataSource,
+  siteDataSourceRuntime,
   type DataSourceDefinition,
-} from "@brains/sdk/entities";
-import { siteDataSourceRuntime } from "@brains/sdk/internal/site-runtime";
+} from "@brains/sdk/internal/site-runtime";
 import { homepageChatAvailable, loadAskContent } from "@brains/site-atlas";
 
 /** The live map's datasource, which agent-discovery declares. */

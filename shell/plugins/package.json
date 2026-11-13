@@ -53,7 +53,8 @@
     "./contracts/daemons": "./src/manager/daemon-types.ts",
     "./services/base-entity-datasource": "./src/service/base-entity-datasource.ts",
     "./public/plugin-api": "./src/public/plugin-api.ts",
-    "./test": "./test.ts"
+    "./test": "./test.ts",
+    "./site-declaration": "./src/site/site-declaration-entry.ts"
   },
   "main": "./src/index.ts",
   "private": true,

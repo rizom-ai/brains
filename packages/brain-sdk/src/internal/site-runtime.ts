@@ -6,15 +6,19 @@
  * its data sources, both read with the site's config: its `entityDisplay`
  * and the brain's site settings. A data source reaches the build's entity
  * reads, the brain's URLs and web routes, requests under the site's id and
- * its logger through `siteDataSourceRuntime(context)`. No public entry
- * exports this module; a public site declares `dataSources`.
+ * its logger through `siteDataSourceRuntime(context)`. It re-exports
+ * `defineDataSource` from a module that carries no runtime, for a site
+ * that bundles its declarations. No public entry exports this module; a
+ * public site declares `dataSources`.
  *
  * Tracked in docs/legacy-code-inventory.json (first-party-site-runtime).
  */
 
 export {
+  defineDataSource,
   siteDataSourceRuntime,
   withSiteRuntime,
+  type DataSourceDefinition,
   type SiteDataSourceRuntime,
   type SiteRuntimeDeclaration,
-} from "@brains/plugins";
+} from "@brains/plugins/site-declaration";

@@ -1,8 +1,9 @@
 import { proximityMapDataSchema } from "@brains/agent-discovery/proximity-map";
+// A published site bundles its declarations; this entry carries no runtime.
 import {
   defineDataSource,
   type DataSourceDefinition,
-} from "@brains/sdk/entities";
+} from "@brains/sdk/internal/site-runtime";
 import { askedSchema } from "./asked";
 
 /** How many kept questions the chapter shows, most asked first. */

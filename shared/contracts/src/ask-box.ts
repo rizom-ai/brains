@@ -1,5 +1,4 @@
 import { z } from "@brains/utils/zod";
-import { defineSharedState, type SharedState } from "./shared-state";
 
 /**
  * The host markup a site renders for the shared Web Chat box. The site owns
@@ -23,24 +22,6 @@ export const ASK_STATUS_ATTRIBUTE = "data-ask-status";
 export const ASK_READY_ATTRIBUTE = "data-ask-ready";
 export const ASK_STYLED_ATTRIBUTE = "data-ask-styled";
 export const ASK_BOX_SCRIPT_PATH = "/ask/assets/box.js";
-
-/**
- * Where Web Chat records, in shared runtime state, whether this deployment
- * serves the box boot publicly and on preview: on both, for a configured guest
- * policy or once the owner has switched guest chat on.
- * Site builds may run in a separate worker, where interfaces are not
- * registered and Web Chat's routes are absent; they read this record instead.
- * The serving process writes it on every start and activation change.
- */
-export const ASK_BOX_STATE_KEY = "availability";
-const askBoxAvailabilitySchema: z.ZodObject<{
-  public: z.ZodBoolean;
-  preview: z.ZodBoolean;
-}> = z.object({ public: z.boolean(), preview: z.boolean() });
-export type AskBoxAvailability = z.output<typeof askBoxAvailabilitySchema>;
-/** The record Web Chat shares, which a site's data source reads. */
-export const askBoxAvailabilityState: SharedState<AskBoxAvailability> =
-  defineSharedState("@brains/web-chat:ask-box", askBoxAvailabilitySchema);
 
 /**
  * Dispatched on the host (bubbling) once an answer completes: which public

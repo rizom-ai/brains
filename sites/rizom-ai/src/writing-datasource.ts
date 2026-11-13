@@ -1,7 +1,8 @@
+// A published site bundles its declarations; this entry carries no runtime.
 import {
   defineDataSource,
   type DataSourceDefinition,
-} from "@brains/sdk/entities";
+} from "@brains/sdk/internal/site-runtime";
 import { z } from "@rizom/site";
 import { writingSchema } from "./writing";
 
