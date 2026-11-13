@@ -15,18 +15,21 @@ export type RuntimePrompt = Parameters<
  * becomes text, a PDF its extracted text, an image its description when a
  * vision model can give one, and any other file its name and type, so the
  * model still knows what was uploaded and can save it by its upload
- * reference.
+ * reference. A model that reads images keeps them as they are.
  */
 export async function textOnlyPrompt(
   prompt: RuntimePrompt,
   describeImage?: ImageDescriber,
+  keepImages = false,
 ): Promise<RuntimePrompt> {
   return Promise.all(
     prompt.map(async (message) => {
       if (message.role !== "user") return message;
       const content = await Promise.all(
         message.content.map(async (part) =>
-          part.type === "file" ? describeFile(part, describeImage) : part,
+          part.type !== "file" || (keepImages && isImage(part))
+            ? part
+            : describeFile(part, describeImage),
         ),
       );
       return { ...message, content };
@@ -34,14 +37,16 @@ export async function textOnlyPrompt(
   );
 }
 
+function isImage(part: FilePart): boolean {
+  return part.mediaType.toLowerCase().startsWith("image/");
+}
+
 async function describeFile(
   part: FilePart,
   describeImage: ImageDescriber | undefined,
 ): Promise<TextPart> {
   const name = `"${part.filename ?? "an unnamed file"}"`;
-  const description = part.mediaType.toLowerCase().startsWith("image/")
-    ? await describeImage?.(part)
-    : undefined;
+  const description = isImage(part) ? await describeImage?.(part) : undefined;
   if (description !== undefined) {
     return {
       type: "text",

@@ -21,7 +21,8 @@ export interface LocalRuntimeOptions {
 
 /**
  * A model on the model runtime, with what the runtime does not do for it:
- * uploads reach a model that reads only text as text; a first step that
+ * uploads reach the model as text, but for the images a model that reads
+ * images sees itself; a first step that
  * ends with no reply and no call, as a thinking model's does when it settles
  * on a call in its reasoning, is asked again for that call; a required call
  * is constrained to one, since the runtime ignores the tool choice; and a
@@ -35,7 +36,7 @@ export function withLocalRuntime(
   return wrapLanguageModel({
     model,
     middleware: [
-      ...(options.readsImages ? [] : [textOnlyFiles(options)]),
+      textOnlyFiles(options),
       ...(options.answersWithoutThinking ? [answerWithoutThinking] : []),
       callAfterSilence,
       requiredToolChoice,
@@ -51,7 +52,11 @@ function textOnlyFiles(options: LocalRuntimeOptions): LanguageModelMiddleware {
     specificationVersion: "v3",
     transformParams: async ({ params }) => ({
       ...params,
-      prompt: await textOnlyPrompt(params.prompt, describeImage),
+      prompt: await textOnlyPrompt(
+        params.prompt,
+        describeImage,
+        options.readsImages,
+      ),
     }),
   };
 }

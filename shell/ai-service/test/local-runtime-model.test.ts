@@ -126,12 +126,13 @@ describe("uploads for a local model that reads only text", () => {
     expect(image?.text).toContain("Its contents are not shown to you.");
   });
 
-  it("reach a model that reads images as the files themselves", async () => {
+  it("reach a model that reads images as a PDF's text and the image itself", async () => {
     const parts = userParts(
       (await sendUploads({ readsImages: true })).doGenerateCalls[0],
     );
 
-    expect(parts.map((part) => part.type)).toEqual(["text", "file", "file"]);
+    expect(parts.map((part) => part.type)).toEqual(["text", "text", "file"]);
+    expect(parts[1]?.text).toContain("Distributed Systems Primer");
   });
 
   it("reach it with the vision model's description of an image", async () => {
