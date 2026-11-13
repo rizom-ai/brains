@@ -24,6 +24,7 @@ import type {
   PaginationInfo,
 } from "@brains/entity-service";
 import type { AnchorProfile } from "../contracts/identity";
+import type { SharedState } from "../public/shared-state";
 import type { ProjectionRule } from "./projection-rule";
 import type {
   InboxActor,
@@ -710,10 +711,41 @@ export interface EntityReader {
   ): Promise<number>;
 }
 
+/** A shared runtime-state record, as a data source reads it. */
+export interface SharedStateReader<TValue> {
+  /** The record under `key`, parsed by the declaration's schema; null when absent. */
+  get(key: string): Promise<TValue | null>;
+}
+
 /** What the build tells a data source about the read it is serving. */
 export interface DataSourceReadContext {
   /** True for a production build, which shows only published records. */
   readonly publishedOnly?: boolean | undefined;
+  /**
+   * Reads a runtime-state record its owner declared shared with
+   * `defineSharedState`. A package's private runtime state is never readable.
+   */
+  readonly sharedState: <TValue>(
+    state: SharedState<TValue, unknown>,
+  ) => SharedStateReader<TValue>;
+  /** Reads other packages' data sources at this build's context. */
+  readonly dataSources: DataSourceReader;
+}
+
+/** Another package's data sources, as a data source reads them. */
+export interface DataSourceReader {
+  /**
+   * Fetches the source a package declares as `<package name>:<local id>`,
+   * at the calling build's reads: public records, and only published ones in
+   * a production build. The answer is validated by `schema`. Null when no
+   * installed package serves the source; a read that would re-enter a source
+   * this build is already reading is refused.
+   */
+  fetch<TSchema extends z.ZodType>(
+    source: `${string}:${string}`,
+    query: unknown,
+    schema: TSchema,
+  ): Promise<z.output<TSchema> | null>;
 }
 
 /**

@@ -1132,12 +1132,25 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   }
 
   protected override getDataSources(): DataSource[] {
-    // Scoped to the package, so two packages may each declare "entities".
+    if (this.dataSources.length === 0) return [];
+    const shell = this.scopedShell;
+    if (!shell) {
+      throw new Error(
+        `Entity type "${this.entityType}" binds its data sources once it is registered`,
+      );
+    }
+    // Scoped to the package, so two packages may each declare "entities";
+    // read by other packages under the package's name, whatever the scope.
     return this.dataSources.map((declaration) =>
       createDeclaredDataSource(
         declaration,
         this.scope(declaration.id),
         this.logger,
+        {
+          publicId: `${this.packageName}:${declaration.id}`,
+          runtimeState: shell.getRuntimeState(),
+          dataSources: shell.getDataSourceRegistry(),
+        },
       ),
     );
   }

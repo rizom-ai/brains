@@ -2,9 +2,11 @@ import type { JsonObject } from "@brains/contracts";
 import type {
   BaseDataSourceContext,
   DataSource,
+  DataSourceRegistry,
   DataSourceSchema,
   ListOptions,
 } from "@brains/entity-service";
+import type { IRuntimeStateNamespace } from "@brains/runtime-state";
 import type { Logger } from "@brains/utils/logger";
 import { definedFields } from "@brains/utils/strip-undefined";
 import { z } from "@brains/utils/zod";
@@ -13,6 +15,7 @@ import type {
   AnyEntityDataSourceDefinition,
   AnyEntityDefinition,
   DataSourceDefinition,
+  DataSourceReadContext,
   EntityDataSourceDefinition,
   EntityDataSourceInput,
   EntityOf,
@@ -21,6 +24,7 @@ import { createEntityReader, sortFields } from "../entity/entity-reader";
 import { withDataSourceRuntime } from "../entity/entity-runtime";
 import { entitySchema } from "../entity/entity-schema";
 import { assertIdentifier as assertLocalId } from "../package-definition";
+import { isSharedState, sharedStateNamespace } from "./shared-state";
 import {
   BaseEntityDataSource,
   type BaseQuery,
@@ -36,6 +40,7 @@ export type {
   DataSourceQuery,
   DataSourceReadContext,
   DataSourceSortField,
+  SharedStateReader,
   EntityDataSourceDefinition,
   EntityDataSourceInput,
   EntityDetailContext,
@@ -96,13 +101,90 @@ const dataSourceReadContextSchema = z.object({
   publishedOnly: z.boolean().optional(),
 });
 
+/** What the runtime gives a declared data source beyond its build's reads. */
+export interface DataSourceBindings {
+  /** `<package name>:<local id>`: what other packages' sources read it by. */
+  readonly publicId: string;
+  /** Where shared runtime-state records are read from. */
+  readonly runtimeState: Pick<IRuntimeStateNamespace, "scoped">;
+  /** Where other packages' sources are found. */
+  readonly dataSources: Pick<DataSourceRegistry, "find">;
+}
+
+/**
+ * The sources a build is already reading through one another, carried on the
+ * build's context under a key nothing else names, so a read that would come
+ * back to one of them is refused instead of recursing.
+ */
+const readChainKey = Symbol("data source read chain");
+const readChainSchema = z.array(z.string());
+
+function readChainOf(context: BaseDataSourceContext): readonly string[] {
+  return readChainSchema.catch([]).parse(Reflect.get(context, readChainKey));
+}
+
+/** Other packages' sources, read at the build's context a fetch was given. */
+function dataSourceReader(
+  registry: DataSourceBindings["dataSources"],
+  context: BaseDataSourceContext,
+  readerId: string,
+): DataSourceReadContext["dataSources"] {
+  const chain = [...readChainOf(context), readerId];
+  return Object.freeze({
+    async fetch<TSchema extends z.ZodType>(
+      source: `${string}:${string}`,
+      query: unknown,
+      schema: TSchema,
+    ): Promise<z.output<TSchema> | null> {
+      const [target] = registry.find(
+        (dataSource) => dataSource.publicId === source,
+      );
+      if (!target?.fetch) return null;
+      if (chain.includes(target.id)) {
+        throw new Error(
+          `Data source "${source}" is already being read by this build's chain, so reading it again would recurse`,
+        );
+      }
+      // The build's own reads, with this source added to the chain.
+      const nested: BaseDataSourceContext = Object.assign(
+        { ...context },
+        { [readChainKey]: chain },
+      );
+      // The source answers as it does for its own templates; the reader's
+      // schema decides what the reader accepts.
+      return schema.parse(await target.fetch(query, z.unknown(), nested));
+    },
+  });
+}
+
+/** The read-only view of a shared record a data source is given. */
+function sharedStateReader(
+  runtimeState: DataSourceBindings["runtimeState"],
+): DataSourceReadContext["sharedState"] {
+  return (state) => {
+    if (!isSharedState(state)) {
+      throw new Error(
+        "A data source reads only shared state declared with defineSharedState",
+      );
+    }
+    const store = runtimeState.scoped({
+      namespace: sharedStateNamespace(state.name),
+      schema: state.schema,
+    });
+    return Object.freeze({ get: (key: string) => store.get(key) });
+  };
+}
+
 /** Bind a declared fetching data source to the runtime under its scoped id. */
 function createFetchingDataSource(
   definition: DataSourceDefinition,
   scopedId: string,
+  bindings: DataSourceBindings,
 ): DataSource {
+  const sharedState = sharedStateReader(bindings.runtimeState);
   return {
     id: scopedId,
+    publicId: bindings.publicId,
     name: definition.name,
     description: definition.description,
     async fetch<T>(
@@ -112,10 +194,18 @@ function createFetchingDataSource(
     ): Promise<T> {
       // First-party sources reach untyped reads at the build's own scope
       // through entityRuntime(context).
-      const readContext = withDataSourceRuntime(
-        dataSourceReadContextSchema.parse(
-          definedFields({ publishedOnly: context.publishedOnly }),
-        ),
+      const readContext: DataSourceReadContext = withDataSourceRuntime(
+        {
+          ...dataSourceReadContextSchema.parse(
+            definedFields({ publishedOnly: context.publishedOnly }),
+          ),
+          sharedState,
+          dataSources: dataSourceReader(
+            bindings.dataSources,
+            context,
+            scopedId,
+          ),
+        },
         context.entityService,
       );
       return outputSchema.parse(
@@ -142,6 +232,7 @@ function filterOptions(
 function createEntityDataSource(
   definition: AnyEntityDataSourceDefinition,
   scopedId: string,
+  publicId: string,
   logger: Logger,
 ): DataSource {
   const config: EntityDataSourceConfig<EntityOf<AnyEntityDefinition>> = {
@@ -164,6 +255,7 @@ function createEntityDataSource(
     JsonObject
   > {
     public readonly id = scopedId;
+    public readonly publicId = publicId;
     public readonly name = definition.name;
     public readonly description = definition.description;
     protected readonly config = config;
@@ -240,8 +332,9 @@ export function createDeclaredDataSource(
   declaration: AnyDataSourceDeclaration,
   scopedId: string,
   logger: Logger,
+  bindings: DataSourceBindings,
 ): DataSource {
   return declaration.kind === "rizom-data-source"
-    ? createFetchingDataSource(declaration, scopedId)
-    : createEntityDataSource(declaration, scopedId, logger);
+    ? createFetchingDataSource(declaration, scopedId, bindings)
+    : createEntityDataSource(declaration, scopedId, bindings.publicId, logger);
 }

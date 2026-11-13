@@ -377,10 +377,12 @@ export {
   type DataSourceQuery,
   type DataSourceReadContext,
   type DataSourceSortField,
+  type SharedStateReader,
   type EntityDataSourceDefinition,
   type EntityDataSourceInput,
   type EntityDetailContext,
 } from "./public/entity-data-source";
+export { defineSharedState, type SharedState } from "./public/shared-state";
 export {
   defineAccountSettings,
   defineStudioWorkspace,

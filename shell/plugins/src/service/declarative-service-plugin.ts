@@ -1486,12 +1486,20 @@ class DeclarativeServicePlugin<
               `Data source "${declaration.id}" reads "${type}", which the package does not declare`,
             );
           context.entities.registerDataSource(
-            createDeclaredDataSource(declaration, id, this.logger),
+            createDeclaredDataSource(declaration, id, this.logger, {
+              publicId: `${this.packageName}:${declaration.id}`,
+              runtimeState: context.runtimeState,
+              dataSources: this.requireShell().getDataSourceRegistry(),
+            }),
           );
           return;
         }
         context.entities.registerDataSource(
-          firstPartyDataSource(id, declaration),
+          firstPartyDataSource(
+            id,
+            `${this.packageName}:${declaration.id}`,
+            declaration,
+          ),
         );
       },
       template: (name, template, options = {}): void => {
@@ -2058,10 +2066,12 @@ function corpusReadsOf(
  */
 function firstPartyDataSource(
   id: string,
+  publicId: string,
   declaration: ServiceDataSourceDeclaration,
 ): DataSource {
   return {
     id,
+    publicId,
     name: declaration.name,
     description: declaration.description,
     fetch: async <T>(

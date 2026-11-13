@@ -1061,6 +1061,13 @@ export interface DataSource {
   id: string;
 
   /**
+   * The name another package's data source reads this one by:
+   * `<package name>:<local id>`. Set for a declared source, whatever
+   * scope its id is registered under.
+   */
+  publicId?: string | undefined;
+
+  /**
    * Human-readable name for this data source
    */
   name: string;

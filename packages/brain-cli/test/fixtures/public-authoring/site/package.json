@@ -10,6 +10,7 @@
     }
   },
   "dependencies": {
+    "@fixture/reading-insights": "0.1.0",
     "@rizom/brain-ui": "0.2.0-alpha.649",
     "@rizom/site": "0.2.0-alpha.233"
   },
