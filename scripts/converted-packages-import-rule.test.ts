@@ -156,7 +156,6 @@ describe("a converted package's imports", () => {
   test.each([
     "interfaces/not-yet-converted/src/plugin.ts",
     "plugins/not-yet-converted/src/plugin.ts",
-    "plugins/action-board/src/plugin.ts",
   ])("leave %s, not converted, on the plugins package", (file) => {
     const rule = importRuleFor(file);
 

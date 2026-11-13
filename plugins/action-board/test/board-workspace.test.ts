@@ -11,6 +11,7 @@ import type {
 import { z } from "@brains/utils/zod";
 import { ActionItemAdapter } from "@brains/action-items";
 import { registerBoardWorkspace } from "../src/board-workspace";
+import { boardContextFor } from "./board-plugins";
 import {
   actionItemSchema,
   type ActionItemMetadata,
@@ -94,7 +95,7 @@ async function registered(
       data: { workspaceUrl: "/studio/workspaces/action-board%3Aboard" },
     };
   });
-  await registerBoardWorkspace(context, {
+  await registerBoardWorkspace(boardContextFor(context), {
     now: () => NOW,
     visibility: "shared",
     members: async () => MEMBERS,

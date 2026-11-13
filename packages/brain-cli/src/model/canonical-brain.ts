@@ -74,7 +74,7 @@ import askContentPackage from "@brains/ask-content";
 import topicsPackage from "@brains/topics";
 import knowledgeMapPackage from "@brains/knowledge-map";
 import unifiedInboxPackage from "@brains/unified-inbox";
-import { actionBoardPlugin } from "@brains/action-board";
+import { actionBoardPackage } from "@brains/action-board";
 import webChatInterface from "@brains/web-chat";
 import wishlistPackage from "@brains/wishlist";
 import { CANONICAL_CHAT_MODEL } from "./canonical-model";
@@ -434,7 +434,14 @@ export const canonicalBrain: BrainDefinition = defineBrain({
         pluginId: "conversation-memory",
       },
     ),
-    ["action-board", actionBoardPlugin, undefined],
+    packageCapability(
+      "action-board",
+      "@brains/action-board",
+      actionBoardPackage,
+      {
+        pluginId: "action-board",
+      },
+    ),
     packageCapability("faq", "@brains/faq", faqPackage, {
       // Under the id its class had, which registered the faq type inside
       // itself: the type installs apart.

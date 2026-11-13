@@ -19,7 +19,7 @@ import {
   type ActionItemStatus,
 } from "@brains/action-items";
 import { registerBoardWorkspace } from "../src/board-workspace";
-import { createActionBoardPlugins } from "./board-plugins";
+import { boardContextFor, createActionBoardPlugins } from "./board-plugins";
 
 const NOW = new Date("2026-10-15T12:00:00.000Z");
 
@@ -144,7 +144,7 @@ async function brain(
       data: { workspaceUrl: "/studio/workspaces/action-board%3Aboard" },
     };
   });
-  await registerBoardWorkspace(boardContext, {
+  await registerBoardWorkspace(boardContextFor(boardContext), {
     now: () => NOW,
     visibility: "shared",
     projectGrouping: key,
