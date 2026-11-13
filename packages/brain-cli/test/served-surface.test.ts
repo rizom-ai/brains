@@ -109,12 +109,16 @@ const VOLATILE_HEADERS: Record<string, string> = {
 function normalizeHeaders(
   headers: Headers,
   port: number,
+  { lengthVaries }: { lengthVaries: boolean },
 ): Record<string, string> {
   return Object.fromEntries(
     [...headers.entries()]
       .map(([name, value]): [string, string] => [
         name,
-        VOLATILE_HEADERS[name] ?? value.replaceAll(String(port), "<port>"),
+        lengthVaries && name === "content-length"
+          ? "<length>"
+          : (VOLATILE_HEADERS[name] ??
+            value.replaceAll(String(port), "<port>")),
       ])
       .sort(([a], [b]) => a.localeCompare(b)),
   );
@@ -165,7 +169,11 @@ async function requestSurface(
       request.headers ? ` ${JSON.stringify(request.headers)}` : ""
     }`,
     status: response.status,
-    headers: normalizeHeaders(response.headers, port),
+    headers: normalizeHeaders(response.headers, port, {
+      // A JSON body is compared with its run-specific values replaced, so
+      // its byte length, which those values change, is not recorded.
+      lengthVaries: request.read === "json",
+    }),
     ...(body !== undefined ? { body } : {}),
   };
 }
