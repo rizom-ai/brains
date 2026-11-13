@@ -757,6 +757,17 @@ describe("buildMessageWithAttachments", () => {
       },
     );
 
+    it("is not offered to a request that asks for no save", () => {
+      const content = buildMessageWithAttachments(
+        "Describe the uploaded image.",
+        undefined,
+        { uploadRefs: [ref("robot.png", "image/png", "upload-robot")] },
+      );
+
+      expect(content).not.toContain("candidate for saving the newest upload");
+      expect(content).toContain('- robot.png; upload id: "upload-robot"');
+    });
+
     it("is offered for a PDF as a note too, its text extracted, for a request for a note", () => {
       const content = buildMessageWithAttachments(
         "turn it into a note",
