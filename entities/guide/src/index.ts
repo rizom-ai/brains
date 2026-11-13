@@ -33,15 +33,15 @@ export {
   listGuides,
   parseGuideData,
 } from "./datasources/guide-datasource";
+export { guideSectionsDataSource } from "./datasources/guide-sections-datasource";
 export {
-  guideSectionsDataSource,
   guideSectionSchema,
   guideSectionsSchema,
   sectionDocSchema,
   type GuideSection,
   type GuideSectionsData,
   type SectionDoc,
-} from "./datasources/guide-sections-datasource";
+} from "./schemas/guide-sections";
 export { GuideListTemplate, type GuideListProps } from "./templates/guide-list";
 export { GuideBandTemplate } from "./templates/guide-band";
 export {

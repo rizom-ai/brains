@@ -24,7 +24,7 @@ import {
   GuideSectionsTemplate,
   type GuideSectionsProps,
 } from "../templates/guide-sections";
-import { sectionDocSchema } from "../datasources/guide-sections-datasource";
+import { sectionDocSchema } from "../schemas/guide-sections";
 
 // Templates take rendered data, whose visibility is already canonical, so the
 // display schema uses the plain visibility schema rather than the parser's.
