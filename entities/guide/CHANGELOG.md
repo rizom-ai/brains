@@ -1,5 +1,15 @@
 # @brains/guide
 
+## 0.2.0-alpha.699
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/brain-ui@0.2.0-alpha.699
+  - @brains/docs-chrome@0.2.0-alpha.699
+  - @brains/utils@0.2.0-alpha.699
+  - @brains/plugins@0.2.0-alpha.699
+
 ## 0.2.0-alpha.698
 
 ### Patch Changes

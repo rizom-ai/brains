@@ -1,7 +1,7 @@
 {
   "name": "@brains/forms",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.698",
+  "version": "0.2.0-alpha.699",
   "description": "The engine behind a Brain site's public forms",
   "dependencies": {
     "@brains/console-theme": "workspace:*",

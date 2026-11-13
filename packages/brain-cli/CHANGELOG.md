@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.699
+
+### Patch Changes
+
+- [#936](https://github.com/rizom-ai/brains/pull/936) [`76fec60`](https://github.com/rizom-ai/brains/commit/76fec607ce4a09c924ec602995f95d53a2aedeca) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Studio's Overview timeline gives every event light a full 24px hit target: crowded lights stack one target apart instead of covering each other.
+
 ## 0.2.0-alpha.698
 
 ### Patch Changes
