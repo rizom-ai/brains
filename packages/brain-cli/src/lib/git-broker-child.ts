@@ -43,6 +43,9 @@ export async function runGitBrokerChild(
   config: GitBrokerChildConfig,
   dependencies: GitBrokerChildDependencies = {},
 ): Promise<CommandResult> {
+  // Set here rather than by `start`: the packaged broker runs its own bundle,
+  // which reaches this function without a `--child=` argument to read.
+  ConsoleLogger.setProcessRole("git-broker");
   const processImpl = dependencies.processImpl ?? process;
   const startHost = dependencies.startHost ?? startGitBrokerHost;
   const socketPath = processImpl.env[GIT_BROKER_SOCKET_ENV];

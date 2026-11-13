@@ -54,6 +54,13 @@ export class ConsoleLogger implements Logger {
   /** The singleton instance */
   private static instance: ConsoleLogger | null = null;
 
+  /**
+   * Which of its runtime's processes this one is, such as `web`, `worker` or
+   * `git-broker`. Process-wide, because every logger in the process writes to
+   * the same stdout the supervisor shares with its other children.
+   */
+  private static processRole: string | undefined;
+
   private level: LogLevel;
   private context: string | undefined;
   private useStderr: boolean;
@@ -104,6 +111,16 @@ export class ConsoleLogger implements Logger {
    */
   public static resetInstance(): void {
     ConsoleLogger.instance = null;
+    ConsoleLogger.processRole = undefined;
+  }
+
+  /**
+   * Label every line this process logs, from any logger, with its role: a
+   * `[role]` prefix on text lines and a `role` field on JSON lines. A process
+   * that is not one of several sharing an output sets none.
+   */
+  public static setProcessRole(role: string | undefined): void {
+    ConsoleLogger.processRole = role;
   }
 
   /**
@@ -115,24 +132,21 @@ export class ConsoleLogger implements Logger {
 
   /**
    * Format a log entry for output.
-   * Text: [timestamp] [context] message
-   * JSON: {"ts":"...","level":"...","ctx":"...","msg":"...","data":[...]}
+   * Text: [role] [timestamp] [context] message
+   * JSON: {"ts":"...","level":"...","role":"...","msg":"...","ctx":"...","data":[...]}
+   * Role and context appear only when set.
    */
   private formatEntry(level: string, message: string, args: unknown[]): string {
-    const timestamp = new Date().toISOString();
     if (this.format === "json") {
-      const entry: Record<string, unknown> = {
-        ts: timestamp,
-        level,
-        msg: message,
-      };
-      if (this.context) entry["ctx"] = this.context;
-      if (args.length > 0) entry["data"] = args;
-      return JSON.stringify(entry);
+      return this.formatJsonEntry(level, message, args);
     }
-    return this.context
-      ? `[${timestamp}] [${this.context}] ${message}`
-      : `[${timestamp}] ${message}`;
+    const role = ConsoleLogger.processRole;
+    return [
+      ...(role ? [`[${role}]`] : []),
+      `[${new Date().toISOString()}]`,
+      ...(this.context ? [`[${this.context}]`] : []),
+      message,
+    ].join(" ");
   }
 
   /**
@@ -182,6 +196,7 @@ export class ConsoleLogger implements Logger {
     const entry: Record<string, unknown> = {
       ts: new Date().toISOString(),
       level,
+      ...(ConsoleLogger.processRole && { role: ConsoleLogger.processRole }),
       msg: message,
     };
     if (this.context) entry["ctx"] = this.context;

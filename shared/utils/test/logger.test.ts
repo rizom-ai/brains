@@ -150,6 +150,43 @@ describe("Logger", () => {
     });
   });
 
+  describe("process role", () => {
+    test("prefixes text lines with the role", () => {
+      const spy = spyOn(console, "info").mockImplementation(() => {});
+      ConsoleLogger.setProcessRole("worker");
+      ConsoleLogger.createFresh({ context: "TestCtx" }).info("hello");
+      const msg = String(spy.mock.calls[0]?.[0]);
+      expect(msg).toMatch(/^\[worker\] \[[^\]]+\] \[TestCtx\] hello$/);
+      spy.mockRestore();
+    });
+
+    test("adds a role field to JSON lines", () => {
+      const spy = spyOn(console, "info").mockImplementation(() => {});
+      ConsoleLogger.setProcessRole("git-broker");
+      ConsoleLogger.createFresh({ format: "json" }).info("hello");
+      const parsed = parseLogRecord(spy.mock.calls[0]?.[0]);
+      expect(parsed["role"]).toBe("git-broker");
+      spy.mockRestore();
+    });
+
+    test("reaches loggers created before the role was known", () => {
+      const spy = spyOn(console, "info").mockImplementation(() => {});
+      const early = ConsoleLogger.getInstance().child("Early");
+      ConsoleLogger.setProcessRole("web");
+      early.info("hello");
+      expect(String(spy.mock.calls[0]?.[0])).toStartWith("[web] [");
+      spy.mockRestore();
+    });
+
+    test("leaves lines unlabeled when no role is set", () => {
+      const spy = spyOn(console, "info").mockImplementation(() => {});
+      ConsoleLogger.createFresh({ format: "json" }).info("hello");
+      const parsed = parseLogRecord(spy.mock.calls[0]?.[0]);
+      expect(parsed["role"]).toBeUndefined();
+      spy.mockRestore();
+    });
+  });
+
   describe("useStderr", () => {
     test("info writes to stderr when useStderr is true", () => {
       const spy = spyOn(console, "error").mockImplementation(() => {});

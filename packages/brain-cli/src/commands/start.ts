@@ -10,6 +10,7 @@ import {
 import { checkModelKeys } from "../lib/preflight";
 import { formatBootError } from "../lib/boot-errors";
 import { getErrorMessage } from "@brains/utils/error";
+import { ConsoleLogger } from "@brains/utils/logger";
 import { spawnBunRunner } from "../lib/spawn-bun-runner";
 import {
   parseBrainChildRole,
@@ -102,6 +103,10 @@ export async function start(
       message: getErrorMessage(error),
     };
   }
+  // A supervised child shares the supervisor's stdout with its siblings, so
+  // every line it logs names it. The process the operator started (the
+  // supervisor, or a combined runtime) stays unlabeled.
+  if (childRole) ConsoleLogger.setProcessRole(childRole);
   const config = parseBrainYaml(cwd);
 
   // The broker child must be recognized before monorepo runner selection;

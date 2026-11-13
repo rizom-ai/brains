@@ -1,5 +1,6 @@
-import { describe, expect, it, mock } from "bun:test";
+import { afterEach, describe, expect, it, mock } from "bun:test";
 import { EventEmitter } from "node:events";
+import { ConsoleLogger } from "@brains/utils/logger";
 import { runGitBrokerChild } from "../src/lib/git-broker-child";
 import { GIT_BROKER_SOCKET_ENV } from "../src/lib/process-supervisor";
 
@@ -35,6 +36,11 @@ function createProcess(env: NodeJS.ProcessEnv): EventEmitter & {
 }
 
 describe("git broker child", () => {
+  // Running the broker labels the whole process's logs with its role.
+  afterEach(() => {
+    ConsoleLogger.setProcessRole(undefined);
+  });
+
   it("refuses to run without a supervisor-assigned socket", async () => {
     const startHost = mock(async () => ({
       stop: async (): Promise<void> => {},
