@@ -525,8 +525,13 @@ async function resolveUploadSource(
     uploadRecord.mediaType,
   );
   if (!registration) {
+    // Name the way out: told only that nothing preserves a text upload, a
+    // model asked the user instead of importing it as a note.
+    const asNote = isTextUploadMediaType(uploadRecord.mediaType)
+      ? ' Keep a text upload as a note: entityType "note" with transform "extract-markdown".'
+      : "";
     return guardError(
-      `No installed plugin can save uploads with media type "${uploadRecord.mediaType}".`,
+      `No installed plugin can save uploads with media type "${uploadRecord.mediaType}".${asNote}`,
     );
   }
 
