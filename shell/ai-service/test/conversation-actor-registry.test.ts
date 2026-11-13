@@ -6,6 +6,7 @@ import {
 import { Effect } from "@brains/utils/effect";
 import type { Clock } from "@brains/utils/effect";
 import { TestClock } from "@brains/utils/effect/test";
+import { deferred } from "@brains/utils/deferred";
 
 interface FakeActor {
   id: number;
@@ -56,20 +57,6 @@ function createRegistry(options?: {
       })
     : new ConversationActorRegistry<FakeActor>(registryOptions);
   return { registry, created };
-}
-
-function deferred<T>(): {
-  promise: Promise<T>;
-  resolve: (value: T) => void;
-  reject: (error: Error) => void;
-} {
-  let resolve!: (value: T) => void;
-  let reject!: (error: Error) => void;
-  const promise = new Promise<T>((res, rej) => {
-    resolve = res;
-    reject = rej;
-  });
-  return { promise, resolve, reject };
 }
 
 const delay = (ms: number): Promise<void> => Bun.sleep(ms);

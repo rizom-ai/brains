@@ -9,22 +9,7 @@ import {
   type DirectorySyncPlugin,
 } from "./directory-sync-plugins";
 import { initializeDirectorySync } from "../src/lib/directory-lifecycle";
-
-interface Deferred<T> {
-  promise: Promise<T>;
-  resolve(value: T): void;
-}
-
-function deferred<T>(): Deferred<T> {
-  let settle: ((value: T) => void) | undefined;
-  const promise = new Promise<T>((resolve) => {
-    settle = resolve;
-  });
-  return {
-    promise,
-    resolve: (value): void => settle?.(value),
-  };
-}
+import { deferred } from "@brains/utils/deferred";
 
 describe("directory-sync lifecycle characterization", () => {
   const paths: string[] = [];

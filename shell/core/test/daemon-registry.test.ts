@@ -3,14 +3,7 @@ import { ConsoleLogger, type Logger } from "@brains/utils/logger";
 import { DaemonRegistry } from "../src/daemon-registry";
 import { caughtError } from "@brains/test-utils";
 import type { Daemon, DaemonHealth } from "@brains/plugins";
-
-function deferred(): { promise: Promise<void>; resolve(): void } {
-  let settle: (() => void) | undefined;
-  const promise = new Promise<void>((resolve) => {
-    settle = resolve;
-  });
-  return { promise, resolve: (): void => settle?.() };
-}
+import { deferred } from "@brains/utils/deferred";
 
 describe("DaemonRegistry", () => {
   let registry: DaemonRegistry;

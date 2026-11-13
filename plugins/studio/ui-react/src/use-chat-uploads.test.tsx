@@ -7,6 +7,7 @@ import { act, createElement, type ReactElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import type { ChatUploadAttempt } from "./studio-chat-contracts";
 import { useChatUploads, type ChatUploads } from "./use-chat-uploads";
+import { deferred, type Deferred } from "@brains/utils/deferred";
 
 function uploaded(name: string): ChatUploadResponse {
   return {
@@ -48,31 +49,15 @@ afterEach(async () => {
   restoreGlobals();
 });
 
-interface Deferred {
-  resolve: (value: ChatUploadResponse) => void;
-  reject: (cause: unknown) => void;
-  promise: Promise<ChatUploadResponse>;
-}
-
-function deferred(): Deferred {
-  let resolve: (value: ChatUploadResponse) => void = () => undefined;
-  let reject: (cause: unknown) => void = () => undefined;
-  const promise = new Promise<ChatUploadResponse>((done, fail) => {
-    resolve = done;
-    reject = fail;
-  });
-  return { resolve, reject, promise };
-}
-
 interface Harness {
   uploads: () => ChatUploads;
   accepted: ChatUploadResponse[];
-  pending: Map<string, Deferred>;
+  pending: Map<string, Deferred<ChatUploadResponse>>;
   draftKey: { current: string };
 }
 
 async function renderUploads(): Promise<Harness> {
-  const pending = new Map<string, Deferred>();
+  const pending = new Map<string, Deferred<ChatUploadResponse>>();
   const harness: Harness = {
     accepted: [],
     pending,
@@ -86,7 +71,7 @@ async function renderUploads(): Promise<Harness> {
     latest = useChatUploads({
       chatClient: {
         upload: (_file, filename): Promise<ChatUploadResponse> => {
-          const gate = deferred();
+          const gate = deferred<ChatUploadResponse>();
           pending.set(filename, gate);
           return gate.promise;
         },

@@ -9,14 +9,7 @@ import { PluginManager } from "../../src/manager/pluginManager";
 import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import { defineAnalyticsReport } from "../../src";
-
-function deferred(): { promise: Promise<void>; resolve(): void } {
-  let settle: (() => void) | undefined;
-  const promise = new Promise<void>((resolve) => {
-    settle = resolve;
-  });
-  return { promise, resolve: (): void => settle?.() };
-}
+import { deferred } from "@brains/utils/deferred";
 
 describe("Plugin shutdown lifecycle", () => {
   let pluginManager: PluginManager;

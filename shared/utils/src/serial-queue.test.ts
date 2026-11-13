@@ -5,14 +5,7 @@ import {
   SerialQueue,
   SingleFlight,
 } from "./serial-queue";
-
-function deferred(): { promise: Promise<void>; resolve: () => void } {
-  let resolve = (): void => {};
-  const promise = new Promise<void>((r) => {
-    resolve = r;
-  });
-  return { promise, resolve };
-}
+import { deferred } from "./deferred";
 
 describe("SerialQueue", () => {
   it("runs operations one at a time in submission order", async () => {
