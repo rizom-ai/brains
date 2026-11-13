@@ -1311,4 +1311,5 @@ export { renderedLinkFields, viewLinkFields } from "@brains/templates";
 export {
   ConfirmationArgsStore,
   ToolVisibilitySchema,
+  type ToolExecuteRequest,
 } from "@brains/mcp-service";

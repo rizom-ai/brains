@@ -40,7 +40,7 @@ export interface ToolContext {
   isAnchor?: boolean;
 }
 
-interface ToolContextRoutingSchemaShape extends ZodRawShape {
+interface ToolContextRoutingFields {
   interfaceType: z.ZodString;
   actor: typeof actorRefSchema;
   displayName: z.ZodOptional<z.ZodString>;
@@ -59,6 +59,9 @@ interface ToolContextRoutingSchemaShape extends ZodRawShape {
   isAnchor: z.ZodOptional<z.ZodBoolean>;
 }
 
+interface ToolContextRoutingSchemaShape
+  extends ZodRawShape, ToolContextRoutingFields {}
+
 /**
  * Schema for ToolContext routing metadata
  * Used to validate routing information in tool execution requests
@@ -76,6 +79,44 @@ export const ToolContextRoutingSchema: z.ZodObject<ToolContextRoutingSchemaShape
     userPermissionLevel: z.enum(["admin", "trusted", "public"]).optional(),
     isAnchor: z.boolean().optional(),
   });
+
+type SendProgress = (notification: ProgressNotification) => Promise<void>;
+
+interface ToolExecuteFields {
+  toolName: z.ZodString;
+  args: z.ZodUnknown;
+  progressToken: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodNumber]>>;
+  sendProgress: z.ZodOptional<z.ZodCustom<SendProgress, SendProgress>>;
+  signal: z.ZodOptional<z.ZodCustom<AbortSignal, AbortSignal>>;
+}
+
+/** The fields as a plain shape: an interface's index signature would erase them. */
+type ToolExecuteRequestSchemaShape = {
+  [
+    K in keyof (ToolContextRoutingFields & ToolExecuteFields)
+  ]: (ToolContextRoutingFields & ToolExecuteFields)[K];
+};
+
+/**
+ * What the bus carries to the plugin that owns a tool: the tool and its
+ * arguments, who is calling from where, and how the call reports progress
+ * and is cancelled. The one shape both senders build and every plugin parses.
+ */
+export const toolExecuteRequestSchema: z.ZodObject<ToolExecuteRequestSchemaShape> =
+  z.object({
+    ...ToolContextRoutingSchema.shape,
+    toolName: z.string(),
+    args: z.unknown(),
+    progressToken: z.union([z.string(), z.number()]).optional(),
+    sendProgress: z
+      .custom<SendProgress>((value) => typeof value === "function")
+      .optional(),
+    signal: z
+      .custom<AbortSignal>((value) => value instanceof AbortSignal)
+      .optional(),
+  });
+
+export type ToolExecuteRequest = z.input<typeof toolExecuteRequestSchema>;
 
 /**
  * Success response schema
