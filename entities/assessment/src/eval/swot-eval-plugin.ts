@@ -17,11 +17,8 @@ import {
   type ServiceRuntime,
 } from "@brains/sdk/internal/service-runtime";
 import { generateIdFromText, slugifyUrl } from "@brains/utils/string-utils";
-import { swotDefinition, swotWritten } from "../swot-entity";
-import {
-  SWOT_DERIVATION_RULE_ID,
-  createSwotProjectionRule,
-} from "../lib/swot-projection";
+import { swot, swotWritten } from "../swot-entity";
+import { SWOT_DERIVATION_RULE_ID } from "../lib/swot-projection";
 
 /** An agent a test case seeds: its saved frontmatter and body sections. */
 const swotEvalAgentSchema = agentFrontmatterSchema.extend({
@@ -130,7 +127,8 @@ const swotEvalPackage: ServicePackageDefinition<typeof emptyConfigSchema> =
     id: "assessment",
     config: emptyConfigSchema,
     entities: [
-      swotDefinition(createSwotProjectionRule({ scheduled: false })),
+      // The SWOT with derivation off: its rule is unscheduled.
+      swot,
       agentEntity(undefined),
       skill,
     ],

@@ -5,15 +5,14 @@ import { tmpdir } from "node:os";
 import { agentEntity, skill } from "@brains/agent-discovery";
 import { EvalHandlerRegistry } from "@brains/ai-evaluation";
 import { MigrationManager } from "@brains/app";
-import { derivedSwot } from "@brains/assessment";
+import { derivedSwot, swotPackage } from "@brains/assessment";
 import swotEvalPackage from "@brains/assessment/eval";
 import { PROJECTION_RULE_JOB_TYPE, Shell } from "@brains/core";
-import type { JobQueueEnqueueRequest } from "@brains/job-queue";
 import { OperationContext } from "@brains/operation-context";
 import {
   defineServicePlugin,
   instantiatePluginPackageDefinition,
-  type PluginPackageDefinition,
+  type Plugin,
 } from "@brains/plugins";
 import { waitUntil } from "@brains/test-utils";
 import { ConsoleLogger, LogLevel } from "@brains/utils/logger";
@@ -59,12 +58,51 @@ const basicCase = z
     ),
   );
 
+/** A job the brain's queue was asked to run. */
+type JobQueueEnqueueRequest = Parameters<
+  ReturnType<Shell["getJobQueueService"]>["enqueue"]
+>[0];
+
+const metadata = { name: "@brains/assessment", version: "0.0.0-test" };
+
+/** The eval brain, as evals/eval.yaml installs it. */
+const evalBrain = (): Plugin[] =>
+  instantiatePluginPackageDefinition(swotEvalPackage, {}, metadata, {
+    pluginId: "assessment",
+  });
+
 /** The same types as the eval brain's, the swot type with its scheduled rule. */
-const scheduledPackage = defineServicePlugin({
-  id: "assessment",
-  config: z.object({}),
-  entities: [derivedSwot, agentEntity(undefined), skill],
-});
+const scheduledBrain = (): Plugin[] =>
+  instantiatePluginPackageDefinition(
+    defineServicePlugin({
+      id: "assessment",
+      config: z.object({}),
+      entities: [derivedSwot, agentEntity(undefined), skill],
+    }),
+    {},
+    metadata,
+    { pluginId: "assessment" },
+  );
+
+/**
+ * A brain with derivation off, as the composer installs it, beside the
+ * agent and skill types its rule reads.
+ */
+const derivationOffBrain = (): Plugin[] => [
+  ...instantiatePluginPackageDefinition(swotPackage, {}, metadata, {
+    pluginId: "swot",
+  }),
+  ...instantiatePluginPackageDefinition(
+    defineServicePlugin({
+      id: "directory",
+      config: z.object({}),
+      entities: [agentEntity(undefined), skill],
+    }),
+    {},
+    { name: "@brains/agent-discovery", version: "0.0.0-test" },
+    { pluginId: "directory" },
+  ),
+];
 
 interface EvalBrain {
   shell: Shell;
@@ -84,7 +122,7 @@ describe("the SWOT eval brain", () => {
     ConsoleLogger.resetInstance();
   });
 
-  async function boot(definition: PluginPackageDefinition): Promise<EvalBrain> {
+  async function boot(plugins: Plugin[]): Promise<EvalBrain> {
     tempRoot = await mkdtemp(join(tmpdir(), "swot-eval-scheduling-"));
     const logger = ConsoleLogger.getInstance({ level: LogLevel.ERROR });
     const url = (name: string): string => `file:${join(tempRoot ?? "", name)}`;
@@ -101,12 +139,7 @@ describe("the SWOT eval brain", () => {
       {
         name: "SWOT eval scheduling",
         version: "0.0.0-test",
-        plugins: instantiatePluginPackageDefinition(
-          definition,
-          {},
-          { name: "@brains/assessment", version: "0.0.0-test" },
-          { pluginId: "assessment" },
-        ),
+        plugins,
         permissions: {},
         spaces: [],
         database: { url: url("brain.db") },
@@ -146,6 +179,17 @@ describe("the SWOT eval brain", () => {
     return { shell: booted, registry, queued };
   }
 
+  const seedResearch = async (brain: EvalBrain): Promise<void> => {
+    await brain.shell.getEntityService().createEntityFromMarkdown({
+      input: {
+        entityType: "skill",
+        id: "research",
+        markdown:
+          "---\nname: Research\ndescription: Turn source material into grounded findings.\ntags:\n  - research\nexamples: []\n---\n",
+      },
+    });
+  };
+
   const swotDerivations = (queued: readonly JobQueueEnqueueRequest[]): number =>
     queued.filter(
       ({ type, data }) =>
@@ -155,7 +199,7 @@ describe("the SWOT eval brain", () => {
     ).length;
 
   it("queues no swot derivation when a test case is seeded", async () => {
-    const brain = await boot(swotEvalPackage);
+    const brain = await boot(evalBrain());
     const handler = brain.registry.get(basicCase.plugin, basicCase.handler);
     if (!handler) throw new Error("No deriveSwot eval");
 
@@ -181,17 +225,9 @@ describe("the SWOT eval brain", () => {
   });
 
   it("queues one for the same seeding when the rule is scheduled", async () => {
-    const brain = await boot(scheduledPackage);
-    const service = brain.shell.getEntityService();
+    const brain = await boot(scheduledBrain());
 
-    await service.createEntityFromMarkdown({
-      input: {
-        entityType: "skill",
-        id: "research",
-        markdown:
-          "---\nname: Research\ndescription: Turn source material into grounded findings.\ntags:\n  - research\nexamples: []\n---\n",
-      },
-    });
+    await seedResearch(brain);
     await waitUntil(
       () => swotDerivations(brain.queued) > 0,
       "the scheduler queues swot-derivation",
@@ -199,5 +235,20 @@ describe("the SWOT eval brain", () => {
     );
 
     expect(swotDerivations(brain.queued)).toBeGreaterThan(0);
+  });
+
+  it("with derivation off, answers swot:deriveSwot and queues no derivation", async () => {
+    const brain = await boot(derivationOffBrain());
+    const handler = brain.registry.get("swot", "deriveSwot");
+    if (!handler) throw new Error("No swot:deriveSwot eval");
+
+    await seedResearch(brain);
+    expect(await handler({})).toMatchObject({
+      strengths: expect.any(Array),
+      derivedAt: expect.any(String),
+    });
+    await Bun.sleep(SCHEDULER_WINDOW_MS);
+
+    expect(swotDerivations(brain.queued)).toBe(0);
   });
 });

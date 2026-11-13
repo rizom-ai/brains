@@ -55,11 +55,15 @@ describe("the swot plugin", () => {
     });
   });
 
-  it("does not register the AI-backed rule when derivation is disabled", async () => {
+  it("registers the AI-backed rule unscheduled when derivation is disabled", async () => {
     const plugin = swotPlugin({ enableSwotDerivation: false });
     const capabilities = await harness.installPlugin(plugin);
 
-    expect(capabilities.projectionRules).toBeUndefined();
+    expect(capabilities.projectionRules).toHaveLength(1);
+    expect(capabilities.projectionRules?.[0]).toMatchObject({
+      id: "swot-derivation",
+      sources: [],
+    });
   });
 
   it("registers deriveSwot eval handler", async () => {

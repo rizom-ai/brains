@@ -25,12 +25,12 @@ export type AssessmentConfigInput = z.input<typeof assessmentConfigSchema>;
 /**
  * The SWOT, derived from the brain's agents and skills. A brain installs it
  * under the id its class had, swot; with derivation off it installs
- * `swotPackage`, the same type without the rule.
+ * `swotPackage`, the same type with its rule unscheduled.
  */
 export const derivedSwotPackage: EntityPackageDefinition<
   readonly [typeof derivedSwot]
 > = defineEntityPackage({ id: "swot", entities: [derivedSwot] });
 
-/** The SWOT with derivation off: none is derived. */
+/** The SWOT with derivation off: nothing derives it but its eval. */
 export const swotPackage: EntityPackageDefinition<readonly [typeof swot]> =
   defineEntityPackage({ id: "swot", entities: [swot] });

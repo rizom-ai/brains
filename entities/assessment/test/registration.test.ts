@@ -58,7 +58,10 @@ async function installed(
 
 function rules(capabilities: PluginCapabilities[]): string[] {
   return capabilities.flatMap(({ projectionRules }) =>
-    (projectionRules ?? []).map(({ id, version }) => `${id}@${version}`),
+    (projectionRules ?? []).map(
+      ({ id, version, sources }) =>
+        `${id}@${version} <- ${sources.flatMap(({ types }) => types).join(",") || "nothing"}`,
+    ),
   );
 }
 
@@ -113,15 +116,20 @@ describe("the assessment capability's registered surface", () => {
     ).toEqual([]);
   });
 
-  it("derives the SWOT by the swot-derivation rule only with derivation on", async () => {
+  it("derives the SWOT by the swot-derivation rule, scheduled only with derivation on", async () => {
     for (const executionOnly of [false, true]) {
       expect(
         rules((await installed({}, { executionOnly })).capabilities),
-      ).toEqual(["swot-derivation@1"]);
+      ).toEqual(["swot-derivation@1 <- agent,skill"]);
+      // Off, the rule names no sources: nothing derives the SWOT in the
+      // background, as main registered no rule, and its eval still runs it.
+      expect(
+        rules(
+          (await installed({ enableSwotDerivation: false }, { executionOnly }))
+            .capabilities,
+        ),
+      ).toEqual(["swot-derivation@1 <- nothing"]);
     }
-    expect(
-      rules((await installed({ enableSwotDerivation: false })).capabilities),
-    ).toEqual([]);
   });
 
   it("registers its eval and widget in the main process only, derivation on or off", async () => {

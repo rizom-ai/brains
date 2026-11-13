@@ -63,14 +63,12 @@ export function swotWritten(
 }
 
 /**
- * The swot type, with or without the rule that derives it: a SWOT
+ * The swot type with the rule that derives it, scheduled or not: a SWOT
  * analysis of what the brain and its network can do, derived from its
- * agents and skills. Its `deriveSwot` eval measures the production rule
- * against the brain as it stands.
+ * agents and skills. Its `deriveSwot` eval measures the rule against the
+ * brain as it stands, scheduled or not.
  */
-export function swotDefinition(
-  rule: ProjectionRule | undefined,
-): SwotDefinition {
+function swotDefinition(rule: ProjectionRule): SwotDefinition {
   const definition: SwotDefinition = writesInDocumentOrder(
     withFrontmatterSchema(
       defineEntity({
@@ -81,7 +79,7 @@ export function swotDefinition(
         metadata: swotMetadataSchema,
         markdown: storedSwot,
         config: { projectionSource: false, projectionSourceRole: "excluded" },
-        ...(rule && { projectionRules: [rule] }),
+        projectionRules: [rule],
         evals: {
           deriveSwot: async (_input, context) =>
             swotWritten(
@@ -105,5 +103,10 @@ export const derivedSwot: SwotDefinition = swotDefinition(
   createSwotProjectionRule(),
 );
 
-/** The SWOT, with derivation off: none is derived. */
-export const swot: SwotDefinition = swotDefinition(undefined);
+/**
+ * The SWOT, with derivation off: its rule names no sources, so nothing
+ * derives it in the background, and only its eval runs it.
+ */
+export const swot: SwotDefinition = swotDefinition(
+  createSwotProjectionRule({ scheduled: false }),
+);
