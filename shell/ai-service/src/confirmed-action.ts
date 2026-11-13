@@ -12,24 +12,11 @@ import {
   toolResultFrom,
   type EntityMemoryRef,
 } from "./agent-results";
-
-const recordSchema = z.record(z.string(), z.unknown());
-type ParsedRecord = z.output<typeof recordSchema>;
+import { asRecord, readString } from "@brains/utils/record-fields";
 
 const failedToolOutputSchema = z.looseObject({
   success: z.literal(false),
 });
-
-function parseRecord(value: unknown): ParsedRecord | undefined {
-  const parsed = recordSchema.safeParse(value);
-  return parsed.success ? parsed.data : undefined;
-}
-
-function getStringField(value: unknown, field: string): string | undefined {
-  const record = parseRecord(value);
-  const fieldValue = record?.[field];
-  return typeof fieldValue === "string" ? fieldValue : undefined;
-}
 
 function isFailedToolOutput(value: unknown): boolean {
   return failedToolOutputSchema.safeParse(value).success;
@@ -48,7 +35,7 @@ const INTERNAL_CONFIRMATION_FIELDS = new Set([
 function toApprovalCardInput(
   args: unknown,
 ): Record<string, unknown> | undefined {
-  const parsedArgs = parseRecord(args);
+  const parsedArgs = asRecord(args);
   if (!parsedArgs) return undefined;
   return Object.fromEntries(
     Object.entries(parsedArgs).filter(
@@ -76,7 +63,7 @@ export function buildConfirmedActionResult(
   const failed = isFailedToolOutput(result);
   const prefix = failed ? "Failed" : "Completed";
   const errorMessage = failed
-    ? (getStringField(result, "error") ?? getStringField(result, "message"))
+    ? (readString(result, "error") ?? readString(result, "message"))
     : undefined;
   const actionLabel = statementFromConfirmationSummary(
     failed
@@ -89,7 +76,7 @@ export function buildConfirmedActionResult(
   const resultText = detail
     ? `${prefix}: ${actionLabel}\n\n${detail}`
     : `${prefix}: ${actionLabel}`;
-  const pendingArgs = parseRecord(pendingConfirmation.args);
+  const pendingArgs = asRecord(pendingConfirmation.args);
   // Recorded the way any turn records a tool's result, so a confirmed write
   // reads like one the agent made without asking.
   const toolResult: ToolResultData = toolResultFrom({
@@ -117,7 +104,7 @@ export function buildConfirmedActionResult(
     state: failed ? "output-error" : "output-available",
     output: result,
     ...(failed
-      ? { error: getStringField(result, "error") ?? "Action failed" }
+      ? { error: readString(result, "error") ?? "Action failed" }
       : {}),
   };
   // A save of several files shows each saved file's attachment.

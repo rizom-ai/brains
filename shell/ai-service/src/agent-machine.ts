@@ -14,7 +14,6 @@ import type {
   GuestExecutionPolicy,
   GuestScreening,
 } from "@brains/contracts/chat";
-import { z } from "@brains/utils/zod";
 import type { UserPermissionLevel } from "@brains/templates";
 import type {
   ConversationMessageActor,
@@ -27,6 +26,7 @@ import type {
 } from "./agent-types";
 import { getErrorMessage } from "@brains/utils/error";
 import { AIProviderDeclinedError } from "./errors";
+import { asRecord } from "@brains/utils/record-fields";
 
 export interface PendingConfirmationRequester {
   actorKey?: string;
@@ -148,14 +148,6 @@ export const emptyUsage = {
   totalTokens: 0,
 };
 
-const recordSchema = z.record(z.string(), z.unknown());
-type ParsedRecord = z.output<typeof recordSchema>;
-
-function parseRecord(value: unknown): ParsedRecord | undefined {
-  const parsed = recordSchema.safeParse(value);
-  return parsed.success ? parsed.data : undefined;
-}
-
 function actorKey(actor: ConversationMessageActor | null): string | undefined {
   return actor ? actorRefKey(actor.identity) : undefined;
 }
@@ -209,7 +201,7 @@ function buildCancelledResponse(
   confirmation: PendingConfirmation | null,
 ): AgentResponse {
   const summary = confirmation?.summary ?? "unknown action";
-  const input = parseRecord(confirmation?.args);
+  const input = asRecord(confirmation?.args);
   return {
     text: `Action cancelled: ${summary}`,
     ...(confirmation

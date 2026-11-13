@@ -14,6 +14,7 @@ import type { ImportResult, RawEntity } from "../types";
 
 import { resolveInSyncPath } from "./path-utils";
 import { recordImportIssue, recordSkippedImport } from "./import-result";
+import { isRecord } from "@brains/utils/is-record";
 
 export interface ImportPersistenceDeps {
   entityService: Pick<
@@ -68,11 +69,7 @@ function resolveImportVisibility(
 
 function frontmatterRecord(markdown: string): Record<string, unknown> {
   const { data } = readMarkdownFrontmatter(markdown);
-  return isPlainRecord(data) ? data : {};
-}
-
-function isPlainRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+  return isRecord(data) ? data : {};
 }
 
 /**
@@ -87,8 +84,8 @@ function dropsFrontmatterFields(file: string, stored: string): boolean {
     if (!Object.hasOwn(kept, key)) return true;
     const keptValue = kept[key];
     return (
-      isPlainRecord(value) &&
-      isPlainRecord(keptValue) &&
+      isRecord(value) &&
+      isRecord(keptValue) &&
       Object.keys(value).some((nested) => !Object.hasOwn(keptValue, nested))
     );
   });
