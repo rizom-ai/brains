@@ -1,6 +1,6 @@
 import { createMockShell } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
-import { AuthServicePlugin } from "@brains/auth-service";
+import { authServicePlugin } from "@brains/auth-service";
 import {
   studioOverviewContributionRegisterContract,
   studioWorkspaceRegisterContract,
@@ -36,7 +36,7 @@ describe("administration workspace provider", () => {
 
   it("retains source ownership of one administration workspace", async () => {
     const shell = createMockShell({ domain: "brain.test" });
-    const authPlugin = new AuthServicePlugin({
+    const authPlugin = authServicePlugin({
       storageDir: await createTempDir("brains-admin-workspace-provider-"),
     });
     await authPlugin.register(shell);

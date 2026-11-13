@@ -8,11 +8,8 @@ import type {
   ChannelDeliveryResult,
   ChannelDescriptor,
 } from "@brains/plugins";
-import {
-  AuthService,
-  authServicePlugin,
-  type AuthServiceOptions,
-} from "../src";
+import { AuthService, type AuthServiceOptions } from "../src";
+import { installedRoutes } from "./installed-routes";
 import { seedRuntimePasskeyCredential } from "./runtime-passkey-fixture";
 import { z } from "@brains/utils/zod";
 
@@ -216,9 +213,9 @@ afterEach(async () => {
 });
 
 describe("auth admin API", () => {
-  it("registers only non-agent HTTP management routes", () => {
-    const plugin = authServicePlugin();
-    expect(plugin.getWebRoutes()).toEqual(
+  it("registers only non-agent HTTP management routes", async () => {
+    const routes = await installedRoutes();
+    expect(routes).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ path: "/auth/admin/users", method: "GET" }),
         expect.objectContaining({ path: "/auth/admin/anchor", method: "GET" }),
@@ -232,15 +229,11 @@ describe("auth admin API", () => {
         }),
       ]),
     );
+    expect(routes.some((route) => route.path.includes("representations"))).toBe(
+      false,
+    );
     expect(
-      plugin
-        .getWebRoutes()
-        .some((route) => route.path.includes("representations")),
-    ).toBe(false);
-    expect(
-      plugin
-        .getWebRoutes()
-        .some((route) => route.path === "/auth/admin/interface-grants"),
+      routes.some((route) => route.path === "/auth/admin/interface-grants"),
     ).toBe(false);
   });
 

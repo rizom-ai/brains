@@ -1,4 +1,7 @@
-import { normalizeIssuer } from "@brains/plugins";
+import {
+  instantiatePluginPackageDefinition,
+  normalizeIssuer,
+} from "@brains/plugins";
 import {
   CHAT_INTERACTION_ID,
   MCP_INTERACTION_ID,
@@ -21,7 +24,9 @@ import {
 } from "@brains/contracts";
 import {
   AuthService,
-  AuthServicePlugin,
+  authServiceConfigSchema,
+  authServiceOf,
+  authServicePackage,
   authServicePlugin,
   reinitializeAuthAccessStorage,
   type AuthServiceConfig,
@@ -69,10 +74,8 @@ async function tempStorageDir(): Promise<string> {
   return dir;
 }
 
-async function readyAuthPlugin(
-  harness: PluginTestHarness<AuthServicePlugin>,
-): Promise<void> {
-  await harness.getPlugin().ready();
+async function readyAuthPlugin(harness: PluginTestHarness): Promise<void> {
+  await harness.getPlugin().ready?.();
 }
 
 async function seedPasskeyCredential(storageDir: string): Promise<void> {
@@ -113,7 +116,7 @@ async function sendAnchorSetupEmail(
   };
 }> {
   const storageDir = await tempStorageDir();
-  const harness = new PluginTestHarness<AuthServicePlugin>({
+  const harness = new PluginTestHarness({
     domain: "brain.example.com",
     logContext: "auth-service-test",
   });
@@ -163,7 +166,7 @@ describe("AuthService", () => {
   });
 
   it("serves its service to other plugins through context.auth until shutdown", async () => {
-    const harness = new PluginTestHarness<AuthServicePlugin>({
+    const harness = new PluginTestHarness({
       domain: "brain.example.com",
     });
     await harness.installPlugin(
@@ -187,12 +190,7 @@ describe("AuthService", () => {
   });
 
   it("retains private embedded-replica configuration", () => {
-    class InspectableAuthServicePlugin extends AuthServicePlugin {
-      get parsedConfig(): AuthServiceConfig {
-        return this.config;
-      }
-    }
-    const plugin = new InspectableAuthServicePlugin({
+    const parsedConfig: AuthServiceConfig = authServiceConfigSchema.parse({
       replica: {
         syncUrl: "libsql://private-auth.example.turso.io",
         authToken: "secret-token",
@@ -200,7 +198,7 @@ describe("AuthService", () => {
       },
     });
 
-    expect(plugin.parsedConfig.replica).toEqual({
+    expect(parsedConfig.replica).toEqual({
       syncUrl: "libsql://private-auth.example.turso.io",
       authToken: "secret-token",
       syncIntervalMs: 30_000,
@@ -546,7 +544,7 @@ describe("AuthService", () => {
 
   it("issues no first-passkey setup link from the worker process", async () => {
     const storageDir = await tempStorageDir();
-    const harness = new PluginTestHarness<AuthServicePlugin>({
+    const harness = new PluginTestHarness({
       domain: "brain.example.com",
     });
     const plugin = authServicePlugin({
@@ -593,7 +591,7 @@ describe("AuthService", () => {
   });
 
   it("projects the configured Anchor flavor and Studio profile through the plugin", async () => {
-    const harness = new PluginTestHarness<AuthServicePlugin>({
+    const harness = new PluginTestHarness({
       domain: "brain.example.com",
     });
     await harness.installPlugin(
@@ -603,7 +601,7 @@ describe("AuthService", () => {
         issuer: "https://brain.example.com",
       }),
     );
-    const service = harness.getPlugin().getService();
+    const service = authServiceOf(harness.getMockShell().getAuthRegistry());
     await service.createAuthSession();
 
     expect(await service.getBrainAnchor()).toMatchObject({
@@ -617,7 +615,7 @@ describe("AuthService", () => {
 
   it("seeds exact interface principals once and projects DB state into permissions", async () => {
     const storageDir = await tempStorageDir();
-    const firstHarness = new PluginTestHarness<AuthServicePlugin>({
+    const firstHarness = new PluginTestHarness({
       domain: "brain.example.com",
       logger: ConsoleLogger.createFresh({ level: LogLevel.ERROR }),
     });
@@ -645,9 +643,9 @@ describe("AuthService", () => {
     expect(
       firstHarness.getPermissionService().isAnchor("discord", "first-owner"),
     ).toBe(true);
-    await firstHarness.getPlugin().getService().close();
+    await authServiceOf(firstHarness.getMockShell().getAuthRegistry()).close();
 
-    const restartHarness = new PluginTestHarness<AuthServicePlugin>({
+    const restartHarness = new PluginTestHarness({
       domain: "brain.example.com",
       logger: ConsoleLogger.createFresh({ level: LogLevel.ERROR }),
     });
@@ -668,7 +666,9 @@ describe("AuthService", () => {
         .getPermissionService()
         .determineUserLevel("discord", "replacement"),
     ).toBe("public");
-    await restartHarness.getPlugin().getService().close();
+    await authServiceOf(
+      restartHarness.getMockShell().getAuthRegistry(),
+    ).close();
   });
 
   it("reinitializes access from config without deleting users and revokes sessions", async () => {
@@ -792,7 +792,7 @@ describe("AuthService", () => {
   });
 
   it("does not expose auth administration as model-visible tools", async () => {
-    const harness = new PluginTestHarness<AuthServicePlugin>({
+    const harness = new PluginTestHarness({
       domain: "brain.example.com",
     });
     await harness.installPlugin(
@@ -989,7 +989,7 @@ describe("AuthService", () => {
   });
 
   it("resolves private canonical identities through the internal runtime channel", async () => {
-    const harness = new PluginTestHarness<AuthServicePlugin>({
+    const harness = new PluginTestHarness({
       domain: "brain.example.com",
     });
     await harness.installPlugin(
@@ -1005,7 +1005,7 @@ describe("AuthService", () => {
       .getChannelRegistry()
       .registerDescriptor("test", discordDescriptor);
     await harness.finalizeRegistration();
-    const service = harness.getPlugin().getService();
+    const service = authServiceOf(harness.getMockShell().getAuthRegistry());
     const user = await service.createUser({
       displayName: "Mira",
       role: "trusted",
@@ -1054,9 +1054,12 @@ describe("AuthService", () => {
       },
     };
 
-    expect(() => {
-      Reflect.construct(AuthServicePlugin, [legacyConfig]);
-    }).toThrow();
+    expect(() =>
+      instantiatePluginPackageDefinition(authServicePackage, legacyConfig, {
+        name: "@brains/auth-service",
+        version: "0.0.0",
+      }),
+    ).toThrow();
   });
 
   it("sends the rendered anchor setup email with text and HTML parts", async () => {
@@ -1118,7 +1121,7 @@ describe("AuthService", () => {
 
   it("waits until ready hooks to request setup email so notification routing is registered", async () => {
     const storageDir = await tempStorageDir();
-    const harness = new PluginTestHarness<AuthServicePlugin>({
+    const harness = new PluginTestHarness({
       domain: "brain.example.com",
       logContext: "auth-service-test",
     });
@@ -1144,7 +1147,7 @@ describe("AuthService", () => {
 
   it("does not fail registration when no notification subscriber is registered", async () => {
     const storageDir = await tempStorageDir();
-    const harness = new PluginTestHarness<AuthServicePlugin>({
+    const harness = new PluginTestHarness({
       domain: "brain.example.com",
       logContext: "auth-service-test",
     });
@@ -1169,7 +1172,7 @@ describe("AuthService", () => {
 
   it("does not fail registration when notification delivery returns failure", async () => {
     const storageDir = await tempStorageDir();
-    const harness = new PluginTestHarness<AuthServicePlugin>({
+    const harness = new PluginTestHarness({
       domain: "brain.example.com",
       logContext: "auth-service-test",
     });
@@ -1198,7 +1201,7 @@ describe("AuthService", () => {
 
   it("does not resend setup email for the same persisted setup token", async () => {
     const storageDir = await tempStorageDir();
-    const firstHarness = new PluginTestHarness<AuthServicePlugin>({
+    const firstHarness = new PluginTestHarness({
       domain: "brain.example.com",
       logContext: "auth-service-test",
     });
@@ -1225,7 +1228,7 @@ describe("AuthService", () => {
     expectSuccess(firstResponse);
     const firstSetup = setupRequiredToolDataSchema.parse(firstResponse.data);
 
-    const secondHarness = new PluginTestHarness<AuthServicePlugin>({
+    const secondHarness = new PluginTestHarness({
       domain: "brain.example.com",
       logContext: "auth-service-test",
     });
@@ -1255,15 +1258,15 @@ describe("AuthService", () => {
 
     expect(secondNotifications).toHaveLength(0);
     expect(
-      await secondPlugin
-        .getService()
-        .handleRequest(new Request(firstSetup.setupUrl)),
+      await authServiceOf(
+        secondHarness.getMockShell().getAuthRegistry(),
+      ).handleRequest(new Request(firstSetup.setupUrl)),
     ).toMatchObject({ status: 200 });
   });
 
   it("persists hashed setup-token id and recipient — not raw values — at 0o600", async () => {
     const storageDir = await tempStorageDir();
-    const harness = new PluginTestHarness<AuthServicePlugin>({
+    const harness = new PluginTestHarness({
       domain: "brain.example.com",
       logContext: "auth-service-test",
     });
@@ -1313,7 +1316,7 @@ describe("AuthService", () => {
 
   it("retries setup email after a failed delivery because no delivery is recorded", async () => {
     const storageDir = await tempStorageDir();
-    const firstHarness = new PluginTestHarness<AuthServicePlugin>({
+    const firstHarness = new PluginTestHarness({
       domain: "brain.example.com",
       logContext: "auth-service-test",
     });
@@ -1333,7 +1336,7 @@ describe("AuthService", () => {
     await readyAuthPlugin(firstHarness);
     expect(failedNotifications).toHaveLength(1);
 
-    const secondHarness = new PluginTestHarness<AuthServicePlugin>({
+    const secondHarness = new PluginTestHarness({
       domain: "brain.example.com",
       logContext: "auth-service-test",
     });
@@ -1375,7 +1378,7 @@ describe("AuthService", () => {
       )}\n`,
     );
 
-    const harness = new PluginTestHarness<AuthServicePlugin>({
+    const harness = new PluginTestHarness({
       domain: "brain.example.com",
       logContext: "auth-service-test",
     });
@@ -1402,7 +1405,7 @@ describe("AuthService", () => {
 
   it("does not request a setup email when setup email is not configured", async () => {
     const storageDir = await tempStorageDir();
-    const harness = new PluginTestHarness<AuthServicePlugin>({
+    const harness = new PluginTestHarness({
       domain: "brain.example.com",
       logContext: "auth-service-test",
     });
@@ -1426,7 +1429,7 @@ describe("AuthService", () => {
   it("does not request a setup email when a passkey already exists", async () => {
     const storageDir = await tempStorageDir();
     await seedPasskeyCredential(storageDir);
-    const harness = new PluginTestHarness<AuthServicePlugin>({
+    const harness = new PluginTestHarness({
       domain: "brain.example.com",
       logContext: "auth-service-test",
     });
@@ -1481,7 +1484,7 @@ describe("AuthService", () => {
 
   it("defaults passkey setup URLs to the local runtime issuer during local runs", async () => {
     const storageDir = await tempStorageDir();
-    const harness = new PluginTestHarness<AuthServicePlugin>({
+    const harness = new PluginTestHarness({
       domain: "brain.example.com",
       localSiteUrl: "http://localhost:9090",
       preferLocalUrls: true,
@@ -1499,16 +1502,15 @@ describe("AuthService", () => {
       "http://localhost:9090/setup?token=setup_",
     );
 
-    const plugin = harness.getPlugin();
-    const setupPage = await plugin
-      .getService()
-      .handleRequest(new Request(data.setupUrl));
+    const setupPage = await authServiceOf(
+      harness.getMockShell().getAuthRegistry(),
+    ).handleRequest(new Request(data.setupUrl));
     expect(setupPage.status).toBe(200);
   });
 
   it("keeps the public issuer during production runs", async () => {
     const storageDir = await tempStorageDir();
-    const harness = new PluginTestHarness<AuthServicePlugin>({
+    const harness = new PluginTestHarness({
       domain: "brain.example.com",
       localSiteUrl: "http://localhost:9090",
       preferLocalUrls: false,
@@ -1529,7 +1531,7 @@ describe("AuthService", () => {
 
   it("keeps an explicit auth-service issuer override even during local runs", async () => {
     const storageDir = await tempStorageDir();
-    const harness = new PluginTestHarness<AuthServicePlugin>({
+    const harness = new PluginTestHarness({
       domain: "brain.example.com",
       localSiteUrl: "http://localhost:9090",
       preferLocalUrls: true,

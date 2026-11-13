@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { AuthServicePlugin } from "@brains/auth-service";
+import { authServicePlugin } from "@brains/auth-service";
 import {
   dashboardWidgetRegisterContract,
   studioWorkspaceRegisterContract,
@@ -28,7 +28,7 @@ async function installed(
 }> {
   const shell = createMockShell({ domain: "brain.test" });
   if (options.auth !== false) {
-    await new AuthServicePlugin({
+    await authServicePlugin({
       storageDir: await createTempDir("brains-admin-registration-"),
     }).register(shell);
   }

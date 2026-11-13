@@ -1,5 +1,6 @@
+import type { Plugin } from "@brains/plugins";
 import { afterEach, describe, expect, it } from "bun:test";
-import { AuthServicePlugin } from "@brains/auth-service";
+import { authServiceOf, authServicePlugin } from "@brains/auth-service";
 import type { StudioWorkspaceActor } from "@brains/plugins";
 import { createMockShell, createTempDataDir } from "@brains/plugins/test";
 
@@ -10,10 +11,10 @@ import {
   trustedActor,
 } from "./studio-workspace-test-helpers";
 
-const authPlugins: AuthServicePlugin[] = [];
+const authPlugins: Plugin[] = [];
 
 afterEach(async () => {
-  for (const plugin of authPlugins.splice(0)) await plugin.shutdown();
+  for (const plugin of authPlugins.splice(0)) await plugin.shutdown?.();
 });
 
 function actorFor(
@@ -40,12 +41,12 @@ function findById(value: unknown, id: string): unknown {
 describe("Administration Audit tab", () => {
   it("admits only Admin actors and renders filtered URL-query detail", async () => {
     const shell = createMockShell({ domain: "brain.test" });
-    const auth = new AuthServicePlugin({
+    const auth = authServicePlugin({
       storageDir: await createTempDataDir("brains-admin-audit-"),
     });
     authPlugins.push(auth);
     await auth.register(shell);
-    const service = auth.getService();
+    const service = authServiceOf(shell.getAuthRegistry());
     const admin = await service.createUser({
       displayName: "Ada Admin",
       role: "admin",

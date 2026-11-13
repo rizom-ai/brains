@@ -1,8 +1,16 @@
 import {
-  internalFullScope,
-  ServicePlugin,
+  defineServicePlugin,
   deriveConsoleSurfaces,
+  instantiatePluginPackageDefinition,
+  internalFullScope,
+  serviceRuntime,
+  withAuthAuthority,
+  withTools,
+  withWebRoutes,
+  type Plugin,
   type RegisteredWebRoute,
+  type ServicePackageDefinition,
+  type ServiceRuntime,
 } from "@brains/plugins";
 import { join } from "node:path";
 import { authPrincipalResolveContract } from "@brains/contracts";
@@ -10,7 +18,6 @@ import { notificationsSendContract } from "@brains/contracts";
 import type {
   ChannelDeliveryProvider,
   ChannelDescriptor,
-  ServicePluginContext,
   Tool,
   WebRouteDefinition,
 } from "@brains/plugins";
@@ -70,7 +77,7 @@ function expectReplicaOptionsInput(
 void expectReplicaOptions;
 void expectReplicaOptionsInput;
 
-const authServiceConfigSchema: z.ZodObject<{
+export const authServiceConfigSchema: z.ZodObject<{
   issuer: z.ZodOptional<z.ZodString>;
   anchor: z.ZodDefault<
     z.ZodEnum<{ person: "person"; team: "team"; organization: "organization" }>
@@ -130,11 +137,11 @@ export function resolveAuthStorageDir(configured: string | undefined): string {
  * is left out; AI tools needs both Studio and MCP over HTTP.
  */
 async function resolveOnboardingDetails(
-  context: ServicePluginContext,
+  runtime: ServiceRuntime,
 ): Promise<OnboardingDetails> {
-  const purpose = context.identity.get().purpose.trim();
+  const purpose = runtime.identity.get().purpose.trim();
   const interactions =
-    (await context.identity.getAppInfo().catch(() => undefined))
+    (await runtime.identity.getAppInfo().catch(() => undefined))
       ?.interactions ?? [];
   const href = (id: string): string | undefined =>
     interactions.find(
@@ -156,11 +163,11 @@ async function resolveOnboardingDetails(
 }
 
 async function resolveProfileDisplayName(
-  context: ServicePluginContext,
+  runtime: ServiceRuntime,
   profileEntityId: string,
 ): Promise<string | undefined> {
   if (profileEntityId === "anchor-profile/anchor-profile") {
-    const name = context.identity.getProfile().name.trim();
+    const name = runtime.identity.getProfile().name.trim();
     return name && name !== "Unknown" ? name : undefined;
   }
 
@@ -168,7 +175,7 @@ async function resolveProfileDisplayName(
   if (separator <= 0 || separator === profileEntityId.length - 1) {
     return undefined;
   }
-  const entity = await context.entityService.getEntity({
+  const entity = await runtime.entityReads.getEntity({
     entityType: profileEntityId.slice(0, separator),
     id: profileEntityId.slice(separator + 1),
     visibilityScope: internalFullScope("profile display name for auth admin"),
@@ -190,179 +197,223 @@ export function homePathFor(
   );
 }
 
-export class AuthServicePlugin extends ServicePlugin<
-  AuthServiceConfig,
-  AuthServiceConfigInput
-> {
-  private service: AuthService | undefined;
-  private unbindAccountSettings: (() => void) | undefined;
-  private unbindAuth: (() => void) | undefined;
-  private unsubscribePrincipalResolver: (() => void) | undefined;
+/** What the auth service keeps once it has set up: its service and its tools' state. */
+interface AuthServiceState {
+  readonly service: AuthService;
+  readonly hasPasskeyCredentials: boolean;
+}
 
-  constructor(config: AuthServiceConfigInput = {}) {
-    super("auth-service", packageJson, config, authServiceConfigSchema);
+async function requestSetupEmailIfNeeded(
+  runtime: ServiceRuntime,
+  config: AuthServiceConfig,
+  service: AuthService,
+): Promise<void> {
+  if (!config.setupEmail) return;
+  if (await service.hasPasskeyCredentials()) return;
+
+  const setup = await service.getPasskeySetupRequiredForDelivery();
+  if (!setup) return;
+
+  const recipient = config.setupEmail;
+  if (await service.hasSetupEmailDelivery(setup.setupTokenId, recipient)) {
+    return;
   }
 
-  protected override async onRegister(
-    context: ServicePluginContext,
-  ): Promise<void> {
-    await super.onRegister(context);
+  const greetingName =
+    config.anchor === "person"
+      ? await resolveProfileDisplayName(
+          runtime,
+          "anchor-profile/anchor-profile",
+        )
+      : undefined;
+  const { links } = await resolveOnboardingDetails(runtime);
+  const email = renderOnboardingEmail({
+    kind: "anchor-setup",
+    setupUrl: setup.setupUrl,
+    expiresAt: setup.expiresAt,
+    links,
+    ...(greetingName ? { greetingName } : {}),
+  });
+  const delivered = await runtime.messaging.request(notificationsSendContract, {
+    recipient: { type: "email", address: recipient },
+    title: email.subject,
+    body: email.text,
+    html: email.html,
+    sensitivity: "secret",
+  });
+  if (delivered.status !== "answered" || delivered.data.status !== "sent") {
+    runtime.logger.warn("Passkey setup email delivery was not confirmed");
+    return;
+  }
 
+  await service.recordSetupEmailDelivery(
+    setup.setupTokenId,
+    recipient,
+    delivered.data.deliveryId ? { deliveryId: delivered.data.deliveryId } : {},
+  );
+}
+
+/**
+ * The brain's auth service: passkeys, OAuth for MCP clients, sessions, the
+ * account and administration endpoints, and the backends the brain reads
+ * identity and account settings through, which it binds as the brain's auth
+ * authority.
+ */
+const authServiceDefinition = defineServicePlugin({
+  id: "auth-service",
+  config: authServiceConfigSchema,
+  setup: async (context): Promise<AuthServiceState> => {
+    const { config } = context;
+    const runtime = serviceRuntime(context);
+    const { authAuthority } = runtime;
     const issuer =
-      this.config.issuer ??
-      (context.preferLocalUrls
-        ? (context.localSiteUrl ?? context.siteUrl)
-        : (context.siteUrl ?? context.localSiteUrl));
-    this.service = new AuthService({
-      storageDir: resolveAuthStorageDir(this.config.storageDir),
-      ...(this.config.replica ? { replica: this.config.replica } : {}),
-      anchor: this.config.anchor,
+      config.issuer ??
+      (runtime.preferLocalUrls
+        ? (runtime.localSiteUrl ?? runtime.siteUrl)
+        : (runtime.siteUrl ?? runtime.localSiteUrl));
+    const service = new AuthService({
+      storageDir: resolveAuthStorageDir(config.storageDir),
+      ...(config.replica ? { replica: config.replica } : {}),
+      anchor: config.anchor,
       anchorProfileEntityId: "anchor-profile/anchor-profile",
       resolveProfileDisplayName: (
         profileEntityId,
       ): Promise<string | undefined> =>
-        resolveProfileDisplayName(context, profileEntityId),
+        resolveProfileDisplayName(runtime, profileEntityId),
       ...(issuer ? { issuer } : {}),
-      trustedIssuers: this.config.trustedIssuers,
-      ...(this.config.allowLocalhostIssuers !== undefined
-        ? { allowLocalhostIssuers: this.config.allowLocalhostIssuers }
+      trustedIssuers: config.trustedIssuers,
+      ...(config.allowLocalhostIssuers !== undefined
+        ? { allowLocalhostIssuers: config.allowLocalhostIssuers }
         : {}),
-      setupTokenTtlSeconds: this.config.setupTokenTtlSeconds,
-      resolveHomePath: (): string => homePathFor(context.webRoutes.getRoutes()),
-      ...(this.config.accountSettingsEncryptionKey
+      setupTokenTtlSeconds: config.setupTokenTtlSeconds,
+      resolveHomePath: (): string =>
+        runtime
+          .consoleSurfaces({
+            activeId: "auth-service",
+            permissionLevel: "admin",
+            hasActiveSession: true,
+          })
+          .find((surface) => surface.id === "studio")?.href ?? "/",
+      ...(config.accountSettingsEncryptionKey
         ? {
-            accountSettingsEncryptionKey:
-              this.config.accountSettingsEncryptionKey,
+            accountSettingsEncryptionKey: config.accountSettingsEncryptionKey,
           }
         : {}),
       onAccountDeleted: (actorId): void => {
-        context.accountSettings.accountDeleted(actorId);
+        authAuthority.accountSettings.accountDeleted(actorId);
       },
-      accountSettingsRegistry: context.accountSettings,
+      accountSettingsRegistry: authAuthority.accountSettings.registry,
       autoStartInvitationDeliveryRecovery: false,
       // The worker serves no `/setup`; a token it issued would replace the
       // one whose link the web process logged.
-      issuesSetupLinks: !context.executionOnly,
+      issuesSetupLinks: !runtime.executionOnly,
       getInvitationDeliveryProvider: (
         channelType,
       ): ChannelDeliveryProvider | undefined =>
-        context.channels.getDeliveryProvider(channelType),
+        runtime.deliveryProvider(channelType),
       getChannelDescriptor: (channelType): ChannelDescriptor | undefined =>
-        context.channels.getDescriptor(channelType),
+        runtime.channelDescriptor(channelType),
       listChannelDescriptors: (): ChannelDescriptor[] =>
-        context.channels.listDescriptors(),
+        runtime.channelDescriptors(),
       isChannelTypeRegistered: (channelType): boolean =>
-        Boolean(context.channels.getDescriptor(channelType)),
+        Boolean(runtime.channelDescriptor(channelType)),
       getOnboardingDetails: (): Promise<OnboardingDetails> =>
-        resolveOnboardingDetails(context),
-      logger: context.logger,
+        resolveOnboardingDetails(runtime),
+      logger: runtime.logger,
     });
-    await this.service.initialize();
-    const accountSettingsBackend = this.service.getAccountSettingsBackend();
+    await service.initialize();
+    // Closed last, once every binding to it is released.
+    context.lifecycle.onCleanup(() => service.close());
+    const accountSettingsBackend = service.getAccountSettingsBackend();
     if (accountSettingsBackend) {
-      this.unbindAccountSettings = context.accountSettings.bindBackend(
-        accountSettingsBackend,
-      );
+      authAuthority.accountSettings.bindBackend(accountSettingsBackend);
     }
     const principalState =
-      await this.service.initializeConfiguredInterfacePrincipals(
-        context.permissions.getConfiguredPrincipalSeeds(),
+      await service.initializeConfiguredInterfacePrincipals(
+        authAuthority.principals.configuredSeeds(),
       );
-    context.permissions.replaceRuntimePrincipalState(principalState);
-    this.unbindAuth = context.auth.bindBackend(this.service);
+    authAuthority.principals.replaceRuntimeState(principalState);
+    authAuthority.bind(service);
 
-    this.unsubscribePrincipalResolver = context.messaging.answer(
-      authPrincipalResolveContract,
-      async ({ actor }) => {
-        const principal = await this.getService().resolveActorPrincipal(actor);
+    runtime.answer(authPrincipalResolveContract, async ({ request }) => {
+      const principal = await service.resolveActorPrincipal(request.actor);
+      return {
+        principal: principal
+          ? {
+              userId: principal.userId,
+              personId: principal.personId,
+              ...(principal.canonicalId
+                ? { canonicalId: principal.canonicalId }
+                : {}),
+              displayName: principal.displayName,
+              permissionLevel: principal.permissionLevel,
+            }
+          : null,
+      };
+    });
+    runtime.registered(() => service.startInvitationDeliveryRecovery());
+    runtime.ready(() => requestSetupEmailIfNeeded(runtime, config, service));
+
+    return {
+      service,
+      hasPasskeyCredentials: await service.hasPasskeyCredentials(),
+    };
+  },
+});
+
+/** The tool its class registered under its own name. */
+const withAuthTools = withTools<
+  typeof authServiceConfigSchema,
+  AuthServiceState
+>(withAuthAuthority(authServiceDefinition), ({ state }): readonly Tool[] => [
+  {
+    name: "auth-service_get_passkey_setup_url",
+    description:
+      "Get the first-passkey setup URL when passkey setup is required. Admin-only.",
+    inputSchema: {},
+    visibility: "admin",
+    ...(state.hasPasskeyCredentials ? { agentTool: false } : {}),
+    handler: async (): Promise<PasskeySetupToolResponse> => {
+      const { service } = state;
+      if (await service.hasPasskeyCredentials()) {
         return {
-          principal: principal
-            ? {
-                userId: principal.userId,
-                personId: principal.personId,
-                ...(principal.canonicalId
-                  ? { canonicalId: principal.canonicalId }
-                  : {}),
-                displayName: principal.displayName,
-                permissionLevel: principal.permissionLevel,
-              }
-            : null,
+          success: true,
+          data: { status: "complete" as const },
         };
-      },
-    );
-  }
+      }
 
-  protected override async onRegistrationComplete(): Promise<void> {
-    await this.getService().startInvitationDeliveryRecovery();
-  }
+      const setup = await service.getPasskeySetupRequired();
+      if (setup) {
+        return {
+          success: true,
+          data: {
+            status: "setup_required" as const,
+            setupUrl: setup.setupUrl,
+            expiresAt: setup.expiresAt,
+          },
+        };
+      }
 
-  protected override async onReady(
-    context: ServicePluginContext,
-  ): Promise<void> {
-    await this.requestSetupEmailIfNeeded(context);
-  }
-
-  protected override async onShutdown(): Promise<void> {
-    this.unsubscribePrincipalResolver?.();
-    this.unsubscribePrincipalResolver = undefined;
-    this.unbindAuth?.();
-    this.unbindAuth = undefined;
-    this.unbindAccountSettings?.();
-    this.unbindAccountSettings = undefined;
-    await this.service?.close();
-    this.service = undefined;
-  }
-
-  protected override async getTools(): Promise<Tool[]> {
-    const hasPasskeyCredentials =
-      await this.getService().hasPasskeyCredentials();
-
-    return [
-      {
-        name: `${this.id}_get_passkey_setup_url`,
-        description:
-          "Get the first-passkey setup URL when passkey setup is required. Admin-only.",
-        inputSchema: {},
-        visibility: "admin",
-        ...(hasPasskeyCredentials ? { agentTool: false } : {}),
-        handler: async (): Promise<PasskeySetupToolResponse> => {
-          const service = this.getService();
-          if (await service.hasPasskeyCredentials()) {
-            return {
-              success: true,
-              data: { status: "complete" as const },
-            };
-          }
-
-          const setup = await service.getPasskeySetupRequired();
-          if (setup) {
-            return {
-              success: true,
-              data: {
-                status: "setup_required" as const,
-                setupUrl: setup.setupUrl,
-                expiresAt: setup.expiresAt,
-              },
-            };
-          }
-
-          return {
-            success: true,
-            data: {
-              status: "unavailable" as const,
-              reason: "Passkey setup URL is not available.",
-            },
-          };
+      return {
+        success: true,
+        data: {
+          status: "unavailable" as const,
+          reason: "Passkey setup URL is not available.",
         },
-        sideEffects: "none",
-      } satisfies Tool<PasskeySetupToolResponse>,
-    ];
-  }
+      };
+    },
+    sideEffects: "none",
+  } satisfies Tool<PasskeySetupToolResponse>,
+]);
 
-  override getWebRoutes(): WebRouteDefinition[] {
+/** The auth service's declared package: the routes its class served. */
+export const authServicePackage: ServicePackageDefinition<
+  typeof authServiceConfigSchema
+> = withWebRoutes<typeof authServiceConfigSchema, AuthServiceState>(
+  withAuthTools,
+  ({ state }): readonly WebRouteDefinition[] => {
     const handler = (request: Request): Promise<Response> =>
-      this.getService().handleRequest(request);
-
+      state.service.handleRequest(request);
     return [
       {
         path: "/.well-known/oauth-authorization-server",
@@ -563,73 +614,26 @@ export class AuthServicePlugin extends ServicePlugin<
         handler,
       },
     ];
-  }
+  },
+);
 
-  getService(): AuthService {
-    if (!this.service) {
-      throw new Error("AuthServicePlugin has not been registered");
-    }
-    return this.service;
-  }
-
-  private async requestSetupEmailIfNeeded(
-    context: ServicePluginContext,
-  ): Promise<void> {
-    if (!this.config.setupEmail) return;
-
-    const service = this.getService();
-    if (await service.hasPasskeyCredentials()) return;
-
-    const setup = await service.getPasskeySetupRequiredForDelivery();
-    if (!setup) return;
-
-    const recipient = this.config.setupEmail;
-    if (await service.hasSetupEmailDelivery(setup.setupTokenId, recipient)) {
-      return;
-    }
-
-    const greetingName =
-      this.config.anchor === "person"
-        ? await resolveProfileDisplayName(
-            context,
-            "anchor-profile/anchor-profile",
-          )
-        : undefined;
-    const { links } = await resolveOnboardingDetails(context);
-    const email = renderOnboardingEmail({
-      kind: "anchor-setup",
-      setupUrl: setup.setupUrl,
-      expiresAt: setup.expiresAt,
-      links,
-      ...(greetingName ? { greetingName } : {}),
-    });
-    const delivered = await context.messaging.request(
-      notificationsSendContract,
-      {
-        recipient: { type: "email", address: recipient },
-        title: email.subject,
-        body: email.text,
-        html: email.html,
-        sensitivity: "secret",
-      },
-    );
-    if (delivered.status !== "answered" || delivered.data.status !== "sent") {
-      context.logger.warn("Passkey setup email delivery was not confirmed");
-      return;
-    }
-
-    await service.recordSetupEmailDelivery(
-      setup.setupTokenId,
-      recipient,
-      delivered.data.deliveryId
-        ? { deliveryId: delivered.data.deliveryId }
-        : {},
-    );
-  }
+/** The auth service, installed under the plugin id its class had. */
+export function authServicePlugin(config: AuthServiceConfigInput = {}): Plugin {
+  const [plugin] = instantiatePluginPackageDefinition(
+    authServicePackage,
+    config,
+    { name: packageJson.name, version: packageJson.version },
+    { pluginId: "auth-service" },
+  );
+  if (!plugin) throw new Error("The auth service did not install");
+  return plugin;
 }
 
-export function authServicePlugin(
-  config: AuthServiceConfigInput = {},
-): AuthServicePlugin {
-  return new AuthServicePlugin(config);
+/** The auth service a brain bound, read from its auth registry. */
+export function authServiceOf(registry: { get(): unknown }): AuthService {
+  const service = registry.get();
+  if (!(service instanceof AuthService)) {
+    throw new Error("No auth service is bound");
+  }
+  return service;
 }
