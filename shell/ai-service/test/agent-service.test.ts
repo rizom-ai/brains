@@ -748,16 +748,16 @@ describe("AgentService", () => {
         role: "user",
         content: [
           {
-            type: "text",
-            text: expect.stringContaining(
-              '- robot.png; upload id: "upload-123"; mediaType: image/png',
-            ),
-          },
-          {
             type: "file",
             data: imageBytes,
             mediaType: "image/png",
             filename: "robot.png",
+          },
+          {
+            type: "text",
+            text: expect.stringContaining(
+              '- robot.png; upload id: "upload-123"; mediaType: image/png',
+            ),
           },
         ],
       });
@@ -856,16 +856,16 @@ describe("AgentService", () => {
         role: "user",
         content: [
           {
-            type: "text",
-            text: expect.stringContaining(
-              '- robot.png; upload id: "upload-123"; mediaType: image/png',
-            ),
-          },
-          {
             type: "file",
             data: imageBytes,
             mediaType: "image/png",
             filename: "robot.png",
+          },
+          {
+            type: "text",
+            text: expect.stringContaining(
+              '- robot.png; upload id: "upload-123"; mediaType: image/png',
+            ),
           },
         ],
       });
@@ -1004,16 +1004,16 @@ describe("AgentService", () => {
         role: "user",
         content: [
           {
-            type: "text",
-            text: expect.stringContaining(
-              '- distributed-systems-primer.pdf; upload id: "upload-pdf"; mediaType: application/pdf',
-            ),
-          },
-          {
             type: "file",
             data: pdfBytes,
             mediaType: "application/pdf",
             filename: "distributed-systems-primer.pdf",
+          },
+          {
+            type: "text",
+            text: expect.stringContaining(
+              '- distributed-systems-primer.pdf; upload id: "upload-pdf"; mediaType: application/pdf',
+            ),
           },
         ],
       });
@@ -2287,16 +2287,16 @@ describe("AgentService", () => {
         role: "user",
         content: [
           {
-            type: "text",
-            text: expect.stringContaining(
-              '- brief.pdf; upload id: "upload-pdf"; mediaType: application/pdf',
-            ),
-          },
-          {
             type: "file",
             data: pdfBytes,
             mediaType: "application/pdf",
             filename: "brief.pdf",
+          },
+          {
+            type: "text",
+            text: expect.stringContaining(
+              '- brief.pdf; upload id: "upload-pdf"; mediaType: application/pdf',
+            ),
           },
         ],
       });
