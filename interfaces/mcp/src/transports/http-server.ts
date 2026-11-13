@@ -15,6 +15,7 @@ import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import type { TransportLogger } from "./types";
 import { adaptLogger, createConsoleLogger } from "./types";
+import { withHeaders } from "@brains/utils/http-response";
 
 export interface VerifiedBearerToken {
   subject: string;
@@ -108,16 +109,7 @@ export class StreamableHTTPServer {
   }
 
   private withCors(response: Response): Response {
-    const headers = new Headers(response.headers);
-    for (const [key, value] of Object.entries(CORS_HEADERS)) {
-      headers.set(key, value);
-    }
-
-    return new Response(response.body, {
-      status: response.status,
-      statusText: response.statusText,
-      headers,
-    });
+    return withHeaders(response, CORS_HEADERS);
   }
 
   private createJsonResponse(data: unknown, status = 200): Response {
