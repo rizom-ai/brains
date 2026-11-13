@@ -55,4 +55,18 @@ describe("a form in the brain's content", () => {
       }).success,
     ).toBe(false);
   });
+
+  it("is served beneath /forms when its file states no path, or an empty one", () => {
+    const pathless = parseFormMarkdown(
+      "brand-test",
+      markdown.replace("path: /brand-test\n", ""),
+    );
+    expect(pathless.path).toBe("/forms/brand-test");
+    expect(
+      parseFormMarkdown(
+        "brand-test",
+        markdown.replace("path: /brand-test", "path: ''"),
+      ),
+    ).toEqual(pathless);
+  });
 });
