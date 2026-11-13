@@ -92,8 +92,10 @@ Agent evals, 2026-11-12 to 2026-11-13, personal suite (31 cases), the runtime se
 | --------------------------------------------------------------------------- | ------------- | ------------ |
 | `qwen3:30b-a3b` deciding, instruct-2507 answering, `qwen3-vl:8b` describing | 24.3/31 (78%) | 36 s         |
 | `qwen3.6:35b` deciding and describing, instruct-2507 answering              | 26.0/31 (84%) | 67 s         |
+| `qwen3.6:35b` deciding and seeing images itself, instruct-2507 answering    | 26.0/31 (84%) | 57 s         |
 
 - `qwen3.6:35b` reads stored content when asked (the long-note read-backs 3 of 3 and 3 of 3, against 1 of 3 and 0 of 3), asks what to do with a bare label after an upload (2 of 3, against 0 of 3) and keeps every attached file (2 of 3, against 0 of 3). It saves the upload instead of its summary when "save it" follows a summary (1 of 3 and 0 of 3, against 3 of 3 and 2 of 3).
+- Seeing images itself, `qwen3.6:35b` passes as many cases as describing them first (23, 28 and 27 of 31), saves a call per image and passed "save it" after a summary once. In one run a turn on a solid green image ran past the runtime request's 300-second timeout.
 - At its default 262,144-token context, `qwen3.6:35b` ran the GPU out of memory (`vk::DeviceLostError`) 13 times in one run; the deploy's `OLLAMA_CONTEXT_LENGTH: 32768` prevents it. With the cap, `qwen3:30b-a3b` also passed one case more.
 - Two measures against the Qwen3 model's choices did not pay: reading each turn's intent first, to withhold tools that write and require a read, took the suite from 23 to 8 of 31, since the classifier marked explicit saves as asking no change; hiding an update's quote of what it stored left the read-back cases skipping the read (2 of 9).
 
