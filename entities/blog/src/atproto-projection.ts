@@ -30,7 +30,8 @@ function dataUrlToUploadInput(dataUrl: string): {
   data: Buffer;
   mimeType: string;
 } {
-  const match = /^data:([^;,]+);base64,(.*)$/.exec(dataUrl);
+  // A data URL read from a markdown file keeps that file's newline.
+  const match = /^data:([^;,]+);base64,(.*)$/.exec(dataUrl.trim());
   if (!match?.[1] || !match[2]) {
     throw new Error("Cover image must be a base64 data URL");
   }

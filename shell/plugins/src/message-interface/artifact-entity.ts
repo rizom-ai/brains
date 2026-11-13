@@ -96,7 +96,8 @@ function parseBase64DataUrl(
   dataUrl: string,
   mediaTypePattern: RegExp,
 ): ParsedArtifactDataUrl | undefined {
-  const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/i);
+  // A data URL read from a markdown file keeps that file's newline.
+  const match = dataUrl.trim().match(/^data:([^;]+);base64,(.+)$/i);
   const mimeType = match?.[1];
   const encoded = match?.[2];
   if (!mimeType || !encoded || !mediaTypePattern.test(mimeType)) {

@@ -130,6 +130,26 @@ Post with image.`;
     expect(new TextDecoder().decode(result.imageData?.data)).toBe("hello");
   });
 
+  it("decodes a cover whose stored data URL ends in a newline", async () => {
+    await context.entityService.createEntity({
+      entity: {
+        id: "cover-image",
+        entityType: "image",
+        // An image imported from a markdown file stores the file's newline.
+        content: "data:image/png;base64,aGVsbG8=\n",
+        metadata: {},
+      },
+    });
+
+    const result = await preparePublishContent(
+      context,
+      createPublishableEntity("---\ncoverImageId: cover-image\n---\nPost."),
+    );
+
+    expect(result.imageData?.mimeType).toBe("image/png");
+    expect(new TextDecoder().decode(result.imageData?.data)).toBe("hello");
+  });
+
   it("reads a declared record's cover image from its metadata", async () => {
     await context.entityService.createEntity({
       entity: {
