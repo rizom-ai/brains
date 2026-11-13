@@ -38,6 +38,7 @@ import { setBootFn, type BootedBrain } from "../src/lib/boot";
 import { startWorkerHeartbeat } from "../src/lib/process-supervisor";
 import { readFileSync } from "fs";
 import { join } from "path";
+import { withProcessRole } from "@brains/utils/logger";
 
 setBootFn(async (cwd, definition, flags): Promise<BootedBrain | void> => {
   // Data, cache and dist paths default relative to the process, and the
@@ -62,11 +63,15 @@ setBootFn(async (cwd, definition, flags): Promise<BootedBrain | void> => {
   try {
     overrides = parseInstanceOverrides(yaml);
   } catch (err) {
+    // Printed before the brain's logging is configured; still names the
+    // child it came from.
     if (err instanceof InstanceOverridesParseError) {
-      console.error(`❌ ${err.message}`);
+      console.error(withProcessRole(`❌ ${err.message}`));
     } else {
       console.error(
-        `❌ unexpected error parsing brain.yaml: ${getErrorMessage(err)}`,
+        withProcessRole(
+          `❌ unexpected error parsing brain.yaml: ${getErrorMessage(err)}`,
+        ),
       );
     }
     process.exit(1);
@@ -147,6 +152,7 @@ import { runCommand } from "../src/run-command";
 import { findLocalBrain } from "../src/lib/local-reexec";
 import { getInvocationCwd } from "../src/lib/invocation-cwd";
 import { getErrorMessage } from "@brains/utils/error";
+import { printCommandResult } from "../src/lib/print-command-result";
 
 // Resolve the directory the user invoked us from. Mirrors src/index.ts —
 // must be passed explicitly into runCommand because the minifier may inline
@@ -174,13 +180,5 @@ if (!process.env["BRAIN_SKIP_LOCAL_REEXEC"]) {
 }
 
 const parsed = parseArgs(process.argv.slice(2));
-const result = await runCommand(parsed, cwd);
-
-if (!result.success) {
-  console.error(result.message);
-  process.exit(result.exitCode ?? 1);
-}
-
-if (result.message) {
-  console.log(result.message);
-}
+const status = printCommandResult(await runCommand(parsed, cwd));
+if (status !== 0) process.exit(status);

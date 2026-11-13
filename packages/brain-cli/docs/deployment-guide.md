@@ -302,6 +302,28 @@ kamal app exec -i bash
 kamal details
 ```
 
+A deployed brain runs as a supervisor with child processes that share one log
+stream, so each line a child writes names it: text lines start with `[web]`,
+`[worker]` or `[git-broker]`, and JSON lines (the `logFile` output) carry a
+`role` field. Unlabeled lines come from the supervisor itself, or from
+third-party code and Bun writing to the console directly.
+
+```text
+[web] [2026-11-13T18:02:07.106Z] [directory-sync] Initial sync queued for the worker
+[worker] [2026-11-13T18:02:08.747Z] [brain] ✅ brain v0.2.0 ready
+[git-broker] [2026-11-13T18:02:12.314Z] [GitBroker] Pushed changes to remote
+```
+
+```json
+{
+  "ts": "2026-11-13T18:02:06.988Z",
+  "level": "info",
+  "role": "web",
+  "msg": "Git integration enabled",
+  "ctx": "directory-sync"
+}
+```
+
 ## Docker (without Kamal)
 
 For simple setups, you can run the repo-owned image directly after `Publish Image` has pushed it:

@@ -4,6 +4,7 @@ import { join } from "path";
 import { tmpdir } from "os";
 import { EventEmitter } from "events";
 import type { BootMode } from "@brains/core";
+import { ConsoleLogger } from "@brains/utils/logger";
 import { resolveRunnerType, start } from "../src/commands/start";
 import {
   resetCanonicalDefinition,
@@ -166,6 +167,8 @@ describe("builtin process supervision", () => {
     rmSync(testDir, { recursive: true, force: true });
     resetBootFn();
     resetCanonicalDefinition();
+    // A `--child=` start labels the whole process's logs with its role.
+    ConsoleLogger.setProcessRole(undefined);
   });
 
   it("spawns web then worker children instead of booting the parent runtime", async () => {
