@@ -40,8 +40,9 @@ function createMockDeps(
     logger: createSilentLogger(),
     fileOperations: {
       assertEntityPlacement: (): void => {},
-      getEntityFilePath: (entity: BaseEntity) =>
+      getEntityFileCandidates: (entity: BaseEntity) => [
         `/data/${entity.entityType}/${entity.id}.md`,
+      ],
       fileExists: (filePath: string) =>
         Promise.resolve(existingFiles.has(filePath)),
     },

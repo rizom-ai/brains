@@ -66,12 +66,17 @@ export class DirectoryOperationDeps {
       fileOperations: this.options.fileOperations,
       deleteOnFileRemoval,
       entityTypes,
+      // The pulled deletion names whichever of its files was removed.
       onEntityDeleted: (entity): void => {
-        this.options.pendingDeletes.complete(
-          entity.entityType,
-          entity.id,
-          this.options.fileOperations.getEntityFilePath(entity),
-        );
+        this.options.fileOperations
+          .getEntityFileCandidates(entity)
+          .forEach((filePath) =>
+            this.options.pendingDeletes.complete(
+              entity.entityType,
+              entity.id,
+              filePath,
+            ),
+          );
       },
     };
   }
