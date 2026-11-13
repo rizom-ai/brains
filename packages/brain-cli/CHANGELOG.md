@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.709
+
+### Patch Changes
+
+- [#950](https://github.com/rizom-ai/brains/pull/950) [`7cf2504`](https://github.com/rizom-ai/brains/commit/7cf25049abb6c87cdf8a915d15a7aaa696a4ffc5) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A text upload that no plugin can preserve is refused with the way to keep it: as a note, with transform "extract-markdown".
+
 ## 0.2.0-alpha.708
 
 ### Patch Changes
