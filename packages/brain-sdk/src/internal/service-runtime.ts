@@ -43,6 +43,8 @@ export {
   type ServiceGitBroker,
   type ServiceGroupings,
   type ServiceGroupingReads,
+  type ServiceAccountSettingsRegistry,
+  type AccountSettingsRegistration,
   type ServiceIdentity,
   type ServiceListenHandler,
   type ServiceListenMode,

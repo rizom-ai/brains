@@ -69,10 +69,14 @@ import type {
 } from "../interfaces";
 import {
   sealAccountSettings,
+  type AccountSettingsValue,
   type AnyAccountSettingsDefinition,
   type SealedAccountSettingsValue,
 } from "../operator/account-settings-definition-contract";
-import type { AccountSettingsRegistration } from "../operator/account-settings-registry";
+import type {
+  AccountSettingsRegistration,
+  RegisterAccountSettingsInput,
+} from "../operator/account-settings-registry";
 import {
   createDeclarativeStudioWorkspaceRegistration,
   firstPartyStudioOf,
@@ -115,6 +119,7 @@ import {
   type ServiceEntityWrites,
   type ServiceGroupings,
   type ServiceGroupingReads,
+  type ServiceAccountSettingsRegistry,
   type ServiceAI,
 } from "./service-runtime";
 import { ServicePlugin } from "./service-plugin";
@@ -1069,6 +1074,58 @@ class DeclarativeServicePlugin<
     return Object.freeze(messaging);
   }
 
+  /**
+   * The package's own account settings, as its class kept them: registered
+   * under its plugin id, and only the registrations it made reached.
+   */
+  private classAccountSettingsOf(
+    context: ServicePluginContext,
+  ): ServiceAccountSettingsRegistry {
+    const registry = context.accountSettings;
+    const owned = new Set<string>();
+    const refusal = (): Error =>
+      new Error(
+        `Service "${this.id}" reaches only the account settings it registered`,
+      );
+    const own = (registrationId: string): void => {
+      if (!owned.has(registrationId)) throw refusal();
+    };
+    const pluginId = this.id;
+    function register<TDefinition extends AnyAccountSettingsDefinition>(
+      input: RegisterAccountSettingsInput<TDefinition>,
+    ): AccountSettingsRegistration<TDefinition> {
+      if (input.ownerPluginId !== pluginId) {
+        throw new Error(
+          `Service "${pluginId}" registers account settings only under its own plugin id`,
+        );
+      }
+      const registration = registry.register(input);
+      owned.add(registration.id);
+      return registration;
+    }
+    async function getForActor<
+      TDefinition extends AnyAccountSettingsDefinition,
+    >(
+      registration: AccountSettingsRegistration<TDefinition>,
+      actorId: string,
+    ): Promise<AccountSettingsValue<TDefinition> | null> {
+      own(registration.id);
+      return registry.getForActor(registration, actorId);
+    }
+    return Object.freeze({
+      register,
+      getForActor,
+      save: async (registrationId, actorId, values): Promise<void> => {
+        own(registrationId);
+        await registry.save(registrationId, actorId, values);
+      },
+      delete: async (registrationId, actorId): Promise<boolean> => {
+        own(registrationId);
+        return registry.delete(registrationId, actorId);
+      },
+    } satisfies ServiceAccountSettingsRegistry);
+  }
+
   /** The brain's groupings, which Studio owns; refused to any other package. */
   private groupingsOf(context: ServicePluginContext): ServiceGroupings {
     if (this.id !== "studio") {
@@ -1296,6 +1353,7 @@ class DeclarativeServicePlugin<
         queryGroupingCatalog: (request) =>
           context.entityService.queryGroupingCatalog(request),
       } satisfies ServiceGroupingReads),
+      accountSettings: this.classAccountSettingsOf(context),
       sharedUploads: (options = {}) =>
         context.uploads.scoped({
           ...sharedUploadScope,

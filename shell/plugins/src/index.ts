@@ -1053,6 +1053,7 @@ export {
   type ServiceGitBroker,
   type ServiceGroupings,
   type ServiceGroupingReads,
+  type ServiceAccountSettingsRegistry,
   type ServiceIdentity,
   type ServiceListenHandler,
   type ServiceListenMode,
