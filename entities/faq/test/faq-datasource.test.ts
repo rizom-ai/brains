@@ -4,15 +4,15 @@ import type { ContentVisibility, EntityPluginContext } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 import { createSilentLogger } from "@brains/test-utils";
 import {
-  FaqDataSource,
-  FaqPlugin,
-  faqAdapter,
+  faqDocument,
   faqMetadata,
   faqSectionSchema,
+  fetchFaqSection,
   loadPublicFaqs,
   type FaqFrontmatter,
   type FaqStatus,
 } from "../src";
+import { createFaqPlugins } from "./faq-plugins";
 
 describe("FaqDataSource", () => {
   let context: EntityPluginContext;
@@ -34,7 +34,7 @@ describe("FaqDataSource", () => {
       entity: {
         id,
         entityType: "faq",
-        content: faqAdapter.createFaqContent(frontmatter, `Answer **${id}**.`),
+        content: faqDocument(frontmatter, `Answer **${id}**.`),
         visibility,
         metadata: faqMetadata(frontmatter),
         ...(created !== undefined && { created }),
@@ -46,7 +46,8 @@ describe("FaqDataSource", () => {
     const harness = createPluginHarness({
       dataDir: `/tmp/test-faq-datasource-${randomUUID()}`,
     });
-    await harness.installPlugin(new FaqPlugin());
+    for (const plugin of createFaqPlugins())
+      await harness.installPlugin(plugin);
     context = harness.getEntityContext("faq");
     await seed("once", "published", "public", 1);
     await seed("thrice", "published", "public", 3);
@@ -55,11 +56,10 @@ describe("FaqDataSource", () => {
   });
 
   function fetch(publishedOnly: boolean): Promise<unknown> {
-    return new FaqDataSource(createSilentLogger()).fetch(
+    return fetchFaqSection(
       { query: {} },
-      faqSectionSchema,
       { entityService: context.entityService, publishedOnly },
-    );
+    ).then((section) => faqSectionSchema.parse(section));
   }
 
   it("lists only public FAQs, unranked ones most asked first, as question and answer", async () => {
@@ -130,7 +130,7 @@ describe("FaqDataSource", () => {
       entity: {
         id: "with-alternatives",
         entityType: "faq",
-        content: faqAdapter.createFaqContent(
+        content: faqDocument(
           {
             question: "Question with alternatives?",
             status: "published",
@@ -167,7 +167,7 @@ describe("FaqDataSource", () => {
       entity: {
         id: "sourced",
         entityType: "faq",
-        content: faqAdapter.createFaqContent(
+        content: faqDocument(
           frontmatter,
           "In their brains.",
           [],

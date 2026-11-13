@@ -3,11 +3,9 @@ import { beforeEach, describe, expect, it, spyOn } from "bun:test";
 import { renderToStaticMarkup as render } from "react-dom/server";
 import { createMockShell, type MockShell } from "@brains/plugins/test";
 import type { BaseDataSourceContext, BaseEntity } from "@brains/plugins";
-import { createMockLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
-import { bookAdapter } from "../src/adapters/book-adapter";
-import { bookSectionAdapter } from "../src/adapters/book-section-adapter";
-import { BookThemeDataSource } from "../src/datasources/book-theme-datasource";
+import { bookAdapter, bookSectionAdapter } from "./helpers/adapters";
+import { bookThemeSource } from "./helpers/sources";
 import { BookThemeTemplate } from "../src/templates/book-theme";
 import { nearestStore, type NearestMatch } from "./helpers/nearest-store";
 
@@ -125,7 +123,7 @@ describe("BookThemeDataSource", () => {
     const getEntity = spyOn(context.entityService, "getEntity");
     const listEntities = spyOn(context.entityService, "listEntities");
 
-    const result = await new BookThemeDataSource(createMockLogger()).fetch(
+    const result = await bookThemeSource().fetch(
       { entityType: "topic", query: { id: "mitleid" } },
       outputSchema,
       context,
@@ -139,7 +137,7 @@ describe("BookThemeDataSource", () => {
   });
 
   it("names the theme from its own page", async () => {
-    const result = await new BookThemeDataSource(createMockLogger()).fetch(
+    const result = await bookThemeSource().fetch(
       { entityType: "topic", query: { id: "mitleid" } },
       outputSchema,
       context,
@@ -153,7 +151,7 @@ describe("BookThemeDataSource", () => {
   });
 
   it("strands the theme across the books by year, counting its sections there", async () => {
-    const result = await new BookThemeDataSource(createMockLogger()).fetch(
+    const result = await bookThemeSource().fetch(
       { entityType: "topic", query: { id: "mitleid" } },
       outputSchema,
       context,
@@ -188,7 +186,7 @@ describe("BookThemeDataSource", () => {
   });
 
   it("offers the closest sections as passages, never a title page", async () => {
-    const result = await new BookThemeDataSource(createMockLogger()).fetch(
+    const result = await bookThemeSource().fetch(
       { entityType: "topic", query: { id: "mitleid" } },
       outputSchema,
       context,
@@ -229,7 +227,7 @@ describe("BookThemeDataSource with books from the same year", () => {
       },
     };
 
-    const result = await new BookThemeDataSource(createMockLogger()).fetch(
+    const result = await bookThemeSource().fetch(
       { entityType: "topic", query: { id: "mitleid" } },
       z.object({ strand: z.array(z.object({ book: z.string() })) }),
       context,
@@ -264,7 +262,7 @@ describe("BookThemeDataSource with long sections", () => {
       },
     };
 
-    const result = await new BookThemeDataSource(createMockLogger()).fetch(
+    const result = await bookThemeSource().fetch(
       { entityType: "topic", query: { id: "mitleid" } },
       z.object({
         strand: z.array(z.object({ sections: z.number() })),

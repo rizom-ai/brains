@@ -50,8 +50,12 @@ describe("plugin eval entries", () => {
 
       const config = await loadPluginEvalConfig(evalConfig);
 
+      // A service's owned types install beside it as their own plugins;
+      // the test cases address the service.
+      const plugins = config.plugins ?? [];
+      const services = plugins.filter(({ type }) => type === "service");
       expect(addressedPluginIds(join(repositoryRoot, dirname(path)))).toEqual(
-        (config.plugins ?? []).map((plugin) => plugin.id),
+        (services.length > 0 ? services : plugins).map((plugin) => plugin.id),
       );
     },
   );

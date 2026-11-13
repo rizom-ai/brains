@@ -1,25 +1,22 @@
+import { agentFromMarkdown } from "../lib/agent-content";
+import type { FetchLike } from "@brains/utils/fetch-like";
+import { z } from "@brains/utils/zod";
+import { AGENT_ENTITY_TYPE } from "../lib/constants";
+import { extractDomain } from "../lib/extract-domain";
+import { buildAgentFromCard } from "../lib/build-agent-content";
+import { agentEntitySchema, type AgentEntity } from "../schemas/agent";
+import { getErrorMessage } from "@brains/utils/error";
 import {
   ConfirmationArgsStore,
-  canWriteVisibility,
   fetchVerifiedAgentCard,
   internalFullScope,
   isEndpointRefusal,
   type ParsedAgentCard,
   type Tool,
   type ToolResponse,
-} from "@brains/plugins";
-import type {
-  EntityPluginContext,
-  ServicePluginContext,
-} from "@brains/plugins";
-import type { FetchLike } from "@brains/utils/fetch-like";
-import { z } from "@brains/utils/zod";
-import { AgentAdapter } from "../adapters/agent-adapter";
-import { AGENT_ENTITY_TYPE } from "../lib/constants";
-import { extractDomain } from "../lib/extract-domain";
-import { buildAgentFromCard } from "../lib/build-agent-content";
-import { agentEntitySchema, type AgentEntity } from "../schemas/agent";
-import { getErrorMessage } from "@brains/utils/error";
+} from "@brains/sdk/internal/service-runtime";
+import { canWriteVisibility } from "@brains/sdk/internal/entity-runtime";
+import type { AgentContext } from "../lib/agent-context";
 
 const agentConnectInputSchema = z.object({
   source: z.object({
@@ -37,12 +34,7 @@ const agentConnectInputSchema = z.object({
 
 type AgentConnectInput = z.infer<typeof agentConnectInputSchema>;
 
-type AgentConnectContext = Pick<
-  EntityPluginContext | ServicePluginContext,
-  "entityService" | "permissions"
->;
-
-const agentAdapter = new AgentAdapter();
+type AgentConnectContext = Pick<AgentContext, "entityService" | "permissions">;
 
 /**
  * The host an agent is connected under: the one its card is fetched from,
@@ -97,7 +89,7 @@ async function upsertConnectedAgent(params: {
   const { context, entityId, existing, card } = params;
   const now = new Date().toISOString();
   const built = buildAgentFromCard(card, { status: "approved" });
-  const parsedContent = agentAdapter.fromMarkdown(built.content);
+  const parsedContent = agentFromMarkdown(built.content);
   const metadata = {
     ...parsedContent.metadata,
     ...built.metadata,

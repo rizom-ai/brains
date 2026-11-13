@@ -1,106 +1,69 @@
-import type {
-  DataSource,
-  EntityPluginContext,
-  EntityTypeConfig,
-  Plugin,
-  Template,
-} from "@brains/plugins";
-import { EntityPlugin, emptyEntityPluginConfigSchema } from "@brains/plugins";
-import { bookSchema, type Book } from "./schemas/book";
-import { bookAdapter, type BookAdapter } from "./adapters/book-adapter";
-import { bookSectionAdapter } from "./adapters/book-section-adapter";
-import { bookSectionSchema } from "./schemas/book-section";
 import { homepageChatAvailable } from "@brains/site-atlas";
-import { BookAskDataSource } from "./datasources/book-ask-datasource";
-import { BookDataSource } from "./datasources/book-datasource";
-import { BookThemeDataSource } from "./datasources/book-theme-datasource";
-import { getTemplates } from "./lib/register-templates";
+import {
+  defineServicePlugin,
+  z,
+  type ServicePackageDefinition,
+} from "@brains/sdk/services";
+import { serviceRuntime } from "@brains/sdk/internal/service-runtime";
+import { book } from "./book-entity";
+import { bookSection } from "./book-section-entity";
+import { bookAskDataSource } from "./datasources/book-ask-datasource";
+import { bookDataSource } from "./datasources/book-datasource";
+import { bookThemeDataSource } from "./datasources/book-theme-datasource";
 import { subscribeToBookEpubStaging } from "./lib/book-epub-staging";
-import packageJson from "../package.json";
+import { getTemplates } from "./lib/register-templates";
 
-/** The importer writes books through directory-sync; no one edits them. */
-const READ_ONLY: NonNullable<EntityTypeConfig["actionPolicy"]> = {
-  create: "never",
-  update: "never",
-  delete: "never",
-  extract: "never",
-  publish: "never",
-};
+const bookConfigSchema: z.ZodObject<Record<string, never>> = z.object({});
 
-export class BookPlugin extends EntityPlugin<
-  Book,
-  Record<string, never>,
-  Record<string, never>
-> {
-  readonly entityType: typeof bookAdapter.entityType = bookAdapter.entityType;
-  readonly schema: typeof bookSchema = bookSchema;
-  readonly adapter: BookAdapter = bookAdapter;
+const BOOK_INSTRUCTIONS = [
+  'Books (entityType "book") hold an author\'s works; their text is in their sections (entityType "book-section"), whose `section` is their siglum.',
+  'When a question concerns the author\'s ideas or texts, search the sections first: system_search with scope { kind: "type", entityType: "book-section" }.',
+  "Ground every claim in sections you found, and cite each section by its siglum and its book's title.",
+  "Quote the text verbatim, in the language of the text, even when you answer in another language.",
+  "When the books hold nothing on the question, say that the books do not address it instead of answering from general knowledge.",
+].join("\n");
 
-  constructor() {
-    super("book", packageJson, {}, emptyEntityPluginConfigSchema);
-  }
-
-  protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
-    return {
-      classification: "content",
-      includeInBroadSearch: true,
-      // A book is its details and contents; its text is in its sections.
-      projectionSource: false,
-      projectionSourceRole: "excluded",
-      actionPolicy: READ_ONLY,
-    };
-  }
-
-  protected override async onRegister(
-    context: EntityPluginContext,
-  ): Promise<void> {
-    context.entities.register(
-      bookSectionAdapter.entityType,
-      bookSectionSchema,
-      bookSectionAdapter,
-      {
-        classification: "content",
-        includeInBroadSearch: true,
-        // A book brain's sections are its primary texts; its topics map their themes.
-        projectionSourceRole: "canonical",
-        // Ids carry zero-padded reading order.
-        defaultSort: [{ field: "id", direction: "asc" }],
-        actionPolicy: READ_ONLY,
-        // A section lives in its book: stored, shown and deleted with it.
-        containedIn: bookAdapter.entityType,
+/**
+ * An author's works as read-only, citable books and sections, which the
+ * importer writes through directory-sync: the book and book-section types,
+ * the pages a site reads them on, the Ask page's books, a theme traced
+ * across them, and each public book's EPUB staged with every site build.
+ * Installed under the book class's plugin id, so its templates and data
+ * sources keep their `book:` names.
+ */
+export const bookPackage: ServicePackageDefinition<typeof bookConfigSchema> =
+  defineServicePlugin(
+    {
+      id: "reading",
+      config: bookConfigSchema,
+      entities: [book, bookSection],
+      setup: (context): Record<never, never> => {
+        const runtime = serviceRuntime(context);
+        for (const [name, template] of Object.entries(getTemplates())) {
+          runtime.template(name, template);
+        }
+        runtime.dataSource(bookDataSource);
+        runtime.dataSource(
+          bookThemeDataSource(runtime.logger.child("BookThemeDataSource")),
+        );
+        runtime.dataSource(
+          bookAskDataSource(
+            {
+              // The box is named for whom the site speaks, as on the homepage.
+              name: (): string => runtime.identity.getProfile().name,
+              chatAvailable: (build): Promise<boolean> =>
+                homepageChatAvailable(build, {
+                  runtimeState: runtime.classRuntimeState,
+                }),
+            },
+            runtime.logger.child("BookAskDataSource"),
+          ),
+        );
+        subscribeToBookEpubStaging(runtime, runtime.logger);
+        return {};
       },
-    );
-    subscribeToBookEpubStaging(context, this.logger);
-  }
+    },
+    { instructions: () => BOOK_INSTRUCTIONS },
+  );
 
-  protected override async getInstructions(): Promise<string> {
-    return [
-      'Books (entityType "book") hold an author\'s works; their text is in their sections (entityType "book-section"), whose `section` is their siglum.',
-      'When a question concerns the author\'s ideas or texts, search the sections first: system_search with scope { kind: "type", entityType: "book-section" }.',
-      "Ground every claim in sections you found, and cite each section by its siglum and its book's title.",
-      "Quote the text verbatim, in the language of the text, even when you answer in another language.",
-      "When the books hold nothing on the question, say that the books do not address it instead of answering from general knowledge.",
-    ].join("\n");
-  }
-
-  protected override getTemplates(): Record<string, Template> {
-    return getTemplates();
-  }
-
-  protected override getDataSources(): DataSource[] {
-    return [
-      new BookDataSource(this.logger.child("BookDataSource")),
-      new BookThemeDataSource(this.logger.child("BookThemeDataSource")),
-      new BookAskDataSource(this.logger.child("BookAskDataSource"), {
-        // The box is named for whom the site speaks, as on the homepage.
-        name: (): string => this.getContext().identity.getProfile().name,
-        chatAvailable: (buildContext): Promise<boolean> =>
-          homepageChatAvailable(buildContext, this.getContext()),
-      }),
-    ];
-  }
-}
-
-export function bookPlugin(): Plugin {
-  return new BookPlugin();
-}
+export default bookPackage;

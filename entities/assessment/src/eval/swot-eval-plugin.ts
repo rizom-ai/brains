@@ -1,33 +1,24 @@
 import {
-  AgentAdapter,
-  SkillAdapter,
-  agentEntitySchema,
+  agentEntity,
   agentFrontmatterSchema,
   agentSkillSchema,
-  skillEntitySchema,
+  createAgentContent,
+  createSkillContent,
+  skill,
   skillFrontmatterSchema,
 } from "@brains/agent-discovery";
-import type {
-  EntityPluginContext,
-  EntityTypeConfig,
-  Plugin,
-} from "@brains/plugins";
-import { EntityPlugin, emptyEntityPluginConfigSchema } from "@brains/plugins";
-import { CallbackProgressReporter } from "@brains/utils/progress";
-import { generateIdFromText, slugifyUrl } from "@brains/utils/string-utils";
-import { z } from "@brains/utils/zod";
-import packageJson from "../../package.json";
-import { SwotAdapter } from "../adapters/swot-adapter";
-import { SwotDerivationHandler } from "../handlers/swot-derivation-handler";
 import {
-  swotEntitySchema,
-  type SwotEntity,
-  type SwotFrontmatter,
-} from "../schemas/swot";
-
-const agentAdapter = new AgentAdapter();
-const skillAdapter = new SkillAdapter();
-const swotAdapter = new SwotAdapter();
+  defineServicePlugin,
+  z,
+  type ServicePackageDefinition,
+} from "@brains/sdk/services";
+import {
+  serviceRuntime,
+  type ServiceRuntime,
+} from "@brains/sdk/internal/service-runtime";
+import { generateIdFromText, slugifyUrl } from "@brains/utils/string-utils";
+import { swot, swotWritten } from "../swot-entity";
+import { SWOT_DERIVATION_RULE_ID } from "../lib/swot-projection";
 
 /** An agent a test case seeds: its saved frontmatter and body sections. */
 const swotEvalAgentSchema = agentFrontmatterSchema.extend({
@@ -43,136 +34,114 @@ const swotEvalInputSchema = z.object({
   agents: z.array(swotEvalAgentSchema),
 });
 
+type EvalRuntime = Pick<
+  ServiceRuntime,
+  "entityReads" | "entityWrites" | "runProjectionRule"
+>;
+
+/** Every record of a type, removed, so a test case starts from its own. */
 async function deleteAllEntities(
-  context: EntityPluginContext,
+  runtime: EvalRuntime,
   entityType: string,
 ): Promise<void> {
-  const entities = await context.entityService.listEntities({
-    entityType: entityType,
-    options: {
-      limit: 1000,
-    },
+  const entities = await runtime.entityReads.listEntities({
+    entityType,
+    options: { limit: 1000 },
   });
-
   await Promise.all(
     entities.map((entity) =>
-      context.entityService.deleteEntity({
-        entityType: entity.entityType,
-        id: entity.id,
-      }),
+      runtime.entityWrites.deleteEntity({ entityType, id: entity.id }),
     ),
   );
+}
+
+/** A document written as its type's adapter reads it, as an import is. */
+async function createFromMarkdown(
+  runtime: EvalRuntime,
+  input: { entityType: string; id: string; markdown: string },
+): Promise<void> {
+  const parsed = runtime.entityReads.deserializeEntity(
+    input.markdown,
+    input.entityType,
+  );
+  await runtime.entityWrites.createEntity({
+    entity: {
+      ...parsed,
+      id: input.id,
+      entityType: input.entityType,
+      content: input.markdown,
+      metadata: parsed.metadata ?? {},
+    },
+  });
 }
 
 /**
  * Replace the directory with a test case's: each skill and agent is written
- * as agent-discovery writes it and read back through its adapter.
+ * as agent-discovery writes it and read back through its type.
  */
 async function seedSwotEvalEntities(
-  context: EntityPluginContext,
+  runtime: EvalRuntime,
   input: z.output<typeof swotEvalInputSchema>,
 ): Promise<void> {
-  await deleteAllEntities(context, "swot");
-  await deleteAllEntities(context, "agent");
-  await deleteAllEntities(context, "skill");
+  await deleteAllEntities(runtime, "swot");
+  await deleteAllEntities(runtime, "agent");
+  await deleteAllEntities(runtime, "skill");
 
   await Promise.all(
-    input.skills.map((skill) =>
-      context.entityService.createEntityFromMarkdown({
-        input: {
-          entityType: "skill",
-          id: generateIdFromText(skill.name),
-          markdown: skillAdapter.createSkillContent(skill),
-        },
+    input.skills.map((seeded) =>
+      createFromMarkdown(runtime, {
+        entityType: "skill",
+        id: generateIdFromText(seeded.name),
+        markdown: createSkillContent(seeded),
       }),
     ),
   );
-
   await Promise.all(
     input.agents.map(({ id, discoveredAt, ...agent }) =>
-      context.entityService.createEntityFromMarkdown({
-        input: {
-          entityType: "agent",
-          id: id ?? slugifyUrl(agent.url),
-          markdown: agentAdapter.createAgentContent({
-            ...agent,
-            discoveredAt: discoveredAt ?? new Date().toISOString(),
-          }),
-        },
+      createFromMarkdown(runtime, {
+        entityType: "agent",
+        id: id ?? slugifyUrl(agent.url),
+        markdown: createAgentContent({
+          ...agent,
+          discoveredAt: discoveredAt ?? new Date().toISOString(),
+        }),
       }),
     ),
   );
 }
 
-async function deriveSwot(
-  context: EntityPluginContext,
-  input: unknown,
-): Promise<SwotFrontmatter> {
-  await seedSwotEvalEntities(context, swotEvalInputSchema.parse(input));
-
-  const handler = new SwotDerivationHandler(context.logger, context);
-  const progressReporter = CallbackProgressReporter.from(async () => {});
-  if (!progressReporter) {
-    throw new Error("Expected progress reporter to be created");
-  }
-
-  await handler.process(
-    { reason: "eval" },
-    "eval-swot-derive",
-    progressReporter,
-  );
-
-  const entity = await context.entityService.getEntity({
-    entityType: "swot",
-    id: "swot",
-  });
-  if (!entity) {
-    throw new Error("Expected SWOT entity to be created during eval");
-  }
-
-  return swotAdapter.parseSwotContent(entity.content).frontmatter;
-}
+const emptyConfigSchema: z.ZodObject<Record<string, never>> = z.object({});
 
 /**
- * The SWOT entity type beside agent-discovery's own agent and skill types,
- * with a `deriveSwot` eval handler that seeds a test case's directory before
- * deriving. Its id is the one the test cases address (`plugin: assessment`).
+ * The SWOT type beside agent-discovery's own agent and skill types, with a
+ * `deriveSwot` eval handler that seeds a test case's directory and measures
+ * the production swot-derivation rule against it. Its id is the one the
+ * test cases address (`plugin: assessment`). The rule here names no
+ * sources, so seeding queues no derivation: only the eval runs it.
  *
  * Eval-only: served from `@brains/assessment/eval`, which `evals/eval.yaml`
  * names, and never from the package entry production brains load.
  */
-export class SwotEvalPlugin extends EntityPlugin<
-  SwotEntity,
-  Record<string, never>,
-  Record<string, never>
-> {
-  readonly entityType: SwotEntity["entityType"] = "swot";
-  readonly schema: typeof swotEntitySchema = swotEntitySchema;
-  readonly adapter: SwotAdapter = swotAdapter;
+const swotEvalPackage: ServicePackageDefinition<typeof emptyConfigSchema> =
+  defineServicePlugin({
+    id: "assessment",
+    config: emptyConfigSchema,
+    entities: [
+      // The SWOT with derivation off: its rule is unscheduled.
+      swot,
+      agentEntity(undefined),
+      skill,
+    ],
+    setup: (setupContext): Record<never, never> => {
+      const runtime = serviceRuntime(setupContext);
+      runtime.evalHandler("deriveSwot", async (input: unknown) => {
+        await seedSwotEvalEntities(runtime, swotEvalInputSchema.parse(input));
+        return swotWritten(
+          await runtime.runProjectionRule(SWOT_DERIVATION_RULE_ID),
+        );
+      });
+      return {};
+    },
+  });
 
-  constructor() {
-    super("assessment", packageJson, {}, emptyEntityPluginConfigSchema);
-  }
-
-  protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
-    return { classification: "system" };
-  }
-
-  protected override async onRegister(
-    context: EntityPluginContext,
-  ): Promise<void> {
-    context.entities.register("agent", agentEntitySchema, agentAdapter, {
-      classification: "system",
-    });
-    context.entities.register("skill", skillEntitySchema, skillAdapter, {
-      classification: "system",
-    });
-    context.eval.registerHandler("deriveSwot", (input: unknown) =>
-      deriveSwot(context, input),
-    );
-  }
-}
-
-export function swotEvalPlugin(): Plugin {
-  return new SwotEvalPlugin();
-}
+export default swotEvalPackage;

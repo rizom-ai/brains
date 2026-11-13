@@ -1,10 +1,10 @@
-import { baseEntitySchema } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import {
   MAX_SKILL_TAG_LENGTH,
   MAX_SKILL_TAGS,
   SKILL_ENTITY_TYPE,
 } from "../lib/constants";
+import { baseEntitySchema } from "@brains/sdk/internal/entity-runtime";
 
 export const skillTagSchema: z.ZodString = z
   .string()

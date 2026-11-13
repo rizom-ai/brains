@@ -43,6 +43,10 @@ import type {
 import type { SchemaValue } from "../internal/schema-value";
 import type { RetryScope } from "@brains/utils/retry-backoff";
 import type { EntityPluginContext } from "./context";
+import type {
+  ProjectionWaveInput,
+  ProjectionWriteIntent,
+} from "./projection-rule";
 
 /**
  * Internal runtime capabilities bound to one entity callback's call, for
@@ -153,6 +157,16 @@ export interface EntityRuntime {
     input: unknown,
     options?: EvalGenerationOptions,
   ): Promise<EvalGenerationResult>;
+  /**
+   * One of the declaring type's own projection rules, run as production
+   * runs it, with no wave, memo or write: what it would write, as an eval
+   * measures the rule, on the same run a first-party service's runtime
+   * uses. A rule the declaring type does not declare is refused. Evals only.
+   */
+  runProjectionRule(
+    ruleId: string,
+    options?: { readonly inputs?: readonly ProjectionWaveInput[] },
+  ): Promise<readonly ProjectionWriteIntent[]>;
   /**
    * Point a target at a record of the declaring type: set a field, or add
    * to a list, dropping entries the record supersedes. The generation-link
@@ -362,6 +376,8 @@ export interface EntityRuntimeBinding {
   readonly caller?: EntityCreateCaller | undefined;
   /** The declaring type's generation, run in process; unset, refused. */
   readonly runGeneration?: EntityRuntime["runGeneration"] | undefined;
+  /** The declaring type's own projection rules, run; unset, refused. */
+  readonly runProjectionRule?: EntityRuntime["runProjectionRule"] | undefined;
 }
 
 const entityRuntimeKey = Symbol("rizom.entity-runtime");
@@ -731,6 +747,13 @@ function bindEntityRuntime(binding: EntityRuntimeBinding): EntityRuntime {
       (async (): Promise<never> => {
         throw new Error(`runGeneration is not available in ${binding.where}`);
       }),
+    runProjectionRule:
+      binding.runProjectionRule ??
+      (async (): Promise<never> => {
+        throw new Error(
+          `runProjectionRule is not available in ${binding.where}`,
+        );
+      }),
     linkInto: (entityId: string, link: EntityGenerationLink): Promise<void> =>
       job.linkInto(entityId, link),
   });
@@ -879,6 +902,122 @@ export function bodyTemplateOf(definition: object): string {
   return typeof found === "string" ? found : "";
 }
 
+const displayTitleKey = Symbol("rizom.display-title");
+
+/** How a record is named from the whole record read, as its adapter named it. */
+export type RecordDisplayTitle<TDefinition extends AnyEntityDefinition> =
+  (record: {
+    readonly id: string;
+    readonly content: string;
+    readonly metadata: z.output<TDefinition["metadata"]>;
+    readonly created: string;
+    readonly updated: string;
+  }) => string | undefined;
+
+/**
+ * A first-party definition whose adapter named a record from the whole
+ * record, its dates among it: the definition, carrying how it names a
+ * record under a key no public type names, which the runtime gives as its
+ * adapter's display title (a summary with no recorded start is named by the
+ * day it was stored). A definition that declares the public displayTitle
+ * is refused: one record has one name.
+ *
+ * Tracked in docs/legacy-code-inventory.json (first-party-entity-runtime).
+ */
+export function withDisplayTitle<TDefinition extends AnyEntityDefinition>(
+  definition: TDefinition,
+  title: RecordDisplayTitle<TDefinition>,
+): TDefinition {
+  if (definition.displayTitle) {
+    throw new Error(
+      `Entity "${definition.type}" already declares a display title`,
+    );
+  }
+  return Object.freeze({ ...definition, [displayTitleKey]: title });
+}
+
+/**
+ * The whole-record title a definition carries, read from a record as read:
+ * none for a record whose metadata the type does not read, or for a
+ * definition that carries none.
+ */
+export function recordDisplayTitleOf(definition: AnyEntityDefinition):
+  | ((
+      entity: {
+        readonly id: string;
+        readonly content: string;
+        readonly created: string;
+        readonly updated: string;
+      },
+      metadata: unknown,
+    ) => string | undefined)
+  | undefined {
+  const found: unknown = Reflect.get(definition, displayTitleKey);
+  if (typeof found !== "function") return undefined;
+  return (entity, metadata) => {
+    const parsed = definition.metadata.safeParse(metadata);
+    if (!parsed.success) return undefined;
+    const title: unknown = Reflect.apply(found, undefined, [
+      {
+        id: entity.id,
+        content: entity.content,
+        metadata: parsed.data,
+        created: entity.created,
+        updated: entity.updated,
+      },
+    ]);
+    return typeof title === "string" ? title : undefined;
+  };
+}
+
+const folderTitlesKey = Symbol("rizom.folder-titles");
+
+/** How a record names the folders above it, as its adapter did. */
+export type FolderTitles<TDefinition extends AnyEntityDefinition> = (record: {
+  readonly content: string;
+  readonly metadata: z.output<TDefinition["metadata"]>;
+}) => Array<string | undefined>;
+
+/**
+ * A first-party definition whose records stand in folders the type can
+ * name: the definition, carrying how a record names the folders above it
+ * under a key no public type names, which the runtime gives as its
+ * adapter's folder titles (a book section's headings title the parts its
+ * id stands in, in Studio's tree).
+ */
+export function withFolderTitles<TDefinition extends AnyEntityDefinition>(
+  definition: TDefinition,
+  titles: FolderTitles<TDefinition>,
+): TDefinition {
+  return Object.freeze({ ...definition, [folderTitlesKey]: titles });
+}
+
+/**
+ * The folder titles a definition carries, read from a record as read: none
+ * for a record whose metadata the type does not read, or for a definition
+ * that carries none.
+ */
+export function folderTitlesOf(
+  definition: AnyEntityDefinition,
+):
+  | ((entity: { readonly content: string }) => Array<string | undefined>)
+  | undefined {
+  const found: unknown = Reflect.get(definition, folderTitlesKey);
+  if (typeof found !== "function") return undefined;
+  return (entity) => {
+    const metadata = definition.metadata.safeParse(
+      Reflect.get(entity, "metadata"),
+    );
+    if (!metadata.success) return [];
+    const titles: unknown = Reflect.apply(found, undefined, [
+      { content: entity.content, metadata: metadata.data },
+    ]);
+    return Array.isArray(titles)
+      ? titles.map((title) => (typeof title === "string" ? title : undefined))
+      : [];
+  };
+}
+
 const restatedMetadataKey = Symbol("rizom.restated-metadata");
 
 /** The metadata as the document a type wrote states it. */
@@ -1020,6 +1159,44 @@ const readAsWrittenCodecs = new WeakSet<object>();
 /** Whether a codec reads its stored document as written. */
 export function readsAsWritten(codec: object | undefined): boolean {
   return codec !== undefined && readAsWrittenCodecs.has(codec);
+}
+
+const publishedStatusesKey = Symbol("rizom.published-statuses");
+
+/**
+ * A first-party definition whose class's adapter declared the statuses a
+ * published-only read (a production site build) publishes: exactly those,
+ * so a record without one of them is not published, under a key no public
+ * type names (an agent directory publishes approved agents only). The
+ * statuses are independent of the publish-action policy, `config.publish`.
+ * An empty list is refused.
+ *
+ * Tracked in docs/legacy-code-inventory.json (first-party-entity-runtime).
+ */
+export function withPublishedStatuses<TDefinition extends AnyEntityDefinition>(
+  definition: TDefinition,
+  statuses: readonly string[],
+): TDefinition {
+  if (statuses.length === 0) {
+    throw new Error(
+      `Entity "${definition.type}" must publish at least one status`,
+    );
+  }
+  return Object.freeze({
+    ...definition,
+    [publishedStatusesKey]: Object.freeze([...statuses]),
+  });
+}
+
+/** The statuses a definition publishes, when it states them. */
+export function publishedStatusesOf(
+  definition: object,
+): readonly string[] | undefined {
+  const statuses: unknown = Reflect.get(definition, publishedStatusesKey);
+  return Array.isArray(statuses) &&
+    statuses.every((status) => typeof status === "string")
+    ? statuses
+    : undefined;
 }
 
 const frontmatterSchemaKey = Symbol("rizom.frontmatter-schema");

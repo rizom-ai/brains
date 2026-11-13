@@ -8,11 +8,11 @@ import {
   createPluginHarness,
   type PluginTestHarness,
 } from "@brains/plugins/test";
-import { BookPlugin } from "../src";
+import { createBookPlugins } from "./book-plugins";
 import { book, section } from "./helpers/books";
 
 describe("book EPUB", () => {
-  let harness: PluginTestHarness<BookPlugin>;
+  let harness: PluginTestHarness;
   let outputDir: string;
   const failures: string[] = [];
 
@@ -37,10 +37,9 @@ describe("book EPUB", () => {
   beforeEach(async () => {
     failures.length = 0;
     outputDir = await fs.mkdtemp(join(tmpdir(), "book-epub-"));
-    harness = createPluginHarness<BookPlugin>({
-      dataDir: "/tmp/test-datadir",
-    });
-    await harness.installPlugin(new BookPlugin());
+    harness = createPluginHarness({ dataDir: "/tmp/test-datadir" });
+    for (const plugin of createBookPlugins())
+      await harness.installPlugin(plugin);
     const entities = harness.getEntityService();
     await entities.createEntity({ entity: book("erstes", "Erstes Buch") });
     await entities.createEntity({

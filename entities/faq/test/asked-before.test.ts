@@ -3,13 +3,13 @@ import { randomUUID } from "node:crypto";
 import type { ContentVisibility, EntityPluginContext } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 import {
-  FaqPlugin,
   SAME_QUESTION_CHECK,
   answerAskedBefore,
-  faqAdapter,
+  faqDocument,
   faqMetadata,
   faqSchema,
 } from "../src";
+import { createFaqPlugins } from "./faq-plugins";
 
 // A visitor's question a published FAQ already answers is answered from it,
 // with the sources the FAQ kept. Its persisted capture, not this read, counts it.
@@ -69,7 +69,7 @@ describe("answering a question asked before", () => {
       entity: {
         id,
         entityType: "faq",
-        content: faqAdapter.createFaqContent(
+        content: faqDocument(
           frontmatter,
           "In the brains of the people who hold it.",
           [],
@@ -94,7 +94,8 @@ describe("answering a question asked before", () => {
     const harness = createPluginHarness({
       dataDir: `/tmp/test-faq-asked-${randomUUID()}`,
     });
-    await harness.installPlugin(new FaqPlugin());
+    for (const plugin of createFaqPlugins())
+      await harness.installPlugin(plugin);
     context = harness.getEntityContext("faq");
     distances = [];
     sameVerdict = true;

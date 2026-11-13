@@ -8,13 +8,14 @@ import type {
 } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 import {
-  FaqPlugin,
-  faqAdapter,
+  faqDocument,
   faqMetadata,
   faqSchema,
+  readFaq,
   type FaqAlternative,
   type FaqStatus,
 } from "../src";
+import { createFaqPlugins } from "./faq-plugins";
 
 const owner: InboxActor = { permissionLevel: "admin" };
 
@@ -40,11 +41,7 @@ describe("FAQ inbox", () => {
       entity: {
         id,
         entityType: "faq",
-        content: faqAdapter.createFaqContent(
-          frontmatter,
-          `Answer ${id}.`,
-          alternatives,
-        ),
+        content: faqDocument(frontmatter, `Answer ${id}.`, alternatives),
         visibility,
         metadata: faqMetadata(frontmatter),
       },
@@ -61,7 +58,7 @@ describe("FAQ inbox", () => {
       faqSchema,
     );
     if (!faq) return null;
-    const parsed = faqAdapter.parseFaqContent(faq.content);
+    const parsed = readFaq(faq);
     return {
       status: parsed.frontmatter.status,
       answer: parsed.answer,
@@ -73,7 +70,8 @@ describe("FAQ inbox", () => {
     const harness = createPluginHarness({
       dataDir: `/tmp/test-faq-inbox-${randomUUID()}`,
     });
-    await harness.installPlugin(new FaqPlugin());
+    for (const plugin of createFaqPlugins())
+      await harness.installPlugin(plugin);
     await harness.finalizeRegistration();
     context = harness.getEntityContext("faq");
     const registered = harness

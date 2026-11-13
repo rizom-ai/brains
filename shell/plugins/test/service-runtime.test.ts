@@ -686,8 +686,11 @@ describe("a first-party service's read-only view of the entity service", () => {
       "getEntityTypeConfig",
       "getEntityTypes",
       "listEntities",
+      "nearestToEntity",
+      "projectSemanticSpace",
       "queryEntityHierarchy",
       "search",
+      "searchWithDistances",
     ]);
   });
 });
@@ -1208,6 +1211,86 @@ describe("a first-party service's data source, template and widget", () => {
       view: {
         blocks: [{ type: "stats", items: [{ label: "Built", value: 3 }] }],
       },
+    });
+  });
+
+  it("hands its widget's load the caller, as the class's widget read it", async () => {
+    const shell = noted();
+    const registrations: DashboardWidgetRegistration[] = [];
+    shell
+      .getMessageBus()
+      .subscribe<DashboardWidgetRegistration>(
+        "dashboard:register-widget",
+        (message) => {
+          registrations.push(message.payload);
+          return { success: true };
+        },
+      );
+    const inviteData = z.object({ canInvite: z.boolean() });
+    await install(
+      shell,
+      defineServicePlugin(
+        { id: "probe", config: z.object({}) },
+        {
+          subscriptions: (context) => {
+            serviceRuntime(context).dashboardWidget({
+              definition: defineDashboardWidget({
+                id: "network",
+                title: "Network",
+                group: "knowledge",
+                placement: "primary",
+                priority: 30,
+                permission: "public",
+                data: inviteData,
+                view: ({ data }) => ({
+                  blocks: [
+                    {
+                      type: "stats",
+                      id: "invite",
+                      items: [
+                        { label: "Invite", value: data.canInvite ? 1 : 0 },
+                      ],
+                    },
+                  ],
+                }),
+              }),
+              // Only an admin is offered the invite, as the agent network was.
+              load: async ({ caller }) => ({
+                canInvite: caller?.permission === "admin",
+              }),
+            });
+            return [];
+          },
+        },
+      ),
+    );
+    await shell.getMessageBus().send({
+      type: SYSTEM_CHANNELS.pluginsRegistered,
+      payload: {},
+      sender: "shell",
+    });
+    const [registration] = registrations;
+    if (!registration) throw new Error("The widget was not registered");
+    const invites = async (
+      caller: Parameters<typeof registration.dataProvider>[0]["caller"],
+    ): Promise<unknown> =>
+      registration.dataProvider({
+        caller,
+        signal: new AbortController().signal,
+      });
+    const actor = { id: "u-1" };
+    expect(
+      await invites({ actor, permission: "admin", isAnchor: false }),
+    ).toMatchObject({
+      view: { blocks: [{ items: [{ label: "Invite", value: 1 }] }] },
+    });
+    expect(
+      await invites({ actor, permission: "trusted", isAnchor: false }),
+    ).toMatchObject({
+      view: { blocks: [{ items: [{ label: "Invite", value: 0 }] }] },
+    });
+    expect(await invites(null)).toMatchObject({
+      view: { blocks: [{ items: [{ label: "Invite", value: 0 }] }] },
     });
   });
 

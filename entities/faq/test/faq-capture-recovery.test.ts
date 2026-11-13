@@ -5,7 +5,7 @@ import {
   openCaptureStorage,
   type CaptureFixture,
 } from "./helpers/capture-storage";
-import { faqAdapter, faqMetadata } from "../src/adapters/faq-adapter";
+import { faqDocument, faqMetadata, readFaq } from "../src/lib/faq-body";
 
 async function seedTarget(fixture: CaptureFixture): Promise<void> {
   const fields = {
@@ -18,7 +18,7 @@ async function seedTarget(fixture: CaptureFixture): Promise<void> {
       id: "target",
       entityType: "faq",
       visibility: "public",
-      content: faqAdapter.createFaqContent(fields, "Original answer."),
+      content: faqDocument(fields, "Original answer."),
       metadata: faqMetadata(fields),
     },
   });
@@ -28,9 +28,7 @@ async function counts(fixture: CaptureFixture): Promise<number[]> {
     entityType: "faq",
     options: { filter: { visibilityScope: "restricted" } },
   });
-  return rows.map(
-    (row) => faqAdapter.parseFaqContent(row.content).frontmatter.asked,
-  );
+  return rows.map((row) => readFaq(row).frontmatter.asked);
 }
 const receipt = { namespace: "faq.capture", key: "reply" };
 
@@ -193,16 +191,13 @@ for (const change of ["restricted", "shared", "question"] as const) {
           visibilityScope: "restricted",
         });
         if (!current) throw new Error("Missing target");
-        const fields = faqAdapter.parseFaqContent(current.content).frontmatter;
+        const fields = readFaq(current).frontmatter;
         if (change === "question") fields.question = "A different question?";
         await fixture.service.updateEntity({
           entity: {
             ...current,
             visibility: change === "question" ? "public" : change,
-            content: faqAdapter.createFaqContent(
-              fields,
-              "Changed target answer.",
-            ),
+            content: faqDocument(fields, "Changed target answer."),
             metadata: faqMetadata(fields),
           },
         });

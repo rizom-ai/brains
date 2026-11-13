@@ -1,20 +1,20 @@
 import {
-  internalFullScope,
-  BaseJobHandler,
   SYSTEM_CHANNELS,
   conversationMessageAddedChannel,
+  firstPartyJobHandler,
+  internalFullScope,
   jobProgressChannel,
   type ContentVisibility,
-  type EntityPluginContext,
-} from "@brains/plugins";
+  type FirstPartyJobHandler,
+  type ServiceRuntime,
+} from "@brains/sdk/internal/service-runtime";
 import {
   spaceNoticeActionContract,
   spaceNoticeContract,
 } from "@brains/contracts";
 import { ACTION_ITEM_ENTITY_TYPE } from "@brains/action-items";
-import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
-import type { ProgressReporter } from "@brains/utils/progress";
+import type { MemoryContext } from "../memory-context";
 import {
   ChannelActionItemExtractor,
   type BrainMember,
@@ -28,7 +28,6 @@ import {
 import {
   channelBookmarks,
   pickUpChannelActionItems,
-  type ChannelPickupDeps,
   type ChannelPickupResult,
 } from "./pickup";
 import {
@@ -38,34 +37,23 @@ import {
   channelPickupJobDataSchema,
   finishedPickupOf,
   wakeUpChannel,
-  type ChannelPickupJobData,
   type ChannelTriggerDeps,
 } from "./trigger";
 import { undoNoticeCard } from "./undo";
 
-class ChannelPickupHandler extends BaseJobHandler<
-  typeof CHANNEL_ACTION_ITEMS_JOB_TYPE,
-  ChannelPickupJobData,
-  ChannelPickupResult
-> {
-  private readonly deps: ChannelPickupDeps;
-
-  constructor(logger: Logger, deps: ChannelPickupDeps) {
-    super(logger, {
-      schema: channelPickupJobDataSchema,
-      jobTypeName: CHANNEL_ACTION_ITEMS_JOB_TYPE,
-    });
-    this.deps = deps;
-  }
-
-  async process(
-    data: ChannelPickupJobData,
-    jobId: string,
-    _progressReporter: ProgressReporter,
-  ): Promise<ChannelPickupResult> {
-    return pickUpChannelActionItems(this.deps, data.conversationId, jobId);
-  }
-}
+/** What the channel pickup reaches through the package's runtime. */
+type ChannelRuntime = Pick<
+  ServiceRuntime,
+  | "classRuntimeState"
+  | "assignableMembers"
+  | "spaces"
+  | "jobs"
+  | "listen"
+  | "messaging"
+  | "answer"
+  | "evalHandler"
+  | "recurringCheck"
+>;
 
 const evalChannelInputSchema = z.object({
   /** How many leading messages an earlier run already processed. */
@@ -128,49 +116,64 @@ function evalChannelMessages(
 }
 
 /**
- * Action items picked up from configured chat spaces: the job that turns a
- * space's new messages into cards, woken by each stored message, with a
- * catch-up at startup and daily so a lost wake-up only delays a batch. The
- * web process, where the chat app runs, posts each batch's notice when it
- * hears the pickup finish, and at startup whatever a restart left pending;
- * an Undo on a notice takes its card back.
+ * The job that turns a space conversation's new messages into cards, in
+ * every process, under conversation-memory:channel-action-items.
+ */
+export function channelPickupJobHandler(
+  runtime: Pick<ChannelRuntime, "classRuntimeState" | "assignableMembers">,
+  context: Pick<
+    MemoryContext,
+    "logger" | "entityService" | "conversations" | "ai"
+  >,
+  visibility: ContentVisibility,
+): FirstPartyJobHandler {
+  const deps = {
+    conversations: context.conversations,
+    bookmarks: channelBookmarks(runtime.classRuntimeState),
+    members: (): Promise<BrainMember[]> => runtime.assignableMembers(),
+    extractor: new ChannelActionItemExtractor(
+      context,
+      context.logger.child("ChannelActionItemExtractor"),
+    ),
+    entityService: context.entityService,
+    visibility,
+  };
+  return firstPartyJobHandler({
+    type: CHANNEL_ACTION_ITEMS_JOB_TYPE,
+    input: channelPickupJobDataSchema,
+    process: ({ input, jobId }): Promise<ChannelPickupResult> =>
+      pickUpChannelActionItems(deps, input.conversationId, jobId),
+  });
+}
+
+/**
+ * Action items picked up from configured chat spaces: the pickup job,
+ * woken by each stored message, with a catch-up at startup and daily so a
+ * lost wake-up only delays a batch. The web process, where the chat app
+ * runs, posts each batch's notice when it hears the pickup finish, and at
+ * startup whatever a restart left pending; an Undo on a notice takes its
+ * card back.
  */
 export function registerChannelActionItems(
-  context: EntityPluginContext,
-  options: { logger: Logger; visibility: ContentVisibility },
+  runtime: ChannelRuntime,
+  context: Pick<
+    MemoryContext,
+    "logger" | "entityService" | "conversations" | "ai"
+  >,
+  options: { visibility: ContentVisibility },
 ): void {
-  const bookmarks = channelBookmarks(context.runtimeState);
-  context.jobs.registerHandler(
-    CHANNEL_ACTION_ITEMS_JOB_TYPE,
-    new ChannelPickupHandler(options.logger.child("ChannelActionItems"), {
-      conversations: context.conversations,
-      bookmarks,
-      members: (): Promise<BrainMember[]> =>
-        context.auth.listAssignableMembers(),
-      extractor: new ChannelActionItemExtractor(
-        context,
-        options.logger.child("ChannelActionItemExtractor"),
-      ),
-      entityService: context.entityService,
-      visibility: options.visibility,
-    }),
-  );
-
+  const bookmarks = channelBookmarks(runtime.classRuntimeState);
   const trigger: ChannelTriggerDeps = {
     conversations: context.conversations,
-    spaces: context.spaces,
+    spaces: runtime.spaces,
     bookmarks,
     enqueue: async (conversationId) => {
-      await context.jobs.enqueue(channelPickupJob(conversationId));
+      await runtime.jobs.enqueue(channelPickupJob(conversationId));
     },
   };
-  context.messaging.subscribe(
-    conversationMessageAddedChannel,
-    async (message) => {
-      await wakeUpChannel(trigger, message);
-      return { success: true };
-    },
-  );
+  runtime.listen(conversationMessageAddedChannel, async ({ payload }) => {
+    await wakeUpChannel(trigger, payload);
+  });
   const notices: ChannelNoticeDeps = {
     conversations: context.conversations,
     bookmarks,
@@ -183,7 +186,7 @@ export function registerChannelActionItems(
         ),
       })) !== null,
     post: async (request) => {
-      const posted = await context.messaging.request(
+      const posted = await runtime.messaging.request(
         spaceNoticeContract,
         request,
       );
@@ -191,78 +194,70 @@ export function registerChannelActionItems(
     },
   };
   // Every plugin hears the click; only the notice's poster has new content.
-  context.messaging.answer(
+  runtime.answer(
     spaceNoticeActionContract,
-    async (action) =>
+    async ({ request }) =>
       (await undoNoticeCard(
         {
           bookmarks,
           entityService: context.entityService,
           visibility: options.visibility,
         },
-        action,
+        request,
       )) ?? null,
   );
-  context.messaging.subscribe(jobProgressChannel, async (event) => {
-    const conversationId = finishedPickupOf(event);
+  runtime.listen(jobProgressChannel, async ({ payload }) => {
+    const conversationId = finishedPickupOf(payload);
     if (conversationId) await postPendingNotices(notices, conversationId);
-    return { success: true };
   });
-  context.messaging.subscribe(
-    SYSTEM_CHANNELS.startupContentSettled,
-    async () => {
-      await postAllPendingNotices(notices);
-      await catchUpChannels(trigger);
-      return { success: true };
-    },
-  );
-  context.eval.registerHandler(
-    "extractChannelActionItems",
-    async (input: unknown) => {
-      const parsed = evalChannelInputSchema.parse(input);
-      const positioned = evalChannelMessages(parsed);
-      const { items, updates, withdrawals } =
-        await new ChannelActionItemExtractor(
-          context,
-          options.logger.child("ChannelActionItemExtractor"),
-        ).extract({
-          context: positioned.slice(0, parsed.processedThrough),
-          fresh: positioned.slice(parsed.processedThrough),
-          cards: parsed.cards.map((card, index) => ({
-            ...card,
-            id: `card-${index + 1}`,
-          })),
-          members: parsed.members.map((name) => ({
-            id: evalMemberId(name),
-            name,
-          })),
-        });
-      return {
-        count: items.length,
-        items: items.map((item) => ({
-          title: item.title,
-          text: item.text,
-          message: item.sourcePosition,
-          owner: item.owner?.name ?? "nobody",
-          due: item.dueDate ?? "none",
+  runtime.listen(SYSTEM_CHANNELS.startupContentSettled, async () => {
+    await postAllPendingNotices(notices);
+    await catchUpChannels(trigger);
+  });
+  runtime.evalHandler("extractChannelActionItems", async (input: unknown) => {
+    const parsed = evalChannelInputSchema.parse(input);
+    const positioned = evalChannelMessages(parsed);
+    const { items, updates, withdrawals } =
+      await new ChannelActionItemExtractor(
+        context,
+        context.logger.child("ChannelActionItemExtractor"),
+      ).extract({
+        context: positioned.slice(0, parsed.processedThrough),
+        fresh: positioned.slice(parsed.processedThrough),
+        cards: parsed.cards.map((card, index) => ({
+          ...card,
+          id: `card-${index + 1}`,
         })),
-        updates: updates.map((update) => ({
-          card: update.cardId,
-          title: update.title,
-          text: update.text,
-          message: update.sourcePosition,
-          owner:
-            typeof update.owner === "string" ? update.owner : update.owner.name,
-          due: update.dueDate,
+        members: parsed.members.map((name) => ({
+          id: evalMemberId(name),
+          name,
         })),
-        withdrawals: withdrawals.map((withdrawal) => ({
-          card: withdrawal.cardId,
-          message: withdrawal.sourcePosition,
-        })),
-      };
-    },
-  );
-  context.recurringChecks.register({
+      });
+    return {
+      count: items.length,
+      items: items.map((item) => ({
+        title: item.title,
+        text: item.text,
+        message: item.sourcePosition,
+        owner: item.owner?.name ?? "nobody",
+        due: item.dueDate ?? "none",
+      })),
+      updates: updates.map((update) => ({
+        card: update.cardId,
+        title: update.title,
+        text: update.text,
+        message: update.sourcePosition,
+        owner:
+          typeof update.owner === "string" ? update.owner : update.owner.name,
+        due: update.dueDate,
+      })),
+      withdrawals: withdrawals.map((withdrawal) => ({
+        card: withdrawal.cardId,
+        message: withdrawal.sourcePosition,
+      })),
+    };
+  });
+  runtime.recurringCheck({
     id: "channel-action-items-catch-up",
     cadence: "daily",
     deliverAlerts: false,

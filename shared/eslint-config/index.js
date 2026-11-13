@@ -50,10 +50,15 @@ function shellImportBan(packages, message = shellImportMessage) {
  * carries the class API until it is removed.
  */
 const convertedPackages = [
+  "entities/agent-discovery",
   "entities/ask-content",
+  "entities/assessment",
   "entities/blog",
+  "entities/book",
+  "entities/conversation-memory",
   "entities/decks",
   "entities/doc",
+  "entities/faq",
   "entities/document",
   "entities/image",
   "entities/link",
@@ -63,6 +68,7 @@ const convertedPackages = [
   "entities/series",
   "entities/social-media",
   "entities/style-guide",
+  "entities/topics",
   "entities/wishlist",
   "interfaces/a2a",
   "interfaces/chat",

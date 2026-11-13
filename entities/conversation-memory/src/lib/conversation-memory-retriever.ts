@@ -4,7 +4,7 @@ import {
   ACTION_ITEM_ENTITY_TYPE,
 } from "@brains/action-items";
 import { actorRefKey, type ActorRef } from "@brains/contracts";
-import type { ContentVisibility, EntityPluginContext } from "@brains/plugins";
+import type { ContentVisibility } from "@brains/sdk/internal/service-runtime";
 import {
   decisionSchema,
   type DecisionEntity,
@@ -12,7 +12,8 @@ import {
 import { summarySchema, type SummaryEntity } from "../schemas/summary";
 import { compareIds } from "@brains/utils/sort";
 import { z } from "@brains/utils/zod";
-import { SummaryAdapter } from "../adapters/summary-adapter";
+import { parseSummaryBody } from "./summary-body";
+import type { MemoryContext } from "./memory-context";
 import { DECISION_ENTITY_TYPE, SUMMARY_ENTITY_TYPE } from "./constants";
 import { buildFallbackExcerpt } from "./excerpt";
 
@@ -34,7 +35,6 @@ const MEMORY_ENTITY_TYPES = [
 const MAX_AGENT_CONTEXT_CONTENT_LENGTH = 1600;
 const MAX_SUMMARY_CONTEXT_ENTRIES = 3;
 const MAX_SUMMARY_CONTEXT_KEY_POINTS = 5;
-const summaryAdapter = new SummaryAdapter();
 
 export const conversationMemorySearchEntitySchema: ReturnType<
   typeof z.union<
@@ -89,8 +89,11 @@ interface MemoryCandidate {
 }
 
 export class ConversationMemoryRetriever {
-  private readonly context: EntityPluginContext;
-  constructor(context: EntityPluginContext) {
+  private readonly context: Pick<
+    MemoryContext,
+    "entityService" | "conversations"
+  >;
+  constructor(context: Pick<MemoryContext, "entityService" | "conversations">) {
     this.context = context;
   }
 
@@ -234,7 +237,7 @@ export class ConversationMemoryRetriever {
       ...(entity.entityType === SUMMARY_ENTITY_TYPE
         ? {
             messageCount: entity.metadata.messageCount,
-            entryCount: summaryAdapter.parseBody(entity.content).entries.length,
+            entryCount: parseSummaryBody(entity.content).entries.length,
           }
         : { status: entity.metadata.status }),
     };
@@ -282,7 +285,7 @@ export class ConversationMemoryRetriever {
   ): string {
     if (!this.isSummaryEntity(entity)) return excerpt;
 
-    const entries = summaryAdapter.parseBody(entity.content).entries;
+    const entries = parseSummaryBody(entity.content).entries;
     const content = entries
       .slice(0, MAX_SUMMARY_CONTEXT_ENTRIES)
       .map((entry) => {

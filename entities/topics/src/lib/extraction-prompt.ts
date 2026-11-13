@@ -1,4 +1,5 @@
-import type { ContentVisibility, IEntityService } from "@brains/plugins";
+import type { ContentVisibility } from "@brains/sdk/internal/service-runtime";
+import type { TopicsEntityService } from "./topics-context";
 import { TOPIC_ENTITY_TYPE } from "./constants";
 import { getTopicTitle } from "./topic-presenter";
 
@@ -9,7 +10,7 @@ const MAX_EXISTING_TOPIC_TITLES = 40;
  * canonical names instead of inventing near-duplicates.
  */
 export async function listExistingTopicTitles(
-  entityService: IEntityService,
+  entityService: TopicsEntityService,
   limit: number = MAX_EXISTING_TOPIC_TITLES,
   targetVisibility?: ContentVisibility,
 ): Promise<string[]> {

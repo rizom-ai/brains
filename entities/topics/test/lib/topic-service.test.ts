@@ -9,7 +9,7 @@ import {
   createMockShell,
   createEntityPluginContext,
 } from "@brains/plugins/test";
-import { TopicAdapter } from "../../src/lib/topic-adapter";
+import { topicDocument } from "../../src/lib/topic-document";
 
 function makeTopic(
   id: string,
@@ -29,7 +29,7 @@ function makeTopic(
   };
 }
 
-const topicAdapter = new TopicAdapter();
+const topicAdapter = topicDocument;
 
 describe("TopicService", () => {
   it("should return null for non-existent topic", async () => {
@@ -192,7 +192,7 @@ describe("TopicService", () => {
         { entityId: existing.id, entityType: "topic", distance: 0.2 },
       ]);
       const service = new TopicService(entityService, logger);
-      const adapterSpy = spyOn(TopicAdapter.prototype, "parseTopicBody");
+      const adapterSpy = spyOn(topicDocument, "parseTopicBody");
 
       const candidate = await service.findMergeCandidate({
         incoming: { title: "Human-AI Collaboration" },

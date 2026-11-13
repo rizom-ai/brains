@@ -1,18 +1,12 @@
 import { createTestEntity } from "@brains/entity-service/test";
 import {
   createMockEntityPluginContext,
-  createMockMessageBus,
+  createMockShell,
 } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
-import {
-  DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
-  dashboardWidgetRegisterContract,
-  SYSTEM_CHANNELS,
-} from "@brains/plugins";
-import {
-  buildDecisionsWidgetData,
-  registerDecisionsWidget,
-} from "../../../src/lib/widgets/decisions";
+import { DECLARATIVE_DASHBOARD_WIDGET_RENDERER } from "@brains/plugins";
+import { buildDecisionsWidgetData } from "../../../src/lib/widgets/decisions";
+import { installedWidgets } from "../../conversation-memory-plugins";
 import type { DecisionEntity } from "../../../src/schemas/conversation-memory";
 
 function createDecision(overrides: {
@@ -117,35 +111,11 @@ describe("buildDecisionsWidgetData", () => {
   });
 });
 
-describe("registerDecisionsWidget", () => {
-  it("registers a widget on plugins-registered", async () => {
-    const messageBus = createMockMessageBus();
-    const context = createMockEntityPluginContext({
-      listEntitiesImpl: async () => [],
-      messageBus,
-    });
-    context.messaging.subscribe(
-      dashboardWidgetRegisterContract.name,
-      async () => ({ success: true }),
+describe("the decisions widget", () => {
+  it("registers once every plugin has registered", async () => {
+    const payload = (await installedWidgets(createMockShell())).find(
+      ({ id }) => id === "decisions",
     );
-
-    registerDecisionsWidget({ context });
-    expect(context.messaging.subscribe).toHaveBeenCalledWith(
-      SYSTEM_CHANNELS.pluginsRegistered,
-      expect.any(Function),
-    );
-
-    // Collect on the bus as the shell does rather than capturing the handler:
-    // this is the path production takes, and the registration below is the
-    // evidence.
-    await messageBus.collect({
-      type: SYSTEM_CHANNELS.pluginsRegistered,
-      payload: {},
-      sender: "shell",
-    });
-
-    const [registerCall] = context.dashboard.registerWidget.mock.calls;
-    const payload = registerCall?.[0];
     if (!payload) throw new Error("widget was not registered");
 
     expect(payload).toMatchObject({

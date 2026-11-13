@@ -1,8 +1,10 @@
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
 import {
   isVisibleWithinScope,
-  type BaseEntity,
-  type EntityTypeConfig,
-} from "@brains/plugins";
+  type ServiceEntityReads,
+} from "@brains/sdk/internal/service-runtime";
+
+type EntityTypeConfig = ReturnType<ServiceEntityReads["getEntityTypeConfig"]>;
 import { z } from "@brains/utils/zod";
 import type {
   TopicsPluginConfig,

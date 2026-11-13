@@ -1,9 +1,9 @@
-import type { SemanticSpaceNeighbor } from "@brains/plugins";
 import type {
   ProximityMapCluster,
   ProximityMapData,
   ProximityMapNode,
 } from "./proximity-map-schema";
+import { type SemanticSpaceNeighbor } from "@brains/sdk/internal/service-runtime";
 
 const GOLDEN_ANGLE_DEGREES = 180 * (3 - Math.sqrt(5));
 const ZERO_COORDINATE_EPSILON = 1e-12;

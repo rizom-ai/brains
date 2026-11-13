@@ -1,10 +1,10 @@
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
 import {
   SemanticIndexingDisabledError,
-  type BaseEntity,
-  type EntityPluginContext,
-  type IRuntimeStateStore,
   scopedDerivedId,
-} from "@brains/plugins";
+  type ClassRuntimeStateStore,
+} from "@brains/sdk/internal/service-runtime";
+import type { TopicsContext } from "./topics-context";
 import type { Logger } from "@brains/utils/logger";
 import { generateIdFromText } from "@brains/utils/string-utils";
 import { computeContentHash } from "@brains/utils/hash";
@@ -55,7 +55,7 @@ import {
   type TopicChoice,
   type VoteLedger,
 } from "./topic-extraction-decisions";
-import { TopicAdapter } from "./topic-adapter";
+import { topicDocument } from "./topic-document";
 import { readTopicSourcePages } from "./topic-source-pages";
 import { TopicService } from "./topic-service";
 import { TopicMergeSynthesizer } from "./topic-merge-synthesizer";
@@ -70,28 +70,28 @@ const MAX_AI_CALLS = 10;
 const MAX_SOURCE_ATTEMPTS = 3;
 
 export interface TopicExtractionStores {
-  votes: IRuntimeStateStore<TopicVote>;
-  failures: IRuntimeStateStore<SourceFailure>;
+  votes: ClassRuntimeStateStore<TopicVote>;
+  failures: ClassRuntimeStateStore<SourceFailure>;
   /** A slug merged into another topic, by slug. */
-  aliases: IRuntimeStateStore<string>;
+  aliases: ClassRuntimeStateStore<string>;
   /** Pairs of slugs judged distinct. */
-  distinctPairs: IRuntimeStateStore<true>;
-  selections: IRuntimeStateStore<TopicSelection>;
+  distinctPairs: ClassRuntimeStateStore<true>;
+  selections: ClassRuntimeStateStore<TopicSelection>;
 }
 
 export interface TopicExtractionDeps {
-  context: EntityPluginContext;
+  context: TopicsContext;
   config: TopicsPluginConfig;
   logger: Logger;
   stores: TopicExtractionStores;
   topics: TopicService;
-  adapter: TopicAdapter;
+  adapter: typeof topicDocument;
   synthesizer: TopicMergeSynthesizer;
 }
 
 /** Extraction's working state in runtime state. */
 export function topicExtractionStores(
-  context: Pick<EntityPluginContext, "runtimeState">,
+  context: Pick<TopicsContext, "runtimeState">,
 ): TopicExtractionStores {
   return {
     votes: context.runtimeState.scoped({
@@ -119,7 +119,7 @@ export function topicExtractionStores(
 
 /** Votes are cast under the votes prompt; an edited prompt re-reads all. */
 export async function topicVotePromptVersion(
-  context: Pick<EntityPluginContext, "prompts">,
+  context: Pick<TopicsContext, "prompts">,
 ): Promise<string> {
   return computeContentHash(
     await context.prompts.resolve(
@@ -130,7 +130,7 @@ export async function topicVotePromptVersion(
 }
 
 export function topicExtractionDeps(
-  context: EntityPluginContext,
+  context: TopicsContext,
   config: TopicsPluginConfig,
   logger: Logger,
 ): TopicExtractionDeps {
@@ -140,14 +140,14 @@ export function topicExtractionDeps(
     logger,
     stores: topicExtractionStores(context),
     topics: new TopicService(context.entityService, logger),
-    adapter: new TopicAdapter(),
+    adapter: topicDocument,
     synthesizer: new TopicMergeSynthesizer(context, logger),
   };
 }
 
 /** Eligible sources by key, paged so a large corpus is never held in memory. */
 async function readSources(
-  context: EntityPluginContext,
+  context: TopicsContext,
   config: TopicsPluginConfig,
   signal: AbortSignal,
 ): Promise<SourceRef[]> {
@@ -182,7 +182,7 @@ async function readSources(
 }
 
 async function loadSources(
-  context: EntityPluginContext,
+  context: TopicsContext,
   config: TopicsPluginConfig,
   refs: readonly SourceRef[],
 ): Promise<BaseEntity[]> {
@@ -204,7 +204,7 @@ async function loadSources(
 
 /** A runtime-state store's records by key. */
 export async function storeEntries<T>(
-  store: IRuntimeStateStore<T>,
+  store: ClassRuntimeStateStore<T>,
 ): Promise<Map<string, T>> {
   return new Map((await store.list()).map(({ key, value }) => [key, value]));
 }

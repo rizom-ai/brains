@@ -1,8 +1,9 @@
-import type {
-  EntityPluginContext,
-  IRuntimeStateStore,
-  JobHandler,
-} from "@brains/plugins";
+import {
+  firstPartyJobHandler,
+  type ClassRuntimeStateStore,
+  type FirstPartyJobHandler,
+} from "@brains/sdk/internal/service-runtime";
+import type { TopicsContext } from "./topics-context";
 import type { Logger } from "@brains/utils/logger";
 import { createId } from "@brains/utils/id";
 import { z } from "@brains/utils/zod";
@@ -18,12 +19,12 @@ const leaseSchema: z.ZodObject<{
   owner: z.ZodString;
   expiresAt: z.ZodNumber;
 }> = z.object({ owner: z.string(), expiresAt: z.number() });
-const jobDataSchema = z.object({});
+const jobDataSchema: z.ZodType<Record<string, never>, unknown> = z.object({});
 
 type ExtractionLease = z.output<typeof leaseSchema>;
 
 export async function enqueueTopicExtraction(
-  context: EntityPluginContext,
+  context: TopicsContext,
   delayMs = 0,
 ): Promise<string> {
   return context.jobs.enqueue({
@@ -47,8 +48,8 @@ export async function enqueueTopicExtraction(
  * While another attempt holds it, enqueue a successor and return null.
  */
 export async function acquireExtractionLease(
-  context: EntityPluginContext,
-  leases: IRuntimeStateStore<ExtractionLease>,
+  context: TopicsContext,
+  leases: ClassRuntimeStateStore<ExtractionLease>,
 ): Promise<ExtractionLease | null> {
   const lease = {
     owner: createId(),
@@ -69,7 +70,7 @@ export async function acquireExtractionLease(
 }
 
 export async function releaseExtractionLease(
-  leases: IRuntimeStateStore<ExtractionLease>,
+  leases: ClassRuntimeStateStore<ExtractionLease>,
   lease: ExtractionLease,
 ): Promise<void> {
   // Claim release atomically before deleting: an expired lease may have
@@ -89,31 +90,28 @@ export interface TopicExtractionResult {
   remaining: number;
 }
 
-export function createRankedTopicJobHandler(
-  context: EntityPluginContext,
+/**
+ * The ranked extraction job, as the class registered it: topics:extract,
+ * one run at a time across every worker, a lease held for the run.
+ */
+export function rankedTopicExtractionJob(
+  context: TopicsContext,
   config: TopicsPluginConfig,
   logger: Logger,
-): JobHandler<"topics:extract", Record<string, never>, TopicExtractionResult> {
+): FirstPartyJobHandler {
   const deps = topicExtractionDeps(context, config, logger);
   const leases = context.runtimeState.scoped({
     namespace: "topics.extraction",
     schema: leaseSchema,
   });
 
-  return {
+  return firstPartyJobHandler<Record<string, never>>({
+    type: "extract",
+    input: jobDataSchema,
     executionTimeoutMs: EXECUTION_TIMEOUT_MS,
     // A job woken during a run waits for it instead of meeting its lease.
     exclusive: true,
-    validateAndParse: (data): Record<string, never> | null => {
-      const parsed = jobDataSchema.safeParse(data);
-      return parsed.success ? parsed.data : null;
-    },
-    process: async (
-      _data,
-      _jobId,
-      _progress,
-      signal,
-    ): Promise<TopicExtractionResult> => {
+    process: async ({ signal }): Promise<TopicExtractionResult> => {
       signal.throwIfAborted();
       const lease = await acquireExtractionLease(context, leases);
       if (!lease) return { calls: 0, remaining: 0 };
@@ -133,5 +131,5 @@ export function createRankedTopicJobHandler(
         await releaseExtractionLease(leases, lease);
       }
     },
-  };
+  });
 }

@@ -1,18 +1,17 @@
-import { parseMarkdownWithFrontmatter } from "@brains/plugins";
+import { frontmatterRecordFields } from "@brains/contracts";
 import type {
-  BaseDataSourceContext,
-  DataSource,
-  DataSourceSchema,
-} from "@brains/plugins";
+  ServiceCorpusReads,
+  ServiceDataSourceDeclaration,
+} from "@brains/sdk/internal/service-runtime";
 import type { Logger } from "@brains/utils/logger";
 import { compareIds } from "@brains/utils/sort";
 import { z } from "@brains/utils/zod";
 import { bookSchema, type BookWithData } from "../schemas/book";
+import { parseBookData } from "../lib/book-records";
 import {
   bookSectionMetadataSchema,
   type BookSectionMetadata,
 } from "../schemas/book-section";
-import { parseBookData } from "./book-datasource";
 import { THEME_DISTANCE, THEME_PASSAGES, THEME_REACH } from "../lib/themes";
 /** A book's share of a theme. */
 export interface StrandEntry {
@@ -39,7 +38,7 @@ const themeQuerySchema = z.object({
 
 const topicFrontmatterSchema = z.object({ title: z.string() });
 
-type EntityServiceClient = BaseDataSourceContext["entityService"];
+type ThemeReads = Pick<ServiceCorpusReads, "getEntity" | "nearestToEntity">;
 
 /** A section near a theme, as the store's index reads it: no text. */
 interface NearSection {
@@ -61,127 +60,128 @@ function oncePerSection(entries: NearSection[]): NearSection[] {
   });
 }
 
+/** A book's share of a theme, by section count. */
+function strandOf(
+  sections: NearSection[],
+  books: Map<string, BookWithData>,
+): StrandEntry[] {
+  const counts = sections.reduce<Map<string, number>>(
+    (tally, entry) =>
+      tally.set(entry.metadata.book, (tally.get(entry.metadata.book) ?? 0) + 1),
+    new Map(),
+  );
+  return [...counts.entries()]
+    .map(([book, count]) => {
+      const title = books.get(book);
+      return {
+        book,
+        title: title?.metadata.title ?? book,
+        shortTitle: title?.frontmatter.shortTitle ?? null,
+        year: title?.frontmatter.year ?? null,
+        published: title?.frontmatter.published !== false,
+        sections: count,
+      };
+    })
+    .sort(
+      (a, b) =>
+        (a.year ?? Infinity) - (b.year ?? Infinity) ||
+        compareIds(a.book, b.book),
+    );
+}
+
+/** Each book, by its slug; one the build cannot see is left out. */
+async function booksOf(
+  books: string[],
+  reads: Pick<ThemeReads, "getEntity">,
+): Promise<Map<string, BookWithData>> {
+  const found = await Promise.all(
+    books.map(async (id) => {
+      const entity = await reads.getEntity({
+        entityType: "book",
+        id,
+        source: true,
+      });
+      return entity ? parseBookData(bookSchema.parse(entity)) : null;
+    }),
+  );
+  return new Map(
+    found
+      .filter((book): book is BookWithData => book !== null)
+      .map((book) => [book.id, book]),
+  );
+}
+
 /**
  * A theme across the work: its own page, how many sections of each book are
  * close to it, and the closest of them, found by stored embeddings.
  */
-export class BookThemeDataSource implements DataSource {
-  readonly id = "book:theme";
-  readonly name = "Book Theme DataSource";
-  readonly description =
-    "A topic traced across a book brain's books, by stored embeddings";
+export async function fetchBookTheme(
+  query: unknown,
+  reads: ThemeReads,
+  context: { readonly publishedOnly: boolean; readonly logger: Logger },
+): Promise<unknown> {
+  const { id } = themeQuerySchema.parse(query).query;
+  const topic = await reads.getEntity({
+    entityType: "topic",
+    id,
+    source: true,
+  });
+  if (!topic) throw new Error(`topic not found: ${id}`);
+  const { fields, body } = frontmatterRecordFields(topic);
+  const page = topicFrontmatterSchema.parse(fields);
 
-  private readonly logger: Logger;
+  // Up to THEME_REACH sections count toward the strand, so each is read
+  // from the index's fields, never loaded with its text.
+  const nearest = await reads
+    .nearestToEntity({
+      origin: { entityType: "topic", entityId: id },
+      types: ["book-section"],
+      maxDistance: THEME_DISTANCE,
+      limit: THEME_REACH,
+      includeMetadata: true,
+      ...(context.publishedOnly && { publishedOnly: true }),
+    })
+    // A brain without embeddings has no theme to trace; the page shows none.
+    .catch(() => []);
+  const sections = oncePerSection(
+    nearest.map(({ entityId, metadata }) => ({
+      id: entityId,
+      metadata: bookSectionMetadataSchema.parse(metadata),
+    })),
+  );
+  const books = await booksOf(
+    [...new Set(sections.map((entry) => entry.metadata.book))],
+    reads,
+  );
+  context.logger.debug("Traced theme across the books", {
+    theme: id,
+    sections: sections.length,
+    books: books.size,
+  });
 
-  constructor(logger: Logger) {
-    this.logger = logger;
-  }
+  return {
+    theme: { id, title: page.title, summary: body.trim() },
+    strand: strandOf(sections, books),
+    passages: sections.slice(0, THEME_PASSAGES).map((entry) => ({
+      slug: entry.metadata.slug,
+      title: entry.metadata.title,
+      section: entry.metadata.section,
+      bookTitle:
+        books.get(entry.metadata.book)?.metadata.title ?? entry.metadata.book,
+    })),
+  };
+}
 
-  async fetch<T>(
-    query: unknown,
-    outputSchema: DataSourceSchema<T>,
-    context: BaseDataSourceContext,
-  ): Promise<T> {
-    const { id } = themeQuerySchema.parse(query).query;
-    const entityService = context.entityService;
-    const topic = await entityService.getEntity({ entityType: "topic", id });
-    if (!topic) throw new Error(`topic not found: ${id}`);
-    const page = parseMarkdownWithFrontmatter(
-      topic.content,
-      topicFrontmatterSchema,
-    );
-
-    // Up to THEME_REACH sections count toward the strand, so each is read
-    // from the index's fields, never loaded with its text.
-    const nearest = await entityService
-      .nearestToEntity({
-        origin: { entityType: "topic", entityId: id },
-        types: ["book-section"],
-        maxDistance: THEME_DISTANCE,
-        limit: THEME_REACH,
-        includeMetadata: true,
-        ...(context.publishedOnly && { publishedOnly: true }),
-      })
-      // A brain without embeddings has no theme to trace; the page shows none.
-      .catch(() => []);
-    const sections = oncePerSection(
-      nearest.map(({ entityId, metadata }) => ({
-        id: entityId,
-        metadata: bookSectionMetadataSchema.parse(metadata),
-      })),
-    );
-    const books = await this.booksOf(
-      [...new Set(sections.map((entry) => entry.metadata.book))],
-      entityService,
-    );
-    this.logger.debug("Traced theme across the books", {
-      theme: id,
-      sections: sections.length,
-      books: books.size,
-    });
-
-    return outputSchema.parse({
-      theme: { id, title: page.metadata.title, summary: page.content.trim() },
-      strand: this.strandOf(sections, books),
-      passages: sections.slice(0, THEME_PASSAGES).map((entry) => ({
-        slug: entry.metadata.slug,
-        title: entry.metadata.title,
-        section: entry.metadata.section,
-        bookTitle:
-          books.get(entry.metadata.book)?.metadata.title ?? entry.metadata.book,
-      })),
-    });
-  }
-
-  private strandOf(
-    sections: NearSection[],
-    books: Map<string, BookWithData>,
-  ): StrandEntry[] {
-    const counts = sections.reduce<Map<string, number>>(
-      (tally, entry) =>
-        tally.set(
-          entry.metadata.book,
-          (tally.get(entry.metadata.book) ?? 0) + 1,
-        ),
-      new Map(),
-    );
-    return [...counts.entries()]
-      .map(([book, count]) => {
-        const title = books.get(book);
-        return {
-          book,
-          title: title?.metadata.title ?? book,
-          shortTitle: title?.frontmatter.shortTitle ?? null,
-          year: title?.frontmatter.year ?? null,
-          published: title?.frontmatter.published !== false,
-          sections: count,
-        };
-      })
-      .sort(
-        (a, b) =>
-          (a.year ?? Infinity) - (b.year ?? Infinity) ||
-          compareIds(a.book, b.book),
-      );
-  }
-
-  /** Each book, by its slug. */
-  private async booksOf(
-    books: string[],
-    entityService: EntityServiceClient,
-  ): Promise<Map<string, BookWithData>> {
-    const found = await Promise.all(
-      books.map(async (id) => {
-        const entity = await entityService.getEntity(
-          { entityType: "book", id },
-          bookSchema,
-        );
-        return entity ? parseBookData(entity) : null;
-      }),
-    );
-    return new Map(
-      found
-        .filter((book): book is BookWithData => book !== null)
-        .map((book) => [book.id, book]),
-    );
-  }
+/** The theme source as the brain registers it: `book:theme`. */
+export function bookThemeDataSource(
+  logger: Logger,
+): ServiceDataSourceDeclaration {
+  return {
+    id: "theme",
+    name: "Book Theme DataSource",
+    description:
+      "A topic traced across a book brain's books, by stored embeddings",
+    fetch: (query, { corpus, publishedOnly }) =>
+      fetchBookTheme(query, corpus, { publishedOnly, logger }),
+  };
 }

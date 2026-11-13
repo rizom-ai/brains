@@ -43,6 +43,9 @@ export async function titleFolders<TFolder extends Folder>(
       includeDescendants: true,
       limit: 1,
       offset: 0,
+      // As stored: a declared type reads back its body alone, and the
+      // folders it names come from the document it stored.
+      source: true,
       visibilityScope: input.visibilityScope,
       ...(input.signal && { signal: input.signal }),
     });

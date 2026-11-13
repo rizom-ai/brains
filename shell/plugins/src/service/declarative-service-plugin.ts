@@ -2,6 +2,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { unscopeTemplateName } from "@brains/content-service";
 import type { OperationalHealthProvider } from "../operational-health-registry";
 import { entityMirrorOf } from "./entity-mirror";
+import { createDeclaredDataSource } from "../public/entity-data-source";
 import { sharedUploadScope } from "./upload-registry";
 import {
   SDK_ERROR_MESSAGE_MAX_LENGTH,
@@ -107,6 +108,8 @@ import {
   type ClaimedSystemType,
   type ServiceCorpusReads,
   type ServiceDataSourceDeclaration,
+  type ServiceConversations,
+  type ServiceEntityMutations,
   type ServiceEntityReads,
   type ServiceEntityShapes,
   type ServiceEntityWrites,
@@ -379,6 +382,19 @@ class DeclarativeServicePlugin<
     this.declarations = declarations;
     this.publicId = definition.id;
     this.dependencies = [...dependencies];
+  }
+
+  /** The ids of the projection rules the package's own types declare. */
+  private ownProjectionRuleIds(): ReadonlySet<string> {
+    return new Set(
+      this.definition.entities.flatMap(({ projectionRules }) =>
+        (typeof projectionRules === "function"
+          ? // Only the ids are read; a rule's template names are not used.
+            projectionRules({ template: (localName) => localName })
+          : (projectionRules ?? [])
+        ).map(({ id }) => id),
+      ),
+    );
   }
 
   public override register(
@@ -1321,6 +1337,7 @@ class DeclarativeServicePlugin<
         context.interactions.register(interaction);
       },
       workspaceUrl: (workspace) => this.workspaceUrls.get(workspace),
+      spaces: context.spaces,
       siteUrl: context.siteUrl,
       previewUrl: context.previewUrl,
       localSiteUrl: context.localSiteUrl,
@@ -1331,6 +1348,13 @@ class DeclarativeServicePlugin<
         deriveConsoleSurfaces(context.webRoutes.getRoutes(), options),
       evalHandler: (handlerId, handler): void => {
         context.eval.registerHandler(handlerId, handler);
+      },
+      runProjectionRule: async (ruleId, options) => {
+        const shell = this.scopedShell;
+        if (!shell || !this.ownProjectionRuleIds().has(ruleId)) {
+          throw new Error(`Unknown projection rule "${ruleId}" for ${this.id}`);
+        }
+        return shell.runProjectionRule(ruleId, options);
       },
       classRuntimeState: Object.freeze({
         scoped: context.runtimeState.scoped.bind(context.runtimeState),
@@ -1348,6 +1372,15 @@ class DeclarativeServicePlugin<
             })
           : undefined;
       },
+      entityMutations: entityMutationsOf(context),
+      conversations: Object.freeze({
+        get: (conversationId) => context.conversations.get(conversationId),
+        list: (options) => context.conversations.list(options),
+        getMessages: (conversationId, options) =>
+          context.conversations.getMessages(conversationId, options),
+        countMessages: (conversationId) =>
+          context.conversations.countMessages(conversationId),
+      } satisfies ServiceConversations),
       entityReads: entityReadsOf(context),
       permissions: Object.freeze({
         assertEntityActionAllowed: (entityType, action, caller): void => {
@@ -1369,16 +1402,29 @@ class DeclarativeServicePlugin<
       ai: Object.freeze<ServiceAI>({
         generateObject: (prompt, schema, signal) =>
           context.ai.generateObject(prompt, schema, signal),
+        // Through a template named in full, as the class generated.
+        generate: (config, schema, signal) =>
+          context.ai.generate(config, schema, signal),
         judge: (input) => context.judge(input),
       }),
       dataSource: (declaration, options = {}): void => {
+        const id =
+          options.asWritten === true
+            ? declaration.id
+            : `${this.id}:${declaration.id}`;
+        if ("kind" in declaration) {
+          const type = declaration.entity.type;
+          if (!this.definition.entities.some((entity) => entity.type === type))
+            throw new Error(
+              `Data source "${declaration.id}" reads "${type}", which the package does not declare`,
+            );
+          context.entities.registerDataSource(
+            createDeclaredDataSource(declaration, id, this.logger),
+          );
+          return;
+        }
         context.entities.registerDataSource(
-          firstPartyDataSource(
-            options.asWritten === true
-              ? declaration.id
-              : `${this.id}:${declaration.id}`,
-            declaration,
-          ),
+          firstPartyDataSource(id, declaration),
         );
       },
       template: (name, template, options = {}): void => {
@@ -1398,10 +1444,11 @@ class DeclarativeServicePlugin<
                 context,
                 definition: widget.definition,
                 render: widget.render,
-                load: ({ visibilityScope, signal }) =>
+                load: ({ caller, visibilityScope, signal }) =>
                   widget.load({
                     corpus: corpusReadsOf(context.entityService),
                     visibilityScope,
+                    caller,
                     signal,
                   }),
                 runtimeSignal: this.operatorAbortController.signal,
@@ -1986,12 +2033,36 @@ function entityReadsOf(context: ServicePluginContext): ServiceEntityReads {
     getEntity: (request) => entityService.getEntity(request),
     getEntityRaw: (request) => entityService.getEntityRaw(request),
     search: (request) => entityService.search(request),
+    searchWithDistances: (request) =>
+      entityService.searchWithDistances(request),
+    nearestToEntity: (request) => entityService.nearestToEntity(request),
+    projectSemanticSpace: (request) =>
+      entityService.projectSemanticSpace(request),
     queryEntityHierarchy: (request) =>
       entityService.queryEntityHierarchy(request),
     getEntityTypeConfig: (type) => entityService.getEntityTypeConfig(type),
     deserializeEntity: (markdown, entityType) =>
       entityService.deserializeEntity(markdown, entityType),
   } satisfies ServiceEntityReads);
+}
+
+/** The conditional and once-only writes a class made, each bound on its own. */
+function entityMutationsOf(
+  context: ServicePluginContext,
+): ServiceEntityMutations {
+  const { entityService } = context;
+  return Object.freeze({
+    getEntityWriteSnapshot: (request) =>
+      entityService.getEntityWriteSnapshot(request),
+    getEntityMutationReceipt: (key) =>
+      entityService.getEntityMutationReceipt(key),
+    applyEntityMutationOnce: (request) =>
+      entityService.applyEntityMutationOnce(request),
+    foldEntity: (request) => entityService.foldEntity(request),
+    releaseProjectionOwnership: (request) =>
+      entityService.releaseProjectionOwnership(request),
+    purgeEntityType: (entityType) => entityService.purgeEntityType(entityType),
+  } satisfies ServiceEntityMutations);
 }
 
 /** The read-only projection of the entity service, each read bound on its own. */

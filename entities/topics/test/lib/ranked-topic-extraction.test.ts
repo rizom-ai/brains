@@ -18,7 +18,7 @@ import type {
 } from "@brains/plugins";
 import {
   acquireExtractionLease,
-  createRankedTopicJobHandler,
+  rankedTopicExtractionJob,
   releaseExtractionLease,
   type TopicExtractionResult,
 } from "../../src/lib/ranked-topic-extraction";
@@ -27,9 +27,15 @@ import {
   topicsPluginConfigSchema,
   type TopicsPluginConfig,
 } from "../../src/schemas/config";
-import { TopicAdapter } from "../../src/lib/topic-adapter";
+import { topicDocument } from "../../src/lib/topic-document";
 
 type AIGenerationSchema<T> = z.ZodType<T>;
+
+/** What a run answers: the AI calls it made and the sources left. */
+const topicExtractionResultSchema = z.object({
+  calls: z.number(),
+  remaining: z.number(),
+});
 
 interface Fixture {
   entities: Map<string, BaseEntity>;
@@ -153,17 +159,19 @@ function fixture(
     id = "job",
     signal = new AbortController().signal,
   ): Promise<TopicExtractionResult> =>
-    createRankedTopicJobHandler(context, config, createSilentLogger()).process(
-      {},
-      id,
-      createMockProgressReporter(),
-      signal,
-    );
+    rankedTopicExtractionJob(context, config, createSilentLogger())
+      .process({
+        input: {},
+        jobId: id,
+        progress: createMockProgressReporter(),
+        signal,
+      })
+      .then((result) => topicExtractionResultSchema.parse(result));
   const addTopic = (title: string, id = title.toLowerCase()): BaseEntity => {
     const topic = createTestEntity("topic", {
       id,
       visibility: "public",
-      content: new TopicAdapter().createTopicBody({
+      content: topicDocument.createTopicBody({
         title,
         content: "Existing description.",
       }),
@@ -794,7 +802,7 @@ describe("topic extraction lease", () => {
   it("leaves a job woken during a run queued until that run ends", () => {
     // Claimed while the run holds the lease, it would defer the next run by
     // the held-lease delay instead of following the run as it ends.
-    const handler = createRankedTopicJobHandler(
+    const handler = rankedTopicExtractionJob(
       setup().context,
       topicsPluginConfigSchema.parse({}),
       createSilentLogger(),

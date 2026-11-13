@@ -1,11 +1,9 @@
 import { createMockShell, type MockShell } from "@brains/plugins/test";
 import { describe, it, expect, beforeEach } from "bun:test";
-import { AgentDataSource } from "../src/datasources/agent-datasource";
 import type { AgentEntity, AgentStatus } from "../src/schemas/agent";
-import type { BaseDataSourceContext } from "@brains/plugins";
-import type { Logger } from "@brains/utils/logger";
+import type { BaseDataSourceContext, DataSource } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
-import { createMockLogger } from "@brains/test-utils";
+import { agentDiscoveryPlugins } from "./agent-discovery-plugins";
 
 import { createTestAgent } from "./fixtures/agent";
 import { getTemplates } from "../src/lib/register-templates";
@@ -33,17 +31,31 @@ function slugOf(agent: AgentEntity): string {
   return agent.metadata.slug;
 }
 
-describe("AgentDataSource", () => {
-  let datasource: AgentDataSource;
+describe("the agent directory data source", () => {
+  let datasource: {
+    id: string;
+    name: string;
+    description: string | undefined;
+    fetch: NonNullable<DataSource["fetch"]>;
+  };
   let shell: MockShell;
-  let mockLogger: Logger;
   let mockContext: BaseDataSourceContext;
 
-  beforeEach(() => {
-    mockLogger = createMockLogger();
+  beforeEach(async () => {
     shell = createMockShell();
+    for (const plugin of agentDiscoveryPlugins()) await plugin.register(shell);
     mockContext = { entityService: shell.getEntityService() };
-    datasource = new AgentDataSource(mockLogger);
+    const registered = shell
+      .getDataSourceRegistry()
+      .get("agent-discovery:entities");
+    if (!registered?.fetch) throw new Error("No agent directory data source");
+    // Bound to the registered source, whose fetch reads its own settings.
+    datasource = {
+      id: registered.id,
+      name: registered.name,
+      description: registered.description,
+      fetch: registered.fetch.bind(registered),
+    };
   });
 
   describe("metadata", () => {

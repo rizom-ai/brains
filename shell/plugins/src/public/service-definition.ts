@@ -240,9 +240,13 @@ export function withOwnedDataSources(
 }
 
 /**
- * Names for the type a first-party service keeps from its class: installed
- * under the type itself, as an entity plugin class was named after the type
- * it registered, with every name scoped to it following that id.
+ * Names for the types a first-party service keeps from its class: each
+ * installed under the type itself, as an entity plugin class was named
+ * after the type it registered, and a type named like the service under the
+ * plugin id the composer names for it (`ownedTypePluginId`). With one type,
+ * every other name scoped to it follows that type's id; with several, as a
+ * class registering several types inside itself named them, it follows the
+ * service's id.
  */
 function legacyOwnedScope(
   serviceId: string,
@@ -251,24 +255,28 @@ function legacyOwnedScope(
   /** Where the type installs when the service keeps the type's own id. */
   ownedTypePluginId: string | undefined,
 ): (localId: string) => string {
-  const [only, ...rest] = entities;
-  if (rest.length > 0) {
-    throw new Error(
-      `Service "${serviceId}" keeps a legacy plugin id only when it owns at most one entity type`,
-    );
-  }
-  if (only?.type === pluginId && ownedTypePluginId === undefined) {
+  const named = entities.find(({ type }) => type === pluginId);
+  if (named && ownedTypePluginId === undefined) {
     throw new Error(
       `Service "${serviceId}" cannot keep legacy plugin id "${pluginId}", which its entity type is installed under`,
     );
   }
-  const typePluginId = ownedTypePluginId ?? only?.type;
+  // One type takes the composer's id even when named otherwise, as
+  // site-content-entity is; of several, only the one named like the service.
+  const typePluginId = (type: string): string =>
+    type === pluginId || entities.length === 1
+      ? (ownedTypePluginId ?? type)
+      : type;
+  const types = new Set(entities.map(({ type }) => type));
+  const [only, ...rest] = entities;
+  const namesFollow =
+    only === undefined || rest.length > 0 ? pluginId : typePluginId(only.type);
   return (localId) => {
     assertIdentifier(localId, "Local plugin id");
     if (only === undefined) return localId;
-    return localId === only.type
-      ? (typePluginId ?? localId)
-      : `${typePluginId ?? only.type}:${localId}`;
+    return types.has(localId)
+      ? typePluginId(localId)
+      : `${namesFollow}:${localId}`;
   };
 }
 

@@ -20,6 +20,8 @@ export {
   type ClaimedSystemType,
   type ClassRuntimeState,
   type ClassRuntimeStateStore,
+  type ServiceConversations,
+  type ServiceEntityMutations,
   type ServiceCorpusReads,
   type ServiceDashboardWidget,
   type ServiceInteraction,
@@ -176,6 +178,61 @@ export {
   type ToolResult,
 } from "@brains/plugins";
 export {
+  DEFAULT_AGENT_CARD_TIMEOUT_MS,
+  anchorProfileKindSchema,
+  fetchVerifiedAgentCard,
+  formatAgentBody,
+  isEndpointRefusal,
+  parseAgentBody,
+  type AnchorProfileKind,
+  type ParsedAgentCard,
+  type SemanticSpaceNeighbor,
+  type SemanticSpacePoint,
+} from "@brains/plugins";
+export {
+  skillDataSchema,
+  type AgentBody,
+  type SkillData,
+} from "@brains/plugins";
+export {
+  conversationMessageMetadataSchema,
+  jobProgressChannel,
+  matchSpaceSelector,
+  permissionToVisibilityScope,
+  type Conversation,
+  type ConversationMessageActor,
+  type JobProgressEvent,
+} from "@brains/plugins";
+export {
+  SemanticIndexingDisabledError,
+  isVisibleWithinScope,
+  scopedDerivedId,
+  type ListEntitiesRequest,
+  type ProjectionSourceRole,
+  type SearchResult,
+} from "@brains/plugins";
+export {
+  UserPermissionLevelSchema,
+  conversationGuestMessageAddedChannel,
+  embeddingReadyChannel,
+  findNearestEntity,
+  waitForEmbeddingsToDrain,
+  type InboxAction,
+  type InboxActor,
+  type InboxItem,
+  type InboxItemDetail,
+  type Message,
+  type NearestEntityDeps,
+  type NearestEntityQuery,
+} from "@brains/plugins";
+export {
+  findRelatedEntities,
+  type RelatedEntitiesQuery,
+  type RelatedEntity,
+  type RelatedEntityReader,
+} from "@brains/plugins";
+export {
+  ConfirmationArgsStore,
   PluginConfigValidationError,
   SerialQueue,
   SerializedStatusStore,

@@ -1,0 +1,69 @@
+{
+  "source": "main f348645477, the book entity plugin class on the entity store",
+  "book": {
+    "file": "---\ntitle: Erstes Buch\nsource: https://example.org/erstes\nauthor: Erfundener Autor\nyear: 1888\nkind: work\nedition: Testausgabe\nlicense: public-domain\nattribution: null\npublished: true\nlength: 1200\nsections: 2\ncontinuations: [3]\nshortTitle: Erstes\n---\n\n## Contents\n\n1. Vorrede\n2. Mitte\n",
+    "stored": {
+      "content": "---\ntitle: Erstes Buch\nsource: 'https://example.org/erstes'\nauthor: Erfundener Autor\nyear: 1888\nkind: work\nedition: Testausgabe\nlicense: public-domain\npublished: true\nlength: 1200\nsections: 2\ncontinuations:\n  - 3\nshortTitle: Erstes\n---\n## Contents\n\n1. Vorrede\n2. Mitte\n",
+      "metadata": "{\"title\":\"Erstes Buch\"}"
+    },
+    "read": {
+      "content": "---\ntitle: Erstes Buch\nsource: 'https://example.org/erstes'\nauthor: Erfundener Autor\nyear: 1888\nkind: work\nedition: Testausgabe\nlicense: public-domain\npublished: true\nlength: 1200\nsections: 2\ncontinuations:\n  - 3\nshortTitle: Erstes\n---\n## Contents\n\n1. Vorrede\n2. Mitte\n",
+      "metadata": {
+        "title": "Erstes Buch"
+      }
+    },
+    "exported": "---\ntitle: Erstes Buch\nsource: 'https://example.org/erstes'\nauthor: Erfundener Autor\nyear: 1888\nkind: work\nedition: Testausgabe\nlicense: public-domain\npublished: true\nlength: 1200\nsections: 2\ncontinuations:\n  - 3\nshortTitle: Erstes\n---\n## Contents\n\n1. Vorrede\n2. Mitte\n"
+  },
+  "sparseBook": {
+    "file": "---\ntitle: 'Leeres: Buch'\nsource: https://example.org/leeres\n---\n## Contents\n",
+    "stored": {
+      "content": "---\ntitle: 'Leeres: Buch'\nsource: 'https://example.org/leeres'\n---\n## Contents\n",
+      "metadata": "{\"title\":\"Leeres: Buch\"}"
+    },
+    "read": {
+      "content": "---\ntitle: 'Leeres: Buch'\nsource: 'https://example.org/leeres'\n---\n## Contents\n",
+      "metadata": {
+        "title": "Leeres: Buch"
+      }
+    },
+    "exported": "---\ntitle: 'Leeres: Buch'\nsource: 'https://example.org/leeres'\n---\n## Contents\n"
+  },
+  "section": {
+    "file": "---\ntitle: Vorrede\nbook: erstes\norder: 1\nsection: S-1\npage: '12'\nsource: https://example.org/erstes/1\nheadings:\n  - Erster Teil\n  - Kapitel\n---\n\nErfundener Text 1.\n",
+    "stored": {
+      "content": "---\ntitle: Vorrede\nbook: erstes\norder: 1\nsection: S-1\npage: '12'\nsource: 'https://example.org/erstes/1'\nheadings:\n  - Erster Teil\n  - Kapitel\n---\nErfundener Text 1.\n",
+      "metadata": "{\"title\":\"Vorrede\",\"section\":\"S-1\",\"book\":\"erstes\",\"order\":1,\"slug\":\"erstes/1\",\"pageTitle\":\"S-1\"}"
+    },
+    "read": {
+      "content": "---\ntitle: Vorrede\nbook: erstes\norder: 1\nsection: S-1\npage: '12'\nsource: 'https://example.org/erstes/1'\nheadings:\n  - Erster Teil\n  - Kapitel\n---\nErfundener Text 1.\n",
+      "metadata": {
+        "title": "Vorrede",
+        "section": "S-1",
+        "book": "erstes",
+        "order": 1,
+        "slug": "erstes/1",
+        "pageTitle": "S-1"
+      }
+    },
+    "exported": "---\ntitle: Vorrede\nbook: erstes\norder: 1\nsection: S-1\npage: '12'\nsource: 'https://example.org/erstes/1'\nheadings:\n  - Erster Teil\n  - Kapitel\n---\nErfundener Text 1.\n"
+  },
+  "sparseSection": {
+    "file": "---\ntitle: Mitte\nbook: erstes\norder: 2\nsource: https://example.org/erstes/2\n---\nErfundener Text 2.",
+    "stored": {
+      "content": "---\ntitle: Mitte\nbook: erstes\norder: 2\nsource: 'https://example.org/erstes/2'\n---\nErfundener Text 2.\n",
+      "metadata": "{\"title\":\"Mitte\",\"section\":null,\"book\":\"erstes\",\"order\":2,\"slug\":\"erstes/2\",\"pageTitle\":\"Mitte\"}"
+    },
+    "read": {
+      "content": "---\ntitle: Mitte\nbook: erstes\norder: 2\nsource: 'https://example.org/erstes/2'\n---\nErfundener Text 2.\n",
+      "metadata": {
+        "title": "Mitte",
+        "section": null,
+        "book": "erstes",
+        "order": 2,
+        "slug": "erstes/2",
+        "pageTitle": "Mitte"
+      }
+    },
+    "exported": "---\ntitle: Mitte\nbook: erstes\norder: 2\nsource: 'https://example.org/erstes/2'\n---\nErfundener Text 2.\n"
+  }
+}

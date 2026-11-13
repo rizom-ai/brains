@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
 import type { EntityService } from "@brains/entity-service";
 import { createTestDirectory } from "@brains/test-utils";
-import { faqAdapter, faqMetadata } from "../src/adapters/faq-adapter";
+import { faqDocument, faqMetadata, readFaq } from "../src/lib/faq-body";
 import {
   openFoldStorage,
   readFold,
@@ -29,17 +29,13 @@ describe("FAQ reconciliation with atomic SQLite folding", () => {
       spyOn(service, "foldEntity").mockImplementationOnce(async (request) => {
         const current = await readFold(service, id);
         if (!current) throw new Error("Missing fixture");
-        const parsed = faqAdapter.parseFaqContent(current.content);
+        const parsed = readFaq(current);
         const fields = { ...parsed.frontmatter, status: "published" as const };
         await service.updateEntity({
           entity: {
             ...current,
             visibility: "public",
-            content: faqAdapter.createFaqContent(
-              fields,
-              parsed.answer,
-              parsed.alternatives,
-            ),
+            content: faqDocument(fields, parsed.answer, parsed.alternatives),
             metadata: faqMetadata(fields),
           },
         });
@@ -74,7 +70,7 @@ describe("FAQ reconciliation with atomic SQLite folding", () => {
           await service.updateEntity({
             entity: {
               ...target,
-              content: faqAdapter.createFaqContent(fields, "Different answer"),
+              content: faqDocument(fields, "Different answer"),
               metadata: faqMetadata(fields),
             },
           });
@@ -98,7 +94,7 @@ describe("FAQ reconciliation with atomic SQLite folding", () => {
       await service.updateEntity({
         entity: {
           ...target,
-          content: faqAdapter.createFaqContent(fields, "Edited answer"),
+          content: faqDocument(fields, "Edited answer"),
           metadata: faqMetadata(fields),
         },
       });
@@ -111,7 +107,7 @@ describe("FAQ reconciliation with atomic SQLite folding", () => {
     expect(await readFold(service, "source")).toBeNull();
     const target = await readFold(service, "target");
     expect(target?.metadata.asked).toBe(7);
-    expect(faqAdapter.parseFaqContent(target?.content ?? "")).toMatchObject({
+    expect(readFaq(target ?? { content: "" })).toMatchObject({
       answer: "Edited answer",
       alternatives: [{ answer: "Answer source" }],
     });
@@ -127,7 +123,7 @@ describe("FAQ reconciliation with atomic SQLite folding", () => {
         await service.updateEntity({
           entity: {
             ...target,
-            content: faqAdapter.createFaqContent(fields, "Concurrent answer"),
+            content: faqDocument(fields, "Concurrent answer"),
             metadata: faqMetadata(fields),
           },
         });

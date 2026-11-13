@@ -2,21 +2,19 @@ import { beforeEach, describe, expect, it } from "bun:test";
 import { randomUUID } from "node:crypto";
 import type { ContentVisibility, EntityPluginContext } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
+import { createMockProgressReporter } from "@brains/test-utils";
 import {
-  createMockProgressReporter,
-  createSilentLogger,
-} from "@brains/test-utils";
-import {
-  FaqPlugin,
-  FaqReconcileHandler,
   type FaqReconcileDeps,
-  faqAdapter,
+  faqDocument,
   faqMetadata,
   faqSchema,
+  readFaq,
   type FaqEntity,
   type FaqFrontmatter,
   type FaqStatus,
 } from "../src";
+import { createFaqPlugins } from "./faq-plugins";
+import { reconcileHandler } from "./helpers/jobs";
 
 interface DistanceResult {
   entityId: string;
@@ -39,8 +37,8 @@ describe("FaqReconcileHandler", () => {
         object: schema.parse({ same: sameVerdict }),
       }),
     },
-  ): FaqReconcileHandler {
-    return new FaqReconcileHandler(createSilentLogger(), {
+  ): ReturnType<typeof reconcileHandler> {
+    return reconcileHandler({
       entityService,
       sameQuestionDistance: 0.2,
       searchWithDistances: async (): Promise<DistanceResult[]> => distances,
@@ -51,7 +49,7 @@ describe("FaqReconcileHandler", () => {
   function reconcile(
     entityId: string,
     entityService?: FaqReconcileDeps["entityService"],
-  ): ReturnType<FaqReconcileHandler["process"]> {
+  ): ReturnType<ReturnType<typeof reconcileHandler>["process"]> {
     return handler(entityService).process(
       { entityId },
       "job-1",
@@ -78,7 +76,7 @@ describe("FaqReconcileHandler", () => {
       entity: {
         id,
         entityType: "faq",
-        content: faqAdapter.createFaqContent(frontmatter, `Answer ${id}.`),
+        content: faqDocument(frontmatter, `Answer ${id}.`),
         visibility: options.visibility ?? "restricted",
         created: options.created,
         metadata: faqMetadata(frontmatter),
@@ -108,7 +106,8 @@ describe("FaqReconcileHandler", () => {
     const harness = createPluginHarness({
       dataDir: `/tmp/test-faq-reconcile-${randomUUID()}`,
     });
-    await harness.installPlugin(new FaqPlugin());
+    for (const plugin of createFaqPlugins())
+      await harness.installPlugin(plugin);
     context = harness.getEntityContext("faq");
     distances = [];
     sameVerdict = true;
@@ -127,7 +126,7 @@ describe("FaqReconcileHandler", () => {
     expect(result).toEqual({ outcome: "folded", into: "older" });
     const remaining = await faqs();
     expect(remaining.map((faq) => faq.id)).toEqual(["older"]);
-    const parsed = faqAdapter.parseFaqContent(remaining[0]?.content ?? "");
+    const parsed = readFaq(remaining[0] ?? { content: "" });
     expect(parsed.answer).toBe("Answer older.");
     expect(remaining[0]?.metadata.asked).toBe(3);
     expect(parsed.alternatives).toEqual([{ answer: "Answer newer." }]);
@@ -255,10 +254,7 @@ describe("FaqReconcileHandler", () => {
           await context.entityService.updateEntity({
             entity: {
               ...current,
-              content: faqAdapter.createFaqContent(
-                frontmatter,
-                `Answer ${request.source.id}.`,
-              ),
+              content: faqDocument(frontmatter, `Answer ${request.source.id}.`),
               metadata: faqMetadata(frontmatter),
             },
           });
@@ -303,7 +299,7 @@ describe("FaqReconcileHandler", () => {
     expect(remaining.map((faq) => faq.id)).toEqual(["newer"]);
     expect(remaining[0]?.metadata.asked).toBe(2);
     expect(remaining[0]?.created).toBe("2026-09-02T00:00:00.000Z");
-    expect(faqAdapter.parseFaqContent(remaining[0]?.content ?? "").answer).toBe(
+    expect(readFaq(remaining[0] ?? { content: "" }).answer).toBe(
       "Answer newer.",
     );
   });

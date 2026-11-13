@@ -61,7 +61,7 @@ function frontmatterFields(content: string): Record<string, unknown> {
  * Retired fields are not written back.
  */
 export function actionItemFrontmatter(
-  entity: ActionItemEntity,
+  entity: Pick<ActionItemEntity, "content" | "metadata">,
 ): Record<string, unknown> {
   const owned = Object.entries(entity.metadata).filter(
     ([, value]) => value !== undefined,

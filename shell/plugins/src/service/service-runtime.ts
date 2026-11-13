@@ -24,6 +24,7 @@ import type {
 /** Who a console surface strip is for, as deriveConsoleSurfaces reads it. */
 export type ConsoleSurfaceOptions = Parameters<typeof deriveConsoleSurfaces>[1];
 import type {
+  IConversationsNamespace,
   IEndpointsNamespace,
   IInboxFollowUpsNamespace,
   IInboxNamespace,
@@ -35,7 +36,13 @@ import type {
 } from "../base/context-types";
 import type { IAttachmentsNamespace } from "./attachment-registry";
 import type { RetryScope } from "@brains/utils/retry-backoff";
+import type {
+  ProjectionWaveInput,
+  ProjectionWriteIntent,
+} from "../entity/projection-rule";
+import type { AnyEntityDataSourceDefinition } from "../entity/entity-definition-contract";
 import type { IEntityAINamespace } from "../entity/ai-types";
+import type { OperatorCaller } from "../operator/operator-context-contract";
 import type { IServiceContentNamespace } from "./context";
 import type { IPromptsNamespace, IViewsNamespace } from "../entity/namespaces";
 import type { InboxSource } from "../inbox-registry";
@@ -482,6 +489,11 @@ export interface ServiceRuntime {
    * took it; none before, or without a Studio.
    */
   workspaceUrl(workspace: AnyStudioWorkspaceDefinition): string | undefined;
+  /**
+   * The shared conversation spaces the brain is configured with
+   * (`discord:<channel id>`), as the class read `context.spaces`.
+   */
+  readonly spaces: readonly string[];
   /** The brain's site URL, when it has a domain. */
   readonly siteUrl: string | undefined;
   /** The preview site's URL, when the brain has a domain. */
@@ -524,6 +536,34 @@ export interface ServiceRuntime {
    * none.
    */
   evalHandler(handlerId: string, handler: EvalHandler): void;
+  /**
+   * One of the package's own types' projection rules, run as production
+   * runs it, with no wave, memo or write: what it would write, as an eval
+   * measures the rule. A rule none of the package's types declares is
+   * refused.
+   */
+  runProjectionRule(
+    ruleId: string,
+    options?: { readonly inputs?: readonly ProjectionWaveInput[] },
+  ): Promise<readonly ProjectionWriteIntent[]>;
+  /**
+   * The entity service's conditional and once-only writes, as the class
+   * made them through `context.entityService`: the snapshot a guarded write
+   * reads, a mutation's receipt, a mutation applied once under its receipt,
+   * a fold of one record into another, a retired projection rule's
+   * ownership of a record released, its content kept, and a retired type's
+   * records purged, rows and files. Each request is handed on as
+   * written, attributed to whoever it names and to nobody otherwise, with no
+   * check beyond the store's own.
+   */
+  readonly entityMutations: ServiceEntityMutations;
+  /**
+   * The brain's conversations, as the class read them through
+   * `context.conversations`: a conversation, the conversations a listing
+   * names, a conversation's messages in the range a read names, and how
+   * many it has. Nothing that searches or writes.
+   */
+  readonly conversations: ServiceConversations;
   /**
    * Read-only reads of the brain's entities, passed through to the entity
    * service at the scope each call names, as the class read them: the
@@ -572,10 +612,14 @@ export interface ServiceRuntime {
    * the entity service the build hands the data source, and the runtime
    * validates what it returns against the caller's schema. With
    * `asWritten`, under its id as written, as a service class registered one
-   * it named in full (`site:navigation`).
+   * it named in full (`site:navigation`). An entity data source built with
+   * defineDataSource over one of the package's own types is served with
+   * the runtime's own list, filter, sort, limit, lookup and navigation,
+   * under the service's id as its entity plugin class served it
+   * (`agent-discovery:entities`); one over any other type is refused.
    */
   dataSource(
-    declaration: ServiceDataSourceDeclaration,
+    declaration: ServiceDataSourceDeclaration | AnyEntityDataSourceDefinition,
     options?: ServiceDataSourceOptions,
   ): void;
   /**
@@ -687,6 +731,11 @@ export interface ServiceDashboardWidget<
     readonly corpus: ServiceCorpusReads;
     /** What the viewer may read: pass it to every read. */
     readonly visibilityScope: ContentVisibility;
+    /**
+     * Who is viewing, as the class's widget was handed it: what the widget
+     * offers them (an admin's invite) follows; none without a caller.
+     */
+    readonly caller: OperatorCaller | null;
     readonly signal: AbortSignal;
   }): z.input<TDefinition["data"]> | Promise<z.input<TDefinition["data"]>>;
 }
@@ -708,6 +757,21 @@ export interface ServiceEntityReads {
   getEntityRaw(request: GetEntityRawRequest): Promise<BaseEntity | null>;
   /** A search of the brain at the scope the request names. */
   search(request: EntitySearchRequest): Promise<SearchResult<BaseEntity>[]>;
+  /**
+   * The records nearest a query by embedding distance, at the scope the
+   * request names: ids and raw cosine distances, closest first.
+   */
+  searchWithDistances: IEntityService["searchWithDistances"];
+  /**
+   * The records nearest one record by their stored embeddings, at the scope
+   * the request names: no query is embedded.
+   */
+  nearestToEntity: IEntityService["nearestToEntity"];
+  /**
+   * The brain's semantic space, projected around an origin, at the scope
+   * the request names, as the class read it through context.semantic.
+   */
+  projectSemanticSpace: IEntityService["projectSemanticSpace"];
   /** A type's records as their containment hierarchy, at the request's scope. */
   queryEntityHierarchy: IEntityService["queryEntityHierarchy"];
   /** A registered type's config. */
@@ -734,6 +798,23 @@ export type ServicePermissions = Pick<
 export type ServiceAttachments = Pick<
   IAttachmentsNamespace,
   "resolve" | "hasProvider"
+>;
+
+/** The conditional and once-only writes a class made through its entity service. */
+export type ServiceEntityMutations = Pick<
+  IEntityService,
+  | "getEntityWriteSnapshot"
+  | "getEntityMutationReceipt"
+  | "applyEntityMutationOnce"
+  | "foldEntity"
+  | "releaseProjectionOwnership"
+  | "purgeEntityType"
+>;
+
+/** The conversation reads a class made, and nothing that searches or writes. */
+export type ServiceConversations = Pick<
+  IConversationsNamespace,
+  "get" | "list" | "getMessages" | "countMessages"
 >;
 
 /** The view templates a class read, and nothing that registers one. */
@@ -810,7 +891,10 @@ export interface ServiceGitBroker {
 }
 
 /** What a first-party service asks the brain's AI. */
-export interface ServiceAI extends Pick<IEntityAINamespace, "generateObject"> {
+export interface ServiceAI extends Pick<
+  IEntityAINamespace,
+  "generateObject" | "generate"
+> {
   readonly judge: IShell["judge"];
 }
 
@@ -879,6 +963,7 @@ export interface ServiceRuntimeBinding {
   readonly workspaceUrl: (
     workspace: AnyStudioWorkspaceDefinition,
   ) => string | undefined;
+  readonly spaces: readonly string[];
   readonly siteUrl: string | undefined;
   readonly previewUrl: string | undefined;
   readonly localSiteUrl: string | undefined;
@@ -892,6 +977,9 @@ export interface ServiceRuntimeBinding {
   readonly toolCall: () => ServiceToolCall | undefined;
   readonly classRuntimeState: ClassRuntimeState;
   readonly evalHandler: (handlerId: string, handler: EvalHandler) => void;
+  readonly runProjectionRule: ServiceRuntime["runProjectionRule"];
+  readonly entityMutations: ServiceEntityMutations;
+  readonly conversations: ServiceConversations;
   readonly entityReads: ServiceEntityReads;
   readonly permissions: ServicePermissions;
   readonly attachments: ServiceAttachments;
@@ -899,10 +987,7 @@ export interface ServiceRuntimeBinding {
   readonly claim: (type: string) => ClaimedSystemType;
   readonly profileKinds: IProfileKindsNamespace;
   readonly ai: ServiceAI;
-  readonly dataSource: (
-    declaration: ServiceDataSourceDeclaration,
-    options?: ServiceDataSourceOptions,
-  ) => void;
+  readonly dataSource: ServiceRuntime["dataSource"];
   readonly template: (
     name: string,
     template: Template,
@@ -972,6 +1057,7 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
     recurringCheck: binding.recurringCheck,
     interaction: binding.interaction,
     workspaceUrl: binding.workspaceUrl,
+    spaces: Object.freeze([...binding.spaces]),
     siteUrl: binding.siteUrl,
     previewUrl: binding.previewUrl,
     localSiteUrl: binding.localSiteUrl,
@@ -982,6 +1068,9 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
     toolCall: binding.toolCall,
     classRuntimeState: binding.classRuntimeState,
     evalHandler: binding.evalHandler,
+    runProjectionRule: binding.runProjectionRule,
+    entityMutations: binding.entityMutations,
+    conversations: binding.conversations,
     entityReads: binding.entityReads,
     permissions: binding.permissions,
     attachments: binding.attachments,

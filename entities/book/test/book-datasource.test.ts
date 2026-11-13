@@ -1,9 +1,8 @@
 import { beforeEach, describe, expect, it, spyOn } from "bun:test";
 import { createMockShell, type MockShell } from "@brains/plugins/test";
 import type { BaseDataSourceContext, BaseEntity } from "@brains/plugins";
-import { createMockLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
-import { BookDataSource } from "../src/datasources/book-datasource";
+import { bookSource, type BookSourceUnderTest } from "./helpers/sources";
 import { getTemplates } from "../src/lib/register-templates";
 import { nearestStore, type NearestMatch } from "./helpers/nearest-store";
 import { book, section } from "./helpers/books";
@@ -16,12 +15,12 @@ import {
 describe("BookDataSource", () => {
   let shell: MockShell;
   let context: BaseDataSourceContext;
-  let datasource: BookDataSource;
+  let datasource: BookSourceUnderTest;
 
   beforeEach(() => {
     shell = createMockShell();
     context = { entityService: shell.getEntityService() };
-    datasource = new BookDataSource(createMockLogger());
+    datasource = bookSource();
     shell.addEntities([
       book("zweites", "Zweites Buch"),
       book("erstes", "Erstes Buch"),

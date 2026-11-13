@@ -67,14 +67,17 @@ export async function declaredEntityStore(
   // The plugin id it installs under, or the composer's options in full,
   // such as a service that installs its owned type apart.
   pluginId: string | PluginPackageInstantiationOptions,
-  config: EntityTypeConfig = {},
+  // Each type's config, or one per type when the package owns several
+  // that differ, as a book's sections are contained in their book.
+  config: EntityTypeConfig | ((entityType: string) => EntityTypeConfig) = {},
   // Packages installed beside it under their own scoped ids, such as the
   // types a cross-type package reads.
   companions: readonly PluginPackageDefinition[] = [],
   // The package's own config, as a brain gives it.
   packageConfig: unknown = {},
   // Types registered beside the package's, as the shell and class plugins
-  // register them, for readers that read across types.
+  // register them, for readers that read across types, and groupings over
+  // the package's own types: run once the package's types are registered.
   registerTypes: (registry: EntityRegistry) => void = (): void => {},
 ): Promise<DeclaredEntityStore> {
   const temporary = await createTestDirectory();
@@ -97,7 +100,6 @@ export async function declaredEntityStore(
     ),
   ];
   const registry = EntityRegistry.createFresh(logger);
-  registerTypes(registry);
   // A service package installs its owned types' entity plugins beside it.
   const entityPlugins = plugins.flatMap((plugin) =>
     plugin instanceof EntityPlugin ? [plugin] : [],
@@ -108,9 +110,10 @@ export async function declaredEntityStore(
       plugin.entityType,
       plugin.schema,
       plugin.adapter,
-      config,
+      typeof config === "function" ? config(plugin.entityType) : config,
     );
   }
+  registerTypes(registry);
   const service = EntityService.createFresh({
     dbConfig,
     embeddingDbConfig: { url: `file:${temporary.dir}/embeddings.db` },

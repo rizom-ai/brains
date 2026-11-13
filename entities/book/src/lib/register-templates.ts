@@ -2,7 +2,7 @@ import {
   createTemplate,
   type Template,
   contentVisibilitySchema,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/presentation";
 import { z } from "@brains/utils/zod";
 import { bookFrontmatterSchema, bookMetadataSchema } from "../schemas/book";
 import {

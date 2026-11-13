@@ -1,10 +1,7 @@
 import { channelLabel } from "@brains/action-items";
-import {
-  SYSTEM_CHANNELS,
-  defineDashboardWidget,
-  registerBuiltInDashboardWidget,
-  type EntityPluginContext,
-} from "@brains/plugins";
+import { defineDashboardWidget } from "@brains/sdk/services";
+import type { ServiceRuntime } from "@brains/sdk/internal/service-runtime";
+import type { MemoryEntityService } from "../memory-context";
 import {
   buildRecentConversationMemoryData,
   recentConversationMemoryDataSchema,
@@ -81,22 +78,17 @@ const recentMemoryWidget = defineDashboardWidget({
   }),
 });
 
-export function registerRecentConversationMemoryWidget(params: {
-  context: EntityPluginContext;
-}): void {
-  const { context } = params;
-  context.messaging.subscribe(
-    SYSTEM_CHANNELS.pluginsRegistered,
-    async (): Promise<{ success: boolean }> => {
-      await registerBuiltInDashboardWidget({
-        context,
-        definition: recentMemoryWidget,
-        load: ({ visibilityScope, signal }) => {
-          signal.throwIfAborted();
-          return buildRecentConversationMemoryData(context, visibilityScope);
-        },
-      });
-      return { success: true };
+export function registerRecentConversationMemoryWidget(
+  runtime: Pick<ServiceRuntime, "dashboardWidget">,
+  context: {
+    readonly entityService: Pick<MemoryEntityService, "listEntities">;
+  },
+): void {
+  runtime.dashboardWidget({
+    definition: recentMemoryWidget,
+    load: ({ visibilityScope, signal }) => {
+      signal.throwIfAborted();
+      return buildRecentConversationMemoryData(context, visibilityScope);
     },
-  );
+  });
 }

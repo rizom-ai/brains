@@ -31,12 +31,18 @@ const evalYamlSchema: z.ZodObject<{
   plugin: z.ZodString;
   export: z.ZodOptional<z.ZodString>;
   pluginId: z.ZodOptional<z.ZodString>;
+  ownedTypePluginId: z.ZodOptional<z.ZodString>;
   model: z.ZodOptional<z.ZodString>;
   config: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
 }> = z.object({
   plugin: z.string(),
   export: z.string().min(1).optional(),
   pluginId: z.string().min(1).optional(),
+  /**
+   * Where a first-party service's owned type installs when the service
+   * keeps the id the type has, as the canonical brain installs it.
+   */
+  ownedTypePluginId: z.string().min(1).optional(),
   model: z.string().optional(),
   config: z.record(z.string(), z.unknown()).optional(),
 });
@@ -116,6 +122,7 @@ async function resolvePluginExport(
   pluginConfig: Record<string, unknown>,
   pluginModule: string,
   pluginId: string | undefined,
+  ownedTypePluginId?: string,
 ): Promise<Plugin[]> {
   if (!Object.hasOwn(moduleExports, exportName)) {
     throw new Error(
@@ -129,7 +136,10 @@ async function resolvePluginExport(
       candidate,
       pluginConfig,
       modulePackageMetadata(candidate, pluginModule),
-      pluginId === undefined ? {} : { pluginId },
+      {
+        ...(pluginId !== undefined && { pluginId }),
+        ...(ownedTypePluginId !== undefined && { ownedTypePluginId }),
+      },
     );
   }
   if (pluginId !== undefined) {
@@ -183,11 +193,14 @@ export async function loadPluginEvalConfig(
     pluginConfig,
     evalConfig.plugin,
     evalConfig.pluginId,
+    evalConfig.ownedTypePluginId,
   );
   const [first] = plugins;
   if (!first) throw new Error(`${evalConfig.plugin} provides no plugin`);
 
-  const pluginId = first.id;
+  // The id eval.yaml names, else the first plugin's: a service keeping its
+  // class's id installs its owned type first.
+  const pluginId = evalConfig.pluginId ?? first.id;
   // A package's scoped id names its package, slash included; the throwaway
   // databases sit directly under /tmp.
   const evalDbBase = `/tmp/${pluginId.replace(/[^\w.-]/g, "-")}-eval-${Date.now()}`;

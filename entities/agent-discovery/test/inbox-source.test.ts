@@ -1,20 +1,21 @@
+import {
+  parseAgentEntity,
+  rewriteAgentContent,
+} from "../src/lib/agent-content";
+import { agentDiscoveryPlugins, installAll } from "./agent-discovery-plugins";
 import { describe, expect, it } from "bun:test";
 import type { Plugin } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
-import { AgentAdapter } from "../src/adapters/agent-adapter";
 import { agentEntitySchema } from "../src/schemas/agent";
 import { AgentSightingsInboxSource } from "../src/inbox-source";
-import { AgentDiscoveryPlugin } from "../src/plugins/agent-plugin";
 import { createTestAgent } from "./fixtures/agent";
-
-const agentAdapter = new AgentAdapter();
 
 async function createSource(): Promise<{
   harness: ReturnType<typeof createPluginHarness<Plugin>>;
   source: AgentSightingsInboxSource;
 }> {
   const harness = createPluginHarness<Plugin>();
-  await harness.installPlugin(new AgentDiscoveryPlugin());
+  await installAll(harness, agentDiscoveryPlugins());
   return {
     harness,
     source: new AgentSightingsInboxSource(
@@ -138,12 +139,11 @@ describe("agent sightings Inbox source", () => {
     expect(connected?.metadata["status"]).toBe("approved");
     expect(dismissed?.metadata["status"]).toBe("archived");
     if (!connected || !dismissed) throw new Error("Expected saved agents");
-    const connectedFrontmatter =
-      agentAdapter.parseEntity(connected).frontmatter;
+    const connectedFrontmatter = parseAgentEntity(connected).frontmatter;
     expect(connectedFrontmatter.status).toBe("approved");
     expect(connectedFrontmatter.introducedBy).toBeUndefined();
     expect(connectedFrontmatter.hops).toBeUndefined();
-    expect(agentAdapter.parseEntity(dismissed).frontmatter).toMatchObject({
+    expect(parseAgentEntity(dismissed).frontmatter).toMatchObject({
       status: "archived",
       introducedBy: ["kai.brain"],
       hops: 2,
@@ -154,7 +154,7 @@ describe("agent sightings Inbox source", () => {
 
   it("does not overwrite a card refresh that lands while a sighting is connected", async () => {
     const harness = createPluginHarness<Plugin>();
-    await harness.installPlugin(new AgentDiscoveryPlugin());
+    await installAll(harness, agentDiscoveryPlugins());
     const context = harness.getServiceContext("agent-discovery");
     await context.entityService.createEntity({
       entity: createTestAgent({
@@ -179,10 +179,9 @@ describe("agent sightings Inbox source", () => {
       await update({
         entity: {
           ...current,
-          content: agentAdapter.rewriteAgentContent(
-            agentAdapter.parseEntity(current),
-            { about: "After the refresh." },
-          ),
+          content: rewriteAgentContent(parseAgentEntity(current), {
+            about: "After the refresh.",
+          }),
         },
       });
       return update(request);
@@ -207,9 +206,7 @@ describe("agent sightings Inbox source", () => {
       agentEntitySchema,
     );
     if (!current) throw new Error("Missing agent");
-    expect(agentAdapter.parseEntity(current).frontmatter.status).toBe(
-      "discovered",
-    );
+    expect(parseAgentEntity(current).frontmatter.status).toBe("discovered");
     expect(current.content).toContain("After the refresh.");
     await harness.reset();
   });

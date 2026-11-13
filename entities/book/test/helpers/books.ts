@@ -1,6 +1,9 @@
-import { bookSectionAdapter } from "../../src/adapters/book-section-adapter";
+import { bookSectionAdapter } from "./adapters";
 import type { Book } from "../../src/schemas/book";
-import type { BookSection } from "../../src/schemas/book-section";
+import {
+  bookSectionMetadataSchema,
+  type BookSection,
+} from "../../src/schemas/book-section";
 
 /** A book entity with its details and an empty contents. */
 export function book(id: string, title: string, extra = ""): Book {
@@ -59,6 +62,6 @@ Erfundener Text ${order}.
     created: "2026-10-06T00:00:00.000Z",
     updated: "2026-10-06T00:00:00.000Z",
     visibility: "public",
-    metadata: parsed.metadata,
+    metadata: bookSectionMetadataSchema.parse(parsed.metadata),
   };
 }

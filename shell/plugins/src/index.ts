@@ -977,6 +977,10 @@ export {
   uniqueTitleContext,
   restatingMetadata,
   withBodyTemplate,
+  withFolderTitles,
+  withDisplayTitle,
+  withPublishedStatuses,
+  type RecordDisplayTitle,
   withUrlRoute,
   writesInDocumentOrder,
   storedDocumentCodec,
@@ -1004,6 +1008,7 @@ export {
   type GenerationOutcomeContext,
   type GenerationStep,
   type RestateMetadata,
+  type FolderTitles,
 } from "./entity/entity-runtime";
 // First-party services converted from a class reach what the public
 // service contract does not offer here.
@@ -1023,6 +1028,8 @@ export {
   type ClaimedSystemType,
   type ClassRuntimeState,
   type ClassRuntimeStateStore,
+  type ServiceConversations,
+  type ServiceEntityMutations,
   type ServiceCorpusReads,
   type ServiceDashboardWidget,
   type ServiceInteraction,

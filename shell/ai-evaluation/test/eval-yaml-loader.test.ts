@@ -77,6 +77,21 @@ pluginId: wishlist
     });
   });
 
+  it("should parse eval.yaml with the plugin id a service's owned type installs under", () => {
+    const result = parseEvalYaml(`
+plugin: "@brains/faq"
+export: default
+pluginId: faq
+ownedTypePluginId: faq-entity
+`);
+    expect(result).toEqual({
+      plugin: "@brains/faq",
+      export: "default",
+      pluginId: "faq",
+      ownedTypePluginId: "faq-entity",
+    });
+  });
+
   it("should return null for empty yaml", () => {
     const result = parseEvalYaml("");
     expect(result).toBeNull();
@@ -184,6 +199,32 @@ describe("loadPluginEvalConfig", () => {
 
     expect(config.plugins?.map(({ id }) => id)).toEqual(["shelf"]);
     expect(config.name).toBe("shelf-eval");
+  });
+
+  it("installs a service's owned type under the plugin id eval.yaml names for it", async () => {
+    const config = await loadPluginEvalConfig({
+      plugin: packageDefinitionModule,
+      export: "shelvingPackage",
+      pluginId: "shelf",
+      ownedTypePluginId: "shelf-entity",
+    });
+
+    expect(config.plugins?.map(({ id, type }) => [id, type])).toEqual([
+      ["shelf-entity", "entity"],
+      ["shelf", "service"],
+    ]);
+  });
+
+  it("refuses an owned type's plugin id without a plugin id", () => {
+    expect(
+      loadPluginEvalConfig({
+        plugin: packageDefinitionModule,
+        export: "shelvingPackage",
+        ownedTypePluginId: "shelf-entity",
+      }),
+    ).rejects.toThrow(
+      "names a plugin id for its owned type only beside a legacy plugin id",
+    );
   });
 
   it("refuses a plugin id for an export that is not a package definition", () => {

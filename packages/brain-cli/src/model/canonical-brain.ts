@@ -14,9 +14,19 @@ import {
 } from "@brains/plugins";
 import a2aInterface from "@brains/a2a";
 import adminPackage from "@brains/admin";
-import { agentDiscovery } from "@brains/agent-discovery";
+import {
+  agentDiscoveryCompositeConfigSchema,
+  agentDiscoveryPackage,
+  agentToolsPackage,
+  derivedSkillPackage,
+  skillPackage,
+} from "@brains/agent-discovery";
 import analyticsPackage from "@brains/analytics";
-import { assessment } from "@brains/assessment";
+import {
+  assessmentConfigSchema,
+  derivedSwotPackage,
+  swotPackage,
+} from "@brains/assessment";
 import atprotoPackage from "@brains/atproto";
 import atprotoRegistryPackage from "@brains/atproto-registry";
 import { authServicePlugin } from "@brains/auth-service";
@@ -27,14 +37,14 @@ import contentPipelinePackage from "@brains/content-pipeline";
 import contactPackage, { CONTACT_DEPENDENCIES } from "@brains/contact";
 import { formPlugin } from "@brains/form";
 import quizPackage, { QUIZ_DEPENDENCIES } from "@brains/quiz";
-import { conversationMemoryPlugin } from "@brains/conversation-memory";
-import { faqPlugin } from "@brains/faq";
+import conversationMemoryPackage from "@brains/conversation-memory";
+import faqPackage from "@brains/faq";
 import dashboardPackage from "@brains/dashboard";
 import decksPackage from "@brains/decks";
 import directorySyncPackage from "@brains/directory-sync";
 import docsPackage from "@brains/doc";
 import { guidesPlugin } from "@brains/guide";
-import { bookPlugin } from "@brains/book";
+import bookPackage from "@brains/book";
 import documentPackage from "@brains/document-plugin";
 import emailInterface from "@brains/email";
 import emailWorkflowsPackage from "@brains/email-workflows";
@@ -64,7 +74,7 @@ import socialMediaPackage from "@brains/social-media";
 import stockPhotoPackage from "@brains/stock-photo";
 import styleGuidePackage from "@brains/style-guide";
 import askContentPackage from "@brains/ask-content";
-import { topicsPlugin } from "@brains/topics";
+import topicsPackage from "@brains/topics";
 import knowledgeMapPackage from "@brains/knowledge-map";
 import unifiedInboxPackage from "@brains/unified-inbox";
 import { actionBoardPlugin } from "@brains/action-board";
@@ -231,7 +241,14 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     [
       "topics",
       (config): Plugin[] => [
-        topicsPlugin(config),
+        // Under the id its class had, which registered the topic type
+        // inside itself: the type installs as itself.
+        ...instantiatePluginPackageDefinition(
+          topicsPackage,
+          config,
+          { name: "@brains/topics", version: packageJson.version },
+          { pluginId: "topics" },
+        ),
         ...instantiatePluginPackageDefinition(
           knowledgeMapPackage,
           {},
@@ -261,8 +278,57 @@ export const canonicalBrain: BrainDefinition = defineBrain({
       atprotoRegistryPackage,
       { pluginId: "atproto-registry" },
     ),
-    ["agents", agentDiscovery, undefined],
-    ["assessment", assessment, undefined],
+    // The agent directory, as its three classes were: the agent type's
+    // agent-discovery, the agent tools service and the skill type, each
+    // under its class's id, its type installed apart. Skill derivation on
+    // or off picks the skill type with or without its rule.
+    [
+      "agents",
+      (config): Plugin[] => {
+        const { enableSkillDerivation, notifyOnNewAgents } =
+          agentDiscoveryCompositeConfigSchema.parse(config);
+        const metadata = {
+          name: "@brains/agent-discovery",
+          version: packageJson.version,
+        };
+        return [
+          ...instantiatePluginPackageDefinition(
+            agentDiscoveryPackage,
+            {},
+            metadata,
+            { pluginId: "agent-discovery", ownedTypePluginId: "agent-entity" },
+          ),
+          ...instantiatePluginPackageDefinition(
+            agentToolsPackage,
+            { notifyOnNewAgents },
+            metadata,
+            { pluginId: "agent" },
+          ),
+          ...instantiatePluginPackageDefinition(
+            enableSkillDerivation ? derivedSkillPackage : skillPackage,
+            {},
+            metadata,
+            { pluginId: "skill", ownedTypePluginId: "skill-entity" },
+          ),
+        ];
+      },
+      undefined,
+    ],
+    // The SWOT, under the id its class had. Derivation on or off picks the
+    // swot type with or without its rule.
+    [
+      "assessment",
+      (config): Plugin[] =>
+        instantiatePluginPackageDefinition(
+          assessmentConfigSchema.parse(config).enableSwotDerivation
+            ? derivedSwotPackage
+            : swotPackage,
+          {},
+          { name: "@brains/assessment", version: packageJson.version },
+          { pluginId: "swot" },
+        ),
+      undefined,
+    ],
     ["auth-service", authServicePlugin, undefined],
     packageCapability(
       "notifications",
@@ -361,14 +427,33 @@ export const canonicalBrain: BrainDefinition = defineBrain({
       }),
     ],
 
-    ["conversation-memory", conversationMemoryPlugin, undefined],
+    packageCapability(
+      "conversation-memory",
+      "@brains/conversation-memory",
+      conversationMemoryPackage,
+      {
+        // Under the id its class had, which registered summary, decision
+        // and action-item inside itself: each type installs as itself.
+        pluginId: "conversation-memory",
+      },
+    ),
     ["action-board", actionBoardPlugin, undefined],
-    ["faq", faqPlugin, undefined],
+    packageCapability("faq", "@brains/faq", faqPackage, {
+      // Under the id its class had, which registered the faq type inside
+      // itself: the type installs apart.
+      pluginId: "faq",
+      ownedTypePluginId: "faq-entity",
+    }),
     packageCapability("docs", "@brains/doc", docsPackage, {
       pluginId: "docs",
     }),
     ["guides", guidesPlugin, undefined],
-    ["book", bookPlugin, undefined],
+    packageCapability("book", "@brains/book", bookPackage, {
+      // Under the id its class had, which registered book and book-section
+      // inside itself: book-section installs as itself, book apart.
+      pluginId: "book",
+      ownedTypePluginId: "book-entity",
+    }),
 
     packageCapability(
       "obsidian-vault",

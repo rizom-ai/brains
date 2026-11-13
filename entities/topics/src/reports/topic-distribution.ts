@@ -1,10 +1,10 @@
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
 import {
   defineAnalyticsReport,
   type AnalyticsReportContext,
   type AnalyticsReportDefinition,
-  type BaseEntity,
   type ContentVisibility,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/service-runtime";
 import { generateIdFromText } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import { topicEntitySchema } from "../schemas/topic";
