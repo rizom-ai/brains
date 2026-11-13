@@ -772,6 +772,8 @@ export interface ServiceDashboardWidget<
 /** The entity service's reads a first-party class made, and nothing that writes. */
 export interface ServiceEntityReads {
   getEntityTypes(): string[];
+  /** Whether a type is registered. */
+  hasEntityType(entityType: string): boolean;
   /** How many records of a type the request's scope sees. */
   countEntities(request: CountEntitiesRequest): Promise<number>;
   getEntityCounts(

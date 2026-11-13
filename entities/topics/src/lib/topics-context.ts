@@ -19,10 +19,7 @@ export type TopicsEntityService = Pick<
   | "searchWithDistances"
 > &
   Pick<ServiceEntityWrites, "createEntity" | "updateEntity" | "deleteEntity"> &
-  Pick<ServiceEntityMutations, "releaseProjectionOwnership"> & {
-    /** Whether a type is registered. */
-    hasEntityType(entityType: string): boolean;
-  };
+  Pick<ServiceEntityMutations, "releaseProjectionOwnership">;
 
 /**
  * What topics extraction, merging and its evals reach, as the topics class
@@ -57,8 +54,6 @@ export function topicsContextOf(runtime: ServiceRuntime): TopicsContext {
       deleteEntity: (request) => entityWrites.deleteEntity(request),
       releaseProjectionOwnership: (request) =>
         entityMutations.releaseProjectionOwnership(request),
-      hasEntityType: (entityType) =>
-        entityReads.getEntityTypes().includes(entityType),
     },
     ai: runtime.ai,
     runtimeState: runtime.classRuntimeState,

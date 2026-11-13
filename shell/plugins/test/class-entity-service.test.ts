@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, spyOn } from "bun:test";
 import { z } from "@brains/utils/zod";
 import { createMockShell, type MockShell } from "../src/test/mock-shell";
 import { baseEntitySchema, createTestEntityAdapter } from "../test";
@@ -108,5 +108,69 @@ describe("a converted class's entity service", () => {
     if (!raw) throw new Error("Missing note");
     await entities.updateEntity({ entity: { ...raw, content: "One, again" } });
     expect((await entities.getEntity(request))?.content).toBe("One, again");
+  });
+
+  it("parses a search hit by the schema it names, and deletes a record", async () => {
+    const shell = createMockShell();
+    shell
+      .getEntityRegistry()
+      .registerEntityType(
+        "note",
+        baseEntitySchema,
+        createTestEntityAdapter("note"),
+      );
+    const entities = classEntityServiceOf(await runtimeOn(shell));
+    await entities.createEntity({
+      entity: {
+        id: "n1",
+        entityType: "note",
+        content: "One",
+        visibility: "public",
+        metadata: { title: "One", extra: true },
+      },
+    });
+
+    const search = {
+      query: "One",
+      options: { types: ["note"], visibilityScope: "public" as const },
+    };
+    const stored = await entities.getEntity({
+      entityType: "note",
+      id: "n1",
+      visibilityScope: "public",
+    });
+    if (!stored) throw new Error("Missing note");
+    // The fake holds no vectors, so the hit is the one the brain would give.
+    spyOn(shell.getEntityService(), "search").mockResolvedValue([
+      { entity: stored, score: 0.9, excerpt: "One" },
+    ]);
+    const [raw] = await entities.search(search);
+    const [parsed] = await entities.search(search, noteSchema);
+    expect(raw?.entity.metadata).toEqual({ title: "One", extra: true });
+    expect(parsed?.entity.metadata).toEqual({ title: "One" });
+    expect(parsed?.score).toBe(raw?.score);
+
+    await entities.deleteEntity({ entityType: "note", id: "n1" });
+    expect(
+      await entities.getEntity({
+        entityType: "note",
+        id: "n1",
+        visibilityScope: "public",
+      }),
+    ).toBeNull();
+  });
+
+  it("reads whether the brain holds a type", async () => {
+    const shell = createMockShell();
+    shell
+      .getEntityRegistry()
+      .registerEntityType(
+        "note",
+        baseEntitySchema,
+        createTestEntityAdapter("note"),
+      );
+    const { entityReads } = await runtimeOn(shell);
+    expect(entityReads.hasEntityType("note")).toBe(true);
+    expect(entityReads.hasEntityType("deck")).toBe(false);
   });
 });
