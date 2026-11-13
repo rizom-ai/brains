@@ -1,5 +1,14 @@
 # @brains/site-info
 
+## 0.2.0-alpha.701
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.701
+  - @brains/site-composition@0.2.0-alpha.701
+  - @brains/utils@0.2.0-alpha.701
+
 ## 0.2.0-alpha.700
 
 ### Patch Changes

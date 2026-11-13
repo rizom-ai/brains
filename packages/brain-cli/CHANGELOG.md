@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.701
+
+### Patch Changes
+
+- [#939](https://github.com/rizom-ai/brains/pull/939) [`62a4ad4`](https://github.com/rizom-ai/brains/commit/62a4ad47aceb1738f80cdc52b03bf0a0323f7f78) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Text pasted between a BEGIN line and its END line reaches the model as a ready source to save or update from, two whole marker lines without a mode select the lines between them, an approval pins the mode its source was read in, and a user-message source sent as an update operation is told to go under `source`.
+
 ## 0.2.0-alpha.700
 
 ### Patch Changes
