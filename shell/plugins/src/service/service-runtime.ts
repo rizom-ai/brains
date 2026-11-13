@@ -40,7 +40,10 @@ import type {
   ProjectionWaveInput,
   ProjectionWriteIntent,
 } from "../entity/projection-rule";
-import type { AnyEntityDataSourceDefinition } from "../entity/entity-definition-contract";
+import type {
+  AnyEntityDataSourceDefinition,
+  DataSourceReadContext,
+} from "../entity/entity-definition-contract";
 import type { IEntityAINamespace } from "../entity/ai-types";
 import type { OperatorCaller } from "../operator/operator-context-contract";
 import type { IServiceContentNamespace } from "./context";
@@ -757,6 +760,12 @@ export interface ServiceDataSourceDeclaration {
       readonly corpus: ServiceCorpusReads;
       /** True for a production build, which shows only published records. */
       readonly publishedOnly: boolean;
+      /**
+       * Reads a record another package declared shared with
+       * `defineSharedState`, by that declaration, as a declared data
+       * source's `context.sharedState` does.
+       */
+      readonly sharedState: DataSourceReadContext["sharedState"];
     },
   ): Promise<unknown>;
 }

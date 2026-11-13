@@ -112,8 +112,11 @@ function dataSourceReader(
   });
 }
 
-/** The read-only view of a shared record a data source is given. */
-function sharedStateReader(
+/**
+ * The read-only view of a shared record a data source is given: opened by
+ * its `defineSharedState` declaration alone, never a storage namespace.
+ */
+export function sharedStateReader(
   runtimeState: DataSourceBindings["runtimeState"],
 ): DataSourceReadContext["sharedState"] {
   return (state) => {

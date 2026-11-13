@@ -12,6 +12,7 @@ import {
   defineSharedState,
   defineTool,
   instantiatePluginPackageDefinition,
+  serviceRuntime,
   type SharedState,
 } from "../src";
 import { sharedStateNamespace } from "../src/public/shared-state";
@@ -216,6 +217,77 @@ describe("shared runtime state", () => {
       if (!service) throw new Error("No service");
       expect(await refusal(harness.installPlugin(service))).toContain(
         'Package "@fixture/impostor" writes only shared state named "@fixture/impostor:<name>", and "@fixture/digests:tally" is not one',
+      );
+    } finally {
+      await harness.reset();
+    }
+  });
+
+  it("is read by a first-party service's data source through its declaration, and only so", async () => {
+    const harness = createPluginHarness({ logger: createSilentLogger() });
+    try {
+      const [service] = instantiate(
+        tallyService(digestTally),
+        "@fixture/digests",
+      );
+      if (!service) throw new Error("No service");
+      const capabilities = await harness.installPlugin(service);
+      await capabilities.tools[0]?.handler({}, caller);
+      const reader = defineServicePlugin({
+        id: "ledger",
+        config: noConfig,
+        setup: (context) => {
+          const runtime = serviceRuntime(context);
+          runtime.dataSource({
+            id: "tally",
+            name: "Tally",
+            description: "How many digests the digest service counted",
+            fetch: async (_query, { sharedState }) => {
+              const store = sharedState(digestTally);
+              return {
+                total: await store.get("total"),
+                members: Object.keys(store),
+              };
+            },
+          });
+          runtime.dataSource({
+            id: "raw",
+            name: "Raw",
+            description: "Reads a record by its storage namespace",
+            fetch: async (_query, { sharedState }) =>
+              sharedState({
+                // @ts-expect-error A storage namespace is no declaration.
+                namespace: sharedStateNamespace("@fixture/digests:tally"),
+                schema: tally,
+              }).get("total"),
+          });
+          return {};
+        },
+      });
+      await install(harness, reader, "@fixture/ledger");
+
+      expect(
+        await registered(harness, "@fixture/ledger:ledger:tally").fetch?.(
+          {},
+          z.object({
+            total: z.object({ count: z.number(), label: z.string() }),
+            members: z.array(z.string()),
+          }),
+          { entityService: harness.getEntityService() },
+        ),
+      ).toEqual({ total: { count: 1, label: "" }, members: ["get"] });
+      expect(
+        await refusal(
+          registered(harness, "@fixture/ledger:ledger:raw").fetch?.(
+            {},
+            z.unknown(),
+            {
+              entityService: harness.getEntityService(),
+            },
+          ),
+        ),
+      ).toContain(
+        "A data source reads only shared state declared with defineSharedState",
       );
     } finally {
       await harness.reset();

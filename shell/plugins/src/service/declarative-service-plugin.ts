@@ -2,7 +2,10 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { unscopeTemplateName } from "@brains/content-service";
 import type { OperationalHealthProvider } from "../operational-health-registry";
 import { entityMirrorOf } from "./entity-mirror";
-import { createDeclaredDataSource } from "../public/entity-data-source";
+import {
+  createDeclaredDataSource,
+  sharedStateReader,
+} from "../public/entity-data-source";
 import { sharedUploadScope } from "./upload-registry";
 import {
   SDK_ERROR_MESSAGE_MAX_LENGTH,
@@ -102,7 +105,10 @@ import {
   identityConfigSchema,
   type InstalledPluginPackageMetadata,
 } from "../package-definition";
-import type { AnyEntityDefinition } from "../entity/entity-definition-contract";
+import type {
+  AnyEntityDefinition,
+  DataSourceReadContext,
+} from "../entity/entity-definition-contract";
 import {
   assertOwnedWriteAllowed,
   createOwnedEntityWriter,
@@ -1508,6 +1514,7 @@ class DeclarativeServicePlugin<
             id,
             `${this.packageName}:${declaration.id}`,
             declaration,
+            sharedStateReader(context.runtimeState),
           ),
         );
       },
@@ -2120,6 +2127,7 @@ function firstPartyDataSource(
   id: string,
   publicId: string,
   declaration: ServiceDataSourceDeclaration,
+  sharedState: DataSourceReadContext["sharedState"],
 ): DataSource {
   return {
     id,
@@ -2135,6 +2143,7 @@ function firstPartyDataSource(
         await declaration.fetch(query, {
           corpus: corpusReadsOf(context.entityService),
           publishedOnly: context.publishedOnly === true,
+          sharedState,
         }),
       ),
   };
