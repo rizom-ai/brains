@@ -1,4 +1,4 @@
-import { access, chmod, mkdir, readFile, writeFile } from "node:fs/promises";
+import { chmod, mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -16,6 +16,7 @@ import {
   type DeployScriptName,
 } from "@brains/deploy-support";
 import { writeUsersTable } from "./render-users-table";
+import { fileExists } from "./fs-paths";
 
 const starterFilePaths = [
   "pilot.yaml",
@@ -249,20 +250,8 @@ export async function initPilotRepo(rootDir: string): Promise<void> {
   await mkdir(rootDir, { recursive: true });
 
   const usersTablePath = join(rootDir, "views", "users.md");
-  let usersTableExists = true;
-
-  try {
-    await access(usersTablePath);
-  } catch {
-    usersTableExists = false;
-  }
-
-  let isExistingRepo = true;
-  try {
-    await access(join(rootDir, "pilot.yaml"));
-  } catch {
-    isExistingRepo = false;
-  }
+  const usersTableExists = await fileExists(usersTablePath);
+  const isExistingRepo = await fileExists(join(rootDir, "pilot.yaml"));
 
   // Skipped example files must not skip their directories: the users table
   // and cohort loading expect these to exist even on an example-free repo.

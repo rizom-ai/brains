@@ -1,4 +1,4 @@
-import { access, readdir, readFile } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import { basename, join, relative } from "node:path";
 
 import type { SocialLinkPlatform } from "@brains/contracts";
@@ -18,6 +18,7 @@ import {
   type UserConfig,
   userSchema,
 } from "./schema";
+import { fileExists, normalizePath } from "./fs-paths";
 
 export type ExternalStatus = "unknown" | "ready" | "failed";
 export type SnapshotStatus = "present" | "missing";
@@ -414,12 +415,7 @@ async function resolveSnapshotStatus(
 ): Promise<SnapshotStatus> {
   const snapshotPath = join(rootDir, "users", handle, "brain.yaml");
 
-  try {
-    await access(snapshotPath);
-    return "present";
-  } catch {
-    return "missing";
-  }
+  return (await fileExists(snapshotPath)) ? "present" : "missing";
 }
 
 async function listYamlFiles(dirPath: string): Promise<string[]> {
@@ -451,8 +447,4 @@ function uniqueStrings(values: string[]): string[] {
 
 function stripYamlExtension(name: string): string {
   return name.replace(/\.ya?ml$/, "");
-}
-
-function normalizePath(path: string): string {
-  return path.replaceAll("\\", "/");
 }

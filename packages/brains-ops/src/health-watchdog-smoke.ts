@@ -1,4 +1,4 @@
-import { access, chmod, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -19,6 +19,7 @@ import {
   type StressCommandResult,
   type StressCommandRunner,
 } from "./stress-command";
+import { fileExists } from "./fs-paths";
 
 const requiredEnvironmentSchema = z.object({
   HCLOUD_TOKEN: z.string().min(1),
@@ -174,7 +175,7 @@ export async function runHealthWatchdogSmoke(
     const copy = await copyRemoteArtifacts(ssh, remoteDir, artifactsDir);
     await writeCommandArtifacts(artifactsDir, "scp", copy);
     if (copy.exitCode === 0) {
-      copiedArtifacts = await artifactExists(join(artifactsDir, "summary.txt"));
+      copiedArtifacts = await fileExists(join(artifactsDir, "summary.txt"));
       if (!copiedArtifacts) {
         failure ??= new Error(
           "Health watchdog smoke evidence is missing summary.txt",
@@ -417,15 +418,6 @@ function sshConnectionArgs(context: SmokeSshContext): string[] {
     "-o",
     `UserKnownHostsFile=${context.knownHostsPath}`,
   ];
-}
-
-async function artifactExists(path: string): Promise<boolean> {
-  try {
-    await access(path);
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 async function writeCommandArtifacts(

@@ -3,6 +3,7 @@ import { z } from "@brains/utils/zod";
 
 import { loadPilotRegistry, type ResolvedUser } from "./load-registry";
 import { getErrorMessage } from "@brains/utils/error";
+import { fetchWithTimeout } from "./fetch-with-timeout";
 
 export interface VerifyPilotUserOptions {
   fetchImpl?: FetchLike;
@@ -180,7 +181,7 @@ async function verifyHealth(
   baseUrl: string,
 ): Promise<void> {
   const endpoint = "/health/operate";
-  const response = await fetchWithTimeout(fetchImpl, `${baseUrl}${endpoint}`, {
+  const response = await fetchVerifying(fetchImpl, `${baseUrl}${endpoint}`, {
     method: "GET",
   });
   const payload: unknown = await response.json().catch(() => null);
@@ -238,7 +239,7 @@ async function verifyMcpAuthGate(
   fetchImpl: FetchLike,
   baseUrl: string,
 ): Promise<void> {
-  const response = await fetchWithTimeout(fetchImpl, `${baseUrl}/mcp`, {
+  const response = await fetchVerifying(fetchImpl, `${baseUrl}/mcp`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize" }),
@@ -256,7 +257,7 @@ async function verifyLoads(
   url: string,
   label: string,
 ): Promise<void> {
-  const response = await fetchWithTimeout(fetchImpl, url, { method: "GET" });
+  const response = await fetchVerifying(fetchImpl, url, { method: "GET" });
   if (response.status >= 400) {
     throw new Error(
       `${label} ${url} returned ${response.status}, expected < 400`,
@@ -264,21 +265,16 @@ async function verifyLoads(
   }
 }
 
-async function fetchWithTimeout(
+/** A verification request: it follows redirects and gives up after twenty seconds. */
+function fetchVerifying(
   fetchImpl: FetchLike,
   input: string,
   init: RequestInit,
 ): Promise<Response> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 20_000);
-
-  try {
-    return await fetchImpl(input, {
-      ...init,
-      redirect: "follow",
-      signal: controller.signal,
-    });
-  } finally {
-    clearTimeout(timeout);
-  }
+  return fetchWithTimeout(
+    fetchImpl,
+    input,
+    { ...init, redirect: "follow" },
+    20_000,
+  );
 }
