@@ -38,7 +38,7 @@ export interface CleanupPipelineDeps {
   };
   fileOperations: {
     assertEntityPlacement(entity: BaseEntity): void;
-    getEntityFilePath(entity: BaseEntity): string;
+    getEntityFileCandidates(entity: BaseEntity): string[];
     fileExists(filePath: string): Promise<boolean>;
   };
   deleteOnFileRemoval: boolean;
@@ -140,11 +140,17 @@ async function isOrphan(
     });
     return false;
   }
-  const filePath = deps.fileOperations.getEntityFilePath(entity);
-  if (await deps.fileOperations.fileExists(filePath)) return false;
+  // The entity's file is any of its candidates: an image may be markdown.
+  const filePaths = deps.fileOperations.getEntityFileCandidates(entity);
+  if (await anyFileExists(deps, filePaths)) return false;
   // A quarantined file (renamed to .invalid) is not a user deletion; the
   // entity must survive until the file is repaired or removed.
-  if (await deps.fileOperations.fileExists(`${filePath}.invalid`)) {
+  if (
+    await anyFileExists(
+      deps,
+      filePaths.map((filePath) => `${filePath}.invalid`),
+    )
+  ) {
     deps.logger.info("Entity file is quarantined, keeping entity", {
       entityType: entity.entityType,
       entityId: entity.id,
@@ -152,4 +158,14 @@ async function isOrphan(
     return false;
   }
   return true;
+}
+
+async function anyFileExists(
+  deps: CleanupPipelineDeps,
+  filePaths: string[],
+): Promise<boolean> {
+  const present = await Promise.all(
+    filePaths.map((filePath) => deps.fileOperations.fileExists(filePath)),
+  );
+  return present.includes(true);
 }

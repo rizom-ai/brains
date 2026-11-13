@@ -150,6 +150,34 @@ describe("blog ATProto projection", () => {
     });
   });
 
+  it("reads a cover whose stored data URL ends in a newline", async () => {
+    const { harness, projection } = await installed();
+    harness.getMockShell().addEntities([
+      {
+        id: "image-1",
+        entityType: "image",
+        // An image imported from a markdown file stores the file's newline.
+        content: "data:image/png;base64,aGVsbG8=\n",
+        created: "2026-05-28T10:00:00.000Z",
+        updated: "2026-05-28T10:00:00.000Z",
+        visibility: "public",
+        contentHash: "image-hash",
+        metadata: { alt: "Cover alt", format: "png", width: 1200, height: 630 },
+      },
+    ]);
+
+    const record = await projection.buildRecord({
+      entity: post("published", { coverImageId: "image-1" }),
+      context,
+      config: {},
+      dryRun: true,
+    });
+
+    expect(record["coverImage"]).toMatchObject({
+      blob: { mimeType: "image/png", size: 5 },
+    });
+  });
+
   it("leaves out a cover that is not public", async () => {
     const { harness, projection } = await installed();
     harness.getMockShell().addEntities([

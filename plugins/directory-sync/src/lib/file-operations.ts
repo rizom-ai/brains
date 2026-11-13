@@ -203,7 +203,7 @@ export class FileOperations {
    */
   async writeEntity(entity: BaseEntity): Promise<void> {
     this.assertEntityPlacement(entity);
-    const filePath = this.getEntityFilePath(entity);
+    const filePath = await this.resolveEntityFilePath(entity);
     const isImage = entity.entityType === "image";
     const isDocument = entity.entityType === "document";
 
@@ -230,13 +230,19 @@ export class FileOperations {
             }
           }),
       );
+      // A markdown file keeps the data URL as text, whatever its format.
+      if (filePath.endsWith(".md")) {
+        await this.writeImageMarkdown(entity, filePath);
+        return;
+      }
     }
 
     if (isImage || isDocument) {
       const dataUrlPattern = isImage
         ? /^data:image\/[a-z+]+;base64,(.+)$/i
         : /^data:application\/pdf;base64,(.+)$/i;
-      const match = entity.content.match(dataUrlPattern);
+      // A data URL read from a markdown file keeps that file's newline.
+      const match = entity.content.trim().match(dataUrlPattern);
       const contentToWrite = match?.[1]
         ? Buffer.from(match[1], "base64")
         : Buffer.from(entity.content, "base64");
@@ -284,6 +290,23 @@ export class FileOperations {
     }
 
     // Preserve entity timestamps on the file to prevent unnecessary re-syncs
+    const updatedTime = new Date(entity.updated);
+    await utimes(filePath, updatedTime, updatedTime);
+  }
+
+  /** Write an image's data URL as the text of its markdown file. */
+  private async writeImageMarkdown(
+    entity: BaseEntity,
+    filePath: string,
+  ): Promise<void> {
+    if (
+      (await pathExists(filePath)) &&
+      (await readFile(filePath, "utf-8")) === entity.content
+    ) {
+      return;
+    }
+    await this.ensureEntityDirectory(filePath);
+    await writeFileAtomic(filePath, entity.content);
     const updatedTime = new Date(entity.updated);
     await utimes(filePath, updatedTime, updatedTime);
   }
@@ -343,6 +366,28 @@ export class FileOperations {
       entity.id,
       entity.entityType,
       getEntityFileExtension(entity),
+    );
+  }
+
+  /**
+   * The paths an entity's file may have, the one its content names first.
+   * An image may also be a markdown file holding its data URL, whatever the
+   * format its bytes say.
+   */
+  getEntityFileCandidates(entity: BaseEntity): string[] {
+    const filePath = this.getEntityFilePath(entity);
+    if (entity.entityType !== "image") return [filePath];
+    const markdownPath = this.getFilePath(entity.id, entity.entityType, ".md");
+    return filePath === markdownPath ? [filePath] : [filePath, markdownPath];
+  }
+
+  /** The entity's file: the first candidate on disk, else the one its content names. */
+  async resolveEntityFilePath(entity: BaseEntity): Promise<string> {
+    const candidates = this.getEntityFileCandidates(entity);
+    const present = await Promise.all(candidates.map(pathExists));
+    return (
+      candidates.find((_, index) => present[index]) ??
+      this.getEntityFilePath(entity)
     );
   }
 
