@@ -759,6 +759,10 @@ describe("AgentService", () => {
             mediaType: "image/png",
             filename: "robot.png",
           },
+          {
+            type: "text",
+            text: expect.stringContaining("Available system_create candidate"),
+          },
         ],
       });
       expect(mockConversationService.addMessage).toHaveBeenNthCalledWith(
@@ -866,6 +870,10 @@ describe("AgentService", () => {
             data: imageBytes,
             mediaType: "image/png",
             filename: "robot.png",
+          },
+          {
+            type: "text",
+            text: expect.stringContaining("Available system_create candidate"),
           },
         ],
       });
@@ -1014,6 +1022,10 @@ describe("AgentService", () => {
             data: pdfBytes,
             mediaType: "application/pdf",
             filename: "distributed-systems-primer.pdf",
+          },
+          {
+            type: "text",
+            text: expect.stringContaining("Available system_create candidate"),
           },
         ],
       });
@@ -2297,6 +2309,10 @@ describe("AgentService", () => {
             data: pdfBytes,
             mediaType: "application/pdf",
             filename: "brief.pdf",
+          },
+          {
+            type: "text",
+            text: expect.stringContaining("Available system_create candidate"),
           },
         ],
       });

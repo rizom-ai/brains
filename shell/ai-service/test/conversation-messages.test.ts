@@ -506,6 +506,16 @@ describe("resolveConversationUploadContinuity", () => {
   });
 });
 
+/** Every text part of a built message, in order. */
+function textOf(
+  content: ReturnType<typeof buildMessageWithAttachments>,
+): string {
+  if (!Array.isArray(content)) return content;
+  return content
+    .flatMap((part) => (part.type === "text" ? [part.text] : []))
+    .join("\n\n");
+}
+
 describe("buildMessageWithAttachments", () => {
   it("tells the model that upload descriptions and summaries are read-only", () => {
     const content = buildMessageWithAttachments(
@@ -533,6 +543,37 @@ describe("buildMessageWithAttachments", () => {
     );
     expect(content).toContain(
       'Use system_create source.kind upload with its upload id as source.id and transform "preserve" for preserving raw file bytes as a document/image, or transform "extract-markdown" for extracting/importing upload text as a note',
+    );
+  });
+
+  it("puts the save candidates after the files the message brings", () => {
+    const content = buildMessageWithAttachments(
+      "Describe the uploaded image.",
+      [
+        {
+          kind: "file",
+          filename: "misleading-robot.png",
+          mediaType: "image/png",
+          data: new Uint8Array([137, 80, 78, 71]),
+          source: { kind: "upload", id: "upload-robot" },
+        },
+      ],
+    );
+
+    if (!Array.isArray(content)) throw new Error("Expected content parts");
+    expect(content.map((part) => part.type)).toEqual(["text", "file", "text"]);
+    const [request, , candidates] = content;
+    expect(request?.type === "text" ? request.text : "").toStartWith(
+      "Describe the uploaded image.\n\nAvailable upload refs",
+    );
+    expect(request?.type === "text" ? request.text : "").toContain(
+      '- misleading-robot.png; upload id: "upload-robot"',
+    );
+    expect(request?.type === "text" ? request.text : "").not.toContain(
+      "Available system_create candidate",
+    );
+    expect(candidates?.type === "text" ? candidates.text : "").toStartWith(
+      "Available system_create candidate for saving the newest upload, misleading-robot.png",
     );
   });
 
@@ -749,8 +790,7 @@ describe("buildMessageWithAttachments", () => {
           source: { kind: "upload", id: "upload-image" },
         },
       ]);
-      const textPart = Array.isArray(content) ? content[0] : undefined;
-      const text = textPart?.type === "text" ? textPart.text : "";
+      const text = textOf(content);
 
       expect(text).toContain("keeping every file attached to this message");
       expect(text).not.toContain("the newest upload");
@@ -775,8 +815,7 @@ describe("buildMessageWithAttachments", () => {
         source: { kind: "upload", id: "upload-image" },
       },
     ]);
-    const textPart = Array.isArray(content) ? content[0] : undefined;
-    const text = textPart?.type === "text" ? textPart.text : "";
+    const text = textOf(content);
 
     expect(text).toContain(
       'Available system_create candidate for keeping every file attached to this message, each as itself and text files as notes (call without confirmed to request confirmation): { entityType: "note", source: { kind: "uploads", items: [{ id: "upload-text", transform: "extract-markdown" }, { id: "upload-image", transform: "preserve" }] } }',
@@ -809,8 +848,7 @@ describe("buildMessageWithAttachments", () => {
         source: { kind: "upload", id: "upload-image" },
       },
     ]);
-    const textPart = Array.isArray(content) ? content[0] : undefined;
-    const text = textPart?.type === "text" ? textPart.text : "";
+    const text = textOf(content);
 
     expect(text).toContain(
       'Available system_create candidate for keeping every file attached to this message, each as itself, text files as notes and PDFs as documents (call without confirmed to request confirmation): { entityType: "note", source: { kind: "uploads", items: [{ id: "upload-pdf", transform: "preserve" }, { id: "upload-text", transform: "extract-markdown" }, { id: "upload-image", transform: "preserve" }] } }',
@@ -885,9 +923,14 @@ describe("buildMessageWithAttachments", () => {
         mediaType: "application/pdf",
         filename: "brief.pdf",
       },
+      {
+        type: "text",
+        text: expect.stringContaining(
+          "Available system_create candidate for saving the newest upload, brief.pdf, as a document",
+        ),
+      },
     ]);
-    const textPart = Array.isArray(content) ? content[0] : undefined;
-    const text = textPart?.type === "text" ? textPart.text : "";
+    const text = textOf(content);
     expect(text).toContain("structured candidate data");
     expect(text).not.toContain("use the most recent matching upload ref");
     expect(text).not.toContain("Raw uploaded file path:");
