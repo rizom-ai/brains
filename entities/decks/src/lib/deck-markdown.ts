@@ -11,6 +11,7 @@ import {
   type DeckMetadata,
   type deckMetadataSchema,
 } from "../schemas/deck";
+import { definedFields } from "@brains/utils/strip-undefined";
 
 const MISSING_SLIDES_MESSAGE =
   "Invalid deck: markdown must contain slide separators (---) to be a valid presentation";
@@ -35,13 +36,6 @@ function assertSlides(body: string): void {
   );
 }
 
-/** The fields a deck writes, defined ones only. */
-function defined(fields: Record<string, unknown>): Record<string, unknown> {
-  return Object.fromEntries(
-    Object.entries(fields).filter(([, value]) => value !== undefined),
-  );
-}
-
 /**
  * A deck's frontmatter, in the order the deck adapter wrote it: its fields
  * in schema order, the slug among them when the file states it and after
@@ -54,7 +48,7 @@ export function deckFrontmatter(
   },
 ): Record<string, unknown> {
   const authored = metadata.authoredSlug === true;
-  return defined({
+  return definedFields({
     title: metadata.title,
     ...(authored && { slug: metadata.slug }),
     description: metadata.description,

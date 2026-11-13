@@ -949,6 +949,7 @@ export {
   checkEntityText,
   continueWithEntityText,
   entityTextError,
+  entityTextRefusal,
   readEntityText,
   statedDateSchema,
   type EntityText,

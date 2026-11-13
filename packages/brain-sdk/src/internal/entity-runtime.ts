@@ -39,6 +39,7 @@ export {
 export {
   checkEntityText,
   entityTextError,
+  entityTextRefusal,
   readEntityText,
   statedDateSchema,
   uploadTitle,

@@ -13,6 +13,7 @@ import {
   type BlogPostWithData,
   type blogPostMetadataSchema,
 } from "../schemas/blog-post";
+import { definedFields } from "@brains/utils/strip-undefined";
 
 /**
  * A post's frontmatter, in the order the blog post adapter wrote it: its
@@ -24,24 +25,22 @@ export function postFrontmatter(
   metadata: BlogPostMetadata,
 ): Record<string, unknown> {
   const authored = metadata.authoredSlug === true;
-  return Object.fromEntries(
-    Object.entries({
-      title: metadata.title,
-      ...(authored && { slug: metadata.slug }),
-      status: metadata.status,
-      publishedAt: metadata.publishedAt,
-      excerpt: metadata.excerpt,
-      author: metadata.author,
-      coverImageId: metadata.coverImageId,
-      ogImageId: metadata.ogImageId,
-      seriesName: metadata.seriesName,
-      seriesIndex: metadata.seriesIndex,
-      ogImage: metadata.ogImage,
-      canonicalUrl: metadata.canonicalUrl,
-      ...(!authored && { slug: metadata.slug }),
-      error: metadata.error,
-    }).filter(([, value]) => value !== undefined),
-  );
+  return definedFields({
+    title: metadata.title,
+    ...(authored && { slug: metadata.slug }),
+    status: metadata.status,
+    publishedAt: metadata.publishedAt,
+    excerpt: metadata.excerpt,
+    author: metadata.author,
+    coverImageId: metadata.coverImageId,
+    ogImageId: metadata.ogImageId,
+    seriesName: metadata.seriesName,
+    seriesIndex: metadata.seriesIndex,
+    ogImage: metadata.ogImage,
+    canonicalUrl: metadata.canonicalUrl,
+    ...(!authored && { slug: metadata.slug }),
+    error: metadata.error,
+  });
 }
 
 /** A post as its stored document: its frontmatter and its body. */

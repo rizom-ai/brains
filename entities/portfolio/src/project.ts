@@ -37,6 +37,7 @@ import {
   projectRenderSchema,
   projectViewSchema,
 } from "./templates/project-view";
+import { internalPublishProvider } from "@brains/contracts";
 
 /** The pages once site-builder has filled their projects' link fields. */
 const projectListRenderSchema = z.object({
@@ -148,10 +149,7 @@ export const project: EntityDefinition<
         // Projects publish to the site itself, so the provider records the
         // outcome and nothing more.
         publish: {
-          provider: {
-            name: "internal",
-            publish: async (): Promise<{ id: string }> => ({ id: "internal" }),
-          },
+          provider: internalPublishProvider,
         },
         atproto: projectAtproto,
         evals: projectEvals,

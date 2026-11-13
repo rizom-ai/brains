@@ -31,6 +31,7 @@ import { blogRenderSchema, blogViewSchema } from "./templates/blog-view-schema";
 import { blogExcerptTemplate } from "./templates/excerpt-template";
 import { blogGenerationTemplate } from "./templates/generation-template";
 import { homepageTemplate } from "./templates/homepage";
+import { internalPublishProvider } from "@brains/contracts";
 
 const POST_INSTRUCTIONS =
   'Saving an essay the user supplies as a post, or turning a note into a post ("turn my note X into a post": source.kind entity), is system_create: the text is kept, a leading # heading becomes the title, and the brain adds the excerpt and author. If the user says the essay was already published, pass fields { status: "published", publishedAt: "YYYY-MM-DD", canonicalUrl } with what they state.';
@@ -150,10 +151,7 @@ export const post: EntityDefinition<"post", typeof blogPostMetadataSchema> =
         // Posts publish to the site itself, so the provider records the
         // outcome and nothing more; the social card is rendered first.
         publish: {
-          provider: {
-            name: "internal",
-            publish: async (): Promise<{ id: string }> => ({ id: "internal" }),
-          },
+          provider: internalPublishProvider,
         },
         publishAssets: [
           {

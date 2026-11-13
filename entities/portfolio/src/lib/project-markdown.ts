@@ -11,6 +11,7 @@ import {
   type ProjectMetadata,
   type projectMetadataSchema,
 } from "../schemas/project";
+import { definedFields } from "@brains/utils/strip-undefined";
 
 const bodyFormatter = new ProjectBodyFormatter();
 
@@ -37,21 +38,19 @@ export function projectFrontmatter(
   metadata: ProjectMetadata,
 ): Record<string, unknown> {
   const authored = metadata.authoredSlug === true;
-  return Object.fromEntries(
-    Object.entries({
-      title: metadata.title,
-      ...(authored && { slug: metadata.slug }),
-      status: metadata.status,
-      publishedAt: metadata.publishedAt,
-      description: metadata.description,
-      year: metadata.year,
-      coverImageId: metadata.coverImageId,
-      ogImageId: metadata.ogImageId,
-      url: metadata.url,
-      ...(!authored && { slug: metadata.slug }),
-      error: metadata.error,
-    }).filter(([, value]) => value !== undefined),
-  );
+  return definedFields({
+    title: metadata.title,
+    ...(authored && { slug: metadata.slug }),
+    status: metadata.status,
+    publishedAt: metadata.publishedAt,
+    description: metadata.description,
+    year: metadata.year,
+    coverImageId: metadata.coverImageId,
+    ogImageId: metadata.ogImageId,
+    url: metadata.url,
+    ...(!authored && { slug: metadata.slug }),
+    error: metadata.error,
+  });
 }
 
 /** A project as its stored document: its frontmatter and its body. */

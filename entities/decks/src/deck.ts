@@ -24,6 +24,7 @@ import { deckTemplate } from "./templates/deck-template";
 import { deckListTemplate } from "./templates/deck-list";
 import { deckDescriptionTemplate } from "./templates/description-template";
 import { deckGenerationTemplate } from "./templates/generation-template";
+import { internalPublishProvider } from "@brains/contracts";
 
 /**
  * A slide deck: its slides in the body, its frontmatter its metadata. It is
@@ -78,10 +79,7 @@ export const deck: EntityDefinition<"deck", typeof deckMetadataSchema> =
         // Decks publish to the site itself, so the provider records the outcome
         // and nothing more.
         publish: {
-          provider: {
-            name: "internal",
-            publish: async (): Promise<{ id: string }> => ({ id: "internal" }),
-          },
+          provider: internalPublishProvider,
         },
         atproto: deckAtproto,
         evals: deckEvals,

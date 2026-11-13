@@ -12,7 +12,6 @@ import { createContentPipelinePackage } from "./plugin";
 export * from "./schemas/publishable";
 
 // Types
-export * from "./types/provider";
 export * from "./types/messages";
 export * from "./types/config";
 

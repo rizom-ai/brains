@@ -5,7 +5,7 @@ import type {
 import {
   checkEntityText,
   entityRuntime,
-  entityTextError,
+  entityTextRefusal,
   readEntityText,
   statedDateSchema,
   type EntityTextResult,
@@ -21,6 +21,7 @@ import {
   projectFromTextSchema,
   type ProjectFromText,
 } from "../templates/from-text-template";
+import { definedFields } from "@brains/utils/strip-undefined";
 
 /** Project fields a writer can state for their own text, in frontmatter or as `fields`. */
 const projectTextFieldsSchema = z.object({
@@ -136,30 +137,22 @@ export const projectFromText: EntityCreateRoute<typeof projectMetadataSchema> =
       const runtime = entityRuntime(context);
       if (read.kind === "not-text") return runtime.ordinaryCreate();
       if (read.kind !== "text") {
-        const refused = entityTextError(read);
-        return {
-          refuse:
-            refused.kind === "handled" && !refused.result.success
-              ? refused.result.error
-              : "This text cannot be saved as a project",
-        };
+        return { refuse: entityTextRefusal(read) };
       }
       const { title, body, fields } = read.text;
       const { year, description } = fields;
       const status = fields.status ?? "draft";
-      const frontmatter = Object.fromEntries(
-        Object.entries({
-          title,
-          status,
-          description,
-          year,
-          url: fields.url,
-          publishedAt:
-            fields.publishedAt ??
-            (status === "published" ? new Date().toISOString() : undefined),
-          coverImageId: fields.coverImageId,
-        }).filter(([, value]) => value !== undefined),
-      );
+      const frontmatter = definedFields({
+        title,
+        status,
+        description,
+        year,
+        url: fields.url,
+        publishedAt:
+          fields.publishedAt ??
+          (status === "published" ? new Date().toISOString() : undefined),
+        coverImageId: fields.coverImageId,
+      });
       return runtime.ordinaryCreate({
         title,
         content: generateMarkdown(frontmatter, body),
