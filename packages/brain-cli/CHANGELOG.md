@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.700
+
+### Patch Changes
+
+- [#938](https://github.com/rizom-ai/brains/pull/938) [`9bda3e4`](https://github.com/rizom-ai/brains/commit/9bda3e43c9ee3add959f4af39205c5ae411705fd) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A contained entity's file outside its container's folder (a book section under `book-section/<book>/…` instead of `book/<book>/…`) moves to its container's folder on import, so cleanup keeps the entity instead of deleting it on every boot. When that path already holds a file, the misplaced file stays where it is, unimported, with a placement warning naming both paths.
+
 ## 0.2.0-alpha.699
 
 ### Patch Changes

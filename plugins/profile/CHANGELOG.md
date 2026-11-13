@@ -1,5 +1,14 @@
 # @brains/profile
 
+## 0.2.0-alpha.700
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.700
+  - @brains/contracts@0.2.0-alpha.700
+  - @brains/utils@0.2.0-alpha.700
+
 ## 0.2.0-alpha.699
 
 ### Patch Changes
