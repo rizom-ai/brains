@@ -23,6 +23,7 @@ export interface StoredRow {
   content: string;
   contentHash: string;
   metadata: string;
+  updated: number;
 }
 
 export interface DeclaredEntityStore {
@@ -171,7 +172,7 @@ export async function declaredEntityStore(
     },
     async stored(entityType, id): Promise<StoredRow | null> {
       const result = await db.execute({
-        sql: "SELECT content, contentHash, metadata FROM entities WHERE entityType = ? AND id = ?",
+        sql: "SELECT content, contentHash, metadata, updated FROM entities WHERE entityType = ? AND id = ?",
         args: [entityType, id],
       });
       const row = result.rows[0];
@@ -180,6 +181,7 @@ export async function declaredEntityStore(
             content: String(row["content"]),
             contentHash: String(row["contentHash"]),
             metadata: String(row["metadata"]),
+            updated: Number(row["updated"]),
           }
         : null;
     },
