@@ -2,10 +2,11 @@ import { describe, expect, test } from "bun:test";
 import type { BaseEntity } from "@brains/plugins";
 
 import { GroupingDefinitionSource } from "../src/grouping-definition-source";
-import { EntityPlugin } from "@brains/plugins";
+
 import { readGroupingDefinitions } from "../src/grouping-definitions";
 import { createStudioPlugins } from "./studio-plugins";
 import { groupingDefinitionsFrontmatterSchema } from "../src/grouping-definitions-contract";
+import { isDeclaredEntityType } from "@brains/plugins/test";
 
 type DefinitionRow = Pick<BaseEntity, "content" | "contentHash">;
 const areas = { label: "Areas", excludeTypes: ["post"], multiple: true };
@@ -61,10 +62,10 @@ describe("grouping definitions contract", () => {
     ).toBe(false);
   });
   test("keeps even malformed stored documents reconstructable for repair", () => {
-    const type = createStudioPlugins().find(
-      (plugin) => plugin instanceof EntityPlugin,
+    const type = createStudioPlugins().find((plugin) =>
+      isDeclaredEntityType(plugin),
     );
-    if (!(type instanceof EntityPlugin)) throw new Error("No type plugin");
+    if (!isDeclaredEntityType(type)) throw new Error("No type plugin");
     const content = "---\ngroupings: [broken\n---\n";
     expect(type.adapter.fromMarkdown(content)).toMatchObject({
       id: "grouping-definitions",

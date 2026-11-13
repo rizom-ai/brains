@@ -1,15 +1,11 @@
-import {
-  EntityPlugin,
-  instantiatePluginPackageDefinition,
-  type BaseEntity,
-} from "@brains/plugins";
+import { instantiatePluginPackageDefinition } from "@brains/plugins";
 import blogPackage from "../src";
+import {
+  isDeclaredEntityType,
+  type DeclaredEntityTypePlugin,
+} from "@brains/plugins/test";
 
-export type BlogEntityPlugin = EntityPlugin<
-  BaseEntity,
-  Record<string, never>,
-  Record<string, never>
->;
+export type BlogEntityPlugin = DeclaredEntityTypePlugin;
 
 /** The entity plugin the blog installs, as the canonical brain composes it. */
 export function blogPlugin(): BlogEntityPlugin {
@@ -20,7 +16,7 @@ export function blogPlugin(): BlogEntityPlugin {
     // Under the id its class had: blog:entities, post:generation.
     { pluginId: "blog" },
   );
-  if (!(plugin instanceof EntityPlugin)) {
+  if (!isDeclaredEntityType(plugin)) {
     throw new Error("The blog installs no entity plugin");
   }
   return plugin;

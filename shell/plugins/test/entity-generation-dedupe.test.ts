@@ -10,7 +10,6 @@ import { z } from "@brains/utils/zod";
 import { createMockShell } from "../src/test/mock-shell";
 import { queuedByPackage } from "../src/test/package-job-data";
 import {
-  EntityPlugin,
   createTemplate,
   defineEntity,
   defineEntityPackage,
@@ -18,6 +17,7 @@ import {
   instantiatePluginPackageDefinition,
   type AnyEntityDefinition,
 } from "../src";
+import { isDeclaredEntityType } from "../src/test/declared-entity-type";
 
 /**
  * A first-party generation that asks for it lands beside a record that
@@ -77,7 +77,7 @@ async function generate(deduplicate: boolean): Promise<{
     { name: "@fixture/memos", version: "0.1.0" },
   );
   for (const plugin of plugins) {
-    if (plugin instanceof EntityPlugin) {
+    if (isDeclaredEntityType(plugin)) {
       registry.registerEntityType(
         plugin.entityType,
         plugin.schema,

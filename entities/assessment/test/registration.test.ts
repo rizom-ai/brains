@@ -1,12 +1,15 @@
 import { describe, expect, it } from "bun:test";
 import {
-  EntityPlugin,
   SYSTEM_CHANNELS,
   dashboardWidgetRegisterContract,
   type Plugin,
   type PluginCapabilities,
 } from "@brains/plugins";
-import { createMockShell, type MockShell } from "@brains/plugins/test";
+import {
+  createMockShell,
+  type MockShell,
+  isDeclaredEntityType,
+} from "@brains/plugins/test";
 import type { AssessmentConfigInput } from "../src";
 import { createAssessmentPlugins } from "./assessment-plugins";
 
@@ -109,7 +112,7 @@ describe("the assessment capability's registered surface", () => {
     });
     expect(
       plugins.flatMap((plugin) =>
-        plugin instanceof EntityPlugin && plugin.entityActionPolicy
+        isDeclaredEntityType(plugin) && plugin.entityActionPolicy
           ? [plugin.entityActionPolicy]
           : [],
       ),

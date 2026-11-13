@@ -3,13 +3,13 @@ import type { BaseEntity, EntityAdapter } from "@brains/entity-service";
 import { z } from "@brains/utils/zod";
 import { createPluginHarness } from "../src/test/harness";
 import {
-  EntityPlugin,
   defineEntity,
   defineEntityPackage,
   instantiatePluginPackageDefinition,
   storedDocumentCodec,
   writesInDocumentOrder,
 } from "../src";
+import { isDeclaredEntityType } from "../src/test/declared-entity-type";
 
 /**
  * A first-party declared type whose read is its stored document and whose
@@ -169,7 +169,7 @@ function settingsAdapter(): EntityAdapter<BaseEntity> {
     {},
     { name: "@fixture/settings", version: "0.1.0" },
   );
-  if (!(plugin instanceof EntityPlugin)) throw new Error("No settings plugin");
+  if (!isDeclaredEntityType(plugin)) throw new Error("No settings plugin");
   return plugin.adapter;
 }
 

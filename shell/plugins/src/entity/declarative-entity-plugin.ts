@@ -2728,3 +2728,8 @@ export function createEntityPackagePlugins(
       ),
   );
 }
+
+/** Whether a value is an entity type a declared package installed. */
+export function isDeclarativeEntityPlugin(value: unknown): boolean {
+  return value instanceof DeclarativeEntityPlugin;
+}

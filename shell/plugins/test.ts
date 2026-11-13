@@ -34,6 +34,10 @@ export {
 } from "./src/test/harness";
 export { installSiteRuntime } from "./src/test/install-site";
 export {
+  isDeclaredEntityType,
+  type DeclaredEntityTypePlugin,
+} from "./src/test/declared-entity-type";
+export {
   refuseEnqueues,
   type EnqueueRefusals,
 } from "./src/test/refuse-enqueues";

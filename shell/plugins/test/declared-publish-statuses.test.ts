@@ -5,12 +5,12 @@ import { createSilentLogger, createTestDirectory } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import { createMockShell } from "../src/test/mock-shell";
 import {
-  EntityPlugin,
   defineEntity,
   defineEntityPackage,
   instantiatePluginPackageDefinition,
   withPublishedStatuses,
 } from "../src";
+import { isDeclaredEntityType } from "../src/test/declared-entity-type";
 
 /**
  * A first-party declared type whose published statuses are not the default
@@ -47,7 +47,7 @@ async function store(): Promise<EntityService> {
     {},
     { name: "@fixture/contacts", version: "0.1.0" },
   )) {
-    if (plugin instanceof EntityPlugin)
+    if (isDeclaredEntityType(plugin))
       registry.registerEntityType(
         plugin.entityType,
         plugin.schema,
@@ -117,7 +117,7 @@ describe("a first-party declared type's published statuses", () => {
       { name: "@fixture/contacts", version: "0.1.0" },
     );
     expect(
-      plugin instanceof EntityPlugin && plugin.adapter.publishedStatuses,
+      isDeclaredEntityType(plugin) && plugin.adapter.publishedStatuses,
     ).toEqual(["approved"]);
     const shell = createMockShell();
     await plugin?.register(shell);

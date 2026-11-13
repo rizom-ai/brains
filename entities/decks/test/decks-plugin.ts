@@ -1,15 +1,11 @@
-import {
-  EntityPlugin,
-  instantiatePluginPackageDefinition,
-  type BaseEntity,
-} from "@brains/plugins";
+import { instantiatePluginPackageDefinition } from "@brains/plugins";
 import decksPackage from "../src";
+import {
+  isDeclaredEntityType,
+  type DeclaredEntityTypePlugin,
+} from "@brains/plugins/test";
 
-export type DecksEntityPlugin = EntityPlugin<
-  BaseEntity,
-  Record<string, never>,
-  Record<string, never>
->;
+export type DecksEntityPlugin = DeclaredEntityTypePlugin;
 
 /** The entity plugin the decks install, as the canonical brain composes it. */
 export function decksPlugin(): DecksEntityPlugin {
@@ -20,7 +16,7 @@ export function decksPlugin(): DecksEntityPlugin {
     // Under the id its class had: decks:deck-list, decks:entities.
     { pluginId: "decks" },
   );
-  if (!(plugin instanceof EntityPlugin)) {
+  if (!isDeclaredEntityType(plugin)) {
     throw new Error("The decks install no entity plugin");
   }
   return plugin;

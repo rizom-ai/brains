@@ -2,12 +2,11 @@ import { afterEach, describe, expect, it } from "bun:test";
 import { EntityRegistry, EntityService } from "@brains/entity-service";
 import { migrateEntities } from "@brains/entity-service/migrate";
 import {
-  EntityPlugin,
   defineEntity,
   defineEntityPackage,
   instantiatePluginPackageDefinition,
 } from "@brains/plugins";
-import { createMockShell } from "@brains/plugins/test";
+import { createMockShell, isDeclaredEntityType } from "@brains/plugins/test";
 import { createSilentLogger, createTestDirectory } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import { createEntityReadTools } from "../../src/system/entity-read-tools";
@@ -40,7 +39,7 @@ async function systemGet(input: Record<string, unknown>): Promise<unknown> {
     {},
     { name: "@fixture/declared", version: "0.1.0" },
   )) {
-    if (!(plugin instanceof EntityPlugin)) throw new Error("No entity plugin");
+    if (!isDeclaredEntityType(plugin)) throw new Error("No entity plugin");
     registry.registerEntityType(
       plugin.entityType,
       plugin.schema,

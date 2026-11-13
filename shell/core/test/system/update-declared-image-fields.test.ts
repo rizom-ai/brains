@@ -8,13 +8,12 @@ import {
 import { migrateEntities } from "@brains/entity-service/migrate";
 import { setOgImageId } from "@brains/image";
 import {
-  EntityPlugin,
   defineEntity,
   defineEntityPackage,
   instantiatePluginPackageDefinition,
   type AnyEntityDefinition,
 } from "@brains/plugins";
-import { createMockShell } from "@brains/plugins/test";
+import { createMockShell, isDeclaredEntityType } from "@brains/plugins/test";
 import { createSilentLogger, createTestDirectory } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import { createEntityUpdateTool } from "../../src/system/entity-update-tool";
@@ -54,7 +53,7 @@ function register(
     {},
     { name: "@fixture/cards", version: "0.1.0" },
   )) {
-    if (!(plugin instanceof EntityPlugin)) {
+    if (!isDeclaredEntityType(plugin)) {
       throw new Error("A declared entity did not build an entity plugin");
     }
     registry.registerEntityType(

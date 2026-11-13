@@ -10,15 +10,12 @@ import { declaredType } from "../helpers/declared-type";
 import blogPackage from "@brains/blog";
 import { createImageEntity } from "@brains/image";
 import imagePackage from "@brains/image-plugin";
-import {
-  EntityPlugin,
-  instantiatePluginPackageDefinition,
-} from "@brains/plugins";
+import { instantiatePluginPackageDefinition } from "@brains/plugins";
 import {
   PermissionService,
   type EntityActionPolicyRule,
 } from "@brains/templates";
-import { createMockShell } from "@brains/plugins/test";
+import { createMockShell, isDeclaredEntityType } from "@brains/plugins/test";
 import { createSilentLogger, createTestDirectory } from "@brains/test-utils";
 import { parseMarkdown } from "@brains/utils/markdown-frontmatter";
 import {
@@ -124,7 +121,7 @@ async function fixture(): Promise<{
     { name: "@brains/image-plugin", version: "0.0.0-test" },
     { pluginId: "image" },
   );
-  if (!(images instanceof EntityPlugin)) throw new Error("No image plugin");
+  if (!isDeclaredEntityType(images)) throw new Error("No image plugin");
   registry.registerEntityType("image", images.schema, images.adapter);
   await plugin.finalizeRegistration();
   await service.reprojectRegisteredGroupings();
