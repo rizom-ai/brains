@@ -43,6 +43,10 @@ import type {
 import type { SchemaValue } from "../internal/schema-value";
 import type { RetryScope } from "@brains/utils/retry-backoff";
 import type { EntityPluginContext } from "./context";
+import type {
+  ProjectionWaveInput,
+  ProjectionWriteIntent,
+} from "./projection-rule";
 
 /**
  * Internal runtime capabilities bound to one entity callback's call, for
@@ -153,6 +157,16 @@ export interface EntityRuntime {
     input: unknown,
     options?: EvalGenerationOptions,
   ): Promise<EvalGenerationResult>;
+  /**
+   * One of the declaring type's own projection rules, run as production
+   * runs it, with no wave, memo or write: what it would write, as an eval
+   * measures the rule, on the same run a first-party service's runtime
+   * uses. A rule the declaring type does not declare is refused. Evals only.
+   */
+  runProjectionRule(
+    ruleId: string,
+    options?: { readonly inputs?: readonly ProjectionWaveInput[] },
+  ): Promise<readonly ProjectionWriteIntent[]>;
   /**
    * Point a target at a record of the declaring type: set a field, or add
    * to a list, dropping entries the record supersedes. The generation-link
@@ -362,6 +376,8 @@ export interface EntityRuntimeBinding {
   readonly caller?: EntityCreateCaller | undefined;
   /** The declaring type's generation, run in process; unset, refused. */
   readonly runGeneration?: EntityRuntime["runGeneration"] | undefined;
+  /** The declaring type's own projection rules, run; unset, refused. */
+  readonly runProjectionRule?: EntityRuntime["runProjectionRule"] | undefined;
 }
 
 const entityRuntimeKey = Symbol("rizom.entity-runtime");
@@ -730,6 +746,13 @@ function bindEntityRuntime(binding: EntityRuntimeBinding): EntityRuntime {
       binding.runGeneration ??
       (async (): Promise<never> => {
         throw new Error(`runGeneration is not available in ${binding.where}`);
+      }),
+    runProjectionRule:
+      binding.runProjectionRule ??
+      (async (): Promise<never> => {
+        throw new Error(
+          `runProjectionRule is not available in ${binding.where}`,
+        );
       }),
     linkInto: (entityId: string, link: EntityGenerationLink): Promise<void> =>
       job.linkInto(entityId, link),

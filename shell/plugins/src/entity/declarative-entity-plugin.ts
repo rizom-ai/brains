@@ -121,6 +121,7 @@ import {
   type ProjectionExecutionContext,
   type ProjectionInputContext,
   type ProjectionRule,
+  type ProjectionWaveInput,
 } from "./projection-rule";
 import type { InstalledPluginPackageMetadata } from "../package-definition";
 import { createDeclarativeDashboardWidgetRegistration } from "../operator/dashboard-widget-runtime";
@@ -829,6 +830,8 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   /** The types the declaring package owns: its own, when it acts as itself. */
   private readonly packageTypes: ReadonlySet<string>;
   private permissions: PermissionService | undefined;
+  /** The shell this plugin registered on, which runs its rules for an eval. */
+  private scopedShell: IShell | undefined;
   private releases: readonly (() => void)[] = [];
   private readonly dashboardWidgetIds: string[] = [];
   private readonly widgetAbort: AbortController = new AbortController();
@@ -1154,6 +1157,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     registrationContext?: PluginRegistrationContext,
   ): Promise<PluginCapabilities> {
     this.permissions = shell.getPermissionService();
+    this.scopedShell = shell;
     return super.register(shell, registrationContext);
   }
 
@@ -1281,6 +1285,8 @@ class DeclarativeEntityPlugin extends EntityPlugin<
               ),
               runGeneration: (input, options) =>
                 this.runGenerationForEval(context, input, options),
+              runProjectionRule: (ruleId, options) =>
+                this.runOwnProjectionRule(ruleId, options),
             },
           ),
         ),
@@ -1953,6 +1959,21 @@ class DeclarativeEntityPlugin extends EntityPlugin<
         getProfile: () => context.identity.getProfile(),
       }),
     };
+  }
+
+  /**
+   * One of this type's own declared projection rules, run by the shell as
+   * production runs it, with no wave, memo or write; any other rule refused.
+   */
+  private async runOwnProjectionRule(
+    ruleId: string,
+    options?: { readonly inputs?: readonly ProjectionWaveInput[] },
+  ): Promise<readonly ProjectionWriteIntent[]> {
+    const shell = this.scopedShell;
+    if (!shell || !this.projectionRules.some(({ id }) => id === ruleId)) {
+      throw new Error(`Unknown projection rule "${ruleId}" for ${this.id}`);
+    }
+    return shell.runProjectionRule(ruleId, options);
   }
 
   /**
