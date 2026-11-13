@@ -1,7 +1,6 @@
 import {
   actionItemSchema,
   actionItemStatusSchema,
-  type ActionItemEntity,
   type ActionItemStatus,
   ACTION_ITEM_ENTITY_TYPE,
   formatAge,
@@ -14,8 +13,8 @@ import type {
   ServiceRuntime,
 } from "@brains/sdk/internal/service-runtime";
 import type { MemoryEntityService } from "../memory-context";
-import { firstSentence } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
+import { listBlockItems, listItemOf } from "./list-item";
 
 const MAX_ITEMS = 6;
 const WIDGET_ID = "action-items";
@@ -79,18 +78,9 @@ const actionItemsWidget = defineDashboardWidget({
         type: "list",
         id: "action-items",
         empty: "No action items yet.",
-        items: data.items.map((item) => ({
-          id: item.id,
-          title: item.name,
-          ...(item.description ? { description: item.description } : {}),
-          metadata: item.meta,
-          badges: [
-            {
-              label: item.status,
-              tone: item.status === "blocked" ? "warn" : "neutral",
-            },
-          ],
-        })),
+        items: listBlockItems(data.items, (status) =>
+          status === "blocked" ? "warn" : "neutral",
+        ),
       },
       {
         type: "links",
@@ -120,18 +110,6 @@ function statusOrder(status: ActionItemStatus): number {
   }
 }
 
-function entityTitle(entity: ActionItemEntity): string {
-  const match = entity.content.match(/^#\s+(.+)$/m);
-  return match?.[1]?.trim() ?? entity.id;
-}
-
-function entityBody(entity: ActionItemEntity): string {
-  return entity.content
-    .replace(/^---[\s\S]*?---/m, "")
-    .replace(/^#\s+.+$/m, "")
-    .trim();
-}
-
 export async function buildActionItemsWidgetData(
   context: {
     readonly entityService: Pick<MemoryEntityService, "listEntities">;
@@ -158,20 +136,13 @@ export async function buildActionItemsWidgetData(
   });
 
   return {
-    items: sorted.slice(0, MAX_ITEMS).map((entity) => {
-      const description = firstSentence(entityBody(entity));
-      const meta = [
+    items: sorted.slice(0, MAX_ITEMS).map((entity) => ({
+      ...listItemOf(entity, [
         actionItemSource(entity).place,
         formatAge(actionItemCapturedAt(entity), now),
-      ].filter((segment) => segment.length > 0);
-      return {
-        id: entity.id,
-        name: entityTitle(entity),
-        ...(description ? { description } : {}),
-        meta,
-        status: entity.metadata.status,
-      };
-    }),
+      ]),
+      status: entity.metadata.status,
+    })),
     unfinishedCount: unfinished.length,
     blockedCount: unfinished.filter(
       (entity) => entity.metadata.status === "blocked",
