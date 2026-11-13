@@ -563,7 +563,7 @@ describe("buildMessageWithAttachments", () => {
     });
 
     expect(content).toContain(
-      'Available system_create candidate for saving the prior assistant response (call without confirmed to request confirmation): { entityType: "note", source: { kind: "prior-response", messageId: "message-summary" } }',
+      'Available system_create candidate for saving your previous answer as a note when the user asks to save it without naming an upload (call without confirmed to request confirmation): { entityType: "note", source: { kind: "prior-response", messageId: "message-summary" } }',
     );
   });
 
