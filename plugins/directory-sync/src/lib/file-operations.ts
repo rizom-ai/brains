@@ -23,8 +23,8 @@ import {
   type Containment,
 } from "./entity-paths";
 import { EntityPlacementError } from "./entity-placement-error";
-import { mkdir, readFile, unlink, stat, utimes } from "fs/promises";
-import { writeFileAtomic } from "./atomic-write";
+import { mkdir, readFile, rmdir, unlink, stat, utimes } from "fs/promises";
+import { moveFileWithoutReplacing, writeFileAtomic } from "./atomic-write";
 import { z } from "@brains/utils/zod";
 import { computeContentHash } from "@brains/utils/hash";
 import type { RawEntity, DirectorySyncStatus } from "../types";
@@ -62,6 +62,54 @@ export class FileOperations {
 
   parseEntityFromPath(filePath: string): { entityType: string; id: string } {
     return parseEntityPath(this.syncPath, filePath, this.containment());
+  }
+
+  /**
+   * Where a contained type's file belongs when it sits outside its
+   * container's folder: `book-section/zara/x.md` reads as the section that
+   * lives at `book/zara/x.md`. Undefined for a file already in place, a type
+   * that is not contained, or a placement refused for its ID.
+   */
+  getMisplacedContainedPath(filePath: string): string | undefined {
+    const containment = this.containment();
+    const { entityType, id } = this.parseEntityFromPath(filePath);
+    if (!containment.has(entityType)) return undefined;
+    const placement = resolveEntityPlacement(
+      this.syncPath,
+      entityType,
+      id,
+      extname(filePath),
+      containment,
+    );
+    return placement.writable &&
+      placement.relativePath !== toSyncRelativePath(this.syncPath, filePath)
+      ? placement.relativePath
+      : undefined;
+  }
+
+  /**
+   * Move a file to the path it belongs at, then drop the folders it leaves
+   * empty. False, with nothing moved, when that path already holds a file.
+   */
+  async moveEntityFile(filePath: string, targetPath: string): Promise<boolean> {
+    const source = resolveInSyncPath(this.syncPath, filePath);
+    const moved = await moveFileWithoutReplacing(
+      source,
+      resolveInSyncPath(this.syncPath, targetPath),
+    );
+    if (moved) await this.removeEmptyFolders(dirname(source));
+    return moved;
+  }
+
+  /** Remove a folder inside the sync path and each parent it leaves empty. */
+  private async removeEmptyFolders(folder: string): Promise<void> {
+    const relativeFolder = toSyncRelativePath(this.syncPath, folder);
+    if (relativeFolder === "" || relativeFolder.startsWith("..")) return;
+    const removed = await rmdir(folder).then(
+      () => true,
+      () => false,
+    );
+    if (removed) await this.removeEmptyFolders(dirname(folder));
   }
 
   /** Where contained types live, as the registry holds it now. */
