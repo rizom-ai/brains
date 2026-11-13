@@ -5,6 +5,7 @@ import type {
   ItemsContain,
   PathValidation,
 } from "./schemas";
+import { escapeRegExp } from "@brains/utils/string-utils";
 
 const recordSchema = z.record(z.string(), z.unknown());
 
@@ -289,9 +290,7 @@ export class OutputValidator {
 
     if (check.words && check.words.length > 0) {
       // Escape special regex characters in words and join with OR
-      const escaped = check.words.map((word) =>
-        word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
-      );
+      const escaped = check.words.map(escapeRegExp);
       const regexStr = `\\b(${escaped.join("|")})\\b`;
       return {
         pattern: new RegExp(regexStr, "i"),

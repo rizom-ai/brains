@@ -333,6 +333,13 @@ export function truncateText(text: string, maxLength: number): string {
 }
 
 /**
+ * Escape a string so it matches itself literally inside a `RegExp` source.
+ */
+export function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
  * Escape a string for safe interpolation into HTML text or
  * double/single-quoted attribute values.
  */

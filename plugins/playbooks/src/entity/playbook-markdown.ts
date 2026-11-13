@@ -1,6 +1,6 @@
 import { generateMarkdown, parseMarkdown } from "@brains/utils/markdown";
 import { definedFields } from "@brains/utils/strip-undefined";
-import { slugify } from "@brains/utils/string-utils";
+import { slugify, escapeRegExp } from "@brains/utils/string-utils";
 import { playbookBodyFormatter } from "./formatters/playbook-formatter";
 import {
   playbookFrontmatterSchema,
@@ -263,8 +263,4 @@ function extractListItems(markdown: string): string[] {
     .split(/\r?\n/)
     .map((line) => /^-\s+(.+?)\s*$/.exec(line)?.[1]?.trim())
     .filter((item): item is string => Boolean(item));
-}
-
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

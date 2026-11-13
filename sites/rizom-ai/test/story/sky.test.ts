@@ -1,14 +1,14 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { escapeRegExp } from "@brains/utils/string-utils";
 
 // The Ask room's drawing is the brand's night sky (docs/plans/rizom-ask-network.md):
 // Rizom the densest light, tendrils thinning outward, layered lights that
 // breathe, dust for the brains not yet in reach, grain in the substrate. The
 // radar's rings, spokes, pulse and sparks are gone.
 const css = readFileSync(join(import.meta.dir, "../../src/story.css"), "utf8");
-const escape = (text: string): string =>
-  text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const escape = escapeRegExp;
 // A rule's body, its whitespace collapsed, so a declaration reads as one line.
 const rule = (selector: string): string =>
   (
