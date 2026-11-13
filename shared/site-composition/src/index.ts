@@ -74,6 +74,7 @@ export type {
 export {
   sectionToTemplate,
   sectionGroupToTemplates,
+  type SectionTemplateOptions,
 } from "./section-templates";
 export {
   fetchSiteInfo,

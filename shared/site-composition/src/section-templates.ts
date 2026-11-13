@@ -123,9 +123,16 @@ function drawnPerLanguage<P>(
  * object (its fields become the markdown headings). Throws at definition time
  * for unsupported schema shapes rather than failing silently at render.
  */
+/** How a site's sections reach the data sources it registered. */
+export interface SectionTemplateOptions {
+  /** The registered id of the site data source a section names. */
+  readonly dataSourceId?: ((localId: string) => string) | undefined;
+}
+
 export function sectionToTemplate(
   name: string,
   section: SiteSectionDefinition,
+  options: SectionTemplateOptions = {},
 ): Template {
   // Two bindings on purpose. `section.schema` is typed ZodType<JsonObject> —
   // defineSection proved that — and the template needs it under that type.
@@ -135,6 +142,15 @@ export function sectionToTemplate(
   const objectSchema = section.schema;
   if (!(objectSchema instanceof z.ZodObject)) {
     throw new Error(`Section "${name}" schema must be a zod object.`);
+  }
+
+  const dataSourceId = section.dataSource
+    ? options.dataSourceId?.(section.dataSource)
+    : undefined;
+  if (section.dataSource && !dataSourceId) {
+    throw new Error(
+      `Section "${name}" reads data source "${section.dataSource}", which only a site registers`,
+    );
   }
 
   const formatter = new StructuredContentFormatter(objectSchema, {
@@ -148,6 +164,7 @@ export function sectionToTemplate(
     schema: section.schema,
     formatter,
     requiredPermission: section.requiredPermission ?? "public",
+    ...(dataSourceId ? { dataSourceId } : {}),
     layout: {
       // Parsed against the section schema, so the erased component is safe.
       component: createTypedComponent(
@@ -164,10 +181,11 @@ export function sectionToTemplate(
 /** Build the template registry for a section group, keyed by section id. */
 export function sectionGroupToTemplates(
   group: SiteSectionGroup,
+  options: SectionTemplateOptions = {},
 ): Record<string, Template> {
   const templates: Record<string, Template> = {};
   for (const [id, section] of Object.entries(group.sections)) {
-    templates[id] = sectionToTemplate(id, section);
+    templates[id] = sectionToTemplate(id, section, options);
   }
   return templates;
 }

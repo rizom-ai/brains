@@ -171,6 +171,10 @@ export function extendSite<
   const content = mergeContent(baseSite.content, overrides.content);
   const sections = mergeSections(baseSite.sections, overrides.sections);
   const languages = overrides.languages ?? baseSite.languages;
+  const dataSources = [
+    ...(baseSite.dataSources ?? []),
+    ...(overrides.dataSources ?? []),
+  ];
 
   return {
     layouts,
@@ -182,6 +186,7 @@ export function extendSite<
     ...(themeOverride ? { themeOverride } : {}),
     ...(headScripts.length > 0 ? { headScripts } : {}),
     ...(languages ? { languages } : {}),
+    ...(dataSources.length > 0 ? { dataSources } : {}),
     ...(staticAssets && Object.keys(staticAssets).length > 0
       ? { staticAssets }
       : {}),

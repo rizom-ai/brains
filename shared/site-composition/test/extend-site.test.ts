@@ -81,3 +81,30 @@ describe("extendSite languages", () => {
     expect(site.languages).toEqual(["en", "zh-TW"]);
   });
 });
+
+describe("extendSite dataSources", () => {
+  const source = (
+    id: string,
+  ): NonNullable<SitePackage["dataSources"]>[number] => ({
+    kind: "rizom-data-source",
+    id,
+    name: id,
+    description: id,
+    fetch: async (): Promise<unknown> => null,
+  });
+
+  test("an override adds its sources to the base's", () => {
+    const base = { ...makeBase(), dataSources: [source("opening")] };
+    const site = extendSite(base, { dataSources: [source("writing")] });
+    expect(site.dataSources?.map(({ id }) => id)).toEqual([
+      "opening",
+      "writing",
+    ]);
+  });
+
+  test("the base's sources survive when the override omits them", () => {
+    const base = { ...makeBase(), dataSources: [source("opening")] };
+    const site = extendSite(base, { routes: [{ id: "home", path: "/" }] });
+    expect(site.dataSources?.map(({ id }) => id)).toEqual(["opening"]);
+  });
+});

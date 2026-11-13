@@ -108,7 +108,7 @@ Declare a Dashboard widget, a Studio workspace or a workspace action at module s
 
 ## Sites
 
-Replace `@rizom/brain/site` and `@rizom/site-sections` imports with the one SDK, `@rizom/site`. Default-export `defineSite(...)`, author sections with `defineSection()` and `sectionGroup()`, and import its blessed `z`. Stable site definitions do not embed runtime plugins; advanced backend behavior belongs in a separately composed package. A section that renders entities can use the components in `@rizom/brain-ui`.
+Replace `@rizom/brain/site` and `@rizom/site-sections` imports with the one SDK, `@rizom/site`. Default-export `defineSite(...)`, author sections with `defineSection()` and `sectionGroup()`, and import its blessed `z`. Stable site definitions do not embed runtime plugins. A section drawn from live data names one of the site's `dataSources`, fetching sources declared with `defineDataSource` from `@rizom/brain/entities`, in place of a plugin that registered templates and data sources; tools, jobs and listeners belong in a separately composed package. A section that renders entities can use the components in `@rizom/brain-ui`.
 
 Rename conventional local site source from `src/site.ts` to `src/site.tsx` when it contains JSX. Import brand-specific `Rizom*` layout and chrome types from `@rizom/site-rizom-ai`; they are not part of the generic `@rizom/site` SDK.
 

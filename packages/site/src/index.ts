@@ -229,6 +229,12 @@ export interface SectionMeta {
   description: string;
   requiredPermission?: UserPermissionLevel | undefined;
   fullscreen?: boolean | undefined;
+  /**
+   * The id of one of the site's `dataSources` the section is drawn from:
+   * what the source answers is the section's content, validated by its
+   * schema, in place of saved copy.
+   */
+  dataSource?: string | undefined;
 }
 
 /**
@@ -395,6 +401,19 @@ export interface SiteContent {
   [namespace: string]: Record<string, JsonObject>;
 }
 
+/**
+ * A data source a site declares, as `defineDataSource` from
+ * `@rizom/brain/entities` returns one in its fetching form. Structural, so
+ * this package needs no brain to describe it; the brain binds it.
+ */
+interface SiteDataSource {
+  readonly kind: "rizom-data-source";
+  readonly id: string;
+  readonly name: string;
+  readonly description: string;
+  fetch(query: never, entities: never, context: never): Promise<unknown>;
+}
+
 /** Declarative site-package shape authored by public site packages. */
 export interface SiteDefinition {
   /** Layout components keyed by name — a `default` layout is required. */
@@ -420,6 +439,12 @@ export interface SiteDefinition {
    * saved for it. Without it the site is built once, in English.
    */
   languages?: string[] | undefined;
+  /**
+   * The data the site's sections are drawn from: fetching sources declared
+   * with `defineDataSource`, registered under the site package's name and
+   * named by a section's `dataSource`.
+   */
+  dataSources?: readonly SiteDataSource[] | undefined;
 }
 
 export type SiteDefinitionOverrides = {
@@ -591,6 +616,7 @@ const sectionDefinitionSchema: Strict<{
     z.ZodEnum<{ admin: "admin"; trusted: "trusted"; public: "public" }>
   >;
   fullscreen: z.ZodOptional<z.ZodBoolean>;
+  dataSource: z.ZodOptional<z.ZodString>;
 }> = z.strictObject({
   // defineSection has already proved JSON output via JsonObjectOutputGuard;
   // this runtime check confirms it is a zod schema, and the declared type
@@ -607,7 +633,19 @@ const sectionDefinitionSchema: Strict<{
   description: z.string(),
   requiredPermission: z.enum(["admin", "trusted", "public"]).optional(),
   fullscreen: z.boolean().optional(),
+  dataSource: z.string().min(1).optional(),
 });
+
+const siteDataSourceSchema: z.ZodCustom<SiteDataSource, SiteDataSource> =
+  z.custom<SiteDataSource>(
+    (value) =>
+      typeof value === "object" &&
+      value !== null &&
+      Reflect.get(value, "kind") === "rizom-data-source" &&
+      typeof Reflect.get(value, "id") === "string" &&
+      typeof Reflect.get(value, "fetch") === "function",
+    "Expected a fetching data source declared with defineDataSource",
+  );
 
 const sectionGroupSchema: Strict<{
   namespace: z.ZodString;
@@ -662,6 +700,9 @@ const siteDefinitionShape: {
   entityDisplay: z.ZodRecord<z.ZodString, typeof entityDisplaySchema>;
   staticAssets: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
   languages: z.ZodOptional<z.ZodArray<typeof languageTagSchema>>;
+  dataSources: z.ZodOptional<
+    z.ZodReadonly<z.ZodArray<typeof siteDataSourceSchema>>
+  >;
 } = {
   layouts: z
     .record(z.string(), componentSchema)
@@ -678,6 +719,7 @@ const siteDefinitionShape: {
   entityDisplay: z.record(z.string(), entityDisplaySchema),
   staticAssets: z.record(z.string(), z.string()).optional(),
   languages: z.array(languageTagSchema).min(1).optional(),
+  dataSources: z.array(siteDataSourceSchema).readonly().optional(),
 };
 
 type SiteDefinitionShape = typeof siteDefinitionShape;
@@ -782,6 +824,29 @@ export const siteDefinitionSchema: Strict<SiteDefinitionShape> = z
         path: ["sections"],
         message: "Section group namespaces must be unique",
       });
+    }
+
+    const dataSourceIds = new Set<string>();
+    for (const [index, dataSource] of (site.dataSources ?? []).entries()) {
+      if (dataSourceIds.has(dataSource.id)) {
+        context.addIssue({
+          code: "custom",
+          path: ["dataSources", index],
+          message: `Data source "${dataSource.id}" is declared twice`,
+        });
+      }
+      dataSourceIds.add(dataSource.id);
+    }
+    for (const group of groups) {
+      for (const [sectionId, section] of Object.entries(group.sections)) {
+        if (section.dataSource && !dataSourceIds.has(section.dataSource)) {
+          context.addIssue({
+            code: "custom",
+            path: ["sections", group.namespace, sectionId, "dataSource"],
+            message: `Section "${group.namespace}:${sectionId}" reads data source "${section.dataSource}", which the site does not declare`,
+          });
+        }
+      }
     }
 
     for (const [namespace, sections] of Object.entries(site.content ?? {})) {

@@ -383,6 +383,12 @@ export {
   type EntityDetailContext,
 } from "./public/entity-data-source";
 export { defineSharedState, type SharedState } from "./public/shared-state";
+// For the runtime, which binds a site's declared data sources.
+export {
+  createDeclaredDataSource,
+  isFetchingDataSourceDeclaration,
+  type DataSourceBindings,
+} from "./public/entity-data-source";
 export {
   defineAccountSettings,
   defineStudioWorkspace,

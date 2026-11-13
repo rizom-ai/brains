@@ -625,6 +625,8 @@ JSON content types:
 - `JsonPrimitive`
 - `JsonValue`
 
+A site's sections take their copy from `content`, or from its `dataSources`: fetching sources declared with `defineDataSource` from `@rizom/brain/entities`, listed on `SiteDefinition`. A section names one by its local id in its `SectionMeta`'s `dataSource`, and what the source answers is the section's content, validated by the section's schema; saved copy and `content` are the fallback when the source fails. `defineSite` refuses two sources with one id, a section naming a source the site does not declare, and anything but a fetching source. The brain registers a site's sources under the site package's name, `<site package>:<local id>`, the name other packages' sources read them by, and they read as any package's sources do: through `EntityReader`, `context.sharedState` and `context.dataSources.fetch`.
+
 ## `@rizom/brain-ui`
 
 The components a site section or a plugin view renders entities with. They take the selected theme's tokens, and `react` and `react-dom` are peers. The package versions and releases with `@rizom/brain`.

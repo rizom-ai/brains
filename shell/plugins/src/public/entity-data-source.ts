@@ -327,6 +327,24 @@ function createEntityDataSource(
   return new DeclarativeEntityDataSource(logger);
 }
 
+/**
+ * Whether a value is a fetching source as `defineDataSource` declares one:
+ * what a site's `dataSources` carry without a brain to type them.
+ */
+export function isFetchingDataSourceDeclaration(
+  value: unknown,
+): value is DataSourceDefinition {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    Reflect.get(value, "kind") === "rizom-data-source" &&
+    typeof Reflect.get(value, "id") === "string" &&
+    typeof Reflect.get(value, "name") === "string" &&
+    typeof Reflect.get(value, "description") === "string" &&
+    typeof Reflect.get(value, "fetch") === "function"
+  );
+}
+
 /** Bind either declared form to the runtime under its scoped id. */
 export function createDeclaredDataSource(
   declaration: AnyDataSourceDeclaration,

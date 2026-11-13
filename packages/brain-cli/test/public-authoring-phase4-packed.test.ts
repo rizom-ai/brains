@@ -20,12 +20,13 @@ import {
 const brainPackageDirectory = join(import.meta.dir, "..");
 const siteSdkDirectory = join(import.meta.dir, "../../site");
 const uiDirectory = join(import.meta.dir, "../../ui");
-const siteFixture = join(
-  import.meta.dir,
-  "fixtures",
-  "public-authoring",
-  "site",
-);
+const publicFixtureRoot = join(import.meta.dir, "fixtures", "public-authoring");
+const siteFixture = join(publicFixtureRoot, "site");
+// The site reads a record the reading service shares, so it is built with it.
+const siteDependencyFixtures = [
+  join(publicFixtureRoot, "entity"),
+  join(publicFixtureRoot, "service"),
+];
 const consumerFixture = join(
   import.meta.dir,
   "fixtures",
@@ -124,6 +125,16 @@ describe("public authoring Phase 4 packed site contract", () => {
       tarballs.set(
         ...(await packBuiltPublishable(uiDirectory, tarballDirectory)),
       );
+      for (const fixture of siteDependencyFixtures) {
+        tarballs.set(
+          ...(await buildAndPackFixturePackage(
+            fixture,
+            join(temporaryDirectory, "build"),
+            tarballDirectory,
+            tarballs,
+          )),
+        );
+      }
       const site = await buildAndPackFixturePackage(
         siteFixture,
         join(temporaryDirectory, "build"),
@@ -217,6 +228,8 @@ describe("public authoring Phase 4 packed site contract", () => {
       expect(html).toContain("application/ld+json");
       expect(html).toContain("CollectionPage");
 
+      // The shelf is drawn from the site's own data source, which renders its
+      // own heading here: this brain installs neither package it reads.
       // The shelf renders with the packed @rizom/brain-ui components.
       expect(html).toContain("On the shelf");
       expect(html).toContain(

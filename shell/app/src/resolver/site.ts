@@ -1,4 +1,10 @@
-import type { IShell, Plugin, PluginCapabilities } from "@brains/plugins";
+import {
+  createDeclaredDataSource,
+  isFetchingDataSourceDeclaration,
+  type IShell,
+  type Plugin,
+  type PluginCapabilities,
+} from "@brains/plugins";
 import { withThemeBase } from "@brains/theme-base";
 import { z } from "@brains/utils/zod";
 import type { BrainDefinition } from "../brain-definition";
@@ -41,8 +47,32 @@ class DeclarativeSitePlugin implements Plugin {
   }
 
   async register(shell: IShell): Promise<PluginCapabilities> {
+    // A site's sources are named by the site package, as a package's own
+    // sources are, and read by other packages under the same name.
+    const dataSourceId = (localId: string): string =>
+      `${this.packageName}:${localId}`;
+    const registry = shell.getDataSourceRegistry();
+    for (const declaration of this.site.dataSources ?? []) {
+      if (!isFetchingDataSourceDeclaration(declaration)) {
+        throw new Error(
+          `Site data source "${String(Reflect.get(declaration, "id"))}" is not a fetching source declared with defineDataSource`,
+        );
+      }
+      const id = dataSourceId(declaration.id);
+      registry.register(
+        createDeclaredDataSource(declaration, id, shell.getLogger(), {
+          publicId: id,
+          runtimeState: shell.getRuntimeState(),
+          dataSources: registry,
+        }),
+      );
+    }
+
     for (const group of normalizeSiteSections(this.site.sections)) {
-      shell.registerTemplates(sectionGroupToTemplates(group), group.namespace);
+      shell.registerTemplates(
+        sectionGroupToTemplates(group, { dataSourceId }),
+        group.namespace,
+      );
     }
 
     return { tools: [], resources: [] };
@@ -69,7 +99,7 @@ export function instantiateSitePlugins(
     );
   }
 
-  if (site.sections) {
+  if (site.sections || site.dataSources) {
     plugins.push(
       new DeclarativeSitePlugin(
         overrides?.site?.package ?? "@rizom/site-package",
