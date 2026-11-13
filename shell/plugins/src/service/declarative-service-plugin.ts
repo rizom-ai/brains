@@ -1517,7 +1517,7 @@ class DeclarativeServicePlugin<
               `Data source "${declaration.id}" reads "${type}", which the package does not declare`,
             );
           context.entities.registerDataSource(
-            createDeclaredDataSource(declaration, id, this.logger, {
+            createDeclaredDataSource(declaration, id, {
               publicId: `${this.packageName}:${declaration.id}`,
               runtimeState: context.runtimeState,
               dataSources: this.requireShell().getDataSourceRegistry(),

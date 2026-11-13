@@ -1,4 +1,3 @@
-import type { JsonObject } from "@brains/contracts";
 import type {
   BaseDataSourceContext,
   DataSource,
@@ -7,7 +6,6 @@ import type {
   ListOptions,
 } from "@brains/entity-service";
 import type { IRuntimeStateNamespace } from "@brains/runtime-state";
-import type { Logger } from "@brains/utils/logger";
 import { definedFields } from "@brains/utils/strip-undefined";
 import { z } from "@brains/utils/zod";
 import type {
@@ -27,10 +25,12 @@ import {
   type SiteDataSourceRuntime,
 } from "../site/site-data-source-runtime";
 import {
-  BaseEntityDataSource,
-  type BaseQuery,
-  type EntityDataSourceConfig,
-} from "../service/base-entity-datasource";
+  entityDetail,
+  listEntityPage,
+  parseEntitySourceQuery,
+  type EntityListReadConfig,
+  type EntitySourceQuery,
+} from "../entity/entity-list-read";
 
 export type {
   AnyDataSourceDeclaration,
@@ -180,7 +180,7 @@ function createFetchingDataSource(
 /** The list options a declared filter contributes: an exact metadata match. */
 function filterOptions(
   definition: AnyEntityDataSourceDefinition,
-  query: BaseQuery,
+  query: EntitySourceQuery,
 ): Partial<ListOptions> | undefined {
   const metadata = definition.filter?.(query)?.metadata;
   return metadata ? { filter: { metadata: { ...metadata } } } : undefined;
@@ -191,9 +191,8 @@ function createEntityDataSource(
   definition: AnyEntityDataSourceDefinition,
   scopedId: string,
   publicId: string,
-  logger: Logger,
 ): DataSource {
-  const config: EntityDataSourceConfig<EntityOf<AnyEntityDefinition>> = {
+  const config: EntityListReadConfig<EntityOf<AnyEntityDefinition>> = {
     entityType: definition.entity.type,
     // Derived from the definition, as EntityOf is: authors never declare the
     // runtime-owned base fields.
@@ -206,46 +205,32 @@ function createEntityDataSource(
       navigationLimit: definition.navigationLimit,
     }),
   };
+  const transform = (entity: EntityOf<AnyEntityDefinition>): unknown =>
+    definition.transform(entity);
 
-  class DeclarativeEntityDataSource extends BaseEntityDataSource<
-    EntityOf<AnyEntityDefinition>,
-    unknown,
-    JsonObject
-  > {
-    public readonly id = scopedId;
-    public readonly publicId = publicId;
-    public readonly name = definition.name;
-    public readonly description = definition.description;
-    protected readonly config = config;
-
-    protected override transformEntity(
-      entity: EntityOf<AnyEntityDefinition>,
-    ): unknown {
-      return definition.transform(entity);
-    }
-
-    // Lists go through the declared `list` in fetch below, whose result the
-    // caller's schema validates; the base class's own list path is unused.
-    protected override buildListResult(): never {
-      throw new Error(`Data source "${scopedId}" lists through fetch()`);
-    }
-
-    override async fetch<T>(
+  return {
+    id: scopedId,
+    publicId,
+    name: definition.name,
+    description: definition.description,
+    async fetch<T>(
       query: unknown,
       outputSchema: DataSourceSchema<T>,
       context: BaseDataSourceContext,
     ): Promise<T> {
-      const params = this.parseQuery(query);
+      const params = parseEntitySourceQuery(query);
       const entityService = context.entityService;
 
-      if (!params.query.id) {
-        const list = await this.fetchList(
-          params.query,
+      if (!params.id) {
+        const list = await listEntityPage(
+          config,
+          params,
           entityService,
-          filterOptions(definition, params.query),
+          transform,
+          filterOptions(definition, params),
         );
         return outputSchema.parse(
-          definition.list(list.items, list.pagination, params.query),
+          definition.list(list.items, list.pagination, params),
         );
       }
 
@@ -258,10 +243,12 @@ function createEntityDataSource(
       // The sibling list is what navigation already loads; surfacing it lets
       // a detail view order its own neighbors.
       const [resolved, siblings] = await Promise.all([
-        this.fetchDetail(params.query.id, entityService),
-        this.fetchList(
-          { limit: this.config.navigationLimit ?? 1000 },
+        entityDetail(config, params.id, entityService, transform),
+        listEntityPage(
+          config,
+          { limit: config.navigationLimit ?? 1000 },
           entityService,
+          transform,
         ),
       ]);
       return outputSchema.parse(
@@ -279,10 +266,8 @@ function createEntityDataSource(
           ),
         ),
       );
-    }
-  }
-
-  return new DeclarativeEntityDataSource(logger);
+    },
+  };
 }
 
 /**
@@ -307,10 +292,9 @@ export function isFetchingDataSourceDeclaration(
 export function createDeclaredDataSource(
   declaration: AnyDataSourceDeclaration,
   scopedId: string,
-  logger: Logger,
   bindings: DataSourceBindings,
 ): DataSource {
   return declaration.kind === "rizom-data-source"
     ? createFetchingDataSource(declaration, scopedId, bindings)
-    : createEntityDataSource(declaration, scopedId, bindings.publicId, logger);
+    : createEntityDataSource(declaration, scopedId, bindings.publicId);
 }

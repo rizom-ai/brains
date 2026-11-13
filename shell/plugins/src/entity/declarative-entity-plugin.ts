@@ -1146,16 +1146,11 @@ class DeclarativeEntityPlugin extends PluginCore<
     // Scoped to the package, so two packages may each declare "entities";
     // read by other packages under the package's name, whatever the scope.
     return this.dataSources.map((declaration) =>
-      createDeclaredDataSource(
-        declaration,
-        this.scope(declaration.id),
-        this.logger,
-        {
-          publicId: `${this.packageName}:${declaration.id}`,
-          runtimeState: shell.getRuntimeState(),
-          dataSources: shell.getDataSourceRegistry(),
-        },
-      ),
+      createDeclaredDataSource(declaration, this.scope(declaration.id), {
+        publicId: `${this.packageName}:${declaration.id}`,
+        runtimeState: shell.getRuntimeState(),
+        dataSources: shell.getDataSourceRegistry(),
+      }),
     );
   }
 

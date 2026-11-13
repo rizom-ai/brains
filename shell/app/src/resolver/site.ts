@@ -77,7 +77,7 @@ class DeclarativeSitePlugin implements Plugin {
       }
       const id = dataSourceId(declaration.id);
       registry.register(
-        createDeclaredDataSource(declaration, id, shell.getLogger(), {
+        createDeclaredDataSource(declaration, id, {
           publicId: id,
           runtimeState: shell.getRuntimeState(),
           dataSources: registry,

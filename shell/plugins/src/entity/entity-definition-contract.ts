@@ -37,10 +37,7 @@ import type {
   ResolvedRuntimeUpload,
   RuntimeUploadRecord,
 } from "../service/upload-registry";
-import type {
-  BaseQuery,
-  NavigationResult,
-} from "../service/base-entity-datasource";
+import type { EntityNavigation, EntitySourceQuery } from "./entity-list-read";
 import type { AgentContextItem, AgentContextRequest } from "@brains/contracts";
 import type {
   EntityDefinitionConfig,
@@ -767,7 +764,7 @@ export interface DataSourceDefinition {
 }
 
 /** The query a template sends a list-and-detail source. */
-export type DataSourceQuery = BaseQuery;
+export type DataSourceQuery = EntitySourceQuery;
 
 /**
  * What a detail view is given. `siblings` is the list the runtime already
@@ -776,7 +773,7 @@ export type DataSourceQuery = BaseQuery;
  */
 export interface EntityDetailContext<TTransformed> {
   readonly item: TTransformed;
-  readonly navigation: NavigationResult<TTransformed> | null;
+  readonly navigation: EntityNavigation<TTransformed> | null;
   readonly siblings: readonly TTransformed[];
   readonly entities: EntityReader;
 }

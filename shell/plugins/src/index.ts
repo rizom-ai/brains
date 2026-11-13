@@ -620,15 +620,6 @@ export type {
   PaginationInfo,
 } from "@brains/entity-service";
 export {
-  BaseEntityDataSource,
-  baseQuerySchema,
-  baseInputSchema,
-  type EntityDataSourceConfig,
-  type BaseQuery,
-  type NavigationResult,
-  type SortField,
-} from "./service/base-entity-datasource";
-export {
   findRelatedEntities,
   type RelatedEntitiesQuery,
   type RelatedEntity,

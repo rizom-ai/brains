@@ -70,7 +70,6 @@ export function registerSiteRuntime(
     const dataSource: DataSource = createDeclaredDataSource(
       source,
       `${declaration.id}:${source.id}`,
-      logger,
       {
         publicId: `${packageName}:${source.id}`,
         runtimeState: shell.getRuntimeState(),
