@@ -1,8 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { extendSite } from "../src/package";
+import { attachSiteRuntime, siteRuntimeOf } from "../src/site-runtime";
 import type { SitePackage } from "../src/package";
 
-function makeBase(headScripts?: string[]): SitePackage<unknown> {
+function makeBase(headScripts?: string[]): SitePackage {
   return {
     layouts: { default: () => null },
     routes: [],
@@ -40,7 +41,7 @@ describe("extendSite entityDisplay", () => {
   test("an override refines a type's display and keeps what it leaves out", () => {
     // A brain relabelling its essays must not drop the base site's other
     // settings for them, such as the essays being what an answer cites.
-    const base: SitePackage<unknown> = {
+    const base: SitePackage = {
       ...makeBase(),
       entityDisplay: {
         post: { label: "Post", citable: true, paginate: true },
@@ -73,7 +74,7 @@ describe("extendSite languages", () => {
   });
 
   test("the base's languages survive when the override omits them", () => {
-    const base: SitePackage<unknown> = {
+    const base: SitePackage = {
       ...makeBase(),
       languages: ["en", "zh-TW"],
     };
@@ -106,5 +107,26 @@ describe("extendSite dataSources", () => {
     const base = { ...makeBase(), dataSources: [source("opening")] };
     const site = extendSite(base, { routes: [{ id: "home", path: "/" }] });
     expect(site.dataSources?.map(({ id }) => id)).toEqual(["opening"]);
+  });
+});
+
+describe("a site's attached runtime", () => {
+  test("travels with the site without becoming one of its fields", () => {
+    const runtime = { kind: "test-runtime" };
+    const site = attachSiteRuntime(makeBase(), runtime);
+    expect(siteRuntimeOf(site)).toBe(runtime);
+    expect(Object.keys(site)).toEqual(Object.keys(makeBase()));
+  });
+
+  test("survives an extension that names none of its own", () => {
+    const runtime = { kind: "test-runtime" };
+    const site = extendSite(attachSiteRuntime(makeBase(), runtime), {
+      routes: [{ id: "home", path: "/" }],
+    });
+    expect(siteRuntimeOf(site)).toBe(runtime);
+  });
+
+  test("is absent from a site that attached none", () => {
+    expect(siteRuntimeOf(makeBase())).toBeUndefined();
   });
 });

@@ -27,11 +27,7 @@ export const rizomAiSite: SitePackage = createRizomSite({
       asked: askedTemplate,
       "ask-room": askRoomTemplate,
     },
-    dataSourceFactories: [
-      openingDataSource,
-      writingDataSource,
-      askedDataSource,
-    ],
+    dataSources: [openingDataSource, writingDataSource, askedDataSource],
   },
   // Every page is authored schema-first (see ./living-memory, ./brain,
   // ./work, ./foundation).

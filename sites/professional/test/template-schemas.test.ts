@@ -1,9 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import {
-  createPluginHarness,
-  type PluginTestHarness,
-} from "@brains/plugins/test";
-import { ProfessionalSitePlugin } from "../src/plugin";
+import type { PluginTestHarness } from "@brains/plugins/test";
+import { installedSite } from "./install-site";
 
 const profileWithTransitionalKind = {
   name: "Ada Morgan",
@@ -12,14 +9,8 @@ const profileWithTransitionalKind = {
 };
 
 describe("professional site template schemas", () => {
-  async function installPlugin(): Promise<
-    PluginTestHarness<ProfessionalSitePlugin>
-  > {
-    const harness = createPluginHarness<ProfessionalSitePlugin>({
-      dataDir: "/tmp/test-professional-site-template-schemas",
-    });
-    await harness.installPlugin(new ProfessionalSitePlugin({}));
-    return harness;
+  async function installPlugin(): Promise<PluginTestHarness> {
+    return installedSite("/tmp/test-professional-site-template-schemas");
   }
 
   it("accepts datasource profiles with transitional kind on the homepage", async () => {
@@ -59,18 +50,12 @@ describe("professional site template schemas", () => {
 
 describe("professional site atlas script", () => {
   async function homepageTemplate(
-    config: ConstructorParameters<typeof ProfessionalSitePlugin>[0],
-  ): Promise<
-    ReturnType<
-      ReturnType<
-        PluginTestHarness<ProfessionalSitePlugin>["getTemplates"]
-      >["get"]
-    >
-  > {
-    const harness = createPluginHarness<ProfessionalSitePlugin>({
-      dataDir: "/tmp/test-professional-site-atlas-script",
-    });
-    await harness.installPlugin(new ProfessionalSitePlugin(config));
+    settings: Readonly<Record<string, unknown>>,
+  ): Promise<ReturnType<ReturnType<PluginTestHarness["getTemplates"]>["get"]>> {
+    const harness = installedSite(
+      "/tmp/test-professional-site-atlas-script",
+      settings,
+    );
     return harness.getTemplates().get("professional-site:homepage-list");
   }
 
@@ -87,12 +72,9 @@ describe("professional site atlas script", () => {
 
 describe("professional site atlas links", () => {
   it("keeps enrichment's links when the build re-validates the enriched homepage", async () => {
-    const harness = createPluginHarness<ProfessionalSitePlugin>({
-      dataDir: "/tmp/test-professional-site-atlas-links",
+    const harness = installedSite("/tmp/test-professional-site-atlas-links", {
+      homepageOpening: true,
     });
-    await harness.installPlugin(
-      new ProfessionalSitePlugin({ homepageOpening: true }),
-    );
     const template = harness
       .getTemplates()
       .get("professional-site:homepage-list");

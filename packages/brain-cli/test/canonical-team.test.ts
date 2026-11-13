@@ -13,6 +13,8 @@ import {
 import rizomTheme from "@brains/theme-rizom";
 import { canonicalBrain, teamBundle } from "../src/model/canonical-brain";
 import { isRecord } from "@brains/utils/is-record";
+import { createPluginHarness } from "@brains/plugins/test";
+import { createSilentLogger } from "@brains/test-utils";
 
 const fixtureDirectory = join(import.meta.dir, "fixtures", "canonical-team");
 const fixtureOverrides = parseInstanceOverrides(
@@ -43,6 +45,17 @@ function runtimeOverrides(
 
 function pluginIds(resolved: AppConfig): string[] {
   return resolved.plugins?.map((plugin) => plugin.id) ?? [];
+}
+
+/** The templates the resolved site package registers, as the brain registers it. */
+async function siteTemplates(resolved: AppConfig): Promise<string[]> {
+  const sitePackage = resolved.plugins?.find(
+    (plugin) => plugin.id === "site-package",
+  );
+  if (!sitePackage) throw new Error("No site package plugin was resolved");
+  const harness = createPluginHarness({ logger: createSilentLogger() });
+  await harness.installPlugin(sitePackage);
+  return [...harness.getTemplates().keys()];
 }
 
 function pluginConfig(
@@ -104,7 +117,7 @@ describe("canonical team bundle", () => {
     expect(effectiveFixtureOverrides.plugins?.["site-content"]).toBeDefined();
   });
 
-  test("composes team config, instructions, and permissions", () => {
+  test("composes team config, instructions, and permissions", async () => {
     const resolved = resolve(
       canonicalBrain,
       {},
@@ -116,8 +129,11 @@ describe("canonical team bundle", () => {
     for (const id of ["conversation-memory", "docs", "site-builder", "mcp"]) {
       expect(ids).toContain(id);
     }
-    expect(ids).toContain("organization-site");
-    expect(ids).not.toContain("professional-site");
+    const templates = await siteTemplates(resolved);
+    expect(templates).toContain("organization-site:homepage");
+    expect(
+      templates.some((name) => name.startsWith("professional-site:")),
+    ).toBe(false);
     expect(pluginConfig(resolved, "topics")).toMatchObject({
       extractableStatuses: ["published", "draft"],
     });

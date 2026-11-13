@@ -1,5 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import type { IShell, Plugin, PluginCapabilities } from "@brains/plugins";
+import {
+  withSiteRuntime,
+  type IShell,
+  type Plugin,
+  type PluginCapabilities,
+} from "@brains/plugins";
 import { createMockLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 
@@ -415,12 +420,14 @@ describe("bundle resolver integration", () => {
   });
 
   test("preserves conventional local site package resolution", () => {
-    const localSite: SitePackage = {
-      layouts: { default: () => null },
-      routes: [{ id: "home", path: "/", title: "Home" }],
-      entityDisplay: {},
-      plugin: (config) => createPlugin("local-site", config ?? {}),
-    };
+    const localSite: SitePackage = withSiteRuntime(
+      {
+        layouts: { default: () => null },
+        routes: [{ id: "home", path: "/", title: "Home" }],
+        entityDisplay: {},
+      },
+      { id: "local-site", config: z.object({}), templates: {} },
+    );
     registerPackage(CONVENTIONAL_SITE_PACKAGE_REF, localSite);
     const definition = defineBrain({
       name: "test",
@@ -434,8 +441,9 @@ describe("bundle resolver integration", () => {
       { sitePackageRef: CONVENTIONAL_SITE_PACKAGE_REF },
     );
 
+    // The site's runtime registers with the site package, before the bundle.
     expect(pluginIds(resolve(definition, {}, overrides))).toEqual([
-      "local-site",
+      "site-package",
       "site-builder",
     ]);
   });

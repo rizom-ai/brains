@@ -7,8 +7,10 @@ import { askContentFromRecord, type AskContent } from "@brains/contracts";
 
 type OpeningRuntime = Pick<
   ServicePluginContext,
-  "webRoutes" | "siteUrl" | "previewUrl" | "localSiteUrl" | "preferLocalUrls"
->;
+  "siteUrl" | "previewUrl" | "localSiteUrl" | "preferLocalUrls"
+> & {
+  readonly webRoutes: Pick<ServicePluginContext["webRoutes"], "getRoutes">;
+};
 
 export type HomepageOpeningData = AskContent & { contactUrl: string | null };
 

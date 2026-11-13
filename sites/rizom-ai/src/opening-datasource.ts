@@ -1,24 +1,14 @@
-import type {
-  BaseDataSourceContext,
-  DataSource,
-  DataSourceSchema,
-  IShell,
-} from "@brains/plugins";
 import { proximityMapDataSchema } from "@brains/agent-discovery/proximity-map";
+import { askBoxAvailabilityState } from "@brains/contracts";
+import {
+  defineDataSource,
+  type DataSourceDefinition,
+} from "@brains/sdk/entities";
+import { siteDataSourceRuntime } from "@brains/sdk/internal/site-runtime";
 import { homepageChatAvailable, loadAskContent } from "@brains/site-atlas";
 
-const MAP_SOURCE_ID = "agent-discovery:proximity-map";
-
-/** Where the opening's data comes from, read with the plugin's runtime. */
-export interface OpeningLoaders {
-  /** The live map's datasource, registered by agent-discovery; absent when the plugin is not loaded. */
-  mapSource: () => DataSource | undefined;
-  loadOpening: (context: BaseDataSourceContext) => Promise<{
-    title?: string | undefined;
-    topics?: string[] | undefined;
-  } | null>;
-  chatAvailable: (context: BaseDataSourceContext) => Promise<boolean>;
-}
+/** The live map's datasource, which agent-discovery declares. */
+const MAP_SOURCE = "@brains/agent-discovery:proximity-map";
 
 const emptyMap = {
   center: { kind: "identity" },
@@ -33,50 +23,29 @@ const emptyMap = {
  * The homepage opening's data: the live proximity map, the drafted Ask
  * questions, and whether Web Chat serves the box. The map is fetched through
  * agent-discovery's own datasource, so this site never carries the entity
- * runtime that builds it; the box's availability is read from the shell's
- * runtime state, so the site bundles no plugin runtime either.
+ * runtime that builds it; the box's availability is the record Web Chat
+ * shares, so the site bundles no plugin runtime either.
  */
-export class RizomOpeningDataSource implements DataSource {
-  public readonly id = "rizom:opening";
-  public readonly name = "Rizom Opening DataSource";
-  public readonly description =
-    "The live network, the Ask questions and the box's availability for the homepage opening";
-
-  private readonly loaders: OpeningLoaders;
-
-  constructor(loaders: OpeningLoaders) {
-    this.loaders = loaders;
-  }
-
-  async fetch<T>(
-    query: unknown,
-    outputSchema: DataSourceSchema<T>,
-    context: BaseDataSourceContext,
-  ): Promise<T> {
-    const mapSource = this.loaders.mapSource();
+export const openingDataSource: DataSourceDefinition = defineDataSource({
+  id: "opening",
+  name: "Rizom Opening DataSource",
+  description:
+    "The live network, the Ask questions and the box's availability for the homepage opening",
+  fetch: async (query, _entities, context) => {
+    const { entityService } = siteDataSourceRuntime(context);
     const [map, opening, askBox] = await Promise.all([
-      mapSource?.fetch
-        ? mapSource.fetch(query, proximityMapDataSchema, context)
-        : proximityMapDataSchema.parse(emptyMap),
-      this.loaders.loadOpening(context),
-      this.loaders.chatAvailable(context),
+      context.dataSources.fetch(MAP_SOURCE, query, proximityMapDataSchema),
+      loadAskContent({ entityService }),
+      homepageChatAvailable(
+        context,
+        context.sharedState(askBoxAvailabilityState),
+      ),
     ]);
-    return outputSchema.parse({
-      ...map,
+    return {
+      ...(map ?? proximityMapDataSchema.parse(emptyMap)),
       topics: opening?.topics ?? [],
       prompt: opening?.title ?? null,
       askBox,
-    });
-  }
-}
-
-/** The datasource on the brain's shell, built when the site's plugin registers. */
-export function openingDataSource(shell: IShell): DataSource {
-  const runtime = { runtimeState: shell.getRuntimeState() };
-  return new RizomOpeningDataSource({
-    mapSource: () => shell.getDataSourceRegistry().get(MAP_SOURCE_ID),
-    loadOpening: loadAskContent,
-    chatAvailable: (buildContext) =>
-      homepageChatAvailable(buildContext, runtime),
-  });
-}
+    };
+  },
+});

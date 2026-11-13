@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { parseInstanceOverrides, resolve } from "@brains/app";
-import { createServicePluginContext } from "@brains/plugins";
+import {
+  createServicePluginContext,
+  registerSiteRuntime,
+} from "@brains/plugins";
 import {
   baseEntitySchema,
   createMockShell,
@@ -10,9 +13,9 @@ import siteInfoPackage, { fetchSiteInfo } from "@brains/site-info";
 import blogPackage from "@brains/blog";
 import { declaredType } from "./helpers/declared-type";
 import decksPackage, { siteThemeMode } from "@brains/decks";
-import { HomepageListDataSource } from "@brains/site-professional";
-import { HomepageDataSource } from "@brains/site-personal";
-import { siteMetadataContract } from "@brains/site-composition";
+import professionalSite from "@brains/site-professional";
+import personalSite from "@brains/site-personal";
+import { siteMetadataContract, siteRuntimeOf } from "@brains/site-composition";
 import { generateMarkdownWithFrontmatter } from "@brains/entity-service";
 import { z } from "@brains/utils/zod";
 import { canonicalBrain } from "../src/model/canonical-brain";
@@ -227,25 +230,39 @@ describe("site-info's readers on the entity store", () => {
   });
 
   test("the professional homepage reads its call to action", async () => {
-    const { service } = await homepageStore();
-
-    const data = await new HomepageListDataSource("/posts", "/decks").fetch(
-      {},
-      z.record(z.string(), z.unknown()),
-      { entityService: service },
+    const opened = await homepageStore();
+    // The professional site's homepage source, as the brain registers it.
+    registerSiteRuntime(
+      opened.shell,
+      "@brains/site-professional",
+      siteRuntimeOf(professionalSite),
+      { entityDisplay: professionalSite.entityDisplay },
     );
-    expect(data["cta"]).toEqual(cta);
+    const data = await opened.shell
+      .getDataSourceRegistry()
+      .get("professional-site:homepage-list")
+      ?.fetch?.({}, z.record(z.string(), z.unknown()), {
+        entityService: opened.service,
+      });
+    expect(data?.["cta"]).toEqual(cta);
   });
 
   test("the personal homepage reads its call to action", async () => {
-    const { service } = await homepageStore();
-
-    const data = await new HomepageDataSource("/posts").fetch(
-      {},
-      z.record(z.string(), z.unknown()),
-      { entityService: service },
+    const opened = await homepageStore();
+    // The personal site's homepage source, as the brain registers it.
+    registerSiteRuntime(
+      opened.shell,
+      "@brains/site-personal",
+      siteRuntimeOf(personalSite),
+      { entityDisplay: personalSite.entityDisplay },
     );
-    expect(data["cta"]).toEqual(cta);
+    const data = await opened.shell
+      .getDataSourceRegistry()
+      .get("personal-site:homepage")
+      ?.fetch?.({}, z.record(z.string(), z.unknown()), {
+        entityService: opened.service,
+      });
+    expect(data?.["cta"]).toEqual(cta);
   });
 
   test("decks' carousel reads the site's theme, not its fallback", async () => {

@@ -383,6 +383,15 @@ export {
   type EntityDetailContext,
 } from "./public/entity-data-source";
 export { defineSharedState, type SharedState } from "./public/shared-state";
+// A first-party site's runtime, and how the brain registers it.
+export {
+  registerSiteRuntime,
+  siteDataSourceRuntime,
+  withSiteRuntime,
+  withSiteRuntimeDefaults,
+  type SiteDataSourceRuntime,
+  type SiteRuntimeDeclaration,
+} from "./site/site-runtime";
 // For the runtime, which binds a site's declared data sources.
 export {
   createDeclaredDataSource,

@@ -1,4 +1,3 @@
-export type { SiteCompositionPlugin } from "./plugin";
 export {
   entityDisplaySchema,
   languagePath,
@@ -71,6 +70,7 @@ export type {
   SiteContentSectionDefinition,
   SiteContentStringFieldDefinition,
 } from "./content-definitions";
+export { attachSiteRuntime, siteRuntimeOf } from "./site-runtime";
 export {
   sectionToTemplate,
   sectionGroupToTemplates,

@@ -13,7 +13,6 @@ export {
   ASK_DOCK_ATTRIBUTE,
   ASK_BOX_SCRIPT_PATH,
   ASK_BOX_STATE_KEY,
-  ASK_BOX_STATE_NAMESPACE,
   ASK_KEYBOARD_ATTRIBUTE,
   ASK_NAME_ATTRIBUTE,
   ASK_PAGE_LOCK_ATTRIBUTE,
@@ -40,7 +39,7 @@ export {
   ASK_AIMED_EVENT,
   ASK_STATUS_ATTRIBUTE,
   ASK_STYLED_ATTRIBUTE,
-  askBoxAvailabilitySchema,
+  askBoxAvailabilityState,
   answeredBy,
   sourceBrainSchema,
   type AskBoxAvailability,
@@ -263,6 +262,12 @@ export {
   type PublishFailedPayload,
 } from "./message-channels";
 export { defineChannel, isChannel, type Channel } from "./channel";
+export {
+  defineSharedState,
+  isSharedState,
+  sharedStateNamespace,
+  type SharedState,
+} from "./shared-state";
 export {
   directorySyncPathContract,
   directorySyncPathRequestSchema,

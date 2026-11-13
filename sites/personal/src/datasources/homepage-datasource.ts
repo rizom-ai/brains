@@ -1,9 +1,9 @@
 import { fetchAnchorProfileData } from "@brains/profile";
-import type {
-  BaseDataSourceContext,
-  DataSource,
-  DataSourceSchema,
-} from "@brains/plugins";
+import {
+  defineDataSource,
+  type DataSourceDefinition,
+} from "@brains/sdk/entities";
+import { siteDataSourceRuntime } from "@brains/sdk/internal/site-runtime";
 import {
   fetchRecentEntities,
   fetchSiteInfo,
@@ -29,42 +29,32 @@ interface HomepageDataSourceOutput {
  * Personal homepage datasource
  * Fetches profile and recent blog posts — no decks, no portfolio
  */
-export class HomepageDataSource implements DataSource {
-  private readonly postsListUrl: string;
-  public readonly id = "personal:homepage";
-  public readonly name = "Personal Homepage DataSource";
-  public readonly description =
-    "Fetches profile and blog posts for a personal homepage";
+export function homepageDataSource(postsListUrl: string): DataSourceDefinition {
+  return defineDataSource({
+    id: "homepage",
+    name: "Personal Homepage DataSource",
+    description: "Fetches profile and blog posts for a personal homepage",
+    fetch: async (_query, _entities, context) => {
+      const { entityService } = siteDataSourceRuntime(context);
 
-  constructor(postsListUrl: string) {
-    this.postsListUrl = postsListUrl;
-  }
+      const [profile, posts, siteInfo] = await Promise.all([
+        fetchAnchorProfileData(entityService, personalProfileSchema),
+        fetchRecentEntities<BlogPost, BlogPostWithData>(entityService, {
+          entityType: "post",
+          entitySchema: blogPostSchema,
+          count: 6,
+          parse: parsePostData,
+        }),
+        fetchSiteInfo(entityService),
+      ]);
 
-  async fetch<T>(
-    _query: unknown,
-    outputSchema: DataSourceSchema<T>,
-    context: BaseDataSourceContext,
-  ): Promise<T> {
-    const entityService = context.entityService;
-
-    const [profile, posts, siteInfo] = await Promise.all([
-      fetchAnchorProfileData(entityService, personalProfileSchema),
-      fetchRecentEntities<BlogPost, BlogPostWithData>(entityService, {
-        entityType: "post",
-        entitySchema: blogPostSchema,
-        count: 6,
-        parse: parsePostData,
-      }),
-      fetchSiteInfo(entityService),
-    ]);
-
-    const data: HomepageDataSourceOutput = {
-      profile,
-      posts,
-      postsListUrl: this.postsListUrl,
-      cta: requireCta(siteInfo.cta),
-    };
-
-    return outputSchema.parse(data);
-  }
+      const data: HomepageDataSourceOutput = {
+        profile,
+        posts,
+        postsListUrl,
+        cta: requireCta(siteInfo.cta),
+      };
+      return data;
+    },
+  });
 }

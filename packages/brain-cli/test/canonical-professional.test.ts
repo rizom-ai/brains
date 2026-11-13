@@ -43,6 +43,17 @@ function pluginIds(resolved: AppConfig): string[] {
   return resolved.plugins?.map((plugin) => plugin.id) ?? [];
 }
 
+/** The templates the resolved site package registers, as the brain registers it. */
+async function siteTemplates(resolved: AppConfig): Promise<string[]> {
+  const sitePackage = resolved.plugins?.find(
+    (plugin) => plugin.id === "site-package",
+  );
+  if (!sitePackage) throw new Error("No site package plugin was resolved");
+  const harness = createPluginHarness({ logger: createSilentLogger() });
+  await harness.installPlugin(sitePackage);
+  return [...harness.getTemplates().keys()];
+}
+
 function pluginConfig(
   resolved: AppConfig,
   id: string,
@@ -139,7 +150,7 @@ describe("canonical professional posture", () => {
     expect(pluginIds(resolved)).toContain("atproto-registry");
   });
 
-  test("preserves the base professional plugin under local site overrides", () => {
+  test("preserves the base professional site's runtime under local site overrides", async () => {
     const home = defaultSite.routes.find((route) => route.id === "home");
     if (!home) throw new Error("Default professional site has no home route");
 
@@ -169,7 +180,9 @@ describe("canonical professional posture", () => {
       ? routes.find((route) => isRecord(route) && route["id"] === "home")
       : undefined;
 
-    expect(pluginIds(resolved)).toContain("professional-site");
+    expect(await siteTemplates(resolved)).toContain(
+      "professional-site:homepage-list",
+    );
     expect(resolvedHome).toMatchObject({
       sections: expect.arrayContaining([
         { id: "ecosystem", template: "local-site:ecosystem" },

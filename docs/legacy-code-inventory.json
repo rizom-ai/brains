@@ -180,18 +180,6 @@
       "targetRelease": "0.3.0-or-later"
     },
     {
-      "id": "site-package-plugin-factory",
-      "paths": ["shared/site-composition/src/package.ts"],
-      "symbol": "SitePackage.plugin",
-      "owner": "@brains/site-composition",
-      "class": "runtime-compatibility",
-      "behavior": "Accepts package-owned runtime plugin factories used by older internal site integrations.",
-      "currentConsumers": "Supported site packages that have not moved entirely to declarative composition.",
-      "removalPrerequisite": "Migrate all supported site packages and public declarations away from SitePackage.plugin.",
-      "rollbackDependency": "Prior site package versions require the factory while they remain supported rollback targets.",
-      "targetRelease": "0.3.0"
-    },
-    {
       "id": "first-party-legacy-plugin-ids",
       "paths": [
         "shell/ai-evaluation/src/eval-yaml-loader.ts",
@@ -259,6 +247,22 @@
       "currentConsumers": "First-party interfaces converted to declarative definitions: the terminal (chat-repl), which answers through the agent with its own conversation and approvals, runs its Ink UI in a class-shaped daemon and shows job progress and completions through a message transport; Email, which registers the email channel with its subject pattern and, when configured, its Resend sender in every process, runs its IMAP listener as its class's daemon only with a mailbox, answers email:source-read, asks inbound-email and auth-principal-resolve, and keeps its IMAP cursor and source locators under its class's namespaces; MCP, which serves /status and /mcp through its own streamable HTTP transport, registers its chat and confirm tools under those names, builds its protocol-only registration for the eval harness, runs its server as mcp:mcp, advertises its endpoint and way in over HTTP, and reads the brain's production flag, domain, whether it serves HTTP, auth backend, MCP service, permission levels and job progress; A2A, which serves its Agent Card (ready once the brain is), agent directory and JSON-RPC endpoint with CORS and SSE on the shared webserver, registers agent_call, answers a2a:ask:request, a2a:call:request and a2a:call:agents, signs and verifies peer requests through the auth backend, keeps its public-ask allowance under a2a.public-asks, and reads the brain's identity, profile kind, public skills, public tools and saved agents; chat, which runs one Chat SDK app for Discord and Slack as chat:chat, registers both platforms' channels in every process, serves their webhooks, keeps uploads in the shared store and deletes its retired discord-chat and slack-chat upload directories once at startup, answers chat:space-notice, gathers space-notice actions, records shared-space conversations, keeps its thread subscriptions under its class's namespaces, and renders, edits and routes job progress and tool statuses through its message transport; web chat, which serves its Ask page, chat API, Ask assets and guest API on the shared host as written, streams replies, job progress and tool statuses to the browser through its message transport, keeps uploads in the shared store at its API path, runs web-chat:guest-maintenance from the scheduler, marks guest chat open once guest turns can run, records its guest state and Ask box availability under its class's namespaces, asks the site builder to build again after each guest switch, reports the guest usage record's health, and registers its guest monitor in Studio once the brain is ready.",
       "removalPrerequisite": "Promote each capability to the public interface contract once a third-party interface needs it, or retire it when no first-party interface does.",
       "rollbackDependency": "None: the capabilities are bound per registration and store nothing.",
+      "targetRelease": "0.3.0-or-later"
+    },
+    {
+      "id": "first-party-site-runtime",
+      "paths": [
+        "packages/brain-sdk/src/internal/site-runtime.ts",
+        "shared/site-composition/src/site-runtime.ts",
+        "shell/plugins/src/site/site-runtime.ts"
+      ],
+      "symbol": "withSiteRuntime, siteDataSourceRuntime(context)",
+      "owner": "@brains/plugins",
+      "class": "runtime-compatibility",
+      "behavior": "Gives a first-party site package what its embedded runtime plugin registered, beside its public structural definition. `withSiteRuntime(site, { id, config, templates, dataSources })` carries the site's templates, as createTemplate makes them, under the namespace its plugin registered them (`personal-site`), and its fetching data sources under `<id>:<local id>`, read by other packages as `<site package>:<local id>`; both are built from the site's config, its entityDisplay and the brain's site settings parsed by the declared schema, with a conventional site's pluginConfig beneath them. The runtime carries it on the site under a key no field names, through extendSite and the resolver, and registers it once the site package registers. A site data source reaches, through `siteDataSourceRuntime(context)`, the build's entity reads at its scope, the brain's site, preview and local URLs and whether links prefer the local one, the web routes the brain's packages serve, requests to a contract's owner under the site's id, and its logger. A context the runtime did not build for a site is refused.",
+      "currentConsumers": "The first-party site packages that embedded a runtime plugin: personal, professional (and default, which re-exports it), organization and rizom-ai, for their homepage, about and writing templates and the data sources behind them.",
+      "removalPrerequisite": "Promote what the sites need to the public site contract (copy overlays, generated sections, runtime scripts and site config on a data source) or retire it when no first-party site does.",
+      "rollbackDependency": "None: the templates and data sources are registered per boot and store nothing.",
       "targetRelease": "0.3.0-or-later"
     },
     {

@@ -1,9 +1,4 @@
 import { listCanonicalAtprotoLexicons } from "@brains/atproto-contracts";
-import type {
-  RizomPluginCapabilities,
-  RizomRuntimeConfig,
-  RizomSiteShell,
-} from "../contracts";
 import bootScript from "./boot/boot.boot.js" with { type: "text" };
 import storyStyles from "../../story.css" with { type: "text" };
 import writingStyles from "../../writing.css" with { type: "text" };
@@ -14,24 +9,6 @@ import { livingOrganism } from "../../story/living-organism";
 import { workOrganism } from "../../story/work-organism";
 import { storyRuntimeScript } from "../../story/runtime";
 import { ASK_ROOM_STYLES } from "@brains/site-atlas";
-
-export type { RizomRuntimeConfig } from "../contracts";
-
-function parseRuntimeConfig(
-  config: Record<string, unknown>,
-): RizomRuntimeConfig {
-  const theme = config["theme"];
-
-  if (theme !== undefined && typeof theme !== "string") {
-    throw new Error(
-      `Invalid rizom site theme ${JSON.stringify(theme)}; expected a package name string`,
-    );
-  }
-
-  return {
-    ...(theme !== undefined ? { theme } : {}),
-  };
-}
 
 export function buildRizomHeadScript(): string {
   return `<script src="/boot.js" defer></script><script src="/story.js" defer></script>`;
@@ -67,32 +44,3 @@ export const rizomRuntimeStaticAssets: Record<string, string> = {
     foundationOrganism.css(),
   "/styles/writing.css": writingStyles,
 };
-
-export class RizomRuntimePlugin {
-  public readonly id = "rizom-site";
-  public readonly version = "0.1.0";
-  public readonly type = "service" as const;
-  public readonly packageName: string;
-  public readonly description: string;
-  public readonly config: RizomRuntimeConfig;
-
-  constructor(packageName: string, config: Record<string, unknown> = {}) {
-    this.packageName = packageName;
-    this.description = `${packageName} plugin`;
-    this.config = parseRuntimeConfig(config);
-  }
-
-  async register(
-    shell: RizomSiteShell,
-    _context?: unknown,
-  ): Promise<RizomPluginCapabilities> {
-    await this.onRegister(shell);
-    return { tools: [], resources: [] };
-  }
-
-  // The head scripts reach every build through the site package's
-  // `headScripts` (see create-site.ts), which the worker reads from config.
-  protected async onRegister(shell: RizomSiteShell): Promise<void> {
-    shell.getLogger().info("Rizom runtime plugin registered");
-  }
-}

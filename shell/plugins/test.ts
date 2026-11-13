@@ -32,6 +32,7 @@ export {
   expectConfirmation,
   type HarnessOptions,
 } from "./src/test/harness";
+export { installSiteRuntime } from "./src/test/install-site";
 export {
   refuseEnqueues,
   type EnqueueRefusals,

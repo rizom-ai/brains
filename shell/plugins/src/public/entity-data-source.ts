@@ -26,6 +26,10 @@ import { entitySchema } from "../entity/entity-schema";
 import { assertIdentifier as assertLocalId } from "../package-definition";
 import { isSharedState, sharedStateNamespace } from "./shared-state";
 import {
+  attachSiteDataSourceRuntime,
+  type SiteDataSourceRuntime,
+} from "../site/site-runtime";
+import {
   BaseEntityDataSource,
   type BaseQuery,
   type EntityDataSourceConfig,
@@ -109,6 +113,9 @@ export interface DataSourceBindings {
   readonly runtimeState: Pick<IRuntimeStateNamespace, "scoped">;
   /** Where other packages' sources are found. */
   readonly dataSources: Pick<DataSourceRegistry, "find">;
+  /** A first-party site's runtime, built for each read it serves. */
+  readonly siteRuntime?:
+    ((context: BaseDataSourceContext) => SiteDataSourceRuntime) | undefined;
 }
 
 /**
@@ -194,18 +201,18 @@ function createFetchingDataSource(
     ): Promise<T> {
       // First-party sources reach untyped reads at the build's own scope
       // through entityRuntime(context).
+      const read = {
+        ...dataSourceReadContextSchema.parse(
+          definedFields({ publishedOnly: context.publishedOnly }),
+        ),
+        sharedState,
+        dataSources: dataSourceReader(bindings.dataSources, context, scopedId),
+      };
+      if (bindings.siteRuntime) {
+        attachSiteDataSourceRuntime(read, bindings.siteRuntime(context));
+      }
       const readContext: DataSourceReadContext = withDataSourceRuntime(
-        {
-          ...dataSourceReadContextSchema.parse(
-            definedFields({ publishedOnly: context.publishedOnly }),
-          ),
-          sharedState,
-          dataSources: dataSourceReader(
-            bindings.dataSources,
-            context,
-            scopedId,
-          ),
-        },
+        read,
         context.entityService,
       );
       return outputSchema.parse(
