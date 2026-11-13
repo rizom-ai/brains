@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.706
+
+### Patch Changes
+
+- [#945](https://github.com/rizom-ai/brains/pull/945) [`87e6c76`](https://github.com/rizom-ai/brains/commit/87e6c7672508ae88f41b715bfe957f8bd1047257) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The newest upload is offered as a save candidate only to a message that asks to save, keep or store, or for a note, so a request to describe an image no longer carries it ahead of the image.
+
+- [#944](https://github.com/rizom-ai/brains/pull/944) [`0491737`](https://github.com/rizom-ai/brains/commit/0491737a93f6fa0c894937ff5ee409dcf5d4a45c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A restarted brain no longer logs `Failed to parse entity … no adapter registered` while directory-sync reconciles work an earlier Git broker left. A changed file of a type whose plugin has not registered yet is kept for the startup sync without reading its stored entity, and an import plan admits such a file only to create its entity instead of failing.
+
 ## 0.2.0-alpha.705
 
 ### Patch Changes
