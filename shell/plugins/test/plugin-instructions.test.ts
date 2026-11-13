@@ -1,91 +1,49 @@
 import { describe, it, expect } from "bun:test";
-import { ServicePlugin } from "../src/service/service-plugin";
-import { createPluginHarness } from "../src/test/harness";
 import { z } from "@brains/utils/zod";
+import {
+  defineServicePlugin,
+  instantiatePluginPackageDefinition,
+} from "../src";
+import { createPluginHarness } from "../src/test/harness";
 
-class PluginWithInstructions extends ServicePlugin<
-  Record<string, never>,
-  Record<string, never>
-> {
-  constructor() {
-    super(
-      "instructed-plugin",
-      { name: "instructed-plugin", version: "1.0.0" },
-      {},
-      z.object({}),
-    );
-  }
+type Plugin = NonNullable<
+  ReturnType<typeof instantiatePluginPackageDefinition>[number]
+>;
 
-  protected override async getInstructions(): Promise<string> {
-    return "Always greet the user before responding.";
-  }
-}
-
-class PluginWithoutInstructions extends ServicePlugin<
-  Record<string, never>,
-  Record<string, never>
-> {
-  constructor() {
-    super(
-      "plain-plugin",
-      { name: "plain-plugin", version: "1.0.0" },
-      {},
-      z.object({}),
-    );
-  }
-}
-
-class ServicePluginWithInstructions extends ServicePlugin<
-  Record<string, never>,
-  Record<string, never>
-> {
-  constructor() {
-    super(
-      "service-instructed",
-      { name: "service-instructed", version: "1.0.0" },
-      {},
-      z.object({}),
-    );
-  }
-
-  protected override async getInstructions(): Promise<string> {
-    return "Log unfulfilled requests to the wishlist.";
-  }
+/** A declared service, with the agent instructions it gives, if any. */
+function service(id: string, instructions?: string): Plugin {
+  const header = {
+    id,
+    config: z.object({}),
+    setup: (): Record<never, never> => ({}),
+  };
+  const [plugin] = instantiatePluginPackageDefinition(
+    instructions === undefined
+      ? defineServicePlugin(header)
+      : defineServicePlugin(header, { instructions: () => instructions }),
+    {},
+    { name: `@fixture/${id}`, version: "1.0.0" },
+  );
+  if (!plugin) throw new Error(`No plugin ${id}`);
+  return plugin;
 }
 
 describe("Plugin Instructions", () => {
-  describe("ServicePlugin", () => {
-    it("should include instructions in capabilities when provided", async () => {
-      const harness = createPluginHarness();
-      const capabilities = await harness.installPlugin(
-        new PluginWithInstructions(),
-      );
+  it("includes a service's instructions in its capabilities", async () => {
+    const harness = createPluginHarness();
+    const capabilities = await harness.installPlugin(
+      service("instructed", "Always greet the user before responding."),
+    );
 
-      expect(capabilities.instructions).toBe(
-        "Always greet the user before responding.",
-      );
-    });
-
-    it("should not include instructions when not provided", async () => {
-      const harness = createPluginHarness();
-      const capabilities = await harness.installPlugin(
-        new PluginWithoutInstructions(),
-      );
-
-      expect(capabilities.instructions).toBeUndefined();
-    });
+    expect(capabilities.instructions).toBe(
+      "Always greet the user before responding.",
+    );
   });
 
-  describe("ServicePlugin", () => {
-    it("should include instructions in capabilities when provided", async () => {
-      const harness = createPluginHarness();
-      const capabilities = await harness.installPlugin(
-        new ServicePluginWithInstructions(),
-      );
+  it("includes no instructions when a service gives none", async () => {
+    const harness = createPluginHarness();
+    const capabilities = await harness.installPlugin(service("plain"));
 
-      expect(capabilities.instructions).toBe(
-        "Log unfulfilled requests to the wishlist.",
-      );
-    });
+    expect(capabilities.instructions).toBeUndefined();
   });
 });

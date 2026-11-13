@@ -9,8 +9,11 @@ import {
   type InboxItemDetail,
   type InboxSource,
 } from "../src/inbox-registry";
-import { ServicePlugin } from "../src/service/service-plugin";
-import type { ServicePluginContext } from "../src/service/context";
+import {
+  defineServicePlugin,
+  instantiatePluginPackageDefinition,
+  serviceRuntime,
+} from "../src";
 import { createPluginHarness } from "../src/test/harness";
 
 function sourceItem(sourceId: string): InboxItem {
@@ -423,31 +426,22 @@ describe("InboxRegistry", () => {
     );
   });
 
-  it("exposes plugin-scoped source registration to service plugins", async () => {
-    class InboxSourcePlugin extends ServicePlugin<
-      Record<string, never>,
-      Record<string, never>
-    > {
-      constructor() {
-        super(
-          "inbox-source-test",
-          { name: "inbox-source-test", version: "1.0.0" },
-          {},
-          z.strictObject({}),
-        );
-      }
-
-      protected override async onRegister(
-        context: ServicePluginContext,
-      ): Promise<void> {
-        context.inbox.registerSource(source("synthetic"));
-      }
-    }
-
-    const harness = createPluginHarness<InboxSourcePlugin>({
-      logContext: "inbox-source-test",
-    });
-    await harness.installPlugin(new InboxSourcePlugin());
+  it("exposes plugin-scoped source registration to services", async () => {
+    const [plugin] = instantiatePluginPackageDefinition(
+      defineServicePlugin({
+        id: "inbox-source-test",
+        config: z.strictObject({}),
+        setup: (context) => {
+          serviceRuntime(context).inboxSource(source("synthetic"));
+          return {};
+        },
+      }),
+      {},
+      { name: "@fixture/inbox-source-test", version: "1.0.0" },
+    );
+    if (!plugin) throw new Error("No inbox source service");
+    const harness = createPluginHarness({ logContext: "inbox-source-test" });
+    await harness.installPlugin(plugin);
     await harness.finalizeRegistration();
 
     expect(

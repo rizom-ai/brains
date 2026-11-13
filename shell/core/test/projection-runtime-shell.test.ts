@@ -1,12 +1,6 @@
 import { createMockJobQueueService } from "@brains/job-queue/test";
 import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 import { migrateConversations } from "@brains/conversation-service/migrate";
-import {
-  BaseEntityAdapter,
-  baseEntitySchema,
-  emptyFrontmatterSchema,
-  type BaseEntity,
-} from "@brains/entity-service";
 import { migrateEntities } from "@brains/entity-service/migrate";
 import type {
   IBatchJobManager,
@@ -16,10 +10,11 @@ import type {
 import { migrateJobQueue } from "@brains/job-queue/migrate";
 import { createSilentLogger, createTestDirectory } from "@brains/test-utils";
 import {
-  EntityPlugin,
+  defineEntity,
+  defineEntityPackage,
   defineProjectionRule,
-  emptyEntityPluginConfigSchema,
-  type ProjectionRule,
+  instantiatePluginPackageDefinition,
+  type Plugin,
 } from "@brains/plugins";
 import { migrateRuntimeState } from "@brains/runtime-state/migrate";
 import {
@@ -31,99 +26,76 @@ import { Shell, type ShellDependencies } from "../src/shell";
 import { PROJECTION_RULE_JOB_TYPE } from "../src/projection-wave-scheduler";
 import { createTestShellConfig } from "./helpers/test-config";
 
-class ProjectionTargetAdapter extends BaseEntityAdapter<BaseEntity> {
-  constructor() {
-    super({
-      entityType: "projection-target",
-      purpose: "Projection runtime lifecycle test target.",
-      schema: baseEntitySchema,
-      frontmatterSchema: emptyFrontmatterSchema,
-    });
-  }
-
-  override toMarkdown(entity: BaseEntity): string {
-    return entity.content;
-  }
-
-  fromMarkdown(content: string): Partial<BaseEntity> {
-    return { content };
-  }
-}
-
 const projectionInputSchema = z.object({
   id: z.string(),
   content: z.string().nullable(),
 });
 
-class ProjectionTargetPlugin extends EntityPlugin<
-  BaseEntity,
-  Record<string, never>,
-  Record<string, never>
-> {
-  readonly entityType = "projection-target";
-  readonly schema = baseEntitySchema;
-  readonly adapter = new ProjectionTargetAdapter();
-
-  constructor() {
-    super(
-      "projection-target",
-      { name: "projection-target", version: "1.0.0" },
-      {},
-      emptyEntityPluginConfigSchema,
-    );
-  }
-
-  protected override getProjectionRules(): ProjectionRule[] {
-    return [
-      defineProjectionRule({
-        id: "projection-target-rule",
-        version: "1",
-        sources: [{ kind: "entity", types: ["note"] }],
-        targetType: this.entityType,
-        inputSchema: projectionInputSchema,
-        selectInput: async (trigger, context) => {
-          const sourceInput = trigger.inputs.at(-1);
-          if (sourceInput === undefined) {
-            throw new Error("Projection wave has no source input");
-          }
-          if (sourceInput.operation === "delete") {
-            return { id: sourceInput.sourceId, content: null };
-          }
-          const source = await context.entities.getEntity({
-            entityType: sourceInput.sourceType,
-            id: sourceInput.sourceId,
-          });
-          if (source === null) {
-            throw new Error(
-              `Projection source ${sourceInput.sourceType}:${sourceInput.sourceId} is missing`,
-            );
-          }
-          return { id: source.id, content: source.content };
-        },
-        derive: async (input) =>
-          input.content === null
-            ? [
-                {
-                  operation: "delete" as const,
-                  entityType: "projection-target",
+/** A declared type whose one projection rule mirrors each note. */
+const projectionTarget = defineEntity({
+  type: "projection-target",
+  purpose: "Projection runtime lifecycle test target.",
+  metadata: z.object({ sourceId: z.string().optional() }),
+  projectionRules: [
+    defineProjectionRule({
+      id: "projection-target-rule",
+      version: "1",
+      sources: [{ kind: "entity", types: ["note"] }],
+      targetType: "projection-target",
+      inputSchema: projectionInputSchema,
+      selectInput: async (trigger, context) => {
+        const sourceInput = trigger.inputs.at(-1);
+        if (sourceInput === undefined) {
+          throw new Error("Projection wave has no source input");
+        }
+        if (sourceInput.operation === "delete") {
+          return { id: sourceInput.sourceId, content: null };
+        }
+        const source = await context.entities.getEntity({
+          entityType: sourceInput.sourceType,
+          id: sourceInput.sourceId,
+        });
+        if (source === null) {
+          throw new Error(
+            `Projection source ${sourceInput.sourceType}:${sourceInput.sourceId} is missing`,
+          );
+        }
+        return { id: source.id, content: source.content };
+      },
+      derive: async (input) =>
+        input.content === null
+          ? [
+              {
+                operation: "delete" as const,
+                entityType: "projection-target",
+                id: input.id,
+              },
+            ]
+          : [
+              {
+                operation: "upsert" as const,
+                entity: {
                   id: input.id,
+                  entityType: "projection-target",
+                  content: input.content,
+                  metadata: { sourceId: input.id },
+                  visibility: "public" as const,
                 },
-              ]
-            : [
-                {
-                  operation: "upsert" as const,
-                  entity: {
-                    id: input.id,
-                    entityType: "projection-target",
-                    content: input.content,
-                    metadata: { sourceId: input.id },
-                    visibility: "public" as const,
-                  },
-                },
-              ],
-      }),
-    ];
-  }
+              },
+            ],
+    }),
+  ],
+});
+
+function projectionTargetPlugins(): Plugin[] {
+  return instantiatePluginPackageDefinition(
+    defineEntityPackage({
+      id: "projection-target",
+      entities: [projectionTarget],
+    }),
+    {},
+    { name: "projection-target", version: "1.0.0" },
+  );
 }
 
 const embeddingService = {
@@ -255,7 +227,7 @@ describe("Shell projection runtime lifecycle", () => {
       batchJobManager: batchManager,
     };
     const config = createTestShellConfig(testDir.dir);
-    config.plugins = [new ProjectionTargetPlugin()];
+    config.plugins = projectionTargetPlugins();
     const shell = Shell.createFresh(config, dependencies);
     shells.push(shell);
     await shell.initialize();
@@ -285,7 +257,7 @@ describe("Shell projection runtime lifecycle", () => {
 
   it("replays stopped-worker updates and deletes after each restart", async () => {
     const config = createTestShellConfig(testDir.dir, {
-      plugins: [new ProjectionTargetPlugin()],
+      plugins: projectionTargetPlugins(),
       embedding: { enabled: false },
     });
     const web = Shell.createFresh(
@@ -344,7 +316,7 @@ describe("Shell projection runtime lifecycle", () => {
 
   it("runs a registered rule's select and derive on demand, writing nothing", async () => {
     const config = createTestShellConfig(testDir.dir, {
-      plugins: [new ProjectionTargetPlugin()],
+      plugins: projectionTargetPlugins(),
       embedding: { enabled: false },
     });
     const shell = Shell.createFresh(config, {

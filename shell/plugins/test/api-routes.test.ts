@@ -1,6 +1,11 @@
 import { describe, it, expect } from "bun:test";
 import { z } from "@brains/utils/zod";
-import { ServicePlugin } from "../src/service/service-plugin";
+import {
+  defineServicePlugin,
+  instantiatePluginPackageDefinition,
+  withApiRoutes,
+} from "../src";
+import type { Plugin } from "../src/interfaces";
 import {
   apiRouteDefinitionSchema,
   type ApiRouteDefinition,
@@ -68,58 +73,42 @@ describe("API Route Definition Schema", () => {
   });
 });
 
-// Test plugin class with API routes
-class TestPluginWithRoutes extends ServicePlugin<
-  Record<string, never>,
-  Record<string, never>
-> {
-  constructor() {
-    super(
-      "test-plugin",
-      { name: "test-plugin", version: "1.0.0" },
-      {},
-      z.object({}),
-    );
-  }
-
-  override getApiRoutes(): ApiRouteDefinition[] {
-    return [
-      {
-        path: "/subscribe",
-        method: "POST",
-        tool: "subscribe",
-        public: true,
-        successRedirect: "/thanks",
-      },
-      {
-        path: "/unsubscribe",
-        method: "POST",
-        tool: "unsubscribe",
-        public: true,
-      },
-    ];
-  }
+/** A declared service, with the API routes it declares, if any. */
+function service(routes?: readonly ApiRouteDefinition[]): Plugin {
+  const definition = defineServicePlugin({
+    id: "test-plugin",
+    config: z.object({}),
+    setup: () => ({}),
+  });
+  const [plugin] = instantiatePluginPackageDefinition(
+    routes ? withApiRoutes(definition, () => routes) : definition,
+    {},
+    { name: "@fixture/test-plugin", version: "1.0.0" },
+  );
+  if (!plugin) throw new Error("No service");
+  return plugin;
 }
 
-// Test plugin class without API routes (uses default empty array)
-class TestPluginWithoutRoutes extends ServicePlugin<
-  Record<string, never>,
-  Record<string, never>
-> {
-  constructor() {
-    super(
-      "test-plugin-no-routes",
-      { name: "test-plugin-no-routes", version: "1.0.0" },
-      {},
-      z.object({}),
-    );
-  }
-}
+const withRoutes = (): Plugin =>
+  service([
+    {
+      path: "/subscribe",
+      method: "POST",
+      tool: "subscribe",
+      public: true,
+      successRedirect: "/thanks",
+    },
+    {
+      path: "/unsubscribe",
+      method: "POST",
+      tool: "unsubscribe",
+      public: true,
+    },
+  ]);
 
-describe("ServicePlugin.getApiRoutes()", () => {
+describe("a declared service's API routes", () => {
   it("should return declared API routes", () => {
-    const plugin = new TestPluginWithRoutes();
-    const routes = plugin.getApiRoutes();
+    const routes = withRoutes().getApiRoutes?.() ?? [];
 
     expect(routes).toHaveLength(2);
     expect(routes[0]?.path).toBe("/subscribe");
@@ -128,15 +117,13 @@ describe("ServicePlugin.getApiRoutes()", () => {
   });
 
   it("should return empty array when no routes declared", () => {
-    const plugin = new TestPluginWithoutRoutes();
-    const routes = plugin.getApiRoutes();
+    const routes = service().getApiRoutes?.() ?? [];
 
     expect(routes).toHaveLength(0);
   });
 
   it("should return routes with correct structure", () => {
-    const plugin = new TestPluginWithRoutes();
-    const routes = plugin.getApiRoutes();
+    const routes = withRoutes().getApiRoutes?.() ?? [];
     const subscribeRoute = routes[0];
 
     expect(subscribeRoute).toMatchObject({

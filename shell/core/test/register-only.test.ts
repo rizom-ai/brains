@@ -3,13 +3,39 @@ import { createTestShellConfig } from "./helpers/test-config";
 import { Shell, type ShellDependencies } from "../src/shell";
 import { createSilentLogger } from "@brains/test-utils";
 import { createTestDirectory } from "@brains/test-utils";
-import type { Plugin, Daemon } from "@brains/plugins";
-import { InterfacePlugin, SYSTEM_CHANNELS } from "@brains/plugins";
+import type { Plugin } from "@brains/plugins";
+import {
+  defineDaemon,
+  defineInterface,
+  instantiatePluginPackageDefinition,
+  SYSTEM_CHANNELS,
+} from "@brains/plugins";
 import { migrateEntities } from "@brains/entity-service/migrate";
 import { migrateJobQueue } from "@brains/job-queue/migrate";
 import { migrateConversations } from "@brains/conversation-service/migrate";
 import { migrateRuntimeState } from "@brains/runtime-state/migrate";
 import { z } from "@brains/utils/zod";
+
+/** A declared interface that runs one daemon, as webserver, MCP and A2A do. */
+function daemonInterface(
+  id: string,
+  daemon: {
+    readonly required?: boolean;
+    run(context: {
+      readonly signal: AbortSignal;
+      readonly health: { ready(): void };
+    }): Promise<void>;
+  },
+): Plugin[] {
+  return instantiatePluginPackageDefinition(
+    defineInterface(
+      { id, config: z.object({}), setup: () => ({}) },
+      { daemons: () => [defineDaemon({ id: "server", ...daemon })] },
+    ),
+    {},
+    { name: `@test/${id}`, version: "0.1.0" },
+  );
+}
 
 interface TestDir {
   dir: string;
@@ -151,37 +177,16 @@ describe("Shell register-only mode", () => {
     const startupError = new Error("Port 8080 is already in use");
     let daemonStopped = false;
 
-    class RequiredDaemonInterface extends InterfacePlugin<
-      Record<string, never>,
-      Record<string, never>
-    > {
-      constructor() {
-        super(
-          "required-daemon",
-          { version: "0.1.0", name: "@test/required-daemon" },
-          {},
-          z.object({}),
-        );
-      }
-
-      public override requiresDaemonStartup(): boolean {
-        return true;
-      }
-
-      protected override createDaemon(): Daemon | undefined {
-        return {
-          start: async (): Promise<void> => {
-            throw startupError;
-          },
-          stop: async (): Promise<void> => {
-            daemonStopped = true;
-          },
-        };
-      }
-    }
-
     const config = createTestShellConfig(testDir.dir);
-    config.plugins = [new RequiredDaemonInterface()];
+    config.plugins = daemonInterface("required-daemon", {
+      required: true,
+      run: async ({ signal }) => {
+        signal.addEventListener("abort", () => {
+          daemonStopped = true;
+        });
+        throw startupError;
+      },
+    });
     shell = Shell.createFresh(config, deps);
 
     let receivedError: unknown;
@@ -222,32 +227,13 @@ describe("Shell register-only mode", () => {
   it("should not start daemons in register-only mode", async () => {
     let daemonStarted = false;
 
-    // Real InterfacePlugin subclass — matches how webserver/mcp/a2a work
-    class TestDaemonInterface extends InterfacePlugin<
-      Record<string, never>,
-      Record<string, never>
-    > {
-      constructor() {
-        super(
-          "test-daemon",
-          { version: "0.1.0", name: "@test/daemon" },
-          {},
-          z.object({}),
-        );
-      }
-
-      protected override createDaemon(): Daemon | undefined {
-        return {
-          start: async (): Promise<void> => {
-            daemonStarted = true;
-          },
-          stop: async (): Promise<void> => {},
-        };
-      }
-    }
-
     const config = createTestShellConfig(testDir.dir);
-    config.plugins = [new TestDaemonInterface()];
+    config.plugins = daemonInterface("test-daemon", {
+      run: async ({ health }) => {
+        daemonStarted = true;
+        health.ready();
+      },
+    });
     shell = Shell.createFresh(config, deps);
     await shell.initialize({ mode: "register-only" });
 
