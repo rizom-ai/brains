@@ -33,7 +33,13 @@ export async function resolveConversationMessageContent(
   toolContext: ToolContext,
   { confirmed }: { confirmed: boolean },
 ): Promise<
-  | { success: true; messageId: string; content: string }
+  | {
+      success: true;
+      messageId: string;
+      content: string;
+      /** The user-message source as it was read, with the mode it implied. */
+      source?: UserMessageSource;
+    }
   | { success: false; error: string }
 > {
   const conversationId = toolContext.conversationId ?? toolContext.channelId;
@@ -159,15 +165,18 @@ export async function resolveConversationMessageContent(
         "User-message source changed after the proposal. Request the change again and confirm the new approval.",
     };
   }
-  return { success: true, messageId: message.id, content };
+  return { success: true, messageId: message.id, content, source };
 }
 
-/** Pins a resolved user-message source to its message and selected text. */
+/**
+ * Pins a resolved user-message source to its message and selected text, as
+ * it was read.
+ */
 export function freezeUserMessageSource(
-  source: UserMessageSource,
-  resolved: { messageId: string; content: string },
+  requested: UserMessageSource,
+  resolved: { messageId: string; content: string; source?: UserMessageSource },
 ): UserMessageSource {
-  const { startAfter, endBefore, ...rest } = source;
+  const { startAfter, endBefore, ...rest } = resolved.source ?? requested;
   return {
     ...rest,
     ...(startAfter ? { startAfter } : {}),
