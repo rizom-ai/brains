@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.705
+
+### Patch Changes
+
+- [#942](https://github.com/rizom-ai/brains/pull/942) [`7a18397`](https://github.com/rizom-ai/brains/commit/7a183978acb835951b82baa77e80e445af1e9623) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A form whose file names no path is stored without one and served beneath `/forms/<id>`, as the forms engine serves any form without a path. A form an earlier release stored with an empty path reads as a form without one, and its next write drops the empty path.
+
 ## 0.2.0-alpha.704
 
 ### Patch Changes

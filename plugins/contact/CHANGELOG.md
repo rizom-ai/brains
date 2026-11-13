@@ -1,5 +1,17 @@
 # @brains/contact
 
+## 0.2.0-alpha.705
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.705
+  - @brains/console-theme@0.2.0-alpha.705
+  - @brains/contracts@0.2.0-alpha.705
+  - @brains/forms@0.2.0-alpha.705
+  - @brains/site-composition@0.2.0-alpha.705
+  - @brains/utils@0.2.0-alpha.705
+
 ## 0.2.0-alpha.704
 
 ### Patch Changes

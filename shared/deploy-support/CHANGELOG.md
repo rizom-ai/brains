@@ -1,5 +1,12 @@
 # @brains/deploy-support
 
+## 0.2.0-alpha.705
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.705
+
 ## 0.2.0-alpha.704
 
 ### Patch Changes
