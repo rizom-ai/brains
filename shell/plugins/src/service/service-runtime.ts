@@ -384,6 +384,18 @@ export interface ServiceRuntime {
    */
   groupings(): ServiceGroupings;
   /**
+   * The brain's groupings read by any first-party service, as the action
+   * board's class read them through context.entities and
+   * context.entityService: the definitions brought current and read, a
+   * grouping's catalog and a value's members at the scope each read names.
+   * Bringing the definitions current runs the grouping source Studio
+   * registered, as every entity read does: when the stored definitions
+   * changed, it replaces them and may mark existing records for grouping
+   * reprojection. Nothing else here writes; definitions, sources and
+   * validators stay Studio's, through `groupings()`.
+   */
+  readonly groupingReads: ServiceGroupingReads;
+  /**
    * The runtime's shared upload store (`upload`), which create requests,
    * attachment restore and entity promotion read, served at `routePath`:
    * the store Studio's class saved an upload to through `context.uploads`.
@@ -884,6 +896,15 @@ export interface ServiceGroupings
   registerPersistValidator(type: string, validator: PersistValidator): void;
 }
 
+/** What any first-party service reads of the brain's groupings. */
+export type ServiceGroupingReads = Pick<
+  ServiceGroupings,
+  | "ensureGroupingsCurrent"
+  | "getGroupings"
+  | "queryGroupingCatalog"
+  | "queryGroupingMembers"
+>;
+
 /** Where the brain's git broker listens and keeps its checkout; none without Git. */
 export interface ServiceGitBroker {
   readonly socket: string | undefined;
@@ -942,6 +963,7 @@ export interface ServiceRuntimeBinding {
   readonly executionOnly: boolean;
   readonly assignableMembers: () => Promise<AssignableMember[]>;
   readonly groupings: () => ServiceGroupings;
+  readonly groupingReads: ServiceGroupingReads;
   readonly sharedUploads: ServiceRuntime["sharedUploads"];
   readonly uploadSaveHandler: ServiceRuntime["uploadSaveHandler"];
   readonly channelDescriptors: () => ChannelDescriptor[];
@@ -1036,6 +1058,7 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
     executionOnly: binding.executionOnly,
     assignableMembers: binding.assignableMembers,
     groupings: binding.groupings,
+    groupingReads: binding.groupingReads,
     sharedUploads: binding.sharedUploads,
     uploadSaveHandler: binding.uploadSaveHandler,
     channelDescriptors: binding.channelDescriptors,

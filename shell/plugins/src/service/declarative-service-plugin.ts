@@ -114,6 +114,7 @@ import {
   type ServiceEntityShapes,
   type ServiceEntityWrites,
   type ServiceGroupings,
+  type ServiceGroupingReads,
   type ServiceAI,
 } from "./service-runtime";
 import { ServicePlugin } from "./service-plugin";
@@ -1287,6 +1288,14 @@ class DeclarativeServicePlugin<
       executionOnly: context.executionOnly,
       assignableMembers: () => context.auth.listAssignableMembers(),
       groupings: () => this.groupingsOf(context),
+      groupingReads: Object.freeze({
+        getGroupings: () => context.entities.getGroupings(),
+        ensureGroupingsCurrent: () => context.entities.ensureGroupingsCurrent(),
+        queryGroupingMembers: (request) =>
+          context.entityService.queryGroupingMembers(request),
+        queryGroupingCatalog: (request) =>
+          context.entityService.queryGroupingCatalog(request),
+      } satisfies ServiceGroupingReads),
       sharedUploads: (options = {}) =>
         context.uploads.scoped({
           ...sharedUploadScope,
