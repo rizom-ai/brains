@@ -104,10 +104,10 @@ The monorepo is organized into these main categories:
 ```text
 shell/          Core runtime, services, plugin framework
 shared/         Reusable utilities, themes, UI components, test helpers
-entities/       EntityPlugin packages for content types
-plugins/        ServicePlugin packages for tools and integrations
+entities/       Entity packages for content types
+plugins/        Services for tools and integrations
 sites/          Structural site packages (routes, plugins, inherited composition)
-interfaces/     InterfacePlugin packages for transports and daemons
+interfaces/     Interfaces for transports and daemons
 brains/         Brain model packages
 packages/       Standalone distributable packages (for example @rizom/brain)
 ```
@@ -194,7 +194,7 @@ Service plugins live in `plugins/` and provide tools, handlers, routes, orchestr
 
 ### Interface plugins
 
-Interface packages live in `interfaces/`. Some chat-style interfaces use `MessageInterfacePlugin`, which is a specialized interface base class for conversational transports.
+Interface packages live in `interfaces/`. Conversational transports are message interfaces (`defineMessageInterface`, or a first-party interface with a message transport or channels), for which the runtime coordinates job progress, tool statuses and the completions held back while input is answered.
 
 | Package                | Purpose                                                                                           |
 | ---------------------- | ------------------------------------------------------------------------------------------------- |
@@ -218,11 +218,11 @@ Interface packages live in `interfaces/`. Some chat-style interfaces use `Messag
 
 ## Plugin model
 
-Brains uses three primary plugin categories:
+Brains uses three primary package families, each a declarative definition the runtime registers through one internal adapter:
 
-- **EntityPlugin** — defines an entity schema, markdown adapter, optional generation handler, optional derivation logic, templates, and datasources.
-- **ServicePlugin** — provides tools, jobs, API routes, orchestration, and external service integrations.
-- **InterfacePlugin** — provides user-facing transports and long-lived daemons.
+- **Entity packages** (`defineEntityPackage`) — define an entity schema, markdown adapter, optional generation, optional derivation logic, templates, and datasources.
+- **Services** (`defineServicePlugin`) — provide tools, jobs, API routes, orchestration, and external service integrations.
+- **Interfaces** (`defineInterface`, `defineMessageInterface`) — provide user-facing transports and long-lived daemons.
 
 ### Static site build boundary
 
@@ -234,9 +234,9 @@ Each non-skipped build renders into an immutable generation under `dist/.site-bu
 
 Shared renderer-neutral contracts live in `shared/site-engine`; shell-dependent preparation, React bindings, operational policy, and commit orchestration remain in `plugins/site-builder`.
 
-### EntityPlugin behavior
+### Entity package behavior
 
-Entity plugins are the default way content enters the system.
+Entity packages are the default way content enters the system.
 
 They can automatically register:
 
@@ -246,13 +246,13 @@ They can automatically register:
 - site datasources
 - executable derived projections and immutable projection graph declarations
 
-Entity plugins intentionally do **not** expose their own CRUD tools. Creation, update, and deletion flow through shared system tools like `system_create`, `system_update`, and `system_delete`. Derived entities are maintained automatically by scheduler-owned projection rules.
+Entity packages intentionally do **not** expose their own CRUD tools. Creation, update, and deletion flow through shared system tools like `system_create`, `system_update`, and `system_delete`. Derived entities are maintained automatically by scheduler-owned projection rules.
 
 For creation, the standard pattern is:
 
 1. `system_create` receives a normalized request
-2. the target `EntityPlugin` may override `interceptCreate()`
-3. the plugin either:
+2. the target type's declared `create` routes may take the request
+3. the route either:
    - returns `handled` to fully own creation behavior, or
    - returns `continue` to fall back to the shared create flow
 4. if the request includes a `prompt`, shared flow typically queues `{entityType}:generation`
@@ -307,18 +307,18 @@ per-root job and mutation budgets, depth limits, repeated-lineage rules, and
 repeated-target circuits. The static registry never owns runtime counters, and
 plugins cannot mutate or reset circuit state.
 
-### ServicePlugin behavior
+### Service behavior
 
-Service plugins provide the system's operational surface area:
+Services provide the system's operational surface area:
 
 - external integrations
 - background job handlers
 - publishing pipelines
 - specialized tools such as sync, stock photo search, or analytics reports
 
-### InterfacePlugin behavior
+### Interface behavior
 
-Interface plugins are how users or other agents interact with a brain:
+Interfaces are how users or other agents interact with a brain:
 
 - MCP clients connect through `interfaces/mcp`
 - chat users connect through `interfaces/chat` (Discord, Slack) or `interfaces/chat-repl`

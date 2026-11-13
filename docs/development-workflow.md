@@ -169,9 +169,9 @@ The main workspace areas are:
 ```
 shell/*       # Core runtime, orchestration, and services
 shared/*      # Utilities, themes, UI, test helpers
-entities/*    # EntityPlugin packages
-plugins/*     # ServicePlugin packages
-interfaces/*  # InterfacePlugin packages
+entities/*    # Entity packages (defineEntityPackage)
+plugins/*     # Services (defineServicePlugin)
+interfaces/*  # Interfaces (defineInterface, defineMessageInterface)
 brains/*      # Brain model packages
 sites/*       # Site packages
 packages/*    # Standalone distributable packages
