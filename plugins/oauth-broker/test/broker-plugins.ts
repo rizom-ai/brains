@@ -1,13 +1,26 @@
-import type { Plugin, WebRouteDefinition } from "@brains/plugins";
+import {
+  instantiatePluginPackageDefinition,
+  type Plugin,
+  type WebRouteDefinition,
+} from "@brains/plugins";
 import { createMockShell, type MockShell } from "@brains/plugins/test";
-import { oauthBrokerPlugin, type OAuthBrokerDeps } from "../src";
+import { createOAuthBrokerPackage, type OAuthBrokerDeps } from "../src";
+import packageJson from "../package.json";
 
-/** The broker's plugins, as the canonical brain installs them. */
+/**
+ * The broker's plugins, as the canonical brain installs them: under the
+ * broker class's plugin id.
+ */
 export function createOAuthBrokerPlugins(
   config: Record<string, unknown>,
   deps: OAuthBrokerDeps,
 ): Plugin[] {
-  return [oauthBrokerPlugin(config, deps)];
+  return instantiatePluginPackageDefinition(
+    createOAuthBrokerPackage(deps),
+    config,
+    { name: packageJson.name, version: packageJson.version },
+    { pluginId: "oauth-broker" },
+  );
 }
 
 /** The broker installed on a test shell, as a brain registers it. */

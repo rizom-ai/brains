@@ -89,6 +89,7 @@ const convertedPackages = [
   "plugins/knowledge-map",
   "plugins/newsletter",
   "plugins/notifications",
+  "plugins/oauth-broker",
   "plugins/obsidian-vault",
   "plugins/onboarding",
   "plugins/playbooks",

@@ -56,10 +56,7 @@ import notePackage from "@brains/note";
 import notificationsPackage from "@brains/notifications";
 import { linkedInImportPlugin } from "@brains/linkedin-import";
 import { createLinkedInBrokerProvider } from "@brains/linkedin-import/broker-provider";
-import {
-  oauthBrokerPlugin,
-  type OAuthBrokerPlugin,
-} from "@brains/oauth-broker";
+import { createOAuthBrokerPackage } from "@brains/oauth-broker";
 import obsidianVaultPackage from "@brains/obsidian-vault";
 import playbooksPackage from "@brains/playbooks";
 import portfolioPackage from "@brains/portfolio";
@@ -478,14 +475,14 @@ export const canonicalBrain: BrainDefinition = defineBrain({
       { pluginId: "unified-inbox" },
     ),
     ["linkedin-import", linkedInImportPlugin, undefined],
-    [
+    packageCapability(
       "oauth-broker",
-      (config): OAuthBrokerPlugin =>
-        oauthBrokerPlugin(config, {
-          providers: { linkedin: createLinkedInBrokerProvider },
-        }),
-      undefined,
-    ],
+      "@brains/oauth-broker",
+      createOAuthBrokerPackage({
+        providers: { linkedin: createLinkedInBrokerProvider },
+      }),
+      { pluginId: "oauth-broker" },
+    ),
   ],
   interfaces: [
     packageInterface(
