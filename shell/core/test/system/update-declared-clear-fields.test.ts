@@ -17,6 +17,7 @@ import { createSilentLogger, createTestDirectory } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import { createEntityUpdateTool } from "../../src/system/entity-update-tool";
 import { createMockSystemServices } from "./mock-services";
+import { createRefusingEmbeddingService } from "@brains/entity-service/test";
 
 // A declared type's metadata is its frontmatter, and reads hand back the
 // body alone, so clearing a field has to reach the metadata itself.
@@ -83,15 +84,7 @@ async function fixture(): Promise<{
     logger,
     jobQueueService: createMockShell().getJobQueueService(),
     embeddingsEnabled: false,
-    embeddingService: {
-      identity: { model: "test:mock", dimensions: 1536, promptRevision: 0 },
-      embedQuery: async () => {
-        throw new Error("Unexpected embedding");
-      },
-      embedDocuments: async () => {
-        throw new Error("Unexpected embedding");
-      },
-    },
+    embeddingService: createRefusingEmbeddingService(),
   });
   service = created;
   await created.initialize();

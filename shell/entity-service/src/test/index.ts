@@ -25,3 +25,8 @@ export {
   createTestEntityAdapter,
   type TestEntityAdapterOptions,
 } from "./test-entity-adapter";
+export {
+  MOCK_EMBEDDING_DIMENSIONS,
+  createMockEmbeddingService,
+  createRefusingEmbeddingService,
+} from "./mock-embedding-service";

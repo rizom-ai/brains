@@ -18,6 +18,7 @@ import {
   instantiatePluginPackageDefinition,
   type AnyEntityDefinition,
 } from "../src";
+import { createRefusingEmbeddingService } from "@brains/entity-service/test";
 
 /**
  * A first-party generation that asks for it lands beside a record that
@@ -94,15 +95,7 @@ async function generate(deduplicate: boolean): Promise<{
     logger,
     jobQueueService: createMockShell().getJobQueueService(),
     embeddingsEnabled: false,
-    embeddingService: {
-      identity: { model: "test:mock", dimensions: 1536, promptRevision: 0 },
-      embedQuery: async () => {
-        throw new Error("Unexpected embedding");
-      },
-      embedDocuments: async () => {
-        throw new Error("Unexpected embedding");
-      },
-    },
+    embeddingService: createRefusingEmbeddingService(),
   });
   await service.initialize();
   close = async (): Promise<void> => {

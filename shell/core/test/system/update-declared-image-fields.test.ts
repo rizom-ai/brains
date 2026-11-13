@@ -19,6 +19,7 @@ import { createSilentLogger, createTestDirectory } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import { createEntityUpdateTool } from "../../src/system/entity-update-tool";
 import { createMockSystemServices } from "./mock-services";
+import { createRefusingEmbeddingService } from "@brains/entity-service/test";
 
 // Declared types keep their metadata as their frontmatter. main writes
 // covers and social cards into frontmatter (system_update, the image render
@@ -83,15 +84,7 @@ async function fixture(): Promise<{
     logger,
     jobQueueService: createMockShell().getJobQueueService(),
     embeddingsEnabled: false,
-    embeddingService: {
-      identity: { model: "test:mock", dimensions: 1536, promptRevision: 0 },
-      embedQuery: async () => {
-        throw new Error("Unexpected embedding");
-      },
-      embedDocuments: async () => {
-        throw new Error("Unexpected embedding");
-      },
-    },
+    embeddingService: createRefusingEmbeddingService(),
   });
   service = created;
   await created.initialize();

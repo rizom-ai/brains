@@ -12,6 +12,7 @@ import {
   type FaqEntity,
   type FaqFrontmatter,
 } from "../src/schemas/faq";
+import { createRefusingEmbeddingService } from "@brains/entity-service/test";
 
 describe("FAQ merge retry eligibility with real SQLite", () => {
   let directory: Awaited<ReturnType<typeof createTestDirectory>>;
@@ -34,15 +35,7 @@ describe("FAQ merge retry eligibility with real SQLite", () => {
       logger,
       jobQueueService: createMockShell().getJobQueueService(),
       embeddingsEnabled: false,
-      embeddingService: {
-        identity: { model: "test:mock", dimensions: 1536, promptRevision: 0 },
-        embedQuery: async () => {
-          throw new Error("Unexpected provider call");
-        },
-        embedDocuments: async () => {
-          throw new Error("Unexpected provider call");
-        },
-      },
+      embeddingService: createRefusingEmbeddingService(),
     });
   });
 

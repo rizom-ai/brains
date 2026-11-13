@@ -33,6 +33,7 @@ import {
   type PluginCapabilities,
   type ToolContext,
 } from "../src";
+import { createRefusingEmbeddingService } from "@brains/entity-service/test";
 
 // A body that a read must hand back as stored: no frontmatter, and an image
 // reference left as the reference rather than resolved to its data.
@@ -207,15 +208,7 @@ async function realShell(
     logger,
     jobQueueService: createMockShell().getJobQueueService(),
     embeddingsEnabled: false,
-    embeddingService: {
-      identity: { model: "test:mock", dimensions: 1536, promptRevision: 0 },
-      embedQuery: async () => {
-        throw new Error("Unexpected embedding");
-      },
-      embedDocuments: async () => {
-        throw new Error("Unexpected embedding");
-      },
-    },
+    embeddingService: createRefusingEmbeddingService(),
   });
   await real.initialize();
   close = async (): Promise<void> => {
@@ -279,15 +272,7 @@ async function storage(): Promise<Storage> {
     logger,
     jobQueueService: createMockShell().getJobQueueService(),
     embeddingsEnabled: false,
-    embeddingService: {
-      identity: { model: "test:mock", dimensions: 1536, promptRevision: 0 },
-      embedQuery: async () => {
-        throw new Error("Unexpected embedding");
-      },
-      embedDocuments: async () => {
-        throw new Error("Unexpected embedding");
-      },
-    },
+    embeddingService: createRefusingEmbeddingService(),
   });
   await real.initialize();
   close = async (): Promise<void> => {

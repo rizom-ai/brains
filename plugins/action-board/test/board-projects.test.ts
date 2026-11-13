@@ -20,6 +20,7 @@ import {
 } from "@brains/action-items";
 import { registerBoardWorkspace } from "../src/board-workspace";
 import { boardContextFor, createActionBoardPlugins } from "./board-plugins";
+import { createRefusingEmbeddingService } from "@brains/entity-service/test";
 
 const NOW = new Date("2026-10-15T12:00:00.000Z");
 
@@ -91,15 +92,7 @@ async function brain(
     logger,
     jobQueueService: shell.getJobQueueService(),
     embeddingsEnabled: false,
-    embeddingService: {
-      identity: { model: "test:mock", dimensions: 1536, promptRevision: 0 },
-      embedQuery: async () => {
-        throw new Error("Unexpected embedding");
-      },
-      embedDocuments: async () => {
-        throw new Error("Unexpected embedding");
-      },
-    },
+    embeddingService: createRefusingEmbeddingService(),
   });
   shell.getEntityService = (): EntityService => service;
   shell.getEntityRegistry = (): EntityRegistry => registry;

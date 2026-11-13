@@ -12,6 +12,7 @@ import { createSilentLogger, createTestDirectory } from "@brains/test-utils";
 import { createConversationMemoryPlugins } from "../conversation-memory-plugins";
 import { flattenMemoryIds } from "../../src/lib/flat-memory-ids";
 import type { DecisionEntity } from "../../src/schemas/conversation-memory";
+import { createRefusingEmbeddingService } from "@brains/entity-service/test";
 
 const actionItems = new ActionItemAdapter();
 const created = "2026-09-01T10:00:00.000Z";
@@ -44,15 +45,7 @@ async function brain(): Promise<EntityService> {
     logger,
     jobQueueService: createMockShell().getJobQueueService(),
     embeddingsEnabled: false,
-    embeddingService: {
-      identity: { model: "test:mock", dimensions: 1536, promptRevision: 0 },
-      embedQuery: async () => {
-        throw new Error("Unexpected embedding");
-      },
-      embedDocuments: async () => {
-        throw new Error("Unexpected embedding");
-      },
-    },
+    embeddingService: createRefusingEmbeddingService(),
   });
   await service.initialize();
   close = async (): Promise<void> => {

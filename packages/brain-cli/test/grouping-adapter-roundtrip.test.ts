@@ -32,6 +32,7 @@ import {
   createTestDirectory,
   createMockProgressReporter,
 } from "@brains/test-utils";
+import { createRefusingEmbeddingService } from "@brains/entity-service/test";
 
 const clients = {
   key: "clients",
@@ -73,15 +74,7 @@ describe("Clients through the real Note and BlogPost adapters", () => {
       logger: createSilentLogger(),
       jobQueueService: createMockShell().getJobQueueService(),
       embeddingsEnabled: false,
-      embeddingService: {
-        identity: { model: "test:mock", dimensions: 1536, promptRevision: 0 },
-        embedQuery: async () => {
-          throw new Error("Unexpected embedding request");
-        },
-        embedDocuments: async () => {
-          throw new Error("Unexpected embedding request");
-        },
-      },
+      embeddingService: createRefusingEmbeddingService(),
     });
     registries.set(service, registry);
     services.push(service);
