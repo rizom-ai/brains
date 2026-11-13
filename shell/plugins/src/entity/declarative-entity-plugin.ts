@@ -68,6 +68,7 @@ import {
   folderTitlesOf,
   publishedStatusesOf,
   recordDisplayTitleOf,
+  recordPersistValidatorOf,
   ordinaryCreateOf,
   restatedMetadataOf,
   urlRouteOf,
@@ -1171,6 +1172,21 @@ class DeclarativeEntityPlugin extends EntityPlugin<
         async (entity): Promise<void> => {
           await validatePersist(
             Object.freeze({
+              content: entity.content,
+              visibility: entity.visibility,
+            }),
+          );
+        },
+      );
+    }
+    const recordValidator = recordPersistValidatorOf(this.definition);
+    if (recordValidator) {
+      context.entities.registerPersistValidator(
+        this.entityType,
+        async (entity): Promise<void> => {
+          await recordValidator(
+            Object.freeze({
+              id: entity.id,
               content: entity.content,
               visibility: entity.visibility,
             }),

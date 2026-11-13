@@ -979,6 +979,8 @@ export {
   withBodyTemplate,
   withFolderTitles,
   withDisplayTitle,
+  withPersistValidator,
+  type RecordPersistValidator,
   withPublishedStatuses,
   type RecordDisplayTitle,
   withUrlRoute,
