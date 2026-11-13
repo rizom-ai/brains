@@ -1,5 +1,25 @@
 # @rizom/brain
 
+## 0.2.0-alpha.704
+
+### Patch Changes
+
+- [#937](https://github.com/rizom-ai/brains/pull/937) [`8e9626f`](https://github.com/rizom-ai/brains/commit/8e9626f4c5361c56c4b50d4fbce71007bc9c3290) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The action board is a declarative definition under its class's plugin id: the same two chat tools, Board in Studio, Inbox source for blocked cards and track follow-up, writing cards byte for byte as before and reading projects at the caller's scope.
+
+- [#937](https://github.com/rizom-ai/brains/pull/937) [`204a3ef`](https://github.com/rizom-ai/brains/commit/204a3ef37f47a7a519043a6d722186d3d20e4ace) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The form type is a declarative definition under its class's plugin id: forms keep their bytes and read as their whole document, as the forms engine reads them, and a form the engine would not run, or whose id is not a slug, is still refused.
+
+- [#937](https://github.com/rizom-ai/brains/pull/937) [`188ad82`](https://github.com/rizom-ai/brains/commit/188ad82ec71baa65316ac4428dcc1c4ca2f2e6b8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The guides package is a declarative definition: the guide type under the guides class's plugin id, with the same templates, data sources and instructions. Stored guides keep their bytes, and a guide stored before section, summary and brings existed reads the fields its file states.
+
+- [#937](https://github.com/rizom-ai/brains/pull/937) [`a034537`](https://github.com/rizom-ai/brains/commit/a034537d3c8200cfeeced543212ec5de5748fa5e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The LinkedIn import is a declarative definition under its class's plugin id, so profile still admits its imports. Its OAuth routes, single-use states, account settings and Studio workspace behave as before, and tokens it stored stay readable.
+
+- [#937](https://github.com/rizom-ai/brains/pull/937) [`381727f`](https://github.com/rizom-ai/brains/commit/381727f86ff37fc1361191ec3b4d3df5b8c237a8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The managed OAuth broker is a declarative definition under the broker class's plugin id, serving the same three public routes with the same instance authentication, single-use authorization state, one-time grants and start limits.
+
+- [#937](https://github.com/rizom-ai/brains/pull/937) [`6ec9fbf`](https://github.com/rizom-ai/brains/commit/6ec9fbfe92db6ecca74a867ead763cce6aaa6318) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party entity type checks a write against the record's id as its class did, so the form type still refuses a form whose id is not a slug once it converts.
+
+- [#937](https://github.com/rizom-ai/brains/pull/937) [`fca93be`](https://github.com/rizom-ai/brains/commit/fca93beb00f3d318138907fd5af51db63878fb48) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service keeps its own account settings as its class kept them, under its plugin id and the definition id its class named, for the account its code names; another package's settings are refused. The LinkedIn import keeps reading the tokens it stored.
+
+- [#937](https://github.com/rizom-ai/brains/pull/937) [`562a52c`](https://github.com/rizom-ai/brains/commit/562a52c21e17a577a0446bb969d8a1571876aeaa) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A first-party service other than Studio reads the brain's groupings as the action board's class read them: the definitions, brought current through Studio's source, and a grouping's catalog and members at the reader's scope. Writing them stays Studio's.
+
 ## 0.2.0-alpha.703
 
 ### Patch Changes
