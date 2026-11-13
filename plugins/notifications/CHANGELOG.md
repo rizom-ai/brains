@@ -1,5 +1,13 @@
 # @brains/notifications
 
+## 0.2.0-alpha.706
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.706
+  - @brains/contracts@0.2.0-alpha.706
+
 ## 0.2.0-alpha.705
 
 ### Patch Changes
