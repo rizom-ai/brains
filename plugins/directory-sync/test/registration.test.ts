@@ -18,6 +18,7 @@ import {
   baseEntitySchema,
   createMockShell,
   type MockShell,
+  registerAll,
 } from "@brains/plugins/test";
 import type { DirectorySyncConfigInput } from "../src/types";
 import { createDirectorySyncPlugins } from "./directory-sync-plugins";
@@ -84,15 +85,7 @@ async function installed(
     initialSync: false,
     ...config,
   });
-  const capabilities: PluginCapabilities[] = [];
-  for (const plugin of plugins) {
-    capabilities.push(
-      await plugin.register(
-        shell,
-        options.executionOnly ? { executionOnly: true } : undefined,
-      ),
-    );
-  }
+  const capabilities = await registerAll(shell, plugins, options);
   return { shell, plugins, capabilities, handlers, events };
 }
 

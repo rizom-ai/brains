@@ -1,6 +1,10 @@
 import { describe, expect, it } from "bun:test";
 import type { Plugin, PluginCapabilities } from "@brains/plugins";
-import { createMockShell, type MockShell } from "@brains/plugins/test";
+import {
+  createMockShell,
+  type MockShell,
+  registerAll,
+} from "@brains/plugins/test";
 import { createLinkedInImportPlugins } from "./linkedin-plugins";
 
 const oauth = {
@@ -46,15 +50,7 @@ async function installed(
       throw new Error("Unexpected fetch");
     },
   });
-  const capabilities: PluginCapabilities[] = [];
-  for (const plugin of plugins) {
-    capabilities.push(
-      await plugin.register(
-        shell,
-        options.executionOnly ? { executionOnly: true } : undefined,
-      ),
-    );
-  }
+  const capabilities = await registerAll(shell, plugins, options);
   for (const plugin of plugins) await plugin.finalizeRegistration?.();
   return { shell, plugins, capabilities, workspaces };
 }

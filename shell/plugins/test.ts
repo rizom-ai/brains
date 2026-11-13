@@ -10,6 +10,7 @@ export {
   type MockShellOptions,
 } from "./src/test/mock-shell";
 export { createMockAppInfo } from "./src/test/mock-app-info";
+export { registerAll } from "./src/test/register-all";
 export {
   probeRuntime,
   probeService,

@@ -4,7 +4,11 @@ import {
   type Plugin,
   type PluginCapabilities,
 } from "@brains/plugins";
-import { createMockShell, type MockShell } from "@brains/plugins/test";
+import {
+  createMockShell,
+  type MockShell,
+  registerAll,
+} from "@brains/plugins/test";
 import type { NewsletterCompositeConfigInput } from "../src";
 import { createNewsletterPlugins } from "./newsletter-plugins";
 
@@ -42,15 +46,7 @@ async function installed(
 ): Promise<Installed> {
   const shell = createMockShell();
   const plugins = createNewsletterPlugins(config);
-  const capabilities: PluginCapabilities[] = [];
-  for (const plugin of plugins) {
-    capabilities.push(
-      await plugin.register(
-        shell,
-        options.executionOnly ? { executionOnly: true } : undefined,
-      ),
-    );
-  }
+  const capabilities = await registerAll(shell, plugins, options);
   const handlers = Object.fromEntries(
     channels.map((channel) => [
       channel,

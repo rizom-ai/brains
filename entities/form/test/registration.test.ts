@@ -1,6 +1,10 @@
 import { describe, expect, it } from "bun:test";
 import type { Plugin, PluginCapabilities } from "@brains/plugins";
-import { createMockShell, type MockShell } from "@brains/plugins/test";
+import {
+  createMockShell,
+  type MockShell,
+  registerAll,
+} from "@brains/plugins/test";
 import { createFormPlugins } from "./form-plugins";
 
 async function installed(): Promise<{
@@ -10,10 +14,7 @@ async function installed(): Promise<{
 }> {
   const shell = createMockShell();
   const plugins = createFormPlugins();
-  const capabilities: PluginCapabilities[] = [];
-  for (const plugin of plugins) {
-    capabilities.push(await plugin.register(shell));
-  }
+  const capabilities = await registerAll(shell, plugins);
   return { shell, plugins, capabilities };
 }
 

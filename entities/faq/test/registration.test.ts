@@ -7,7 +7,11 @@ import {
   type Plugin,
   type PluginCapabilities,
 } from "@brains/plugins";
-import { createMockShell, type MockShell } from "@brains/plugins/test";
+import {
+  createMockShell,
+  type MockShell,
+  registerAll,
+} from "@brains/plugins/test";
 import type { FaqConfigInput } from "../src";
 import { createFaqPlugins } from "./faq-plugins";
 
@@ -28,15 +32,7 @@ async function installed(
     evals.push(`${pluginId}:${handlerId}`);
   };
   const plugins = createFaqPlugins(config);
-  const capabilities: PluginCapabilities[] = [];
-  for (const plugin of plugins) {
-    capabilities.push(
-      await plugin.register(
-        shell,
-        options.executionOnly ? { executionOnly: true } : undefined,
-      ),
-    );
-  }
+  const capabilities = await registerAll(shell, plugins, options);
   shell.getInboxRegistry().finalize();
   return { shell, plugins, capabilities, evals };
 }

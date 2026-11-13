@@ -9,6 +9,7 @@ import {
   createMockShell,
   createTestEntityAdapter,
   type MockShell,
+  registerAll,
 } from "@brains/plugins/test";
 import {
   siteBuilderPagesContract,
@@ -67,15 +68,7 @@ async function installed(
       createTestEntityAdapter("form"),
     );
   const plugins = createContactPlugins();
-  const capabilities: PluginCapabilities[] = [];
-  for (const plugin of plugins) {
-    capabilities.push(
-      await plugin.register(
-        shell,
-        options.executionOnly ? { executionOnly: true } : undefined,
-      ),
-    );
-  }
+  const capabilities = await registerAll(shell, plugins, options);
   return { shell, plugins, capabilities, routeRegistrations, handlers };
 }
 
