@@ -82,6 +82,13 @@ export {
   toolInvokingChannel,
 } from "./tool-events";
 export { agentTurnCompletedChannel } from "./turn-events";
+export {
+  ChatAttachmentSchema,
+  ChatAttachmentSourceSchema,
+  ChatContextSchema,
+  FileChatAttachmentSchema,
+  TextChatAttachmentSchema,
+} from "./chat-context";
 
 export type {
   AgentConfig,
