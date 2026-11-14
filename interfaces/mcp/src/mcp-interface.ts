@@ -55,7 +55,6 @@ function httpServerOf(
   const authService = runtime.auth();
 
   host.httpServer = StreamableHTTPServer.createFresh({
-    port: config.httpPort,
     logger: runtime.logger,
     auth: config.authToken
       ? { token: config.authToken }

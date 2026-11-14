@@ -75,7 +75,7 @@ describe("agent card excludes non-public skills", () => {
 
     // The card is read where a client reads it, on the shared host.
     harness.getMockShell().serveHttp();
-    const plugin = createA2APlugin({ port: 0 });
+    const plugin = createA2APlugin({});
     await harness.installPlugin(plugin);
     harness.getMockShell().getProfileKindRegistry().finalize();
     await plugin.ready?.();
