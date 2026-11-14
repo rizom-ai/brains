@@ -9,7 +9,7 @@ import { preserveSourceFrontmatter } from "@brains/entity-service";
 import {
   ACTION_ITEM_RETIRED_FIELDS,
   ACTION_ITEM_TRANSLATED_FIELDS,
-  ActionItemAdapter,
+  actionItemAdapter,
 } from "../src";
 import { actionItemBody, applyMove, applyNote, isBoardOwned } from "../src";
 import {
@@ -18,7 +18,7 @@ import {
   type ActionItemMetadata,
 } from "../src";
 
-const adapter = new ActionItemAdapter();
+const adapter = actionItemAdapter;
 
 const baseMetadata: ActionItemMetadata = {
   conversationId: "conv-1",

@@ -12,7 +12,7 @@ import {
   readMarkdownFrontmatter,
 } from "@brains/utils/markdown-frontmatter";
 import { z } from "@brains/utils/zod";
-import { ActionItemAdapter } from "../src";
+import { actionItemAdapter } from "../src";
 import { actionItemBody, actionItemBodyHash, isBoardOwned } from "../src";
 import {
   actionItemSource,
@@ -29,7 +29,7 @@ import {
   type ActionItemMetadata,
 } from "../src";
 
-const adapter = new ActionItemAdapter();
+const adapter = actionItemAdapter;
 const niels = { kind: "user", userId: "u-niels" } as const;
 const ID = "conv-1-action-item-1-abc123abc123";
 const at = (): Date => new Date("2026-10-15T08:02:00.000Z");

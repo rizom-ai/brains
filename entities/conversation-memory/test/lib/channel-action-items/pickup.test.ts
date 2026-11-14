@@ -1,6 +1,6 @@
 import { describe, expect, it, mock } from "bun:test";
 import {
-  ActionItemAdapter,
+  actionItemAdapter,
   actionItemBody,
   actionItemBodyHash,
   actionItemSchema,
@@ -104,11 +104,7 @@ function brain(messages: Message[] = channel): {
     createMockShell(),
     "conversation-memory",
   );
-  context.entities.register(
-    "action-item",
-    actionItemSchema,
-    new ActionItemAdapter(),
-  );
+  context.entities.register("action-item", actionItemSchema, actionItemAdapter);
   const pending: ChannelExtractionResult = {
     items: [],
     updates: [],

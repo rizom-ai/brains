@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import {
-  ActionItemAdapter,
+  actionItemAdapter,
   actionItemSchema,
   type ActionItemMetadata,
 } from "@brains/action-items";
@@ -13,7 +13,7 @@ import { createConversationMemoryPlugins } from "../conversation-memory-plugins"
 import { flattenMemoryIds } from "../../src/lib/flat-memory-ids";
 import type { DecisionEntity } from "../../src/schemas/conversation-memory";
 
-const actionItems = new ActionItemAdapter();
+const actionItems = actionItemAdapter;
 const created = "2026-09-01T10:00:00.000Z";
 
 let close: (() => Promise<void>) | undefined;

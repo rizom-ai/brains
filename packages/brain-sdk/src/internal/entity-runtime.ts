@@ -100,3 +100,10 @@ export {
   type EntityGrouping,
   type EntityGroupingUsage,
 } from "@brains/plugins";
+// What a shared library's own adapter and writes are built with.
+export {
+  ENTITY_SYSTEM_FIELDS,
+  type EntityAdapter,
+  type IEntityService,
+} from "@brains/plugins";
+export { generateFrontmatter } from "@brains/entity-service";
