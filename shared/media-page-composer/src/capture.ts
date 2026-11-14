@@ -5,7 +5,10 @@ import {
   startStaticRenderServer,
   writeMediaRenderPage,
 } from "./media-render-page";
-import type { MediaFormat, ViewTemplate } from "@brains/plugins";
+import type {
+  MediaFormat,
+  ViewTemplate,
+} from "@brains/sdk/internal/presentation";
 
 export interface CaptureMediaPageOptions {
   /** Route the throwaway page is written under, e.g. `/_media/og/project/<id>`. */

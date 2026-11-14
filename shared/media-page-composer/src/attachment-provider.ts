@@ -1,13 +1,17 @@
 import type {
   AttachmentProvider,
-  AttachmentProviderMetadata,
-  AttachmentResolveRequest,
+  MediaAttachmentContext,
+} from "@brains/sdk/entities";
+import type {
   BaseEntity,
   EntitySchema,
-  MediaAttachmentContext,
+} from "@brains/sdk/internal/entity-runtime";
+import type {
+  AttachmentProviderMetadata,
+  AttachmentResolveRequest,
   MediaFormat,
   ViewTemplate,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/presentation";
 import type { PublishMediaData } from "@brains/contracts";
 import { slugify } from "@brains/utils/string-utils";
 import { renderOgImagePng, type ScreenshotPng } from "./og-image";

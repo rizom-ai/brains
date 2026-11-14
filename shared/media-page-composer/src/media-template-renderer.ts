@@ -6,7 +6,11 @@ import {
   HeadCollector,
   type SiteImageRendererService,
 } from "@brains/site-engine";
-import type { ComponentType, MediaFormat, ViewTemplate } from "@brains/plugins";
+import type {
+  ComponentType,
+  MediaFormat,
+  ViewTemplate,
+} from "@brains/sdk/internal/presentation";
 import type { JsonObject } from "@brains/contracts";
 import type { RenderMediaTemplateHtmlOptions } from "./types";
 
