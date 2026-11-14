@@ -107,9 +107,6 @@ export class DirectorySyncService {
   private watcherOwned = false;
   private gitBackgroundStarted = false;
   private entityExportDispatcher: DurableEntityExportDispatcher | undefined;
-  private readyState = false;
-  private shutdownStarted = false;
-  private configurationQueue: Promise<void> = Promise.resolve();
   private readonly pendingDeletes = new PendingDeleteRegistry();
 
   constructor(config: DirectorySyncConfig, context: DirectorySyncContext) {
@@ -376,7 +373,6 @@ export class DirectorySyncService {
           context,
           connected,
           this.requireDirectorySync(),
-          { registering: true },
         );
       }
       // `initialize` can clone, checkout, and configure the repository. It is
@@ -487,7 +483,6 @@ export class DirectorySyncService {
     }
     await this.requireEntityExportDispatcher().start();
     await this.startBackgroundWork();
-    this.readyState = true;
     this.studioWorkspaceUrl =
       await this.workspaceProvider?.registerStudioWorkspace();
   }
@@ -505,12 +500,9 @@ export class DirectorySyncService {
 
   /** When the package shuts down, where the class's onShutdown ran. */
   async shutdown(): Promise<void> {
-    this.shutdownStarted = true;
     await this.workspaceProvider?.unregisterStudioWorkspace();
-    await this.configurationQueue;
     await this.stopGeneration(this.runtime, this.directorySync, this.gitSync);
 
-    this.readyState = false;
     this.watcherOwned = false;
     this.gitBackgroundStarted = false;
     this.entityExportDispatcher = undefined;
@@ -518,115 +510,6 @@ export class DirectorySyncService {
 
   public getDirectorySync(): DirectorySync | undefined {
     return this.directorySync;
-  }
-
-  public configure(options: { syncPath: string }): Promise<void> {
-    const replacement = this.configurationQueue.then(() =>
-      this.replaceGeneration(options.syncPath),
-    );
-    this.configurationQueue = replacement.catch(() => {});
-    return replacement;
-  }
-
-  private async replaceGeneration(syncPath: string): Promise<void> {
-    if (this.shutdownStarted) {
-      throw new Error("Directory sync plugin is shutting down");
-    }
-
-    const context = this.getContext();
-    const candidateRuntime = new DirectorySyncRuntime();
-    const candidateDirectorySync = this.createDirectorySync(context, syncPath);
-    let candidateGitSync: BrokerGitSync | undefined;
-    let candidateDispatcher: DurableEntityExportDispatcher | undefined;
-
-    try {
-      await candidateDirectorySync.initializeDirectory();
-      if (this.config.autoSync) {
-        setupFileWatcher(
-          context,
-          candidateDirectorySync,
-          syncPath,
-          this.operationStatus,
-          await candidateRuntime.acquire(
-            async () => new RetryScope({ logger: this.logger }),
-            (retries) => retries.dispose(),
-          ),
-        );
-      }
-      if (this.isGitConfigured()) {
-        candidateGitSync = await this.connectToGitBroker(
-          syncPath,
-          candidateDirectorySync,
-        );
-        await this.reconcileInheritedWork(
-          context,
-          candidateGitSync,
-          candidateDirectorySync,
-          { registering: false },
-        );
-        await candidateGitSync.initialize();
-      }
-      candidateDispatcher = this.createEntityExportDispatcher(
-        context,
-        candidateRuntime,
-        candidateDirectorySync,
-        candidateGitSync,
-      );
-      this.bindCleanupAdmission(
-        context,
-        candidateDirectorySync,
-        candidateDispatcher,
-      );
-    } catch (error) {
-      await this.abandonCandidate(
-        candidateRuntime,
-        candidateDirectorySync,
-        candidateGitSync,
-      );
-      throw error;
-    }
-
-    const previousRuntime = this.runtime;
-    const previousDirectorySync = this.directorySync;
-    const previousGitSync = this.gitSync;
-    try {
-      await this.stopGeneration(
-        previousRuntime,
-        previousDirectorySync,
-        previousGitSync,
-      );
-    } catch (error) {
-      await this.abandonCandidate(
-        candidateRuntime,
-        candidateDirectorySync,
-        candidateGitSync,
-      );
-      throw error;
-    }
-
-    // Publish the complete candidate atomically after the old generation can
-    // no longer enqueue work.
-    this.runtime = candidateRuntime;
-    this.directorySync = candidateDirectorySync;
-    this.gitSync = candidateGitSync;
-    this.entityExportDispatcher = candidateDispatcher;
-    this.operationStatus?.setSyncPath(syncPath);
-    this.watcherOwned = false;
-    this.gitBackgroundStarted = false;
-
-    if (candidateGitSync) {
-      await this.requireGitReconciliation().replayAndQueue({
-        gitSync: candidateGitSync,
-        directorySync: candidateDirectorySync,
-        context,
-        source: "reconfigure-replay",
-      });
-    }
-    if (this.readyState) {
-      await this.requireEntityExportDispatcher().start();
-      await this.startBackgroundWork();
-    }
-    this.logger.info("Directory sync reconfigured", { path: syncPath });
   }
 
   private createDirectorySync(
@@ -745,8 +628,6 @@ export class DirectorySyncService {
     context: DirectorySyncContext,
     gitSync: BrokerGitSync,
     directorySync: DirectorySync,
-    /** From onRegister, plugins after this one have no entity types yet. */
-    options: { registering: boolean },
   ): Promise<void> {
     if (await gitSync.admitsMutations()) return;
 
@@ -758,7 +639,9 @@ export class DirectorySyncService {
       directorySync,
       context,
       source: "inherited-work-replay",
-      entityTypesIncomplete: options.registering,
+      // Called while plugins register: those after this one have no entity
+      // types yet.
+      entityTypesIncomplete: true,
     });
     await gitSync.openAdmission();
   }
@@ -814,28 +697,6 @@ export class DirectorySyncService {
       failures.push(error);
     }
     if (failures.length > 0) throw failures[0];
-  }
-
-  private async abandonCandidate(
-    runtime: DirectorySyncRuntime,
-    directorySync: DirectorySync,
-    gitSync: IGitSync | undefined,
-  ): Promise<void> {
-    try {
-      await runtime.close();
-    } catch {
-      // Preserve the candidate acquisition failure.
-    }
-    try {
-      await directorySync.stopWatching();
-    } catch {
-      // Preserve the candidate acquisition failure.
-    }
-    try {
-      await gitSync?.cleanup();
-    } catch {
-      // Preserve the candidate acquisition failure.
-    }
   }
 
   /**
