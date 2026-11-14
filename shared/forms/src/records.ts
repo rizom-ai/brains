@@ -1,5 +1,5 @@
-import { internalFullScope } from "@brains/plugins";
-import type { BaseEntity } from "@brains/plugins";
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
+import { internalFullScope } from "@brains/sdk/internal/service-runtime";
 import type { ServiceClassEntityService } from "@brains/sdk/internal/service-runtime";
 import type { FormAlertAnswer } from "./alert";
 import type { FormDefinition } from "./definition";

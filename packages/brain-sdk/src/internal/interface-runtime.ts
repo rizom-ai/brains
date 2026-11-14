@@ -170,3 +170,8 @@ export {
   type ToolResponse,
   type ToolVisibility,
 } from "@brains/plugins";
+// What the shared form pages and their HTTP intake are built with.
+export {
+  SITE_SLOT_ATTRIBUTE,
+  type WebRouteTransportContext,
+} from "@brains/plugins";

@@ -242,3 +242,8 @@ export {
   createAdminListTool,
   hasPermission,
 } from "@brains/plugins";
+// The runtime state a shared library's own stores are kept in.
+export type {
+  IRuntimeStateNamespace,
+  IRuntimeStateStore,
+} from "@brains/plugins";

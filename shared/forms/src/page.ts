@@ -1,5 +1,6 @@
 import { resolveConsoleThemeCSS } from "@brains/console-theme";
-import { createTemplate, SITE_SLOT_ATTRIBUTE } from "@brains/plugins";
+import { SITE_SLOT_ATTRIBUTE } from "@brains/sdk/internal/interface-runtime";
+import { createTemplate } from "@brains/sdk/internal/presentation";
 import { escapeHtml } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import { createElement, type ReactElement } from "react";

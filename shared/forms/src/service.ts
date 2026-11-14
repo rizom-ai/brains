@@ -2,13 +2,15 @@ import {
   notificationsSendContract,
   type WebRouteRole,
 } from "@brains/contracts";
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
 import type {
-  BaseEntity,
-  IRuntimeStateStore,
-  RuntimeHealthCheck,
   WebRouteDefinition,
   WebRouteTransportContext,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/interface-runtime";
+import type {
+  IRuntimeStateStore,
+  RuntimeHealthCheck,
+} from "@brains/sdk/internal/service-runtime";
 import {
   classEntityServiceOf,
   entityCreatedChannel,

@@ -1,7 +1,7 @@
 import type {
   IRuntimeStateNamespace,
   IRuntimeStateStore,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/service-runtime";
 import { z } from "@brains/utils/zod";
 
 /** The ledger's ceiling: submissions whose write or alert has not settled. */
