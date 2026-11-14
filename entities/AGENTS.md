@@ -22,7 +22,7 @@ Entity packages do not expose CRUD tools.
 - Store content as markdown, usually with frontmatter.
 - Keep metadata small, stable, and query-friendly.
 - Use Zod for entity, config, and frontmatter validation.
-- A converted package imports `@brains/sdk` and its `@brains/sdk/internal/*` entries, never `@brains/plugins`; lint refuses it in production code. A package not yet converted imports through `@brains/plugins`. Neither imports shell internals.
+- A package imports `@brains/sdk` and its `@brains/sdk/internal/*` entries, never `@brains/plugins` or another shell package; `arch:check` refuses it in production code.
 
 ## Responsibilities
 
