@@ -79,6 +79,79 @@ describe("convertToSDKTools", () => {
     ).toBe(false);
   });
 
+  // A local model sent system_create's source as a JSON string of the
+  // object; the repair that should rebuild it failed, so the call failed.
+  describe("an object argument sent as its JSON text", () => {
+    async function validator(): Promise<
+      NonNullable<ReturnType<typeof asSchema>["validate"]>
+    > {
+      const converted = convertToSDKTools(
+        [
+          {
+            name: "save_note",
+            description: "Save a note",
+            visibility: "admin",
+            inputSchema: {
+              entityType: z.string(),
+              content: z.string().optional(),
+              source: z
+                .object({ kind: z.string(), messageId: z.string() })
+                .strict(),
+            },
+            handler: mock(async () => ({ success: true as const })),
+          },
+        ],
+        { conversationId: "schema-test", interfaceType: "agent" },
+        { emit: mock(() => {}) },
+      );
+      const inputSchema = converted["save_note"]?.inputSchema;
+      if (!inputSchema) throw new Error("Missing input schema");
+      const { validate } = asSchema(inputSchema);
+      if (!validate) throw new Error("Missing Zod validator");
+      return validate;
+    }
+
+    it("is read as the object", async () => {
+      const validate = await validator();
+      expect(
+        await validate({
+          entityType: "note",
+          source: '{"kind": "prior-response", "messageId": "m1"}',
+        }),
+      ).toEqual({
+        success: true,
+        value: {
+          entityType: "note",
+          source: { kind: "prior-response", messageId: "m1" },
+        },
+      });
+    });
+
+    it("leaves JSON text a string where the tool takes a string", async () => {
+      const validate = await validator();
+      const content = '{"kind": "text"}';
+      expect(
+        await validate({
+          entityType: "note",
+          content,
+          source: { kind: "prior-response", messageId: "m1" },
+        }),
+      ).toMatchObject({ success: true, value: { content } });
+    });
+
+    it("stays rejected when the object it holds is not one the tool takes", async () => {
+      const validate = await validator();
+      expect(
+        (
+          await validate({
+            entityType: "note",
+            source: '{"kind": "prior-response"}',
+          })
+        ).success,
+      ).toBe(false);
+    });
+  });
+
   // Every agent step resends every tool schema; the draft URI tells the model
   // nothing and the provider assumes the draft anyway.
   it("sends tool schemas without the $schema draft URI", async () => {
