@@ -1,5 +1,27 @@
 # @rizom/brain
 
+## 0.2.0-alpha.710
+
+### Patch Changes
+
+- [#943](https://github.com/rizom-ai/brains/pull/943) [`73e0a00`](https://github.com/rizom-ai/brains/commit/73e0a003a704735f137afa8398f40175829290e5) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Studio's and the dashboard's browser bundles no longer carry Web Chat's shared ask-box record: its declaration in the contracts is side-effect free, so a bundle that does not read it drops it.
+
+- [#943](https://github.com/rizom-ai/brains/pull/943) [`6a2e681`](https://github.com/rizom-ai/brains/commit/6a2e6815128dcc2cc12661a4d71a13b239870a67) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The auth service is a declarative definition under the plugin id its class had, `auth-service`: the same passkey, OAuth, account and administration routes, the same passkey setup tool, and the same principal resolution. It is the brain's auth authority, the one service that binds the auth and account-settings backends and the runtime principals; a second service claiming the authority is refused, and the bindings are released when the service shuts down.
+
+- [#943](https://github.com/rizom-ai/brains/pull/943) [`9297070`](https://github.com/rizom-ai/brains/commit/92970700f6a562f2fe63c0208c391b17b665991c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The book Ask page reads whether Web Chat serves the guest box through the shared-state declaration Web Chat writes it through, never a storage key. A first-party service's data source reads shared records the same way, by their `defineSharedState` declaration.
+
+- [#951](https://github.com/rizom-ai/brains/pull/951) [`88169f0`](https://github.com/rizom-ai/brains/commit/88169f0802a22dd2c348f160ef86566008474ca2) Thanks [@yeehaa123](https://github.com/yeehaa123)! - ChatGPT can connect to a brain. A client metadata document that lists `none` among its `token_endpoint_auth_methods_supported` is registered as a public client, whatever method it prefers.
+
+- [#943](https://github.com/rizom-ai/brains/pull/943) [`2eee319`](https://github.com/rizom-ai/brains/commit/2eee319afbee8eaf638a73351b8ebbe7e952a0a5) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The runtime keeps no plugin class bases. `ServicePlugin`, `EntityPlugin`, `InterfacePlugin` and `MessageInterfacePlugin`, with their public wrappers and the `@brains/plugins/public/plugin-api` subpath, are gone; each declarative adapter registers through one internal core. A message interface's job progress, tool statuses and held-back completions run as before, through the coordinator every message interface owns.
+
+- [#943](https://github.com/rizom-ai/brains/pull/943) [`e42235c`](https://github.com/rizom-ai/brains/commit/e42235cbd1ef25e6d8cfcc7a73b5129f2da52f86) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A package shares a runtime-state record with other packages by declaring it with `defineSharedState("<package name>:<name>", schema)` from `@rizom/brain/services` and opening it with its setup's `runtimeState(state)`; registration refuses a record another package names. A fetching data source reads such a record with `context.sharedState(state).get(key)`, and another package's data source with `context.dataSources.fetch("<package name>:<local id>", query, schema)`, at the calling build's reads (only published records in a production build), null when no installed package serves it, and refused when the read would come back to a source the build is already reading. `SharedState` and `SharedStateReader` are the types.
+
+- [#943](https://github.com/rizom-ai/brains/pull/943) [`135347d`](https://github.com/rizom-ai/brains/commit/135347df06a1da2f080f53511c303a6df76fdbe1) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `BaseEntityDataSource`, its query schemas and the `@brains/plugins/services/base-entity-datasource` subpath are gone. A declared entity data source lists, pages, looks up and navigates its type exactly as before, through the runtime's own read functions.
+
+- [#943](https://github.com/rizom-ai/brains/pull/943) [`a6da1fa`](https://github.com/rizom-ai/brains/commit/a6da1fa75278644cf8217d8ddceedcddb5154003) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The brain registers a site's declared `dataSources` under the site package's name, `<site package>:<local id>`, and draws each section that names one from it.
+
+- [#943](https://github.com/rizom-ai/brains/pull/943) [`5e76027`](https://github.com/rizom-ai/brains/commit/5e76027684223b0d29aa9e704a5d164b17d20149) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A site package no longer embeds a runtime plugin: the brain refuses a site package that declares `plugin`. The bundled sites (personal, professional, default, organization) register their templates and data sources beside their structural definition, built from the same config their plugins took (their `entityDisplay` and the `brain.yaml` site settings), and their data sources are registered under the site's namespace (`professional-site:homepage-list`). Web Chat shares whether it serves the Ask box as `@brains/web-chat:ask-box`, which the homepages read through the public shared-state read; it rewrites the record on every start, so nothing is migrated.
+
 ## 0.2.0-alpha.709
 
 ### Patch Changes
