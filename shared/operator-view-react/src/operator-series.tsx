@@ -2,7 +2,7 @@
 import * as stylex from "@stylexjs/stylex";
 import { toneFill } from "@brains/app-ui-react";
 import type { ReactElement } from "react";
-import type { RuntimeStudioOperatorPanelBlock } from "@brains/plugins";
+import type { RuntimeStudioOperatorPanelBlock } from "@brains/sdk/internal/service-runtime";
 import { seriesStyles as s } from "./operator-series.styles";
 
 type SeriesBlock = Extract<RuntimeStudioOperatorPanelBlock, { type: "series" }>;

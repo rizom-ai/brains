@@ -3,7 +3,7 @@ import { OperatorTextLink } from "./operator-record";
 import type {
   RuntimeOperatorLaunchIntent,
   RuntimeOperatorLinkTarget,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/service-runtime";
 import { useContext, type ReactElement, type ReactNode } from "react";
 import {
   OperatorRendererHostContext,

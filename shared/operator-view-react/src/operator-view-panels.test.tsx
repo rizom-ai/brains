@@ -3,7 +3,7 @@ import type {
   RuntimeOperatorActionControl,
   RuntimeOperatorLaunchIntent,
   RuntimeStudioOperatorPanelBlock,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/service-runtime";
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";

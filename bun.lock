@@ -1830,7 +1830,7 @@
       "version": "0.2.0-alpha.707",
       "dependencies": {
         "@brains/app-ui-react": "workspace:*",
-        "@brains/plugins": "workspace:*",
+        "@brains/sdk": "workspace:*",
         "@stylexjs/stylex": "^0.19.0",
         "react": "^19.2.7",
       },

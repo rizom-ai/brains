@@ -1,7 +1,7 @@
 /** @jsxImportSource react */
 import { actionResultStyles as resultStyles } from "./operator-action-result.styles";
 import * as stylex from "@stylexjs/stylex";
-import type { RuntimeOperatorActionControl } from "@brains/plugins";
+import type { RuntimeOperatorActionControl } from "@brains/sdk/internal/service-runtime";
 import { useContext, type ReactElement } from "react";
 import { OperatorRendererHostContext } from "./operator-view-host";
 import type { PresentedActionResult } from "./operator-view-host";

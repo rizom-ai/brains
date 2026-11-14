@@ -1,8 +1,8 @@
 /** @jsxImportSource react */
 import type {
-  RuntimeStudioWorkspaceData,
   RuntimeOperatorActionControl,
-} from "@brains/plugins";
+  RuntimeStudioWorkspaceData,
+} from "@brains/sdk/internal/service-runtime";
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { operatorViewStylexCSS } from "@brains/operator-view-react";
 import { act, createElement } from "react";

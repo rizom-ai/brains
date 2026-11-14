@@ -247,3 +247,8 @@ export type {
   IRuntimeStateNamespace,
   IRuntimeStateStore,
 } from "@brains/plugins";
+// The operator surfaces' remaining shapes, as the shared React views draw them.
+export type {
+  RuntimeOperatorScalar,
+  RuntimePreparedConfirmation,
+} from "@brains/plugins";

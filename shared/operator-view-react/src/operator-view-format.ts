@@ -1,4 +1,4 @@
-import type { RuntimeOperatorScalar } from "@brains/plugins";
+import type { RuntimeOperatorScalar } from "@brains/sdk/internal/service-runtime";
 
 export function displayScalar(value: RuntimeOperatorScalar): string {
   if (value === null) return "—";

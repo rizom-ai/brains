@@ -14,10 +14,10 @@ import { actionLayoutStyles as actionLayout } from "./operator-action-layout.sty
 import type * as stylex from "@stylexjs/stylex";
 import { styledProps } from "./styled-props";
 import type {
-  RuntimeStudioOperatorView,
   RuntimeOperatorActionControl,
   RuntimeOperatorLinkTarget,
-} from "@brains/plugins";
+  RuntimeStudioOperatorView,
+} from "@brains/sdk/internal/service-runtime";
 import {
   createContext,
   type ButtonHTMLAttributes,
