@@ -1,5 +1,15 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.286
+
+### Patch Changes
+
+- [#943](https://github.com/rizom-ai/brains/pull/943) [`e03139d`](https://github.com/rizom-ai/brains/commit/e03139d9cd539ff13a6800680b7a3208aa49ca43) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The site builds its templates with `createTemplate` from the SDK's runtime-free site entry rather than the templates package directly; what it renders is unchanged.
+
+- [#943](https://github.com/rizom-ai/brains/pull/943) [`5e76027`](https://github.com/rizom-ai/brains/commit/5e76027684223b0d29aa9e704a5d164b17d20149) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The rizom.ai site carries its templates and data sources beside its structural definition instead of an embedded runtime plugin. Its opening, writing and asked sources read agent-discovery's map, the blog's, decks' and FAQ lists by `<package name>:<local id>` and the Ask box's availability from the record Web Chat shares, through the public data source context.
+- Updated dependencies [[`a6da1fa`](https://github.com/rizom-ai/brains/commit/a6da1fa75278644cf8217d8ddceedcddb5154003)]:
+  - @rizom/site@0.2.0-alpha.246
+
 ## 0.2.0-alpha.285
 
 ### Patch Changes

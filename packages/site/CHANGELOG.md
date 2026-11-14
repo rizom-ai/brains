@@ -1,5 +1,11 @@
 # @rizom/site
 
+## 0.2.0-alpha.246
+
+### Patch Changes
+
+- [#943](https://github.com/rizom-ai/brains/pull/943) [`a6da1fa`](https://github.com/rizom-ai/brains/commit/a6da1fa75278644cf8217d8ddceedcddb5154003) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A site lists the data its sections are drawn from in `dataSources`: fetching sources declared with `defineDataSource` from `@rizom/brain/entities`. A section names one with `dataSource` in its metadata, and what the source answers is the section's content. `defineSite` refuses two sources with one id, a section naming a source the site does not declare, and anything but a fetching source.
+
 ## 0.2.0-alpha.245
 
 ### Patch Changes
