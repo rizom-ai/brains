@@ -40,7 +40,7 @@ import { join } from "path";
 interface AskBoxAvailabilityStore {
   set(key: string, value: AskBoxAvailability): Promise<void>;
 }
-import { createScheduledMaintenanceDaemon } from "@brains/scheduler/maintenance";
+import { createScheduledMaintenanceDaemon } from "@brains/sdk/internal/interface-runtime";
 import {
   ASK_BOX_BOOT_PATH,
   ASK_BOX_LOADER_SCRIPT,

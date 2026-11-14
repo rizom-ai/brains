@@ -175,3 +175,5 @@ export {
   SITE_SLOT_ATTRIBUTE,
   type WebRouteTransportContext,
 } from "@brains/plugins";
+// The daemon an interface runs its scheduled maintenance as.
+export { createScheduledMaintenanceDaemon } from "@brains/scheduler/maintenance";

@@ -257,3 +257,9 @@ export type {
   BaseDataSourceContext,
   IWebRoutesNamespace,
 } from "@brains/plugins";
+// The scheduler a content pipeline runs its publish and generation schedules on.
+export {
+  BunSchedulerBackend,
+  type ScheduledJob,
+  type SchedulerBackend,
+} from "@brains/scheduler";
