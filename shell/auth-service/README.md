@@ -32,7 +32,7 @@ Synchronous metadata access does not admit work. The account-settings backend is
 
 ## OAuth client registration
 
-The authorization server advertises Client ID Metadata Document (CIMD) support. HTTPS URL client IDs are resolved on authorization, validated against the document's exact `client_id` and `redirect_uris`, cached according to HTTP cache headers, and persisted for code and token exchange. Document fetches reject local/private destinations, validate redirects, time out, and enforce the 5 KiB response limit. CIMD currently supports public clients using `token_endpoint_auth_method: "none"`.
+The authorization server advertises Client ID Metadata Document (CIMD) support. HTTPS URL client IDs are resolved on authorization, validated against the document's exact `client_id` and `redirect_uris`, cached according to HTTP cache headers, and persisted for code and token exchange. Document fetches reject local/private destinations, validate redirects, time out, and enforce the 5 KiB response limit. CIMD clients are registered as public clients: a document is accepted when it can authenticate with `none`, either as its only `token_endpoint_auth_method` or as an entry in `token_endpoint_auth_methods_supported`.
 
 The deprecated Dynamic Client Registration endpoint remains available at `/register` for compatibility. It accepts `application_type` and enforces its redirect URI constraints when supplied. Dynamically registered credentials are bound to the authorization-server issuer that created them; CIMD URL identifiers remain portable across authorization servers as required by the specification.
 
