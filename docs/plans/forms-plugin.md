@@ -106,7 +106,7 @@ The site atlas finds the contact form by a route role, not by plugin id, as #822
 - `plugins/contact` as a target: `contact-request`, the built-in contact form, its Inbox source. Expiry, record and byte caps, and the daily deletion are removed, along with their tests.
 - Notifications with the submission and Reply-To: `replyTo` on the notifications contract and the email transport.
 - The site atlas lookup by role.
-- Docs: both plugin READMEs, `entity-types-reference.md`, `architecture-overview.md`, public-ask Slice D, and contact's line in step 7 of [authoring-boundary-reapply.md](./authoring-boundary-reapply.md), which gains forms and quiz.
+- Docs: both plugin READMEs, `entity-types-reference.md`, `architecture-overview.md`, public-ask Slice D.
 
 Done when rizom.ai's `/contact` works in production through the engine, its stored requests are untouched, and the email arrives with the message and a working Reply-To.
 
