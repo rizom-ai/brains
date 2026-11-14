@@ -90,6 +90,35 @@ module.exports = {
       },
     },
     {
+      name: "declared-packages-import-only-the-sdk",
+      severity: "error",
+      comment:
+        "Every package under entities/, plugins/, interfaces/ and sites/, and the shared libraries they are built from, is a declarative definition: its source imports @brains/sdk and the shared libraries, never a shell package. What a package needs is admitted on the SDK (first-party capabilities through @brains/sdk/internal/*, each tracked in docs/legacy-code-inventory.json) rather than imported from the runtime. Tests may still build their harness through the plugins package.",
+      from: {
+        path: [
+          "^(entities|plugins|interfaces|sites)/[^/]+/src/",
+          "^interfaces/[^/]+/ui-react/src/",
+          "^shared/(action-items|forms|media-page-composer|operator-view-react|site-atlas)/src/",
+        ],
+        pathNot: ["\\.test\\.(ts|tsx)$", "/src/test/"],
+      },
+      to: {
+        path: "^shell/",
+      },
+    },
+    {
+      name: "plugin-core-stays-in-the-plugin-runtime",
+      severity: "error",
+      comment:
+        "PluginCore is the one internal core the declarative adapters share. No entry exports it, and nothing outside shell/plugins imports it: a package is a definition, never a subclass.",
+      from: {
+        pathNot: "^shell/plugins/",
+      },
+      to: {
+        path: "^shell/plugins/src/plugin-core\\.ts$",
+      },
+    },
+    {
       name: "plugins-can-only-import-shell-and-shared",
       severity: "error",
       comment:
