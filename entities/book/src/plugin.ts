@@ -1,4 +1,5 @@
 import { homepageChatAvailable } from "@brains/site-atlas";
+import { askBoxAvailabilityState } from "@brains/contracts";
 import {
   defineServicePlugin,
   z,
@@ -51,10 +52,13 @@ export const bookPackage: ServicePackageDefinition<typeof bookConfigSchema> =
             {
               // The box is named for whom the site speaks, as on the homepage.
               name: (): string => runtime.identity.getProfile().name,
+              // The record Web Chat shares, read in the build's process
+              // through the declaration Web Chat writes it through.
               chatAvailable: (build): Promise<boolean> =>
-                homepageChatAvailable(build, {
-                  runtimeState: runtime.classRuntimeState,
-                }),
+                homepageChatAvailable(
+                  build,
+                  build.sharedState(askBoxAvailabilityState),
+                ),
             },
             runtime.logger.child("BookAskDataSource"),
           ),

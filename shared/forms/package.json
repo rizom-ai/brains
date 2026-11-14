@@ -6,7 +6,6 @@
   "dependencies": {
     "@brains/console-theme": "workspace:*",
     "@brains/contracts": "workspace:*",
-    "@brains/plugins": "workspace:*",
     "@brains/sdk": "workspace:*",
     "@brains/site-composition": "workspace:*",
     "@brains/utils": "workspace:*",
@@ -14,6 +13,7 @@
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
+    "@brains/plugins": "workspace:*",
     "@brains/runtime-state": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",

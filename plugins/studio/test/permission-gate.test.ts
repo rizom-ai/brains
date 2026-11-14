@@ -7,7 +7,7 @@ import {
   type MockShell,
 } from "@brains/plugins/test";
 import { describe, expect, it, spyOn } from "bun:test";
-import { AuthServicePlugin } from "@brains/auth-service";
+import { authServiceOf, authServicePlugin } from "@brains/auth-service";
 import type { WebRouteDefinition } from "@brains/plugins";
 
 import { z, type ZodType } from "@brains/utils/zod";
@@ -191,11 +191,11 @@ function apiRouteRequests(): RouteRequest[] {
 }
 
 async function createSessionMatrix(shell: MockShell): Promise<SessionMatrix> {
-  const authPlugin = new AuthServicePlugin({
+  const authPlugin = authServicePlugin({
     storageDir: await createTempDataDir("brains-studio-permission-gate-"),
   });
   await authPlugin.register(shell);
-  const service = authPlugin.getService();
+  const service = authServiceOf(shell.getAuthRegistry());
   const admin = await service.createAuthSession();
 
   const trustedUser = await service.createUser({

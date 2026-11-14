@@ -5,7 +5,7 @@ import {
   type ServicePluginContext,
 } from "@brains/plugins/test";
 import { inboxItemSchema, type InboxActor } from "@brains/plugins";
-import { ActionItemAdapter } from "@brains/action-items";
+import { actionItemAdapter } from "@brains/action-items";
 import { ActionItemInboxSource } from "../src/inbox-source";
 import {
   actionItemSchema,
@@ -13,7 +13,7 @@ import {
   type ActionItemStatus,
 } from "@brains/action-items";
 
-const adapter = new ActionItemAdapter();
+const adapter = actionItemAdapter;
 const admin: InboxActor = {
   permissionLevel: "admin",
 };

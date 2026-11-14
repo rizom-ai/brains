@@ -43,6 +43,7 @@ import type {
 import { feedItemSchema, renderRssFeed } from "@brains/site-composition";
 import {
   entityActionPolicyRuleSchema,
+  type EntityActionPolicyConfig,
   type EntityActionRequiredLevel,
   type PermissionService,
   type Template,
@@ -57,8 +58,8 @@ import { readMarkdownFrontmatter } from "@brains/utils/markdown-frontmatter";
 import { isPlainRecord } from "@brains/utils/predicates";
 import { definedFields } from "@brains/utils/strip-undefined";
 import { z } from "@brains/utils/zod";
-import { EntityPlugin, emptyEntityPluginConfigSchema } from "./entity-plugin";
-import type { EntityPluginContext } from "./context";
+import { PluginCore } from "../plugin-core";
+import { createEntityPluginContext, type EntityPluginContext } from "./context";
 import { entityTypeConfigFor } from "./entity-definition-config";
 import { createEntityReader } from "./entity-reader";
 import {
@@ -806,11 +807,17 @@ function projectionRule(
   });
 }
 
-class DeclarativeEntityPlugin extends EntityPlugin<
-  EntityOf<AnyEntityDefinition>,
+/** A declared entity type takes no config of its own. */
+const noEntityConfigSchema: z.ZodObject<Record<string, never>> = z.object({});
+
+class DeclarativeEntityPlugin extends PluginCore<
   Record<string, never>,
-  Record<string, never>
+  Record<string, never>,
+  EntityPluginContext
 > {
+  public readonly type = "entity" as const;
+  /** The default action policy this type declares, keyed by its bare type. */
+  public readonly entityActionPolicy?: EntityActionPolicyConfig;
   private readonly entityTypeConfig: EntityTypeConfig;
   private readonly projections: readonly ProjectionDefinition[];
   private readonly scope: (localId: string) => string;
@@ -852,19 +859,16 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     packageDataSourceIds: ReadonlySet<string>,
     packageTypes: ReadonlySet<string>,
   ) {
-    super(
-      scope(definition.type),
-      metadata,
-      {},
-      emptyEntityPluginConfigSchema,
-      // Keyed by the bare entity type: the policy is about what may be done
-      // to entities of this type, not about which package declared them.
-      definition.actions && {
+    super(scope(definition.type), metadata, {}, noEntityConfigSchema);
+    // Keyed by the bare entity type: the policy is about what may be done
+    // to entities of this type, not about which package declared them.
+    if (definition.actions) {
+      this.entityActionPolicy = {
         [definition.type]: entityActionPolicyRuleSchema.parse(
           definition.actions,
         ),
-      },
-    );
+      };
+    }
     this.entityTypeConfig = entityTypeConfigFor(
       definition.classification,
       definition.config,
@@ -936,7 +940,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     });
   }
 
-  protected override getEntityTypeConfig(): EntityTypeConfig {
+  private getEntityTypeConfig(): EntityTypeConfig {
     return this.entityTypeConfig;
   }
 
@@ -1101,7 +1105,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     return sourceEntityId ? { sourceEntityType, sourceEntityId } : null;
   }
 
-  protected override createGenerationHandler(
+  private createGenerationHandler(
     context: EntityPluginContext,
   ): JobHandler | null {
     return this.generation
@@ -1115,7 +1119,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
       : null;
   }
 
-  protected override getTemplates(): Record<string, Template> | null {
+  private getTemplates(): Record<string, Template> | null {
     const templates = this.templates;
     if (!templates) return null;
     // A template naming one of its package's data sources follows it to the
@@ -1131,14 +1135,22 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     );
   }
 
-  protected override getDataSources(): DataSource[] {
-    // Scoped to the package, so two packages may each declare "entities".
+  private getDataSources(): DataSource[] {
+    if (this.dataSources.length === 0) return [];
+    const shell = this.scopedShell;
+    if (!shell) {
+      throw new Error(
+        `Entity type "${this.entityType}" binds its data sources once it is registered`,
+      );
+    }
+    // Scoped to the package, so two packages may each declare "entities";
+    // read by other packages under the package's name, whatever the scope.
     return this.dataSources.map((declaration) =>
-      createDeclaredDataSource(
-        declaration,
-        this.scope(declaration.id),
-        this.logger,
-      ),
+      createDeclaredDataSource(declaration, this.scope(declaration.id), {
+        publicId: `${this.packageName}:${declaration.id}`,
+        runtimeState: shell.getRuntimeState(),
+        dataSources: shell.getDataSourceRegistry(),
+      }),
     );
   }
 
@@ -1159,7 +1171,61 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   ): Promise<PluginCapabilities> {
     this.permissions = shell.getPermissionService();
     this.scopedShell = shell;
-    return super.register(shell, registrationContext);
+    const context = createEntityPluginContext(
+      shell,
+      this.id,
+      registrationContext,
+    );
+    this.context = context;
+    // Tool and resource execution over the message bus.
+    this.setupMessageHandlers(context);
+
+    // The type's rules are resolved before it registers, so a type that
+    // writes itself fails closed as a projection source unless it opts in.
+    const projectionRules = this.getProjectionRules();
+    const entityTypeConfig = this.getEntityTypeConfig();
+    const producesOwnEntityType = projectionRules.some(
+      (rule) => rule.targetType === this.entityType,
+    );
+    const hasExplicitProjectionSourceOptIn =
+      entityTypeConfig.projectionSource !== false &&
+      entityTypeConfig.projectionSourceRole !== "excluded" &&
+      (entityTypeConfig.projectionSource === true ||
+        entityTypeConfig.projectionSourceRole !== undefined);
+    context.entities.register(
+      this.entityType,
+      this.schema,
+      this.adapter,
+      producesOwnEntityType && !hasExplicitProjectionSourceOptIn
+        ? {
+            ...entityTypeConfig,
+            projectionSource: false,
+            projectionSourceRole: "excluded" as const,
+          }
+        : entityTypeConfig,
+    );
+
+    const handler = this.createGenerationHandler(context);
+    if (handler) {
+      context.jobs.registerHandler(`${this.entityType}:generation`, handler);
+    }
+    const templates = this.getTemplates();
+    if (templates && Object.keys(templates).length > 0) {
+      shell.registerTemplates(templates, this.id);
+    }
+    for (const dataSource of this.getDataSources()) {
+      context.entities.registerDataSource(dataSource);
+    }
+
+    await this.onRegister(context);
+
+    const instructions = await this.getInstructions();
+    return {
+      tools: [],
+      resources: [],
+      ...(instructions && { instructions }),
+      ...(projectionRules.length > 0 && { projectionRules }),
+    };
   }
 
   protected override async onRegister(
@@ -2664,7 +2730,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     }
   }
 
-  protected override getProjectionRules(): ProjectionRule[] {
+  private getProjectionRules(): ProjectionRule[] {
     return [
       ...this.projections.map((projection) =>
         projectionRule(projection, this.version, this.scope),
@@ -2714,4 +2780,9 @@ export function createEntityPackagePlugins(
         packageTypes,
       ),
   );
+}
+
+/** Whether a value is an entity type a declared package installed. */
+export function isDeclarativeEntityPlugin(value: unknown): boolean {
+  return value instanceof DeclarativeEntityPlugin;
 }

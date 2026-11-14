@@ -12,8 +12,6 @@ export {
   ASK_CLOSING_ATTRIBUTE,
   ASK_DOCK_ATTRIBUTE,
   ASK_BOX_SCRIPT_PATH,
-  ASK_BOX_STATE_KEY,
-  ASK_BOX_STATE_NAMESPACE,
   ASK_KEYBOARD_ATTRIBUTE,
   ASK_NAME_ATTRIBUTE,
   ASK_PAGE_LOCK_ATTRIBUTE,
@@ -40,10 +38,8 @@ export {
   ASK_AIMED_EVENT,
   ASK_STATUS_ATTRIBUTE,
   ASK_STYLED_ATTRIBUTE,
-  askBoxAvailabilitySchema,
   answeredBy,
   sourceBrainSchema,
-  type AskBoxAvailability,
 } from "./ask-box";
 export {
   a2aAgentsContract,
@@ -263,6 +259,17 @@ export {
   type PublishFailedPayload,
 } from "./message-channels";
 export { defineChannel, isChannel, type Channel } from "./channel";
+export {
+  ASK_BOX_STATE_KEY,
+  askBoxAvailabilityState,
+  type AskBoxAvailability,
+} from "./ask-box-state";
+export {
+  defineSharedState,
+  isSharedState,
+  sharedStateNamespace,
+  type SharedState,
+} from "./shared-state";
 export {
   directorySyncPathContract,
   directorySyncPathRequestSchema,

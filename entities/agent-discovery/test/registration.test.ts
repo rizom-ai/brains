@@ -6,13 +6,16 @@ import {
   atprotoBrainDiscoveredChannel,
 } from "@brains/atproto-contracts";
 import {
-  EntityPlugin,
   SYSTEM_CHANNELS,
   dashboardWidgetRegisterContract,
   type Plugin,
   type PluginCapabilities,
 } from "@brains/plugins";
-import { createMockShell, type MockShell } from "@brains/plugins/test";
+import {
+  createMockShell,
+  type MockShell,
+  isDeclaredEntityType,
+} from "@brains/plugins/test";
 import type { AgentDiscoveryCompositeConfigInput } from "../src";
 import { getAgentDiscoveryInstructions } from "../src/lib/agent-instructions";
 import { createAgentDiscoveryPlugins } from "./agent-discovery-plugins";
@@ -167,7 +170,7 @@ describe("the agents capability's registered surface", () => {
     // Neither type adds a rule to the brain's action policy.
     expect(
       plugins.flatMap((plugin) =>
-        plugin instanceof EntityPlugin && plugin.entityActionPolicy
+        isDeclaredEntityType(plugin) && plugin.entityActionPolicy
           ? [plugin.entityActionPolicy]
           : [],
       ),

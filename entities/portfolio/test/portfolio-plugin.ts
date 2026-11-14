@@ -1,15 +1,11 @@
-import {
-  EntityPlugin,
-  instantiatePluginPackageDefinition,
-  type BaseEntity,
-} from "@brains/plugins";
+import { instantiatePluginPackageDefinition } from "@brains/plugins";
 import portfolioPackage from "../src";
+import {
+  isDeclaredEntityType,
+  type DeclaredEntityTypePlugin,
+} from "@brains/plugins/test";
 
-export type PortfolioEntityPlugin = EntityPlugin<
-  BaseEntity,
-  Record<string, never>,
-  Record<string, never>
->;
+export type PortfolioEntityPlugin = DeclaredEntityTypePlugin;
 
 /** The entity plugin the portfolio installs, as the canonical brain composes it. */
 export function portfolioPlugin(): PortfolioEntityPlugin {
@@ -20,7 +16,7 @@ export function portfolioPlugin(): PortfolioEntityPlugin {
     // Under the id its class had: portfolio:generation, project:generation.
     { pluginId: "portfolio" },
   );
-  if (!(plugin instanceof EntityPlugin)) {
+  if (!isDeclaredEntityType(plugin)) {
     throw new Error("The portfolio installs no entity plugin");
   }
   return plugin;

@@ -1,4 +1,7 @@
-import type { MediaFormat, ViewTemplate } from "@brains/plugins";
+import type {
+  MediaFormat,
+  ViewTemplate,
+} from "@brains/sdk/internal/presentation";
 import type { SiteImageRendererService } from "@brains/site-engine";
 
 export interface MediaSiteConfig {

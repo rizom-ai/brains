@@ -1,5 +1,5 @@
 import { computeContentHash } from "@brains/utils/hash";
-import { ENTITY_SYSTEM_FIELDS } from "@brains/plugins";
+import { ENTITY_SYSTEM_FIELDS } from "@brains/sdk/internal/entity-runtime";
 import {
   generateMarkdown,
   readMarkdownFrontmatter,

@@ -1,17 +1,25 @@
 import { describe, expect, test } from "bun:test";
-import { RizomRuntimePlugin } from "../../src/rizom/runtime/plugin";
+import site from "../../src";
+import { installedSite } from "../installed-site";
+import { createPluginHarness, installSiteRuntime } from "@brains/plugins/test";
 
-describe("RizomRuntimePlugin config validation", () => {
+describe("rizom site config validation", () => {
   test("accepts a theme package name", () => {
-    const plugin = new RizomRuntimePlugin("@rizom/site-rizom-ai", {
-      theme: "@brains/theme-rizom",
-    });
-    expect(plugin.config.theme).toBe("@brains/theme-rizom");
+    expect(() =>
+      installSiteRuntime(createPluginHarness(), site, {
+        packageName: "@rizom/site-rizom-ai",
+        settings: { theme: "@brains/theme-rizom" },
+      }),
+    ).not.toThrow();
+    expect(installedSite().getTemplates().has("rizom:opening")).toBe(true);
   });
 
   test("rejects a non-string theme instead of dropping it", () => {
-    expect(
-      () => new RizomRuntimePlugin("@rizom/site-rizom-ai", { theme: 42 }),
+    expect(() =>
+      installSiteRuntime(createPluginHarness(), site, {
+        packageName: "@rizom/site-rizom-ai",
+        settings: { theme: 42 },
+      }),
     ).toThrow(/theme/);
   });
 });

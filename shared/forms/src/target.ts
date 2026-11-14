@@ -1,4 +1,5 @@
-import type { BaseEntity, InboxItem } from "@brains/plugins";
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
+import type { InboxItem } from "@brains/sdk/internal/service-runtime";
 import type { z } from "@brains/utils/zod";
 import type { FormAlertAnswer } from "./alert";
 import type { FormDefinition } from "./definition";

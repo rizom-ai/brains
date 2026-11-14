@@ -1,5 +1,5 @@
 import { actorRefSchema } from "@brains/contracts";
-import { baseEntityParserSchema } from "@brains/plugins";
+import { baseEntityParserSchema } from "@brains/sdk/internal/entity-runtime";
 import { fillCapturedAt, flattenStoredPerson } from "./stored-shape";
 import { z } from "@brains/utils/zod";
 

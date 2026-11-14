@@ -1,5 +1,6 @@
 import type { IShell } from "../interfaces";
-import type { BasePluginContext as PublicBasePluginContext } from "../public/types";
+import type { JudgeInput } from "../interfaces";
+import type { AppInfo } from "../contracts/app-info";
 import { type Logger } from "@brains/utils/logger";
 import { derivePreviewDomain } from "@brains/site-composition";
 import type {
@@ -51,10 +52,16 @@ import {
   type IPublicSkillsNamespace,
 } from "../a2a/public-skills";
 import type {
+  IChannelsNamespace,
   IConversationsNamespace,
   IEndpointsNamespace,
+  IEvalNamespace,
+  IIdentityNamespace,
+  IInboxNamespace,
   IInboxFollowUpsNamespace,
   IAnalyticsNamespace,
+  IOperationalHealthNamespace,
+  IPermissionsNamespace,
   IInteractionsNamespace,
   IMessagingNamespace,
   IPluginsNamespace,
@@ -92,17 +99,46 @@ export type {
  * Contains only capabilities that every plugin needs.
  * AI, templates, views, and transport are on sibling contexts.
  *
- * Extends the published context from `../public/types` (the surface shipped as
- * `@rizom/brain/plugins`), which is deliberately narrower: members declared
- * only here are withheld from external authors, and members redeclared here
- * refine a weaker published type. The extends clause keeps the published
- * surface honest — a member the SDK promises that the runtime lacks, or an
- * incompatible refinement, fails to compile at this declaration.
+ * Internal to the runtime: packages are declarative definitions and reach
+ * what they need through their setup context and `@brains/sdk/internal/*`.
  */
-export interface BasePluginContext extends PublicBasePluginContext {
+export interface BasePluginContext {
   // ============================================================================
   // Plugin Identity
   // ============================================================================
+
+  /** The registered plugin id. */
+  readonly pluginId: string;
+
+  /** Where this plugin keeps its files. */
+  readonly dataDir: string;
+
+  readonly domain: string | undefined;
+  readonly siteUrl: string | undefined;
+  readonly localSiteUrl: string | undefined;
+  readonly previewUrl: string | undefined;
+  readonly preferLocalUrls: boolean;
+
+  /** Whether this brain runs in production rather than local development. */
+  readonly production: boolean;
+
+  readonly appInfo: () => Promise<AppInfo>;
+  readonly judge: <T>(input: JudgeInput<T>) => Promise<{
+    verdict: T;
+    usage: {
+      promptTokens: number;
+      completionTokens: number;
+      totalTokens: number;
+    };
+  }>;
+
+  readonly semantic: ISemanticNamespace;
+  readonly identity: IIdentityNamespace;
+  readonly channels: IChannelsNamespace;
+  readonly inbox: IInboxNamespace;
+  readonly operationalHealth: IOperationalHealthNamespace;
+  readonly eval: IEvalNamespace;
+  readonly permissions: IPermissionsNamespace;
 
   /** Whether this context may register only durable execution dependencies. */
   readonly executionOnly: boolean;

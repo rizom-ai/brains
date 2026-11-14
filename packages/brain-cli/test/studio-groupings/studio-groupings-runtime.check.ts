@@ -12,7 +12,7 @@ import {
   type ProjectionWriteIntent,
 } from "@brains/entity-service";
 import { migrateEntities } from "@brains/entity-service/migrate";
-import { baseEntitySchema, type BaseEntity } from "@brains/entity-service";
+import { baseEntitySchema } from "@brains/entity-service";
 import { createTestEntityAdapter } from "@brains/entity-service/test";
 import notePackage from "@brains/note";
 import { declaredType } from "../helpers/declared-type";
@@ -22,13 +22,17 @@ import promptPackage from "@brains/prompt";
 import wishlistPackage from "@brains/wishlist";
 import { z } from "@brains/utils/zod";
 import {
-  EntityPlugin,
   defineEntity,
   defineEntityPackage,
   instantiatePluginPackageDefinition,
   type EntityTypeConfig,
 } from "@brains/plugins";
-import { createMockShell, createPluginHarness } from "@brains/plugins/test";
+import {
+  createMockShell,
+  createPluginHarness,
+  isDeclaredEntityType,
+  type DeclaredEntityTypePlugin,
+} from "@brains/plugins/test";
 import { createSilentLogger, createTestDirectory } from "@brains/test-utils";
 import {
   generateMarkdown,
@@ -46,27 +50,19 @@ import {
 } from "@brains/studio/test";
 
 /** The entity plugin the prompt package installs, as a brain composes it. */
-function promptPlugin(): EntityPlugin<
-  BaseEntity,
-  Record<string, never>,
-  Record<string, never>
-> {
+function promptPlugin(): DeclaredEntityTypePlugin {
   const [plugin] = instantiatePluginPackageDefinition(
     promptPackage,
     {},
     { name: "@brains/prompt", version: "0.0.0-test" },
   );
-  if (!(plugin instanceof EntityPlugin)) throw new Error("No prompt plugin");
+  if (!isDeclaredEntityType(plugin)) throw new Error("No prompt plugin");
   return plugin;
 }
 
 /** The type config a plugin registers, read from a registry it installs into. */
 async function registeredConfig(
-  plugin: EntityPlugin<
-    BaseEntity,
-    Record<string, never>,
-    Record<string, never>
-  >,
+  plugin: DeclaredEntityTypePlugin,
 ): Promise<EntityTypeConfig> {
   const harness = createPluginHarness({ logger: createSilentLogger() });
   await harness.installPlugin(plugin);
@@ -2078,14 +2074,12 @@ const card = defineEntity({
   metadata: z.object({ title: z.string(), tone: z.enum(["plain", "warm"]) }),
 });
 
-function declaredPlugins(): Array<
-  EntityPlugin<BaseEntity, Record<string, never>, Record<string, never>>
-> {
+function declaredPlugins(): Array<DeclaredEntityTypePlugin> {
   return instantiatePluginPackageDefinition(
     defineEntityPackage({ id: "declared", entities: [guidance, card] }),
     {},
     { name: "@fixture/declared", version: "0.1.0" },
-  ).flatMap((plugin) => (plugin instanceof EntityPlugin ? [plugin] : []));
+  ).flatMap((plugin) => (isDeclaredEntityType(plugin) ? [plugin] : []));
 }
 
 function registerDeclared(registry: EntityRegistry): void {
@@ -2258,7 +2252,7 @@ function registerPackage(
       { name: packageName, version: "0.0.0-test" },
       { pluginId },
     )) {
-      if (plugin instanceof EntityPlugin) {
+      if (isDeclaredEntityType(plugin)) {
         registry.registerEntityType(
           plugin.entityType,
           plugin.schema,

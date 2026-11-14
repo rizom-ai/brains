@@ -18,10 +18,10 @@ import { rendererLayoutStyles as rendererLayout } from "./operator-renderer-layo
 import * as stylex from "@stylexjs/stylex";
 import { OperatorMetadata } from "./operator-metadata";
 import type {
-  RuntimeStudioOperatorPanelBlock,
   RuntimeOperatorActionControl,
   RuntimeOperatorLaunchIntent,
-} from "@brains/plugins";
+  RuntimeStudioOperatorPanelBlock,
+} from "@brains/sdk/internal/service-runtime";
 import { useContext, useState, type DragEvent, type ReactElement } from "react";
 import {
   OperatorRendererHostContext,

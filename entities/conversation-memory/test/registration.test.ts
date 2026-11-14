@@ -4,7 +4,6 @@ import {
   spaceNoticeActionContract,
 } from "@brains/contracts";
 import {
-  EntityPlugin,
   SYSTEM_CHANNELS,
   conversationMessageAddedChannel,
   dashboardWidgetRegisterContract,
@@ -12,7 +11,11 @@ import {
   type Plugin,
   type PluginCapabilities,
 } from "@brains/plugins";
-import { createMockShell, type MockShell } from "@brains/plugins/test";
+import {
+  createMockShell,
+  type MockShell,
+  isDeclaredEntityType,
+} from "@brains/plugins/test";
 import { createConversationMemoryPlugins } from "./conversation-memory-plugins";
 
 interface Installed {
@@ -127,7 +130,7 @@ describe("the conversation-memory package's registered surface", () => {
     // Nobody edits a summary by hand, in the brain's action policy.
     expect(
       plugins.flatMap((plugin) =>
-        plugin instanceof EntityPlugin && plugin.entityActionPolicy
+        isDeclaredEntityType(plugin) && plugin.entityActionPolicy
           ? [plugin.entityActionPolicy]
           : [],
       ),

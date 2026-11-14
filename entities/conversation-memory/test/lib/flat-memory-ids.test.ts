@@ -1,19 +1,19 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import {
-  ActionItemAdapter,
+  actionItemAdapter,
   actionItemSchema,
   type ActionItemMetadata,
 } from "@brains/action-items";
 import { EntityRegistry, EntityService } from "@brains/entity-service";
 import { migrateEntities } from "@brains/entity-service/migrate";
-import { EntityPlugin } from "@brains/plugins";
-import { createMockShell } from "@brains/plugins/test";
+
+import { createMockShell, isDeclaredEntityType } from "@brains/plugins/test";
 import { createSilentLogger, createTestDirectory } from "@brains/test-utils";
 import { createConversationMemoryPlugins } from "../conversation-memory-plugins";
 import { flattenMemoryIds } from "../../src/lib/flat-memory-ids";
 import type { DecisionEntity } from "../../src/schemas/conversation-memory";
 
-const actionItems = new ActionItemAdapter();
+const actionItems = actionItemAdapter;
 const created = "2026-09-01T10:00:00.000Z";
 
 let close: (() => Promise<void>) | undefined;
@@ -28,7 +28,7 @@ async function brain(): Promise<EntityService> {
   const registry = EntityRegistry.createFresh(logger);
   // The package's declared action-item and decision types.
   for (const plugin of createConversationMemoryPlugins()) {
-    if (plugin instanceof EntityPlugin && plugin.entityType !== "summary")
+    if (isDeclaredEntityType(plugin) && plugin.entityType !== "summary")
       registry.registerEntityType(
         plugin.entityType,
         plugin.schema,

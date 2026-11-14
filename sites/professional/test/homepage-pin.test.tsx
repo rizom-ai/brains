@@ -1,8 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import { createPluginHarness } from "@brains/plugins/test";
 import type { SiteLayoutInfo } from "@brains/site-composition";
-import { ProfessionalSitePlugin } from "../src/plugin";
+import { installedSite } from "./install-site";
 import { SiteLayout, type HomepageAtlasData } from "@brains/site-atlas";
 import {
   HomepageListLayout,
@@ -228,12 +227,9 @@ describe("professional homepage pin", () => {
   });
 
   it("ships the atlas script with the opted-in homepage", async () => {
-    const harness = createPluginHarness<ProfessionalSitePlugin>({
-      dataDir: "/tmp/test-professional-homepage-pin",
+    const harness = installedSite("/tmp/test-professional-homepage-pin", {
+      homepageOpening: true,
     });
-    await harness.installPlugin(
-      new ProfessionalSitePlugin({ homepageOpening: true }),
-    );
     const template = harness
       .getTemplates()
       .get("professional-site:homepage-list");

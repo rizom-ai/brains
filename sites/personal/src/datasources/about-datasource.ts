@@ -1,14 +1,20 @@
-import { ProfileAboutDataSource } from "@brains/profile";
-import { personalProfileSchema, type PersonalProfile } from "../schemas";
+import { fetchAnchorProfileData } from "@brains/profile";
+import {
+  defineDataSource,
+  type DataSourceDefinition,
+} from "@brains/sdk/entities";
+import { siteDataSourceRuntime } from "@brains/sdk/internal/site-runtime";
+import { personalProfileSchema } from "../schemas";
 
 /** About page datasource — fetches full profile */
-export class AboutDataSource extends ProfileAboutDataSource<PersonalProfile> {
-  constructor() {
-    super({
-      id: "personal:about",
-      name: "About Page DataSource",
-      description: "Fetches full profile data for the about page",
-      schema: personalProfileSchema,
-    });
-  }
-}
+export const aboutDataSource: DataSourceDefinition = defineDataSource({
+  id: "about",
+  name: "About Page DataSource",
+  description: "Fetches full profile data for the about page",
+  fetch: async (_query, _entities, context) => ({
+    profile: await fetchAnchorProfileData(
+      siteDataSourceRuntime(context).entityService,
+      personalProfileSchema,
+    ),
+  }),
+});

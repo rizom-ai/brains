@@ -3,13 +3,15 @@ import { createMockShell, type MockShell } from "../src/test/mock-shell";
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { PluginManager } from "../src/manager/pluginManager";
 import { PluginStatus } from "../src/manager/types";
-import { ServicePlugin } from "../src/service/service-plugin";
-import type { PluginCapabilities, Resource, Tool } from "../src/interfaces";
-import {
-  defineProjectionRule,
-  type ProjectionRule,
-} from "../src/entity/projection-rule";
-import type { ServicePluginContext } from "../src/service/context";
+import type {
+  IShell,
+  Plugin,
+  PluginCapabilities,
+  Resource,
+  Tool,
+  ToolResponse,
+} from "../src/interfaces";
+import { defineProjectionRule } from "../src/entity/projection-rule";
 
 import { createSilentLogger } from "@brains/test-utils";
 import type { IMCPService } from "@brains/mcp-service";
@@ -19,68 +21,64 @@ import {
   baseEntitySchema,
 } from "@brains/entity-service";
 
-// Mock plugin for testing
-class ProjectionRuleCapabilityPlugin extends ServicePlugin<
-  Record<string, never>,
-  Record<string, never>
-> {
-  private readonly rules: ProjectionRule[];
-
-  constructor(id: string, rules: ProjectionRule[]) {
-    super(id, { name: id, version: "1.0.0" }, {}, z.object({}));
-    this.rules = rules;
-  }
-
-  protected override async getCapabilities(): Promise<PluginCapabilities> {
-    return { tools: [], resources: [], projectionRules: this.rules };
-  }
+/**
+ * A plugin as the manager sees one: what registering it returns, with what
+ * it does on registering and once every plugin has registered.
+ */
+function plainPlugin(
+  id: string,
+  hooks: {
+    readonly capabilities?: Partial<PluginCapabilities>;
+    register?(shell: IShell): void | Promise<void>;
+    finalize?(): Promise<void>;
+  } = {},
+): Plugin {
+  return {
+    id,
+    packageName: id,
+    version: "1.0.0",
+    type: "service",
+    register: async (shell): Promise<PluginCapabilities> => {
+      await hooks.register?.(shell);
+      return { tools: [], resources: [], ...hooks.capabilities };
+    },
+    ...(hooks.finalize ? { finalizeRegistration: hooks.finalize } : {}),
+  };
 }
 
-class TestPlugin extends ServicePlugin<
-  Record<string, never>,
-  Record<string, never>
-> {
-  constructor() {
-    super(
-      "test-plugin",
-      { name: "test-plugin", version: "1.0.0" },
-      {}, // config
-      z.object({}), // configSchema
-    );
-  }
-
-  protected override async getTools(): Promise<Tool[]> {
-    return [
-      {
-        name: "test_tool1",
-        description: "Test tool 1",
-        inputSchema: {},
-        visibility: "admin",
-        handler: async () => ({ success: true, formatted: "Success" }),
-      },
-      {
-        name: "test_tool2",
-        description: "Test tool 2",
-        inputSchema: {},
-        visibility: "public",
-        handler: async () => ({ success: true, formatted: "Success" }),
-      },
-    ];
-  }
-
-  protected override async getResources(): Promise<Resource[]> {
-    return [
-      {
-        name: "test://resource1",
-        uri: "test://resource1",
-        description: "Test resource 1",
-        mimeType: "text/plain",
-        handler: async () => ({
-          contents: [{ text: "test content", uri: "test://resource1" }],
-        }),
-      },
-    ];
-  }
+/** Two tools and a resource. */
+function testPlugin(): Plugin {
+  return plainPlugin("test-plugin", {
+    capabilities: {
+      tools: [
+        {
+          name: "test_tool1",
+          description: "Test tool 1",
+          inputSchema: {},
+          visibility: "admin",
+          handler: async () => ({ success: true, formatted: "Success" }),
+        },
+        {
+          name: "test_tool2",
+          description: "Test tool 2",
+          inputSchema: {},
+          visibility: "public",
+          handler: async () => ({ success: true, formatted: "Success" }),
+        },
+      ],
+      resources: [
+        {
+          name: "test://resource1",
+          uri: "test://resource1",
+          description: "Test resource 1",
+          mimeType: "text/plain",
+          handler: async () => ({
+            contents: [{ text: "test content", uri: "test://resource1" }],
+          }),
+        },
+      ],
+    },
+  });
 }
 
 describe("PluginManager - Direct Registration", () => {
@@ -137,7 +135,7 @@ describe("PluginManager - Direct Registration", () => {
 
   describe("capability registration", () => {
     it("should register tools directly with MCPService", async () => {
-      const plugin = new TestPlugin();
+      const plugin = testPlugin();
       pluginManager.registerPlugin(plugin);
       await pluginManager.initializePlugins();
 
@@ -160,7 +158,7 @@ describe("PluginManager - Direct Registration", () => {
     });
 
     it("should register resources directly with MCPService", async () => {
-      const plugin = new TestPlugin();
+      const plugin = testPlugin();
       pluginManager.registerPlugin(plugin);
       await pluginManager.initializePlugins();
 
@@ -176,21 +174,7 @@ describe("PluginManager - Direct Registration", () => {
     });
 
     it("should handle plugins with no capabilities", async () => {
-      class EmptyPlugin extends ServicePlugin<
-        Record<string, never>,
-        Record<string, never>
-      > {
-        constructor() {
-          super(
-            "empty-plugin",
-            { name: "empty-plugin", version: "1.0.0" },
-            {},
-            z.object({}),
-          );
-        }
-      }
-
-      const plugin = new EmptyPlugin();
+      const plugin = plainPlugin("empty-plugin");
       pluginManager.registerPlugin(plugin);
       await pluginManager.initializePlugins();
 
@@ -200,33 +184,23 @@ describe("PluginManager - Direct Registration", () => {
     });
 
     it("should register capabilities from multiple plugins", async () => {
-      class SecondPlugin extends ServicePlugin<
-        Record<string, never>,
-        Record<string, never>
-      > {
-        constructor() {
-          super(
-            "second-plugin",
-            { name: "second-plugin", version: "1.0.0" },
-            {},
-            z.object({}),
-          );
-        }
-
-        protected override async getTools(): Promise<Tool[]> {
-          return [
+      const plugin2 = plainPlugin("second-plugin", {
+        capabilities: {
+          tools: [
             {
               name: "second_tool",
               description: "Second plugin tool",
               inputSchema: {},
-              handler: async () => ({ success: true, formatted: "Success" }),
+              handler: async (): Promise<ToolResponse> => ({
+                success: true,
+                message: "Success",
+              }),
             },
-          ];
-        }
-      }
+          ],
+        },
+      });
 
-      const plugin1 = new TestPlugin();
-      const plugin2 = new SecondPlugin();
+      const plugin1 = testPlugin();
 
       pluginManager.registerPlugin(plugin1);
       pluginManager.registerPlugin(plugin2);
@@ -246,7 +220,7 @@ describe("PluginManager - Direct Registration", () => {
       );
       pluginManager.setShell(mockShell);
 
-      const plugin = new TestPlugin();
+      const plugin = testPlugin();
       pluginManager.registerPlugin(plugin);
       await pluginManager.initializePlugins();
 
@@ -276,7 +250,9 @@ describe("PluginManager - Direct Registration", () => {
           { projectionSource: false },
         );
       pluginManager.registerPlugin(
-        new ProjectionRuleCapabilityPlugin("rule-plugin", [rule]),
+        plainPlugin("rule-plugin", {
+          capabilities: { projectionRules: [rule] },
+        }),
       );
 
       await pluginManager.initializePlugins();
@@ -297,33 +273,18 @@ describe("PluginManager - Direct Registration", () => {
     it("runs only after every plugin has registered", async () => {
       const events: string[] = [];
 
-      class OrderedPlugin extends ServicePlugin<
-        Record<string, never>,
-        Record<string, never>
-      > {
-        private readonly pluginName: string;
+      const ordered = (name: string): Plugin =>
+        plainPlugin(name, {
+          register: () => {
+            events.push(`register:${name}`);
+          },
+          finalize: async () => {
+            events.push(`finalize:${name}`);
+          },
+        });
 
-        constructor(pluginName: string) {
-          super(
-            pluginName,
-            { name: pluginName, version: "1.0.0" },
-            {},
-            z.object({}),
-          );
-          this.pluginName = pluginName;
-        }
-
-        protected override async onRegister(): Promise<void> {
-          events.push(`register:${this.pluginName}`);
-        }
-
-        protected override async onRegistrationComplete(): Promise<void> {
-          events.push(`finalize:${this.pluginName}`);
-        }
-      }
-
-      pluginManager.registerPlugin(new OrderedPlugin("first"));
-      pluginManager.registerPlugin(new OrderedPlugin("second"));
+      pluginManager.registerPlugin(ordered("first"));
+      pluginManager.registerPlugin(ordered("second"));
       await pluginManager.initializePlugins();
 
       expect(events).toEqual(["register:first", "register:second"]);
@@ -337,34 +298,19 @@ describe("PluginManager - Direct Registration", () => {
     });
 
     it("rolls back kind registrations when finalization fails", async () => {
-      class FailingKindPlugin extends ServicePlugin<
-        Record<string, never>,
-        Record<string, never>
-      > {
-        constructor() {
-          super(
-            "artist-plugin",
-            { name: "artist-plugin", version: "1.0.0" },
-            {},
-            z.object({}),
-          );
-        }
-
-        protected override async onRegister(
-          context: ServicePluginContext,
-        ): Promise<void> {
-          context.profileKinds.register({
+      const failingKind = plainPlugin("artist-plugin", {
+        register: (shell) => {
+          shell.getProfileKindRegistry().register("artist-plugin", {
             kind: "artist",
             category: "person",
             fields: z.object({ mediums: z.array(z.string()).optional() }),
             labels: { singular: "Artist", plural: "Artists" },
           });
-        }
-
-        protected override async onRegistrationComplete(): Promise<void> {
+        },
+        finalize: async () => {
           throw new Error("finalization failed");
-        }
-      }
+        },
+      });
 
       mockShell = createMockShell({ profileKind: "artist" });
       pluginManager = PluginManager.createFresh(
@@ -372,7 +318,7 @@ describe("PluginManager - Direct Registration", () => {
         mockShell.getDaemonRegistry(),
       );
       pluginManager.setShell(mockShell);
-      pluginManager.registerPlugin(new FailingKindPlugin());
+      pluginManager.registerPlugin(failingKind);
       await pluginManager.initializePlugins();
 
       expect(pluginManager.finalizePluginRegistrations()).rejects.toThrow(
@@ -391,7 +337,7 @@ describe("PluginManager - Direct Registration", () => {
         throw new Error("Registration failed");
       });
 
-      const plugin = new TestPlugin();
+      const plugin = testPlugin();
       pluginManager.registerPlugin(plugin);
 
       // The plugin cannot register its tools, so it must end in ERROR rather
@@ -428,7 +374,7 @@ describe("PluginManager - Direct Registration", () => {
         }
       });
 
-      const plugin = new TestPlugin();
+      const plugin = testPlugin();
       pluginManager.registerPlugin(plugin);
       await pluginManager.initializePlugins();
 

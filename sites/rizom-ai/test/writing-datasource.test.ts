@@ -1,16 +1,24 @@
 import { describe, expect, test } from "bun:test";
-import type { BaseDataSourceContext, DataSource } from "@brains/plugins";
-import { createMockShell } from "@brains/plugins/test";
+import type { DataSource } from "@brains/entity-service";
+import type { PluginTestHarness } from "@brains/plugins/test";
 import { writingSchema } from "../src/writing";
-import {
-  RizomWritingDataSource,
-  type WritingSources,
-} from "../src/writing-datasource";
+import { installedSite, siteSource } from "./installed-site";
 
-const context: BaseDataSourceContext = {
-  publishedOnly: true,
-  entityService: createMockShell().getEntityService(),
-};
+/** The archive, read as a production build reads it. */
+async function writing(
+  harness: PluginTestHarness,
+): Promise<ReturnType<typeof writingSchema.parse>> {
+  const data = await siteSource(harness, "rizom:writing").fetch?.(
+    {},
+    writingSchema,
+    {
+      publishedOnly: true,
+      entityService: harness.getEntityService(),
+    },
+  );
+  if (!data) throw new Error("The source answered nothing");
+  return data;
+}
 const entity = (
   entityType: string,
   slug: string,
@@ -27,12 +35,14 @@ const entity = (
 /** A list datasource that records the query it was asked. */
 function listSource(
   id: string,
+  publicId: string,
   key: string,
   items: unknown[],
   asked: unknown[],
-): DataSource {
+): DataSource & { publicId: string } {
   return {
     id,
+    publicId,
     name: id,
     description: id,
     async fetch<T>(
@@ -48,26 +58,23 @@ function listSource(
 describe("the Writing archive's data", () => {
   test("reads the essays and the presentations through their own datasources", async () => {
     const asked: unknown[] = [];
-    const sources: WritingSources = {
-      posts: () =>
+    const data = await writing(
+      installedSite([
         listSource(
           "blog:entities",
+          "@brains/blog:entities",
           "posts",
           [entity("post", "play", { frontmatter: { excerpt: "Play." } })],
           asked,
         ),
-      decks: () =>
         listSource(
           "decks:entities",
+          "@brains/decks:entities",
           "decks",
           [entity("deck", "core", { frontmatter: { title: "Core" } })],
           asked,
         ),
-    };
-    const data = await new RizomWritingDataSource(sources).fetch(
-      {},
-      writingSchema,
-      context,
+      ]),
     );
     expect(asked).toEqual([
       { entityType: "post", query: { limit: 100 } },
@@ -84,10 +91,7 @@ describe("the Writing archive's data", () => {
   });
 
   test("is an empty archive when neither plugin is loaded", async () => {
-    const data = await new RizomWritingDataSource({
-      posts: (): undefined => undefined,
-      decks: (): undefined => undefined,
-    }).fetch({}, writingSchema, context);
+    const data = await writing(installedSite());
     expect(data).toEqual({ posts: [], decks: [] });
   });
 });

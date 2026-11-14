@@ -14,7 +14,6 @@ import { createSilentLogger, createTestDirectory } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import { createMockShell } from "../src/test/mock-shell";
 import {
-  EntityPlugin,
   defineEntity,
   defineEntityPackage,
   defineServicePlugin,
@@ -25,6 +24,7 @@ import {
   type IEntityService,
   type ServiceRuntime,
 } from "../src";
+import { isDeclaredEntityType } from "../src/test/declared-entity-type";
 
 /**
  * A first-party service converted from a class makes the entity service's
@@ -208,7 +208,7 @@ describe("a first-party service's once-only writes on the brain's own store", ()
       {},
       { name: "@fixture/notes", version: "0.1.0" },
     )) {
-      if (plugin instanceof EntityPlugin)
+      if (isDeclaredEntityType(plugin))
         registry.registerEntityType(
           plugin.entityType,
           plugin.schema,

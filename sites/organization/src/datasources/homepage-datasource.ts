@@ -1,14 +1,17 @@
-import type {
-  BaseDataSourceContext,
-  DataSource,
-  DataSourceSchema,
-} from "@brains/plugins";
+import { askBoxAvailabilityState } from "@brains/contracts";
+import { loadPublicFaqs } from "@brains/faq";
 import { fetchAnchorProfileData } from "@brains/profile";
 import {
+  defineDataSource,
+  type DataSourceDefinition,
+} from "@brains/sdk/entities";
+import { siteDataSourceRuntime } from "@brains/sdk/internal/site-runtime";
+import {
+  homepageChatAvailable,
   homepageOpeningSchema,
+  loadHomepageOpening,
   type HomepageFaq,
   type HomepageOpeningContent,
-  type HomepageOpeningData,
 } from "@brains/site-atlas";
 import type { OrganizationHomepageData } from "../schemas/homepage";
 import type { AgentRadar } from "../schemas/radar";
@@ -66,40 +69,29 @@ export function organizationHomepageData({
   };
 }
 
-/** The authored opening, the Ask box's availability and the published FAQs, read with the plugin's runtime. */
-export interface OrganizationHomepageLoaders {
-  loadOpening?:
-    | ((context: BaseDataSourceContext) => Promise<HomepageOpeningData | null>)
-    | undefined;
-  chatAvailable?:
-    ((context: BaseDataSourceContext) => Promise<boolean>) | undefined;
-  /** The organization's published FAQs, ranked first, then most asked. */
-  loadFaqs?:
-    ((context: BaseDataSourceContext) => Promise<HomepageFaq[]>) | undefined;
-}
+/** How many published FAQs the homepage shows, as on the professional homepage. */
+const HOMEPAGE_FAQ_LIMIT = 6;
 
 /**
  * Homepage datasource: the anchor profile, the opening, the agent radar
- * drawn around the brain, and whether the Ask box can dock.
+ * drawn around the brain, whether the Ask box can dock, and the published
+ * FAQs.
  */
-export class OrganizationHomepageDataSource implements DataSource {
-  public readonly id = "organization:homepage";
-  public readonly name = "Organization Homepage DataSource";
-  public readonly description =
-    "Fetches the anchor profile, the authored opening and the agent radar for the organization homepage";
-
-  private readonly loaders: OrganizationHomepageLoaders;
-
-  constructor(loaders: OrganizationHomepageLoaders = {}) {
-    this.loaders = loaders;
-  }
-
-  async fetch<T>(
-    _query: unknown,
-    outputSchema: DataSourceSchema<T>,
-    context: BaseDataSourceContext,
-  ): Promise<T> {
-    const entityService = context.entityService;
+export const homepageDataSource: DataSourceDefinition = defineDataSource({
+  id: "homepage",
+  name: "Organization Homepage DataSource",
+  description:
+    "Fetches the anchor profile, the authored opening and the agent radar for the organization homepage",
+  fetch: async (_query, _entities, context) => {
+    const runtime = siteDataSourceRuntime(context);
+    const entityService = runtime.entityService;
+    // The build's reads, as the class's loaders were handed them.
+    const build = {
+      entityService,
+      ...(context.publishedOnly !== undefined
+        ? { publishedOnly: context.publishedOnly }
+        : {}),
+    };
     const [profile, map, authored, askBox, faqs] = await Promise.all([
       fetchAnchorProfileData(entityService, organizationProfileSchema),
       loadAgentRadar({
@@ -108,18 +100,25 @@ export class OrganizationHomepageDataSource implements DataSource {
           project: (request) => entityService.projectSemanticSpace(request),
         },
       }),
-      this.loaders.loadOpening?.(context) ?? null,
-      this.loaders.chatAvailable?.(context) ?? false,
-      this.loaders.loadFaqs?.(context) ?? [],
-    ]);
-    return outputSchema.parse(
-      organizationHomepageData({
-        profile,
-        authored: homepageOpeningSchema.parse(authored),
-        map,
-        askBox,
-        faqs,
+      loadHomepageOpening(build, {
+        webRoutes: { getRoutes: () => runtime.webRoutes() },
+        siteUrl: runtime.siteUrl,
+        previewUrl: runtime.previewUrl,
+        localSiteUrl: runtime.localSiteUrl,
+        preferLocalUrls: runtime.preferLocalUrls,
       }),
-    );
-  }
-}
+      homepageChatAvailable(
+        context,
+        context.sharedState(askBoxAvailabilityState),
+      ),
+      loadPublicFaqs(build, HOMEPAGE_FAQ_LIMIT, runtime.logger),
+    ]);
+    return organizationHomepageData({
+      profile,
+      authored: homepageOpeningSchema.parse(authored),
+      map,
+      askBox,
+      faqs,
+    });
+  },
+});

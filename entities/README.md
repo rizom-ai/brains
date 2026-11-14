@@ -1,20 +1,20 @@
-# Entity Plugins
+# Entity Packages
 
-Entity plugins define content types — each owns one entity type with its schema, adapter, and optional generation handler, templates, datasources, and projection rules.
+Entity packages define content types — each owns one entity type with its schema, adapter, and optional generation handler, templates, datasources, and projection rules.
 
-Entity plugins extend `EntityPlugin` and have **zero tools**. Entity CRUD goes through the system plugin's shared create, update, and delete tools.
+Each is a `defineEntityPackage` definition and has **zero tools**. Entity CRUD goes through the system plugin's shared create, update, and delete tools.
 
 ## Create flow pattern
 
 `system_create` is the single entry point for entity creation.
 
-If an entity type needs custom create behavior, its plugin should override `EntityPlugin.interceptCreate()`.
-That interceptor can:
+If an entity type needs custom create behavior, it declares `create` routes, matched by the shape of the request.
+A route can:
 
 - return `handled` to fully own creation
 - return `continue` to fall back to the shared create flow
 
-Use `interceptCreate()` for entity-specific create logic such as:
+Use create routes for entity-specific create logic such as:
 
 - validating or rewriting create input
 - resolving target entities before generation
@@ -62,4 +62,4 @@ Note the one-character trap: `doc` is documentation _pages_ (site content), whil
 
 ## vs plugins/
 
-`plugins/` contains `ServicePlugin` packages — plugins that provide tools, orchestrate workflows, or integrate with external services (content-pipeline, directory-sync, site-builder, analytics, dashboard, newsletter, studio, playbooks, etc.).
+`plugins/` contains services (`defineServicePlugin`) — packages that provide tools, orchestrate workflows, or integrate with external services (content-pipeline, directory-sync, site-builder, analytics, dashboard, newsletter, studio, playbooks, etc.).

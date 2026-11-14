@@ -22,3 +22,11 @@ export {
   viewLinkFields,
   type EntityViewFields,
 } from "@brains/plugins";
+// What the shared media pages render and attach with.
+export type {
+  AttachmentProviderMetadata,
+  AttachmentResolveRequest,
+  ComponentType,
+  MediaFormat,
+  ViewTemplate,
+} from "@brains/plugins";

@@ -1,4 +1,4 @@
-import { AuthServicePlugin } from "@brains/auth-service";
+import { authServiceOf, authServicePlugin } from "@brains/auth-service";
 import { createMockShell, createTempDataDir } from "@brains/plugins/test";
 import {
   defineStudioWorkspace,
@@ -14,7 +14,7 @@ import { z } from "@brains/utils/zod";
 import { afterEach, describe, expect, it } from "bun:test";
 import { studioPlugin, type StudioPlugin } from "./studio-plugins";
 
-const authPlugins: AuthServicePlugin[] = [];
+const authPlugins: Plugin[] = [];
 const servicePlugins: Plugin[] = [];
 
 afterEach(async () => {
@@ -22,7 +22,7 @@ afterEach(async () => {
     await plugin.shutdown?.();
   }
   for (const plugin of authPlugins.splice(0).reverse()) {
-    await plugin.shutdown();
+    await plugin.shutdown?.();
   }
 });
 
@@ -110,12 +110,14 @@ function instantiateService(): Plugin {
 describe("public declarative Studio workspace", () => {
   it("lists, loads, acts, unregisters, and re-registers through HTTP", async () => {
     const shell = createMockShell({ domain: "yeehaa.io" });
-    const auth = new AuthServicePlugin({
+    const auth = authServicePlugin({
       storageDir: await createTempDataDir("brains-declarative-studio-auth-"),
     });
     await auth.register(shell);
     authPlugins.push(auth);
-    const cookie = (await auth.getService().createAuthSession()).cookie;
+    const cookie = (
+      await authServiceOf(shell.getAuthRegistry()).createAuthSession()
+    ).cookie;
 
     const studio = studioPlugin();
     await studio.register(shell);
@@ -301,12 +303,14 @@ describe("a workspace whose data or action fails", () => {
   // its own HTML page, so a failure is never answered as a gateway error.
   it("answers in public form with the status its code names, never the diagnostic", async () => {
     const shell = createMockShell({ domain: "yeehaa.io" });
-    const auth = new AuthServicePlugin({
+    const auth = authServicePlugin({
       storageDir: await createTempDataDir("brains-failing-studio-auth-"),
     });
     await auth.register(shell);
     authPlugins.push(auth);
-    const cookie = (await auth.getService().createAuthSession()).cookie;
+    const cookie = (
+      await authServiceOf(shell.getAuthRegistry()).createAuthSession()
+    ).cookie;
     const studio = studioPlugin();
     await studio.register(shell);
     const [service] = instantiatePluginPackageDefinition(

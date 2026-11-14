@@ -6,8 +6,7 @@ import {
   agentActionContract,
   ASK_BOX_SCRIPT_PATH,
   ASK_BOX_STATE_KEY,
-  ASK_BOX_STATE_NAMESPACE,
-  askBoxAvailabilitySchema,
+  askBoxAvailabilityState,
   siteBuildRequestContract,
   type AskBoxAvailability,
   type AuthPrincipal,
@@ -33,11 +32,15 @@ import {
   type ToolStatusUpdate,
   type ChatAttachment,
   coerceConversationMetadata,
-  type ClassRuntimeStateStore,
 } from "@brains/sdk/internal/interface-runtime";
 import type { PluginPackageDefinition } from "@brains/sdk";
 import { join } from "path";
-import { createScheduledMaintenanceDaemon } from "@brains/scheduler/maintenance";
+
+/** Where Web Chat records whether this deployment serves the Ask box. */
+interface AskBoxAvailabilityStore {
+  set(key: string, value: AskBoxAvailability): Promise<void>;
+}
+import { createScheduledMaintenanceDaemon } from "@brains/sdk/internal/interface-runtime";
 import {
   ASK_BOX_BOOT_PATH,
   ASK_BOX_LOADER_SCRIPT,
@@ -158,8 +161,7 @@ class WebChatHost {
   private readonly guestConfigured: boolean;
   private guestHttp: GuestHttpHandlers | undefined;
   private guestControl: GuestAccessControl | undefined;
-  private askBoxAvailability:
-    ClassRuntimeStateStore<AskBoxAvailability> | undefined;
+  private readonly askBoxAvailability: AskBoxAvailabilityStore | undefined;
   private readonly runtimeGuestActivationAllowed: boolean;
   private readonly resolveAuthSession: AuthSessionResolver;
   private readonly resolveAuthSessionOverride: AuthSessionResolver | undefined;
@@ -171,9 +173,11 @@ class WebChatHost {
     config: WebChatConfig,
     deps: WebChatDeps,
     runtime: InterfaceRuntime,
+    askBoxAvailability?: AskBoxAvailabilityStore,
   ) {
     this.config = config;
     this.runtime = runtime;
+    this.askBoxAvailability = askBoxAvailability;
     this.runtimeGuestActivationAllowed =
       config.guest === undefined && deps.guestPolicy === undefined;
     this.injectedGuestPolicy =
@@ -256,10 +260,6 @@ class WebChatHost {
     }
     // Site builds may run in a separate worker, where interfaces are not
     // registered: record where this deployment serves the Ask box boot.
-    this.askBoxAvailability = context.classRuntimeState.scoped({
-      namespace: ASK_BOX_STATE_NAMESPACE,
-      schema: askBoxAvailabilitySchema,
-    });
     await this.recordAskBoxAvailability();
   }
 
@@ -1347,7 +1347,13 @@ export function createWebChatInterface(
     config: webChatConfigSchema,
     setup: async (context): Promise<WebChatHost> => {
       const runtime = interfaceRuntime(context);
-      const host = new WebChatHost(context.config, deps, runtime);
+      const host = new WebChatHost(
+        context.config,
+        deps,
+        runtime,
+        // Shared, so a site's data source reads whether the box is served.
+        context.runtimeState(askBoxAvailabilityState),
+      );
       await host.register();
       // The owner's Studio view of guest chat: what it did, and the switch.
       runtime.ready(() => host.onReady());

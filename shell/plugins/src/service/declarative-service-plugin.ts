@@ -2,7 +2,10 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { unscopeTemplateName } from "@brains/content-service";
 import type { OperationalHealthProvider } from "../operational-health-registry";
 import { entityMirrorOf } from "./entity-mirror";
-import { createDeclaredDataSource } from "../public/entity-data-source";
+import {
+  createDeclaredDataSource,
+  sharedStateReader,
+} from "../public/entity-data-source";
 import { sharedUploadScope } from "./upload-registry";
 import {
   SDK_ERROR_MESSAGE_MAX_LENGTH,
@@ -12,8 +15,10 @@ import {
   type ActorRef,
   type BusContract,
   type JsonObject,
+  type RuntimeInterfacePrincipalState,
   type SdkErrorCode,
 } from "@brains/contracts";
+import type { AuthBackend } from "../contracts/auth";
 import type { Caller, CallerAccess } from "@brains/content-service";
 import { formatZodIssues } from "@brains/utils/zod-issues";
 import { createServiceContentTarget } from "./content-generation-target";
@@ -74,6 +79,7 @@ import {
   type SealedAccountSettingsValue,
 } from "../operator/account-settings-definition-contract";
 import type {
+  AccountSettingsBackend,
   AccountSettingsRegistration,
   RegisterAccountSettingsInput,
 } from "../operator/account-settings-registry";
@@ -99,7 +105,10 @@ import {
   identityConfigSchema,
   type InstalledPluginPackageMetadata,
 } from "../package-definition";
-import type { AnyEntityDefinition } from "../entity/entity-definition-contract";
+import type {
+  AnyEntityDefinition,
+  DataSourceReadContext,
+} from "../entity/entity-definition-contract";
 import {
   assertOwnedWriteAllowed,
   createOwnedEntityWriter,
@@ -121,15 +130,19 @@ import {
   type ServiceGroupingReads,
   type ServiceAccountSettingsRegistry,
   type ServiceAI,
+  type ServiceAuthAuthority,
 } from "./service-runtime";
-import { ServicePlugin } from "./service-plugin";
+import { PluginCore } from "../plugin-core";
 import {
   firstPartyJobHandlerOf,
   noFirstPartyServiceDeclarations,
   type FirstPartyServiceDeclarations,
 } from "./first-party-service";
 
-import type { ServicePluginContext } from "./context";
+import {
+  createServicePluginContext,
+  type ServicePluginContext,
+} from "./context";
 import type {
   AnyServiceJobDefinition,
   AnyServiceToolDefinition,
@@ -307,7 +320,13 @@ class DeclarativeServicePlugin<
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
   TTemplateDefinitions extends ServiceTemplateShapeMap,
   TEntities extends readonly AnyEntityDefinition[],
-> extends ServicePlugin<z.output<TConfigSchema>, z.output<TConfigSchema>> {
+> extends PluginCore<
+  z.output<TConfigSchema>,
+  z.output<TConfigSchema>,
+  ServicePluginContext
+> {
+  public readonly type = "service" as const;
+
   private readonly definition: NormalizedServiceDefinitionInput<
     TConfigSchema,
     TState,
@@ -403,18 +422,25 @@ class DeclarativeServicePlugin<
     );
   }
 
-  public override register(
+  public override async register(
     shell: IShell,
     registrationContext?: PluginRegistrationContext,
   ): Promise<PluginCapabilities> {
     this.scopedShell = shell;
-    return super.register(shell, registrationContext);
+    const context = createServicePluginContext(
+      shell,
+      this.id,
+      registrationContext,
+    );
+    this.context = context;
+    this.setupMessageHandlers(context);
+    await this.onRegister(context);
+    return this.getCapabilities();
   }
 
   protected override async onRegister(
     context: ServicePluginContext,
   ): Promise<void> {
-    await super.onRegister(context);
     if (this.definition.accountSettings && !context.executionOnly) {
       this.accountSettingsRegistration = context.accountSettings.register({
         ownerPluginId: this.id,
@@ -518,12 +544,12 @@ class DeclarativeServicePlugin<
     }
   }
 
-  override getWebRoutes(): WebRouteDefinition[] {
+  getWebRoutes(): WebRouteDefinition[] {
     return [...this.routes];
   }
 
   /** The tool-backed API routes its class served, as written. */
-  override getApiRoutes(): ApiRouteDefinition[] {
+  getApiRoutes(): ApiRouteDefinition[] {
     return [
       ...(this.declarations.apiRoutes?.run({ config: this.config }) ?? []),
     ];
@@ -1330,6 +1356,9 @@ class DeclarativeServicePlugin<
       // The registry itself, read through its own get and its post overload.
       atprotoProjections: context.atprotoProjections,
       auth: () => context.auth.get(),
+      authAuthority: this.declarations.authAuthority
+        ? this.authAuthorityOf(context)
+        : undefined,
       studio: firstPartyStudioOf(context),
       inbox: Object.freeze({
         listSources: () => context.inbox.listSources(),
@@ -1362,6 +1391,8 @@ class DeclarativeServicePlugin<
       uploadSaveHandler: (mediaType: string) =>
         context.entities.getUploadSaveHandler(mediaType),
       channelDescriptors: () => context.channels.listDescriptors(),
+      channelDescriptor: (channelType) =>
+        context.channels.getDescriptor(channelType),
       readiness: () => context.readiness(),
       inboxFollowUpKind: (kind): void => {
         context.inboxFollowUps.registerKind(kind);
@@ -1486,12 +1517,21 @@ class DeclarativeServicePlugin<
               `Data source "${declaration.id}" reads "${type}", which the package does not declare`,
             );
           context.entities.registerDataSource(
-            createDeclaredDataSource(declaration, id, this.logger),
+            createDeclaredDataSource(declaration, id, {
+              publicId: `${this.packageName}:${declaration.id}`,
+              runtimeState: context.runtimeState,
+              dataSources: this.requireShell().getDataSourceRegistry(),
+            }),
           );
           return;
         }
         context.entities.registerDataSource(
-          firstPartyDataSource(id, declaration),
+          firstPartyDataSource(
+            id,
+            `${this.packageName}:${declaration.id}`,
+            declaration,
+            sharedStateReader(context.runtimeState),
+          ),
         );
       },
       template: (name, template, options = {}): void => {
@@ -1532,6 +1572,49 @@ class DeclarativeServicePlugin<
    * Claim a shell system type for this package, as the class kept it: one
    * package per type, released when it shuts down.
    */
+  /**
+   * What the brain's auth authority binds through this service, which holds
+   * the authority for its shell: one service per brain, released with it.
+   */
+  private authAuthorityOf(context: ServicePluginContext): ServiceAuthAuthority {
+    const shell = this.requireShell();
+    const holder = `${this.packageName}:${this.publicId}`;
+    const held = authAuthorities.get(shell);
+    if (held !== undefined && held !== holder) {
+      throw new Error(
+        `Service "${holder}" claims the auth authority, which "${held}" holds`,
+      );
+    }
+    if (held === undefined) {
+      authAuthorities.set(shell, holder);
+      this.answered.push(() => {
+        if (authAuthorities.get(shell) === holder)
+          authAuthorities.delete(shell);
+      });
+    }
+    return Object.freeze({
+      bind: (backend: AuthBackend): void => {
+        this.answered.push(context.auth.bindBackend(backend));
+      },
+      accountSettings: Object.freeze({
+        registry: context.accountSettings,
+        bindBackend: (backend: AccountSettingsBackend): void => {
+          this.answered.push(context.accountSettings.bindBackend(backend));
+        },
+        accountDeleted: (actorId: string): void => {
+          context.accountSettings.accountDeleted(actorId);
+        },
+      }),
+      principals: Object.freeze({
+        configuredSeeds: () =>
+          context.permissions.getConfiguredPrincipalSeeds(),
+        replaceRuntimeState: (state: RuntimeInterfacePrincipalState): void => {
+          context.permissions.replaceRuntimePrincipalState(state);
+        },
+      }),
+    });
+  }
+
   private claimSystemType(
     context: ServicePluginContext,
     type: string,
@@ -2058,10 +2141,13 @@ function corpusReadsOf(
  */
 function firstPartyDataSource(
   id: string,
+  publicId: string,
   declaration: ServiceDataSourceDeclaration,
+  sharedState: DataSourceReadContext["sharedState"],
 ): DataSource {
   return {
     id,
+    publicId,
     name: declaration.name,
     description: declaration.description,
     fetch: async <T>(
@@ -2073,10 +2159,14 @@ function firstPartyDataSource(
         await declaration.fetch(query, {
           corpus: corpusReadsOf(context.entityService),
           publishedOnly: context.publishedOnly === true,
+          sharedState,
         }),
       ),
   };
 }
+
+/** Which service holds each shell's auth authority. */
+const authAuthorities = new WeakMap<IShell, string>();
 
 /** Which package claimed each shell system type, per shell. */
 const systemTypeClaims = new WeakMap<IShell, Map<string, string>>();

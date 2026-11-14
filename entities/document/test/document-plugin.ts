@@ -1,18 +1,14 @@
-import {
-  EntityPlugin,
-  instantiatePluginPackageDefinition,
-  type BaseEntity,
-} from "@brains/plugins";
+import { instantiatePluginPackageDefinition } from "@brains/plugins";
 import documentPackage, {
   createDocumentPackage,
   type DocumentGenerationHandlerDeps,
 } from "../src";
+import {
+  isDeclaredEntityType,
+  type DeclaredEntityTypePlugin,
+} from "@brains/plugins/test";
 
-export type DocumentEntityPlugin = EntityPlugin<
-  BaseEntity,
-  Record<string, never>,
-  Record<string, never>
->;
+export type DocumentEntityPlugin = DeclaredEntityTypePlugin;
 
 /**
  * The entity plugin the documents install, as the canonical brain composes
@@ -28,7 +24,7 @@ export function documentPlugin(
     // Under the id its class had: document:generate.
     { pluginId: "document" },
   );
-  if (!(plugin instanceof EntityPlugin)) {
+  if (!isDeclaredEntityType(plugin)) {
     throw new Error("The documents install no entity plugin");
   }
   return plugin;

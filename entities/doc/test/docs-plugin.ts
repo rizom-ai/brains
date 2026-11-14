@@ -1,15 +1,11 @@
-import {
-  EntityPlugin,
-  instantiatePluginPackageDefinition,
-  type BaseEntity,
-} from "@brains/plugins";
+import { instantiatePluginPackageDefinition } from "@brains/plugins";
 import docsPackage, { type DocsConfigInput } from "../src";
+import {
+  isDeclaredEntityType,
+  type DeclaredEntityTypePlugin,
+} from "@brains/plugins/test";
 
-export type DocsEntityPlugin = EntityPlugin<
-  BaseEntity,
-  Record<string, never>,
-  Record<string, never>
->;
+export type DocsEntityPlugin = DeclaredEntityTypePlugin;
 
 /** The entity plugin the docs install, as the canonical brain composes it. */
 export function docsPlugin(config: DocsConfigInput = {}): DocsEntityPlugin {
@@ -20,7 +16,7 @@ export function docsPlugin(config: DocsConfigInput = {}): DocsEntityPlugin {
     // Under the id its class had: docs:doc-list, docs:entities.
     { pluginId: "docs" },
   );
-  if (!(plugin instanceof EntityPlugin)) {
+  if (!isDeclaredEntityType(plugin)) {
     throw new Error("The docs install no entity plugin");
   }
   return plugin;

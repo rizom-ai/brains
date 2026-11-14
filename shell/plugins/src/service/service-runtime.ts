@@ -40,7 +40,10 @@ import type {
   ProjectionWaveInput,
   ProjectionWriteIntent,
 } from "../entity/projection-rule";
-import type { AnyEntityDataSourceDefinition } from "../entity/entity-definition-contract";
+import type {
+  AnyEntityDataSourceDefinition,
+  DataSourceReadContext,
+} from "../entity/entity-definition-contract";
 import type { IEntityAINamespace } from "../entity/ai-types";
 import type { OperatorCaller } from "../operator/operator-context-contract";
 import type { IServiceContentNamespace } from "./context";
@@ -65,6 +68,12 @@ import type {
   ChannelDescriptor,
 } from "../channel-registry";
 import type { AuthBackend } from "../contracts/auth";
+import type {
+  AccountSettingsBackend,
+  AccountSettingsRegistry,
+} from "../operator/account-settings-registry";
+import type { RuntimeInterfacePrincipalState } from "@brains/contracts";
+import type { ConfiguredPrincipalSeeds } from "@brains/templates";
 import type { AssignableMember } from "@brains/contracts";
 import type { FirstPartyStudio } from "../operator/studio-workspace-runtime";
 import type {
@@ -358,6 +367,12 @@ export interface ServiceRuntime {
    */
   auth(): AuthBackend | undefined;
   /**
+   * What the brain's auth authority binds, for the one service that declared
+   * `withAuthAuthority`; any other is refused. Bindings are released when
+   * the package shuts down.
+   */
+  readonly authAuthority: ServiceAuthAuthority;
+  /**
    * Studio, for a workspace the package composes from declared ones, as
    * admin composes its Administration tabs. Call it once every plugin has
    * registered, where the class registered its workspaces.
@@ -432,6 +447,8 @@ export interface ServiceRuntime {
    * `context.channels.listDescriptors()`.
    */
   channelDescriptors(): ChannelDescriptor[];
+  /** A registered channel type's descriptor, as the channel registry reads it. */
+  channelDescriptor(channelType: string): ChannelDescriptor | undefined;
   /** The brain's readiness, as the class read `context.readiness()`. */
   readiness(): Promise<RuntimeReadiness>;
   /**
@@ -743,6 +760,12 @@ export interface ServiceDataSourceDeclaration {
       readonly corpus: ServiceCorpusReads;
       /** True for a production build, which shows only published records. */
       readonly publishedOnly: boolean;
+      /**
+       * Reads a record another package declared shared with
+       * `defineSharedState`, by that declaration, as a declared data
+       * source's `context.sharedState` does.
+       */
+      readonly sharedState: DataSourceReadContext["sharedState"];
     },
   ): Promise<unknown>;
 }
@@ -914,6 +937,26 @@ export interface ServiceGroupings
 }
 
 /** A first-party service's own account settings, as its class kept them. */
+/** What the brain's auth authority binds, as its class bound it through the plugin context. */
+export interface ServiceAuthAuthority {
+  /** Binds the brain's auth backend; released when the package shuts down. */
+  bind(backend: AuthBackend): void;
+  readonly accountSettings: {
+    /** The registry of every package's account settings. */
+    readonly registry: AccountSettingsRegistry;
+    /** Binds where account settings are kept; released when the package shuts down. */
+    bindBackend(backend: AccountSettingsBackend): void;
+    /** Forgets what an account kept, once the account is deleted. */
+    accountDeleted(actorId: string): void;
+  };
+  readonly principals: {
+    /** The exact principals the brain's configuration seeds. */
+    configuredSeeds(): ConfiguredPrincipalSeeds;
+    /** Replaces the runtime principal projection, once auth storage is loaded. */
+    replaceRuntimeState(state: RuntimeInterfacePrincipalState): void;
+  };
+}
+
 export interface ServiceAccountSettingsRegistry {
   register<TDefinition extends AnyAccountSettingsDefinition>(
     input: RegisterAccountSettingsInput<TDefinition>,
@@ -990,6 +1033,8 @@ export interface ServiceRuntimeBinding {
   readonly publicSkills: Pick<IPublicSkillsNamespace, "list">;
   readonly atprotoProjections: ServiceAtprotoProjections;
   readonly auth: () => AuthBackend | undefined;
+  /** None for a service that did not declare `withAuthAuthority`. */
+  readonly authAuthority: ServiceAuthAuthority | undefined;
   readonly studio: ServiceStudio;
   readonly inbox: Pick<IInboxNamespace, "listSources" | "getSource">;
   readonly inboxSource: (source: InboxSource) => void;
@@ -1002,6 +1047,9 @@ export interface ServiceRuntimeBinding {
   readonly sharedUploads: ServiceRuntime["sharedUploads"];
   readonly uploadSaveHandler: ServiceRuntime["uploadSaveHandler"];
   readonly channelDescriptors: () => ChannelDescriptor[];
+  readonly channelDescriptor: (
+    channelType: string,
+  ) => ChannelDescriptor | undefined;
   readonly readiness: () => Promise<RuntimeReadiness>;
   readonly inboxFollowUpKind: ServiceRuntime["inboxFollowUpKind"];
   readonly registering: ServiceRuntime["registering"];
@@ -1086,6 +1134,14 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
     publicSkills: binding.publicSkills,
     atprotoProjections: binding.atprotoProjections,
     auth: binding.auth,
+    get authAuthority(): ServiceAuthAuthority {
+      if (!binding.authAuthority) {
+        throw new Error(
+          `Service "${binding.pluginId}" did not declare withAuthAuthority, so it binds no auth backend`,
+        );
+      }
+      return binding.authAuthority;
+    },
     studio: binding.studio,
     inbox: binding.inbox,
     inboxSource: binding.inboxSource,
@@ -1098,6 +1154,7 @@ function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
     sharedUploads: binding.sharedUploads,
     uploadSaveHandler: binding.uploadSaveHandler,
     channelDescriptors: binding.channelDescriptors,
+    channelDescriptor: binding.channelDescriptor,
     readiness: binding.readiness,
     inboxFollowUpKind: binding.inboxFollowUpKind,
     registering: binding.registering,

@@ -59,7 +59,7 @@ A channel is an explicitly registered, app-scoped type owned by exactly one mess
 - **Connecting a channel is a per-person Admin action.** The Admin People workspace attaches a channel identity to a person, validated against the descriptor's subject pattern and audited as `auth.identity.attached` or `auth.identity.detached`. The person's role then governs messages from that channel subject. An Admin attaching a channel ID vouches for it: Admin-asserted identities are authoritative for role resolution.
 - **Lookup subjects stay hashed; deliverable subjects stay private.** Lookup uses `normalizeIdentityKey` and `hashIdentityKey`. A raw deliverable destination may persist only on its private person claim, never in invitation attempts, audit metadata, logs, model context, public cards or broad roster projections.
 - **Automatic and manual delivery are explicit modes.** Automatic delivery requires a registered, currently available provider, checked outside the auth transaction just before account creation, and fails before creation when absent. Manual delivery is never an implicit fallback: it requires a descriptor that allows it, an active Admin, same-origin explicit confirmation, a current unconsumed token and a content-free audit event.
-- **Outbound-only interfaces are first-class.** `MessageInterfacePlugin` does not require a listener, daemon or conversation ingestion; `interfaces/email` owns the `email` channel and only sends.
+- **Outbound-only interfaces are first-class.** A message interface does not require a listener, daemon or conversation ingestion; `interfaces/email` owns the `email` channel and only sends.
 
 Self-service channel connection, where a person proves their own channel, is not implemented.
 

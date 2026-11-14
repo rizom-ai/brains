@@ -4,7 +4,7 @@ import { toneText } from "@brains/app-ui-react";
 import type {
   RuntimeOperatorLaunchIntent,
   RuntimeStudioOperatorPanelBlock,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/service-runtime";
 import type { ReactElement } from "react";
 import { logStyles as s } from "./operator-log.styles";
 import { OperatorMetadata } from "./operator-metadata";

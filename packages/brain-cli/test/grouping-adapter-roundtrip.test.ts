@@ -5,7 +5,11 @@ import { computeContentHash } from "@brains/utils/hash";
 import { PermissionService } from "@brains/templates";
 import { studioPlugin } from "@brains/studio/test";
 import { DirectorySync, type ImportResult } from "@brains/directory-sync";
-import { AuthServicePlugin } from "@brains/auth-service";
+import {
+  authServiceOf,
+  authServicePlugin,
+  type AuthService,
+} from "@brains/auth-service";
 import { z } from "@brains/utils/zod";
 
 const editorEntitySchema = z.object({
@@ -92,7 +96,7 @@ describe("Clients through the real Note and BlogPost adapters", () => {
     service: EntityService,
     adminWrites = false,
     onSession?: (
-      auth: AuthServicePlugin,
+      auth: AuthService,
       role: "admin" | "trusted" | "public",
       userId: string,
     ) => void,
@@ -128,20 +132,23 @@ describe("Clients through the real Note and BlogPost adapters", () => {
       }),
     );
     const authDirectory = await createTestDirectory();
-    const auth = new AuthServicePlugin({ storageDir: authDirectory.dir });
+    const auth = authServicePlugin({ storageDir: authDirectory.dir });
     await auth.register(shell);
     cleanups.push(async (): Promise<void> => {
-      await auth.shutdown();
+      await auth.shutdown?.();
       await authDirectory.cleanup();
     });
     const sessions = new Map<string, string>();
     for (const role of ["admin", "trusted", "public"] as const) {
-      const user = await auth
-        .getService()
-        .createUser({ displayName: `${role} editor`, role });
-      const session = await auth.getService().createAuthSession(user.userId);
+      const user = await authServiceOf(shell.getAuthRegistry()).createUser({
+        displayName: `${role} editor`,
+        role,
+      });
+      const session = await authServiceOf(
+        shell.getAuthRegistry(),
+      ).createAuthSession(user.userId);
       sessions.set(role, session.cookie);
-      onSession?.(auth, role, user.userId);
+      onSession?.(authServiceOf(shell.getAuthRegistry()), role, user.userId);
     }
     // Core-only cases use static declarations. UI cases instead author a
     // definitions document as fixture setup, before making any Studio requests.
@@ -378,14 +385,9 @@ describe("Clients through the real Note and BlogPost adapters", () => {
         (auth, role, userId): void => {
           if (role !== "trusted") return;
           controls.push(async (): Promise<void> => {
-            if (change === "role")
-              await auth.getService().updateUserRole(userId, "public");
-            else if (change === "suspension")
-              await auth.getService().suspendUser(userId);
-            else
-              await auth
-                .getService()
-                .revokeUserSessionsAndRefreshTokens(userId);
+            if (change === "role") await auth.updateUserRole(userId, "public");
+            else if (change === "suspension") await auth.suspendUser(userId);
+            else await auth.revokeUserSessionsAndRefreshTokens(userId);
           });
         },
       );

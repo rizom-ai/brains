@@ -1,7 +1,7 @@
 /** @jsxImportSource react */
 import { afterEach, expect, spyOn, test } from "bun:test";
 import { act } from "react";
-import { AuthServicePlugin } from "@brains/auth-service";
+import { authServiceOf, authServicePlugin } from "@brains/auth-service";
 import { createClient } from "@libsql/client";
 import { EntityRegistry, EntityService } from "@brains/entity-service";
 import { migrateEntities } from "@brains/entity-service/migrate";
@@ -10,15 +10,12 @@ import { declaredType } from "../helpers/declared-type";
 import blogPackage from "@brains/blog";
 import { createImageEntity } from "@brains/image";
 import imagePackage from "@brains/image-plugin";
-import {
-  EntityPlugin,
-  instantiatePluginPackageDefinition,
-} from "@brains/plugins";
+import { instantiatePluginPackageDefinition } from "@brains/plugins";
 import {
   PermissionService,
   type EntityActionPolicyRule,
 } from "@brains/templates";
-import { createMockShell } from "@brains/plugins/test";
+import { createMockShell, isDeclaredEntityType } from "@brains/plugins/test";
 import { createSilentLogger, createTestDirectory } from "@brains/test-utils";
 import { parseMarkdown } from "@brains/utils/markdown-frontmatter";
 import {
@@ -87,17 +84,20 @@ async function fixture(): Promise<{
       },
     ),
   );
-  const auth = new AuthServicePlugin({ storageDir: `${directory.dir}/auth` });
+  const auth = authServicePlugin({ storageDir: `${directory.dir}/auth` });
   await auth.register(shell);
   cleanups.push(async (): Promise<void> => {
-    await auth.shutdown();
+    await auth.shutdown?.();
   });
   const cookies = new Map<string, string>();
   for (const role of ["admin", "trusted"] as const) {
-    const user = await auth
-      .getService()
-      .createUser({ displayName: role, role });
-    const session = await auth.getService().createAuthSession(user.userId);
+    const user = await authServiceOf(shell.getAuthRegistry()).createUser({
+      displayName: role,
+      role,
+    });
+    const session = await authServiceOf(
+      shell.getAuthRegistry(),
+    ).createAuthSession(user.userId);
     cookies.set(role, session.cookie);
   }
   const plugin = studioPlugin({ routePath: base });
@@ -121,7 +121,7 @@ async function fixture(): Promise<{
     { name: "@brains/image-plugin", version: "0.0.0-test" },
     { pluginId: "image" },
   );
-  if (!(images instanceof EntityPlugin)) throw new Error("No image plugin");
+  if (!isDeclaredEntityType(images)) throw new Error("No image plugin");
   registry.registerEntityType("image", images.schema, images.adapter);
   await plugin.finalizeRegistration();
   await service.reprojectRegisteredGroupings();

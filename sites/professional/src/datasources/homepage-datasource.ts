@@ -4,11 +4,14 @@ import type {
   HomepageOpeningData,
 } from "@brains/site-atlas";
 import { fetchAnchorProfileData } from "@brains/profile";
-import type {
-  BaseDataSourceContext,
-  DataSource,
-  DataSourceSchema,
-} from "@brains/plugins";
+import {
+  defineDataSource,
+  type DataSourceDefinition,
+} from "@brains/sdk/entities";
+import {
+  siteDataSourceRuntime,
+  type SiteDataSourceRuntime,
+} from "@brains/sdk/internal/site-runtime";
 import {
   fetchRecentEntities,
   fetchSiteInfo,
@@ -34,6 +37,15 @@ import {
 } from "@brains/decks";
 
 type HomepageSections = NonNullable<SiteInfoBody["sections"]>;
+
+/** The build a homepage's loaders read: its entity reads, and whether it is production. */
+/** What a declared data source is told about the read it serves. */
+type HomepageRead = Parameters<DataSourceDefinition["fetch"]>[2];
+
+export interface HomepageBuild {
+  readonly entityService: SiteDataSourceRuntime["entityService"];
+  readonly publishedOnly?: boolean;
+}
 
 /**
  * Homepage data returned by datasource (non-enriched)
@@ -67,16 +79,13 @@ export function requireDoor(
 /** The authored-homepage placement, only when the site opts in. */
 export interface HomepagePlacementLoaders {
   loadOpening?:
-    | ((context: BaseDataSourceContext) => Promise<HomepageOpeningData | null>)
+    | ((context: HomepageBuild) => Promise<HomepageOpeningData | null>)
     | undefined;
   loadAtlas?:
-    | ((context: BaseDataSourceContext) => Promise<HomepageAtlasData | null>)
-    | undefined;
-  chatAvailable?:
-    ((context: BaseDataSourceContext) => Promise<boolean>) | undefined;
+    ((context: HomepageBuild) => Promise<HomepageAtlasData | null>) | undefined;
+  chatAvailable?: ((context: HomepageBuild) => Promise<boolean>) | undefined;
   /** The owner's published FAQs, most asked first, shown under the atlas. */
-  loadFaqs?:
-    ((context: BaseDataSourceContext) => Promise<HomepageFaq[]>) | undefined;
+  loadFaqs?: ((context: HomepageBuild) => Promise<HomepageFaq[]>) | undefined;
 }
 
 type HomepagePlacement = Pick<
@@ -90,7 +99,7 @@ type HomepagePlacement = Pick<
  */
 export async function loadHomepagePlacement(
   placement: HomepagePlacementLoaders,
-  context: BaseDataSourceContext,
+  context: HomepageBuild,
 ): Promise<HomepagePlacement> {
   const { loadOpening, loadAtlas, chatAvailable, loadFaqs } = placement;
   if (!loadOpening) return {};
@@ -108,65 +117,59 @@ export async function loadHomepagePlacement(
  * Homepage list datasource
  * Fetches profile, recent published posts, and recent decks for homepage display
  */
-export class HomepageListDataSource implements DataSource {
-  private readonly postsListUrl: string;
-  private readonly decksListUrl: string;
-  public readonly id = "professional:homepage-list";
-  public readonly name = "Homepage List DataSource";
-  public readonly description =
-    "Fetches profile, blog posts, and presentation decks for homepage";
+export function homepageListDataSource(
+  postsListUrl: string,
+  decksListUrl: string,
+  placement: (
+    runtime: SiteDataSourceRuntime,
+    read: HomepageRead,
+  ) => HomepagePlacementLoaders = () => ({}),
+): DataSourceDefinition {
+  return defineDataSource({
+    id: "homepage-list",
+    name: "Homepage List DataSource",
+    description:
+      "Fetches profile, blog posts, and presentation decks for homepage",
+    fetch: async (_query, _entities, context) => {
+      const runtime = siteDataSourceRuntime(context);
+      const entityService = runtime.entityService;
+      // The build's reads, as the class's loaders were handed them.
+      const build: HomepageBuild = {
+        entityService,
+        ...(context.publishedOnly !== undefined
+          ? { publishedOnly: context.publishedOnly }
+          : {}),
+      };
 
-  private readonly placement: HomepagePlacementLoaders;
+      // Fetch profile, posts, decks, and site-info in parallel
+      const [profile, posts, decks, siteInfo] = await Promise.all([
+        fetchAnchorProfileData(entityService, professionalProfileSchema),
+        fetchRecentEntities<BlogPost, BlogPostWithData>(entityService, {
+          entityType: "post",
+          entitySchema: blogPostSchema,
+          count: 3,
+          parse: parsePostData,
+        }),
+        fetchRecentEntities<DeckEntity, DeckWithData>(entityService, {
+          entityType: "deck",
+          entitySchema: deckSchema,
+          count: 3,
+          parse: parseDeckData,
+        }),
+        fetchSiteInfo(entityService),
+      ]);
 
-  constructor(
-    postsListUrl: string,
-    decksListUrl: string,
-    placement: HomepagePlacementLoaders = {},
-  ) {
-    this.placement = placement;
-    this.postsListUrl = postsListUrl;
-    this.decksListUrl = decksListUrl;
-  }
-
-  /**
-   * Fetch homepage data
-   */
-  async fetch<T>(
-    _query: unknown,
-    outputSchema: DataSourceSchema<T>,
-    context: BaseDataSourceContext,
-  ): Promise<T> {
-    const entityService = context.entityService;
-
-    // Fetch profile, posts, decks, and site-info in parallel
-    const [profile, posts, decks, siteInfo] = await Promise.all([
-      fetchAnchorProfileData(entityService, professionalProfileSchema),
-      fetchRecentEntities<BlogPost, BlogPostWithData>(entityService, {
-        entityType: "post",
-        entitySchema: blogPostSchema,
-        count: 3,
-        parse: parsePostData,
-      }),
-      fetchRecentEntities<DeckEntity, DeckWithData>(entityService, {
-        entityType: "deck",
-        entitySchema: deckSchema,
-        count: 3,
-        parse: parseDeckData,
-      }),
-      fetchSiteInfo(entityService),
-    ]);
-
-    const data: HomepageDataSourceOutput = {
-      profile,
-      posts,
-      decks,
-      postsListUrl: this.postsListUrl,
-      decksListUrl: this.decksListUrl,
-      cta: requireCta(siteInfo.cta),
-      sections: siteInfo.sections ?? {},
-      ...(await loadHomepagePlacement(this.placement, context)),
-    };
-
-    return outputSchema.parse(data);
-  }
+      const data: HomepageDataSourceOutput = {
+        profile,
+        posts,
+        decks,
+        postsListUrl,
+        decksListUrl,
+        cta: requireCta(siteInfo.cta),
+        sections: siteInfo.sections ?? {},
+        ...(await loadHomepagePlacement(placement(runtime, context), build)),
+      };
+      return data;
+    },
+  });
 }

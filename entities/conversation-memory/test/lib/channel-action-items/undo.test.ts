@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import {
-  ActionItemAdapter,
+  actionItemAdapter,
   actionItemSchema,
   createActionItem,
   moveActionItem,
@@ -38,11 +38,7 @@ async function brain(): Promise<{
     createMockShell(),
     "conversation-memory",
   );
-  context.entities.register(
-    "action-item",
-    actionItemSchema,
-    new ActionItemAdapter(),
-  );
+  context.entities.register("action-item", actionItemSchema, actionItemAdapter);
   const deps: ChannelUndoDeps = {
     bookmarks: channelBookmarks(context.runtimeState),
     entityService: context.entityService,

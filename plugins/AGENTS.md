@@ -16,10 +16,10 @@ Service plugins provide operational capabilities such as:
 
 ## Required conventions
 
-- Use `ServicePlugin` for plugin implementations here.
+- Packages here are `defineServicePlugin` definitions, imported through `@brains/sdk`.
 - Keep tool definitions explicit and narrow.
 - Use Zod for tool inputs and plugin config.
-- A converted package imports `@brains/sdk` and its `@brains/sdk/internal/*` entries, never `@brains/plugins`; lint refuses it in production code. A package not yet converted imports through `@brains/plugins`. Neither imports shell internals.
+- A package imports `@brains/sdk` and its `@brains/sdk/internal/*` entries, never `@brains/plugins` or another shell package; `arch:check` refuses it in production code.
 - Keep integrations isolated from standalone entity packages.
 - For a tightly coupled 1:1 entity + service capability, keep both parts in one compound package under `plugins/`; put entity schemas/adapters under `src/entity/`.
 - Make a request or command to another package through a bus contract (`defineBusContract` in `@brains/contracts`, then `context.messaging.request/gather/command/answer`); enqueue another package's job through a job contract (`defineJobContract`). Broadcast an event with `context.messaging.broadcast(channel, payload)` on its typed channel (`defineChannel`); the plugin context has no raw `send`. See `shell/messaging-service/README.md`.

@@ -1,14 +1,12 @@
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
 import {
+  type InboxActor,
+  type InboxItem,
+  type InboxItemDetail,
+  type InboxSource,
   internalFullScope,
   permissionToVisibilityScope,
-} from "@brains/plugins";
-import type {
-  BaseEntity,
-  InboxActor,
-  InboxItem,
-  InboxItemDetail,
-  InboxSource,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/service-runtime";
 import type { ServicePermissions } from "@brains/sdk/internal/service-runtime";
 import type { FormEntityService } from "./records";
 import type { FormInbox, FormInboxTarget } from "./target";

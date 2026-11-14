@@ -4,10 +4,10 @@ import { rendererLayoutStyles as rendererLayout } from "./operator-renderer-layo
 import * as stylex from "@stylexjs/stylex";
 import { selectionStyles as selection } from "./operator-selection.styles";
 import type {
-  RuntimeStudioOperatorPanelBlock,
   RuntimeOperatorActionControl,
   RuntimeOperatorLaunchIntent,
-} from "@brains/plugins";
+  RuntimeStudioOperatorPanelBlock,
+} from "@brains/sdk/internal/service-runtime";
 import { type ReactElement } from "react";
 import type { OperatorViewQuery } from "./operator-view-host";
 import { displayCell } from "./operator-view-format";

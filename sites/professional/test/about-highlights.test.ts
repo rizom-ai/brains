@@ -2,11 +2,8 @@ import { describe, expect, it } from "bun:test";
 import { expectBodyRoundTrip } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import { TemplateCapabilities } from "@brains/templates";
-import {
-  createPluginHarness,
-  type PluginTestHarness,
-} from "@brains/plugins/test";
-import { ProfessionalSitePlugin } from "../src/plugin";
+import type { PluginTestHarness } from "@brains/plugins/test";
+import { installedSite } from "./install-site";
 import { routes } from "../src/routes";
 
 const sample = {
@@ -17,14 +14,8 @@ const sample = {
 };
 
 describe("professional site about highlights", () => {
-  async function installPlugin(): Promise<
-    PluginTestHarness<ProfessionalSitePlugin>
-  > {
-    const harness = createPluginHarness<ProfessionalSitePlugin>({
-      dataDir: "/tmp/test-professional-site-about-highlights",
-    });
-    await harness.installPlugin(new ProfessionalSitePlugin({}));
-    return harness;
+  async function installPlugin(): Promise<PluginTestHarness> {
+    return installedSite("/tmp/test-professional-site-about-highlights");
   }
 
   it("is the site's generatable section: AI-backed, knowledge-aware, and renderable", async () => {

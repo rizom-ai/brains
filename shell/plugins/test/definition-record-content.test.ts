@@ -18,7 +18,6 @@ import { createMockShell, type MockShell } from "../src/test/mock-shell";
 import { queuedByPackage } from "../src/test/package-job-data";
 import type { OwnedEntityWriter } from "../src/service/service-definition-contract";
 import {
-  EntityPlugin,
   defineDataSource,
   defineEntity,
   defineEntityAnalyticsReport,
@@ -33,6 +32,7 @@ import {
   type PluginCapabilities,
   type ToolContext,
 } from "../src";
+import { isDeclaredEntityType } from "../src/test/declared-entity-type";
 
 // A body that a read must hand back as stored: no frontmatter, and an image
 // reference left as the reference rather than resolved to its data.
@@ -190,7 +190,7 @@ async function realShell(
     { name: "@fixture/linked", version: "0.1.0" },
   );
   for (const plugin of plugins) {
-    if (plugin instanceof EntityPlugin) {
+    if (isDeclaredEntityType(plugin)) {
       registry.registerEntityType(
         plugin.entityType,
         plugin.schema,
@@ -262,7 +262,7 @@ async function storage(): Promise<Storage> {
     ),
   ];
   for (const plugin of plugins) {
-    if (plugin instanceof EntityPlugin) {
+    if (isDeclaredEntityType(plugin)) {
       registry.registerEntityType(
         plugin.entityType,
         plugin.schema,

@@ -1,9 +1,9 @@
-import { BaseEntityAdapter } from "@brains/plugins";
-import type {
-  BaseEntity,
-  BaseEntityFrontmatterSchema,
-  EntitySchema,
-} from "@brains/plugins";
+import {
+  generateFrontmatter,
+  generateMarkdownWithFrontmatter,
+  parseTypedFrontmatter,
+  type EntityAdapter,
+} from "@brains/sdk/internal/entity-runtime";
 import { generateMarkdown } from "@brains/utils/markdown-frontmatter";
 import { z } from "@brains/utils/zod";
 import {
@@ -22,100 +22,62 @@ import {
 
 const frontmatterRecordSchema = z.record(z.string(), z.unknown());
 
-interface TypedFrontmatterSchema<T> {
-  parse(data: unknown): T;
-}
-
-/**
- * Shared adapter for derived conversation memory entities (decisions,
- * action items). Both entity types share an identical markdown shape:
- * the body is a single H1 title followed by free text, with metadata
- * persisted as YAML frontmatter.
- */
-export class MemoryEntityAdapter<
-  TEntity extends BaseEntity<TMetadata>,
-  TMetadata extends object,
-> extends BaseEntityAdapter<TEntity, TMetadata, Record<string, unknown>> {
-  private readonly metadataSchema: { parse(data: unknown): TMetadata };
-
-  constructor(config: {
-    entityType: string;
-    purpose: string;
-    schema: EntitySchema<TEntity>;
-    metadataSchema: BaseEntityFrontmatterSchema<Record<string, unknown>>;
-    parseMetadata: TypedFrontmatterSchema<TMetadata>;
-  }) {
-    super({
-      entityType: config.entityType,
-      purpose: config.purpose,
-      schema: config.schema,
-      frontmatterSchema: config.metadataSchema,
-    });
-    this.metadataSchema = config.parseMetadata;
-  }
-
-  /** An entry is named by its body heading; its id is a reference. */
-  public displayTitle(entity: TEntity): string | undefined {
-    const heading = entity.content.match(/^#\s+(.+)$/m)?.[1]?.trim();
-    return heading !== undefined && heading.length > 0 ? heading : undefined;
-  }
-
-  public composeContent(
-    title: string,
-    text: string,
-    metadata: TMetadata,
-  ): string {
-    return this.buildMarkdown(
-      [`# ${title}`, "", text.trim(), ""].join("\n"),
-      frontmatterRecordSchema.parse(metadata),
-    );
-  }
-
-  public override toMarkdown(entity: TEntity): string {
-    return entity.content;
-  }
-
-  public fromMarkdown(markdown: string): Partial<TEntity> {
-    // Irreducible: no object literal is assignable to `Partial<TEntity>` while
-    // TEntity is unresolved, because a subclass may narrow any of these fields.
-    // Carrying the literal entity type through the constructor is not enough —
-    // tried, and it still reports `{ entityType: TEntity["entityType"];
-    // content: string; metadata: TMetadata }` as unassignable, since `content`
-    // and `metadata` are unprovable for the same reason. Removing it needs
-    // TEntity resolved, which means dropping the shared base entirely.
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- see the note above: no object literal is assignable to Partial<TEntity> while TEntity is unresolved
-    return {
-      entityType: this.entityType,
-      content: markdown,
-      metadata: this.parseFrontMatter(markdown, this.metadataSchema),
-    } as Partial<TEntity>;
-  }
-}
-
-export class ActionItemAdapter extends MemoryEntityAdapter<
+/** The action-item adapter, and how a new card's document is composed. */
+export interface ActionItemAdapter extends EntityAdapter<
   ActionItemEntity,
   ActionItemMetadata
 > {
-  constructor() {
-    super({
-      entityType: ACTION_ITEM_ENTITY_TYPE,
-      purpose: "An action item captured from a conversation.",
-      schema: actionItemSchema,
-      metadataSchema: actionItemMetadataSchema,
-      parseMetadata: actionItemStoredMetadataSchema,
-    });
-  }
-
   /** A card is named by its text; its id is a reference. */
-  public override displayTitle(entity: ActionItemEntity): string {
-    return actionItemTitle(entity);
-  }
+  displayTitle(entity: ActionItemEntity): string;
+  /** A card's first document: its H1 title, its text, its metadata. */
+  composeContent(
+    title: string,
+    text: string,
+    metadata: ActionItemMetadata,
+  ): string;
+}
 
-  /** Writes the current shape, so any save migrates a card stored in an older one. */
-  public override toMarkdown(entity: ActionItemEntity): string {
-    return generateMarkdown(
+/**
+ * How an action item is written and read: its frontmatter carries the
+ * card's fields, its body the text under one H1 title. Writing renders the
+ * current shape, so any save migrates a card stored in an older one.
+ */
+export const actionItemAdapter: ActionItemAdapter = Object.freeze({
+  entityType: ACTION_ITEM_ENTITY_TYPE,
+  purpose: "An action item captured from a conversation.",
+  schema: actionItemSchema,
+  frontmatterSchema: actionItemMetadataSchema,
+  toMarkdown: (entity: ActionItemEntity): string =>
+    generateMarkdown(
       actionItemFrontmatter(entity),
       actionItemBody(entity.content),
-    );
-  }
-}
+    ),
+  fromMarkdown: (markdown: string): Partial<ActionItemEntity> => ({
+    entityType: ACTION_ITEM_ENTITY_TYPE,
+    content: markdown,
+    metadata: parseTypedFrontmatter(
+      ACTION_ITEM_ENTITY_TYPE,
+      markdown,
+      actionItemStoredMetadataSchema,
+    ),
+  }),
+  extractMetadata: (entity: ActionItemEntity): ActionItemMetadata =>
+    entity.metadata,
+  parseFrontMatter: <T>(
+    markdown: string,
+    schema: { parse(data: unknown): T },
+  ): T => parseTypedFrontmatter(ACTION_ITEM_ENTITY_TYPE, markdown, schema),
+  generateFrontMatter: (entity: ActionItemEntity): string =>
+    generateFrontmatter(frontmatterRecordSchema.parse(entity.metadata)),
+  getBodyTemplate: (): string => "",
+  displayTitle: (entity: ActionItemEntity): string => actionItemTitle(entity),
+  composeContent: (
+    title: string,
+    text: string,
+    metadata: ActionItemMetadata,
+  ): string =>
+    generateMarkdownWithFrontmatter(
+      [`# ${title}`, "", text.trim(), ""].join("\n"),
+      frontmatterRecordSchema.parse(metadata),
+    ),
+});

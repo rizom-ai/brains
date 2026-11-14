@@ -242,3 +242,24 @@ export {
   createAdminListTool,
   hasPermission,
 } from "@brains/plugins";
+// The runtime state a shared library's own stores are kept in.
+export type {
+  IRuntimeStateNamespace,
+  IRuntimeStateStore,
+} from "@brains/plugins";
+// The operator surfaces' remaining shapes, as the shared React views draw them.
+export type {
+  RuntimeOperatorScalar,
+  RuntimePreparedConfirmation,
+} from "@brains/plugins";
+// What a shared site library's data sources read the build and routes by.
+export type {
+  BaseDataSourceContext,
+  IWebRoutesNamespace,
+} from "@brains/plugins";
+// The scheduler a content pipeline runs its publish and generation schedules on.
+export {
+  BunSchedulerBackend,
+  type ScheduledJob,
+  type SchedulerBackend,
+} from "@brains/scheduler";

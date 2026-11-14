@@ -1,15 +1,11 @@
-import {
-  EntityPlugin,
-  instantiatePluginPackageDefinition,
-  type BaseEntity,
-} from "@brains/plugins";
+import { instantiatePluginPackageDefinition } from "@brains/plugins";
 import promptPackage from "../src";
+import {
+  isDeclaredEntityType,
+  type DeclaredEntityTypePlugin,
+} from "@brains/plugins/test";
 
-export type PromptEntityPlugin = EntityPlugin<
-  BaseEntity,
-  Record<string, never>,
-  Record<string, never>
->;
+export type PromptEntityPlugin = DeclaredEntityTypePlugin;
 
 /** The entity plugin the prompt package installs, as a brain composes it. */
 export function promptPlugin(): PromptEntityPlugin {
@@ -20,7 +16,7 @@ export function promptPlugin(): PromptEntityPlugin {
     // As the canonical brain composes it: under the id its class had.
     { pluginId: "prompt" },
   );
-  if (!(plugin instanceof EntityPlugin)) {
+  if (!isDeclaredEntityType(plugin)) {
     throw new Error("The prompt package installs no entity plugin");
   }
   return plugin;

@@ -54,7 +54,7 @@ A running brain is driven by a lightweight _instance directory_ centered on `bra
 | `shared/eslint-config`     | Shared ESLint config                                                       |
 | `shared/typescript-config` | Shared TS configs (root, library, instance)                                |
 
-## Entities (EntityPlugin — content type definitions)
+## Entities (entity packages — content type definitions)
 
 Entity plugins define content types with schemas, adapters, generation handlers, and datasources. They expose no tools — all CRUD goes through `system_create/update/delete`. If an entity type has exactly one operating service plugin and is not independently reused, it may live inside that service plugin as a compound package under `plugins/` instead of appearing here.
 
@@ -77,7 +77,7 @@ Entity plugins define content types with schemas, adapters, generation handlers,
 | `entities/doc`                 | Generic docs entity backing `/docs`                 |
 | `entities/document`            | Generated PDFs and publishable document attachments |
 
-## Plugins (ServicePlugin — tools + infrastructure)
+## Plugins (services — tools + infrastructure)
 
 Plugins that provide MCP tools, orchestration, or infrastructure operations.
 

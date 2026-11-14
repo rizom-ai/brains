@@ -8,12 +8,6 @@ export {
   type EntityTypeClassification,
 } from "@brains/entity-service";
 
-// Base plugin classes
-export { ServicePlugin } from "./service/service-plugin";
-export {
-  EntityPlugin,
-  emptyEntityPluginConfigSchema,
-} from "./entity/entity-plugin";
 export { computeProjectionInputFingerprint } from "./entity/projection-input-fingerprint";
 export { findNearestEntity } from "./entity/nearest-entity";
 export { waitForEmbeddingsToDrain } from "./entity/embedding-drain";
@@ -91,7 +85,6 @@ export {
   uploadTitle,
 } from "./entity/upload-title";
 
-export { InterfacePlugin } from "./interface/interface-plugin";
 export {
   AccountSettingsRegistry,
   type AccountSettingsBackend,
@@ -377,9 +370,26 @@ export {
   type DataSourceQuery,
   type DataSourceReadContext,
   type DataSourceSortField,
+  type SharedStateReader,
   type EntityDataSourceDefinition,
   type EntityDataSourceInput,
   type EntityDetailContext,
+} from "./public/entity-data-source";
+export { defineSharedState, type SharedState } from "./public/shared-state";
+// A first-party site's runtime, and how the brain registers it.
+export {
+  registerSiteRuntime,
+  siteDataSourceRuntime,
+  withSiteRuntime,
+  withSiteRuntimeDefaults,
+  type SiteDataSourceRuntime,
+  type SiteRuntimeDeclaration,
+} from "./site/site-runtime";
+// For the runtime, which binds a site's declared data sources.
+export {
+  createDeclaredDataSource,
+  isFetchingDataSourceDeclaration,
+  type DataSourceBindings,
 } from "./public/entity-data-source";
 export {
   defineAccountSettings,
@@ -475,7 +485,6 @@ export type {
   EntityCount,
   InteractionInfo,
   InteractionInfoInput,
-  BaseJobTrackingInfo,
   // Types needed by test harness and shell packages
   IShell,
   QueryContext,
@@ -610,15 +619,6 @@ export type {
   BaseDataSourceContext,
   PaginationInfo,
 } from "@brains/entity-service";
-export {
-  BaseEntityDataSource,
-  baseQuerySchema,
-  baseInputSchema,
-  type EntityDataSourceConfig,
-  type BaseQuery,
-  type NavigationResult,
-  type SortField,
-} from "./service/base-entity-datasource";
 export {
   findRelatedEntities,
   type RelatedEntitiesQuery,
@@ -810,7 +810,6 @@ export type { ProgressCallback } from "@brains/utils/progress";
 
 // Message interface plugin (for CLI, Matrix, etc.)
 export {
-  MessageInterfacePlugin,
   MessageUploadContinuity,
   buildCoalescedInput,
   buildConfirmationResponseParts,
@@ -827,11 +826,8 @@ export {
   type MessageArtifactAccessInput,
   type MessageArtifactAccessResult,
   type MessageArtifactEntity,
-  type MessageJobTrackingInfo,
   type MessageProgressDisplay,
   type MessageSourceInput,
-  type NativeArtifactDelivery,
-  type NativeArtifactFile,
   type MessageUploadAttachmentRestorer,
   type MessageUploadContinuityOptions,
   type MessageUploadConversationLoader,
@@ -1017,6 +1013,7 @@ export {
 export { withOwnedDataSources } from "./public/service-definition";
 export {
   firstPartyJobHandler,
+  withAuthAuthority,
   withJobHandlers,
   withStaticSiteOutput,
   withApiRoutes,

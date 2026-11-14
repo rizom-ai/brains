@@ -6,15 +6,15 @@ import {
   type SiteDefinition,
   type SiteSectionGroup,
 } from "@rizom/site";
-import type { SiteCompositionPlugin } from "./plugin";
 import { isRecord } from "@brains/utils/is-record";
+import { attachSiteRuntime, siteRuntimeOf } from "./site-runtime";
 
 /**
  * A site package bundles everything the site-builder needs for
  * site structure:
  * - Page structure (layout components)
  * - Hand-written routes (home, about, etc.)
- * - Data layer (site plugin with templates + datasources)
+ * - Data layer (the site's dataSources, or a first-party site's carried runtime)
  * - Display metadata per entity type (labels, navigation, pagination)
  *
  * Themes are resolved separately by the resolver. A brain chooses a
@@ -23,12 +23,11 @@ import { isRecord } from "@brains/utils/is-record";
  *
  * @example
  * ```ts
- * import { sitePlugin, SiteLayout, routes } from "./site-components";
+ * import { SiteLayout, routes } from "./site-components";
  *
  * const site: SitePackage = {
  *   layouts: { default: SiteLayout },
  *   routes,
- *   plugin: sitePlugin,
  *   entityDisplay: {
  *     post: { label: "Post" },
  *   },
@@ -37,21 +36,12 @@ import { isRecord } from "@brains/utils/is-record";
  * export default site;
  * ```
  */
-export interface SitePackage<
-  TPluginConfig = Record<string, unknown>,
-  TPlugin extends SiteCompositionPlugin = SiteCompositionPlugin,
-> extends Omit<SiteDefinition, "layouts"> {
+export interface SitePackage extends Omit<SiteDefinition, "layouts"> {
   /** Layout values are narrowed to React components by the runtime schema. */
   layouts: Record<string, unknown>;
-
-  /** Optional runtime plugin factory for legacy/internal site integrations. */
-  plugin?: ((config?: TPluginConfig) => TPlugin) | undefined;
 }
 
-export type SitePackageOverrides<
-  TPluginConfig = Record<string, unknown>,
-  TPlugin extends SiteCompositionPlugin = SiteCompositionPlugin,
-> = Partial<SitePackage<TPluginConfig, TPlugin>>;
+export type SitePackageOverrides = Partial<SitePackage>;
 
 function mergeContent(
   baseContent: SiteContent | undefined,
@@ -115,17 +105,17 @@ function mergeRoutes(
   return mergedRoutes;
 }
 
-export function extendSite<
-  TPluginConfig,
-  TPlugin extends SiteCompositionPlugin = SiteCompositionPlugin,
->(
-  baseSite: SitePackage<TPluginConfig, TPlugin>,
-  overrides: SitePackageOverrides<TPluginConfig, TPlugin> = {},
-): SitePackage<TPluginConfig, TPlugin> {
+export function extendSite(
+  baseSite: SitePackage,
+  overrides: SitePackageOverrides = {},
+): SitePackage {
   // Fast path: sites/default extends site-professional with {} on every boot,
   // so returning the base unchanged when no overrides are present avoids
   // per-boot object allocation on the resolver hot path.
-  if (Object.keys(overrides).length === 0) {
+  if (
+    Object.keys(overrides).length === 0 &&
+    siteRuntimeOf(overrides) === undefined
+  ) {
     return baseSite;
   }
 
@@ -136,9 +126,6 @@ export function extendSite<
     themeOverride: overrideThemeOverride,
     headScripts: overrideHeadScripts,
   } = overrides;
-  const plugin = Object.hasOwn(overrides, "plugin")
-    ? overrides.plugin
-    : baseSite.plugin;
 
   const layouts = overrideLayouts
     ? { ...baseSite.layouts, ...overrideLayouts }
@@ -171,32 +158,37 @@ export function extendSite<
   const content = mergeContent(baseSite.content, overrides.content);
   const sections = mergeSections(baseSite.sections, overrides.sections);
   const languages = overrides.languages ?? baseSite.languages;
+  const dataSources = [
+    ...(baseSite.dataSources ?? []),
+    ...(overrides.dataSources ?? []),
+  ];
 
-  return {
+  const extended: SitePackage = {
     layouts,
     routes: mergeRoutes(baseSite.routes, overrides.routes),
-    ...(plugin ? { plugin } : {}),
     entityDisplay,
     ...(content ? { content } : {}),
     ...(sections ? { sections } : {}),
     ...(themeOverride ? { themeOverride } : {}),
     ...(headScripts.length > 0 ? { headScripts } : {}),
     ...(languages ? { languages } : {}),
+    ...(dataSources.length > 0 ? { dataSources } : {}),
     ...(staticAssets && Object.keys(staticAssets).length > 0
       ? { staticAssets }
       : {}),
   };
+  // What the base carries for the runtime stays with what extends it.
+  const runtime = siteRuntimeOf(overrides) ?? siteRuntimeOf(baseSite);
+  return runtime === undefined
+    ? extended
+    : attachSiteRuntime(extended, runtime);
 }
 
 export const themeCssSchema: z.ZodString = z.string();
 
-// Internal packages may still carry an embedded runtime plugin while they are
-// migrated to explicit plugin composition. The public structural fields are
-// always validated by the canonical @rizom/site schema.
+// A site package is the canonical @rizom/site structure; what a first-party
+// site carries for the runtime travels beside it under a key no field names.
 export const sitePackageSchema: z.ZodCustom<SitePackage, SitePackage> =
-  z.custom<SitePackage>((value) => {
-    if (!isRecord(value)) return false;
-    const { plugin, ...site } = value;
-    if (plugin !== undefined && typeof plugin !== "function") return false;
-    return siteDefinitionSchema.safeParse(site).success;
-  });
+  z.custom<SitePackage>(
+    (value) => isRecord(value) && siteDefinitionSchema.safeParse(value).success,
+  );

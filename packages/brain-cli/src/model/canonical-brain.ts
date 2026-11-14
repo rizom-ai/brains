@@ -29,7 +29,7 @@ import {
 } from "@brains/assessment";
 import atprotoPackage from "@brains/atproto";
 import atprotoRegistryPackage from "@brains/atproto-registry";
-import { authServicePlugin } from "@brains/auth-service";
+import { authServicePackage } from "@brains/auth-service";
 import blogPackage from "@brains/blog";
 import chatInterface, { chatConfigFromEnv } from "@brains/chat";
 import studioPackage from "@brains/studio";
@@ -326,7 +326,14 @@ export const canonicalBrain: BrainDefinition = defineBrain({
         ),
       undefined,
     ],
-    ["auth-service", authServicePlugin, undefined],
+    packageCapability(
+      "auth-service",
+      "@brains/auth-service",
+      authServicePackage,
+      {
+        pluginId: "auth-service",
+      },
+    ),
     packageCapability(
       "notifications",
       "@brains/notifications",

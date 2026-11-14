@@ -1,5 +1,6 @@
+import type { Plugin } from "@brains/plugins";
 import { afterEach, describe, expect, it } from "bun:test";
-import { AuthServicePlugin } from "@brains/auth-service";
+import { authServiceOf, authServicePlugin } from "@brains/auth-service";
 import type { StudioWorkspaceActor } from "@brains/plugins";
 import { createMockShell, createTempDataDir } from "@brains/plugins/test";
 
@@ -12,10 +13,10 @@ import {
   workspaceByLabel,
 } from "./studio-workspace-test-helpers";
 
-const authPlugins: AuthServicePlugin[] = [];
+const authPlugins: Plugin[] = [];
 
 afterEach(async () => {
-  for (const plugin of authPlugins.splice(0)) await plugin.shutdown();
+  for (const plugin of authPlugins.splice(0)) await plugin.shutdown?.();
 });
 
 function actorFor(
@@ -111,12 +112,12 @@ describe("Admin-owned Studio Administration workspace", () => {
       manualDelivery: true,
     });
     shell.getChannelRegistry().finalize();
-    const auth = new AuthServicePlugin({
+    const auth = authServicePlugin({
       storageDir: await createTempDataDir("brains-administration-workspace-"),
     });
     authPlugins.push(auth);
     await auth.register(shell);
-    const service = auth.getService();
+    const service = authServiceOf(shell.getAuthRegistry());
     const admin = await service.createUser({
       displayName: "Ada Admin",
       role: "admin",
@@ -220,12 +221,12 @@ describe("Admin-owned Studio Administration workspace", () => {
 
   it("refuses an action it does not route by a code Studio publishes", async () => {
     const shell = createMockShell({ domain: "brain.test" });
-    const auth = new AuthServicePlugin({
+    const auth = authServicePlugin({
       storageDir: await createTempDataDir("brains-administration-refusals-"),
     });
     authPlugins.push(auth);
     await auth.register(shell);
-    const admin = await auth.getService().createUser({
+    const admin = await authServiceOf(shell.getAuthRegistry()).createUser({
       displayName: "Ada Admin",
       role: "admin",
     });

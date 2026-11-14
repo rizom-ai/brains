@@ -34,6 +34,19 @@ describe("site.package resolution", () => {
     ).not.toThrow();
   });
 
+  test("refuses a site package that embeds a runtime plugin", () => {
+    registerPackage("@rizom/site-with-plugin", {
+      layouts: { default: (): null => null },
+      routes: [],
+      entityDisplay: {},
+      plugin: () => ({ id: "embedded" }),
+    });
+
+    expect(() =>
+      resolve(definition, {}, { site: { package: "@rizom/site-with-plugin" } }),
+    ).toThrow('Package "@rizom/site-with-plugin" is not a valid SitePackage');
+  });
+
   test("keeps structural head scripts out of the legacy plugin adapter", () => {
     const site = {
       layouts: { default: (): null => null },

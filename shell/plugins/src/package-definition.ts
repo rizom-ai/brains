@@ -131,7 +131,7 @@ export interface CreatePluginPackageDefinitionInput<
 
 /**
  * Pass-through schema for config already parsed by the package loader.
- * Declarative plugin adapters hand BasePlugin a schema, but their config
+ * Declarative plugin adapters hand PluginCore a schema, but their config
  * was validated once by createPluginPackageDefinition — re-parsing would
  * re-run transforms, so this only asserts the object shape.
  */

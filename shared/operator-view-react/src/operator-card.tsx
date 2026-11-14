@@ -4,7 +4,7 @@ import type { ReactElement, ReactNode } from "react";
 import { layoutStyles as s } from "./operator-layout.styles";
 import { actionLayoutStyles } from "./operator-action-layout.styles";
 import { toneText } from "@brains/app-ui-react";
-import type { RuntimeStudioOperatorCardBlock } from "@brains/plugins";
+import type { RuntimeStudioOperatorCardBlock } from "@brains/sdk/internal/service-runtime";
 import { OperatorMetadata } from "./operator-metadata";
 
 export function OperatorCard(props: {

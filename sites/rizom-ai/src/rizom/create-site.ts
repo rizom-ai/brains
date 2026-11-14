@@ -1,5 +1,11 @@
-import type { IShell } from "@brains/plugins";
 import { extendSite } from "@brains/site-composition";
+import {
+  withSiteRuntime,
+  type DataSourceDefinition,
+  type SiteRuntimeDeclaration,
+} from "@brains/sdk/internal/site-runtime";
+import type { Template } from "@brains/sdk/internal/site-runtime";
+import { z } from "@brains/utils/zod";
 import type {
   EntityDisplayEntry,
   RouteDefinitionInput,
@@ -7,61 +13,25 @@ import type {
   SiteSectionGroup,
 } from "@rizom/site";
 import { rizomBaseSite } from "./runtime";
-import type {
-  RizomPluginCapabilities,
-  RizomSiteShell,
-  SitePackage,
-} from "./contracts";
-import { buildRizomHeadScript, RizomRuntimePlugin } from "./runtime/plugin";
-
-interface TemplateGroup {
-  namespace: string;
-  templates: Record<string, unknown>;
-}
+import type { SitePackage } from "./contracts";
+import { buildRizomHeadScript } from "./runtime/plugin";
 
 export interface RizomRuntimeHooks {
   contentNamespace: string;
-  templates?: Record<string, unknown>;
-  dataSources?: unknown[];
-  /** Datasources that need the plugin's runtime, built when it registers. */
-  dataSourceFactories?: Array<(shell: IShell) => unknown>;
+  templates?: Record<string, Template>;
+  /** The site's data sources, registered as `<contentNamespace>:<id>`. */
+  dataSources?: readonly DataSourceDefinition[];
 }
 
-class RizomVariantPlugin extends RizomRuntimePlugin {
-  private readonly templateGroups: TemplateGroup[];
-  private readonly dataSources: unknown[];
-  private readonly dataSourceFactories: Array<(shell: IShell) => unknown>;
-
-  constructor(
-    packageName: string,
-    config: Record<string, unknown>,
-    templateGroups: TemplateGroup[],
-    dataSources: unknown[] = [],
-    dataSourceFactories: Array<(shell: IShell) => unknown> = [],
-  ) {
-    super(packageName, config);
-    this.templateGroups = templateGroups;
-    this.dataSources = dataSources;
-    this.dataSourceFactories = dataSourceFactories;
-  }
-
-  // The shell a plugin registers with is the brain's, scoped to the plugin.
-  override async register(
-    shell: RizomSiteShell & IShell,
-    _context?: unknown,
-  ): Promise<RizomPluginCapabilities> {
-    for (const group of this.templateGroups) {
-      shell.registerTemplates(group.templates, group.namespace);
-    }
-    for (const dataSource of this.dataSources) {
-      shell.getDataSourceRegistry().register(dataSource);
-    }
-    for (const factory of this.dataSourceFactories) {
-      shell.getDataSourceRegistry().register(factory(shell));
-    }
-    return { tools: [], resources: [] };
-  }
-}
+/** What a Rizom site is configured with: a theme it names, when it names one. */
+const rizomSiteConfigSchema = z.object({
+  theme: z
+    .string({
+      error: (issue) =>
+        `Invalid rizom site theme ${JSON.stringify(issue.input)}; expected a package name string`,
+    })
+    .optional(),
+});
 
 export interface CreateRizomSiteOptions {
   packageName: string;
@@ -86,50 +56,29 @@ export interface CreateRizomSiteOptions {
   runtime?: RizomRuntimeHooks;
 }
 
-function buildTemplateGroups(options: CreateRizomSiteOptions): TemplateGroup[] {
-  if (!options.runtime?.templates) {
-    return [];
-  }
-  return [
-    {
-      namespace: options.runtime.contentNamespace,
-      templates: options.runtime.templates,
-    },
-  ];
-}
-
-function createRuntimePlugin(
-  options: CreateRizomSiteOptions,
-): SitePackage["plugin"] {
-  if (
-    !options.runtime?.templates &&
-    !options.runtime?.dataSources?.length &&
-    !options.runtime?.dataSourceFactories?.length
-  ) {
-    return undefined;
-  }
-
-  return (config?: Record<string, unknown>): RizomRuntimePlugin =>
-    new RizomVariantPlugin(
-      options.packageName,
-      config ?? {},
-      buildTemplateGroups(options),
-      options.runtime?.dataSources,
-      options.runtime?.dataSourceFactories,
-    );
+function siteRuntime(
+  runtime: RizomRuntimeHooks,
+): SiteRuntimeDeclaration<typeof rizomSiteConfigSchema> {
+  return {
+    id: runtime.contentNamespace,
+    config: rizomSiteConfigSchema,
+    templates: runtime.templates ?? {},
+    dataSources: () => runtime.dataSources ?? [],
+  };
 }
 
 export function createRizomSite(options: CreateRizomSiteOptions): SitePackage {
-  const plugin = createRuntimePlugin(options);
-
-  return extendSite(rizomBaseSite, {
+  const site = extendSite(rizomBaseSite, {
     layouts: { default: options.layout },
     routes: options.routes,
     ...(options.entityDisplay ? { entityDisplay: options.entityDisplay } : {}),
     ...(options.content ? { content: options.content } : {}),
     ...(options.sections ? { sections: options.sections } : {}),
     headScripts: [buildRizomHeadScript()],
-    ...(plugin ? { plugin } : {}),
     ...(options.themeOverride ? { themeOverride: options.themeOverride } : {}),
   });
+  const { runtime } = options;
+  return runtime?.templates || runtime?.dataSources?.length
+    ? withSiteRuntime(site, siteRuntime(runtime))
+    : site;
 }

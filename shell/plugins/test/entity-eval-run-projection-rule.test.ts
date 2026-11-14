@@ -5,7 +5,6 @@ import { EntityRegistry, EntityService } from "@brains/entity-service";
 import { migrateEntities } from "@brains/entity-service/migrate";
 import { createMockShell } from "../src/test/mock-shell";
 import {
-  EntityPlugin,
   defineEntity,
   defineEntityPackage,
   defineProjectionRule,
@@ -15,6 +14,7 @@ import {
   type ProjectionWaveInput,
   type ProjectionWriteIntent,
 } from "../src";
+import { isDeclaredEntityType } from "../src/test/declared-entity-type";
 
 /**
  * A first-party entity eval measures its type's own projection rule as
@@ -168,7 +168,7 @@ describe("a first-party entity eval running its type's projection rule", () => {
       { pluginId: "assessments" },
     );
     for (const plugin of plugins) {
-      if (plugin instanceof EntityPlugin) {
+      if (isDeclaredEntityType(plugin)) {
         registry.registerEntityType(
           plugin.entityType,
           plugin.schema,

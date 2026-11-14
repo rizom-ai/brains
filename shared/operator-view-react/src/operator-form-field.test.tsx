@@ -6,7 +6,7 @@ import {
   OperatorViewRenderer,
   operatorViewStylexCSS,
 } from "@brains/operator-view-react";
-import type { RuntimeStudioWorkspaceData } from "@brains/plugins";
+import type { RuntimeStudioWorkspaceData } from "@brains/sdk/internal/service-runtime";
 
 const data: RuntimeStudioWorkspaceData = {
   view: {

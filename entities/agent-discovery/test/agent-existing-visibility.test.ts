@@ -3,17 +3,14 @@ import { atprotoBrainCardDiscoveredPayloadSchema } from "@brains/atproto-contrac
 import { AuthService } from "@brains/auth-service";
 import { EntityRegistry, EntityService } from "@brains/entity-service";
 import { migrateEntities } from "@brains/entity-service/migrate";
-import {
-  EntityPlugin,
-  type ToolContext,
-  type ToolResponse,
-} from "@brains/plugins";
+import { type ToolContext, type ToolResponse } from "@brains/plugins";
 import {
   confirmationArgs,
   createMockEntityPluginContext,
   createMockShell,
   expectConfirmation,
   expectSuccess,
+  isDeclaredEntityType,
 } from "@brains/plugins/test";
 import { createSilentLogger, createTestDirectory } from "@brains/test-utils";
 import type { FetchLike } from "@brains/utils/fetch-like";
@@ -46,7 +43,7 @@ async function realEntityService(): Promise<EntityService> {
   const registry = EntityRegistry.createFresh(logger);
   // The package's declared agent type.
   const [agentType] = agentDiscoveryPlugins();
-  if (!(agentType instanceof EntityPlugin)) throw new Error("No agent type");
+  if (!isDeclaredEntityType(agentType)) throw new Error("No agent type");
   registry.registerEntityType(
     AGENT_ENTITY_TYPE,
     agentType.schema,

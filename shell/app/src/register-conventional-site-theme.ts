@@ -5,6 +5,7 @@ import {
   CONVENTIONAL_THEME_PACKAGE_REF,
   type InstanceOverrides,
 } from "./instance-overrides";
+import { withSiteRuntimeDefaults } from "@brains/plugins";
 import { getPackage, registerPackage } from "./package-registry";
 import {
   conventionalSiteOverridesSchema,
@@ -27,17 +28,7 @@ function applyPluginConfig(
   site: SitePackage,
   pluginConfig: Record<string, unknown> | undefined,
 ): SitePackage {
-  if (!pluginConfig || !site.plugin) return site;
-
-  const plugin = site.plugin;
-  return {
-    ...site,
-    plugin: (config?: Record<string, unknown>) =>
-      plugin({
-        ...pluginConfig,
-        ...(config ?? {}),
-      }),
-  };
+  return pluginConfig ? withSiteRuntimeDefaults(site, pluginConfig) : site;
 }
 
 /**

@@ -1,4 +1,12 @@
-import type { IShell, Plugin, PluginCapabilities } from "@brains/plugins";
+import {
+  createDeclaredDataSource,
+  isFetchingDataSourceDeclaration,
+  registerSiteRuntime,
+  withSiteRuntimeDefaults,
+  type IShell,
+  type Plugin,
+  type PluginCapabilities,
+} from "@brains/plugins";
 import { withThemeBase } from "@brains/theme-base";
 import { z } from "@brains/utils/zod";
 import type { BrainDefinition } from "../brain-definition";
@@ -16,6 +24,7 @@ import {
   type SitePackage,
   type SiteSectionGroup,
 } from "../site-package";
+import { siteRuntimeOf } from "@brains/site-composition";
 import { getPackage, hasPackage } from "../package-registry";
 import { isActive, type ActiveIds } from "./active-ids";
 
@@ -34,15 +43,53 @@ class DeclarativeSitePlugin implements Plugin {
 
   readonly packageName: string;
   private readonly site: SitePackage;
+  private readonly runtimeConfig: Record<string, unknown>;
 
-  constructor(packageName: string, site: SitePackage) {
+  constructor(
+    packageName: string,
+    site: SitePackage,
+    runtimeConfig: Record<string, unknown> = {},
+  ) {
     this.packageName = packageName;
     this.site = site;
+    this.runtimeConfig = runtimeConfig;
   }
 
   async register(shell: IShell): Promise<PluginCapabilities> {
+    // What a first-party site carries, configured as its plugin was.
+    registerSiteRuntime(
+      shell,
+      this.packageName,
+      siteRuntimeOf(this.site),
+      this.runtimeConfig,
+    );
+
+    // A site's sources are named by the site package, as a package's own
+    // sources are, and read by other packages under the same name.
+    const dataSourceId = (localId: string): string =>
+      `${this.packageName}:${localId}`;
+    const registry = shell.getDataSourceRegistry();
+    for (const declaration of this.site.dataSources ?? []) {
+      if (!isFetchingDataSourceDeclaration(declaration)) {
+        throw new Error(
+          `Site data source "${String(Reflect.get(declaration, "id"))}" is not a fetching source declared with defineDataSource`,
+        );
+      }
+      const id = dataSourceId(declaration.id);
+      registry.register(
+        createDeclaredDataSource(declaration, id, {
+          publicId: id,
+          runtimeState: shell.getRuntimeState(),
+          dataSources: registry,
+        }),
+      );
+    }
+
     for (const group of normalizeSiteSections(this.site.sections)) {
-      shell.registerTemplates(sectionGroupToTemplates(group), group.namespace);
+      shell.registerTemplates(
+        sectionGroupToTemplates(group, { dataSourceId }),
+        group.namespace,
+      );
     }
 
     return { tools: [], resources: [] };
@@ -60,20 +107,16 @@ export function instantiateSitePlugins(
   }
 
   const plugins: Plugin[] = [];
-  if (site.plugin) {
-    plugins.push(
-      site.plugin({
-        entityDisplay: site.entityDisplay,
-        ...stripSiteConfig(overrides?.site),
-      }),
-    );
-  }
 
-  if (site.sections) {
+  if (site.sections || site.dataSources || siteRuntimeOf(site) !== undefined) {
     plugins.push(
       new DeclarativeSitePlugin(
         overrides?.site?.package ?? "@rizom/site-package",
         site,
+        {
+          entityDisplay: site.entityDisplay,
+          ...stripSiteConfig(overrides?.site),
+        },
       ),
     );
   }
@@ -93,13 +136,8 @@ const entityDisplayEntryOverrideSchema = z.looseObject({
   label: z.string().min(1),
 });
 
-const sitePackagePluginOverrideSchema = z.custom<(...args: never[]) => unknown>(
-  (value) => typeof value === "function",
-);
-
 const sitePackageOverridesShapeSchema = z.looseObject({
   layouts: z.record(z.string(), z.unknown()).optional(),
-  plugin: sitePackagePluginOverrideSchema.optional(),
   pluginConfig: z.record(z.string(), z.unknown()).optional(),
   routes: z.array(routeDefinitionOverrideSchema).optional(),
   entityDisplay: z
@@ -111,8 +149,7 @@ const sitePackageOverridesShapeSchema = z.looseObject({
   staticAssets: z.record(z.string(), z.string()).optional(),
 });
 
-// Validate the shape loosely (plugin as a bare function, layouts/routes as
-// records) but declare the trusted output type once here at the parse
+// Validate the shape loosely (layouts/routes as records) but declare the trusted output type once here at the parse
 // boundary — same idiom as sitePackageSchema in site-package.ts.
 const conventionalSiteOverridesSchema = z.custom<ConventionalSiteOverrides>(
   (value) => sitePackageOverridesShapeSchema.safeParse(value).success,
@@ -122,17 +159,7 @@ function applySitePluginConfig(
   site: SitePackage,
   pluginConfig: Record<string, unknown> | undefined,
 ): SitePackage {
-  if (!pluginConfig || !site.plugin) return site;
-
-  const plugin = site.plugin;
-  return {
-    ...site,
-    plugin: (config?: Record<string, unknown>) =>
-      plugin({
-        ...pluginConfig,
-        ...(config ?? {}),
-      }),
-  };
+  return pluginConfig ? withSiteRuntimeDefaults(site, pluginConfig) : site;
 }
 
 function resolveConventionalSitePackage(

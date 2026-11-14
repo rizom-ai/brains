@@ -1,4 +1,5 @@
-import type { BaseEntity, SemanticSpaceNeighbor } from "@brains/plugins";
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
+import type { SemanticSpaceNeighbor } from "@brains/sdk/internal/service-runtime";
 import {
   mostCommonTag,
   proximityMaxDistance,

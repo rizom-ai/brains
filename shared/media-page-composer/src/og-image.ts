@@ -4,7 +4,7 @@ import {
   type ViewportOptions,
 } from "@brains/media-renderer";
 import { captureMediaPage } from "./capture";
-import type { ViewTemplate } from "@brains/plugins";
+import type { ViewTemplate } from "@brains/sdk/internal/presentation";
 
 /** Standard Open Graph image dimensions. */
 const OG_VIEWPORT: ViewportOptions = { width: 1200, height: 630 };

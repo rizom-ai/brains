@@ -97,9 +97,9 @@ High-level structure:
 
 - `shell/` — runtime, orchestration, services, plugin framework
 - `shared/` — utilities, themes, UI components, test helpers
-- `entities/` — `EntityPlugin` packages
-- `plugins/` — `ServicePlugin` packages
-- `interfaces/` — `InterfacePlugin` packages
+- `entities/` — entity packages (`defineEntityPackage`)
+- `plugins/` — services (`defineServicePlugin`)
+- `interfaces/` — interfaces (`defineInterface`, `defineMessageInterface`)
 - `packages/brain-cli/src/model/` — canonical definition and bundle catalog
 - `sites/` — site composition packages
 - `packages/brain-cli/` — published `@rizom/brain` package

@@ -6,7 +6,6 @@ import {
 } from "@brains/entity-service";
 import { migrateEntities } from "@brains/entity-service/migrate";
 import {
-  EntityPlugin,
   SYSTEM_CHANNELS,
   instantiatePluginPackageDefinition,
   type BaseDataSourceContext,
@@ -14,7 +13,7 @@ import {
   type PluginPackageDefinition,
   type PluginPackageInstantiationOptions,
 } from "@brains/plugins";
-import { createMockShell } from "@brains/plugins/test";
+import { createMockShell, isDeclaredEntityType } from "@brains/plugins/test";
 import { createSilentLogger, createTestDirectory } from "@brains/test-utils";
 import { computeContentHash } from "@brains/utils/hash";
 
@@ -102,7 +101,7 @@ export async function declaredEntityStore(
   const registry = EntityRegistry.createFresh(logger);
   // A service package installs its owned types' entity plugins beside it.
   const entityPlugins = plugins.flatMap((plugin) =>
-    plugin instanceof EntityPlugin ? [plugin] : [],
+    isDeclaredEntityType(plugin) ? [plugin] : [],
   );
   if (entityPlugins.length === 0) throw new Error("No entity plugin");
   for (const plugin of entityPlugins) {

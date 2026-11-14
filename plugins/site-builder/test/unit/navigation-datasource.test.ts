@@ -47,6 +47,9 @@ describe("NavigationDataSource", () => {
           await declaration.fetch(query, {
             corpus: noCorpus,
             publishedOnly: false,
+            sharedState: () => {
+              throw new Error("Navigation reads no shared state");
+            },
           }),
         ),
     };

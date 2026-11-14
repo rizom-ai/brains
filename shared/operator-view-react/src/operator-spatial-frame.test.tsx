@@ -2,7 +2,7 @@
 import { expect, test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Window } from "happy-dom";
-import type { RuntimeStudioOperatorPanelBlock } from "@brains/plugins";
+import type { RuntimeStudioOperatorPanelBlock } from "@brains/sdk/internal/service-runtime";
 import {
   OperatorViewRenderer,
   operatorViewStylexCSS,

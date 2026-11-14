@@ -1,11 +1,10 @@
-import { EntityPlugin, type BaseEntity } from "@brains/plugins";
 import { createFaqPlugins } from "../faq-plugins";
+import {
+  isDeclaredEntityType,
+  type DeclaredEntityTypePlugin,
+} from "@brains/plugins/test";
 
-type FaqEntityPlugin = EntityPlugin<
-  BaseEntity,
-  Record<string, never>,
-  Record<string, never>
->;
+type FaqEntityPlugin = DeclaredEntityTypePlugin;
 
 /**
  * The faq type as the installed package declares it: its schema and its
@@ -17,7 +16,7 @@ export function faqType(): {
 } {
   const plugin = createFaqPlugins().find(
     (candidate): candidate is FaqEntityPlugin =>
-      candidate instanceof EntityPlugin,
+      isDeclaredEntityType(candidate),
   );
   if (!plugin) throw new Error("The faq package declares no type");
   return { schema: plugin.schema, adapter: plugin.adapter };

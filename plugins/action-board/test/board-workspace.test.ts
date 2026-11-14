@@ -9,7 +9,7 @@ import type {
   StudioWorkspaceRegistration,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
-import { ActionItemAdapter } from "@brains/action-items";
+import { actionItemAdapter } from "@brains/action-items";
 import { registerBoardWorkspace } from "../src/board-workspace";
 import { boardContextFor } from "./board-plugins";
 import {
@@ -19,7 +19,7 @@ import {
 } from "@brains/action-items";
 
 const NOW = new Date("2026-10-15T12:00:00.000Z");
-const adapter = new ActionItemAdapter();
+const adapter = actionItemAdapter;
 
 /** The brain's members, as the auth service lists them. */
 const MEMBERS = [

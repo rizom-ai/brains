@@ -12,6 +12,9 @@ import {
   CONVENTIONAL_SITE_PACKAGE_REF,
   CONVENTIONAL_THEME_PACKAGE_REF,
 } from "../src/lib/register-conventional-site-theme";
+import { withSiteRuntime } from "@brains/plugins";
+import { siteRuntimeOf } from "@brains/site-composition";
+import { z } from "@brains/utils/zod";
 
 function clearRegistryEntries(): void {
   registerPackage(CONVENTIONAL_SITE_PACKAGE_REF, undefined);
@@ -87,15 +90,15 @@ describe("registerConventionalSiteTheme", () => {
   });
 
   test("local site and theme conventions layer over explicit base choices", async () => {
-    const basePlugin = (): never => {
-      throw new Error("not called during composition");
-    };
-    registerPackage("@brains/site-explicit", {
-      layouts: { default: (): null => null },
-      routes: [{ id: "home", path: "/", sections: [] }],
-      plugin: basePlugin,
-      entityDisplay: { post: { label: "Post" } },
-    });
+    const baseSite = withSiteRuntime(
+      {
+        layouts: { default: (): null => null },
+        routes: [{ id: "home", path: "/", sections: [] }],
+        entityDisplay: { post: { label: "Post" } },
+      },
+      { id: "explicit-site", config: z.object({}), templates: {} },
+    );
+    registerPackage("@brains/site-explicit", baseSite);
     writeFileSync(
       join(testDir, "src/site.tsx"),
       `export default {
@@ -135,9 +138,12 @@ describe("registerConventionalSiteTheme", () => {
           sections: [{ id: "hero", template: "local:hero" }],
         },
       ],
-      plugin: basePlugin,
       entityDisplay: { post: { label: "Essay" } },
     });
+    // What the base site carries for the runtime stays with the local site.
+    expect(siteRuntimeOf(getPackage(CONVENTIONAL_SITE_PACKAGE_REF) ?? {})).toBe(
+      siteRuntimeOf(baseSite),
+    );
     expect(getPackage(CONVENTIONAL_THEME_PACKAGE_REF)).toBe(
       ":root { --color-brand: cyan; }",
     );

@@ -1,4 +1,4 @@
-import type { IRuntimeStateNamespace } from "@brains/plugins";
+import type { IRuntimeStateNamespace } from "@brains/sdk/internal/service-runtime";
 import { z } from "@brains/utils/zod";
 import { FormStorageSlots, type FormStorageOptions } from "./storage-slots";
 

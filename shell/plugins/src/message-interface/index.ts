@@ -1,15 +1,11 @@
+export type {
+  EditMessageRequest,
+  MessageInterfaceOutput,
+  SendMessageToChannelRequest,
+  SendMessageWithIdRequest,
+} from "./progress-message-coordinator";
 export {
-  MessageInterfacePlugin,
-  type EditMessageRequest,
-  type MessageInterfaceOutput,
-  type MessageJobTrackingInfo,
-  type NativeArtifactDelivery,
-  type NativeArtifactFile,
-  type SendMessageToChannelRequest,
-  type SendMessageWithIdRequest,
   urlCaptureConfigSchema,
-} from "./message-interface-plugin";
-export {
   captureUrlViaAgent,
   extractCaptureableUrls,
   type LinkCaptureHost,

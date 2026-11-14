@@ -7,6 +7,7 @@
     "@brains/contracts": "workspace:*",
     "@brains/entity-service": "workspace:*",
     "@brains/plugins": "workspace:*",
+    "@brains/scheduler": "workspace:*",
     "@brains/templates": "workspace:*",
     "@brains/utils": "workspace:*"
   },
@@ -27,6 +28,7 @@
     "./internal/message-display": "./src/internal/message-display.ts",
     "./internal/presentation": "./src/internal/presentation.ts",
     "./internal/service-runtime": "./src/internal/service-runtime.ts",
+    "./internal/site-runtime": "./src/internal/site-runtime.ts",
     "./entities": "./src/entities.ts",
     "./services": "./src/services.ts",
     "./interfaces": "./src/interfaces.ts"
