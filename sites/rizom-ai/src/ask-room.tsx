@@ -8,7 +8,10 @@ import {
 } from "@brains/contracts";
 import { StructuredContentFormatter } from "@brains/content-formatters";
 import { AskBoxHost } from "@brains/site-atlas";
-import { createTemplate, type Template } from "@brains/templates";
+import {
+  createTemplate,
+  type Template,
+} from "@brains/sdk/internal/site-runtime";
 import { z } from "@rizom/site";
 import { NetworkLayer } from "./opening";
 import { placeNetwork } from "./story/network";

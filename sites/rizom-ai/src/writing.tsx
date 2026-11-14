@@ -1,6 +1,9 @@
 /** @jsxImportSource react */
 import type { JSX } from "react";
-import { createTemplate, type Template } from "@brains/templates";
+import {
+  createTemplate,
+  type Template,
+} from "@brains/sdk/internal/site-runtime";
 import { z } from "@rizom/site";
 
 /**

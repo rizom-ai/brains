@@ -2,7 +2,10 @@ import { blogViewSchema } from "@brains/blog";
 import type { SiteRuntimeDeclaration } from "@brains/sdk/internal/site-runtime";
 import { personalProfileSchema } from "./schemas";
 import { z } from "@brains/utils/zod";
-import { createTemplate, renderedLinkFields } from "@brains/templates";
+import {
+  createTemplate,
+  renderedLinkFields,
+} from "@brains/sdk/internal/site-runtime";
 import { homepageDataSource } from "./datasources/homepage-datasource";
 import { aboutDataSource } from "./datasources/about-datasource";
 import { HomepageLayout, type HomepageData } from "./templates/homepage";

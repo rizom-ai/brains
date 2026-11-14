@@ -4,7 +4,7 @@ import {
   type DataSourceDefinition,
   type SiteRuntimeDeclaration,
 } from "@brains/sdk/internal/site-runtime";
-import type { Template } from "@brains/templates";
+import type { Template } from "@brains/sdk/internal/site-runtime";
 import { z } from "@brains/utils/zod";
 import type {
   EntityDisplayEntry,

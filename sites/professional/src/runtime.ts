@@ -21,7 +21,7 @@ import {
   createTemplate,
   renderedLinkFields,
   type Template,
-} from "@brains/templates";
+} from "@brains/sdk/internal/site-runtime";
 import {
   homepageListDataSource,
   type HomepagePlacementLoaders,

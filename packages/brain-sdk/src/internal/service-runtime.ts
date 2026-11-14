@@ -252,3 +252,8 @@ export type {
   RuntimeOperatorScalar,
   RuntimePreparedConfirmation,
 } from "@brains/plugins";
+// What a shared site library's data sources read the build and routes by.
+export type {
+  BaseDataSourceContext,
+  IWebRoutesNamespace,
+} from "@brains/plugins";

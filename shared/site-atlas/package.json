@@ -5,7 +5,7 @@
   "description": "Shared atlas site kit: the atlas homepage, its terrain, labels, styles and script, the authored opening and Ask box checks, and the site layout",
   "dependencies": {
     "@brains/contracts": "workspace:*",
-    "@brains/plugins": "workspace:*",
+    "@brains/sdk": "workspace:*",
     "@brains/site-composition": "workspace:*",
     "@brains/site-engine": "workspace:*",
     "@brains/utils": "workspace:*",
@@ -14,6 +14,7 @@
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
+    "@brains/plugins": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.4.0",

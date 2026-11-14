@@ -1,16 +1,18 @@
 import type {
   BaseDataSourceContext,
-  ServicePluginContext,
-} from "@brains/plugins";
-import { findRouteByRole } from "@brains/plugins/contracts/web-routes";
+  IWebRoutesNamespace,
+} from "@brains/sdk/internal/service-runtime";
+import { findRouteByRole } from "@brains/sdk/internal/site-runtime";
 import { askContentFromRecord, type AskContent } from "@brains/contracts";
 
-type OpeningRuntime = Pick<
-  ServicePluginContext,
-  "siteUrl" | "previewUrl" | "localSiteUrl" | "preferLocalUrls"
-> & {
-  readonly webRoutes: Pick<ServicePluginContext["webRoutes"], "getRoutes">;
-};
+/** Where the build is served, and the routes the door may lead to. */
+interface OpeningRuntime {
+  readonly siteUrl: string | undefined;
+  readonly previewUrl: string | undefined;
+  readonly localSiteUrl: string | undefined;
+  readonly preferLocalUrls: boolean;
+  readonly webRoutes: Pick<IWebRoutesNamespace, "getRoutes">;
+}
 
 export type HomepageOpeningData = AskContent & { contactUrl: string | null };
 

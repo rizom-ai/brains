@@ -15,3 +15,11 @@ export {
 } from "./site-data-source-runtime";
 export { defineDataSource } from "../public/define-data-source";
 export type { DataSourceDefinition } from "../entity/entity-definition-contract";
+// A site's templates and the route it reads by role, from modules that
+// carry no runtime either.
+export {
+  createTemplate,
+  renderedLinkFields,
+  type Template,
+} from "@brains/templates";
+export { findRouteByRole } from "../types/web-routes";

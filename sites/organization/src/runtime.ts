@@ -3,7 +3,7 @@ import {
   HOMEPAGE_ATLAS_SCRIPT_PATH,
 } from "@brains/site-atlas";
 import type { SiteRuntimeDeclaration } from "@brains/sdk/internal/site-runtime";
-import { createTemplate } from "@brains/templates";
+import { createTemplate } from "@brains/sdk/internal/site-runtime";
 import { z } from "@brains/utils/zod";
 import { organizationSiteConfigSchema } from "./config";
 import { aboutDataSource } from "./datasources/about-datasource";
