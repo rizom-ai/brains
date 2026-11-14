@@ -13,6 +13,7 @@ import { z } from "@brains/utils/zod";
 import type { ShellConfigInput } from "../src/config";
 import { Shell, type ShellDependencies } from "../src/shell";
 import { createTestDirectory } from "@brains/test-utils";
+import { createMockEmbeddingService } from "@brains/entity-service/test";
 
 interface TestDirectory {
   dir: string;
@@ -28,17 +29,7 @@ interface ShellIoRecord {
 
 const logger = createSilentLogger("service-ownership-integration");
 
-const embeddingService: IEmbeddingService = {
-  identity: { model: "test:mock", dimensions: 1536, promptRevision: 0 },
-  embedQuery: async () => ({
-    embedding: new Float32Array(1536).fill(0.1),
-    usage: { tokens: 1 },
-  }),
-  embedDocuments: async (texts) => ({
-    embeddings: texts.map(() => new Float32Array(1536).fill(0.1)),
-    usage: { tokens: texts.length },
-  }),
-};
+const embeddingService: IEmbeddingService = createMockEmbeddingService();
 
 function createTestConfig(dir: string): ShellConfigInput {
   return {

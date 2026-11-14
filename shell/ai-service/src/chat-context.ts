@@ -1,0 +1,100 @@
+import { z } from "@brains/utils/zod";
+import {
+  guestExecutionPolicySchema,
+  guestScreeningSchema,
+} from "@brains/contracts/chat";
+import {
+  conversationMessageActorSchema,
+  conversationMessageSourceSchema,
+} from "@brains/conversation-service";
+import { UserPermissionLevelSchema } from "@brains/templates";
+
+/**
+ * What an interface hands the agent with a message: who is speaking, where,
+ * at what permission level, and the files that came with it.
+ */
+
+export const ChatAttachmentSourceSchema: z.ZodObject<{
+  kind: z.ZodString;
+  id: z.ZodString;
+}> = z.object({
+  kind: z.string().min(1),
+  id: z.string().min(1),
+});
+
+export const TextChatAttachmentSchema: z.ZodObject<{
+  kind: z.ZodLiteral<"text">;
+  filename: z.ZodString;
+  mediaType: z.ZodString;
+  content: z.ZodString;
+  sizeBytes: z.ZodOptional<z.ZodNumber>;
+  source: z.ZodOptional<typeof ChatAttachmentSourceSchema>;
+}> = z.object({
+  kind: z.literal("text"),
+  filename: z.string().min(1),
+  mediaType: z.string().min(1),
+  content: z.string(),
+  sizeBytes: z.number().nonnegative().optional(),
+  source: ChatAttachmentSourceSchema.optional(),
+});
+
+const fileAttachmentDataSchema: z.ZodCustom<Uint8Array, Uint8Array> =
+  z.custom<Uint8Array>((value) => value instanceof Uint8Array);
+
+export const FileChatAttachmentSchema: z.ZodObject<{
+  kind: z.ZodLiteral<"file">;
+  filename: z.ZodString;
+  mediaType: z.ZodString;
+  data: typeof fileAttachmentDataSchema;
+  sizeBytes: z.ZodOptional<z.ZodNumber>;
+  source: z.ZodOptional<typeof ChatAttachmentSourceSchema>;
+}> = z.object({
+  kind: z.literal("file"),
+  filename: z.string().min(1),
+  mediaType: z.string().min(1),
+  data: fileAttachmentDataSchema,
+  sizeBytes: z.number().nonnegative().optional(),
+  source: ChatAttachmentSourceSchema.optional(),
+});
+
+export const ChatAttachmentSchema: z.ZodDiscriminatedUnion<
+  [typeof TextChatAttachmentSchema, typeof FileChatAttachmentSchema],
+  "kind"
+> = z.discriminatedUnion("kind", [
+  TextChatAttachmentSchema,
+  FileChatAttachmentSchema,
+]);
+
+export type ChatAttachmentSource = z.output<typeof ChatAttachmentSourceSchema>;
+export type TextChatAttachment = z.output<typeof TextChatAttachmentSchema>;
+export type FileChatAttachment = z.output<typeof FileChatAttachmentSchema>;
+export type ChatAttachment = z.output<typeof ChatAttachmentSchema>;
+
+type ChatContextSchema = z.ZodObject<{
+  guestExecution: z.ZodOptional<typeof guestExecutionPolicySchema>;
+  guestScreening: z.ZodOptional<typeof guestScreeningSchema>;
+  userPermissionLevel: z.ZodOptional<typeof UserPermissionLevelSchema>;
+  isAnchor: z.ZodOptional<z.ZodBoolean>;
+  interfaceType: z.ZodOptional<z.ZodString>;
+  channelId: z.ZodOptional<z.ZodString>;
+  channelName: z.ZodOptional<z.ZodString>;
+  actor: z.ZodOptional<typeof conversationMessageActorSchema>;
+  source: z.ZodOptional<typeof conversationMessageSourceSchema>;
+  attachments: z.ZodOptional<z.ZodArray<typeof ChatAttachmentSchema>>;
+}>;
+
+export const ChatContextSchema: ChatContextSchema = z.object({
+  guestExecution: guestExecutionPolicySchema.optional(),
+  guestScreening: guestScreeningSchema.optional(),
+  // Read as "public" when absent, for safety.
+  userPermissionLevel: UserPermissionLevelSchema.optional(),
+  isAnchor: z.boolean().optional(),
+  interfaceType: z.string().optional(),
+  channelId: z.string().optional(),
+  channelName: z.string().optional(),
+  actor: conversationMessageActorSchema.optional(),
+  source: conversationMessageSourceSchema.optional(),
+  attachments: z.array(ChatAttachmentSchema).optional(),
+});
+
+export type ChatContext = z.output<typeof ChatContextSchema>;

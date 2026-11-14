@@ -1,5 +1,5 @@
-import { createHash } from "node:crypto";
 import { z } from "@brains/utils/zod";
+import { sha256Hex } from "@brains/utils/hash";
 
 type ActorRefSchema = z.ZodDiscriminatedUnion<
   [
@@ -62,6 +62,6 @@ export function createExternalActorId(source: string, subject: string): string {
   const qualifiedSubject = subject.startsWith(`${source}:`)
     ? subject
     : `${source}:${subject}`;
-  const digest = createHash("sha256").update(qualifiedSubject).digest("hex");
+  const digest = sha256Hex(qualifiedSubject);
   return `ext_${digest}`;
 }

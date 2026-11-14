@@ -1,6 +1,10 @@
 import { describe, expect, it } from "bun:test";
 import type { Plugin, PluginCapabilities } from "@brains/plugins";
-import { createMockShell, type MockShell } from "@brains/plugins/test";
+import {
+  createMockShell,
+  type MockShell,
+  registerAll,
+} from "@brains/plugins/test";
 import { z } from "@brains/utils/zod";
 import { createActionBoardPlugins } from "./board-plugins";
 
@@ -15,15 +19,7 @@ async function installed(
 ): Promise<Installed> {
   const shell = createMockShell();
   const plugins = createActionBoardPlugins(options.config);
-  const capabilities: PluginCapabilities[] = [];
-  for (const plugin of plugins) {
-    capabilities.push(
-      await plugin.register(
-        shell,
-        options.executionOnly ? { executionOnly: true } : undefined,
-      ),
-    );
-  }
+  const capabilities = await registerAll(shell, plugins, options);
   return { shell, plugins, capabilities };
 }
 

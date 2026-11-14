@@ -1,4 +1,5 @@
 import { PLUGIN_CHANNELS } from "@brains/contracts";
+import { toolExecuteRequestSchema } from "@brains/mcp-service";
 import type {
   Plugin,
   PluginType,
@@ -12,36 +13,8 @@ import type { IShell } from "./interfaces";
 import { getErrorMessage } from "@brains/utils/error";
 import { ConsoleLogger, type Logger } from "@brains/utils/logger";
 import { RetryScope } from "@brains/utils/retry-backoff";
-import type { ProgressNotification } from "@brains/utils/progress";
 import type { UserPermissionLevel } from "@brains/templates";
-import { actorRefSchema } from "@brains/contracts";
-import { z } from "@brains/utils/zod";
 import { type PluginConfigSchema, PluginConfigValidationError } from "./config";
-
-// Message schemas for validation
-const toolExecuteRequestSchema = z.object({
-  toolName: z.string(),
-  args: z.unknown(),
-  progressToken: z.union([z.string(), z.number()]).optional(),
-  sendProgress: z
-    .custom<(notification: ProgressNotification) => Promise<void>>(
-      (value) => typeof value === "function",
-    )
-    .optional(),
-  interfaceType: z.string(),
-  actor: actorRefSchema,
-  displayName: z.string().optional(),
-  conversationId: z.string().optional(),
-  channelId: z.string().optional(),
-  channelName: z.string().optional(),
-  runId: z.string().optional(),
-  toolCallId: z.string().optional(),
-  userPermissionLevel: z.enum(["admin", "trusted", "public"]).optional(),
-  isAnchor: z.boolean().optional(),
-  signal: z
-    .custom<AbortSignal>((value) => value instanceof AbortSignal)
-    .optional(),
-});
 
 // Core context interface - minimal requirements for all plugins
 export interface CoreContext {

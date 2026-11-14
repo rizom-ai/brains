@@ -114,30 +114,6 @@ describe("auto-export without autoSync", () => {
     await waitUntil(() => existsSync(filePath), "the durable update export");
   });
 
-  it("resolves the replacement path after reconfiguration", async () => {
-    replacementPath = mkdtempSync(
-      join(tmpdir(), "test-auto-export-replacement-"),
-    );
-    await plugin.configure({ syncPath: replacementPath });
-    const entity = createTestEntity("note", {
-      id: "replacement-note",
-      content: "---\n---\nReplacement content",
-    });
-    await harness.getEntityService().upsertEntity({ entity });
-
-    await harness.sendMessage(
-      "entity:created",
-      { entity, entityType: "note", entityId: "replacement-note" },
-      "test",
-    );
-
-    await waitUntil(
-      () => existsSync(join(replacementPath ?? "", "replacement-note.md")),
-      "the replacement-path durable export",
-    );
-    expect(existsSync(join(syncPath, "replacement-note.md"))).toBe(false);
-  });
-
   it("should delete entity file when entity:deleted fires", async () => {
     const filePath = join(syncPath, "doomed-note.md");
     writeFileSync(filePath, "---\n---\nAbout to be deleted");

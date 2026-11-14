@@ -4,7 +4,6 @@ import {
   generateMarkdown,
   parseMarkdown,
 } from "@brains/utils/markdown-frontmatter";
-import { slugify } from "@brains/utils/string-utils";
 import {
   blogPostFrontmatterSchema,
   blogPostWithDataSchema,
@@ -13,6 +12,10 @@ import {
   type BlogPostWithData,
   type blogPostMetadataSchema,
 } from "../schemas/blog-post";
+import {
+  slugStatingFrontmatter,
+  slugStatingMetadata,
+} from "@brains/sdk/internal/entity-runtime";
 
 /**
  * A post's frontmatter, in the order the blog post adapter wrote it: its
@@ -23,25 +26,18 @@ import {
 export function postFrontmatter(
   metadata: BlogPostMetadata,
 ): Record<string, unknown> {
-  const authored = metadata.authoredSlug === true;
-  return Object.fromEntries(
-    Object.entries({
-      title: metadata.title,
-      ...(authored && { slug: metadata.slug }),
-      status: metadata.status,
-      publishedAt: metadata.publishedAt,
-      excerpt: metadata.excerpt,
-      author: metadata.author,
-      coverImageId: metadata.coverImageId,
-      ogImageId: metadata.ogImageId,
-      seriesName: metadata.seriesName,
-      seriesIndex: metadata.seriesIndex,
-      ogImage: metadata.ogImage,
-      canonicalUrl: metadata.canonicalUrl,
-      ...(!authored && { slug: metadata.slug }),
-      error: metadata.error,
-    }).filter(([, value]) => value !== undefined),
-  );
+  return slugStatingFrontmatter(metadata, {
+    status: metadata.status,
+    publishedAt: metadata.publishedAt,
+    excerpt: metadata.excerpt,
+    author: metadata.author,
+    coverImageId: metadata.coverImageId,
+    ogImageId: metadata.ogImageId,
+    seriesName: metadata.seriesName,
+    seriesIndex: metadata.seriesIndex,
+    ogImage: metadata.ogImage,
+    canonicalUrl: metadata.canonicalUrl,
+  });
 }
 
 /** A post as its stored document: its frontmatter and its body. */
@@ -60,16 +56,7 @@ export const postMarkdown: EntityMarkdownCodec<typeof blogPostMetadataSchema> =
   {
     decode: ({ content, frontmatter }) => {
       const parsed = blogPostFrontmatterSchema.parse(frontmatter);
-      const error = frontmatter["error"];
-      return {
-        content,
-        metadata: {
-          ...parsed,
-          slug: parsed.slug ?? slugify(parsed.title),
-          ...(parsed.slug !== undefined && { authoredSlug: true }),
-          ...(typeof error === "string" && { error }),
-        },
-      };
+      return { content, metadata: slugStatingMetadata(parsed, frontmatter) };
     },
     // A whole document handed in has had its frontmatter decoded into the
     // metadata already; the body is written as the adapter wrote it.

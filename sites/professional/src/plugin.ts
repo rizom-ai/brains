@@ -116,7 +116,7 @@ export class ProfessionalSitePlugin extends ServicePlugin<
             chatAvailable: (buildContext): Promise<boolean> =>
               homepageChatAvailable(buildContext, context),
             loadFaqs: (buildContext): ReturnType<typeof loadPublicFaqs> =>
-              loadPublicFaqs(buildContext, HOMEPAGE_FAQ_LIMIT, context.logger),
+              loadPublicFaqs(buildContext, HOMEPAGE_FAQ_LIMIT),
           }
         : {},
     );

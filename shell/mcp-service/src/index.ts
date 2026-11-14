@@ -24,6 +24,8 @@ export {
   toolConfirmationSchema,
   type ToolConfirmation,
   ToolContextRoutingSchema,
+  toolExecuteRequestSchema,
+  type ToolExecuteRequest,
 } from "./types";
 export {
   createTool,

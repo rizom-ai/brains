@@ -33,3 +33,12 @@ export interface PublishProvider {
   ): Promise<PublishResult>;
   validateCredentials?(): Promise<boolean>;
 }
+
+/**
+ * The provider of a type that publishes to the brain's own site: it calls
+ * nothing outside the brain and records the outcome.
+ */
+export const internalPublishProvider: PublishProvider = {
+  name: "internal",
+  publish: async (): Promise<PublishResult> => ({ id: "internal" }),
+};

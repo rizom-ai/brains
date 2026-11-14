@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { escapeRegExp } from "@brains/utils/string-utils";
 
 const repositoryRoot = join(import.meta.dir, "..");
 
@@ -12,7 +13,7 @@ function readWorkflow(fileName: string): string {
 }
 
 function workflowStep(fileName: string, name: string): string {
-  const escapedName = name.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
+  const escapedName = escapeRegExp(name);
   const step = readWorkflow(fileName).match(
     new RegExp(
       ` {6}- name: ${escapedName}\\n[\\s\\S]*?(?=\\n {6}- name:|$)`,

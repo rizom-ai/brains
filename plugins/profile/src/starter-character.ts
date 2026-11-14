@@ -10,6 +10,7 @@ import {
 } from "@brains/sdk/internal/service-runtime";
 import { frontmatterRecordFields } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
+import { isRecord } from "@brains/utils/is-record";
 
 const MAX_CAPABILITIES = 50;
 const MAX_CONTENT_SIGNALS = 12;
@@ -168,16 +169,12 @@ function recordFrontmatter(
 ): Record<string, unknown> | null {
   try {
     const { fields } = frontmatterRecordFields(entity);
-    return isUnknownRecord(fields) ? fields : null;
+    return isRecord(fields) ? fields : null;
   } catch {
     // Unparseable authored frontmatter gives no signals, as parseFrontmatter
     // treats it.
     return null;
   }
-}
-
-function isUnknownRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
 function readPath(
@@ -186,7 +183,7 @@ function readPath(
 ): unknown {
   let value: unknown = metadata;
   for (const key of path) {
-    if (!isUnknownRecord(value)) return undefined;
+    if (!isRecord(value)) return undefined;
     value = value[key];
   }
   return value;

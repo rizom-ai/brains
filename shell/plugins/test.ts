@@ -10,6 +10,12 @@ export {
   type MockShellOptions,
 } from "./src/test/mock-shell";
 export { createMockAppInfo } from "./src/test/mock-app-info";
+export { registerAll } from "./src/test/register-all";
+export {
+  probeRuntime,
+  probeService,
+  type ProbeServiceOptions,
+} from "./src/test/probe-service-runtime";
 export { firstPartyJobHandlerFor } from "./src/test/first-party-job-handler";
 export { MemoryAccountSettingsBackend } from "./src/test/memory-account-settings-backend";
 export { createMockAuthBackend } from "./src/test/mock-auth-backend";

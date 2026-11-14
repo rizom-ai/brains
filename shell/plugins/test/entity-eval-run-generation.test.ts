@@ -16,6 +16,7 @@ import {
   instantiatePluginPackageDefinition,
   type EvalHandler,
 } from "../src";
+import { createRefusingEmbeddingService } from "@brains/entity-service/test";
 
 /**
  * A first-party eval that runs its type's own generation, as an entity
@@ -114,15 +115,7 @@ async function installed(): Promise<Installed> {
     logger,
     jobQueueService: createMockShell().getJobQueueService(),
     embeddingsEnabled: false,
-    embeddingService: {
-      identity: { model: "test:mock", dimensions: 1536, promptRevision: 0 },
-      embedQuery: async () => {
-        throw new Error("Unexpected embedding");
-      },
-      embedDocuments: async () => {
-        throw new Error("Unexpected embedding");
-      },
-    },
+    embeddingService: createRefusingEmbeddingService(),
   });
   await service.initialize();
   const shell = createMockShell({ logger, entityService: service });

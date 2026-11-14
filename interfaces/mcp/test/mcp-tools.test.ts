@@ -43,7 +43,12 @@ function createAgentService(conversationIds?: string[]): AgentService {
 
 describe("MCP tools", () => {
   it("creates a chat command tool", () => {
-    const tools = createMCPTools("mcp", () => undefined);
+    const tools = createMCPTools(
+      createInterfacePluginContext(
+        createMockShell({ logger: createSilentLogger("mcp-tools-test") }),
+        "mcp",
+      ),
+    );
 
     expect(tools.map((tool) => tool.name)).toEqual(["chat", "confirm"]);
     expect(tools[0]?.visibility).toBe("public");
@@ -63,7 +68,7 @@ describe("MCP tools", () => {
       agentService,
     });
     const context = createInterfacePluginContext(shell, "mcp");
-    const [chatTool] = createMCPTools("mcp", () => context);
+    const [chatTool] = createMCPTools(context);
 
     if (!chatTool) {
       throw new Error("Expected chat tool");
@@ -124,7 +129,7 @@ describe("MCP tools", () => {
       agentService,
     });
     const context = createInterfacePluginContext(shell, "mcp");
-    const [chatTool] = createMCPTools("mcp", () => context);
+    const [chatTool] = createMCPTools(context);
 
     if (!chatTool) {
       throw new Error("Expected chat tool");
@@ -154,7 +159,7 @@ describe("MCP tools", () => {
       agentService,
     });
     const context = createInterfacePluginContext(shell, "mcp");
-    const [chatTool] = createMCPTools("mcp", () => context);
+    const [chatTool] = createMCPTools(context);
     if (!chatTool) throw new Error("Expected chat tool");
 
     const first = await chatTool.handler(
@@ -187,7 +192,7 @@ describe("MCP tools", () => {
       agentService,
     });
     const context = createInterfacePluginContext(shell, "mcp");
-    const [chatTool] = createMCPTools("mcp", () => context);
+    const [chatTool] = createMCPTools(context);
     if (!chatTool) throw new Error("Expected chat tool");
 
     for (const userId of ["operator-1", "operator-2"]) {
@@ -227,7 +232,7 @@ describe("MCP tools", () => {
       agentService,
     });
     const context = createInterfacePluginContext(shell, "mcp");
-    const [chatTool] = createMCPTools("mcp", () => context);
+    const [chatTool] = createMCPTools(context);
 
     if (!chatTool) {
       throw new Error("Expected chat tool");
@@ -283,7 +288,7 @@ describe("MCP tools", () => {
       agentService,
     });
     const context = createInterfacePluginContext(shell, "mcp");
-    const [chatTool] = createMCPTools("mcp", () => context);
+    const [chatTool] = createMCPTools(context);
 
     if (!chatTool) {
       throw new Error("Expected chat tool");
@@ -316,7 +321,7 @@ describe("MCP tools", () => {
       agentService,
     });
     const context = createInterfacePluginContext(shell, "mcp");
-    const [, confirmTool] = createMCPTools("mcp", () => context);
+    const [, confirmTool] = createMCPTools(context);
 
     if (!confirmTool) {
       throw new Error("Expected confirm tool");

@@ -1,13 +1,11 @@
 import type { JSX } from "react";
-import {
-  MarkdownContent,
-  formatDate as formatDateStyled,
-} from "@rizom/brain-ui";
+import { MarkdownContent } from "@rizom/brain-ui";
 import { z } from "@brains/utils/zod";
 import {
   createTemplate,
   type Template,
 } from "@brains/sdk/internal/presentation";
+import { attachmentDate } from "./attachment-date";
 
 export const BLOG_PRINTABLE_ATTACHMENT_TYPE = "printable";
 export const BLOG_PRINTABLE_TEMPLATE_NAME = "blog:printable";
@@ -50,15 +48,8 @@ export const blogPrintableTemplate: Template =
     layout: { formats: { pdf: renderBlogPrintablePdf } },
   });
 
-function formatDate(value: string | null): string | undefined {
-  if (!value) return undefined;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return undefined;
-  return formatDateStyled(date, { style: "long" });
-}
-
 function renderBlogPrintablePdf(data: BlogPrintableTemplateData): JSX.Element {
-  const published = formatDate(data.publishedAt);
+  const published = attachmentDate(data.publishedAt, "long");
 
   return (
     <main className="printable-document printable-blog-post">

@@ -21,20 +21,16 @@ import {
 } from "@brains/sdk/internal/interface-runtime";
 import type { PluginPackageDefinition } from "@brains/sdk";
 import { defineInterface } from "@brains/sdk/interfaces";
-import type { SentMessage } from "chat";
 import { chatConfigSchema, type ChatConfig } from "./config";
 import { PromptActionStore } from "./prompt-action-store";
 import { ThreadRegistry } from "./thread-registry";
 import { ToolStatusMessenger } from "./tool-status-messenger";
 import { buildProgressCard } from "./chat-cards";
-import {
-  chunkForChannel,
-  parseChatPlatform,
-  toPlatformText,
-} from "./chat-platform";
+import { parseChatPlatform, toPlatformText } from "./chat-platform";
 import { ChatResponseCoordinator } from "./chat-response-coordinator";
 import { ChatUploadCoordinator } from "./chat-upload-coordinator";
 import { toPlatformPostOutput } from "./chat-output";
+import { postToThread } from "./chat-post";
 import { DiscordGatewayLoop } from "./discord-gateway-loop";
 import { SlackSocketLoop } from "./slack-socket-loop";
 import { ChatSdkAppHost, type ChatSdkApp } from "./chat-sdk-app";
@@ -116,19 +112,10 @@ async function sendWithId(
 ): Promise<string | undefined> {
   const thread = state.threadRegistry.get(channelId);
   if (!thread) return undefined;
-  const postOutput = toPlatformPostOutput(channelId, message);
-  if (postOutput !== undefined) {
-    const sent = await thread.post(postOutput);
-    state.threadRegistry.trackMessage(thread.id, sent);
-    return sent.id;
-  }
-  if (typeof message !== "string") return undefined;
-  let lastSent: SentMessage | undefined;
-  for (const chunk of chunkForChannel(channelId, message)) {
-    lastSent = await thread.post(toPlatformText(channelId, chunk));
-    state.threadRegistry.trackMessage(thread.id, lastSent);
-  }
-  return lastSent?.id;
+  const sent = await postToThread(thread, channelId, message, {
+    onSent: (posted) => state.threadRegistry.trackMessage(thread.id, posted),
+  });
+  return sent?.id;
 }
 
 /**
@@ -148,7 +135,6 @@ export function createChatInterface(
       const { config } = context;
       const runtime = interfaceRuntime(context);
       const { logger, messages } = runtime;
-      const getContext = (): InterfaceRuntime => runtime;
 
       // The platform upload stores chat kept before it wrote the shared one
       // hold only expired uploads, and nothing reads them.
@@ -165,7 +151,7 @@ export function createChatInterface(
       const promptActions = new PromptActionStore(MAX_PROMPT_ACTIONS);
       const toolStatusMessenger = new ToolStatusMessenger(threadRegistry);
       const uploadCoordinator = new ChatUploadCoordinator({
-        getContext,
+        host: runtime,
         logger,
       });
       const state: ChatState = {
@@ -174,7 +160,7 @@ export function createChatInterface(
         compactingSlackApprovalToolStatuses: new Set<string>(),
         uploadCoordinator,
         responseCoordinator: new ChatResponseCoordinator({
-          getContext,
+          host: runtime,
           getDisplayBaseUrl: (): string | undefined => displayBaseUrl(runtime),
           registerPromptAction: (threadId, action): string =>
             promptActions.register(threadId, action),
@@ -248,7 +234,7 @@ export function createChatInterface(
           ((): ChatIdentityAccess | undefined => runtime.auth()),
         config,
         host: {
-          getContext,
+          context: runtime,
           startProcessingInput: (channelId): void => {
             messages.startProcessingInput(channelId);
           },
@@ -421,27 +407,9 @@ export function createChatInterface(
         send: ({ channelId, message }: MessageTransportSend): void => {
           const thread = state.threadRegistry.get(channelId);
           if (!thread) return;
-          const postOutput = toPlatformPostOutput(channelId, message);
-          if (postOutput !== undefined) {
-            thread.post(postOutput).catch((error: unknown) =>
-              logger.error("Failed to send chat message", {
-                error,
-                channelId,
-              }),
-            );
-            return;
-          }
-          if (typeof message !== "string") return;
-          for (const chunk of chunkForChannel(channelId, message)) {
-            thread
-              .post(toPlatformText(channelId, chunk))
-              .catch((error: unknown) =>
-                logger.error("Failed to send chat message", {
-                  error,
-                  channelId,
-                }),
-              );
-          }
+          postToThread(thread, channelId, message).catch((error: unknown) =>
+            logger.error("Failed to send chat message", { error, channelId }),
+          );
         },
         sendWithId: (request) => sendWithId(state, request),
         edit: async ({

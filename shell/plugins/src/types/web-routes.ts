@@ -99,17 +99,6 @@ export function jsonResponse(
   });
 }
 
-/**
- * Build a `{ error }` JSON Response with the given status.
- */
-export function jsonError(
-  message: string,
-  status: number,
-  init: Omit<JsonResponseInit, "status"> = {},
-): Response {
-  return jsonResponse({ error: message }, { status, ...init });
-}
-
 export interface RegisteredWebRoute {
   /** The plugin that registered this route */
   pluginId: string;

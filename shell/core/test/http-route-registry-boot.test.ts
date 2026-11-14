@@ -14,6 +14,7 @@ import { Shell, type ShellDependencies } from "../src/shell";
 import type { ShellRuntimeOptions } from "../src/runtime-process-role";
 import { createTestShellConfig } from "./helpers/test-config";
 import { createTestDirectory } from "@brains/test-utils";
+import { createMockEmbeddingService } from "@brains/entity-service/test";
 
 interface TestDirectory {
   dir: string;
@@ -28,17 +29,7 @@ interface BootCase {
 
 const dependencies: Partial<ShellDependencies> = {
   logger: createSilentLogger("http-route-boot-test"),
-  embeddingService: {
-    identity: { model: "test:mock", dimensions: 1536, promptRevision: 0 },
-    embedQuery: async () => ({
-      embedding: new Float32Array(1536).fill(0.1),
-      usage: { tokens: 1 },
-    }),
-    embedDocuments: async (texts: { content: string }[]) => ({
-      embeddings: texts.map(() => new Float32Array(1536).fill(0.1)),
-      usage: { tokens: texts.length },
-    }),
-  },
+  embeddingService: createMockEmbeddingService(),
 };
 
 function routePlugin(

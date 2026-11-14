@@ -4,7 +4,7 @@ import type {
   ChatContext,
   Tool,
 } from "@brains/sdk/internal/interface-runtime";
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { actorRefKey } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 
@@ -16,6 +16,7 @@ export interface MCPToolHost {
   >;
 }
 import { agentResponseToToolResponse } from "./agent-response-adapter";
+import { sha256Hex } from "@brains/utils/hash";
 
 const chatInputSchema = z.object({
   message: z.string().min(1),
@@ -55,10 +56,7 @@ function getConversationRef(
     contextConversationId ??
     channelId ??
     `conversation-${randomUUID()}`;
-  const subjectScope = createHash("sha256")
-    .update(actorKey)
-    .digest("hex")
-    .slice(0, 16);
+  const subjectScope = sha256Hex(actorKey).slice(0, 16);
   return {
     handle,
     internalId: `mcp:${subjectScope}:${handle}`,
@@ -94,10 +92,7 @@ function getChatContext(
  * reads, mutations, and reasoned requests through the brain agent. Debug mode
  * may separately expose raw system tools to Admin operators.
  */
-export function createMCPTools(
-  _pluginId: string,
-  getContext: () => MCPToolHost | undefined,
-): Tool[] {
+export function createMCPTools(context: MCPToolHost): Tool[] {
   return [
     {
       name: "chat",
@@ -110,14 +105,6 @@ export function createMCPTools(
       directMcpExposure: "basic",
       handler: async (rawInput, toolContext): Promise<ToolResponse> => {
         const input = chatInputSchema.parse(rawInput);
-        const context = getContext();
-        if (!context) {
-          return {
-            success: false,
-            error: "MCP chat tool is not initialized.",
-          };
-        }
-
         const conversation = getConversationRef(
           input,
           actorRefKey(toolContext.actor),
@@ -154,14 +141,6 @@ export function createMCPTools(
       directMcpExposure: "basic",
       handler: async (rawInput, toolContext): Promise<ToolResponse> => {
         const input = confirmInputSchema.parse(rawInput);
-        const context = getContext();
-        if (!context) {
-          return {
-            success: false,
-            error: "MCP confirm tool is not initialized.",
-          };
-        }
-
         const conversation = getConversationRef(
           input,
           actorRefKey(toolContext.actor),

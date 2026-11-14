@@ -1,14 +1,7 @@
 import { describe, expect, it } from "bun:test";
-import { z } from "@brains/utils/zod";
 import { createMockShell, type MockShell } from "../src/test/mock-shell";
-import {
-  SYSTEM_CHANNELS,
-  defineServicePlugin,
-  instantiatePluginPackageDefinition,
-  serviceRuntime,
-  type Plugin,
-  type ServiceRuntime,
-} from "../src";
+import { SYSTEM_CHANNELS } from "../src";
+import { probeService } from "../src/test/probe-service-runtime";
 
 /**
  * A first-party service converted from a class tells the shell, once
@@ -17,33 +10,6 @@ import {
  * context.messaging: the shell then waits for initialSyncCompleted before
  * the brain goes ready. In the main process only, once per package.
  */
-
-async function runtimeOn(
-  shell: MockShell,
-  executionOnly = false,
-): Promise<{ runtime: ServiceRuntime; plugin: Plugin }> {
-  let runtime: ServiceRuntime | undefined;
-  const [plugin] = instantiatePluginPackageDefinition(
-    defineServicePlugin({
-      id: "probe",
-      config: z.object({}),
-      setup: (context) => {
-        runtime = serviceRuntime(context);
-        return {};
-      },
-    }),
-    {},
-    { name: "@brains/probe", version: "0.1.0" },
-    { pluginId: "probe" },
-  );
-  if (!plugin) throw new Error("No plugin");
-  await plugin.register(
-    shell,
-    executionOnly ? { executionOnly: true } : undefined,
-  );
-  if (!runtime) throw new Error("Setup did not run");
-  return { runtime, plugin };
-}
 
 /** What the shell gathers when it announces every plugin registered. */
 async function answers(shell: MockShell): Promise<unknown[]> {
@@ -60,7 +26,7 @@ async function answers(shell: MockShell): Promise<unknown[]> {
 describe("a first-party service's initial sync", () => {
   it("answers the shell with whether startup content is still importing", async () => {
     const shell = createMockShell();
-    const { runtime } = await runtimeOn(shell);
+    const { runtime } = await probeService(shell);
     let calls = 0;
     runtime.initialSync(async () => {
       calls += 1;
@@ -75,7 +41,7 @@ describe("a first-party service's initial sync", () => {
     const before = shell
       .getMessageBus()
       .getHandlerCount(SYSTEM_CHANNELS.pluginsRegistered);
-    const { runtime } = await runtimeOn(shell, true);
+    const { runtime } = await probeService(shell, { executionOnly: true });
     const registered = shell
       .getMessageBus()
       .getHandlerCount(SYSTEM_CHANNELS.pluginsRegistered);
@@ -88,7 +54,7 @@ describe("a first-party service's initial sync", () => {
 
   it("is answered once per package, and released when it shuts down", async () => {
     const shell = createMockShell();
-    const { runtime, plugin } = await runtimeOn(shell);
+    const { runtime, plugin } = await probeService(shell);
     runtime.initialSync(async () => ({ initialSyncPending: true }));
     expect(() =>
       runtime.initialSync(async () => ({ initialSyncPending: false })),

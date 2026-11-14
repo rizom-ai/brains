@@ -19,7 +19,7 @@ const NON_DELIVERABLE_ARTIFACT_STATUSES = new Set([
 ]);
 
 interface ArtifactDeliveryDeps {
-  getContext: () => ChatHost | undefined;
+  host: ChatHost;
   getDisplayBaseUrl: () => string | undefined;
   logger: {
     debug: (message: string, context?: Record<string, unknown>) => void;
@@ -51,7 +51,7 @@ export class ArtifactDeliveryResolver {
     const files: FileUpload[] = [];
     const deniedCardIds = new Set<string>();
     const deliveredCardIds = new Set<string>();
-    if (!cards || !this.deps.getContext()) {
+    if (!cards) {
       return { files, deniedCardIds, deliveredCardIds };
     }
 
@@ -86,8 +86,7 @@ export class ArtifactDeliveryResolver {
     entityRef: NonNullable<ReturnType<typeof resolveArtifactEntityRefFromCard>>,
     userLevel: UserPermissionLevel,
   ): Promise<{ file?: FileUpload; denied?: boolean }> {
-    const context = this.deps.getContext();
-    if (!context) return {};
+    const context = this.deps.host;
 
     const access = await resolveMessageArtifactAccess({
       entityRef,

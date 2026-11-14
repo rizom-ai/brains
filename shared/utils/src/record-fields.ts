@@ -1,22 +1,38 @@
+import { isPlainRecord } from "./predicates";
+
 /**
  * Typed reads out of an untyped bag.
  *
- * Entity metadata and job-context payloads are `Record<string, unknown>`, so
+ * Entity metadata, job-context payloads and tool results are untyped, so
  * indexing them yields `unknown`. These read a single field and check it,
  * rather than each call site asserting the type it hopes for.
+ *
+ * The bag itself is checked too: anything that is not a plain object — an
+ * array, a string, null, a class instance — reads as holding nothing.
  */
 
-/** Null and undefined are accepted: metadata bags are frequently optional. */
-type Bag = Record<string, unknown> | null | undefined;
+/** The value as a string-keyed bag, or nothing when it is not a plain object. */
+export function asRecord(value: unknown): Record<string, unknown> | undefined {
+  return isPlainRecord(value) ? value : undefined;
+}
 
-export function readString(bag: Bag, key: string): string | undefined {
-  const value = bag?.[key];
+export function readValue(bag: unknown, key: string): unknown {
+  return asRecord(bag)?.[key];
+}
+
+export function readString(bag: unknown, key: string): string | undefined {
+  const value = readValue(bag, key);
   return typeof value === "string" ? value : undefined;
 }
 
-export function readNumber(bag: Bag, key: string): number | undefined {
-  const value = bag?.[key];
+export function readNumber(bag: unknown, key: string): number | undefined {
+  const value = readValue(bag, key);
   return typeof value === "number" && Number.isFinite(value)
     ? value
     : undefined;
+}
+
+export function readBoolean(bag: unknown, key: string): boolean | undefined {
+  const value = readValue(bag, key);
+  return typeof value === "boolean" ? value : undefined;
 }

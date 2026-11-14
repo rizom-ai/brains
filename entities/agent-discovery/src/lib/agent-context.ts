@@ -50,14 +50,12 @@ export interface AgentNetwork {
 
 /** Agent discovery's context over a package's runtime. */
 export function agentContextOf(runtime: ServiceRuntime): AgentContext {
-  const { entityReads, entityWrites } = runtime;
+  const { entityReads } = runtime;
   return {
     logger: runtime.logger,
     entityService: {
       ...classEntityServiceOf(runtime),
-      deleteEntity: (request) => entityWrites.deleteEntity(request),
-      hasEntityType: (entityType) =>
-        entityReads.getEntityTypes().includes(entityType),
+      hasEntityType: (entityType) => entityReads.hasEntityType(entityType),
     },
     permissions: runtime.permissions,
     auth: { get: () => runtime.auth() },

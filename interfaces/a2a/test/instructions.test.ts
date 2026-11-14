@@ -8,7 +8,7 @@ import { createAgentCallTool } from "../src/client";
 describe("A2A instructions", () => {
   it("adds no prompt section beside the agent_call description", async () => {
     const capabilities = await createPluginHarness().installPlugin(
-      createA2APlugin({ port: 0 }),
+      createA2APlugin({}),
     );
 
     expect(capabilities.instructions).toBeUndefined();

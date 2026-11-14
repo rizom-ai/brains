@@ -31,6 +31,6 @@ export const mcpProtocol: PluginPackageDefinition<
   }),
   (context) => {
     const runtime = interfaceRuntime(context);
-    return createMCPTools("mcp", () => runtime);
+    return createMCPTools(runtime);
   },
 );

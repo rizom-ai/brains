@@ -1,6 +1,7 @@
 import { defineEntity, type EntityDefinition } from "@brains/sdk/entities";
 import {
   storedDocumentCodec,
+  bodyUnderHeader,
   withFrontmatterSchema,
   withPublishedStatuses,
   writesInDocumentOrder,
@@ -18,17 +19,8 @@ const storedAgent = storedDocumentCodec<
   header: agentFrontmatterSchema,
   deriveMetadata: agentMetadataOf,
   readAsWritten: true,
-});
-// The agent adapter wrote an agent's body from the line under its header.
-// The codec stays the one storedDocumentCodec made, which is what reads as
-// written.
-const storedDecode = storedAgent.decode;
-Object.assign(storedAgent, {
-  decode: (document: Parameters<typeof storedDecode>[0]) =>
-    storedDecode({
-      ...document,
-      content: document.content.replace(/^\n+/u, ""),
-    }),
+  // The agent adapter wrote an agent's body from the line under its header.
+  prepare: bodyUnderHeader,
 });
 
 /**

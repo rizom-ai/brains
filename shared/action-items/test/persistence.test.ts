@@ -28,6 +28,7 @@ import {
   type ActionItemEntity,
   type ActionItemMetadata,
 } from "../src";
+import { createRefusingEmbeddingService } from "@brains/entity-service/test";
 
 const adapter = new ActionItemAdapter();
 const niels = { kind: "user", userId: "u-niels" } as const;
@@ -69,15 +70,7 @@ async function brain(): Promise<EntityService> {
     logger,
     jobQueueService: createMockShell().getJobQueueService(),
     embeddingsEnabled: false,
-    embeddingService: {
-      identity: { model: "test:mock", dimensions: 1536, promptRevision: 0 },
-      embedQuery: async () => {
-        throw new Error("Unexpected embedding");
-      },
-      embedDocuments: async () => {
-        throw new Error("Unexpected embedding");
-      },
-    },
+    embeddingService: createRefusingEmbeddingService(),
   });
   await service.initialize();
   close = async (): Promise<void> => {

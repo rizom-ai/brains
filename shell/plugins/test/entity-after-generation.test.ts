@@ -23,6 +23,7 @@ import {
   instantiatePluginPackageDefinition,
   type GenerationOutcomeContext,
 } from "../src";
+import { createRefusingEmbeddingService } from "@brains/entity-service/test";
 
 /**
  * A first-party generation's step after it runs, as an entity plugin
@@ -117,15 +118,7 @@ async function installed(): Promise<Installed> {
     logger,
     jobQueueService: createMockShell().getJobQueueService(),
     embeddingsEnabled: false,
-    embeddingService: {
-      identity: { model: "test:mock", dimensions: 1536, promptRevision: 0 },
-      embedQuery: async () => {
-        throw new Error("Unexpected embedding");
-      },
-      embedDocuments: async () => {
-        throw new Error("Unexpected embedding");
-      },
-    },
+    embeddingService: createRefusingEmbeddingService(),
   });
   await service.initialize();
   const entityService: IEntityService = service;

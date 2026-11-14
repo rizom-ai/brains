@@ -51,7 +51,6 @@ function createSilentServer(): {
     setProtocolMode: () => {},
   };
   const server = new StreamableHTTPServer({
-    port: 0,
     auth: { disabled: true },
     logger: createMockLogger(),
   });

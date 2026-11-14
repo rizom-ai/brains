@@ -15,6 +15,7 @@ import {
   type ProjectionWaveInput,
   type ProjectionWriteIntent,
 } from "../src";
+import { createRefusingEmbeddingService } from "@brains/entity-service/test";
 
 /**
  * A first-party entity eval measures its type's own projection rule as
@@ -185,15 +186,7 @@ describe("a first-party entity eval running its type's projection rule", () => {
       logger,
       jobQueueService: createMockShell().getJobQueueService(),
       embeddingsEnabled: false,
-      embeddingService: {
-        identity: { model: "test:mock", dimensions: 1536, promptRevision: 0 },
-        embedQuery: async () => {
-          throw new Error("Unexpected embedding");
-        },
-        embedDocuments: async () => {
-          throw new Error("Unexpected embedding");
-        },
-      },
+      embeddingService: createRefusingEmbeddingService(),
     });
     await service.initialize();
     try {

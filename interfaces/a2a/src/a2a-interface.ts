@@ -44,6 +44,7 @@ import {
   type PublicAskAllowance,
 } from "./public-asks";
 import packageJson from "../package.json";
+import { withHeaders } from "@brains/utils/http-response";
 
 const A2A_CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -83,18 +84,8 @@ interface A2AState {
 
 type A2ASlotContext = FirstPartySlotContext<A2AConfig, A2AState>;
 
-function withCors(response: Response): Response {
-  const headers = new Headers(response.headers);
-  for (const [key, value] of Object.entries(A2A_CORS_HEADERS)) {
-    headers.set(key, value);
-  }
-
-  return new Response(response.body, {
-    status: response.status,
-    statusText: response.statusText,
-    headers,
-  });
-}
+const withCors = (response: Response): Response =>
+  withHeaders(response, A2A_CORS_HEADERS);
 
 /** Signs outbound A2A requests when the brain has an HTTPS issuer. */
 function createRequestSigner(

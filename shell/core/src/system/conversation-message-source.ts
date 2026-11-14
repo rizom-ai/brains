@@ -10,6 +10,7 @@ import type {
   userMessageSourceInputSchema,
 } from "./schemas";
 import type { SystemServices } from "./types";
+import { escapeRegExp } from "@brains/utils/string-utils";
 
 export type UserMessageSource = z.output<typeof userMessageSourceInputSchema>;
 
@@ -354,10 +355,6 @@ function looseLiteralBoundaryOffsets(
     content.matchAll(pattern),
     (match) => match.index + (after ? match[0].length : 0),
   );
-}
-
-function escapeRegExp(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 /** Offsets after (or before) each literal occurrence of a non-empty marker. */

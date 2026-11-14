@@ -1,7 +1,8 @@
-import type {
-  IAgentService,
-  ChatContext,
-  AgentResponse,
+import {
+  aiProviderDeclinedMessage,
+  type IAgentService,
+  type ChatContext,
+  type AgentResponse,
 } from "@brains/ai-service";
 import type { IRuntimeUploadsNamespace } from "@brains/plugins";
 import type { UserPermissionLevel } from "@brains/templates";
@@ -256,11 +257,7 @@ export class TestRunner implements ITestRunner {
           this.buildTurnChatContext(baseContext, turn, attachments),
         );
       }
-      pendingApprovalIds = this.nextPendingApprovalIds(
-        pendingApprovalIds,
-        turn,
-        response,
-      );
+      pendingApprovalIds = this.extractPendingApprovalIds(response);
       const metrics = collector.endTurn({
         usage: response.usage,
         toolResults: this.collectToolCallsForMetrics(
@@ -273,6 +270,27 @@ export class TestRunner implements ITestRunner {
 
       const toolCalls = collector.getToolCallsForTurn(i);
       lastSources = responseSources(response);
+      // A turn the agent could not answer fails on that, once: its text is the
+      // error, so holding it to the turn's criteria would only restate it.
+      if (response.error !== undefined) {
+        const failure = erroredTurnFailure(i, response.error);
+        turnResults.push({
+          turnIndex: i,
+          userMessage: turn.userMessage,
+          assistantResponse: response.text,
+          toolCalls,
+          metrics,
+          criteriaResults: [
+            {
+              criterion: failure.criterion,
+              passed: false,
+              details: failure.message,
+            },
+          ],
+        });
+        failures.push(failure);
+        continue;
+      }
       const turnCriteriaResults = turn.successCriteria
         ? evaluateCriteria(
             turn.successCriteria,
@@ -438,14 +456,6 @@ export class TestRunner implements ITestRunner {
     if (turn.approvalId) return turn.approvalId;
     if (pendingApprovalIds.length !== 1) return undefined;
     return pendingApprovalIds[0];
-  }
-
-  private nextPendingApprovalIds(
-    _currentIds: string[],
-    _turn: AgentTestCase["turns"][number],
-    response: AgentResponse,
-  ): string[] {
-    return this.extractPendingApprovalIds(response);
   }
 
   private extractPendingApprovalIds(response: AgentResponse): string[] {
@@ -615,4 +625,17 @@ export class TestRunner implements ITestRunner {
   ): TestRunner {
     return new TestRunner(agentService, llmJudge, runtimeUploads);
   }
+}
+
+/** The one failure of a turn that ended in an error, a provider decline by name. */
+function erroredTurnFailure(turnIndex: number, error: string): FailureDetail {
+  const declined = error === aiProviderDeclinedMessage;
+  return {
+    criterion: declined ? "providerDeclined" : "agentError",
+    expected: "A turn the agent answers",
+    actual: error,
+    message: declined
+      ? `Turn ${turnIndex}: the AI provider declined the request`
+      : `Turn ${turnIndex}: the agent failed: ${error}`,
+  };
 }

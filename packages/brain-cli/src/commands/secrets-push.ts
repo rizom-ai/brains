@@ -31,6 +31,7 @@ import {
 } from "@brains/deploy-support/push-target";
 import { type RunCommand } from "@brains/deploy-support/run-subprocess";
 import { getErrorMessage } from "@brains/utils/error";
+import { escapeRegExp } from "@brains/utils/string-utils";
 
 export interface SecretsPushOptions {
   env?: NodeJS.ProcessEnv | undefined;
@@ -376,10 +377,6 @@ function ensureBitwardenRootDecorators(content: string): string {
   }
 
   return lines.join("\n");
-}
-
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function collectSecretValues(

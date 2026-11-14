@@ -1,16 +1,11 @@
-import type {
-  BaseEntity,
-  EntitySchema,
-  GetEntityRequest,
-} from "@brains/sdk/internal/entity-runtime";
-import type {
-  ClassRuntimeState,
-  ServiceRuntime,
-  ServiceAtprotoProjections,
-  ServiceClassMessaging,
-  ServiceEntityReads,
-  ServiceEntityWrites,
-  ServiceIdentity,
+import {
+  classEntityServiceOf,
+  type ClassRuntimeState,
+  type ServiceRuntime,
+  type ServiceAtprotoProjections,
+  type ServiceClassMessaging,
+  type ServiceEntityReads,
+  type ServiceIdentity,
 } from "@brains/sdk/internal/service-runtime";
 import type { AtprotoProjectionContext } from "@brains/atproto-contracts";
 import type { Logger } from "@brains/utils/logger";
@@ -41,39 +36,11 @@ export interface AtprotoContext {
 /** The bus atproto hears, as its class subscribed and observed. */
 export type AtprotoBus = Pick<ServiceRuntime, "listen">;
 
-/**
- * The entity service a projection is handed, as the class handed its own:
- * a read parsed by the schema it is given, as the entity service parses
- * one, and the class's writes.
- */
-function entityServiceOf(
-  reads: Pick<ServiceEntityReads, "getEntity" | "listEntities">,
-  writes: Pick<ServiceEntityWrites, "updateEntity">,
-): AtprotoContext["entityService"] {
-  function getEntity(request: GetEntityRequest): Promise<BaseEntity | null>;
-  function getEntity<T extends BaseEntity>(
-    request: GetEntityRequest,
-    schema: EntitySchema<T>,
-  ): Promise<T | null>;
-  async function getEntity(
-    request: GetEntityRequest,
-    schema?: EntitySchema<BaseEntity>,
-  ): Promise<BaseEntity | null> {
-    const entity = await reads.getEntity(request);
-    return entity && schema ? schema.parse(entity) : entity;
-  }
-  return {
-    getEntity,
-    listEntities: (request) => reads.listEntities(request),
-    updateEntity: (request) => writes.updateEntity(request),
-  };
-}
-
 /** What atproto reads and broadcasts through, from the package's runtime. */
 export function atprotoContextOf(runtime: ServiceRuntime): AtprotoContext {
   return {
     logger: runtime.logger,
-    entityService: entityServiceOf(runtime.entityReads, runtime.entityWrites),
+    entityService: classEntityServiceOf(runtime),
     messaging: runtime.messaging,
     identity: runtime.identity,
     profileKinds: runtime.profileKinds,

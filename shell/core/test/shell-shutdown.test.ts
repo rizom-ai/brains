@@ -9,6 +9,7 @@ import { migrateJobQueue } from "@brains/job-queue/migrate";
 import { migrateConversations } from "@brains/conversation-service/migrate";
 import { migrateRuntimeState } from "@brains/runtime-state/migrate";
 import { z } from "@brains/utils/zod";
+import { deferred } from "@brains/utils/deferred";
 
 async function runMigrations(dir: string): Promise<void> {
   await migrateEntities({ url: `file:${dir}/test.db` });
@@ -41,14 +42,6 @@ const deps: ShellDependencies = {
   logger: createSilentLogger(),
   embeddingService: mockEmbeddingService,
 };
-
-function deferred(): { promise: Promise<void>; resolve(): void } {
-  let settle: (() => void) | undefined;
-  const promise = new Promise<void>((resolve) => {
-    settle = resolve;
-  });
-  return { promise, resolve: (): void => settle?.() };
-}
 
 describe("Shell shutdown", () => {
   let testDir: { dir: string; cleanup: () => Promise<void> };

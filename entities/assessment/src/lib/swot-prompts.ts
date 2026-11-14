@@ -287,18 +287,6 @@ Draft SWOT:
 ${JSON.stringify(draft, null, 2)}`;
 }
 
-export function buildRefinementPrompt(
-  contextData: SwotContext,
-  draft: SwotDraftGeneration,
-  basePrompt: string,
-): string {
-  return buildRefinementPromptFromContext(
-    buildPromptContext(contextData),
-    draft,
-    basePrompt,
-  );
-}
-
 function normalizeItems(items: SwotGeneration["strengths"]): SwotItem[] {
   return items
     .map((item): SwotItem => {

@@ -8,6 +8,7 @@ import {
   type KnowledgeMapPoint,
   type KnowledgeMapZone,
 } from "./knowledge-map-data";
+import { seededRandom } from "@brains/utils/seeded-random";
 
 export { knowledgeMapStyles };
 
@@ -28,17 +29,6 @@ const LABEL_HEIGHT = 18;
 /** Rough mono glyph advance at the label sizes — enough for collision boxes. */
 const LABEL_CHAR_WIDTH = 7.5;
 
-function mulberry32(seed: number): () => number {
-  let value = seed >>> 0;
-  return () => {
-    value |= 0;
-    value = (value + 0x6d2b79f5) | 0;
-    let t = Math.imul(value ^ (value >>> 15), 1 | value);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
 function toPx(x: number, y: number): { x: number; y: number } {
   return {
     x: PAD + x * (WIDTH - 2 * PAD),
@@ -48,7 +38,7 @@ function toPx(x: number, y: number): { x: number; y: number } {
 
 /** A wobbly closed blob around a centroid — a territory, not a UI circle. */
 function blobPath(cx: number, cy: number, base: number, seed: number): string {
-  const rng = mulberry32(seed);
+  const rng = seededRandom(seed);
   const corners = 9;
   const points: [number, number][] = [];
   for (let i = 0; i < corners; i++) {
@@ -305,7 +295,7 @@ interface ZoneLink {
 }
 
 function buildZoneLinks(layouts: ZoneLayout[]): ZoneLink[] {
-  const random = mulberry32(211);
+  const random = seededRandom(211);
   return layouts
     .flatMap((first, leftIndex) =>
       layouts.slice(leftIndex + 1).map((second) => ({

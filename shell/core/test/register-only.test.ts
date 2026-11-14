@@ -10,6 +10,7 @@ import { migrateJobQueue } from "@brains/job-queue/migrate";
 import { migrateConversations } from "@brains/conversation-service/migrate";
 import { migrateRuntimeState } from "@brains/runtime-state/migrate";
 import { z } from "@brains/utils/zod";
+import { createMockEmbeddingService } from "@brains/entity-service/test";
 
 interface TestDir {
   dir: string;
@@ -22,17 +23,7 @@ describe("Shell register-only mode", () => {
 
   const deps: Partial<ShellDependencies> = {
     logger: createSilentLogger("test"),
-    embeddingService: {
-      identity: { model: "test:mock", dimensions: 1536, promptRevision: 0 },
-      embedQuery: async () => ({
-        embedding: new Float32Array(1536).fill(0.1),
-        usage: { tokens: 10 },
-      }),
-      embedDocuments: async (texts: { content: string }[]) => ({
-        embeddings: texts.map(() => new Float32Array(1536).fill(0.1)),
-        usage: { tokens: texts.length * 10 },
-      }),
-    },
+    embeddingService: createMockEmbeddingService(),
   };
 
   beforeEach(async () => {

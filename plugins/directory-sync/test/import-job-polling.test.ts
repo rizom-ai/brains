@@ -9,17 +9,7 @@ import {
 import { createSilentLogger } from "@brains/test-utils";
 import { waitForImportJobs } from "../src/lib/import-job-polling";
 import type { ProgressNotification } from "@brains/utils/progress";
-
-function deferred(): {
-  promise: Promise<void>;
-  resolve(): void;
-} {
-  let settle: (() => void) | undefined;
-  const promise = new Promise<void>((resolve) => {
-    settle = resolve;
-  });
-  return { promise, resolve: (): void => settle?.() };
-}
+import { deferred } from "@brains/utils/deferred";
 
 function createReporter(
   notifications: ProgressNotification[],

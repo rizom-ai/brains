@@ -5,6 +5,7 @@ import {
   checkEntityText,
   continueWithEntityText,
   entityTextError,
+  entityTextRefusal,
   readEntityText,
 } from "../src/entity/create-from-text";
 
@@ -190,6 +191,23 @@ describe("checkEntityText", () => {
     expect(
       checkEntityText({ kind: "error", error: "Bad fields." }, () => ({})),
     ).toEqual({ kind: "error", error: "Bad fields." });
+  });
+});
+
+describe("entityTextRefusal", () => {
+  it("says why a text cannot be saved, in the words a refused create carries", () => {
+    expect(entityTextRefusal("No title")).toBe("No title");
+    expect(entityTextRefusal({ kind: "error", error: "Too long" })).toBe(
+      "Too long",
+    );
+    expect(
+      entityTextRefusal({
+        kind: "question",
+        asks: "fields",
+        question: "Which year?",
+        answerWith: "Pass the answer as fields { year }.",
+      }),
+    ).toBe("Which year? Pass the answer as fields { year }.");
   });
 });
 

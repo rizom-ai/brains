@@ -3,6 +3,7 @@ import type {
   IRuntimeStateStore,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
+import { escapeRegExp } from "@brains/utils/string-utils";
 
 /** The ledger's ceiling: submissions whose write or alert has not settled. */
 const MAX_IN_FLIGHT = 1000;
@@ -72,7 +73,7 @@ function stateSchemaFor(
   idPrefix: string,
   separator: "-" | ":",
 ): SlotStateSchema {
-  const escaped = idPrefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const escaped = escapeRegExp(idPrefix);
   return z.strictObject({
     revision: integer,
     lastNow: integer,

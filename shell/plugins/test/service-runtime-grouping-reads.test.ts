@@ -3,15 +3,9 @@ import { EntityRegistry, EntityService } from "@brains/entity-service";
 import { migrateEntities } from "@brains/entity-service/migrate";
 import { createSilentLogger, createTestDirectory } from "@brains/test-utils";
 import { generateMarkdown } from "@brains/utils/markdown-frontmatter";
-import { z } from "@brains/utils/zod";
 import { createMockShell, type MockShell } from "../src/test/mock-shell";
 import { baseEntitySchema, createTestEntityAdapter } from "../test";
-import {
-  defineServicePlugin,
-  instantiatePluginPackageDefinition,
-  serviceRuntime,
-  type ServiceRuntime,
-} from "../src";
+import { probeRuntime } from "../src/test/probe-service-runtime";
 
 /**
  * A first-party service other than Studio reads the brain's groupings as
@@ -25,29 +19,6 @@ const closers: (() => Promise<void>)[] = [];
 afterEach(async () => {
   for (const close of closers.splice(0)) await close();
 });
-
-async function runtimeOn(
-  shell: MockShell,
-  id = "probe",
-): Promise<ServiceRuntime> {
-  let runtime: ServiceRuntime | undefined;
-  const [plugin] = instantiatePluginPackageDefinition(
-    defineServicePlugin({
-      id,
-      config: z.object({}),
-      setup: (context) => {
-        runtime = serviceRuntime(context);
-        return {};
-      },
-    }),
-    {},
-    { name: `@brains/${id}`, version: "0.1.0" },
-    { pluginId: id },
-  );
-  await plugin?.register(shell);
-  if (!runtime) throw new Error("Setup did not run");
-  return runtime;
-}
 
 /** A brain's entity store with a projects grouping over cards. */
 async function storeWithCards(): Promise<MockShell> {
@@ -122,7 +93,7 @@ async function storeWithCards(): Promise<MockShell> {
 describe("a first-party service reading the brain's groupings as the action board's class did", () => {
   it("reads the definitions, any service, while groupings() stays Studio's", async () => {
     const shell = await storeWithCards();
-    const runtime = await runtimeOn(shell);
+    const runtime = await probeRuntime(shell);
     expect(
       runtime.groupingReads
         .getGroupings()
@@ -157,13 +128,13 @@ describe("a first-party service reading the brain's groupings as the action boar
         calls.push(options);
       },
     });
-    const runtime = await runtimeOn(shell);
+    const runtime = await probeRuntime(shell);
     await runtime.groupingReads.ensureGroupingsCurrent();
     expect(calls).toEqual([undefined]);
   });
 
   it("reads a grouping's catalog and a value's members at the scope the read names", async () => {
-    const runtime = await runtimeOn(await storeWithCards());
+    const runtime = await probeRuntime(await storeWithCards());
     const reads = runtime.groupingReads;
     const catalog = async (
       visibilityScope: "public" | "shared" | "restricted",

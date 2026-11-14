@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import { SdkError } from "@brains/contracts";
 import type {
   InboxSource,
@@ -22,6 +21,7 @@ import {
   type InboxWorkspaceQuery,
   type InboxWorkspaceSnapshot,
 } from "./schemas";
+import { sha256Hex } from "@brains/utils/hash";
 
 type InboxSourceRegistry = ServiceRuntime["inbox"];
 type InboxFollowUpCatalog = ServiceRuntime["inboxFollowUps"];
@@ -193,18 +193,16 @@ export class InboxOperatorService {
     }
     return {
       summary: `${offered.action.label} "${offered.title}"?`,
-      revision: createHash("sha256")
-        .update(
-          JSON.stringify({
-            sourceId: request.sourceId,
-            itemId: request.itemId,
-            actionId: offered.action.id,
-            actionLabel: offered.action.label,
-            confirm: offered.action.confirm === true,
-            title: offered.title,
-          }),
-        )
-        .digest("hex"),
+      revision: sha256Hex(
+        JSON.stringify({
+          sourceId: request.sourceId,
+          itemId: request.itemId,
+          actionId: offered.action.id,
+          actionLabel: offered.action.label,
+          confirm: offered.action.confirm === true,
+          title: offered.title,
+        }),
+      ),
     };
   }
 

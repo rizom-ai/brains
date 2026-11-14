@@ -13,7 +13,10 @@ import {
 } from "@brains/entity-service";
 import { migrateEntities } from "@brains/entity-service/migrate";
 import { baseEntitySchema, type BaseEntity } from "@brains/entity-service";
-import { createTestEntityAdapter } from "@brains/entity-service/test";
+import {
+  createTestEntityAdapter,
+  createRefusingEmbeddingService,
+} from "@brains/entity-service/test";
 import notePackage from "@brains/note";
 import { declaredType } from "../helpers/declared-type";
 import blogPackage from "@brains/blog";
@@ -125,15 +128,7 @@ async function open(
     logger,
     jobQueueService: createMockShell().getJobQueueService(),
     embeddingsEnabled: false,
-    embeddingService: {
-      identity: { model: "test:mock", dimensions: 1536, promptRevision: 0 },
-      embedQuery: async () => {
-        throw new Error("Unexpected embedding");
-      },
-      embedDocuments: async () => {
-        throw new Error("Unexpected embedding");
-      },
-    },
+    embeddingService: createRefusingEmbeddingService(),
   });
   services.push(service);
   await service.initialize();

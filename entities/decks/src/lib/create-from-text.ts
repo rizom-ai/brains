@@ -5,7 +5,7 @@ import type {
 import {
   checkEntityText,
   entityRuntime,
-  entityTextError,
+  entityTextRefusal,
   readEntityText,
   statedDateSchema,
   type EntityTextResult,
@@ -21,6 +21,7 @@ import {
 import { hasSlideSeparators } from "./deck-markdown";
 import { describeDeck } from "./describe-deck";
 import { splitSlides } from "./slides";
+import { definedFields } from "@brains/utils/strip-undefined";
 
 /** Deck fields a writer can state for their own slides, in frontmatter or as `fields`. */
 const deckTextFieldsSchema = z.object({
@@ -113,29 +114,21 @@ export const deckFromText: EntityCreateRoute<typeof deckMetadataSchema> = {
     const runtime = entityRuntime(context);
     if (read.kind === "not-text") return runtime.ordinaryCreate();
     if (read.kind !== "text") {
-      const refused = entityTextError(read);
-      return {
-        refuse:
-          refused.kind === "handled" && !refused.result.success
-            ? refused.result.error
-            : "This text cannot be saved as a deck",
-      };
+      return { refuse: entityTextRefusal(read) };
     }
     const { title, body: slides, fields } = read.text;
     const status = fields.status ?? "draft";
-    const frontmatter = Object.fromEntries(
-      Object.entries({
-        title,
-        status,
-        description: fields.description,
-        author: fields.author,
-        event: fields.event,
-        publishedAt:
-          fields.publishedAt ??
-          (status === "published" ? new Date().toISOString() : undefined),
-        coverImageId: fields.coverImageId,
-      }).filter(([, value]) => value !== undefined),
-    );
+    const frontmatter = definedFields({
+      title,
+      status,
+      description: fields.description,
+      author: fields.author,
+      event: fields.event,
+      publishedAt:
+        fields.publishedAt ??
+        (status === "published" ? new Date().toISOString() : undefined),
+      coverImageId: fields.coverImageId,
+    });
     return runtime.ordinaryCreate({
       title,
       content: generateMarkdown(frontmatter, slides),

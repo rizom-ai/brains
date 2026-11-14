@@ -38,7 +38,7 @@ interface PendingJobArtifactDelivery {
 }
 
 interface ChatResponseCoordinatorDeps {
-  getContext: () => ChatHost | undefined;
+  host: ChatHost;
   getDisplayBaseUrl: () => string | undefined;
   registerPromptAction: (
     threadId: string,
@@ -93,7 +93,7 @@ export class ChatResponseCoordinator {
       registerPromptAction: deps.registerPromptAction,
     });
     this.artifactDelivery = new ArtifactDeliveryResolver({
-      getContext: deps.getContext,
+      host: deps.host,
       getDisplayBaseUrl: deps.getDisplayBaseUrl,
       logger: deps.logger,
     });
@@ -103,11 +103,9 @@ export class ChatResponseCoordinator {
     });
     this.pendingApprovals = new PendingApprovalTracker({
       loadMessages: async (conversationId): Promise<readonly unknown[]> => {
-        return (
-          (await deps
-            .getContext()
-            ?.conversations.getMessages(conversationId, { limit: 50 })) ?? []
-        );
+        return deps.host.conversations.getMessages(conversationId, {
+          limit: 50,
+        });
       },
       onRestoreError: (error, conversationId): void => {
         deps.logger.debug("Failed to load pending chat approvals", {
@@ -194,27 +192,23 @@ export class ChatResponseCoordinator {
       this.activeSlackConfirmationConversations.add(input.conversationId);
     }
     try {
-      const response = await this.deps
-        .getContext()
-        ?.agent.confirmPendingAction(
-          input.conversationId,
-          input.confirmed,
-          input.approvalId,
-          {
-            userPermissionLevel: input.userPermissionLevel,
-            isAnchor: input.isAnchor,
-            interfaceType: platform,
-            channelId: input.thread.id,
-            channelName: input.thread.isDM ? "DM" : input.thread.channelId,
-            ...input.metadata,
-          },
-        );
+      const response = await this.deps.host.agent.confirmPendingAction(
+        input.conversationId,
+        input.confirmed,
+        input.approvalId,
+        {
+          userPermissionLevel: input.userPermissionLevel,
+          isAnchor: input.isAnchor,
+          interfaceType: platform,
+          channelId: input.thread.id,
+          channelName: input.thread.isDM ? "DM" : input.thread.channelId,
+          ...input.metadata,
+        },
+      );
       this.pendingApprovals.removeApproval(
         input.conversationId,
         input.approvalId,
       );
-      if (!response) return;
-
       await this.renderAgentResponse({
         thread: input.thread,
         channelId: input.thread.id,

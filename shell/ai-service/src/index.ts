@@ -6,7 +6,7 @@
  */
 
 export { AIService } from "./aiService";
-export { AIOutputValidationError } from "./errors";
+export { AIOutputValidationError, aiProviderDeclinedMessage } from "./errors";
 export {
   isSupportedTextModel,
   resolveTextProvider,
@@ -33,7 +33,6 @@ export {
   resolveEmbeddingProfile,
   unsupportedEmbeddingModelMessage,
 } from "./embedding-profiles";
-export type { EmbeddingProfile } from "./embedding-profiles";
 
 // Re-export from ai SDK
 export { ToolLoopAgent, stepCountIs, dynamicTool } from "ai";
@@ -82,11 +81,14 @@ export {
   toolInvocationEventSchema,
   toolInvokingChannel,
 } from "./tool-events";
+export { agentTurnCompletedChannel } from "./turn-events";
 export {
-  agentTurnCompletedChannel,
-  agentTurnCompletedEventSchema,
-  type AgentTurnCompletedEvent,
-} from "./turn-events";
+  ChatAttachmentSchema,
+  ChatAttachmentSourceSchema,
+  ChatContextSchema,
+  FileChatAttachmentSchema,
+  TextChatAttachmentSchema,
+} from "./chat-context";
 
 export type {
   AgentConfig,

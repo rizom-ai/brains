@@ -2094,6 +2094,7 @@ function entityReadsOf(context: ServicePluginContext): ServiceEntityReads {
   const { entityService } = context;
   return Object.freeze({
     getEntityTypes: () => entityService.getEntityTypes(),
+    hasEntityType: (entityType) => entityService.hasEntityType(entityType),
     countEntities: (request) => entityService.countEntities(request),
     getEntityCounts: (scope) => entityService.getEntityCounts(scope),
     listEntities: (request) => entityService.listEntities(request),

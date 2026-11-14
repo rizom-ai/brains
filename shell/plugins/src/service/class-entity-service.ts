@@ -3,12 +3,15 @@ import type {
   EntitySchema,
   GetEntityRequest,
   ListEntitiesRequest,
+  SearchResult,
 } from "@brains/entity-service";
 import type {
   ServiceEntityReads,
   ServiceEntityWrites,
   ServiceRuntime,
 } from "./service-runtime";
+
+type SearchRequest = Parameters<ServiceEntityReads["search"]>[0];
 
 /**
  * The entity service a first-party service converted from a class reads
@@ -29,10 +32,16 @@ export interface ServiceClassEntityService {
     request: ListEntitiesRequest,
     schema: EntitySchema<T>,
   ): Promise<T[]>;
+  search(request: SearchRequest): Promise<SearchResult<BaseEntity>[]>;
+  search<T extends BaseEntity>(
+    request: SearchRequest,
+    schema: EntitySchema<T>,
+  ): Promise<SearchResult<T>[]>;
   countEntities: ServiceEntityReads["countEntities"];
   createEntity: ServiceEntityWrites["createEntity"];
   updateEntity: ServiceEntityWrites["updateEntity"];
   upsertEntity: ServiceEntityWrites["upsertEntity"];
+  deleteEntity: ServiceEntityWrites["deleteEntity"];
 }
 
 /** The entity service a converted class read and wrote through, from its runtime. */
@@ -64,12 +73,31 @@ export function classEntityServiceOf(
     const entities = await entityReads.listEntities(request);
     return schema ? entities.map((entity) => schema.parse(entity)) : entities;
   }
+  function search(request: SearchRequest): Promise<SearchResult<BaseEntity>[]>;
+  function search<T extends BaseEntity>(
+    request: SearchRequest,
+    schema: EntitySchema<T>,
+  ): Promise<SearchResult<T>[]>;
+  async function search(
+    request: SearchRequest,
+    schema?: EntitySchema<BaseEntity>,
+  ): Promise<SearchResult<BaseEntity>[]> {
+    const results = await entityReads.search(request);
+    return schema
+      ? results.map((result) => ({
+          ...result,
+          entity: schema.parse(result.entity),
+        }))
+      : results;
+  }
   return Object.freeze({
     getEntity,
     listEntities,
+    search,
     countEntities: (request) => entityReads.countEntities(request),
     createEntity: (request) => entityWrites.createEntity(request),
     updateEntity: (request) => entityWrites.updateEntity(request),
     upsertEntity: (request) => entityWrites.upsertEntity(request),
+    deleteEntity: (request) => entityWrites.deleteEntity(request),
   } satisfies ServiceClassEntityService);
 }

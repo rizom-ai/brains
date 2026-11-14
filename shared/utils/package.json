@@ -68,7 +68,10 @@
     "./confirmation-response": "./src/confirmation-response.ts",
     "./expect-defined": "./src/expect-defined.ts",
     "./is-record": "./src/is-record.ts",
-    "./yield-to-event-loop": "./src/yield-to-event-loop.ts"
+    "./yield-to-event-loop": "./src/yield-to-event-loop.ts",
+    "./seeded-random": "./src/seeded-random.ts",
+    "./data-url": "./src/data-url.ts",
+    "./language-entry": "./src/language-entry.ts"
   },
   "private": true,
   "scripts": {

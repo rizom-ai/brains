@@ -28,6 +28,7 @@ import type {
   StructuredChatCard,
   ToolResultData,
 } from "./agent-types";
+import { escapeRegExp } from "@brains/utils/string-utils";
 
 const toolCallArgsSchema = z.record(z.string(), z.unknown());
 const sdkToolErrorSchema = z.object({
@@ -317,9 +318,7 @@ function linksTo(answer: string, url: string | undefined): boolean {
   if (url === undefined) return false;
   const { pathname } = new URL(url);
   if (pathname.length < 2) return false;
-  const path = pathname
-    .replace(/\/+$/, "")
-    .replace(/[.*+?^${}()|[\]\\]/g, (char) => `\\${char}`);
+  const path = escapeRegExp(pathname.replace(/\/+$/, ""));
   return new RegExp(`${path}(?![\\w-])`).test(answer);
 }
 

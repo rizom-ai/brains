@@ -27,6 +27,7 @@ import type {
   DataSourceListOptions,
   EntityCreateRoute,
   EntityCreateUploadReader,
+  EncodedEntityMarkdown,
   EntityGenerationAI,
   EntityGenerationDeclaration,
   EntityGenerationLink,
@@ -1139,6 +1140,20 @@ export function writesInDocumentOrder<TDefinition extends AnyEntityDefinition>(
   return Object.freeze({ ...definition, [documentOrderKey]: true });
 }
 
+/** A stored document as a codec is handed it: its body and its header. */
+export interface StoredDocument {
+  readonly content: string;
+  readonly frontmatter: Readonly<Record<string, unknown>>;
+}
+
+/**
+ * A stored document with its body read from the line under its header, as a
+ * class adapter that wrote a blank line between the two read it.
+ */
+export function bodyUnderHeader(document: StoredDocument): StoredDocument {
+  return { ...document, content: document.content.replace(/^\n+/u, "") };
+}
+
 /**
  * The codec of a first-party declared type whose read is its stored
  * document and whose metadata is derived from part of its header, as an
@@ -1158,6 +1173,11 @@ export function writesInDocumentOrder<TDefinition extends AnyEntityDefinition>(
  * document read it; a header that does not parse still reads, with empty
  * metadata, so an editor can show it for repair (the grouping definitions
  * document). Writes are the same either way.
+ *
+ * `prepare` reads the stored document before it is decoded, for a type
+ * whose class read it differently (a body written from the line under its
+ * header, a retired section dropped). `encode` replaces the write, for a
+ * type whose class wrote more than the header fields metadata names.
  */
 export function storedDocumentCodec<
   THeader extends z.ZodObject,
@@ -1168,13 +1188,15 @@ export function storedDocumentCodec<
     header: z.output<THeader>,
   ) => z.input<TMetadataSchema>;
   readonly readAsWritten?: boolean | undefined;
+  readonly prepare?: ((document: StoredDocument) => StoredDocument) | undefined;
+  readonly encode?: EntityMarkdownCodec<TMetadataSchema>["encode"] | undefined;
 }): EntityMarkdownCodec<TMetadataSchema> {
   const headerKeys = new Set(Object.keys(options.header.shape));
   const codec: EntityMarkdownCodec<TMetadataSchema> = {
-    decode: ({
-      content,
-      frontmatter,
-    }): { content: string; metadata: z.input<TMetadataSchema> } => {
+    decode: (
+      document,
+    ): { content: string; metadata: z.input<TMetadataSchema> } => {
+      const { content, frontmatter } = options.prepare?.(document) ?? document;
       const { visibility: _visibility, ...stored } = frontmatter;
       const parsed = options.header.parse(stored);
       return {
@@ -1185,12 +1207,14 @@ export function storedDocumentCodec<
     },
     // The header fields metadata names; the rest of the header is kept
     // from the document written.
-    encode: ({ content, metadata }) => ({
-      content: content.trim(),
-      frontmatter: Object.fromEntries(
-        Object.entries(metadata).filter(([key]) => headerKeys.has(key)),
-      ),
-    }),
+    encode:
+      options.encode ??
+      (({ content, metadata }): EncodedEntityMarkdown => ({
+        content: content.trim(),
+        frontmatter: Object.fromEntries(
+          Object.entries(metadata).filter(([key]) => headerKeys.has(key)),
+        ),
+      })),
   };
   if (options.readAsWritten === true) readAsWrittenCodecs.add(codec);
   return codec;

@@ -11,6 +11,7 @@ import {
   findEmbeddingProfile,
   selectImageProvider,
   type ModelProblem,
+  type ModelSelection,
 } from "@brains/ai-service";
 
 interface PreflightResult {
@@ -21,12 +22,7 @@ interface PreflightResult {
 const MIN_BUN_VERSION = "1.3.3";
 
 /** The models brain.yaml names; the definition's chat model when it names none. */
-export interface ConfiguredModels {
-  model?: string | undefined;
-  embeddingModel?: string | undefined;
-  answerModel?: string | undefined;
-  visionModel?: string | undefined;
-  imageModel?: string | undefined;
+export interface ConfiguredModels extends ModelSelection {
   /** False when brain.yaml turns semantic indexing off. */
   embeddingEnabled?: boolean | undefined;
   /** The model runtime serving `local:` models. */

@@ -1,7 +1,11 @@
 import { describe, expect, it } from "bun:test";
 import { inboundEmailContract } from "@brains/contracts";
 import type { Plugin, PluginCapabilities } from "@brains/plugins";
-import { createMockShell, type MockShell } from "@brains/plugins/test";
+import {
+  createMockShell,
+  type MockShell,
+  registerAll,
+} from "@brains/plugins/test";
 import { createEmailWorkflowsPlugins } from "./email-workflows-plugins";
 
 interface Installed {
@@ -15,15 +19,7 @@ async function installed(
 ): Promise<Installed> {
   const shell = createMockShell();
   const plugins = createEmailWorkflowsPlugins();
-  const capabilities: PluginCapabilities[] = [];
-  for (const plugin of plugins) {
-    capabilities.push(
-      await plugin.register(
-        shell,
-        options.executionOnly ? { executionOnly: true } : undefined,
-      ),
-    );
-  }
+  const capabilities = await registerAll(shell, plugins, options);
   return { shell, plugins, capabilities };
 }
 

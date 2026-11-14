@@ -16,6 +16,7 @@ import type {
 } from "./agent-types";
 import type { ConversationUploadRef } from "./conversation-messages";
 import { getErrorMessage } from "@brains/utils/error";
+import { isPdfAttachment } from "./attachment-kind";
 
 const asyncGeneratingToolResultSchema = z
   .object({
@@ -62,10 +63,6 @@ export function buildAttachmentOnlyResponse(
 
 function isImageAttachment(attachment: ChatAttachment): boolean {
   return attachment.mediaType.startsWith("image/");
-}
-
-function isPdfAttachment(attachment: ChatAttachment): boolean {
-  return attachment.mediaType === "application/pdf";
 }
 
 function isTextAttachment(attachment: ChatAttachment): boolean {

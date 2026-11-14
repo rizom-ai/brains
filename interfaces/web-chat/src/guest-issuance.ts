@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { z } from "@brains/utils/zod";
 import type {
   ClassRuntimeState,
@@ -9,6 +9,7 @@ import {
   guestIssuanceLimitsSchema,
   type GuestIssuanceLimits,
 } from "./guest-policy";
+import { sha256Hex } from "@brains/utils/hash";
 
 type Strict<S extends z.ZodRawShape> = z.ZodObject<S, z.core.$strict>;
 const integer = z.number().int().nonnegative();
@@ -300,8 +301,6 @@ export class GuestIssuance {
     return now;
   }
   private fingerprint(limits: GuestIssuanceLimits): string {
-    return createHash("sha256")
-      .update(JSON.stringify(guestIssuanceLimitsSchema.parse(limits)))
-      .digest("hex");
+    return sha256Hex(JSON.stringify(guestIssuanceLimitsSchema.parse(limits)));
   }
 }

@@ -1,4 +1,5 @@
-import { createHash, randomBytes } from "node:crypto";
+import { sha256Base64Url } from "./hash";
+import { randomBytes } from "node:crypto";
 
 export interface SingleUseStoreOptions {
   /** How long an issued token stays valid. */
@@ -22,7 +23,7 @@ interface Pending<T> {
 }
 
 function keyOf(token: string): string {
-  return createHash("sha256").update(token).digest("base64url");
+  return sha256Base64Url(token);
 }
 
 /**

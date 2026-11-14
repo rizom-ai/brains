@@ -23,11 +23,6 @@ export type {
   NearestEntityQuery,
 } from "./entity/nearest-entity";
 export {
-  reconcileEntities,
-  type ReconcileEntitiesOptions,
-  type ReconcileEntitiesResult,
-} from "./entity/entity-reconciler";
-export {
   ProjectionJsonObjectSchema,
   ProjectionJsonValueSchema,
   ProjectionWriteIntentSchema,
@@ -71,19 +66,18 @@ export {
 } from "./entity/display-title";
 export {
   createPendingEntity,
-  failPendingEntity,
-  saveProcessedEntity,
   type CreatePendingEntityRequest,
   type CreatePendingEntityResult,
-  type FailPendingEntityRequest,
-  type FailPendingEntityResult,
   type PendingEntityMetadata,
   type PendingEntityService,
   type PendingIngestionStatus,
-  type SaveProcessedEntityRequest,
-  type SaveProcessedEntityResult,
 } from "./entity/pending-ingestion";
 export { entityViewFields, type EntityViewFields } from "./entity/entity-view";
+export {
+  slugStatingFrontmatter,
+  slugStatingMetadata,
+  type SlugStating,
+} from "./entity/slug-stating";
 export { createUploadSaveHandler } from "./entity/upload-save";
 export {
   isTextUploadMediaType,
@@ -960,6 +954,7 @@ export {
   checkEntityText,
   continueWithEntityText,
   entityTextError,
+  entityTextRefusal,
   readEntityText,
   statedDateSchema,
   type EntityText,
@@ -986,6 +981,8 @@ export {
   withUrlRoute,
   writesInDocumentOrder,
   storedDocumentCodec,
+  bodyUnderHeader,
+  type StoredDocument,
   withFrontmatterSchema,
   type EntityAnswerContext,
   type EntityAnswerDeclaration,
@@ -1122,7 +1119,6 @@ export type {
 } from "./types/web-routes";
 export {
   jsonResponse,
-  jsonError,
   SitePageResponse,
   SITE_SLOT_ATTRIBUTE,
   findRouteByRole,
@@ -1164,10 +1160,7 @@ export {
   type StudioOverviewContributionUnregistration,
   type IDashboardNamespace,
 } from "./base/dashboard-namespace";
-export {
-  createBuiltInStudioWorkspaceRegistration,
-  registerBuiltInStudioWorkspace,
-} from "./operator/studio-workspace-runtime";
+export { createBuiltInStudioWorkspaceRegistration } from "./operator/studio-workspace-runtime";
 export { registerBuiltInDashboardWidget } from "./operator/dashboard-widget-runtime";
 export {
   safeParseRuntimeStudioOperatorView,
@@ -1323,4 +1316,5 @@ export { renderedLinkFields, viewLinkFields } from "@brains/templates";
 export {
   ConfirmationArgsStore,
   ToolVisibilitySchema,
+  type ToolExecuteRequest,
 } from "@brains/mcp-service";

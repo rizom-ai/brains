@@ -861,22 +861,6 @@ export function createBuiltInStudioWorkspaceRegistration<
   return registration;
 }
 
-/** Bind and register a first-party workspace only when the Studio host exists. */
-export async function registerBuiltInStudioWorkspace<
-  TDefinition extends AnyStudioWorkspaceDefinition,
->(
-  input: BuiltInStudioWorkspaceInput<TDefinition>,
-): Promise<
-  Awaited<ReturnType<BasePluginContext["studio"]["registerWorkspace"]>> | false
-> {
-  if (input.context.executionOnly || !input.context.studio.isAvailable()) {
-    return false;
-  }
-  return input.context.studio.registerWorkspace(
-    createBuiltInStudioWorkspaceRegistration(input),
-  );
-}
-
 /**
  * The Studio a first-party package composes workspaces for, as its class
  * registered them: a declared workspace built under the plugin's id as a

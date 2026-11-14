@@ -12,7 +12,11 @@ import {
   type Plugin,
   type PluginCapabilities,
 } from "@brains/plugins";
-import { createMockShell, type MockShell } from "@brains/plugins/test";
+import {
+  createMockShell,
+  type MockShell,
+  registerAll,
+} from "@brains/plugins/test";
 import { createConversationMemoryPlugins } from "./conversation-memory-plugins";
 
 interface Installed {
@@ -42,15 +46,7 @@ async function installed(
       },
     );
   const plugins = createConversationMemoryPlugins();
-  const capabilities: PluginCapabilities[] = [];
-  for (const plugin of plugins) {
-    capabilities.push(
-      await plugin.register(
-        shell,
-        options.executionOnly ? { executionOnly: true } : undefined,
-      ),
-    );
-  }
+  const capabilities = await registerAll(shell, plugins, options);
   await shell.getMessageBus().send({
     type: SYSTEM_CHANNELS.pluginsRegistered,
     payload: {},

@@ -1,5 +1,10 @@
-import { z } from "@brains/utils/zod";
 import { definedFields } from "@brains/utils/strip-undefined";
+import {
+  asRecord,
+  readNumber,
+  readString,
+  readValue,
+} from "@brains/utils/record-fields";
 
 export interface ArtifactDisplay {
   jobId?: string;
@@ -23,21 +28,21 @@ export interface ArtifactCardState {
 }
 
 export function formatArtifactDisplay(data: unknown): ArtifactDisplay | null {
-  const attachment = parseRecord(getRecordValue(data, "attachment"));
+  const attachment = asRecord(readValue(data, "attachment"));
   if (!attachment) return null;
 
-  const jobId = getStringValue(data, "jobId");
-  const description = getStringValue(data, "description");
-  const mediaType = getStringValue(attachment, "mediaType");
-  const filename = getStringValue(attachment, "filename");
-  const sizeLabel = formatByteSize(getNumberValue(attachment, "sizeBytes"));
-  const url = getStringValue(attachment, "url");
-  const downloadUrl = getStringValue(attachment, "downloadUrl");
-  const previewUrl = getStringValue(attachment, "previewUrl");
+  const jobId = readString(data, "jobId");
+  const description = readString(data, "description");
+  const mediaType = readString(attachment, "mediaType");
+  const filename = readString(attachment, "filename");
+  const sizeLabel = formatByteSize(readNumber(attachment, "sizeBytes"));
+  const url = readString(attachment, "url");
+  const downloadUrl = readString(attachment, "downloadUrl");
+  const previewUrl = readString(attachment, "previewUrl");
 
   return {
     ...definedFields({ jobId }),
-    title: getStringValue(data, "title") ?? "Generated artifact",
+    title: readString(data, "title") ?? "Generated artifact",
     ...definedFields({
       description,
       mediaType,
@@ -106,25 +111,4 @@ export function getArtifactCardState(
     label: artifactStatusLabel(jobStatus),
     isPending: jobStatus === "pending" || jobStatus === "processing",
   };
-}
-
-const recordSchema = z.record(z.string(), z.unknown());
-
-function parseRecord(data: unknown): Record<string, unknown> | null {
-  const parsed = recordSchema.safeParse(data);
-  return parsed.success ? parsed.data : null;
-}
-
-function getRecordValue(data: unknown, key: string): unknown {
-  return parseRecord(data)?.[key];
-}
-
-function getStringValue(data: unknown, key: string): string | undefined {
-  const value = getRecordValue(data, key);
-  return typeof value === "string" ? value : undefined;
-}
-
-function getNumberValue(data: unknown, key: string): number | undefined {
-  const value = getRecordValue(data, key);
-  return typeof value === "number" ? value : undefined;
 }

@@ -50,7 +50,7 @@ function seedAgentUrls(): Array<{ file: string; url: string }> {
 function createA2APlugin(fetch: FetchLike): Plugin {
   const [plugin] = instantiatePluginPackageDefinition(
     createA2AInterface({ fetch }),
-    { port: 0 },
+    {},
     { name: "@brains/a2a", version: "0.0.0-test" },
     { pluginId: "a2a" },
   );

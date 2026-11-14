@@ -4,17 +4,7 @@ import { createSilentLogger } from "@brains/test-utils";
 import { Effect } from "@brains/utils/effect";
 import { TestClock } from "@brains/utils/effect/test";
 import { FileWatcher, shouldProcessPath } from "../src/lib/file-watcher";
-
-function deferred(): {
-  promise: Promise<void>;
-  resolve(): void;
-} {
-  let settle: (() => void) | undefined;
-  const promise = new Promise<void>((resolve) => {
-    settle = resolve;
-  });
-  return { promise, resolve: (): void => settle?.() };
-}
+import { deferred } from "@brains/utils/deferred";
 
 describe("shouldProcessPath", () => {
   const syncPath = "/data/brain";

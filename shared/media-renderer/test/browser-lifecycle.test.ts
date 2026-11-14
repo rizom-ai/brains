@@ -7,22 +7,7 @@ import type {
   MediaBrowser,
   MediaPage,
 } from "../src/browser-types";
-
-interface Deferred<T> {
-  promise: Promise<T>;
-  resolve(value: T): void;
-}
-
-function deferred<T>(): Deferred<T> {
-  let settle: ((value: T) => void) | undefined;
-  const promise = new Promise<T>((resolve) => {
-    settle = resolve;
-  });
-  return {
-    promise,
-    resolve: (value: T): void => settle?.(value),
-  };
-}
+import { deferred } from "@brains/utils/deferred";
 
 function browserFactory(browser: MediaBrowser): BrowserFactory {
   return {

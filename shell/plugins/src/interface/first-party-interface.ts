@@ -13,6 +13,10 @@ import type { ToolActivityEvent } from "../message-interface/tool-event-handler"
 import type { ToolStatusUpdate } from "../message-interface/tool-status";
 import type { AgentResponse } from "../contracts/agent";
 import type { PluginPackageDefinition } from "../package-definition";
+import {
+  createRebuilderRegistry,
+  type RebuilderRegistry,
+} from "../internal/rebuilder-registry";
 import type { InterfaceConfigSchema } from "./interface-definition-contract";
 import type {
   FirstPartySlot,
@@ -189,26 +193,12 @@ function isFamily<TConfigSchema extends InterfaceConfigSchema>(
 }
 
 /** How each interface package is rebuilt with more first-party declarations. */
-const rebuilders = new WeakMap<
-  PluginPackageDefinition,
-  {
-    readonly declarations: FirstPartyInterfaceDeclarations;
-    rebuild(
-      declarations: FirstPartyInterfaceDeclarations,
-    ): PluginPackageDefinition;
-  }
->();
+const rebuilders: RebuilderRegistry<FirstPartyInterfaceDeclarations> =
+  createRebuilderRegistry("defineInterface");
 
 /** Called by defineInterface: how its result is rebuilt by a wrapper. */
-export function registerInterfaceRebuilder(
-  definition: PluginPackageDefinition,
-  declarations: FirstPartyInterfaceDeclarations,
-  rebuild: (
-    declarations: FirstPartyInterfaceDeclarations,
-  ) => PluginPackageDefinition,
-): void {
-  rebuilders.set(definition, { declarations, rebuild });
-}
+export const registerInterfaceRebuilder: RebuilderRegistry<FirstPartyInterfaceDeclarations>["register"] =
+  rebuilders.register;
 
 function rebuildWith<TConfigSchema extends InterfaceConfigSchema>(
   definition: InterfacePackage<TConfigSchema>,
@@ -217,13 +207,7 @@ function rebuildWith<TConfigSchema extends InterfaceConfigSchema>(
     declarations: FirstPartyInterfaceDeclarations,
   ) => FirstPartyInterfaceDeclarations,
 ): InterfacePackage<TConfigSchema> {
-  const entry = rebuilders.get(definition);
-  if (!entry) {
-    throw new Error(
-      `${wrapper} takes a definition defineInterface returned; "${definition.id}" is not one`,
-    );
-  }
-  const rebuilt = entry.rebuild(add(entry.declarations));
+  const rebuilt = rebuilders.rebuildWith(definition, wrapper, add);
   // The rebuilt definition is the same package: same family, id and config.
   if (!isInterfacePackage(rebuilt, definition.config)) {
     throw new Error(`Interface "${definition.id}" did not rebuild as itself`);

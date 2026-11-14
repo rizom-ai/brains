@@ -10,6 +10,7 @@ import { appConfigSchema } from "../src/types";
 import { Shell } from "@brains/core";
 import { ProcessExited } from "@brains/test-utils";
 import { createMockShell } from "./helpers/mock-shell";
+import { deferred } from "@brains/utils/deferred";
 
 const originalNodeEnv = process.env["NODE_ENV"];
 
@@ -22,14 +23,6 @@ afterEach(() => {
 });
 
 // Create a mock Shell
-function deferred(): { promise: Promise<void>; resolve: () => void } {
-  let resolve: () => void = () => {};
-  const promise = new Promise<void>((complete) => {
-    resolve = complete;
-  });
-  return { promise, resolve };
-}
-
 describe("App", () => {
   describe("create", () => {
     it("should create an app with default config", () => {
