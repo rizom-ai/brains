@@ -16,7 +16,7 @@ Service plugins provide operational capabilities such as:
 
 ## Required conventions
 
-- Use `ServicePlugin` for plugin implementations here.
+- Packages here are `defineServicePlugin` definitions, imported through `@brains/sdk`.
 - Keep tool definitions explicit and narrow.
 - Use Zod for tool inputs and plugin config.
 - A converted package imports `@brains/sdk` and its `@brains/sdk/internal/*` entries, never `@brains/plugins`; lint refuses it in production code. A package not yet converted imports through `@brains/plugins`. Neither imports shell internals.

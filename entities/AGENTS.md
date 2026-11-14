@@ -18,7 +18,7 @@ Entity packages do not expose CRUD tools.
 
 ## Required conventions
 
-- Use `EntityPlugin` patterns only.
+- Packages here are `defineEntityPackage` definitions, imported through `@brains/sdk`.
 - Store content as markdown, usually with frontmatter.
 - Keep metadata small, stable, and query-friendly.
 - Use Zod for entity, config, and frontmatter validation.
