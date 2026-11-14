@@ -87,14 +87,21 @@ function isVolatileKey(key: string): boolean {
   return VOLATILE_KEYS.has(key) || key.endsWith("AgeMs");
 }
 
-/** JSON with run-specific values replaced by their kind. */
-function normalizeJson(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(normalizeJson);
+/**
+ * JSON with run-specific values replaced by their kind, and the brain's port
+ * in its strings by `<port>`. The port is replaced after parsing: in the raw
+ * text it could fall inside a number (an uptime, a byte count) and leave the
+ * body unparseable.
+ */
+function normalizeJson(value: unknown, port: string): unknown {
+  if (typeof value === "string") return value.replaceAll(port, "<port>");
+  if (Array.isArray(value))
+    return value.map((entry) => normalizeJson(entry, port));
   if (value === null || typeof value !== "object") return value;
   return Object.fromEntries(
     Object.entries(value).map(([key, entry]) => [
       key,
-      isVolatileKey(key) ? `<${typeof entry}>` : normalizeJson(entry),
+      isVolatileKey(key) ? `<${typeof entry}>` : normalizeJson(entry, port),
     ]),
   );
 }
@@ -137,13 +144,11 @@ async function readBody(
   if (mode === "hash") {
     return `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
   }
-  const text = new TextDecoder()
-    .decode(bytes)
-    .replaceAll(String(port), "<port>");
+  const text = new TextDecoder().decode(bytes);
   try {
-    return normalizeJson(JSON.parse(text));
+    return normalizeJson(JSON.parse(text), String(port));
   } catch {
-    return text;
+    return text.replaceAll(String(port), "<port>");
   }
 }
 
