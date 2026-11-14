@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.711
+
+### Patch Changes
+
+- [#953](https://github.com/rizom-ai/brains/pull/953) [`a9da78b`](https://github.com/rizom-ai/brains/commit/a9da78b8d2142e06e8262166e6d0bee2b668d48f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A tool call whose arguments fail validation is read again with each object written as its JSON text decoded, so a local model's stringified nested object, such as system_create's source, no longer fails the call.
+
 ## 0.2.0-alpha.710
 
 ### Patch Changes
