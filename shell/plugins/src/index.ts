@@ -856,6 +856,7 @@ export {
   formatStructuredOutputSummary,
   buildResponsePlan,
   getArtifactCardState,
+  chatAttachmentFromUpload,
   getMessageUploadKind,
   type ResponsePlan,
   type ResponseRenderDirective,

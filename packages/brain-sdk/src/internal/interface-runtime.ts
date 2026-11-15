@@ -92,6 +92,7 @@ export {
   MessageUploadContinuity,
   RuntimeUploadStoreError,
   defaultMessageUploadFilename,
+  chatAttachmentFromUpload,
   getMessageUploadKind,
   isLikelyUtf8Text,
   isMessageUploadDeclaredSizeAllowed,

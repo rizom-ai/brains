@@ -2,6 +2,7 @@ import { chatUploadResponseSchema } from "@brains/contracts/chat";
 import {
   RuntimeUploadStoreError,
   defaultMessageUploadFilename,
+  chatAttachmentFromUpload,
   formatContentDispositionHeader,
   messageUploadMaxBytes,
   sanitizeUploadFilename,
@@ -140,7 +141,7 @@ export function resolveInlineUploadPart(file: {
     return new Response(validated.message, { status: 400 });
   }
 
-  return toChatAttachment(validated, decoded.buffer);
+  return uploadAttachment(validated, decoded.buffer);
 }
 
 export async function resolveReferencedUpload(
@@ -154,7 +155,7 @@ export async function resolveReferencedUpload(
   const validated = validateStoredUpload(record, content);
   if (validated instanceof Response) return validated;
 
-  return toChatAttachment(validated, content, {
+  return uploadAttachment(validated, content, {
     kind: webChatUploadRefKind,
     id: uploadId,
   });
@@ -189,32 +190,6 @@ function validateStoredUpload(
   return validated;
 }
 
-function toChatAttachment(
-  upload: ValidatedMessageUpload,
-  content: Uint8Array,
-  source?: ChatAttachment["source"],
-): ChatAttachment {
-  if (upload.kind === "text") {
-    return {
-      kind: "text",
-      filename: upload.filename,
-      mediaType: upload.mediaType,
-      content: upload.text,
-      sizeBytes: upload.sizeBytes,
-      ...(source !== undefined ? { source } : {}),
-    };
-  }
-
-  return {
-    kind: "file",
-    filename: upload.filename,
-    mediaType: upload.mediaType,
-    data: new Uint8Array(content),
-    sizeBytes: upload.sizeBytes,
-    ...(source !== undefined ? { source } : {}),
-  };
-}
-
 function uploadStoreErrorToResponse(error: RuntimeUploadStoreError): Response {
   switch (error.code) {
     case "invalid_ref":
@@ -244,4 +219,20 @@ function decodeUploadedDataUrl(
   } catch {
     return null;
   }
+}
+
+/** A validated upload as the agent is handed it, its text as validation read it. */
+function uploadAttachment(
+  upload: ValidatedMessageUpload,
+  content: Uint8Array,
+  source?: ChatAttachment["source"],
+): ChatAttachment {
+  return chatAttachmentFromUpload({
+    filename: upload.filename,
+    mediaType: upload.mediaType,
+    content,
+    sizeBytes: upload.sizeBytes,
+    source,
+    ...(upload.kind === "text" && { text: upload.text }),
+  });
 }
