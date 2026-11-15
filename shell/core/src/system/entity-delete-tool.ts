@@ -4,12 +4,12 @@ import {
 } from "@brains/entity-service";
 import type { Tool } from "@brains/mcp-service";
 import { deleteInputSchema } from "./schemas";
-import { assertEntityActionAllowed } from "./entity-action-policy";
+import { entityActionRefusal } from "./entity-action-policy";
 import type { SystemServices } from "./types";
 import {
-  assertEntityTypeRegistered,
   createConfirmationGate,
   createSystemTool,
+  entityTypeRefusal,
   getEntityDisplayLabel,
 } from "./tool-helpers";
 import { getErrorMessage } from "@brains/utils/error";
@@ -34,7 +34,7 @@ export function createEntityDeleteTool(services: SystemServices): Tool {
         };
       }
 
-      const policyError = assertEntityActionAllowed(
+      const policyError = entityActionRefusal(
         services,
         input.entityType,
         "delete",
@@ -44,10 +44,7 @@ export function createEntityDeleteTool(services: SystemServices): Tool {
 
       // Guard before getAdapter below, which would otherwise throw the raw
       // "No adapter registered" registry string for an unregistered type.
-      const unregisteredError = assertEntityTypeRegistered(
-        services,
-        input.entityType,
-      );
+      const unregisteredError = entityTypeRefusal(services, input.entityType);
       if (unregisteredError) return unregisteredError;
 
       if (entityRegistry.getAdapter(input.entityType).isSingleton === true) {

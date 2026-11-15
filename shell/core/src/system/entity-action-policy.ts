@@ -1,11 +1,12 @@
-import {
-  EntityActionPermissionError,
-  type EntityAction,
-} from "@brains/templates";
+import type { EntityAction } from "@brains/templates";
 import type { Tool } from "@brains/mcp-service";
 import type { SystemServices } from "./types";
 
-export function assertEntityActionAllowed(
+/**
+ * The refusal of an entity action the caller's permission does not allow,
+ * or undefined when it is allowed.
+ */
+export function entityActionRefusal(
   services: SystemServices,
   entityType: string,
   action: EntityAction,
@@ -19,10 +20,7 @@ export function assertEntityActionAllowed(
     );
     return undefined;
   } catch (error) {
-    if (
-      error instanceof EntityActionPermissionError ||
-      error instanceof Error
-    ) {
+    if (error instanceof Error) {
       return { success: false, error: error.message };
     }
     throw error;
