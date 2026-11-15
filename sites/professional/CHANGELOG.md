@@ -1,5 +1,24 @@
 # @brains/site-professional
 
+## 0.2.0-alpha.713
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.713
+  - @brains/decks@0.2.0-alpha.713
+  - @brains/faq@0.2.0-alpha.713
+  - @brains/sdk@0.2.0-alpha.713
+  - @rizom/brain-ui@0.2.0-alpha.713
+  - @brains/knowledge-map@0.2.0-alpha.713
+  - @brains/profile@0.2.0-alpha.713
+  - @brains/site-info@0.2.0-alpha.713
+  - @brains/content-formatters@0.2.0-alpha.713
+  - @brains/contracts@0.2.0-alpha.713
+  - @brains/site-atlas@0.2.0-alpha.713
+  - @brains/site-composition@0.2.0-alpha.713
+  - @brains/utils@0.2.0-alpha.713
+
 ## 0.2.0-alpha.712
 
 ### Patch Changes

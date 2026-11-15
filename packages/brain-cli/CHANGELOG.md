@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.713
+
+### Patch Changes
+
+- [#957](https://github.com/rizom-ai/brains/pull/957) [`061a413`](https://github.com/rizom-ai/brains/commit/061a413f983b1bab773114a463279a204acc19d8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - After the brain asks what to do with an upload, a reply of just a word or a name makes it ask what the user wants done, instead of proposing to save a note with that title.
+
+- [#958](https://github.com/rizom-ai/brains/pull/958) [`4426752`](https://github.com/rizom-ai/brains/commit/44267527f877fb811f7d9ada9577457977ab377a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A local model asked to read an updated note reads it from storage instead of answering from the partial quote of what the update stored; the user still sees the quote.
+
 ## 0.2.0-alpha.712
 
 ### Patch Changes
