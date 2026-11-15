@@ -247,3 +247,143 @@ describe("system_generate for a type that uses up its sources", () => {
     });
   });
 });
+
+describe("system_generate from several sources", () => {
+  const several = (
+    entityType: string,
+    source: { entityType: string; entityId: string },
+    additionalSourceIds: string[],
+  ): Record<string, unknown> => ({
+    operation: {
+      kind: "prompt-from-source",
+      entityType,
+      source,
+      additionalSourceIds,
+    },
+  });
+
+  it("names every source in one confirmation and says they will be removed", async () => {
+    const { services, generate } = setup();
+    services.addEntities([seeded("third-thought", "note", "Third thought")]);
+
+    const confirmation = await generate(
+      several(
+        "refined-note",
+        { entityType: "note", entityId: "Loose thought" },
+        ["Second thought", "third-thought"],
+      ),
+    );
+
+    expect(confirmation).toMatchObject({
+      needsConfirmation: true,
+      summary:
+        'Generate refined-note from "Loose thought", "Second thought" and "Third thought"? They will be removed.',
+    });
+    expect(confirmation).toMatchObject({
+      preview: [
+        "Entity type: refined-note",
+        "Removes: note/loose-thought",
+        "Removes: note/second-thought",
+        "Removes: note/third-thought",
+      ].join("\n"),
+    });
+    // The confirmed call names the sources as they were resolved.
+    expect(expectConfirmationArgs(confirmation)).toMatchObject({
+      operation: {
+        source: { entityType: "note", entityId: "loose-thought" },
+        additionalSourceIds: ["second-thought", "third-thought"],
+      },
+    });
+    expect(services.getLastEnqueuedJob()).toBeUndefined();
+  });
+
+  it("queues one generation written from all of them", async () => {
+    const { services, generate } = setup();
+
+    const confirmation = await generate(
+      several(
+        "refined-note",
+        { entityType: "note", entityId: "loose-thought" },
+        ["second-thought"],
+      ),
+    );
+    const result = await generate(expectConfirmationArgs(confirmation));
+
+    expect(result).toMatchObject({
+      success: true,
+      data: { entityId: "loose-thought" },
+    });
+    expect(jobData(services)).toMatchObject({
+      prompt: 'Write a refined-note from "Loose thought" and "Second thought".',
+      sourceEntityType: "note",
+      sourceEntityIds: ["loose-thought", "second-thought"],
+    });
+  });
+
+  it("counts a source named twice once", async () => {
+    const { services, generate } = setup();
+
+    const confirmation = await generate(
+      several(
+        "refined-note",
+        { entityType: "note", entityId: "loose-thought" },
+        ["Loose thought", "second-thought", "second-thought"],
+      ),
+    );
+    await generate(expectConfirmationArgs(confirmation));
+
+    expect(jobData(services)).toMatchObject({
+      sourceEntityIds: ["loose-thought", "second-thought"],
+    });
+  });
+
+  it("answers not found when one of them is not there, and queues nothing", async () => {
+    const { services, generate } = setup();
+
+    const result = await generate(
+      several(
+        "refined-note",
+        { entityType: "note", entityId: "loose-thought" },
+        ["no-such-thought"],
+      ),
+    );
+
+    expect(result).toMatchObject({ success: false, code: "source-not-found" });
+    expect(services.getLastEnqueuedJob()).toBeUndefined();
+  });
+
+  it("writes a type that keeps its sources from several of them too", async () => {
+    const { services, generate } = setup();
+    services.addEntities([seeded("another-essay", "post", "Another essay")]);
+
+    const confirmation = await generate(
+      several("newsletter", { entityType: "post", entityId: "an-essay" }, [
+        "another-essay",
+      ]),
+    );
+
+    expect(confirmation).toMatchObject({
+      needsConfirmation: true,
+      summary: "Generate newsletter?",
+    });
+    await generate(expectConfirmationArgs(confirmation));
+    expect(jobData(services)).toMatchObject({
+      sourceEntityType: "post",
+      sourceEntityIds: ["an-essay", "another-essay"],
+    });
+    expect(services.getEntities().has("another-essay")).toBe(true);
+  });
+
+  it("takes several sources only on a generation written from a source", () => {
+    expect(
+      generateInputSchema.safeParse({
+        operation: {
+          kind: "prompt",
+          entityType: "newsletter",
+          prompt: "Write about tides",
+          additionalSourceIds: ["an-essay"],
+        },
+      }).success,
+    ).toBe(false);
+  });
+});

@@ -346,6 +346,7 @@ type GenerateOperationInputSchema = z.ZodDiscriminatedUnion<
       entityType: z.ZodString;
       title: z.ZodOptional<z.ZodString>;
       source: EntityRefInputSchema;
+      additionalSourceIds: z.ZodOptional<z.ZodArray<z.ZodString>>;
       prompt: z.ZodOptional<z.ZodString>;
     }>,
     StrictObjectSchema<{
@@ -427,12 +428,16 @@ export const generateOperationInputSchema: GenerateOperationInputSchema =
           .describe(
             "The resolved existing entity that grounds this generation.",
           ),
+        additionalSourceIds: z
+          .array(z.string().min(1))
+          .optional()
+          .describe("More source IDs of the same type."),
         prompt: z
           .string()
           .min(1)
           .optional()
           .describe(
-            "Direction for writing from the resolved source, taken from the user's request without added voice, tone or engagement directions; the style guide supplies the voice. Omit it when the user gives no direction: the content is then written from the source alone.",
+            "Direction from the user's request, without added voice, tone or engagement directions; the style guide supplies the voice. Omit if none is given.",
           ),
       })
       .strict(),

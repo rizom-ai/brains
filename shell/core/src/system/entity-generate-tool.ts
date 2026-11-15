@@ -26,14 +26,27 @@ import {
 import { getErrorMessage } from "@brains/utils/error";
 
 /**
- * The entity a generation is written from, as its confirmation names it.
- * `usedUp` when the generated type's generation removes it once saved.
+ * The entities a generation is written from, one type and one or more
+ * entries, as its confirmation names them. `usedUp` when the generated
+ * type's generation removes them once saved.
  */
 interface WrittenFrom {
   entityType: string;
-  entityId: string;
-  label: string;
+  entries: readonly { entityId: string; label: string }[];
   usedUp: boolean;
+}
+
+/** Quoted names as a sentence lists them: "A", "B" and "C". */
+function quotedList(names: readonly string[]): string {
+  const quoted = names.map((name) => `"${name}"`);
+  return quoted.length <= 1
+    ? quoted.join("")
+    : `${quoted.slice(0, -1).join(", ")} and ${quoted.at(-1) ?? ""}`;
+}
+
+/** The names of the entries a generation is written from, as a sentence lists them. */
+function namesOf(writtenFrom: WrittenFrom): string {
+  return quotedList(writtenFrom.entries.map(({ label }) => label));
 }
 
 function buildGenerateConfirmation(
@@ -54,7 +67,9 @@ function buildGenerateConfirmation(
     ...(input.title ? [`Title: ${input.title}`] : []),
     // A prompt the tool wrote for a caller who gave none is not theirs.
     ...(statedPrompt ? [`Prompt: ${statedPrompt}`] : []),
-    ...(removed ? [`Removes: ${removed.entityType}/${removed.entityId}`] : []),
+    ...(removed?.entries.map(
+      ({ entityId }) => `Removes: ${removed.entityType}/${entityId}`,
+    ) ?? []),
     ...(sourceAttachment
       ? [
           `Source attachment: ${sourceAttachment.sourceEntityType}/${sourceAttachment.sourceEntityId} (${sourceAttachment.attachmentType})`,
@@ -67,7 +82,9 @@ function buildGenerateConfirmation(
 
   return {
     summary: removed
-      ? `Generate${label} from "${removed.label}"? It will be removed.`
+      ? `Generate${label} from ${namesOf(removed)}? ${
+          removed.entries.length === 1 ? "It" : "They"
+        } will be removed.`
       : `Generate${label}?`,
     preview: previewParts.join("\n"),
   };
@@ -144,44 +161,59 @@ async function resolveSourceAttachment(
   return { kind: "ok", sourceAttachment, metadata };
 }
 
-interface GenerateSourceEntity {
-  entityType: string;
-  entityId: string;
-}
-
-async function resolveGenerateSource(
+/**
+ * The entries a generation is written from, each resolved as its caller may
+ * see it and named once, in the order given. One that is not there, or not
+ * visible, answers not found for the whole request.
+ */
+async function resolveGenerateSources(
   services: SystemServices,
-  input: GenerateSourceEntity | undefined,
+  entityType: string,
+  ids: readonly string[],
   visibilityScope: ReturnType<typeof permissionToVisibilityScope>,
 ): Promise<
-  | {
-      kind: "ok";
-      source: (GenerateSourceEntity & { label: string }) | undefined;
-    }
+  | { kind: "ok"; entries: WrittenFrom["entries"] }
   | { kind: "error"; result: ToolResponse }
 > {
-  if (!input) return { kind: "ok", source: undefined };
-  const result = await resolveEntityOrError(
-    services.entityService,
-    input.entityType,
-    input.entityId,
-    services.logger,
-    undefined,
-    visibilityScope,
+  const resolved = await Promise.all(
+    ids.map((id) =>
+      resolveEntityOrError(
+        services.entityService,
+        entityType,
+        id,
+        services.logger,
+        undefined,
+        visibilityScope,
+      ),
+    ),
   );
-  if (!result.ok) {
+  const missing = resolved.find((result) => !result.ok);
+  if (missing) {
     return {
       kind: "error",
-      result: { success: false, error: result.error, code: "source-not-found" },
+      result: {
+        success: false,
+        error: missing.error,
+        code: "source-not-found",
+      },
     };
   }
+  const entries = resolved.flatMap((result) =>
+    result.ok
+      ? [
+          {
+            entityId: result.entity.id,
+            label: getEntityDisplayLabel(result.entity),
+          },
+        ]
+      : [],
+  );
   return {
     kind: "ok",
-    source: {
-      ...input,
-      entityId: result.entity.id,
-      label: getEntityDisplayLabel(result.entity),
-    },
+    entries: entries.filter(
+      ({ entityId }, index) =>
+        entries.findIndex((entry) => entry.entityId === entityId) === index,
+    ),
   };
 }
 
@@ -442,39 +474,38 @@ async function resolveGenerateOperation(
         },
       };
     }
-    const source =
-      operation.kind === "prompt-from-source"
-        ? await resolveGenerateSource(
-            services,
-            operation.source,
-            visibilityScope,
-          )
-        : { kind: "ok" as const, source: undefined };
-    if (source.kind === "error") return source;
+    if (operation.kind === "prompt-from-source") {
+      const sources = await resolveGenerateSources(
+        services,
+        operation.source.entityType,
+        [operation.source.entityId, ...(operation.additionalSourceIds ?? [])],
+        visibilityScope,
+      );
+      if (sources.kind === "error") return sources;
+      writtenFrom = {
+        entityType: operation.source.entityType,
+        entries: sources.entries,
+        usedUp: (
+          services.entityRegistry.getEntityTypeConfig(operation.entityType)
+            .consumesSources ?? []
+        ).includes(operation.source.entityType),
+      };
+    }
     const title = normalizeOptionalString(operation.title);
-    writtenFrom = source.source && {
-      entityType: source.source.entityType,
-      entityId: source.source.entityId,
-      label: source.source.label,
-      usedUp: (
-        services.entityRegistry.getEntityTypeConfig(operation.entityType)
-          .consumesSources ?? []
-      ).includes(source.source.entityType),
-    };
+    const [first] = writtenFrom?.entries ?? [];
     createInput = {
       entityType: operation.entityType,
       ...(title ? { title } : {}),
       // A caller who gives no direction asks for the source to be written up.
       prompt:
         operation.prompt ??
-        `Write a ${operation.entityType} from "${writtenFrom?.label ?? ""}".`,
-      ...(source.source?.entityType && {
-        sourceEntityType: source.source.entityType,
-      }),
-      ...(source.source?.entityId && {
-        sourceEntityId: source.source.entityId,
-        sourceEntityIds: [source.source.entityId],
-      }),
+        `Write a ${operation.entityType} from ${writtenFrom ? namesOf(writtenFrom) : ""}.`,
+      ...(writtenFrom &&
+        first && {
+          sourceEntityType: writtenFrom.entityType,
+          sourceEntityId: first.entityId,
+          sourceEntityIds: writtenFrom.entries.map(({ entityId }) => entityId),
+        }),
     };
   } else if (operation.kind === "standalone-image") {
     const title = normalizeOptionalString(operation.title);
@@ -576,11 +607,11 @@ async function prepareGenerate(
   );
   if (resolved.kind === "error") return resolved;
   const { createInput, sourceAttachment, writtenFrom } = resolved;
-  // Named after its source only when its caller stated no prompt.
+  // Named after its first source only when its caller stated no prompt.
   const unpromptedName =
     "prompt" in operation && operation.prompt !== undefined
       ? undefined
-      : writtenFrom?.label;
+      : writtenFrom?.entries[0]?.label;
   const replace = operation.kind === "attachment" && operation.replace === true;
 
   const unregisteredError = assertEntityTypeRegistered(
@@ -722,6 +753,11 @@ function freezeGenerationOperation(
         entityType: createInput.sourceEntityType ?? operation.source.entityType,
         entityId: createInput.sourceEntityId ?? operation.source.entityId,
       },
+      // The further sources as they were resolved, so the confirmed call
+      // names what the confirmation named.
+      ...((createInput.sourceEntityIds?.length ?? 0) > 1 && {
+        additionalSourceIds: createInput.sourceEntityIds?.slice(1),
+      }),
       // Only a prompt the caller stated: the tool writes one for the rest.
       ...(operation.prompt !== undefined && { prompt: operation.prompt }),
     };

@@ -11,7 +11,7 @@ import {
 } from "./templates/refinement-template";
 
 const REFINED_NOTE_INSTRUCTIONS =
-  'A refined note is a worked-out note written from one or more plain notes, which it replaces: once it is saved, those notes are removed. To refine, escalate, work out or consolidate notes, call system_generate with operation.kind prompt-from-source, entityType "refined-note" and the note as source; pass the user\'s direction as prompt only when they give one. The confirmation says which notes will be removed. Never refine notes the user did not name, and never generate a refined note from a prompt alone. A refined note cannot be refined again.';
+  'A refined note is a worked-out note written from one or more plain notes, which it replaces: once it is saved, those notes are removed. To refine, escalate, work out or consolidate notes, call system_generate with operation.kind prompt-from-source, entityType "refined-note" and the note as source; to refine several notes into one, name the first as source and the others in additionalSourceIds, in one call. Pass the user\'s direction as prompt only when they give one. The confirmation says which notes will be removed. Never refine notes the user did not name, and never generate a refined note from a prompt alone. A refined note cannot be refined again.';
 
 /** What the refinement eval is given: the loose notes' text, and a direction. */
 const refineNotesEvalInput = z.object({
