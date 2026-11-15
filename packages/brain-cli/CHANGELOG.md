@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.721
+
+### Patch Changes
+
+- [#971](https://github.com/rizom-ai/brains/pull/971) [`8f24293`](https://github.com/rizom-ai/brains/commit/8f2429398e2bf1f603eb05727a3460524ee15b3c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A recurring check alert marked secret is now delivered as a secret notification. Before, its sensitivity was dropped on the way to notifications, so the email transport treated it as normal and logged its recipient and subject when a delivery failed.
+
 ## 0.2.0-alpha.720
 
 ### Patch Changes
