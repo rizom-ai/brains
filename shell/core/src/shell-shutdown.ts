@@ -15,6 +15,19 @@ export function registerShellRuntimeFinalizers(
   // after their dependencies so shutdown runs recurring checks, agent turns,
   // job runtime, the HTTP host, then plugins before package/database scopes
   // close.
+  // Registered first, so it runs last: once nothing writes any more, the
+  // entity database lease is deleted, which tells offline maintenance the
+  // brain stopped cleanly.
+  // Uses collected since the last flush reach runtime state before it closes.
+  lifecycle.addFinalizer(() => services.legacyBinaryLedger.flush());
+
+  lifecycle.addFinalizer(async () => {
+    const { entityService } = services;
+    if (hasDatabaseLease(entityService)) {
+      await entityService.releaseDatabaseLease();
+    }
+  });
+
   lifecycle.addFinalizer(() => services.pluginManager.shutdownPlugins());
 
   // The host stops admitting requests before the plugins whose routes it
@@ -37,5 +50,16 @@ export function registerShellRuntimeFinalizers(
   // Their durable jobs remain retryable instead of holding remote I/O open.
   lifecycle.addFinalizer(() =>
     services.daemonRegistry.unregister("shell:recurring-checks"),
+  );
+}
+
+function hasDatabaseLease(
+  service: ShellServices["entityService"],
+): service is ShellServices["entityService"] & {
+  releaseDatabaseLease(): Promise<void>;
+} {
+  return (
+    "releaseDatabaseLease" in service &&
+    typeof service.releaseDatabaseLease === "function"
   );
 }

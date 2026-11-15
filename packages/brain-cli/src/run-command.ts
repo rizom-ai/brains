@@ -340,11 +340,20 @@ const configMigrate: BrainCommand = defineCommand({
   },
 });
 
+/** Shared by the offline asset commands, which all check database leases. */
+const STALE_HEARTBEAT_FLAG = {
+  type: "boolean",
+  description:
+    "Continue past leases a crash left (a fresh lease still refuses)",
+} as const;
+
 const assetsMigrate: BrainCommand = defineCommand({
   name: "assets:migrate",
-  usage: "[--dry-run] [--database <path>] [--manifest <path>]",
+  usage:
+    "[--dry-run] [--database <path>] [--manifest <path>] [--ignore-stale-heartbeat]",
   description: "Move inline images into durable assets (offline, app stopped)",
   flags: {
+    "ignore-stale-heartbeat": STALE_HEARTBEAT_FLAG,
     database: {
       type: "string",
       placeholder: "<path>",
@@ -367,16 +376,18 @@ const assetsMigrate: BrainCommand = defineCommand({
       database: getStringFlag(flags, "database"),
       dryRun: getBooleanFlag(flags, "dry-run"),
       manifest: getStringFlag(flags, "manifest"),
+      ignoreStaleHeartbeat: getBooleanFlag(flags, "ignore-stale-heartbeat"),
     });
   },
 });
 
 const assetsVerify: BrainCommand = defineCommand({
   name: "assets:verify",
-  usage: "[--database <path>] [--brain-data <dir>]",
+  usage: "[--database <path>] [--brain-data <dir>] [--ignore-stale-heartbeat]",
   description:
     "Check migrated images resolve to intact assets (offline, app stopped)",
   flags: {
+    "ignore-stale-heartbeat": STALE_HEARTBEAT_FLAG,
     database: {
       type: "string",
       placeholder: "<path>",
@@ -393,16 +404,19 @@ const assetsVerify: BrainCommand = defineCommand({
     return runAssetsVerify(dir, {
       database: getStringFlag(flags, "database"),
       brainData: getStringFlag(flags, "brain-data"),
+      ignoreStaleHeartbeat: getBooleanFlag(flags, "ignore-stale-heartbeat"),
     });
   },
 });
 
 const assetsReconcile: BrainCommand = defineCommand({
   name: "assets:reconcile",
-  usage: "[--from <dir>] [--dry-run] [--database <path>]",
+  usage:
+    "[--from <dir>] [--dry-run] [--database <path>] [--ignore-stale-heartbeat]",
   description:
     "Restore image rows and assets from brain-data (offline, app stopped)",
   flags: {
+    "ignore-stale-heartbeat": STALE_HEARTBEAT_FLAG,
     database: {
       type: "string",
       placeholder: "<path>",
@@ -424,6 +438,7 @@ const assetsReconcile: BrainCommand = defineCommand({
       database: getStringFlag(flags, "database"),
       from: getStringFlag(flags, "from"),
       dryRun: getBooleanFlag(flags, "dry-run"),
+      ignoreStaleHeartbeat: getBooleanFlag(flags, "ignore-stale-heartbeat"),
     });
   },
 });

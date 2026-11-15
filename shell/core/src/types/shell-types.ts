@@ -45,6 +45,7 @@ import type { IJobProgressMonitor } from "@brains/utils/progress";
 import type { ProjectionRuntimeSupervisor } from "../projection-runtime-supervisor";
 import type { OperationContext } from "@brains/operation-context";
 import type { ProjectionRuntimeControls } from "../projection-runtime";
+import type { LegacyBinaryLedger } from "../legacy-binary-ledger";
 
 /**
  * The recurring-check surface the shell wires.
@@ -110,6 +111,8 @@ export interface ShellServices {
   attachmentRegistry: AttachmentRegistry;
   runtimeUploadRegistry: RuntimeUploadRegistry;
   runtimeStateService: IRuntimeStateService;
+  /** Legacy data-URL reads by surface and type, kept in runtime state. */
+  legacyBinaryLedger: LegacyBinaryLedger;
   recurringCheckService: ShellRecurringChecks;
 }
 

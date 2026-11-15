@@ -62,6 +62,9 @@ export async function fixture(
   return path;
 }
 
+/** When `0013_staged_asset_chunks` was generated, as its journal records it. */
+const STAGED_ASSET_MIGRATION_AT = 1792135342713;
+
 /** A database written by main, before the staged asset schema migration. */
 export async function mainEraFixture(
   rows: Array<[id: string, content: string]>,
@@ -69,19 +72,58 @@ export async function mainEraFixture(
   const path = await fixture(rows);
   const client = openOfflineEntityDatabase(path).client;
   try {
+    await client.execute("DROP TABLE database_leases");
     await client.execute("DROP TABLE asset_chunks");
     await client.execute("DROP TABLE assets");
     await client.execute("DROP TABLE asset_uploads");
     await client.execute(
       "CREATE TABLE assets (digest text PRIMARY KEY NOT NULL, bytes blob NOT NULL, size_bytes integer NOT NULL, created integer NOT NULL)",
     );
-    await client.execute(
-      "DELETE FROM __drizzle_migrations WHERE created_at = (SELECT MAX(created_at) FROM __drizzle_migrations)",
-    );
+    // Main's last migration came before the staged asset chunks (0013).
+    await client.execute({
+      sql: "DELETE FROM __drizzle_migrations WHERE created_at >= ?",
+      args: [STAGED_ASSET_MIGRATION_AT],
+    });
   } finally {
     client.close();
   }
   return path;
+}
+
+/**
+ * A lease another process left on the database: fresh by default, as a
+ * running brain in another container keeps it; `ageMs` back-dates its last
+ * heartbeat, so an hour-old one is what a crash leaves.
+ */
+export async function leaseFrom(
+  path: string,
+  lease: {
+    role?: "brain" | "maintenance";
+    command?: string;
+    hostname?: string;
+    pid?: number;
+    ageMs?: number;
+  } = {},
+): Promise<void> {
+  const heartbeatAt = Date.now() - (lease.ageMs ?? 1_000);
+  const client = openOfflineEntityDatabase(path).client;
+  try {
+    await client.execute({
+      sql: "INSERT INTO database_leases (id, role, command, hostname, pid, started_at, heartbeat_at, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+      args: [
+        crypto.randomUUID(),
+        lease.role ?? "brain",
+        lease.command ?? null,
+        lease.hostname ?? "brain-container",
+        lease.pid ?? 41,
+        heartbeatAt - 60_000,
+        heartbeatAt,
+        heartbeatAt + 60_000,
+      ],
+    });
+  } finally {
+    client.close();
+  }
 }
 
 /** No other process holds the database: the app is stopped. */

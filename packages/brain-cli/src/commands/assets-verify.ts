@@ -21,6 +21,8 @@ export interface AssetsVerifyOptions {
   database?: string | undefined;
   /** The synced content directory, to compare mirrored image files. */
   brainData?: string | undefined;
+  /** Continue past leases a crash left; a fresh lease still refuses. */
+  ignoreStaleHeartbeat?: boolean | undefined;
 }
 
 type MirrorCheck =
@@ -38,7 +40,9 @@ export async function runAssetsVerify(
   options: AssetsVerifyOptions,
   deps: OfflineDatabaseDeps = defaultOfflineDatabaseDeps,
 ): Promise<CommandResult> {
-  const database = await resolveOfflineDatabase(cwd, options.database, deps);
+  const database = await resolveOfflineDatabase(cwd, options.database, deps, {
+    ignoreStaleHeartbeat: options.ignoreStaleHeartbeat,
+  });
   if (!("path" in database)) return database;
   const connection = openOfflineEntityDatabase(database.path);
   try {
