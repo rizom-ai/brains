@@ -78,7 +78,7 @@ export async function bootEvalApp(options: BootEvalAppOptions): Promise<App> {
   const evalConfig = {
     ...config,
     database: undefined,
-    ...(model ? { aiModel: model } : {}),
+    ...(model && { ai: { ...config.ai, model } }),
     shellConfig: {
       ...config.shellConfig,
       database: { url: `file:${evalDbBase}.db` },

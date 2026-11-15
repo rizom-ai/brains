@@ -39,7 +39,7 @@ describe("App", () => {
           name: "test-app",
           version: "2.0.0",
           database: "/tmp/test.db",
-          aiProviderKeys: { openai: "test-key" },
+          ai: { providerKeys: { openai: "test-key" } },
           logLevel: "debug",
         },
         mockShell,
@@ -275,7 +275,7 @@ describe("buildShellConfig", () => {
 
   it("prefers a configured key over the startup-check placeholder", () => {
     const shellConfig = buildShellConfig(
-      toAppConfig({ aiProviderKeys: { openai: "real" } }),
+      toAppConfig({ ai: { providerKeys: { openai: "real" } } }),
       { mode: "startup-check" },
     );
 

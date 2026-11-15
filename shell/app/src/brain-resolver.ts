@@ -451,7 +451,7 @@ function resolveRuntimeDefinition(
     plugins: [...capabilities, ...interfaces],
 
     // AI config from environment + brain/instance model
-    ...resolveAIConfig(env, {
+    ai: resolveAIConfig(env, {
       ...(effectiveModel && { model: effectiveModel }),
       ...(overrides?.embeddingModel && {
         embeddingModel: overrides.embeddingModel,

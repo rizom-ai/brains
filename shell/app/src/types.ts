@@ -29,18 +29,42 @@ import {
   type DeploymentConfigInput,
 } from "@brains/sdk/internal/brain-config";
 
+type AppAIConfigSchema = z.ZodObject<{
+  providerKeys: z.ZodOptional<typeof providerKeysSchema>;
+  model: z.ZodOptional<z.ZodString>;
+  embeddingModel: z.ZodOptional<z.ZodString>;
+  modelRuntimeUrl: z.ZodOptional<z.ZodString>;
+  answerModel: z.ZodOptional<z.ZodString>;
+  visionModel: z.ZodOptional<z.ZodString>;
+  imageModel: z.ZodOptional<z.ZodString>;
+  reasoningEffort: z.ZodOptional<typeof reasoningEffortSchema>;
+}>;
+
+/**
+ * The AI settings an app gives its shell: each provider's key and the models
+ * it runs, under the names the shell's `ai` block takes them.
+ */
+export const appAIConfigSchema: AppAIConfigSchema = z.object({
+  providerKeys: providerKeysSchema.optional(),
+  // The model determines its provider ("gpt-4o-mini", "openai:gpt-4o").
+  model: z.string().optional(),
+  embeddingModel: z.string().optional(),
+  // The model runtime serving local: models.
+  modelRuntimeUrl: z.string().optional(),
+  // Local models answering tool results and describing images.
+  answerModel: z.string().optional(),
+  visionModel: z.string().optional(),
+  imageModel: z.string().optional(),
+  reasoningEffort: reasoningEffortSchema.optional(),
+});
+
+export type AppAIConfig = z.output<typeof appAIConfigSchema>;
+
 type AppConfigSchema = z.ZodObject<{
   name: z.ZodDefault<z.ZodString>;
   version: z.ZodDefault<z.ZodString>;
   database: z.ZodOptional<z.ZodString>;
-  aiProviderKeys: z.ZodOptional<typeof providerKeysSchema>;
-  aiModel: z.ZodOptional<z.ZodString>;
-  aiEmbeddingModel: z.ZodOptional<z.ZodString>;
-  aiModelRuntimeUrl: z.ZodOptional<z.ZodString>;
-  aiAnswerModel: z.ZodOptional<z.ZodString>;
-  aiVisionModel: z.ZodOptional<z.ZodString>;
-  aiImageModel: z.ZodOptional<z.ZodString>;
-  aiReasoningEffort: z.ZodOptional<typeof reasoningEffortSchema>;
+  ai: z.ZodOptional<AppAIConfigSchema>;
   logLevel: z.ZodOptional<typeof logLevelSchema>;
   logFile: z.ZodOptional<z.ZodString>;
   profileKind: z.ZodOptional<z.ZodString>;
@@ -58,14 +82,7 @@ export const appConfigSchema: AppConfigSchema = z.object({
   version: z.string().default("1.0.0"),
   // These map directly to Shell config but with simpler names
   database: z.string().optional(), // Maps to database.url in Shell
-  aiProviderKeys: providerKeysSchema.optional(), // Each provider's key; maps to ai.providerKeys in Shell
-  aiModel: z.string().optional(), // AI model — determines provider (e.g. "gpt-4o-mini", "openai:gpt-4o")
-  aiEmbeddingModel: z.string().optional(), // Embedding model, "provider:model"
-  aiModelRuntimeUrl: z.string().optional(), // Model runtime serving local: models
-  aiAnswerModel: z.string().optional(), // Local model answering tool results
-  aiVisionModel: z.string().optional(), // Local model describing images
-  aiImageModel: z.string().optional(), // Image model, "provider:model"
-  aiReasoningEffort: reasoningEffortSchema.optional(),
+  ai: appAIConfigSchema.optional(), // Maps to ai in Shell
   logLevel: logLevelSchema.optional(), // Maps to logging.level
   logFile: z.string().optional(), // Maps to logging.file
   // Optional composition-selected semantic profile kind

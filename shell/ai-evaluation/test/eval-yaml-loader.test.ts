@@ -110,7 +110,7 @@ describe("loadPluginEvalConfig", () => {
       model: "gpt-4o-mini",
     });
 
-    expect(config.aiModel).toBe("gpt-4o-mini");
+    expect(config.ai?.model).toBe("gpt-4o-mini");
   });
 
   it("falls back to AI_MODEL from env when eval.yaml omits model", async () => {
@@ -122,7 +122,7 @@ describe("loadPluginEvalConfig", () => {
         plugin: "@brains/topics",
       });
 
-      expect(config.aiModel).toBe("gpt-4o-mini");
+      expect(config.ai?.model).toBe("gpt-4o-mini");
     } finally {
       if (originalModel === undefined) {
         delete process.env["AI_MODEL"];
