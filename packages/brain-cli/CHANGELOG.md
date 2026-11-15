@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.712
+
+### Patch Changes
+
+- [#955](https://github.com/rizom-ai/brains/pull/955) [`3d63d17`](https://github.com/rizom-ai/brains/commit/3d63d1783447584d30d2b19661ff7b034c6a00aa) Thanks [@yeehaa123](https://github.com/yeehaa123)! - An eval's resultContains judges the tool calls that took effect: a call the tool refused, which changed nothing, no longer fails a turn whose retry returns the expected result. A turn still needs one call that took effect, and each must return the expected result.
+
 ## 0.2.0-alpha.711
 
 ### Patch Changes

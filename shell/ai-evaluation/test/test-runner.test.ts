@@ -302,7 +302,9 @@ describe("TestRunner", () => {
       expect(result.failures.map((failure) => failure.criterion)).toContain(
         "toolArgsAbsent",
       );
-      expect(result.failures.map((failure) => failure.criterion)).toContain(
+      // The rejected attempt fails the turn through its arguments; its result,
+      // which changed nothing, is not judged against the repaired call's.
+      expect(result.failures.map((failure) => failure.criterion)).not.toContain(
         "toolResultContains",
       );
     });
