@@ -20,7 +20,7 @@ import type { EmbeddingDB } from "./db/embedding-db";
 import type {
   AssetTransaction,
   SqliteAssetRepository,
-  StagedAsset,
+  StagedUpload,
 } from "./sqlite-asset-repository";
 import type {
   BaseEntity,
@@ -126,7 +126,7 @@ interface EntityWriteGuard {
   markdown: string;
   metadata: Record<string, unknown>;
   contentHash: string;
-  stagedAsset: StagedAsset | undefined;
+  stagedUpload: StagedUpload | undefined;
   options: Pick<UpdateEntityOptions, "signal" | "beforeWrite"> | undefined;
   assertGroupingsCurrent: () => Promise<void>;
 }
@@ -283,7 +283,7 @@ export class EntityMutations {
     request: CreateEntityRequest<T>,
     receipt?: EntityMutationReceiptKey,
   ): Promise<EntityMutationResult> {
-    const { entity, options, preparedAsset } = request;
+    const { entity, options, stagedAsset } = request;
     options?.signal?.throwIfAborted();
     const condition =
       options?.conditionalWrite &&
@@ -340,11 +340,11 @@ export class EntityMutations {
 
     // Compute contentHash from the serialized markdown
     const contentHash = computeContentHash(markdown);
-    const stagedAsset = this.stageAsset(
+    const stagedUpload = this.resolveStagedUpload(
       validatedEntity.entityType,
       validatedEntity.content,
       markdown,
-      preparedAsset,
+      stagedAsset,
     );
 
     // Resolve final ID (may deduplicate on collision)
@@ -389,7 +389,7 @@ export class EntityMutations {
           markdown,
           metadata,
           contentHash,
-          stagedAsset,
+          stagedUpload,
           options,
           assertGroupingsCurrent,
         });
@@ -548,7 +548,7 @@ export class EntityMutations {
     fold: FoldRemoval | undefined,
     receipt: EntityMutationReceiptKey | undefined,
   ): Promise<PreparedEntityUpdate> {
-    const { entity, options, preparedAsset } = request;
+    const { entity, options, stagedAsset } = request;
     options?.signal?.throwIfAborted();
     const condition =
       options?.conditionalWrite &&
@@ -653,11 +653,11 @@ export class EntityMutations {
         validatedEntity.id,
       );
     }
-    const stagedAsset = this.stageAsset(
+    const stagedUpload = this.resolveStagedUpload(
       validatedEntity.entityType,
       validatedEntity.content,
       markdown,
-      preparedAsset,
+      stagedAsset,
     );
 
     return {
@@ -672,7 +672,7 @@ export class EntityMutations {
         markdown,
         metadata,
         contentHash,
-        stagedAsset,
+        stagedUpload,
         previousMetadata: existingEntity.metadata,
         unchanged:
           !precondition &&
@@ -705,7 +705,7 @@ export class EntityMutations {
           transaction,
           entity.entityType,
           plan.markdown,
-          plan.stagedAsset,
+          plan.stagedUpload,
         );
         options?.signal?.throwIfAborted();
         await this.pruneFtsIndexIfExcluded(
@@ -1064,7 +1064,7 @@ export class EntityMutations {
   public async upsertEntity<T extends BaseEntity>(
     request: UpsertEntityRequest<T>,
   ): Promise<EntityMutationResult & { created: boolean }> {
-    const { entity, options, preparedAsset } = request;
+    const { entity, options, stagedAsset } = request;
     this.logger.debug(
       `Upserting entity of type ${entity.entityType} with ID ${entity.id}`,
     );
@@ -1072,8 +1072,8 @@ export class EntityMutations {
     if (options?.conditionalWrite) {
       const created = options.conditionalWrite.expectedRevision === null;
       const result = created
-        ? await this.createEntity({ entity, options, preparedAsset })
-        : await this.updateEntity({ entity, options, preparedAsset });
+        ? await this.createEntity({ entity, options, stagedAsset })
+        : await this.updateEntity({ entity, options, stagedAsset });
       return { ...result, created };
     }
 
@@ -1085,7 +1085,7 @@ export class EntityMutations {
     if (exists) {
       const result = await this.updateEntity({
         entity,
-        ...(preparedAsset !== undefined && { preparedAsset }),
+        ...(stagedAsset !== undefined && { stagedAsset }),
         ...(options !== undefined && { options }),
       });
       return { ...result, created: false };
@@ -1094,7 +1094,7 @@ export class EntityMutations {
     try {
       const result = await this.createEntity({
         entity,
-        ...(preparedAsset !== undefined && { preparedAsset }),
+        ...(stagedAsset !== undefined && { stagedAsset }),
         ...(options !== undefined && { options }),
       });
       return { ...result, created: true };
@@ -1110,7 +1110,7 @@ export class EntityMutations {
       );
       const result = await this.updateEntity({
         entity,
-        ...(preparedAsset !== undefined && { preparedAsset }),
+        ...(stagedAsset !== undefined && { stagedAsset }),
         ...(options !== undefined && { options }),
       });
       return { ...result, created: false };
@@ -1172,37 +1172,37 @@ export class EntityMutations {
     return this.embeddingIndex.getIndexStats();
   }
 
-  private stageAsset(
+  private resolveStagedUpload(
     entityType: string,
     entityContent: string,
     storedContent: string,
-    preparedAsset: CreateEntityRequest<BaseEntity>["preparedAsset"],
-  ): StagedAsset | undefined {
+    stagedAsset: CreateEntityRequest<BaseEntity>["stagedAsset"],
+  ): StagedUpload | undefined {
     const assetBacked =
       this.entityRegistry.getEntityTypeConfig(entityType).binaryStorage ===
       "asset";
-    if (!preparedAsset) return undefined;
+    if (!stagedAsset) return undefined;
     if (!assetBacked) {
       throw new Error(
         `Entity type ${entityType} is not registered for asset-backed storage`,
       );
     }
     if (
-      entityContent !== preparedAsset.ref ||
-      storedContent !== preparedAsset.ref
+      entityContent !== stagedAsset.ref ||
+      storedContent !== stagedAsset.ref
     ) {
       throw new Error(
-        `Prepared asset ${preparedAsset.ref} does not match canonical ${entityType} content`,
+        `Staged asset ${stagedAsset.ref} does not match canonical ${entityType} content`,
       );
     }
-    return this.assetRepository.stage(preparedAsset);
+    return this.assetRepository.claimedUpload(stagedAsset);
   }
 
   private async bindAssetContent(
     transaction: AssetTransaction,
     entityType: string,
     storedContent: string,
-    stagedAsset?: StagedAsset,
+    stagedUpload?: StagedUpload,
   ): Promise<void> {
     if (
       this.entityRegistry.getEntityTypeConfig(entityType).binaryStorage !==
@@ -1213,7 +1213,7 @@ export class EntityMutations {
     await this.assetRepository.bindEntityContent(
       transaction,
       storedContent,
-      stagedAsset,
+      stagedUpload,
     );
   }
 
@@ -1231,7 +1231,7 @@ export class EntityMutations {
       transaction,
       entity.entityType,
       markdown,
-      write.stagedAsset,
+      write.stagedUpload,
     );
     await options?.beforeWrite?.({
       ...entity,

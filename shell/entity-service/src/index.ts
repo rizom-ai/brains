@@ -4,25 +4,26 @@ export {
 } from "./entity-type-classification";
 export { isGroupingContributor } from "./grouping-eligibility";
 export {
+  ASSET_CHUNK_BYTES,
   ASSET_REF_PATTERN,
   ASSET_REF_PREFIX,
   MAX_ASSET_BYTES,
   SHA256_DIGEST_PATTERN,
-  assertPreparedAsset,
   assetRecordSchema,
   assetRefSchema,
+  base64AssetSource,
   computeAssetDigest,
   createAssetRef,
   getAssetDigest,
   parseAssetRef,
-  prepareAsset,
   type AssetReader,
   type AssetRecord,
   type AssetRef,
+  type AssetSource,
   type AssetStat,
   type AssetVerification,
-  type PreparedAsset,
-  type PrepareAssetOptions,
+  type StageAssetOptions,
+  type StagedAsset,
 } from "@brains/assets";
 export { EntityService } from "./entityService";
 export {
