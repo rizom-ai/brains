@@ -1,19 +1,16 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { unscopeTemplateName } from "@brains/content-service";
-import type { OperationalHealthProvider } from "../operational-health-registry";
 import { entityMirrorOf } from "./entity-mirror";
 import {
   createDeclaredDataSource,
   sharedStateReader,
 } from "../public/entity-data-source";
-import { sharedUploadScope } from "./upload-registry";
 import {
   SDK_ERROR_MESSAGE_MAX_LENGTH,
   SdkError,
   jsonObjectSchema,
   toSdkError,
   type ActorRef,
-  type BusContract,
   type JsonObject,
   type RuntimeInterfacePrincipalState,
   type SdkErrorCode,
@@ -115,12 +112,21 @@ import {
 } from "../entity/owned-entity-writer-runtime";
 import { packageRuntimeState } from "../internal/state-namespace";
 import {
+  classRuntimeStateOf,
+  eraseResponseType,
+  narrowIdentity,
+  publicSkillsOf,
+  sharedUploadsOf,
+} from "../internal/first-party-runtime";
+import {
   claimableSystemTypes,
   isBareNamedTool,
   withServiceRuntime,
   type ClaimedSystemType,
   type ServiceCorpusReads,
+  type ServiceDashboardWidget,
   type ServiceDataSourceDeclaration,
+  type ServiceDataSourceOptions,
   type ServiceConversations,
   type ServiceEntityMutations,
   type ServiceEntityReads,
@@ -131,6 +137,8 @@ import {
   type ServiceAccountSettingsRegistry,
   type ServiceAI,
   type ServiceAuthAuthority,
+  type ServiceRuntimeBinding,
+  type ServiceToolCall,
 } from "./service-runtime";
 import { PluginCore } from "../plugin-core";
 import {
@@ -1251,10 +1259,7 @@ class DeclarativeServicePlugin<
           `Service "${this.publicId}" answers only channels named "${owned}<name>", and "${contract.name}" is not one`,
         );
       }
-      // The bus checks the answer against the contract's own schema; erasing
-      // the response type here is what lets a handler typed by its input
-      // slot hand the bus a value it parses.
-      const erased: BusContract<typeof contract.schema, z.ZodType> = contract;
+      const erased = eraseResponseType(contract);
       const binding: ServiceSubscriptionBinding = Object.freeze({
         kind: "rizom-service-subscription-binding",
         contract: erased,
@@ -1299,165 +1304,65 @@ class DeclarativeServicePlugin<
   /**
    * A slot context with the first-party runtime attached: answers and
    * channels heard through it act as the package, and are released when it
-   * shuts down.
+   * shuts down. The binding is built one capability group at a time.
    */
   private withRuntime<TContext extends object>(
     context: ServicePluginContext,
     slotContext: TContext,
   ): TContext {
     return withServiceRuntime(slotContext, {
+      ...this.packageBinding(context),
+      ...brainFactsOf(context),
+      ...this.identityBinding(context),
+      ...busBindingOf(context),
+      ...this.recordsBinding(context),
+      ...storesBindingOf(context),
+      ...this.contentBinding(context),
+      ...this.workBinding(context),
+      ...this.operatorBinding(context),
+    });
+  }
+
+  /**
+   * The package itself: who it is, and the hooks its handlers, answers and
+   * registration run through, each kept until it shuts down.
+   */
+  private packageBinding(
+    context: ServicePluginContext,
+  ): Pick<
+    ServiceRuntimeBinding,
+    | "logger"
+    | "pluginId"
+    | "asPackage"
+    | "onRelease"
+    | "onReady"
+    | "onRegistered"
+    | "registering"
+    | "initialSync"
+    | "retries"
+    | "toolCall"
+  > {
+    return {
       logger: this.logger,
       pluginId: this.id,
-      messaging: context.messaging,
-      deliveryProvider: (channelType) =>
-        context.channels.getDeliveryProvider(channelType),
-      instructions: (instructions: string): void => {
-        context.registerInstructions(instructions);
-      },
       asPackage: (run) => this.calls.run(this.packageCall(), run),
-      onRelease: (release) => {
+      onRelease: (release): void => {
         this.answered.push(release);
       },
-      onReady: (handler) => {
+      onReady: (handler): void => {
         this.readyHandlers.push(handler);
       },
-      onRegistered: (handler) => {
+      onRegistered: (handler): void => {
         this.registeredHandlers.push(handler);
-      },
-      entityShapes: entityShapesOf(context),
-      views: Object.freeze({
-        get: (name: string) => context.views.get(name),
-        list: () => context.views.list(),
-      }),
-      resolveTemplate: (templateName, options) =>
-        context.templates.resolve(templateName, options),
-      jobs: Object.freeze({
-        enqueue: context.jobs.enqueue,
-        getStatus: (jobId: string) => context.jobs.getStatus(jobId),
-        getRecentJobs: (types?: string[], limit?: number) =>
-          context.jobs.getRecentJobs(types, limit),
-        getActiveJobs: (types?: string[]) => context.jobs.getActiveJobs(types),
-        enqueueBatch: context.jobs.enqueueBatch,
-        getBatchStatus: (batchId: string) =>
-          context.jobs.getBatchStatus(batchId),
-      }),
-      entityWrites: entityWritesOf(context),
-      dataDir: context.dataDir,
-      identity: Object.freeze({
-        get: () => context.identity.get(),
-        getProfile: () => context.identity.getProfile(),
-        getAppInfo: () => context.identity.getAppInfo(),
-      }),
-      domain: context.domain,
-      servesHttp: context.servesHttp,
-      publicSkills: Object.freeze({
-        list: () => context.publicSkills.list(),
-      }),
-      // The registry itself, read through its own get and its post overload.
-      atprotoProjections: context.atprotoProjections,
-      auth: () => context.auth.get(),
-      authAuthority: this.declarations.authAuthority
-        ? this.authAuthorityOf(context)
-        : undefined,
-      studio: firstPartyStudioOf(context),
-      inbox: Object.freeze({
-        listSources: () => context.inbox.listSources(),
-        getSource: (sourceId: string) => context.inbox.getSource(sourceId),
-      }),
-      inboxSource: (source): void => {
-        context.inbox.registerSource(source);
-      },
-      prompts: Object.freeze({
-        resolve: (target: string, fallback: string) =>
-          context.prompts.resolve(target, fallback),
-      }),
-      executionOnly: context.executionOnly,
-      assignableMembers: () => context.auth.listAssignableMembers(),
-      groupings: () => this.groupingsOf(context),
-      groupingReads: Object.freeze({
-        getGroupings: () => context.entities.getGroupings(),
-        ensureGroupingsCurrent: () => context.entities.ensureGroupingsCurrent(),
-        queryGroupingMembers: (request) =>
-          context.entityService.queryGroupingMembers(request),
-        queryGroupingCatalog: (request) =>
-          context.entityService.queryGroupingCatalog(request),
-      } satisfies ServiceGroupingReads),
-      accountSettings: this.classAccountSettingsOf(context),
-      sharedUploads: (options = {}) =>
-        context.uploads.scoped({
-          ...sharedUploadScope,
-          ...(options.routePath ? { routePath: options.routePath } : {}),
-        }),
-      uploadSaveHandler: (mediaType: string) =>
-        context.entities.getUploadSaveHandler(mediaType),
-      channelDescriptors: () => context.channels.listDescriptors(),
-      channelDescriptor: (channelType) =>
-        context.channels.getDescriptor(channelType),
-      readiness: () => context.readiness(),
-      inboxFollowUpKind: (kind): void => {
-        context.inboxFollowUps.registerKind(kind);
       },
       registering: (handler): void => {
         this.registeringHandlers.push(handler);
       },
-      entityMirror: entityMirrorOf(context),
-      gitBroker: Object.freeze({
-        socket: context.gitBrokerSocket,
-        checkout: context.gitBrokerCheckout,
-      }),
       initialSync: (handler): void => {
         this.answerInitialSync(context, handler);
       },
-      operationalHealth: Object.freeze({
-        register: (name: string, provider: OperationalHealthProvider) =>
-          context.operationalHealth.register(name, provider),
-      }),
-      endpoint: (endpoint): void => {
-        context.endpoints.register(endpoint);
-      },
-      hasPlugin: (pluginId: string) => context.plugins.has(pluginId),
-      themeCSS: context.themeCSS,
-      analyticsReport: (report): void => {
-        context.analytics.register(report);
-      },
-      reportEntityService: readOnlyEntityServiceOf(context),
-      inboxFollowUps: Object.freeze({
-        resolve: (
-          input: Parameters<typeof context.inboxFollowUps.resolve>[0],
-        ) => context.inboxFollowUps.resolve(input),
-      }),
-      recurringCheck: (check): void => {
-        // In every process, taken off when the package shuts down, as every
-        // runtime registration is.
-        this.answered.push(context.recurringChecks.register(check));
-      },
-      interaction: (interaction): void => {
-        context.interactions.register(interaction);
-      },
-      workspaceUrl: (workspace) => this.workspaceUrls.get(workspace),
-      spaces: context.spaces,
-      siteUrl: context.siteUrl,
-      previewUrl: context.previewUrl,
-      localSiteUrl: context.localSiteUrl,
-      preferLocalUrls: context.preferLocalUrls,
-      entityDisplay: context.entityDisplay,
-      routeByRole: (role) => context.webRoutes.findByRole(role),
-      consoleSurfaces: (options) =>
-        deriveConsoleSurfaces(context.webRoutes.getRoutes(), options),
-      evalHandler: (handlerId, handler): void => {
-        context.eval.registerHandler(handlerId, handler);
-      },
-      runProjectionRule: async (ruleId, options) => {
-        const shell = this.scopedShell;
-        if (!shell || !this.ownProjectionRuleIds().has(ruleId)) {
-          throw new Error(`Unknown projection rule "${ruleId}" for ${this.id}`);
-        }
-        return shell.runProjectionRule(ruleId, options);
-      },
-      classRuntimeState: Object.freeze({
-        scoped: context.runtimeState.scoped.bind(context.runtimeState),
-      }),
-      toolCall: () => {
+      retries: this.retries,
+      toolCall: (): ServiceToolCall | undefined => {
         const call = this.toolContext.getStore();
         return call
           ? Object.freeze({
@@ -1470,16 +1375,36 @@ class DeclarativeServicePlugin<
             })
           : undefined;
       },
-      entityMutations: entityMutationsOf(context),
-      conversations: Object.freeze({
-        get: (conversationId) => context.conversations.get(conversationId),
-        list: (options) => context.conversations.list(options),
-        getMessages: (conversationId, options) =>
-          context.conversations.getMessages(conversationId, options),
-        countMessages: (conversationId) =>
-          context.conversations.countMessages(conversationId),
-      } satisfies ServiceConversations),
-      entityReads: entityReadsOf(context),
+    };
+  }
+
+  /**
+   * Who the brain is, whom it represents, and who may act: identity, the
+   * auth backend, and the account settings and entity policy that follow.
+   */
+  private identityBinding(
+    context: ServicePluginContext,
+  ): Pick<
+    ServiceRuntimeBinding,
+    | "identity"
+    | "publicSkills"
+    | "profileKinds"
+    | "auth"
+    | "authAuthority"
+    | "assignableMembers"
+    | "accountSettings"
+    | "permissions"
+  > {
+    return {
+      identity: narrowIdentity(context.identity),
+      publicSkills: publicSkillsOf(context.publicSkills),
+      profileKinds: context.profileKinds,
+      auth: () => context.auth.get(),
+      authAuthority: this.declarations.authAuthority
+        ? this.authAuthorityOf(context)
+        : undefined,
+      assignableMembers: () => context.auth.listAssignableMembers(),
+      accountSettings: this.classAccountSettingsOf(context),
       permissions: Object.freeze({
         assertEntityActionAllowed: (entityType, action, caller): void => {
           context.permissions.assertEntityActionAllowed(
@@ -1489,14 +1414,107 @@ class DeclarativeServicePlugin<
           );
         },
       }),
+    };
+  }
+
+  /**
+   * The brain's records: their shapes, reads and writes, the groupings over
+   * them, the system types and projection rules the package owns, and what
+   * other packages attach to or project from them.
+   */
+  private recordsBinding(
+    context: ServicePluginContext,
+  ): Pick<
+    ServiceRuntimeBinding,
+    | "entityShapes"
+    | "entityReads"
+    | "entityWrites"
+    | "entityMutations"
+    | "entityMirror"
+    | "reportEntityService"
+    | "groupings"
+    | "groupingReads"
+    | "claim"
+    | "runProjectionRule"
+    | "attachments"
+    | "atprotoProjections"
+  > {
+    return {
+      entityShapes: entityShapesOf(context),
+      entityReads: entityReadsOf(context),
+      entityWrites: entityWritesOf(context),
+      entityMutations: entityMutationsOf(context),
+      entityMirror: entityMirrorOf(context),
+      reportEntityService: readOnlyEntityServiceOf(context),
+      groupings: () => this.groupingsOf(context),
+      groupingReads: Object.freeze({
+        getGroupings: () => context.entities.getGroupings(),
+        ensureGroupingsCurrent: () => context.entities.ensureGroupingsCurrent(),
+        queryGroupingMembers: (request) =>
+          context.entityService.queryGroupingMembers(request),
+        queryGroupingCatalog: (request) =>
+          context.entityService.queryGroupingCatalog(request),
+      } satisfies ServiceGroupingReads),
+      claim: (type) => this.claimSystemType(context, type),
+      runProjectionRule: async (
+        ruleId,
+        options,
+      ): ReturnType<ServiceRuntimeBinding["runProjectionRule"]> => {
+        const shell = this.scopedShell;
+        if (!shell || !this.ownProjectionRuleIds().has(ruleId)) {
+          throw new Error(`Unknown projection rule "${ruleId}" for ${this.id}`);
+        }
+        return shell.runProjectionRule(ruleId, options);
+      },
       attachments: Object.freeze({
         resolve: (request) => context.attachments.resolve(request),
         hasProvider: (sourceEntityType: string, attachmentType: string) =>
           context.attachments.hasProvider(sourceEntityType, attachmentType),
       }),
-      retries: this.retries,
-      claim: (type) => this.claimSystemType(context, type),
-      profileKinds: context.profileKinds,
+      // The registry itself, read through its own get and its post overload.
+      atprotoProjections: context.atprotoProjections,
+    };
+  }
+
+  /**
+   * What the package says and makes: view and site templates, prompts, its
+   * agent instructions, content generation, the brain's AI, and the data
+   * sources a build reads.
+   */
+  private contentBinding(
+    context: ServicePluginContext,
+  ): Pick<
+    ServiceRuntimeBinding,
+    | "views"
+    | "resolveTemplate"
+    | "template"
+    | "prompts"
+    | "instructions"
+    | "generateContent"
+    | "ai"
+    | "dataSource"
+  > {
+    return {
+      views: Object.freeze({
+        get: (name: string) => context.views.get(name),
+        list: () => context.views.list(),
+      }),
+      resolveTemplate: (templateName, options) =>
+        context.templates.resolve(templateName, options),
+      template: (name, template, options = {}): void => {
+        context.templates.register(
+          { [name]: template },
+          options.namespace ?? this.id,
+        );
+      },
+      prompts: Object.freeze({
+        resolve: (target: string, fallback: string) =>
+          context.prompts.resolve(target, fallback),
+      }),
+      instructions: (instructions: string): void => {
+        context.registerInstructions(instructions);
+      },
+      generateContent: (request) => context.content.generate(request),
       ai: Object.freeze<ServiceAI>({
         generateObject: (prompt, schema, signal) =>
           context.ai.generateObject(prompt, schema, signal),
@@ -1506,72 +1524,166 @@ class DeclarativeServicePlugin<
         judge: (input) => context.judge(input),
       }),
       dataSource: (declaration, options = {}): void => {
-        const id =
-          options.asWritten === true
-            ? declaration.id
-            : `${this.id}:${declaration.id}`;
-        if ("kind" in declaration) {
-          const type = declaration.entity.type;
-          if (!this.definition.entities.some((entity) => entity.type === type))
-            throw new Error(
-              `Data source "${declaration.id}" reads "${type}", which the package does not declare`,
-            );
-          context.entities.registerDataSource(
-            createDeclaredDataSource(declaration, id, {
-              publicId: `${this.packageName}:${declaration.id}`,
-              runtimeState: context.runtimeState,
-              dataSources: this.requireShell().getDataSourceRegistry(),
-            }),
-          );
-          return;
-        }
-        context.entities.registerDataSource(
-          firstPartyDataSource(
-            id,
-            `${this.packageName}:${declaration.id}`,
-            declaration,
-            sharedStateReader(context.runtimeState),
-          ),
-        );
+        this.serveDataSource(context, declaration, options);
       },
-      template: (name, template, options = {}): void => {
-        context.templates.register(
-          { [name]: template },
-          options.namespace ?? this.id,
-        );
+    };
+  }
+
+  /** Work the package queues, and the checks and evals the brain runs for it. */
+  private workBinding(
+    context: ServicePluginContext,
+  ): Pick<ServiceRuntimeBinding, "jobs" | "recurringCheck" | "evalHandler"> {
+    return {
+      jobs: Object.freeze({
+        enqueue: context.jobs.enqueue,
+        getStatus: (jobId: string) => context.jobs.getStatus(jobId),
+        getRecentJobs: (types?: string[], limit?: number) =>
+          context.jobs.getRecentJobs(types, limit),
+        getActiveJobs: (types?: string[]) => context.jobs.getActiveJobs(types),
+        enqueueBatch: context.jobs.enqueueBatch,
+        getBatchStatus: (batchId: string) =>
+          context.jobs.getBatchStatus(batchId),
+      }),
+      recurringCheck: (check): void => {
+        // In every process, taken off when the package shuts down, as every
+        // runtime registration is.
+        this.answered.push(context.recurringChecks.register(check));
       },
-      generateContent: (request) => context.content.generate(request),
-      dashboardWidget: (widget): void => {
-        // Once the Dashboard host has mounted, as the class registered it.
-        this.answered.push(
-          context.messaging.subscribe(
-            SYSTEM_CHANNELS.pluginsRegistered,
-            async (): Promise<{ success: true }> => {
-              await registerBuiltInDashboardWidget({
-                context,
-                definition: widget.definition,
-                render: widget.render,
-                load: ({ caller, visibilityScope, signal }) =>
-                  widget.load({
-                    corpus: corpusReadsOf(context.entityService),
-                    visibilityScope,
-                    caller,
-                    signal,
-                  }),
-                runtimeSignal: this.operatorAbortController.signal,
-              });
-              return { success: true };
-            },
-          ),
-        );
+      evalHandler: (handlerId, handler): void => {
+        context.eval.registerHandler(handlerId, handler);
       },
-    });
+    };
   }
 
   /**
-   * Claim a shell system type for this package, as the class kept it: one
-   * package per type, released when it shuts down.
+   * Where operators meet the package: Studio and its workspaces, Dashboard
+   * widgets and reports, the Inbox, web routes and console surfaces, and
+   * the endpoints, interactions and health checks the brain advertises.
    */
+  private operatorBinding(
+    context: ServicePluginContext,
+  ): Pick<
+    ServiceRuntimeBinding,
+    | "studio"
+    | "workspaceUrl"
+    | "dashboardWidget"
+    | "analyticsReport"
+    | "inbox"
+    | "inboxSource"
+    | "inboxFollowUps"
+    | "inboxFollowUpKind"
+    | "routeByRole"
+    | "consoleSurfaces"
+    | "endpoint"
+    | "interaction"
+    | "operationalHealth"
+  > {
+    return {
+      studio: firstPartyStudioOf(context),
+      workspaceUrl: (workspace) => this.workspaceUrls.get(workspace),
+      dashboardWidget: (widget): void => {
+        this.registerDashboardWidget(context, widget);
+      },
+      analyticsReport: (report): void => {
+        context.analytics.register(report);
+      },
+      inbox: Object.freeze({
+        listSources: () => context.inbox.listSources(),
+        getSource: (sourceId: string) => context.inbox.getSource(sourceId),
+      }),
+      inboxSource: (source): void => {
+        context.inbox.registerSource(source);
+      },
+      inboxFollowUps: Object.freeze({
+        resolve: (
+          input: Parameters<typeof context.inboxFollowUps.resolve>[0],
+        ) => context.inboxFollowUps.resolve(input),
+      }),
+      inboxFollowUpKind: (kind): void => {
+        context.inboxFollowUps.registerKind(kind);
+      },
+      routeByRole: (role) => context.webRoutes.findByRole(role),
+      consoleSurfaces: (options) =>
+        deriveConsoleSurfaces(context.webRoutes.getRoutes(), options),
+      endpoint: (endpoint): void => {
+        context.endpoints.register(endpoint);
+      },
+      interaction: (interaction): void => {
+        context.interactions.register(interaction);
+      },
+      operationalHealth: context.operationalHealth,
+    };
+  }
+
+  /**
+   * Serve a data source under `<plugin id>:<id>`, or its id as written: one
+   * declared over a type the package declares with the runtime's own
+   * reads, any other through the fetch it declares.
+   */
+  private serveDataSource(
+    context: ServicePluginContext,
+    declaration: Parameters<ServiceRuntimeBinding["dataSource"]>[0],
+    options: ServiceDataSourceOptions,
+  ): void {
+    const id =
+      options.asWritten === true
+        ? declaration.id
+        : `${this.id}:${declaration.id}`;
+    if ("kind" in declaration) {
+      const type = declaration.entity.type;
+      if (!this.definition.entities.some((entity) => entity.type === type))
+        throw new Error(
+          `Data source "${declaration.id}" reads "${type}", which the package does not declare`,
+        );
+      context.entities.registerDataSource(
+        createDeclaredDataSource(declaration, id, {
+          publicId: `${this.packageName}:${declaration.id}`,
+          runtimeState: context.runtimeState,
+          dataSources: this.requireShell().getDataSourceRegistry(),
+        }),
+      );
+      return;
+    }
+    context.entities.registerDataSource(
+      firstPartyDataSource(
+        id,
+        `${this.packageName}:${declaration.id}`,
+        declaration,
+        sharedStateReader(context.runtimeState),
+      ),
+    );
+  }
+
+  /** A built-in Dashboard widget, once the Dashboard host has mounted, as the class registered it. */
+  private registerDashboardWidget<
+    TDefinition extends AnyDashboardWidgetDefinition,
+  >(
+    context: ServicePluginContext,
+    widget: ServiceDashboardWidget<TDefinition>,
+  ): void {
+    this.answered.push(
+      context.messaging.subscribe(
+        SYSTEM_CHANNELS.pluginsRegistered,
+        async (): Promise<{ success: true }> => {
+          await registerBuiltInDashboardWidget({
+            context,
+            definition: widget.definition,
+            render: widget.render,
+            load: ({ caller, visibilityScope, signal }) =>
+              widget.load({
+                corpus: corpusReadsOf(context.entityService),
+                visibilityScope,
+                caller,
+                signal,
+              }),
+            runtimeSignal: this.operatorAbortController.signal,
+          });
+          return { success: true };
+        },
+      ),
+    );
+  }
+
   /**
    * What the brain's auth authority binds through this service, which holds
    * the authority for its shell: one service per brain, released with it.
@@ -1615,6 +1727,10 @@ class DeclarativeServicePlugin<
     });
   }
 
+  /**
+   * Claim a shell system type for this package, as the class kept it: one
+   * package per type, released when it shuts down.
+   */
   private claimSystemType(
     context: ServicePluginContext,
     type: string,
@@ -2259,6 +2375,93 @@ function entityWritesOf(context: ServicePluginContext): ServiceEntityWrites {
     stageAsset: (source, options) => entityService.stageAsset(source, options),
     discardStagedAsset: (asset) => entityService.discardStagedAsset(asset),
   } satisfies ServiceEntityWrites);
+}
+
+/**
+ * What the brain is configured with and where it runs, as plain values and
+ * reads: nothing here registers or writes.
+ */
+function brainFactsOf(
+  context: ServicePluginContext,
+): Pick<
+  ServiceRuntimeBinding,
+  | "dataDir"
+  | "domain"
+  | "servesHttp"
+  | "executionOnly"
+  | "themeCSS"
+  | "spaces"
+  | "siteUrl"
+  | "previewUrl"
+  | "localSiteUrl"
+  | "preferLocalUrls"
+  | "entityDisplay"
+  | "gitBroker"
+  | "hasPlugin"
+  | "readiness"
+> {
+  return {
+    dataDir: context.dataDir,
+    domain: context.domain,
+    servesHttp: context.servesHttp,
+    executionOnly: context.executionOnly,
+    themeCSS: context.themeCSS,
+    spaces: context.spaces,
+    siteUrl: context.siteUrl,
+    previewUrl: context.previewUrl,
+    localSiteUrl: context.localSiteUrl,
+    preferLocalUrls: context.preferLocalUrls,
+    entityDisplay: context.entityDisplay,
+    gitBroker: Object.freeze({
+      socket: context.gitBrokerSocket,
+      checkout: context.gitBrokerCheckout,
+    }),
+    hasPlugin: (pluginId: string) => context.plugins.has(pluginId),
+    readiness: () => context.readiness(),
+  };
+}
+
+/** The plugin's bus, and the channels other packages deliver through. */
+function busBindingOf(
+  context: ServicePluginContext,
+): Pick<
+  ServiceRuntimeBinding,
+  "messaging" | "deliveryProvider" | "channelDescriptors" | "channelDescriptor"
+> {
+  return {
+    messaging: context.messaging,
+    deliveryProvider: (channelType) =>
+      context.channels.getDeliveryProvider(channelType),
+    channelDescriptors: () => context.channels.listDescriptors(),
+    channelDescriptor: (channelType) =>
+      context.channels.getDescriptor(channelType),
+  };
+}
+
+/**
+ * The stores beside the records: conversations, the runtime state a class
+ * kept, and the shared upload store and what promotes a file from it.
+ */
+function storesBindingOf(
+  context: ServicePluginContext,
+): Pick<
+  ServiceRuntimeBinding,
+  "conversations" | "classRuntimeState" | "sharedUploads" | "uploadSaveHandler"
+> {
+  return {
+    conversations: Object.freeze({
+      get: (conversationId) => context.conversations.get(conversationId),
+      list: (options) => context.conversations.list(options),
+      getMessages: (conversationId, options) =>
+        context.conversations.getMessages(conversationId, options),
+      countMessages: (conversationId) =>
+        context.conversations.countMessages(conversationId),
+    } satisfies ServiceConversations),
+    classRuntimeState: classRuntimeStateOf(context.runtimeState),
+    sharedUploads: sharedUploadsOf(context.uploads),
+    uploadSaveHandler: (mediaType: string) =>
+      context.entities.getUploadSaveHandler(mediaType),
+  };
 }
 
 /** What every registered entity type looks like, read through the plugin's context. */

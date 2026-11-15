@@ -2,10 +2,9 @@ import type { Logger } from "@brains/utils/logger";
 import type { JobProgressEvent } from "@brains/job-queue";
 import type { AgentNamespace, AgentResponse } from "../contracts/agent";
 import type { BusCollection, BusContract, BusResult } from "@brains/contracts";
-import {
-  sharedUploadScope,
-  type IRuntimeUploadsNamespace,
-  type ScopedRuntimeUploadStore,
+import type {
+  IRuntimeUploadsNamespace,
+  ScopedRuntimeUploadStore,
 } from "../service/upload-registry";
 import type { IRuntimeStateNamespace } from "@brains/runtime-state";
 import type { z } from "@brains/utils/zod";
@@ -34,7 +33,13 @@ import type { ClassRuntimeState } from "../service/service-runtime";
 import type { SchemaValue } from "../internal/schema-value";
 import {
   attachFirstPartyRuntime,
+  classRuntimeStateOf,
+  eraseResponseType,
   firstPartyRuntimeOf,
+  narrowIdentity,
+  publicSkillsOf,
+  releasingOperationalHealth,
+  sharedUploadsOf,
 } from "../internal/first-party-runtime";
 import type {
   IInterfaceConversationsNamespace,
@@ -368,11 +373,7 @@ function bindInterfaceRuntime(
       updateMetadata: (request) => conversations.updateMetadata(request),
       delete: (conversationId) => conversations.delete(conversationId),
     }),
-    sharedUploads: (options = {}) =>
-      binding.uploads.scoped({
-        ...sharedUploadScope,
-        ...(options.routePath ? { routePath: options.routePath } : {}),
-      }),
+    sharedUploads: sharedUploadsOf(binding.uploads),
     retireUploads: (namespace) => binding.uploads.retire(namespace),
     gather: (contract, request) => binding.messaging.gather(contract, request),
     spaces: Object.freeze([...binding.spaces]),
@@ -382,9 +383,10 @@ function bindInterfaceRuntime(
     previewUrl: binding.previewUrl,
     themeCSS: binding.themeCSS,
     routeByRole: (role) => binding.routeByRole(role),
-    operationalHealth(name, provider): void {
-      binding.onRelease(binding.operationalHealth.register(name, provider));
-    },
+    operationalHealth: releasingOperationalHealth(
+      binding.operationalHealth,
+      binding.onRelease,
+    ),
     inbox: Object.freeze({
       getSource: (sourceId: string) => binding.inbox.getSource(sourceId),
     }),
@@ -418,13 +420,10 @@ function bindInterfaceRuntime(
       );
     },
     answer(contract, handler): void {
-      // The bus checks the answer against the contract's own schema; erasing
-      // the response type lets a handler typed by its contract hand it a
-      // value it parses, as the service runtime's answer does.
-      const erased: BusContract<typeof contract.schema, z.ZodType> = contract;
       binding.onRelease(
-        binding.messaging.answer(erased, async (request, { sender }) =>
-          handler({ request, sender }),
+        binding.messaging.answer(
+          eraseResponseType(contract),
+          async (request, { sender }) => handler({ request, sender }),
         ),
       );
     },
@@ -432,23 +431,15 @@ function bindInterfaceRuntime(
       binding.messaging.command(contract, request),
     request: (contract, request) =>
       binding.messaging.request(contract, request),
-    classRuntimeState: Object.freeze({
-      scoped: binding.runtimeState.scoped.bind(binding.runtimeState),
-    }),
+    classRuntimeState: classRuntimeStateOf(binding.runtimeState),
     ready(handler): void {
       binding.onReady(async () => handler());
     },
-    identity: Object.freeze({
-      get: () => binding.identity.get(),
-      getProfile: () => binding.identity.getProfile(),
-      getAppInfo: () => binding.identity.getAppInfo(),
-    }),
+    identity: narrowIdentity(binding.identity),
     profileKinds: Object.freeze({
       getResolved: () => binding.profileKinds.getResolved(),
     }),
-    publicSkills: Object.freeze({
-      list: () => binding.publicSkills.list(),
-    }),
+    publicSkills: publicSkillsOf(binding.publicSkills),
     tools: Object.freeze({
       listForPermissionLevel: (level: UserPermissionLevel) =>
         binding.tools.listForPermissionLevel(level),
