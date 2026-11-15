@@ -84,3 +84,12 @@ export {
   type ImageBytes,
   type StoredImage,
 } from "./lib/image-bytes";
+
+// Classifying inline images for the offline migration
+export {
+  classifyInlineImage,
+  inlineImagePayload,
+  LEGACY_PENDING_IMAGE_PLACEHOLDER,
+  type InlineImageBlocker,
+  type InlineImageVerdict,
+} from "./lib/inline-image-migration";

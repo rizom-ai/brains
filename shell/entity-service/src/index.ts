@@ -311,3 +311,28 @@ export type {
 export { findEntityByIdentifier, resolveEntityOrError } from "./find-entity";
 export type { EntityLookupOptions, ResolvedEntity } from "./find-entity";
 export { editableFieldsOf } from "./editable-fields";
+export {
+  openOfflineEntityDatabase,
+  readBinaryAssetInventory,
+  readInlineBinaryRow,
+  type BinaryAssetInventory,
+  type InlineBinaryRow,
+  type OfflineEntityConnection,
+  type OfflineReader,
+} from "./offline/binary-asset-inventory";
+export {
+  verifyAssetBackedRows,
+  type AssetBackedVerification,
+  type AssetRowCheck,
+} from "./offline/binary-asset-verification";
+export {
+  OfflineBinaryMigrator,
+  type AssetRestoreInput,
+  type AssetRestoreOutcome,
+  type AssetRowInput,
+  type AssetRowOutcome,
+  type InlineRowMigrationInput,
+  type InlineRowMigrationOutcome,
+  type PlaceholderClearInput,
+  type PlaceholderClearOutcome,
+} from "./offline/binary-asset-migration";

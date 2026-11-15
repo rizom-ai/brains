@@ -401,6 +401,24 @@
       "targetRelease": "post-image-migration-soak"
     },
     {
+      "id": "binary-asset-offline-migration",
+      "paths": [
+        "packages/brain-cli/src/commands/assets-verify.ts",
+        "packages/brain-cli/src/lib/binary-asset-migration-plan.ts",
+        "packages/brain-cli/src/lib/binary-asset-migration-run.ts",
+        "shared/image/src/index.ts",
+        "shared/image/src/lib/inline-image-migration.ts"
+      ],
+      "symbol": "assets:migrate, assets:verify and assets:reconcile over inline image rows",
+      "owner": "@rizom/brain",
+      "class": "offline-migration",
+      "behavior": "Moves image rows stored as inline data URLs, and the placeholder pending images held, into durable assets offline, and verifies and reconciles the result.",
+      "currentConsumers": "Instances whose images were stored before durable assets, starting with the yeehaa.io cutover.",
+      "removalPrerequisite": "Every deployed instance has migrated and verified, and the legacy read mode and inline-content transition are removed.",
+      "rollbackDependency": "Rollback restores the pre-migration snapshot with its release; the tools never convert assets back to inline content.",
+      "targetRelease": "post-image-migration-soak"
+    },
+    {
       "id": "binary-content-legacy-read-mode",
       "paths": [
         "shell/entity-service/src/entityService.ts",
