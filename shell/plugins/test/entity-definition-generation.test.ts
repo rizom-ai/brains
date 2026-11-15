@@ -83,7 +83,7 @@ async function run(
   if (parsed === null) throw new Error(`Job data refused for ${type}`);
   return handler.process(
     parsed,
-    "job-under-test",
+    `job-under-test-${crypto.randomUUID()}`,
     createMockProgressReporter(),
     new AbortController().signal,
   );
@@ -603,6 +603,10 @@ describe("linking what a generation produced", () => {
       expect((await stored(harness, "post", "essay"))?.metadata).toMatchObject({
         coverImageId: "render-essay",
       });
+      // The store refuses a second record under a taken id.
+      await harness
+        .getEntityService()
+        .deleteEntity({ entityType: "render", id: "render-essay" });
       await run(
         harness,
         "render:generation",

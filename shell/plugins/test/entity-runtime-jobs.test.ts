@@ -88,7 +88,7 @@ async function run(
   if (parsed === null) throw new Error(`Job data refused for ${type}`);
   return handler.process(
     parsed,
-    "job-under-test",
+    `job-under-test-${crypto.randomUUID()}`,
     createMockProgressReporter(),
     new AbortController().signal,
   );
