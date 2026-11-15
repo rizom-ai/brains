@@ -342,9 +342,7 @@ export class EntityMutations {
           entityId: entity.id ?? "",
         }
       : undefined;
-    this.logger.debug(
-      `Creating entity asynchronously of type: ${entity["entityType"]}`,
-    );
+    this.logger.debug(`Creating entity of type: ${entity["entityType"]}`);
 
     const assertGroupingsCurrent =
       this.entityRegistry.captureGroupingWriteGuard(entity.entityType);
@@ -589,7 +587,7 @@ export class EntityMutations {
       ? { ...condition, entityType: entity.entityType, entityId: entity.id }
       : undefined;
     this.logger.debug(
-      `Updating entity asynchronously: ${entity.entityType} with ID ${entity.id}`,
+      `Updating entity: ${entity.entityType} with ID ${entity.id}`,
     );
 
     const assertGroupingsCurrent =

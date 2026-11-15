@@ -46,6 +46,10 @@ import type {
   OwnedEntityWriter,
 } from "./entity-definition-contract";
 import type { SchemaValue } from "../internal/schema-value";
+import {
+  attachFirstPartyRuntime,
+  firstPartyRuntimeOf,
+} from "../internal/first-party-runtime";
 import type { RetryScope } from "@brains/utils/retry-backoff";
 import type { EntityPluginContext } from "./context";
 import type {
@@ -437,6 +441,9 @@ export interface EntityRuntimeBinding {
 }
 
 const entityRuntimeKey = Symbol("rizom.entity-runtime");
+
+/** Every runtime the brain bound, so one read back is known to be one. */
+const boundEntityRuntimes = new WeakSet<object>();
 const ordinaryCreateKey = Symbol("rizom.ordinary-create");
 const queuedCreateKey = Symbol("rizom.queued-create");
 const storedCreateKey = Symbol("rizom.stored-create");
@@ -858,13 +865,7 @@ export function withDataSourceRuntime<TContext extends object>(
     generateObject: unavailable("generateObject", where),
     anyEntities: { service },
   });
-  Object.defineProperty(context, entityRuntimeKey, {
-    value: runtime,
-    enumerable: false,
-    writable: false,
-    configurable: false,
-  });
-  return Object.freeze(context);
+  return attachEntityRuntime(context, runtime);
 }
 
 /**
@@ -876,17 +877,21 @@ export function withEntityRuntime<TContext extends object>(
   context: TContext,
   binding: EntityRuntimeBinding,
 ): Readonly<TContext> {
-  Object.defineProperty(context, entityRuntimeKey, {
-    value: bindEntityRuntime(binding),
-    enumerable: false,
-    writable: false,
-    configurable: false,
-  });
-  return Object.freeze(context);
+  return attachEntityRuntime(context, bindEntityRuntime(binding));
 }
 
-function isEntityRuntime(value: unknown): value is EntityRuntime {
-  return typeof value === "object" && value !== null;
+function attachEntityRuntime<TContext extends object>(
+  context: TContext,
+  runtime: EntityRuntime,
+): Readonly<TContext> {
+  boundEntityRuntimes.add(runtime);
+  return Object.freeze(
+    attachFirstPartyRuntime(context, entityRuntimeKey, runtime),
+  );
+}
+
+function isEntityRuntime(value: object | undefined): value is EntityRuntime {
+  return value !== undefined && boundEntityRuntimes.has(value);
 }
 
 /** What a first-party entity type's answer is handed with its request. */
@@ -1471,7 +1476,7 @@ export function uniqueTitleContext(runtime: EntityRuntime): UniqueTitleContext {
  * has none, and is refused.
  */
 export function entityRuntime(context: object): EntityRuntime {
-  const runtime: unknown = Reflect.get(context, entityRuntimeKey);
+  const runtime = firstPartyRuntimeOf(context, entityRuntimeKey);
   if (!isEntityRuntime(runtime)) {
     throw new Error(
       "This context carries no entity runtime: entityRuntime() reaches internal capabilities of a callback context the brain's runtime built, for first-party packages only",
