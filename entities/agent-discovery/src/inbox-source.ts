@@ -56,10 +56,9 @@ export class AgentSightingsInboxSource implements InboxSource {
 
   async resolveDetail(
     itemId: string,
-    actor: InboxActor,
+    _actor: InboxActor,
     signal: AbortSignal,
   ): Promise<InboxItemDetail> {
-    assertAdmin(actor);
     signal.throwIfAborted();
     const entity = await this.getSighting(itemId);
     signal.throwIfAborted();
@@ -78,7 +77,6 @@ export class AgentSightingsInboxSource implements InboxSource {
     actionId: string,
     actor: InboxActor,
   ): Promise<void> {
-    assertAdmin(actor);
     if (actionId !== CONNECT_ACTION_ID && actionId !== DISMISS_ACTION_ID) {
       throw new Error("Invalid agent sighting Inbox action");
     }
@@ -196,10 +194,4 @@ function truncate(value: string, maxLength: number): string {
   return value.length <= maxLength
     ? value
     : `${value.slice(0, maxLength - 1)}…`;
-}
-
-function assertAdmin(actor: InboxActor): void {
-  if (actor.permissionLevel !== "admin") {
-    throw new Error("Agent sightings require admin permission");
-  }
 }

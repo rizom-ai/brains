@@ -578,7 +578,14 @@ describe("WebChatPlugin", () => {
       }),
     );
     const sourceReads: string[] = [];
-    const plugin = trustedAuthPlugin();
+    // An Inbox item's detail is an admin's; the Inbox refuses anyone else.
+    const plugin = createWebChatPlugin(
+      {},
+      {
+        resolveAuthPrincipal: async () =>
+          trustedPrincipal({ role: "admin", permissionLevel: "admin" }),
+      },
+    );
     await harness.installPlugin(plugin);
     harness
       .getMockShell()

@@ -426,6 +426,42 @@ describe("InboxRegistry", () => {
     );
   });
 
+  it("refuses a non-admin before the source reads or acts", async () => {
+    const registry = new InboxRegistry();
+    let reached = 0;
+    registry.registerSource(
+      "mail-plugin",
+      source("mail-items", {
+        onAct: async () => {
+          reached += 1;
+        },
+        onDetail: async () => {
+          reached += 1;
+          return { kind: "plain", text: "Private source", truncated: false };
+        },
+      }),
+    );
+    registry.finalize();
+    const registered = registry.getSource("mail-items");
+    if (!registered?.resolveDetail) throw new Error("No source detail");
+
+    for (const permissionLevel of ["trusted", "public"] as const) {
+      // eslint-disable-next-line @typescript-eslint/await-thenable -- bun expect(...).rejects returns a thenable the rule does not recognise
+      await expect(
+        registered.resolveDetail(
+          "mail-items-1",
+          { permissionLevel },
+          new AbortController().signal,
+        ),
+      ).rejects.toThrow("Source mail-items requires admin permission");
+      // eslint-disable-next-line @typescript-eslint/await-thenable -- bun expect(...).rejects returns a thenable the rule does not recognise
+      await expect(
+        registered.act("mail-items-1", "dismiss", { permissionLevel }),
+      ).rejects.toThrow("Source mail-items requires admin permission");
+    }
+    expect(reached).toBe(0);
+  });
+
   it("exposes plugin-scoped source registration to services", async () => {
     const [plugin] = instantiatePluginPackageDefinition(
       defineServicePlugin({

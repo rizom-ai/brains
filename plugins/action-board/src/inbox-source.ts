@@ -24,12 +24,6 @@ const MOVES: Readonly<Record<string, ActionItemStatus>> = {
   drop: "dropped",
 };
 
-function requireAdmin(actor: InboxActor): void {
-  if (actor.permissionLevel !== "admin") {
-    throw new Error("Action items inbox requires admin permission");
-  }
-}
-
 /** The Inbox holds at most this many blockers, newest first. */
 const LIST_LIMIT = 100;
 
@@ -90,7 +84,6 @@ export class ActionItemInboxSource implements InboxSource {
     actor: InboxActor,
     signal: AbortSignal,
   ): Promise<InboxItemDetail> {
-    requireAdmin(actor);
     signal.throwIfAborted();
     const entity = await this.context.entityService.getEntity(
       {
@@ -114,7 +107,6 @@ export class ActionItemInboxSource implements InboxSource {
     actionId: string,
     actor: InboxActor,
   ): Promise<void> {
-    requireAdmin(actor);
     const to = MOVES[actionId];
     if (!to) throw new Error("Invalid action-items inbox action");
     const result = await moveActionItem(

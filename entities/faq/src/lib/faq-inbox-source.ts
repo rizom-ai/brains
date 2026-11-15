@@ -37,11 +37,6 @@ const USE_ALTERNATIVE = /^use-alternative-([1-9]\d*)$/;
 /** The Inbox allows ten actions; one is "Keep current answer". */
 const MAX_ALTERNATIVES = 9;
 
-function requireAdmin(actor: InboxActor): void {
-  if (actor.permissionLevel !== "admin")
-    throw new Error("FAQ inbox requires admin permission");
-}
-
 function parse(entity: FaqEntity): ParsedFaq {
   return { entity, ...readFaq(entity) };
 }
@@ -120,7 +115,6 @@ export class FaqInboxSource implements InboxSource {
     actor: InboxActor,
     signal: AbortSignal,
   ): Promise<InboxItemDetail> {
-    requireAdmin(actor);
     signal.throwIfAborted();
     const { frontmatter, answer, alternatives, sources } = await this.load(
       itemId,
@@ -154,7 +148,6 @@ export class FaqInboxSource implements InboxSource {
     actionId: string,
     actor: InboxActor,
   ): Promise<void> {
-    requireAdmin(actor);
     const faq = await this.load(itemId, actor);
     if (actionId === "decline") {
       this.allow("delete", actor);

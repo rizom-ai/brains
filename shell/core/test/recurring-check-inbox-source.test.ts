@@ -42,16 +42,12 @@ describe("recurring-check Inbox source", () => {
     ]);
   });
 
-  it("lets only an Admin resolve an item through the declared action", async () => {
+  it("resolves an item through the declared action, and refuses any other", async () => {
     const { source, resolved } = createFixture();
 
-    const permissionError = await source
-      .act(openAlert.id, "resolve", { permissionLevel: "trusted" })
-      .catch((error: unknown) => error);
     const actionError = await source
       .act(openAlert.id, "dismiss", { permissionLevel: "admin" })
       .catch((error: unknown) => error);
-    expect(permissionError).toEqual(new Error("Admin permission required"));
     expect(actionError).toEqual(
       new Error("Invalid recurring-check inbox action"),
     );

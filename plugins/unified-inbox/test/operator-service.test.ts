@@ -498,7 +498,7 @@ describe("InboxOperatorService", () => {
     expect(serialized).not.toContain("prsn_sam");
   });
 
-  it("passes the caller to the source so source-owned authorization remains authoritative", async () => {
+  it("refuses a non-admin action before the source is reached", async () => {
     const fixture = createService({
       rejectActor: (actor) => {
         if (actor.permissionLevel !== "admin") {
@@ -517,8 +517,8 @@ describe("InboxOperatorService", () => {
         },
         { permissionLevel: "trusted" },
       ),
-    ).rejects.toThrow("Source requires admin permission");
-    expect(fixture.actors).toEqual([{ permissionLevel: "trusted" }]);
+    ).rejects.toThrow("requires admin permission");
+    expect(fixture.actors).toEqual([]);
   });
 
   it("rejects actions that are not currently offered by the owning source", async () => {

@@ -90,7 +90,7 @@ describe("agent sightings Inbox source", () => {
     await harness.reset();
   });
 
-  it("connects or dismisses a sighting through admin-only entity updates", async () => {
+  it("connects or dismisses a sighting through entity updates", async () => {
     const { harness, source } = await createSource();
     for (const id of ["connect.example", "dismiss.example"]) {
       await harness.getEntityService().createEntity({
@@ -104,11 +104,6 @@ describe("agent sightings Inbox source", () => {
       });
     }
 
-    expect(
-      source.act("connect.example", "connect", {
-        permissionLevel: "trusted",
-      }),
-    ).rejects.toThrow("Agent sightings require admin permission");
     expect(
       source.act("connect.example", "resolve", {
         permissionLevel: "admin",

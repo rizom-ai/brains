@@ -25,10 +25,7 @@ export function createRecurringCheckInboxSource(
           },
         ],
       })),
-    act: async (itemId, actionId, actor): Promise<void> => {
-      if (actor.permissionLevel !== "admin") {
-        throw new Error("Admin permission required");
-      }
+    act: async (itemId, actionId): Promise<void> => {
       if (actionId !== RESOLVE_ACTION_ID) {
         throw new Error("Invalid recurring-check inbox action");
       }

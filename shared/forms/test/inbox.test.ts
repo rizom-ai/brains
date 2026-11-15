@@ -135,21 +135,9 @@ describe("a form target's Inbox source", () => {
     expect(source.list()).rejects.toThrow(new Error("Note inbox unavailable"));
   });
 
-  it("refuses a non-admin its details and actions", async () => {
+  it("refuses an action it does not offer", async () => {
     const { context, source, add } = await fixture();
     await add("note-new", { name: "Ada" });
-    for (const permissionLevel of ["public", "trusted"] as const) {
-      expect(
-        source.resolveDetail(
-          "note-new",
-          { permissionLevel },
-          new AbortController().signal,
-        ),
-      ).rejects.toThrow(new Error("Note inbox requires admin permission"));
-      expect(
-        source.act("note-new", "mark-handled", { permissionLevel }),
-      ).rejects.toThrow(new Error("Note inbox requires admin permission"));
-    }
     expect(source.act("note-new", "publish", admin)).rejects.toThrow(
       new Error("Invalid note inbox action"),
     );
