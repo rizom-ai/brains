@@ -400,6 +400,72 @@ describe("guest runtime boundary", () => {
     expect(stored).not.toContain("PRIVATE");
   });
 
+  it("stores a visitor's question and reply as public, with no actor, source or turn facts", async () => {
+    const h = harness();
+    h.generate.mockResolvedValue({
+      text: "Public answer",
+      usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      steps: [
+        {
+          toolCalls: [
+            {
+              toolName: "system_get",
+              toolCallId: "read",
+              input: { entityType: "note", id: "public-note" },
+            },
+          ],
+          toolResults: [
+            {
+              toolName: "system_get",
+              toolCallId: "read",
+              output: {
+                success: true,
+                data: {
+                  entity: {
+                    id: "public-note",
+                    entityType: "note",
+                    content: "Public evidence",
+                    metadata: {
+                      title: "Public note",
+                      url: "https://example.org/source",
+                    },
+                  },
+                },
+              },
+            },
+          ],
+        },
+      ],
+    });
+    await h.service.chat("What is public?", conversation.id, guestContext);
+    expect(h.conversations.addMessage.mock.calls).toEqual([
+      [
+        {
+          conversationId: conversation.id,
+          role: "user",
+          content: "What is public?",
+          metadata: { userPermissionLevel: "public" },
+        },
+      ],
+      [
+        {
+          conversationId: conversation.id,
+          role: "assistant",
+          content: "Public answer",
+          metadata: {
+            userPermissionLevel: "public",
+            cards: [
+              expect.objectContaining({
+                kind: "sources",
+                id: "sources:tool-results",
+              }),
+            ],
+          },
+        },
+      ],
+    ]);
+  });
+
   describe("gives an answer the public pages closest to it as its sources", () => {
     // The lookup found a social post about an essay; the answer is about the essay.
     const lookupSteps = [
@@ -589,6 +655,47 @@ describe("guest runtime boundary", () => {
       expect(reply?.[0].metadata).toMatchObject({
         askedBefore: { faqId: "how-does-rizom-keep-memory" },
       });
+    });
+    it("stores the FAQ's reply as public, with its sources and the FAQ it came from", async () => {
+      const h = harness(conversation, [], {
+        guestAskedBefore: async () => askedBefore,
+      });
+      await h.service.chat(
+        "How does Rizom keep memory?",
+        conversation.id,
+        guestContext,
+      );
+      expect(h.conversations.addMessage.mock.calls).toEqual([
+        [
+          {
+            conversationId: conversation.id,
+            role: "user",
+            content: "How does Rizom keep memory?",
+            metadata: { userPermissionLevel: "public" },
+          },
+        ],
+        [
+          {
+            conversationId: conversation.id,
+            role: "assistant",
+            content: askedBefore.answer,
+            metadata: {
+              userPermissionLevel: "public",
+              cards: [
+                expect.objectContaining({
+                  kind: "sources",
+                  id: "sources:tool-results",
+                }),
+              ],
+              askedBefore: { faqId: askedBefore.faqId },
+              faqCapture: {
+                faqId: askedBefore.faqId,
+                question: askedBefore.faqQuestion,
+              },
+            },
+          },
+        ],
+      ]);
     });
     it.each(["hit", "miss", "error"] as const)(
       "settles confirmation and preflight embeddings on a %s",
