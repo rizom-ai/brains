@@ -1,6 +1,7 @@
 import { requestContract, type MessageBus } from "@brains/messaging-service";
 import { notificationsSendContract } from "@brains/contracts";
 import type {
+  RecurringAlertDeliveryOptions,
   RecurringCheckDelivery,
   RecurringAlert,
 } from "@brains/recurring-checks";
@@ -9,7 +10,10 @@ export function createRecurringCheckDelivery(
   messageBus: MessageBus,
 ): RecurringCheckDelivery {
   return {
-    deliver: async (alert: RecurringAlert): Promise<boolean> => {
+    deliver: async (
+      alert: RecurringAlert,
+      { idempotencyKey }: RecurringAlertDeliveryOptions,
+    ): Promise<boolean> => {
       const result = await requestContract(
         messageBus,
         notificationsSendContract,
@@ -17,6 +21,7 @@ export function createRecurringCheckDelivery(
           title: alert.title,
           body: alert.body,
           ...(alert.html ? { html: alert.html } : {}),
+          idempotencyKey,
         },
         "shell.recurring-checks",
       );
