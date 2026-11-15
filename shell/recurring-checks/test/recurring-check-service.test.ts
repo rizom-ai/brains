@@ -187,7 +187,7 @@ const fixtureClock: Clock.Clock = await Effect.runPromise(
 
 interface CreateServiceOptions {
   clock?: Clock.Clock;
-  delivery?: (body: string) => Promise<boolean | void>;
+  delivery?: (body: string, idempotencyKey: string) => Promise<boolean | void>;
 }
 
 interface ServiceFixture<TScheduler extends SchedulerBackend> {
@@ -196,6 +196,8 @@ interface ServiceFixture<TScheduler extends SchedulerBackend> {
   queue: TestJobQueue;
   state: MemoryRuntimeState;
   delivered: string[];
+  /** The idempotency key each delivery attempt carried, in order. */
+  deliveryKeys: string[];
 }
 
 function createService<TScheduler extends SchedulerBackend>(
@@ -212,6 +214,7 @@ function createService(
   const queue = new TestJobQueue();
   const state = new MemoryRuntimeState();
   const delivered: string[] = [];
+  const deliveryKeys: string[] = [];
   const service = new RecurringCheckService({
     brainId: "brain.example",
     scheduler,
@@ -220,16 +223,17 @@ function createService(
     logger,
     clock,
     delivery: {
-      deliver: async (alert): Promise<boolean | void> => {
+      deliver: async (alert, { idempotencyKey }): Promise<boolean | void> => {
+        deliveryKeys.push(idempotencyKey);
         const outcome = options.delivery
-          ? await options.delivery(alert.body)
+          ? await options.delivery(alert.body, idempotencyKey)
           : undefined;
         if (outcome !== false) delivered.push(alert.body);
         return outcome;
       },
     },
   });
-  return { service, scheduler, queue, state, delivered };
+  return { service, scheduler, queue, state, delivered, deliveryKeys };
 }
 
 describe("RecurringCheckService", () => {
@@ -906,6 +910,84 @@ describe("RecurringCheckService", () => {
     await service.runNow("agent:directory-scan");
 
     expect(delivered).toEqual(["one", "two"]);
+  });
+
+  it("sends an alert once when its run dies between delivery and the delivered mark", async () => {
+    // A provider that honours idempotency keys, as the email transport does:
+    // a repeated key answers the original send without sending again.
+    const sent = new Map<string, string>();
+    let dieAfterSend = true;
+    const { service, deliveryKeys, state } = createService({
+      delivery: async (body, idempotencyKey) => {
+        if (!sent.has(idempotencyKey)) sent.set(idempotencyKey, body);
+        if (dieAfterSend) {
+          dieAfterSend = false;
+          // The send went out; the run dies before it records delivery.
+          throw new Error("killed before the delivered mark");
+        }
+        return true;
+      },
+    });
+    service.namespace("monitoring").register({
+      id: "health-check",
+      cadence: "daily",
+      run: async () => ({
+        alerts: [
+          {
+            dedupeKey: "database-down",
+            title: "Database health check failed",
+            body: "The primary database did not answer the health check.",
+          },
+        ],
+      }),
+    });
+
+    const killed = await service.runNow("monitoring:health-check").then(
+      () => undefined,
+      (error: unknown) => error,
+    );
+    expect(killed).toEqual(new Error("killed before the delivered mark"));
+    expect(await service.runNow("monitoring:health-check")).toBe(true);
+
+    expect([...sent.values()]).toEqual([
+      "The primary database did not answer the health check.",
+    ]);
+    expect(deliveryKeys).toHaveLength(2);
+    expect(deliveryKeys[1]).toBe(deliveryKeys[0]);
+    expect(deliveryKeys[0]?.length).toBeLessThanOrEqual(200);
+    expect(state.snapshot()).toContainEqual(
+      expect.objectContaining({ kind: "alert", status: "delivered" }),
+    );
+  });
+
+  it("gives each alert and each episode its own idempotency key", async () => {
+    const { service, deliveryKeys } = createService();
+    let episode = 1;
+    service.namespace("agents").register({
+      id: "directory-scan",
+      cadence: "daily",
+      run: async () => ({
+        alerts: [
+          { dedupeKey: `sighting-${episode}`, title: "Sighting", body: "One." },
+          { dedupeKey: "conflict", title: "Conflict", body: "Two." },
+        ],
+      }),
+    });
+    service.namespace("monitoring").register({
+      id: "health-check",
+      cadence: "daily",
+      run: async () => ({
+        alerts: [{ dedupeKey: "conflict", title: "Conflict", body: "Three." }],
+      }),
+    });
+
+    await service.runNow("agents:directory-scan");
+    episode = 2;
+    await service.runNow("agents:directory-scan");
+    await service.runNow("monitoring:health-check");
+
+    expect(deliveryKeys).toHaveLength(4);
+    expect(new Set(deliveryKeys).size).toBe(4);
   });
 
   it("keeps one open alert when the notification channel is unavailable", async () => {

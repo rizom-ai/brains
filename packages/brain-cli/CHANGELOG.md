@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.719
+
+### Patch Changes
+
+- [#968](https://github.com/rizom-ai/brains/pull/968) [`214f5b4`](https://github.com/rizom-ai/brains/commit/214f5b46028f09a5c8316f529545662cc4064529) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A recurring check alert is no longer emailed twice when its run dies after the send and before the alert is marked delivered. Each delivery attempt of an alert now carries the same idempotency key, derived from the alert and the time it was first observed, and the email provider answers a repeated key without sending again. The provider keeps a key for 24 hours, so a rerun that comes more than a day after such a crash can still send the alert a second time.
+
 ## 0.2.0-alpha.718
 
 ### Patch Changes

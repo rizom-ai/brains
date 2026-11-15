@@ -66,6 +66,7 @@ export function createStockPhotoPackage(
               getEntity: runtime.entityReads.getEntity,
               ...runtime.entityWrites,
             },
+            receipts: runtime.entityMutations,
           }),
         ];
       },

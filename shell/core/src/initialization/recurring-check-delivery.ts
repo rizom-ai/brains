@@ -1,6 +1,7 @@
 import { requestContract, type MessageBus } from "@brains/messaging-service";
 import { notificationsSendContract } from "@brains/contracts";
 import type {
+  RecurringAlertDeliveryOptions,
   RecurringCheckDelivery,
   RecurringAlert,
 } from "@brains/recurring-checks";
@@ -9,7 +10,10 @@ export function createRecurringCheckDelivery(
   messageBus: MessageBus,
 ): RecurringCheckDelivery {
   return {
-    deliver: async (alert: RecurringAlert): Promise<boolean> => {
+    deliver: async (
+      alert: RecurringAlert,
+      { idempotencyKey }: RecurringAlertDeliveryOptions,
+    ): Promise<boolean> => {
       const result = await requestContract(
         messageBus,
         notificationsSendContract,
@@ -20,6 +24,7 @@ export function createRecurringCheckDelivery(
           // A secret alert stays secret: the transport keeps its recipient
           // and subject out of its logs.
           ...(alert.sensitivity ? { sensitivity: alert.sensitivity } : {}),
+          idempotencyKey,
         },
         "shell.recurring-checks",
       );

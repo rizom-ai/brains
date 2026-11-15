@@ -14,6 +14,7 @@ import {
 import type { StockPhotoProvider } from "../src/lib/types";
 import { computeAssetDigest, createAssetRef } from "@brains/plugins";
 import { createMockAssetStore } from "@brains/entity-service/test";
+import type { EntityMutationReceipt } from "@brains/entity-service";
 
 const TINY_PNG_BASE64 =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
@@ -79,15 +80,30 @@ const resultSchema = z.object({
   warning: z.string().optional(),
 });
 
+/** Done-markers held in memory, as the entity service's receipts hold them. */
+function createReceipts(): SelectPhotoHandlerDeps["receipts"] {
+  const recorded = new Set<string>();
+  return {
+    getEntityMutationReceipt: async ({ namespace, key }) =>
+      recorded.has(`${namespace}/${key}`) ? { operation: "none" } : null,
+    applyEntityMutationOnce: async (
+      request,
+    ): Promise<EntityMutationReceipt> => {
+      recorded.add(`${request.receipt.namespace}/${request.receipt.key}`);
+      return { operation: "none" };
+    },
+  };
+}
+
 /** The select-photo job, run as the queue runs it, its result read back. */
-function createHandler(deps: SelectPhotoHandlerDeps): {
+function createHandler(deps: Omit<SelectPhotoHandlerDeps, "receipts">): {
   process(
     data: SelectPhotoJobData,
     jobId: string,
     progress: ProgressReporter,
   ): Promise<z.output<typeof resultSchema>>;
 } {
-  const job = selectPhotoJob(deps);
+  const job = selectPhotoJob({ ...deps, receipts: createReceipts() });
   return {
     process: async (data, jobId, progress) =>
       resultSchema.parse(

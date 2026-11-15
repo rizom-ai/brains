@@ -17,17 +17,18 @@ const alert = {
   title: "Database health check failed",
   body: "The primary database did not answer the health check.",
 };
+const delivery = { idempotencyKey: "recurring-alert:episode" };
 
 describe("recurring-check notification delivery", () => {
   it("reports an unavailable channel without failing the check", async () => {
-    const delivery = createRecurringCheckDelivery(
+    const recurring = createRecurringCheckDelivery(
       MessageBus.createFresh(logger),
     );
 
-    expect(await delivery.deliver(alert)).toBe(false);
+    expect(await recurring.deliver(alert, delivery)).toBe(false);
   });
 
-  it("preserves the existing notification payload when a channel is present", async () => {
+  it("sends the notification under the alert's idempotency key", async () => {
     const messageBus = MessageBus.createFresh(logger);
     let payload: SendNotificationInput | undefined;
     messageBus.subscribe<SendNotificationInput, SendNotificationResult>(
@@ -37,14 +38,15 @@ describe("recurring-check notification delivery", () => {
         return { success: true, data: { status: "sent" } };
       },
     );
-    const delivery = createRecurringCheckDelivery(messageBus);
+    const recurring = createRecurringCheckDelivery(messageBus);
 
-    expect(await delivery.deliver(alert)).toBe(true);
+    expect(await recurring.deliver(alert, delivery)).toBe(true);
     // The contract normalizes the request before it leaves, defaults included.
     expect(payload).toEqual({
       title: alert.title,
       body: alert.body,
       sensitivity: "normal",
+      idempotencyKey: "recurring-alert:episode",
     });
   });
 
@@ -58,11 +60,14 @@ describe("recurring-check notification delivery", () => {
         return { success: true, data: { status: "sent" } };
       },
     );
-    const delivery = createRecurringCheckDelivery(messageBus);
+    const recurring = createRecurringCheckDelivery(messageBus);
 
-    expect(await delivery.deliver({ ...alert, sensitivity: "secret" })).toBe(
-      true,
-    );
-    expect(payload).toMatchObject({ sensitivity: "secret" });
+    expect(
+      await recurring.deliver({ ...alert, sensitivity: "secret" }, delivery),
+    ).toBe(true);
+    expect(payload).toMatchObject({
+      sensitivity: "secret",
+      idempotencyKey: "recurring-alert:episode",
+    });
   });
 });
