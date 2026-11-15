@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.716
+
+### Patch Changes
+
+- [#960](https://github.com/rizom-ai/brains/pull/960) [`4929c4e`](https://github.com/rizom-ai/brains/commit/4929c4eac7415aefe8af3958b962d180df06c599) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A conditional delete of a container that changed since it was read no longer deletes the container's contents: it deletes nothing.
+
 ## 0.2.0-alpha.715
 
 ### Patch Changes

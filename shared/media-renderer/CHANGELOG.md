@@ -1,5 +1,12 @@
 # @brains/media-renderer
 
+## 0.2.0-alpha.716
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.716
+
 ## 0.2.0-alpha.715
 
 ### Patch Changes
