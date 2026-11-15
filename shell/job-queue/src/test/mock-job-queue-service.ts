@@ -173,6 +173,11 @@ export function createMockJobQueueService(
       }
       return Promise.resolve(true);
     }),
+    release: mock((jobId: string) => {
+      const job = jobs.get(jobId);
+      if (job) jobs.set(jobId, { ...job, status: "pending", attemptId: null });
+      return Promise.resolve(true);
+    }),
     update: mock(() => Promise.resolve(true)),
     getStatus: mock(() => Promise.resolve(returns.getStatus ?? null)),
     getJobsByRootJobId: mock(() =>

@@ -29,6 +29,7 @@
     "./clone": "./src/clone.ts",
     "./date": "./src/date.ts",
     "./deferred": "./src/deferred.ts",
+    "./drain-server": "./src/drain-server.ts",
     "./debounce": "./src/debounce.ts",
     "./effect": "./src/effect.ts",
     "./effect/bun": "./src/effect-bun.ts",

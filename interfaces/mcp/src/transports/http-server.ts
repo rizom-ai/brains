@@ -11,6 +11,10 @@ import {
   type McpServer,
 } from "@modelcontextprotocol/server";
 import type { ActorRef } from "@brains/contracts";
+import {
+  DEFAULT_SHUTDOWN_DRAIN_MS,
+  stopServerWithinDrain,
+} from "@brains/utils/drain-server";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import type { TransportLogger } from "./types";
@@ -39,6 +43,11 @@ export interface StreamableHTTPServerConfig {
   host?: string;
   logger?: Logger | TransportLogger;
   auth?: AuthConfig;
+  /**
+   * How long stop() lets requests in flight finish before it closes them.
+   * Defaults to {@link DEFAULT_SHUTDOWN_DRAIN_MS}.
+   */
+  shutdownDrainMs?: number;
 }
 
 const CORS_HEADERS = {
@@ -428,11 +437,19 @@ export class StreamableHTTPServer {
     this.mcpHandler = null;
     this.mcpTransport = null;
 
-    if (this.server) {
-      await this.server.stop();
+    const server = this.server;
+    if (server) {
+      try {
+        await stopServerWithinDrain(server, {
+          drainMs: this.config.shutdownDrainMs ?? DEFAULT_SHUTDOWN_DRAIN_MS,
+          logger: this.logger,
+          label: "StreamableHTTP server",
+        });
+      } finally {
+        this.server = null;
+        this.boundPort = null;
+      }
       this.logger.info("StreamableHTTP server stopped");
-      this.server = null;
-      this.boundPort = null;
     }
   }
 

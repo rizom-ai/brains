@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
 import type { FetchFn } from "../src/client";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -124,6 +124,43 @@ describe("A2A HTTP routes", () => {
       error: "Use POST with JSON-RPC 2.0 requests.",
       agentCard: "/.well-known/agent-card.json",
     });
+  });
+
+  it("answers a request whose body is cut off with 400, logging no error", async () => {
+    serveHttp();
+    const plugin = createA2APlugin({ port: 0 });
+    await harness.installPlugin(plugin);
+    const consoleError = spyOn(console, "error").mockImplementation(
+      () => undefined,
+    );
+    try {
+      // What a stopping host's forced close leaves a body read with.
+      const body = new ReadableStream<Uint8Array>({
+        pull: (controller): void => {
+          controller.error(
+            new DOMException("The connection was closed.", "AbortError"),
+          );
+        },
+      });
+
+      const response = await a2aPostRoute(plugin).handler(
+        new Request("http://brain/a2a", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body,
+        }),
+      );
+
+      expect(response.status).toBe(400);
+      expect(await response.json()).toEqual({
+        jsonrpc: "2.0",
+        error: { code: -32700, message: "Request body could not be read" },
+        id: null,
+      });
+      expect(consoleError).not.toHaveBeenCalled();
+    } finally {
+      consoleError.mockRestore();
+    }
   });
 
   it("registers without HTTP in tool-only mode", async () => {
