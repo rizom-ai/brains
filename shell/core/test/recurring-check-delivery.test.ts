@@ -47,4 +47,22 @@ describe("recurring-check notification delivery", () => {
       sensitivity: "normal",
     });
   });
+
+  it("sends a secret alert as a secret notification", async () => {
+    const messageBus = MessageBus.createFresh(logger);
+    let payload: SendNotificationInput | undefined;
+    messageBus.subscribe<SendNotificationInput, SendNotificationResult>(
+      notificationsSendContract.name,
+      (message) => {
+        payload = message.payload;
+        return { success: true, data: { status: "sent" } };
+      },
+    );
+    const delivery = createRecurringCheckDelivery(messageBus);
+
+    expect(await delivery.deliver({ ...alert, sensitivity: "secret" })).toBe(
+      true,
+    );
+    expect(payload).toMatchObject({ sensitivity: "secret" });
+  });
 });
