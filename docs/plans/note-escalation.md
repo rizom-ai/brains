@@ -19,10 +19,11 @@ Notes come in two levels. A plain note is a loose capture in the root of the con
 - **Roots are removed right away, with no link back.** The refined note stores no reference to the notes it came from. The removed files remain only in the content repository's git history.
 - **Two levels.** Only `note` entities can be escalated. A refined note cannot be escalated or used as a root.
 - **Visibility.** A refined note takes the most restrictive visibility among its roots.
+- **No new tool.** Escalation is `system_generate` with the `prompt-from-source` operation and `refined-note` as the target type (`shell/core/src/system/schemas.ts`). The operation gains two things: it accepts several source entities, and its prompt becomes optional, serving as a direction for the writing when given. The `refined-note` type declares that its sources are used up, so the tool removes them and its confirmation says so. Other entity types keep their sources.
 
 ## Flow
 
-Escalation takes `noteIds` (one or more) and optional grouping memberships. It is the same on every interface (chat, MCP, Studio) and follows the confirmation the delete tool already uses (`shell/core/src/system/entity-delete-tool.ts`).
+Escalation takes one or more source notes, an optional direction and optional grouping memberships. It is the same on every interface (chat, MCP, Studio) and uses the generate tool's existing confirmation step.
 
 1. A caller who may not delete notes gets the permission error that deleting a note gives today. Delete permission is decided per entity type and permission level, so it holds for all the chosen notes or for none.
 2. Every id must name a `note` visible to the caller. Anything else is not found, with no sign of whether a hidden note exists, and nothing changes.
@@ -33,8 +34,8 @@ Escalation takes `noteIds` (one or more) and optional grouping memberships. It i
 
 ## Phases
 
-1. **Walking skeleton.** The `refined-note` entity (schema, markdown adapter, required title and summary), the escalation template, and escalation of a single root behind the confirmation, with the root deleted. Tests for the schema, the permission error, not found, the confirmation, the failure branches and the delete; an eval for the template.
-2. **Several roots into one.** `noteIds` with more than one id, one confirmation naming all of them, visibility from the most restrictive root, failed-delete reporting.
+1. **Walking skeleton.** The `refined-note` entity (schema, markdown adapter, required title and summary), the escalation template, the optional prompt on `prompt-from-source`, the used-up-sources declaration, and escalation of a single root behind the confirmation, with the root deleted. Tests for the schema, the permission error, not found, the confirmation, the failure branches and the delete; an eval for the template.
+2. **Several roots into one.** Several sources on `prompt-from-source`, one confirmation naming all of them, visibility from the most restrictive root, failed-delete reporting.
 3. **Required grouping membership.** The persist validator that applies only where a grouping applies, and membership chosen by the brain for open and closed groupings.
 4. **Escalate from Studio.** Select one or more notes in the library and escalate them.
 
