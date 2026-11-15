@@ -1,123 +1,91 @@
+import type {
+  EntityDefinition,
+  EntityInboxDeclaration,
+} from "@brains/sdk/entities";
+import type { InboxItem } from "@brains/sdk/internal/service-runtime";
 import {
   parseAgentEntity,
   rewriteAgentContent,
   type ParsedAgent,
 } from "./lib/agent-content";
 import { AGENT_ENTITY_TYPE } from "./lib/constants";
-import { agentEntitySchema, type AgentEntity } from "./schemas/agent";
 import {
-  inboxItemListSchema,
-  type InboxActor,
-  type InboxItem,
-  type InboxItemDetail,
-  type InboxSource,
-} from "@brains/sdk/internal/service-runtime";
-import type { AgentContext } from "./lib/agent-context";
+  agentEntitySchema,
+  type AgentEntity,
+  type agentMetadataSchema,
+} from "./schemas/agent";
+
+type AgentDefinition = EntityDefinition<
+  typeof AGENT_ENTITY_TYPE,
+  typeof agentMetadataSchema
+>;
 
 const SIGHTING_LIMIT = 100;
 const DETAIL_LIMIT = 50_000;
 const CONNECT_ACTION_ID = "connect";
 const DISMISS_ACTION_ID = "dismiss";
 
-type AgentSightingContext = Pick<AgentContext, "entityService" | "permissions">;
+/** A record that is a sighting: discovered, and introduced by a peer. */
+function sightingOf(
+  record: unknown,
+): { entity: AgentEntity; parsed: ParsedSighting } | undefined {
+  const entity = agentEntitySchema.parse(record);
+  const parsed = parseSighting(entity);
+  return parsed ? { entity, parsed } : undefined;
+}
 
-/** Projects second-order agents as individual, actionable Inbox items. */
-export class AgentSightingsInboxSource implements InboxSource {
-  readonly sourceId: string = "agent-sightings";
-  readonly displayName: string = "Agent sightings";
-
-  private readonly context: AgentSightingContext;
-
-  constructor(context: AgentSightingContext) {
-    this.context = context;
-  }
-
-  async list(): Promise<InboxItem[]> {
-    const entities = await this.context.entityService.listEntities(
-      {
-        entityType: AGENT_ENTITY_TYPE,
-        options: {
-          limit: SIGHTING_LIMIT,
-          sortFields: [{ field: "discoveredAt", direction: "desc" }],
-          filter: { metadata: { status: "discovered" } },
-        },
-      },
-      agentEntitySchema,
-    );
-
-    return inboxItemListSchema.parse(
-      entities.flatMap((entity) => {
-        const parsed = parseSighting(entity);
-        if (!parsed) return [];
-        return [toInboxItem(entity, parsed)];
-      }),
-    );
-  }
-
-  async resolveDetail(
-    itemId: string,
-    _actor: InboxActor,
-    signal: AbortSignal,
-  ): Promise<InboxItemDetail> {
+/**
+ * Agents a saved peer introduced, as individual Inbox items: connect to one,
+ * or dismiss it. The Inbox opens and acts as the operator, at their
+ * visibility.
+ */
+export const agentSightingsInbox: EntityInboxDeclaration<AgentDefinition> = {
+  sourceId: "agent-sightings",
+  displayName: "Agent sightings",
+  list: async ({ records }) =>
+    (await records.list())
+      .flatMap((record) => {
+        const sighting = sightingOf(record);
+        return sighting ? [sighting] : [];
+      })
+      .sort((a, b) =>
+        b.parsed.frontmatter.discoveredAt.localeCompare(
+          a.parsed.frontmatter.discoveredAt,
+        ),
+      )
+      .slice(0, SIGHTING_LIMIT)
+      .map(({ entity, parsed }) => toInboxItem(entity, parsed)),
+  resolveDetail: async (itemId, { records, signal }) => {
     signal.throwIfAborted();
-    const entity = await this.getSighting(itemId);
+    const sighting = sightingOf(await records.get(itemId));
     signal.throwIfAborted();
-    const parsed = parseSighting(entity);
-    if (!parsed) throw new Error("Agent sighting not found");
-    const text = detailText(entity, parsed);
+    if (!sighting) throw new Error("Agent sighting not found");
+    const text = detailText(sighting.entity, sighting.parsed);
     return {
       kind: "plain",
       text: text.slice(0, DETAIL_LIMIT),
       truncated: text.length > DETAIL_LIMIT,
     };
-  }
-
-  async act(
-    itemId: string,
-    actionId: string,
-    actor: InboxActor,
-  ): Promise<void> {
+  },
+  act: async (itemId, actionId, { records, edits }) => {
     if (actionId !== CONNECT_ACTION_ID && actionId !== DISMISS_ACTION_ID) {
       throw new Error("Invalid agent sighting Inbox action");
     }
-    this.context.permissions.assertEntityActionAllowed(
-      AGENT_ENTITY_TYPE,
-      "update",
-      { userPermissionLevel: actor.permissionLevel },
-    );
-
-    const entity = await this.getSighting(itemId);
-    const parsed = parseSighting(entity);
-    if (!parsed) throw new Error("Agent sighting not found");
+    const record = await records.get(itemId);
+    const sighting = record ? sightingOf(record) : undefined;
+    if (!record || !sighting) throw new Error("Agent sighting not found");
     const status = actionId === CONNECT_ACTION_ID ? "approved" : "archived";
-    const content = rewriteAgentContent(parsed, {
-      status,
-      ...(status === "approved"
-        ? { introducedBy: undefined, hops: undefined }
-        : {}),
+    await edits.update(record, {
+      content: rewriteAgentContent(sighting.parsed, {
+        status,
+        ...(status === "approved"
+          ? { introducedBy: undefined, hops: undefined }
+          : {}),
+      }),
+      metadata: { ...record.metadata, status },
     });
-    const result = await this.context.entityService.updateEntity({
-      entity: {
-        ...entity,
-        content,
-        metadata: { ...entity.metadata, status },
-      },
-      options: { expectedContentHash: entity.contentHash },
-    });
-    if (result.skipReason === "content-conflict") {
-      throw new Error("Agent sighting changed; reload it and try again");
-    }
-  }
-
-  private async getSighting(itemId: string): Promise<AgentEntity> {
-    const entity = await this.context.entityService.getEntity(
-      { entityType: AGENT_ENTITY_TYPE, id: itemId },
-      agentEntitySchema,
-    );
-    if (!entity) throw new Error("Agent sighting not found");
-    return entity;
-  }
-}
+  },
+};
 
 type ParsedSighting = ParsedAgent;
 

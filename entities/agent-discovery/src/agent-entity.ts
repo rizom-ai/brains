@@ -11,6 +11,7 @@ import { agentMetadataOf } from "./lib/agent-content";
 import { agentGeneration } from "./lib/agent-generation";
 import { AGENT_ENTITY_TYPE } from "./lib/constants";
 import { agentFrontmatterSchema, agentMetadataSchema } from "./schemas/agent";
+import { agentSightingsInbox } from "./agent-sightings-inbox";
 
 const storedAgent = storedDocumentCodec<
   typeof agentFrontmatterSchema,
@@ -44,6 +45,7 @@ export function agentEntity(
             "A saved remote peer-brain contact in the local agent directory.",
           metadata: agentMetadataSchema,
           markdown: storedAgent,
+          inbox: agentSightingsInbox,
           config: {
             projectionSourceRole: "supporting",
             // Nothing reads these; did and a2aEndpoint duplicate brainDid and url.

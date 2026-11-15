@@ -1416,9 +1416,11 @@ class DeclarativeEntityPlugin extends PluginCore<
         `${this.entityType} binds dashboard widget "${repeated}" twice`,
       );
     }
-    // The shell removes a plugin's Inbox sources with the plugin.
+    // The shell removes a plugin's Inbox sources with the plugin. The Inbox
+    // is read in the main process; a worker registers none.
     const inbox = this.definition.inbox;
-    if (inbox) context.inbox.registerSource(this.inboxSource(context, inbox));
+    if (inbox && !context.executionOnly)
+      context.inbox.registerSource(this.inboxSource(context, inbox));
     const media = this.attachments?.length
       ? mediaAttachmentContext(context)
       : undefined;

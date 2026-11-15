@@ -75,7 +75,6 @@ export {
   prepareFaqMerge,
 } from "./lib/faq-store";
 export type { FaqStoreDeps } from "./lib/faq-store";
-export { FaqInboxSource } from "./lib/faq-inbox-source";
 export { capturedReplyStore } from "./lib/captured-replies";
 export type { CapturedReply, CapturedReplyStore } from "./lib/captured-replies";
 export { answerAskedBefore } from "./lib/asked-before";

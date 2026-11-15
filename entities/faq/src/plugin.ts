@@ -27,7 +27,6 @@ import { SAME_QUESTION_DISTANCE } from "./lib/faq-store";
 import { answerAskedBefore } from "./lib/asked-before";
 import { capturedReplyStore } from "./lib/captured-replies";
 import { registerFaqEvalHandlers } from "./lib/eval-handlers";
-import { FaqInboxSource } from "./lib/faq-inbox-source";
 import { getTemplates } from "./templates/faq-section";
 
 export const faqConfigSchema: z.ZodObject<{
@@ -161,18 +160,6 @@ export const faqPackage: ServicePackageDefinition<typeof faqConfigSchema> =
           runtime.template(name, template);
         }
         runtime.dataSource(faqDataSource);
-        if (!runtime.executionOnly)
-          runtime.inboxSource(
-            new FaqInboxSource({
-              entityService: {
-                listEntities: runtime.entityReads.listEntities,
-                getEntity: runtime.entityReads.getEntity,
-                updateEntity: runtime.entityWrites.updateEntity,
-                deleteEntity: runtime.entityWrites.deleteEntity,
-              },
-              permissions: runtime.permissions,
-            }),
-          );
         registerFaqEvalHandlers({
           context: runtime,
           sameQuestionDistance: config.sameQuestionDistance,
