@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import {
+  VALID_PNG_ASSET_REF,
   VALID_PNG_BASE64,
   VALID_PNG_DATA_URL,
   imageJobs,
@@ -59,7 +60,7 @@ describe("SourceImageRenderJobHandler", () => {
     expect(await jobs.stored("image", "og-post-post-1")).toMatchObject({
       id: "og-post-post-1",
       entityType: "image",
-      content: expect.stringContaining("data:image/png;base64,"),
+      content: VALID_PNG_ASSET_REF,
       metadata: expect.objectContaining({
         attachmentType: "og-image",
         sourceEntityType: "post",
@@ -104,5 +105,40 @@ describe("SourceImageRenderJobHandler", () => {
     expect(await jobs.stored("post", "post-1")).toMatchObject({
       content: expect.stringContaining("![Figure](entity://image/figure)"),
     });
+  });
+});
+
+describe("SourceImageRenderJobHandler deduplication", () => {
+  it("finds a rendered image by its dedup key without loading its bytes", async () => {
+    const jobs = await imageJobs({
+      attachment: {
+        type: "image",
+        data: TINY_PNG,
+        mimeType: "image/png",
+        filename: "post-og.png",
+      },
+    });
+    opened = jobs;
+    await seedPost(jobs.service, {
+      id: "post-1",
+      title: "Post",
+      slug: "post-1",
+      body: "Body",
+    });
+    const keyed = { ...render, dedupKey: "post-1:og-image" };
+    await jobs.run("image:image-render-source", keyed);
+
+    const again = await jobs.run("image:image-render-source", {
+      ...keyed,
+      imageId: "og-post-post-1-again",
+    });
+
+    expect(again).toEqual({
+      success: true,
+      imageId: "og-post-post-1",
+      reused: true,
+    });
+    // The lookup reads stored references: no image was materialized.
+    expect(jobs.service.getLegacyBinaryMaterializations()).toEqual([]);
   });
 });

@@ -1,5 +1,6 @@
 import type { ServiceEntityMirrorClient } from "@brains/sdk/internal/service-runtime";
 import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
+import { createHash } from "node:crypto";
 import { basename, dirname, extname } from "path";
 import { resolveInSyncPath, toSyncRelativePath } from "./path-utils";
 import {
@@ -143,7 +144,11 @@ export class FileOperations {
     };
   }
 
-  async readEntity(filePath: string, maxBytes?: number): Promise<RawEntity> {
+  /** An entity file's identity, size and timestamps, without reading it. */
+  async statEntityFile(
+    filePath: string,
+    maxBytes?: number,
+  ): Promise<EntityFileStat> {
     const fullPath = resolveInSyncPath(this.syncPath, filePath);
 
     const stats = await stat(fullPath);
@@ -152,11 +157,20 @@ export class FileOperations {
     }
 
     const { entityType, id } = this.parseEntityFromPath(filePath);
+    return {
+      fullPath,
+      entityType,
+      id,
+      sizeBytes: stats.size,
+      // Fallback to mtime if birthtime is invalid (zero epoch)
+      created: stats.birthtime.getTime() > 0 ? stats.birthtime : stats.mtime,
+      updated: stats.mtime,
+    };
+  }
 
-    // Fallback to mtime if birthtime is invalid (zero epoch)
-    const created =
-      stats.birthtime.getTime() > 0 ? stats.birthtime : stats.mtime;
-    const updated = stats.mtime;
+  async readEntity(filePath: string, maxBytes?: number): Promise<RawEntity> {
+    const { fullPath, entityType, id, created, updated } =
+      await this.statEntityFile(filePath, maxBytes);
 
     let content: string;
     let metadata: Record<string, unknown> | undefined;
@@ -527,17 +541,17 @@ export class FileOperations {
    * Uses stored contentHash from existing entity for efficiency
    */
   shouldUpdateEntity(existing: BaseEntity, newEntity: RawEntity): boolean {
-    // An asset-backed row stores a reference: compare the file's bytes to it.
-    const assetRef = assetRefSchema.safeParse(existing.content);
-    if (assetRef.success) {
-      if (!newEntity.content.startsWith("data:")) return true;
-      const base64 = newEntity.content.slice(
-        newEntity.content.indexOf(",") + 1,
-      );
-      return (
-        computeAssetDigest(Buffer.from(base64, "base64")) !==
-        getAssetDigest(assetRef.data)
-      );
+    // An image is its bytes: a file whose data URL decodes to the bytes the
+    // row stores, as an asset or inline, is unchanged however it is wrapped.
+    const assetBacked =
+      this.entityService.getEntityTypeConfig(existing.entityType)
+        .binaryStorage === "asset";
+    const stored = assetBacked
+      ? storedBytesDigest(existing.content)
+      : undefined;
+    if (stored !== undefined) {
+      const file = dataUrlDigest(newEntity.content);
+      return file === undefined || file !== stored;
     }
     const newHash = computeContentHash(newEntity.content);
     return existing.contentHash !== newHash;
@@ -564,4 +578,43 @@ export class FileOperations {
   async fileExists(filePath: string): Promise<boolean> {
     return pathExists(filePath);
   }
+}
+
+/** An entity file's identity, size and timestamps. */
+export interface EntityFileStat {
+  fullPath: string;
+  entityType: string;
+  id: string;
+  sizeBytes: number;
+  created: Date;
+  updated: Date;
+}
+
+/** A file's SHA-256, hashed as a stream so its size never stalls a read. */
+export async function fileDigest(filePath: string): Promise<string> {
+  const hash = createHash("sha256");
+  for await (const chunk of Bun.file(filePath).stream()) hash.update(chunk);
+  return hash.digest("hex");
+}
+
+const DATA_URL_PAYLOAD = /^data:[^;,]+;base64,([\s\S]*)$/;
+
+/**
+ * The SHA-256 of the bytes a base64 data URL holds, however its payload is
+ * wrapped; undefined for anything else.
+ */
+function dataUrlDigest(content: string): string | undefined {
+  const payload = DATA_URL_PAYLOAD.exec(content.trim())?.[1]?.replace(
+    /\s/g,
+    "",
+  );
+  return payload
+    ? computeAssetDigest(Buffer.from(payload, "base64"))
+    : undefined;
+}
+
+/** The digest of the bytes a row stores: its asset's, or its inline data URL's. */
+function storedBytesDigest(content: string): string | undefined {
+  const ref = assetRefSchema.safeParse(content);
+  return ref.success ? getAssetDigest(ref.data) : dataUrlDigest(content);
 }

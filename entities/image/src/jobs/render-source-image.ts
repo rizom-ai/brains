@@ -4,11 +4,7 @@ import {
   imageRenderSourceJobContract,
   type ImageRenderSourceJobInput,
 } from "@brains/contracts";
-import {
-  createDataUrl,
-  createImageEntity,
-  imageMetadataSchema,
-} from "@brains/image";
+import { stageImageEntity, imageMetadataSchema } from "@brains/image";
 import type {
   EntityDefinition,
   EntityJobDeclaration,
@@ -18,9 +14,8 @@ import {
   entityRuntime,
   type EntityRuntime,
 } from "@brains/sdk/internal/entity-runtime";
-import { bufferView } from "@brains/utils/bytes";
 import { getErrorMessage } from "@brains/utils/error";
-import { failPendingImage, saveProcessedImage } from "../lib/processed-image";
+import { failPendingImage, saveStagedImage } from "../lib/processed-image";
 
 type ImageDefinition = EntityDefinition<"image", typeof imageMetadataSchema>;
 
@@ -41,7 +36,8 @@ async function findImageByDedupKey(
 ): Promise<{ readonly id: string } | undefined> {
   const images = await runtime.anyEntities.listEntities({
     entityType: "image",
-    options: { filter: { metadata: { dedupKey } } },
+    // Only identity and status are read: stored references, no bytes.
+    options: { filter: { metadata: { dedupKey } }, binaryContent: "reference" },
   });
   return images.find((image) => {
     const { status } = imageMetadataSchema.parse(image.metadata);
@@ -136,23 +132,23 @@ export function renderSourceImageJob(
           message: "Creating image entity",
         });
 
-        // Derive the data-URL format from the attachment's declared mime type
-        // rather than hardcoding "png", so it stays correct if providers ever
-        // emit another image format.
-        const imageFormat = attachment.mimeType.split("/")[1] ?? "png";
-        const entityData = createImageEntity({
-          dataUrl: createDataUrl(
-            bufferView(attachment.data).toString("base64"),
-            imageFormat,
-          ),
-          title: data.imageId,
-          status: "draft",
-          sourceEntityType: data.sourceEntityType,
-          sourceEntityId: data.sourceEntityId,
-          attachmentType: data.attachmentType,
-          ...(data.dedupKey && { dedupKey: data.dedupKey }),
-        });
-        await saveProcessedImage(entities, image(), data.imageId, entityData);
+        // The format comes from the rendered bytes themselves.
+        const staged = await stageImageEntity(
+          {
+            stageAsset: (source, options) =>
+              runtime.assets.stage(source, options),
+          },
+          { bytes: attachment.data },
+          {
+            title: data.imageId,
+            status: "draft",
+            sourceEntityType: data.sourceEntityType,
+            sourceEntityId: data.sourceEntityId,
+            attachmentType: data.attachmentType,
+            ...(data.dedupKey && { dedupKey: data.dedupKey }),
+          },
+        );
+        await saveStagedImage(runtime.assets, image(), data.imageId, staged);
 
         await updateTarget(runtime, data, data.imageId);
 

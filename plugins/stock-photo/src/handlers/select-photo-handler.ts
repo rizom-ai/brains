@@ -5,7 +5,7 @@ import {
 import type { StockPhotoEntityWriter } from "../lib/set-cover-image";
 import type { ProgressReporter } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
-import { createImageEntity } from "@brains/image";
+import { stageImageEntity } from "@brains/image";
 import type { FetchImageFn, StockPhotoProvider } from "../lib/types";
 import { setCoverImage } from "../lib/set-cover-image";
 
@@ -87,23 +87,22 @@ export function selectPhotoJob(
 
       const dataUrl = await deps.fetchImage(data.imageUrl);
       const imageTitle = data.title ?? `Stock photo ${data.photoId}`;
-      const imageData = createImageEntity({
-        dataUrl,
-        title: imageTitle,
-        alt: data.alt ?? imageTitle,
-      });
+      // The fetched data URL is decoded while staging and never stored.
+      const { entity: imageData, stagedAsset } = await stageImageEntity(
+        deps.entityService,
+        { dataUrl },
+        {
+          title: imageTitle,
+          alt: data.alt ?? imageTitle,
+          sourceUrl: data.imageUrl,
+        },
+      );
 
       await step(progress, 75, "Saving stock photo");
 
       const { entityId } = await deps.entityService.createEntity({
-        entity: {
-          id: data.photoId,
-          ...imageData,
-          metadata: {
-            ...imageData.metadata,
-            sourceUrl: data.imageUrl,
-          },
-        },
+        entity: { id: data.photoId, ...imageData },
+        stagedAsset,
       });
 
       const result: SelectPhotoJobResult = {

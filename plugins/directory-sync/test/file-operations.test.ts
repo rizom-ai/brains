@@ -886,6 +886,14 @@ describe("FileOperations", () => {
   });
 
   describe("shouldUpdateEntity with asset-backed images", () => {
+    beforeEach(() => {
+      fileOps = new FileOperations(testDir, {
+        ...mockEntityService,
+        getEntityTypeConfig: (type: string): { binaryStorage?: "asset" } =>
+          type === "image" ? { binaryStorage: "asset" } : {},
+      });
+    });
+
     const rawImage = (content: string): RawEntity => ({
       entityType: "image",
       id: "robot",

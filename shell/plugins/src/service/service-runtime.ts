@@ -830,6 +830,13 @@ export interface ServiceEntityReads {
   getEntityTypeConfig: IEntityService["getEntityTypeConfig"];
   /** A document parsed as its type's adapter reads it, written nowhere. */
   deserializeEntity: IEntityService["deserializeEntity"];
+  /**
+   * A published asset's bytes. A reference is not access: serve them only
+   * for a record read at the caller's scope, never for a bare reference.
+   */
+  openAsset: IEntityService["openAsset"];
+  readAsset: IEntityService["readAsset"];
+  statAsset: IEntityService["statAsset"];
 }
 
 /** The AT Protocol projections a class read, and nothing that registers one. */
@@ -903,7 +910,12 @@ export interface ServiceClassJobs {
 /** The entity service's writes a first-party class made. */
 export type ServiceEntityWrites = Pick<
   IEntityService,
-  "createEntity" | "updateEntity" | "upsertEntity" | "deleteEntity"
+  | "createEntity"
+  | "updateEntity"
+  | "upsertEntity"
+  | "deleteEntity"
+  | "stageAsset"
+  | "discardStagedAsset"
 >;
 
 /**

@@ -1,3 +1,4 @@
+import type { ImportLimits } from "./directory-options";
 import {
   type ServiceEntityMirrorClient,
   internalFullScope,
@@ -17,6 +18,8 @@ import {
 import { deserializeImportEntity } from "./import-deserialization";
 import { queueImportImageConversions } from "./import-image-conversions";
 import { getImportPathDecision } from "./import-path-filter";
+import { importImageFile } from "./image-file-import";
+import { isImageFile } from "./image-file-utils";
 import { persistImportEntity } from "./import-persistence";
 import { OversizedFileError } from "./oversized-file-error";
 import {
@@ -27,13 +30,12 @@ import {
   recordSkippedImport,
 } from "./import-result";
 
-export interface ImportPipelineDeps {
+export interface ImportPipelineDeps extends ImportLimits {
   entityService: ServiceEntityMirrorClient;
   logger: Logger;
   fileOperations: FileOperations;
   quarantine: Quarantine;
   imageJobQueue: ImageJobQueueDeps;
-  maxImportFileBytes: number;
   entityTypes?: string[] | undefined;
 }
 
@@ -98,9 +100,17 @@ async function importFile(
     }
     const placedPath = await placeContainedFile(deps, filePath, result);
     if (placedPath === undefined) return;
+    // Asset-backed types store raw bytes, so they carry their own limit.
+    const assetBacked =
+      deps.entityService.getEntityTypeConfig(admission.entityType)
+        .binaryStorage === "asset";
+    if (assetBacked && isImageFile(placedPath)) {
+      await importImageFile(deps, placedPath, admission, snapshot, result);
+      return;
+    }
     const rawEntity = await deps.fileOperations.readEntity(
       placedPath,
-      deps.maxImportFileBytes,
+      assetBacked ? deps.maxAssetImportBytes : deps.maxImportFileBytes,
     );
 
     if (
@@ -197,7 +207,12 @@ async function processEntityImport(
     snapshot,
   );
   if (result.imported > imported)
-    queueImportImageConversions(deps.imageJobQueue, rawEntity, filePath);
+    queueImportImageConversions(
+      deps.imageJobQueue,
+      rawEntity,
+      filePath,
+      deps.entityService.getEntityTypeConfig(rawEntity.entityType),
+    );
 }
 
 function canSkipBeforeDeserialization(

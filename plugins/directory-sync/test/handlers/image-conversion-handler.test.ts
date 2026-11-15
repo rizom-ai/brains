@@ -21,8 +21,14 @@ import {
   CallbackProgressReporter,
   type ProgressReporter,
 } from "@brains/utils/progress";
-import { TINY_PNG_DATA_URL as VALID_PNG_DATA_URL } from "../fixtures";
+import {
+  TINY_PNG_BYTES,
+  TINY_PNG_DATA_URL as VALID_PNG_DATA_URL,
+} from "../fixtures";
 import { queuedJob } from "../queued-job";
+import { computeAssetDigest, createAssetRef } from "@brains/plugins";
+
+const PNG_ASSET_REF = createAssetRef(computeAssetDigest(TINY_PNG_BYTES));
 
 describe("CoverImageConversionJobHandler", () => {
   let handler: CoverImageConversionJobHandler;
@@ -248,6 +254,7 @@ Some content here.
 
       // Verify createEntity was called with custom alt
       expect(context.entityService.createEntity).toHaveBeenCalledWith({
+        stagedAsset: expect.objectContaining({ ref: PNG_ASSET_REF }),
         entity: expect.objectContaining({
           metadata: expect.objectContaining({
             alt: "My custom alt text",
@@ -264,6 +271,7 @@ Some content here.
 
       // Verify createEntity was called with title-based alt
       expect(context.entityService.createEntity).toHaveBeenCalledWith({
+        stagedAsset: expect.objectContaining({ ref: PNG_ASSET_REF }),
         entity: expect.objectContaining({
           metadata: expect.objectContaining({
             alt: "Cover image for Test Post",
@@ -354,12 +362,19 @@ Some content here.
       const jobData = createValidJobData();
       await handler.process(jobData, "job-123", progressReporter);
 
+      expect(context.entityService.listEntities).toHaveBeenCalledWith(
+        expect.objectContaining({
+          options: expect.objectContaining({ binaryContent: "reference" }),
+        }),
+      );
       expect(context.entityService.createEntity).toHaveBeenCalledWith({
+        stagedAsset: expect.objectContaining({ ref: PNG_ASSET_REF }),
         entity: expect.objectContaining({
           id: "test-post-cover",
           entityType: "image",
-          content: VALID_PNG_DATA_URL,
+          content: PNG_ASSET_REF,
           metadata: expect.objectContaining({
+            mediaType: "image/png",
             title: "Cover image for Test Post",
             alt: "Cover image for Test Post",
             format: "png",

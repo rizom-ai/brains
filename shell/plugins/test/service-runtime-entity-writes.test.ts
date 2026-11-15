@@ -160,6 +160,8 @@ describe("a first-party service writing as its class wrote", () => {
     expect(Object.keys(runtime.entityWrites).sort()).toEqual([
       "createEntity",
       "deleteEntity",
+      "discardStagedAsset",
+      "stageAsset",
       "updateEntity",
       "upsertEntity",
     ]);
