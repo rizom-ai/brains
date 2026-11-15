@@ -2,7 +2,11 @@ import {
   imageGenerateJobContract,
   imageRenderSourceJobContract,
 } from "@brains/contracts";
-import { createImageEntity, type imageMetadataSchema } from "@brains/image";
+import {
+  IMAGE_ASSET_MEDIA_TYPES,
+  createPendingImageEntity,
+  type imageMetadataSchema,
+} from "@brains/image";
 import type {
   EntityCreateContext,
   EntityCreateRouting,
@@ -23,9 +27,6 @@ import {
   isSupportedImageMediaType,
 } from "./lib/upload-promotion";
 import { uploadPromotionJobContract } from "./jobs/promote-upload";
-
-const PENDING_IMAGE_DATA_URL =
-  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
 
 interface Resolution {
   readonly refuse: string;
@@ -87,8 +88,8 @@ function pendingImage(input: {
 }): NonNullable<
   Parameters<ReturnType<typeof entityRuntime>["queued"]>[0]["placeholder"]
 > {
-  const entityData = createImageEntity({
-    dataUrl: PENDING_IMAGE_DATA_URL,
+  // No payload until the job fills it: a pending image claims no bytes.
+  const entityData = createPendingImageEntity({
     title: input.title,
     alt: input.alt,
     status: "pending",
@@ -344,7 +345,11 @@ async function routeUpload(context: EntityCreateContext): Promise<Resolution> {
 export const imageCreateRouting: EntityCreateRouting<
   typeof imageMetadataSchema
 > = {
-  fromUpload: { mediaTypes: ["image/*"], resolve: routeUpload },
+  // Only raster types become assets; anything else is refused before it is stored.
+  fromUpload: {
+    mediaTypes: [...IMAGE_ASSET_MEDIA_TYPES],
+    resolve: routeUpload,
+  },
   fromAttachment: { resolve: routeAttachment },
   fromPrompt: { resolve: routeGeneration },
   fromContent: { resolve: routeGeneration },

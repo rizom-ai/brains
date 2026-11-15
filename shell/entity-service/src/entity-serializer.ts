@@ -109,17 +109,20 @@ export class EntitySerializer {
    */
   public serializeEntity(entity: BaseEntity, stored?: string): string {
     const adapter = this.entityRegistry.getAdapter(entity.entityType);
-    const serialized = applyVisibilityToMarkdown(
-      adapter.toMarkdown(entity),
-      entity.visibility,
-    );
+    const assetBacked =
+      this.entityRegistry.getEntityTypeConfig(entity.entityType)
+        .binaryStorage === "asset";
+    // An asset-backed row stores the bare reference; visibility lives on the row.
+    const markdown = adapter.toMarkdown(entity);
+    const serialized = assetBacked
+      ? markdown
+      : applyVisibilityToMarkdown(markdown, entity.visibility);
     const written = preserveSourceFrontmatter(
       stored === undefined
         ? entity.content
         : unwrittenSource(stored, serialized),
       serialized,
-      this.entityRegistry.getEntityTypeConfig(entity.entityType)
-        .binaryStorage === "asset"
+      assetBacked
         ? undefined
         : (adapter.writtenFrontmatterSchema ?? adapter.frontmatterSchema),
       this.entityRegistry.getFrontmatterExtensions(entity.entityType),

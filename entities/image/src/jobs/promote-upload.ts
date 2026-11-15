@@ -1,5 +1,5 @@
 import { JobResult, defineJobContract } from "@brains/contracts";
-import { createImageEntity, type imageMetadataSchema } from "@brains/image";
+import { stageImageEntity, type imageMetadataSchema } from "@brains/image";
 import type {
   EntityDefinition,
   EntityJobDeclaration,
@@ -8,10 +8,9 @@ import {
   contractJob,
   entityRuntime,
 } from "@brains/sdk/internal/entity-runtime";
-import { toDataUrl } from "@brains/utils/bytes";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
-import { failPendingImage, saveProcessedImage } from "../lib/processed-image";
+import { failPendingImage, saveStagedImage } from "../lib/processed-image";
 import {
   getUploadImageIdentity,
   isSupportedImageMediaType,
@@ -86,16 +85,22 @@ export function promoteUploadJob(
           message: "Saving uploaded image",
         });
 
-        const imageEntity = createImageEntity({
-          dataUrl: toDataUrl(upload.record.mediaType, upload.content),
-          title: identity.title,
-          status: "draft",
-          sourceUploadId: data.uploadId,
-          sourceFilename: upload.record.filename,
-          sourceMediaType: upload.record.mediaType,
-          attachmentType: "uploaded",
-        });
-        await saveProcessedImage(entities, image(), imageId, imageEntity);
+        const staged = await stageImageEntity(
+          {
+            stageAsset: (source, options) =>
+              runtime.assets.stage(source, options),
+          },
+          { bytes: upload.content },
+          {
+            title: identity.title,
+            status: "draft",
+            sourceUploadId: data.uploadId,
+            sourceFilename: upload.record.filename,
+            sourceMediaType: upload.record.mediaType,
+            attachmentType: "uploaded",
+          },
+        );
+        await saveStagedImage(runtime.assets, image(), imageId, staged);
 
         await progress.report({
           progress: 100,
@@ -107,6 +112,7 @@ export function promoteUploadJob(
         if (data.imageId) {
           await failPendingImage(
             entities,
+            runtime.assets,
             image(),
             data.imageId,
             getErrorMessage(error),

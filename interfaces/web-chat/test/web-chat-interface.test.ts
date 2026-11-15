@@ -2442,6 +2442,124 @@ describe("WebChatPlugin", () => {
     );
   });
 
+  it("streams an asset-backed image from its stored bytes, read as a reference", async () => {
+    const plugin = trustedPlugin();
+    const bytes = pngBytes();
+    const asset = await harness.getEntityService().stageAsset(bytes);
+    harness.addEntities([
+      {
+        id: "stored-robot",
+        entityType: "image",
+        content: asset.ref,
+        metadata: {
+          title: "Stored robot",
+          format: "png",
+          mediaType: "image/png",
+          sizeBytes: bytes.byteLength,
+          width: 1,
+          height: 1,
+        },
+      },
+    ]);
+    const read = spyOn(harness.getEntityService(), "getEntity");
+    await harness.installPlugin(plugin);
+    const route = getRoute(plugin, "/api/chat/attachments/image", "GET");
+
+    const response = await route?.handler(
+      new Request("http://brain/api/chat/attachments/image?id=stored-robot"),
+    );
+    const body = await response?.arrayBuffer();
+
+    expect(response?.status).toBe(200);
+    expect(response?.headers.get("content-type")).toBe("image/png");
+    expect(response?.headers.get("content-length")).toBe(
+      String(bytes.byteLength),
+    );
+    expect(response?.headers.get("x-content-type-options")).toBe("nosniff");
+    expect(new Uint8Array(body ?? new ArrayBuffer(0))).toEqual(bytes);
+    // Access checks read the stored reference; bytes load only for the body.
+    expect(read.mock.calls.length).toBeGreaterThan(0);
+    for (const [request] of read.mock.calls) {
+      expect(request.binaryContent).toBe("reference");
+    }
+  });
+
+  it("serves a hidden image's bytes by no path, even when a visible image shares them", async () => {
+    const plugin = trustedPlugin();
+    const bytes = pngBytes();
+    const asset = await harness.getEntityService().stageAsset(bytes);
+    const metadata = {
+      format: "png",
+      mediaType: "image/png",
+      sizeBytes: bytes.byteLength,
+      width: 1,
+      height: 1,
+    };
+    harness.addEntities([
+      {
+        id: "private-robot",
+        entityType: "image",
+        content: asset.ref,
+        metadata: { ...metadata, title: "Private" },
+        visibility: "restricted",
+      },
+      {
+        id: "public-robot",
+        entityType: "image",
+        content: asset.ref,
+        metadata: { ...metadata, title: "Public" },
+      },
+    ]);
+    await harness.installPlugin(plugin);
+    const route = getRoute(plugin, "/api/chat/attachments/image", "GET");
+    const get = (id: string): Promise<Response | undefined> =>
+      Promise.resolve(
+        route?.handler(
+          new Request(
+            `http://brain/api/chat/attachments/image?id=${encodeURIComponent(id)}`,
+          ),
+        ),
+      );
+
+    // By the hidden image's id, and by its reference: nothing.
+    expect((await get("private-robot"))?.status).toBe(404);
+    expect((await get(asset.ref))?.status).toBe(404);
+    // The visible image serves its own bytes, under its own name.
+    const visible = await get("public-robot");
+    expect(visible?.status).toBe(200);
+    expect(visible?.headers.get("content-disposition")).toContain(
+      "public-robot",
+    );
+  });
+
+  it("refuses an asset-backed image to unauthenticated callers", async () => {
+    const plugin = createWebChatPlugin();
+    const asset = await harness.getEntityService().stageAsset(pngBytes());
+    harness.addEntities([
+      {
+        id: "public-asset-robot",
+        entityType: "image",
+        content: asset.ref,
+        metadata: {
+          format: "png",
+          mediaType: "image/png",
+          width: 1,
+          height: 1,
+        },
+      },
+    ]);
+    await harness.installPlugin(plugin);
+    const route = getRoute(plugin, "/api/chat/attachments/image", "GET");
+
+    const response = await route?.handler(
+      new Request(
+        "http://brain/api/chat/attachments/image?id=public-asset-robot",
+      ),
+    );
+
+    expect(response?.status).toBe(401);
+  });
+
   it("rejects image attachment requests from unauthenticated callers", async () => {
     const plugin = createWebChatPlugin();
     await harness.installPlugin(plugin);

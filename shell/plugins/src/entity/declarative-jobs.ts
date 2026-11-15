@@ -60,6 +60,7 @@ import {
   afterGenerationOf,
   isDeduplicated,
   withEntityRuntime,
+  type EntityRuntimeAssets,
   type EntityRuntimeBinding,
   type GenerationOutcome,
 } from "./entity-runtime";
@@ -67,7 +68,9 @@ import { sharedUploadScope } from "../service/upload-registry";
 import type { AttachmentResolveRequest } from "../service/attachment-registry";
 import {
   assertOwnedWriteAllowed,
+  createOwnedAssetWriter,
   createOwnedEntityWriter,
+  type OwnedAssetWriterBinding,
 } from "./owned-entity-writer-runtime";
 
 /**
@@ -331,10 +334,35 @@ function entityJobWriter(
   ownsType: (entityType: string) => boolean,
   writes: EntityJobWrites,
 ): OwnedEntityWriter<AnyEntityDefinition> {
+  return createOwnedEntityWriter(
+    entityJobWriteBinding(context, call, authority, ownsType, writes),
+  );
+}
+
+/** A job's asset-backed records of its declaring type, bound as its writes are. */
+function entityJobAssets(
+  context: EntityPluginContext,
+  call: QueuedJobCall,
+  authority: EntityRunAuthority,
+  ownsType: (entityType: string) => boolean,
+  writes: EntityJobWrites,
+): EntityRuntimeAssets {
+  return createOwnedAssetWriter(
+    entityJobWriteBinding(context, call, authority, ownsType, writes),
+  );
+}
+
+function entityJobWriteBinding(
+  context: EntityPluginContext,
+  call: QueuedJobCall,
+  authority: EntityRunAuthority,
+  ownsType: (entityType: string) => boolean,
+  writes: EntityJobWrites,
+): OwnedAssetWriterBinding<QueuedJobCall> {
   const { declaring } = writes;
-  return createOwnedEntityWriter({
+  return {
     entityService: context.entityService,
-    owned: (definition) => {
+    owned: (definition): AnyEntityDefinition => {
       if (definition.type !== declaring.type) {
         throw new SdkError("permission_denied", {
           message: `A ${declaring.type} job may only write ${declaring.type} records, and "${definition.type}" is not its type`,
@@ -352,7 +380,7 @@ function entityJobWriter(
       ),
     readScope: (current, entityType, access) =>
       packageReadScope(current, ownsType(entityType), access),
-    assertCreateVisibility: async (entityType, visibility) => {
+    assertCreateVisibility: async (entityType, visibility): Promise<void> => {
       const refusal = authority.visibilityRefusal(entityType, visibility);
       if (refusal) {
         throw new SdkError("permission_denied", {
@@ -361,7 +389,7 @@ function entityJobWriter(
         });
       }
     },
-  });
+  };
 }
 
 /**
@@ -523,6 +551,13 @@ export function contractJobHandler(
                 read: (uploadId: string) => uploads.read(uploadId),
                 readRecord: (uploadId: string) => uploads.readRecord(uploadId),
               }),
+              assets: entityJobAssets(
+                context,
+                call,
+                authority,
+                ownsType,
+                writes,
+              ),
               linkInto: async (
                 entityId: string,
                 link: EntityGenerationLink,

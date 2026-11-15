@@ -16,6 +16,8 @@ export {
   createAssetRef,
   getAssetDigest,
   parseAssetRef,
+  readAssetBytes,
+  type AssetOpener,
   type AssetReader,
   type AssetRecord,
   type AssetRef,
@@ -25,7 +27,10 @@ export {
   type StageAssetOptions,
   type StagedAsset,
 } from "@brains/assets";
-export { EntityService } from "./entityService";
+export {
+  EntityService,
+  type LegacyBinaryMaterialization,
+} from "./entityService";
 export {
   decodeEntityIdPath,
   encodeEntityIdPath,
@@ -210,6 +215,7 @@ export type {
   EntitySearchRequest,
   SearchWithDistancesRequest,
   EntityRegistry as IEntityRegistry,
+  BinaryContentMode,
   EntityService as IEntityService,
   ReadOnlyEntityService,
   EntityServiceClient,

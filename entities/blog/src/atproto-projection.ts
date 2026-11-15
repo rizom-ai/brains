@@ -62,8 +62,8 @@ async function uploadCoverImage({
   return {
     blob,
     ...(alt && { alt }),
-    width,
-    height,
+    ...(width !== undefined && { width }),
+    ...(height !== undefined && { height }),
   };
 }
 

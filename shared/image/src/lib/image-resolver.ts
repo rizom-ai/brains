@@ -29,12 +29,18 @@ export async function resolveImage(
     return undefined;
   }
 
+  // A pending or failed image has no bytes, so nothing to render yet.
+  const { width, height } = image.metadata;
+  if (width === undefined || height === undefined || !image.content) {
+    return undefined;
+  }
+
   return {
     url: image.content,
     alt: image.metadata.alt ?? "",
     title: image.metadata.title ?? "",
-    width: image.metadata.width,
-    height: image.metadata.height,
+    width,
+    height,
   };
 }
 

@@ -13,8 +13,17 @@ export {
 } from "./schemas/image";
 
 // Image entity data
-export { createImageEntity, imageMetadataFor } from "./lib/image-entity";
-export type { CreateImageInput } from "./lib/image-entity";
+export {
+  createAssetImageEntity,
+  createImageEntity,
+  createPendingImageEntity,
+  imageMetadataFor,
+} from "./lib/image-entity";
+export type {
+  CreateAssetImageInput,
+  CreateImageInput,
+  ImageDescription,
+} from "./lib/image-entity";
 
 // Image resolver utilities
 export {
@@ -38,10 +47,32 @@ export {
   parseDataUrl,
   tryParseDataUrl,
   createDataUrl,
+  base64ImageReader,
+  bytesImageReader,
+  describeImage,
+  describeImageBytes,
+  fileImageReader,
   detectImageFormat,
   detectImageDimensions,
+  detectImageDimensionsFromBytes,
+  detectImageFormatFromBytes,
+  imageMediaType,
   isValidDataUrl,
   isHttpUrl,
   fetchImageAsBase64,
 } from "./lib/image-utils";
-export type { ParsedDataUrl } from "./lib/image-utils";
+export type {
+  ImageByteDescription,
+  ImageByteReader,
+  ParsedDataUrl,
+} from "./lib/image-utils";
+
+// Staging image bytes as assets
+export {
+  IMAGE_ASSET_MAX_BYTES,
+  IMAGE_ASSET_MEDIA_TYPES,
+  stageImageEntity,
+  type ImageAssetStager,
+  type ImageBytesSource,
+  type StagedImageEntity,
+} from "./lib/stage-image";

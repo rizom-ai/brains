@@ -37,6 +37,7 @@ export {
   type EntityAnswerDeclaration,
   type EntityRuntime,
   type EntityRuntimeAttachments,
+  type EntityRuntimeAssets,
   type EntityRuntimeIdentity,
   type EntityRuntimeImages,
   type OrdinaryCreateDocument,
@@ -105,5 +106,12 @@ export {
   ENTITY_SYSTEM_FIELDS,
   type EntityAdapter,
   type IEntityService,
+} from "@brains/plugins";
+// The asset-backed record's bytes, as `entityRuntime(context).assets` stages and reads them.
+export type {
+  AssetRef,
+  AssetSource,
+  StageAssetOptions,
+  StagedAsset,
 } from "@brains/plugins";
 export { generateFrontmatter } from "@brains/entity-service";

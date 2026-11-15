@@ -1,4 +1,5 @@
 import { internalFullScope } from "./internal-scope";
+import { assetRefSchema } from "@brains/assets";
 import type {
   AssetRef,
   AssetSource,
@@ -43,6 +44,7 @@ import type {
   IndexReadinessStatus,
   EntityService as IEntityService,
   EntityEventBus,
+  BinaryContentMode,
   GetEntityRequest,
   GetEntityRawRequest,
   ProjectionOwnedEntityRequest,
@@ -100,8 +102,18 @@ import { ProjectionStore } from "./projection-store";
 import { EntityExportStore } from "./entity-export-store";
 import { SqliteAssetRepository } from "./sqlite-asset-repository";
 import { ContentResolver, shouldResolveContent } from "./lib/content-resolver";
+import { inlineAssetContent } from "./lib/asset-data-url";
 import { Cause, Effect, Exit } from "@brains/utils/effect";
 import { makeIndexReadinessPollingEffect } from "./index-readiness";
+
+type LegacyMaterializationMethod = "getEntityRaw" | "listEntities";
+
+/** How often one read surface still materialized asset bytes as a data URL. */
+export interface LegacyBinaryMaterialization {
+  method: LegacyMaterializationMethod;
+  entityType: string;
+  count: number;
+}
 
 /**
  * Options for creating an EntityService instance
@@ -156,6 +168,10 @@ export class EntityService implements IEntityService {
   private entityMutations: EntityMutations;
   private readonly projectionStore: ProjectionStore;
   private readonly assetRepository: SqliteAssetRepository;
+  private readonly legacyMaterializations = new Map<
+    string,
+    LegacyBinaryMaterialization
+  >();
   private readonly entityExportStore: EntityExportStore;
   private contentResolver: ContentResolver;
   private embeddingHandlerRegistered = false;
@@ -900,6 +916,12 @@ export class EntityService implements IEntityService {
     return this.assetRepository.stage(source, options);
   }
 
+  /** Discard a staged upload no mutation will publish; a published asset stays. */
+  public async discardStagedAsset(asset: StagedAsset): Promise<void> {
+    await this.initialize();
+    await this.assetRepository.release(asset);
+  }
+
   /** Stream a published asset's chunks in order. */
   public async openAsset(ref: AssetRef): Promise<AsyncIterable<Uint8Array>> {
     await this.initialize();
@@ -919,6 +941,63 @@ export class EntityService implements IEntityService {
   public async verifyAsset(ref: AssetRef): Promise<AssetVerification> {
     await this.initialize();
     return this.assetRepository.verify(ref);
+  }
+
+  /**
+   * Readers still relying on legacy data-URL materialization, by read surface
+   * and entity type: counts only, never ids or content. Removing the
+   * compatibility mode requires this to stay empty through the migration soak.
+   */
+  public getLegacyBinaryMaterializations(): LegacyBinaryMaterialization[] {
+    return [...this.legacyMaterializations.values()].map((entry) => ({
+      ...entry,
+    }));
+  }
+
+  private recordLegacyMaterialization(
+    method: LegacyMaterializationMethod,
+    entityType: string,
+  ): void {
+    const key = `${method}:${entityType}`;
+    const count = (this.legacyMaterializations.get(key)?.count ?? 0) + 1;
+    this.legacyMaterializations.set(key, { method, entityType, count });
+    // First use, then every hundredth, so a steady legacy reader stays visible.
+    if (count === 1 || count % 100 === 0) {
+      this.logger.info("Legacy binary content materialized", {
+        method,
+        entityType,
+        count,
+      });
+    }
+  }
+
+  /**
+   * Compatibility for readers that still expect inline binary content: an
+   * asset reference becomes the data URL it replaced. Reference mode, and
+   * content that is not a reference, pass through untouched.
+   */
+  private async materializeBinaryContent(
+    entity: BaseEntity,
+    method: LegacyMaterializationMethod,
+    mode: BinaryContentMode = "legacy-data-url",
+  ): Promise<BaseEntity> {
+    if (mode === "reference") return entity;
+    if (
+      this.entityRegistry.getEntityTypeConfig(entity.entityType)
+        .binaryStorage !== "asset"
+    ) {
+      return entity;
+    }
+    if (!assetRefSchema.safeParse(entity.content).success) return entity;
+    this.recordLegacyMaterialization(method, entity.entityType);
+    return {
+      ...entity,
+      content: await inlineAssetContent(
+        { openAsset: (ref) => this.assetRepository.openRead(ref) },
+        entity.content,
+        entity.metadata,
+      ),
+    };
   }
 
   public async getEntity(request: GetEntityRequest): Promise<BaseEntity | null>;
@@ -993,10 +1072,17 @@ export class EntityService implements IEntityService {
       return null;
     }
 
-    const entity = await this.entitySerializer.convertToEntity(
+    const converted = await this.entitySerializer.convertToEntity(
       entityData,
       request.source,
     );
+    const entity =
+      converted &&
+      (await this.materializeBinaryContent(
+        converted,
+        "getEntityRaw",
+        request.binaryContent,
+      ));
     request.signal?.throwIfAborted();
     return entity && schema ? schema.parse(entity) : entity;
   }
@@ -1015,11 +1101,23 @@ export class EntityService implements IEntityService {
     request.options?.signal?.throwIfAborted();
     await this.initialize();
     const { entityType, options } = request;
-    const entities = await this.entityQueries.listEntities(
+    const rows = await this.entityQueries.listEntities(
       entityType,
       options,
       this.publishedStatusesFor(entityType),
     );
+    // Legacy materialization decodes one asset at a time, but every data URL
+    // stays in the result: listing asset-backed types wants reference mode.
+    const entities: BaseEntity[] = [];
+    for (const row of rows) {
+      entities.push(
+        await this.materializeBinaryContent(
+          row,
+          "listEntities",
+          options?.binaryContent,
+        ),
+      );
+    }
     return schema ? entities.map((entity) => schema.parse(entity)) : entities;
   }
 

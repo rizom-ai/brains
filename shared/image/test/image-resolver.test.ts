@@ -58,6 +58,22 @@ describe("resolveImage", () => {
 
     expect(result).toBeUndefined();
   });
+
+  it("renders nothing for a pending image, which has no bytes yet", async () => {
+    const shell = createMockShell();
+    shell.addEntities([
+      {
+        ...mockImageEntity,
+        id: "pending-image",
+        content: "",
+        metadata: { title: "Pending", status: "pending" },
+      },
+    ]);
+
+    expect(
+      await resolveImage("pending-image", shell.getEntityService()),
+    ).toBeUndefined();
+  });
 });
 
 // Helper to create mock entity with frontmatter

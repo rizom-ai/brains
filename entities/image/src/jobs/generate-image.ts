@@ -81,7 +81,13 @@ export function generateImageJob(
           const error = new Error(
             "Image generation not available: no API key configured",
           );
-          await failPendingImage(entities, image(), imageId, error.message);
+          await failPendingImage(
+            entities,
+            runtime.assets,
+            image(),
+            imageId,
+            error.message,
+          );
           return JobResult.failure(error);
         }
 
@@ -210,6 +216,7 @@ ${entityContent}`,
         });
         await failPendingImage(
           entities,
+          runtime.assets,
           image(),
           imageId,
           getErrorMessage(error),

@@ -168,6 +168,7 @@ export function renderSourceImageJob(
         });
         await failPendingImage(
           entities,
+          runtime.assets,
           image(),
           data.imageId,
           getErrorMessage(error),

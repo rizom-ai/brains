@@ -27,6 +27,11 @@ import { mkdir, readFile, rmdir, unlink, stat, utimes } from "fs/promises";
 import { moveFileWithoutReplacing, writeFileAtomic } from "./atomic-write";
 import { z } from "@brains/utils/zod";
 import { computeContentHash } from "@brains/utils/hash";
+import {
+  assetRefSchema,
+  computeAssetDigest,
+  getAssetDigest,
+} from "@brains/sdk/internal/service-runtime";
 import type { RawEntity, DirectorySyncStatus } from "../types";
 import {
   ensureDirectoryStructure as ensureSyncDirectoryStructure,
@@ -522,6 +527,18 @@ export class FileOperations {
    * Uses stored contentHash from existing entity for efficiency
    */
   shouldUpdateEntity(existing: BaseEntity, newEntity: RawEntity): boolean {
+    // An asset-backed row stores a reference: compare the file's bytes to it.
+    const assetRef = assetRefSchema.safeParse(existing.content);
+    if (assetRef.success) {
+      if (!newEntity.content.startsWith("data:")) return true;
+      const base64 = newEntity.content.slice(
+        newEntity.content.indexOf(",") + 1,
+      );
+      return (
+        computeAssetDigest(Buffer.from(base64, "base64")) !==
+        getAssetDigest(assetRef.data)
+      );
+    }
     const newHash = computeContentHash(newEntity.content);
     return existing.contentHash !== newHash;
   }
