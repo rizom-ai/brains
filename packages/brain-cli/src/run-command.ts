@@ -138,21 +138,7 @@ const initCommand: BrainCommand = defineCommand({
         return key ? [[keyEnvVar(provider), key]] : [];
       }),
     );
-    // Keys given as flags must cover the models the brain runs, or init would
-    // write a brain that cannot start.
-    if (Object.keys(apiKeys).length > 0) {
-      const keyCheck = checkModelKeys(apiKeys, {
-        model: model ?? CANONICAL_CHAT_MODEL,
-        imageModel,
-      });
-      for (const warning of keyCheck.warnings) console.warn(warning);
-      if (!keyCheck.ok) {
-        return { success: false, message: keyCheck.message ?? "" };
-      }
-    }
-
     const dir = resolve(cwd, target);
-    mkdirSync(dir, { recursive: true });
 
     // Build the initial options from flags. These act as defaults / pre-filled
     // values when prompting, and as the complete config when running
@@ -186,6 +172,20 @@ const initCommand: BrainCommand = defineCommand({
       ? await promptInitOptions(initialOptions, dir)
       : initialOptions;
 
+    // The keys, from flags or from the questions, must cover the models the
+    // brain runs, or init would write a brain that cannot start.
+    if (finalOptions.apiKeys) {
+      const keyCheck = checkModelKeys(finalOptions.apiKeys, {
+        model: finalOptions.model ?? CANONICAL_CHAT_MODEL,
+        imageModel: finalOptions.imageModel,
+      });
+      for (const warning of keyCheck.warnings) console.warn(warning);
+      if (!keyCheck.ok) {
+        return { success: false, message: keyCheck.message ?? "" };
+      }
+    }
+
+    mkdirSync(dir, { recursive: true });
     scaffold(dir, finalOptions);
 
     return {
