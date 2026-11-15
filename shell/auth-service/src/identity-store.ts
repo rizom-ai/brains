@@ -6,6 +6,7 @@ import { sha256Hex } from "@brains/utils/hash";
 import { createPrefixedId } from "@brains/utils/id";
 import { and, eq, isNotNull, isNull, sql } from "drizzle-orm";
 import type { AuthRuntimeDB } from "./runtime-db";
+import { requireAuthUser } from "./user-store";
 import {
   authIdentities,
   authIdentityEvidence,
@@ -75,7 +76,7 @@ export class AuthIdentityStore {
     input: AttachAuthIdentityInput,
   ): Promise<AuthIdentityRecord> {
     assertValidIdentityType(input.type, this.isChannelTypeRegistered);
-    const user = await this.requireUser(input.userId);
+    const user = await requireAuthUser(this.db, input.userId);
     const identityKeyHash = hashIdentityKey(normalizeIdentityKey(input));
     const sourceKind = input.source?.kind ?? "admin";
     const sourceId = input.source?.id ?? null;
@@ -171,7 +172,7 @@ export class AuthIdentityStore {
   }
 
   async listIdentities(userId: string): Promise<AuthIdentityRecord[]> {
-    const user = await this.requireUser(userId);
+    const user = await requireAuthUser(this.db, userId);
     const claims = await this.db
       .select()
       .from(authIdentities)
@@ -205,7 +206,7 @@ export class AuthIdentityStore {
   async detachIdentityBySubject(
     input: ResolveAuthIdentityInput & { userId: string },
   ): Promise<AuthIdentityRecord | undefined> {
-    const user = await this.requireUser(input.userId);
+    const user = await requireAuthUser(this.db, input.userId);
     const identityKeyHash = hashIdentityKey(normalizeIdentityKey(input));
     const [identity] = await this.db
       .select()
@@ -291,16 +292,6 @@ export class AuthIdentityStore {
       .where(eq(authIdentityEvidence.claimId, claim.id))
       .orderBy(authIdentityEvidence.createdAt, sql`rowid`);
     return identityRecordFromEvidence(claim, evidence);
-  }
-
-  private async requireUser(userId: string): Promise<AuthUser> {
-    const [user] = await this.db
-      .select()
-      .from(authUsers)
-      .where(eq(authUsers.id, userId))
-      .limit(1);
-    if (!user) throw new Error(`Auth user not found: ${userId}`);
-    return user;
   }
 }
 

@@ -1,4 +1,4 @@
-import { sha256Base64Url } from "@brains/utils/hash";
+import { hashToken } from "./token-hash";
 import type { AuthenticatorTransportFuture } from "@simplewebauthn/server";
 import { and, eq, exists, gt, isNull, ne, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/sqlite-core";
@@ -263,7 +263,7 @@ export class AuthCredentialStore {
 
   async saveChallenge(input: SaveWebAuthnChallengeInput): Promise<void> {
     await this.db.insert(webauthnChallenges).values({
-      challengeHash: hashChallenge(input.challenge),
+      challengeHash: hashToken(input.challenge),
       userId: input.userId ?? null,
       kind: input.kind,
       expiresAt: input.expiresAt,
@@ -282,7 +282,7 @@ export class AuthCredentialStore {
       .set({ consumedAt: now })
       .where(
         and(
-          eq(webauthnChallenges.challengeHash, hashChallenge(challenge)),
+          eq(webauthnChallenges.challengeHash, hashToken(challenge)),
           eq(webauthnChallenges.kind, kind),
           isNull(webauthnChallenges.consumedAt),
           gt(webauthnChallenges.expiresAt, now),
@@ -331,8 +331,4 @@ function parseTransports(value: string): AuthenticatorTransportFuture[] {
           typeof transport === "string",
       )
     : [];
-}
-
-function hashChallenge(challenge: string): string {
-  return sha256Base64Url(challenge);
 }

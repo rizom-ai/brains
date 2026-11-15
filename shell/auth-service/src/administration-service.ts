@@ -24,11 +24,13 @@ import type {
   AuthSetupDeliveryInput,
 } from "@brains/contracts";
 import type { AuthAuditStore } from "./audit-store";
-import type { AuthCredentialStore, StoredPasskey } from "./credential-store";
+import type { AuthCredentialStore } from "./credential-store";
 import type { AuthIdentityRecord, AuthIdentityStore } from "./identity-store";
+import { identitySummary } from "./identity-summary";
 import type { AuthInvitationService } from "./invitation-service";
 import type { AuthInvitation } from "./invitation-schema";
 import { auditActor } from "./mutation-context";
+import { ownedPasskeySummary } from "./passkey-summary";
 import type { PersonExternalPeerStore } from "./person-external-peer-store";
 import { principalFromUser } from "./principal-service";
 import { resolveProfileDisplayNameSafely } from "./profile-display-name";
@@ -360,9 +362,14 @@ export class AuthAdministrationService {
             : {}),
           identities: (identitiesByPersonId.get(user.personId) ?? []).map(
             (identity) =>
-              identitySummary(identity, user.id, this.getChannelDescriptor),
+              identitySummary(identity, user.id, {
+                genericChannelLabel: "keep",
+                getChannelDescriptor: this.getChannelDescriptor,
+              }),
           ),
-          passkeys: (passkeysByUserId.get(user.id) ?? []).map(passkeySummary),
+          passkeys: (passkeysByUserId.get(user.id) ?? []).map(
+            ownedPasskeySummary,
+          ),
           externalPeers: externalPeersByPersonId.get(user.personId) ?? [],
         };
       }),
@@ -375,12 +382,17 @@ export class AuthAdministrationService {
 
   async listUserIdentities(userId: string): Promise<AuthIdentitySummary[]> {
     return (await this.identities.listIdentities(userId)).map((identity) =>
-      identitySummary(identity, userId, this.getChannelDescriptor),
+      identitySummary(identity, userId, {
+        genericChannelLabel: "keep",
+        getChannelDescriptor: this.getChannelDescriptor,
+      }),
     );
   }
 
   async listUserPasskeys(userId: string): Promise<AuthPasskeySummary[]> {
-    return (await this.credentials.listPasskeys(userId)).map(passkeySummary);
+    return (await this.credentials.listPasskeys(userId)).map(
+      ownedPasskeySummary,
+    );
   }
 
   async updateUserRole(
@@ -522,51 +534,6 @@ function brainAnchorSummary(
   };
 }
 
-function identitySummary(
-  identity: AuthIdentityRecord,
-  userId: string,
-  getChannelDescriptor?: (channelType: string) => ChannelDescriptor | undefined,
-): AuthIdentitySummary {
-  const label = adminIdentityLabel(identity, getChannelDescriptor);
-  return {
-    id: identity.id,
-    personId: identity.personId,
-    userId,
-    type: identity.type,
-    visibility: identity.visibility,
-    evidence: identity.evidence.map((item) => ({
-      sourceKind: item.sourceKind,
-      ...(item.sourceId ? { sourceId: item.sourceId } : {}),
-      assurance: item.assurance,
-      ...(item.verifiedAt !== null ? { verifiedAt: item.verifiedAt } : {}),
-    })),
-    ...(identity.issuer ? { issuer: identity.issuer } : {}),
-    ...(label ? { label } : {}),
-    ...(identity.verifiedAt !== null
-      ? { verifiedAt: identity.verifiedAt }
-      : {}),
-    ...(identity.revokedAt !== null ? { revokedAt: identity.revokedAt } : {}),
-    createdAt: identity.createdAt,
-  };
-}
-
-function adminIdentityLabel(
-  identity: AuthIdentityRecord,
-  getChannelDescriptor?: (channelType: string) => ChannelDescriptor | undefined,
-): string | undefined {
-  const label = identity.label?.trim();
-  const deliverySubject = identity.deliverySubject?.trim();
-  if (
-    label &&
-    label.length > 0 &&
-    label !== getChannelDescriptor?.(identity.type)?.subjectLabel
-  ) {
-    return label;
-  }
-  if (deliverySubject && deliverySubject.length > 0) return deliverySubject;
-  return label && label.length > 0 ? label : undefined;
-}
-
 function invitationSummary(
   invitation: AuthInvitation,
   expiresAt?: number,
@@ -589,19 +556,5 @@ function invitationSummary(
     ...(invitation.cancelledAt !== null
       ? { cancelledAt: invitation.cancelledAt }
       : {}),
-  };
-}
-
-function passkeySummary(passkey: StoredPasskey): AuthPasskeySummary {
-  return {
-    id: passkey.id,
-    userId: passkey.userId,
-    ...(passkey.transports ? { transports: passkey.transports } : {}),
-    ...(passkey.credentialDeviceType
-      ? { credentialDeviceType: passkey.credentialDeviceType }
-      : {}),
-    credentialBackedUp: passkey.credentialBackedUp,
-    createdAt: passkey.createdAt,
-    updatedAt: passkey.updatedAt,
   };
 }

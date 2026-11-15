@@ -20,6 +20,28 @@ import {
   type AuthUser,
 } from "./runtime-schema";
 
+/** The auth user with this id; throws when there is none. */
+export async function requireAuthUser(
+  db: AuthRuntimeDB,
+  userId: string,
+): Promise<AuthUser> {
+  const user = await findAuthUser(db, userId);
+  if (!user) throw new Error(`Auth user not found: ${userId}`);
+  return user;
+}
+
+async function findAuthUser(
+  db: AuthRuntimeDB,
+  userId: string,
+): Promise<AuthUser | undefined> {
+  const [user] = await db
+    .select()
+    .from(authUsers)
+    .where(eq(authUsers.id, userId))
+    .limit(1);
+  return user;
+}
+
 export type AuthUserRole = AuthUser["role"];
 export type AuthUserStatus = AuthUser["status"];
 
@@ -322,13 +344,8 @@ export class AuthUserStore {
       .orderBy(authPeople.createdAt, sql`rowid`);
   }
 
-  async getUser(userId: string): Promise<AuthUser | undefined> {
-    const [user] = await this.db
-      .select()
-      .from(authUsers)
-      .where(eq(authUsers.id, userId))
-      .limit(1);
-    return user;
+  getUser(userId: string): Promise<AuthUser | undefined> {
+    return findAuthUser(this.db, userId);
   }
 
   async updateDisplayName(
@@ -416,7 +433,7 @@ export class AuthUserStore {
       | { kind: "role"; value: AuthUserRole }
       | { kind: "status"; value: AuthUserStatus },
   ): Promise<AuthUser> {
-    const existing = await this.requireUser(userId);
+    const existing = await requireAuthUser(this.db, userId);
     const currentValue =
       mutation.kind === "role" ? existing.role : existing.status;
     if (currentValue === mutation.value) return existing;
@@ -471,7 +488,7 @@ export class AuthUserStore {
         ),
       );
 
-    const updated = await this.requireUser(userId);
+    const updated = await requireAuthUser(this.db, userId);
     const updatedValue =
       mutation.kind === "role" ? updated.role : updated.status;
     if (updatedValue !== mutation.value) {
@@ -486,12 +503,6 @@ export class AuthUserStore {
       throw new Error("Cannot remove the personal brain anchor's admin access");
     }
     throw new Error("Cannot remove the last active admin user");
-  }
-
-  private async requireUser(userId: string): Promise<AuthUser> {
-    const user = await this.getUser(userId);
-    if (!user) throw new Error(`Auth user not found: ${userId}`);
-    return user;
   }
 }
 

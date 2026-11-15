@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { sha256Base64Url } from "@brains/utils/hash";
+import { hashToken } from "./token-hash";
 import { nowSeconds } from "@brains/utils/date";
 import { and, eq, gt, isNull } from "drizzle-orm";
 import type { AuthRuntimeDatabase } from "./runtime-db";
@@ -40,10 +40,6 @@ export interface RefreshTokenPersistence {
   rotateToken(token: string, clientId: string): Promise<ConsumedRefreshToken>;
   revokeToken(token: string, clientId?: string): Promise<boolean>;
   revokeTokensForSubject(subject: string): Promise<number>;
-}
-
-function hashToken(token: string): string {
-  return sha256Base64Url(token);
 }
 
 function createRefreshToken(): string {
