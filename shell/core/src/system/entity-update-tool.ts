@@ -252,12 +252,14 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
       if (uneditable) return failure(uneditable);
       const resolved = await resolveEntityOrError(
         entityService,
-        input.entityType,
-        input.id,
-        logger,
-        undefined,
-        permissionToVisibilityScope(context.userPermissionLevel),
-        { binaryContent: "reference" },
+        { entityType: input.entityType, identifier: input.id },
+        {
+          visibilityScope: permissionToVisibilityScope(
+            context.userPermissionLevel,
+          ),
+          logger,
+          read: { binaryContent: "reference" },
+        },
       );
       if (!resolved.ok) return failure(resolved.error);
 

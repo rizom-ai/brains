@@ -181,10 +181,12 @@ async function canonicalEntityId(
 ): Promise<string> {
   const entity = await findEntityByIdentifier(
     context.entityService,
-    entityType,
-    identifier,
-    undefined,
-    permissionToVisibilityScope(toolContext.userPermissionLevel),
+    { entityType, identifier },
+    {
+      visibilityScope: permissionToVisibilityScope(
+        toolContext.userPermissionLevel,
+      ),
+    },
   );
   return entity?.id ?? identifier;
 }
