@@ -160,3 +160,10 @@ export {
   type ToolResponse,
   type ToolVisibility,
 } from "@brains/plugins";
+// What the shared form pages and their HTTP intake are built with.
+export {
+  SITE_SLOT_ATTRIBUTE,
+  type WebRouteTransportContext,
+} from "@brains/plugins";
+// The daemon an interface runs its scheduled maintenance as.
+export { createScheduledMaintenanceDaemon } from "@brains/scheduler/maintenance";

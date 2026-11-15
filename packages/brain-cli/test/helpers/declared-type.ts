@@ -1,10 +1,13 @@
 import {
-  EntityPlugin,
   instantiatePluginPackageDefinition,
   type BaseEntity,
   type EntityAdapter,
   type PluginPackageDefinition,
 } from "@brains/plugins";
+import {
+  isDeclaredEntityType,
+  type DeclaredEntityTypePlugin,
+} from "@brains/plugins/test";
 
 /**
  * A first-party declared type's schema and adapter, as the canonical brain
@@ -15,7 +18,7 @@ export function declaredType(
   packageName: string,
   pluginId: string,
 ): {
-  schema: EntityPlugin<BaseEntity, unknown, unknown>["schema"];
+  schema: DeclaredEntityTypePlugin["schema"];
   adapter: EntityAdapter<BaseEntity>;
 } {
   const plugin = instantiatePluginPackageDefinition(
@@ -23,8 +26,8 @@ export function declaredType(
     {},
     { name: packageName, version: "0.0.0-test" },
     { pluginId },
-  ).find((candidate) => candidate instanceof EntityPlugin);
-  if (!(plugin instanceof EntityPlugin)) {
+  ).find((candidate) => isDeclaredEntityType(candidate));
+  if (!isDeclaredEntityType(plugin)) {
     throw new Error(`${packageName} installs no entity plugin`);
   }
   return { schema: plugin.schema, adapter: plugin.adapter };

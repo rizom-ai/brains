@@ -42,73 +42,6 @@ function shellImportBan(packages, message = shellImportMessage) {
   ];
 }
 
-/**
- * Packages converted to declarative definitions, each added by its
- * conversion. A converted package imports nothing from @brains/plugins: it
- * declares what it is with @brains/sdk and reaches what the public contract
- * does not offer through @brains/sdk/internal/*, while the runtime alone
- * carries the class API until it is removed.
- */
-const convertedPackages = [
-  "entities/agent-discovery",
-  "entities/ask-content",
-  "entities/assessment",
-  "entities/blog",
-  "entities/book",
-  "entities/conversation-memory",
-  "entities/decks",
-  "entities/doc",
-  "entities/faq",
-  "entities/form",
-  "entities/guide",
-  "entities/document",
-  "entities/image",
-  "entities/link",
-  "entities/note",
-  "entities/portfolio",
-  "entities/prompt",
-  "entities/series",
-  "entities/social-media",
-  "entities/style-guide",
-  "entities/topics",
-  "entities/wishlist",
-  "interfaces/a2a",
-  "interfaces/chat",
-  "interfaces/chat-repl",
-  "interfaces/email",
-  "interfaces/mcp",
-  "interfaces/web-chat",
-  "plugins/action-board",
-  "plugins/admin",
-  "plugins/analytics",
-  "plugins/atproto",
-  "plugins/atproto-registry",
-  "plugins/contact",
-  "plugins/content-pipeline",
-  "plugins/dashboard",
-  "plugins/directory-sync",
-  "plugins/email-workflows",
-  "plugins/knowledge-map",
-  "plugins/linkedin-import",
-  "plugins/newsletter",
-  "plugins/notifications",
-  "plugins/oauth-broker",
-  "plugins/obsidian-vault",
-  "plugins/onboarding",
-  "plugins/playbooks",
-  "plugins/profile",
-  "plugins/quiz",
-  "plugins/site-builder",
-  "plugins/site-content",
-  "plugins/site-info",
-  "plugins/stock-photo",
-  "plugins/studio",
-  "plugins/unified-inbox",
-];
-
-const convertedImportMessage =
-  "A converted package is a declarative definition: declare it with @brains/sdk and reach first-party runtime capabilities through @brains/sdk/internal/*, never @brains/plugins or a shell package.";
-
 /** Syntax banned everywhere; see each entry for why. */
 const restrictedSyntax = [
   {
@@ -168,7 +101,7 @@ const restrictedSyntax = [
 const rawFullScope = {
   selector: 'Property[key.name="visibilityScope"][value.value="restricted"]',
   message:
-    "Use internalFullScope(reason) from @brains/plugins (@brains/sdk/internal/service-runtime in a converted package) for a deliberate full-scope read, or pass the caller's scope.",
+    "Use internalFullScope(reason) from @brains/plugins (@brains/sdk/internal/service-runtime in a declared package) for a deliberate full-scope read, or pass the caller's scope.",
 };
 
 /**
@@ -197,7 +130,7 @@ const messagingObject =
 const castSubscription = {
   selector: `CallExpression[typeArguments] > MemberExpression.callee[property.name=/^(subscribe|observe|subscribeExecution)$/]${messagingObject}`,
   message:
-    "Subscribe through the event's typed channel (defineChannel in @brains/contracts, e.g. publishCompletedChannel, or entityUpdatedChannel from @brains/plugins, or @brains/sdk/internal/service-runtime in a converted package) instead of type arguments, which cast a payload nobody validated.",
+    "Subscribe through the event's typed channel (defineChannel in @brains/contracts, e.g. publishCompletedChannel, or entityUpdatedChannel from @brains/plugins, or @brains/sdk/internal/service-runtime in a declared package) instead of type arguments, which cast a payload nobody validated.",
 };
 
 module.exports = {
@@ -268,29 +201,6 @@ module.exports = {
           ...shellServicePackages,
           ...contextServedPackages,
         ]),
-      },
-    },
-    {
-      // A converted package's production code, its browser UI included,
-      // imports nothing from @brains/plugins either. Restates the import
-      // restrictions above for these files; its tests may still build what
-      // they need through the plugins package.
-      files: convertedPackages.flatMap((path) => [
-        `**/${path}/src/**/*.ts`,
-        `**/${path}/src/**/*.tsx`,
-        `**/${path}/ui-react/src/**/*.ts`,
-        `**/${path}/ui-react/src/**/*.tsx`,
-      ]),
-      excludedFiles: ["**/*.test.ts", "**/*.test.tsx", "**/src/test/**"],
-      rules: {
-        "no-restricted-imports": shellImportBan(
-          [
-            "@brains/plugins",
-            ...shellServicePackages,
-            ...contextServedPackages,
-          ],
-          convertedImportMessage,
-        ),
       },
     },
     {

@@ -2,7 +2,12 @@ import { afterEach, expect, it } from "bun:test";
 import { migrateConversations } from "@brains/conversation-service/migrate";
 import { migrateEntities } from "@brains/entity-service/migrate";
 import { migrateJobQueue } from "@brains/job-queue/migrate";
-import { ServicePlugin, type ServicePluginContext } from "@brains/plugins";
+import {
+  defineServicePlugin,
+  instantiatePluginPackageDefinition,
+  serviceRuntime,
+  type Plugin,
+} from "@brains/plugins";
 import { migrateRuntimeState } from "@brains/runtime-state/migrate";
 import { createSilentLogger, createTestDirectory } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
@@ -10,30 +15,26 @@ import { Shell } from "../src/shell";
 import { createTestShellConfig } from "./helpers/test-config";
 
 /** Reads app info while registering, as an interface resolving its model does. */
-class AppInfoReader extends ServicePlugin<
-  Record<string, never>,
-  Record<string, never>
-> {
-  public model: string | undefined;
-  public embeddingModel: string | undefined;
-
-  public constructor() {
-    super(
-      "app-info-reader",
-      { name: "@test/app-info-reader", version: "1.0.0" },
-      {},
-      z.object({}),
-    );
-  }
-
-  protected override async onRegister(
-    context: ServicePluginContext,
-  ): Promise<void> {
-    await super.onRegister(context);
-    const { ai } = await context.identity.getAppInfo();
-    this.model = ai.model;
-    this.embeddingModel = ai.embeddingModel;
-  }
+function appInfoReader(): {
+  plugins: Plugin[];
+  read: { model?: string; embeddingModel?: string };
+} {
+  const read: { model?: string; embeddingModel?: string } = {};
+  const plugins = instantiatePluginPackageDefinition(
+    defineServicePlugin({
+      id: "app-info-reader",
+      config: z.object({}),
+      setup: async (context) => {
+        const { ai } = await serviceRuntime(context).identity.getAppInfo();
+        read.model = ai.model;
+        read.embeddingModel = ai.embeddingModel;
+        return {};
+      },
+    }),
+    {},
+    { name: "@test/app-info-reader", version: "1.0.0" },
+  );
+  return { plugins, read };
 }
 
 const cleanups: Array<() => Promise<void>> = [];
@@ -52,9 +53,9 @@ it("serves app info to a plugin while it registers", async () => {
       url: `file:${testDirectory.dir}/test-runtime-state.db`,
     }),
   ]);
-  const reader = new AppInfoReader();
+  const reader = appInfoReader();
   const config = createTestShellConfig(testDirectory.dir, {
-    plugins: [reader],
+    plugins: reader.plugins,
   });
   const shell = Shell.createFresh(
     config,
@@ -65,8 +66,8 @@ it("serves app info to a plugin while it registers", async () => {
 
   await shell.initialize();
 
-  expect(reader.model).toBe(config.ai?.model);
-  expect(reader.model).toBeString();
+  expect(reader.read.model).toBe(config.ai?.model);
+  expect(reader.read.model).toBeString();
 });
 
 it("reports the configured embedding model", async () => {
@@ -80,9 +81,9 @@ it("reports the configured embedding model", async () => {
       url: `file:${testDirectory.dir}/test-runtime-state.db`,
     }),
   ]);
-  const reader = new AppInfoReader();
+  const reader = appInfoReader();
   const config = createTestShellConfig(testDirectory.dir, {
-    plugins: [reader],
+    plugins: reader.plugins,
     ai: {
       model: "claude-haiku-4-5",
       providerKeys: {
@@ -102,5 +103,5 @@ it("reports the configured embedding model", async () => {
 
   await shell.initialize();
 
-  expect(reader.embeddingModel).toBe("openai:text-embedding-3-large");
+  expect(reader.read.embeddingModel).toBe("openai:text-embedding-3-large");
 });

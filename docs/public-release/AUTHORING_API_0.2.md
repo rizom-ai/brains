@@ -240,6 +240,7 @@ Types:
 - `PublishMediaData`
 - `PublishProvider`
 - `PublishResult`
+- `SharedStateReader`
 
 `defineEntity` accepts plugin-owned `classification: "content" | "system"` (default `content`). Use `system` for operating instructions, identity, configuration and other brain machinery. System entities never participate in groupings; Studio consumes the classification rather than guessing from type names. Classification is registration metadata, not user-authored frontmatter or a permission/embedding/projection setting.
 
@@ -283,6 +284,7 @@ Presentation on `defineEntity` and `defineEntityPackage`:
   - **Fetching** (`DataSourceDefinition`): `fetch(query, entities, context)` reads through an `EntityReader` — `get(definition, id)`, `list(definition, { limit?, offset?, sort? })` and `count(definition)`, each typed by the definition it names — and returns plain data.
   - **Entity** (`EntityDataSourceDefinition`): `entity` names a definition in the same package, and the runtime derives its full schema from it, as `EntityOf` does; authors never declare the runtime-owned base fields. `defaultSort` (`{ field, direction, nullsFirst?, nullsLast? }`), `defaultLimit` (default 100), `lookupField` (`"slug"` by default, or `"id"`), `enableNavigation` and `navigationLimit` (default 1000) configure the reads. `transform(entity)` receives the definition-typed entity; `list(items, pagination, query)` returns a JSON object, with `pagination` set when the query names a `page`; `filter(query)` may narrow the list to an exact match on the type's own metadata, applied before paging; `detail({ item, navigation, siblings, entities })` answers a query naming an `id`, and a source without one refuses such a query.
   - Reads see public records, and only published ones in a production build; a fetching source reads `context.publishedOnly` to know which. The runtime validates what either form returns against the caller's schema.
+  - A fetching source reads beyond its own package through its `context`. `context.sharedState(state)` reads a runtime-state record another package declared shared with `defineSharedState` (see `@rizom/brain/services`) and exported: a `SharedStateReader`, whose `get(key)` answers the record parsed by the declaration's schema, or `null`. A package's private runtime state is never readable this way. `context.dataSources.fetch(source, query, schema)` fetches another package's data source by `<package name>:<local id>`, whatever scope the brain registers it under, and validates the answer with `schema`. It reads at the calling build's reads, public records and only published ones in a production build, so it shows nothing a site route naming that source could not. It answers `null` when no installed package serves the source, and a read that would come back to a source the build is already reading through the chain is refused.
 - `templates` registers templates keyed by local name under the type's scope. A template whose `dataSourceId` names one of its package's data sources follows it to the scoped id; any other id is kept as written.
 - `feed` (`EntityFeedDeclaration`) syndicates the type: `path` (relative to the build output, no parent steps), an optional channel `title` and `description` for a site config that gives none, and `toItem(entity, { environment })`, which returns a `FeedItem` (`title`, `slug`, `description`, `content`, `author`, ISO `publishedAt`, optional `category`) or `null` to leave a record out of that build. Every site build writes the feed into its staged output: a preview carries every record, a production build only those the type counts as published, which `toItem` may narrow. The channel links the site URL as configured; the feed's self link is that URL, a slash and the path. A malformed item fails the build, which keeps the previous generation.
 
@@ -348,6 +350,7 @@ Definitions and schema vocabulary:
 - `defineJob`
 - `defineRoute`
 - `defineServicePlugin`
+- `defineSharedState`
 - `defineTool`
 - `defineWorkspaceAction`
 - `protocol`
@@ -399,6 +402,7 @@ Types:
 - `ServiceJobStatus`
 - `ServicePackageDefinition`
 - `ServiceTemplateGenerationDefinition`
+- `SharedState`
 - `WorkspaceActionConfirmation`
 - `WorkspaceActionDefinition`
 - `WorkspaceActionFormControl`
@@ -418,6 +422,8 @@ Types:
 Capabilities belong to the slot, and a call's data to its handler. A slot is given what the package can do (`entities`, `messaging`, `jobs`, `templates`, `content`, `answer`, as the slot has them), once, and the handlers it returns close over them; a handler is given only its own call's data: a tool's `input` and `signal`, a job's `input`, `progress` and `signal`, an answer's `request` and `sender`, a route's `request`, `body` and `caller`. A capability that depends on who is calling, such as `entities`, resolves the current call when it is used. A handler written outside its slot is handed the capabilities it uses.
 
 `setup` is given the parsed `config`, `lifecycle.onCleanup`, and `runtimeState({ namespace, schema })`: a store for bookkeeping that is not an entity, such as a cursor, a count or a claim. The namespace is local to the package; the runtime qualifies it by the owning package, so two packages naming the same namespace never share a record. Writes take the schema's input and are stored as written, after the value has been checked to survive a JSON round trip; every read parses what is stored, so a transform runs at the read and never twice. The store offers `get`, `has`, `set`, `setIfNotExists`, `compareAndSet` (replacing a value only while it still reads as the expected one), `delete`, `list` (in key order, by literal prefix, at most 1000 records) and `clear`.
+
+A record the package shares with other packages is declared once with `defineSharedState(name, schema)` (`SharedState`), named `<package name>:<name>` as an answered channel is, and exported for the packages that read it. The owner opens it with the same `runtimeState(state)` call and gets the same store; registration refuses a package whose owner the name does not start with, so only the owner writes it. Other packages read it only from a data source, through `context.sharedState(state).get(key)`. A namespace opened with `runtimeState({ namespace, schema })` stays the package's own.
 
 ### Owned entities
 
@@ -540,7 +546,7 @@ Permission contract:
 
 `defineInterface(header, behavior)` and `defineMessageInterface(header, behavior)` take two arguments, as `defineServicePlugin` does. The header says what the interface is: its `id`, its `config` schema, its `accountSettings` when it declares any, a message interface's `channel`, and `setup`. The behavior says what it does with that: a generic interface's `routes` and `daemons`, a message interface's `daemons`, `listen`, `send`, `edit` and `deliver`. An interface with no behavior passes the header alone; a slot the behavior does not have is refused, as is a behavior slot written into the header. `setup` runs once when the interface registers, and what it returns is the `state` every behavior slot reads, in whatever order the slots are written. A message interface's `setup` also runs in the queue worker, so `deliver` can send from background jobs there: it builds clients, and leaves connecting and listening to `listen` and `daemons`.
 
-`setup` is given what a service's is: the parsed `config`, `lifecycle.onCleanup`, whose cleanups run last first when the interface shuts down, in the worker as in the web process, and `runtimeState({ namespace, schema })`. The namespace is local to the package and qualified by the owning package, the owner a service's state is kept under, so two packages declaring the same interface id never share a record; the store is a service's, with the same reads and writes.
+`setup` is given what a service's is: the parsed `config`, `lifecycle.onCleanup`, whose cleanups run last first when the interface shuts down, in the worker as in the web process, and `runtimeState({ namespace, schema })`. The namespace is local to the package and qualified by the owning package, the owner a service's state is kept under, so two packages declaring the same interface id never share a record; the store is a service's, with the same reads and writes. `runtimeState(state)` opens a shared record the interface's package owns, as a service's does.
 
 The slot rule is the service's. A slot is given the interface's capabilities once, `config`, `state` and, for a generic interface's `routes` and `daemons`, `jobs`, and the handlers it returns are given only their call's data: a route's `request`, `body` and `caller`, a daemon's `signal` and `health`, and an account daemon's `account` besides. A message interface's `listen`, `send`, `edit` and `deliver` are called once per call rather than returning handlers, so each is given `config` and `state` beside its call's data: `listen` its `signal`, `health` and `messages`, `send` the `channel` and the `message`, `edit` the `messageId` too, and `deliver` the parsed `recipient` and the `message`. `jobs.enqueue(definition, input)` queues another package's declared job: inside a route the job is admitted as the route's caller, and from a daemon as the interface itself, which reads public entries unless the brain grants it more. A generic interface's routes are a service's declared routes, held to their schemas and answering failures in the same public form.
 
@@ -619,6 +625,8 @@ JSON content types:
 - `JsonPrimitive`
 - `JsonValue`
 
+A site's sections take their copy from `content`, or from its `dataSources`: fetching sources declared with `defineDataSource` from `@rizom/brain/entities`, listed on `SiteDefinition`. A section names one by its local id in its `SectionMeta`'s `dataSource`, and what the source answers is the section's content, validated by the section's schema; saved copy and `content` are the fallback when the source fails. `defineSite` refuses two sources with one id, a section naming a source the site does not declare, and anything but a fetching source. The brain registers a site's sources under the site package's name, `<site package>:<local id>`, the name other packages' sources read them by, and they read as any package's sources do: through `EntityReader`, `context.sharedState` and `context.dataSources.fetch`. A site package carries no runtime `plugin`: one that does is refused when the brain resolves it.
+
 ## `@rizom/brain-ui`
 
 The components a site section or a plugin view renders entities with. They take the selected theme's tokens, and `react` and `react-dom` are peers. The package versions and releases with `@rizom/brain`.
@@ -651,7 +659,7 @@ Props and options:
 
 The advanced names classified in `export-ledger.json` are alpha contracts outside the patch-stable commitment; pin an exact version when using them.
 
-Internal `@brains/*` packages, runtime classes, contexts, registries, queue types, package metadata, root `z`, `PLUGIN_API_VERSION`, tuple factories, positional tools, and the removed entry points (`@rizom/brain/site`, `@rizom/brain/plugins`, `@rizom/brain/templates` and `@rizom/site-sections`) are not public authoring contracts.
+Internal `@brains/*` packages, runtime classes, contexts, registries, queue types, package metadata, root `z`, `PLUGIN_API_VERSION`, tuple factories, positional tools, and the removed entry points (`@rizom/brain/site`, `@rizom/brain/plugins`, `@rizom/brain/templates` and `@rizom/site-sections`) are not public authoring contracts. The runtime has no plugin class bases: every package, first-party included, is a declarative definition.
 
 ## Compatibility rule
 

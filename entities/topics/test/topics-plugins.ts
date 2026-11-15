@@ -1,12 +1,14 @@
 import {
-  EntityPlugin,
   instantiatePluginPackageDefinition,
-  type BaseEntity,
   type Plugin,
   type PluginCapabilities,
 } from "@brains/plugins";
 import { topicsPackage, type TopicsPluginConfigInput } from "../src";
 import packageJson from "../package.json";
+import {
+  isDeclaredEntityType,
+  type DeclaredEntityTypePlugin,
+} from "@brains/plugins/test";
 
 /**
  * The topics package's plugins, as the canonical brain installs them:
@@ -23,16 +25,12 @@ export function createTopicsPlugins(
   );
 }
 
-type TopicPlugin = EntityPlugin<
-  BaseEntity,
-  Record<string, never>,
-  Record<string, never>
->;
+type TopicPlugin = DeclaredEntityTypePlugin;
 
 /** The topic type's adapter, as the installed package declares it. */
 export function topicTypeAdapter(): TopicPlugin["adapter"] {
   const plugin = createTopicsPlugins().find(
-    (candidate): candidate is TopicPlugin => candidate instanceof EntityPlugin,
+    (candidate): candidate is TopicPlugin => isDeclaredEntityType(candidate),
   );
   if (!plugin) throw new Error("The topics package declares no type");
   return plugin.adapter;

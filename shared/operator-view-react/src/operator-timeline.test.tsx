@@ -1,5 +1,5 @@
 /** @jsxImportSource react */
-import type { RuntimeStudioWorkspaceData } from "@brains/plugins";
+import type { RuntimeStudioWorkspaceData } from "@brains/sdk/internal/service-runtime";
 import { afterEach, describe, expect, it } from "bun:test";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";

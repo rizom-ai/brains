@@ -1,5 +1,5 @@
 /** @jsxImportSource react */
-import type { RuntimeOperatorActionControl } from "@brains/plugins";
+import type { RuntimeOperatorActionControl } from "@brains/sdk/internal/service-runtime";
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";

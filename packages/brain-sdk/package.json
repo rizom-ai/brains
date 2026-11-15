@@ -1,12 +1,13 @@
 {
   "name": "@brains/sdk",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.708",
+  "version": "0.2.0-alpha.711",
   "description": "Layer 1 authoring surface: the plugin, entity and interface contract that @rizom/brain re-exports and in-repo packages import directly",
   "dependencies": {
     "@brains/contracts": "workspace:*",
     "@brains/entity-service": "workspace:*",
     "@brains/plugins": "workspace:*",
+    "@brains/scheduler": "workspace:*",
     "@brains/templates": "workspace:*",
     "@brains/utils": "workspace:*"
   },
@@ -27,6 +28,7 @@
     "./internal/message-display": "./src/internal/message-display.ts",
     "./internal/presentation": "./src/internal/presentation.ts",
     "./internal/service-runtime": "./src/internal/service-runtime.ts",
+    "./internal/site-runtime": "./src/internal/site-runtime.ts",
     "./entities": "./src/entities.ts",
     "./services": "./src/services.ts",
     "./interfaces": "./src/interfaces.ts"

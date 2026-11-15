@@ -1,10 +1,6 @@
 import { findRouteByRole } from "../types/web-routes";
 import type { BasePluginContext } from "../base/context";
 import { createBasePluginContext } from "../base/context";
-import type {
-  BasePluginContext as PublicBasePluginContext,
-  ServicePluginContext as PublicServicePluginContext,
-} from "../public/types";
 import type { IShell, PluginRegistrationContext } from "../interfaces";
 import type { IWebRoutesNamespace } from "../interface/context";
 import { createAINamespace } from "../entity/context";
@@ -108,10 +104,7 @@ export type ServiceEntityService = EntityServiceClient;
  * members are already checked by BasePluginContext's own extends), so a
  * published service capability the runtime lacks fails to compile here.
  */
-export interface ServicePluginContext
-  extends
-    BasePluginContext,
-    Omit<PublicServicePluginContext, keyof PublicBasePluginContext> {
+export interface ServicePluginContext extends BasePluginContext {
   /** Auth-runtime projection hooks available only to service plugins. */
   readonly permissions: BasePluginContext["permissions"] &
     IServiceRuntimePermissionsNamespace;

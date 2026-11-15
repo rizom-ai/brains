@@ -34,7 +34,12 @@ const clientMetadataDocumentSchema = z
     client_name: z.string().min(1),
     redirect_uris: z.array(z.url()).min(1),
     application_type: z.enum(["native", "web"]).optional(),
-    token_endpoint_auth_method: z.literal("none").default("none"),
+    // The singular field is the client's preference; the plural field, when
+    // present, lists every method it can use. This server's token endpoint
+    // takes none for these clients, so a client is accepted when it can use
+    // none (see authenticatesWithNone) and is registered as a public client.
+    token_endpoint_auth_method: z.string().optional(),
+    token_endpoint_auth_methods_supported: z.array(z.string()).optional(),
     // RFC 7591: grant_types states what the client may use, not what this
     // server must support. Claude's own metadata document lists
     // "urn:ietf:params:oauth:grant-type:jwt-bearer" alongside the two grants it
@@ -66,7 +71,7 @@ const clientMetadataDocumentSchema = z
     client_id_issued_at: Math.floor(Date.now() / 1000),
     client_name: metadata.client_name,
     redirect_uris: metadata.redirect_uris,
-    token_endpoint_auth_method: metadata.token_endpoint_auth_method,
+    token_endpoint_auth_method: "none",
     grant_types: metadata.grant_types,
     response_types: metadata.response_types,
     ...(metadata.application_type
@@ -171,13 +176,15 @@ export class ClientMetadataDocumentResolver {
       );
     }
 
+    if (!authenticatesWithNone(document)) {
+      throw new ClientMetadataDocumentError(
+        "Client metadata documents currently support public clients using token_endpoint_auth_method none",
+      );
+    }
     const parsed = clientMetadataDocumentSchema.safeParse(document);
     if (!parsed.success) {
-      const symmetricMethod = getTokenEndpointAuthMethod(document);
       throw new ClientMetadataDocumentError(
-        symmetricMethod && symmetricMethod !== "none"
-          ? "Client metadata documents currently support public clients using token_endpoint_auth_method none"
-          : `Invalid client metadata document: ${parsed.error.message}`,
+        `Invalid client metadata document: ${parsed.error.message}`,
       );
     }
     if (parsed.data.client_id !== clientId) {
@@ -338,10 +345,15 @@ function getCacheLifetimeMs(headers: Headers, now: number): number {
   return Number.isFinite(expiresAt) ? Math.max(0, expiresAt - now) : 0;
 }
 
-function getTokenEndpointAuthMethod(document: unknown): string | undefined {
-  if (!document || typeof document !== "object") return undefined;
-  const value = Reflect.get(document, "token_endpoint_auth_method");
-  return typeof value === "string" ? value : undefined;
+function authenticatesWithNone(document: unknown): boolean {
+  if (!document || typeof document !== "object") return true;
+  const supported = Reflect.get(
+    document,
+    "token_endpoint_auth_methods_supported",
+  );
+  if (Array.isArray(supported)) return supported.includes("none");
+  const preferred = Reflect.get(document, "token_endpoint_auth_method");
+  return typeof preferred !== "string" || preferred === "none";
 }
 
 function isLocalHostname(hostname: string): boolean {

@@ -44,7 +44,13 @@ export function bookAskSource(sources: BookAskSources): BookSourceUnderTest {
       schema.parse(
         await fetchBookAsk(
           context.entityService,
-          { publishedOnly: context.publishedOnly === true },
+          {
+            publishedOnly: context.publishedOnly === true,
+            // These tests give the guest box directly; book-ask-box reads it.
+            sharedState: () => {
+              throw new Error("No shared state in this test");
+            },
+          },
           sources,
           createMockLogger(),
         ),

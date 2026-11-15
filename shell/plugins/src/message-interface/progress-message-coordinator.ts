@@ -41,9 +41,9 @@ export interface EditMessageRequest {
 }
 
 /**
- * Everything the coordinator needs from the interface it drives. Each member
- * is an override point on MessageInterfacePlugin, so a transport customises
- * delivery and rendering without touching progress bookkeeping.
+ * Everything the coordinator needs from the interface it drives: how it
+ * sends, edits and renders (see `createMessageCoordinator`), so a transport
+ * customises delivery and rendering without touching progress bookkeeping.
  */
 export interface ProgressMessageTransport {
   interfaceId(): string;
@@ -66,7 +66,7 @@ export interface ProgressMessageTransport {
  * completions are waiting on an agent response, and which completion messages
  * must be held back until the agent has replied.
  *
- * Split out of MessageInterfacePlugin so the class keeps only its transport
+ * Each message interface owns one; the interface keeps only its transport
  * hooks — the state here is bookkeeping, not transport.
  */
 export class ProgressMessageCoordinator {

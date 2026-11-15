@@ -20,7 +20,6 @@ import {
 import { z } from "@brains/utils/zod";
 import { createMockShell, type MockShell } from "../src/test/mock-shell";
 import {
-  EntityPlugin,
   defineEntity,
   defineEntityJob,
   defineEntityPackage,
@@ -28,6 +27,7 @@ import {
   type EntityDefinition,
   type EntityJobHandleContext,
 } from "../src";
+import { isDeclaredEntityType } from "../src/test/declared-entity-type";
 
 /**
  * A declared entity job's `handle` writes the records of the type that
@@ -153,7 +153,7 @@ async function install(
     { name: packageName, version: "0.1.0" },
   );
   for (const plugin of plugins) {
-    if (plugin instanceof EntityPlugin) {
+    if (isDeclaredEntityType(plugin)) {
       registry.registerEntityType(
         plugin.entityType,
         plugin.schema,

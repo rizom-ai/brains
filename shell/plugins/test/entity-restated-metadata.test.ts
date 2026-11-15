@@ -6,7 +6,6 @@ import { slugify } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import { createMockShell } from "../src/test/mock-shell";
 import {
-  EntityPlugin,
   defineEntity,
   defineEntityPackage,
   instantiatePluginPackageDefinition,
@@ -14,6 +13,7 @@ import {
   type AnyEntityDefinition,
 } from "../src";
 import { createRefusingEmbeddingService } from "@brains/entity-service/test";
+import { isDeclaredEntityType } from "../src/test/declared-entity-type";
 
 /**
  * A first-party type whose encode writes what its metadata did not state —
@@ -92,7 +92,7 @@ async function store(): Promise<{
     {},
     { name: "@fixture/slugged", version: "0.1.0" },
   )) {
-    if (plugin instanceof EntityPlugin) {
+    if (isDeclaredEntityType(plugin)) {
       registry.registerEntityType(
         plugin.entityType,
         plugin.schema,

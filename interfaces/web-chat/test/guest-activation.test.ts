@@ -14,8 +14,8 @@ import {
 import { z } from "@brains/utils/zod";
 import {
   ASK_BOX_STATE_KEY,
-  ASK_BOX_STATE_NAMESPACE,
-  askBoxAvailabilitySchema,
+  askBoxAvailabilityState,
+  sharedStateNamespace,
   siteBuildRequestContract,
   type AskBoxAvailability,
 } from "@brains/contracts";
@@ -115,8 +115,9 @@ async function fixture(
       .getMockShell()
       .getRuntimeState()
       .scoped({
-        namespace: ASK_BOX_STATE_NAMESPACE,
-        schema: askBoxAvailabilitySchema,
+        // The record Web Chat shares, as `@brains/web-chat:ask-box`.
+        namespace: sharedStateNamespace("@brains/web-chat:ask-box"),
+        schema: askBoxAvailabilityState.schema,
       })
       .get(ASK_BOX_STATE_KEY);
   const buildRequests: (AskBoxAvailability | null)[] = [];

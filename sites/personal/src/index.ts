@@ -1,44 +1,41 @@
-import type { Plugin } from "@brains/plugins";
 import type { SitePackage } from "@brains/site-composition";
-import {
-  PersonalSitePlugin,
-  personalSitePlugin,
-  type PersonalSiteConfigInput,
-} from "./plugin";
+import { withSiteRuntime } from "@brains/sdk/internal/site-runtime";
+import { personalSiteRuntime, type PersonalSiteConfigInput } from "./runtime";
 import { routes } from "./routes";
 import { HomepageLayout, type HomepageData } from "./templates/homepage";
 import { AboutPageLayout, type AboutPageData } from "./templates/about";
-import { HomepageDataSource } from "./datasources/homepage-datasource";
-import { AboutDataSource } from "./datasources/about-datasource";
+import { homepageDataSource } from "./datasources/homepage-datasource";
+import { aboutDataSource } from "./datasources/about-datasource";
 import { PersonalLayout } from "./layouts/PersonalLayout";
 
 export {
-  PersonalSitePlugin,
-  personalSitePlugin,
+  personalSiteRuntime,
   type PersonalSiteConfigInput,
   routes,
   HomepageLayout,
   type HomepageData,
   AboutPageLayout,
   type AboutPageData,
-  HomepageDataSource,
-  AboutDataSource,
+  homepageDataSource,
+  aboutDataSource,
   PersonalLayout,
 };
 
-const site: SitePackage<PersonalSiteConfigInput, Plugin> = {
-  layouts: {
-    default: PersonalLayout,
-  },
-  routes,
-  plugin: personalSitePlugin,
-  entityDisplay: {
-    post: { label: "Post" },
-    series: {
-      label: "Series",
-      navigation: { show: false },
+const site: SitePackage = withSiteRuntime(
+  {
+    layouts: {
+      default: PersonalLayout,
+    },
+    routes,
+    entityDisplay: {
+      post: { label: "Post" },
+      series: {
+        label: "Series",
+        navigation: { show: false },
+      },
     },
   },
-};
+  personalSiteRuntime,
+);
 
 export default site;

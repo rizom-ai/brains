@@ -26,6 +26,7 @@ import type {
   EntityReader,
 } from "../entity/entity-definition-contract";
 import type { OwnedEntityWriter } from "../entity/owned-entity-writer";
+import type { SharedState } from "../public/shared-state";
 export type { OwnedEntityWriter } from "../entity/owned-entity-writer";
 import type {
   AnyAccountSettingsDefinition,
@@ -447,9 +448,21 @@ export interface ServiceSetupContext<TConfig> {
    * `state` is what `setup` returns. Two packages naming the same namespace
    * never share a record.
    */
-  readonly runtimeState: <TValue, TInput = TValue>(
+  readonly runtimeState: ServiceRuntimeStateFactory;
+}
+
+/**
+ * Opens a runtime-state store: a namespace private to the package, or a
+ * record the package shares, declared with `defineSharedState` under its own
+ * name. Registration refuses a shared record another package names.
+ */
+export interface ServiceRuntimeStateFactory {
+  <TValue, TInput = TValue>(
     options: ServiceRuntimeStateOptions<TValue, TInput>,
-  ) => ServiceRuntimeState<TValue, TInput>;
+  ): ServiceRuntimeState<TValue, TInput>;
+  <TValue, TInput = TValue>(
+    state: SharedState<TValue, TInput>,
+  ): ServiceRuntimeState<TValue, TInput>;
 }
 
 export interface ServiceResourceDefinition {

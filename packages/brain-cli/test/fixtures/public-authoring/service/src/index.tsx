@@ -8,9 +8,11 @@ import {
   defineJob,
   defineRoute,
   defineServicePlugin,
+  defineSharedState,
   defineTool,
   sdkErrorCodeSchema,
   type Channel,
+  type SharedState,
   z,
 } from "@rizom/brain/services";
 
@@ -79,6 +81,12 @@ const digestReadyPayload = digestResult.extend({ markdown: z.string() });
 export const digestReady: Channel<z.output<typeof digestReadyPayload>> =
   defineChannel("@fixture/reading-insights:digest-ready", digestReadyPayload);
 
+// A record this service shares: it alone writes it, through its setup, and a
+// data source of any package reads it. Named by the package that owns it.
+const digestTotal = z.object({ count: z.number().int().nonnegative() });
+export const digestCount: SharedState<z.output<typeof digestTotal>> =
+  defineSharedState("@fixture/reading-insights:digest-count", digestTotal);
+
 const readbackInput = z.object({
   digestId: z.string(),
   overviewId: z.string(),
@@ -102,8 +110,10 @@ export default defineServicePlugin(
     }),
 
     // Setup returns inferred state shared by the service callbacks.
-    setup({ config }) {
+    setup({ config, runtimeState }) {
       return {
+        // The shared record, opened with the same call as a private one.
+        digests: runtimeState(digestCount),
         summarize(
           bookmarkId: string,
           title: string,
@@ -227,6 +237,9 @@ export default defineServicePlugin(
           ...result,
           markdown: templates.format("digest", result),
         });
+        // Counted in the record this service shares.
+        const counted = await state.digests.get("total");
+        await state.digests.set("total", { count: (counted?.count ?? 0) + 1 });
         return result;
       }),
     ],

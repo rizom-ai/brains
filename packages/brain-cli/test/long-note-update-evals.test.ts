@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { computeContentHash } from "@brains/utils/hash";
 import {
   evaluateCriteria,
   YAMLLoader,
@@ -64,15 +65,17 @@ describe("long-note agent eval coverage", () => {
     }
     expect(testCase.turns[1]?.confirmPendingAction).toBe(false);
     expect(testCase.turns[4]?.confirmPendingAction).toBe(true);
+    // A read is judged by the stored record's hash, which every part of a
+    // read carries, so a body-only read of the right note passes.
     expect(
       testCase.turns[2]?.successCriteria?.expectedTools?.[0]?.resultContains?.[
-        "entity.content"
+        "entity.contentHash"
       ],
-    ).toBe(original);
+    ).toBe(computeContentHash(original));
     expect(
       testCase.turns[5]?.successCriteria?.expectedTools?.[0]?.resultContains,
     ).toEqual({
-      "entity.content": expected,
+      "entity.contentHash": computeContentHash(expected),
       "entity.metadata.title": "Approved Plan",
     });
     // Approval checks the executed operation and storage result, not a success phrase.
@@ -134,8 +137,12 @@ describe("long-note agent eval coverage", () => {
       const savedRead = testCase.turns[5]?.successCriteria?.expectedTools?.find(
         (tool) => tool.toolName === "system_get",
       );
-      expect(cancelledRead?.resultContains?.["entity.content"]).toBe(original);
-      expect(savedRead?.resultContains?.["entity.content"]).toBe(expected);
+      expect(cancelledRead?.resultContains?.["entity.contentHash"]).toBe(
+        computeContentHash(original),
+      );
+      expect(savedRead?.resultContains?.["entity.contentHash"]).toBe(
+        computeContentHash(expected),
+      );
       if (combined)
         expect(savedRead?.resultContains?.["entity.metadata.title"]).toBe(
           "Approved Plan",
@@ -145,27 +152,31 @@ describe("long-note agent eval coverage", () => {
       // when the assistant claims success and invokes the expected read tool.
       const criteria = testCase.turns[5]?.successCriteria;
       if (!criteria) throw new Error("Missing saved-state criteria");
-      for (const corrupt of [original, expected.replaceAll("\\", "\\\\")]) {
-        const results = evaluateCriteria(
-          criteria,
-          { text: "Saved correctly." },
-          [
-            {
-              toolName: "system_get",
-              args: { entityType: "note", id },
-              result: {
-                entity: {
-                  content: corrupt,
-                  metadata: {
-                    title: combined ? "Approved Plan" : "Working Plan",
-                  },
+      const read = (
+        stored: string,
+        content = stored,
+      ): ReturnType<typeof evaluateCriteria> =>
+        evaluateCriteria(criteria, { text: "Saved correctly." }, [
+          {
+            toolName: "system_get",
+            args: { entityType: "note", id },
+            result: {
+              entity: {
+                content,
+                contentHash: computeContentHash(stored),
+                metadata: {
+                  title: combined ? "Approved Plan" : "Working Plan",
                 },
               },
             },
-          ],
-        );
-        expect(results.some((result) => !result.passed)).toBe(true);
-      }
+          },
+        ]);
+      for (const corrupt of [original, expected.replaceAll("\\", "\\\\")])
+        expect(read(corrupt).some((result) => !result.passed)).toBe(true);
+      // A body-only read of the right note is the stored record too.
+      expect(read(expected, "body only").every((result) => result.passed)).toBe(
+        true,
+      );
     },
   );
 });

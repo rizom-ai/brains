@@ -13,7 +13,7 @@ import { createSilentLogger, createTestDirectory } from "@brains/test-utils";
 import { generateMarkdown } from "@brains/utils/markdown-frontmatter";
 import { z } from "@brains/utils/zod";
 import {
-  ActionItemAdapter,
+  actionItemAdapter,
   actionItemSchema,
   type ActionItemMetadata,
   type ActionItemStatus,
@@ -99,7 +99,7 @@ async function brain(
   registry.registerEntityType(
     "action-item",
     actionItemSchema,
-    new ActionItemAdapter(),
+    actionItemAdapter,
   );
   if (options.defined !== false)
     registry.registerGrouping({
@@ -378,7 +378,7 @@ describe("projects on the installed Board, by the caller's visibility", () => {
     registry.registerEntityType(
       "action-item",
       actionItemSchema,
-      new ActionItemAdapter(),
+      actionItemAdapter,
     );
     registry.registerGrouping({
       key: "projects",

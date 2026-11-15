@@ -1,4 +1,5 @@
-import type { BaseEntity, IRuntimeStateNamespace } from "@brains/plugins";
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
+import type { IRuntimeStateNamespace } from "@brains/sdk/internal/service-runtime";
 import type { FormAdmission, FormDenialReason } from "./admission";
 import type { FormDefinition } from "./definition";
 import { FormRecords, type FormEntityService } from "./records";

@@ -7,7 +7,7 @@ import {
   type StudioWorkspaceRegistration,
 } from "@brains/plugins";
 import {
-  ActionItemAdapter,
+  actionItemAdapter,
   actionItemSchema,
   type ActionItemMetadata,
   type ActionItemStatus,
@@ -77,7 +77,7 @@ export async function createBoardFixture(
   now: number,
 ): Promise<(query: Record<string, string>) => Promise<unknown>> {
   const context = createServicePluginContext(createMockShell(), "action-board");
-  const adapter = new ActionItemAdapter();
+  const adapter = actionItemAdapter;
   context.entities.register("action-item", actionItemSchema, adapter);
   for (const card of CARDS) {
     const metadata: ActionItemMetadata = {

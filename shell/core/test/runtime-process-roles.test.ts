@@ -3,93 +3,93 @@ import { migrateConversations } from "@brains/conversation-service/migrate";
 import { migrateEntities } from "@brains/entity-service/migrate";
 import {
   type IJobQueueWorker,
-  type JobHandler,
   type JobQueueWorkerStats,
 } from "@brains/job-queue";
 import { migrateJobQueue } from "@brains/job-queue/migrate";
 import { MessageBus } from "@brains/messaging-service";
 import {
+  type ChannelDeliveryResult,
   type Daemon,
-  MessageInterfacePlugin,
-  type MessageInterfacePluginContext,
+  defineChannel,
+  defineInterface,
+  defineServicePlugin,
+  instantiatePluginPackageDefinition,
   type Plugin,
   type PluginCapabilities,
-  type ServicePluginContext,
-  ServicePlugin,
+  serviceRuntime,
   SYSTEM_CHANNELS,
-  type Tool,
+  type ToolResponse,
+  withChannels,
+  withDaemon,
+  withJobHandlers,
+  withTools,
 } from "@brains/plugins";
 import { migrateRuntimeState } from "@brains/runtime-state/migrate";
 import { createSilentLogger, waitUntil } from "@brains/test-utils";
 import { internalFullScope } from "@brains/entity-service";
 import { BrainCharacterAdapter } from "@brains/identity-service";
-import type { ProgressReporter } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
 import { DaemonRegistry } from "../src/daemon-registry";
 import { Shell } from "../src/shell";
 import { createTestShellConfig } from "./helpers/test-config";
 import { createTestDirectory } from "@brains/test-utils";
 
-class ExecutionAuditPlugin extends ServicePlugin<
-  Record<string, never>,
-  Record<string, never>
-> {
-  public readyCalled = false;
+const ordinaryIngress = defineChannel("test:ordinary-ingress", z.unknown());
+const executionDependency = defineChannel(
+  "test:execution-dependency",
+  z.unknown(),
+);
 
-  public constructor() {
-    super(
-      "execution-audit",
-      { name: "@test/execution-audit", version: "1.0.0" },
-      {},
-      z.object({}),
-    );
-  }
-
-  protected override async onRegister(
-    context: ServicePluginContext,
-  ): Promise<void> {
-    await super.onRegister(context);
-    context.messaging.subscribe("test:ordinary-ingress", async () => ({
-      success: true,
-    }));
-    context.messaging.subscribeExecution(
-      "test:execution-dependency",
-      async () => ({ success: true }),
-    );
-  }
-
-  protected override async registerJobHandlers(
-    context: ServicePluginContext,
-  ): Promise<void> {
-    const handler: JobHandler<"execution-audit:execute", { value: string }> = {
-      validateAndParse: (data) => {
-        const parsed = z.object({ value: z.string() }).safeParse(data);
-        return parsed.success ? parsed.data : null;
-      },
-      process: async (
-        _data: { value: string },
-        _jobId: string,
-        _progress: ProgressReporter,
-        _signal: AbortSignal,
-      ): Promise<void> => {},
-    };
-    context.jobs.registerHandler("execute", handler);
-  }
-
-  protected override async getTools(): Promise<Tool[]> {
-    return [
-      {
-        name: "execution_audit_tool",
-        description: "Must not be exposed by the worker process",
-        inputSchema: {},
-        handler: async () => ({ success: true, data: {} }),
-      },
-    ];
-  }
-
-  protected override async onReady(): Promise<void> {
-    this.readyCalled = true;
-  }
+/**
+ * A declared service that hears an ordinary ingress and an execution
+ * dependency, handles a job, serves a tool and runs once ready: the worker
+ * keeps only its execution capabilities.
+ */
+function executionAudit(): { plugin: Plugin; ready: { called: boolean } } {
+  const ready = { called: false };
+  const [plugin] = instantiatePluginPackageDefinition(
+    withTools(
+      withJobHandlers(
+        defineServicePlugin({
+          id: "execution-audit",
+          config: z.object({}),
+          setup: (context) => {
+            const runtime = serviceRuntime(context);
+            runtime.listen(ordinaryIngress, () => {});
+            runtime.listen(executionDependency, () => {}, {
+              mode: "execution",
+            });
+            runtime.ready(() => {
+              ready.called = true;
+            });
+            return {};
+          },
+        }),
+        () => [
+          {
+            type: "execute",
+            input: z.object({ value: z.string() }),
+            process: async (): Promise<void> => {},
+          },
+        ],
+      ),
+      () => [
+        {
+          name: "execution_audit_tool",
+          description: "Must not be exposed by the worker process",
+          inputSchema: {},
+          handler: async (): Promise<ToolResponse> => ({
+            success: true,
+            data: {},
+          }),
+        },
+      ],
+    ),
+    {},
+    { name: "@test/execution-audit", version: "1.0.0" },
+  );
+  if (!plugin) throw new Error("No execution audit service");
+  return { plugin, ready };
 }
 
 function createInterfacePlugin(onRegister: () => void): Plugin {
@@ -110,53 +110,63 @@ function createInterfacePlugin(onRegister: () => void): Plugin {
   };
 }
 
-/** An interface that owns a channel, and also listens and serves. */
-class ChannelInterface extends MessageInterfacePlugin<
-  Record<string, never>,
-  Record<string, never>
-> {
-  public registered = false;
-
-  public constructor() {
-    super(
-      "channel-interface",
-      { name: "@test/channel-interface", version: "1.0.0" },
-      {},
-      z.object({}),
-    );
-  }
-
-  protected override createDaemon(): Daemon {
-    return {
-      start: async (): Promise<void> => {},
-      stop: async (): Promise<void> => {},
-    };
-  }
-
-  protected override registerChannels(
-    context: MessageInterfacePluginContext,
-  ): void {
-    context.channels.registerDescriptor({
-      type: "test-channel",
-      displayName: "Test channel",
-      subjectLabel: "Handle",
-    });
-    context.channels.registerDeliveryProvider({
-      channelType: "test-channel",
-      isAvailable: async () => true,
-      send: async () => ({ status: "sent" }),
-    });
-  }
-
-  protected override async onRegister(
-    context: MessageInterfacePluginContext,
-  ): Promise<void> {
-    await super.onRegister(context);
-    this.registered = true;
-    context.messaging.subscribe("test:channel-ingress", async () => ({
-      success: true,
-    }));
-  }
+/**
+ * A declared interface that owns a channel, and also sets up, serves a tool
+ * and runs a daemon: the worker registers only its channel and sender.
+ */
+function channelInterface(): { plugin: Plugin; setUp: { done: boolean } } {
+  const setUp = { done: false };
+  const [plugin] = instantiatePluginPackageDefinition(
+    withTools(
+      withDaemon(
+        withChannels(
+          defineInterface({
+            id: "channel-interface",
+            config: z.object({}),
+            setup: () => {
+              setUp.done = true;
+              return {};
+            },
+          }),
+          () => [
+            {
+              descriptor: {
+                type: "test-channel",
+                displayName: "Test channel",
+                subjectLabel: "Handle",
+              },
+              delivery: {
+                isAvailable: async (): Promise<boolean> => true,
+                send: async (): Promise<ChannelDeliveryResult> => ({
+                  status: "sent",
+                }),
+              },
+            },
+          ],
+        ),
+        () => ({
+          id: "server",
+          start: async (): Promise<void> => {},
+          stop: async (): Promise<void> => {},
+        }),
+      ),
+      () => [
+        {
+          name: "channel_interface_tool",
+          description: "Served once the interface is fully registered",
+          inputSchema: {},
+          handler: async (): Promise<ToolResponse> => ({
+            success: true,
+            data: {},
+          }),
+        },
+      ],
+    ),
+    {},
+    { name: "@test/channel-interface", version: "1.0.0" },
+  );
+  if (!plugin) throw new Error("No channel interface");
+  return { plugin, setUp };
 }
 
 function createTrackingWorker(onStart: () => void): IJobQueueWorker {
@@ -242,11 +252,11 @@ describe("supervised runtime process roles", () => {
       }),
     ]);
 
-    const executionPlugin = new ExecutionAuditPlugin();
+    const execution = executionAudit();
     let workerStarted = false;
     const shell = Shell.createFresh(
       createTestShellConfig(testDirectory.dir, {
-        plugins: [executionPlugin],
+        plugins: [execution.plugin],
       }),
       {
         logger: createSilentLogger("web-process-role-test"),
@@ -310,16 +320,18 @@ describe("supervised runtime process roles", () => {
     expect(shell.isInitialized()).toBe(true);
     expect(workerStarted).toBe(false);
     expect(
-      shell.getJobQueueService().getHandler("execution-audit:execute"),
+      shell
+        .getJobQueueService()
+        .getHandler("@test/execution-audit:execution-audit:execute"),
     ).toBeUndefined();
     expect(
       shell.getJobQueueService().getExecutionRegistrations(),
     ).toContainEqual({
-      type: "execution-audit:execute",
-      pluginId: "execution-audit",
+      type: "@test/execution-audit:execution-audit:execute",
+      pluginId: "@test/execution-audit:execution-audit",
     });
     const jobId = await shell.getJobQueueService().enqueue({
-      type: "execution-audit:execute",
+      type: "@test/execution-audit:execution-audit:execute",
       data: { value: "queued-by-web" },
       options: {
         source: "test",
@@ -344,12 +356,12 @@ describe("supervised runtime process roles", () => {
     const logger = createSilentLogger("runtime-process-role-test");
     const messageBus = MessageBus.createFresh(logger);
     const daemonRegistry = DaemonRegistry.createFresh(logger);
-    const executionPlugin = new ExecutionAuditPlugin();
+    const execution = executionAudit();
     let interfaceRegistered = false;
     let workerStarted = false;
     const config = createTestShellConfig(testDirectory.dir, {
       plugins: [
-        executionPlugin,
+        execution.plugin,
         createInterfacePlugin(() => {
           interfaceRegistered = true;
         }),
@@ -386,18 +398,20 @@ describe("supervised runtime process roles", () => {
       .getJobQueueService()
       .getExecutionRegistrations();
     expect(registrations).toContainEqual({
-      type: "execution-audit:execute",
-      pluginId: "execution-audit",
+      type: "@test/execution-audit:execution-audit:execute",
+      pluginId: "@test/execution-audit:execution-audit",
     });
     expect(
-      shell.getJobQueueService().getHandler("execution-audit:execute"),
+      shell
+        .getJobQueueService()
+        .getHandler("@test/execution-audit:execution-audit:execute"),
     ).toBeDefined();
     expect(messageBus.getHandlerCount("test:ordinary-ingress")).toBe(0);
     expect(messageBus.getHandlerCount("test:execution-dependency")).toBe(1);
     expect(shell.getMCPService().listTools()).toEqual([]);
     expect(daemonRegistry.getAll()).toEqual([]);
     expect(interfaceRegistered).toBe(false);
-    expect(executionPlugin.readyCalled).toBe(false);
+    expect(execution.ready.called).toBe(false);
     expect(workerStarted).toBe(true);
   });
 
@@ -476,9 +490,9 @@ describe("supervised runtime process roles", () => {
       const logger = createSilentLogger();
       const messageBus = MessageBus.createFresh(logger);
       const daemonRegistry = DaemonRegistry.createFresh(logger);
-      const channelInterface = new ChannelInterface();
+      const channels = channelInterface();
       const shell = Shell.createFresh(
-        createTestShellConfig(directory.dir, { plugins: [channelInterface] }),
+        createTestShellConfig(directory.dir, { plugins: [channels.plugin] }),
         {
           logger,
           messageBus,
@@ -490,12 +504,12 @@ describe("supervised runtime process roles", () => {
       shells.push(shell);
       await shell.initialize({ mode: "register-only" });
 
-      const channels = shell.getChannelRegistry();
-      expect(channels.getDescriptor("test-channel")?.displayName).toBe(
+      const registry = shell.getChannelRegistry();
+      expect(registry.getDescriptor("test-channel")?.displayName).toBe(
         "Test channel",
       );
       expect(
-        await channels.getDeliveryProvider("test-channel")?.send({
+        await registry.getDeliveryProvider("test-channel")?.send({
           recipient: "someone",
           subject: "Alert",
           text: "A note arrived.",
@@ -503,10 +517,13 @@ describe("supervised runtime process roles", () => {
           sensitivity: "normal",
         }),
       ).toEqual({ status: "sent" });
-      expect(channelInterface.registered).toBe(fullyRegistered);
-      expect(messageBus.getHandlerCount("test:channel-ingress")).toBe(
-        fullyRegistered ? 1 : 0,
-      );
+      expect(channels.setUp.done).toBe(fullyRegistered);
+      expect(
+        shell
+          .getMCPService()
+          .listTools()
+          .some((tool) => tool.tool.name === "channel_interface_tool"),
+      ).toBe(fullyRegistered);
       expect(daemonRegistry.getAll().length > 0).toBe(fullyRegistered);
     },
   );

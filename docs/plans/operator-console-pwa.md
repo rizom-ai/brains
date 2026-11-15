@@ -52,7 +52,7 @@ This plan implements only Level 1.
 Create an optional operator-console PWA interface package rather than placing generic PWA
 behavior in `@brains/http-host` or making one surface own all others.
 
-Recommended package: `interfaces/console-pwa` as an `InterfacePlugin`.
+Recommended package: `interfaces/console-pwa` as a `defineInterface` definition.
 
 It owns public GET routes for:
 

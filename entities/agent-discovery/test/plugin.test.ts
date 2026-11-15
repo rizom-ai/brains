@@ -26,7 +26,7 @@ import {
   ATPROTO_BRAIN_CARD_UNAVAILABLE,
   ATPROTO_BRAIN_DISCOVERED,
 } from "@brains/atproto-contracts";
-import { AuthService, AuthServicePlugin } from "@brains/auth-service";
+import { AuthService, authServicePlugin } from "@brains/auth-service";
 import { keyFingerprint } from "@brains/http-signatures";
 import type {
   DashboardWidgetRegistration,
@@ -881,7 +881,7 @@ describe("AgentDiscoveryPlugin", () => {
 
   it("agent_set_trust_level pins a peer key for inbound trusted access", async () => {
     const harness = createPluginHarness<Plugin>({});
-    const authPlugin = new AuthServicePlugin({
+    const authPlugin = authServicePlugin({
       storageDir: await tempStorageDir(),
       issuer: "https://local.example",
     });
@@ -954,13 +954,13 @@ describe("AgentDiscoveryPlugin", () => {
       ]),
     );
 
-    await authPlugin.shutdown();
+    await authPlugin.shutdown?.();
     await harness.reset();
   });
 
   it("agent_set_trust_level revokes inbound trusted access", async () => {
     const harness = createPluginHarness<Plugin>({});
-    const authPlugin = new AuthServicePlugin({
+    const authPlugin = authServicePlugin({
       storageDir: await tempStorageDir(),
       issuer: "https://local.example",
     });
@@ -1006,13 +1006,13 @@ describe("AgentDiscoveryPlugin", () => {
     });
     expect(await activeAuth.getA2APeerTrust("trust.example")).toBeUndefined();
 
-    await authPlugin.shutdown();
+    await authPlugin.shutdown?.();
     await harness.reset();
   });
 
   it("confirms agent_set_trust_level when both calls come over the tool bus, as MCP sends them", async () => {
     const harness = createPluginHarness<Plugin>({});
-    const authPlugin = new AuthServicePlugin({
+    const authPlugin = authServicePlugin({
       storageDir: await tempStorageDir(),
       issuer: "https://local.example",
     });
@@ -1055,7 +1055,7 @@ describe("AgentDiscoveryPlugin", () => {
       await activeAuth.getA2APeerTrust("trust-mcp.example"),
     ).toBeUndefined();
 
-    await authPlugin.shutdown();
+    await authPlugin.shutdown?.();
     await harness.reset();
   });
 

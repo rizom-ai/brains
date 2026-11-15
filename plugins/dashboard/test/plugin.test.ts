@@ -18,7 +18,7 @@ import type {
   SearchResult,
 } from "@brains/plugins";
 import { createTempDir } from "@brains/test-utils";
-import { AuthServicePlugin } from "@brains/auth-service";
+import { authServiceOf, authServicePlugin } from "@brains/auth-service";
 import { dashboardPlugin, type DashboardPlugin } from "./dashboard-plugins";
 import { consoleJumpResponseSchema } from "../src/console-jump";
 import {
@@ -205,17 +205,19 @@ describe("DashboardPlugin", () => {
     });
 
     it("should require Admin access for the console jump", async () => {
-      const authPlugin = new AuthServicePlugin({
+      const authPlugin = authServicePlugin({
         storageDir: await createTempDir("dashboard-jump-trusted-"),
       });
       await harness.installPlugin(authPlugin);
-      const trusted = await authPlugin.getService().createUser({
+      const trusted = await authServiceOf(
+        harness.getMockShell().getAuthRegistry(),
+      ).createUser({
         displayName: "Trusted user",
         role: "trusted",
       });
-      const session = await authPlugin
-        .getService()
-        .createAuthSession(trusted.userId);
+      const session = await authServiceOf(
+        harness.getMockShell().getAuthRegistry(),
+      ).createAuthSession(trusted.userId);
       const cookie = session.cookie.split(";")[0] ?? session.cookie;
       const route = plugin
         .getWebRoutes()
@@ -231,11 +233,13 @@ describe("DashboardPlugin", () => {
     });
 
     it("should return grouped jump doors for an authenticated user", async () => {
-      const authPlugin = new AuthServicePlugin({
+      const authPlugin = authServicePlugin({
         storageDir: await createTempDir("dashboard-jump-auth-"),
       });
       await harness.installPlugin(authPlugin);
-      const session = await authPlugin.getService().createAuthSession();
+      const session = await authServiceOf(
+        harness.getMockShell().getAuthRegistry(),
+      ).createAuthSession();
       const cookie = session.cookie.split(";")[0] ?? session.cookie;
       harness.getMockShell().registerPlugin({
         id: "studio",
@@ -320,11 +324,13 @@ describe("DashboardPlugin", () => {
     });
 
     it("should map search hits to Studio doors, falling back to ids", async () => {
-      const authPlugin = new AuthServicePlugin({
+      const authPlugin = authServicePlugin({
         storageDir: await createTempDir("dashboard-jump-entities-"),
       });
       await harness.installPlugin(authPlugin);
-      const session = await authPlugin.getService().createAuthSession();
+      const session = await authServiceOf(
+        harness.getMockShell().getAuthRegistry(),
+      ).createAuthSession();
       const cookie = session.cookie.split(";")[0] ?? session.cookie;
 
       const shell = harness.getMockShell();
@@ -458,11 +464,13 @@ describe("DashboardPlugin", () => {
     });
 
     it("should degrade to tab doors alone when search fails", async () => {
-      const authPlugin = new AuthServicePlugin({
+      const authPlugin = authServicePlugin({
         storageDir: await createTempDir("dashboard-jump-degrade-"),
       });
       await harness.installPlugin(authPlugin);
-      const session = await authPlugin.getService().createAuthSession();
+      const session = await authServiceOf(
+        harness.getMockShell().getAuthRegistry(),
+      ).createAuthSession();
       const cookie = session.cookie.split(";")[0] ?? session.cookie;
 
       const shell = harness.getMockShell();
@@ -548,18 +556,20 @@ describe("DashboardPlugin", () => {
     });
 
     it("redirects every active person from the public Dashboard into Studio", async () => {
-      const authPlugin = new AuthServicePlugin({
+      const authPlugin = authServicePlugin({
         storageDir: await createTempDir("dashboard-public-session-auth-"),
       });
       await harness.installPlugin(authPlugin);
-      const person = await authPlugin.getService().createUser({
+      const person = await authServiceOf(
+        harness.getMockShell().getAuthRegistry(),
+      ).createUser({
         displayName: "Public member",
         role: "public",
         status: "active",
       });
-      const session = await authPlugin
-        .getService()
-        .createAuthSession(person.userId);
+      const session = await authServiceOf(
+        harness.getMockShell().getAuthRegistry(),
+      ).createAuthSession(person.userId);
       const shell = harness.getMockShell();
       shell.registerEndpoint({
         label: "Member Studio endpoint",
@@ -655,11 +665,13 @@ describe("DashboardPlugin", () => {
     });
 
     it("should keep non-public widgets off the Dashboard for an Admin session", async () => {
-      const authPlugin = new AuthServicePlugin({
+      const authPlugin = authServicePlugin({
         storageDir: await createTempDir("dashboard-public-widgets-only-"),
       });
       await harness.installPlugin(authPlugin);
-      const session = await authPlugin.getService().createAuthSession();
+      const session = await authServiceOf(
+        harness.getMockShell().getAuthRegistry(),
+      ).createAuthSession();
       let privateProviderCalls = 0;
       await harness.sendMessage(dashboardWidgetRegisterContract.name, {
         id: "private-operations",
@@ -716,18 +728,20 @@ describe("DashboardPlugin", () => {
     });
 
     it("does not project authenticated identity into the public page", async () => {
-      const authPlugin = new AuthServicePlugin({
+      const authPlugin = authServicePlugin({
         storageDir: await createTempDir("dashboard-trusted-auth-"),
       });
       await harness.installPlugin(authPlugin);
-      const trustedUser = await authPlugin.getService().createUser({
+      const trustedUser = await authServiceOf(
+        harness.getMockShell().getAuthRegistry(),
+      ).createUser({
         displayName: "Mira Reyes",
         role: "trusted",
         status: "active",
       });
-      const session = await authPlugin
-        .getService()
-        .createAuthSession(trustedUser.userId);
+      const session = await authServiceOf(
+        harness.getMockShell().getAuthRegistry(),
+      ).createAuthSession(trustedUser.userId);
       const cookie = session.cookie.split(";")[0] ?? session.cookie;
       const shell = harness.getMockShell();
       shell.registerEndpoint({
@@ -760,18 +774,20 @@ describe("DashboardPlugin", () => {
     });
 
     it("keeps public providers anonymous while forwarding request cancellation", async () => {
-      const authPlugin = new AuthServicePlugin({
+      const authPlugin = authServicePlugin({
         storageDir: `/tmp/dashboard-declarative-auth-${Date.now()}`,
       });
       await harness.installPlugin(authPlugin);
-      const trustedUser = await authPlugin.getService().createUser({
+      const trustedUser = await authServiceOf(
+        harness.getMockShell().getAuthRegistry(),
+      ).createUser({
         displayName: "Mira Reyes",
         role: "trusted",
         status: "active",
       });
-      const session = await authPlugin
-        .getService()
-        .createAuthSession(trustedUser.userId);
+      const session = await authServiceOf(
+        harness.getMockShell().getAuthRegistry(),
+      ).createAuthSession(trustedUser.userId);
       const cookie = session.cookie.split(";")[0] ?? session.cookie;
       const providerContexts: DashboardWidgetProviderContext[] = [];
       let hiddenProviderCalls = 0;
@@ -843,18 +859,20 @@ describe("DashboardPlugin", () => {
     });
 
     it("keeps Admin-only descriptors out of the public card", async () => {
-      const authPlugin = new AuthServicePlugin({
+      const authPlugin = authServicePlugin({
         storageDir: await createTempDir("dashboard-auth-"),
       });
       await harness.installPlugin(authPlugin);
-      const adminUser = await authPlugin.getService().createUser({
+      const adminUser = await authServiceOf(
+        harness.getMockShell().getAuthRegistry(),
+      ).createUser({
         displayName: "Yeehaa",
         role: "admin",
         status: "active",
       });
-      const session = await authPlugin
-        .getService()
-        .createAuthSession(adminUser.userId);
+      const session = await authServiceOf(
+        harness.getMockShell().getAuthRegistry(),
+      ).createAuthSession(adminUser.userId);
       const cookie = session.cookie.split(";")[0] ?? session.cookie;
       const shell = harness.getMockShell();
       shell.registerEndpoint({

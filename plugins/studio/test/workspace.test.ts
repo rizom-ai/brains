@@ -1,3 +1,4 @@
+import type { Plugin } from "@brains/plugins";
 import { enableChatCapability } from "./fixtures/chat-capability";
 import {
   createMockShell,
@@ -5,7 +6,7 @@ import {
   type MockShell,
 } from "@brains/plugins/test";
 import { afterEach, describe, expect, it } from "bun:test";
-import { AuthServicePlugin } from "@brains/auth-service";
+import { authServiceOf, authServicePlugin } from "@brains/auth-service";
 import {
   BaseEntityAdapter,
   DECLARATIVE_STUDIO_WORKSPACE_RENDERER,
@@ -22,11 +23,11 @@ import { PermissionService } from "@brains/templates";
 import { z } from "@brains/utils/zod";
 import { studioPlugin, type StudioPlugin } from "./studio-plugins";
 
-const authPlugins: AuthServicePlugin[] = [];
+const authPlugins: Plugin[] = [];
 
 afterEach(async () => {
   for (const plugin of authPlugins.splice(0).reverse()) {
-    await plugin.shutdown();
+    await plugin.shutdown?.();
   }
 });
 
@@ -65,12 +66,13 @@ function findRoute(
 }
 
 async function createSessionCookie(shell: MockShell): Promise<string> {
-  const authPlugin = new AuthServicePlugin({
+  const authPlugin = authServicePlugin({
     storageDir: await createTempDataDir("brains-studio-workspace-auth-"),
   });
   await authPlugin.register(shell);
   authPlugins.push(authPlugin);
-  return (await authPlugin.getService().createAuthSession()).cookie;
+  return (await authServiceOf(shell.getAuthRegistry()).createAuthSession())
+    .cookie;
 }
 
 function request(

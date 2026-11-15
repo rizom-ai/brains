@@ -359,14 +359,6 @@ export type { IMCPTransport } from "@brains/mcp-service";
 export type PluginType = "core" | "entity" | "service" | "interface";
 
 /**
- * Base tracking info that all interface plugins must have
- * Contains the essential rootJobId for job inheritance tracking
- */
-export interface BaseJobTrackingInfo {
-  rootJobId: string; // For inheritance tracking (required)
-}
-
-/**
  * Plugin metadata schema - validates the data portion of a plugin
  */
 export const pluginMetadataSchema: z.ZodObject<{

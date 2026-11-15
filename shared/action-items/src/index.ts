@@ -26,7 +26,7 @@ export {
   ACTION_ITEM_RETIRED_FIELDS,
   ACTION_ITEM_TRANSLATED_FIELDS,
 } from "./stored-shape";
-export { ActionItemAdapter, MemoryEntityAdapter } from "./adapter";
+export { actionItemAdapter, type ActionItemAdapter } from "./adapter";
 export {
   actionItemAssigneeHash,
   actionItemBody,

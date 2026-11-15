@@ -7,12 +7,8 @@ import {
   defineAccountSettings,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
-import {
-  AuthCredentialStore,
-  AuthRuntimeDatabase,
-  AuthService,
-  authServicePlugin,
-} from "../src";
+import { AuthCredentialStore, AuthRuntimeDatabase, AuthService } from "../src";
+import { installedRoutes } from "./installed-routes";
 import { registeredTestChannels } from "./fixtures/registered-channels";
 
 const ISSUER = "https://brain.example.com";
@@ -91,8 +87,8 @@ afterEach(async () => {
 });
 
 describe("auth account API", () => {
-  it("registers only account APIs and leaves browser presentation to Studio", () => {
-    const routes = authServicePlugin().getWebRoutes();
+  it("registers only account APIs and leaves browser presentation to Studio", async () => {
+    const routes = await installedRoutes();
     expect(routes.some((route) => route.path === "/account")).toBe(false);
     expect(routes).toEqual(
       expect.arrayContaining([

@@ -1,6 +1,6 @@
 import { createElement as h } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import type { ViewTemplate } from "@brains/plugins";
+import type { ViewTemplate } from "@brains/sdk/internal/presentation";
 import { escapeXml } from "@brains/utils/string-utils";
 import { zip } from "./zip";
 

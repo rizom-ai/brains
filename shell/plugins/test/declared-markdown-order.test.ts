@@ -5,12 +5,12 @@ import { createSilentLogger, createTestDirectory } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import { createMockShell } from "../src/test/mock-shell";
 import {
-  EntityPlugin,
   defineEntity,
   defineEntityPackage,
   instantiatePluginPackageDefinition,
 } from "../src";
 import { createRefusingEmbeddingService } from "@brains/entity-service/test";
+import { isDeclaredEntityType } from "../src/test/declared-entity-type";
 
 /**
  * A declared type handed a whole document, as an import or an editor hands
@@ -67,7 +67,7 @@ async function store(): Promise<{
     {},
     { name: "@fixture/memos", version: "0.1.0" },
   )) {
-    if (plugin instanceof EntityPlugin) {
+    if (isDeclaredEntityType(plugin)) {
       registry.registerEntityType(
         plugin.entityType,
         plugin.schema,

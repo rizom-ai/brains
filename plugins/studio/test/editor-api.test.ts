@@ -22,7 +22,7 @@ import {
   type MockShell,
 } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
-import { AuthServicePlugin } from "@brains/auth-service";
+import { authServiceOf, authServicePlugin } from "@brains/auth-service";
 import type {
   BaseEntity,
   RegisteredWebRoute,
@@ -226,11 +226,13 @@ function mcpInteraction(): Parameters<MockShell["registerInteraction"]>[0] {
 }
 
 async function createSessionCookie(shell: MockShell): Promise<string> {
-  const authPlugin = new AuthServicePlugin({
+  const authPlugin = authServicePlugin({
     storageDir: await createTempDataDir("brains-studio-editor-auth-"),
   });
   await authPlugin.register(shell);
-  const session = await authPlugin.getService().createAuthSession();
+  const session = await authServiceOf(
+    shell.getAuthRegistry(),
+  ).createAuthSession();
   return session.cookie;
 }
 
@@ -465,18 +467,18 @@ describe("studio editor shell", () => {
 
   it("serves the Account view inside the shell to an active Public session", async () => {
     const shell = createEditorTestShell();
-    const authPlugin = new AuthServicePlugin({
+    const authPlugin = authServicePlugin({
       storageDir: await createTempDataDir("brains-studio-account-view-"),
     });
     await authPlugin.register(shell);
-    const person = await authPlugin.getService().createUser({
+    const person = await authServiceOf(shell.getAuthRegistry()).createUser({
       displayName: "Public account holder",
       role: "public",
       status: "active",
     });
-    const session = await authPlugin
-      .getService()
-      .createAuthSession(person.userId);
+    const session = await authServiceOf(
+      shell.getAuthRegistry(),
+    ).createAuthSession(person.userId);
     const plugin = await registerPlugin(shell);
 
     const response = await findRoute(plugin, "/studio/workspaces").handler(
@@ -549,18 +551,18 @@ describe("studio editor shell", () => {
   it("omits the MCP address for a person whose role cannot use it", async () => {
     const shell = createEditorTestShell();
     shell.registerInteraction(mcpInteraction());
-    const authPlugin = new AuthServicePlugin({
+    const authPlugin = authServicePlugin({
       storageDir: await createTempDataDir("brains-studio-account-mcp-"),
     });
     await authPlugin.register(shell);
-    const person = await authPlugin.getService().createUser({
+    const person = await authServiceOf(shell.getAuthRegistry()).createUser({
       displayName: "Public account holder",
       role: "public",
       status: "active",
     });
-    const session = await authPlugin
-      .getService()
-      .createAuthSession(person.userId);
+    const session = await authServiceOf(
+      shell.getAuthRegistry(),
+    ).createAuthSession(person.userId);
     const plugin = await registerPlugin(shell);
 
     const response = await findRoute(plugin, "/studio/workspaces").handler(

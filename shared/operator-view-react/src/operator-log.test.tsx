@@ -1,5 +1,5 @@
 /** @jsxImportSource react */
-import type { RuntimeStudioWorkspaceData } from "@brains/plugins";
+import type { RuntimeStudioWorkspaceData } from "@brains/sdk/internal/service-runtime";
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { OperatorViewRenderer } from "./operator-view-renderer";

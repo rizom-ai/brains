@@ -1,19 +1,19 @@
 import { describe, expect, it } from "bun:test";
-import { createPluginHarness } from "@brains/plugins/test";
+import { createPluginHarness, installSiteRuntime } from "@brains/plugins/test";
 import {
   HOMEPAGE_ATLAS_SCRIPT,
   HOMEPAGE_ATLAS_SCRIPT_PATH,
   SiteLayout,
 } from "@brains/site-atlas";
-import site, { OrganizationSitePlugin } from "../src";
+import site from "../src";
 
-async function installed(): Promise<
-  ReturnType<typeof createPluginHarness<OrganizationSitePlugin>>
-> {
-  const harness = createPluginHarness<OrganizationSitePlugin>({
+async function installed(): Promise<ReturnType<typeof createPluginHarness>> {
+  const harness = createPluginHarness({
     dataDir: "/tmp/test-organization-site",
   });
-  await harness.installPlugin(new OrganizationSitePlugin({}));
+  installSiteRuntime(harness, site, {
+    packageName: "@brains/site-organization",
+  });
   return harness;
 }
 
@@ -38,9 +38,9 @@ describe("organization site", () => {
     expect(about?.navigation).toMatchObject({ show: true, slot: "primary" });
     const harness = await installed();
     const template = harness.getTemplates().get("organization-site:about");
-    expect(template?.dataSourceId).toBe("organization:about");
+    expect(template?.dataSourceId).toBe("organization-site:about");
     expect(template?.requiredPermission).toBe("public");
-    expect(harness.getDataSources().has("organization:about")).toBe(true);
+    expect(harness.getDataSources().has("organization-site:about")).toBe(true);
   });
 
   it("lists the agent directory in the main navigation", () => {
@@ -67,7 +67,7 @@ describe("organization site", () => {
   it("registers the homepage with its datasource and ships the atlas script", async () => {
     const harness = await installed();
     const template = harness.getTemplates().get("organization-site:homepage");
-    expect(template?.dataSourceId).toBe("organization:homepage");
+    expect(template?.dataSourceId).toBe("organization-site:homepage");
     expect(template?.requiredPermission).toBe("public");
     expect(template?.runtimeScripts).toEqual([
       { src: HOMEPAGE_ATLAS_SCRIPT_PATH, defer: true },
@@ -75,7 +75,9 @@ describe("organization site", () => {
     expect(template?.staticAssets?.[HOMEPAGE_ATLAS_SCRIPT_PATH]).toBe(
       HOMEPAGE_ATLAS_SCRIPT,
     );
-    expect(harness.getDataSources().has("organization:homepage")).toBe(true);
+    expect(harness.getDataSources().has("organization-site:homepage")).toBe(
+      true,
+    );
   });
 
   it("accepts the homepage with the radar once site-builder has linked its agents", async () => {

@@ -29,6 +29,59 @@ A site package owns structural presentation. It does not own runtime plugin
 behavior. Tools, jobs, data integrations, and backend listeners belong in
 focused entity/service/interface packages composed by the Brain definition.
 
+A section can be drawn from live data instead of fixed copy: the site lists
+fetching sources declared with `defineDataSource` from
+`@rizom/brain/entities` in `dataSources`, and the section names one with
+`dataSource` in its metadata. A source reads entries through its
+`EntityReader`, another package's source with
+`context.dataSources.fetch("<package name>:<local id>", query, schema)`, and a
+record another package shares with `context.sharedState(state).get(key)`.
+
+<!-- public-authoring-example: external-site-data-sources -->
+
+```tsx
+import { defineDataSource } from "@rizom/brain/entities";
+import { defineSection, defineSite, sectionGroup, z } from "@rizom/site";
+
+const count = z.object({ heading: z.string() });
+
+const shelf = defineDataSource({
+  id: "shelf",
+  name: "Shelf",
+  description: "How much the library holds",
+  fetch: async (_query, _entities, context) => {
+    const library = await context.dataSources.fetch(
+      "@example/library:shelf",
+      {},
+      z.object({ count: z.number() }),
+    );
+    return { heading: `${library?.count ?? 0} saved` };
+  },
+});
+
+export default defineSite({
+  layouts: { default: ({ sections }) => <main>{sections}</main> },
+  routes: [
+    {
+      id: "home",
+      path: "/",
+      sections: [{ id: "shelf", template: "library:shelf" }],
+    },
+  ],
+  sections: [
+    sectionGroup("library", {
+      shelf: defineSection(count, ({ heading }) => <h2>{heading}</h2>, {
+        title: "Shelf",
+        description: "How much the library holds",
+        dataSource: "shelf",
+      }),
+    }),
+  ],
+  dataSources: [shelf],
+  entityDisplay: {},
+});
+```
+
 ## Publishable site package
 
 A deployable site publishes built JavaScript and declarations. It pins

@@ -9,7 +9,6 @@ import {
 import { migrateEntities } from "@brains/entity-service/migrate";
 import { createMockShell, type MockShell } from "../src/test/mock-shell";
 import {
-  EntityPlugin,
   defineEntity,
   defineEntityPackage,
   entityRuntime,
@@ -17,6 +16,7 @@ import {
   type EvalHandler,
 } from "../src";
 import { createRefusingEmbeddingService } from "@brains/entity-service/test";
+import { isDeclaredEntityType } from "../src/test/declared-entity-type";
 
 /**
  * A first-party eval that runs its type's own generation, as an entity
@@ -98,7 +98,7 @@ async function installed(): Promise<Installed> {
     { pluginId: "memos" },
   );
   for (const plugin of plugins) {
-    if (plugin instanceof EntityPlugin) {
+    if (isDeclaredEntityType(plugin)) {
       registry.registerEntityType(
         plugin.entityType,
         plugin.schema,

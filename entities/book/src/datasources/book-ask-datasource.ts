@@ -2,6 +2,12 @@ import type {
   ServiceCorpusReads,
   ServiceDataSourceDeclaration,
 } from "@brains/sdk/internal/service-runtime";
+
+/** The build a book source serves, and the shared records it may read. */
+export type BookAskBuild = Pick<
+  Parameters<ServiceDataSourceDeclaration["fetch"]>[1],
+  "publishedOnly" | "sharedState"
+>;
 import type { Logger } from "@brains/utils/logger";
 import { parseBookData } from "../lib/book-records";
 import { bookSchema } from "../schemas/book";
@@ -20,9 +26,7 @@ export interface BookAskSources {
   /** The anchor's name, as the site and its homepage box name it. */
   name: () => string;
   /** Whether Web Chat serves the guest box for this build. */
-  chatAvailable: (build: {
-    readonly publishedOnly: boolean;
-  }) => Promise<boolean>;
+  chatAvailable: (build: BookAskBuild) => Promise<boolean>;
 }
 
 /**
@@ -31,7 +35,7 @@ export interface BookAskSources {
  */
 export async function fetchBookAsk(
   reads: Pick<ServiceCorpusReads, "listEntities">,
-  build: { readonly publishedOnly: boolean },
+  build: BookAskBuild,
   sources: BookAskSources,
   logger: Logger,
 ): Promise<unknown> {
@@ -64,7 +68,7 @@ export function bookAskDataSource(
     name: "Book Ask DataSource",
     description:
       "The brain's name, the guest box's availability and the books an answer cites",
-    fetch: (_query, { corpus, publishedOnly }) =>
-      fetchBookAsk(corpus, { publishedOnly }, sources, logger),
+    fetch: (_query, { corpus, publishedOnly, sharedState }) =>
+      fetchBookAsk(corpus, { publishedOnly, sharedState }, sources, logger),
   };
 }

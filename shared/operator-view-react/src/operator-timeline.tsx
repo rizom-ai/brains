@@ -1,7 +1,7 @@
 /** @jsxImportSource react */
 import * as stylex from "@stylexjs/stylex";
 import { toneText } from "@brains/app-ui-react";
-import type { RuntimeStudioOperatorPanelBlock } from "@brains/plugins";
+import type { RuntimeStudioOperatorPanelBlock } from "@brains/sdk/internal/service-runtime";
 import { useState, type MouseEvent, type ReactElement } from "react";
 import { timelineStyles as s } from "./operator-timeline.styles";
 

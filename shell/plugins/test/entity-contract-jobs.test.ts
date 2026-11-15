@@ -22,7 +22,6 @@ import { z } from "@brains/utils/zod";
 import { createMockShell, type MockShell } from "../src/test/mock-shell";
 import { sharedUploadScope } from "../src/service/upload-registry";
 import {
-  EntityPlugin,
   contractJob,
   defineEntity,
   defineEntityJob,
@@ -34,6 +33,7 @@ import {
   type EntityGenerationLink,
   type EntityGenerationResult,
 } from "../src";
+import { isDeclaredEntityType } from "../src/test/declared-entity-type";
 
 /**
  * A first-party job another package queues through its contract: its data
@@ -202,7 +202,7 @@ async function install(): Promise<{
     ),
   ];
   for (const plugin of plugins) {
-    if (plugin instanceof EntityPlugin) {
+    if (isDeclaredEntityType(plugin)) {
       registry.registerEntityType(
         plugin.entityType,
         plugin.schema,

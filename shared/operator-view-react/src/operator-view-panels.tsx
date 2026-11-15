@@ -8,12 +8,12 @@ import { detailStyles as detail } from "./operator-detail.styles";
 import * as stylex from "@stylexjs/stylex";
 import { workspaceStyles as workspace } from "./operator-workspace.styles";
 import type {
+  RuntimeOperatorActionControl,
+  RuntimeOperatorLaunchIntent,
   RuntimeStudioOperatorBlock,
   RuntimeStudioOperatorPanelBlock,
   RuntimeStudioOperatorRegionBlock,
-  RuntimeOperatorActionControl,
-  RuntimeOperatorLaunchIntent,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/service-runtime";
 import {
   useContext,
   useEffect,

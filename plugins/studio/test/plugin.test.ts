@@ -4,7 +4,7 @@ import {
   createTempDataDir,
   type MockShell,
 } from "@brains/plugins/test";
-import { AuthServicePlugin } from "@brains/auth-service";
+import { authServiceOf, authServicePlugin } from "@brains/auth-service";
 import type { WebRouteDefinition } from "@brains/plugins";
 
 import { studioPlugin } from "./studio-plugins";
@@ -125,17 +125,17 @@ describe("studio plugin", () => {
 
   it("grants Studio access to an active Trusted session", async () => {
     const shell = createStudioTestShell();
-    const authPlugin = new AuthServicePlugin({
+    const authPlugin = authServicePlugin({
       storageDir: await createTempDataDir("brains-studio-auth-"),
     });
     await authPlugin.register(shell);
-    const trusted = await authPlugin.getService().createUser({
+    const trusted = await authServiceOf(shell.getAuthRegistry()).createUser({
       displayName: "Trusted editor",
       role: "trusted",
     });
-    const session = await authPlugin
-      .getService()
-      .createAuthSession(trusted.userId);
+    const session = await authServiceOf(
+      shell.getAuthRegistry(),
+    ).createAuthSession(trusted.userId);
     const plugin = studioPlugin();
     await plugin.register(shell);
 

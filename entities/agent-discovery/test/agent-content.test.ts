@@ -6,8 +6,8 @@ import {
   rewriteAgentContent,
 } from "../src/lib/agent-content";
 import { describe, it, expect } from "bun:test";
-import { EntityPlugin } from "@brains/plugins";
-import { createMockShell } from "@brains/plugins/test";
+
+import { createMockShell, isDeclaredEntityType } from "@brains/plugins/test";
 import type { CreateAgentContentInput } from "../src/lib/agent-content";
 import type { AgentEntity } from "../src/schemas/agent";
 import { agentDiscoveryPlugins } from "./agent-discovery-plugins";
@@ -28,7 +28,7 @@ async function agentTypeAdapter(): Promise<
 describe("the agent type's content", () => {
   it("should have correct entity type", () => {
     const [type] = agentDiscoveryPlugins();
-    expect(type instanceof EntityPlugin && type.entityType).toBe("agent");
+    expect(isDeclaredEntityType(type) && type.entityType).toBe("agent");
   });
 
   it("declares approval as the publish gate for publishedOnly builds", async () => {

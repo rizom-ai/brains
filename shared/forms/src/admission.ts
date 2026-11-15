@@ -2,7 +2,7 @@ import { createHmac, randomBytes } from "node:crypto";
 import type {
   IRuntimeStateNamespace,
   IRuntimeStateStore,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/service-runtime";
 import {
   formAdmissionPolicySchema,
   formAdmissionStateSchema,

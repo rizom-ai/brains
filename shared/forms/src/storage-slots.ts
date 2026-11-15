@@ -1,7 +1,7 @@
 import type {
   IRuntimeStateNamespace,
   IRuntimeStateStore,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/service-runtime";
 import { z } from "@brains/utils/zod";
 import { escapeRegExp } from "@brains/utils/string-utils";
 

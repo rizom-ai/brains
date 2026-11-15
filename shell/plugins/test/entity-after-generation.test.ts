@@ -15,7 +15,6 @@ import { createTestDirectory } from "@brains/test-utils";
 import { createMockShell, type MockShell } from "../src/test/mock-shell";
 import { queuedByPackage } from "../src/test/package-job-data";
 import {
-  EntityPlugin,
   afterGeneration,
   defineEntity,
   defineEntityPackage,
@@ -24,6 +23,7 @@ import {
   type GenerationOutcomeContext,
 } from "../src";
 import { createRefusingEmbeddingService } from "@brains/entity-service/test";
+import { isDeclaredEntityType } from "../src/test/declared-entity-type";
 
 /**
  * A first-party generation's step after it runs, as an entity plugin
@@ -101,7 +101,7 @@ async function installed(): Promise<Installed> {
     { pluginId: "memos" },
   );
   for (const plugin of plugins) {
-    if (plugin instanceof EntityPlugin) {
+    if (isDeclaredEntityType(plugin)) {
       registry.registerEntityType(
         plugin.entityType,
         plugin.schema,

@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 import type {
   IRuntimeStateNamespace,
   IRuntimeStateStore,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/service-runtime";
 import { z } from "@brains/utils/zod";
 import type { FormResult } from "./score";
 import { sha256Hex } from "@brains/utils/hash";

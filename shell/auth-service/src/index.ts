@@ -17,7 +17,12 @@ export type {
 } from "./administration-service";
 export { AuthService } from "./auth-service";
 export type { AuthServiceOptions, PasskeySetupRequired } from "./auth-service";
-export { AuthServicePlugin, authServicePlugin } from "./auth-service-plugin";
+export {
+  authServiceConfigSchema,
+  authServiceOf,
+  authServicePackage,
+  authServicePlugin,
+} from "./auth-service-plugin";
 export type {
   AuthServiceConfig,
   AuthServiceConfigInput,

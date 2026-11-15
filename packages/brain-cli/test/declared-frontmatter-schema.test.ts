@@ -2,8 +2,12 @@ import { describe, expect, it } from "bun:test";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { syncObsidianVault } from "@brains/obsidian-vault";
-import { EntityPlugin, type BaseEntity, type Plugin } from "@brains/plugins";
-import { createMockShell } from "@brains/plugins/test";
+import { type Plugin } from "@brains/plugins";
+import {
+  createMockShell,
+  isDeclaredEntityType,
+  type DeclaredEntityTypePlugin,
+} from "@brains/plugins/test";
 import { zodFieldToStudioWidget } from "@brains/studio";
 import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
@@ -39,11 +43,7 @@ const classes = fixtureSchema.parse(
   ),
 );
 
-type DeclaredEntityPlugin = EntityPlugin<
-  BaseEntity,
-  Record<string, never>,
-  Record<string, never>
->;
+type DeclaredEntityPlugin = DeclaredEntityTypePlugin;
 
 /** The canonical brain's declared entity plugins, by their type. */
 function declaredEntityPlugins(): Map<string, DeclaredEntityPlugin> {
@@ -59,7 +59,7 @@ function declaredEntityPlugins(): Map<string, DeclaredEntityPlugin> {
     }
     for (const plugin of [plugins].flat()) {
       if (
-        plugin instanceof EntityPlugin &&
+        isDeclaredEntityType(plugin) &&
         plugin.constructor.name === "DeclarativeEntityPlugin"
       )
         byType.set(plugin.entityType, plugin);
