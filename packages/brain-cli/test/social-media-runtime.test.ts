@@ -96,7 +96,7 @@ async function generate(
   if (!handler) throw new Error("No social post generation");
   return handler.process(
     handler.validateAndParse(data),
-    "job-under-test",
+    `job-under-test-${crypto.randomUUID()}`,
     createMockProgressReporter(),
     new AbortController().signal,
   );
