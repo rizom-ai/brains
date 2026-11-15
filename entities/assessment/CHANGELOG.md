@@ -1,5 +1,13 @@
 # @brains/assessment
 
+## 0.2.0-alpha.715
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.715
+  - @brains/utils@0.2.0-alpha.715
+
 ## 0.2.0-alpha.714
 
 ### Patch Changes
