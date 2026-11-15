@@ -15,6 +15,7 @@ import {
   PNG,
   removeFixtures,
   stopped,
+  walBytes,
 } from "./helpers/binary-asset-fixture";
 
 afterEach(removeFixtures);
@@ -103,6 +104,19 @@ describe("assets:reconcile", () => {
       stopped,
     );
     expect(rerun.message).toContain("in sync: avatar, cover");
+  });
+
+  it("leaves no write-ahead log behind once it has written", async () => {
+    const { path, from } = await withFiles([], [["cover.png", PNG]]);
+
+    const result = await runAssetsReconcile(
+      "/",
+      { database: path, from },
+      stopped,
+    );
+
+    expect(result.message).toContain("created: cover");
+    expect(await walBytes(path)).toBe(0);
   });
 
   it("restores the asset behind a reference whose bytes were lost", async () => {

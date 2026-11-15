@@ -18,6 +18,7 @@ import {
   PNG,
   removeFixtures,
   stopped,
+  walBytes,
 } from "./helpers/binary-asset-fixture";
 import { planImageAssetMigration } from "../src/lib/binary-asset-migration-plan";
 
@@ -288,6 +289,24 @@ describe("assets:migrate", () => {
     } finally {
       client.close();
     }
+  });
+
+  it("leaves no write-ahead log behind once it has migrated", async () => {
+    const path = await fixture([
+      ["cover", dataUrl("png", PNG)],
+      ["avatar", dataUrl("gif", GIF)],
+    ]);
+
+    const result = await runAssetsMigrate(
+      "/",
+      { database: path, manifest: join(dirname(path), "manifest.json") },
+      stopped,
+    );
+
+    expect(result.success).toBe(true);
+    // The command owns the only connection: it checkpoints and truncates the
+    // log before it closes, so the database file holds every write.
+    expect(await walBytes(path)).toBe(0);
   });
 
   it("records the rows a failing run committed, and its error, in the manifest", async () => {

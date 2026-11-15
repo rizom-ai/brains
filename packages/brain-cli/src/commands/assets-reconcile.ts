@@ -18,6 +18,7 @@ import {
 } from "../lib/brain-data-images";
 import type { CommandResult } from "../lib/command-result";
 import {
+  closeCheckpointed,
   defaultOfflineDatabaseDeps,
   migrateOfflineSchema,
   resolveLocalPath,
@@ -164,7 +165,9 @@ export async function runAssetsReconcile(
       message: `Reconcile failed: ${getErrorMessage(error)}`,
     };
   } finally {
-    connection.client.close();
+    // A preview wrote nothing; a run folds its log in before closing.
+    if (options.dryRun) connection.client.close();
+    else await closeCheckpointed(connection);
   }
 }
 

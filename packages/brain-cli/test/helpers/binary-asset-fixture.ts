@@ -86,3 +86,9 @@ export async function mainEraFixture(
 
 /** No other process holds the database: the app is stopped. */
 export const stopped = { findHolders: async (): Promise<number[]> => [] };
+
+/** The size of a database's write-ahead log; 0 when it has none. */
+export async function walBytes(path: string): Promise<number> {
+  const wal = Bun.file(`${path}-wal`);
+  return (await wal.exists()) ? wal.size : 0;
+}

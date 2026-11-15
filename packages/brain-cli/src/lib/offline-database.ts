@@ -96,3 +96,21 @@ export async function migrateOfflineSchema(
     };
   }
 }
+
+/**
+ * Close a connection the command owns alone, after folding its write-ahead
+ * log into the database and truncating it: the file then holds every write,
+ * and no log is left for the next process to replay or for a copy to miss.
+ */
+export async function closeCheckpointed(connection: {
+  client: {
+    execute(sql: string): Promise<unknown>;
+    close(): void;
+  };
+}): Promise<void> {
+  try {
+    await connection.client.execute("PRAGMA wal_checkpoint(TRUNCATE)");
+  } finally {
+    connection.client.close();
+  }
+}

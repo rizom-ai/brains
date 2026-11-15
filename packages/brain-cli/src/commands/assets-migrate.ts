@@ -9,6 +9,7 @@ import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import type { CommandResult } from "../lib/command-result";
 import {
+  closeCheckpointed,
   defaultOfflineDatabaseDeps,
   migrateOfflineSchema,
   resolveLocalPath,
@@ -126,7 +127,9 @@ export async function runAssetsMigrate(
       message: `${options.dryRun ? "Dry-run" : "Migration"} failed: ${getErrorMessage(error)}`,
     };
   } finally {
-    connection.client.close();
+    // A dry-run wrote nothing; a run folds its log in before closing.
+    if (options.dryRun) connection.client.close();
+    else await closeCheckpointed(connection);
   }
 }
 
