@@ -21,6 +21,9 @@ export function createRecurringCheckDelivery(
           title: alert.title,
           body: alert.body,
           ...(alert.html ? { html: alert.html } : {}),
+          // A secret alert stays secret: the transport keeps its recipient
+          // and subject out of its logs.
+          ...(alert.sensitivity ? { sensitivity: alert.sensitivity } : {}),
           idempotencyKey,
         },
         "shell.recurring-checks",

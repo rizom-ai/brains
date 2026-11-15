@@ -49,4 +49,25 @@ describe("recurring-check notification delivery", () => {
       idempotencyKey: "recurring-alert:episode",
     });
   });
+
+  it("sends a secret alert as a secret notification", async () => {
+    const messageBus = MessageBus.createFresh(logger);
+    let payload: SendNotificationInput | undefined;
+    messageBus.subscribe<SendNotificationInput, SendNotificationResult>(
+      notificationsSendContract.name,
+      (message) => {
+        payload = message.payload;
+        return { success: true, data: { status: "sent" } };
+      },
+    );
+    const recurring = createRecurringCheckDelivery(messageBus);
+
+    expect(
+      await recurring.deliver({ ...alert, sensitivity: "secret" }, delivery),
+    ).toBe(true);
+    expect(payload).toMatchObject({
+      sensitivity: "secret",
+      idempotencyKey: "recurring-alert:episode",
+    });
+  });
 });

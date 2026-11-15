@@ -1,7 +1,6 @@
 import {
   canWriteVisibility,
   extractVisibilityFromMarkdown,
-  markdownBody,
   permissionToVisibilityScope,
   resolveEntityOrError,
   type BaseEntity,
@@ -10,6 +9,7 @@ import {
 } from "@brains/entity-service";
 import { sharedUploadScope } from "@brains/plugins";
 import { bufferView } from "@brains/utils/bytes";
+import { markdownBody } from "@brains/utils/markdown-frontmatter";
 import { generateMarkdown } from "@brains/utils/markdown";
 import type { Tool, ToolResponse } from "@brains/mcp-service";
 import { slugify } from "@brains/utils/string-utils";
@@ -183,7 +183,10 @@ async function resolveEntitySource(
   );
   if (!result.ok) return guardError(result.error);
   const { entity } = result;
-  const content = markdownBody(entity.content);
+  const content = markdownBody(entity.content, {
+    trim: true,
+    keepEmptyBlock: true,
+  });
   if (!content) {
     return guardError(
       `Source entity ${entity.entityType}/${entity.id} has no text to use.`,

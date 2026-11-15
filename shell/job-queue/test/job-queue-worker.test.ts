@@ -1,4 +1,7 @@
-import { createMockJobQueueService } from "../src/test/index";
+import {
+  createMockJobQueueService,
+  type MockJobQueueServiceReturns,
+} from "../src/test/index";
 import {
   describe,
   it,
@@ -25,6 +28,7 @@ import {
   waitUntil,
 } from "@brains/test-utils";
 import { createId } from "@brains/utils/id";
+import type { Logger } from "@brains/utils/logger";
 import type {
   IJobProgressMonitor,
   ProgressReporter,
@@ -1716,6 +1720,296 @@ describe("JobQueueWorker", () => {
       const stats = worker.getStats();
       expect(stats.failedJobs).toBe(1);
       expect(stats.processedJobs).toBe(0);
+    });
+  });
+
+  describe("Failure outcomes", () => {
+    function startLoggedSingleJob(
+      handler: MockHandler | undefined,
+      returns: MockJobQueueServiceReturns = {},
+      job: JobInfo = testJob,
+    ): {
+      service: IJobQueueService;
+      logger: Logger;
+      statusChanges: ReturnType<typeof spyOn>;
+    } {
+      const service = createMockJobQueueService({
+        returns: { ...returns, getHandler: handler },
+      });
+      let dequeueCalls = 0;
+      spyOn(service, "dequeue").mockImplementation(async () => {
+        dequeueCalls++;
+        return dequeueCalls === 1 ? job : null;
+      });
+      const logger = createMockLogger();
+      const progressMonitor = new MockProgressMonitor();
+      const statusChanges = spyOn(progressMonitor, "handleJobStatusChange");
+      worker = JobQueueWorker.createFresh(service, progressMonitor, logger, {
+        pollInterval: 5,
+      });
+      return { service, logger, statusChanges };
+    }
+
+    const terminallyFailed = {
+      getStatus: { ...testJob, status: "failed" as const },
+    };
+
+    async function jobSettled(): Promise<void> {
+      await waitUntil(
+        () =>
+          worker.getStats().failedJobs + worker.getStats().processedJobs > 0,
+        "the worker to settle the job",
+      );
+    }
+
+    function reportedFailure(error: string): unknown[] {
+      return ["Job failed", { jobId: testJob.id, type: testJob.type, error }];
+    }
+
+    it("reports a claim without a fencing token as failed", async () => {
+      const { logger } = startLoggedSingleJob(
+        createMockHandler(),
+        {},
+        {
+          ...testJob,
+          attemptId: null,
+        },
+      );
+
+      await worker.start();
+      await jobSettled();
+
+      expect(logger.warn).toHaveBeenCalledWith(
+        ...reportedFailure(
+          "Claimed job test-job-123 has no attempt fencing token",
+        ),
+      );
+    });
+
+    it("fails a job whose type has no handler, without terminal failure events", async () => {
+      const { service, logger, statusChanges } = startLoggedSingleJob(
+        undefined,
+        terminallyFailed,
+      );
+
+      await worker.start();
+      await jobSettled();
+
+      expect(service.fail).toHaveBeenCalledWith(
+        testJob.id,
+        new Error("No handler registered for job type: embedding"),
+        testJob.attemptId,
+      );
+      expect(logger.warn).toHaveBeenCalledWith(
+        ...reportedFailure("No handler registered for job type: embedding"),
+      );
+      expect(statusChanges).not.toHaveBeenCalled();
+    });
+
+    it("fails a handler's failure result without running onError", async () => {
+      const handler = createMockHandler();
+      handler.process.mockResolvedValue({
+        success: false,
+        error: "Title is required",
+      });
+      const { service, logger, statusChanges } = startLoggedSingleJob(
+        handler,
+        terminallyFailed,
+      );
+
+      await worker.start();
+      await jobSettled();
+
+      expect(handler.onError).not.toHaveBeenCalled();
+      expect(service.fail).toHaveBeenCalledWith(
+        testJob.id,
+        new Error("Title is required"),
+        testJob.attemptId,
+      );
+      expect(handler.onTerminalError).toHaveBeenCalledWith(
+        new Error("Title is required"),
+        { id: "entity-123", content: "test" },
+        testJob.id,
+        expect.any(Object),
+        expect.any(AbortSignal),
+      );
+      expect(statusChanges).toHaveBeenCalledWith(
+        testJob.id,
+        "failed",
+        testJob.metadata,
+      );
+      expect(logger.warn).toHaveBeenCalledWith(
+        ...reportedFailure("Title is required"),
+      );
+    });
+
+    it("names a failure result that carries no message", async () => {
+      const handler = createMockHandler();
+      handler.process.mockResolvedValue({ success: false });
+      const { service, logger } = startLoggedSingleJob(handler);
+
+      await worker.start();
+      await jobSettled();
+
+      expect(service.fail).toHaveBeenCalledWith(
+        testJob.id,
+        new Error("Handler returned failure"),
+        testJob.attemptId,
+      );
+      expect(logger.warn).toHaveBeenCalledWith(
+        ...reportedFailure("Handler returned failure"),
+      );
+    });
+
+    it("runs onError before failing a job whose handler throws", async () => {
+      const handler = createMockHandler();
+      const thrown = new Error("processing failed");
+      handler.process.mockRejectedValue(thrown);
+      const order: string[] = [];
+      handler.onError.mockImplementation(async () => {
+        order.push("onError");
+      });
+      const { service, logger, statusChanges } = startLoggedSingleJob(
+        handler,
+        terminallyFailed,
+      );
+      spyOn(service, "fail").mockImplementation(async () => {
+        order.push("fail");
+        return true;
+      });
+
+      await worker.start();
+      await jobSettled();
+
+      expect(order).toEqual(["onError", "fail"]);
+      expect(handler.onError).toHaveBeenCalledWith(
+        thrown,
+        { id: "entity-123", content: "test" },
+        testJob.id,
+        expect.any(Object),
+        expect.any(AbortSignal),
+      );
+      expect(service.fail).toHaveBeenCalledWith(
+        testJob.id,
+        thrown,
+        testJob.attemptId,
+      );
+      expect(handler.onTerminalError).toHaveBeenCalledWith(
+        thrown,
+        { id: "entity-123", content: "test" },
+        testJob.id,
+        expect.any(Object),
+        expect.any(AbortSignal),
+      );
+      expect(statusChanges).toHaveBeenCalledWith(
+        testJob.id,
+        "failed",
+        testJob.metadata,
+      );
+      expect(logger.warn).toHaveBeenCalledWith(
+        ...reportedFailure("processing failed"),
+      );
+    });
+
+    it("fails a job whose data does not validate, skipping the callbacks that need it", async () => {
+      const handler = createMockHandler();
+      handler.validateAndParse.mockReturnValue(null);
+      const { service, logger, statusChanges } = startLoggedSingleJob(
+        handler,
+        terminallyFailed,
+      );
+
+      await worker.start();
+      await jobSettled();
+
+      expect(handler.process).not.toHaveBeenCalled();
+      expect(handler.onError).not.toHaveBeenCalled();
+      expect(handler.onTerminalError).not.toHaveBeenCalled();
+      expect(service.fail).toHaveBeenCalledWith(
+        testJob.id,
+        new Error("Invalid job data for type: embedding"),
+        testJob.attemptId,
+      );
+      expect(statusChanges).toHaveBeenCalledWith(
+        testJob.id,
+        "failed",
+        testJob.metadata,
+      );
+      expect(logger.warn).toHaveBeenCalledWith(
+        ...reportedFailure("Invalid job data for type: embedding"),
+      );
+    });
+
+    it("reports a completion the attempt no longer owns as failed", async () => {
+      const handler = createMockHandler();
+      const { service, logger, statusChanges } = startLoggedSingleJob(handler);
+      spyOn(service, "complete").mockResolvedValue(false);
+
+      await worker.start();
+      await jobSettled();
+
+      expect(service.fail).not.toHaveBeenCalled();
+      expect(handler.onTerminalSuccess).not.toHaveBeenCalled();
+      expect(statusChanges).not.toHaveBeenCalled();
+      expect(worker.getStats()).toMatchObject({
+        processedJobs: 0,
+        failedJobs: 1,
+      });
+      expect(logger.warn).toHaveBeenCalledWith(
+        ...reportedFailure("Job attempt no longer owns the claim"),
+      );
+    });
+
+    it("logs a failing success callback and still completes the job", async () => {
+      const handler = createMockHandler();
+      const callbackError = new Error("success callback broke");
+      handler.onTerminalSuccess.mockRejectedValue(callbackError);
+      const { logger, statusChanges } = startLoggedSingleJob(handler);
+
+      await worker.start();
+      await jobSettled();
+
+      expect(logger.error).toHaveBeenCalledWith(
+        "Terminal job success callback failed",
+        { jobId: testJob.id, type: testJob.type, error: callbackError },
+      );
+      expect(statusChanges).toHaveBeenCalledWith(
+        testJob.id,
+        "completed",
+        testJob.metadata,
+      );
+      expect(worker.getStats().processedJobs).toBe(1);
+    });
+
+    it("logs failing error callbacks and still fails the job", async () => {
+      const handler = createMockHandler();
+      handler.process.mockRejectedValue(new Error("processing failed"));
+      const onErrorError = new Error("onError broke");
+      const onTerminalErrorError = new Error("onTerminalError broke");
+      handler.onError.mockRejectedValue(onErrorError);
+      handler.onTerminalError.mockRejectedValue(onTerminalErrorError);
+      const { service, logger, statusChanges } = startLoggedSingleJob(
+        handler,
+        terminallyFailed,
+      );
+
+      await worker.start();
+      await jobSettled();
+
+      expect(logger.error).toHaveBeenCalledWith(
+        "Job handler error callback failed",
+        { jobId: testJob.id, error: onErrorError },
+      );
+      expect(logger.error).toHaveBeenCalledWith(
+        "Job handler terminal error callback failed",
+        { jobId: testJob.id, error: onTerminalErrorError },
+      );
+      expect(service.fail).toHaveBeenCalledTimes(1);
+      expect(statusChanges).toHaveBeenCalledWith(
+        testJob.id,
+        "failed",
+        testJob.metadata,
+      );
     });
   });
 });
