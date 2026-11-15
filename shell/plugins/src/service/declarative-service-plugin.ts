@@ -200,6 +200,7 @@ import {
   type ReturnToWorkspace,
 } from "../interface/route-definition-contract";
 import { createDeclaredRoute } from "../internal/declared-route";
+import { onEvent } from "../internal/on-event";
 import type { WebRouteDefinition } from "../types/web-routes";
 import type { StaticSiteOutput } from "../internal/http-host";
 import type { ApiRouteDefinition } from "../types/api-routes";
@@ -442,13 +443,12 @@ class DeclarativeServicePlugin<
     );
     this.context = context;
     this.setupMessageHandlers(context);
-    await this.onRegister(context);
+    await this.onRegister();
     return this.getCapabilities();
   }
 
-  protected override async onRegister(
-    context: ServicePluginContext,
-  ): Promise<void> {
+  protected override async onRegister(): Promise<void> {
+    const context = this.getContext();
     if (this.definition.accountSettings && !context.executionOnly) {
       this.accountSettingsRegistration = context.accountSettings.register({
         ownerPluginId: this.id,
@@ -459,7 +459,7 @@ class DeclarativeServicePlugin<
     }
     this.state = this.definition.setup
       ? await this.definition.setup(
-          this.withRuntime(context, {
+          this.withRuntime({
             config: this.config,
             lifecycle: {
               onCleanup: (cleanup): void => {
@@ -480,7 +480,7 @@ class DeclarativeServicePlugin<
 
     const bindings =
       this.definition.jobs?.(
-        this.withRuntime(context, {
+        this.withRuntime({
           config: this.config,
           state: this.state,
           entities: this.entityAccess(),
@@ -509,7 +509,7 @@ class DeclarativeServicePlugin<
     // As its class registered them, each run as the package.
     const asWritten =
       this.declarations.jobHandlers?.run(
-        this.withRuntime(context, { config: this.config, state: this.state }),
+        this.withRuntime({ config: this.config, state: this.state }),
       ) ?? [];
     for (const job of asWritten) {
       if (names.has(job.type)) {
@@ -527,10 +527,10 @@ class DeclarativeServicePlugin<
         }),
       );
     }
-    this.registerSubscriptions(context);
+    this.registerSubscriptions();
     this.routes = (
       this.definition.routes?.(
-        this.withRuntime(context, {
+        this.withRuntime({
           config: this.config,
           state: this.state,
           entities: this.entityAccess(),
@@ -543,7 +543,7 @@ class DeclarativeServicePlugin<
     // As its class served them, after the routes the definition declares.
     this.routes.push(
       ...(this.declarations.webRoutes?.run(
-        this.withRuntime(context, { config: this.config, state: this.state }),
+        this.withRuntime({ config: this.config, state: this.state }),
       ) ?? []),
     );
     // Where the rest of its class's onRegister ran, as the package.
@@ -590,9 +590,8 @@ class DeclarativeServicePlugin<
     });
   }
 
-  protected override async onRegistrationComplete(
-    context: ServicePluginContext,
-  ): Promise<void> {
+  protected override async onRegistrationComplete(): Promise<void> {
+    const context = this.getContext();
     if (
       this.definition.accountSettings &&
       !context.executionOnly &&
@@ -605,7 +604,7 @@ class DeclarativeServicePlugin<
     // In every process, as the class's onRegistrationComplete ran.
     for (const handler of this.registeredHandlers) await handler();
     if (context.executionOnly) return;
-    this.bindOperatorDefinitions(context);
+    this.bindOperatorDefinitions();
 
     const acquiredStudio: string[] = [];
     const acquiredDashboard: string[] = [];
@@ -633,7 +632,7 @@ class DeclarativeServicePlugin<
         try {
           const result = await context.studio.registerWorkspace(registration);
           if (result === false) {
-            await this.rollbackStudioWorkspaces(context, acquiredStudio);
+            await this.rollbackStudioWorkspaces(acquiredStudio);
             acquiredStudio.splice(0);
             this.workspaceUrls.clear();
             break;
@@ -671,7 +670,7 @@ class DeclarativeServicePlugin<
           const registered =
             await context.dashboard.registerWidget(registration);
           if (!registered) {
-            await this.rollbackDashboardWidgets(context, acquiredDashboard);
+            await this.rollbackDashboardWidgets(acquiredDashboard);
             acquiredDashboard.splice(0);
             break;
           }
@@ -685,8 +684,8 @@ class DeclarativeServicePlugin<
       }
       this.registeredDashboardWidgetIds.push(...acquiredDashboard);
     } catch (error) {
-      await this.rollbackDashboardWidgets(context, acquiredDashboard);
-      await this.rollbackStudioWorkspaces(context, acquiredStudio);
+      await this.rollbackDashboardWidgets(acquiredDashboard);
+      await this.rollbackStudioWorkspaces(acquiredStudio);
       throw error;
     }
   }
@@ -696,7 +695,7 @@ class DeclarativeServicePlugin<
     const state = this.requireState();
     const definitions =
       this.definition.tools?.(
-        this.withRuntime(this.getContext(), {
+        this.withRuntime({
           config: this.config,
           state,
           entities: this.entityAccess(),
@@ -713,7 +712,7 @@ class DeclarativeServicePlugin<
     // As its class registered them, each run as its caller.
     const asWritten = (
       this.declarations.tools?.run(
-        this.withRuntime(this.getContext(), { config: this.config, state }),
+        this.withRuntime({ config: this.config, state }),
       ) ?? []
     ).map((tool) => this.toolAsWritten(tool));
     const names = new Set<string>();
@@ -758,11 +757,9 @@ class DeclarativeServicePlugin<
       new Error(`Service "${this.publicId}" is shutting down`),
     );
     await this.rollbackDashboardWidgets(
-      this.getContext(),
       this.registeredDashboardWidgetIds.splice(0),
     );
     await this.rollbackStudioWorkspaces(
-      this.getContext(),
       this.registeredStudioWorkspaceIds.splice(0),
     );
     this.studioWorkspaceBindings = [];
@@ -802,10 +799,11 @@ class DeclarativeServicePlugin<
     }
   }
 
-  private bindOperatorDefinitions(context: ServicePluginContext): void {
+  private bindOperatorDefinitions(): void {
+    const context = this.getContext();
     if (this.definition.dashboardWidgets && context.dashboard.isAvailable()) {
       const bindings = this.definition.dashboardWidgets(
-        this.withRuntime(context, {
+        this.withRuntime({
           config: this.config,
           state: this.requireState(),
           accountSettings: this.definition.accountSettings,
@@ -826,7 +824,7 @@ class DeclarativeServicePlugin<
 
     if (this.definition.studioWorkspaces && context.studio.isAvailable()) {
       const bindings = this.definition.studioWorkspaces(
-        this.withRuntime(context, {
+        this.withRuntime({
           config: this.config,
           state: this.requireState(),
           accountSettings: this.definition.accountSettings,
@@ -848,9 +846,9 @@ class DeclarativeServicePlugin<
   }
 
   private async rollbackStudioWorkspaces(
-    context: ServicePluginContext,
     workspaceIds: readonly string[],
   ): Promise<void> {
+    const context = this.getContext();
     for (const workspaceId of [...workspaceIds].reverse()) {
       try {
         await context.studio.unregisterWorkspace(workspaceId);
@@ -868,9 +866,9 @@ class DeclarativeServicePlugin<
   }
 
   private async rollbackDashboardWidgets(
-    context: ServicePluginContext,
     widgetIds: readonly string[],
   ): Promise<void> {
+    const context = this.getContext();
     for (const widgetId of [...widgetIds].reverse()) {
       try {
         await context.dashboard.unregisterWidget(widgetId);
@@ -894,15 +892,24 @@ class DeclarativeServicePlugin<
     return this.state;
   }
 
-  /** A tool call acts as its caller; access is admitted once, when first used. */
-  private toolCall(toolContext: ToolContext): ServiceCall {
+  /** A call as `caller`; its access is admitted once, when first used. */
+  private serviceCall(
+    caller: Caller,
+    call: Pick<ServiceCall, "account" | "eventContext">,
+  ): ServiceCall {
     const context = this.getContext();
     let admitted: Promise<CallerAccess> | undefined;
-    const caller = toolCaller(toolContext);
-    const { actor } = toolContext;
     return {
       access: () => (admitted ??= context.jobAuthority.access(caller)),
       caller,
+      ...call,
+    };
+  }
+
+  /** A tool call acts as its caller. */
+  private toolCall(toolContext: ToolContext): ServiceCall {
+    const { actor } = toolContext;
+    return this.serviceCall(toolCaller(toolContext), {
       // A tool call carries no browser session, so its account is unbound.
       account: async () =>
         actor.kind === "user" ? { userId: actor.userId } : undefined,
@@ -910,7 +917,7 @@ class DeclarativeServicePlugin<
         actor: toolContext.actor,
         interfaceType: toolContext.interfaceType,
       },
-    };
+    });
   }
 
   /**
@@ -921,20 +928,16 @@ class DeclarativeServicePlugin<
   private readonly asOperator: OperatorRunAs = (scope, run) =>
     this.calls.run(this.operatorCall(scope), run);
 
-  /** An operator's call; access is admitted once, when first used. */
+  /** An operator's call. */
   private operatorCall(scope: OperatorCallScope): ServiceCall {
-    const context = this.getContext();
     const caller: Caller = scope.caller
       ? {
           actor: scope.actor ?? { kind: "user", userId: scope.caller.actor.id },
           permissionLevel: scope.caller.permission,
         }
       : anonymousCaller(this.id);
-    let admitted: Promise<CallerAccess> | undefined;
     const userId = scope.caller?.actor.id;
-    return {
-      access: () => (admitted ??= context.jobAuthority.access(caller)),
-      caller,
+    return this.serviceCall(caller, {
       // A Studio operator acts through a browser session of their own
       // account, so a claim they make binds that session; a Dashboard
       // viewer's account is theirs to read, with no session bound.
@@ -945,17 +948,14 @@ class DeclarativeServicePlugin<
             ? { userId, sessionUserId: userId }
             : { userId },
       eventContext: { actor: caller.actor, interfaceType: scope.interfaceType },
-    };
+    });
   }
 
-  /** A route call acts as its caller; access is admitted once, when first used. */
+  /** A route call acts as its caller. */
   private routeCall(caller: Caller, request: Request): ServiceCall {
     const context = this.getContext();
-    let admitted: Promise<CallerAccess> | undefined;
     let session: Promise<AccountHolder | undefined> | undefined;
-    return {
-      access: () => (admitted ??= context.jobAuthority.access(caller)),
-      caller,
+    return this.serviceCall(caller, {
       // The browser session the request came with, resolved by the runtime;
       // the package never sees sessions.
       account: () =>
@@ -966,7 +966,7 @@ class DeclarativeServicePlugin<
             : undefined;
         })()),
       eventContext: { actor: caller.actor },
-    };
+    });
   }
 
   /** Single-use claims on this package's account settings. */
@@ -1112,10 +1112,8 @@ class DeclarativeServicePlugin<
    * The package's own account settings, as its class kept them: registered
    * under its plugin id, and only the registrations it made reached.
    */
-  private classAccountSettingsOf(
-    context: ServicePluginContext,
-  ): ServiceAccountSettingsRegistry {
-    const registry = context.accountSettings;
+  private classAccountSettingsOf(): ServiceAccountSettingsRegistry {
+    const registry = this.getContext().accountSettings;
     const owned = new Set<string>();
     const refusal = (): Error =>
       new Error(
@@ -1161,13 +1159,13 @@ class DeclarativeServicePlugin<
   }
 
   /** The brain's groupings, which Studio owns; refused to any other package. */
-  private groupingsOf(context: ServicePluginContext): ServiceGroupings {
+  private groupingsOf(): ServiceGroupings {
     if (this.id !== "studio") {
       throw new Error(
         `Service "${this.id}" cannot reach the brain's groupings: Studio owns them`,
       );
     }
-    const { entities, entityService } = context;
+    const { entities, entityService } = this.getContext();
     const sourceTypes = new Set<string>();
     return Object.freeze({
       validateGroupings: (groupings) => entities.validateGroupings(groupings),
@@ -1208,9 +1206,9 @@ class DeclarativeServicePlugin<
    * importing, as the package, in the main process only and once.
    */
   private answerInitialSync(
-    context: ServicePluginContext,
     handler: () => Promise<PluginsRegisteredAnswer>,
   ): void {
+    const context = this.getContext();
     if (this.initialSyncAnswered) {
       throw new Error(
         `Service "${this.publicId}" answers its initial sync more than once`,
@@ -1235,8 +1233,9 @@ class DeclarativeServicePlugin<
    * Answer the contracts the `subscriptions` slot binds. Each answer acts as
    * the package, whoever asked, and is released when the package shuts down.
    */
-  private registerSubscriptions(context: ServicePluginContext): void {
+  private registerSubscriptions(): void {
     if (!this.definition.subscriptions) return;
+    const context = this.getContext();
     const registrations = new WeakMap<
       ServiceSubscriptionBinding,
       () => () => void
@@ -1274,7 +1273,7 @@ class DeclarativeServicePlugin<
       return binding;
     };
     const bindings = this.definition.subscriptions(
-      this.withRuntime(context, {
+      this.withRuntime({
         config: this.config,
         state: this.requireState(),
         entities: this.entityAccess(),
@@ -1307,19 +1306,19 @@ class DeclarativeServicePlugin<
    * shuts down. The binding is built one capability group at a time.
    */
   private withRuntime<TContext extends object>(
-    context: ServicePluginContext,
     slotContext: TContext,
   ): TContext {
+    const context = this.getContext();
     return withServiceRuntime(slotContext, {
-      ...this.packageBinding(context),
+      ...this.packageBinding(),
       ...brainFactsOf(context),
-      ...this.identityBinding(context),
+      ...this.identityBinding(),
       ...busBindingOf(context),
-      ...this.recordsBinding(context),
+      ...this.recordsBinding(),
       ...storesBindingOf(context),
-      ...this.contentBinding(context),
-      ...this.workBinding(context),
-      ...this.operatorBinding(context),
+      ...this.contentBinding(),
+      ...this.workBinding(),
+      ...this.operatorBinding(),
     });
   }
 
@@ -1327,9 +1326,7 @@ class DeclarativeServicePlugin<
    * The package itself: who it is, and the hooks its handlers, answers and
    * registration run through, each kept until it shuts down.
    */
-  private packageBinding(
-    context: ServicePluginContext,
-  ): Pick<
+  private packageBinding(): Pick<
     ServiceRuntimeBinding,
     | "logger"
     | "pluginId"
@@ -1359,7 +1356,7 @@ class DeclarativeServicePlugin<
         this.registeringHandlers.push(handler);
       },
       initialSync: (handler): void => {
-        this.answerInitialSync(context, handler);
+        this.answerInitialSync(handler);
       },
       retries: this.retries,
       toolCall: (): ServiceToolCall | undefined => {
@@ -1382,9 +1379,7 @@ class DeclarativeServicePlugin<
    * Who the brain is, whom it represents, and who may act: identity, the
    * auth backend, and the account settings and entity policy that follow.
    */
-  private identityBinding(
-    context: ServicePluginContext,
-  ): Pick<
+  private identityBinding(): Pick<
     ServiceRuntimeBinding,
     | "identity"
     | "publicSkills"
@@ -1395,16 +1390,17 @@ class DeclarativeServicePlugin<
     | "accountSettings"
     | "permissions"
   > {
+    const context = this.getContext();
     return {
       identity: narrowIdentity(context.identity),
       publicSkills: publicSkillsOf(context.publicSkills),
       profileKinds: context.profileKinds,
       auth: () => context.auth.get(),
       authAuthority: this.declarations.authAuthority
-        ? this.authAuthorityOf(context)
+        ? this.authAuthorityOf()
         : undefined,
       assignableMembers: () => context.auth.listAssignableMembers(),
-      accountSettings: this.classAccountSettingsOf(context),
+      accountSettings: this.classAccountSettingsOf(),
       permissions: Object.freeze({
         assertEntityActionAllowed: (entityType, action, caller): void => {
           context.permissions.assertEntityActionAllowed(
@@ -1422,9 +1418,7 @@ class DeclarativeServicePlugin<
    * them, the system types and projection rules the package owns, and what
    * other packages attach to or project from them.
    */
-  private recordsBinding(
-    context: ServicePluginContext,
-  ): Pick<
+  private recordsBinding(): Pick<
     ServiceRuntimeBinding,
     | "entityShapes"
     | "entityReads"
@@ -1439,6 +1433,7 @@ class DeclarativeServicePlugin<
     | "attachments"
     | "atprotoProjections"
   > {
+    const context = this.getContext();
     return {
       entityShapes: entityShapesOf(context),
       entityReads: entityReadsOf(context),
@@ -1446,7 +1441,7 @@ class DeclarativeServicePlugin<
       entityMutations: entityMutationsOf(context),
       entityMirror: entityMirrorOf(context),
       reportEntityService: readOnlyEntityServiceOf(context),
-      groupings: () => this.groupingsOf(context),
+      groupings: () => this.groupingsOf(),
       groupingReads: Object.freeze({
         getGroupings: () => context.entities.getGroupings(),
         ensureGroupingsCurrent: () => context.entities.ensureGroupingsCurrent(),
@@ -1455,7 +1450,7 @@ class DeclarativeServicePlugin<
         queryGroupingCatalog: (request) =>
           context.entityService.queryGroupingCatalog(request),
       } satisfies ServiceGroupingReads),
-      claim: (type) => this.claimSystemType(context, type),
+      claim: (type) => this.claimSystemType(type),
       runProjectionRule: async (
         ruleId,
         options,
@@ -1481,9 +1476,7 @@ class DeclarativeServicePlugin<
    * agent instructions, content generation, the brain's AI, and the data
    * sources a build reads.
    */
-  private contentBinding(
-    context: ServicePluginContext,
-  ): Pick<
+  private contentBinding(): Pick<
     ServiceRuntimeBinding,
     | "views"
     | "resolveTemplate"
@@ -1494,6 +1487,7 @@ class DeclarativeServicePlugin<
     | "ai"
     | "dataSource"
   > {
+    const context = this.getContext();
     return {
       views: Object.freeze({
         get: (name: string) => context.views.get(name),
@@ -1524,15 +1518,17 @@ class DeclarativeServicePlugin<
         judge: (input) => context.judge(input),
       }),
       dataSource: (declaration, options = {}): void => {
-        this.serveDataSource(context, declaration, options);
+        this.serveDataSource(declaration, options);
       },
     };
   }
 
   /** Work the package queues, and the checks and evals the brain runs for it. */
-  private workBinding(
-    context: ServicePluginContext,
-  ): Pick<ServiceRuntimeBinding, "jobs" | "recurringCheck" | "evalHandler"> {
+  private workBinding(): Pick<
+    ServiceRuntimeBinding,
+    "jobs" | "recurringCheck" | "evalHandler"
+  > {
+    const context = this.getContext();
     return {
       jobs: Object.freeze({
         enqueue: context.jobs.enqueue,
@@ -1560,9 +1556,7 @@ class DeclarativeServicePlugin<
    * widgets and reports, the Inbox, web routes and console surfaces, and
    * the endpoints, interactions and health checks the brain advertises.
    */
-  private operatorBinding(
-    context: ServicePluginContext,
-  ): Pick<
+  private operatorBinding(): Pick<
     ServiceRuntimeBinding,
     | "studio"
     | "workspaceUrl"
@@ -1578,11 +1572,12 @@ class DeclarativeServicePlugin<
     | "interaction"
     | "operationalHealth"
   > {
+    const context = this.getContext();
     return {
       studio: firstPartyStudioOf(context),
       workspaceUrl: (workspace) => this.workspaceUrls.get(workspace),
       dashboardWidget: (widget): void => {
-        this.registerDashboardWidget(context, widget);
+        this.registerDashboardWidget(widget);
       },
       analyticsReport: (report): void => {
         context.analytics.register(report);
@@ -1621,10 +1616,10 @@ class DeclarativeServicePlugin<
    * reads, any other through the fetch it declares.
    */
   private serveDataSource(
-    context: ServicePluginContext,
     declaration: Parameters<ServiceRuntimeBinding["dataSource"]>[0],
     options: ServiceDataSourceOptions,
   ): void {
+    const context = this.getContext();
     const id =
       options.asWritten === true
         ? declaration.id
@@ -1657,29 +1652,23 @@ class DeclarativeServicePlugin<
   /** A built-in Dashboard widget, once the Dashboard host has mounted, as the class registered it. */
   private registerDashboardWidget<
     TDefinition extends AnyDashboardWidgetDefinition,
-  >(
-    context: ServicePluginContext,
-    widget: ServiceDashboardWidget<TDefinition>,
-  ): void {
+  >(widget: ServiceDashboardWidget<TDefinition>): void {
+    const context = this.getContext();
     this.answered.push(
-      context.messaging.subscribe(
-        SYSTEM_CHANNELS.pluginsRegistered,
-        async (): Promise<{ success: true }> => {
-          await registerBuiltInDashboardWidget({
-            context,
-            definition: widget.definition,
-            render: widget.render,
-            load: ({ caller, visibilityScope, signal }) =>
-              widget.load({
-                corpus: corpusReadsOf(context.entityService),
-                visibilityScope,
-                caller,
-                signal,
-              }),
-            runtimeSignal: this.operatorAbortController.signal,
-          });
-          return { success: true };
-        },
+      onEvent(context.messaging, SYSTEM_CHANNELS.pluginsRegistered, () =>
+        registerBuiltInDashboardWidget({
+          context,
+          definition: widget.definition,
+          render: widget.render,
+          load: ({ caller, visibilityScope, signal }) =>
+            widget.load({
+              corpus: corpusReadsOf(context.entityService),
+              visibilityScope,
+              caller,
+              signal,
+            }),
+          runtimeSignal: this.operatorAbortController.signal,
+        }),
       ),
     );
   }
@@ -1688,7 +1677,8 @@ class DeclarativeServicePlugin<
    * What the brain's auth authority binds through this service, which holds
    * the authority for its shell: one service per brain, released with it.
    */
-  private authAuthorityOf(context: ServicePluginContext): ServiceAuthAuthority {
+  private authAuthorityOf(): ServiceAuthAuthority {
+    const context = this.getContext();
     const shell = this.requireShell();
     const holder = `${this.packageName}:${this.publicId}`;
     const held = authAuthorities.get(shell);
@@ -1731,10 +1721,8 @@ class DeclarativeServicePlugin<
    * Claim a shell system type for this package, as the class kept it: one
    * package per type, released when it shuts down.
    */
-  private claimSystemType(
-    context: ServicePluginContext,
-    type: string,
-  ): ClaimedSystemType {
+  private claimSystemType(type: string): ClaimedSystemType {
+    const context = this.getContext();
     if (!claimableSystemTypes.has(type)) {
       throw new Error(
         `Service "${this.publicId}" cannot claim entity type "${type}": it is not a shell system type`,
