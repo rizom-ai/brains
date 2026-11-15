@@ -10,6 +10,7 @@ import {
 } from "@brains/sdk/entities";
 import type { blogPostMetadataSchema } from "./schemas/blog-post";
 import { parseBase64DataUrl } from "@brains/utils/data-url";
+import { atprotoProvenance } from "@brains/atproto-contracts";
 
 type PostRecord = EntityOf<
   EntityDefinition<"post", typeof blogPostMetadataSchema>
@@ -70,18 +71,14 @@ export async function buildBlogAtprotoPostRecord(
     summary: metadata.excerpt,
     body: entity.content,
     format: "text/markdown",
-    ...(config.brainDid && { brainDid: config.brainDid }),
-    ...(config.anchorDid && { anchorDid: config.anchorDid }),
-    ...(canonicalUrl && { canonicalUrl }),
     ...(topics && topics.length > 0 && { topics: [...topics] }),
     ...(coverImage && { coverImage }),
     ...(metadata.seriesName && { series: metadata.seriesName }),
     ...(metadata.seriesIndex !== undefined && {
       seriesIndex: metadata.seriesIndex,
     }),
+    ...atprotoProvenance({ config, pageUrl: canonicalUrl }, entity),
     sourceEntityType: "post",
-    sourceEntityId: entity.id,
-    createdAt: entity.created,
     ...(metadata.publishedAt && { publishedAt: metadata.publishedAt }),
   };
 }

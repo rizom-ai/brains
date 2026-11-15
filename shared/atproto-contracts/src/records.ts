@@ -114,6 +114,7 @@ export interface AtprotoBrainPostRecord extends Record<string, unknown> {
   sourceEntityType?: "post";
   sourceEntityId?: string;
   createdAt: string;
+  updatedAt?: string;
   publishedAt?: string;
 }
 

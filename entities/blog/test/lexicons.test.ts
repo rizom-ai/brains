@@ -18,6 +18,7 @@ describe("blog ATProto lexicons", () => {
               coverImage: { type: "ref", ref: "#coverImage" },
               sourceEntityType: { type: "string" },
               sourceEntityId: { type: "string" },
+              updatedAt: { type: "string", format: "datetime" },
             },
           },
         },

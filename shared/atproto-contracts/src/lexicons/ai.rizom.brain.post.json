@@ -65,6 +65,10 @@
             "type": "string",
             "format": "datetime"
           },
+          "updatedAt": {
+            "type": "string",
+            "format": "datetime"
+          },
           "publishedAt": {
             "type": "string",
             "format": "datetime"
