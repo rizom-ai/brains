@@ -92,3 +92,32 @@ export async function walBytes(path: string): Promise<number> {
   const wal = Bun.file(`${path}-wal`);
   return (await wal.exists()) ? wal.size : 0;
 }
+
+/**
+ * Sample a database's write-ahead log from another process while a run
+ * holds this one's event loop; `stop` resolves to the largest size seen.
+ */
+export function sampleWalPeak(path: string): { stop(): Promise<number> } {
+  const sampler = Bun.spawn(
+    [
+      process.execPath,
+      "-e",
+      `const { statSync } = require("node:fs");
+       let peak = 0;
+       const sample = () => { try { peak = Math.max(peak, statSync(process.argv[1]).size); } catch {} };
+       const timer = setInterval(sample, 1);
+       process.stdin.on("data", () => { clearInterval(timer); sample(); process.stdout.write(String(peak)); process.exit(0); });`,
+      `${path}-wal`,
+    ],
+    { stdin: "pipe", stdout: "pipe" },
+  );
+  return {
+    async stop(): Promise<number> {
+      await sampler.stdin.write("stop");
+      await sampler.stdin.end();
+      const peak = Number(await new Response(sampler.stdout).text());
+      await sampler.exited;
+      return peak;
+    },
+  };
+}

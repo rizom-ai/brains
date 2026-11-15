@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from "bun:test";
+import { randomBytes } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import {
@@ -17,6 +18,7 @@ import {
   mainEraFixture,
   PNG,
   removeFixtures,
+  sampleWalPeak,
   stopped,
   walBytes,
 } from "./helpers/binary-asset-fixture";
@@ -471,5 +473,123 @@ describe("assets:migrate", () => {
 
     const verify = await runAssetsVerify("/", { database: path }, stopped);
     expect(verify.success).toBe(true);
+  });
+});
+
+describe("assets:migrate write-ahead log", () => {
+  it("keeps the log within one row's work while it runs, full-text compaction included", async () => {
+    // Twenty high-entropy images, each indexed for full-text search as
+    // inline storage indexed it: its data URL tokenized whole.
+    const rows = Array.from({ length: 20 }, (_, index): [string, string] => [
+      `image-${index}`,
+      dataUrl(
+        "png",
+        Buffer.concat([PNG.subarray(0, 33), randomBytes(512 * 1024)]),
+      ),
+    ]);
+    const path = await fixture(rows);
+    const client = openOfflineEntityDatabase(path).client;
+    try {
+      for (const [id, content] of rows) {
+        await client.execute({
+          sql: "INSERT INTO entity_fts (entity_id, entity_type, content) VALUES (?, 'image', ?)",
+          args: [id, content],
+        });
+      }
+      await client.execute("PRAGMA wal_checkpoint(TRUNCATE)");
+    } finally {
+      client.close();
+    }
+    const largestRow = Math.max(...rows.map(([, content]) => content.length));
+    const sampler = sampleWalPeak(path);
+
+    const result = await runAssetsMigrate(
+      "/",
+      { database: path, manifest: join(dirname(path), "manifest.json") },
+      stopped,
+    );
+    const peak = await sampler.stop();
+
+    expect(result.success).toBe(true);
+    // The automatic checkpoint threshold (1,000 pages of 4 KiB) plus one
+    // row's transaction, whose removal from the full-text index writes
+    // about as much as the row holds: never the whole run's work.
+    expect(peak).toBeGreaterThan(0);
+    expect(peak).toBeLessThan(4 * 1024 * 1024 + 2 * largestRow);
+  });
+});
+
+describe("assets:migrate full-text settings", () => {
+  const settings = async (path: string): Promise<Array<[string, number]>> => {
+    const client = openOfflineEntityDatabase(path).client;
+    try {
+      const result = await client.execute(
+        "SELECT k, v FROM entity_fts_config ORDER BY k",
+      );
+      return result.rows.map((row) => [String(row["k"]), Number(row["v"])]);
+    } finally {
+      client.close();
+    }
+  };
+  const prepare = async (statements: string[]): Promise<string> => {
+    const path = await fixture([["inline", dataUrl("png", PNG)]], ["inline"]);
+    const client = openOfflineEntityDatabase(path).client;
+    try {
+      await client.execute(
+        "INSERT INTO entity_fts (entity_id, entity_type, content) VALUES ('note', 'note', 'durable words')",
+      );
+      for (const statement of statements) await client.execute(statement);
+    } finally {
+      client.close();
+    }
+    return path;
+  };
+  const migrate = (path: string): ReturnType<typeof runAssetsMigrate> =>
+    runAssetsMigrate(
+      "/",
+      { database: path, manifest: join(dirname(path), "manifest.json") },
+      stopped,
+    );
+
+  it("leaves the index's settings as it found them and its other rows searchable", async () => {
+    const path = await prepare([]);
+    const before = await settings(path);
+
+    expect((await migrate(path)).success).toBe(true);
+
+    expect(await settings(path)).toEqual(before);
+    const client = openOfflineEntityDatabase(path).client;
+    try {
+      const found = await client.execute(
+        "SELECT entity_id FROM entity_fts WHERE entity_fts MATCH 'durable'",
+      );
+      expect(found.rows.map((row) => row["entity_id"])).toEqual(["note"]);
+    } finally {
+      client.close();
+    }
+  });
+
+  it("keeps a brain's own merge settings", async () => {
+    const path = await prepare([
+      "INSERT INTO entity_fts(entity_fts, rank) VALUES('automerge', 8)",
+    ]);
+
+    expect((await migrate(path)).success).toBe(true);
+
+    expect(await settings(path)).toEqual([
+      ["automerge", 8],
+      ["version", 4],
+    ]);
+  });
+
+  it("removes the suspended settings an interrupted run left behind", async () => {
+    const path = await prepare([
+      "INSERT INTO entity_fts(entity_fts, rank) VALUES('automerge', 0)",
+      "INSERT INTO entity_fts(entity_fts, rank) VALUES('crisismerge', 1999)",
+    ]);
+
+    expect((await migrate(path)).success).toBe(true);
+
+    expect(await settings(path)).toEqual([["version", 4]]);
   });
 });
