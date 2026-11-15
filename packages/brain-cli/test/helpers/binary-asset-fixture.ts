@@ -93,9 +93,20 @@ export async function walBytes(path: string): Promise<number> {
   return (await wal.exists()) ? wal.size : 0;
 }
 
+const samplers = new Set<Bun.Subprocess>();
+
+/** End every sampler a test started; call from afterEach. */
+export async function stopWalSamplers(): Promise<void> {
+  const running = [...samplers];
+  samplers.clear();
+  for (const sampler of running) sampler.kill();
+  await Promise.all(running.map((sampler) => sampler.exited));
+}
+
 /**
  * Sample a database's write-ahead log from another process while a run
  * holds this one's event loop; `stop` resolves to the largest size seen.
+ * A test that ends before calling `stop` leaves it to stopWalSamplers.
  */
 export function sampleWalPeak(path: string): { stop(): Promise<number> } {
   const sampler = Bun.spawn(
@@ -111,12 +122,14 @@ export function sampleWalPeak(path: string): { stop(): Promise<number> } {
     ],
     { stdin: "pipe", stdout: "pipe" },
   );
+  samplers.add(sampler);
   return {
     async stop(): Promise<number> {
       await sampler.stdin.write("stop");
       await sampler.stdin.end();
       const peak = Number(await new Response(sampler.stdout).text());
       await sampler.exited;
+      samplers.delete(sampler);
       return peak;
     },
   };

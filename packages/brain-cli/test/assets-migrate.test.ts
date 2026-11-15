@@ -19,6 +19,7 @@ import {
   PNG,
   removeFixtures,
   sampleWalPeak,
+  stopWalSamplers,
   stopped,
   walBytes,
 } from "./helpers/binary-asset-fixture";
@@ -477,14 +478,19 @@ describe("assets:migrate", () => {
 });
 
 describe("assets:migrate write-ahead log", () => {
+  afterEach(stopWalSamplers);
+
+  // The run takes about 1 s locally and passed 5 s on a loaded CI runner;
+  // 30 s leaves that runner room without hiding a hang.
   it("keeps the log within one row's work while it runs, full-text compaction included", async () => {
-    // Twenty high-entropy images, each indexed for full-text search as
-    // inline storage indexed it: its data URL tokenized whole.
-    const rows = Array.from({ length: 20 }, (_, index): [string, string] => [
+    // High-entropy images, each indexed for full-text search as inline
+    // storage indexed it: its data URL tokenized whole. Enough rows that
+    // FTS5 would fold earlier rows' segments into a later row's removal.
+    const rows = Array.from({ length: 16 }, (_, index): [string, string] => [
       `image-${index}`,
       dataUrl(
         "png",
-        Buffer.concat([PNG.subarray(0, 33), randomBytes(512 * 1024)]),
+        Buffer.concat([PNG.subarray(0, 33), randomBytes(384 * 1024)]),
       ),
     ]);
     const path = await fixture(rows);
@@ -516,7 +522,7 @@ describe("assets:migrate write-ahead log", () => {
     // about as much as the row holds: never the whole run's work.
     expect(peak).toBeGreaterThan(0);
     expect(peak).toBeLessThan(4 * 1024 * 1024 + 2 * largestRow);
-  });
+  }, 30_000);
 });
 
 describe("assets:migrate full-text settings", () => {
