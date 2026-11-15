@@ -1,6 +1,5 @@
 import { describe, expect, it } from "bun:test";
 import { imageGenerateJobContract } from "@brains/contracts";
-import type { JobQueueEnqueueRequest } from "@brains/job-queue";
 import { createPluginHarness } from "@brains/plugins/test";
 import {
   createMockProgressReporter,
@@ -33,7 +32,7 @@ describe("a social post generation run again under its job id", () => {
     });
     await harness.installPlugin(socialMediaPlugin());
     const queue = harness.getMockShell().getJobQueueService();
-    const enqueued: JobQueueEnqueueRequest[] = [];
+    const enqueued: Parameters<typeof queue.enqueue>[0][] = [];
     const enqueue = queue.enqueue.bind(queue);
     queue.enqueue = async (request): Promise<string> => {
       enqueued.push(request);
