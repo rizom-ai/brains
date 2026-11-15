@@ -1,0 +1,412 @@
+{
+  "source": "main 9ff643747b, the guides entity plugin class on the entity store",
+  "full": {
+    "file": "---\ntitle: Moving in as a writer\nslug: writer\norder: 10\npersona: The writer\nfor: You have years of essays and a folder of drafts.\nrecipe: professional\nbrings:\n  - Notes\n  - Essays\nsection: Getting started\nsummary: Essays and drafts.\nmaterial:\n  - from: Drafts and fragments\n    where: Google Docs, Word, a notes app\n    becomes: note\n    how: Download as Markdown, bring the files in\n---\n\n## Bring your drafts in\n\nUpload the files in chat and ask the brain to keep them as notes.\n\nExact steps: [Content management](/docs/content-management).\n",
+    "id": "writer",
+    "stored": {
+      "content": "---\ntitle: Moving in as a writer\nslug: writer\norder: 10\npersona: The writer\nfor: You have years of essays and a folder of drafts.\nrecipe: professional\nbrings:\n  - Notes\n  - Essays\nsection: Getting started\nsummary: Essays and drafts.\nmaterial:\n  - from: Drafts and fragments\n    where: Google Docs, Word, a notes app\n    becomes: note\n    how: Download as Markdown, bring the files in\n---\n## Bring your drafts in\n\nUpload the files in chat and ask the brain to keep them as notes.\n\nExact steps: [Content management](/docs/content-management).\n",
+      "metadata": "{\"title\":\"Moving in as a writer\",\"slug\":\"writer\",\"order\":10,\"persona\":\"The writer\",\"for\":\"You have years of essays and a folder of drafts.\",\"recipe\":\"professional\",\"brings\":[\"Notes\",\"Essays\"],\"section\":\"Getting started\",\"summary\":\"Essays and drafts.\",\"material\":[{\"from\":\"Drafts and fragments\",\"where\":\"Google Docs, Word, a notes app\",\"becomes\":\"note\",\"how\":\"Download as Markdown, bring the files in\"}]}"
+    },
+    "read": {
+      "content": "---\ntitle: Moving in as a writer\nslug: writer\norder: 10\npersona: The writer\nfor: You have years of essays and a folder of drafts.\nrecipe: professional\nbrings:\n  - Notes\n  - Essays\nsection: Getting started\nsummary: Essays and drafts.\nmaterial:\n  - from: Drafts and fragments\n    where: Google Docs, Word, a notes app\n    becomes: note\n    how: Download as Markdown, bring the files in\n---\n## Bring your drafts in\n\nUpload the files in chat and ask the brain to keep them as notes.\n\nExact steps: [Content management](/docs/content-management).\n",
+      "metadata": {
+        "title": "Moving in as a writer",
+        "slug": "writer",
+        "order": 10,
+        "persona": "The writer",
+        "for": "You have years of essays and a folder of drafts.",
+        "recipe": "professional",
+        "brings": ["Notes", "Essays"],
+        "section": "Getting started",
+        "summary": "Essays and drafts.",
+        "material": [
+          {
+            "from": "Drafts and fragments",
+            "where": "Google Docs, Word, a notes app",
+            "becomes": "note",
+            "how": "Download as Markdown, bring the files in"
+          }
+        ]
+      }
+    },
+    "exported": "---\ntitle: Moving in as a writer\nslug: writer\norder: 10\npersona: The writer\nfor: You have years of essays and a folder of drafts.\nrecipe: professional\nbrings:\n  - Notes\n  - Essays\nsection: Getting started\nsummary: Essays and drafts.\nmaterial:\n  - from: Drafts and fragments\n    where: Google Docs, Word, a notes app\n    becomes: note\n    how: Download as Markdown, bring the files in\n---\n## Bring your drafts in\n\nUpload the files in chat and ask the brain to keep them as notes.\n\nExact steps: [Content management](/docs/content-management).\n"
+  },
+  "sparse": {
+    "file": "---\ntitle: 'Running: your own'\nslug: self-hosting\norder: 50\npersona: The self-hoster\nfor: You run your own server.\nmaterial: []\n---\n## Start\n\nText.\n",
+    "id": "self-hosting",
+    "stored": {
+      "content": "---\ntitle: 'Running: your own'\nslug: self-hosting\norder: 50\npersona: The self-hoster\nfor: You run your own server.\nmaterial: []\n---\n## Start\n\nText.\n",
+      "metadata": "{\"title\":\"Running: your own\",\"slug\":\"self-hosting\",\"order\":50,\"persona\":\"The self-hoster\",\"for\":\"You run your own server.\",\"recipe\":null,\"brings\":null,\"section\":null,\"summary\":null,\"material\":[]}"
+    },
+    "read": {
+      "content": "---\ntitle: 'Running: your own'\nslug: self-hosting\norder: 50\npersona: The self-hoster\nfor: You run your own server.\nmaterial: []\n---\n## Start\n\nText.\n",
+      "metadata": {
+        "title": "Running: your own",
+        "slug": "self-hosting",
+        "order": 50,
+        "persona": "The self-hoster",
+        "for": "You run your own server.",
+        "recipe": null,
+        "brings": null,
+        "section": null,
+        "summary": null,
+        "material": []
+      }
+    },
+    "exported": "---\ntitle: 'Running: your own'\nslug: self-hosting\norder: 50\npersona: The self-hoster\nfor: You run your own server.\nmaterial: []\n---\n## Start\n\nText.\n"
+  },
+  "updated": {
+    "id": "writer",
+    "stored": {
+      "content": "---\ntitle: Moving in as a writer\nslug: writer\norder: 10\npersona: The writer\nfor: You have years of essays and a folder of drafts.\nrecipe: professional\nbrings:\n  - Notes\n  - Essays\nsection: Getting started\nsummary: Essays and drafts.\nmaterial:\n  - from: Drafts and fragments\n    where: Google Docs, Word, a notes app\n    becomes: note\n    how: Download as Markdown, bring the files in\n---\n## Bring your drafts in\n\nUpload your files in chat and ask the brain to keep them as notes.\n\nExact steps: [Content management](/docs/content-management).\n",
+      "metadata": "{\"title\":\"Moving in as a writer\",\"slug\":\"writer\",\"order\":10,\"persona\":\"The writer\",\"for\":\"You have years of essays and a folder of drafts.\",\"recipe\":\"professional\",\"brings\":[\"Notes\",\"Essays\"],\"section\":\"Getting started\",\"summary\":\"Essays and drafts.\",\"material\":[{\"from\":\"Drafts and fragments\",\"where\":\"Google Docs, Word, a notes app\",\"becomes\":\"note\",\"how\":\"Download as Markdown, bring the files in\"}]}"
+    },
+    "read": {
+      "content": "---\ntitle: Moving in as a writer\nslug: writer\norder: 10\npersona: The writer\nfor: You have years of essays and a folder of drafts.\nrecipe: professional\nbrings:\n  - Notes\n  - Essays\nsection: Getting started\nsummary: Essays and drafts.\nmaterial:\n  - from: Drafts and fragments\n    where: Google Docs, Word, a notes app\n    becomes: note\n    how: Download as Markdown, bring the files in\n---\n## Bring your drafts in\n\nUpload your files in chat and ask the brain to keep them as notes.\n\nExact steps: [Content management](/docs/content-management).\n",
+      "metadata": {
+        "title": "Moving in as a writer",
+        "slug": "writer",
+        "order": 10,
+        "persona": "The writer",
+        "for": "You have years of essays and a folder of drafts.",
+        "recipe": "professional",
+        "brings": ["Notes", "Essays"],
+        "section": "Getting started",
+        "summary": "Essays and drafts.",
+        "material": [
+          {
+            "from": "Drafts and fragments",
+            "where": "Google Docs, Word, a notes app",
+            "becomes": "note",
+            "how": "Download as Markdown, bring the files in"
+          }
+        ]
+      }
+    },
+    "exported": "---\ntitle: Moving in as a writer\nslug: writer\norder: 10\npersona: The writer\nfor: You have years of essays and a folder of drafts.\nrecipe: professional\nbrings:\n  - Notes\n  - Essays\nsection: Getting started\nsummary: Essays and drafts.\nmaterial:\n  - from: Drafts and fragments\n    where: Google Docs, Word, a notes app\n    becomes: note\n    how: Download as Markdown, bring the files in\n---\n## Bring your drafts in\n\nUpload your files in chat and ask the brain to keep them as notes.\n\nExact steps: [Content management](/docs/content-management).\n"
+  },
+  "sparseUpdated": {
+    "id": "self-hosting",
+    "stored": {
+      "content": "---\ntitle: 'Running: your own'\nslug: self-hosting\norder: 50\npersona: The self-hoster\nfor: You run your own server.\nmaterial: []\n---\n## Start\n\nMore text.\n",
+      "metadata": "{\"title\":\"Running: your own\",\"slug\":\"self-hosting\",\"order\":50,\"persona\":\"The self-hoster\",\"for\":\"You run your own server.\",\"recipe\":null,\"brings\":null,\"section\":null,\"summary\":null,\"material\":[]}"
+    },
+    "read": {
+      "content": "---\ntitle: 'Running: your own'\nslug: self-hosting\norder: 50\npersona: The self-hoster\nfor: You run your own server.\nmaterial: []\n---\n## Start\n\nMore text.\n",
+      "metadata": {
+        "title": "Running: your own",
+        "slug": "self-hosting",
+        "order": 50,
+        "persona": "The self-hoster",
+        "for": "You run your own server.",
+        "recipe": null,
+        "brings": null,
+        "section": null,
+        "summary": null,
+        "material": []
+      }
+    },
+    "exported": "---\ntitle: 'Running: your own'\nslug: self-hosting\norder: 50\npersona: The self-hoster\nfor: You run your own server.\nmaterial: []\n---\n## Start\n\nMore text.\n"
+  },
+  "legacy": {
+    "id": "legacy",
+    "stored": {
+      "content": "---\ntitle: Moving in as a writer\nslug: legacy\norder: 10\npersona: The writer\nfor: You have years of essays and a folder of drafts.\nrecipe: professional\nbrings:\n  - Notes\n  - Essays\nsection: Getting started\nsummary: Essays and drafts.\nmaterial:\n  - from: Drafts and fragments\n    where: Google Docs, Word, a notes app\n    becomes: note\n    how: Download as Markdown, bring the files in\n---\n## Bring your drafts in\n\nUpload the files in chat and ask the brain to keep them as notes.\n\nExact steps: [Content management](/docs/content-management).\n",
+      "metadata": "{\"title\":\"Moving in as a writer\",\"slug\":\"legacy\",\"order\":10,\"persona\":\"The writer\",\"for\":\"You have years of essays and a folder of drafts.\",\"recipe\":\"professional\",\"material\":[{\"from\":\"Drafts and fragments\",\"where\":\"Google Docs, Word, a notes app\",\"becomes\":\"note\",\"how\":\"Download as Markdown, bring the files in\"}]}"
+    },
+    "read": {
+      "content": "---\ntitle: Moving in as a writer\nslug: legacy\norder: 10\npersona: The writer\nfor: You have years of essays and a folder of drafts.\nrecipe: professional\nbrings:\n  - Notes\n  - Essays\nsection: Getting started\nsummary: Essays and drafts.\nmaterial:\n  - from: Drafts and fragments\n    where: Google Docs, Word, a notes app\n    becomes: note\n    how: Download as Markdown, bring the files in\n---\n## Bring your drafts in\n\nUpload the files in chat and ask the brain to keep them as notes.\n\nExact steps: [Content management](/docs/content-management).\n",
+      "metadata": {
+        "title": "Moving in as a writer",
+        "slug": "legacy",
+        "order": 10,
+        "persona": "The writer",
+        "for": "You have years of essays and a folder of drafts.",
+        "recipe": "professional",
+        "brings": null,
+        "section": null,
+        "summary": null,
+        "material": [
+          {
+            "from": "Drafts and fragments",
+            "where": "Google Docs, Word, a notes app",
+            "becomes": "note",
+            "how": "Download as Markdown, bring the files in"
+          }
+        ]
+      }
+    },
+    "exported": "---\ntitle: Moving in as a writer\nslug: legacy\norder: 10\npersona: The writer\nfor: You have years of essays and a folder of drafts.\nrecipe: professional\nbrings:\n  - Notes\n  - Essays\nsection: Getting started\nsummary: Essays and drafts.\nmaterial:\n  - from: Drafts and fragments\n    where: Google Docs, Word, a notes app\n    becomes: note\n    how: Download as Markdown, bring the files in\n---\n## Bring your drafts in\n\nUpload the files in chat and ask the brain to keep them as notes.\n\nExact steps: [Content management](/docs/content-management).\n"
+  },
+  "dataSources": {
+    "chrome": {
+      "brand": {
+        "label": "brains docs",
+        "href": "/docs"
+      }
+    },
+    "list": {
+      "guides": [
+        {
+          "id": "writer",
+          "entityType": "guide",
+          "content": "---\ntitle: Moving in as a writer\nslug: writer\norder: 10\npersona: The writer\nfor: You have years of essays and a folder of drafts.\nrecipe: professional\nbrings:\n  - Notes\n  - Essays\nsection: Getting started\nsummary: Essays and drafts.\nmaterial:\n  - from: Drafts and fragments\n    where: Google Docs, Word, a notes app\n    becomes: note\n    how: Download as Markdown, bring the files in\n---\n## Bring your drafts in\n\nUpload the files in chat and ask the brain to keep them as notes.\n\nExact steps: [Content management](/docs/content-management).\n",
+          "visibility": "public",
+          "contentHash": "35fad666c08a52ab8847bcf73feb85b0f78ac64b70d4543811d00bc71494950e",
+          "metadata": {
+            "title": "Moving in as a writer",
+            "slug": "writer",
+            "order": 10,
+            "persona": "The writer",
+            "for": "You have years of essays and a folder of drafts.",
+            "recipe": "professional",
+            "brings": ["Notes", "Essays"],
+            "section": "Getting started",
+            "summary": "Essays and drafts.",
+            "material": [
+              {
+                "from": "Drafts and fragments",
+                "where": "Google Docs, Word, a notes app",
+                "becomes": "note",
+                "how": "Download as Markdown, bring the files in"
+              }
+            ]
+          },
+          "frontmatter": {
+            "title": "Moving in as a writer",
+            "slug": "writer",
+            "order": 10,
+            "persona": "The writer",
+            "for": "You have years of essays and a folder of drafts.",
+            "recipe": "professional",
+            "brings": ["Notes", "Essays"],
+            "section": "Getting started",
+            "summary": "Essays and drafts.",
+            "material": [
+              {
+                "from": "Drafts and fragments",
+                "where": "Google Docs, Word, a notes app",
+                "becomes": "note",
+                "how": "Download as Markdown, bring the files in"
+              }
+            ]
+          },
+          "body": "## Bring your drafts in\n\nUpload the files in chat and ask the brain to keep them as notes.\n\nExact steps: [Content management](/docs/content-management)."
+        },
+        {
+          "id": "self-hosting",
+          "entityType": "guide",
+          "content": "---\ntitle: 'Running: your own'\nslug: self-hosting\norder: 50\npersona: The self-hoster\nfor: You run your own server.\nmaterial: []\n---\n## Start\n\nText.\n",
+          "visibility": "public",
+          "contentHash": "6718bae163390cb558ae3783fc9d46d604214c9ceb69d0badab60dc469613cfd",
+          "metadata": {
+            "title": "Running: your own",
+            "slug": "self-hosting",
+            "order": 50,
+            "persona": "The self-hoster",
+            "for": "You run your own server.",
+            "recipe": null,
+            "brings": null,
+            "section": null,
+            "summary": null,
+            "material": []
+          },
+          "frontmatter": {
+            "title": "Running: your own",
+            "slug": "self-hosting",
+            "order": 50,
+            "persona": "The self-hoster",
+            "for": "You run your own server.",
+            "recipe": null,
+            "brings": null,
+            "section": null,
+            "summary": null,
+            "material": []
+          },
+          "body": "## Start\n\nText."
+        }
+      ],
+      "chrome": {
+        "brand": {
+          "label": "brains docs",
+          "href": "/docs",
+          "wordmark": null
+        },
+        "links": [],
+        "cta": null,
+        "footer": null
+      }
+    },
+    "detail": {
+      "guide": {
+        "id": "self-hosting",
+        "entityType": "guide",
+        "content": "---\ntitle: 'Running: your own'\nslug: self-hosting\norder: 50\npersona: The self-hoster\nfor: You run your own server.\nmaterial: []\n---\n## Start\n\nText.\n",
+        "visibility": "public",
+        "contentHash": "6718bae163390cb558ae3783fc9d46d604214c9ceb69d0badab60dc469613cfd",
+        "metadata": {
+          "title": "Running: your own",
+          "slug": "self-hosting",
+          "order": 50,
+          "persona": "The self-hoster",
+          "for": "You run your own server.",
+          "recipe": null,
+          "brings": null,
+          "section": null,
+          "summary": null,
+          "material": []
+        },
+        "frontmatter": {
+          "title": "Running: your own",
+          "slug": "self-hosting",
+          "order": 50,
+          "persona": "The self-hoster",
+          "for": "You run your own server.",
+          "recipe": null,
+          "brings": null,
+          "section": null,
+          "summary": null,
+          "material": []
+        },
+        "body": "## Start\n\nText."
+      },
+      "otherGuides": [
+        {
+          "id": "writer",
+          "entityType": "guide",
+          "content": "---\ntitle: Moving in as a writer\nslug: writer\norder: 10\npersona: The writer\nfor: You have years of essays and a folder of drafts.\nrecipe: professional\nbrings:\n  - Notes\n  - Essays\nsection: Getting started\nsummary: Essays and drafts.\nmaterial:\n  - from: Drafts and fragments\n    where: Google Docs, Word, a notes app\n    becomes: note\n    how: Download as Markdown, bring the files in\n---\n## Bring your drafts in\n\nUpload the files in chat and ask the brain to keep them as notes.\n\nExact steps: [Content management](/docs/content-management).\n",
+          "visibility": "public",
+          "contentHash": "35fad666c08a52ab8847bcf73feb85b0f78ac64b70d4543811d00bc71494950e",
+          "metadata": {
+            "title": "Moving in as a writer",
+            "slug": "writer",
+            "order": 10,
+            "persona": "The writer",
+            "for": "You have years of essays and a folder of drafts.",
+            "recipe": "professional",
+            "brings": ["Notes", "Essays"],
+            "section": "Getting started",
+            "summary": "Essays and drafts.",
+            "material": [
+              {
+                "from": "Drafts and fragments",
+                "where": "Google Docs, Word, a notes app",
+                "becomes": "note",
+                "how": "Download as Markdown, bring the files in"
+              }
+            ]
+          },
+          "frontmatter": {
+            "title": "Moving in as a writer",
+            "slug": "writer",
+            "order": 10,
+            "persona": "The writer",
+            "for": "You have years of essays and a folder of drafts.",
+            "recipe": "professional",
+            "brings": ["Notes", "Essays"],
+            "section": "Getting started",
+            "summary": "Essays and drafts.",
+            "material": [
+              {
+                "from": "Drafts and fragments",
+                "where": "Google Docs, Word, a notes app",
+                "becomes": "note",
+                "how": "Download as Markdown, bring the files in"
+              }
+            ]
+          },
+          "body": "## Bring your drafts in\n\nUpload the files in chat and ask the brain to keep them as notes.\n\nExact steps: [Content management](/docs/content-management)."
+        }
+      ],
+      "chrome": {
+        "brand": {
+          "label": "brains docs",
+          "href": "/docs",
+          "wordmark": null
+        },
+        "links": [],
+        "cta": null,
+        "footer": null
+      }
+    },
+    "sections": {
+      "sections": [
+        {
+          "name": "Getting started",
+          "guides": [
+            {
+              "id": "writer",
+              "entityType": "guide",
+              "content": "---\ntitle: Moving in as a writer\nslug: writer\norder: 10\npersona: The writer\nfor: You have years of essays and a folder of drafts.\nrecipe: professional\nbrings:\n  - Notes\n  - Essays\nsection: Getting started\nsummary: Essays and drafts.\nmaterial:\n  - from: Drafts and fragments\n    where: Google Docs, Word, a notes app\n    becomes: note\n    how: Download as Markdown, bring the files in\n---\n## Bring your drafts in\n\nUpload the files in chat and ask the brain to keep them as notes.\n\nExact steps: [Content management](/docs/content-management).\n",
+              "visibility": "public",
+              "contentHash": "35fad666c08a52ab8847bcf73feb85b0f78ac64b70d4543811d00bc71494950e",
+              "metadata": {
+                "title": "Moving in as a writer",
+                "slug": "writer",
+                "order": 10,
+                "persona": "The writer",
+                "for": "You have years of essays and a folder of drafts.",
+                "recipe": "professional",
+                "brings": ["Notes", "Essays"],
+                "section": "Getting started",
+                "summary": "Essays and drafts.",
+                "material": [
+                  {
+                    "from": "Drafts and fragments",
+                    "where": "Google Docs, Word, a notes app",
+                    "becomes": "note",
+                    "how": "Download as Markdown, bring the files in"
+                  }
+                ]
+              },
+              "frontmatter": {
+                "title": "Moving in as a writer",
+                "slug": "writer",
+                "order": 10,
+                "persona": "The writer",
+                "for": "You have years of essays and a folder of drafts.",
+                "recipe": "professional",
+                "brings": ["Notes", "Essays"],
+                "section": "Getting started",
+                "summary": "Essays and drafts.",
+                "material": [
+                  {
+                    "from": "Drafts and fragments",
+                    "where": "Google Docs, Word, a notes app",
+                    "becomes": "note",
+                    "how": "Download as Markdown, bring the files in"
+                  }
+                ]
+              },
+              "body": "## Bring your drafts in\n\nUpload the files in chat and ask the brain to keep them as notes.\n\nExact steps: [Content management](/docs/content-management)."
+            }
+          ],
+          "docs": [
+            {
+              "id": "setup",
+              "title": "Setup",
+              "section": "Getting started",
+              "order": 1,
+              "slug": "setup",
+              "description": "Set it up."
+            }
+          ]
+        },
+        {
+          "name": "Running",
+          "guides": [],
+          "docs": [
+            {
+              "id": "deploy",
+              "title": "Deploy",
+              "section": "Running",
+              "order": 2,
+              "slug": "deploy",
+              "description": null
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

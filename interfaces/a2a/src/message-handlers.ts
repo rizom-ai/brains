@@ -1,5 +1,7 @@
-import { permissionToVisibilityScope } from "@brains/plugins";
-import type { InterfaceRuntime } from "@brains/sdk/internal/interface-runtime";
+import {
+  type InterfaceRuntime,
+  permissionToVisibilityScope,
+} from "@brains/sdk/internal/interface-runtime";
 import {
   SdkError,
   a2aAgentsContract,

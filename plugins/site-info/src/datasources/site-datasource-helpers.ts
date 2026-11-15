@@ -1,8 +1,6 @@
-import type {
-  BaseEntity,
-  BaseDataSourceContext,
-  EntitySchema,
-} from "@brains/plugins";
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
+import type { ServiceEntityReads } from "@brains/sdk/internal/service-runtime";
+import type { z } from "@brains/utils/zod";
 import {
   sortByPublicationDate,
   type EntityWithPublishedAt,
@@ -19,27 +17,31 @@ import type { SiteInfoCTA } from "@brains/site-composition";
  * `@brains/profile`.
  */
 
-/** The scoped entity service datasources receive on their fetch context. */
-type DataSourceEntityService = BaseDataSourceContext["entityService"];
+/**
+ * The read a site's data source makes here: its fetch context's scoped
+ * entity service offers it, as a first-party service's entity reads do.
+ */
+export type RecentEntityReader = Pick<ServiceEntityReads, "listEntities">;
 
 /** Fetch the most recent published entities of a type, newest first. */
 export async function fetchRecentEntities<
   E extends BaseEntity & EntityWithPublishedAt,
   D,
 >(
-  entityService: DataSourceEntityService,
+  entityService: RecentEntityReader,
   params: {
     entityType: string;
-    entitySchema: EntitySchema<E>;
+    entitySchema: z.ZodType<E, unknown>;
     count: number;
     parse: (entity: E) => D;
   },
 ): Promise<D[]> {
-  const entities = await entityService.listEntities(
-    { entityType: params.entityType, options: { limit: 20 } },
-    params.entitySchema,
-  );
-  return entities
+  const records = await entityService.listEntities({
+    entityType: params.entityType,
+    options: { limit: 20 },
+  });
+  return records
+    .map((record) => params.entitySchema.parse(record))
     .sort(sortByPublicationDate)
     .slice(0, params.count)
     .map(params.parse);

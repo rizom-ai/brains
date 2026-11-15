@@ -1,4 +1,7 @@
-import { entityGroupingSchema, type EntityGrouping } from "@brains/plugins";
+import {
+  entityGroupingSchema,
+  type EntityGrouping,
+} from "@brains/sdk/internal/entity-runtime";
 import { getErrorMessage } from "@brains/utils/error";
 import { isRecord } from "@brains/utils/is-record";
 import { parseMarkdown } from "@brains/utils/markdown-frontmatter";

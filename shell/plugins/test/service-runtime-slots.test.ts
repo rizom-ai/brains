@@ -8,9 +8,10 @@ import {
 } from "../src";
 
 /**
- * A first-party service reaches its internal runtime from every slot that
- * builds what it serves: its tools, its Dashboard widgets and its Studio
- * workspaces, as from its subscriptions. A context the runtime did not
+ * A first-party service reaches its internal runtime from its setup, where
+ * its class's registration built what it serves, and from every slot that
+ * builds what it serves: its jobs, routes, tools, Dashboard widgets and
+ * Studio workspaces, as from its subscriptions. A context the runtime did not
  * build still has none.
  */
 
@@ -37,8 +38,23 @@ function reaching(
     reached.push(slot);
   };
   return defineServicePlugin(
-    { id: "probe", config: z.object({}) },
     {
+      id: "probe",
+      config: z.object({}),
+      setup: (context) => {
+        reach("setup", context);
+        return {};
+      },
+    },
+    {
+      jobs: (context) => {
+        reach("jobs", context);
+        return [];
+      },
+      routes: (context) => {
+        reach("routes", context);
+        return [];
+      },
       subscriptions: (context) => {
         reach("subscriptions", context);
         return [];
@@ -60,7 +76,7 @@ function reaching(
 }
 
 describe("a first-party service's runtime, from its slots", () => {
-  it("is reached from its tools, widgets and workspaces", async () => {
+  it("is reached from its setup and every slot that builds what it serves", async () => {
     const shell = hosted();
     const reached: string[] = [];
     const [plugin] = instantiatePluginPackageDefinition(
@@ -75,6 +91,9 @@ describe("a first-party service's runtime, from its slots", () => {
 
     expect(reached.sort()).toEqual([
       "dashboardWidgets",
+      "jobs",
+      "routes",
+      "setup",
       "studioWorkspaces",
       "subscriptions",
       "tools",

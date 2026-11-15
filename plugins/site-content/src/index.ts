@@ -1,9 +1,10 @@
-export { SiteContentPlugin, siteContentPlugin } from "./plugin";
-export { siteContentAdapter } from "./adapters/site-content-adapter";
+import { createSiteContentPackage } from "./plugin";
+
+export { createSiteContentPackage } from "./plugin";
 export { createSiteContentTemplates } from "./lib/site-content-definitions";
 export type { SiteContent, SiteContentMetadata } from "./schemas/site-content";
 export {
-  siteContentSchema,
+  siteContentEntity,
   siteContentMetadataSchema,
 } from "./schemas/site-content";
 export {
@@ -16,3 +17,8 @@ export type {
   SiteContentFieldDefinition,
   SiteContentSectionDefinition,
 } from "./definitions";
+
+/** The site's content sections as a brain composes them. */
+const siteContentPackage: ReturnType<typeof createSiteContentPackage> =
+  createSiteContentPackage();
+export default siteContentPackage;

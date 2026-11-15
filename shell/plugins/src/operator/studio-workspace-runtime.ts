@@ -892,6 +892,11 @@ export interface FirstPartyStudio {
   register(
     registration: Omit<StudioWorkspaceRegistration, "pluginId">,
   ): Promise<string | undefined>;
+  /**
+   * Take a workspace this plugin registered off Studio, as a class did when
+   * it shut down: whether Studio took it off, false without a Studio.
+   */
+  unregister(workspaceId: string): Promise<boolean>;
 }
 
 /** The Studio a plugin context reaches, for a first-party runtime. */
@@ -910,5 +915,7 @@ export function firstPartyStudioOf(
       const result = await context.studio.registerWorkspace(registration);
       return result === false ? undefined : result.workspaceUrl;
     },
+    unregister: (workspaceId): Promise<boolean> =>
+      context.studio.unregisterWorkspace(workspaceId),
   });
 }

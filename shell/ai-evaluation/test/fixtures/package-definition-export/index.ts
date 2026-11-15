@@ -1,6 +1,7 @@
 import {
   defineEntity,
   defineEntityPackage,
+  defineServicePlugin,
   type EntityDefinition,
   type EntityPackageDefinition,
 } from "@brains/plugins";
@@ -23,3 +24,14 @@ const shelfPackage: EntityPackageDefinition<
 > = defineEntityPackage({ id: "shelf", entities: [shelf] });
 
 export default shelfPackage;
+
+/**
+ * A declarative service package keeping its class's id, which its one type
+ * has too, as a service converted from an entity plugin class exports it.
+ */
+export const shelvingPackage: ReturnType<typeof defineServicePlugin> =
+  defineServicePlugin({
+    id: "shelving",
+    config: z.object({}),
+    entities: [shelf],
+  });

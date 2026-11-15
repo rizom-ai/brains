@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
 import { createTopicAtprotoProjection } from "../src/atproto-projection";
-import { TopicsPlugin } from "../src";
+import { installTopics } from "./topics-plugins";
 import type { TopicEntity } from "../src/schemas/topic";
 
 const topic: TopicEntity = {
@@ -63,9 +63,7 @@ describe("topic ATProto projection", () => {
 
   it("registers the topic projection when the topics plugin registers", async () => {
     const harness = createPluginHarness({ dataDir: "/tmp/test-topic-atproto" });
-    await harness.installPlugin(
-      new TopicsPlugin({ enableAutoExtraction: false }),
-    );
+    await installTopics(harness, { enableAutoExtraction: false });
 
     const projection = harness
       .getMockShell()

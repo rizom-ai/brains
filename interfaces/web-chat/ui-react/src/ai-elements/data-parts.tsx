@@ -15,11 +15,9 @@ import {
   type ArtifactCardState as AttachmentCardState,
   type ArtifactDisplay as AttachmentDisplay,
   type ArtifactJobStatus as AttachmentJobStatus,
-} from "@brains/plugins/message-interface/artifact-display";
-import {
   formatConfirmationResult as formatSharedConfirmationResult,
   type ConfirmationResultDisplay,
-} from "@brains/plugins/message-interface/confirmation-result";
+} from "@brains/sdk/internal/message-display";
 import {
   Tool,
   ToolContent,

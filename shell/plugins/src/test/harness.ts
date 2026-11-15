@@ -377,7 +377,7 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
   }
 
   /**
-   * Get the plugin's session ID (for InterfacePlugin)
+   * Get the plugin's session ID (for an interface)
    */
   getSessionId(): string {
     const plugin = this.getPlugin();

@@ -57,6 +57,20 @@ describe("RSS feed rendering", () => {
     );
   });
 
+  it("keeps the given order for items published at the same moment", () => {
+    const xml = render([
+      item({ slug: "listed-first" }),
+      item({ slug: "listed-second" }),
+      item({ slug: "listed-third" }),
+    ]);
+    expect(xml.indexOf("/listed-first<")).toBeLessThan(
+      xml.indexOf("/listed-second<"),
+    );
+    expect(xml.indexOf("/listed-second<")).toBeLessThan(
+      xml.indexOf("/listed-third<"),
+    );
+  });
+
   it("escapes item text and keeps content that closes a CDATA section", () => {
     const xml = render([
       item({

@@ -1,4 +1,5 @@
 import { z } from "@brains/utils/zod";
+import { ConsoleLogger, LogLevel } from "@brains/utils/logger";
 
 /**
  * Minimal logger interface for transport layers
@@ -32,16 +33,11 @@ const transportLoggerSchema = z.custom<TransportLogger>(
  * All output goes to stderr to avoid interfering with stdout protocol
  */
 export function createStderrLogger(): TransportLogger {
-  return {
-    info: (msg: string, ...args: unknown[]): void =>
-      console.error(`[STDIO MCP] ${msg}`, ...args),
-    debug: (msg: string, ...args: unknown[]): void =>
-      console.error(`[STDIO MCP DEBUG] ${msg}`, ...args),
-    error: (msg: string, ...args: unknown[]): void =>
-      console.error(`[STDIO MCP ERROR] ${msg}`, ...args),
-    warn: (msg: string, ...args: unknown[]): void =>
-      console.error(`[STDIO MCP WARN] ${msg}`, ...args),
-  };
+  return ConsoleLogger.createFresh({
+    context: "STDIO MCP",
+    level: LogLevel.DEBUG,
+    useStderr: true,
+  });
 }
 
 /**
@@ -49,16 +45,10 @@ export function createStderrLogger(): TransportLogger {
  * Uses regular console methods
  */
 export function createConsoleLogger(): TransportLogger {
-  return {
-    info: (msg: string, ...args: unknown[]): void =>
-      console.log(`[HTTP MCP] ${msg}`, ...args),
-    debug: (msg: string, ...args: unknown[]): void =>
-      console.debug(`[HTTP MCP DEBUG] ${msg}`, ...args),
-    error: (msg: string, ...args: unknown[]): void =>
-      console.error(`[HTTP MCP ERROR] ${msg}`, ...args),
-    warn: (msg: string, ...args: unknown[]): void =>
-      console.warn(`[HTTP MCP WARN] ${msg}`, ...args),
-  };
+  return ConsoleLogger.createFresh({
+    context: "HTTP MCP",
+    level: LogLevel.DEBUG,
+  });
 }
 
 /**

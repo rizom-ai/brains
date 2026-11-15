@@ -577,6 +577,15 @@ export interface EntityAdapter<
   frontmatterSchema?: z.ZodObject<z.ZodRawShape>;
 
   /**
+   * Optional: the frontmatter fields the type writes itself, when they are
+   * more than the frontmatter it presents: a declared type whose metadata
+   * holds fields its class kept out of the file presents the class's
+   * header, and still writes, or leaves out, every field its metadata
+   * names. The serializer keeps from the source only fields neither names.
+   */
+  writtenFrontmatterSchema?: z.ZodObject<z.ZodRawShape>;
+
+  /**
    * Optional: fields a creator may state that the type does not store, such
    * as where a deck's slides break. The brain's create tool takes them with
    * the editable fields; nothing updates them.
@@ -1050,6 +1059,13 @@ export interface DataSource {
    * Unique identifier for this data source
    */
   id: string;
+
+  /**
+   * The name another package's data source reads this one by:
+   * `<package name>:<local id>`. Set for a declared source, whatever
+   * scope its id is registered under.
+   */
+  publicId?: string | undefined;
 
   /**
    * Human-readable name for this data source
@@ -1617,10 +1633,6 @@ export type { DbConfig as EntityDbConfig } from "@brains/contracts";
  * compute over entities and return a summary. A projection of
  * `ICoreEntityService` rather than a hand-written parallel interface, so a
  * method that changes shape fails to compile here instead of drifting.
- *
- * `@brains/plugins` restates this as `IEntityService` on its published
- * authoring surface; `public-surface-soundness.test.ts` holds the two
- * together.
  */
 export type ReadOnlyEntityService = Pick<
   ICoreEntityService,

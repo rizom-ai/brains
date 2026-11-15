@@ -1,4 +1,4 @@
-import type { IRuntimeStateNamespace } from "@brains/plugins";
+import type { ClassRuntimeState } from "@brains/sdk/internal/interface-runtime";
 import { Chat, type Adapter } from "chat";
 import { createDiscordAdapter } from "@chat-adapter/discord";
 import { createSlackAdapter } from "@chat-adapter/slack";
@@ -22,7 +22,7 @@ interface CreateChatSdkAppOptions {
   /** Long-lived adapters are handed to their daemon-owned listener loops. */
   gatewayLoop: { setAdapter(adapter: DiscordChatAdapter): void };
   slackSocketLoop: { setAdapter(adapter: SlackChatAdapter): void };
-  runtimeState: Pick<IRuntimeStateNamespace, "scoped">;
+  runtimeState: ClassRuntimeState;
 }
 
 function requireConfigValue(

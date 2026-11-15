@@ -1,4 +1,4 @@
-import { createTemplate } from "@brains/plugins";
+import { createTemplate } from "@brains/sdk/internal/presentation";
 import { CHANNEL_ACTION_ITEMS_TEMPLATE_NAME } from "../lib/constants";
 import {
   channelActionItemExtractionSchema,

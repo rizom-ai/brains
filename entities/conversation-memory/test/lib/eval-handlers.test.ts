@@ -14,13 +14,13 @@ function registerHandlers(): {
 } {
   const context = createMockEntityPluginContext();
   const handlers = new Map<string, EvalHandler>();
-  context.eval.registerHandler = mock(
-    (handlerId: string, handler: EvalHandler) => {
+  const runtime = {
+    evalHandler: mock((handlerId: string, handler: EvalHandler) => {
       handlers.set(handlerId, handler);
-    },
-  );
+    }),
+  };
 
-  registerMemoryEvalHandlers({ context });
+  registerMemoryEvalHandlers(runtime, context);
 
   return { context, handlers };
 }

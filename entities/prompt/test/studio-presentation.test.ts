@@ -24,8 +24,10 @@ describe("a prompt in Studio", () => {
     });
   });
 
-  it("edits the metadata it registers, with its derived slug hidden too", () => {
-    expect(promptPlugin().adapter.frontmatterSchema).toBe(promptMetadataSchema);
+  it("edits the frontmatter its class declared; its derived slug stays metadata, hidden", () => {
+    expect(promptPlugin().adapter.frontmatterSchema).toBe(
+      promptFrontmatterSchema,
+    );
     expect(widgets(promptMetadataSchema.shape)).toEqual({
       slug: "hidden",
       defaultHash: "hidden",

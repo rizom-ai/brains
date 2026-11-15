@@ -1,7 +1,10 @@
-import { internalFullScope, waitForEmbeddingsToDrain } from "@brains/plugins";
-import type { EntityPluginContext } from "@brains/plugins";
+import {
+  internalFullScope,
+  waitForEmbeddingsToDrain,
+  type ServiceRuntime,
+} from "@brains/sdk/internal/service-runtime";
 import { z } from "@brains/utils/zod";
-import { faqAdapter, faqMetadata } from "../adapters/faq-adapter";
+import { faqDocument, faqRecord } from "./faq-body";
 import { classifyExchange } from "../handlers/faq-capture-handler";
 import { findSameFaq } from "./faq-store";
 import type { FaqFrontmatter } from "../schemas/faq";
@@ -18,24 +21,19 @@ const sameQuestionInputSchema = z.object({
 
 const EVAL_STORED_ID = "eval-stored-faq";
 
-/** The markdown a captured FAQ is stored and embedded as. */
-function faqMarkdown(exchange: z.output<typeof exchangeSchema>): {
-  frontmatter: FaqFrontmatter;
-  content: string;
-} {
-  const frontmatter: FaqFrontmatter = {
-    question: exchange.question,
-    status: "draft",
-    asked: 1,
-  };
-  return {
-    frontmatter,
-    content: faqAdapter.createFaqContent(frontmatter, exchange.answer),
-  };
+/** A captured FAQ's fields, as capture drafts them. */
+function draftOf(exchange: z.output<typeof exchangeSchema>): FaqFrontmatter {
+  return { question: exchange.question, status: "draft", asked: 1 };
 }
 
-async function clearFaqs(context: EntityPluginContext): Promise<void> {
-  const faqs = await context.entityService.listEntities({
+/** What a FAQ eval reaches: the package's reads, writes, AI and jobs. */
+type FaqEvalRuntime = Pick<
+  ServiceRuntime,
+  "entityReads" | "entityWrites" | "ai" | "jobs" | "evalHandler"
+>;
+
+async function clearFaqs(context: FaqEvalRuntime): Promise<void> {
+  const faqs = await context.entityReads.listEntities({
     entityType: "faq",
     options: {
       filter: {
@@ -45,7 +43,7 @@ async function clearFaqs(context: EntityPluginContext): Promise<void> {
   });
   await Promise.all(
     faqs.map((faq) =>
-      context.entityService.deleteEntity({ entityType: "faq", id: faq.id }),
+      context.entityWrites.deleteEntity({ entityType: "faq", id: faq.id }),
     ),
   );
 }
@@ -56,34 +54,32 @@ async function clearFaqs(context: EntityPluginContext): Promise<void> {
  * question. Unit tests fake both; these run them against the real models.
  */
 export function registerFaqEvalHandlers(params: {
-  context: EntityPluginContext;
+  context: FaqEvalRuntime;
   sameQuestionDistance: number;
 }): void {
   const { context, sameQuestionDistance } = params;
 
-  context.eval.registerHandler("classifyExchange", async (input: unknown) => {
+  context.evalHandler("classifyExchange", async (input: unknown) => {
     const exchange = exchangeSchema.parse(input);
     return classifyExchange(context.ai, exchange.question, exchange.answer);
   });
 
-  context.eval.registerHandler("sameQuestion", async (input: unknown) => {
+  context.evalHandler("sameQuestion", async (input: unknown) => {
     const { stored, incoming } = sameQuestionInputSchema.parse(input);
     await clearFaqs(context);
 
-    const seeded = faqMarkdown(stored);
-    await context.entityService.createEntity({
+    await context.entityWrites.createEntity({
       entity: {
         id: EVAL_STORED_ID,
         entityType: "faq",
-        content: seeded.content,
+        ...faqRecord(draftOf(stored), stored.answer),
         visibility: "restricted",
-        metadata: faqMetadata(seeded.frontmatter),
       },
     });
     await waitForEmbeddingsToDrain(context.jobs);
 
-    const query = faqMarkdown(incoming).content;
-    const distances = await context.entityService.searchWithDistances({
+    const query = faqDocument(draftOf(incoming), incoming.answer);
+    const distances = await context.entityReads.searchWithDistances({
       query,
     });
     const distance = distances.find(
@@ -95,7 +91,10 @@ export function registerFaqEvalHandlers(params: {
     // The full production decision: distance shortlist, then the check.
     const match = await findSameFaq(
       {
-        entityService: context.entityService,
+        entityService: {
+          getEntity: context.entityReads.getEntity,
+          updateEntity: context.entityWrites.updateEntity,
+        },
         searchWithDistances: async (): Promise<typeof distances> => distances,
         sameQuestionDistance,
         ai: context.ai,

@@ -1,0 +1,86 @@
+{
+  "generated": {
+    "stored": {
+      "content": "# Hero\n\nWelcome to the brain.",
+      "metadata": "{}"
+    },
+    "read": {
+      "content": "# Hero\n\nWelcome to the brain.",
+      "metadata": {}
+    },
+    "raw": {
+      "content": "# Hero\n\nWelcome to the brain.",
+      "metadata": {}
+    },
+    "exported": "# Hero\n\nWelcome to the brain."
+  },
+  "imported": {
+    "retired": {
+      "stored": {
+        "content": "# Intro\n\nOld file.",
+        "metadata": "{}"
+      },
+      "read": {
+        "content": "# Intro\n\nOld file.",
+        "metadata": {}
+      },
+      "raw": {
+        "content": "# Intro\n\nOld file.",
+        "metadata": {}
+      },
+      "exported": "# Intro\n\nOld file."
+    },
+    "loose": {
+      "stored": {
+        "content": "---\nnote: kept by hand\n---\n# About\n\nA hand-written section.\n",
+        "metadata": "{\"note\":\"kept by hand\"}"
+      },
+      "read": {
+        "content": "---\nnote: kept by hand\n---\n# About\n\nA hand-written section.\n",
+        "metadata": {
+          "note": "kept by hand"
+        }
+      },
+      "raw": {
+        "content": "---\nnote: kept by hand\n---\n# About\n\nA hand-written section.\n",
+        "metadata": {
+          "note": "kept by hand"
+        }
+      },
+      "exported": "---\nnote: kept by hand\n---\n# About\n\nA hand-written section.\n"
+    }
+  },
+  "retiredRewrite": {
+    "rewritten": 0
+  },
+  "afterRetire": {
+    "stored": {
+      "content": "# Intro\n\nOld file.",
+      "metadata": "{}"
+    },
+    "read": {
+      "content": "# Intro\n\nOld file.",
+      "metadata": {}
+    },
+    "raw": {
+      "content": "# Intro\n\nOld file.",
+      "metadata": {}
+    },
+    "exported": "# Intro\n\nOld file."
+  },
+  "updated": {
+    "stored": {
+      "content": "# Hero\n\nWelcome back.",
+      "metadata": "{}"
+    },
+    "read": {
+      "content": "# Hero\n\nWelcome back.",
+      "metadata": {}
+    },
+    "raw": {
+      "content": "# Hero\n\nWelcome back.",
+      "metadata": {}
+    },
+    "exported": "# Hero\n\nWelcome back."
+  }
+}

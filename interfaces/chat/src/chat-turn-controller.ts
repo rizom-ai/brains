@@ -1,7 +1,9 @@
 import type { ChatHost } from "./chat-host";
 import { spaceNoticeActionContract } from "@brains/contracts";
-import { matchSpaceSelector } from "@brains/plugins";
-import type { PermissionLookupContext } from "@brains/plugins";
+import {
+  matchSpaceSelector,
+  type PermissionLookupContext,
+} from "@brains/sdk/internal/interface-runtime";
 import type { ActionEvent, Message, MessageContext } from "chat";
 import type {
   ChatConfig,

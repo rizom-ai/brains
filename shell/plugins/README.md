@@ -1,64 +1,51 @@
 # @brains/plugins
 
-Base classes and utilities for Brain plugin development.
+The plugin runtime: the declarative definitions every package is written with, the adapters that register them, and the contexts, registries and test harness behind them.
 
-## Plugin Types
+## Package families
 
-### EntityPlugin
+Every package under `entities/`, `plugins/` and `interfaces/` is a declarative definition, imported through `@brains/sdk`. Each family has one internal adapter that registers it; the adapters share one internal core, `PluginCore`, which no entry exports.
 
-Content types — schema, adapter, AI generation, and explicit derived-entity projections.
+### Entity packages
+
+Content types: schema, markdown adapter, generation, projections, templates and data sources.
 
 ```typescript
-import { EntityPlugin } from "@brains/plugins";
+import { defineEntity, defineEntityPackage, z } from "@brains/sdk/entities";
 
-export class MyPlugin extends EntityPlugin<MyEntity> {
-  readonly entityType = "my-entity";
-  readonly schema = myEntitySchema;
-  readonly adapter = new MyAdapter();
+const memo = defineEntity({
+  type: "memo",
+  purpose: "A short note.",
+  metadata: z.object({ title: z.string() }),
+});
 
-  protected createGenerationHandler(context) {
-    return new MyGenerationHandler(context);
-  }
-}
+export default defineEntityPackage({ id: "memos", entities: [memo] });
 ```
 
 **Context: `EntityPluginContext`** — entities, ai, prompts, jobs, messaging
 
-### ServicePlugin
+### Services
 
-Infrastructure — tools, templates, views, external service connections.
+Tools, jobs, routes and external service connections.
 
 ```typescript
-import { ServicePlugin, createTool, toolSuccess } from "@brains/plugins";
+import { defineServicePlugin, z } from "@brains/sdk/services";
 
-export class MyPlugin extends ServicePlugin<MyConfig> {
-  protected override async onRegister(context) {
-    // register templates, subscribe to messages, etc.
-  }
-
-  protected override async getTools() {
-    return [createTool(this.id, "my-tool", "Description", schema, handler)];
-  }
-}
+export default defineServicePlugin(
+  { id: "digests", config: z.object({}), setup: () => ({}) },
+  { tools: () => [] },
+);
 ```
 
 **Context: `ServicePluginContext`** — entities, templates, views, prompts, jobs, messaging
 
-### InterfacePlugin
+### Interfaces
 
-Transport layers — MCP, CLI, Discord, A2A, web chat. The runtime itself hosts HTTP (`@brains/http-host`); interfaces declare routes it serves.
-
-```typescript
-import { InterfacePlugin } from "@brains/plugins";
-
-export class MyInterface extends InterfacePlugin<MyConfig> {
-  protected override async onRegister(context) {
-    context.daemons.register("my-daemon", myDaemon);
-  }
-}
-```
+Transport layers — MCP, chat, A2A, email, web chat. The runtime itself hosts HTTP (`@brains/http-host`); interfaces declare the routes it serves. `defineInterface` declares routes and daemons; `defineMessageInterface` declares a channel, its listener and its sender, and the runtime coordinates job progress, tool statuses and held-back completions for it.
 
 **Context: `InterfacePluginContext`** — mcpTransport, agentService, daemons, permissions, conversations (read+write), tools, apiRoutes
+
+First-party packages reach runtime capabilities the public API leaves out through `@brains/sdk/internal/*` (`serviceRuntime`, `entityRuntime`, `interfaceRuntime`, `withSiteRuntime`), each tracked in `docs/legacy-code-inventory.json`.
 
 ## Context Hierarchy
 
@@ -102,10 +89,20 @@ context.analytics.register(
 ## Testing
 
 ```typescript
+import { instantiatePluginPackageDefinition } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 
 const harness = createPluginHarness({ dataDir: "/tmp/test" });
-await harness.installPlugin(new MyPlugin());
+for (const plugin of instantiatePluginPackageDefinition(
+  definition,
+  {},
+  {
+    name: "@example/memos",
+    version: "0.1.0",
+  },
+)) {
+  await harness.installPlugin(plugin);
+}
 
 // For entity plugins
 const context = harness.getEntityContext("my-entity");
@@ -123,7 +120,7 @@ import { createMockServicePluginContext } from "@brains/test-utils";
 
 ## Exports
 
-- **Classes**: `EntityPlugin`, `ServicePlugin`, `InterfacePlugin`, `MessageInterfacePlugin`, `BasePlugin`
+- **Definitions**: `defineEntity`, `defineEntityPackage`, `defineServicePlugin`, `defineInterface`, `defineMessageInterface`, `defineDataSource`, `defineSharedState`
 - **Contexts**: `BasePluginContext`, `EntityPluginContext`, `ServicePluginContext`, `InterfacePluginContext`
 - **Tools**: `createTool`, `createResource`, `toolSuccess`, `toolError`
 - **Types**: `Tool`, `Resource`, `ResourceTemplate`, `Prompt`, `ToolContext`, `ToolResponse`

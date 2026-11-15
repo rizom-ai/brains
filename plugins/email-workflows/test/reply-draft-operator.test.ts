@@ -1,10 +1,13 @@
+import {
+  createEmailReplyDraftPlugin,
+  createMailItemPlugin,
+} from "./email-workflows-plugins";
 import { describe, expect, it } from "bun:test";
 import type { EmailSourceMessage } from "@brains/contracts";
 import type { ChannelDeliveryInput, IEntityAINamespace } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
-import { MailItemPlugin, createMailItemProjection } from "../src";
+import { createMailItemProjection } from "../src";
 import { emailReplyDraftAdapter } from "../src/reply-drafts/entity/adapter";
-import { EmailReplyDraftEntityPlugin } from "../src/reply-drafts/entity/plugin";
 import {
   DraftRevisionConflictError,
   DraftSendRevisionConflictError,
@@ -39,8 +42,8 @@ async function createFixture(
   generatedReply?: string,
 ): Promise<ReplyDraftFixture> {
   const harness = createPluginHarness({ logContext: "reply-draft-test" });
-  await harness.installPlugin(new MailItemPlugin());
-  await harness.installPlugin(new EmailReplyDraftEntityPlugin());
+  await harness.installPlugin(createMailItemPlugin());
+  await harness.installPlugin(createEmailReplyDraftPlugin());
   const projection = createMailItemProjection(
     {
       messageId: sourceMessage.messageId,

@@ -1,7 +1,7 @@
 import type {
-  IRuntimeStateNamespace,
+  ClassRuntimeState,
   WebRouteDefinition,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/interface-runtime";
 import type {
   ActionEvent,
   Channel,
@@ -68,9 +68,7 @@ interface ChatSdkAppHostDeps {
   /** The Slack adapter's mode gates its webhook route. */
   slack: SlackChatAdapterConfig | undefined;
   /** Construct the Chat SDK app (see createChatSdkApp); injected so this stays SDK-free. */
-  buildApp: (
-    runtimeState: Pick<IRuntimeStateNamespace, "scoped">,
-  ) => ChatSdkApp;
+  buildApp: (runtimeState: ClassRuntimeState) => ChatSdkApp;
 }
 
 /** Owns the multi-adapter Chat SDK lifecycle and HTTP surface. */
@@ -83,7 +81,7 @@ export class ChatSdkAppHost {
   }
 
   /** Construct the Chat SDK app. Returns it so the interface can register handlers. */
-  build(runtimeState: Pick<IRuntimeStateNamespace, "scoped">): ChatSdkApp {
+  build(runtimeState: ClassRuntimeState): ChatSdkApp {
     this.app = this.deps.buildApp(runtimeState);
     return this.app;
   }

@@ -1,0 +1,2817 @@
+{
+  "source": "main 9ff643747b, the action-board plugin class on the entity store, at 2026-04-10T12:00:00.000Z",
+  "answers": {
+    "boardBefore": {
+      "view": {
+        "title": "Board",
+        "description": "Action items from the team's conversations.",
+        "blocks": [
+          {
+            "type": "action",
+            "id": "new-card",
+            "actionId": "create",
+            "label": "New card",
+            "input": {
+              "assigneeId": ""
+            },
+            "form": {
+              "presentation": "disclosure",
+              "submitLabel": "Add to To do",
+              "fields": [
+                {
+                  "name": "title",
+                  "label": "Title",
+                  "control": "text",
+                  "required": true
+                },
+                {
+                  "name": "text",
+                  "label": "Details",
+                  "control": "textarea",
+                  "required": false
+                }
+              ]
+            },
+            "result": {
+              "title": "New card",
+              "fields": [
+                {
+                  "name": "status",
+                  "label": "Outcome"
+                }
+              ]
+            }
+          },
+          {
+            "type": "detail",
+            "id": "board-detail",
+            "queryKey": "card",
+            "empty": "Select a card to read it.",
+            "master": {
+              "type": "matrix",
+              "id": "board",
+              "columns": 4,
+              "cells": [
+                {
+                  "id": "open",
+                  "label": "To do",
+                  "empty": "Nothing waiting to start.",
+                  "items": [
+                    {
+                      "id": "book-the-venue",
+                      "title": "Book the venue",
+                      "metadata": ["Alex Morgan", "99d", "#CLI Terminal"],
+                      "links": [
+                        {
+                          "label": "Open in editor",
+                          "target": {
+                            "kind": "entity",
+                            "entityType": "action-item",
+                            "id": "book-the-venue"
+                          }
+                        },
+                        {
+                          "label": "Conversation summary",
+                          "target": {
+                            "kind": "entity",
+                            "entityType": "summary",
+                            "id": "conv-1"
+                          }
+                        }
+                      ],
+                      "link": {
+                        "kind": "detail",
+                        "itemId": "book-the-venue"
+                      },
+                      "actions": [
+                        {
+                          "actionId": "move",
+                          "label": "Start",
+                          "input": {
+                            "id": "book-the-venue",
+                            "from": "open",
+                            "to": "doing"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "dropTarget": "doing"
+                        },
+                        {
+                          "actionId": "move",
+                          "label": "Block",
+                          "input": {
+                            "id": "book-the-venue",
+                            "from": "open",
+                            "to": "blocked"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "dropTarget": "blocked"
+                        },
+                        {
+                          "actionId": "move",
+                          "label": "Done",
+                          "input": {
+                            "id": "book-the-venue",
+                            "from": "open",
+                            "to": "done"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "dropTarget": "done"
+                        },
+                        {
+                          "actionId": "drop",
+                          "label": "Drop",
+                          "input": {
+                            "id": "book-the-venue",
+                            "from": "open"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "confirmation": {
+                            "kind": "static",
+                            "message": "Drop this action item? It leaves the board; the Library keeps it."
+                          }
+                        }
+                      ],
+                      "actionsLabel": "Move"
+                    },
+                    {
+                      "id": "conv-2:action-item:1:ef3456",
+                      "title": "Send the notes",
+                      "metadata": ["Alex", "68d", "#discord-1"],
+                      "links": [
+                        {
+                          "label": "Open in editor",
+                          "target": {
+                            "kind": "entity",
+                            "entityType": "action-item",
+                            "id": "conv-2:action-item:1:ef3456"
+                          }
+                        },
+                        {
+                          "label": "Conversation summary",
+                          "target": {
+                            "kind": "entity",
+                            "entityType": "summary",
+                            "id": "conv-2"
+                          }
+                        }
+                      ],
+                      "link": {
+                        "kind": "detail",
+                        "itemId": "conv-2:action-item:1:ef3456"
+                      },
+                      "actions": [
+                        {
+                          "actionId": "move",
+                          "label": "Start",
+                          "input": {
+                            "id": "conv-2:action-item:1:ef3456",
+                            "from": "open",
+                            "to": "doing"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "dropTarget": "doing"
+                        },
+                        {
+                          "actionId": "move",
+                          "label": "Block",
+                          "input": {
+                            "id": "conv-2:action-item:1:ef3456",
+                            "from": "open",
+                            "to": "blocked"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "dropTarget": "blocked"
+                        },
+                        {
+                          "actionId": "move",
+                          "label": "Done",
+                          "input": {
+                            "id": "conv-2:action-item:1:ef3456",
+                            "from": "open",
+                            "to": "done"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "dropTarget": "done"
+                        },
+                        {
+                          "actionId": "drop",
+                          "label": "Drop",
+                          "input": {
+                            "id": "conv-2:action-item:1:ef3456",
+                            "from": "open"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "confirmation": {
+                            "kind": "static",
+                            "message": "Drop this action item? It leaves the board; the Library keeps it."
+                          }
+                        }
+                      ],
+                      "actionsLabel": "Move"
+                    }
+                  ]
+                },
+                {
+                  "id": "doing",
+                  "label": "Doing",
+                  "empty": "Nobody is on anything yet.",
+                  "items": [
+                    {
+                      "id": "board:roof",
+                      "title": "Fix the roof",
+                      "metadata": ["40d", "Board"],
+                      "links": [
+                        {
+                          "label": "Open in editor",
+                          "target": {
+                            "kind": "entity",
+                            "entityType": "action-item",
+                            "id": "board:roof"
+                          }
+                        }
+                      ],
+                      "link": {
+                        "kind": "detail",
+                        "itemId": "board:roof"
+                      },
+                      "actions": [
+                        {
+                          "actionId": "move",
+                          "label": "Block",
+                          "input": {
+                            "id": "board:roof",
+                            "from": "doing",
+                            "to": "blocked"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "dropTarget": "blocked"
+                        },
+                        {
+                          "actionId": "move",
+                          "label": "Done",
+                          "input": {
+                            "id": "board:roof",
+                            "from": "doing",
+                            "to": "done"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "dropTarget": "done"
+                        },
+                        {
+                          "actionId": "move",
+                          "label": "To do",
+                          "input": {
+                            "id": "board:roof",
+                            "from": "doing",
+                            "to": "open"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "dropTarget": "open"
+                        },
+                        {
+                          "actionId": "drop",
+                          "label": "Drop",
+                          "input": {
+                            "id": "board:roof",
+                            "from": "doing"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "confirmation": {
+                            "kind": "static",
+                            "message": "Drop this action item? It leaves the board; the Library keeps it."
+                          }
+                        }
+                      ],
+                      "actionsLabel": "Move"
+                    }
+                  ]
+                },
+                {
+                  "id": "blocked",
+                  "label": "Blocked",
+                  "tone": "warn",
+                  "empty": "Nothing is blocked.",
+                  "items": [
+                    {
+                      "id": "fix-the-gutter",
+                      "title": "Fix the gutter",
+                      "metadata": ["39d", "Board"],
+                      "links": [
+                        {
+                          "label": "Open in editor",
+                          "target": {
+                            "kind": "entity",
+                            "entityType": "action-item",
+                            "id": "fix-the-gutter"
+                          }
+                        }
+                      ],
+                      "link": {
+                        "kind": "detail",
+                        "itemId": "fix-the-gutter"
+                      },
+                      "actions": [
+                        {
+                          "actionId": "move",
+                          "label": "Resume",
+                          "input": {
+                            "id": "fix-the-gutter",
+                            "from": "blocked",
+                            "to": "doing"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "dropTarget": "doing"
+                        },
+                        {
+                          "actionId": "move",
+                          "label": "Done",
+                          "input": {
+                            "id": "fix-the-gutter",
+                            "from": "blocked",
+                            "to": "done"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "dropTarget": "done"
+                        },
+                        {
+                          "actionId": "drop",
+                          "label": "Drop",
+                          "input": {
+                            "id": "fix-the-gutter",
+                            "from": "blocked"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "confirmation": {
+                            "kind": "static",
+                            "message": "Drop this action item? It leaves the board; the Library keeps it."
+                          }
+                        }
+                      ],
+                      "actionsLabel": "Move"
+                    }
+                  ]
+                },
+                {
+                  "id": "done",
+                  "label": "Done",
+                  "empty": "Nothing finished in the last 14 days.",
+                  "items": []
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "inboxBefore": [
+      {
+        "id": "fix-the-gutter",
+        "title": "Fix the gutter",
+        "summary": "Board",
+        "receivedAt": "2026-04-10T12:00:00.000Z",
+        "urgency": "normal",
+        "entityRef": {
+          "entityType": "action-item",
+          "entityId": "fix-the-gutter"
+        },
+        "actions": [
+          {
+            "id": "resume",
+            "label": "Resume"
+          },
+          {
+            "id": "done",
+            "label": "Done"
+          },
+          {
+            "id": "drop",
+            "label": "Drop",
+            "confirm": true
+          }
+        ]
+      }
+    ],
+    "createFromChat": {
+      "success": true,
+      "data": {
+        "id": "print-the-posters-<new>"
+      },
+      "message": "Added \"Print the posters\", due 2026-04-17."
+    },
+    "createStranger": {
+      "success": false,
+      "error": "Grace is not a member of this brain."
+    },
+    "updateFromChat": {
+      "success": true,
+      "data": {
+        "id": "book-the-venue",
+        "status": "doing"
+      },
+      "message": "Action item moved to doing and noted."
+    },
+    "createOnBoard": {},
+    "moveOnBoard": {},
+    "staleMove": {
+      "status": "This card is now Blocked; your move was not applied."
+    },
+    "noteOnBoard": {
+      "status": "This card is no longer on the board."
+    },
+    "noteAsAdmin": {},
+    "dropOnBoard": {},
+    "trackOnBoard": {},
+    "trackAgain": {
+      "status": "This Inbox item is already on the board."
+    },
+    "followUp": [
+      {
+        "kind": "track-as-action-item",
+        "label": "Track as action item",
+        "href": "/studio/workspaces/action-board%3Aboard?trackSource=contact-requests&trackType=contact-request&trackId=req-2&trackTitle=Could+we+share+your+field+notes%3F&trackSummary=Grace+asks+about+our+field+notes."
+      }
+    ],
+    "inboxBlocked": [
+      {
+        "id": "board:roof",
+        "title": "Fix the roof",
+        "summary": "Board",
+        "receivedAt": "2026-04-10T12:00:00.000Z",
+        "urgency": "normal",
+        "entityRef": {
+          "entityType": "action-item",
+          "entityId": "board:roof"
+        },
+        "actions": [
+          {
+            "id": "resume",
+            "label": "Resume"
+          },
+          {
+            "id": "done",
+            "label": "Done"
+          },
+          {
+            "id": "drop",
+            "label": "Drop",
+            "confirm": true
+          }
+        ]
+      },
+      {
+        "id": "fix-the-gutter",
+        "title": "Fix the gutter",
+        "summary": "Board",
+        "receivedAt": "2026-04-10T12:00:00.000Z",
+        "urgency": "normal",
+        "entityRef": {
+          "entityType": "action-item",
+          "entityId": "fix-the-gutter"
+        },
+        "actions": [
+          {
+            "id": "resume",
+            "label": "Resume"
+          },
+          {
+            "id": "done",
+            "label": "Done"
+          },
+          {
+            "id": "drop",
+            "label": "Drop",
+            "confirm": true
+          }
+        ]
+      }
+    ],
+    "inboxDetail": {
+      "kind": "plain",
+      "text": "Fix the roof",
+      "truncated": false
+    },
+    "boardAfter": {
+      "view": {
+        "title": "Board",
+        "description": "Action items from the team's conversations.",
+        "blocks": [
+          {
+            "type": "action",
+            "id": "new-card",
+            "actionId": "create",
+            "label": "New card",
+            "input": {
+              "assigneeId": ""
+            },
+            "form": {
+              "presentation": "disclosure",
+              "submitLabel": "Add to To do",
+              "fields": [
+                {
+                  "name": "title",
+                  "label": "Title",
+                  "control": "text",
+                  "required": true
+                },
+                {
+                  "name": "text",
+                  "label": "Details",
+                  "control": "textarea",
+                  "required": false
+                }
+              ]
+            },
+            "result": {
+              "title": "New card",
+              "fields": [
+                {
+                  "name": "status",
+                  "label": "Outcome"
+                }
+              ]
+            }
+          },
+          {
+            "type": "detail",
+            "id": "board-detail",
+            "queryKey": "card",
+            "empty": "Select a card to read it.",
+            "master": {
+              "type": "matrix",
+              "id": "board",
+              "columns": 4,
+              "cells": [
+                {
+                  "id": "open",
+                  "label": "To do",
+                  "empty": "Nothing waiting to start.",
+                  "items": []
+                },
+                {
+                  "id": "doing",
+                  "label": "Doing",
+                  "empty": "Nobody is on anything yet.",
+                  "items": [
+                    {
+                      "id": "book-the-venue",
+                      "title": "Book the venue",
+                      "metadata": ["Alex Morgan", "99d", "#CLI Terminal"],
+                      "links": [
+                        {
+                          "label": "Open in editor",
+                          "target": {
+                            "kind": "entity",
+                            "entityType": "action-item",
+                            "id": "book-the-venue"
+                          }
+                        },
+                        {
+                          "label": "Conversation summary",
+                          "target": {
+                            "kind": "entity",
+                            "entityType": "summary",
+                            "id": "conv-1"
+                          }
+                        }
+                      ],
+                      "link": {
+                        "kind": "detail",
+                        "itemId": "book-the-venue"
+                      },
+                      "actions": [
+                        {
+                          "actionId": "move",
+                          "label": "Block",
+                          "input": {
+                            "id": "book-the-venue",
+                            "from": "doing",
+                            "to": "blocked"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "dropTarget": "blocked"
+                        },
+                        {
+                          "actionId": "move",
+                          "label": "Done",
+                          "input": {
+                            "id": "book-the-venue",
+                            "from": "doing",
+                            "to": "done"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "dropTarget": "done"
+                        },
+                        {
+                          "actionId": "move",
+                          "label": "To do",
+                          "input": {
+                            "id": "book-the-venue",
+                            "from": "doing",
+                            "to": "open"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "dropTarget": "open"
+                        },
+                        {
+                          "actionId": "drop",
+                          "label": "Drop",
+                          "input": {
+                            "id": "book-the-venue",
+                            "from": "doing"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "confirmation": {
+                            "kind": "static",
+                            "message": "Drop this action item? It leaves the board; the Library keeps it."
+                          }
+                        }
+                      ],
+                      "actionsLabel": "Move"
+                    }
+                  ]
+                },
+                {
+                  "id": "blocked",
+                  "label": "Blocked",
+                  "tone": "warn",
+                  "empty": "Nothing is blocked.",
+                  "items": [
+                    {
+                      "id": "board:roof",
+                      "title": "Fix the roof",
+                      "metadata": ["40d", "Board"],
+                      "links": [
+                        {
+                          "label": "Open in editor",
+                          "target": {
+                            "kind": "entity",
+                            "entityType": "action-item",
+                            "id": "board:roof"
+                          }
+                        }
+                      ],
+                      "link": {
+                        "kind": "detail",
+                        "itemId": "board:roof"
+                      },
+                      "actions": [
+                        {
+                          "actionId": "move",
+                          "label": "Resume",
+                          "input": {
+                            "id": "board:roof",
+                            "from": "blocked",
+                            "to": "doing"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "dropTarget": "doing"
+                        },
+                        {
+                          "actionId": "move",
+                          "label": "Done",
+                          "input": {
+                            "id": "board:roof",
+                            "from": "blocked",
+                            "to": "done"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "dropTarget": "done"
+                        },
+                        {
+                          "actionId": "drop",
+                          "label": "Drop",
+                          "input": {
+                            "id": "board:roof",
+                            "from": "blocked"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "confirmation": {
+                            "kind": "static",
+                            "message": "Drop this action item? It leaves the board; the Library keeps it."
+                          }
+                        }
+                      ],
+                      "actionsLabel": "Move"
+                    }
+                  ]
+                },
+                {
+                  "id": "done",
+                  "label": "Done",
+                  "empty": "Nothing finished in the last 14 days.",
+                  "items": [
+                    {
+                      "id": "fix-the-gutter",
+                      "title": "Fix the gutter",
+                      "metadata": ["39d", "Board"],
+                      "links": [
+                        {
+                          "label": "Open in editor",
+                          "target": {
+                            "kind": "entity",
+                            "entityType": "action-item",
+                            "id": "fix-the-gutter"
+                          }
+                        }
+                      ],
+                      "link": {
+                        "kind": "detail",
+                        "itemId": "fix-the-gutter"
+                      },
+                      "actions": [
+                        {
+                          "actionId": "move",
+                          "label": "Reopen",
+                          "input": {
+                            "id": "fix-the-gutter",
+                            "from": "done",
+                            "to": "open"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "dropTarget": "open"
+                        },
+                        {
+                          "actionId": "drop",
+                          "label": "Drop",
+                          "input": {
+                            "id": "fix-the-gutter",
+                            "from": "done"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "confirmation": {
+                            "kind": "static",
+                            "message": "Drop this action item? It leaves the board; the Library keeps it."
+                          }
+                        }
+                      ],
+                      "actionsLabel": "Move"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "boardAdmin": {
+      "view": {
+        "title": "Board",
+        "description": "Action items from the team's conversations.",
+        "blocks": [
+          {
+            "type": "action",
+            "id": "new-card",
+            "actionId": "create",
+            "label": "New card",
+            "input": {
+              "assigneeId": ""
+            },
+            "form": {
+              "presentation": "disclosure",
+              "submitLabel": "Add to To do",
+              "fields": [
+                {
+                  "name": "title",
+                  "label": "Title",
+                  "control": "text",
+                  "required": true
+                },
+                {
+                  "name": "text",
+                  "label": "Details",
+                  "control": "textarea",
+                  "required": false
+                }
+              ]
+            },
+            "result": {
+              "title": "New card",
+              "fields": [
+                {
+                  "name": "status",
+                  "label": "Outcome"
+                }
+              ]
+            }
+          },
+          {
+            "type": "detail",
+            "id": "board-detail",
+            "queryKey": "card",
+            "empty": "Select a card to read it.",
+            "master": {
+              "type": "matrix",
+              "id": "board",
+              "columns": 4,
+              "cells": [
+                {
+                  "id": "open",
+                  "label": "To do",
+                  "empty": "Nothing waiting to start.",
+                  "items": [
+                    {
+                      "id": "inbox-contact-requests-req-<new>",
+                      "title": "Reply about the field notes",
+                      "metadata": ["now", "Inbox"],
+                      "links": [
+                        {
+                          "label": "Open in editor",
+                          "target": {
+                            "kind": "entity",
+                            "entityType": "action-item",
+                            "id": "inbox-contact-requests-req-<new>"
+                          }
+                        },
+                        {
+                          "label": "Inbox source",
+                          "target": {
+                            "kind": "entity",
+                            "entityType": "contact-request",
+                            "id": "req-1"
+                          }
+                        }
+                      ],
+                      "link": {
+                        "kind": "detail",
+                        "itemId": "inbox-contact-requests-req-<new>"
+                      },
+                      "actions": [
+                        {
+                          "actionId": "move",
+                          "label": "Start",
+                          "input": {
+                            "id": "inbox-contact-requests-req-<new>",
+                            "from": "open",
+                            "to": "doing"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "dropTarget": "doing"
+                        },
+                        {
+                          "actionId": "move",
+                          "label": "Block",
+                          "input": {
+                            "id": "inbox-contact-requests-req-<new>",
+                            "from": "open",
+                            "to": "blocked"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "dropTarget": "blocked"
+                        },
+                        {
+                          "actionId": "move",
+                          "label": "Done",
+                          "input": {
+                            "id": "inbox-contact-requests-req-<new>",
+                            "from": "open",
+                            "to": "done"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "dropTarget": "done"
+                        },
+                        {
+                          "actionId": "drop",
+                          "label": "Drop",
+                          "input": {
+                            "id": "inbox-contact-requests-req-<new>",
+                            "from": "open"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "confirmation": {
+                            "kind": "static",
+                            "message": "Drop this action item? It leaves the board; the Library keeps it."
+                          }
+                        }
+                      ],
+                      "actionsLabel": "Move"
+                    },
+                    {
+                      "id": "order-name-badges-<new>",
+                      "title": "Order name badges",
+                      "metadata": ["now", "Board"],
+                      "links": [
+                        {
+                          "label": "Open in editor",
+                          "target": {
+                            "kind": "entity",
+                            "entityType": "action-item",
+                            "id": "order-name-badges-<new>"
+                          }
+                        }
+                      ],
+                      "link": {
+                        "kind": "detail",
+                        "itemId": "order-name-badges-<new>"
+                      },
+                      "actions": [
+                        {
+                          "actionId": "move",
+                          "label": "Start",
+                          "input": {
+                            "id": "order-name-badges-<new>",
+                            "from": "open",
+                            "to": "doing"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "dropTarget": "doing"
+                        },
+                        {
+                          "actionId": "move",
+                          "label": "Block",
+                          "input": {
+                            "id": "order-name-badges-<new>",
+                            "from": "open",
+                            "to": "blocked"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "dropTarget": "blocked"
+                        },
+                        {
+                          "actionId": "move",
+                          "label": "Done",
+                          "input": {
+                            "id": "order-name-badges-<new>",
+                            "from": "open",
+                            "to": "done"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "dropTarget": "done"
+                        },
+                        {
+                          "actionId": "drop",
+                          "label": "Drop",
+                          "input": {
+                            "id": "order-name-badges-<new>",
+                            "from": "open"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "confirmation": {
+                            "kind": "static",
+                            "message": "Drop this action item? It leaves the board; the Library keeps it."
+                          }
+                        }
+                      ],
+                      "actionsLabel": "Move"
+                    },
+                    {
+                      "id": "print-the-posters-<new>",
+                      "title": "Print the posters",
+                      "metadata": ["due Apr 17", "now", "#executive-room"],
+                      "links": [
+                        {
+                          "label": "Open in editor",
+                          "target": {
+                            "kind": "entity",
+                            "entityType": "action-item",
+                            "id": "print-the-posters-<new>"
+                          }
+                        },
+                        {
+                          "label": "Conversation summary",
+                          "target": {
+                            "kind": "entity",
+                            "entityType": "summary",
+                            "id": "discord:1"
+                          }
+                        }
+                      ],
+                      "link": {
+                        "kind": "detail",
+                        "itemId": "print-the-posters-<new>"
+                      },
+                      "actions": [
+                        {
+                          "actionId": "move",
+                          "label": "Start",
+                          "input": {
+                            "id": "print-the-posters-<new>",
+                            "from": "open",
+                            "to": "doing"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "dropTarget": "doing"
+                        },
+                        {
+                          "actionId": "move",
+                          "label": "Block",
+                          "input": {
+                            "id": "print-the-posters-<new>",
+                            "from": "open",
+                            "to": "blocked"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "dropTarget": "blocked"
+                        },
+                        {
+                          "actionId": "move",
+                          "label": "Done",
+                          "input": {
+                            "id": "print-the-posters-<new>",
+                            "from": "open",
+                            "to": "done"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "dropTarget": "done"
+                        },
+                        {
+                          "actionId": "drop",
+                          "label": "Drop",
+                          "input": {
+                            "id": "print-the-posters-<new>",
+                            "from": "open"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "confirmation": {
+                            "kind": "static",
+                            "message": "Drop this action item? It leaves the board; the Library keeps it."
+                          }
+                        }
+                      ],
+                      "actionsLabel": "Move"
+                    }
+                  ]
+                },
+                {
+                  "id": "doing",
+                  "label": "Doing",
+                  "empty": "Nobody is on anything yet.",
+                  "items": [
+                    {
+                      "id": "book-the-venue",
+                      "title": "Book the venue",
+                      "metadata": ["Alex Morgan", "99d", "#CLI Terminal"],
+                      "links": [
+                        {
+                          "label": "Open in editor",
+                          "target": {
+                            "kind": "entity",
+                            "entityType": "action-item",
+                            "id": "book-the-venue"
+                          }
+                        },
+                        {
+                          "label": "Conversation summary",
+                          "target": {
+                            "kind": "entity",
+                            "entityType": "summary",
+                            "id": "conv-1"
+                          }
+                        }
+                      ],
+                      "link": {
+                        "kind": "detail",
+                        "itemId": "book-the-venue"
+                      },
+                      "actions": [
+                        {
+                          "actionId": "move",
+                          "label": "Block",
+                          "input": {
+                            "id": "book-the-venue",
+                            "from": "doing",
+                            "to": "blocked"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "dropTarget": "blocked"
+                        },
+                        {
+                          "actionId": "move",
+                          "label": "Done",
+                          "input": {
+                            "id": "book-the-venue",
+                            "from": "doing",
+                            "to": "done"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "dropTarget": "done"
+                        },
+                        {
+                          "actionId": "move",
+                          "label": "To do",
+                          "input": {
+                            "id": "book-the-venue",
+                            "from": "doing",
+                            "to": "open"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "dropTarget": "open"
+                        },
+                        {
+                          "actionId": "drop",
+                          "label": "Drop",
+                          "input": {
+                            "id": "book-the-venue",
+                            "from": "doing"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "confirmation": {
+                            "kind": "static",
+                            "message": "Drop this action item? It leaves the board; the Library keeps it."
+                          }
+                        }
+                      ],
+                      "actionsLabel": "Move"
+                    }
+                  ]
+                },
+                {
+                  "id": "blocked",
+                  "label": "Blocked",
+                  "tone": "warn",
+                  "empty": "Nothing is blocked.",
+                  "items": [
+                    {
+                      "id": "board:roof",
+                      "title": "Fix the roof",
+                      "metadata": ["40d", "Board"],
+                      "links": [
+                        {
+                          "label": "Open in editor",
+                          "target": {
+                            "kind": "entity",
+                            "entityType": "action-item",
+                            "id": "board:roof"
+                          }
+                        }
+                      ],
+                      "link": {
+                        "kind": "detail",
+                        "itemId": "board:roof"
+                      },
+                      "actions": [
+                        {
+                          "actionId": "move",
+                          "label": "Resume",
+                          "input": {
+                            "id": "board:roof",
+                            "from": "blocked",
+                            "to": "doing"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "dropTarget": "doing"
+                        },
+                        {
+                          "actionId": "move",
+                          "label": "Done",
+                          "input": {
+                            "id": "board:roof",
+                            "from": "blocked",
+                            "to": "done"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "dropTarget": "done"
+                        },
+                        {
+                          "actionId": "drop",
+                          "label": "Drop",
+                          "input": {
+                            "id": "board:roof",
+                            "from": "blocked"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "confirmation": {
+                            "kind": "static",
+                            "message": "Drop this action item? It leaves the board; the Library keeps it."
+                          }
+                        }
+                      ],
+                      "actionsLabel": "Move"
+                    }
+                  ]
+                },
+                {
+                  "id": "done",
+                  "label": "Done",
+                  "empty": "Nothing finished in the last 14 days.",
+                  "items": [
+                    {
+                      "id": "fix-the-gutter",
+                      "title": "Fix the gutter",
+                      "metadata": ["39d", "Board"],
+                      "links": [
+                        {
+                          "label": "Open in editor",
+                          "target": {
+                            "kind": "entity",
+                            "entityType": "action-item",
+                            "id": "fix-the-gutter"
+                          }
+                        }
+                      ],
+                      "link": {
+                        "kind": "detail",
+                        "itemId": "fix-the-gutter"
+                      },
+                      "actions": [
+                        {
+                          "actionId": "move",
+                          "label": "Reopen",
+                          "input": {
+                            "id": "fix-the-gutter",
+                            "from": "done",
+                            "to": "open"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "dropTarget": "open"
+                        },
+                        {
+                          "actionId": "drop",
+                          "label": "Drop",
+                          "input": {
+                            "id": "fix-the-gutter",
+                            "from": "done"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "confirmation": {
+                            "kind": "static",
+                            "message": "Drop this action item? It leaves the board; the Library keeps it."
+                          }
+                        }
+                      ],
+                      "actionsLabel": "Move"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "boardOpen": {
+      "view": {
+        "title": "Board",
+        "description": "Action items from the team's conversations.",
+        "blocks": [
+          {
+            "type": "action",
+            "id": "new-card",
+            "actionId": "create",
+            "label": "New card",
+            "input": {
+              "assigneeId": ""
+            },
+            "form": {
+              "presentation": "disclosure",
+              "submitLabel": "Add to To do",
+              "fields": [
+                {
+                  "name": "title",
+                  "label": "Title",
+                  "control": "text",
+                  "required": true
+                },
+                {
+                  "name": "text",
+                  "label": "Details",
+                  "control": "textarea",
+                  "required": false
+                }
+              ]
+            },
+            "result": {
+              "title": "New card",
+              "fields": [
+                {
+                  "name": "status",
+                  "label": "Outcome"
+                }
+              ]
+            }
+          },
+          {
+            "type": "detail",
+            "id": "board-detail",
+            "queryKey": "card",
+            "empty": "Select a card to read it.",
+            "master": {
+              "type": "matrix",
+              "id": "board",
+              "columns": 4,
+              "cells": [
+                {
+                  "id": "open",
+                  "label": "To do",
+                  "empty": "Nothing waiting to start.",
+                  "items": [
+                    {
+                      "id": "inbox-contact-requests-req-<new>",
+                      "title": "Reply about the field notes",
+                      "metadata": ["now", "Inbox"],
+                      "links": [
+                        {
+                          "label": "Open in editor",
+                          "target": {
+                            "kind": "entity",
+                            "entityType": "action-item",
+                            "id": "inbox-contact-requests-req-<new>"
+                          }
+                        },
+                        {
+                          "label": "Inbox source",
+                          "target": {
+                            "kind": "entity",
+                            "entityType": "contact-request",
+                            "id": "req-1"
+                          }
+                        }
+                      ],
+                      "link": {
+                        "kind": "detail",
+                        "itemId": "inbox-contact-requests-req-<new>"
+                      },
+                      "actions": [
+                        {
+                          "actionId": "move",
+                          "label": "Start",
+                          "input": {
+                            "id": "inbox-contact-requests-req-<new>",
+                            "from": "open",
+                            "to": "doing"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "dropTarget": "doing"
+                        },
+                        {
+                          "actionId": "move",
+                          "label": "Block",
+                          "input": {
+                            "id": "inbox-contact-requests-req-<new>",
+                            "from": "open",
+                            "to": "blocked"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "dropTarget": "blocked"
+                        },
+                        {
+                          "actionId": "move",
+                          "label": "Done",
+                          "input": {
+                            "id": "inbox-contact-requests-req-<new>",
+                            "from": "open",
+                            "to": "done"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "dropTarget": "done"
+                        },
+                        {
+                          "actionId": "drop",
+                          "label": "Drop",
+                          "input": {
+                            "id": "inbox-contact-requests-req-<new>",
+                            "from": "open"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "confirmation": {
+                            "kind": "static",
+                            "message": "Drop this action item? It leaves the board; the Library keeps it."
+                          }
+                        }
+                      ],
+                      "actionsLabel": "Move"
+                    },
+                    {
+                      "id": "order-name-badges-<new>",
+                      "title": "Order name badges",
+                      "metadata": ["now", "Board"],
+                      "links": [
+                        {
+                          "label": "Open in editor",
+                          "target": {
+                            "kind": "entity",
+                            "entityType": "action-item",
+                            "id": "order-name-badges-<new>"
+                          }
+                        }
+                      ],
+                      "link": {
+                        "kind": "detail",
+                        "itemId": "order-name-badges-<new>"
+                      },
+                      "actions": [
+                        {
+                          "actionId": "move",
+                          "label": "Start",
+                          "input": {
+                            "id": "order-name-badges-<new>",
+                            "from": "open",
+                            "to": "doing"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "dropTarget": "doing"
+                        },
+                        {
+                          "actionId": "move",
+                          "label": "Block",
+                          "input": {
+                            "id": "order-name-badges-<new>",
+                            "from": "open",
+                            "to": "blocked"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "dropTarget": "blocked"
+                        },
+                        {
+                          "actionId": "move",
+                          "label": "Done",
+                          "input": {
+                            "id": "order-name-badges-<new>",
+                            "from": "open",
+                            "to": "done"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "dropTarget": "done"
+                        },
+                        {
+                          "actionId": "drop",
+                          "label": "Drop",
+                          "input": {
+                            "id": "order-name-badges-<new>",
+                            "from": "open"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "confirmation": {
+                            "kind": "static",
+                            "message": "Drop this action item? It leaves the board; the Library keeps it."
+                          }
+                        }
+                      ],
+                      "actionsLabel": "Move"
+                    },
+                    {
+                      "id": "print-the-posters-<new>",
+                      "title": "Print the posters",
+                      "metadata": ["due Apr 17", "now", "#executive-room"],
+                      "links": [
+                        {
+                          "label": "Open in editor",
+                          "target": {
+                            "kind": "entity",
+                            "entityType": "action-item",
+                            "id": "print-the-posters-<new>"
+                          }
+                        },
+                        {
+                          "label": "Conversation summary",
+                          "target": {
+                            "kind": "entity",
+                            "entityType": "summary",
+                            "id": "discord:1"
+                          }
+                        }
+                      ],
+                      "link": {
+                        "kind": "detail",
+                        "itemId": "print-the-posters-<new>"
+                      },
+                      "actions": [
+                        {
+                          "actionId": "move",
+                          "label": "Start",
+                          "input": {
+                            "id": "print-the-posters-<new>",
+                            "from": "open",
+                            "to": "doing"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "dropTarget": "doing"
+                        },
+                        {
+                          "actionId": "move",
+                          "label": "Block",
+                          "input": {
+                            "id": "print-the-posters-<new>",
+                            "from": "open",
+                            "to": "blocked"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "dropTarget": "blocked"
+                        },
+                        {
+                          "actionId": "move",
+                          "label": "Done",
+                          "input": {
+                            "id": "print-the-posters-<new>",
+                            "from": "open",
+                            "to": "done"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "dropTarget": "done"
+                        },
+                        {
+                          "actionId": "drop",
+                          "label": "Drop",
+                          "input": {
+                            "id": "print-the-posters-<new>",
+                            "from": "open"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "confirmation": {
+                            "kind": "static",
+                            "message": "Drop this action item? It leaves the board; the Library keeps it."
+                          }
+                        }
+                      ],
+                      "actionsLabel": "Move"
+                    }
+                  ]
+                },
+                {
+                  "id": "doing",
+                  "label": "Doing",
+                  "empty": "Nobody is on anything yet.",
+                  "items": [
+                    {
+                      "id": "book-the-venue",
+                      "title": "Book the venue",
+                      "metadata": ["Alex Morgan", "99d", "#CLI Terminal"],
+                      "links": [
+                        {
+                          "label": "Open in editor",
+                          "target": {
+                            "kind": "entity",
+                            "entityType": "action-item",
+                            "id": "book-the-venue"
+                          }
+                        },
+                        {
+                          "label": "Conversation summary",
+                          "target": {
+                            "kind": "entity",
+                            "entityType": "summary",
+                            "id": "conv-1"
+                          }
+                        }
+                      ],
+                      "link": {
+                        "kind": "detail",
+                        "itemId": "book-the-venue"
+                      },
+                      "actions": [
+                        {
+                          "actionId": "move",
+                          "label": "Block",
+                          "input": {
+                            "id": "book-the-venue",
+                            "from": "doing",
+                            "to": "blocked"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "dropTarget": "blocked"
+                        },
+                        {
+                          "actionId": "move",
+                          "label": "Done",
+                          "input": {
+                            "id": "book-the-venue",
+                            "from": "doing",
+                            "to": "done"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "dropTarget": "done"
+                        },
+                        {
+                          "actionId": "move",
+                          "label": "To do",
+                          "input": {
+                            "id": "book-the-venue",
+                            "from": "doing",
+                            "to": "open"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "dropTarget": "open"
+                        },
+                        {
+                          "actionId": "drop",
+                          "label": "Drop",
+                          "input": {
+                            "id": "book-the-venue",
+                            "from": "doing"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "confirmation": {
+                            "kind": "static",
+                            "message": "Drop this action item? It leaves the board; the Library keeps it."
+                          }
+                        }
+                      ],
+                      "actionsLabel": "Move"
+                    }
+                  ]
+                },
+                {
+                  "id": "blocked",
+                  "label": "Blocked",
+                  "tone": "warn",
+                  "empty": "Nothing is blocked.",
+                  "items": [
+                    {
+                      "id": "board:roof",
+                      "title": "Fix the roof",
+                      "metadata": ["40d", "Board"],
+                      "links": [
+                        {
+                          "label": "Open in editor",
+                          "target": {
+                            "kind": "entity",
+                            "entityType": "action-item",
+                            "id": "board:roof"
+                          }
+                        }
+                      ],
+                      "link": {
+                        "kind": "detail",
+                        "itemId": "board:roof"
+                      },
+                      "actions": [
+                        {
+                          "actionId": "move",
+                          "label": "Resume",
+                          "input": {
+                            "id": "board:roof",
+                            "from": "blocked",
+                            "to": "doing"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "dropTarget": "doing"
+                        },
+                        {
+                          "actionId": "move",
+                          "label": "Done",
+                          "input": {
+                            "id": "board:roof",
+                            "from": "blocked",
+                            "to": "done"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "dropTarget": "done"
+                        },
+                        {
+                          "actionId": "drop",
+                          "label": "Drop",
+                          "input": {
+                            "id": "board:roof",
+                            "from": "blocked"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "confirmation": {
+                            "kind": "static",
+                            "message": "Drop this action item? It leaves the board; the Library keeps it."
+                          }
+                        }
+                      ],
+                      "actionsLabel": "Move"
+                    }
+                  ]
+                },
+                {
+                  "id": "done",
+                  "label": "Done",
+                  "empty": "Nothing finished in the last 14 days.",
+                  "items": [
+                    {
+                      "id": "fix-the-gutter",
+                      "title": "Fix the gutter",
+                      "metadata": ["39d", "Board"],
+                      "links": [
+                        {
+                          "label": "Open in editor",
+                          "target": {
+                            "kind": "entity",
+                            "entityType": "action-item",
+                            "id": "fix-the-gutter"
+                          }
+                        }
+                      ],
+                      "link": {
+                        "kind": "detail",
+                        "itemId": "fix-the-gutter"
+                      },
+                      "actions": [
+                        {
+                          "actionId": "move",
+                          "label": "Reopen",
+                          "input": {
+                            "id": "fix-the-gutter",
+                            "from": "done",
+                            "to": "open"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "dropTarget": "open"
+                        },
+                        {
+                          "actionId": "drop",
+                          "label": "Drop",
+                          "input": {
+                            "id": "fix-the-gutter",
+                            "from": "done"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "confirmation": {
+                            "kind": "static",
+                            "message": "Drop this action item? It leaves the board; the Library keeps it."
+                          }
+                        }
+                      ],
+                      "actionsLabel": "Move"
+                    }
+                  ]
+                }
+              ]
+            },
+            "open": {
+              "forId": "order-name-badges-<new>",
+              "title": "Order name badges",
+              "blocks": [
+                {
+                  "type": "text",
+                  "id": "card-text",
+                  "text": "With the new logo."
+                },
+                {
+                  "type": "key-values",
+                  "id": "card-facts",
+                  "items": [
+                    {
+                      "label": "Status",
+                      "value": "To do"
+                    },
+                    {
+                      "label": "Requested by",
+                      "value": "Niels Ward"
+                    },
+                    {
+                      "label": "From",
+                      "value": "Board"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "card-notes",
+                  "label": "Notes",
+                  "text": "- 2026-04-10 · Ada Lovelace — Ordered from the printer."
+                },
+                {
+                  "type": "action",
+                  "id": "card-note",
+                  "actionId": "note",
+                  "label": "Add a note",
+                  "input": {
+                    "id": "order-name-badges-<new>"
+                  },
+                  "form": {
+                    "presentation": "inline",
+                    "submitLabel": "Add note",
+                    "fields": [
+                      {
+                        "name": "text",
+                        "label": "Note",
+                        "control": "text",
+                        "required": true
+                      }
+                    ]
+                  },
+                  "result": {
+                    "title": "Note",
+                    "fields": [
+                      {
+                        "name": "status",
+                        "label": "Outcome"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "boardTrack": {
+      "view": {
+        "title": "Board",
+        "description": "Action items from the team's conversations.",
+        "blocks": [
+          {
+            "type": "card",
+            "id": "track",
+            "label": "Track as action item",
+            "presentation": "feature",
+            "blocks": [
+              {
+                "type": "text",
+                "id": "track-source",
+                "text": "From the Inbox: Could we share your field notes?"
+              },
+              {
+                "type": "action",
+                "id": "track-form",
+                "actionId": "track",
+                "label": "Track on the board",
+                "input": {
+                  "assigneeId": "",
+                  "sourceId": "contact-requests",
+                  "entityType": "contact-request",
+                  "entityId": "req-2",
+                  "title": "Could we share your field notes?",
+                  "text": ""
+                },
+                "form": {
+                  "presentation": "inline",
+                  "submitLabel": "Track on the board",
+                  "fields": [
+                    {
+                      "name": "title",
+                      "label": "Title",
+                      "control": "text",
+                      "required": true
+                    },
+                    {
+                      "name": "text",
+                      "label": "Details",
+                      "control": "textarea",
+                      "required": true
+                    }
+                  ]
+                },
+                "result": {
+                  "title": "Track",
+                  "fields": [
+                    {
+                      "name": "status",
+                      "label": "Outcome"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "type": "action",
+            "id": "new-card",
+            "actionId": "create",
+            "label": "New card",
+            "input": {
+              "assigneeId": ""
+            },
+            "form": {
+              "presentation": "disclosure",
+              "submitLabel": "Add to To do",
+              "fields": [
+                {
+                  "name": "title",
+                  "label": "Title",
+                  "control": "text",
+                  "required": true
+                },
+                {
+                  "name": "text",
+                  "label": "Details",
+                  "control": "textarea",
+                  "required": false
+                }
+              ]
+            },
+            "result": {
+              "title": "New card",
+              "fields": [
+                {
+                  "name": "status",
+                  "label": "Outcome"
+                }
+              ]
+            }
+          },
+          {
+            "type": "detail",
+            "id": "board-detail",
+            "queryKey": "card",
+            "empty": "Select a card to read it.",
+            "master": {
+              "type": "matrix",
+              "id": "board",
+              "columns": 4,
+              "cells": [
+                {
+                  "id": "open",
+                  "label": "To do",
+                  "empty": "Nothing waiting to start.",
+                  "items": []
+                },
+                {
+                  "id": "doing",
+                  "label": "Doing",
+                  "empty": "Nobody is on anything yet.",
+                  "items": [
+                    {
+                      "id": "book-the-venue",
+                      "title": "Book the venue",
+                      "metadata": ["Alex Morgan", "99d", "#CLI Terminal"],
+                      "links": [
+                        {
+                          "label": "Open in editor",
+                          "target": {
+                            "kind": "entity",
+                            "entityType": "action-item",
+                            "id": "book-the-venue"
+                          }
+                        },
+                        {
+                          "label": "Conversation summary",
+                          "target": {
+                            "kind": "entity",
+                            "entityType": "summary",
+                            "id": "conv-1"
+                          }
+                        }
+                      ],
+                      "link": {
+                        "kind": "detail",
+                        "itemId": "book-the-venue"
+                      },
+                      "actions": [
+                        {
+                          "actionId": "move",
+                          "label": "Block",
+                          "input": {
+                            "id": "book-the-venue",
+                            "from": "doing",
+                            "to": "blocked"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "dropTarget": "blocked"
+                        },
+                        {
+                          "actionId": "move",
+                          "label": "Done",
+                          "input": {
+                            "id": "book-the-venue",
+                            "from": "doing",
+                            "to": "done"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "dropTarget": "done"
+                        },
+                        {
+                          "actionId": "move",
+                          "label": "To do",
+                          "input": {
+                            "id": "book-the-venue",
+                            "from": "doing",
+                            "to": "open"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "dropTarget": "open"
+                        },
+                        {
+                          "actionId": "drop",
+                          "label": "Drop",
+                          "input": {
+                            "id": "book-the-venue",
+                            "from": "doing"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "confirmation": {
+                            "kind": "static",
+                            "message": "Drop this action item? It leaves the board; the Library keeps it."
+                          }
+                        }
+                      ],
+                      "actionsLabel": "Move"
+                    }
+                  ]
+                },
+                {
+                  "id": "blocked",
+                  "label": "Blocked",
+                  "tone": "warn",
+                  "empty": "Nothing is blocked.",
+                  "items": [
+                    {
+                      "id": "board:roof",
+                      "title": "Fix the roof",
+                      "metadata": ["40d", "Board"],
+                      "links": [
+                        {
+                          "label": "Open in editor",
+                          "target": {
+                            "kind": "entity",
+                            "entityType": "action-item",
+                            "id": "board:roof"
+                          }
+                        }
+                      ],
+                      "link": {
+                        "kind": "detail",
+                        "itemId": "board:roof"
+                      },
+                      "actions": [
+                        {
+                          "actionId": "move",
+                          "label": "Resume",
+                          "input": {
+                            "id": "board:roof",
+                            "from": "blocked",
+                            "to": "doing"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "dropTarget": "doing"
+                        },
+                        {
+                          "actionId": "move",
+                          "label": "Done",
+                          "input": {
+                            "id": "board:roof",
+                            "from": "blocked",
+                            "to": "done"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "dropTarget": "done"
+                        },
+                        {
+                          "actionId": "drop",
+                          "label": "Drop",
+                          "input": {
+                            "id": "board:roof",
+                            "from": "blocked"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "confirmation": {
+                            "kind": "static",
+                            "message": "Drop this action item? It leaves the board; the Library keeps it."
+                          }
+                        }
+                      ],
+                      "actionsLabel": "Move"
+                    }
+                  ]
+                },
+                {
+                  "id": "done",
+                  "label": "Done",
+                  "empty": "Nothing finished in the last 14 days.",
+                  "items": [
+                    {
+                      "id": "fix-the-gutter",
+                      "title": "Fix the gutter",
+                      "metadata": ["39d", "Board"],
+                      "links": [
+                        {
+                          "label": "Open in editor",
+                          "target": {
+                            "kind": "entity",
+                            "entityType": "action-item",
+                            "id": "fix-the-gutter"
+                          }
+                        }
+                      ],
+                      "link": {
+                        "kind": "detail",
+                        "itemId": "fix-the-gutter"
+                      },
+                      "actions": [
+                        {
+                          "actionId": "move",
+                          "label": "Reopen",
+                          "input": {
+                            "id": "fix-the-gutter",
+                            "from": "done",
+                            "to": "open"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "dropTarget": "open"
+                        },
+                        {
+                          "actionId": "drop",
+                          "label": "Drop",
+                          "input": {
+                            "id": "fix-the-gutter",
+                            "from": "done"
+                          },
+                          "result": {
+                            "title": "Move",
+                            "fields": [
+                              {
+                                "name": "status",
+                                "label": "Outcome"
+                              }
+                            ]
+                          },
+                          "confirmation": {
+                            "kind": "static",
+                            "message": "Drop this action item? It leaves the board; the Library keeps it."
+                          }
+                        }
+                      ],
+                      "actionsLabel": "Move"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  },
+  "rows": {
+    "board:roof": {
+      "content": "---\norigin: board\ncapturedAt: '2026-03-01T00:00:00.000Z'\nstatus: blocked\n---\n# Action item: Fix the roof\n\nFix the roof\n",
+      "metadata": {
+        "origin": "board",
+        "capturedAt": "2026-03-01T00:00:00.000Z",
+        "status": "blocked"
+      }
+    },
+    "book-the-venue": {
+      "content": "---\norigin: conversation\nconversationId: conv-1\ninterfaceType: cli\nchannelId: cli-terminal\nchannelName: CLI Terminal\ncapturedAt: '2026-01-01T00:10:00.000Z'\nstatus: doing\nassignedTo:\n  - name: Alex Morgan\n    id: 'user:u-alex'\nprojectedBodyHash: stale-hash\nprojects:\n  - launch\n---\n# Action item: Book the venue\n\nBook the venue for Monday.\n\n## Notes\n\n- 2026-04-10 · Niels Ward — Called them, waiting for a quote.\n",
+      "metadata": {
+        "origin": "conversation",
+        "conversationId": "conv-1",
+        "interfaceType": "cli",
+        "channelId": "cli-terminal",
+        "channelName": "CLI Terminal",
+        "capturedAt": "2026-01-01T00:10:00.000Z",
+        "status": "doing",
+        "assignedTo": [
+          {
+            "name": "Alex Morgan",
+            "id": "user:u-alex"
+          }
+        ],
+        "projectedBodyHash": "stale-hash",
+        "projects": ["launch"]
+      }
+    },
+    "conv-2:action-item:1:ef3456": {
+      "content": "---\nconversationId: conv-2\ninterfaceType: discord\nchannelId: discord-1\ncapturedAt: '2026-02-01T00:01:00.000Z'\nstatus: dropped\nassignedTo:\n  - name: Alex\n    id: 'user:u-alex'\n---\n# Action item: Send the notes\n\nSend the meeting notes.\n",
+      "metadata": {
+        "conversationId": "conv-2",
+        "interfaceType": "discord",
+        "channelId": "discord-1",
+        "capturedAt": "2026-02-01T00:01:00.000Z",
+        "status": "dropped",
+        "assignedTo": [
+          {
+            "name": "Alex",
+            "id": "user:u-alex"
+          }
+        ]
+      }
+    },
+    "fix-the-gutter": {
+      "content": "---\norigin: board\ncapturedAt: '2026-03-02T00:00:00.000Z'\nstatus: done\n---\n# Action item: Fix the gutter\n\nFix the gutter\n",
+      "metadata": {
+        "origin": "board",
+        "capturedAt": "2026-03-02T00:00:00.000Z",
+        "status": "done"
+      }
+    },
+    "inbox-contact-requests-req-<new>": {
+      "content": "---\norigin: inbox\nsourceRef:\n  sourceId: contact-requests\n  entityType: contact-request\n  entityId: req-1\ncapturedAt: '2026-04-10T12:00:00.000Z'\nstatus: open\nrequestedBy:\n  - name: Niels Ward\n    id: 'user:u-niels'\nvisibility: restricted\n---\n# Action item: Reply about the field notes\n\nGrace asks about our field notes.\n",
+      "metadata": {
+        "origin": "inbox",
+        "sourceRef": {
+          "sourceId": "contact-requests",
+          "entityType": "contact-request",
+          "entityId": "req-1"
+        },
+        "capturedAt": "2026-04-10T12:00:00.000Z",
+        "status": "open",
+        "requestedBy": [
+          {
+            "name": "Niels Ward",
+            "id": "user:u-niels"
+          }
+        ]
+      }
+    },
+    "order-name-badges-<new>": {
+      "content": "---\norigin: board\ncapturedAt: '2026-04-10T12:00:00.000Z'\nstatus: open\nrequestedBy:\n  - name: Niels Ward\n    id: 'user:u-niels'\nvisibility: restricted\n---\n# Action item: Order name badges\n\nWith the new logo.\n\n## Notes\n\n- 2026-04-10 · Ada Lovelace — Ordered from the printer.\n",
+      "metadata": {
+        "origin": "board",
+        "capturedAt": "2026-04-10T12:00:00.000Z",
+        "status": "open",
+        "requestedBy": [
+          {
+            "name": "Niels Ward",
+            "id": "user:u-niels"
+          }
+        ]
+      }
+    },
+    "print-the-posters-<new>": {
+      "content": "---\norigin: conversation\nconversationId: 'discord:1'\ninterfaceType: discord\nchannelId: '1'\nchannelName: executive-room\ncapturedAt: '2026-04-10T12:00:00.000Z'\nstatus: open\nrequestedBy:\n  - name: Niels Ward\n    id: 'user:u-niels'\ndueDate: '2026-04-17'\nvisibility: restricted\n---\n# Action item: Print the posters\n\nA3, two hundred.\n",
+      "metadata": {
+        "origin": "conversation",
+        "conversationId": "discord:1",
+        "interfaceType": "discord",
+        "channelId": "1",
+        "channelName": "executive-room",
+        "capturedAt": "2026-04-10T12:00:00.000Z",
+        "status": "open",
+        "requestedBy": [
+          {
+            "name": "Niels Ward",
+            "id": "user:u-niels"
+          }
+        ],
+        "dueDate": "2026-04-17"
+      }
+    }
+  }
+}

@@ -336,6 +336,18 @@ describe("system_update tool", () => {
       says: ["has no `kind`", "{ edits: [...] }"],
     },
     {
+      operation: {
+        kind: "user-message",
+        boundaryMode: "lines",
+        startAfter: "BEGIN EXACT CONTENT",
+        endBefore: "END EXACT CONTENT",
+      },
+      says: [
+        "A user-message source is the source operation",
+        '{ source: { kind: "user-message", ... } }',
+      ],
+    },
+    {
       operation: { fields: { title: "New" }, content: "replacement" },
       says: ["exactly one of `fields`, `content`, `edits` or `source`"],
     },

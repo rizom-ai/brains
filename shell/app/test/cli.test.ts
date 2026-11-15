@@ -65,7 +65,7 @@ async function exitCodeOf(run: Promise<void>): Promise<number | null> {
 const testConfig = defineConfig({
   name: "test-app",
   version: "2.1.0",
-  aiApiKey: "test-key",
+  aiProviderKeys: { openai: "test-key" },
   plugins: [],
 });
 

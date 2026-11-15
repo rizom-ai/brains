@@ -1,3 +1,4 @@
+import type { DirectorySyncCore } from "./sync-context";
 import {
   Cause,
   Clock,
@@ -7,7 +8,6 @@ import {
   withOptionalClock,
 } from "@brains/utils/effect";
 import type { Clock as ClockType } from "@brains/utils/effect";
-import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
 
@@ -16,7 +16,7 @@ const DEFAULT_POLL_INTERVAL_MS = 500;
 
 interface ImportJobPollingOptions {
   jobIds: string[];
-  entityService: ServicePluginContext["entityService"];
+  entityService: DirectorySyncCore["entityService"];
   reporter: ProgressReporter;
   logger: Logger;
   clock?: ClockType.Clock | undefined;

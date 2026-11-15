@@ -1,5 +1,8 @@
 import { defineEntity, type EntityDefinition } from "@brains/sdk/entities";
-import { writesInDocumentOrder } from "@brains/sdk/internal/entity-runtime";
+import {
+  writesInDocumentOrder,
+  withFrontmatterSchema,
+} from "@brains/sdk/internal/entity-runtime";
 import { parseMarkdown } from "@brains/utils/markdown";
 import { definedFields } from "@brains/utils/strip-undefined";
 import { parsePlaybookBody } from "./playbook-markdown";
@@ -23,43 +26,46 @@ const PLAYBOOK_INSTRUCTIONS =
 export const playbookEntity: EntityDefinition<
   "playbook",
   typeof playbookMetadataSchema
-> = writesInDocumentOrder(
-  defineEntity({
-    type: "playbook",
-    purpose:
-      "A guided multi-step workflow the assistant runs together with the user.",
-    classification: "system",
-    metadata: playbookMetadataSchema,
-    markdown: {
-      decode: ({ content, frontmatter }) => ({
-        content,
-        metadata: definedFields(playbookFrontmatterSchema.parse(frontmatter)),
-      }),
-      // In the frontmatter schema's order, the defaults stated.
-      encode: ({ content, metadata }) => ({
-        // The body directly under the frontmatter, as the adapter wrote it.
-        content: content.replace(/^\n+/u, ""),
-        frontmatter: definedFields({
-          title: metadata.title,
-          status: metadata.status,
-          audience: metadata.audience,
-          trigger: metadata.trigger,
-          lifecycle: metadata.lifecycle,
-          once: metadata.once,
-          starterText: metadata.starterText,
-          description: metadata.description,
-          starterPrompt: metadata.starterPrompt,
-          completionMode: metadata.completionMode,
+> = withFrontmatterSchema(
+  writesInDocumentOrder(
+    defineEntity({
+      type: "playbook",
+      purpose:
+        "A guided multi-step workflow the assistant runs together with the user.",
+      classification: "system",
+      metadata: playbookMetadataSchema,
+      markdown: {
+        decode: ({ content, frontmatter }) => ({
+          content,
+          metadata: definedFields(playbookFrontmatterSchema.parse(frontmatter)),
         }),
-      }),
-    },
-    // As the adapter refused one on import: a body that is no playbook.
-    validatePersist: ({ content }) => {
-      parsePlaybookBody(parseMarkdown(content).content);
-    },
-    config: { projectionSource: false, projectionSourceRole: "excluded" },
-    instructions: PLAYBOOK_INSTRUCTIONS,
-  }),
+        // In the frontmatter schema's order, the defaults stated.
+        encode: ({ content, metadata }) => ({
+          // The body directly under the frontmatter, as the adapter wrote it.
+          content: content.replace(/^\n+/u, ""),
+          frontmatter: definedFields({
+            title: metadata.title,
+            status: metadata.status,
+            audience: metadata.audience,
+            trigger: metadata.trigger,
+            lifecycle: metadata.lifecycle,
+            once: metadata.once,
+            starterText: metadata.starterText,
+            description: metadata.description,
+            starterPrompt: metadata.starterPrompt,
+            completionMode: metadata.completionMode,
+          }),
+        }),
+      },
+      // As the adapter refused one on import: a body that is no playbook.
+      validatePersist: ({ content }) => {
+        parsePlaybookBody(parseMarkdown(content).content);
+      },
+      config: { projectionSource: false, projectionSourceRole: "excluded" },
+      instructions: PLAYBOOK_INSTRUCTIONS,
+    }),
+  ),
+  playbookFrontmatterSchema,
 );
 
 export {

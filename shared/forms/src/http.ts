@@ -1,7 +1,7 @@
 import {
   SitePageResponse,
   type WebRouteTransportContext,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/interface-runtime";
 import { z } from "@brains/utils/zod";
 import type { FormAdmission, FormDenialReason } from "./admission";
 import { FORM_COPY, type FormCopy } from "./copy";

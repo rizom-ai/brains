@@ -6,7 +6,10 @@ import {
 } from "@brains/agent-discovery/proximity-map";
 import { StructuredContentFormatter } from "@brains/content-formatters";
 import { ASK_DRAWING_ATTRIBUTE, ASK_MARK_ATTRIBUTE } from "@brains/contracts";
-import { createTemplate, type Template } from "@brains/templates";
+import {
+  createTemplate,
+  type Template,
+} from "@brains/sdk/internal/site-runtime";
 import { z } from "@rizom/site";
 import type { placeNetwork, PlacedBrain } from "./story/network";
 

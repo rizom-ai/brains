@@ -199,12 +199,17 @@ describe("canonical brain core", () => {
       "style-guide",
       "note",
       "link",
+      // The topics service installs its topic type as itself, first.
+      "topic",
       "topics",
       // The knowledge map comes with topics.
       "knowledge-map",
       "directory-sync",
+      // The agent and skill types install apart from their services.
+      "agent-entity",
       "agent-discovery",
       "agent",
+      "skill-entity",
       "skill",
       "unified-inbox",
       "mcp",

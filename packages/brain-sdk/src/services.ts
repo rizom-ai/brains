@@ -8,6 +8,7 @@ export {
   defineEntityCatalog,
   defineJob,
   defineServicePlugin,
+  defineSharedState,
   defineTool,
   defineWorkspaceAction,
 } from "@brains/plugins";
@@ -46,6 +47,7 @@ export type {
   ServiceJobStatus,
   ServicePackageDefinition,
   ServiceTemplateGenerationDefinition,
+  SharedState,
   WorkspaceActionConfirmation,
   WorkspaceActionDefinition,
   WorkspaceActionFormControl,

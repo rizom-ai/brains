@@ -1,5 +1,8 @@
 import { createHash } from "node:crypto";
-import { defineStudioWorkspace, defineWorkspaceAction } from "@brains/plugins";
+import {
+  defineStudioWorkspace,
+  defineWorkspaceAction,
+} from "@brains/sdk/services";
 import type { InterfaceRuntime } from "@brains/sdk/internal/interface-runtime";
 
 /** What the guest monitor reads and asks of the brain. */

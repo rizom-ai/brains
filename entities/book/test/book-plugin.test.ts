@@ -3,7 +3,7 @@ import {
   createPluginHarness,
   type PluginTestHarness,
 } from "@brains/plugins/test";
-import { BookPlugin } from "../src";
+import { createBookPlugins } from "./book-plugins";
 
 const readOnly = {
   create: "never",
@@ -13,14 +13,13 @@ const readOnly = {
   publish: "never",
 };
 
-describe("BookPlugin", () => {
-  let harness: PluginTestHarness<BookPlugin>;
+describe("the book package", () => {
+  let harness: PluginTestHarness;
 
   beforeEach(async () => {
-    harness = createPluginHarness<BookPlugin>({
-      dataDir: "/tmp/test-datadir",
-    });
-    await harness.installPlugin(new BookPlugin());
+    harness = createPluginHarness({ dataDir: "/tmp/test-datadir" });
+    for (const plugin of createBookPlugins())
+      await harness.installPlugin(plugin);
   });
 
   it("registers books and their sections as two types", () => {

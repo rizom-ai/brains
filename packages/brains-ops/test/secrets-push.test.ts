@@ -21,7 +21,7 @@ describe("pushPilotSecrets", () => {
   it("pushes shared pilot secrets from local env files", async () => {
     const root = await createPilotRepo({
       ".env.schema": `# @required @sensitive
-AI_API_KEY=
+OPENAI_API_KEY=
 # @required @sensitive
 GIT_SYNC_TOKEN=
 # @sensitive
@@ -49,7 +49,7 @@ CERTIFICATE_PEM=
     await writeFile(
       join(root, ".env.local"),
       [
-        "AI_API_KEY=shared-ai-key",
+        "OPENAI_API_KEY=shared-ai-key",
         "GIT_SYNC_TOKEN=git-token",
         "DISCORD_BOT_TOKEN=should-not-push",
         "DISCORD_PUBLIC_KEY=should-not-push",
@@ -79,7 +79,7 @@ CERTIFICATE_PEM=
       });
 
       expect(result.pushedKeys).toEqual([
-        "AI_API_KEY",
+        "OPENAI_API_KEY",
         "GIT_SYNC_TOKEN",
         "HCLOUD_TOKEN",
         "KAMAL_SSH_PRIVATE_KEY",
@@ -116,7 +116,7 @@ CERTIFICATE_PEM=
   it("supports dry-run and reports missing required secrets", async () => {
     const root = await createPilotRepo({
       ".env.schema": `# @required @sensitive
-AI_API_KEY=
+OPENAI_API_KEY=
 # @required @sensitive
 GIT_SYNC_TOKEN=
 # @required @sensitive
@@ -124,7 +124,7 @@ HCLOUD_TOKEN=
 # @sensitive
 DISCORD_BOT_TOKEN=
 `,
-      ".env.local": "AI_API_KEY=shared-ai-key\n",
+      ".env.local": "OPENAI_API_KEY=shared-ai-key\n",
     });
 
     const logs: string[] = [];
@@ -134,10 +134,10 @@ DISCORD_BOT_TOKEN=
     });
 
     expect(result.dryRun).toBe(true);
-    expect(result.pushedKeys).toEqual(["AI_API_KEY"]);
+    expect(result.pushedKeys).toEqual(["OPENAI_API_KEY"]);
     expect(result.skippedKeys).toEqual(["GIT_SYNC_TOKEN", "HCLOUD_TOKEN"]);
     expect(logs[0]).toContain("Dry run: would push 1 secrets");
-    expect(logs[1]).toContain("Secrets: AI_API_KEY");
+    expect(logs[1]).toContain("Secrets: OPENAI_API_KEY");
     expect(logs).toContain("Required before first deploy (2):");
     expect(logs).toContain("  - GIT_SYNC_TOKEN");
     expect(logs).toContain("  - HCLOUD_TOKEN");

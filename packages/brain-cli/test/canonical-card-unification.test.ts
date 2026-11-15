@@ -6,7 +6,7 @@ import {
   type Plugin,
 } from "@brains/plugins";
 import {
-  AtprotoPlugin,
+  AtprotoService,
   canonicalAtprotoLexicons,
   validateAtprotoRecord,
   type AtprotoPdsClientLike,
@@ -14,6 +14,7 @@ import {
 import { resolve } from "@brains/app";
 import { createServicePluginContext } from "@brains/plugins";
 
+import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import { canonicalBrain } from "../src/model/canonical-brain";
 
@@ -137,7 +138,7 @@ describe("canonical card publication channels", () => {
       uri: "at://did:plc:brain/ai.rizom.brain.card/self",
       cid: "card-cid",
     }));
-    const plugin = new AtprotoPlugin(
+    const plugin = new AtprotoService(
       {
         identifier: "brain.example.com",
         appPassword: "secret",
@@ -159,6 +160,7 @@ describe("canonical card publication channels", () => {
           putRecord,
         }),
       },
+      createSilentLogger(),
     );
 
     const published = await plugin.publishBrainCard(
@@ -209,10 +211,11 @@ describe("canonical card publication channels", () => {
     const shell = createCardShell({ web: true });
     seedSkill(shell);
     const a2aCard = await buildA2ACard(seedSkill);
-    const plugin = new AtprotoPlugin({
-      repoDid: "did:plc:brain",
-      accountDid: "did:plc:anchor",
-    });
+    const plugin = new AtprotoService(
+      { repoDid: "did:plc:brain", accountDid: "did:plc:anchor" },
+      {},
+      createSilentLogger(),
+    );
 
     const published = await plugin.publishBrainCard(
       createServicePluginContext(shell, "atproto"),

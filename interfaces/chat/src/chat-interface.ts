@@ -1,16 +1,4 @@
-import {
-  captureUrlViaAgent,
-  extractCaptureableUrls,
-  getToolStatusKey,
-  type AgentResponse,
-  type DaemonHealth,
-  type JobProgressEvent,
-  type MessageInterfaceOutput,
-  type ScopedRuntimeUploadStore,
-  type ToolStatusUpdate,
-} from "@brains/plugins";
-import type { PluginPackageDefinition } from "@brains/sdk";
-import { defineInterface } from "@brains/sdk/interfaces";
+import { spaceNoticeContract, type AgentResponse } from "@brains/contracts";
 import {
   interfaceRuntime,
   withChannels,
@@ -22,7 +10,17 @@ import {
   type MessageTransport,
   type MessageTransportEdit,
   type MessageTransportSend,
+  captureUrlViaAgent,
+  extractCaptureableUrls,
+  getToolStatusKey,
+  type DaemonHealth,
+  type JobProgressEvent,
+  type MessageInterfaceOutput,
+  type ScopedRuntimeUploadStore,
+  type ToolStatusUpdate,
 } from "@brains/sdk/internal/interface-runtime";
+import type { PluginPackageDefinition } from "@brains/sdk";
+import { defineInterface } from "@brains/sdk/interfaces";
 import type { SentMessage } from "chat";
 import { chatConfigSchema, type ChatConfig } from "./config";
 import { PromptActionStore } from "./prompt-action-store";
@@ -43,7 +41,6 @@ import { ChatSdkAppHost, type ChatSdkApp } from "./chat-sdk-app";
 import { createChatSdkApp } from "./chat-sdk";
 import { SubscriptionRouter } from "./subscription-router";
 import { ChatInputBuilder, type ChatFetch } from "./chat-input-builder";
-import { spaceNoticeContract } from "@brains/contracts";
 import { postSpaceNotice } from "./space-notice";
 import { ChannelNames } from "./channel-names";
 import type { ChatIdentityAccess } from "./chat-identity";

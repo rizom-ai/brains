@@ -43,7 +43,7 @@ describe("defineConfig", () => {
   const validConfig: AppConfigInput = {
     name: "test-app",
     version: "1.0.0",
-    aiApiKey: "test-key",
+    aiProviderKeys: { openai: "test-key" },
     plugins: [mockPlugin],
   };
 
@@ -52,7 +52,7 @@ describe("defineConfig", () => {
 
     expect(result.name).toBe("test-app");
     expect(result.version).toBe("1.0.0");
-    expect(result.aiApiKey).toBe("test-key");
+    expect(result.aiProviderKeys).toEqual({ openai: "test-key" });
     expect(result.plugins).toHaveLength(1);
     expect(result.deployment).toBeDefined();
     expect(result.deployment.provider).toBe("hetzner");
@@ -70,7 +70,7 @@ describe("defineConfig", () => {
     expect(result.name).toBe("test-app");
     expect(result.version).toBe("1.0.0");
     expect(result.plugins).toEqual([]);
-    expect(result.aiApiKey).toBeUndefined();
+    expect(result.aiProviderKeys).toBeUndefined();
     expect(result.logLevel).toBeUndefined();
     expect(result.database).toBeUndefined();
   });

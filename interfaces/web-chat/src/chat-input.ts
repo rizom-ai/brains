@@ -7,10 +7,10 @@ import {
   type ChatApprovalResponse,
   type ChatMessageRequest,
 } from "@brains/contracts/chat";
-import {
-  type ChatAttachment,
-  type ScopedRuntimeUploadStore,
-} from "@brains/plugins";
+import type {
+  ChatAttachment,
+  ScopedRuntimeUploadStore,
+} from "@brains/sdk/internal/interface-runtime";
 import {
   resolveInlineUploadPart as resolveInlineUploadFilePart,
   resolveReferencedUpload as resolveReferencedUploadPart,

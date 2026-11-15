@@ -13,13 +13,13 @@ import { createSilentLogger, createTestDirectory } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import { createMockShell, type MockShell } from "../src/test/mock-shell";
 import {
-  EntityPlugin,
   defineEntity,
   defineEntityPackage,
   entityRuntime,
   instantiatePluginPackageDefinition,
   type EntityCreateContext,
 } from "../src";
+import { isDeclaredEntityType } from "../src/test/declared-entity-type";
 
 /**
  * A first-party create route answers as an entity plugin's interceptor did:
@@ -79,7 +79,7 @@ async function install(): Promise<{
     { pluginId: "scans" },
   );
   for (const plugin of plugins) {
-    if (plugin instanceof EntityPlugin) {
+    if (isDeclaredEntityType(plugin)) {
       registry.registerEntityType(
         plugin.entityType,
         plugin.schema,

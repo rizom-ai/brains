@@ -1,6 +1,9 @@
-import { createTemplate, type Template } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { skillFrontmatterSchema } from "../schemas/skill";
+import {
+  createTemplate,
+  type Template,
+} from "@brains/sdk/internal/presentation";
 
 type SkillDerivationResultSchema = z.ZodObject<{
   skills: z.ZodArray<typeof skillFrontmatterSchema>;

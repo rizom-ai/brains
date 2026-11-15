@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { bookAdapter, bookSectionAdapter } from "@brains/book";
+import { bookFields, sectionFields } from "./helpers/book-fields";
 import { deferred } from "@brains/utils/deferred";
 import {
   fetchVolumeHocr,
@@ -75,9 +75,7 @@ describe("importBooks", () => {
       "utf8",
     );
 
-    expect(
-      bookAdapter.parseFrontMatter(title, bookAdapter.frontmatterSchema),
-    ).toMatchObject({
+    expect(bookFields(title)).toMatchObject({
       title: "Erfundenes Buch",
       author: "Erfundener Autor",
       license: "CC-BY-NC-ND-4.0",
@@ -102,11 +100,7 @@ describe("importBooks", () => {
       "utf8",
     );
 
-    expect(
-      bookAdapter.parseFrontMatter(title, bookAdapter.frontmatterSchema)[
-        "title"
-      ],
-    ).toBe("Ein genauerer Titel");
+    expect(bookFields(title)["title"]).toBe("Ein genauerer Titel");
   });
 
   it("carries published and shortTitle from the manifest", async () => {
@@ -125,9 +119,10 @@ describe("importBooks", () => {
       "utf8",
     );
 
-    expect(
-      bookAdapter.parseFrontMatter(title, bookAdapter.frontmatterSchema),
-    ).toMatchObject({ published: false, shortTitle: "Erfunden" });
+    expect(bookFields(title)).toMatchObject({
+      published: false,
+      shortTitle: "Erfunden",
+    });
   });
 
   it("counts a book as published unless the manifest says otherwise", async () => {
@@ -137,11 +132,7 @@ describe("importBooks", () => {
       "utf8",
     );
 
-    expect(
-      bookAdapter.parseFrontMatter(title, bookAdapter.frontmatterSchema)[
-        "published"
-      ],
-    ).toBe(true);
+    expect(bookFields(title)["published"]).toBe(true);
   });
 
   it("rejects a manifest entry without a siglum", () => {
@@ -198,10 +189,7 @@ books:
       files
         .filter((file) => file.endsWith(".md"))
         .map(async (file) =>
-          bookSectionAdapter.parseFrontMatter(
-            await readFile(join(root, file), "utf8"),
-            bookSectionAdapter.frontmatterSchema,
-          ),
+          sectionFields(await readFile(join(root, file), "utf8")),
         ),
     );
     return parsed.sort(
@@ -244,9 +232,10 @@ books:
       "utf8",
     );
 
-    expect(
-      bookAdapter.parseFrontMatter(title, bookAdapter.frontmatterSchema),
-    ).toMatchObject({ title: "Erfundenes Werk", sections: 4 });
+    expect(bookFields(title)).toMatchObject({
+      title: "Erfundenes Werk",
+      sections: 4,
+    });
     expect(title).toContain("[Erster Theil]");
     expect(title).toContain("[Zweiter Theil]");
   });
@@ -1237,10 +1226,7 @@ books:
       files
         .sort()
         .map(async (file) =>
-          bookSectionAdapter.parseFrontMatter(
-            await readFile(join(brainData, file), "utf8"),
-            bookSectionAdapter.frontmatterSchema,
-          ),
+          sectionFields(await readFile(join(brainData, file), "utf8")),
         ),
     );
 
@@ -1273,10 +1259,7 @@ books:
       )
     ).sort();
     const headingsOf = async (file: string): Promise<unknown> =>
-      bookSectionAdapter.parseFrontMatter(
-        await readFile(join(brainData, file), "utf8"),
-        bookSectionAdapter.frontmatterSchema,
-      )["headings"];
+      sectionFields(await readFile(join(brainData, file), "utf8"))["headings"];
     const first = files[0];
     const last = files.at(-1);
     if (!first || !last) throw new Error("Expected sections");
@@ -1506,9 +1489,7 @@ freud-1940-gw-13:
       "utf8",
     );
 
-    expect(
-      bookAdapter.parseFrontMatter(title, bookAdapter.frontmatterSchema),
-    ).toMatchObject({
+    expect(bookFields(title)).toMatchObject({
       title: "Jenseits des Lustprinzips",
       author: "Sigmund Freud",
       year: 1920,

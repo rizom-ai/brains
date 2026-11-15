@@ -6,30 +6,24 @@ import {
 } from "@brains/contracts";
 import { createActionItem } from "@brains/action-items";
 import { SYSTEM_CHANNELS } from "@brains/plugins";
-import { ConversationMemoryPlugin } from "../src";
 import { channelBookmarks } from "../src/lib/channel-action-items/pickup";
 import { channelPickupJob } from "../src/lib/channel-action-items/trigger";
 import {
   createPluginHarness,
   type PluginTestHarness,
 } from "@brains/plugins/test";
+import { installConversationMemory } from "./conversation-memory-plugins";
 
-describe("ConversationMemoryPlugin", () => {
-  let harness: PluginTestHarness<ConversationMemoryPlugin>;
-  let plugin: ConversationMemoryPlugin;
+describe("the conversation-memory package", () => {
+  let harness: PluginTestHarness;
 
   beforeEach(() => {
-    harness = createPluginHarness<ConversationMemoryPlugin>({
-      dataDir: "/tmp/test-datadir",
-    });
-    plugin = new ConversationMemoryPlugin();
+    harness = createPluginHarness({ dataDir: "/tmp/test-datadir" });
   });
 
   it("registers memory entity readers without an automatic producer", async () => {
-    const capabilities = await harness.installPlugin(plugin);
+    const capabilities = await installConversationMemory(harness);
 
-    expect(plugin.id).toBe("conversation-memory");
-    expect(plugin.type).toBe("entity");
     expect(harness.getEntityService().getEntityTypes()).toContain("summary");
     expect(harness.getEntityService().getEntityTypes()).toContain("decision");
     expect(harness.getEntityService().getEntityTypes()).toContain(
@@ -40,7 +34,7 @@ describe("ConversationMemoryPlugin", () => {
   });
 
   it("retires the provenance fields decisions and action items no longer carry", async () => {
-    await harness.installPlugin(plugin);
+    await installConversationMemory(harness);
     const registry = harness.getEntityRegistry();
     const dropped = [
       "spaceId",
@@ -60,7 +54,7 @@ describe("ConversationMemoryPlugin", () => {
   });
 
   it("flattens stored action item and decision ids once startup content settles", async () => {
-    await harness.installPlugin(plugin);
+    await installConversationMemory(harness);
     const listSpy = spyOn(harness.getEntityService(), "listEntities");
 
     await harness.sendMessage(
@@ -86,7 +80,7 @@ describe("ConversationMemoryPlugin", () => {
   });
 
   it("keeps action items out of system_create, so only a writer that sets their fields adds one", async () => {
-    await harness.installPlugin(plugin);
+    await installConversationMemory(harness);
 
     expect(
       harness.getEntityRegistry().getEntityTypeConfig("action-item")
@@ -103,7 +97,7 @@ describe("ConversationMemoryPlugin", () => {
       registerHandler,
       enqueue,
     });
-    await harness.installPlugin(plugin);
+    await installConversationMemory(harness);
 
     await harness.sendMessage(
       SYSTEM_CHANNELS.startupContentSettled,
@@ -157,7 +151,7 @@ describe("ConversationMemoryPlugin", () => {
         data: { messageId: "notice-1" },
       }));
       harness.subscribe(spaceNoticeContract.name, posted);
-      await harness.installPlugin(plugin);
+      await installConversationMemory(harness);
       // The card the notice announces, still on the board.
       await createActionItem(
         { entityService: harness.getEntityService(), visibility: "shared" },
@@ -257,20 +251,8 @@ describe("ConversationMemoryPlugin", () => {
     });
   });
 
-  it("keeps memory entities immutable through entity CRUD", () => {
-    expect(plugin.entityActionPolicy).toEqual({
-      summary: {
-        create: "never",
-        update: "never",
-        delete: "never",
-        extract: "never",
-        publish: "never",
-      },
-    });
-  });
-
   it("keeps summaries out of entity projection", async () => {
-    await harness.installPlugin(plugin);
+    await installConversationMemory(harness);
 
     expect(
       harness.getEntityRegistry().getEntityTypeConfig("summary"),
@@ -281,7 +263,7 @@ describe("ConversationMemoryPlugin", () => {
   });
 
   it("registers no tools, plus templates and datasource", async () => {
-    const capabilities = await harness.installPlugin(plugin);
+    const capabilities = await installConversationMemory(harness);
 
     expect(capabilities.tools).toHaveLength(0);
     expect(

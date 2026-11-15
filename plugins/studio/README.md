@@ -75,7 +75,7 @@ Editor detail reads and mutation preparation use raw source. Image-looking membe
 
 ## Virtual collections
 
-**System → Structure → Groupings** edits one bodyless, always-shared `grouping-definitions` singleton. `StudioPlugin` registers its source after contributors finish registration. Groupings apply to all eligible content types by convention. Labels, cardinality, optional exact allowed values and optional type exclusions live in that document, not in `brain.yaml`:
+**System → Structure → Groupings** edits one bodyless, always-shared `grouping-definitions` singleton. The Studio package installs that type as its own plugin, `grouping-definitions`, and registers its source after contributors finish registration. Groupings apply to all eligible content types by convention. Labels, cardinality, optional exact allowed values and optional type exclusions live in that document, not in `brain.yaml`:
 
 ```yaml
 ---

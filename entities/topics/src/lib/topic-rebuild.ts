@@ -1,4 +1,5 @@
-import type { BaseEntity, EntityPluginContext } from "@brains/plugins";
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
+import type { TopicsContext } from "./topics-context";
 import type { Logger } from "@brains/utils/logger";
 import type { TopicsPluginConfig } from "../schemas/config";
 import { extractTopicsBatched } from "./topic-batch-extractor";
@@ -15,7 +16,7 @@ export interface TopicBatchResult {
 /** Replace topics for an isolated evaluation dataset. Not a runtime job path. */
 export async function replaceAllTopics(
   entities: BaseEntity[],
-  context: EntityPluginContext,
+  context: TopicsContext,
   logger: Logger,
   config: TopicsPluginConfig,
 ): Promise<Required<TopicBatchResult>> {

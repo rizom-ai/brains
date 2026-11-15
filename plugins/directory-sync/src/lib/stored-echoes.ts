@@ -1,12 +1,18 @@
+import {
+  type ServiceEntityMirrorClient,
+  internalFullScope,
+} from "@brains/sdk/internal/service-runtime";
 import { readFile } from "node:fs/promises";
-import { internalFullScope, type EntityServiceClient } from "@brains/plugins";
 import { computeContentHash } from "@brains/utils/hash";
 import type { IFileOperations } from "../types/interfaces";
 import { resolveInSyncPath } from "./path-utils";
 
 export interface StoredEchoDeps {
   syncPath: string;
-  entityService: Pick<EntityServiceClient, "getEntityWriteSnapshot">;
+  entityService: Pick<
+    ServiceEntityMirrorClient,
+    "getEntityWriteSnapshot" | "hasEntityType"
+  >;
   fileOperations: Pick<IFileOperations, "parseEntityFromPath">;
 }
 
@@ -14,7 +20,8 @@ export interface StoredEchoDeps {
  * The paths that are not the brain's own exports. Auto-sync writes an
  * entity's serialized form, whose hash is the stored contentHash, so a
  * markdown file hashing to it holds nothing to import. Anything this cannot
- * confirm (a missing, binary or unmapped file, or no stored entity) is kept.
+ * confirm (a missing, binary or unmapped file, no stored entity, or a type
+ * not registered yet, whose stored entity cannot be read back) is kept.
  */
 export async function withoutStoredEchoes(
   deps: StoredEchoDeps,
@@ -32,12 +39,15 @@ async function isStoredEcho(
 ): Promise<boolean> {
   if (!path.endsWith(".md")) return false;
   try {
+    const target = deps.fileOperations.parseEntityFromPath(path);
+    // While plugins register, a later plugin's type has no adapter yet.
+    if (!deps.entityService.hasEntityType(target.entityType)) return false;
     const content = await readFile(
       resolveInSyncPath(deps.syncPath, path),
       "utf8",
     );
     const snapshot = await deps.entityService.getEntityWriteSnapshot({
-      ...deps.fileOperations.parseEntityFromPath(path),
+      ...target,
       visibilityScope: internalFullScope(
         "compare a changed file with its entity",
       ),

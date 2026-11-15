@@ -1,4 +1,3 @@
-import type { Plugin } from "@brains/plugins";
 import {
   createSiteContentTemplates,
   extendSite,
@@ -22,16 +21,17 @@ export {
 export type { SiteContentDefinition } from "@brains/site-composition";
 export type { SiteSectionGroup };
 
-export type SitePackage<TPluginConfig = Record<string, unknown>> =
-  BaseSitePackage<TPluginConfig, Plugin>;
+export type SitePackage = BaseSitePackage;
 
-export type SitePackageOverrides<TPluginConfig = Record<string, unknown>> =
-  BaseSitePackageOverrides<TPluginConfig, Plugin>;
+export type SitePackageOverrides = BaseSitePackageOverrides;
 
-export type ConventionalSiteOverrides<TPluginConfig = Record<string, unknown>> =
-  BaseSitePackageOverrides<TPluginConfig, Plugin> & {
-    pluginConfig?: TPluginConfig;
-  };
+/**
+ * A conventional `src/site.tsx`: overrides over the brain's site, and the
+ * config its carried runtime takes beneath brain.yaml's site settings.
+ */
+export type ConventionalSiteOverrides = BaseSitePackageOverrides & {
+  pluginConfig?: Record<string, unknown>;
+};
 
 export const sitePackageSchema: z.ZodCustom<SitePackage, SitePackage> =
   z.custom<SitePackage>(
@@ -47,8 +47,8 @@ export const conventionalSiteOverridesSchema: z.ZodCustom<
   ConventionalSiteOverrides,
   ConventionalSiteOverrides
 > = z.custom<ConventionalSiteOverrides>((value) => {
-  if (!isPlainRecord(value)) return false;
-  const { plugin, ...site } = value;
-  if (plugin !== undefined && typeof plugin !== "function") return false;
-  return siteDefinitionOverridesSchema.safeParse(site).success;
+  return (
+    isPlainRecord(value) &&
+    siteDefinitionOverridesSchema.safeParse(value).success
+  );
 });

@@ -26,7 +26,7 @@ bun install
 # `brain init` scaffolds a `.env.example` into the brain directory; copy it to
 # `.env` and fill in your keys.
 cd ~/Documents/yeehaa-io
-cp .env.example .env   # then edit .env and add AI_API_KEY at minimum
+cp .env.example .env   # then edit .env and add OPENAI_API_KEY at minimum
 bunx brain start
 
 # During framework development you can still run the in-tree CLI from another instance dir.
@@ -129,11 +129,11 @@ Do not bypass hooks. Fix the failing checks instead.
 ### Required Environment Variables
 
 ```bash
-# AI Service — single key for all providers (auto-detected from model name)
-AI_API_KEY=your-api-key-here
-
-# Optional: separate key for image generation (defaults to AI_API_KEY)
-# AI_IMAGE_KEY=your-image-key-here
+# AI Service — one key per provider; set the ones your models use.
+# The default chat, image and embedding models are OpenAI's.
+OPENAI_API_KEY=your-openai-key
+# ANTHROPIC_API_KEY=your-anthropic-key
+# GOOGLE_GENERATIVE_AI_API_KEY=your-google-key
 
 # Optional: git-backed sync of brain content
 GIT_SYNC_TOKEN=ghp_...
@@ -169,9 +169,9 @@ The main workspace areas are:
 ```
 shell/*       # Core runtime, orchestration, and services
 shared/*      # Utilities, themes, UI, test helpers
-entities/*    # EntityPlugin packages
-plugins/*     # ServicePlugin packages
-interfaces/*  # InterfacePlugin packages
+entities/*    # Entity packages (defineEntityPackage)
+plugins/*     # Services (defineServicePlugin)
+interfaces/*  # Interfaces (defineInterface, defineMessageInterface)
 brains/*      # Brain model packages
 sites/*       # Site packages
 packages/*    # Standalone distributable packages
@@ -266,7 +266,7 @@ bun run eval --suite network
 Cases tagged `requires-supervised-git` need the supervised Git broker, which an in-process eval brain does not run. They run against the publishing test app through its MCP endpoint, authenticated with a local development token:
 
 ```bash
-# Terminal 1: needs AI_API_KEY, from the environment or test-apps/publishing/.env;
+# Terminal 1: needs OPENAI_API_KEY, from the environment or test-apps/publishing/.env;
 # the app seeds itself and creates its local git remote on first boot
 MCP_AUTH_TOKEN=dev-token sh scripts/start-test-app.sh publishing
 
@@ -282,12 +282,14 @@ A package's plugin evals live in `evals/` and run with the package's `bun run ev
 
 ```yaml
 plugin: "@brains/faq" # the module to import
-export: faqPlugin # the export providing the plugin; the default export when omitted
+export: default # the export providing the plugin; the default export when omitted
+pluginId: faq # the plugin id the canonical brain installs the package under
+ownedTypePluginId: faq-entity # where a service keeping its type's id installs that type
 model: gpt-5.4-mini
-config: {} # optional, passed to the plugin class or factory
+config: {} # optional, passed to the package, plugin class or factory
 ```
 
-The loader takes only the named export, so adding an export never changes which plugin the evals run against. An export that is a plugin package definition, such as a declarative entity package's default export, is instantiated with `config`, as a brain installs it. `pluginId: wishlist` installs a first-party entity package under the plugin id the canonical brain keeps for it. Each plugin test case addresses its handler by that plugin's id (`plugin: faq`). A plugin that exists only for its evals, such as the SWOT eval plugin, is served from an eval-only `./eval` subpath (`src/eval/`), which production code never imports.
+The loader takes only the named export, so adding an export never changes which plugin the evals run against. An export that is a plugin package definition, such as a declarative entity package's default export, is instantiated with `config`, as a brain installs it. `pluginId: wishlist` installs a first-party entity package under the plugin id the canonical brain keeps for it. A first-party service that keeps an id its own type has, as faq does, also names where that type installs (`ownedTypePluginId: faq-entity`), as the canonical brain installs it. Each plugin test case addresses its handler by that plugin's id (`plugin: faq`). A plugin that exists only for its evals, such as the SWOT eval plugin, is served from an eval-only `./eval` subpath (`src/eval/`), which production code never imports.
 
 ### Example Unit Tests
 
@@ -295,17 +297,22 @@ Testing a plugin with the provided harness:
 
 ```typescript
 import { describe, it, expect, beforeEach } from "bun:test";
+import { instantiatePluginPackageDefinition } from "@brains/plugins";
 import { createServicePluginHarness } from "@brains/plugins/test";
-import { FaqPlugin } from "../src";
+import faqPackage from "../src";
 
-describe("FaqPlugin", () => {
+describe("the faq package", () => {
   let harness: ReturnType<typeof createServicePluginHarness>;
-  let plugin: FaqPlugin;
 
   beforeEach(async () => {
     harness = createServicePluginHarness();
-    plugin = new FaqPlugin();
-    await harness.installPlugin(plugin);
+    for (const plugin of instantiatePluginPackageDefinition(
+      faqPackage,
+      {},
+      { name: "@brains/faq", version: "0.0.0" },
+      { pluginId: "faq", ownedTypePluginId: "faq-entity" },
+    ))
+      await harness.installPlugin(plugin);
   });
 
   it("registers the faq entity type on install", async () => {

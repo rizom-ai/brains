@@ -1,4 +1,5 @@
-import { AuthServicePlugin } from "@brains/auth-service";
+import type { Plugin } from "@brains/plugins";
+import { authServiceOf, authServicePlugin } from "@brains/auth-service";
 import { createTestEntity } from "@brains/entity-service/test";
 import { ENTITY_CHANNELS, JOB_CHANNELS } from "@brains/contracts";
 import {
@@ -26,7 +27,11 @@ import {
 
 import { afterEach, describe, expect, it } from "bun:test";
 import { isRecord } from "@brains/utils/is-record";
-import { studioPlugin, type StudioPlugin } from "../src";
+import {
+  studioPlugin,
+  type StudioPlugin,
+  studioContextOn,
+} from "./studio-plugins";
 import {
   STUDIO_OVERVIEW_WORKSPACE_ID,
   StudioOverviewRegistry,
@@ -43,7 +48,7 @@ const JOB_METADATA: JobProgressEvent["metadata"] = {
 it("combines an empty attention/activity state without hiding standing runtime information", async () => {
   const registry = new StudioOverviewRegistry();
   const workspace = createStudioOverviewWorkspace({
-    context: createServicePluginContext(createMockShell(), "studio"),
+    context: await studioContextOn(createMockShell()),
     registry,
   });
   const actor: StudioWorkspaceActor = {
@@ -190,7 +195,7 @@ describe("Overview composition", () => {
       jobDetails: { jobType: "site-build", priority: 0, retryCount: 0 },
     });
     const workspace = createStudioOverviewWorkspace({
-      context: createServicePluginContext(createMockShell(), "studio"),
+      context: await studioContextOn(createMockShell()),
       registry,
     });
 
@@ -216,7 +221,7 @@ describe("Overview composition", () => {
       jobDetails: { jobType: "site-build", priority: 0, retryCount: 0 },
     });
     const workspace = createStudioOverviewWorkspace({
-      context: createServicePluginContext(createMockShell(), "studio"),
+      context: await studioContextOn(createMockShell()),
       registry,
     });
 
@@ -242,7 +247,7 @@ describe("Overview composition", () => {
       jobDetails: { jobType: "directory-sync", priority: 0, retryCount: 0 },
     });
     const workspace = createStudioOverviewWorkspace({
-      context: createServicePluginContext(createMockShell(), "studio"),
+      context: await studioContextOn(createMockShell()),
       registry,
       now: (): number => now,
     });
@@ -349,7 +354,7 @@ describe("Overview composition", () => {
       }),
     );
     const workspace = createStudioOverviewWorkspace({
-      context: createServicePluginContext(createMockShell(), "studio"),
+      context: await studioContextOn(createMockShell()),
       registry,
     });
 
@@ -385,7 +390,7 @@ describe("Overview composition", () => {
       jobDetails: { jobType: "site-build", priority: 0, retryCount: 0 },
     });
     const workspace = createStudioOverviewWorkspace({
-      context: createServicePluginContext(createMockShell(), "studio"),
+      context: await studioContextOn(createMockShell()),
       registry,
       now: (): number => now,
     });
@@ -426,7 +431,7 @@ describe("Overview composition", () => {
       }),
     );
     const workspace = createStudioOverviewWorkspace({
-      context: createServicePluginContext(createMockShell(), "studio"),
+      context: await studioContextOn(createMockShell()),
       registry,
     });
 
@@ -509,11 +514,11 @@ it("names entity activity by its title and readable type", async () => {
   expect(deleted?.metadata[0]).toBe("FAQ deleted");
 });
 
-const authPlugins: AuthServicePlugin[] = [];
+const authPlugins: Plugin[] = [];
 
 afterEach(async () => {
   for (const plugin of authPlugins.splice(0).reverse()) {
-    await plugin.shutdown();
+    await plugin.shutdown?.();
   }
 });
 
@@ -529,19 +534,22 @@ async function createSession(
   shell: MockShell,
   role: "public" | "trusted" | "admin",
 ): Promise<string> {
-  const auth = new AuthServicePlugin({
+  const auth = authServicePlugin({
     storageDir: await createTempDataDir("brains-studio-overview-auth-"),
   });
   await auth.register(shell);
   authPlugins.push(auth);
   if (role === "admin")
-    return (await auth.getService().createAuthSession()).cookie;
-  const user = await auth.getService().createUser({
+    return (await authServiceOf(shell.getAuthRegistry()).createAuthSession())
+      .cookie;
+  const user = await authServiceOf(shell.getAuthRegistry()).createUser({
     displayName: `${role} operator`,
     role,
     status: "active",
   });
-  return (await auth.getService().createAuthSession(user.userId)).cookie;
+  return (
+    await authServiceOf(shell.getAuthRegistry()).createAuthSession(user.userId)
+  ).cookie;
 }
 
 function request(path: string, cookie: string): Request {

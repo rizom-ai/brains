@@ -4,7 +4,6 @@ import { z } from "@brains/utils/zod";
 import { generateImageResult } from "../src/image-generation";
 import {
   canGenerateImages,
-  createLocalRuntimeClient,
   createProviderClients,
   type ProviderClients,
 } from "../src/provider-clients";
@@ -33,10 +32,10 @@ function runtime(): {
     preconnect: globalThis.fetch.preconnect,
   });
   return {
-    clients: {
-      ...createProviderClients({}),
-      localProvider: createLocalRuntimeClient("http://models:11434", fetchImpl),
-    },
+    clients: createProviderClients({
+      modelRuntimeUrl: "http://models:11434",
+      fetch: fetchImpl,
+    }),
     requests,
   };
 }
@@ -76,7 +75,9 @@ describe("a local: image model", () => {
   });
 
   it("cannot generate without a model runtime", () => {
-    const clients = createProviderClients({ imageApiKey: "sk-img" });
+    const clients = createProviderClients({
+      providerKeys: { openai: "sk-img" },
+    });
 
     expect(canGenerateImages(clients, "local:z-image-turbo")).toBe(false);
   });
@@ -89,7 +90,7 @@ describe("a local: image model", () => {
     expect(canGenerateImages(clients, undefined)).toBe(false);
     expect(
       canGenerateImages(
-        createProviderClients({ apiKey: "sk-test" }),
+        createProviderClients({ providerKeys: { openai: "sk-test" } }),
         undefined,
       ),
     ).toBe(true);

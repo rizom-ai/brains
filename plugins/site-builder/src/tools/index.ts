@@ -1,5 +1,4 @@
-import type { Tool } from "@brains/plugins";
-import { createTool } from "@brains/plugins";
+import { type Tool, createTool } from "@brains/sdk/internal/service-runtime";
 import { z } from "@brains/utils/zod";
 
 const buildSiteInputSchema = z.object({

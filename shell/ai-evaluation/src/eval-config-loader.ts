@@ -128,7 +128,7 @@ async function loadBrainEvalConfigIfPresent(
     .replace(/\/src\/.*$/, "");
   const testCasesDirs = resolveTestCaseDirectories(brainModulePath);
 
-  // Re-resolve reads current process.env (picks up EVAL_GIT_REMOTE, AI_API_KEY).
+  // Re-resolve reads current process.env (picks up EVAL_GIT_REMOTE and the provider keys).
   // The initial parse above already threw on any parse error, so at this
   // point we can assume the YAML is valid — if re-parsing fails later
   // (e.g. an env var disappeared), surface the error loud.

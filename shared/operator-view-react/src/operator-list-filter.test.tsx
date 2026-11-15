@@ -4,7 +4,7 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { Window } from "happy-dom";
 import { installDomGlobals } from "@brains/test-utils";
-import type { RuntimeStudioOperatorPanelBlock } from "@brains/plugins";
+import type { RuntimeStudioOperatorPanelBlock } from "@brains/sdk/internal/service-runtime";
 import {
   OperatorViewRenderer,
   operatorViewStylexCSS,

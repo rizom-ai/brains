@@ -3,11 +3,11 @@ import { rendererLayoutStyles as rendererLayout } from "./operator-renderer-layo
 import * as stylex from "@stylexjs/stylex";
 import { workspaceStyles as workspace } from "./operator-workspace.styles";
 import type {
-  RuntimeStudioWorkspaceData,
   RuntimeOperatorActionControl,
   RuntimeOperatorLaunchIntent,
   RuntimeOperatorLinkTarget,
-} from "@brains/plugins";
+  RuntimeStudioWorkspaceData,
+} from "@brains/sdk/internal/service-runtime";
 import { useState, type ReactElement } from "react";
 import {
   CSS_COMPONENTS,

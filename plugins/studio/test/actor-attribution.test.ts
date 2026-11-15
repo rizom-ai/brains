@@ -6,16 +6,13 @@ import type {
   CreateExecutionContext,
   WebRouteDefinition,
 } from "@brains/plugins";
-import {
-  BaseEntityAdapter,
-  baseEntitySchema,
-  createServicePluginContext,
-} from "@brains/plugins";
+import { BaseEntityAdapter, baseEntitySchema } from "@brains/plugins";
 import { PermissionService } from "@brains/templates";
 
 import { z } from "@brains/utils/zod";
 import { createEditorRoutes } from "../src/editor-routes";
 import { StudioWorkspaceRegistry } from "../src/workspace-registry";
+import { studioContextOn } from "./studio-plugins";
 
 const frontmatterSchema = z.object({ title: z.string() });
 
@@ -49,10 +46,10 @@ const principal: AuthPrincipal = {
   canonicalId: "user:studio-editor",
 };
 
-function setup(): {
+async function setup(): Promise<{
   routes: WebRouteDefinition[];
   shell: ReturnType<typeof createMockShell>;
-} {
+}> {
   const shell = createMockShell({ domain: "yeehaa.io" });
   const registry = shell.getEntityRegistry();
   registry.registerEntityType(
@@ -75,7 +72,7 @@ function setup(): {
   });
   shell.getPermissionService = (): PermissionService => permissions;
 
-  const context = createServicePluginContext(shell, "studio");
+  const context = await studioContextOn(shell);
   return {
     shell,
     routes: createEditorRoutes({
@@ -126,7 +123,7 @@ const expectedEventContext: CreateExecutionContext = {
 
 describe("Studio mutation actor attribution", () => {
   it("passes the authenticated user to create, update, and delete events", async () => {
-    const { routes, shell } = setup();
+    const { routes, shell } = await setup();
     const entityService = shell.getEntityService();
     const createSpy = spyOn(entityService, "createEntity");
     const updateSpy = spyOn(entityService, "updateEntity");
@@ -189,7 +186,7 @@ describe("Studio mutation actor attribution", () => {
   });
 
   it("passes the authenticated user to upload promotion", async () => {
-    const { routes, shell } = setup();
+    const { routes, shell } = await setup();
     let executionContext: CreateExecutionContext | undefined;
     shell.getEntityRegistry().registerUploadSaveHandler({
       entityType: "post",

@@ -2,7 +2,7 @@
 import { spatialFrameStyles as spatial } from "./operator-spatial-frame.styles";
 import { spatialContentStyles as spatialContent } from "./operator-spatial-content.styles";
 import * as stylex from "@stylexjs/stylex";
-import type { RuntimeStudioOperatorPanelBlock } from "@brains/plugins";
+import type { RuntimeStudioOperatorPanelBlock } from "@brains/sdk/internal/service-runtime";
 import { type ReactElement } from "react";
 
 type RuntimeSpatialBlock = Extract<

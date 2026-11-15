@@ -1,19 +1,20 @@
-import type { ContentVisibility, EntityPluginContext } from "@brains/plugins";
+import type { ContentVisibility } from "@brains/sdk/internal/service-runtime";
+import type { TopicsContext } from "./topics-context";
 import type { Logger } from "@brains/utils/logger";
 import type { ExtractedTopicData } from "../schemas/extraction";
 import type { TopicEntity } from "../types";
 import { TOPIC_ENTITY_TYPE } from "./constants";
-import { TopicAdapter } from "./topic-adapter";
+import { topicDocument } from "./topic-document";
 import {
   TopicMergeSynthesizer,
   type ITopicMergeSynthesizer,
 } from "./topic-merge-synthesizer";
 import { TopicService } from "./topic-service";
 
-const adapter = new TopicAdapter();
+const adapter = topicDocument;
 
 export interface TopicReconciliationOptions {
-  context: EntityPluginContext;
+  context: TopicsContext;
   logger: Logger;
   semanticMergeDistance: number;
   targetVisibility?: ContentVisibility;

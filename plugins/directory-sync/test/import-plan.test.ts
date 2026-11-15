@@ -5,6 +5,12 @@ import { createSilentLogger } from "@brains/test-utils";
 import type { BaseEntity } from "@brains/plugins";
 import { BatchOperationsManager } from "../src/lib/batch-operations";
 import { directoryImportJobSchema } from "../src/types/jobs";
+import { DirectorySync } from "../src/lib/directory-sync";
+import { captureImportPlan } from "../src/lib/import-plan";
+import { parseEntityPath } from "../src/lib/entity-paths";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 const entity: BaseEntity = {
   id: "grouping-definitions",
@@ -18,7 +24,9 @@ const entity: BaseEntity = {
 };
 describe("queued import admission", () => {
   test("captures every batch before enqueue and retains the observed revision through serialization", async () => {
-    const service = createMockEntityService();
+    const service = createMockEntityService({
+      entityTypes: ["note", "grouping-definitions"],
+    });
     const read = spyOn(service, "getEntityWriteSnapshot").mockImplementation(
       async (request) =>
         request.entityType === "grouping-definitions"
@@ -100,7 +108,7 @@ describe("queued import admission", () => {
     expect(imports[0]?.entityTypes).toEqual(["doc", "guide"]);
   });
   test("does not enqueue unguarded work when snapshot capture fails", async () => {
-    const service = createMockEntityService();
+    const service = createMockEntityService({ entityTypes: ["note"] });
     spyOn(service, "getEntityWriteSnapshot").mockRejectedValue(
       new Error("Database unavailable"),
     );
@@ -115,5 +123,97 @@ describe("queued import admission", () => {
       .catch((error: unknown) => error);
     expect(failure).toMatchObject({ message: "Database unavailable" });
     expect(context.jobs.enqueueBatch).not.toHaveBeenCalled();
+  });
+  test("never receives a file of an unregistered type from a queued sync", async () => {
+    // While plugins register, types composed after directory-sync are not
+    // registered yet. File discovery leaves their files out, so the plan
+    // never reads an entity through a type that cannot parse it.
+    const syncPath = mkdtempSync(join(tmpdir(), "test-import-plan-types-"));
+    try {
+      mkdirSync(join(syncPath, "note"), { recursive: true });
+      mkdirSync(join(syncPath, "widget"), { recursive: true });
+      writeFileSync(join(syncPath, "note", "a.md"), "A note\n");
+      writeFileSync(join(syncPath, "widget", "legacy.md"), "Widget\n");
+      const service = createMockEntityService({ entityTypes: ["note"] });
+      const read = spyOn(service, "getEntityWriteSnapshot").mockResolvedValue(
+        null,
+      );
+      const context = createMockServicePluginContext({
+        entityService: service,
+      });
+      const directorySync = new DirectorySync({
+        syncPath,
+        entityService: service,
+        logger: createSilentLogger(),
+      });
+
+      expect(
+        await directorySync.queueSyncBatch(context, "test", undefined, [
+          "widget/legacy.md",
+        ]),
+      ).toBeNull();
+      expect(context.jobs.enqueueBatch).not.toHaveBeenCalled();
+
+      await directorySync.queueSyncBatch(context, "test", undefined, [
+        "note/a.md",
+        "widget/legacy.md",
+      ]);
+      const operations = context.jobs.enqueueBatch.mock.calls[0]?.[0] ?? [];
+      const plans = operations
+        .filter((operation) => operation.type === "directory-import")
+        .flatMap(
+          (operation) =>
+            directoryImportJobSchema.parse(
+              JSON.parse(JSON.stringify(operation.data)),
+            ).plan ?? [],
+        );
+      expect(plans.map((entry) => entry.path)).toEqual(["note/a.md"]);
+      expect(read.mock.calls.map(([request]) => request.entityType)).toEqual([
+        "note",
+      ]);
+    } finally {
+      rmSync(syncPath, { recursive: true, force: true });
+    }
+  });
+  test("admits a file of an unregistered type as a create without reading its entity", async () => {
+    // A stored entity of a type with no adapter cannot be read back, so the
+    // plan does not try: the file may only create its entity. An import that
+    // finds one stored skips the file as stale rather than overwrite it.
+    const service = createMockEntityService({ entityTypes: ["note"] });
+    const read = spyOn(service, "getEntityWriteSnapshot").mockImplementation(
+      async (request) => {
+        if (request.entityType !== "note") {
+          throw new Error(
+            `Unknown entity type ${request.entityType}: no adapter registered`,
+          );
+        }
+        return { entity: { ...entity, entityType: "note" }, revision: "r1" };
+      },
+    );
+
+    const plan = await captureImportPlan(
+      service,
+      {
+        parseEntityFromPath: (path) =>
+          parseEntityPath("/sync", path, new Map()),
+      },
+      ["note/a.md", "widget/legacy.md"],
+    );
+
+    expect(plan).toEqual([
+      {
+        path: "note/a.md",
+        entityType: "note",
+        id: "a",
+        expectedRevision: "r1",
+      },
+      {
+        path: "widget/legacy.md",
+        entityType: "widget",
+        id: "legacy",
+        expectedRevision: null,
+      },
+    ]);
+    expect(read).toHaveBeenCalledTimes(1);
   });
 });

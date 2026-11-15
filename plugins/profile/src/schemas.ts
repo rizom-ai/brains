@@ -1,10 +1,12 @@
 import {
-  anchorProfileBodySchema,
   EntityValidationError,
   parseMarkdownWithFrontmatter,
+} from "@brains/sdk/internal/entity-runtime";
+import {
+  anchorProfileBodySchema,
   type ProfileCategory,
   type ProfileKindDefinition,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/service-runtime";
 import { z } from "@brains/utils/zod";
 
 export interface CommonProfileExtension {

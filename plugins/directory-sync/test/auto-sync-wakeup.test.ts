@@ -3,6 +3,7 @@ import { createServicePluginContext } from "@brains/plugins";
 import { createMockShell } from "@brains/plugins/test";
 import { createSilentLogger } from "@brains/test-utils";
 import { setupAutoSync } from "../src/lib/auto-sync";
+import { syncContextOn } from "./sync-runtime";
 
 describe("auto-sync export wake-up", () => {
   it.each(["entity:created", "entity:updated", "entity:deleted"])(
@@ -11,7 +12,10 @@ describe("auto-sync export wake-up", () => {
       const shell = createMockShell();
       let wakeups = 0;
       setupAutoSync(
-        createServicePluginContext(shell, "directory-sync"),
+        await syncContextOn(
+          shell,
+          createServicePluginContext(shell, "directory-sync"),
+        ),
         () => {
           wakeups += 1;
         },

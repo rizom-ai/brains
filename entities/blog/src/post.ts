@@ -1,9 +1,13 @@
+import { blogPostFrontmatterSchema } from "./schemas/blog-post";
 import { defineEntity, z, type EntityDefinition } from "@brains/sdk/entities";
 import {
   createTemplate,
   paginationInfoSchema,
 } from "@brains/sdk/internal/presentation";
-import { restatingMetadata } from "@brains/sdk/internal/entity-runtime";
+import {
+  restatingMetadata,
+  withFrontmatterSchema,
+} from "@brains/sdk/internal/entity-runtime";
 import { postAtproto } from "./atproto-projection";
 import { createBlogOgImageProvider } from "./attachments/og-image-provider";
 import {
@@ -77,89 +81,92 @@ const postDetailSchema = z.object({
  * goes, as the blog post adapter wrote it.
  */
 export const post: EntityDefinition<"post", typeof blogPostMetadataSchema> =
-  restatingMetadata(
-    defineEntity({
-      type: "post",
-      purpose:
-        "A long-form published article, essay, or blog post written for an audience.",
-      instructions: POST_INSTRUCTIONS,
-      metadata: blogPostMetadataSchema,
-      markdown: postMarkdown,
-      config: {
-        weight: 2.0,
-        defaultSort: [{ field: "publishedAt", direction: "desc" }],
-        projectionSourceRole: "primary",
-        publish: { publishStatuses: ["queued", "published"] },
-        // Read by nothing: not the head, the site, nor ATProto.
-        retiredFields: ["ogDescription", "twitterCard", "atprotoUri"],
-      },
-      coverImage: true,
-      stub: postStub,
-      templates: {
-        "post-list": createTemplate<
-          z.output<typeof postListSchema>,
-          BlogListProps
-        >({
-          name: "post-list",
-          description: "Blog list page template",
-          schema: postListSchema,
-          dataSourceId: "blog:entities",
-          requiredPermission: "public",
-          layout: {
-            component: BlogListTemplate,
-            renderSchema: postListRenderSchema,
+  withFrontmatterSchema(
+    restatingMetadata(
+      defineEntity({
+        type: "post",
+        purpose:
+          "A long-form published article, essay, or blog post written for an audience.",
+        instructions: POST_INSTRUCTIONS,
+        metadata: blogPostMetadataSchema,
+        markdown: postMarkdown,
+        config: {
+          weight: 2.0,
+          defaultSort: [{ field: "publishedAt", direction: "desc" }],
+          projectionSourceRole: "primary",
+          publish: { publishStatuses: ["queued", "published"] },
+          // Read by nothing: not the head, the site, nor ATProto.
+          retiredFields: ["ogDescription", "twitterCard", "atprotoUri"],
+        },
+        coverImage: true,
+        stub: postStub,
+        templates: {
+          "post-list": createTemplate<
+            z.output<typeof postListSchema>,
+            BlogListProps
+          >({
+            name: "post-list",
+            description: "Blog list page template",
+            schema: postListSchema,
+            dataSourceId: "blog:entities",
+            requiredPermission: "public",
+            layout: {
+              component: BlogListTemplate,
+              renderSchema: postListRenderSchema,
+            },
+          }),
+          "post-detail": createTemplate<
+            z.output<typeof postDetailSchema>,
+            BlogPostProps
+          >({
+            name: "post-detail",
+            description: "Individual blog post template",
+            schema: postDetailSchema,
+            dataSourceId: "blog:entities",
+            requiredPermission: "public",
+            layout: {
+              component: BlogPostTemplate,
+              renderSchema: postDetailRenderSchema,
+            },
+          }),
+          homepage: homepageTemplate,
+          generation: blogGenerationTemplate,
+          excerpt: blogExcerptTemplate,
+          "og-image": blogOgImageTemplate,
+          printable: blogPrintableTemplate,
+        },
+        create: { fromContent: postFromText },
+        generation: postGeneration,
+        attachments: [
+          {
+            type: BLOG_PRINTABLE_ATTACHMENT_TYPE,
+            provider: (context) => createBlogPrintableProvider(context),
           },
-        }),
-        "post-detail": createTemplate<
-          z.output<typeof postDetailSchema>,
-          BlogPostProps
-        >({
-          name: "post-detail",
-          description: "Individual blog post template",
-          schema: postDetailSchema,
-          dataSourceId: "blog:entities",
-          requiredPermission: "public",
-          layout: {
-            component: BlogPostTemplate,
-            renderSchema: postDetailRenderSchema,
+          {
+            type: BLOG_OG_IMAGE_ATTACHMENT_TYPE,
+            provider: (context) => createBlogOgImageProvider(context),
           },
-        }),
-        homepage: homepageTemplate,
-        generation: blogGenerationTemplate,
-        excerpt: blogExcerptTemplate,
-        "og-image": blogOgImageTemplate,
-        printable: blogPrintableTemplate,
-      },
-      create: { fromContent: postFromText },
-      generation: postGeneration,
-      attachments: [
-        {
-          type: BLOG_PRINTABLE_ATTACHMENT_TYPE,
-          provider: (context) => createBlogPrintableProvider(context),
+        ],
+        // Posts publish to the site itself, so the provider records the
+        // outcome and nothing more; the social card is rendered first.
+        publish: {
+          provider: {
+            name: "internal",
+            publish: async (): Promise<{ id: string }> => ({ id: "internal" }),
+          },
         },
-        {
-          type: BLOG_OG_IMAGE_ATTACHMENT_TYPE,
-          provider: (context) => createBlogOgImageProvider(context),
-        },
-      ],
-      // Posts publish to the site itself, so the provider records the
-      // outcome and nothing more; the social card is rendered first.
-      publish: {
-        provider: {
-          name: "internal",
-          publish: async (): Promise<{ id: string }> => ({ id: "internal" }),
-        },
-      },
-      publishAssets: [
-        {
-          attachmentType: BLOG_OG_IMAGE_ATTACHMENT_TYPE,
-          field: "ogImageId",
-          requiredWhen: { status: "published" },
-        },
-      ],
-      feed: postFeed,
-      atproto: postAtproto,
-      evals: postEvals,
-    }),
-    (stored) => ({ ...stored, authoredSlug: true }),
+        publishAssets: [
+          {
+            attachmentType: BLOG_OG_IMAGE_ATTACHMENT_TYPE,
+            field: "ogImageId",
+            requiredWhen: { status: "published" },
+          },
+        ],
+        feed: postFeed,
+        atproto: postAtproto,
+        evals: postEvals,
+      }),
+      (stored) => ({ ...stored, authoredSlug: true }),
+    ),
+    blogPostFrontmatterSchema,
   );

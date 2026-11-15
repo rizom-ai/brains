@@ -1,6 +1,4 @@
-import type { ContentVisibility } from "@brains/plugins";
-import type { EntityPluginContext } from "@brains/plugins";
-import { AgentAdapter } from "../adapters/agent-adapter";
+import { parseAgentEntity } from "./agent-content";
 import { agentEntitySchema } from "../schemas/agent";
 import { skillEntitySchema } from "../schemas/skill";
 import { AGENT_ENTITY_TYPE, SKILL_ENTITY_TYPE } from "./constants";
@@ -15,6 +13,8 @@ import {
   buildSkillRows,
   type ParsedAgentForNetwork,
 } from "./agent-network-rows";
+import { type ContentVisibility } from "@brains/sdk/internal/service-runtime";
+import type { AgentContext } from "./agent-context";
 
 export {
   AGENT_NETWORK_KINDS,
@@ -31,9 +31,8 @@ export type {
   AgentNetworkWidgetData,
 } from "./agent-network-schema";
 
-const agentAdapter: AgentAdapter = new AgentAdapter();
 export async function buildAgentNetworkWidgetData(
-  context: EntityPluginContext,
+  context: Pick<AgentContext, "entityService">,
   visibilityScope: ContentVisibility,
 ): Promise<AgentNetworkWidgetData> {
   const [agents, skills] = await Promise.all([
@@ -55,7 +54,7 @@ export async function buildAgentNetworkWidgetData(
 
   const parsedAgents: ParsedAgentForNetwork[] = agents.map((entity) => ({
     entity,
-    ...agentAdapter.parseEntity(entity),
+    ...parseAgentEntity(entity),
   }));
   const agentRows: AgentNetworkAgentRow[] = buildAgentRows(parsedAgents);
   const skillRows: AgentNetworkSkillRow[] = buildSkillRows(

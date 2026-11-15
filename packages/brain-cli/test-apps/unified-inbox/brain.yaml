@@ -26,7 +26,7 @@ plugins:
     initialSync: true
     git:
       repo: rizom-ai/canonical-unified-inbox-test-content
-      gitUrl: file:///tmp/canonical-unified-inbox-test-content.git
+      gitUrl: file:///tmp/canonical-unified-inbox-offline-test-content.git
       bootstrapFromSeed: true
   onboarding:
     enabled: false

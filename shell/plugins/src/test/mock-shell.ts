@@ -661,6 +661,11 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       _handler: EvalHandler,
     ) => {},
 
+    // No rule is registered on a mock shell; a test sets the run it needs.
+    runProjectionRule: async (ruleId: string) => {
+      throw new Error(`Unknown projection rule "${ruleId}"`);
+    },
+
     // Analytics registry
     getAnalyticsRegistry: () => analyticsRegistry,
 

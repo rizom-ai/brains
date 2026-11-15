@@ -1,49 +1,42 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { createMockShell, type MockShell } from "@brains/plugins/test";
-import { ServicePlugin, type ApiRouteDefinition } from "@brains/plugins";
+import {
+  defineServicePlugin,
+  instantiatePluginPackageDefinition,
+  withApiRoutes,
+  type ApiRouteDefinition,
+  type Plugin,
+} from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 
-// Test plugin with API routes
-class PluginWithRoutes extends ServicePlugin<
-  Record<string, never>,
-  Record<string, never>
-> {
-  constructor() {
-    super(
-      "plugin-with-routes",
-      { name: "plugin-with-routes", version: "1.0.0" },
-      {},
-      z.object({}),
-    );
-  }
-
-  override getApiRoutes(): ApiRouteDefinition[] {
-    return [
-      {
-        path: "/subscribe",
-        method: "POST",
-        tool: "subscribe",
-        public: true,
-        successRedirect: "/thanks",
-      },
-    ];
-  }
+/** A declared service, under its own plugin id, with or without API routes. */
+function service(id: string, routes?: readonly ApiRouteDefinition[]): Plugin {
+  const definition = defineServicePlugin({
+    id,
+    config: z.object({}),
+    setup: () => ({}),
+  });
+  const [plugin] = instantiatePluginPackageDefinition(
+    routes ? withApiRoutes(definition, () => routes) : definition,
+    {},
+    { name: id, version: "1.0.0" },
+    { pluginId: id },
+  );
+  if (!plugin) throw new Error(`No plugin ${id}`);
+  return plugin;
 }
 
-// Test plugin without API routes
-class PluginWithoutRoutes extends ServicePlugin<
-  Record<string, never>,
-  Record<string, never>
-> {
-  constructor() {
-    super(
-      "plugin-without-routes",
-      { name: "plugin-without-routes", version: "1.0.0" },
-      {},
-      z.object({}),
-    );
-  }
-}
+const pluginWithRoutes = (): Plugin =>
+  service("plugin-with-routes", [
+    {
+      path: "/subscribe",
+      method: "POST",
+      tool: "subscribe",
+      public: true,
+      successRedirect: "/thanks",
+    },
+  ]);
+const pluginWithoutRoutes = (): Plugin => service("plugin-without-routes");
 
 describe("Shell.getPluginApiRoutes()", () => {
   let mockShell: MockShell;
@@ -53,7 +46,7 @@ describe("Shell.getPluginApiRoutes()", () => {
   });
 
   it("should return empty array when no plugins have API routes", () => {
-    mockShell.registerPlugin(new PluginWithoutRoutes());
+    mockShell.registerPlugin(pluginWithoutRoutes());
 
     const routes = mockShell.getPluginApiRoutes();
 
@@ -61,7 +54,7 @@ describe("Shell.getPluginApiRoutes()", () => {
   });
 
   it("should return routes from plugins that have them", () => {
-    mockShell.registerPlugin(new PluginWithRoutes());
+    mockShell.registerPlugin(pluginWithRoutes());
 
     const routes = mockShell.getPluginApiRoutes();
 
@@ -79,18 +72,18 @@ describe("Shell.getPluginApiRoutes()", () => {
   });
 
   it("should collect routes from multiple plugins", () => {
-    mockShell.registerPlugin(new PluginWithRoutes());
-    mockShell.registerPlugin(new PluginWithoutRoutes());
+    mockShell.registerPlugin(pluginWithRoutes());
+    mockShell.registerPlugin(pluginWithoutRoutes());
 
     const routes = mockShell.getPluginApiRoutes();
 
-    // Should only have routes from PluginWithRoutes
+    // Should only have routes from pluginWithRoutes
     expect(routes).toHaveLength(1);
     expect(routes[0]?.pluginId).toBe("plugin-with-routes");
   });
 
   it("should construct fullPath as /api/{pluginId}{path}", () => {
-    mockShell.registerPlugin(new PluginWithRoutes());
+    mockShell.registerPlugin(pluginWithRoutes());
 
     const routes = mockShell.getPluginApiRoutes();
 

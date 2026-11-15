@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
-import { AnalyticsPlugin } from "../src/index";
+import { createAnalyticsPlugin } from "./analytics-plugins";
 import type { CloudflareFetch } from "../src/lib/cloudflare-client";
 import packageJson from "../package.json";
 
@@ -13,7 +13,7 @@ const cloudflare = {
   siteTag: "test_site",
 };
 
-describe("AnalyticsPlugin Integration", () => {
+describe("the analytics service, installed", () => {
   let harness: ReturnType<typeof createPluginHarness> | undefined;
 
   afterEach(async () => {
@@ -31,7 +31,7 @@ describe("AnalyticsPlugin Integration", () => {
 
   it("registers with its package metadata", async () => {
     harness = createPluginHarness();
-    const plugin = new AnalyticsPlugin({ cloudflare }, { fetch: noFetch });
+    const plugin = createAnalyticsPlugin({ cloudflare }, { fetch: noFetch });
     await harness.installPlugin(plugin);
 
     expect(plugin.id).toBe("analytics");
@@ -44,7 +44,7 @@ describe("AnalyticsPlugin Integration", () => {
   it("adds its traffic reports to system_analytics, and no tool", async () => {
     harness = createPluginHarness();
     const capabilities = await harness.installPlugin(
-      new AnalyticsPlugin({ cloudflare }, { fetch: noFetch }),
+      createAnalyticsPlugin({ cloudflare }, { fetch: noFetch }),
     );
 
     expect(capabilities.tools).toEqual([]);
@@ -60,7 +60,7 @@ describe("AnalyticsPlugin Integration", () => {
   // The reports read the stored snapshots, which outlive the Cloudflare setup.
   it("adds the reports without Cloudflare too", async () => {
     harness = createPluginHarness();
-    await harness.installPlugin(new AnalyticsPlugin({}));
+    await harness.installPlugin(createAnalyticsPlugin({}));
 
     expect(reportTypes()).toEqual(
       expect.arrayContaining([

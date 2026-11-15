@@ -2,7 +2,8 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
-  AuthServicePlugin,
+  authServiceOf,
+  authServicePlugin,
   AuthRuntimeDatabase,
   AuthUserStore,
 } from "@brains/auth-service";
@@ -41,7 +42,7 @@ export async function createAdministrationFixture(
     manualDelivery: true,
   });
   shell.getChannelRegistry().finalize();
-  const auth = new AuthServicePlugin({
+  const auth = authServicePlugin({
     storageDir: directory,
     issuer: "https://brain.test",
   });
@@ -51,7 +52,7 @@ export async function createAdministrationFixture(
   Date.now = (): number => now;
   const dispose = async (): Promise<void> => {
     try {
-      await auth.shutdown();
+      await auth.shutdown?.();
     } finally {
       Date.now = originalNow;
       await rm(directory, { recursive: true, force: true });
@@ -68,7 +69,7 @@ export async function createAdministrationFixture(
       await seed.stop();
     }
     await auth.register(shell);
-    const service = auth.getService();
+    const service = authServiceOf(shell.getAuthRegistry());
     const anchor = (await service.listAdminUsers()).find(
       (user) => user.isAnchor,
     );

@@ -1,8 +1,8 @@
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
 import type {
-  BaseEntity,
   ContentVisibility,
   ListEntitiesRequest,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/service-runtime";
 
 /** Sources read per page: only what the mapper keeps outlives a page. */
 export const SOURCE_PAGE_SIZE = 100;

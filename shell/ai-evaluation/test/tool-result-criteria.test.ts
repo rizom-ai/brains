@@ -81,3 +81,42 @@ describe("exact tool result criteria", () => {
     },
   );
 });
+
+// A model's edit quoted text the note lacks; the tool refused it and the
+// retry asked for confirmation, yet the refused call failed the turn.
+describe("resultContains over calls the tool refused", () => {
+  const proposal = successCriteriaSchema.parse({
+    expectedTools: [
+      {
+        toolName: "system_update",
+        resultContains: { needsConfirmation: true },
+      },
+    ],
+  });
+  const refused: ToolCallRecord = {
+    toolName: "system_update",
+    args: { id: "target" },
+    result: { success: false, error: "Edit 1: oldText was not found." },
+  };
+  const proposed = (result: unknown): ToolCallRecord => ({
+    toolName: "system_update",
+    args: { id: "target" },
+    result,
+  });
+  const passes = (calls: ToolCallRecord[]): boolean =>
+    evaluateCriteria(proposal, { text: "Confirmation required." }, calls).every(
+      (result) => result.passed,
+    );
+
+  it("judges the calls that took effect", () => {
+    expect(passes([refused, proposed({ needsConfirmation: true })])).toBe(true);
+  });
+
+  it("still needs one call that took effect", () => {
+    expect(passes([refused])).toBe(false);
+  });
+
+  it("still fails a call that took effect without the result", () => {
+    expect(passes([refused, proposed({ updated: "target" })])).toBe(false);
+  });
+});

@@ -1,4 +1,4 @@
-import type { ServicePluginContext } from "@brains/plugins";
+import type { ServiceClassMessaging } from "@brains/sdk/internal/service-runtime";
 import {
   siteMetadataContract,
   siteMetadataSchema,
@@ -13,7 +13,7 @@ import {
  * configured fallback is used.
  */
 export async function resolveSiteMetadata(
-  messaging: Pick<ServicePluginContext["messaging"], "request">,
+  messaging: Pick<ServiceClassMessaging, "request">,
   fallback: SiteMetadata,
 ): Promise<SiteMetadata> {
   const result = await messaging.request(siteMetadataContract, {});

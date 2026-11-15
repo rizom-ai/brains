@@ -1,6 +1,9 @@
 import { getErrorMessage } from "@brains/utils/error";
-import type { BaseEntity, ContentVisibility } from "@brains/plugins";
-import { internalFullScope } from "@brains/plugins";
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
+import {
+  type ContentVisibility,
+  internalFullScope,
+} from "@brains/sdk/internal/service-runtime";
 import type { Logger } from "@brains/utils/logger";
 import type { ExportResult } from "../types";
 
@@ -27,7 +30,7 @@ export interface ExportPipelineDeps {
   logger: Logger;
   fileOperations: {
     assertEntityPlacement(entity: BaseEntity): void;
-    getEntityFilePath(entity: BaseEntity): string;
+    resolveEntityFilePath(entity: BaseEntity): Promise<string>;
     fileExists(filePath: string): Promise<boolean>;
     writeEntity(entity: BaseEntity): Promise<void>;
   };
@@ -86,7 +89,7 @@ export async function processEntityExport(
   try {
     // A refused ID has no exportable file; absence must not delete its row.
     deps.fileOperations.assertEntityPlacement(entity);
-    const filePath = deps.fileOperations.getEntityFilePath(entity);
+    const filePath = await deps.fileOperations.resolveEntityFilePath(entity);
     if (!(await deps.fileOperations.fileExists(filePath))) {
       if (deps.deleteOnFileRemoval) {
         deps.logger.debug("File missing, deleting entity from DB", {

@@ -1,9 +1,17 @@
-import { PluginConfigValidationError, type Plugin } from "@brains/plugins";
+import { PluginConfigValidationError } from "@brains/sdk/internal/service-runtime";
+import type { PluginPackageDefinition } from "@brains/sdk";
 import { z } from "@brains/utils/zod";
-import { newsletterPlugin } from "./entity";
-import { buttondownPlugin, resendPlugin } from "./provider";
+import { newsletterEntityPackage } from "./entity";
+import { createButtondownPackage, createResendPackage } from "./provider";
 
-export { NewsletterPlugin, newsletterPlugin } from "./entity";
+export {
+  newsletterEntityPackage,
+  newsletterEntity,
+  newsletterGeneration,
+  generationJobSchema,
+  generatedNewsletterSchema,
+  type GenerationJobData,
+} from "./entity";
 export type {
   Newsletter,
   NewsletterMetadata,
@@ -17,18 +25,20 @@ export {
   createNewsletter,
 } from "./entity";
 export {
-  ButtondownPlugin,
-  buttondownPlugin,
+  createButtondownPackage,
+  buttondownConfigSchema,
   ButtondownClient,
   ButtondownNewsletterProvider,
-  ResendPlugin,
-  resendPlugin,
+  createResendPackage,
+  resendConfigSchema,
   ResendNewsletterClient,
   ResendApiError,
   ResendNewsletterProvider,
   renderNewsletterEmail,
 } from "./provider";
 export type {
+  ButtondownPluginConfig,
+  ButtondownPluginConfigInput,
   Subscriber,
   SubscriberType,
   CreateSubscriberInput,
@@ -143,26 +153,40 @@ export type NewsletterCompositeConfigInput = z.input<
   typeof newsletterCompositeConfigSchema
 >;
 
+/** One package the newsletter capability installs, with its config. */
+export interface SelectedNewsletterPackage {
+  readonly definition: PluginPackageDefinition;
+  readonly config: object;
+}
+
+/** The newsletter entity, and the configured delivery provider beside it. */
+export interface SelectedNewsletterPackages {
+  readonly entity: SelectedNewsletterPackage;
+  readonly provider?:
+    | (SelectedNewsletterPackage & { readonly kind: "buttondown" | "resend" })
+    | undefined;
+}
+
 /**
- * Composite factory for newsletter entities plus one optional delivery provider.
+ * What the newsletter capability installs for its config, as the composite
+ * class factory chose: the newsletter entity always, and with a provider,
+ * its delivery service, configured from the composite's keys. A config
+ * the composite refuses is reported under newsletter.
  *
  * @example
- * ```ts
- * capabilities: [
- *   ["newsletter", newsletter, {
- *     provider: {
- *       type: "resend",
- *       apiKey: "${RESEND_API_KEY}",
- *       segmentId: "${RESEND_NEWSLETTER_SEGMENT_ID}",
- *       from: "Rizom <newsletter@example.com>",
- *     },
- *   }],
- * ]
+ * ```yaml
+ * plugins:
+ *   newsletter:
+ *     provider:
+ *       type: resend
+ *       apiKey: ${RESEND_API_KEY}
+ *       segmentId: ${RESEND_NEWSLETTER_SEGMENT_ID}
+ *       from: "Rizom <newsletter@example.com>"
  * ```
  */
-export function newsletter(
+export function selectNewsletterPackages(
   config: NewsletterCompositeConfigInput = {},
-): Plugin[] {
+): SelectedNewsletterPackages {
   const parsedConfig = newsletterCompositeConfigSchema.safeParse(config);
   if (!parsedConfig.success) {
     throw PluginConfigValidationError.fromZod(
@@ -173,20 +197,29 @@ export function newsletter(
   }
 
   const parsed = parsedConfig.data;
-  const plugins: Plugin[] = [newsletterPlugin({})];
-  if (!parsed.provider) return plugins;
+  const entity = { definition: newsletterEntityPackage, config: {} };
+  if (!parsed.provider) return { entity };
 
   if (parsed.provider.type === "buttondown") {
-    plugins.push(
-      buttondownPlugin({
-        apiKey: parsed.provider.apiKey,
-        doubleOptIn: parsed.provider.doubleOptIn,
-        autoSendOnPublish: parsed.autoSendOnPublish,
-      }),
-    );
-  } else {
-    plugins.push(
-      resendPlugin({
+    return {
+      entity,
+      provider: {
+        kind: "buttondown",
+        definition: createButtondownPackage(),
+        config: {
+          apiKey: parsed.provider.apiKey,
+          doubleOptIn: parsed.provider.doubleOptIn,
+          autoSendOnPublish: parsed.autoSendOnPublish,
+        },
+      },
+    };
+  }
+  return {
+    entity,
+    provider: {
+      kind: "resend",
+      definition: createResendPackage(),
+      config: {
         apiKey: parsed.provider.apiKey,
         segmentId: parsed.provider.segmentId,
         from: parsed.provider.from,
@@ -197,9 +230,10 @@ export function newsletter(
           ? { topicId: parsed.provider.topicId }
           : {}),
         autoSendOnPublish: parsed.autoSendOnPublish,
-      }),
-    );
-  }
-
-  return plugins;
+      },
+    },
+  };
 }
+
+/** The newsletter entity, as a plugin eval loads the package. */
+export default newsletterEntityPackage;

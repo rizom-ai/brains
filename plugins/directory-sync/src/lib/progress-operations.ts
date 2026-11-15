@@ -1,4 +1,4 @@
-import type { EntityServiceClient } from "@brains/plugins";
+import type { ServiceEntityMirrorClient } from "@brains/sdk/internal/service-runtime";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
 import type { ExportResult, ImportResult } from "../types";
@@ -9,12 +9,12 @@ import type { FileOperations } from "./file-operations";
  */
 export class ProgressOperations {
   private readonly logger: Logger;
-  private readonly entityService: EntityServiceClient;
+  private readonly entityService: ServiceEntityMirrorClient;
   private readonly fileOperations: FileOperations;
 
   constructor(
     logger: Logger,
-    entityService: EntityServiceClient,
+    entityService: ServiceEntityMirrorClient,
     fileOperations: FileOperations,
   ) {
     this.logger = logger;

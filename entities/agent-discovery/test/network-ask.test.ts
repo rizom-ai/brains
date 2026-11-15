@@ -1,10 +1,13 @@
+import {
+  agentDiscoveryPlugins,
+  agentToolsPlugins,
+  installAll,
+} from "./agent-discovery-plugins";
 import { describe, expect, it } from "bun:test";
 import { createPluginHarness, expectSuccess } from "@brains/plugins/test";
 import type { Plugin } from "@brains/plugins";
 import { waitUntil } from "@brains/test-utils";
 import { a2aAskContract } from "@brains/contracts";
-import { AgentDiscoveryPlugin } from "../src/plugins/agent-plugin";
-import { AgentToolsPlugin } from "../src/plugins/agent-tools-plugin";
 import {
   choosePeers,
   networkAskResultSchema,
@@ -110,8 +113,8 @@ describe("network_ask", () => {
 
   async function setup(): Promise<Harness> {
     const harness = createPluginHarness<Plugin>({ domain: "self.brain" });
-    await harness.installPlugin(new AgentDiscoveryPlugin());
-    await harness.installPlugin(new AgentToolsPlugin());
+    await installAll(harness, agentDiscoveryPlugins());
+    await installAll(harness, agentToolsPlugins());
     const entityService = harness.getEntityService();
     for (const agent of [
       createTestAgent({
@@ -178,8 +181,8 @@ describe("network_ask", () => {
 
   it("is not offered while no peer is approved", async () => {
     const harness = createPluginHarness<Plugin>({ domain: "self.brain" });
-    await harness.installPlugin(new AgentDiscoveryPlugin());
-    await harness.installPlugin(new AgentToolsPlugin());
+    await installAll(harness, agentDiscoveryPlugins());
+    await installAll(harness, agentToolsPlugins());
     const tool = networkAsk(harness);
     expect(await tool.isAvailable?.()).toBe(false);
 
@@ -208,7 +211,7 @@ describe("network_ask", () => {
 
   it("is not offered on a brain without an agent directory", async () => {
     const harness = createPluginHarness<Plugin>({ domain: "self.brain" });
-    await harness.installPlugin(new AgentToolsPlugin());
+    await installAll(harness, agentToolsPlugins());
     expect(await networkAsk(harness).isAvailable?.()).toBe(false);
   });
 

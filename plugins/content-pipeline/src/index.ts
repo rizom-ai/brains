@@ -6,6 +6,8 @@
  * for all publishable entity types.
  */
 
+import { createContentPipelinePackage } from "./plugin";
+
 // Schemas
 export * from "./schemas/publishable";
 
@@ -68,5 +70,15 @@ export {
   type EnsurePublishAssetsOptions,
 } from "./tools";
 
-// Plugin
-export { ContentPipelinePlugin, contentPipelinePlugin } from "./plugin";
+// Package
+export {
+  createContentPipelinePackage,
+  type ContentPipelineDeps,
+  type ContentPipelineServices,
+} from "./plugin";
+export type { PipelineContext } from "./lib/pipeline-context";
+
+/** The publishing pipeline as a brain composes it. */
+const contentPipelinePackage: ReturnType<typeof createContentPipelinePackage> =
+  createContentPipelinePackage();
+export default contentPipelinePackage;

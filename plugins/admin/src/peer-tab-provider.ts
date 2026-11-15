@@ -1,11 +1,13 @@
-import type { ServiceRuntime } from "@brains/sdk/internal/service-runtime";
+import type {
+  ServiceRuntime,
+  RuntimeStudioOperatorBlock,
+  RuntimeStudioOperatorRegionBlock,
+} from "@brains/sdk/internal/service-runtime";
 import {
   defineStudioWorkspace,
   defineWorkspaceAction,
   type OperatorViewBlock,
-  type RuntimeStudioOperatorBlock,
-  type RuntimeStudioOperatorRegionBlock,
-} from "@brains/plugins";
+} from "@brains/sdk/services";
 import { capitalize } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import {

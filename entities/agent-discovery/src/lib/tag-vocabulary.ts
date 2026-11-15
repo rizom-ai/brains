@@ -1,13 +1,12 @@
-import type { ContentVisibility, EntityPluginContext } from "@brains/plugins";
+import { parseAgentContent } from "./agent-content";
 import { normalizeTags } from "@brains/utils/string-utils";
 import { agentEntitySchema, type AgentEntity } from "../schemas/agent";
 import { skillEntitySchema, type SkillEntity } from "../schemas/skill";
-import { AgentAdapter } from "../adapters/agent-adapter";
 import { AGENT_ENTITY_TYPE, SKILL_ENTITY_TYPE } from "./constants";
+import { type ContentVisibility } from "@brains/sdk/internal/service-runtime";
+import type { AgentContext } from "./agent-context";
 
 export { normalizeTag, normalizeTags } from "@brains/utils/string-utils";
-
-const agentAdapter = new AgentAdapter();
 
 export interface TagVocabularyEntry {
   tag: string;
@@ -36,7 +35,7 @@ export function buildTagVocabulary(
 
   for (const skill of skills) bump(skill.metadata.tags);
   for (const agent of agents) {
-    const body = agentAdapter.parseAgentContent(agent.content);
+    const body = parseAgentContent(agent.content);
     bump(body.skills.flatMap((skill) => skill.tags));
   }
 
@@ -52,7 +51,7 @@ export function buildTagVocabulary(
  * a caller that has one — and a test that stubs one — needs nothing else.
  */
 export async function collectTagVocabulary(
-  context: Pick<EntityPluginContext, "entityService">,
+  context: Pick<AgentContext, "entityService">,
   opts: {
     minCount?: number;
     topN?: number;

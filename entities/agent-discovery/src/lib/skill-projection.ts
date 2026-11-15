@@ -1,13 +1,6 @@
-import {
-  ProjectionJsonObjectSchema,
-  defineProjectionRule,
-  scopedDerivedId,
-  type ProjectionRule,
-  type ProjectionWriteIntent,
-} from "@brains/plugins";
+import { createSkillContent } from "./agent-content";
 import { generateIdFromText } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
-import { SkillAdapter } from "../adapters/skill-adapter";
 import { agentEntitySchema } from "../schemas/agent";
 import { skillEntitySchema, skillFrontmatterSchema } from "../schemas/skill";
 import { skillDerivationTemplate } from "../templates/skill-derivation-template";
@@ -16,8 +9,15 @@ import {
   SKILL_DERIVATION_TEMPLATE_REF,
   SKILL_ENTITY_TYPE,
 } from "./constants";
-import { buildSkillPrompt } from "./skill-deriver";
+import { buildSkillPrompt } from "./skill-prompt";
 import { buildTagVocabulary } from "./tag-vocabulary";
+import {
+  ProjectionJsonObjectSchema,
+  defineProjectionRule,
+  type ProjectionRule,
+  type ProjectionWriteIntent,
+} from "@brains/sdk/entities";
+import { scopedDerivedId } from "@brains/sdk/internal/service-runtime";
 
 const topicMetadataSchema = z.looseObject({ name: z.string().optional() });
 
@@ -158,7 +158,6 @@ async function deriveSkillIntents(
       skill,
     ]),
   );
-  const adapter = new SkillAdapter();
   const authoredIds = new Set(
     input.existingSkills
       .filter((skill) => !skill.projectionOwned)
@@ -171,7 +170,7 @@ async function deriveSkillIntents(
       entity: {
         id,
         entityType: SKILL_ENTITY_TYPE,
-        content: adapter.createSkillContent(skill),
+        content: createSkillContent(skill),
         metadata: skill,
         visibility: input.targetVisibility,
       },

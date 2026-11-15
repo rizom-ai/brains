@@ -1,42 +1,32 @@
-import type {
-  BaseDataSourceContext,
-  DataSource,
-  DataSourceSchema,
-} from "@brains/plugins";
-import { AGENT_PROXIMITY_DATASOURCE_ID } from "../lib/constants";
+import type { ServiceDataSourceDeclaration } from "@brains/sdk/internal/service-runtime";
 import { buildProximityMapData } from "../lib/proximity-map-data";
 
 /**
- * Public site datasource for the semantic agent proximity map.
+ * Public site datasource for the semantic agent proximity map, served as
+ * agent-discovery:proximity-map.
  *
  * Semantic projection stays behind entity-service; the datasource receives only
  * provider-independent coordinates, distances, and neighbor relationships.
  */
-export class ProximityMapDataSource implements DataSource {
-  readonly id: typeof AGENT_PROXIMITY_DATASOURCE_ID =
-    AGENT_PROXIMITY_DATASOURCE_ID;
-  readonly name = "Agent Proximity Map DataSource";
-  readonly description =
-    "Builds a public semantic proximity map for saved agents";
-
-  async fetch<T>(
-    _query: unknown,
-    outputSchema: DataSourceSchema<T>,
-    context: BaseDataSourceContext,
-  ): Promise<T> {
-    // The public site: public agents only, made explicit rather than left to
-    // the entity service default.
-    const data = await buildProximityMapData(
+export const proximityMapDataSource: ServiceDataSourceDeclaration = {
+  id: "proximity-map",
+  name: "Agent Proximity Map DataSource",
+  description: "Builds a public semantic proximity map for saved agents",
+  // The public site: public agents only, made explicit rather than left to
+  // the entity service default.
+  fetch: (_query, { corpus }) =>
+    buildProximityMapData(
       {
-        entityService: context.entityService,
+        entityService: {
+          listEntities: async (request, schema) =>
+            (await corpus.listEntities(request)).map((entity) =>
+              schema.parse(entity),
+            ),
+        },
         semantic: {
-          project: (request) =>
-            context.entityService.projectSemanticSpace(request),
+          project: (request) => corpus.projectSemanticSpace(request),
         },
       },
       "public",
-    );
-
-    return outputSchema.parse(data);
-  }
-}
+    ),
+};

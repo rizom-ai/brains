@@ -1,4 +1,4 @@
-import type { ContentVisibility } from "@brains/plugins";
+import type { ContentVisibility } from "@brains/sdk/internal/service-runtime";
 import { z } from "@brains/utils/zod";
 
 type MemoryVisibilityInput = ContentVisibility | "private" | undefined;

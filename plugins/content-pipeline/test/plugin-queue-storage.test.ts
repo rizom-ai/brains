@@ -4,11 +4,14 @@ import {
   createPluginHarness,
   type PluginTestHarness,
 } from "@brains/plugins/test";
-import { ContentPipelinePlugin } from "../src/plugin";
+import {
+  createContentPipelinePlugin,
+  type ContentPipelineTestPlugin,
+} from "./content-pipeline-plugins";
 
 describe("ContentPipelinePlugin queue storage integration", () => {
-  let harness: PluginTestHarness<ContentPipelinePlugin>;
-  let plugin: ContentPipelinePlugin;
+  let harness: PluginTestHarness<ContentPipelineTestPlugin>;
+  let plugin: ContentPipelineTestPlugin;
 
   async function manage(input: Record<string, unknown>): Promise<void> {
     const result = await harness.executeTool("publishing_manage", input, {
@@ -23,7 +26,7 @@ describe("ContentPipelinePlugin queue storage integration", () => {
     harness = createPluginHarness({
       dataDir: "/tmp/content-pipeline-queue-storage-test",
     });
-    plugin = new ContentPipelinePlugin({});
+    plugin = createContentPipelinePlugin({});
     await harness.installPlugin(plugin);
     harness.addEntities([
       {

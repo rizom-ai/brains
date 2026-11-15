@@ -6,6 +6,8 @@ import { createMockLogger } from "@brains/test-utils";
 import {
   DEFAULT_EMAIL_TRIAGE_CLASSIFICATION_PROMPT,
   EmailTriageProcessor,
+  MailClassificationError,
+  createMailClassifier,
   buildClassificationPrompt,
   mailItemAdapter,
   mailItemIdForMessage,
@@ -414,6 +416,95 @@ describe("email triage processor", () => {
     }
     expect(prompt).not.toContain("- notification:");
     expect(prompt).not.toContain("- other:");
+  });
+
+  describe("the classification failure warning", () => {
+    const mailSecrets = [
+      baseEmail.messageId,
+      baseEmail.sourceRef,
+      baseEmail.from.address,
+      baseEmail.to[0]?.address,
+      baseEmail.subject,
+      baseEmail.text,
+      baseEmail.html,
+    ];
+
+    async function warned(
+      classify: MailClassifier,
+      thrown: string,
+    ): Promise<ReturnType<typeof createMockLogger>["warn"]> {
+      const fixture = setup({ classify });
+      await fixture.processor.process(baseEmail);
+      for (const secret of [...mailSecrets, thrown]) {
+        if (secret) expectLoggerNotToContain(fixture.logger, secret);
+      }
+      return fixture.logger.warn;
+    }
+
+    it("names a failed model call as its cause", async () => {
+      expect(
+        await warned(async () => {
+          throw new MailClassificationError(
+            "model-call",
+            new Error("private model outage"),
+          );
+        }, "private model outage"),
+      ).toHaveBeenCalledWith("Inbound email classification failed", {
+        itemId: mailItemIdForMessage(baseEmail.messageId),
+        attempt: 1,
+        cause: "model-call",
+      });
+    });
+
+    it("names a decision that fails its schema as its cause", async () => {
+      expect(
+        await warned(
+          // The real classifier over a model that answers outside the fixed
+          // decision schema: a retain decision with no classification.
+          createMailClassifier(
+            {
+              generateObject: async (_prompt, schema) => ({
+                object: schema.parse({
+                  decision: "retain",
+                  retained: null,
+                }),
+              }),
+            },
+            "",
+          ),
+          "private-category",
+        ),
+      ).toHaveBeenCalledWith("Inbound email classification failed", {
+        itemId: mailItemIdForMessage(baseEmail.messageId),
+        attempt: 1,
+        cause: "decision-schema",
+      });
+    });
+
+    it("names a classification not derived from the mail as its cause", async () => {
+      expect(
+        await warned(
+          async () => ({ ...retainedClassification, summary: baseEmail.text }),
+          baseEmail.text,
+        ),
+      ).toHaveBeenCalledWith("Inbound email classification failed", {
+        itemId: mailItemIdForMessage(baseEmail.messageId),
+        attempt: 1,
+        cause: "not-derived",
+      });
+    });
+
+    it("names a classifier that fails some other way as a model call", async () => {
+      expect(
+        await warned(async () => {
+          throw new Error("private transport failure");
+        }, "private transport failure"),
+      ).toHaveBeenCalledWith("Inbound email classification failed", {
+        itemId: mailItemIdForMessage(baseEmail.messageId),
+        attempt: 1,
+        cause: "model-call",
+      });
+    });
   });
 
   it("does not expose mailbox or exception content in logs", async () => {

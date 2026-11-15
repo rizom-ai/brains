@@ -1,5 +1,5 @@
 import { computeContentHash } from "@brains/utils/hash";
-import { ENTITY_SYSTEM_FIELDS } from "@brains/plugins";
+import { ENTITY_SYSTEM_FIELDS } from "@brains/sdk/internal/entity-runtime";
 import {
   generateMarkdown,
   readMarkdownFrontmatter,
@@ -61,7 +61,7 @@ function frontmatterFields(content: string): Record<string, unknown> {
  * Retired fields are not written back.
  */
 export function actionItemFrontmatter(
-  entity: ActionItemEntity,
+  entity: Pick<ActionItemEntity, "content" | "metadata">,
 ): Record<string, unknown> {
   const owned = Object.entries(entity.metadata).filter(
     ([, value]) => value !== undefined,

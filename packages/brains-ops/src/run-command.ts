@@ -240,6 +240,30 @@ const crossoverStage: OpsCommand = defineCommand({
   },
 });
 
+const migrateProviderKeys: OpsCommand = defineCommand({
+  name: "migrate:provider-keys",
+  usage: "<repo>",
+  description:
+    "Move a pilot repo from the legacy AI_API_KEY to the OpenAI key its brains read",
+  run: async ({ args }): Promise<CommandResult> => {
+    const repo = args[0];
+    if (!repo) {
+      return usageFailure(migrateProviderKeys);
+    }
+
+    const { migratePilotRepoProviderKeys } =
+      await import("./provider-key-migration");
+    const changed = await migratePilotRepoProviderKeys(repo, process.env);
+    return {
+      success: true,
+      message:
+        changed.length === 0
+          ? `${repo} already uses the OpenAI key`
+          : `Migrated ${changed.length} files: ${changed.join(", ")}. Then run brains-ops init ${repo} to refresh the deploy scripts.`,
+    };
+  },
+});
+
 const render: OpsCommand = defineCommand({
   name: "render",
   usage: "<repo>",
@@ -962,6 +986,7 @@ export const commands: readonly CommandDefinition<
   upgrade,
   imagesLock,
   crossoverStage,
+  migrateProviderKeys,
   render,
   userAdd,
   userOffboard,

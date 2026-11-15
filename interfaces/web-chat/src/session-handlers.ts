@@ -1,4 +1,7 @@
-import type { InterfaceRuntime } from "@brains/sdk/internal/interface-runtime";
+import {
+  type InterfaceRuntime,
+  coerceConversationMetadata,
+} from "@brains/sdk/internal/interface-runtime";
 import {
   archiveChatSessionResponseSchema,
   chatContextHandoffRequestSchema,
@@ -8,7 +11,6 @@ import {
   renameChatSessionRequestSchema,
   renameChatSessionResponseSchema,
 } from "@brains/contracts/chat";
-import { coerceConversationMetadata } from "@brains/plugins";
 import {
   canAccessBrowserConversation,
   type WebChatConversation,

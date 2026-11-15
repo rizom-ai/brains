@@ -1,9 +1,5 @@
-import type {
-  BaseDataSourceContext,
-  DataSource,
-  DataSourceSchema,
-} from "@brains/plugins";
-import { fetchAnchorProfileData } from "./helpers";
+import type { z } from "@brains/utils/zod";
+import { fetchAnchorProfileData, type AnchorProfileReader } from "./helpers";
 
 interface ProfileSchema<T> {
   parse(data: unknown): T;
@@ -17,8 +13,12 @@ export interface ProfileAboutDataSourceOptions<T extends object> {
   schema: ProfileSchema<T>;
 }
 
-/** A site's about page data: the anchor profile, as `{ profile }`. */
-export class ProfileAboutDataSource<T extends object> implements DataSource {
+/**
+ * A site's about page data: the anchor profile, as `{ profile }`. A site
+ * registers it as a data source, whose fetch context hands it the site's
+ * entity service.
+ */
+export class ProfileAboutDataSource<T extends object> {
   public readonly id: string;
   public readonly name: string;
   public readonly description: string;
@@ -33,8 +33,8 @@ export class ProfileAboutDataSource<T extends object> implements DataSource {
 
   async fetch<R>(
     _query: unknown,
-    outputSchema: DataSourceSchema<R>,
-    context: BaseDataSourceContext,
+    outputSchema: z.ZodType<R, unknown>,
+    context: { readonly entityService: AnchorProfileReader },
   ): Promise<R> {
     const profile = await fetchAnchorProfileData(
       context.entityService,

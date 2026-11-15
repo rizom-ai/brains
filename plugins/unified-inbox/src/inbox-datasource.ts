@@ -1,11 +1,8 @@
 import type {
-  BaseDataSourceContext,
-  DataSource,
-  DataSourceSchema,
-  IInboxRegistry,
   InboxSource,
   InboxSourceMetadata,
-} from "@brains/plugins";
+  ServiceRuntime,
+} from "@brains/sdk/internal/service-runtime";
 import {
   inboxProjectionSchema,
   type InboxProjection,
@@ -13,14 +10,10 @@ import {
   type InboxSourceError,
 } from "./schemas";
 
-type InboxSourceReader = Pick<IInboxRegistry, "listSources">;
+type InboxSourceReader = Pick<ServiceRuntime["inbox"], "listSources">;
 
-export class InboxDataSource implements DataSource {
-  readonly id: string = "unified-inbox:inbox";
-  readonly name: string = "Unified Inbox DataSource";
-  readonly description: string =
-    "Aggregates live source-owned operator attention";
-
+/** Live source-owned operator attention, aggregated across Inbox sources. */
+export class InboxDataSource {
   private readonly registry: InboxSourceReader;
   private inFlight: Promise<InboxProjection> | undefined;
 
@@ -70,14 +63,6 @@ export class InboxDataSource implements DataSource {
       left.source.sourceId.localeCompare(right.source.sourceId),
     );
     return inboxProjectionSchema.parse({ entries, errors });
-  }
-
-  async fetch<T>(
-    _query: unknown,
-    outputSchema: DataSourceSchema<T>,
-    _context: BaseDataSourceContext,
-  ): Promise<T> {
-    return outputSchema.parse(await this.getInboxData());
   }
 }
 

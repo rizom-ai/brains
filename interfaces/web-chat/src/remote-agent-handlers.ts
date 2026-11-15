@@ -1,7 +1,10 @@
 import type { AuthPrincipal } from "@brains/contracts";
 import { createExternalActorId } from "@brains/contracts";
-import type { ChatContext, UserPermissionLevel } from "@brains/plugins";
-import type { InterfaceRuntime } from "@brains/sdk/internal/interface-runtime";
+import type { UserPermissionLevel } from "@brains/sdk/interfaces";
+import type {
+  InterfaceRuntime,
+  ChatContext,
+} from "@brains/sdk/internal/interface-runtime";
 import { z } from "@brains/utils/zod";
 import type { WebChatConversationAccess } from "./conversation-access";
 

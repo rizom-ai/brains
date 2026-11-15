@@ -1,16 +1,16 @@
 import {
-  internalFullScope,
-  brainCharacterBodySchema,
   generateMarkdownWithFrontmatter,
   parseMarkdownWithFrontmatter,
-} from "@brains/plugins";
+  type BaseEntity,
+} from "@brains/sdk/internal/entity-runtime";
+import {
+  type ClaimedSystemType,
+  internalFullScope,
+  brainCharacterBodySchema,
+  type ProfileCategory,
+  type BrainCharacter,
+} from "@brains/sdk/internal/service-runtime";
 import { createHash } from "node:crypto";
-import type {
-  BaseEntity,
-  ProfileCategory,
-  BrainCharacter,
-} from "@brains/plugins";
-import type { ClaimedSystemType } from "@brains/sdk/internal/service-runtime";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 

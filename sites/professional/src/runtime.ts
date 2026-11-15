@@ -1,0 +1,244 @@
+import {
+  HOMEPAGE_ATLAS_SCRIPT,
+  HOMEPAGE_ATLAS_SCRIPT_PATH,
+  homepageAtlasSchema,
+  homepageFaqsSchema,
+  homepageChatAvailable,
+  homepageOpeningSchema,
+  loadHomepageOpening,
+} from "@brains/site-atlas";
+import { askBoxAvailabilityState } from "@brains/contracts";
+import type { SiteRuntimeDeclaration } from "@brains/sdk/internal/site-runtime";
+import { loadHomepageAtlas } from "./datasources/homepage-atlas";
+import { loadTopicSourceTypes } from "./datasources/topic-source-types";
+import { loadPublicFaqs } from "@brains/faq";
+import { blogViewSchema } from "@brains/blog";
+import { deckViewSchema } from "@brains/decks";
+import { aboutHighlightsSchema, professionalProfileSchema } from "./schemas";
+import { StructuredContentFormatter } from "@brains/content-formatters";
+import { z } from "@brains/utils/zod";
+import {
+  createTemplate,
+  renderedLinkFields,
+  type Template,
+} from "@brains/sdk/internal/site-runtime";
+import {
+  homepageListDataSource,
+  type HomepagePlacementLoaders,
+} from "./datasources/homepage-datasource";
+import { aboutDataSource } from "./datasources/about-datasource";
+import {
+  HomepageListLayout,
+  type HomepageListData,
+} from "./templates/homepage-list";
+import { AboutPageLayout, type AboutPageData } from "./templates/about";
+import { AboutHighlightsLayout } from "./templates/about-highlights";
+import {
+  SubscribeThanksLayout,
+  SubscribeErrorLayout,
+} from "./templates/subscribe-result";
+import {
+  type ProfessionalSiteConfig,
+  professionalSiteConfigSchema,
+} from "./config";
+
+/** The most asked published FAQs the homepage shows under the atlas. */
+const HOMEPAGE_FAQ_LIMIT = 6;
+
+const homepageSectionSchema = z.object({
+  blurb: z
+    .string()
+    .nullable()
+    .default(null)
+    .describe("Short italic subtitle under the section title"),
+});
+
+const siteInfoCTASchema = z.object({
+  heading: z.string(),
+  buttonText: z.string(),
+  buttonLink: z.string(),
+});
+
+const blogPostSchema = blogViewSchema;
+const deckSchema = deckViewSchema;
+
+// Schema validates with optional url/typeLabel, site-builder enriches before rendering
+const homepageListSchema = z.object({
+  profile: professionalProfileSchema,
+  homepageOpening: z.boolean().default(false),
+  opening: homepageOpeningSchema,
+  atlas: homepageAtlasSchema,
+  askBox: z.boolean().default(false),
+  faqs: homepageFaqsSchema,
+  posts: z.array(blogPostSchema),
+  decks: z.array(deckSchema),
+  postsListUrl: z.string(),
+  decksListUrl: z.string(),
+  cta: siteInfoCTASchema,
+  sections: z.record(z.string(), homepageSectionSchema),
+});
+
+const homepageRenderSchema = homepageListSchema.extend({
+  posts: z.array(blogPostSchema.extend(renderedLinkFields)),
+  decks: z.array(deckSchema.extend(renderedLinkFields)),
+});
+
+// About page schema
+const aboutPageSchema = z.object({
+  profile: professionalProfileSchema,
+});
+
+// Empty schema for static pages
+const emptySchema = z.object({});
+
+/** The site's templates, as its plugin registered them for this config. */
+function professionalTemplates(
+  config: ProfessionalSiteConfig,
+): Record<string, Template> {
+  return {
+    "homepage-list": createTemplate<
+      z.infer<typeof homepageListSchema>,
+      HomepageListData
+    >({
+      name: "homepage-list",
+      description: "Professional homepage with essays and presentations",
+      schema: homepageListSchema,
+      dataSourceId: "professional-site:homepage-list",
+      requiredPermission: "public",
+      // Touch titles and motion pausing, shipped only to sites that opt into the atlas.
+      ...(config.homepageOpening
+        ? {
+            runtimeScripts: [{ src: HOMEPAGE_ATLAS_SCRIPT_PATH, defer: true }],
+            staticAssets: {
+              [HOMEPAGE_ATLAS_SCRIPT_PATH]: HOMEPAGE_ATLAS_SCRIPT,
+            },
+          }
+        : {}),
+      layout: {
+        component: HomepageListLayout,
+        renderSchema: homepageRenderSchema,
+      },
+    }),
+    about: createTemplate<z.infer<typeof aboutPageSchema>, AboutPageData>({
+      name: "about",
+      description: "About page with full profile information",
+      schema: aboutPageSchema,
+      dataSourceId: "professional-site:about",
+      requiredPermission: "public",
+      layout: {
+        component: AboutPageLayout,
+      },
+    }),
+    // The default site's one generated section. Knowledge-aware, so the
+    // portrait is drawn from what the brain actually holds about its owner.
+    "about-highlights": createTemplate<z.infer<typeof aboutHighlightsSchema>>({
+      name: "about-highlights",
+      description: "Short generated portrait shown under the about page",
+      schema: aboutHighlightsSchema,
+      dataSourceId: "shell:ai-content",
+      useKnowledgeContext: true,
+      requiredPermission: "public",
+      basePrompt: `Write a short professional portrait of the owner of this site, in the third person, from the knowledge available to you.
+
+Be concrete: name the kind of work they do, the problems they return to, and how they approach them. Do not invent employers, credentials, dates, or achievements that the knowledge does not support. If the knowledge is thin, stay general rather than making things up.
+
+The headline is one sentence of at most 90 characters. The summary is two or three sentences. The themes are two to five short phrases, three words or fewer each, naming recurring threads in their work.
+
+Follow the supplied style guide for voice, tone, wording and form, while keeping the third person.`,
+      formatter: new StructuredContentFormatter(aboutHighlightsSchema, {
+        title: "About highlights",
+        mappings: [
+          { key: "headline", label: "Headline", type: "string" },
+          { key: "summary", label: "Summary", type: "string" },
+          {
+            key: "themes",
+            label: "Themes",
+            type: "array",
+            itemType: "string",
+          },
+        ],
+      }),
+      layout: {
+        component: AboutHighlightsLayout,
+      },
+    }),
+    "subscribe-thanks": createTemplate<
+      z.infer<typeof emptySchema>,
+      Record<string, never>
+    >({
+      name: "subscribe-thanks",
+      description: "Newsletter subscription success page",
+      schema: emptySchema,
+      requiredPermission: "public",
+      layout: {
+        component: SubscribeThanksLayout,
+      },
+    }),
+    "subscribe-error": createTemplate<
+      z.infer<typeof emptySchema>,
+      Record<string, never>
+    >({
+      name: "subscribe-error",
+      description: "Newsletter subscription error page",
+      schema: emptySchema,
+      requiredPermission: "public",
+      layout: {
+        component: SubscribeErrorLayout,
+      },
+    }),
+  };
+}
+
+/**
+ * What the professional site registers for the brain: the homepage, the
+ * about page and its generated portrait, and the subscription result pages.
+ */
+export const professionalSiteRuntime: SiteRuntimeDeclaration<
+  typeof professionalSiteConfigSchema
+> = {
+  id: "professional-site",
+  config: professionalSiteConfigSchema,
+  templates: ({ config }) => professionalTemplates(config),
+  dataSources: ({ config }) => {
+    // Compute entity list URLs from config
+    const postsConfig = config.entityDisplay.post;
+    const decksConfig = config.entityDisplay.deck;
+    const postsListUrl = `/${postsConfig.pluralName ?? postsConfig.label.toLowerCase() + "s"}`;
+    const decksListUrl = `/${decksConfig.pluralName ?? decksConfig.label.toLowerCase() + "s"}`;
+    return [
+      homepageListDataSource(
+        postsListUrl,
+        decksListUrl,
+        config.homepageOpening
+          ? (runtime, read): HomepagePlacementLoaders => ({
+              loadOpening: (build) =>
+                loadHomepageOpening(build, {
+                  webRoutes: { getRoutes: () => runtime.webRoutes() },
+                  siteUrl: runtime.siteUrl,
+                  previewUrl: runtime.previewUrl,
+                  localSiteUrl: runtime.localSiteUrl,
+                  preferLocalUrls: runtime.preferLocalUrls,
+                }),
+              loadAtlas: (build) =>
+                loadHomepageAtlas({
+                  entityService: build.entityService,
+                  sourceTypes: () => loadTopicSourceTypes(runtime.messaging),
+                  semantic: {
+                    project: (request) =>
+                      build.entityService.projectSemanticSpace(request),
+                  },
+                }),
+              chatAvailable: () =>
+                homepageChatAvailable(
+                  read,
+                  read.sharedState(askBoxAvailabilityState),
+                ),
+              loadFaqs: (build) =>
+                loadPublicFaqs(build, HOMEPAGE_FAQ_LIMIT, runtime.logger),
+            })
+          : undefined,
+      ),
+      aboutDataSource,
+    ];
+  },
+};

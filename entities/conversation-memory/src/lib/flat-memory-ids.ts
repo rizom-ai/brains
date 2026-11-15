@@ -1,4 +1,5 @@
-import { internalFullScope } from "@brains/plugins";
+import { internalFullScope } from "@brains/sdk/internal/service-runtime";
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
 import {
   ACTION_ITEM_ENTITY_TYPE,
   actionItemSchema,
@@ -6,7 +7,7 @@ import {
   boardCardId,
   flatId,
 } from "@brains/action-items";
-import type { BaseEntity, EntityPluginContext } from "@brains/plugins";
+import type { MemoryEntityService as MemoryContextEntityService } from "./memory-context";
 import { computeContentHash } from "@brains/utils/hash";
 import { DECISION_ENTITY_TYPE } from "./constants";
 
@@ -19,7 +20,7 @@ import { DECISION_ENTITY_TYPE } from "./constants";
  */
 
 type MemoryEntityService = Pick<
-  EntityPluginContext["entityService"],
+  MemoryContextEntityService,
   "listEntities" | "getEntity" | "createEntity" | "deleteEntity"
 >;
 

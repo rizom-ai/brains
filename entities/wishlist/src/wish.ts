@@ -1,3 +1,4 @@
+import { withFrontmatterSchema } from "@brains/sdk/internal/entity-runtime";
 import {
   defineEntity,
   type EntityDashboardBindingContext,
@@ -37,43 +38,46 @@ function topWishes(
  * Creating one goes through the package's configured create routes.
  */
 export const wish: EntityDefinition<"wish", typeof wishMetadataSchema> =
-  defineEntity({
-    type: "wish",
-    purpose:
-      "A demand record the assistant proactively creates when a user requests a capability or outcome no installed tool can fulfill, unless the user declines.",
-    metadata: wishMetadataSchema,
-    markdown: {
-      decode: ({ content, frontmatter }) => {
-        const parsed = wishFrontmatterSchema.parse(frontmatter);
-        return {
+  withFrontmatterSchema(
+    defineEntity({
+      type: "wish",
+      purpose:
+        "A demand record the assistant proactively creates when a user requests a capability or outcome no installed tool can fulfill, unless the user declines.",
+      metadata: wishMetadataSchema,
+      markdown: {
+        decode: ({ content, frontmatter }) => {
+          const parsed = wishFrontmatterSchema.parse(frontmatter);
+          return {
+            content,
+            metadata: {
+              title: parsed.title,
+              status: parsed.status,
+              priority: parsed.priority,
+              requested: parsed.requested,
+              slug: slugify(parsed.title),
+              ...(parsed.declinedReason !== undefined && {
+                declinedReason: parsed.declinedReason,
+              }),
+            },
+          };
+        },
+        // The slug is derived from the title, so it is not written back.
+        encode: ({ content, metadata }) => ({
           content,
-          metadata: {
-            title: parsed.title,
-            status: parsed.status,
-            priority: parsed.priority,
-            requested: parsed.requested,
-            slug: slugify(parsed.title),
-            ...(parsed.declinedReason !== undefined && {
-              declinedReason: parsed.declinedReason,
+          frontmatter: {
+            title: metadata.title,
+            status: metadata.status,
+            priority: metadata.priority,
+            requested: metadata.requested,
+            ...(metadata.declinedReason !== undefined && {
+              declinedReason: metadata.declinedReason,
             }),
           },
-        };
+        }),
       },
-      // The slug is derived from the title, so it is not written back.
-      encode: ({ content, metadata }) => ({
-        content,
-        frontmatter: {
-          title: metadata.title,
-          status: metadata.status,
-          priority: metadata.priority,
-          requested: metadata.requested,
-          ...(metadata.declinedReason !== undefined && {
-            declinedReason: metadata.declinedReason,
-          }),
-        },
-      }),
-    },
-    config: { projectionSource: false, projectionSourceRole: "excluded" },
-    instructions: WISHLIST_INSTRUCTIONS,
-    dashboardWidgets: (context) => [topWishes(context)],
-  });
+      config: { projectionSource: false, projectionSourceRole: "excluded" },
+      instructions: WISHLIST_INSTRUCTIONS,
+      dashboardWidgets: (context) => [topWishes(context)],
+    }),
+    wishFrontmatterSchema,
+  );

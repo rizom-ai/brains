@@ -1,25 +1,21 @@
 import { describe, expect, test } from "bun:test";
-import {
-  EntityPlugin,
-  instantiatePluginPackageDefinition,
-  type BaseEntity,
-} from "@brains/plugins";
+import { instantiatePluginPackageDefinition } from "@brains/plugins";
 import { askContentFrontmatterSchema } from "@brains/contracts";
 import askContentPackage, { createAskContent, parseAskContent } from "../src";
+import {
+  isDeclaredEntityType,
+  type DeclaredEntityTypePlugin,
+} from "@brains/plugins/test";
 
 /** The entity plugin the package installs, as the canonical brain composes it. */
-function askContentPlugin(): EntityPlugin<
-  BaseEntity,
-  Record<string, never>,
-  Record<string, never>
-> {
+function askContentPlugin(): DeclaredEntityTypePlugin {
   const [plugin] = instantiatePluginPackageDefinition(
     askContentPackage,
     {},
     { name: "@brains/ask-content", version: "0.0.0-test" },
     { pluginId: "ask-content" },
   );
-  if (!(plugin instanceof EntityPlugin)) throw new Error("No entity plugin");
+  if (!isDeclaredEntityType(plugin)) throw new Error("No entity plugin");
   return plugin;
 }
 

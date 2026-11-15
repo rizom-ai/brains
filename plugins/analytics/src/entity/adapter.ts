@@ -1,8 +1,10 @@
-import { BaseEntityAdapter } from "@brains/plugins";
+import {
+  generateMarkdownWithFrontmatter,
+  parseTypedFrontmatter,
+} from "@brains/sdk/internal/entity-runtime";
 import { isoWeekOf, type IsoWeek } from "../lib/iso-week";
 import {
   trafficSnapshotFrontmatterSchema,
-  trafficSnapshotSchema,
   type TrafficSnapshot,
   type TrafficSnapshotFrontmatter,
   type TrafficSnapshotMetadata,
@@ -50,31 +52,30 @@ function weekTotals(frontmatter: TrafficSnapshotFrontmatter): {
   );
 }
 
-export class TrafficSnapshotAdapter extends BaseEntityAdapter<
-  TrafficSnapshot,
-  TrafficSnapshotMetadata,
-  TrafficSnapshotFrontmatter
-> {
-  constructor() {
-    super({
-      entityType: "traffic-snapshot",
-      purpose:
-        "A week of site traffic captured from Cloudflare Web Analytics: per day pageviews, visits, top paths, referrers and countries. Restricted operational data for the owner.",
-      schema: trafficSnapshotSchema,
-      frontmatterSchema: trafficSnapshotFrontmatterSchema,
-    });
-  }
-
+/**
+ * How a traffic snapshot's document is written and read: the per-day
+ * numbers in its header, its body rebuilt from them, and the week's title
+ * and totals as its metadata. What the capture writes with and the reports
+ * and the declared type read with.
+ */
+export const trafficSnapshotAdapter: {
   /** The snapshot's markdown, its body rebuilt from the numbers. */
+  createContent(frontmatter: TrafficSnapshotFrontmatter): string;
+  parseContent(content: string): TrafficSnapshotFrontmatter;
+  metadataFor(frontmatter: TrafficSnapshotFrontmatter): TrafficSnapshotMetadata;
+  fromMarkdown(markdown: string): Partial<TrafficSnapshot>;
+} = Object.freeze({
   createContent(frontmatter: TrafficSnapshotFrontmatter): string {
     const parsed = trafficSnapshotFrontmatterSchema.parse(frontmatter);
-    return this.buildMarkdown(summarize(parsed), parsed);
-  }
-
+    return generateMarkdownWithFrontmatter(summarize(parsed), parsed);
+  },
   parseContent(content: string): TrafficSnapshotFrontmatter {
-    return this.parseFrontMatter(content, trafficSnapshotFrontmatterSchema);
-  }
-
+    return parseTypedFrontmatter(
+      "traffic-snapshot",
+      content,
+      trafficSnapshotFrontmatterSchema,
+    );
+  },
   metadataFor(
     frontmatter: TrafficSnapshotFrontmatter,
   ): TrafficSnapshotMetadata {
@@ -82,17 +83,15 @@ export class TrafficSnapshotAdapter extends BaseEntityAdapter<
       title: `Traffic ${weekOf(frontmatter).id}`,
       ...weekTotals(frontmatter),
     };
-  }
-
+  },
   fromMarkdown(markdown: string): Partial<TrafficSnapshot> {
     return {
       entityType: "traffic-snapshot",
       visibility: "restricted",
       content: markdown,
-      metadata: this.metadataFor(this.parseContent(markdown)),
+      metadata: trafficSnapshotAdapter.metadataFor(
+        trafficSnapshotAdapter.parseContent(markdown),
+      ),
     };
-  }
-}
-
-export const trafficSnapshotAdapter: TrafficSnapshotAdapter =
-  new TrafficSnapshotAdapter();
+  },
+});

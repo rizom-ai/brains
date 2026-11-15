@@ -1,5 +1,4 @@
 import type { JSX } from "react";
-import type { PaginationInfo } from "@brains/plugins";
 import { Head, Pagination } from "@rizom/brain-ui/internal";
 import type { AgentStatus } from "../schemas/agent";
 import type { AgentView } from "./agent-view";
@@ -11,6 +10,7 @@ import {
   extractDomain,
   isSightedAgent,
 } from "./shared";
+import { type PaginationInfo } from "@brains/sdk/internal/presentation";
 
 export interface AgentListProps {
   agents: AgentView[];

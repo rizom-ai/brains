@@ -1,26 +1,25 @@
 import {
+  parseAgentEntity,
+  rewriteAgentContent,
+  type ParsedAgent,
+} from "./lib/agent-content";
+import { AGENT_ENTITY_TYPE } from "./lib/constants";
+import { agentEntitySchema, type AgentEntity } from "./schemas/agent";
+import {
   inboxItemListSchema,
   type InboxActor,
   type InboxItem,
   type InboxItemDetail,
   type InboxSource,
-  type ServicePluginContext,
-} from "@brains/plugins";
-import { AgentAdapter } from "./adapters/agent-adapter";
-import { AGENT_ENTITY_TYPE } from "./lib/constants";
-import { agentEntitySchema, type AgentEntity } from "./schemas/agent";
+} from "@brains/sdk/internal/service-runtime";
+import type { AgentContext } from "./lib/agent-context";
 
 const SIGHTING_LIMIT = 100;
 const DETAIL_LIMIT = 50_000;
 const CONNECT_ACTION_ID = "connect";
 const DISMISS_ACTION_ID = "dismiss";
 
-const agentAdapter = new AgentAdapter();
-
-type AgentSightingContext = Pick<
-  ServicePluginContext,
-  "entityService" | "permissions"
->;
+type AgentSightingContext = Pick<AgentContext, "entityService" | "permissions">;
 
 /** Projects second-order agents as individual, actionable Inbox items. */
 export class AgentSightingsInboxSource implements InboxSource {
@@ -93,7 +92,7 @@ export class AgentSightingsInboxSource implements InboxSource {
     const parsed = parseSighting(entity);
     if (!parsed) throw new Error("Agent sighting not found");
     const status = actionId === CONNECT_ACTION_ID ? "approved" : "archived";
-    const content = agentAdapter.rewriteAgentContent(parsed, {
+    const content = rewriteAgentContent(parsed, {
       status,
       ...(status === "approved"
         ? { introducedBy: undefined, hops: undefined }
@@ -122,10 +121,10 @@ export class AgentSightingsInboxSource implements InboxSource {
   }
 }
 
-type ParsedSighting = ReturnType<AgentAdapter["parseEntity"]>;
+type ParsedSighting = ParsedAgent;
 
 function parseSighting(entity: AgentEntity): ParsedSighting | undefined {
-  const parsed = agentAdapter.parseEntity(entity);
+  const parsed = parseAgentEntity(entity);
   return parsed.frontmatter.status === "discovered" &&
     (parsed.frontmatter.introducedBy?.length ?? 0) > 0
     ? parsed

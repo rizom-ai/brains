@@ -1,4 +1,4 @@
-import { isEntityValidationError } from "@brains/plugins";
+import { isEntityValidationError } from "@brains/sdk/internal/entity-runtime";
 import { isRecord } from "@brains/utils/is-record";
 import { z } from "@brains/utils/zod";
 import { jsonResponse } from "./editor-response";

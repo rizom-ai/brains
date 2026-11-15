@@ -1,15 +1,11 @@
-import {
-  EntityPlugin,
-  instantiatePluginPackageDefinition,
-  type BaseEntity,
-} from "@brains/plugins";
+import { instantiatePluginPackageDefinition } from "@brains/plugins";
 import seriesPackage from "../src";
+import {
+  isDeclaredEntityType,
+  type DeclaredEntityTypePlugin,
+} from "@brains/plugins/test";
 
-export type SeriesEntityPlugin = EntityPlugin<
-  BaseEntity,
-  Record<string, never>,
-  Record<string, never>
->;
+export type SeriesEntityPlugin = DeclaredEntityTypePlugin;
 
 /** The entity plugin the series install, as the canonical brain composes it. */
 export function seriesPlugin(): SeriesEntityPlugin {
@@ -20,7 +16,7 @@ export function seriesPlugin(): SeriesEntityPlugin {
     // Under the id its class had: series:series-list, series:entities.
     { pluginId: "series" },
   );
-  if (!(plugin instanceof EntityPlugin)) {
+  if (!isDeclaredEntityType(plugin)) {
     throw new Error("The series install no entity plugin");
   }
   return plugin;

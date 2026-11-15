@@ -8,12 +8,6 @@ export {
   type EntityTypeClassification,
 } from "@brains/entity-service";
 
-// Base plugin classes
-export { ServicePlugin } from "./service/service-plugin";
-export {
-  EntityPlugin,
-  emptyEntityPluginConfigSchema,
-} from "./entity/entity-plugin";
 export { computeProjectionInputFingerprint } from "./entity/projection-input-fingerprint";
 export { findNearestEntity } from "./entity/nearest-entity";
 export { waitForEmbeddingsToDrain } from "./entity/embedding-drain";
@@ -91,7 +85,6 @@ export {
   uploadTitle,
 } from "./entity/upload-title";
 
-export { InterfacePlugin } from "./interface/interface-plugin";
 export {
   AccountSettingsRegistry,
   type AccountSettingsBackend,
@@ -377,9 +370,26 @@ export {
   type DataSourceQuery,
   type DataSourceReadContext,
   type DataSourceSortField,
+  type SharedStateReader,
   type EntityDataSourceDefinition,
   type EntityDataSourceInput,
   type EntityDetailContext,
+} from "./public/entity-data-source";
+export { defineSharedState, type SharedState } from "./public/shared-state";
+// A first-party site's runtime, and how the brain registers it.
+export {
+  registerSiteRuntime,
+  siteDataSourceRuntime,
+  withSiteRuntime,
+  withSiteRuntimeDefaults,
+  type SiteDataSourceRuntime,
+  type SiteRuntimeDeclaration,
+} from "./site/site-runtime";
+// For the runtime, which binds a site's declared data sources.
+export {
+  createDeclaredDataSource,
+  isFetchingDataSourceDeclaration,
+  type DataSourceBindings,
 } from "./public/entity-data-source";
 export {
   defineAccountSettings,
@@ -475,7 +485,6 @@ export type {
   EntityCount,
   InteractionInfo,
   InteractionInfoInput,
-  BaseJobTrackingInfo,
   // Types needed by test harness and shell packages
   IShell,
   QueryContext,
@@ -561,6 +570,7 @@ export {
   applyVisibilityToMarkdown,
   extractVisibilityFromMarkdown,
   BaseEntityAdapter,
+  parseTypedFrontmatter,
   baseEntityParserSchema,
   baseEntitySchema,
   embeddingReadyChannel,
@@ -609,15 +619,6 @@ export type {
   BaseDataSourceContext,
   PaginationInfo,
 } from "@brains/entity-service";
-export {
-  BaseEntityDataSource,
-  baseQuerySchema,
-  baseInputSchema,
-  type EntityDataSourceConfig,
-  type BaseQuery,
-  type NavigationResult,
-  type SortField,
-} from "./service/base-entity-datasource";
 export {
   findRelatedEntities,
   type RelatedEntitiesQuery,
@@ -809,7 +810,6 @@ export type { ProgressCallback } from "@brains/utils/progress";
 
 // Message interface plugin (for CLI, Matrix, etc.)
 export {
-  MessageInterfacePlugin,
   MessageUploadContinuity,
   buildCoalescedInput,
   buildConfirmationResponseParts,
@@ -826,11 +826,8 @@ export {
   type MessageArtifactAccessInput,
   type MessageArtifactAccessResult,
   type MessageArtifactEntity,
-  type MessageJobTrackingInfo,
   type MessageProgressDisplay,
   type MessageSourceInput,
-  type NativeArtifactDelivery,
-  type NativeArtifactFile,
   type MessageUploadAttachmentRestorer,
   type MessageUploadContinuityOptions,
   type MessageUploadConversationLoader,
@@ -976,8 +973,16 @@ export {
   uniqueTitleContext,
   restatingMetadata,
   withBodyTemplate,
+  withFolderTitles,
+  withDisplayTitle,
+  withPersistValidator,
+  type RecordPersistValidator,
+  withPublishedStatuses,
+  type RecordDisplayTitle,
   withUrlRoute,
   writesInDocumentOrder,
+  storedDocumentCodec,
+  withFrontmatterSchema,
   type EntityAnswerContext,
   type EntityAnswerDeclaration,
   type AnyEntityReads,
@@ -1001,14 +1006,29 @@ export {
   type GenerationOutcomeContext,
   type GenerationStep,
   type RestateMetadata,
+  type FolderTitles,
 } from "./entity/entity-runtime";
 // First-party services converted from a class reach what the public
 // service contract does not offer here.
 export { withOwnedDataSources } from "./public/service-definition";
 export {
+  firstPartyJobHandler,
+  withAuthAuthority,
+  withJobHandlers,
+  withStaticSiteOutput,
+  withApiRoutes,
+  type FirstPartyJobCall,
+  type FirstPartyJobHandler,
+} from "./service/first-party-service";
+export {
   firstPartyTool,
+  hasPermission,
   serviceRuntime,
   type ClaimedSystemType,
+  type ClassRuntimeState,
+  type ClassRuntimeStateStore,
+  type ServiceConversations,
+  type ServiceEntityMutations,
   type ServiceCorpusReads,
   type ServiceDashboardWidget,
   type ServiceInteraction,
@@ -1016,14 +1036,35 @@ export {
   type ServiceStudio,
   type ServiceToolCall,
   type ServiceDataSourceDeclaration,
+  type ServiceDataSourceOptions,
   type ServiceEntityReads,
   type ServiceEntityShapes,
+  type ServiceClassJobs,
+  type ServiceClassMessaging,
+  type ServicePermissions,
+  type ServiceAttachments,
+  type ServiceAtprotoProjections,
+  type ServiceTemplateOptions,
+  type ServiceViews,
+  type ServiceEntityWrites,
+  type ServiceGitBroker,
+  type ServiceGroupings,
+  type ServiceGroupingReads,
+  type ServiceAccountSettingsRegistry,
   type ServiceIdentity,
   type ServiceListenHandler,
   type ServiceListenMode,
   type ServiceListenOptions,
   type ServiceRuntime,
 } from "./service/service-runtime";
+export {
+  classEntityServiceOf,
+  type ServiceClassEntityService,
+} from "./service/class-entity-service";
+export type {
+  ServiceEntityMirror,
+  ServiceEntityMirrorClient,
+} from "./service/entity-mirror";
 // First-party interfaces converted from a class reach what the public
 // interface contract does not offer here.
 export {

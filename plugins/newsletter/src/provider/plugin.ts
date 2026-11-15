@@ -1,11 +1,14 @@
-import type {
-  Tool,
-  ServicePluginContext,
-  ApiRouteDefinition,
-} from "@brains/plugins";
-import { ServicePlugin } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
-import packageJson from "../../package.json";
+import {
+  defineServicePlugin,
+  z,
+  type ServicePackageDefinition,
+} from "@brains/sdk/services";
+import {
+  serviceRuntime,
+  withApiRoutes,
+  withTools,
+  type ApiRouteDefinition,
+} from "@brains/sdk/internal/service-runtime";
 import { ButtondownNewsletterProvider } from "./buttondown-provider";
 import type { ButtondownClientDeps } from "./lib/buttondown-client";
 import { registerNewsletterProvider } from "./register-provider";
@@ -17,7 +20,7 @@ type ButtondownPluginConfigSchema = z.ZodObject<{
   autoSendOnPublish: z.ZodDefault<z.ZodBoolean>;
 }>;
 
-const buttondownConfigSchema: ButtondownPluginConfigSchema = z.object({
+export const buttondownConfigSchema: ButtondownPluginConfigSchema = z.object({
   apiKey: z.string().optional().describe("Buttondown API key"),
   doubleOptIn: z
     .boolean()
@@ -34,76 +37,59 @@ export type ButtondownPluginConfigInput = z.input<
   typeof buttondownConfigSchema
 >;
 
-/** Buttondown newsletter delivery and subscriber integration. */
-export class ButtondownPlugin extends ServicePlugin<
-  ButtondownPluginConfig,
-  ButtondownPluginConfigInput
-> {
-  private readonly deps: ButtondownClientDeps;
+/** The signup form's route, public and backed by newsletter_signup. */
+export const subscribeRoute: ApiRouteDefinition = {
+  path: "/subscribe",
+  method: "POST",
+  tool: "newsletter_signup",
+  public: true,
+  successRedirect: "/subscribe/thanks",
+  errorRedirect: "/subscribe/error",
+};
 
-  constructor(
-    config: ButtondownPluginConfigInput = {},
-    deps: ButtondownClientDeps = {},
-  ) {
-    super("buttondown", packageJson, config, buttondownConfigSchema);
-    this.deps = deps;
-  }
-
-  protected override async onRegister(
-    context: ServicePluginContext,
-  ): Promise<void> {
-    const provider = this.createProvider();
-    if (!provider) return;
-
-    registerNewsletterProvider(
-      context,
-      provider,
-      {
-        pluginId: this.id,
-        signupAction: "/api/buttondown/subscribe",
-        signupSuccessMessage: this.config.doubleOptIn
-          ? "Check your email to confirm your subscription."
-          : "You are subscribed.",
-        autoSendOnPublish: this.config.autoSendOnPublish,
-      },
-      this.logger,
-    );
-  }
-
-  protected override async getTools(): Promise<Tool[]> {
-    const provider = this.createProvider();
-    return provider ? createNewsletterSubscriberTools(provider) : [];
-  }
-
-  override getApiRoutes(): ApiRouteDefinition[] {
-    if (!this.config.apiKey) return [];
-    return [
-      {
-        path: "/subscribe",
-        method: "POST",
-        tool: "newsletter_signup",
-        public: true,
-        successRedirect: "/subscribe/thanks",
-        errorRedirect: "/subscribe/error",
-      },
-    ];
-  }
-
-  private createProvider(): ButtondownNewsletterProvider | undefined {
-    if (!this.config.apiKey) return undefined;
-    return new ButtondownNewsletterProvider(
-      {
-        apiKey: this.config.apiKey,
-        doubleOptIn: this.config.doubleOptIn,
-      },
-      this.logger,
-      this.deps,
-    );
-  }
+/** What the service holds once set up: no provider without an API key. */
+interface ButtondownState {
+  readonly provider: ButtondownNewsletterProvider | undefined;
 }
 
-export function buttondownPlugin(
-  config: ButtondownPluginConfigInput = {},
-): ButtondownPlugin {
-  return new ButtondownPlugin(config);
+/**
+ * Buttondown newsletter delivery and subscriber integration: with an API
+ * key, it publishes newsletters, offers the subscriber tools and the
+ * signup route, and adds the signup form to the site's footer.
+ */
+export function createButtondownPackage(
+  deps: ButtondownClientDeps = {},
+): ServicePackageDefinition<typeof buttondownConfigSchema> {
+  const service = defineServicePlugin({
+    id: "buttondown",
+    config: buttondownConfigSchema,
+    setup: (context): ButtondownState => {
+      const { config } = context;
+      if (!config.apiKey) return { provider: undefined };
+      const runtime = serviceRuntime(context);
+      const provider = new ButtondownNewsletterProvider(
+        { apiKey: config.apiKey, doubleOptIn: config.doubleOptIn },
+        runtime.logger,
+        deps,
+      );
+      registerNewsletterProvider(runtime, provider, {
+        // The id the package installs under, which the slot names.
+        pluginId: runtime.pluginId,
+        signupAction: `/api/${runtime.pluginId}/subscribe`,
+        signupSuccessMessage: config.doubleOptIn
+          ? "Check your email to confirm your subscription."
+          : "You are subscribed.",
+        autoSendOnPublish: config.autoSendOnPublish,
+      });
+      return { provider };
+    },
+  });
+  return withApiRoutes(
+    withTools<typeof buttondownConfigSchema, ButtondownState>(
+      service,
+      ({ state }) =>
+        state.provider ? createNewsletterSubscriberTools(state.provider) : [],
+    ),
+    ({ config }) => (config.apiKey ? [subscribeRoute] : []),
+  );
 }

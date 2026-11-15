@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { createSqliteClient } from "@brains/db";
 import { createTestDirectory } from "@brains/test-utils";
 import { answerAskedBefore } from "../src/lib/asked-before";
-import { faqAdapter, faqMetadata } from "../src/adapters/faq-adapter";
+import { faqDocument, faqMetadata } from "../src/lib/faq-body";
 import { faqSchema } from "../src/schemas/faq";
 import { openFoldStorage } from "./helpers/fold-storage";
 
@@ -22,7 +22,7 @@ describe("asked-before eligibility after confirmation (SQLite)", () => {
         id: "faq",
         entityType: "faq",
         visibility: "public",
-        content: faqAdapter.createFaqContent(fields, "Approved answer."),
+        content: faqDocument(fields, "Approved answer."),
         metadata: faqMetadata(fields),
       },
     });
@@ -84,7 +84,7 @@ describe("asked-before eligibility after confirmation (SQLite)", () => {
                     ...current,
                     visibility:
                       change === "restricted" ? "restricted" : "public",
-                    content: faqAdapter.createFaqContent(
+                    content: faqDocument(
                       next,
                       change === "answer"
                         ? "Different answer."

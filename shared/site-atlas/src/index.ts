@@ -40,7 +40,10 @@ export {
   loadHomepageOpening,
   type HomepageOpeningData,
 } from "./datasources/homepage-opening";
-export { homepageChatAvailable } from "./datasources/homepage-chat";
+export {
+  homepageChatAvailable,
+  type AskBoxReader,
+} from "./datasources/homepage-chat";
 export { SiteLayout, type SiteLayoutProps } from "./layouts/SiteLayout";
 export {
   AboutPage,

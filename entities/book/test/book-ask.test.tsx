@@ -4,10 +4,9 @@ import { renderToStaticMarkup as render } from "react-dom/server";
 import { Window } from "happy-dom";
 import { createMockShell } from "@brains/plugins/test";
 import type { BaseDataSourceContext, BaseEntity } from "@brains/plugins";
-import { createMockLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
-import { bookAdapter } from "../src/adapters/book-adapter";
-import { BookAskDataSource } from "../src/datasources/book-ask-datasource";
+import { bookAdapter } from "./helpers/adapters";
+import { bookAskSource } from "./helpers/sources";
 import { BookAskTemplate } from "../src/templates/book-ask";
 
 function titleEntry(book: string, title: string, year: number): BaseEntity {
@@ -55,7 +54,7 @@ describe("BookAskDataSource", () => {
     const context: BaseDataSourceContext = {
       entityService: shell.getEntityService(),
     };
-    const source = new BookAskDataSource(createMockLogger(), {
+    const source = bookAskSource({
       name: (): string => "Friedrich",
       chatAvailable: async (): Promise<boolean> => true,
     });
@@ -70,6 +69,28 @@ describe("BookAskDataSource", () => {
         { book: "spaet", title: "Ein spätes Buch", year: 1888 },
       ],
     });
+  });
+
+  it("lists books of the same year in store order, newest first", async () => {
+    const shell = createMockShell();
+    shell.addEntities([
+      titleEntry("zwei", "Das zweite Buch", 1882),
+      // Older, so the store lists it second, though its id sorts first.
+      {
+        ...titleEntry("eins", "Das erste Buch", 1882),
+        updated: "2026-10-01T00:00:00.000Z",
+      },
+    ]);
+    const source = bookAskSource({
+      name: (): string => "Friedrich",
+      chatAvailable: async (): Promise<boolean> => true,
+    });
+
+    const result = await source.fetch({}, askSchema, {
+      entityService: shell.getEntityService(),
+    });
+
+    expect(result.books.map((book) => book.book)).toEqual(["zwei", "eins"]);
   });
 });
 

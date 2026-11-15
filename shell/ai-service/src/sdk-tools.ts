@@ -169,10 +169,19 @@ function toSDKInputSchema(
       () => strictSchema ?? draft7,
       {
         validate: async (value) => {
-          const parsed = await schema.safeParseAsync(
-            strictSchema ? dropModelNulls(value, draft7) : value,
-          );
-          if (!parsed.success) return { success: false, error: parsed.error };
+          const sent = strictSchema ? dropModelNulls(value, draft7) : value;
+          const asSent = await schema.safeParseAsync(sent);
+          // A call that fails as sent is read again with each object written
+          // as its JSON text decoded: a local model sends a nested object so,
+          // and the repair that should rebuild it can fail.
+          const parsed = asSent.success
+            ? asSent
+            : await schema.safeParseAsync(decodeJsonText(sent));
+          if (!parsed.success)
+            return {
+              success: false,
+              error: asSent.success ? parsed.error : asSent.error,
+            };
           if (!modelInput) return { success: true, value: parsed.data };
           // A call in the model's own input is checked there, then becomes
           // the tool's input, which the tool's schema validates.
@@ -187,6 +196,26 @@ function toSDKInputSchema(
     ),
     strict: strictSchema !== undefined,
   };
+}
+
+/** The value with every string holding a JSON object or array decoded. */
+function decodeJsonText(value: unknown): unknown {
+  if (typeof value === "string") {
+    if (!/^\s*[[{]/.test(value)) return value;
+    try {
+      const decoded: unknown = JSON.parse(value);
+      return decoded !== null && typeof decoded === "object" ? decoded : value;
+    } catch {
+      // Text that only looks like JSON stays the text it is.
+      return value;
+    }
+  }
+  if (Array.isArray(value)) return value.map(decodeJsonText);
+  if (value !== null && typeof value === "object")
+    return Object.fromEntries(
+      Object.entries(value).map(([key, entry]) => [key, decodeJsonText(entry)]),
+    );
+  return value;
 }
 
 export function toModelToolOutput(output: unknown): {

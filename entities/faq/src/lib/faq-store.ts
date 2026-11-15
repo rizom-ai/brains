@@ -1,7 +1,12 @@
-import type { ContentVisibility, EntityPluginContext } from "@brains/plugins";
-import { findNearestEntity } from "@brains/plugins";
+import {
+  findNearestEntity,
+  type ContentVisibility,
+  type ServiceAI,
+  type ServiceEntityReads,
+  type ServiceEntityWrites,
+} from "@brains/sdk/internal/service-runtime";
 import { z } from "@brains/utils/zod";
-import { faqAdapter, faqMetadata } from "../adapters/faq-adapter";
+import { faqRecord, readFaq } from "./faq-body";
 import {
   faqSchema,
   type FaqAlternative,
@@ -32,7 +37,7 @@ const sameQuestionVerdictSchema = z.object({
 
 /** One short AI call: would one answer serve both FAQ entries? */
 export async function isSameQuestion(
-  ai: Pick<EntityPluginContext["ai"], "generateObject">,
+  ai: Pick<ServiceAI, "generateObject">,
   incoming: string,
   stored: string,
   signal?: AbortSignal,
@@ -59,14 +64,12 @@ export async function isSameQuestion(
 const MERGE_ATTEMPTS = 3;
 
 export interface FaqStoreDeps {
-  entityService: Pick<
-    EntityPluginContext["entityService"],
-    "getEntity" | "updateEntity"
-  >;
-  searchWithDistances: EntityPluginContext["entityService"]["searchWithDistances"];
+  entityService: Pick<ServiceEntityReads, "getEntity"> &
+    Pick<ServiceEntityWrites, "updateEntity">;
+  searchWithDistances: ServiceEntityReads["searchWithDistances"];
   /** Largest distance at which two FAQs may ask the same question. */
   sameQuestionDistance: number;
-  ai: Pick<EntityPluginContext["ai"], "generateObject">;
+  ai: Pick<ServiceAI, "generateObject">;
 }
 
 /** A stored FAQ of exactly `visibility` that asks the question `content` asks. */
@@ -83,8 +86,15 @@ export function findSameFaq(
   return findNearestEntity(
     {
       searchWithDistances: deps.searchWithDistances,
-      getEntity: (getRequest) =>
-        deps.entityService.getEntity(getRequest, faqSchema),
+      // As stored: a FAQ is searched and checked as the document it is
+      // embedded as.
+      getEntity: async (getRequest) => {
+        const entity = await deps.entityService.getEntity({
+          ...getRequest,
+          source: true,
+        });
+        return entity ? faqSchema.parse(entity) : null;
+      },
     },
     {
       query: request.content,
@@ -117,7 +127,7 @@ export async function mergeIntoFaq(
   merge: { asks: number; alternatives?: FaqAlternative[] },
   attemptsLeft: number = MERGE_ATTEMPTS,
 ): Promise<boolean> {
-  const { frontmatter } = faqAdapter.parseFaqContent(faq.content);
+  const { frontmatter } = readFaq(faq);
   const visibility = faq.visibility;
   const result = await deps.entityService.updateEntity({
     entity: prepareFaqMerge(faq, merge),
@@ -128,14 +138,16 @@ export async function mergeIntoFaq(
     throw new Error(`FAQ ${faq.id} kept changing during merge`);
   }
 
-  const current = await deps.entityService.getEntity(
-    { entityType: "faq", id: faq.id, visibilityScope: visibility },
-    faqSchema,
-  );
+  const read = await deps.entityService.getEntity({
+    entityType: "faq",
+    id: faq.id,
+    visibilityScope: visibility,
+    source: true,
+  });
+  const current = read ? faqSchema.parse(read) : null;
   if (
     current?.visibility !== visibility ||
-    faqAdapter.parseFaqContent(current.content).frontmatter.question !==
-      frontmatter.question
+    readFaq(current).frontmatter.question !== frontmatter.question
   )
     return false;
   return mergeIntoFaq(deps, current, merge, attemptsLeft - 1);
@@ -146,8 +158,7 @@ export function prepareFaqMerge(
   faq: FaqEntity,
   merge: { asks: number; alternatives?: FaqAlternative[] },
 ): FaqEntity {
-  const { frontmatter, answer, sources, alternatives } =
-    faqAdapter.parseFaqContent(faq.content);
+  const { frontmatter, answer, sources, alternatives } = readFaq(faq);
   const known = [
     answer,
     ...alternatives.map((alternative) => alternative.answer),
@@ -162,12 +173,11 @@ export function prepareFaqMerge(
   };
   return {
     ...faq,
-    content: faqAdapter.createFaqContent(
+    ...faqRecord(
       merged,
       answer,
       [...alternatives, ...newAlternatives],
       sources,
     ),
-    metadata: faqMetadata(merged),
   };
 }

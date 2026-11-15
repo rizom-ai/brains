@@ -1,4 +1,4 @@
-import type { ContentVisibility } from "@brains/plugins";
+import type { ContentVisibility } from "@brains/sdk/internal/service-runtime";
 
 export interface SiteContentResolutionOptions {
   /** Look up previously saved content from entity storage. */

@@ -7,11 +7,11 @@ import {
 import { createSilentLogger } from "@brains/test-utils";
 import { topicEntitySchema } from "../../src/schemas/topic";
 import type { TopicEntity } from "../../src/types";
-import { TopicAdapter } from "../../src/lib/topic-adapter";
+import { topicDocument } from "../../src/lib/topic-document";
 import { reconcileTopics } from "../../src/lib/topic-reconciliation";
 import type { ITopicMergeSynthesizer } from "../../src/lib/topic-merge-synthesizer";
 
-const adapter = new TopicAdapter();
+const adapter = topicDocument;
 
 function makeTopic(params: {
   id: string;

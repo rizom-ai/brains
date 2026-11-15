@@ -6,7 +6,7 @@ import * as stylex from "@stylexjs/stylex";
 import type {
   RuntimeOperatorActionControl,
   RuntimePreparedConfirmation,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/service-runtime";
 import {
   useContext,
   useEffect,

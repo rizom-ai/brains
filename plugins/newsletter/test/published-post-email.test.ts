@@ -55,8 +55,8 @@ describe("the email a published post sends", () => {
         seriesIndex: 2,
       },
       contentHash: "",
-      created: "",
-      updated: "",
+      created: "2026-01-01T00:00:00.000Z",
+      updated: "2026-01-01T00:00:00.000Z",
     });
 
     expect(

@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { createElement } from "react";
 import type { ReactElement } from "react";
-import { SiteContentPlugin } from "../src/plugin";
+import type { Plugin } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
-import type { PluginCapabilities } from "@brains/plugins/test";
+import { createSiteContentPlugins } from "./site-content-plugins";
 import type { SiteContentDefinition } from "../src/definitions";
 
 // A real component: `layout` is typed to return a JSX element, so a stub that
@@ -26,13 +26,15 @@ const definition: SiteContentDefinition = {
 
 describe("SiteContentPlugin", () => {
   let harness: ReturnType<typeof createPluginHarness>;
-  let plugin: SiteContentPlugin;
-  let capabilities: PluginCapabilities;
+  let plugin: Plugin;
 
   beforeEach(async () => {
     harness = createPluginHarness({ dataDir: "/tmp/test-site-content" });
-    plugin = new SiteContentPlugin({ definitions: [definition] });
-    capabilities = await harness.installPlugin(plugin);
+    const plugins = createSiteContentPlugins({ definitions: [definition] });
+    for (const installed of plugins) await harness.installPlugin(installed);
+    const service = plugins.find(({ type }) => type === "service");
+    if (!service) throw new Error("No site-content service");
+    plugin = service;
   });
 
   afterEach(async () => {
@@ -60,12 +62,12 @@ describe("SiteContentPlugin", () => {
     });
 
     it("should provide generate tool", () => {
-      const toolNames = capabilities.tools.map((t) => t.name);
+      const toolNames = harness.getCapabilities().tools.map((t) => t.name);
       expect(toolNames).toContain("site-content_generate");
     });
 
     it("should not provide any resources", () => {
-      expect(capabilities.resources).toEqual([]);
+      expect(harness.getCapabilities().resources).toEqual([]);
     });
   });
 });

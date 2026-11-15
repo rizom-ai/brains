@@ -144,3 +144,40 @@ describe("EntitySerializer.reconstructEntity", () => {
     expect(entity.metadata.status).toBe("approved");
   });
 });
+
+describe("EntitySerializer.serializeEntity, a type that writes more than it presents", () => {
+  /** Presents status and title; writes a generation error too. */
+  class WritingAdapter extends TestAdapter {
+    readonly writtenFrontmatterSchema = testFrontmatterSchema.extend({
+      error: z.string().optional(),
+    });
+
+    public override toMarkdown(entity: TestEntity): string {
+      return `---\nstatus: ${entity.metadata.status}\n---\n${this.extractBody(entity.content)}`;
+    }
+  }
+
+  it("never keeps a field it writes from the source, though it does not present it", () => {
+    const logger = createSilentLogger();
+    const registry = EntityRegistry.createFresh(logger);
+    registry.registerEntityType("test", testEntitySchema, new WritingAdapter());
+    const serializer = new EntitySerializer(registry, logger);
+    const entity: TestEntity = {
+      id: "t1",
+      entityType: "test",
+      // The source still says the generation failed; the type wrote it out.
+      content:
+        "---\nstatus: approved\nerror: the model timed out\nauthor: Ada\n---\nBody\n",
+      contentHash: "",
+      visibility: "public",
+      created: "2026-01-01T00:00:00.000Z",
+      updated: "2026-01-01T00:00:00.000Z",
+      metadata: { status: "approved" },
+    };
+    // The error it writes is its own to drop; the author it neither writes
+    // nor presents is the file's own, kept.
+    expect(serializer.serializeEntity(entity)).toBe(
+      "---\nstatus: approved\nauthor: Ada\n---\nBody\n",
+    );
+  });
+});

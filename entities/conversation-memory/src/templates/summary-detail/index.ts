@@ -1,4 +1,4 @@
-import { createTemplate } from "@brains/plugins";
+import { createTemplate } from "@brains/sdk/internal/presentation";
 import { summaryDetailSchema, type SummaryDetailData } from "./schema";
 import { SummaryDetailLayout } from "./layout";
 import { SUMMARY_DATASOURCE_ID } from "../../lib/constants";

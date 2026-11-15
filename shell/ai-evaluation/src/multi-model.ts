@@ -5,7 +5,6 @@
  * Resolves provider-specific API keys from env vars.
  */
 
-import { selectTextProvider } from "@brains/ai-service";
 import { z } from "@brains/utils/zod";
 
 /** Independent runs per model; each sample boots its own environment. */
@@ -61,30 +60,4 @@ export function resolveSampling(input: {
       "Repeated sampling requires a models: list in brain.eval.yaml",
     );
   return { samples, minPassRate };
-}
-
-/** Provider → env var name */
-const PROVIDER_ENV_VARS: Record<string, string> = {
-  openai: "OPENAI_API_KEY",
-  anthropic: "ANTHROPIC_API_KEY",
-  google: "GOOGLE_GENERATIVE_AI_API_KEY",
-};
-
-/**
- * Resolve the API key for a model from env vars.
- *
- * Detects provider from model name, returns the matching env var.
- * Falls back to AI_API_KEY. Returns undefined for local providers (ollama).
- */
-export function resolveProviderKey(
-  model: string,
-  env: Record<string, string | undefined>,
-): string | undefined {
-  const provider = selectTextProvider(model);
-  const envVar = PROVIDER_ENV_VARS[provider];
-
-  // Local providers don't need a key
-  if (!envVar) return undefined;
-
-  return env[envVar] ?? env["AI_API_KEY"];
 }

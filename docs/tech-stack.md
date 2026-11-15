@@ -80,11 +80,11 @@ until the repository owns a corresponding format.
 
 ### AI Models
 
-- **Configurable** — single `AI_API_KEY` env var, provider auto-detected from model name
+- **Configurable** — one key per provider (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_GENERATIVE_AI_API_KEY`), provider auto-detected from model name
   - Default text model: **`gpt-6-luna`** with `low` reasoning (OpenAI)
   - Supported providers: OpenAI, Anthropic (Claude), Google (Gemini)
   - Default embedding model: **`text-embedding-3-small`** (OpenAI)
-  - Optional separate `AI_IMAGE_KEY` for image generation
+  - Image model set separately (`imageModel`), on its own provider's key
 
 ### AI Integration
 
@@ -98,7 +98,7 @@ until the repository owns a corresponding format.
 
 - **Embedding Generation** — OpenAI `text-embedding-3-small`
   - 1536-dimensional vectors
-  - Called via Vercel AI SDK (same `AI_API_KEY` as text gen)
+  - Called via Vercel AI SDK, with `OPENAI_API_KEY`
   - ~$0.02/M tokens (negligible for personal brains)
 - **Vector Storage** — separate `embeddings.db`
   - Decoupled from entity DB for model-swap flexibility
@@ -249,10 +249,10 @@ until the repository owns a corresponding format.
 
 ### Plugin Architecture
 
-- **Three sibling plugin types** with isolated contexts:
-  - **EntityPlugin** — content types (schema, adapter, generation handler, projection declarations); zero tools
-  - **ServicePlugin** — integrations (tools, job handlers, API routes, daemons)
-  - **InterfacePlugin** — transports (MCP, Discord, A2A, CLI)
+- **Three sibling package families**, each a declarative definition with an isolated context:
+  - **Entity packages** — content types (schema, adapter, generation, projection declarations); zero tools
+  - **Services** — integrations (tools, job handlers, API routes, daemons)
+  - **Interfaces** — transports (MCP, Discord, A2A, CLI)
 - **Composite plugins** — factories may return `Plugin | Plugin[]`, letting one capability id register multiple sub-plugins (e.g. `@brains/newsletter` bundles entity + service)
 - The **canonical definition** declares `[id, factory, config]` catalog tuples; eight ordered capability bundles plus policy-only `team` compose active members per instance
 
@@ -285,7 +285,7 @@ until the repository owns a corresponding format.
 
 - `@brains/app` — brain resolver, CLI entrypoint, `defineBrain()`, `brain.yaml` parsing
 - `@brains/core` — central shell with plugin lifecycle and registries
-- `@brains/plugins` — plugin base classes (EntityPlugin, ServicePlugin, InterfacePlugin), three sibling contexts
+- `@brains/plugins` — the plugin runtime: declarative definitions, their adapters, three sibling contexts
 - `@brains/ai-service` — AI agent + xstate conversation state machine + `ai:usage` logging
 - `@brains/entity-service` — entity CRUD, mutations, hybrid search, embedding DB
 - `@brains/identity-service` — brain character + anchor profile management
@@ -333,8 +333,8 @@ until the repository owns a corresponding format.
 - **Local-first content** — Markdown files as source of truth, git-backed sync via `directory-sync`
 - **Hybrid search** — vector embeddings (OpenAI) + FTS5 keyword matching, threshold-tuned
 - **Multi-interface support** — CLI, Chat REPL, Discord, MCP, A2A, Web chat
-- **AI-powered** — single `AI_API_KEY`, provider auto-detected from model name (OpenAI / Anthropic / Google)
-- **Extensible** — EntityPlugin / ServicePlugin / InterfacePlugin + composite factories
+- **AI-powered** — one key per provider, provider auto-detected from model name (OpenAI / Anthropic / Google)
+- **Extensible** — entity packages, services and interfaces as declarative definitions
 - **Type-safe** — end-to-end TypeScript with Zod validation
 - **Observable** — structured JSON logs, operational diagnostics at `/health/operate`, `ai:usage` tracking
 - **Lightweight instance packages** — deployments are centered on `brain.yaml`, with minimal per-instance support files (`.env`, `.env.example`, `.gitignore`, `tsconfig.json`, `package.json`, optional deploy artifacts) rather than full custom apps

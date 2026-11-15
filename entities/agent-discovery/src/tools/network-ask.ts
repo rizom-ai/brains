@@ -1,9 +1,7 @@
-import { type Tool, type ToolResponse } from "@brains/plugins";
+import { parseAgentEntity } from "../lib/agent-content";
 import { a2aAskContract, toSdkError } from "@brains/contracts";
-import type { ServicePluginContext } from "@brains/plugins";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
-import { AgentAdapter } from "../adapters/agent-adapter";
 import { AGENT_ENTITY_TYPE } from "../lib/constants";
 import {
   choosePeers,
@@ -13,6 +11,11 @@ import {
 } from "../lib/network-ask";
 import { normalizeCosineDistance } from "../lib/proximity-map";
 import { agentEntitySchema } from "../schemas/agent";
+import {
+  type Tool,
+  type ToolResponse,
+} from "@brains/sdk/internal/service-runtime";
+import type { AgentContext } from "../lib/agent-context";
 
 const networkAskInputSchema = z.object({
   question: z
@@ -24,7 +27,7 @@ const networkAskInputSchema = z.object({
 });
 
 type NetworkAskContext = Pick<
-  ServicePluginContext,
+  AgentContext,
   "entityService" | "logger" | "messaging" | "semantic"
 >;
 
@@ -32,8 +35,6 @@ const BRAIN_CHARACTER = {
   entityId: "brain-character",
   entityType: "brain-character",
 } as const;
-
-const agentAdapter = new AgentAdapter();
 
 /** Each indexed agent's semantic distance from this brain; none when the index is unavailable. */
 async function peerDistances(
@@ -68,7 +69,7 @@ async function listPeers(context: NetworkAskContext): Promise<PeerCandidate[]> {
     peerDistances(context),
   ]);
   return agents.map((agent) => {
-    const { frontmatter, body } = agentAdapter.parseEntity(agent);
+    const { frontmatter, body } = parseAgentEntity(agent);
     const distance = distances.get(agent.id);
     return {
       id: agent.id,

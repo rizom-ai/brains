@@ -1,7 +1,7 @@
 import type {
-  IRuntimeStateNamespace,
-  IRuntimeStateStore,
-} from "@brains/plugins";
+  ClassRuntimeState,
+  ClassRuntimeStateStore,
+} from "@brains/sdk/internal/service-runtime";
 import { z } from "@brains/utils/zod";
 
 const capturedReplySchema: z.ZodObject<{ claimedAt: z.ZodString }> = z.object({
@@ -9,7 +9,7 @@ const capturedReplySchema: z.ZodObject<{ claimedAt: z.ZodString }> = z.object({
 });
 
 export type CapturedReply = z.output<typeof capturedReplySchema>;
-export type CapturedReplyStore = IRuntimeStateStore<CapturedReply>;
+export type CapturedReplyStore = ClassRuntimeStateStore<CapturedReply>;
 
 /**
  * Legacy reply claims, keyed by message id. A timestamp cannot establish
@@ -17,7 +17,7 @@ export type CapturedReplyStore = IRuntimeStateStore<CapturedReply>;
  * new captures use entity-database mutation receipts instead of writing here.
  */
 export function capturedReplyStore(
-  runtimeState: IRuntimeStateNamespace,
+  runtimeState: ClassRuntimeState,
 ): CapturedReplyStore {
   return runtimeState.scoped({
     namespace: "faq.captured-replies",

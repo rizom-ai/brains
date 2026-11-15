@@ -1,22 +1,19 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import {
-  ActionItemAdapter,
+  actionItemAdapter,
   actionItemSchema,
   type ActionItemMetadata,
 } from "@brains/action-items";
 import { EntityRegistry, EntityService } from "@brains/entity-service";
 import { migrateEntities } from "@brains/entity-service/migrate";
-import { createMockShell } from "@brains/plugins/test";
-import { createSilentLogger, createTestDirectory } from "@brains/test-utils";
-import { DecisionAdapter } from "../../src/adapters/conversation-memory-adapters";
-import { flattenMemoryIds } from "../../src/lib/flat-memory-ids";
-import {
-  decisionSchema,
-  type DecisionEntity,
-} from "../../src/schemas/conversation-memory";
 
-const actionItems = new ActionItemAdapter();
-const decisions = new DecisionAdapter();
+import { createMockShell, isDeclaredEntityType } from "@brains/plugins/test";
+import { createSilentLogger, createTestDirectory } from "@brains/test-utils";
+import { createConversationMemoryPlugins } from "../conversation-memory-plugins";
+import { flattenMemoryIds } from "../../src/lib/flat-memory-ids";
+import type { DecisionEntity } from "../../src/schemas/conversation-memory";
+
+const actionItems = actionItemAdapter;
 const created = "2026-09-01T10:00:00.000Z";
 
 let close: (() => Promise<void>) | undefined;
@@ -29,8 +26,15 @@ async function brain(): Promise<EntityService> {
   const directory = await createTestDirectory();
   const logger = createSilentLogger();
   const registry = EntityRegistry.createFresh(logger);
-  registry.registerEntityType("action-item", actionItemSchema, actionItems);
-  registry.registerEntityType("decision", decisionSchema, decisions);
+  // The package's declared action-item and decision types.
+  for (const plugin of createConversationMemoryPlugins()) {
+    if (isDeclaredEntityType(plugin) && plugin.entityType !== "summary")
+      registry.registerEntityType(
+        plugin.entityType,
+        plugin.schema,
+        plugin.adapter,
+      );
+  }
   const dbConfig = { url: `file:${directory.dir}/entities.db` };
   await migrateEntities(dbConfig, logger);
   const service = EntityService.createFresh({
@@ -125,11 +129,8 @@ async function storeDecision(
       visibility: "restricted",
       created,
       updated: created,
-      content: decisions.composeContent(
-        "Decision: Hold it in the old library",
-        "Hold it in the old library.",
-        decided,
-      ),
+      content:
+        "# Decision: Hold it in the old library\n\nHold it in the old library.\n",
       metadata: decided,
     },
   });

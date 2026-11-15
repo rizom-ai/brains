@@ -1,5 +1,6 @@
 import { canonicalContentVisibilitySchema } from "@brains/entity-service";
 import { z } from "@brains/utils/zod";
+import { isRecord } from "@brains/utils/is-record";
 
 type StrictObjectSchema<Shape extends z.ZodRawShape> = ReturnType<
   z.ZodObject<Shape>["strict"]
@@ -653,7 +654,9 @@ export const updateOperationInputSchema: UpdateOperationInputSchema = z
       error: (issue) => {
         if (issue.code !== "unrecognized_keys") return undefined;
         if (issue.keys.includes("kind"))
-          return "An update operation has no `kind`: name it by its field, as in `{ edits: [...] }`.";
+          return isRecord(issue.input) && issue.input["kind"] === "user-message"
+            ? 'A user-message source is the source operation: put it under `source`, as in `{ source: { kind: "user-message", ... } }`.'
+            : "An update operation has no `kind`: name it by its field, as in `{ edits: [...] }`.";
         return `Unrecognized key ${issue.keys.map((key) => `"${key}"`).join(", ")}: ${exactlyOneUpdateOperation}`;
       },
     },

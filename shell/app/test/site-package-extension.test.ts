@@ -1,19 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import type { Plugin, RouteDefinitionInput } from "@brains/plugins";
+import { withSiteRuntime, type RouteDefinitionInput } from "@brains/plugins";
+import { siteRuntimeOf } from "@brains/site-composition";
+import { z } from "@brains/utils/zod";
 import { extendSite, type SitePackage } from "../src";
-
-const basePlugin: SitePackage["plugin"] = function basePlugin(): Plugin {
-  return {
-    id: "base",
-    version: "0.0.0",
-    type: "service",
-    packageName: "base",
-    register: async () => ({
-      tools: [],
-      resources: [],
-    }),
-  };
-};
 
 const baseHomeRoute: RouteDefinitionInput = {
   id: "home",
@@ -35,19 +24,24 @@ const baseAboutRoute: RouteDefinitionInput = {
 
 const baseRoutes: RouteDefinitionInput[] = [baseHomeRoute, baseAboutRoute];
 
+/** What the base site carries for the runtime. */
+const baseRuntime = { id: "base", config: z.object({}), templates: {} };
+
 function makeBaseSite(): SitePackage {
-  return {
-    layouts: { default: "base-layout" },
-    routes: baseRoutes,
-    plugin: basePlugin,
-    entityDisplay: {
-      post: { label: "Post" },
-      series: { label: "Series" },
+  return withSiteRuntime(
+    {
+      layouts: { default: "base-layout" },
+      routes: baseRoutes,
+      entityDisplay: {
+        post: { label: "Post" },
+        series: { label: "Series" },
+      },
+      staticAssets: {
+        "/base.txt": "base",
+      },
     },
-    staticAssets: {
-      "/base.txt": "base",
-    },
-  };
+    baseRuntime,
+  );
 }
 
 describe("extendSite", () => {
@@ -55,11 +49,6 @@ describe("extendSite", () => {
     const baseSite = makeBaseSite();
     expect(extendSite(baseSite, {})).toBe(baseSite);
     expect(extendSite(baseSite)).toBe(baseSite);
-  });
-
-  test("returns the base site unchanged when only an empty plugin override is passed", () => {
-    const baseSite = makeBaseSite();
-    expect(extendSite(baseSite, {})).toBe(baseSite);
   });
 
   test("preserves base.staticAssets reference when override has no staticAssets", () => {
@@ -70,23 +59,15 @@ describe("extendSite", () => {
     expect(child.staticAssets).toBe(baseSite.staticAssets);
   });
 
-  test("uses override plugin when supplied", () => {
+  test("uses the override's runtime when it carries one", () => {
     const baseSite = makeBaseSite();
-    const overridePlugin: SitePackage["plugin"] =
-      function overridePlugin(): Plugin {
-        return {
-          id: "override",
-          version: "0.0.0",
-          type: "service",
-          packageName: "override",
-          register: async () => ({
-            tools: [],
-            resources: [],
-          }),
-        };
-      };
-    const child = extendSite(baseSite, { plugin: overridePlugin });
-    expect(child.plugin).toBe(overridePlugin);
+    const override = withSiteRuntime(
+      {},
+      { id: "override", config: z.object({}), templates: {} },
+    );
+    const child = extendSite(baseSite, override);
+    expect(siteRuntimeOf(child)).toBe(siteRuntimeOf(override));
+    expect(siteRuntimeOf(child)).not.toBe(siteRuntimeOf(baseSite));
   });
 
   test("merges site composition with deterministic overrides", () => {
@@ -144,7 +125,7 @@ describe("extendSite", () => {
         sections: [],
       },
     ]);
-    expect(childSite.plugin).toBe(basePlugin);
+    expect(siteRuntimeOf(childSite)).toBe(siteRuntimeOf(baseSite));
     expect(childSite.entityDisplay).toEqual({
       post: { label: "Essay" },
       series: { label: "Series" },

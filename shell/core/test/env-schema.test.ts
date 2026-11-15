@@ -1,26 +1,31 @@
 import { describe, expect, it } from "bun:test";
-import { expectDefined } from "@brains/utils/expect-defined";
 import { shellEnvVars } from "../src/env-schema";
 
 describe("shellEnvVars", () => {
-  it("includes the ai-service declarations", () => {
-    const vars = shellEnvVars();
-    const names = vars.map((decl) => decl.name);
-    expect(names).toContain("AI_API_KEY");
-    expect(names).toContain("AI_IMAGE_KEY");
+  it("declares each provider's key, none of them required", () => {
+    const keys = shellEnvVars().filter((decl) =>
+      [
+        "OPENAI_API_KEY",
+        "ANTHROPIC_API_KEY",
+        "GOOGLE_GENERATIVE_AI_API_KEY",
+      ].includes(decl.name),
+    );
 
-    const apiKey = expectDefined(
-      vars.find((decl) => decl.name === "AI_API_KEY"),
-      "AI_API_KEY declaration",
-    );
-    expect(apiKey.required).toBe(true);
-    expect(apiKey.sensitive).toBe(true);
-    const imageKey = expectDefined(
-      vars.find((decl) => decl.name === "AI_IMAGE_KEY"),
-      "AI_IMAGE_KEY declaration",
-    );
-    expect(imageKey.required).toBeUndefined();
-    expect(imageKey.sensitive).toBe(true);
+    expect(keys.map((decl) => decl.name).sort()).toEqual([
+      "ANTHROPIC_API_KEY",
+      "GOOGLE_GENERATIVE_AI_API_KEY",
+      "OPENAI_API_KEY",
+    ]);
+    for (const decl of keys) {
+      expect(decl.sensitive).toBe(true);
+      expect(decl.required).toBeUndefined();
+    }
+  });
+
+  it("no longer declares the single legacy keys", () => {
+    const names = shellEnvVars().map((decl) => decl.name);
+    expect(names).not.toContain("AI_API_KEY");
+    expect(names).not.toContain("AI_IMAGE_KEY");
   });
 
   it("declares each variable at most once", () => {

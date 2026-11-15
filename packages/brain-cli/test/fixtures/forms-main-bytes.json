@@ -1,0 +1,172 @@
+{
+  "contactCreated": {
+    "stored": {
+      "content": "---\nname: Ada Sender\nemail: ada@example.com\nreceivedAt: '2026-04-15T09:00:00.000Z'\nstatus: new\nnotification: pending\nvisibility: restricted\n---\nHello there.\n\nSecond paragraph.\n",
+      "metadata": "{\"title\":\"Contact request\",\"receivedAt\":\"2026-04-15T09:00:00.000Z\",\"status\":\"new\",\"notification\":\"pending\"}"
+    },
+    "read": {
+      "content": "---\nname: Ada Sender\nemail: ada@example.com\nreceivedAt: '2026-04-15T09:00:00.000Z'\nstatus: new\nnotification: pending\nvisibility: restricted\n---\nHello there.\n\nSecond paragraph.\n",
+      "metadata": {
+        "title": "Contact request",
+        "receivedAt": "2026-04-15T09:00:00.000Z",
+        "status": "new",
+        "notification": "pending"
+      }
+    },
+    "exported": "---\nname: Ada Sender\nemail: ada@example.com\nreceivedAt: '2026-04-15T09:00:00.000Z'\nstatus: new\nnotification: pending\nvisibility: restricted\n---\nHello there.\n\nSecond paragraph.\n"
+  },
+  "contactNotified": {
+    "stored": {
+      "content": "---\nname: Ada Sender\nemail: ada@example.com\nreceivedAt: '2026-04-15T09:00:00.000Z'\nstatus: new\nnotification: sent\nvisibility: restricted\n---\nHello there.\n\nSecond paragraph.\n",
+      "metadata": "{\"title\":\"Contact request\",\"receivedAt\":\"2026-04-15T09:00:00.000Z\",\"status\":\"new\",\"notification\":\"sent\"}"
+    },
+    "read": {
+      "content": "---\nname: Ada Sender\nemail: ada@example.com\nreceivedAt: '2026-04-15T09:00:00.000Z'\nstatus: new\nnotification: sent\nvisibility: restricted\n---\nHello there.\n\nSecond paragraph.\n",
+      "metadata": {
+        "title": "Contact request",
+        "receivedAt": "2026-04-15T09:00:00.000Z",
+        "status": "new",
+        "notification": "sent"
+      }
+    },
+    "exported": "---\nname: Ada Sender\nemail: ada@example.com\nreceivedAt: '2026-04-15T09:00:00.000Z'\nstatus: new\nnotification: sent\nvisibility: restricted\n---\nHello there.\n\nSecond paragraph.\n"
+  },
+  "contactHandled": {
+    "stored": {
+      "content": "---\nname: Ada Sender\nemail: ada@example.com\nreceivedAt: '2026-04-15T09:00:00.000Z'\nstatus: handled\nnotification: sent\nvisibility: restricted\n---\nHello there.\n\nSecond paragraph.\n",
+      "metadata": "{\"title\":\"Contact request\",\"receivedAt\":\"2026-04-15T09:00:00.000Z\",\"status\":\"handled\",\"notification\":\"sent\"}"
+    },
+    "read": {
+      "content": "---\nname: Ada Sender\nemail: ada@example.com\nreceivedAt: '2026-04-15T09:00:00.000Z'\nstatus: handled\nnotification: sent\nvisibility: restricted\n---\nHello there.\n\nSecond paragraph.\n",
+      "metadata": {
+        "title": "Contact request",
+        "receivedAt": "2026-04-15T09:00:00.000Z",
+        "status": "handled",
+        "notification": "sent"
+      }
+    },
+    "exported": "---\nname: Ada Sender\nemail: ada@example.com\nreceivedAt: '2026-04-15T09:00:00.000Z'\nstatus: handled\nnotification: sent\nvisibility: restricted\n---\nHello there.\n\nSecond paragraph.\n"
+  },
+  "contactNoMessage": {
+    "stored": {
+      "content": "---\nname: No Message\nemail: none@example.com\nreceivedAt: '2026-04-16T09:00:00.000Z'\nstatus: new\nnotification: pending\nvisibility: restricted\n---\n\n",
+      "metadata": "{\"title\":\"Contact request\",\"receivedAt\":\"2026-04-16T09:00:00.000Z\",\"status\":\"new\",\"notification\":\"pending\"}"
+    },
+    "read": {
+      "content": "---\nname: No Message\nemail: none@example.com\nreceivedAt: '2026-04-16T09:00:00.000Z'\nstatus: new\nnotification: pending\nvisibility: restricted\n---\n\n",
+      "metadata": {
+        "title": "Contact request",
+        "receivedAt": "2026-04-16T09:00:00.000Z",
+        "status": "new",
+        "notification": "pending"
+      }
+    },
+    "exported": "---\nname: No Message\nemail: none@example.com\nreceivedAt: '2026-04-16T09:00:00.000Z'\nstatus: new\nnotification: pending\nvisibility: restricted\n---\n\n"
+  },
+  "contactOlder": {
+    "stored": {
+      "content": "---\nname: Old Sender\nemail: old@example.com\nreceivedAt: '2026-01-01T00:00:00.000Z'\nexpiresAt: '2026-01-02T00:00:00.000Z'\nstatus: new\nnotification: sent\nvisibility: restricted\n---\nAn older message.\n",
+      "metadata": "{\"title\":\"Contact request\",\"receivedAt\":\"2026-01-01T00:00:00.000Z\",\"status\":\"new\",\"notification\":\"sent\"}"
+    },
+    "read": {
+      "content": "---\nname: Old Sender\nemail: old@example.com\nreceivedAt: '2026-01-01T00:00:00.000Z'\nexpiresAt: '2026-01-02T00:00:00.000Z'\nstatus: new\nnotification: sent\nvisibility: restricted\n---\nAn older message.\n",
+      "metadata": {
+        "title": "Contact request",
+        "receivedAt": "2026-01-01T00:00:00.000Z",
+        "status": "new",
+        "notification": "sent"
+      }
+    },
+    "exported": "---\nname: Old Sender\nemail: old@example.com\nreceivedAt: '2026-01-01T00:00:00.000Z'\nexpiresAt: '2026-01-02T00:00:00.000Z'\nstatus: new\nnotification: sent\nvisibility: restricted\n---\nAn older message.\n"
+  },
+  "quizCreated": {
+    "stored": {
+      "content": "---\nquiz: fit\nquizTitle: Fit check\nlanguage: nl\nreceivedAt: '2026-04-15T09:00:00.000Z'\nstatus: new\nnotification: pending\nname: Bea Taker\nemail: bea@example.com\nresults:\n  - dimension: d\n    title: Fit\n    outcome: high\n    outcomeTitle: High fit\nanswers:\n  - field: q1\n    label: Question one\n    value: 'Yes'\n  - field: q2\n    label: Pick some\n    value:\n      - A\n      - B\nvisibility: restricted\n---\n\n",
+      "metadata": "{\"title\":\"Fit check\",\"quiz\":\"fit\",\"receivedAt\":\"2026-04-15T09:00:00.000Z\",\"status\":\"new\",\"notification\":\"pending\",\"contact\":true}"
+    },
+    "read": {
+      "content": "---\nquiz: fit\nquizTitle: Fit check\nlanguage: nl\nreceivedAt: '2026-04-15T09:00:00.000Z'\nstatus: new\nnotification: pending\nname: Bea Taker\nemail: bea@example.com\nresults:\n  - dimension: d\n    title: Fit\n    outcome: high\n    outcomeTitle: High fit\nanswers:\n  - field: q1\n    label: Question one\n    value: 'Yes'\n  - field: q2\n    label: Pick some\n    value:\n      - A\n      - B\nvisibility: restricted\n---\n\n",
+      "metadata": {
+        "title": "Fit check",
+        "quiz": "fit",
+        "receivedAt": "2026-04-15T09:00:00.000Z",
+        "status": "new",
+        "notification": "pending",
+        "contact": true
+      }
+    },
+    "exported": "---\nquiz: fit\nquizTitle: Fit check\nlanguage: nl\nreceivedAt: '2026-04-15T09:00:00.000Z'\nstatus: new\nnotification: pending\nname: Bea Taker\nemail: bea@example.com\nresults:\n  - dimension: d\n    title: Fit\n    outcome: high\n    outcomeTitle: High fit\nanswers:\n  - field: q1\n    label: Question one\n    value: 'Yes'\n  - field: q2\n    label: Pick some\n    value:\n      - A\n      - B\nvisibility: restricted\n---\n\n"
+  },
+  "quizNotified": {
+    "stored": {
+      "content": "---\nquiz: fit\nquizTitle: Fit check\nlanguage: nl\nreceivedAt: '2026-04-15T09:00:00.000Z'\nstatus: new\nnotification: sent\nname: Bea Taker\nemail: bea@example.com\nresults:\n  - dimension: d\n    title: Fit\n    outcome: high\n    outcomeTitle: High fit\nanswers:\n  - field: q1\n    label: Question one\n    value: 'Yes'\n  - field: q2\n    label: Pick some\n    value:\n      - A\n      - B\nvisibility: restricted\n---\n\n",
+      "metadata": "{\"title\":\"Fit check\",\"quiz\":\"fit\",\"receivedAt\":\"2026-04-15T09:00:00.000Z\",\"status\":\"new\",\"notification\":\"sent\",\"contact\":true}"
+    },
+    "read": {
+      "content": "---\nquiz: fit\nquizTitle: Fit check\nlanguage: nl\nreceivedAt: '2026-04-15T09:00:00.000Z'\nstatus: new\nnotification: sent\nname: Bea Taker\nemail: bea@example.com\nresults:\n  - dimension: d\n    title: Fit\n    outcome: high\n    outcomeTitle: High fit\nanswers:\n  - field: q1\n    label: Question one\n    value: 'Yes'\n  - field: q2\n    label: Pick some\n    value:\n      - A\n      - B\nvisibility: restricted\n---\n\n",
+      "metadata": {
+        "title": "Fit check",
+        "quiz": "fit",
+        "receivedAt": "2026-04-15T09:00:00.000Z",
+        "status": "new",
+        "notification": "sent",
+        "contact": true
+      }
+    },
+    "exported": "---\nquiz: fit\nquizTitle: Fit check\nlanguage: nl\nreceivedAt: '2026-04-15T09:00:00.000Z'\nstatus: new\nnotification: sent\nname: Bea Taker\nemail: bea@example.com\nresults:\n  - dimension: d\n    title: Fit\n    outcome: high\n    outcomeTitle: High fit\nanswers:\n  - field: q1\n    label: Question one\n    value: 'Yes'\n  - field: q2\n    label: Pick some\n    value:\n      - A\n      - B\nvisibility: restricted\n---\n\n"
+  },
+  "quizHandled": {
+    "stored": {
+      "content": "---\nquiz: fit\nquizTitle: Fit check\nlanguage: nl\nreceivedAt: '2026-04-15T09:00:00.000Z'\nstatus: handled\nnotification: sent\nname: Bea Taker\nemail: bea@example.com\nresults:\n  - dimension: d\n    title: Fit\n    outcome: high\n    outcomeTitle: High fit\nanswers:\n  - field: q1\n    label: Question one\n    value: 'Yes'\n  - field: q2\n    label: Pick some\n    value:\n      - A\n      - B\nvisibility: restricted\n---\n\n",
+      "metadata": "{\"title\":\"Fit check\",\"quiz\":\"fit\",\"receivedAt\":\"2026-04-15T09:00:00.000Z\",\"status\":\"handled\",\"notification\":\"sent\",\"contact\":true}"
+    },
+    "read": {
+      "content": "---\nquiz: fit\nquizTitle: Fit check\nlanguage: nl\nreceivedAt: '2026-04-15T09:00:00.000Z'\nstatus: handled\nnotification: sent\nname: Bea Taker\nemail: bea@example.com\nresults:\n  - dimension: d\n    title: Fit\n    outcome: high\n    outcomeTitle: High fit\nanswers:\n  - field: q1\n    label: Question one\n    value: 'Yes'\n  - field: q2\n    label: Pick some\n    value:\n      - A\n      - B\nvisibility: restricted\n---\n\n",
+      "metadata": {
+        "title": "Fit check",
+        "quiz": "fit",
+        "receivedAt": "2026-04-15T09:00:00.000Z",
+        "status": "handled",
+        "notification": "sent",
+        "contact": true
+      }
+    },
+    "exported": "---\nquiz: fit\nquizTitle: Fit check\nlanguage: nl\nreceivedAt: '2026-04-15T09:00:00.000Z'\nstatus: handled\nnotification: sent\nname: Bea Taker\nemail: bea@example.com\nresults:\n  - dimension: d\n    title: Fit\n    outcome: high\n    outcomeTitle: High fit\nanswers:\n  - field: q1\n    label: Question one\n    value: 'Yes'\n  - field: q2\n    label: Pick some\n    value:\n      - A\n      - B\nvisibility: restricted\n---\n\n"
+  },
+  "quizAnonymous": {
+    "stored": {
+      "content": "---\nquiz: fit\nquizTitle: Fit check\nreceivedAt: '2026-04-16T09:00:00.000Z'\nstatus: new\nnotification: none\nresults: []\nanswers: []\nvisibility: restricted\n---\n\n",
+      "metadata": "{\"title\":\"Fit check\",\"quiz\":\"fit\",\"receivedAt\":\"2026-04-16T09:00:00.000Z\",\"status\":\"new\",\"notification\":\"none\",\"contact\":false}"
+    },
+    "read": {
+      "content": "---\nquiz: fit\nquizTitle: Fit check\nreceivedAt: '2026-04-16T09:00:00.000Z'\nstatus: new\nnotification: none\nresults: []\nanswers: []\nvisibility: restricted\n---\n\n",
+      "metadata": {
+        "title": "Fit check",
+        "quiz": "fit",
+        "receivedAt": "2026-04-16T09:00:00.000Z",
+        "status": "new",
+        "notification": "none",
+        "contact": false
+      }
+    },
+    "exported": "---\nquiz: fit\nquizTitle: Fit check\nreceivedAt: '2026-04-16T09:00:00.000Z'\nstatus: new\nnotification: none\nresults: []\nanswers: []\nvisibility: restricted\n---\n\n"
+  },
+  "quizOlder": {
+    "stored": {
+      "content": "---\nquiz: fit\nreceivedAt: '2026-01-01T00:00:00.000Z'\nstatus: new\nnotification: none\nresults:\n  - dimension: d\n    title: Fit\n    outcome: high\n    outcomeTitle: High fit\nanswers:\n  - field: q1\n    label: Question one\n    value: 'Yes'\nvisibility: restricted\n---\n\n",
+      "metadata": "{\"title\":\"fit\",\"quiz\":\"fit\",\"receivedAt\":\"2026-01-01T00:00:00.000Z\",\"status\":\"new\",\"notification\":\"none\",\"contact\":false}"
+    },
+    "read": {
+      "content": "---\nquiz: fit\nreceivedAt: '2026-01-01T00:00:00.000Z'\nstatus: new\nnotification: none\nresults:\n  - dimension: d\n    title: Fit\n    outcome: high\n    outcomeTitle: High fit\nanswers:\n  - field: q1\n    label: Question one\n    value: 'Yes'\nvisibility: restricted\n---\n\n",
+      "metadata": {
+        "title": "fit",
+        "quiz": "fit",
+        "receivedAt": "2026-01-01T00:00:00.000Z",
+        "status": "new",
+        "notification": "none",
+        "contact": false
+      }
+    },
+    "exported": "---\nquiz: fit\nreceivedAt: '2026-01-01T00:00:00.000Z'\nstatus: new\nnotification: none\nresults:\n  - dimension: d\n    title: Fit\n    outcome: high\n    outcomeTitle: High fit\nanswers:\n  - field: q1\n    label: Question one\n    value: 'Yes'\nvisibility: restricted\n---\n\n"
+  }
+}

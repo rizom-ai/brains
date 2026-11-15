@@ -6,24 +6,33 @@ import {
 } from "@brains/contracts";
 import {
   permissionToVisibilityScope,
-  type EntityPluginContext,
-} from "@brains/plugins";
+  type ServiceRuntime,
+} from "@brains/sdk/internal/service-runtime";
+import type { MemoryContext } from "./memory-context";
 import { ConversationMemoryRetriever } from "./conversation-memory-retriever";
 import type { RetrievedConversationMemory } from "./conversation-memory-retriever";
 
 const DEFAULT_AGENT_CONTEXT_LIMIT = 5;
 const RECENT_AGENT_CONTEXT_LIMIT = 3;
 
+/** What the agent's memory context reads with. */
+type AgentContextReads = Pick<
+  MemoryContext,
+  "logger" | "entityService" | "conversations"
+>;
+
+/** Memory as context for the agent's turn, in the main process. */
 export function registerConversationMemoryAgentContext(
-  context: EntityPluginContext,
+  runtime: Pick<ServiceRuntime, "answer">,
+  context: AgentContextReads,
 ): void {
-  context.messaging.answer(agentContextContract, (request) =>
+  runtime.answer(agentContextContract, ({ request }) =>
     buildConversationMemoryAgentContext(context, request),
   );
 }
 
 export async function buildConversationMemoryAgentContext(
-  context: EntityPluginContext,
+  context: AgentContextReads,
   request: AgentContextRequest,
 ): Promise<AgentContextResponse> {
   const visibilityScope = permissionToVisibilityScope(
@@ -79,7 +88,7 @@ export async function buildConversationMemoryAgentContext(
 }
 
 function logAgentContextAudit(
-  context: EntityPluginContext,
+  context: Pick<MemoryContext, "logger">,
   request: AgentContextRequest,
   audit: {
     visibilityScope: ReturnType<typeof permissionToVisibilityScope>;

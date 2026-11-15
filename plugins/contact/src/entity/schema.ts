@@ -1,4 +1,4 @@
-import { baseEntityParserSchema } from "@brains/plugins";
+import { baseEntityParserSchema } from "@brains/sdk/internal/entity-runtime";
 import { z } from "@brains/utils/zod";
 
 /** Intake fields only. In particular, visibility and conversation locators are not input. */

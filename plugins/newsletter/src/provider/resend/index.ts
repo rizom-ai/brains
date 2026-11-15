@@ -1,4 +1,4 @@
-export { ResendPlugin, resendPlugin } from "./plugin";
+export { createResendPackage, resendConfigSchema } from "./plugin";
 export type { ResendPluginConfig, ResendPluginConfigInput } from "./plugin";
 export { ResendNewsletterClient, ResendApiError } from "./resend-client";
 export type {

@@ -17,7 +17,8 @@ import {
 } from "@brains/entity-service";
 import { isPlainRecord } from "@brains/utils/predicates";
 import type { Logger } from "@brains/utils/logger";
-import type { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod";
+import { generateMarkdownWithFrontmatter } from "@brains/entity-service";
 import type { AnchorProfile } from "../contracts/identity";
 import type { AIGenerationSchema } from "./ai-types";
 import type { UniqueTitleContext } from "../service/create-entity-with-unique-title";
@@ -32,6 +33,8 @@ import type {
   EntityGenerationResult,
   EntityJobDeclaration,
   EntityJobHandleContext,
+  EntityMarkdownCodec,
+  EntityMetadataSchema,
   EntityOf,
   EntityReader,
   EntityVisibility,
@@ -40,6 +43,10 @@ import type {
 import type { SchemaValue } from "../internal/schema-value";
 import type { RetryScope } from "@brains/utils/retry-backoff";
 import type { EntityPluginContext } from "./context";
+import type {
+  ProjectionWaveInput,
+  ProjectionWriteIntent,
+} from "./projection-rule";
 
 /**
  * Internal runtime capabilities bound to one entity callback's call, for
@@ -150,6 +157,16 @@ export interface EntityRuntime {
     input: unknown,
     options?: EvalGenerationOptions,
   ): Promise<EvalGenerationResult>;
+  /**
+   * One of the declaring type's own projection rules, run as production
+   * runs it, with no wave, memo or write: what it would write, as an eval
+   * measures the rule, on the same run a first-party service's runtime
+   * uses. A rule the declaring type does not declare is refused. Evals only.
+   */
+  runProjectionRule(
+    ruleId: string,
+    options?: { readonly inputs?: readonly ProjectionWaveInput[] },
+  ): Promise<readonly ProjectionWriteIntent[]>;
   /**
    * Point a target at a record of the declaring type: set a field, or add
    * to a list, dropping entries the record supersedes. The generation-link
@@ -359,6 +376,8 @@ export interface EntityRuntimeBinding {
   readonly caller?: EntityCreateCaller | undefined;
   /** The declaring type's generation, run in process; unset, refused. */
   readonly runGeneration?: EntityRuntime["runGeneration"] | undefined;
+  /** The declaring type's own projection rules, run; unset, refused. */
+  readonly runProjectionRule?: EntityRuntime["runProjectionRule"] | undefined;
 }
 
 const entityRuntimeKey = Symbol("rizom.entity-runtime");
@@ -728,6 +747,13 @@ function bindEntityRuntime(binding: EntityRuntimeBinding): EntityRuntime {
       (async (): Promise<never> => {
         throw new Error(`runGeneration is not available in ${binding.where}`);
       }),
+    runProjectionRule:
+      binding.runProjectionRule ??
+      (async (): Promise<never> => {
+        throw new Error(
+          `runProjectionRule is not available in ${binding.where}`,
+        );
+      }),
     linkInto: (entityId: string, link: EntityGenerationLink): Promise<void> =>
       job.linkInto(entityId, link),
   });
@@ -876,6 +902,165 @@ export function bodyTemplateOf(definition: object): string {
   return typeof found === "string" ? found : "";
 }
 
+const displayTitleKey = Symbol("rizom.display-title");
+
+/** How a record is named from the whole record read, as its adapter named it. */
+export type RecordDisplayTitle<TDefinition extends AnyEntityDefinition> =
+  (record: {
+    readonly id: string;
+    readonly content: string;
+    readonly metadata: z.output<TDefinition["metadata"]>;
+    readonly created: string;
+    readonly updated: string;
+  }) => string | undefined;
+
+/**
+ * A first-party definition whose adapter named a record from the whole
+ * record, its dates among it: the definition, carrying how it names a
+ * record under a key no public type names, which the runtime gives as its
+ * adapter's display title (a summary with no recorded start is named by the
+ * day it was stored). A definition that declares the public displayTitle
+ * is refused: one record has one name.
+ *
+ * Tracked in docs/legacy-code-inventory.json (first-party-entity-runtime).
+ */
+export function withDisplayTitle<TDefinition extends AnyEntityDefinition>(
+  definition: TDefinition,
+  title: RecordDisplayTitle<TDefinition>,
+): TDefinition {
+  if (definition.displayTitle) {
+    throw new Error(
+      `Entity "${definition.type}" already declares a display title`,
+    );
+  }
+  return Object.freeze({ ...definition, [displayTitleKey]: title });
+}
+
+/**
+ * The whole-record title a definition carries, read from a record as read:
+ * none for a record whose metadata the type does not read, or for a
+ * definition that carries none.
+ */
+export function recordDisplayTitleOf(definition: AnyEntityDefinition):
+  | ((
+      entity: {
+        readonly id: string;
+        readonly content: string;
+        readonly created: string;
+        readonly updated: string;
+      },
+      metadata: unknown,
+    ) => string | undefined)
+  | undefined {
+  const found: unknown = Reflect.get(definition, displayTitleKey);
+  if (typeof found !== "function") return undefined;
+  return (entity, metadata) => {
+    const parsed = definition.metadata.safeParse(metadata);
+    if (!parsed.success) return undefined;
+    const title: unknown = Reflect.apply(found, undefined, [
+      {
+        id: entity.id,
+        content: entity.content,
+        metadata: parsed.data,
+        created: entity.created,
+        updated: entity.updated,
+      },
+    ]);
+    return typeof title === "string" ? title : undefined;
+  };
+}
+
+const persistValidatorKey = Symbol("rizom.persist-validator");
+
+/** A persistence check that reads the record's id, as an entity plugin class's did. */
+export type RecordPersistValidator = (entity: {
+  readonly id: string;
+  readonly content: string;
+  readonly visibility: EntityVisibility;
+}) => void | Promise<void>;
+
+/**
+ * A first-party definition whose class checked every write against the
+ * record's id as well as its document: the definition, carrying the check
+ * under a key no public type names, which the runtime runs before every
+ * create and update of the type, as it runs the public validatePersist (a
+ * form whose id is not a slug is refused). A definition that declares the
+ * public validatePersist is refused: one type has one check.
+ *
+ * Tracked in docs/legacy-code-inventory.json (first-party-entity-runtime).
+ */
+export function withPersistValidator<TDefinition extends AnyEntityDefinition>(
+  definition: TDefinition,
+  validator: RecordPersistValidator,
+): TDefinition {
+  if (definition.validatePersist) {
+    throw new Error(
+      `Entity "${definition.type}" already declares a persist check`,
+    );
+  }
+  return Object.freeze({ ...definition, [persistValidatorKey]: validator });
+}
+
+/** The id-reading persist check a definition carries, or none. */
+export function recordPersistValidatorOf(
+  definition: object,
+): RecordPersistValidator | undefined {
+  const found: unknown = Reflect.get(definition, persistValidatorKey);
+  return typeof found === "function"
+    ? async (entity): Promise<void> => {
+        await Reflect.apply(found, undefined, [entity]);
+      }
+    : undefined;
+}
+
+const folderTitlesKey = Symbol("rizom.folder-titles");
+
+/** How a record names the folders above it, as its adapter did. */
+export type FolderTitles<TDefinition extends AnyEntityDefinition> = (record: {
+  readonly content: string;
+  readonly metadata: z.output<TDefinition["metadata"]>;
+}) => Array<string | undefined>;
+
+/**
+ * A first-party definition whose records stand in folders the type can
+ * name: the definition, carrying how a record names the folders above it
+ * under a key no public type names, which the runtime gives as its
+ * adapter's folder titles (a book section's headings title the parts its
+ * id stands in, in Studio's tree).
+ */
+export function withFolderTitles<TDefinition extends AnyEntityDefinition>(
+  definition: TDefinition,
+  titles: FolderTitles<TDefinition>,
+): TDefinition {
+  return Object.freeze({ ...definition, [folderTitlesKey]: titles });
+}
+
+/**
+ * The folder titles a definition carries, read from a record as read: none
+ * for a record whose metadata the type does not read, or for a definition
+ * that carries none.
+ */
+export function folderTitlesOf(
+  definition: AnyEntityDefinition,
+):
+  | ((entity: { readonly content: string }) => Array<string | undefined>)
+  | undefined {
+  const found: unknown = Reflect.get(definition, folderTitlesKey);
+  if (typeof found !== "function") return undefined;
+  return (entity) => {
+    const metadata = definition.metadata.safeParse(
+      Reflect.get(entity, "metadata"),
+    );
+    if (!metadata.success) return [];
+    const titles: unknown = Reflect.apply(found, undefined, [
+      { content: entity.content, metadata: metadata.data },
+    ]);
+    return Array.isArray(titles)
+      ? titles.map((title) => (typeof title === "string" ? title : undefined))
+      : [];
+  };
+}
+
 const restatedMetadataKey = Symbol("rizom.restated-metadata");
 
 /** The metadata as the document a type wrote states it. */
@@ -952,6 +1137,135 @@ export function writesInDocumentOrder<TDefinition extends AnyEntityDefinition>(
   definition: TDefinition,
 ): TDefinition {
   return Object.freeze({ ...definition, [documentOrderKey]: true });
+}
+
+/**
+ * The codec of a first-party declared type whose read is its stored
+ * document and whose metadata is derived from part of its header, as an
+ * entity plugin class kept one (its adapter's toMarkdown over existing
+ * frontmatter): the header holds what the type records, parsed by its
+ * schema; metadata indexes only what `deriveMetadata` takes from it; a
+ * read hands back the whole document, the header as stored and the body;
+ * a write states the header fields metadata names and the serializer keeps
+ * the rest of the header once. Pair it with `writesInDocumentOrder`, so a
+ * write keeps the header in the order of the document it replaces. An
+ * exception to metadata being the frontmatter, for a type whose header
+ * holds what must not be indexed (a mail item's sender and source) or what
+ * is too large to (a traffic snapshot's days).
+ *
+ * With `readAsWritten`, a read is the stored document byte for byte, its
+ * visibility line included, as a class adapter that never parsed its
+ * document read it; a header that does not parse still reads, with empty
+ * metadata, so an editor can show it for repair (the grouping definitions
+ * document). Writes are the same either way.
+ */
+export function storedDocumentCodec<
+  THeader extends z.ZodObject,
+  TMetadataSchema extends EntityMetadataSchema,
+>(options: {
+  readonly header: THeader;
+  readonly deriveMetadata: (
+    header: z.output<THeader>,
+  ) => z.input<TMetadataSchema>;
+  readonly readAsWritten?: boolean | undefined;
+}): EntityMarkdownCodec<TMetadataSchema> {
+  const headerKeys = new Set(Object.keys(options.header.shape));
+  const codec: EntityMarkdownCodec<TMetadataSchema> = {
+    decode: ({
+      content,
+      frontmatter,
+    }): { content: string; metadata: z.input<TMetadataSchema> } => {
+      const { visibility: _visibility, ...stored } = frontmatter;
+      const parsed = options.header.parse(stored);
+      return {
+        // The whole document, its header as stored.
+        content: generateMarkdownWithFrontmatter(content, stored),
+        metadata: options.deriveMetadata(parsed),
+      };
+    },
+    // The header fields metadata names; the rest of the header is kept
+    // from the document written.
+    encode: ({ content, metadata }) => ({
+      content: content.trim(),
+      frontmatter: Object.fromEntries(
+        Object.entries(metadata).filter(([key]) => headerKeys.has(key)),
+      ),
+    }),
+  };
+  if (options.readAsWritten === true) readAsWrittenCodecs.add(codec);
+  return codec;
+}
+
+/** The stored-document codecs whose read is the document as written. */
+const readAsWrittenCodecs = new WeakSet<object>();
+
+/** Whether a codec reads its stored document as written. */
+export function readsAsWritten(codec: object | undefined): boolean {
+  return codec !== undefined && readAsWrittenCodecs.has(codec);
+}
+
+const publishedStatusesKey = Symbol("rizom.published-statuses");
+
+/**
+ * A first-party definition whose class's adapter declared the statuses a
+ * published-only read (a production site build) publishes: exactly those,
+ * so a record without one of them is not published, under a key no public
+ * type names (an agent directory publishes approved agents only). The
+ * statuses are independent of the publish-action policy, `config.publish`.
+ * An empty list is refused.
+ *
+ * Tracked in docs/legacy-code-inventory.json (first-party-entity-runtime).
+ */
+export function withPublishedStatuses<TDefinition extends AnyEntityDefinition>(
+  definition: TDefinition,
+  statuses: readonly string[],
+): TDefinition {
+  if (statuses.length === 0) {
+    throw new Error(
+      `Entity "${definition.type}" must publish at least one status`,
+    );
+  }
+  return Object.freeze({
+    ...definition,
+    [publishedStatusesKey]: Object.freeze([...statuses]),
+  });
+}
+
+/** The statuses a definition publishes, when it states them. */
+export function publishedStatusesOf(
+  definition: object,
+): readonly string[] | undefined {
+  const statuses: unknown = Reflect.get(definition, publishedStatusesKey);
+  return Array.isArray(statuses) &&
+    statuses.every((status) => typeof status === "string")
+    ? statuses
+    : undefined;
+}
+
+const frontmatterSchemaKey = Symbol("rizom.frontmatter-schema");
+
+/**
+ * A first-party definition whose file header is not its metadata states the
+ * header as its frontmatter schema, as its entity plugin class's adapter
+ * declared it: what Studio's editor, the Obsidian vault's templates and
+ * frontmatter extensions read as the type's frontmatter. A type that
+ * states none keeps its metadata as its frontmatter. A type whose metadata
+ * holds what its class kept out of the file (a generation error, a stated
+ * slug) states the file's own, with the defaults its class gave.
+ */
+export function withFrontmatterSchema<TDefinition extends AnyEntityDefinition>(
+  definition: TDefinition,
+  schema: z.ZodObject,
+): TDefinition {
+  return Object.freeze({ ...definition, [frontmatterSchemaKey]: schema });
+}
+
+/** The frontmatter schema a definition states, if it states one. */
+export function frontmatterSchemaOf(
+  definition: object,
+): z.ZodObject | undefined {
+  const schema: unknown = Reflect.get(definition, frontmatterSchemaKey);
+  return schema instanceof z.ZodObject ? schema : undefined;
 }
 
 /** Whether a definition writes in the order of the document it replaces. */

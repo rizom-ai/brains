@@ -118,7 +118,10 @@ function createShell(
       },
       embeddingDatabase: { url: `file:${join(root, "embeddings.db")}` },
       dataDir,
-      ai: { apiKey: MOCK_LOAD_API_KEY, model: MOCK_LOAD_MODEL },
+      ai: {
+        providerKeys: { openai: MOCK_LOAD_API_KEY },
+        model: MOCK_LOAD_MODEL,
+      },
       embedding: { enabled: false },
       logging: { level: "error", context: "git-authority-rebuild" },
     },

@@ -1,3 +1,4 @@
+import { withFrontmatterSchema } from "@brains/sdk/internal/entity-runtime";
 import {
   defineEntity,
   defineEntityPackage,
@@ -21,40 +22,43 @@ import {
  * search embeddings and projection sourcing.
  */
 export const prompt: EntityDefinition<"prompt", typeof promptMetadataSchema> =
-  defineEntity({
-    type: "prompt",
-    classification: "system",
-    purpose: "A reusable prompt or instruction template.",
-    metadata: promptMetadataSchema,
-    markdown: {
-      decode: ({ content, frontmatter }) => {
-        const parsed = promptFrontmatterSchema.parse(frontmatter);
-        return {
-          content,
-          metadata: {
-            title: parsed.title,
-            target: parsed.target,
-            slug: slugify(parsed.target.replace(/:/g, "-")),
-            ...(parsed.defaultHash && { defaultHash: parsed.defaultHash }),
-          },
-        };
-      },
-      // The slug is derived on decode, so it is not written back to disk.
-      encode: ({ content, metadata }) => ({
-        content,
-        frontmatter: {
-          title: metadata.title,
-          target: metadata.target,
-          ...(metadata.defaultHash && { defaultHash: metadata.defaultHash }),
+  withFrontmatterSchema(
+    defineEntity({
+      type: "prompt",
+      classification: "system",
+      purpose: "A reusable prompt or instruction template.",
+      metadata: promptMetadataSchema,
+      markdown: {
+        decode: ({ content, frontmatter }) => {
+          const parsed = promptFrontmatterSchema.parse(frontmatter);
+          return {
+            content,
+            metadata: {
+              title: parsed.title,
+              target: parsed.target,
+              slug: slugify(parsed.target.replace(/:/g, "-")),
+              ...(parsed.defaultHash && { defaultHash: parsed.defaultHash }),
+            },
+          };
         },
-      }),
-    },
-    config: {
-      embeddable: false,
-      projectionSource: false,
-      projectionSourceRole: "excluded",
-    },
-  });
+        // The slug is derived on decode, so it is not written back to disk.
+        encode: ({ content, metadata }) => ({
+          content,
+          frontmatter: {
+            title: metadata.title,
+            target: metadata.target,
+            ...(metadata.defaultHash && { defaultHash: metadata.defaultHash }),
+          },
+        }),
+      },
+      config: {
+        embeddable: false,
+        projectionSource: false,
+        projectionSourceRole: "excluded",
+      },
+    }),
+    promptFrontmatterSchema,
+  );
 
 export type Prompt = EntityOf<typeof prompt>;
 

@@ -1,0 +1,82 @@
+{
+  "source": "main 9ff643747b, the form entity plugin class on the entity store",
+  "full": {
+    "file": "---\ntarget: contact-request\npath: /work-with-us\ntitle: Work with us\npageTitle: Work with us\nsubmitLabel: Send\nsteps:\n  - title: You\n    fields:\n      - kind: text\n        id: name\n        label: Name\n        required: true\n        maxLength: 120\n      - kind: email\n        id: email\n        label: Email\n        required: true\n  - title: Your plans\n    fields:\n      - kind: longText\n        id: message\n        label: What do you have in mind?\n        required: true\nthanks:\n  title: Thank you\n  body: We will be in touch.\n---\n\nTell us what you have in mind.\n",
+    "id": "work-with-us",
+    "stored": {
+      "content": "---\ntarget: contact-request\npath: /work-with-us\ntitle: Work with us\npageTitle: Work with us\nsubmitLabel: Send\nsteps:\n  - title: You\n    fields:\n      - kind: text\n        id: name\n        label: Name\n        required: true\n        maxLength: 120\n      - kind: email\n        id: email\n        label: Email\n        required: true\n  - title: Your plans\n    fields:\n      - kind: longText\n        id: message\n        label: What do you have in mind?\n        required: true\nthanks:\n  title: Thank you\n  body: We will be in touch.\n---\nTell us what you have in mind.\n",
+      "metadata": "{\"title\":\"Work with us\",\"target\":\"contact-request\",\"path\":\"/work-with-us\"}"
+    },
+    "read": {
+      "content": "---\ntarget: contact-request\npath: /work-with-us\ntitle: Work with us\npageTitle: Work with us\nsubmitLabel: Send\nsteps:\n  - title: You\n    fields:\n      - kind: text\n        id: name\n        label: Name\n        required: true\n        maxLength: 120\n      - kind: email\n        id: email\n        label: Email\n        required: true\n  - title: Your plans\n    fields:\n      - kind: longText\n        id: message\n        label: What do you have in mind?\n        required: true\nthanks:\n  title: Thank you\n  body: We will be in touch.\n---\nTell us what you have in mind.\n",
+      "metadata": {
+        "title": "Work with us",
+        "target": "contact-request",
+        "path": "/work-with-us"
+      },
+      "visibility": "public"
+    },
+    "exported": "---\ntarget: contact-request\npath: /work-with-us\ntitle: Work with us\npageTitle: Work with us\nsubmitLabel: Send\nsteps:\n  - title: You\n    fields:\n      - kind: text\n        id: name\n        label: Name\n        required: true\n        maxLength: 120\n      - kind: email\n        id: email\n        label: Email\n        required: true\n  - title: Your plans\n    fields:\n      - kind: longText\n        id: message\n        label: What do you have in mind?\n        required: true\nthanks:\n  title: Thank you\n  body: We will be in touch.\n---\nTell us what you have in mind.\n",
+    "listed": [
+      [
+        "work-with-us",
+        "---\ntarget: contact-request\npath: /work-with-us\ntitle: Work with us\npageTitle: Work with us\nsubmitLabel: Send\nsteps:\n  - title: You\n    fields:\n      - kind: text\n        id: name\n        label: Name\n        required: true\n        maxLength: 120\n      - kind: email\n        id: email\n        label: Email\n        required: true\n  - title: Your plans\n    fields:\n      - kind: longText\n        id: message\n        label: What do you have in mind?\n        required: true\nthanks:\n  title: Thank you\n  body: We will be in touch.\n---\nTell us what you have in mind.\n"
+      ]
+    ]
+  },
+  "sparse": {
+    "file": "---\ntarget: quiz-result\npath: /fit\ntitle: 'Fit: a check'\nsteps:\n  - fields:\n      - kind: choice\n        id: q1\n        label: Question one\n        options:\n          - value: a\n            label: A\n          - value: b\n            label: B\n---\n",
+    "id": "fit",
+    "stored": {
+      "content": "---\ntarget: quiz-result\npath: /fit\ntitle: 'Fit: a check'\nsteps:\n  - fields:\n      - kind: choice\n        id: q1\n        label: Question one\n        options:\n          - value: a\n            label: A\n          - value: b\n            label: B\n---\n\n",
+      "metadata": "{\"title\":\"Fit: a check\",\"target\":\"quiz-result\",\"path\":\"/fit\"}"
+    },
+    "read": {
+      "content": "---\ntarget: quiz-result\npath: /fit\ntitle: 'Fit: a check'\nsteps:\n  - fields:\n      - kind: choice\n        id: q1\n        label: Question one\n        options:\n          - value: a\n            label: A\n          - value: b\n            label: B\n---\n\n",
+      "metadata": {
+        "title": "Fit: a check",
+        "target": "quiz-result",
+        "path": "/fit"
+      },
+      "visibility": "public"
+    },
+    "exported": "---\ntarget: quiz-result\npath: /fit\ntitle: 'Fit: a check'\nsteps:\n  - fields:\n      - kind: choice\n        id: q1\n        label: Question one\n        options:\n          - value: a\n            label: A\n          - value: b\n            label: B\n---\n\n",
+    "listed": [
+      [
+        "fit",
+        "---\ntarget: quiz-result\npath: /fit\ntitle: 'Fit: a check'\nsteps:\n  - fields:\n      - kind: choice\n        id: q1\n        label: Question one\n        options:\n          - value: a\n            label: A\n          - value: b\n            label: B\n---\n\n"
+      ]
+    ]
+  },
+  "updated": {
+    "id": "work-with-us",
+    "stored": {
+      "content": "---\ntarget: contact-request\npath: /work-with-us\ntitle: Work with us\npageTitle: Work with us\nsubmitLabel: Send\nsteps:\n  - title: You\n    fields:\n      - kind: text\n        id: name\n        label: Name\n        required: true\n        maxLength: 120\n      - kind: email\n        id: email\n        label: Email\n        required: true\n  - title: Your plans\n    fields:\n      - kind: longText\n        id: message\n        label: What do you have in mind?\n        required: true\nthanks:\n  title: Thank you\n  body: We will be in touch.\n---\nTell us all you have in mind.\n",
+      "metadata": "{\"title\":\"Work with us\",\"target\":\"contact-request\",\"path\":\"/work-with-us\"}"
+    },
+    "read": {
+      "content": "---\ntarget: contact-request\npath: /work-with-us\ntitle: Work with us\npageTitle: Work with us\nsubmitLabel: Send\nsteps:\n  - title: You\n    fields:\n      - kind: text\n        id: name\n        label: Name\n        required: true\n        maxLength: 120\n      - kind: email\n        id: email\n        label: Email\n        required: true\n  - title: Your plans\n    fields:\n      - kind: longText\n        id: message\n        label: What do you have in mind?\n        required: true\nthanks:\n  title: Thank you\n  body: We will be in touch.\n---\nTell us all you have in mind.\n",
+      "metadata": {
+        "title": "Work with us",
+        "target": "contact-request",
+        "path": "/work-with-us"
+      },
+      "visibility": "public"
+    },
+    "exported": "---\ntarget: contact-request\npath: /work-with-us\ntitle: Work with us\npageTitle: Work with us\nsubmitLabel: Send\nsteps:\n  - title: You\n    fields:\n      - kind: text\n        id: name\n        label: Name\n        required: true\n        maxLength: 120\n      - kind: email\n        id: email\n        label: Email\n        required: true\n  - title: Your plans\n    fields:\n      - kind: longText\n        id: message\n        label: What do you have in mind?\n        required: true\nthanks:\n  title: Thank you\n  body: We will be in touch.\n---\nTell us all you have in mind.\n",
+    "listed": [
+      [
+        "work-with-us",
+        "---\ntarget: contact-request\npath: /work-with-us\ntitle: Work with us\npageTitle: Work with us\nsubmitLabel: Send\nsteps:\n  - title: You\n    fields:\n      - kind: text\n        id: name\n        label: Name\n        required: true\n        maxLength: 120\n      - kind: email\n        id: email\n        label: Email\n        required: true\n  - title: Your plans\n    fields:\n      - kind: longText\n        id: message\n        label: What do you have in mind?\n        required: true\nthanks:\n  title: Thank you\n  body: We will be in touch.\n---\nTell us all you have in mind.\n"
+      ]
+    ]
+  },
+  "pathless": {
+    "file": "---\ntarget: quiz-result\ntitle: 'Fit: a check'\nsteps:\n  - fields:\n      - kind: choice\n        id: q1\n        label: Question one\n        options:\n          - value: a\n            label: A\n          - value: b\n            label: B\n---\n",
+    "stored": {
+      "content": "---\ntarget: quiz-result\ntitle: 'Fit: a check'\nsteps:\n  - fields:\n      - kind: choice\n        id: q1\n        label: Question one\n        options:\n          - value: a\n            label: A\n          - value: b\n            label: B\npath: ''\n---\n\n",
+      "metadata": "{\"title\":\"Fit: a check\",\"target\":\"quiz-result\",\"path\":\"\"}"
+    },
+    "read": null
+  }
+}

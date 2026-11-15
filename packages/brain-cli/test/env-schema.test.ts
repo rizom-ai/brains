@@ -25,7 +25,7 @@ describe("env schema resolution", () => {
       "brain",
       unavailableWorkspaceLookup,
     );
-    expect(canonicalSchema).toContain("AI_API_KEY=");
+    expect(canonicalSchema).toContain("OPENAI_API_KEY=");
     expect(canonicalSchema).toContain("GIT_SYNC_TOKEN=");
     expect(canonicalSchema).toContain("DISCORD_BOT_TOKEN=");
 

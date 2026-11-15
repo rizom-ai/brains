@@ -8,7 +8,7 @@ import {
 import {
   getArtifactCardState,
   narrowArtifactJobStatus,
-} from "@brains/plugins/message-interface/artifact-display";
+} from "@brains/sdk/internal/message-display";
 import {
   Button,
   Dialog,

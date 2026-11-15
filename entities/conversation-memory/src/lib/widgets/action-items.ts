@@ -8,13 +8,12 @@ import {
   actionItemCapturedAt,
   actionItemSource,
 } from "@brains/action-items";
-import type { ContentVisibility } from "@brains/plugins";
-import {
-  SYSTEM_CHANNELS,
-  defineDashboardWidget,
-  registerBuiltInDashboardWidget,
-  type EntityPluginContext,
-} from "@brains/plugins";
+import { defineDashboardWidget } from "@brains/sdk/services";
+import type {
+  ContentVisibility,
+  ServiceRuntime,
+} from "@brains/sdk/internal/service-runtime";
+import type { MemoryEntityService } from "../memory-context";
 import { firstSentence } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 
@@ -135,7 +134,9 @@ function entityBody(entity: ActionItemEntity): string {
 }
 
 export async function buildActionItemsWidgetData(
-  context: EntityPluginContext,
+  context: {
+    readonly entityService: Pick<MemoryEntityService, "listEntities">;
+  },
   visibilityScope: ContentVisibility,
   now: Date = new Date(),
 ): Promise<ActionItemsWidgetData> {
@@ -179,24 +180,19 @@ export async function buildActionItemsWidgetData(
   };
 }
 
-export function registerActionItemsWidget(params: {
-  context: EntityPluginContext;
-}): void {
-  const { context } = params;
-  context.messaging.subscribe(
-    SYSTEM_CHANNELS.pluginsRegistered,
-    async (): Promise<{ success: boolean }> => {
-      await registerBuiltInDashboardWidget({
-        context,
-        definition: actionItemsWidget,
-        load: ({ visibilityScope, signal }) => {
-          signal.throwIfAborted();
-          return buildActionItemsWidgetData(context, visibilityScope);
-        },
-      });
-      return { success: true };
+export function registerActionItemsWidget(
+  runtime: Pick<ServiceRuntime, "dashboardWidget">,
+  context: {
+    readonly entityService: Pick<MemoryEntityService, "listEntities">;
+  },
+): void {
+  runtime.dashboardWidget({
+    definition: actionItemsWidget,
+    load: ({ visibilityScope, signal }) => {
+      signal.throwIfAborted();
+      return buildActionItemsWidgetData(context, visibilityScope);
     },
-  );
+  });
 }
 
 export const ACTION_ITEMS_WIDGET_ID: typeof WIDGET_ID = WIDGET_ID;

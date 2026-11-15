@@ -2,18 +2,12 @@ import { type ActionItemEntity } from "@brains/action-items";
 import { createTestEntity } from "@brains/entity-service/test";
 import {
   createMockEntityPluginContext,
-  createMockMessageBus,
+  createMockShell,
 } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
-import {
-  DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
-  dashboardWidgetRegisterContract,
-  SYSTEM_CHANNELS,
-} from "@brains/plugins";
-import {
-  buildActionItemsWidgetData,
-  registerActionItemsWidget,
-} from "../../../src/lib/widgets/action-items";
+import { DECLARATIVE_DASHBOARD_WIDGET_RENDERER } from "@brains/plugins";
+import { buildActionItemsWidgetData } from "../../../src/lib/widgets/action-items";
+import { asStored, installedWidgets } from "../../conversation-memory-plugins";
 
 function createActionItem(overrides: {
   id: string;
@@ -105,6 +99,22 @@ describe("buildActionItemsWidgetData", () => {
     expect(data.blockedCount).toBe(1);
   });
 
+  it("keeps the listed order for items captured at the same moment", async () => {
+    const items = ["item-c", "item-a", "item-b"].map((id) =>
+      createActionItem({ id, title: id }),
+    );
+    const context = createMockEntityPluginContext({
+      listEntitiesImpl: async () => items,
+    });
+
+    const data = await buildActionItemsWidgetData(context, "restricted");
+    expect(data.items.map((item) => item.id)).toEqual([
+      "item-c",
+      "item-a",
+      "item-b",
+    ]);
+  });
+
   it("caps the list at six", async () => {
     const items = Array.from({ length: 8 }, (_, index) =>
       createActionItem({ id: `open-${index}`, title: `Open ${index}` }),
@@ -141,38 +151,19 @@ describe("buildActionItemsWidgetData", () => {
   });
 });
 
-describe("registerActionItemsWidget", () => {
-  it("registers a widget on plugins-registered", async () => {
-    const messageBus = createMockMessageBus();
-    const context = createMockEntityPluginContext({
-      listEntitiesImpl: async () => [
+describe("the action items widget", () => {
+  it("registers once every plugin has registered", async () => {
+    const shell = createMockShell();
+    shell.addEntities(
+      [
         createActionItem({ id: "stuck", title: "Stuck", status: "blocked" }),
         createActionItem({ id: "next", title: "Next" }),
-      ],
-      messageBus,
-    });
-    context.messaging.subscribe(
-      dashboardWidgetRegisterContract.name,
-      async () => ({ success: true }),
+      ].map((item) => asStored({ ...item, visibility: "public" as const })),
     );
 
-    registerActionItemsWidget({ context });
-    expect(context.messaging.subscribe).toHaveBeenCalledWith(
-      SYSTEM_CHANNELS.pluginsRegistered,
-      expect.any(Function),
+    const payload = (await installedWidgets(shell)).find(
+      ({ id }) => id === "action-items",
     );
-
-    // Collect on the bus as the shell does rather than capturing the handler:
-    // this is the path production takes, and the registration below is the
-    // evidence.
-    await messageBus.collect({
-      type: SYSTEM_CHANNELS.pluginsRegistered,
-      payload: {},
-      sender: "shell",
-    });
-
-    const [registerCall] = context.dashboard.registerWidget.mock.calls;
-    const payload = registerCall?.[0];
     if (!payload) throw new Error("widget was not registered");
 
     // digestProvider is declared on DashboardWidgetRegistration, so it needs

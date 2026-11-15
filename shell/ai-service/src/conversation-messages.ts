@@ -27,7 +27,8 @@ export function toModelMessages(messages: Message[]): ModelMessage[] {
               text:
                 msg.content +
                 getEntityMemoryNote(msg.metadata) +
-                getAgentContactCandidateNote(msg.metadata),
+                getAgentContactCandidateNote(msg.metadata) +
+                getCancelledProposalNote(msg.metadata),
             },
           ],
         },
@@ -38,6 +39,44 @@ function getEntityMemoryNote(metadata: Message["metadata"]): string {
   const parsedMetadata = parseMessageMetadata(metadata);
   const refs = parseEntityMemoryRefs(parsedMetadata?.["entityMemoryRefs"]);
   return buildEntityMemoryContext(refs);
+}
+
+/** A proposal the user cancelled, as its tool approval card holds it. */
+const cancelledProposalCardSchema = z.looseObject({
+  kind: z.literal("tool-approval"),
+  toolName: z.string(),
+  input: z.record(z.string(), z.unknown()),
+  state: z.literal("output-denied"),
+});
+
+/** Arguments longer than this are not repeated on every later turn. */
+const cancelledProposalMaxLength = 2000;
+
+/**
+ * The call behind each proposal the user cancelled, so a request made again
+ * can repeat it: the reply holds only the proposal's summary. Confirmation
+ * fields are left out, since the cancelled approval cannot be confirmed.
+ */
+function getCancelledProposalNote(metadata: Message["metadata"]): string {
+  const cards = parseMessageMetadata(metadata)?.["cards"];
+  if (!Array.isArray(cards)) return "";
+  return cards
+    .flatMap((card) => {
+      const parsed = cancelledProposalCardSchema.safeParse(card);
+      if (!parsed.success) return [];
+      const {
+        confirmed: _confirmed,
+        confirmationToken: _token,
+        ...args
+      } = parsed.data.input;
+      const call = JSON.stringify(args);
+      return call.length > cancelledProposalMaxLength
+        ? []
+        : [
+            `\n\nThe user cancelled this ${parsed.data.toolName} proposal: ${call}`,
+          ];
+    })
+    .join("");
 }
 
 function getAgentContactCandidateNote(metadata: Message["metadata"]): string {
@@ -260,11 +299,21 @@ export function resolveConversationUploadContinuity(params: {
     refs.length > 0
       ? selectPriorResponseRef(params.historyMessages)
       : undefined;
+  // Right after the brain's answer, a save that names no upload is about the
+  // answer: "save it" saves what the brain said, not the file it read.
+  const savesAnswer =
+    priorResponseRef !== undefined &&
+    savePattern.test(params.message) &&
+    params.currentAttachments.length === 0 &&
+    params.historyMessages
+      .filter((message) => message.role === "assistant")
+      .at(-1)?.id === priorResponseRef.messageId &&
+    !namesUpload(params.message, refs);
 
   return {
     kind: "selected",
     message: params.message,
-    refs,
+    refs: savesAnswer ? [] : refs,
     attachments: params.currentAttachments,
     ...(priorResponseRef ? { priorResponseRef } : {}),
   };
@@ -320,6 +369,21 @@ function dedupeUploadRefs(
   return deduped;
 }
 
+const savePattern = /\b(?:save|keep|store)\b/i;
+const notePattern = /\bnotes?\b/i;
+
+/** Words that point at an uploaded file rather than at an answer. */
+const uploadWords =
+  /\b(?:upload(?:s|ed)?|files?|attachments?|pdfs?|images?|photos?|pictures?|documents?)\b/i;
+
+function namesUpload(message: string, refs: ConversationUploadRef[]): boolean {
+  const lower = message.toLowerCase();
+  return (
+    uploadWords.test(message) ||
+    refs.some((ref) => lower.includes(ref.filename.toLowerCase()))
+  );
+}
+
 function selectPriorResponseRef(
   messages: Message[],
 ): ConversationPriorResponseRef | undefined {
@@ -360,8 +424,10 @@ export function buildMessageWithAttachments(
     .map(formatTextAttachment);
   const text = [
     message,
+    formatPastedTextSource(message),
     ...textAttachments,
     formatUploadRefs(
+      message,
       nativeAttachments,
       options.uploadRefs ?? [],
       options.priorResponseRef,
@@ -385,6 +451,28 @@ export function buildMessageWithAttachments(
       filename: attachment.filename,
     })),
   ];
+}
+
+/**
+ * The source for text pasted between a BEGIN line and its END line, so the
+ * model names the block instead of copying it: a long paste copied into a
+ * tool call is where a model drops or rewrites the text.
+ */
+function formatPastedTextSource(message: string): string {
+  const lines = message.split(/\r?\n/).map((line) => line.trim());
+  const once = (line: string): boolean =>
+    lines.indexOf(line) === lines.lastIndexOf(line);
+  const start = lines.findIndex(
+    (line, index) =>
+      /^BEGIN\s+\S/.test(line) &&
+      once(line) &&
+      lines.indexOf(`END${line.slice("BEGIN".length)}`) > index &&
+      once(`END${line.slice("BEGIN".length)}`),
+  );
+  const startAfter = lines[start];
+  if (startAfter === undefined) return "";
+  const endBefore = `END${startAfter.slice("BEGIN".length)}`;
+  return `Available source for the text between the lines ${JSON.stringify(startAfter)} and ${JSON.stringify(endBefore)} of this message, read from the message instead of copied, as system_create source or system_update operation.source: { kind: "user-message", boundaryMode: "lines", startAfter: ${JSON.stringify(startAfter)}, endBefore: ${JSON.stringify(endBefore)} }`;
 }
 
 function formatTextAttachment(
@@ -449,6 +537,7 @@ function formatKeepAllCandidate(attachments: ChatAttachment[]): string[] {
 }
 
 function formatUploadRefs(
+  message: string,
   attachments: ChatAttachment[],
   uploadRefs: ConversationUploadRef[],
   priorResponseRef: ConversationPriorResponseRef | undefined,
@@ -456,9 +545,8 @@ function formatUploadRefs(
   const attachmentRefs = attachments
     .map(chatAttachmentToRef)
     .filter(isUploadRef);
-  const lines = dedupeUploadRefs([...uploadRefs, ...attachmentRefs]).map(
-    formatUploadRefLine,
-  );
+  const refs = dedupeUploadRefs([...uploadRefs, ...attachmentRefs]);
+  const lines = refs.map(formatUploadRefLine);
   const priorResponseCandidate = priorResponseRef
     ? [
         "Available system_create candidate for saving the prior assistant response (call without confirmed to request confirmation):",
@@ -470,14 +558,48 @@ function formatUploadRefs(
   const guidance =
     'Available upload refs from this conversation. Refs are ordered newest-first. Treat this as structured candidate data; resolve any user reference to a specific upload in typed tool arguments, or ask a clarification if the candidates are insufficient. For phrases like "the uploaded image" or "the uploaded PDF" without a filename, use the newest ref matching that media type; do not ask for clarification just because older uploads exist. Describe, summarize, analyze, or discuss uploads directly from the file bytes as read-only chat responses; do not call system_create unless the user explicitly asks to save, import, preserve, or create an entity. In read-only upload summaries, answer the request directly and do not offer to save/import/create unless asked. A reply of only a word or a name, after you asked what to do with an upload, is no request to save, create or change anything: ask what the user wants done with the upload. Upload candidates are file bytes; previous assistant answers are saved separately. If the user says "save it" after your summary/answer about an upload, save the prior assistant response as a note with source.kind "prior-response" unless they explicitly ask to save the uploaded file/document itself. Use system_create source.kind upload with its upload id as source.id and transform "preserve" for preserving raw file bytes as a document/image, or transform "extract-markdown" for extracting/importing upload text as a note. To keep several uploads at once, call system_create once with source.kind uploads listing every attached file. These upload transforms preserve the source wording: extract-markdown does not apply edits, summaries, translations, or restructuring. When the user asks to create a new note with such changes to an upload, use system_generate with operation.kind "prompt" instead of importing the original. Request only generation confirmation for that note; do not also call system_create to import the source as a second action. Include the readable source content and all requested changes in operation.prompt; the generation job does not receive this conversation or its attachments. An upload ref or filename alone is not source content, and is not a durable entity ref for prompt-from-source. Once a note has been created, use system_get to read its current content when asked to show it; do not substitute the original upload or reconstruct the note from chat.';
 
+  const keepAllCandidate = formatKeepAllCandidate(attachments);
+  // With no answer of its own to save, "save it" means the newest upload.
+  // Only a request to save or for a note is offered it: a cloud model read
+  // an image as another color when this candidate came before it.
+  const newestCandidate =
+    priorResponseRef === undefined &&
+    keepAllCandidate.length === 0 &&
+    (savePattern.test(message) || notePattern.test(message))
+      ? formatNewestUploadCandidate(refs[0])
+      : "";
   return [
     guidance,
     priorResponseCandidate,
-    ...formatKeepAllCandidate(attachments),
+    newestCandidate,
+    ...keepAllCandidate,
     ...lines,
   ]
     .filter((line) => line.length > 0)
     .join("\n");
+}
+
+/** The save that keeps an upload as itself, for the types that hold one. */
+function formatNewestUploadCandidate(
+  ref: ConversationUploadRef | undefined,
+): string {
+  if (!ref || ref.savedAs) return "";
+  const mediaType = ref.mediaType.toLowerCase();
+  const save = mediaType.startsWith("image/")
+    ? { saved: "an image", entityType: "image", transform: "preserve" }
+    : mediaType === "application/pdf"
+      ? { saved: "a document", entityType: "document", transform: "preserve" }
+      : mediaType.startsWith("text/")
+        ? { saved: "a note", entityType: "note", transform: "extract-markdown" }
+        : undefined;
+  if (!save) return "";
+  const asSaved = `Available system_create candidate for saving the newest upload, ${ref.filename}, as ${save.saved} when the user asks to save it without naming another file (call without confirmed to request confirmation): { entityType: "${save.entityType}", source: { kind: "upload", id: "${ref.source.id}", transform: "${save.transform}" } }`;
+  // A PDF also becomes a note of its text, as a single PDF note import does.
+  if (mediaType !== "application/pdf") return asSaved;
+  return [
+    asSaved,
+    `Available system_create candidate for saving the newest upload, ${ref.filename}, as a note of its text when the user asks for a note (call without confirmed to request confirmation): { entityType: "note", source: { kind: "upload", id: "${ref.source.id}", transform: "extract-markdown" } }`,
+  ].join("\n");
 }
 
 function formatUploadRefLine(ref: ConversationUploadRef): string {

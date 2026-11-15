@@ -24,20 +24,20 @@ describe("OnlineEmbeddingProvider", () => {
   afterEach(() => {});
 
   describe("construction", () => {
-    test("requires an API key", () => {
+    test("requires its provider's key", () => {
       expect(() =>
         OnlineEmbeddingProvider.createFresh({
-          apiKey: "",
+          providerKeys: { anthropic: "sk-ant-test" },
           logger: createSilentLogger(),
         }),
-      ).toThrow("API key is required");
+      ).toThrow("openai:text-embedding-3-small needs OPENAI_API_KEY");
     });
 
     test("creates provider with valid config", () => {
       // Counterpart to the missing-key case above: a valid key is accepted.
       expect(() =>
         OnlineEmbeddingProvider.createFresh({
-          apiKey: "test-key",
+          providerKeys: { openai: "test-key" },
           logger: createSilentLogger(),
         }),
       ).not.toThrow();
@@ -45,7 +45,7 @@ describe("OnlineEmbeddingProvider", () => {
 
     test("defaults to text-embedding-3-small at 1536 dimensions", () => {
       const provider = OnlineEmbeddingProvider.createFresh({
-        apiKey: "test-key",
+        providerKeys: { openai: "test-key" },
         logger: createSilentLogger(),
       });
       expect(provider.identity).toEqual({
@@ -57,7 +57,7 @@ describe("OnlineEmbeddingProvider", () => {
 
     test("takes its identity from the configured profile", () => {
       const provider = OnlineEmbeddingProvider.createFresh({
-        apiKey: "test-key",
+        providerKeys: { openai: "test-key" },
         profile: resolveEmbeddingProfile("openai:text-embedding-3-large"),
         logger: createSilentLogger(),
       });
@@ -72,7 +72,7 @@ describe("OnlineEmbeddingProvider", () => {
   describe("embedDocuments edge cases", () => {
     test("returns empty result for empty input", async () => {
       const provider = OnlineEmbeddingProvider.createFresh({
-        apiKey: "test-key",
+        providerKeys: { openai: "test-key" },
         logger: createSilentLogger(),
       });
       const result = await provider.embedDocuments([]);
@@ -82,7 +82,7 @@ describe("OnlineEmbeddingProvider", () => {
 
     test("preserves cancellation before a provider request", () => {
       const provider = OnlineEmbeddingProvider.createFresh({
-        apiKey: "test-key",
+        providerKeys: { openai: "test-key" },
         logger: createSilentLogger(),
       });
       const controller = new AbortController();
@@ -126,7 +126,7 @@ describe("OnlineEmbeddingProvider", () => {
     test("reports each call's tokens to the meter of the work that made it", async () => {
       const usage = EmbeddingUsageMeter.createFresh();
       const provider = OnlineEmbeddingProvider.createFresh({
-        apiKey: "test-key",
+        providerKeys: { openai: "test-key" },
         logger: createSilentLogger(),
         usage,
         fetch: openAi,
@@ -144,7 +144,7 @@ describe("OnlineEmbeddingProvider", () => {
     test("records usage under the configured model", async () => {
       const usage = EmbeddingUsageMeter.createFresh();
       const provider = OnlineEmbeddingProvider.createFresh({
-        apiKey: "test-key",
+        providerKeys: { openai: "test-key" },
         profile: resolveEmbeddingProfile("openai:text-embedding-3-large"),
         logger: createSilentLogger(),
         usage,
@@ -168,7 +168,7 @@ describe("OnlineEmbeddingProvider", () => {
         return respond(input, init);
       };
       const provider = OnlineEmbeddingProvider.createFresh({
-        apiKey: "test-key",
+        providerKeys: { openai: "test-key" },
         profile: resolveEmbeddingProfile("openai:text-embedding-3-large"),
         logger: createSilentLogger(),
         fetch: Object.assign(capture, {
@@ -256,7 +256,7 @@ describe("OnlineEmbeddingProvider", () => {
       fetch: typeof fetch;
     }): OnlineEmbeddingProvider {
       return OnlineEmbeddingProvider.createFresh({
-        apiKey: "test-key",
+        providerKeys: { openai: "test-key" },
         profile: twoDimensions,
         logger: createSilentLogger(),
         fetch: api.fetch,
@@ -388,7 +388,7 @@ describe("OnlineEmbeddingProvider", () => {
             );
       };
       const provider = OnlineEmbeddingProvider.createFresh({
-        apiKey: "test-key",
+        providerKeys: { openai: "test-key" },
         profile: twoDimensions,
         logger: createSilentLogger(),
         usage,
@@ -426,7 +426,7 @@ describe("OnlineEmbeddingProvider", () => {
       const usage = EmbeddingUsageMeter.createFresh();
       const api = fakeOpenAi();
       const provider = OnlineEmbeddingProvider.createFresh({
-        apiKey: "test-key",
+        providerKeys: { openai: "test-key" },
         profile: twoDimensions,
         logger: createSilentLogger(),
         usage,
@@ -502,7 +502,6 @@ describe("embedding through the local runtime", () => {
     fetch: typeof fetch;
   }): OnlineEmbeddingProvider {
     return OnlineEmbeddingProvider.createFresh({
-      apiKey: "",
       profile: gemma,
       runtimeUrl,
       logger: createSilentLogger(),
@@ -562,7 +561,6 @@ describe("embedding through the local runtime", () => {
   test("needs the runtime's URL", () => {
     expect(() =>
       OnlineEmbeddingProvider.createFresh({
-        apiKey: "",
         profile: gemma,
         logger: createSilentLogger(),
       }),

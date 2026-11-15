@@ -1,0 +1,35 @@
+{
+  "imported": {
+    "stored": {
+      "content": "---\ngroupings:\n  clients:\n    label: Clients\n    multiple: true\n    values: []\nvisibility: shared\n---\n\n",
+      "metadata": "{}"
+    },
+    "read": {
+      "content": "---\ngroupings:\n  clients:\n    label: Clients\n    multiple: true\n    values: []\nvisibility: shared\n---\n\n",
+      "metadata": {}
+    },
+    "exported": "---\ngroupings:\n  clients:\n    label: Clients\n    multiple: true\n    values: []\nvisibility: shared\n---\n\n"
+  },
+  "updated": {
+    "stored": {
+      "content": "---\ngroupings:\n  clients:\n    label: Customers\n    multiple: true\n    values: []\nvisibility: shared\n---\n\n",
+      "metadata": "{}"
+    },
+    "read": {
+      "content": "---\ngroupings:\n  clients:\n    label: Customers\n    multiple: true\n    values: []\nvisibility: shared\n---\n\n",
+      "metadata": {}
+    },
+    "exported": "---\ngroupings:\n  clients:\n    label: Customers\n    multiple: true\n    values: []\nvisibility: shared\n---\n\n"
+  },
+  "needsRepair": {
+    "stored": {
+      "content": "---\ngroupings:\n  clients:\n    label: 3\nvisibility: shared\n---\n\n",
+      "metadata": "{}"
+    },
+    "read": {
+      "content": "---\ngroupings:\n  clients:\n    label: 3\nvisibility: shared\n---\n\n",
+      "metadata": {}
+    },
+    "exported": "---\ngroupings:\n  clients:\n    label: 3\nvisibility: shared\n---\n\n"
+  }
+}

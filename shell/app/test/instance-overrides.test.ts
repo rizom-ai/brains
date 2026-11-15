@@ -17,10 +17,13 @@ import {
 } from "../src/instance-overrides";
 import {
   PluginConfigValidationError,
+  createTemplate,
+  withSiteRuntime,
   type Plugin,
   type IShell,
   type PluginCapabilities,
 } from "@brains/plugins";
+import { createPluginHarness } from "@brains/plugins/test";
 import {
   EntityActionPermissionError,
   PermissionService,
@@ -1346,21 +1349,52 @@ permissions:
 
 // --- site package resolution ---
 
+/** The config each site's carried runtime was registered with, by its id. */
+const siteRuntimeConfigs = new Map<string, Record<string, unknown>>();
+
+/** A site carrying a runtime that registers one template and keeps its config. */
 function createMockSitePackage(
-  pluginId: string,
+  siteId: string,
   overrides?: Partial<SitePackage>,
 ): SitePackage {
-  return {
-    layouts: { default: () => null },
-    routes: [{ id: "home", path: "/", title: "Home" }],
-    plugin: (config) => createMockPlugin(pluginId, config ?? {}),
-    entityDisplay: { post: { label: "Post" } },
-    ...overrides,
-  };
+  return withSiteRuntime(
+    {
+      layouts: { default: () => null },
+      routes: [{ id: "home", path: "/", title: "Home" }],
+      entityDisplay: { post: { label: "Post" } },
+      ...overrides,
+    },
+    {
+      id: siteId,
+      config: z.looseObject({}),
+      templates: ({ config }) => {
+        siteRuntimeConfigs.set(siteId, config);
+        return {
+          marker: createTemplate({
+            name: "marker",
+            description: siteId,
+            schema: z.object({}),
+            requiredPermission: "public",
+          }),
+        };
+      },
+    },
+  );
+}
+
+/** Register the resolved site package plugin; the templates its runtime registered. */
+async function registeredSiteTemplates(
+  plugins: Plugin[] | undefined,
+): Promise<string[]> {
+  const sitePackage = plugins?.find((plugin) => plugin.id === "site-package");
+  if (!sitePackage) throw new Error("No site package plugin was resolved");
+  const harness = createPluginHarness();
+  await harness.installPlugin(sitePackage);
+  return [...harness.getTemplates().keys()];
 }
 
 describe("resolve with site package", () => {
-  test("should use theme from brain definition as default", () => {
+  test("should use theme from brain definition as default", async () => {
     const [siteBuilderFactory] = createMockFactory("site-builder");
     const [dashboardFactory] = createMockFactory("dashboard");
     const site = createMockSitePackage("personal-site");
@@ -1378,10 +1412,11 @@ describe("resolve with site package", () => {
     });
 
     const config = resolve(def, {});
-    const pluginIds = config.plugins?.map((p) => p.id) ?? [];
     const expectedThemeCSS = withThemeBase("body { color: pink; }");
 
-    expect(pluginIds).toContain("personal-site");
+    expect(await registeredSiteTemplates(config.plugins)).toContain(
+      "personal-site:marker",
+    );
     expect(config.shellConfig?.themeCSS).toBe(expectedThemeCSS);
     const siteBuilder = config.plugins?.find((p) => p.id === "site-builder");
     expect(getConfig(siteBuilder)["themeCSS"]).toBe(expectedThemeCSS);
@@ -1441,7 +1476,7 @@ describe("resolve with site package", () => {
     });
   });
 
-  test("should merge a structurally complete plugin-less conventional site override with the brain site", () => {
+  test("should merge a structurally complete plugin-less conventional site override with the brain site", async () => {
     const [siteBuilderFactory] = createMockFactory("site-builder");
     const site = createMockSitePackage("professional-site", {
       layouts: { default: "base-layout", article: "article-layout" },
@@ -1480,11 +1515,12 @@ describe("resolve with site package", () => {
       },
     );
 
-    const sitePlugin = config.plugins?.find(
-      (p) => p.id === "professional-site",
+    expect(await registeredSiteTemplates(config.plugins)).toContain(
+      "professional-site:marker",
     );
-    expect(sitePlugin).toBeDefined();
-    expect(getConfig(sitePlugin)["themeProfile"]).toBe("product");
+    expect(siteRuntimeConfigs.get("professional-site")?.["themeProfile"]).toBe(
+      "product",
+    );
 
     const siteBuilder = config.plugins?.find((p) => p.id === "site-builder");
     const siteBuilderConfig = getConfig(siteBuilder);
@@ -1693,7 +1729,7 @@ describe("resolve with site package", () => {
     expect(layouts["minimal"]).toBe(mockMinimal);
   });
 
-  test("should override brain definition site with brain.yaml site without changing theme", () => {
+  test("should override brain definition site with brain.yaml site without changing theme", async () => {
     const [siteBuilderFactory] = createMockFactory("site-builder");
     const defaultSite = createMockSitePackage("professional-site");
     const overrideSite = createMockSitePackage("personal-site");
@@ -1714,10 +1750,10 @@ describe("resolve with site package", () => {
       {},
       { site: { package: "@brains/site-override" } },
     );
-    const pluginIds = config.plugins?.map((p) => p.id) ?? [];
+    const templates = await registeredSiteTemplates(config.plugins);
 
-    expect(pluginIds).toContain("personal-site");
-    expect(pluginIds).not.toContain("professional-site");
+    expect(templates).toContain("personal-site:marker");
+    expect(templates).not.toContain("professional-site:marker");
 
     const siteBuilder = config.plugins?.find((p) => p.id === "site-builder");
     expect(getConfig(siteBuilder)["themeCSS"]).toBe(
@@ -1912,19 +1948,12 @@ site:
     });
   });
 
-  test("should pass entityDisplay to site plugin", () => {
+  test("should pass entityDisplay to the site's runtime", async () => {
     const [siteBuilderFactory] = createMockFactory("site-builder");
-    const pluginConfigs: PluginConfig[] = [];
-    const site: SitePackage = {
-      layouts: { default: () => null },
+    const site = createMockSitePackage("article-site", {
       routes: [],
-      plugin: (config) => {
-        const cfg = config ?? {};
-        pluginConfigs.push(cfg);
-        return createMockPlugin("personal-site", cfg);
-      },
       entityDisplay: { post: { label: "Article" } },
-    };
+    });
 
     const def = defineBrain({
       name: "test",
@@ -1934,28 +1963,18 @@ site:
       interfaces: [],
     });
 
-    const config = resolve(def, {});
+    await registeredSiteTemplates(resolve(def, {}).plugins);
 
-    expect(pluginConfigs).toHaveLength(1);
-    const sitePlugin = config.plugins?.find((p) => p.id === "personal-site");
-    expect(sitePlugin).toBeDefined();
-    expect(getConfig(sitePlugin)["entityDisplay"]).toEqual({
+    expect(siteRuntimeConfigs.get("article-site")?.["entityDisplay"]).toEqual({
       post: { label: "Article" },
     });
   });
 
-  test("should spread site variant into the site plugin config but keep theme separate", () => {
+  test("should spread site variant into the site's runtime config but keep theme separate", async () => {
     // Site selection and theme selection stay colocated in brain.yaml,
-    // but theme resolution is a resolver concern, not a site-plugin concern.
+    // but theme resolution is a resolver concern, not the site's.
     const [siteBuilderFactory] = createMockFactory("site-builder");
-    const pluginConfigs: PluginConfig[] = [];
-    const site = createMockSitePackage("rizom-site", {
-      plugin: (config) => {
-        const cfg = config ?? {};
-        pluginConfigs.push(cfg);
-        return createMockPlugin("rizom-site", cfg);
-      },
-    });
+    const site = createMockSitePackage("variant-site");
 
     const def = defineBrain({
       name: "test",
@@ -1965,45 +1984,31 @@ site:
       interfaces: [],
     });
 
-    const config = resolve(
-      def,
-      {},
-      {
-        site: {
-          variant: "editorial",
-          theme: "@brains/theme-foundation",
+    await registeredSiteTemplates(
+      resolve(
+        def,
+        {},
+        {
+          site: {
+            variant: "editorial",
+            theme: "@brains/theme-foundation",
+          },
         },
-      },
+      ).plugins,
     );
 
-    expect(pluginConfigs).toHaveLength(1);
-    const sitePlugin = config.plugins?.find((p) => p.id === "rizom-site");
-    expect(sitePlugin).toBeDefined();
-    const cfg = getConfig(sitePlugin);
-    expect(cfg["variant"]).toBe("editorial");
-    expect(cfg["theme"]).toBeUndefined();
-    expect(cfg["package"]).toBeUndefined();
+    const cfg = siteRuntimeConfigs.get("variant-site");
+    expect(cfg?.["variant"]).toBe("editorial");
+    expect(cfg?.["theme"]).toBeUndefined();
+    expect(cfg?.["package"]).toBeUndefined();
   });
 
-  test("should not spread package field into site plugin config", () => {
+  test("should not spread package field into the site's runtime config", async () => {
     // package is consumed at package-resolution time and stripped before
-    // being forwarded to the plugin factory.
+    // the site's runtime is configured.
     const [siteBuilderFactory] = createMockFactory("site-builder");
-    const pluginConfigs: PluginConfig[] = [];
-    const defaultSite = createMockSitePackage("default-site", {
-      plugin: (config) => {
-        const cfg = config ?? {};
-        pluginConfigs.push(cfg);
-        return createMockPlugin("default-site", cfg);
-      },
-    });
-    const overrideSite = createMockSitePackage("override-site", {
-      plugin: (config) => {
-        const cfg = config ?? {};
-        pluginConfigs.push(cfg);
-        return createMockPlugin("override-site", cfg);
-      },
-    });
+    const defaultSite = createMockSitePackage("default-site");
+    const overrideSite = createMockSitePackage("leakcheck-site");
     registerPackage("@brains/site-leakcheck", overrideSite);
 
     const def = defineBrain({
@@ -2014,15 +2019,16 @@ site:
       interfaces: [],
     });
 
-    resolve(
-      def,
-      {},
-      { site: { package: "@brains/site-leakcheck", variant: "x" } },
+    await registeredSiteTemplates(
+      resolve(
+        def,
+        {},
+        { site: { package: "@brains/site-leakcheck", variant: "x" } },
+      ).plugins,
     );
 
-    // The override-site plugin was called with { variant: "x" } — no `package`
-    const overrideConfig = pluginConfigs.find((c) => c["variant"] === "x");
-    expect(overrideConfig).toBeDefined();
+    const overrideConfig = siteRuntimeConfigs.get("leakcheck-site");
+    expect(overrideConfig?.["variant"]).toBe("x");
     expect(overrideConfig?.["package"]).toBeUndefined();
   });
 });

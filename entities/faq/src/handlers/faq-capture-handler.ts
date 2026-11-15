@@ -1,21 +1,20 @@
-import type {
-  EntityPluginContext,
-  IConversationsNamespace,
-  Message,
-} from "@brains/plugins";
+import { EntityWriteConflictError } from "@brains/sdk/internal/entity-runtime";
+import { permissionToVisibilityScope } from "@brains/sdk/internal/interface-runtime";
 import {
-  BaseJobHandler,
-  EntityWriteConflictError,
   UserPermissionLevelSchema,
+  firstPartyJobHandler,
   internalFullScope,
-  permissionToVisibilityScope,
-} from "@brains/plugins";
-import type { Logger } from "@brains/utils/logger";
-import type { ProgressReporter } from "@brains/utils/progress";
+  type FirstPartyJobHandler,
+  type Message,
+  type ServiceAI,
+  type ServiceConversations,
+  type ServiceEntityMutations,
+  type ServiceEntityReads,
+} from "@brains/sdk/internal/service-runtime";
 import { slugify, truncateSlug } from "@brains/utils/string-utils";
 import { getGuestSourceCards } from "@brains/contracts/chat";
 import { z } from "@brains/utils/zod";
-import { faqAdapter, faqMetadata } from "../adapters/faq-adapter";
+import { faqDocument, faqRecord } from "../lib/faq-body";
 import type { FaqFrontmatter, FaqSource } from "../schemas/faq";
 import { findSameFaq, mergeIntoFaq, type FaqStoreDeps } from "../lib/faq-store";
 import type { CapturedReplyStore } from "../lib/captured-replies";
@@ -82,16 +81,16 @@ export type FaqCaptureResult =
 
 export interface FaqCaptureDeps extends FaqStoreDeps {
   replies: CapturedReplyStore;
-  entityService: Pick<
-    EntityPluginContext["entityService"],
-    | "getEntity"
-    | "updateEntity"
-    | "getEntityMutationReceipt"
-    | "getEntityWriteSnapshot"
-    | "applyEntityMutationOnce"
-  >;
-  conversations: Pick<IConversationsNamespace, "getMessages">;
-  ai: Pick<EntityPluginContext["ai"], "generateObject">;
+  entityService: Pick<ServiceEntityReads, "getEntity"> &
+    FaqStoreDeps["entityService"] &
+    Pick<
+      ServiceEntityMutations,
+      | "getEntityMutationReceipt"
+      | "getEntityWriteSnapshot"
+      | "applyEntityMutationOnce"
+    >;
+  conversations: Pick<ServiceConversations, "getMessages">;
+  ai: Pick<ServiceAI, "generateObject">;
 }
 
 /** Longest question slug kept in an id, so ids stay readable. */
@@ -125,7 +124,7 @@ function buildClassificationPrompt(question: string, answer: string): string {
 
 /** One structured AI call: is the exchange reusable, and its standalone form. */
 export async function classifyExchange(
-  ai: Pick<EntityPluginContext["ai"], "generateObject">,
+  ai: Pick<ServiceAI, "generateObject">,
   question: string,
   answer: string,
   signal?: AbortSignal,
@@ -169,195 +168,178 @@ function findQuestion(
  * never readable more widely than the content the answer could draw on, and a
  * reply only merges into a FAQ of exactly that visibility.
  */
-export class FaqCaptureHandler extends BaseJobHandler<
-  "faq-capture",
-  FaqCaptureJobData,
-  FaqCaptureResult
-> {
-  private readonly deps: FaqCaptureDeps;
+export function faqCaptureJob(deps: FaqCaptureDeps): FirstPartyJobHandler {
+  return firstPartyJobHandler<FaqCaptureJobData>({
+    type: "faq-capture",
+    input: faqCaptureJobSchema,
+    process: ({ input, signal }) => captureReply(deps, input, signal),
+  });
+}
 
-  constructor(logger: Logger, deps: FaqCaptureDeps) {
-    super(logger, { schema: faqCaptureJobSchema, jobTypeName: "faq-capture" });
-    this.deps = deps;
+/** One reply captured once, under its message's durable receipt. */
+export async function captureReply(
+  deps: FaqCaptureDeps,
+  data: FaqCaptureJobData,
+  signal?: AbortSignal,
+): Promise<FaqCaptureResult> {
+  // Legacy claims cannot distinguish completed captures from interrupted ones.
+  // Preserve them: automatic replay could double-count an existing FAQ.
+  const receipt = { namespace: "faq.capture", key: data.messageId };
+  if (
+    (await deps.replies.has(data.messageId)) ||
+    (await deps.entityService.getEntityMutationReceipt(receipt))
+  ) {
+    return { captured: false, reason: "already-captured" };
+  }
+  // Classification is retryable work, not a durable completion claim.
+  // Only a terminal decision or the FAQ write consumes the identity.
+  const result = await capture(deps, data, receipt, signal);
+  const committed = result.captured
+    ? await deps.entityService.getEntityMutationReceipt(receipt)
+    : await deps.entityService.applyEntityMutationOnce({
+        receipt,
+        operation: "none",
+      });
+  if (!committed)
+    throw new Error("FAQ capture finished without a mutation receipt");
+  if (committed.operation === "none")
+    return result.captured
+      ? { captured: false, reason: "already-captured" }
+      : result;
+  return {
+    captured: true,
+    entityId: committed.entityId,
+    merged: committed.operation === "update",
+  };
+}
+
+async function capture(
+  deps: FaqCaptureDeps,
+  data: FaqCaptureJobData,
+  receipt: Parameters<ServiceEntityMutations["getEntityMutationReceipt"]>[0],
+  signal?: AbortSignal,
+): Promise<FaqCaptureResult> {
+  const messages = await deps.conversations.getMessages(data.conversationId, {
+    range: {
+      start: Math.max(1, data.position - QUESTION_LOOKBACK),
+      end: data.position + ARRIVAL_SLACK,
+    },
+  });
+  const answerIndex = messages.findIndex(
+    (message) => message.id === data.messageId,
+  );
+  const answer = messages[answerIndex];
+  if (!answer) return { captured: false, reason: "answer-not-found" };
+
+  const question = findQuestion(messages, answerIndex);
+  if (!question) return { captured: false, reason: "no-question" };
+
+  if (
+    answer.metadata["askedBefore"] !== undefined &&
+    data.userPermissionLevel !== "public"
+  )
+    return { captured: false, reason: "not-reusable" };
+  const counted = await countAskedBefore(deps.entityService, answer, receipt);
+  if (counted !== undefined)
+    return counted
+      ? { captured: true, ...counted }
+      : { captured: false, reason: "not-reusable" };
+
+  const classification = await classifyExchange(
+    deps.ai,
+    question.content,
+    answer.content,
+    signal,
+  );
+  if (!classification.reusable) {
+    return { captured: false, reason: "not-reusable" };
   }
 
-  async process(
-    data: FaqCaptureJobData,
-    _jobId: string,
-    _progressReporter: ProgressReporter,
-    signal?: AbortSignal,
-  ): Promise<FaqCaptureResult> {
-    // Legacy claims cannot distinguish completed captures from interrupted ones.
-    // Preserve them: automatic replay could double-count an existing FAQ.
-    const receipt = { namespace: "faq.capture", key: data.messageId };
-    if (
-      (await this.deps.replies.has(data.messageId)) ||
-      (await this.deps.entityService.getEntityMutationReceipt(receipt))
-    ) {
-      return { captured: false, reason: "already-captured" };
-    }
-    // Classification is retryable work, not a durable completion claim.
-    // Only a terminal decision or the FAQ write consumes the identity.
-    const result = await this.capture(data, receipt, signal);
-    const committed = result.captured
-      ? await this.deps.entityService.getEntityMutationReceipt(receipt)
-      : await this.deps.entityService.applyEntityMutationOnce({
-          receipt,
-          operation: "none",
-        });
-    if (!committed)
-      throw new Error("FAQ capture finished without a mutation receipt");
-    if (committed.operation === "none")
-      return result.captured
-        ? { captured: false, reason: "already-captured" }
-        : result;
-    return {
-      captured: true,
-      entityId: committed.entityId,
-      merged: committed.operation === "update",
-    };
-  }
+  const visibility = permissionToVisibilityScope(data.userPermissionLevel);
+  const sources = replySources(answer);
+  const frontmatter: FaqFrontmatter = {
+    question: classification.question,
+    status: "draft",
+    asked: 1,
+  };
+  // Searched and checked as the document it would be stored as.
+  const content = faqDocument(frontmatter, classification.answer, [], sources);
 
-  private async capture(
-    data: FaqCaptureJobData,
-    receipt: Parameters<
-      EntityPluginContext["entityService"]["getEntityMutationReceipt"]
-    >[0],
-    signal?: AbortSignal,
-  ): Promise<FaqCaptureResult> {
-    const messages = await this.deps.conversations.getMessages(
-      data.conversationId,
-      {
-        range: {
-          start: Math.max(1, data.position - QUESTION_LOOKBACK),
-          end: data.position + ARRIVAL_SLACK,
-        },
-      },
-    );
-    const answerIndex = messages.findIndex(
-      (message) => message.id === data.messageId,
-    );
-    const answer = messages[answerIndex];
-    if (!answer) return { captured: false, reason: "answer-not-found" };
-
-    const question = findQuestion(messages, answerIndex);
-    if (!question) return { captured: false, reason: "no-question" };
-
-    if (
-      answer.metadata["askedBefore"] !== undefined &&
-      data.userPermissionLevel !== "public"
-    )
-      return { captured: false, reason: "not-reusable" };
-    const counted = await countAskedBefore(
-      this.deps.entityService,
-      answer,
-      receipt,
-    );
-    if (counted !== undefined)
-      return counted
-        ? { captured: true, ...counted }
-        : { captured: false, reason: "not-reusable" };
-
-    const classification = await classifyExchange(
-      this.deps.ai,
-      question.content,
-      answer.content,
-      signal,
-    );
-    if (!classification.reusable) {
-      return { captured: false, reason: "not-reusable" };
-    }
-
-    const visibility = permissionToVisibilityScope(data.userPermissionLevel);
-    const sources = replySources(answer);
-    const frontmatter: FaqFrontmatter = {
-      question: classification.question,
-      status: "draft",
-      asked: 1,
-    };
-    const content = faqAdapter.createFaqContent(
-      frontmatter,
-      classification.answer,
-      [],
-      sources,
-    );
-
-    const match = await findSameFaq(this.deps, {
-      content,
-      visibility,
-      signal,
-    });
-    signal?.throwIfAborted();
-    const mergeDeps: FaqStoreDeps = {
-      ...this.deps,
-      entityService: {
-        getEntity: this.deps.entityService.getEntity.bind(
-          this.deps.entityService,
-        ),
-        updateEntity: async (request) => {
-          try {
-            const committed =
-              await this.deps.entityService.applyEntityMutationOnce({
-                receipt,
-                operation: "update",
-                request,
-              });
+  const match = await findSameFaq(deps, {
+    content,
+    visibility,
+    signal,
+  });
+  signal?.throwIfAborted();
+  const mergeDeps: FaqStoreDeps = {
+    ...deps,
+    entityService: {
+      getEntity: (request) => deps.entityService.getEntity(request),
+      updateEntity: async (request) => {
+        try {
+          const committed = await deps.entityService.applyEntityMutationOnce({
+            receipt,
+            operation: "update",
+            request,
+          });
+          return {
+            entityId:
+              committed.operation === "none"
+                ? request.entity.id
+                : committed.entityId,
+            jobId: "",
+            skipped: false,
+          };
+        } catch (error) {
+          if (error instanceof EntityWriteConflictError)
             return {
-              entityId:
-                committed.operation === "none"
-                  ? request.entity.id
-                  : committed.entityId,
+              entityId: request.entity.id,
               jobId: "",
-              skipped: false,
+              skipped: true,
+              skipReason: "content-conflict",
             };
-          } catch (error) {
-            if (error instanceof EntityWriteConflictError)
-              return {
-                entityId: request.entity.id,
-                jobId: "",
-                skipped: true,
-                skipReason: "content-conflict",
-              };
-            throw error;
-          }
-        },
+          throw error;
+        }
       },
-    };
-    const merged =
-      match &&
-      (await mergeIntoFaq(mergeDeps, match, {
-        asks: 1,
-        alternatives: [{ answer: classification.answer }],
-      }));
-    if (match && merged) {
-      return { captured: true, entityId: match.id, merged: true };
-    }
-
-    const entityId = await this.freeId(faqSlug(classification.question));
-    await this.deps.entityService.applyEntityMutationOnce({
-      receipt,
-      operation: "create",
-      request: {
-        entity: {
-          id: entityId,
-          entityType: "faq",
-          content,
-          visibility,
-          metadata: faqMetadata(frontmatter),
-        },
-      },
-    });
-    return { captured: true, entityId, merged: false };
+    },
+  };
+  const merged =
+    match &&
+    (await mergeIntoFaq(mergeDeps, match, {
+      asks: 1,
+      alternatives: [{ answer: classification.answer }],
+    }));
+  if (match && merged) {
+    return { captured: true, entityId: match.id, merged: true };
   }
 
-  /** `slug`, or `slug-2`, `slug-3`, … when a FAQ of any visibility has it. */
-  private async freeId(slug: string, suffix = 1): Promise<string> {
-    const id = suffix === 1 ? slug : `${slug}-${suffix}`;
-    const taken = await this.deps.entityService.getEntity({
-      entityType: "faq",
-      id,
-      visibilityScope: internalFullScope("faq id allocation"),
-    });
-    return taken ? this.freeId(slug, suffix + 1) : id;
-  }
+  const entityId = await freeId(deps, faqSlug(classification.question));
+  await deps.entityService.applyEntityMutationOnce({
+    receipt,
+    operation: "create",
+    request: {
+      entity: {
+        id: entityId,
+        entityType: "faq",
+        ...faqRecord(frontmatter, classification.answer, [], sources),
+        visibility,
+      },
+    },
+  });
+  return { captured: true, entityId, merged: false };
+}
+
+/** `slug`, or `slug-2`, `slug-3`, … when a FAQ of any visibility has it. */
+async function freeId(
+  deps: FaqCaptureDeps,
+  slug: string,
+  suffix = 1,
+): Promise<string> {
+  const id = suffix === 1 ? slug : `${slug}-${suffix}`;
+  const taken = await deps.entityService.getEntity({
+    entityType: "faq",
+    id,
+    visibilityScope: internalFullScope("faq id allocation"),
+  });
+  return taken ? freeId(deps, slug, suffix + 1) : id;
 }

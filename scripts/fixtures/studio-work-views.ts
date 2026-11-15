@@ -1,7 +1,6 @@
 import { createMockShell } from "@brains/plugins/test";
 import {
   DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
-  createServicePluginContext,
   instantiatePluginPackageDefinition,
   studioWorkspaceRegisterContract,
   type StudioWorkspaceActor,
@@ -11,6 +10,7 @@ import {
   StudioOverviewRegistry,
   createStudioOverviewWorkspace,
 } from "../../plugins/studio/src/overview-workspace";
+import { studioContextOn } from "../../plugins/studio/test/studio-plugins";
 import unifiedInboxPackage from "../../plugins/unified-inbox/src";
 
 import type { StudioStudyState } from "./studio-study-state";
@@ -119,7 +119,7 @@ export async function createWorkViewFixtures(
     });
   }
   const overview = createStudioOverviewWorkspace({
-    context: createServicePluginContext(shell, "studio"),
+    context: await studioContextOn(shell),
     registry,
     now: (): number => now,
   });

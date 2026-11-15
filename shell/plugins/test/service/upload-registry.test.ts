@@ -1,6 +1,6 @@
 import { createMockShell } from "../../src/test/mock-shell";
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdir, mkdtemp, rm, writeFile } from "fs/promises";
+import { mkdir, mkdtemp, rm, utimes, writeFile } from "fs/promises";
 import { tmpdir } from "os";
 import { join } from "path";
 import { createServicePluginContext } from "../../src/service/context";
@@ -179,5 +179,85 @@ describe("RuntimeUploadRegistry", () => {
     expect(await store.read(record.id)).toMatchObject({
       record: { filename: "hello.txt" },
     });
+  });
+
+  it("builds route refs for stored uploads", () => {
+    const record = {
+      id: fixedUploadId("000000000001"),
+      ref: { kind: "upload", id: fixedUploadId("000000000001") },
+      filename: "notes.md",
+      mediaType: "text/markdown",
+      sizeBytes: 7,
+      createdAt: "2026-05-30T00:00:00.000Z",
+    };
+
+    expect(scopedStore().toResponseBody(record)).toEqual({
+      ...record,
+      url: `/api/chat/uploads?id=${record.id}`,
+      downloadUrl: `/api/chat/uploads?id=${record.id}&download=1`,
+    });
+  });
+
+  it("reads stored upload content with metadata", async () => {
+    const store = RuntimeUploadRegistry.createFresh({ dataDir }).scoped({
+      namespace: "upload",
+      refKind: "upload",
+      routePath: "/api/chat/uploads",
+      createId: (): string => fixedUploadId("000000000002"),
+    });
+    const record = await store.save({
+      filename: "notes.txt",
+      mediaType: "text/plain",
+      content: Buffer.from("hello"),
+    });
+
+    const resolved = await store.read(record.id);
+
+    expect(resolved.record).toMatchObject({
+      id: record.id,
+      filename: "notes.txt",
+      mediaType: "text/plain",
+      sizeBytes: 5,
+    });
+    expect(new TextDecoder().decode(resolved.content)).toBe("hello");
+  });
+
+  it("rejects invalid upload ids before touching storage", async () => {
+    await expectStoreError(scopedStore().read("../bad"), "invalid_ref");
+  });
+
+  it("prunes stale stored uploads when it saves", async () => {
+    const store = RuntimeUploadRegistry.createFresh({ dataDir }).scoped({
+      namespace: "upload",
+      refKind: "upload",
+      routePath: "/api/chat/uploads",
+      createId: (): string => fixedUploadId("000000000005"),
+      now: fixedNow,
+      retentionMs: 24 * 60 * 60 * 1000,
+      maxCount: 200,
+    });
+    const staleDir = join(
+      dataDir,
+      "upload",
+      "uploads",
+      fixedUploadId("000000000004"),
+    );
+    await mkdir(staleDir, { recursive: true });
+    await writeFile(join(staleDir, "content"), "old");
+    const staleAge = new Date("2026-05-28T00:00:00.000Z");
+    await utimes(staleDir, staleAge, staleAge);
+
+    const fresh = await store.save({
+      filename: "fresh.md",
+      mediaType: "text/markdown",
+      content: Buffer.from("fresh"),
+    });
+
+    expect(await Bun.file(join(staleDir, "content")).exists()).toBe(false);
+    expect(
+      await Bun.file(
+        join(dataDir, "upload", "uploads", fresh.id, "content"),
+      ).exists(),
+    ).toBe(true);
   });
 });

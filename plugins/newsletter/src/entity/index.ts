@@ -1,4 +1,11 @@
-export { NewsletterPlugin, newsletterPlugin } from "./plugin";
+export { newsletterEntityPackage } from "./package";
+export { newsletterEntity } from "./newsletter-entity";
+export {
+  newsletterGeneration,
+  generationJobSchema,
+  generatedNewsletterSchema,
+  type GenerationJobData,
+} from "./generation";
 
 export type {
   Newsletter,

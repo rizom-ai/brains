@@ -7,6 +7,7 @@ import {
   runWithPreparedPublishManifests,
 } from "@brains/build-tools";
 import { getPackages } from "@manypkg/get-packages";
+import { addProcessSignalListeners } from "@brains/utils/process-signals";
 import {
   PACKED_BRAIN_TARBALL_ENV,
   PACKED_COMPATIBILITY_EVIDENCE_ENV,
@@ -95,8 +96,8 @@ async function main(): Promise<void> {
   const temporaryRoot = await mkdtemp(
     join(tmpdir(), "public-authoring-compatibility-"),
   );
-  process.on("SIGINT", onSigint);
-  process.on("SIGTERM", onSigterm);
+  const removeSigint = addProcessSignalListeners(["SIGINT"], onSigint);
+  const removeSigterm = addProcessSignalListeners(["SIGTERM"], onSigterm);
 
   try {
     const brainTarball = await packBrain(temporaryRoot);
@@ -110,8 +111,8 @@ async function main(): Promise<void> {
     });
   } finally {
     activeChild?.kill("SIGTERM");
-    process.off("SIGINT", onSigint);
-    process.off("SIGTERM", onSigterm);
+    removeSigint();
+    removeSigterm();
     await rm(temporaryRoot, { recursive: true, force: true });
   }
 }

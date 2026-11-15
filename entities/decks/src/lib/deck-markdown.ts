@@ -1,4 +1,4 @@
-import { EntityValidationError } from "@brains/plugins";
+import { EntityValidationError } from "@brains/sdk/internal/entity-runtime";
 import type { EntityMarkdownCodec } from "@brains/sdk/entities";
 import {
   generateMarkdown,

@@ -1,11 +1,11 @@
 import { z } from "@brains/utils/zod";
-import {
-  anchorProfileKindSchema,
-  baseEntityParserSchema,
-  baseEntitySchema,
-} from "@brains/plugins";
 import { AGENT_ENTITY_TYPE } from "../lib/constants";
 import { skillTagsSchema } from "./skill";
+import { anchorProfileKindSchema } from "@brains/sdk/internal/service-runtime";
+import {
+  baseEntityParserSchema,
+  baseEntitySchema,
+} from "@brains/sdk/internal/entity-runtime";
 
 /**
  * Shared parser sub-schema — used by body/template parsing.

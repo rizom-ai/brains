@@ -1,14 +1,10 @@
 import { describe, expect, it } from "bun:test";
-import { z } from "@brains/utils/zod";
-import { InterfacePlugin } from "../src/interface/interface-plugin";
-import type {
-  InterfacePluginContext,
-  MessageInterfacePluginContext,
+import {
+  createInterfacePluginContext,
+  createMessageInterfacePluginContext,
 } from "../src/interface/context";
-import { MessageInterfacePlugin } from "../src/message-interface/message-interface-plugin";
-import { ServicePlugin } from "../src/service/service-plugin";
-import { createPluginHarness } from "../src/test/harness";
-import type { ServicePluginContext } from "../src/service/context";
+import { createServicePluginContext } from "../src/service/context";
+import { createMockShell } from "../src/test/mock-shell";
 import {
   ChannelRegistry,
   type ChannelDeliveryProvider,
@@ -23,91 +19,30 @@ function emailProvider(): ChannelDeliveryProvider {
 }
 
 describe("ChannelRegistry", () => {
-  it("does not expose channel registration to service plugins", async () => {
-    class NonInterfacePlugin extends ServicePlugin<
-      Record<string, never>,
-      Record<string, never>
-    > {
-      constructor() {
-        super(
-          "not-an-interface",
-          { name: "not-an-interface", version: "1.0.0" },
-          {},
-          z.object({}),
-        );
-      }
-
-      protected override async onRegister(
-        context: ServicePluginContext,
-      ): Promise<void> {
-        expect("registerDescriptor" in context.channels).toBe(false);
-        expect("registerDeliveryProvider" in context.channels).toBe(false);
-      }
-    }
-
-    const harness = createPluginHarness<NonInterfacePlugin>();
-    await harness.installPlugin(new NonInterfacePlugin());
+  it("does not expose channel registration to services", () => {
+    const context = createServicePluginContext(createMockShell(), "service");
+    expect("registerDescriptor" in context.channels).toBe(false);
+    expect("registerDeliveryProvider" in context.channels).toBe(false);
   });
 
-  it("does not expose channel registration to non-message interfaces", async () => {
-    class NonMessageInterface extends InterfacePlugin<
-      Record<string, never>,
-      Record<string, never>
-    > {
-      constructor() {
-        super(
-          "not-a-message-interface",
-          { name: "not-a-message-interface", version: "1.0.0" },
-          {},
-          z.object({}),
-        );
-      }
-
-      protected override async onRegister(
-        context: InterfacePluginContext,
-      ): Promise<void> {
-        expect("registerDescriptor" in context.channels).toBe(false);
-        expect("registerDeliveryProvider" in context.channels).toBe(false);
-      }
-    }
-
-    const harness = createPluginHarness<NonMessageInterface>();
-    await harness.installPlugin(new NonMessageInterface());
+  it("does not expose channel registration to non-message interfaces", () => {
+    const context = createInterfacePluginContext(createMockShell(), "web");
+    expect("registerDescriptor" in context.channels).toBe(false);
+    expect("registerDeliveryProvider" in context.channels).toBe(false);
   });
 
-  it("exposes plugin-scoped channel registration only to message interfaces", async () => {
-    class ChannelInterface extends MessageInterfacePlugin<
-      Record<string, never>,
-      Record<string, never>
-    > {
-      constructor() {
-        super(
-          "channel-test",
-          { name: "channel-test", version: "1.0.0" },
-          {},
-          z.object({}),
-        );
-      }
+  it("exposes plugin-scoped channel registration only to message interfaces", () => {
+    const shell = createMockShell();
+    const context = createMessageInterfacePluginContext(shell, "channel-test");
+    context.channels.registerDescriptor({
+      type: "email",
+      displayName: "Email",
+      subjectLabel: "Email address",
+    });
+    context.channels.registerDeliveryProvider(emailProvider());
+    shell.getChannelRegistry().finalize();
 
-      protected override async onRegister(
-        context: MessageInterfacePluginContext,
-      ): Promise<void> {
-        context.channels.registerDescriptor({
-          type: "email",
-          displayName: "Email",
-          subjectLabel: "Email address",
-        });
-        context.channels.registerDeliveryProvider(emailProvider());
-      }
-    }
-
-    const harness = createPluginHarness<ChannelInterface>();
-    await harness.installPlugin(new ChannelInterface());
-    await harness.finalizeRegistration();
-
-    expect(
-      harness.getMockShell().getChannelRegistry().listDescriptors(),
-    ).toEqual([
+    expect(shell.getChannelRegistry().listDescriptors()).toEqual([
       {
         type: "email",
         displayName: "Email",

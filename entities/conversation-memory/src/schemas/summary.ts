@@ -1,7 +1,7 @@
 import { memoryTimeRangeSchema } from "@brains/action-items";
 import { actorRefSchema } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
-import { baseEntityParserSchema } from "@brains/plugins";
+import { baseEntityParserSchema } from "@brains/sdk/internal/entity-runtime";
 
 /** A summary covers the same span as the memories captured from it. */
 export const summaryTimeRangeSchema: typeof memoryTimeRangeSchema =

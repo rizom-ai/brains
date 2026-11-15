@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import type { BaseEntity } from "@brains/plugins";
-import { TopicAdapter } from "../../src/lib/topic-adapter";
+import { topicDocument } from "../../src/lib/topic-document";
 import {
   getTopicTitle,
   toTopicContentProjection,
@@ -9,7 +9,7 @@ import {
   toTopicSummary,
 } from "../../src/lib/topic-presenter";
 
-const adapter = new TopicAdapter();
+const adapter = topicDocument;
 
 function createTopic(content: string, metadata = {}): BaseEntity {
   return {

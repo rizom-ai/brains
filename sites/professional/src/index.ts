@@ -1,7 +1,6 @@
-import type { Plugin } from "@brains/plugins";
 import type { SitePackage } from "@brains/site-composition";
-import { ProfessionalSitePlugin, professionalSitePlugin } from "./plugin";
-import type { ProfessionalSiteConfigInput } from "./config";
+import { withSiteRuntime } from "@brains/sdk/internal/site-runtime";
+import { professionalSiteRuntime } from "./runtime";
 import { routes } from "./routes";
 import {
   HomepageListLayout,
@@ -13,13 +12,12 @@ import {
   SubscribeThanksLayout,
   SubscribeErrorLayout,
 } from "./templates/subscribe-result";
-import { HomepageListDataSource } from "./datasources/homepage-datasource";
-import { AboutDataSource } from "./datasources/about-datasource";
+import { homepageListDataSource } from "./datasources/homepage-datasource";
+import { aboutDataSource } from "./datasources/about-datasource";
 import { SiteLayout } from "@brains/site-atlas";
 
 export {
-  ProfessionalSitePlugin,
-  professionalSitePlugin,
+  professionalSiteRuntime,
   routes,
   HomepageListLayout,
   type HomepageListData,
@@ -28,46 +26,48 @@ export {
   AboutHighlightsLayout,
   SubscribeThanksLayout,
   SubscribeErrorLayout,
-  HomepageListDataSource,
-  AboutDataSource,
+  homepageListDataSource,
+  aboutDataSource,
 };
 
-const site: SitePackage<ProfessionalSiteConfigInput, Plugin> = {
-  layouts: {
-    default: SiteLayout,
+const site: SitePackage = withSiteRuntime(
+  {
+    layouts: {
+      default: SiteLayout,
+    },
+    routes,
+    entityDisplay: {
+      post: { label: "Post", citable: true },
+      deck: { label: "Deck", citable: true },
+      project: { label: "Project", citable: true },
+      series: {
+        label: "Series",
+        navigation: { slot: "secondary" },
+      },
+      topic: {
+        label: "Topic",
+        navigation: { slot: "secondary" },
+      },
+      link: {
+        label: "Link",
+        navigation: { slot: "secondary" },
+      },
+      base: {
+        label: "Note",
+        navigation: { show: false },
+      },
+      "social-post": {
+        label: "Social Post",
+        pluralName: "social-posts",
+        navigation: { slot: "secondary" },
+      },
+      newsletter: {
+        label: "Newsletter",
+        navigation: { slot: "secondary" },
+      },
+    },
   },
-  routes,
-  plugin: professionalSitePlugin,
-  entityDisplay: {
-    post: { label: "Post", citable: true },
-    deck: { label: "Deck", citable: true },
-    project: { label: "Project", citable: true },
-    series: {
-      label: "Series",
-      navigation: { slot: "secondary" },
-    },
-    topic: {
-      label: "Topic",
-      navigation: { slot: "secondary" },
-    },
-    link: {
-      label: "Link",
-      navigation: { slot: "secondary" },
-    },
-    base: {
-      label: "Note",
-      navigation: { show: false },
-    },
-    "social-post": {
-      label: "Social Post",
-      pluralName: "social-posts",
-      navigation: { slot: "secondary" },
-    },
-    newsletter: {
-      label: "Newsletter",
-      navigation: { slot: "secondary" },
-    },
-  },
-};
+  professionalSiteRuntime,
+);
 
 export default site;

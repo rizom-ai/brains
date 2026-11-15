@@ -6,7 +6,6 @@ import {
 } from "@brains/entity-service";
 import { migrateEntities } from "@brains/entity-service/migrate";
 import {
-  EntityPlugin,
   defineEntity,
   defineEntityPackage,
   entityRuntime,
@@ -15,7 +14,7 @@ import {
   type ToolContext,
   type ToolResponse,
 } from "@brains/plugins";
-import { createMockShell } from "@brains/plugins/test";
+import { createMockShell, isDeclaredEntityType } from "@brains/plugins/test";
 import { createSilentLogger, createTestDirectory } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import { createEntityCreateTool } from "../../src/system/entity-create-tool";
@@ -61,7 +60,7 @@ async function systemCreate(create: EntityCreateRouting): Promise<{
     { name: "@fixture/pages", version: "0.1.0" },
   );
   for (const plugin of plugins) {
-    if (!(plugin instanceof EntityPlugin)) throw new Error("No entity plugin");
+    if (!isDeclaredEntityType(plugin)) throw new Error("No entity plugin");
     registry.registerEntityType(
       plugin.entityType,
       plugin.schema,

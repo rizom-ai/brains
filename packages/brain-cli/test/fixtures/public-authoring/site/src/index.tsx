@@ -6,6 +6,8 @@ import {
   TagsList,
   formatDate,
 } from "@rizom/brain-ui";
+import { defineDataSource } from "@rizom/brain/entities";
+import { digestCount } from "@fixture/reading-insights";
 import { defineSection, defineSite, sectionGroup, z } from "@rizom/site";
 
 // A section schema validates content and infers component props.
@@ -26,6 +28,40 @@ const hero = defineSection(
     description: "Introduction to the public reading library.",
   },
 );
+
+const readings = [
+  {
+    title: "The maintenance of things",
+    url: "https://example.com/maintenance",
+    savedAt: "2026-03-14T12:00:00Z",
+    tags: ["care", "infrastructure"],
+    note: "Read it **slowly**; the argument turns on repair.",
+  },
+];
+
+// The shelf is drawn from a data source the site declares. It reads another
+// package's source by `<package name>:<local id>` and a record the digest
+// service shares, at the build's own reads; either is null when that package
+// is not installed.
+const shelfData = defineDataSource({
+  id: "shelf",
+  name: "Reading shelf",
+  description: "The reader's shelf title, how much is saved and digested",
+  fetch: async (_query, _entities, context) => {
+    const library = await context.dataSources.fetch(
+      "@fixture/reading-entities:shelf",
+      {},
+      z.object({ title: z.string(), count: z.number() }),
+    );
+    const digested = await context.sharedState(digestCount).get("total");
+    return {
+      heading: library
+        ? `${library.title}: ${library.count} saved, ${digested?.count ?? 0} digested`
+        : "On the shelf",
+      readings,
+    };
+  },
+});
 
 // Sections render with the public components, which follow the selected
 // theme's tokens. MarkdownContent sanitizes what it renders, and in a site
@@ -61,6 +97,7 @@ const shelf = defineSection(
   {
     title: "Shelf",
     description: "Readings worth returning to.",
+    dataSource: "shelf",
   },
 );
 
@@ -96,24 +133,14 @@ export default defineSite({
   ],
 
   sections: [librarySections],
+  dataSources: [shelfData],
   content: {
     library: {
       hero: {
         heading: "Read with intention",
         introduction: "Saved pages and their digests, collected in one place.",
       },
-      shelf: {
-        heading: "On the shelf",
-        readings: [
-          {
-            title: "The maintenance of things",
-            url: "https://example.com/maintenance",
-            savedAt: "2026-03-14T12:00:00Z",
-            tags: ["care", "infrastructure"],
-            note: "Read it **slowly**; the argument turns on repair.",
-          },
-        ],
-      },
+      shelf: { heading: "On the shelf", readings },
     },
   },
 

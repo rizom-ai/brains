@@ -36,6 +36,12 @@ export type QueryEmbedder = Pick<IEmbeddingService, "embedQuery">;
 export const MAX_SEARCH_QUERY_CHARS = 12_000;
 const MAX_VECTOR_DISTANCE = 0.82;
 
+/**
+ * Results that rank equal list by id, then type, so an offset page never
+ * follows the order rows were written. Ranking itself is untouched.
+ */
+const EQUAL_RANK_ORDER: SQL[] = [asc(entities.id), asc(entities.entityType)];
+
 function prepareSearchQuery(
   query: string,
   logger?: Logger,
@@ -282,7 +288,7 @@ export class EntitySearch {
         sql`entity_fts.entity_id = ${entities.id} AND entity_fts.entity_type = ${entities.entityType}`,
       )
       .where(and(...conditions))
-      .orderBy(sql`weighted_score DESC`)
+      .orderBy(sql`weighted_score DESC`, ...EQUAL_RANK_ORDER)
       .limit(options.limit)
       .offset(options.offset);
     options.signal?.throwIfAborted();
@@ -400,7 +406,7 @@ export class EntitySearch {
           ...typeConditions,
         ),
       )
-      .orderBy(desc(combinedScore))
+      .orderBy(desc(combinedScore), ...EQUAL_RANK_ORDER)
       .limit(limit)
       .offset(offset);
     signal?.throwIfAborted();
@@ -587,7 +593,7 @@ export class EntitySearch {
             : undefined,
         ),
       )
-      .orderBy(sql`${distanceExpr} ASC`);
+      .orderBy(sql`${distanceExpr} ASC`, ...EQUAL_RANK_ORDER);
     const rows =
       request.limit !== undefined
         ? await query.limit(request.limit)
@@ -643,7 +649,7 @@ export class EntitySearch {
             : undefined,
         ),
       )
-      .orderBy(sql`${distanceExpr} ASC`);
+      .orderBy(sql`${distanceExpr} ASC`, ...EQUAL_RANK_ORDER);
 
     return results;
   }

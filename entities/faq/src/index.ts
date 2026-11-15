@@ -1,9 +1,26 @@
-export { FaqPlugin, faqPlugin } from "./plugin";
-export type { FaqConfig, FaqConfigInput } from "./plugin";
-export { FaqAdapter, faqAdapter, faqMetadata } from "./adapters/faq-adapter";
+import { faqPackage } from "./plugin";
+
 export {
-  FaqCaptureHandler,
+  faqPackage,
+  faqConfigSchema,
+  type FaqConfig,
+  type FaqConfigInput,
+} from "./plugin";
+export { faq } from "./faq-entity";
+export {
+  currentFaqBody,
+  faqBody,
+  faqBodyCodec,
+  faqDocument,
+  faqMetadata,
+  faqRecord,
+  readFaq,
+  type FaqParts,
+} from "./lib/faq-body";
+export {
+  captureReply,
   classifyExchange,
+  faqCaptureJob,
   faqCaptureJobSchema,
   faqClassificationSchema,
   faqSlug,
@@ -31,16 +48,18 @@ export type {
 } from "./schemas/faq";
 export {
   FAQ_DATASOURCE_ID,
-  FaqDataSource,
+  faqDataSource,
   faqItemSchema,
   faqSectionSchema,
+  fetchFaqSection,
   loadPublicFaqs,
 } from "./datasources/faq-datasource";
 export type { FaqItem, FaqSectionData } from "./datasources/faq-datasource";
 export { FaqSection } from "./templates/faq-section";
 export {
-  FaqReconcileHandler,
+  faqReconcileJob,
   faqReconcileJobSchema,
+  reconcileFaq,
 } from "./handlers/faq-reconcile-handler";
 export type {
   FaqReconcileDeps,
@@ -53,9 +72,12 @@ export {
   findSameFaq,
   isSameQuestion,
   mergeIntoFaq,
+  prepareFaqMerge,
 } from "./lib/faq-store";
 export type { FaqStoreDeps } from "./lib/faq-store";
 export { FaqInboxSource } from "./lib/faq-inbox-source";
 export { capturedReplyStore } from "./lib/captured-replies";
 export type { CapturedReply, CapturedReplyStore } from "./lib/captured-replies";
 export { answerAskedBefore } from "./lib/asked-before";
+
+export default faqPackage;

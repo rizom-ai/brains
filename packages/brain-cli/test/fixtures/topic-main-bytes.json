@@ -1,0 +1,58 @@
+{
+  "source": "main f348645477, the topics entity plugin class on the entity store",
+  "plain": {
+    "file": "---\ntitle: Distributed Systems\n---\n\nHow systems spread across machines keep agreeing.\n",
+    "stored": {
+      "content": "---\ntitle: Distributed Systems\n---\nHow systems spread across machines keep agreeing.\n",
+      "metadata": "{}"
+    },
+    "read": {
+      "content": "---\ntitle: Distributed Systems\n---\nHow systems spread across machines keep agreeing.\n",
+      "metadata": {}
+    }
+  },
+  "legacySources": {
+    "file": "---\ntitle: Urban Data\n---\nCities as data.\n\n## Sources\n\n- [A post](post:one)\n",
+    "stored": {
+      "content": "---\ntitle: Urban Data\n---\nCities as data.\n",
+      "metadata": "{}"
+    },
+    "read": {
+      "content": "---\ntitle: Urban Data\n---\nCities as data.\n",
+      "metadata": {}
+    }
+  },
+  "extraFields": {
+    "file": "---\ntitle: 'Colon: Topic'\naliases:\n  - colon\n---\nA topic with a colon.",
+    "stored": {
+      "content": "---\ntitle: 'Colon: Topic'\naliases:\n  - colon\n---\nA topic with a colon.\n",
+      "metadata": "{}"
+    },
+    "read": {
+      "content": "---\ntitle: 'Colon: Topic'\naliases:\n  - colon\n---\nA topic with a colon.\n",
+      "metadata": {}
+    }
+  },
+  "created": {
+    "written": "---\ntitle: Green Software\n---\nSoftware that spends less energy.",
+    "stored": {
+      "content": "---\ntitle: Green Software\n---\nSoftware that spends less energy.\n",
+      "metadata": "{}"
+    },
+    "read": {
+      "content": "---\ntitle: Green Software\n---\nSoftware that spends less energy.\n",
+      "metadata": {}
+    }
+  },
+  "updated": {
+    "written": "---\ntitle: Green Software\n---\nSoftware that spends less energy, and the practices that make it so.",
+    "stored": {
+      "content": "---\ntitle: Green Software\n---\nSoftware that spends less energy, and the practices that make it so.\n",
+      "metadata": "{}"
+    },
+    "read": {
+      "content": "---\ntitle: Green Software\n---\nSoftware that spends less energy, and the practices that make it so.\n",
+      "metadata": {}
+    }
+  }
+}

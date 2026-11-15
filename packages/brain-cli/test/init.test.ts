@@ -311,7 +311,8 @@ describe("brain init", () => {
     it("should generate built-in .env.schema content without workspace model resolution", () => {
       const envSchema = buildInstanceEnvSchema("brain", "demo");
 
-      expect(envSchema).toContain("AI_API_KEY=");
+      expect(envSchema).toContain("OPENAI_API_KEY=");
+      expect(envSchema).not.toMatch(/^AI_API_KEY=/m);
       expect(envSchema).toContain("GIT_SYNC_TOKEN=");
       expect(envSchema).not.toContain("CMS_CONTENT_REPO_PAT=");
       expect(envSchema).not.toContain("STUDIO_CONTENT_REPO_PAT=");
@@ -461,37 +462,66 @@ describe("brain init", () => {
     });
   });
 
-  describe(".env file (when apiKey provided)", () => {
-    it("should create .env with AI_API_KEY when apiKey is provided", () => {
-      scaffold(testDir, { recipe: "personal", apiKey: "sk-test-12345" });
+  describe(".env file (when provider keys are provided)", () => {
+    it("writes each provider key to .env and the models to brain.yaml", () => {
+      scaffold(testDir, {
+        recipe: "personal",
+        apiKeys: {
+          ANTHROPIC_API_KEY: "sk-ant-test",
+          OPENAI_API_KEY: "sk-proj-test",
+        },
+        model: "claude-sonnet-5",
+        imageModel: "gemini-3-pro-image-preview",
+      });
+
+      const env = readFileSync(join(testDir, ".env"), "utf-8");
+      expect(env).toContain("ANTHROPIC_API_KEY=sk-ant-test");
+      expect(env).toContain("OPENAI_API_KEY=sk-proj-test");
+      expect(env).not.toMatch(/^AI_API_KEY=/m);
+      const brainYaml = readFileSync(join(testDir, "brain.yaml"), "utf-8");
+      expect(brainYaml).toContain("model: claude-sonnet-5");
+      expect(brainYaml).toContain("imageModel: gemini-3-pro-image-preview");
+    });
+
+    it("should create .env with OPENAI_API_KEY when an OpenAI key is provided", () => {
+      scaffold(testDir, {
+        recipe: "personal",
+        apiKeys: { OPENAI_API_KEY: "sk-test-12345" },
+      });
 
       const envPath = join(testDir, ".env");
       expect(existsSync(envPath)).toBe(true);
       const env = readFileSync(envPath, "utf-8");
-      expect(env).toContain("AI_API_KEY=sk-test-12345");
+      expect(env).toContain("OPENAI_API_KEY=sk-test-12345");
     });
 
     it("should include GIT_SYNC_TOKEN placeholder when contentRepo is set", () => {
       scaffold(testDir, {
         recipe: "personal",
-        apiKey: "sk-test-12345",
+        apiKeys: { OPENAI_API_KEY: "sk-test-12345" },
         contentRepo: "user/brain-data",
       });
 
       const env = readFileSync(join(testDir, ".env"), "utf-8");
-      expect(env).toContain("AI_API_KEY=sk-test-12345");
+      expect(env).toContain("OPENAI_API_KEY=sk-test-12345");
       expect(env).toContain("GIT_SYNC_TOKEN=");
     });
 
     it("should NOT include GIT_SYNC_TOKEN when contentRepo is absent", () => {
-      scaffold(testDir, { recipe: "personal", apiKey: "sk-test-12345" });
+      scaffold(testDir, {
+        recipe: "personal",
+        apiKeys: { OPENAI_API_KEY: "sk-test-12345" },
+      });
 
       const env = readFileSync(join(testDir, ".env"), "utf-8");
       expect(env).not.toContain("GIT_SYNC_TOKEN");
     });
 
     it("should still create .env.example as a template", () => {
-      scaffold(testDir, { recipe: "personal", apiKey: "sk-test-12345" });
+      scaffold(testDir, {
+        recipe: "personal",
+        apiKeys: { OPENAI_API_KEY: "sk-test-12345" },
+      });
       expect(existsSync(join(testDir, ".env.example"))).toBe(true);
     });
 
@@ -1043,7 +1073,10 @@ volumes:
       expect(workflow).not.toContain("npx -y varlock");
       expect(workflow).not.toContain("--show-all");
       expect(workflow).not.toContain("secrets.OP_TOKEN");
-      expect(workflow).toContain("secrets.AI_API_KEY");
+      expect(workflow).toContain("secrets.OPENAI_API_KEY");
+      expect(workflow).toContain("secrets.ANTHROPIC_API_KEY");
+      expect(workflow).toContain("secrets.GOOGLE_GENERATIVE_AI_API_KEY");
+      expect(workflow).not.toContain("secrets.AI_API_KEY");
       expect(workflow).toContain("secrets.GIT_SYNC_TOKEN");
       expect(workflow).not.toContain("secrets.MCP_AUTH_TOKEN");
       expect(workflow).toContain("KAMAL_SSH_PRIVATE_KEY");

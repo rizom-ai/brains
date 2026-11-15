@@ -130,7 +130,11 @@ const goldenPackages: GoldenPackageExpectation[] = [
   {
     directory: "site",
     packageName: "@fixture/reading-site",
-    publicEntryPoints: ["@rizom/site", "@rizom/brain-ui"],
+    publicEntryPoints: [
+      "@rizom/site",
+      "@rizom/brain-ui",
+      "@rizom/brain/entities",
+    ],
     requiredVocabulary: [
       "defineSection",
       "defineSite",
@@ -456,6 +460,18 @@ describe("public authoring 0.2 golden packages", () => {
         paths: {
           "@rizom/site": ["./packages/site/src/index.ts"],
           "@rizom/brain-ui": ["./packages/ui/src/index.ts"],
+          "@rizom/brain/entities": [
+            "./packages/brain-cli/src/entries/entities.ts",
+          ],
+          "@rizom/brain/services": [
+            "./packages/brain-cli/src/entries/services.ts",
+          ],
+          "@fixture/reading-entities": [
+            "./packages/brain-cli/test/fixtures/public-authoring/entity/src/index.ts",
+          ],
+          "@fixture/reading-insights": [
+            "./packages/brain-cli/test/fixtures/public-authoring/service/src/index.tsx",
+          ],
         },
       },
       {

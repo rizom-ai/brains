@@ -6,24 +6,23 @@ import {
   type PluginTestHarness,
 } from "@brains/plugins/test";
 import { waitUntil } from "@brains/test-utils";
-import { TopicsPlugin, type TopicsPluginConfigInput } from "../src";
+import type { TopicsPluginConfigInput } from "../src";
+import { createTopicsPlugins, installTopics } from "./topics-plugins";
 
 type Queue = ReturnType<
-  ReturnType<
-    PluginTestHarness<TopicsPlugin>["getMockShell"]
-  >["getJobQueueService"]
+  ReturnType<PluginTestHarness["getMockShell"]>["getJobQueueService"]
 >;
 
 async function install(
   config: TopicsPluginConfigInput = { enableAutoExtraction: true },
   executionOnly = false,
 ): Promise<{
-  harness: PluginTestHarness<TopicsPlugin>;
+  harness: PluginTestHarness;
   capabilities: PluginCapabilities;
   enqueue: ReturnType<typeof mock<Queue["enqueue"]>>;
   registerHandler: ReturnType<typeof mock<Queue["registerHandler"]>>;
 }> {
-  const harness = createPluginHarness<TopicsPlugin>({
+  const harness = createPluginHarness({
     logContext: "topics-test",
   });
   const queue = harness.getMockShell().getJobQueueService();
@@ -34,13 +33,21 @@ async function install(
     enqueue,
     registerHandler,
   });
-  const plugin = new TopicsPlugin({
+  const plugins = createTopicsPlugins({
     excludeEntityTypes: ["note"],
     ...config,
   });
-  const capabilities = executionOnly
-    ? await plugin.register(harness.getMockShell(), { executionOnly: true })
-    : await harness.installPlugin(plugin);
+  const installed = [];
+  for (const plugin of plugins)
+    installed.push(
+      executionOnly
+        ? await plugin.register(harness.getMockShell(), {
+            executionOnly: true,
+          })
+        : await harness.installPlugin(plugin),
+    );
+  const capabilities = installed.at(-1);
+  if (!capabilities) throw new Error("No topics service");
   return { harness, capabilities, enqueue, registerHandler };
 }
 
@@ -144,16 +151,14 @@ describe("ranked topic extraction triggers", () => {
   });
 
   it("queues an extraction the queue refused once it admits it", async () => {
-    const harness = createPluginHarness<TopicsPlugin>({
+    const harness = createPluginHarness({
       logContext: "topics-test",
     });
     const queue = harness.getMockShell().getJobQueueService();
     const refused = refuseEnqueues(queue, 1);
-    await harness.installPlugin(
-      new TopicsPlugin({
-        enableAutoExtraction: true,
-      }),
-    );
+    await installTopics(harness, {
+      enableAutoExtraction: true,
+    });
 
     await harness.sendMessage(
       "entity:updated",

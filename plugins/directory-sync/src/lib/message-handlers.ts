@@ -1,4 +1,5 @@
-import { decodeEntityIdPath } from "@brains/plugins";
+import type { DirectorySyncContext } from "./sync-context";
+import { decodeEntityIdPath } from "@brains/sdk/internal/entity-runtime";
 import {
   directorySyncPathContract,
   directorySyncStatusContract,
@@ -9,7 +10,6 @@ import {
   resolveEntityPlacement,
   getEntityFileExtension,
 } from "./entity-paths";
-import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { DirectorySyncStatus, GitSyncStatus } from "../types";
 
@@ -29,13 +29,13 @@ export interface GitStatusSource {
  *   - sync:status:request
  */
 export function registerMessageHandlers(
-  context: ServicePluginContext,
+  context: DirectorySyncContext,
   getDirectorySync: () => SyncHandlerSource,
   logger: Logger,
   getGitSync?: () => GitStatusSource | undefined,
   getManagementUrl?: () => string | undefined,
 ): void {
-  context.messaging.answer(directorySyncPathContract, async (input) => {
+  context.runtime.answer(directorySyncPathContract, ({ request: input }) => {
     const extension = getEntityFileExtension(input);
     const { relativePath, owner, writable } = resolveEntityPlacement(
       ".",
@@ -55,7 +55,7 @@ export function registerMessageHandlers(
     return { relativePath, leaf, owner, writable };
   });
 
-  context.messaging.answer(directorySyncStatusContract, async () => {
+  context.runtime.answer(directorySyncStatusContract, async () => {
     const status = await getDirectorySync().getStatus();
     const managementUrl = getManagementUrl?.();
     return {

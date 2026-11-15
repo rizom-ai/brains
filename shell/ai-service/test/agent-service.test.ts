@@ -3046,7 +3046,6 @@ describe("AgentService", () => {
         {
           toolName: "delete_note",
           args: { noteId: "123" },
-          data: { success: true },
         },
       ]);
       expect(response.cards).toEqual([
@@ -3639,7 +3638,6 @@ describe("AgentService", () => {
         {
           toolName: "update_note",
           args: { noteId: "123", title: "New title" },
-          data: { success: true },
         },
       ]);
       expect(response.cards).toEqual([
@@ -3839,10 +3837,7 @@ describe("AgentService", () => {
         {
           toolName: "delete_note",
           args: { noteId: "123" },
-          data: {
-            success: false,
-            error: "Entity not found: note/woodchuck-note",
-          },
+          error: { message: "Entity not found: note/woodchuck-note" },
         },
       ]);
       expect(response.cards).toEqual([

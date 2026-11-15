@@ -1,11 +1,12 @@
 import { createMockEntityService } from "@brains/entity-service/test";
 import { describe, expect, mock, test } from "bun:test";
 import type { SemanticSpaceProjection } from "@brains/plugins";
-import { ProximityMapDataSource } from "../src/datasources/proximity-map-datasource";
+import { createMockShell } from "@brains/plugins/test";
+import { agentDiscoveryPlugins } from "./agent-discovery-plugins";
 import { proximityMapDataSchema } from "../src/lib/proximity-map-schema";
 import { createTestAgent } from "./fixtures/agent";
 
-describe("ProximityMapDataSource", () => {
+describe("the proximity map data source", () => {
   test("builds and validates public site map data", async () => {
     const agent = createTestAgent({
       id: "alpha",
@@ -36,7 +37,12 @@ describe("ProximityMapDataSource", () => {
       projectSemanticSpace,
     };
 
-    const datasource = new ProximityMapDataSource();
+    const shell = createMockShell();
+    for (const plugin of agentDiscoveryPlugins()) await plugin.register(shell);
+    const datasource = shell
+      .getDataSourceRegistry()
+      .get("agent-discovery:proximity-map");
+    if (!datasource?.fetch) throw new Error("No proximity map data source");
     const result = await datasource.fetch({}, proximityMapDataSchema, {
       entityService,
     });

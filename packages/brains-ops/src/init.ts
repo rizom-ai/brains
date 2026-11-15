@@ -136,14 +136,38 @@ const envSchemaOptionalBlocks = [
   /\n# AT Protocol publishing\/discovery \(optional, per-user\)\n# Comes from the decrypted users\/<handle>\.secrets\.yaml\.age file when configured\.\n# @sensitive\nATPROTO_APP_PASSWORD=\n/,
 ];
 
+/**
+ * The provider key blocks of the current template and of the single-AI-key
+ * vintage, normalized to one placeholder so either compares equal.
+ */
+const envSchemaProviderKeyBlocks = [
+  /# OpenAI, the provider of the canonical chat and embedding models\n[^]*?\nGOOGLE_GENERATIVE_AI_API_KEY=\n/,
+  /# AI provider\n[^]*?\nAI_API_KEY=\n/,
+];
+
 function isStalePilotEnvSchema(current: string, template: string): boolean {
   const strip = (content: string): string =>
     envSchemaOptionalBlocks.reduce(
       (stripped, block) => stripped.replace(block, "\n"),
-      content,
+      envSchemaProviderKeyBlocks.reduce(
+        (normalized, block) => normalized.replace(block, "__PROVIDER_KEYS__\n"),
+        content,
+      ),
     );
   return strip(current) === strip(template);
 }
+
+/** Lines of the single-AI-key vintage, and the lines that replaced them. */
+const decryptUserSecretsPriorLines: ReadonlyArray<[string, string]> = [
+  [
+    'writeSecretGitHubEnv("AI_API_KEY", secrets["aiApiKey"]);',
+    'writeSecretGitHubEnv("OPENAI_API_KEY", secrets["openaiApiKey"]);',
+  ],
+  [
+    '"shared_ai_api_key_secret_name",\n  requireFlatValue(pilot, "aiApiKey", "pilot.yaml"),',
+    '"shared_openai_api_key_secret_name",\n  requireFlatValue(pilot, "openaiApiKey", "pilot.yaml"),',
+  ],
+];
 
 const decryptUserSecretsOptionalSnippets = [
   'writeSecretGitHubEnv("DISCORD_PUBLIC_KEY", secrets["discordPublicKey"]);\nwriteSecretGitHubEnv("DISCORD_APPLICATION_ID", secrets["discordApplicationId"]);\n',
@@ -157,7 +181,10 @@ function isStaleDecryptUserSecretsScript(
   const strip = (content: string): string =>
     decryptUserSecretsOptionalSnippets.reduce(
       (stripped, snippet) => stripped.replace(snippet, ""),
-      content,
+      decryptUserSecretsPriorLines.reduce(
+        (current, [prior, replacement]) => current.replace(prior, replacement),
+        content,
+      ),
     );
   return strip(current) === strip(template);
 }

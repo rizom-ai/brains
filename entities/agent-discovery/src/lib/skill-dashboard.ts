@@ -1,13 +1,12 @@
-import {
-  SYSTEM_CHANNELS,
-  defineDashboardWidget,
-  registerBuiltInDashboardWidget,
-  type ContentVisibility,
-  type EntityPluginContext,
-} from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { skillEntitySchema } from "../schemas/skill";
 import { SKILL_ENTITY_TYPE, SKILLS_WIDGET_ID } from "./constants";
+import type {
+  ContentVisibility,
+  ServiceRuntime,
+} from "@brains/sdk/internal/service-runtime";
+import { defineDashboardWidget } from "@brains/sdk/services";
+import type { AgentContext } from "./agent-context";
 
 type SkillsWidgetDataSchema = z.ZodObject<{
   items: z.ZodArray<z.ZodObject<{ id: z.ZodString; name: z.ZodString }>>;
@@ -19,7 +18,7 @@ const skillsWidgetDataSchema: SkillsWidgetDataSchema = z.object({
 
 /** The skills the caller may see, for the dashboard. */
 export async function buildSkillsWidgetData(
-  context: Pick<EntityPluginContext, "entityService">,
+  context: Pick<AgentContext, "entityService">,
   visibilityScope: ContentVisibility,
 ): Promise<z.input<typeof skillsWidgetDataSchema>> {
   const skills = await context.entityService.listEntities(
@@ -60,24 +59,21 @@ const skillsWidget = defineDashboardWidget({
   }),
 });
 
+/**
+ * The brain's skills on the Dashboard, as the skill class's built-in widget
+ * drew them. Skills are the brain's A2A-advertised capabilities, so they
+ * sit alongside Character (persona) in the sidebar rather than in the main
+ * corpus column. The full description lives in Studio / A2A.
+ */
 export function registerSkillsDashboardWidget(
-  context: EntityPluginContext,
+  runtime: Pick<ServiceRuntime, "dashboardWidget">,
+  context: Pick<AgentContext, "entityService">,
 ): void {
-  // Skills are the brain's A2A-advertised capabilities, so they sit
-  // alongside Character (persona) in the sidebar rather than in the
-  // main corpus column. The full description lives in Studio / A2A.
-  context.messaging.subscribe(
-    SYSTEM_CHANNELS.pluginsRegistered,
-    async (): Promise<{ success: boolean }> => {
-      await registerBuiltInDashboardWidget({
-        context,
-        definition: skillsWidget,
-        load: async ({ visibilityScope, signal }) => {
-          signal.throwIfAborted();
-          return buildSkillsWidgetData(context, visibilityScope);
-        },
-      });
-      return { success: true };
+  runtime.dashboardWidget({
+    definition: skillsWidget,
+    load: async ({ visibilityScope, signal }) => {
+      signal.throwIfAborted();
+      return buildSkillsWidgetData(context, visibilityScope);
     },
-  );
+  });
 }

@@ -2,9 +2,9 @@ import type { ActionItemAssigneeMember } from "@brains/action-items";
 import {
   conversationMessageMetadataSchema,
   type ConversationMessageActor,
-  type EntityPluginContext,
   type Message,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/service-runtime";
+import type { MemoryContext } from "../memory-context";
 import type { Logger } from "@brains/utils/logger";
 import { getErrorMessage } from "@brains/utils/error";
 import { CHANNEL_ACTION_ITEMS_TEMPLATE_NAME } from "../constants";
@@ -296,10 +296,10 @@ Return empty lists when the new messages hold none of these.`;
  * cite one of the new messages and, for a change, a card it was shown.
  */
 export class ChannelActionItemExtractor {
-  private readonly context: Pick<EntityPluginContext, "ai">;
+  private readonly context: Pick<MemoryContext, "ai">;
   private readonly logger: Logger;
 
-  constructor(context: Pick<EntityPluginContext, "ai">, logger: Logger) {
+  constructor(context: Pick<MemoryContext, "ai">, logger: Logger) {
     this.context = context;
     this.logger = logger;
   }

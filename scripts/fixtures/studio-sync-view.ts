@@ -12,15 +12,20 @@ import {
 } from "../../plugins/directory-sync/src/lib/studio-workspace";
 
 import type { StudioStudyState } from "./studio-study-state";
+import { fixtureStudio } from "./studio-delivery-views";
 
 /** Seed status records, never a parallel implementation of the workspace view. */
 export async function createSyncViewFixture(
   state?: StudioStudyState,
 ): Promise<() => Promise<unknown>> {
-  const context = createServicePluginContext(
+  const classContext = createServicePluginContext(
     createMockShell(),
     "directory-sync",
   );
+  // Studio as directory-sync reaches it on its service runtime.
+  const context = Object.assign(classContext, {
+    runtime: { studio: fixtureStudio(classContext) },
+  });
   const actor: StudioWorkspaceActor = {
     interfaceType: "studio",
     userId: "visual-admin",

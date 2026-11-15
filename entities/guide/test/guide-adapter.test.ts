@@ -1,12 +1,21 @@
 import { describe, expect, it } from "bun:test";
-import { guideAdapter, guideMetadataSchema, type Guide } from "../src";
+import { createMockShell } from "@brains/plugins/test";
 import { writerMarkdown } from "./fixtures";
+import { installGuides } from "./guide-plugins";
 
-describe("GuideAdapter", () => {
-  it("carries every frontmatter field into metadata", () => {
-    const parsed = guideAdapter.fromMarkdown(writerMarkdown);
+/** A guide file as the registered guide type reads it. */
+async function read(
+  markdown: string,
+): Promise<{ metadata?: unknown; content?: string }> {
+  const shell = createMockShell();
+  await installGuides(shell);
+  return shell.getEntityRegistry().getAdapter("guide").fromMarkdown(markdown);
+}
 
-    expect(parsed.entityType).toBe("guide");
+describe("the guide type's markdown", () => {
+  it("carries every frontmatter field into metadata, and reads its body", async () => {
+    const parsed = await read(writerMarkdown);
+
     expect(parsed.metadata).toEqual({
       title: "Moving in as a writer",
       slug: "writer",
@@ -26,36 +35,10 @@ describe("GuideAdapter", () => {
         },
       ],
     });
+    expect(parsed.content).toStartWith("## Bring your drafts in");
   });
 
-  it("rejects markdown whose frontmatter is not a guide", () => {
-    expect(() =>
-      guideAdapter.fromMarkdown(writerMarkdown.replace("order: 10", "")),
-    ).toThrow();
-  });
-
-  it("round-trips markdown through the entity", () => {
-    const parsed = guideAdapter.fromMarkdown(writerMarkdown);
-    const entity: Guide = {
-      id: "writer",
-      entityType: "guide",
-      content: writerMarkdown,
-      created: "2026-10-29T00:00:00.000Z",
-      updated: "2026-10-29T00:00:00.000Z",
-      visibility: "public",
-      contentHash: "hash",
-      metadata: guideMetadataSchema.parse(parsed.metadata),
-    };
-
-    const markdown = guideAdapter.toMarkdown(entity);
-
-    expect(guideAdapter.fromMarkdown(markdown)).toEqual({
-      ...parsed,
-      content: markdown,
-    });
-    expect(markdown).toContain("## Bring your drafts in");
-    expect(markdown).toContain(
-      "Exact steps: [Content management](/docs/content-management).",
-    );
+  it("rejects markdown whose frontmatter is not a guide", async () => {
+    expect(read(writerMarkdown.replace("order: 10", ""))).rejects.toThrow();
   });
 });

@@ -4,6 +4,7 @@ import { join } from "path";
 import { tmpdir } from "os";
 import { EventEmitter } from "events";
 import type { BootMode } from "@brains/core";
+import { ConsoleLogger } from "@brains/utils/logger";
 import { resolveRunnerType, start } from "../src/commands/start";
 import {
   resetCanonicalDefinition,
@@ -152,20 +153,22 @@ describe("builtin process supervision", () => {
       join(testDir, "brain.yaml"),
       "brain: brain\nbundleContract: capability-bundles-v1\nbundles: [core]\n",
     );
-    previousApiKey = process.env["AI_API_KEY"];
-    process.env["AI_API_KEY"] = "test-key";
+    previousApiKey = process.env["OPENAI_API_KEY"];
+    process.env["OPENAI_API_KEY"] = "test-key";
     setCanonicalDefinition(definition);
   });
 
   afterEach(() => {
     if (previousApiKey === undefined) {
-      delete process.env["AI_API_KEY"];
+      delete process.env["OPENAI_API_KEY"];
     } else {
-      process.env["AI_API_KEY"] = previousApiKey;
+      process.env["OPENAI_API_KEY"] = previousApiKey;
     }
     rmSync(testDir, { recursive: true, force: true });
     resetBootFn();
     resetCanonicalDefinition();
+    // A `--child=` start labels the whole process's logs with its role.
+    ConsoleLogger.setProcessRole(undefined);
   });
 
   it("spawns web then worker children instead of booting the parent runtime", async () => {
@@ -341,9 +344,9 @@ describe("resolveRunnerType", () => {
     expect(resolveRunnerType(import.meta.dir)).toBe("builtin");
   });
 
-  it("should pass startup-check mode through to builtin boot without requiring AI_API_KEY", async () => {
-    const previousApiKey = process.env["AI_API_KEY"];
-    delete process.env["AI_API_KEY"];
+  it("should pass startup-check mode through to builtin boot without requiring OPENAI_API_KEY", async () => {
+    const previousApiKey = process.env["OPENAI_API_KEY"];
+    delete process.env["OPENAI_API_KEY"];
 
     const brainDir = join(
       tmpdir(),
@@ -386,9 +389,9 @@ describe("resolveRunnerType", () => {
       expect(stop).toHaveBeenCalledTimes(1);
     } finally {
       if (previousApiKey === undefined) {
-        delete process.env["AI_API_KEY"];
+        delete process.env["OPENAI_API_KEY"];
       } else {
-        process.env["AI_API_KEY"] = previousApiKey;
+        process.env["OPENAI_API_KEY"] = previousApiKey;
       }
       rmSync(brainDir, { recursive: true, force: true });
     }

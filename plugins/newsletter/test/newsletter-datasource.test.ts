@@ -1,18 +1,44 @@
 import { createTestEntity } from "@brains/entity-service/test";
+import { generateMarkdownWithFrontmatter } from "@brains/plugins";
 import { createMockShell, type MockShell } from "@brains/plugins/test";
 import { describe, it, expect, beforeEach } from "bun:test";
-import { NewsletterDataSource } from "../src/entity/datasources/newsletter-datasource";
+import { createNewsletterEntityPlugin } from "./newsletter-plugins";
 import { newsletterDetailSchema } from "../src/entity/templates/newsletter-detail";
 import { newsletterListSchema } from "../src/entity/templates/newsletter-list";
 import type { Newsletter } from "../src/entity/schemas/newsletter";
-import type { BaseDataSourceContext } from "@brains/plugins";
-import type { Logger } from "@brains/utils/logger";
-import { createMockLogger } from "@brains/test-utils";
+import type {
+  BaseDataSourceContext,
+  DataSource,
+  DataSourceSchema,
+} from "@brains/plugins";
+
+/** The data source the newsletter entity registers, as a site build reads it. */
+interface RegisteredDataSource {
+  readonly id: string;
+  readonly name: string;
+  readonly description: string;
+  fetch<T>(
+    query: unknown,
+    schema: DataSourceSchema<T>,
+    context: BaseDataSourceContext,
+  ): Promise<T>;
+}
+
+function fetching(source: DataSource | undefined): RegisteredDataSource {
+  const fetch = source?.fetch?.bind(source);
+  if (!source || !fetch)
+    throw new Error("newsletter:entities is not registered");
+  return {
+    id: source.id,
+    name: source.name,
+    description: source.description ?? "",
+    fetch,
+  };
+}
 
 describe("NewsletterDataSource", () => {
-  let datasource: NewsletterDataSource;
+  let datasource: RegisteredDataSource;
   let shell: MockShell;
-  let mockLogger: Logger;
   let mockContext: BaseDataSourceContext;
 
   // Helper to create mock newsletter. `created` drives list/navigation order.
@@ -27,25 +53,29 @@ describe("NewsletterDataSource", () => {
       created?: string;
     } = {},
   ): Newsletter => {
+    const metadata = {
+      subject,
+      status,
+      ...(opts.sentAt && { sentAt: opts.sentAt }),
+      ...(opts.entityIds && { entityIds: opts.entityIds }),
+    };
+    // Stored as the declared type stores an issue: its frontmatter, then
+    // its body.
     return createTestEntity<Newsletter>("newsletter", {
       id,
-      content,
+      content: generateMarkdownWithFrontmatter(content, metadata),
       ...(opts.created && { created: opts.created, updated: opts.created }),
-      metadata: {
-        subject,
-        status,
-        ...(opts.sentAt && { sentAt: opts.sentAt }),
-        ...(opts.entityIds && { entityIds: opts.entityIds }),
-      },
+      metadata,
     });
   };
 
-  beforeEach(() => {
-    mockLogger = createMockLogger();
+  beforeEach(async () => {
     shell = createMockShell();
     mockContext = { entityService: shell.getEntityService() };
-
-    datasource = new NewsletterDataSource(mockLogger);
+    await createNewsletterEntityPlugin().register(shell);
+    datasource = fetching(
+      shell.getDataSourceRegistry().get("newsletter:entities"),
+    );
   });
 
   describe("metadata", () => {
@@ -214,7 +244,7 @@ describe("NewsletterDataSource", () => {
           newsletterDetailSchema,
           mockContext,
         ),
-      ).rejects.toThrow("Newsletter not found: nonexistent");
+      ).rejects.toThrow("newsletter not found: nonexistent");
     });
 
     it("should include prev/next navigation", async () => {
@@ -338,17 +368,18 @@ describe("NewsletterDataSource", () => {
     });
 
     it("should use sourceEntityType from metadata when present", async () => {
+      const deckSourced = {
+        subject: "Newsletter with deck sources",
+        status: "published" as const,
+        sentAt: "2025-01-01T10:00:00.000Z",
+        entityIds: ["deck-1"],
+        sourceEntityType: "deck",
+      };
       shell.addEntities([
         createTestEntity<Newsletter>("newsletter", {
           id: "nl-1",
-          content: "Content",
-          metadata: {
-            subject: "Newsletter with deck sources",
-            status: "published",
-            sentAt: "2025-01-01T10:00:00.000Z",
-            entityIds: ["deck-1"],
-            sourceEntityType: "deck",
-          },
+          content: generateMarkdownWithFrontmatter("Content", deckSourced),
+          metadata: deckSourced,
         }),
         createTestEntity("deck", {
           id: "deck-1",

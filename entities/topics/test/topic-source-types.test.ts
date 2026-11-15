@@ -8,7 +8,7 @@ import {
 } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 import { z } from "@brains/utils/zod";
-import { TopicsPlugin } from "../src";
+import { createTopicsPlugins, installTopics } from "./topics-plugins";
 
 class Adapter extends BaseEntityAdapter<BaseEntity> {
   constructor(entityType: string) {
@@ -31,7 +31,7 @@ describe("topic source types", () => {
     const harness = createPluginHarness({
       dataDir: `/tmp/test-topic-source-types-${randomUUID()}`,
     });
-    await harness.installPlugin(new TopicsPlugin());
+    await installTopics(harness);
     const registry = harness.getEntityRegistry();
     registry.registerEntityType("note", baseEntitySchema, new Adapter("note"));
     registry.registerEntityType(
@@ -58,9 +58,8 @@ describe("topic source types in a job worker", () => {
     });
     const registry = harness.getEntityRegistry();
     registry.registerEntityType("note", baseEntitySchema, new Adapter("note"));
-    await new TopicsPlugin().register(harness.getMockShell(), {
-      executionOnly: true,
-    });
+    for (const plugin of createTopicsPlugins())
+      await plugin.register(harness.getMockShell(), { executionOnly: true });
 
     const response = topicSourceTypesContract.response.parse(
       await harness.sendMessage(topicSourceTypesContract.name, {}),

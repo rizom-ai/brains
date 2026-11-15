@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { createPluginHarness, expectSuccess } from "@brains/plugins/test";
-import { ResendPlugin } from "../src/provider/resend/plugin";
+import { createResendPlugin } from "./newsletter-plugins";
 import type { ResendFetch } from "../src/provider/resend/resend-client";
 
 let fetchFn: ResendFetch = () =>
@@ -29,7 +29,7 @@ describe("Resend newsletter subscriber tool", () => {
     });
     const harness = createPluginHarness();
     await harness.installPlugin(
-      new ResendPlugin(
+      createResendPlugin(
         {
           apiKey: "resend-key",
           segmentId: "segment-1",
@@ -74,7 +74,7 @@ describe("Resend newsletter subscriber tool", () => {
     });
     const harness = createPluginHarness();
     await harness.installPlugin(
-      new ResendPlugin(
+      createResendPlugin(
         {
           apiKey: "resend-key",
           segmentId: "segment-1",

@@ -32,7 +32,7 @@ Synchronous metadata access does not admit work. The account-settings backend is
 
 ## OAuth client registration
 
-The authorization server advertises Client ID Metadata Document (CIMD) support. HTTPS URL client IDs are resolved on authorization, validated against the document's exact `client_id` and `redirect_uris`, cached according to HTTP cache headers, and persisted for code and token exchange. Document fetches reject local/private destinations, validate redirects, time out, and enforce the 5 KiB response limit. CIMD currently supports public clients using `token_endpoint_auth_method: "none"`.
+The authorization server advertises Client ID Metadata Document (CIMD) support. HTTPS URL client IDs are resolved on authorization, validated against the document's exact `client_id` and `redirect_uris`, cached according to HTTP cache headers, and persisted for code and token exchange. Document fetches reject local/private destinations, validate redirects, time out, and enforce the 5 KiB response limit. CIMD clients are registered as public clients: a document is accepted when it can authenticate with `none`, either as its only `token_endpoint_auth_method` or as an entry in `token_endpoint_auth_methods_supported`.
 
 The deprecated Dynamic Client Registration endpoint remains available at `/register` for compatibility. It accepts `application_type` and enforces its redirect URI constraints when supplied. Dynamically registered credentials are bound to the authorization-server issuer that created them; CIMD URL identifiers remain portable across authorization servers as required by the specification.
 
@@ -59,7 +59,7 @@ A channel is an explicitly registered, app-scoped type owned by exactly one mess
 - **Connecting a channel is a per-person Admin action.** The Admin People workspace attaches a channel identity to a person, validated against the descriptor's subject pattern and audited as `auth.identity.attached` or `auth.identity.detached`. The person's role then governs messages from that channel subject. An Admin attaching a channel ID vouches for it: Admin-asserted identities are authoritative for role resolution.
 - **Lookup subjects stay hashed; deliverable subjects stay private.** Lookup uses `normalizeIdentityKey` and `hashIdentityKey`. A raw deliverable destination may persist only on its private person claim, never in invitation attempts, audit metadata, logs, model context, public cards or broad roster projections.
 - **Automatic and manual delivery are explicit modes.** Automatic delivery requires a registered, currently available provider, checked outside the auth transaction just before account creation, and fails before creation when absent. Manual delivery is never an implicit fallback: it requires a descriptor that allows it, an active Admin, same-origin explicit confirmation, a current unconsumed token and a content-free audit event.
-- **Outbound-only interfaces are first-class.** `MessageInterfacePlugin` does not require a listener, daemon or conversation ingestion; `interfaces/email` owns the `email` channel and only sends.
+- **Outbound-only interfaces are first-class.** A message interface does not require a listener, daemon or conversation ingestion; `interfaces/email` owns the `email` channel and only sends.
 
 Self-service channel connection, where a person proves their own channel, is not implemented.
 

@@ -1,5 +1,5 @@
 import { z } from "@brains/utils/zod";
-import { resolveTextProvider } from "@brains/plugins";
+import { resolveTextProvider } from "@brains/sdk/internal/interface-runtime";
 import { guestPolicySchema, type GuestPolicy } from "./guest-policy";
 
 const localOriginSchema: z.ZodString = z.string().refine((value) => {

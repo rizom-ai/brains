@@ -43,6 +43,7 @@ import type {
 import { feedItemSchema, renderRssFeed } from "@brains/site-composition";
 import {
   entityActionPolicyRuleSchema,
+  type EntityActionPolicyConfig,
   type EntityActionRequiredLevel,
   type PermissionService,
   type Template,
@@ -57,18 +58,24 @@ import { readMarkdownFrontmatter } from "@brains/utils/markdown-frontmatter";
 import { isPlainRecord } from "@brains/utils/predicates";
 import { definedFields } from "@brains/utils/strip-undefined";
 import { z } from "@brains/utils/zod";
-import { EntityPlugin, emptyEntityPluginConfigSchema } from "./entity-plugin";
-import type { EntityPluginContext } from "./context";
+import { PluginCore } from "../plugin-core";
+import { createEntityPluginContext, type EntityPluginContext } from "./context";
 import { entityTypeConfigFor } from "./entity-definition-config";
 import { createEntityReader } from "./entity-reader";
 import {
   contractJobOf,
   entityAnswersOf,
   bodyTemplateOf,
+  folderTitlesOf,
+  publishedStatusesOf,
+  recordDisplayTitleOf,
+  recordPersistValidatorOf,
   ordinaryCreateOf,
   restatedMetadataOf,
   urlRouteOf,
   writesInDocumentOrderOf,
+  readsAsWritten,
+  frontmatterSchemaOf,
   builtProvider,
   queuedCreateOf,
   storedCreateOf,
@@ -116,6 +123,7 @@ import {
   type ProjectionExecutionContext,
   type ProjectionInputContext,
   type ProjectionRule,
+  type ProjectionWaveInput,
 } from "./projection-rule";
 import type { InstalledPluginPackageMetadata } from "../package-definition";
 import { createDeclarativeDashboardWidgetRegistration } from "../operator/dashboard-widget-runtime";
@@ -375,12 +383,63 @@ function encodeEntityMarkdown(
   return generateMarkdownWithFrontmatter(encoded.content, encoded.frontmatter);
 }
 
-/** A document's body; content with no frontmatter is a body already. */
-function documentBody(content: string): string {
+/**
+ * The body a type writes for content handed to it: a body as it is, and a
+ * whole document's body as the type reads it, so a field its old files kept
+ * in frontmatter and its reading moves into the body is written there, as
+ * its class's adapter rewrote it. A document whose header the type refuses
+ * keeps its body as written: its metadata was decoded, or refused, already.
+ */
+function bodyAsRead(definition: AnyEntityDefinition, content: string): string {
   const document = readMarkdownFrontmatter(content);
-  return isPlainRecord(document.data) && Object.keys(document.data).length > 0
-    ? document.content
-    : content;
+  if (!isPlainRecord(document.data) || Object.keys(document.data).length === 0)
+    return content;
+  if (!definition.markdown) return document.content;
+  try {
+    return definition.markdown.decode({
+      content: document.content,
+      frontmatter: document.data,
+    }).content;
+  } catch {
+    // Writing never fails on a header the read path has already judged.
+    return document.content;
+  }
+}
+
+/**
+ * A stored document read as written (storedDocumentCodec's readAsWritten):
+ * the stored bytes as its content, and metadata derived from its header
+ * when the header parses.
+ */
+function readAsWritten(
+  definition: AnyEntityDefinition,
+  markdown: string,
+): Partial<EntityOf<AnyEntityDefinition>> {
+  const header = readableHeader(markdown);
+  const metadata =
+    header && definition.markdown
+      ? definition.markdown.decode(header).metadata
+      : {};
+  return {
+    ...(definition.singleton === true && { id: definition.type }),
+    content: markdown,
+    metadata: definition.metadata.parse(currentMetadata(definition, metadata)),
+  };
+}
+
+/** A document's header and body; none when its header does not parse. */
+function readableHeader(
+  markdown: string,
+): { content: string; frontmatter: Record<string, unknown> } | undefined {
+  try {
+    const parsed = parseMarkdownWithFrontmatter(markdown, rawFrontmatterSchema);
+    return { content: parsed.content, frontmatter: parsed.metadata };
+  } catch {
+    // A header that does not parse still reads, as written and with no
+    // metadata, so an editor can show the document for repair; a write
+    // refuses it as before.
+    return undefined;
+  }
 }
 
 type DeclaredAdapter = EntityAdapter<
@@ -394,6 +453,7 @@ function markdownStorage(
 ): Pick<
   DeclaredAdapter,
   | "frontmatterSchema"
+  | "writtenFrontmatterSchema"
   | "toMarkdown"
   | "fromMarkdown"
   | "parseFrontMatter"
@@ -401,7 +461,14 @@ function markdownStorage(
   | "metadataFromFrontmatter"
 > {
   return {
-    frontmatterSchema: definition.metadata,
+    // The header its class declared, when it states one; else its metadata.
+    frontmatterSchema: frontmatterSchemaOf(definition) ?? definition.metadata,
+    // What it writes is still every field its metadata names; a header
+    // field metadata does not name is the file's own, which the serializer
+    // keeps from the document written, as a stored-document class kept it.
+    ...(frontmatterSchemaOf(definition) && {
+      writtenFrontmatterSchema: definition.metadata,
+    }),
     // A whole document handed in, as an import or an editor writes one, had
     // its frontmatter decoded into the metadata already: the type writes the
     // body under its own frontmatter, in its own order, as an entity plugin
@@ -410,10 +477,12 @@ function markdownStorage(
     toMarkdown(entity): string {
       return encodeEntityMarkdown(definition, {
         ...entity,
-        content: documentBody(entity.content),
+        content: bodyAsRead(definition, entity.content),
       });
     },
     fromMarkdown(markdown): Partial<EntityOf<AnyEntityDefinition>> {
+      if (readsAsWritten(definition.markdown))
+        return readAsWritten(definition, markdown);
       const parsed = parseMarkdownWithFrontmatter(
         markdown,
         rawFrontmatterSchema,
@@ -425,6 +494,10 @@ function markdownStorage(
           })
         : { content: parsed.content, metadata: parsed.metadata };
       return {
+        // A singleton's document is its one record, whose id is the type,
+        // as a class adapter read it; a writer that names none, such as
+        // Studio creating a missing one, creates it there.
+        ...(definition.singleton === true && { id: definition.type }),
         content: decoded.content,
         metadata: definition.metadata.parse(
           currentMetadata(definition, decoded.metadata),
@@ -472,6 +545,22 @@ function binaryStorage(
   };
 }
 
+/** The statuses a published-only read publishes, left off when undeclared. */
+function publishedStatusesAdapter(
+  definition: AnyEntityDefinition,
+): Pick<DeclaredAdapter, "publishedStatuses"> {
+  const statuses = publishedStatusesOf(definition);
+  return statuses ? { publishedStatuses: [...statuses] } : {};
+}
+
+/** A type's folder titles, left off when it names none. */
+function folderTitlesAdapter(
+  definition: AnyEntityDefinition,
+): Pick<DeclaredAdapter, "getFolderTitles"> {
+  const titles = folderTitlesOf(definition);
+  return titles ? { getFolderTitles: titles } : {};
+}
+
 function entityAdapter(definition: AnyEntityDefinition): DeclaredAdapter {
   const schema = entitySchema(definition);
   const stub = definition.stub;
@@ -487,6 +576,7 @@ function entityAdapter(definition: AnyEntityDefinition): DeclaredAdapter {
     extractMetadata: (entity) =>
       restatedMetadataOf(definition)?.(entity.metadata) ?? entity.metadata,
     getBodyTemplate: () => bodyTemplateOf(definition),
+    ...folderTitlesAdapter(definition),
     ...(writesInDocumentOrderOf(definition) && { writesInDocumentOrder: true }),
     // Left off when undeclared: system_generate reads its absence as "this
     // type does not support queued generation" and says so.
@@ -503,15 +593,31 @@ function entityAdapter(definition: AnyEntityDefinition): DeclaredAdapter {
     // reads the same as a type written before the flag existed.
     ...(definition.singleton === true && { isSingleton: true }),
     ...(definition.hasBody !== undefined && { hasBody: definition.hasBody }),
+    ...publishedStatusesAdapter(definition),
     ...(definition.coverImage === true && { supportsCoverImage: true }),
     ...(definition.create?.fields && {
       createFieldsSchema: definition.create.fields,
     }),
-    ...(definition.displayTitle && {
-      displayTitle: (entity): string | undefined =>
-        displayTitle(definition, entity),
-    }),
+    ...displayTitleAdapter(definition),
   };
+}
+
+/** A type's display title, from the whole record or its content and metadata. */
+function displayTitleAdapter(
+  definition: AnyEntityDefinition,
+): Pick<DeclaredAdapter, "displayTitle"> {
+  const recordTitle = recordDisplayTitleOf(definition);
+  if (recordTitle)
+    return {
+      displayTitle: (entity): string | undefined =>
+        recordTitle(entity, currentMetadata(definition, entity.metadata)),
+    };
+  return definition.displayTitle
+    ? {
+        displayTitle: (entity): string | undefined =>
+          displayTitle(definition, entity),
+      }
+    : {};
 }
 
 /**
@@ -701,11 +807,17 @@ function projectionRule(
   });
 }
 
-class DeclarativeEntityPlugin extends EntityPlugin<
-  EntityOf<AnyEntityDefinition>,
+/** A declared entity type takes no config of its own. */
+const noEntityConfigSchema: z.ZodObject<Record<string, never>> = z.object({});
+
+class DeclarativeEntityPlugin extends PluginCore<
   Record<string, never>,
-  Record<string, never>
+  Record<string, never>,
+  EntityPluginContext
 > {
+  public readonly type = "entity" as const;
+  /** The default action policy this type declares, keyed by its bare type. */
+  public readonly entityActionPolicy?: EntityActionPolicyConfig;
   private readonly entityTypeConfig: EntityTypeConfig;
   private readonly projections: readonly ProjectionDefinition[];
   private readonly scope: (localId: string) => string;
@@ -726,6 +838,8 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   /** The types the declaring package owns: its own, when it acts as itself. */
   private readonly packageTypes: ReadonlySet<string>;
   private permissions: PermissionService | undefined;
+  /** The shell this plugin registered on, which runs its rules for an eval. */
+  private scopedShell: IShell | undefined;
   private releases: readonly (() => void)[] = [];
   private readonly dashboardWidgetIds: string[] = [];
   private readonly widgetAbort: AbortController = new AbortController();
@@ -745,19 +859,16 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     packageDataSourceIds: ReadonlySet<string>,
     packageTypes: ReadonlySet<string>,
   ) {
-    super(
-      scope(definition.type),
-      metadata,
-      {},
-      emptyEntityPluginConfigSchema,
-      // Keyed by the bare entity type: the policy is about what may be done
-      // to entities of this type, not about which package declared them.
-      definition.actions && {
+    super(scope(definition.type), metadata, {}, noEntityConfigSchema);
+    // Keyed by the bare entity type: the policy is about what may be done
+    // to entities of this type, not about which package declared them.
+    if (definition.actions) {
+      this.entityActionPolicy = {
         [definition.type]: entityActionPolicyRuleSchema.parse(
           definition.actions,
         ),
-      },
-    );
+      };
+    }
     this.entityTypeConfig = entityTypeConfigFor(
       definition.classification,
       definition.config,
@@ -829,7 +940,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     });
   }
 
-  protected override getEntityTypeConfig(): EntityTypeConfig {
+  private getEntityTypeConfig(): EntityTypeConfig {
     return this.entityTypeConfig;
   }
 
@@ -994,7 +1105,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     return sourceEntityId ? { sourceEntityType, sourceEntityId } : null;
   }
 
-  protected override createGenerationHandler(
+  private createGenerationHandler(
     context: EntityPluginContext,
   ): JobHandler | null {
     return this.generation
@@ -1008,7 +1119,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
       : null;
   }
 
-  protected override getTemplates(): Record<string, Template> | null {
+  private getTemplates(): Record<string, Template> | null {
     const templates = this.templates;
     if (!templates) return null;
     // A template naming one of its package's data sources follows it to the
@@ -1024,14 +1135,22 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     );
   }
 
-  protected override getDataSources(): DataSource[] {
-    // Scoped to the package, so two packages may each declare "entities".
+  private getDataSources(): DataSource[] {
+    if (this.dataSources.length === 0) return [];
+    const shell = this.scopedShell;
+    if (!shell) {
+      throw new Error(
+        `Entity type "${this.entityType}" binds its data sources once it is registered`,
+      );
+    }
+    // Scoped to the package, so two packages may each declare "entities";
+    // read by other packages under the package's name, whatever the scope.
     return this.dataSources.map((declaration) =>
-      createDeclaredDataSource(
-        declaration,
-        this.scope(declaration.id),
-        this.logger,
-      ),
+      createDeclaredDataSource(declaration, this.scope(declaration.id), {
+        publicId: `${this.packageName}:${declaration.id}`,
+        runtimeState: shell.getRuntimeState(),
+        dataSources: shell.getDataSourceRegistry(),
+      }),
     );
   }
 
@@ -1051,7 +1170,62 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     registrationContext?: PluginRegistrationContext,
   ): Promise<PluginCapabilities> {
     this.permissions = shell.getPermissionService();
-    return super.register(shell, registrationContext);
+    this.scopedShell = shell;
+    const context = createEntityPluginContext(
+      shell,
+      this.id,
+      registrationContext,
+    );
+    this.context = context;
+    // Tool and resource execution over the message bus.
+    this.setupMessageHandlers(context);
+
+    // The type's rules are resolved before it registers, so a type that
+    // writes itself fails closed as a projection source unless it opts in.
+    const projectionRules = this.getProjectionRules();
+    const entityTypeConfig = this.getEntityTypeConfig();
+    const producesOwnEntityType = projectionRules.some(
+      (rule) => rule.targetType === this.entityType,
+    );
+    const hasExplicitProjectionSourceOptIn =
+      entityTypeConfig.projectionSource !== false &&
+      entityTypeConfig.projectionSourceRole !== "excluded" &&
+      (entityTypeConfig.projectionSource === true ||
+        entityTypeConfig.projectionSourceRole !== undefined);
+    context.entities.register(
+      this.entityType,
+      this.schema,
+      this.adapter,
+      producesOwnEntityType && !hasExplicitProjectionSourceOptIn
+        ? {
+            ...entityTypeConfig,
+            projectionSource: false,
+            projectionSourceRole: "excluded" as const,
+          }
+        : entityTypeConfig,
+    );
+
+    const handler = this.createGenerationHandler(context);
+    if (handler) {
+      context.jobs.registerHandler(`${this.entityType}:generation`, handler);
+    }
+    const templates = this.getTemplates();
+    if (templates && Object.keys(templates).length > 0) {
+      shell.registerTemplates(templates, this.id);
+    }
+    for (const dataSource of this.getDataSources()) {
+      context.entities.registerDataSource(dataSource);
+    }
+
+    await this.onRegister(context);
+
+    const instructions = await this.getInstructions();
+    return {
+      tools: [],
+      resources: [],
+      ...(instructions && { instructions }),
+      ...(projectionRules.length > 0 && { projectionRules }),
+    };
   }
 
   protected override async onRegister(
@@ -1064,6 +1238,21 @@ class DeclarativeEntityPlugin extends EntityPlugin<
         async (entity): Promise<void> => {
           await validatePersist(
             Object.freeze({
+              content: entity.content,
+              visibility: entity.visibility,
+            }),
+          );
+        },
+      );
+    }
+    const recordValidator = recordPersistValidatorOf(this.definition);
+    if (recordValidator) {
+      context.entities.registerPersistValidator(
+        this.entityType,
+        async (entity): Promise<void> => {
+          await recordValidator(
+            Object.freeze({
+              id: entity.id,
               content: entity.content,
               visibility: entity.visibility,
             }),
@@ -1178,6 +1367,8 @@ class DeclarativeEntityPlugin extends EntityPlugin<
               ),
               runGeneration: (input, options) =>
                 this.runGenerationForEval(context, input, options),
+              runProjectionRule: (ruleId, options) =>
+                this.runOwnProjectionRule(ruleId, options),
             },
           ),
         ),
@@ -1456,8 +1647,8 @@ class DeclarativeEntityPlugin extends EntityPlugin<
 
   /**
    * The declared Inbox in the shape the Inbox reads. Listing reads as the
-   * package; opening and acting read as the actor, and acting writes only
-   * through edits the actor is allowed.
+   * package; opening and acting are refused below admin, read as the actor,
+   * and acting writes only through edits the actor is allowed.
    */
   private inboxSource(
     context: EntityPluginContext,
@@ -1474,6 +1665,13 @@ class DeclarativeEntityPlugin extends EntityPlugin<
         records: this.records(context, scope),
         entities: createEntityReader(context.entityService, scope),
       };
+    };
+    // An Inbox item is the operator's to open and act on, whichever surface
+    // reaches it, so the source itself refuses anyone below admin.
+    const requireAdmin = (actor: InboxActor): void => {
+      if (actor.permissionLevel !== "admin") {
+        throw new Error(`${declared.displayName} requires admin permission`);
+      }
     };
     const resolveDetail = declared.resolveDetail?.bind(declared);
     return {
@@ -1496,18 +1694,29 @@ class DeclarativeEntityPlugin extends EntityPlugin<
           itemId: string,
           actor: InboxActor,
           signal: AbortSignal,
-        ): Promise<InboxItemDetail> =>
-          resolveDetail(itemId, Object.freeze({ ...asActor(actor), signal })),
+        ): Promise<InboxItemDetail> => {
+          requireAdmin(actor);
+          return resolveDetail(
+            itemId,
+            Object.freeze({ ...asActor(actor), signal }),
+          );
+        },
       }),
-      act: (itemId: string, actionId: string, actor: InboxActor) =>
-        declared.act(
+      act: async (
+        itemId: string,
+        actionId: string,
+        actor: InboxActor,
+      ): Promise<void> => {
+        requireAdmin(actor);
+        return declared.act(
           itemId,
           actionId,
           Object.freeze({
             ...asActor(actor),
             edits: this.inboxEdits(context, actor),
           }),
-        ),
+        );
+      },
     };
   }
 
@@ -1832,6 +2041,21 @@ class DeclarativeEntityPlugin extends EntityPlugin<
         getProfile: () => context.identity.getProfile(),
       }),
     };
+  }
+
+  /**
+   * One of this type's own declared projection rules, run by the shell as
+   * production runs it, with no wave, memo or write; any other rule refused.
+   */
+  private async runOwnProjectionRule(
+    ruleId: string,
+    options?: { readonly inputs?: readonly ProjectionWaveInput[] },
+  ): Promise<readonly ProjectionWriteIntent[]> {
+    const shell = this.scopedShell;
+    if (!shell || !this.projectionRules.some(({ id }) => id === ruleId)) {
+      throw new Error(`Unknown projection rule "${ruleId}" for ${this.id}`);
+    }
+    return shell.runProjectionRule(ruleId, options);
   }
 
   /**
@@ -2506,7 +2730,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     }
   }
 
-  protected override getProjectionRules(): ProjectionRule[] {
+  private getProjectionRules(): ProjectionRule[] {
     return [
       ...this.projections.map((projection) =>
         projectionRule(projection, this.version, this.scope),
@@ -2556,4 +2780,9 @@ export function createEntityPackagePlugins(
         packageTypes,
       ),
   );
+}
+
+/** Whether a value is an entity type a declared package installed. */
+export function isDeclarativeEntityPlugin(value: unknown): boolean {
+  return value instanceof DeclarativeEntityPlugin;
 }

@@ -1,8 +1,10 @@
+import { projectFrontmatterSchema } from "./schemas/project";
 import { createTemplate } from "@brains/sdk/internal/presentation";
 import { defineEntity, z, type EntityDefinition } from "@brains/sdk/entities";
 import {
   restatingMetadata,
   withBodyTemplate,
+  withFrontmatterSchema,
 } from "@brains/sdk/internal/entity-runtime";
 import { paginationInfoSchema } from "@brains/sdk/internal/presentation";
 import { projectAtproto } from "./atproto-projection";
@@ -76,84 +78,87 @@ const projectDetailSchema = z.object({
 export const project: EntityDefinition<
   "project",
   typeof projectMetadataSchema
-> = withBodyTemplate(
-  restatingMetadata(
-    defineEntity({
-      type: "project",
-      purpose: "A portfolio project or case study.",
-      metadata: projectMetadataSchema,
-      markdown: projectMarkdown,
-      config: { projectionSourceRole: "secondary" },
-      coverImage: true,
-      stub: ({ id, title }) => ({
-        content: "",
-        metadata: {
-          title,
-          slug: id,
-          authoredSlug: true,
-          status: "generating",
-          description: "",
-          year: new Date().getUTCFullYear(),
+> = withFrontmatterSchema(
+  withBodyTemplate(
+    restatingMetadata(
+      defineEntity({
+        type: "project",
+        purpose: "A portfolio project or case study.",
+        metadata: projectMetadataSchema,
+        markdown: projectMarkdown,
+        config: { projectionSourceRole: "secondary" },
+        coverImage: true,
+        stub: ({ id, title }) => ({
+          content: "",
+          metadata: {
+            title,
+            slug: id,
+            authoredSlug: true,
+            status: "generating",
+            description: "",
+            year: new Date().getUTCFullYear(),
+          },
+        }),
+        templates: {
+          "project-list": createTemplate<
+            z.output<typeof projectListSchema>,
+            ProjectListProps
+          >({
+            name: "project-list",
+            description: "Portfolio project list page template",
+            schema: projectListSchema,
+            dataSourceId: "portfolio:entities",
+            requiredPermission: "public",
+            layout: {
+              component: ProjectListTemplate,
+              renderSchema: projectListRenderSchema,
+            },
+          }),
+          "project-detail": createTemplate<
+            z.output<typeof projectDetailSchema>,
+            ProjectDetailProps
+          >({
+            name: "project-detail",
+            description: "Individual project case study template",
+            schema: projectDetailSchema,
+            dataSourceId: "portfolio:entities",
+            requiredPermission: "public",
+            layout: {
+              component: ProjectDetailTemplate,
+              renderSchema: projectDetailRenderSchema,
+            },
+          }),
+          generation: projectGenerationTemplate,
+          "from-text": projectFromTextTemplate,
+          "og-image": projectOgImageTemplate,
+          "project-printable": projectPrintableTemplate,
         },
+        create: { fromContent: projectFromText, fromPrompt: projectFromPrompt },
+        generation: projectGeneration,
+        attachments: [
+          {
+            type: PROJECT_PRINTABLE_ATTACHMENT_TYPE,
+            provider: (context) => createProjectPrintableProvider(context),
+          },
+          {
+            type: PROJECT_OG_IMAGE_ATTACHMENT_TYPE,
+            provider: (context) => createProjectOgImageProvider(context),
+          },
+        ],
+        // Projects publish to the site itself, so the provider records the
+        // outcome and nothing more.
+        publish: {
+          provider: {
+            name: "internal",
+            publish: async (): Promise<{ id: string }> => ({ id: "internal" }),
+          },
+        },
+        atproto: projectAtproto,
+        evals: projectEvals,
       }),
-      templates: {
-        "project-list": createTemplate<
-          z.output<typeof projectListSchema>,
-          ProjectListProps
-        >({
-          name: "project-list",
-          description: "Portfolio project list page template",
-          schema: projectListSchema,
-          dataSourceId: "portfolio:entities",
-          requiredPermission: "public",
-          layout: {
-            component: ProjectListTemplate,
-            renderSchema: projectListRenderSchema,
-          },
-        }),
-        "project-detail": createTemplate<
-          z.output<typeof projectDetailSchema>,
-          ProjectDetailProps
-        >({
-          name: "project-detail",
-          description: "Individual project case study template",
-          schema: projectDetailSchema,
-          dataSourceId: "portfolio:entities",
-          requiredPermission: "public",
-          layout: {
-            component: ProjectDetailTemplate,
-            renderSchema: projectDetailRenderSchema,
-          },
-        }),
-        generation: projectGenerationTemplate,
-        "from-text": projectFromTextTemplate,
-        "og-image": projectOgImageTemplate,
-        "project-printable": projectPrintableTemplate,
-      },
-      create: { fromContent: projectFromText, fromPrompt: projectFromPrompt },
-      generation: projectGeneration,
-      attachments: [
-        {
-          type: PROJECT_PRINTABLE_ATTACHMENT_TYPE,
-          provider: (context) => createProjectPrintableProvider(context),
-        },
-        {
-          type: PROJECT_OG_IMAGE_ATTACHMENT_TYPE,
-          provider: (context) => createProjectOgImageProvider(context),
-        },
-      ],
-      // Projects publish to the site itself, so the provider records the
-      // outcome and nothing more.
-      publish: {
-        provider: {
-          name: "internal",
-          publish: async (): Promise<{ id: string }> => ({ id: "internal" }),
-        },
-      },
-      atproto: projectAtproto,
-      evals: projectEvals,
-    }),
-    (stored) => ({ ...stored, authoredSlug: true }),
+      (stored) => ({ ...stored, authoredSlug: true }),
+    ),
+    projectBodyTemplate,
   ),
-  projectBodyTemplate,
+  projectFrontmatterSchema,
 );

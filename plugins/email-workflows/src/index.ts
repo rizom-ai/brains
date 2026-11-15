@@ -1,32 +1,19 @@
-import { PluginConfigValidationError, type Plugin } from "@brains/plugins";
-import { MailItemPlugin } from "./entity/plugin";
-import { EmailWorkflowsPlugin } from "./plugin";
-import {
-  emailWorkflowsConfigSchema,
-  type EmailWorkflowsConfigInput,
-} from "./schemas/config";
+import { createEmailWorkflowsPackage } from "./plugin";
 
-export function emailWorkflows(): Plugin[];
-export function emailWorkflows(
-  config: EmailWorkflowsConfigInput = {},
-): Plugin[] {
-  const parsed = emailWorkflowsConfigSchema.safeParse(config);
-  if (!parsed.success) {
-    throw PluginConfigValidationError.fromZod(
-      "email-workflows",
-      parsed.error,
-      config,
-    );
-  }
-  return [new MailItemPlugin(), new EmailWorkflowsPlugin()];
-}
-
-export { MailItemPlugin } from "./entity/plugin";
-export { EmailWorkflowsPlugin } from "./plugin";
 export {
-  MailItemAdapter,
-  mailItemAdapter,
-} from "./entity/adapters/mail-item-adapter";
+  createEmailWorkflowsPackage,
+  type EmailWorkflowsState,
+} from "./plugin";
+export { mailItemEntity } from "./entity/mail-item-entity";
+export { emailReplyDraftEntity } from "./reply-drafts/entity/definition";
+export { emailReplyDraftAdapter } from "./reply-drafts/entity/adapter";
+export type { EmailContext, EmailEntityService } from "./lib/email-context";
+
+/** Email triage, as a brain composes it. */
+const emailWorkflowsPackage: ReturnType<typeof createEmailWorkflowsPackage> =
+  createEmailWorkflowsPackage();
+export default emailWorkflowsPackage;
+export { mailItemAdapter } from "./entity/adapters/mail-item-adapter";
 export {
   mailCategorySchema,
   mailPrioritySchema,
@@ -60,10 +47,12 @@ export {
 } from "./triage-processor";
 export {
   createMailClassifier,
+  MailClassificationError,
   buildClassificationPrompt,
   DEFAULT_EMAIL_TRIAGE_CLASSIFICATION_PROMPT,
   EMAIL_TRIAGE_CLASSIFICATION_PROMPT_TARGET,
   type MailClassifier,
+  type MailClassificationCause,
 } from "./lib/classifier";
 export {
   MailThreadOrdinalCoordinator,

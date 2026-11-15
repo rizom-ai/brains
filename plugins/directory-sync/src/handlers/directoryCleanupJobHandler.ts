@@ -1,6 +1,4 @@
-import { BaseJobHandler } from "@brains/plugins";
-import type { ServicePluginContext } from "@brains/plugins";
-import type { Logger } from "@brains/utils/logger";
+import type { DirectorySyncCore } from "../lib/sync-context";
 import type { ProgressReporter } from "@brains/utils/progress";
 import {
   directoryProjectionBatchRefSchema,
@@ -13,7 +11,7 @@ import {
   settleDirectoryProjectionBatchChild,
 } from "../lib/projection-batch-job";
 
-const directoryCleanupJobSchema: z.ZodObject<{
+export const directoryCleanupJobSchema: z.ZodObject<{
   projectionBatch: z.ZodOptional<typeof directoryProjectionBatchRefSchema>;
 }> = z.object({
   projectionBatch: directoryProjectionBatchRefSchema.optional(),
@@ -21,23 +19,13 @@ const directoryCleanupJobSchema: z.ZodObject<{
 
 type DirectoryCleanupJobData = z.output<typeof directoryCleanupJobSchema>;
 
-export class DirectoryCleanupJobHandler extends BaseJobHandler<
-  "directory-cleanup",
-  DirectoryCleanupJobData,
-  CleanupResult
-> {
-  private readonly context: ServicePluginContext;
+export class DirectoryCleanupJobHandler {
+  /** The data the queue hands this job, as its schema parses it. */
+  readonly schema: typeof directoryCleanupJobSchema = directoryCleanupJobSchema;
+  private readonly context: DirectorySyncCore;
   private directorySync: IDirectorySync;
 
-  constructor(
-    logger: Logger,
-    context: ServicePluginContext,
-    directorySync: IDirectorySync,
-  ) {
-    super(logger, {
-      schema: directoryCleanupJobSchema,
-      jobTypeName: "directory-cleanup",
-    });
+  constructor(context: DirectorySyncCore, directorySync: IDirectorySync) {
     this.context = context;
     this.directorySync = directorySync;
   }

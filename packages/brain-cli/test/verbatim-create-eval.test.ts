@@ -81,9 +81,10 @@ describe("verbatim creation MCP eval contract", () => {
     const criteria = testCase.turns[5]?.successCriteria;
     if (!criteria) throw new Error("Missing saved content checks");
     const canonicalContent = `---\nvisibility: restricted\n---\n${content}`;
+    // The stored record's hash, which every part of a read carries.
     expect(
-      criteria.expectedTools?.[0]?.resultContains?.["entity.content"],
-    ).toBe(canonicalContent);
+      criteria.expectedTools?.[0]?.resultContains?.["entity.contentHash"],
+    ).toBe(computeContentHash(canonicalContent));
 
     for (const storedContent of [
       canonicalContent,
@@ -98,6 +99,7 @@ describe("verbatim creation MCP eval contract", () => {
           result: {
             entity: {
               content: storedContent,
+              contentHash: computeContentHash(storedContent),
               visibility: "restricted",
               metadata: { title: "MCP verbatim create" },
             },
@@ -108,5 +110,22 @@ describe("verbatim creation MCP eval contract", () => {
         storedContent === canonicalContent,
       );
     }
+
+    // A body-only read of the right note carries the stored record's hash.
+    const bodyRead = evaluateCriteria(criteria, { text: "Saved exactly." }, [
+      {
+        toolName: "system_get",
+        args: { entityType: "note", id: "mcp-verbatim-create", part: "body" },
+        result: {
+          entity: {
+            content,
+            contentHash: computeContentHash(canonicalContent),
+            visibility: "restricted",
+            metadata: { title: "MCP verbatim create" },
+          },
+        },
+      },
+    ]);
+    expect(bodyRead.every((result) => result.passed)).toBe(true);
   });
 });

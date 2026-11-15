@@ -5,7 +5,7 @@ import {
   type ReactElement,
   type ReactNode,
 } from "react";
-import type { EntityIdPath } from "@brains/plugins";
+import type { EntityIdPath } from "@brains/sdk/internal/entity-runtime";
 import type { StudioCollectionQuery } from "../../src/collection-query";
 import {
   ApiError,

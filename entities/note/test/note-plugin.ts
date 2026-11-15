@@ -1,15 +1,11 @@
-import {
-  EntityPlugin,
-  instantiatePluginPackageDefinition,
-  type BaseEntity,
-} from "@brains/plugins";
+import { instantiatePluginPackageDefinition } from "@brains/plugins";
 import notePackage from "../src";
+import {
+  isDeclaredEntityType,
+  type DeclaredEntityTypePlugin,
+} from "@brains/plugins/test";
 
-export type NoteEntityPlugin = EntityPlugin<
-  BaseEntity,
-  Record<string, never>,
-  Record<string, never>
->;
+export type NoteEntityPlugin = DeclaredEntityTypePlugin;
 
 /** The entity plugin the notes install, as the canonical brain composes them. */
 export function notePlugin(): NoteEntityPlugin {
@@ -20,7 +16,7 @@ export function notePlugin(): NoteEntityPlugin {
     // Under the id its class had: note:generation, note:upload-import.
     { pluginId: "note" },
   );
-  if (!(plugin instanceof EntityPlugin)) {
+  if (!isDeclaredEntityType(plugin)) {
     throw new Error("The notes install no entity plugin");
   }
   return plugin;

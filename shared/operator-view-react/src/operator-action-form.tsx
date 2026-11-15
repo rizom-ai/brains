@@ -1,7 +1,7 @@
 /** @jsxImportSource react */
 import { formFieldStyles as fieldStyles } from "./operator-form-field.styles";
 import * as stylex from "@stylexjs/stylex";
-import type { RuntimeOperatorActionControl } from "@brains/plugins";
+import type { RuntimeOperatorActionControl } from "@brains/sdk/internal/service-runtime";
 import { useContext, useState, type ReactElement } from "react";
 import { OperatorRendererHostContext } from "./operator-view-host";
 import type { OperatorJsonValue } from "./operator-view-host";

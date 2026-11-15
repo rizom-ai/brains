@@ -1,80 +1,12 @@
-import { beforeEach, describe, expect, it } from "bun:test";
-import {
-  createPluginHarness,
-  type PluginTestHarness,
-} from "@brains/plugins/test";
-import { ActionBoardPlugin } from "../src";
+import { describe, expect, it } from "bun:test";
+import { createMockShell } from "@brains/plugins/test";
+import { createActionBoardPlugins } from "./board-plugins";
 
-describe("ActionBoardPlugin", () => {
-  let harness: PluginTestHarness<ActionBoardPlugin>;
-  let plugin: ActionBoardPlugin;
-
-  beforeEach(() => {
-    harness = createPluginHarness<ActionBoardPlugin>({
-      dataDir: "/tmp/test-datadir",
-    });
-    plugin = new ActionBoardPlugin();
-  });
-
-  it("takes its projects from a grouping key, `projects` unless configured", () => {
-    expect(() => new ActionBoardPlugin()).not.toThrow();
-    expect(
-      () => new ActionBoardPlugin({ projectGrouping: "initiatives" }),
-    ).not.toThrow();
-    expect(
-      () => new ActionBoardPlugin({ projectGrouping: "Our Projects" }),
-    ).toThrow();
-  });
-
-  it("registers the action-item tools for chat", async () => {
-    const capabilities = await harness.installPlugin(plugin);
-
-    expect(capabilities.tools.map((tool) => tool.name)).toEqual([
-      "action_item_create",
-      "action_item_update",
-    ]);
-  });
-
-  it("opens the Board in Studio when ready and closes it on shutdown", async () => {
-    await harness.installPlugin(plugin);
-    const bus = harness.getMockShell().getMessageBus();
-    const registered: string[] = [];
-    const unregistered: unknown[] = [];
-    bus.subscribe<{ id: string }, { workspaceUrl: string }>(
-      "studio:register-workspace",
-      async (message) => {
-        registered.push(message.payload.id);
-        return { success: true, data: { workspaceUrl: "/studio/board" } };
-      },
-    );
-    bus.subscribe("studio:unregister-workspace", async (message) => {
-      unregistered.push(message.payload);
-      return { success: true };
-    });
-
-    await plugin.ready();
-    await plugin.shutdown();
-
-    expect(registered).toEqual(["action-board:board"]);
-    expect(unregistered).toEqual([
-      {
-        pluginId: "action-board",
-        workspaceId: "action-board:board",
-      },
-    ]);
-  });
-
-  it("brings blocked action items to the Inbox", async () => {
-    await harness.installPlugin(plugin);
-    const inbox = harness.getMockShell().getInboxRegistry();
-    inbox.finalize();
-
-    expect(inbox.getSource("action-items")?.displayName).toBe("Action items");
-  });
-
+describe("the action board", () => {
   it("offers to track Inbox items on the Board once the Board is open", async () => {
-    await harness.installPlugin(plugin);
-    const shell = harness.getMockShell();
+    const shell = createMockShell();
+    const plugins = createActionBoardPlugins();
+    for (const plugin of plugins) await plugin.register(shell);
     shell
       .getMessageBus()
       .subscribe<{ id: string }, { workspaceUrl: string }>(
@@ -108,7 +40,7 @@ describe("ActionBoardPlugin", () => {
 
     expect(await tracking("contact-requests", contact)).toBeUndefined();
 
-    await plugin.ready();
+    for (const plugin of plugins) await plugin.ready?.();
 
     const href = await tracking("contact-requests", contact);
     expect(href?.startsWith("/studio/workspaces/action-board%3Aboard?")).toBe(

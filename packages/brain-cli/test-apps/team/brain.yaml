@@ -21,7 +21,7 @@ plugins:
     initialSync: true
     git:
       repo: rizom-ai/canonical-team-test-content
-      gitUrl: file:///tmp/canonical-team-test-content.git
+      gitUrl: file:///tmp/canonical-team-offline-test-content.git
 site:
   package: "@brains/site-organization"
   theme: "@brains/theme-rizom"

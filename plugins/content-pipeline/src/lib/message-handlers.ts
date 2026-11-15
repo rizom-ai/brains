@@ -14,10 +14,10 @@ import { getErrorMessage } from "@brains/utils/error";
 import {
   entityCreatedChannel,
   entityUpdatedChannel,
-  type BaseEntity,
   type EntityChangePayload,
-  type ServicePluginContext,
-} from "@brains/plugins";
+  type ServiceRuntime,
+} from "@brains/sdk/internal/service-runtime";
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
 import type { Logger } from "@brains/utils/logger";
 import type { PublicationQueueService } from "../publication-queue-service";
 import {
@@ -27,6 +27,10 @@ import {
 import type { ProviderRegistry } from "../provider-registry";
 import type { PublishAssetRegistry } from "../publish-assets";
 import type { PublishAssetPreflight } from "../publish-asset-preflight";
+import type { PipelineContext } from "./pipeline-context";
+
+/** How the package answers and hears the bus, as its class did. */
+export type PipelineBus = Pick<ServiceRuntime, "answer" | "listen">;
 
 export interface MessageHandlerDeps {
   publicationQueueService: PublicationQueueService;
@@ -40,56 +44,63 @@ export interface MessageHandlerDeps {
  * Subscribe to all publish and generation messages on the message bus.
  */
 export function subscribeToMessages(
-  context: ServicePluginContext,
+  bus: PipelineBus,
+  context: PipelineContext,
   deps: MessageHandlerDeps,
 ): void {
-  subscribeToPublishMessages(context, deps);
-  subscribeToGenerationMessages(context, deps);
-  subscribeToPublishAssetMessages(context, deps);
-  subscribeToEntityChangeMessages(context, deps);
+  subscribeToPublishMessages(bus, deps);
+  subscribeToGenerationMessages(bus, deps);
+  subscribeToPublishAssetMessages(bus, deps);
+  subscribeToEntityChangeMessages(bus, context, deps);
 }
 
 function subscribeToPublishMessages(
-  context: ServicePluginContext,
+  bus: PipelineBus,
   deps: MessageHandlerDeps,
 ): void {
-  context.messaging.answer(publishRegisterContract, async (registration) =>
-    handleRegister(deps, registration),
+  bus.answer(publishRegisterContract, async ({ request }) =>
+    handleRegister(deps, request),
   );
 
-  context.messaging.subscribe(publishCompletedChannel, async (payload) => {
-    await deps.publicationQueueService.complete(
-      payload.entityType,
-      payload.entityId,
-    );
-    return { success: true };
-  });
+  bus.listen(
+    publishCompletedChannel,
+    async ({ payload }) => {
+      await deps.publicationQueueService.complete(
+        payload.entityType,
+        payload.entityId,
+      );
+    },
+    { mode: "subscribe" },
+  );
 
-  context.messaging.subscribe(publishFailedChannel, async (payload) => {
-    await deps.publicationQueueService.fail(
-      payload.entityType,
-      payload.entityId,
-      payload.error,
-    );
-    return { success: true };
-  });
+  bus.listen(
+    publishFailedChannel,
+    async ({ payload }) => {
+      await deps.publicationQueueService.fail(
+        payload.entityType,
+        payload.entityId,
+        payload.error,
+      );
+    },
+    { mode: "subscribe" },
+  );
 
   deps.logger.debug("Subscribed to publish messages");
 }
 
 function subscribeToGenerationMessages(
-  context: ServicePluginContext,
+  bus: PipelineBus,
   deps: MessageHandlerDeps,
 ): void {
-  context.messaging.answer(
+  bus.answer(
     generateReportSuccessContract,
-    async (report) => handleGenerationCompleted(deps, report),
+    async ({ request }) => handleGenerationCompleted(deps, request),
     { everyProcess: true },
   );
 
-  context.messaging.answer(
+  bus.answer(
     generateReportFailureContract,
-    async (report) => handleGenerationFailed(deps, report),
+    async ({ request }) => handleGenerationFailed(deps, request),
     { everyProcess: true },
   );
 
@@ -97,28 +108,32 @@ function subscribeToGenerationMessages(
 }
 
 function subscribeToPublishAssetMessages(
-  context: ServicePluginContext,
+  bus: PipelineBus,
   deps: MessageHandlerDeps,
 ): void {
-  context.messaging.answer(publishAssetRegisterContract, async (definition) =>
-    handlePublishAssetRegister(deps, definition),
+  bus.answer(publishAssetRegisterContract, async ({ request }) =>
+    handlePublishAssetRegister(deps, request),
   );
 
   deps.logger.debug("Subscribed to publish asset messages");
 }
 
 function subscribeToEntityChangeMessages(
-  context: ServicePluginContext,
+  bus: PipelineBus,
+  context: PipelineContext,
   deps: MessageHandlerDeps,
 ): void {
-  const handler = async (
-    payload: EntityChangePayload,
-  ): Promise<{ success: boolean }> =>
-    handleEntityChange(context, deps, payload);
+  const handler = async ({
+    payload,
+  }: {
+    readonly payload: EntityChangePayload;
+  }): Promise<void> => {
+    await handleEntityChange(context, deps, payload);
+  };
 
   // Observed: an entity the worker publishes needs its assets too.
-  context.messaging.observe(entityCreatedChannel, handler);
-  context.messaging.observe(entityUpdatedChannel, handler);
+  bus.listen(entityCreatedChannel, handler, { mode: "observe" });
+  bus.listen(entityUpdatedChannel, handler, { mode: "observe" });
 
   deps.logger.debug("Subscribed to entity change messages for publish assets");
 }
@@ -155,7 +170,7 @@ async function handlePublishAssetRegister(
 }
 
 async function handleEntityChange(
-  context: ServicePluginContext,
+  context: PipelineContext,
   deps: MessageHandlerDeps,
   payload: EntityChangePayload,
 ): Promise<{ success: boolean }> {

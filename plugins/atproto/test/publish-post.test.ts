@@ -1,3 +1,4 @@
+import { createAtprotoPlugin } from "./atproto-plugins";
 import { createMockShell } from "@brains/plugins/test";
 import { describe, expect, it, mock } from "bun:test";
 import { createServicePluginContext } from "@brains/plugins";
@@ -8,9 +9,7 @@ import type {
 } from "@brains/plugins";
 import { caughtError } from "@brains/test-utils";
 import {
-  AtprotoPlugin,
   AtprotoProjectionRegistry,
-  atprotoPlugin,
   type AtprotoLexicon,
   type AtprotoPdsClientLike,
 } from "../src";
@@ -110,7 +109,7 @@ function createContext(
 
 describe("AT Protocol post publishing", () => {
   it("hands the projection the entity's page on this brain's site", async () => {
-    const plugin = new AtprotoPlugin({
+    const plugin = createAtprotoPlugin({
       pdsEndpoint: "https://pds.example.com",
     });
     const context = createContext(createPost(), [], {
@@ -126,7 +125,7 @@ describe("AT Protocol post publishing", () => {
   });
 
   it("hands no page for a type the site gives none", async () => {
-    const plugin = new AtprotoPlugin({
+    const plugin = createAtprotoPlugin({
       pdsEndpoint: "https://pds.example.com",
     });
     const context = createContext(createPost(), [], {
@@ -144,7 +143,7 @@ describe("AT Protocol post publishing", () => {
       uri: "at://repo/post",
       cid: "cid",
     }));
-    const plugin = new AtprotoPlugin(
+    const plugin = createAtprotoPlugin(
       {
         pdsEndpoint: "https://pds.example.com",
         identifier: "brain.example.com",
@@ -179,7 +178,7 @@ describe("AT Protocol post publishing", () => {
       uri: "at://repo/post",
       cid: "cid",
     }));
-    const plugin = new AtprotoPlugin(
+    const plugin = createAtprotoPlugin(
       {
         pdsEndpoint: "https://pds.example.com",
         identifier: "brain.example.com",
@@ -243,7 +242,7 @@ describe("AT Protocol post publishing", () => {
       uri: "at://repo/link",
       cid: "cid",
     }));
-    const plugin = new AtprotoPlugin(
+    const plugin = createAtprotoPlugin(
       {
         pdsEndpoint: "https://pds.example.com",
         identifier: "brain.example.com",
@@ -320,7 +319,7 @@ describe("AT Protocol post publishing", () => {
       uri: "at://repo/custom-post",
       cid: "cid",
     }));
-    const plugin = new AtprotoPlugin(
+    const plugin = createAtprotoPlugin(
       {
         pdsEndpoint: "https://pds.example.com",
         identifier: "brain.example.com",
@@ -399,7 +398,7 @@ describe("AT Protocol post publishing", () => {
         createdAt: "2026-05-28T10:00:00.000Z",
       }),
     });
-    const plugin = new AtprotoPlugin(
+    const plugin = createAtprotoPlugin(
       { pdsEndpoint: "https://pds.example.com" },
       { projectionRegistry: registry },
     );
@@ -451,7 +450,7 @@ describe("AT Protocol post publishing", () => {
       uri: "at://repo/post",
       cid: "cid",
     }));
-    const plugin = new AtprotoPlugin(
+    const plugin = createAtprotoPlugin(
       {
         pdsEndpoint: "https://pds.example.com",
         identifier: "brain.example.com",
@@ -493,7 +492,7 @@ describe("AT Protocol post publishing", () => {
       uri: "at://repo/post",
       cid: "cid",
     }));
-    const plugin = new AtprotoPlugin(
+    const plugin = createAtprotoPlugin(
       {
         pdsEndpoint: "https://pds.example.com",
         identifier: "brain.example.com",
@@ -526,7 +525,7 @@ describe("AT Protocol post publishing", () => {
   });
 
   it("refuses to publish private posts", async () => {
-    const plugin = atprotoPlugin({
+    const plugin = createAtprotoPlugin({
       pdsEndpoint: "https://pds.example.com",
       identifier: "brain.example.com",
       appPassword: "secret",
@@ -567,7 +566,7 @@ describe("AT Protocol post publishing", () => {
       uri: "at://repo/post",
       cid: "cid",
     }));
-    const plugin = new AtprotoPlugin(
+    const plugin = createAtprotoPlugin(
       {
         pdsEndpoint: "https://pds.example.com",
         identifier: "brain.example.com",
@@ -608,7 +607,7 @@ describe("AT Protocol post publishing", () => {
   it("does not expose publish-entity as an agent tool", async () => {
     const shell = createMockShell({ domain: "brain.example.com" });
     shell.addEntities([createPost()]);
-    const plugin = atprotoPlugin({
+    const plugin = createAtprotoPlugin({
       pdsEndpoint: "https://pds.example.com",
       identifier: "brain.example.com",
       brainDid: "did:web:brain.example.com",
@@ -630,7 +629,7 @@ describe("AT Protocol post publishing", () => {
   it("does not expose publish-post as an agent tool", async () => {
     const shell = createMockShell({ domain: "brain.example.com" });
     shell.addEntities([createPost()]);
-    const plugin = atprotoPlugin({
+    const plugin = createAtprotoPlugin({
       pdsEndpoint: "https://pds.example.com",
       identifier: "brain.example.com",
       brainDid: "did:web:brain.example.com",
@@ -651,7 +650,7 @@ describe("AT Protocol post publishing", () => {
   it("keeps publish-post available as an internal plugin method", async () => {
     const shell = createMockShell({ domain: "brain.example.com" });
     shell.addEntities([createPost()]);
-    const plugin = atprotoPlugin({
+    const plugin = createAtprotoPlugin({
       pdsEndpoint: "https://pds.example.com",
       identifier: "brain.example.com",
       brainDid: "did:web:brain.example.com",

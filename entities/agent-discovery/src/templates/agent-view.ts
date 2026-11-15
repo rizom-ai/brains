@@ -1,12 +1,12 @@
+import { z } from "@brains/utils/zod";
+import { agentSkillSchema, agentStatusSchema } from "../schemas/agent";
 import {
   renderedLinkFields,
   viewLinkFields,
-  anchorProfileKindSchema,
   entityViewFields,
   type EntityViewFields,
-} from "@brains/plugins";
-import { z } from "@brains/utils/zod";
-import { agentSkillSchema, agentStatusSchema } from "../schemas/agent";
+} from "@brains/sdk/internal/presentation";
+import { anchorProfileKindSchema } from "@brains/sdk/internal/service-runtime";
 
 const nullableString: z.ZodDefault<z.ZodNullable<z.ZodString>> = z
   .string()

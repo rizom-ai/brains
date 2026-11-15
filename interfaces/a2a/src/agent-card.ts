@@ -1,12 +1,12 @@
 import type { AgentCard, AgentSkill, AgentExtension } from "@a2a-js/sdk";
-import type {
-  BrainCharacter,
-  AnchorProfile,
-  ResolvedProfileKind,
-  ToolInfo,
-  PublicSkill,
-} from "@brains/plugins";
-import { ANCHOR_EXTENSION_URI } from "@brains/plugins";
+import {
+  type BrainCharacter,
+  type AnchorProfile,
+  type ResolvedProfileKind,
+  type ToolInfo,
+  type PublicSkill,
+  ANCHOR_EXTENSION_URI,
+} from "@brains/sdk/internal/interface-runtime";
 
 export interface AgentCardOptions {
   /** Brain character identity */

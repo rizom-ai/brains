@@ -3,8 +3,11 @@ import type {
   AskedBeforeResponse,
   SourceCitation,
 } from "@brains/contracts";
-import { findNearestEntity, type IEntityService } from "@brains/plugins";
-import { faqAdapter } from "../adapters/faq-adapter";
+import {
+  findNearestEntity,
+  type ServiceEntityMutations,
+} from "@brains/sdk/internal/service-runtime";
+import { readFaq } from "./faq-body";
 import { faqSchema, type FaqEntity, type FaqSource } from "../schemas/faq";
 import { isSameQuestion, type FaqStoreDeps } from "./faq-store";
 
@@ -12,7 +15,7 @@ type AskedBeforeDeps = Pick<
   FaqStoreDeps,
   "ai" | "sameQuestionDistance" | "searchWithDistances"
 > & {
-  entityService: Pick<IEntityService, "getEntityWriteSnapshot">;
+  entityService: Pick<ServiceEntityMutations, "getEntityWriteSnapshot">;
 };
 
 /** A kept source as the answer cites it: its key names its type and entity. */
@@ -47,9 +50,11 @@ export async function answerAskedBefore(
     {
       searchWithDistances: deps.searchWithDistances,
       getEntity: async (getRequest) => {
+        // As stored: the check reads the FAQ as the document it is.
         const snapshot = await deps.entityService.getEntityWriteSnapshot({
           ...getRequest,
           publishedOnly: true,
+          source: true,
         });
         if (!snapshot) return null;
         const entity = faqSchema.parse(snapshot.entity);
@@ -83,9 +88,7 @@ export async function answerAskedBefore(
     current.metadata.status !== "published"
   )
     return {};
-  const { frontmatter, answer, sources } = faqAdapter.parseFaqContent(
-    current.content,
-  );
+  const { frontmatter, answer, sources } = readFaq(current);
   if (frontmatter.status !== "published") return {};
   return {
     hit: {

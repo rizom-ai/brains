@@ -3,17 +3,18 @@ import { atprotoBrainCardDiscoveredPayloadSchema } from "@brains/atproto-contrac
 import { AuthService } from "@brains/auth-service";
 import { EntityRegistry, EntityService } from "@brains/entity-service";
 import { migrateEntities } from "@brains/entity-service/migrate";
-import type { ToolContext, ToolResponse } from "@brains/plugins";
+import { type ToolContext, type ToolResponse } from "@brains/plugins";
 import {
   confirmationArgs,
   createMockEntityPluginContext,
   createMockShell,
   expectConfirmation,
   expectSuccess,
+  isDeclaredEntityType,
 } from "@brains/plugins/test";
 import { createSilentLogger, createTestDirectory } from "@brains/test-utils";
 import type { FetchLike } from "@brains/utils/fetch-like";
-import { AgentAdapter } from "../src/adapters/agent-adapter";
+import { agentDiscoveryPlugins } from "./agent-discovery-plugins";
 import {
   CARD_REFRESH_STATE_NAMESPACE,
   cardRefreshStateSchema,
@@ -40,10 +41,13 @@ async function realEntityService(): Promise<EntityService> {
   const directory = await createTestDirectory();
   const logger = createSilentLogger();
   const registry = EntityRegistry.createFresh(logger);
+  // The package's declared agent type.
+  const [agentType] = agentDiscoveryPlugins();
+  if (!isDeclaredEntityType(agentType)) throw new Error("No agent type");
   registry.registerEntityType(
     AGENT_ENTITY_TYPE,
-    agentEntitySchema,
-    new AgentAdapter(),
+    agentType.schema,
+    agentType.adapter,
   );
   const dbConfig = { url: `file:${directory.dir}/entities.db` };
   await migrateEntities(dbConfig, logger);
@@ -391,11 +395,7 @@ describe("agent_set_trust_level for agents saved above public", () => {
     });
     const tool = createAgentSetTrustLevelTool({
       entityService: service,
-      auth: {
-        get: () => auth,
-        bindBackend: () => (): void => {},
-        listAssignableMembers: async () => [],
-      },
+      auth: { get: () => auth },
     });
     const toolContext: ToolContext = {
       interfaceType: "test",

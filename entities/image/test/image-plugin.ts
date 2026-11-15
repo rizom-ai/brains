@@ -1,15 +1,11 @@
-import {
-  EntityPlugin,
-  instantiatePluginPackageDefinition,
-  type BaseEntity,
-} from "@brains/plugins";
+import { instantiatePluginPackageDefinition } from "@brains/plugins";
 import imagePackage from "../src";
+import {
+  isDeclaredEntityType,
+  type DeclaredEntityTypePlugin,
+} from "@brains/plugins/test";
 
-export type ImageEntityPlugin = EntityPlugin<
-  BaseEntity,
-  Record<string, never>,
-  Record<string, never>
->;
+export type ImageEntityPlugin = DeclaredEntityTypePlugin;
 
 /** The entity plugin the images install, as the canonical brain composes it. */
 export function imagePlugin(
@@ -22,7 +18,7 @@ export function imagePlugin(
     // Under the id its class had: image:image-generate, image:upload-promote.
     { pluginId: "image" },
   );
-  if (!(plugin instanceof EntityPlugin)) {
+  if (!isDeclaredEntityType(plugin)) {
     throw new Error("The images install no entity plugin");
   }
   return plugin;

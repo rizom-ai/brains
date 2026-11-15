@@ -1,4 +1,4 @@
-export { ButtondownPlugin, buttondownPlugin } from "./plugin";
+export { createButtondownPackage, buttondownConfigSchema } from "./plugin";
 export type {
   ButtondownPluginConfig,
   ButtondownPluginConfigInput,
@@ -14,8 +14,8 @@ export type {
 } from "./lib/buttondown-client";
 export { ButtondownNewsletterProvider } from "./buttondown-provider";
 export {
-  ResendPlugin,
-  resendPlugin,
+  createResendPackage,
+  resendConfigSchema,
   ResendNewsletterClient,
   ResendApiError,
   ResendNewsletterProvider,

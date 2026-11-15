@@ -189,3 +189,39 @@ describe("sectionToTemplate drawings per language", () => {
     expect(render(undefined)).toBe("<h1>你好</h1>");
   });
 });
+
+describe("a section drawn from a data source", () => {
+  const shelf = defineSection(z.object({ heading: z.string() }), noop, {
+    title: "Shelf",
+    description: "d",
+    dataSource: "shelf",
+  });
+
+  test("names the source the site registered for it", () => {
+    const templates = sectionGroupToTemplates(
+      sectionGroup("library", { shelf }),
+      {
+        dataSourceId: (localId) => `@fixture/site:${localId}`,
+      },
+    );
+    expect(templates["shelf"]?.dataSourceId).toBe("@fixture/site:shelf");
+  });
+
+  test("is refused where nothing registers its source", () => {
+    expect(() => sectionToTemplate("shelf", shelf)).toThrow(
+      'Section "shelf" reads data source "shelf", which only a site registers',
+    );
+  });
+
+  test("a section without one names no source", () => {
+    const plain = defineSection(z.object({ heading: z.string() }), noop, {
+      title: "Plain",
+      description: "d",
+    });
+    expect(
+      sectionToTemplate("plain", plain, {
+        dataSourceId: (localId) => `@fixture/site:${localId}`,
+      }).dataSourceId,
+    ).toBeUndefined();
+  });
+});

@@ -1,5 +1,8 @@
-import type { ToolResult } from "@brains/plugins";
-import { toolSuccess, toolError } from "@brains/plugins";
+import {
+  type ToolResult,
+  toolSuccess,
+  toolError,
+} from "@brains/sdk/internal/service-runtime";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import type { IGitSync } from "../types";

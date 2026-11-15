@@ -185,7 +185,7 @@ ollama pull embeddinggemma-2:270m
 ollama serve
 ```
 
-A `local:` text model (`model: local:qwen3:14b`) needs the runtime to serve a context long enough for agent prompts, which run to about 28k tokens; Ollama's default cuts them silently. A brain whose `model` and `embeddingModel` are both `local:` starts without `AI_API_KEY`.
+A `local:` text model (`model: local:qwen3:14b`) needs the runtime to serve a context long enough for agent prompts, which run to about 28k tokens; Ollama's default cuts them silently. A brain whose `model` and `embeddingModel` are both `local:` starts without a provider key.
 
 ```sh
 ollama pull qwen3:14b
@@ -199,7 +199,7 @@ Vectors from different models cannot be compared, so changing `embeddingModel` d
 A `local:` model that writes while `model` chooses the tools: it answers tool results and runs every generation that chooses no tools, such as background derivations and content drafts. A reasoning model makes the calls and a fast model writes; on a local runtime this cuts most of a turn's time and keeps background work from holding the runtime. It must be a `local:` model, and the deploy pulls it with the others.
 
 ```yaml
-model: local:qwen3:30b-a3b
+model: local:qwen3.6:35b
 answerModel: local:qwen3:30b-a3b-instruct-2507-q4_K_M
 embeddingModel: local:embeddinggemma-2:270m
 modelRuntime:
@@ -210,11 +210,11 @@ Without `answerModel`, a local `model` answers tool results with its reasoning s
 
 ### `visionModel`
 
-A `local:` model that describes uploaded images for a local `model` that reads only text. The vision model describes each image once, and the description reaches `model` in place of the image; without `visionModel`, an image reaches a local `model` as its name and type only. It must be a `local:` model, and the deploy pulls it with the others.
+A `local:` model that sees images. For a local `model` that reads only text, it describes each uploaded image once, and the description reaches `model` in place of the image; a `model` that sees images is named as `visionModel` too, and then sees them itself. Without `visionModel`, an image reaches a local `model` as its name and type only. It must be a `local:` model, and the deploy pulls it with the others.
 
 ```yaml
-model: local:qwen3:30b-a3b
-visionModel: local:qwen3-vl:8b
+model: local:qwen3.6:35b
+visionModel: local:qwen3.6:35b
 modelRuntime:
   url: http://localhost:11434
 ```
@@ -246,7 +246,9 @@ Semantic-only operations fail clearly while indexing is disabled.
 
 ### `logLevel`, `logFile`
 
-Configure logging. Levels are `debug`, `info`, `warn`, and `error`.
+Configure logging. Levels are `debug`, `info`, `warn`, and `error`. `logFile`
+receives one JSON object per line; when the brain runs supervised, each line
+carries the `role` (`web` or `worker`) of the process that wrote it.
 
 ## Site and theme
 
@@ -331,7 +333,7 @@ plugins:
     botToken: ${DISCORD_BOT_TOKEN}
 ```
 
-Common variables include `AI_API_KEY`, `AI_IMAGE_KEY`, `GIT_SYNC_TOKEN`, `DISCORD_BOT_TOKEN`, and provider/integration-specific secrets declared by `.env.schema`.
+Common variables include `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_GENERATIVE_AI_API_KEY`, `GIT_SYNC_TOKEN`, `DISCORD_BOT_TOKEN`, and provider/integration-specific secrets declared by `.env.schema`.
 
 ## Recipes
 

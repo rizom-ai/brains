@@ -1,5 +1,8 @@
 import type { SocialLinkPlatform } from "@brains/contracts";
-import type { AppInfo, EntityCount } from "@brains/plugins";
+import type {
+  AppInfo,
+  EntityCount,
+} from "@brains/sdk/internal/service-runtime";
 import type { WidgetComponent } from "../widget-registry";
 import type { WidgetData } from "../widget-schema";
 

@@ -1,13 +1,13 @@
-import type {
-  RuntimeOperatorActionControl,
-  RuntimeStudioOperatorBlock,
-  RuntimeStudioWorkspaceData,
-  StudioWorkspaceActor,
-  StudioWorkspaceRegistration,
-} from "@brains/plugins";
+import {
+  type ServiceRuntime,
+  type ServiceStudio,
+  type RuntimeOperatorActionControl,
+  type RuntimeStudioOperatorBlock,
+  type RuntimeStudioWorkspaceData,
+  type StudioWorkspaceActor,
+  DECLARATIVE_STUDIO_WORKSPACE_RENDERER,
+} from "@brains/sdk/internal/service-runtime";
 import { SdkError } from "@brains/contracts";
-import type { ServiceRuntime } from "@brains/sdk/internal/service-runtime";
-import { DECLARATIVE_STUDIO_WORKSPACE_RENDERER } from "@brains/plugins";
 import { queryInteger } from "@brains/utils/query";
 import { z } from "@brains/utils/zod";
 import { createAuditTabSource } from "./audit-workspace";
@@ -45,7 +45,7 @@ const administrationQuerySchema = z.strictObject({
   action: z.string().trim().min(1).max(200).optional(),
 });
 
-type ChildRegistration = Omit<StudioWorkspaceRegistration, "pluginId">;
+type ChildRegistration = Parameters<ServiceStudio["register"]>[0];
 type AdministrationTabBlock = Exclude<
   RuntimeStudioOperatorBlock,
   { type: "tabs" }

@@ -4,7 +4,17 @@ import type {
   ChannelDeliveryInput,
   ChannelDeliveryResult,
 } from "../channel-registry";
-import type { MessageInterfacePluginContext } from "../interface/context";
+import {
+  createMessageInterfacePluginContext,
+  type MessageInterfacePluginContext,
+} from "../interface/context";
+import type {
+  IShell,
+  Plugin,
+  PluginCapabilities,
+  PluginRegistrationContext,
+} from "../interfaces";
+import { PluginCore } from "../plugin-core";
 import type { AnyAccountSettingsDefinition } from "../operator/account-settings-definition-contract";
 import { createAccountDaemon } from "../operator/account-daemon-supervisor";
 import type { AccountSettingsRegistration } from "../operator/account-settings-registry";
@@ -23,13 +33,18 @@ import type {
 import type {
   EditMessageRequest,
   MessageInterfaceOutput,
+  ProgressMessageCoordinator,
   SendMessageToChannelRequest,
   SendMessageWithIdRequest,
 } from "./progress-message-coordinator";
-import { MessageInterfacePlugin } from "./message-interface-plugin";
+import {
+  createMessageCoordinator,
+  subscribeMessageCoordination,
+} from "./message-coordination";
 import { takeInboundAttachments } from "./inbound-attachment-intake";
 import { sharedUploadScope } from "../service/upload-registry";
 import type { UserPermissionLevel } from "@brains/templates";
+import type { Logger } from "@brains/utils/logger";
 import type { z } from "@brains/utils/zod";
 
 function normalizedOutput(message: MessageInterfaceOutput): MessageOutput {
@@ -57,10 +72,14 @@ class DeclarativeMessageInterfacePlugin<
   TState extends object,
   TRecipientSchema extends z.ZodType<unknown, unknown>,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
-> extends MessageInterfacePlugin<
+> extends PluginCore<
   z.output<TConfigSchema>,
-  z.output<TConfigSchema>
+  z.output<TConfigSchema>,
+  MessageInterfacePluginContext
 > {
+  public readonly type = "interface" as const;
+  /** Job progress and tool statuses, routed to the channel they belong to. */
+  private readonly progress: ProgressMessageCoordinator;
   private readonly definition: MessageInterfaceDefinitionInput<
     TConfigSchema,
     TState,
@@ -86,13 +105,55 @@ class DeclarativeMessageInterfacePlugin<
   ) {
     super(id, metadata, config, identityConfigSchema());
     this.definition = definition;
+    this.progress = createMessageCoordinator({
+      id,
+      logger: (): Logger => this.logger,
+      sendMessageToChannel: (request): void => {
+        this.sendMessageToChannel(request);
+      },
+      sendMessageWithId: (request): Promise<string | undefined> =>
+        this.sendMessageWithId(request),
+      editMessage: (request): Promise<boolean> => this.editMessage(request),
+      supportsMessageEditing: (): boolean => this.supportsMessageEditing(),
+    });
+  }
+
+  override async register(
+    shell: IShell,
+    registrationContext?: PluginRegistrationContext,
+  ): Promise<PluginCapabilities> {
+    const context = createMessageInterfacePluginContext(
+      shell,
+      this.id,
+      registrationContext,
+    );
+    this.context = context;
+    this.setupMessageHandlers(context);
+    await this.onRegister(context);
+    return this.getCapabilities();
+  }
+
+  /**
+   * Worker registration: the channel and its sender, and nothing else of
+   * the interface, so a background job can deliver on it.
+   */
+  async registerChannelsForExecution(
+    shell: IShell,
+    registrationContext?: PluginRegistrationContext,
+  ): Promise<void> {
+    const context = createMessageInterfacePluginContext(shell, this.id, {
+      ...registrationContext,
+      executionOnly: true,
+    });
+    this.context = context;
+    await this.registerChannels(context);
   }
 
   /**
    * The definition's channel and sender, with the state `setup` prepares for
    * them. This also runs in the worker, so background jobs can deliver.
    */
-  protected override async registerChannels(
+  private async registerChannels(
     context: MessageInterfacePluginContext,
   ): Promise<void> {
     this.state = this.definition.setup
@@ -128,7 +189,14 @@ class DeclarativeMessageInterfacePlugin<
   protected override async onRegister(
     context: MessageInterfacePluginContext,
   ): Promise<void> {
-    await super.onRegister(context);
+    await this.registerChannels(context);
+    subscribeMessageCoordination(context, {
+      id: this.id,
+      logger: (): Logger => this.logger,
+      handleProgressEvent: (event) => this.progress.handleProgressEvent(event),
+      handleToolActivityEvent: (event) =>
+        this.progress.handleToolActivityEvent(event),
+    });
     if (this.definition.accountSettings) {
       this.accountSettingsRegistration = context.accountSettings.register({
         ownerPluginId: this.id,
@@ -209,13 +277,11 @@ class DeclarativeMessageInterfacePlugin<
     }
   }
 
-  override requiresDaemonStartup(): boolean {
+  requiresDaemonStartup(): boolean {
     return this.hasRequiredDaemon;
   }
 
-  protected override sendMessageToChannel(
-    request: SendMessageToChannelRequest,
-  ): void {
+  private sendMessageToChannel(request: SendMessageToChannelRequest): void {
     const channelId = request.channelId;
     const send = this.definition.send;
     if (!channelId || !send) return;
@@ -233,7 +299,7 @@ class DeclarativeMessageInterfacePlugin<
       });
   }
 
-  protected override async sendMessageWithId(
+  private async sendMessageWithId(
     request: SendMessageWithIdRequest,
   ): Promise<string | undefined> {
     if (!request.channelId) return undefined;
@@ -258,9 +324,7 @@ class DeclarativeMessageInterfacePlugin<
     return typeof id === "string" ? id : undefined;
   }
 
-  protected override async editMessage(
-    request: EditMessageRequest,
-  ): Promise<boolean> {
+  private async editMessage(request: EditMessageRequest): Promise<boolean> {
     if (!request.channelId || !this.definition.edit) return false;
     await this.definition.edit({
       config: this.config,
@@ -272,7 +336,7 @@ class DeclarativeMessageInterfacePlugin<
     return true;
   }
 
-  protected override supportsMessageEditing(): boolean {
+  private supportsMessageEditing(): boolean {
     return this.definition.edit !== undefined;
   }
 
@@ -283,7 +347,8 @@ class DeclarativeMessageInterfacePlugin<
     for (const cleanup of this.cleanups.splice(0).reverse()) {
       await cleanup();
     }
-    await super.onShutdown();
+    // Interrupt delayed cleanup before the progress state is released.
+    await this.progress.close();
   }
 
   private requireState(): TState {
@@ -398,7 +463,7 @@ class DeclarativeMessageInterfacePlugin<
     // Nothing left to answer: no words, and no file that could be taken.
     if (!input.text.trim() && attachments.length === 0) return;
 
-    this.startProcessingInput(input.channel.id);
+    this.progress.startProcessingInput(input.channel.id);
     try {
       const response = await context.agent.chat(
         input.text,
@@ -436,7 +501,7 @@ class DeclarativeMessageInterfacePlugin<
       if (messageId) {
         for (const result of response.toolResults ?? []) {
           if (result.jobId) {
-            this.trackAgentResponseForJob(
+            this.progress.trackAgentResponseForJob(
               result.jobId,
               messageId,
               input.channel.id,
@@ -444,9 +509,12 @@ class DeclarativeMessageInterfacePlugin<
           }
         }
       }
-      await this.handleAgentResponseToolStatuses(response, conversationId);
+      await this.progress.handleAgentResponseToolStatuses(
+        response,
+        conversationId,
+      );
     } finally {
-      this.endProcessingInput();
+      this.progress.endProcessingInput();
     }
   }
 }
@@ -466,7 +534,7 @@ export function createDeclarativeMessageInterfacePlugin<
   config: z.output<TConfigSchema>,
   metadata: InstalledPluginPackageMetadata,
   id: string,
-): MessageInterfacePlugin<z.output<TConfigSchema>, z.output<TConfigSchema>> {
+): Plugin {
   return new DeclarativeMessageInterfacePlugin(
     definition,
     config,

@@ -6,7 +6,7 @@ import {
   sanitizeUploadFilename,
   validateMessageUpload,
   type ChatAttachment,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/interface-runtime";
 import { bufferView } from "@brains/utils/bytes";
 import type { Message } from "chat";
 import type { ChatThread, ChatUploadStore } from "./types";

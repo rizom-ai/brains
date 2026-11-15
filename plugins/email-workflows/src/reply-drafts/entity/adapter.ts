@@ -1,28 +1,34 @@
-import { BaseEntityAdapter } from "@brains/plugins";
+import {
+  generateMarkdownWithFrontmatter,
+  parseMarkdownWithFrontmatter,
+  parseTypedFrontmatter,
+} from "@brains/sdk/internal/entity-runtime";
+import { z } from "@brains/utils/zod";
 import {
   emailReplyDraftFrontmatterSchema,
-  emailReplyDraftSchema,
   emailReplyTextSchema,
   type EmailReplyDraftEntity,
   type EmailReplyDraftFrontmatter,
-  type EmailReplyDraftMetadata,
 } from "./schema";
 
-export class EmailReplyDraftAdapter extends BaseEntityAdapter<
-  EmailReplyDraftEntity,
-  EmailReplyDraftMetadata,
-  EmailReplyDraftFrontmatter
-> {
-  constructor() {
-    super({
-      entityType: "email-reply-draft",
-      purpose:
-        "An operator-editable reply authored by Brain without a copy of the source email.",
-      schema: emailReplyDraftSchema,
-      frontmatterSchema: emailReplyDraftFrontmatterSchema,
-    });
-  }
+const frontmatterRecordSchema = z.record(z.string(), z.unknown());
 
+/**
+ * How a reply draft's document is written and read: its state and
+ * delivery in its header, the reply as its body. What the drafting
+ * operator and the declared type write and read with.
+ */
+export const emailReplyDraftAdapter: {
+  createContent(
+    frontmatter: EmailReplyDraftFrontmatter,
+    replyText: string,
+  ): string;
+  parseContent(content: string): {
+    frontmatter: EmailReplyDraftFrontmatter;
+    replyText: string;
+  };
+  fromMarkdown(markdown: string): Partial<EmailReplyDraftEntity>;
+} = Object.freeze({
   createContent(
     frontmatter: EmailReplyDraftFrontmatter,
     replyText: string,
@@ -30,39 +36,42 @@ export class EmailReplyDraftAdapter extends BaseEntityAdapter<
     const parsedFrontmatter =
       emailReplyDraftFrontmatterSchema.parse(frontmatter);
     assertDraftState(parsedFrontmatter);
-    return this.buildMarkdown(
+    return generateMarkdownWithFrontmatter(
       emailReplyTextSchema.parse(replyText),
       parsedFrontmatter,
     );
-  }
+  },
 
   parseContent(content: string): {
     frontmatter: EmailReplyDraftFrontmatter;
     replyText: string;
   } {
-    const frontmatter = this.parseFrontMatter(
+    const frontmatter = parseTypedFrontmatter(
+      "email-reply-draft",
       content,
       emailReplyDraftFrontmatterSchema,
     );
     assertDraftState(frontmatter);
     return {
       frontmatter,
-      replyText: emailReplyTextSchema.parse(this.extractBody(content).trim()),
+      replyText: emailReplyTextSchema.parse(
+        parseMarkdownWithFrontmatter(
+          content,
+          frontmatterRecordSchema,
+        ).content.trim(),
+      ),
     };
-  }
+  },
 
   fromMarkdown(markdown: string): Partial<EmailReplyDraftEntity> {
-    const { frontmatter } = this.parseContent(markdown);
+    const { frontmatter } = emailReplyDraftAdapter.parseContent(markdown);
     return {
       content: markdown,
       entityType: "email-reply-draft",
       metadata: frontmatter,
     };
-  }
-}
-
-export const emailReplyDraftAdapter: EmailReplyDraftAdapter =
-  new EmailReplyDraftAdapter();
+  },
+});
 
 function assertDraftState(frontmatter: EmailReplyDraftFrontmatter): void {
   if (frontmatter.status === "sent" && !frontmatter.sentAt) {

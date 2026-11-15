@@ -6,6 +6,7 @@ import {
   filterConversationHistoryForPermission,
   resolveConversationUploadContinuity,
   toModelMessages,
+  type ConversationUploadRef,
 } from "../src/conversation-messages";
 
 describe("toModelMessages", () => {
@@ -77,6 +78,68 @@ describe("toModelMessages", () => {
     expect(JSON.stringify(messages)).not.toContain(
       "Internal conversation content ref",
     );
+  });
+});
+
+describe("a cancelled proposal in history", () => {
+  const args = {
+    entityType: "note",
+    title: "Verbatim plan",
+    visibility: "restricted",
+    source: {
+      kind: "user-message",
+      boundaryMode: "lines",
+      startAfter: "BEGIN EXACT CONTENT",
+      endBefore: "END EXACT CONTENT",
+    },
+  };
+
+  function cancelled(input: Record<string, unknown>): string {
+    return JSON.stringify(
+      toModelMessages([
+        {
+          id: "message-1",
+          conversationId: "conversation-1",
+          role: "assistant",
+          content: 'Action cancelled: Create "Verbatim plan"?',
+          metadata: JSON.stringify({
+            cards: [
+              {
+                kind: "tool-approval",
+                id: "approval-1",
+                toolName: "system_create",
+                input,
+                summary: 'Create "Verbatim plan"?',
+                state: "output-denied",
+              },
+            ],
+          }),
+          timestamp: new Date().toISOString(),
+        },
+      ]),
+    );
+  }
+
+  it("reaches the model with the call the user cancelled", () => {
+    const text = cancelled({
+      ...args,
+      confirmed: true,
+      confirmationToken: "token-1",
+    });
+
+    expect(text).toContain(
+      JSON.stringify(
+        `The user cancelled this system_create proposal: ${JSON.stringify(args)}`,
+      ).slice(1, -1),
+    );
+    expect(text).not.toContain("confirmationToken");
+    expect(text).not.toContain("token-1");
+  });
+
+  it("leaves out a proposal too long to repeat", () => {
+    const text = cancelled({ ...args, content: "x".repeat(3000) });
+
+    expect(text).not.toContain("cancelled this system_create proposal");
   });
 });
 
@@ -241,6 +304,66 @@ describe("resolveConversationUploadContinuity", () => {
 
       expect(result.refs).toEqual([newestUploadRef, oldestUploadRef]);
     }
+  });
+
+  describe("a follow-up to the brain's answer about an upload", () => {
+    const answer = {
+      id: "answer",
+      conversationId: "conversation-1",
+      role: "assistant" as const,
+      content: "The primer covers consensus, replication and Raft.",
+      metadata: null,
+      timestamp: new Date().toISOString(),
+    };
+    const afterAnswer = [...historyMessages, answer];
+
+    it("offers only the answer when it names no upload", () => {
+      for (const message of ["can you save it", "save this as a note for me"]) {
+        const result = resolveConversationUploadContinuity({
+          message,
+          currentAttachments: [],
+          historyMessages: afterAnswer,
+        });
+
+        expect(result.refs).toEqual([]);
+        expect(result.priorResponseRef).toEqual({ messageId: "answer" });
+      }
+    });
+
+    it("keeps the uploads when it names one", () => {
+      for (const message of [
+        "save the PDF",
+        "save it as a document",
+        "keep the uploaded image",
+        "save file_76007A31-ADF6-408A-93B4-46BCF8860AE1.pdf",
+      ]) {
+        const result = resolveConversationUploadContinuity({
+          message,
+          currentAttachments: [],
+          historyMessages: afterAnswer,
+        });
+
+        expect(result.refs.length).toBeGreaterThan(0);
+      }
+    });
+
+    it("keeps the uploads when an upload came after the answer", () => {
+      const acknowledged = {
+        ...answer,
+        id: "acknowledgement",
+        content: "I got `IMG_8963.jpeg`. What would you like me to do with it?",
+        metadata: JSON.stringify({
+          cards: [{ kind: "actions", id: "actions:upload-intent" }],
+        }),
+      };
+      const result = resolveConversationUploadContinuity({
+        message: "save it",
+        currentAttachments: [],
+        historyMessages: [...afterAnswer, acknowledged],
+      });
+
+      expect(result.refs).toEqual([newestUploadRef, oldestUploadRef]);
+    });
   });
 
   it("selects the newest matching upload for singular image/pdf references", () => {
@@ -580,6 +703,145 @@ describe("buildMessageWithAttachments", () => {
     expect(content).toContain(
       'Available system_create candidate for saving the prior assistant response (call without confirmed to request confirmation): { entityType: "note", source: { kind: "prior-response", messageId: "message-summary" } }',
     );
+  });
+
+  describe("text pasted between marker lines", () => {
+    const pasted = [
+      "Replace the body of note 'plan' with the text between the lines below.",
+      "",
+      "BEGIN EXACT CONTENT",
+      "# Plan",
+      "",
+      "Step one.",
+      "END EXACT CONTENT",
+    ].join("\n");
+
+    it("is offered as a source read from the message, not copied", () => {
+      const content = buildMessageWithAttachments(pasted, undefined);
+
+      expect(content).toStartWith(pasted);
+      expect(content).toContain(
+        'Available source for the text between the lines "BEGIN EXACT CONTENT" and "END EXACT CONTENT" of this message, read from the message instead of copied, as system_create source or system_update operation.source: { kind: "user-message", boundaryMode: "lines", startAfter: "BEGIN EXACT CONTENT", endBefore: "END EXACT CONTENT" }',
+      );
+    });
+
+    it("is not offered without one matching pair of marker lines", () => {
+      const unmatched = pasted.replace("END EXACT CONTENT", "END OTHER");
+      const repeated = `${pasted}\nBEGIN EXACT CONTENT`;
+
+      expect(buildMessageWithAttachments(unmatched, undefined)).toBe(unmatched);
+      expect(buildMessageWithAttachments(repeated, undefined)).toBe(repeated);
+    });
+  });
+
+  describe("the newest upload as the save candidate", () => {
+    const ref = (
+      filename: string,
+      mediaType: string,
+      id: string,
+    ): ConversationUploadRef => ({
+      filename,
+      mediaType,
+      source: { kind: "upload", id },
+    });
+    const candidate = (
+      saved: string,
+      entityType: string,
+      id: string,
+      transform: string,
+    ): string =>
+      `Available system_create candidate for saving the newest upload, newest, as ${saved} when the user asks to save it without naming another file (call without confirmed to request confirmation): { entityType: "${entityType}", source: { kind: "upload", id: "${id}", transform: "${transform}" } }`;
+
+    it.each([
+      ["image/png", "an image", "image", "preserve"],
+      ["application/pdf", "a document", "document", "preserve"],
+      ["text/markdown", "a note", "note", "extract-markdown"],
+    ])(
+      "is offered for a %s upload when no prior response can be saved",
+      (mediaType, saved, entityType, transform) => {
+        const content = buildMessageWithAttachments("save it", undefined, {
+          uploadRefs: [
+            ref("newest", mediaType, "upload-newest"),
+            ref("alpha-guide.pdf", "application/pdf", "upload-older"),
+          ],
+        });
+
+        expect(content).toContain(
+          candidate(saved, entityType, "upload-newest", transform),
+        );
+        expect(content).not.toContain('id: "upload-older", transform');
+      },
+    );
+
+    it("is not offered to a request that asks for no save", () => {
+      const content = buildMessageWithAttachments(
+        "Describe the uploaded image.",
+        undefined,
+        { uploadRefs: [ref("robot.png", "image/png", "upload-robot")] },
+      );
+
+      expect(content).not.toContain("candidate for saving the newest upload");
+      expect(content).toContain('- robot.png; upload id: "upload-robot"');
+    });
+
+    it("is offered for a PDF as a note too, its text extracted, for a request for a note", () => {
+      const content = buildMessageWithAttachments(
+        "turn it into a note",
+        undefined,
+        { uploadRefs: [ref("primer.pdf", "application/pdf", "upload-pdf")] },
+      );
+
+      expect(content).toContain(
+        'Available system_create candidate for saving the newest upload, primer.pdf, as a note of its text when the user asks for a note (call without confirmed to request confirmation): { entityType: "note", source: { kind: "upload", id: "upload-pdf", transform: "extract-markdown" } }',
+      );
+    });
+
+    it("is not offered when the prior response can be saved", () => {
+      const content = buildMessageWithAttachments("save it", undefined, {
+        uploadRefs: [ref("beta-diagram.png", "image/png", "upload-newest")],
+        priorResponseRef: { messageId: "message-summary" },
+      });
+
+      expect(content).not.toContain("the newest upload");
+    });
+
+    it("is not offered when the newest upload is already saved", () => {
+      const content = buildMessageWithAttachments("save it", undefined, {
+        uploadRefs: [
+          {
+            ...ref("beta-diagram.png", "image/png", "upload-newest"),
+            savedAs: { entityType: "image", entityId: "beta-diagram" },
+          },
+        ],
+      });
+
+      expect(content).not.toContain("the newest upload");
+    });
+
+    it("is not offered beside keeping several attached files", () => {
+      const content = buildMessageWithAttachments("Keep these files.", [
+        {
+          kind: "text",
+          filename: "draft.md",
+          mediaType: "text/markdown",
+          content: "# Draft",
+          source: { kind: "upload", id: "upload-text" },
+        },
+        {
+          kind: "file",
+          filename: "harbor.png",
+          mediaType: "image/png",
+          data: new Uint8Array([1]),
+          sizeBytes: 1,
+          source: { kind: "upload", id: "upload-image" },
+        },
+      ]);
+      const textPart = Array.isArray(content) ? content[0] : undefined;
+      const text = textPart?.type === "text" ? textPart.text : "";
+
+      expect(text).toContain("keeping every file attached to this message");
+      expect(text).not.toContain("the newest upload");
+    });
   });
 
   it("offers every file attached to the message as one keep candidate", () => {
