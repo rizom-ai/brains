@@ -55,6 +55,8 @@ function buildGenerateConfirmation(
   statedPrompt: string | undefined,
 ): {
   summary: string;
+  /** What is reported once the caller confirms, when the question would misread. */
+  completionSummary?: string;
   preview: string;
 } {
   const label = input.title ? ` "${input.title}"` : ` ${input.entityType}`;
@@ -86,6 +88,10 @@ function buildGenerateConfirmation(
           removed.entries.length === 1 ? "It" : "They"
         } will be removed.`
       : `Generate${label}?`,
+    // Confirming queues the generation; its sources go once it is saved.
+    ...(removed && {
+      completionSummary: `Generating${label} from ${namesOf(removed)}, which will be removed once it is saved.`,
+    }),
     preview: previewParts.join("\n"),
   };
 }
@@ -607,11 +613,13 @@ async function prepareGenerate(
   );
   if (resolved.kind === "error") return resolved;
   const { createInput, sourceAttachment, writtenFrom } = resolved;
-  // Named after its first source only when its caller stated no prompt.
+  // Named after its first source only when its caller stated no prompt:
+  // by that source's id, the name it was saved under, since a title its
+  // text supplies (a plain note's first line) makes a poor id.
   const unpromptedName =
     "prompt" in operation && operation.prompt !== undefined
       ? undefined
-      : writtenFrom?.entries[0]?.label;
+      : writtenFrom?.entries[0]?.entityId;
   const replace = operation.kind === "attachment" && operation.replace === true;
 
   const unregisteredError = assertEntityTypeRegistered(
@@ -822,6 +830,9 @@ export function createEntityGenerateTool(services: SystemServices): Tool {
           needsConfirmation: true,
           toolName: "system_generate",
           summary: confirmation.summary,
+          ...(confirmation.completionSummary !== undefined && {
+            completionSummary: confirmation.completionSummary,
+          }),
           preview: confirmation.preview,
           args: confirmationArgs,
         };

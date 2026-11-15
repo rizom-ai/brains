@@ -1,0 +1,40 @@
+id: tool-invocation-refined-note-refine-note
+name: Refining a Note Generates a Refined Note From It
+description: Verifies that asking to refine a note requests a refined-note generation written from that note, named as the user named it, instead of rewriting, deleting or re-saving the note by hand.
+type: tool_invocation
+setup:
+  permissionLevel: admin
+tags:
+  - recipe-headless
+  - core
+  - refined-note
+  - generation
+  - bundle-core
+
+turns:
+  - userMessage: "Refine my note Green Software Engineering Principles."
+
+successCriteria:
+  expectedTools:
+    - toolName: system_generate
+      shouldBeCalled: true
+      argsContain:
+        operation.kind: prompt-from-source
+        operation.entityType: refined-note
+        operation.source.entityType: note
+    - toolName: system_create
+      shouldBeCalled: false
+    - toolName: system_update
+      shouldBeCalled: false
+    - toolName: system_delete
+      shouldBeCalled: false
+  toolCountRange:
+    min: 1
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+    - "couldn't find"
+
+efficiency:
+  maxToolCalls: 4
+  maxTokens: 51000

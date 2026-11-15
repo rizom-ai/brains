@@ -1,10 +1,10 @@
 # Plan: Note escalation
 
-Last updated: 2026-11-16
+Last updated: 2026-11-15
 
 ## Status
 
-Refining works through `system_generate` on every interface that reaches the brain's tools (chat, MCP, Studio's chat): one or more notes become one refined note, which is placed in a grouping where one applies, and the notes are removed. What remains is a select-and-refine action in Studio's library, and the running-app validation below.
+Refining works through `system_generate` on every interface that reaches the brain's tools (chat, MCP, Studio's chat): one or more notes become one refined note, which is placed in a grouping where one applies, and the notes are removed. It is validated in the `personal` test app through chat. What remains is a select-and-refine action in Studio's library.
 
 The shipped contract is documented in the [refined-note README](../../entities/refined-note/README.md), the [entity types reference](../entity-types-reference.md) and the [entity-service README](../../shell/entity-service/README.md).
 
@@ -43,4 +43,6 @@ Refining takes one or more source notes and an optional direction. It is the sam
 
 ## Validation
 
-Each change lands with its tests. Before the Studio action ships: in the `personal` test app, refine one note and then several, check the files under `refined-note/` and the emptied root in the content directory, and check the refined notes in a Studio group view beside another entity type with the same value.
+Checked in the `personal` test app through chat: refining two notes into one and refining a single note, the files under `refined-note/`, the notes gone from the root and kept in the content repository's history, and, with a closed Projects grouping defined, the value the brain chose written into the refined note's file.
+
+Each change lands with its tests. Before the Studio action ships: refine from the library in the `personal` test app, and check the refined notes in a Studio group view beside another entity type with the same value.

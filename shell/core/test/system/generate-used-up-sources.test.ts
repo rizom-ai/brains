@@ -101,7 +101,7 @@ describe("system_generate from a source, without a prompt", () => {
     ).toBe(false);
   });
 
-  it("writes from the source alone, under an id taken from the source's title", async () => {
+  it("writes from the source alone, under the source's id", async () => {
     const { services, generate } = setup();
 
     const confirmation = await generate({
@@ -125,6 +125,29 @@ describe("system_generate from a source, without a prompt", () => {
     });
     // A source another type keeps is never removed.
     expect(services.getEntities().has("an-essay")).toBe(true);
+  });
+
+  // A plain note's title is its first line, which makes a poor id; the id
+  // it was saved under is the name its owner gave it.
+  it("takes the id from the source's id, not from a title its text supplies", async () => {
+    const { services, generate } = setup();
+    services.addEntities([
+      seeded(
+        "dashboard-drop-off",
+        "note",
+        "Onboarding call with Mira. She stopped opening the dashboard after week 1",
+      ),
+    ]);
+
+    const confirmation = await generate(
+      refine({ entityType: "note", entityId: "dashboard-drop-off" }),
+    );
+    const result = await generate(expectConfirmationArgs(confirmation));
+
+    expect(result).toMatchObject({
+      success: true,
+      data: { entityId: "dashboard-drop-off" },
+    });
   });
 
   it("keeps the direction a caller gives", async () => {
@@ -154,7 +177,11 @@ describe("system_generate for a type that uses up its sources", () => {
       needsConfirmation: true,
       summary:
         'Generate refined-note from "Loose thought"? It will be removed.',
-      preview: expect.stringContaining("Removes: note/loose-thought"),
+      // What is reported once the caller confirms: the generation is
+      // queued, and the source goes when what it writes is saved.
+      completionSummary:
+        'Generating refined-note from "Loose thought", which will be removed once it is saved.',
+      preview: "Entity type: refined-note\nRemoves: note/loose-thought",
     });
     // Nothing is written or removed before the caller confirms.
     expect(services.getLastEnqueuedJob()).toBeUndefined();
