@@ -55,6 +55,8 @@ function recordingEntityService(
   const base = createMockEntityService({
     listEntitiesImpl: async () => (existingImage ? [existingImage] : []),
     getEntityImpl: async ({ id }) => (id === post.id ? post : null),
+    // The job's download-tracked marker is recorded as a receipt.
+    returns: { applyEntityMutationOnce: { operation: "none" } },
   });
   return {
     ...base,
