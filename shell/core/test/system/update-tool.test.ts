@@ -1467,7 +1467,7 @@ describe("system_update tool", () => {
   });
 
   // Locks the policy check above the confirmation branch: if a future refactor
-  // hoisted `confirmed: true` ahead of checkEntityActionPermission, this would catch it.
+  // hoisted `confirmed: true` ahead of entityActionRefusal, this would catch it.
   it("rejects trusted updates with confirmed: true when policy requires Admin", async () => {
     services.permissionService = new PermissionService({
       entityActions: {
