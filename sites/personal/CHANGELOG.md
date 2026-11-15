@@ -1,5 +1,19 @@
 # @brains/site-personal
 
+## 0.2.0-alpha.716
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.716
+  - @brains/sdk@0.2.0-alpha.716
+  - @rizom/brain-ui@0.2.0-alpha.716
+  - @brains/profile@0.2.0-alpha.716
+  - @brains/site-info@0.2.0-alpha.716
+  - @brains/site-composition@0.2.0-alpha.716
+  - @brains/site-engine@0.2.0-alpha.716
+  - @brains/utils@0.2.0-alpha.716
+
 ## 0.2.0-alpha.715
 
 ### Patch Changes
