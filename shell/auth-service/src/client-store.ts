@@ -1,5 +1,5 @@
 import { randomUUID, timingSafeEqual } from "node:crypto";
-import { sha256Base64Url } from "@brains/utils/hash";
+import { hashToken } from "./token-hash";
 import { and, eq, lt, notExists } from "drizzle-orm";
 import { nowSeconds } from "@brains/utils/date";
 import { z } from "@brains/utils/zod";
@@ -10,6 +10,7 @@ import {
   oauthRefreshTokens,
 } from "./runtime-schema";
 import type { RegisteredOAuthClient } from "./types";
+import { applicationTypeRedirectRefusal } from "./redirect-uri";
 import { definedFields } from "@brains/utils/strip-undefined";
 
 const tokenEndpointAuthMethodSchema: z.ZodEnum<{
@@ -54,9 +55,6 @@ const clientRegistrationRequestSchema: z.ZodObject<{
 });
 
 export type ClientRegistrationRequest = z.input<
-  typeof clientRegistrationRequestSchema
->;
-type ParsedClientRegistrationRequest = z.output<
   typeof clientRegistrationRequestSchema
 >;
 
@@ -211,7 +209,7 @@ export class RuntimeOAuthClientStore implements OAuthClientPersistence {
     if (!row.secretHash) return undefined;
     if (
       !clientSecret ||
-      !constantTimeEqual(row.secretHash, hashSecret(clientSecret))
+      !constantTimeEqual(row.secretHash, hashToken(clientSecret))
     ) {
       return "Invalid client secret";
     }
@@ -273,7 +271,8 @@ function createRegisteredClient(input: unknown): RegisteredOAuthClient {
   }
 
   const metadata = parsed.data;
-  validateApplicationTypeRedirectUris(metadata);
+  const redirectRefusal = applicationTypeRedirectRefusal(metadata);
+  if (redirectRefusal) throw new InvalidClientMetadataError(redirectRefusal);
   const issuedAt = nowSeconds();
   const clientId = `oc_${randomUUID()}`;
   const isPublicClient = metadata.token_endpoint_auth_method === "none";
@@ -308,7 +307,7 @@ function clientToRow(
   const { client_secret: secret, ...metadata } = client;
   return {
     clientId: client.client_id,
-    secretHash: secret ? hashSecret(secret) : null,
+    secretHash: secret ? hashToken(secret) : null,
     metadataJson: JSON.stringify({
       ...metadata,
       _brains_registration: registration,
@@ -357,44 +356,6 @@ function parsePersistedClient(metadataJson: string): PersistedOAuthClient {
         }
       : { method: "dynamic" },
   };
-}
-
-function validateApplicationTypeRedirectUris(
-  metadata: ParsedClientRegistrationRequest,
-): void {
-  if (!metadata.application_type) return;
-
-  for (const redirectUri of metadata.redirect_uris) {
-    const url = new URL(redirectUri);
-    if (metadata.application_type === "web" && url.protocol !== "https:") {
-      throw new InvalidClientMetadataError(
-        "web application redirect_uris must use HTTPS",
-      );
-    }
-    if (
-      metadata.application_type === "native" &&
-      url.protocol === "http:" &&
-      !isLoopbackHostname(url.hostname)
-    ) {
-      throw new InvalidClientMetadataError(
-        "native application HTTP redirect_uris must use a loopback host",
-      );
-    }
-  }
-}
-
-function isLoopbackHostname(hostname: string): boolean {
-  const normalized = hostname.toLowerCase();
-  return (
-    normalized === "localhost" ||
-    normalized === "[::1]" ||
-    normalized === "::1" ||
-    normalized.startsWith("127.")
-  );
-}
-
-function hashSecret(secret: string): string {
-  return sha256Base64Url(secret);
 }
 
 function constantTimeEqual(left: string, right: string): boolean {

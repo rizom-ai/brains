@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { sha256Base64Url } from "@brains/utils/hash";
+import { hashToken } from "./token-hash";
 import { and, eq, gt, isNull, ne, sql, type SQL } from "drizzle-orm";
 import { nowSeconds } from "@brains/utils/date";
 import type { AuthRuntimeDatabase } from "./runtime-db";
@@ -31,10 +31,6 @@ export interface AuthSessionPersistence {
   ): Promise<AuthSessionRecord | undefined>;
   revokeSessionFromRequest(request: Request): Promise<boolean>;
   revokeSessionsForSubject(subject: string): Promise<number>;
-}
-
-function hashToken(token: string): string {
-  return sha256Base64Url(token);
 }
 
 function sessionCookie(
