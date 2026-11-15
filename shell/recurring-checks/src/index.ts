@@ -3,6 +3,7 @@ export {
   RecurringCheckService,
   createRecurringCheckSchedule,
   getPreviousOccurrence,
+  type RecurringAlertDeliveryOptions,
   type RecurringCheckDelivery,
   type RecurringCheckSchedule,
   type RecurringCheckServiceOptions,
