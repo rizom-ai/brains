@@ -243,3 +243,24 @@ describe("a turn the AI provider declines", () => {
     expect(model.doGenerateCalls).toHaveLength(2);
   });
 });
+
+describe("a turn the AI provider refuses after a tool ran", () => {
+  it("is marked declined, so it reads as an error and not as an answer", async () => {
+    const { generate } = agentFor(
+      sequence(toolCall(), refusal("refusal"), answer()),
+      [createTool()],
+    );
+
+    const result = await generate();
+
+    expect(result.declined).toBe(true);
+  });
+
+  it("is not marked on a turn the provider answers", async () => {
+    const { generate } = agentFor(sequence(answer()));
+
+    const result = await generate();
+
+    expect(result.declined).toBeUndefined();
+  });
+});

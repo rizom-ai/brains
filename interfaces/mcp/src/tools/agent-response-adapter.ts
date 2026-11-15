@@ -56,6 +56,10 @@ export function agentResponseToToolResponse(
   response: AgentResponse,
   options: { conversationId?: string } = {},
 ): ToolResponse {
+  // A turn that ended in an error is a failed call, not an answer.
+  if (response.error !== undefined) {
+    return { success: false, error: response.error };
+  }
   const confirmation = response.pendingConfirmations?.[0];
   if (confirmation) {
     return {

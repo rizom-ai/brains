@@ -122,6 +122,36 @@ describe("MCP tools", () => {
     );
   });
 
+  it("returns a turn that ended in an error as a failed call", async () => {
+    const agentService = createAgentService();
+    const declined =
+      "The AI provider declined this request. Try rephrasing your message.";
+    agentService.chat = mock(async () => ({
+      text: declined,
+      error: declined,
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+    }));
+    const shell = createMockShell({
+      logger: createSilentLogger("mcp-tools-test"),
+      agentService,
+    });
+    const [chatTool] = createMCPTools(
+      createInterfacePluginContext(shell, "mcp"),
+    );
+    if (!chatTool) throw new Error("Expected chat tool");
+
+    const response = await chatTool.handler(
+      { message: "Summarize my notes" },
+      {
+        interfaceType: "mcp",
+        actor: { kind: "user", userId: "operator-1" },
+        userPermissionLevel: "admin",
+      },
+    );
+
+    expect(response).toEqual({ success: false, error: declined });
+  });
+
   it("scopes MCP session conversation ids to the verified caller", async () => {
     const agentService = createAgentService();
     const shell = createMockShell({

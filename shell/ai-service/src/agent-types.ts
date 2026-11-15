@@ -106,6 +106,11 @@ export interface BrainAgentConfig {
  */
 export interface BrainAgentResult {
   text: string;
+  /**
+   * The provider declined the answer after a tool ran: `text` is the
+   * declined message, and the turn is an error, not an answer.
+   */
+  declined?: true;
   steps: Array<{
     toolCalls: Array<{
       toolCallId: string;

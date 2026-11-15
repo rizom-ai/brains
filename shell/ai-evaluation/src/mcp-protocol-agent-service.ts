@@ -338,6 +338,11 @@ function protocolPayloadToAgentResponse(payload: unknown): AgentResponse {
   if (!isRecord(payload)) {
     throw new Error("MCP tool payload must be an object");
   }
+  // A failed call is a turn that ended in an error, as the brain reported it.
+  const error = payload["error"];
+  if (payload["success"] === false && typeof error === "string") {
+    return parseAgentResponse({ text: error, error, usage: EMPTY_USAGE });
+  }
   const normalizedPayload =
     payload["success"] === true && isRecord(payload["data"])
       ? payload["data"]

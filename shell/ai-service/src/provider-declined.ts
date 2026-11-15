@@ -72,6 +72,8 @@ function ranTool(steps: ReadonlyArray<TurnStep>): boolean {
 export interface DeclinableTurnOutcome<R> {
   result: R;
   text: string;
+  /** The provider declined the answer after a tool ran: the text says so. */
+  declined: boolean;
   retriedAfter?: R;
 }
 
@@ -79,11 +81,11 @@ function outcome<R extends DeclinableTurn>(
   result: R,
   retriedAfter?: R,
 ): DeclinableTurnOutcome<R> {
+  const declined = isContentFilterFinish(result);
   return {
     result,
-    text: isContentFilterFinish(result)
-      ? aiProviderDeclinedMessage
-      : result.text,
+    text: declined ? aiProviderDeclinedMessage : result.text,
+    declined,
     ...(retriedAfter ? { retriedAfter } : {}),
   };
 }
