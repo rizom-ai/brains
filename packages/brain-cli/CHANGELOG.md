@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.718
+
+### Patch Changes
+
+- [#965](https://github.com/rizom-ai/brains/pull/965) [`3d83084`](https://github.com/rizom-ai/brains/commit/3d83084c567602976126cee107e898ca95b9cf62) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A generation job that is run again after its post, deck, note, social post or newsletter was saved no longer writes a second one. Before, a job that died after saving, or whose follow-up failed so the queue retried it, saved a copy under the next free id with the same status. A queued copy was then published as well: a second LinkedIn post, a second newsletter send, or a second post whose publishing sent another newsletter. Now the job records its saved entity in the same transaction, and a rerun finishes from that entity without generating again. The job's follow-ups, such as queuing a cover image, run once per job, and a rerun skips the image job while the first one is still waiting.
+
 ## 0.2.0-alpha.717
 
 ### Patch Changes
