@@ -3,6 +3,7 @@ import { isPlainRecord } from "@brains/utils/predicates";
 import { slugify } from "@brains/utils/string-utils";
 import type { z } from "@brains/utils/zod";
 import type { createInputSchema } from "./schemas";
+import type { Guarded } from "./tool-helpers";
 
 type CreateToolInput = z.infer<typeof createInputSchema>;
 type UploadsSource = Extract<CreateToolInput["source"], { kind: "uploads" }>;
@@ -22,9 +23,7 @@ export interface PreparedUploadItem {
   save(): Promise<ToolResponse>;
 }
 
-export type PreparedUploadResult =
-  | { kind: "error"; result: ToolResponse }
-  | { kind: "ok"; value: PreparedUploadItem };
+export type PreparedUploadResult = Guarded<PreparedUploadItem>;
 
 function label(item: { entityType: string; title: string }): string {
   return `${item.entityType} "${item.title}"`;
