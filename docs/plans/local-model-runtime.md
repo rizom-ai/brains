@@ -95,6 +95,7 @@ Agent evals, 2026-11-12 to 2026-11-13, personal suite (31 cases), the runtime se
 | `qwen3.6:35b` deciding and seeing images itself, instruct-2507 answering                 | 26.0/31 (84%) | 57 s         |
 | the same, after #939–#946                                                                | 27.7/31 (89%) | 52 s         |
 | the same, after #939–#950                                                                | 28.3/31 (91%) | 47 s         |
+| the same, after #952 and #953                                                            | 28.7/31 (93%) | 28 s         |
 | `gemma4:31b` deciding and seeing images itself, instruct-2507 answering, after #939–#950 | 29.7/31 (96%) | 60 s         |
 
 - `qwen3.6:35b` reads stored content when asked (the long-note read-backs 3 of 3 and 3 of 3, against 1 of 3 and 0 of 3), asks what to do with a bare label after an upload (2 of 3, against 0 of 3) and keeps every attached file (2 of 3, against 0 of 3). It saves the upload instead of its summary when "save it" follows a summary (1 of 3 and 0 of 3, against 3 of 3 and 2 of 3).
