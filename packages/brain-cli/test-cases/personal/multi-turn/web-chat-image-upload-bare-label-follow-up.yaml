@@ -30,10 +30,9 @@ turns:
       toolCountRange:
         max: 0
 
+  # A bare label asks what to do: looking it up first is fine, saving is not.
   - userMessage: "drunken"
     successCriteria:
-      toolCountRange:
-        max: 0
       responseNotContains:
         - "generating"
         - "I created"
@@ -49,6 +48,8 @@ successCriteria:
       shouldBeCalled: false
     - toolName: system_delete
       shouldBeCalled: false
+    - toolName: system_generate
+      shouldBeCalled: false
   responseNotContains:
     - "generating"
     - "I created"
@@ -57,5 +58,5 @@ successCriteria:
     - "Does not claim that anything was created or saved."
 
 efficiency:
-  maxToolCalls: 0
-  maxTokens: 17000
+  maxToolCalls: 2
+  maxTokens: 26000
