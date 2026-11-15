@@ -183,7 +183,10 @@ export interface EntityRunAuthority {
   /** Where a read of the type looks. */
   scope(entityType: string): ContentVisibility;
   /** Why the run may not take this action on the type, when it may not. */
-  refusal(entityType: string, action: "create" | "update"): string | undefined;
+  refusal(
+    entityType: string,
+    action: "create" | "update" | "delete",
+  ): string | undefined;
   /** Why the run may not write the type at this visibility, when it may not. */
   visibilityRefusal(
     entityType: string,
@@ -210,7 +213,7 @@ async function runAuthority(
       packageReadScope(call, ownsType(entityType), access),
     refusal: (
       entityType: string,
-      action: "create" | "update",
+      action: "create" | "update" | "delete",
     ): string | undefined => {
       if (ownedByPackage(entityType)) return undefined;
       try {
@@ -820,6 +823,8 @@ interface GenerationRun {
   readonly input: unknown;
   readonly authority: EntityRunAuthority;
   readonly source: GenerationSource | undefined;
+  /** The used-up sources still there after the run, each with why. */
+  readonly kept: string[];
 }
 
 /**
@@ -903,10 +908,19 @@ export class DeclarativeGenerationHandler extends BaseGenerationJobHandler<unkno
       input: job.input,
       authority: await runAuthority(this.context, call, this.target.ownsType),
       source: job.source,
+      kept: [],
     };
-    return this.runs.run(run, () =>
+    const result = await this.runs.run(run, () =>
       super.process(data, jobId, progressReporter),
     );
+    // What it wrote stays; a source it should have used up and could not
+    // remove is an error that names it.
+    if (!result.success || run.kept.length === 0) return result;
+    return {
+      ...result,
+      success: false,
+      error: `Saved ${this.entityType}/${result.entityId}, but could not remove what it was written from: ${run.kept.join("; ")}`,
+    };
   }
 
   protected async generate(
@@ -1004,6 +1018,7 @@ export class DeclarativeGenerationHandler extends BaseGenerationJobHandler<unkno
         this.currentRun().authority,
       );
     }
+    await this.removeUsedUpSources();
     await this.runStep({
       written: { entityId, ...definedFields({ title: generated.title }) },
     });
@@ -1076,6 +1091,43 @@ export class DeclarativeGenerationHandler extends BaseGenerationJobHandler<unkno
       (held, entry) => (entry ? morePrivate(held, entry.visibility) : held),
       undefined,
     );
+  }
+
+  /**
+   * Delete the sources this type's generation uses up, now that what it
+   * wrote is saved: as the run, held to the source type's delete policy,
+   * and only those it can see. One it may not or could not delete is kept
+   * and recorded on the run with why, so the result names it.
+   */
+  private async removeUsedUpSources(): Promise<void> {
+    const { source, authority, kept } = this.currentRun();
+    const usedUp =
+      this.context.entityService.getEntityTypeConfig(this.entityType)
+        .consumesSources ?? [];
+    if (!source || !usedUp.includes(source.entityType)) return;
+    const refused = authority.refusal(source.entityType, "delete");
+    const outcomes = await Promise.all(
+      source.ids.map(async (id): Promise<string | undefined> => {
+        const entry = `${source.entityType}/${id}`;
+        if (refused) return `${entry} (${refused})`;
+        try {
+          const visible = await this.context.entityService.getEntity({
+            entityType: source.entityType,
+            id,
+            visibilityScope: authority.scope(source.entityType),
+          });
+          if (!visible) return `${entry} (not found)`;
+          await this.context.entityService.deleteEntity({
+            entityType: source.entityType,
+            id,
+          });
+          return undefined;
+        } catch (error) {
+          return `${entry} (${getErrorMessage(error)})`;
+        }
+      }),
+    );
+    kept.push(...outcomes.filter((outcome) => outcome !== undefined));
   }
 
   /** The generation `process` is running; the base handler calls back inside it. */
