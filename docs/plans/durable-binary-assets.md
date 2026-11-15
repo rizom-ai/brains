@@ -17,7 +17,8 @@ Rehearsals on copies:
   content hash;
 - a July 2026 copy of the `yeehaa.io` database with an August `brain-data`: 156 inline
   images, all ready; reconcile creates the three sync-only rows; the migration takes
-  46 s at a 370 MiB peak and stores 157 distinct assets (331 MB); verify reports every
+  31 s at a 359 MiB memory peak, its write-ahead log never exceeds 8.7 MiB, and it stores
+  157 distinct assets (331 MB); verify reports every
   image valid and four mirrors that differ, images edited after the database copy;
   `VACUUM INTO` takes the file from 1,364 MiB to 332 MiB and it still verifies.
 
@@ -375,13 +376,22 @@ It refuses remote URLs and live writers.
   - delete the image's FTS row;
   - preserve ID, visibility, provenance and timestamps.
 
-  Per-chunk commits keep the WAL bounded. A crash leaves a mixed legacy/reference
+  Chunks commit one at a time, but the WAL is bounded per row, not per chunk: a row's
+  publish commits with its entity update and the removal of its FTS row, so search never
+  indexes a row that no longer holds the data URL, and that removal writes delete markers
+  about as large as the row's data URL. The bound is the automatic checkpoint threshold
+  (4 MiB) plus the largest row. The command holds FTS5 automerge and crisis merges off for
+  the run, since with them on one row's removal folded earlier rows' segments into its
+  transaction (up to 6.9 times the row on the `yeehaa.io` copy), and restores the
+  index's own merge settings afterwards. A crash leaves a mixed legacy/reference
   database, which the transitional release supports. Reruns skip completed rows. The
   command first applies pending entity migrations, as the transitional release's first
   start would, and collects garbage between rows: 91 images (about 420 MiB) migrate in
   10 s at 547 MiB peak memory.
 
-- **Afterwards:** run FTS5 `optimize`, then offline `VACUUM` once acceptance passes.
+- **Afterwards:** the command compacts the FTS index in separately committed merge steps,
+  where one `optimize` would rewrite the whole index in a single transaction; offline
+  `VACUUM` follows once acceptance passes.
 - **Verify:**
   - every completed image has a valid reference resolving to one header with matching
     chunks, size and digest;

@@ -62,6 +62,8 @@ A service writes only the entity types its header's `entities` lists, and owns t
 
 A binary record's bytes are no longer its `content`. Code that decoded an image's data URL from `content` reads the bytes with `entities.readBytes(definition, id)` instead, which answers its `bytes`, `mediaType` and `sizeBytes`, or `null` when the reader cannot see the record or it has no bytes yet. An asset-backed record's `content` is the opaque reference `asset://sha256/<hex>`: compare it to tell whether the bytes changed, and never treat it as a URL.
 
+`EntityReader` gained the required method `readBytes`. A test double that builds an `EntityReader` object by hand adds it, for example `readBytes: async () => null`, or the double no longer type-checks.
+
 ## Failures
 
 Throw `new SdkError(code, { message, publicMessage })` for a failure a caller should be told about. The `code` reaches the caller everywhere: a tool answers `{ success: false, code, error }`, a job's status carries its `code`, a contract's answer is `{ status: "failed", error }`, and a route answers `{ error, code }` with the HTTP status its code names. Only `publicMessage`, or else the code's standard message, is published; the message stays in the brain's logs. Any other thrown error is `handler_failed`.
