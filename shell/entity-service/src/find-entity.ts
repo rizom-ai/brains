@@ -37,7 +37,7 @@ export interface EntityLookupOptions extends EntityReadOptions {
 }
 
 /**
- * Find an entity by trying ID, slug, then title lookups.
+ * Find an entity by trying ID, slug, title, then the name as an id.
  *
  * Propagates the visibility scope to every lookup path so the slug/title
  * fallbacks cannot leak entities the caller is not allowed to see.
@@ -90,6 +90,20 @@ export async function findEntityByIdentifier(
     });
     readOptions.signal?.throwIfAborted();
     if (byTitle[0]) return byTitle[0];
+
+    // The name an entry was saved under, when it survives only as its id: a
+    // plain note states no title, so its id is where the name was kept.
+    const nameAsId = slugify(identifier);
+    if (nameAsId !== "" && nameAsId !== identifier) {
+      const byNameAsId = await entityService.getEntityRaw({
+        entityType,
+        id: nameAsId,
+        visibilityScope,
+        ...readOptions,
+      });
+      readOptions.signal?.throwIfAborted();
+      if (byNameAsId) return byNameAsId;
+    }
 
     const bySlugifiedTitle = await entityService.listEntities({
       entityType,
