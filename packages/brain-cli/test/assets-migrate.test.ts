@@ -3,9 +3,13 @@ import { randomBytes } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import {
+  acquireDatabaseLease,
   computeAssetDigest,
   createAssetRef,
+  DatabaseLeaseConflictError,
   openOfflineEntityDatabase,
+  readDatabaseLeases,
+  type DatabaseLeaseRecord,
 } from "@brains/entity-service";
 import { computeContentHash } from "@brains/utils/hash";
 import { z } from "@brains/utils/zod";
@@ -15,6 +19,7 @@ import {
   dataUrl,
   fixture,
   GIF,
+  leaseFrom,
   mainEraFixture,
   PNG,
   removeFixtures,
@@ -26,6 +31,30 @@ import {
 import { planImageAssetMigration } from "../src/lib/binary-asset-migration-plan";
 
 afterEach(removeFixtures);
+
+/** One row's stored content. */
+async function inlineContent(path: string, id: string): Promise<string> {
+  const client = openOfflineEntityDatabase(path).client;
+  try {
+    const result = await client.execute({
+      sql: "SELECT content FROM entities WHERE id = ?",
+      args: [id],
+    });
+    return String(result.rows[0]?.["content"]);
+  } finally {
+    client.close();
+  }
+}
+
+/** Every lease left on a database. */
+async function leasesOn(path: string): Promise<DatabaseLeaseRecord[]> {
+  const client = openOfflineEntityDatabase(path).client;
+  try {
+    return await readDatabaseLeases(client);
+  } finally {
+    client.close();
+  }
+}
 
 const manifestSchema = z.object({
   runs: z.array(
@@ -169,6 +198,84 @@ describe("assets:migrate", () => {
 
     expect(result.success).toBe(false);
     expect(result.message).toContain("4242");
+  });
+
+  it("refuses while a brain in another container renews its lease, naming it", async () => {
+    const path = await fixture([["cover", dataUrl("png", PNG)]]);
+    await leaseFrom(path, { hostname: "3f2a9c1b7d0e", pid: 41 });
+
+    const result = await runAssetsMigrate(
+      "/",
+      { database: path, ignoreStaleHeartbeat: true },
+      stopped,
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain("process 41 on host 3f2a9c1b7d0e");
+    expect(result.message).toContain("Stop the brain first");
+    expect(result.message).not.toContain("--ignore-stale-heartbeat");
+    expect(await inlineContent(path, "cover")).toStartWith("data:");
+  });
+
+  it("refuses a lease a crash left until told to ignore it", async () => {
+    const path = await fixture([["cover", dataUrl("png", PNG)]]);
+    await leaseFrom(path, { hostname: "crashed-container", ageMs: 3_600_000 });
+
+    const refused = await runAssetsMigrate("/", { database: path }, stopped);
+
+    expect(refused.success).toBe(false);
+    expect(refused.message).toContain("crashed-container");
+    expect(refused.message).toContain("--ignore-stale-heartbeat");
+
+    const migrated = await runAssetsMigrate(
+      "/",
+      {
+        database: path,
+        ignoreStaleHeartbeat: true,
+        manifest: join(dirname(path), "manifest.json"),
+      },
+      stopped,
+    );
+
+    expect(migrated.success).toBe(true);
+    expect(await inlineContent(path, "cover")).toStartWith("asset://");
+  });
+
+  it("holds a maintenance lease for the run, so a brain cannot start", async () => {
+    const path = await fixture([["cover", dataUrl("png", PNG)]]);
+    let during: DatabaseLeaseRecord[] = [];
+    let brainStart: unknown;
+
+    const result = await runAssetsMigrate(
+      "/",
+      { database: path, manifest: join(dirname(path), "manifest.json") },
+      stopped,
+      async (connection) => {
+        during = await readDatabaseLeases(connection.client);
+        const brain = openOfflineEntityDatabase(path).client;
+        try {
+          brainStart = await acquireDatabaseLease(brain, {
+            role: "brain",
+          }).then(
+            () => undefined,
+            (error: unknown) => error,
+          );
+        } finally {
+          brain.close();
+        }
+      },
+    );
+
+    expect(result.success).toBe(true);
+    expect(during).toHaveLength(1);
+    expect(during[0]).toMatchObject({
+      role: "maintenance",
+      command: "assets:migrate",
+      pid: process.pid,
+    });
+    expect(brainStart).toBeInstanceOf(DatabaseLeaseConflictError);
+    expect(String(brainStart)).toContain("assets:migrate");
+    expect(await leasesOn(path)).toEqual([]);
   });
 
   it("refuses when it cannot tell whether the app is stopped", async () => {

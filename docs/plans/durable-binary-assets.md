@@ -227,7 +227,9 @@ Entity get/list gain a `binaryContent` mode. Until bridge removal, which lands b
 `"legacy-data-url"`, which materializes today's data URLs for legacy callers. New
 internal callers pass `"reference"`, which returns the stored reference and never loads
 bytes. The entity service counts legacy materializations by read surface and entity
-type, never by id or content. After a zero-use soak, legacy mode is removed and an
+type, never by id or content, in runtime state shared by every process and kept across
+restarts; trusted callers see them, with when each was first and last seen, in
+`system_status`. After a zero-use soak, legacy mode is removed and an
 omitted mode means `"reference"`. First-party image readers already read references; the
 remaining legacy use is the public authoring API, whose shape for asset-backed records
 after bridge removal is a `0.2.0` API decision.
@@ -403,14 +405,20 @@ It refuses remote URLs and live writers.
   outcome, never bytes. It defaults to `binary-asset-migration.json` beside the database,
   and each run is appended.
 
-Every command requires a local database no process holds open, detected from open file
-handles (`/proc`, else `lsof`); none takes a lock.
+Every command requires a local database no brain holds a lease on. Each brain process
+keeps a row in `brain.db` (`database_leases`), renewed every 10 s, fresh for 60 s and
+deleted on a clean stop, so a command in a one-off container sees a brain in another.
+A fresh lease always refuses; one a crash left refuses unless `--ignore-stale-heartbeat`
+is passed. Open file handles (`/proc`, else `lsof`) are checked as a second layer, within
+the command's own container. A run that writes holds a maintenance lease, and a brain
+starting meanwhile refuses to start, naming the command.
 
 ### Cutover and rollback (Phase 6)
 
 **Rehearsal**, on an isolated copy of production:
 
-1. Run dry-run and resolve every blocker.
+1. Run dry-run and resolve every blocker. A copy taken while the brain ran carries its
+   lease, expired by then: pass `--ignore-stale-heartbeat` on the copy.
 2. Take and verify a snapshot.
 3. Migrate and verify.
 4. Start the transitional release and trigger a preview rebuild on the running app.

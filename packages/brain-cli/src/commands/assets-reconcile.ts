@@ -4,7 +4,6 @@ import {
   createAssetRef,
   getAssetDigest,
   OfflineBinaryMigrator,
-  openOfflineEntityDatabase,
   parseAssetRef,
   type OfflineEntityConnection,
 } from "@brains/entity-service";
@@ -18,9 +17,9 @@ import {
 } from "../lib/brain-data-images";
 import type { CommandResult } from "../lib/command-result";
 import {
-  closeCheckpointed,
   defaultOfflineDatabaseDeps,
   migrateOfflineSchema,
+  openOfflineRun,
   resolveLocalPath,
   resolveOfflineDatabase,
   type OfflineDatabaseDeps,
@@ -32,6 +31,8 @@ export interface AssetsReconcileOptions {
   /** The synced content directory; defaults to brain-data. */
   from?: string | undefined;
   dryRun?: boolean | undefined;
+  /** Continue past leases a crash left; a fresh lease still refuses. */
+  ignoreStaleHeartbeat?: boolean | undefined;
 }
 
 /** What reconciling one image did, or would do. */
@@ -76,7 +77,9 @@ export async function runAssetsReconcile(
   options: AssetsReconcileOptions,
   deps: OfflineDatabaseDeps = defaultOfflineDatabaseDeps,
 ): Promise<CommandResult> {
-  const database = await resolveOfflineDatabase(cwd, options.database, deps);
+  const database = await resolveOfflineDatabase(cwd, options.database, deps, {
+    ignoreStaleHeartbeat: options.ignoreStaleHeartbeat,
+  });
   if (!("path" in database)) return database;
   if (!options.dryRun) {
     // The staged asset tables must exist before anything is restored.
@@ -87,7 +90,12 @@ export async function runAssetsReconcile(
     resolveLocalPath(cwd, options.from ?? "brain-data"),
     "image",
   );
-  const connection = openOfflineEntityDatabase(database.path);
+  const run = await openOfflineRun(database.path, {
+    command: "assets:reconcile",
+    dryRun: options.dryRun,
+  });
+  if (!("connection" in run)) return run;
+  const { connection } = run;
   try {
     const rows = new Map(
       (
@@ -165,9 +173,7 @@ export async function runAssetsReconcile(
       message: `Reconcile failed: ${getErrorMessage(error)}`,
     };
   } finally {
-    // A preview wrote nothing; a run folds its log in before closing.
-    if (options.dryRun) connection.client.close();
-    else await closeCheckpointed(connection);
+    await run.finish();
   }
 }
 

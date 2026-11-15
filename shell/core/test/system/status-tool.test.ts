@@ -53,6 +53,16 @@ describe("system_status tool", () => {
         }),
       );
       expect(data["ai"]).toBeDefined();
+      // Counts by surface and type only: the bridge-removal soak signal.
+      expect(data["legacyBinaryContent"]).toEqual([
+        {
+          method: "listEntities",
+          entityType: "image",
+          count: 3,
+          firstAt: "2026-11-15T03:00:00.000Z",
+          lastAt: "2026-11-15T04:00:00.000Z",
+        },
+      ]);
     },
   );
 

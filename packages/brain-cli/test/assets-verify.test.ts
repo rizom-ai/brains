@@ -8,6 +8,7 @@ import {
   dataUrl,
   fixture,
   GIF,
+  leaseFrom,
   PNG,
   removeFixtures,
   stopped,
@@ -32,6 +33,38 @@ async function migrated(
 }
 
 describe("assets:verify", () => {
+  it("refuses while a brain renews its lease, and past a crashed one only when told to", async () => {
+    const { path } = await migrated([["cover", dataUrl("png", PNG)]]);
+    await leaseFrom(path, { hostname: "brain-container" });
+
+    const fresh = await runAssetsVerify(
+      "/",
+      { database: path, ignoreStaleHeartbeat: true },
+      stopped,
+    );
+    expect(fresh.success).toBe(false);
+    expect(fresh.message).toContain("brain-container");
+
+    const client = openOfflineEntityDatabase(path).client;
+    try {
+      await client.execute(
+        "UPDATE database_leases SET heartbeat_at = heartbeat_at - 3600000, expires_at = expires_at - 3600000",
+      );
+    } finally {
+      client.close();
+    }
+    const stale = await runAssetsVerify("/", { database: path }, stopped);
+    expect(stale.success).toBe(false);
+    expect(stale.message).toContain("--ignore-stale-heartbeat");
+
+    const verified = await runAssetsVerify(
+      "/",
+      { database: path, ignoreStaleHeartbeat: true },
+      stopped,
+    );
+    expect(verified.success).toBe(true);
+  });
+
   it("passes when every migrated image resolves to an intact asset", async () => {
     const { path } = await migrated([
       ["cover", dataUrl("png", PNG)],

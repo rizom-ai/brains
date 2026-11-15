@@ -25,20 +25,25 @@ type AssetTable = "asset_uploads" | "asset_chunks" | "assets" | "entities";
 describe("SQLite durable assets", () => {
   let ctx: EntityServiceTestContext;
   let client: Client;
+  const legacyUses: Array<{ method: string; entityType: string }> = [];
 
   beforeEach(async () => {
-    ctx = await setupEntityService([
-      {
-        name: "test",
-        schema: minimalTestSchema,
-        adapter: minimalTestAdapter,
-        config: {
-          embeddable: false,
-          fullTextSearchable: false,
-          binaryStorage: "asset",
+    legacyUses.length = 0;
+    ctx = await setupEntityService(
+      [
+        {
+          name: "test",
+          schema: minimalTestSchema,
+          adapter: minimalTestAdapter,
+          config: {
+            embeddable: false,
+            fullTextSearchable: false,
+            binaryStorage: "asset",
+          },
         },
-      },
-    ]);
+      ],
+      { onLegacyBinaryMaterialization: (use) => legacyUses.push(use) },
+    );
     await ctx.entityService.initialize();
     client = createClient({ url: ctx.dbConfig.url });
   });
@@ -669,6 +674,12 @@ describe("SQLite durable assets", () => {
       expect(counted).toEqual([
         { method: "getEntityRaw", entityType: "test", count: 2 },
         { method: "listEntities", entityType: "test", count: 1 },
+      ]);
+      // Each use also reaches the shell, which keeps the counts durably.
+      expect(legacyUses).toEqual([
+        { method: "getEntityRaw", entityType: "test" },
+        { method: "getEntityRaw", entityType: "test" },
+        { method: "listEntities", entityType: "test" },
       ]);
       // Counts and surface names only: no id or content is ever recorded.
       expect(JSON.stringify(counted)).not.toContain('counted"');

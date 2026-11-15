@@ -4,6 +4,10 @@ import { Shell, type ShellDependencies } from "../src/shell";
 import type { Plugin } from "@brains/plugins";
 import { createSilentLogger } from "@brains/test-utils";
 import { createTestDirectory } from "@brains/test-utils";
+import {
+  openOfflineEntityDatabase,
+  readDatabaseLeases,
+} from "@brains/entity-service";
 import { migrateEntities } from "@brains/entity-service/migrate";
 import { migrateJobQueue } from "@brains/job-queue/migrate";
 import { migrateConversations } from "@brains/conversation-service/migrate";
@@ -90,6 +94,23 @@ describe("Shell shutdown", () => {
       expect(fullError).toContain("CLIENT_CLOSED");
     }
     expect(threw).toBe(true);
+  });
+
+  it("releases the entity database lease on a clean shutdown", async () => {
+    await runMigrations(testDir.dir);
+    const config = createTestShellConfig(testDir.dir);
+    const shell = Shell.createFresh(config, deps);
+    await shell.initialize();
+    const reader = openOfflineEntityDatabase(`${testDir.dir}/test.db`).client;
+    try {
+      expect(await readDatabaseLeases(reader)).toHaveLength(1);
+
+      await shell.shutdown();
+
+      expect(await readDatabaseLeases(reader)).toEqual([]);
+    } finally {
+      reader.close();
+    }
   });
 
   it("should close job queue database connection on shutdown", async () => {

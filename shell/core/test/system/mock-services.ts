@@ -662,6 +662,15 @@ export function createMockSystemServices(
           stalled: false,
         },
       },
+      legacyBinaryContent: [
+        {
+          method: "listEntities",
+          entityType: "image",
+          count: 3,
+          firstAt: "2026-11-15T03:00:00.000Z",
+          lastAt: "2026-11-15T04:00:00.000Z",
+        },
+      ],
       ai: {
         model: "gpt-4.1",
         embeddingModel: "text-embedding-3-small",

@@ -105,6 +105,7 @@ import { ContentResolver, shouldResolveContent } from "./lib/content-resolver";
 import { inlineAssetContent } from "./lib/asset-data-url";
 import { Cause, Effect, Exit } from "@brains/utils/effect";
 import { makeIndexReadinessPollingEffect } from "./index-readiness";
+import { acquireDatabaseLease, type HeldDatabaseLease } from "./database-lease";
 
 type LegacyMaterializationMethod = "getEntityRaw" | "listEntities";
 
@@ -127,6 +128,16 @@ export interface EntityServiceOptions {
   jobQueueService?: IJobQueueService;
   messageBus?: EntityEventBus;
   mutationAdmission?: EntityMutationAdmission;
+  /**
+   * Hears every read that turns an asset reference back into a data URL, by
+   * surface and entity type, so the shell can keep the counts durably.
+   */
+  onLegacyBinaryMaterialization?:
+    | ((use: {
+        method: LegacyMaterializationMethod;
+        entityType: string;
+      }) => void)
+    | undefined;
   /** Clock used for durable projection-ingress timestamps. */
   projectionNow?: (() => number) | undefined;
   dbConfig: EntityDbConfig;
@@ -173,15 +184,20 @@ export class EntityService implements IEntityService {
     LegacyBinaryMaterialization
   >();
   private readonly entityExportStore: EntityExportStore;
+  private readonly onLegacyBinaryMaterialization: EntityServiceOptions["onLegacyBinaryMaterialization"];
   private contentResolver: ContentResolver;
   private embeddingHandlerRegistered = false;
   private indexReady = false;
+  /** This process's lease on a local database file, held while it runs. */
+  private databaseLease: HeldDatabaseLease | undefined;
 
   /**
    * Close the underlying database connections.
    */
   public close(): void {
     this.groupingAbort.abort(new Error("Entity service is closed"));
+    // A row left behind expires; releaseDatabaseLease() is the clean stop.
+    this.databaseLease?.stop();
     // Stops every pending retry now; an admitted enqueue settles on its own.
     void this.embeddingRetries.dispose();
     let firstError: unknown;
@@ -225,6 +241,7 @@ export class EntityService implements IEntityService {
     this.db = db;
     this.dbClient = client;
     this.dbUrl = url;
+    this.onLegacyBinaryMaterialization = options.onLegacyBinaryMaterialization;
     // Staging writes queue behind entity transactions instead of contending
     // with them for SQLite's write lock.
     this.assetRepository = new SqliteAssetRepository(this.db, {
@@ -457,6 +474,41 @@ export class EntityService implements IEntityService {
       );
     }
 
+    // Offline maintenance reads this lease to tell the brain runs, from any
+    // container sharing the file, and holds its own while it converts it.
+    if (isLocalDatabaseFile(this.dbUrl)) {
+      this.databaseLease = await acquireDatabaseLease(this.dbClient, {
+        role: "brain",
+        runWrite: (write) => this.projectionStore.runSqliteWrite(write),
+        onRenewalProblem: (problem) =>
+          this.logger.warn("Could not renew the entity database lease", {
+            error: getErrorMessage(problem),
+          }),
+      });
+    }
+    try {
+      await this.initializeSchemaAndIndexes(
+        embeddingDbConfig,
+        embeddingIdentity,
+      );
+    } catch (error) {
+      await this.releaseDatabaseLease().catch(() => undefined);
+      throw error;
+    }
+  }
+
+  /**
+   * Stop renewing this process's database lease and delete it: the clean
+   * stop that tells offline maintenance the brain is gone. Call before close.
+   */
+  public async releaseDatabaseLease(): Promise<void> {
+    await this.databaseLease?.release();
+  }
+
+  private async initializeSchemaAndIndexes(
+    embeddingDbConfig: EntityDbConfig,
+    embeddingIdentity: EmbeddingIdentity,
+  ): Promise<void> {
     // Everything below is required for search/embedding correctness —
     // failures must propagate so Shell.initialize() fails loudly.
     await ensureFtsTable(this.dbClient);
@@ -961,6 +1013,7 @@ export class EntityService implements IEntityService {
     const key = `${method}:${entityType}`;
     const count = (this.legacyMaterializations.get(key)?.count ?? 0) + 1;
     this.legacyMaterializations.set(key, { method, entityType, count });
+    this.onLegacyBinaryMaterialization?.({ method, entityType });
     // First use, then every hundredth, so a steady legacy reader stays visible.
     if (count === 1 || count % 100 === 0) {
       this.logger.info("Legacy binary content materialized", {
@@ -1391,4 +1444,11 @@ export class EntityService implements IEntityService {
       ...(status.lastError && { error: status.lastError }),
     };
   }
+}
+
+/** A database file on this machine's disks, not in memory or remote. */
+function isLocalDatabaseFile(url: string): boolean {
+  if (!url.startsWith("file:")) return false;
+  const path = url.slice("file:".length);
+  return path !== ":memory:" && !path.startsWith(":memory:?") && path !== "";
 }

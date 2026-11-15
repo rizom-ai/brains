@@ -60,6 +60,7 @@ function inputContext(
       entities: 0,
       entityCounts: [],
       embeddings: 0,
+      legacyBinaryContent: [],
       backgroundWork: {
         status: "operational",
         reasons: [],

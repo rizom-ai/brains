@@ -336,3 +336,16 @@ export {
   type PlaceholderClearInput,
   type PlaceholderClearOutcome,
 } from "./offline/binary-asset-migration";
+export {
+  acquireDatabaseLease,
+  DatabaseLeaseConflictError,
+  describeDatabaseLease,
+  isDatabaseLeaseFresh,
+  readDatabaseLeases,
+  DATABASE_LEASE_RENEW_INTERVAL_MS,
+  DATABASE_LEASE_TTL_MS,
+  type DatabaseLeaseOptions,
+  type DatabaseLeaseRecord,
+  type DatabaseLeaseRole,
+  type HeldDatabaseLease,
+} from "./database-lease";

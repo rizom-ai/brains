@@ -5,6 +5,7 @@ import {
   computeAssetDigest,
   createAssetRef,
   openOfflineEntityDatabase,
+  readDatabaseLeases,
 } from "@brains/entity-service";
 import { runAssetsMigrate } from "../src/commands/assets-migrate";
 import { runAssetsReconcile } from "../src/commands/assets-reconcile";
@@ -12,6 +13,7 @@ import {
   dataUrl,
   fixture,
   GIF,
+  leaseFrom,
   PNG,
   removeFixtures,
   stopped,
@@ -62,7 +64,57 @@ async function dropAssets(path: string): Promise<void> {
 }
 
 describe("assets:reconcile", () => {
-  it("reports a database whose schema cannot be brought forward instead of throwing", async () => {
+  it("refuses while another command converts the database, naming it", async () => {
+    const { path, from } = await withFiles([], [["cover.png", PNG]]);
+    await leaseFrom(path, {
+      role: "maintenance",
+      command: "assets:migrate",
+      hostname: "one-off-container",
+    });
+
+    const result = await runAssetsReconcile(
+      "/",
+      { database: path, from },
+      stopped,
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain(
+      "assets:migrate: process 41 on host one-off-container",
+    );
+    expect(await content(path, "cover")).toBeUndefined();
+  });
+
+  it("restores past a lease a crash left when told to, leaving no lease of its own", async () => {
+    const { path, from } = await withFiles([], [["cover.png", PNG]]);
+    await leaseFrom(path, { ageMs: 3_600_000 });
+
+    const refused = await runAssetsReconcile(
+      "/",
+      { database: path, from },
+      stopped,
+    );
+    expect(refused.success).toBe(false);
+    expect(refused.message).toContain("--ignore-stale-heartbeat");
+
+    const result = await runAssetsReconcile(
+      "/",
+      { database: path, from, ignoreStaleHeartbeat: true },
+      stopped,
+    );
+
+    expect(result.success).toBe(true);
+    expect(await content(path, "cover")).toBe(pngRef);
+    const client = openOfflineEntityDatabase(path).client;
+    try {
+      const leases = await readDatabaseLeases(client);
+      expect(leases.map((lease) => lease.role)).toEqual(["brain"]);
+    } finally {
+      client.close();
+    }
+  });
+
+  it("reports a database it cannot read instead of throwing", async () => {
     const path = join(dirname(await fixture([])), "corrupt.db");
     await writeFile(path, Buffer.alloc(8192, 0x41));
 
@@ -73,7 +125,7 @@ describe("assets:reconcile", () => {
     );
 
     expect(result.success).toBe(false);
-    expect(result.message).toContain("Schema migration failed");
+    expect(result.message).toContain("SQLITE_NOTADB");
   });
 
   it("creates rows for image files the database lacks, binary or text-form", async () => {

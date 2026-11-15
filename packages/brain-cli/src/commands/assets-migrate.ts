@@ -1,17 +1,14 @@
 import { readFile, rename, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import {
-  openOfflineEntityDatabase,
-  type OfflineEntityConnection,
-} from "@brains/entity-service";
+import type { OfflineEntityConnection } from "@brains/entity-service";
 import type { InlineImageBlocker } from "@brains/image";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import type { CommandResult } from "../lib/command-result";
 import {
-  closeCheckpointed,
   defaultOfflineDatabaseDeps,
   migrateOfflineSchema,
+  openOfflineRun,
   resolveLocalPath,
   resolveOfflineDatabase,
   type OfflineDatabaseDeps,
@@ -28,6 +25,8 @@ import {
 export interface AssetsMigrateOptions {
   /** Entity database path or `file:` URL; defaults to the app's data dir. */
   database?: string | undefined;
+  /** Continue past leases a crash left; a fresh lease still refuses. */
+  ignoreStaleHeartbeat?: boolean | undefined;
   dryRun?: boolean | undefined;
   /** Where each run is recorded; defaults beside the database. */
   manifest?: string | undefined;
@@ -60,7 +59,9 @@ export async function runAssetsMigrate(
     entries: MigrationManifestEntry[],
   ) => Promise<unknown> = runImageAssetMigration,
 ): Promise<CommandResult> {
-  const database = await resolveOfflineDatabase(cwd, options.database, deps);
+  const database = await resolveOfflineDatabase(cwd, options.database, deps, {
+    ignoreStaleHeartbeat: options.ignoreStaleHeartbeat,
+  });
   if (!("path" in database)) return database;
   const { path } = database;
   const size = database.bytes;
@@ -69,7 +70,12 @@ export async function runAssetsMigrate(
     const failed = await migrateOfflineSchema(path);
     if (failed) return failed;
   }
-  const connection = openOfflineEntityDatabase(path);
+  const run = await openOfflineRun(path, {
+    command: "assets:migrate",
+    dryRun: options.dryRun,
+  });
+  if (!("connection" in run)) return run;
+  const { connection } = run;
   try {
     const plan = await planImageAssetMigration(connection.client, {
       databaseBytes: size,
@@ -127,9 +133,7 @@ export async function runAssetsMigrate(
       message: `${options.dryRun ? "Dry-run" : "Migration"} failed: ${getErrorMessage(error)}`,
     };
   } finally {
-    // A dry-run wrote nothing; a run folds its log in before closing.
-    if (options.dryRun) connection.client.close();
-    else await closeCheckpointed(connection);
+    await run.finish();
   }
 }
 
