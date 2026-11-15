@@ -156,7 +156,9 @@ function parseRecord(value: unknown): ParsedRecord | undefined {
   return parsed.success ? parsed.data : undefined;
 }
 
-function actorKey(actor: ConversationMessageActor | null): string | undefined {
+export function actorKey(
+  actor: ConversationMessageActor | null,
+): string | undefined {
   return actor ? actorRefKey(actor.identity) : undefined;
 }
 

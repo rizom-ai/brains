@@ -11,13 +11,13 @@
  */
 
 import { waitFor, type createActor } from "xstate";
-import { actorRefKey } from "@brains/contracts";
 import { PermissionService } from "@brains/templates";
 import type {
   ConversationMessageActor,
   ConversationMessageSource,
 } from "@brains/conversation-service";
 import {
+  actorKey,
   emptyUsage,
   type agentMachine,
   type AgentMachineContext,
@@ -35,12 +35,6 @@ export interface ConfirmationContext {
   isAnchor: boolean;
   actor: ConversationMessageActor | null;
   source: ConversationMessageSource | null;
-}
-
-function actorKey(
-  actor: ConversationMessageActor | null | undefined,
-): string | undefined {
-  return actor ? actorRefKey(actor.identity) : undefined;
 }
 
 /**
