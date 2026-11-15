@@ -152,6 +152,7 @@ Key frontmatter:
 
 - `title` required
 - `summary` required; one sentence saying what the note is
+- a value in at least one grouping, such as `projects: [Lighthouse]`, where a grouping applies to refined notes; the brain chooses it when it refines
 
 Refine a note with `system_generate`: operation `prompt-from-source`, `entityType: "refined-note"` and the note as `source`; name further notes in `additionalSourceIds` to refine several into one. `prompt` is optional and gives the writing a direction. The confirmation names every note and says they will be removed; a caller who may not delete notes is refused. A refined note keeps no reference to the notes it came from and cannot be refined again.
 

@@ -62,6 +62,7 @@ import { z } from "@brains/utils/zod";
 import { PluginCore } from "../plugin-core";
 import { createEntityPluginContext, type EntityPluginContext } from "./context";
 import { entityTypeConfigFor } from "./entity-definition-config";
+import { missingGroupingMembership } from "./grouping-placement";
 import { createEntityReader } from "./entity-reader";
 import {
   contractJobOf,
@@ -1277,6 +1278,18 @@ class DeclarativeEntityPlugin extends PluginCore<
               visibility: entity.visibility,
             }),
           );
+        },
+      );
+    }
+    if (this.entityTypeConfig.requiresGroupingMembership === true) {
+      context.entities.registerPersistValidator(
+        this.entityType,
+        async (entity): Promise<void> => {
+          const issue = missingGroupingMembership(
+            entity,
+            context.entities.getGroupings(),
+          );
+          if (issue) throw new z.ZodError([issue]);
         },
       );
     }

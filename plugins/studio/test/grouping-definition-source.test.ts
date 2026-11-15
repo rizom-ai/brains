@@ -97,8 +97,17 @@ describe("definition source snapshots", () => {
     await source.ensureCurrent();
     await source.ensureCurrent();
     expect(reads).toBe(2);
+    // Its cardinality is published with it, for a reader that chooses a value.
     expect(replacements).toEqual([
-      [{ key: "areas", field: "areas", label: "Areas", types: ["note"] }],
+      [
+        {
+          key: "areas",
+          field: "areas",
+          label: "Areas",
+          types: ["note"],
+          multiple: true,
+        },
+      ],
     ]);
     const snapshot = source.getSnapshot();
     snapshot.groupings["areas"]?.excludeTypes?.push("note");
@@ -110,6 +119,41 @@ describe("definition source snapshots", () => {
     expect(replacements).toHaveLength(2);
     expect(replacements[1]).toEqual([]);
     expect(source.getSnapshot().groupings).toEqual({});
+  });
+  test("publishes the values a closed grouping allows, as written", async () => {
+    const replacements: unknown[] = [];
+    const source = new GroupingDefinitionSource({
+      getContributorTypes: (): string[] => ["note", "post"],
+      read: async (): Promise<DefinitionRow> => {
+        const content = document({
+          clients: {
+            label: "Clients",
+            multiple: false,
+            values: [" Acme, Inc. ", "Beta"],
+          },
+        });
+        return { content, contentHash: content };
+      },
+      validate: (): void => {},
+      replace: (next): void => {
+        replacements.push(next);
+      },
+    });
+
+    await source.ensureCurrent();
+
+    expect(replacements).toEqual([
+      [
+        {
+          key: "clients",
+          field: "clients",
+          label: "Clients",
+          types: ["note", "post"],
+          multiple: false,
+          values: [" Acme, Inc. ", "Beta"],
+        },
+      ],
+    ]);
   });
   test("drops only invalid entries and explains them without changing valid labels", async () => {
     const source = new GroupingDefinitionSource({

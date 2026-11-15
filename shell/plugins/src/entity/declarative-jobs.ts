@@ -56,6 +56,7 @@ import type {
   OwnedEntityWriter,
 } from "./entity-definition-contract";
 import { waitForEmbeddingsToDrain } from "./embedding-drain";
+import { groupingChoiceSchema, placeInGrouping } from "./grouping-placement";
 import {
   afterGenerationOf,
   isDeduplicated,
@@ -236,6 +237,9 @@ async function runAuthority(
         : `A ${access.permissionLevel} requester cannot write a ${visibility} ${entityType}`,
   });
 }
+
+/** How many of an open grouping's values in use the brain is offered. */
+const GROUPING_VALUES_OFFERED = 50;
 
 const generationSourceSchema: z.ZodObject<{
   entityType: z.ZodString;
@@ -987,9 +991,16 @@ export class DeclarativeGenerationHandler extends BaseGenerationJobHandler<unkno
     const metadata: Record<string, unknown> = { ...result.metadata };
     const title =
       typeof metadata["title"] === "string" ? metadata["title"] : undefined;
+    const placed = await this.placed(
+      result.content,
+      allocated?.content,
+      title,
+      input,
+      authority,
+    );
     return {
       id: entityId ?? result.id ?? slugify(title ?? this.entityType),
-      content: result.content,
+      content: placed,
       metadata,
       ...definedFields({
         title,
@@ -1091,6 +1102,68 @@ export class DeclarativeGenerationHandler extends BaseGenerationJobHandler<unkno
       (held, entry) => (entry ? morePrivate(held, entry.visibility) : held),
       undefined,
     );
+  }
+
+  /**
+   * What a generation wrote, placed in a grouping when its type must belong
+   * somewhere and nothing placed it yet: the brain chooses the grouping and
+   * the value. An open grouping offers the values it holds that the run can
+   * see. A choice the groupings refuse fails the generation, so nothing is
+   * saved unplaced.
+   */
+  private async placed(
+    content: string,
+    heldContent: string | undefined,
+    title: string | undefined,
+    input: unknown,
+    authority: EntityRunAuthority,
+  ): Promise<string> {
+    const { entityService, entities, ai } = this.context;
+    if (
+      entityService.getEntityTypeConfig(this.entityType)
+        .requiresGroupingMembership !== true
+    ) {
+      return content;
+    }
+    const direction = isPlainRecord(input) ? input["prompt"] : undefined;
+    const placement = await placeInGrouping({
+      entityType: this.entityType,
+      content,
+      heldContent,
+      title,
+      direction: typeof direction === "string" ? direction : undefined,
+      groupings: entities.getGroupings(),
+      valuesInUse: async (grouping) => {
+        // Each type at the visibility the run reads it at, so a value only
+        // a more private entry holds is never offered.
+        const catalogs = await Promise.all(
+          grouping.types.map((entityType) =>
+            entityService.queryGroupingCatalog({
+              grouping: grouping.key,
+              entityTypes: [entityType],
+              visibilityScope: authority.scope(entityType),
+              limit: GROUPING_VALUES_OFFERED,
+              offset: 0,
+            }),
+          ),
+        );
+        const counts = catalogs
+          .flatMap(({ values }) => values)
+          .reduce(
+            (held, { value, count }) =>
+              held.set(value, (held.get(value) ?? 0) + count),
+            new Map<string, number>(),
+          );
+        return [...counts]
+          .sort(([, a], [, b]) => b - a)
+          .slice(0, GROUPING_VALUES_OFFERED)
+          .map(([value]) => value);
+      },
+      choose: async (prompt) =>
+        (await ai.generateObject(prompt, groupingChoiceSchema)).object,
+    });
+    if ("refuse" in placement) this.failEarly(placement.refuse);
+    return placement.content;
   }
 
   /**

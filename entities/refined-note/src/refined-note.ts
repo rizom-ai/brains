@@ -37,6 +37,7 @@ export const refinedNote: RefinedNoteDefinition = defineEntity({
   config: {
     projectionSourceRole: "primary",
     consumesSources: [REFINED_FROM],
+    requiresGroupingMembership: true,
   },
   instructions: REFINED_NOTE_INSTRUCTIONS,
   stub: ({ title }) => ({

@@ -66,6 +66,7 @@ describe("the refined note's registered surface", () => {
     ).toMatchObject({
       classification: "content",
       consumesSources: ["note"],
+      requiresGroupingMembership: true,
       projectionSourceRole: "primary",
     });
   });
