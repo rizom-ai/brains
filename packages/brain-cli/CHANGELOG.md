@@ -1,5 +1,17 @@
 # @rizom/brain
 
+## 0.2.0-alpha.720
+
+### Patch Changes
+
+- [#969](https://github.com/rizom-ai/brains/pull/969) [`a83340e`](https://github.com/rizom-ai/brains/commit/a83340eccf82c69b7eb3de38bce1f9ff9ee47c6d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Choosing a stock photo now sets the cover image when the photo is already stored. Before, the select-photo job failed on the photo's taken id and never set the cover. This happened when the job was run again after it had saved the photo, or when another post had already chosen the same photo. Now the job reuses the stored photo instead of downloading it again, and pings Unsplash's download tracker once for each use. A rerun of a job that already pinged the tracker does not ping it again.
+
+## 0.2.0-alpha.719
+
+### Patch Changes
+
+- [#968](https://github.com/rizom-ai/brains/pull/968) [`214f5b4`](https://github.com/rizom-ai/brains/commit/214f5b46028f09a5c8316f529545662cc4064529) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A recurring check alert is no longer emailed twice when its run dies after the send and before the alert is marked delivered. Each delivery attempt of an alert now carries the same idempotency key, derived from the alert and the time it was first observed, and the email provider answers a repeated key without sending again. The provider keeps a key for 24 hours, so a rerun that comes more than a day after such a crash can still send the alert a second time.
+
 ## 0.2.0-alpha.718
 
 ### Patch Changes
