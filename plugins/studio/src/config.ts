@@ -1,4 +1,3 @@
-import type { ServicePluginContext } from "@brains/plugins";
 import { formatLabel, pluralizeLabel } from "@brains/utils/string-utils";
 import {
   getArrayElement,
@@ -11,6 +10,7 @@ import {
   unwrapField,
 } from "@brains/utils/zod-introspect";
 import { isRecord } from "@brains/utils/is-record";
+import type { StudioContext } from "./studio-context";
 // Base-note entity type id (mirrors NOTE_ENTITY_TYPE in @brains/entity-service,
 // which plugins may not import directly and @brains/plugins does not re-export).
 const NOTE_ENTITY_TYPE = "note";
@@ -64,7 +64,7 @@ const LONG_TEXT_FIELDS = new Set([
  */
 export function isRawEntityType(
   entityType: string,
-  entities: Pick<ServicePluginContext["entities"], "isGroupingContributor">,
+  entities: Pick<StudioContext["entities"], "isGroupingContributor">,
 ): boolean {
   return (
     entityType === NOTE_ENTITY_TYPE &&

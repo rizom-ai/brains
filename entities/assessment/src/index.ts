@@ -1,31 +1,18 @@
-import type { Plugin } from "@brains/plugins";
-import {
-  assessmentConfigSchema,
-  swotAssessmentPlugin,
-  type AssessmentConfigInput,
-} from "./plugin";
-
 export {
-  SwotAssessmentPlugin,
   assessmentConfigSchema,
-  swotAssessmentPlugin,
+  derivedSwotPackage,
+  swotPackage,
   type AssessmentConfig,
   type AssessmentConfigInput,
 } from "./plugin";
-
-export function assessment(config: AssessmentConfigInput = {}): Plugin[] {
-  return [swotAssessmentPlugin(assessmentConfigSchema.parse(config))];
-}
-
-export { SwotAdapter, swotAdapter } from "./adapters/swot-adapter";
+export { derivedSwot, swot } from "./swot-entity";
+export { createSwotContent, parseSwotContent } from "./lib/swot-content";
 export {
-  buildCapabilityProfiles,
   buildCapabilityProfilesFromEntities,
   type CapabilityProfile,
   type CapabilityProfileSkill,
 } from "./lib/capability-profile";
 export {
-  buildSwotContext,
   buildSwotContextFromEntities,
   buildSwotContextFromProfiles,
   type SwotContext,
@@ -43,8 +30,6 @@ export {
   type SwotEntity,
 } from "./schemas/swot";
 export {
-  swotDerivationJobSchema,
   swotGenerationSchema,
-  type SwotDerivationJobData,
   type SwotGeneration,
 } from "./schemas/swot-generation";

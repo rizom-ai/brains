@@ -81,7 +81,9 @@ describe("a declared type's frontmatter schema", () => {
     ).toEqual(["title", "indexedAt"]);
   });
 
-  it("still writes every field its metadata names, though it presents only its header", async () => {
+  // A header field its metadata does not name (a stored document's
+  // sender, its days) is the file's own, kept from the document written.
+  it("writes the fields its metadata names, though it presents its header", async () => {
     const harness = createPluginHarness();
     for (const plugin of instantiatePluginPackageDefinition(
       defineEntityPackage({
@@ -97,8 +99,6 @@ describe("a declared type's frontmatter schema", () => {
     expect(Object.keys(adapter.writtenFrontmatterSchema?.shape ?? {})).toEqual([
       "title",
       "indexedAt",
-      "status",
-      "source",
     ]);
   });
 });

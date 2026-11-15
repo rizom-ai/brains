@@ -1,20 +1,17 @@
-import {
-  ConfirmationArgsStore,
-  internalFullScope,
-  type Tool,
-  type ToolResponse,
-} from "@brains/plugins";
 import { authenticatedUserId } from "@brains/contracts";
 import { keyFingerprint } from "@brains/http-signatures";
-import type {
-  EntityPluginContext,
-  ServicePluginContext,
-} from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { AGENT_ENTITY_TYPE } from "../lib/constants";
 import type { FetchLike } from "@brains/utils/fetch-like";
 import { extractDomain } from "../lib/extract-domain";
 import { agentEntitySchema } from "../schemas/agent";
+import {
+  ConfirmationArgsStore,
+  internalFullScope,
+  type Tool,
+  type ToolResponse,
+} from "@brains/sdk/internal/service-runtime";
+import type { AgentContext } from "../lib/agent-context";
 
 const trustLevelSchema = z.enum(["public", "trusted"]);
 
@@ -33,10 +30,7 @@ const agentSetTrustLevelInputSchema = z.object({
 
 type AgentSetTrustLevelInput = z.infer<typeof agentSetTrustLevelInputSchema>;
 
-type AgentSetTrustLevelContext = Pick<
-  EntityPluginContext | ServicePluginContext,
-  "entityService" | "auth"
->;
+type AgentSetTrustLevelContext = Pick<AgentContext, "entityService" | "auth">;
 
 const jwksSchema = z.object({
   keys: z.array(z.unknown()),

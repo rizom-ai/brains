@@ -1,0 +1,164 @@
+{
+  "projection": {
+    "id": "mail-910f6730af7e84e8f2cd4134d40ed2ab51d29b8b58db919b94832d3104eed63d",
+    "content": "---\ntitle: Advisory engagement\ncategory: opportunity\npriority: high\nstatus: new\nneedsReply: true\nreceivedAt: '2026-04-15T09:00:00.000Z'\nsource:\n  ref: 'imap:opaque-1'\n  threadKey: 4b0a5fefc328e6b9257bc535e3c5d26fec36b52f92e277618bf5b30fc3885e58\nsenderLabel: example.com\norganization: Example Consulting\nrequestedActions:\n  - Review the timeline\n---\nA prospect asks about an advisory engagement.\n",
+    "metadata": {
+      "title": "Advisory engagement",
+      "category": "opportunity",
+      "priority": "high",
+      "status": "new",
+      "needsReply": true,
+      "receivedAt": "2026-04-15T09:00:00.000Z",
+      "threadKey": "4b0a5fefc328e6b9257bc535e3c5d26fec36b52f92e277618bf5b30fc3885e58"
+    }
+  },
+  "triaged": {
+    "stored": {
+      "content": "---\ntitle: Advisory engagement\ncategory: opportunity\npriority: high\nstatus: new\nneedsReply: true\nreceivedAt: '2026-04-15T09:00:00.000Z'\nsource:\n  ref: 'imap:opaque-1'\n  threadKey: 4b0a5fefc328e6b9257bc535e3c5d26fec36b52f92e277618bf5b30fc3885e58\nsenderLabel: example.com\norganization: Example Consulting\nrequestedActions:\n  - Review the timeline\nvisibility: restricted\n---\nA prospect asks about an advisory engagement.\n",
+      "metadata": "{\"title\":\"Advisory engagement\",\"category\":\"opportunity\",\"priority\":\"high\",\"status\":\"new\",\"needsReply\":true,\"receivedAt\":\"2026-04-15T09:00:00.000Z\",\"threadKey\":\"4b0a5fefc328e6b9257bc535e3c5d26fec36b52f92e277618bf5b30fc3885e58\"}"
+    },
+    "read": {
+      "content": "---\ntitle: Advisory engagement\ncategory: opportunity\npriority: high\nstatus: new\nneedsReply: true\nreceivedAt: '2026-04-15T09:00:00.000Z'\nsource:\n  ref: 'imap:opaque-1'\n  threadKey: 4b0a5fefc328e6b9257bc535e3c5d26fec36b52f92e277618bf5b30fc3885e58\nsenderLabel: example.com\norganization: Example Consulting\nrequestedActions:\n  - Review the timeline\nvisibility: restricted\n---\nA prospect asks about an advisory engagement.\n",
+      "metadata": {
+        "title": "Advisory engagement",
+        "category": "opportunity",
+        "priority": "high",
+        "status": "new",
+        "needsReply": true,
+        "receivedAt": "2026-04-15T09:00:00.000Z",
+        "threadKey": "4b0a5fefc328e6b9257bc535e3c5d26fec36b52f92e277618bf5b30fc3885e58"
+      }
+    },
+    "exported": "---\ntitle: Advisory engagement\ncategory: opportunity\npriority: high\nstatus: new\nneedsReply: true\nreceivedAt: '2026-04-15T09:00:00.000Z'\nsource:\n  ref: 'imap:opaque-1'\n  threadKey: 4b0a5fefc328e6b9257bc535e3c5d26fec36b52f92e277618bf5b30fc3885e58\nsenderLabel: example.com\norganization: Example Consulting\nrequestedActions:\n  - Review the timeline\nvisibility: restricted\n---\nA prospect asks about an advisory engagement.\n"
+  },
+  "statusChanged": {
+    "stored": {
+      "content": "---\ntitle: Advisory engagement\ncategory: opportunity\npriority: high\nstatus: reviewed\nneedsReply: true\nreceivedAt: '2026-04-15T09:00:00.000Z'\nsource:\n  ref: 'imap:opaque-1'\n  threadKey: 4b0a5fefc328e6b9257bc535e3c5d26fec36b52f92e277618bf5b30fc3885e58\nsenderLabel: example.com\norganization: Example Consulting\nrequestedActions:\n  - Review the timeline\nvisibility: restricted\n---\nA prospect asks about an advisory engagement.\n",
+      "metadata": "{\"title\":\"Advisory engagement\",\"category\":\"opportunity\",\"priority\":\"high\",\"status\":\"reviewed\",\"needsReply\":true,\"receivedAt\":\"2026-04-15T09:00:00.000Z\",\"threadKey\":\"4b0a5fefc328e6b9257bc535e3c5d26fec36b52f92e277618bf5b30fc3885e58\"}"
+    },
+    "read": {
+      "content": "---\ntitle: Advisory engagement\ncategory: opportunity\npriority: high\nstatus: reviewed\nneedsReply: true\nreceivedAt: '2026-04-15T09:00:00.000Z'\nsource:\n  ref: 'imap:opaque-1'\n  threadKey: 4b0a5fefc328e6b9257bc535e3c5d26fec36b52f92e277618bf5b30fc3885e58\nsenderLabel: example.com\norganization: Example Consulting\nrequestedActions:\n  - Review the timeline\nvisibility: restricted\n---\nA prospect asks about an advisory engagement.\n",
+      "metadata": {
+        "title": "Advisory engagement",
+        "category": "opportunity",
+        "priority": "high",
+        "status": "reviewed",
+        "needsReply": true,
+        "receivedAt": "2026-04-15T09:00:00.000Z",
+        "threadKey": "4b0a5fefc328e6b9257bc535e3c5d26fec36b52f92e277618bf5b30fc3885e58"
+      }
+    },
+    "exported": "---\ntitle: Advisory engagement\ncategory: opportunity\npriority: high\nstatus: reviewed\nneedsReply: true\nreceivedAt: '2026-04-15T09:00:00.000Z'\nsource:\n  ref: 'imap:opaque-1'\n  threadKey: 4b0a5fefc328e6b9257bc535e3c5d26fec36b52f92e277618bf5b30fc3885e58\nsenderLabel: example.com\norganization: Example Consulting\nrequestedActions:\n  - Review the timeline\nvisibility: restricted\n---\nA prospect asks about an advisory engagement.\n"
+  },
+  "ordinal": {
+    "stored": {
+      "content": "---\ntitle: Advisory engagement\ncategory: opportunity\npriority: high\nstatus: reviewed\nneedsReply: true\nreceivedAt: '2026-04-15T09:00:00.000Z'\nsource:\n  ref: 'imap:opaque-1'\n  threadKey: 4b0a5fefc328e6b9257bc535e3c5d26fec36b52f92e277618bf5b30fc3885e58\n  threadOrdinal: 1\nsenderLabel: example.com\norganization: Example Consulting\nrequestedActions:\n  - Review the timeline\nvisibility: restricted\n---\nA prospect asks about an advisory engagement.\n",
+      "metadata": "{\"title\":\"Advisory engagement\",\"category\":\"opportunity\",\"priority\":\"high\",\"status\":\"reviewed\",\"needsReply\":true,\"receivedAt\":\"2026-04-15T09:00:00.000Z\",\"threadKey\":\"4b0a5fefc328e6b9257bc535e3c5d26fec36b52f92e277618bf5b30fc3885e58\",\"threadOrdinal\":1}"
+    },
+    "read": {
+      "content": "---\ntitle: Advisory engagement\ncategory: opportunity\npriority: high\nstatus: reviewed\nneedsReply: true\nreceivedAt: '2026-04-15T09:00:00.000Z'\nsource:\n  ref: 'imap:opaque-1'\n  threadKey: 4b0a5fefc328e6b9257bc535e3c5d26fec36b52f92e277618bf5b30fc3885e58\n  threadOrdinal: 1\nsenderLabel: example.com\norganization: Example Consulting\nrequestedActions:\n  - Review the timeline\nvisibility: restricted\n---\nA prospect asks about an advisory engagement.\n",
+      "metadata": {
+        "title": "Advisory engagement",
+        "category": "opportunity",
+        "priority": "high",
+        "status": "reviewed",
+        "needsReply": true,
+        "receivedAt": "2026-04-15T09:00:00.000Z",
+        "threadKey": "4b0a5fefc328e6b9257bc535e3c5d26fec36b52f92e277618bf5b30fc3885e58",
+        "threadOrdinal": 1
+      }
+    },
+    "exported": "---\ntitle: Advisory engagement\ncategory: opportunity\npriority: high\nstatus: reviewed\nneedsReply: true\nreceivedAt: '2026-04-15T09:00:00.000Z'\nsource:\n  ref: 'imap:opaque-1'\n  threadKey: 4b0a5fefc328e6b9257bc535e3c5d26fec36b52f92e277618bf5b30fc3885e58\n  threadOrdinal: 1\nsenderLabel: example.com\norganization: Example Consulting\nrequestedActions:\n  - Review the timeline\nvisibility: restricted\n---\nA prospect asks about an advisory engagement.\n"
+  },
+  "createdWithOrdinal": {
+    "stored": {
+      "content": "---\ntitle: Advisory engagement\ncategory: opportunity\npriority: high\nstatus: new\nneedsReply: true\nreceivedAt: '2026-04-15T09:00:00.000Z'\nsource:\n  ref: 'imap:opaque-1'\n  threadKey: 4b0a5fefc328e6b9257bc535e3c5d26fec36b52f92e277618bf5b30fc3885e58\n  threadOrdinal: 2\nsenderLabel: example.com\norganization: Example Consulting\nrequestedActions:\n  - Review the timeline\nvisibility: restricted\n---\nA prospect asks about an advisory engagement.\n",
+      "metadata": "{\"title\":\"Advisory engagement\",\"category\":\"opportunity\",\"priority\":\"high\",\"status\":\"new\",\"needsReply\":true,\"receivedAt\":\"2026-04-15T09:00:00.000Z\",\"threadKey\":\"4b0a5fefc328e6b9257bc535e3c5d26fec36b52f92e277618bf5b30fc3885e58\",\"threadOrdinal\":2}"
+    },
+    "read": {
+      "content": "---\ntitle: Advisory engagement\ncategory: opportunity\npriority: high\nstatus: new\nneedsReply: true\nreceivedAt: '2026-04-15T09:00:00.000Z'\nsource:\n  ref: 'imap:opaque-1'\n  threadKey: 4b0a5fefc328e6b9257bc535e3c5d26fec36b52f92e277618bf5b30fc3885e58\n  threadOrdinal: 2\nsenderLabel: example.com\norganization: Example Consulting\nrequestedActions:\n  - Review the timeline\nvisibility: restricted\n---\nA prospect asks about an advisory engagement.\n",
+      "metadata": {
+        "title": "Advisory engagement",
+        "category": "opportunity",
+        "priority": "high",
+        "status": "new",
+        "needsReply": true,
+        "receivedAt": "2026-04-15T09:00:00.000Z",
+        "threadKey": "4b0a5fefc328e6b9257bc535e3c5d26fec36b52f92e277618bf5b30fc3885e58",
+        "threadOrdinal": 2
+      }
+    },
+    "exported": "---\ntitle: Advisory engagement\ncategory: opportunity\npriority: high\nstatus: new\nneedsReply: true\nreceivedAt: '2026-04-15T09:00:00.000Z'\nsource:\n  ref: 'imap:opaque-1'\n  threadKey: 4b0a5fefc328e6b9257bc535e3c5d26fec36b52f92e277618bf5b30fc3885e58\n  threadOrdinal: 2\nsenderLabel: example.com\norganization: Example Consulting\nrequestedActions:\n  - Review the timeline\nvisibility: restricted\n---\nA prospect asks about an advisory engagement.\n"
+  },
+  "retired": {
+    "stored": {
+      "content": "---\ntitle: Old item\ncategory: work\npriority: normal\nstatus: new\nneedsReply: false\nreceivedAt: '2026-01-01T00:00:00.000Z'\nsource:\n  ref: 'imap:old'\nrequestedActions: []\nvisibility: restricted\n---\nAn older summary.\n",
+      "metadata": "{\"title\":\"Old item\",\"category\":\"work\",\"priority\":\"normal\",\"status\":\"new\",\"needsReply\":false,\"receivedAt\":\"2026-01-01T00:00:00.000Z\"}"
+    },
+    "read": {
+      "content": "---\ntitle: Old item\ncategory: work\npriority: normal\nstatus: new\nneedsReply: false\nreceivedAt: '2026-01-01T00:00:00.000Z'\nsource:\n  ref: 'imap:old'\nrequestedActions: []\nvisibility: restricted\n---\nAn older summary.\n",
+      "metadata": {
+        "title": "Old item",
+        "category": "work",
+        "priority": "normal",
+        "status": "new",
+        "needsReply": false,
+        "receivedAt": "2026-01-01T00:00:00.000Z"
+      }
+    },
+    "exported": "---\ntitle: Old item\ncategory: work\npriority: normal\nstatus: new\nneedsReply: false\nreceivedAt: '2026-01-01T00:00:00.000Z'\nsource:\n  ref: 'imap:old'\nrequestedActions: []\nvisibility: restricted\n---\nAn older summary.\n"
+  },
+  "retiredRewrite": {
+    "rewritten": 0
+  },
+  "afterRetire": {
+    "stored": {
+      "content": "---\ntitle: Old item\ncategory: work\npriority: normal\nstatus: new\nneedsReply: false\nreceivedAt: '2026-01-01T00:00:00.000Z'\nsource:\n  ref: 'imap:old'\nrequestedActions: []\nvisibility: restricted\n---\nAn older summary.\n",
+      "metadata": "{\"title\":\"Old item\",\"category\":\"work\",\"priority\":\"normal\",\"status\":\"new\",\"needsReply\":false,\"receivedAt\":\"2026-01-01T00:00:00.000Z\"}"
+    },
+    "read": {
+      "content": "---\ntitle: Old item\ncategory: work\npriority: normal\nstatus: new\nneedsReply: false\nreceivedAt: '2026-01-01T00:00:00.000Z'\nsource:\n  ref: 'imap:old'\nrequestedActions: []\nvisibility: restricted\n---\nAn older summary.\n",
+      "metadata": {
+        "title": "Old item",
+        "category": "work",
+        "priority": "normal",
+        "status": "new",
+        "needsReply": false,
+        "receivedAt": "2026-01-01T00:00:00.000Z"
+      }
+    },
+    "exported": "---\ntitle: Old item\ncategory: work\npriority: normal\nstatus: new\nneedsReply: false\nreceivedAt: '2026-01-01T00:00:00.000Z'\nsource:\n  ref: 'imap:old'\nrequestedActions: []\nvisibility: restricted\n---\nAn older summary.\n"
+  },
+  "draft": {
+    "stored": {
+      "content": "---\nmailItemId: mail-910f6730af7e84e8f2cd4134d40ed2ab51d29b8b58db919b94832d3104eed63d\nrevision: 1\nstatus: draft\nvisibility: restricted\n---\nThanks, Tuesday works.\n",
+      "metadata": "{\"mailItemId\":\"mail-910f6730af7e84e8f2cd4134d40ed2ab51d29b8b58db919b94832d3104eed63d\",\"revision\":1,\"status\":\"draft\"}"
+    },
+    "read": {
+      "content": "---\nmailItemId: mail-910f6730af7e84e8f2cd4134d40ed2ab51d29b8b58db919b94832d3104eed63d\nrevision: 1\nstatus: draft\nvisibility: restricted\n---\nThanks, Tuesday works.\n",
+      "metadata": {
+        "mailItemId": "mail-910f6730af7e84e8f2cd4134d40ed2ab51d29b8b58db919b94832d3104eed63d",
+        "revision": 1,
+        "status": "draft"
+      }
+    },
+    "exported": "---\nmailItemId: mail-910f6730af7e84e8f2cd4134d40ed2ab51d29b8b58db919b94832d3104eed63d\nrevision: 1\nstatus: draft\nvisibility: restricted\n---\nThanks, Tuesday works.\n"
+  },
+  "sent": {
+    "stored": {
+      "content": "---\nmailItemId: mail-910f6730af7e84e8f2cd4134d40ed2ab51d29b8b58db919b94832d3104eed63d\nrevision: 2\nstatus: sent\nsentAt: '2026-04-15T11:00:00.000Z'\nproviderDeliveryId: msg-1\nvisibility: restricted\n---\nThanks, Tuesday works.\n",
+      "metadata": "{\"mailItemId\":\"mail-910f6730af7e84e8f2cd4134d40ed2ab51d29b8b58db919b94832d3104eed63d\",\"revision\":2,\"status\":\"sent\",\"sentAt\":\"2026-04-15T11:00:00.000Z\",\"providerDeliveryId\":\"msg-1\"}"
+    },
+    "read": {
+      "content": "---\nmailItemId: mail-910f6730af7e84e8f2cd4134d40ed2ab51d29b8b58db919b94832d3104eed63d\nrevision: 2\nstatus: sent\nsentAt: '2026-04-15T11:00:00.000Z'\nproviderDeliveryId: msg-1\nvisibility: restricted\n---\nThanks, Tuesday works.\n",
+      "metadata": {
+        "mailItemId": "mail-910f6730af7e84e8f2cd4134d40ed2ab51d29b8b58db919b94832d3104eed63d",
+        "revision": 2,
+        "status": "sent",
+        "sentAt": "2026-04-15T11:00:00.000Z",
+        "providerDeliveryId": "msg-1"
+      }
+    },
+    "exported": "---\nmailItemId: mail-910f6730af7e84e8f2cd4134d40ed2ab51d29b8b58db919b94832d3104eed63d\nrevision: 2\nstatus: sent\nsentAt: '2026-04-15T11:00:00.000Z'\nproviderDeliveryId: msg-1\nvisibility: restricted\n---\nThanks, Tuesday works.\n"
+  }
+}

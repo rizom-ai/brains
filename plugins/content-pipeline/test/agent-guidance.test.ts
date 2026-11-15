@@ -3,24 +3,21 @@ import {
   createMockShell,
   createServicePluginContext,
 } from "@brains/plugins/test";
-import { ContentPipelinePlugin } from "../src/plugin";
+import { createContentPipelinePlugins } from "./content-pipeline-plugins";
 import { ProviderRegistry } from "../src/provider-registry";
 import { QueueManager } from "../src/queue-manager";
 import { createPublishingManageTool } from "../src/tools";
-
-class TestContentPipelinePlugin extends ContentPipelinePlugin {
-  public instructions(): Promise<string | undefined> {
-    return this.getInstructions();
-  }
-}
 
 // Publishing guidance travels with publishing_manage: its description reaches
 // the model only when the caller may publish, and once per step.
 describe("content-pipeline agent guidance", () => {
   it("adds no prompt section beside the publishing_manage description", async () => {
-    expect(
-      await new TestContentPipelinePlugin().instructions(),
-    ).toBeUndefined();
+    const shell = createMockShell();
+    const instructions = [];
+    for (const plugin of createContentPipelinePlugins()) {
+      instructions.push((await plugin.register(shell)).instructions);
+    }
+    expect(instructions).toEqual([undefined]);
   });
 
   it("describes publishing on publishing_manage", () => {

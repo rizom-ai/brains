@@ -1,19 +1,14 @@
 import { describe, expect, it } from "bun:test";
-import {
-  createMockShell,
-  createServicePluginContext,
-} from "@brains/plugins/test";
+import { createMockShell, type MockShell } from "@brains/plugins/test";
 import type {
   DashboardWidgetProviderContext,
   RuntimeDashboardWidgetData,
-  ServicePluginContext,
 } from "@brains/plugins";
+import type { ServiceRuntime } from "@brains/sdk/internal/service-runtime";
 import { entitySnapshotStore } from "../../src/lib/traffic-capture";
 import { trafficSnapshotAdapter } from "../../src/entity/adapter";
-import {
-  trafficSnapshotSchema,
-  type TrafficDay,
-} from "../../src/entity/schema";
+import type { TrafficDay } from "../../src/entity/schema";
+import { analyticsRuntime, pluginsRegistered } from "../analytics-plugins";
 import { isoWeekOf } from "../../src/lib/iso-week";
 import { createTrafficReports } from "../../src/reports/traffic-reports";
 import { registerTrafficWidget } from "../../src/studio/traffic-widget";
@@ -47,16 +42,20 @@ function day(date: string, pageviews: number): TrafficDay {
   };
 }
 
-async function brain(): Promise<ServicePluginContext> {
-  const context = createServicePluginContext(createMockShell(), "analytics");
-  context.entities.register(
-    "traffic-snapshot",
-    trafficSnapshotSchema,
-    trafficSnapshotAdapter,
-  );
+interface Brain {
+  readonly shell: MockShell;
+  readonly runtime: ServiceRuntime;
+}
+
+async function brain(): Promise<Brain> {
+  const shell = createMockShell();
+  const runtime = await analyticsRuntime(shell);
   // This week 30, the week before 20.
   const days = [day("2026-10-02", 20), day("2026-10-09", 30)];
-  const store = entitySnapshotStore(context.entityService);
+  const store = entitySnapshotStore(
+    runtime.reportEntityService,
+    runtime.entityWrites,
+  );
   for (const d of days) {
     const week = isoWeekOf(d.date);
     const frontmatter = {
@@ -76,24 +75,23 @@ async function brain(): Promise<ServicePluginContext> {
       updated: `${TODAY}T00:00:00.000Z`,
     });
   }
-  return context;
+  return { shell, runtime };
 }
 
-async function registered(
-  context: ServicePluginContext,
-): Promise<WidgetPayload> {
+async function registered({ shell, runtime }: Brain): Promise<WidgetPayload> {
   let payload: WidgetPayload | undefined;
-  context.messaging.subscribe<WidgetPayload, { success: boolean }>(
-    "dashboard:register-widget",
-    async (message) => {
-      payload = message.payload;
-      return { success: true };
-    },
-  );
-  await registerTrafficWidget(
-    context,
-    createTrafficReports({ today: () => TODAY }),
-  );
+  shell
+    .getMessageBus()
+    .subscribe<WidgetPayload, { success: boolean }>(
+      "dashboard:register-widget",
+      async (message) => {
+        payload = message.payload;
+        return { success: true };
+      },
+    );
+  registerTrafficWidget(runtime, createTrafficReports({ today: () => TODAY }));
+  // A first-party service's widget registers once every plugin has.
+  await pluginsRegistered(shell);
   if (!payload) throw new Error("Widget was not registered");
   return payload;
 }

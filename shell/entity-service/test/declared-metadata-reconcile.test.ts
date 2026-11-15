@@ -28,9 +28,8 @@ const guideFields = z.object({
 const guideSchema = baseEntitySchema.extend({ metadata: guideFields });
 type Guide = z.infer<typeof guideSchema>;
 
-/** As a declared type's adapter reads: the body, with frontmatter as metadata. */
-class DeclaredGuideAdapter extends BaseEntityAdapter<Guide, Guide["metadata"]> {
-  public readonly metadataFromFrontmatter = true;
+/** The body, with frontmatter as metadata, from a type that keeps its own. */
+class GuideAdapter extends BaseEntityAdapter<Guide, Guide["metadata"]> {
   constructor() {
     super({
       entityType: "guide",
@@ -51,6 +50,11 @@ class DeclaredGuideAdapter extends BaseEntityAdapter<Guide, Guide["metadata"]> {
   }
 }
 
+/** As a declared type's adapter reads: its metadata is its frontmatter. */
+class DeclaredGuideAdapter extends GuideAdapter {
+  public readonly metadataFromFrontmatter = true;
+}
+
 /** The markdown the class stored: the fields in frontmatter. */
 const CLASS_STORED = "---\nname: House\ntone: plain\n---\nWrite plainly.\n";
 
@@ -69,12 +73,13 @@ interface StoredRow {
 
 async function classWrittenRows(
   rows: Record<string, string>,
+  adapter: GuideAdapter = new DeclaredGuideAdapter(),
 ): Promise<{ service: EntityServiceTestContext; row(id: string): StoredRow }> {
   context = await setupEntityService([
     {
       name: "guide",
       schema: guideSchema,
-      adapter: new DeclaredGuideAdapter(),
+      adapter,
     },
   ]);
   const { entityService, dbConfig } = context;
@@ -124,16 +129,19 @@ async function classWrittenRows(
 }
 
 describe("declared metadata reconciliation", () => {
-  it("reads a class-written row once its metadata is re-derived from its markdown", async () => {
+  it("stores the metadata a class-written row's markdown declares, as reads derive it", async () => {
     const { service, row } = await classWrittenRows({ house: CLASS_STORED });
     const before = row("house");
-    // Unreconciled, the row's empty metadata fails the declared schema.
+    // Unreconciled, a read derives the metadata from the markdown alone.
     expect(
-      await service.entityService.getEntity({
-        entityType: "guide",
-        id: "house",
-      }),
-    ).toBeNull();
+      (
+        await service.entityService.getEntity({
+          entityType: "guide",
+          id: "house",
+        })
+      )?.metadata,
+    ).toEqual({ name: "House", tone: "plain" });
+    expect(row("house")).toEqual(before);
 
     expect(await service.entityService.reconcileDeclaredMetadata()).toEqual({
       reconciled: 1,
@@ -194,5 +202,26 @@ describe("declared metadata reconciliation", () => {
     });
     expect(row("broken")).toMatchObject({ content: broken, metadata: {} });
     expect(row("house").metadata).toEqual({ name: "House", tone: "plain" });
+  });
+});
+
+describe("reads of rows whose metadata fails their schema", () => {
+  it("leave out a type's row when its metadata is not its frontmatter", async () => {
+    const { service, row } = await classWrittenRows(
+      { house: CLASS_STORED },
+      new GuideAdapter(),
+    );
+    const before = row("house");
+
+    expect(
+      await service.entityService.getEntity({
+        entityType: "guide",
+        id: "house",
+      }),
+    ).toBeNull();
+    expect(
+      await service.entityService.listEntities({ entityType: "guide" }),
+    ).toEqual([]);
+    expect(row("house")).toEqual(before);
   });
 });

@@ -7,8 +7,8 @@ In progress. Phases 1, 2 and 4 are built and Phase 3 is built opt-in; Phase 0 ha
 - Embeddings: `embeddingModel` selects `openai:text-embedding-3-small`, `-large` or `local:embeddinggemma-2:270m` (served from `modelRuntime.url`), and the index records its identity and rebuilds on change. The Gemma profile chunks to 2,048 tokens: Ollama serves that context by default and silently truncates longer input on `/v1/embeddings`, ignoring per-request options. Failed embeddings retry on the next start.
 - Text: `model: local:<name>` runs the agent on the runtime's chat API, with object generation constrained to its schema (`supportsStructuredOutputs`); `reasoningEffort` reaches the runtime as `reasoning_effort`, and `none` turns a model's thinking off.
 - Answer model: `answerModel` names a `local:` model that writes while `model` chooses tools: it answers tool results and runs text and object generation (background derivations, drafts). Without it, a local `model` answers tool results with reasoning off. A local text model's searches return five hits of at most 800 characters.
-- Vision model: `visionModel` names a `local:` model that describes uploaded images for a local `model`; the description, cached per image, reaches `model` in place of the image, and without it an image reaches a local `model` as its name and type.
-- No key: a brain whose `model` and `embeddingModel` are both `local:` starts without `AI_API_KEY`; `no-cloud-key-boot.test.ts` boots one against an OpenAI-compatible runtime, indexes and answers a chat turn with no request leaving the runtime.
+- Vision model: `visionModel` names a `local:` model that sees images. For a local `model` that reads only text it describes each upload, and the description, cached per image, reaches `model` in place of the image; a `model` named as `visionModel` too sees images itself. Without it an image reaches a local `model` as its name and type.
+- No key: a brain whose `model` and `embeddingModel` are both `local:` starts without a provider key; `no-cloud-key-boot.test.ts` boots one against an OpenAI-compatible runtime, indexes and answers a chat turn with no request leaving the runtime.
 - Sidecar: naming a `local:` model in `brain.yaml` adds a pinned Ollama `models` accessory, pulls the models before Kamal starts the brain and passes `MODEL_RUNTIME_URL`; `local:` embeddings are priced at zero. No fleet brain has opted in.
 - Images: open. `selectImageProvider` supports a model string, but no config sets `imageModel` (`createAIModelConfig` in `service-config.ts` omits it), so every brain uses `gpt-image-1.5`.
 
@@ -62,7 +62,7 @@ Local chat turns, 2026-11-05, on the separate brain holding the yeehaa rover's 2
 - A turn's cost is generation, not the prompt: Ollama reuses the cached system prompt (17–29 new tokens per first call). On 14B, thinking was 1,100–1,400 tokens per turn at ~20 tokens/s and the search results 6–10k tokens at ~240 tokens/s; the MoE generates at ~55–60 tokens/s with 3B parameters active.
 - Flash attention and a q8 KV cache made no measurable difference on Vulkan. ROCm (`gfx1151`) processes prompts 19–44% faster and generates ~10% slower, so Vulkan stays.
 - With derivations on, the brain is ready 50 s after a clean start; the first boot's derivation backlog then runs about 8.5 minutes, during which chat turns take 43–181 s.
-- The local configuration runs `model: local:qwen3:30b-a3b` and `answerModel: local:qwen3:30b-a3b-instruct-2507-q4_K_M` (each 30.5B total, 3B active, Q4_K_M, 18.6 GB; both fit the Z13 together) with `embeddingModel: local:embeddinggemma-2:270m`. No production brain switches its text model on these numbers.
+- The local configuration runs `model` and `visionModel: local:qwen3.6:35b` (35.5B total, 3B active, Q4_K_M, 23 GB) with `answerModel: local:qwen3:30b-a3b-instruct-2507-q4_K_M` (18.6 GB) and `embeddingModel: local:embeddinggemma-2:270m`; the runtime serves a 32,768-token context. No production brain switches its text model on these numbers.
 
 Agent evals, 2026-11-05 to 2026-11-06, personal suite (33 runs: uploads, long-note edits, verbatim saves), judge `gpt-5.4-mini`, same runtime:
 
@@ -85,6 +85,28 @@ Agent evals, 2026-11-05 to 2026-11-06, personal suite (33 runs: uploads, long-no
 - `gpt-oss:120b`, four times the size, makes the same first attempts: upload saves write `source: { kind: "upload", id }` and edits omit `operation.kind`. Its repairs return no output inside an agent conversation ("the model did not return a response") while the same repair outside one returns the right arguments (4 of 4, 8–23 s); the cause is not found, and no request reached the 32,768-token context. On the headless suite it matches the cloud model alone, at 37 tokens/s and 64.4 GB resident.
 - With #841's shapes (`source: { kind: "upload", id, transform }`, an operation named by its one field) no call fails validation. What fails is choice: 6 edits skip the read the user asked for, 4 image cases need a model that sees images, 2 multi-file saves never call `system_create`, and 2 pick a different operation or transform.
 - `visionModel` describes uploaded images, and the four image cases pass. A Qwen3 thinking turn that settles on a call in its reasoning and stops with no reply is run again with a call required; Ollama ignores `tool_choice: "required"`, so a local model's required step is constrained to a call of one of its tools, and multi-PDF notes passes 3 of 3. What fails: 4 stored-state reads answered from the conversation though the user asks for a read, keep-all saving the Markdown files and leaving the image out (about 1 in 3 passes), a bare label after an image upload acted on, and a link saved from the message instead of its URL.
+
+Agent evals, 2026-11-12 to 2026-11-13, personal suite (31 cases), the runtime serving a 32,768-token context, three runs each:
+
+| Model                                                                                    | Pass (mean)   | Avg duration |
+| ---------------------------------------------------------------------------------------- | ------------- | ------------ |
+| `qwen3:30b-a3b` deciding, instruct-2507 answering, `qwen3-vl:8b` describing              | 24.3/31 (78%) | 36 s         |
+| `qwen3.6:35b` deciding and describing, instruct-2507 answering                           | 26.0/31 (84%) | 67 s         |
+| `qwen3.6:35b` deciding and seeing images itself, instruct-2507 answering                 | 26.0/31 (84%) | 57 s         |
+| the same, after #939–#946                                                                | 27.7/31 (89%) | 52 s         |
+| the same, after #939–#950                                                                | 28.3/31 (91%) | 47 s         |
+| the same, after #952 and #953                                                            | 28.7/31 (93%) | 28 s         |
+| `gemma4:31b` deciding and seeing images itself, instruct-2507 answering, after #939–#950 | 29.7/31 (96%) | 60 s         |
+
+- `qwen3.6:35b` reads stored content when asked (the long-note read-backs 3 of 3 and 3 of 3, against 1 of 3 and 0 of 3), asks what to do with a bare label after an upload (2 of 3, against 0 of 3) and keeps every attached file (2 of 3, against 0 of 3). It saves the upload instead of its summary when "save it" follows a summary (1 of 3 and 0 of 3, against 3 of 3 and 2 of 3).
+- Seeing images itself, `qwen3.6:35b` passes as many cases as describing them first (23, 28 and 27 of 31), saves a call per image and passed "save it" after a summary once. In one run a turn on a solid green image ran past the runtime request's 300-second timeout.
+- The verbatim create and update cases pass 3 of 3 each, against 0 of 3 and 1 of 3, once text pasted between a BEGIN and an END line reaches `qwen3.6:35b` as a ready source, the brain reads two whole marker lines as lines, and a cancelled proposal reaches the model with its call, which a request made again repeats.
+- A save naming no upload right after an answer is offered only that answer: `qwen3.6:35b` saves the summary on "save it" 2 of 3 times, against 1 of 6, and the other upload saves pass 3 of 3.
+- After #939–#946 the suite passes 29, 29 and 25 of 31. What still fails: a bare label after an image upload, where the reply judge read an offer to save as a claim of saving (0 of 3); a turn past the 300-second request timeout; a re-sent image the model says it cannot see; keep-all asked about in prose instead of called; and a read-only PDF summary that says "saved as".
+- After #939–#950 `qwen3.6:35b` passes 27, 29 and 29 of 31. What fails is its own choice: a tiny fixture image read as another color or not seen, an image described instead of saved, a bare label saved, link fields invented; and a body-only read of a correctly stored note, which the case checked through the read rather than the stored record.
+- `gemma4:31b` (31B dense, 19–20 GB) passes 29, 30 and 30 of 31, with no runtime crashes. On the ten cases `qwen3.6:35b` fails most it passes 18 of 20, against 20 of 30. Keep-all fails in all three runs: the save leaves the image out.
+- At its default 262,144-token context, `qwen3.6:35b` ran the GPU out of memory (`vk::DeviceLostError`) 13 times in one run; the deploy's `OLLAMA_CONTEXT_LENGTH: 32768` prevents it. With the cap, `qwen3:30b-a3b` also passed one case more.
+- Two measures against the Qwen3 model's choices did not pay: reading each turn's intent first, to withhold tools that write and require a read, took the suite from 23 to 8 of 31, since the classifier marked explicit saves as asking no change; hiding an update's quote of what it stored left the read-back cases skipping the read (2 of 9).
 
 ## Goal
 
@@ -138,5 +160,5 @@ Build:
 ## Validation
 
 - Phase 0: the embedding table carries the non-Gemma row, the eval tables carry the local candidates and the laptop duration, and the no-key boot test passes.
-- Test bed: the separate brain on the Z13, holding only the rover's public entities, boots with every model `local:` and no `AI_API_KEY`; readiness reaches ready, and the headless and personal suites pass at the cloud model's rate.
+- Test bed: the separate brain on the Z13, holding only the rover's public entities, boots with every model `local:` and no provider key; readiness reaches ready, and the headless and personal suites pass at the cloud model's rate.
 - Phase 3: readiness reaches ready and search smoke queries pass on the smoke rover, then rizom.ai.

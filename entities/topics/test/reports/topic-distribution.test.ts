@@ -8,7 +8,7 @@ import {
 import type { BaseEntity, ContentVisibility } from "@brains/plugins";
 import { generateIdFromText } from "@brains/utils/string-utils";
 
-import { TopicAdapter } from "../../src/lib/topic-adapter";
+import { topicDocument } from "../../src/lib/topic-document";
 import { countTopicSources } from "../../src/lib/topic-source-counts";
 import { isTopicSourceEligible } from "../../src/lib/topic-source-policy";
 import {
@@ -30,7 +30,7 @@ const coverageSchema = z.object({
 const PROMPT = "votes-prompt";
 const config = topicsPluginConfigSchema.parse({});
 
-const adapter = new TopicAdapter();
+const adapter = topicDocument;
 
 /** The report's handler, called as the registry calls it. */
 function runReport(
@@ -166,6 +166,30 @@ describe("topic-distribution report", () => {
     expect(getTopicDistribution(result)).toEqual([
       { topic: "education", title: "Education", sources: 0 },
       { topic: "typescript", title: "TypeScript", sources: 0 },
+    ]);
+  });
+
+  it("lists topics with the same support and title in store order, newest first", async () => {
+    const shell = topicShell([
+      makeTopicEntity(
+        "learning-b",
+        "Learning",
+        "public",
+        "2026-02-01T00:00:00.000Z",
+      ),
+      makeTopicEntity(
+        "learning-a",
+        "Learning",
+        "public",
+        "2026-01-01T00:00:00.000Z",
+      ),
+    ]);
+
+    const result = await runReport(options)(shell.getEntityService(), "public");
+
+    expect(getTopicDistribution(result).map((entry) => entry.topic)).toEqual([
+      "learning-b",
+      "learning-a",
     ]);
   });
 

@@ -1,19 +1,22 @@
-import type { Tool } from "@brains/plugins";
-import { ServicePlugin } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
+import { defineServicePlugin, z } from "@brains/sdk/services";
+import type { ServicePackageDefinition } from "@brains/sdk/services";
+import {
+  serviceRuntime,
+  withJobHandlers,
+  withTools,
+} from "@brains/sdk/internal/service-runtime";
+import { fetchImageAsBase64 } from "@brains/image";
 import { UnsplashClient } from "./lib/unsplash-client";
 import { createStockPhotoTools } from "./tools";
-import { SelectPhotoJobHandler } from "./handlers/select-photo-handler";
-import { fetchImageAsBase64 } from "@brains/image";
-import type { FetchFn, FetchImageFn } from "./lib/types";
-import packageJson from "../package.json";
+import { selectPhotoJob } from "./handlers/select-photo-handler";
+import type { FetchFn, FetchImageFn, StockPhotoProvider } from "./lib/types";
 
 export interface StockPhotoDeps {
   fetch?: FetchFn;
   fetchImage?: FetchImageFn;
 }
 
-const stockPhotoConfigSchema: z.ZodObject<{
+export const stockPhotoConfigSchema: z.ZodObject<{
   provider: z.ZodDefault<z.ZodEnum<{ unsplash: "unsplash" }>>;
   apiKey: z.ZodOptional<z.ZodString>;
 }> = z.object({
@@ -21,63 +24,66 @@ const stockPhotoConfigSchema: z.ZodObject<{
   apiKey: z.string().optional().describe("Stock photo provider API key"),
 });
 
-type StockPhotoConfig = z.output<typeof stockPhotoConfigSchema>;
-type StockPhotoConfigInput = z.input<typeof stockPhotoConfigSchema>;
+export type StockPhotoConfig = z.output<typeof stockPhotoConfigSchema>;
+export type StockPhotoConfigInput = z.input<typeof stockPhotoConfigSchema>;
 
-export class StockPhotoPlugin extends ServicePlugin<
-  StockPhotoConfig,
-  StockPhotoConfigInput
-> {
-  private readonly deps: StockPhotoDeps;
-  private cachedTools: Tool[] | null = null;
-
-  constructor(config: StockPhotoConfigInput = {}, deps: StockPhotoDeps = {}) {
-    super("stock-photo", packageJson, config, stockPhotoConfigSchema);
-    this.deps = deps;
-  }
-
-  protected override async getTools(): Promise<Tool[]> {
-    if (!this.config.apiKey) return [];
-    if (this.cachedTools) return this.cachedTools;
-
-    const context = this.getContext();
-    const provider = this.createProvider();
-
-    this.cachedTools = createStockPhotoTools(this.id, {
-      provider,
-      entityService: context.entityService,
-      fetchImage: this.deps.fetchImage ?? fetchImageAsBase64,
-      jobs: context.jobs,
-    });
-
-    return this.cachedTools;
-  }
-
-  protected override async registerJobHandlers(): Promise<void> {
-    if (!this.config.apiKey) return;
-
-    const context = this.getContext();
-    context.jobs.registerHandler(
-      "select-photo",
-      new SelectPhotoJobHandler(this.logger.child("SelectPhotoJobHandler"), {
-        provider: this.createProvider(),
-        entityService: context.entityService,
-        fetchImage: this.deps.fetchImage ?? fetchImageAsBase64,
-      }),
-    );
-  }
-
-  private createProvider(): UnsplashClient {
-    return new UnsplashClient(
-      this.config.apiKey ?? "",
-      this.deps.fetch ?? globalThis.fetch,
-    );
-  }
+/** What the package holds once set up: no provider without an API key. */
+interface StockPhotoState {
+  readonly provider: StockPhotoProvider | undefined;
+  readonly fetchImage: FetchImageFn;
 }
 
-export function stockPhotoPlugin(
-  config: StockPhotoConfigInput = {},
+/**
+ * Stock photo search and selection. Search asks the provider; select
+ * queues the job that tracks the download, stores the photo as an image
+ * and sets it as a target's cover. Without an API key it offers neither.
+ */
+export function createStockPhotoPackage(
   deps: StockPhotoDeps = {},
-): StockPhotoPlugin {
-  return new StockPhotoPlugin(config, deps);
+): ServicePackageDefinition<typeof stockPhotoConfigSchema> {
+  const service = defineServicePlugin({
+    id: "stock-photo",
+    config: stockPhotoConfigSchema,
+    setup: ({ config }): StockPhotoState => ({
+      provider: config.apiKey
+        ? new UnsplashClient(config.apiKey, deps.fetch ?? globalThis.fetch)
+        : undefined,
+      fetchImage: deps.fetchImage ?? fetchImageAsBase64,
+    }),
+  });
+  return withTools<typeof stockPhotoConfigSchema, StockPhotoState>(
+    withJobHandlers<typeof stockPhotoConfigSchema, StockPhotoState>(
+      service,
+      (context) => {
+        const { provider, fetchImage } = context.state;
+        if (!provider) return [];
+        const runtime = serviceRuntime(context);
+        return [
+          selectPhotoJob({
+            provider,
+            fetchImage,
+            entityService: {
+              getEntity: runtime.entityReads.getEntity,
+              ...runtime.entityWrites,
+            },
+          }),
+        ];
+      },
+    ),
+    (context) => {
+      const { provider, fetchImage } = context.state;
+      if (!provider) return [];
+      const runtime = serviceRuntime(context);
+      return createStockPhotoTools("stock-photo", {
+        provider,
+        entityService: {
+          listEntities: runtime.entityReads.listEntities,
+          getEntity: runtime.entityReads.getEntity,
+          ...runtime.entityWrites,
+        },
+        fetchImage,
+        jobs: runtime.jobs,
+      });
+    },
+  );
 }

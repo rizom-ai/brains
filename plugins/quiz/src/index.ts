@@ -1,12 +1,12 @@
-import type { QuizPluginConfig } from "./config";
-import { QuizResultPlugin } from "./entity/plugin";
-import { QuizPlugin } from "./plugin";
+import { formPackageDependencies } from "@brains/forms";
+import { createQuizPackage } from "./plugin";
 
 export { quizPluginConfigSchema } from "./config";
 export type { QuizPluginConfig } from "./config";
-export { QuizPlugin, QuizResultPlugin };
+export { createQuizPackage } from "./plugin";
+export { quizResultEntity } from "./entity/quiz-result-entity";
 export { quizResultTarget } from "./target";
-export { QuizResultAdapter, quizResultAdapter } from "./entity/adapter";
+export { quizResultAdapter } from "./entity/adapter";
 export {
   quizResultFrontmatterSchema,
   quizResultMetadataSchema,
@@ -18,9 +18,12 @@ export type {
   QuizResultMetadata,
 } from "./entity/schema";
 
-/** Quizzes come with their results' type; no bundle brings them. */
-export function quizPlugin(
-  config: QuizPluginConfig = {},
-): [QuizResultPlugin, QuizPlugin] {
-  return [new QuizResultPlugin(), new QuizPlugin(config)];
-}
+/** Quizzes with their results' type, as a brain composes them; no bundle
+ * brings them. */
+const quizPackage: ReturnType<typeof createQuizPackage> = createQuizPackage();
+export default quizPackage;
+
+/** The plugins the quiz service registers after, as its class declared. */
+export const QUIZ_DEPENDENCIES: readonly string[] = Object.freeze(
+  formPackageDependencies("quiz-result"),
+);

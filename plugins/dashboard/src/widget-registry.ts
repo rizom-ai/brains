@@ -1,12 +1,12 @@
 import {
   DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
-  PermissionService,
-  UserPermissionLevelSchema,
   dashboardDigestLineSchema as shellDashboardDigestLineSchema,
   type DashboardDigestLine,
   type DashboardWidgetProviderContext,
   type DashboardWidgetRenderer,
-} from "@brains/plugins";
+  hasPermission,
+} from "@brains/sdk/internal/service-runtime";
+import { UserPermissionLevelSchema } from "@brains/sdk/interfaces";
 import type { Logger } from "@brains/utils/logger";
 import type { JSX } from "react";
 import { z } from "@brains/utils/zod";
@@ -184,9 +184,7 @@ export class DashboardWidgetRegistry {
       .filter(
         (widget) => !resolved.section || widget.section === resolved.section,
       )
-      .filter((widget) =>
-        PermissionService.hasPermission(permissionLevel, widget.visibility),
-      )
+      .filter((widget) => hasPermission(permissionLevel, widget.visibility))
       .sort((a, b) => a.priority - b.priority);
   }
 

@@ -39,8 +39,8 @@ focus and stale-item alerts. It is **not** a task manager, **not** a CRM, and
   and [lead-management.md](./lead-management.md) consolidates them into `lead`-state
   opportunities. The two services share only the entity package and never reference
   each other.
-- **Reference patterns to copy** (all `EntityPlugin`-based): `entities/wishlist`
-  (enum status/priority, `interceptCreate` semantic dedup, `ListWidget`),
+- **Reference patterns to copy** (all entity packages): `entities/wishlist`
+  (enum status/priority, create-route semantic dedup, `ListWidget`),
   `entities/assessment` (derived regeneration, React widget, `derive` job handler),
   `entities/agent-discovery` (status lifecycle, `BaseEntityDataSource`, list/detail
   templates, rich `getInstructions()`).

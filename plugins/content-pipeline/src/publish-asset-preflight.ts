@@ -1,4 +1,4 @@
-import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
 import { frontmatterRecordFields } from "@brains/contracts";
 import { isRecord } from "@brains/utils/is-record";
 import type { RetryScope } from "@brains/utils/retry-backoff";
@@ -9,6 +9,7 @@ import {
   type PublishAssetTargetField,
 } from "@brains/contracts";
 import type { PublishAssetRegistry } from "./publish-assets";
+import type { PipelineContext } from "./lib/pipeline-context";
 
 export interface PublishAssetPreflightResult {
   checked: number;
@@ -18,7 +19,7 @@ export interface PublishAssetPreflightResult {
 
 export interface PublishAssetPreflightDeps {
   context: Pick<
-    ServicePluginContext,
+    PipelineContext,
     "attachments" | "entityService" | "jobs" | "logger"
   >;
   registry: PublishAssetRegistry;

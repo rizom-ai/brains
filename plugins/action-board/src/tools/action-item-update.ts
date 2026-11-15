@@ -1,9 +1,9 @@
 import {
   permissionToVisibilityScope,
-  type ServicePluginContext,
   type Tool,
   type ToolResponse,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/service-runtime";
+import type { BoardContext } from "../board-context";
 import { slugify } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import { ACTION_ITEM_ENTITY_TYPE } from "@brains/action-items";
@@ -37,7 +37,7 @@ type ActionItem = z.output<typeof actionItemSchema>;
  * card. Two visible cards with that title are a question, not a guess.
  */
 async function findCard(
-  entityService: ServicePluginContext["entityService"],
+  entityService: BoardContext["entityService"],
   identifier: string,
   visibilityScope: ReturnType<typeof permissionToVisibilityScope>,
 ): Promise<ActionItem | string> {
@@ -71,7 +71,7 @@ async function findCard(
  * in chat is recorded under the same person as one made on the board.
  */
 export function createActionItemUpdateTool(
-  context: Pick<ServicePluginContext, "entityService">,
+  context: Pick<BoardContext, "entityService">,
   now: () => Date = (): Date => new Date(),
 ): Tool {
   return {

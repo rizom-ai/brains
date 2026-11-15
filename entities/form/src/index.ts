@@ -1,116 +1,105 @@
 import {
   formFrontmatterSchema,
   parseFormMarkdown,
-  type FormFrontmatter,
+  withoutEmptyPath,
 } from "@brains/forms";
 import {
-  BaseEntityAdapter,
-  EntityPlugin,
-  baseEntityParserSchema,
-  emptyEntityPluginConfigSchema,
-  type EntityPluginContext,
-  type EntityTypeConfig,
-} from "@brains/plugins";
-import { z } from "@brains/utils/zod";
-import packageJson from "../package.json";
+  defineEntity,
+  defineEntityPackage,
+  z,
+  type EntityDefinition,
+  type EntityPackageDefinition,
+} from "@brains/sdk/entities";
+import {
+  storedDocumentCodec,
+  withFrontmatterSchema,
+  withPersistValidator,
+  writesInDocumentOrder,
+} from "@brains/sdk/internal/entity-runtime";
 
 type FormMetadataSchema = z.ZodObject<{
   title: z.ZodString;
   target: z.ZodString;
-  path: z.ZodString;
+  path: z.ZodOptional<z.ZodString>;
 }>;
-/** What forms are found by: the type their submissions become, and where. */
+/** What forms are found by: the type their submissions become, and where,
+ * when the form names its path. A form that names none is served beneath
+ * /forms; an empty path is none. */
 export const formMetadataSchema: FormMetadataSchema = z.object({
   title: z.string(),
   target: z.string(),
-  path: z.string(),
+  path: z.string().min(1).optional(),
 });
 export type FormMetadata = z.output<typeof formMetadataSchema>;
 
-export const formEntitySchema: ReturnType<
-  typeof baseEntityParserSchema.extend<{
-    entityType: z.ZodLiteral<"form">;
-    metadata: FormMetadataSchema;
-  }>
-> = baseEntityParserSchema.extend({
-  entityType: z.literal("form"),
-  metadata: formMetadataSchema,
+// A form reads as its stored document, metadata what it is found by. The
+// class wrote its body from the line under its header; the codec stays the
+// one storedDocumentCodec made, which is what reads as written. A form
+// stored with an empty path reads as one without a path.
+const storedForm = storedDocumentCodec<
+  typeof formFrontmatterSchema,
+  typeof formMetadataSchema
+>({
+  header: formFrontmatterSchema,
+  deriveMetadata: ({ title, target, path }) => ({
+    title,
+    target,
+    ...(path !== undefined && { path }),
+  }),
+  readAsWritten: true,
 });
-export type FormEntity = z.output<typeof formEntitySchema>;
+const storedDecode = storedForm.decode;
+Object.assign(storedForm, {
+  decode: (document: Parameters<typeof storedDecode>[0]) =>
+    storedDecode({
+      ...document,
+      frontmatter: withoutEmptyPath(document.frontmatter),
+      content: document.content.replace(/^\n+/u, ""),
+    }),
+});
 
-export class FormAdapter extends BaseEntityAdapter<
-  FormEntity,
-  FormMetadata,
-  FormFrontmatter
-> {
-  constructor() {
-    super({
-      entityType: "form",
-      purpose:
-        "A public form on the brain's site: its fields, copy and what its submissions become. Served by the package that stores them; never knowledge or model input.",
-      schema: formEntitySchema,
-      frontmatterSchema: formFrontmatterSchema,
-      hasBody: true,
-    });
-  }
+/**
+ * The `form` type. A form is served by the package its target belongs to;
+ * installing this alone serves nothing. The forms engine parses a form's
+ * whole document, its steps, copy and scoring, so a form reads as its
+ * stored document, as the class read it, and metadata indexes only what it
+ * is found by. A write keeps the header in the order of the file it
+ * replaces. A form the engine would not run, or whose id is not a slug, is
+ * refused before it is stored.
+ */
+export const form: EntityDefinition<"form", typeof formMetadataSchema> =
+  writesInDocumentOrder(
+    withFrontmatterSchema(
+      withPersistValidator(
+        defineEntity({
+          type: "form",
+          purpose:
+            "A public form on the brain's site: its fields, copy and what its submissions become. Served by the package that stores them; never knowledge or model input.",
+          metadata: formMetadataSchema,
+          hasBody: true,
+          markdown: storedForm,
+          config: {
+            embeddable: false,
+            fullTextSearchable: false,
+            projectionSource: false,
+            projectionSourceRole: "excluded",
+          },
+        }),
+        ({ id, content }) => {
+          try {
+            parseFormMarkdown(id, content);
+          } catch {
+            // The engine says why on import; never echo the definition here.
+            throw new Error("Invalid form");
+          }
+        },
+      ),
+      formFrontmatterSchema,
+    ),
+  );
 
-  fromMarkdown(markdown: string): Partial<FormEntity> {
-    const frontmatter = this.parseFrontMatter(markdown, formFrontmatterSchema);
-    return {
-      entityType: "form",
-      content: markdown,
-      metadata: {
-        title: frontmatter.title,
-        target: frontmatter.target,
-        path: frontmatter.path ?? "",
-      },
-    };
-  }
-}
-export const formAdapter: FormAdapter = new FormAdapter();
+/** The form type, as one package. */
+export const formPackage: EntityPackageDefinition<readonly [typeof form]> =
+  defineEntityPackage({ id: "form", entities: [form] });
 
-/** The `form` type. A form is served by the package its target belongs to;
- * installing this alone serves nothing. */
-export class FormEntityPlugin extends EntityPlugin<
-  FormEntity,
-  Record<string, never>,
-  Record<string, never>
-> {
-  readonly entityType = "form" as const;
-  readonly schema: typeof formEntitySchema = formEntitySchema;
-  readonly adapter: FormAdapter = formAdapter;
-
-  constructor() {
-    super("form", packageJson, {}, emptyEntityPluginConfigSchema);
-  }
-
-  protected override getEntityTypeConfig(): EntityTypeConfig {
-    return {
-      embeddable: false,
-      fullTextSearchable: false,
-      projectionSource: false,
-      projectionSourceRole: "excluded",
-    };
-  }
-
-  protected override async onRegister(
-    context: EntityPluginContext,
-  ): Promise<void> {
-    await super.onRegister(context);
-    context.entities.registerPersistValidator(
-      this.entityType,
-      async (entity) => {
-        try {
-          parseFormMarkdown(entity.id, entity.content);
-        } catch {
-          // The engine says why on import; never echo the definition here.
-          throw new Error("Invalid form");
-        }
-      },
-    );
-  }
-}
-
-export function formPlugin(): FormEntityPlugin {
-  return new FormEntityPlugin();
-}
+export default formPackage;

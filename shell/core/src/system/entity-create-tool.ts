@@ -21,6 +21,7 @@ import {
   freezeUserMessageSource,
   resolveConversationMessageContent,
   type ConversationMessageRef,
+  type UserMessageSource,
 } from "./conversation-message-source";
 import type { SystemServices } from "./types";
 import {
@@ -206,6 +207,7 @@ async function resolveEntitySource(
 function freezeConfirmationSource(input: {
   source: PreferredCreateSource;
   resolvedMessageId?: string;
+  resolvedUserSource?: UserMessageSource;
   resolvedEntity?: EntitySourceRef;
   content?: string;
 }): PreferredCreateSource {
@@ -218,6 +220,7 @@ function freezeConfirmationSource(input: {
     return freezeUserMessageSource(input.source, {
       messageId: input.resolvedMessageId,
       content: input.content,
+      ...(input.resolvedUserSource && { source: input.resolvedUserSource }),
     });
   }
   if (input.source.kind === "prior-response") {
@@ -332,6 +335,7 @@ async function executeDirectCreate(
 interface PreparedCreate {
   createInput: CreateInput;
   resolvedMessageId: string | undefined;
+  resolvedUserSource: UserMessageSource | undefined;
   /** The source to confirm when a retry saves text pinned by an earlier question. */
   pinnedSource?: PreferredCreateSource;
   resolvedEntity?: EntitySourceRef;
@@ -370,6 +374,7 @@ interface ResolvedCreateSource {
   uploadRef: NormalizedCreateSource["uploadRef"];
   transform: NormalizedCreateSource["transform"];
   resolvedMessageId: string | undefined;
+  resolvedUserSource: UserMessageSource | undefined;
   /** The existing entity whose text is the source, when it is one. */
   entitySource: ResolvedEntitySource | undefined;
 }
@@ -430,6 +435,8 @@ async function resolveCreateSource(
         resolvedMessage?.success === true
           ? resolvedMessage.messageId
           : undefined,
+      resolvedUserSource:
+        resolvedMessage?.success === true ? resolvedMessage.source : undefined,
       entitySource: entitySource?.value,
     },
   };
@@ -518,8 +525,13 @@ async function resolveUploadSource(
     uploadRecord.mediaType,
   );
   if (!registration) {
+    // Name the way out: told only that nothing preserves a text upload, a
+    // model asked the user instead of importing it as a note.
+    const asNote = isTextUploadMediaType(uploadRecord.mediaType)
+      ? ' Keep a text upload as a note: entityType "note" with transform "extract-markdown".'
+      : "";
     return guardError(
-      `No installed plugin can save uploads with media type "${uploadRecord.mediaType}".`,
+      `No installed plugin can save uploads with media type "${uploadRecord.mediaType}".${asNote}`,
     );
   }
 
@@ -765,12 +777,19 @@ async function prepareCreate(
           uploadRef: undefined,
           transform: undefined,
           resolvedMessageId: undefined,
+          resolvedUserSource: undefined,
           entitySource: undefined,
         },
       }
     : resolvedSource;
   if (source.kind === "error") return source;
-  const { url, uploadRef, resolvedMessageId, entitySource } = source.value;
+  const {
+    url,
+    uploadRef,
+    resolvedMessageId,
+    resolvedUserSource,
+    entitySource,
+  } = source.value;
   const retry =
     unresolvedRetry ??
     (pendingKey
@@ -889,6 +908,7 @@ async function prepareCreate(
         : freezeConfirmationSource({
             source: input.source,
             ...(resolvedMessageId && { resolvedMessageId }),
+            ...(resolvedUserSource && { resolvedUserSource }),
             ...(entitySource && { resolvedEntity: entitySource.ref }),
             ...(content !== undefined ? { content } : {}),
           });
@@ -920,6 +940,7 @@ async function prepareCreate(
     prepared: {
       createInput,
       resolvedMessageId,
+      resolvedUserSource,
       ...(retry.kind === "pinned" && { pinnedSource: retry.source }),
       ...(entitySource && { resolvedEntity: entitySource.ref }),
       interceptor,
@@ -1122,6 +1143,7 @@ export function createEntityCreateTool(services: SystemServices): Tool {
       const { createInput } = prep.prepared;
       const {
         resolvedMessageId,
+        resolvedUserSource,
         pinnedSource,
         resolvedEntity,
         uploadPreserve,
@@ -1154,6 +1176,7 @@ export function createEntityCreateTool(services: SystemServices): Tool {
           freezeConfirmationSource({
             source: input.source,
             ...(resolvedMessageId && { resolvedMessageId }),
+            ...(resolvedUserSource && { resolvedUserSource }),
             ...(resolvedEntity && { resolvedEntity }),
             ...(createInput.content !== undefined
               ? { content: createInput.content }

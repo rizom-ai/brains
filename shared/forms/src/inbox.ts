@@ -1,24 +1,21 @@
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
 import {
+  type InboxActor,
+  type InboxItem,
+  type InboxItemDetail,
+  type InboxSource,
   internalFullScope,
   permissionToVisibilityScope,
-} from "@brains/plugins";
-import type {
-  BaseEntity,
-  InboxActor,
-  InboxItem,
-  InboxItemDetail,
-  InboxSource,
-  ServicePluginContext,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/service-runtime";
+import type { ServicePermissions } from "@brains/sdk/internal/service-runtime";
+import type { FormEntityService } from "./records";
 import type { FormInbox, FormInboxTarget } from "./target";
 
 /** What the source reads and writes through. */
-export type FormInboxContext = Pick<ServicePluginContext, "entityService"> & {
-  permissions: Pick<
-    ServicePluginContext["permissions"],
-    "assertEntityActionAllowed"
-  >;
-};
+export interface FormInboxContext {
+  entityService: FormEntityService;
+  permissions: ServicePermissions;
+}
 
 const MARK_HANDLED = "mark-handled";
 

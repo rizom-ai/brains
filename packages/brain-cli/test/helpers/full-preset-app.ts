@@ -33,7 +33,7 @@ export function createFullPresetApp(
 ): App {
   const config = resolve(
     canonicalBrain,
-    { AI_API_KEY: "test-key" },
+    { OPENAI_API_KEY: "test-key" },
     parseInstanceOverrides(presetYaml),
   );
   return App.create({

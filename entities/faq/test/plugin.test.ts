@@ -12,7 +12,7 @@ import {
   refuseEnqueues,
 } from "@brains/plugins/test";
 import { createSilentLogger, waitUntil } from "@brains/test-utils";
-import { FaqPlugin } from "../src";
+import { createFaqPlugins } from "./faq-plugins";
 
 /** What the embedding job announces once an entity's embedding is stored. */
 function embeddingReady(
@@ -26,14 +26,15 @@ function embeddingReady(
   };
 }
 
-describe("FaqPlugin", () => {
+describe("the faq package", () => {
   let harness: ReturnType<typeof createPluginHarness>;
 
   beforeEach(async () => {
     harness = createPluginHarness({
       dataDir: `/tmp/test-faq-plugin-${randomUUID()}`,
     });
-    await harness.installPlugin(new FaqPlugin());
+    for (const plugin of createFaqPlugins())
+      await harness.installPlugin(plugin);
   });
 
   async function addMessage(
@@ -76,7 +77,8 @@ describe("FaqPlugin", () => {
     const off = createPluginHarness({
       dataDir: `/tmp/test-faq-plugin-off-${randomUUID()}`,
     });
-    await off.installPlugin(new FaqPlugin({ enabled: false }));
+    for (const plugin of createFaqPlugins({ enabled: false }))
+      await off.installPlugin(plugin);
     const response: unknown = await off.sendMessage(askedBeforeContract.name, {
       question: "How does Rizom keep memory?",
     });
@@ -157,14 +159,15 @@ describe("FaqPlugin", () => {
   });
 });
 
-describe("FaqPlugin refused enqueues", () => {
+describe("the faq package refused enqueues", () => {
   // The job queue refuses an enqueue while another process holds its write
   // lock; a capture or fold dropped then would never be made.
   it("queues a capture the queue refused once it admits it", async () => {
     const harness = createPluginHarness({
       dataDir: `/tmp/test-faq-plugin-${randomUUID()}`,
     });
-    await harness.installPlugin(new FaqPlugin());
+    for (const plugin of createFaqPlugins())
+      await harness.installPlugin(plugin);
     const queue = harness.getMockShell().getJobQueueService();
     const refusals = refuseEnqueues(queue, 1);
 
@@ -191,7 +194,8 @@ describe("FaqPlugin refused enqueues", () => {
     const harness = createPluginHarness({
       dataDir: `/tmp/test-faq-plugin-${randomUUID()}`,
     });
-    await harness.installPlugin(new FaqPlugin());
+    for (const plugin of createFaqPlugins())
+      await harness.installPlugin(plugin);
     const queue = harness.getMockShell().getJobQueueService();
     refuseEnqueues(queue, 1);
 
@@ -215,7 +219,8 @@ describe("FaqPlugin refused enqueues", () => {
     const harness = createPluginHarness({
       dataDir: `/tmp/test-faq-plugin-${randomUUID()}`,
     });
-    await harness.installPlugin(new FaqPlugin());
+    for (const plugin of createFaqPlugins())
+      await harness.installPlugin(plugin);
     const queue = harness.getMockShell().getJobQueueService();
     const refusals = refuseEnqueues(queue, Number.POSITIVE_INFINITY);
 
@@ -236,12 +241,13 @@ describe("FaqPlugin refused enqueues", () => {
   });
 });
 
-describe("FaqPlugin site surface", () => {
+describe("the faq package site surface", () => {
   it("keeps FAQs out of broad searches, so answers never cite them as sources", async () => {
     const harness = createPluginHarness({
       dataDir: `/tmp/test-faq-plugin-${randomUUID()}`,
     });
-    await harness.installPlugin(new FaqPlugin());
+    for (const plugin of createFaqPlugins())
+      await harness.installPlugin(plugin);
 
     expect(
       harness.getEntityRegistry().getEntityTypeConfig("faq"),
@@ -252,7 +258,8 @@ describe("FaqPlugin site surface", () => {
     const harness = createPluginHarness({
       dataDir: `/tmp/test-faq-plugin-${randomUUID()}`,
     });
-    await harness.installPlugin(new FaqPlugin());
+    for (const plugin of createFaqPlugins())
+      await harness.installPlugin(plugin);
 
     expect(
       harness.getEntityRegistry().getEntityTypeConfig("faq"),
@@ -263,7 +270,8 @@ describe("FaqPlugin site surface", () => {
     const harness = createPluginHarness({
       dataDir: `/tmp/test-faq-plugin-${randomUUID()}`,
     });
-    await harness.installPlugin(new FaqPlugin());
+    for (const plugin of createFaqPlugins())
+      await harness.installPlugin(plugin);
 
     expect(
       harness.getEntityRegistry().getEntityTypeConfig("faq").publish,
@@ -274,7 +282,8 @@ describe("FaqPlugin site surface", () => {
     const harness = createPluginHarness({
       dataDir: `/tmp/test-faq-plugin-${randomUUID()}`,
     });
-    await harness.installPlugin(new FaqPlugin());
+    for (const plugin of createFaqPlugins())
+      await harness.installPlugin(plugin);
 
     const templates = [...harness.getTemplates().keys()];
     expect(templates.some((name) => name.endsWith("faq-section"))).toBe(true);
@@ -283,12 +292,13 @@ describe("FaqPlugin site surface", () => {
   });
 });
 
-describe("FaqPlugin disabled", () => {
+describe("the faq package disabled", () => {
   it("queues nothing when capture is disabled", async () => {
     const harness = createPluginHarness({
       dataDir: `/tmp/test-faq-plugin-${randomUUID()}`,
     });
-    await harness.installPlugin(new FaqPlugin({ enabled: false }));
+    for (const plugin of createFaqPlugins({ enabled: false }))
+      await harness.installPlugin(plugin);
 
     await harness.sendMessage(CONVERSATION_MESSAGE_ADDED_CHANNEL, {
       conversationId: "conv-1",
@@ -310,7 +320,8 @@ describe("FaqPlugin disabled", () => {
     const harness = createPluginHarness({
       dataDir: `/tmp/test-faq-plugin-${randomUUID()}`,
     });
-    await harness.installPlugin(new FaqPlugin({ enabled: false }));
+    for (const plugin of createFaqPlugins({ enabled: false }))
+      await harness.installPlugin(plugin);
 
     await harness.sendMessage(CONVERSATION_GUEST_MESSAGE_ADDED_CHANNEL, {
       conversationId: "guest-1",
@@ -327,12 +338,13 @@ describe("FaqPlugin disabled", () => {
   });
 });
 
-describe("FaqPlugin reconciliation", () => {
+describe("the faq package reconciliation", () => {
   it("queues a reconcile when a FAQ's embedding is ready, and only then", async () => {
     const harness = createPluginHarness({
       dataDir: `/tmp/test-faq-plugin-${randomUUID()}`,
     });
-    await harness.installPlugin(new FaqPlugin());
+    for (const plugin of createFaqPlugins())
+      await harness.installPlugin(plugin);
 
     await harness.sendMessage(
       "entity:embedding:ready",
@@ -355,7 +367,7 @@ describe("FaqPlugin reconciliation", () => {
   });
 });
 
-describe("FaqPlugin evals", () => {
+describe("the faq package evals", () => {
   it("registers the classifyExchange and sameQuestion eval handlers", async () => {
     const harness = createPluginHarness({
       dataDir: `/tmp/test-faq-plugin-${randomUUID()}`,
@@ -368,7 +380,8 @@ describe("FaqPlugin evals", () => {
       registrations.push(`${pluginId}:${handlerId}`);
     };
 
-    await harness.installPlugin(new FaqPlugin());
+    for (const plugin of createFaqPlugins())
+      await harness.installPlugin(plugin);
 
     expect(registrations.sort()).toEqual([
       "faq:classifyExchange",
@@ -382,7 +395,8 @@ describe("FaqPlugin evals", () => {
       logger: createSilentLogger("faq-worker-test"),
       dataDir: `/tmp/test-faq-worker-${randomUUID()}`,
     });
-    await new FaqPlugin().register(shell, { executionOnly: true });
+    for (const plugin of createFaqPlugins())
+      await plugin.register(shell, { executionOnly: true });
 
     await shell.getMessageBus().send({
       type: "entity:embedding:ready",

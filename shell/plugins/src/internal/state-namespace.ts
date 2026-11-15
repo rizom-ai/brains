@@ -1,6 +1,16 @@
 import { z } from "@brains/utils/zod";
 import type { IRuntimeStateNamespace } from "@brains/runtime-state";
-import type { ServiceSetupContext } from "../service/service-definition-contract";
+import type {
+  ServiceRuntimeState,
+  ServiceRuntimeStateOptions,
+  ServiceSetupContext,
+} from "../service/service-definition-contract";
+import {
+  assertSharedStateOwner,
+  isSharedState,
+  sharedStateNamespace,
+  type SharedState,
+} from "../public/shared-state";
 
 const stateOwnerSchema = z
   .string()
@@ -36,15 +46,27 @@ export function stateNamespaceFor(
 /**
  * The `runtimeState` a package's `setup` is given: stores under namespaces
  * local to the package, qualified by its name, the one owner identity every
- * family keeps its state under.
+ * family keeps its state under, and the shared records the package owns.
  */
 export function packageRuntimeState(
   runtimeState: IRuntimeStateNamespace,
   packageName: string,
 ): ServiceSetupContext<unknown>["runtimeState"] {
-  return (options) =>
-    runtimeState.scoped({
-      namespace: stateNamespaceFor(packageName, options.namespace),
-      schema: options.schema,
+  function open<TValue, TInput>(
+    target:
+      ServiceRuntimeStateOptions<TValue, TInput> | SharedState<TValue, TInput>,
+  ): ServiceRuntimeState<TValue, TInput> {
+    if (isSharedState(target)) {
+      assertSharedStateOwner(target, packageName);
+      return runtimeState.scoped({
+        namespace: sharedStateNamespace(target.name),
+        schema: target.schema,
+      });
+    }
+    return runtimeState.scoped({
+      namespace: stateNamespaceFor(packageName, target.namespace),
+      schema: target.schema,
     });
+  }
+  return open;
 }

@@ -1,20 +1,28 @@
 import { describe, it, expect, beforeEach } from "bun:test";
-import { TopicAdapter } from "../../src/lib/topic-adapter";
+import { topicDocument } from "../../src/lib/topic-document";
 import { topicEntitySchema } from "../../src/schemas/topic";
 import { createMockTopicEntity } from "../fixtures/topic-entities";
+import { topicTypeAdapter } from "../topics-plugins";
 
-describe("TopicAdapter", () => {
-  let adapter: TopicAdapter;
+/**
+ * The topic type as declared: its document read and written by
+ * topicDocument, and its adapter as the installed package registers it.
+ */
+const declared = topicTypeAdapter();
+const topicAdapter = { ...declared, ...topicDocument };
+
+describe("the topic type", () => {
+  let adapter: typeof topicAdapter;
 
   beforeEach(() => {
-    adapter = new TopicAdapter();
+    adapter = topicAdapter;
   });
 
   describe("frontmatterSchema", () => {
     it("should expose frontmatterSchema for Studio", () => {
       expect(adapter.frontmatterSchema).toBeDefined();
-      expect(adapter.frontmatterSchema.shape).toHaveProperty("title");
-      expect(adapter.frontmatterSchema.shape).not.toHaveProperty("keywords");
+      expect(adapter.frontmatterSchema?.shape).toHaveProperty("title");
+      expect(adapter.frontmatterSchema?.shape).not.toHaveProperty("keywords");
     });
   });
 
@@ -145,9 +153,9 @@ Some content here.`;
 
       const result = adapter.fromMarkdown(markdown);
 
-      expect(result.entityType).toBe("topic");
+      // Read as stored: the title stays in the document; nothing is indexed.
       expect(result.content).toContain("title: Test Topic");
-      expect(result).not.toHaveProperty("metadata");
+      expect(result.metadata).toEqual({});
     });
 
     it("should ignore legacy Sources section in markdown", () => {
@@ -160,9 +168,8 @@ Content
 - Title One (slug-one) [post] <entity-1|hash-1>`;
 
       const result = adapter.fromMarkdown(markdown);
-      expect(result.entityType).toBe("topic");
       // Sources are not extracted into metadata
-      expect(result).not.toHaveProperty("metadata");
+      expect(result.metadata).toEqual({});
     });
   });
 
@@ -178,8 +185,8 @@ Content
     });
   });
 
-  describe("generateFrontMatter", () => {
-    it("should generate frontmatter string from entity", () => {
+  describe("the written header", () => {
+    it("states the topic's title and nothing more", () => {
       const content = adapter.createTopicBody({
         title: "Test Topic",
         content: "Some content",
@@ -190,7 +197,7 @@ Content
         content,
       });
 
-      const result = adapter.generateFrontMatter(entity);
+      const result = adapter.toMarkdown(entity);
 
       expect(result).toContain("title: Test Topic");
       expect(result).not.toContain("keywords:");

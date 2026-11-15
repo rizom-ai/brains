@@ -1,8 +1,8 @@
 import {
   internalFullScope,
-  type BaseEntity,
   type ContentVisibility,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/service-runtime";
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
 
 import { EntityPlacementError } from "./entity-placement-error";
 

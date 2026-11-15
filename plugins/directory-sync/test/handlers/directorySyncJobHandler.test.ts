@@ -7,6 +7,7 @@ import {
   createMockProgressReporter,
 } from "@brains/test-utils";
 import { createMockDirectorySync } from "../fixtures";
+import { queuedJob } from "../queued-job";
 
 describe("DirectorySyncJobHandler", () => {
   let handler: DirectorySyncJobHandler;
@@ -22,7 +23,9 @@ describe("DirectorySyncJobHandler", () => {
   describe("validateAndParse", () => {
     it("should validate correct job data", () => {
       const data = { operation: "manual" };
-      const result = handler.validateAndParse(data);
+      const result = queuedJob("directory-sync", handler).validateAndParse(
+        data,
+      );
 
       expect(result).not.toBeNull();
       expect(result?.operation).toBe("manual");
@@ -34,7 +37,9 @@ describe("DirectorySyncJobHandler", () => {
         paths: ["/path/to/dir"],
         syncDirection: "import",
       };
-      const result = handler.validateAndParse(data);
+      const result = queuedJob("directory-sync", handler).validateAndParse(
+        data,
+      );
 
       expect(result).not.toBeNull();
       expect(result?.operation).toBe("initial");
@@ -43,13 +48,17 @@ describe("DirectorySyncJobHandler", () => {
     });
 
     it("should return null for invalid operation", () => {
-      const result = handler.validateAndParse({ operation: "invalid" });
+      const result = queuedJob("directory-sync", handler).validateAndParse({
+        operation: "invalid",
+      });
       expect(result).toBeNull();
     });
 
     it("should clean up undefined optional properties", () => {
       const data = { operation: "scheduled" };
-      const result = handler.validateAndParse(data);
+      const result = queuedJob("directory-sync", handler).validateAndParse(
+        data,
+      );
 
       expect(result).not.toBeNull();
       // Should not have undefined properties

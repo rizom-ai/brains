@@ -1,4 +1,5 @@
-import { baseEntityParserSchema, inboxItemIdSchema } from "@brains/plugins";
+import { baseEntityParserSchema } from "@brains/sdk/internal/entity-runtime";
+import { inboxItemIdSchema } from "@brains/sdk/internal/service-runtime";
 import { z } from "@brains/utils/zod";
 
 export const emailReplyDraftStatusSchema: z.ZodEnum<{

@@ -8,7 +8,7 @@ import {
   type JobContext,
   type JobProgressEvent,
   type ToolStatusUpdate,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/interface-runtime";
 import { capitalize } from "@brains/utils/string-utils";
 
 interface WebChatProgressData {

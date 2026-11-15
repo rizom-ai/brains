@@ -167,7 +167,7 @@ function resolveSuite(
       deleteOnFileRemoval: false,
     },
   };
-  const environment = { AI_API_KEY: "placeholder-canonical-eval-test" };
+  const environment = { OPENAI_API_KEY: "placeholder-canonical-eval-test" };
   const overrides = {
     bundleContract: rawManifest.bundleContract,
     anchor: selection.anchor ?? rawManifest.anchor,

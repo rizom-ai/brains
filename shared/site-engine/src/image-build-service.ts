@@ -5,10 +5,15 @@ import { promises as fs } from "fs";
 import { join } from "path";
 import { ImageOptimizer } from "./image-optimizer";
 import { tryParseDataUrl } from "@brains/image";
-import type { IEntityService } from "@brains/entity-service";
+import type { BaseEntity, GetEntityRequest } from "@brains/entity-service";
 import type { ResolvedSiteImage, SiteImageMap } from "./site-image-contracts";
 import { createSiteImageRenderer } from "./site-image-renderer";
 import { getErrorMessage } from "@brains/utils/error";
+
+/** The one read a build makes of an image: the record by its id. */
+export interface ImageEntityReader {
+  getEntity(request: GetEntityRequest): Promise<BaseEntity | null>;
+}
 
 export type ResolvedBuildImage = ResolvedSiteImage;
 export type BuildImageMap = SiteImageMap;
@@ -23,14 +28,14 @@ export type BuildImageMap = SiteImageMap;
  *   const img = imageService.get("my-cover-image");
  */
 export class ImageBuildService {
-  private entityService: Pick<IEntityService, "getEntity">;
+  private entityService: ImageEntityReader;
   private logger: Logger;
   private imageMap: BuildImageMap = {};
   private imagesDir: string;
   private optimizer: ImageOptimizer;
 
   constructor(
-    entityService: Pick<IEntityService, "getEntity">,
+    entityService: ImageEntityReader,
     logger: Logger,
     imagesDir: string,
   ) {

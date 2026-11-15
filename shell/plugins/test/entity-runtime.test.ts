@@ -10,7 +10,6 @@ import { createSilentLogger, createTestDirectory } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import { createMockShell, type MockShell } from "../src/test/mock-shell";
 import {
-  EntityPlugin,
   defineEntity,
   defineDataSource,
   defineEntityPackage,
@@ -22,6 +21,7 @@ import {
   type EntityEvalDeclaration,
   type UserPermissionLevel,
 } from "../src";
+import { isDeclaredEntityType } from "../src/test/declared-entity-type";
 
 /**
  * The internal runtime a first-party definition reaches with
@@ -101,7 +101,7 @@ async function store(
     ),
   ];
   for (const plugin of plugins) {
-    if (plugin instanceof EntityPlugin) {
+    if (isDeclaredEntityType(plugin)) {
       registry.registerEntityType(
         plugin.entityType,
         plugin.schema,

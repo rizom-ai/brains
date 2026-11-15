@@ -1,9 +1,24 @@
 import { describe, expect, it } from "bun:test";
 import { expectBodyRoundTrip } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
-import { faqAdapter } from "../src";
-import { faqBodyCodec } from "../src/adapters/faq-adapter";
+import { faqBodyCodec, faqDocument, readFaq } from "../src";
 import type { FaqBody, FaqEntity } from "../src/schemas/faq";
+import { faqType } from "./helpers/faq-type";
+
+/**
+ * A FAQ's document as capture writes it and as the faq type reads and
+ * writes it: built with faqDocument, read with readFaq, and decoded and
+ * encoded by the declared type's adapter.
+ */
+const { adapter } = faqType();
+const faqAdapter = {
+  createFaqContent: faqDocument,
+  parseFaqContent: (markdown: string): ReturnType<typeof readFaq> =>
+    readFaq({ content: markdown }),
+  fromMarkdown: (markdown: string): ReturnType<typeof adapter.fromMarkdown> =>
+    adapter.fromMarkdown(markdown),
+  toMarkdown: (entity: FaqEntity): string => adapter.toMarkdown(entity),
+};
 
 const frontmatter = {
   question: "How do I publish a draft?",
@@ -38,7 +53,7 @@ function stored(content: string): FaqEntity {
   };
 }
 
-describe("FaqAdapter", () => {
+describe("a FAQ document", () => {
   it("keeps only what a reader needs in frontmatter, and the answer under its heading", () => {
     const markdown = faqAdapter.createFaqContent(
       frontmatter,
@@ -59,7 +74,6 @@ describe("FaqAdapter", () => {
     expect(parsed.sources).toEqual([]);
     expect(parsed.alternatives).toEqual([]);
     expect(faqAdapter.fromMarkdown(markdown)).toMatchObject({
-      entityType: "faq",
       metadata: frontmatter,
     });
   });

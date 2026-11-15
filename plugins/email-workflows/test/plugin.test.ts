@@ -1,3 +1,10 @@
+import { instantiatePluginPackageDefinition } from "@brains/plugins";
+import { createEmailWorkflowsPackage } from "../src";
+import {
+  createEmailWorkflowsPlugin,
+  createEmailWorkflowsPlugins,
+  createMailItemPlugin,
+} from "./email-workflows-plugins";
 import { describe, expect, it } from "bun:test";
 import { inboundEmailContract, type InboundEmail } from "@brains/contracts";
 import {
@@ -8,10 +15,7 @@ import { createMockShell, createPluginHarness } from "@brains/plugins/test";
 import { createMockLogger } from "@brains/test-utils";
 
 import {
-  EmailWorkflowsPlugin,
-  MailItemPlugin,
   createMailItemProjection,
-  emailWorkflows,
   type RetainedMailClassification,
 } from "../src";
 
@@ -54,12 +58,18 @@ const wireClassification = {
 describe("email workflow plugin", () => {
   it("activates the entity and service without a parallel prompt config", () => {
     expect(() =>
-      Reflect.apply(emailWorkflows, undefined, [
+      instantiatePluginPackageDefinition(
+        createEmailWorkflowsPackage(),
         { instructions: "Prioritize collaboration." },
-      ]),
+        { name: "@brains/email-workflows", version: "0.0.0-test" },
+        { pluginId: "email-workflows" },
+      ),
     ).toThrow();
     expect(
-      emailWorkflows().map((plugin) => ({ id: plugin.id, type: plugin.type })),
+      createEmailWorkflowsPlugins().map((plugin) => ({
+        id: plugin.id,
+        type: plugin.type,
+      })),
     ).toEqual([
       { id: "mail-item", type: "entity" },
       { id: "email-workflows", type: "service" },
@@ -68,7 +78,7 @@ describe("email workflow plugin", () => {
 
   it("does not expose source-backed drafting in execution-only workers", async () => {
     const shell = createMockShell();
-    const plugin = new EmailWorkflowsPlugin();
+    const plugin = createEmailWorkflowsPlugin();
 
     await plugin.register(shell, { executionOnly: true });
     shell.getInboxFollowUpRegistry().finalize();
@@ -112,8 +122,8 @@ Prioritize collaboration connected to Project Aurora.`,
         updated: inbound.receivedAt,
       },
     });
-    await harness.installPlugin(new MailItemPlugin());
-    await harness.installPlugin(new EmailWorkflowsPlugin());
+    await harness.installPlugin(createMailItemPlugin());
+    await harness.installPlugin(createEmailWorkflowsPlugin());
 
     const response = await harness
       .getServiceContext("email")
@@ -159,7 +169,7 @@ Prioritize collaboration connected to Project Aurora.`,
         };
       },
     );
-    await harness.installPlugin(new MailItemPlugin());
+    await harness.installPlugin(createMailItemPlugin());
     await harness.getEntityService().createEntity({
       entity: {
         ...createMailItemProjection(inbound, classification),
@@ -167,10 +177,10 @@ Prioritize collaboration connected to Project Aurora.`,
         updated: inbound.receivedAt,
       },
     });
-    const plugin = new EmailWorkflowsPlugin();
+    const plugin = createEmailWorkflowsPlugin();
     const capabilities = await harness.installPlugin(plugin);
     await harness.finalizeRegistration();
-    await plugin.ready();
+    await plugin.ready?.();
 
     const inboxSource = harness
       .getMockShell()

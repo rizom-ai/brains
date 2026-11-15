@@ -2,8 +2,8 @@ import type {
   RuntimeStudioWorkspaceData,
   RuntimeOperatorActionControl,
   RuntimeOperatorLaunchIntent,
-  EntityIdPath,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/service-runtime";
+import type { EntityIdPath } from "@brains/sdk/internal/entity-runtime";
 import type { Dispatch, ReactNode, SetStateAction } from "react";
 import type { GroupingNavigation } from "./grouping-url-query";
 import type {

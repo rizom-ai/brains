@@ -1,3 +1,4 @@
 plugin: "@brains/newsletter"
-export: newsletterPlugin
+export: default
+pluginId: newsletter
 model: gpt-5.4-mini

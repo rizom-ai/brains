@@ -1,4 +1,5 @@
-import type { EntityIdPath, RuntimeStudioWorkspaceData } from "@brains/plugins";
+import type { EntityIdPath } from "@brains/sdk/internal/entity-runtime";
+import type { RuntimeStudioWorkspaceData } from "@brains/sdk/internal/service-runtime";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import type { StudioGrouping } from "../../src/grouping-definitions-contract";

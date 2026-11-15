@@ -143,6 +143,22 @@ describe("LLMJudge", () => {
       );
     });
 
+    // The judge failed "Do you want me to save it?" against "Does not claim
+    // that anything was created or saved", reading the offer as a claim.
+    it("reads asking or offering to do something as no claim it was done", async () => {
+      const aiService = createAIServiceWithJudge({
+        results: [
+          { index: 0, met: true, reason: "Lists decks and documents." },
+          { index: 1, met: true, reason: "Labels the owner." },
+        ],
+      });
+      await new LLMJudge(aiService).judgeRequirements(input);
+
+      expect(aiService.judgeCalls[0]?.instruction).toContain(
+        "A claim states that something happened; asking whether to do it, or offering to, claims nothing.",
+      );
+    });
+
     it("treats an incomplete verdict as unjudged, not as met", async () => {
       const aiService = createAIServiceWithJudge({
         results: [{ index: 0, met: true, reason: "Lists both." }],

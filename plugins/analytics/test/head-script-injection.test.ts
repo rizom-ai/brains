@@ -1,7 +1,8 @@
 import { describe, it, expect, afterEach } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
 import { siteHeadScriptsContract } from "@brains/contracts";
-import { AnalyticsPlugin, type AnalyticsConfigInput } from "../src/index";
+import type { AnalyticsConfigInput } from "../src/index";
+import { createAnalyticsPlugin } from "./analytics-plugins";
 
 const cloudflare = {
   accountId: "abc123",
@@ -22,7 +23,9 @@ describe("Analytics beacon in site builds", () => {
     config: AnalyticsConfigInput,
   ): Promise<unknown[]> {
     const shell = harness.getMockShell();
-    await new AnalyticsPlugin(config).register(shell, { executionOnly: true });
+    await createAnalyticsPlugin(config).register(shell, {
+      executionOnly: true,
+    });
     const answers = await shell.getMessageBus().collect({
       type: siteHeadScriptsContract.name,
       payload: {},

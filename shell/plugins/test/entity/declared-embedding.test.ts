@@ -13,11 +13,11 @@ import {
 import { z } from "@brains/utils/zod";
 import { createMockShell } from "../../src/test/mock-shell";
 import {
-  EntityPlugin,
   defineEntity,
   defineEntityPackage,
   instantiatePluginPackageDefinition,
 } from "../../src";
+import { isDeclaredEntityType } from "../../src/test/declared-entity-type";
 
 /**
  * A declared type reads back its body, but its record is the stored markdown,
@@ -48,7 +48,7 @@ async function store(embedded: string[]): Promise<EntityService> {
     {},
     { name: "@fixture/wishes", version: "0.1.0" },
   )) {
-    if (plugin instanceof EntityPlugin) {
+    if (isDeclaredEntityType(plugin)) {
       registry.registerEntityType(
         plugin.entityType,
         plugin.schema,

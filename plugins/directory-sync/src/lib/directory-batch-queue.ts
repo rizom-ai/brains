@@ -1,4 +1,4 @@
-import type { ServicePluginContext } from "@brains/plugins";
+import type { DirectorySyncCore } from "./sync-context";
 import type { Logger } from "@brains/utils/logger";
 import type {
   BatchMetadata,
@@ -43,7 +43,7 @@ export class DirectoryBatchQueue {
    * it instead made startup report "No files to import" as a success.
    */
   queueSyncBatch(
-    pluginContext: ServicePluginContext,
+    pluginContext: DirectorySyncCore,
     source: string,
     metadata?: BatchMetadata,
     paths?: string[],
@@ -58,7 +58,7 @@ export class DirectoryBatchQueue {
   }
 
   private async queueNow(
-    pluginContext: ServicePluginContext,
+    pluginContext: DirectorySyncCore,
     source: string,
     metadata?: BatchMetadata,
     paths?: string[],

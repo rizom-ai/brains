@@ -1,16 +1,13 @@
 import { createMockServicePluginContext } from "@brains/plugins/test";
 import { describe, expect, it, mock } from "bun:test";
-import {
-  createMockProgressReporter,
-  createSilentLogger,
-} from "@brains/test-utils";
+import { createMockProgressReporter } from "@brains/test-utils";
 import { DirectorySyncRequestJobHandler } from "../../src/handlers/directorySyncRequestJobHandler";
 import type { GitReconciliationResult } from "../../src/lib/git-reconciliation";
 import { createMockDirectorySync, createMockGitSync } from "../fixtures";
 
 function createReconciliation(): ConstructorParameters<
   typeof DirectorySyncRequestJobHandler
->[4] {
+>[3] {
   return {
     pullAndQueue: async (options): Promise<GitReconciliationResult> => {
       const pull = await options.gitSync.pull(
@@ -80,7 +77,6 @@ describe("DirectorySyncRequestJobHandler", () => {
     const suppressWatchPaths = mock(() => {});
     const context = createMockServicePluginContext();
     const handler = new DirectorySyncRequestJobHandler(
-      createSilentLogger("test"),
       context,
       () =>
         createMockDirectorySync({
@@ -138,7 +134,6 @@ describe("DirectorySyncRequestJobHandler", () => {
       checkpointAdvanced: false,
     }));
     const handler = new DirectorySyncRequestJobHandler(
-      createSilentLogger("test"),
       createMockServicePluginContext(),
       () => createMockDirectorySync(),
       () => createMockGitSync(),
@@ -158,7 +153,6 @@ describe("DirectorySyncRequestJobHandler", () => {
 
   it("reports no queued batch when pulled content has no sync changes", async () => {
     const handler = new DirectorySyncRequestJobHandler(
-      createSilentLogger("test"),
       createMockServicePluginContext(),
       () => createMockDirectorySync({ queueSyncBatch: mock(async () => null) }),
       () => createMockGitSync({ pull: mock(async () => ({ files: [] })) }),

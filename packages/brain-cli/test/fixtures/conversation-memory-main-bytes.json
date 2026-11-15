@@ -1,0 +1,471 @@
+{
+  "titles": {
+    "summaryCurrent": {
+      "created": "2026-03-04T05:06:07.000Z",
+      "title": "CLI Terminal · 2026-01-01"
+    },
+    "summaryLegacy": {
+      "created": "2026-03-04T05:06:07.000Z",
+      "title": "discord-1 · 2026-03-04"
+    }
+  },
+  "source": "main f61f73989e, the conversation-memory entity plugin class on the entity store",
+  "summaryCurrent": {
+    "id": "cli-terminal-2026-01-01",
+    "file": "---\nchannelId: cli-terminal\nchannelName: CLI Terminal\ninterfaceType: cli\ntimeRange:\n  start: '2026-01-01T00:00:00.000Z'\n  end: '2026-01-01T00:10:00.000Z'\nmessageCount: 6\nparticipants:\n  - identity:\n      kind: user\n      userId: u-niels\n    displayName: Niels\n    roles:\n      - user\nsourceHash: abc123\nvisibility: restricted\n---\n# Conversation Summary\n\n## Planning the launch\n\nTime: 2026-01-01T00:00:00.000Z → 2026-01-01T00:10:00.000Z  \nMessages summarized: 6\n\nThe team planned the launch.\n\n### Key Points\n\n- Launch on Monday\n",
+    "stored": {
+      "content": "---\nchannelId: cli-terminal\nchannelName: CLI Terminal\ninterfaceType: cli\ntimeRange:\n  start: '2026-01-01T00:00:00.000Z'\n  end: '2026-01-01T00:10:00.000Z'\nmessageCount: 6\nparticipants:\n  - identity:\n      kind: user\n      userId: u-niels\n    displayName: Niels\n    roles:\n      - user\nsourceHash: abc123\nvisibility: restricted\n---\n# Conversation Summary\n\n## Planning the launch\n\nTime: 2026-01-01T00:00:00.000Z → 2026-01-01T00:10:00.000Z  \nMessages summarized: 6\n\nThe team planned the launch.\n\n### Key Points\n\n- Launch on Monday\n",
+      "metadata": "{\"channelId\":\"cli-terminal\",\"channelName\":\"CLI Terminal\",\"interfaceType\":\"cli\",\"timeRange\":{\"start\":\"2026-01-01T00:00:00.000Z\",\"end\":\"2026-01-01T00:10:00.000Z\"},\"messageCount\":6,\"participants\":[{\"identity\":{\"kind\":\"user\",\"userId\":\"u-niels\"},\"displayName\":\"Niels\",\"roles\":[\"user\"]}],\"sourceHash\":\"abc123\"}",
+      "visibility": "restricted"
+    },
+    "read": {
+      "content": "---\nchannelId: cli-terminal\nchannelName: CLI Terminal\ninterfaceType: cli\ntimeRange:\n  start: '2026-01-01T00:00:00.000Z'\n  end: '2026-01-01T00:10:00.000Z'\nmessageCount: 6\nparticipants:\n  - identity:\n      kind: user\n      userId: u-niels\n    displayName: Niels\n    roles:\n      - user\nsourceHash: abc123\nvisibility: restricted\n---\n# Conversation Summary\n\n## Planning the launch\n\nTime: 2026-01-01T00:00:00.000Z → 2026-01-01T00:10:00.000Z  \nMessages summarized: 6\n\nThe team planned the launch.\n\n### Key Points\n\n- Launch on Monday\n",
+      "metadata": {
+        "channelId": "cli-terminal",
+        "channelName": "CLI Terminal",
+        "interfaceType": "cli",
+        "timeRange": {
+          "start": "2026-01-01T00:00:00.000Z",
+          "end": "2026-01-01T00:10:00.000Z"
+        },
+        "messageCount": 6,
+        "participants": [
+          {
+            "identity": {
+              "kind": "user",
+              "userId": "u-niels"
+            },
+            "displayName": "Niels",
+            "roles": ["user"]
+          }
+        ],
+        "sourceHash": "abc123"
+      },
+      "visibility": "restricted"
+    },
+    "exported": "---\nchannelId: cli-terminal\nchannelName: CLI Terminal\ninterfaceType: cli\ntimeRange:\n  start: '2026-01-01T00:00:00.000Z'\n  end: '2026-01-01T00:10:00.000Z'\nmessageCount: 6\nparticipants:\n  - identity:\n      kind: user\n      userId: u-niels\n    displayName: Niels\n    roles:\n      - user\nsourceHash: abc123\nvisibility: restricted\n---\n# Conversation Summary\n\n## Planning the launch\n\nTime: 2026-01-01T00:00:00.000Z → 2026-01-01T00:10:00.000Z  \nMessages summarized: 6\n\nThe team planned the launch.\n\n### Key Points\n\n- Launch on Monday\n"
+  },
+  "summaryLegacy": {
+    "id": "conv-2",
+    "file": "---\nconversationId: conv-2\nchannelId: discord-1\ninterfaceType: discord\nmessageCount: 2\nentryCount: 1\nprojectionVersion: 3\nsourceHash: def456\n---\n# Conversation Summary\n\n## Hello\n\nTime: 2026-02-01T00:00:00.000Z → 2026-02-01T00:01:00.000Z  \nMessages summarized: 2\n\nA greeting.\n",
+    "stored": {
+      "content": "---\nchannelId: discord-1\ninterfaceType: discord\nmessageCount: 2\nsourceHash: def456\n---\n# Conversation Summary\n\n## Hello\n\nTime: 2026-02-01T00:00:00.000Z → 2026-02-01T00:01:00.000Z  \nMessages summarized: 2\n\nA greeting.\n",
+      "metadata": "{\"channelId\":\"discord-1\",\"interfaceType\":\"discord\",\"messageCount\":2,\"sourceHash\":\"def456\"}",
+      "visibility": "public"
+    },
+    "read": {
+      "content": "---\nchannelId: discord-1\ninterfaceType: discord\nmessageCount: 2\nsourceHash: def456\n---\n# Conversation Summary\n\n## Hello\n\nTime: 2026-02-01T00:00:00.000Z → 2026-02-01T00:01:00.000Z  \nMessages summarized: 2\n\nA greeting.\n",
+      "metadata": {
+        "channelId": "discord-1",
+        "interfaceType": "discord",
+        "messageCount": 2,
+        "sourceHash": "def456"
+      },
+      "visibility": "public"
+    },
+    "exported": "---\nchannelId: discord-1\ninterfaceType: discord\nmessageCount: 2\nsourceHash: def456\n---\n# Conversation Summary\n\n## Hello\n\nTime: 2026-02-01T00:00:00.000Z → 2026-02-01T00:01:00.000Z  \nMessages summarized: 2\n\nA greeting.\n"
+  },
+  "summaryMalformed": {
+    "id": "malformed",
+    "file": "---\nchannelId: discord-1\ninterfaceType: discord\nmessageCount: 1\nsourceHash: bad\n---\n# Conversation Summary\n\n## No time line\n\nSomething without its time.\n",
+    "refused": "ZodError",
+    "row": null
+  },
+  "decisionCurrent": {
+    "id": "launch-on-monday",
+    "file": "---\nconversationId: conv-1\nchannelId: cli-terminal\nchannelName: CLI Terminal\ninterfaceType: cli\ntimeRange:\n  start: '2026-01-01T00:00:00.000Z'\n  end: '2026-01-01T00:10:00.000Z'\nstatus: active\ndecidedBy:\n  - identity:\n      kind: user\n      userId: u-niels\n    displayName: Niels\n---\n# Launch on Monday\n\nThe team agreed to launch on Monday.\n",
+    "stored": {
+      "content": "---\nconversationId: conv-1\nchannelId: cli-terminal\nchannelName: CLI Terminal\ninterfaceType: cli\ntimeRange:\n  start: '2026-01-01T00:00:00.000Z'\n  end: '2026-01-01T00:10:00.000Z'\nstatus: active\ndecidedBy:\n  - identity:\n      kind: user\n      userId: u-niels\n    displayName: Niels\n---\n# Launch on Monday\n\nThe team agreed to launch on Monday.\n",
+      "metadata": "{\"conversationId\":\"conv-1\",\"channelId\":\"cli-terminal\",\"channelName\":\"CLI Terminal\",\"interfaceType\":\"cli\",\"timeRange\":{\"start\":\"2026-01-01T00:00:00.000Z\",\"end\":\"2026-01-01T00:10:00.000Z\"},\"status\":\"active\",\"decidedBy\":[{\"identity\":{\"kind\":\"user\",\"userId\":\"u-niels\"},\"displayName\":\"Niels\"}]}",
+      "visibility": "public"
+    },
+    "read": {
+      "content": "---\nconversationId: conv-1\nchannelId: cli-terminal\nchannelName: CLI Terminal\ninterfaceType: cli\ntimeRange:\n  start: '2026-01-01T00:00:00.000Z'\n  end: '2026-01-01T00:10:00.000Z'\nstatus: active\ndecidedBy:\n  - identity:\n      kind: user\n      userId: u-niels\n    displayName: Niels\n---\n# Launch on Monday\n\nThe team agreed to launch on Monday.\n",
+      "metadata": {
+        "conversationId": "conv-1",
+        "channelId": "cli-terminal",
+        "channelName": "CLI Terminal",
+        "interfaceType": "cli",
+        "timeRange": {
+          "start": "2026-01-01T00:00:00.000Z",
+          "end": "2026-01-01T00:10:00.000Z"
+        },
+        "status": "active",
+        "decidedBy": [
+          {
+            "identity": {
+              "kind": "user",
+              "userId": "u-niels"
+            },
+            "displayName": "Niels"
+          }
+        ]
+      },
+      "visibility": "public"
+    },
+    "exported": "---\nconversationId: conv-1\nchannelId: cli-terminal\nchannelName: CLI Terminal\ninterfaceType: cli\ntimeRange:\n  start: '2026-01-01T00:00:00.000Z'\n  end: '2026-01-01T00:10:00.000Z'\nstatus: active\ndecidedBy:\n  - identity:\n      kind: user\n      userId: u-niels\n    displayName: Niels\n---\n# Launch on Monday\n\nThe team agreed to launch on Monday.\n"
+  },
+  "decisionLegacy": {
+    "id": "conv-2:decision:1:abcd12",
+    "file": "---\nconversationId: conv-2\nspaceId: discord:1\nchannelId: discord-1\ninterfaceType: discord\ntimeRange:\n  start: '2026-02-01T00:00:00.000Z'\n  end: '2026-02-01T00:01:00.000Z'\nstatus: superseded\nsourceSummaryId: conv-2\nsourceMessageCount: 2\nprojectionVersion: 3\n---\n# Use Postgres\n\nWe chose Postgres.\n",
+    "stored": {
+      "content": "---\nconversationId: conv-2\nchannelId: discord-1\ninterfaceType: discord\ntimeRange:\n  start: '2026-02-01T00:00:00.000Z'\n  end: '2026-02-01T00:01:00.000Z'\nstatus: superseded\n---\n# Use Postgres\n\nWe chose Postgres.\n",
+      "metadata": "{\"conversationId\":\"conv-2\",\"channelId\":\"discord-1\",\"interfaceType\":\"discord\",\"timeRange\":{\"start\":\"2026-02-01T00:00:00.000Z\",\"end\":\"2026-02-01T00:01:00.000Z\"},\"status\":\"superseded\"}",
+      "visibility": "public"
+    },
+    "read": {
+      "content": "---\nconversationId: conv-2\nchannelId: discord-1\ninterfaceType: discord\ntimeRange:\n  start: '2026-02-01T00:00:00.000Z'\n  end: '2026-02-01T00:01:00.000Z'\nstatus: superseded\n---\n# Use Postgres\n\nWe chose Postgres.\n",
+      "metadata": {
+        "conversationId": "conv-2",
+        "channelId": "discord-1",
+        "interfaceType": "discord",
+        "timeRange": {
+          "start": "2026-02-01T00:00:00.000Z",
+          "end": "2026-02-01T00:01:00.000Z"
+        },
+        "status": "superseded"
+      },
+      "visibility": "public"
+    },
+    "exported": "---\nconversationId: conv-2\nchannelId: discord-1\ninterfaceType: discord\ntimeRange:\n  start: '2026-02-01T00:00:00.000Z'\n  end: '2026-02-01T00:01:00.000Z'\nstatus: superseded\n---\n# Use Postgres\n\nWe chose Postgres.\n"
+  },
+  "itemCurrent": {
+    "id": "book-the-venue",
+    "file": "---\norigin: conversation\nconversationId: conv-1\ninterfaceType: cli\nchannelId: cli-terminal\nchannelName: CLI Terminal\ncapturedAt: '2026-01-01T00:10:00.000Z'\nstatus: open\nassignedTo:\n  - name: Alex Morgan\n    id: 'user:u-alex'\nprojectedBodyHash: 'stale-hash'\nprojects:\n  - launch\n---\n# Action item: Book the venue\n\nBook the venue for Monday.\n",
+    "stored": {
+      "content": "---\norigin: conversation\nconversationId: conv-1\ninterfaceType: cli\nchannelId: cli-terminal\nchannelName: CLI Terminal\ncapturedAt: '2026-01-01T00:10:00.000Z'\nstatus: open\nassignedTo:\n  - name: Alex Morgan\n    id: 'user:u-alex'\nprojectedBodyHash: stale-hash\nprojects:\n  - launch\n---\n# Action item: Book the venue\n\nBook the venue for Monday.\n",
+      "metadata": "{\"origin\":\"conversation\",\"conversationId\":\"conv-1\",\"interfaceType\":\"cli\",\"channelId\":\"cli-terminal\",\"channelName\":\"CLI Terminal\",\"capturedAt\":\"2026-01-01T00:10:00.000Z\",\"status\":\"open\",\"assignedTo\":[{\"name\":\"Alex Morgan\",\"id\":\"user:u-alex\"}],\"projectedBodyHash\":\"stale-hash\",\"projects\":[\"launch\"]}",
+      "visibility": "public"
+    },
+    "read": {
+      "content": "---\norigin: conversation\nconversationId: conv-1\ninterfaceType: cli\nchannelId: cli-terminal\nchannelName: CLI Terminal\ncapturedAt: '2026-01-01T00:10:00.000Z'\nstatus: open\nassignedTo:\n  - name: Alex Morgan\n    id: 'user:u-alex'\nprojectedBodyHash: stale-hash\nprojects:\n  - launch\n---\n# Action item: Book the venue\n\nBook the venue for Monday.\n",
+      "metadata": {
+        "origin": "conversation",
+        "conversationId": "conv-1",
+        "interfaceType": "cli",
+        "channelId": "cli-terminal",
+        "channelName": "CLI Terminal",
+        "capturedAt": "2026-01-01T00:10:00.000Z",
+        "status": "open",
+        "assignedTo": [
+          {
+            "name": "Alex Morgan",
+            "id": "user:u-alex"
+          }
+        ],
+        "projectedBodyHash": "stale-hash"
+      },
+      "visibility": "public"
+    },
+    "exported": "---\norigin: conversation\nconversationId: conv-1\ninterfaceType: cli\nchannelId: cli-terminal\nchannelName: CLI Terminal\ncapturedAt: '2026-01-01T00:10:00.000Z'\nstatus: open\nassignedTo:\n  - name: Alex Morgan\n    id: 'user:u-alex'\nprojectedBodyHash: stale-hash\nprojects:\n  - launch\n---\n# Action item: Book the venue\n\nBook the venue for Monday.\n"
+  },
+  "itemLegacy": {
+    "id": "conv-2:action-item:1:ef3456",
+    "file": "---\nconversationId: conv-2\nspaceId: discord:1\nchannelId: discord-1\ninterfaceType: discord\ntimeRange:\n  start: '2026-02-01T00:00:00.000Z'\n  end: '2026-02-01T00:01:00.000Z'\nstatus: open\nassignedTo:\n  - identity:\n      kind: user\n      userId: u-alex\n    displayName: Alex\nsourceSummaryId: conv-2\nprojectionVersion: 3\n---\n# Action item: Send the notes\n\nSend the meeting notes.\n",
+    "stored": {
+      "content": "---\nconversationId: conv-2\ninterfaceType: discord\nchannelId: discord-1\ncapturedAt: '2026-02-01T00:01:00.000Z'\nstatus: open\nassignedTo:\n  - name: Alex\n    id: 'user:u-alex'\n---\n# Action item: Send the notes\n\nSend the meeting notes.\n",
+      "metadata": "{\"conversationId\":\"conv-2\",\"interfaceType\":\"discord\",\"channelId\":\"discord-1\",\"capturedAt\":\"2026-02-01T00:01:00.000Z\",\"status\":\"open\",\"assignedTo\":[{\"name\":\"Alex\",\"id\":\"user:u-alex\"}]}",
+      "visibility": "public"
+    },
+    "read": {
+      "content": "---\nconversationId: conv-2\ninterfaceType: discord\nchannelId: discord-1\ncapturedAt: '2026-02-01T00:01:00.000Z'\nstatus: open\nassignedTo:\n  - name: Alex\n    id: 'user:u-alex'\n---\n# Action item: Send the notes\n\nSend the meeting notes.\n",
+      "metadata": {
+        "conversationId": "conv-2",
+        "interfaceType": "discord",
+        "channelId": "discord-1",
+        "capturedAt": "2026-02-01T00:01:00.000Z",
+        "status": "open",
+        "assignedTo": [
+          {
+            "name": "Alex",
+            "id": "user:u-alex"
+          }
+        ]
+      },
+      "visibility": "public"
+    },
+    "exported": "---\nconversationId: conv-2\ninterfaceType: discord\nchannelId: discord-1\ncapturedAt: '2026-02-01T00:01:00.000Z'\nstatus: open\nassignedTo:\n  - name: Alex\n    id: 'user:u-alex'\n---\n# Action item: Send the notes\n\nSend the meeting notes.\n"
+  },
+  "itemBoard": {
+    "id": "board:roof",
+    "file": "---\norigin: board\ncapturedAt: '2026-03-01T00:00:00.000Z'\nstatus: doing\n---\n# Action item: Fix the roof\n\nFix the roof\n",
+    "stored": {
+      "content": "---\norigin: board\ncapturedAt: '2026-03-01T00:00:00.000Z'\nstatus: doing\n---\n# Action item: Fix the roof\n\nFix the roof\n",
+      "metadata": "{\"origin\":\"board\",\"capturedAt\":\"2026-03-01T00:00:00.000Z\",\"status\":\"doing\"}",
+      "visibility": "public"
+    },
+    "read": {
+      "content": "---\norigin: board\ncapturedAt: '2026-03-01T00:00:00.000Z'\nstatus: doing\n---\n# Action item: Fix the roof\n\nFix the roof\n",
+      "metadata": {
+        "origin": "board",
+        "capturedAt": "2026-03-01T00:00:00.000Z",
+        "status": "doing"
+      },
+      "visibility": "public"
+    },
+    "exported": "---\norigin: board\ncapturedAt: '2026-03-01T00:00:00.000Z'\nstatus: doing\n---\n# Action item: Fix the roof\n\nFix the roof\n"
+  },
+  "listedBefore": {
+    "summary": ["cli-terminal-2026-01-01", "conv-2"],
+    "decision": ["conv-2:decision:1:abcd12", "launch-on-monday"],
+    "action-item": [
+      "board:roof",
+      "book-the-venue",
+      "conv-2:action-item:1:ef3456"
+    ]
+  },
+  "itemCreated": {
+    "id": "call-the-printer",
+    "stored": {
+      "content": "---\norigin: conversation\nconversationId: conv-1\ninterfaceType: cli\nchannelId: cli-terminal\nchannelName: CLI Terminal\ncapturedAt: '2026-04-01T00:00:00.000Z'\nstatus: open\nrequestedBy:\n  - name: Niels\n    id: 'user:u-niels'\nprojectedBodyHash: ff8482ae342d12a8cfb329368488fedeec34341ae0e89495a48d92ad2e2c4115\nprojectedAssigneeHash: 4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945\nvisibility: restricted\n---\n# Action item: Call the printer\n\nCall the printer about the posters.\n",
+      "metadata": "{\"origin\":\"conversation\",\"conversationId\":\"conv-1\",\"interfaceType\":\"cli\",\"channelId\":\"cli-terminal\",\"channelName\":\"CLI Terminal\",\"capturedAt\":\"2026-04-01T00:00:00.000Z\",\"status\":\"open\",\"requestedBy\":[{\"name\":\"Niels\",\"id\":\"user:u-niels\"}],\"projectedBodyHash\":\"ff8482ae342d12a8cfb329368488fedeec34341ae0e89495a48d92ad2e2c4115\",\"projectedAssigneeHash\":\"4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945\"}",
+      "visibility": "restricted"
+    },
+    "read": {
+      "content": "---\norigin: conversation\nconversationId: conv-1\ninterfaceType: cli\nchannelId: cli-terminal\nchannelName: CLI Terminal\ncapturedAt: '2026-04-01T00:00:00.000Z'\nstatus: open\nrequestedBy:\n  - name: Niels\n    id: 'user:u-niels'\nprojectedBodyHash: ff8482ae342d12a8cfb329368488fedeec34341ae0e89495a48d92ad2e2c4115\nprojectedAssigneeHash: 4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945\nvisibility: restricted\n---\n# Action item: Call the printer\n\nCall the printer about the posters.\n",
+      "metadata": {
+        "origin": "conversation",
+        "conversationId": "conv-1",
+        "interfaceType": "cli",
+        "channelId": "cli-terminal",
+        "channelName": "CLI Terminal",
+        "capturedAt": "2026-04-01T00:00:00.000Z",
+        "status": "open",
+        "requestedBy": [
+          {
+            "name": "Niels",
+            "id": "user:u-niels"
+          }
+        ],
+        "projectedBodyHash": "ff8482ae342d12a8cfb329368488fedeec34341ae0e89495a48d92ad2e2c4115",
+        "projectedAssigneeHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "visibility": "restricted"
+    },
+    "exported": "---\norigin: conversation\nconversationId: conv-1\ninterfaceType: cli\nchannelId: cli-terminal\nchannelName: CLI Terminal\ncapturedAt: '2026-04-01T00:00:00.000Z'\nstatus: open\nrequestedBy:\n  - name: Niels\n    id: 'user:u-niels'\nprojectedBodyHash: ff8482ae342d12a8cfb329368488fedeec34341ae0e89495a48d92ad2e2c4115\nprojectedAssigneeHash: 4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945\nvisibility: restricted\n---\n# Action item: Call the printer\n\nCall the printer about the posters.\n"
+  },
+  "itemMoved": {
+    "id": "call-the-printer",
+    "stored": {
+      "content": "---\norigin: conversation\nconversationId: conv-1\ninterfaceType: cli\nchannelId: cli-terminal\nchannelName: CLI Terminal\ncapturedAt: '2026-04-01T00:00:00.000Z'\nstatus: done\nrequestedBy:\n  - name: Niels\n    id: 'user:u-niels'\nprojectedBodyHash: ff8482ae342d12a8cfb329368488fedeec34341ae0e89495a48d92ad2e2c4115\nprojectedAssigneeHash: 4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945\nvisibility: restricted\n---\n# Action item: Call the printer\n\nCall the printer about the posters.\n",
+      "metadata": "{\"origin\":\"conversation\",\"conversationId\":\"conv-1\",\"interfaceType\":\"cli\",\"channelId\":\"cli-terminal\",\"channelName\":\"CLI Terminal\",\"capturedAt\":\"2026-04-01T00:00:00.000Z\",\"status\":\"done\",\"requestedBy\":[{\"name\":\"Niels\",\"id\":\"user:u-niels\"}],\"projectedBodyHash\":\"ff8482ae342d12a8cfb329368488fedeec34341ae0e89495a48d92ad2e2c4115\",\"projectedAssigneeHash\":\"4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945\"}",
+      "visibility": "restricted"
+    },
+    "read": {
+      "content": "---\norigin: conversation\nconversationId: conv-1\ninterfaceType: cli\nchannelId: cli-terminal\nchannelName: CLI Terminal\ncapturedAt: '2026-04-01T00:00:00.000Z'\nstatus: done\nrequestedBy:\n  - name: Niels\n    id: 'user:u-niels'\nprojectedBodyHash: ff8482ae342d12a8cfb329368488fedeec34341ae0e89495a48d92ad2e2c4115\nprojectedAssigneeHash: 4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945\nvisibility: restricted\n---\n# Action item: Call the printer\n\nCall the printer about the posters.\n",
+      "metadata": {
+        "origin": "conversation",
+        "conversationId": "conv-1",
+        "interfaceType": "cli",
+        "channelId": "cli-terminal",
+        "channelName": "CLI Terminal",
+        "capturedAt": "2026-04-01T00:00:00.000Z",
+        "status": "done",
+        "requestedBy": [
+          {
+            "name": "Niels",
+            "id": "user:u-niels"
+          }
+        ],
+        "projectedBodyHash": "ff8482ae342d12a8cfb329368488fedeec34341ae0e89495a48d92ad2e2c4115",
+        "projectedAssigneeHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "visibility": "restricted"
+    },
+    "exported": "---\norigin: conversation\nconversationId: conv-1\ninterfaceType: cli\nchannelId: cli-terminal\nchannelName: CLI Terminal\ncapturedAt: '2026-04-01T00:00:00.000Z'\nstatus: done\nrequestedBy:\n  - name: Niels\n    id: 'user:u-niels'\nprojectedBodyHash: ff8482ae342d12a8cfb329368488fedeec34341ae0e89495a48d92ad2e2c4115\nprojectedAssigneeHash: 4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945\nvisibility: restricted\n---\n# Action item: Call the printer\n\nCall the printer about the posters.\n"
+  },
+  "itemLegacyMoved": {
+    "id": "conv-2:action-item:1:ef3456",
+    "stored": {
+      "content": "---\nconversationId: conv-2\ninterfaceType: discord\nchannelId: discord-1\ncapturedAt: '2026-02-01T00:01:00.000Z'\nstatus: doing\nassignedTo:\n  - name: Alex\n    id: 'user:u-alex'\n---\n# Action item: Send the notes\n\nSend the meeting notes.\n",
+      "metadata": "{\"conversationId\":\"conv-2\",\"interfaceType\":\"discord\",\"channelId\":\"discord-1\",\"capturedAt\":\"2026-02-01T00:01:00.000Z\",\"status\":\"doing\",\"assignedTo\":[{\"name\":\"Alex\",\"id\":\"user:u-alex\"}]}",
+      "visibility": "public"
+    },
+    "read": {
+      "content": "---\nconversationId: conv-2\ninterfaceType: discord\nchannelId: discord-1\ncapturedAt: '2026-02-01T00:01:00.000Z'\nstatus: doing\nassignedTo:\n  - name: Alex\n    id: 'user:u-alex'\n---\n# Action item: Send the notes\n\nSend the meeting notes.\n",
+      "metadata": {
+        "conversationId": "conv-2",
+        "interfaceType": "discord",
+        "channelId": "discord-1",
+        "capturedAt": "2026-02-01T00:01:00.000Z",
+        "status": "doing",
+        "assignedTo": [
+          {
+            "name": "Alex",
+            "id": "user:u-alex"
+          }
+        ]
+      },
+      "visibility": "public"
+    },
+    "exported": "---\nconversationId: conv-2\ninterfaceType: discord\nchannelId: discord-1\ncapturedAt: '2026-02-01T00:01:00.000Z'\nstatus: doing\nassignedTo:\n  - name: Alex\n    id: 'user:u-alex'\n---\n# Action item: Send the notes\n\nSend the meeting notes.\n"
+  },
+  "flattened": {
+    "moved": 3,
+    "listed": {
+      "summary": ["cli-terminal-2026-01-01", "conv-2"],
+      "decision": ["conv-2-decision-1-abcd12", "launch-on-monday"],
+      "action-item": [
+        "book-the-venue",
+        "call-the-printer",
+        "conv-2-action-item-1-ef3456",
+        "fix-the-roof-a4e924"
+      ]
+    },
+    "rows": {
+      "decision/conv-2-decision-1-abcd12": {
+        "stored": {
+          "content": "---\nconversationId: conv-2\nchannelId: discord-1\ninterfaceType: discord\ntimeRange:\n  start: '2026-02-01T00:00:00.000Z'\n  end: '2026-02-01T00:01:00.000Z'\nstatus: superseded\n---\n# Use Postgres\n\nWe chose Postgres.\n",
+          "metadata": "{\"conversationId\":\"conv-2\",\"channelId\":\"discord-1\",\"interfaceType\":\"discord\",\"timeRange\":{\"start\":\"2026-02-01T00:00:00.000Z\",\"end\":\"2026-02-01T00:01:00.000Z\"},\"status\":\"superseded\"}",
+          "visibility": "public"
+        },
+        "read": {
+          "content": "---\nconversationId: conv-2\nchannelId: discord-1\ninterfaceType: discord\ntimeRange:\n  start: '2026-02-01T00:00:00.000Z'\n  end: '2026-02-01T00:01:00.000Z'\nstatus: superseded\n---\n# Use Postgres\n\nWe chose Postgres.\n",
+          "metadata": {
+            "conversationId": "conv-2",
+            "channelId": "discord-1",
+            "interfaceType": "discord",
+            "timeRange": {
+              "start": "2026-02-01T00:00:00.000Z",
+              "end": "2026-02-01T00:01:00.000Z"
+            },
+            "status": "superseded"
+          },
+          "visibility": "public"
+        },
+        "exported": "---\nconversationId: conv-2\nchannelId: discord-1\ninterfaceType: discord\ntimeRange:\n  start: '2026-02-01T00:00:00.000Z'\n  end: '2026-02-01T00:01:00.000Z'\nstatus: superseded\n---\n# Use Postgres\n\nWe chose Postgres.\n"
+      },
+      "decision/launch-on-monday": {
+        "stored": {
+          "content": "---\nconversationId: conv-1\nchannelId: cli-terminal\nchannelName: CLI Terminal\ninterfaceType: cli\ntimeRange:\n  start: '2026-01-01T00:00:00.000Z'\n  end: '2026-01-01T00:10:00.000Z'\nstatus: active\ndecidedBy:\n  - identity:\n      kind: user\n      userId: u-niels\n    displayName: Niels\n---\n# Launch on Monday\n\nThe team agreed to launch on Monday.\n",
+          "metadata": "{\"conversationId\":\"conv-1\",\"channelId\":\"cli-terminal\",\"channelName\":\"CLI Terminal\",\"interfaceType\":\"cli\",\"timeRange\":{\"start\":\"2026-01-01T00:00:00.000Z\",\"end\":\"2026-01-01T00:10:00.000Z\"},\"status\":\"active\",\"decidedBy\":[{\"identity\":{\"kind\":\"user\",\"userId\":\"u-niels\"},\"displayName\":\"Niels\"}]}",
+          "visibility": "public"
+        },
+        "read": {
+          "content": "---\nconversationId: conv-1\nchannelId: cli-terminal\nchannelName: CLI Terminal\ninterfaceType: cli\ntimeRange:\n  start: '2026-01-01T00:00:00.000Z'\n  end: '2026-01-01T00:10:00.000Z'\nstatus: active\ndecidedBy:\n  - identity:\n      kind: user\n      userId: u-niels\n    displayName: Niels\n---\n# Launch on Monday\n\nThe team agreed to launch on Monday.\n",
+          "metadata": {
+            "conversationId": "conv-1",
+            "channelId": "cli-terminal",
+            "channelName": "CLI Terminal",
+            "interfaceType": "cli",
+            "timeRange": {
+              "start": "2026-01-01T00:00:00.000Z",
+              "end": "2026-01-01T00:10:00.000Z"
+            },
+            "status": "active",
+            "decidedBy": [
+              {
+                "identity": {
+                  "kind": "user",
+                  "userId": "u-niels"
+                },
+                "displayName": "Niels"
+              }
+            ]
+          },
+          "visibility": "public"
+        },
+        "exported": "---\nconversationId: conv-1\nchannelId: cli-terminal\nchannelName: CLI Terminal\ninterfaceType: cli\ntimeRange:\n  start: '2026-01-01T00:00:00.000Z'\n  end: '2026-01-01T00:10:00.000Z'\nstatus: active\ndecidedBy:\n  - identity:\n      kind: user\n      userId: u-niels\n    displayName: Niels\n---\n# Launch on Monday\n\nThe team agreed to launch on Monday.\n"
+      },
+      "action-item/book-the-venue": {
+        "stored": {
+          "content": "---\norigin: conversation\nconversationId: conv-1\ninterfaceType: cli\nchannelId: cli-terminal\nchannelName: CLI Terminal\ncapturedAt: '2026-01-01T00:10:00.000Z'\nstatus: open\nassignedTo:\n  - name: Alex Morgan\n    id: 'user:u-alex'\nprojectedBodyHash: stale-hash\nprojects:\n  - launch\n---\n# Action item: Book the venue\n\nBook the venue for Monday.\n",
+          "metadata": "{\"origin\":\"conversation\",\"conversationId\":\"conv-1\",\"interfaceType\":\"cli\",\"channelId\":\"cli-terminal\",\"channelName\":\"CLI Terminal\",\"capturedAt\":\"2026-01-01T00:10:00.000Z\",\"status\":\"open\",\"assignedTo\":[{\"name\":\"Alex Morgan\",\"id\":\"user:u-alex\"}],\"projectedBodyHash\":\"stale-hash\",\"projects\":[\"launch\"]}",
+          "visibility": "public"
+        },
+        "read": {
+          "content": "---\norigin: conversation\nconversationId: conv-1\ninterfaceType: cli\nchannelId: cli-terminal\nchannelName: CLI Terminal\ncapturedAt: '2026-01-01T00:10:00.000Z'\nstatus: open\nassignedTo:\n  - name: Alex Morgan\n    id: 'user:u-alex'\nprojectedBodyHash: stale-hash\nprojects:\n  - launch\n---\n# Action item: Book the venue\n\nBook the venue for Monday.\n",
+          "metadata": {
+            "origin": "conversation",
+            "conversationId": "conv-1",
+            "interfaceType": "cli",
+            "channelId": "cli-terminal",
+            "channelName": "CLI Terminal",
+            "capturedAt": "2026-01-01T00:10:00.000Z",
+            "status": "open",
+            "assignedTo": [
+              {
+                "name": "Alex Morgan",
+                "id": "user:u-alex"
+              }
+            ],
+            "projectedBodyHash": "stale-hash"
+          },
+          "visibility": "public"
+        },
+        "exported": "---\norigin: conversation\nconversationId: conv-1\ninterfaceType: cli\nchannelId: cli-terminal\nchannelName: CLI Terminal\ncapturedAt: '2026-01-01T00:10:00.000Z'\nstatus: open\nassignedTo:\n  - name: Alex Morgan\n    id: 'user:u-alex'\nprojectedBodyHash: stale-hash\nprojects:\n  - launch\n---\n# Action item: Book the venue\n\nBook the venue for Monday.\n"
+      },
+      "action-item/call-the-printer": {
+        "stored": {
+          "content": "---\norigin: conversation\nconversationId: conv-1\ninterfaceType: cli\nchannelId: cli-terminal\nchannelName: CLI Terminal\ncapturedAt: '2026-04-01T00:00:00.000Z'\nstatus: done\nrequestedBy:\n  - name: Niels\n    id: 'user:u-niels'\nprojectedBodyHash: ff8482ae342d12a8cfb329368488fedeec34341ae0e89495a48d92ad2e2c4115\nprojectedAssigneeHash: 4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945\nvisibility: restricted\n---\n# Action item: Call the printer\n\nCall the printer about the posters.\n",
+          "metadata": "{\"origin\":\"conversation\",\"conversationId\":\"conv-1\",\"interfaceType\":\"cli\",\"channelId\":\"cli-terminal\",\"channelName\":\"CLI Terminal\",\"capturedAt\":\"2026-04-01T00:00:00.000Z\",\"status\":\"done\",\"requestedBy\":[{\"name\":\"Niels\",\"id\":\"user:u-niels\"}],\"projectedBodyHash\":\"ff8482ae342d12a8cfb329368488fedeec34341ae0e89495a48d92ad2e2c4115\",\"projectedAssigneeHash\":\"4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945\"}",
+          "visibility": "restricted"
+        },
+        "read": {
+          "content": "---\norigin: conversation\nconversationId: conv-1\ninterfaceType: cli\nchannelId: cli-terminal\nchannelName: CLI Terminal\ncapturedAt: '2026-04-01T00:00:00.000Z'\nstatus: done\nrequestedBy:\n  - name: Niels\n    id: 'user:u-niels'\nprojectedBodyHash: ff8482ae342d12a8cfb329368488fedeec34341ae0e89495a48d92ad2e2c4115\nprojectedAssigneeHash: 4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945\nvisibility: restricted\n---\n# Action item: Call the printer\n\nCall the printer about the posters.\n",
+          "metadata": {
+            "origin": "conversation",
+            "conversationId": "conv-1",
+            "interfaceType": "cli",
+            "channelId": "cli-terminal",
+            "channelName": "CLI Terminal",
+            "capturedAt": "2026-04-01T00:00:00.000Z",
+            "status": "done",
+            "requestedBy": [
+              {
+                "name": "Niels",
+                "id": "user:u-niels"
+              }
+            ],
+            "projectedBodyHash": "ff8482ae342d12a8cfb329368488fedeec34341ae0e89495a48d92ad2e2c4115",
+            "projectedAssigneeHash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+          },
+          "visibility": "restricted"
+        },
+        "exported": "---\norigin: conversation\nconversationId: conv-1\ninterfaceType: cli\nchannelId: cli-terminal\nchannelName: CLI Terminal\ncapturedAt: '2026-04-01T00:00:00.000Z'\nstatus: done\nrequestedBy:\n  - name: Niels\n    id: 'user:u-niels'\nprojectedBodyHash: ff8482ae342d12a8cfb329368488fedeec34341ae0e89495a48d92ad2e2c4115\nprojectedAssigneeHash: 4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945\nvisibility: restricted\n---\n# Action item: Call the printer\n\nCall the printer about the posters.\n"
+      },
+      "action-item/conv-2-action-item-1-ef3456": {
+        "stored": {
+          "content": "---\nconversationId: conv-2\ninterfaceType: discord\nchannelId: discord-1\ncapturedAt: '2026-02-01T00:01:00.000Z'\nstatus: doing\nassignedTo:\n  - name: Alex\n    id: 'user:u-alex'\n---\n# Action item: Send the notes\n\nSend the meeting notes.\n",
+          "metadata": "{\"conversationId\":\"conv-2\",\"interfaceType\":\"discord\",\"channelId\":\"discord-1\",\"capturedAt\":\"2026-02-01T00:01:00.000Z\",\"status\":\"doing\",\"assignedTo\":[{\"name\":\"Alex\",\"id\":\"user:u-alex\"}]}",
+          "visibility": "public"
+        },
+        "read": {
+          "content": "---\nconversationId: conv-2\ninterfaceType: discord\nchannelId: discord-1\ncapturedAt: '2026-02-01T00:01:00.000Z'\nstatus: doing\nassignedTo:\n  - name: Alex\n    id: 'user:u-alex'\n---\n# Action item: Send the notes\n\nSend the meeting notes.\n",
+          "metadata": {
+            "conversationId": "conv-2",
+            "interfaceType": "discord",
+            "channelId": "discord-1",
+            "capturedAt": "2026-02-01T00:01:00.000Z",
+            "status": "doing",
+            "assignedTo": [
+              {
+                "name": "Alex",
+                "id": "user:u-alex"
+              }
+            ]
+          },
+          "visibility": "public"
+        },
+        "exported": "---\nconversationId: conv-2\ninterfaceType: discord\nchannelId: discord-1\ncapturedAt: '2026-02-01T00:01:00.000Z'\nstatus: doing\nassignedTo:\n  - name: Alex\n    id: 'user:u-alex'\n---\n# Action item: Send the notes\n\nSend the meeting notes.\n"
+      },
+      "action-item/fix-the-roof-a4e924": {
+        "stored": {
+          "content": "---\norigin: board\ncapturedAt: '2026-03-01T00:00:00.000Z'\nstatus: doing\n---\n# Action item: Fix the roof\n\nFix the roof\n",
+          "metadata": "{\"origin\":\"board\",\"capturedAt\":\"2026-03-01T00:00:00.000Z\",\"status\":\"doing\"}",
+          "visibility": "public"
+        },
+        "read": {
+          "content": "---\norigin: board\ncapturedAt: '2026-03-01T00:00:00.000Z'\nstatus: doing\n---\n# Action item: Fix the roof\n\nFix the roof\n",
+          "metadata": {
+            "origin": "board",
+            "capturedAt": "2026-03-01T00:00:00.000Z",
+            "status": "doing"
+          },
+          "visibility": "public"
+        },
+        "exported": "---\norigin: board\ncapturedAt: '2026-03-01T00:00:00.000Z'\nstatus: doing\n---\n# Action item: Fix the roof\n\nFix the roof\n"
+      }
+    }
+  }
+}

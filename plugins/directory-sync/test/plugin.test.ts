@@ -1,7 +1,10 @@
 import { type ToolResponse } from "@brains/plugins";
 import { directorySyncStatusContract } from "@brains/contracts";
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { DirectorySyncPlugin } from "../src/plugin";
+import {
+  createDirectorySyncPlugin,
+  type DirectorySyncPlugin,
+} from "./directory-sync-plugins";
 import { createPluginHarness, expectSuccess } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
 import type { StudioWorkspaceRegistration } from "@brains/plugins";
@@ -52,7 +55,7 @@ describe("DirectorySyncPlugin", () => {
       new MockEntityAdapter("topic"),
     );
 
-    plugin = new DirectorySyncPlugin({
+    plugin = createDirectorySyncPlugin({
       syncPath,
       autoSync: false,
       initialSync: false,
@@ -206,7 +209,7 @@ describe("DirectorySyncPlugin", () => {
         gitBrokerSocket: socketPath,
         gitBrokerCheckout: checkout,
       });
-      const localPlugin = new DirectorySyncPlugin(pluginConfig);
+      const localPlugin = createDirectorySyncPlugin(pluginConfig);
 
       await localHarness.installPlugin(localPlugin);
       const statusConnection = await BrokerConnection.connect(socketPath);
@@ -248,7 +251,7 @@ describe("DirectorySyncPlugin", () => {
         issues: [],
       });
 
-      const localPlugin = new DirectorySyncPlugin({
+      const localPlugin = createDirectorySyncPlugin({
         syncPath: path,
         autoSync: false,
         initialSync: false,
@@ -303,7 +306,7 @@ describe("DirectorySyncPlugin", () => {
       const localHarness = createPluginHarness<DirectorySyncPlugin>({
         dataDir: path,
       });
-      const localPlugin = new DirectorySyncPlugin({
+      const localPlugin = createDirectorySyncPlugin({
         syncPath: path,
         autoSync: false,
         initialSync: false,
@@ -325,7 +328,7 @@ describe("DirectorySyncPlugin", () => {
       const localHarness = createPluginHarness<DirectorySyncPlugin>({
         dataDir: path,
       });
-      const localPlugin = new DirectorySyncPlugin({
+      const localPlugin = createDirectorySyncPlugin({
         syncPath: path,
         autoSync: false,
         initialSync: false,

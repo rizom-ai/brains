@@ -6,14 +6,14 @@ import {
 } from "@brains/entity-service";
 import { migrateEntities } from "@brains/entity-service/migrate";
 import {
-  EntityPlugin,
   SYSTEM_CHANNELS,
   instantiatePluginPackageDefinition,
   type BaseDataSourceContext,
   type DataSourceSchema,
   type PluginPackageDefinition,
+  type PluginPackageInstantiationOptions,
 } from "@brains/plugins";
-import { createMockShell } from "@brains/plugins/test";
+import { createMockShell, isDeclaredEntityType } from "@brains/plugins/test";
 import { createSilentLogger, createTestDirectory } from "@brains/test-utils";
 import { computeContentHash } from "@brains/utils/hash";
 
@@ -22,6 +22,7 @@ export interface StoredRow {
   content: string;
   contentHash: string;
   metadata: string;
+  updated: number;
 }
 
 export interface DeclaredEntityStore {
@@ -62,15 +63,20 @@ export interface DeclaredEntityStore {
 export async function declaredEntityStore(
   definition: PluginPackageDefinition,
   packageName: string,
-  pluginId: string,
-  config: EntityTypeConfig = {},
+  // The plugin id it installs under, or the composer's options in full,
+  // such as a service that installs its owned type apart.
+  pluginId: string | PluginPackageInstantiationOptions,
+  // Each type's config, or one per type when the package owns several
+  // that differ, as a book's sections are contained in their book.
+  config: EntityTypeConfig | ((entityType: string) => EntityTypeConfig) = {},
   // Packages installed beside it under their own scoped ids, such as the
   // types a cross-type package reads.
   companions: readonly PluginPackageDefinition[] = [],
   // The package's own config, as a brain gives it.
   packageConfig: unknown = {},
   // Types registered beside the package's, as the shell and class plugins
-  // register them, for readers that read across types.
+  // register them, for readers that read across types, and groupings over
+  // the package's own types: run once the package's types are registered.
   registerTypes: (registry: EntityRegistry) => void = (): void => {},
 ): Promise<DeclaredEntityStore> {
   const temporary = await createTestDirectory();
@@ -82,7 +88,7 @@ export async function declaredEntityStore(
       definition,
       packageConfig,
       { name: packageName, version: "0.0.0-test" },
-      { pluginId },
+      typeof pluginId === "string" ? { pluginId } : pluginId,
     ),
     ...companions.flatMap((companion) =>
       instantiatePluginPackageDefinition(
@@ -93,10 +99,9 @@ export async function declaredEntityStore(
     ),
   ];
   const registry = EntityRegistry.createFresh(logger);
-  registerTypes(registry);
   // A service package installs its owned types' entity plugins beside it.
   const entityPlugins = plugins.flatMap((plugin) =>
-    plugin instanceof EntityPlugin ? [plugin] : [],
+    isDeclaredEntityType(plugin) ? [plugin] : [],
   );
   if (entityPlugins.length === 0) throw new Error("No entity plugin");
   for (const plugin of entityPlugins) {
@@ -104,9 +109,10 @@ export async function declaredEntityStore(
       plugin.entityType,
       plugin.schema,
       plugin.adapter,
-      config,
+      typeof config === "function" ? config(plugin.entityType) : config,
     );
   }
+  registerTypes(registry);
   const service = EntityService.createFresh({
     dbConfig,
     embeddingDbConfig: { url: `file:${temporary.dir}/embeddings.db` },
@@ -168,7 +174,7 @@ export async function declaredEntityStore(
     },
     async stored(entityType, id): Promise<StoredRow | null> {
       const result = await db.execute({
-        sql: "SELECT content, contentHash, metadata FROM entities WHERE entityType = ? AND id = ?",
+        sql: "SELECT content, contentHash, metadata, updated FROM entities WHERE entityType = ? AND id = ?",
         args: [entityType, id],
       });
       const row = result.rows[0];
@@ -177,6 +183,7 @@ export async function declaredEntityStore(
             content: String(row["content"]),
             contentHash: String(row["contentHash"]),
             metadata: String(row["metadata"]),
+            updated: Number(row["updated"]),
           }
         : null;
     },

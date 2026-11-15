@@ -1,11 +1,8 @@
-import type {
-  BaseEntity,
-  IRuntimeStateNamespace,
-  ServiceEntityService,
-} from "@brains/plugins";
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
+import type { IRuntimeStateNamespace } from "@brains/sdk/internal/service-runtime";
 import type { FormAdmission, FormDenialReason } from "./admission";
 import type { FormDefinition } from "./definition";
-import { FormRecords } from "./records";
+import { FormRecords, type FormEntityService } from "./records";
 import { FormStorageSlots, type FormStorageOptions } from "./storage-slots";
 import { scoreAnswers, type FormResult } from "./score";
 import type { FormSubmission, FormTarget } from "./target";
@@ -19,7 +16,7 @@ export interface FormIntakeDependencies<E extends BaseEntity = BaseEntity> {
   form: FormDefinition;
   target: FormTarget<E>;
   admission: FormAdmission;
-  entities: ServiceEntityService;
+  entities: FormEntityService;
   state: IRuntimeStateNamespace;
   /** Where its in-flight ledger lives and how its records are named. */
   slots: FormStorageOptions;

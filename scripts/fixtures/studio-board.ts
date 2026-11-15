@@ -1,11 +1,13 @@
 import { createMockShell } from "@brains/plugins/test";
 import {
+  createBuiltInStudioWorkspaceRegistration,
   createServicePluginContext,
+  type ServicePluginContext,
   type StudioWorkspaceActor,
   type StudioWorkspaceRegistration,
 } from "@brains/plugins";
 import {
-  ActionItemAdapter,
+  actionItemAdapter,
   actionItemSchema,
   type ActionItemMetadata,
   type ActionItemStatus,
@@ -13,6 +15,7 @@ import {
 import {
   BOARD_WORKSPACE_ID,
   registerBoardWorkspace,
+  type BoardContext,
 } from "@brains/action-board";
 
 /** Long and short titles in every column: narrow columns must still read. */
@@ -43,12 +46,38 @@ const CARDS: ReadonlyArray<{
   { id: "alt-text", text: "Write alt text for decks", status: "done" },
 ];
 
+/** The board's context over a test plugin context, as the runtime builds it. */
+function boardContextFor(context: ServicePluginContext): BoardContext {
+  return {
+    entityService: context.entityService,
+    groupings: {
+      ensureGroupingsCurrent: () => context.entities.ensureGroupingsCurrent(),
+      getGroupings: () => context.entities.getGroupings(),
+      queryGroupingCatalog: (request) =>
+        context.entityService.queryGroupingCatalog(request),
+      queryGroupingMembers: (request) =>
+        context.entityService.queryGroupingMembers(request),
+    },
+    studio: {
+      isAvailable: () => context.studio.isAvailable(),
+      source: (input) =>
+        createBuiltInStudioWorkspaceRegistration({ ...input, context }),
+      register: async (registration): Promise<string | undefined> => {
+        const result = await context.studio.registerWorkspace(registration);
+        return result === false ? undefined : result.workspaceUrl;
+      },
+      unregister: (workspaceId) =>
+        context.studio.unregisterWorkspace(workspaceId),
+    },
+  };
+}
+
 /** Seed action items, then read the production Board workspace. */
 export async function createBoardFixture(
   now: number,
 ): Promise<(query: Record<string, string>) => Promise<unknown>> {
   const context = createServicePluginContext(createMockShell(), "action-board");
-  const adapter = new ActionItemAdapter();
+  const adapter = actionItemAdapter;
   context.entities.register("action-item", actionItemSchema, adapter);
   for (const card of CARDS) {
     const metadata: ActionItemMetadata = {
@@ -85,7 +114,7 @@ export async function createBoardFixture(
       data: { workspaceUrl: `/studio/workspaces/${BOARD_WORKSPACE_ID}` },
     };
   });
-  await registerBoardWorkspace(context, {
+  await registerBoardWorkspace(boardContextFor(context), {
     now: () => new Date(now),
     visibility: "shared",
   });

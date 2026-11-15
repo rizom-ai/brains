@@ -1,5 +1,4 @@
-import { BaseJobHandler } from "@brains/plugins";
-import type { ServicePluginContext } from "@brains/plugins";
+import type { DirectorySyncCore } from "../lib/sync-context";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
 import {
@@ -11,25 +10,21 @@ import {
 import type { DirectorySyncOperationStatusService } from "../lib/directory-sync-operation-status";
 import { getErrorMessage } from "@brains/utils/error";
 
-export class DirectoryExportJobHandler extends BaseJobHandler<
-  "directory-export",
-  DirectoryExportJobData,
-  ExportResult
-> {
+export class DirectoryExportJobHandler {
+  /** The data the queue hands this job, as its schema parses it. */
+  readonly schema: typeof directoryExportJobSchema = directoryExportJobSchema;
+  private readonly logger: Logger;
   private directorySync: IDirectorySync;
   private readonly operationStatus:
     DirectorySyncOperationStatusService | undefined;
 
   constructor(
     logger: Logger,
-    _context: ServicePluginContext,
+    _context: DirectorySyncCore,
     directorySync: IDirectorySync,
     operationStatus?: DirectorySyncOperationStatusService,
   ) {
-    super(logger, {
-      schema: directoryExportJobSchema,
-      jobTypeName: "directory-export",
-    });
+    this.logger = logger;
     this.directorySync = directorySync;
     this.operationStatus = operationStatus;
   }
@@ -69,7 +64,7 @@ export class DirectoryExportJobHandler extends BaseJobHandler<
     }
   }
 
-  protected override summarizeDataForLog(
+  public summarizeDataForLog(
     data: DirectoryExportJobData,
   ): Record<string, unknown> {
     return {

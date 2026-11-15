@@ -1,11 +1,15 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import { createMockShell, type MockShell } from "@brains/plugins/test";
-import type { BaseDataSourceContext, BaseEntity } from "@brains/plugins";
-import { createMockLogger } from "@brains/test-utils";
+import type {
+  BaseDataSourceContext,
+  BaseEntity,
+  DataSource,
+} from "@brains/plugins";
 import { z } from "@brains/utils/zod";
-import { GuideDataSource, guideWithDataSchema } from "../src";
+import { guideWithDataSchema } from "../src";
 import { getTemplates } from "../src/lib/register-templates";
 import { guideMarkdown } from "./fixtures";
+import { guideDataSourceOn, installGuides } from "./guide-plugins";
 
 const listSchema = z.object({ guides: z.array(guideWithDataSchema) });
 const detailSchema = z.object({
@@ -29,29 +33,29 @@ function guide(slug: string, order: number): BaseEntity {
       persona: `The ${slug}`,
       for: `You are a ${slug}.`,
       recipe: null,
+      brings: null,
+      section: null,
+      summary: null,
       material: [],
     },
   };
 }
 
-describe("GuideDataSource", () => {
+describe("the guides entity data source", () => {
   let shell: MockShell;
   let context: BaseDataSourceContext;
-  let datasource: GuideDataSource;
+  let datasource: Required<Pick<DataSource, "fetch">>;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     shell = createMockShell();
     context = { entityService: shell.getEntityService() };
-    datasource = new GuideDataSource(createMockLogger());
+    await installGuides(shell);
+    datasource = guideDataSourceOn(shell, "guides:entities");
     shell.addEntities([
       guide("team", 40),
       guide("writer", 10),
       guide("researcher", 20),
     ]);
-  });
-
-  it("is the guides entity data source", () => {
-    expect(datasource.id).toBe("guides:entities");
   });
 
   it("lists the guides in their order", async () => {

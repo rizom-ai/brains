@@ -2,13 +2,14 @@ import {
   defineEntityCatalog,
   defineStudioWorkspace,
   defineWorkspaceAction,
-  permissionToVisibilityScope,
-  registerBuiltInStudioWorkspace,
-  type ContentVisibility,
-  type ServicePluginContext,
   type OperatorCaller,
   type OperatorRegionBlock,
-} from "@brains/plugins";
+} from "@brains/sdk/services";
+import {
+  permissionToVisibilityScope,
+  type ContentVisibility,
+} from "@brains/sdk/internal/service-runtime";
+import type { BoardContext } from "./board-context";
 import { z } from "@brains/utils/zod";
 import { ACTION_ITEM_ENTITY_TYPE } from "@brains/action-items";
 import {
@@ -703,7 +704,7 @@ const NOT_A_MEMBER = "That person is not a member of this brain.";
 
 /** Registers the Board workspace; a no-op where Studio does not run. */
 export async function registerBoardWorkspace(
-  context: ServicePluginContext,
+  context: BoardContext,
   deps: BoardWorkspaceDeps,
 ): Promise<string | undefined> {
   const now = (): Date => deps.now?.() ?? new Date();
@@ -745,207 +746,213 @@ export async function registerBoardWorkspace(
     }
   };
 
-  const result = await registerBuiltInStudioWorkspace({
-    context,
-    definition: boardWorkspace,
-    bind: (bindingContext) =>
-      boardWorkspace.bind(bindingContext, {
-        // A card links to whatever its source is: a summary or an Inbox item's entity.
-        listEntityTypes: () => context.entityService.getEntityTypes(),
-        load: async ({ caller, query }) => {
-          if (!caller) throw new Error("The board requires a signed-in member");
-          const visibilityScope = permissionToVisibilityScope(
-            caller.permission,
-          );
-          const at = now();
-          const asked = query.get(boardQuerySchema);
-          const grouping = deps.projectGrouping
-            ? await definedProjectGrouping(context, deps.projectGrouping)
-            : undefined;
-          const options = grouping
-            ? await projectOptions(context, grouping, visibilityScope)
-            : [];
-          const project = options.find(
-            (option) => option.value === asked.project,
-          )?.value;
-          const columns =
-            grouping && project
-              ? byStatus(
-                  await projectMembers(context, {
-                    grouping,
-                    value: project,
-                    visibilityScope,
-                  }),
-                )
-              : await Promise.all(
-                  COLUMNS.map(({ status }) =>
-                    context.entityService.listEntities(
-                      {
-                        entityType: ACTION_ITEM_ENTITY_TYPE,
-                        options: {
-                          filter: { metadata: { status }, visibilityScope },
-                          sortFields: [{ field: "updated", direction: "desc" }],
-                          limit: COLUMN_LIMIT,
-                        },
-                      },
-                      actionItemSchema,
-                    ),
-                  ),
-                );
-          const [open = [], doing = [], blocked = [], done = []] = columns;
-          // Both reads come newest first, so Done keeps the latest finished.
-          const finished = done.slice(0, DONE_LIMIT);
-          const shown = [open, doing, blocked, finished];
-          const selected = asked.card;
-          const track =
-            asked.trackSource && asked.trackType && asked.trackId
-              ? {
-                  sourceId: asked.trackSource,
-                  entityType: asked.trackType,
-                  entityId: asked.trackId,
-                  title: asked.trackTitle ?? "",
-                  summary: asked.trackSummary ?? "",
-                  tracked:
-                    (await context.entityService.getEntity({
-                      entityType: ACTION_ITEM_ENTITY_TYPE,
-                      id: inboxCardId({
-                        sourceId: asked.trackSource,
-                        entityType: asked.trackType,
-                        entityId: asked.trackId,
-                      }),
-                      visibilityScope,
-                    })) !== null,
-                }
-              : undefined;
-          const opened = selected
-            ? await context.entityService.getEntity(
-                {
-                  entityType: ACTION_ITEM_ENTITY_TYPE,
-                  id: selected,
-                  visibilityScope,
-                },
-                actionItemSchema,
-              )
-            : null;
-          return {
-            members: await members(),
-            cards: shown
-              .flatMap((cards) => cards.slice(0, COLUMN_LIMIT))
-              .map((entity) => toCard(entity, at)),
-            ...(opened ? { open: toOpenCard(opened) } : {}),
-            ...(track ? { track } : {}),
-            ...(grouping
-              ? {
-                  projects: {
-                    options,
-                    ...(project
-                      ? {
-                          selected: {
-                            name: project,
-                            counts: COLUMNS.map((column, index) => ({
-                              status: column.status,
-                              label: column.label,
-                              count: shown[index]?.length ?? 0,
-                            })),
-                            blocked: blocked.map((entity) => ({
-                              id: entity.id,
-                              title: actionItemTitle(entity),
-                            })),
-                          },
-                        }
-                      : {}),
-                  },
-                }
-              : {}),
-          };
-        },
-        actions: [
-          moveAction.bind(bindingContext, ({ caller, input }) =>
-            move(caller, input),
-          ),
-          dropAction.bind(bindingContext, ({ caller, input }) =>
-            move(caller, { ...input, to: "dropped" }),
-          ),
-          trackAction.bind(bindingContext, async ({ caller, input }) => {
-            if (!caller) {
-              throw new Error("Tracking requires a signed-in member");
-            }
-            const assignee = await assigneeFor(input.assigneeId);
-            if (assignee === false) return { status: NOT_A_MEMBER };
-            const result = await trackInboxItem(
-              {
-                entityService: context.entityService,
-                visibility: deps.visibility,
-                now,
-              },
-              {
-                sourceRef: {
-                  sourceId: input.sourceId,
-                  entityType: input.entityType,
-                  entityId: input.entityId,
-                },
-                title: input.title,
-                text: input.text,
-                assignee,
-                actor: { kind: "user", userId: caller.actor.id },
-                actorName: caller.actor.displayName,
-              },
-            );
-            return result.status === "tracked"
-              ? {}
-              : { status: "This Inbox item is already on the board." };
-          }),
-          createAction.bind(bindingContext, async ({ caller, input }) => {
-            if (!caller) {
-              throw new Error("Adding a card requires a signed-in member");
-            }
-            const assignee = await assigneeFor(input.assigneeId);
-            if (assignee === false) return { status: NOT_A_MEMBER };
-            await createActionItem(
-              {
-                entityService: context.entityService,
-                visibility: deps.visibility,
-                now,
-              },
-              {
-                title: input.title,
-                text: input.text ?? "",
-                assignee,
-                actor: { kind: "user", userId: caller.actor.id },
-                actorName: caller.actor.displayName,
-                origin: { kind: "board" },
-              },
-            );
-            return {};
-          }),
-          noteAction.bind(bindingContext, async ({ caller, input }) => {
+  if (!context.studio.isAvailable()) return undefined;
+  return context.studio.register(
+    context.studio.source({
+      definition: boardWorkspace,
+      bind: (bindingContext) =>
+        boardWorkspace.bind(bindingContext, {
+          // A card links to whatever its source is: a summary or an Inbox item's entity.
+          listEntityTypes: () => context.entityService.getEntityTypes(),
+          load: async ({ caller, query }) => {
             if (!caller)
-              throw new Error("Adding a note requires a signed-in member");
-            const result = await addActionItemNote(
-              {
-                entityService: context.entityService,
-                visibilityScope: permissionToVisibilityScope(caller.permission),
-                now,
-              },
-              {
-                id: input.id,
-                text: input.text,
-                actorName: caller.actor.displayName,
-              },
+              throw new Error("The board requires a signed-in member");
+            const visibilityScope = permissionToVisibilityScope(
+              caller.permission,
             );
-            return result.status === "noted"
-              ? {}
-              : {
-                  status:
-                    result.status === "not-found"
-                      ? "This card is no longer on the board."
-                      : "This card changed while you wrote; add the note again.",
-                };
-          }),
-        ],
-      }),
-  });
-  return result === false ? undefined : result.workspaceUrl;
+            const at = now();
+            const asked = query.get(boardQuerySchema);
+            const grouping = deps.projectGrouping
+              ? await definedProjectGrouping(context, deps.projectGrouping)
+              : undefined;
+            const options = grouping
+              ? await projectOptions(context, grouping, visibilityScope)
+              : [];
+            const project = options.find(
+              (option) => option.value === asked.project,
+            )?.value;
+            const columns =
+              grouping && project
+                ? byStatus(
+                    await projectMembers(context, {
+                      grouping,
+                      value: project,
+                      visibilityScope,
+                    }),
+                  )
+                : await Promise.all(
+                    COLUMNS.map(({ status }) =>
+                      context.entityService.listEntities(
+                        {
+                          entityType: ACTION_ITEM_ENTITY_TYPE,
+                          options: {
+                            filter: { metadata: { status }, visibilityScope },
+                            sortFields: [
+                              { field: "updated", direction: "desc" },
+                            ],
+                            limit: COLUMN_LIMIT,
+                          },
+                        },
+                        actionItemSchema,
+                      ),
+                    ),
+                  );
+            const [open = [], doing = [], blocked = [], done = []] = columns;
+            // Both reads come newest first, so Done keeps the latest finished.
+            const finished = done.slice(0, DONE_LIMIT);
+            const shown = [open, doing, blocked, finished];
+            const selected = asked.card;
+            const track =
+              asked.trackSource && asked.trackType && asked.trackId
+                ? {
+                    sourceId: asked.trackSource,
+                    entityType: asked.trackType,
+                    entityId: asked.trackId,
+                    title: asked.trackTitle ?? "",
+                    summary: asked.trackSummary ?? "",
+                    tracked:
+                      (await context.entityService.getEntity({
+                        entityType: ACTION_ITEM_ENTITY_TYPE,
+                        id: inboxCardId({
+                          sourceId: asked.trackSource,
+                          entityType: asked.trackType,
+                          entityId: asked.trackId,
+                        }),
+                        visibilityScope,
+                      })) !== null,
+                  }
+                : undefined;
+            const opened = selected
+              ? await context.entityService.getEntity(
+                  {
+                    entityType: ACTION_ITEM_ENTITY_TYPE,
+                    id: selected,
+                    visibilityScope,
+                  },
+                  actionItemSchema,
+                )
+              : null;
+            return {
+              members: await members(),
+              cards: shown
+                .flatMap((cards) => cards.slice(0, COLUMN_LIMIT))
+                .map((entity) => toCard(entity, at)),
+              ...(opened ? { open: toOpenCard(opened) } : {}),
+              ...(track ? { track } : {}),
+              ...(grouping
+                ? {
+                    projects: {
+                      options,
+                      ...(project
+                        ? {
+                            selected: {
+                              name: project,
+                              counts: COLUMNS.map((column, index) => ({
+                                status: column.status,
+                                label: column.label,
+                                count: shown[index]?.length ?? 0,
+                              })),
+                              blocked: blocked.map((entity) => ({
+                                id: entity.id,
+                                title: actionItemTitle(entity),
+                              })),
+                            },
+                          }
+                        : {}),
+                    },
+                  }
+                : {}),
+            };
+          },
+          actions: [
+            moveAction.bind(bindingContext, ({ caller, input }) =>
+              move(caller, input),
+            ),
+            dropAction.bind(bindingContext, ({ caller, input }) =>
+              move(caller, { ...input, to: "dropped" }),
+            ),
+            trackAction.bind(bindingContext, async ({ caller, input }) => {
+              if (!caller) {
+                throw new Error("Tracking requires a signed-in member");
+              }
+              const assignee = await assigneeFor(input.assigneeId);
+              if (assignee === false) return { status: NOT_A_MEMBER };
+              const result = await trackInboxItem(
+                {
+                  entityService: context.entityService,
+                  visibility: deps.visibility,
+                  now,
+                },
+                {
+                  sourceRef: {
+                    sourceId: input.sourceId,
+                    entityType: input.entityType,
+                    entityId: input.entityId,
+                  },
+                  title: input.title,
+                  text: input.text,
+                  assignee,
+                  actor: { kind: "user", userId: caller.actor.id },
+                  actorName: caller.actor.displayName,
+                },
+              );
+              return result.status === "tracked"
+                ? {}
+                : { status: "This Inbox item is already on the board." };
+            }),
+            createAction.bind(bindingContext, async ({ caller, input }) => {
+              if (!caller) {
+                throw new Error("Adding a card requires a signed-in member");
+              }
+              const assignee = await assigneeFor(input.assigneeId);
+              if (assignee === false) return { status: NOT_A_MEMBER };
+              await createActionItem(
+                {
+                  entityService: context.entityService,
+                  visibility: deps.visibility,
+                  now,
+                },
+                {
+                  title: input.title,
+                  text: input.text ?? "",
+                  assignee,
+                  actor: { kind: "user", userId: caller.actor.id },
+                  actorName: caller.actor.displayName,
+                  origin: { kind: "board" },
+                },
+              );
+              return {};
+            }),
+            noteAction.bind(bindingContext, async ({ caller, input }) => {
+              if (!caller)
+                throw new Error("Adding a note requires a signed-in member");
+              const result = await addActionItemNote(
+                {
+                  entityService: context.entityService,
+                  visibilityScope: permissionToVisibilityScope(
+                    caller.permission,
+                  ),
+                  now,
+                },
+                {
+                  id: input.id,
+                  text: input.text,
+                  actorName: caller.actor.displayName,
+                },
+              );
+              return result.status === "noted"
+                ? {}
+                : {
+                    status:
+                      result.status === "not-found"
+                        ? "This card is no longer on the board."
+                        : "This card changed while you wrote; add the note again.",
+                  };
+            }),
+          ],
+        }),
+    }),
+  );
 }
 export const BOARD_WORKSPACE_ID = "action-board:board";
 

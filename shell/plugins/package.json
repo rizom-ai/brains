@@ -1,7 +1,7 @@
 {
   "name": "@brains/plugins",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.682",
+  "version": "0.2.0-alpha.712",
   "description": "Core plugin system implementation for Brains",
   "dependencies": {
     "@brains/ai-service": "workspace:*",
@@ -51,9 +51,8 @@
     "./internal/http-route-snapshot": "./src/internal/http-route-snapshot.ts",
     "./internal/http-host": "./src/internal/http-host.ts",
     "./contracts/daemons": "./src/manager/daemon-types.ts",
-    "./services/base-entity-datasource": "./src/service/base-entity-datasource.ts",
-    "./public/plugin-api": "./src/public/plugin-api.ts",
-    "./test": "./test.ts"
+    "./test": "./test.ts",
+    "./site-declaration": "./src/site/site-declaration-entry.ts"
   },
   "main": "./src/index.ts",
   "private": true,

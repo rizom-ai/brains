@@ -1,5 +1,21 @@
 import { describe, it, expect } from "bun:test";
-import { sortByPublicationDate } from "./sort";
+import { compareIds, sortByPublicationDate } from "./sort";
+
+describe("compareIds", () => {
+  it("orders ids by code unit, as the store's id order does", () => {
+    expect(["b", "a-2", "B", "a-10", "a"].sort(compareIds)).toEqual([
+      "B",
+      "a",
+      "a-10",
+      "a-2",
+      "b",
+    ]);
+  });
+
+  it("reads equal ids as equal", () => {
+    expect(compareIds("same", "same")).toBe(0);
+  });
+});
 
 describe("sortByPublicationDate", () => {
   it("should sort by publishedAt date, newest first", () => {
@@ -86,6 +102,22 @@ describe("sortByPublicationDate", () => {
 
     expect(sorted[0]?.id).toBe("new");
     expect(sorted[1]?.id).toBe("old");
+  });
+
+  it("keeps the given order for entities published at the same moment", () => {
+    const entities = ["post-c", "post-a", "post-b"].map((id) => ({
+      id,
+      created: "2024-01-01T00:00:00Z",
+      metadata: { publishedAt: "2024-01-15T00:00:00Z" },
+    }));
+
+    const sorted = [...entities].sort(sortByPublicationDate);
+
+    expect(sorted.map((entity) => entity.id)).toEqual([
+      "post-c",
+      "post-a",
+      "post-b",
+    ]);
   });
 
   it("should handle empty array", () => {

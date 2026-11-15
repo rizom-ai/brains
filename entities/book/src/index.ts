@@ -1,10 +1,9 @@
-export { BookPlugin, bookPlugin } from "./plugin";
-export { BookAdapter, bookAdapter } from "./adapters/book-adapter";
-export {
-  BookSectionAdapter,
-  bookSectionAdapter,
-  bookSectionSlug,
-} from "./adapters/book-section-adapter";
+import { bookPackage } from "./plugin";
+
+export { bookPackage } from "./plugin";
+export { book } from "./book-entity";
+export { bookSection } from "./book-section-entity";
+export { bookSectionSlug, bookSectionSlugPrefix } from "./lib/slugs";
 export {
   bookSchema,
   bookFrontmatterSchema,
@@ -28,7 +27,7 @@ export {
   type BookSectionWithData,
 } from "./schemas/book-section";
 export {
-  BookDataSource,
+  fetchBookData,
   parseBookData,
   parseBookSectionData,
 } from "./datasources/book-datasource";
@@ -39,3 +38,5 @@ export {
   type BookDetailProps,
   type BookSectionProps,
 } from "./templates/book-detail";
+
+export default bookPackage;

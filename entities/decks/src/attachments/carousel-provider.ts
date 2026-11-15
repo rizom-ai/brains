@@ -1,4 +1,4 @@
-import type { AttachmentProvider } from "@brains/plugins";
+import type { AttachmentProvider } from "@brains/sdk/entities";
 import type { PublishMediaData } from "@brains/contracts";
 import {
   createMediaContentHelpers,

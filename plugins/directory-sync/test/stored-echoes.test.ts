@@ -94,3 +94,43 @@ describe("DirectorySync.withoutStoredEchoes", () => {
     ).toEqual(["note/new.md", "note/deleted.md", "document/paper.pdf"]);
   });
 });
+
+/**
+ * While plugins register, a type composed after directory-sync is not
+ * registered yet, so its stored entity cannot be read back. Its file is kept
+ * for the import to decide, without reading the entity.
+ */
+describe("DirectorySync.withoutStoredEchoes for an unregistered type", () => {
+  let testDir: string;
+
+  afterEach(() => {
+    rmSync(testDir, { recursive: true, force: true });
+  });
+
+  it("keeps the file without reading its stored entity", async () => {
+    testDir = mkdtempSync(join(tmpdir(), "test-stored-echoes-unregistered-"));
+    mkdirSync(join(testDir, "widget"), { recursive: true });
+    writeFileSync(join(testDir, "widget", "legacy.md"), "Widget v2\n");
+    const entityService = createMockEntityService({ entityTypes: ["note"] });
+    const reads: string[] = [];
+    entityService.getEntityWriteSnapshot = async (request: {
+      entityType: string;
+      id: string;
+    }): Promise<null> => {
+      reads.push(`${request.entityType}/${request.id}`);
+      throw new Error(
+        `Unknown entity type ${request.entityType}: no adapter registered`,
+      );
+    };
+    const dirSync = new DirectorySync({
+      syncPath: testDir,
+      entityService,
+      logger: createSilentLogger("test"),
+    });
+
+    expect(await dirSync.withoutStoredEchoes(["widget/legacy.md"])).toEqual([
+      "widget/legacy.md",
+    ]);
+    expect(reads).toEqual([]);
+  });
+});

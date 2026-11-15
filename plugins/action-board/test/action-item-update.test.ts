@@ -5,14 +5,14 @@ import {
   type ServicePluginContext,
   type ToolContext,
 } from "@brains/plugins/test";
-import { ActionItemAdapter } from "@brains/action-items";
+import { actionItemAdapter } from "@brains/action-items";
 import {
   actionItemSchema,
   type ActionItemMetadata,
 } from "@brains/action-items";
 import { createActionItemUpdateTool } from "../src/tools/action-item-update";
 
-const adapter = new ActionItemAdapter();
+const adapter = actionItemAdapter;
 const NOW = new Date("2026-10-15T12:00:00.000Z");
 
 const chat: ToolContext = {

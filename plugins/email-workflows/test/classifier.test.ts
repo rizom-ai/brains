@@ -2,7 +2,10 @@ import { describe, expect, it, mock } from "bun:test";
 import type { InboundEmail } from "@brains/contracts";
 import type { IEntityAINamespace } from "@brains/plugins";
 import { genericSpy } from "@brains/test-utils";
-import { createMailClassifier } from "../src/lib/classifier";
+import {
+  MailClassificationError,
+  createMailClassifier,
+} from "../src/lib/classifier";
 
 type GenerateObject = Pick<IEntityAINamespace, "generateObject">;
 type AIGenerationSchema<T> = Parameters<
@@ -95,5 +98,39 @@ describe("mail classifier wire schema", () => {
     );
 
     expect(classify(email)).rejects.toThrow();
+  });
+});
+
+describe("mail classifier failures", () => {
+  it("tags a failed model call", async () => {
+    const classify = createMailClassifier(
+      {
+        generateObject: async () => {
+          throw new Error("private model outage");
+        },
+      },
+      "",
+    );
+
+    const failure = await classify(email).catch((error: unknown) => error);
+    expect(failure).toBeInstanceOf(MailClassificationError);
+    expect(failure).toMatchObject({ classificationCause: "model-call" });
+  });
+
+  it("tags a decision outside the wire schema", async () => {
+    const classify = createMailClassifier(
+      {
+        generateObject: genericSpy<GenerateObject["generateObject"]>(
+          mock(async () => ({
+            object: { decision: "retain", retained: null },
+          })),
+        ),
+      },
+      "",
+    );
+
+    const failure = await classify(email).catch((error: unknown) => error);
+    expect(failure).toBeInstanceOf(MailClassificationError);
+    expect(failure).toMatchObject({ classificationCause: "decision-schema" });
   });
 });

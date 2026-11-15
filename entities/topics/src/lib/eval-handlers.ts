@@ -1,7 +1,8 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import type { BaseEntity, EntityPluginContext } from "@brains/plugins";
-import { waitForEmbeddingsToDrain } from "@brains/plugins";
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
+import { waitForEmbeddingsToDrain } from "@brains/sdk/internal/service-runtime";
+import type { TopicsContext } from "./topics-context";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import { computeContentHash } from "@brains/utils/hash";
@@ -15,7 +16,7 @@ import {
 } from "./topic-presenter";
 import { replaceAllTopics } from "./topic-rebuild";
 import { TopicService } from "./topic-service";
-import { TopicAdapter } from "./topic-adapter";
+import { topicDocument } from "./topic-document";
 import { reconcileTopics } from "./topic-reconciliation";
 import type { TopicEntity } from "../types";
 
@@ -197,7 +198,7 @@ function withSource(
   };
 }
 
-async function clearTopics(context: EntityPluginContext): Promise<void> {
+async function clearTopics(context: TopicsContext): Promise<void> {
   const topics = await context.entityService.listEntities({
     entityType: TOPIC_ENTITY_TYPE,
   });
@@ -212,13 +213,21 @@ async function clearTopics(context: EntityPluginContext): Promise<void> {
 }
 
 export function registerTopicEvalHandlers(params: {
-  context: EntityPluginContext;
+  context: TopicsContext & {
+    /** Register an eval handler under the package's plugin id. */
+    readonly eval: {
+      registerHandler(
+        handlerId: string,
+        handler: (input: unknown) => Promise<unknown>,
+      ): void;
+    };
+  };
   logger: Logger;
   config: TopicsPluginConfig;
 }): void {
   const { context, logger, config } = params;
   const extractor = new TopicExtractor(context, logger);
-  const topicAdapter = new TopicAdapter();
+  const topicAdapter = topicDocument;
 
   const extractTopics = async (
     input: EntityInput,

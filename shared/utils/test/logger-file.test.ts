@@ -126,6 +126,16 @@ describe("Logger file output", () => {
     expect(parsed?.["msg"]).toBe("from child");
   });
 
+  test("log file lines carry the process role", async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "brain-log-test-"));
+    const logFile = join(tempDir, "brain.log");
+    ConsoleLogger.setProcessRole("worker");
+
+    ConsoleLogger.createFresh({ level: LogLevel.INFO, logFile }).info("hi");
+    const [onlyLine] = await waitForLogLines(logFile, 1);
+    expect(parseLogRecord(onlyLine)?.["role"]).toBe("worker");
+  });
+
   test("log file includes data args", async () => {
     tempDir = await mkdtemp(join(tmpdir(), "brain-log-test-"));
     const logFile = join(tempDir, "brain.log");

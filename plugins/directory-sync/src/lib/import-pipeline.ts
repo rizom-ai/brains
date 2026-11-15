@@ -1,7 +1,10 @@
-import type { BaseEntity, EntityServiceClient } from "@brains/plugins";
+import {
+  type ServiceEntityMirrorClient,
+  internalFullScope,
+} from "@brains/sdk/internal/service-runtime";
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
 import type { DirectoryImportPlan } from "../types/jobs";
 import { captureImportPlan } from "./import-plan";
-import { internalFullScope } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { ImportResult, RawEntity } from "../types";
 import type { FileOperations } from "./file-operations";
@@ -25,7 +28,7 @@ import {
 } from "./import-result";
 
 export interface ImportPipelineDeps {
-  entityService: EntityServiceClient;
+  entityService: ServiceEntityMirrorClient;
   logger: Logger;
   fileOperations: FileOperations;
   quarantine: Quarantine;
@@ -93,8 +96,10 @@ async function importFile(
       );
       return;
     }
+    const placedPath = await placeContainedFile(deps, filePath, result);
+    if (placedPath === undefined) return;
     const rawEntity = await deps.fileOperations.readEntity(
-      filePath,
+      placedPath,
       deps.maxImportFileBytes,
     );
 
@@ -103,7 +108,7 @@ async function importFile(
       rawEntity.id !== admission.id
     )
       throw new Error("Directory import destination changed after admission");
-    await processEntityImport(deps, rawEntity, filePath, result, snapshot);
+    await processEntityImport(deps, rawEntity, placedPath, result, snapshot);
   } catch (error) {
     if (error instanceof OversizedFileError) {
       recordSkippedImport(result);
@@ -114,12 +119,47 @@ async function importFile(
   }
 }
 
+/**
+ * The path to import a file from. A contained type's file outside its
+ * container's folder moves to the path export and cleanup look for it at, so
+ * the entity keeps a file. A file already at that path stays the entity's:
+ * the misplaced one is left where it is, unimported (undefined).
+ */
+async function placeContainedFile(
+  deps: ImportPipelineDeps,
+  filePath: string,
+  result: ImportResult,
+): Promise<string | undefined> {
+  const canonicalPath = deps.fileOperations.getMisplacedContainedPath(filePath);
+  if (canonicalPath === undefined) return filePath;
+  if (await deps.fileOperations.moveEntityFile(filePath, canonicalPath)) {
+    deps.logger.info("Moved a contained entity's file into its container", {
+      path: filePath,
+      canonicalPath,
+    });
+    return canonicalPath;
+  }
+  deps.logger.warn("Kept a misplaced file: its placement already holds one", {
+    path: filePath,
+    canonicalPath,
+  });
+  recordSkippedImport(result);
+  recordImportIssue(
+    result,
+    filePath,
+    `Not imported: this file belongs at ${canonicalPath}, which already holds one.`,
+  );
+  return undefined;
+}
+
 async function processEntityImport(
   deps: ImportPipelineDeps,
   rawEntity: RawEntity,
   filePath: string,
   result: ImportResult,
-  snapshot: Awaited<ReturnType<EntityServiceClient["getEntityWriteSnapshot"]>>,
+  snapshot: Awaited<
+    ReturnType<ServiceEntityMirrorClient["getEntityWriteSnapshot"]>
+  >,
 ): Promise<void> {
   const contentSkipReason = getImportContentSkipReason(rawEntity);
   if (contentSkipReason) {

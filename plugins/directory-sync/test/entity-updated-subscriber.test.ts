@@ -1,6 +1,9 @@
 import { createTestEntity } from "@brains/entity-service/test";
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { DirectorySyncPlugin } from "../src/plugin";
+import {
+  createDirectorySyncPlugin,
+  type DirectorySyncPlugin,
+} from "./directory-sync-plugins";
 import {
   BaseEntityAdapter,
   baseEntitySchema,
@@ -78,7 +81,7 @@ describe("entity:updated subscriber", () => {
       new SeriesTestAdapter(),
     );
 
-    plugin = new DirectorySyncPlugin({
+    plugin = createDirectorySyncPlugin({
       syncPath,
       autoSync: true, // Enable auto-sync to register entity:updated subscriber
       initialSync: false,

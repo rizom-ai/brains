@@ -6,6 +6,11 @@ import {
 } from "../package-definition";
 import { createDeclarativeServicePlugin } from "../service/declarative-service-plugin";
 import {
+  noFirstPartyServiceDeclarations,
+  registerServiceRebuilder,
+  type FirstPartyServiceDeclarations,
+} from "../service/first-party-service";
+import {
   assertTwoStageSlots,
   type TwoStageSlots,
 } from "../internal/two-stage-declaration";
@@ -150,6 +155,9 @@ function createServicePackage<
   // Installed on the owned types, as an entity package installs its own:
   // a first-party service keeps the data sources its class registered.
   dataSources: readonly AnyDataSourceDeclaration[] = [],
+  // What a first-party service converted from a class declares beside its
+  // definition (withTools).
+  declarations: FirstPartyServiceDeclarations = noFirstPartyServiceDeclarations,
 ): ServicePackageDefinition<TConfigSchema> {
   const entities = definition.entities;
   assertDataSources(definition.id, new Set(entities), dataSources);
@@ -165,6 +173,7 @@ function createServicePackage<
       scope,
       pluginId,
       dependencies,
+      ownedTypePluginId,
     }) => [
       ...createEntityPackagePlugins(
         entities,
@@ -172,7 +181,12 @@ function createServicePackage<
         metadata,
         pluginId === undefined
           ? scope
-          : legacyOwnedScope(definition.id, entities, pluginId),
+          : legacyOwnedScope(
+              definition.id,
+              entities,
+              pluginId,
+              ownedTypePluginId,
+            ),
         dataSources,
       ),
       createDeclarativeServicePlugin(
@@ -181,11 +195,15 @@ function createServicePackage<
         metadata,
         pluginId ?? scope(definition.id),
         dependencies ?? [],
+        declarations,
       ),
     ],
   });
   rebuilders.set(created, (sources) =>
-    createServicePackage(definition, sources),
+    createServicePackage(definition, sources, declarations),
+  );
+  registerServiceRebuilder(created, declarations, (declared) =>
+    createServicePackage(definition, dataSources, declared),
   );
   return created;
 }
@@ -222,31 +240,43 @@ export function withOwnedDataSources(
 }
 
 /**
- * Names for the type a first-party service keeps from its class: installed
- * under the type itself, as an entity plugin class was named after the type
- * it registered, with every name scoped to it following that id.
+ * Names for the types a first-party service keeps from its class: each
+ * installed under the type itself, as an entity plugin class was named
+ * after the type it registered, and a type named like the service under the
+ * plugin id the composer names for it (`ownedTypePluginId`). With one type,
+ * every other name scoped to it follows that type's id; with several, as a
+ * class registering several types inside itself named them, it follows the
+ * service's id.
  */
 function legacyOwnedScope(
   serviceId: string,
   entities: readonly AnyEntityDefinition[],
   pluginId: string,
+  /** Where the type installs when the service keeps the type's own id. */
+  ownedTypePluginId: string | undefined,
 ): (localId: string) => string {
-  const [only, ...rest] = entities;
-  if (rest.length > 0) {
-    throw new Error(
-      `Service "${serviceId}" keeps a legacy plugin id only when it owns at most one entity type`,
-    );
-  }
-  if (only?.type === pluginId) {
+  const named = entities.find(({ type }) => type === pluginId);
+  if (named && ownedTypePluginId === undefined) {
     throw new Error(
       `Service "${serviceId}" cannot keep legacy plugin id "${pluginId}", which its entity type is installed under`,
     );
   }
+  // One type takes the composer's id even when named otherwise, as
+  // site-content-entity is; of several, only the one named like the service.
+  const typePluginId = (type: string): string =>
+    type === pluginId || entities.length === 1
+      ? (ownedTypePluginId ?? type)
+      : type;
+  const types = new Set(entities.map(({ type }) => type));
+  const [only, ...rest] = entities;
+  const namesFollow =
+    only === undefined || rest.length > 0 ? pluginId : typePluginId(only.type);
   return (localId) => {
     assertIdentifier(localId, "Local plugin id");
-    return only === undefined || localId === only.type
-      ? localId
-      : `${only.type}:${localId}`;
+    if (only === undefined) return localId;
+    return types.has(localId)
+      ? typePluginId(localId)
+      : `${namesFollow}:${localId}`;
   };
 }
 

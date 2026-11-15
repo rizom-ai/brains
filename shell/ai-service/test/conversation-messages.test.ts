@@ -81,6 +81,68 @@ describe("toModelMessages", () => {
   });
 });
 
+describe("a cancelled proposal in history", () => {
+  const args = {
+    entityType: "note",
+    title: "Verbatim plan",
+    visibility: "restricted",
+    source: {
+      kind: "user-message",
+      boundaryMode: "lines",
+      startAfter: "BEGIN EXACT CONTENT",
+      endBefore: "END EXACT CONTENT",
+    },
+  };
+
+  function cancelled(input: Record<string, unknown>): string {
+    return JSON.stringify(
+      toModelMessages([
+        {
+          id: "message-1",
+          conversationId: "conversation-1",
+          role: "assistant",
+          content: 'Action cancelled: Create "Verbatim plan"?',
+          metadata: JSON.stringify({
+            cards: [
+              {
+                kind: "tool-approval",
+                id: "approval-1",
+                toolName: "system_create",
+                input,
+                summary: 'Create "Verbatim plan"?',
+                state: "output-denied",
+              },
+            ],
+          }),
+          timestamp: new Date().toISOString(),
+        },
+      ]),
+    );
+  }
+
+  it("reaches the model with the call the user cancelled", () => {
+    const text = cancelled({
+      ...args,
+      confirmed: true,
+      confirmationToken: "token-1",
+    });
+
+    expect(text).toContain(
+      JSON.stringify(
+        `The user cancelled this system_create proposal: ${JSON.stringify(args)}`,
+      ).slice(1, -1),
+    );
+    expect(text).not.toContain("confirmationToken");
+    expect(text).not.toContain("token-1");
+  });
+
+  it("leaves out a proposal too long to repeat", () => {
+    const text = cancelled({ ...args, content: "x".repeat(3000) });
+
+    expect(text).not.toContain("cancelled this system_create proposal");
+  });
+});
+
 describe("filterConversationHistoryForPermission", () => {
   const message = (
     id: string,
@@ -242,6 +304,66 @@ describe("resolveConversationUploadContinuity", () => {
 
       expect(result.refs).toEqual([newestUploadRef, oldestUploadRef]);
     }
+  });
+
+  describe("a follow-up to the brain's answer about an upload", () => {
+    const answer = {
+      id: "answer",
+      conversationId: "conversation-1",
+      role: "assistant" as const,
+      content: "The primer covers consensus, replication and Raft.",
+      metadata: null,
+      timestamp: new Date().toISOString(),
+    };
+    const afterAnswer = [...historyMessages, answer];
+
+    it("offers only the answer when it names no upload", () => {
+      for (const message of ["can you save it", "save this as a note for me"]) {
+        const result = resolveConversationUploadContinuity({
+          message,
+          currentAttachments: [],
+          historyMessages: afterAnswer,
+        });
+
+        expect(result.refs).toEqual([]);
+        expect(result.priorResponseRef).toEqual({ messageId: "answer" });
+      }
+    });
+
+    it("keeps the uploads when it names one", () => {
+      for (const message of [
+        "save the PDF",
+        "save it as a document",
+        "keep the uploaded image",
+        "save file_76007A31-ADF6-408A-93B4-46BCF8860AE1.pdf",
+      ]) {
+        const result = resolveConversationUploadContinuity({
+          message,
+          currentAttachments: [],
+          historyMessages: afterAnswer,
+        });
+
+        expect(result.refs.length).toBeGreaterThan(0);
+      }
+    });
+
+    it("keeps the uploads when an upload came after the answer", () => {
+      const acknowledged = {
+        ...answer,
+        id: "acknowledgement",
+        content: "I got `IMG_8963.jpeg`. What would you like me to do with it?",
+        metadata: JSON.stringify({
+          cards: [{ kind: "actions", id: "actions:upload-intent" }],
+        }),
+      };
+      const result = resolveConversationUploadContinuity({
+        message: "save it",
+        currentAttachments: [],
+        historyMessages: [...afterAnswer, acknowledged],
+      });
+
+      expect(result.refs).toEqual([newestUploadRef, oldestUploadRef]);
+    });
   });
 
   it("selects the newest matching upload for singular image/pdf references", () => {
@@ -567,6 +689,35 @@ describe("buildMessageWithAttachments", () => {
     );
   });
 
+  describe("text pasted between marker lines", () => {
+    const pasted = [
+      "Replace the body of note 'plan' with the text between the lines below.",
+      "",
+      "BEGIN EXACT CONTENT",
+      "# Plan",
+      "",
+      "Step one.",
+      "END EXACT CONTENT",
+    ].join("\n");
+
+    it("is offered as a source read from the message, not copied", () => {
+      const content = buildMessageWithAttachments(pasted, undefined);
+
+      expect(content).toStartWith(pasted);
+      expect(content).toContain(
+        'Available source for the text between the lines "BEGIN EXACT CONTENT" and "END EXACT CONTENT" of this message, read from the message instead of copied, as system_create source or system_update operation.source: { kind: "user-message", boundaryMode: "lines", startAfter: "BEGIN EXACT CONTENT", endBefore: "END EXACT CONTENT" }',
+      );
+    });
+
+    it("is not offered without one matching pair of marker lines", () => {
+      const unmatched = pasted.replace("END EXACT CONTENT", "END OTHER");
+      const repeated = `${pasted}\nBEGIN EXACT CONTENT`;
+
+      expect(buildMessageWithAttachments(unmatched, undefined)).toBe(unmatched);
+      expect(buildMessageWithAttachments(repeated, undefined)).toBe(repeated);
+    });
+  });
+
   describe("the newest upload as the save candidate", () => {
     const ref = (
       filename: string,
@@ -605,6 +756,17 @@ describe("buildMessageWithAttachments", () => {
         expect(content).not.toContain('id: "upload-older", transform');
       },
     );
+
+    it("is not offered to a request that asks for no save", () => {
+      const content = buildMessageWithAttachments(
+        "Describe the uploaded image.",
+        undefined,
+        { uploadRefs: [ref("robot.png", "image/png", "upload-robot")] },
+      );
+
+      expect(content).not.toContain("candidate for saving the newest upload");
+      expect(content).toContain('- robot.png; upload id: "upload-robot"');
+    });
 
     it("is offered for a PDF as a note too, its text extracted, for a request for a note", () => {
       const content = buildMessageWithAttachments(

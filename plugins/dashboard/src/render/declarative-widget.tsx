@@ -5,7 +5,7 @@ import {
   type RuntimeOperatorActionControl,
   type RuntimeOperatorLaunchIntent,
   type RuntimeOperatorLinkTarget,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/service-runtime";
 import {
   OperatorViewRenderer,
   OperatorPanelParagraph,

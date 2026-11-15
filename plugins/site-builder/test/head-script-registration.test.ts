@@ -2,7 +2,10 @@ import { describe, it, expect, afterEach } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
 import { createServicePluginContext } from "@brains/plugins";
 import { siteHeadScriptsContract } from "@brains/contracts";
-import { SiteBuilderPlugin } from "../src/plugin";
+import {
+  createSiteBuilderPlugin,
+  type SiteBuilderTestPlugin,
+} from "./site-builder-plugin";
 
 // The site builds in the worker process, which registers plugins but takes
 // no ordinary subscriptions and never runs their ready phase. Head scripts
@@ -16,8 +19,8 @@ describe("Head scripts at build time", () => {
 
   async function workerSiteBuilder(
     headScripts: string[] = [],
-  ): Promise<SiteBuilderPlugin> {
-    const plugin = new SiteBuilderPlugin({ headScripts });
+  ): Promise<SiteBuilderTestPlugin> {
+    const plugin = createSiteBuilderPlugin({ headScripts });
     await plugin.register(harness.getMockShell(), { executionOnly: true });
     return plugin;
   }

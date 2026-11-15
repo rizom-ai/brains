@@ -1,0 +1,121 @@
+{
+  "generated": {
+    "stored": {
+      "content": "---\nsubject: Weekly digest\nstatus: draft\nentityIds:\n  - post-1\n  - post-2\nsourceEntityType: post\n---\n# Weekly digest\n\nTwo posts.\n",
+      "metadata": "{\"subject\":\"Weekly digest\",\"status\":\"draft\",\"entityIds\":[\"post-1\",\"post-2\"],\"sourceEntityType\":\"post\"}"
+    },
+    "read": {
+      "content": "---\nsubject: Weekly digest\nstatus: draft\nentityIds:\n  - post-1\n  - post-2\nsourceEntityType: post\n---\n# Weekly digest\n\nTwo posts.\n",
+      "metadata": {
+        "subject": "Weekly digest",
+        "status": "draft",
+        "entityIds": ["post-1", "post-2"],
+        "sourceEntityType": "post"
+      }
+    },
+    "exported": "---\nsubject: Weekly digest\nstatus: draft\nentityIds:\n  - post-1\n  - post-2\nsourceEntityType: post\n---\n# Weekly digest\n\nTwo posts.\n"
+  },
+  "imported": {
+    "handWritten": {
+      "stored": {
+        "content": "---\nsubject: Field notes\nstatus: draft\nentityIds:\n  - post-1\n---\n# Field notes\n\nThis week.\n",
+        "metadata": "{\"subject\":\"Field notes\",\"status\":\"draft\",\"entityIds\":[\"post-1\"]}"
+      },
+      "read": {
+        "content": "---\nsubject: Field notes\nstatus: draft\nentityIds:\n  - post-1\n---\n# Field notes\n\nThis week.\n",
+        "metadata": {
+          "subject": "Field notes",
+          "status": "draft",
+          "entityIds": ["post-1"]
+        }
+      },
+      "exported": "---\nsubject: Field notes\nstatus: draft\nentityIds:\n  - post-1\n---\n# Field notes\n\nThis week.\n"
+    },
+    "retired": {
+      "stored": {
+        "content": "---\nsubject: Sent issue\nstatus: published\nsentAt: '2026-01-02T00:00:00.000Z'\n---\nAlready sent.\n",
+        "metadata": "{\"subject\":\"Sent issue\",\"status\":\"published\",\"sentAt\":\"2026-01-02T00:00:00.000Z\"}"
+      },
+      "read": {
+        "content": "---\nsubject: Sent issue\nstatus: published\nsentAt: '2026-01-02T00:00:00.000Z'\n---\nAlready sent.\n",
+        "metadata": {
+          "subject": "Sent issue",
+          "status": "published",
+          "sentAt": "2026-01-02T00:00:00.000Z"
+        }
+      },
+      "exported": "---\nsubject: Sent issue\nstatus: published\nsentAt: '2026-01-02T00:00:00.000Z'\n---\nAlready sent.\n"
+    },
+    "loose": {
+      "stored": {
+        "content": "---\nsubject: Loose\nstatus: draft\nnote: kept by hand\n---\nBody\n",
+        "metadata": "{\"subject\":\"Loose\",\"status\":\"draft\"}"
+      },
+      "read": {
+        "content": "---\nsubject: Loose\nstatus: draft\nnote: kept by hand\n---\nBody\n",
+        "metadata": {
+          "subject": "Loose",
+          "status": "draft"
+        }
+      },
+      "exported": "---\nsubject: Loose\nstatus: draft\nnote: kept by hand\n---\nBody\n"
+    }
+  },
+  "retiredRewrite": {
+    "rewritten": 0
+  },
+  "afterRetire": {
+    "stored": {
+      "content": "---\nsubject: Sent issue\nstatus: published\nsentAt: '2026-01-02T00:00:00.000Z'\n---\nAlready sent.\n",
+      "metadata": "{\"subject\":\"Sent issue\",\"status\":\"published\",\"sentAt\":\"2026-01-02T00:00:00.000Z\"}"
+    },
+    "read": {
+      "content": "---\nsubject: Sent issue\nstatus: published\nsentAt: '2026-01-02T00:00:00.000Z'\n---\nAlready sent.\n",
+      "metadata": {
+        "subject": "Sent issue",
+        "status": "published",
+        "sentAt": "2026-01-02T00:00:00.000Z"
+      }
+    },
+    "exported": "---\nsubject: Sent issue\nstatus: published\nsentAt: '2026-01-02T00:00:00.000Z'\n---\nAlready sent.\n"
+  },
+  "published": {
+    "stored": {
+      "content": "---\nsubject: Weekly digest\nstatus: published\nentityIds:\n  - post-1\n  - post-2\nsentAt: '2026-02-01T00:00:00.000Z'\nsourceEntityType: post\n---\n# Weekly digest\n\nTwo posts.\n",
+      "metadata": "{\"subject\":\"Weekly digest\",\"status\":\"published\",\"entityIds\":[\"post-1\",\"post-2\"],\"sentAt\":\"2026-02-01T00:00:00.000Z\",\"sourceEntityType\":\"post\"}"
+    },
+    "read": {
+      "content": "---\nsubject: Weekly digest\nstatus: published\nentityIds:\n  - post-1\n  - post-2\nsentAt: '2026-02-01T00:00:00.000Z'\nsourceEntityType: post\n---\n# Weekly digest\n\nTwo posts.\n",
+      "metadata": {
+        "subject": "Weekly digest",
+        "status": "published",
+        "entityIds": ["post-1", "post-2"],
+        "sentAt": "2026-02-01T00:00:00.000Z",
+        "sourceEntityType": "post"
+      }
+    },
+    "exported": "---\nsubject: Weekly digest\nstatus: published\nentityIds:\n  - post-1\n  - post-2\nsentAt: '2026-02-01T00:00:00.000Z'\nsourceEntityType: post\n---\n# Weekly digest\n\nTwo posts.\n"
+  },
+  "edited": {
+    "stored": {
+      "content": "---\nsubject: Field notes\nstatus: draft\nentityIds:\n  - post-1\n---\n# Field notes\n\nThis week, revised.\n",
+      "metadata": "{\"subject\":\"Field notes\",\"status\":\"draft\",\"entityIds\":[\"post-1\"]}"
+    },
+    "read": {
+      "content": "---\nsubject: Field notes\nstatus: draft\nentityIds:\n  - post-1\n---\n# Field notes\n\nThis week, revised.\n",
+      "metadata": {
+        "subject": "Field notes",
+        "status": "draft",
+        "entityIds": ["post-1"]
+      }
+    },
+    "exported": "---\nsubject: Field notes\nstatus: draft\nentityIds:\n  - post-1\n---\n# Field notes\n\nThis week, revised.\n"
+  },
+  "stub": {
+    "content": "---\nsubject: Allocated\nstatus: generating\n---\n\n",
+    "metadata": {
+      "subject": "Allocated",
+      "status": "generating"
+    }
+  }
+}

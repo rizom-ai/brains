@@ -1,4 +1,4 @@
-import type { WebRouteDefinition } from "@brains/plugins";
+import type { WebRouteDefinition } from "@brains/sdk/internal/interface-runtime";
 import {
   CONSOLE_PALETTE_SCRIPT,
   resolveConsoleThemeCSS,

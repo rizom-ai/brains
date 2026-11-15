@@ -92,6 +92,7 @@ export type {
   ProjectionRule,
   ProjectionRuleDefinition,
   ProjectionWriteIntent,
+  SharedStateReader,
 } from "@brains/plugins";
 
 export type {

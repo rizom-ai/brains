@@ -1,4 +1,7 @@
-import { createTemplate, type Template } from "@brains/plugins";
+import {
+  createTemplate,
+  type Template,
+} from "@brains/sdk/internal/presentation";
 import { topicDetailSchema, type TopicDetailData } from "./schema";
 import { TopicDetailLayout } from "./layout";
 

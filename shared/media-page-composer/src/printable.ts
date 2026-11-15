@@ -3,7 +3,7 @@ import {
   type PdfRenderOptions,
 } from "@brains/media-renderer";
 import { captureMediaPage } from "./capture";
-import type { ViewTemplate } from "@brains/plugins";
+import type { ViewTemplate } from "@brains/sdk/internal/presentation";
 
 const DEFAULT_MAX_BYTES = 25 * 1024 * 1024;
 const DEFAULT_TIMEOUT_MS = 60_000;

@@ -1,8 +1,8 @@
-import {
-  defineAccountSettings,
-  type AccountSettingsRegistration,
-  type AccountSettingsRegistry,
-} from "@brains/plugins";
+import { defineAccountSettings } from "@brains/sdk/services";
+import type {
+  AccountSettingsRegistration,
+  ServiceAccountSettingsRegistry,
+} from "@brains/sdk/internal/service-runtime";
 import { z } from "@brains/utils/zod";
 import type { LinkedInToken } from "./linkedin-oauth";
 
@@ -29,11 +29,11 @@ export interface StoredConnection {
 
 /** The Anchor's LinkedIn token, kept encrypted in their account settings. */
 export class LinkedInConnections {
-  private readonly registry: AccountSettingsRegistry;
+  private readonly registry: ServiceAccountSettingsRegistry;
   private readonly registration: AccountSettingsRegistration<LinkedInAccountSettings>;
 
   constructor(
-    registry: AccountSettingsRegistry,
+    registry: ServiceAccountSettingsRegistry,
     owner: { pluginId: string; packageName: string },
   ) {
     this.registry = registry;

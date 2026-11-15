@@ -1,9 +1,8 @@
+import { permissionToVisibilityScope } from "@brains/sdk/internal/interface-runtime";
 import {
-  permissionToVisibilityScope,
   internalFullScope,
   assertStudioWorkspaceAdmin,
-  type ServicePluginContext,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/service-runtime";
 import { mailItemAdapter } from "./entity/adapters/mail-item-adapter";
 import {
   mailItemSchema,
@@ -21,13 +20,11 @@ import {
   type MailTriageStatusActionResult,
 } from "./schemas/operator";
 import { definedFields } from "@brains/utils/strip-undefined";
+import type { EmailContext } from "./lib/email-context";
 
 const INBOX_ITEM_LIMIT = 100;
 
-type OperatorContext = Pick<
-  ServicePluginContext,
-  "entityService" | "permissions"
->;
+type OperatorContext = Pick<EmailContext, "entityService" | "permissions">;
 
 interface OperatorActor {
   userPermissionLevel?: "admin" | "trusted" | "public" | undefined;

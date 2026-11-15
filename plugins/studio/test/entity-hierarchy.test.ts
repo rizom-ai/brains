@@ -2,7 +2,6 @@ import {
   decodeEntityIdPath,
   BaseEntityAdapter,
   baseEntitySchema,
-  createServicePluginContext,
   type BaseEntity,
   type GetEntityRequest,
   type WebRouteDefinition,
@@ -15,6 +14,7 @@ import { createMockShell } from "@brains/plugins/test";
 import { z } from "@brains/utils/zod";
 import { createEditorRoutes } from "../src/editor-routes";
 import { StudioWorkspaceRegistry } from "../src/workspace-registry";
+import { studioContextOn } from "./studio-plugins";
 
 const frontmatterSchema = z.object({ title: z.string().optional() });
 class Adapter extends BaseEntityAdapter<BaseEntity> {
@@ -40,13 +40,13 @@ const entity: BaseEntity = {
   created: "2026-09-13T00:00:00Z",
   updated: "2026-09-13T00:00:00Z",
 };
-function fixture(
+async function fixture(
   permissionLevel: "public" | "trusted" | "admin" = "trusted",
   entityType = "section",
-): {
+): Promise<{
   shell: ReturnType<typeof createMockShell>;
   routes: WebRouteDefinition[];
-} {
+}> {
   const shell = createMockShell({ domain: "example.com" });
   shell
     .getEntityRegistry()
@@ -55,7 +55,7 @@ function fixture(
     type,
   ): typeof frontmatterSchema | undefined =>
     type === entityType ? frontmatterSchema : undefined;
-  const context = createServicePluginContext(shell, "studio");
+  const context = await studioContextOn(shell);
   const routes = createEditorRoutes({
     routePath: "/studio",
     getContext: () => context,
@@ -121,7 +121,7 @@ describe("Studio hierarchy editor API", () => {
   ])(
     "refuses explicit placement denial for $entityType against $field",
     async ({ entityType, path, field }) => {
-      const { shell, routes } = fixture("trusted", entityType);
+      const { shell, routes } = await fixture("trusted", entityType);
       const create = spyOn(shell.getEntityService(), "createEntity");
       shell
         .getMessageBus()
@@ -158,7 +158,7 @@ describe("Studio hierarchy editor API", () => {
   );
 
   test("an explicit false still refuses when an optional owner is absent", async () => {
-    const { shell, routes } = fixture();
+    const { shell, routes } = await fixture();
     shell
       .getMessageBus()
       .subscribe(directorySyncPathContract.name, async () => ({
@@ -179,7 +179,7 @@ describe("Studio hierarchy editor API", () => {
   test.each(["absent", "older", "writable"])(
     "allows creation with %s directory-sync admission",
     async (version) => {
-      const { shell, routes } = fixture();
+      const { shell, routes } = await fixture();
       if (version !== "absent")
         shell
           .getMessageBus()
@@ -204,7 +204,7 @@ describe("Studio hierarchy editor API", () => {
     },
   );
   test("returns the server hierarchy and binds reads to caller visibility", async () => {
-    const { shell, routes } = fixture();
+    const { shell, routes } = await fixture();
     const query = spyOn(
       shell.getEntityService(),
       "queryEntityHierarchy",
@@ -248,7 +248,7 @@ describe("Studio hierarchy editor API", () => {
   });
 
   test("root navigation and folder-scoped search are explicit server requests", async () => {
-    const { shell, routes } = fixture();
+    const { shell, routes } = await fixture();
     const query = spyOn(
       shell.getEntityService(),
       "queryEntityHierarchy",
@@ -293,7 +293,7 @@ describe("Studio hierarchy editor API", () => {
   });
 
   test("rejects malformed navigation and denies public access before querying", async () => {
-    const { shell, routes } = fixture();
+    const { shell, routes } = await fixture();
     const query = spyOn(shell.getEntityService(), "queryEntityHierarchy");
     for (const prefix of ["not-json", "42", "[]", '["book",42]']) {
       expect(
@@ -306,14 +306,14 @@ describe("Studio hierarchy editor API", () => {
       ).toBe(400);
     }
     expect(query).not.toHaveBeenCalled();
-    const publicFixture = fixture("public");
+    const publicFixture = await fixture("public");
     expect(
       (await request(publicFixture.routes, "hierarchy?type=section")).status,
     ).toBe(403);
   });
 
   test("direct entity reads keep the complete opaque ID", async () => {
-    const { shell, routes } = fixture();
+    const { shell, routes } = await fixture();
     const get = spyOn(
       shell.getEntityService(),
       "getEntityRaw",
@@ -337,7 +337,7 @@ describe("Studio hierarchy editor API", () => {
   });
 
   test("creation encodes submitted segments server-side with an absent-write precondition", async () => {
-    const { shell, routes } = fixture();
+    const { shell, routes } = await fixture();
     const create = spyOn(
       shell.getEntityService(),
       "createEntity",
@@ -366,7 +366,7 @@ describe("Studio hierarchy editor API", () => {
   });
 
   test("invalid leaf segments report against Segment and never write", async () => {
-    const { shell, routes } = fixture();
+    const { shell, routes } = await fixture();
     const create = spyOn(shell.getEntityService(), "createEntity");
     for (const segment of [
       "",
@@ -400,7 +400,7 @@ describe("Studio hierarchy editor API", () => {
   });
 
   test("destination preview encodes identity on the server and asks its placement owner", async () => {
-    const { shell, routes } = fixture();
+    const { shell, routes } = await fixture();
     shell
       .getMessageBus()
       .subscribe(directorySyncPathContract.name, async () => ({
@@ -439,7 +439,7 @@ describe("Studio hierarchy editor API", () => {
   });
 
   test("previews adapter-derived metadata and serialized content, just like creation", async () => {
-    const { shell, routes } = fixture();
+    const { shell, routes } = await fixture();
     const adapter = shell.getEntityRegistry().getAdapter("section");
     spyOn(adapter, "fromMarkdown").mockReturnValue({
       metadata: { format: "png" },
@@ -475,7 +475,7 @@ describe("Studio hierarchy editor API", () => {
   });
 
   test("reports a body the type rejects as a validation response, as a deck without slides", async () => {
-    const { shell, routes } = fixture();
+    const { shell, routes } = await fixture();
     const adapter = shell.getEntityRegistry().getAdapter("section");
     const message =
       "Invalid deck: markdown must contain slide separators (---)";
@@ -501,7 +501,7 @@ describe("Studio hierarchy editor API", () => {
   });
 
   test("does not guess a file path when directory-sync is absent", async () => {
-    const { routes } = fixture();
+    const { routes } = await fixture();
     const response = await request(routes, "destination", {
       entityType: "section",
       idPath: ["book", "intro"],
@@ -515,7 +515,7 @@ describe("Studio hierarchy editor API", () => {
   });
 
   test("recognizes a conflict from a different bundle by its error name", async () => {
-    const { shell, routes } = fixture();
+    const { shell, routes } = await fixture();
     const conflict = new Error("Entity write conflict: section/book:intro");
     conflict.name = "EntityWriteConflictError";
     expect(conflict).not.toBeInstanceOf(EntityWriteConflictError);
@@ -538,7 +538,7 @@ describe("Studio hierarchy editor API", () => {
   });
 
   test("does not mistake an unrelated persistence error for a destination conflict", async () => {
-    const { shell, routes } = fixture();
+    const { shell, routes } = await fixture();
     const failure = new Error("Entity write conflict: section/book:intro");
     spyOn(shell.getEntityService(), "createEntity").mockRejectedValue(failure);
     const rejected = await request(routes, "entities", {
@@ -550,7 +550,7 @@ describe("Studio hierarchy editor API", () => {
   });
 
   test("a conflicting destination reports 409 without renaming it", async () => {
-    const { shell, routes } = fixture();
+    const { shell, routes } = await fixture();
     const create = spyOn(
       shell.getEntityService(),
       "createEntity",
@@ -607,10 +607,10 @@ describe("Studio hierarchy of a container type", () => {
   }
 
   /** Books contain sections; the store answers as the entity service would. */
-  function containerFixture(): {
+  async function containerFixture(): Promise<{
     shell: ReturnType<typeof createMockShell>;
     routes: WebRouteDefinition[];
-  } {
+  }> {
     const shell = createMockShell({ domain: "example.com" });
     const registry = shell.getEntityRegistry();
     registry.registerEntityType("book", baseEntitySchema, new Adapter("book"));
@@ -677,7 +677,7 @@ describe("Studio hierarchy of a container type", () => {
             entity.id === request.id,
         ) ?? null,
     );
-    const context = createServicePluginContext(shell, "studio");
+    const context = await studioContextOn(shell);
     const routes = createEditorRoutes({
       routePath: "/studio",
       getContext: () => context,
@@ -710,7 +710,7 @@ describe("Studio hierarchy of a container type", () => {
   });
 
   test("reports which type a contained type lives in, and keeps containers flat", async () => {
-    const { routes } = containerFixture();
+    const { routes } = await containerFixture();
     const response = await request(routes, "types");
     const { types } = z
       .object({
@@ -733,7 +733,7 @@ describe("Studio hierarchy of a container type", () => {
   });
 
   test("lists each container as a folder titled by its entity", async () => {
-    const { routes } = containerFixture();
+    const { routes } = await containerFixture();
     const page = containerPageSchema.parse(
       await (await request(routes, "hierarchy?type=book")).json(),
     );
@@ -745,7 +745,7 @@ describe("Studio hierarchy of a container type", () => {
   });
 
   test("opens a container on its own record, then its contents", async () => {
-    const { routes } = containerFixture();
+    const { routes } = await containerFixture();
     const prefix = encodeURIComponent(JSON.stringify(["zara"]));
     const page = containerPageSchema.parse(
       await (
@@ -769,7 +769,7 @@ describe("Studio hierarchy of a container type", () => {
   });
 
   test("names a part by the headings its sections stand under", async () => {
-    const { routes } = containerFixture();
+    const { routes } = await containerFixture();
     const prefix = encodeURIComponent(
       JSON.stringify(["zara", "00002-erster-theil"]),
     );
@@ -783,7 +783,7 @@ describe("Studio hierarchy of a container type", () => {
   });
 
   test("names folders by their entries' headings outside a container too", async () => {
-    const { routes } = containerFixture();
+    const { routes } = await containerFixture();
     const prefix = encodeURIComponent(JSON.stringify(["zara"]));
     const page = containerPageSchema.parse(
       await (
@@ -801,7 +801,7 @@ describe("Studio hierarchy of a container type", () => {
   });
 
   test("searches a container's contents as well as the containers", async () => {
-    const { routes } = containerFixture();
+    const { routes } = await containerFixture();
     const page = containerPageSchema.parse(
       await (await request(routes, "hierarchy?type=book&q=Text")).json(),
     );

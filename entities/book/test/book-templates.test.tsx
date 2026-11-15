@@ -139,6 +139,18 @@ describe("BookListTemplate", () => {
     expect(html).toContain("1 book · 1 section<");
   });
 
+  test("stands books from the same year in the order they were listed", () => {
+    const sameYear = [
+      book("zwei", "Das zweite Buch", { ...bookDetails, year: 1882 }),
+      book("eins", "Das erste Buch", { ...bookDetails, year: 1882 }),
+    ];
+    const html = render(<BookListTemplate books={sameYear} />);
+
+    expect(html.indexOf('href="/books/zwei"')).toBeLessThan(
+      html.indexOf('href="/books/eins"'),
+    );
+  });
+
   test("stands every book on the horizon as a linked spine", () => {
     const html = render(<BookListTemplate books={shelf} />);
 

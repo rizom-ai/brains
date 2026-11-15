@@ -1,15 +1,11 @@
-import {
-  EntityPlugin,
-  instantiatePluginPackageDefinition,
-  type BaseEntity,
-} from "@brains/plugins";
+import { instantiatePluginPackageDefinition } from "@brains/plugins";
 import styleGuidePackage from "../src";
+import {
+  isDeclaredEntityType,
+  type DeclaredEntityTypePlugin,
+} from "@brains/plugins/test";
 
-export type StyleGuideEntityPlugin = EntityPlugin<
-  BaseEntity,
-  Record<string, never>,
-  Record<string, never>
->;
+export type StyleGuideEntityPlugin = DeclaredEntityTypePlugin;
 
 /** The entity plugin the style-guide package installs, as a brain composes it. */
 export function styleGuidePlugin(): StyleGuideEntityPlugin {
@@ -20,7 +16,7 @@ export function styleGuidePlugin(): StyleGuideEntityPlugin {
     // As the canonical brain composes it: under the id its class had.
     { pluginId: "style-guide" },
   );
-  if (!(plugin instanceof EntityPlugin)) {
+  if (!isDeclaredEntityType(plugin)) {
     throw new Error("The style-guide package installs no entity plugin");
   }
   return plugin;

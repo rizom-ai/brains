@@ -8,7 +8,7 @@ import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import { ButtondownNewsletterProvider } from "../src/provider/buttondown-provider";
 import type { ButtondownFetch } from "../src/provider/lib/buttondown-client";
-import { ButtondownPlugin } from "../src/provider/plugin";
+import { createButtondownPlugin } from "./newsletter-plugins";
 import { createNewsletterSubscriberTools } from "../src/provider/tools";
 
 // The client is built with a delegate to this, so a test can stub before or
@@ -85,7 +85,7 @@ describe("Buttondown Tools", () => {
       );
 
       await harness.installPlugin(
-        new ButtondownPlugin(
+        createButtondownPlugin(
           { apiKey: "test-key", doubleOptIn: true },
           { fetch: delegatingFetch },
         ),
@@ -116,7 +116,7 @@ describe("Buttondown Tools", () => {
       });
 
       await harness.installPlugin(
-        new ButtondownPlugin(
+        createButtondownPlugin(
           { apiKey: "test-key", doubleOptIn: true },
           { fetch: delegatingFetch },
         ),
@@ -143,7 +143,7 @@ describe("Buttondown Tools", () => {
       );
 
       await harness.installPlugin(
-        new ButtondownPlugin(
+        createButtondownPlugin(
           { apiKey: "test-key", doubleOptIn: true },
           { fetch: delegatingFetch },
         ),
@@ -185,7 +185,7 @@ describe("Buttondown Tools", () => {
       });
 
       await harness.installPlugin(
-        new ButtondownPlugin(
+        createButtondownPlugin(
           { apiKey: "test-key", doubleOptIn: true },
           { fetch: delegatingFetch },
         ),
@@ -213,7 +213,7 @@ describe("Buttondown Tools", () => {
       );
 
       await harness.installPlugin(
-        new ButtondownPlugin(
+        createButtondownPlugin(
           { apiKey: "test-key", doubleOptIn: true },
           { fetch: delegatingFetch },
         ),
@@ -254,7 +254,7 @@ describe("Buttondown Tools", () => {
       );
 
       await harness.installPlugin(
-        new ButtondownPlugin(
+        createButtondownPlugin(
           { apiKey: "test-key", doubleOptIn: true },
           { fetch: delegatingFetch },
         ),
@@ -272,7 +272,7 @@ describe("Buttondown Tools", () => {
 
   describe("without buttondown config", () => {
     it("should return empty tools array when no config provided", async () => {
-      await harness.installPlugin(new ButtondownPlugin({}));
+      await harness.installPlugin(createButtondownPlugin({}));
 
       // Tools should not be registered, so executing should throw
       expect(

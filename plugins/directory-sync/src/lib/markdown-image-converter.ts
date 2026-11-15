@@ -1,4 +1,4 @@
-import type { EntityServiceClient } from "@brains/plugins";
+import type { ServiceEntityMirrorClient } from "@brains/sdk/internal/service-runtime";
 import type { Logger } from "@brains/utils/logger";
 import {
   extractMarkdownImages,
@@ -46,12 +46,12 @@ export interface InlineConversionResult {
  * 4. Replaces URLs with entity://image/{id} references
  */
 export class MarkdownImageConverter {
-  private entityService: EntityServiceClient;
+  private entityService: ServiceEntityMirrorClient;
   private fetcher: ImageFetcher;
   private logger: Logger;
 
   constructor(
-    entityService: EntityServiceClient,
+    entityService: ServiceEntityMirrorClient,
     logger: Logger,
     fetcher: ImageFetcher = fetchImageAsBase64,
   ) {

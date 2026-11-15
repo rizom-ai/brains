@@ -1,8 +1,10 @@
-import type { ContentVisibility, ServicePluginContext } from "@brains/plugins";
+import type { ContentVisibility } from "@brains/sdk/internal/service-runtime";
+import { compareIds } from "@brains/utils/sort";
 import { z } from "@brains/utils/zod";
 import type { ProviderRegistry } from "./provider-registry";
 import type { QueueManager } from "./queue-manager";
 import type { RetryTracker } from "./retry-tracker";
+import type { PipelineContext } from "./lib/pipeline-context";
 
 const publicationStatusSchema = z.enum([
   "draft",
@@ -129,7 +131,7 @@ interface PublicationPipelineSnapshotOptions {
 
 /** Build the content-pipeline-owned read model for operator surfaces. */
 export async function getPublicationPipelineSnapshot(
-  context: ServicePluginContext,
+  context: PipelineContext,
   providerRegistry: ProviderRegistry,
   queueManager: QueueManager,
   retryTracker: RetryTracker,
@@ -222,7 +224,12 @@ export async function getPublicationPipelineSnapshot(
         retryCount: retry?.retryCount ?? 0,
       };
     })
-    .sort((left, right) => left.title.localeCompare(right.title));
+    .sort(
+      (left, right) =>
+        left.title.localeCompare(right.title) ||
+        compareIds(left.entityId, right.entityId) ||
+        compareIds(left.entityType, right.entityType),
+    );
 
   summary.needsOperator = summary.draft + summary.failed;
 
@@ -236,7 +243,7 @@ export async function getPublicationPipelineSnapshot(
 }
 
 async function getGeneratingItems(
-  context: ServicePluginContext,
+  context: PipelineContext,
   visibleEntities: ReadonlyMap<string, PublicationEntityItem> | undefined,
 ): Promise<PublicationJobItem[]> {
   const generating: PublicationJobItem[] = [];

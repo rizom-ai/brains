@@ -29,7 +29,7 @@ function createMockDeps(
     },
     logger: createSilentLogger(),
     fileOperations: {
-      getEntityFilePath: (entity: BaseEntity) =>
+      resolveEntityFilePath: async (entity: BaseEntity) =>
         `/data/${entity.entityType}/${entity.id}.md`,
       fileExists: () => Promise.resolve(true),
       writeEntity: mock(async () => {}),

@@ -1,12 +1,15 @@
 import {
-  contentVisibilitySchema,
-  entityGroupingSchema,
-  ServicePlugin,
-  type ServicePluginContext,
-  type Tool,
-} from "@brains/plugins";
+  defineServicePlugin,
+  type ServicePackageDefinition,
+} from "@brains/sdk/services";
+import { entityGroupingSchema } from "@brains/sdk/internal/entity-runtime";
+import { contentVisibilitySchema } from "@brains/sdk/internal/presentation";
+import {
+  serviceRuntime,
+  withTools,
+} from "@brains/sdk/internal/service-runtime";
 import { z } from "@brains/utils/zod";
-import packageJson from "../package.json";
+import { boardContextOf, type BoardContext } from "./board-context";
 import {
   BOARD_WORKSPACE_ID,
   registerBoardWorkspace,
@@ -16,7 +19,7 @@ import { ActionItemInboxSource } from "./inbox-source";
 import { createActionItemCreateTool } from "./tools/action-item-create";
 import { createActionItemUpdateTool } from "./tools/action-item-update";
 
-const actionBoardConfigSchema: z.ZodObject<{
+export const actionBoardConfigSchema: z.ZodObject<{
   cardVisibility: z.ZodDefault<typeof contentVisibilitySchema>;
   projectGrouping: z.ZodDefault<z.ZodString>;
 }> = z.object({
@@ -29,78 +32,74 @@ const actionBoardConfigSchema: z.ZodObject<{
 export type ActionBoardConfig = z.output<typeof actionBoardConfigSchema>;
 export type ActionBoardConfigInput = z.input<typeof actionBoardConfigSchema>;
 
+/** What the action board holds once set up. */
+export interface ActionBoardState {
+  readonly board: BoardContext;
+  /** The brain's members, whom cards can be assigned to. */
+  readonly members: () => Promise<readonly { id: string; name: string }[]>;
+}
+
 /**
  * The team's working surfaces over action items: the Studio Board, blocked
  * items in the Inbox, tracking Inbox items as cards, and moves from chat. The
  * action-item entity itself belongs to conversation memory.
  */
-export class ActionBoardPlugin extends ServicePlugin<
-  ActionBoardConfig,
-  ActionBoardConfigInput
-> {
-  /** Set once Studio has the Board; the track follow-up links to it. */
-  private boardUrl: string | undefined;
-
-  constructor(config: ActionBoardConfigInput = {}) {
-    super("action-board", packageJson, config, actionBoardConfigSchema);
-  }
-
-  protected override async onRegister(
-    context: ServicePluginContext,
-  ): Promise<void> {
-    if (context.executionOnly) return;
-    const inboxSource = new ActionItemInboxSource(context);
-    context.inbox.registerSource(inboxSource);
-    context.inboxFollowUps.registerKind({
-      kind: "track-as-action-item",
-      label: "Track as action item",
-      priority: 15,
-      mode: "universal",
-      permissionLevel: "trusted",
-      applies: ({ sourceId, item }) =>
-        this.boardUrl !== undefined &&
-        item.entityRef !== undefined &&
-        sourceId !== inboxSource.sourceId,
-      resolve: ({ sourceId, item }) => {
-        const href = this.boardUrl
-          ? trackHref(this.boardUrl, sourceId, item)
-          : undefined;
-        return href ? { href } : undefined;
-      },
-    });
-  }
-
-  protected override async getTools(): Promise<Tool[]> {
-    const context = this.getContext();
-    return [
-      createActionItemCreateTool(context, {
-        visibility: this.config.cardVisibility,
-        members: () => context.auth.listAssignableMembers(),
-      }),
-      createActionItemUpdateTool(context),
-    ];
-  }
-
-  // Studio runs in the web process, which alone has a ready phase.
-  protected override async onReady(
-    context: ServicePluginContext,
-  ): Promise<void> {
-    this.boardUrl = await registerBoardWorkspace(context, {
-      visibility: this.config.cardVisibility,
-      projectGrouping: this.config.projectGrouping,
-      members: () => context.auth.listAssignableMembers(),
-    });
-  }
-
-  protected override async onShutdown(): Promise<void> {
-    if (this.boardUrl === undefined) return;
-    this.boardUrl = undefined;
-    await this.getContext().studio.unregisterWorkspace(BOARD_WORKSPACE_ID);
-  }
-}
-
-export function actionBoardPlugin(
-  config: ActionBoardConfigInput = {},
-): ActionBoardPlugin {
-  return new ActionBoardPlugin(config);
-}
+export const actionBoardPackage: ServicePackageDefinition<
+  typeof actionBoardConfigSchema
+> = withTools<typeof actionBoardConfigSchema, ActionBoardState>(
+  defineServicePlugin({
+    id: "action-board",
+    config: actionBoardConfigSchema,
+    setup: (context): ActionBoardState => {
+      const { config } = context;
+      const runtime = serviceRuntime(context);
+      const board = boardContextOf(runtime);
+      const members = (): Promise<readonly { id: string; name: string }[]> =>
+        runtime.assignableMembers();
+      /** Set once Studio has the Board; the track follow-up links to it. */
+      let boardUrl: string | undefined;
+      if (!runtime.executionOnly) {
+        const inboxSource = new ActionItemInboxSource(board);
+        runtime.inboxSource(inboxSource);
+        runtime.inboxFollowUpKind({
+          kind: "track-as-action-item",
+          label: "Track as action item",
+          priority: 15,
+          mode: "universal",
+          permissionLevel: "trusted",
+          applies: ({ sourceId, item }) =>
+            boardUrl !== undefined &&
+            item.entityRef !== undefined &&
+            sourceId !== inboxSource.sourceId,
+          resolve: ({ sourceId, item }) => {
+            const href = boardUrl
+              ? trackHref(boardUrl, sourceId, item)
+              : undefined;
+            return href ? { href } : undefined;
+          },
+        });
+      }
+      // Studio runs in the web process, which alone has a ready phase.
+      runtime.ready(async () => {
+        boardUrl = await registerBoardWorkspace(board, {
+          visibility: config.cardVisibility,
+          projectGrouping: config.projectGrouping,
+          members,
+        });
+      });
+      context.lifecycle.onCleanup(async () => {
+        if (boardUrl === undefined) return;
+        boardUrl = undefined;
+        await board.studio.unregister(BOARD_WORKSPACE_ID);
+      });
+      return { board, members };
+    },
+  }),
+  ({ config, state }) => [
+    createActionItemCreateTool(state.board, {
+      visibility: config.cardVisibility,
+      members: state.members,
+    }),
+    createActionItemUpdateTool(state.board),
+  ],
+);

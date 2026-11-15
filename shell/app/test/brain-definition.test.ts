@@ -6,7 +6,6 @@ import {
   type PluginFactory,
 } from "../src/brain-definition";
 import { resolve } from "../src/brain-resolver";
-import type { PluginFactory as PublishedPluginFactory } from "@brains/plugins/public/plugin-api";
 import {
   type IShell,
   type Plugin,
@@ -264,12 +263,14 @@ describe("resolve", () => {
     });
 
     const config = resolve(def, {
-      AI_API_KEY: "sk-test-123",
-      AI_IMAGE_KEY: "sk-img-456",
+      OPENAI_API_KEY: "sk-test-123",
+      GOOGLE_GENERATIVE_AI_API_KEY: "AIza-img-456",
     });
 
-    expect(config.aiApiKey).toBe("sk-test-123");
-    expect(config.aiImageKey).toBe("sk-img-456");
+    expect(config.aiProviderKeys).toEqual({
+      openai: "sk-test-123",
+      google: "AIza-img-456",
+    });
   });
 
   test("should resolve model and provider from overrides", () => {
@@ -282,7 +283,7 @@ describe("resolve", () => {
 
     const config = resolve(
       def,
-      { AI_API_KEY: "sk-test" },
+      { OPENAI_API_KEY: "sk-test" },
       { model: "gpt-4o-mini" },
     );
 
@@ -683,21 +684,3 @@ describe("resolve", () => {
     expect(config.deployment.domain).toBe("example.com");
   });
 });
-
-/**
- * `@brains/plugins` publishes a `PluginFactory` to plugin authors through
- * `@rizom/brain/plugins`, restating this package's. The pairing cannot be
- * asserted there — app depends on plugins, so importing app back would close
- * a cycle turbo refuses to schedule — so it is asserted here, where both are
- * in scope. `plugins/test/published-surface-coverage.test.ts` names this file
- * as the reason it skips the pair.
- */
-type AppSatisfiesPublished<App extends Published, Published> = App;
-
-type _PluginFactory = AppSatisfiesPublished<
-  PluginFactory,
-  PublishedPluginFactory
->;
-
-/** Keeps the assertion above from being reported as an unused declaration. */
-export type BrainDefinitionAssertions = [_PluginFactory];

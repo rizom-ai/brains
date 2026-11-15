@@ -5,10 +5,10 @@ import {
   type SpaceNoticeRequest,
 } from "@brains/contracts";
 import type {
+  ClassRuntimeStateStore,
   Conversation,
-  IConversationsNamespace,
-  IRuntimeStateStore,
-} from "@brains/plugins";
+  ServiceConversations,
+} from "@brains/sdk/internal/service-runtime";
 import {
   updateBookmark,
   type ChannelBookmark,
@@ -20,8 +20,8 @@ const POSTING_TIMEOUT_MS = 2 * 60 * 1000;
 const LABEL_LIMIT = 80;
 
 export interface ChannelNoticeDeps {
-  conversations: Pick<IConversationsNamespace, "get" | "list">;
-  bookmarks: IRuntimeStateStore<ChannelBookmark>;
+  conversations: Pick<ServiceConversations, "get" | "list">;
+  bookmarks: ClassRuntimeStateStore<ChannelBookmark>;
   /** Whether a card is still on the board; one deleted since is not announced. */
   cardExists: (id: string) => Promise<boolean>;
   /** Post a space notice; the posted message's id, or undefined when it failed. */

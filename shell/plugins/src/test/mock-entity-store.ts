@@ -1,4 +1,9 @@
 import {
+  generateMarkdown,
+  readMarkdownFrontmatter,
+} from "@brains/utils/markdown-frontmatter";
+import {
+  preserveSourceFrontmatter,
   type BaseEntity,
   type EntityAdapter,
   type EntityExportIntent,
@@ -31,7 +36,10 @@ export interface MockEntityStore {
    * Serialize the way the real EntityService does: the adapter rebuilds
    * markdown from the entity's fields and extracts its canonical metadata.
    */
-  serialize(entity: BaseEntity): {
+  serialize(
+    entity: BaseEntity,
+    stored?: string,
+  ): {
     content: string;
     metadata: Record<string, unknown>;
   };
@@ -73,6 +81,7 @@ export function createMockEntityStore(): MockEntityStore {
 
     serialize: (
       entity,
+      stored,
     ): { content: string; metadata: Record<string, unknown> } => {
       const adapter = adapters.get(entity.entityType);
       // Fall back to verbatim when no real adapter is registered. Some tests
@@ -81,9 +90,29 @@ export function createMockEntityStore(): MockEntityStore {
       if (typeof adapter?.toMarkdown !== "function") {
         return { content: entity.content, metadata: entity.metadata };
       }
+      const serialized = adapter.toMarkdown(entity);
+      const metadata = adapter.extractMetadata(entity);
+      // As the real serializer keeps it, for a type whose metadata is its
+      // frontmatter: the header the document carries beyond the type's own
+      // stays in the file, once; an update that hands over a body alone
+      // keeps the stored header the type does not write.
+      if (adapter.metadataFromFrontmatter !== true) {
+        return { content: serialized, metadata };
+      }
+      const source =
+        stored !== undefined && !hasFrontmatter(entity.content)
+          ? unwrittenHeader(stored, serialized)
+          : entity.content;
       return {
-        content: adapter.toMarkdown(entity),
-        metadata: adapter.extractMetadata(entity),
+        content: preserveSourceFrontmatter(
+          source,
+          serialized,
+          adapter.writtenFrontmatterSchema ?? adapter.frontmatterSchema,
+          [],
+          [],
+          [...(typeConfigs.get(entity.entityType)?.retiredFields ?? [])],
+        ),
+        metadata,
       };
     },
 
@@ -110,4 +139,28 @@ export function createMockEntityStore(): MockEntityStore {
       });
     },
   };
+}
+
+/** Whether a document carries frontmatter of its own. */
+function hasFrontmatter(content: string): boolean {
+  const { data } = readMarkdownFrontmatter(content);
+  return (
+    typeof data === "object" && data !== null && Object.keys(data).length > 0
+  );
+}
+
+/** The stored header the written document does not state, as the real serializer keeps it. */
+function unwrittenHeader(stored: string, serialized: string): string {
+  const storedFields = readMarkdownFrontmatter(stored).data;
+  const written = readMarkdownFrontmatter(serialized).data;
+  if (typeof storedFields !== "object" || storedFields === null) return "";
+  const kept = Object.fromEntries(
+    Object.entries(storedFields).filter(
+      ([key]) =>
+        typeof written !== "object" ||
+        written === null ||
+        !Object.hasOwn(written, key),
+    ),
+  );
+  return Object.keys(kept).length > 0 ? generateMarkdown(kept, "") : "";
 }

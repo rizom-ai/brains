@@ -7,9 +7,10 @@ import {
   hasCanonicalDefinition,
   loadDefinition,
 } from "../lib/definition-registry";
-import { checkApiKey } from "../lib/preflight";
+import { checkModelKeys } from "../lib/preflight";
 import { formatBootError } from "../lib/boot-errors";
 import { getErrorMessage } from "@brains/utils/error";
+import { ConsoleLogger } from "@brains/utils/logger";
 import { spawnBunRunner } from "../lib/spawn-bun-runner";
 import {
   parseBrainChildRole,
@@ -86,13 +87,6 @@ export async function start(
   flags: { chat: boolean; mode?: BootMode },
   dependencies: StartDependencies = {},
 ): Promise<CommandResult> {
-  if (!existsSync(join(cwd, "brain.yaml"))) {
-    return {
-      success: false,
-      message: `No brain.yaml found in ${cwd}. Run 'brain init <dir>' first.`,
-    };
-  }
-
   let childRole: SupervisedChildRole | undefined;
   try {
     childRole = parseBrainChildRole(dependencies.argv ?? process.argv.slice(2));
@@ -100,6 +94,17 @@ export async function start(
     return {
       success: false,
       message: getErrorMessage(error),
+    };
+  }
+  // A supervised child shares the supervisor's stdout with its siblings, so
+  // every line it writes names it, from its first. The process the operator
+  // started (the supervisor, or a combined runtime) stays unlabeled.
+  if (childRole) ConsoleLogger.setProcessRole(childRole);
+
+  if (!existsSync(join(cwd, "brain.yaml"))) {
+    return {
+      success: false,
+      message: `No brain.yaml found in ${cwd}. Run 'brain init <dir>' first.`,
     };
   }
   const config = parseBrainYaml(cwd);
@@ -135,18 +140,31 @@ export async function start(
   }
 
   if (hasCanonicalDefinition()) {
-    const keyCheck = checkApiKey(process.env, config);
-    if (flags.mode !== "startup-check" && !keyCheck.ok) {
-      return {
-        success: false,
-        message: keyCheck.message ?? "AI_API_KEY is not set.",
-      };
-    }
-
     // In-process boot — the package bundles the canonical definition. Explicitly
     // scoped external definitions remain dynamically authorable.
     try {
       const definition = await loadDefinition(config.brain);
+
+      if (flags.mode !== "startup-check") {
+        const keyCheck = checkModelKeys(process.env, {
+          model: config.model ?? definition.model,
+          embeddingModel: config.embeddingModel,
+          answerModel: config.answerModel,
+          visionModel: config.visionModel,
+          imageModel: config.imageModel,
+          embeddingEnabled: config.embedding?.enabled,
+          modelRuntimeUrl:
+            config.modelRuntime?.url ?? process.env["MODEL_RUNTIME_URL"],
+        });
+        const logger = ConsoleLogger.getInstance();
+        for (const warning of keyCheck.warnings) logger.warn(warning);
+        if (!keyCheck.ok) {
+          return {
+            success: false,
+            message: keyCheck.message ?? "The brain's models cannot run.",
+          };
+        }
+      }
       const { bootBrain } = await import("../lib/boot");
 
       if (flags.mode === undefined && !flags.chat && childRole === undefined) {

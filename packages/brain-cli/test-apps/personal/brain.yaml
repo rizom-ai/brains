@@ -18,5 +18,5 @@ plugins:
     initialSync: true
     git:
       repo: rizom-ai/canonical-personal-test-content
-      gitUrl: file:///tmp/canonical-personal-test-content.git
+      gitUrl: file:///tmp/canonical-personal-offline-test-content.git
       bootstrapFromSeed: true

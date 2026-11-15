@@ -69,7 +69,7 @@ async function run(command: string[], cwd: string): Promise<string> {
     cwd,
     stdout: "pipe",
     stderr: "pipe",
-    env: { ...process.env, AI_API_KEY: "packaged-recovery-test-key" },
+    env: { ...process.env, OPENAI_API_KEY: "packaged-recovery-test-key" },
   });
   const [stdout, stderr, code] = await Promise.all([
     new Response(child.stdout).text(),
@@ -229,7 +229,7 @@ function runtimeProcess(groupAlwaysPresent: boolean): {
     impl: {
       env: {
         ...process.env,
-        AI_API_KEY: "packaged-recovery-test-key",
+        OPENAI_API_KEY: "packaged-recovery-test-key",
       },
       kill: (pid, signal): boolean => {
         if (groupAlwaysPresent && signal === 0) return true;

@@ -250,6 +250,28 @@ export class ShellBootloader {
     if (options?.mode !== "startup-check") {
       await this.startHttpHost();
 
+      // Stored rows are brought up to their types before pluginsRegistered:
+      // the initial sync it queues plans its import against them.
+      // Existing membership becomes queryable before grouping reads are admitted.
+      await this.services.entityService.reprojectRegisteredGroupings();
+      // Stored entities lose frontmatter fields their type has retired.
+      const retired = await this.services.entityService.rewriteRetiredFields();
+      if (retired.rewritten > 0) {
+        this.services.logger.info("Rewrote entities carrying retired fields", {
+          rewritten: retired.rewritten,
+        });
+      }
+      // A type converted from an entity plugin class to a declaration reads
+      // its frontmatter as metadata; rows the class wrote get it before the
+      // import reads them and seeds look for them.
+      const declared =
+        await this.services.entityService.reconcileDeclaredMetadata();
+      if (declared.reconciled > 0) {
+        this.services.logger.info("Re-derived declared entity metadata", {
+          reconciled: declared.reconciled,
+        });
+      }
+
       // A pluginsRegistered subscriber may queue the initial import for the
       // worker and answer that it is pending. Ready-state defaults then wait
       // for initialSyncCompleted: they must never be created before a content
@@ -269,26 +291,6 @@ export class ShellBootloader {
         ),
       );
       const initialSyncPending = await this.emitPluginsRegistered();
-
-      // Existing membership becomes queryable before grouping reads are admitted.
-      await this.services.entityService.reprojectRegisteredGroupings();
-      // Stored entities lose frontmatter fields their type has retired.
-      const retired = await this.services.entityService.rewriteRetiredFields();
-      if (retired.rewritten > 0) {
-        this.services.logger.info("Rewrote entities carrying retired fields", {
-          rewritten: retired.rewritten,
-        });
-      }
-      // A type converted from an entity plugin class to a declaration reads
-      // its frontmatter as metadata; rows the class wrote get it before
-      // startup content settles and seeds look for them.
-      const declared =
-        await this.services.entityService.reconcileDeclaredMetadata();
-      if (declared.reconciled > 0) {
-        this.services.logger.info("Re-derived declared entity metadata", {
-          reconciled: declared.reconciled,
-        });
-      }
 
       if (initialSyncPending) {
         pendingStartupContent = initialSync.promise

@@ -1,11 +1,15 @@
+import type { EventEmitter } from "node:events";
 import type { PeerChannel, PeerEvent } from "@brains/core";
 import { peerEventMessageSchema } from "./peer-event-message";
 
-/** What a supervised child's IPC line offers. */
-interface SupervisedProcess {
+/**
+ * What a supervised child's IPC line offers. Its messages are heard through
+ * EventEmitter's base contract, as process signals are: Bun 1.4 declares
+ * `Process.off` for `memoryPressure` alone, which hides the inherited
+ * signature a `"message"` listener needs.
+ */
+interface SupervisedProcess extends Pick<EventEmitter, "on" | "off"> {
   send?: (message: { type: "peer-event"; event: PeerEvent }) => unknown;
-  on(event: "message", listener: (message: unknown) => void): unknown;
-  off(event: "message", listener: (message: unknown) => void): unknown;
 }
 
 /**

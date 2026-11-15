@@ -1,15 +1,11 @@
-import {
-  EntityPlugin,
-  instantiatePluginPackageDefinition,
-  type BaseEntity,
-} from "@brains/plugins";
+import { instantiatePluginPackageDefinition } from "@brains/plugins";
 import linkPackage from "../src";
+import {
+  isDeclaredEntityType,
+  type DeclaredEntityTypePlugin,
+} from "@brains/plugins/test";
 
-export type LinkEntityPlugin = EntityPlugin<
-  BaseEntity,
-  Record<string, never>,
-  Record<string, never>
->;
+export type LinkEntityPlugin = DeclaredEntityTypePlugin;
 
 /** The entity plugin the links install, as the canonical brain composes it. */
 export function linkPlugin(): LinkEntityPlugin {
@@ -20,7 +16,7 @@ export function linkPlugin(): LinkEntityPlugin {
     // Under the id its class had: link:capture, link:generation.
     { pluginId: "link" },
   );
-  if (!(plugin instanceof EntityPlugin)) {
+  if (!isDeclaredEntityType(plugin)) {
     throw new Error("The links install no entity plugin");
   }
   return plugin;

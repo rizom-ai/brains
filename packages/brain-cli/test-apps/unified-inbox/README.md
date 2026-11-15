@@ -15,7 +15,7 @@ Never point it at a personal or production mailbox.
    chmod 600 .env
    ```
 
-2. Add a capped `AI_API_KEY` plus the dedicated synthetic Migadu mailbox's
+2. Add a capped `OPENAI_API_KEY` plus the dedicated synthetic Migadu mailbox's
    `IMAP_USER` and app-specific `IMAP_PASSWORD` to `.env`. The committed
    `imap.migadu.com` host, port, mailbox, poll mode, and interval remain explicit
    in `brain.yaml`.

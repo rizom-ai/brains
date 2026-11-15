@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
-import { rename, rm, writeFile } from "node:fs/promises";
+import { link, mkdir, rename, rm, unlink, writeFile } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
+import { isErrnoException } from "@brains/utils/predicates";
 
 /** Suffix of the temporary file a replace writes before renaming it into place. */
 export const ATOMIC_WRITE_SUFFIX = ".brains-write";
@@ -39,4 +40,25 @@ export async function writeFileAtomic(
     await rm(temp, { force: true });
     throw error;
   }
+}
+
+/**
+ * Move a file to a path that holds none, in one step. The link either takes
+ * the free path or fails, so a file already there is never replaced; readers
+ * see the file at its old path, its new one, or both. False when the target
+ * already holds a file.
+ */
+export async function moveFileWithoutReplacing(
+  source: string,
+  target: string,
+): Promise<boolean> {
+  await mkdir(dirname(target), { recursive: true });
+  try {
+    await link(source, target);
+  } catch (error) {
+    if (isErrnoException(error) && error.code === "EEXIST") return false;
+    throw error;
+  }
+  await unlink(source);
+  return true;
 }

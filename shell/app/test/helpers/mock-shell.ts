@@ -23,13 +23,14 @@ export interface MockShellTool {
 export const createMockShell = (
   tools: readonly MockShellTool[] = [],
 ): Shell => {
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- deliberate; the comment above explains why
+  // One plugin manager for the shell's life, so a test can read what was
+  // registered on it.
+  const pluginManager = { registerPlugin: mock(() => {}) };
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- deliberate; the doc comment above explains why
   return {
     initialize: mock(() => Promise.resolve()),
     shutdown: mock(() => Promise.resolve()),
-    getPluginManager: mock(() => ({
-      registerPlugin: mock(() => {}),
-    })),
+    getPluginManager: mock(() => pluginManager),
     getMCPService: mock(() => ({
       listTools: (): { tool: MockShellTool }[] =>
         tools.map((tool) => ({ tool })),

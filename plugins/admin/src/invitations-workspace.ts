@@ -1,16 +1,16 @@
 import type {
   AuthBackend,
   ServiceRuntime,
+  RuntimeStudioOperatorBlock,
+  RuntimeStudioOperatorPanelBlock,
+  RuntimeStudioOperatorRegionBlock,
 } from "@brains/sdk/internal/service-runtime";
 import {
   defineStudioWorkspace,
   defineWorkspaceAction,
   type OperatorView,
   type OperatorViewBlock,
-  type RuntimeStudioOperatorBlock,
-  type RuntimeStudioOperatorPanelBlock,
-  type RuntimeStudioOperatorRegionBlock,
-} from "@brains/plugins";
+} from "@brains/sdk/services";
 import { queryInteger } from "@brains/utils/query";
 import {
   invitationChannelSchema,

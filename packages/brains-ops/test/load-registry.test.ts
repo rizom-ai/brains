@@ -32,7 +32,7 @@ contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
 bundles:
   - core
-aiApiKey: AI_API_KEY
+openaiApiKey: OPENAI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
 agePublicKey: age1testpublickey
@@ -51,7 +51,7 @@ discord:
   anchorUserId: "123456789"
 spaces:
   - discord:1466324999475429386
-aiApiKeyOverride: BOB_AI_API_KEY
+openaiApiKeyOverride: BOB_AI_API_KEY
 gitSyncTokenOverride: BOB_GIT_SYNC_TOKEN
 `,
       "cohorts/canary.yaml": `brainVersionOverride: 0.1.1-alpha.15
@@ -59,7 +59,7 @@ bundlesOverride:
   - core
   - site
   - publishing
-aiApiKeyOverride: CANARY_AI_API_KEY
+openaiApiKeyOverride: CANARY_AI_API_KEY
 members:
   - alice
 `,
@@ -91,7 +91,7 @@ members:
         discordEnabled: false,
         dnsStatus: "unknown",
         domain: "alice.rizom.ai",
-        effectiveAiApiKey: "CANARY_AI_API_KEY",
+        effectiveOpenaiApiKey: "CANARY_AI_API_KEY",
         effectiveGitSyncToken: "GIT_SYNC_TOKEN",
         handle: "alice",
         mcpStatus: "unknown",
@@ -115,7 +115,7 @@ members:
         spaces: ["discord:1466324999475429386"],
         dnsStatus: "unknown",
         domain: "bob.rizom.ai",
-        effectiveAiApiKey: "BOB_AI_API_KEY",
+        effectiveOpenaiApiKey: "BOB_AI_API_KEY",
         effectiveGitSyncToken: "BOB_GIT_SYNC_TOKEN",
         handle: "bob",
         mcpStatus: "unknown",
@@ -136,7 +136,7 @@ bundles:
   - core
   - site
   - publishing
-aiApiKey: AI_API_KEY
+openaiApiKey: OPENAI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
 agePublicKey: age1testpublickey
@@ -172,7 +172,7 @@ bundles:
   - core
   - site
   - publishing
-aiApiKey: AI_API_KEY
+openaiApiKey: OPENAI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
 agePublicKey: age1testpublickey
@@ -292,7 +292,7 @@ bundles:
   - core
   - site
   - publishing
-aiApiKey: AI_API_KEY
+openaiApiKey: OPENAI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
 agePublicKey: age1testpublickey
@@ -335,7 +335,7 @@ contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
 bundles:
   - core
-aiApiKey: AI_API_KEY
+openaiApiKey: OPENAI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
 agePublicKey: age1testpublickey
@@ -372,7 +372,7 @@ contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
 bundles:
   - core
-aiApiKey: AI_API_KEY
+openaiApiKey: OPENAI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
 agePublicKey: age1testpublickey
@@ -408,7 +408,7 @@ contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
 bundles:
   - core
-aiApiKey: AI_API_KEY
+openaiApiKey: OPENAI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
 agePublicKey: age1testpublickey
@@ -454,7 +454,7 @@ contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
 bundles:
   - core
-aiApiKey: AI_API_KEY
+openaiApiKey: OPENAI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
 contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
 agePublicKey: age1testpublickey

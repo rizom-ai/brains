@@ -8,9 +8,14 @@ import {
   evalPagePath,
   evalProviderHosts,
 } from "@brains/ai-evaluation";
-import { ButtondownPlugin } from "@brains/newsletter";
-import { StockPhotoPlugin } from "@brains/stock-photo";
-import type { Plugin, Tool, ToolResponse } from "@brains/plugins";
+import { createButtondownPackage } from "@brains/newsletter";
+import { createStockPhotoPackage } from "@brains/stock-photo";
+import {
+  instantiatePluginPackageDefinition,
+  type Plugin,
+  type Tool,
+  type ToolResponse,
+} from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 
 const REPO = join(import.meta.dir, "..", "..", "..");
@@ -130,6 +135,30 @@ function toolOf(capabilities: { tools: Tool[] }, name: string): Tool {
   return found;
 }
 
+/** Stock photos as the canonical brain composes them, over the eval network. */
+function stockPhotoWith(config: { apiKey: string }): Plugin {
+  const [plugin] = instantiatePluginPackageDefinition(
+    createStockPhotoPackage({ fetch: network }),
+    config,
+    { name: "@brains/stock-photo", version: "0.0.0-test" },
+    { pluginId: "stock-photo" },
+  );
+  if (!plugin) throw new Error("The stock-photo package created no plugin");
+  return plugin;
+}
+
+/** Buttondown as the canonical brain composes it, over the eval network. */
+function buttondownWith(config: { apiKey: string }): Plugin {
+  const [plugin] = instantiatePluginPackageDefinition(
+    createButtondownPackage({ fetch: network }),
+    config,
+    { name: "@brains/newsletter", version: "0.0.0-test" },
+    { pluginId: "buttondown" },
+  );
+  if (!plugin) throw new Error("The buttondown package created no plugin");
+  return plugin;
+}
+
 const admin = {
   interfaceType: "evaluation",
   actor: { kind: "user", userId: "eval-admin" },
@@ -172,10 +201,7 @@ describe("the provider suites with every external host refused", () => {
   it("answers stock-photo_search as Unsplash answers the suite's placeholder key", async () => {
     refused.length = 0;
     const capabilities = await install(
-      new StockPhotoPlugin(
-        { apiKey: "eval-placeholder-stock-photo-key" },
-        { fetch: network },
-      ),
+      stockPhotoWith({ apiKey: "eval-placeholder-stock-photo-key" }),
     );
     const result: ToolResponse = await toolOf(
       capabilities,
@@ -189,10 +215,7 @@ describe("the provider suites with every external host refused", () => {
   it("answers newsletter_subscribers as Buttondown answers the suite's placeholder key", async () => {
     refused.length = 0;
     const capabilities = await install(
-      new ButtondownPlugin(
-        { apiKey: "eval-placeholder-buttondown-key" },
-        { fetch: network },
-      ),
+      buttondownWith({ apiKey: "eval-placeholder-buttondown-key" }),
     );
     const result: ToolResponse = await toolOf(
       capabilities,

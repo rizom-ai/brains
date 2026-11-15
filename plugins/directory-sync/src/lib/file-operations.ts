@@ -1,4 +1,5 @@
-import type { BaseEntity, EntityServiceClient } from "@brains/plugins";
+import type { ServiceEntityMirrorClient } from "@brains/sdk/internal/service-runtime";
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
 import { basename, dirname, extname } from "path";
 import { resolveInSyncPath, toSyncRelativePath } from "./path-utils";
 import {
@@ -22,8 +23,8 @@ import {
   type Containment,
 } from "./entity-paths";
 import { EntityPlacementError } from "./entity-placement-error";
-import { mkdir, readFile, unlink, stat, utimes } from "fs/promises";
-import { writeFileAtomic } from "./atomic-write";
+import { mkdir, readFile, rmdir, unlink, stat, utimes } from "fs/promises";
+import { moveFileWithoutReplacing, writeFileAtomic } from "./atomic-write";
 import { z } from "@brains/utils/zod";
 import { computeContentHash } from "@brains/utils/hash";
 import type { RawEntity, DirectorySyncStatus } from "../types";
@@ -41,7 +42,7 @@ export { IMAGE_EXTENSIONS, isImageFile } from "./image-file-utils";
 export { DOCUMENT_EXTENSIONS, isDocumentFile } from "./document-file-utils";
 
 export type FileOperationsEntityService = Pick<
-  EntityServiceClient,
+  ServiceEntityMirrorClient,
   "serializeEntity" | "hasEntityType" | "getEntityTypes" | "getEntityTypeConfig"
 >;
 
@@ -61,6 +62,54 @@ export class FileOperations {
 
   parseEntityFromPath(filePath: string): { entityType: string; id: string } {
     return parseEntityPath(this.syncPath, filePath, this.containment());
+  }
+
+  /**
+   * Where a contained type's file belongs when it sits outside its
+   * container's folder: `book-section/zara/x.md` reads as the section that
+   * lives at `book/zara/x.md`. Undefined for a file already in place, a type
+   * that is not contained, or a placement refused for its ID.
+   */
+  getMisplacedContainedPath(filePath: string): string | undefined {
+    const containment = this.containment();
+    const { entityType, id } = this.parseEntityFromPath(filePath);
+    if (!containment.has(entityType)) return undefined;
+    const placement = resolveEntityPlacement(
+      this.syncPath,
+      entityType,
+      id,
+      extname(filePath),
+      containment,
+    );
+    return placement.writable &&
+      placement.relativePath !== toSyncRelativePath(this.syncPath, filePath)
+      ? placement.relativePath
+      : undefined;
+  }
+
+  /**
+   * Move a file to the path it belongs at, then drop the folders it leaves
+   * empty. False, with nothing moved, when that path already holds a file.
+   */
+  async moveEntityFile(filePath: string, targetPath: string): Promise<boolean> {
+    const source = resolveInSyncPath(this.syncPath, filePath);
+    const moved = await moveFileWithoutReplacing(
+      source,
+      resolveInSyncPath(this.syncPath, targetPath),
+    );
+    if (moved) await this.removeEmptyFolders(dirname(source));
+    return moved;
+  }
+
+  /** Remove a folder inside the sync path and each parent it leaves empty. */
+  private async removeEmptyFolders(folder: string): Promise<void> {
+    const relativeFolder = toSyncRelativePath(this.syncPath, folder);
+    if (relativeFolder === "" || relativeFolder.startsWith("..")) return;
+    const removed = await rmdir(folder).then(
+      () => true,
+      () => false,
+    );
+    if (removed) await this.removeEmptyFolders(dirname(folder));
   }
 
   /** Where contained types live, as the registry holds it now. */
@@ -202,7 +251,7 @@ export class FileOperations {
    */
   async writeEntity(entity: BaseEntity): Promise<void> {
     this.assertEntityPlacement(entity);
-    const filePath = this.getEntityFilePath(entity);
+    const filePath = await this.resolveEntityFilePath(entity);
     const isImage = entity.entityType === "image";
     const isDocument = entity.entityType === "document";
 
@@ -229,13 +278,19 @@ export class FileOperations {
             }
           }),
       );
+      // A markdown file keeps the data URL as text, whatever its format.
+      if (filePath.endsWith(".md")) {
+        await this.writeImageMarkdown(entity, filePath);
+        return;
+      }
     }
 
     if (isImage || isDocument) {
       const dataUrlPattern = isImage
         ? /^data:image\/[a-z+]+;base64,(.+)$/i
         : /^data:application\/pdf;base64,(.+)$/i;
-      const match = entity.content.match(dataUrlPattern);
+      // A data URL read from a markdown file keeps that file's newline.
+      const match = entity.content.trim().match(dataUrlPattern);
       const contentToWrite = match?.[1]
         ? Buffer.from(match[1], "base64")
         : Buffer.from(entity.content, "base64");
@@ -283,6 +338,23 @@ export class FileOperations {
     }
 
     // Preserve entity timestamps on the file to prevent unnecessary re-syncs
+    const updatedTime = new Date(entity.updated);
+    await utimes(filePath, updatedTime, updatedTime);
+  }
+
+  /** Write an image's data URL as the text of its markdown file. */
+  private async writeImageMarkdown(
+    entity: BaseEntity,
+    filePath: string,
+  ): Promise<void> {
+    if (
+      (await pathExists(filePath)) &&
+      (await readFile(filePath, "utf-8")) === entity.content
+    ) {
+      return;
+    }
+    await this.ensureEntityDirectory(filePath);
+    await writeFileAtomic(filePath, entity.content);
     const updatedTime = new Date(entity.updated);
     await utimes(filePath, updatedTime, updatedTime);
   }
@@ -342,6 +414,28 @@ export class FileOperations {
       entity.id,
       entity.entityType,
       getEntityFileExtension(entity),
+    );
+  }
+
+  /**
+   * The paths an entity's file may have, the one its content names first.
+   * An image may also be a markdown file holding its data URL, whatever the
+   * format its bytes say.
+   */
+  getEntityFileCandidates(entity: BaseEntity): string[] {
+    const filePath = this.getEntityFilePath(entity);
+    if (entity.entityType !== "image") return [filePath];
+    const markdownPath = this.getFilePath(entity.id, entity.entityType, ".md");
+    return filePath === markdownPath ? [filePath] : [filePath, markdownPath];
+  }
+
+  /** The entity's file: the first candidate on disk, else the one its content names. */
+  async resolveEntityFilePath(entity: BaseEntity): Promise<string> {
+    const candidates = this.getEntityFileCandidates(entity);
+    const present = await Promise.all(candidates.map(pathExists));
+    return (
+      candidates.find((_, index) => present[index]) ??
+      this.getEntityFilePath(entity)
     );
   }
 

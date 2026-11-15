@@ -1,12 +1,13 @@
+import { parseAgentEntity } from "../src/lib/agent-content";
+import {
+  agentDiscoveryPlugins,
+  agentToolsPlugins,
+  installAll,
+} from "./agent-discovery-plugins";
 import { describe, expect, it } from "bun:test";
 import { createPluginHarness, expectSuccess } from "@brains/plugins/test";
 import type { Plugin } from "@brains/plugins";
-import { AgentDiscoveryPlugin } from "../src/plugins/agent-plugin";
-import {
-  AgentToolsPlugin,
-  type AgentToolsConfigInput,
-} from "../src/plugins/agent-tools-plugin";
-import { AgentAdapter } from "../src/adapters/agent-adapter";
+import type { AgentToolsConfigInput } from "../src";
 import type { FetchLike } from "@brains/utils/fetch-like";
 import { agentEntitySchema } from "../src/schemas/agent";
 import { createTestAgent } from "./fixtures/agent";
@@ -77,8 +78,8 @@ async function setupHarness(network: {
   fetch: FetchLike;
 }): Promise<ReturnType<typeof createPluginHarness<Plugin>>> {
   const harness = createPluginHarness<Plugin>({ domain: "self.brain" });
-  await harness.installPlugin(new AgentDiscoveryPlugin());
-  await harness.installPlugin(new AgentToolsPlugin(network.fetch));
+  await installAll(harness, agentDiscoveryPlugins());
+  await installAll(harness, agentToolsPlugins({ fetch: network.fetch }));
   return harness;
 }
 
@@ -109,14 +110,38 @@ async function setupRecurringCheck(
     },
   });
 
-  await harness.installPlugin(new AgentDiscoveryPlugin());
-  await harness.installPlugin(new AgentToolsPlugin(network.fetch, config));
+  await installAll(harness, agentDiscoveryPlugins());
+  await installAll(
+    harness,
+    agentToolsPlugins({ fetch: network.fetch }, config),
+  );
   const check = registered.check;
   if (!check) throw new Error("Directory recurring check was not registered");
   return { harness, check };
 }
 
 describe("agent_scan_directories", () => {
+  it("asks only the saved peers' directories and the sighted agents' cards", async () => {
+    const network = createMockNetwork({
+      "kai.example": {
+        directory: directoryOf("https://vale.example/a2a"),
+      },
+      "vale.example": { card: createAgentCard("vale.example", "Vale") },
+    });
+    const { harness, check } = await setupRecurringCheck(network);
+    await harness.getEntityService().createEntity({
+      entity: createTestAgent({ id: "kai.example", status: "approved" }),
+    });
+
+    await check.run({ signal: new AbortController().signal });
+
+    // Through the fetch the package was given, on .example hosts only.
+    expect(network.calls).toEqual([
+      "https://kai.example/.well-known/agent-directory.json",
+      "https://vale.example/.well-known/agent-card.json",
+    ]);
+  });
+
   it("reports new agents while suppressing notification delivery by default", async () => {
     const network = createMockNetwork({
       "kai.brain": {
@@ -336,7 +361,7 @@ describe("agent_scan_directories", () => {
     expect(sighted?.metadata.name).toBe("Vale");
     expect(sighted?.visibility).toBe("public");
     if (!sighted) throw new Error("Expected sighted agent");
-    const parsed = new AgentAdapter().parseEntity(sighted);
+    const parsed = parseAgentEntity(sighted);
     // Sighting provenance rides on the agent entity.
     expect(parsed.frontmatter.introducedBy).toEqual([
       "kai.brain",
@@ -406,7 +431,7 @@ describe("agent_scan_directories", () => {
       agentEntitySchema,
     );
     if (!sighted) throw new Error("Expected sighted agent");
-    const parsed = new AgentAdapter().parseEntity(sighted);
+    const parsed = parseAgentEntity(sighted);
     expect(parsed.frontmatter.introducedBy).toEqual([
       "kai.brain",
       "lumen.brain",
@@ -455,7 +480,7 @@ describe("agent_scan_directories", () => {
       agentEntitySchema,
     );
     if (!noor) throw new Error("Expected noor agent");
-    const parsed = new AgentAdapter().parseEntity(noor);
+    const parsed = parseAgentEntity(noor);
     expect(parsed.frontmatter.introducedBy).toBeUndefined();
 
     await harness.reset();
@@ -505,7 +530,7 @@ describe("agent_scan_directories", () => {
     );
     expect(after?.updated).toBe(before?.updated ?? "");
     if (!after) throw new Error("Expected agent after rescan");
-    const parsed = new AgentAdapter().parseEntity(after);
+    const parsed = parseAgentEntity(after);
     expect(parsed.frontmatter.introducedBy).toEqual(["kai.brain"]);
 
     await harness.reset();

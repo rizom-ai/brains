@@ -1,7 +1,13 @@
+import { createAtprotoPackage } from "./package";
+
 export {
-  AtprotoPlugin,
-  atprotoPlugin,
-  atprotoPlugin as plugin,
+  createAtprotoPackage,
+  type AtprotoPackageDeps,
+  type AtprotoState,
+} from "./package";
+export type { AtprotoContext } from "./atproto-context";
+export {
+  AtprotoService,
   type AtprotoPluginDeps,
   type PublishBrainCardOptions,
   type PublishBrainCardResult,
@@ -73,3 +79,8 @@ export {
   type UploadBlobInput,
   type UploadBlobResult,
 } from "./pds-client";
+
+/** The brain on the AT Protocol, as a brain composes it. */
+const atprotoPackage: ReturnType<typeof createAtprotoPackage> =
+  createAtprotoPackage();
+export default atprotoPackage;

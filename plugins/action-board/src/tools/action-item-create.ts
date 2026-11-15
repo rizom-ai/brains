@@ -1,10 +1,10 @@
 import type {
   ContentVisibility,
-  ServicePluginContext,
   Tool,
   ToolContext,
   ToolResponse,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/service-runtime";
+import type { BoardContext } from "../board-context";
 import { z } from "@brains/utils/zod";
 import {
   createActionItem,
@@ -115,7 +115,7 @@ async function assigneeOf(
  * visibility.
  */
 export function createActionItemCreateTool(
-  context: Pick<ServicePluginContext, "entityService">,
+  context: Pick<BoardContext, "entityService">,
   deps: ActionItemCreateDeps,
 ): Tool {
   return {

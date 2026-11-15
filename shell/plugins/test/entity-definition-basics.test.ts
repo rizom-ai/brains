@@ -350,6 +350,13 @@ describe("declared entity shape", () => {
     ).toThrow();
   });
 
+  it("reads a singleton's document as its one record, under the type's id", () => {
+    const parsed = pluginFor(welcome).adapter.fromMarkdown("---\n---\n");
+    expect(parsed.id).toBe("welcome");
+    // Any other type's document names no id; the writer gives it one.
+    expect(pluginFor(ordinary).adapter.fromMarkdown("Body").id).toBeUndefined();
+  });
+
   it("reaches the adapter flags Studio and system_update consult", async () => {
     const harness = await installed(welcome);
     try {

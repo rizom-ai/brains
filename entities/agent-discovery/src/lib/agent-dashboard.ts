@@ -1,10 +1,3 @@
-import {
-  SYSTEM_CHANNELS,
-  defineDashboardWidget,
-  registerBuiltInDashboardWidget,
-  type EntityPluginContext,
-  type DashboardOperatorViewBlock,
-} from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import {
   AGENT_NETWORK_KINDS,
@@ -22,6 +15,12 @@ import {
   proximityMapScript,
   proximityMapWidgetStyles,
 } from "../widgets/proximity-map";
+import type { ServiceRuntime } from "@brains/sdk/internal/service-runtime";
+import {
+  defineDashboardWidget,
+  type DashboardOperatorViewBlock,
+} from "@brains/sdk/services";
+import type { AgentContext } from "./agent-context";
 
 const agentNetworkDashboardDataSchema = agentNetworkWidgetDataSchema.extend({
   canInvite: z.boolean(),
@@ -303,45 +302,39 @@ const agentProximityWidget = defineDashboardWidget({
   },
 });
 
+/**
+ * The agent network and its proximity map on the Dashboard, as the
+ * agent-discovery class's built-in widgets drew them: the invite offered to
+ * an admin only, and the map drawn by its own component.
+ */
 export function registerAgentNetworkDashboardWidget(
-  context: EntityPluginContext,
+  runtime: Pick<ServiceRuntime, "dashboardWidget">,
+  context: Pick<AgentContext, "entityService" | "semantic">,
 ): void {
-  context.messaging.subscribe(
-    SYSTEM_CHANNELS.pluginsRegistered,
-    async (): Promise<{ success: boolean }> => {
-      await registerBuiltInDashboardWidget({
-        context,
-        definition: agentNetworkWidget,
-        load: async ({ caller, visibilityScope, signal }) => {
-          signal.throwIfAborted();
-          const data = await buildAgentNetworkWidgetData(
-            context,
-            visibilityScope,
-          );
-          signal.throwIfAborted();
-          return { ...data, canInvite: caller?.permission === "admin" };
-        },
-      });
-
-      await registerBuiltInDashboardWidget({
-        context,
-        definition: agentProximityWidget,
-        // The console grows the proximity organism itself; the declarative
-        // view above stays as the map's text detail and digest.
-        render: {
-          component: AgentProximityWidget,
-          clientStyles: proximityMapWidgetStyles,
-          clientScript: proximityMapScript,
-        },
-        load: async ({ visibilityScope, signal }) => {
-          signal.throwIfAborted();
-          const data = await buildProximityMapData(context, visibilityScope);
-          signal.throwIfAborted();
-          return data;
-        },
-      });
-
-      return { success: true };
+  runtime.dashboardWidget({
+    definition: agentNetworkWidget,
+    load: async ({ caller, visibilityScope, signal }) => {
+      signal.throwIfAborted();
+      const data = await buildAgentNetworkWidgetData(context, visibilityScope);
+      signal.throwIfAborted();
+      return { ...data, canInvite: caller?.permission === "admin" };
     },
-  );
+  });
+
+  runtime.dashboardWidget({
+    definition: agentProximityWidget,
+    // The console grows the proximity organism itself; the declarative
+    // view above stays as the map's text detail and digest.
+    render: {
+      component: AgentProximityWidget,
+      clientStyles: proximityMapWidgetStyles,
+      clientScript: proximityMapScript,
+    },
+    load: async ({ visibilityScope, signal }) => {
+      signal.throwIfAborted();
+      const data = await buildProximityMapData(context, visibilityScope);
+      signal.throwIfAborted();
+      return data;
+    },
+  });
 }

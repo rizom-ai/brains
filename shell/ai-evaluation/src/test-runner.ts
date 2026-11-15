@@ -36,6 +36,36 @@ type ChatAttachment = NonNullable<ChatContext["attachments"]>[number];
 type AgentResponseCard = NonNullable<AgentResponse["cards"]>[number];
 type ToolApprovalCard = Extract<AgentResponseCard, { kind: "tool-approval" }>;
 
+/** An agent service that says whether a turn's tool calls reach it. */
+function toolCallsUnobservable(agentService: IAgentService): boolean {
+  return (
+    "toolCallsObservable" in agentService &&
+    agentService.toolCallsObservable === false
+  );
+}
+
+const TOOL_CRITERIA = [
+  "expectedTools",
+  "expectedAnyTool",
+  "toolCountRange",
+] as const;
+
+/** The criteria of a case that are scored from its tool calls. */
+function toolCriteriaOf(testCase: AgentTestCase): string[] {
+  const criteria = [
+    testCase.successCriteria,
+    ...testCase.turns.map((turn) => turn.successCriteria ?? {}),
+  ];
+  return [
+    ...TOOL_CRITERIA.filter((name) =>
+      criteria.some((criterion) => criterion[name] !== undefined),
+    ),
+    ...(testCase.efficiency?.maxToolCalls !== undefined
+      ? ["maxToolCalls"]
+      : []),
+  ];
+}
+
 /** The sources a reply shows beside its answer, from its sources cards. */
 function responseSources(response: AgentResponse): ResponseSource[] {
   return (response.cards ?? []).flatMap((card) =>
@@ -159,6 +189,16 @@ export class TestRunner implements ITestRunner {
     testCase: AgentTestCase,
     options: TestRunnerOptions,
   ): Promise<EvaluationResult> {
+    // A case scored from tool calls the service cannot see would fail for
+    // the wrong reason, so it is refused before it runs.
+    const toolCriteria = toolCallsUnobservable(this.agentService)
+      ? toolCriteriaOf(testCase)
+      : [];
+    if (toolCriteria.length > 0) {
+      throw new Error(
+        `This agent service cannot observe tool calls, which this case checks: ${toolCriteria.join(", ")}`,
+      );
+    }
     const conversationId = randomUUID();
     const collector = MetricCollector.createFresh();
     const turnResults: TurnResult[] = [];

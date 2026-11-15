@@ -2,7 +2,7 @@ import {
   memoryActorReferenceSchema,
   type ActionItemEntity,
 } from "@brains/action-items";
-import { baseEntityParserSchema } from "@brains/plugins";
+import { baseEntityParserSchema } from "@brains/sdk/internal/entity-runtime";
 import { z } from "@brains/utils/zod";
 import { summaryTimeRangeSchema } from "./summary";
 

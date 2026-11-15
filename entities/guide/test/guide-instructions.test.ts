@@ -1,15 +1,10 @@
 import { describe, expect, it } from "bun:test";
-import { GuidesPlugin } from "../src";
+import { createMockShell } from "@brains/plugins/test";
+import { installGuides } from "./guide-plugins";
 
-class TestGuidesPlugin extends GuidesPlugin {
-  public instructions(): Promise<string | undefined> {
-    return this.getInstructions();
-  }
-}
-
-describe("GuidesPlugin instructions", () => {
+describe("the guide instructions", () => {
   it("answers who-am-I questions from the matching guide, named by its title", async () => {
-    const instructions = (await new TestGuidesPlugin().instructions()) ?? "";
+    const instructions = (await installGuides(createMockShell())) ?? "";
 
     expect(instructions).toContain("a writer, researcher, consultant, team");
     // Guides are few, one per kind of user: listing them finds the match

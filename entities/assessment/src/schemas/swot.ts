@@ -1,5 +1,5 @@
 import { z } from "@brains/utils/zod";
-import { baseEntitySchema } from "@brains/plugins";
+import { baseEntitySchema } from "@brains/sdk/internal/entity-runtime";
 
 type SwotItemSchema = z.ZodObject<{
   title: z.ZodString;

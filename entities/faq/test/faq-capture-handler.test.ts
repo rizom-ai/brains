@@ -7,21 +7,19 @@ import type {
   UserPermissionLevel,
 } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
+import { createMockProgressReporter } from "@brains/test-utils";
 import {
-  createMockProgressReporter,
-  createSilentLogger,
-} from "@brains/test-utils";
-import {
-  FaqCaptureHandler,
-  FaqPlugin,
   capturedReplyStore,
-  faqAdapter,
+  faqDocument,
   faqMetadata,
   faqSchema,
+  readFaq,
   type FaqClassification,
   type FaqEntity,
   SAME_QUESTION_CHECK,
 } from "../src";
+import { createFaqPlugins } from "./faq-plugins";
+import { captureHandler } from "./helpers/jobs";
 
 const CONVERSATION_ID = "conv-1";
 const SLUG = "how-do-i-publish-a-draft-post";
@@ -76,8 +74,8 @@ describe("FaqCaptureHandler", () => {
   function createHandler(
     messages: Message[] = transcript,
     sameQuestionDistance = 0.2,
-  ): FaqCaptureHandler {
-    return new FaqCaptureHandler(createSilentLogger(), {
+  ): ReturnType<typeof captureHandler> {
+    return captureHandler({
       entityService: context.entityService,
       replies: capturedReplyStore(context.runtimeState),
       sameQuestionDistance,
@@ -113,11 +111,11 @@ describe("FaqCaptureHandler", () => {
   }
 
   function capture(
-    handler: FaqCaptureHandler,
+    handler: ReturnType<typeof captureHandler>,
     userPermissionLevel: UserPermissionLevel,
     messageId = "m4",
     position = 4,
-  ): ReturnType<FaqCaptureHandler["process"]> {
+  ): ReturnType<ReturnType<typeof captureHandler>["process"]> {
     return handler.process(
       {
         conversationId: CONVERSATION_ID,
@@ -150,10 +148,7 @@ describe("FaqCaptureHandler", () => {
       entity: {
         id,
         entityType: "faq",
-        content: faqAdapter.createFaqContent(
-          frontmatter,
-          "Choose Publish in Studio.",
-        ),
+        content: faqDocument(frontmatter, "Choose Publish in Studio."),
         visibility,
         metadata: faqMetadata(frontmatter),
       },
@@ -179,7 +174,8 @@ describe("FaqCaptureHandler", () => {
     const harness = createPluginHarness({
       dataDir: `/tmp/test-faq-${randomUUID()}`,
     });
-    await harness.installPlugin(new FaqPlugin());
+    for (const plugin of createFaqPlugins())
+      await harness.installPlugin(plugin);
     context = harness.getEntityContext("faq");
     prompts = [];
     checks = [];
@@ -202,7 +198,7 @@ describe("FaqCaptureHandler", () => {
       expect(result).toEqual({ captured: true, entityId: SLUG, merged: false });
       const [faq] = await capturedFaqs();
       expect(faq?.visibility).toBe(visibility);
-      const parsed = faqAdapter.parseFaqContent(faq?.content ?? "");
+      const parsed = readFaq(faq ?? { content: "" });
       expect(parsed.frontmatter).toEqual({
         question: "How do I publish a draft post?",
         status: "draft",
@@ -255,7 +251,7 @@ describe("FaqCaptureHandler", () => {
       { entityType: "faq", options: { filter: { visibilityScope: "public" } } },
       faqSchema,
     );
-    expect(faqAdapter.parseFaqContent(faq?.content ?? "").sources).toEqual([
+    expect(readFaq(faq ?? { content: "" }).sources).toEqual([
       {
         id: "post:handoffs",
         title: "Handoffs between teams",
@@ -374,7 +370,7 @@ describe("FaqCaptureHandler", () => {
     await capture(createHandler(), "trusted");
 
     expect(searches).toEqual([
-      faqAdapter.createFaqContent(
+      faqDocument(
         { question: "How do I publish a draft post?", status: "draft" },
         "Open the post in Studio and choose Publish.",
       ),
@@ -394,7 +390,7 @@ describe("FaqCaptureHandler", () => {
     const faqs = await capturedFaqs();
     expect(faqs).toHaveLength(1);
     expect(faqs[0]?.metadata.asked).toBe(2);
-    const parsed = faqAdapter.parseFaqContent(faqs[0]?.content ?? "");
+    const parsed = readFaq(faqs[0] ?? { content: "" });
     expect(parsed.answer).toBe("Choose Publish in Studio.");
     expect(parsed.alternatives).toEqual([
       { answer: "Open the post in Studio and choose Publish." },
@@ -409,9 +405,7 @@ describe("FaqCaptureHandler", () => {
 
     const [faq] = await capturedFaqs();
     expect(faq?.metadata.asked).toBe(2);
-    expect(faqAdapter.parseFaqContent(faq?.content ?? "").alternatives).toEqual(
-      [],
-    );
+    expect(readFaq(faq ?? { content: "" }).alternatives).toEqual([]);
   });
 
   for (const [existing, level] of [
@@ -471,12 +465,12 @@ describe("FaqCaptureHandler", () => {
         // Another capture job merges its reply into the same FAQ first.
         const [current] = await capturedFaqs();
         if (!current) throw new Error("Expected the seeded FAQ");
-        const parsed = faqAdapter.parseFaqContent(current.content);
+        const parsed = readFaq(current);
         const frontmatter = { ...parsed.frontmatter, asked: 2 };
         await update({
           entity: {
             ...current,
-            content: faqAdapter.createFaqContent(frontmatter, parsed.answer, [
+            content: faqDocument(frontmatter, parsed.answer, [
               { answer: "Another answer." },
             ]),
             metadata: faqMetadata(frontmatter),
@@ -495,12 +489,10 @@ describe("FaqCaptureHandler", () => {
     });
     const [faq] = await capturedFaqs();
     expect(faq?.metadata.asked).toBe(3);
-    expect(faqAdapter.parseFaqContent(faq?.content ?? "").alternatives).toEqual(
-      [
-        { answer: "Another answer." },
-        { answer: "Open the post in Studio and choose Publish." },
-      ],
-    );
+    expect(readFaq(faq ?? { content: "" }).alternatives).toEqual([
+      { answer: "Another answer." },
+      { answer: "Open the post in Studio and choose Publish." },
+    ]);
   });
 
   it("finds a reply that newer messages pushed far back", async () => {

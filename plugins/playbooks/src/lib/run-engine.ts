@@ -17,7 +17,7 @@ import {
 import type {
   ConversationMessageAddedPayload,
   EntityChangePayload,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/service-runtime";
 import type { PlaybookBody, PlaybookState } from "../entity";
 import {
   createPlaybookRun,

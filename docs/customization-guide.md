@@ -329,8 +329,8 @@ Use an interface plugin for transports: MCP, Discord, A2A, or future chat platfo
 
 Rules of thumb:
 
-- use `InterfacePlugin` for HTTP/API-style transports
-- use `MessageInterfacePlugin` for conversational transports
+- use `defineInterface` for HTTP/API-style transports
+- use `defineMessageInterface` for conversational transports
 - track conversations for message-based interfaces
 - check permissions before sensitive actions
 

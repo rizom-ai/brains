@@ -11,14 +11,14 @@ import {
   withdrawActionItem,
   type ActionItemAssigneeMember,
 } from "@brains/action-items";
-import type {
-  ContentVisibility,
-  EntityPluginContext,
-  IConversationsNamespace,
-  IRuntimeStateNamespace,
-  IRuntimeStateStore,
-} from "@brains/plugins";
-import { conversationMessageMetadataSchema } from "@brains/plugins";
+import {
+  conversationMessageMetadataSchema,
+  type ClassRuntimeState,
+  type ClassRuntimeStateStore,
+  type ContentVisibility,
+  type ServiceConversations,
+} from "@brains/sdk/internal/service-runtime";
+import type { MemoryEntityService } from "../memory-context";
 import { z } from "@brains/utils/zod";
 import type {
   BrainMember,
@@ -121,7 +121,7 @@ export type ChannelBookmark = z.output<typeof channelBookmarkSchema>;
  * `change` returns undefined to leave it as it is.
  */
 export async function updateBookmark(
-  bookmarks: IRuntimeStateStore<ChannelBookmark>,
+  bookmarks: ClassRuntimeStateStore<ChannelBookmark>,
   conversationId: string,
   change: (current: ChannelBookmark | null) => ChannelBookmark | undefined,
   attempts = 3,
@@ -151,8 +151,8 @@ function keptNotices(notices: ChannelNotice[]): ChannelNotice[] {
 
 /** Per space conversation, how far its pickup got, keyed by conversation id. */
 export function channelBookmarks(
-  runtimeState: IRuntimeStateNamespace,
-): IRuntimeStateStore<ChannelBookmark> {
+  runtimeState: ClassRuntimeState,
+): ClassRuntimeStateStore<ChannelBookmark> {
   return runtimeState.scoped({
     namespace: "conversation-memory.channel-action-items",
     schema: channelBookmarkSchema,
@@ -161,13 +161,13 @@ export function channelBookmarks(
 
 export interface ChannelPickupDeps {
   conversations: Pick<
-    IConversationsNamespace,
+    ServiceConversations,
     "get" | "getMessages" | "countMessages"
   >;
-  bookmarks: IRuntimeStateStore<ChannelBookmark>;
+  bookmarks: ClassRuntimeStateStore<ChannelBookmark>;
   extractor: Pick<ChannelActionItemExtractor, "extract">;
   entityService: Pick<
-    EntityPluginContext["entityService"],
+    MemoryEntityService,
     | "createEntity"
     | "getEntity"
     | "listEntities"

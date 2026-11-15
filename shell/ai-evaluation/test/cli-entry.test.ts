@@ -44,8 +44,12 @@ describe("hasConfiguredApiKey", () => {
     // An exported-but-empty variable is the usual shape of a misconfigured
     // .env, and it must not read as configured — the run would fail later with
     // an authentication error instead of this check's actionable message.
-    expect(hasConfiguredApiKey({ AI_API_KEY: "" })).toBe(false);
-    expect(hasConfiguredApiKey({ AI_API_KEY: "   " })).toBe(false);
+    expect(hasConfiguredApiKey({ OPENAI_API_KEY: "" })).toBe(false);
+    expect(hasConfiguredApiKey({ OPENAI_API_KEY: "   " })).toBe(false);
+  });
+
+  it("does not count the single legacy key", () => {
+    expect(hasConfiguredApiKey({ AI_API_KEY: "sk-test" })).toBe(false);
   });
 
   it("accepts when one provider is set and another is blank", () => {

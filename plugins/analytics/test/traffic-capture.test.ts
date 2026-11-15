@@ -1,6 +1,6 @@
 import { describe, it, expect, spyOn } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
-import { TrafficSnapshotPlugin } from "../src/entity/plugin";
+import { createTrafficSnapshotPlugin } from "./analytics-plugins";
 import {
   entitySnapshotStore,
   TrafficCapture,
@@ -222,7 +222,7 @@ describe("entitySnapshotStore", () => {
     >
   > {
     const harness = createPluginHarness();
-    await harness.installPlugin(new TrafficSnapshotPlugin());
+    await harness.installPlugin(createTrafficSnapshotPlugin());
     return harness.getMockShell().getEntityService();
   }
 
@@ -232,7 +232,7 @@ describe("entitySnapshotStore", () => {
     const entityService = await snapshotService();
     const list = spyOn(entityService, "listEntities");
 
-    await entitySnapshotStore(entityService).list();
+    await entitySnapshotStore(entityService, entityService).list();
 
     expect(list.mock.calls[0]?.[0]).toMatchObject({
       entityType: "traffic-snapshot",
@@ -242,7 +242,7 @@ describe("entitySnapshotStore", () => {
 
   it("saves a snapshot and lists it back", async () => {
     const entityService = await snapshotService();
-    const store = entitySnapshotStore(entityService);
+    const store = entitySnapshotStore(entityService, entityService);
     await new TrafficCapture({
       client: fakeClient("2026-10-08"),
       store,

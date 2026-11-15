@@ -1,5 +1,6 @@
 import type { BootMode } from "@brains/core";
 import type { Tool } from "@brains/mcp-service";
+import type { LoadableBrainDefinition } from "./definition-registry";
 
 /**
  * In-process brain boot.
@@ -34,7 +35,7 @@ export interface BootFlags {
 
 type BootFn = (
   cwd: string,
-  definition: unknown,
+  definition: LoadableBrainDefinition,
   flags: BootFlags,
 ) => Promise<BootedBrain | void>;
 
@@ -52,7 +53,7 @@ export function setBootFn(fn: BootFn): void {
  */
 export async function bootBrain(
   cwd: string,
-  definition: unknown,
+  definition: LoadableBrainDefinition,
   flags: BootFlags,
 ): Promise<BootedBrain | void> {
   if (!registeredBootFn) {

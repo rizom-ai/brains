@@ -1,4 +1,4 @@
-import type { RuntimeOperatorActionControl } from "@brains/plugins";
+import type { RuntimeOperatorActionControl } from "@brains/sdk/internal/service-runtime";
 import { useCallback } from "react";
 import { type PublishingAction, type PublishingActionResult } from "./api";
 import {

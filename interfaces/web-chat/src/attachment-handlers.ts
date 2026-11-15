@@ -1,11 +1,11 @@
-import type { InterfaceRuntime } from "@brains/sdk/internal/interface-runtime";
 import {
+  type InterfaceRuntime,
   formatContentDispositionHeader,
   getArtifactEntityFilename,
   parseArtifactDataUrl,
   resolveMessageArtifactAccess,
-  type UserPermissionLevel,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/interface-runtime";
+import type { UserPermissionLevel } from "@brains/sdk/interfaces";
 
 type PermissionLevelResolver = (
   request: Request,

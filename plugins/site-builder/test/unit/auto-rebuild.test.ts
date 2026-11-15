@@ -9,7 +9,7 @@ import { createClient } from "@libsql/client";
 import { RebuildManager } from "../../src/lib/auto-rebuild";
 import { z } from "@brains/utils/zod";
 import { projectionWaveReadyContract } from "@brains/contracts";
-import { createTestConfig } from "../test-helpers";
+import { createTestConfig, withRuntimeAnswer } from "../test-helpers";
 import {
   createSilentLogger,
   createTestDatabase,
@@ -40,7 +40,7 @@ describe("RebuildManager", () => {
   test("successful projection waves enqueue a build before acknowledgment", async () => {
     const manager = new RebuildManager(
       createTestConfig({ rebuildDebounce: 1 }),
-      context,
+      withRuntimeAnswer(context),
       "site-builder",
       context.logger,
     );
@@ -59,7 +59,7 @@ describe("RebuildManager", () => {
   test("does not rebuild for note-only waves", async () => {
     const manager = new RebuildManager(
       createTestConfig(),
-      context,
+      withRuntimeAnswer(context),
       "site-builder",
       context.logger,
     );
@@ -82,7 +82,7 @@ describe("RebuildManager", () => {
     // pending behind it.
     const manager = new RebuildManager(
       createTestConfig({ rebuildDebounce: 1 }),
-      context,
+      withRuntimeAnswer(context),
       "site-builder",
       context.logger,
     );
@@ -112,7 +112,7 @@ describe("RebuildManager", () => {
     // not keep its site unbuilt until every section is embedded and read.
     const manager = new RebuildManager(
       createTestConfig(),
-      context,
+      withRuntimeAnswer(context),
       "site-builder",
       context.logger,
     );
@@ -131,7 +131,7 @@ describe("RebuildManager", () => {
   test("uses environment-specific job deduplication keys", async () => {
     const manager = new RebuildManager(
       createTestConfig(),
-      context,
+      withRuntimeAnswer(context),
       "site-builder",
       context.logger,
     );
@@ -153,7 +153,7 @@ describe("RebuildManager", () => {
     const config = createTestConfig();
     const manager = new RebuildManager(
       config,
-      context,
+      withRuntimeAnswer(context),
       "site-builder",
       context.logger,
     );
@@ -179,7 +179,7 @@ describe("RebuildManager", () => {
     const config = createTestConfig({ previewOutputDir: "" });
     const manager = new RebuildManager(
       config,
-      context,
+      withRuntimeAnswer(context),
       "site-builder",
       context.logger,
     );
@@ -213,7 +213,7 @@ describe("RebuildManager", () => {
     });
     const manager = new RebuildManager(
       createTestConfig(),
-      context,
+      withRuntimeAnswer(context),
       "site-builder",
       context.logger,
     );
@@ -235,7 +235,7 @@ describe("RebuildManager", () => {
   test("does not admit builds after disposal", async () => {
     const manager = new RebuildManager(
       createTestConfig(),
-      context,
+      withRuntimeAnswer(context),
       "site-builder",
       context.logger,
     );
@@ -278,7 +278,7 @@ describe("RebuildManager", () => {
       );
       manager = new RebuildManager(
         createTestConfig({ rebuildDebounce: 100 }),
-        context,
+        withRuntimeAnswer(context),
         "site-builder",
         logger,
       );
@@ -324,7 +324,7 @@ describe("RebuildManager", () => {
     context.jobs.enqueue = refusingEnqueue;
     const manager = new RebuildManager(
       createTestConfig({ rebuildDebounce: 10 }),
-      context,
+      withRuntimeAnswer(context),
       "site-builder",
       context.logger,
     );
@@ -345,7 +345,7 @@ describe("RebuildManager", () => {
     const config = createTestConfig();
     const manager = new RebuildManager(
       config,
-      context,
+      withRuntimeAnswer(context),
       "site-builder",
       context.logger,
     );

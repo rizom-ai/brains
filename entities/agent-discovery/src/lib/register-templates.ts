@@ -1,8 +1,3 @@
-import {
-  createTemplate,
-  type Template,
-  paginationInfoSchema,
-} from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import {
   AgentListTemplate,
@@ -27,6 +22,11 @@ import {
   AGENT_PROXIMITY_DATASOURCE_ID,
   AGENT_PROXIMITY_TEMPLATE_NAME,
 } from "./constants";
+import {
+  createTemplate,
+  type Template,
+  paginationInfoSchema,
+} from "@brains/sdk/internal/presentation";
 
 const agentStatusSchema = z.enum(["discovered", "approved", "archived"]);
 

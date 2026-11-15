@@ -1,10 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
-import {
-  ContactRequestPlugin,
-  contactRequestAdapter,
-  contactSubmissionSchema,
-} from "../src";
+import { contactRequestAdapter, contactSubmissionSchema } from "../src";
+import { createContactRequestPlugin } from "./contact-plugins";
 
 const frontmatter = {
   name: "Ada",
@@ -88,7 +85,7 @@ describe("contact request records", () => {
       if (type === "contact-request") validator = candidate;
     };
     const capabilities = await harness.installPlugin(
-      new ContactRequestPlugin(),
+      createContactRequestPlugin(),
     );
     expect(registry.getEntityTypeConfig("contact-request")).toMatchObject({
       embeddable: false,

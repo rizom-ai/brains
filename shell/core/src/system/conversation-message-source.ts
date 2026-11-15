@@ -33,7 +33,13 @@ export async function resolveConversationMessageContent(
   toolContext: ToolContext,
   { confirmed }: { confirmed: boolean },
 ): Promise<
-  | { success: true; messageId: string; content: string }
+  | {
+      success: true;
+      messageId: string;
+      content: string;
+      /** The user-message source as it was read, with the mode it implied. */
+      source?: UserMessageSource;
+    }
   | { success: false; error: string }
 > {
   const conversationId = toolContext.conversationId ?? toolContext.channelId;
@@ -82,7 +88,10 @@ export async function resolveConversationMessageContent(
     return { success: true, messageId: message.id, content: message.content };
   }
 
-  const source = fenceBoundariesAsFrontmatter(input, message.content);
+  const source = markerLinesAsLines(
+    fenceBoundariesAsFrontmatter(input, message.content),
+    message.content,
+  );
   // Name the failing boundary and the way out: a generic refusal led models
   // to ask the user to resend content that a literal prefix selects uniquely.
   const boundary = (
@@ -156,15 +165,18 @@ export async function resolveConversationMessageContent(
         "User-message source changed after the proposal. Request the change again and confirm the new approval.",
     };
   }
-  return { success: true, messageId: message.id, content };
+  return { success: true, messageId: message.id, content, source };
 }
 
-/** Pins a resolved user-message source to its message and selected text. */
+/**
+ * Pins a resolved user-message source to its message and selected text, as
+ * it was read.
+ */
 export function freezeUserMessageSource(
-  source: UserMessageSource,
-  resolved: { messageId: string; content: string },
+  requested: UserMessageSource,
+  resolved: { messageId: string; content: string; source?: UserMessageSource },
 ): UserMessageSource {
-  const { startAfter, endBefore, ...rest } = source;
+  const { startAfter, endBefore, ...rest } = resolved.source ?? requested;
   return {
     ...rest,
     ...(startAfter ? { startAfter } : {}),
@@ -227,6 +239,28 @@ function fenceBoundariesAsFrontmatter(
     ...(isFence(startAfter) ? {} : { startAfter }),
     ...(isFence(endBefore) ? {} : { endBefore }),
   };
+}
+
+/**
+ * Models leave out the mode when they copy two marker lines, as in a BEGIN
+ * line and its END line. Read literally, the text would start with the
+ * opening line's line ending; when each marker is one whole line of the
+ * message, the markers can only mean the lines between them.
+ */
+function markerLinesAsLines(
+  source: UserMessageSource,
+  content: string,
+): UserMessageSource {
+  const { startAfter, endBefore } = source;
+  if (source.boundaryMode !== undefined || !startAfter || !endBefore) {
+    return source;
+  }
+  const wholeLine = (marker: string): boolean =>
+    !/[\r\n]/.test(marker) &&
+    lineBoundaryOffsets(content, marker, true).length === 1;
+  return wholeLine(startAfter) && wholeLine(endBefore)
+    ? { ...source, boundaryMode: "lines" }
+    : source;
 }
 
 /**

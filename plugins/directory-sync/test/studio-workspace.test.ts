@@ -1,4 +1,6 @@
 import { createMockShell } from "@brains/plugins/test";
+import type { DirectorySyncContext } from "../src/lib/sync-context";
+import { syncContextOn } from "./sync-runtime";
 import { describe, expect, it, mock } from "bun:test";
 import {
   createServicePluginContext,
@@ -34,16 +36,17 @@ const adminActor: StudioWorkspaceActor = {
   isAnchor: true,
 };
 
-function createProviderContext(): {
-  context: ServicePluginContext;
+async function createProviderContext(): Promise<{
+  context: ServicePluginContext & Pick<DirectorySyncContext, "runtime">;
   getRegistration: () => StudioWorkspaceRegistration | undefined;
   enqueue: ReturnType<typeof mock>;
-} {
+}> {
   let registration: StudioWorkspaceRegistration | undefined;
   const enqueue = mock(async () => "sync-job-1");
-  const context = createServicePluginContext(
-    createMockShell(),
-    "directory-sync",
+  const shell = createMockShell();
+  const context = await syncContextOn(
+    shell,
+    createServicePluginContext(shell, "directory-sync"),
   );
   context.jobs.enqueue = enqueue;
   context.messaging.subscribe<
@@ -61,7 +64,7 @@ function createProviderContext(): {
 
 describe("directory-sync Studio workspace", () => {
   it("registers a safe provider snapshot and resolved management URL", async () => {
-    const { context, getRegistration } = createProviderContext();
+    const { context, getRegistration } = await createProviderContext();
     const operationStatus = new DirectorySyncOperationStatusService(
       context.runtimeState,
       context.jobs,
@@ -227,7 +230,7 @@ describe("directory-sync Studio workspace", () => {
 
   for (const count of [0, 20, 21]) {
     it(`reports ${count} working-tree files without implying a partial list is complete`, async () => {
-      const { context, getRegistration } = createProviderContext();
+      const { context, getRegistration } = await createProviderContext();
       const operationStatus = new DirectorySyncOperationStatusService(
         context.runtimeState,
         context.jobs,
@@ -312,7 +315,7 @@ describe("directory-sync Studio workspace", () => {
   }
 
   it("routes Sync now through the shared queued request and enforces admin permission", async () => {
-    const { context, getRegistration, enqueue } = createProviderContext();
+    const { context, getRegistration, enqueue } = await createProviderContext();
     const operationStatus = new DirectorySyncOperationStatusService(
       context.runtimeState,
       context.jobs,

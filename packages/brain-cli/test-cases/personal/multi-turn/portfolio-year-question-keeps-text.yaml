@@ -47,8 +47,7 @@ turns:
       expectedTools:
         - toolName: system_create
           resultContains:
-            success: true
-            data.entityId: night-bus-stories
+            entityId: night-bus-stories
       responseNotContains:
         - "failed"
   - userMessage: Read project 'night-bus-stories' from storage with part body. Do not change anything.

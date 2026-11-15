@@ -62,7 +62,11 @@ import type { IRuntimeStateNamespace } from "@brains/runtime-state";
 import type { IRuntimeUploadsNamespace } from "./service/upload-registry";
 import type { RuntimeReadiness } from "./contracts/runtime-health";
 import type { StaticSiteOutput } from "./internal/http-host";
-import type { ProjectionRule } from "./entity/projection-rule";
+import type {
+  ProjectionRule,
+  ProjectionWaveInput,
+  ProjectionWriteIntent,
+} from "./entity/projection-rule";
 import type {
   AIGenerationSchema,
   ImageGenerationOptions,
@@ -276,7 +280,7 @@ export interface IShell {
   }>;
   query(prompt: string, context?: QueryContext): Promise<DefaultQueryResponse>;
 
-  // Image generation (requires AI_API_KEY)
+  // Image generation (requires the image model's provider key)
   generateImage(
     prompt: string,
     options?: ImageGenerationOptions,
@@ -326,6 +330,16 @@ export interface IShell {
     handler: EvalHandler,
   ): void;
 
+  /**
+   * A registered projection rule's select and derive, run against the brain
+   * as it stands with no wave, memo or write: what the rule would write, as
+   * an eval measures it. An unknown rule id is refused.
+   */
+  runProjectionRule(
+    ruleId: string,
+    options?: { readonly inputs?: readonly ProjectionWaveInput[] },
+  ): Promise<readonly ProjectionWriteIntent[]>;
+
   // The system_analytics reports, core's and plugins'
   getAnalyticsRegistry(): IAnalyticsRegistry;
 
@@ -343,14 +357,6 @@ export type { IMCPTransport } from "@brains/mcp-service";
  * Plugin type enumeration
  */
 export type PluginType = "core" | "entity" | "service" | "interface";
-
-/**
- * Base tracking info that all interface plugins must have
- * Contains the essential rootJobId for job inheritance tracking
- */
-export interface BaseJobTrackingInfo {
-  rootJobId: string; // For inheritance tracking (required)
-}
 
 /**
  * Plugin metadata schema - validates the data portion of a plugin
@@ -424,5 +430,5 @@ export type Plugin = z.output<typeof pluginMetadataSchema> & {
    * Where this plugin writes the site the runtime's HTTP host serves. Read
    * once, when the host starts.
    */
-  getStaticSiteOutput?(): StaticSiteOutput;
+  getStaticSiteOutput?(): StaticSiteOutput | undefined;
 };

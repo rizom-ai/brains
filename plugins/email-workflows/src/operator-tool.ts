@@ -1,4 +1,7 @@
-import { createAdminListTool, type Tool } from "@brains/plugins";
+import {
+  createAdminListTool,
+  type Tool,
+} from "@brains/sdk/internal/service-runtime";
 import type { MailTriageOperatorService } from "./operator-service";
 import {
   mailTriageFilterSchema,

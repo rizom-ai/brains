@@ -1,10 +1,12 @@
-import type {
-  Tool,
-  ToolResult,
-  ServicePluginContext,
-  ToolContext,
-} from "@brains/plugins";
-import { createTool, toolSuccess, toolError } from "@brains/plugins";
+import type { DirectorySyncCore } from "../lib/sync-context";
+import {
+  type Tool,
+  type ToolResult,
+  type ToolContext,
+  createTool,
+  toolSuccess,
+  toolError,
+} from "@brains/sdk/internal/service-runtime";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import type { IDirectorySync, IGitSync } from "../types";
@@ -69,7 +71,7 @@ const gitDirectorySyncActionSchema = z.discriminatedUnion("action", [
 
 export function createDirectorySyncTools(
   directorySync: IDirectorySync,
-  pluginContext: ServicePluginContext,
+  pluginContext: DirectorySyncCore,
   pluginId: string,
   gitSync?: IGitSync,
   operationStatus?: DirectorySyncOperationStatusService,
@@ -122,7 +124,7 @@ export function createDirectorySyncTools(
 
 async function handleSync(input: {
   directorySync: IDirectorySync;
-  pluginContext: ServicePluginContext;
+  pluginContext: DirectorySyncCore;
   pluginId: string;
   gitSync?: IGitSync | undefined;
   operationStatus?: DirectorySyncOperationStatusService | undefined;

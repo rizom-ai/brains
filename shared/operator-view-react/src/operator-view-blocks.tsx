@@ -11,9 +11,9 @@ import { flowStyles as flow } from "./operator-flow.styles";
 import { rendererLayoutStyles as rendererLayout } from "./operator-renderer-layout.styles";
 import { queryStyles as q } from "./operator-query.styles";
 import type {
-  RuntimeStudioOperatorPanelBlock,
   RuntimeOperatorLaunchIntent,
-} from "@brains/plugins";
+  RuntimeStudioOperatorPanelBlock,
+} from "@brains/sdk/internal/service-runtime";
 import { useContext, type ReactElement } from "react";
 import { OperatorRendererHostContext } from "./operator-view-host";
 import type { OperatorViewQuery, RuntimeBlock } from "./operator-view-host";

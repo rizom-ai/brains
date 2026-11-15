@@ -1,6 +1,6 @@
 # @brains/content-pipeline
 
-Content pipeline plugin for managing entity publishing queues, scheduling, and generation.
+Manages entity publishing queues, scheduling, and generation.
 
 ## Features
 
@@ -13,26 +13,23 @@ Content pipeline plugin for managing entity publishing queues, scheduling, and g
 - **Optional Studio Workspace**: Expose queue controls and confirmed direct publishing when `@brains/studio` is installed
 - **Dashboard Digest**: Report compact, read-only pipeline health when `@brains/dashboard` is installed
 
-## Usage
+## Composition
 
-```typescript
-import { contentPipelinePlugin } from "@brains/content-pipeline";
+Content-pipeline is a declarative service. The canonical brain composes it as
+the `content-pipeline` capability, under the plugin id `content-pipeline`; a
+brain configures it in `brain.yaml` under `plugins.content-pipeline`:
 
-const config = defineConfig({
-  plugins: [
-    contentPipelinePlugin({
-      maxRetries: 3,
-      retryBaseDelayMs: 1000,
-      entitySchedules: {
-        "social-post": "0 9 * * 1-5", // Weekdays at 9am
-      },
-      generationSchedules: {
-        newsletter: "0 8 * * 5", // Fridays at 8am
-      },
-    }),
-  ],
-});
+```yaml
+plugins:
+  content-pipeline:
+    entitySchedules:
+      social-post: "0 9 * * 1-5" # Weekdays at 9am
+    generationSchedules:
+      newsletter: "0 8 * * 5" # Fridays at 8am
 ```
+
+The package default-exports the definition; `createContentPipelinePackage({ onSetup })`
+hands a test the services it builds.
 
 Schedules use standard five-field cron syntax (`minute hour day month weekday`);
 seconds fields are not supported.

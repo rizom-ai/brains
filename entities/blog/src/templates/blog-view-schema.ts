@@ -3,7 +3,7 @@ import {
   viewLinkFields,
   entityViewFields,
   type EntityViewFields,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/presentation";
 import { z } from "@brains/utils/zod";
 import { blogPostStatusSchema } from "../schemas/blog-post";
 

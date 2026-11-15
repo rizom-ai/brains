@@ -5,11 +5,11 @@ import {
   type ServicePluginContext,
   type ToolContext,
 } from "@brains/plugins/test";
-import { ActionItemAdapter, actionItemSchema } from "@brains/action-items";
+import { actionItemAdapter, actionItemSchema } from "@brains/action-items";
 import type { ActionItemEntity } from "@brains/action-items";
 import { createActionItemCreateTool } from "../src/tools/action-item-create";
 
-const adapter = new ActionItemAdapter();
+const adapter = actionItemAdapter;
 const NOW = new Date("2026-10-23T09:00:00.000Z");
 
 const members = async (): Promise<{ id: string; name: string }[]> => [

@@ -1,10 +1,9 @@
 import {
-  createBuiltInStudioWorkspaceRegistration,
   defineStudioWorkspace,
   defineWorkspaceAction,
   type OperatorCaller,
-  type ServicePluginContext,
-} from "@brains/plugins";
+} from "@brains/sdk/services";
+import type { ServiceStudio } from "@brains/sdk/internal/service-runtime";
 import { SdkError } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
@@ -288,10 +287,10 @@ export interface LinkedInWorkspaceDeps {
  * returns its URL, where the OAuth callback sends the owner back.
  */
 export async function registerLinkedInWorkspace(
-  context: ServicePluginContext,
+  studio: ServiceStudio,
   deps: LinkedInWorkspaceDeps,
 ): Promise<string | undefined> {
-  if (context.executionOnly || !context.studio.isAvailable()) return undefined;
+  if (!studio.isAvailable()) return undefined;
   const connected = async (
     caller: OperatorCaller | null,
   ): Promise<StoredConnection> => {
@@ -303,8 +302,7 @@ export async function registerLinkedInWorkspace(
     }
     return connection;
   };
-  const registration = createBuiltInStudioWorkspaceRegistration({
-    context,
+  const registration = studio.source({
     definition: linkedInWorkspace,
     bind: (binding) =>
       linkedInWorkspace.bind(binding, {
@@ -378,10 +376,9 @@ export async function registerLinkedInWorkspace(
         ],
       }),
   });
-  const result = await context.studio.registerWorkspace({
+  return studio.register({
     ...registration,
     accessHandler: async (actor) =>
       actor.isAnchor && (await registration.accessHandler(actor)),
   });
-  return result ? result.workspaceUrl : undefined;
 }

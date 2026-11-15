@@ -91,4 +91,4 @@ Exit: the test app, paired with a dedicated number, answers DMs and mentions in 
 - **Bun.** Pairing, a stored session across restarts, text, polls and images ran under Bun from the bundle in minutes-long runs; a session lasting days has not.
 - **Buttons from a linked device** render, but a tap from another account is untested. Step 5's live check decides between buttons and polls, and typed yes/no stays as the fallback either way.
 - **An idle primary phone.** If the brain's phone goes 14 days without opening WhatsApp, the brain is logged out and the daemon reports unhealthy until the number is paired again.
-- **The authoring boundary re-apply** ([authoring-boundary-reapply.md](./authoring-boundary-reapply.md)) converts `@brains/chat`. Whichever lands second re-reads the other.
+- **The authoring boundary.** `@brains/chat` is a declarative interface on `main` since #887; this adapter builds on that definition.

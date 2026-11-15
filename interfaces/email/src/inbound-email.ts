@@ -10,7 +10,7 @@ import {
   type InboundEmailAddress,
   type InboundEmailSender,
 } from "@brains/contracts";
-import type { IRuntimeStateStore } from "@brains/plugins";
+import type { ClassRuntimeStateStore } from "@brains/sdk/internal/interface-runtime";
 import { sha256Hex } from "@brains/utils/hash";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
@@ -274,7 +274,7 @@ export function createInboundEmailSourceRef(
 }
 
 export interface InboundEmailIntakeDependencies {
-  cursor: IRuntimeStateStore<InboundEmailCursor>;
+  cursor: ClassRuntimeStateStore<InboundEmailCursor>;
   /** Hands the email to its owner; only an answer acknowledges it. */
   publish: (email: InboundEmail) => Promise<BusResult<unknown>>;
   resolveSender?:

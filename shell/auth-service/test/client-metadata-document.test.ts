@@ -203,6 +203,69 @@ describe("ClientMetadataDocumentResolver", () => {
     ).toContain("exceeds 5120 bytes");
   });
 
+  it("registers a client that can authenticate with none as a public client, whatever it prefers", async () => {
+    // ChatGPT's published document. The singular field is its preference; the
+    // plural field lists what it can use. This server's token endpoint takes
+    // none, so the client is registered as public.
+    const clientId = "https://chatgpt.com/oauth/client.json";
+    const resolver = new ClientMetadataDocumentResolver({
+      fetch: (): Promise<Response> =>
+        Promise.resolve(
+          Response.json({
+            client_id: clientId,
+            client_uri: "https://chatgpt.com/",
+            redirect_uris: [
+              "https://chatgpt.com/connector_platform_oauth_redirect",
+            ],
+            token_endpoint_auth_method: "private_key_jwt",
+            token_endpoint_auth_methods_supported: ["none", "private_key_jwt"],
+            grant_types: [
+              "authorization_code",
+              "refresh_token",
+              "urn:ietf:params:oauth:grant-type:jwt-bearer",
+            ],
+            response_types: ["code"],
+            client_name: "ChatGPT",
+            token_endpoint_auth_signing_alg: "RS256",
+            jwks_uri: "https://chatgpt.com/oauth/jwks.json",
+          }),
+        ),
+      resolveAddresses: (): Promise<ResolvedAddress[]> =>
+        Promise.resolve(PUBLIC_ADDRESS),
+    });
+
+    const client = await resolver.resolve(clientId);
+
+    expect(client.token_endpoint_auth_method).toBe("none");
+    expect(client.redirect_uris).toEqual([
+      "https://chatgpt.com/connector_platform_oauth_redirect",
+    ]);
+  });
+
+  it("rejects a client that cannot authenticate with none", async () => {
+    for (const body of [
+      { token_endpoint_auth_method: "private_key_jwt" },
+      {
+        token_endpoint_auth_method: "private_key_jwt",
+        token_endpoint_auth_methods_supported: ["private_key_jwt"],
+      },
+      {
+        token_endpoint_auth_method: "none",
+        token_endpoint_auth_methods_supported: ["private_key_jwt"],
+      },
+    ]) {
+      const resolver = new ClientMetadataDocumentResolver({
+        fetch: (): Promise<Response> => Promise.resolve(metadataResponse(body)),
+        resolveAddresses: (): Promise<ResolvedAddress[]> =>
+          Promise.resolve(PUBLIC_ADDRESS),
+      });
+
+      expect(
+        (await rejectedError(resolver.resolve(CLIENT_ID))).message,
+      ).toContain("public clients using token_endpoint_auth_method none");
+    }
+  });
+
   it("rejects symmetric secrets and unsupported client authentication", async () => {
     const resolver = new ClientMetadataDocumentResolver({
       fetch: (): Promise<Response> =>

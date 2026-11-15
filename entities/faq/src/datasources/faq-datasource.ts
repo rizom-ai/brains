@@ -1,12 +1,10 @@
-import { BaseEntityDataSource } from "@brains/plugins";
 import type {
-  BaseDataSourceContext,
-  DataSourceSchema,
-  EntityDataSourceConfig,
-} from "@brains/plugins";
+  ServiceCorpusReads,
+  ServiceDataSourceDeclaration,
+} from "@brains/sdk/internal/service-runtime";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
-import { faqAdapter } from "../adapters/faq-adapter";
+import { readFaq } from "../lib/faq-body";
 import { faqSchema, type FaqEntity, type FaqSource } from "../schemas/faq";
 
 export const FAQ_DATASOURCE_ID = "faq:entities" as const;
@@ -66,65 +64,74 @@ export const faqSectionSchema: z.ZodObject<{
 
 export type FaqSectionData = z.output<typeof faqSectionSchema>;
 
+/** A FAQ as the section shows it. */
+function faqItem(entity: FaqEntity): FaqItem {
+  const { answer, sources } = readFaq(entity);
+  return {
+    id: entity.id,
+    question: entity.metadata.question,
+    answer,
+    asked: entity.metadata.asked,
+    sources: sources.map(itemSource),
+  };
+}
+
+/** The page of the section a template asks for. */
+const faqQuerySchema = z.looseObject({
+  query: z
+    .looseObject({
+      limit: z.number().optional(),
+      page: z.number().optional(),
+      pageSize: z.number().optional(),
+    })
+    .optional(),
+});
+
+/** What a section is read with: the build's corpus and its publish rule. */
+export interface FaqSectionBuild {
+  readonly entityService: Pick<ServiceCorpusReads, "listEntities">;
+  readonly publishedOnly?: boolean | undefined;
+}
+
 /**
  * Supplies the FAQ section with public FAQs: the owner's ranked ones in rank
  * order, then the rest most asked first, newest first on a tie. A FAQ drawn
  * from shared or restricted content never reaches a site, whatever the
  * build's visibility scope; drafts stay out of published-only builds.
  */
-export class FaqDataSource extends BaseEntityDataSource<
-  FaqEntity,
-  FaqItem,
-  FaqSectionData
-> {
-  readonly id: typeof FAQ_DATASOURCE_ID = FAQ_DATASOURCE_ID;
-  readonly name = "FAQ Entity DataSource";
-  readonly description = "Fetches public FAQs for the FAQ section";
-
-  protected readonly config: EntityDataSourceConfig<FaqEntity> = {
+export async function fetchFaqSection(
+  query: unknown,
+  build: FaqSectionBuild,
+): Promise<FaqSectionData> {
+  const page = faqQuerySchema.parse(query).query ?? {};
+  const perPage = page.pageSize ?? page.limit ?? 100;
+  const entities = await build.entityService.listEntities({
     entityType: "faq",
-    entitySchema: faqSchema,
-    defaultSort: [
-      { field: "rank", direction: "asc", nullsLast: true },
-      { field: "asked", direction: "desc" },
-      { field: "created", direction: "desc" },
-    ],
-    defaultLimit: 100,
-    lookupField: "id",
-  };
-
-  constructor(logger: Logger) {
-    super(logger);
-  }
-
-  protected transformEntity(entity: FaqEntity): FaqItem {
-    const { answer, sources } = faqAdapter.parseFaqContent(entity.content);
-    return {
-      id: entity.id,
-      question: entity.metadata.question,
-      answer,
-      asked: entity.metadata.asked,
-      sources: sources.map(itemSource),
-    };
-  }
-
-  protected buildListResult(items: FaqItem[]): FaqSectionData {
-    return { faqs: items };
-  }
-
-  override async fetch<T>(
-    query: unknown,
-    outputSchema: DataSourceSchema<T>,
-    context: BaseDataSourceContext,
-  ): Promise<T> {
-    const params = this.parseQuery(query);
-    const list = await this.fetchList(params.query, context.entityService, {
+    options: {
+      limit: perPage,
+      offset: ((page.page ?? 1) - 1) * perPage,
+      sortFields: [
+        { field: "rank", direction: "asc", nullsLast: true },
+        { field: "asked", direction: "desc" },
+        { field: "created", direction: "desc" },
+      ],
       filter: { visibility: "public" },
-      ...(context.publishedOnly && { publishedOnly: true }),
-    });
-    return outputSchema.parse(this.buildListResult(list.items));
-  }
+      ...(build.publishedOnly === true && { publishedOnly: true }),
+    },
+  });
+  return {
+    faqs: entities.map((entity) => faqItem(faqSchema.parse(entity))),
+  };
 }
+
+/** The FAQ section's source as the brain registers it: `faq:entities`. */
+export const faqDataSource: ServiceDataSourceDeclaration = {
+  id: "entities",
+  name: "FAQ Entity DataSource",
+  description: "Fetches public FAQs for the FAQ section",
+  fetch: (query, { corpus, publishedOnly }) =>
+    fetchFaqSection(query, { entityService: corpus, publishedOnly }),
+};
 
 /**
  * The first public FAQs in the section's order, for a site that shows them
@@ -132,15 +139,16 @@ export class FaqDataSource extends BaseEntityDataSource<
  * brain does not capture FAQs.
  */
 export async function loadPublicFaqs(
-  context: BaseDataSourceContext,
+  context: {
+    readonly entityService: FaqSectionBuild["entityService"] & {
+      hasEntityType(entityType: string): boolean;
+    };
+    readonly publishedOnly?: boolean | undefined;
+  },
   limit: number,
-  logger: Logger,
+  _logger?: Logger,
 ): Promise<FaqItem[]> {
   if (!context.entityService.hasEntityType("faq")) return [];
-  const section = await new FaqDataSource(logger).fetch(
-    { query: { limit } },
-    faqSectionSchema,
-    context,
-  );
+  const section = await fetchFaqSection({ query: { limit } }, context);
   return section.faqs;
 }

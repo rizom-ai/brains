@@ -2,7 +2,9 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
-import type { Plugin } from "@brains/plugins";
+import { createTemplate, withSiteRuntime } from "@brains/plugins";
+import { createPluginHarness, installSiteRuntime } from "@brains/plugins/test";
+import { z } from "@brains/utils/zod";
 import { getPackage, registerPackage } from "../src/package-registry";
 import type { InstanceOverrides } from "../src/instance-overrides";
 import { sitePackageSchema } from "../src/site-package";
@@ -45,18 +47,6 @@ describe("registerConventionalSiteTheme", () => {
       `export default {
         layouts: {},
         routes: [],
-        plugin() {
-          return {
-            id: "test-site",
-            version: "1.0.0",
-            description: "test site",
-            packageName: "@test/site",
-            type: "service",
-            async register() {
-              return { tools: [], resources: [] };
-            },
-          };
-        },
         entityDisplay: {},
       };
       `,
@@ -76,26 +66,29 @@ describe("registerConventionalSiteTheme", () => {
   });
 
   test("composes ./src/site.tsx over an explicit base site package", async () => {
-    let receivedPluginConfig: Record<string, unknown> | undefined;
-    const basePlugin = (config?: Record<string, unknown>): Plugin => {
-      receivedPluginConfig = config;
-      return {
-        id: "base-site",
-        version: "1.0.0",
-        description: "base site",
-        packageName: "@brains/site-explicit",
-        type: "service" as const,
-        async register(): Promise<{ tools: never[]; resources: never[] }> {
-          return { tools: [], resources: [] };
+    // The base site's templates read its config, as its plugin did.
+    registerPackage(
+      "@brains/site-explicit",
+      withSiteRuntime(
+        {
+          layouts: { default: () => null },
+          routes: [{ id: "home", path: "/", sections: [] }],
+          entityDisplay: { post: { label: "Post" } },
         },
-      };
-    };
-    registerPackage("@brains/site-explicit", {
-      layouts: { default: () => null },
-      routes: [{ id: "home", path: "/", sections: [] }],
-      plugin: basePlugin,
-      entityDisplay: { post: { label: "Post" } },
-    });
+        {
+          id: "base-site",
+          config: z.object({ source: z.string(), variant: z.string() }),
+          templates: ({ config }) => ({
+            home: createTemplate({
+              name: "home",
+              description: `${config.source}/${config.variant}`,
+              schema: z.object({}),
+              requiredPermission: "public",
+            }),
+          }),
+        },
+      ),
+    );
     writeFileSync(
       join(testDir, "src/site.tsx"),
       `export default {
@@ -133,11 +126,16 @@ describe("registerConventionalSiteTheme", () => {
       entityDisplay: { post: { label: "Essay" } },
     });
     expect(composedSite.layouts["default"]).toBeFunction();
-    composedSite.plugin?.({ variant: "editorial" });
-    expect(receivedPluginConfig).toEqual({
-      source: "local",
-      variant: "editorial",
+    // The local site's pluginConfig reaches the base's runtime, under
+    // brain.yaml's site settings.
+    const harness = createPluginHarness();
+    installSiteRuntime(harness, composedSite, {
+      packageName: CONVENTIONAL_SITE_PACKAGE_REF,
+      settings: { variant: "editorial" },
     });
+    expect(harness.getTemplates().get("base-site:home")?.description).toBe(
+      "local/editorial",
+    );
   });
 
   test("registers ./src/theme.css as a local theme override layer", async () => {

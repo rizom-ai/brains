@@ -1,12 +1,12 @@
 import {
   matchSpaceSelector,
   conversationMessageMetadataSchema,
+  type ClassRuntimeStateStore,
   type ConversationMessageAddedPayload,
-  type IConversationsNamespace,
-  type IRuntimeStateStore,
-  type JobOptions,
+  type EnqueueJobRequest,
   type JobProgressEvent,
-} from "@brains/plugins";
+  type ServiceConversations,
+} from "@brains/sdk/internal/service-runtime";
 import { z } from "@brains/utils/zod";
 import { SUMMARY_PLUGIN_ID } from "../constants";
 import type { ChannelBookmark } from "./pickup";
@@ -30,7 +30,7 @@ export type ChannelPickupJobData = z.output<typeof channelPickupJobDataSchema>;
 export function channelPickupJob(conversationId: string): {
   type: typeof CHANNEL_ACTION_ITEMS_JOB_TYPE;
   data: ChannelPickupJobData;
-  options: JobOptions;
+  options: NonNullable<EnqueueJobRequest["options"]>;
 } {
   const key = `${KEY_PREFIX}${conversationId}`;
   return {
@@ -71,12 +71,12 @@ export function finishedPickupOf(event: JobProgressEvent): string | undefined {
 
 export interface ChannelTriggerDeps {
   conversations: Pick<
-    IConversationsNamespace,
+    ServiceConversations,
     "list" | "countMessages" | "getMessages"
   >;
   /** The brain's configured spaces, e.g. "discord:<channel id>". */
   spaces: readonly string[];
-  bookmarks: IRuntimeStateStore<ChannelBookmark>;
+  bookmarks: ClassRuntimeStateStore<ChannelBookmark>;
   enqueue: (conversationId: string) => Promise<void>;
 }
 

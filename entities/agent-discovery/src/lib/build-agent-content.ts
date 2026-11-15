@@ -1,10 +1,8 @@
+import { createAgentContent } from "./agent-content";
 import { slugifyUrl } from "@brains/utils/string-utils";
-import { AgentAdapter } from "../adapters/agent-adapter";
 import type { AgentStatus } from "../schemas/agent";
-import type { ParsedAgentCard } from "@brains/plugins";
 import { normalizeTags } from "./tag-vocabulary";
-
-const agentAdapter = new AgentAdapter();
+import { type ParsedAgentCard } from "@brains/sdk/internal/service-runtime";
 
 export function buildAgentFromCard(
   card: ParsedAgentCard,
@@ -35,7 +33,7 @@ export function buildAgentFromCard(
 
   const discoveredAt = new Date().toISOString();
 
-  const content = agentAdapter.createAgentContent({
+  const content = createAgentContent({
     name: anchorName,
     kind,
     ...(card.anchor?.organization && {

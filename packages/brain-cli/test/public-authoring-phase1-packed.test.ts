@@ -60,7 +60,7 @@ describe("public authoring Phase 1 packed canary", () => {
         {
           env: {
             ...process.env,
-            AI_API_KEY: "packed-startup-check",
+            OPENAI_API_KEY: "packed-startup-check",
           },
           timeoutMs: 90_000,
         },
@@ -76,7 +76,7 @@ describe("public authoring Phase 1 packed canary", () => {
         {
           env: {
             ...process.env,
-            AI_API_KEY: "packed-startup-check",
+            OPENAI_API_KEY: "packed-startup-check",
           },
           timeoutMs: 90_000,
         },

@@ -1,0 +1,154 @@
+{
+  "source": "main f61f73989e, the agent-discovery and skill entity plugin classes on the entity store",
+  "agentCurrent": {
+    "id": "mara-veld.example",
+    "file": "---\nname: Mara Veld\nkind: person\nbrainName: Mara Veld\nurl: \"https://mara-veld.example/a2a\"\nstatus: approved\ndiscoveredAt: \"2026-03-16T10:00:00.000Z\"\n---\n\n# Agent\n\n## About\n\nMara Veld synthesizes interview research into shared findings the team can build on.\n\n## Skills\n\n- research_synthesis: Synthesize interview research into findings [research, synthesis]\n- literature_review: Review and summarize published research [research, reading]\n\n## Notes\n\nApproved partner for the organization homepage atlas.\n",
+    "stored": {
+      "content": "---\nname: Mara Veld\nkind: person\nbrainName: Mara Veld\nurl: 'https://mara-veld.example/a2a'\nstatus: approved\ndiscoveredAt: '2026-03-16T10:00:00.000Z'\n---\n# Agent\n\n## About\n\nMara Veld synthesizes interview research into shared findings the team can build on.\n\n## Skills\n\n- research_synthesis: Synthesize interview research into findings [research, synthesis]\n- literature_review: Review and summarize published research [research, reading]\n\n## Notes\n\nApproved partner for the organization homepage atlas.\n",
+      "metadata": "{\"name\":\"Mara Veld\",\"url\":\"https://mara-veld.example/a2a\",\"status\":\"approved\",\"discoveredAt\":\"2026-03-16T10:00:00.000Z\",\"slug\":\"mara-veld-example\"}",
+      "visibility": "public"
+    },
+    "read": {
+      "content": "---\nname: Mara Veld\nkind: person\nbrainName: Mara Veld\nurl: 'https://mara-veld.example/a2a'\nstatus: approved\ndiscoveredAt: '2026-03-16T10:00:00.000Z'\n---\n# Agent\n\n## About\n\nMara Veld synthesizes interview research into shared findings the team can build on.\n\n## Skills\n\n- research_synthesis: Synthesize interview research into findings [research, synthesis]\n- literature_review: Review and summarize published research [research, reading]\n\n## Notes\n\nApproved partner for the organization homepage atlas.\n",
+      "metadata": {
+        "name": "Mara Veld",
+        "url": "https://mara-veld.example/a2a",
+        "status": "approved",
+        "discoveredAt": "2026-03-16T10:00:00.000Z",
+        "slug": "mara-veld-example"
+      },
+      "visibility": "public"
+    },
+    "exported": "---\nname: Mara Veld\nkind: person\nbrainName: Mara Veld\nurl: 'https://mara-veld.example/a2a'\nstatus: approved\ndiscoveredAt: '2026-03-16T10:00:00.000Z'\n---\n# Agent\n\n## About\n\nMara Veld synthesizes interview research into shared findings the team can build on.\n\n## Skills\n\n- research_synthesis: Synthesize interview research into findings [research, synthesis]\n- literature_review: Review and summarize published research [research, reading]\n\n## Notes\n\nApproved partner for the organization homepage atlas.\n"
+  },
+  "agentOldBody": {
+    "id": "old-agent.example",
+    "file": "---\nname: Old Agent\nkind: team\norganization: Team Brain POC Team\nbrainName: Old Agent\nurl: \"https://old-agent.example/a2a\"\nstatus: discovered\ndiscoveredAt: \"2026-03-14T10:00:00.000Z\"\n---\n\n# Agent\n\nA discovered peer candidate awaiting operator approval for Team Brain coordination.\n",
+    "stored": {
+      "content": "---\nname: Old Agent\nkind: team\norganization: Team Brain POC Team\nbrainName: Old Agent\nurl: 'https://old-agent.example/a2a'\nstatus: discovered\ndiscoveredAt: '2026-03-14T10:00:00.000Z'\n---\n# Agent\n\nA discovered peer candidate awaiting operator approval for Team Brain coordination.\n",
+      "metadata": "{\"name\":\"Old Agent\",\"url\":\"https://old-agent.example/a2a\",\"status\":\"discovered\",\"discoveredAt\":\"2026-03-14T10:00:00.000Z\",\"slug\":\"old-agent-example\"}",
+      "visibility": "public"
+    },
+    "read": {
+      "content": "---\nname: Old Agent\nkind: team\norganization: Team Brain POC Team\nbrainName: Old Agent\nurl: 'https://old-agent.example/a2a'\nstatus: discovered\ndiscoveredAt: '2026-03-14T10:00:00.000Z'\n---\n# Agent\n\nA discovered peer candidate awaiting operator approval for Team Brain coordination.\n",
+      "metadata": {
+        "name": "Old Agent",
+        "url": "https://old-agent.example/a2a",
+        "status": "discovered",
+        "discoveredAt": "2026-03-14T10:00:00.000Z",
+        "slug": "old-agent-example"
+      },
+      "visibility": "public"
+    },
+    "exported": "---\nname: Old Agent\nkind: team\norganization: Team Brain POC Team\nbrainName: Old Agent\nurl: 'https://old-agent.example/a2a'\nstatus: discovered\ndiscoveredAt: '2026-03-14T10:00:00.000Z'\n---\n# Agent\n\nA discovered peer candidate awaiting operator approval for Team Brain coordination.\n"
+  },
+  "agentLegacy": {
+    "id": "legacy-peer.example",
+    "file": "---\nname: Legacy Peer\nkind: person\nbrainName: Legacy Peer\nurl: \"https://legacy-peer.example/a2a\"\na2aEndpoint: \"https://legacy-peer.example/a2a\"\ndid: did:web:legacy-peer.example\nanchorDid: did:web:legacy-peer.example\ncardObservedAt: \"2026-01-01T00:00:00.000Z\"\ncardLastCheckedAt: \"2026-01-02T00:00:00.000Z\"\nstatus: discovered\ndiscoveredAt: \"2026-01-01T00:00:00.000Z\"\nhops: 2\nintroducedBy:\n  - mara-veld.example\n---\n\n# Agent\n\n## About\n\nA legacy peer.\n\n## Skills\n\n- archiving: Archive things [archive]\n\n## Notes\n\n",
+    "stored": {
+      "content": "---\nname: Legacy Peer\nkind: person\nbrainName: Legacy Peer\nurl: 'https://legacy-peer.example/a2a'\nstatus: discovered\ndiscoveredAt: '2026-01-01T00:00:00.000Z'\nhops: 2\nintroducedBy:\n  - mara-veld.example\n---\n# Agent\n\n## About\n\nA legacy peer.\n\n## Skills\n\n- archiving: Archive things [archive]\n\n## Notes\n",
+      "metadata": "{\"name\":\"Legacy Peer\",\"url\":\"https://legacy-peer.example/a2a\",\"status\":\"discovered\",\"discoveredAt\":\"2026-01-01T00:00:00.000Z\",\"slug\":\"legacy-peer-example\"}",
+      "visibility": "public"
+    },
+    "read": {
+      "content": "---\nname: Legacy Peer\nkind: person\nbrainName: Legacy Peer\nurl: 'https://legacy-peer.example/a2a'\nstatus: discovered\ndiscoveredAt: '2026-01-01T00:00:00.000Z'\nhops: 2\nintroducedBy:\n  - mara-veld.example\n---\n# Agent\n\n## About\n\nA legacy peer.\n\n## Skills\n\n- archiving: Archive things [archive]\n\n## Notes\n",
+      "metadata": {
+        "name": "Legacy Peer",
+        "url": "https://legacy-peer.example/a2a",
+        "status": "discovered",
+        "discoveredAt": "2026-01-01T00:00:00.000Z",
+        "slug": "legacy-peer-example"
+      },
+      "visibility": "public"
+    },
+    "exported": "---\nname: Legacy Peer\nkind: person\nbrainName: Legacy Peer\nurl: 'https://legacy-peer.example/a2a'\nstatus: discovered\ndiscoveredAt: '2026-01-01T00:00:00.000Z'\nhops: 2\nintroducedBy:\n  - mara-veld.example\n---\n# Agent\n\n## About\n\nA legacy peer.\n\n## Skills\n\n- archiving: Archive things [archive]\n\n## Notes\n"
+  },
+  "agentCreated": {
+    "id": "card-peer.example",
+    "written": "---\nname: Card Peer\nkind: team\norganization: Card Org\nbrainName: Card Brain\nurl: 'https://card-peer.example/a2a'\nrepoDid: 'did:plc:cardpeer'\ncardUri: 'at://did:plc:cardpeer/ai.rizom.brain.card/self'\ncardCid: bafycard\nstatus: discovered\ndiscoveredAt: '2026-04-01T00:00:00.000Z'\nintroducedBy:\n  - mara-veld.example\nhops: 2\n---\n# Agent\n\n## About\nA peer found by its card.\n\n## Skills\n\n- Mapping: Map things [maps]\n\n## Notes\n\n",
+    "stored": {
+      "content": "---\nname: Card Peer\nkind: team\norganization: Card Org\nbrainName: Card Brain\nurl: 'https://card-peer.example/a2a'\nrepoDid: 'did:plc:cardpeer'\ncardUri: 'at://did:plc:cardpeer/ai.rizom.brain.card/self'\ncardCid: bafycard\nstatus: discovered\ndiscoveredAt: '2026-04-01T00:00:00.000Z'\nintroducedBy:\n  - mara-veld.example\nhops: 2\n---\n# Agent\n\n## About\nA peer found by its card.\n\n## Skills\n\n- Mapping: Map things [maps]\n\n## Notes\n",
+      "metadata": "{\"name\":\"Card Peer\",\"url\":\"https://card-peer.example/a2a\",\"status\":\"discovered\",\"discoveredAt\":\"2026-04-01T00:00:00.000Z\",\"slug\":\"card-peer-example\",\"repoDid\":\"did:plc:cardpeer\",\"cardUri\":\"at://did:plc:cardpeer/ai.rizom.brain.card/self\",\"cardCid\":\"bafycard\"}",
+      "visibility": "public"
+    },
+    "read": {
+      "content": "---\nname: Card Peer\nkind: team\norganization: Card Org\nbrainName: Card Brain\nurl: 'https://card-peer.example/a2a'\nrepoDid: 'did:plc:cardpeer'\ncardUri: 'at://did:plc:cardpeer/ai.rizom.brain.card/self'\ncardCid: bafycard\nstatus: discovered\ndiscoveredAt: '2026-04-01T00:00:00.000Z'\nintroducedBy:\n  - mara-veld.example\nhops: 2\n---\n# Agent\n\n## About\nA peer found by its card.\n\n## Skills\n\n- Mapping: Map things [maps]\n\n## Notes\n",
+      "metadata": {
+        "name": "Card Peer",
+        "url": "https://card-peer.example/a2a",
+        "status": "discovered",
+        "discoveredAt": "2026-04-01T00:00:00.000Z",
+        "slug": "card-peer-example",
+        "repoDid": "did:plc:cardpeer",
+        "cardUri": "at://did:plc:cardpeer/ai.rizom.brain.card/self",
+        "cardCid": "bafycard"
+      },
+      "visibility": "public"
+    },
+    "exported": "---\nname: Card Peer\nkind: team\norganization: Card Org\nbrainName: Card Brain\nurl: 'https://card-peer.example/a2a'\nrepoDid: 'did:plc:cardpeer'\ncardUri: 'at://did:plc:cardpeer/ai.rizom.brain.card/self'\ncardCid: bafycard\nstatus: discovered\ndiscoveredAt: '2026-04-01T00:00:00.000Z'\nintroducedBy:\n  - mara-veld.example\nhops: 2\n---\n# Agent\n\n## About\nA peer found by its card.\n\n## Skills\n\n- Mapping: Map things [maps]\n\n## Notes\n"
+  },
+  "agentApproved": {
+    "id": "card-peer.example",
+    "written": "---\nname: Card Peer\nkind: team\norganization: Card Org\nbrainName: Card Brain\nurl: 'https://card-peer.example/a2a'\nrepoDid: 'did:plc:cardpeer'\ncardUri: 'at://did:plc:cardpeer/ai.rizom.brain.card/self'\ncardCid: bafycard\nstatus: approved\ndiscoveredAt: '2026-04-01T00:00:00.000Z'\nintroducedBy:\n  - mara-veld.example\nhops: 2\n---\n# Agent\n\n## About\nA peer found by its card.\n\n## Skills\n\n- Mapping: Map things [maps]\n\n## Notes\nApproved.\n",
+    "stored": {
+      "content": "---\nname: Card Peer\nkind: team\norganization: Card Org\nbrainName: Card Brain\nurl: 'https://card-peer.example/a2a'\nrepoDid: 'did:plc:cardpeer'\ncardUri: 'at://did:plc:cardpeer/ai.rizom.brain.card/self'\ncardCid: bafycard\nstatus: approved\ndiscoveredAt: '2026-04-01T00:00:00.000Z'\nintroducedBy:\n  - mara-veld.example\nhops: 2\n---\n# Agent\n\n## About\nA peer found by its card.\n\n## Skills\n\n- Mapping: Map things [maps]\n\n## Notes\nApproved.\n",
+      "metadata": "{\"name\":\"Card Peer\",\"url\":\"https://card-peer.example/a2a\",\"status\":\"approved\",\"discoveredAt\":\"2026-04-01T00:00:00.000Z\",\"slug\":\"card-peer-example\",\"repoDid\":\"did:plc:cardpeer\",\"cardUri\":\"at://did:plc:cardpeer/ai.rizom.brain.card/self\",\"cardCid\":\"bafycard\"}",
+      "visibility": "public"
+    },
+    "read": {
+      "content": "---\nname: Card Peer\nkind: team\norganization: Card Org\nbrainName: Card Brain\nurl: 'https://card-peer.example/a2a'\nrepoDid: 'did:plc:cardpeer'\ncardUri: 'at://did:plc:cardpeer/ai.rizom.brain.card/self'\ncardCid: bafycard\nstatus: approved\ndiscoveredAt: '2026-04-01T00:00:00.000Z'\nintroducedBy:\n  - mara-veld.example\nhops: 2\n---\n# Agent\n\n## About\nA peer found by its card.\n\n## Skills\n\n- Mapping: Map things [maps]\n\n## Notes\nApproved.\n",
+      "metadata": {
+        "name": "Card Peer",
+        "url": "https://card-peer.example/a2a",
+        "status": "approved",
+        "discoveredAt": "2026-04-01T00:00:00.000Z",
+        "slug": "card-peer-example",
+        "repoDid": "did:plc:cardpeer",
+        "cardUri": "at://did:plc:cardpeer/ai.rizom.brain.card/self",
+        "cardCid": "bafycard"
+      },
+      "visibility": "public"
+    },
+    "exported": "---\nname: Card Peer\nkind: team\norganization: Card Org\nbrainName: Card Brain\nurl: 'https://card-peer.example/a2a'\nrepoDid: 'did:plc:cardpeer'\ncardUri: 'at://did:plc:cardpeer/ai.rizom.brain.card/self'\ncardCid: bafycard\nstatus: approved\ndiscoveredAt: '2026-04-01T00:00:00.000Z'\nintroducedBy:\n  - mara-veld.example\nhops: 2\n---\n# Agent\n\n## About\nA peer found by its card.\n\n## Skills\n\n- Mapping: Map things [maps]\n\n## Notes\nApproved.\n"
+  },
+  "skillImported": {
+    "id": "build-knowledge-sharing-networks",
+    "file": "---\nname: Build Knowledge-Sharing Networks\ndescription: >-\n  Create networks that connect distributed expertise, personal knowledge agents,\n  and collective intelligence so people can find and share what they know.\ntags:\n  - knowledge-base\n  - agents\n  - organization\n  - context\nexamples: []\n---\n",
+    "stored": {
+      "content": "---\nname: Build Knowledge-Sharing Networks\ndescription: >-\n  Create networks that connect distributed expertise, personal knowledge agents,\n  and collective intelligence so people can find and share what they know.\ntags:\n  - knowledge-base\n  - agents\n  - organization\n  - context\nexamples: []\n---\n\n",
+      "metadata": "{\"name\":\"Build Knowledge-Sharing Networks\",\"description\":\"Create networks that connect distributed expertise, personal knowledge agents, and collective intelligence so people can find and share what they know.\",\"tags\":[\"knowledge-base\",\"agents\",\"organization\",\"context\"],\"examples\":[]}",
+      "visibility": "public"
+    },
+    "read": {
+      "content": "---\nname: Build Knowledge-Sharing Networks\ndescription: >-\n  Create networks that connect distributed expertise, personal knowledge agents,\n  and collective intelligence so people can find and share what they know.\ntags:\n  - knowledge-base\n  - agents\n  - organization\n  - context\nexamples: []\n---\n\n",
+      "metadata": {
+        "name": "Build Knowledge-Sharing Networks",
+        "description": "Create networks that connect distributed expertise, personal knowledge agents, and collective intelligence so people can find and share what they know.",
+        "tags": ["knowledge-base", "agents", "organization", "context"],
+        "examples": []
+      },
+      "visibility": "public"
+    },
+    "exported": "---\nname: Build Knowledge-Sharing Networks\ndescription: >-\n  Create networks that connect distributed expertise, personal knowledge agents,\n  and collective intelligence so people can find and share what they know.\ntags:\n  - knowledge-base\n  - agents\n  - organization\n  - context\nexamples: []\n---\n\n"
+  },
+  "skillCreated": {
+    "id": "map-things",
+    "written": "---\nname: Map Things\ndescription: Draw maps of things.\ntags:\n  - maps\nexamples:\n  - Map the team\n---\n\n",
+    "stored": {
+      "content": "---\nname: Map Things\ndescription: Draw maps of things.\ntags:\n  - maps\nexamples:\n  - Map the team\n---\n\n",
+      "metadata": "{\"name\":\"Map Things\",\"description\":\"Draw maps of things.\",\"tags\":[\"maps\"],\"examples\":[\"Map the team\"]}",
+      "visibility": "public"
+    },
+    "read": {
+      "content": "---\nname: Map Things\ndescription: Draw maps of things.\ntags:\n  - maps\nexamples:\n  - Map the team\n---\n\n",
+      "metadata": {
+        "name": "Map Things",
+        "description": "Draw maps of things.",
+        "tags": ["maps"],
+        "examples": ["Map the team"]
+      },
+      "visibility": "public"
+    },
+    "exported": "---\nname: Map Things\ndescription: Draw maps of things.\ntags:\n  - maps\nexamples:\n  - Map the team\n---\n\n"
+  }
+}

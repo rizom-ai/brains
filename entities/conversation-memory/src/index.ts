@@ -1,14 +1,17 @@
-export {
-  ConversationMemoryPlugin,
-  conversationMemoryPlugin,
-} from "./conversation-memory-plugin";
-export { SummaryAdapter } from "./adapters/summary-adapter";
-export { DecisionAdapter } from "./adapters/conversation-memory-adapters";
+/**
+ * Conversation memory: the summary, decision and action-item types, the
+ * service that reads them into the agent's context, shows them on the
+ * Dashboard, renders summaries and picks action items up from chat spaces.
+ */
+export { conversationMemoryPackage, default } from "./plugin";
+export { summary } from "./summary-entity";
+export { actionItem, decision } from "./memory-entities";
 export {
   buildConversationMemoryAgentContext,
   registerConversationMemoryAgentContext,
 } from "./lib/agent-context-provider";
 export { ConversationMemoryRetriever } from "./lib/conversation-memory-retriever";
+export { composeSummaryBody, parseSummaryBody } from "./lib/summary-body";
 
 export type {
   SummaryEntity,

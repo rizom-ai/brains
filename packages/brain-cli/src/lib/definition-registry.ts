@@ -6,7 +6,9 @@ import {
 } from "@brains/app";
 import type { BrainDefinition as DeclarativeBrainDefinition } from "@brains/sdk";
 
-type LoadableBrainDefinition = BrainDefinition | DeclarativeBrainDefinition;
+/** A definition `brain.yaml` can name: the bundled one or a scoped package's. */
+export type LoadableBrainDefinition =
+  BrainDefinition | DeclarativeBrainDefinition;
 
 /** A declarative brain with an interface has its routes served over HTTP. */
 function withRuntimeOwnedInterfaceHost(

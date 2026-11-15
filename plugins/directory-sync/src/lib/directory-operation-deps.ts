@@ -1,4 +1,4 @@
-import type { EntityServiceClient } from "@brains/plugins";
+import type { ServiceEntityMirrorClient } from "@brains/sdk/internal/service-runtime";
 import type { Logger } from "@brains/utils/logger";
 import type { CleanupPipelineDeps } from "./cleanup-pipeline";
 import type { ExportPipelineDeps } from "./export-pipeline";
@@ -12,7 +12,7 @@ import type { JobRequest } from "../types";
 import type { PendingDeleteRegistry } from "./pending-delete-registry";
 
 export interface DirectoryOperationDepsOptions {
-  entityService: EntityServiceClient;
+  entityService: ServiceEntityMirrorClient;
   logger: Logger;
   syncPath: string;
   fileOperations: FileOperations;
@@ -66,12 +66,17 @@ export class DirectoryOperationDeps {
       fileOperations: this.options.fileOperations,
       deleteOnFileRemoval,
       entityTypes,
+      // The pulled deletion names whichever of its files was removed.
       onEntityDeleted: (entity): void => {
-        this.options.pendingDeletes.complete(
-          entity.entityType,
-          entity.id,
-          this.options.fileOperations.getEntityFilePath(entity),
-        );
+        this.options.fileOperations
+          .getEntityFileCandidates(entity)
+          .forEach((filePath) =>
+            this.options.pendingDeletes.complete(
+              entity.entityType,
+              entity.id,
+              filePath,
+            ),
+          );
       },
     };
   }

@@ -5,7 +5,11 @@ import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { SYSTEM_CHANNELS } from "@brains/plugins";
-import { SiteBuilderPlugin } from "../src/plugin";
+import { siteBuildRequestContract } from "@brains/contracts";
+import {
+  createSiteBuilderPlugin,
+  type SiteBuilderTestPlugin,
+} from "./site-builder-plugin";
 
 // A start, an upgrade included, may bring new renderer code that the input
 // fingerprint cannot see; the renderer identity is fresh per process so a
@@ -16,11 +20,11 @@ import { SiteBuilderPlugin } from "../src/plugin";
 // and an environment never built stays untouched.
 describe("the site builder at start", () => {
   let dir: string;
-  let harness: ReturnType<typeof createPluginHarness<SiteBuilderPlugin>>;
+  let harness: ReturnType<typeof createPluginHarness<SiteBuilderTestPlugin>>;
 
   beforeEach(async () => {
     dir = await mkdtemp(join(tmpdir(), "site-builder-start-"));
-    harness = createPluginHarness<SiteBuilderPlugin>({
+    harness = createPluginHarness<SiteBuilderTestPlugin>({
       dataDir: join(dir, "data"),
     });
   });
@@ -40,7 +44,7 @@ describe("the site builder at start", () => {
     expected: number,
     options: { settle: boolean } = { settle: true },
   ): Promise<string[]> => {
-    const plugin = new SiteBuilderPlugin({
+    const plugin = createSiteBuilderPlugin({
       productionOutputDir: join(dir, "site-production"),
       previewOutputDir: join(dir, "site-preview"),
       autoRebuild: false,
@@ -106,5 +110,27 @@ describe("the site builder at start", () => {
       await writeFile(join(dir, env, "index.html"), "<html></html>");
     }
     expect(await start(2)).toEqual(["preview", "production"]);
+  });
+
+  // A page can render from runtime state that is not an entity, such as
+  // whether the homepage offers the guest Ask box. Builds follow entity
+  // changes, so when that state changes its owner asks for a build instead.
+  it("builds every environment that has an output again when asked", async () => {
+    for (const env of ["site-production", "site-preview"]) {
+      await mkdir(join(dir, env), { recursive: true });
+      await writeFile(join(dir, env, "index.html"), "<html></html>");
+    }
+    expect(await start(0, { settle: false })).toEqual([]);
+    await harness.sendMessage(siteBuildRequestContract.name, {
+      reason: "guest chat switched on",
+    });
+    const queue = harness.getMockShell().getJobQueueService();
+    await waitUntil(
+      async () =>
+        (await queue.getActiveJobs()).filter((job) =>
+          job.type.endsWith(":site-build"),
+        ).length === 2,
+      "the request to build both environments",
+    );
   });
 });

@@ -78,7 +78,7 @@ export const docsHomeContent: DocsHomeContent = {
             "brain start",
           ],
           steps: [],
-          note: "Set `AI_API_KEY` in `.env` first. The brain prints a setup link for your passkey.",
+          note: "Set `OPENAI_API_KEY` in `.env` first. The brain prints a setup link for your passkey.",
         },
       },
       {

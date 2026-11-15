@@ -49,8 +49,7 @@ turns:
       expectedTools:
         - toolName: system_create
           resultContains:
-            success: true
-            data.entityId: revoking-a-lost-key
+            entityId: revoking-a-lost-key
       responseNotContains:
         - "failed"
   - userMessage: Read doc 'revoking-a-lost-key' from storage with part body. Do not change anything.

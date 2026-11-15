@@ -1,27 +1,24 @@
 import { describe, expect, it } from "bun:test";
 import { createMemoryRuntimeStateNamespace } from "@brains/plugins/test";
-import type { IRuntimeStateNamespace } from "@brains/plugins";
 import {
   ASK_BOX_STATE_KEY,
-  ASK_BOX_STATE_NAMESPACE,
-  askBoxAvailabilitySchema,
+  askBoxAvailabilityState,
+  sharedStateNamespace,
   type AskBoxAvailability,
 } from "@brains/contracts";
-import { homepageChatAvailable } from "../src/datasources/homepage-chat";
+import {
+  homepageChatAvailable,
+  type AskBoxReader,
+} from "../src/datasources/homepage-chat";
 
-/** Shared runtime state as Web Chat left it in the serving process. */
-async function runtime(
-  record?: AskBoxAvailability,
-): Promise<{ runtimeState: IRuntimeStateNamespace }> {
-  const runtimeState = createMemoryRuntimeStateNamespace();
-  if (record)
-    await runtimeState
-      .scoped({
-        namespace: ASK_BOX_STATE_NAMESPACE,
-        schema: askBoxAvailabilitySchema,
-      })
-      .set(ASK_BOX_STATE_KEY, record);
-  return { runtimeState };
+/** The record Web Chat shares, as it left it in the serving process. */
+async function runtime(record?: AskBoxAvailability): Promise<AskBoxReader> {
+  const store = createMemoryRuntimeStateNamespace().scoped({
+    namespace: sharedStateNamespace(askBoxAvailabilityState.name),
+    schema: askBoxAvailabilityState.schema,
+  });
+  if (record) await store.set(ASK_BOX_STATE_KEY, record);
+  return store;
 }
 
 describe("homepage chat availability", () => {

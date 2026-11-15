@@ -51,11 +51,13 @@ a record's content.
 
 ## The service
 
-A target's plugin is a `FormPlugin`: its id, package, label, target and
-built-in forms (`BuiltInForm`: the definition and optionally its own engine
-wording, a prefill from the link, legacy state names, an endpoint and a route
-role), configured by `formPluginConfigSchema` (the owner's `intake` overrides
-of the engine's policy). It runs one `FormService`. The service registers the
+A target package is `defineFormPackage(...)`: a declarative service with its
+id, label, declared target type, target and built-in forms (`BuiltInForm`: the
+definition and optionally its own engine wording, a prefill from the link,
+legacy state names, an endpoint and a route role), configured by
+`formPluginConfigSchema` (the owner's `intake` overrides of the engine's
+policy). It runs one `FormService` on its service runtime, and is composed
+after `formPackageDependencies(type)`. The service registers the
 target's Inbox source when it declares one, serves the built-in forms at their paths and every form content defines for its
 target; a content form with a built-in form's id rewords that form and keeps its
 path. Content forms are claimed per request through claim routes, so a form

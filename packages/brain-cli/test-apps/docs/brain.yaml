@@ -20,7 +20,7 @@ plugins:
     initialSync: true
     git:
       repo: rizom-ai/canonical-docs-test-content
-      gitUrl: file:///tmp/canonical-docs-test-content.git
+      gitUrl: file:///tmp/canonical-docs-offline-test-content.git
 site:
   package: "@brains/site-default"
   theme: "@brains/theme-rizom"

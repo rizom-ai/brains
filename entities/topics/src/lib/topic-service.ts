@@ -1,14 +1,14 @@
-import type {
-  ContentVisibility,
-  IEntityService,
-  SearchResult,
-} from "@brains/plugins";
-import { scopedDerivedId } from "@brains/plugins";
+import {
+  scopedDerivedId,
+  type ContentVisibility,
+  type SearchResult,
+} from "@brains/sdk/internal/service-runtime";
+import type { TopicsEntityService } from "./topics-context";
 import type { Logger } from "@brains/utils/logger";
 import type { TopicEntity } from "../types";
 import type { ExtractedTopicData } from "../schemas/extraction";
 import { topicEntitySchema, type TopicMetadata } from "../schemas/topic";
-import { TopicAdapter } from "./topic-adapter";
+import { topicDocument } from "./topic-document";
 import { generateIdFromText } from "@brains/utils/string-utils";
 import { computeContentHash } from "@brains/utils/hash";
 import { TOPIC_ENTITY_TYPE } from "./constants";
@@ -20,14 +20,14 @@ export interface TopicMergeCandidate {
 }
 
 export class TopicService {
-  private readonly entityService: IEntityService;
+  private readonly entityService: TopicsEntityService;
   private readonly logger: Logger;
-  private adapter: TopicAdapter;
+  private adapter: typeof topicDocument;
 
-  constructor(entityService: IEntityService, logger: Logger) {
+  constructor(entityService: TopicsEntityService, logger: Logger) {
     this.entityService = entityService;
     this.logger = logger;
-    this.adapter = new TopicAdapter();
+    this.adapter = topicDocument;
   }
 
   public async createTopic(params: {
@@ -190,14 +190,12 @@ export class TopicService {
     id: string,
     visibility: ContentVisibility = "public",
   ): Promise<TopicEntity | null> {
-    const topic = await this.entityService.getEntity(
-      {
-        entityType: TOPIC_ENTITY_TYPE,
-        id,
-        visibilityScope: visibility,
-      },
-      topicEntitySchema,
-    );
+    const read = await this.entityService.getEntity({
+      entityType: TOPIC_ENTITY_TYPE,
+      id,
+      visibilityScope: visibility,
+    });
+    const topic = read ? topicEntitySchema.parse(read) : null;
     return topic?.visibility === visibility ? topic : null;
   }
 
@@ -213,13 +211,12 @@ export class TopicService {
         ? { filter: { visibilityScope: params.visibility } }
         : {}),
     };
-    const topics = await this.entityService.listEntities(
-      {
+    const topics = (
+      await this.entityService.listEntities({
         entityType: TOPIC_ENTITY_TYPE,
         ...(params !== undefined ? { options: listOptions } : {}),
-      },
-      topicEntitySchema,
-    );
+      })
+    ).map((topic) => topicEntitySchema.parse(topic));
 
     return params?.visibility === undefined
       ? topics
@@ -231,17 +228,18 @@ export class TopicService {
     limit = 10,
     visibilityScope?: ContentVisibility,
   ): Promise<SearchResult<TopicEntity>[]> {
-    return this.entityService.search(
-      {
-        query,
-        options: {
-          types: [TOPIC_ENTITY_TYPE],
-          limit,
-          ...(visibilityScope !== undefined ? { visibilityScope } : {}),
-        },
+    const results = await this.entityService.search({
+      query,
+      options: {
+        types: [TOPIC_ENTITY_TYPE],
+        limit,
+        ...(visibilityScope !== undefined ? { visibilityScope } : {}),
       },
-      topicEntitySchema,
-    );
+    });
+    return results.map((result) => ({
+      ...result,
+      entity: topicEntitySchema.parse(result.entity),
+    }));
   }
 
   /**

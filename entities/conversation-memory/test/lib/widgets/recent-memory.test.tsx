@@ -1,11 +1,9 @@
 import { createMockEntityPluginContext } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
-import { SummaryAdapter } from "../../../src/adapters/summary-adapter";
+import { composeSummaryBody } from "../../../src/lib/summary-body";
 import { createMockSummaryEntity } from "../../fixtures/summary-entities";
 import { buildRecentConversationMemoryData } from "../../../src/lib/widgets/recent-memory";
 import type { SummaryEntity, SummaryEntry } from "../../../src/schemas/summary";
-
-const adapter = new SummaryAdapter();
 
 function buildSummary(params: {
   id: string;
@@ -13,7 +11,7 @@ function buildSummary(params: {
   channelName?: string;
   entries: SummaryEntry[];
 }): SummaryEntity {
-  const content = adapter.createContentBody(params.entries);
+  const content = composeSummaryBody(params.entries);
   return createMockSummaryEntity({
     id: params.id,
     content,
@@ -103,5 +101,28 @@ describe("buildRecentConversationMemoryData", () => {
     expect(ops?.title).toBe("Ops planning");
     expect(ops?.keyPoint).toBe("deploy plan");
     expect(ops?.messageCount).toBe(9);
+  });
+
+  it("keeps the listed order for entries that end at the same moment", async () => {
+    const same = "2026-05-09T00:00:00.000Z";
+    const summaries: SummaryEntity[] = [
+      buildSummary({
+        id: "s-zulu",
+        channelId: "zulu",
+        entries: [entry({ title: "Zulu", end: same })],
+      }),
+      buildSummary({
+        id: "s-alpha",
+        channelId: "alpha",
+        entries: [entry({ title: "Alpha", end: same })],
+      }),
+    ];
+    const context = createMockEntityPluginContext({
+      listEntitiesImpl: async () => summaries,
+    });
+
+    const data = await buildRecentConversationMemoryData(context, "restricted");
+
+    expect(data.all.map((row) => row.title)).toEqual(["Zulu", "Alpha"]);
   });
 });

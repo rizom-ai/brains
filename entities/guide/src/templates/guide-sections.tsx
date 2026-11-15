@@ -1,8 +1,8 @@
 import type { JSX } from "react";
-import type { SectionDoc } from "../datasources/guide-sections-datasource";
+import type { SectionDoc } from "../schemas/guide-sections";
 import { DocsPageSection } from "@brains/docs-chrome";
 import { guideHref } from "../lib/guide-order";
-import type { GuideSection } from "../datasources/guide-sections-datasource";
+import type { GuideSection } from "../schemas/guide-sections";
 import type { GuideWithData } from "../schemas/guide";
 import guideSectionsCss from "./guide-sections.css" with { type: "text" };
 

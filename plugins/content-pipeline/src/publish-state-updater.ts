@@ -1,6 +1,7 @@
-import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
 import type { PublishResult } from "@brains/contracts";
 import { updateFrontmatterField } from "@brains/utils/markdown";
+import type { PipelineContext } from "./lib/pipeline-context";
 
 const FRONTMATTER_BLOCK = /^---\r?\n[\s\S]*?\r?\n---(?:\r?\n|$)/;
 
@@ -20,7 +21,7 @@ export interface MarkPublishedOptions {
 export async function markEntityPublished<
   TMetadata extends Record<string, unknown>,
 >(
-  context: Pick<ServicePluginContext, "entityService">,
+  context: Pick<PipelineContext, "entityService">,
   entity: BaseEntity<TMetadata>,
   result: PublishResult,
   options: MarkPublishedOptions = {},

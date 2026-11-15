@@ -1,7 +1,7 @@
 import type {
   WorkspaceActionFormFieldDefinition,
   WorkspaceActionResultDefinition,
-} from "@brains/plugins";
+} from "@brains/sdk/services";
 import { z } from "@brains/utils/zod";
 
 /** An action that reports only how it went. */

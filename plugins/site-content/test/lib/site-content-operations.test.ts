@@ -1,3 +1,4 @@
+import { siteContentDepsOf } from "../site-content-deps";
 import {
   createMockServicePluginContext,
   type MockServicePluginContext,
@@ -94,7 +95,7 @@ describe("SiteContentOperations", () => {
 
   beforeEach(() => {
     context = contextWithRoutes(testRoutes);
-    operations = new SiteContentOperations(context);
+    operations = new SiteContentOperations(siteContentDepsOf(context));
     mockSuccessfulGeneration(context);
   });
 
@@ -289,7 +290,7 @@ describe("SiteContentOperations", () => {
         pluginId: "site-builder",
       },
     ]);
-    operations = new SiteContentOperations(context);
+    operations = new SiteContentOperations(siteContentDepsOf(context));
     mockSuccessfulGeneration(context);
 
     await operations.generate({});
@@ -309,7 +310,7 @@ describe("SiteContentOperations", () => {
 
   test("throws when site-builder route discovery is unavailable", async () => {
     context = createMockServicePluginContext();
-    operations = new SiteContentOperations(context);
+    operations = new SiteContentOperations(siteContentDepsOf(context));
 
     expect(operations.generate({})).rejects.toThrow(
       "Failed to fetch routes from site-builder",

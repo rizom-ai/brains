@@ -21,7 +21,7 @@ const encryptedUserSecretsSchema: z.ZodObject<{
   discordBotToken: z.ZodOptional<z.ZodString>;
   discordPublicKey: z.ZodOptional<z.ZodString>;
   discordApplicationId: z.ZodOptional<z.ZodString>;
-  aiApiKey: z.ZodOptional<z.ZodString>;
+  openaiApiKey: z.ZodOptional<z.ZodString>;
   atprotoAppPassword: z.ZodOptional<z.ZodString>;
   certificatePem: z.ZodOptional<z.ZodString>;
   privateKeyPem: z.ZodOptional<z.ZodString>;
@@ -30,7 +30,7 @@ const encryptedUserSecretsSchema: z.ZodObject<{
   discordBotToken: z.string().min(1).optional(),
   discordPublicKey: z.string().min(1).optional(),
   discordApplicationId: z.string().min(1).optional(),
-  aiApiKey: z.string().min(1).optional(),
+  openaiApiKey: z.string().min(1).optional(),
   atprotoAppPassword: z.string().min(1).optional(),
   certificatePem: z.string().min(1).optional(),
   privateKeyPem: z.string().min(1).optional(),
@@ -74,9 +74,9 @@ export async function encryptPilotSecrets(
   );
   const deletedPlaintext = await fileExists(plaintextPath);
   const secretResolutionOptions = {
-    sharedAiApiKeySelector: registry.pilot.aiApiKey,
+    sharedOpenaiApiKeySelector: registry.pilot.openaiApiKey,
     sharedGitSyncTokenSelector: registry.pilot.gitSyncToken,
-    effectiveAiApiKeySelector: user.effectiveAiApiKey,
+    effectiveOpenaiApiKeySelector: user.effectiveOpenaiApiKey,
     effectiveGitSyncTokenSelector: user.effectiveGitSyncToken,
     discordEnabled: user.discordEnabled,
   };
@@ -164,22 +164,22 @@ function buildEncryptedUserSecrets(
   plaintextSecrets: Partial<EncryptedUserSecrets> | undefined,
   existingSecrets: Partial<EncryptedUserSecrets> | undefined,
   options: {
-    sharedAiApiKeySelector: string;
+    sharedOpenaiApiKeySelector: string;
     sharedGitSyncTokenSelector: string;
-    effectiveAiApiKeySelector: string;
+    effectiveOpenaiApiKeySelector: string;
     effectiveGitSyncTokenSelector: string;
     discordEnabled: boolean;
   },
 ): EncryptedUserSecrets {
-  const aiApiKey = resolveOverrideSecretValue(
+  const openaiApiKey = resolveOverrideSecretValue(
     rootDir,
     env,
     localEnvValues,
     plaintextSecrets,
     existingSecrets,
-    "aiApiKey",
-    options.effectiveAiApiKeySelector,
-    options.sharedAiApiKeySelector,
+    "openaiApiKey",
+    options.effectiveOpenaiApiKeySelector,
+    options.sharedOpenaiApiKeySelector,
   );
   const gitSyncToken = resolveOverrideSecretValue(
     rootDir,
@@ -257,7 +257,7 @@ function buildEncryptedUserSecrets(
   );
 
   return encryptedUserSecretsSchema.parse({
-    ...(aiApiKey ? { aiApiKey } : {}),
+    ...(openaiApiKey ? { openaiApiKey } : {}),
     ...(gitSyncToken ? { gitSyncToken } : {}),
     ...(discordBotToken ? { discordBotToken } : {}),
     ...(discordPublicKey ? { discordPublicKey } : {}),
@@ -439,7 +439,7 @@ async function readExistingEncryptedUserSecrets(
   }
 }
 
-function readAgeIdentity(
+export function readAgeIdentity(
   rootDir: string,
   env: NodeJS.ProcessEnv,
   localEnvValues: Record<string, string>,
@@ -506,15 +506,16 @@ function assertPlaintextRoundTrip(
 }
 
 function listExpectedSecretKeys(options: {
-  sharedAiApiKeySelector: string;
+  sharedOpenaiApiKeySelector: string;
   sharedGitSyncTokenSelector: string;
-  effectiveAiApiKeySelector: string;
+  effectiveOpenaiApiKeySelector: string;
   effectiveGitSyncTokenSelector: string;
   discordEnabled: boolean;
 }): Array<keyof EncryptedUserSecrets> {
   return [
-    ...(options.effectiveAiApiKeySelector !== options.sharedAiApiKeySelector
-      ? ["aiApiKey" as const]
+    ...(options.effectiveOpenaiApiKeySelector !==
+    options.sharedOpenaiApiKeySelector
+      ? ["openaiApiKey" as const]
       : []),
     ...(options.effectiveGitSyncTokenSelector !==
     options.sharedGitSyncTokenSelector

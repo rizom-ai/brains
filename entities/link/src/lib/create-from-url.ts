@@ -8,8 +8,8 @@ import type {
 import {
   entityRuntime,
   type EntityCreateCaller,
+  parseMarkdownWithFrontmatter,
 } from "@brains/sdk/internal/entity-runtime";
-import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { slugify } from "@brains/utils/string-utils";
 import { linkCaptureJobContract, linkSource } from "../jobs/capture";

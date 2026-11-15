@@ -11,6 +11,13 @@ export type { ProjectionRuntimeControls } from "./projection-runtime";
 export type { ProjectionRuleDiagnostic } from "./projection-rule-job-handler";
 
 export {
+  KEY_PROVIDER_IDS,
+  keyEnvVar,
+  providerKeysSchema,
+  readProviderKeys,
+} from "@brains/ai-service";
+export type { KeyProviderId, ProviderKeys } from "@brains/ai-service";
+export {
   createShellConfig,
   createStandardConfig,
   getStandardConfig,

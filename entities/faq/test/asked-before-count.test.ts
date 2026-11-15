@@ -1,7 +1,7 @@
 import { expect, it } from "bun:test";
 import { createTestDirectory, caughtError } from "@brains/test-utils";
 import { answerAskedBefore } from "../src/lib/asked-before";
-import { faqAdapter, faqMetadata } from "../src/adapters/faq-adapter";
+import { faqDocument, faqMetadata } from "../src/lib/faq-body";
 import { faqSchema } from "../src/schemas/faq";
 import { openCaptureStorage } from "./helpers/capture-storage";
 
@@ -29,7 +29,7 @@ it("counts a persisted asked-before reply once across capture replay and SQLite 
         id: "faq",
         entityType: "faq",
         visibility: "public",
-        content: faqAdapter.createFaqContent(fields, "An example service."),
+        content: faqDocument(fields, "An example service."),
         metadata: faqMetadata(fields),
       },
     });
@@ -102,7 +102,7 @@ it("refuses an ambiguous older fast-path count without claiming or replaying it"
         id: "faq",
         entityType: "faq",
         visibility: "public",
-        content: faqAdapter.createFaqContent(fields, "An example service."),
+        content: faqDocument(fields, "An example service."),
         metadata: faqMetadata(fields),
       },
     });

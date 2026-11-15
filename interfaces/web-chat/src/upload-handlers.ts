@@ -6,7 +6,7 @@ import {
   type ResolvedRuntimeUpload,
   type RuntimeUploadRecord,
   type ScopedRuntimeUploadStore,
-} from "@brains/plugins";
+} from "@brains/sdk/internal/interface-runtime";
 import {
   defaultWebChatUploadFilename,
   sanitizeUploadFilename,

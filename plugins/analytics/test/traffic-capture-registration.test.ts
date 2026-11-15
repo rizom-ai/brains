@@ -1,12 +1,8 @@
 import { describe, it, expect, spyOn } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { ServicePluginContext } from "@brains/plugins";
-import {
-  AnalyticsPlugin,
-  analyticsPlugin,
-  type AnalyticsConfigInput,
-} from "../src/index";
-import { TrafficSnapshotPlugin } from "../src/entity/plugin";
+import type { AnalyticsConfigInput } from "../src/index";
+import { createAnalyticsPlugins } from "./analytics-plugins";
 import type { CloudflareFetch } from "../src/lib/cloudflare-client";
 import { addDays } from "../src/lib/iso-week";
 import { trafficSnapshotAdapter } from "../src/entity/adapter";
@@ -39,10 +35,9 @@ async function checksInWorker(
       return (): void => {};
     },
   });
-  await harness.installPlugin(new TrafficSnapshotPlugin());
-  await new AnalyticsPlugin(config, fetch ? { fetch } : {}).register(shell, {
-    executionOnly: true,
-  });
+  for (const plugin of createAnalyticsPlugins(config, fetch ? { fetch } : {})) {
+    await plugin.register(shell, { executionOnly: true });
+  }
   return { checks, harness };
 }
 
@@ -144,13 +139,13 @@ describe("traffic capture registration", () => {
   });
 });
 
-describe("analyticsPlugin", () => {
+describe("the analytics package", () => {
   it("brings the snapshot entity with the service", () => {
-    const plugins = analyticsPlugin({ cloudflare });
+    const plugins = createAnalyticsPlugins({ cloudflare });
 
-    expect(plugins.map((p) => p.constructor.name)).toEqual([
-      "TrafficSnapshotPlugin",
-      "AnalyticsPlugin",
+    expect(plugins.map((p) => [p.id, p.type])).toEqual([
+      ["traffic-snapshot", "entity"],
+      ["analytics", "service"],
     ]);
   });
 });

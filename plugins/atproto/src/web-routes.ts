@@ -1,4 +1,4 @@
-import type { WebRouteDefinition } from "@brains/plugins";
+import type { WebRouteDefinition } from "@brains/sdk/internal/interface-runtime";
 import type { AtprotoConfig } from "./config";
 import {
   buildConfiguredDidWebDocuments,

@@ -16,9 +16,10 @@ turns:
       expectedTools:
         - toolName: system_create
           shouldBeCalled: true
+          # The link is captured from its URL whether the call names the URL
+          # or the message holding it; the reply is what this case checks.
           argsContain:
             entityType: link
-            source.kind: url
       responseContains:
         - "Confirmation required"
 

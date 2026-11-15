@@ -27,7 +27,11 @@ function createTestConfig(dir: string): ShellConfigInput {
     embeddingDatabase: { url: `file:${dir}/embeddings.db` },
     ai: {
       model: "claude-haiku-4-5",
-      apiKey: "test-key",
+      providerKeys: {
+        anthropic: "test-key",
+        openai: "test-key",
+        google: "test-key",
+      },
     },
   };
 }
@@ -53,7 +57,14 @@ describe("Shell service construction", () => {
         const shell = Shell.createFresh(
           {
             ...createTestConfig(testDir.dir),
-            ai: { model, apiKey: "test-key" },
+            ai: {
+              model,
+              providerKeys: {
+                anthropic: "test-key",
+                openai: "test-key",
+                google: "test-key",
+              },
+            },
             embedding: { enabled: embeddings },
           },
           { logger: createSilentLogger() },

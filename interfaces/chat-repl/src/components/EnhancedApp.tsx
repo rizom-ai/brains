@@ -9,7 +9,7 @@ import { StatusBarWithProgress } from "./StatusBarWithProgress";
 import { MultiLineProgress } from "./MultiLineProgress";
 import { CommandHistory } from "../features/history";
 import type { EnhancedAppProps } from "../types/app-props";
-import type { JobProgressEvent } from "@brains/plugins";
+import type { JobProgressEvent } from "@brains/sdk/internal/interface-runtime";
 
 export default function EnhancedApp({
   interface: cliInterface,

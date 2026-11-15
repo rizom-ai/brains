@@ -27,54 +27,20 @@ const contextServedPackages = [
 const shellImportMessage =
   "Import from @brains/plugins instead. Shell packages should be accessed through the plugins package.";
 
-function shellImportBan(packages, extraPaths = []) {
+function shellImportBan(packages, message = shellImportMessage) {
   return [
     "error",
     {
-      paths: [
-        ...packages.map((name) => ({ name, message: shellImportMessage })),
-        ...extraPaths,
-      ],
+      paths: packages.map((name) => ({ name, message })),
       patterns: [
         {
           group: packages.map((name) => `${name}/*`),
-          message: shellImportMessage,
+          message,
         },
       ],
     },
   ];
 }
-/**
- * The plugin class bases. A package converted to a declarative definition
- * imports none of them: it declares what it is, and the runtime alone
- * carries those bases until they are removed.
- */
-const pluginClassBases = [
-  "BasePlugin",
-  "EntityPlugin",
-  "HookedPublicPlugin",
-  "InterfacePlugin",
-  "MessageInterfacePlugin",
-  "PublicPlugin",
-  "ServicePlugin",
-];
-
-/** Interface packages converted to declarative definitions. */
-const convertedInterfacePackages = [
-  "chat-repl",
-  "email",
-  "mcp",
-  "a2a",
-  "chat",
-  "web-chat",
-];
-
-const classBaseBan = {
-  name: "@brains/plugins",
-  importNames: pluginClassBases,
-  message:
-    "A converted package is a declarative definition: declare it with @brains/sdk and reach first-party runtime capabilities through @brains/sdk/internal/*, never a plugin class base.",
-};
 
 /** Syntax banned everywhere; see each entry for why. */
 const restrictedSyntax = [
@@ -135,7 +101,7 @@ const restrictedSyntax = [
 const rawFullScope = {
   selector: 'Property[key.name="visibilityScope"][value.value="restricted"]',
   message:
-    "Use internalFullScope(reason) from @brains/plugins for a deliberate full-scope read, or pass the caller's scope.",
+    "Use internalFullScope(reason) from @brains/plugins (@brains/sdk/internal/service-runtime in a declared package) for a deliberate full-scope read, or pass the caller's scope.",
 };
 
 /**
@@ -164,7 +130,7 @@ const messagingObject =
 const castSubscription = {
   selector: `CallExpression[typeArguments] > MemberExpression.callee[property.name=/^(subscribe|observe|subscribeExecution)$/]${messagingObject}`,
   message:
-    "Subscribe through the event's typed channel (defineChannel in @brains/contracts, e.g. publishCompletedChannel, or entityUpdatedChannel from @brains/plugins) instead of type arguments, which cast a payload nobody validated.",
+    "Subscribe through the event's typed channel (defineChannel in @brains/contracts, e.g. publishCompletedChannel, or entityUpdatedChannel from @brains/plugins, or @brains/sdk/internal/service-runtime in a declared package) instead of type arguments, which cast a payload nobody validated.",
 };
 
 module.exports = {
@@ -235,21 +201,6 @@ module.exports = {
           ...shellServicePackages,
           ...contextServedPackages,
         ]),
-      },
-    },
-    {
-      // A converted interface's production code also imports no plugin class
-      // base. Restates the import restrictions above for these files.
-      files: convertedInterfacePackages.flatMap((name) => [
-        `**/interfaces/${name}/src/**/*.ts`,
-        `**/interfaces/${name}/src/**/*.tsx`,
-      ]),
-      excludedFiles: ["**/*.test.ts", "**/*.test.tsx", "**/src/test/**"],
-      rules: {
-        "no-restricted-imports": shellImportBan(
-          [...shellServicePackages, ...contextServedPackages],
-          [classBaseBan],
-        ),
       },
     },
     {

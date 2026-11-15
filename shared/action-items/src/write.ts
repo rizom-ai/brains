@@ -1,6 +1,9 @@
-import { internalFullScope } from "@brains/plugins";
+import {
+  internalFullScope,
+  type ContentVisibility,
+} from "@brains/sdk/internal/service-runtime";
+import type { IEntityService } from "@brains/sdk/internal/entity-runtime";
 import { actorRefKey, type ActorRef } from "@brains/contracts";
-import type { ContentVisibility, EntityPluginContext } from "@brains/plugins";
 import { ACTION_ITEM_ENTITY_TYPE } from "./constants";
 import {
   actionItemAssigneeHash,
@@ -15,7 +18,7 @@ import {
   truncateSlug,
   truncateText,
 } from "@brains/utils/string-utils";
-import { ActionItemAdapter } from "./adapter";
+import { actionItemAdapter } from "./adapter";
 import {
   actionItemSchema,
   type ActionItemEntity,
@@ -25,10 +28,7 @@ import {
 } from "./schema";
 
 export interface ActionItemMoveDeps {
-  entityService: Pick<
-    EntityPluginContext["entityService"],
-    "getEntity" | "updateEntity"
-  >;
+  entityService: Pick<IEntityService, "getEntity" | "updateEntity">;
   /** The writer's reach: a card they cannot read is a card they cannot change. */
   visibilityScope: ContentVisibility;
   now?: () => Date;
@@ -120,10 +120,7 @@ export async function moveActionItem(
 }
 
 export interface WithdrawActionItemDeps {
-  entityService: Pick<
-    EntityPluginContext["entityService"],
-    "getEntity" | "deleteEntity"
-  >;
+  entityService: Pick<IEntityService, "getEntity" | "deleteEntity">;
   visibilityScope: ContentVisibility;
 }
 
@@ -185,10 +182,7 @@ export interface ActionItemAssigneeMember {
 }
 
 export interface TrackInboxItemDeps {
-  entityService: Pick<
-    EntityPluginContext["entityService"],
-    "getEntity" | "createEntity"
-  >;
+  entityService: Pick<IEntityService, "getEntity" | "createEntity">;
   /** The visibility the brain gives action items. */
   visibility: ContentVisibility;
   now?: () => Date;
@@ -206,8 +200,6 @@ export interface TrackInboxItemRequest {
 
 export type TrackInboxItemResult =
   { status: "tracked"; id: string } | { status: "already-tracked"; id: string };
-
-const inboxItemAdapter = new ActionItemAdapter();
 
 /**
  * Parts joined into one id without colons: directory sync stores a colon in
@@ -313,10 +305,7 @@ function originMetadata(
 /** Add an open card someone asked for, naming who asked and where. */
 export async function createActionItem(
   deps: Omit<TrackInboxItemDeps, "entityService"> & {
-    entityService: Pick<
-      EntityPluginContext["entityService"],
-      "createEntity" | "getEntity"
-    >;
+    entityService: Pick<IEntityService, "createEntity" | "getEntity">;
   },
   request: CreateActionItemRequest,
 ): Promise<CreateActionItemResult> {
@@ -352,7 +341,7 @@ export async function createActionItem(
   const card = request.projected
     ? foundCard(title, text, metadata)
     : {
-        content: inboxItemAdapter.composeContent(
+        content: actionItemAdapter.composeContent(
           `Action item: ${title}`,
           text,
           metadata,
@@ -390,22 +379,19 @@ function foundCard(
   const stored: ActionItemMetadata = {
     ...rest,
     projectedBodyHash: actionItemBodyHash(
-      inboxItemAdapter.composeContent(heading, text, rest),
+      actionItemAdapter.composeContent(heading, text, rest),
     ),
     projectedAssigneeHash: actionItemAssigneeHash(rest.assignedTo),
     ...(rest.dueDate ? { projectedDueDate: rest.dueDate } : {}),
   };
   return {
-    content: inboxItemAdapter.composeContent(heading, text, stored),
+    content: actionItemAdapter.composeContent(heading, text, stored),
     metadata: stored,
   };
 }
 
 export interface ReviseActionItemDeps {
-  entityService: Pick<
-    EntityPluginContext["entityService"],
-    "getEntity" | "updateEntity"
-  >;
+  entityService: Pick<IEntityService, "getEntity" | "updateEntity">;
   visibilityScope: ContentVisibility;
 }
 

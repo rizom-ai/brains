@@ -7,6 +7,7 @@ import {
 import {
   httpSettingsSchema,
   logLevelSchema,
+  providerKeysSchema,
   reasoningEffortSchema,
   type Shell,
 } from "@brains/core";
@@ -32,8 +33,7 @@ type AppConfigSchema = z.ZodObject<{
   name: z.ZodDefault<z.ZodString>;
   version: z.ZodDefault<z.ZodString>;
   database: z.ZodOptional<z.ZodString>;
-  aiApiKey: z.ZodOptional<z.ZodString>;
-  aiImageKey: z.ZodOptional<z.ZodString>;
+  aiProviderKeys: z.ZodOptional<typeof providerKeysSchema>;
   aiModel: z.ZodOptional<z.ZodString>;
   aiEmbeddingModel: z.ZodOptional<z.ZodString>;
   aiModelRuntimeUrl: z.ZodOptional<z.ZodString>;
@@ -58,8 +58,7 @@ export const appConfigSchema: AppConfigSchema = z.object({
   version: z.string().default("1.0.0"),
   // These map directly to Shell config but with simpler names
   database: z.string().optional(), // Maps to database.url in Shell
-  aiApiKey: z.string().optional(), // Maps to ai.apiKey in Shell
-  aiImageKey: z.string().optional(), // Optional override for image generation
+  aiProviderKeys: providerKeysSchema.optional(), // Each provider's key; maps to ai.providerKeys in Shell
   aiModel: z.string().optional(), // AI model — determines provider (e.g. "gpt-4o-mini", "openai:gpt-4o")
   aiEmbeddingModel: z.string().optional(), // Embedding model, "provider:model"
   aiModelRuntimeUrl: z.string().optional(), // Model runtime serving local: models

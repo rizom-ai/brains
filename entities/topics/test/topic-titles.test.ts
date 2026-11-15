@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { topicTitlesContract } from "@brains/contracts";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { ContentVisibility } from "@brains/plugins";
-import { TopicsPlugin } from "../src";
+import { installTopics } from "./topics-plugins";
 
 // Other plugins ask what the brain's public work is about, for example to
 // screen a site visitor's question: the titles of its public topics.
@@ -14,7 +14,7 @@ describe("public topic titles", () => {
     const harness = createPluginHarness({
       dataDir: `/tmp/test-topic-titles-${randomUUID()}`,
     });
-    await harness.installPlugin(new TopicsPlugin());
+    await installTopics(harness);
     for (const [title, visibility] of topics)
       await harness.getEntityService().createEntity({
         entity: {

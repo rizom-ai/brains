@@ -1,6 +1,6 @@
 import type { SectionDefinition } from "@brains/site-composition";
 import { normalizeJsonValue, type SiteImageLookup } from "@brains/site-engine";
-import type { ContentVisibility } from "@brains/plugins";
+import type { ContentVisibility } from "@brains/sdk/internal/service-runtime";
 import { enrichWithUrls } from "./content-enrichment";
 import type { SiteContentResolutionOptions } from "./site-content-contracts";
 import type { BuildPipelineContext } from "./build-pipeline-context";

@@ -36,7 +36,7 @@ plugins:
     initialSync: true
     git:
       repo: rizom-ai/canonical-publishing-test-content
-      gitUrl: file:///tmp/canonical-publishing-test-content.git
+      gitUrl: file:///tmp/canonical-publishing-offline-test-content.git
       bootstrapFromSeed: true
   onboarding:
     enabled: true

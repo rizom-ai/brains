@@ -1,3 +1,4 @@
 plugin: "@brains/conversation-memory"
-export: conversationMemoryPlugin
+export: default
+pluginId: conversation-memory
 model: gpt-5.4-mini

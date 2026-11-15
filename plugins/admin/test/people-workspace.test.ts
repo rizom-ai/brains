@@ -1,5 +1,6 @@
+import type { Plugin } from "@brains/plugins";
 import { afterEach, describe, expect, it } from "bun:test";
-import { AuthServicePlugin } from "@brains/auth-service";
+import { authServiceOf, authServicePlugin } from "@brains/auth-service";
 import type { StudioWorkspaceActor } from "@brains/plugins";
 import { createMockShell, createTempDataDir } from "@brains/plugins/test";
 
@@ -13,10 +14,10 @@ import {
   trustedActor,
 } from "./studio-workspace-test-helpers";
 
-const authPlugins: AuthServicePlugin[] = [];
+const authPlugins: Plugin[] = [];
 
 afterEach(async () => {
-  for (const plugin of authPlugins.splice(0)) await plugin.shutdown();
+  for (const plugin of authPlugins.splice(0)) await plugin.shutdown?.();
 });
 
 function actorFor(
@@ -50,12 +51,12 @@ describe("Administration People tab", () => {
       manualDelivery: true,
     });
     shell.getChannelRegistry().finalize();
-    const auth = new AuthServicePlugin({
+    const auth = authServicePlugin({
       storageDir: await createTempDataDir("brains-admin-people-"),
     });
     authPlugins.push(auth);
     await auth.register(shell);
-    const service = auth.getService();
+    const service = authServiceOf(shell.getAuthRegistry());
     await service.initialize();
     const admin = await service.createUser({
       displayName: "Ada Admin",

@@ -1,18 +1,17 @@
-import type {
-  AgentBody,
-  AnchorProfileKind,
-  BaseEntity,
-  ProfileCategory,
-  EntityPluginContext,
-  SkillData,
-} from "@brains/plugins";
 import {
-  BaseEntityAdapter,
   anchorProfileKindSchema,
-  baseEntitySchema,
   parseAgentBody,
   skillDataSchema,
-} from "@brains/plugins";
+  type AgentBody,
+  type AnchorProfileKind,
+  type ProfileCategory,
+  type SkillData,
+} from "@brains/sdk/internal/service-runtime";
+import {
+  parseMarkdownWithFrontmatter,
+  parseTypedFrontmatter,
+  type BaseEntity,
+} from "@brains/sdk/internal/entity-runtime";
 import { normalizeTags } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 
@@ -50,45 +49,42 @@ type CapabilityAgentFrontmatter = z.infer<
   typeof capabilityAgentFrontmatterSchema
 >;
 
-const capabilityAgentEntitySchema = baseEntitySchema.extend({
-  entityType: z.literal("agent"),
-  metadata: z.record(z.string(), z.unknown()),
-});
+const frontmatterRecordSchema = z.record(z.string(), z.unknown());
 
-class CapabilityAgentAdapter extends BaseEntityAdapter<
-  BaseEntity,
-  Record<string, unknown>
-> {
-  constructor() {
-    super({
-      entityType: "agent",
-      purpose: "An assessed profile of a subject's capabilities.",
-      schema: capabilityAgentEntitySchema,
-      frontmatterSchema: capabilityAgentFrontmatterSchema,
-    });
-  }
-
-  public fromMarkdown(markdown: string): Partial<BaseEntity> {
-    return { content: markdown, entityType: "agent" };
-  }
-
-  public parseAgent(entity: BaseEntity): {
-    frontmatter: CapabilityAgentFrontmatter;
-    body: AgentBody;
-  } | null {
-    const frontmatterResult = capabilityAgentFrontmatterSchema.safeParse(
-      this.parseFrontMatter(entity.content, capabilityAgentFrontmatterSchema),
-    );
-    if (!frontmatterResult.success) return null;
-
-    return {
-      frontmatter: frontmatterResult.data,
-      body: parseAgentBody(this.extractBody(entity.content)),
-    };
+/** The markdown under a document's header; the document itself when it has none. */
+function bodyOf(markdown: string): string {
+  try {
+    return parseMarkdownWithFrontmatter(markdown, frontmatterRecordSchema)
+      .content;
+  } catch {
+    // A document whose header does not parse is read as all body, as the
+    // adapter's extractBody read it.
+    return markdown;
   }
 }
 
-const agentAdapter = new CapabilityAgentAdapter();
+/**
+ * An agent document's header and body sections, as the capability
+ * profile's agent adapter read them: a header the agent schema refuses
+ * fails as the agent type's validation error.
+ */
+function parseAgent(entity: BaseEntity): {
+  frontmatter: CapabilityAgentFrontmatter;
+  body: AgentBody;
+} | null {
+  const frontmatterResult = capabilityAgentFrontmatterSchema.safeParse(
+    parseTypedFrontmatter(
+      "agent",
+      entity.content,
+      capabilityAgentFrontmatterSchema,
+    ),
+  );
+  if (!frontmatterResult.success) return null;
+  return {
+    frontmatter: frontmatterResult.data,
+    body: parseAgentBody(bodyOf(entity.content)),
+  };
+}
 
 function asProfileSkill(skill: SkillData): CapabilityProfileSkill {
   return {
@@ -145,7 +141,7 @@ export function buildCapabilityProfilesFromEntities(params: {
 
   const networkProfiles = params.agents
     .map((entity): CapabilityProfile | null => {
-      const parsed = agentAdapter.parseAgent(entity);
+      const parsed = parseAgent(entity);
       if (!parsed) return null;
       const { frontmatter, body } = parsed;
       if (frontmatter.status === "archived") return null;
@@ -169,41 +165,4 @@ export function buildCapabilityProfilesFromEntities(params: {
     .filter((profile): profile is CapabilityProfile => profile !== null);
 
   return { selfProfile, networkProfiles };
-}
-
-export async function buildCapabilityProfiles(
-  context: EntityPluginContext,
-): Promise<{
-  selfProfile: CapabilityProfile;
-  networkProfiles: CapabilityProfile[];
-}> {
-  const [agents, skills] = await Promise.all([
-    context.entityService.listEntities({
-      entityType: "agent",
-      options: { limit: 1000 },
-    }),
-    context.entityService.listEntities({
-      entityType: "skill",
-      options: { limit: 1000 },
-    }),
-  ]);
-
-  const character = context.identity.get();
-  const profile = context.identity.getProfile();
-  const profileSelection = context.profileKinds.getResolved();
-
-  return buildCapabilityProfilesFromEntities({
-    identity: {
-      brainName: character.name,
-      role: character.role,
-      purpose: character.purpose,
-      profileName: profile.name,
-      ...(profile.description && { profileDescription: profile.description }),
-      ...(profileSelection && {
-        profileCategory: profileSelection.category,
-      }),
-    },
-    agents,
-    skills,
-  });
 }

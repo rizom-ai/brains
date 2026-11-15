@@ -661,22 +661,23 @@ export class EntityService {
 
 ## Plugin Registration
 
-EntityPlugins auto-register their entity types during initialization:
+An entity package's types register when the package is installed:
 
 ```typescript
-// In FaqPlugin (entities/faq/src/plugin.ts)
-export class FaqPlugin extends EntityPlugin<FaqEntity, FaqConfig> {
-  readonly entityType = "faq";
-  readonly schema = faqSchema;
-  readonly adapter = faqAdapter;
+// An entity package (entities/<name>/src/index.ts)
+const faq = defineEntity({
+  type: "faq",
+  purpose: "A question the brain answers, with its answer.",
+  metadata: faqMetadataSchema,
+});
 
-  // EntityPlugin base class auto-registers:
-  // - Entity type + schema + adapter
-  // - Generation handler (if createGenerationHandler() returns one)
-  // - Templates (if getTemplates() returns any)
-  // - DataSources (if getDataSources() returns any)
-  // - Scheduler-owned projection rules (if getProjectionRules() declares them)
-}
+export default defineEntityPackage({ id: "faq", entities: [faq] });
+
+// Installing it registers, per declared type:
+// - the entity type, its schema and its markdown adapter
+// - its generation handler (`<type>:generation`), when it declares generation
+// - its templates and data sources
+// - its scheduler-owned projection rules
 ```
 
 ## Best Practices

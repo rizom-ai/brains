@@ -28,14 +28,13 @@ export function createServiceLogger(
 
 export function createAIModelConfig(config: ShellConfig): AIModelConfig {
   return {
-    apiKey: config.ai.apiKey,
+    providerKeys: config.ai.providerKeys,
     model: config.ai.model,
     temperature: config.ai.temperature,
     webSearch: config.ai.webSearch,
     ...(config.ai.reasoningEffort && {
       reasoningEffort: config.ai.reasoningEffort,
     }),
-    ...(config.ai.imageApiKey ? { imageApiKey: config.ai.imageApiKey } : {}),
     ...(config.ai.modelRuntimeUrl
       ? { modelRuntimeUrl: config.ai.modelRuntimeUrl }
       : {}),

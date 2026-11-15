@@ -2,7 +2,7 @@
 import { useEffect, useMemo, type Dispatch, type ReactElement } from "react";
 import { useQueries } from "@tanstack/react-query";
 import { Button } from "@brains/app-ui-react";
-import { groupingKeySchema } from "@brains/plugins";
+import { groupingKeySchema } from "@brains/sdk/internal/entity-runtime";
 import { isRecord } from "@brains/utils/is-record";
 import { MAX_GROUPING_DEFINITIONS } from "../../src/grouping-definitions-contract";
 import type { TypeSchema } from "./api";

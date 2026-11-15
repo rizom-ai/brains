@@ -48,6 +48,11 @@
 + auth-service|handler|POST|/webauthn/auth/verify|exact|true
 + auth-service|handler|POST|/webauthn/register/options|exact|true
 + auth-service|handler|POST|/webauthn/register/verify|exact|true
++ contact|handler|GET|/_forms/contact|claim|true
++ contact|handler|GET|/contact/thanks|exact|true
++ contact|handler|GET|/contact|exact|true
++ contact|handler|POST|/_forms/contact|claim|true
++ contact|handler|POST|/contact|exact|true
 + dashboard|handler|GET|/api/console/jump|exact|true
 + dashboard|handler|GET|/dashboard/assets/dashboard.[content-hash].css|exact|true
 + dashboard|handler|GET|/dashboard/assets/dashboard.[content-hash].js|exact|true
