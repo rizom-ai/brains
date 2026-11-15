@@ -983,16 +983,18 @@ export class EntityMutations {
     }
 
     if (!priorData) return false;
+    // A conditional delete of a version that is no longer stored deletes
+    // nothing, its contents included.
     const expectedContentHash = options?.expectedContentHash;
-    // A container goes with its contents, which go first: a failure part way
-    // leaves the container, never contents without one.
-    await this.deleteContents(entityType, id, options?.persistenceOrigin);
     if (
       expectedContentHash !== undefined &&
       priorData.contentHash !== expectedContentHash
     ) {
       return false;
     }
+    // A container goes with its contents, which go first: a failure part way
+    // leaves the container, never contents without one.
+    await this.deleteContents(entityType, id, options?.persistenceOrigin);
 
     // Embeddings live in another database and are recoverable by backfill; the
     // entity row, FTS row, and scheduler journal share one atomic transaction.
