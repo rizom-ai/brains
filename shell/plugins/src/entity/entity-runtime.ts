@@ -718,10 +718,8 @@ function scopedAnyEntities({
     ): Promise<BaseEntity | null> =>
       findEntityByIdentifier(
         service,
-        entityType,
-        identifier,
-        undefined,
-        scope ? scope(entityType) : undefined,
+        { entityType, identifier },
+        { visibilityScope: scope ? scope(entityType) : "public" },
       ),
   });
 }

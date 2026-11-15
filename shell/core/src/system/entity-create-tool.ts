@@ -175,11 +175,14 @@ async function resolveEntitySource(
 ): Promise<Guarded<ResolvedEntitySource>> {
   const result = await resolveEntityOrError(
     services.entityService,
-    ref.entityType,
-    ref.entityId,
-    services.logger,
-    "Source entity",
-    permissionToVisibilityScope(toolContext.userPermissionLevel),
+    { entityType: ref.entityType, identifier: ref.entityId },
+    {
+      visibilityScope: permissionToVisibilityScope(
+        toolContext.userPermissionLevel,
+      ),
+      logger: services.logger,
+      label: "Source entity",
+    },
   );
   if (!result.ok) return guardError(result.error);
   const { entity } = result;
