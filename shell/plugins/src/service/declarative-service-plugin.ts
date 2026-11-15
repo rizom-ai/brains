@@ -2200,6 +2200,11 @@ function entityReadsOf(context: ServicePluginContext): ServiceEntityReads {
     getEntityTypeConfig: (type) => entityService.getEntityTypeConfig(type),
     deserializeEntity: (markdown, entityType) =>
       entityService.deserializeEntity(markdown, entityType),
+    // A reference is not access: a service serves bytes only for a record
+    // it read at the caller's scope.
+    openAsset: (ref) => entityService.openAsset(ref),
+    readAsset: (ref) => entityService.readAsset(ref),
+    statAsset: (ref) => entityService.statAsset(ref),
   } satisfies ServiceEntityReads);
 }
 
@@ -2238,6 +2243,8 @@ function readOnlyEntityServiceOf(
     countEntities: entityService.countEntities.bind(entityService),
     getEntityCounts: entityService.getEntityCounts.bind(entityService),
     getEntityTypeConfig: entityService.getEntityTypeConfig.bind(entityService),
+    // Bytes only through a record read first, as EntityReader.readBytes does.
+    readAsset: entityService.readAsset.bind(entityService),
   } satisfies ReadOnlyEntityService);
 }
 
@@ -2249,6 +2256,8 @@ function entityWritesOf(context: ServicePluginContext): ServiceEntityWrites {
     updateEntity: (request) => entityService.updateEntity(request),
     upsertEntity: (request) => entityService.upsertEntity(request),
     deleteEntity: (request) => entityService.deleteEntity(request),
+    stageAsset: (source, options) => entityService.stageAsset(source, options),
+    discardStagedAsset: (asset) => entityService.discardStagedAsset(asset),
   } satisfies ServiceEntityWrites);
 }
 

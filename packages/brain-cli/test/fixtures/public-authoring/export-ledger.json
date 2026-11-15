@@ -137,6 +137,7 @@
         "EntityAtprotoPublishConfig",
         "EntityAtprotoRecordInput",
         "EntityAttachmentDeclaration",
+        "EntityBytes",
         "EntityCheckAlert",
         "EntityCheckCadence",
         "EntityCheckContext",

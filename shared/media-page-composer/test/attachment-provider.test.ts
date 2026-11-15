@@ -1,4 +1,8 @@
-import { createMockEntityService } from "@brains/entity-service/test";
+import {
+  createMockAssetStore,
+  createMockEntityService,
+} from "@brains/entity-service/test";
+import { withMediaAssetReads } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
 import { createElement as h, type JSX } from "react";
 import { z } from "@brains/utils/zod";
@@ -55,42 +59,46 @@ function createContext(
   const domain = "domain" in options ? options.domain : "example.com";
   const { profileName = "Rizom" } = options;
 
-  return {
-    entityService: createMockEntityService({
-      entityTypes: ["widget", "image"],
-      getEntityImpl: async (request) => {
-        if (request.entityType === "widget" && request.id === "widget-1") {
-          return createWidget();
-        }
-        if (request.entityType === "image" && request.id === "cover-1") {
-          return {
-            ...createWidget(),
-            entityType: "image",
-            id: "cover-1",
-            content: COVER_DATA_URL,
-          };
-        }
-        if (request.entityType === "image" && request.id === "not-inline") {
-          return {
-            ...createWidget(),
-            entityType: "image",
-            id: "not-inline",
-            content: "# a markdown image note",
-          };
-        }
-        return null;
+  const entityService = createMockEntityService({
+    entityTypes: ["widget", "image"],
+    getEntityImpl: async (request) => {
+      if (request.entityType === "widget" && request.id === "widget-1") {
+        return createWidget();
+      }
+      if (request.entityType === "image" && request.id === "cover-1") {
+        return {
+          ...createWidget(),
+          entityType: "image",
+          id: "cover-1",
+          content: COVER_DATA_URL,
+        };
+      }
+      if (request.entityType === "image" && request.id === "not-inline") {
+        return {
+          ...createWidget(),
+          entityType: "image",
+          id: "not-inline",
+          content: "# a markdown image note",
+        };
+      }
+      return null;
+    },
+  });
+  return withMediaAssetReads(
+    {
+      entityService,
+      views: {
+        get: (name) =>
+          name === WIDGET_TEMPLATE.name ? WIDGET_TEMPLATE : undefined,
       },
-    }),
-    views: {
-      get: (name) =>
-        name === WIDGET_TEMPLATE.name ? WIDGET_TEMPLATE : undefined,
+      themeCSS: "",
+      identity: {
+        getProfile: () => ({ name: profileName }),
+      },
+      domain,
     },
-    themeCSS: "",
-    identity: {
-      getProfile: () => ({ name: profileName }),
-    },
-    domain,
-  };
+    entityService,
+  );
 }
 
 const WIDGET_OG_CONFIG = {
@@ -274,6 +282,50 @@ describe("createOgImageProvider", () => {
     });
 
     expect(resolved).toBe(COVER_DATA_URL);
+  });
+
+  it("encodes an asset-backed image reference as a data URL from its bytes", async () => {
+    const context = createContext();
+    const bytes = Buffer.from("staged cover");
+    const store = createMockAssetStore();
+    const asset = await store.stageAsset(bytes);
+    const base = createWidget();
+    const reads: unknown[] = [];
+    const entityService = createMockEntityService({
+      entityTypes: ["widget", "image"],
+      getEntityImpl: async (request) => {
+        reads.push(request);
+        if (request.entityType === "widget") return base;
+        return {
+          ...base,
+          entityType: "image",
+          id: "cover-asset",
+          content: asset.ref,
+          metadata: { ...base.metadata, mediaType: "image/png" },
+        };
+      },
+    });
+    entityService.openAsset = store.openAsset;
+    entityService.readAsset = store.readAsset;
+    let resolved: string | undefined;
+    const provider = createOgImageProvider({
+      ...WIDGET_OG_CONFIG,
+      buildContent: async (widget: Widget, helpers): Promise<WidgetContent> => {
+        resolved = await helpers.resolveImageDataUrl("cover-asset");
+        return { title: widget.metadata.title };
+      },
+    })(withMediaAssetReads({ ...context, entityService }, entityService), {
+      screenshotPng: async () => TINY_PNG,
+    });
+
+    await provider.resolve({
+      sourceEntityType: "widget",
+      sourceEntityId: "widget-1",
+      attachmentType: "og-image",
+    });
+
+    expect(resolved).toBe(`data:image/png;base64,${bytes.toString("base64")}`);
+    expect(reads.at(-1)).toMatchObject({ binaryContent: "reference" });
   });
 
   it("ignores image references that are not inline data URLs", async () => {

@@ -687,10 +687,13 @@ describe("a first-party service's read-only view of the entity service", () => {
       "getEntityTypes",
       "listEntities",
       "nearestToEntity",
+      "openAsset",
       "projectSemanticSpace",
       "queryEntityHierarchy",
+      "readAsset",
       "search",
       "searchWithDistances",
+      "statAsset",
     ]);
   });
 });

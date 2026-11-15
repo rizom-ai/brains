@@ -50,6 +50,9 @@ function createCapturedService(): CapturedService {
       return [];
     },
     queryEntityHierarchy: createMockEntityService().queryEntityHierarchy,
+    openAsset: createMockEntityService().openAsset,
+    readAsset: createMockEntityService().readAsset,
+    statAsset: createMockEntityService().statAsset,
     queryGroupingCatalog: createMockEntityService().queryGroupingCatalog,
     queryGroupingMembers: createMockEntityService().queryGroupingMembers,
     queryGroupingUsage: createMockEntityService().queryGroupingUsage,

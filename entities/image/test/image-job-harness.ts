@@ -1,6 +1,11 @@
 import { mock, type Mock } from "bun:test";
 import type { PublishMediaData } from "@brains/contracts";
 import {
+  computeAssetDigest,
+  createAssetRef,
+  type AssetRef,
+} from "@brains/entity-service";
+import {
   EntityRegistry,
   EntityService,
   type BaseEntity,
@@ -103,7 +108,9 @@ export async function imageJobs(
         plugin.entityType,
         plugin.schema,
         plugin.adapter,
-        plugin.entityType === "image" ? { binaryStorage: "data-url" } : {},
+        plugin.entityType === "image"
+          ? { binaryStorage: "asset", fullTextSearchable: false }
+          : {},
       );
     }
   }
@@ -204,6 +211,8 @@ export async function imageJobs(
         id,
         visibilityScope: "restricted",
         source: true,
+        // As stored: an asset-backed image is its reference.
+        binaryContent: "reference",
       }),
     async close(): Promise<void> {
       service.close();
@@ -231,3 +240,8 @@ export async function seedPost(
     },
   });
 }
+
+/** The asset reference the valid PNG's bytes are stored under. */
+export const VALID_PNG_ASSET_REF: AssetRef = createAssetRef(
+  computeAssetDigest(Buffer.from(VALID_PNG_BASE64, "base64")),
+);

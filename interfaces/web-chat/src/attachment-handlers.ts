@@ -1,4 +1,5 @@
 import {
+  createArtifactResponse,
   type InterfaceRuntime,
   formatContentDispositionHeader,
   getArtifactEntityFilename,
@@ -90,27 +91,17 @@ export async function handleImageAttachmentRequest(
   if (!image) {
     return new Response("Image not found", { status: 404 });
   }
-  if (typeof image.content !== "string") {
-    return new Response("Image content is not an image", { status: 415 });
-  }
-
-  const parsed = parseArtifactDataUrl("image", image.content);
-  if (!parsed) {
-    return new Response("Image content is not an image", { status: 415 });
-  }
-
-  const filename = getArtifactEntityFilename(
-    image.metadata,
-    imageId,
-    "image",
-    parsed.mimeType,
-  );
-  return createBinaryAttachmentResponse({
-    requestUrl: url,
-    data: parsed.data,
-    mediaType: parsed.mimeType,
-    filename,
+  // Only the reference of the record read at the caller's scope is opened:
+  // bytes shared with another image never answer for this one.
+  const response = await createArtifactResponse(deps.entityService, {
+    entityType: "image",
+    id: imageId,
+    entity: image,
+    disposition: url.searchParams.has("download") ? "attachment" : "inline",
   });
+  return (
+    response ?? new Response("Image content is not an image", { status: 415 })
+  );
 }
 
 async function resolveVisibleArtifactEntity(input: {
@@ -129,8 +120,13 @@ async function resolveVisibleArtifactEntity(input: {
   const access = await resolveMessageArtifactAccess({
     entityRef,
     userLevel: input.permissionLevel,
+    // Access checks read the stored reference; bytes load only for the body.
     getEntity: (ref, visibilityScope) =>
-      input.entityService.getEntity({ ...ref, visibilityScope }),
+      input.entityService.getEntity({
+        ...ref,
+        visibilityScope,
+        binaryContent: "reference",
+      }),
   });
 
   return access.status === "visible" ? access.entity : undefined;

@@ -9,7 +9,11 @@ export function queueImportImageConversions(
   imageJobQueue: ImageJobQueueDeps,
   rawEntity: RawEntity,
   filePath: string,
+  typeConfig: { readonly binaryStorage?: "data-url" | "asset" | undefined },
 ): void {
+  // Binary content holds no markdown; scanning a large data URL for image
+  // syntax would block the event loop for seconds.
+  if (typeConfig.binaryStorage) return;
   queueCoverImageConversionIfNeeded(imageJobQueue, rawEntity.content, filePath);
   queueInlineImageConversionIfNeeded(
     imageJobQueue,

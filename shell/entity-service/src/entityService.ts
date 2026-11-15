@@ -1,5 +1,13 @@
 import { internalFullScope } from "./internal-scope";
-import type { AssetRef, AssetStat, AssetVerification } from "@brains/assets";
+import { assetRefSchema } from "@brains/assets";
+import type {
+  AssetRef,
+  AssetSource,
+  AssetStat,
+  AssetVerification,
+  StageAssetOptions,
+  StagedAsset,
+} from "@brains/assets";
 import type {
   QueryGroupingCatalogRequest,
   QueryGroupingMembersRequest,
@@ -36,6 +44,7 @@ import type {
   IndexReadinessStatus,
   EntityService as IEntityService,
   EntityEventBus,
+  BinaryContentMode,
   GetEntityRequest,
   GetEntityRawRequest,
   ProjectionOwnedEntityRequest,
@@ -93,8 +102,18 @@ import { ProjectionStore } from "./projection-store";
 import { EntityExportStore } from "./entity-export-store";
 import { SqliteAssetRepository } from "./sqlite-asset-repository";
 import { ContentResolver, shouldResolveContent } from "./lib/content-resolver";
+import { inlineAssetContent } from "./lib/asset-data-url";
 import { Cause, Effect, Exit } from "@brains/utils/effect";
 import { makeIndexReadinessPollingEffect } from "./index-readiness";
+
+type LegacyMaterializationMethod = "getEntityRaw" | "listEntities";
+
+/** How often one read surface still materialized asset bytes as a data URL. */
+export interface LegacyBinaryMaterialization {
+  method: LegacyMaterializationMethod;
+  entityType: string;
+  count: number;
+}
 
 /**
  * Options for creating an EntityService instance
@@ -149,6 +168,10 @@ export class EntityService implements IEntityService {
   private entityMutations: EntityMutations;
   private readonly projectionStore: ProjectionStore;
   private readonly assetRepository: SqliteAssetRepository;
+  private readonly legacyMaterializations = new Map<
+    string,
+    LegacyBinaryMaterialization
+  >();
   private readonly entityExportStore: EntityExportStore;
   private contentResolver: ContentResolver;
   private embeddingHandlerRegistered = false;
@@ -202,7 +225,12 @@ export class EntityService implements IEntityService {
     this.db = db;
     this.dbClient = client;
     this.dbUrl = url;
-    this.assetRepository = new SqliteAssetRepository(this.db);
+    // Staging writes queue behind entity transactions instead of contending
+    // with them for SQLite's write lock.
+    this.assetRepository = new SqliteAssetRepository(this.db, {
+      runWrite: <TResult>(write: () => Promise<TResult>): Promise<TResult> =>
+        this.projectionStore.runSqliteWrite(write),
+    });
     this.entityExportStore = new EntityExportStore(
       this.db,
       options.projectionNow ?? Date.now,
@@ -446,6 +474,13 @@ export class EntityService implements IEntityService {
       this.searchDbClient,
       dbUrlToPath(embeddingDbConfig.url),
     );
+
+    // Orphaned uploads are harmless until swept — failure is non-fatal.
+    try {
+      await this.assetRepository.sweepOrphanUploads();
+    } catch (error) {
+      this.logger.warn("Failed to sweep orphaned asset uploads", error);
+    }
   }
 
   // ── Projection coordination ───────────────────────────────────────
@@ -557,11 +592,13 @@ export class EntityService implements IEntityService {
   public async createEntity<T extends BaseEntity>(
     request: CreateEntityRequest<T>,
   ): Promise<EntityMutationResult> {
-    await this.initialize();
-    await this.entityRegistry.ensureGroupingsCurrent();
-    const result = await this.entityMutations.createEntity(request);
-    await this.afterGroupingSourceMutation(request.entity.entityType);
-    return result;
+    return this.withStagedAsset(request.stagedAsset, async () => {
+      await this.initialize();
+      await this.entityRegistry.ensureGroupingsCurrent();
+      const result = await this.entityMutations.createEntity(request);
+      await this.afterGroupingSourceMutation(request.entity.entityType);
+      return result;
+    });
   }
 
   public async createEntityFromMarkdown(
@@ -595,11 +632,13 @@ export class EntityService implements IEntityService {
   public async updateEntity<T extends BaseEntity>(
     request: UpdateEntityRequest<T>,
   ): Promise<EntityMutationResult> {
-    await this.initialize();
-    await this.entityRegistry.ensureGroupingsCurrent();
-    const result = await this.entityMutations.updateEntity(request);
-    await this.afterGroupingSourceMutation(request.entity.entityType);
-    return result;
+    return this.withStagedAsset(request.stagedAsset, async () => {
+      await this.initialize();
+      await this.entityRegistry.ensureGroupingsCurrent();
+      const result = await this.entityMutations.updateEntity(request);
+      await this.afterGroupingSourceMutation(request.entity.entityType);
+      return result;
+    });
   }
 
   public async getEntityMutationReceipt(
@@ -614,12 +653,17 @@ export class EntityService implements IEntityService {
     request: ApplyEntityMutationOnceRequest,
   ): Promise<EntityMutationReceipt> {
     const captured = snapshotEntityMutation(request);
-    await this.initialize();
-    await this.entityRegistry.ensureGroupingsCurrent();
-    const result = await this.entityMutations.applyEntityMutationOnce(captured);
-    if (result.applied && result.receipt.operation !== "none")
-      await this.afterGroupingSourceMutation(result.receipt.entityType);
-    return result.receipt;
+    const stagedAsset =
+      captured.operation === "none" ? undefined : captured.request.stagedAsset;
+    return this.withStagedAsset(stagedAsset, async () => {
+      await this.initialize();
+      await this.entityRegistry.ensureGroupingsCurrent();
+      const result =
+        await this.entityMutations.applyEntityMutationOnce(captured);
+      if (result.applied && result.receipt.operation !== "none")
+        await this.afterGroupingSourceMutation(result.receipt.entityType);
+      return result.receipt;
+    });
   }
 
   public async foldEntity(
@@ -660,11 +704,33 @@ export class EntityService implements IEntityService {
   public async upsertEntity<T extends BaseEntity>(
     request: UpsertEntityRequest<T>,
   ): Promise<EntityMutationResult & { created: boolean }> {
-    await this.initialize();
-    await this.entityRegistry.ensureGroupingsCurrent();
-    const result = await this.entityMutations.upsertEntity(request);
-    await this.afterGroupingSourceMutation(request.entity.entityType);
-    return result;
+    return this.withStagedAsset(request.stagedAsset, async () => {
+      await this.initialize();
+      await this.entityRegistry.ensureGroupingsCurrent();
+      const result = await this.entityMutations.upsertEntity(request);
+      await this.afterGroupingSourceMutation(request.entity.entityType);
+      return result;
+    });
+  }
+
+  /**
+   * A staged handle serves one public mutation, which may try create and then
+   * update. Afterwards its upload is discarded unless that mutation published it.
+   */
+  private async withStagedAsset<TResult>(
+    stagedAsset: StagedAsset | undefined,
+    mutation: () => Promise<TResult>,
+  ): Promise<TResult> {
+    if (!stagedAsset) return mutation();
+    this.assetRepository.claim(stagedAsset);
+    try {
+      return await mutation();
+    } finally {
+      // The sweeper reclaims an upload that cannot be discarded now.
+      await this.assetRepository.release(stagedAsset).catch((error) => {
+        this.logger.warn("Failed to discard unpublished asset upload", error);
+      });
+    }
   }
 
   public async storeEmbedding(data: StoreEmbeddingData): Promise<void> {
@@ -838,6 +904,30 @@ export class EntityService implements IEntityService {
     return this.entityQueries.getEntityWriteSnapshot(request);
   }
 
+  /**
+   * Durably stage bytes for one later create, update or upsert, which
+   * publishes them with the entity reference. Unused uploads are discarded.
+   */
+  public async stageAsset(
+    source: AssetSource,
+    options?: StageAssetOptions,
+  ): Promise<StagedAsset> {
+    await this.initialize();
+    return this.assetRepository.stage(source, options);
+  }
+
+  /** Discard a staged upload no mutation will publish; a published asset stays. */
+  public async discardStagedAsset(asset: StagedAsset): Promise<void> {
+    await this.initialize();
+    await this.assetRepository.release(asset);
+  }
+
+  /** Stream a published asset's chunks in order. */
+  public async openAsset(ref: AssetRef): Promise<AsyncIterable<Uint8Array>> {
+    await this.initialize();
+    return this.assetRepository.openRead(ref);
+  }
+
   public async readAsset(ref: AssetRef): Promise<Uint8Array> {
     await this.initialize();
     return this.assetRepository.read(ref);
@@ -851,6 +941,63 @@ export class EntityService implements IEntityService {
   public async verifyAsset(ref: AssetRef): Promise<AssetVerification> {
     await this.initialize();
     return this.assetRepository.verify(ref);
+  }
+
+  /**
+   * Readers still relying on legacy data-URL materialization, by read surface
+   * and entity type: counts only, never ids or content. Removing the
+   * compatibility mode requires this to stay empty through the migration soak.
+   */
+  public getLegacyBinaryMaterializations(): LegacyBinaryMaterialization[] {
+    return [...this.legacyMaterializations.values()].map((entry) => ({
+      ...entry,
+    }));
+  }
+
+  private recordLegacyMaterialization(
+    method: LegacyMaterializationMethod,
+    entityType: string,
+  ): void {
+    const key = `${method}:${entityType}`;
+    const count = (this.legacyMaterializations.get(key)?.count ?? 0) + 1;
+    this.legacyMaterializations.set(key, { method, entityType, count });
+    // First use, then every hundredth, so a steady legacy reader stays visible.
+    if (count === 1 || count % 100 === 0) {
+      this.logger.info("Legacy binary content materialized", {
+        method,
+        entityType,
+        count,
+      });
+    }
+  }
+
+  /**
+   * Compatibility for readers that still expect inline binary content: an
+   * asset reference becomes the data URL it replaced. Reference mode, and
+   * content that is not a reference, pass through untouched.
+   */
+  private async materializeBinaryContent(
+    entity: BaseEntity,
+    method: LegacyMaterializationMethod,
+    mode: BinaryContentMode = "legacy-data-url",
+  ): Promise<BaseEntity> {
+    if (mode === "reference") return entity;
+    if (
+      this.entityRegistry.getEntityTypeConfig(entity.entityType)
+        .binaryStorage !== "asset"
+    ) {
+      return entity;
+    }
+    if (!assetRefSchema.safeParse(entity.content).success) return entity;
+    this.recordLegacyMaterialization(method, entity.entityType);
+    return {
+      ...entity,
+      content: await inlineAssetContent(
+        { openAsset: (ref) => this.assetRepository.openRead(ref) },
+        entity.content,
+        entity.metadata,
+      ),
+    };
   }
 
   public async getEntity(request: GetEntityRequest): Promise<BaseEntity | null>;
@@ -925,10 +1072,17 @@ export class EntityService implements IEntityService {
       return null;
     }
 
-    const entity = await this.entitySerializer.convertToEntity(
+    const converted = await this.entitySerializer.convertToEntity(
       entityData,
       request.source,
     );
+    const entity =
+      converted &&
+      (await this.materializeBinaryContent(
+        converted,
+        "getEntityRaw",
+        request.binaryContent,
+      ));
     request.signal?.throwIfAborted();
     return entity && schema ? schema.parse(entity) : entity;
   }
@@ -947,11 +1101,23 @@ export class EntityService implements IEntityService {
     request.options?.signal?.throwIfAborted();
     await this.initialize();
     const { entityType, options } = request;
-    const entities = await this.entityQueries.listEntities(
+    const rows = await this.entityQueries.listEntities(
       entityType,
       options,
       this.publishedStatusesFor(entityType),
     );
+    // Legacy materialization decodes one asset at a time, but every data URL
+    // stays in the result: listing asset-backed types wants reference mode.
+    const entities: BaseEntity[] = [];
+    for (const row of rows) {
+      entities.push(
+        await this.materializeBinaryContent(
+          row,
+          "listEntities",
+          options?.binaryContent,
+        ),
+      );
+    }
     return schema ? entities.map((entity) => schema.parse(entity)) : entities;
   }
 

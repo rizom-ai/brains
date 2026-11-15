@@ -67,6 +67,7 @@ export function createEntityDeleteTool(services: SystemServices): Tool {
         logger,
         undefined,
         visibilityScope,
+        { binaryContent: "reference" },
       );
       if (!resolved.ok) return { success: false, error: resolved.error };
       const { entity } = resolved;

@@ -257,6 +257,7 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
         logger,
         undefined,
         permissionToVisibilityScope(context.userPermissionLevel),
+        { binaryContent: "reference" },
       );
       if (!resolved.ok) return failure(resolved.error);
 

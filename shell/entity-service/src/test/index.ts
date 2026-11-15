@@ -25,3 +25,4 @@ export {
   createTestEntityAdapter,
   type TestEntityAdapterOptions,
 } from "./test-entity-adapter";
+export { createMockAssetStore, type MockAssetStore } from "./mock-asset-store";

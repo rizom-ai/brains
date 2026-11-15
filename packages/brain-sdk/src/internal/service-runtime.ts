@@ -67,6 +67,21 @@ export {
   type FirstPartyJobHandler,
 } from "@brains/plugins";
 export { internalFullScope } from "@brains/plugins";
+// Durable binary assets: a service serves or stages bytes only for a record
+// it read at the caller's scope, never for a bare reference.
+export {
+  assetRefSchema,
+  base64AssetSource,
+  computeAssetDigest,
+  getAssetDigest,
+  parseAssetRef,
+  readAssetBytes,
+  type AssetRef,
+  type AssetSource,
+  type BinaryContentMode,
+  type StageAssetOptions,
+  type StagedAsset,
+} from "@brains/plugins";
 export type { AuthBackend, ContentVisibility } from "@brains/plugins";
 export {
   SYSTEM_CHANNELS,

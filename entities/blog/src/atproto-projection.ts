@@ -8,6 +8,7 @@ import {
   type EntityDefinition,
   type EntityOf,
 } from "@brains/sdk/entities";
+import { entityRuntime } from "@brains/sdk/internal/entity-runtime";
 import type { blogPostMetadataSchema } from "./schemas/blog-post";
 
 type PostRecord = EntityOf<
@@ -26,19 +27,14 @@ const imageShape = defineEntity({
   metadata: imageMetadataSchema,
 });
 
-function dataUrlToUploadInput(dataUrl: string): {
-  data: Buffer;
-  mimeType: string;
-} {
-  // A data URL read from a markdown file keeps that file's newline.
-  const match = /^data:([^;,]+);base64,(.*)$/.exec(dataUrl.trim());
-  if (!match?.[1] || !match[2]) {
-    throw new Error("Cover image must be a base64 data URL");
-  }
-  return {
-    data: Buffer.from(match[2], "base64"),
-    mimeType: match[1],
-  };
+/** The media type a stored image is uploaded as. */
+function coverMediaType(metadata: {
+  readonly mediaType?: string | undefined;
+  readonly format?: string | undefined;
+}): string {
+  if (metadata.mediaType) return metadata.mediaType;
+  const format = metadata.format ?? "png";
+  return `image/${format === "jpg" ? "jpeg" : format}`;
 }
 
 /**
@@ -46,24 +42,29 @@ function dataUrlToUploadInput(dataUrl: string): {
  * its alt text and size. The record is built from public entries only, so
  * a cover that is not public is left out.
  */
-async function uploadCoverImage({
-  entity,
-  entities,
-  uploadBlob,
-}: EntityAtprotoRecordInput<PostRecord>): Promise<
-  BlogAtprotoCoverImage | undefined
-> {
+async function uploadCoverImage(
+  input: EntityAtprotoRecordInput<PostRecord>,
+): Promise<BlogAtprotoCoverImage | undefined> {
+  const { entity, uploadBlob } = input;
   const coverImageId = entity.metadata.coverImageId;
   if (!coverImageId) return undefined;
-  const image = await entities.get(imageShape, coverImageId);
+  // Read as stored at the public scope, and its bytes through that record:
+  // never a bare reference another image shares.
+  const assets = entityRuntime(input).assets;
+  const image = await assets.getStored(imageShape, coverImageId);
   if (!image) return undefined;
-  const blob = await uploadBlob(dataUrlToUploadInput(image.content));
+  const data = await assets.read(imageShape, coverImageId);
+  if (!data) return undefined;
+  const blob = await uploadBlob({
+    data,
+    mimeType: coverMediaType(image.metadata),
+  });
   const { alt, width, height } = image.metadata;
   return {
     blob,
     ...(alt && { alt }),
-    width,
-    height,
+    ...(width !== undefined && { width }),
+    ...(height !== undefined && { height }),
   };
 }
 

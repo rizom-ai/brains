@@ -30,6 +30,10 @@ export type ServiceEntityMirrorClient = Pick<
   | "hasPendingEntityExports"
   | "acknowledgeEntityExports"
   | "getAsyncJobStatus"
+  | "stageAsset"
+  | "discardStagedAsset"
+  | "openAsset"
+  | "statAsset"
 >;
 
 /**
@@ -101,6 +105,19 @@ export function entityMirrorOf(
     },
     get getAsyncJobStatus(): ServiceEntityMirrorClient["getAsyncJobStatus"] {
       return entityService.getAsyncJobStatus.bind(entityService);
+    },
+    get stageAsset(): ServiceEntityMirrorClient["stageAsset"] {
+      return entityService.stageAsset.bind(entityService);
+    },
+    get discardStagedAsset(): ServiceEntityMirrorClient["discardStagedAsset"] {
+      return entityService.discardStagedAsset.bind(entityService);
+    },
+    // The mirror opens the bytes of the record it exports, never a bare reference.
+    get openAsset(): ServiceEntityMirrorClient["openAsset"] {
+      return entityService.openAsset.bind(entityService);
+    },
+    get statAsset(): ServiceEntityMirrorClient["statAsset"] {
+      return entityService.statAsset.bind(entityService);
     },
     coordination: context.bulkMutations,
   } satisfies ServiceEntityMirror);

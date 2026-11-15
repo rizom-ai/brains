@@ -158,6 +158,7 @@ describe("public operator definitions", () => {
         get: async () => null,
         list: async () => [],
         count: async () => 0,
+        readBytes: async () => null,
       },
       jobs: {
         enqueue: async () => ({ id: "job-1", status: async () => null }),

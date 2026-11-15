@@ -19,7 +19,7 @@ export interface PipelineContext {
   readonly logger: Logger;
   readonly entityService: Pick<
     ServiceEntityReads,
-    "getEntity" | "getEntityRaw" | "listEntities"
+    "getEntity" | "getEntityRaw" | "listEntities" | "readAsset"
   > &
     Pick<ServiceEntityWrites, "updateEntity">;
   readonly permissions: ServicePermissions;

@@ -12,6 +12,8 @@ import {
   type SelectPhotoJobData,
 } from "../src/handlers/select-photo-handler";
 import type { StockPhotoProvider } from "../src/lib/types";
+import { computeAssetDigest, createAssetRef } from "@brains/plugins";
+import { createMockAssetStore } from "@brains/entity-service/test";
 
 const TINY_PNG_BASE64 =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
@@ -41,7 +43,10 @@ function createProvider(): StockPhotoProvider {
 function createEntityService(
   overrides: Record<string, unknown> = {},
 ): StockPhotoEntityWriter {
+  const assets = createMockAssetStore();
   return {
+    stageAsset: assets.stageAsset,
+    discardStagedAsset: assets.discardStagedAsset,
     getEntity: async () => null,
     createEntity: async () => ({
       entityId: "abc123",
@@ -182,5 +187,42 @@ describe("the select-photo job", () => {
     expect(result.imageEntityId).toBe("abc123");
     expect(result.coverSet).toBeUndefined();
     expect(result.warning).toBeUndefined();
+  });
+
+  it("stores the downloaded photo as a staged asset", async () => {
+    let created: { entity?: unknown; stagedAsset?: unknown } | undefined;
+    const entityService = createEntityService({
+      createEntity: async (request: {
+        entity: unknown;
+        stagedAsset?: unknown;
+      }) => {
+        created = request;
+        return { entityId: "abc123", jobId: "job-1", skipped: false };
+      },
+    });
+    const handler = createHandler({
+      provider: createProvider(),
+      entityService,
+      fetchImage: async (): Promise<string> => TINY_PNG_DATA_URL,
+    });
+
+    await handler.process(jobData, "job-123", progressReporter);
+
+    const ref = createAssetRef(
+      computeAssetDigest(Buffer.from(TINY_PNG_BASE64, "base64")),
+    );
+    expect(created).toEqual({
+      entity: expect.objectContaining({
+        id: "abc123",
+        entityType: "image",
+        content: ref,
+        metadata: expect.objectContaining({
+          format: "png",
+          mediaType: "image/png",
+          sourceUrl: jobData.imageUrl,
+        }),
+      }),
+      stagedAsset: expect.objectContaining({ ref }),
+    });
   });
 });

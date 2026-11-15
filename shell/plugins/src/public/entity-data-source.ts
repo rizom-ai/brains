@@ -36,6 +36,7 @@ export type {
   AnyDataSourceDeclaration,
   AnyEntityDataSourceDefinition,
   DataSourceDefinition,
+  EntityBytes,
   EntityReader,
   DataSourceListOptions,
   DataSourceQuery,

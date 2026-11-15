@@ -173,6 +173,59 @@ Post with image.`;
     expect(result.imageData?.mimeType).toBe("image/png");
   });
 
+  it("reads a staged cover image from its stored chunks", async () => {
+    const asset = await context.entityService.stageAsset(Buffer.from("hello"));
+    await context.entityService.createEntity({
+      entity: {
+        id: "cover-image",
+        entityType: "image",
+        content: asset.ref,
+        metadata: { mediaType: "image/png", sizeBytes: 5 },
+      },
+    });
+
+    const result = await preparePublishContent(
+      context,
+      createPublishableEntity(`---
+coverImageId: cover-image
+---
+Post with image.`),
+    );
+
+    expect(result.imageData?.mimeType).toBe("image/png");
+    expect(Buffer.from(result.imageData?.data ?? []).toString("utf8")).toBe(
+      "hello",
+    );
+  });
+
+  it("publishes no cover that is not public, even when a public image shares its bytes", async () => {
+    const asset = await context.entityService.stageAsset(Buffer.from("hello"));
+    for (const [id, visibility] of [
+      ["private-cover", "restricted"],
+      ["public-twin", "public"],
+    ] as const) {
+      await context.entityService.createEntity({
+        entity: {
+          id,
+          entityType: "image",
+          content: asset.ref,
+          metadata: { mediaType: "image/png", sizeBytes: 5 },
+          visibility,
+        },
+      });
+    }
+
+    const result = await preparePublishContent(
+      context,
+      createPublishableEntity(`---
+coverImageId: private-cover
+---
+Post with image.`),
+    );
+
+    expect(result.imageData).toBeUndefined();
+  });
+
   it("should fetch structured document attachment data", async () => {
     await context.entityService.createEntity({
       entity: {

@@ -20,6 +20,17 @@ describe("directory sync config", () => {
     ).toThrow();
   });
 
+  it("defaults the asset-backed import limit to the image asset limit", () => {
+    const result = directorySyncConfigSchema.parse({});
+    expect(result.maxAssetImportBytes).toBe(25 * 1024 * 1024);
+  });
+
+  it("rejects non-positive asset-backed import limits", () => {
+    expect(() =>
+      directorySyncConfigSchema.parse({ maxAssetImportBytes: 0 }),
+    ).toThrow();
+  });
+
   it("should accept config without git (git disabled)", () => {
     const result = directorySyncConfigSchema.parse({});
     expect(result.git).toBeUndefined();

@@ -85,11 +85,15 @@ export {
   collectDeniedArtifactCardIds,
   formatArtifactDisplay,
   formatContentDispositionHeader,
+  createArtifactResponse,
   getArtifactEntityFilename,
   parseArtifactDataUrl,
+  readArtifactContent,
   resolveArtifactEntityRefFromCard,
   resolveMessageArtifactAccess,
+  type ArtifactContent,
   type MessageArtifactEntity,
+  type StoredArtifact,
 } from "@brains/plugins";
 // Uploads: the message upload policy and the shared upload store.
 export {

@@ -150,6 +150,72 @@ describe("blog ATProto projection", () => {
     });
   });
 
+  it("reads a staged cover image from its stored chunks", async () => {
+    const { harness, projection } = await installed();
+    const asset = await harness
+      .getEntityService()
+      .stageAsset(Buffer.from("hello"));
+    harness.getMockShell().addEntities([
+      {
+        id: "image-1",
+        entityType: "image",
+        content: asset.ref,
+        created: "2026-05-28T10:00:00.000Z",
+        updated: "2026-05-28T10:00:00.000Z",
+        visibility: "public",
+        contentHash: "image-hash",
+        metadata: {
+          alt: "Cover alt",
+          format: "png",
+          mediaType: "image/png",
+          sizeBytes: 5,
+          width: 1200,
+          height: 630,
+        },
+      },
+    ]);
+
+    const record = await projection.buildRecord({
+      entity: post("published", { coverImageId: "image-1" }),
+      context,
+      config: {},
+      dryRun: true,
+    });
+
+    expect(record["coverImage"]).toMatchObject({
+      blob: { mimeType: "image/png", size: 5 },
+      alt: "Cover alt",
+    });
+  });
+
+  it("leaves out a restricted cover even when a public image shares its bytes", async () => {
+    const { harness, projection } = await installed();
+    const asset = await harness
+      .getEntityService()
+      .stageAsset(Buffer.from("hello"));
+    const image = {
+      entityType: "image",
+      content: asset.ref,
+      created: "2026-05-28T10:00:00.000Z",
+      updated: "2026-05-28T10:00:00.000Z",
+      contentHash: "image-hash",
+      metadata: { format: "png", mediaType: "image/png", width: 1, height: 1 },
+    };
+    harness.getMockShell().addEntities([
+      { ...image, id: "private-cover", visibility: "restricted" },
+      { ...image, id: "public-twin", visibility: "public" },
+    ]);
+
+    const record = await projection.buildRecord({
+      entity: post("published", { coverImageId: "private-cover" }),
+      context,
+      config: {},
+      dryRun: true,
+    });
+
+    expect(record["coverImage"]).toBeUndefined();
+  });
+
   it("reads a cover whose stored data URL ends in a newline", async () => {
     const { harness, projection } = await installed();
     harness.getMockShell().addEntities([

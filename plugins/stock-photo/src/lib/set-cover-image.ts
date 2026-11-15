@@ -15,7 +15,7 @@ import type { ServiceEntityWrites } from "@brains/sdk/internal/service-runtime";
  */
 export interface StockPhotoEntityWriter extends Pick<
   ServiceEntityWrites,
-  "createEntity" | "updateEntity"
+  "createEntity" | "updateEntity" | "stageAsset" | "discardStagedAsset"
 > {
   getEntity(request: {
     entityType: string;

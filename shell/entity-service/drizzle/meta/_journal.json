@@ -92,6 +92,13 @@
       "when": 1792059209487,
       "tag": "0012_entities_type_slug_idx",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1792135342713,
+      "tag": "0013_staged_asset_chunks",
+      "breakpoints": true
     }
   ]
 }

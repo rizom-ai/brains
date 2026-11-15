@@ -31,9 +31,11 @@ export type ImageIngestionStatus = z.output<typeof imageIngestionStatusSchema>;
 type ImageMetadataSchema = z.ZodObject<{
   title: z.ZodOptional<z.ZodString>;
   alt: z.ZodOptional<z.ZodString>;
-  format: typeof imageFormatSchema;
-  width: z.ZodNumber;
-  height: z.ZodNumber;
+  format: z.ZodOptional<typeof imageFormatSchema>;
+  mediaType: z.ZodOptional<z.ZodString>;
+  sizeBytes: z.ZodOptional<z.ZodNumber>;
+  width: z.ZodOptional<z.ZodNumber>;
+  height: z.ZodOptional<z.ZodNumber>;
   status: z.ZodOptional<typeof imageIngestionStatusSchema>;
   processingJobId: z.ZodOptional<z.ZodString>;
   processingError: z.ZodOptional<z.ZodString>;
@@ -47,27 +49,59 @@ type ImageMetadataSchema = z.ZodObject<{
   dedupKey: z.ZodOptional<z.ZodString>;
 }>;
 
-// A person names and describes an image; the rest records the file.
-export const imageMetadataSchema: ImageMetadataSchema = z.object({
-  title: z.string().optional(),
-  alt: z.string().optional(),
-  format: imageFormatSchema.meta({ studioWidget: "provenance" }),
-  width: z.number().meta({ studioWidget: "provenance" }),
-  height: z.number().meta({ studioWidget: "provenance" }),
-  status: imageIngestionStatusSchema
-    .optional()
-    .meta({ studioWidget: "provenance" }),
-  processingJobId: z.string().optional().meta({ studioWidget: "hidden" }),
-  processingError: z.string().optional().meta({ studioWidget: "provenance" }),
-  sourceUrl: z.url().optional().meta({ studioWidget: "provenance" }),
-  sourceEntityType: z.string().optional().meta({ studioWidget: "provenance" }),
-  sourceEntityId: z.string().optional().meta({ studioWidget: "provenance" }),
-  sourceUploadId: z.string().optional().meta({ studioWidget: "provenance" }),
-  sourceFilename: z.string().optional().meta({ studioWidget: "provenance" }),
-  sourceMediaType: z.string().optional().meta({ studioWidget: "provenance" }),
-  attachmentType: z.string().optional().meta({ studioWidget: "provenance" }),
-  dedupKey: z.string().optional().meta({ studioWidget: "hidden" }),
-});
+// A person names and describes an image; the rest records the file. A
+// pending or failed image has no bytes yet, so it carries no format or
+// dimensions; every other image is described by its bytes.
+export const imageMetadataSchema: ImageMetadataSchema = z
+  .object({
+    title: z.string().optional(),
+    alt: z.string().optional(),
+    format: imageFormatSchema.optional().meta({ studioWidget: "provenance" }),
+    // Set for asset-backed images: the type the bytes are served as, and
+    // the stored byte count.
+    mediaType: z.string().optional().meta({ studioWidget: "provenance" }),
+    sizeBytes: z
+      .number()
+      .int()
+      .nonnegative()
+      .optional()
+      .meta({ studioWidget: "provenance" }),
+    width: z.number().optional().meta({ studioWidget: "provenance" }),
+    height: z.number().optional().meta({ studioWidget: "provenance" }),
+    status: imageIngestionStatusSchema
+      .optional()
+      .meta({ studioWidget: "provenance" }),
+    processingJobId: z.string().optional().meta({ studioWidget: "hidden" }),
+    processingError: z.string().optional().meta({ studioWidget: "provenance" }),
+    sourceUrl: z.url().optional().meta({ studioWidget: "provenance" }),
+    sourceEntityType: z
+      .string()
+      .optional()
+      .meta({ studioWidget: "provenance" }),
+    sourceEntityId: z.string().optional().meta({ studioWidget: "provenance" }),
+    sourceUploadId: z.string().optional().meta({ studioWidget: "provenance" }),
+    sourceFilename: z.string().optional().meta({ studioWidget: "provenance" }),
+    sourceMediaType: z.string().optional().meta({ studioWidget: "provenance" }),
+    attachmentType: z.string().optional().meta({ studioWidget: "provenance" }),
+    dedupKey: z.string().optional().meta({ studioWidget: "hidden" }),
+  })
+  .superRefine((metadata, ctx) => {
+    if (metadata.status === "pending" || metadata.status === "failed") return;
+    // A completed image needs its format and size: refused as a required
+    // field is, with the issues the store has always reported.
+    for (const [field, schema] of [
+      ["format", imageFormatSchema],
+      ["width", z.number()],
+      ["height", z.number()],
+    ] as const) {
+      const checked = schema.safeParse(metadata[field]);
+      if (!checked.success) {
+        for (const issue of checked.error.issues) {
+          ctx.addIssue({ ...issue, path: [field, ...issue.path] });
+        }
+      }
+    }
+  });
 
 export type ImageMetadata = z.output<typeof imageMetadataSchema>;
 

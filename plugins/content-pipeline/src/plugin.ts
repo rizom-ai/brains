@@ -52,6 +52,7 @@ function pipelineContextOf(runtime: ServiceRuntime): PipelineContext {
       getEntity: runtime.entityReads.getEntity,
       getEntityRaw: runtime.entityReads.getEntityRaw,
       listEntities: runtime.entityReads.listEntities,
+      readAsset: runtime.entityReads.readAsset,
       updateEntity: runtime.entityWrites.updateEntity,
     },
     permissions: runtime.permissions,

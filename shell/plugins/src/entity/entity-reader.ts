@@ -1,11 +1,15 @@
-import type {
-  ContentVisibility,
-  EntityServiceClient,
-  SortField,
+import {
+  assetRefSchema,
+  type BaseEntity,
+  type ContentVisibility,
+  type EntityServiceClient,
+  type SortField,
 } from "@brains/entity-service";
+import { SdkError } from "@brains/contracts";
 import { definedFields } from "@brains/utils/strip-undefined";
 import type {
   AnyEntityDefinition,
+  EntityBytes,
   EntityReader,
   DataSourceListOptions,
   DataSourceSortField,
@@ -33,7 +37,7 @@ export function sortFields(sort: readonly DataSourceSortField[]): SortField[] {
 export function createEntityReader(
   entityService: Pick<
     EntityServiceClient,
-    "getEntityRaw" | "listEntities" | "countEntities"
+    "getEntityRaw" | "listEntities" | "countEntities" | "readAsset"
   >,
   visibilityScope?: ContentVisibility,
 ): EntityReader {
@@ -72,5 +76,58 @@ export function createEntityReader(
         entityType: definition.type,
         ...(visibilityScope && { options: { filter: { visibilityScope } } }),
       }),
+    async readBytes(
+      definition: AnyEntityDefinition,
+      id: string,
+    ): Promise<EntityBytes | null> {
+      if (definition.config?.binaryStorage === undefined) {
+        throw new SdkError("invalid_input", {
+          message: `"${definition.type}" stores no bytes: only a type that declares binaryStorage has them`,
+        });
+      }
+      // The record as stored, at this reader's scope: its reference is read
+      // for this record alone, never served by reference.
+      const record = await entityService.getEntityRaw({
+        entityType: definition.type,
+        id,
+        ...scope,
+        binaryContent: "reference",
+      });
+      if (record?.entityType !== definition.type) return null;
+      return recordBytes(entityService, record);
+    },
   });
+}
+
+/** A binary record's bytes: its asset's, or an inline data URL's; none when empty. */
+async function recordBytes(
+  entityService: Pick<EntityServiceClient, "readAsset">,
+  record: BaseEntity,
+): Promise<EntityBytes | null> {
+  const ref = assetRefSchema.safeParse(record.content);
+  if (ref.success) {
+    const bytes = await entityService.readAsset(ref.data);
+    return {
+      bytes,
+      mediaType: storedMediaType(record.metadata) ?? "application/octet-stream",
+      sizeBytes: bytes.byteLength,
+    };
+  }
+  // A data URL stored before assets; a markdown file's newline is kept.
+  const inline = /^data:([^;,]+);base64,([\s\S]*)$/.exec(record.content.trim());
+  const payload = inline?.[2]?.replace(/\s/g, "");
+  if (!inline?.[1] || !payload) return null;
+  const bytes = Uint8Array.from(Buffer.from(payload, "base64"));
+  return { bytes, mediaType: inline[1], sizeBytes: bytes.byteLength };
+}
+
+/** The media type recorded beside the bytes, else the one the format implies. */
+function storedMediaType(
+  metadata: Record<string, unknown>,
+): string | undefined {
+  const recorded = metadata["mediaType"];
+  if (typeof recorded === "string") return recorded;
+  const format = metadata["format"];
+  if (typeof format !== "string") return undefined;
+  return `image/${format === "jpg" ? "jpeg" : format}`;
 }

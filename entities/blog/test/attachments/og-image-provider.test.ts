@@ -1,6 +1,7 @@
 import { createMockEntityService } from "@brains/entity-service/test";
 import { describe, expect, it } from "bun:test";
 import { toViewTemplate } from "@brains/plugins";
+import { withMediaAssetReads } from "@brains/plugins/test";
 import type { MediaAttachmentContext } from "@brains/media-page-composer";
 import { createBlogOgImageProvider } from "../../src/attachments/og-image-provider";
 import {
@@ -12,44 +13,49 @@ import {
 const TINY_PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
 function createContext(): MediaAttachmentContext {
-  return {
-    entityService: createMockEntityService({
-      entityTypes: ["post", "image"],
-      returns: {
-        getEntity: {
-          id: "resilience",
-          entityType: "post",
-          // As a declared post reads back: its body, its metadata.
-          content: "Body",
-          metadata: {
-            title: "Resilience Is Not Redundancy",
-            slug: "resilience",
-            authoredSlug: true,
-            status: "published",
-            excerpt: "Robust systems are not piles of backups.",
-            author: "Test Author",
-            publishedAt: "2026-01-10T12:00:00.000Z",
-            coverImageId: "cover-image",
-          },
-          contentHash: "hash",
-          visibility: "public",
-          created: "2026-01-01T00:00:00.000Z",
-          updated: "2026-01-01T00:00:00.000Z",
+  const entityService = createMockEntityService({
+    entityTypes: ["post", "image"],
+    returns: {
+      getEntity: {
+        id: "resilience",
+        entityType: "post",
+        // As a declared post reads back: its body, its metadata.
+        content: "Body",
+        metadata: {
+          title: "Resilience Is Not Redundancy",
+          slug: "resilience",
+          authoredSlug: true,
+          status: "published",
+          excerpt: "Robust systems are not piles of backups.",
+          author: "Test Author",
+          publishedAt: "2026-01-10T12:00:00.000Z",
+          coverImageId: "cover-image",
         },
+        contentHash: "hash",
+        visibility: "public",
+        created: "2026-01-01T00:00:00.000Z",
+        updated: "2026-01-01T00:00:00.000Z",
       },
-    }),
-    views: {
-      get: (name) =>
-        name === BLOG_OG_IMAGE_TEMPLATE_NAME
-          ? toViewTemplate(name, blogOgImageTemplate)
-          : undefined,
     },
-    themeCSS: "",
-    identity: {
-      getProfile: () => ({ name: "Rizom" }),
+  });
+  // As the runtime builds it: public reads, and an image's bytes through them.
+  return withMediaAssetReads(
+    {
+      entityService,
+      views: {
+        get: (name) =>
+          name === BLOG_OG_IMAGE_TEMPLATE_NAME
+            ? toViewTemplate(name, blogOgImageTemplate)
+            : undefined,
+      },
+      themeCSS: "",
+      identity: {
+        getProfile: () => ({ name: "Rizom" }),
+      },
+      domain: "example.com",
     },
-    domain: "example.com",
-  };
+    entityService,
+  );
 }
 
 describe("Blog OG image attachment provider", () => {

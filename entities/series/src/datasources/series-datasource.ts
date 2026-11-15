@@ -179,7 +179,13 @@ async function countEntitiesPerSeries(
     .getEntityTypes()
     .filter((entityType) => entityType !== "series");
   const listed = await Promise.all(
-    types.map((entityType) => reads.listEntities({ entityType })),
+    // Counted by metadata: stored references, no bytes.
+    types.map((entityType) =>
+      reads.listEntities({
+        entityType,
+        options: { binaryContent: "reference" },
+      }),
+    ),
   );
   for (const entity of listed.flat()) {
     const name = getSeriesName(entity);
@@ -204,7 +210,10 @@ async function getSeriesMembers(
     types.map((entityType) =>
       reads.listEntities({
         entityType,
-        options: { filter: { metadata: { seriesName } } },
+        options: {
+          filter: { metadata: { seriesName } },
+          binaryContent: "reference",
+        },
       }),
     ),
   );

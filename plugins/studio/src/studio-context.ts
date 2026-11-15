@@ -29,6 +29,7 @@ export interface StudioEntityService
       | "getEntityCounts"
       | "queryEntityHierarchy"
       | "deserializeEntity"
+      | "openAsset"
     >,
     Pick<ServiceEntityWrites, "createEntity" | "updateEntity" | "deleteEntity">,
     Pick<
@@ -104,6 +105,8 @@ export function studioContextOf(runtime: ServiceRuntime): StudioContext {
         entityReads.queryEntityHierarchy(request),
       deserializeEntity: (markdown, type) =>
         entityReads.deserializeEntity(markdown, type),
+      // Previews stream the bytes of an image read at the caller's scope.
+      openAsset: (ref) => entityReads.openAsset(ref),
       createEntity: (request) => entityWrites.createEntity(request),
       updateEntity: (request) => entityWrites.updateEntity(request),
       deleteEntity: (request) => entityWrites.deleteEntity(request),
