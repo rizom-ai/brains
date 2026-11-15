@@ -1,6 +1,7 @@
 import { isDeepStrictEqual } from "node:util";
 import { diffArrays } from "diff";
 import {
+  FRONTMATTER_BLOCK,
   generateMarkdown,
   parseMarkdown,
   updateFrontmatterField,
@@ -15,7 +16,6 @@ import { setCoverImageId, setOgImageId } from "@brains/image";
 import { z } from "@brains/utils/zod";
 import { getErrorMessage } from "@brains/utils/error";
 import type { SystemServices } from "./types";
-import { FRONTMATTER_BLOCK } from "./markdown-body";
 import type { UpdateOperationInput } from "./schemas";
 
 /**

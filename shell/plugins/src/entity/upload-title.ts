@@ -1,4 +1,4 @@
-import { markdownBody } from "@brains/entity-service";
+import { markdownBody } from "@brains/utils/markdown-frontmatter";
 import { firstMarkdownHeading } from "@brains/utils/markdown";
 
 const textUploadMediaTypes = new Set([
@@ -44,7 +44,10 @@ export function uploadTitle(input: {
   if (given && !repeatsUploadFileName(given, input.filename)) return given;
   const heading =
     input.markdown !== undefined
-      ? firstMarkdownHeading(markdownBody(input.markdown), { depth: 1 })
+      ? firstMarkdownHeading(
+          markdownBody(input.markdown, { trim: true, keepEmptyBlock: true }),
+          { depth: 1 },
+        )
       : undefined;
   if (heading) return heading;
   return fileNameStem(input.filename) || input.filename;

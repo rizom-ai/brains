@@ -11,7 +11,7 @@ import {
   type SemanticSpaceProjection,
 } from "./types";
 import type { IEmbeddingService } from "./embedding-types";
-import { markdownBody } from "./frontmatter";
+import { markdownBody } from "@brains/utils/markdown-frontmatter";
 import type { EntitySerializer } from "./entity-serializer";
 import { type Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
@@ -712,7 +712,10 @@ export class EntitySearch {
    */
   private createExcerpt(markdown: string, query: string): string {
     // A reader of the result sees its text, not its frontmatter.
-    const content = markdownBody(markdown);
+    const content = markdownBody(markdown, {
+      trim: true,
+      keepEmptyBlock: true,
+    });
     const maxLength = 200;
     const queryLower = query.toLowerCase();
     const contentLower = content.toLowerCase();
