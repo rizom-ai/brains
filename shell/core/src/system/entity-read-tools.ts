@@ -8,7 +8,7 @@ import {
 import type { SystemServices } from "./types";
 import { getInputSchema, listInputSchema, searchInputSchema } from "./schemas";
 import { sanitizeEntity } from "./tool-helpers";
-import { markdownBody } from "./markdown-body";
+import { markdownBody } from "@brains/utils/markdown-frontmatter";
 import { assertGuestReader } from "./guest-read-context";
 import { matchingSections, type SearchBudget } from "./search-excerpt";
 

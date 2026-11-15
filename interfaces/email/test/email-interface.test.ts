@@ -628,6 +628,84 @@ describe("EmailInterface", () => {
     expect(JSON.stringify(result)).not.toContain("user@example.com");
   });
 
+  it("logs neither the recipient nor the subject of a failed secret delivery", async () => {
+    const fetchImpl = mock(
+      async (_input: string | URL | Request) =>
+        new Response(JSON.stringify({ message: "provider failed" }), {
+          status: 500,
+        }),
+    );
+    const failedDelivery = async (
+      sensitivity: "normal" | "secret",
+    ): Promise<ReturnType<typeof createMockLogger>> => {
+      const logger = createMockLogger();
+      const harness = createPluginHarness({ logger });
+      await harness.installPlugin(
+        createEmailPlugin(
+          {
+            transport: "resend",
+            apiKey: "resend-key",
+            from: "Rover <alerts@example.com>",
+          },
+          { fetchImpl },
+        ),
+      );
+      await harness.finalizeRegistration();
+      await harness
+        .getMockShell()
+        .getChannelRegistry()
+        .getDeliveryProvider("email")
+        ?.send({
+          recipient: "operator@example.com",
+          subject: "Database health check failed",
+          text: "The primary database did not answer.",
+          idempotencyKey: "recurring-alert:episode",
+          sensitivity,
+        });
+      return logger;
+    };
+    const mentioning = (
+      text: string,
+    ): { asymmetricMatch(value: unknown): boolean } => ({
+      asymmetricMatch: (value: unknown): boolean =>
+        JSON.stringify(value ?? null).includes(text),
+    });
+
+    const normal = await failedDelivery("normal");
+    const secret = await failedDelivery("secret");
+
+    // A normal failure names its recipient and subject, so the check can fail.
+    expect(normal.warn).toHaveBeenCalledWith(
+      "Email delivery failed",
+      expect.objectContaining({
+        to: "operator@example.com",
+        subject: "Database health check failed",
+      }),
+    );
+    expect(secret.warn).toHaveBeenCalledWith(
+      "Email delivery failed for a secret message",
+      { failureCode: "resend_http_500" },
+    );
+    for (const text of ["operator@example.com", "Database health check"]) {
+      for (const method of [
+        secret.debug,
+        secret.info,
+        secret.warn,
+        secret.error,
+      ]) {
+        expect(method).not.toHaveBeenCalledWith(mentioning(text));
+        expect(method).not.toHaveBeenCalledWith(
+          mentioning(text),
+          expect.anything(),
+        );
+        expect(method).not.toHaveBeenCalledWith(
+          expect.anything(),
+          mentioning(text),
+        );
+      }
+    }
+  });
+
   it("redacts failed deliveries unless the caller stated they are normal", () => {
     // Only an explicit opt-out logs the address; an absent value must not.
     expect(shouldRedactDelivery("normal")).toBe(false);

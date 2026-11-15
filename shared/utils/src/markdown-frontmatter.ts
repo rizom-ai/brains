@@ -53,6 +53,36 @@ export function readMarkdownFrontmatter(markdown: string): MarkdownFrontmatter {
   return { data: data ?? {}, content, language };
 }
 
+/**
+ * A leading frontmatter block, including the line ending that closes it.
+ * Group 1 is the text inside the block; it is undefined for an empty
+ * `---`/`---` pair.
+ */
+export const FRONTMATTER_BLOCK: RegExp =
+  /^---\r?\n(?:([\s\S]*?)\r?\n)?---[ \t]*(?:\r?\n|$)/;
+
+export interface MarkdownBodyOptions {
+  /** Trim whitespace around the body. */
+  trim?: boolean;
+  /** Leave an empty `---`/`---` pair in place instead of reading it as frontmatter. */
+  keepEmptyBlock?: boolean;
+}
+
+/**
+ * The text of a markdown document without its frontmatter block. It never
+ * throws: a block it cannot recognize is left in place.
+ */
+export function markdownBody(
+  markdown: string,
+  options: MarkdownBodyOptions = {},
+): string {
+  const block = FRONTMATTER_BLOCK.exec(markdown);
+  const strip =
+    block !== null && !(options.keepEmptyBlock && block[1] === undefined);
+  const body = strip ? markdown.slice(block[0].length) : markdown;
+  return options.trim ? body.trim() : body;
+}
+
 function fieldRecord(data: unknown): Record<string, unknown> {
   if (data === null || (typeof data !== "object" && typeof data !== "string")) {
     return {};
