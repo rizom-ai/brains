@@ -133,3 +133,24 @@ test("fake receipt keys are scoped without delimiter collisions", async () => {
     await service.getEntityMutationReceipt({ namespace: "a", key: "b\u0000c" }),
   ).toBeNull();
 });
+
+test("a deduplicated create lands beside a taken id, as the real service resolves it", async () => {
+  const { service, store, request } = fixture();
+  if (request.operation !== "create") throw new Error("Expected create");
+  await service.createEntity({ entity: { ...request.request.entity } });
+  const deduplicated = {
+    ...request,
+    request: { ...request.request, options: { deduplicateId: true } },
+  };
+  expect(await service.applyEntityMutationOnce(deduplicated)).toEqual({
+    operation: "create",
+    entityType: "note",
+    entityId: "target-2",
+  });
+  expect(await service.applyEntityMutationOnce(deduplicated)).toEqual({
+    operation: "create",
+    entityType: "note",
+    entityId: "target-2",
+  });
+  expect([...store.entities.keys()].sort()).toEqual(["target", "target-2"]);
+});

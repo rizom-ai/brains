@@ -1170,7 +1170,9 @@ export class DeclarativeGenerationHandler extends BaseGenerationJobHandler<unkno
    * Delete the sources this type's generation uses up, now that what it
    * wrote is saved: as the run, held to the source type's delete policy,
    * and only those it can see. One it may not or could not delete is kept
-   * and recorded on the run with why, so the result names it.
+   * and recorded on the run with why, so the result names it. One that is
+   * already gone is removed: a job killed after removing it runs this
+   * again.
    */
   private async removeUsedUpSources(): Promise<void> {
     const { source, authority, kept } = this.currentRun();
@@ -1182,14 +1184,24 @@ export class DeclarativeGenerationHandler extends BaseGenerationJobHandler<unkno
     const outcomes = await Promise.all(
       source.ids.map(async (id): Promise<string | undefined> => {
         const entry = `${source.entityType}/${id}`;
-        if (refused) return `${entry} (${refused})`;
         try {
-          const visible = await this.context.entityService.getEntity({
+          const held = await this.context.entityService.getEntity({
             entityType: source.entityType,
             id,
-            visibilityScope: authority.scope(source.entityType),
+            visibilityScope: internalFullScope(
+              "a used-up source that is already gone needs no removal; only its presence and visibility are read",
+            ),
           });
-          if (!visible) return `${entry} (not found)`;
+          if (!held) return undefined;
+          if (refused) return `${entry} (${refused})`;
+          if (
+            !isVisibleWithinScope(
+              held.visibility,
+              authority.scope(source.entityType),
+            )
+          ) {
+            return `${entry} (not visible to its requester)`;
+          }
           await this.context.entityService.deleteEntity({
             entityType: source.entityType,
             id,

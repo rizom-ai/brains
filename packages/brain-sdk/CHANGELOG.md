@@ -1,5 +1,65 @@
 # @brains/sdk
 
+## 0.2.0-alpha.720
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.720
+  - @brains/utils@0.2.0-alpha.720
+  - @brains/entity-service@0.2.0-alpha.720
+  - @brains/plugins@0.2.0-alpha.720
+  - @brains/scheduler@0.2.0-alpha.720
+  - @brains/templates@0.2.0-alpha.720
+
+## 0.2.0-alpha.719
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.719
+  - @brains/utils@0.2.0-alpha.719
+  - @brains/entity-service@0.2.0-alpha.719
+  - @brains/plugins@0.2.0-alpha.719
+  - @brains/scheduler@0.2.0-alpha.719
+  - @brains/templates@0.2.0-alpha.719
+
+## 0.2.0-alpha.718
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.718
+  - @brains/utils@0.2.0-alpha.718
+  - @brains/entity-service@0.2.0-alpha.718
+  - @brains/plugins@0.2.0-alpha.718
+  - @brains/scheduler@0.2.0-alpha.718
+  - @brains/templates@0.2.0-alpha.718
+
+## 0.2.0-alpha.717
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.717
+  - @brains/utils@0.2.0-alpha.717
+  - @brains/entity-service@0.2.0-alpha.717
+  - @brains/plugins@0.2.0-alpha.717
+  - @brains/scheduler@0.2.0-alpha.717
+  - @brains/templates@0.2.0-alpha.717
+
+## 0.2.0-alpha.716
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.716
+  - @brains/utils@0.2.0-alpha.716
+  - @brains/entity-service@0.2.0-alpha.716
+  - @brains/plugins@0.2.0-alpha.716
+  - @brains/scheduler@0.2.0-alpha.716
+  - @brains/templates@0.2.0-alpha.716
+
 ## 0.2.0-alpha.715
 
 ### Patch Changes

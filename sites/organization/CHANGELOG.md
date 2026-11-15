@@ -1,5 +1,80 @@
 # @brains/site-organization
 
+## 0.2.0-alpha.720
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/agent-discovery@0.2.0-alpha.720
+  - @brains/faq@0.2.0-alpha.720
+  - @brains/sdk@0.2.0-alpha.720
+  - @rizom/brain-ui@0.2.0-alpha.720
+  - @brains/profile@0.2.0-alpha.720
+  - @brains/contracts@0.2.0-alpha.720
+  - @brains/site-atlas@0.2.0-alpha.720
+  - @brains/site-composition@0.2.0-alpha.720
+  - @brains/utils@0.2.0-alpha.720
+
+## 0.2.0-alpha.719
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/agent-discovery@0.2.0-alpha.719
+  - @brains/faq@0.2.0-alpha.719
+  - @brains/sdk@0.2.0-alpha.719
+  - @rizom/brain-ui@0.2.0-alpha.719
+  - @brains/profile@0.2.0-alpha.719
+  - @brains/contracts@0.2.0-alpha.719
+  - @brains/site-atlas@0.2.0-alpha.719
+  - @brains/site-composition@0.2.0-alpha.719
+  - @brains/utils@0.2.0-alpha.719
+
+## 0.2.0-alpha.718
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/agent-discovery@0.2.0-alpha.718
+  - @brains/faq@0.2.0-alpha.718
+  - @brains/sdk@0.2.0-alpha.718
+  - @rizom/brain-ui@0.2.0-alpha.718
+  - @brains/profile@0.2.0-alpha.718
+  - @brains/contracts@0.2.0-alpha.718
+  - @brains/site-atlas@0.2.0-alpha.718
+  - @brains/site-composition@0.2.0-alpha.718
+  - @brains/utils@0.2.0-alpha.718
+
+## 0.2.0-alpha.717
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/agent-discovery@0.2.0-alpha.717
+  - @brains/faq@0.2.0-alpha.717
+  - @brains/sdk@0.2.0-alpha.717
+  - @rizom/brain-ui@0.2.0-alpha.717
+  - @brains/profile@0.2.0-alpha.717
+  - @brains/contracts@0.2.0-alpha.717
+  - @brains/site-atlas@0.2.0-alpha.717
+  - @brains/site-composition@0.2.0-alpha.717
+  - @brains/utils@0.2.0-alpha.717
+
+## 0.2.0-alpha.716
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/agent-discovery@0.2.0-alpha.716
+  - @brains/faq@0.2.0-alpha.716
+  - @brains/sdk@0.2.0-alpha.716
+  - @rizom/brain-ui@0.2.0-alpha.716
+  - @brains/profile@0.2.0-alpha.716
+  - @brains/contracts@0.2.0-alpha.716
+  - @brains/site-atlas@0.2.0-alpha.716
+  - @brains/site-composition@0.2.0-alpha.716
+  - @brains/utils@0.2.0-alpha.716
+
 ## 0.2.0-alpha.715
 
 ### Patch Changes

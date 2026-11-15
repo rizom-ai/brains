@@ -1,5 +1,55 @@
 # @brains/conversation-service
 
+## 0.2.0-alpha.720
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.720
+  - @brains/db@0.2.0-alpha.720
+  - @brains/utils@0.2.0-alpha.720
+  - @brains/messaging-service@0.2.0-alpha.720
+
+## 0.2.0-alpha.719
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.719
+  - @brains/db@0.2.0-alpha.719
+  - @brains/utils@0.2.0-alpha.719
+  - @brains/messaging-service@0.2.0-alpha.719
+
+## 0.2.0-alpha.718
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.718
+  - @brains/db@0.2.0-alpha.718
+  - @brains/utils@0.2.0-alpha.718
+  - @brains/messaging-service@0.2.0-alpha.718
+
+## 0.2.0-alpha.717
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.717
+  - @brains/db@0.2.0-alpha.717
+  - @brains/utils@0.2.0-alpha.717
+  - @brains/messaging-service@0.2.0-alpha.717
+
+## 0.2.0-alpha.716
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.716
+  - @brains/db@0.2.0-alpha.716
+  - @brains/utils@0.2.0-alpha.716
+  - @brains/messaging-service@0.2.0-alpha.716
+
 ## 0.2.0-alpha.715
 
 ### Patch Changes

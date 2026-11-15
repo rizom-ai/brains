@@ -121,9 +121,22 @@ export type RecurringCheckJobQueue = Pick<
   "enqueue" | "registerHandler" | "unregisterHandler"
 >;
 
+/** How one alert is delivered, the same on every attempt. */
+export interface RecurringAlertDeliveryOptions {
+  /**
+   * Stable for the alert's episode, so a run that dies after the send and
+   * before recording it resends under the same key, which the provider
+   * answers without sending twice.
+   */
+  idempotencyKey: string;
+}
+
 export interface RecurringCheckDelivery {
   /** Return false when no delivery channel is currently registered. */
-  deliver(alert: RecurringAlert): Promise<boolean | void>;
+  deliver(
+    alert: RecurringAlert,
+    options: RecurringAlertDeliveryOptions,
+  ): Promise<boolean | void>;
 }
 
 export interface RecurringCheckServiceOptions {
@@ -719,7 +732,9 @@ export class RecurringCheckService {
     key: string,
     state: Extract<RecurringCheckState, { kind: "alert" }>,
   ): Promise<void> {
-    const delivered = await this.delivery.deliver(state.alert);
+    const delivered = await this.delivery.deliver(state.alert, {
+      idempotencyKey: alertDeliveryKey(key, state.observedAt),
+    });
     if (delivered === false) return;
     await this.state.set(key, {
       ...state,
@@ -745,6 +760,14 @@ export class RecurringCheckService {
   private alertKey(checkId: string, dedupeKey: string): string {
     return `${this.alertKeyPrefix(checkId)}${computeContentHash(dedupeKey)}`;
   }
+}
+
+/**
+ * The idempotency key of one alert episode's delivery: its stored key and
+ * the time the episode was first observed, both durable before any send.
+ */
+function alertDeliveryKey(alertKey: string, observedAt: string): string {
+  return `recurring-alert:${computeContentHash(`${alertKey}\0${observedAt}`)}`;
 }
 
 export function createRecurringCheckSchedule(

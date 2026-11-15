@@ -92,6 +92,24 @@ async function install(
   const harness = createPluginHarness({
     logger: createSilentLogger("entity-generation-placed"),
   });
+  // What the generation hands the entity store, as written: the document
+  // the store then keeps the grouping fields of. A generation creates its
+  // entity once, with its job's receipt.
+  const service = harness.getEntityService();
+  const apply = service.applyEntityMutationOnce.bind(service);
+  const written = new Map<string, Written>();
+  handed.set(harness, written);
+  service.applyEntityMutationOnce = async (
+    mutation,
+  ): ReturnType<typeof apply> => {
+    if (mutation.operation === "create") {
+      const { entity } = mutation.request;
+      written.set(`${entity.entityType}/${entity.id}`, {
+        content: entity.content,
+      });
+    }
+    return apply(mutation);
+  };
   for (const plugin of instantiatePluginPackageDefinition(
     defineEntityPackage({ id: "briefs", entities: [brief, memo] }),
     {},
@@ -123,18 +141,6 @@ async function install(
       ],
       total: 2,
     };
-  };
-  // What the generation hands the entity store, as written: the document
-  // the store then keeps the grouping fields of.
-  const service = harness.getEntityService();
-  const create = service.createEntity.bind(service);
-  const written = new Map<string, Written>();
-  handed.set(harness, written);
-  service.createEntity = async (request): ReturnType<typeof create> => {
-    written.set(`${request.entity.entityType}/${request.entity.id}`, {
-      content: request.entity.content,
-    });
-    return create(request);
   };
   return { harness, asked, catalogs };
 }

@@ -147,17 +147,25 @@ describe("the note generation", () => {
 
     it("should slugify the title for the entity id and dedupe", async () => {
       reply = { title: "My Fancy Note!", body: "Body text" };
-      const create = spyOn(harness.getEntityService(), "createEntity");
+      // Created once per job, under the job's receipt.
+      const create = spyOn(
+        harness.getEntityService(),
+        "applyEntityMutationOnce",
+      );
 
       const result = await run(asPackage({ prompt: "Write a note" }));
 
       expect(result).toMatchObject({ success: true });
       expect(create).toHaveBeenCalledWith({
-        entity: expect.objectContaining({
-          id: "my-fancy-note",
-          metadata: expect.objectContaining({ title: "My Fancy Note!" }),
-        }),
-        options: { deduplicateId: true },
+        receipt: { namespace: "generation.create", key: "job-123" },
+        operation: "create",
+        request: {
+          entity: expect.objectContaining({
+            id: "my-fancy-note",
+            metadata: expect.objectContaining({ title: "My Fancy Note!" }),
+          }),
+          options: { deduplicateId: true },
+        },
       });
     });
 
@@ -179,17 +187,25 @@ describe("the note generation", () => {
       ): Promise<{ object: T }> => ({
         object: schema.parse({ title: "Fresh Title" }),
       });
-      const create = spyOn(harness.getEntityService(), "createEntity");
+      // Created once per job, under the job's receipt.
+      const create = spyOn(
+        harness.getEntityService(),
+        "applyEntityMutationOnce",
+      );
 
       const result = await run(asPackage({ prompt: "Write a note" }));
 
       expect(result).toMatchObject({ success: true });
       expect(create).toHaveBeenCalledWith({
-        entity: expect.objectContaining({
-          id: "fresh-title",
-          metadata: expect.objectContaining({ title: "Fresh Title" }),
-        }),
-        options: { deduplicateId: true },
+        receipt: { namespace: "generation.create", key: "job-123" },
+        operation: "create",
+        request: {
+          entity: expect.objectContaining({
+            id: "fresh-title",
+            metadata: expect.objectContaining({ title: "Fresh Title" }),
+          }),
+          options: { deduplicateId: true },
+        },
       });
     });
   });

@@ -1,5 +1,37 @@
 # @rizom/brain
 
+## 0.2.0-alpha.720
+
+### Patch Changes
+
+- [#969](https://github.com/rizom-ai/brains/pull/969) [`a83340e`](https://github.com/rizom-ai/brains/commit/a83340eccf82c69b7eb3de38bce1f9ff9ee47c6d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Choosing a stock photo now sets the cover image when the photo is already stored. Before, the select-photo job failed on the photo's taken id and never set the cover. This happened when the job was run again after it had saved the photo, or when another post had already chosen the same photo. Now the job reuses the stored photo instead of downloading it again, and pings Unsplash's download tracker once for each use. A rerun of a job that already pinged the tracker does not ping it again.
+
+## 0.2.0-alpha.719
+
+### Patch Changes
+
+- [#968](https://github.com/rizom-ai/brains/pull/968) [`214f5b4`](https://github.com/rizom-ai/brains/commit/214f5b46028f09a5c8316f529545662cc4064529) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A recurring check alert is no longer emailed twice when its run dies after the send and before the alert is marked delivered. Each delivery attempt of an alert now carries the same idempotency key, derived from the alert and the time it was first observed, and the email provider answers a repeated key without sending again. The provider keeps a key for 24 hours, so a rerun that comes more than a day after such a crash can still send the alert a second time.
+
+## 0.2.0-alpha.718
+
+### Patch Changes
+
+- [#965](https://github.com/rizom-ai/brains/pull/965) [`3d83084`](https://github.com/rizom-ai/brains/commit/3d83084c567602976126cee107e898ca95b9cf62) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A generation job that is run again after its post, deck, note, social post or newsletter was saved no longer writes a second one. Before, a job that died after saving, or whose follow-up failed so the queue retried it, saved a copy under the next free id with the same status. A queued copy was then published as well: a second LinkedIn post, a second newsletter send, or a second post whose publishing sent another newsletter. Now the job records its saved entity in the same transaction, and a rerun finishes from that entity without generating again. The job's follow-ups, such as queuing a cover image, run once per job, and a rerun skips the image job while the first one is still waiting.
+
+## 0.2.0-alpha.717
+
+### Patch Changes
+
+- [#962](https://github.com/rizom-ai/brains/pull/962) [`25c45dd`](https://github.com/rizom-ai/brains/commit/25c45dd2084be92b448d79222b5c6a83782b90cc) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A brain now finishes its shutdown when requests are still open. Before, the web process waited for every request in flight, such as an MCP or A2A stream, a long chat turn or a request body that never finished. The supervisor then killed it after 15 seconds, which skipped plugin shutdown, the database lease release and the database closes. Now the web listener stops taking requests and answers any that still arrive on an open connection with 503. It gives the requests in flight 5 seconds to finish, then closes them and logs how many there were. The MCP listener does the same.
+
+  The worker gives running jobs 8 seconds to finish and then interrupts the rest through their abort signal. A job interrupted this way goes back to the queue without using up a retry, unless its handler still succeeded. A job enqueued without retries fails as it would after a crash. If a job ignores the interruption, the worker keeps its session, so no other worker picks the job up while this process may still be running it. The job is reclaimed once the session lapses.
+
+## 0.2.0-alpha.716
+
+### Patch Changes
+
+- [#960](https://github.com/rizom-ai/brains/pull/960) [`4929c4e`](https://github.com/rizom-ai/brains/commit/4929c4eac7415aefe8af3958b962d180df06c599) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A conditional delete of a container that changed since it was read no longer deletes the container's contents: it deletes nothing.
+
 ## 0.2.0-alpha.715
 
 ### Patch Changes

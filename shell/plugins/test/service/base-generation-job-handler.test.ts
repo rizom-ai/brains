@@ -2,7 +2,11 @@ import { createMockEntityService } from "@brains/entity-service/test";
 import { createMockEntityPluginContext } from "../../src/test/mock-entity-plugin-context";
 import { describe, expect, it, mock } from "bun:test";
 import { z } from "@brains/utils/zod";
-import type { BaseEntity, EntityMutationResult } from "@brains/entity-service";
+import type {
+  BaseEntity,
+  EntityMutationReceipt,
+  EntityMutationResult,
+} from "@brains/entity-service";
 import type { GenerationResult } from "@brains/contracts";
 import {
   CallbackProgressReporter,
@@ -110,14 +114,17 @@ function createTrackingContext(stub: BaseEntity): {
   const entityService = createMockEntityService({
     returns: { getEntity: stub },
   });
-  entityService.createEntity = async (
+  // A new entity is created once per job, under its receipt; the follow-ups
+  // record a done-marker the same way.
+  entityService.applyEntityMutationOnce = async (
     request,
-  ): Promise<EntityMutationResult> => {
-    createdEntity = request.entity;
+  ): Promise<EntityMutationReceipt> => {
+    if (request.operation === "none") return { operation: "none" };
+    createdEntity = request.request.entity;
     return {
-      entityId: request.entity.id ?? "created-id",
-      jobId: "job-id",
-      skipped: false,
+      operation: request.operation,
+      entityType: request.request.entity.entityType,
+      entityId: request.request.entity.id ?? "created-id",
     };
   };
   entityService.updateEntity = async (

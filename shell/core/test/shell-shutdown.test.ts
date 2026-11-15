@@ -1,7 +1,16 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { createTestShellConfig } from "./helpers/test-config";
 import { Shell, type ShellDependencies } from "../src/shell";
-import type { Plugin } from "@brains/plugins";
+import type {
+  Plugin,
+  PluginCapabilities,
+  WebRouteDefinition,
+} from "@brains/plugins";
+import { baseEntitySchema } from "@brains/entity-service";
+import {
+  createTestEntity,
+  createTestEntityAdapter,
+} from "@brains/entity-service/test";
 import { createSilentLogger } from "@brains/test-utils";
 import { createTestDirectory } from "@brains/test-utils";
 import {
@@ -52,6 +61,78 @@ function deferred(): { promise: Promise<void>; resolve(): void } {
     settle = resolve;
   });
   return { promise, resolve: (): void => settle?.() };
+}
+
+function freePort(): number {
+  const listener = Bun.listen({
+    hostname: "127.0.0.1",
+    port: 0,
+    socket: { data() {} },
+  });
+  const { port } = listener;
+  listener.stop(true);
+  return port;
+}
+
+/**
+ * Holds what MCP and A2A hold open: an event stream that never ends and a
+ * request whose body never finishes. Each keeps its own daemon, as those
+ * transports do, so the test sees their stops still run after the host
+ * closes the requests.
+ */
+function streamHoldingPlugin(
+  stopped: string[],
+  entered: { stream(): void; body(): void },
+): Plugin {
+  return {
+    id: "stream-holder",
+    packageName: "@test/stream-holder",
+    type: "service",
+    version: "1.0.0",
+    register: async (shell): Promise<PluginCapabilities> => {
+      for (const name of ["mcp-like", "a2a-like"]) {
+        shell.registerDaemon(
+          name,
+          {
+            start: async (): Promise<void> => undefined,
+            stop: async (): Promise<void> => {
+              stopped.push(name);
+            },
+          },
+          "stream-holder",
+        );
+      }
+      return { tools: [], resources: [] };
+    },
+    getWebRoutes: (): WebRouteDefinition[] => [
+      {
+        path: "/stream",
+        public: true,
+        handler: (): Response => {
+          entered.stream();
+          // Opens the event stream, as an SSE transport does, and never ends it.
+          const opened = new ReadableStream<Uint8Array>({
+            start: (controller): void => {
+              controller.enqueue(new TextEncoder().encode(": open\n\n"));
+            },
+          });
+          return new Response(opened, {
+            headers: { "Content-Type": "text/event-stream" },
+          });
+        },
+      },
+      {
+        path: "/body",
+        method: "POST",
+        public: true,
+        handler: async (request): Promise<Response> => {
+          entered.body();
+          // The forced close aborts the body read.
+          return new Response(await request.text().catch(() => ""));
+        },
+      },
+    ],
+  };
 }
 
 describe("Shell shutdown", () => {
@@ -112,6 +193,110 @@ describe("Shell shutdown", () => {
       reader.close();
     }
   });
+
+  it(
+    "finishes the whole shutdown while requests are held open",
+    async () => {
+      await runMigrations(testDir.dir);
+      const port = freePort();
+      const stopped: string[] = [];
+      const stream = Promise.withResolvers<void>();
+      const body = Promise.withResolvers<void>();
+      const config = createTestShellConfig(testDir.dir, {
+        http: { enabled: true, hostname: "127.0.0.1", port },
+        plugins: [
+          streamHoldingPlugin(stopped, {
+            stream: () => stream.resolve(),
+            body: () => body.resolve(),
+          }),
+        ],
+      });
+      const shell = Shell.createFresh(config, deps, { processRole: "web" });
+      shell
+        .getEntityRegistry()
+        .registerEntityType(
+          "picture",
+          baseEntitySchema,
+          createTestEntityAdapter("picture"),
+          {
+            binaryStorage: "asset",
+            embeddable: false,
+            fullTextSearchable: false,
+          },
+        );
+      await shell.initialize();
+      const entityService = shell.getEntityService();
+      const asset = await entityService.stageAsset(
+        Buffer.from([0x89, 0x50, 0x4e, 0x47, 1, 2, 3]),
+      );
+      await entityService.createEntity({
+        entity: createTestEntity("picture", {
+          id: "cover",
+          content: asset.ref,
+          metadata: { mediaType: "image/png" },
+        }),
+        stagedAsset: asset,
+      });
+      // A legacy read the ledger holds until its final flush.
+      await entityService.getEntityRaw({ entityType: "picture", id: "cover" });
+
+      const openStream = await fetch(`http://127.0.0.1:${port}/stream`);
+      const events = openStream.body?.getReader();
+      await events?.read();
+      const streamEnded = events?.read().then(
+        ({ done }) => (done ? "ended" : "data"),
+        () => "ended",
+      );
+      const partial = Bun.connect({
+        hostname: "127.0.0.1",
+        port,
+        socket: { data: () => undefined },
+      });
+      (await partial).write(
+        "POST /body HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Length: 1000\r\n\r\npartial",
+      );
+      await Promise.all([stream.promise, body.promise]);
+
+      const started = performance.now();
+      await shell.shutdown();
+
+      // The host's default drain deadline, with room for the rest of shutdown.
+      expect(performance.now() - started).toBeLessThan(8_000);
+      expect(await streamEnded).toBe("ended");
+      expect(stopped.sort()).toEqual(["a2a-like", "mcp-like"]);
+      const reader = openOfflineEntityDatabase(`${testDir.dir}/test.db`).client;
+      try {
+        expect(await readDatabaseLeases(reader)).toEqual([]);
+      } finally {
+        reader.close();
+      }
+      let closedError: unknown;
+      try {
+        await entityService.listEntities({ entityType: "note" });
+      } catch (error) {
+        closedError = error;
+      }
+      expect(
+        String(closedError) +
+          (closedError instanceof Error ? String(closedError.cause) : ""),
+      ).toContain("CLIENT_CLOSED");
+
+      const next = Shell.createFresh(createTestShellConfig(testDir.dir), deps, {
+        processRole: "web",
+      });
+      await next.initialize();
+      try {
+        expect(
+          (await next.getAppInfo()).legacyBinaryContent.map(
+            ({ method, count }) => [method, count],
+          ),
+        ).toEqual([["getEntityRaw", 1]]);
+      } finally {
+        await next.shutdown();
+      }
+    },
+    { timeout: 20_000 },
+  );
 
   it("should close job queue database connection on shutdown", async () => {
     await runMigrations(testDir.dir);

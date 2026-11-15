@@ -191,6 +191,23 @@ describe("a generation whose type uses up its sources", () => {
     expect(await exists(shell, SCRAP, "first")).toBe(true);
   });
 
+  // A job killed after it removed a source runs its follow-ups again: what
+  // is already gone is removed, not something it failed to remove.
+  it("counts a source that is already gone as removed", async () => {
+    const shell = await install({ usr_admin: "admin" });
+
+    expect(
+      await generate(
+        shell,
+        "polished",
+        { sourceEntityType: SCRAP, sourceEntityIds: ["first", "gone-before"] },
+        toolCaller("usr_admin", "admin"),
+      ),
+    ).toEqual({ success: true, entityId: "polished" });
+
+    expect(await exists(shell, SCRAP, "first")).toBe(false);
+  });
+
   it("keeps a source of a type it does not use up", async () => {
     const shell = await install({ usr_admin: "admin" });
 

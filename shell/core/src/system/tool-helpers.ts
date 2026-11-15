@@ -6,57 +6,37 @@ import type {
   EntityMutationEventContext,
 } from "@brains/entity-service";
 import type { Tool, ToolContext, ToolResponse } from "@brains/mcp-service";
-import type {
-  EntityAction,
-  PermissionService,
-  UserPermissionLevel,
-} from "@brains/templates";
 import { getErrorMessage } from "@brains/utils/error";
-import { capitalize } from "@brains/utils/string-utils";
 import type { z } from "@brains/utils/zod";
-import { assertEntityActionAllowed } from "./entity-action-policy";
+import { entityActionRefusal } from "./entity-action-policy";
 import type { SystemServices } from "./types";
 import { isRecord } from "@brains/utils/is-record";
 import { permissionToVisibilityScope } from "@brains/entity-service";
 
 const PLUGIN_ID = "system";
 
-const ROLE_LABELS: Record<UserPermissionLevel, string> = {
-  admin: "Admin",
-  trusted: "Trusted",
-  public: "Public",
-};
+/** A guard's outcome: the value it let through, or the response refusing it. */
+export type Guarded<T> =
+  { kind: "error"; result: ToolResponse } | { kind: "ok"; value: T };
 
-export function checkEntityActionPermission(
-  permissionService: PermissionService,
-  context: ToolContext,
-  entityType: string,
-  action: EntityAction,
-): ToolResponse | undefined {
-  const requiredLevel = permissionService.getRequiredEntityActionLevel(
-    entityType,
-    action,
-  );
-  if (!requiredLevel) return undefined;
+/** A guard's refusal, as the tool response it returns. */
+export function guardRefusal(result: ToolResponse): {
+  kind: "error";
+  result: ToolResponse;
+} {
+  return { kind: "error", result };
+}
 
-  const verb = capitalize(action);
-
-  if (requiredLevel === "never") {
-    return {
-      success: false,
-      error: `${verb} ${entityType} is not allowed through system tools.`,
-    };
-  }
-
-  const userLevel = context.userPermissionLevel ?? "public";
-  if (permissionService.hasPermission(userLevel, requiredLevel)) {
-    return undefined;
-  }
-
-  return {
+/** A guard's refusal with this error, and the code a caller can match on. */
+export function guardError(
+  error: string,
+  code?: string,
+): { kind: "error"; result: ToolResponse } {
+  return guardRefusal({
     success: false,
-    error: `${verb} ${entityType} requires ${ROLE_LABELS[requiredLevel]} permission; your current permission is ${ROLE_LABELS[userLevel]}.`,
-  };
+    error,
+    ...(code !== undefined && { code }),
+  });
 }
 
 /**
@@ -156,7 +136,7 @@ export async function runCreateInterceptor(
       },
     };
   }
-  const transformedPolicyError = assertEntityActionAllowed(
+  const transformedPolicyError = entityActionRefusal(
     services,
     transformedInput.entityType,
     "create",
@@ -170,7 +150,8 @@ export async function runCreateInterceptor(
 }
 
 /**
- * Reject an operation on an entity type that no plugin has registered.
+ * The refusal of an operation on an entity type that no plugin has
+ * registered, or undefined when the type is registered.
  *
  * Without this guard the create tool confirms and (for `prompt` creates) runs a
  * full generation pass before `EntityRegistry.getAdapter` finally throws
@@ -179,7 +160,7 @@ export async function runCreateInterceptor(
  * early rejection, and listing the available types lets the model recover by
  * choosing a type that actually exists in this brain.
  */
-export function assertEntityTypeRegistered(
+export function entityTypeRefusal(
   services: {
     entityRegistry: { hasEntityType(type: string): boolean };
     entityService: { getEntityTypes(): string[] };
@@ -322,10 +303,7 @@ export async function resolveCreateTarget(
     copyHint: string;
   },
   toolContext: ToolContext,
-): Promise<
-  | { kind: "error"; result: ToolResponse }
-  | { kind: "ok"; value: FailedCreateTarget | undefined }
-> {
+): Promise<Guarded<FailedCreateTarget | undefined>> {
   if (target.replace || !target.candidateId) {
     return { kind: "ok", value: undefined };
   }
@@ -341,25 +319,16 @@ export async function resolveCreateTarget(
   if (
     existing.metadata["status"] === "failed" &&
     toolContext.userPermissionLevel === "admin" &&
-    !assertEntityActionAllowed(
-      services,
-      target.entityType,
-      "delete",
-      toolContext,
-    )
+    !entityActionRefusal(services, target.entityType, "delete", toolContext)
   ) {
     return {
       kind: "ok",
       value: { entityType: existing.entityType, id: existing.id },
     };
   }
-  return {
-    kind: "error",
-    result: {
-      success: false,
-      error: `A ${target.entityType} already exists for "${target.candidateId}". To change it, use system_update on that ${target.entityType} in this turn, without asking first; pass replace:true to ${target.copyHint}.`,
-    },
-  };
+  return guardError(
+    `A ${target.entityType} already exists for "${target.candidateId}". To change it, use system_update on that ${target.entityType} in this turn, without asking first; pass replace:true to ${target.copyHint}.`,
+  );
 }
 
 /** The confirmation line naming the failed placeholder a create replaces. */

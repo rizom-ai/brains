@@ -233,6 +233,43 @@ describe("StreamableHTTPServer", () => {
       await expect(server.start()).rejects.toThrow("Server is already running");
     });
 
+    test("closes a request still in flight once the drain deadline passes", async () => {
+      const entered = Promise.withResolvers<void>();
+      server = new StreamableHTTPServer({
+        port: 0,
+        host: "127.0.0.1",
+        logger: mockLogger,
+        shutdownDrainMs: 50,
+        auth: {
+          verifyBearerToken: (): Promise<undefined> => {
+            entered.resolve();
+            return new Promise(() => undefined);
+          },
+        },
+      });
+      await server.start();
+      const held = fetch(`http://127.0.0.1:${server.getPort()}/mcp`, {
+        method: "POST",
+        headers: { Authorization: "Bearer held" },
+      }).then(
+        () => "answered",
+        () => "closed",
+      );
+      await entered.promise;
+
+      const outcome = await Promise.race([
+        server.stop().then(() => "stopped"),
+        Bun.sleep(1000).then(() => "hung"),
+      ]);
+
+      expect(outcome).toBe("stopped");
+      expect(server.isRunning()).toBe(false);
+      expect(await held).toBe("closed");
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        "StreamableHTTP server drain passed 50ms with 1 request(s) in flight; closing them",
+      );
+    });
+
     test("reports a port collision", async () => {
       const first = new StreamableHTTPServer({
         port: 0,
