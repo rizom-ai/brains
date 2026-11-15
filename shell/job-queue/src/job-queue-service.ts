@@ -528,6 +528,11 @@ export class JobQueueService implements IJobQueueService {
     return this.repository.fail(jobId, error, attemptId);
   }
 
+  /** Return an interrupted attempt's job to the queue, its retries intact. */
+  public release(jobId: string, attemptId: string): Promise<boolean> {
+    return this.repository.release(jobId, attemptId);
+  }
+
   /** Operator-only recovery for an exact retired job with no attempt owner. */
   public retireUnownedActiveJob(
     request: RetireUnownedActiveJobRequest,

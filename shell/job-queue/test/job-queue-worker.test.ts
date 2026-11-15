@@ -1185,6 +1185,273 @@ describe("JobQueueWorker", () => {
   });
 
   describe("Graceful shutdown", () => {
+    async function shutdownQueue(): Promise<{
+      service: JobQueueService;
+      enqueue: (maxRetries?: number) => Promise<string>;
+      cleanup: () => Promise<void>;
+    }> {
+      const database = await createTestJobQueueDatabase();
+      const service = JobQueueService.createFresh(
+        database.config,
+        createSilentLogger(),
+      );
+      return {
+        service,
+        enqueue: (maxRetries?: number) =>
+          service.enqueue({
+            type: "shell:embedding",
+            data: { id: "entity-123", content: "test" },
+            options: {
+              ...(maxRetries === undefined ? {} : { maxRetries }),
+              source: "test",
+              metadata: { operationType: "data_processing" },
+            },
+          }),
+        cleanup: async (): Promise<void> => {
+          service.close();
+          await database.cleanup();
+        },
+      };
+    }
+
+    function shutdownWorker(
+      service: IJobQueueService,
+      config: JobQueueWorkerConfig = {},
+    ): JobQueueWorker {
+      return JobQueueWorker.createFresh(
+        service,
+        mockProgressMonitor,
+        createSilentLogger(),
+        {
+          pollInterval: 10,
+          workerSlotId: "drain-slot",
+          shutdownDrainMs: 50,
+          ...config,
+        },
+      );
+    }
+
+    it("interrupts a job still running at the drain deadline and retries it later", async () => {
+      const queue = await shutdownQueue();
+      const handler = createMockHandler();
+      const signals: AbortSignal[] = [];
+      handler.process.mockImplementationOnce(
+        (
+          _data: unknown,
+          _jobId: string,
+          _reporter: ProgressReporter,
+          signal: AbortSignal,
+        ) =>
+          new Promise((_resolve, reject) => {
+            signals.push(signal);
+            signal.addEventListener("abort", () => reject(signal.reason), {
+              once: true,
+            });
+          }),
+      );
+      queue.service.registerHandler("shell:embedding", handler);
+      try {
+        const id = await queue.enqueue();
+        worker = shutdownWorker(queue.service);
+        await worker.start();
+        await waitUntil(
+          () => worker.getStats().activeJobs > 0,
+          "the worker to start the long job",
+        );
+
+        const started = performance.now();
+        await worker.stop();
+
+        expect(performance.now() - started).toBeLessThan(1_000);
+        expect(signals[0]?.aborted).toBe(true);
+        expect(handler.onError).not.toHaveBeenCalled();
+        expect(handler.onTerminalError).not.toHaveBeenCalled();
+        // Shutdown is not the job's failure: it waits with its retries intact.
+        expect(await queue.service.getStatus(id)).toMatchObject({
+          status: "pending",
+          retryCount: 0,
+          attemptId: null,
+        });
+
+        worker = shutdownWorker(queue.service);
+        await worker.start();
+        await waitUntil(
+          async () =>
+            (await queue.service.getStatus(id))?.status === "completed",
+          "the interrupted job to run again",
+        );
+        expect(handler.process).toHaveBeenCalledTimes(2);
+      } finally {
+        if (worker.isWorkerRunning()) await worker.stop();
+        await queue.cleanup();
+      }
+    });
+
+    it("fails an at-most-once job interrupted at the drain deadline, as a crash would", async () => {
+      const queue = await shutdownQueue();
+      const handler = createMockHandler();
+      handler.process.mockImplementationOnce(
+        (
+          _data: unknown,
+          _jobId: string,
+          _reporter: ProgressReporter,
+          signal: AbortSignal,
+        ) =>
+          new Promise((_resolve, reject) => {
+            signal.addEventListener("abort", () => reject(signal.reason), {
+              once: true,
+            });
+          }),
+      );
+      queue.service.registerHandler("shell:embedding", handler);
+      try {
+        const id = await queue.enqueue(0);
+        worker = shutdownWorker(queue.service);
+        await worker.start();
+        await waitUntil(
+          () => worker.getStats().activeJobs > 0,
+          "the worker to start the long job",
+        );
+
+        await worker.stop();
+
+        expect(await queue.service.getStatus(id)).toMatchObject({
+          status: "failed",
+        });
+        expect(handler.onTerminalError).toHaveBeenCalledTimes(1);
+      } finally {
+        if (worker.isWorkerRunning()) await worker.stop();
+        await queue.cleanup();
+      }
+    });
+
+    it("returns a job to the queue when its handler answers the interruption with a failure result", async () => {
+      const queue = await shutdownQueue();
+      const handler = createMockHandler();
+      handler.process.mockImplementationOnce(
+        (
+          _data: unknown,
+          _jobId: string,
+          _reporter: ProgressReporter,
+          signal: AbortSignal,
+        ) =>
+          new Promise((resolve) => {
+            signal.addEventListener(
+              "abort",
+              () => resolve({ success: false, error: "aborted" }),
+              { once: true },
+            );
+          }),
+      );
+      queue.service.registerHandler("shell:embedding", handler);
+      try {
+        const id = await queue.enqueue();
+        worker = shutdownWorker(queue.service);
+        await worker.start();
+        await waitUntil(
+          () => worker.getStats().activeJobs > 0,
+          "the worker to start the long job",
+        );
+
+        await worker.stop();
+
+        expect(handler.onTerminalError).not.toHaveBeenCalled();
+        expect(await queue.service.getStatus(id)).toMatchObject({
+          status: "pending",
+          retryCount: 0,
+        });
+      } finally {
+        if (worker.isWorkerRunning()) await worker.stop();
+        await queue.cleanup();
+      }
+    });
+
+    it("completes a job whose handler still succeeds after the interruption", async () => {
+      const queue = await shutdownQueue();
+      const handler = createMockHandler();
+      handler.process.mockImplementationOnce(
+        (
+          _data: unknown,
+          _jobId: string,
+          _reporter: ProgressReporter,
+          signal: AbortSignal,
+        ) =>
+          new Promise((resolve) => {
+            // Its effect is committed; a rerun would repeat it.
+            signal.addEventListener("abort", () => resolve({ success: true }), {
+              once: true,
+            });
+          }),
+      );
+      queue.service.registerHandler("shell:embedding", handler);
+      try {
+        const id = await queue.enqueue();
+        worker = shutdownWorker(queue.service);
+        await worker.start();
+        await waitUntil(
+          () => worker.getStats().activeJobs > 0,
+          "the worker to start the long job",
+        );
+
+        await worker.stop();
+
+        expect(await queue.service.getStatus(id)).toMatchObject({
+          status: "completed",
+        });
+      } finally {
+        if (worker.isWorkerRunning()) await worker.stop();
+        await queue.cleanup();
+      }
+    });
+
+    it("leaves a job that ignores the interruption to be reclaimed once the worker is gone", async () => {
+      const queue = await shutdownQueue();
+      const handler = createMockHandler();
+      handler.process.mockImplementationOnce(
+        () => new Promise<never>(() => undefined),
+      );
+      queue.service.registerHandler("shell:embedding", handler);
+      const endWorkerSession = spyOn(queue.service, "endWorkerSession");
+      try {
+        const id = await queue.enqueue();
+        // A short lease the worker never renews stands in for the process
+        // exiting: the abandoned attempt lapses soon after the stop.
+        worker = shutdownWorker(queue.service, {
+          leaseDurationMs: 300,
+          attemptHeartbeatIntervalMs: 60_000,
+        });
+        await worker.start();
+        await waitUntil(
+          () => worker.getStats().activeJobs > 0,
+          "the worker to start the stuck job",
+        );
+
+        const started = performance.now();
+        await worker.stop();
+
+        expect(performance.now() - started).toBeLessThan(2_000);
+        // Its session stays, so no other worker claims the job while this
+        // process may still be running it.
+        expect(endWorkerSession).not.toHaveBeenCalled();
+        expect(await queue.service.getStatus(id)).toMatchObject({
+          status: "processing",
+        });
+
+        // Once its lease lapses, the next worker reclaims it.
+        worker = shutdownWorker(queue.service);
+        await worker.start();
+        await waitUntil(
+          async () =>
+            (await queue.service.getStatus(id))?.status === "completed",
+          "the abandoned job to be reclaimed",
+        );
+        expect(handler.process).toHaveBeenCalledTimes(2);
+      } finally {
+        if (worker.isWorkerRunning()) await worker.stop();
+        await queue.cleanup();
+      }
+    });
+
     it("should wait for active jobs before stopping", async () => {
       const handler = createMockHandler();
       let releaseProcessing = (): void => {};

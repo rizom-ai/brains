@@ -159,6 +159,13 @@ export function createMockJobQueue(): MockJobQueue {
       }
       return true;
     },
+    release: async (jobId) => {
+      const job = enqueuedJobs.get(jobId);
+      if (job) {
+        enqueuedJobs.set(jobId, { ...job, status: "pending", attemptId: null });
+      }
+      return true;
+    },
     update: async () => true,
     getStatus: async (jobId) => enqueuedJobs.get(jobId) ?? null,
     getJobsByRootJobId: async (rootJobId) =>
