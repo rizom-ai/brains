@@ -3,6 +3,10 @@ import {
   DEFAULT_FAVICON_PATH,
   DEFAULT_FAVICON_SVG,
 } from "@brains/contracts";
+import {
+  DEFAULT_SHUTDOWN_DRAIN_MS,
+  stopServerWithinDrain,
+} from "@brains/utils/drain-server";
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
 import type { RouteToolExecutor } from "./route-tool-executor";
@@ -48,6 +52,11 @@ export interface ServerManagerOptions {
    * Bun.serve idle timeout in seconds. Defaults to {@link WEBSERVER_IDLE_TIMEOUT_SECONDS}.
    */
   idleTimeout?: number;
+  /**
+   * How long stop() lets requests in flight finish before it closes them.
+   * Defaults to {@link DEFAULT_SHUTDOWN_DRAIN_MS}.
+   */
+  shutdownDrainMs?: number;
   /** Override for `Bun.serve`, for tests. Defaults to `Bun.serve`. */
   serve?: ServeFn;
 }
@@ -103,7 +112,9 @@ interface AppOptions {
  */
 export interface RunningServer {
   readonly port: number | undefined;
-  stop(): Promise<void> | void;
+  /** Requests in flight, when the server counts them. */
+  readonly pendingRequests?: number | undefined;
+  stop(closeActiveConnections?: boolean): Promise<void> | void;
 }
 
 /** The options this manager passes, and the server it expects back. */
@@ -124,6 +135,7 @@ export class ServerManager {
   private options: ServerManagerOptions;
   private routes: readonly RegisteredHttpRoute[] = Object.freeze([]);
   private productionServer: RunningServer | null = null;
+  private stopping = false;
   private readonly transport = new WeakMap<Request, WebRouteTransportContext>();
 
   /**
@@ -186,6 +198,7 @@ export class ServerManager {
       return;
     }
 
+    this.stopping = false;
     this.routes = Object.freeze([...resolveConfiguredRoutes(this.options)]);
 
     const productionApp = this.createApp({
@@ -213,6 +226,14 @@ export class ServerManager {
         port: this.options.productionPort,
         idleTimeout: this.options.idleTimeout ?? WEBSERVER_IDLE_TIMEOUT_SECONDS,
         fetch: async (req, server) => {
+          // A keep-alive connection can still carry a request after stop()
+          // began; it is refused rather than added to the drain.
+          if (this.stopping) {
+            return new Response("Shutting down", {
+              status: 503,
+              headers: { Connection: "close", "Retry-After": "5" },
+            });
+          }
           // Capture Bun's socket peer before routing. Headers are not peer identity.
           const remoteAddress = server?.requestIP(req)?.address;
           this.transport.set(
@@ -256,10 +277,23 @@ export class ServerManager {
     );
   }
 
+  /**
+   * Stop admitting requests, let those in flight finish within the drain
+   * deadline, then close whatever is still open.
+   */
   async stop(): Promise<void> {
-    if (this.productionServer) {
-      await this.productionServer.stop();
-      this.productionServer = null;
+    const server = this.productionServer;
+    if (server) {
+      this.stopping = true;
+      try {
+        await stopServerWithinDrain(server, {
+          drainMs: this.options.shutdownDrainMs ?? DEFAULT_SHUTDOWN_DRAIN_MS,
+          logger: this.logger,
+          label: "Webserver",
+        });
+      } finally {
+        this.productionServer = null;
+      }
     }
     this.logger.debug("Webserver stopped");
   }
@@ -285,6 +319,23 @@ export class ServerManager {
 
   private createApp(opts: AppOptions): Hono {
     const app = new Hono();
+    app.onError((error, c) => {
+      // A request the drain deadline closed fails its body read or stream;
+      // that is the shutdown working, not a fault of the route.
+      if (this.stopping) {
+        this.logger.debug(
+          `Request ended by the shutdown: ${c.req.method} ${c.req.path}: ${getErrorMessage(error)}`,
+        );
+        return c.text("Shutting down", 503);
+      }
+      // Hono's own handling otherwise.
+      if ("getResponse" in error) {
+        const response = error.getResponse();
+        return c.newResponse(response.body, response);
+      }
+      console.error(error);
+      return c.text("Internal Server Error", 500);
+    });
 
     if (opts.healthEndpoint) {
       app.all("/health", (c) => c.notFound());

@@ -1,8 +1,13 @@
-import { describe, it, expect, afterEach, mock } from "bun:test";
+import { describe, it, expect, afterEach, mock, spyOn } from "bun:test";
 import { mkdirSync, writeFileSync, rmSync, existsSync, mkdtempSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
-import { createSilentLogger } from "@brains/test-utils";
+import {
+  createMockLogger,
+  createSilentLogger,
+  waitUntil,
+} from "@brains/test-utils";
+import { connect } from "node:net";
 import type {
   ApiRouteDefinition,
   RuntimeReadiness,
@@ -20,6 +25,7 @@ import {
   type ServerManagerOptions,
   WEBSERVER_IDLE_TIMEOUT_SECONDS,
   isPathContained,
+  type RunningServer,
   type ServeFn,
 } from "../src/server-manager";
 
@@ -1446,6 +1452,210 @@ describe("ServerManager (in-process)", () => {
         `Port ${port} is already in use. Another brain may be running — stop it first or configure a different port.`,
       );
       expect(String(refusal.cause)).toContain(String(port));
+    });
+  });
+
+  // Bun's graceful stop waits for every request in flight: a held stream or a
+  // body that never finishes kept the web role from ever reaching plugin
+  // shutdown, the lease release and the database closes.
+  describe("a bounded stop", () => {
+    function boundedManager(
+      route: RegisteredHttpRoute,
+      logger = createSilentLogger("test"),
+    ): ServerManager {
+      testDir = mkdtempSync(join(tmpdir(), "webserver-drain-"));
+      return new ServerManager({
+        logger,
+        hostname: "127.0.0.1",
+        productionDistDir: testDir,
+        sharedImagesDir: testDir,
+        productionPort: 0,
+        shutdownDrainMs: 50,
+        getRoutes: (): RegisteredHttpRoute[] => [route],
+      });
+    }
+
+    async function openHeldRequest(
+      m: ServerManager,
+      head: string,
+      entered: Promise<void>,
+    ): Promise<{ closed: Promise<void> }> {
+      const url = m.getStatus().productionUrl;
+      if (!url) throw new Error("Listener missing");
+      const socket = connect(Number(new URL(url).port), "127.0.0.1");
+      const closed = new Promise<void>((resolve) => {
+        socket.once("close", () => resolve());
+      });
+      socket.on("error", () => undefined);
+      await new Promise<void>((resolve) => socket.once("connect", resolve));
+      socket.write(head);
+      await entered;
+      return { closed };
+    }
+
+    async function stopWithin(m: ServerManager, ms: number): Promise<number> {
+      const started = performance.now();
+      const outcome = await Promise.race([
+        m.stop().then(() => "stopped" as const),
+        Bun.sleep(ms).then(() => "hung" as const),
+      ]);
+      expect(outcome).toBe("stopped");
+      return performance.now() - started;
+    }
+
+    it("closes a request whose body never finishes once the drain deadline passes", async () => {
+      const entered = Promise.withResolvers<void>();
+      const m = boundedManager(
+        handlerRoute(
+          "test",
+          "/upload",
+          async (request) => {
+            entered.resolve();
+            // The forced close aborts the body read.
+            return new Response(await request.text().catch(() => ""));
+          },
+          { method: "POST" },
+        ),
+      );
+      await m.start();
+      const { closed } = await openHeldRequest(
+        m,
+        "POST /upload HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: text/plain\r\nContent-Length: 1000\r\n\r\npartial",
+        entered.promise,
+      );
+
+      expect(await stopWithin(m, 1000)).toBeLessThan(1000);
+      expect(m.getStatus().running).toBe(false);
+      expect(
+        await Promise.race([
+          closed.then(() => "closed"),
+          Bun.sleep(1000).then(() => "open"),
+        ]),
+      ).toBe("closed");
+    });
+
+    it("treats a handler failing on the forced close as part of the shutdown, not an error", async () => {
+      const entered = Promise.withResolvers<void>();
+      const logger = createMockLogger();
+      const debug = spyOn(logger, "debug");
+      const consoleError = spyOn(console, "error").mockImplementation(
+        () => undefined,
+      );
+      const m = boundedManager(
+        handlerRoute(
+          "test",
+          "/upload",
+          async (request) => {
+            entered.resolve();
+            return new Response(await request.text());
+          },
+          { method: "POST" },
+        ),
+        logger,
+      );
+      try {
+        await m.start();
+        await openHeldRequest(
+          m,
+          "POST /upload HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Length: 1000\r\n\r\npartial",
+          entered.promise,
+        );
+
+        await stopWithin(m, 1000);
+        await waitUntil(
+          () =>
+            debug.mock.calls.some(([message]) =>
+              String(message).startsWith(
+                "Request ended by the shutdown: POST /upload",
+              ),
+            ),
+          "the forced close to reach the handler",
+        );
+
+        expect(consoleError).not.toHaveBeenCalled();
+      } finally {
+        consoleError.mockRestore();
+      }
+    });
+
+    it("closes a handler that never answers once the drain deadline passes", async () => {
+      const entered = Promise.withResolvers<void>();
+      const logger = createMockLogger();
+      const m = boundedManager(
+        handlerRoute("test", "/held", () => {
+          entered.resolve();
+          return new Promise<Response>(() => undefined);
+        }),
+        logger,
+      );
+      await m.start();
+      const { closed } = await openHeldRequest(
+        m,
+        "GET /held HTTP/1.1\r\nHost: 127.0.0.1\r\n\r\n",
+        entered.promise,
+      );
+
+      expect(await stopWithin(m, 1000)).toBeLessThan(1000);
+      expect(
+        await Promise.race([
+          closed.then(() => "closed"),
+          Bun.sleep(1000).then(() => "open"),
+        ]),
+      ).toBe("closed");
+      expect(logger.warn).toHaveBeenCalledWith(
+        "Webserver drain passed 50ms with 1 request(s) in flight; closing them",
+      );
+    });
+
+    it("waits for requests that finish inside the drain deadline", async () => {
+      const finished = Promise.withResolvers<void>();
+      const fake: { stops: (boolean | undefined)[] } = { stops: [] };
+      testDir = mkdtempSync(join(tmpdir(), "webserver-drain-"));
+      const m = new ServerManager({
+        logger: createSilentLogger("test"),
+        productionDistDir: testDir,
+        sharedImagesDir: testDir,
+        productionPort: 0,
+        shutdownDrainMs: 5_000,
+        serve: (): RunningServer => ({
+          port: 1,
+          pendingRequests: 1,
+          stop: (force?: boolean): Promise<void> => {
+            fake.stops.push(force);
+            return force ? Promise.resolve() : finished.promise;
+          },
+        }),
+      });
+      await m.start();
+
+      const stopping = m.stop();
+      finished.resolve();
+      await stopping;
+
+      expect(fake.stops).toEqual([false]);
+    });
+
+    it("answers requests that arrive while stopping with 503", async () => {
+      let fetchHandler: Parameters<ServeFn>[0]["fetch"] | undefined;
+      testDir = mkdtempSync(join(tmpdir(), "webserver-drain-"));
+      const m = new ServerManager({
+        logger: createSilentLogger("test"),
+        productionDistDir: testDir,
+        sharedImagesDir: testDir,
+        productionPort: 0,
+        serve: (options): RunningServer => {
+          fetchHandler = options.fetch;
+          return { port: 1, stop: (): void => undefined };
+        },
+      });
+      await m.start();
+      await m.stop();
+      if (!fetchHandler) throw new Error("serve was not called");
+
+      const response = await fetchHandler(new Request("http://localhost/"));
+
+      expect(response.status).toBe(503);
+      expect(response.headers.get("Connection")).toBe("close");
     });
   });
 });
