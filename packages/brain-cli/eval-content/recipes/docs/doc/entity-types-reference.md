@@ -40,6 +40,7 @@ Core fields such as `id`, `entityType`, `created`, `updated`, and the markdown b
 | `brain-character`                    | identity service                     | `core`       | Singleton persona/instructions source.                     |
 | `style-guide`                        | `@brains/style-guide`                | `core`       | Messaging, voice, and visual generation guidance.          |
 | `note`                               | `@brains/note`                       | `core`       | Root-level notes and general markdown knowledge.           |
+| `refined-note`                       | `@brains/refined-note`               | `core`       | Worked-out notes written from notes, which they replace.   |
 | `prompt`                             | `@brains/prompt`                     | `core`       | Prompt/template overrides.                                 |
 | `link`                               | `@brains/link`                       | `core`       | Captured links and extracted summaries.                    |
 | `wish`                               | `@brains/wishlist`                   | `core`       | User requests and roadmap wishes.                          |
@@ -144,6 +145,23 @@ Key frontmatter:
 - `title` optional; falls back to the first H1 or filename
 
 Use notes for general knowledge, imported markdown, scratch material, and content that does not need a specialized workflow.
+
+### `refined-note` — refined notes
+
+A refined note is one worked-out note written from one or more notes. Saving it removes the notes it was written from, so the root empties over time and `brain-data/refined-note/` holds the organized set.
+
+Example path:
+
+```text
+brain-data/refined-note/push-beats-pull.md
+```
+
+Key frontmatter:
+
+- `title` required
+- `summary` required; one sentence saying what the note is
+
+Refine a note with `system_generate`: operation `prompt-from-source`, `entityType: "refined-note"` and the note as `source`. `prompt` is optional and gives the writing a direction. The confirmation names the note and says it will be removed; a caller who may not delete notes is refused. A refined note keeps no reference to the notes it came from and cannot be refined again.
 
 ### `prompt`
 

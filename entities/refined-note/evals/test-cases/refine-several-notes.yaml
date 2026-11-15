@@ -1,0 +1,59 @@
+id: refined-note-several-notes
+name: Refine several notes into one
+description: Tests that several loose notes become one worked-out note that stands on its own
+type: plugin
+tags:
+  - refined-note
+  - generation
+  - core
+plugin: refined-note
+handler: refineNotes
+
+input:
+  notes:
+    - |
+      Onboarding call w/ Mira
+
+      she stopped opening the dashboard after week 1. said she "forgot it existed". only came back when the email arrived
+    - |
+      weekly digest: 31% open rate last 4 weeks, down from 52. nobody clicks through to the dashboard from it either (2 clicks total)
+    - |
+      Chat prompts
+
+      when the assistant asks people a direct question in chat (e.g. "is the Q3 budget final?") 8 of 10 answer the same day. way better than anything we send by mail
+
+expectedOutput:
+  validateEach:
+    - path: title
+      exists: true
+    - path: summary
+      exists: true
+    - path: body
+      exists: true
+    # A refined note never says where it came from.
+    - path: body
+      matches: "^(?![\\s\\S]*\\b([Tt]hese|[Tt]he (loose|first|second|third|above|source)) notes?\\b)[\\s\\S]*$"
+  qualityCriteria:
+    minRelevanceScore: 4
+    minAccuracyScore: 4
+    minCoverageScore: 4
+    minQualityScore: 4
+    evaluationPrompt: |
+      The input is three loose notes: an onboarding call where Mira stopped
+      opening the dashboard after the first week, a weekly digest whose open
+      rate fell from 52% to 31% with 2 click-throughs, and chat prompts that
+      8 of 10 people answer the same day.
+
+      The output must be ONE worked-out note with a title, a one-sentence
+      summary and a body. Judge it as follows:
+
+      - Accuracy: every figure and name comes from the notes (Mira, week 1,
+        31%, 52%, 2 clicks, 8 of 10). Score 1 if it invents facts, numbers,
+        people or causes the notes do not contain.
+      - Coverage: all three observations are used.
+      - Quality: it connects the observations into a conclusion (people
+        respond when the product comes to them, not when they have to go to
+        it) instead of restating the three notes one after another under
+        headings. The summary is a single sentence readable without the body.
+      - Relevance: it reads as a standalone note. Score 1 if it mentions
+        "notes", "the first note", "based on the above" or how it was made.

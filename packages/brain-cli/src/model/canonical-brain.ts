@@ -62,6 +62,7 @@ import playbooksPackage from "@brains/playbooks";
 import portfolioPackage from "@brains/portfolio";
 import profilePackage from "@brains/profile";
 import promptPackage from "@brains/prompt";
+import refinedNotePackage from "@brains/refined-note";
 import onboardingPackage from "@brains/onboarding";
 import seriesPackage from "@brains/series";
 import siteBuilderPackage from "@brains/site-builder-plugin";
@@ -227,6 +228,12 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     packageCapability("note", "@brains/note", notePackage, {
       pluginId: "note",
     }),
+    packageCapability(
+      "refined-note",
+      "@brains/refined-note",
+      refinedNotePackage,
+      { pluginId: "refined-note" },
+    ),
     packageCapability("link", "@brains/link", linkPackage, {
       pluginId: "link",
     }),

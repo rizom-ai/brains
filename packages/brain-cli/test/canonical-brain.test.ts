@@ -14,6 +14,7 @@ const expectedCatalogIds = [
   "image",
   "document",
   "note",
+  "refined-note",
   "link",
   "wishlist",
   "topics",
@@ -70,6 +71,7 @@ const expectedCoreMembers = [
   "style-guide",
   "directory-sync",
   "note",
+  "refined-note",
   "link",
   "topics",
   "unified-inbox",
@@ -198,6 +200,7 @@ describe("canonical brain core", () => {
       "profile",
       "style-guide",
       "note",
+      "refined-note",
       "link",
       // The topics service installs its topic type as itself, first.
       "topic",
