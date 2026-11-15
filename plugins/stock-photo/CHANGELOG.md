@@ -1,5 +1,18 @@
 # @brains/stock-photo
 
+## 0.2.0-alpha.714
+
+### Patch Changes
+
+- [#954](https://github.com/rizom-ai/brains/pull/954) [`178a524`](https://github.com/rizom-ai/brains/commit/178a524e797981b5435c8bdec297ee48bd374651) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Every image writer stores a staged asset instead of a data URL. Generated images decode the provider's data URL while staging and never store it; source and OG renders, selected stock photos and the images directory sync fetches for covers and inline links are staged from their bytes. Lookups that only need an image's id or status read stored references instead of loading bytes.
+
+  Directory sync imports an image file of an asset-backed type from a file stream: it hashes the file, describes it from its header and stages it, under a new `maxAssetImportBytes` limit (25 MiB by default). A file whose bytes match the stored image is skipped, whether the row holds an asset or still an inline data URL, so an unmigrated row waits for the offline migration. A markdown image file, which holds its data URL as text, is decoded and staged the same way, and skipped when it decodes to the stored bytes. A stale sibling file is skipped when another file of the image holds the stored bytes, instead of replacing it. A file that is not a PNG, JPEG, GIF or WebP is reported and left in place, with a hint to rasterize an SVG.
+
+- Updated dependencies [[`5b12579`](https://github.com/rizom-ai/brains/commit/5b12579dd395a093fc5b4d140a054eaa0321730b), [`0741d0b`](https://github.com/rizom-ai/brains/commit/0741d0bf34ec3f086221ced6f212b57256fc4ca8), [`2bfaa22`](https://github.com/rizom-ai/brains/commit/2bfaa22afbd9afc63918c495698ad93d12de063f), [`9bd95ad`](https://github.com/rizom-ai/brains/commit/9bd95ade782101ba4ead0e9686ba866c80c91bd9), [`178a524`](https://github.com/rizom-ai/brains/commit/178a524e797981b5435c8bdec297ee48bd374651), [`3e82a18`](https://github.com/rizom-ai/brains/commit/3e82a18e9850f3257ba1683919e877110d75bdcc)]:
+  - @brains/image@0.2.0-alpha.714
+  - @brains/sdk@0.2.0-alpha.714
+  - @brains/utils@0.2.0-alpha.714
+
 ## 0.2.0-alpha.713
 
 ### Patch Changes

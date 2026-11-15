@@ -1,5 +1,39 @@
 # @brains/entity-service
 
+## 0.2.0-alpha.714
+
+### Patch Changes
+
+- [#954](https://github.com/rizom-ai/brains/pull/954) [`5b12579`](https://github.com/rizom-ai/brains/commit/5b12579dd395a093fc5b4d140a054eaa0321730b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Offline tools move images stored as inline data URLs into durable assets. Each runs only against a local entity database no other process holds open, detected from open file handles, and never takes a lock.
+
+  - `brain assets:migrate --dry-run` decodes every inline image one row at a time and classifies it as ready, or blocked as SVG, malformed, double-encoded, unsupported or oversized, reporting distinct and duplicate bytes, the full-text rows and content hashes that change, and the peak disk the migration needs. It fails while anything is blocked.
+  - `brain assets:migrate` brings the entity schema forward, refuses while anything is blocked, then migrates one row at a time: the bytes are staged in committed chunks and published with the row's new reference, binary metadata and content hash, and its full-text row is removed. Identity, visibility and timestamps are kept; a markdown seed's stored newline is tolerated; a rerun skips migrated rows; the placeholder a pending or failed image held is cleared, while a completed image with the same bytes migrates as any other. Each run is appended to a manifest that never holds bytes.
+  - `brain assets:verify` checks that every reference resolves to an intact asset, that no inline image or image full-text row remains and, with `--brain-data`, that each mirrored file holds the stored bytes, a markdown image file compared by the bytes it decodes to.
+  - `brain assets:reconcile` restores absent rows and lost assets from `brain-data`, repairs inline rows whose bytes were lost from their file, and reports references that disagree with their file without changing them.
+
+  The pre-deploy backup verifies the image assets in its `brain.db` snapshot, every referenced asset intact and hashing to its digest, or the backup fails and blocks the deploy; it records the asset inventory and orphan uploads beside the snapshot. Regenerate `deploy/scripts/create-predeploy-backup.ts` in existing deployments to adopt it.
+
+- [#954](https://github.com/rizom-ai/brains/pull/954) [`0741d0b`](https://github.com/rizom-ai/brains/commit/0741d0bf34ec3f086221ced6f212b57256fc4ca8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `EntityReader.readBytes(definition, id)` reads the bytes of a record of a type that declares `binaryStorage`, through the record the reader can see: an `EntityBytes` of `bytes`, `mediaType` and `sizeBytes`, or `null` when the record is not visible to the reader or holds no bytes yet. A type without `binaryStorage` is refused with `invalid_input`. `EntityBytes` is stable in `@rizom/brain/entities`. An asset-backed record's `content` is the opaque `asset://sha256/<hex>` reference to its bytes; until the data-URL compatibility is removed, reads still return a data URL in its place.
+
+- [#954](https://github.com/rizom-ai/brains/pull/954) [`9bd95ad`](https://github.com/rizom-ai/brains/commit/9bd95ade782101ba4ead0e9686ba866c80c91bd9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Image readers read stored references and load bytes explicitly, only for a record read at the caller's scope. Chat delivery, the Studio preview, the ATProto and social cover, site image preparation, OG composition and entity-reference expansion read the image's reference and then its bytes; a restricted image is never served through another image that shares its bytes. Studio previews stream from storage into object URLs, and its image field offers only PNG, JPEG, GIF and WebP. System reads, listings and insights that mask or ignore content no longer load image bytes.
+
+  Directory sync exports an asset-backed image by streaming its chunks to a temporary file renamed into place, and leaves a file that already holds those bytes untouched. A markdown image file stays the image's only file: left byte for byte when it decodes to the stored bytes, rewritten as a data URL only when they change. An image awaiting its bytes writes no file, and content that is not a base64 data URL is refused instead of being decoded into a corrupt file.
+
+- [#954](https://github.com/rizom-ai/brains/pull/954) [`59f52a5`](https://github.com/rizom-ai/brains/commit/59f52a55f6c8940265a4b66e25525be22bf62e23) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Store asset bytes as staged 1 MiB chunks: each chunk commits on its own and yields to the event loop, and the entity mutation publishes the asset header with its reference in one small transaction. Reads stream chunk by chunk and check the digest, withholding the final chunk of bytes that no longer match their reference. Unpublished uploads are discarded after their mutation and swept at startup, and the empty single-BLOB `assets` table is replaced.
+
+- [#954](https://github.com/rizom-ai/brains/pull/954) [`3e82a18`](https://github.com/rizom-ai/brains/commit/3e82a18e9850f3257ba1683919e877110d75bdcc) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Store uploaded images as staged assets instead of data URLs. Image entities switch to asset-backed storage and leave full-text search; an upload is staged, then published with its image, and its format, media type, size and dimensions come from the bytes (25 MiB limit). A pending or failed image holds no payload. Only PNG, JPEG, GIF and WebP uploads become images.
+
+  Entity reads take a `binaryContent` mode: the default materializes an asset reference back into the data URL inline storage returned, counted by read surface and entity type, while `"reference"` returns the stored reference. Updates and deletes through the system tools, and owned writes, read the stored reference, so they never write bytes back inline. The web chat image route reads the image at the caller's scope and streams only that image's stored chunks, and directory sync no longer re-imports an image whose file matches its stored asset.
+
+- Updated dependencies [[`59f52a5`](https://github.com/rizom-ai/brains/commit/59f52a55f6c8940265a4b66e25525be22bf62e23)]:
+  - @brains/assets@0.2.0-alpha.714
+  - @brains/content-formatters@0.2.0-alpha.714
+  - @brains/contracts@0.2.0-alpha.714
+  - @brains/db@0.2.0-alpha.714
+  - @brains/utils@0.2.0-alpha.714
+  - @brains/job-queue@0.2.0-alpha.714
+  - @brains/messaging-service@0.2.0-alpha.714
+
 ## 0.2.0-alpha.713
 
 ### Patch Changes

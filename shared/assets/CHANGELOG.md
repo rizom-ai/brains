@@ -1,5 +1,13 @@
 # @brains/assets
 
+## 0.2.0-alpha.714
+
+### Patch Changes
+
+- [#954](https://github.com/rizom-ai/brains/pull/954) [`59f52a5`](https://github.com/rizom-ai/brains/commit/59f52a55f6c8940265a4b66e25525be22bf62e23) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Store asset bytes as staged 1 MiB chunks: each chunk commits on its own and yields to the event loop, and the entity mutation publishes the asset header with its reference in one small transaction. Reads stream chunk by chunk and check the digest, withholding the final chunk of bytes that no longer match their reference. Unpublished uploads are discarded after their mutation and swept at startup, and the empty single-BLOB `assets` table is replaced.
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.714
+
 ## 0.2.0-alpha.713
 
 ### Patch Changes

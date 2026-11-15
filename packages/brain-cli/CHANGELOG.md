@@ -1,5 +1,24 @@
 # @rizom/brain
 
+## 0.2.0-alpha.714
+
+### Patch Changes
+
+- [#954](https://github.com/rizom-ai/brains/pull/954) [`83ae17c`](https://github.com/rizom-ai/brains/commit/83ae17c023c39f909830a0c77320984a616869e7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `brain assets:migrate` and `brain assets:reconcile` fold their write-ahead log into the database and truncate it before they close, so the database file holds every write when the command exits.
+
+- [#954](https://github.com/rizom-ai/brains/pull/954) [`8cbb1a2`](https://github.com/rizom-ai/brains/commit/8cbb1a253b959afc574995f9a3372ae9feec7946) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `brain assets:migrate` keeps its write-ahead log to one image's work while it runs. It holds the full-text index's automatic merges off during the run, so removing one image's search entry writes only that entry, then compacts the index in small separately committed steps instead of one `optimize`, and puts the index's merge settings back as it found them.
+
+- [#954](https://github.com/rizom-ai/brains/pull/954) [`5b12579`](https://github.com/rizom-ai/brains/commit/5b12579dd395a093fc5b4d140a054eaa0321730b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Offline tools move images stored as inline data URLs into durable assets. Each runs only against a local entity database no other process holds open, detected from open file handles, and never takes a lock.
+
+  - `brain assets:migrate --dry-run` decodes every inline image one row at a time and classifies it as ready, or blocked as SVG, malformed, double-encoded, unsupported or oversized, reporting distinct and duplicate bytes, the full-text rows and content hashes that change, and the peak disk the migration needs. It fails while anything is blocked.
+  - `brain assets:migrate` brings the entity schema forward, refuses while anything is blocked, then migrates one row at a time: the bytes are staged in committed chunks and published with the row's new reference, binary metadata and content hash, and its full-text row is removed. Identity, visibility and timestamps are kept; a markdown seed's stored newline is tolerated; a rerun skips migrated rows; the placeholder a pending or failed image held is cleared, while a completed image with the same bytes migrates as any other. Each run is appended to a manifest that never holds bytes.
+  - `brain assets:verify` checks that every reference resolves to an intact asset, that no inline image or image full-text row remains and, with `--brain-data`, that each mirrored file holds the stored bytes, a markdown image file compared by the bytes it decodes to.
+  - `brain assets:reconcile` restores absent rows and lost assets from `brain-data`, repairs inline rows whose bytes were lost from their file, and reports references that disagree with their file without changing them.
+
+  The pre-deploy backup verifies the image assets in its `brain.db` snapshot, every referenced asset intact and hashing to its digest, or the backup fails and blocks the deploy; it records the asset inventory and orphan uploads beside the snapshot. Regenerate `deploy/scripts/create-predeploy-backup.ts` in existing deployments to adopt it.
+
+- [#954](https://github.com/rizom-ai/brains/pull/954) [`0741d0b`](https://github.com/rizom-ai/brains/commit/0741d0bf34ec3f086221ced6f212b57256fc4ca8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `EntityReader.readBytes(definition, id)` reads the bytes of a record of a type that declares `binaryStorage`, through the record the reader can see: an `EntityBytes` of `bytes`, `mediaType` and `sizeBytes`, or `null` when the record is not visible to the reader or holds no bytes yet. A type without `binaryStorage` is refused with `invalid_input`. `EntityBytes` is stable in `@rizom/brain/entities`. An asset-backed record's `content` is the opaque `asset://sha256/<hex>` reference to its bytes; until the data-URL compatibility is removed, reads still return a data URL in its place.
+
 ## 0.2.0-alpha.713
 
 ### Patch Changes
