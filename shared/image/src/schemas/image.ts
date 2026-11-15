@@ -87,13 +87,18 @@ export const imageMetadataSchema: ImageMetadataSchema = z
   })
   .superRefine((metadata, ctx) => {
     if (metadata.status === "pending" || metadata.status === "failed") return;
-    for (const field of ["format", "width", "height"] as const) {
-      if (metadata[field] === undefined) {
-        ctx.addIssue({
-          code: "custom",
-          path: [field],
-          message: `A completed image needs its ${field}`,
-        });
+    // A completed image needs its format and size: refused as a required
+    // field is, with the issues the store has always reported.
+    for (const [field, schema] of [
+      ["format", imageFormatSchema],
+      ["width", z.number()],
+      ["height", z.number()],
+    ] as const) {
+      const checked = schema.safeParse(metadata[field]);
+      if (!checked.success) {
+        for (const issue of checked.error.issues) {
+          ctx.addIssue({ ...issue, path: [field, ...issue.path] });
+        }
       }
     }
   });
