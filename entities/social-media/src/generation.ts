@@ -313,6 +313,14 @@ export const socialPostGeneration: EntityGenerationDeclaration<
                 serviceId: "social-media-generation",
               },
             },
+            // The post's id is its job's own: a rerun of the job queues no
+            // second image while the first waits.
+            options: {
+              source: "social-media-generation",
+              metadata: { operationType: "data_processing" },
+              deduplication: "skip",
+              deduplicationKey: `social-image:social-post:${entityId}`,
+            },
           },
         ),
       `queue the image for social-post:${entityId}`,
