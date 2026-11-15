@@ -73,6 +73,7 @@ export type {
   EntityPackageConfiguration,
   EntityPackageDefinition,
   EntitySlotBinding,
+  EntityBytes,
   EntityReader,
   EntityRecordReader,
   EntityPublishAssetDeclaration,

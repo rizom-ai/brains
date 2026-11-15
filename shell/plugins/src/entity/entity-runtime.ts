@@ -40,6 +40,7 @@ import type {
   EntityMetadataInput,
   EntityMetadataSchema,
   EntityOf,
+  EntityBytes,
   EntityReader,
   EntityVisibility,
   OwnedEntityWriter,
@@ -586,6 +587,13 @@ function ownTypesOnly(
       own(definition);
       return reader.count(definition);
     },
+    readBytes: async (
+      definition: AnyEntityDefinition,
+      id: string,
+    ): Promise<EntityBytes | null> => {
+      own(definition);
+      return reader.readBytes(definition, id);
+    },
   });
 }
 
@@ -839,6 +847,7 @@ export function withDataSourceRuntime<TContext extends object>(
     get: unavailable("packageEntities", where),
     list: unavailable("packageEntities", where),
     count: unavailable("packageEntities", where),
+    readBytes: unavailable("packageEntities", where),
   });
   const runtime = bindEntityRuntime({
     where,

@@ -1679,4 +1679,5 @@ export type ReadOnlyEntityService = Pick<
   | "countEntities"
   | "getEntityCounts"
   | "getEntityTypeConfig"
+  | "readAsset"
 >;

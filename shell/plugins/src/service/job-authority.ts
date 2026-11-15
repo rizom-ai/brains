@@ -17,6 +17,7 @@ import type {
   AnyEntityDefinition,
   DataSourceListOptions,
   EntityOf,
+  EntityBytes,
   EntityReader,
 } from "../entity/entity-definition-contract";
 import { createEntityReader } from "../entity/entity-reader";
@@ -235,5 +236,10 @@ export function createPackageEntityReader(
       (await reader(definition.type)).list(definition, options),
     count: async (definition: AnyEntityDefinition): Promise<number> =>
       (await reader(definition.type)).count(definition),
+    readBytes: async (
+      definition: AnyEntityDefinition,
+      id: string,
+    ): Promise<EntityBytes | null> =>
+      (await reader(definition.type)).readBytes(definition, id),
   });
 }

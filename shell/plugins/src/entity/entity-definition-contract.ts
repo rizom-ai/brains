@@ -706,6 +706,23 @@ export interface EntityReader {
   count<TDefinition extends AnyEntityDefinition>(
     definition: TDefinition,
   ): Promise<number>;
+  /**
+   * The bytes of a record of a type that declares `binaryStorage`, read
+   * through the record this reader can see. Null when the record is not
+   * visible or holds no bytes yet; a type without `binaryStorage` is refused
+   * with `invalid_input`.
+   */
+  readBytes(
+    definition: AnyEntityDefinition,
+    id: string,
+  ): Promise<EntityBytes | null>;
+}
+
+/** A binary record's bytes, with the media type they are served as. */
+export interface EntityBytes {
+  readonly bytes: Uint8Array;
+  readonly mediaType: string;
+  readonly sizeBytes: number;
 }
 
 /** A shared runtime-state record, as a data source reads it. */

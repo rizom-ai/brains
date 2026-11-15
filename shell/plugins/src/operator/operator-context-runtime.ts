@@ -10,6 +10,7 @@ import type {
   AnyEntityDefinition,
   DataSourceListOptions,
   EntityOf,
+  EntityBytes,
   EntityReader,
 } from "../entity/entity-definition-contract";
 import type { OwnedEntityWriter } from "../entity/owned-entity-writer";
@@ -93,6 +94,15 @@ export function readerWithin(
       const count = await reader.count(definition);
       signal.throwIfAborted();
       return count;
+    },
+    async readBytes(
+      definition: AnyEntityDefinition,
+      id: string,
+    ): Promise<EntityBytes | null> {
+      signal.throwIfAborted();
+      const read = await reader.readBytes(definition, id);
+      signal.throwIfAborted();
+      return read;
     },
   });
 }

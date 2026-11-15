@@ -2243,6 +2243,8 @@ function readOnlyEntityServiceOf(
     countEntities: entityService.countEntities.bind(entityService),
     getEntityCounts: entityService.getEntityCounts.bind(entityService),
     getEntityTypeConfig: entityService.getEntityTypeConfig.bind(entityService),
+    // Bytes only through a record read first, as EntityReader.readBytes does.
+    readAsset: entityService.readAsset.bind(entityService),
   } satisfies ReadOnlyEntityService);
 }
 
