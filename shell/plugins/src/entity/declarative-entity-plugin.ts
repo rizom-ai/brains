@@ -2,18 +2,17 @@ import { createScopedAssetReads } from "./owned-entity-writer-runtime";
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import {
-  authenticatedUserId,
   agentContextContract,
   generateExecuteContract,
   generateReportFailureContract,
   publishAssetRegisterContract,
   publishRegisterContract,
   siteBuildStagingContract,
+  type PublishProvider,
   type SiteBuildStagingPayload,
 } from "@brains/contracts";
 import {
   EntityWriteConflictError,
-  createResultAttachmentSchema,
   internalFullScope,
   permissionToVisibilityScope,
   ProjectionJsonObjectSchema,
@@ -23,12 +22,6 @@ import {
   parseMarkdownWithFrontmatter,
   type BaseEntity,
   type ContentVisibility,
-  type CreateCheckResult,
-  type CreateExecutionContext,
-  type CreateInput,
-  type CreateInterceptionResult,
-  type CreateInterceptor,
-  type CreateResult,
   type DataSource,
   type EntityAdapter,
   type EntitySchema,
@@ -71,29 +64,21 @@ import {
   publishedStatusesOf,
   recordDisplayTitleOf,
   recordPersistValidatorOf,
-  ordinaryCreateOf,
   restatedMetadataOf,
   urlRouteOf,
   writesInDocumentOrderOf,
   readsAsWritten,
   frontmatterSchemaOf,
   builtProvider,
-  queuedCreateOf,
-  storedCreateOf,
   withEntityRuntime,
   type AnyEntityBinding,
   type EntityRuntimeBinding,
-  type QueuedCreate,
-  type EntityCreateCaller,
   type EvalGenerationOptions,
   type EvalGenerationResult,
-  type QueuedAttribution,
-  type QueuedPlaceholder,
-  type StoredCreate,
 } from "./entity-runtime";
 import { CallbackProgressReporter } from "@brains/utils/progress";
-import { createUploadSaveHandler } from "./upload-save";
-import { sharedUploadScope } from "../service/upload-registry";
+import { EntityCreateRouter, deepFrozen } from "./entity-create-routing";
+import { onEvent } from "../internal/on-event";
 import {
   admitPackageJob,
   createPackageEntityReader,
@@ -112,8 +97,7 @@ import {
   generationSource,
   packageEntityWrites,
 } from "./declarative-jobs";
-import type { JobHandler, JobOptions } from "@brains/job-queue";
-import { createPendingEntity } from "./pending-ingestion";
+import type { JobHandler } from "@brains/job-queue";
 import {
   currentMetadata,
   entitySchema,
@@ -144,10 +128,6 @@ import type {
   AnyDataSourceDeclaration,
   AnyEntityDefinition,
   AnyEntityJobDeclaration,
-  EntityCreateAllocation,
-  EntityCreateContext,
-  EntityCreateResolution,
-  EntityCreateRoute,
   EntityCreateRouting,
   EntityAtprotoProjection,
   EntityDashboardBindingContext,
@@ -159,7 +139,6 @@ import type {
   EntityReader,
   EntityRecordReader,
   DataSourceListOptions,
-  EntityCreateUploadReader,
   EntityFeedDeclaration,
   MediaAttachmentContext,
   MediaEntityListRequest,
@@ -182,102 +161,6 @@ const SEED_TRIGGER_CHANNELS: Record<EntitySeedTrigger, string> = {
 };
 
 const rawFrontmatterSchema = z.record(z.string(), z.unknown());
-
-/**
- * Which route a create request takes, by how the caller expressed it: an
- * upload or attachment reference first, then content, then a prompt, then
- * a URL alone. A conversation message arrives as content.
- */
-function selectCreateRoute(
-  routing: EntityCreateRouting,
-  input: CreateInput,
-  urlRoute?: EntityCreateRoute,
-): EntityCreateRoute | undefined {
-  switch (input.from?.kind) {
-    case "entity-attachment":
-      return routing.fromAttachment;
-    case "upload":
-      return routing.fromUpload;
-    default:
-      if (input.content) return routing.fromContent;
-      if (input.prompt) return routing.fromPrompt;
-      // A first-party type may decide a create from a URL alone.
-      return input.url ? urlRoute : undefined;
-  }
-}
-
-/** A detached copy no route can change under the runtime. */
-function deepFrozen<T>(value: T): T {
-  if (typeof value === "object" && value !== null && !Object.isFrozen(value)) {
-    Object.values(value).forEach(deepFrozen);
-    Object.freeze(value);
-  }
-  return value;
-}
-
-/** Whether a queued create's job is attributed to the caller. */
-function isAttributed(queued: QueuedCreate): boolean {
-  const { attributed } = queued.job;
-  return attributed !== undefined && attributed !== false;
-}
-
-/** Who asked for a create, as a first-party route sees them. */
-function createCaller(
-  executionContext: CreateExecutionContext,
-): EntityCreateCaller {
-  const userId = authenticatedUserId(executionContext);
-  return Object.freeze({
-    interfaceType: executionContext.interfaceType,
-    actor: executionContext.actor,
-    ...definedFields({
-      userId,
-      channelId: executionContext.channelId,
-      channelName: executionContext.channelName,
-    }),
-  });
-}
-
-/** Who a create is attributed to in the store. */
-function eventContextOf(executionContext: CreateExecutionContext): {
-  readonly actor: CreateExecutionContext["actor"];
-  readonly interfaceType: string;
-} {
-  return {
-    actor: executionContext.actor,
-    interfaceType: executionContext.interfaceType,
-  };
-}
-
-/**
- * A queued job's attribution to the caller who asked for it, as the entity
- * plugin classes queued their own jobs.
- */
-function attributionJobOptions(
-  source: string,
-  executionContext: CreateExecutionContext,
-  attribution: QueuedAttribution = {},
-): JobOptions {
-  return {
-    source,
-    metadata: {
-      operationType: attribution.operationType ?? "content_operations",
-      ...(attribution.channel === true &&
-        executionContext.channelId !== undefined && {
-          channelId: executionContext.channelId,
-        }),
-      interfaceType: executionContext.interfaceType,
-      requestedByActor: executionContext.actor,
-      ...(executionContext.actor.kind === "user"
-        ? { requestedByUserId: executionContext.actor.userId }
-        : {}),
-      requestedByInterface: executionContext.interfaceType,
-    },
-  };
-}
-
-function createFailure(error: string): CreateResult {
-  return { success: false, error };
-}
 
 /**
  * Public reads for a media provider. Each request is rebuilt from the fields
@@ -830,6 +713,9 @@ function projectionRule(
 /** A declared entity type takes no config of its own. */
 const noEntityConfigSchema: z.ZodObject<Record<string, never>> = z.object({});
 
+/** Takes one registration off again. */
+type Release = () => void;
+
 class DeclarativeEntityPlugin extends PluginCore<
   Record<string, never>,
   Record<string, never>,
@@ -860,7 +746,7 @@ class DeclarativeEntityPlugin extends PluginCore<
   private permissions: PermissionService | undefined;
   /** The shell this plugin registered on, which runs its rules for an eval. */
   private scopedShell: IShell | undefined;
-  private releases: readonly (() => void)[] = [];
+  private releases: readonly Release[] = [];
   private readonly dashboardWidgetIds: string[] = [];
   private readonly widgetAbort: AbortController = new AbortController();
   public readonly entityType: string;
@@ -984,7 +870,8 @@ class DeclarativeEntityPlugin extends PluginCore<
    * own types at every visibility, other types at its grant, which is public
    * unless the brain grants this plugin more.
    */
-  private asPackage(context: EntityPluginContext): EntityReader {
+  private asPackage(): EntityReader {
+    const context = this.getContext();
     const self = packageSelfCall(context.jobAuthority);
     return createPackageEntityReader(
       context.entityService,
@@ -994,12 +881,12 @@ class DeclarativeEntityPlugin extends PluginCore<
   }
 
   private generationHandler(
-    context: EntityPluginContext,
     declaration: NonNullable<AnyEntityDefinition["generation"]>,
     jobTypeName: string,
     reportsToPipeline = false,
     readsLegacyRawData = false,
   ): DeclarativeGenerationHandler {
+    const context = this.getContext();
     return new DeclarativeGenerationHandler(this.logger, context, declaration, {
       entityType: this.entityType,
       jobTypeName,
@@ -1009,8 +896,7 @@ class DeclarativeEntityPlugin extends PluginCore<
       reportsToPipeline,
       readsLegacyRawData,
       pluginId: this.id,
-      runtime: (authority) =>
-        this.runBinding(context, authority, "a generation"),
+      runtime: (authority) => this.runBinding(authority, "a generation"),
     });
   }
 
@@ -1024,9 +910,9 @@ class DeclarativeEntityPlugin extends PluginCore<
    * Nothing to write from is reported back rather than thrown.
    */
   private async runScheduledGeneration(
-    context: EntityPluginContext,
     scheduled: NonNullable<AnyEntityDefinition["scheduledGeneration"]>,
   ): Promise<void> {
+    const context = this.getContext();
     const reportFailure = (error: string): Promise<void> =>
       context.messaging.command(generateReportFailureContract, {
         entityType: this.entityType,
@@ -1052,7 +938,6 @@ class DeclarativeEntityPlugin extends PluginCore<
         },
       });
       const data = await this.scheduledInput(
-        context,
         scheduled,
         sources.map(({ id }) => id),
         scope(this.entityType),
@@ -1093,7 +978,6 @@ class DeclarativeEntityPlugin extends PluginCore<
 
   /** The generation input for a schedule, or null when nothing qualifies. */
   private async scheduledInput(
-    context: EntityPluginContext,
     scheduled: NonNullable<AnyEntityDefinition["scheduledGeneration"]>,
     sourceIds: readonly string[],
     visibilityScope: ContentVisibility,
@@ -1105,9 +989,10 @@ class DeclarativeEntityPlugin extends PluginCore<
     }
     // One at a time: a source this type was already written from — named
     // in its sourceEntityType/sourceEntityId metadata — is skipped.
+    const { entityService } = this.getContext();
     const derived = await Promise.all(
       sourceIds.map((sourceEntityId) =>
-        context.entityService.listEntities({
+        entityService.listEntities({
           entityType: this.entityType,
           options: {
             filter: {
@@ -1125,12 +1010,9 @@ class DeclarativeEntityPlugin extends PluginCore<
     return sourceEntityId ? { sourceEntityType, sourceEntityId } : null;
   }
 
-  private createGenerationHandler(
-    context: EntityPluginContext,
-  ): JobHandler | null {
+  private createGenerationHandler(): JobHandler | null {
     return this.generation
       ? this.generationHandler(
-          context,
           this.generation,
           `${this.entityType}:generation`,
           this.definition.scheduledGeneration !== undefined,
@@ -1225,7 +1107,7 @@ class DeclarativeEntityPlugin extends PluginCore<
         : entityTypeConfig,
     );
 
-    const handler = this.createGenerationHandler(context);
+    const handler = this.createGenerationHandler();
     if (handler) {
       context.jobs.registerHandler(`${this.entityType}:generation`, handler);
     }
@@ -1237,7 +1119,7 @@ class DeclarativeEntityPlugin extends PluginCore<
       context.entities.registerDataSource(dataSource);
     }
 
-    await this.onRegister(context);
+    await this.onRegister();
 
     const instructions = await this.getInstructions();
     return {
@@ -1248,9 +1130,49 @@ class DeclarativeEntityPlugin extends PluginCore<
     };
   }
 
-  protected override async onRegister(
-    context: EntityPluginContext,
-  ): Promise<void> {
+  /**
+   * Each step registers one thing this type declares, in this order; the
+   * releases the later steps hand back are taken off when it shuts down.
+   */
+  protected override async onRegister(): Promise<void> {
+    this.registerPersistValidators();
+    this.registerJobs();
+    this.registerGenerationEnqueuer();
+    this.registerCreateRouting();
+    this.registerEvals();
+    // Built once, with the plugin's logger, when it is built with one.
+    const publishProvider = this.publishProvider();
+    this.registerAnalyticsReports();
+    const widgets = this.boundWidgets();
+    this.registerInboxSource();
+    this.releases = [
+      ...this.answerEntityContracts(),
+      ...this.answerAgentContext(),
+      ...this.answerScheduledGeneration(),
+      ...this.registerAttachments(),
+      ...this.subscribeSeed(),
+      ...this.answerFeedStaging(),
+      ...this.registerChecks(),
+      ...this.registerAtprotoProjection(),
+      ...this.subscribeDashboardWidgets(widgets),
+      ...this.subscribePublishRegistration(publishProvider),
+    ];
+  }
+
+  /**
+   * What a job or an answer writes: the declaring type, under the brain's
+   * policy.
+   */
+  private get writes(): EntityJobWrites {
+    return {
+      declaring: this.definition,
+      requiredLevel: (entityType, action) =>
+        this.requiredLevel(entityType, action),
+    };
+  }
+
+  private registerPersistValidators(): void {
+    const context = this.getContext();
     const validatePersist = this.validatePersist;
     if (validatePersist) {
       context.entities.registerPersistValidator(
@@ -1280,16 +1202,13 @@ class DeclarativeEntityPlugin extends PluginCore<
         },
       );
     }
+  }
 
+  private registerJobs(): void {
+    const context = this.getContext();
+    const ownsType = (entityType: string): boolean => this.ownsType(entityType);
     // Local names: the jobs namespace scopes each to this type's plugin.
     Object.entries(this.jobs).forEach(([name, declaration]) => {
-      const writes: EntityJobWrites = {
-        declaring: this.definition,
-        requiredLevel: (entityType, action) =>
-          this.requiredLevel(entityType, action),
-      };
-      const ownsType = (entityType: string): boolean =>
-        this.ownsType(entityType);
       const contract = contractJobOf(declaration);
       if (contract) {
         // Other packages queue it by its contract's type, so the name it
@@ -1310,7 +1229,7 @@ class DeclarativeEntityPlugin extends PluginCore<
             declaration,
             context,
             ownsType,
-            writes,
+            this.writes,
             this.id,
             (localName) => this.templateName(localName),
           ),
@@ -1320,51 +1239,68 @@ class DeclarativeEntityPlugin extends PluginCore<
       context.jobs.registerHandler(
         name,
         "generate" in declaration
-          ? this.generationHandler(context, declaration, name)
+          ? this.generationHandler(declaration, name)
           : entityJobHandler(
               declaration,
               context,
               ownsType,
-              writes,
-              (authority) => this.runBinding(context, authority, "a job"),
+              this.writes,
+              (authority) => this.runBinding(authority, "a job"),
             ),
       );
     });
+  }
 
-    // system_generate queues this type's generation through here, so the
-    // job carries the authority of the caller who asked for it.
-    if (this.generation) {
-      const generationType = `${this.entityType}:generation`;
-      context.entities.registerGenerationEnqueuer(
-        this.entityType,
-        async (data, toolContext): Promise<string> => {
-          const { entityId, ...input } = data;
-          const queued = await admitPackageJob(
-            context.jobAuthority,
-            toolCaller(toolContext),
-            input,
-          );
-          return context.jobs.enqueue({
-            type: generationType,
-            data: {
-              ...queued,
-              ...(typeof entityId === "string" && { entityId }),
-              ...definedFields({ source: generationSource(data) }),
-            },
-            toolContext,
-          });
-        },
-      );
-    }
+  /**
+   * system_generate queues this type's generation through here, so the job
+   * carries the authority of the caller who asked for it.
+   */
+  private registerGenerationEnqueuer(): void {
+    if (!this.generation) return;
+    const context = this.getContext();
+    const generationType = `${this.entityType}:generation`;
+    context.entities.registerGenerationEnqueuer(
+      this.entityType,
+      async (data, toolContext): Promise<string> => {
+        const { entityId, ...input } = data;
+        const queued = await admitPackageJob(
+          context.jobAuthority,
+          toolCaller(toolContext),
+          input,
+        );
+        return context.jobs.enqueue({
+          type: generationType,
+          data: {
+            ...queued,
+            ...(typeof entityId === "string" && { entityId }),
+            ...definedFields({ source: generationSource(data) }),
+          },
+          toolContext,
+        });
+      },
+    );
+  }
 
-    const create = this.create;
+  private registerCreateRouting(): void {
     const urlRoute = urlRouteOf(this.definition);
-    if (create || urlRoute) {
-      this.registerCreateRouting(context, create ?? {}, urlRoute);
-    }
+    if (!this.create && !urlRoute) return;
+    new EntityCreateRouter({
+      context: this.getContext(),
+      definition: this.definition,
+      pluginId: this.id,
+      routing: this.create ?? {},
+      urlRoute,
+      runtime: (reader, where, anyEntities): EntityRuntimeBinding =>
+        this.runtimeBinding(reader, where, anyEntities),
+    }).register();
+  }
 
-    // Evals run with no caller, so as the package, with fixtures scoped to
-    // this type.
+  /**
+   * Evals run with no caller, so as the package, with fixtures scoped to
+   * this type.
+   */
+  private registerEvals(): void {
+    const context = this.getContext();
     Object.entries(this.definition.evals ?? {}).forEach(([id, handler]) => {
       context.eval.registerHandler(id, (input) =>
         handler(
@@ -1374,19 +1310,15 @@ class DeclarativeEntityPlugin extends PluginCore<
               ai: createGenerationAI(context, (localName) =>
                 this.templateName(localName),
               ),
-              entities: this.asPackage(context),
+              entities: this.asPackage(),
               fixtures: createEvalFixtures(context, this.entityType),
             },
             // An eval runs with no caller, so its searches read as the
             // package, and so does a generation it runs.
             {
-              ...this.runtimeBinding(
-                context,
-                this.asPackage(context),
-                "an eval",
-              ),
+              ...this.runtimeBinding(this.asPackage(), "an eval"),
               runGeneration: (input, options) =>
-                this.runGenerationForEval(context, input, options),
+                this.runGenerationForEval(input, options),
               runProjectionRule: (ruleId, options) =>
                 this.runOwnProjectionRule(ruleId, options),
             },
@@ -1394,20 +1326,19 @@ class DeclarativeEntityPlugin extends PluginCore<
         ),
       );
     });
+  }
 
-    const agentContext = this.definition.agentContext;
-    const scheduled = this.definition.scheduledGeneration;
-
-    const seed = this.seed;
-    const feed = this.feed;
-    const atproto = this.definition.atproto;
+  private publishProvider(): PublishProvider | undefined {
     const publish = this.definition.publish;
-    // Built once, with the plugin's logger, when it is built with one.
-    const publishProvider =
-      publish && builtProvider(publish.provider, this.logger);
-    const publishAssets = this.definition.publishAssets ?? [];
-    // Registered through the plugin's scoped analytics, which removes them
-    // when the plugin goes.
+    return publish && builtProvider(publish.provider, this.logger);
+  }
+
+  /**
+   * Registered through the plugin's scoped analytics, which removes them
+   * when the plugin goes.
+   */
+  private registerAnalyticsReports(): void {
+    const context = this.getContext();
     for (const declared of this.definition.analyticsReports ?? []) {
       context.analytics.register({
         type: declared.type,
@@ -1424,6 +1355,10 @@ class DeclarativeEntityPlugin extends PluginCore<
           ),
       });
     }
+  }
+
+  /** The dashboard widgets this type binds, each bound once. */
+  private boundWidgets(): readonly BoundEntityWidget[] {
     const widgets = (
       this.definition.dashboardWidgets?.(entityDashboardBinding) ?? []
     ).map((widget) => this.boundWidget(widget));
@@ -1436,190 +1371,222 @@ class DeclarativeEntityPlugin extends PluginCore<
         `${this.entityType} binds dashboard widget "${repeated}" twice`,
       );
     }
-    // The shell removes a plugin's Inbox sources with the plugin.
+    return widgets;
+  }
+
+  /** The shell removes a plugin's Inbox sources with the plugin. */
+  private registerInboxSource(): void {
     const inbox = this.definition.inbox;
-    if (inbox) context.inbox.registerSource(this.inboxSource(context, inbox));
-    const media = this.attachments?.length
-      ? mediaAttachmentContext(context)
-      : undefined;
-    this.releases = [
-      // First-party answers, under the channels their contracts already
-      // have, as the package acting as itself.
-      ...entityAnswersOf(this.definition).map((declared) =>
-        context.messaging.answer(
-          declared.contract,
-          async (request, { sender }) =>
-            declared.handle({
-              request,
-              sender,
-              entities: await packageEntityWrites(
-                context,
-                this.id,
-                (entityType) => this.ownsType(entityType),
-                {
-                  declaring: this.definition,
-                  requiredLevel: (entityType, action) =>
-                    this.requiredLevel(entityType, action),
-                },
+    if (inbox) this.getContext().inbox.registerSource(this.inboxSource(inbox));
+  }
+
+  /**
+   * First-party answers, under the channels their contracts already have,
+   * as the package acting as itself.
+   */
+  private answerEntityContracts(): Release[] {
+    const context = this.getContext();
+    return entityAnswersOf(this.definition).map((declared) =>
+      context.messaging.answer(
+        declared.contract,
+        async (request, { sender }) =>
+          declared.handle({
+            request,
+            sender,
+            entities: await packageEntityWrites(
+              context,
+              this.id,
+              (entityType) => this.ownsType(entityType),
+              this.writes,
+            ),
+          }),
+        declared.everyProcess === true ? { everyProcess: true } : {},
+      ),
+    );
+  }
+
+  /**
+   * Reads are scoped to the asker, so a provider cannot surface restricted
+   * records into a public conversation.
+   */
+  private answerAgentContext(): Release[] {
+    const agentContext = this.definition.agentContext;
+    if (!agentContext) return [];
+    const context = this.getContext();
+    return [
+      context.messaging.answer(agentContextContract, async (request) => ({
+        items: [
+          ...(await agentContext(
+            Object.freeze({
+              request: deepFrozen(structuredClone(request)),
+              entities: createEntityReader(
+                context.entityService,
+                permissionToVisibilityScope(request.userPermissionLevel),
               ),
             }),
-          declared.everyProcess === true ? { everyProcess: true } : {},
-        ),
+          )),
+        ],
+      })),
+    ];
+  }
+
+  private answerScheduledGeneration(): Release[] {
+    const scheduled = this.definition.scheduledGeneration;
+    if (!scheduled) return [];
+    return [
+      this.getContext().messaging.answer(
+        generateExecuteContract,
+        async ({ entityType }) => {
+          if (entityType === this.entityType) {
+            await this.runScheduledGeneration(scheduled);
+          }
+        },
       ),
-      ...(agentContext
-        ? [
-            // Reads are scoped to the asker, so a provider cannot surface
-            // restricted records into a public conversation.
-            context.messaging.answer(agentContextContract, async (request) => ({
-              items: [
-                ...(await agentContext(
-                  Object.freeze({
-                    request: deepFrozen(structuredClone(request)),
-                    entities: createEntityReader(
-                      context.entityService,
-                      permissionToVisibilityScope(request.userPermissionLevel),
-                    ),
-                  }),
-                )),
-              ],
-            })),
-          ]
-        : []),
-      ...(scheduled
-        ? [
-            context.messaging.answer(
-              generateExecuteContract,
-              async ({ entityType }) => {
-                if (entityType === this.entityType) {
-                  await this.runScheduledGeneration(context, scheduled);
-                }
-              },
-            ),
-          ]
-        : []),
-      // The runtime keeps the unregister handles, so an author never does.
-      ...(this.attachments ?? []).flatMap((attachment) =>
-        media
-          ? [
-              context.attachments.register(
-                this.entityType,
-                attachment.type,
-                attachment.provider(media),
-              ),
-            ]
-          : [],
+    ];
+  }
+
+  /** The runtime keeps the unregister handles, so an author never does. */
+  private registerAttachments(): Release[] {
+    const attachments = this.attachments ?? [];
+    if (attachments.length === 0) return [];
+    const context = this.getContext();
+    const media = mediaAttachmentContext(context);
+    return attachments.map((attachment) =>
+      context.attachments.register(
+        this.entityType,
+        attachment.type,
+        attachment.provider(media),
       ),
-      ...(seed
-        ? [
-            context.messaging.subscribe(
-              SEED_TRIGGER_CHANNELS[seed.on],
-              async (): Promise<{ success: true }> => {
-                await this.plantSeed(context, seed);
-                return { success: true };
-              },
-            ),
-          ]
-        : []),
-      ...(feed
-        ? [
-            // Builds run in the worker, so every process answers.
-            context.messaging.answer(
-              siteBuildStagingContract,
-              (payload) => this.stageFeed(context, feed, payload),
-              { everyProcess: true },
-            ),
-          ]
-        : []),
-      // The service scopes each check id to this plugin and hands back the
-      // release.
-      ...(this.definition.checks ?? []).map((check) =>
-        context.recurringChecks.register({
-          id: check.id,
-          cadence: check.cadence,
-          ...definedFields({
-            deliverAlerts: check.deliverAlerts,
-            includeInInbox: check.includeInInbox,
-          }),
-          run: ({ signal }) =>
-            check.run(
-              Object.freeze({
-                // A scheduled run has no caller: it reads as the package.
-                entities: this.asPackage(context),
-                siteUrl: context.siteUrl,
-                signal,
-              }),
-            ),
+    );
+  }
+
+  private subscribeSeed(): Release[] {
+    const seed = this.seed;
+    if (!seed) return [];
+    return [
+      onEvent(this.getContext().messaging, SEED_TRIGGER_CHANNELS[seed.on], () =>
+        this.plantSeed(seed),
+      ),
+    ];
+  }
+
+  /** Builds run in the worker, so every process answers. */
+  private answerFeedStaging(): Release[] {
+    const feed = this.feed;
+    if (!feed) return [];
+    return [
+      this.getContext().messaging.answer(
+        siteBuildStagingContract,
+        (payload) => this.stageFeed(feed, payload),
+        { everyProcess: true },
+      ),
+    ];
+  }
+
+  /**
+   * The service scopes each check id to this plugin and hands back the
+   * release.
+   */
+  private registerChecks(): Release[] {
+    const context = this.getContext();
+    return (this.definition.checks ?? []).map((check) =>
+      context.recurringChecks.register({
+        id: check.id,
+        cadence: check.cadence,
+        ...definedFields({
+          deliverAlerts: check.deliverAlerts,
+          includeInInbox: check.includeInInbox,
         }),
+        run: ({ signal }) =>
+          check.run(
+            Object.freeze({
+              // A scheduled run has no caller: it reads as the package.
+              entities: this.asPackage(),
+              siteUrl: context.siteUrl,
+              signal,
+            }),
+          ),
+      }),
+    );
+  }
+
+  private registerAtprotoProjection(): Release[] {
+    const atproto = this.definition.atproto;
+    if (!atproto) return [];
+    return [
+      this.getContext().atprotoProjections.register(
+        this.atprotoProjection(atproto),
       ),
-      ...(atproto
-        ? [
-            context.atprotoProjections.register(
-              this.atprotoProjection(context, atproto),
-            ),
-          ]
-        : []),
-      ...(widgets.length > 0
-        ? [
-            // The Dashboard answers registrations once every plugin is in.
-            context.messaging.subscribe(
-              SYSTEM_CHANNELS.pluginsRegistered,
-              async (): Promise<{ success: true }> => {
-                await this.registerDashboardWidgets(context, widgets);
-                return { success: true };
+    ];
+  }
+
+  /** The Dashboard answers registrations once every plugin is in. */
+  private subscribeDashboardWidgets(
+    widgets: readonly BoundEntityWidget[],
+  ): Release[] {
+    if (widgets.length === 0) return [];
+    return [
+      onEvent(
+        this.getContext().messaging,
+        SYSTEM_CHANNELS.pluginsRegistered,
+        () => this.registerDashboardWidgets(widgets),
+      ),
+    ];
+  }
+
+  /**
+   * Announced once every plugin is registered, so the publish pipeline is
+   * listening whichever order the plugins load in.
+   */
+  private subscribePublishRegistration(
+    publishProvider: PublishProvider | undefined,
+  ): Release[] {
+    const publish = this.definition.publish;
+    const publishAssets = this.definition.publishAssets ?? [];
+    if (!publish && publishAssets.length === 0) return [];
+    const context = this.getContext();
+    return [
+      onEvent(
+        context.messaging,
+        SYSTEM_CHANNELS.pluginsRegistered,
+        async (): Promise<void> => {
+          if (publish) {
+            await context.messaging.command(publishRegisterContract, {
+              entityType: this.entityType,
+              provider: publishProvider ?? publish.provider,
+              config: {
+                executionMode: "provider",
+                ...definedFields({
+                  publishResultIdField: publish.resultIdField,
+                  publishTimestampField: publish.timestampField,
+                }),
               },
-            ),
-          ]
-        : []),
-      ...(publish || publishAssets.length > 0
-        ? [
-            // Announced once every plugin is registered, so the publish
-            // pipeline is listening whichever order the plugins load in.
-            context.messaging.subscribe(
-              SYSTEM_CHANNELS.pluginsRegistered,
-              async (): Promise<{ success: true }> => {
-                if (publish) {
-                  await context.messaging.command(publishRegisterContract, {
-                    entityType: this.entityType,
-                    provider: publishProvider ?? publish.provider,
-                    config: {
-                      executionMode: "provider",
-                      ...definedFields({
-                        publishResultIdField: publish.resultIdField,
-                        publishTimestampField: publish.timestampField,
-                      }),
-                    },
-                  });
-                }
-                for (const asset of publishAssets) {
-                  await context.messaging.command(
-                    publishAssetRegisterContract,
-                    {
-                      entityType: this.entityType,
-                      attachmentType: asset.attachmentType,
-                      mediaEntityType: "image",
-                      // The image job records the id in the frontmatter the
-                      // stored record carries.
-                      targetEntityField: {
-                        location: "frontmatter",
-                        field: asset.field,
-                      },
-                      ...definedFields({ requiredWhen: asset.requiredWhen }),
-                      autoGenerate: true,
-                    },
-                  );
-                }
-                return { success: true };
+            });
+          }
+          for (const asset of publishAssets) {
+            await context.messaging.command(publishAssetRegisterContract, {
+              entityType: this.entityType,
+              attachmentType: asset.attachmentType,
+              mediaEntityType: "image",
+              // The image job records the id in the frontmatter the stored
+              // record carries.
+              targetEntityField: {
+                location: "frontmatter",
+                field: asset.field,
               },
-            ),
-          ]
-        : []),
+              ...definedFields({ requiredWhen: asset.requiredWhen }),
+              autoGenerate: true,
+            });
+          }
+        },
+      ),
     ];
   }
 
   private async registerDashboardWidgets(
-    context: EntityPluginContext,
     widgets: readonly BoundEntityWidget[],
   ): Promise<void> {
+    const context = this.getContext();
     if (context.executionOnly || !context.dashboard.isAvailable()) return;
     for (const binding of widgets) {
       const registered = await context.dashboard.registerWidget(
@@ -1650,11 +1617,13 @@ class DeclarativeEntityPlugin extends PluginCore<
 
   /** Reads of the declaring type alone, up to one visibility. */
   private records(
-    context: EntityPluginContext,
     visibilityScope: ContentVisibility,
   ): EntityRecordReader<EntityOf<AnyEntityDefinition>> {
     const definition = this.definition;
-    const reader = createEntityReader(context.entityService, visibilityScope);
+    const reader = createEntityReader(
+      this.getContext().entityService,
+      visibilityScope,
+    );
     return Object.freeze({
       get: (id: string): Promise<EntityOf<AnyEntityDefinition> | null> =>
         reader.get(definition, id),
@@ -1670,10 +1639,8 @@ class DeclarativeEntityPlugin extends PluginCore<
    * package; opening and acting are refused below admin, read as the actor,
    * and acting writes only through edits the actor is allowed.
    */
-  private inboxSource(
-    context: EntityPluginContext,
-    declared: EntityInboxDeclaration,
-  ): InboxSource {
+  private inboxSource(declared: EntityInboxDeclaration): InboxSource {
+    const context = this.getContext();
     // The declaring type is the package's own, so it lists at every visibility.
     const full = internalFullScope("the declared Inbox lists as its package");
     const asActor = (
@@ -1682,7 +1649,7 @@ class DeclarativeEntityPlugin extends PluginCore<
       const scope = permissionToVisibilityScope(actor.permissionLevel);
       return {
         actor,
-        records: this.records(context, scope),
+        records: this.records(scope),
         entities: createEntityReader(context.entityService, scope),
       };
     };
@@ -1704,8 +1671,8 @@ class DeclarativeEntityPlugin extends PluginCore<
       list: async (): Promise<InboxItem[]> => [
         ...(await declared.list(
           Object.freeze({
-            records: this.records(context, full),
-            entities: this.asPackage(context),
+            records: this.records(full),
+            entities: this.asPackage(),
           }),
         )),
       ],
@@ -1733,17 +1700,15 @@ class DeclarativeEntityPlugin extends PluginCore<
           actionId,
           Object.freeze({
             ...asActor(actor),
-            edits: this.inboxEdits(context, actor),
+            edits: this.inboxEdits(actor),
           }),
         );
       },
     };
   }
 
-  private inboxEdits(
-    context: EntityPluginContext,
-    actor: InboxActor,
-  ): EntityInboxEdits<AnyEntityDefinition> {
+  private inboxEdits(actor: InboxActor): EntityInboxEdits<AnyEntityDefinition> {
+    const context = this.getContext();
     const entityType = this.entityType;
     const allow = (action: "update" | "publish" | "delete"): void =>
       context.permissions.assertEntityActionAllowed(entityType, action, {
@@ -1813,9 +1778,9 @@ class DeclarativeEntityPlugin extends PluginCore<
    * and it is given the validated record.
    */
   private atprotoProjection(
-    context: EntityPluginContext,
     declared: EntityAtprotoProjection<EntityOf<AnyEntityDefinition>>,
   ): AtprotoProjection {
+    const context = this.getContext();
     const definition = this.definition;
     // The record is published to a public PDS, so it is built from public
     // entries only, as the class-based blog projection builds its own.
@@ -1888,169 +1853,22 @@ class DeclarativeEntityPlugin extends PluginCore<
     };
   }
 
-  private registerCreateRouting(
-    context: EntityPluginContext,
-    routing: EntityCreateRouting,
-    urlRoute: EntityCreateRoute | undefined,
-  ): void {
-    const interceptCreate: CreateInterceptor = (input, executionContext) =>
-      this.routeCreate(context, routing, urlRoute, input, executionContext);
-    context.entities.registerCreateInterceptor(
-      this.entityType,
-      interceptCreate,
-    );
-    // Checked before the user confirms, through the route the confirmed
-    // create will take; a rejecting route says so before anyone is asked.
-    context.entities.registerCreateCheck(
-      this.entityType,
-      async (input, executionContext): Promise<CreateCheckResult> => {
-        const route = selectCreateRoute(routing, input, urlRoute);
-        if (!route) return { kind: "ready" };
-        if ("reject" in route) return { kind: "error", error: route.reject };
-        return route.check
-          ? route.check(this.createContext(context, input, executionContext))
-          : { kind: "ready" };
-      },
-    );
-    // The upload endpoint routes by media type into the same route, rather
-    // than a second handler re-implementing the create.
-    const mediaTypes = routing.fromUpload?.mediaTypes ?? [];
-    if (mediaTypes.length > 0) {
-      context.entities.registerUploadSaveHandler({
-        entityType: this.entityType,
-        mediaTypes: [...mediaTypes],
-        handler: createUploadSaveHandler(
-          this.entityType,
-          interceptCreate,
-          `Upload was not handled by ${this.entityType}`,
-        ),
-      });
-    }
-  }
-
-  private async routeCreate(
-    context: EntityPluginContext,
-    routing: EntityCreateRouting,
-    urlRoute: EntityCreateRoute | undefined,
-    input: CreateInput,
-    executionContext: CreateExecutionContext,
-  ): Promise<CreateInterceptionResult> {
-    const route = selectCreateRoute(routing, input, urlRoute);
-    if (!route) return { kind: "continue", input };
-    if ("reject" in route) {
-      return { kind: "handled", result: createFailure(route.reject) };
-    }
-    const resolution = await route.resolve(
-      this.createContext(context, input, executionContext),
-    );
-    // A first-party route handing on to the ordinary create, which system
-    // create performs at the caller's authority.
-    const ordinary = ordinaryCreateOf(resolution);
-    if (ordinary) {
-      const { targetEntityId } = ordinary.options;
-      const targeted: CreateInput = {
-        ...input,
-        ...(targetEntityId !== undefined && { targetEntityId }),
-      };
-      if (!ordinary.document) return { kind: "continue", input: targeted };
-      const { fields: _folded, ...request } = targeted;
-      const { title, content, fields } = ordinary.document;
-      return {
-        kind: "continue",
-        input: {
-          ...request,
-          ...(title !== undefined && { title }),
-          content,
-          ...(fields !== undefined && { fields: { ...fields } }),
-        },
-      };
-    }
-    // First-party routes that queue a contract job, or store a complete
-    // record, as an entity plugin's interceptor did.
-    const queued = queuedCreateOf(resolution);
-    if (queued) {
-      return {
-        kind: "handled",
-        result: await this.applyQueuedCreate(
-          context,
-          queued,
-          input,
-          executionContext,
-        ),
-      };
-    }
-    const stored = storedCreateOf(resolution);
-    if (stored) {
-      return {
-        kind: "handled",
-        result: await this.applyStoredCreate(
-          context,
-          stored,
-          input,
-          executionContext,
-        ),
-      };
-    }
-    return {
-      kind: "handled",
-      result: await this.applyCreateResolution(
-        context,
-        resolution,
-        input,
-        executionContext,
-      ),
-    };
-  }
-
-  /** What a route decides with: frozen, read-only, at the caller's level. */
-  private createContext(
-    context: EntityPluginContext,
-    input: CreateInput,
-    executionContext: CreateExecutionContext,
-  ): EntityCreateContext {
-    const uploads = context.uploads.scoped(sharedUploadScope);
-    const reader: EntityCreateUploadReader = Object.freeze({
-      read: (uploadId: string) => uploads.read(uploadId),
-      readRecord: (uploadId: string) => uploads.readRecord(uploadId),
-    });
-    const entities = createEntityReader(
-      context.entityService,
-      this.callerScope(executionContext),
-    );
-    return withEntityRuntime(
-      {
-        input: deepFrozen(structuredClone(input)),
-        entities,
-        uploads: reader,
-      },
-      {
-        ...this.runtimeBinding(context, entities, "a create route", {
-          // Targets and sources are read public, as the entity plugin
-          // classes' create interceptors read them.
-          service: context.entityService,
-          scope: () => "public",
-        }),
-        caller: createCaller(executionContext),
-      },
-    );
-  }
-
   /**
    * The internal runtime a first-party definition reaches through
    * entityRuntime(context): searches at the call's visibility, reads of the
    * package's own types as the package, and free-form structured AI.
    */
   private runtimeBinding(
-    context: EntityPluginContext,
     reader: EntityReader,
     where: string,
     anyEntities?: AnyEntityBinding,
   ): EntityRuntimeBinding {
+    const context = this.getContext();
     return {
       where,
       reader,
       ...(anyEntities && { anyEntities }),
-      packageReader: this.asPackage(context),
+      packageReader: this.asPackage(),
       ownsType: (entityType) => this.ownsType(entityType),
       searchWithDistances: (request) =>
         context.entityService.searchWithDistances(request),
@@ -2086,7 +1904,6 @@ class DeclarativeEntityPlugin extends PluginCore<
    * package, as an entity plugin class's eval ran its generation handler.
    */
   private async runGenerationForEval(
-    context: EntityPluginContext,
     input: unknown,
     options: EvalGenerationOptions = {},
   ): Promise<EvalGenerationResult> {
@@ -2095,13 +1912,12 @@ class DeclarativeEntityPlugin extends PluginCore<
       throw new Error(`Entity "${this.entityType}" declares no generation`);
     }
     const handler = this.generationHandler(
-      context,
       generation,
       `${this.entityType}:generation`,
       this.definition.scheduledGeneration !== undefined,
     );
     const data = handler.validateAndParse(
-      await admitPackageJob(context.jobAuthority, undefined, input),
+      await admitPackageJob(this.getContext().jobAuthority, undefined, input),
     );
     if (data === null) {
       return { success: false, error: "Invalid generation input" };
@@ -2125,508 +1941,13 @@ class DeclarativeEntityPlugin extends PluginCore<
    * run's authority, untyped ones at the scope the run reads each type at.
    */
   private runBinding(
-    context: EntityPluginContext,
     authority: EntityRunAuthority,
     where: string,
   ): EntityRuntimeBinding {
-    return this.runtimeBinding(context, authority.entities, where, {
-      service: context.entityService,
+    return this.runtimeBinding(authority.entities, where, {
+      service: this.getContext().entityService,
       scope: (entityType) => authority.scope(entityType),
     });
-  }
-
-  private callerScope(
-    executionContext: CreateExecutionContext,
-  ): ContentVisibility {
-    return permissionToVisibilityScope(executionContext.userPermissionLevel);
-  }
-
-  /**
-   * Perform what a route decided. The runtime writes, so "created" and
-   * "updated" describe what it did rather than what the route claims.
-   */
-  private async applyCreateResolution(
-    context: EntityPluginContext,
-    resolution: EntityCreateResolution | EntityCreateAllocation,
-    input: CreateInput,
-    executionContext: CreateExecutionContext,
-  ): Promise<CreateResult> {
-    if ("delegate" in resolution) {
-      return this.applyDelegation(context, resolution, input, executionContext);
-    }
-    if ("refuse" in resolution) return createFailure(resolution.refuse);
-    const visibilityScope = this.callerScope(executionContext);
-    const eventContext = {
-      actor: executionContext.actor,
-      interfaceType: executionContext.interfaceType,
-    };
-
-    if ("existing" in resolution) {
-      const found = await context.entityService.getEntity({
-        entityType: this.entityType,
-        id: resolution.existing.id,
-        visibilityScope,
-      });
-      if (!found) {
-        return createFailure(
-          `Cannot reuse ${this.entityType} "${resolution.existing.id}", which does not exist`,
-        );
-      }
-      return this.createSuccess("existing", found.id, resolution.attachment);
-    }
-
-    const target =
-      "update" in resolution ? resolution.update : resolution.create;
-    const metadata = this.definition.metadata.safeParse(target.metadata);
-    if (!metadata.success) return createFailure(this.invalid(metadata.error));
-
-    if ("update" in resolution) {
-      const existing = await context.entityService.getEntity({
-        entityType: this.entityType,
-        id: resolution.update.id,
-        visibilityScope,
-      });
-      if (!existing) {
-        return createFailure(
-          `Cannot update ${this.entityType} "${resolution.update.id}", which does not exist`,
-        );
-      }
-      const written = await context.entityService.updateEntity({
-        entity: {
-          ...existing,
-          content: resolution.update.content,
-          metadata: metadata.data,
-        },
-        options: { eventContext },
-      });
-      return this.createSuccess("updated", written.entityId, undefined);
-    }
-
-    // Create-if-absent: a route that did not see an entity at the caller's
-    // level must not write over one it could not see.
-    const taken = await context.entityService.getEntity({
-      entityType: this.entityType,
-      id: resolution.create.id,
-      visibilityScope: internalFullScope(
-        "create route checks whether its id is taken; no content returned",
-      ),
-    });
-    const alreadyExists = `A ${this.entityType} "${resolution.create.id}" already exists`;
-    if (taken) return createFailure(alreadyExists);
-    try {
-      const written = await context.entityService.createEntity({
-        entity: {
-          id: resolution.create.id,
-          entityType: this.entityType,
-          content: resolution.create.content,
-          metadata: metadata.data,
-          ...(input.visibility !== undefined && {
-            visibility: input.visibility,
-          }),
-        },
-        options: {
-          conditionalWrite: { expectedRevision: null },
-          eventContext,
-        },
-      });
-      return this.createSuccess(
-        "created",
-        written.entityId,
-        resolution.attachment,
-      );
-    } catch (error) {
-      if (error instanceof EntityWriteConflictError) {
-        return createFailure(alreadyExists);
-      }
-      throw error;
-    }
-  }
-
-  private invalid(error: z.ZodError): string {
-    return `Invalid ${this.entityType} metadata: ${error.issues
-      .map(({ path, message }) => `${path.join(".") || "metadata"}: ${message}`)
-      .join("; ")}`;
-  }
-
-  /**
-   * Allocate now and finish later: write the placeholder (or find the
-   * entity), then queue the declared job with its id. Everything the
-   * delegation needs is checked before anything is written.
-   */
-  private async applyDelegation(
-    context: EntityPluginContext,
-    allocation: EntityCreateAllocation,
-    input: CreateInput,
-    executionContext: CreateExecutionContext,
-  ): Promise<CreateResult> {
-    const { job: name, input: jobInput = {} } = allocation.delegate;
-    // "generation" names the type's own generation, queued as
-    // `{type}:generation`, as an entity plugin's interceptor queued it.
-    const ownGeneration = name === "generation" ? this.generation : undefined;
-    const job =
-      ownGeneration ??
-      (Object.hasOwn(this.jobs, name) ? this.jobs[name] : undefined);
-    if (!job) {
-      return createFailure(
-        `${this.entityType} declares no job named "${name}"`,
-      );
-    }
-    const allocates = "create" in allocation || "existing" in allocation;
-    if (allocates && !("generate" in job)) {
-      return createFailure(
-        `${this.entityType} job "${name}" does not generate, so it cannot fill an allocated entity`,
-      );
-    }
-    const parsed = job.input.safeParse(jobInput);
-    if (!parsed.success) {
-      return createFailure(
-        `Invalid input for ${this.entityType} job "${name}": ${parsed.error.issues
-          .map(({ message }) => message)
-          .join("; ")}`,
-      );
-    }
-    // The caller starts the job, and it runs with their authority, so they
-    // are admitted before anything is written; one the brain no longer
-    // knows is refused here.
-    const queued = await admitPackageJob(
-      context.jobAuthority,
-      toolCaller(executionContext),
-      jobInput,
-    );
-
-    const allocated = await this.allocate(
-      context,
-      allocation,
-      input,
-      executionContext,
-    );
-    if ("error" in allocated) return createFailure(allocated.error);
-    const entityId = allocated.entityId;
-    try {
-      const data = {
-        ...queued,
-        ...(entityId !== undefined && { entityId }),
-        ...("generate" in job &&
-          definedFields({ source: generationSource(input) })),
-      };
-      const jobId = ownGeneration
-        ? // Content work for the caller who asked, routed back to their
-          // conversation, as the classes queued their generations.
-          await context.jobs.enqueue({
-            type: `${this.entityType}:generation`,
-            data,
-            toolContext: executionContext,
-            options: {
-              source: this.id,
-              metadata: { operationType: "content_operations" },
-            },
-          })
-        : await context.jobs.enqueue({
-            type: name,
-            // The input as written, and beside it the entity a generation
-            // fills and the entries the request named it from.
-            data,
-            toolContext: {
-              interfaceType: executionContext.interfaceType,
-              actor: executionContext.actor,
-              ...definedFields({ channelId: executionContext.channelId }),
-            },
-          });
-      const attachment =
-        "attachment" in allocation ? allocation.attachment : undefined;
-      return {
-        success: true,
-        data: {
-          status: "generating",
-          jobId,
-          ...(entityId !== undefined && {
-            entityId,
-            ...(attachment && {
-              attachment: createResultAttachmentSchema.parse(
-                attachment({ entityId }),
-              ),
-            }),
-          }),
-        },
-      };
-    } catch (error) {
-      // No job will fill a placeholder this create wrote; left behind it
-      // would stay generating forever.
-      if (allocated.written) {
-        await context.entityService
-          .deleteEntity({ entityType: this.entityType, id: allocated.written })
-          .catch((cleanupError: unknown) => {
-            this.logger.warn("Failed to remove an unqueued placeholder", {
-              entityId: allocated.written,
-              error: cleanupError,
-            });
-          });
-      }
-      return createFailure(getErrorMessage(error));
-    }
-  }
-
-  private async allocate(
-    context: EntityPluginContext,
-    allocation: EntityCreateAllocation,
-    input: CreateInput,
-    executionContext: CreateExecutionContext,
-  ): Promise<
-    | { readonly entityId: string | undefined; readonly written?: string }
-    | { readonly error: string }
-  > {
-    if ("existing" in allocation) {
-      const found = await context.entityService.getEntity({
-        entityType: this.entityType,
-        id: allocation.existing.id,
-        visibilityScope: this.callerScope(executionContext),
-      });
-      return found
-        ? { entityId: found.id }
-        : {
-            error: `Cannot reuse ${this.entityType} "${allocation.existing.id}", which does not exist`,
-          };
-    }
-    if (!("create" in allocation)) return { entityId: undefined };
-    const metadata = this.definition.metadata.safeParse(
-      allocation.create.metadata,
-    );
-    if (!metadata.success) return { error: this.invalid(metadata.error) };
-    // Deduplicated, as system_generate's stub is: a second import lands
-    // beside the first rather than on top of it.
-    const written = await context.entityService.createEntity({
-      entity: {
-        id: allocation.create.id,
-        entityType: this.entityType,
-        content: allocation.create.content,
-        metadata: metadata.data,
-        ...(input.visibility !== undefined && { visibility: input.visibility }),
-      },
-      options: {
-        deduplicateId: true,
-        eventContext: {
-          actor: executionContext.actor,
-          interfaceType: executionContext.interfaceType,
-        },
-      },
-    });
-    return { entityId: written.entityId, written: written.entityId };
-  }
-
-  /**
-   * Write a first-party route's pending placeholder and queue the contract
-   * job that fills it, as an entity plugin's interceptor did: a record that
-   * already has the id is reused rather than written over, and one at a
-   * different visibility than asked is refused.
-   */
-  private async applyQueuedCreate(
-    context: EntityPluginContext,
-    queued: QueuedCreate,
-    _input: CreateInput,
-    executionContext: CreateExecutionContext,
-  ): Promise<CreateResult> {
-    const attributed = isAttributed(queued);
-    const placeholder = queued.placeholder;
-    if (placeholder?.deduplicate === true) {
-      return this.applyDeduplicatedQueuedCreate(
-        context,
-        queued,
-        placeholder,
-        executionContext,
-      );
-    }
-    if (placeholder) {
-      const metadata = this.definition.metadata.safeParse(placeholder.metadata);
-      if (!metadata.success) return createFailure(this.invalid(metadata.error));
-      const now = new Date().toISOString();
-      const pending = await createPendingEntity({
-        entityService: context.entityService,
-        entity: {
-          id: queued.entityId,
-          entityType: this.entityType,
-          content: placeholder.content,
-          metadata: metadata.data,
-          ...(placeholder.visibility !== undefined && {
-            visibility: placeholder.visibility,
-          }),
-          created: now,
-          updated: now,
-        },
-        ...(attributed && {
-          options: { eventContext: eventContextOf(executionContext) },
-        }),
-      });
-      if (
-        placeholder.visibility !== undefined &&
-        pending.existingEntity !== undefined &&
-        pending.existingEntity.visibility !== placeholder.visibility
-      ) {
-        // Answered, as an entity plugin's interceptor answered it.
-        return createFailure(
-          `Existing ${this.entityType} visibility "${pending.existingEntity.visibility}" does not match requested visibility "${placeholder.visibility}".`,
-        );
-      }
-    }
-    return this.queueFill(context, queued, executionContext, queued.entityId);
-  }
-
-  /**
-   * A queued create whose placeholder lands beside a record that has its id,
-   * as an entity plugin's interceptor wrote one with `deduplicateId`: the
-   * job is queued for, and the answer names, the id written, and the job's
-   * input may be built from the placeholder as stored.
-   */
-  private async applyDeduplicatedQueuedCreate(
-    context: EntityPluginContext,
-    queued: QueuedCreate,
-    placeholder: NonNullable<QueuedCreate["placeholder"]>,
-    executionContext: CreateExecutionContext,
-  ): Promise<CreateResult> {
-    const metadata = this.definition.metadata.safeParse(placeholder.metadata);
-    if (!metadata.success) return createFailure(this.invalid(metadata.error));
-    const now = new Date().toISOString();
-    const created = await context.entityService.createEntity({
-      entity: {
-        id: queued.entityId,
-        entityType: this.entityType,
-        content: placeholder.content,
-        metadata: metadata.data,
-        ...(placeholder.visibility !== undefined && {
-          visibility: placeholder.visibility,
-        }),
-        created: now,
-        updated: now,
-      },
-      options: {
-        deduplicateId: true,
-        ...(isAttributed(queued) && {
-          eventContext: eventContextOf(executionContext),
-        }),
-      },
-    });
-    return this.queueFill(context, queued, executionContext, created.entityId);
-  }
-
-  /** The record a queued create's job fills, as it is stored now. */
-  private async writtenPlaceholder(
-    context: EntityPluginContext,
-    entityId: string,
-  ): Promise<QueuedPlaceholder> {
-    const written = await context.entityService.getEntity({
-      entityType: this.entityType,
-      id: entityId,
-      visibilityScope: internalFullScope(
-        "read back the placeholder a queued create wrote; only its hash is handed on",
-      ),
-    });
-    if (!written) {
-      throw new Error(
-        `The ${this.entityType} placeholder "${entityId}" could not be read back`,
-      );
-    }
-    return { entityId: written.id, contentHash: written.contentHash };
-  }
-
-  /** Queue a queued create's job and answer generating. */
-  private async queueFill(
-    context: EntityPluginContext,
-    queued: QueuedCreate,
-    executionContext: CreateExecutionContext,
-    entityId: string,
-  ): Promise<CreateResult> {
-    const { data } = queued.job;
-    // Input built from the placeholder reads it back as it was stored.
-    const jobId = await context.jobs.enqueue(
-      queued.job.contract,
-      typeof data === "function"
-        ? data(await this.writtenPlaceholder(context, entityId))
-        : data,
-      ...(isAttributed(queued)
-        ? [
-            {
-              options: attributionJobOptions(
-                this.id,
-                executionContext,
-                typeof queued.job.attributed === "object"
-                  ? queued.job.attributed
-                  : undefined,
-              ),
-            },
-          ]
-        : []),
-    );
-    return {
-      success: true,
-      data: {
-        entityId,
-        status: "generating",
-        jobId,
-        ...(queued.attachment !== undefined && {
-          attachment: createResultAttachmentSchema.parse(queued.attachment),
-        }),
-      },
-    };
-  }
-
-  /**
-   * Store a first-party route's complete record as the caller, under the
-   * next free id when this one is taken, as an entity plugin's interceptor
-   * did.
-   */
-  private async applyStoredCreate(
-    context: EntityPluginContext,
-    stored: StoredCreate,
-    input: CreateInput,
-    executionContext: CreateExecutionContext,
-  ): Promise<CreateResult> {
-    const metadata = this.definition.metadata.safeParse(stored.record.metadata);
-    if (!metadata.success) return createFailure(this.invalid(metadata.error));
-    const now = new Date().toISOString();
-    const written = await context.entityService.createEntity({
-      entity: {
-        id: stored.record.id,
-        entityType: this.entityType,
-        content: stored.record.content,
-        metadata: metadata.data,
-        ...(input.visibility !== undefined && { visibility: input.visibility }),
-        created: now,
-        updated: now,
-      },
-      options: {
-        deduplicateId: true,
-        eventContext: eventContextOf(executionContext),
-      },
-    });
-    return {
-      success: true,
-      data: {
-        entityId: written.entityId,
-        status: "created",
-        attachment: createResultAttachmentSchema.parse(
-          stored.attachment({ entityId: written.entityId }),
-        ),
-      },
-    };
-  }
-
-  private createSuccess(
-    status: "created" | "existing" | "updated",
-    entityId: string,
-    attachment:
-      ((written: { readonly entityId: string }) => unknown) | undefined,
-  ): CreateResult {
-    return {
-      success: true,
-      data: {
-        status,
-        entityId,
-        ...(attachment && {
-          attachment: createResultAttachmentSchema.parse(
-            attachment({ entityId }),
-          ),
-        }),
-      },
-    };
   }
 
   protected override async onShutdown(): Promise<void> {
@@ -2660,12 +1981,11 @@ class DeclarativeEntityPlugin extends PluginCore<
    * instead of publishing one without the feed.
    */
   private async stageFeed(
-    context: EntityPluginContext,
     feed: EntityFeedDeclaration<EntityOf<AnyEntityDefinition>>,
     payload: SiteBuildStagingPayload,
   ): Promise<void> {
     try {
-      await this.writeFeed(context, feed, payload);
+      await this.writeFeed(feed, payload);
     } catch (error) {
       this.logger.error(`Failed to write the ${this.entityType} feed`, error);
       payload.reportFailure(
@@ -2675,13 +1995,12 @@ class DeclarativeEntityPlugin extends PluginCore<
   }
 
   private async writeFeed(
-    context: EntityPluginContext,
     feed: EntityFeedDeclaration<EntityOf<AnyEntityDefinition>>,
     payload: SiteBuildStagingPayload,
   ): Promise<void> {
     // A preview carries everything so an author sees unpublished work in
     // place; a production build carries what the type counts as published.
-    const stored = await context.entityService.listEntities({
+    const stored = await this.getContext().entityService.listEntities({
       entityType: this.entityType,
       options: {
         limit: 1000,
@@ -2726,10 +2045,10 @@ class DeclarativeEntityPlugin extends PluginCore<
 
   /** Create-if-absent: a seed never overwrites authored content. */
   private async plantSeed(
-    context: EntityPluginContext,
     seed: EntitySeedDefinition<AnyEntityDefinition["metadata"]>,
   ): Promise<void> {
-    const existing = await context.entityService.getEntity({
+    const { entityService } = this.getContext();
+    const existing = await entityService.getEntity({
       entityType: this.entityType,
       id: seed.id,
       visibilityScope: internalFullScope(
@@ -2738,7 +2057,7 @@ class DeclarativeEntityPlugin extends PluginCore<
     });
     if (existing) return;
     try {
-      await context.entityService.createEntity({
+      await entityService.createEntity({
         entity: {
           id: seed.id,
           entityType: this.entityType,
