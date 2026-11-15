@@ -1,3 +1,4 @@
+import { createScopedAssetReads } from "./owned-entity-writer-runtime";
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import {
@@ -324,13 +325,32 @@ function mediaAttachmentContext(
   context: EntityPluginContext,
 ): MediaAttachmentContext {
   const { identity, views } = context;
-  return Object.freeze({
-    domain: context.domain,
-    themeCSS: context.themeCSS,
-    identity: Object.freeze({ getProfile: () => identity.getProfile() }),
-    entityService: mediaEntityReads(context.entityService),
-    views: Object.freeze({ get: (name: string) => views.get(name) }),
-  });
+  const where = "a media attachment";
+  const reader = createEntityReader(context.entityService, "public");
+  // Media reads public records only; an asset-backed record's bytes are read
+  // through one visible at that scope, never a bare reference.
+  return withEntityRuntime(
+    {
+      domain: context.domain,
+      themeCSS: context.themeCSS,
+      identity: Object.freeze({ getProfile: () => identity.getProfile() }),
+      entityService: mediaEntityReads(context.entityService),
+      views: Object.freeze({ get: (name: string) => views.get(name) }),
+    },
+    {
+      where,
+      reader,
+      packageReader: reader,
+      ownsType: () => false,
+      searchWithDistances: async (): Promise<never> => {
+        throw new Error(`searchWithDistances is not available in ${where}`);
+      },
+      generateObject: async (): Promise<never> => {
+        throw new Error(`generateObject is not available in ${where}`);
+      },
+      assets: createScopedAssetReads(context.entityService, "public", where),
+    },
+  );
 }
 
 /** A feed path stays inside the build output: relative, no parent steps. */
@@ -1824,43 +1844,46 @@ class DeclarativeEntityPlugin extends PluginCore<
         dryRun,
       }: AtprotoProjectionBuildInput): Promise<Record<string, unknown>> =>
         declared.buildRecord(
-          Object.freeze({
-            entity: parseDefinitionEntity(definition, entity),
-            config: Object.freeze(
-              definedFields({
-                brainDid: config.brainDid,
-                anchorDid: config.anchorDid,
+          withEntityRuntime(
+            {
+              entity: parseDefinitionEntity(definition, entity),
+              config: Object.freeze(
+                definedFields({
+                  brainDid: config.brainDid,
+                  anchorDid: config.anchorDid,
+                }),
+              ),
+              ...definedFields({
+                pageUrl,
+                topics: topics && Object.freeze([...topics]),
               }),
-            ),
-            ...definedFields({
-              pageUrl,
-              topics: topics && Object.freeze([...topics]),
-            }),
-            dryRun: dryRun === true,
-            entities,
-            uploadBlob: async ({
-              data,
-              mimeType,
-            }: {
-              readonly data: Uint8Array;
-              readonly mimeType: string;
-            }): Promise<AtprotoBlobRef> => {
-              if (dryRun) {
-                return {
-                  $type: "blob",
-                  ref: { $link: "dry-run" },
-                  mimeType,
-                  size: data.byteLength,
-                };
-              }
-              if (!client?.uploadBlob) {
-                throw new Error(
-                  "AT Protocol PDS client does not support blob uploads",
-                );
-              }
-              return (await client.uploadBlob({ data, mimeType })).blob;
+              dryRun: dryRun === true,
+              entities,
+              uploadBlob: async ({
+                data,
+                mimeType,
+              }: {
+                readonly data: Uint8Array;
+                readonly mimeType: string;
+              }): Promise<AtprotoBlobRef> => {
+                if (dryRun) {
+                  return {
+                    $type: "blob",
+                    ref: { $link: "dry-run" },
+                    mimeType,
+                    size: data.byteLength,
+                  };
+                }
+                if (!client?.uploadBlob) {
+                  throw new Error(
+                    "AT Protocol PDS client does not support blob uploads",
+                  );
+                }
+                return (await client.uploadBlob({ data, mimeType })).blob;
+              },
             },
-          }),
+            atprotoRecordRuntime(context, this.entityType, entities),
+          ),
         ),
     };
   }
@@ -2785,4 +2808,30 @@ export function createEntityPackagePlugins(
 /** Whether a value is an entity type a declared package installed. */
 export function isDeclarativeEntityPlugin(value: unknown): boolean {
   return value instanceof DeclarativeEntityPlugin;
+}
+
+/**
+ * The runtime an AT Protocol record is built with: public reads only, the
+ * record being published to a public PDS, and the bytes of an asset-backed
+ * record read through one visible at that scope.
+ */
+function atprotoRecordRuntime(
+  context: EntityPluginContext,
+  entityType: string,
+  entities: EntityReader,
+): EntityRuntimeBinding {
+  const where = "an AT Protocol record";
+  return {
+    where,
+    reader: entities,
+    packageReader: entities,
+    ownsType: (type) => type === entityType,
+    searchWithDistances: async (): Promise<never> => {
+      throw new Error(`searchWithDistances is not available in ${where}`);
+    },
+    generateObject: async (): Promise<never> => {
+      throw new Error(`generateObject is not available in ${where}`);
+    },
+    assets: createScopedAssetReads(context.entityService, "public", where),
+  };
 }

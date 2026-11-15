@@ -398,3 +398,68 @@ function inlineBytes(content: string): Uint8Array | null {
   const payload = match?.[1]?.replace(/\s+/g, "");
   return payload ? Uint8Array.from(Buffer.from(payload, "base64")) : null;
 }
+
+/**
+ * Asset-backed records read at one fixed scope, with no writes: what a
+ * callback that only reads bytes is given, such as an AT Protocol record
+ * built from public entries. A record not visible at the scope reads as
+ * absent, whatever another record sharing its bytes allows.
+ */
+export function createScopedAssetReads(
+  entityService: Pick<
+    IEntityService,
+    "getEntityRaw" | "openAsset" | "readAsset"
+  >,
+  visibilityScope: ContentVisibility,
+  where: string,
+): EntityRuntimeAssets {
+  const refuse = (name: string) => async (): Promise<never> => {
+    throw new Error(`assets.${name} is not available in ${where}`);
+  };
+  // A record of another type is not this type's record: it reads as absent.
+  const stored = async (
+    definition: AnyEntityDefinition,
+    id: string,
+  ): Promise<BaseEntity | null> => {
+    const record = await entityService.getEntityRaw({
+      entityType: definition.type,
+      id,
+      visibilityScope,
+      binaryContent: "reference",
+    });
+    return record?.entityType === definition.type ? record : null;
+  };
+  return Object.freeze({
+    stage: refuse("stage"),
+    discard: refuse("discard"),
+    save: refuse("save"),
+    getStored: async <TDefinition extends AnyEntityDefinition>(
+      definition: TDefinition,
+      id: string,
+    ): Promise<EntityOf<TDefinition> | null> => {
+      const record = await stored(definition, id);
+      return record ? parseDefinitionEntity(definition, record) : null;
+    },
+    open: async (
+      definition: AnyEntityDefinition,
+      id: string,
+    ): Promise<AsyncIterable<Uint8Array> | Iterable<Uint8Array> | null> => {
+      const record = await stored(definition, id);
+      if (!record) return null;
+      const ref = assetRefSchema.safeParse(record.content);
+      if (ref.success) return entityService.openAsset(ref.data);
+      const inline = inlineBytes(record.content);
+      return inline ? [inline] : null;
+    },
+    read: async (
+      definition: AnyEntityDefinition,
+      id: string,
+    ): Promise<Uint8Array | null> => {
+      const record = await stored(definition, id);
+      if (!record) return null;
+      const ref = assetRefSchema.safeParse(record.content);
+      if (ref.success) return entityService.readAsset(ref.data);
+      return inlineBytes(record.content);
+    },
+  } satisfies EntityRuntimeAssets);
+}

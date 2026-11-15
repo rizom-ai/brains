@@ -13,6 +13,9 @@ import type {
   ViewTemplate,
 } from "@brains/sdk/internal/presentation";
 import type { PublishMediaData } from "@brains/contracts";
+import { entityRuntime } from "@brains/sdk/internal/entity-runtime";
+import { defineEntity } from "@brains/sdk/entities";
+import { z } from "@brains/utils/zod";
 import { slugify } from "@brains/utils/string-utils";
 import { renderOgImagePng, type ScreenshotPng } from "./og-image";
 import { renderPrintablePdf, type RenderPdf } from "./printable";
@@ -96,12 +99,18 @@ export function createMediaContentHelpers(
       imageId: string | undefined,
     ): Promise<string | undefined> => {
       if (!imageId) return undefined;
-      const image = await context.entityService.getEntity({
-        entityType: "image",
-        id: imageId,
-      });
-      return image?.content.startsWith("data:image/")
-        ? image.content
+      // Composition inlines the image; its bytes are read through the record
+      // visible at the public scope and encoded here explicitly.
+      const assets = entityRuntime(context).assets;
+      const image = await assets.getStored(imageShape, imageId);
+      if (!image) return undefined;
+      // Inline content stored before assets is already a data URL.
+      if (image.content.startsWith("data:image/")) return image.content;
+      if (!image.content.startsWith("asset://")) return undefined;
+      const bytes = await assets.read(imageShape, imageId);
+      const mediaType = storedImageMediaType(image.metadata);
+      return bytes && mediaType
+        ? `data:${mediaType};base64,${Buffer.from(bytes).toString("base64")}`
         : undefined;
     },
   };
@@ -263,4 +272,24 @@ export function createPrintableProvider<TEntity extends BaseEntity, TContent>(
         ...(deps?.renderPdf ? { renderPdf: deps.renderPdf } : {}),
       }),
   });
+}
+
+/** An image an artifact inlines, read by this shape, never installed. */
+const imageShape = defineEntity({
+  type: "image",
+  purpose: "An image an artifact inlines.",
+  metadata: z.looseObject({
+    mediaType: z.string().optional(),
+    format: z.string().optional(),
+  }),
+});
+
+/** The media type an inlined image is encoded as. */
+function storedImageMediaType(metadata: {
+  readonly mediaType?: string | undefined;
+  readonly format?: string | undefined;
+}): string | undefined {
+  if (metadata.mediaType?.startsWith("image/")) return metadata.mediaType;
+  if (!metadata.format) return undefined;
+  return `image/${metadata.format === "jpg" ? "jpeg" : metadata.format}`;
 }

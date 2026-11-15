@@ -431,6 +431,8 @@ export interface EntityRuntimeBinding {
   readonly runGeneration?: EntityRuntime["runGeneration"] | undefined;
   /** The declaring type's own projection rules, run; unset, refused. */
   readonly runProjectionRule?: EntityRuntime["runProjectionRule"] | undefined;
+  /** Asset reads (and writes) outside a contract job; unset, the job's. */
+  readonly assets?: EntityRuntimeAssets | undefined;
 }
 
 const entityRuntimeKey = Symbol("rizom.entity-runtime");
@@ -795,7 +797,7 @@ function bindEntityRuntime(binding: EntityRuntimeBinding): EntityRuntime {
     images: job.images,
     attachments: job.attachments,
     uploads: job.uploads,
-    assets: job.assets,
+    assets: binding.assets ?? job.assets,
     logger: binding.logger ?? job.logger,
     get caller(): EntityCreateCaller {
       if (!binding.caller) {

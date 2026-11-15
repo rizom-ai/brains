@@ -1,5 +1,6 @@
 import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
 import { frontmatterRecordFields } from "@brains/contracts";
+import { assetRefSchema } from "@brains/sdk/internal/service-runtime";
 import { z } from "@brains/utils/zod";
 import type { PublishImageData, PublishMediaData } from "@brains/contracts";
 import type { PublishableMetadata } from "../schemas/publishable";
@@ -140,12 +141,24 @@ async function fetchPublishImageData(
   context: PipelineContext,
   coverImageId: string,
 ): Promise<PublishImageData | undefined> {
+  // Read at the public scope, as stored: the bytes are read for this image
+  // only, never for a reference another image shares.
   const image = await context.entityService.getEntity({
     entityType: "image",
     id: coverImageId,
+    binaryContent: "reference",
   });
   if (!image?.content) return undefined;
 
+  const ref = assetRefSchema.safeParse(image.content);
+  if (ref.success) {
+    const mimeType = storedImageMediaType(image.metadata);
+    if (!mimeType) return undefined;
+    return {
+      data: Buffer.from(await context.entityService.readAsset(ref.data)),
+      mimeType,
+    };
+  }
   const parsed = parseBase64DataUrl(image.content);
   if (!parsed?.mimeType.startsWith("image/")) return undefined;
 
@@ -203,4 +216,18 @@ function getFilename(entity: BaseEntity, fallbackId: string): string {
   return typeof filename === "string" && filename.length > 0
     ? filename
     : `${fallbackId}.pdf`;
+}
+
+/** The media type an asset-backed image is served as: recorded, else its format's. */
+function storedImageMediaType(
+  metadata: Record<string, unknown>,
+): string | undefined {
+  const recorded = metadata["mediaType"];
+  if (typeof recorded === "string" && recorded.startsWith("image/")) {
+    return recorded;
+  }
+  const format = metadata["format"];
+  return typeof format === "string"
+    ? `image/${format === "jpg" ? "jpeg" : format}`
+    : undefined;
 }

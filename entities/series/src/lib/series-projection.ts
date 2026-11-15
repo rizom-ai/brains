@@ -68,7 +68,11 @@ async function selectSeriesInput(
   const members = (
     await Promise.all(
       entityTypes.map(async (entityType) =>
-        context.entities.listEntities({ entityType }),
+        // Members are found by their metadata: stored references, no bytes.
+        context.entities.listEntities({
+          entityType,
+          options: { binaryContent: "reference" },
+        }),
       ),
     )
   )

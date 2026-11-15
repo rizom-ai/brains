@@ -300,6 +300,64 @@ describe("ChatInterface artifacts", () => {
     );
   });
 
+  it("posts native Discord image files read from stored asset chunks", async () => {
+    const bytes = Buffer.from("staged-png-bytes");
+    const asset = await suite.harness.getEntityService().stageAsset(bytes);
+    suite.harness.addEntities([
+      {
+        id: "image-staged",
+        entityType: "image",
+        content: asset.ref,
+        metadata: {
+          filename: "staged-image.png",
+          mediaType: "image/png",
+          sizeBytes: bytes.byteLength,
+        },
+        visibility: "shared",
+      },
+    ]);
+    suite.harness.setPermissionService(
+      new PermissionService({
+        rules: [{ pattern: "discord:*", level: "trusted" }],
+      }),
+    );
+    suite.agentService.chat.mockResolvedValueOnce({
+      text: "Generated the image.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      cards: [
+        {
+          kind: "attachment",
+          id: "card-1",
+          title: "Staged image",
+          attachment: {
+            mediaType: "image/png",
+            url: "/api/chat/attachments/image?id=image-staged",
+            filename: "staged-image.png",
+          },
+        },
+      ],
+    });
+    const thread = createThread();
+    await suite.harness.installPlugin(createPlugin());
+    const chat = MockChatSdk.instances[0];
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+
+    expect(thread.post).toHaveBeenCalledWith(
+      expect.objectContaining({
+        files: [
+          expect.objectContaining({
+            mimeType: "image/png",
+            data: bytes.buffer.slice(
+              bytes.byteOffset,
+              bytes.byteOffset + bytes.byteLength,
+            ),
+          }),
+        ],
+      }),
+    );
+  });
+
   it("does not post restricted native Discord artifact files for trusted users", async () => {
     suite.harness.addEntities([
       {
@@ -345,6 +403,62 @@ describe("ChatInterface artifacts", () => {
     expect(thread.post).toHaveBeenCalledWith(
       [
         "Generated the deck.",
+        "Artifact: Not available at your access level.",
+      ].join("\n\n"),
+    );
+  });
+
+  it("posts no restricted image's bytes to trusted users, even when a public image shares them", async () => {
+    const bytes = Buffer.from("shared-png-bytes");
+    const asset = await suite.harness.getEntityService().stageAsset(bytes);
+    const metadata = { mediaType: "image/png", sizeBytes: bytes.byteLength };
+    suite.harness.addEntities([
+      {
+        id: "image-private",
+        entityType: "image",
+        content: asset.ref,
+        metadata: { ...metadata, filename: "private.png" },
+        visibility: "restricted",
+      },
+      {
+        id: "image-public-twin",
+        entityType: "image",
+        content: asset.ref,
+        metadata: { ...metadata, filename: "public.png" },
+        visibility: "public",
+      },
+    ]);
+    suite.harness.setPermissionService(
+      new PermissionService({
+        rules: [{ pattern: "discord:*", level: "trusted" }],
+      }),
+    );
+    suite.agentService.chat.mockResolvedValueOnce({
+      text: "Generated the image.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      cards: [
+        {
+          kind: "attachment",
+          id: "card-1",
+          title: "Private image",
+          attachment: {
+            mediaType: "image/png",
+            url: "/api/chat/attachments/image?id=image-private",
+            filename: "private.png",
+            source: { entityType: "image", entityId: "image-private" },
+          },
+        },
+      ],
+    });
+    const thread = createThread();
+    await suite.harness.installPlugin(createPlugin());
+    const chat = MockChatSdk.instances[0];
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+
+    expect(thread.post).toHaveBeenCalledWith(
+      [
+        "Generated the image.",
         "Artifact: Not available at your access level.",
       ].join("\n\n"),
     );

@@ -4,15 +4,23 @@ import { pLimit } from "@brains/utils/p-limit";
 import { promises as fs } from "fs";
 import { join } from "path";
 import { ImageOptimizer } from "./image-optimizer";
-import { tryParseDataUrl } from "@brains/image";
-import type { BaseEntity, GetEntityRequest } from "@brains/entity-service";
+import { readImageBytes } from "@brains/image";
+import type {
+  AssetRef,
+  BaseEntity,
+  GetEntityRequest,
+} from "@brains/entity-service";
 import type { ResolvedSiteImage, SiteImageMap } from "./site-image-contracts";
 import { createSiteImageRenderer } from "./site-image-renderer";
 import { getErrorMessage } from "@brains/utils/error";
 
-/** The one read a build makes of an image: the record by its id. */
+/**
+ * The reads a build makes of an image: the record by its id, at the build's
+ * scope, then the bytes of that record alone.
+ */
 export interface ImageEntityReader {
   getEntity(request: GetEntityRequest): Promise<BaseEntity | null>;
+  openAsset(ref: AssetRef): Promise<AsyncIterable<Uint8Array>>;
 }
 
 export type ResolvedBuildImage = ResolvedSiteImage;
@@ -88,6 +96,7 @@ export class ImageBuildService {
     const image = await this.entityService.getEntity({
       entityType: "image",
       id: imageId,
+      binaryContent: "reference",
     });
     signal.throwIfAborted();
 
@@ -96,16 +105,18 @@ export class ImageBuildService {
       return;
     }
 
-    const parsed = tryParseDataUrl(image.content);
-    if (!parsed) {
-      this.logger.warn("Could not extract base64 from image", { imageId });
+    const read = await readImageBytes(this.entityService, image);
+    signal.throwIfAborted();
+    if (!read) {
+      this.logger.warn("Could not read image bytes", { imageId });
       return;
     }
 
-    const buffer = Buffer.from(parsed.base64, "base64");
-
+    const buffer = read.bytes;
     const format =
-      getImageFormatMetadata(image.metadata).format ?? parsed.format;
+      getImageFormatMetadata(image.metadata).format ??
+      read.mediaType.split("/")[1]?.split("+")[0] ??
+      "png";
     const originalFileName = `${imageId}.${format}`;
     const originalFilePath = join(this.imagesDir, originalFileName);
     await fs.writeFile(originalFilePath, buffer, { signal });

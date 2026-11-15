@@ -1,5 +1,6 @@
 import {
   SerialQueue,
+  type BinaryContentMode,
   type ContentVisibility,
 } from "@brains/sdk/internal/service-runtime";
 import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
@@ -29,6 +30,7 @@ export interface DurableEntityExportEntityService {
     id: string;
     visibilityScope?: ContentVisibility;
     source?: true;
+    binaryContent?: BinaryContentMode;
   }): Promise<BaseEntity | null>;
 }
 
@@ -151,8 +153,18 @@ export class DurableEntityExportDispatcher {
       listPendingEntityExports: (): ReturnType<
         DurableEntityExportDispatcherOptions["entityService"]["listPendingEntityExports"]
       > => this.entityService.listPendingEntityExports(),
-      // Exports materialize authored source, never preview-expanded content.
-      getEntity: this.entityService.getEntityRaw.bind(this.entityService),
+      // Exports read authored source, never preview-expanded content, and
+      // asset references rather than materialized bytes.
+      getEntity: (request: {
+        entityType: string;
+        id: string;
+        visibilityScope?: ContentVisibility;
+        source?: true;
+      }): Promise<BaseEntity | null> =>
+        this.entityService.getEntityRaw({
+          ...request,
+          binaryContent: "reference",
+        }),
       writeEntity: async (entity: BaseEntity): Promise<void> => {
         this.directorySync.suppressWatchPaths(
           this.directorySync.fileOps.getEntityConvergencePaths(entity),

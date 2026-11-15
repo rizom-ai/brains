@@ -2329,3 +2329,152 @@ describe("studio editor sync status", () => {
     expect(payload.git).toBeNull();
   });
 });
+
+describe("studio image previews", () => {
+  const png = Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+    "base64",
+  );
+
+  async function previewShell(
+    content: (shell: MockShell) => Promise<string>,
+    metadata: Record<string, unknown> = {},
+  ): Promise<{ route: WebRouteDefinition; cookie: string }> {
+    const shell = createEditorTestShell();
+    shell.getEntityRegistry().registerEntityType(
+      "image",
+      baseEntitySchema,
+      new TestAdapter({
+        entityType: "image",
+        frontmatterSchema: z.object({}),
+        hasBody: false,
+      }),
+    );
+    await shell.getEntityService().createEntity({
+      entity: {
+        id: "cover",
+        entityType: "image",
+        content: await content(shell),
+        metadata,
+        visibility: "public",
+        created: "2026-07-01T00:00:00.000Z",
+        updated: "2026-07-01T00:00:00.000Z",
+      },
+    });
+    const plugin = await registerPlugin(shell);
+    return {
+      route: findRoute(plugin, "/studio/api/images"),
+      cookie: await createSessionCookie(shell),
+    };
+  }
+
+  it("streams an asset-backed image with its media type", async () => {
+    const { route, cookie } = await previewShell(
+      async (shell) => (await shell.getEntityService().stageAsset(png)).ref,
+      { mediaType: "image/png", sizeBytes: png.byteLength },
+    );
+
+    const response = await route.handler(
+      apiRequest("/studio/api/images?id=cover", { cookie }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Content-Type")).toBe("image/png");
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
+    expect(Buffer.from(await response.arrayBuffer())).toEqual(png);
+  });
+
+  it("serves a legacy inline image as bytes", async () => {
+    const { route, cookie } = await previewShell(
+      async () => `data:image/png;base64,${png.toString("base64")}`,
+    );
+
+    const response = await route.handler(
+      apiRequest("/studio/api/images?id=cover", { cookie }),
+    );
+
+    expect(response.headers.get("Content-Type")).toBe("image/png");
+    expect(Buffer.from(await response.arrayBuffer())).toEqual(png);
+  });
+
+  it("serves a restricted image's bytes to no lesser session, even through a public twin", async () => {
+    const shell = createEditorTestShell();
+    shell.getEntityRegistry().registerEntityType(
+      "image",
+      baseEntitySchema,
+      new TestAdapter({
+        entityType: "image",
+        frontmatterSchema: z.object({}),
+        hasBody: false,
+      }),
+    );
+    const asset = await shell.getEntityService().stageAsset(png);
+    for (const [id, visibility] of [
+      ["private-cover", "restricted"],
+      ["public-twin", "public"],
+    ] as const) {
+      await shell.getEntityService().createEntity({
+        entity: {
+          id,
+          entityType: "image",
+          content: asset.ref,
+          metadata: { mediaType: "image/png", sizeBytes: png.byteLength },
+          visibility,
+          created: "2026-07-01T00:00:00.000Z",
+          updated: "2026-07-01T00:00:00.000Z",
+        },
+      });
+    }
+    const plugin = await registerPlugin(shell);
+    const route = findRoute(plugin, "/studio/api/images");
+    const authPlugin = authServicePlugin({
+      storageDir: await createTempDataDir("brains-studio-preview-scope-"),
+    });
+    await authPlugin.register(shell);
+    const auth = authServiceOf(shell.getAuthRegistry());
+    const sessions = await Promise.all(
+      (["trusted", "public"] as const).map(async (role) => {
+        const user = await auth.createUser({
+          displayName: role,
+          role,
+          status: "active",
+        });
+        return (await auth.createAuthSession(user.userId)).cookie;
+      }),
+    );
+
+    // The trusted session is admitted: it previews the public twin.
+    const [trustedCookie] = sessions;
+    const twin = await route.handler(
+      apiRequest("/studio/api/images?id=public-twin", {
+        cookie: trustedCookie ?? "",
+      }),
+    );
+    expect(twin.status).toBe(200);
+
+    for (const cookie of sessions) {
+      const hidden = await route.handler(
+        apiRequest("/studio/api/images?id=private-cover", { cookie }),
+      );
+      expect(hidden.status).not.toBe(200);
+      const byRef = await route.handler(
+        apiRequest(`/studio/api/images?id=${encodeURIComponent(asset.ref)}`, {
+          cookie,
+        }),
+      );
+      expect(byRef.status).not.toBe(200);
+    }
+  });
+
+  it("refuses content that is not an image", async () => {
+    const { route, cookie } = await previewShell(
+      async () => "javascript:alert(1)",
+    );
+
+    const response = await route.handler(
+      apiRequest("/studio/api/images?id=cover", { cookie }),
+    );
+
+    expect(response.status).toBe(404);
+  });
+});
