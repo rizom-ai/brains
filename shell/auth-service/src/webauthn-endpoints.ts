@@ -1,4 +1,3 @@
-import { issuerFromRequest } from "@brains/plugins";
 import { TargetedSetupError } from "./targeted-setup-service";
 import {
   authenticationResponseSchema,
@@ -7,11 +6,10 @@ import {
 import type {
   PasskeyRegistrationUser,
   PasskeyService,
-  WebAuthnRequestContext,
 } from "./passkey-service";
 import type { AuthSessionPersistence } from "./session-store";
 import type { ResolvedSetupToken, SetupFlow } from "./setup-flow";
-import { isSecureRequest } from "./issuer";
+import { isSecureRequest, webAuthnRequestContext } from "./issuer";
 import { jsonResponse, oauthErrorResponse } from "./http-responses";
 
 /** The passkey operations these endpoints drive. */
@@ -263,15 +261,6 @@ export class WebAuthnEndpoints {
       "Set-Cookie": session.cookie,
     });
   }
-}
-
-function webAuthnRequestContext(request: Request): WebAuthnRequestContext {
-  const issuer = issuerFromRequest(request);
-  const origin = new URL(issuer);
-  return {
-    origin: origin.origin,
-    rpID: origin.hostname,
-  };
 }
 
 const TARGETED_SETUP_FAILURE_DESCRIPTIONS = {

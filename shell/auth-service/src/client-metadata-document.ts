@@ -1,6 +1,7 @@
 import { isIP } from "node:net";
 import { lookup } from "node:dns/promises";
 import { z } from "@brains/utils/zod";
+import { applicationTypeRedirectRefusal } from "./redirect-uri";
 import type { RegisteredOAuthClient } from "./types";
 
 const MAX_DOCUMENT_BYTES = 5 * 1024;
@@ -192,7 +193,8 @@ export class ClientMetadataDocumentResolver {
         "Client metadata document client_id must exactly match its URL",
       );
     }
-    validateApplicationTypeRedirectUris(parsed.data);
+    const redirectRefusal = applicationTypeRedirectRefusal(parsed.data);
+    if (redirectRefusal) throw new ClientMetadataDocumentError(redirectRefusal);
 
     const cacheLifetime = getCacheLifetimeMs(response.headers, this.now());
     if (cacheLifetime > 0) {
@@ -442,40 +444,6 @@ function parseHextets(value: string): number[] | undefined {
     return undefined;
   }
   return segments.map((segment) => Number.parseInt(segment, 16));
-}
-
-function validateApplicationTypeRedirectUris(
-  client: RegisteredOAuthClient,
-): void {
-  if (!client.application_type) return;
-
-  for (const redirectUri of client.redirect_uris) {
-    const url = new URL(redirectUri);
-    if (client.application_type === "web" && url.protocol !== "https:") {
-      throw new ClientMetadataDocumentError(
-        "web application redirect_uris must use HTTPS",
-      );
-    }
-    if (
-      client.application_type === "native" &&
-      url.protocol === "http:" &&
-      !isLoopbackRedirectHostname(url.hostname)
-    ) {
-      throw new ClientMetadataDocumentError(
-        "native application HTTP redirect_uris must use a loopback host",
-      );
-    }
-  }
-}
-
-function isLoopbackRedirectHostname(hostname: string): boolean {
-  const normalized = hostname.toLowerCase();
-  return (
-    normalized === "localhost" ||
-    normalized === "[::1]" ||
-    normalized === "::1" ||
-    normalized.startsWith("127.")
-  );
 }
 
 export class ClientMetadataDocumentError extends Error {

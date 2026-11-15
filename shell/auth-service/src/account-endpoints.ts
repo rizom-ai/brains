@@ -1,4 +1,4 @@
-import { requireSameOriginJson, issuerFromRequest } from "@brains/plugins";
+import { requireSameOriginJson } from "@brains/plugins";
 import type { AccountSettingsRegistry } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import {
@@ -8,7 +8,7 @@ import {
 import type { AuthAccountContext, AuthAccountService } from "./account-service";
 import { getErrorMessage } from "@brains/utils/error";
 import { privateJsonResponse, readJsonRequest } from "./http-responses";
-import { isSecureRequest } from "./issuer";
+import { isSecureRequest, webAuthnRequestContext } from "./issuer";
 import { AuthRouteTable, type AuthRoute } from "./route-table";
 import { clearAuthSessionCookie } from "./session-store";
 import { registrationResponseSchema } from "./webauthn-request-schemas";
@@ -283,12 +283,4 @@ function withClearedSessionCookies(
     statusText: response.statusText,
     headers,
   });
-}
-
-function webAuthnRequestContext(request: Request): {
-  origin: string;
-  rpID: string;
-} {
-  const issuer = new URL(issuerFromRequest(request));
-  return { origin: issuer.origin, rpID: issuer.hostname };
 }
