@@ -15,6 +15,7 @@ import {
   buildEntityMutationEventContext,
   createConfirmationGate,
   createSystemTool,
+  getEntityDisplayLabel,
   normalizeOptionalString,
   removeFailedTarget,
   replacesFailedLine,
@@ -24,17 +25,36 @@ import {
 } from "./tool-helpers";
 import { getErrorMessage } from "@brains/utils/error";
 
-function buildGenerateConfirmation(input: CreateInput): {
+/**
+ * The entity a generation is written from, as its confirmation names it.
+ * `usedUp` when the generated type's generation removes it once saved.
+ */
+interface WrittenFrom {
+  entityType: string;
+  entityId: string;
+  label: string;
+  usedUp: boolean;
+}
+
+function buildGenerateConfirmation(
+  input: CreateInput,
+  writtenFrom: WrittenFrom | undefined,
+  statedPrompt: string | undefined,
+): {
   summary: string;
   preview: string;
 } {
   const label = input.title ? ` "${input.title}"` : ` ${input.entityType}`;
   const sourceAttachment =
     input.from?.kind === "entity-attachment" ? input.from : undefined;
+  // What a generation removes is said where the caller agrees to it.
+  const removed = writtenFrom?.usedUp ? writtenFrom : undefined;
   const previewParts = [
     `Entity type: ${input.entityType}`,
     ...(input.title ? [`Title: ${input.title}`] : []),
-    ...(input.prompt ? [`Prompt: ${input.prompt}`] : []),
+    // A prompt the tool wrote for a caller who gave none is not theirs.
+    ...(statedPrompt ? [`Prompt: ${statedPrompt}`] : []),
+    ...(removed ? [`Removes: ${removed.entityType}/${removed.entityId}`] : []),
     ...(sourceAttachment
       ? [
           `Source attachment: ${sourceAttachment.sourceEntityType}/${sourceAttachment.sourceEntityId} (${sourceAttachment.attachmentType})`,
@@ -45,7 +65,12 @@ function buildGenerateConfirmation(input: CreateInput): {
       : []),
   ];
 
-  return { summary: `Generate${label}?`, preview: previewParts.join("\n") };
+  return {
+    summary: removed
+      ? `Generate${label} from "${removed.label}"? It will be removed.`
+      : `Generate${label}?`,
+    preview: previewParts.join("\n"),
+  };
 }
 
 interface GenerateSourceAttachment {
@@ -129,7 +154,10 @@ async function resolveGenerateSource(
   input: GenerateSourceEntity | undefined,
   visibilityScope: ReturnType<typeof permissionToVisibilityScope>,
 ): Promise<
-  | { kind: "ok"; source: GenerateSourceEntity | undefined }
+  | {
+      kind: "ok";
+      source: (GenerateSourceEntity & { label: string }) | undefined;
+    }
   | { kind: "error"; result: ToolResponse }
 > {
   if (!input) return { kind: "ok", source: undefined };
@@ -149,8 +177,53 @@ async function resolveGenerateSource(
   }
   return {
     kind: "ok",
-    source: { ...input, entityId: result.entity.id },
+    source: {
+      ...input,
+      entityId: result.entity.id,
+      label: getEntityDisplayLabel(result.entity),
+    },
   };
+}
+
+/**
+ * Why a generation may not be asked for, when its type uses up what it is
+ * written from: asked for with no source, with a source of a type it does
+ * not use up, or by a caller who may not delete the source. Checked before
+ * the source is read, so a caller who may not delete learns nothing else.
+ */
+function usedUpSourceRefusal(
+  services: SystemServices,
+  operation: GenerateToolInput["operation"],
+  toolContext: GenerateToolContext,
+): ToolResponse | undefined {
+  if (operation.kind !== "prompt" && operation.kind !== "prompt-from-source") {
+    return undefined;
+  }
+  const usedUp =
+    services.entityRegistry.getEntityTypeConfig(operation.entityType)
+      .consumesSources ?? [];
+  if (usedUp.length === 0) return undefined;
+  const writtenFrom = `A ${operation.entityType} is written from ${usedUp.join(" or ")} entries`;
+  if (operation.kind === "prompt") {
+    return {
+      success: false,
+      error: `${writtenFrom}. Use operation.kind prompt-from-source and name the source.`,
+      code: "unsupported-generation",
+    };
+  }
+  if (!usedUp.includes(operation.source.entityType)) {
+    return {
+      success: false,
+      error: `${writtenFrom}, and '${operation.source.entityType}' is not one of them.`,
+      code: "unsupported-generation",
+    };
+  }
+  return assertEntityActionAllowed(
+    services,
+    operation.source.entityType,
+    "delete",
+    toolContext,
+  );
 }
 
 interface GenerateTargetEntity {
@@ -195,11 +268,15 @@ async function executePromptGenerate(
   services: SystemServices,
   createInput: CreateInput,
   prompt: string,
+  unpromptedName: string | undefined,
   eventContext: GenerateEventContext,
   toolContext: GenerateToolContext,
 ): Promise<ToolResponse> {
   const { entityService, jobs } = services;
-  const proposedId = truncateSlug(slugify(createInput.title ?? prompt), 100);
+  const proposedId = truncateSlug(
+    slugify(generationIdSeed(createInput, unpromptedName, prompt)),
+    100,
+  );
   if (!proposedId) {
     return {
       success: false,
@@ -304,6 +381,25 @@ interface PreparedGenerate {
   eventContext: GenerateEventContext;
   /** The failed placeholder this generation replaces once confirmed. */
   replacesFailed?: FailedCreateTarget;
+  /** The entity a prompt generation is written from, when it names one. */
+  writtenFrom: WrittenFrom | undefined;
+  /**
+   * What names the entity when its caller stated no prompt: the entity it
+   * is written from. Unset when a prompt was stated.
+   */
+  unpromptedName: string | undefined;
+}
+
+/**
+ * What a prompt generation's id is taken from: its title, else the entity
+ * it is written from when its caller stated no prompt, else its prompt.
+ */
+function generationIdSeed(
+  createInput: CreateInput,
+  unpromptedName: string | undefined,
+  prompt: string,
+): string {
+  return createInput.title ?? unpromptedName ?? prompt;
 }
 
 /**
@@ -324,10 +420,12 @@ async function resolveGenerateOperation(
       kind: "ok";
       createInput: CreateInput;
       sourceAttachment: GenerateSourceAttachment | undefined;
+      writtenFrom: WrittenFrom | undefined;
     }
 > {
   let createInput: CreateInput;
   let sourceAttachment: GenerateSourceAttachment | undefined;
+  let writtenFrom: WrittenFrom | undefined;
   const replace = operation.kind === "attachment" && operation.replace === true;
 
   if (operation.kind === "prompt" || operation.kind === "prompt-from-source") {
@@ -354,10 +452,22 @@ async function resolveGenerateOperation(
         : { kind: "ok" as const, source: undefined };
     if (source.kind === "error") return source;
     const title = normalizeOptionalString(operation.title);
+    writtenFrom = source.source && {
+      entityType: source.source.entityType,
+      entityId: source.source.entityId,
+      label: source.source.label,
+      usedUp: (
+        services.entityRegistry.getEntityTypeConfig(operation.entityType)
+          .consumesSources ?? []
+      ).includes(source.source.entityType),
+    };
     createInput = {
       entityType: operation.entityType,
       ...(title ? { title } : {}),
-      prompt: operation.prompt,
+      // A caller who gives no direction asks for the source to be written up.
+      prompt:
+        operation.prompt ??
+        `Write a ${operation.entityType} from "${writtenFrom?.label ?? ""}".`,
       ...(source.source?.entityType && {
         sourceEntityType: source.source.entityType,
       }),
@@ -440,7 +550,7 @@ async function resolveGenerateOperation(
     };
   }
 
-  return { kind: "ok", createInput, sourceAttachment };
+  return { kind: "ok", createInput, sourceAttachment, writtenFrom };
 }
 
 async function prepareGenerate(
@@ -456,13 +566,21 @@ async function prepareGenerate(
     toolContext.userPermissionLevel,
   );
 
+  const usedUpRefusal = usedUpSourceRefusal(services, operation, toolContext);
+  if (usedUpRefusal) return { kind: "error", result: usedUpRefusal };
+
   const resolved = await resolveGenerateOperation(
     services,
     operation,
     visibilityScope,
   );
   if (resolved.kind === "error") return resolved;
-  const { createInput, sourceAttachment } = resolved;
+  const { createInput, sourceAttachment, writtenFrom } = resolved;
+  // Named after its source only when its caller stated no prompt.
+  const unpromptedName =
+    "prompt" in operation && operation.prompt !== undefined
+      ? undefined
+      : writtenFrom?.label;
   const replace = operation.kind === "attachment" && operation.replace === true;
 
   const unregisteredError = assertEntityTypeRegistered(
@@ -517,7 +635,13 @@ async function prepareGenerate(
             entityType: createInput.entityType,
             candidateId: createInput.prompt
               ? truncateSlug(
-                  slugify(createInput.title ?? createInput.prompt),
+                  slugify(
+                    generationIdSeed(
+                      createInput,
+                      unpromptedName,
+                      createInput.prompt,
+                    ),
+                  ),
                   100,
                 )
               : createInput.title
@@ -543,6 +667,8 @@ async function prepareGenerate(
       interceptor,
       eventContext: buildEntityMutationEventContext(toolContext),
       ...(target?.value && { replacesFailed: target.value }),
+      writtenFrom,
+      unpromptedName,
     },
   };
 }
@@ -596,7 +722,8 @@ function freezeGenerationOperation(
         entityType: createInput.sourceEntityType ?? operation.source.entityType,
         entityId: createInput.sourceEntityId ?? operation.source.entityId,
       },
-      prompt: operation.prompt,
+      // Only a prompt the caller stated: the tool writes one for the rest.
+      ...(operation.prompt !== undefined && { prompt: operation.prompt }),
     };
   }
   return {
@@ -621,8 +748,14 @@ export function createEntityGenerateTool(services: SystemServices): Tool {
       const prep = await prepareGenerate(services, input, toolContext);
       if (prep.kind === "error") return prep.result;
       let { createInput } = prep.prepared;
-      const { operation, interceptor, eventContext, replacesFailed } =
-        prep.prepared;
+      const {
+        operation,
+        interceptor,
+        eventContext,
+        replacesFailed,
+        writtenFrom,
+        unpromptedName,
+      } = prep.prepared;
 
       if (input.confirmed) {
         const gateError = confirmationGate.validateConfirmed(
@@ -631,7 +764,11 @@ export function createEntityGenerateTool(services: SystemServices): Tool {
         );
         if (gateError) return gateError;
       } else {
-        const built = buildGenerateConfirmation(createInput);
+        const built = buildGenerateConfirmation(
+          createInput,
+          writtenFrom,
+          "prompt" in operation ? operation.prompt : undefined,
+        );
         const confirmation = replacesFailed
           ? {
               ...built,
@@ -681,6 +818,7 @@ export function createEntityGenerateTool(services: SystemServices): Tool {
         services,
         createInput,
         createInput.prompt,
+        unpromptedName,
         eventContext,
         toolContext,
       );

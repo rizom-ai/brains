@@ -346,7 +346,7 @@ type GenerateOperationInputSchema = z.ZodDiscriminatedUnion<
       entityType: z.ZodString;
       title: z.ZodOptional<z.ZodString>;
       source: EntityRefInputSchema;
-      prompt: z.ZodString;
+      prompt: z.ZodOptional<z.ZodString>;
     }>,
     StrictObjectSchema<{
       kind: z.ZodLiteral<"standalone-image">;
@@ -430,8 +430,9 @@ export const generateOperationInputSchema: GenerateOperationInputSchema =
         prompt: z
           .string()
           .min(1)
+          .optional()
           .describe(
-            "Prompt for creating new generated content from the resolved source, written from the user's request without added voice, tone or engagement directions; the style guide supplies the voice.",
+            "Direction for writing from the resolved source, taken from the user's request without added voice, tone or engagement directions; the style guide supplies the voice. Omit it when the user gives no direction: the content is then written from the source alone.",
           ),
       })
       .strict(),
