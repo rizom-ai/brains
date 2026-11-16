@@ -105,12 +105,24 @@ describe("what Studio says after a refine was confirmed", () => {
     });
   });
 
-  it("counts one entry as one", () => {
+  it("speaks of one entry as that entry, not as one of a number", () => {
+    const one = { ...outcome, count: 1 };
+
+    expect(refineNotice(one, "refined-note", [])?.text).toBe(
+      "Refining the note. It is removed once the refined note is saved.",
+    );
     expect(
-      refineNotice({ ...outcome, count: 1 }, "refined-note", [
+      refineNotice(one, "refined-note", [
         entry("dashboard-drop-off", { title: "Push beats pull" }),
       ])?.text,
-    ).toBe("Refined 1 note into “Push beats pull”. The note was removed.");
+    ).toBe("Refined the note into “Push beats pull”. The note was removed.");
+    expect(
+      refineNotice(one, "refined-note", [
+        entry("dashboard-drop-off", { status: "failed" }),
+      ])?.text,
+    ).toBe(
+      "The brain could not write the refined note. Your note is still in Notes.",
+    );
   });
 
   it("says nothing in any other collection", () => {

@@ -1,10 +1,10 @@
 # Plan: Note escalation
 
-Last updated: 2026-11-15
+Last updated: 2026-11-16
 
 ## Status
 
-Refining works through `system_generate` on every interface that reaches the brain's tools (chat, MCP, Studio's chat): one or more notes become one refined note, which is placed in a grouping where one applies, and the notes are removed. It is validated in the `personal` test app through chat. What remains is a select-and-refine action in Studio's library.
+Refining works through `system_generate` on every interface that reaches the brain's tools (chat, MCP, Studio's chat) and from Studio's library: one or more notes become one refined note, which is placed in a grouping where one applies, and the notes are removed. Both routes are validated in the `personal` test app. Nothing remains to build.
 
 The shipped contract is documented in the [refined-note README](../../entities/refined-note/README.md), the [entity types reference](../entity-types-reference.md) and the [entity-service README](../../shell/entity-service/README.md).
 
@@ -34,15 +34,17 @@ Refining takes one or more source notes and an optional direction. It is the sam
 2. Every id must name a `note` visible to the caller. Anything else is not found, with no sign of whether a hidden note exists, and nothing changes.
 3. The brain asks one confirmation that names the notes and says they will be removed. Nothing is written or removed before the caller confirms.
 4. On confirmation the brain generates title, summary and body from the roots, and chooses the grouping membership where one is required. A failed generation, or a placement the groupings refuse, writes nothing and leaves the roots.
-5. The refined note is saved under a free title, like note generation today.
+5. The refined note is saved under the id of the first root, the name that root was saved under, whether or not a direction was given.
 6. Each root is deleted. A delete that fails is an error: the refined note stays and the result names the roots that remain.
 
-## Remaining
+## Studio's library
 
-- **Refine from Studio's library.** Select one or more notes in the library and refine them, with the same confirmation. Studio's library has no multiple selection today and one primary action per page. The proposed design is in the [mockups](../note-escalation-studio-mockups.html), which are under review: the row number becomes the mark a note is picked with, and the page's one action changes from New note to Refine while notes are picked.
+In a collection whose entries can be refined, the row number is the mark a note is picked with, and the page's one action changes from New note to Refine while notes are picked. One confirmation lists the picked notes, takes an optional direction and says they will be removed. Studio then moves to Refined Notes and says the note is being written until it is, or that it failed and the notes were kept. The design is in the [mockups](../note-escalation-studio-mockups.html).
 
 ## Validation
 
 Checked in the `personal` test app through chat: refining two notes into one and refining a single note, the files under `refined-note/`, the notes gone from the root and kept in the content repository's history, and, with a closed Projects grouping defined, the value the brain chose written into the refined note's file.
 
-Each change lands with its tests. Before the Studio action ships: refine from the library in the `personal` test app, and check the refined notes in a Studio group view beside another entity type with the same value.
+Checked in the `personal` test app from Studio's library, signed in with a passkey: refining two notes and a single note, with and without a direction, the failure notice with the notes kept, the file named after the first note, and, with a Projects grouping defined, the refined note listed in Studio's Lighthouse group view beside a plain note with the same value.
+
+Each change lands with its tests.

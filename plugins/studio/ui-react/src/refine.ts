@@ -88,16 +88,19 @@ export function refineNotice(
 ): RefineNotice | null {
   if (outcome?.targetType !== entityType) return null;
   const { count, entryLabel, sourceLabel } = outcome;
-  const numbered = `${count} ${sentenceLabel(count === 1 ? entryLabel : sourceLabel)}`;
+  const one = count === 1;
+  const entry = sentenceLabel(one ? entryLabel : sourceLabel);
+  // One entry is that entry; several are a number of them.
+  const numbered = one ? entry : `${count} ${entry}`;
   const written = entities?.find(({ id }) => id === outcome.entityId);
   const status = written?.frontmatter["status"];
   if (!written || status === "generating") {
     return {
       state: "writing",
       tone: "info",
-      text: `Refining ${numbered} into one. ${
-        count === 1 ? "It is" : "They are"
-      } removed once it is saved.`,
+      text: one
+        ? `Refining the ${entry}. It is removed once the ${sentenceLabel(outcome.targetLabel)} is saved.`
+        : `Refining ${numbered} into one. They are removed once it is saved.`,
     };
   }
   if (status === "failed") {
@@ -107,15 +110,15 @@ export function refineNotice(
       state: "failed",
       tone: "error",
       text: `The brain could not write the ${sentenceLabel(outcome.targetLabel)}${why}. Your ${numbered} ${
-        count === 1 ? "is" : "are"
+        one ? "is" : "are"
       } still in ${sourceLabel}.`,
     };
   }
   return {
     state: "done",
     tone: "success",
-    text: `Refined ${numbered} into “${entityTitle(written)}”. The ${sentenceLabel(
-      count === 1 ? entryLabel : sourceLabel,
-    )} ${count === 1 ? "was" : "were"} removed.`,
+    text: `Refined ${one ? `the ${entry}` : numbered} into “${entityTitle(written)}”. The ${entry} ${
+      one ? "was" : "were"
+    } removed.`,
   };
 }

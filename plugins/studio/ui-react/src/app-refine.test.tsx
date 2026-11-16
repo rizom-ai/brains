@@ -409,15 +409,27 @@ describe("confirming a refine", () => {
     await waitFor(() =>
       history.location.pathname.endsWith("/entities/refined-note"),
     );
-    expect(state.posted[1]).toEqual({
-      path: "/studio/api/refine",
-      body: {
-        entityType: "note",
-        ids: ["dashboard-drop-off", "digest-numbers"],
-        direction: "Focus on pricing",
-        approval,
+    // The brain approves exactly what it was asked, so a direction stated
+    // after the dialog opened is asked for before it is run.
+    expect(state.posted.slice(1)).toEqual([
+      {
+        path: "/studio/api/refine",
+        body: {
+          entityType: "note",
+          ids: ["dashboard-drop-off", "digest-numbers"],
+          direction: "Focus on pricing",
+        },
       },
-    });
+      {
+        path: "/studio/api/refine",
+        body: {
+          entityType: "note",
+          ids: ["dashboard-drop-off", "digest-numbers"],
+          direction: "Focus on pricing",
+          approval,
+        },
+      },
+    ]);
     await waitFor(() =>
       document.body.textContent.includes(
         "Refining 2 notes into one. They are removed once it is saved.",

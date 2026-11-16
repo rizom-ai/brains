@@ -276,13 +276,13 @@ async function executePromptGenerate(
   services: SystemServices,
   createInput: CreateInput,
   prompt: string,
-  unpromptedName: string | undefined,
+  sourceName: string | undefined,
   eventContext: GenerateEventContext,
   toolContext: GenerateToolContext,
 ): Promise<ToolResponse> {
   const { entityService, jobs } = services;
   const proposedId = truncateSlug(
-    slugify(generationIdSeed(createInput, unpromptedName, prompt)),
+    slugify(generationIdSeed(createInput, sourceName, prompt)),
     100,
   );
   if (!proposedId) {
@@ -390,22 +390,23 @@ interface PreparedGenerate {
   /** The entities a prompt generation is written from, when it names any. */
   writtenFrom: WrittenFrom | undefined;
   /**
-   * What names the entity when its caller stated no prompt: the id of the
-   * first entity it is written from. Unset when a prompt was stated.
+   * The id of the first entity it is written from, where that names the
+   * entity: its caller stated no prompt, or it uses its sources up. Unset
+   * where the prompt names it.
    */
-  unpromptedName: string | undefined;
+  sourceName: string | undefined;
 }
 
 /**
  * What a prompt generation's id is taken from: its title, else the entity
- * it is written from when its caller stated no prompt, else its prompt.
+ * it is written from where that names it, else its prompt.
  */
 function generationIdSeed(
   createInput: CreateInput,
-  unpromptedName: string | undefined,
+  sourceName: string | undefined,
   prompt: string,
 ): string {
-  return createInput.title ?? unpromptedName ?? prompt;
+  return createInput.title ?? sourceName ?? prompt;
 }
 
 /** A generation as a create input, and the attachment it renders, if any. */
@@ -577,11 +578,13 @@ async function prepareGenerate(
   );
   if (resolved.kind === "error") return resolved;
   const { createInput, sourceAttachment, writtenFrom } = resolved.value;
-  // Named after its first source only when its caller stated no prompt:
-  // by that source's id, the name it was saved under, since a title its
-  // text supplies (a plain note's first line) makes a poor id.
-  const unpromptedName =
-    "prompt" in operation && operation.prompt !== undefined
+  // Named after its first source when its caller stated no prompt, or when
+  // it uses its sources up, where a prompt directs the writing and names
+  // nothing: by that source's id, the name it was saved under, since a
+  // title its text supplies (a plain note's first line) makes a poor id.
+  const prompted = "prompt" in operation && operation.prompt !== undefined;
+  const sourceName =
+    prompted && !writtenFrom?.usedUp
       ? undefined
       : writtenFrom?.entries[0]?.entityId;
 
@@ -616,7 +619,7 @@ async function prepareGenerate(
                   slugify(
                     generationIdSeed(
                       createInput,
-                      unpromptedName,
+                      sourceName,
                       createInput.prompt,
                     ),
                   ),
@@ -645,7 +648,7 @@ async function prepareGenerate(
       eventContext: buildEntityMutationEventContext(toolContext),
       ...(target?.value && { replacesFailed: target.value }),
       writtenFrom,
-      unpromptedName,
+      sourceName,
     },
   };
 }
@@ -736,7 +739,7 @@ export function createEntityGenerateTool(services: SystemServices): Tool {
         eventContext,
         replacesFailed,
         writtenFrom,
-        unpromptedName,
+        sourceName,
       } = prep.value;
 
       return confirmOrRun({
@@ -769,7 +772,7 @@ export function createEntityGenerateTool(services: SystemServices): Tool {
                 services,
                 generation,
                 generation.prompt,
-                unpromptedName,
+                sourceName,
                 eventContext,
                 toolContext,
               );

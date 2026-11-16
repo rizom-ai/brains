@@ -347,6 +347,27 @@ describe("system_generate from several sources", () => {
     });
   });
 
+  it("names what uses its sources up after the first of them, with a prompt too", async () => {
+    const { services, generate } = setup();
+
+    const confirmation = await generate(
+      refine(
+        { entityType: "note", entityId: "loose-thought" },
+        "Write it as a checklist of at most five items",
+      ),
+    );
+    const result = await generate(expectConfirmationArgs(confirmation));
+
+    // The prompt directs the writing; it is not what the entry is called.
+    expect(result).toMatchObject({
+      success: true,
+      data: { entityId: "loose-thought" },
+    });
+    expect(jobData(services)).toMatchObject({
+      prompt: "Write it as a checklist of at most five items",
+    });
+  });
+
   it("counts a source named twice once", async () => {
     const { services, generate } = setup();
 

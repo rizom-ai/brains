@@ -99,7 +99,10 @@ describe("the generate-from-sources contract", () => {
     const asked = await ask({ prompt: "Focus on the budget" });
     if (asked.status !== "confirm") throw new Error("No confirmation");
 
-    const answer = await ask({ approval: asked.approval });
+    const answer = await ask({
+      prompt: "Focus on the budget",
+      approval: asked.approval,
+    });
 
     expect(answer).toMatchObject({
       status: "queued",
@@ -112,6 +115,39 @@ describe("the generate-from-sources contract", () => {
       sourceEntityType: "note",
       sourceEntityIds: ["loose-thought", "second-thought"],
     });
+  });
+
+  it("refuses an approval given before the direction it is sent back with", async () => {
+    const asked = await ask({});
+    if (asked.status !== "confirm") throw new Error("No confirmation");
+
+    const answer = await ask({
+      prompt: "Focus on the budget",
+      approval: asked.approval,
+    });
+
+    // Run as approved, the direction would be dropped without a word.
+    expect(answer).toEqual({
+      status: "refused",
+      error: "The approval is not for this generation.",
+    });
+    expect(services.getLastEnqueuedJob()).toBeUndefined();
+  });
+
+  it("refuses an approval given for other entries than the ones it is sent back with", async () => {
+    const asked = await ask({});
+    if (asked.status !== "confirm") throw new Error("No confirmation");
+
+    const answer = await ask({
+      source: { entityType: "note", entityIds: ["loose-thought"] },
+      approval: asked.approval,
+    });
+
+    expect(answer).toEqual({
+      status: "refused",
+      error: "The approval is not for this generation.",
+    });
+    expect(services.getLastEnqueuedJob()).toBeUndefined();
   });
 
   it("refuses an approval the tool did not give", async () => {

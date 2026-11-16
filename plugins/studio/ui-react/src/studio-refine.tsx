@@ -308,13 +308,18 @@ export function RefineDialog(props: {
     if (!approval || running) return;
     setRunning(true);
     const stated = direction.trim();
-    api
-      .refine({
-        entityType,
-        ids,
-        ...(stated && { direction: stated }),
-        approval,
-      })
+    const asked = { entityType, ids, ...(stated && { direction: stated }) };
+    // The brain runs exactly what it approved, and it approved the picked
+    // entries before any direction was stated: one stated since is asked for.
+    const approved = stated
+      ? api
+          .refine(asked)
+          .then((answer) =>
+            answer.status === "confirm" ? answer.approval : approval,
+          )
+      : Promise.resolve(approval);
+    approved
+      .then((given) => api.refine({ ...asked, approval: given }))
       .then(
         (answer) => {
           if (answer.status === "queued") onConfirmed(answer.entityId);
