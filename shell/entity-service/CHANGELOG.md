@@ -1,5 +1,19 @@
 # @brains/entity-service
 
+## 0.2.0-alpha.728
+
+### Patch Changes
+
+- [#984](https://github.com/rizom-ai/brains/pull/984) [`4d0991c`](https://github.com/rizom-ai/brains/commit/4d0991c3a4f921fe4fadc942d9532c10740710a8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A running brain removes leftover database leases. A brain removed expired lease rows only when it started, so a row left by a container killed while its lease was fresh outlived the next start and stayed until another one, and the offline asset commands kept finding a stale lease to refuse or skip. Each renewal of a brain's lease, every 10 seconds, now also deletes rows that have expired, other than its own, so such a row is gone within about one renewal of expiring. Fresh rows, including a maintenance command's, are left alone.
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.728
+  - @brains/content-formatters@0.2.0-alpha.728
+  - @brains/contracts@0.2.0-alpha.728
+  - @brains/db@0.2.0-alpha.728
+  - @brains/utils@0.2.0-alpha.728
+  - @brains/job-queue@0.2.0-alpha.728
+  - @brains/messaging-service@0.2.0-alpha.728
+
 ## 0.2.0-alpha.727
 
 ### Patch Changes
