@@ -27,7 +27,11 @@ describe("findEntityByIdentifier", () => {
       listEntities: async (): Promise<BaseEntity[]> => [],
     };
 
-    const found = await findEntityByIdentifier(service, "post", "post-1");
+    const found = await findEntityByIdentifier(
+      service,
+      { entityType: "post", identifier: "post-1" },
+      { visibilityScope: "public" },
+    );
 
     expect(found?.content).toBe(stored.content);
   });
@@ -49,11 +53,8 @@ describe("findEntityByIdentifier", () => {
 
     await findEntityByIdentifier(
       service,
-      "image",
-      "missing",
-      undefined,
-      "public",
-      { binaryContent: "reference" },
+      { entityType: "image", identifier: "missing" },
+      { visibilityScope: "public", read: { binaryContent: "reference" } },
     );
 
     expect(modes.length).toBe(5);

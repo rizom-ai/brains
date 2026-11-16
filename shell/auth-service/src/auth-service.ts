@@ -54,6 +54,7 @@ import { AuthRequestRouter } from "./auth-request-router";
 import { AuthRuntime } from "./auth-runtime";
 import { AuthOperationScope } from "./auth-operation-scope";
 import type { AuthIdentityRecord } from "./identity-store";
+import { identitySummary } from "./identity-summary";
 
 import type {
   ConfiguredInterfacePrincipals,
@@ -969,7 +970,10 @@ export class AuthService implements AuthBackend {
         identitySummary(
           await this.attachIdentity(input, { actorUserId }),
           input.userId,
-          this.getChannelDescriptor,
+          {
+            genericChannelLabel: "omit",
+            getChannelDescriptor: this.getChannelDescriptor,
+          },
         ),
       detachIdentity: async (identityId, actorUserId) => {
         const identity = await this.detachIdentity(identityId, { actorUserId });
@@ -977,7 +981,10 @@ export class AuthService implements AuthBackend {
           .getUserStore()
           .getUserByPersonId(identity.personId);
         if (!user) throw new Error("Identity person has no auth user");
-        return identitySummary(identity, user.id, this.getChannelDescriptor);
+        return identitySummary(identity, user.id, {
+          genericChannelLabel: "omit",
+          getChannelDescriptor: this.getChannelDescriptor,
+        });
       },
       revokePasskey: (credentialId, actorUserId) =>
         this.revokePasskey(credentialId, { actorUserId }),
@@ -1010,39 +1017,4 @@ export class AuthService implements AuthBackend {
   private resolveRequestIssuer(request: Request): string {
     return this.runtime.getPrincipalService().resolveRequestIssuer(request);
   }
-}
-
-function identitySummary(
-  identity: AuthIdentityRecord,
-  userId: string,
-  getChannelDescriptor?: (channelType: string) => ChannelDescriptor | undefined,
-): AuthIdentitySummary {
-  const identityLabel = identity.label?.trim();
-  const deliverySubject = identity.deliverySubject?.trim();
-  const label =
-    identityLabel &&
-    identityLabel.length > 0 &&
-    identityLabel !== getChannelDescriptor?.(identity.type)?.subjectLabel
-      ? identityLabel
-      : deliverySubject;
-  return {
-    id: identity.id,
-    personId: identity.personId,
-    userId,
-    type: identity.type,
-    visibility: identity.visibility,
-    evidence: identity.evidence.map((item) => ({
-      sourceKind: item.sourceKind,
-      ...(item.sourceId ? { sourceId: item.sourceId } : {}),
-      assurance: item.assurance,
-      ...(item.verifiedAt !== null ? { verifiedAt: item.verifiedAt } : {}),
-    })),
-    ...(identity.issuer ? { issuer: identity.issuer } : {}),
-    ...(label ? { label } : {}),
-    ...(identity.verifiedAt !== null
-      ? { verifiedAt: identity.verifiedAt }
-      : {}),
-    ...(identity.revokedAt !== null ? { revokedAt: identity.revokedAt } : {}),
-    createdAt: identity.createdAt,
-  };
 }

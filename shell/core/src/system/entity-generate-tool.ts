@@ -122,11 +122,8 @@ async function resolveGenerateSources(
     ids.map((id) =>
       resolveEntityOrError(
         services.entityService,
-        entityType,
-        id,
-        services.logger,
-        undefined,
-        visibilityScope,
+        { entityType, identifier: id },
+        { visibilityScope, logger: services.logger },
       ),
     ),
   );
@@ -214,11 +211,8 @@ async function resolveEntityRef(
 ): Promise<Guarded<EntityRef>> {
   const result = await resolveEntityOrError(
     services.entityService,
-    ref.entityType,
-    ref.entityId,
-    services.logger,
-    undefined,
-    visibilityScope,
+    { entityType: ref.entityType, identifier: ref.entityId },
+    { visibilityScope, logger: services.logger },
   );
   if (!result.ok) return guardError(result.error, code);
   return { kind: "ok", value: { ...ref, entityId: result.entity.id } };

@@ -3,6 +3,7 @@ import { and, eq, gt, isNotNull, isNull } from "drizzle-orm";
 import type { AuthIdentityRecord, AuthIdentityStore } from "./identity-store";
 import { authInvitations } from "./invitation-schema";
 import type { AuthRuntimeDB } from "./runtime-db";
+import { requireAuthUser } from "./user-store";
 import {
   authIdentities,
   authIdentityEvidence,
@@ -98,7 +99,7 @@ export class TargetedSetupService {
     });
 
     return {
-      user: await this.requireUser(input.userId),
+      user: await requireAuthUser(this.db, input.userId),
       ...(boundIdentityId
         ? {
             boundIdentity:
@@ -106,16 +107,6 @@ export class TargetedSetupService {
           }
         : {}),
     };
-  }
-
-  private async requireUser(userId: string): Promise<AuthUser> {
-    const [user] = await this.db
-      .select()
-      .from(authUsers)
-      .where(eq(authUsers.id, userId))
-      .limit(1);
-    if (!user) throw new Error(`Auth user not found: ${userId}`);
-    return user;
   }
 }
 

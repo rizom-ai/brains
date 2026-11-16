@@ -36,27 +36,43 @@ export interface EntityLookupOptions extends EntityReadOptions {
   source?: boolean;
 }
 
+/** The entity a lookup names: its type, and an id, slug or title. */
+export interface EntityIdentifierRef {
+  entityType: string;
+  identifier: string;
+}
+
+/** Who is looking: the scope is required, so no caller reads public-only by omission. */
+export interface EntityLookupScope {
+  visibilityScope: ContentVisibility;
+  logger?: Logger;
+  read?: EntityLookupOptions;
+}
+
+/** A lookup that reports a miss as an error message, prefixed by `label`. */
+export interface ResolveEntityOptions extends EntityLookupScope {
+  /** Prefix for the error message, e.g. "Entity" (default) or "Target entity". */
+  label?: string;
+}
+
 /**
  * Find an entity by trying ID, slug, title, then the name as an id.
  *
  * Propagates the visibility scope to every lookup path so the slug/title
  * fallbacks cannot leak entities the caller is not allowed to see.
- * Defaults to "public" when no scope is provided. `publishedOnly` holds on
- * every path too, so a draft is not reachable by its slug or title either.
+ * `publishedOnly` holds on every path too, so a draft is not reachable by its
+ * slug or title either.
  */
 export async function findEntityByIdentifier(
   entityService: EntityLookupReads,
-  entityType: string,
-  identifier: string,
-  logger?: Logger,
-  visibilityScope: ContentVisibility = "public",
-  options: EntityLookupOptions = {},
+  { entityType, identifier }: EntityIdentifierRef,
+  { visibilityScope, logger, read = {} }: EntityLookupScope,
 ): Promise<BaseEntity | null> {
   const readOptions: EntityLookupOptions = {
-    ...(options.signal && { signal: options.signal }),
-    ...(options.publishedOnly && { publishedOnly: true }),
-    ...(options.binaryContent && { binaryContent: options.binaryContent }),
-    ...(options.source && { source: true }),
+    ...(read.signal && { signal: read.signal }),
+    ...(read.publishedOnly && { publishedOnly: true }),
+    ...(read.binaryContent && { binaryContent: read.binaryContent }),
+    ...(read.source && { source: true }),
   };
   try {
     readOptions.signal?.throwIfAborted();
@@ -146,30 +162,17 @@ export async function findEntityByIdentifier(
 /**
  * Resolve an entity by identifier or return a formatted error message.
  * Wraps findEntityByIdentifier with the common null-check + error-string pattern.
- *
- * @param label - Prefix for the error message, e.g. "Entity" (default) or "Target entity"
  */
 export async function resolveEntityOrError(
   entityService: EntityLookupReads,
-  entityType: string,
-  identifier: string,
-  logger?: Logger,
-  label = "Entity",
-  visibilityScope: ContentVisibility = "public",
-  readOptions: EntityLookupOptions = {},
+  ref: EntityIdentifierRef,
+  { label = "Entity", ...scope }: ResolveEntityOptions,
 ): Promise<ResolvedEntity> {
-  const entity = await findEntityByIdentifier(
-    entityService,
-    entityType,
-    identifier,
-    logger,
-    visibilityScope,
-    readOptions,
-  );
+  const entity = await findEntityByIdentifier(entityService, ref, scope);
   if (!entity) {
     return {
       ok: false,
-      error: `${label} not found: ${entityType}/${identifier}`,
+      error: `${label} not found: ${ref.entityType}/${ref.identifier}`,
     };
   }
   return { ok: true, entity };

@@ -6,14 +6,14 @@ import type {
 } from "@simplewebauthn/server";
 import type {
   AuthAccountConnectedChannel,
-  AuthAccountPasskey,
   AuthAccountSnapshot,
   AuthAccountSessionSummary,
 } from "@brains/contracts";
 import type { AuthAuditStore } from "./audit-store";
-import type { AuthCredentialStore, StoredPasskey } from "./credential-store";
+import type { AuthCredentialStore } from "./credential-store";
 import type { AuthIdentityRecord, AuthIdentityStore } from "./identity-store";
 import type { PasskeyService, WebAuthnRequestContext } from "./passkey-service";
+import { passkeySummary } from "./passkey-summary";
 import type { RuntimeRefreshTokenStore } from "./refresh-token-store";
 import type {
   AuthSessionRecord,
@@ -273,19 +273,6 @@ export class AuthAccountService {
 
 export function accountSessionId(internalSessionId: string): string {
   return sha256Base64Url(internalSessionId);
-}
-
-function passkeySummary(passkey: StoredPasskey): AuthAccountPasskey {
-  return {
-    id: passkey.id,
-    ...(passkey.transports ? { transports: passkey.transports } : {}),
-    ...(passkey.credentialDeviceType
-      ? { credentialDeviceType: passkey.credentialDeviceType }
-      : {}),
-    credentialBackedUp: passkey.credentialBackedUp,
-    createdAt: passkey.createdAt,
-    updatedAt: passkey.updatedAt,
-  };
 }
 
 function connectedChannelSummary(

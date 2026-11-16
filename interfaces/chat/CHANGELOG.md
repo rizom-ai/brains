@@ -1,5 +1,23 @@
 # @brains/chat
 
+## 0.2.0-alpha.722
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.722
+  - @brains/contracts@0.2.0-alpha.722
+  - @brains/utils@0.2.0-alpha.722
+
+## 0.2.0-alpha.721
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.721
+  - @brains/contracts@0.2.0-alpha.721
+  - @brains/utils@0.2.0-alpha.721
+
 ## 0.2.0-alpha.720
 
 ### Patch Changes

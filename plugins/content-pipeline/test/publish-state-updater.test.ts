@@ -32,6 +32,25 @@ Body`,
     expect(updated).toContain("platformPostId: 'urn:li:share:123'");
   });
 
+  const published =
+    "---\ntitle: Test\nstatus: published\npublishedAt: '2026-06-04T12:00:00.000Z'\n---\nBody\n";
+
+  it.each([
+    ["a bare fence", "\n", "---"],
+    ["a fence with a trailing space", "\n", "--- "],
+    ["a fence with a trailing tab", "\n", "---\t"],
+    ["a CRLF file", "\r\n", "---"],
+    ["a CRLF file with a trailing space", "\r\n", "--- "],
+  ])("writes the publish state behind %s", (_label, eol, fence) => {
+    const content = ["---", "title: Test", "status: draft", fence, "Body"].join(
+      eol,
+    );
+
+    expect(updatePublishFrontmatter(content, "2026-06-04T12:00:00.000Z")).toBe(
+      published,
+    );
+  });
+
   it("does not add frontmatter to plain content", () => {
     const updated = updatePublishFrontmatter(
       "Plain publish content",

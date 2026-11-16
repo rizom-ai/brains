@@ -1,4 +1,5 @@
-import type { AgentResponse, ToolApprovalCard } from "../contracts/agent";
+import type { AgentResponse } from "../contracts/agent";
+import { getPendingApprovalCards } from "./approval-cards";
 import type { ToolActivityEvent } from "./tool-event-handler";
 
 export type ToolStatusState =
@@ -107,16 +108,5 @@ export function responseHasPendingConfirmationForTool(
     getPendingApprovalCards(response.cards).some(
       (card) => card.toolName === toolName,
     )
-  );
-}
-
-function getPendingApprovalCards(
-  cards: AgentResponse["cards"],
-): ToolApprovalCard[] {
-  return (
-    cards?.filter(
-      (card): card is ToolApprovalCard =>
-        card.kind === "tool-approval" && card.state === "approval-requested",
-    ) ?? []
   );
 }

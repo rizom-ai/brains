@@ -1,5 +1,17 @@
 # @rizom/brain
 
+## 0.2.0-alpha.722
+
+### Patch Changes
+
+- [#977](https://github.com/rizom-ai/brains/pull/977) [`c2f70e5`](https://github.com/rizom-ai/brains/commit/c2f70e5ce923eb40f5dd5a7e1fdcf8668b855d5c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Frontmatter is read the same everywhere: a file whose frontmatter closes with `---` followed by spaces or tabs, or that has an empty frontmatter block, now publishes and queues with its status and publish date, finds its cover and OG images, and decodes as an image file. Before, these steps treated such a file as having no frontmatter.
+
+## 0.2.0-alpha.721
+
+### Patch Changes
+
+- [#971](https://github.com/rizom-ai/brains/pull/971) [`8f24293`](https://github.com/rizom-ai/brains/commit/8f2429398e2bf1f603eb05727a3460524ee15b3c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A recurring check alert marked secret is now delivered as a secret notification. Before, its sensitivity was dropped on the way to notifications, so the email transport treated it as normal and logged its recipient and subject when a delivery failed.
+
 ## 0.2.0-alpha.720
 
 ### Patch Changes

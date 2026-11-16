@@ -32,6 +32,7 @@ import type {
   StoreEmbeddingData,
   EntityEventBus,
   DeleteEntityRequest,
+  CreateEntityOptions,
   CreateEntityRequest,
   UpdateEntityRequest,
   UpdateEntityOptions,
@@ -43,7 +44,10 @@ import type {
 } from "./types";
 import type { EntitySerializer } from "./entity-serializer";
 import type { EntityQueries } from "./entity-queries";
-import type { ProjectionStore } from "./projection-store";
+import type {
+  MarkProjectionDirtyInput,
+  ProjectionStore,
+} from "./projection-store";
 import type {
   EntityExportStore,
   EntityExportTransaction,
@@ -115,7 +119,7 @@ const foldSourceSchema = z.strictObject({
   expectedRevision: z.string().min(1),
 });
 interface FoldRemoval {
-  condition: EntityWritePrecondition;
+  condition: EntityWritePrecondition & { expectedRevision: string };
   prior: BaseEntity;
 }
 
@@ -131,6 +135,13 @@ interface EntityWriteGuard {
   assertGroupingsCurrent: () => Promise<void>;
 }
 
+/** A validated, serialized create; its entity carries the final ID. */
+interface EntityCreatePlan extends EntityWriteGuard {
+  options: CreateEntityOptions | undefined;
+  precondition: EntityWritePrecondition | undefined;
+  receipt: EntityMutationReceiptKey | undefined;
+}
+
 /** A validated, serialized update and the stored row it replaces. */
 interface EntityUpdatePlan extends EntityWriteGuard {
   options: UpdateEntityOptions | undefined;
@@ -144,6 +155,15 @@ interface EntityUpdatePlan extends EntityWriteGuard {
 
 type PreparedEntityUpdate =
   { stale: true; entityId: string } | { stale: false; plan: EntityUpdatePlan };
+
+/** What a lifecycle event reports about one changed entity. */
+interface EntityChange {
+  entityType: string;
+  entityId: string;
+  entity?: BaseEntity | undefined;
+  previousMetadata?: BaseEntity["metadata"] | undefined;
+  eventContext?: EntityMutationEventContext | undefined;
+}
 
 /** The stored content hash no longer matches the caller's expectation. */
 function contentConflict(entityId: string): EntityMutationResult {
@@ -230,9 +250,6 @@ export class EntityMutations {
     };
   }
 
-  /**
-   * Create a new entity (returns immediately, embedding generated in background)
-   */
   public getEntityMutationReceipt(
     key: EntityMutationReceiptKey,
   ): Promise<EntityMutationReceipt | null> {
@@ -273,6 +290,9 @@ export class EntityMutations {
     }
   }
 
+  /**
+   * Create a new entity (returns immediately, embedding generated in background)
+   */
   public createEntity<T extends BaseEntity>(
     request: CreateEntityRequest<T>,
   ): Promise<EntityMutationResult> {
@@ -283,6 +303,23 @@ export class EntityMutations {
     request: CreateEntityRequest<T>,
     receipt?: EntityMutationReceiptKey,
   ): Promise<EntityMutationResult> {
+    const plan = await this.prepareCreate(request, receipt);
+
+    await this.mutationAdmission?.assertMutationAdmission({
+      operation: "create",
+      entityType: plan.entity.entityType,
+      entityId: plan.entity.id,
+    });
+
+    await this.commitCreate(plan);
+    return this.afterCreateCommit(plan);
+  }
+
+  /** Fill, validate and serialize a create, and resolve its final ID. */
+  private async prepareCreate<T extends BaseEntity>(
+    request: CreateEntityRequest<T>,
+    receipt: EntityMutationReceiptKey | undefined,
+  ): Promise<EntityCreatePlan> {
     const { entity, options, stagedAsset } = request;
     options?.signal?.throwIfAborted();
     const condition =
@@ -305,13 +342,11 @@ export class EntityMutations {
           entityId: entity.id ?? "",
         }
       : undefined;
-    this.logger.debug(
-      `Creating entity asynchronously of type: ${entity["entityType"]}`,
-    );
+    this.logger.debug(`Creating entity of type: ${entity["entityType"]}`);
 
     const assertGroupingsCurrent =
       this.entityRegistry.captureGroupingWriteGuard(entity.entityType);
-    // Generate ID, timestamps, and contentHash if not provided
+    // A missing ID or timestamp is filled; the content hash is always recomputed.
     const now = new Date().toISOString();
     const current = this.entitySerializer.withoutRetiredFields(entity);
     const entityWithDefaults = {
@@ -322,7 +357,6 @@ export class EntityMutations {
       contentHash: computeContentHash(current.content),
     };
 
-    // Validate entity against its schema
     const validatedEntity = this.entityRegistry.validateEntity(
       entity["entityType"],
       entityWithDefaults,
@@ -331,14 +365,12 @@ export class EntityMutations {
     await validatePersist(this.entityRegistry, validatedEntity, "create");
     options?.signal?.throwIfAborted();
 
-    // Prepare entity for storage
     const { markdown, metadata } =
       this.entitySerializer.prepareEntityForStorage(
         validatedEntity,
         validatedEntity.entityType,
       );
 
-    // Compute contentHash from the serialized markdown
     const contentHash = computeContentHash(markdown);
     const stagedUpload = this.resolveStagedUpload(
       validatedEntity.entityType,
@@ -347,69 +379,57 @@ export class EntityMutations {
       stagedAsset,
     );
 
-    // Resolve final ID (may deduplicate on collision)
-    let finalId = validatedEntity.id;
-    if (options?.deduplicateId) {
-      finalId = await this.resolveUniqueId(
-        validatedEntity.id,
-        validatedEntity.entityType,
-      );
-    }
+    const finalId = options?.deduplicateId
+      ? await this.resolveUniqueId(
+          validatedEntity.id,
+          validatedEntity.entityType,
+        )
+      : validatedEntity.id;
 
-    await this.mutationAdmission?.assertMutationAdmission({
-      operation: "create",
-      entityType: validatedEntity.entityType,
-      entityId: finalId,
-    });
+    return {
+      entity: { ...validatedEntity, id: finalId },
+      options,
+      precondition,
+      receipt,
+      assertGroupingsCurrent,
+      markdown,
+      metadata,
+      contentHash,
+      stagedUpload,
+    };
+  }
 
-    // Persist the entity, search row, and scheduler journal atomically.
+  /**
+   * Commit the created row with its FTS, both durable journals and its
+   * receipt in one transaction.
+   */
+  private async commitCreate(plan: EntityCreatePlan): Promise<void> {
+    const { entity, options, precondition, receipt, markdown, metadata } = plan;
     await this.projectionStore.withDirtyInput(
-      {
-        sourceType: validatedEntity.entityType,
-        sourceId: finalId,
-        revision: entityRevision({
-          contentHash,
-          metadata,
-          visibility: validatedEntity.visibility,
-        }),
-        operation: "upsert",
-        markedAt: this.projectionNow(),
-      },
+      this.dirtyUpsert(plan),
       async (transaction) => {
         if (receipt)
           await this.mutationReceipts.assertVacant(transaction, receipt);
         if (precondition)
-          await assertEntityWriteCondition(
-            transaction,
-            precondition,
-            validatedEntity,
-          );
-        await this.guardEntityWrite(transaction, {
-          entity: { ...validatedEntity, id: finalId },
-          markdown,
-          metadata,
-          contentHash,
-          stagedUpload,
-          options,
-          assertGroupingsCurrent,
-        });
-        // Once the entity write starts, settle the complete atomic mutation.
+          await assertEntityWriteCondition(transaction, precondition, entity);
+        await this.guardEntityWrite(transaction, plan);
+        // Cancellation after this boundary must not split the entity from its journals.
         await transaction.insert(entities).values({
-          id: finalId,
-          entityType: validatedEntity.entityType,
+          id: entity.id,
+          entityType: entity.entityType,
           content: markdown,
-          contentHash,
-          visibility: validatedEntity.visibility,
+          contentHash: plan.contentHash,
+          visibility: entity.visibility,
           metadata,
-          created: new Date(validatedEntity.created).getTime(),
-          updated: new Date(validatedEntity.updated).getTime(),
+          created: new Date(entity.created).getTime(),
+          updated: new Date(entity.updated).getTime(),
         });
         await this.recordEntityUpsert(
           transaction,
           {
             operation: "create",
-            entityType: validatedEntity.entityType,
-            entityId: finalId,
+            entityType: entity.entityType,
+            entityId: entity.id,
             markdown,
           },
           receipt,
@@ -417,29 +437,30 @@ export class EntityMutations {
         );
       },
     );
+  }
+
+  private async afterCreateCommit(
+    plan: EntityCreatePlan,
+  ): Promise<EntityMutationResult> {
+    const { entity, options } = plan;
     await this.notifyProjectionScheduler();
 
     this.logger.debug(
-      `Persisted entity ${validatedEntity.entityType}:${finalId} immediately`,
+      `Persisted entity ${entity.entityType}:${entity.id} immediately`,
     );
 
-    await this.emitEntityEvent(
-      entityCreatedChannel,
-      validatedEntity.entityType,
-      finalId,
-      {
-        ...validatedEntity,
-        id: finalId,
-      },
-      undefined,
-      options?.eventContext,
-    );
+    await this.emitEntityEvent(entityCreatedChannel, {
+      entityType: entity.entityType,
+      entityId: entity.id,
+      entity,
+      eventContext: options?.eventContext,
+    });
 
     return this.enqueueEmbedding(
       {
-        entityId: finalId,
-        entityType: validatedEntity.entityType,
-        contentHash,
+        entityId: entity.id,
+        entityType: entity.entityType,
+        contentHash: plan.contentHash,
         operation: "create",
       },
       options,
@@ -566,7 +587,7 @@ export class EntityMutations {
       ? { ...condition, entityType: entity.entityType, entityId: entity.id }
       : undefined;
     this.logger.debug(
-      `Updating entity asynchronously: ${entity.entityType} with ID ${entity.id}`,
+      `Updating entity: ${entity.entityType} with ID ${entity.id}`,
     );
 
     const assertGroupingsCurrent =
@@ -728,14 +749,13 @@ export class EntityMutations {
       `Skipping no-op update for ${entity.entityType}:${entity.id}`,
     );
     if (options?.eventContext) {
-      await this.emitEntityEvent(
-        entityUpdatedChannel,
-        entity.entityType,
-        entity.id,
+      await this.emitEntityEvent(entityUpdatedChannel, {
+        entityType: entity.entityType,
+        entityId: entity.id,
         entity,
-        plan.previousMetadata,
-        options.eventContext,
-      );
+        previousMetadata: plan.previousMetadata,
+        eventContext: options.eventContext,
+      });
     }
     return { entityId: entity.id, jobId: "", skipped: true };
   }
@@ -761,26 +781,13 @@ export class EntityMutations {
     try {
       await this.projectionStore.withDirtyInputs(
         [
-          {
-            sourceType: entity.entityType,
-            sourceId: entity.id,
-            revision: entityRevision({
-              contentHash,
-              metadata,
-              visibility: entity.visibility,
-            }),
-            operation: "upsert",
-            markedAt: this.projectionNow(),
-          },
+          this.dirtyUpsert(plan),
           ...(fold
             ? [
-                {
-                  sourceType: fold.condition.entityType,
-                  sourceId: fold.condition.entityId,
-                  revision: `deleted:${fold.condition.expectedRevision}`,
-                  operation: "delete" as const,
-                  markedAt: this.projectionNow(),
-                },
+                this.dirtyDelete(
+                  fold.condition,
+                  fold.condition.expectedRevision,
+                ),
               ]
             : []),
         ],
@@ -878,29 +885,26 @@ export class EntityMutations {
     await this.notifyProjectionScheduler();
 
     if (fold)
-      await this.emitEntityEvent(
-        entityDeletedChannel,
-        fold.prior.entityType,
-        fold.prior.id,
-        fold.prior,
-        undefined,
-        options?.eventContext,
-      );
+      await this.emitEntityEvent(entityDeletedChannel, {
+        entityType: fold.prior.entityType,
+        entityId: fold.prior.id,
+        entity: fold.prior,
+        eventContext: options?.eventContext,
+      });
     this.logger.debug(
       `Updated entity ${entity.entityType}:${entity.id} immediately`,
     );
 
-    await this.emitEntityEvent(
-      entityUpdatedChannel,
-      entity.entityType,
-      entity.id,
+    await this.emitEntityEvent(entityUpdatedChannel, {
+      entityType: entity.entityType,
+      entityId: entity.id,
       entity,
       // Prior metadata lets projections (e.g. series) reconcile a moved value
       // such as a changed `seriesName` without a full resync. Already loaded
       // by prepareUpdate for the no-op check, so this adds no extra read.
-      plan.previousMetadata,
-      options?.eventContext,
-    );
+      previousMetadata: plan.previousMetadata,
+      eventContext: options?.eventContext,
+    });
 
     return this.enqueueEmbedding(
       {
@@ -1001,17 +1005,14 @@ export class EntityMutations {
     await this.embeddingIndex.deleteEmbedding(entityType, id);
     try {
       await this.projectionStore.withDirtyInput(
-        {
-          sourceType: entityType,
-          sourceId: id,
-          revision: `deleted:${entityRevision({
+        this.dirtyDelete(
+          { entityType, entityId: id },
+          entityRevision({
             contentHash: priorData.contentHash,
             metadata: priorData.metadata,
             visibility: priorData.visibility,
-          })}`,
-          operation: "delete",
-          markedAt: this.projectionNow(),
-        },
+          }),
+        ),
         async (transaction) => {
           const deleteResult = await transaction
             .delete(entities)
@@ -1048,14 +1049,12 @@ export class EntityMutations {
     }
     await this.notifyProjectionScheduler();
 
-    await this.emitEntityEvent(
-      entityDeletedChannel,
+    await this.emitEntityEvent(entityDeletedChannel, {
       entityType,
-      id,
-      prior,
-      undefined,
-      options?.eventContext,
-    );
+      entityId: id,
+      entity: prior,
+      eventContext: options?.eventContext,
+    });
 
     return true;
   }
@@ -1126,11 +1125,10 @@ export class EntityMutations {
     await Promise.all(
       targets.map(async (target) => {
         if (target.operation === "delete") {
-          await this.emitEntityEvent(
-            entityDeletedChannel,
-            target.entityType,
-            target.entityId,
-          );
+          await this.emitEntityEvent(entityDeletedChannel, {
+            entityType: target.entityType,
+            entityId: target.entityId,
+          });
           await this.embeddingIndex.deleteEmbedding(
             target.entityType,
             target.entityId,
@@ -1142,11 +1140,10 @@ export class EntityMutations {
             `Projection target ${target.entityType}:${target.entityId} has no content hash`,
           );
         }
-        await this.emitEntityEvent(
-          entityUpdatedChannel,
-          target.entityType,
-          target.entityId,
-        );
+        await this.emitEntityEvent(entityUpdatedChannel, {
+          entityType: target.entityType,
+          entityId: target.entityId,
+        });
         await this.embeddingIndex.enqueue({
           entityId: target.entityId,
           entityType: target.entityType,
@@ -1388,21 +1385,50 @@ export class EntityMutations {
     }
   }
 
+  /** The projection dirty input that journals an entity row being written. */
+  private dirtyUpsert(
+    write: Pick<EntityWriteGuard, "entity" | "contentHash" | "metadata">,
+  ): MarkProjectionDirtyInput {
+    return {
+      sourceType: write.entity.entityType,
+      sourceId: write.entity.id,
+      revision: entityRevision({
+        contentHash: write.contentHash,
+        metadata: write.metadata,
+        visibility: write.entity.visibility,
+      }),
+      operation: "upsert",
+      markedAt: this.projectionNow(),
+    };
+  }
+
+  /** The projection dirty input that journals the removal of `revision`. */
+  private dirtyDelete(
+    target: { entityType: string; entityId: string },
+    revision: string,
+  ): MarkProjectionDirtyInput {
+    return {
+      sourceType: target.entityType,
+      sourceId: target.entityId,
+      revision: `deleted:${revision}`,
+      operation: "delete",
+      markedAt: this.projectionNow(),
+    };
+  }
+
   /**
    * Broadcast an entity lifecycle event via the message bus
    */
   private async emitEntityEvent(
     channel: Channel<EntityChangePayload>,
-    entityType: string,
-    entityId: string,
-    entity?: BaseEntity,
-    previousMetadata?: BaseEntity["metadata"],
-    eventContext?: EntityMutationEventContext,
+    change: EntityChange,
   ): Promise<void> {
     if (!this.messageBus) {
       return;
     }
 
+    const { entityType, entityId, entity, previousMetadata, eventContext } =
+      change;
     this.logger.debug(`Emitting ${channel.name} for ${entityType}:${entityId}`);
 
     const payload: EntityChangePayload = {
