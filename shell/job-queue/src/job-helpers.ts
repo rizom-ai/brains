@@ -137,6 +137,9 @@ export function createEnqueueJobFn(
       // Verified tool routing and attribution override caller-supplied options.
       ...(toolContext && {
         interfaceType: toolContext.interfaceType,
+        ...(toolContext.interfaceId && {
+          interfaceId: toolContext.interfaceId,
+        }),
         conversationId: toolContext.conversationId,
         channelId: toolContext.channelId,
         requestedByActor: toolContext.actor,
@@ -151,6 +154,11 @@ export function createEnqueueJobFn(
     };
     if (toolContext && !requestedByUserId) {
       delete metadata.requestedByUserId;
+    }
+    // Routing is the tool context's to give; caller options cannot name
+    // another interface for a turn that did not come through one.
+    if (toolContext && !toolContext.interfaceId) {
+      delete metadata.interfaceId;
     }
 
     const jobOptions: JobOptions = {

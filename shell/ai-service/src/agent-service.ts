@@ -359,6 +359,7 @@ export class AgentService implements IAgentService {
           if (guest) throw new Error("Guest execution denied");
           const confirmationContext = {
             interfaceType,
+            interfaceId: context?.interfaceId,
             channelId,
             channelName,
             userPermissionLevel,
@@ -426,6 +427,7 @@ export class AgentService implements IAgentService {
           message,
           conversationId,
           interfaceType,
+          interfaceId: context?.interfaceId,
           channelId,
           channelName,
           userPermissionLevel,

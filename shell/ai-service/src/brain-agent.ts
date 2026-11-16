@@ -227,6 +227,7 @@ export function createBrainAgentFactory(
             channelId: callOptions.channelId,
             channelName: callOptions.channelName,
             interfaceType: callOptions.interfaceType,
+            interfaceId: callOptions.interfaceId,
             actor: callOptions.actor,
             displayName: callOptions.displayName,
             userPermissionLevel: callOptions.userPermissionLevel,

@@ -2523,6 +2523,52 @@ describe("AgentService", () => {
       expect(mockGenerate).toHaveBeenCalledTimes(1);
     });
 
+    it("routes the turn and its confirmed tool to the installed interface they came through", async () => {
+      setupConfirmationResponse("Please confirm deleting the note.");
+
+      const deleteHandler = mock(
+        async (_input: unknown, _context: unknown) => ({
+          success: true as const,
+        }),
+      );
+      const deleteTool: Tool = {
+        name: "delete_note",
+        description: "Delete note",
+        inputSchema: { noteId: z.string() },
+        visibility: "trusted",
+        handler: deleteHandler,
+      };
+      mockMCPService.listAgentToolsForPermissionLevel = mock(() => [
+        { pluginId: "test", tool: deleteTool },
+      ]);
+
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+      const context = {
+        ...adminConfirmationContext,
+        interfaceType: "campfire",
+        interfaceId: "@fixture/campfire:campfire",
+      };
+
+      await service.chat("delete my note", "test-conversation", context);
+      await service.chat("yes", "test-conversation", context);
+
+      expect(mockGenerate.mock.calls[0]?.[0].options).toMatchObject({
+        interfaceType: "campfire",
+        interfaceId: "@fixture/campfire:campfire",
+      });
+      expect(deleteHandler.mock.calls[0]?.[1]).toMatchObject({
+        interfaceType: "campfire",
+        interfaceId: "@fixture/campfire:campfire",
+      });
+    });
+
     it("leaves pending confirmation untouched and rejects unauthorized bystander messages", async () => {
       setupConfirmationResponse("Please confirm deleting the note.");
 

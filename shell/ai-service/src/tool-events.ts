@@ -25,6 +25,8 @@ export interface ToolContextInfo {
   channelId?: string | undefined;
   channelName?: string | undefined;
   interfaceType: string;
+  /** The installed interface the turn came through, when it says. */
+  interfaceId?: string | undefined;
   actor?: ActorRef | undefined;
   displayName?: string | undefined;
 }
@@ -40,6 +42,7 @@ type ToolCompletionEventSchema = z.ZodObject<{
   toolName: z.ZodString;
   conversationId: z.ZodString;
   interfaceType: z.ZodString;
+  interfaceId: z.ZodOptional<z.ZodString>;
   actor: typeof actorRefSchema;
   displayName: z.ZodOptional<z.ZodString>;
   channelId: z.ZodOptional<z.ZodString>;
@@ -55,6 +58,8 @@ export const toolCompletionEventSchema: ToolCompletionEventSchema = z.object({
   toolName: z.string().min(1),
   conversationId: z.string().min(1),
   interfaceType: z.string().min(1),
+  /** The installed interface the turn came through, so its own handles it. */
+  interfaceId: z.string().min(1).optional(),
   actor: actorRefSchema,
   displayName: z.string().optional(),
   channelId: z.string().min(1).optional(),
@@ -151,6 +156,7 @@ export function createToolExecuteWrapper(
     interfaceType: contextInfo.interfaceType,
     actor,
     ...definedFields({
+      interfaceId: contextInfo.interfaceId,
       displayName: contextInfo.displayName,
       channelId: contextInfo.channelId,
       channelName: contextInfo.channelName,

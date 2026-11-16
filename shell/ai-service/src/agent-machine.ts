@@ -47,6 +47,8 @@ export interface AgentMachineContext {
   conversationId: string;
   message: string;
   interfaceType: string;
+  /** The installed interface the turn came through; its progress goes back there. */
+  interfaceId: string | undefined;
   channelId: string | undefined;
   channelName: string;
   userPermissionLevel: UserPermissionLevel;
@@ -74,6 +76,7 @@ export type AgentMachineEvent =
       message: string;
       conversationId: string;
       interfaceType: string;
+      interfaceId: string | undefined;
       channelId: string | undefined;
       channelName: string;
       userPermissionLevel: UserPermissionLevel;
@@ -87,6 +90,7 @@ export type AgentMachineEvent =
       type: "CONFIRM";
       approvalId: string;
       interfaceType: string;
+      interfaceId: string | undefined;
       channelId: string | undefined;
       channelName: string;
       userPermissionLevel: UserPermissionLevel;
@@ -99,6 +103,7 @@ export type AgentMachineEvent =
       type: "CANCEL";
       approvalId: string;
       interfaceType: string;
+      interfaceId: string | undefined;
       channelId: string | undefined;
       channelName: string;
       userPermissionLevel: UserPermissionLevel;
@@ -117,6 +122,7 @@ export interface ProcessMessageInput {
   conversationId: string;
   message: string;
   interfaceType: string;
+  interfaceId: string | undefined;
   channelId: string | undefined;
   channelName: string;
   userPermissionLevel: UserPermissionLevel;
@@ -134,6 +140,7 @@ export interface ExecuteActionInput {
   conversationId: string;
   pendingConfirmation: PendingConfirmation;
   interfaceType: string;
+  interfaceId: string | undefined;
   channelId: string | undefined;
   channelName: string;
   userPermissionLevel: UserPermissionLevel;
@@ -289,6 +296,7 @@ export const agentMachine: AgentMachine = setup({
     conversationId: "",
     message: "",
     interfaceType: "agent",
+    interfaceId: undefined,
     channelId: undefined,
     channelName: "",
     userPermissionLevel: "public",
@@ -312,6 +320,7 @@ export const agentMachine: AgentMachine = setup({
             message: event.message,
             conversationId: event.conversationId,
             interfaceType: event.interfaceType,
+            interfaceId: event.interfaceId,
             channelId: event.channelId,
             channelName: event.channelName,
             userPermissionLevel: event.userPermissionLevel,
@@ -339,6 +348,7 @@ export const agentMachine: AgentMachine = setup({
           conversationId: context.conversationId,
           message: context.message,
           interfaceType: context.interfaceType,
+          interfaceId: context.interfaceId,
           channelId: context.channelId,
           channelName: context.channelName,
           userPermissionLevel: context.userPermissionLevel,
@@ -403,6 +413,7 @@ export const agentMachine: AgentMachine = setup({
           target: "executing",
           actions: assign(({ context, event }) => ({
             interfaceType: event.interfaceType,
+            interfaceId: event.interfaceId,
             channelId: event.channelId,
             channelName: event.channelName,
             userPermissionLevel: event.userPermissionLevel,
@@ -426,6 +437,7 @@ export const agentMachine: AgentMachine = setup({
             target: "awaitingConfirmation",
             actions: assign(({ context, event }) => ({
               interfaceType: event.interfaceType,
+              interfaceId: event.interfaceId,
               channelId: event.channelId,
               channelName: event.channelName,
               userPermissionLevel: event.userPermissionLevel,
@@ -447,6 +459,7 @@ export const agentMachine: AgentMachine = setup({
             target: "idle",
             actions: assign(({ context, event }) => ({
               interfaceType: event.interfaceType,
+              interfaceId: event.interfaceId,
               channelId: event.channelId,
               channelName: event.channelName,
               userPermissionLevel: event.userPermissionLevel,
@@ -476,6 +489,7 @@ export const agentMachine: AgentMachine = setup({
             conversationId: context.conversationId,
             pendingConfirmation: context.activeConfirmation,
             interfaceType: context.interfaceType,
+            interfaceId: context.interfaceId,
             channelId: context.channelId,
             channelName: context.channelName,
             userPermissionLevel: context.userPermissionLevel,

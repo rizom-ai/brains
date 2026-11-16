@@ -472,6 +472,9 @@ class DeclarativeMessageInterfacePlugin<
           userPermissionLevel: permission,
           isAnchor,
           interfaceType,
+          // Its progress comes back here, not to another installed interface
+          // that shares the channel type.
+          interfaceId: this.id,
           channelId: input.channel.id,
           actor: {
             identity: {

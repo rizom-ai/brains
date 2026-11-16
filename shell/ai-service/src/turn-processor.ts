@@ -507,6 +507,7 @@ export class TurnProcessor {
     const {
       conversationId,
       interfaceType,
+      interfaceId,
       channelId,
       channelName,
       userPermissionLevel,
@@ -528,6 +529,7 @@ export class TurnProcessor {
       channelId,
       channelName,
       interfaceType,
+      interfaceId,
       ...(turn.attributedActor ? { actor: turn.attributedActor } : {}),
       hasPriorResponseCandidate: prepared.hasPriorResponseCandidate,
       ...(prepared.agentContextInstructions
@@ -762,6 +764,7 @@ export class TurnProcessor {
       conversationId,
       pendingConfirmation,
       interfaceType,
+      interfaceId,
       channelId,
       channelName,
       userPermissionLevel,
@@ -787,6 +790,7 @@ export class TurnProcessor {
     } else {
       const context: ToolContext = {
         interfaceType,
+        ...(interfaceId ? { interfaceId } : {}),
         actor: attributedActor?.identity ?? this.getAssistantActor().identity,
         ...(attributedActor?.displayName
           ? { displayName: attributedActor.displayName }

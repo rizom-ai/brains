@@ -16,6 +16,7 @@ export function buildBrainCallOptions(params: {
   channelId: string | undefined;
   channelName: string;
   interfaceType: string;
+  interfaceId?: string | undefined;
   actor?: ChatContext["actor"];
   agentContextInstructions?: string;
   hasPriorResponseCandidate?: boolean;
@@ -27,6 +28,7 @@ export function buildBrainCallOptions(params: {
     ...(params.channelId ? { channelId: params.channelId } : {}),
     channelName: params.channelName,
     interfaceType: params.interfaceType,
+    ...(params.interfaceId ? { interfaceId: params.interfaceId } : {}),
     ...(params.guestExecution ? { guestExecution: params.guestExecution } : {}),
     ...(params.guestScreening ? { guestScreening: params.guestScreening } : {}),
     ...(params.actor

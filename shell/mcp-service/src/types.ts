@@ -26,6 +26,12 @@ export interface ToolContext {
 
   // Routing metadata for job creation (required for proper context propagation)
   interfaceType: string; // Which interface called the tool (e.g., "mcp", "cli", "matrix")
+  /**
+   * The installed interface the call came through, its plugin id, when the
+   * caller says. Jobs the tool starts carry it so their progress goes back
+   * to that interface even when another one shares its channel type.
+   */
+  interfaceId?: string;
   actor: ActorRef; // Verified user, external, agent, or service actor
   displayName?: string; // Authenticated user's display name when resolved
   conversationId?: string; // Durable conversation/session id for conversation-scoped tools when available
@@ -42,6 +48,7 @@ export interface ToolContext {
 
 export interface ToolContextRouting {
   interfaceType: string;
+  interfaceId?: string | undefined;
   actor: ActorRef;
   displayName?: string | undefined;
   conversationId?: string | undefined;
@@ -55,6 +62,7 @@ export interface ToolContextRouting {
 
 interface ToolContextRoutingSchemaShape extends ZodRawShape {
   interfaceType: z.ZodString;
+  interfaceId: z.ZodOptional<z.ZodString>;
   actor: typeof actorRefSchema;
   displayName: z.ZodOptional<z.ZodString>;
   conversationId: z.ZodOptional<z.ZodString>;
@@ -79,6 +87,7 @@ interface ToolContextRoutingSchemaShape extends ZodRawShape {
 export const ToolContextRoutingSchema: z.ZodObject<ToolContextRoutingSchemaShape> =
   z.object({
     interfaceType: z.string(),
+    interfaceId: z.string().optional(),
     actor: actorRefSchema,
     displayName: z.string().optional(),
     conversationId: z.string().optional(),

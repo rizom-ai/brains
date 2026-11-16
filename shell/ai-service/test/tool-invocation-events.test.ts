@@ -23,6 +23,7 @@ const toolEventPayloadSchema = z.looseObject({
   conversationId: z.string().optional(),
   channelId: z.string().optional(),
   interfaceType: z.string().optional(),
+  interfaceId: z.string().optional(),
   actor: z.unknown().optional(),
   channelName: z.string().optional(),
   displayName: z.string().optional(),
@@ -210,6 +211,28 @@ describe("tool invocation events", () => {
         canonicalId: "user:mira",
       });
       expect(payload.displayName).toBe("Mira");
+    });
+
+    it("names the installed interface the turn came through on every tool event", async () => {
+      const { emitter, events } = recordEvents();
+      const wrapper = createToolExecuteWrapper(
+        "test_tool",
+        mock(async () => ({ status: "ok", data: {} })),
+        {
+          ...defaultContextInfo,
+          interfaceType: "campfire",
+          interfaceId: "@fixture/campfire:campfire",
+        },
+        emitter,
+      );
+
+      await wrapper({});
+
+      for (const type of ["tool:invoking", "tool:completed"]) {
+        const payload = expectEvent(events, type);
+        expect(payload.interfaceType).toBe("campfire");
+        expect(payload.interfaceId).toBe("@fixture/campfire:campfire");
+      }
     });
   });
 
