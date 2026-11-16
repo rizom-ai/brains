@@ -13,7 +13,6 @@ import {
   runCommand,
   startCommand,
   stopProcess,
-  waitForHttpReadiness,
 } from "./helpers/packed-consumer";
 
 const packageDirectory = join(import.meta.dir, "..");
@@ -144,20 +143,10 @@ describe("canonical packed consumer", () => {
       { env },
     );
     try {
-      await Promise.race([
-        waitForHttpReadiness(`http://127.0.0.1:${port}/health/ready`, {
-          timeoutMs: 120_000,
-        }),
-        runtime.completed.then((early) => {
-          throw new Error(
-            `Brain exited before it was ready (${early.exitCode})\n${combinedOutput(early)}`,
-          );
-        }),
-      ]).catch((error: unknown) => {
-        throw new Error(
-          `${String(error)}\n--- runtime ---\n${combinedOutput(runtime.getOutput())}`,
-        );
-      });
+      // Both roles, not only the web: a SIGTERM while the worker is still
+      // booting is a different window from the one this proves.
+      await runtime.waitForOutput("Brain web runtime ready", 120_000);
+      await runtime.waitForOutput("Brain worker runtime ready", 120_000);
       expect(await leaseCount(databasePath)).toBeGreaterThan(0);
 
       await stopProcess(runtime.process, 30_000);
