@@ -1,5 +1,17 @@
 # @brains/sdk
 
+## 0.2.0-alpha.729
+
+### Patch Changes
+
+- Updated dependencies [[`a4b9043`](https://github.com/rizom-ai/brains/commit/a4b9043d23201ce8519f19115771951832f00735)]:
+  - @brains/plugins@0.2.0-alpha.729
+  - @brains/contracts@0.2.0-alpha.729
+  - @brains/utils@0.2.0-alpha.729
+  - @brains/entity-service@0.2.0-alpha.729
+  - @brains/scheduler@0.2.0-alpha.729
+  - @brains/templates@0.2.0-alpha.729
+
 ## 0.2.0-alpha.728
 
 ### Patch Changes

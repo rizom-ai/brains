@@ -1,5 +1,9 @@
 # @brains/utils
 
+## 0.2.0-alpha.729
+
+No changes in this release.
+
 ## 0.2.0-alpha.728
 
 No changes in this release.

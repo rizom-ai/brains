@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.729
+
+### Patch Changes
+
+- [#985](https://github.com/rizom-ai/brains/pull/985) [`a4b9043`](https://github.com/rizom-ai/brains/commit/a4b9043d23201ce8519f19115771951832f00735) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A daemon that fails after it was ready is restarted instead of leaving the brain silently not receiving. A `defineDaemon({ run })` daemon or a message interface's `listen` that rejects, or returns before it is stopped, is logged at error level with its id and the error's message, and run again after a wait of one second that doubles up to five minutes, with jitter; health stays `error` until a restarted run reports ready, which resets the wait. An account daemon's task is restarted the same way, and is no longer left failed until its settings are saved again. Stopping the brain, removing the account or changing its settings cancels a pending restart.
+
 ## 0.2.0-alpha.728
 
 ### Patch Changes
