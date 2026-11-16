@@ -5,6 +5,7 @@ import {
 import { actorRefSchema } from "@brains/contracts";
 import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
 import { updateFrontmatterField } from "@brains/utils/markdown";
+import { FRONTMATTER_BLOCK } from "@brains/utils/markdown-frontmatter";
 import { z } from "@brains/utils/zod";
 import type { QueueEntry, QueueManager } from "./queue-manager";
 import {
@@ -15,7 +16,6 @@ import type { PipelineContext } from "./lib/pipeline-context";
 
 const QUEUE_STATE_NAMESPACE = "content-pipeline.queue.v1";
 const RANK_STEP = 1024;
-const FRONTMATTER_BLOCK = /^---\r?\n[\s\S]*?\r?\n---(?:\r?\n|$)/;
 
 const publishAuthContextSchema: z.ZodObject<{
   interfaceType: z.ZodOptional<z.ZodString>;

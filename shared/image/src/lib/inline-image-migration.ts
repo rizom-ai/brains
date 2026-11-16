@@ -1,4 +1,5 @@
 import { base64AssetSource, computeAssetDigest } from "@brains/entity-service";
+import { markdownBody } from "@brains/utils/markdown-frontmatter";
 import { IMAGE_ASSET_MAX_BYTES } from "./stage-image";
 import { describeImageBytes, type ImageByteDescription } from "./image-utils";
 
@@ -25,9 +26,6 @@ export const LEGACY_PENDING_IMAGE_PLACEHOLDER =
 
 /** Payloads may be wrapped or padded with whitespace, as files were. */
 const INLINE_DATA_URL = /^data:image\/([a-z0-9.+-]+);base64,([\s\S]*)$/i;
-
-/** Non-public rows store a visibility header before the data URL. */
-const STORED_FRONTMATTER = /^---\r?\n[\s\S]*?\r?\n---\r?\n/;
 
 /**
  * Decoding a whole data URL as base64 drops its ":", ";" and "," and stores
@@ -87,9 +85,8 @@ export function inlineImagePayload(content: string): string | undefined {
 function parseInlineImage(
   content: string,
 ): { subtype: string; payload: string } | undefined {
-  const match = INLINE_DATA_URL.exec(
-    content.replace(STORED_FRONTMATTER, "").trim(),
-  );
+  // Non-public rows store a visibility header before the data URL.
+  const match = INLINE_DATA_URL.exec(markdownBody(content, { trim: true }));
   if (!match?.[1] || match[2] === undefined) return undefined;
   return {
     subtype: match[1].toLowerCase(),

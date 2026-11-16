@@ -44,6 +44,27 @@ describe("classifyInlineImage", () => {
     );
   });
 
+  it.each([
+    ["a bare fence", "\n", "---"],
+    ["a fence with a trailing space", "\n", "--- "],
+    ["a fence with a trailing tab", "\n", "---\t"],
+    ["a CRLF file", "\r\n", "---"],
+    ["a CRLF file with a trailing space", "\r\n", "--- "],
+  ])("decodes an image stored behind %s", (_label, eol, fence) => {
+    const stored = [
+      "---",
+      "visibility: restricted",
+      fence,
+      "",
+      pngDataUrl,
+      "",
+    ].join(eol);
+
+    expect(classifyInlineImage(stored)).toEqual(
+      classifyInlineImage(pngDataUrl),
+    );
+  });
+
   it("blocks SVG images", () => {
     const svg = `data:image/svg+xml;base64,${Buffer.from("<svg/>").toString("base64")}`;
 

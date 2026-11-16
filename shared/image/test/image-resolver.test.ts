@@ -167,6 +167,29 @@ title: Test
   });
 });
 
+describe("frontmatter fences", () => {
+  it.each([
+    ["a bare fence", "\n", "---"],
+    ["a fence with a trailing space", "\n", "--- "],
+    ["a fence with a trailing tab", "\n", "---\t"],
+    ["a CRLF file", "\r\n", "---"],
+    ["a CRLF file with a trailing space", "\r\n", "--- "],
+  ])("reads cover and OG image IDs behind %s", (_label, eol, fence) => {
+    const entity = createMockEntity(
+      [
+        "---",
+        "coverImageId: hero-image",
+        "ogImageId: post-og-image",
+        fence,
+        "",
+        "# Test",
+      ].join(eol),
+    );
+
+    expect(extractCoverImageId(entity)).toBe("hero-image");
+    expect(extractOgImageId(entity)).toBe("post-og-image");
+  });
+});
 describe("extractOgImageId", () => {
   it("should extract ogImageId from frontmatter", () => {
     const entity = createMockEntity(`---
@@ -289,6 +312,16 @@ coverImageId: hero-image
     expect(result?.url).toBe(TINY_PNG_DATA_URL);
     expect(result?.width).toBe(1);
     expect(result?.height).toBe(1);
+  });
+
+  it("resolves the cover image behind a fence with a trailing space", async () => {
+    const entity = createMockEntity(
+      "---\ncoverImageId: hero-image\n--- \n\n# Test",
+    );
+
+    const result = await resolveEntityCoverImage(entity, imageService());
+
+    expect(result?.url).toBe(TINY_PNG_DATA_URL);
   });
 
   it("should return undefined when no coverImageId in frontmatter", async () => {
