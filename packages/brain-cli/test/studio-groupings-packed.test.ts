@@ -39,7 +39,6 @@ test("packed Studio definitions and field tools preserve multiple runtime groupi
       ...process.env,
       OPENAI_API_KEY: "packed-grouping-check",
       GIT_SYNC_TOKEN: "packed-grouping-check",
-      BRAIN_SKIP_LOCAL_REEXEC: "1",
     };
     await runCommand(["bun", "run", "import-smoke.ts"], consumer, { env });
     await runCommand(

@@ -149,7 +149,7 @@ setBootFn(async (cwd, definition, flags): Promise<BootedBrain | void> => {
 
 import { parseArgs } from "../src/parse-args";
 import { runCommand } from "../src/run-command";
-import { findLocalBrain } from "../src/lib/local-reexec";
+import { reexecLocalBrain } from "../src/lib/local-reexec";
 import { getInvocationCwd } from "../src/lib/invocation-cwd";
 import { getErrorMessage } from "@brains/utils/error";
 import { printCommandResult } from "../src/lib/print-command-result";
@@ -159,25 +159,9 @@ import { printCommandResult } from "../src/lib/print-command-result";
 // away the `cwd ?? process.cwd()` fallback inside runCommand otherwise.
 const cwd = getInvocationCwd();
 
-// Local-over-global: if ./node_modules/@rizom/brain exists and isn't us, re-exec
-if (!process.env["BRAIN_SKIP_LOCAL_REEXEC"]) {
-  const localBrain = findLocalBrain(cwd);
-  if (localBrain && localBrain !== __filename) {
-    // Arguments are passed as a list, not joined into a shell string: the
-    // joined form re-split anything containing a space or a quote, so
-    // `brain … "two words"` reached the local install as two arguments.
-    //
-    // Awaited rather than synchronous, like every other spawn in the
-    // repository — the exit code is read from the child instead of decoded
-    // out of a thrown error.
-    const child = Bun.spawn(["bun", localBrain, ...process.argv.slice(2)], {
-      cwd,
-      stdio: ["inherit", "inherit", "inherit"],
-      env: { ...process.env, BRAIN_SKIP_LOCAL_REEXEC: "1" },
-    });
-    process.exit(await child.exited);
-  }
-}
+// Local over global: a local install that isn't this process runs the command.
+const handedOff = await reexecLocalBrain({ cwd, args: process.argv.slice(2) });
+if (handedOff !== undefined) process.exit(handedOff);
 
 const parsed = parseArgs(process.argv.slice(2));
 const status = printCommandResult(await runCommand(parsed, cwd));
