@@ -149,6 +149,77 @@ describe("database leases", () => {
     await lease.release();
   });
 
+  it("prunes a lease that expired while the brain runs at its next renewal", async () => {
+    const client = await migratedClient();
+    let now = Date.now();
+    const lease = await acquireDatabaseLease(client, {
+      role: "brain",
+      now: () => now,
+      renewIntervalMs: 60_000,
+    });
+    await insertLease(client, {
+      id: "killed-brain",
+      heartbeatAt: now,
+      expiresAt: now + 1_000,
+    });
+
+    now += 1_001;
+    expect(await lease.renew()).toBe(true);
+
+    expect((await readDatabaseLeases(client)).map((row) => row.id)).toEqual([
+      lease.id,
+    ]);
+    await lease.release();
+  });
+
+  it("renews a brain's own lease that lapsed instead of pruning it", async () => {
+    const client = await migratedClient();
+    let now = Date.now();
+    const lease = await acquireDatabaseLease(client, {
+      role: "brain",
+      now: () => now,
+      renewIntervalMs: 60_000,
+    });
+
+    now += 120_000;
+    expect(await lease.renew()).toBe(true);
+
+    expect(await readDatabaseLeases(client)).toEqual([
+      expect.objectContaining({ id: lease.id, expiresAt: now + 60_000 }),
+    ]);
+    await lease.release();
+  });
+
+  it("keeps fresh brain and maintenance leases through a renewal", async () => {
+    const client = await migratedClient();
+    let now = Date.now();
+    const lease = await acquireDatabaseLease(client, {
+      role: "brain",
+      now: () => now,
+      renewIntervalMs: 60_000,
+    });
+    await insertLease(client, {
+      id: "web",
+      heartbeatAt: now,
+      expiresAt: now + 60_000,
+    });
+    await insertLease(client, {
+      id: "run",
+      role: "maintenance",
+      command: "assets:migrate",
+      heartbeatAt: now,
+      expiresAt: now + 60_000,
+    });
+
+    now += 10_000;
+    expect(await lease.renew()).toBe(true);
+
+    expect(
+      (await readDatabaseLeases(client)).map((row) => row.id).sort(),
+    ).toEqual([lease.id, "run", "web"].sort());
+    await lease.release();
+  });
+
   it("refuses maintenance while a brain or another command holds the database", async () => {
     const client = await migratedClient();
     await insertLease(client, { id: "web", hostname: "brain-container" });
