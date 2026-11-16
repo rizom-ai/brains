@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.723
+
+### Patch Changes
+
+- [#978](https://github.com/rizom-ai/brains/pull/978) [`28482b9`](https://github.com/rizom-ai/brains/commit/28482b9d80e7ad46e1d4d607eda7eaddf2ad2bd0) Thanks [@yeehaa123](https://github.com/yeehaa123)! - When someone without Admin access asks to delete something, the brain now declines without first searching for it or reading it. Before, about one such request in four looked the entity up first and spent its whole content on a refusal.
+
 ## 0.2.0-alpha.722
 
 ### Patch Changes
