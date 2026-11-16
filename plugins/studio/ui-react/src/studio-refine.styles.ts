@@ -43,7 +43,7 @@ export const refineStyles: Record<
     fontSize: "inherit",
     textAlign: "left",
     cursor: "pointer",
-    outlineOffset: 3,
+    outlineOffset: 2,
   },
   number: {
     display: {
