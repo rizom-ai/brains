@@ -128,7 +128,9 @@ export interface HeldDatabaseLease {
  * is fresh: a brain refuses while a maintenance command runs, a maintenance
  * command while anything else does. The row is written before conflicts are
  * read, so of two holders starting together at least one sees the other.
- * A starting brain also removes expired rows, which only a crash leaves.
+ * A brain also removes expired rows, which only a crash leaves: when it
+ * starts, and again with each renewal, so a row a killed process left while
+ * still fresh is gone within a renewal of expiring.
  */
 export async function acquireDatabaseLease(
   client: LeaseClient,
@@ -142,12 +144,8 @@ export async function acquireDatabaseLease(
   const startedAt = now();
 
   await runWrite(async () => {
-    if (options.role === "brain") {
-      await client.execute({
-        sql: "DELETE FROM database_leases WHERE expires_at <= ?",
-        args: [startedAt],
-      });
-    }
+    if (options.role === "brain")
+      await pruneExpiredLeases(client, startedAt, id);
     await client.execute({
       sql: "INSERT INTO database_leases (id, role, command, hostname, pid, started_at, heartbeat_at, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
       args: [
@@ -177,6 +175,7 @@ export async function acquireDatabaseLease(
   const renew = (): Promise<boolean> =>
     runWrite(async () => {
       const at = now();
+      if (options.role === "brain") await pruneExpiredLeases(client, at, id);
       const result = await client.execute({
         sql: "UPDATE database_leases SET heartbeat_at = ?, expires_at = ? WHERE id = ?",
         args: [at, at + ttlMs, id],
@@ -220,5 +219,17 @@ async function deleteLease(client: LeaseClient, id: string): Promise<void> {
   await client.execute({
     sql: "DELETE FROM database_leases WHERE id = ?",
     args: [id],
+  });
+}
+
+/** Delete every expired row but the holder's own, which it is renewing. */
+async function pruneExpiredLeases(
+  client: LeaseClient,
+  now: number,
+  ownId: string,
+): Promise<void> {
+  await client.execute({
+    sql: "DELETE FROM database_leases WHERE expires_at <= ? AND id != ?",
+    args: [now, ownId],
   });
 }
