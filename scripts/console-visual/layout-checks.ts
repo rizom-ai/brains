@@ -115,6 +115,7 @@ async function checkStudioPhoneDocument(
   }
   const hasOpenActionSheet =
     surface === "studio-administration-invitations-form" ||
+    surface === "studio-refine-confirm" ||
     surface.startsWith("studio-navigation");
   await checkPhoneScrollOwnership(
     page,
@@ -166,7 +167,10 @@ async function checkPhoneScrollOwnership(
       .map((element) => element.className.toString().slice(0, 60)),
   );
   if (hasOpenActionSheet) {
-    const dialog = await elementBounds(page, '[role="dialog"]');
+    const dialog = await elementBounds(
+      page,
+      '[role="dialog"], [role="alertdialog"]',
+    );
     if (!dialog || dialog.y + dialog.height > viewportHeight + 1) {
       throw new Error(`Studio action sheet escaped the phone viewport`);
     }

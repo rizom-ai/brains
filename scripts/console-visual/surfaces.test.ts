@@ -38,6 +38,8 @@ describe("planSurface", () => {
   it.each([
     ["dashboard-network", "/dashboard"],
     ["studio-library", "/studio/entities/posts"],
+    ["studio-refine", "/studio/entities/posts"],
+    ["studio-refine-confirm", "/studio/entities/posts"],
     ["studio-editor", "/studio/entities/posts/field-notes"],
     ["studio-upload", "/studio/entities/posts/field-notes"],
     ["studio-overview", "/studio/workspaces/studio%3Aoverview"],
@@ -112,6 +114,14 @@ describe("planSurface", () => {
       systemCollection: false,
       isStudioEditor: false,
     });
+  });
+
+  it("offers Refine on the fixture collection only on the refine surfaces", () => {
+    expect(
+      consoleSurfaces().filter(
+        (surface) => planSurface(surface, undefined).refining,
+      ),
+    ).toEqual(["studio-refine", "studio-refine-confirm"]);
   });
 
   it("marks only the delete, conflict, invalid, and upload states as secondary", () => {

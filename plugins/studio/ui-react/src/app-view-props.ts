@@ -26,6 +26,7 @@ import type {
   EditorWorkflowState,
 } from "./editor-workflow";
 import type { StudioCollectionQuery } from "../../src/collection-query";
+import type { RefineNotice, RefineOutcome } from "./refine";
 
 export type MobileEditorPane = "details" | "write" | "preview";
 
@@ -102,4 +103,8 @@ export interface StudioAppViewProps {
   remove: () => void;
   onNavigationReset: () => void;
   onNavigationProceed: () => void;
+  /** What Studio says where the last confirmed refine lands. */
+  refineNotice?: RefineNotice | null | undefined;
+  /** A refine was confirmed in the library: follow it to its end. */
+  onRefineConfirmed?: ((outcome: RefineOutcome) => void) | undefined;
 }
