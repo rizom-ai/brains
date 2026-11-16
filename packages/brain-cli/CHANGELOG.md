@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.726
+
+### Patch Changes
+
+- [#981](https://github.com/rizom-ai/brains/pull/981) [`5ef7f67`](https://github.com/rizom-ai/brains/commit/5ef7f67cbc710c86092d9051ecaa4618bdb97823) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A brain stopped while it is still starting now shuts down cleanly. Before, a `docker stop` (or Ctrl-C) during the first seconds of boot reached an app process before it listened for the signal, so the process died holding its database lease, and offline maintenance then refused to run until the lease expired. Now each process listens from the start of its boot: a stop during boot lets the boot finish, runs the full shutdown, and releases the lease. A stop during the migration step waits for it to finish and starts nothing.
+
 ## 0.2.0-alpha.725
 
 ### Patch Changes
