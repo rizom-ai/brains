@@ -57,7 +57,13 @@ export interface SpawnBunRunnerDependencies {
 export interface SpawnBunRunnerOptions extends SpawnBunRunnerDependencies {
   cwd: string;
   args: string[];
-  failureMessage: (code: number | null) => string;
+  /** The child's environment; the parent's when omitted. */
+  env?: NodeJS.ProcessEnv;
+  /**
+   * What a failure is reported as. Omitted when the child reports its own
+   * failures, so only its exit status is passed on.
+   */
+  failureMessage?: (code: number | null) => string;
 }
 
 export function spawnBunRunner(
@@ -72,7 +78,7 @@ export function spawnBunRunner(
     const proc = spawnImpl("bun", ["--no-orphans", ...options.args], {
       cwd: options.cwd,
       stdio: "inherit",
-      env: processImpl.env,
+      env: options.env ?? processImpl.env,
     });
 
     let settled = false;
@@ -125,7 +131,9 @@ export function spawnBunRunner(
         success: code === 0,
         ...(code !== 0
           ? {
-              message: options.failureMessage(code),
+              ...(options.failureMessage && {
+                message: options.failureMessage(code),
+              }),
               exitCode: code ?? 1,
             }
           : {}),
