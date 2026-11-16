@@ -1,5 +1,19 @@
 # @brains/blog
 
+## 0.2.0-alpha.730
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.730
+  - @rizom/brain-ui@0.2.0-alpha.730
+  - @brains/atproto-contracts@0.2.0-alpha.730
+  - @brains/contracts@0.2.0-alpha.730
+  - @brains/image@0.2.0-alpha.730
+  - @brains/media-page-composer@0.2.0-alpha.730
+  - @brains/site-composition@0.2.0-alpha.730
+  - @brains/utils@0.2.0-alpha.730
+
 ## 0.2.0-alpha.729
 
 ### Patch Changes
