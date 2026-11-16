@@ -242,7 +242,6 @@ function liveRuntimeEnv(
   return {
     ...process.env,
     OPENAI_API_KEY: apiKey,
-    BRAIN_SKIP_LOCAL_REEXEC: "1",
     FIXTURE_EVENT_FEED_URL: transport.eventFeedUrl,
     FIXTURE_CAMPFIRE_BASE_URL: transport.campfireBaseUrl,
   };

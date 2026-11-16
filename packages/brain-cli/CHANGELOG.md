@@ -1,5 +1,17 @@
 # @rizom/brain
 
+## 0.2.0-alpha.725
+
+### Patch Changes
+
+- [#980](https://github.com/rizom-ai/brains/pull/980) [`dc1e319`](https://github.com/rizom-ai/brains/commit/dc1e31912b0b146dabcb08e74be24551d0334dae) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Topic extraction now keeps a new topic that a model lists among a source's matches to existing topics, where before only a topic named as the source's proposal counted. Local models answer that way most of the time, so a brain on local models never got its first topics.
+
+## 0.2.0-alpha.724
+
+### Patch Changes
+
+- [#979](https://github.com/rizom-ai/brains/pull/979) [`50abd58`](https://github.com/rizom-ai/brains/commit/50abd5803b0d543207856be64be8fe733aa89318) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Restores graceful shutdown in deployed containers. `docker stop` now reaches the brain and runs its whole shutdown: the queues drain, plugins stop (directory-sync makes its final export and git push), the database lease is released, and the databases close. Before, the published CLI handed every command to its own install as a second process, and SIGTERM ended the first one, so the brain itself was killed without shutting down. A global `brain` run in a directory with a local install still hands off to it, and now passes SIGINT and SIGTERM on and exits with its status.
+
 ## 0.2.0-alpha.723
 
 ### Patch Changes

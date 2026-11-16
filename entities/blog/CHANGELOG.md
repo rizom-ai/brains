@@ -1,5 +1,33 @@
 # @brains/blog
 
+## 0.2.0-alpha.725
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.725
+  - @rizom/brain-ui@0.2.0-alpha.725
+  - @brains/atproto-contracts@0.2.0-alpha.725
+  - @brains/contracts@0.2.0-alpha.725
+  - @brains/image@0.2.0-alpha.725
+  - @brains/media-page-composer@0.2.0-alpha.725
+  - @brains/site-composition@0.2.0-alpha.725
+  - @brains/utils@0.2.0-alpha.725
+
+## 0.2.0-alpha.724
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.724
+  - @rizom/brain-ui@0.2.0-alpha.724
+  - @brains/atproto-contracts@0.2.0-alpha.724
+  - @brains/contracts@0.2.0-alpha.724
+  - @brains/image@0.2.0-alpha.724
+  - @brains/media-page-composer@0.2.0-alpha.724
+  - @brains/site-composition@0.2.0-alpha.724
+  - @brains/utils@0.2.0-alpha.724
+
 ## 0.2.0-alpha.723
 
 ### Patch Changes

@@ -39,7 +39,6 @@ const runtimeEnv = {
   ...process.env,
   OPENAI_API_KEY: "packed-hermetic-runtime",
   MCP_AUTH_TOKEN: remoteToken,
-  BRAIN_SKIP_LOCAL_REEXEC: "1",
 };
 
 function startRuntime(consumerDirectory: string): StartedCommand {
