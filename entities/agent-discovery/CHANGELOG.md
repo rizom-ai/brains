@@ -1,5 +1,19 @@
 # @brains/agent-discovery
 
+## 0.2.0-alpha.727
+
+### Patch Changes
+
+- Updated dependencies [[`a57b365`](https://github.com/rizom-ai/brains/commit/a57b365b06adc462b6c4323d17e7046119f0a90b)]:
+  - @brains/contracts@0.2.0-alpha.727
+  - @brains/sdk@0.2.0-alpha.727
+  - @brains/dashboard@0.2.0-alpha.727
+  - @brains/atproto-contracts@0.2.0-alpha.727
+  - @rizom/brain-ui@0.2.0-alpha.727
+  - @brains/content-formatters@0.2.0-alpha.727
+  - @brains/http-signatures@0.2.0-alpha.727
+  - @brains/utils@0.2.0-alpha.727
+
 ## 0.2.0-alpha.726
 
 ### Patch Changes

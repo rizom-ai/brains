@@ -1,5 +1,17 @@
 # @brains/auth-service
 
+## 0.2.0-alpha.727
+
+### Patch Changes
+
+- [#966](https://github.com/rizom-ai/brains/pull/966) [`65485d2`](https://github.com/rizom-ai/brains/commit/65485d2de8aaedaa77781bf3b6367cc093f86a7c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A job started by a signed-in person runs again in a brain with a separate worker. Since the typed bus contracts landed, the auth service answered `auth:principal:resolve` in the web process only, so the worker could not resolve the requester's account and refused every such job with "The requester is not permitted": a generation approved in chat or Studio failed after its confirmation. The auth service answers it in every process.
+- Updated dependencies [[`a57b365`](https://github.com/rizom-ai/brains/commit/a57b365b06adc462b6c4323d17e7046119f0a90b)]:
+  - @brains/plugins@0.2.0-alpha.727
+  - @brains/contracts@0.2.0-alpha.727
+  - @brains/notifications@0.2.0-alpha.727
+  - @brains/db@0.2.0-alpha.727
+  - @brains/utils@0.2.0-alpha.727
+
 ## 0.2.0-alpha.726
 
 ### Patch Changes
