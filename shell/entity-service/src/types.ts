@@ -808,6 +808,23 @@ export interface EntityTypeConfig {
    * One level only; a container's own ids are flat.
    */
   containedIn?: string;
+  /**
+   * The source types this type's generation uses up, as a refined note uses
+   * up the notes it is written from: once what it wrote is saved, the
+   * sources of these types are deleted, as the requester and under their
+   * delete policy. `system_generate` says so in its confirmation, and
+   * refuses a source of any other type. Sources of an unlisted type are
+   * kept. Absent, a generation keeps every source.
+   */
+  consumesSources?: readonly string[];
+  /**
+   * Whether a record of this type must belong somewhere: where at least one
+   * grouping applies to the type, every create and update is refused unless
+   * the record carries a value in one of them. A brain with no grouping for
+   * the type asks nothing more, and the placeholder of a generation, queued
+   * or failed, is exempt. Absent, a record may float free.
+   */
+  requiresGroupingMembership?: boolean;
   /** Publish semantics for status-bearing entity types. Statuses listed here
    *  represent publication commitment/execution states and require the
    *  `publish` entity action when entered or modified. */

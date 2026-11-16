@@ -67,6 +67,7 @@ const expectedMembers: Record<TargetRecipeName, string[]> = {
     "profile",
     "style-guide",
     "note",
+    "refined-note",
     "link",
     "topics",
     "directory-sync",
@@ -83,6 +84,7 @@ const expectedMembers: Record<TargetRecipeName, string[]> = {
     "image",
     "document",
     "note",
+    "refined-note",
     "link",
     "topics",
     "directory-sync",
@@ -109,6 +111,7 @@ const expectedMembers: Record<TargetRecipeName, string[]> = {
     "image",
     "document",
     "note",
+    "refined-note",
     "link",
     "topics",
     "decks",
@@ -152,6 +155,7 @@ const expectedMembers: Record<TargetRecipeName, string[]> = {
     "image",
     "document",
     "note",
+    "refined-note",
     "link",
     "topics",
     "directory-sync",
@@ -221,6 +225,11 @@ const teamPermissions: ResolvedBundlePermissionContribution[] = [
     bundleId: "team",
     member: "note",
     config: { entityActions: { note: trustedContentEntityActions } },
+  },
+  {
+    bundleId: "team",
+    member: "refined-note",
+    config: { entityActions: { "refined-note": trustedContentEntityActions } },
   },
   {
     bundleId: "team",
@@ -411,6 +420,7 @@ describe("canonical bundle taxonomy", () => {
     expect(permissionLevel(team, "mcp:http")).toBe("admin");
     for (const entityType of [
       "note",
+      "refined-note",
       "link",
       "image",
       "doc",

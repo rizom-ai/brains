@@ -6,6 +6,8 @@ export const entityGroupingSchema: z.ZodObject<{
   label: z.ZodString;
   field: z.ZodString;
   types: z.ZodArray<z.ZodString>;
+  multiple: z.ZodOptional<z.ZodBoolean>;
+  values: z.ZodOptional<z.ZodArray<z.ZodString>>;
 }> = z.strictObject({
   key: z
     .string()
@@ -26,6 +28,17 @@ export const entityGroupingSchema: z.ZodObject<{
       (types) => new Set(types).size === types.length,
       "Grouping types must be unique",
     ),
+  /**
+   * Whether a record may hold several values. Stated by whoever declares
+   * the grouping and enforced by them: the registry only carries it, for
+   * a reader that chooses a value on a record's behalf.
+   */
+  multiple: z.boolean().optional(),
+  /**
+   * The values a closed grouping allows; absent, the grouping is open.
+   * Carried for readers, as `multiple` is, and enforced by its declarer.
+   */
+  values: z.array(z.string().min(1)).min(1).optional(),
 });
 export type EntityGrouping = z.infer<typeof entityGroupingSchema>;
 

@@ -2624,6 +2624,27 @@
         }
       },
       "required": ["derivedAt"]
+    },
+    "refined-note": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The note's title"
+        },
+        "summary": {
+          "type": "string",
+          "description": "One sentence saying what the note is"
+        },
+        "status": {
+          "studioWidget": "provenance",
+          "type": "string",
+          "enum": ["generating", "failed"]
+        },
+        "error": { "studioWidget": "provenance", "type": "string" }
+      },
+      "required": ["title", "summary"]
     }
   },
   "obsidian": {

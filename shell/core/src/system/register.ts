@@ -17,6 +17,7 @@ import { createSystemResources } from "./resources";
 import { createSystemResourceTemplates } from "./resource-templates";
 import { createSystemPrompts } from "./prompts";
 import { createSystemInstructions } from "./instructions";
+import { answerGenerateFromSources } from "./generate-from-sources";
 
 const SYSTEM_ID = "system";
 
@@ -149,5 +150,11 @@ export function registerSystemCapabilities(
   }
   logger.debug("Registered system instructions");
 
-  return unsubscribeToolExecution;
+  // A package without the agent's tools asks for a generation from sources.
+  const stopAnswering = answerGenerateFromSources(tools, messageBus, logger);
+
+  return (): void => {
+    unsubscribeToolExecution();
+    stopAnswering();
+  };
 }

@@ -1632,7 +1632,13 @@ describe("document-backed runtime definitions with real adapters", () => {
     const fixture = await open(await directory());
     expect((await save(fixture, { areas })).status).toBe(201);
     expect(fixture.registry.getGroupings()).toEqual([
-      { key: "areas", field: "areas", label: "Areas", types: ["note", "post"] },
+      {
+        key: "areas",
+        field: "areas",
+        label: "Areas",
+        types: ["note", "post"],
+        multiple: true,
+      },
     ]);
     expect(
       fixture.registry.getEffectiveFrontmatterSchema(type)?.shape["areas"],

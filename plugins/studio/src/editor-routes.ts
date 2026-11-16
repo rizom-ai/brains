@@ -1,3 +1,5 @@
+import { definedFields } from "@brains/utils/strip-undefined";
+import { handleRefine, refineTargetOf } from "./editor-refine";
 import {
   issuerFromRequest,
   requireSameOriginJson,
@@ -551,6 +553,18 @@ export function createEditorRoutes(
       },
     },
     {
+      path: apiPath("refine"),
+      method: "POST",
+      public: true,
+      handler: async (request): Promise<Response> => {
+        const access = await requireTrustedAccess(request);
+        if (access instanceof Response) return access;
+        const requestDenied = requireSameOriginJson(request);
+        if (requestDenied) return requestDenied;
+        return handleRefine(getContext(), request, access, getEntityDisplay());
+      },
+    },
+    {
       path: apiPath("sync-status"),
       method: "GET",
       public: true,
@@ -642,6 +656,14 @@ async function handleListTypes(
           ? { ...studioTypeHierarchy(entityType), nested: false }
           : studioTypeHierarchy(entityType),
         ...(containedIn !== undefined && { containedIn }),
+        ...definedFields({
+          refinesInto: refineTargetOf(
+            context,
+            entityType,
+            access,
+            entityDisplay,
+          ),
+        }),
       });
     }
   }

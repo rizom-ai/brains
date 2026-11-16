@@ -296,3 +296,92 @@ describe("findEntityByIdentifier scope propagation", () => {
     });
   });
 });
+
+// A plain note saved under a name keeps that name only in its id: its file
+// states no title, so its title is its first line.
+describe("findEntityByIdentifier by the name an entry was saved under", () => {
+  const saved: BaseEntity = {
+    id: "dashboard-drop-off",
+    entityType: "note",
+    content: "Sam stopped opening the dashboard after a week.",
+    contentHash: "hash",
+    visibility: "restricted",
+    created: "2026-11-15T10:00:00.000Z",
+    updated: "2026-11-15T10:00:00.000Z",
+    metadata: { title: "Sam stopped opening the dashboard after a week." },
+  };
+
+  function holding(entity: BaseEntity): CapturedService {
+    const captured = createCapturedService();
+    return {
+      ...captured,
+      service: {
+        ...captured.service,
+        async getEntityRaw<T extends BaseEntity>(
+          request: GetEntityRawRequest,
+        ): Promise<T | null> {
+          captured.getEntityCalls.push(request);
+          // Read through a schema-free copy: the test holds one entry.
+          return request.id === entity.id &&
+            request.entityType === entity.entityType
+            ? structuredClone<T>(JSON.parse(JSON.stringify(entity)))
+            : null;
+        },
+      },
+    };
+  }
+
+  it("finds the entry whose id is the name's slug", async () => {
+    const captured = holding(saved);
+
+    const found = await findEntityByIdentifier(
+      captured.service,
+      { entityType: "note", identifier: "Dashboard drop-off" },
+      { visibilityScope: "restricted" },
+    );
+
+    expect(found?.id).toBe("dashboard-drop-off");
+  });
+
+  it("reads it at the caller's scope, after an entry titled so and before looser matches", async () => {
+    const captured = holding(saved);
+    const signal = new AbortController().signal;
+
+    await findEntityByIdentifier(
+      captured.service,
+      { entityType: "note", identifier: "Dashboard drop-off" },
+      { visibilityScope: "public", read: { signal, publishedOnly: true } },
+    );
+
+    expect(captured.getEntityCalls).toEqual([
+      {
+        entityType: "note",
+        id: "Dashboard drop-off",
+        visibilityScope: "public",
+        signal,
+        publishedOnly: true,
+      },
+      {
+        entityType: "note",
+        id: "dashboard-drop-off",
+        visibilityScope: "public",
+        signal,
+        publishedOnly: true,
+      },
+    ]);
+    // By slug and by title first; nothing looser once the id answered.
+    expect(captured.listEntitiesCalls).toHaveLength(2);
+  });
+
+  it("looks no entry up twice when the name is its own slug", async () => {
+    const captured = createCapturedService();
+
+    await findEntityByIdentifier(
+      captured.service,
+      { entityType: "note", identifier: "missing" },
+      { visibilityScope: "public" },
+    );
+
+    expect(captured.getEntityCalls).toHaveLength(1);
+  });
+});

@@ -18,12 +18,15 @@ import {
   type CreateInterceptor,
   type EntityRef,
 } from "./entity-create-pipeline";
+import { entityActionRefusal } from "./entity-action-policy";
 import type { SystemServices } from "./types";
 import {
   buildEntityMutationEventContext,
   createConfirmationGate,
   createSystemTool,
+  getEntityDisplayLabel,
   guardError,
+  guardRefusal,
   normalizeOptionalString,
   resolveCreateTarget,
   type FailedCreateTarget,
@@ -33,17 +36,53 @@ import { getErrorMessage } from "@brains/utils/error";
 
 type VisibilityScope = ReturnType<typeof permissionToVisibilityScope>;
 
-function buildGenerateConfirmation(input: CreateInput): {
+/**
+ * The entities a generation is written from, one type and one or more
+ * entries, as its confirmation names them. `usedUp` when the generated
+ * type's generation removes them once saved.
+ */
+interface WrittenFrom {
+  entityType: string;
+  entries: readonly { entityId: string; label: string }[];
+  usedUp: boolean;
+}
+
+/** Quoted names as a sentence lists them: "A", "B" and "C". */
+function quotedList(names: readonly string[]): string {
+  const quoted = names.map((name) => `"${name}"`);
+  return quoted.length <= 1
+    ? quoted.join("")
+    : `${quoted.slice(0, -1).join(", ")} and ${quoted.at(-1) ?? ""}`;
+}
+
+/** The names of the entries a generation is written from, as a sentence lists them. */
+function namesOf(writtenFrom: WrittenFrom): string {
+  return quotedList(writtenFrom.entries.map(({ label }) => label));
+}
+
+function buildGenerateConfirmation(
+  input: CreateInput,
+  writtenFrom: WrittenFrom | undefined,
+  statedPrompt: string | undefined,
+): {
   summary: string;
+  /** What is reported once the caller confirms, when the question would misread. */
+  completionSummary?: string;
   preview: string;
 } {
   const label = input.title ? ` "${input.title}"` : ` ${input.entityType}`;
   const sourceAttachment =
     input.from?.kind === "entity-attachment" ? input.from : undefined;
+  // What a generation removes is said where the caller agrees to it.
+  const removed = writtenFrom?.usedUp ? writtenFrom : undefined;
   const previewParts = [
     `Entity type: ${input.entityType}`,
     ...(input.title ? [`Title: ${input.title}`] : []),
-    ...(input.prompt ? [`Prompt: ${input.prompt}`] : []),
+    // A prompt the tool wrote for a caller who gave none is not theirs.
+    ...(statedPrompt ? [`Prompt: ${statedPrompt}`] : []),
+    ...(removed?.entries.map(
+      ({ entityId }) => `Removes: ${removed.entityType}/${entityId}`,
+    ) ?? []),
     ...(sourceAttachment
       ? [
           `Source attachment: ${sourceAttachment.sourceEntityType}/${sourceAttachment.sourceEntityId} (${sourceAttachment.attachmentType})`,
@@ -54,7 +93,109 @@ function buildGenerateConfirmation(input: CreateInput): {
       : []),
   ];
 
-  return { summary: `Generate${label}?`, preview: previewParts.join("\n") };
+  return {
+    summary: removed
+      ? `Generate${label} from ${namesOf(removed)}? ${
+          removed.entries.length === 1 ? "It" : "They"
+        } will be removed.`
+      : `Generate${label}?`,
+    // Confirming queues the generation; its sources go once it is saved.
+    ...(removed && {
+      completionSummary: `Generating${label} from ${namesOf(removed)}, which will be removed once it is saved.`,
+    }),
+    preview: previewParts.join("\n"),
+  };
+}
+
+/**
+ * The entries a generation is written from, each resolved as its caller may
+ * see it and named once, in the order given. One that is not there, or not
+ * visible, answers not found for the whole request.
+ */
+async function resolveGenerateSources(
+  services: SystemServices,
+  entityType: string,
+  ids: readonly string[],
+  visibilityScope: VisibilityScope,
+): Promise<Guarded<WrittenFrom["entries"]>> {
+  const resolved = await Promise.all(
+    ids.map((id) =>
+      resolveEntityOrError(
+        services.entityService,
+        { entityType, identifier: id },
+        { visibilityScope, logger: services.logger },
+      ),
+    ),
+  );
+  const missing = resolved.find((result) => !result.ok);
+  if (missing) return guardError(missing.error, "source-not-found");
+  const entries = resolved.flatMap((result) =>
+    result.ok
+      ? [
+          {
+            entityId: result.entity.id,
+            label: getEntityDisplayLabel(result.entity),
+          },
+        ]
+      : [],
+  );
+  return {
+    kind: "ok",
+    value: entries.filter(
+      ({ entityId }, index) =>
+        entries.findIndex((entry) => entry.entityId === entityId) === index,
+    ),
+  };
+}
+
+/** The source types a type's generation uses up, none for most types. */
+function usedUpBy(
+  services: SystemServices,
+  entityType: string,
+): readonly string[] {
+  return (
+    services.entityRegistry.getEntityTypeConfig(entityType).consumesSources ??
+    []
+  );
+}
+
+/**
+ * Why a generation may not be asked for, when its type uses up what it is
+ * written from: asked for with no source, with a source of a type it does
+ * not use up, or by a caller who may not delete the source. Checked before
+ * the source is read, so a caller who may not delete learns nothing else.
+ */
+function usedUpSourceRefusal(
+  services: SystemServices,
+  operation: GenerateToolInput["operation"],
+  toolContext: GenerateToolContext,
+): ToolResponse | undefined {
+  if (operation.kind !== "prompt" && operation.kind !== "prompt-from-source") {
+    return undefined;
+  }
+  const usedUp = usedUpBy(services, operation.entityType);
+  if (usedUp.length === 0) return undefined;
+  const writtenFrom = `A ${operation.entityType} is written from ${usedUp.join(" or ")} entries`;
+  if (operation.kind === "prompt") {
+    return {
+      success: false,
+      error: `${writtenFrom}. Use operation.kind prompt-from-source and name the source.`,
+      code: "unsupported-generation",
+    };
+  }
+  if (!usedUp.includes(operation.source.entityType)) {
+    return {
+      success: false,
+      error: `${writtenFrom}, and '${operation.source.entityType}' is not one of them.`,
+      code: "unsupported-generation",
+    };
+  }
+  return entityActionRefusal(
+    services,
+    operation.source.entityType,
+    "delete",
+    toolContext,
+  );
 }
 
 /**
@@ -135,11 +276,15 @@ async function executePromptGenerate(
   services: SystemServices,
   createInput: CreateInput,
   prompt: string,
+  sourceName: string | undefined,
   eventContext: GenerateEventContext,
   toolContext: GenerateToolContext,
 ): Promise<ToolResponse> {
   const { entityService, jobs } = services;
-  const proposedId = truncateSlug(slugify(createInput.title ?? prompt), 100);
+  const proposedId = truncateSlug(
+    slugify(generationIdSeed(createInput, sourceName, prompt)),
+    100,
+  );
   if (!proposedId) {
     return {
       success: false,
@@ -242,12 +387,33 @@ interface PreparedGenerate {
   eventContext: GenerateEventContext;
   /** The failed placeholder this generation replaces once confirmed. */
   replacesFailed?: FailedCreateTarget;
+  /** The entities a prompt generation is written from, when it names any. */
+  writtenFrom: WrittenFrom | undefined;
+  /**
+   * The id of the first entity it is written from, where that names the
+   * entity: its caller stated no prompt, or it uses its sources up. Unset
+   * where the prompt names it.
+   */
+  sourceName: string | undefined;
+}
+
+/**
+ * What a prompt generation's id is taken from: its title, else the entity
+ * it is written from where that names it, else its prompt.
+ */
+function generationIdSeed(
+  createInput: CreateInput,
+  sourceName: string | undefined,
+  prompt: string,
+): string {
+  return createInput.title ?? sourceName ?? prompt;
 }
 
 /** A generation as a create input, and the attachment it renders, if any. */
 interface ResolvedGenerateOperation {
   createInput: CreateInput;
   sourceAttachment: GenerateSourceAttachment | undefined;
+  writtenFrom: WrittenFrom | undefined;
 }
 
 /**
@@ -275,30 +441,52 @@ async function resolveGenerateOperation(
         "unsupported-generation",
       );
     }
-    const source =
+    const sources =
       operation.kind === "prompt-from-source"
-        ? await resolveEntityRef(
+        ? await resolveGenerateSources(
             services,
-            operation.source,
+            operation.source.entityType,
+            [
+              operation.source.entityId,
+              ...(operation.additionalSourceIds ?? []),
+            ],
             visibilityScope,
-            "source-not-found",
           )
         : undefined;
-    if (source?.kind === "error") return source;
+    if (sources?.kind === "error") return sources;
+    const writtenFrom: WrittenFrom | undefined =
+      operation.kind === "prompt-from-source" && sources
+        ? {
+            entityType: operation.source.entityType,
+            entries: sources.value,
+            usedUp: usedUpBy(services, operation.entityType).includes(
+              operation.source.entityType,
+            ),
+          }
+        : undefined;
+    const [first] = writtenFrom?.entries ?? [];
     return {
       kind: "ok",
       value: {
         createInput: {
           entityType: operation.entityType,
           ...(title ? { title } : {}),
-          prompt: operation.prompt,
-          ...(source && {
-            sourceEntityType: source.value.entityType,
-            sourceEntityId: source.value.entityId,
-            sourceEntityIds: [source.value.entityId],
-          }),
+          // A caller who gives no direction asks for the source to be
+          // written up.
+          prompt:
+            operation.prompt ??
+            `Write a ${operation.entityType} from ${writtenFrom ? namesOf(writtenFrom) : ""}.`,
+          ...(writtenFrom &&
+            first && {
+              sourceEntityType: writtenFrom.entityType,
+              sourceEntityId: first.entityId,
+              sourceEntityIds: writtenFrom.entries.map(
+                ({ entityId }) => entityId,
+              ),
+            }),
         },
         sourceAttachment: undefined,
+        writtenFrom,
       },
     };
   }
@@ -313,6 +501,7 @@ async function resolveGenerateOperation(
           prompt: operation.prompt,
         },
         sourceAttachment: undefined,
+        writtenFrom: undefined,
       },
     };
   }
@@ -336,6 +525,7 @@ async function resolveGenerateOperation(
           targetEntityId: target.value.entityId,
         },
         sourceAttachment: undefined,
+        writtenFrom: undefined,
       },
     };
   }
@@ -363,6 +553,7 @@ async function resolveGenerateOperation(
         }),
       },
       sourceAttachment,
+      writtenFrom: undefined,
     },
   };
 }
@@ -377,13 +568,25 @@ async function prepareGenerate(
     toolContext.userPermissionLevel,
   );
 
+  const usedUpRefusal = usedUpSourceRefusal(services, operation, toolContext);
+  if (usedUpRefusal) return guardRefusal(usedUpRefusal);
+
   const resolved = await resolveGenerateOperation(
     services,
     operation,
     visibilityScope,
   );
   if (resolved.kind === "error") return resolved;
-  const { createInput, sourceAttachment } = resolved.value;
+  const { createInput, sourceAttachment, writtenFrom } = resolved.value;
+  // Named after its first source when its caller stated no prompt, or when
+  // it uses its sources up, where a prompt directs the writing and names
+  // nothing: by that source's id, the name it was saved under, since a
+  // title its text supplies (a plain note's first line) makes a poor id.
+  const prompted = "prompt" in operation && operation.prompt !== undefined;
+  const sourceName =
+    prompted && !writtenFrom?.usedUp
+      ? undefined
+      : writtenFrom?.entries[0]?.entityId;
 
   const admitted = admitCreate(services, createInput.entityType, toolContext);
   if (admitted.kind === "error") return admitted;
@@ -413,7 +616,13 @@ async function prepareGenerate(
             entityType: createInput.entityType,
             candidateId: createInput.prompt
               ? truncateSlug(
-                  slugify(createInput.title ?? createInput.prompt),
+                  slugify(
+                    generationIdSeed(
+                      createInput,
+                      sourceName,
+                      createInput.prompt,
+                    ),
+                  ),
                   100,
                 )
               : createInput.title
@@ -438,6 +647,8 @@ async function prepareGenerate(
       interceptor,
       eventContext: buildEntityMutationEventContext(toolContext),
       ...(target?.value && { replacesFailed: target.value }),
+      writtenFrom,
+      sourceName,
     },
   };
 }
@@ -491,7 +702,13 @@ function freezeGenerationOperation(
         entityType: createInput.sourceEntityType ?? operation.source.entityType,
         entityId: createInput.sourceEntityId ?? operation.source.entityId,
       },
-      prompt: operation.prompt,
+      // The further sources as they were resolved, so the confirmed call
+      // names what the confirmation named.
+      ...((createInput.sourceEntityIds?.length ?? 0) > 1 && {
+        additionalSourceIds: createInput.sourceEntityIds?.slice(1),
+      }),
+      // Only a prompt the caller stated: the tool writes one for the rest.
+      ...(operation.prompt !== undefined && { prompt: operation.prompt }),
     };
   }
   return {
@@ -521,6 +738,8 @@ export function createEntityGenerateTool(services: SystemServices): Tool {
         interceptor,
         eventContext,
         replacesFailed,
+        writtenFrom,
+        sourceName,
       } = prep.value;
 
       return confirmOrRun({
@@ -529,7 +748,11 @@ export function createEntityGenerateTool(services: SystemServices): Tool {
         replacesFailed,
         confirmation: () => ({
           toolName: "system_generate",
-          ...buildGenerateConfirmation(createInput),
+          ...buildGenerateConfirmation(
+            createInput,
+            writtenFrom,
+            "prompt" in operation ? operation.prompt : undefined,
+          ),
           args: { operation },
         }),
         run: () =>
@@ -549,6 +772,7 @@ export function createEntityGenerateTool(services: SystemServices): Tool {
                 services,
                 generation,
                 generation.prompt,
+                sourceName,
                 eventContext,
                 toolContext,
               );

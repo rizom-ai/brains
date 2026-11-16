@@ -293,7 +293,7 @@ describe("brain config migration preview", () => {
         model: "rover",
         preset: "core",
         legacyMembers: legacyCoreMembers,
-        added: ["unified-inbox"],
+        added: ["refined-note", "unified-inbox"],
         removed: [
           "account",
           "admin",
@@ -334,6 +334,7 @@ describe("brain config migration preview", () => {
           "faq",
           // Forms in content come with every site.
           "form",
+          "refined-note",
           "studio",
           "unified-inbox",
         ],
@@ -353,6 +354,7 @@ describe("brain config migration preview", () => {
           "ask-content",
           "faq",
           ...(preset === "core" ? [] : ["form"]),
+          "refined-note",
           "studio",
           "unified-inbox",
         ],

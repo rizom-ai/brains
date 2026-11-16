@@ -335,22 +335,28 @@ const authServiceDefinition = defineServicePlugin({
     authAuthority.principals.replaceRuntimeState(principalState);
     authAuthority.bind(service);
 
-    runtime.answer(authPrincipalResolveContract, async ({ request }) => {
-      const principal = await service.resolveActorPrincipal(request.actor);
-      return {
-        principal: principal
-          ? {
-              userId: principal.userId,
-              personId: principal.personId,
-              ...(principal.canonicalId
-                ? { canonicalId: principal.canonicalId }
-                : {}),
-              displayName: principal.displayName,
-              permissionLevel: principal.permissionLevel,
-            }
-          : null,
-      };
-    });
+    // In the worker too: a job runs as its requester, whose account is
+    // resolved where the job runs.
+    runtime.answer(
+      authPrincipalResolveContract,
+      async ({ request }) => {
+        const principal = await service.resolveActorPrincipal(request.actor);
+        return {
+          principal: principal
+            ? {
+                userId: principal.userId,
+                personId: principal.personId,
+                ...(principal.canonicalId
+                  ? { canonicalId: principal.canonicalId }
+                  : {}),
+                displayName: principal.displayName,
+                permissionLevel: principal.permissionLevel,
+              }
+            : null,
+        };
+      },
+      { everyProcess: true },
+    );
     runtime.registered(() => service.startInvitationDeliveryRecovery());
     runtime.ready(() => requestSetupEmailIfNeeded(runtime, config, service));
 

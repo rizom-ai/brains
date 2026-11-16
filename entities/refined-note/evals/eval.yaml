@@ -1,0 +1,4 @@
+plugin: "@brains/refined-note"
+export: default
+pluginId: refined-note
+model: gpt-5.4-mini

@@ -8,6 +8,8 @@ export function consoleSurfaces(): string[] {
     "dashboard-knowledge",
     "dashboard-network",
     "studio-library",
+    "studio-refine",
+    "studio-refine-confirm",
     "studio-navigation",
     "studio-navigation-collapsed",
     "studio-overview",
@@ -109,6 +111,8 @@ export function viewportCapturesSurface(
 export interface SurfacePlan {
   /** Studio System surfaces swap the fixture type list to the system types. */
   reviewingSystem: boolean;
+  /** Refine surfaces offer Refine on the fixture collection. */
+  refining: boolean;
   systemCollection: boolean;
   systemType: string;
   isDashboard: boolean;
@@ -165,6 +169,7 @@ export function planSurface(
               : "";
   return {
     reviewingSystem,
+    refining: surface.startsWith("studio-refine"),
     systemCollection,
     systemType,
     isDashboard,

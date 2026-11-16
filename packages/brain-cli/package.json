@@ -91,6 +91,7 @@
     "@brains/profile": "workspace:*",
     "@brains/prompt": "workspace:*",
     "@brains/quiz": "workspace:*",
+    "@brains/refined-note": "workspace:*",
     "@brains/sdk": "workspace:*",
     "@brains/series": "workspace:*",
     "@brains/site-builder-plugin": "workspace:*",

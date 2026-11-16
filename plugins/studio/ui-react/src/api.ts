@@ -134,6 +134,19 @@ export interface EntitySummary {
   path?: EntityIdPath;
 }
 
+/** The entries picked to refine, a direction, and the approval when confirming. */
+export interface RefineInput {
+  entityType: string;
+  ids: string[];
+  direction?: string;
+  approval?: Record<string, unknown>;
+}
+
+/** The brain's confirmation to put to the person, or where the refined entry lands. */
+export type RefineAnswer =
+  | { status: "confirm"; summary: string; approval: Record<string, unknown> }
+  | { status: "queued"; entityType: string; entityId: string };
+
 export interface EntityFolder {
   path: EntityIdPath;
   name: string;
@@ -611,6 +624,19 @@ export class StudioApi {
 
   async fetchSyncStatus(): Promise<SyncStatus> {
     return this.requestJson<SyncStatus>(this.path("sync-status"));
+  }
+
+  /**
+   * Refine picked entries into one. Without an approval the brain answers
+   * with the confirmation to put to the person; with the approval it handed
+   * out, it queues the generation and says where the refined entry lands.
+   */
+  async refine(input: RefineInput): Promise<RefineAnswer> {
+    return this.requestJson<RefineAnswer>(this.path("refine"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    });
   }
 
   async deleteEntity(

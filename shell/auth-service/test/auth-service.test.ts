@@ -567,6 +567,28 @@ describe("AuthService", () => {
     }
   });
 
+  it("resolves an actor's account in the worker process, where jobs run as their requester", async () => {
+    const harness = new PluginTestHarness({ domain: "brain.example.com" });
+    const plugin = authServicePlugin({
+      storageDir: await tempStorageDir(),
+      issuer: "https://brain.example.com",
+    });
+
+    await plugin.register(harness.getMockShell(), { executionOnly: true });
+
+    const response = await harness
+      .getMockShell()
+      .getMessageBus()
+      .send({
+        type: authPrincipalResolveContract.name,
+        sender: "test",
+        payload: { actor: { kind: "user", userId: "usr_unknown" } },
+      });
+
+    // Answered: no such account. Unanswered, every such job is refused.
+    expect(response).toEqual({ success: true, data: { principal: null } });
+  });
+
   it("allows configuring the first-passkey setup token lifetime", async () => {
     const harness = new PluginTestHarness({ domain: "brain.example.com" });
 

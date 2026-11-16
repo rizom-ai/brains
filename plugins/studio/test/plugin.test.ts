@@ -94,6 +94,7 @@ describe("studio plugin", () => {
       "POST /studio/api/assist exact",
       "GET /studio/api/agents exact",
       "POST /studio/api/ask-agent exact",
+      "POST /studio/api/refine exact",
       "GET /studio/api/sync-status exact",
     ]);
   });

@@ -62,6 +62,7 @@ export async function startFixtureServer(): Promise<FixtureServer> {
   const board = await createBoardFixture(FIXED_NOW);
   const state: FixtureServerState = {
     reviewingSystem: false,
+    refining: false,
     lastSystemSave: undefined,
   };
   const routes = createFixtureRoutes({

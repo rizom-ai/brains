@@ -216,7 +216,17 @@ function declarations(
     // A definition may intentionally exclude every currently installed type.
     // Keep its source intact; it has no active schema/projection declaration.
     return types.length
-      ? [{ key, field: key, label: definition.label, types }]
+      ? [
+          {
+            key,
+            field: key,
+            label: definition.label,
+            types,
+            // Carried for readers that choose a value on a record's behalf.
+            multiple: definition.multiple,
+            ...(definition.values && { values: [...definition.values] }),
+          },
+        ]
       : [];
   });
 }

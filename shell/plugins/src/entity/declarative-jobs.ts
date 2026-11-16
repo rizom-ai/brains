@@ -56,6 +56,7 @@ import type {
   OwnedEntityWriter,
 } from "./entity-definition-contract";
 import { waitForEmbeddingsToDrain } from "./embedding-drain";
+import { groupingChoiceSchema, placeInGrouping } from "./grouping-placement";
 import {
   afterGenerationOf,
   isDeduplicated,
@@ -183,7 +184,10 @@ export interface EntityRunAuthority {
   /** Where a read of the type looks. */
   scope(entityType: string): ContentVisibility;
   /** Why the run may not take this action on the type, when it may not. */
-  refusal(entityType: string, action: "create" | "update"): string | undefined;
+  refusal(
+    entityType: string,
+    action: "create" | "update" | "delete",
+  ): string | undefined;
   /** Why the run may not write the type at this visibility, when it may not. */
   visibilityRefusal(
     entityType: string,
@@ -210,7 +214,7 @@ async function runAuthority(
       packageReadScope(call, ownsType(entityType), access),
     refusal: (
       entityType: string,
-      action: "create" | "update",
+      action: "create" | "update" | "delete",
     ): string | undefined => {
       if (ownedByPackage(entityType)) return undefined;
       try {
@@ -233,6 +237,9 @@ async function runAuthority(
         : `A ${access.permissionLevel} requester cannot write a ${visibility} ${entityType}`,
   });
 }
+
+/** How many of an open grouping's values in use the brain is offered. */
+const GROUPING_VALUES_OFFERED = 50;
 
 const generationSourceSchema: z.ZodObject<{
   entityType: z.ZodString;
@@ -820,6 +827,8 @@ interface GenerationRun {
   readonly input: unknown;
   readonly authority: EntityRunAuthority;
   readonly source: GenerationSource | undefined;
+  /** The used-up sources still there after the run, each with why. */
+  readonly kept: string[];
 }
 
 /**
@@ -903,10 +912,19 @@ export class DeclarativeGenerationHandler extends BaseGenerationJobHandler<unkno
       input: job.input,
       authority: await runAuthority(this.context, call, this.target.ownsType),
       source: job.source,
+      kept: [],
     };
-    return this.runs.run(run, () =>
+    const result = await this.runs.run(run, () =>
       super.process(data, jobId, progressReporter),
     );
+    // What it wrote stays; a source it should have used up and could not
+    // remove is an error that names it.
+    if (!result.success || run.kept.length === 0) return result;
+    return {
+      ...result,
+      success: false,
+      error: `Saved ${this.entityType}/${result.entityId}, but could not remove what it was written from: ${run.kept.join("; ")}`,
+    };
   }
 
   protected async generate(
@@ -973,9 +991,16 @@ export class DeclarativeGenerationHandler extends BaseGenerationJobHandler<unkno
     const metadata: Record<string, unknown> = { ...result.metadata };
     const title =
       typeof metadata["title"] === "string" ? metadata["title"] : undefined;
+    const placed = await this.placed(
+      result.content,
+      allocated?.content,
+      title,
+      input,
+      authority,
+    );
     return {
       id: entityId ?? result.id ?? slugify(title ?? this.entityType),
-      content: result.content,
+      content: placed,
       metadata,
       ...definedFields({
         title,
@@ -1004,6 +1029,7 @@ export class DeclarativeGenerationHandler extends BaseGenerationJobHandler<unkno
         this.currentRun().authority,
       );
     }
+    await this.removeUsedUpSources();
     await this.runStep({
       written: { entityId, ...definedFields({ title: generated.title }) },
     });
@@ -1076,6 +1102,117 @@ export class DeclarativeGenerationHandler extends BaseGenerationJobHandler<unkno
       (held, entry) => (entry ? morePrivate(held, entry.visibility) : held),
       undefined,
     );
+  }
+
+  /**
+   * What a generation wrote, placed in a grouping when its type must belong
+   * somewhere and nothing placed it yet: the brain chooses the grouping and
+   * the value. An open grouping offers the values it holds that the run can
+   * see. A choice the groupings refuse fails the generation, so nothing is
+   * saved unplaced.
+   */
+  private async placed(
+    content: string,
+    heldContent: string | undefined,
+    title: string | undefined,
+    input: unknown,
+    authority: EntityRunAuthority,
+  ): Promise<string> {
+    const { entityService, entities, ai } = this.context;
+    if (
+      entityService.getEntityTypeConfig(this.entityType)
+        .requiresGroupingMembership !== true
+    ) {
+      return content;
+    }
+    const direction = isPlainRecord(input) ? input["prompt"] : undefined;
+    const placement = await placeInGrouping({
+      entityType: this.entityType,
+      content,
+      heldContent,
+      title,
+      direction: typeof direction === "string" ? direction : undefined,
+      groupings: entities.getGroupings(),
+      valuesInUse: async (grouping) => {
+        // Each type at the visibility the run reads it at, so a value only
+        // a more private entry holds is never offered.
+        const catalogs = await Promise.all(
+          grouping.types.map((entityType) =>
+            entityService.queryGroupingCatalog({
+              grouping: grouping.key,
+              entityTypes: [entityType],
+              visibilityScope: authority.scope(entityType),
+              limit: GROUPING_VALUES_OFFERED,
+              offset: 0,
+            }),
+          ),
+        );
+        const counts = catalogs
+          .flatMap(({ values }) => values)
+          .reduce(
+            (held, { value, count }) =>
+              held.set(value, (held.get(value) ?? 0) + count),
+            new Map<string, number>(),
+          );
+        return [...counts]
+          .sort(([, a], [, b]) => b - a)
+          .slice(0, GROUPING_VALUES_OFFERED)
+          .map(([value]) => value);
+      },
+      choose: async (prompt) =>
+        (await ai.generateObject(prompt, groupingChoiceSchema)).object,
+    });
+    if ("refuse" in placement) this.failEarly(placement.refuse);
+    return placement.content;
+  }
+
+  /**
+   * Delete the sources this type's generation uses up, now that what it
+   * wrote is saved: as the run, held to the source type's delete policy,
+   * and only those it can see. One it may not or could not delete is kept
+   * and recorded on the run with why, so the result names it. One that is
+   * already gone is removed: a job killed after removing it runs this
+   * again.
+   */
+  private async removeUsedUpSources(): Promise<void> {
+    const { source, authority, kept } = this.currentRun();
+    const usedUp =
+      this.context.entityService.getEntityTypeConfig(this.entityType)
+        .consumesSources ?? [];
+    if (!source || !usedUp.includes(source.entityType)) return;
+    const refused = authority.refusal(source.entityType, "delete");
+    const outcomes = await Promise.all(
+      source.ids.map(async (id): Promise<string | undefined> => {
+        const entry = `${source.entityType}/${id}`;
+        try {
+          const held = await this.context.entityService.getEntity({
+            entityType: source.entityType,
+            id,
+            visibilityScope: internalFullScope(
+              "a used-up source that is already gone needs no removal; only its presence and visibility are read",
+            ),
+          });
+          if (!held) return undefined;
+          if (refused) return `${entry} (${refused})`;
+          if (
+            !isVisibleWithinScope(
+              held.visibility,
+              authority.scope(source.entityType),
+            )
+          ) {
+            return `${entry} (not visible to its requester)`;
+          }
+          await this.context.entityService.deleteEntity({
+            entityType: source.entityType,
+            id,
+          });
+          return undefined;
+        } catch (error) {
+          return `${entry} (${getErrorMessage(error)})`;
+        }
+      }),
+    );
+    kept.push(...outcomes.filter((outcome) => outcome !== undefined));
   }
 
   /** The generation `process` is running; the base handler calls back inside it. */
