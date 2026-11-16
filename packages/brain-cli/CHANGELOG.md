@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.722
+
+### Patch Changes
+
+- [#977](https://github.com/rizom-ai/brains/pull/977) [`c2f70e5`](https://github.com/rizom-ai/brains/commit/c2f70e5ce923eb40f5dd5a7e1fdcf8668b855d5c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Frontmatter is read the same everywhere: a file whose frontmatter closes with `---` followed by spaces or tabs, or that has an empty frontmatter block, now publishes and queues with its status and publish date, finds its cover and OG images, and decodes as an image file. Before, these steps treated such a file as having no frontmatter.
+
 ## 0.2.0-alpha.721
 
 ### Patch Changes
