@@ -575,6 +575,54 @@ describe("Shell shutdown", () => {
     expect(shell.isInitialized()).toBe(false);
   });
 
+  it("releases the lease when shutdown arrives during a normal boot", async () => {
+    await runMigrations(testDir.dir);
+    const shell = Shell.createFresh(createTestShellConfig(testDir.dir), deps);
+    const leaseTaken = deferred();
+    const releaseBoot = deferred();
+    const entityService = shell.getEntityService();
+    const initializeEntityService =
+      entityService.initialize.bind(entityService);
+    entityService.initialize = async (): Promise<void> => {
+      await initializeEntityService();
+      leaseTaken.resolve();
+      await releaseBoot.promise;
+    };
+    const reader = openOfflineEntityDatabase(`${testDir.dir}/test.db`).client;
+    try {
+      const booting = shell.initialize();
+      await leaseTaken.promise;
+      expect(await readDatabaseLeases(reader)).toHaveLength(1);
+
+      const shuttingDown = shell.shutdown();
+      releaseBoot.resolve();
+      await Promise.all([booting, shuttingDown]);
+
+      expect(await readDatabaseLeases(reader)).toEqual([]);
+      expect(shell.isInitialized()).toBe(false);
+    } finally {
+      reader.close();
+    }
+  });
+
+  for (const processRole of ["web", "worker"] as const) {
+    it(`shuts down a ${processRole} shell that never booted`, async () => {
+      await runMigrations(testDir.dir);
+      const config = createTestShellConfig(testDir.dir, {
+        http: { enabled: true, hostname: "127.0.0.1", port: freePort() },
+      });
+      const shell = Shell.createFresh(config, deps, { processRole });
+
+      expect(await shell.shutdown()).toBeUndefined();
+      const refused = await shell.initialize().then(
+        () => undefined,
+        (error: unknown) => error,
+      );
+      expect(refused).toBeInstanceOf(Error);
+      expect(String(refused)).toContain("closing shell");
+    });
+  }
+
   it("should allow a second shell to boot cleanly after first is shut down", async () => {
     await runMigrations(testDir.dir);
     const config1 = createTestShellConfig(testDir.dir);
