@@ -21,7 +21,7 @@ export type FaqReconcileJobData = z.output<typeof faqReconcileJobSchema>;
 
 export type FaqReconcileResult =
   | { outcome: "folded"; into: string }
-  | { outcome: "kept" | "unique" | "published" | "gone" | "changed" };
+  | { outcome: "unique" | "published" | "gone" | "changed" };
 
 export interface FaqReconcileDeps extends FaqStoreDeps {
   entityService: FaqStoreDeps["entityService"] &
@@ -41,7 +41,8 @@ function foldsInto(faq: FaqEntity, other: FaqEntity): boolean {
  * Two captures of one question moments apart both create a FAQ, because
  * neither could see the other; this folds the duplicate draft into the FAQ
  * that stays. A draft folds into a published FAQ; of two drafts the newer
- * folds, so both pair members' jobs agree. A published FAQ never folds.
+ * folds. Either member's job folds the pair the same way, so one "same"
+ * verdict is enough. A published FAQ never folds.
  */
 export function faqReconcileJob(deps: FaqReconcileDeps): FirstPartyJobHandler {
   return firstPartyJobHandler<FaqReconcileJobData>({
@@ -78,7 +79,6 @@ export async function reconcileFaq(
     signal?.throwIfAborted();
     if (!same) return { outcome: "unique" };
     const question = readFaq(same).frontmatter.question;
-    const { frontmatter, answer, alternatives } = readFaq(faq);
     const attempt = async (
       attemptsLeft: number,
     ): Promise<FaqReconcileResult> => {
@@ -97,16 +97,23 @@ export async function reconcileFaq(
         readFaq(destination).frontmatter.question !== question
       )
         return { outcome: "changed" };
-      if (!foldsInto(faq, destination)) return { outcome: "kept" };
+      // Either member's job folds the pair; this job's FAQ stays at the
+      // revision it read, whichever way round it folds.
+      const mine = { faq, revision: source.revision };
+      const theirs = { faq: destination, revision: target.revision };
+      const [away, stays] = foldsInto(faq, destination)
+        ? [mine, theirs]
+        : [theirs, mine];
+      const { frontmatter, answer, alternatives } = readFaq(away.faq);
       try {
         await deps.entityService.foldEntity({
           source: {
             entityType: "faq",
-            id: faq.id,
-            expectedRevision: source.revision,
+            id: away.faq.id,
+            expectedRevision: away.revision,
           },
-          targetRevision: target.revision,
-          entity: prepareFaqMerge(destination, {
+          targetRevision: stays.revision,
+          entity: prepareFaqMerge(stays.faq, {
             asks: frontmatter.asked,
             alternatives: [{ answer }, ...alternatives],
           }),
@@ -127,7 +134,7 @@ export async function reconcileFaq(
           });
         return attempt(attemptsLeft - 1);
       }
-      return { outcome: "folded", into: destination.id };
+      return { outcome: "folded", into: stays.faq.id };
     };
     return attempt(3);
   }

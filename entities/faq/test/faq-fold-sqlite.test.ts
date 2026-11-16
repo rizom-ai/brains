@@ -22,9 +22,14 @@ describe("FAQ reconciliation with atomic SQLite folding", () => {
     await directory.cleanup();
   });
 
-  it.each(["source", "target"])(
-    "preserves both when %s is published concurrently",
-    async (id) => {
+  it.each([
+    ["source", "source"],
+    ["target", "source"],
+    ["source", "target"],
+    ["target", "target"],
+  ] as const)(
+    "preserves both when %s is published during %s's job",
+    async (id, job) => {
       const fold = service.foldEntity.bind(service);
       spyOn(service, "foldEntity").mockImplementationOnce(async (request) => {
         const current = await readFold(service, id);
@@ -41,7 +46,9 @@ describe("FAQ reconciliation with atomic SQLite folding", () => {
         });
         return fold(request);
       });
-      expect(await reconcileFold(service)).toEqual({ outcome: "changed" });
+      expect(await reconcileFold(service, job)).toEqual({
+        outcome: "changed",
+      });
       expect((await readFold(service, "source"))?.metadata.asked).toBe(2);
       expect((await readFold(service, "target"))?.metadata.asked).toBe(3);
       const published = await service.getEntity({
@@ -55,6 +62,50 @@ describe("FAQ reconciliation with atomic SQLite folding", () => {
         expect(published?.content).not.toContain("Answer source");
     },
   );
+
+  it("folds once when both members' jobs fold the pair at once", async () => {
+    const fold = service.foldEntity.bind(service);
+    // Both jobs reach the fold before either commits.
+    const bothFolding = Promise.withResolvers<void>();
+    let folding = 0;
+    spyOn(service, "foldEntity").mockImplementation(async (request) => {
+      folding += 1;
+      if (folding === 2) bothFolding.resolve();
+      await bothFolding.promise;
+      return fold(request);
+    });
+    const jobs = (["source", "target"] as const).map((id) =>
+      reconcileFold(service, id).finally(() => bothFolding.resolve()),
+    );
+
+    const outcomes = await Promise.all(jobs);
+
+    expect(folding).toBe(2);
+    const folded = outcomes.filter((result) => result.outcome === "folded");
+    expect(folded).toEqual([{ outcome: "folded", into: "target" }]);
+    const loser = outcomes.find((result) => result.outcome !== "folded");
+    expect(["changed", "gone"]).toContain(loser?.outcome ?? "");
+    expect(await readFold(service, "source")).toBeNull();
+    const target = await readFold(service, "target");
+    expect(target?.metadata.asked).toBe(5);
+    expect(readFaq(target ?? { content: "" })).toMatchObject({
+      answer: "Answer target",
+      alternatives: [{ answer: "Answer source" }],
+    });
+    expect(
+      await service.listEntities({
+        entityType: "faq",
+        options: { filter: { visibilityScope: "restricted" } },
+      }),
+    ).toHaveLength(1);
+    // Neither job recreates anything when it runs again.
+    expect(await reconcileFold(service, "source")).toEqual({ outcome: "gone" });
+    expect(await reconcileFold(service, "target")).toEqual({
+      outcome: "unique",
+    });
+    expect(await readFold(service, "source")).toBeNull();
+    expect((await readFold(service, "target"))?.metadata.asked).toBe(5);
+  });
 
   it("rechecks the matched question when obtaining the target write snapshot", async () => {
     const getSnapshot = service.getEntityWriteSnapshot.bind(service);
