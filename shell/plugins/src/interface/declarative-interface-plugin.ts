@@ -200,11 +200,16 @@ class InterfaceDeclaration<
         }
         context.daemons.register(
           daemon.id,
-          createAccountDaemon(daemon, registration, context.accountSettings),
+          createAccountDaemon(daemon, registration, context.accountSettings, {
+            logger: this.owner.logger(),
+          }),
         );
         continue;
       }
-      context.daemons.register(daemon.id, createDeclarativeDaemon(daemon));
+      context.daemons.register(
+        daemon.id,
+        createDeclarativeDaemon(daemon, { logger: this.owner.logger() }),
+      );
     }
 
     const slotContext = (): FirstPartySlotContext<unknown, unknown> =>

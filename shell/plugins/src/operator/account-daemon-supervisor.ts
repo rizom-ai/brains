@@ -1,6 +1,13 @@
-import { getErrorMessage } from "@brains/utils/error";
+import { toError } from "@brains/utils/error";
 import type { Daemon, DaemonHealth } from "../manager/daemon-types";
 import type { AccountInterfaceDaemonDefinition } from "../interface/interface-definition-contract";
+import {
+  createRestartBackoff,
+  daemonTimers,
+  withDaemonTimeout,
+  type DaemonSupervision,
+  type RestartBackoff,
+} from "../interface/daemon-restart";
 import type {
   AccountSettingsRegistration,
   AccountSettingsRegistry,
@@ -12,31 +19,34 @@ const ACCOUNT_TASK_START_TIMEOUT_MS = 30_000;
 const ACCOUNT_TASK_STOP_TIMEOUT_MS = 10_000;
 
 interface AccountTask {
-  readonly controller: AbortController;
+  readonly account: ConfiguredAccountSettings<AnyAccountSettingsDefinition>;
+  readonly backoff: RestartBackoff;
+  /** The current run's controller and its run, settled whichever way it ends. */
+  controller: AbortController;
   run: Promise<void>;
-  readonly revision: number;
   status: "starting" | "ready" | "warning" | "error";
   message: string;
+  /** Whether a run reported ready for this revision, which makes failures restart. */
+  everReady: boolean;
+  /** Set once the task is stopped; nothing restarts it after. */
+  stopped: boolean;
+  cancelRestart: (() => void) | undefined;
 }
 
-function withTimeout<T>(
-  promise: Promise<T>,
-  timeoutMs: number,
-  message: string,
-): Promise<T> {
-  let timeout: ReturnType<typeof setTimeout> | undefined;
-  const expired = new Promise<never>((_resolve, reject) => {
-    timeout = setTimeout(() => reject(new Error(message)), timeoutMs);
-  });
-  return Promise.race([promise, expired]).finally(() => clearTimeout(timeout));
-}
-
-/** Owns one account task per stored principal and reconciles on settings change. */
+/**
+ * Owns one account task per stored principal and reconciles on settings
+ * change. Once a task has been ready, a failure is logged and the task
+ * restarted with backoff until it is stopped; a task that fails before it
+ * was ever ready stays failed until its settings change.
+ */
 export function createAccountDaemon(
   definition: AccountInterfaceDaemonDefinition,
   registration: AccountSettingsRegistration,
   registry: AccountSettingsRegistry,
+  supervision: DaemonSupervision,
 ): Daemon {
+  const { logger } = supervision;
+  const timers = daemonTimers(supervision);
   let active = false;
   let lifecycleRevision = 0;
   let lastReconcileError: string | undefined;
@@ -69,7 +79,7 @@ export function createAccountDaemon(
     );
 
     for (const [actorId, task] of tasks) {
-      if (desired.get(actorId) !== task.revision) {
+      if (desired.get(actorId) !== task.account.revision) {
         await stopTask(actorId, task);
       }
     }
@@ -82,69 +92,105 @@ export function createAccountDaemon(
   const startTask = (
     account: ConfiguredAccountSettings<AnyAccountSettingsDefinition>,
   ): void => {
-    const controller = new AbortController();
-    let resolveReady: (() => void) | undefined;
-    let rejectReady: ((error: Error) => void) | undefined;
-    const readiness = new Promise<void>((resolve, reject) => {
-      resolveReady = resolve;
-      rejectReady = reject;
-    });
     const task: AccountTask = {
-      controller,
-      revision: account.revision,
+      account,
+      backoff: createRestartBackoff(supervision.random),
+      controller: new AbortController(),
+      run: Promise.resolve(),
       status: "starting",
       message: "Connecting",
-      run: Promise.resolve(),
+      everReady: false,
+      stopped: false,
+      cancelRestart: undefined,
     };
-    const run = Promise.resolve()
+    tasks.set(account.id, task);
+    runTask(task);
+  };
+
+  const failTask = (task: AccountTask, failure: Error): void => {
+    const context = {
+      daemon: definition.id,
+      account: task.account.id,
+      error: failure.message,
+    };
+    if (!task.everReady) {
+      logger.error(
+        `Account-bound daemon "${definition.id}" task failed before it was ready`,
+        context,
+      );
+      return;
+    }
+    const delayMs = task.backoff.next();
+    logger.error(
+      `Account-bound daemon "${definition.id}" task failed; restarting in ${delayMs}ms`,
+      { ...context, restartInMs: delayMs },
+    );
+    task.cancelRestart = timers.schedule(() => {
+      task.cancelRestart = undefined;
+      if (!task.stopped) runTask(task);
+    }, delayMs);
+  };
+
+  const runTask = (task: AccountTask): void => {
+    const controller = new AbortController();
+    task.controller = controller;
+    let timedOut: Error | undefined;
+    const cancelReadinessTimeout = timers.schedule(() => {
+      timedOut = new Error(
+        `Account-bound daemon "${definition.id}" did not report readiness within ${ACCOUNT_TASK_START_TIMEOUT_MS}ms`,
+      );
+      task.status = "error";
+      task.message = "Account task did not become ready";
+      controller.abort();
+    }, ACCOUNT_TASK_START_TIMEOUT_MS);
+
+    const settled = (error: Error | undefined): void => {
+      cancelReadinessTimeout();
+      if (task.stopped) return;
+      const failure =
+        timedOut ??
+        error ??
+        new Error(
+          `Account-bound daemon "${definition.id}" stopped before it was aborted`,
+        );
+      // Whatever the failed run left listening on its signal lets go now.
+      controller.abort();
+      task.status = "error";
+      task.message = timedOut
+        ? "Account task did not become ready"
+        : "Account task failed";
+      failTask(task, failure);
+    };
+
+    task.run = Promise.resolve()
       .then(() =>
         definition.run({
           account: Object.freeze({
-            id: account.id,
-            settings: account.settings,
+            id: task.account.id,
+            settings: task.account.settings,
           }),
           signal: controller.signal,
           health: {
             ready(): void {
+              if (controller.signal.aborted) return;
+              cancelReadinessTimeout();
+              task.everReady = true;
+              task.backoff.reset();
               task.status = "ready";
               task.message = "Ready";
-              resolveReady?.();
             },
             warning(message): void {
+              if (controller.signal.aborted) return;
               task.status = "warning";
               task.message = message;
             },
           },
         }),
       )
-      .then(() => {
-        if (!controller.signal.aborted) {
-          throw new Error(
-            `Account-bound daemon "${definition.id}" stopped before it was aborted`,
-          );
-        }
-      })
-      .catch((error: unknown) => {
-        if (controller.signal.aborted) return;
-        const failure =
-          error instanceof Error ? error : new Error(getErrorMessage(error));
-        task.status = "error";
-        task.message = "Account task failed";
-        rejectReady?.(failure);
-      });
-    task.run = run;
-    tasks.set(account.id, task);
-
-    void withTimeout(
-      readiness,
-      ACCOUNT_TASK_START_TIMEOUT_MS,
-      `Account-bound daemon "${definition.id}" did not report readiness within ${ACCOUNT_TASK_START_TIMEOUT_MS}ms`,
-    ).catch(() => {
-      if (controller.signal.aborted) return;
-      task.status = "error";
-      task.message = "Account task did not become ready";
-      controller.abort();
-    });
+      .then(
+        () => settled(undefined),
+        (error: unknown) => settled(toError(error)),
+      );
   };
 
   const stopTask = async (
@@ -153,9 +199,13 @@ export function createAccountDaemon(
   ): Promise<void> => {
     if (tasks.get(actorId) !== task) return;
     tasks.delete(actorId);
+    task.stopped = true;
+    task.cancelRestart?.();
+    task.cancelRestart = undefined;
     task.controller.abort();
-    await withTimeout(
+    await withDaemonTimeout(
       task.run,
+      timers,
       ACCOUNT_TASK_STOP_TIMEOUT_MS,
       `Account-bound daemon "${definition.id}" task did not stop within ${ACCOUNT_TASK_STOP_TIMEOUT_MS}ms`,
     ).catch(() => undefined);
