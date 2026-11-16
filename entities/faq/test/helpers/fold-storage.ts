@@ -58,16 +58,19 @@ export async function seedFold(service: EntityService): Promise<void> {
   }
 }
 
+/** The reconcile job of one member of the seeded pair; the other is its match. */
 export function reconcileFold(
   service: EntityService,
+  entityId: "source" | "target" = "source",
 ): ReturnType<typeof reconcileFaq> {
+  const other = entityId === "source" ? "target" : "source";
   return reconcileFaq(
     {
       entityService: service,
       sameQuestionDistance: 0.2,
       searchWithDistances: async (): Promise<
         { entityId: string; entityType: string; distance: number }[]
-      > => [{ entityId: "target", entityType: "faq", distance: 0.01 }],
+      > => [{ entityId: other, entityType: "faq", distance: 0.01 }],
       ai: {
         generateObject: async <T>(
           _prompt: string,
@@ -77,7 +80,7 @@ export function reconcileFold(
         }),
       },
     },
-    { entityId: "source" },
+    { entityId },
   );
 }
 
