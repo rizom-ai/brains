@@ -255,11 +255,29 @@ function runtimeOutput(runtime: StartedCommand, apiKey: string): string {
   return redact(combinedOutput(runtime.getOutput()), apiKey);
 }
 
+/** What the brain sent over the transport, so a timeout shows its replies. */
+function transportRecord(transport: LiveTransport, apiKey: string): string {
+  const listed = (texts: readonly string[]): string =>
+    texts.length === 0
+      ? "(none)"
+      : texts.map((text, index) => `${index + 1}. ${text}`).join("\n");
+  return redact(
+    [
+      "--- delivered messages ---",
+      listed(transport.deliveries()),
+      "--- edited messages ---",
+      listed(transport.edits()),
+    ].join("\n"),
+    apiKey,
+  );
+}
+
 async function waitForEvidence(
   description: string,
   predicate: () => boolean | Promise<boolean>,
   runtime: StartedCommand,
   apiKey: string,
+  transport: LiveTransport,
 ): Promise<void> {
   try {
     await waitUntil(predicate, description, {
@@ -269,7 +287,7 @@ async function waitForEvidence(
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     throw new Error(
-      `${message}\n--- redacted runtime output ---\n${runtimeOutput(runtime, apiKey)}`,
+      `${message}\n${transportRecord(transport, apiKey)}\n--- redacted runtime output ---\n${runtimeOutput(runtime, apiKey)}`,
       { cause: error },
     );
   }
@@ -457,6 +475,21 @@ it("proves provider-backed public authoring behavior against one exact alpha", a
       },
       activeRuntime,
       apiKey,
+      transport,
+    );
+    // Chat answers only once the semantic index is ready, and the bookmarks
+    // created above are still being embedded: a probe sent earlier gets the
+    // readiness reply instead of an answer from the model. The brain runs at
+    // debug level, where the bootloader logs this line, degraded or not.
+    await waitForEvidence(
+      "the semantic index to become ready",
+      () =>
+        combinedOutput(activeRuntime.getOutput()).includes(
+          "Semantic index ready",
+        ),
+      activeRuntime,
+      apiKey,
+      transport,
     );
     await waitForEvidence(
       "the public message transport to authenticate",
@@ -477,6 +510,7 @@ it("proves provider-backed public authoring behavior against one exact alpha", a
       },
       activeRuntime,
       apiKey,
+      transport,
     );
     await waitForEvidence(
       "the provider-backed agent response",
@@ -484,16 +518,22 @@ it("proves provider-backed public authoring behavior against one exact alpha", a
         transport.deliveries().some((text) => text.includes("LIVE-AGENT-OK")),
       activeRuntime,
       apiKey,
+      transport,
     );
 
     await waitForEvidence(
       "all queued entity embeddings to complete",
-      () => {
-        const output = combinedOutput(activeRuntime.getOutput());
-        return output.split("Embedding job completed successfully").length >= 4;
-      },
+      // The worker's record of each finished embedding job; the handler's own
+      // completion line does not reach the runtime output.
+      () =>
+        (
+          combinedOutput(activeRuntime.getOutput()).match(
+            /Job completed successfully \{\s+jobId: "[^"]*",\s+type: "shell:embedding"/g,
+          ) ?? []
+        ).length >= 3,
       activeRuntime,
       apiKey,
+      transport,
     );
     const semanticSearch = await invokeTool(
       consumerDirectory,
@@ -528,6 +568,7 @@ it("proves provider-backed public authoring behavior against one exact alpha", a
         transport.attachmentFileReads() > 0,
       activeRuntime,
       apiKey,
+      transport,
     );
     await waitForEvidence(
       "the attachment-backed agent response",
@@ -538,6 +579,7 @@ it("proves provider-backed public authoring behavior against one exact alpha", a
           .some((text) => text.includes(attachmentMarker)),
       activeRuntime,
       apiKey,
+      transport,
     );
 
     const confirmationDeliveryCount = transport.deliveries().length;
@@ -554,14 +596,18 @@ it("proves provider-backed public authoring behavior against one exact alpha", a
       () => transport.deliveries().length > confirmationDeliveryCount,
       activeRuntime,
       apiKey,
+      transport,
     );
+    // While an action waits for approval, a message interface's turn confirms
+    // it only on a short reply such as "yes"; any other text declines it and
+    // goes to the model, which proposes it again.
     transport.sendInbound({
       id: "live-digest-confirmation",
       roomId: "evidence-room",
       threadId: "evidence-thread",
       userId: "live-reader",
       userName: "Live Reader",
-      text: "Yes, confirm that exact pending operation.",
+      text: "yes",
     });
     await waitForEvidence(
       "durable job progress to reach the editable transport message",
@@ -574,6 +620,7 @@ it("proves provider-backed public authoring behavior against one exact alpha", a
           ),
       activeRuntime,
       apiKey,
+      transport,
     );
 
     const continuityDeliveryCount = transport.deliveries().length;
@@ -594,6 +641,7 @@ it("proves provider-backed public authoring behavior against one exact alpha", a
           .some((text) => text.includes("Live Digest")),
       activeRuntime,
       apiKey,
+      transport,
     );
 
     await stopProcess(activeRuntime.process, 10_000);
