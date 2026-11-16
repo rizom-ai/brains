@@ -86,6 +86,7 @@
 + studio|handler|POST|/studio/api/assist|exact|true
 + studio|handler|POST|/studio/api/destination|exact|true
 + studio|handler|POST|/studio/api/entities|exact|true
++ studio|handler|POST|/studio/api/refine|exact|true
 + studio|handler|POST|/studio/api/upload|exact|true
 + studio|handler|POST|/studio/api/workspace|exact|true
 + studio|handler|PUT|/studio/api/entities|exact|true

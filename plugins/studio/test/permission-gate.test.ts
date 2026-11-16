@@ -184,6 +184,12 @@ function apiRouteRequests(): RouteRequest[] {
         }),
     },
     {
+      routePath: "/studio/api/refine",
+      method: "POST",
+      request: (cookie) =>
+        request("/studio/api/refine", { cookie, method: "POST", body: {} }),
+    },
+    {
       routePath: "/studio/api/sync-status",
       request: (cookie) => request("/studio/api/sync-status", { cookie }),
     },
