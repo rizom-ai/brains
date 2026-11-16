@@ -234,32 +234,40 @@ class DeclarativeMessageInterfacePlugin<
         }
         context.daemons.register(
           daemon.id,
-          createAccountDaemon(daemon, registration, context.accountSettings),
+          createAccountDaemon(daemon, registration, context.accountSettings, {
+            logger: this.logger,
+          }),
         );
         continue;
       }
-      context.daemons.register(daemon.id, createDeclarativeDaemon(daemon));
+      context.daemons.register(
+        daemon.id,
+        createDeclarativeDaemon(daemon, { logger: this.logger }),
+      );
     }
 
     if (this.definition.listen) {
       context.daemons.register(
         "listener",
-        createDeclarativeDaemon({
-          kind: "rizom-interface-daemon",
-          id: "listener",
-          required: false,
-          run: ({ signal, health }) =>
-            this.definition.listen?.({
-              config: this.config,
-              state: this.requireState(),
-              signal,
-              health,
-              messages: {
-                receiveAuthenticated: (input) =>
-                  this.receiveAuthenticated(input, signal),
-              },
-            }) ?? Promise.resolve(),
-        }),
+        createDeclarativeDaemon(
+          {
+            kind: "rizom-interface-daemon",
+            id: "listener",
+            required: false,
+            run: ({ signal, health }) =>
+              this.definition.listen?.({
+                config: this.config,
+                state: this.requireState(),
+                signal,
+                health,
+                messages: {
+                  receiveAuthenticated: (input) =>
+                    this.receiveAuthenticated(input, signal),
+                },
+              }) ?? Promise.resolve(),
+          },
+          { logger: this.logger },
+        ),
       );
     }
   }
