@@ -25,6 +25,7 @@ function machineContext(
     conversationId: "conv-a",
     message: "delete my note",
     interfaceType: "matrix",
+    interfaceId: undefined,
     channelId: "channel-1",
     channelName: "General",
     userPermissionLevel: "admin",
@@ -139,6 +140,7 @@ describe("resolveConfirmationContext", () => {
 
     expect(resolved).toEqual({
       interfaceType: "discord",
+      interfaceId: undefined,
       channelId: "channel-9",
       channelName: "Ops",
       userPermissionLevel: "trusted",
@@ -172,6 +174,7 @@ describe("resolveConfirmationContext", () => {
 
     expect(resolved).toEqual({
       interfaceType: "matrix",
+      interfaceId: undefined,
       channelId: "channel-2",
       channelName: "Direct",
       userPermissionLevel: "admin",

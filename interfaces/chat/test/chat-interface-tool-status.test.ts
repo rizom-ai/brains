@@ -553,6 +553,40 @@ describe("ChatInterface tool status and progress", () => {
     );
   });
 
+  it("leaves a Discord thread's tracked response alone when another installed interface started the job", async () => {
+    suite.agentService.chat.mockResolvedValueOnce({
+      text: "Queued build.",
+      usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
+      toolResults: [{ toolName: "site_build", jobId: "job-123" }],
+    });
+    const sentMessage = createSentMessage();
+    const thread = createThread({
+      post: mock((_message: MockPostMessage) => Promise.resolve(sentMessage)),
+    });
+    const plugin = createPlugin();
+    await suite.harness.installPlugin(plugin);
+    const chat = MockChatSdk.instances[0];
+
+    await chat?.handlers.mentions[0]?.(thread, createMessage());
+    // An author-defined interface whose channel type is also "discord".
+    await suite.harness.sendMessage("job-progress", {
+      id: "job-123",
+      type: "job",
+      status: "completed",
+      message: "Done",
+      metadata: {
+        rootJobId: "job-123",
+        operationType: "content_operations",
+        operationTarget: "Site",
+        interfaceType: "discord",
+        interfaceId: "@other/discord-bridge:discord",
+        channelId: thread.id,
+      },
+    });
+
+    expect(sentMessage.edit).not.toHaveBeenCalled();
+  });
+
   it("posts and edits standalone Discord progress when no agent response is tracked", async () => {
     suite.agentService.chat.mockResolvedValueOnce({
       text: "Starting background build.",

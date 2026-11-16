@@ -630,7 +630,9 @@ it("proves provider-backed public authoring behavior against one exact alpha", a
       threadId: "evidence-thread",
       userId: "live-reader",
       userName: "Live Reader",
-      text: "From our conversation, reply only with the bookmark title I asked you to compile.",
+      // The digest request named the bookmark by its id, so the id is what the
+      // conversation holds; asking for its title asks for something never said.
+      text: "From our conversation, reply only with the id of the bookmark I asked you to compile.",
     });
     await waitForEvidence(
       "conversation continuity through the public message interface",
@@ -638,7 +640,7 @@ it("proves provider-backed public authoring behavior against one exact alpha", a
         transport
           .deliveries()
           .slice(continuityDeliveryCount)
-          .some((text) => text.includes("Live Digest")),
+          .some((text) => text.includes("live-digest")),
       activeRuntime,
       apiKey,
       transport,

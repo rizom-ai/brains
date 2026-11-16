@@ -50,6 +50,43 @@ describe("createEnqueueJobFn", () => {
     );
   });
 
+  it("records the installed interface a turn came through, so its progress goes back there", async () => {
+    const enqueue = mock(
+      async (_request: Parameters<IJobQueueService["enqueue"]>[0]) => "job-1",
+    );
+    const enqueueJob = createEnqueueJobFn(
+      { enqueue } satisfies JobEnqueuer,
+      "site-content",
+      true,
+    );
+    const actor = { kind: "external", externalActorId: "ext_mira" } as const;
+
+    await enqueueJob({
+      type: "generate",
+      data: {},
+      toolContext: {
+        interfaceType: "campfire",
+        interfaceId: "@fixture/campfire:campfire",
+        actor,
+      },
+    });
+    await enqueueJob({
+      type: "generate",
+      data: {},
+      toolContext: { interfaceType: "mcp", actor },
+    });
+
+    expect(
+      expectDefined(enqueue.mock.calls[0]?.[0].options).metadata,
+    ).toMatchObject({
+      interfaceType: "campfire",
+      interfaceId: "@fixture/campfire:campfire",
+    });
+    expect(
+      expectDefined(enqueue.mock.calls[1]?.[0].options).metadata,
+    ).not.toHaveProperty("interfaceId");
+  });
+
   it("routes the caller's progress token, and keeps an explicit one when the context has none", async () => {
     const enqueue = mock(
       async (_request: Parameters<IJobQueueService["enqueue"]>[0]) => "job-1",

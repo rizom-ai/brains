@@ -24,6 +24,7 @@ function toRuntimeChatContext(
     }),
     ...(context.isAnchor !== undefined && { isAnchor: context.isAnchor }),
     ...(context.interfaceType && { interfaceType: context.interfaceType }),
+    ...(context.interfaceId && { interfaceId: context.interfaceId }),
     ...(context.channelId && { channelId: context.channelId }),
     ...(context.channelName && { channelName: context.channelName }),
     ...(context.actor && { actor: context.actor }),

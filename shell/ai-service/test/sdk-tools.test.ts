@@ -642,6 +642,39 @@ describe("convertToSDKTools", () => {
     );
   });
 
+  it("tells agent-invoked tools which installed interface the turn came through", async () => {
+    const handler = mock(async () => ({ success: true as const }));
+    const tool: Tool = {
+      name: "routed_tool",
+      description: "Routed tool",
+      inputSchema: {},
+      visibility: "public",
+      handler,
+    };
+    const sdkTools = convertToSDKTools(
+      [tool],
+      {
+        conversationId: "conversation-1",
+        interfaceType: "campfire",
+        interfaceId: "@fixture/campfire:campfire",
+        userPermissionLevel: "public",
+      },
+      { emit: mock(() => {}) },
+    );
+    const execute = sdkTools["routed_tool"]?.execute;
+    if (!execute) throw new Error("Expected routed_tool to be executable");
+
+    await execute({}, { toolCallId: "call-1", messages: [], context: {} });
+
+    expect(handler).toHaveBeenCalledWith(
+      {},
+      expect.objectContaining({
+        interfaceType: "campfire",
+        interfaceId: "@fixture/campfire:campfire",
+      }),
+    );
+  });
+
   it("passes authenticated actor attribution to agent-invoked tools", async () => {
     const handler = mock(async () => ({ success: true as const }));
     const tool: Tool = {

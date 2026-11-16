@@ -32,6 +32,7 @@ type JobContextInputSchema = z.ZodObject<
     operationType: typeof OperationTypeEnum;
     operationTarget: z.ZodOptional<z.ZodString>;
     interfaceType: z.ZodOptional<z.ZodString>;
+    interfaceId: z.ZodOptional<z.ZodString>;
     conversationId: z.ZodOptional<z.ZodString>;
     channelId: z.ZodOptional<z.ZodString>;
     requestedByActor: z.ZodOptional<typeof actorRefSchema>;
@@ -58,6 +59,10 @@ export const JobContextInputSchema: JobContextInputSchema = z.looseObject({
   operationTarget: z.string().optional(),
   // Routing context for progress message delivery
   interfaceType: z.string().optional(), // Which interface triggered the job (e.g., "matrix", "cli")
+  // The installed interface the job's turn came through, its plugin id: the
+  // one whose messages its progress edits, even when another installed
+  // interface shares its channel type
+  interfaceId: z.string().optional(),
   conversationId: z.string().optional(), // Durable conversation/session to route progress messages to
   channelId: z.string().optional(), // Transport channel/room to route progress messages to
   requestedByActor: actorRefSchema.optional(),
@@ -84,6 +89,7 @@ export const JobContextSchema: z.ZodObject<
   operationType: OperationTypeEnum,
   operationTarget: z.string().optional(),
   interfaceType: z.string().optional(),
+  interfaceId: z.string().optional(),
   conversationId: z.string().optional(),
   channelId: z.string().optional(),
   requestedByActor: actorRefSchema.optional(),

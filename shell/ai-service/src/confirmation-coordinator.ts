@@ -29,6 +29,7 @@ type ConversationActor = ReturnType<typeof createActor<typeof agentMachine>>;
 
 export interface ConfirmationContext {
   interfaceType: string;
+  interfaceId: string | undefined;
   channelId: string | undefined;
   channelName: string;
   userPermissionLevel: NonNullable<ChatContext["userPermissionLevel"]>;
@@ -76,6 +77,7 @@ export function resolveConfirmationContext(
 
   return {
     interfaceType: context.interfaceType ?? previousContext.interfaceType,
+    interfaceId: context.interfaceId ?? previousContext.interfaceId,
     channelId: context.channelId ?? previousContext.channelId,
     channelName: context.channelName ?? previousContext.channelName,
     userPermissionLevel: context.userPermissionLevel,
@@ -198,6 +200,7 @@ export class ConfirmationCoordinator {
       const event = {
         approvalId: pendingConfirmation.id,
         interfaceType: confirmationContext.interfaceType,
+        interfaceId: confirmationContext.interfaceId,
         channelId: confirmationContext.channelId,
         channelName: confirmationContext.channelName,
         userPermissionLevel: confirmationContext.userPermissionLevel,

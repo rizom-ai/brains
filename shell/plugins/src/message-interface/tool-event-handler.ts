@@ -20,6 +20,7 @@ export interface ToolActivityEvent
       | "toolName"
       | "conversationId"
       | "interfaceType"
+      | "interfaceId"
       | "channelId"
       | "channelName"
       | "toolCallId"
@@ -42,6 +43,7 @@ function toActivity(
     toolName: event.toolName,
     conversationId: event.conversationId,
     interfaceType: event.interfaceType,
+    ...(event.interfaceId ? { interfaceId: event.interfaceId } : {}),
     channelId: event.channelId,
     channelName: event.channelName,
     toolCallId: event.toolCallId,

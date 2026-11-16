@@ -16,6 +16,19 @@ export type MessageInterfaceOutput =
       fallbackText?: string;
     };
 
+/**
+ * Which installed interface a job or tool event belongs to. A turn that came
+ * through an interface records its plugin id, which tells apart two installed
+ * interfaces of one channel type; a turn that recorded none is matched by its
+ * interface type, as built-in interfaces' turns are.
+ */
+function routingKey(routing: {
+  readonly interfaceId?: string | undefined;
+  readonly interfaceType?: string | undefined;
+}): string | undefined {
+  return routing.interfaceId ?? routing.interfaceType;
+}
+
 const PROGRESS_EDIT_THROTTLE_MS = 500;
 const PROGRESS_CLEANUP_DELAY_MS = 500;
 
@@ -233,7 +246,7 @@ export class ProgressMessageCoordinator {
 
   /** Derive semantic status updates from raw tool activity events. */
   async handleToolActivityEvent(event: ToolActivityEvent): Promise<void> {
-    if (event.interfaceType !== this.transport.interfaceId()) {
+    if (!this.isOwnRouting(event)) {
       return;
     }
 
@@ -277,7 +290,7 @@ export class ProgressMessageCoordinator {
     const interfaceId = this.transport.interfaceId();
     const completions = Array.from(this.pendingToolCompletions.values()).filter(
       (event) =>
-        event.interfaceType === interfaceId &&
+        routingKey(event) === interfaceId &&
         event.conversationId === conversationId,
     );
 
@@ -296,12 +309,14 @@ export class ProgressMessageCoordinator {
   }
 
   private shouldHandleProgressEvent(event: JobProgressEvent): boolean {
-    // Only handle events for this interface type. An event without an
-    // interfaceType is broadcast and handled by everyone.
-    const eventInterfaceType = event.metadata.interfaceType;
-    return (
-      !eventInterfaceType || eventInterfaceType === this.transport.interfaceId()
-    );
+    // Only handle events this interface's turns started. An event that names
+    // no interface is broadcast and handled by everyone.
+    const key = routingKey(event.metadata);
+    return !key || key === this.transport.interfaceId();
+  }
+
+  private isOwnRouting(event: ToolActivityEvent): boolean {
+    return routingKey(event) === this.transport.interfaceId();
   }
 
   private updateProgressState(event: JobProgressEvent): void {

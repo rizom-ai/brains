@@ -63,6 +63,7 @@ export const brainCallOptionsSchema: z.ZodObject<{
   channelId: z.ZodOptional<z.ZodString>;
   channelName: z.ZodOptional<z.ZodString>;
   interfaceType: z.ZodString;
+  interfaceId: z.ZodOptional<z.ZodString>;
   actor: z.ZodOptional<typeof actorRefSchema>;
   displayName: z.ZodOptional<z.ZodString>;
   agentContextInstructions: z.ZodOptional<z.ZodString>;
@@ -79,6 +80,8 @@ export const brainCallOptionsSchema: z.ZodObject<{
   channelId: z.string().optional(),
   channelName: z.string().optional(),
   interfaceType: z.string(),
+  /** The installed interface the turn came through, when it says. */
+  interfaceId: z.string().optional(),
   actor: actorRefSchema.optional(),
   displayName: z.string().optional(),
   agentContextInstructions: z.string().optional(),
@@ -279,6 +282,12 @@ export interface ChatContext {
   /** Whether the authenticated caller is the brain's configured Anchor. */
   isAnchor?: boolean;
   interfaceType?: string; // e.g., "matrix", "cli", "mcp"
+  /**
+   * The installed interface the turn came through, its plugin id. Jobs and
+   * tool events the turn starts carry it, so their progress goes back to
+   * that interface even when another one shares its channel type.
+   */
+  interfaceId?: string;
   channelId?: string; // Transport channel/room identifier when distinct from conversationId
   channelName?: string; // Human-readable name for the transport channel/room
   actor?: ConversationMessageActor; // Stable speaker identity for the incoming message
