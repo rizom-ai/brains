@@ -119,9 +119,10 @@ Agent evals by model size, 2026-11-15, both suites at `f1bb03475c`, same runtime
 
 - Runs: `qwen3:8b` 26 and 32 of 36, then 27, 24 and 24 of 31; `qwen3:14b` 30 and 30, then 26, 25 and 30; the local configuration 33 and 34, then 30, 26 and 29.
 - The private note at trusted fails in all four headless runs of the 8B and 14B models and in none of the local configuration's: the save call names a message that does not exist, sets a field a note does not have or leaves the visibility out, the brain refuses it, and in one run the reply claims the save.
-- `qwen3:8b` fails four personal cases 3 of 3: the 7 KB exact edit and the verbatim update call no tool, the 17 KB patch reads without updating, and the image follow-up. `qwen3:14b` fails the verbatim update 2 of 3 and follows instructions inside an uploaded file 2 of 3.
-- The local configuration fails the bare label after an image upload 3 of 3, the read-only PDF summary 2 of 3 and, on headless, treats a public user as the anchor 2 of 2.
-- The cloud default's headless run fails the delete at trusted and skill derivation.
+- `qwen3:8b` fails four personal cases 3 of 3: the verbatim update calls no tool; the 7 KB exact edit calls no tool once and twice sends the note's content as a field instead of an edit; the 17 KB patch reads without updating or sets the title as a field; and the image follow-up reads the note again and does not name the image's color. `qwen3:14b` fails the verbatim update 2 of 3 and saves a note on instructions inside an uploaded file 2 of 3.
+- The local configuration saves or generates on a bare label after an image upload 3 of 3 and says "saved as" in a read-only PDF summary 2 of 3.
+- Some failures are only a token or tool-call budget exceeded, with no failed criterion: three of the local configuration's five headless failures (the public-user case in both runs, 18–19k tokens against 14k, and topics analytics), one of its personal failures (6 tool calls against 5), the cloud default's delete at trusted (22k tokens against 14k), three of `qwen3:8b`'s headless failures and one of `qwen3:14b`'s. On criteria alone the local configuration passes 35 and 35 of 36 on headless and the cloud default 35.
+- The cloud default's other headless failure is skill derivation, judged 3 on accuracy against a minimum of 4.
 - Weights: `qwen3:8b` with `qwen3-vl:8b` is 11.4 GB and `qwen3:14b` with it 15.5 GB, against 41.2 GB for the local configuration's two text models.
 
 ## Goal
