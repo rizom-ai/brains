@@ -9,7 +9,7 @@ type VisibilitySchema = z.ZodEnum<{
 }>;
 
 const titleSchema: TitleSchema = z.string().trim().min(1);
-const proposalTitleSchema: TitleSchema = titleSchema.max(40);
+export const proposalTitleSchema: TitleSchema = titleSchema.max(40);
 const relevanceSchema: RelevanceSchema = z.number().min(0).max(1);
 
 const topicSupportVoteSchema: z.ZodObject<{
