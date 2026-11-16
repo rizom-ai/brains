@@ -1,9 +1,8 @@
 import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
 import type { PublishResult } from "@brains/contracts";
 import { updateFrontmatterField } from "@brains/utils/markdown";
+import { FRONTMATTER_BLOCK } from "@brains/utils/markdown-frontmatter";
 import type { PipelineContext } from "./lib/pipeline-context";
-
-const FRONTMATTER_BLOCK = /^---\r?\n[\s\S]*?\r?\n---(?:\r?\n|$)/;
 
 export interface MarkPublishedOptions {
   publishedAt?: string;
