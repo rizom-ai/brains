@@ -1,0 +1,1215 @@
+<!doctype html>
+<html lang="en" data-climate="paper">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Refining Notes in Studio — Design Pass</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* Palette and library grammar sampled from the committed captures in
+         docs/design/rizom-brain-page/images/library-desktop-*.png. */
+      :root {
+        --display: "Fraunces", Georgia, "Times New Roman", serif;
+        --ui: "IBM Plex Sans", -apple-system, system-ui, sans-serif;
+        --mono: "JetBrains Mono", ui-monospace, monospace;
+        --deck: #24201b;
+        --deck-deep: #151310;
+        --deck-ink: #f6efe3;
+        --deck-dim: rgba(246, 239, 227, 0.62);
+        --deck-rule: rgba(246, 239, 227, 0.15);
+      }
+
+      [data-climate="instrument"] {
+        --bg: #14122b;
+        --card: #1b1738;
+        --ink: #fbf4e6;
+        --dim: rgba(251, 244, 230, 0.66);
+        --muted: rgba(251, 244, 230, 0.46);
+        --faint: rgba(251, 244, 230, 0.26);
+        --rule: rgba(251, 244, 230, 0.13);
+        --rule-strong: #fbf4e6;
+        --accent: #ff8b3d;
+        --accent-soft: rgba(255, 139, 61, 0.13);
+        --accent-line: rgba(255, 139, 61, 0.5);
+        --on-accent: #1a1024;
+        --chip: #2a2638;
+        --chip-ink: #f1d77a;
+        --ok: #5fe39a;
+        --err: #ff7a6b;
+        --scrim: rgba(8, 6, 20, 0.66);
+        color-scheme: dark;
+      }
+
+      [data-climate="paper"] {
+        --bg: #faf4e6;
+        --card: #fffaf0;
+        --ink: #1a1528;
+        --dim: rgba(26, 21, 40, 0.7);
+        --muted: rgba(26, 21, 40, 0.52);
+        --faint: rgba(26, 21, 40, 0.28);
+        --rule: rgba(26, 21, 40, 0.14);
+        --rule-strong: #1a1528;
+        --accent: #b8410c;
+        --accent-soft: rgba(184, 65, 12, 0.09);
+        --accent-line: rgba(184, 65, 12, 0.45);
+        --on-accent: #fff6e8;
+        --chip: #e9dfc9;
+        --chip-ink: #7a4a10;
+        --ok: #2f7351;
+        --err: #a8321f;
+        --scrim: rgba(40, 32, 20, 0.42);
+        color-scheme: light;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        min-width: 320px;
+        background: var(--deck-deep);
+      }
+
+      body {
+        margin: 0;
+        color: var(--deck-ink);
+        font-family: var(--ui);
+        background:
+          radial-gradient(
+            circle at 17% 0%,
+            rgba(232, 93, 41, 0.13),
+            transparent 32rem
+          ),
+          linear-gradient(145deg, var(--deck), var(--deck-deep) 68%);
+      }
+
+      button {
+        color: inherit;
+        font: inherit;
+      }
+
+      /* ---- presentation scaffolding ----------------------------------- */
+
+      .presentation {
+        width: min(1320px, 100%);
+        margin: 0 auto;
+        padding: 54px 32px 110px;
+      }
+
+      .presentation-head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 28px;
+        padding-bottom: 26px;
+        border-bottom: 1px solid var(--deck-rule);
+      }
+
+      .eyebrow {
+        margin: 0 0 12px;
+        color: rgba(255, 168, 112, 0.9);
+        font-family: var(--mono);
+        font-size: 11px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+
+      .presentation-head h1 {
+        margin: 0;
+        font-family: var(--display);
+        font-size: clamp(30px, 3.4vw, 44px);
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+
+      .presentation-head p {
+        max-width: 60ch;
+        margin: 14px 0 0;
+        color: var(--deck-dim);
+        font-size: 15px;
+        line-height: 1.55;
+      }
+
+      .climate {
+        display: inline-flex;
+        padding: 4px;
+        border: 1px solid var(--deck-rule);
+        border-radius: 999px;
+      }
+
+      .climate button {
+        padding: 8px 16px;
+        border: 0;
+        border-radius: 999px;
+        background: none;
+        color: var(--deck-dim);
+        font-family: var(--mono);
+        font-size: 11px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        cursor: pointer;
+      }
+
+      .climate button[aria-pressed="true"] {
+        background: var(--deck-ink);
+        color: var(--deck-deep);
+      }
+
+      .step {
+        display: grid;
+        grid-template-columns: 250px minmax(0, 1fr);
+        gap: 36px;
+        margin-top: 64px;
+      }
+
+      .step-note .num {
+        color: rgba(255, 168, 112, 0.9);
+        font-family: var(--mono);
+        font-size: 12px;
+        letter-spacing: 0.14em;
+      }
+
+      .step-note h2 {
+        margin: 10px 0 12px;
+        font-family: var(--display);
+        font-size: 25px;
+        font-weight: 600;
+        line-height: 1.15;
+      }
+
+      .step-note p {
+        margin: 0 0 10px;
+        color: var(--deck-dim);
+        font-size: 14px;
+        line-height: 1.55;
+      }
+
+      .step-note p strong {
+        color: var(--deck-ink);
+        font-weight: 600;
+      }
+
+      /* ---- the Studio frame ------------------------------------------- */
+
+      .frame {
+        position: relative;
+        overflow: hidden;
+        border-radius: 14px;
+        background: var(--bg);
+        color: var(--ink);
+        box-shadow:
+          0 1px 0 rgba(255, 255, 255, 0.05) inset,
+          0 30px 70px rgba(0, 0, 0, 0.45);
+      }
+
+      .pane {
+        padding: 36px 40px 44px;
+      }
+
+      .kicker {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 11px;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 13px;
+        border: 1px solid var(--faint);
+        border-radius: 999px;
+        background: var(--chip);
+        color: var(--ink);
+        letter-spacing: 0.12em;
+      }
+
+      .pill::before {
+        content: "";
+        width: 5px;
+        height: 5px;
+        background: var(--accent);
+        transform: rotate(45deg);
+      }
+
+      .head {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 20px;
+        margin-top: 12px;
+        padding-bottom: 20px;
+        border-bottom: 2px solid var(--rule-strong);
+      }
+
+      .head-title {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 6px 22px;
+      }
+
+      .head h3 {
+        margin: 0;
+        font-family: var(--display);
+        font-size: 46px;
+        font-weight: 600;
+        letter-spacing: -0.015em;
+        line-height: 1;
+      }
+
+      .meta {
+        color: var(--muted);
+        font-size: 15px;
+      }
+
+      .meta b {
+        color: var(--accent);
+        font-weight: 600;
+      }
+
+      .actions {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+      }
+
+      .primary {
+        padding: 13px 22px;
+        border: 0;
+        border-radius: 10px;
+        background: var(--accent);
+        color: var(--on-accent);
+        font-size: 16px;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+
+      .quiet {
+        padding: 0;
+        border: 0;
+        background: none;
+        color: var(--dim);
+        font-size: 15px;
+        text-decoration: underline;
+        text-decoration-color: var(--faint);
+        text-underline-offset: 4px;
+      }
+
+      .rows {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .row {
+        display: grid;
+        grid-template-columns: 62px minmax(0, 1fr) 128px 132px 124px;
+        align-items: center;
+        gap: 12px;
+        padding: 20px 8px 20px 6px;
+        border-bottom: 1px solid var(--rule);
+      }
+
+      .row.is-selected {
+        background: var(--accent-soft);
+        box-shadow: inset 3px 0 0 var(--accent);
+      }
+
+      .row.is-new {
+        background: var(--accent-soft);
+      }
+
+      .index {
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 14px;
+      }
+
+      /* The row number is where a row is picked: it turns into a mark. */
+      .mark {
+        display: grid;
+        place-items: center;
+        width: 24px;
+        height: 24px;
+        border: 1.5px solid var(--faint);
+        border-radius: 7px;
+      }
+
+      .mark.is-hover {
+        border-color: var(--accent-line);
+        box-shadow: 0 0 0 4px var(--accent-soft);
+      }
+
+      .mark.is-on {
+        border-color: var(--accent);
+        background: var(--accent);
+      }
+
+      .mark.is-on::after {
+        content: "";
+        width: 11px;
+        height: 6px;
+        margin-top: -3px;
+        border-bottom: 2.5px solid var(--on-accent);
+        border-left: 2.5px solid var(--on-accent);
+        transform: rotate(-45deg);
+      }
+
+      .title {
+        font-family: var(--display);
+        font-size: 23px;
+        font-weight: 600;
+        letter-spacing: -0.005em;
+        line-height: 1.2;
+      }
+
+      .slug {
+        margin-top: 5px;
+        overflow: hidden;
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 13.5px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .chip {
+        justify-self: start;
+        padding: 6px 13px;
+        border-radius: 999px;
+        background: var(--chip);
+        color: var(--chip-ink);
+        font-family: var(--mono);
+        font-size: 12px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+
+      .chip.is-failed {
+        background: none;
+        box-shadow: inset 0 0 0 1px var(--err);
+        color: var(--err);
+      }
+
+      .date {
+        color: var(--dim);
+        font-size: 15.5px;
+      }
+
+      .state {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 13.5px;
+      }
+
+      .state::before {
+        content: "";
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--ok);
+      }
+
+      .state.is-writing::before {
+        background: var(--accent);
+        animation: breathe 1.8s ease-in-out infinite;
+      }
+
+      .state.is-kept::before {
+        background: var(--err);
+      }
+
+      @keyframes breathe {
+        50% {
+          opacity: 0.3;
+          transform: scale(0.7);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .state.is-writing::before {
+          animation: none;
+        }
+      }
+
+      .notice {
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+        margin: 0 0 22px;
+        padding: 13px 16px;
+        border-left: 3px solid var(--accent);
+        background: var(--accent-soft);
+        font-size: 15px;
+        line-height: 1.45;
+      }
+
+      .notice.is-error {
+        border-left-color: var(--err);
+      }
+
+      .notice b {
+        font-weight: 600;
+      }
+
+      /* ---- the confirmation ------------------------------------------- */
+
+      .scrim {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background: var(--scrim);
+      }
+
+      .dialog {
+        width: min(560px, 100%);
+        padding: 30px 32px 26px;
+        border: 1px solid var(--rule);
+        border-radius: 14px;
+        background: var(--card);
+        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
+      }
+
+      .dialog h4 {
+        margin: 0;
+        font-family: var(--display);
+        font-size: 28px;
+        font-weight: 600;
+        line-height: 1.15;
+      }
+
+      .dialog > p {
+        margin: 12px 0 0;
+        color: var(--dim);
+        font-size: 15px;
+        line-height: 1.5;
+      }
+
+      .removes {
+        margin: 20px 0 0;
+        padding: 0;
+        border-top: 1px solid var(--rule);
+        list-style: none;
+      }
+
+      .removes li {
+        display: grid;
+        grid-template-columns: 30px minmax(0, 1fr);
+        padding: 12px 0;
+        border-bottom: 1px solid var(--rule);
+      }
+
+      .removes .index {
+        padding-top: 3px;
+        font-size: 12.5px;
+      }
+
+      .removes .title {
+        font-size: 18px;
+      }
+
+      .removes .slug {
+        font-size: 12.5px;
+      }
+
+      .field {
+        display: block;
+        margin-top: 20px;
+      }
+
+      .field span {
+        display: block;
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 11px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+
+      .field em {
+        display: block;
+        margin-top: 8px;
+        padding: 12px 14px;
+        border: 1px solid var(--faint);
+        border-radius: 9px;
+        color: var(--muted);
+        font-size: 15px;
+        font-style: normal;
+      }
+
+      .dialog .actions {
+        justify-content: flex-end;
+        margin-top: 24px;
+      }
+
+      /* ---- phone ------------------------------------------------------- */
+
+      .phone {
+        width: 390px;
+        max-width: 100%;
+      }
+
+      .phone .pane {
+        padding: 24px 20px 96px;
+      }
+
+      .phone .head {
+        grid-template-columns: 1fr;
+      }
+
+      .phone .head h3 {
+        font-size: 28px;
+      }
+
+      .phone .row {
+        grid-template-columns: 40px minmax(0, 1fr);
+        padding: 16px 4px;
+      }
+
+      .phone .title {
+        font-size: 18px;
+      }
+
+      .phone .bar {
+        position: absolute;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        display: grid;
+        grid-template-columns: auto 1fr;
+        align-items: center;
+        gap: 16px;
+        padding: 14px 20px 20px;
+        border-top: 1px solid var(--rule);
+        background: var(--card);
+      }
+
+      .pair {
+        display: grid;
+        gap: 28px;
+        justify-items: start;
+      }
+
+      .pair > .frame:first-child {
+        width: 100%;
+      }
+
+      @media (max-width: 1040px) {
+        .step {
+          grid-template-columns: 1fr;
+          gap: 20px;
+        }
+
+        .pair {
+          grid-template-columns: 1fr;
+        }
+
+        .row {
+          grid-template-columns: 46px minmax(0, 1fr) auto;
+        }
+
+        .row .date,
+        .row .state {
+          display: none;
+        }
+
+        .head {
+          grid-template-columns: 1fr;
+        }
+
+        .head h3 {
+          font-size: 34px;
+        }
+
+        .pane {
+          padding: 26px 20px 32px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="presentation">
+      <header class="presentation-head">
+        <div>
+          <p class="eyebrow">Studio · Library · Notes</p>
+          <h1>Refining notes from the library</h1>
+          <p>
+            Pick loose notes in the Notes list and refine them into one. The
+            flow and its words are the ones chat uses: one confirmation that
+            names the notes and says they will be removed.
+          </p>
+        </div>
+        <div class="climate" role="group" aria-label="Climate">
+          <button type="button" data-set="paper" aria-pressed="true">
+            Paper
+          </button>
+          <button type="button" data-set="instrument" aria-pressed="false">
+            Instrument
+          </button>
+        </div>
+      </header>
+
+      <!-- 01 ------------------------------------------------------------ -->
+      <section class="step">
+        <div class="step-note">
+          <span class="num">01</span>
+          <h2>The list at rest</h2>
+          <p>
+            Nothing is added to the page. The row number is where a note is
+            picked: under the pointer, or with keyboard focus, it becomes a
+            mark.
+          </p>
+          <p>
+            <strong>New note</strong> stays the page's one action. A caller
+            who may not delete notes never sees the mark.
+          </p>
+        </div>
+        <div class="frame">
+          <div class="pane">
+            <div class="kicker">
+              Content library <span class="pill">Admin</span>
+            </div>
+            <div class="head">
+              <div class="head-title">
+                <h3>Notes</h3>
+                <span class="meta">4 entities · Sorted by updated</span>
+              </div>
+              <div class="actions">
+                <button type="button" class="primary">New note</button>
+              </div>
+            </div>
+            <ul class="rows">
+              <li class="row">
+                <span class="index">01</span>
+                <div>
+                  <div class="title">
+                    Onboarding call with Mira. She stopped opening the
+                    dashboard after week 1
+                  </div>
+                  <div class="slug">note/dashboard-drop-off</div>
+                </div>
+                <span></span>
+                <span class="date">Nov 15, 2026</span>
+                <span class="state">committed</span>
+              </li>
+              <li class="row">
+                <span class="mark is-hover" aria-hidden="true"></span>
+                <div>
+                  <div class="title">
+                    Weekly digest had a 31% open rate over the last 4 weeks
+                  </div>
+                  <div class="slug">note/digest-numbers</div>
+                </div>
+                <span></span>
+                <span class="date">Nov 15, 2026</span>
+                <span class="state">committed</span>
+              </li>
+              <li class="row">
+                <span class="index">03</span>
+                <div>
+                  <div class="title">Chat prompts</div>
+                  <div class="slug">note/chat-prompts</div>
+                </div>
+                <span></span>
+                <span class="date">Nov 14, 2026</span>
+                <span class="state">committed</span>
+              </li>
+              <li class="row">
+                <span class="index">04</span>
+                <div>
+                  <div class="title">Green Software Engineering Principles</div>
+                  <div class="slug">note/green-software-principles</div>
+                </div>
+                <span></span>
+                <span class="date">Nov 9, 2026</span>
+                <span class="state">committed</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- 02 ------------------------------------------------------------ -->
+      <section class="step">
+        <div class="step-note">
+          <span class="num">02</span>
+          <h2>Notes picked</h2>
+          <p>
+            Once a note is picked, every row shows its mark and the count
+            takes the place of the sort line.
+          </p>
+          <p>
+            The page still has one action: <strong>New note</strong> gives way
+            to <strong>Refine 3 notes</strong>. One picked note reads
+            <strong>Refine note</strong>. Cancel, or Escape, puts the list
+            back.
+          </p>
+          <p>
+            On a phone the action sits in the action bar, where the page's
+            action always is.
+          </p>
+        </div>
+        <div class="pair">
+          <div class="frame">
+            <div class="pane">
+              <div class="kicker">
+                Content library <span class="pill">Admin</span>
+              </div>
+              <div class="head">
+                <div class="head-title">
+                  <h3>Notes</h3>
+                  <span class="meta"><b>3 picked</b> of 4</span>
+                </div>
+                <div class="actions">
+                  <button type="button" class="quiet">Cancel</button>
+                  <button type="button" class="primary">Refine 3 notes</button>
+                </div>
+              </div>
+              <ul class="rows">
+                <li class="row is-selected">
+                  <span class="mark is-on" aria-hidden="true"></span>
+                  <div>
+                    <div class="title">
+                      Onboarding call with Mira. She stopped opening the
+                      dashboard after week 1
+                    </div>
+                    <div class="slug">note/dashboard-drop-off</div>
+                  </div>
+                  <span></span>
+                  <span class="date">Nov 15, 2026</span>
+                  <span class="state">committed</span>
+                </li>
+                <li class="row is-selected">
+                  <span class="mark is-on" aria-hidden="true"></span>
+                  <div>
+                    <div class="title">
+                      Weekly digest had a 31% open rate over the last 4 weeks
+                    </div>
+                    <div class="slug">note/digest-numbers</div>
+                  </div>
+                  <span></span>
+                  <span class="date">Nov 15, 2026</span>
+                  <span class="state">committed</span>
+                </li>
+                <li class="row is-selected">
+                  <span class="mark is-on" aria-hidden="true"></span>
+                  <div>
+                    <div class="title">Chat prompts</div>
+                    <div class="slug">note/chat-prompts</div>
+                  </div>
+                  <span></span>
+                  <span class="date">Nov 14, 2026</span>
+                  <span class="state">committed</span>
+                </li>
+                <li class="row">
+                  <span class="mark" aria-hidden="true"></span>
+                  <div>
+                    <div class="title">
+                      Green Software Engineering Principles
+                    </div>
+                    <div class="slug">note/green-software-principles</div>
+                  </div>
+                  <span></span>
+                  <span class="date">Nov 9, 2026</span>
+                  <span class="state">committed</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="frame phone">
+            <div class="pane">
+              <div class="kicker">Content library</div>
+              <div class="head">
+                <div class="head-title">
+                  <h3>Notes</h3>
+                  <span class="meta"><b>3 picked</b> of 4</span>
+                </div>
+              </div>
+              <ul class="rows">
+                <li class="row is-selected">
+                  <span class="mark is-on" aria-hidden="true"></span>
+                  <div>
+                    <div class="title">
+                      Onboarding call with Mira. She stopped opening the
+                      dashboard after week 1
+                    </div>
+                    <div class="slug">note/dashboard-drop-off</div>
+                  </div>
+                </li>
+                <li class="row is-selected">
+                  <span class="mark is-on" aria-hidden="true"></span>
+                  <div>
+                    <div class="title">
+                      Weekly digest had a 31% open rate over the last 4 weeks
+                    </div>
+                    <div class="slug">note/digest-numbers</div>
+                  </div>
+                </li>
+                <li class="row is-selected">
+                  <span class="mark is-on" aria-hidden="true"></span>
+                  <div>
+                    <div class="title">Chat prompts</div>
+                    <div class="slug">note/chat-prompts</div>
+                  </div>
+                </li>
+                <li class="row">
+                  <span class="mark" aria-hidden="true"></span>
+                  <div>
+                    <div class="title">
+                      Green Software Engineering Principles
+                    </div>
+                    <div class="slug">note/green-software-principles</div>
+                  </div>
+                </li>
+              </ul>
+            </div>
+            <div class="bar">
+              <button type="button" class="quiet">Cancel</button>
+              <button type="button" class="primary">Refine 3 notes</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 03 ------------------------------------------------------------ -->
+      <section class="step">
+        <div class="step-note">
+          <span class="num">03</span>
+          <h2>One confirmation</h2>
+          <p>
+            The same question chat asks: it names every note and says they
+            will be removed. Nothing is written or removed before
+            <strong>Refine</strong>.
+          </p>
+          <p>
+            The direction is optional. Left empty, the brain writes from the
+            notes alone. It is also read for where the refined note belongs.
+          </p>
+        </div>
+        <div class="frame">
+          <div class="pane" aria-hidden="true">
+            <div class="kicker">
+              Content library <span class="pill">Admin</span>
+            </div>
+            <div class="head">
+              <div class="head-title">
+                <h3>Notes</h3>
+                <span class="meta"><b>3 picked</b> of 4</span>
+              </div>
+              <div class="actions">
+                <button type="button" class="quiet">Cancel</button>
+                <button type="button" class="primary">Refine 3 notes</button>
+              </div>
+            </div>
+            <ul class="rows">
+              <li class="row is-selected">
+                <span class="mark is-on"></span>
+                <div>
+                  <div class="title">
+                    Onboarding call with Mira. She stopped opening the
+                    dashboard after week 1
+                  </div>
+                  <div class="slug">note/dashboard-drop-off</div>
+                </div>
+                <span></span>
+                <span class="date">Nov 15, 2026</span>
+                <span class="state">committed</span>
+              </li>
+              <li class="row is-selected">
+                <span class="mark is-on"></span>
+                <div>
+                  <div class="title">
+                    Weekly digest had a 31% open rate over the last 4 weeks
+                  </div>
+                  <div class="slug">note/digest-numbers</div>
+                </div>
+                <span></span>
+                <span class="date">Nov 15, 2026</span>
+                <span class="state">committed</span>
+              </li>
+              <li class="row is-selected">
+                <span class="mark is-on"></span>
+                <div>
+                  <div class="title">Chat prompts</div>
+                  <div class="slug">note/chat-prompts</div>
+                </div>
+                <span></span>
+                <span class="date">Nov 14, 2026</span>
+                <span class="state">committed</span>
+              </li>
+              <li class="row">
+                <span class="mark"></span>
+                <div>
+                  <div class="title">Green Software Engineering Principles</div>
+                  <div class="slug">note/green-software-principles</div>
+                </div>
+                <span></span>
+                <span class="date">Nov 9, 2026</span>
+                <span class="state">committed</span>
+              </li>
+            </ul>
+          </div>
+          <div class="scrim">
+            <div class="dialog" role="dialog" aria-label="Refine 3 notes">
+              <h4>Refine 3 notes into one?</h4>
+              <p>
+                The brain writes one refined note from them. They will be
+                removed once it is saved.
+              </p>
+              <ul class="removes">
+                <li>
+                  <span class="index">01</span>
+                  <div>
+                    <div class="title">
+                      Onboarding call with Mira. She stopped opening the
+                      dashboard after week 1
+                    </div>
+                    <div class="slug">note/dashboard-drop-off</div>
+                  </div>
+                </li>
+                <li>
+                  <span class="index">02</span>
+                  <div>
+                    <div class="title">
+                      Weekly digest had a 31% open rate over the last 4 weeks
+                    </div>
+                    <div class="slug">note/digest-numbers</div>
+                  </div>
+                </li>
+                <li>
+                  <span class="index">03</span>
+                  <div>
+                    <div class="title">Chat prompts</div>
+                    <div class="slug">note/chat-prompts</div>
+                  </div>
+                </li>
+              </ul>
+              <label class="field">
+                <span>Direction · optional</span>
+                <em>What should it focus on?</em>
+              </label>
+              <div class="actions">
+                <button type="button" class="quiet">Cancel</button>
+                <button type="button" class="primary">Refine</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 04 ------------------------------------------------------------ -->
+      <section class="step">
+        <div class="step-note">
+          <span class="num">04</span>
+          <h2>While the brain writes</h2>
+          <p>
+            Studio moves to Refined notes, where the new entry already
+            stands. It is a placeholder until the brain has written it, the
+            way a generated note is today.
+          </p>
+          <p>The notes are still in Notes at this point.</p>
+        </div>
+        <div class="frame">
+          <div class="pane">
+            <div class="kicker">
+              Content library <span class="pill">Admin</span>
+            </div>
+            <div class="head">
+              <div class="head-title">
+                <h3>Refined notes</h3>
+                <span class="meta">3 entities · Sorted by updated</span>
+              </div>
+            </div>
+            <ul class="rows">
+              <li class="row is-new">
+                <span class="index">01</span>
+                <div>
+                  <div class="title">dashboard-drop-off</div>
+                  <div class="slug">refined-note/dashboard-drop-off</div>
+                </div>
+                <span class="chip">Generating</span>
+                <span class="date">Nov 16, 2026</span>
+                <span class="state is-writing">writing</span>
+              </li>
+              <li class="row">
+                <span class="index">02</span>
+                <div>
+                  <div class="title">Pilot debrief</div>
+                  <div class="slug">refined-note/pilot-debrief</div>
+                </div>
+                <span></span>
+                <span class="date">Nov 15, 2026</span>
+                <span class="state">committed</span>
+              </li>
+              <li class="row">
+                <span class="index">03</span>
+                <div>
+                  <div class="title">What the first three pilots asked for</div>
+                  <div class="slug">refined-note/pilot-asks</div>
+                </div>
+                <span></span>
+                <span class="date">Nov 12, 2026</span>
+                <span class="state">committed</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- 05 ------------------------------------------------------------ -->
+      <section class="step">
+        <div class="step-note">
+          <span class="num">05</span>
+          <h2>Done</h2>
+          <p>
+            The entry takes the title the brain wrote. The line above the
+            list says what happened, once, and names what was removed.
+          </p>
+          <p>
+            Notes is three entries shorter. The refined note opens in the
+            ordinary editor, where its summary and its grouping are
+            properties like any other.
+          </p>
+        </div>
+        <div class="frame">
+          <div class="pane">
+            <div class="kicker">
+              Content library <span class="pill">Admin</span>
+            </div>
+            <div class="head">
+              <div class="head-title">
+                <h3>Refined notes</h3>
+                <span class="meta">3 entities · Sorted by updated</span>
+              </div>
+            </div>
+            <p class="notice">
+              <span
+                >Refined 3 notes into <b>Push beats pull</b>. The notes were
+                removed.</span
+              >
+            </p>
+            <ul class="rows">
+              <li class="row is-new">
+                <span class="index">01</span>
+                <div>
+                  <div class="title">Push beats pull</div>
+                  <div class="slug">refined-note/dashboard-drop-off</div>
+                </div>
+                <span></span>
+                <span class="date">Nov 16, 2026</span>
+                <span class="state">committed</span>
+              </li>
+              <li class="row">
+                <span class="index">02</span>
+                <div>
+                  <div class="title">Pilot debrief</div>
+                  <div class="slug">refined-note/pilot-debrief</div>
+                </div>
+                <span></span>
+                <span class="date">Nov 15, 2026</span>
+                <span class="state">committed</span>
+              </li>
+              <li class="row">
+                <span class="index">03</span>
+                <div>
+                  <div class="title">What the first three pilots asked for</div>
+                  <div class="slug">refined-note/pilot-asks</div>
+                </div>
+                <span></span>
+                <span class="date">Nov 12, 2026</span>
+                <span class="state">committed</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- 06 ------------------------------------------------------------ -->
+      <section class="step">
+        <div class="step-note">
+          <span class="num">06</span>
+          <h2>When it fails</h2>
+          <p>
+            <strong>The brain could not write it:</strong> the entry is
+            marked failed with the reason, and every note is still in Notes.
+          </p>
+          <p>
+            <strong>A note could not be removed:</strong> the refined note is
+            kept, and the line names the note that is still there.
+          </p>
+        </div>
+        <div class="frame">
+          <div class="pane">
+            <div class="kicker">
+              Content library <span class="pill">Admin</span>
+            </div>
+            <div class="head">
+              <div class="head-title">
+                <h3>Refined notes</h3>
+                <span class="meta">2 entities · Sorted by updated</span>
+              </div>
+            </div>
+            <p class="notice is-error">
+              <span
+                >The brain could not write the refined note.
+                <b>Your 3 notes are still in Notes.</b></span
+              >
+            </p>
+            <ul class="rows">
+              <li class="row">
+                <span class="index">01</span>
+                <div>
+                  <div class="title">dashboard-drop-off</div>
+                  <div class="slug">refined-note/dashboard-drop-off</div>
+                </div>
+                <span class="chip is-failed">Failed</span>
+                <span class="date">Nov 16, 2026</span>
+                <span class="state is-kept">notes kept</span>
+              </li>
+              <li class="row">
+                <span class="index">02</span>
+                <div>
+                  <div class="title">Pilot debrief</div>
+                  <div class="slug">refined-note/pilot-debrief</div>
+                </div>
+                <span></span>
+                <span class="date">Nov 15, 2026</span>
+                <span class="state">committed</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      // Paper and instrument are Studio's two climates.
+      document.querySelectorAll(".climate button").forEach((button) => {
+        button.addEventListener("click", () => {
+          document.documentElement.dataset.climate = button.dataset.set;
+          document.querySelectorAll(".climate button").forEach((other) => {
+            other.setAttribute("aria-pressed", String(other === button));
+          });
+        });
+      });
+    </script>
+  </body>
+</html>

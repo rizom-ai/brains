@@ -39,7 +39,7 @@ Refining takes one or more source notes and an optional direction. It is the sam
 
 ## Remaining
 
-- **Refine from Studio's library.** Select one or more notes in the library and refine them, with the same confirmation. Studio's library has no multiple selection today and one primary action per page, so this starts from a reviewed mockup beside this plan.
+- **Refine from Studio's library.** Select one or more notes in the library and refine them, with the same confirmation. Studio's library has no multiple selection today and one primary action per page. The proposed design is in the [mockups](../note-escalation-studio-mockups.html), which are under review: the row number becomes the mark a note is picked with, and the page's one action changes from New note to Refine while notes are picked.
 
 ## Validation
 
