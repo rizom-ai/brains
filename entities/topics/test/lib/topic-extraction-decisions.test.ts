@@ -392,7 +392,7 @@ describe("vote normalization", () => {
         ],
       }),
       new Set(["Architecture", "Systems", "Faint"]),
-      true,
+      false,
       config,
     );
     expect(normalized).toEqual({
@@ -428,6 +428,74 @@ describe("vote normalization", () => {
     expect(normalize(true)).toEqual({ ...proposal, slug: "architecture" });
     expect(normalize(false)).toBeNull();
     expect(normalize(true, 0.2)).toBeNull();
+  });
+
+  // A model with a new topic in mind often lists it among its supports and
+  // proposes nothing; dropped, a brain with no topics yet never gets one.
+  describe("a new title listed as a support by a source that proposes none", () => {
+    const normalize = (
+      supported: VoteAnswer["supported"],
+      options: { canMint?: boolean; proposal?: VoteAnswer["proposal"] } = {},
+    ): TopicVote =>
+      normalizeVote(
+        source,
+        "prompt-1",
+        result({ supported, proposal: options.proposal ?? null }),
+        new Set(["Architecture"]),
+        options.canMint ?? true,
+        config,
+      );
+
+    it("is the source's proposal, the highest-scoring one, described by its title", () => {
+      const vote = normalize([
+        { title: "Architecture", relevanceScore: 0.8 },
+        { title: "Measurement", relevanceScore: 0.9 },
+        { title: "Carbon Efficiency", relevanceScore: 0.95 },
+      ]);
+      expect(vote.supported).toEqual([
+        { slug: "architecture", title: "Architecture", relevanceScore: 0.8 },
+      ]);
+      expect(vote.proposal).toEqual({
+        slug: "carbon-efficiency",
+        title: "Carbon Efficiency",
+        content: "Carbon Efficiency",
+        relevanceScore: 0.95,
+      });
+    });
+
+    it("yields to the proposal the source made", () => {
+      const proposal = {
+        title: "Green Software",
+        content: "Evidence",
+        relevanceScore: 0.7,
+      };
+      expect(
+        normalize([{ title: "Measurement", relevanceScore: 0.9 }], { proposal })
+          .proposal,
+      ).toEqual({ ...proposal, slug: "green-software" });
+    });
+
+    it("is dropped from a source that cannot mint", () => {
+      expect(
+        normalize([{ title: "Measurement", relevanceScore: 0.9 }], {
+          canMint: false,
+        }).proposal,
+      ).toBeNull();
+    });
+
+    it("is dropped when faint, too long for a title, or a listed title miscopied", () => {
+      expect(
+        normalize([
+          { title: "Faint", relevanceScore: 0.2 },
+          {
+            title: "A title that runs well past the forty characters allowed",
+            relevanceScore: 0.9,
+          },
+          { title: "architecture", relevanceScore: 0.9 },
+          { title: "Architecture (systems)", relevanceScore: 0.9 },
+        ]).proposal,
+      ).toBeNull();
+    });
   });
 });
 

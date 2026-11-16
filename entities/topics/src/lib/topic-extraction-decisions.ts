@@ -3,6 +3,7 @@ import { scopedDerivedId } from "@brains/sdk/internal/service-runtime";
 import { generateIdFromText } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import type { TopicsPluginConfig } from "../schemas/config";
+import { proposalTitleSchema } from "../schemas/votes";
 import type {
   TopicSelection,
   TopicVote,
@@ -261,6 +262,40 @@ export function attributableAnswers(
   );
 }
 
+/**
+ * The new title a source listed among its supports when it proposed none: the
+ * highest-scoring one. A model with a new topic in mind often puts it there,
+ * and a brain with no topics yet would otherwise never get its first. It is
+ * described by its title until the description step writes it. A listed title
+ * miscopied, with words added or dropped at its end, is not a new one.
+ */
+function misplacedProposal(
+  result: VoteAnswer,
+  listedTitles: ReadonlySet<string>,
+): VoteAnswer["proposal"] {
+  const listed = [...listedTitles].map((title) => generateIdFromText(title));
+  const miscopied = (slug: string): boolean =>
+    listed.some(
+      (other) =>
+        other === slug ||
+        slug.startsWith(`${other}-`) ||
+        other.startsWith(`${slug}-`),
+    );
+  const [best] = result.supported
+    .filter(({ title }) => {
+      const slug = generateIdFromText(title);
+      return (
+        slug && !miscopied(slug) && proposalTitleSchema.safeParse(title).success
+      );
+    })
+    .sort(
+      (left, right) =>
+        right.relevanceScore - left.relevanceScore ||
+        left.title.localeCompare(right.title),
+    );
+  return best ? { ...best, content: best.title } : null;
+}
+
 export function normalizeVote(
   source: Pick<BaseEntity, "contentHash">,
   promptVersion: string,
@@ -280,7 +315,7 @@ export function normalizeVote(
     if (!existing || existing.relevanceScore < support.relevanceScore)
       supported.set(slug, { ...support, slug });
   }
-  const proposal = result.proposal;
+  const proposal = result.proposal ?? misplacedProposal(result, listedTitles);
   const slug = proposal ? generateIdFromText(proposal.title) : "";
   return {
     contentHash: source.contentHash,
