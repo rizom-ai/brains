@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.725
+
+### Patch Changes
+
+- [#980](https://github.com/rizom-ai/brains/pull/980) [`dc1e319`](https://github.com/rizom-ai/brains/commit/dc1e31912b0b146dabcb08e74be24551d0334dae) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Topic extraction now keeps a new topic that a model lists among a source's matches to existing topics, where before only a topic named as the source's proposal counted. Local models answer that way most of the time, so a brain on local models never got its first topics.
+
 ## 0.2.0-alpha.724
 
 ### Patch Changes
