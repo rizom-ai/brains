@@ -22,7 +22,9 @@ describe("system instructions", () => {
     expect(instructions).toContain(
       "Do not ask for prose confirmation instead of calling the applicable mutating tool",
     );
-    expect(instructions).toContain("deletion requires Admin access");
+    expect(instructions).toContain(
+      "say deletion requires Admin access without calling any tool to find or read the target",
+    );
     expect(instructions).toContain("never say saved/created/done");
     expect(instructions).toContain(
       "do not call system_status or system_search to check permission",
