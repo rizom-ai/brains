@@ -1,5 +1,21 @@
 # @rizom/brain
 
+## 0.2.0-alpha.731
+
+### Patch Changes
+
+- [#948](https://github.com/rizom-ai/brains/pull/948) [`e642539`](https://github.com/rizom-ai/brains/commit/e64253963ba93874426ede3c7b7dfc66618cbd91) Thanks [@yeehaa123](https://github.com/yeehaa123)! - An earlier upload brought back into a conversation stays what it was when it was uploaded: text for a Markdown or plain-text file, a file for anything else. Bringing it back no longer turns other `text/…` or JSON uploads into pasted text.
+
+- [#948](https://github.com/rizom-ai/brains/pull/948) [`63f9653`](https://github.com/rizom-ai/brains/commit/63f96531c113d5b31519e7b1291dff21e643b267) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A long chat message cut into several Discord or Slack posts arrives in the order it was written: each part is posted once the one before it has landed.
+
+- [#948](https://github.com/rizom-ai/brains/pull/948) [`e0682f9`](https://github.com/rizom-ai/brains/commit/e0682f94838a8197897d1dd93ddee6342bb7dfb9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A turn the AI provider declines after a tool ran is reported as an error, like every other declined turn, instead of as an ordinary answer. The MCP `chat` and `confirm` tools return such a turn, and any turn that ended in an error, as a failed call, so a client can tell a refusal from an answer.
+
+- [#948](https://github.com/rizom-ai/brains/pull/948) [`c56e43e`](https://github.com/rizom-ai/brains/commit/c56e43e22cab21d1319f7dfdfd2f5be46593641f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `brain init --model <model>` keeps the model it is given: setup no longer asks for a chat provider or replaces the model, and asks only for the keys the brain's models need. A model whose key is missing, whether from flags or from the questions, stops init with the variable to set before anything is written.
+
+- [#948](https://github.com/rizom-ai/brains/pull/948) [`e0e2a89`](https://github.com/rizom-ai/brains/commit/e0e2a89185e7769656af232b05c27851c0997d82) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A blog post published to ATProto carries its `updatedAt` time, like every other published record type; the `ai.rizom.brain.post` lexicon gains the optional field. Post records are built by the same shared provenance helper as the other types.
+
+- [#948](https://github.com/rizom-ai/brains/pull/948) [`a0a4f0c`](https://github.com/rizom-ai/brains/commit/a0a4f0c7d5c553a510866df0533a997fadb82059) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The MCP `httpPort` and A2A `port` settings are gone: both interfaces are served by the brain's own web server and neither setting was read. A `brain.yaml` that still sets one is refused with a message saying to remove it.
+
 ## 0.2.0-alpha.730
 
 ### Patch Changes
