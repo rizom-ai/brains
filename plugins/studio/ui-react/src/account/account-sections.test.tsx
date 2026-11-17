@@ -16,6 +16,7 @@ const snapshot: AuthAccountSnapshot = {
   displayName: "Mira",
   role: "trusted",
   passkeys: [],
+  appPasswords: [],
   sessions: [],
   connectedChannels: [],
   pluginSettings: [

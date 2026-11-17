@@ -134,6 +134,8 @@ export {
   type AuthAuditEvent,
   type AuthAuditQuery,
   type AuthAuditQueryResult,
+  type AuthAppPasswordAccess,
+  type AuthAppPasswordGrant,
   type AuthBearerGrant,
   type AuthExternalPeerInvitationAccess,
   type AuthIdentityAccessResolution,
@@ -173,6 +175,8 @@ export {
 } from "./auth-admin";
 export {
   AUTH_ACCOUNT_MUTATION_ACTIONS,
+  type AuthAccountAppPassword,
+  type AuthAccountAppPasswordSecret,
   type AuthAccountConnectedChannel,
   type AuthAccountMutation,
   type AuthAccountPasskey,

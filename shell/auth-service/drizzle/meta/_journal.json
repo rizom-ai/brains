@@ -85,6 +85,13 @@
       "when": 1786606188029,
       "tag": "0011_vengeful_raider",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1794922766961,
+      "tag": "0012_fuzzy_spot",
+      "breakpoints": true
     }
   ]
 }

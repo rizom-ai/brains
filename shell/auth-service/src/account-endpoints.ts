@@ -49,6 +49,17 @@ const accountMutationSchema = z.union([
     action: z.literal(AUTH_ACCOUNT_MUTATION_ACTIONS.revokeAllSessions),
     confirmation: z.literal(AUTH_ACCOUNT_MUTATION_ACTIONS.revokeAllSessions),
   }),
+  z.strictObject({
+    action: z.literal(AUTH_ACCOUNT_MUTATION_ACTIONS.createAppPassword),
+    confirmation: z.literal(AUTH_ACCOUNT_MUTATION_ACTIONS.createAppPassword),
+    label: z.string().trim().min(1).max(100),
+    access: z.enum(["read", "write"]).default("read"),
+  }),
+  z.strictObject({
+    action: z.literal(AUTH_ACCOUNT_MUTATION_ACTIONS.revokeAppPassword),
+    confirmation: z.literal(AUTH_ACCOUNT_MUTATION_ACTIONS.revokeAppPassword),
+    appPasswordId: z.string().trim().min(1).max(200),
+  }),
 ]);
 
 const pluginSettingsMutationSchema = z.union([
@@ -164,6 +175,23 @@ async function handleAccountMutation(
         revoked: { sessions: result.sessions },
       });
     }
+    case "createAppPassword": {
+      const created = await context.service.createAppPassword(context.account, {
+        label: parsed.data.label,
+        access: parsed.data.access,
+      });
+      // The only response that ever carries the password.
+      return privateJsonResponse({
+        account: await accountSnapshot(context),
+        appPassword: created.appPassword,
+      });
+    }
+    case "revokeAppPassword":
+      await context.service.revokeAppPassword(
+        context.account,
+        parsed.data.appPasswordId,
+      );
+      return accountResponse(await accountSnapshot(context));
     case "revokeAllSessions": {
       const revoked = await context.service.revokeAllSessions(context.account);
       return withClearedSessionCookies(

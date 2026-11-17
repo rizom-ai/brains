@@ -18,6 +18,7 @@ const account: AuthAccountSnapshot = {
   displayName: "Mira Reyes",
   role: "trusted",
   pluginSettings: [],
+  appPasswords: [],
   connectedChannels: [
     {
       type: "email",

@@ -687,6 +687,57 @@ export const authSessions: AuthSessionsTable = sqliteTable(
   }),
 );
 
+type AuthAppPasswordsTable = AuthTable<
+  "auth_app_passwords",
+  {
+    id: AuthTextColumn<"auth_app_passwords", "id", true, true>;
+    userId: AuthTextColumn<"auth_app_passwords", "user_id", true>;
+    label: AuthTextColumn<"auth_app_passwords", "label", true>;
+    access: AuthTextColumn<
+      "auth_app_passwords",
+      "access",
+      true,
+      false,
+      "read" | "write",
+      ["read", "write"]
+    >;
+    secretHash: AuthTextColumn<"auth_app_passwords", "secret_hash", true>;
+    createdAt: AuthIntegerColumn<"auth_app_passwords", "created_at", true>;
+    expiresAt: AuthIntegerColumn<"auth_app_passwords", "expires_at", true>;
+    lastUsedAt: AuthIntegerColumn<"auth_app_passwords", "last_used_at", false>;
+    revokedAt: AuthIntegerColumn<"auth_app_passwords", "revoked_at", false>;
+  }
+>;
+
+/**
+ * A long-lived username and password a person creates for a client that can
+ * only send HTTP Basic credentials, such as a WebDAV mount. Only the hash of
+ * the password is kept.
+ */
+export const authAppPasswords: AuthAppPasswordsTable = sqliteTable(
+  "auth_app_passwords",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => authUsers.id, { onDelete: "cascade" }),
+    label: text("label").notNull(),
+    access: text("access", { enum: ["read", "write"] }).notNull(),
+    secretHash: text("secret_hash").notNull(),
+    createdAt: integer("created_at").notNull(),
+    expiresAt: integer("expires_at").notNull(),
+    lastUsedAt: integer("last_used_at"),
+    revokedAt: integer("revoked_at"),
+  },
+  (table) => ({
+    userIdIdx: index("idx_auth_app_passwords_user_id").on(table.userId),
+    accessCheck: check(
+      "auth_app_passwords_access_check",
+      sql`${table.access} IN ('read', 'write')`,
+    ),
+  }),
+);
+
 type OauthClientsTable = AuthTable<
   "oauth_clients",
   {
@@ -1051,6 +1102,7 @@ export const authRuntimeSchema: {
   a2aPeerTrust: A2aPeerTrustTable;
   authAccessSeedState: AuthAccessSeedStateTable;
   authAccountPluginSettings: AuthAccountPluginSettingsTable;
+  authAppPasswords: AuthAppPasswordsTable;
   authAuditEvents: AuthAuditEventsTable;
   authBrainAnchor: AuthBrainAnchorTable;
   authIdentities: PersonIdentityClaimsTable;
@@ -1073,6 +1125,7 @@ export const authRuntimeSchema: {
   a2aPeerTrust,
   authAccessSeedState,
   authAccountPluginSettings,
+  authAppPasswords,
   authAuditEvents,
   authBrainAnchor,
   authIdentities,
