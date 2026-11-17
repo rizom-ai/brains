@@ -99,6 +99,7 @@
 + webdav|handler|DELETE|/dav|prefix|true
 + webdav|handler|GET|/dav|prefix|true
 + webdav|handler|HEAD|/dav|prefix|true
++ webdav|handler|MKCOL|/dav|prefix|true
 + webdav|handler|MOVE|/dav|prefix|true
 + webdav|handler|OPTIONS|/dav|prefix|true
 + webdav|handler|PROPFIND|/dav|prefix|true

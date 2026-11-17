@@ -15,6 +15,12 @@ export const noWrites: DavRoutesOptions["writes"] = {
   updateEntity: async () => {
     throw new Error("No writes expected");
   },
+  createEntity: async () => {
+    throw new Error("No writes expected");
+  },
+  deleteEntity: async () => {
+    throw new Error("No writes expected");
+  },
   permissions: {
     assertEntityActionAllowed: () => {
       throw new Error("No writes expected");
@@ -37,6 +43,8 @@ export interface FakeBrain {
   options: Pick<DavRoutesOptions, "reader" | "writes">;
   entities: BaseEntity[];
   updates: RecordedUpdate[];
+  creates: RecordedUpdate[];
+  deletes: Array<{ entityType: string; id: string }>;
   audit: AppendAuthAuditEventInput[];
   /** Runs once, just before the next update is applied: another writer. */
   beforeNextUpdate: (() => void) | undefined;
@@ -60,15 +68,21 @@ function frontmatter(markdown: string): Record<string, string> {
  * `title: NORMALIZE` is stored in another form than it was sent, and types
  * named `locked` refuse updates; `post` has a published status.
  */
-export function fakeBrain(entities: BaseEntity[]): FakeBrain {
+export function fakeBrain(
+  entities: BaseEntity[],
+  /** Registered types; those of the entities when not given. */
+  types?: string[],
+): FakeBrain {
   const brain: FakeBrain = {
     entities,
     updates: [],
+    creates: [],
+    deletes: [],
     audit: [],
     beforeNextUpdate: undefined,
     options: {
       reader: {
-        ...fakeReader({ entities }),
+        ...fakeReader({ entities, ...(types ? { types } : {}) }),
         getEntityTypeConfig: (type) =>
           type === "post"
             ? { publish: { publishStatuses: ["published"] } }
@@ -102,7 +116,7 @@ export function fakeBrain(entities: BaseEntity[]): FakeBrain {
         permissions: {
           assertEntityActionAllowed: (entityType, action, context) => {
             if (entityType === "locked") {
-              throw new Error("Updating `locked` is not allowed.");
+              throw new Error(`To ${action} \`locked\` is not allowed.`);
             }
             if (
               action === "publish" &&
@@ -150,6 +164,73 @@ export function fakeBrain(entities: BaseEntity[]): FakeBrain {
             updated: "2026-11-18T09:00:00.000Z",
           };
           return { entityId: stored.id, jobId: "job-1", skipped: false };
+        },
+        createEntity: async (request) => {
+          const created = request.entity;
+          const id = created.id ?? "generated";
+          // Create-if-absent sees every row, whoever may read it.
+          if (
+            entities.some(
+              (candidate) =>
+                candidate.entityType === created.entityType &&
+                candidate.id === id,
+            )
+          ) {
+            const conflict = new Error("Entity write conflict");
+            conflict.name = "EntityWriteConflictError";
+            throw conflict;
+          }
+          if (request.options?.conditionalWrite?.expectedRevision !== null) {
+            throw new Error("The drive creates only if absent");
+          }
+          const entity: BaseEntity = {
+            id,
+            entityType: created.entityType,
+            content: created.content,
+            metadata: created.metadata,
+            visibility:
+              created.visibility === "shared" ||
+              created.visibility === "restricted"
+                ? created.visibility
+                : "public",
+            created: "2026-11-18T09:00:00.000Z",
+            updated: "2026-11-18T09:00:00.000Z",
+            contentHash: `hash-created-${id}`,
+          };
+          brain.creates.push({
+            entity,
+            expectedContentHash: undefined,
+            interfaceType: request.options.eventContext?.interfaceType,
+            actorUserId:
+              request.options.eventContext?.actor?.kind === "user"
+                ? request.options.eventContext.actor.userId
+                : undefined,
+          });
+          entities.push(entity);
+          return { entityId: id, jobId: "job-1", skipped: false };
+        },
+        deleteEntity: async (request) => {
+          brain.beforeNextUpdate?.();
+          brain.beforeNextUpdate = undefined;
+          const index = entities.findIndex(
+            (candidate) =>
+              candidate.entityType === request.entityType &&
+              candidate.id === request.id,
+          );
+          const expected = request.options?.expectedContentHash;
+          if (
+            index < 0 ||
+            (expected !== undefined &&
+              entities[index]?.contentHash !== expected)
+          ) {
+            return false;
+          }
+          entities.splice(index, 1);
+          brain.deletes.push({
+            entityType: request.entityType,
+            id: request.id,
+          });
+          return true;
         },
         recordAudit: async (event) => {
           brain.audit.push(event);

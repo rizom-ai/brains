@@ -1,7 +1,13 @@
 import type { AuthAppPasswordGrant } from "@brains/contracts";
 import type { WebRouteDefinition } from "@brains/sdk/internal/interface-runtime";
 import { permissionToVisibilityScope } from "@brains/sdk/internal/service-runtime";
-import { saveEntityFile, type DavWrites, type SaveOutcome } from "./dav-saves";
+import {
+  deleteEntityFile,
+  saveEntityFile,
+  type DavWrites,
+  type WriteDeps,
+  type WriteOutcome,
+} from "./dav-saves";
 import { ScratchStore, isScratchName, type ScratchFile } from "./dav-scratch";
 import { DavTree, type DavNode, type DavReader } from "./dav-tree";
 import { davErrorXml, multistatusXml, type DavResourceProps } from "./dav-xml";
@@ -22,7 +28,14 @@ export interface DavRoutesOptions {
 }
 
 const READ_METHODS = ["OPTIONS", "GET", "HEAD", "PROPFIND"] as const;
-const WRITE_METHODS = ["PUT", "DELETE", "MOVE", "COPY", "PROPPATCH"] as const;
+const WRITE_METHODS = [
+  "PUT",
+  "DELETE",
+  "MOVE",
+  "COPY",
+  "PROPPATCH",
+  "MKCOL",
+] as const;
 const METHODS = [...READ_METHODS, ...WRITE_METHODS] as const;
 type DavMethod = (typeof METHODS)[number];
 const ALLOW = METHODS.join(", ");
@@ -62,7 +75,7 @@ interface DavServer {
 
 /**
  * A WebDAV class 1 server (RFC 4918) over a brain's entities: browse with
- * PROPFIND, read with GET and HEAD, save an existing file with PUT. Each
+ * PROPFIND, read with GET and HEAD, save with PUT, remove with DELETE. Each
  * method is its own prefix route; the routes are public to the host and
  * authenticate every request themselves, with an app password.
  */
@@ -86,6 +99,7 @@ export function createDavRoutes(
     // Copying an entity would create one, and properties are not stored.
     COPY: async () => forbidden("The drive does not copy files"),
     PROPPATCH: async () => forbidden("The drive does not store properties"),
+    MKCOL: makeFolder,
   };
 
   return METHODS.map((method): WebRouteDefinition => ({
@@ -139,10 +153,39 @@ function isScratchPath(segments: string[]): boolean {
   return name !== undefined && isScratchName(name);
 }
 
-async function nodeAt(dav: DavRequest): Promise<DavNode | undefined> {
+async function nodeAt(
+  server: DavServer,
+  dav: DavRequest,
+): Promise<DavNode | undefined> {
   if (!dav.path) return undefined;
   const node = await dav.tree.resolve(dav.path.segments);
-  return node?.kind === "file" && dav.path.asFolder ? undefined : node;
+  if (node) return node.kind === "file" && dav.path.asFolder ? undefined : node;
+  // A folder this person made and has not saved into yet.
+  return server.scratch.hasFolder(dav.grant.principal.userId, dav.path.segments)
+    ? { kind: "folder", segments: dav.path.segments }
+    : undefined;
+}
+
+/** Whether a folder is there for this person: real, or one they made. */
+async function folderExists(
+  server: DavServer,
+  dav: DavRequest,
+  segments: string[],
+): Promise<boolean> {
+  return (
+    segments.length === 0 ||
+    server.scratch.hasFolder(dav.grant.principal.userId, segments) ||
+    (await dav.tree.resolve(segments))?.kind === "folder"
+  );
+}
+
+function writeDeps(server: DavServer, dav: DavRequest): WriteDeps {
+  return {
+    tree: dav.tree,
+    reader: server.options.reader,
+    writes: server.options.writes,
+    folderExists: (segments) => folderExists(server, dav, segments),
+  };
 }
 
 async function read(
@@ -165,7 +208,7 @@ async function read(
     });
   }
 
-  const node = await nodeAt(dav);
+  const node = await nodeAt(server, dav);
   if (!node) return notFound();
   if (node.kind === "folder") return folderHasNoContent();
   return new Response(withBody ? await node.open() : null, {
@@ -193,18 +236,32 @@ async function propfind(server: DavServer, dav: DavRequest): Promise<Response> {
   const scratch = scratchAt(server, dav);
   if (scratch) return multistatus([scratchProps(scratch, basePath)]);
 
-  const node = await nodeAt(dav);
+  const node = await nodeAt(server, dav);
   if (!node) return notFound();
   if (node.kind === "file" || depth === "0") {
     return multistatus([nodeProps(node, basePath)]);
   }
+  const userId = dav.grant.principal.userId;
+  const children = await dav.tree.children(node.segments);
+  const realFolders = new Set(
+    children
+      .filter((child) => child.kind === "folder")
+      .map((child) => child.segments[child.segments.length - 1]),
+  );
   return multistatus([
     nodeProps(node, basePath),
-    ...(await dav.tree.children(node.segments)).map((child) =>
-      nodeProps(child, basePath),
-    ),
+    ...children.map((child) => nodeProps(child, basePath)),
     ...server.scratch
-      .list(dav.grant.principal.userId, node.segments)
+      .listFolders(userId, node.segments)
+      .filter((name) => !realFolders.has(name))
+      .map((name) =>
+        nodeProps(
+          { kind: "folder", segments: [...node.segments, name] },
+          basePath,
+        ),
+      ),
+    ...server.scratch
+      .list(userId, node.segments)
       .map((file) => scratchProps(file, basePath)),
   ]);
 }
@@ -220,41 +277,95 @@ async function put(server: DavServer, dav: DavRequest): Promise<Response> {
       status: 413,
     });
   }
+  const userId = dav.grant.principal.userId;
   if (isScratchPath(path.segments)) {
     // A folder's name has no extension either; it is not a temporary file.
-    if ((await dav.tree.resolve(path.segments))?.kind === "folder") {
+    if (await folderExists(server, dav, path.segments)) {
       return folderHasNoContent();
     }
-    return scratchWritten(
-      server.scratch.put(dav.grant.principal.userId, path.segments, bytes),
-    );
+    return scratchWritten(server.scratch.put(userId, path.segments, bytes));
   }
-  return saved(
-    await saveEntityFile(
-      {
-        tree: dav.tree,
-        reader: server.options.reader,
-        writes: server.options.writes,
-      },
-      {
-        segments: path.segments,
-        bytes,
-        ifMatch: dav.request.headers.get("if-match"),
-        grant: dav.grant,
-      },
-    ),
+  return written(
+    server,
+    dav,
+    path.segments,
+    await saveEntityFile(writeDeps(server, dav), {
+      segments: path.segments,
+      bytes,
+      ifMatch: dav.request.headers.get("if-match"),
+      onlyIfAbsent: dav.request.headers.get("if-none-match")?.trim() === "*",
+      grant: dav.grant,
+    }),
   );
 }
 
 async function remove(server: DavServer, dav: DavRequest): Promise<Response> {
   const { path } = dav;
   if (!path) return notFound();
+  const userId = dav.grant.principal.userId;
+  if (server.scratch.removeFolder(userId, path.segments)) return noContent();
   if (!path.asFolder && isScratchPath(path.segments)) {
-    return server.scratch.delete(dav.grant.principal.userId, path.segments)
-      ? noContent()
-      : notFound();
+    if (server.scratch.delete(userId, path.segments)) return noContent();
   }
-  return forbidden("The drive cannot delete files yet");
+  if (
+    path.segments.length === 0 ||
+    (await dav.tree.resolve(path.segments))?.kind === "folder"
+  ) {
+    // A folder goes when the last entity inside it does.
+    return forbidden("The drive does not delete folders");
+  }
+  if (path.asFolder) return notFound();
+  return written(
+    server,
+    dav,
+    path.segments,
+    await deleteEntityFile(writeDeps(server, dav), {
+      segments: path.segments,
+      ifMatch: dav.request.headers.get("if-match"),
+      grant: dav.grant,
+    }),
+  );
+}
+
+/**
+ * A new folder is only a place to save into: it is the person's own, in
+ * memory, until an entity is saved inside it, and that entity's id is what
+ * makes the folder real. MKCOL on a folder that is there answers 405, which
+ * clients that make parent folders before every upload take as done.
+ */
+async function makeFolder(
+  server: DavServer,
+  dav: DavRequest,
+): Promise<Response> {
+  const { path } = dav;
+  if (!path) return notFound();
+  if ((await dav.request.arrayBuffer()).byteLength > 0) {
+    return new Response("MKCOL takes no body", { status: 415 });
+  }
+  const { segments } = path;
+  const userId = dav.grant.principal.userId;
+  if (
+    segments.length === 0 ||
+    (await dav.tree.resolve(segments)) ||
+    server.scratch.hasFolder(userId, segments) ||
+    server.scratch.get(userId, segments)
+  ) {
+    return new Response("Already exists", {
+      status: 405,
+      headers: { Allow: "OPTIONS, PROPFIND" },
+    });
+  }
+  if (!(await folderExists(server, dav, segments.slice(0, -1)))) {
+    return new Response("The parent folder does not exist", { status: 409 });
+  }
+  // Every folder at the root is an entity type; inside one, a folder is an
+  // id segment and may have any name.
+  const [type] = segments;
+  if (type === undefined || !dav.tree.isFolderType(type)) {
+    return forbidden("Only an entity type can be a folder here");
+  }
+  server.scratch.makeFolder(userId, segments);
+  return new Response(null, { status: 201 });
 }
 
 /**
@@ -299,33 +410,40 @@ async function move(server: DavServer, dav: DavRequest): Promise<Response> {
       : new Response(null, { status: renamed === "created" ? 201 : 204 });
   }
 
-  // Phase by phase the destination is always an existing entity for now.
-  if (!overwrite) return preconditionFailed("The destination exists");
-  const outcome = await saveEntityFile(
-    {
-      tree: dav.tree,
-      reader: server.options.reader,
-      writes: server.options.writes,
-    },
-    {
-      segments: destination.segments,
-      bytes: source.bytes,
-      ifMatch: null,
-      grant: dav.grant,
-    },
-  );
+  if (!overwrite && (await dav.tree.entityAt(destination.segments))) {
+    return preconditionFailed("The destination exists");
+  }
+  const outcome = await saveEntityFile(writeDeps(server, dav), {
+    segments: destination.segments,
+    bytes: source.bytes,
+    ifMatch: null,
+    grant: dav.grant,
+  });
   // A refused save keeps the temporary file: the editor still has its work.
-  if (outcome.status === 204) server.scratch.delete(userId, path.segments);
-  return saved(outcome);
+  if (outcome.status < 300) server.scratch.delete(userId, path.segments);
+  return written(server, dav, destination.segments, outcome);
 }
 
-function saved(outcome: SaveOutcome): Response {
-  return outcome.status === 204
-    ? new Response(null, {
-        status: 204,
-        headers: outcome.etag ? { ETag: outcome.etag } : {},
-      })
-    : new Response(outcome.message, { status: outcome.status });
+/** The answer to a write; a created entity makes its folders real. */
+function written(
+  server: DavServer,
+  dav: DavRequest,
+  segments: string[],
+  outcome: WriteOutcome,
+): Response {
+  if ("message" in outcome) {
+    return new Response(outcome.message, { status: outcome.status });
+  }
+  if (outcome.status === 201) {
+    server.scratch.forgetFolders(
+      dav.grant.principal.userId,
+      segments.slice(0, -1),
+    );
+  }
+  return new Response(null, {
+    status: outcome.status,
+    headers: outcome.etag ? { ETag: outcome.etag } : {},
+  });
 }
 
 function scratchWritten(outcome: "created" | "replaced" | "full"): Response {

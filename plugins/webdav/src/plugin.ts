@@ -64,7 +64,9 @@ const service = defineServicePlugin({
           maxFileBytes: context.config.maxFileBytes,
           deserializeEntity: (markdown, entityType) =>
             runtime.entityReads.deserializeEntity(markdown, entityType),
+          createEntity: (request) => runtime.entityWrites.createEntity(request),
           updateEntity: (request) => runtime.entityWrites.updateEntity(request),
+          deleteEntity: (request) => runtime.entityWrites.deleteEntity(request),
           permissions: runtime.permissions,
           // Without auth nobody is admitted, so nothing reaches here.
           recordAudit: async (event) => {

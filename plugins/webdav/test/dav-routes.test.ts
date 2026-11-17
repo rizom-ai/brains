@@ -125,6 +125,7 @@ describe("WebDAV routes", () => {
       "MOVE",
       "COPY",
       "PROPPATCH",
+      "MKCOL",
     ]);
   });
 
@@ -147,7 +148,7 @@ describe("WebDAV routes", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("dav")).toBe("1");
     expect(response.headers.get("allow")).toBe(
-      "OPTIONS, GET, HEAD, PROPFIND, PUT, DELETE, MOVE, COPY, PROPPATCH",
+      "OPTIONS, GET, HEAD, PROPFIND, PUT, DELETE, MOVE, COPY, PROPPATCH, MKCOL",
     );
   });
 

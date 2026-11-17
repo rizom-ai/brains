@@ -4,7 +4,7 @@ Last updated: 2026-11-17
 
 ## Status
 
-In progress on `work/webdav-mount` (#990). Phases 1 and 2 are implemented and verified against the `personal` test app with rclone and GNOME's gvfs: the drive matches `brain-data/` file for file and byte for byte, and in-place, `sed -i` and write-then-rename saves through a mount reach the entity and `brain-data/`. The check through Cloudflare on a deployed brain remains. Phases 3 and 4 have not started.
+In progress on `work/webdav-mount` (#990). Phases 1–3 are implemented and verified against the `personal` test app with rclone and GNOME's gvfs: the drive matches `brain-data/` file for file and byte for byte, and saving (in place, `sed -i`, write-then-rename), creating (at the root, in a type folder, in a new nested folder) and deleting through a mount reach the entity and `brain-data/`. The check through Cloudflare on a deployed brain remains. Phase 4 has not started.
 
 ## Goal
 
@@ -106,9 +106,10 @@ The entity service stores `serializeEntity` output, so the stored markdown can d
 **PUT new file**
 
 ```text
+parent folder ─absent→ 409
 resolveEntityPlacement(type, id) ─not writable / no round trip→ 403
 policy checks as above
-createEntityFromMarkdown({ conditionalWrite: { expectedRevision: null } }) ─exists→ 412
+createEntity({ conditionalWrite: { expectedRevision: null } }) ─exists→ 412
 → 201
 ```
 

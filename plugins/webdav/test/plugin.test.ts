@@ -70,6 +70,7 @@ describe("the WebDAV plugin's registered surface", () => {
         "MOVE",
         "COPY",
         "PROPPATCH",
+        "MKCOL",
       ].map((method) => ["/dav", "prefix", method, true, undefined]),
     );
     expect(shell.listInteractions()).toEqual([

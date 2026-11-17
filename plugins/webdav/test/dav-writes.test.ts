@@ -98,7 +98,7 @@ describe("WebDAV saves", () => {
     const response = await drive(library())("OPTIONS", "/dav/");
     expect(response.headers.get("dav")).toBe("1");
     expect(response.headers.get("allow")).toBe(
-      "OPTIONS, GET, HEAD, PROPFIND, PUT, DELETE, MOVE, COPY, PROPPATCH",
+      "OPTIONS, GET, HEAD, PROPFIND, PUT, DELETE, MOVE, COPY, PROPPATCH, MKCOL",
     );
   });
 
@@ -346,33 +346,24 @@ describe("WebDAV saves", () => {
     expect(brain.updates.at(-1)?.entity.visibility).toBe("restricted");
   });
 
-  it("answers a file that is not there, or not visible, the same way, and takes no binary yet", async () => {
+  it("takes no binary yet, and no content for a folder", async () => {
     const brain = library();
     const dav = drive(brain);
-    const missing = await dav("PUT", "/dav/post/brand-new.md", {
-      body: doc("New"),
-    });
-    const hidden = await dav("PUT", "/dav/post/board-only.md", {
-      body: doc("Peek"),
-    });
-    expect([missing.status, hidden.status]).toEqual([403, 403]);
-    expect(await missing.text()).toBe(await hidden.text());
-
     expect(
       (
-        await dav("PUT", "/dav/image/cover.png", {
+        await dav("PUT", "/dav/post/photo.png", {
           body: new Uint8Array([1, 2]),
         })
       ).status,
     ).toBe(403);
     expect((await dav("PUT", "/dav/post/", { body: "x" })).status).toBe(405);
+    expect((await dav("PUT", "/dav/post", { body: "x" })).status).toBe(405);
     expect(brain.updates).toEqual([]);
   });
 
-  it("refuses deleting and renaming entities, and setting properties", async () => {
+  it("refuses renaming and copying entities, and setting properties", async () => {
     const brain = library();
     const dav = drive(brain);
-    expect((await dav("DELETE", "/dav/post/first.md")).status).toBe(403);
     expect(
       (
         await dav("MOVE", "/dav/post/first.md", {
@@ -393,6 +384,8 @@ describe("WebDAV saves", () => {
     expect(stored(brain, "post", "first")).toBe(
       doc("First", "status: draft\n"),
     );
+    expect(brain.creates).toEqual([]);
+    expect(brain.deletes).toEqual([]);
   });
 });
 

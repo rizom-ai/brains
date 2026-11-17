@@ -226,6 +226,31 @@ export class DavTree {
       : undefined;
   }
 
+  /**
+   * The entity a new markdown file at a path would be: a registered type and
+   * an id whose placement is exactly that path. Anything else cannot be
+   * exported to `brain-data/`, so it cannot be created here either.
+   */
+  placementAt(
+    segments: string[],
+  ): { entityType: string; id: string } | undefined {
+    if (segments.length === 0 || !segments.every(isSafeSegment)) {
+      return undefined;
+    }
+    const path = segments.join("/");
+    const { entityType, id } = parseEntityPath(path, this.containment);
+    if (!this.reader.getEntityTypes().includes(entityType)) return undefined;
+    const placement = resolveEntityPlacement(
+      entityType,
+      id,
+      ".md",
+      this.containment,
+    );
+    return placement.writable && placement.relativePath === path
+      ? { entityType, id }
+      : undefined;
+  }
+
   /** The file an entity is, or nothing when it has no place or no bytes yet. */
   private async fileOf(entity: BaseEntity): Promise<DavFile | undefined> {
     const extension = getEntityFileExtension(entity);
@@ -281,7 +306,7 @@ export class DavTree {
   }
 
   /** Notes live at the root and a contained type in its container's folder. */
-  private isFolderType(type: string): boolean {
+  isFolderType(type: string): boolean {
     return (
       type !== NOTE_TYPE &&
       !this.containment.has(type) &&

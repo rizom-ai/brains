@@ -45,6 +45,8 @@ export function isScratchName(name: string): boolean {
  */
 export class ScratchStore {
   private readonly files = new Map<string, Map<string, StoredScratchFile>>();
+  /** Folders a person made and has not saved into yet, by path, with their last use. */
+  private readonly folders = new Map<string, Map<string, number>>();
   private readonly now: () => number;
 
   constructor(now: () => number = Date.now) {
@@ -98,6 +100,57 @@ export class ScratchStore {
     return this.live(userId).delete(segments.join("/"));
   }
 
+  /** Whether a person has made a folder here that holds nothing real yet. */
+  hasFolder(userId: string, segments: string[]): boolean {
+    const folders = this.liveFolders(userId);
+    const key = segments.join("/");
+    if (!folders.has(key)) return false;
+    folders.set(key, this.now());
+    return true;
+  }
+
+  /** The names of the folders a person made directly inside another. */
+  listFolders(userId: string, parent: string[]): string[] {
+    const prefix = parent.length > 0 ? `${parent.join("/")}/` : "";
+    return [...this.liveFolders(userId).keys()]
+      .filter(
+        (key) =>
+          key.startsWith(prefix) && !key.slice(prefix.length).includes("/"),
+      )
+      .map((key) => key.slice(prefix.length))
+      .sort();
+  }
+
+  makeFolder(userId: string, segments: string[]): void {
+    const folders = this.liveFolders(userId);
+    folders.set(segments.join("/"), this.now());
+    this.folders.set(userId, folders);
+  }
+
+  /** Drop a folder a person made, with everything temporary inside it. */
+  removeFolder(userId: string, segments: string[]): boolean {
+    const key = segments.join("/");
+    const inside = (candidate: string): boolean =>
+      candidate === key || candidate.startsWith(`${key}/`);
+    const folders = this.liveFolders(userId);
+    if (!folders.has(key)) return false;
+    [...folders.keys()].filter(inside).forEach((name) => folders.delete(name));
+    const files = this.live(userId);
+    [...files.keys()].filter(inside).forEach((name) => files.delete(name));
+    return true;
+  }
+
+  /**
+   * A folder that now holds an entity is real: it and the folders above it
+   * stop being the person's own.
+   */
+  forgetFolders(userId: string, segments: string[]): void {
+    const folders = this.liveFolders(userId);
+    segments.forEach((_, index) =>
+      folders.delete(segments.slice(0, index + 1).join("/")),
+    );
+  }
+
   /** Move a temporary file to another temporary name. */
   rename(
     userId: string,
@@ -110,6 +163,16 @@ export class ScratchStore {
     if (outcome === "full") return "missing";
     this.delete(userId, from);
     return outcome;
+  }
+
+  private liveFolders(userId: string): Map<string, number> {
+    const folders = this.folders.get(userId) ?? new Map<string, number>();
+    const now = this.now();
+    [...folders].forEach(([key, touched]) => {
+      if (now - touched >= SCRATCH_IDLE_MS) folders.delete(key);
+    });
+    if (folders.size === 0) this.folders.delete(userId);
+    return folders;
   }
 
   /** A person's files that are still in use; idle ones are dropped here. */
