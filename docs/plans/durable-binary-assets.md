@@ -28,12 +28,11 @@ migrated copy of its database made them all from deck cover slides. That reader 
 the other first-party ones that could still reach an asset-backed image now read its
 reference and its bytes explicitly.
 
-That release is alpha.733. The image soak runs from each brain's 733 rollout for
-seven days and needs at least one production and one preview build per brain. Zero
-use means each brain's `legacyBinaryContent` entries keep their counts, with
-`lastAt` before the rollout.
+That release is alpha.733. Instead of a timed soak, zero use is proven with fresh
+production and preview builds on `yeehaa.io` running 733: its `legacyBinaryContent`
+entries keep their counts, with `lastAt` before the rollout.
 
-The PDF phase is built and held until the image soak ends:
+The PDF phase:
 
 - documents store asset references;
 - uploads and rendered PDFs stage their bytes, and a pending document holds no
@@ -47,7 +46,8 @@ On the July copy of the `yeehaa.io` database, the migration moves 14 inline PDFs
 (14 distinct, 3.5 MB) with no blockers, and verify reports every document valid with
 all 14 mirrored PDFs matching.
 
-Next: the soak, then bridge removal, then releasing the PDF phase.
+Next: bridge removal, which removes the legacy read mode for every asset-backed type,
+documents included, so PDFs ship without a bridge of their own.
 
 This plan is a stable `0.2.0` release gate: images and PDFs reach their completion
 criteria, including bridge removal, before the final alpha is nominated. It is the
