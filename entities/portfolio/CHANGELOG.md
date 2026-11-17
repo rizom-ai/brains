@@ -1,5 +1,18 @@
 # @brains/portfolio
 
+## 0.2.0-alpha.735
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.735
+  - @rizom/brain-ui@0.2.0-alpha.735
+  - @brains/atproto-contracts@0.2.0-alpha.735
+  - @brains/content-formatters@0.2.0-alpha.735
+  - @brains/contracts@0.2.0-alpha.735
+  - @brains/media-page-composer@0.2.0-alpha.735
+  - @brains/utils@0.2.0-alpha.735
+
 ## 0.2.0-alpha.734
 
 ### Patch Changes
