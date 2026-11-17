@@ -4,7 +4,10 @@ import {
 } from "@brains/entity-service";
 import { BaseJobHandler } from "@brains/job-queue";
 import type { JobDataSchema } from "@brains/job-queue";
-import type { BaseEntity } from "@brains/entity-service";
+import type {
+  BaseEntity,
+  EntityMutationReceiptKey,
+} from "@brains/entity-service";
 import type { Logger } from "@brains/utils/logger";
 import type { RetryScope } from "@brains/utils/retry-backoff";
 import type { ProgressReporter } from "@brains/utils/progress";
@@ -66,6 +69,22 @@ function getPreallocatedEntityId(data: unknown): string | undefined {
   return typeof entityId === "string" && entityId.trim().length > 0
     ? entityId.trim()
     : undefined;
+}
+
+/** The entity a job's create committed, recorded in the create's own transaction. */
+function createReceipt(jobId: string): EntityMutationReceiptKey {
+  return { namespace: "generation.create", key: jobId };
+}
+
+/** The done-marker a job's follow-ups record once they have all run. */
+function followUpsReceipt(jobId: string): EntityMutationReceiptKey {
+  return { namespace: "generation.follow-ups", key: jobId };
+}
+
+/** What a generation is finished from: the entity it saved, if it still exists. */
+interface SavedGeneration {
+  entityId: string;
+  generated: GeneratedContent | undefined;
 }
 
 function normalizeGenericCoverImageRequest(
@@ -291,61 +310,35 @@ export abstract class BaseGenerationJobHandler<
         message: `Starting ${this.jobTypeName}`,
       });
 
-      // Step 1: Generate content (subclass logic)
-      const generated = await this.generate(data, progressReporter);
-      const preallocatedEntityId = getPreallocatedEntityId(data);
-      const generatedForSave = preallocatedEntityId
-        ? this.applyPreallocatedEntityId(preallocatedEntityId, generated)
-        : generated;
+      // A rerun of a job whose create committed (its attempt died, or a
+      // follow-up failed and the queue retried it) finishes from that entity
+      // instead of generating and creating a second one.
+      const { entityId, generated } =
+        (await this.savedByEarlierAttempt(data, jobId)) ??
+        (await this.generateAndSave(data, jobId, progressReporter));
 
-      // Step 2: Create entity
-      await this.reportProgress(progressReporter, {
-        progress: PROGRESS_STEPS.SAVE,
-        message: `Saving ${this.entityType} to database`,
-      });
-
-      const result = preallocatedEntityId
-        ? await this.updatePreallocatedStub(
-            preallocatedEntityId,
-            generatedForSave,
-          )
-        : await this.context.entityService.createEntity({
-            entity: {
-              id: generatedForSave.id,
-              entityType: this.entityType,
-              content: generatedForSave.content,
-              metadata: generatedForSave.metadata,
-              ...(generatedForSave.visibility && {
-                visibility: generatedForSave.visibility,
-              }),
-            },
-            options: generatedForSave.createOptions,
-          });
-
-      // Step 3: Post-creation hook
-      await this.afterCreate(
-        data,
-        result.entityId,
-        progressReporter,
-        generatedForSave,
-      );
-      await this.enqueueGenericCoverImageIfRequested(
-        data,
-        result.entityId,
-        progressReporter,
-        generatedForSave,
-      );
+      // Step 3: Post-creation hooks, once per job. A committed entity
+      // deleted before the rerun has nothing left to follow up.
+      if (generated) {
+        await this.followUpOnce(
+          data,
+          jobId,
+          entityId,
+          progressReporter,
+          generated,
+        );
+      }
 
       // Step 4: Done
       await this.reportProgress(progressReporter, {
         progress: PROGRESS_STEPS.COMPLETE,
-        message: `${generatedForSave.title ?? this.entityType} created successfully`,
+        message: `${generated?.title ?? this.entityType} created successfully`,
       });
 
       return this.toResult({
         success: true,
-        entityId: result.entityId,
-        ...generatedForSave.resultExtras,
+        entityId,
+        ...generated?.resultExtras,
       });
     } catch (error) {
       if (error instanceof GenerationFailure) {
@@ -365,6 +358,124 @@ export abstract class BaseGenerationJobHandler<
       await this.onGenerationFailure(data, errorMessage);
       return this.toResult(JobResult.failure(error));
     }
+  }
+
+  /**
+   * The entity an earlier attempt of this job created, rebuilt as the
+   * generation it saved. A job filling a pre-allocated stub has no create
+   * to find: it updates the stub in place.
+   */
+  private async savedByEarlierAttempt(
+    data: TInput,
+    jobId: string,
+  ): Promise<SavedGeneration | undefined> {
+    if (getPreallocatedEntityId(data)) return undefined;
+    const receipt = await this.context.entityService.getEntityMutationReceipt(
+      createReceipt(jobId),
+    );
+    if (!receipt) return undefined;
+    if (receipt.operation === "none") {
+      throw new Error(`${this.jobTypeName} job ${jobId} recorded no entity`);
+    }
+    const entity = await this.context.entityService.getEntity({
+      entityType: receipt.entityType,
+      id: receipt.entityId,
+      visibilityScope: internalFullScope(
+        "a rerun generation job finishes from the entity it created",
+      ),
+    });
+    return {
+      entityId: receipt.entityId,
+      generated: entity ? savedGeneration(entity) : undefined,
+    };
+  }
+
+  /** Step 1 and 2: generate the content, then save it once for this job. */
+  private async generateAndSave(
+    data: TInput,
+    jobId: string,
+    progressReporter: ProgressReporter,
+  ): Promise<SavedGeneration> {
+    // Step 1: Generate content (subclass logic)
+    const generated = await this.generate(data, progressReporter);
+    const preallocatedEntityId = getPreallocatedEntityId(data);
+    const generatedForSave = preallocatedEntityId
+      ? this.applyPreallocatedEntityId(preallocatedEntityId, generated)
+      : generated;
+
+    // Step 2: Create entity
+    await this.reportProgress(progressReporter, {
+      progress: PROGRESS_STEPS.SAVE,
+      message: `Saving ${this.entityType} to database`,
+    });
+
+    const entityId = preallocatedEntityId
+      ? (
+          await this.updatePreallocatedStub(
+            preallocatedEntityId,
+            generatedForSave,
+          )
+        ).entityId
+      : await this.createOnce(jobId, generatedForSave);
+    return { entityId, generated: generatedForSave };
+  }
+
+  /**
+   * Create the entity with this job's receipt in the same transaction, so a
+   * rerun finds what it created rather than landing a duplicate beside it.
+   */
+  private async createOnce(
+    jobId: string,
+    generated: GeneratedContent,
+  ): Promise<string> {
+    const receipt = await this.context.entityService.applyEntityMutationOnce({
+      receipt: createReceipt(jobId),
+      operation: "create",
+      request: {
+        entity: {
+          id: generated.id,
+          entityType: this.entityType,
+          content: generated.content,
+          metadata: generated.metadata,
+          ...(generated.visibility && { visibility: generated.visibility }),
+        },
+        ...(generated.createOptions && { options: generated.createOptions }),
+      },
+    });
+    if (receipt.operation === "none") {
+      throw new Error(`${this.jobTypeName} job ${jobId} recorded no entity`);
+    }
+    return receipt.entityId;
+  }
+
+  /**
+   * Run the post-creation hooks unless this job already ran them all, then
+   * mark them done. A kill between a follow-up and the mark reruns them;
+   * a follow-up job queued with a key of its own is skipped while pending.
+   */
+  private async followUpOnce(
+    data: TInput,
+    jobId: string,
+    entityId: string,
+    progressReporter: ProgressReporter,
+    generated: GeneratedContent,
+  ): Promise<void> {
+    const done = followUpsReceipt(jobId);
+    if (await this.context.entityService.getEntityMutationReceipt(done)) {
+      return;
+    }
+    await this.afterCreate(data, entityId, progressReporter, generated);
+    await this.enqueueGenericCoverImageIfRequested(
+      data,
+      jobId,
+      entityId,
+      progressReporter,
+      generated,
+    );
+    await this.context.entityService.applyEntityMutationOnce({
+      receipt: done,
+      operation: "none",
+    });
   }
 
   /**
@@ -529,6 +640,7 @@ export abstract class BaseGenerationJobHandler<
 
   private async enqueueGenericCoverImageIfRequested(
     data: TInput,
+    jobId: string,
     entityId: string,
     progressReporter: ProgressReporter,
     generated: GeneratedContent,
@@ -561,6 +673,13 @@ export abstract class BaseGenerationJobHandler<
               interfaceType: "job",
               actor: { kind: "service", serviceId: "generation-job-handler" },
             },
+            // A rerun of this job queues no second cover while one waits.
+            options: {
+              source: "generation-job-handler",
+              metadata: { operationType: "data_processing" },
+              deduplication: "skip",
+              deduplicationKey: `${jobId}:cover-image`,
+            },
           },
         ),
       `queue the cover image for ${this.entityType}:${entityId}`,
@@ -575,6 +694,26 @@ export abstract class BaseGenerationJobHandler<
   protected failEarly(message: string): never {
     throw new GenerationFailure(message);
   }
+}
+
+/**
+ * A committed entity read back as the generation that saved it: its title
+ * and slug, where its metadata carries them, are what the result reported.
+ */
+function savedGeneration(entity: BaseEntity): GeneratedContent {
+  const title = entity.metadata["title"];
+  const slug = entity.metadata["slug"];
+  const resultExtras = withoutUndefined({
+    title: typeof title === "string" ? title : undefined,
+    slug: typeof slug === "string" ? slug : undefined,
+  });
+  return {
+    id: entity.id,
+    content: entity.content,
+    metadata: entity.metadata,
+    ...(typeof title === "string" && { title }),
+    ...(Object.keys(resultExtras).length > 0 && { resultExtras }),
+  };
 }
 
 /**

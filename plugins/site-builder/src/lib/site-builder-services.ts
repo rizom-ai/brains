@@ -8,7 +8,7 @@ import type { SiteViewTemplate } from "./site-view-template";
 /** The entity reads a build makes, at the scope each read names. */
 export type SiteEntityReads = Pick<
   ServiceEntityReads,
-  "getEntityTypes" | "listEntities" | "getEntity"
+  "getEntityTypes" | "listEntities" | "getEntity" | "openAsset"
 >;
 
 export interface SiteBuilderServices {

@@ -27,6 +27,7 @@ export const coreBundle: CapabilityBundleDefinition = defineBundle({
     "style-guide",
     "directory-sync",
     "note",
+    "refined-note",
     "link",
     "topics",
     "unified-inbox",
@@ -141,6 +142,12 @@ export const teamBundle: CapabilityBundleDefinition = defineBundle({
     {
       member: "note",
       config: { entityActions: { note: trustedContentEntityActions } },
+    },
+    {
+      member: "refined-note",
+      config: {
+        entityActions: { "refined-note": trustedContentEntityActions },
+      },
     },
     {
       member: "link",

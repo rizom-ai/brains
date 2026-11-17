@@ -1,5 +1,6 @@
 import type { ServiceEntityMirrorClient } from "@brains/sdk/internal/service-runtime";
 import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
+import { createHash } from "node:crypto";
 import { basename, dirname, extname } from "path";
 import { resolveInSyncPath, toSyncRelativePath } from "./path-utils";
 import {
@@ -23,10 +24,30 @@ import {
   type Containment,
 } from "./entity-paths";
 import { EntityPlacementError } from "./entity-placement-error";
-import { mkdir, readFile, rmdir, unlink, stat, utimes } from "fs/promises";
-import { moveFileWithoutReplacing, writeFileAtomic } from "./atomic-write";
+import {
+  mkdir,
+  open,
+  readFile,
+  rename,
+  rmdir,
+  unlink,
+  stat,
+  utimes,
+} from "fs/promises";
+import {
+  atomicWriteTempPath,
+  moveFileWithoutReplacing,
+  writeFileAtomic,
+} from "./atomic-write";
 import { z } from "@brains/utils/zod";
 import { computeContentHash } from "@brains/utils/hash";
+import {
+  assetRefSchema,
+  computeAssetDigest,
+  getAssetDigest,
+  readAssetBytes,
+  type AssetRef,
+} from "@brains/sdk/internal/service-runtime";
 import type { RawEntity, DirectorySyncStatus } from "../types";
 import {
   ensureDirectoryStructure as ensureSyncDirectoryStructure,
@@ -43,7 +64,11 @@ export { DOCUMENT_EXTENSIONS, isDocumentFile } from "./document-file-utils";
 
 export type FileOperationsEntityService = Pick<
   ServiceEntityMirrorClient,
-  "serializeEntity" | "hasEntityType" | "getEntityTypes" | "getEntityTypeConfig"
+  | "serializeEntity"
+  | "hasEntityType"
+  | "getEntityTypes"
+  | "getEntityTypeConfig"
+  | "openAsset"
 >;
 
 const sidecarMetadataSchema = z.record(z.string(), z.unknown());
@@ -138,7 +163,11 @@ export class FileOperations {
     };
   }
 
-  async readEntity(filePath: string, maxBytes?: number): Promise<RawEntity> {
+  /** An entity file's identity, size and timestamps, without reading it. */
+  async statEntityFile(
+    filePath: string,
+    maxBytes?: number,
+  ): Promise<EntityFileStat> {
     const fullPath = resolveInSyncPath(this.syncPath, filePath);
 
     const stats = await stat(fullPath);
@@ -147,11 +176,20 @@ export class FileOperations {
     }
 
     const { entityType, id } = this.parseEntityFromPath(filePath);
+    return {
+      fullPath,
+      entityType,
+      id,
+      sizeBytes: stats.size,
+      // Fallback to mtime if birthtime is invalid (zero epoch)
+      created: stats.birthtime.getTime() > 0 ? stats.birthtime : stats.mtime,
+      updated: stats.mtime,
+    };
+  }
 
-    // Fallback to mtime if birthtime is invalid (zero epoch)
-    const created =
-      stats.birthtime.getTime() > 0 ? stats.birthtime : stats.mtime;
-    const updated = stats.mtime;
+  async readEntity(filePath: string, maxBytes?: number): Promise<RawEntity> {
+    const { fullPath, entityType, id, created, updated } =
+      await this.statEntityFile(filePath, maxBytes);
 
     let content: string;
     let metadata: Record<string, unknown> | undefined;
@@ -255,6 +293,10 @@ export class FileOperations {
     const isImage = entity.entityType === "image";
     const isDocument = entity.entityType === "document";
 
+    // A pending or failed binary has no bytes to mirror yet. Its current file,
+    // if any, stays until the bytes it is waiting for replace it.
+    if ((isImage || isDocument) && entity.content === "") return;
+
     // The durable outbox keeps only the latest mutation per (type, id).
     // Image extensions are content-derived, so converge that stable namespace
     // by removing every obsolete representation before writing the latest one.
@@ -285,15 +327,37 @@ export class FileOperations {
       }
     }
 
-    if (isImage || isDocument) {
+    const assetRef = assetRefSchema.safeParse(entity.content);
+    if (assetRef.success) {
+      // Stored assets stream to the file; an identical file is left alone.
+      if (
+        (await pathExists(filePath)) &&
+        (await fileDigest(filePath)) === getAssetDigest(assetRef.data)
+      ) {
+        return;
+      }
+      await this.ensureEntityDirectory(filePath);
+      await writeChunks(
+        filePath,
+        await this.entityService.openAsset(assetRef.data),
+      );
+      if (isDocument) {
+        await this.writeDocumentSidecar(entity, filePath);
+      }
+    } else if (isImage || isDocument) {
+      // Text-form files leave a trailing newline, and payloads may wrap.
       const dataUrlPattern = isImage
-        ? /^data:image\/[a-z+]+;base64,(.+)$/i
-        : /^data:application\/pdf;base64,(.+)$/i;
-      // A data URL read from a markdown file keeps that file's newline.
-      const match = entity.content.trim().match(dataUrlPattern);
-      const contentToWrite = match?.[1]
-        ? Buffer.from(match[1], "base64")
-        : Buffer.from(entity.content, "base64");
+        ? /^data:image\/[a-z0-9.+-]+;base64,([\s\S]+)$/i
+        : /^data:application\/pdf;base64,([\s\S]+)$/i;
+      const payload = dataUrlPattern.exec(entity.content.trim())?.[1];
+      // Never decode anything else as base64: that silently drops the
+      // non-base64 characters and writes garbage the next import keeps.
+      if (!payload) {
+        throw new Error(
+          `Refusing to export ${entity.entityType}:${entity.id}: content is not a base64 data URL`,
+        );
+      }
+      const contentToWrite = Buffer.from(payload.replace(/\s/g, ""), "base64");
 
       let binaryUnchanged = false;
       if (await pathExists(filePath)) {
@@ -343,18 +407,47 @@ export class FileOperations {
   }
 
   /** Write an image's data URL as the text of its markdown file. */
+  /** A stored asset as the data URL a markdown image file holds. */
+  private async assetDataUrl(
+    entity: BaseEntity,
+    ref: AssetRef,
+  ): Promise<string> {
+    const bytes = await readAssetBytes(this.entityService, ref);
+    const recorded = entity.metadata["mediaType"];
+    const format = entity.metadata["format"];
+    const subtype = typeof format === "string" ? format : "png";
+    const mediaType =
+      typeof recorded === "string"
+        ? recorded
+        : `image/${subtype === "jpg" ? "jpeg" : subtype}`;
+    return `data:${mediaType};base64,${bytes.toString("base64")}`;
+  }
+
   private async writeImageMarkdown(
     entity: BaseEntity,
     filePath: string,
   ): Promise<void> {
-    if (
-      (await pathExists(filePath)) &&
-      (await readFile(filePath, "utf-8")) === entity.content
-    ) {
+    const assetRef = assetRefSchema.safeParse(entity.content);
+    const current = (await pathExists(filePath))
+      ? await readFile(filePath, "utf-8")
+      : undefined;
+    if (assetRef.success) {
+      // The file is its bytes: one that decodes to the stored asset is left
+      // byte for byte, however its data URL is wrapped.
+      if (
+        current !== undefined &&
+        dataUrlDigest(current) === getAssetDigest(assetRef.data)
+      ) {
+        return;
+      }
+    } else if (current === entity.content) {
       return;
     }
+    const text = assetRef.success
+      ? await this.assetDataUrl(entity, assetRef.data)
+      : entity.content;
     await this.ensureEntityDirectory(filePath);
-    await writeFileAtomic(filePath, entity.content);
+    await writeFileAtomic(filePath, text);
     const updatedTime = new Date(entity.updated);
     await utimes(filePath, updatedTime, updatedTime);
   }
@@ -522,6 +615,18 @@ export class FileOperations {
    * Uses stored contentHash from existing entity for efficiency
    */
   shouldUpdateEntity(existing: BaseEntity, newEntity: RawEntity): boolean {
+    // An image is its bytes: a file whose data URL decodes to the bytes the
+    // row stores, as an asset or inline, is unchanged however it is wrapped.
+    const assetBacked =
+      this.entityService.getEntityTypeConfig(existing.entityType)
+        .binaryStorage === "asset";
+    const stored = assetBacked
+      ? storedBytesDigest(existing.content)
+      : undefined;
+    if (stored !== undefined) {
+      const file = dataUrlDigest(newEntity.content);
+      return file === undefined || file !== stored;
+    }
     const newHash = computeContentHash(newEntity.content);
     return existing.contentHash !== newHash;
   }
@@ -546,5 +651,70 @@ export class FileOperations {
 
   async fileExists(filePath: string): Promise<boolean> {
     return pathExists(filePath);
+  }
+}
+
+/** An entity file's identity, size and timestamps. */
+export interface EntityFileStat {
+  fullPath: string;
+  entityType: string;
+  id: string;
+  sizeBytes: number;
+  created: Date;
+  updated: Date;
+}
+
+/** A file's SHA-256, hashed as a stream so its size never stalls a read. */
+export async function fileDigest(filePath: string): Promise<string> {
+  const hash = createHash("sha256");
+  for await (const chunk of Bun.file(filePath).stream()) hash.update(chunk);
+  return hash.digest("hex");
+}
+
+const DATA_URL_PAYLOAD = /^data:[^;,]+;base64,([\s\S]*)$/;
+
+/**
+ * The SHA-256 of the bytes a base64 data URL holds, however its payload is
+ * wrapped; undefined for anything else.
+ */
+function dataUrlDigest(content: string): string | undefined {
+  const payload = DATA_URL_PAYLOAD.exec(content.trim())?.[1]?.replace(
+    /\s/g,
+    "",
+  );
+  return payload
+    ? computeAssetDigest(Buffer.from(payload, "base64"))
+    : undefined;
+}
+
+/** The digest of the bytes a row stores: its asset's, or its inline data URL's. */
+function storedBytesDigest(content: string): string | undefined {
+  const ref = assetRefSchema.safeParse(content);
+  return ref.success ? getAssetDigest(ref.data) : dataUrlDigest(content);
+}
+
+/**
+ * Stream chunks into a hidden temporary file beside the target, then rename
+ * it over the target: a failed stream or a crash never leaves a truncated
+ * file for the next import to take as new bytes. The temporary file is the
+ * one `writeFileAtomic` uses, so sync and the Git exclude both skip it.
+ */
+async function writeChunks(
+  filePath: string,
+  chunks: AsyncIterable<Uint8Array>,
+): Promise<void> {
+  const temporary = atomicWriteTempPath(filePath);
+  try {
+    const handle = await open(temporary, "w");
+    try {
+      for await (const chunk of chunks) await handle.write(chunk);
+    } finally {
+      await handle.close();
+    }
+    await rename(temporary, filePath);
+  } catch (error) {
+    // Best-effort cleanup: the write's own failure is the one to report.
+    await unlink(temporary).catch(() => undefined);
+    throw error;
   }
 }

@@ -178,6 +178,7 @@ Post content here.`;
       await converter.convert(content);
 
       expect(mockEntityService.createEntity).toHaveBeenCalledWith({
+        stagedAsset: expect.anything(),
         entity: expect.objectContaining({
           id: "my-awesome-post-cover",
           entityType: "image",
@@ -197,6 +198,7 @@ Post content here.`;
       await converter.convert(content);
 
       expect(mockEntityService.createEntity).toHaveBeenCalledWith({
+        stagedAsset: expect.anything(),
         entity: expect.objectContaining({
           metadata: expect.objectContaining({
             title: "Cover image for My Awesome Post",
@@ -220,6 +222,7 @@ Post content here.`;
       await converter.convert(content);
 
       expect(mockEntityService.createEntity).toHaveBeenCalledWith({
+        stagedAsset: expect.anything(),
         entity: expect.objectContaining({
           metadata: expect.objectContaining({
             title: "Cover image for My Awesome Post",

@@ -167,13 +167,21 @@ describe("FaqReconcileHandler", () => {
     expect(await faqs()).toHaveLength(2);
   });
 
-  it("keeps the older FAQ; the newer one folds itself", async () => {
-    await seed("older", { created: "2026-09-01T00:00:00.000Z" });
-    await seed("newer", { created: "2026-09-02T00:00:00.000Z" });
+  it("folds the newer FAQ into this one when the older FAQ's check finds it", async () => {
+    await seed("older", { created: "2026-09-01T00:00:00.000Z", asked: 2 });
+    await seed("newer", { created: "2026-09-02T00:00:00.000Z", asked: 3 });
     near("older", "newer");
 
-    expect(await reconcile("older")).toEqual({ outcome: "kept" });
-    expect(await faqs()).toHaveLength(2);
+    expect(await reconcile("older")).toEqual({
+      outcome: "folded",
+      into: "older",
+    });
+    const remaining = await faqs();
+    expect(remaining.map((faq) => faq.id)).toEqual(["older"]);
+    expect(remaining[0]?.metadata.asked).toBe(5);
+    const parsed = readFaq(remaining[0] ?? { content: "" });
+    expect(parsed.answer).toBe("Answer older.");
+    expect(parsed.alternatives).toEqual([{ answer: "Answer newer." }]);
   });
 
   it("folds a draft into a published FAQ even when the draft is older", async () => {

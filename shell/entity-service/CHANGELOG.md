@@ -1,5 +1,286 @@
 # @brains/entity-service
 
+## 0.2.0-alpha.730
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.730
+  - @brains/content-formatters@0.2.0-alpha.730
+  - @brains/contracts@0.2.0-alpha.730
+  - @brains/db@0.2.0-alpha.730
+  - @brains/utils@0.2.0-alpha.730
+  - @brains/job-queue@0.2.0-alpha.730
+  - @brains/messaging-service@0.2.0-alpha.730
+
+## 0.2.0-alpha.729
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.729
+  - @brains/content-formatters@0.2.0-alpha.729
+  - @brains/contracts@0.2.0-alpha.729
+  - @brains/db@0.2.0-alpha.729
+  - @brains/utils@0.2.0-alpha.729
+  - @brains/job-queue@0.2.0-alpha.729
+  - @brains/messaging-service@0.2.0-alpha.729
+
+## 0.2.0-alpha.728
+
+### Patch Changes
+
+- [#984](https://github.com/rizom-ai/brains/pull/984) [`4d0991c`](https://github.com/rizom-ai/brains/commit/4d0991c3a4f921fe4fadc942d9532c10740710a8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A running brain removes leftover database leases. A brain removed expired lease rows only when it started, so a row left by a container killed while its lease was fresh outlived the next start and stayed until another one, and the offline asset commands kept finding a stale lease to refuse or skip. Each renewal of a brain's lease, every 10 seconds, now also deletes rows that have expired, other than its own, so such a row is gone within about one renewal of expiring. Fresh rows, including a maintenance command's, are left alone.
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.728
+  - @brains/content-formatters@0.2.0-alpha.728
+  - @brains/contracts@0.2.0-alpha.728
+  - @brains/db@0.2.0-alpha.728
+  - @brains/utils@0.2.0-alpha.728
+  - @brains/job-queue@0.2.0-alpha.728
+  - @brains/messaging-service@0.2.0-alpha.728
+
+## 0.2.0-alpha.727
+
+### Patch Changes
+
+- [#966](https://github.com/rizom-ai/brains/pull/966) [`a57b365`](https://github.com/rizom-ai/brains/commit/a57b365b06adc462b6c4323d17e7046119f0a90b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Notes come in two levels. A `refined-note` is one worked-out note written from one or more plain notes, which it replaces: `system_generate` with `prompt-from-source`, `entityType: "refined-note"` and the note as source writes a title, a one-sentence summary and a body from the note's text, saves it under `refined-note/`, no more visibly than the note, and then deletes the note. The confirmation names the note and says it will be removed; a caller who may not delete notes gets the delete permission error, and a failed generation keeps the note. A refined note must state its `title` and `summary`. It is in the `core` bundle; on a team brain creating and updating one needs Trusted, deleting one Admin, as for a note.
+
+  `prompt` is optional on `prompt-from-source` for every type: without it the entity is written from the source alone, and its id is taken from the source's id. A type that uses its sources up is named after its first source with a prompt too, since there the prompt directs the writing and names nothing. The operation also takes `additionalSourceIds`, further sources of the same type, so one entity can be written from several: one refined note from three notes, with one confirmation that names all three.
+
+  A type declares the source types its generation uses up with `config.consumesSources`. The runtime deletes those sources after the generated entity is saved, as the requester and under their delete policy, and `system_generate` refuses a source of any other type for it. A source that could not be deleted fails the job, which keeps what it wrote and names the source.
+
+  A type declares that its records must belong somewhere with `config.requiresGroupingMembership`. Where at least one grouping applies to the type, every create and update is refused unless the file states a value in one of them; a brain with no grouping for the type asks nothing more, and a generation's placeholder is exempt. A generation of such a type that states no membership is placed by the runtime: the brain chooses one grouping and one value, from the values a closed grouping allows or the values an open one holds. A refined note declares it. A grouping in the registry now carries `multiple` and `values`, which Studio publishes from its definitions.
+
+  Studio's library refines by hand. In a collection whose entries can be refined, each row's number is the mark it is picked with; while entries are picked the page's action is Refine instead of New, and one confirmation lists the picked entries, takes an optional direction and says they will be removed. Studio then moves to where the refined entry is written and says so until it is, and a refusal is shown in the brain's words with nothing changed. `POST /studio/api/refine` carries it, and the type list states `refinesInto` for a collection the signed-in person may refine. The system answers `generate:from-sources` on the bus with the same confirmation and refusals as `system_generate`; an approval runs only the request it was given for, so a direction stated after the confirmation opened is asked for again before it runs.
+
+  An entity named by the name it was saved under is found when that name survives only as its id: `system_get`, `system_update`, `system_delete` and a generation's source resolve "Dashboard drop-off" to the plain note `dashboard-drop-off`, whose file states no title. An entry titled exactly so still wins.
+
+- Updated dependencies [[`a57b365`](https://github.com/rizom-ai/brains/commit/a57b365b06adc462b6c4323d17e7046119f0a90b)]:
+  - @brains/contracts@0.2.0-alpha.727
+  - @brains/content-formatters@0.2.0-alpha.727
+  - @brains/job-queue@0.2.0-alpha.727
+  - @brains/messaging-service@0.2.0-alpha.727
+  - @brains/assets@0.2.0-alpha.727
+  - @brains/db@0.2.0-alpha.727
+  - @brains/utils@0.2.0-alpha.727
+
+## 0.2.0-alpha.726
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.726
+  - @brains/content-formatters@0.2.0-alpha.726
+  - @brains/contracts@0.2.0-alpha.726
+  - @brains/db@0.2.0-alpha.726
+  - @brains/utils@0.2.0-alpha.726
+  - @brains/job-queue@0.2.0-alpha.726
+  - @brains/messaging-service@0.2.0-alpha.726
+
+## 0.2.0-alpha.725
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.725
+  - @brains/content-formatters@0.2.0-alpha.725
+  - @brains/contracts@0.2.0-alpha.725
+  - @brains/db@0.2.0-alpha.725
+  - @brains/utils@0.2.0-alpha.725
+  - @brains/job-queue@0.2.0-alpha.725
+  - @brains/messaging-service@0.2.0-alpha.725
+
+## 0.2.0-alpha.724
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.724
+  - @brains/content-formatters@0.2.0-alpha.724
+  - @brains/contracts@0.2.0-alpha.724
+  - @brains/db@0.2.0-alpha.724
+  - @brains/utils@0.2.0-alpha.724
+  - @brains/job-queue@0.2.0-alpha.724
+  - @brains/messaging-service@0.2.0-alpha.724
+
+## 0.2.0-alpha.723
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.723
+  - @brains/content-formatters@0.2.0-alpha.723
+  - @brains/contracts@0.2.0-alpha.723
+  - @brains/db@0.2.0-alpha.723
+  - @brains/utils@0.2.0-alpha.723
+  - @brains/job-queue@0.2.0-alpha.723
+  - @brains/messaging-service@0.2.0-alpha.723
+
+## 0.2.0-alpha.722
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.722
+  - @brains/content-formatters@0.2.0-alpha.722
+  - @brains/contracts@0.2.0-alpha.722
+  - @brains/db@0.2.0-alpha.722
+  - @brains/utils@0.2.0-alpha.722
+  - @brains/job-queue@0.2.0-alpha.722
+  - @brains/messaging-service@0.2.0-alpha.722
+
+## 0.2.0-alpha.721
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.721
+  - @brains/content-formatters@0.2.0-alpha.721
+  - @brains/contracts@0.2.0-alpha.721
+  - @brains/db@0.2.0-alpha.721
+  - @brains/utils@0.2.0-alpha.721
+  - @brains/job-queue@0.2.0-alpha.721
+  - @brains/messaging-service@0.2.0-alpha.721
+
+## 0.2.0-alpha.720
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.720
+  - @brains/content-formatters@0.2.0-alpha.720
+  - @brains/contracts@0.2.0-alpha.720
+  - @brains/db@0.2.0-alpha.720
+  - @brains/utils@0.2.0-alpha.720
+  - @brains/job-queue@0.2.0-alpha.720
+  - @brains/messaging-service@0.2.0-alpha.720
+
+## 0.2.0-alpha.719
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.719
+  - @brains/content-formatters@0.2.0-alpha.719
+  - @brains/contracts@0.2.0-alpha.719
+  - @brains/db@0.2.0-alpha.719
+  - @brains/utils@0.2.0-alpha.719
+  - @brains/job-queue@0.2.0-alpha.719
+  - @brains/messaging-service@0.2.0-alpha.719
+
+## 0.2.0-alpha.718
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.718
+  - @brains/content-formatters@0.2.0-alpha.718
+  - @brains/contracts@0.2.0-alpha.718
+  - @brains/db@0.2.0-alpha.718
+  - @brains/utils@0.2.0-alpha.718
+  - @brains/job-queue@0.2.0-alpha.718
+  - @brains/messaging-service@0.2.0-alpha.718
+
+## 0.2.0-alpha.717
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.717
+  - @brains/content-formatters@0.2.0-alpha.717
+  - @brains/contracts@0.2.0-alpha.717
+  - @brains/db@0.2.0-alpha.717
+  - @brains/utils@0.2.0-alpha.717
+  - @brains/job-queue@0.2.0-alpha.717
+  - @brains/messaging-service@0.2.0-alpha.717
+
+## 0.2.0-alpha.716
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.716
+  - @brains/content-formatters@0.2.0-alpha.716
+  - @brains/contracts@0.2.0-alpha.716
+  - @brains/db@0.2.0-alpha.716
+  - @brains/utils@0.2.0-alpha.716
+  - @brains/job-queue@0.2.0-alpha.716
+  - @brains/messaging-service@0.2.0-alpha.716
+
+## 0.2.0-alpha.715
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.715
+  - @brains/content-formatters@0.2.0-alpha.715
+  - @brains/contracts@0.2.0-alpha.715
+  - @brains/db@0.2.0-alpha.715
+  - @brains/utils@0.2.0-alpha.715
+  - @brains/job-queue@0.2.0-alpha.715
+  - @brains/messaging-service@0.2.0-alpha.715
+
+## 0.2.0-alpha.714
+
+### Patch Changes
+
+- [#954](https://github.com/rizom-ai/brains/pull/954) [`5b12579`](https://github.com/rizom-ai/brains/commit/5b12579dd395a093fc5b4d140a054eaa0321730b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Offline tools move images stored as inline data URLs into durable assets. Each runs only against a local entity database no other process holds open, detected from open file handles, and never takes a lock.
+
+  - `brain assets:migrate --dry-run` decodes every inline image one row at a time and classifies it as ready, or blocked as SVG, malformed, double-encoded, unsupported or oversized, reporting distinct and duplicate bytes, the full-text rows and content hashes that change, and the peak disk the migration needs. It fails while anything is blocked.
+  - `brain assets:migrate` brings the entity schema forward, refuses while anything is blocked, then migrates one row at a time: the bytes are staged in committed chunks and published with the row's new reference, binary metadata and content hash, and its full-text row is removed. Identity, visibility and timestamps are kept; a markdown seed's stored newline is tolerated; a rerun skips migrated rows; the placeholder a pending or failed image held is cleared, while a completed image with the same bytes migrates as any other. Each run is appended to a manifest that never holds bytes.
+  - `brain assets:verify` checks that every reference resolves to an intact asset, that no inline image or image full-text row remains and, with `--brain-data`, that each mirrored file holds the stored bytes, a markdown image file compared by the bytes it decodes to.
+  - `brain assets:reconcile` restores absent rows and lost assets from `brain-data`, repairs inline rows whose bytes were lost from their file, and reports references that disagree with their file without changing them.
+
+  The pre-deploy backup verifies the image assets in its `brain.db` snapshot, every referenced asset intact and hashing to its digest, or the backup fails and blocks the deploy; it records the asset inventory and orphan uploads beside the snapshot. Regenerate `deploy/scripts/create-predeploy-backup.ts` in existing deployments to adopt it.
+
+- [#954](https://github.com/rizom-ai/brains/pull/954) [`0741d0b`](https://github.com/rizom-ai/brains/commit/0741d0bf34ec3f086221ced6f212b57256fc4ca8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `EntityReader.readBytes(definition, id)` reads the bytes of a record of a type that declares `binaryStorage`, through the record the reader can see: an `EntityBytes` of `bytes`, `mediaType` and `sizeBytes`, or `null` when the record is not visible to the reader or holds no bytes yet. A type without `binaryStorage` is refused with `invalid_input`. `EntityBytes` is stable in `@rizom/brain/entities`. An asset-backed record's `content` is the opaque `asset://sha256/<hex>` reference to its bytes; until the data-URL compatibility is removed, reads still return a data URL in its place.
+
+- [#954](https://github.com/rizom-ai/brains/pull/954) [`9bd95ad`](https://github.com/rizom-ai/brains/commit/9bd95ade782101ba4ead0e9686ba866c80c91bd9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Image readers read stored references and load bytes explicitly, only for a record read at the caller's scope. Chat delivery, the Studio preview, the ATProto and social cover, site image preparation, OG composition and entity-reference expansion read the image's reference and then its bytes; a restricted image is never served through another image that shares its bytes. Studio previews stream from storage into object URLs, and its image field offers only PNG, JPEG, GIF and WebP. System reads, listings and insights that mask or ignore content no longer load image bytes.
+
+  Directory sync exports an asset-backed image by streaming its chunks to a temporary file renamed into place, and leaves a file that already holds those bytes untouched. A markdown image file stays the image's only file: left byte for byte when it decodes to the stored bytes, rewritten as a data URL only when they change. An image awaiting its bytes writes no file, and content that is not a base64 data URL is refused instead of being decoded into a corrupt file.
+
+- [#954](https://github.com/rizom-ai/brains/pull/954) [`59f52a5`](https://github.com/rizom-ai/brains/commit/59f52a55f6c8940265a4b66e25525be22bf62e23) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Store asset bytes as staged 1 MiB chunks: each chunk commits on its own and yields to the event loop, and the entity mutation publishes the asset header with its reference in one small transaction. Reads stream chunk by chunk and check the digest, withholding the final chunk of bytes that no longer match their reference. Unpublished uploads are discarded after their mutation and swept at startup, and the empty single-BLOB `assets` table is replaced.
+
+- [#954](https://github.com/rizom-ai/brains/pull/954) [`3e82a18`](https://github.com/rizom-ai/brains/commit/3e82a18e9850f3257ba1683919e877110d75bdcc) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Store uploaded images as staged assets instead of data URLs. Image entities switch to asset-backed storage and leave full-text search; an upload is staged, then published with its image, and its format, media type, size and dimensions come from the bytes (25 MiB limit). A pending or failed image holds no payload. Only PNG, JPEG, GIF and WebP uploads become images.
+
+  Entity reads take a `binaryContent` mode: the default materializes an asset reference back into the data URL inline storage returned, counted by read surface and entity type, while `"reference"` returns the stored reference. Updates and deletes through the system tools, and owned writes, read the stored reference, so they never write bytes back inline. The web chat image route reads the image at the caller's scope and streams only that image's stored chunks, and directory sync no longer re-imports an image whose file matches its stored asset.
+
+- Updated dependencies [[`59f52a5`](https://github.com/rizom-ai/brains/commit/59f52a55f6c8940265a4b66e25525be22bf62e23)]:
+  - @brains/assets@0.2.0-alpha.714
+  - @brains/content-formatters@0.2.0-alpha.714
+  - @brains/contracts@0.2.0-alpha.714
+  - @brains/db@0.2.0-alpha.714
+  - @brains/utils@0.2.0-alpha.714
+  - @brains/job-queue@0.2.0-alpha.714
+  - @brains/messaging-service@0.2.0-alpha.714
+
+## 0.2.0-alpha.713
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.713
+  - @brains/content-formatters@0.2.0-alpha.713
+  - @brains/contracts@0.2.0-alpha.713
+  - @brains/db@0.2.0-alpha.713
+  - @brains/utils@0.2.0-alpha.713
+  - @brains/job-queue@0.2.0-alpha.713
+  - @brains/messaging-service@0.2.0-alpha.713
+
+## 0.2.0-alpha.712
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.712
+  - @brains/content-formatters@0.2.0-alpha.712
+  - @brains/contracts@0.2.0-alpha.712
+  - @brains/db@0.2.0-alpha.712
+  - @brains/utils@0.2.0-alpha.712
+  - @brains/job-queue@0.2.0-alpha.712
+  - @brains/messaging-service@0.2.0-alpha.712
+
 ## 0.2.0-alpha.711
 
 ### Patch Changes

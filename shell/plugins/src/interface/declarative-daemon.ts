@@ -1,3 +1,4 @@
+import { toError } from "@brains/utils/error";
 import type { Daemon, DaemonHealth } from "../manager/daemon-types";
 import type {
   AnyInterfaceDaemonDefinition,
@@ -9,134 +10,162 @@ import type {
   AccountSettingsRegistry,
 } from "../operator/account-settings-registry";
 import type { AnyAccountSettingsDefinition } from "../operator/account-settings-definition-contract";
+import {
+  createRestartBackoff,
+  daemonTimers,
+  withDaemonTimeout,
+  type DaemonSupervision,
+} from "./daemon-restart";
 
 const DAEMON_READINESS_TIMEOUT_MS = 30_000;
 const DAEMON_SHUTDOWN_TIMEOUT_MS = 10_000;
 
+/**
+ * Supervises one run-based daemon. `start` resolves once the run reports
+ * ready and rejects if it fails first. Once a run has been ready, a failure is
+ * logged and the run restarted with backoff until `stop`; health stays
+ * `error` until a restarted run reports ready.
+ */
 export function createDeclarativeDaemon(
   definition: InterfaceDaemonDefinition,
+  supervision: DaemonSupervision,
 ): Daemon {
-  let controller: AbortController | undefined;
-  let runTask: Promise<void> | undefined;
+  const { logger } = supervision;
+  const timers = daemonTimers(supervision);
+  const backoff = createRestartBackoff(supervision.random);
+  /** Aborted by `stop`; present while the daemon is started. */
+  let lifetime: AbortController | undefined;
+  /** The current run, settled whichever way it ends. */
+  let current: Promise<void> | undefined;
+  let cancelRestart: (() => void) | undefined;
+  /** Whether a run reported ready since `start`, which makes failures restart. */
+  let everReady = false;
   let health: DaemonHealth = {
     status: "unknown",
     message: "Waiting for readiness",
     lastCheck: new Date(),
   };
+  const setHealth = (status: DaemonHealth["status"], message: string): void => {
+    health = { status, message, lastCheck: new Date() };
+  };
+
+  const scheduleRestart = (owner: AbortController, failure: Error): void => {
+    const delayMs = backoff.next();
+    logger.error(
+      `Daemon "${definition.id}" failed; restarting in ${delayMs}ms`,
+      { daemon: definition.id, error: failure.message, restartInMs: delayMs },
+    );
+    cancelRestart = timers.schedule(() => {
+      cancelRestart = undefined;
+      if (lifetime !== owner) return;
+      launch(owner).catch(() => undefined);
+    }, delayMs);
+  };
+
+  /**
+   * Run once under `owner`: resolves when the run reports ready, rejects if
+   * it fails or does not report ready in time.
+   */
+  const launch = (owner: AbortController): Promise<void> => {
+    const controller = new AbortController();
+    const abort = (): void => controller.abort();
+    owner.signal.addEventListener("abort", abort, { once: true });
+    let timedOut: Error | undefined;
+    let resolveReady: (() => void) | undefined;
+    let rejectReady: ((error: Error) => void) | undefined;
+    const readiness = new Promise<void>((resolve, reject) => {
+      resolveReady = resolve;
+      rejectReady = reject;
+    });
+    const cancelReadinessTimeout = timers.schedule(() => {
+      timedOut = new Error(
+        `Daemon "${definition.id}" did not report readiness within ${DAEMON_READINESS_TIMEOUT_MS}ms`,
+      );
+      setHealth("error", timedOut.message);
+      rejectReady?.(timedOut);
+      controller.abort();
+    }, DAEMON_READINESS_TIMEOUT_MS);
+
+    const settled = (error: Error | undefined): void => {
+      cancelReadinessTimeout();
+      owner.signal.removeEventListener("abort", abort);
+      if (owner.signal.aborted) {
+        rejectReady?.(
+          new Error(`Daemon "${definition.id}" stopped before it was ready`),
+        );
+        return;
+      }
+      const failure =
+        timedOut ??
+        error ??
+        new Error(`Daemon "${definition.id}" stopped before it was aborted`);
+      // Whatever the failed run left listening on its signal lets go now.
+      controller.abort();
+      setHealth("error", failure.message);
+      rejectReady?.(failure);
+      if (everReady) scheduleRestart(owner, failure);
+    };
+
+    current = Promise.resolve()
+      .then(() =>
+        definition.run({
+          signal: controller.signal,
+          health: {
+            ready(): void {
+              if (controller.signal.aborted) return;
+              cancelReadinessTimeout();
+              everReady = true;
+              backoff.reset();
+              setHealth("healthy", "Ready");
+              resolveReady?.();
+            },
+            warning(message): void {
+              if (controller.signal.aborted) return;
+              setHealth("warning", message);
+            },
+          },
+        }),
+      )
+      .then(
+        () => settled(undefined),
+        (error: unknown) => settled(toError(error)),
+      );
+    return readiness;
+  };
 
   return {
     async start(): Promise<void> {
-      if (controller) return;
-      controller = new AbortController();
-      const runController = controller;
-
-      let resolveReady: (() => void) | undefined;
-      let rejectReady: ((error: Error) => void) | undefined;
-      const readiness = new Promise<void>((resolve, reject) => {
-        resolveReady = resolve;
-        rejectReady = reject;
-      });
-
-      runTask = Promise.resolve()
-        .then(() =>
-          definition.run({
-            signal: runController.signal,
-            health: {
-              ready(): void {
-                health = {
-                  status: "healthy",
-                  message: "Ready",
-                  lastCheck: new Date(),
-                };
-                resolveReady?.();
-              },
-              warning(message): void {
-                health = {
-                  status: "warning",
-                  message,
-                  lastCheck: new Date(),
-                };
-              },
-            },
-          }),
-        )
-        .then(() => {
-          if (!runController.signal.aborted) {
-            throw new Error(
-              `Daemon "${definition.id}" stopped before it was aborted`,
-            );
-          }
-        })
-        .catch((error: unknown) => {
-          const failure =
-            error instanceof Error ? error : new Error(String(error));
-          health = {
-            status: "error",
-            message: failure.message,
-            lastCheck: new Date(),
-          };
-          rejectReady?.(failure);
-          throw failure;
-        });
-      runTask.catch(() => undefined);
-      let readinessTimeout: ReturnType<typeof setTimeout> | undefined;
-      const timeout = new Promise<void>((_resolve, reject) => {
-        readinessTimeout = setTimeout(() => {
-          const failure = new Error(
-            `Daemon "${definition.id}" did not report readiness within ${DAEMON_READINESS_TIMEOUT_MS}ms`,
-          );
-          health = {
-            status: "error",
-            message: failure.message,
-            lastCheck: new Date(),
-          };
-          runController.abort();
-          reject(failure);
-        }, DAEMON_READINESS_TIMEOUT_MS);
-      });
-      try {
-        await Promise.race([readiness, timeout]);
-      } finally {
-        clearTimeout(readinessTimeout);
-      }
+      if (lifetime) return;
+      const owner = new AbortController();
+      lifetime = owner;
+      everReady = false;
+      backoff.reset();
+      await launch(owner);
     },
 
     async stop(): Promise<void> {
-      const activeController = controller;
-      const activeTask = runTask;
-      controller = undefined;
-      runTask = undefined;
-      activeController?.abort();
-      let shutdownTimeout: ReturnType<typeof setTimeout> | undefined;
-      const completed = activeTask
-        ? await Promise.race([
-            activeTask.then(
-              () => true,
-              () => true,
-            ),
-            new Promise<false>((resolve) => {
-              shutdownTimeout = setTimeout(
-                () => resolve(false),
-                DAEMON_SHUTDOWN_TIMEOUT_MS,
-              );
-            }),
-          ])
+      const owner = lifetime;
+      const active = current;
+      lifetime = undefined;
+      current = undefined;
+      cancelRestart?.();
+      cancelRestart = undefined;
+      owner?.abort();
+      const completed = active
+        ? await withDaemonTimeout(
+            active.then(() => true),
+            timers,
+            DAEMON_SHUTDOWN_TIMEOUT_MS,
+            `Daemon "${definition.id}" did not stop`,
+          ).catch(() => false)
         : true;
-      clearTimeout(shutdownTimeout);
       if (!completed) {
-        health = {
-          status: "error",
-          message: `Daemon "${definition.id}" did not stop within ${DAEMON_SHUTDOWN_TIMEOUT_MS}ms`,
-          lastCheck: new Date(),
-        };
+        setHealth(
+          "error",
+          `Daemon "${definition.id}" did not stop within ${DAEMON_SHUTDOWN_TIMEOUT_MS}ms`,
+        );
       }
-      if (health.status !== "error") {
-        health = {
-          status: "unknown",
-          message: "Stopped",
-          lastCheck: new Date(),
-        };
-      }
+      if (health.status !== "error") setHealth("unknown", "Stopped");
     },
 
     healthCheck(): Promise<DaemonHealth> {
@@ -156,9 +185,12 @@ export function declaredDaemon(input: {
   readonly attached: AnyAccountSettingsDefinition | undefined;
   readonly registration: AccountSettingsRegistration | undefined;
   readonly accountSettings: AccountSettingsRegistry;
+  /** Where a daemon that fails and restarts is reported. */
+  readonly logger: DaemonSupervision["logger"];
 }): Daemon {
   const { owner, daemon } = input;
-  if (!daemon.forAccounts) return createDeclarativeDaemon(daemon);
+  const supervision: DaemonSupervision = { logger: input.logger };
+  if (!daemon.forAccounts) return createDeclarativeDaemon(daemon, supervision);
   if (daemon.forAccounts !== input.attached) {
     throw new Error(
       `${owner} account-bound daemon "${daemon.id}" must reference its attached account settings`,
@@ -169,5 +201,10 @@ export function declaredDaemon(input: {
       `${owner} account-bound daemon "${daemon.id}" has no registered account settings`,
     );
   }
-  return createAccountDaemon(daemon, input.registration, input.accountSettings);
+  return createAccountDaemon(
+    daemon,
+    input.registration,
+    input.accountSettings,
+    supervision,
+  );
 }

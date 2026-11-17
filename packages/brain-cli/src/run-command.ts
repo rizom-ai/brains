@@ -340,6 +340,109 @@ const configMigrate: BrainCommand = defineCommand({
   },
 });
 
+/** Shared by the offline asset commands, which all check database leases. */
+const STALE_HEARTBEAT_FLAG = {
+  type: "boolean",
+  description:
+    "Continue past leases a crash left (a fresh lease still refuses)",
+} as const;
+
+const assetsMigrate: BrainCommand = defineCommand({
+  name: "assets:migrate",
+  usage:
+    "[--dry-run] [--database <path>] [--manifest <path>] [--ignore-stale-heartbeat]",
+  description: "Move inline images into durable assets (offline, app stopped)",
+  flags: {
+    "ignore-stale-heartbeat": STALE_HEARTBEAT_FLAG,
+    database: {
+      type: "string",
+      placeholder: "<path>",
+      description: "Entity database file (default: <data dir>/brain.db)",
+    },
+    "dry-run": {
+      type: "boolean",
+      description: "Decode every inline image and report without writing",
+    },
+    manifest: {
+      type: "string",
+      placeholder: "<path>",
+      description:
+        "Run record to append to (default: binary-asset-migration.json beside the database)",
+    },
+  },
+  run: async ({ flags }, dir): Promise<CommandResult> => {
+    const { runAssetsMigrate } = await import("./commands/assets-migrate");
+    return runAssetsMigrate(dir, {
+      database: getStringFlag(flags, "database"),
+      dryRun: getBooleanFlag(flags, "dry-run"),
+      manifest: getStringFlag(flags, "manifest"),
+      ignoreStaleHeartbeat: getBooleanFlag(flags, "ignore-stale-heartbeat"),
+    });
+  },
+});
+
+const assetsVerify: BrainCommand = defineCommand({
+  name: "assets:verify",
+  usage: "[--database <path>] [--brain-data <dir>] [--ignore-stale-heartbeat]",
+  description:
+    "Check migrated images resolve to intact assets (offline, app stopped)",
+  flags: {
+    "ignore-stale-heartbeat": STALE_HEARTBEAT_FLAG,
+    database: {
+      type: "string",
+      placeholder: "<path>",
+      description: "Entity database file (default: <data dir>/brain.db)",
+    },
+    "brain-data": {
+      type: "string",
+      placeholder: "<dir>",
+      description: "Synced content directory whose image files to compare",
+    },
+  },
+  run: async ({ flags }, dir): Promise<CommandResult> => {
+    const { runAssetsVerify } = await import("./commands/assets-verify");
+    return runAssetsVerify(dir, {
+      database: getStringFlag(flags, "database"),
+      brainData: getStringFlag(flags, "brain-data"),
+      ignoreStaleHeartbeat: getBooleanFlag(flags, "ignore-stale-heartbeat"),
+    });
+  },
+});
+
+const assetsReconcile: BrainCommand = defineCommand({
+  name: "assets:reconcile",
+  usage:
+    "[--from <dir>] [--dry-run] [--database <path>] [--ignore-stale-heartbeat]",
+  description:
+    "Restore image rows and assets from brain-data (offline, app stopped)",
+  flags: {
+    "ignore-stale-heartbeat": STALE_HEARTBEAT_FLAG,
+    database: {
+      type: "string",
+      placeholder: "<path>",
+      description: "Entity database file (default: <data dir>/brain.db)",
+    },
+    from: {
+      type: "string",
+      placeholder: "<dir>",
+      description: "Synced content directory (default: brain-data)",
+    },
+    "dry-run": {
+      type: "boolean",
+      description: "Report what would be restored without writing",
+    },
+  },
+  run: async ({ flags }, dir): Promise<CommandResult> => {
+    const { runAssetsReconcile } = await import("./commands/assets-reconcile");
+    return runAssetsReconcile(dir, {
+      database: getStringFlag(flags, "database"),
+      from: getStringFlag(flags, "from"),
+      dryRun: getBooleanFlag(flags, "dry-run"),
+      ignoreStaleHeartbeat: getBooleanFlag(flags, "ignore-stale-heartbeat"),
+    });
+  },
+});
+
 const toolCommand: BrainCommand = defineCommand({
   name: "tool",
   usage: "<name> [input-json] [--yes]",
@@ -467,6 +570,9 @@ export const commands: readonly CommandDefinition<string, CommandResult>[] = [
   authResetPasskeys,
   authReinitializeAccess,
   configMigrate,
+  assetsMigrate,
+  assetsVerify,
+  assetsReconcile,
   toolCommand,
   helpCommand,
   versionCommand,

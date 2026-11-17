@@ -46,6 +46,7 @@ function inputContext(entities: BaseEntity[]): ProjectionInputContext {
       entities: entities.length,
       entityCounts: [],
       embeddings: 0,
+      legacyBinaryContent: [],
       backgroundWork: {
         status: "operational",
         reasons: [],

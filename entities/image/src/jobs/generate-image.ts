@@ -6,7 +6,7 @@ import {
   imageGenerateJobContract,
   type ImageGenerateJobInput,
 } from "@brains/contracts";
-import { createImageEntity, type imageMetadataSchema } from "@brains/image";
+import { stageImageEntity, type imageMetadataSchema } from "@brains/image";
 import type {
   EntityDefinition,
   EntityJobDeclaration,
@@ -20,7 +20,7 @@ import { slugify } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import { buildImageBasePrompt } from "../lib/build-image-base-prompt";
 import { getDistillableEntityContent } from "../lib/distillable-content";
-import { failPendingImage, saveProcessedImage } from "../lib/processed-image";
+import { failPendingImage, saveStagedImage } from "../lib/processed-image";
 
 type ImageDefinition = EntityDefinition<"image", typeof imageMetadataSchema>;
 
@@ -81,7 +81,13 @@ export function generateImageJob(
           const error = new Error(
             "Image generation not available: no API key configured",
           );
-          await failPendingImage(entities, image(), imageId, error.message);
+          await failPendingImage(
+            entities,
+            runtime.assets,
+            image(),
+            imageId,
+            error.message,
+          );
           return JobResult.failure(error);
         }
 
@@ -151,15 +157,22 @@ ${entityContent}`,
         });
 
         // Step 3: Create or update image entity
-        const entityData = createImageEntity({
-          dataUrl: generationResult.dataUrl,
-          title,
-          status: "draft",
-          attachmentType: "generated",
-          ...(targetEntityType && { sourceEntityType: targetEntityType }),
-          ...(targetEntityId && { sourceEntityId: targetEntityId }),
-        });
-        await saveProcessedImage(entities, image(), imageId, entityData);
+        // The provider's data URL is decoded while staging and never stored.
+        const staged = await stageImageEntity(
+          {
+            stageAsset: (source, options) =>
+              runtime.assets.stage(source, options),
+          },
+          { dataUrl: generationResult.dataUrl },
+          {
+            title,
+            status: "draft",
+            attachmentType: "generated",
+            ...(targetEntityType && { sourceEntityType: targetEntityType }),
+            ...(targetEntityId && { sourceEntityId: targetEntityId }),
+          },
+        );
+        await saveStagedImage(runtime.assets, image(), imageId, staged);
         runtime.logger.debug("Created image entity", { imageId });
 
         // Step 4: Optionally update target entity
@@ -210,6 +223,7 @@ ${entityContent}`,
         });
         await failPendingImage(
           entities,
+          runtime.assets,
           image(),
           imageId,
           getErrorMessage(error),

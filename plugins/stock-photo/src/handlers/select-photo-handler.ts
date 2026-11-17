@@ -1,11 +1,12 @@
 import {
   firstPartyJobHandler,
   type FirstPartyJobHandler,
+  type ServiceEntityMutations,
 } from "@brains/sdk/internal/service-runtime";
 import type { StockPhotoEntityWriter } from "../lib/set-cover-image";
 import type { ProgressReporter } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
-import { createImageEntity } from "@brains/image";
+import { stageImageEntity } from "@brains/image";
 import type { FetchImageFn, StockPhotoProvider } from "../lib/types";
 import { setCoverImage } from "../lib/set-cover-image";
 
@@ -47,6 +48,60 @@ export interface SelectPhotoHandlerDeps {
   provider: StockPhotoProvider;
   entityService: StockPhotoEntityWriter;
   fetchImage: FetchImageFn;
+  /** The job's durable done-markers, kept by the entity service's receipts. */
+  receipts: Pick<
+    ServiceEntityMutations,
+    "getEntityMutationReceipt" | "applyEntityMutationOnce"
+  >;
+}
+
+/**
+ * Ping the provider's download tracker once for this job: each use of a
+ * photo is tracked, as the provider's terms require, and a rerun of a job
+ * that already pinged it does not ping again.
+ */
+async function trackDownloadOnce(
+  deps: SelectPhotoHandlerDeps,
+  jobId: string,
+  downloadLocation: string,
+): Promise<void> {
+  const tracked = { namespace: "stock-photo.download-tracked", key: jobId };
+  if (await deps.receipts.getEntityMutationReceipt(tracked)) return;
+  await deps.provider.triggerDownload(downloadLocation);
+  await deps.receipts.applyEntityMutationOnce({
+    receipt: tracked,
+    operation: "none",
+  });
+}
+
+/** Download the photo and store it as an image under the photo's id. */
+async function savePhoto(
+  deps: SelectPhotoHandlerDeps,
+  data: SelectPhotoJobData,
+  progress: ProgressReporter,
+): Promise<string> {
+  await step(progress, 35, "Downloading stock photo");
+
+  const dataUrl = await deps.fetchImage(data.imageUrl);
+  const imageTitle = data.title ?? `Stock photo ${data.photoId}`;
+  // The fetched data URL is decoded while staging and never stored.
+  const { entity: imageData, stagedAsset } = await stageImageEntity(
+    deps.entityService,
+    { dataUrl },
+    {
+      title: imageTitle,
+      alt: data.alt ?? imageTitle,
+      sourceUrl: data.imageUrl,
+    },
+  );
+
+  await step(progress, 75, "Saving stock photo");
+
+  const { entityId } = await deps.entityService.createEntity({
+    entity: { id: data.photoId, ...imageData },
+    stagedAsset,
+  });
+  return entityId;
 }
 
 /** One progress step, out of a hundred. */
@@ -61,9 +116,11 @@ function step(
 /**
  * Materialize a selected stock photo: track the download, as the provider's
  * terms require, store the photo as an image under the photo's id with its
- * source URL, and set it as the target's cover when one is named. Queued
- * by the select tool under stock-photo:select-photo, and run as the
- * package: nobody is attributed and no action policy is checked.
+ * source URL, and set it as the target's cover when one is named. A photo
+ * already stored, by an earlier attempt of this job or by another job, is
+ * reused rather than downloaded again. Queued by the select tool under
+ * stock-photo:select-photo, and run as the package: nobody is attributed
+ * and no action policy is checked.
  */
 export function selectPhotoJob(
   deps: SelectPhotoHandlerDeps,
@@ -77,34 +134,20 @@ export function selectPhotoJob(
     }),
     process: async ({
       input: data,
+      jobId,
       progress,
     }): Promise<SelectPhotoJobResult> => {
       await step(progress, 10, "Tracking stock photo download");
 
-      await deps.provider.triggerDownload(data.downloadLocation);
+      await trackDownloadOnce(deps, jobId, data.downloadLocation);
 
-      await step(progress, 35, "Downloading stock photo");
-
-      const dataUrl = await deps.fetchImage(data.imageUrl);
-      const imageTitle = data.title ?? `Stock photo ${data.photoId}`;
-      const imageData = createImageEntity({
-        dataUrl,
-        title: imageTitle,
-        alt: data.alt ?? imageTitle,
+      const stored = await deps.entityService.getEntity({
+        entityType: "image",
+        id: data.photoId,
       });
-
-      await step(progress, 75, "Saving stock photo");
-
-      const { entityId } = await deps.entityService.createEntity({
-        entity: {
-          id: data.photoId,
-          ...imageData,
-          metadata: {
-            ...imageData.metadata,
-            sourceUrl: data.imageUrl,
-          },
-        },
-      });
+      const entityId = stored
+        ? stored.id
+        : await savePhoto(deps, data, progress);
 
       const result: SelectPhotoJobResult = {
         imageEntityId: entityId,

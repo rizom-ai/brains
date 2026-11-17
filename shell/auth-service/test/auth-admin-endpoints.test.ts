@@ -329,6 +329,62 @@ describe("auth admin API", () => {
     });
   });
 
+  it("labels an identity that only carries its channel's generic label differently per surface", async () => {
+    // The administration read surfaces (roster, identity list) fall back to
+    // the generic channel label; the identity mutation responses omit it.
+    const service = await createService();
+    const admin = await service.createUser({
+      displayName: "Anchor",
+      role: "admin",
+    });
+    const member = await service.createUser({
+      displayName: "Mira",
+      role: "trusted",
+    });
+    const identity = await service.attachIdentity(
+      {
+        userId: member.userId,
+        type: "discord",
+        subject: "1442828818493735015",
+        deliverySubject: "   ",
+        label: "Discord user ID",
+        verifiedAt: 1_735_689_600_000,
+      },
+      { actorUserId: admin.userId },
+    );
+    const session = await service.createAuthSession(admin.userId);
+
+    expect(await service.listUserIdentities(member.userId)).toEqual([
+      expect.objectContaining({ id: identity.id, label: "Discord user ID" }),
+    ]);
+    const roster = rosterWithIdentitiesSchema.parse(
+      await (
+        await service.handleRequest(
+          adminRequest("/auth/admin/users", session.cookie),
+        )
+      ).json(),
+    );
+    expect(
+      roster.users.find((user) => user.userId === member.userId)?.identities,
+    ).toEqual([
+      expect.objectContaining({ id: identity.id, label: "Discord user ID" }),
+    ]);
+
+    const detached = await service.handleRequest(
+      adminRequest("/auth/admin/mutations", session.cookie, {
+        action: "detachIdentity",
+        confirmation: "detachIdentity",
+        identityId: identity.id,
+      }),
+    );
+    expect(detached.status).toBe(200);
+    const body = z
+      .looseObject({ identity: z.looseObject({ id: z.string() }) })
+      .parse(await detached.json());
+    expect(body.identity.id).toBe(identity.id);
+    expect(body.identity).not.toHaveProperty("label");
+  });
+
   it("shows retained verified email addresses to active Admins", async () => {
     const service = await createService();
     const admin = await service.createUser({

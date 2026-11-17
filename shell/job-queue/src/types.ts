@@ -339,6 +339,12 @@ export interface IJobQueueService {
   /** Mark job as failed, fenced when an attempt token is supplied. */
   fail(jobId: string, error: Error, attemptId?: string): Promise<boolean>;
 
+  /**
+   * Hand a current attempt's job back to the queue without spending a retry:
+   * the worker stopped it, not the job itself.
+   */
+  release(jobId: string, attemptId: string): Promise<boolean>;
+
   /** Update job data, fenced when an attempt token is supplied. */
   update(jobId: string, data: unknown, attemptId?: string): Promise<boolean>;
 
@@ -436,6 +442,12 @@ export type JobQueueServiceConfig = DbConfig & {
 export const DEFAULT_WORKER_SESSION_TIMEOUT_MS = 15_000;
 
 /**
+ * How long a stopping worker waits for its running jobs before it interrupts
+ * them. With the web role's drain it stays under the supervisor's 15 s grace.
+ */
+export const DEFAULT_WORKER_SHUTDOWN_DRAIN_MS = 8_000;
+
+/**
  * Configuration for the JobQueueWorker
  */
 export interface JobQueueWorkerConfig {
@@ -463,6 +475,11 @@ export interface JobQueueWorkerConfig {
   workerHeartbeatIntervalMs?: number;
   /** Liveness timeout used to reclaim another worker's attempts. */
   workerSessionTimeoutMs?: number;
+  /**
+   * How long stop() waits for running jobs before it interrupts them; see
+   * {@link DEFAULT_WORKER_SHUTDOWN_DRAIN_MS}.
+   */
+  shutdownDrainMs?: number;
   /** Called once when this process can no longer safely execute queue work. */
   onUnhealthy?: (reason: string) => void;
 }

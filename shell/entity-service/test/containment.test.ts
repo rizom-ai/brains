@@ -73,4 +73,19 @@ describe("contained entity types", () => {
     expect(await exists("note", "ab")).toBe(true);
     expect(await exists("post", "ab:1")).toBe(true);
   });
+
+  test("keeps a container's contents when a conditional delete finds it changed", async () => {
+    await note("a");
+    await post("a:1");
+
+    const deleted = await ctx.entityService.deleteEntity({
+      entityType: "note",
+      id: "a",
+      options: { expectedContentHash: "a hash the note never had" },
+    });
+
+    expect(deleted).toBe(false);
+    expect(await exists("note", "a")).toBe(true);
+    expect(await exists("post", "a:1")).toBe(true);
+  });
 });

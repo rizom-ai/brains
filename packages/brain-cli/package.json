@@ -1,6 +1,6 @@
 {
   "name": "@rizom/brain",
-  "version": "0.2.0-alpha.711",
+  "version": "0.2.0-alpha.730",
   "description": "Brain runtime + CLI — scaffold, run, and manage AI brain instances",
   "keywords": [
     "brain",
@@ -91,6 +91,7 @@
     "@brains/profile": "workspace:*",
     "@brains/prompt": "workspace:*",
     "@brains/quiz": "workspace:*",
+    "@brains/refined-note": "workspace:*",
     "@brains/sdk": "workspace:*",
     "@brains/series": "workspace:*",
     "@brains/site-builder-plugin": "workspace:*",

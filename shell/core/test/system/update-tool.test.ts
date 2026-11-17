@@ -487,6 +487,18 @@ describe("system_update tool", () => {
     });
   });
 
+  it("reads stored asset references, so updates and deletes never load or inline bytes", async () => {
+    await exec({
+      entityType: "base",
+      id: "woodchuck-note",
+      fields: { title: "Renamed" },
+    });
+    await execDelete({ entityType: "base", id: "woodchuck-note" });
+
+    expect(services.getRawReadModes().length).toBeGreaterThan(0);
+    expect(new Set(services.getRawReadModes())).toEqual(new Set(["reference"]));
+  });
+
   it("uses non-title metadata as the display label in delete confirmations", async () => {
     const result = await execDelete({
       entityType: "newsletter",
@@ -1455,7 +1467,7 @@ describe("system_update tool", () => {
   });
 
   // Locks the policy check above the confirmation branch: if a future refactor
-  // hoisted `confirmed: true` ahead of checkEntityActionPermission, this would catch it.
+  // hoisted `confirmed: true` ahead of entityActionRefusal, this would catch it.
   it("rejects trusted updates with confirmed: true when policy requires Admin", async () => {
     services.permissionService = new PermissionService({
       entityActions: {

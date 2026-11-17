@@ -77,6 +77,7 @@ import {
   exerciseStudioLibrary,
   exerciseStudioNavigation,
   exerciseStudioPublishing,
+  exerciseStudioRefine,
   exerciseStudioSite,
 } from "./console-visual/studio-workspace-flows";
 import {
@@ -109,6 +110,8 @@ async function exerciseSurface(
   if (surface.startsWith("studio-chat")) await exerciseStudioChat(visualCase);
   if (plan.isDashboard) await exerciseDashboard(visualCase);
   if (surface === "studio-library") await exerciseStudioLibrary(visualCase);
+  if (surface.startsWith("studio-refine"))
+    await exerciseStudioRefine(visualCase);
   if (surface === "studio-overview") await waitForText(page, "What happened");
   if (surface === "studio-content-sync") await exerciseContentSync(visualCase);
   if (surface === "studio-site") await exerciseStudioSite(page);
@@ -225,6 +228,7 @@ try {
         await withDeadline(
           (async (): Promise<void> => {
             fixtureServer.state.reviewingSystem = plan.reviewingSystem;
+            fixtureServer.state.refining = plan.refining;
             const page = await openCapturePage(
               viewport,
               browserBackend,

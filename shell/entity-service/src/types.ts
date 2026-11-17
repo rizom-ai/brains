@@ -1,6 +1,12 @@
 import type { EntityTypeClassification } from "./entity-type-classification";
 import type { GroupingProjectionTarget } from "./grouping-projection-state";
-import type { PreparedAsset } from "@brains/assets";
+import type {
+  AssetRef,
+  AssetSource,
+  AssetStat,
+  StageAssetOptions,
+  StagedAsset,
+} from "@brains/assets";
 import type {
   EntityGrouping,
   EntityGroupingCatalog,
@@ -672,9 +678,18 @@ export interface SortField {
  * List entities options
  * Generic over metadata type for type-safe filtering
  */
+/**
+ * How asset-backed binary content is returned. `"legacy-data-url"` loads the
+ * bytes and returns a data URL, as inline storage did; `"reference"` returns
+ * the stored asset reference without loading bytes.
+ */
+export type BinaryContentMode = "legacy-data-url" | "reference";
+
 export interface EntityReadOptions {
   /** Cooperative boundary checks, not proof of remote SQL cancellation. */
   signal?: AbortSignal;
+  /** Defaults to `"legacy-data-url"` during the asset compatibility window. */
+  binaryContent?: BinaryContentMode | undefined;
 }
 
 export interface ListOptions<
@@ -793,6 +808,23 @@ export interface EntityTypeConfig {
    * One level only; a container's own ids are flat.
    */
   containedIn?: string;
+  /**
+   * The source types this type's generation uses up, as a refined note uses
+   * up the notes it is written from: once what it wrote is saved, the
+   * sources of these types are deleted, as the requester and under their
+   * delete policy. `system_generate` says so in its confirmation, and
+   * refuses a source of any other type. Sources of an unlisted type are
+   * kept. Absent, a generation keeps every source.
+   */
+  consumesSources?: readonly string[];
+  /**
+   * Whether a record of this type must belong somewhere: where at least one
+   * grouping applies to the type, every create and update is refused unless
+   * the record carries a value in one of them. A brain with no grouping for
+   * the type asks nothing more, and the placeholder of a generation, queued
+   * or failed, is exempt. Absent, a record may float free.
+   */
+  requiresGroupingMembership?: boolean;
   /** Publish semantics for status-bearing entity types. Statuses listed here
    *  represent publication commitment/execution states and require the
    *  `publish` entity action when entered or modified. */
@@ -872,8 +904,8 @@ export interface CountEntitiesRequest {
 
 export interface CreateEntityRequest<T extends BaseEntity> {
   entity: EntityInput<T>;
-  /** Prepared bytes committed in the same transaction as their entity reference. */
-  preparedAsset?: PreparedAsset | undefined;
+  /** Staged bytes published in the same transaction as their entity reference. */
+  stagedAsset?: StagedAsset | undefined;
   options?: CreateEntityOptions | undefined;
 }
 
@@ -884,8 +916,8 @@ export interface CreateEntityFromMarkdownRequest {
 
 export interface UpdateEntityRequest<T extends BaseEntity> {
   entity: T;
-  /** Prepared bytes committed in the same transaction as their entity reference. */
-  preparedAsset?: PreparedAsset | undefined;
+  /** Staged bytes published in the same transaction as their entity reference. */
+  stagedAsset?: StagedAsset | undefined;
   options?: UpdateEntityOptions | undefined;
 }
 
@@ -916,8 +948,8 @@ export interface DeleteEntityRequest {
 
 export interface UpsertEntityRequest<T extends BaseEntity> {
   entity: T;
-  /** Prepared bytes committed in the same transaction as their entity reference. */
-  preparedAsset?: PreparedAsset | undefined;
+  /** Staged bytes published in the same transaction as their entity reference. */
+  stagedAsset?: StagedAsset | undefined;
   /** Conditional upserts never fall through from a raced create to update. */
   options?:
     | (EntityJobOptions & { conditionalWrite?: EntityWriteCondition })
@@ -1132,6 +1164,17 @@ export interface DataSourceCapabilities {
 }
 
 export interface ICoreEntityService {
+  /**
+   * Stream a published asset's chunks in order. A reference is not access:
+   * a caller that serves the bytes reads the owning entity at its own scope
+   * first and opens only that entity's reference.
+   */
+  openAsset(ref: AssetRef): Promise<AsyncIterable<Uint8Array>>;
+  /** A published asset's whole bytes, under the same rule as `openAsset`. */
+  readAsset(ref: AssetRef): Promise<Uint8Array>;
+  /** A published asset's header, or null when it is not published. */
+  statAsset(ref: AssetRef): Promise<AssetStat | null>;
+
   // Read-only operations. Without a schema these return the registered
   // BaseEntity view; pass the entity schema you own to get a parsed,
   // proven T instead of asserting one.
@@ -1358,6 +1401,13 @@ export interface IndexReadinessStatus extends EmbeddingIndexStats {
  * methods (like the schema-taking reads) down to one signature.
  */
 export interface EntityServiceClient extends ICoreEntityService {
+  /** Durably stage bytes for one later create, update or upsert to publish. */
+  stageAsset(
+    source: AssetSource,
+    options?: StageAssetOptions,
+  ): Promise<StagedAsset>;
+  /** Discard a staged upload no mutation will publish; a published asset stays. */
+  discardStagedAsset(asset: StagedAsset): Promise<void>;
   /** Visibility-scoped read and revision for atomic conditional writes. */
   getEntityWriteSnapshot(
     request: GetEntityRequest,
@@ -1646,4 +1696,5 @@ export type ReadOnlyEntityService = Pick<
   | "countEntities"
   | "getEntityCounts"
   | "getEntityTypeConfig"
+  | "readAsset"
 >;

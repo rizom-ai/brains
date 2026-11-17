@@ -1,5 +1,139 @@
 # @brains/assets
 
+## 0.2.0-alpha.730
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.730
+
+## 0.2.0-alpha.729
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.729
+
+## 0.2.0-alpha.728
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.728
+
+## 0.2.0-alpha.727
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.727
+
+## 0.2.0-alpha.726
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.726
+
+## 0.2.0-alpha.725
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.725
+
+## 0.2.0-alpha.724
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.724
+
+## 0.2.0-alpha.723
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.723
+
+## 0.2.0-alpha.722
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.722
+
+## 0.2.0-alpha.721
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.721
+
+## 0.2.0-alpha.720
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.720
+
+## 0.2.0-alpha.719
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.719
+
+## 0.2.0-alpha.718
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.718
+
+## 0.2.0-alpha.717
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.717
+
+## 0.2.0-alpha.716
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.716
+
+## 0.2.0-alpha.715
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.715
+
+## 0.2.0-alpha.714
+
+### Patch Changes
+
+- [#954](https://github.com/rizom-ai/brains/pull/954) [`59f52a5`](https://github.com/rizom-ai/brains/commit/59f52a55f6c8940265a4b66e25525be22bf62e23) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Store asset bytes as staged 1 MiB chunks: each chunk commits on its own and yields to the event loop, and the entity mutation publishes the asset header with its reference in one small transaction. Reads stream chunk by chunk and check the digest, withholding the final chunk of bytes that no longer match their reference. Unpublished uploads are discarded after their mutation and swept at startup, and the empty single-BLOB `assets` table is replaced.
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.714
+
+## 0.2.0-alpha.713
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.713
+
+## 0.2.0-alpha.712
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.712
+
 ## 0.2.0-alpha.711
 
 ### Patch Changes

@@ -113,6 +113,7 @@ describe("the Studio package's registered surface", () => {
       "POST /studio/api/assist exact",
       "GET /studio/api/agents exact",
       "POST /studio/api/ask-agent exact",
+      "POST /studio/api/refine exact",
       "GET /studio/api/sync-status exact",
     ]);
     // Every one public, answered by the editor's own session gate.

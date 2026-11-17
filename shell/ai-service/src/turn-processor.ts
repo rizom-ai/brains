@@ -149,6 +149,73 @@ interface PostConfirmationFollowUpParams {
   signal: AbortSignal | undefined;
 }
 
+type GenerateResult = Awaited<ReturnType<BrainAgent["generate"]>>;
+type ExtractedToolResults = ReturnType<typeof extractToolResults>;
+
+interface MemberMessageMetadataParams {
+  actor: ConversationMessageActor | null;
+  source: ConversationMessageSource | null;
+  userPermissionLevel: NonNullable<ChatContext["userPermissionLevel"]>;
+  attachments?: ChatAttachment[];
+  cards?: StructuredChatCard[];
+  entityMemoryRefs?: EntityMemoryRef[];
+  agentContactCandidates?: AgentContactCandidate[];
+  assistantTurn?: AssistantTurn | undefined;
+  actorAlreadyEnriched?: boolean;
+}
+
+/** An assistant reply to a member, before its actor and source are added. */
+type AssistantMessage = Omit<
+  MemberMessageMetadataParams,
+  "actor" | "source" | "attachments" | "actorAlreadyEnriched"
+> & {
+  conversationId: string;
+  content: string;
+  channelId: string | undefined;
+  channelName: string;
+};
+
+interface GuestMessageMetadataParams {
+  cards?: StructuredChatCard[];
+  /** The FAQ that gave a visitor's reply in the model's place. */
+  askedBefore?: AskedBefore;
+  faqCapture?: { faqId: string; question: string };
+}
+
+/**
+ * A visitor's message keeps no actor, source or attachments: it is always
+ * public and carries only its public sources and FAQ provenance.
+ */
+function guestMessageMetadata({
+  cards,
+  askedBefore,
+  faqCapture,
+}: GuestMessageMetadataParams): { metadata: Record<string, unknown> } {
+  const sourceCards = getGuestSourceCards(cards);
+  return {
+    metadata: {
+      userPermissionLevel: "public",
+      ...(sourceCards.length ? { cards: sourceCards } : {}),
+      ...(askedBefore ? { askedBefore } : {}),
+      ...(faqCapture ? { faqCapture } : {}),
+    },
+  };
+}
+
+/** A visitor's reply also reports what the turn cost and how it was screened. */
+function withGuestOutcome(
+  response: AgentResponse,
+  result: GenerateResult,
+): AgentResponse {
+  return {
+    ...response,
+    ...(result.guestSettlement
+      ? { guestSettlement: result.guestSettlement }
+      : {}),
+    ...(result.guestScreening ? { guestScreening: result.guestScreening } : {}),
+  };
+}
+
 export class TurnProcessor {
   private readonly deps: TurnProcessorDeps;
 
@@ -303,35 +370,21 @@ export class TurnProcessor {
       channelId,
       channelName,
       userPermissionLevel,
-      source,
       attachments,
     } = turn.input;
-    await this.deps.conversationService.addMessage({
-      conversationId,
-      role: "user",
-      content: message,
-      ...(await this.messageMetadata({
-        actor: turn.attributedActor,
-        source,
-        userPermissionLevel,
-        attachments,
-        actorAlreadyEnriched: true,
-      })),
-    });
+    // Admission refuses a guest turn with attachments, so this is a member's.
+    await this.recordQuestion(turn, message, attachments);
 
     const responseText = buildAttachmentOnlyResponse(attachments);
     const actionsCard = buildAttachmentOnlyActionsCard(attachments);
     const responseCards = actionsCard ? [actionsCard] : [];
-    await this.deps.conversationService.addMessage({
+    await this.saveAssistantMessage({
       conversationId,
-      role: "assistant",
       content: responseText,
-      ...(await this.messageMetadata({
-        actor: this.getAssistantActor(),
-        source: this.buildAssistantSource(channelId, channelName),
-        userPermissionLevel,
-        cards: responseCards,
-      })),
+      channelId,
+      channelName,
+      userPermissionLevel,
+      cards: responseCards,
     });
 
     return {
@@ -436,14 +489,15 @@ export class TurnProcessor {
       conversationId,
       role: "user",
       content: message,
-      ...(await this.messageMetadata({
-        actor: turn.attributedActor,
-        source,
-        userPermissionLevel,
-        attachments,
-        actorAlreadyEnriched: true,
-        guest: turn.guest,
-      })),
+      ...(turn.guest
+        ? guestMessageMetadata({})
+        : await this.memberMessageMetadata({
+            actor: turn.attributedActor,
+            source,
+            userPermissionLevel,
+            attachments,
+            actorAlreadyEnriched: true,
+          })),
     });
   }
 
@@ -454,6 +508,7 @@ export class TurnProcessor {
     const {
       conversationId,
       interfaceType,
+      interfaceId,
       channelId,
       channelName,
       userPermissionLevel,
@@ -475,6 +530,7 @@ export class TurnProcessor {
       channelId,
       channelName,
       interfaceType,
+      interfaceId,
       ...(turn.attributedActor ? { actor: turn.attributedActor } : {}),
       hasPriorResponseCandidate: prepared.hasPriorResponseCandidate,
       ...(prepared.agentContextInstructions
@@ -509,27 +565,14 @@ export class TurnProcessor {
     settlement: GuestTurnSettlement,
     signal?: AbortSignal,
   ): Promise<AgentResponse> {
-    const { conversationId, channelId, channelName, userPermissionLevel } =
-      turn.input;
     signal?.throwIfAborted();
     await this.recordQuestion(turn, question, []);
     signal?.throwIfAborted();
     const cards = withAnswerSources([], hit.sources);
-    await this.deps.conversationService.addMessage({
-      conversationId,
-      role: "assistant",
-      content: hit.answer,
-      ...(await this.messageMetadata({
-        actor: null,
-        source: this.buildAssistantSource(channelId, channelName),
-        userPermissionLevel,
-        cards,
-        entityMemoryRefs: [],
-        agentContactCandidates: [],
-        guest: true,
-        askedBefore: { faqId: hit.faqId },
-        faqCapture: { faqId: hit.faqId, question: hit.faqQuestion },
-      })),
+    await this.saveGuestReply(turn.input.conversationId, hit.answer, {
+      cards,
+      askedBefore: { faqId: hit.faqId },
+      faqCapture: { faqId: hit.faqId, question: hit.faqQuestion },
     });
     return {
       text: hit.answer,
@@ -568,52 +611,92 @@ export class TurnProcessor {
   private async recordResponse(
     turn: AdmittedTurn,
     prepared: PreparedTurn,
-    result: Awaited<ReturnType<BrainAgent["generate"]>>,
+    result: GenerateResult,
   ): Promise<AgentResponse> {
-    const { conversationId, channelId, channelName, userPermissionLevel } =
-      turn.input;
-    const { guest } = turn;
     const extracted = extractToolResults(
       result.steps,
       result.text,
       this.deps.entityLinks,
     );
-    const { toolResults, pendingConfirmations, totalToolCalls } = extracted;
-    if (guest && pendingConfirmations.length > 0)
+    return turn.guest
+      ? this.recordGuestResponse(turn, result, extracted)
+      : this.recordMemberResponse(turn, prepared, result, extracted);
+  }
+
+  /**
+   * A visitor's reply carries only its public sources. A guest turn never
+   * has agent context (fetchAgentContext declines the guest interface), so
+   * there is no context sources card to add.
+   */
+  private async recordGuestResponse(
+    turn: AdmittedTurn,
+    result: GenerateResult,
+    { toolResults, pendingConfirmations, cards }: ExtractedToolResults,
+  ): Promise<AgentResponse> {
+    if (pendingConfirmations.length > 0)
       throw new Error("Guest execution denied");
     // A refusal is not an answer, so it has no sources to find.
-    const cards =
-      guest && result.guestScreening?.outcome !== "refused"
-        ? await this.withGuestAnswerSources(extracted.cards, result.text)
-        : extracted.cards;
+    const responseCards =
+      result.guestScreening?.outcome === "refused"
+        ? cards
+        : await this.withGuestAnswerSources(cards, result.text);
+    const responseText =
+      result.text.trim().length > 0
+        ? result.text
+        : (buildToolResultPromptFallback(toolResults) ?? result.text);
+
+    if (responseText.trim())
+      await this.saveGuestReply(turn.input.conversationId, responseText, {
+        cards: responseCards,
+      });
+
+    return withGuestOutcome(
+      {
+        text: responseText,
+        toolResults,
+        ...(responseCards.length > 0 ? { cards: responseCards } : {}),
+        usage: toTokenUsage(result.usage),
+      },
+      result,
+    );
+  }
+
+  private async recordMemberResponse(
+    turn: AdmittedTurn,
+    prepared: PreparedTurn,
+    result: GenerateResult,
+    {
+      toolResults,
+      pendingConfirmations,
+      totalToolCalls,
+      cards,
+    }: ExtractedToolResults,
+  ): Promise<AgentResponse> {
+    const { conversationId, channelId, channelName, userPermissionLevel } =
+      turn.input;
+    const awaitingConfirmation = pendingConfirmations.length > 0;
     const sourcesCard = buildSourcesCardFromContextItems(prepared.contextItems);
     const responseCards = sourcesCard ? [...cards, sourcesCard] : cards;
 
-    const responseText =
-      pendingConfirmations.length > 0
-        ? composeConfirmationReply(result.text)
-        : result.text.trim().length > 0
-          ? result.text
-          : (buildToolResultPromptFallback(toolResults) ??
-            (guest ? undefined : buildToolErrorFallback(toolResults)) ??
-            result.text);
-    const entityMemoryRefs =
-      guest || pendingConfirmations.length > 0
-        ? []
-        : buildEntityMemoryRefs(toolResults);
-    const agentContactCandidates =
-      guest || pendingConfirmations.length > 0
-        ? []
-        : buildAgentContactCandidates(toolResults);
-    // Only a completed, non-guest reply carries turn facts; a reply awaiting
+    const responseText = awaitingConfirmation
+      ? composeConfirmationReply(result.text)
+      : result.text.trim().length > 0
+        ? result.text
+        : (buildToolResultPromptFallback(toolResults) ??
+          buildToolErrorFallback(toolResults) ??
+          result.text);
+    // Only a completed reply carries turn facts; a reply awaiting
     // confirmation has not done what it proposes.
-    const assistantTurn =
-      guest || pendingConfirmations.length > 0
-        ? undefined
-        : {
+    const turnFacts = awaitingConfirmation
+      ? {}
+      : {
+          entityMemoryRefs: buildEntityMemoryRefs(toolResults),
+          agentContactCandidates: buildAgentContactCandidates(toolResults),
+          assistantTurn: {
             startedAt: turn.startedAt,
             retrieved: buildRetrievedEntityRefs(toolResults),
-          };
+          },
+        };
 
     // Save assistant response. When a tool requires confirmation, do not save
     // potentially misleading model completion text (e.g. "Deleted.") before
@@ -622,32 +705,24 @@ export class TurnProcessor {
     // Store structured refs for entities this turn created/updated so their IDs
     // stay addressable next turn. These refs are injected into model history
     // from metadata only; visible assistant content stays clean.
-    if (responseText.trim()) {
-      await this.deps.conversationService.addMessage({
+    if (responseText.trim())
+      await this.saveAssistantMessage({
         conversationId,
-        role: "assistant",
         content: responseText,
-        ...(await this.messageMetadata({
-          actor: guest ? null : this.getAssistantActor(),
-          source: this.buildAssistantSource(channelId, channelName),
-          userPermissionLevel,
-          cards: responseCards,
-          entityMemoryRefs,
-          agentContactCandidates,
-          assistantTurn,
-          guest,
-        })),
+        channelId,
+        channelName,
+        userPermissionLevel,
+        cards: responseCards,
+        ...turnFacts,
       });
-    }
 
-    if (!guest)
-      this.deps.logger.debug("Chat completed", {
-        conversationId,
-        responseLength: responseText.length,
-        toolCalls: totalToolCalls,
-        stepCount: result.steps.length,
-        usage: result.usage,
-      });
+    this.deps.logger.debug("Chat completed", {
+      conversationId,
+      responseLength: responseText.length,
+      toolCalls: totalToolCalls,
+      stepCount: result.steps.length,
+      usage: result.usage,
+    });
 
     return {
       text: responseText,
@@ -655,13 +730,7 @@ export class TurnProcessor {
       toolResults,
       ...(responseCards.length > 0 ? { cards: responseCards } : {}),
       usage: toTokenUsage(result.usage),
-      ...(guest && result.guestSettlement
-        ? { guestSettlement: result.guestSettlement }
-        : {}),
-      ...(guest && result.guestScreening
-        ? { guestScreening: result.guestScreening }
-        : {}),
-      ...(pendingConfirmations.length > 0 ? { pendingConfirmations } : {}),
+      ...(awaitingConfirmation ? { pendingConfirmations } : {}),
     };
   }
 
@@ -676,16 +745,13 @@ export class TurnProcessor {
   ): Promise<void> {
     const channelName =
       context.channelName ?? context.channelId ?? conversationId;
-    await this.deps.conversationService.addMessage({
+    await this.saveAssistantMessage({
       conversationId,
-      role: "assistant",
       content: response.text,
-      ...(await this.messageMetadata({
-        actor: this.getAssistantActor(),
-        source: this.buildAssistantSource(context.channelId, channelName),
-        userPermissionLevel: context.userPermissionLevel ?? "public",
-        cards: response.cards ?? [],
-      })),
+      channelId: context.channelId,
+      channelName,
+      userPermissionLevel: context.userPermissionLevel ?? "public",
+      cards: response.cards ?? [],
     });
   }
 
@@ -700,6 +766,7 @@ export class TurnProcessor {
       conversationId,
       pendingConfirmation,
       interfaceType,
+      interfaceId,
       channelId,
       channelName,
       userPermissionLevel,
@@ -725,6 +792,7 @@ export class TurnProcessor {
     } else {
       const context: ToolContext = {
         interfaceType,
+        ...(interfaceId ? { interfaceId } : {}),
         actor: attributedActor?.identity ?? this.getAssistantActor().identity,
         ...(attributedActor?.displayName
           ? { displayName: attributedActor.displayName }
@@ -781,17 +849,14 @@ export class TurnProcessor {
     ];
     signal?.throwIfAborted();
 
-    await this.deps.conversationService.addMessage({
+    await this.saveAssistantMessage({
       conversationId,
-      role: "assistant",
       content: responseText,
-      ...(await this.messageMetadata({
-        actor: this.getAssistantActor(),
-        source: this.buildAssistantSource(channelId, channelName),
-        userPermissionLevel,
-        cards,
-        entityMemoryRefs,
-      })),
+      channelId,
+      channelName,
+      userPermissionLevel,
+      cards,
+      entityMemoryRefs,
     });
 
     return {
@@ -926,40 +991,49 @@ export class TurnProcessor {
     };
   }
 
-  private async messageMetadata(params: {
-    actor: ConversationMessageActor | null;
-    source: ConversationMessageSource | null;
-    userPermissionLevel: NonNullable<ChatContext["userPermissionLevel"]>;
-    attachments?: ChatAttachment[];
-    cards?: StructuredChatCard[];
-    entityMemoryRefs?: EntityMemoryRef[];
-    agentContactCandidates?: AgentContactCandidate[];
-    assistantTurn?: AssistantTurn | undefined;
-    actorAlreadyEnriched?: boolean;
-    guest?: boolean;
-    /** The FAQ that gave a visitor's reply in the model's place. */
-    askedBefore?: AskedBefore;
-    faqCapture?: { faqId: string; question: string };
-  }): Promise<{ metadata: Record<string, unknown> } | Record<string, never>> {
-    if (params.guest) {
-      const cards = getGuestSourceCards(params.cards);
-      return {
-        metadata: {
-          userPermissionLevel: "public",
-          ...(cards.length ? { cards } : {}),
-          ...(params.askedBefore ? { askedBefore: params.askedBefore } : {}),
-          ...(params.faqCapture ? { faqCapture: params.faqCapture } : {}),
-        },
-      };
-    }
-    const {
-      actorAlreadyEnriched = false,
-      guest: _guest,
-      ...metadataParams
-    } = params;
+  /** A reply in the brain's own voice, attributed to its assistant actor. */
+  private async saveAssistantMessage({
+    conversationId,
+    content,
+    channelId,
+    channelName,
+    ...metadata
+  }: AssistantMessage): Promise<void> {
+    await this.deps.conversationService.addMessage({
+      conversationId,
+      role: "assistant",
+      content,
+      ...(await this.memberMessageMetadata({
+        actor: this.getAssistantActor(),
+        source: this.buildAssistantSource(channelId, channelName),
+        ...metadata,
+      })),
+    });
+  }
+
+  /** A reply to a visitor: no actor, no source, public sources only. */
+  private async saveGuestReply(
+    conversationId: string,
+    content: string,
+    metadata: GuestMessageMetadataParams,
+  ): Promise<void> {
+    await this.deps.conversationService.addMessage({
+      conversationId,
+      role: "assistant",
+      content,
+      ...guestMessageMetadata(metadata),
+    });
+  }
+
+  private async memberMessageMetadata({
+    actorAlreadyEnriched = false,
+    ...params
+  }: MemberMessageMetadataParams): Promise<
+    { metadata: Record<string, unknown> } | Record<string, never>
+  > {
     return withMessageMetadata(
       await buildMessageMetadata({
-        ...metadataParams,
+        ...params,
         ...(!actorAlreadyEnriched && this.deps.canonicalIdentityResolver
           ? { canonicalIdentityResolver: this.deps.canonicalIdentityResolver }
           : {}),

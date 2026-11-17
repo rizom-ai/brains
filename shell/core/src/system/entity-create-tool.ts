@@ -1,7 +1,6 @@
 import {
   canWriteVisibility,
   extractVisibilityFromMarkdown,
-  markdownBody,
   permissionToVisibilityScope,
   resolveEntityOrError,
   type BaseEntity,
@@ -10,13 +9,21 @@ import {
 } from "@brains/entity-service";
 import { sharedUploadScope } from "@brains/plugins";
 import { bufferView } from "@brains/utils/bytes";
+import { markdownBody } from "@brains/utils/markdown-frontmatter";
 import { generateMarkdown } from "@brains/utils/markdown";
 import type { Tool, ToolResponse } from "@brains/mcp-service";
 import { slugify } from "@brains/utils/string-utils";
 import type { z } from "@brains/utils/zod";
 import { createInputSchema } from "./schemas";
 import { createModelInput, uneditableFieldsError } from "./field-changes";
-import { assertEntityActionAllowed } from "./entity-action-policy";
+import {
+  admitCreate,
+  confirmOrRun,
+  runCreate,
+  type CreateConfirmationRequest,
+  type CreateInterceptor,
+  type EntityRef,
+} from "./entity-create-pipeline";
 import {
   freezeUserMessageSource,
   resolveConversationMessageContent,
@@ -28,21 +35,22 @@ import {
   PendingCreateTexts,
   pendingCreateKey,
   retrySourceHint,
+  type RetryResolution,
 } from "./pending-create-text";
 import {
-  assertEntityTypeRegistered,
   buildEntityMutationEventContext,
   createConfirmationGate,
   createExecutionContextFrom,
   createSystemTool,
+  entityTypeRefusal,
+  guardError,
+  guardRefusal,
   hasStructuredFrontmatter,
   isUploadRefInConversation,
   normalizeOptionalString,
-  removeFailedTarget,
-  replacesFailedLine,
   resolveCreateTarget,
-  runCreateInterceptor,
   type FailedCreateTarget,
+  type Guarded,
 } from "./tool-helpers";
 import { getErrorMessage } from "@brains/utils/error";
 import { isPlainRecord } from "@brains/utils/predicates";
@@ -56,10 +64,6 @@ import {
   type PreparedUploadResult,
   type UploadItemRequest,
 } from "./entity-create-uploads";
-
-// Reads entirely from the canonical createInput: the resolved source
-// attachment is already baked into `from` by normalizeCreateSource, and
-// `content` already holds the resolved text or conversation-message content.
 
 function buildUploadPreserveConfirmation(input: {
   title?: string;
@@ -81,28 +85,24 @@ function buildUploadPreserveConfirmation(input: {
   };
 }
 
+/**
+ * Reads entirely from the canonical createInput: `from` holds the upload ref,
+ * and `content` the resolved text or conversation-message content.
+ */
 function buildCreateConfirmation(createInput: CreateInput): {
   summary: string;
   preview: string;
 } {
-  const { entityType, title, visibility, prompt, content, url, from, fields } =
+  const { entityType, title, visibility, content, url, from, fields } =
     createInput;
   const label = title ? ` "${title}"` : ` ${entityType}`;
-  const summary = `${prompt ? "Generate" : "Create"}${label}?`;
-  const sourceAttachment =
-    from?.kind === "entity-attachment" ? from : undefined;
+  const summary = `Create${label}?`;
   const previewParts = [
     `Entity type: ${entityType}`,
     `Visibility: ${visibility ?? "public"}`,
     ...(title ? [`Title: ${title}`] : []),
     ...(url ? [`URL: ${url}`] : []),
     ...(from?.kind === "upload" ? ["Upload: uploaded file"] : []),
-    ...(sourceAttachment
-      ? [
-          `Source attachment: ${sourceAttachment.sourceEntityType}/${sourceAttachment.sourceEntityId} (${sourceAttachment.attachmentType})`,
-        ]
-      : []),
-    ...(prompt ? [`Prompt: ${prompt}`] : []),
     ...Object.entries(fields ?? {}).map(
       ([field, value]) =>
         `${field}: ${typeof value === "string" ? value : JSON.stringify(value)}`,
@@ -123,18 +123,15 @@ function buildCreateCompletionSummary(createInput: CreateInput): string {
 
 type PreferredCreateSource = CreateToolInput["source"];
 
-interface EntitySourceRef {
-  entityType: string;
-  entityId: string;
-}
+type UploadRef = Extract<NonNullable<CreateInput["from"]>, { kind: "upload" }>;
 
 interface NormalizedCreateSource {
   content?: string;
   url?: string;
-  from?: Exclude<CreateInput["from"], { kind: "conversation-message" }>;
-  uploadRef?: { kind: "upload"; id: string };
+  from?: UploadRef;
+  uploadRef?: UploadRef;
   conversationMessageRef?: ConversationMessageRef;
-  entityRef?: EntitySourceRef;
+  entityRef?: EntityRef;
   transform?: CreateInput["transform"];
 }
 
@@ -163,7 +160,7 @@ function normalizeCreateSource(
 }
 
 interface ResolvedEntitySource {
-  ref: EntitySourceRef;
+  ref: EntityRef;
   /** The source's Markdown body, without frontmatter. */
   content: string;
   title: string | undefined;
@@ -173,20 +170,26 @@ interface ResolvedEntitySource {
 /** Read an existing entity's text, at the caller's visibility. */
 async function resolveEntitySource(
   services: SystemServices,
-  ref: EntitySourceRef,
+  ref: EntityRef,
   toolContext: CreateToolContext,
 ): Promise<Guarded<ResolvedEntitySource>> {
   const result = await resolveEntityOrError(
     services.entityService,
-    ref.entityType,
-    ref.entityId,
-    services.logger,
-    "Source entity",
-    permissionToVisibilityScope(toolContext.userPermissionLevel),
+    { entityType: ref.entityType, identifier: ref.entityId },
+    {
+      visibilityScope: permissionToVisibilityScope(
+        toolContext.userPermissionLevel,
+      ),
+      logger: services.logger,
+      label: "Source entity",
+    },
   );
   if (!result.ok) return guardError(result.error);
   const { entity } = result;
-  const content = markdownBody(entity.content);
+  const content = markdownBody(entity.content, {
+    trim: true,
+    keepEmptyBlock: true,
+  });
   if (!content) {
     return guardError(
       `Source entity ${entity.entityType}/${entity.id} has no text to use.`,
@@ -204,45 +207,46 @@ async function resolveEntitySource(
   };
 }
 
-function freezeConfirmationSource(input: {
-  source: PreferredCreateSource;
-  resolvedMessageId?: string;
-  resolvedUserSource?: UserMessageSource;
-  resolvedEntity?: EntitySourceRef;
-  content?: string;
-}): PreferredCreateSource {
-  if (input.source.kind === "user-message") {
-    if (!input.resolvedMessageId || input.content === undefined) {
+/**
+ * The source a confirmation, or a question's retry hint, names: the source
+ * pinned by an earlier question when a retry saves its text, else the
+ * requested source frozen to the message or entity it resolved to.
+ */
+function freezeConfirmationSource(
+  requested: PreferredCreateSource,
+  { source, retry }: SourceWithRetry,
+  content: string | undefined,
+): PreferredCreateSource {
+  if (retry.kind === "pinned") return retry.source;
+  if (requested.kind === "user-message") {
+    if (!source.resolvedMessageId || content === undefined) {
       throw new Error(
         "User-message source was not resolved before confirmation",
       );
     }
-    return freezeUserMessageSource(input.source, {
-      messageId: input.resolvedMessageId,
-      content: input.content,
-      ...(input.resolvedUserSource && { source: input.resolvedUserSource }),
+    return freezeUserMessageSource(requested, {
+      messageId: source.resolvedMessageId,
+      content,
+      ...(source.resolvedUserSource && { source: source.resolvedUserSource }),
     });
   }
-  if (input.source.kind === "prior-response") {
-    const messageId = input.source.messageId ?? input.resolvedMessageId;
+  if (requested.kind === "prior-response") {
+    const messageId = requested.messageId ?? source.resolvedMessageId;
     return {
       kind: "prior-response",
       ...(messageId ? { messageId } : {}),
     };
   }
-  if (input.source.kind === "entity" && input.resolvedEntity) {
-    return { kind: "entity", ...input.resolvedEntity };
+  if (requested.kind === "entity" && source.entitySource) {
+    return { kind: "entity", ...source.entitySource.ref };
   }
-  return input.source;
+  return requested;
 }
 
 type CreateToolContext = Parameters<Tool["handler"]>[1];
 type CreateEventContext = ReturnType<typeof buildEntityMutationEventContext>;
 
-/**
- * Persist a content/text-source create directly, choosing markdown or raw
- * creation based on whether the entity type has structured frontmatter.
- */
+/** Hand a kept upload to the plugin that saves its media type. */
 async function executeUploadPreserve(
   input: {
     upload: { kind: "upload"; id: string };
@@ -265,6 +269,10 @@ async function executeUploadPreserve(
   );
 }
 
+/**
+ * Persist a content/text-source create directly, choosing markdown or raw
+ * creation based on whether the entity type has structured frontmatter.
+ */
 async function executeDirectCreate(
   services: SystemServices,
   createInput: CreateInput,
@@ -334,14 +342,9 @@ async function executeDirectCreate(
 
 interface PreparedCreate {
   createInput: CreateInput;
-  resolvedMessageId: string | undefined;
-  resolvedUserSource: UserMessageSource | undefined;
-  /** The source to confirm when a retry saves text pinned by an earlier question. */
-  pinnedSource?: PreferredCreateSource;
-  resolvedEntity?: EntitySourceRef;
-  interceptor: ReturnType<
-    SystemServices["entityRegistry"]["getCreateInterceptor"]
-  >;
+  /** The source the confirmation replays, frozen to what it resolved to. */
+  confirmationSource: PreferredCreateSource;
+  interceptor: CreateInterceptor;
   eventContext: CreateEventContext;
   /** The uploaded file's name, when the source is an upload. */
   uploadFilename?: string;
@@ -350,20 +353,13 @@ interface PreparedCreate {
   /** The failed placeholder this create replaces once confirmed. */
   replacesFailed?: FailedCreateTarget;
   uploadPreserve?: {
-    upload: { kind: "upload"; id: string };
+    upload: UploadRef;
     filename: string;
     mediaType: string;
     handler: NonNullable<
       ReturnType<SystemServices["entityRegistry"]["getUploadSaveHandler"]>
     >["handler"];
   };
-}
-
-type Guarded<T> =
-  { kind: "error"; result: ToolResponse } | { kind: "ok"; value: T };
-
-function guardError(error: string): { kind: "error"; result: ToolResponse } {
-  return { kind: "error", result: { success: false, error } };
 }
 
 interface ResolvedCreateSource {
@@ -407,7 +403,7 @@ async function resolveCreateSource(
       )
     : undefined;
   if (resolvedMessage && !resolvedMessage.success) {
-    return { kind: "error", result: resolvedMessage };
+    return guardRefusal(resolvedMessage);
   }
   const resolvedContent =
     resolvedMessage?.success === true
@@ -729,49 +725,41 @@ function withCheckCompletions(
 }
 
 /**
- * Resolve the source, run every input/policy guard, and build the canonical
- * `createInput`. Returns a structured error response on any guard failure, or
- * the prepared create plus the small resolution metadata (source attachment,
- * resolved message id) that the confirmation/execution phases still need.
+ * The refusal of a create with no text that neither the type's interceptor
+ * nor an upload saver handles.
  */
-async function prepareCreate(
+const UNHANDLED_SOURCE_ERROR =
+  'URL or upload source creation is supported only for entity types that explicitly handle it. Provide source kind "text" for this entity type, or use system_generate for generated content/artifacts.';
+
+/** The resolved source, and whether a retry saves text an earlier question pinned. */
+interface SourceWithRetry {
+  source: ResolvedCreateSource;
+  retry: RetryResolution;
+}
+
+/**
+ * Resolve the requested source. A retry after a question saves the text
+ * pinned when the question was asked: when the source it names no longer
+ * resolves, or resolves to the model's own copy of that text.
+ */
+async function resolveSourceWithRetry(
   services: SystemServices,
   input: CreateToolInput,
   toolContext: CreateToolContext,
   pending: PendingCreateTexts,
-  several?: SeveralUploads,
-): Promise<
-  | { kind: "error"; result: ToolResponse }
-  | { kind: "ok"; prepared: PreparedCreate }
-> {
-  const isUploadPreserve =
-    input.source.kind === "upload" && input.source.transform === "preserve";
-  if (!isUploadPreserve) {
-    const unregisteredError = assertEntityTypeRegistered(
-      services,
-      input.entityType,
-    );
-    if (unregisteredError) return { kind: "error", result: unregisteredError };
-  }
-
-  const pendingKey = pendingCreateKey(
-    toolContext.conversationId ?? toolContext.channelId,
-    input.entityType,
-  );
-  const resolvedSource = await resolveCreateSource(
-    services,
-    input,
-    toolContext,
-  );
-  const unresolvedRetry =
-    resolvedSource.kind === "error" && pendingKey
+  pendingKey: string | undefined,
+): Promise<Guarded<SourceWithRetry>> {
+  const resolved = await resolveCreateSource(services, input, toolContext);
+  if (resolved.kind === "error") {
+    const pinned = pendingKey
       ? pending.resolveUnresolvable(pendingKey, input.source)
       : undefined;
-  const source: Guarded<ResolvedCreateSource> = unresolvedRetry
-    ? {
-        kind: "ok",
-        value: {
-          content: unresolvedRetry.content,
+    if (!pinned) return resolved;
+    return {
+      kind: "ok",
+      value: {
+        source: {
+          content: pinned.content,
           url: undefined,
           from: undefined,
           uploadRef: undefined,
@@ -780,58 +768,83 @@ async function prepareCreate(
           resolvedUserSource: undefined,
           entitySource: undefined,
         },
-      }
-    : resolvedSource;
-  if (source.kind === "error") return source;
-  const {
-    url,
-    uploadRef,
-    resolvedMessageId,
-    resolvedUserSource,
-    entitySource,
-  } = source.value;
-  const retry =
-    unresolvedRetry ??
-    (pendingKey
-      ? pending.resolve(pendingKey, {
-          source: input.source,
-          content: source.value.content,
-          resolvedMessageId,
-        })
-      : { kind: "as-given" as const });
-  const upload = uploadRef
+        retry: pinned,
+      },
+    };
+  }
+  const retry: RetryResolution = pendingKey
+    ? pending.resolve(pendingKey, {
+        source: input.source,
+        content: resolved.value.content,
+        resolvedMessageId: resolved.value.resolvedMessageId,
+      })
+    : { kind: "as-given" };
+  return { kind: "ok", value: { source: resolved.value, retry } };
+}
+
+/** What a create saves, once its upload is read. */
+interface CreateContent {
+  /** The type it saves as: a kept upload's saver's, else the requested one. */
+  entityType: string;
+  content: string | undefined;
+  from: UploadRef | undefined;
+  transform: CreateInput["transform"];
+  upload: UploadSourceResolution | undefined;
+}
+
+/**
+ * Read the upload a create names, and settle the text it saves: the text a
+ * retry keeps pinned, a text upload's own text, or the resolved source's.
+ */
+async function resolveCreateContent(
+  services: SystemServices,
+  input: CreateToolInput,
+  { source, retry }: SourceWithRetry,
+  toolContext: CreateToolContext,
+): Promise<Guarded<CreateContent>> {
+  const upload = source.uploadRef
     ? await resolveUploadSource(
         services,
         {
           entityType: input.entityType,
-          uploadRef,
-          transform: source.value.transform,
+          uploadRef: source.uploadRef,
+          transform: source.transform,
         },
         toolContext,
       )
     : undefined;
   if (upload?.kind === "error") return upload;
   const entityType = upload?.value.entityType ?? input.entityType;
-  const uploadPreserve = upload?.value.uploadPreserve;
   const uploadText = resolveUploadText(
     services,
     entityType,
-    source.value,
+    source,
     upload?.value,
   );
   if (uploadText.kind === "error") return uploadText;
-  const { from, transform } = uploadText.value;
-  const content =
-    retry.kind === "pinned" ? retry.content : uploadText.value.content;
+  return {
+    kind: "ok",
+    value: {
+      entityType,
+      content:
+        retry.kind === "pinned" ? retry.content : uploadText.value.content,
+      from: uploadText.value.from,
+      transform: uploadText.value.transform,
+      upload: upload?.value,
+    },
+  };
+}
 
-  const unregisteredDerivedError = assertEntityTypeRegistered(
-    services,
-    entityType,
-  );
-  if (unregisteredDerivedError) {
-    return { kind: "error", result: unregisteredDerivedError };
-  }
-
+/**
+ * The create as the caller states it: at a visibility they may write, with
+ * their fields, and titled as they say or as the source names itself.
+ */
+function stateCreateInput(
+  input: CreateToolInput,
+  { url, entitySource }: ResolvedCreateSource,
+  { entityType, content, from, transform, upload }: CreateContent,
+  toolContext: CreateToolContext,
+): Guarded<CreateInput> {
   // Text taken from a non-public entity stays as private as its source
   // unless the caller asks for another level.
   const inheritedVisibility =
@@ -859,74 +872,136 @@ async function prepareCreate(
   // the file, not one the user stated: the upload is named by its heading.
   const statedTitle = normalizeOptionalString(input.title);
   const title =
-    (upload && repeatsUploadFileName(statedTitle, upload.value.filename)
+    (upload && repeatsUploadFileName(statedTitle, upload.filename)
       ? undefined
       : statedTitle) ??
     entitySource?.title ??
-    upload?.value.title;
+    upload?.title;
   const replace = input.replace === true;
-  const statedInput: CreateInput = {
-    entityType,
-    ...(title && { title }),
-    ...(visibility.value !== undefined ? { visibility: visibility.value } : {}),
-    ...(content && { content }),
-    ...(url && { url }),
-    ...(from && { from }),
-    ...(transform && { transform }),
-    ...(fields && { fields }),
-    ...(replace && { replace }),
+  return {
+    kind: "ok",
+    value: {
+      entityType,
+      ...(title && { title }),
+      ...(visibility.value !== undefined
+        ? { visibility: visibility.value }
+        : {}),
+      ...(content && { content }),
+      ...(url && { url }),
+      ...(from && { from }),
+      ...(transform && { transform }),
+      ...(fields && { fields }),
+      ...(replace && { replace }),
+    },
   };
+}
 
-  const policyError = assertEntityActionAllowed(
-    services,
-    statedInput.entityType,
-    "create",
-    toolContext,
-  );
-  if (policyError) return { kind: "error", result: policyError };
-
-  const interceptor = services.entityRegistry.getCreateInterceptor(
-    statedInput.entityType,
-  );
-  if (!statedInput.content && !interceptor && !uploadPreserve) {
-    return guardError(
-      'URL or upload source creation is supported only for entity types that explicitly handle it. Provide source kind "text" for this entity type, or use system_generate for generated content/artifacts.',
-    );
-  }
-
-  // Ask for what the type still needs before the confirmation, so the user
-  // approves once, the complete save. The approved call was checked already.
-  const checked =
-    input.confirmed || uploadPreserve
-      ? undefined
-      : await runCreateCheck(services, statedInput, toolContext);
-  if (checked?.kind === "error") return guardError(checked.error);
-  if (checked?.kind === "question") {
-    const askedSource =
-      retry.kind === "pinned"
-        ? retry.source
-        : freezeConfirmationSource({
-            source: input.source,
-            ...(resolvedMessageId && { resolvedMessageId }),
-            ...(resolvedUserSource && { resolvedUserSource }),
-            ...(entitySource && { resolvedEntity: entitySource.ref }),
-            ...(content !== undefined ? { content } : {}),
-          });
-    // Pin the text, so the save after the answer keeps it unchanged
-    // whatever the model resends. An upload is read again from its ref.
-    if (pendingKey && content !== undefined && !uploadRef) {
-      pending.pin(pendingKey, {
-        source: askedSource,
-        content,
+/**
+ * Ask for what the type still needs before the confirmation, so the user
+ * approves once, the complete save. A question goes back to the agent with
+ * the text pinned, so the save after the answer keeps it unchanged whatever
+ * the model resends.
+ */
+async function checkOrAsk(
+  services: SystemServices,
+  statedInput: CreateInput,
+  toolContext: CreateToolContext,
+  ask: {
+    /** The source the retry passes to save the same text. */
+    source: PreferredCreateSource;
+    several: SeveralUploads | undefined;
+    /** The text to pin; an upload is read again from its ref instead. */
+    pinnable: string | undefined;
+    pending: PendingCreateTexts;
+    pendingKey: string | undefined;
+  },
+): Promise<Guarded<CreateInput>> {
+  const checked = await runCreateCheck(services, statedInput, toolContext);
+  if (checked.kind === "error") return guardError(checked.error);
+  if (checked.kind === "question") {
+    if (ask.pendingKey && ask.pinnable !== undefined) {
+      ask.pending.pin(ask.pendingKey, {
+        source: ask.source,
+        content: ask.pinnable,
         question: checked.asks,
       });
     }
-    return guardError(askUserFirst(checked, askedSource, several));
+    return guardError(askUserFirst(checked, ask.source, ask.several));
   }
-  const createInput =
-    checked?.kind === "ready"
-      ? withCheckCompletions(statedInput, checked)
-      : statedInput;
+  return { kind: "ok", value: withCheckCompletions(statedInput, checked) };
+}
+
+/**
+ * Resolve the source, run every input/policy guard, and build the canonical
+ * `createInput`. Returns a structured error response on any guard failure, or
+ * the prepared create with what the confirmation and execution still need.
+ */
+async function prepareCreate(
+  services: SystemServices,
+  input: CreateToolInput,
+  toolContext: CreateToolContext,
+  pending: PendingCreateTexts,
+  several?: SeveralUploads,
+): Promise<Guarded<PreparedCreate>> {
+  // A kept upload's type is its saver's, known once the upload is read.
+  const isUploadPreserve =
+    input.source.kind === "upload" && input.source.transform === "preserve";
+  if (!isUploadPreserve) {
+    const unregistered = entityTypeRefusal(services, input.entityType);
+    if (unregistered) return guardRefusal(unregistered);
+  }
+
+  const pendingKey = pendingCreateKey(
+    toolContext.conversationId ?? toolContext.channelId,
+    input.entityType,
+  );
+  const sourced = await resolveSourceWithRetry(
+    services,
+    input,
+    toolContext,
+    pending,
+    pendingKey,
+  );
+  if (sourced.kind === "error") return sourced;
+  const { source } = sourced.value;
+  const resolved = await resolveCreateContent(
+    services,
+    input,
+    sourced.value,
+    toolContext,
+  );
+  if (resolved.kind === "error") return resolved;
+  const { content, upload } = resolved.value;
+  const uploadPreserve = upload?.uploadPreserve;
+  const stated = stateCreateInput(input, source, resolved.value, toolContext);
+  if (stated.kind === "error") return stated;
+  const statedInput = stated.value;
+
+  const admitted = admitCreate(services, statedInput.entityType, toolContext);
+  if (admitted.kind === "error") return admitted;
+  const { interceptor } = admitted.value;
+  if (!statedInput.content && !interceptor && !uploadPreserve) {
+    return guardError(UNHANDLED_SOURCE_ERROR);
+  }
+
+  const confirmationSource = freezeConfirmationSource(
+    input.source,
+    sourced.value,
+    content,
+  );
+  // The approved call was checked already; a kept upload has no check.
+  const checked =
+    input.confirmed || uploadPreserve
+      ? { kind: "ok" as const, value: statedInput }
+      : await checkOrAsk(services, statedInput, toolContext, {
+          source: confirmationSource,
+          several,
+          pinnable: source.uploadRef ? undefined : content,
+          pending,
+          pendingKey,
+        });
+  if (checked.kind === "error") return checked;
+  const createInput = checked.value;
 
   const target = await resolveCreateToolTarget(
     services,
@@ -937,16 +1012,13 @@ async function prepareCreate(
 
   return {
     kind: "ok",
-    prepared: {
+    value: {
       createInput,
-      resolvedMessageId,
-      resolvedUserSource,
-      ...(retry.kind === "pinned" && { pinnedSource: retry.source }),
-      ...(entitySource && { resolvedEntity: entitySource.ref }),
+      confirmationSource,
       interceptor,
       eventContext: buildEntityMutationEventContext(toolContext),
-      ...(upload && { uploadFilename: upload.value.filename }),
-      ...(uploadRef && { uploadId: uploadRef.id }),
+      ...(upload && { uploadFilename: upload.filename }),
+      ...(source.uploadRef && { uploadId: source.uploadRef.id }),
       ...(target.value && { replacesFailed: target.value }),
       ...(uploadPreserve && { uploadPreserve }),
     },
@@ -989,63 +1061,47 @@ async function runPreparedCreate(
   toolContext: CreateToolContext,
   pending: PendingCreateTexts,
 ): Promise<ToolResponse> {
-  const { interceptor, eventContext, uploadPreserve, replacesFailed } =
+  const { createInput, eventContext, uploadPreserve, replacesFailed } =
     prepared;
-  let { createInput } = prepared;
+  if (uploadPreserve) {
+    // A kept upload goes to its saver, not through the type's interceptor.
+    return runCreate(services, toolContext, {
+      createInput,
+      interceptor: undefined,
+      replacesFailed,
+      persist: () =>
+        executeUploadPreserve(
+          {
+            upload: uploadPreserve.upload,
+            ...(createInput.title && { title: createInput.title }),
+            ...(createInput.visibility !== undefined
+              ? { visibility: createInput.visibility }
+              : {}),
+            handler: uploadPreserve.handler,
+          },
+          toolContext,
+        ),
+    });
+  }
+
+  const result = await runCreate(services, toolContext, {
+    createInput,
+    interceptor: prepared.interceptor,
+    replacesFailed,
+    persist: async (input) =>
+      input.content
+        ? executeDirectCreate(services, input, eventContext)
+        : { success: false, error: UNHANDLED_SOURCE_ERROR },
+  });
+  // A saved create ends the question its text was pinned for.
   const pendingKey = pendingCreateKey(
     toolContext.conversationId ?? toolContext.channelId,
     createInput.entityType,
   );
-  const replaceError = await removeFailedTarget(services, replacesFailed);
-  if (replaceError) return replaceError;
-  if (uploadPreserve) {
-    return executeUploadPreserve(
-      {
-        upload: uploadPreserve.upload,
-        ...(createInput.title && { title: createInput.title }),
-        ...(createInput.visibility !== undefined
-          ? { visibility: createInput.visibility }
-          : {}),
-        handler: uploadPreserve.handler,
-      },
-      toolContext,
-    );
-  }
-  if (interceptor) {
-    const outcome = await runCreateInterceptor(
-      services,
-      interceptor,
-      createInput,
-      toolContext,
-    );
-    if (outcome.kind === "error") return outcome.result;
-    if (outcome.kind === "handled") {
-      const { result } = outcome;
-      if (pendingKey && "success" in result && result.success) {
-        pending.clear(pendingKey);
-      }
-      return result;
-    }
-    createInput = outcome.createInput;
-  }
-
-  if (!createInput.content) {
-    return {
-      success: false,
-      error:
-        'URL or upload source creation is supported only for entity types that explicitly handle it. Provide source kind "text" for this entity type, or use system_generate for generated content/artifacts.',
-    };
-  }
-
-  const created = await executeDirectCreate(
-    services,
-    createInput,
-    eventContext,
-  );
-  if (pendingKey && "success" in created && created.success) {
+  if (pendingKey && "success" in result && result.success) {
     pending.clear(pendingKey);
   }
-  return created;
+  return result;
 }
 
 /** Prepare one file of a several-upload save exactly as a single upload. */
@@ -1079,7 +1135,7 @@ async function prepareUploadItem(
     { source: input.source },
   );
   if (prep.kind === "error") return prep;
-  const { prepared } = prep;
+  const prepared = prep.value;
   return {
     kind: "ok",
     value: {
@@ -1094,6 +1150,38 @@ async function prepareUploadItem(
       }),
       save: () =>
         executePreparedCreate(services, prepared, toolContext, pending),
+    },
+  };
+}
+
+/** The confirmation a prepared create asks for, and the call it replays. */
+function createConfirmationRequest(
+  prepared: PreparedCreate,
+): CreateConfirmationRequest {
+  const { createInput, uploadPreserve } = prepared;
+  const { summary, preview } = uploadPreserve
+    ? buildUploadPreserveConfirmation({
+        ...(createInput.title && { title: createInput.title }),
+        filename: uploadPreserve.filename,
+        mediaType: uploadPreserve.mediaType,
+        entityType: createInput.entityType,
+        visibility: createInput.visibility,
+      })
+    : buildCreateConfirmation(createInput);
+  return {
+    toolName: "system_create",
+    summary,
+    completionSummary: buildCreateCompletionSummary(createInput),
+    preview,
+    args: {
+      entityType: createInput.entityType,
+      ...(createInput.title && { title: createInput.title }),
+      ...(createInput.visibility !== undefined
+        ? { visibility: createInput.visibility }
+        : {}),
+      source: prepared.confirmationSource,
+      ...(createInput.fields && { fields: createInput.fields }),
+      ...(createInput.replace && { replace: createInput.replace }),
     },
   };
 }
@@ -1140,77 +1228,15 @@ export function createEntityCreateTool(services: SystemServices): Tool {
       }
       const prep = await prepareCreate(services, input, toolContext, pending);
       if (prep.kind === "error") return prep.result;
-      const { createInput } = prep.prepared;
-      const {
-        resolvedMessageId,
-        resolvedUserSource,
-        pinnedSource,
-        resolvedEntity,
-        uploadPreserve,
-      } = prep.prepared;
-
-      if (input.confirmed) {
-        const gateError = confirmationGate.validateConfirmed(
-          input.confirmationToken,
-          input,
-        );
-        if (gateError) return gateError;
-      } else {
-        const built = uploadPreserve
-          ? buildUploadPreserveConfirmation({
-              ...(createInput.title && { title: createInput.title }),
-              filename: uploadPreserve.filename,
-              mediaType: uploadPreserve.mediaType,
-              entityType: createInput.entityType,
-              visibility: createInput.visibility,
-            })
-          : buildCreateConfirmation(createInput);
-        const confirmation = prep.prepared.replacesFailed
-          ? {
-              ...built,
-              preview: `${built.preview}\n${replacesFailedLine(prep.prepared.replacesFailed)}`,
-            }
-          : built;
-        const confirmationSource =
-          pinnedSource ??
-          freezeConfirmationSource({
-            source: input.source,
-            ...(resolvedMessageId && { resolvedMessageId }),
-            ...(resolvedUserSource && { resolvedUserSource }),
-            ...(resolvedEntity && { resolvedEntity }),
-            ...(createInput.content !== undefined
-              ? { content: createInput.content }
-              : {}),
-          });
-        const confirmationArgs = confirmationGate.buildArgs(
-          (confirmationToken) => ({
-            entityType: createInput.entityType,
-            ...(createInput.title && { title: createInput.title }),
-            ...(createInput.visibility !== undefined
-              ? { visibility: createInput.visibility }
-              : {}),
-            source: confirmationSource,
-            ...(createInput.fields && { fields: createInput.fields }),
-            ...(createInput.replace && { replace: createInput.replace }),
-            confirmed: true,
-            confirmationToken,
-          }),
-        );
-        return {
-          needsConfirmation: true,
-          toolName: "system_create",
-          summary: confirmation.summary,
-          completionSummary: buildCreateCompletionSummary(createInput),
-          preview: confirmation.preview,
-          args: confirmationArgs,
-        };
-      }
-      return executePreparedCreate(
-        services,
-        prep.prepared,
-        toolContext,
-        pending,
-      );
+      const prepared = prep.value;
+      return confirmOrRun({
+        gate: confirmationGate,
+        input,
+        replacesFailed: prepared.replacesFailed,
+        confirmation: () => createConfirmationRequest(prepared),
+        run: () =>
+          executePreparedCreate(services, prepared, toolContext, pending),
+      });
     },
     { visibility: "trusted", sideEffects: "writes" },
   );

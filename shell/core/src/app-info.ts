@@ -16,17 +16,23 @@ export async function getRuntimeAppInfo(options: {
   interactions: () => InteractionInfo[];
 }): Promise<RuntimeAppInfo> {
   const { config, services, bootTime, endpoints, interactions } = options;
-  const [entityCounts, embeddingCount, daemons, queueDiagnostics] =
-    await Promise.all([
-      services.entityService.getEntityCounts(
-        internalFullScope(
-          "runtime app info reports operator-facing aggregate status",
-        ),
+  const [
+    entityCounts,
+    embeddingCount,
+    daemons,
+    queueDiagnostics,
+    legacyBinaryContent,
+  ] = await Promise.all([
+    services.entityService.getEntityCounts(
+      internalFullScope(
+        "runtime app info reports operator-facing aggregate status",
       ),
-      services.entityService.countEmbeddings(),
-      services.daemonRegistry.getStatuses(),
-      services.jobQueueService.getDiagnostics(),
-    ]);
+    ),
+    services.entityService.countEmbeddings(),
+    services.daemonRegistry.getStatuses(),
+    services.jobQueueService.getDiagnostics(),
+    services.legacyBinaryLedger.list(),
+  ]);
   const totalEntities = entityCounts.reduce((sum, c) => sum + c.count, 0);
 
   return {
@@ -40,6 +46,7 @@ export async function getRuntimeAppInfo(options: {
       queueDiagnostics,
       services.jobQueueService.getExecutionRegistrations(),
     ),
+    legacyBinaryContent,
     ai: {
       model: config.ai.model,
       embeddingModel: services.embeddingService.identity.model,

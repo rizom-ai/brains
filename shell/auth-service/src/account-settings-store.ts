@@ -6,6 +6,7 @@ import type {
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { and, eq } from "drizzle-orm";
+import { bytesToBase64Url } from "./base64url";
 import type { AuthRuntimeDB } from "./runtime-db";
 import { authAccountPluginSettings } from "./runtime-schema";
 
@@ -16,10 +17,6 @@ const storedValuesSchema: z.ZodRecord<
   z.string(),
   z.union([z.string(), z.number().finite(), z.boolean(), z.null()]),
 );
-
-function encoded(bytes: Uint8Array): string {
-  return Buffer.from(bytes).toString("base64url");
-}
 
 function decoded(value: string): ArrayBuffer {
   return Uint8Array.from(Buffer.from(value, "base64url")).buffer;
@@ -182,7 +179,7 @@ export class AuthAccountSettingsStore implements AccountSettingsBackend {
       await this.key,
       Uint8Array.from(new TextEncoder().encode(JSON.stringify(values))),
     );
-    return `${encoded(iv)}.${encoded(new Uint8Array(ciphertext))}`;
+    return `${bytesToBase64Url(iv)}.${bytesToBase64Url(new Uint8Array(ciphertext))}`;
   }
 
   private async decrypt(

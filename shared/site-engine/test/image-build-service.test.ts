@@ -69,6 +69,44 @@ describe("ImageBuildService", () => {
     expect(resolved.height).toBe(480);
   });
 
+  test("resolves an asset-backed image from its stored bytes", async () => {
+    const png = await createTestPng(2000, 1000);
+    const reads: unknown[] = [];
+    let ref = "";
+    const mockEntityService = createMockEntityService({
+      getEntityImpl: async (request) => {
+        reads.push(request);
+        return {
+          id: "cover-photo",
+          entityType: "image",
+          content: ref,
+          visibility: "public" as const,
+          metadata: {
+            format: "png",
+            mediaType: "image/png",
+            width: 2000,
+            height: 1000,
+          },
+          created: new Date().toISOString(),
+          updated: new Date().toISOString(),
+          contentHash: "abc123",
+        };
+      },
+    });
+    ref = (await mockEntityService.stageAsset(png)).ref;
+
+    const service = new ImageBuildService(mockEntityService, logger, imagesDir);
+    await service.resolveAll(["cover-photo"], new AbortController().signal);
+
+    expect(service.get("cover-photo")?.src).toContain(".webp");
+    expect(reads[0]).toMatchObject({ binaryContent: "reference" });
+    // Read at the build's own scope: the default, public, never widened.
+    expect(reads[0]).not.toHaveProperty("visibilityScope");
+    expect(
+      (await fs.readFile(join(imagesDir, "cover-photo.png"))).equals(png),
+    ).toBe(true);
+  });
+
   test("rejects an already cancelled image batch before entity reads", async () => {
     const mockEntityService = createMockEntityService();
     const service = new ImageBuildService(mockEntityService, logger, imagesDir);

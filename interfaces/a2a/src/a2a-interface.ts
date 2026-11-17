@@ -234,7 +234,21 @@ function createApp(
   app.options("/a2a", () => withCors(new Response(null, { status: 204 })));
 
   app.post("/a2a", async (c) => {
-    const bodyText = await c.req.text();
+    // A body cut off mid-read, by the client or by a stopping host's forced
+    // close, is the caller's lost request, not a fault here.
+    const bodyText = await c.req.text().catch(() => undefined);
+    if (bodyText === undefined) {
+      return withCors(
+        c.json(
+          {
+            jsonrpc: "2.0",
+            error: { code: -32700, message: "Request body could not be read" },
+            id: null,
+          },
+          400,
+        ),
+      );
+    }
     let caller: {
       permissionLevel: UserPermissionLevel;
       isAnchor: boolean;

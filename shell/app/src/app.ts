@@ -33,6 +33,8 @@ export class App {
   private signalScope: Scope.Closeable | null = null;
   private signalShutdownFiber: Fiber.Fiber<void, never> | null = null;
   private stopPromise: Promise<void> | null = null;
+  /** The migration initialize is running, which a stop waits out. */
+  private migrationPromise: Promise<void> | null = null;
   private hasCLI = false;
 
   public static create(config?: AppConfigInput, shell?: Shell): App {
@@ -105,13 +107,25 @@ export class App {
     // A supervised child starts only after the parent has completed migrations.
     // Injected shells remain migration-free for tests and embedding applications.
     if (!this.shell) {
-      if (!runtimeOptions?.migrationsCompleted) await this.migrate();
+      if (!runtimeOptions?.migrationsCompleted) {
+        this.migrationPromise = this.migrate();
+        try {
+          await this.migrationPromise;
+        } finally {
+          this.migrationPromise = null;
+        }
+      }
+      // Stopped while migrating: there is nothing to start or to stop.
+      if (this.stopPromise) return;
       this.createShell(options, runtimeOptions);
     }
 
     await this.registerCLIInterface(runtimeOptions);
 
-    // Initialize shell (which will initialize all plugins including interfaces)
+    // A shell whose stop began before its boot never boots; one whose boot is
+    // under way is stopped by Shell.shutdown(), which waits the boot out and
+    // then closes whatever it started.
+    if (this.stopPromise) return;
     await this.getShell().initialize(options);
   }
 
@@ -127,6 +141,11 @@ export class App {
 
   private async stopApp(): Promise<void> {
     await this.closeSignalScope();
+    if (this.migrationPromise) {
+      // A failed migration is initialize()'s to report; the stop only waits
+      // until nothing is writing.
+      await this.migrationPromise.catch(() => undefined);
+    }
     await this.shell?.shutdown();
   }
 
@@ -158,8 +177,14 @@ export class App {
     }
 
     logger.info(`🚀 Starting ${this.config.name} v${this.config.version}...`);
+    // Before the boot, not after it: the database lease is taken during
+    // initialize, so a stop that arrives then has to run stop() rather than
+    // end the process with the lease still held.
+    this.setupSignalHandlers();
     try {
       await this.initialize(undefined, runtimeOptions);
+      // A stop during boot owns the process from here; it exits once done.
+      if (this.stopPromise) return;
       await this.start();
       runtimeOptions?.onRuntimeReady?.();
 

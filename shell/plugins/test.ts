@@ -83,3 +83,4 @@ export {
   PluginError,
   PermissionService,
 } from "./src/index";
+export { withMediaAssetReads } from "./src/test/media-asset-reads";

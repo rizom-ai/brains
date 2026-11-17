@@ -214,6 +214,87 @@ describe("App", () => {
     });
   });
 
+  describe("stop during boot", () => {
+    it("handles SIGTERM while the shell boots, and reports no readiness", async () => {
+      const boot = deferred();
+      const mockShell = createMockShell();
+      mockShell.initialize = mock(() => boot.promise);
+      const app = App.create({ logLevel: "error" }, mockShell);
+      const existing = new Set(process.listeners("SIGTERM"));
+      const originalExit = process.exit;
+      const exit = mock((code?: number): never => {
+        throw new ProcessExited(code);
+      });
+      const resume = spyOn(process.stdin, "resume");
+      const onRuntimeReady = mock(() => {});
+
+      try {
+        process.exit = exit;
+        const running = app.run({ onRuntimeReady });
+        await Bun.sleep(0);
+        const sigterm = process
+          .listeners("SIGTERM")
+          .find((listener) => !existing.has(listener));
+        expect(sigterm).toBeDefined();
+
+        sigterm?.("SIGTERM");
+        boot.resolve();
+        await running;
+        await app.stop();
+        await Bun.sleep(0);
+
+        expect(mockShell.shutdown).toHaveBeenCalledTimes(1);
+        expect(exit).toHaveBeenCalledWith(0);
+        expect(exit).not.toHaveBeenCalledWith(1);
+        expect(onRuntimeReady).not.toHaveBeenCalled();
+        expect(resume).not.toHaveBeenCalled();
+      } finally {
+        process.exit = originalExit;
+        resume.mockRestore();
+        await app.stop();
+      }
+    });
+
+    it("waits out a migration it was stopped during and starts no shell", async () => {
+      const migration = deferred();
+      const migrationSpy = spyOn(
+        MigrationManager.prototype,
+        "runAllMigrations",
+      ).mockImplementation(() => migration.promise);
+      const createFreshSpy = spyOn(Shell, "createFresh");
+
+      try {
+        const app = App.create({});
+        const initializing = app.initialize();
+        await Bun.sleep(0);
+        let stopped = false;
+        const stopping = app.stop().then(() => {
+          stopped = true;
+        });
+        await Bun.sleep(0);
+        expect(stopped).toBe(false);
+
+        migration.resolve();
+        await Promise.all([initializing, stopping]);
+
+        expect(createFreshSpy).not.toHaveBeenCalled();
+      } finally {
+        createFreshSpy.mockRestore();
+        migrationSpy.mockRestore();
+      }
+    });
+
+    it("does not boot a shell once stop has begun", async () => {
+      const mockShell = createMockShell();
+      const app = App.create({ logLevel: "error" }, mockShell);
+
+      await app.stop();
+      await app.initialize();
+
+      expect(mockShell.initialize).not.toHaveBeenCalled();
+    });
+  });
+
   describe("getters", () => {
     it("should provide access to shell", () => {
       const mockShell = createMockShell();

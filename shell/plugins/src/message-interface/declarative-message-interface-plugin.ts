@@ -230,6 +230,7 @@ class DeclarativeMessageInterfacePlugin<
           attached: this.definition.accountSettings,
           registration: this.accountSettingsRegistration,
           accountSettings: context.accountSettings,
+          logger: this.logger,
         }),
       );
     }
@@ -237,22 +238,25 @@ class DeclarativeMessageInterfacePlugin<
     if (this.definition.listen) {
       context.daemons.register(
         "listener",
-        createDeclarativeDaemon({
-          kind: "rizom-interface-daemon",
-          id: "listener",
-          required: false,
-          run: ({ signal, health }) =>
-            this.definition.listen?.({
-              config: this.config,
-              state: this.requireState(),
-              signal,
-              health,
-              messages: {
-                receiveAuthenticated: (input) =>
-                  this.receiveAuthenticated(input, signal),
-              },
-            }) ?? Promise.resolve(),
-        }),
+        createDeclarativeDaemon(
+          {
+            kind: "rizom-interface-daemon",
+            id: "listener",
+            required: false,
+            run: ({ signal, health }) =>
+              this.definition.listen?.({
+                config: this.config,
+                state: this.requireState(),
+                signal,
+                health,
+                messages: {
+                  receiveAuthenticated: (input) =>
+                    this.receiveAuthenticated(input, signal),
+                },
+              }) ?? Promise.resolve(),
+          },
+          { logger: this.logger },
+        ),
       );
     }
   }
@@ -465,6 +469,9 @@ class DeclarativeMessageInterfacePlugin<
           userPermissionLevel: permission,
           isAnchor,
           interfaceType,
+          // Its progress comes back here, not to another installed interface
+          // that shares the channel type.
+          interfaceId: this.id,
           channelId: input.channel.id,
           actor: {
             identity: {

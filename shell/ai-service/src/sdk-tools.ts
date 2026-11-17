@@ -47,6 +47,8 @@ export interface ToolContextInfo {
   channelId?: string | undefined;
   channelName?: string | undefined;
   interfaceType: string;
+  /** The installed interface the turn came through, when it says. */
+  interfaceId?: string | undefined;
   actor?: ActorRef | undefined;
   displayName?: string | undefined;
   userPermissionLevel?: UserPermissionLevel;
@@ -282,6 +284,9 @@ export function convertToSDKTools(
         const signal = options?.abortSignal;
         const context: ToolContext = {
           interfaceType: contextInfo.interfaceType,
+          ...(contextInfo.interfaceId && {
+            interfaceId: contextInfo.interfaceId,
+          }),
           actor: contextInfo.actor ?? {
             kind: "agent",
             agentId: "brain-agent",

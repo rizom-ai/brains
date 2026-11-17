@@ -50,6 +50,9 @@ function createCapturedService(): CapturedService {
       return [];
     },
     queryEntityHierarchy: createMockEntityService().queryEntityHierarchy,
+    openAsset: createMockEntityService().openAsset,
+    readAsset: createMockEntityService().readAsset,
+    statAsset: createMockEntityService().statAsset,
     queryGroupingCatalog: createMockEntityService().queryGroupingCatalog,
     queryGroupingMembers: createMockEntityService().queryGroupingMembers,
     queryGroupingUsage: createMockEntityService().queryGroupingUsage,
@@ -79,11 +82,11 @@ describe("findEntityByIdentifier scope propagation", () => {
     // A structurally compatible object may contain extra runtime properties.
     await findEntityByIdentifier(
       captured.service,
-      "doc",
-      "missing",
-      undefined,
-      "public",
-      { signal, ...{ visibilityScope: "restricted" } },
+      { entityType: "doc", identifier: "missing" },
+      {
+        visibilityScope: "public",
+        read: { signal, ...{ visibilityScope: "restricted" } },
+      },
     );
     expect(captured.getEntityCalls).toEqual([
       { entityType: "doc", id: "missing", visibilityScope: "public", signal },
@@ -101,11 +104,8 @@ describe("findEntityByIdentifier scope propagation", () => {
     const captured = createCapturedService();
     await findEntityByIdentifier(
       captured.service,
-      "doc",
-      "missing",
-      undefined,
-      "public",
-      { publishedOnly: true },
+      { entityType: "doc", identifier: "missing" },
+      { visibilityScope: "public", read: { publishedOnly: true } },
     );
     expect(captured.getEntityCalls).toEqual([
       {
@@ -134,11 +134,8 @@ describe("findEntityByIdentifier scope propagation", () => {
     expect(
       await findEntityByIdentifier(
         reads,
-        "doc",
-        "missing",
-        undefined,
-        "public",
-        { signal: controller.signal },
+        { entityType: "doc", identifier: "missing" },
+        { visibilityScope: "public", read: { signal: controller.signal } },
       ).catch(() => null),
     ).toBeNull();
     expect(captured.listEntitiesCalls).toHaveLength(0);
@@ -148,10 +145,8 @@ describe("findEntityByIdentifier scope propagation", () => {
     const captured = createCapturedService();
     await findEntityByIdentifier(
       captured.service,
-      "doc",
-      "abc",
-      undefined,
-      "public",
+      { entityType: "doc", identifier: "abc" },
+      { visibilityScope: "public" },
     );
 
     expect(captured.getEntityCalls[0]).toEqual({
@@ -165,10 +160,8 @@ describe("findEntityByIdentifier scope propagation", () => {
     const captured = createCapturedService();
     await findEntityByIdentifier(
       captured.service,
-      "doc",
-      "my-slug",
-      undefined,
-      "shared",
+      { entityType: "doc", identifier: "my-slug" },
+      { visibilityScope: "shared" },
     );
 
     expect(captured.listEntitiesCalls[0]).toEqual({
@@ -187,10 +180,8 @@ describe("findEntityByIdentifier scope propagation", () => {
     const captured = createCapturedService();
     await findEntityByIdentifier(
       captured.service,
-      "doc",
-      "My Title",
-      undefined,
-      "restricted",
+      { entityType: "doc", identifier: "My Title" },
+      { visibilityScope: "restricted" },
     );
 
     expect(captured.listEntitiesCalls[1]).toEqual({
@@ -228,10 +219,8 @@ describe("findEntityByIdentifier scope propagation", () => {
 
     const result = await findEntityByIdentifier(
       captured.service,
-      "doc",
-      "resilience-is-not-redundancy",
-      undefined,
-      "public",
+      { entityType: "doc", identifier: "resilience-is-not-redundancy" },
+      { visibilityScope: "public" },
     );
 
     expect(result?.id).toBe("resilience-in-distributed-systems");
@@ -241,24 +230,13 @@ describe("findEntityByIdentifier scope propagation", () => {
     });
   });
 
-  it("defaults to public scope when none is provided", async () => {
-    const captured = createCapturedService();
-    await findEntityByIdentifier(captured.service, "doc", "abc");
-
-    expect(captured.getEntityCalls[0]).toEqual({
-      entityType: "doc",
-      id: "abc",
-      visibilityScope: "public",
-    });
-  });
-
   it("returns null when the entity exists but is out of the public scope", async () => {
     const captured = createCapturedService();
 
     const result = await findEntityByIdentifier(
       captured.service,
-      "doc",
-      "restricted-id",
+      { entityType: "doc", identifier: "restricted-id" },
+      { visibilityScope: "public" },
     );
 
     expect(result).toBeNull();
@@ -278,8 +256,8 @@ describe("findEntityByIdentifier scope propagation", () => {
 
     const outcome = await findEntityByIdentifier(
       unreachable,
-      "doc",
-      "abc",
+      { entityType: "doc", identifier: "abc" },
+      { visibilityScope: "public" },
     ).then(
       (entity) => `resolved with ${String(entity)}`,
       (error: unknown) => getErrorMessage(error),
@@ -293,16 +271,117 @@ describe("findEntityByIdentifier scope propagation", () => {
 
     const result = await resolveEntityOrError(
       captured.service,
-      "doc",
-      "restricted-id",
-      undefined,
-      undefined,
-      "public",
+      { entityType: "doc", identifier: "restricted-id" },
+      { visibilityScope: "public" },
     );
 
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.error).toBe("Entity not found: doc/restricted-id");
     }
+  });
+
+  it("resolveEntityOrError prefixes the not-found error with the caller's label", async () => {
+    const captured = createCapturedService();
+
+    const result = await resolveEntityOrError(
+      captured.service,
+      { entityType: "doc", identifier: "missing" },
+      { visibilityScope: "shared", label: "Source entity" },
+    );
+
+    expect(result).toEqual({
+      ok: false,
+      error: "Source entity not found: doc/missing",
+    });
+  });
+});
+
+// A plain note saved under a name keeps that name only in its id: its file
+// states no title, so its title is its first line.
+describe("findEntityByIdentifier by the name an entry was saved under", () => {
+  const saved: BaseEntity = {
+    id: "dashboard-drop-off",
+    entityType: "note",
+    content: "Sam stopped opening the dashboard after a week.",
+    contentHash: "hash",
+    visibility: "restricted",
+    created: "2026-11-15T10:00:00.000Z",
+    updated: "2026-11-15T10:00:00.000Z",
+    metadata: { title: "Sam stopped opening the dashboard after a week." },
+  };
+
+  function holding(entity: BaseEntity): CapturedService {
+    const captured = createCapturedService();
+    return {
+      ...captured,
+      service: {
+        ...captured.service,
+        async getEntityRaw<T extends BaseEntity>(
+          request: GetEntityRawRequest,
+        ): Promise<T | null> {
+          captured.getEntityCalls.push(request);
+          // Read through a schema-free copy: the test holds one entry.
+          return request.id === entity.id &&
+            request.entityType === entity.entityType
+            ? structuredClone<T>(JSON.parse(JSON.stringify(entity)))
+            : null;
+        },
+      },
+    };
+  }
+
+  it("finds the entry whose id is the name's slug", async () => {
+    const captured = holding(saved);
+
+    const found = await findEntityByIdentifier(
+      captured.service,
+      { entityType: "note", identifier: "Dashboard drop-off" },
+      { visibilityScope: "restricted" },
+    );
+
+    expect(found?.id).toBe("dashboard-drop-off");
+  });
+
+  it("reads it at the caller's scope, after an entry titled so and before looser matches", async () => {
+    const captured = holding(saved);
+    const signal = new AbortController().signal;
+
+    await findEntityByIdentifier(
+      captured.service,
+      { entityType: "note", identifier: "Dashboard drop-off" },
+      { visibilityScope: "public", read: { signal, publishedOnly: true } },
+    );
+
+    expect(captured.getEntityCalls).toEqual([
+      {
+        entityType: "note",
+        id: "Dashboard drop-off",
+        visibilityScope: "public",
+        signal,
+        publishedOnly: true,
+      },
+      {
+        entityType: "note",
+        id: "dashboard-drop-off",
+        visibilityScope: "public",
+        signal,
+        publishedOnly: true,
+      },
+    ]);
+    // By slug and by title first; nothing looser once the id answered.
+    expect(captured.listEntitiesCalls).toHaveLength(2);
+  });
+
+  it("looks no entry up twice when the name is its own slug", async () => {
+    const captured = createCapturedService();
+
+    await findEntityByIdentifier(
+      captured.service,
+      { entityType: "note", identifier: "missing" },
+      { visibilityScope: "public" },
+    );
+
+    expect(captured.getEntityCalls).toHaveLength(1);
   });
 });

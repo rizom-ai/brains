@@ -144,6 +144,33 @@ label, field, types })` records a static declaration; grouping reads resolve it
 by key. Once a source is installed, further static registrations are rejected.
 Studio rejects competing static declarations before installing its document owner.
 
+A declaration may also carry `multiple` (whether a record may hold several
+values) and `values` (the values a closed grouping allows; absent, the grouping
+is open). The registry only carries them, for a reader that chooses a value on
+a record's behalf; whoever declares the grouping enforces them. Studio
+publishes both from its definitions.
+
+## Types that must belong to a grouping
+
+A type registered with `requiresGroupingMembership: true` is held to it on
+every create and update: where at least one grouping applies to the type, a
+record whose file states a value in none of them is refused with a
+`phase: "persist"` validation error that names the groupings. A brain with no
+grouping for the type asks nothing more. The placeholder of a generation,
+queued or failed (`status: generating` or `failed`), is exempt. A generation
+of such a type that states no membership is placed by the runtime: the brain
+chooses one grouping and one value, from `values` for a closed grouping or the
+values in use for an open one, read at the run's own visibility.
+
+## Generations that use up their sources
+
+A type registered with `consumesSources: [<type>, …]` uses up the sources of
+those types that its generation is written from. Once the generated entity is
+saved, the runtime deletes them as the run, under the source type's delete
+policy. A source it could not delete fails the job, which keeps what it wrote
+and names the source. `system_generate` refuses a source of any other type for
+such a type, and says in its confirmation what will be removed.
+
 `validateGroupings(next)` preflights a complete replacement set without changing
 active schemas. `replaceGroupings(next)` publishes that set and its schema
 extensions atomically after validation; failure leaves the old set intact.

@@ -10,7 +10,7 @@ import { getErrorMessage } from "@brains/utils/error";
 import { updateInputSchema, exactlyOneUpdateOperation } from "./schemas";
 import { uneditableFieldsError, updateModelInput } from "./field-changes";
 import { applyContentEdits } from "./content-edits";
-import { assertEntityActionAllowed } from "./entity-action-policy";
+import { entityActionRefusal } from "./entity-action-policy";
 import {
   applyUpdateOperation,
   buildUpdateDiff,
@@ -252,11 +252,14 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
       if (uneditable) return failure(uneditable);
       const resolved = await resolveEntityOrError(
         entityService,
-        input.entityType,
-        input.id,
-        logger,
-        undefined,
-        permissionToVisibilityScope(context.userPermissionLevel),
+        { entityType: input.entityType, identifier: input.id },
+        {
+          visibilityScope: permissionToVisibilityScope(
+            context.userPermissionLevel,
+          ),
+          logger,
+          read: { binaryContent: "reference" },
+        },
       );
       if (!resolved.ok) return failure(resolved.error);
 
@@ -282,7 +285,7 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
       );
       if (invalid) return invalid;
 
-      const policyError = assertEntityActionAllowed(
+      const policyError = entityActionRefusal(
         services,
         input.entityType,
         requiredUpdateAction(entity, operation, entityRegistry),

@@ -123,7 +123,9 @@ import type {
 import type { SchemaValue } from "../internal/schema-value";
 import {
   attachFirstPartyRuntime,
+  eraseResponseType,
   firstPartyRuntimeOf,
+  releasingOperationalHealth,
 } from "../internal/first-party-runtime";
 import {
   buildServiceTool,
@@ -832,6 +834,13 @@ export interface ServiceEntityReads {
   getEntityTypeConfig: IEntityService["getEntityTypeConfig"];
   /** A document parsed as its type's adapter reads it, written nowhere. */
   deserializeEntity: IEntityService["deserializeEntity"];
+  /**
+   * A published asset's bytes. A reference is not access: serve them only
+   * for a record read at the caller's scope, never for a bare reference.
+   */
+  openAsset: IEntityService["openAsset"];
+  readAsset: IEntityService["readAsset"];
+  statAsset: IEntityService["statAsset"];
 }
 
 /** The AT Protocol projections a class read, and nothing that registers one. */
@@ -905,7 +914,12 @@ export interface ServiceClassJobs {
 /** The entity service's writes a first-party class made. */
 export type ServiceEntityWrites = Pick<
   IEntityService,
-  "createEntity" | "updateEntity" | "upsertEntity" | "deleteEntity"
+  | "createEntity"
+  | "updateEntity"
+  | "upsertEntity"
+  | "deleteEntity"
+  | "stageAsset"
+  | "discardStagedAsset"
 >;
 
 /**
@@ -938,7 +952,6 @@ export interface ServiceGroupings
   registerPersistValidator(type: string, validator: PersistValidator): void;
 }
 
-/** A first-party service's own account settings, as its class kept them. */
 /** What the brain's auth authority binds, as its class bound it through the plugin context. */
 export interface ServiceAuthAuthority {
   /** Binds the brain's auth backend; released when the package shuts down. */
@@ -959,6 +972,7 @@ export interface ServiceAuthAuthority {
   };
 }
 
+/** A first-party service's own account settings, as its class kept them. */
 export interface ServiceAccountSettingsRegistry {
   register<TDefinition extends AnyAccountSettingsDefinition>(
     input: RegisterAccountSettingsInput<TDefinition>,
@@ -1006,15 +1020,29 @@ export interface ServiceIdentity {
   getAppInfo(): Promise<AppInfo>;
 }
 
-/** What the runtime binds a first-party service's runtime to. */
-export interface ServiceRuntimeBinding {
-  readonly logger: Logger;
-  readonly pluginId: string;
-  readonly messaging: IMessagingNamespace;
-  readonly deliveryProvider: (
-    channelType: string,
-  ) => ChannelDeliveryProvider | undefined;
-  readonly instructions: (instructions: string) => void;
+/**
+ * The members `bindServiceRuntime` writes itself rather than hands through
+ * as bound: each wraps the package's hooks or the raw bus.
+ */
+type DerivedServiceRuntimeKeys =
+  | "messaging"
+  | "authAuthority"
+  | "operationalHealth"
+  | "spaces"
+  | "ready"
+  | "registered"
+  | "answer"
+  | "listen";
+
+/**
+ * What the runtime binds a first-party service's runtime to: every member
+ * the runtime hands through as bound, and what its derived members are
+ * built from.
+ */
+export type ServiceRuntimeBinding = Omit<
+  ServiceRuntime,
+  DerivedServiceRuntimeKeys
+> & {
   /** Runs a handler as the package acting as itself. */
   readonly asPackage: <T>(run: () => Promise<T>) => Promise<T>;
   /** Keeps a release to run when the package shuts down. */
@@ -1023,88 +1051,13 @@ export interface ServiceRuntimeBinding {
   readonly onReady: (handler: () => Promise<void>) => void;
   /** Keeps a handler to run once every plugin has registered. */
   readonly onRegistered: (handler: () => Promise<void>) => void;
-  readonly entityShapes: ServiceEntityShapes;
-  readonly views: ServiceViews;
-  readonly resolveTemplate: ServiceRuntime["resolveTemplate"];
-  readonly jobs: ServiceClassJobs;
-  readonly entityWrites: ServiceEntityWrites;
-  readonly dataDir: string;
-  readonly identity: ServiceIdentity;
-  readonly domain: string | undefined;
-  readonly servesHttp: boolean;
-  readonly publicSkills: Pick<IPublicSkillsNamespace, "list">;
-  readonly atprotoProjections: ServiceAtprotoProjections;
-  readonly auth: () => AuthBackend | undefined;
+  /** The plugin's own bus, which `messaging`, `answer` and `listen` narrow. */
+  readonly messaging: IMessagingNamespace;
   /** None for a service that did not declare `withAuthAuthority`. */
   readonly authAuthority: ServiceAuthAuthority | undefined;
-  readonly studio: ServiceStudio;
-  readonly inbox: Pick<IInboxNamespace, "listSources" | "getSource">;
-  readonly inboxSource: (source: InboxSource) => void;
-  readonly prompts: Pick<IPromptsNamespace, "resolve">;
-  readonly executionOnly: boolean;
-  readonly assignableMembers: () => Promise<AssignableMember[]>;
-  readonly groupings: () => ServiceGroupings;
-  readonly groupingReads: ServiceGroupingReads;
-  readonly accountSettings: ServiceAccountSettingsRegistry;
-  readonly sharedUploads: ServiceRuntime["sharedUploads"];
-  readonly uploadSaveHandler: ServiceRuntime["uploadSaveHandler"];
-  readonly channelDescriptors: () => ChannelDescriptor[];
-  readonly channelDescriptor: (
-    channelType: string,
-  ) => ChannelDescriptor | undefined;
-  readonly readiness: () => Promise<RuntimeReadiness>;
-  readonly inboxFollowUpKind: ServiceRuntime["inboxFollowUpKind"];
-  readonly registering: ServiceRuntime["registering"];
-  readonly entityMirror: ServiceEntityMirror;
-  readonly gitBroker: ServiceGitBroker;
-  readonly initialSync: ServiceRuntime["initialSync"];
   readonly operationalHealth: Pick<IOperationalHealthNamespace, "register">;
-  readonly endpoint: ServiceRuntime["endpoint"];
-  readonly hasPlugin: (pluginId: string) => boolean;
-  readonly themeCSS: string;
-  readonly analyticsReport: ServiceRuntime["analyticsReport"];
-  readonly reportEntityService: ReadOnlyEntityService;
-  readonly inboxFollowUps: Pick<IInboxFollowUpsNamespace, "resolve">;
-  readonly recurringCheck: (check: RecurringCheckDefinition) => void;
-  readonly interaction: (interaction: ServiceInteraction) => void;
-  readonly workspaceUrl: (
-    workspace: AnyStudioWorkspaceDefinition,
-  ) => string | undefined;
   readonly spaces: readonly string[];
-  readonly siteUrl: string | undefined;
-  readonly previewUrl: string | undefined;
-  readonly localSiteUrl: string | undefined;
-  readonly preferLocalUrls: boolean;
-  readonly entityDisplay:
-    Readonly<Record<string, EntityDisplayEntry>> | undefined;
-  readonly routeByRole: (role: WebRouteRole) => RegisteredWebRoute | undefined;
-  readonly consoleSurfaces: (
-    options: ConsoleSurfaceOptions,
-  ) => ConsoleSurface[];
-  readonly toolCall: () => ServiceToolCall | undefined;
-  readonly classRuntimeState: ClassRuntimeState;
-  readonly evalHandler: (handlerId: string, handler: EvalHandler) => void;
-  readonly runProjectionRule: ServiceRuntime["runProjectionRule"];
-  readonly entityMutations: ServiceEntityMutations;
-  readonly conversations: ServiceConversations;
-  readonly entityReads: ServiceEntityReads;
-  readonly permissions: ServicePermissions;
-  readonly attachments: ServiceAttachments;
-  readonly retries: RetryScope;
-  readonly claim: (type: string) => ClaimedSystemType;
-  readonly profileKinds: IProfileKindsNamespace;
-  readonly ai: ServiceAI;
-  readonly dataSource: ServiceRuntime["dataSource"];
-  readonly template: (
-    name: string,
-    template: Template,
-    options?: ServiceTemplateOptions,
-  ) => void;
-  readonly generateContent: ServiceRuntime["generateContent"];
-  readonly dashboardWidget: <TDefinition extends AnyDashboardWidgetDefinition>(
-    widget: ServiceDashboardWidget<TDefinition>,
-  ) => void;
-}
+};
 
 const serviceRuntimeKey = Symbol("rizom.first-party-service-runtime");
 
@@ -1112,114 +1065,59 @@ const serviceRuntimeKey = Symbol("rizom.first-party-service-runtime");
 const boundServiceRuntimes = new WeakSet<object>();
 
 function bindServiceRuntime(binding: ServiceRuntimeBinding): ServiceRuntime {
-  const { messaging, asPackage, onRelease, onReady, onRegistered } = binding;
+  const {
+    asPackage,
+    onRelease,
+    onReady,
+    onRegistered,
+    messaging,
+    authAuthority,
+    operationalHealth,
+    spaces,
+    ...passthrough
+  } = binding;
   const runtime: ServiceRuntime = {
-    logger: binding.logger,
-    pluginId: binding.pluginId,
+    ...passthrough,
+    // Asking only: answering and hearing go through `answer` and `listen`,
+    // which act as the package and are released with it.
     messaging: Object.freeze({
       request: (contract, payload) => messaging.request(contract, payload),
       command: (contract, payload) => messaging.command(contract, payload),
       gather: (contract, payload) => messaging.gather(contract, payload),
       broadcast: (channel, payload) => messaging.broadcast(channel, payload),
     } satisfies ServiceClassMessaging),
-    deliveryProvider: binding.deliveryProvider,
-    instructions: binding.instructions,
-    entityShapes: binding.entityShapes,
-    views: binding.views,
-    resolveTemplate: binding.resolveTemplate,
-    jobs: binding.jobs,
-    entityWrites: binding.entityWrites,
-    dataDir: binding.dataDir,
-    identity: binding.identity,
-    domain: binding.domain,
-    servesHttp: binding.servesHttp,
-    publicSkills: binding.publicSkills,
-    atprotoProjections: binding.atprotoProjections,
-    auth: binding.auth,
+    // Read when asked, so a service that never binds auth is never refused.
     get authAuthority(): ServiceAuthAuthority {
-      if (!binding.authAuthority) {
+      if (!authAuthority) {
         throw new Error(
-          `Service "${binding.pluginId}" did not declare withAuthAuthority, so it binds no auth backend`,
+          `Service "${passthrough.pluginId}" did not declare withAuthAuthority, so it binds no auth backend`,
         );
       }
-      return binding.authAuthority;
+      return authAuthority;
     },
-    studio: binding.studio,
-    inbox: binding.inbox,
-    inboxSource: binding.inboxSource,
-    prompts: binding.prompts,
-    executionOnly: binding.executionOnly,
-    assignableMembers: binding.assignableMembers,
-    groupings: binding.groupings,
-    groupingReads: binding.groupingReads,
-    accountSettings: binding.accountSettings,
-    sharedUploads: binding.sharedUploads,
-    uploadSaveHandler: binding.uploadSaveHandler,
-    channelDescriptors: binding.channelDescriptors,
-    channelDescriptor: binding.channelDescriptor,
-    readiness: binding.readiness,
-    inboxFollowUpKind: binding.inboxFollowUpKind,
-    registering: binding.registering,
-    entityMirror: binding.entityMirror,
-    gitBroker: binding.gitBroker,
-    initialSync: binding.initialSync,
-    operationalHealth(name, provider): void {
-      binding.onRelease(binding.operationalHealth.register(name, provider));
-    },
-    endpoint: binding.endpoint,
-    hasPlugin: binding.hasPlugin,
-    themeCSS: binding.themeCSS,
-    analyticsReport: binding.analyticsReport,
-    reportEntityService: binding.reportEntityService,
-    inboxFollowUps: binding.inboxFollowUps,
-    recurringCheck: binding.recurringCheck,
-    interaction: binding.interaction,
-    workspaceUrl: binding.workspaceUrl,
-    spaces: Object.freeze([...binding.spaces]),
-    siteUrl: binding.siteUrl,
-    previewUrl: binding.previewUrl,
-    localSiteUrl: binding.localSiteUrl,
-    preferLocalUrls: binding.preferLocalUrls,
-    entityDisplay: binding.entityDisplay,
-    routeByRole: binding.routeByRole,
-    consoleSurfaces: binding.consoleSurfaces,
-    toolCall: binding.toolCall,
-    classRuntimeState: binding.classRuntimeState,
-    evalHandler: binding.evalHandler,
-    runProjectionRule: binding.runProjectionRule,
-    entityMutations: binding.entityMutations,
-    conversations: binding.conversations,
-    entityReads: binding.entityReads,
-    permissions: binding.permissions,
-    attachments: binding.attachments,
-    retries: binding.retries,
-    claim: binding.claim,
-    profileKinds: binding.profileKinds,
-    ai: binding.ai,
-    dataSource: binding.dataSource,
-    template: binding.template,
-    generateContent: binding.generateContent,
-    dashboardWidget: binding.dashboardWidget,
+    // Taken off when the package shuts down.
+    operationalHealth: releasingOperationalHealth(operationalHealth, onRelease),
+    // Frozen, so the package cannot change the spaces the brain keeps.
+    spaces: Object.freeze([...spaces]),
+    // The lifecycle handlers run as the package.
     ready(handler): void {
       onReady(() => asPackage(async () => handler()));
     },
     registered(handler): void {
       onRegistered(() => asPackage(async () => handler()));
     },
+    // Answered as the package, released when it shuts down.
     answer(contract, handler, options = {}): void {
-      // The bus checks the answer against the contract's own schema, as the
-      // public answer does; erasing the response type is what lets a handler
-      // typed by its contract hand the bus a value it parses.
-      const erased: BusContract<typeof contract.schema, z.ZodType> = contract;
       onRelease(
         messaging.answer(
-          erased,
+          eraseResponseType(contract),
           (request, { sender }) =>
             asPackage(async () => handler({ request, sender })),
           options.everyProcess === true ? { everyProcess: true } : {},
         ),
       );
     },
+    // Heard as the package, stopped by it or released when it shuts down.
     listen(
       channel: Channel<unknown> | string,
       handler: ServiceListenHandler<unknown>,
@@ -1330,11 +1228,6 @@ export function serviceRuntime(context: object): ServiceRuntime {
 }
 
 /**
- * The shell's own entity types a first-party package may claim: the brain's
- * character and its anchor's profile, which the shell registers before any
- * plugin and no plugin owns.
- */
-/**
  * Whether a caller's level reaches the level a surface needs, as a
  * converted service's class read PermissionService.hasPermission: the
  * shell's one rule, as a function, so no service holds the class.
@@ -1346,6 +1239,11 @@ export function hasPermission(
   return PermissionService.hasPermission(grantedLevel, requiredLevel);
 }
 
+/**
+ * The shell's own entity types a first-party package may claim: the brain's
+ * character and its anchor's profile, which the shell registers before any
+ * plugin and no plugin owns.
+ */
 export const claimableSystemTypes: ReadonlySet<string> = new Set([
   "anchor-profile",
   "brain-character",

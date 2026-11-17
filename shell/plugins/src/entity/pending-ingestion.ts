@@ -1,10 +1,12 @@
 import {
   internalFullScope,
   type BaseEntity,
+  type BinaryContentMode,
   type ContentVisibility,
   type CreateEntityOptions,
   type EntityInput,
   type EntityMutationResult,
+  type StagedAsset,
   type UpdateEntityOptions,
 } from "@brains/entity-service";
 
@@ -21,13 +23,16 @@ export interface PendingEntityService {
     entityType: string;
     id: string;
     visibilityScope?: ContentVisibility;
+    binaryContent?: BinaryContentMode;
   }): Promise<BaseEntity | null>;
   createEntity(request: {
     entity: EntityInput<BaseEntity>;
+    stagedAsset?: StagedAsset | undefined;
     options?: CreateEntityOptions | undefined;
   }): Promise<EntityMutationResult>;
   updateEntity(request: {
     entity: BaseEntity;
+    stagedAsset?: StagedAsset | undefined;
     options?: UpdateEntityOptions | undefined;
   }): Promise<EntityMutationResult>;
 }
@@ -56,7 +61,8 @@ export interface CreatePendingEntityResult {
  *
  * Use this before enqueueing async enrichment jobs so follow-up turns can find
  * the accepted item immediately. If the entity already exists, this function is
- * idempotent and returns the existing entity without modifying it.
+ * idempotent and returns the existing entity, with its stored content, without
+ * modifying it.
  */
 export async function createPendingEntity({
   entityService,
@@ -67,6 +73,8 @@ export async function createPendingEntity({
     entityType: entity.entityType,
     id: entity.id,
     visibilityScope: internalFullScope("pending entity identity check"),
+    // Only identity and visibility are read; stored bytes stay unloaded.
+    binaryContent: "reference",
   });
 
   if (existingEntity) {

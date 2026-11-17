@@ -11,6 +11,7 @@ import {
 } from "@simplewebauthn/server";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
+import { bytesToBase64Url } from "./base64url";
 import { RuntimePasskeyStore, type StoredPasskey } from "./credential-store";
 import type { AuthRuntimeDatabase } from "./runtime-db";
 
@@ -194,10 +195,6 @@ export class PasskeyService {
     );
     return { verified: true, subject: credential.userId };
   }
-}
-
-function bytesToBase64Url(bytes: Uint8Array): string {
-  return Buffer.from(bytes).toString("base64url");
 }
 
 function base64UrlToBytes(value: string): Uint8Array<ArrayBuffer> {

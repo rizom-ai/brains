@@ -1,0 +1,50 @@
+id: refined-note-one-note-with-direction
+name: Refine one note with a direction
+description: Tests that one loose note is worked out along the direction its caller gives, without added facts
+type: plugin
+tags:
+  - refined-note
+  - generation
+plugin: refined-note
+handler: refineNotes
+
+input:
+  direction: Focus on what this means for pricing
+  notes:
+    - |
+      Pilot debrief
+
+      3 pilots done. all three said setup took a full day and they needed us on a call for it.
+      two of them would pay monthly, one wants a one-off fee
+      nobody asked about the hosting. everyone asked who owns the data afterwards
+      the 450/month figure got no pushback from the two monthly ones
+
+expectedOutput:
+  validateEach:
+    - path: title
+      exists: true
+    - path: summary
+      exists: true
+    - path: body
+      exists: true
+  qualityCriteria:
+    minRelevanceScore: 4
+    minAccuracyScore: 4
+    minQualityScore: 4
+    evaluationPrompt: |
+      The input is one loose pilot-debrief note and the direction "Focus on
+      what this means for pricing".
+
+      The output must be one worked-out note with a title, a one-sentence
+      summary and a body. Judge it as follows:
+
+      - Relevance: pricing is the organizing question (monthly against
+        one-off, the 450/month figure, setup needing a day and a call). The
+        other observations may appear only as far as they bear on it.
+      - Accuracy: it uses what the note says (3 pilots, two monthly and one
+        one-off, 450/month with no pushback, a day of setup, data ownership
+        asked about, hosting not). Score 1 if it invents prices, customers,
+        tiers or conclusions the note does not support.
+      - Quality: it is written out in sentences and structure someone can
+        read cold, not a cleaned-up copy of the bullet fragments, and it
+        does not mention that it was written from a note.

@@ -1,5 +1,279 @@
 # @brains/blog
 
+## 0.2.0-alpha.730
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.730
+  - @rizom/brain-ui@0.2.0-alpha.730
+  - @brains/atproto-contracts@0.2.0-alpha.730
+  - @brains/contracts@0.2.0-alpha.730
+  - @brains/image@0.2.0-alpha.730
+  - @brains/media-page-composer@0.2.0-alpha.730
+  - @brains/site-composition@0.2.0-alpha.730
+  - @brains/utils@0.2.0-alpha.730
+
+## 0.2.0-alpha.729
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.729
+  - @brains/image@0.2.0-alpha.729
+  - @brains/media-page-composer@0.2.0-alpha.729
+  - @rizom/brain-ui@0.2.0-alpha.729
+  - @brains/atproto-contracts@0.2.0-alpha.729
+  - @brains/contracts@0.2.0-alpha.729
+  - @brains/site-composition@0.2.0-alpha.729
+  - @brains/utils@0.2.0-alpha.729
+
+## 0.2.0-alpha.728
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.728
+  - @brains/atproto-contracts@0.2.0-alpha.728
+  - @brains/image@0.2.0-alpha.728
+  - @brains/media-page-composer@0.2.0-alpha.728
+  - @rizom/brain-ui@0.2.0-alpha.728
+  - @brains/contracts@0.2.0-alpha.728
+  - @brains/site-composition@0.2.0-alpha.728
+  - @brains/utils@0.2.0-alpha.728
+
+## 0.2.0-alpha.727
+
+### Patch Changes
+
+- Updated dependencies [[`a57b365`](https://github.com/rizom-ai/brains/commit/a57b365b06adc462b6c4323d17e7046119f0a90b)]:
+  - @brains/contracts@0.2.0-alpha.727
+  - @brains/sdk@0.2.0-alpha.727
+  - @brains/image@0.2.0-alpha.727
+  - @brains/media-page-composer@0.2.0-alpha.727
+  - @brains/atproto-contracts@0.2.0-alpha.727
+  - @rizom/brain-ui@0.2.0-alpha.727
+  - @brains/site-composition@0.2.0-alpha.727
+  - @brains/utils@0.2.0-alpha.727
+
+## 0.2.0-alpha.726
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.726
+  - @rizom/brain-ui@0.2.0-alpha.726
+  - @brains/atproto-contracts@0.2.0-alpha.726
+  - @brains/contracts@0.2.0-alpha.726
+  - @brains/image@0.2.0-alpha.726
+  - @brains/media-page-composer@0.2.0-alpha.726
+  - @brains/site-composition@0.2.0-alpha.726
+  - @brains/utils@0.2.0-alpha.726
+
+## 0.2.0-alpha.725
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.725
+  - @rizom/brain-ui@0.2.0-alpha.725
+  - @brains/atproto-contracts@0.2.0-alpha.725
+  - @brains/contracts@0.2.0-alpha.725
+  - @brains/image@0.2.0-alpha.725
+  - @brains/media-page-composer@0.2.0-alpha.725
+  - @brains/site-composition@0.2.0-alpha.725
+  - @brains/utils@0.2.0-alpha.725
+
+## 0.2.0-alpha.724
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.724
+  - @rizom/brain-ui@0.2.0-alpha.724
+  - @brains/atproto-contracts@0.2.0-alpha.724
+  - @brains/contracts@0.2.0-alpha.724
+  - @brains/image@0.2.0-alpha.724
+  - @brains/media-page-composer@0.2.0-alpha.724
+  - @brains/site-composition@0.2.0-alpha.724
+  - @brains/utils@0.2.0-alpha.724
+
+## 0.2.0-alpha.723
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.723
+  - @rizom/brain-ui@0.2.0-alpha.723
+  - @brains/atproto-contracts@0.2.0-alpha.723
+  - @brains/contracts@0.2.0-alpha.723
+  - @brains/image@0.2.0-alpha.723
+  - @brains/media-page-composer@0.2.0-alpha.723
+  - @brains/site-composition@0.2.0-alpha.723
+  - @brains/utils@0.2.0-alpha.723
+
+## 0.2.0-alpha.722
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.722
+  - @rizom/brain-ui@0.2.0-alpha.722
+  - @brains/atproto-contracts@0.2.0-alpha.722
+  - @brains/contracts@0.2.0-alpha.722
+  - @brains/image@0.2.0-alpha.722
+  - @brains/media-page-composer@0.2.0-alpha.722
+  - @brains/site-composition@0.2.0-alpha.722
+  - @brains/utils@0.2.0-alpha.722
+
+## 0.2.0-alpha.721
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.721
+  - @rizom/brain-ui@0.2.0-alpha.721
+  - @brains/atproto-contracts@0.2.0-alpha.721
+  - @brains/contracts@0.2.0-alpha.721
+  - @brains/image@0.2.0-alpha.721
+  - @brains/media-page-composer@0.2.0-alpha.721
+  - @brains/site-composition@0.2.0-alpha.721
+  - @brains/utils@0.2.0-alpha.721
+
+## 0.2.0-alpha.720
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.720
+  - @rizom/brain-ui@0.2.0-alpha.720
+  - @brains/atproto-contracts@0.2.0-alpha.720
+  - @brains/contracts@0.2.0-alpha.720
+  - @brains/image@0.2.0-alpha.720
+  - @brains/media-page-composer@0.2.0-alpha.720
+  - @brains/site-composition@0.2.0-alpha.720
+  - @brains/utils@0.2.0-alpha.720
+
+## 0.2.0-alpha.719
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.719
+  - @rizom/brain-ui@0.2.0-alpha.719
+  - @brains/atproto-contracts@0.2.0-alpha.719
+  - @brains/contracts@0.2.0-alpha.719
+  - @brains/image@0.2.0-alpha.719
+  - @brains/media-page-composer@0.2.0-alpha.719
+  - @brains/site-composition@0.2.0-alpha.719
+  - @brains/utils@0.2.0-alpha.719
+
+## 0.2.0-alpha.718
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.718
+  - @rizom/brain-ui@0.2.0-alpha.718
+  - @brains/atproto-contracts@0.2.0-alpha.718
+  - @brains/contracts@0.2.0-alpha.718
+  - @brains/image@0.2.0-alpha.718
+  - @brains/media-page-composer@0.2.0-alpha.718
+  - @brains/site-composition@0.2.0-alpha.718
+  - @brains/utils@0.2.0-alpha.718
+
+## 0.2.0-alpha.717
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.717
+  - @rizom/brain-ui@0.2.0-alpha.717
+  - @brains/atproto-contracts@0.2.0-alpha.717
+  - @brains/contracts@0.2.0-alpha.717
+  - @brains/image@0.2.0-alpha.717
+  - @brains/media-page-composer@0.2.0-alpha.717
+  - @brains/site-composition@0.2.0-alpha.717
+  - @brains/utils@0.2.0-alpha.717
+
+## 0.2.0-alpha.716
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.716
+  - @rizom/brain-ui@0.2.0-alpha.716
+  - @brains/atproto-contracts@0.2.0-alpha.716
+  - @brains/contracts@0.2.0-alpha.716
+  - @brains/image@0.2.0-alpha.716
+  - @brains/media-page-composer@0.2.0-alpha.716
+  - @brains/site-composition@0.2.0-alpha.716
+  - @brains/utils@0.2.0-alpha.716
+
+## 0.2.0-alpha.715
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.715
+  - @rizom/brain-ui@0.2.0-alpha.715
+  - @brains/atproto-contracts@0.2.0-alpha.715
+  - @brains/contracts@0.2.0-alpha.715
+  - @brains/image@0.2.0-alpha.715
+  - @brains/media-page-composer@0.2.0-alpha.715
+  - @brains/site-composition@0.2.0-alpha.715
+  - @brains/utils@0.2.0-alpha.715
+
+## 0.2.0-alpha.714
+
+### Patch Changes
+
+- [#954](https://github.com/rizom-ai/brains/pull/954) [`9bd95ad`](https://github.com/rizom-ai/brains/commit/9bd95ade782101ba4ead0e9686ba866c80c91bd9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Image readers read stored references and load bytes explicitly, only for a record read at the caller's scope. Chat delivery, the Studio preview, the ATProto and social cover, site image preparation, OG composition and entity-reference expansion read the image's reference and then its bytes; a restricted image is never served through another image that shares its bytes. Studio previews stream from storage into object URLs, and its image field offers only PNG, JPEG, GIF and WebP. System reads, listings and insights that mask or ignore content no longer load image bytes.
+
+  Directory sync exports an asset-backed image by streaming its chunks to a temporary file renamed into place, and leaves a file that already holds those bytes untouched. A markdown image file stays the image's only file: left byte for byte when it decodes to the stored bytes, rewritten as a data URL only when they change. An image awaiting its bytes writes no file, and content that is not a base64 data URL is refused instead of being decoded into a corrupt file.
+
+- [#954](https://github.com/rizom-ai/brains/pull/954) [`3e82a18`](https://github.com/rizom-ai/brains/commit/3e82a18e9850f3257ba1683919e877110d75bdcc) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Store uploaded images as staged assets instead of data URLs. Image entities switch to asset-backed storage and leave full-text search; an upload is staged, then published with its image, and its format, media type, size and dimensions come from the bytes (25 MiB limit). A pending or failed image holds no payload. Only PNG, JPEG, GIF and WebP uploads become images.
+
+  Entity reads take a `binaryContent` mode: the default materializes an asset reference back into the data URL inline storage returned, counted by read surface and entity type, while `"reference"` returns the stored reference. Updates and deletes through the system tools, and owned writes, read the stored reference, so they never write bytes back inline. The web chat image route reads the image at the caller's scope and streams only that image's stored chunks, and directory sync no longer re-imports an image whose file matches its stored asset.
+
+- Updated dependencies [[`5b12579`](https://github.com/rizom-ai/brains/commit/5b12579dd395a093fc5b4d140a054eaa0321730b), [`0741d0b`](https://github.com/rizom-ai/brains/commit/0741d0bf34ec3f086221ced6f212b57256fc4ca8), [`2bfaa22`](https://github.com/rizom-ai/brains/commit/2bfaa22afbd9afc63918c495698ad93d12de063f), [`9bd95ad`](https://github.com/rizom-ai/brains/commit/9bd95ade782101ba4ead0e9686ba866c80c91bd9), [`178a524`](https://github.com/rizom-ai/brains/commit/178a524e797981b5435c8bdec297ee48bd374651), [`3e82a18`](https://github.com/rizom-ai/brains/commit/3e82a18e9850f3257ba1683919e877110d75bdcc)]:
+  - @brains/image@0.2.0-alpha.714
+  - @brains/sdk@0.2.0-alpha.714
+  - @brains/media-page-composer@0.2.0-alpha.714
+  - @brains/atproto-contracts@0.2.0-alpha.714
+  - @rizom/brain-ui@0.2.0-alpha.714
+  - @brains/contracts@0.2.0-alpha.714
+  - @brains/site-composition@0.2.0-alpha.714
+  - @brains/utils@0.2.0-alpha.714
+
+## 0.2.0-alpha.713
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.713
+  - @rizom/brain-ui@0.2.0-alpha.713
+  - @brains/atproto-contracts@0.2.0-alpha.713
+  - @brains/contracts@0.2.0-alpha.713
+  - @brains/image@0.2.0-alpha.713
+  - @brains/media-page-composer@0.2.0-alpha.713
+  - @brains/site-composition@0.2.0-alpha.713
+  - @brains/utils@0.2.0-alpha.713
+
+## 0.2.0-alpha.712
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.712
+  - @rizom/brain-ui@0.2.0-alpha.712
+  - @brains/atproto-contracts@0.2.0-alpha.712
+  - @brains/contracts@0.2.0-alpha.712
+  - @brains/image@0.2.0-alpha.712
+  - @brains/media-page-composer@0.2.0-alpha.712
+  - @brains/site-composition@0.2.0-alpha.712
+  - @brains/utils@0.2.0-alpha.712
+
 ## 0.2.0-alpha.711
 
 ### Patch Changes

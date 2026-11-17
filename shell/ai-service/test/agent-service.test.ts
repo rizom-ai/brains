@@ -2547,6 +2547,52 @@ describe("AgentService", () => {
       expect(mockGenerate).toHaveBeenCalledTimes(1);
     });
 
+    it("routes the turn and its confirmed tool to the installed interface they came through", async () => {
+      setupConfirmationResponse("Please confirm deleting the note.");
+
+      const deleteHandler = mock(
+        async (_input: unknown, _context: unknown) => ({
+          success: true as const,
+        }),
+      );
+      const deleteTool: Tool = {
+        name: "delete_note",
+        description: "Delete note",
+        inputSchema: { noteId: z.string() },
+        visibility: "trusted",
+        handler: deleteHandler,
+      };
+      mockMCPService.listAgentToolsForPermissionLevel = mock(() => [
+        { pluginId: "test", tool: deleteTool },
+      ]);
+
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+      const context = {
+        ...adminConfirmationContext,
+        interfaceType: "campfire",
+        interfaceId: "@fixture/campfire:campfire",
+      };
+
+      await service.chat("delete my note", "test-conversation", context);
+      await service.chat("yes", "test-conversation", context);
+
+      expect(mockGenerate.mock.calls[0]?.[0].options).toMatchObject({
+        interfaceType: "campfire",
+        interfaceId: "@fixture/campfire:campfire",
+      });
+      expect(deleteHandler.mock.calls[0]?.[1]).toMatchObject({
+        interfaceType: "campfire",
+        interfaceId: "@fixture/campfire:campfire",
+      });
+    });
+
     it("leaves pending confirmation untouched and rejects unauthorized bystander messages", async () => {
       setupConfirmationResponse("Please confirm deleting the note.");
 
@@ -4733,6 +4779,116 @@ describe("AgentService", () => {
       expect(saved.role).toBe("assistant");
       expect(saved.metadata ?? {}).not.toHaveProperty("assistantTurn");
     });
+
+    it.each([
+      { awaitingConfirmation: false, carriesFacts: true },
+      { awaitingConfirmation: true, carriesFacts: false },
+    ])(
+      "stores entity refs and contact candidates only on a completed reply (awaiting confirmation: $awaitingConfirmation)",
+      async ({ awaitingConfirmation, carriesFacts }) => {
+        const pendingStep = {
+          toolCalls: [
+            {
+              toolName: "system_delete",
+              toolCallId: "delete-1",
+              input: { entityType: "note", id: "old" },
+            },
+          ],
+          toolResults: [
+            {
+              toolName: "system_delete",
+              toolCallId: "delete-1",
+              output: {
+                needsConfirmation: true,
+                toolName: "system_delete",
+                summary: "Delete old?",
+                args: { entityType: "note", id: "old", confirmed: true },
+              },
+            },
+          ],
+        };
+        mockAgentGenerateResult = {
+          text: "Saved the draft.",
+          steps: [
+            {
+              toolCalls: [
+                {
+                  toolName: "system_create",
+                  toolCallId: "create-1",
+                  input: { entityType: "note", title: "Draft" },
+                },
+                {
+                  toolName: "agent_call",
+                  toolCallId: "call-1",
+                  input: { agent: "https://agent.example", message: "Hi" },
+                },
+              ],
+              toolResults: [
+                {
+                  toolName: "system_create",
+                  toolCallId: "create-1",
+                  output: { success: true, data: { entityId: "draft" } },
+                },
+                {
+                  toolName: "agent_call",
+                  toolCallId: "call-1",
+                  output: {
+                    success: true,
+                    data: {
+                      agentContactCandidate: {
+                        source: { kind: "url", url: "https://agent.example" },
+                      },
+                    },
+                  },
+                },
+              ],
+            },
+            ...(awaitingConfirmation ? [pendingStep] : []),
+          ],
+          usage: { inputTokens: 50, outputTokens: 10, totalTokens: 60 },
+        };
+        const savedMessages: unknown[] = [];
+        mockConversationService.addMessage = mock(async (request) => {
+          savedMessages.push(request);
+        });
+        const service = AgentService.createFresh(
+          mockMCPService,
+          mockConversationService,
+          mockCharacterService,
+          mockProfileService,
+          logger,
+          { agentFactory: mockAgentFactory },
+        );
+        await service.chat("Save a draft", "test-conversation");
+
+        const saved = z
+          .object({
+            role: z.string(),
+            metadata: z.record(z.string(), z.unknown()).optional(),
+          })
+          .parse(savedMessages.at(-1));
+        expect(saved.role).toBe("assistant");
+        const metadata = saved.metadata ?? {};
+        expect(Object.keys(metadata).sort()).toEqual(
+          [
+            "actor",
+            "source",
+            "userPermissionLevel",
+            // A reply awaiting confirmation carries its approval card instead.
+            ...(carriesFacts
+              ? ["entityMemoryRefs", "agentContactCandidates", "assistantTurn"]
+              : ["cards"]),
+          ].sort(),
+        );
+        if (carriesFacts)
+          expect(metadata).toMatchObject({
+            entityMemoryRefs: [{ entityId: "draft", operation: "created" }],
+            agentContactCandidates: [
+              { source: { kind: "url", url: "https://agent.example" } },
+            ],
+          });
+      },
+    );
   });
 
   describe("toolResults in response", () => {

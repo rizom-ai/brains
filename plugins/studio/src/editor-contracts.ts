@@ -45,6 +45,11 @@ export interface StudioEntityTypeInfo {
   hierarchy: StudioTypeHierarchy;
   /** The type this one lives in; Studio shows it inside that type, not on its own. */
   containedIn?: string | undefined;
+  /**
+   * The type this one's entries are refined into, for a caller who may
+   * delete them and create that type; Studio offers Refine on the collection.
+   */
+  refinesInto?: { entityType: string; label: string } | undefined;
 }
 
 export interface EditorRouteOptions {

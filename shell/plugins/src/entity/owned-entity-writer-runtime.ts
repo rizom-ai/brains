@@ -1,10 +1,12 @@
 import type { CallerAccess } from "@brains/content-service";
 import { SdkError, type ActorRef } from "@brains/contracts";
 import {
+  assetRefSchema,
   internalFullScope,
   type BaseEntity,
   type ContentVisibility,
   type IEntityService,
+  type StagedAsset,
 } from "@brains/entity-service";
 import {
   PermissionService,
@@ -17,6 +19,8 @@ import type {
   EntityOf,
   OwnedEntityWriter,
 } from "./entity-definition-contract";
+import type { EntityRuntimeAssets } from "./entity-runtime";
+import { parseDefinitionEntity } from "./entity-schema";
 
 /** Who an owned write acts as, and how the store attributes it. */
 export interface OwnedWriteCall extends PackageCall {
@@ -133,11 +137,13 @@ export function createOwnedEntityWriter<TCall extends OwnedWriteCall>(
         message: `A ${definition.type} write cannot change a ${record.entityType}`,
       });
     }
-    // As stored, so content written back unchanged is the stored body.
+    // As stored, so content written back unchanged is the stored body: an
+    // asset-backed record keeps its reference, never a materialized copy.
     const stored = await entityService.getEntityRaw({
       entityType: definition.type,
       id: record.id,
       visibilityScope: binding.readScope(call, definition.type, access),
+      binaryContent: "reference",
     });
     if (!stored) {
       throw new SdkError("not_found", {
@@ -170,6 +176,7 @@ export function createOwnedEntityWriter<TCall extends OwnedWriteCall>(
           visibilityScope: internalFullScope(
             "an owned create checks whether its id is taken; no content returned",
           ),
+          binaryContent: "reference",
         });
         if (taken) {
           throw new SdkError("conflict", {
@@ -233,4 +240,226 @@ export function createOwnedEntityWriter<TCall extends OwnedWriteCall>(
     },
   };
   return writer;
+}
+
+/** What an owned asset writer reads and writes through. */
+export interface OwnedAssetWriterBinding<
+  TCall extends OwnedWriteCall,
+> extends Omit<OwnedEntityWriterBinding<TCall>, "entityService"> {
+  readonly entityService: OwnedEntityWriterBinding<TCall>["entityService"] &
+    Pick<
+      IEntityService,
+      "stageAsset" | "discardStagedAsset" | "openAsset" | "readAsset"
+    >;
+}
+
+/**
+ * Asset-backed records of the bound types: bytes staged once and saved as a
+ * record whose content is their reference, published in that record's own
+ * mutation, and bytes read only through a record the call can see.
+ */
+export function createOwnedAssetWriter<TCall extends OwnedWriteCall>(
+  binding: OwnedAssetWriterBinding<TCall>,
+): EntityRuntimeAssets {
+  const { entityService } = binding;
+
+  /** The record as stored at the call's scope: its reference, no bytes. */
+  async function storedAtScope(
+    definition: AnyEntityDefinition,
+    id: string,
+  ): Promise<BaseEntity | null> {
+    const call = binding.currentCall();
+    const access = await call.access();
+    return entityService.getEntityRaw({
+      entityType: definition.type,
+      id,
+      visibilityScope: binding.readScope(call, definition.type, access),
+      binaryContent: "reference",
+    });
+  }
+
+  async function save(
+    definition: AnyEntityDefinition,
+    id: string,
+    record: {
+      readonly metadata: unknown;
+      readonly visibility?: ContentVisibility | undefined;
+    },
+    asset: StagedAsset,
+  ): Promise<{ readonly entityId: string }> {
+    const declared = binding.owned(definition);
+    const call = binding.currentCall();
+    const metadata = parseOwnedMetadata(declared, record.metadata);
+    const stored = await entityService.getEntityRaw({
+      entityType: declared.type,
+      id,
+      visibilityScope: internalFullScope(
+        "an asset save writes over the record its id names; no bytes returned",
+      ),
+      binaryContent: "reference",
+    });
+    if (stored) {
+      await binding.assertWriteAllowed(declared.type, "update", call);
+      const written = await entityService.updateEntity({
+        entity: {
+          ...stored,
+          content: asset.ref,
+          metadata,
+          ...(record.visibility !== undefined && {
+            visibility: record.visibility,
+          }),
+        },
+        stagedAsset: asset,
+        options: {
+          expectedContentHash: stored.contentHash,
+          eventContext: call.eventContext,
+        },
+      });
+      if (written.skipReason === "content-conflict") {
+        throw conflict(declared.type, id);
+      }
+      return { entityId: written.entityId };
+    }
+    await binding.assertWriteAllowed(declared.type, "create", call);
+    await binding.assertCreateVisibility?.(
+      declared.type,
+      record.visibility ?? "public",
+      call,
+    );
+    const written = await entityService.createEntity({
+      entity: {
+        id,
+        entityType: declared.type,
+        content: asset.ref,
+        metadata,
+        ...(record.visibility !== undefined && {
+          visibility: record.visibility,
+        }),
+      },
+      stagedAsset: asset,
+      options: {
+        conditionalWrite: { expectedRevision: null },
+        eventContext: call.eventContext,
+      },
+    });
+    return { entityId: written.entityId };
+  }
+
+  return Object.freeze({
+    stage: (source, options): Promise<StagedAsset> =>
+      entityService.stageAsset(source, options),
+    discard: (asset): Promise<void> => entityService.discardStagedAsset(asset),
+    save: async (
+      definition,
+      id,
+      record,
+      asset,
+    ): Promise<{ readonly entityId: string }> => {
+      try {
+        return await save(definition, id, record, asset);
+      } catch (error) {
+        // A refusal before the mutation leaves the upload staged: discard it.
+        await entityService.discardStagedAsset(asset);
+        throw error;
+      }
+    },
+    getStored: async <TDefinition extends AnyEntityDefinition>(
+      definition: TDefinition,
+      id: string,
+    ): Promise<EntityOf<TDefinition> | null> => {
+      const stored = await storedAtScope(definition, id);
+      return stored ? parseDefinitionEntity(definition, stored) : null;
+    },
+    open: async (
+      definition,
+      id,
+    ): Promise<AsyncIterable<Uint8Array> | Iterable<Uint8Array> | null> => {
+      const stored = await storedAtScope(definition, id);
+      if (!stored) return null;
+      const ref = assetRefSchema.safeParse(stored.content);
+      if (ref.success) return entityService.openAsset(ref.data);
+      const inline = inlineBytes(stored.content);
+      return inline ? [inline] : null;
+    },
+    read: async (definition, id): Promise<Uint8Array | null> => {
+      const stored = await storedAtScope(definition, id);
+      if (!stored) return null;
+      const ref = assetRefSchema.safeParse(stored.content);
+      if (ref.success) return entityService.readAsset(ref.data);
+      return inlineBytes(stored.content);
+    },
+  } satisfies EntityRuntimeAssets);
+}
+
+/** The bytes of inline content kept before assets, a base64 data URL; else none. */
+function inlineBytes(content: string): Uint8Array | null {
+  // A data URL read from a markdown file keeps that file's newline.
+  const match = /^data:[^;,]+;base64,([\s\S]*)$/.exec(content.trim());
+  const payload = match?.[1]?.replace(/\s+/g, "");
+  return payload ? Uint8Array.from(Buffer.from(payload, "base64")) : null;
+}
+
+/**
+ * Asset-backed records read at one fixed scope, with no writes: what a
+ * callback that only reads bytes is given, such as an AT Protocol record
+ * built from public entries. A record not visible at the scope reads as
+ * absent, whatever another record sharing its bytes allows.
+ */
+export function createScopedAssetReads(
+  entityService: Pick<
+    IEntityService,
+    "getEntityRaw" | "openAsset" | "readAsset"
+  >,
+  visibilityScope: ContentVisibility,
+  where: string,
+): EntityRuntimeAssets {
+  const refuse = (name: string) => async (): Promise<never> => {
+    throw new Error(`assets.${name} is not available in ${where}`);
+  };
+  // A record of another type is not this type's record: it reads as absent.
+  const stored = async (
+    definition: AnyEntityDefinition,
+    id: string,
+  ): Promise<BaseEntity | null> => {
+    const record = await entityService.getEntityRaw({
+      entityType: definition.type,
+      id,
+      visibilityScope,
+      binaryContent: "reference",
+    });
+    return record?.entityType === definition.type ? record : null;
+  };
+  return Object.freeze({
+    stage: refuse("stage"),
+    discard: refuse("discard"),
+    save: refuse("save"),
+    getStored: async <TDefinition extends AnyEntityDefinition>(
+      definition: TDefinition,
+      id: string,
+    ): Promise<EntityOf<TDefinition> | null> => {
+      const record = await stored(definition, id);
+      return record ? parseDefinitionEntity(definition, record) : null;
+    },
+    open: async (
+      definition: AnyEntityDefinition,
+      id: string,
+    ): Promise<AsyncIterable<Uint8Array> | Iterable<Uint8Array> | null> => {
+      const record = await stored(definition, id);
+      if (!record) return null;
+      const ref = assetRefSchema.safeParse(record.content);
+      if (ref.success) return entityService.openAsset(ref.data);
+      const inline = inlineBytes(record.content);
+      return inline ? [inline] : null;
+    },
+    read: async (
+      definition: AnyEntityDefinition,
+      id: string,
+    ): Promise<Uint8Array | null> => {
+      const record = await stored(definition, id);
+      if (!record) return null;
+      const ref = assetRefSchema.safeParse(record.content);
+      if (ref.success) return entityService.readAsset(ref.data);
+      return inlineBytes(record.content);
+    },
+  } satisfies EntityRuntimeAssets);
 }

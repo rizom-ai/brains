@@ -1,7 +1,11 @@
 import { describe, expect, it } from "bun:test";
 import { findEntityByIdentifier } from "../src/find-entity";
 import { createTestEntity } from "../src/test";
-import type { BaseEntity } from "../src/types";
+import type {
+  BaseEntity,
+  GetEntityRawRequest,
+  ListEntitiesRequest,
+} from "../src/types";
 
 const stored = createTestEntity("post", {
   id: "post-1",
@@ -23,8 +27,37 @@ describe("findEntityByIdentifier", () => {
       listEntities: async (): Promise<BaseEntity[]> => [],
     };
 
-    const found = await findEntityByIdentifier(service, "post", "post-1");
+    const found = await findEntityByIdentifier(
+      service,
+      { entityType: "post", identifier: "post-1" },
+      { visibilityScope: "public" },
+    );
 
     expect(found?.content).toBe(stored.content);
+  });
+
+  it("forwards the binary content mode to every lookup path", async () => {
+    const modes: unknown[] = [];
+    const service = {
+      getEntityRaw: async (request: GetEntityRawRequest): Promise<null> => {
+        modes.push(request.binaryContent);
+        return null;
+      },
+      listEntities: async (
+        request: ListEntitiesRequest,
+      ): Promise<BaseEntity[]> => {
+        modes.push(request.options?.binaryContent);
+        return [];
+      },
+    };
+
+    await findEntityByIdentifier(
+      service,
+      { entityType: "image", identifier: "missing" },
+      { visibilityScope: "public", read: { binaryContent: "reference" } },
+    );
+
+    expect(modes.length).toBe(5);
+    expect(new Set(modes)).toEqual(new Set(["reference"]));
   });
 });

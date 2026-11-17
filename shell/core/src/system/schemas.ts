@@ -346,7 +346,8 @@ type GenerateOperationInputSchema = z.ZodDiscriminatedUnion<
       entityType: z.ZodString;
       title: z.ZodOptional<z.ZodString>;
       source: EntityRefInputSchema;
-      prompt: z.ZodString;
+      additionalSourceIds: z.ZodOptional<z.ZodArray<z.ZodString>>;
+      prompt: z.ZodOptional<z.ZodString>;
     }>,
     StrictObjectSchema<{
       kind: z.ZodLiteral<"standalone-image">;
@@ -427,11 +428,16 @@ export const generateOperationInputSchema: GenerateOperationInputSchema =
           .describe(
             "The resolved existing entity that grounds this generation.",
           ),
+        additionalSourceIds: z
+          .array(z.string().min(1))
+          .optional()
+          .describe("More source IDs of the same type."),
         prompt: z
           .string()
           .min(1)
+          .optional()
           .describe(
-            "Prompt for creating new generated content from the resolved source, written from the user's request without added voice, tone or engagement directions; the style guide supplies the voice.",
+            "Direction from the user's request, without added voice, tone or engagement directions; the style guide supplies the voice. Omit if none is given.",
           ),
       })
       .strict(),

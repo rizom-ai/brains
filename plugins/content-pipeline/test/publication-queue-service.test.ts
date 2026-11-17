@@ -181,6 +181,43 @@ describe("PublicationQueueService", () => {
     expect(entity?.content).toContain("status: failed");
   });
 
+  it.each([
+    ["a bare fence", "\n", "---"],
+    ["a fence with a trailing space", "\n", "--- "],
+    ["a fence with a trailing tab", "\n", "---\t"],
+    ["a CRLF file", "\r\n", "---"],
+    ["a CRLF file with a trailing space", "\r\n", "--- "],
+  ])(
+    "writes queue status into frontmatter behind %s",
+    async (_l, eol, fence) => {
+      const { context, service } = await createFixture();
+      await context.entityService.createEntity({
+        entity: {
+          id: "fenced",
+          entityType: "social-post",
+          content: [
+            "---",
+            "title: Fenced",
+            "status: draft",
+            fence,
+            "Body",
+          ].join(eol),
+          metadata: { title: "Fenced", status: "draft" },
+        },
+      });
+
+      await service.enqueue("social-post", "fenced");
+
+      const entity = await context.entityService.getEntity({
+        entityType: "social-post",
+        id: "fenced",
+      });
+      expect(entity?.content).toBe(
+        "---\ntitle: Fenced\nstatus: queued\n---\nBody\n",
+      );
+    },
+  );
+
   it("reconciles a fresh in-memory queue from entities and runtime ordering", async () => {
     const { context, service } = await createFixture();
     await service.enqueue("social-post", "first");

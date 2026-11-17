@@ -188,3 +188,107 @@ describe("an image kept as a markdown data URL file", () => {
     expect(existsSync(join(testDir, "image"))).toBe(true);
   });
 });
+
+describe("an asset-backed image kept as a markdown data URL file", () => {
+  let testDir: string;
+  let entityService: ReturnType<typeof createMockEntityService>;
+  let dirSync: DirectorySync;
+  const markdownPath = (): string => join(testDir, "image", "seed.md");
+
+  beforeEach(() => {
+    testDir = mkdtempSync(join(tmpdir(), "markdown-asset-image-"));
+    mkdirSync(join(testDir, "image"), { recursive: true });
+    writeFileSync(markdownPath(), MARKDOWN_FILE);
+    entityService = createMockEntityService({ entityTypes: ["image"] });
+    spyOn(entityService, "getEntityTypeConfig").mockImplementation(
+      (type: string) => (type === "image" ? { binaryStorage: "asset" } : {}),
+    );
+    spyOn(entityService, "deserializeEntity").mockImplementation(
+      (content: string): Partial<BaseEntity> => ({
+        content,
+        metadata: imageMetadataFor(content),
+      }),
+    );
+    spyOn(entityService, "serializeEntity").mockImplementation(
+      (entity: BaseEntity): string => entity.content,
+    );
+    dirSync = new DirectorySync({
+      syncPath: testDir,
+      entityService,
+      logger: createSilentLogger("markdown-asset-image"),
+    });
+  });
+
+  afterEach(() => {
+    rmSync(testDir, { recursive: true, force: true });
+  });
+
+  async function storedImage(bytes: Uint8Array): Promise<BaseEntity> {
+    const asset = await entityService.stageAsset(bytes);
+    return createTestEntity("image", {
+      id: "seed",
+      content: asset.ref,
+      metadata: { format: "png", mediaType: "image/png" },
+    });
+  }
+
+  it("leaves the file byte for byte when it decodes to the stored bytes", async () => {
+    await dirSync.fileOps.writeEntity(await storedImage(TINY_PNG_BYTES));
+
+    expect(readdirSync(join(testDir, "image"))).toEqual(["seed.md"]);
+    expect(readFileSync(markdownPath(), "utf8")).toBe(MARKDOWN_FILE);
+  });
+
+  it("writes changed bytes into the same file as a data URL", async () => {
+    const jpeg = Buffer.from(TINY_JPEG_DATA_URL.split(",")[1] ?? "", "base64");
+    const asset = await entityService.stageAsset(jpeg);
+
+    await dirSync.fileOps.writeEntity(
+      createTestEntity("image", {
+        id: "seed",
+        content: asset.ref,
+        metadata: { format: "jpg", mediaType: "image/jpeg" },
+      }),
+    );
+
+    expect(readdirSync(join(testDir, "image"))).toEqual(["seed.md"]);
+    expect(readFileSync(markdownPath(), "utf8")).toBe(TINY_JPEG_DATA_URL);
+  });
+
+  it("stays byte for byte through import, export and reimport", async () => {
+    const upserts: Partial<BaseEntity>[] = [];
+    spyOn(entityService, "upsertEntity").mockImplementation(
+      async (request: {
+        entity: Partial<BaseEntity>;
+      }): Promise<EntityMutationResult & { created: boolean }> => {
+        upserts.push(request.entity);
+        return {
+          entityId: request.entity.id ?? "",
+          jobId: "job",
+          created: true,
+          skipped: false,
+        };
+      },
+    );
+
+    expect((await dirSync.importEntities()).imported).toBe(1);
+    const stored = createTestEntity("image", {
+      id: "seed",
+      content: upserts[0]?.content ?? "",
+      metadata: upserts[0]?.metadata ?? {},
+    });
+    expect(stored.content).toMatch(/^asset:\/\/sha256\//);
+    await dirSync.fileOps.writeEntity(stored);
+    expect(readFileSync(markdownPath(), "utf8")).toBe(MARKDOWN_FILE);
+    entityService.getEntityWriteSnapshot = async (): Promise<{
+      entity: BaseEntity;
+      revision: string;
+    }> => ({ entity: stored, revision: "stored" });
+
+    const reimport = await dirSync.importEntities();
+
+    expect(reimport.skipped).toBe(1);
+    expect(upserts).toHaveLength(1);
+    expect(readFileSync(markdownPath(), "utf8")).toBe(MARKDOWN_FILE);
+  });
+});

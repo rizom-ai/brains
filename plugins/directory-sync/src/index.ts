@@ -17,6 +17,8 @@ const directorySyncPackage: ReturnType<typeof createDirectorySyncPackage> =
   createDirectorySyncPackage();
 export default directorySyncPackage;
 export { DirectorySync } from "./lib/directory-sync";
+// The image file extensions sync imports, as the offline asset tools read brain-data.
+export { IMAGE_EXTENSIONS } from "./lib/image-file-utils";
 export { DirectorySyncStatusFormatter } from "./formatters/directorySyncStatusFormatter";
 
 /**

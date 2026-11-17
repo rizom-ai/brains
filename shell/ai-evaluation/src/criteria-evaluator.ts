@@ -444,8 +444,13 @@ function evaluateResultContains(
   expectedValues: Record<string, unknown>,
   matchingCalls: ToolCallRecord[],
 ): CriteriaEvaluationResult[] {
+  // A call the tool refused changed nothing: the calls that took effect are
+  // judged, so a retry after a refused attempt is not failed by the attempt.
+  const effectiveCalls = matchingCalls.filter(
+    (call) => refusalErrorText(call.result) === undefined,
+  );
   return Object.entries(expectedValues).map(([path, expected]) => {
-    const actual = matchingCalls.map((call) => {
+    const actual = effectiveCalls.map((call) => {
       const parsed = recordSchema.safeParse(call.result);
       return parsed.success ? resolveDottedPath(parsed.data, path) : undefined;
     });

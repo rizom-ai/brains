@@ -8,7 +8,7 @@ import {
 import type { SystemServices } from "./types";
 import { getInputSchema, listInputSchema, searchInputSchema } from "./schemas";
 import { sanitizeEntity } from "./tool-helpers";
-import { markdownBody } from "./markdown-body";
+import { markdownBody } from "@brains/utils/markdown-frontmatter";
 import { assertGuestReader } from "./guest-read-context";
 import { matchingSections, type SearchBudget } from "./search-excerpt";
 
@@ -209,14 +209,19 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
         );
         const result = await resolveEntityOrError(
           entityService,
-          input.entityType,
-          input.id,
-          logger,
-          undefined,
-          visibilityScope,
-          // The stored document, as for every type: a declared type's ordinary
-          // reads carry its body alone.
-          { ...publishedOnlyFor(visibilityScope), source: true },
+          { entityType: input.entityType, identifier: input.id },
+          {
+            visibilityScope,
+            logger,
+            // The stored document, as for every type: a declared type's ordinary
+            // reads carry its body alone.
+            // Binary content is masked in the output, so its bytes never load.
+            read: {
+              ...publishedOnlyFor(visibilityScope),
+              source: true,
+              binaryContent: "reference",
+            },
+          },
         );
         if (!result.ok) {
           return { success: false, error: result.error };
@@ -274,6 +279,8 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
           options: {
             limit: input.limit ?? 20,
             filter,
+            // Tool output masks binary content, so never load it.
+            binaryContent: "reference",
             ...publishedOnlyFor(visibilityScope),
             ...(defaultSort ? { sortFields: defaultSort } : {}),
           },

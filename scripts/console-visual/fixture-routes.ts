@@ -32,6 +32,8 @@ import {
 export interface FixtureServerState {
   /** Studio System surfaces swap the type list to the system types. */
   reviewingSystem: boolean;
+  /** Refine surfaces offer Refine on the fixture collection. */
+  refining: boolean;
   /** The last save of a System entity, to verify its exact payload. */
   lastSystemSave:
     { frontmatter?: Record<string, unknown>; body?: string } | undefined;
@@ -282,6 +284,11 @@ export function createFixtureRoutes(
     ).map((item) => ({
       ...item,
       hierarchy: studioTypeHierarchy(item.entityType),
+      // Refine surfaces: the collection's entries can be refined into one.
+      ...(state.refining &&
+        item.entityType === "posts" && {
+          refinesInto: { entityType: "docs", label: "Refined note" },
+        }),
     }));
     const overview = await context.workViews.overviewBadge();
     const administration = await context.administration.badge();
@@ -290,6 +297,16 @@ export function createFixtureRoutes(
       workspaces: studioWorkspaces({ overview, administration }),
     });
   };
+
+  // The brain's confirmation for the picked entries; nothing is refined.
+  const refine: FixtureRoute = (request, url) =>
+    url.pathname === "/studio/api/refine" && request.method === "POST"
+      ? json({
+          status: "confirm",
+          summary: "Generate one refined note? They will be removed.",
+          approval: { confirmed: true, confirmationToken: "fixture" },
+        })
+      : undefined;
 
   const workspaceData = new Map<string, (url: URL) => Promise<unknown>>([
     ["studio:overview", (): Promise<unknown> => context.workViews.overview()],
@@ -490,6 +507,7 @@ export function createFixtureRoutes(
     studioShell,
     studioAsset,
     studioTypes,
+    refine,
     studioWorkspace,
     account,
     schema,

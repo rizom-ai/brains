@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress. Phases 1, 2 and 4 are built and Phase 3 is built opt-in; Phase 0 has its numbers except the laptop check, and the local configuration is chosen.
+In progress. Phases 1, 2 and 4 are built and Phase 3 is built opt-in; Phase 0 has its numbers, and the local configuration is chosen.
 
 - Embeddings: `embeddingModel` selects `openai:text-embedding-3-small`, `-large` or `local:embeddinggemma-2:270m` (served from `modelRuntime.url`), and the index records its identity and rebuilds on change. The Gemma profile chunks to 2,048 tokens: Ollama serves that context by default and silently truncates longer input on `/v1/embeddings`, ignoring per-request options. Failed embeddings retry on the next start.
 - Text: `model: local:<name>` runs the agent on the runtime's chat API, with object generation constrained to its schema (`supportsStructuredOutputs`); `reasoningEffort` reaches the runtime as `reasoning_effort`, and `none` turns a model's thinking off.
@@ -95,6 +95,7 @@ Agent evals, 2026-11-12 to 2026-11-13, personal suite (31 cases), the runtime se
 | `qwen3.6:35b` deciding and seeing images itself, instruct-2507 answering                 | 26.0/31 (84%) | 57 s         |
 | the same, after #939–#946                                                                | 27.7/31 (89%) | 52 s         |
 | the same, after #939–#950                                                                | 28.3/31 (91%) | 47 s         |
+| the same, after #952 and #953                                                            | 28.7/31 (93%) | 28 s         |
 | `gemma4:31b` deciding and seeing images itself, instruct-2507 answering, after #939–#950 | 29.7/31 (96%) | 60 s         |
 
 - `qwen3.6:35b` reads stored content when asked (the long-note read-backs 3 of 3 and 3 of 3, against 1 of 3 and 0 of 3), asks what to do with a bare label after an upload (2 of 3, against 0 of 3) and keeps every attached file (2 of 3, against 0 of 3). It saves the upload instead of its summary when "save it" follows a summary (1 of 3 and 0 of 3, against 3 of 3 and 2 of 3).
@@ -106,6 +107,23 @@ Agent evals, 2026-11-12 to 2026-11-13, personal suite (31 cases), the runtime se
 - `gemma4:31b` (31B dense, 19–20 GB) passes 29, 30 and 30 of 31, with no runtime crashes. On the ten cases `qwen3.6:35b` fails most it passes 18 of 20, against 20 of 30. Keep-all fails in all three runs: the save leaves the image out.
 - At its default 262,144-token context, `qwen3.6:35b` ran the GPU out of memory (`vk::DeviceLostError`) 13 times in one run; the deploy's `OLLAMA_CONTEXT_LENGTH: 32768` prevents it. With the cap, `qwen3:30b-a3b` also passed one case more.
 - Two measures against the Qwen3 model's choices did not pay: reading each turn's intent first, to withhold tools that write and require a read, took the suite from 23 to 8 of 31, since the classifier marked explicit saves as asking no change; hiding an update's quote of what it stored left the read-back cases skipping the read (2 of 9).
+
+Agent evals by model size, 2026-11-15, both suites at `f1bb03475c`, same runtime and judge: headless (36 cases) two runs, personal (31 cases) three runs, the cloud default one run each. The 8B and 14B models run alone, answering with thinking off, with `visionModel: local:qwen3-vl:8b`:
+
+| Model                                                                    | Headless (mean) | Personal (mean) | Avg duration: headless, personal |
+| ------------------------------------------------------------------------ | --------------- | --------------- | -------------------------------- |
+| `gpt-6-luna` (default)                                                   | 34/36 (94%)     | 31/31 (100%)    | 6.0 s, 7.3 s                     |
+| `qwen3:8b` (8.2B, 5.2 GB)                                                | 29.0/36 (81%)   | 25.0/31 (81%)   | 31–36 s, 37–47 s                 |
+| `qwen3:14b` (14.8B, 9.3 GB)                                              | 30.0/36 (83%)   | 27.0/31 (87%)   | 29–39 s, 63–70 s                 |
+| `qwen3.6:35b` deciding and seeing images itself, instruct-2507 answering | 33.5/36 (93%)   | 28.3/31 (91%)   | 11–25 s, 16–23 s                 |
+
+- Runs: `qwen3:8b` 26 and 32 of 36, then 27, 24 and 24 of 31; `qwen3:14b` 30 and 30, then 26, 25 and 30; the local configuration 33 and 34, then 30, 26 and 29.
+- The private note at trusted fails in all four headless runs of the 8B and 14B models and in none of the local configuration's: the save call names a message that does not exist, sets a field a note does not have or leaves the visibility out, the brain refuses it, and in one run the reply claims the save.
+- `qwen3:8b` fails four personal cases 3 of 3: the verbatim update calls no tool; the 7 KB exact edit calls no tool once and twice sends the note's content as a field instead of an edit; the 17 KB patch reads without updating or sets the title as a field; and the image follow-up reads the note again and does not name the image's color. `qwen3:14b` fails the verbatim update 2 of 3 and saves a note on instructions inside an uploaded file 2 of 3.
+- The local configuration saves or generates on a bare label after an image upload 3 of 3 and says "saved as" in a read-only PDF summary 2 of 3.
+- Some failures are only a token or tool-call budget exceeded, with no failed criterion: three of the local configuration's five headless failures (the public-user case in both runs, 18–19k tokens against 14k, and topics analytics), one of its personal failures (6 tool calls against 5), the cloud default's delete at trusted (22k tokens against 14k), three of `qwen3:8b`'s headless failures and one of `qwen3:14b`'s. On criteria alone the local configuration passes 35 and 35 of 36 on headless and the cloud default 35.
+- The cloud default's other headless failure is skill derivation, judged 3 on accuracy against a minimum of 4.
+- Weights: `qwen3:8b` with `qwen3-vl:8b` is 11.4 GB and `qwen3:14b` with it 15.5 GB, against 41.2 GB for the local configuration's two text models.
 
 ## Goal
 
@@ -131,14 +149,8 @@ The end state is a brain that runs fully local, with no cloud AI key: chat, tool
 - **Text models are open-weight models that fit owned hardware.** A candidate qualifies when it runs on the Z13; size is not capped. The Qwen3 30B pair and `gpt-oss:120b` both fit, and the larger model did not score higher on the personal suite, so size is not the remaining gap.
 - **The embedder is chosen on retrieval quality.** EmbeddingGemma 2 scores MRR 0.815 against `text-embedding-3-small`'s 0.777; `nomic-embed-text` scores 0.752, so EmbeddingGemma 2 stays and the nomic row shows the embedder is replaceable by config.
 - **A local brain may split choosing from writing.** `answerModel` is an optional `local:` model that writes while `model` chooses tools: it answers each tool result and runs text and object generation, which choose no tools. It exists because a fast local model writes well but chooses badly at refusal and permission edges, and a reasoning model chooses well but writes slowly; the pair passes the headless suite 27/27 at 12–15 s per case, against 25/27 at 18 s for the reasoning model alone and 24/27 at 3–5 s for the fast one. Code-based tool selection does not replace it: offering the fast model only the tools nearest each message (17 → 9) scored 23/27, because its failures are judgment, not choice among too many tools. `answerModel` is rejected unless it is `local:`, and a brain without it behaves as before.
-- **The test bed runs on owned hardware.** The host is the ASUS ROG Flow Z13 with 128 GB of unified memory (AMD Ryzen AI Max+ 395, Radeon 8060S). The i7-1355U laptop (16 GB, no discrete GPU) is the minimum-hardware check for the smallest candidate. The fleet's server type is measured for the fleet rollout.
+- **The test bed runs on owned hardware.** The host is the ASUS ROG Flow Z13 with 128 GB of unified memory (AMD Ryzen AI Max+ 395, Radeon 8060S). The fleet's server type is measured for the fleet rollout.
 - **Cloud models stay in the eval harness.** The eval judge runs at development time and is not part of a brain's core loop.
-
-## Phase 0 — Remaining measurement
-
-On the Z13 unless stated; numbers go in Status.
-
-1. Run the local configuration's smallest viable variant on the i7 laptop (16 GB): the two MoE models need ~37 GB, so the laptop runs `qwen3:8b` or `qwen3:14b` alone; record its average turn duration.
 
 ## Phase 3 — Fleet rollout
 
@@ -158,6 +170,6 @@ Build:
 
 ## Validation
 
-- Phase 0: the embedding table carries the non-Gemma row, the eval tables carry the local candidates and the laptop duration, and the no-key boot test passes.
+- Phase 0: the embedding table carries the non-Gemma row, the eval tables carry the local candidates, and the no-key boot test passes.
 - Test bed: the separate brain on the Z13, holding only the rover's public entities, boots with every model `local:` and no provider key; readiness reaches ready, and the headless and personal suites pass at the cloud model's rate.
 - Phase 3: readiness reaches ready and search smoke queries pass on the smoke rover, then rizom.ai.

@@ -437,6 +437,6 @@ describe("a generation's context", () => {
       new AbortController().signal,
     );
 
-    expect(generationWriter).toEqual(["count", "get", "list"]);
+    expect(generationWriter).toEqual(["count", "get", "list", "readBytes"]);
   });
 });

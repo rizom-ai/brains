@@ -9,8 +9,8 @@ const IMAGE_INSTRUCTIONS =
   "Image entities store durable images. system_generate standalone-image or cover-image makes a new image; never use it to describe, analyze, or discuss an existing uploaded image. Answer that from the attachment/context, and if the user later asks to save the discussion, create entityType note from prior-response or exact text.";
 
 /**
- * An image: its bytes as a data URL, its title, alt text and provenance
- * beside them. One is generated from a prompt, rendered from another
+ * An image: its bytes kept as a durable asset, its title, alt text and
+ * provenance beside them. One is generated from a prompt, rendered from another
  * entity's attachment, or promoted from an upload, each by a job other
  * packages may also queue by contract; a create writes the pending image
  * the job fills.
@@ -23,7 +23,9 @@ export const image: EntityDefinition<"image", typeof imageMetadataSchema> =
     metadata: imageMetadataSchema,
     config: {
       embeddable: false,
-      binaryStorage: "data-url",
+      // Bytes live in asset rows; the stored reference is not searchable text.
+      binaryStorage: "asset",
+      fullTextSearchable: false,
       projectionSource: false,
       projectionSourceRole: "excluded",
     },

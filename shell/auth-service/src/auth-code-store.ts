@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { sha256Base64Url } from "@brains/utils/hash";
+import { hashToken } from "./token-hash";
 import { nowSeconds } from "@brains/utils/date";
 import { and, eq, isNull } from "drizzle-orm";
 import { redirectUriMatches } from "./redirect-uri";
@@ -84,7 +84,7 @@ export class RuntimeAuthorizationCodeStore implements AuthorizationCodePersisten
   async consumeCode(
     input: ConsumeAuthorizationCodeInput,
   ): Promise<AuthorizationCodeRecord> {
-    const codeHash = hashCode(input.code);
+    const codeHash = hashToken(input.code);
     const [row] = await this.database.db
       .select()
       .from(oauthAuthCodes)
@@ -143,7 +143,7 @@ function codeToRow(
   userId: string,
 ): typeof oauthAuthCodes.$inferInsert {
   return {
-    codeHash: hashCode(record.code),
+    codeHash: hashToken(record.code),
     clientId: record.client_id,
     userId,
     redirectUri: record.redirect_uri,
@@ -153,10 +153,6 @@ function codeToRow(
     consumedAt: record.consumed_at ?? null,
     createdAt: record.created_at,
   };
-}
-
-function hashCode(code: string): string {
-  return sha256Base64Url(code);
 }
 
 export class InvalidGrantError extends Error {

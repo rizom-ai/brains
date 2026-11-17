@@ -1,12 +1,11 @@
 import type { ICoreEntityService, BaseEntity } from "@brains/entity-service";
 import { updateFrontmatterField } from "@brains/utils/markdown";
+import { FRONTMATTER_BLOCK } from "@brains/utils/markdown-frontmatter";
 import { fromYaml } from "@brains/utils/yaml";
 import { z } from "@brains/utils/zod";
 import { imageSchema, type ResolvedImage } from "../schemas/image";
+import { imageDataUrl } from "./image-bytes";
 
-// Matches the leading `---\n…\n---` frontmatter block. Capture group 1 is
-// the inner YAML, so callers can parse just that slice and skip the body.
-const FRONTMATTER_BLOCK = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/;
 const frontmatterRecordSchema = z.record(z.string(), z.unknown());
 
 /**
@@ -21,7 +20,7 @@ export async function resolveImage(
   entityService: ICoreEntityService,
 ): Promise<ResolvedImage | undefined> {
   const image = await entityService.getEntity(
-    { entityType: "image", id: imageId },
+    { entityType: "image", id: imageId, binaryContent: "reference" },
     imageSchema,
   );
 
@@ -29,12 +28,20 @@ export async function resolveImage(
     return undefined;
   }
 
+  // A pending or failed image has no bytes, so nothing to render yet.
+  const { width, height } = image.metadata;
+  if (width === undefined || height === undefined) return undefined;
+
+  // Inline rendering needs a data URL; an asset is encoded here explicitly.
+  const url = await imageDataUrl(entityService, image);
+  if (!url) return undefined;
+
   return {
-    url: image.content,
+    url,
     alt: image.metadata.alt ?? "",
     title: image.metadata.title ?? "",
-    width: image.metadata.width,
-    height: image.metadata.height,
+    width,
+    height,
   };
 }
 
@@ -51,6 +58,7 @@ function extractFrontmatterStringField(
   entity: { content: string },
   field: string,
 ): string | undefined {
+  // Group 1 is the inner YAML, so only that slice is parsed, not the body.
   const match = FRONTMATTER_BLOCK.exec(entity.content);
   if (!match?.[1]) return undefined;
   try {

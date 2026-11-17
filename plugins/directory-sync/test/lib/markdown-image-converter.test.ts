@@ -5,7 +5,11 @@ import {
 import { describe, test, expect, mock, beforeEach, spyOn } from "bun:test";
 import { MarkdownImageConverter } from "../../src/lib/markdown-image-converter";
 import { createSilentLogger } from "@brains/test-utils";
-import { TINY_PNG_DATA_URL as VALID_PNG_DATA_URL } from "../fixtures";
+import {
+  TINY_PNG_BYTES,
+  TINY_PNG_DATA_URL as VALID_PNG_DATA_URL,
+} from "../fixtures";
+import { computeAssetDigest, createAssetRef } from "@brains/plugins";
 
 describe("MarkdownImageConverter", () => {
   let converter: MarkdownImageConverter;
@@ -427,6 +431,7 @@ slug: test-post
       await converter.convert(content, "test-post");
 
       expect(mockEntityService.createEntity).toHaveBeenCalledWith({
+        stagedAsset: expect.anything(),
         entity: expect.objectContaining({
           metadata: expect.objectContaining({
             alt: "A beautiful landscape photo",
@@ -447,6 +452,7 @@ slug: test-post
       await converter.convert(content, "test-post");
 
       expect(mockEntityService.createEntity).toHaveBeenCalledWith({
+        stagedAsset: expect.anything(),
         entity: expect.objectContaining({
           metadata: expect.objectContaining({
             title: "Sunset over mountains",
@@ -466,12 +472,39 @@ slug: test-post
       await converter.convert(content, "test-post");
 
       expect(mockEntityService.createEntity).toHaveBeenCalledWith({
+        stagedAsset: expect.anything(),
         entity: expect.objectContaining({
           metadata: expect.objectContaining({
             title: expect.stringContaining("Inline image"),
           }),
         }),
       });
+    });
+  });
+
+  test("stores fetched inline images as staged assets", async () => {
+    const content = `---
+title: Test Post
+slug: test-post
+---
+
+![Robot](https://example.com/robot.png)`;
+
+    await converter.convert(content, "test-post");
+
+    const ref = createAssetRef(computeAssetDigest(TINY_PNG_BYTES));
+    expect(mockEntityService.listEntities).toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: expect.objectContaining({ binaryContent: "reference" }),
+      }),
+    );
+    expect(mockEntityService.createEntity).toHaveBeenCalledWith({
+      stagedAsset: expect.objectContaining({ ref }),
+      entity: expect.objectContaining({
+        entityType: "image",
+        content: ref,
+        metadata: expect.objectContaining({ mediaType: "image/png" }),
+      }),
     });
   });
 });

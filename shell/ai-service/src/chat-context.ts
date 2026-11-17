@@ -76,6 +76,7 @@ type ChatContextSchema = z.ZodObject<{
   userPermissionLevel: z.ZodOptional<typeof UserPermissionLevelSchema>;
   isAnchor: z.ZodOptional<z.ZodBoolean>;
   interfaceType: z.ZodOptional<z.ZodString>;
+  interfaceId: z.ZodOptional<z.ZodString>;
   channelId: z.ZodOptional<z.ZodString>;
   channelName: z.ZodOptional<z.ZodString>;
   actor: z.ZodOptional<typeof conversationMessageActorSchema>;
@@ -90,6 +91,12 @@ export const ChatContextSchema: ChatContextSchema = z.object({
   userPermissionLevel: UserPermissionLevelSchema.optional(),
   isAnchor: z.boolean().optional(),
   interfaceType: z.string().optional(),
+  /**
+   * The installed interface the turn came through, its plugin id. Jobs and
+   * tool events the turn starts carry it, so their progress goes back to
+   * that interface even when another one shares its channel type.
+   */
+  interfaceId: z.string().optional(),
   channelId: z.string().optional(),
   channelName: z.string().optional(),
   actor: conversationMessageActorSchema.optional(),

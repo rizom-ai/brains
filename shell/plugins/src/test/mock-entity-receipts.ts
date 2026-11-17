@@ -15,6 +15,18 @@ type ReceiptMethods = Pick<
   "getEntityMutationReceipt" | "applyEntityMutationOnce"
 >;
 
+/** The id, or the first of id-2, id-3, … no entity holds, as the real service resolves it. */
+function freeId(store: MockEntityStore, id: string): string {
+  const taken = (candidate: string): boolean => store.entities.has(candidate);
+  if (!taken(id)) return id;
+  const suffix = Array.from({ length: 99 }, (_, index) => index + 2).find(
+    (candidate) => !taken(`${id}-${candidate}`),
+  );
+  return suffix === undefined
+    ? `${id}-${crypto.randomUUID().slice(0, 8)}`
+    : `${id}-${suffix}`;
+}
+
 /** The entity and receipt are installed in one synchronous map mutation. */
 export function createMockReceiptMethods(
   store: MockEntityStore,
@@ -38,12 +50,9 @@ export function createMockReceiptMethods(
         store.mutationReceipts.set(storageKey, { operation: "none" });
         return { operation: "none" };
       }
-      if (
-        input.request.preparedAsset ||
-        (input.operation === "create" && input.request.options?.deduplicateId)
-      ) {
+      if (input.request.stagedAsset) {
         throw new Error(
-          "The receipt fake does not model assets or ID deduplication; use real storage",
+          "The receipt fake does not model assets; use real storage",
         );
       }
       const operation = input.operation;
@@ -59,9 +68,12 @@ export function createMockReceiptMethods(
         ...input.request.options,
       };
       const now = new Date().toISOString();
+      const deduplicate =
+        input.operation === "create" && input.request.options?.deduplicateId;
+      const proposedId = proposed.id ?? crypto.randomUUID();
       const entity: BaseEntity = {
         ...proposed,
-        id: proposed.id ?? crypto.randomUUID(),
+        id: deduplicate ? freeId(store, proposedId) : proposedId,
         contentHash: "",
         visibility: normalizeContentVisibility(proposed.visibility),
         created: proposed.created ?? now,

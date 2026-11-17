@@ -38,7 +38,6 @@ const it = bunIt.skipIf(!packedCompatibilityEvidenceEnabled());
 const runtimeEnv = {
   ...process.env,
   OPENAI_API_KEY: "packed-hermetic-runtime",
-  BRAIN_SKIP_LOCAL_REEXEC: "1",
 };
 
 async function invokeTool(

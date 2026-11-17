@@ -193,6 +193,7 @@ class InterfaceDeclaration<
           attached: this.definition.accountSettings,
           registration: this.accountSettingsRegistration,
           accountSettings: context.accountSettings,
+          logger: this.owner.logger(),
         }),
       );
     }

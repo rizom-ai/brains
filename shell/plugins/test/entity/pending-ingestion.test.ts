@@ -80,4 +80,29 @@ describe("pending ingestion helpers", () => {
     });
     expect(entityService.createEntity).not.toHaveBeenCalled();
   });
+
+  test("createPendingEntity checks existence without loading stored bytes", async () => {
+    const entityService = {
+      getEntity: mock(
+        async (_request: { binaryContent?: string }): Promise<BaseEntity> =>
+          makeEntity(),
+      ),
+      createEntity: mock(async (_request: unknown) => mutation("unexpected")),
+      updateEntity: mock(async (_request: unknown) => mutation("unexpected")),
+    };
+
+    await createPendingEntity({
+      entityService,
+      entity: {
+        id: "item-1",
+        entityType: "test",
+        content: "",
+        metadata: { status: "pending" },
+      },
+    });
+
+    expect(entityService.getEntity.mock.calls[0]?.[0]).toMatchObject({
+      binaryContent: "reference",
+    });
+  });
 });

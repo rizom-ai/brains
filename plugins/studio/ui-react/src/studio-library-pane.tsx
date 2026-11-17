@@ -13,11 +13,22 @@ import {
 import { typeHasPublicationField } from "./entity-fields";
 import { StudioPageHead } from "./studio-page-head";
 import {
+  entityGenerationState,
   entityPublicationState,
   entityTitle,
   formatUpdated,
   sentenceLabel,
 } from "./ui-utils";
+import type { EntitySummary } from "./api";
+import { pickedLine, refineActionLabel } from "./refine";
+import {
+  RefineDialog,
+  RefineMark,
+  RefineNoticeLine,
+  useStudioRefine,
+  type StudioRefine,
+} from "./studio-refine";
+import { refineStyles } from "./studio-refine.styles";
 
 import {
   StudioCollectionControls,
@@ -45,7 +56,6 @@ export function StudioLibraryPane(
     schema,
     changeEntityPage,
     startCreate,
-    openEntity,
   } = props;
   const {
     activeType,
@@ -60,16 +70,36 @@ export function StudioLibraryPane(
     collectionFiltered,
     listingHead,
   } = props.model;
+  const refine = useStudioRefine({
+    activeType,
+    entityType: props.entityType,
+    entities,
+    entityOffset,
+    entryLabel,
+    collectionLabel,
+    onConfirmed: props.onRefineConfirmed,
+  });
+  const picking = refine.picked.length > 0;
+  const refineLabel = refineActionLabel(
+    refine.picked.length,
+    entryLabel,
+    collectionLabel,
+  );
+  const target = activeType?.refinesInto;
   return (
     <main
       className={editorClass(
         "",
         library.listing,
         headStyles.inset,
-        canCreate && hierarchy.withMobileBar,
+        (canCreate || picking) && hierarchy.withMobileBar,
       )}
       data-studio-library=""
       aria-busy={entityListLoading}
+      onKeyDown={(event) => {
+        // Escape puts the list back, as Cancel does.
+        if (event.key === "Escape" && picking && !refine.asking) refine.clear();
+      }}
     >
       {props.readError && (
         <StudioStatus tone="error">
@@ -81,21 +111,54 @@ export function StudioLibraryPane(
         </StudioStatus>
       )}
       <StudioPageHead
-        model={listingHead}
+        model={
+          picking
+            ? {
+                ...listingHead,
+                metadata: [pickedLine(refine.picked.length, entityTotal)],
+              }
+            : listingHead
+        }
         action={
-          (!systemDesign || canCreate) && (
-            <Button
-              type="button"
-              disabled={!canCreate || !schema}
-              data-studio-library-new=""
-              xstyle={hierarchy.desktopCreateAction}
-              onClick={startCreate}
-            >
-              New {sentenceLabel(entryLabel)}
-            </Button>
+          picking ? (
+            // The page keeps one action: while entries are picked it is Refine.
+            <>
+              <Button
+                type="button"
+                variant="ghost"
+                xstyle={hierarchy.desktopCreateAction}
+                onClick={refine.clear}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                data-studio-library-refine=""
+                xstyle={hierarchy.desktopCreateAction}
+                onClick={refine.ask}
+              >
+                {refineLabel}
+              </Button>
+            </>
+          ) : (
+            (!systemDesign || canCreate) && (
+              <Button
+                type="button"
+                disabled={!canCreate || !schema}
+                data-studio-library-new=""
+                xstyle={hierarchy.desktopCreateAction}
+                onClick={startCreate}
+              >
+                New {sentenceLabel(entryLabel)}
+              </Button>
+            )
           )
         }
       />
+      <RefineNoticeLine notice={props.refineNotice ?? null} />
+      {refine.refusal && (
+        <StudioStatus tone="error">{refine.refusal}</StudioStatus>
+      )}
       {systemDesign && (
         <p
           data-studio-system-intro=""
@@ -157,71 +220,14 @@ export function StudioLibraryPane(
       )}
       {!entityListLoading &&
         (entities ?? []).map((entity, index) => (
-          <button
-            type="button"
+          <LibraryRow
             key={entity.id}
-            className={editorClass(
-              "",
-              library.row,
-              editorStyles.listingRow,
-              systemDesign && systemFieldStyles.collectionRow,
-            )}
-            data-studio-record=""
-            onClick={() => openEntity(entity.id, entity.entityType)}
-          >
-            {!systemDesign && (
-              <span className={editorClass("", library.index)}>
-                {String(entityOffset + index + 1).padStart(2, "0")}
-              </span>
-            )}
-            <span
-              className={editorClass(
-                "",
-                library.title,
-                systemDesign && systemFieldStyles.collectionTitle,
-              )}
-              title={entity.id}
-            >
-              {entityTitle(entity, entity.path?.at(-1))}
-              {(props.collectionQuery.q ||
-                props.collectionQuery.scope === "collection") &&
-                entity.path &&
-                entity.path.length > 1 && (
-                  <span className={editorClass("", hierarchy.context)}>
-                    {entity.path.slice(0, -1).map(folderLabel).join(" / ")}
-                  </span>
-                )}
-              {systemDesign && (
-                <span {...stylex.props(systemFieldStyles.collectionMeta)}>
-                  {entryLabel} ·{" "}
-                  <time dateTime={entity.updated} title={entity.updated}>
-                    {formatUpdated(entity.updated)}
-                  </time>
-                </span>
-              )}
-              {typeHasPublicationField(entitySchema.fields) && (
-                <span
-                  className={editorClass(
-                    "studio-publication-state",
-                    editorStyles.publication,
-                  )}
-                >
-                  {entityPublicationState(entity)}
-                </span>
-              )}
-            </span>
-            {systemDesign ? (
-              <span aria-hidden="true">→</span>
-            ) : (
-              <time
-                className={editorClass("", library.updated)}
-                dateTime={entity.updated}
-                title={entity.updated}
-              >
-                {formatUpdated(entity.updated)}
-              </time>
-            )}
-          </button>
+            entity={entity}
+            index={String(entityOffset + index + 1).padStart(2, "0")}
+            view={props}
+            refine={refine}
+            picking={picking}
+          />
         ))}
       {!props.readError &&
         !entityListLoading &&
@@ -254,19 +260,184 @@ export function StudioLibraryPane(
               )}
           </StudioStatus>
         )}
-      {canCreate && (
+      {picking ? (
+        // On a phone the page's action sits in the action bar.
         <div
-          data-studio-folder-action
+          data-studio-refine-action
           className={editorClass("", hierarchy.mobileBar)}
         >
-          <span>
-            Creating in <strong>{folderContext}</strong>
-          </span>
-          <Button type="button" onClick={startCreate} disabled={!schema}>
-            New {sentenceLabel(entryLabel)}
+          <Button type="button" variant="ghost" onClick={refine.clear}>
+            Cancel
+          </Button>
+          <Button type="button" onClick={refine.ask}>
+            {refineLabel}
           </Button>
         </div>
+      ) : (
+        canCreate && (
+          <div
+            data-studio-folder-action
+            className={editorClass("", hierarchy.mobileBar)}
+          >
+            <span>
+              Creating in <strong>{folderContext}</strong>
+            </span>
+            <Button type="button" onClick={startCreate} disabled={!schema}>
+              New {sentenceLabel(entryLabel)}
+            </Button>
+          </div>
+        )
+      )}
+      {refine.asking && props.entityType && target && (
+        <RefineDialog
+          entityType={props.entityType}
+          entryLabel={entryLabel}
+          collectionLabel={collectionLabel}
+          targetLabel={target.label}
+          picked={(entities ?? []).filter(({ id }) =>
+            refine.picked.includes(id),
+          )}
+          onCancel={refine.closeAsk}
+          onRefused={refine.refused}
+          onConfirmed={(entityId) => {
+            refine.confirmed(entityId);
+            // Studio moves to where the refined entry is being written.
+            props.selectEntityType(target.entityType);
+          }}
+        />
       )}
     </main>
+  );
+}
+
+/**
+ * One entry in the listing. Where the collection can be refined, the row
+ * is the mark and the entry side by side, each its own control; anywhere
+ * else it is the entry alone, as it always was.
+ */
+function LibraryRow(props: {
+  entity: EntitySummary;
+  index: string;
+  view: StudioAppViewProps & { model: StudioAppModel };
+  refine: StudioRefine;
+  picking: boolean;
+}): ReactElement {
+  const { entity, view, refine } = props;
+  const { systemDesign, entitySchema, entryLabel } = view.model;
+  const query = view.collectionQuery;
+  const title = entityTitle(entity, entity.path?.at(-1));
+  const generation = entityGenerationState(entity);
+  const open = (): void => view.openEntity(entity.id, entity.entityType);
+  const titleCell = (
+    <span
+      className={editorClass(
+        "",
+        library.title,
+        systemDesign && systemFieldStyles.collectionTitle,
+      )}
+      title={entity.id}
+    >
+      {title}
+      {(query.q || query.scope === "collection") &&
+        entity.path &&
+        entity.path.length > 1 && (
+          <span className={editorClass("", hierarchy.context)}>
+            {entity.path.slice(0, -1).map(folderLabel).join(" / ")}
+          </span>
+        )}
+      {systemDesign && (
+        <span {...stylex.props(systemFieldStyles.collectionMeta)}>
+          {entryLabel} ·{" "}
+          <time dateTime={entity.updated} title={entity.updated}>
+            {formatUpdated(entity.updated)}
+          </time>
+        </span>
+      )}
+      {typeHasPublicationField(entitySchema.fields) && (
+        <span
+          className={editorClass(
+            "studio-publication-state",
+            editorStyles.publication,
+          )}
+        >
+          {entityPublicationState(entity)}
+        </span>
+      )}
+      {generation && (
+        <span
+          data-studio-generation={generation}
+          className={editorClass("", editorStyles.publication)}
+        >
+          {generation}
+        </span>
+      )}
+    </span>
+  );
+  if (refine.available && !systemDesign) {
+    const picked = refine.picked.includes(entity.id);
+    return (
+      <div
+        data-studio-row=""
+        {...(props.picking && { "data-picking": "" })}
+        className={editorClass(
+          "",
+          library.row,
+          editorStyles.listingRow,
+          refineStyles.row,
+          picked && refineStyles.rowPicked,
+        )}
+      >
+        <RefineMark
+          index={props.index}
+          title={title}
+          picked={picked}
+          onToggle={() => refine.toggle(entity.id)}
+        />
+        <button
+          type="button"
+          data-studio-record=""
+          {...stylex.props(refineStyles.open)}
+          onClick={open}
+        >
+          {titleCell}
+          <time
+            className={editorClass("", library.updated, refineStyles.updated)}
+            dateTime={entity.updated}
+            title={entity.updated}
+          >
+            {formatUpdated(entity.updated)}
+          </time>
+        </button>
+      </div>
+    );
+  }
+  return (
+    <button
+      type="button"
+      className={editorClass(
+        "",
+        library.row,
+        editorStyles.listingRow,
+        systemDesign && systemFieldStyles.collectionRow,
+      )}
+      data-studio-record=""
+      onClick={open}
+    >
+      {!systemDesign && (
+        <span className={editorClass("", library.index)}>{props.index}</span>
+      )}
+      {titleCell}
+      {systemDesign ? (
+        <span aria-hidden="true">→</span>
+      ) : (
+        <time
+          className={editorClass("", library.updated)}
+          dateTime={entity.updated}
+          title={entity.updated}
+        >
+          {formatUpdated(entity.updated)}
+        </time>
+      )}
+    </button>
   );
 }

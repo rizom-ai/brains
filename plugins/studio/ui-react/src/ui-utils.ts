@@ -65,6 +65,17 @@ export function entityPublicationState(
   return entity.frontmatter["published"] === true ? "published" : "draft";
 }
 
+/**
+ * Where an entry the brain writes stands: still being written, or failed.
+ * An entry that was written, or never generated, has no such state.
+ */
+export function entityGenerationState(
+  entity: EntitySummary,
+): "generating" | "failed" | null {
+  const status = entity.frontmatter["status"];
+  return status === "generating" || status === "failed" ? status : null;
+}
+
 /** A label as it reads mid-sentence: "New social post", "New FAQ". */
 export function sentenceLabel(label: string): string {
   return label

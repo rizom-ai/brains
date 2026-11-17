@@ -397,3 +397,49 @@ export async function exerciseStudioAccount({
     }
   }
 }
+
+/**
+ * Two entries are picked by their marks: the page's action becomes Refine
+ * and the head says how many are picked. The confirm surface opens the one
+ * confirmation and waits for the brain's answer, which enables Refine.
+ */
+export async function exerciseStudioRefine({
+  page,
+  surface,
+}: VisualCase): Promise<void> {
+  await waitForSelector(page, "[data-studio-pick]");
+  await evaluatePage(page, () => {
+    const marks =
+      document.querySelectorAll<HTMLButtonElement>("[data-studio-pick]");
+    if (marks.length < 2) throw new Error("Refine marks missing");
+    marks[0]?.click();
+    marks[1]?.click();
+  });
+  await waitForText(page, "2 picked of 54");
+  await evaluatePage(page, () => {
+    const picked = document.querySelectorAll(
+      '[data-studio-pick][aria-checked="true"]',
+    ).length;
+    if (picked !== 2) throw new Error(`Expected 2 picked marks, got ${picked}`);
+    if (document.querySelector("[data-studio-library-new]"))
+      throw new Error("New must give way to Refine while entries are picked");
+  });
+  if (surface !== "studio-refine-confirm") return;
+  await evaluatePage(page, () => {
+    // The head's action on desktop, the action bar's on a phone.
+    const visible = [
+      ...document.querySelectorAll<HTMLButtonElement>(
+        "[data-studio-library-refine], [data-studio-refine-action] button:last-child",
+      ),
+    ].find((button) => button.getClientRects().length > 0);
+    if (!visible) throw new Error("Refine action missing");
+    visible.click();
+  });
+  await waitForSelector(page, '[role="alertdialog"]');
+  await waitForText(page, "Refine 2 field notes into one?");
+  await waitForPage("the brain's confirmation", () =>
+    page.evaluate<boolean>(
+      '[...document.querySelectorAll(\'[role="alertdialog"] button\')].some((button) => button.textContent.trim() === "Refine")',
+    ),
+  );
+}

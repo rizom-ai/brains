@@ -1,5 +1,450 @@
 # @brains/plugins
 
+## 0.2.0-alpha.730
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.730
+  - @brains/content-formatters@0.2.0-alpha.730
+  - @brains/contracts@0.2.0-alpha.730
+  - @brains/site-composition@0.2.0-alpha.730
+  - @brains/utils@0.2.0-alpha.730
+  - @brains/ai-service@0.2.0-alpha.730
+  - @brains/content-service@0.2.0-alpha.730
+  - @brains/conversation-service@0.2.0-alpha.730
+  - @brains/entity-service@0.2.0-alpha.730
+  - @brains/identity-service@0.2.0-alpha.730
+  - @brains/job-queue@0.2.0-alpha.730
+  - @brains/mcp-service@0.2.0-alpha.730
+  - @brains/messaging-service@0.2.0-alpha.730
+  - @brains/recurring-checks@0.2.0-alpha.730
+  - @brains/runtime-state@0.2.0-alpha.730
+  - @brains/templates@0.2.0-alpha.730
+
+## 0.2.0-alpha.729
+
+### Patch Changes
+
+- [#985](https://github.com/rizom-ai/brains/pull/985) [`a4b9043`](https://github.com/rizom-ai/brains/commit/a4b9043d23201ce8519f19115771951832f00735) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A daemon that fails after it was ready is restarted instead of leaving the brain silently not receiving. A `defineDaemon({ run })` daemon or a message interface's `listen` that rejects, or returns before it is stopped, is logged at error level with its id and the error's message, and run again after a wait of one second that doubles up to five minutes, with jitter; health stays `error` until a restarted run reports ready, which resets the wait. An account daemon's task is restarted the same way, and is no longer left failed until its settings are saved again. Stopping the brain, removing the account or changing its settings cancels a pending restart.
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.729
+  - @brains/content-formatters@0.2.0-alpha.729
+  - @brains/contracts@0.2.0-alpha.729
+  - @brains/site-composition@0.2.0-alpha.729
+  - @brains/utils@0.2.0-alpha.729
+  - @brains/ai-service@0.2.0-alpha.729
+  - @brains/content-service@0.2.0-alpha.729
+  - @brains/conversation-service@0.2.0-alpha.729
+  - @brains/entity-service@0.2.0-alpha.729
+  - @brains/identity-service@0.2.0-alpha.729
+  - @brains/job-queue@0.2.0-alpha.729
+  - @brains/mcp-service@0.2.0-alpha.729
+  - @brains/messaging-service@0.2.0-alpha.729
+  - @brains/recurring-checks@0.2.0-alpha.729
+  - @brains/runtime-state@0.2.0-alpha.729
+  - @brains/templates@0.2.0-alpha.729
+
+## 0.2.0-alpha.728
+
+### Patch Changes
+
+- Updated dependencies [[`4d0991c`](https://github.com/rizom-ai/brains/commit/4d0991c3a4f921fe4fadc942d9532c10740710a8)]:
+  - @brains/entity-service@0.2.0-alpha.728
+  - @brains/atproto-contracts@0.2.0-alpha.728
+  - @brains/ai-service@0.2.0-alpha.728
+  - @brains/content-service@0.2.0-alpha.728
+  - @brains/identity-service@0.2.0-alpha.728
+  - @brains/content-formatters@0.2.0-alpha.728
+  - @brains/contracts@0.2.0-alpha.728
+  - @brains/site-composition@0.2.0-alpha.728
+  - @brains/utils@0.2.0-alpha.728
+  - @brains/conversation-service@0.2.0-alpha.728
+  - @brains/job-queue@0.2.0-alpha.728
+  - @brains/mcp-service@0.2.0-alpha.728
+  - @brains/messaging-service@0.2.0-alpha.728
+  - @brains/recurring-checks@0.2.0-alpha.728
+  - @brains/runtime-state@0.2.0-alpha.728
+  - @brains/templates@0.2.0-alpha.728
+
+## 0.2.0-alpha.727
+
+### Patch Changes
+
+- [#966](https://github.com/rizom-ai/brains/pull/966) [`a57b365`](https://github.com/rizom-ai/brains/commit/a57b365b06adc462b6c4323d17e7046119f0a90b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Notes come in two levels. A `refined-note` is one worked-out note written from one or more plain notes, which it replaces: `system_generate` with `prompt-from-source`, `entityType: "refined-note"` and the note as source writes a title, a one-sentence summary and a body from the note's text, saves it under `refined-note/`, no more visibly than the note, and then deletes the note. The confirmation names the note and says it will be removed; a caller who may not delete notes gets the delete permission error, and a failed generation keeps the note. A refined note must state its `title` and `summary`. It is in the `core` bundle; on a team brain creating and updating one needs Trusted, deleting one Admin, as for a note.
+
+  `prompt` is optional on `prompt-from-source` for every type: without it the entity is written from the source alone, and its id is taken from the source's id. A type that uses its sources up is named after its first source with a prompt too, since there the prompt directs the writing and names nothing. The operation also takes `additionalSourceIds`, further sources of the same type, so one entity can be written from several: one refined note from three notes, with one confirmation that names all three.
+
+  A type declares the source types its generation uses up with `config.consumesSources`. The runtime deletes those sources after the generated entity is saved, as the requester and under their delete policy, and `system_generate` refuses a source of any other type for it. A source that could not be deleted fails the job, which keeps what it wrote and names the source.
+
+  A type declares that its records must belong somewhere with `config.requiresGroupingMembership`. Where at least one grouping applies to the type, every create and update is refused unless the file states a value in one of them; a brain with no grouping for the type asks nothing more, and a generation's placeholder is exempt. A generation of such a type that states no membership is placed by the runtime: the brain chooses one grouping and one value, from the values a closed grouping allows or the values an open one holds. A refined note declares it. A grouping in the registry now carries `multiple` and `values`, which Studio publishes from its definitions.
+
+  Studio's library refines by hand. In a collection whose entries can be refined, each row's number is the mark it is picked with; while entries are picked the page's action is Refine instead of New, and one confirmation lists the picked entries, takes an optional direction and says they will be removed. Studio then moves to where the refined entry is written and says so until it is, and a refusal is shown in the brain's words with nothing changed. `POST /studio/api/refine` carries it, and the type list states `refinesInto` for a collection the signed-in person may refine. The system answers `generate:from-sources` on the bus with the same confirmation and refusals as `system_generate`; an approval runs only the request it was given for, so a direction stated after the confirmation opened is asked for again before it runs.
+
+  An entity named by the name it was saved under is found when that name survives only as its id: `system_get`, `system_update`, `system_delete` and a generation's source resolve "Dashboard drop-off" to the plain note `dashboard-drop-off`, whose file states no title. An entry titled exactly so still wins.
+
+- Updated dependencies [[`a57b365`](https://github.com/rizom-ai/brains/commit/a57b365b06adc462b6c4323d17e7046119f0a90b)]:
+  - @brains/entity-service@0.2.0-alpha.727
+  - @brains/contracts@0.2.0-alpha.727
+  - @brains/atproto-contracts@0.2.0-alpha.727
+  - @brains/ai-service@0.2.0-alpha.727
+  - @brains/content-service@0.2.0-alpha.727
+  - @brains/identity-service@0.2.0-alpha.727
+  - @brains/content-formatters@0.2.0-alpha.727
+  - @brains/site-composition@0.2.0-alpha.727
+  - @brains/conversation-service@0.2.0-alpha.727
+  - @brains/job-queue@0.2.0-alpha.727
+  - @brains/mcp-service@0.2.0-alpha.727
+  - @brains/messaging-service@0.2.0-alpha.727
+  - @brains/templates@0.2.0-alpha.727
+  - @brains/recurring-checks@0.2.0-alpha.727
+  - @brains/utils@0.2.0-alpha.727
+  - @brains/runtime-state@0.2.0-alpha.727
+
+## 0.2.0-alpha.726
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.726
+  - @brains/content-formatters@0.2.0-alpha.726
+  - @brains/contracts@0.2.0-alpha.726
+  - @brains/site-composition@0.2.0-alpha.726
+  - @brains/utils@0.2.0-alpha.726
+  - @brains/ai-service@0.2.0-alpha.726
+  - @brains/content-service@0.2.0-alpha.726
+  - @brains/conversation-service@0.2.0-alpha.726
+  - @brains/entity-service@0.2.0-alpha.726
+  - @brains/identity-service@0.2.0-alpha.726
+  - @brains/job-queue@0.2.0-alpha.726
+  - @brains/mcp-service@0.2.0-alpha.726
+  - @brains/messaging-service@0.2.0-alpha.726
+  - @brains/recurring-checks@0.2.0-alpha.726
+  - @brains/runtime-state@0.2.0-alpha.726
+  - @brains/templates@0.2.0-alpha.726
+
+## 0.2.0-alpha.725
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.725
+  - @brains/content-formatters@0.2.0-alpha.725
+  - @brains/contracts@0.2.0-alpha.725
+  - @brains/site-composition@0.2.0-alpha.725
+  - @brains/utils@0.2.0-alpha.725
+  - @brains/ai-service@0.2.0-alpha.725
+  - @brains/content-service@0.2.0-alpha.725
+  - @brains/conversation-service@0.2.0-alpha.725
+  - @brains/entity-service@0.2.0-alpha.725
+  - @brains/identity-service@0.2.0-alpha.725
+  - @brains/job-queue@0.2.0-alpha.725
+  - @brains/mcp-service@0.2.0-alpha.725
+  - @brains/messaging-service@0.2.0-alpha.725
+  - @brains/recurring-checks@0.2.0-alpha.725
+  - @brains/runtime-state@0.2.0-alpha.725
+  - @brains/templates@0.2.0-alpha.725
+
+## 0.2.0-alpha.724
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.724
+  - @brains/content-formatters@0.2.0-alpha.724
+  - @brains/contracts@0.2.0-alpha.724
+  - @brains/site-composition@0.2.0-alpha.724
+  - @brains/utils@0.2.0-alpha.724
+  - @brains/ai-service@0.2.0-alpha.724
+  - @brains/content-service@0.2.0-alpha.724
+  - @brains/conversation-service@0.2.0-alpha.724
+  - @brains/entity-service@0.2.0-alpha.724
+  - @brains/identity-service@0.2.0-alpha.724
+  - @brains/job-queue@0.2.0-alpha.724
+  - @brains/mcp-service@0.2.0-alpha.724
+  - @brains/messaging-service@0.2.0-alpha.724
+  - @brains/recurring-checks@0.2.0-alpha.724
+  - @brains/runtime-state@0.2.0-alpha.724
+  - @brains/templates@0.2.0-alpha.724
+
+## 0.2.0-alpha.723
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.723
+  - @brains/content-formatters@0.2.0-alpha.723
+  - @brains/contracts@0.2.0-alpha.723
+  - @brains/site-composition@0.2.0-alpha.723
+  - @brains/utils@0.2.0-alpha.723
+  - @brains/ai-service@0.2.0-alpha.723
+  - @brains/content-service@0.2.0-alpha.723
+  - @brains/conversation-service@0.2.0-alpha.723
+  - @brains/entity-service@0.2.0-alpha.723
+  - @brains/identity-service@0.2.0-alpha.723
+  - @brains/job-queue@0.2.0-alpha.723
+  - @brains/mcp-service@0.2.0-alpha.723
+  - @brains/messaging-service@0.2.0-alpha.723
+  - @brains/recurring-checks@0.2.0-alpha.723
+  - @brains/runtime-state@0.2.0-alpha.723
+  - @brains/templates@0.2.0-alpha.723
+
+## 0.2.0-alpha.722
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.722
+  - @brains/content-formatters@0.2.0-alpha.722
+  - @brains/contracts@0.2.0-alpha.722
+  - @brains/site-composition@0.2.0-alpha.722
+  - @brains/utils@0.2.0-alpha.722
+  - @brains/ai-service@0.2.0-alpha.722
+  - @brains/content-service@0.2.0-alpha.722
+  - @brains/conversation-service@0.2.0-alpha.722
+  - @brains/entity-service@0.2.0-alpha.722
+  - @brains/identity-service@0.2.0-alpha.722
+  - @brains/job-queue@0.2.0-alpha.722
+  - @brains/mcp-service@0.2.0-alpha.722
+  - @brains/messaging-service@0.2.0-alpha.722
+  - @brains/recurring-checks@0.2.0-alpha.722
+  - @brains/runtime-state@0.2.0-alpha.722
+  - @brains/templates@0.2.0-alpha.722
+
+## 0.2.0-alpha.721
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.721
+  - @brains/content-formatters@0.2.0-alpha.721
+  - @brains/contracts@0.2.0-alpha.721
+  - @brains/site-composition@0.2.0-alpha.721
+  - @brains/utils@0.2.0-alpha.721
+  - @brains/ai-service@0.2.0-alpha.721
+  - @brains/content-service@0.2.0-alpha.721
+  - @brains/conversation-service@0.2.0-alpha.721
+  - @brains/entity-service@0.2.0-alpha.721
+  - @brains/identity-service@0.2.0-alpha.721
+  - @brains/job-queue@0.2.0-alpha.721
+  - @brains/mcp-service@0.2.0-alpha.721
+  - @brains/messaging-service@0.2.0-alpha.721
+  - @brains/recurring-checks@0.2.0-alpha.721
+  - @brains/runtime-state@0.2.0-alpha.721
+  - @brains/templates@0.2.0-alpha.721
+
+## 0.2.0-alpha.720
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.720
+  - @brains/content-formatters@0.2.0-alpha.720
+  - @brains/contracts@0.2.0-alpha.720
+  - @brains/site-composition@0.2.0-alpha.720
+  - @brains/utils@0.2.0-alpha.720
+  - @brains/ai-service@0.2.0-alpha.720
+  - @brains/content-service@0.2.0-alpha.720
+  - @brains/conversation-service@0.2.0-alpha.720
+  - @brains/entity-service@0.2.0-alpha.720
+  - @brains/identity-service@0.2.0-alpha.720
+  - @brains/job-queue@0.2.0-alpha.720
+  - @brains/mcp-service@0.2.0-alpha.720
+  - @brains/messaging-service@0.2.0-alpha.720
+  - @brains/recurring-checks@0.2.0-alpha.720
+  - @brains/runtime-state@0.2.0-alpha.720
+  - @brains/templates@0.2.0-alpha.720
+
+## 0.2.0-alpha.719
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.719
+  - @brains/content-formatters@0.2.0-alpha.719
+  - @brains/contracts@0.2.0-alpha.719
+  - @brains/site-composition@0.2.0-alpha.719
+  - @brains/utils@0.2.0-alpha.719
+  - @brains/ai-service@0.2.0-alpha.719
+  - @brains/content-service@0.2.0-alpha.719
+  - @brains/conversation-service@0.2.0-alpha.719
+  - @brains/entity-service@0.2.0-alpha.719
+  - @brains/identity-service@0.2.0-alpha.719
+  - @brains/job-queue@0.2.0-alpha.719
+  - @brains/mcp-service@0.2.0-alpha.719
+  - @brains/messaging-service@0.2.0-alpha.719
+  - @brains/recurring-checks@0.2.0-alpha.719
+  - @brains/runtime-state@0.2.0-alpha.719
+  - @brains/templates@0.2.0-alpha.719
+
+## 0.2.0-alpha.718
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.718
+  - @brains/content-formatters@0.2.0-alpha.718
+  - @brains/contracts@0.2.0-alpha.718
+  - @brains/site-composition@0.2.0-alpha.718
+  - @brains/utils@0.2.0-alpha.718
+  - @brains/ai-service@0.2.0-alpha.718
+  - @brains/content-service@0.2.0-alpha.718
+  - @brains/conversation-service@0.2.0-alpha.718
+  - @brains/entity-service@0.2.0-alpha.718
+  - @brains/identity-service@0.2.0-alpha.718
+  - @brains/job-queue@0.2.0-alpha.718
+  - @brains/mcp-service@0.2.0-alpha.718
+  - @brains/messaging-service@0.2.0-alpha.718
+  - @brains/recurring-checks@0.2.0-alpha.718
+  - @brains/runtime-state@0.2.0-alpha.718
+  - @brains/templates@0.2.0-alpha.718
+
+## 0.2.0-alpha.717
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.717
+  - @brains/content-formatters@0.2.0-alpha.717
+  - @brains/contracts@0.2.0-alpha.717
+  - @brains/site-composition@0.2.0-alpha.717
+  - @brains/utils@0.2.0-alpha.717
+  - @brains/ai-service@0.2.0-alpha.717
+  - @brains/content-service@0.2.0-alpha.717
+  - @brains/conversation-service@0.2.0-alpha.717
+  - @brains/entity-service@0.2.0-alpha.717
+  - @brains/identity-service@0.2.0-alpha.717
+  - @brains/job-queue@0.2.0-alpha.717
+  - @brains/mcp-service@0.2.0-alpha.717
+  - @brains/messaging-service@0.2.0-alpha.717
+  - @brains/recurring-checks@0.2.0-alpha.717
+  - @brains/runtime-state@0.2.0-alpha.717
+  - @brains/templates@0.2.0-alpha.717
+
+## 0.2.0-alpha.716
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.716
+  - @brains/content-formatters@0.2.0-alpha.716
+  - @brains/contracts@0.2.0-alpha.716
+  - @brains/site-composition@0.2.0-alpha.716
+  - @brains/utils@0.2.0-alpha.716
+  - @brains/ai-service@0.2.0-alpha.716
+  - @brains/content-service@0.2.0-alpha.716
+  - @brains/conversation-service@0.2.0-alpha.716
+  - @brains/entity-service@0.2.0-alpha.716
+  - @brains/identity-service@0.2.0-alpha.716
+  - @brains/job-queue@0.2.0-alpha.716
+  - @brains/mcp-service@0.2.0-alpha.716
+  - @brains/messaging-service@0.2.0-alpha.716
+  - @brains/recurring-checks@0.2.0-alpha.716
+  - @brains/runtime-state@0.2.0-alpha.716
+  - @brains/templates@0.2.0-alpha.716
+
+## 0.2.0-alpha.715
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.715
+  - @brains/content-formatters@0.2.0-alpha.715
+  - @brains/contracts@0.2.0-alpha.715
+  - @brains/site-composition@0.2.0-alpha.715
+  - @brains/utils@0.2.0-alpha.715
+  - @brains/ai-service@0.2.0-alpha.715
+  - @brains/content-service@0.2.0-alpha.715
+  - @brains/conversation-service@0.2.0-alpha.715
+  - @brains/entity-service@0.2.0-alpha.715
+  - @brains/identity-service@0.2.0-alpha.715
+  - @brains/job-queue@0.2.0-alpha.715
+  - @brains/mcp-service@0.2.0-alpha.715
+  - @brains/messaging-service@0.2.0-alpha.715
+  - @brains/recurring-checks@0.2.0-alpha.715
+  - @brains/runtime-state@0.2.0-alpha.715
+  - @brains/templates@0.2.0-alpha.715
+
+## 0.2.0-alpha.714
+
+### Patch Changes
+
+- [#954](https://github.com/rizom-ai/brains/pull/954) [`0741d0b`](https://github.com/rizom-ai/brains/commit/0741d0bf34ec3f086221ced6f212b57256fc4ca8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `EntityReader.readBytes(definition, id)` reads the bytes of a record of a type that declares `binaryStorage`, through the record the reader can see: an `EntityBytes` of `bytes`, `mediaType` and `sizeBytes`, or `null` when the record is not visible to the reader or holds no bytes yet. A type without `binaryStorage` is refused with `invalid_input`. `EntityBytes` is stable in `@rizom/brain/entities`. An asset-backed record's `content` is the opaque `asset://sha256/<hex>` reference to its bytes; until the data-URL compatibility is removed, reads still return a data URL in its place.
+
+- [#954](https://github.com/rizom-ai/brains/pull/954) [`9bd95ad`](https://github.com/rizom-ai/brains/commit/9bd95ade782101ba4ead0e9686ba866c80c91bd9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Image readers read stored references and load bytes explicitly, only for a record read at the caller's scope. Chat delivery, the Studio preview, the ATProto and social cover, site image preparation, OG composition and entity-reference expansion read the image's reference and then its bytes; a restricted image is never served through another image that shares its bytes. Studio previews stream from storage into object URLs, and its image field offers only PNG, JPEG, GIF and WebP. System reads, listings and insights that mask or ignore content no longer load image bytes.
+
+  Directory sync exports an asset-backed image by streaming its chunks to a temporary file renamed into place, and leaves a file that already holds those bytes untouched. A markdown image file stays the image's only file: left byte for byte when it decodes to the stored bytes, rewritten as a data URL only when they change. An image awaiting its bytes writes no file, and content that is not a base64 data URL is refused instead of being decoded into a corrupt file.
+
+- [#954](https://github.com/rizom-ai/brains/pull/954) [`178a524`](https://github.com/rizom-ai/brains/commit/178a524e797981b5435c8bdec297ee48bd374651) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Every image writer stores a staged asset instead of a data URL. Generated images decode the provider's data URL while staging and never store it; source and OG renders, selected stock photos and the images directory sync fetches for covers and inline links are staged from their bytes. Lookups that only need an image's id or status read stored references instead of loading bytes.
+
+  Directory sync imports an image file of an asset-backed type from a file stream: it hashes the file, describes it from its header and stages it, under a new `maxAssetImportBytes` limit (25 MiB by default). A file whose bytes match the stored image is skipped, whether the row holds an asset or still an inline data URL, so an unmigrated row waits for the offline migration. A markdown image file, which holds its data URL as text, is decoded and staged the same way, and skipped when it decodes to the stored bytes. A stale sibling file is skipped when another file of the image holds the stored bytes, instead of replacing it. A file that is not a PNG, JPEG, GIF or WebP is reported and left in place, with a hint to rasterize an SVG.
+
+- [#954](https://github.com/rizom-ai/brains/pull/954) [`3e82a18`](https://github.com/rizom-ai/brains/commit/3e82a18e9850f3257ba1683919e877110d75bdcc) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Store uploaded images as staged assets instead of data URLs. Image entities switch to asset-backed storage and leave full-text search; an upload is staged, then published with its image, and its format, media type, size and dimensions come from the bytes (25 MiB limit). A pending or failed image holds no payload. Only PNG, JPEG, GIF and WebP uploads become images.
+
+  Entity reads take a `binaryContent` mode: the default materializes an asset reference back into the data URL inline storage returned, counted by read surface and entity type, while `"reference"` returns the stored reference. Updates and deletes through the system tools, and owned writes, read the stored reference, so they never write bytes back inline. The web chat image route reads the image at the caller's scope and streams only that image's stored chunks, and directory sync no longer re-imports an image whose file matches its stored asset.
+
+- Updated dependencies [[`5b12579`](https://github.com/rizom-ai/brains/commit/5b12579dd395a093fc5b4d140a054eaa0321730b), [`0741d0b`](https://github.com/rizom-ai/brains/commit/0741d0bf34ec3f086221ced6f212b57256fc4ca8), [`9bd95ad`](https://github.com/rizom-ai/brains/commit/9bd95ade782101ba4ead0e9686ba866c80c91bd9), [`59f52a5`](https://github.com/rizom-ai/brains/commit/59f52a55f6c8940265a4b66e25525be22bf62e23), [`3e82a18`](https://github.com/rizom-ai/brains/commit/3e82a18e9850f3257ba1683919e877110d75bdcc)]:
+  - @brains/entity-service@0.2.0-alpha.714
+  - @brains/atproto-contracts@0.2.0-alpha.714
+  - @brains/ai-service@0.2.0-alpha.714
+  - @brains/content-service@0.2.0-alpha.714
+  - @brains/identity-service@0.2.0-alpha.714
+  - @brains/content-formatters@0.2.0-alpha.714
+  - @brains/contracts@0.2.0-alpha.714
+  - @brains/site-composition@0.2.0-alpha.714
+  - @brains/utils@0.2.0-alpha.714
+  - @brains/conversation-service@0.2.0-alpha.714
+  - @brains/job-queue@0.2.0-alpha.714
+  - @brains/mcp-service@0.2.0-alpha.714
+  - @brains/messaging-service@0.2.0-alpha.714
+  - @brains/recurring-checks@0.2.0-alpha.714
+  - @brains/runtime-state@0.2.0-alpha.714
+  - @brains/templates@0.2.0-alpha.714
+
+## 0.2.0-alpha.713
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.713
+  - @brains/content-formatters@0.2.0-alpha.713
+  - @brains/contracts@0.2.0-alpha.713
+  - @brains/site-composition@0.2.0-alpha.713
+  - @brains/utils@0.2.0-alpha.713
+  - @brains/ai-service@0.2.0-alpha.713
+  - @brains/content-service@0.2.0-alpha.713
+  - @brains/conversation-service@0.2.0-alpha.713
+  - @brains/entity-service@0.2.0-alpha.713
+  - @brains/identity-service@0.2.0-alpha.713
+  - @brains/job-queue@0.2.0-alpha.713
+  - @brains/mcp-service@0.2.0-alpha.713
+  - @brains/messaging-service@0.2.0-alpha.713
+  - @brains/recurring-checks@0.2.0-alpha.713
+  - @brains/runtime-state@0.2.0-alpha.713
+  - @brains/templates@0.2.0-alpha.713
+
+## 0.2.0-alpha.712
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.712
+  - @brains/content-formatters@0.2.0-alpha.712
+  - @brains/contracts@0.2.0-alpha.712
+  - @brains/site-composition@0.2.0-alpha.712
+  - @brains/utils@0.2.0-alpha.712
+  - @brains/ai-service@0.2.0-alpha.712
+  - @brains/content-service@0.2.0-alpha.712
+  - @brains/conversation-service@0.2.0-alpha.712
+  - @brains/entity-service@0.2.0-alpha.712
+  - @brains/identity-service@0.2.0-alpha.712
+  - @brains/job-queue@0.2.0-alpha.712
+  - @brains/mcp-service@0.2.0-alpha.712
+  - @brains/messaging-service@0.2.0-alpha.712
+  - @brains/recurring-checks@0.2.0-alpha.712
+  - @brains/runtime-state@0.2.0-alpha.712
+  - @brains/templates@0.2.0-alpha.712
+
 ## 0.2.0-alpha.711
 
 ### Patch Changes

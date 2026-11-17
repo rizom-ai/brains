@@ -782,6 +782,34 @@ export class JobQueueRepository {
     return updated.length === 1;
   }
 
+  /**
+   * Return a current attempt's job to pending, due now, with its retry count
+   * as it was: the worker stopped the attempt, so it is not the job's failure.
+   */
+  public async release(
+    jobId: string,
+    attemptId: string,
+    now: number = Date.now(),
+  ): Promise<boolean> {
+    const updated = await this.write("release", async () =>
+      this.db
+        .update(jobQueue)
+        .set({
+          status: JOB_STATUS.PENDING,
+          scheduledFor: now,
+          startedAt: null,
+          attemptId: null,
+          workerSlotId: null,
+          workerSessionId: null,
+          leaseExpiresAt: null,
+          attemptHeartbeatAt: null,
+        })
+        .where(this.attemptWriteGuard(jobId, attemptId))
+        .returning({ id: jobQueue.id }),
+    );
+    return updated.length === 1;
+  }
+
   /** Mark a current attempt failed and apply bounded retry policy. */
   public async fail(
     jobId: string,

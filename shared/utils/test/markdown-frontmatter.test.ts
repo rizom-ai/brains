@@ -1,6 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import {
+  FRONTMATTER_BLOCK,
   generateMarkdown,
+  markdownBody,
   parseMarkdown,
   readMarkdownFrontmatter,
   updateFrontmatterField,
@@ -176,5 +178,57 @@ describe("frontmatter data languages", () => {
     expect(result.frontmatter["__proto__"]).toEqual({ saved: true });
     expect(Object.getPrototypeOf(result.frontmatter)).toBe(Object.prototype);
     expect(result.content).toBe("Body");
+  });
+});
+
+describe("markdownBody", () => {
+  // [input, body as system_get and system_search read it, body as excerpts,
+  // citations, create sources and upload titles read it]
+  const cases: [string, string, string][] = [
+    ["---\ntitle: A\n---\nThe text.\n", "The text.\n", "The text."],
+    ["Just text.", "Just text.", "Just text."],
+    ["---\n---\nThe text.\n", "The text.\n", "---\n---\nThe text."],
+    ["---\r\n---\r\nThe text.", "The text.", "---\r\n---\r\nThe text."],
+    ["---\r\ntitle: A\r\n---\r\nThe text.\r\n", "The text.\r\n", "The text."],
+    [
+      "  \n---\ntitle: A\n---\nThe text.",
+      "  \n---\ntitle: A\n---\nThe text.",
+      "---\ntitle: A\n---\nThe text.",
+    ],
+    [
+      "---\ntitle: A\n---\n\n  The text.  \n\n",
+      "\n  The text.  \n\n",
+      "The text.",
+    ],
+    ["---\ntitle: A\n--- \t\nThe text.", "The text.", "The text."],
+    [
+      "---\ntitle: A\nThe text.",
+      "---\ntitle: A\nThe text.",
+      "---\ntitle: A\nThe text.",
+    ],
+    ["---\ntitle: A\n---", "", ""],
+    ["---\n---\ntitle: A\n---\nThe text.", "The text.", "The text."],
+  ];
+
+  test.each(cases)("reads the body of %j", (input, body) => {
+    expect(markdownBody(input)).toBe(body);
+  });
+
+  test.each(cases)("finds the block of %j", (input, body) => {
+    const block = FRONTMATTER_BLOCK.exec(input)?.[0];
+    expect(block === undefined ? input : input.slice(block.length)).toBe(body);
+  });
+
+  test.each(cases)("reads the trimmed body of %j", (input, _body, trimmed) => {
+    expect(markdownBody(input, { trim: true, keepEmptyBlock: true })).toBe(
+      trimmed,
+    );
+  });
+
+  test("group 1 is the text inside the block, undefined for an empty one", () => {
+    expect(FRONTMATTER_BLOCK.exec("---\ntitle: A\n---\n")?.[1]).toBe(
+      "title: A",
+    );
+    expect(FRONTMATTER_BLOCK.exec("---\n---\n")?.[1]).toBeUndefined();
   });
 });

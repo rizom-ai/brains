@@ -66,6 +66,8 @@ export const entityDefinitionConfigSchema: z.ZodObject<
       }>
     >;
     containedIn: z.ZodOptional<z.ZodString>;
+    consumesSources: FieldNamesSchema;
+    requiresGroupingMembership: z.ZodOptional<z.ZodBoolean>;
     publish: z.ZodOptional<
       z.ZodObject<{ publishStatuses: z.ZodArray<z.ZodString> }, z.core.$strict>
     >;
@@ -94,6 +96,8 @@ export const entityDefinitionConfigSchema: z.ZodObject<
     ])
     .optional(),
   containedIn: z.string().min(1).optional(),
+  consumesSources: fieldNamesSchema,
+  requiresGroupingMembership: z.boolean().optional(),
   publish: z
     .strictObject({ publishStatuses: z.array(z.string().min(1)) })
     .optional(),

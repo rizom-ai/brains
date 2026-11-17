@@ -1,10 +1,14 @@
 import { getErrorMessage, toError } from "@brains/utils/error";
 import { createId } from "@brains/utils/id";
 import type { Logger } from "@brains/utils/logger";
-import type { IJobProgressMonitor } from "@brains/utils/progress";
+import type {
+  IJobProgressMonitor,
+  ProgressReporter,
+} from "@brains/utils/progress";
 import { HandlerFailureSchema, type JobResult } from "./schemas";
 import {
   DEFAULT_WORKER_SESSION_TIMEOUT_MS,
+  DEFAULT_WORKER_SHUTDOWN_DRAIN_MS,
   type IJobQueueService,
   type JobHandler,
   type JobInfo,
@@ -59,6 +63,24 @@ class JobDeadlineExceededError extends Error {
   }
 }
 
+/**
+ * The reason a stopping worker aborts the jobs still running at its drain
+ * deadline. A job that settles with it goes back to the queue untouched.
+ */
+class WorkerShutdownError extends Error {
+  constructor() {
+    super("The worker stopped before the job finished");
+    this.name = "WorkerShutdownError";
+  }
+}
+
+/** How long interrupted jobs get to settle before the worker stops anyway. */
+const SHUTDOWN_INTERRUPT_GRACE_MS = 1_000;
+
+/** A job's run: its result, or handed back to the queue at shutdown. */
+type ProcessOutcome =
+  JobResult | { jobId: string; type: string; status: "released" };
+
 type OperationOutcome<T> =
   { kind: "success"; value: T } | { kind: "failure"; error: unknown };
 
@@ -84,6 +106,8 @@ export class JobQueueWorker {
   private isRunning: boolean = false;
   private shouldStop: boolean = false;
   private activeJobs: Set<string> = new Set();
+  /** Each running job's cancellation, for interrupting it at shutdown. */
+  private readonly jobControllers = new Map<string, AbortController>();
   private stats: JobQueueWorkerStats;
   private startTime: number = 0;
   private pollFiber: Fiber.Fiber<void, never> | null = null;
@@ -152,6 +176,8 @@ export class JobQueueWorker {
       workerHeartbeatIntervalMs: config?.workerHeartbeatIntervalMs ?? 5_000,
       workerSessionTimeoutMs:
         config?.workerSessionTimeoutMs ?? DEFAULT_WORKER_SESSION_TIMEOUT_MS,
+      shutdownDrainMs:
+        config?.shutdownDrainMs ?? DEFAULT_WORKER_SHUTDOWN_DRAIN_MS,
       onUnhealthy: config?.onUnhealthy ?? ((): void => undefined),
     };
 
@@ -252,20 +278,19 @@ export class JobQueueWorker {
       this.currentPoll = null;
     }
 
-    // The in-flight poll is settled, so no more fibers can be added. Await
-    // existing jobs without interrupting them, preserving graceful shutdown.
-    if (this.jobFibers) {
-      this.logger.debug("Waiting for active jobs to complete", {
-        activeJobs: this.activeJobs.size,
-      });
-      await Effect.runPromise(FiberMap.awaitEmpty(this.jobFibers));
-    }
+    // The in-flight poll is settled, so no more fibers can be added.
+    const drained = this.jobFibers
+      ? await this.drainJobs(this.jobFibers)
+      : true;
 
     await this.closeWorkerScope();
     await this.stopWorkerHeartbeat();
     const workerSessionId = this.workerSessionId;
     this.workerSessionId = null;
-    if (workerSessionId) {
+    // A job that ignored its interruption may still be running in this
+    // process. Its session stays until it expires, so no other worker claims
+    // the job before this process is gone.
+    if (workerSessionId && drained) {
       await this.jobQueueService.endWorkerSession(
         this.config.workerSlotId,
         workerSessionId,
@@ -274,6 +299,49 @@ export class JobQueueWorker {
     this.isRunning = false;
     this.stats.isRunning = false;
     this.logger.debug("JobQueueWorker stopped");
+  }
+
+  /**
+   * Wait for the running jobs until the drain deadline, then interrupt those
+   * left and give them a moment to settle. False when one is still running.
+   */
+  private async drainJobs(
+    jobFibers: FiberMap.FiberMap<string, void, never>,
+  ): Promise<boolean> {
+    this.logger.debug("Waiting for active jobs to complete", {
+      activeJobs: this.activeJobs.size,
+    });
+    const empty = Effect.runPromise(FiberMap.awaitEmpty(jobFibers)).then(
+      (): OperationOutcome<void> => ({ kind: "success", value: undefined }),
+    );
+    if (
+      (await this.raceOutcome(empty, this.config.shutdownDrainMs)).kind !==
+      "timeout"
+    ) {
+      return true;
+    }
+
+    const running = [...this.jobControllers.keys()];
+    this.logger.warn(
+      `Job drain passed ${this.config.shutdownDrainMs}ms with ${running.length} job(s) running; interrupting them`,
+      { jobIds: running },
+    );
+    const reason = new WorkerShutdownError();
+    for (const controller of this.jobControllers.values()) {
+      controller.abort(reason);
+    }
+    if (
+      (await this.raceOutcome(empty, SHUTDOWN_INTERRUPT_GRACE_MS)).kind !==
+      "timeout"
+    ) {
+      return true;
+    }
+
+    this.logger.warn(
+      `${this.activeJobs.size} job(s) ignored the interruption; they are reclaimed once this worker's session lapses`,
+      { jobIds: [...this.activeJobs] },
+    );
+    return false;
   }
 
   /**
@@ -396,7 +464,12 @@ export class JobQueueWorker {
       // Process the job
       const result = await this.processJob(job);
 
-      if (result.status === "completed") {
+      if (result.status === "released") {
+        this.logger.debug("Job returned to the queue at shutdown", {
+          jobId,
+          type: result.type,
+        });
+      } else if (result.status === "completed") {
         this.stats.processedJobs++;
         this.logger.debug("Job completed successfully", {
           jobId,
@@ -709,7 +782,7 @@ export class JobQueueWorker {
   }
 
   /** Process a job using its registered handler. */
-  private processJob(job: JobInfo): Promise<JobResult> {
+  private processJob(job: JobInfo): Promise<ProcessOutcome> {
     const provenance = job.metadata.provenance ?? {
       rootJobId: job.metadata.rootJobId,
       causationId: job.id,
@@ -724,19 +797,14 @@ export class JobQueueWorker {
     });
   }
 
-  private async processJobWithinContext(job: JobInfo): Promise<JobResult> {
+  private async processJobWithinContext(job: JobInfo): Promise<ProcessOutcome> {
     const attemptId = job.attemptId;
     if (!attemptId) {
       const error = new Error(
         `Claimed job ${job.id} has no attempt fencing token`,
       );
       this.markUnhealthy(error.message);
-      return {
-        jobId: job.id,
-        type: job.type,
-        status: JOB_STATUS.FAILED,
-        error: error.message,
-      };
+      return this.failed(job, error.message);
     }
 
     const handler = this.jobQueueService.getHandler(job.type);
@@ -745,15 +813,23 @@ export class JobQueueWorker {
         `No handler registered for job type: ${job.type}`,
       );
       await this.jobQueueService.fail(job.id, error, attemptId);
-      return {
-        jobId: job.id,
-        type: job.type,
-        status: JOB_STATUS.FAILED,
-        error: error.message,
-      };
+      return this.failed(job, error.message);
     }
 
+    return this.runAttempt(job, handler, attemptId);
+  }
+
+  /**
+   * Run a claimed attempt under its own cancellation and lease heartbeat,
+   * then settle what the handler returned or threw.
+   */
+  private async runAttempt(
+    job: JobInfo,
+    handler: JobHandler,
+    attemptId: string,
+  ): Promise<ProcessOutcome> {
     const controller = new AbortController();
+    this.jobControllers.set(job.id, controller);
     const stopAttemptHeartbeat = this.startAttemptHeartbeat(job, controller);
     let heartbeatStopped = false;
     const stopHeartbeat = async (): Promise<void> => {
@@ -768,109 +844,188 @@ export class JobQueueWorker {
         type: job.type,
         attemptId,
       });
-
-      const rawData = JSON.parse(job.data);
-      const parsedData = handler.validateAndParse(rawData);
-      if (parsedData === null) {
-        throw new Error(`Invalid job data for type: ${job.type}`);
-      }
-
-      const progressReporter = this.progressMonitor.createProgressReporter(
-        job.id,
+      const result = await this.executeHandler(
+        job,
+        handler,
         attemptId,
-      );
-      const timeoutMs =
-        handler.executionTimeoutMs ?? this.config.defaultExecutionTimeoutMs;
-      const deadline = createRenewableDeadline(timeoutMs);
-      const result = await this.executeWithDeadline(
-        job.type,
-        timeoutMs,
         controller,
-        () =>
-          handler.process(
-            parsedData,
-            job.id,
-            renewOnAdvance(progressReporter, deadline.renew),
-            controller.signal,
-          ),
-        deadline,
       );
-
       await stopHeartbeat();
-      const failure = HandlerFailureSchema.safeParse(result);
-      if (failure.success) {
-        const errorMessage = failure.data.error ?? "Handler returned failure";
-        const processError = new Error(errorMessage);
-        const applied = await this.jobQueueService.fail(
-          job.id,
-          processError,
-          attemptId,
-        );
-        if (applied) {
-          await this.emitTerminalFailure(job, processError, handler, attemptId);
-        }
-        return {
-          jobId: job.id,
-          type: job.type,
-          status: JOB_STATUS.FAILED,
-          error: errorMessage,
-        };
-      }
-
-      const applied = await this.jobQueueService.complete(
-        job.id,
-        result,
+      return await this.settleReturned(
+        job,
+        handler,
         attemptId,
-      );
-      if (!applied) {
-        return {
-          jobId: job.id,
-          type: job.type,
-          status: JOB_STATUS.FAILED,
-          error: "Job attempt no longer owns the claim",
-        };
-      }
-
-      await this.runHandlerSuccessCallback(handler, job, attemptId);
-      await this.progressMonitor.handleJobStatusChange(
-        job.id,
-        "completed",
-        job.metadata,
-      );
-      return {
-        jobId: job.id,
-        type: job.type,
-        status: JOB_STATUS.COMPLETED,
+        controller,
         result,
-      };
+      );
     } catch (error) {
       const processError = toError(error);
       await stopHeartbeat();
-
-      await this.runHandlerErrorCallback(
-        "onError",
-        handler,
+      return await this.settleThrown(
         job,
-        processError,
+        handler,
         attemptId,
-      );
-
-      const applied = await this.jobQueueService.fail(
-        job.id,
+        controller,
         processError,
-        attemptId,
       );
-      if (applied) {
-        await this.emitTerminalFailure(job, processError, handler, attemptId);
-      }
-
-      return {
-        jobId: job.id,
-        type: job.type,
-        status: JOB_STATUS.FAILED,
-        error: processError.message,
-      };
+    } finally {
+      this.jobControllers.delete(job.id);
     }
+  }
+
+  /** Parse the job's data and run its handler under the job deadline. */
+  private executeHandler(
+    job: JobInfo,
+    handler: JobHandler,
+    attemptId: string,
+    controller: AbortController,
+  ): Promise<unknown> {
+    const rawData = JSON.parse(job.data);
+    const parsedData = handler.validateAndParse(rawData);
+    if (parsedData === null) {
+      throw new Error(`Invalid job data for type: ${job.type}`);
+    }
+
+    const progressReporter = this.progressMonitor.createProgressReporter(
+      job.id,
+      attemptId,
+    );
+    const timeoutMs =
+      handler.executionTimeoutMs ?? this.config.defaultExecutionTimeoutMs;
+    const deadline = createRenewableDeadline(timeoutMs);
+    return this.executeWithDeadline(
+      job.type,
+      timeoutMs,
+      controller,
+      () =>
+        handler.process(
+          parsedData,
+          job.id,
+          renewOnAdvance(progressReporter, deadline.renew),
+          controller.signal,
+        ),
+      deadline,
+    );
+  }
+
+  /** Settle a handler's return value: a failure result fails the job. */
+  private async settleReturned(
+    job: JobInfo,
+    handler: JobHandler,
+    attemptId: string,
+    controller: AbortController,
+    result: unknown,
+  ): Promise<ProcessOutcome> {
+    const failure = HandlerFailureSchema.safeParse(result);
+    // A handler that answers the interruption with a failure result goes
+    // back to the queue, as one that throws does. One that still succeeds
+    // completes: its effects are committed.
+    if (failure.success && this.interruptedAtShutdown(job, controller)) {
+      return this.releaseInterrupted(job, attemptId);
+    }
+    if (!failure.success) {
+      return this.completeAttempt(job, handler, attemptId, result);
+    }
+
+    // Unlike a thrown error, a returned failure does not run onError.
+    const errorMessage = failure.data.error ?? "Handler returned failure";
+    await this.settleFailure(job, new Error(errorMessage), handler, attemptId);
+    return this.failed(job, errorMessage);
+  }
+
+  /** Persist the completion, then run the success callback and report it. */
+  private async completeAttempt(
+    job: JobInfo,
+    handler: JobHandler,
+    attemptId: string,
+    result: unknown,
+  ): Promise<ProcessOutcome> {
+    const applied = await this.jobQueueService.complete(
+      job.id,
+      result,
+      attemptId,
+    );
+    if (!applied) {
+      return this.failed(job, "Job attempt no longer owns the claim");
+    }
+
+    await this.runHandlerSuccessCallback(handler, job, attemptId);
+    await this.progressMonitor.handleJobStatusChange(
+      job.id,
+      "completed",
+      job.metadata,
+    );
+    return {
+      jobId: job.id,
+      type: job.type,
+      status: JOB_STATUS.COMPLETED,
+      result,
+    };
+  }
+
+  /** Settle an attempt that threw, after running the handler's onError. */
+  private async settleThrown(
+    job: JobInfo,
+    handler: JobHandler,
+    attemptId: string,
+    controller: AbortController,
+    error: Error,
+  ): Promise<ProcessOutcome> {
+    // Interrupted by the stopping worker.
+    if (this.interruptedAtShutdown(job, controller)) {
+      return this.releaseInterrupted(job, attemptId);
+    }
+
+    await this.runHandlerErrorCallback(
+      "onError",
+      handler,
+      job,
+      error,
+      attemptId,
+    );
+    await this.settleFailure(job, error, handler, attemptId);
+    return this.failed(job, error.message);
+  }
+
+  /** Fail the attempt; when the write applies, emit any terminal failure. */
+  private async settleFailure(
+    job: JobInfo,
+    error: Error,
+    handler: JobHandler,
+    attemptId: string,
+  ): Promise<void> {
+    const applied = await this.jobQueueService.fail(job.id, error, attemptId);
+    if (applied) {
+      await this.emitTerminalFailure(job, error, handler, attemptId);
+    }
+  }
+
+  private failed(job: JobInfo, error: string): JobResult {
+    return { jobId: job.id, type: job.type, status: JOB_STATUS.FAILED, error };
+  }
+
+  /**
+   * Stopped by the worker's drain deadline, for a job that may run again. A
+   * job enqueued without retries runs at most once, so it fails as it would
+   * when its worker dies.
+   */
+  private interruptedAtShutdown(
+    job: JobInfo,
+    controller: AbortController,
+  ): boolean {
+    return (
+      job.maxRetries > 0 &&
+      controller.signal.reason instanceof WorkerShutdownError
+    );
+  }
+
+  /** No failure callbacks and no retry spent: the next worker runs it again. */
+  private async releaseInterrupted(
+    job: JobInfo,
+    attemptId: string,
+  ): Promise<ProcessOutcome> {
+    await this.jobQueueService.release(job.id, attemptId);
+    return { jobId: job.id, type: job.type, status: "released" };
   }
 
   private async runHandlerSuccessCallback(
@@ -880,34 +1035,20 @@ export class JobQueueWorker {
   ): Promise<void> {
     const callback = handler.onTerminalSuccess;
     if (!callback) return;
-    try {
-      const parsedData = handler.validateAndParse(JSON.parse(job.data));
-      if (parsedData === null) return;
-      const progressReporter = this.progressMonitor.createProgressReporter(
-        job.id,
-        attemptId,
-      );
-      const controller = new AbortController();
-      await this.executeWithDeadline(
-        `${job.type}:onTerminalSuccess`,
-        this.config.errorCallbackTimeoutMs,
-        controller,
-        () =>
-          callback.call(
-            handler,
-            parsedData,
-            job.id,
-            progressReporter,
-            controller.signal,
-          ),
-      );
-    } catch (error) {
-      this.logger.error("Terminal job success callback failed", {
-        jobId: job.id,
-        type: job.type,
-        error,
-      });
-    }
+    await this.runCallback(
+      "onTerminalSuccess",
+      handler,
+      job,
+      attemptId,
+      (data, progressReporter, signal) =>
+        callback.call(handler, data, job.id, progressReporter, signal),
+      (error) =>
+        this.logger.error("Terminal job success callback failed", {
+          jobId: job.id,
+          type: job.type,
+          error,
+        }),
+    );
   }
 
   private async emitTerminalFailure(
@@ -966,7 +1107,39 @@ export class JobQueueWorker {
   ): Promise<void> {
     const callback = handler[kind];
     if (!callback) return;
+    await this.runCallback(
+      kind,
+      handler,
+      job,
+      attemptId,
+      (data, progressReporter, signal) =>
+        callback.call(handler, error, data, job.id, progressReporter, signal),
+      (callbackError) =>
+        this.logger.error(
+          kind === "onError"
+            ? "Job handler error callback failed"
+            : "Job handler terminal error callback failed",
+          { jobId: job.id, error: callbackError },
+        ),
+    );
+  }
 
+  /**
+   * Run a handler callback on the job's parsed data under the callback
+   * deadline. Data that no longer parses skips it; a failure is logged.
+   */
+  private async runCallback(
+    label: string,
+    handler: JobHandler,
+    job: JobInfo,
+    attemptId: string,
+    invoke: (
+      data: unknown,
+      progressReporter: ProgressReporter,
+      signal: AbortSignal,
+    ) => Promise<void>,
+    logFailure: (error: unknown) => void,
+  ): Promise<void> {
     try {
       const parsedData = handler.validateAndParse(JSON.parse(job.data));
       if (parsedData === null) return;
@@ -976,26 +1149,13 @@ export class JobQueueWorker {
       );
       const controller = new AbortController();
       await this.executeWithDeadline(
-        `${job.type}:${kind}`,
+        `${job.type}:${label}`,
         this.config.errorCallbackTimeoutMs,
         controller,
-        () =>
-          callback.call(
-            handler,
-            error,
-            parsedData,
-            job.id,
-            progressReporter,
-            controller.signal,
-          ),
+        () => invoke(parsedData, progressReporter, controller.signal),
       );
-    } catch (callbackError) {
-      this.logger.error(
-        kind === "onError"
-          ? "Job handler error callback failed"
-          : "Job handler terminal error callback failed",
-        { jobId: job.id, error: callbackError },
-      );
+    } catch (error) {
+      logFailure(error);
     }
   }
 }

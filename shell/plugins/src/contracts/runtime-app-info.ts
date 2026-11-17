@@ -112,6 +112,30 @@ export const backgroundWorkInfoSchema: z.ZodObject<{
 
 export type BackgroundWorkInfo = z.output<typeof backgroundWorkInfoSchema>;
 
+/**
+ * How often one read surface still turned an asset reference back into a
+ * data URL for one entity type, across every process and restart since the
+ * first such read; never which entity or what content. Removing the legacy
+ * bridge waits for no use after the migration, which `lastAt` shows.
+ */
+export const legacyBinaryContentUseSchema: z.ZodObject<{
+  method: z.ZodString;
+  entityType: z.ZodString;
+  count: z.ZodNumber;
+  firstAt: z.ZodString;
+  lastAt: z.ZodString;
+}> = z.object({
+  method: z.string(),
+  entityType: z.string(),
+  count: z.number().int().nonnegative(),
+  firstAt: z.string(),
+  lastAt: z.string(),
+});
+
+export type LegacyBinaryContentUse = z.output<
+  typeof legacyBinaryContentUseSchema
+>;
+
 export const appInfoSchema: z.ZodObject<{
   model: z.ZodString;
   version: z.ZodString;
@@ -120,6 +144,7 @@ export const appInfoSchema: z.ZodObject<{
   entityCounts: z.ZodArray<typeof entityCountSchema>;
   embeddings: z.ZodNumber;
   backgroundWork: typeof backgroundWorkInfoSchema;
+  legacyBinaryContent: z.ZodArray<typeof legacyBinaryContentUseSchema>;
   ai: z.ZodObject<{
     model: z.ZodString;
     embeddingModel: z.ZodString;
@@ -135,6 +160,7 @@ export const appInfoSchema: z.ZodObject<{
   entityCounts: z.array(entityCountSchema),
   embeddings: z.number(),
   backgroundWork: backgroundWorkInfoSchema,
+  legacyBinaryContent: z.array(legacyBinaryContentUseSchema),
   ai: z.object({
     model: z.string(),
     embeddingModel: z.string(),

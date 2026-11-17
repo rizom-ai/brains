@@ -19,6 +19,15 @@ describe("public app info contracts", () => {
         { entityType: "topic", count: 3 },
       ],
       embeddings: 3,
+      legacyBinaryContent: [
+        {
+          method: "listEntities",
+          entityType: "image",
+          count: 2,
+          firstAt: "2026-01-01T00:00:00.000Z",
+          lastAt: "2026-01-02T00:00:00.000Z",
+        },
+      ],
       backgroundWork: {
         status: "operational",
         reasons: [],
@@ -77,6 +86,8 @@ describe("public app info contracts", () => {
       ],
     });
 
+    // Legacy read counts are operator data: system_status for trusted callers.
+    expect(publicAppInfo).not.toHaveProperty("legacyBinaryContent");
     expect(AppInfoSchema.parse(publicAppInfo)).toEqual({
       model: "rover",
       version: "0.2.0-alpha.46",

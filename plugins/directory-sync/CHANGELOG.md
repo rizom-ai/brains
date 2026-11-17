@@ -1,5 +1,235 @@
 # @brains/directory-sync
 
+## 0.2.0-alpha.730
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.730
+  - @brains/content-formatters@0.2.0-alpha.730
+  - @brains/contracts@0.2.0-alpha.730
+  - @brains/image@0.2.0-alpha.730
+  - @brains/utils@0.2.0-alpha.730
+
+## 0.2.0-alpha.729
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.729
+  - @brains/image@0.2.0-alpha.729
+  - @brains/content-formatters@0.2.0-alpha.729
+  - @brains/contracts@0.2.0-alpha.729
+  - @brains/utils@0.2.0-alpha.729
+
+## 0.2.0-alpha.728
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.728
+  - @brains/image@0.2.0-alpha.728
+  - @brains/content-formatters@0.2.0-alpha.728
+  - @brains/contracts@0.2.0-alpha.728
+  - @brains/utils@0.2.0-alpha.728
+
+## 0.2.0-alpha.727
+
+### Patch Changes
+
+- Updated dependencies [[`a57b365`](https://github.com/rizom-ai/brains/commit/a57b365b06adc462b6c4323d17e7046119f0a90b)]:
+  - @brains/contracts@0.2.0-alpha.727
+  - @brains/sdk@0.2.0-alpha.727
+  - @brains/image@0.2.0-alpha.727
+  - @brains/content-formatters@0.2.0-alpha.727
+  - @brains/utils@0.2.0-alpha.727
+
+## 0.2.0-alpha.726
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.726
+  - @brains/content-formatters@0.2.0-alpha.726
+  - @brains/contracts@0.2.0-alpha.726
+  - @brains/image@0.2.0-alpha.726
+  - @brains/utils@0.2.0-alpha.726
+
+## 0.2.0-alpha.725
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.725
+  - @brains/content-formatters@0.2.0-alpha.725
+  - @brains/contracts@0.2.0-alpha.725
+  - @brains/image@0.2.0-alpha.725
+  - @brains/utils@0.2.0-alpha.725
+
+## 0.2.0-alpha.724
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.724
+  - @brains/content-formatters@0.2.0-alpha.724
+  - @brains/contracts@0.2.0-alpha.724
+  - @brains/image@0.2.0-alpha.724
+  - @brains/utils@0.2.0-alpha.724
+
+## 0.2.0-alpha.723
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.723
+  - @brains/content-formatters@0.2.0-alpha.723
+  - @brains/contracts@0.2.0-alpha.723
+  - @brains/image@0.2.0-alpha.723
+  - @brains/utils@0.2.0-alpha.723
+
+## 0.2.0-alpha.722
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.722
+  - @brains/content-formatters@0.2.0-alpha.722
+  - @brains/contracts@0.2.0-alpha.722
+  - @brains/image@0.2.0-alpha.722
+  - @brains/utils@0.2.0-alpha.722
+
+## 0.2.0-alpha.721
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.721
+  - @brains/content-formatters@0.2.0-alpha.721
+  - @brains/contracts@0.2.0-alpha.721
+  - @brains/image@0.2.0-alpha.721
+  - @brains/utils@0.2.0-alpha.721
+
+## 0.2.0-alpha.720
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.720
+  - @brains/content-formatters@0.2.0-alpha.720
+  - @brains/contracts@0.2.0-alpha.720
+  - @brains/image@0.2.0-alpha.720
+  - @brains/utils@0.2.0-alpha.720
+
+## 0.2.0-alpha.719
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.719
+  - @brains/content-formatters@0.2.0-alpha.719
+  - @brains/contracts@0.2.0-alpha.719
+  - @brains/image@0.2.0-alpha.719
+  - @brains/utils@0.2.0-alpha.719
+
+## 0.2.0-alpha.718
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.718
+  - @brains/content-formatters@0.2.0-alpha.718
+  - @brains/contracts@0.2.0-alpha.718
+  - @brains/image@0.2.0-alpha.718
+  - @brains/utils@0.2.0-alpha.718
+
+## 0.2.0-alpha.717
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.717
+  - @brains/content-formatters@0.2.0-alpha.717
+  - @brains/contracts@0.2.0-alpha.717
+  - @brains/image@0.2.0-alpha.717
+  - @brains/utils@0.2.0-alpha.717
+
+## 0.2.0-alpha.716
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.716
+  - @brains/content-formatters@0.2.0-alpha.716
+  - @brains/contracts@0.2.0-alpha.716
+  - @brains/image@0.2.0-alpha.716
+  - @brains/utils@0.2.0-alpha.716
+
+## 0.2.0-alpha.715
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.715
+  - @brains/content-formatters@0.2.0-alpha.715
+  - @brains/contracts@0.2.0-alpha.715
+  - @brains/image@0.2.0-alpha.715
+  - @brains/utils@0.2.0-alpha.715
+
+## 0.2.0-alpha.714
+
+### Patch Changes
+
+- [#954](https://github.com/rizom-ai/brains/pull/954) [`5b12579`](https://github.com/rizom-ai/brains/commit/5b12579dd395a093fc5b4d140a054eaa0321730b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Offline tools move images stored as inline data URLs into durable assets. Each runs only against a local entity database no other process holds open, detected from open file handles, and never takes a lock.
+
+  - `brain assets:migrate --dry-run` decodes every inline image one row at a time and classifies it as ready, or blocked as SVG, malformed, double-encoded, unsupported or oversized, reporting distinct and duplicate bytes, the full-text rows and content hashes that change, and the peak disk the migration needs. It fails while anything is blocked.
+  - `brain assets:migrate` brings the entity schema forward, refuses while anything is blocked, then migrates one row at a time: the bytes are staged in committed chunks and published with the row's new reference, binary metadata and content hash, and its full-text row is removed. Identity, visibility and timestamps are kept; a markdown seed's stored newline is tolerated; a rerun skips migrated rows; the placeholder a pending or failed image held is cleared, while a completed image with the same bytes migrates as any other. Each run is appended to a manifest that never holds bytes.
+  - `brain assets:verify` checks that every reference resolves to an intact asset, that no inline image or image full-text row remains and, with `--brain-data`, that each mirrored file holds the stored bytes, a markdown image file compared by the bytes it decodes to.
+  - `brain assets:reconcile` restores absent rows and lost assets from `brain-data`, repairs inline rows whose bytes were lost from their file, and reports references that disagree with their file without changing them.
+
+  The pre-deploy backup verifies the image assets in its `brain.db` snapshot, every referenced asset intact and hashing to its digest, or the backup fails and blocks the deploy; it records the asset inventory and orphan uploads beside the snapshot. Regenerate `deploy/scripts/create-predeploy-backup.ts` in existing deployments to adopt it.
+
+- [#954](https://github.com/rizom-ai/brains/pull/954) [`9bd95ad`](https://github.com/rizom-ai/brains/commit/9bd95ade782101ba4ead0e9686ba866c80c91bd9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Image readers read stored references and load bytes explicitly, only for a record read at the caller's scope. Chat delivery, the Studio preview, the ATProto and social cover, site image preparation, OG composition and entity-reference expansion read the image's reference and then its bytes; a restricted image is never served through another image that shares its bytes. Studio previews stream from storage into object URLs, and its image field offers only PNG, JPEG, GIF and WebP. System reads, listings and insights that mask or ignore content no longer load image bytes.
+
+  Directory sync exports an asset-backed image by streaming its chunks to a temporary file renamed into place, and leaves a file that already holds those bytes untouched. A markdown image file stays the image's only file: left byte for byte when it decodes to the stored bytes, rewritten as a data URL only when they change. An image awaiting its bytes writes no file, and content that is not a base64 data URL is refused instead of being decoded into a corrupt file.
+
+- [#954](https://github.com/rizom-ai/brains/pull/954) [`178a524`](https://github.com/rizom-ai/brains/commit/178a524e797981b5435c8bdec297ee48bd374651) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Every image writer stores a staged asset instead of a data URL. Generated images decode the provider's data URL while staging and never store it; source and OG renders, selected stock photos and the images directory sync fetches for covers and inline links are staged from their bytes. Lookups that only need an image's id or status read stored references instead of loading bytes.
+
+  Directory sync imports an image file of an asset-backed type from a file stream: it hashes the file, describes it from its header and stages it, under a new `maxAssetImportBytes` limit (25 MiB by default). A file whose bytes match the stored image is skipped, whether the row holds an asset or still an inline data URL, so an unmigrated row waits for the offline migration. A markdown image file, which holds its data URL as text, is decoded and staged the same way, and skipped when it decodes to the stored bytes. A stale sibling file is skipped when another file of the image holds the stored bytes, instead of replacing it. A file that is not a PNG, JPEG, GIF or WebP is reported and left in place, with a hint to rasterize an SVG.
+
+- [#954](https://github.com/rizom-ai/brains/pull/954) [`3e82a18`](https://github.com/rizom-ai/brains/commit/3e82a18e9850f3257ba1683919e877110d75bdcc) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Store uploaded images as staged assets instead of data URLs. Image entities switch to asset-backed storage and leave full-text search; an upload is staged, then published with its image, and its format, media type, size and dimensions come from the bytes (25 MiB limit). A pending or failed image holds no payload. Only PNG, JPEG, GIF and WebP uploads become images.
+
+  Entity reads take a `binaryContent` mode: the default materializes an asset reference back into the data URL inline storage returned, counted by read surface and entity type, while `"reference"` returns the stored reference. Updates and deletes through the system tools, and owned writes, read the stored reference, so they never write bytes back inline. The web chat image route reads the image at the caller's scope and streams only that image's stored chunks, and directory sync no longer re-imports an image whose file matches its stored asset.
+
+- Updated dependencies [[`5b12579`](https://github.com/rizom-ai/brains/commit/5b12579dd395a093fc5b4d140a054eaa0321730b), [`0741d0b`](https://github.com/rizom-ai/brains/commit/0741d0bf34ec3f086221ced6f212b57256fc4ca8), [`2bfaa22`](https://github.com/rizom-ai/brains/commit/2bfaa22afbd9afc63918c495698ad93d12de063f), [`9bd95ad`](https://github.com/rizom-ai/brains/commit/9bd95ade782101ba4ead0e9686ba866c80c91bd9), [`178a524`](https://github.com/rizom-ai/brains/commit/178a524e797981b5435c8bdec297ee48bd374651), [`3e82a18`](https://github.com/rizom-ai/brains/commit/3e82a18e9850f3257ba1683919e877110d75bdcc)]:
+  - @brains/image@0.2.0-alpha.714
+  - @brains/sdk@0.2.0-alpha.714
+  - @brains/content-formatters@0.2.0-alpha.714
+  - @brains/contracts@0.2.0-alpha.714
+  - @brains/utils@0.2.0-alpha.714
+
+## 0.2.0-alpha.713
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.713
+  - @brains/content-formatters@0.2.0-alpha.713
+  - @brains/contracts@0.2.0-alpha.713
+  - @brains/image@0.2.0-alpha.713
+  - @brains/utils@0.2.0-alpha.713
+
+## 0.2.0-alpha.712
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.712
+  - @brains/content-formatters@0.2.0-alpha.712
+  - @brains/contracts@0.2.0-alpha.712
+  - @brains/image@0.2.0-alpha.712
+  - @brains/utils@0.2.0-alpha.712
+
 ## 0.2.0-alpha.711
 
 ### Patch Changes

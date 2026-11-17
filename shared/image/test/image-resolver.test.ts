@@ -53,10 +53,60 @@ describe("resolveImage", () => {
     expect(result?.height).toBe(1);
   });
 
+  it("renders an asset-backed image as a data URL built from its bytes", async () => {
+    const shell = createMockShell();
+    const service = shell.getEntityService();
+    const asset = await service.stageAsset(
+      Buffer.from(TINY_PNG_BASE64, "base64"),
+    );
+    shell.addEntities([
+      {
+        ...mockImageEntity,
+        content: asset.ref,
+        metadata: { ...mockImageEntity.metadata, mediaType: "image/png" },
+      },
+    ]);
+
+    const result = await resolveImage("hero-image", service);
+
+    expect(result?.url).toBe(TINY_PNG_DATA_URL);
+  });
+
+  it("resolves nothing for an image whose bytes do not exist yet", async () => {
+    const shell = createMockShell();
+    shell.addEntities([
+      {
+        ...mockImageEntity,
+        content: "",
+        metadata: { title: "Hero Image", alt: "Hero", status: "pending" },
+      },
+    ]);
+
+    expect(
+      await resolveImage("hero-image", shell.getEntityService()),
+    ).toBeUndefined();
+  });
+
   it("should return undefined for non-existent image", async () => {
     const result = await resolveImage("non-existent", imageService());
 
     expect(result).toBeUndefined();
+  });
+
+  it("renders nothing for a pending image, which has no bytes yet", async () => {
+    const shell = createMockShell();
+    shell.addEntities([
+      {
+        ...mockImageEntity,
+        id: "pending-image",
+        content: "",
+        metadata: { title: "Pending", status: "pending" },
+      },
+    ]);
+
+    expect(
+      await resolveImage("pending-image", shell.getEntityService()),
+    ).toBeUndefined();
   });
 });
 
@@ -117,6 +167,29 @@ title: Test
   });
 });
 
+describe("frontmatter fences", () => {
+  it.each([
+    ["a bare fence", "\n", "---"],
+    ["a fence with a trailing space", "\n", "--- "],
+    ["a fence with a trailing tab", "\n", "---\t"],
+    ["a CRLF file", "\r\n", "---"],
+    ["a CRLF file with a trailing space", "\r\n", "--- "],
+  ])("reads cover and OG image IDs behind %s", (_label, eol, fence) => {
+    const entity = createMockEntity(
+      [
+        "---",
+        "coverImageId: hero-image",
+        "ogImageId: post-og-image",
+        fence,
+        "",
+        "# Test",
+      ].join(eol),
+    );
+
+    expect(extractCoverImageId(entity)).toBe("hero-image");
+    expect(extractOgImageId(entity)).toBe("post-og-image");
+  });
+});
 describe("extractOgImageId", () => {
   it("should extract ogImageId from frontmatter", () => {
     const entity = createMockEntity(`---
@@ -239,6 +312,16 @@ coverImageId: hero-image
     expect(result?.url).toBe(TINY_PNG_DATA_URL);
     expect(result?.width).toBe(1);
     expect(result?.height).toBe(1);
+  });
+
+  it("resolves the cover image behind a fence with a trailing space", async () => {
+    const entity = createMockEntity(
+      "---\ncoverImageId: hero-image\n--- \n\n# Test",
+    );
+
+    const result = await resolveEntityCoverImage(entity, imageService());
+
+    expect(result?.url).toBe(TINY_PNG_DATA_URL);
   });
 
   it("should return undefined when no coverImageId in frontmatter", async () => {

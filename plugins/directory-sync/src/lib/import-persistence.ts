@@ -1,6 +1,8 @@
-import type {
-  ServiceEntityMirrorClient,
-  ContentVisibility,
+import {
+  base64AssetSource,
+  type ServiceEntityMirrorClient,
+  type ContentVisibility,
+  type StagedAsset,
 } from "@brains/sdk/internal/service-runtime";
 import {
   type BaseEntity,
@@ -10,6 +12,7 @@ import type { Logger } from "@brains/utils/logger";
 import { getErrorMessage } from "@brains/utils/error";
 import { computeContentHash } from "@brains/utils/hash";
 import { readMarkdownFrontmatter } from "@brains/utils/markdown-frontmatter";
+import { base64ImageReader, describeImage } from "@brains/image";
 import type { ImportResult, RawEntity } from "../types";
 
 import { resolveInSyncPath } from "./path-utils";
@@ -19,8 +22,13 @@ import { isRecord } from "@brains/utils/is-record";
 export interface ImportPersistenceDeps {
   entityService: Pick<
     ServiceEntityMirrorClient,
-    "serializeEntity" | "upsertEntity"
+    | "serializeEntity"
+    | "upsertEntity"
+    | "getEntityTypeConfig"
+    | "stageAsset"
+    | "discardStagedAsset"
   >;
+  maxAssetImportBytes: number;
   logger: Logger;
   quarantine: {
     isValidationError(error: unknown): boolean;
@@ -100,7 +108,11 @@ export async function persistImportEntity(
   snapshot: Awaited<
     ReturnType<ServiceEntityMirrorClient["getEntityWriteSnapshot"]>
   >,
+  /** Bytes already staged from the file; otherwise inline content is staged here. */
+  staged?: StagedAsset,
 ): Promise<void> {
+  // Staged bytes no upsert takes are discarded on every other way out.
+  let unpublished = staged;
   try {
     const existing = snapshot?.entity ?? null;
 
@@ -129,7 +141,7 @@ export async function persistImportEntity(
         },
       );
     }
-    const entity: BaseEntity = {
+    const inline: BaseEntity = {
       ...parsedEntity,
       id: parsedEntity.id ?? rawEntity.id,
       entityType: parsedEntity.entityType ?? rawEntity.entityType,
@@ -143,6 +155,10 @@ export async function persistImportEntity(
       updated: rawEntity.updated.toISOString(),
       contentHash: "",
     };
+    const { entity, stagedAsset } = staged
+      ? { entity: inline, stagedAsset: staged }
+      : await stageAssetContent(deps, inline);
+    unpublished = stagedAsset;
     // Store canonical hash so auto-sync writes don't trigger a re-import:
     // after auto-sync writes serializeEntity(entity) to disk, the file hash
     // matches this hash and shouldUpdateEntity returns false.
@@ -183,8 +199,11 @@ export async function persistImportEntity(
         : ("directory-sync" as const),
       conditionalWrite: { expectedRevision: snapshot?.revision ?? null },
     };
+    // The upsert publishes the staged bytes or discards them itself.
+    unpublished = undefined;
     const upsertResult = await deps.entityService.upsertEntity({
       entity,
+      ...(stagedAsset && { stagedAsset }),
       options,
     });
     result.imported++;
@@ -234,5 +253,56 @@ export async function persistImportEntity(
         error: getErrorMessage(error),
       },
     );
+  } finally {
+    if (unpublished) {
+      // Best effort: the startup sweep reclaims an upload this misses.
+      await deps.entityService
+        .discardStagedAsset(unpublished)
+        .catch(() => undefined);
+    }
   }
+}
+
+const DATA_URL_PAYLOAD = /^data:[^;,]+;base64,([\s\S]*)$/;
+
+/**
+ * Asset-backed types store the file's bytes as a staged asset and keep only
+ * the reference, with the facts a reader needs without loading bytes. A
+ * markdown image file holds its data URL as text: it is decoded and staged
+ * the same way. Content that is not a supported raster image stays as it
+ * was stored before assets.
+ */
+async function stageAssetContent(
+  deps: ImportPersistenceDeps,
+  entity: BaseEntity,
+): Promise<{ entity: BaseEntity; stagedAsset?: StagedAsset }> {
+  if (
+    deps.entityService.getEntityTypeConfig(entity.entityType).binaryStorage !==
+    "asset"
+  ) {
+    return { entity };
+  }
+  // Text-form image files may wrap or end their payload with whitespace,
+  // and a non-public one may declare its tier above it.
+  const body = readMarkdownFrontmatter(entity.content).content.trim();
+  const payload = DATA_URL_PAYLOAD.exec(body)?.[1]?.replace(/\s/g, "");
+  if (!payload) return { entity };
+  const described = await describeImage(base64ImageReader(payload));
+  if (!described) return { entity };
+  const stagedAsset = await deps.entityService.stageAsset(
+    base64AssetSource(payload),
+    { maxBytes: deps.maxAssetImportBytes },
+  );
+  return {
+    stagedAsset,
+    entity: {
+      ...entity,
+      content: stagedAsset.ref,
+      metadata: {
+        ...entity.metadata,
+        ...described,
+        sizeBytes: stagedAsset.sizeBytes,
+      },
+    },
+  };
 }

@@ -1,4 +1,7 @@
-import { createMockJobQueueService } from "../src/test/index";
+import {
+  createMockJobQueueService,
+  type MockJobQueueServiceReturns,
+} from "../src/test/index";
 import {
   describe,
   it,
@@ -25,6 +28,7 @@ import {
   waitUntil,
 } from "@brains/test-utils";
 import { createId } from "@brains/utils/id";
+import type { Logger } from "@brains/utils/logger";
 import type {
   IJobProgressMonitor,
   ProgressReporter,
@@ -1185,6 +1189,273 @@ describe("JobQueueWorker", () => {
   });
 
   describe("Graceful shutdown", () => {
+    async function shutdownQueue(): Promise<{
+      service: JobQueueService;
+      enqueue: (maxRetries?: number) => Promise<string>;
+      cleanup: () => Promise<void>;
+    }> {
+      const database = await createTestJobQueueDatabase();
+      const service = JobQueueService.createFresh(
+        database.config,
+        createSilentLogger(),
+      );
+      return {
+        service,
+        enqueue: (maxRetries?: number) =>
+          service.enqueue({
+            type: "shell:embedding",
+            data: { id: "entity-123", content: "test" },
+            options: {
+              ...(maxRetries === undefined ? {} : { maxRetries }),
+              source: "test",
+              metadata: { operationType: "data_processing" },
+            },
+          }),
+        cleanup: async (): Promise<void> => {
+          service.close();
+          await database.cleanup();
+        },
+      };
+    }
+
+    function shutdownWorker(
+      service: IJobQueueService,
+      config: JobQueueWorkerConfig = {},
+    ): JobQueueWorker {
+      return JobQueueWorker.createFresh(
+        service,
+        mockProgressMonitor,
+        createSilentLogger(),
+        {
+          pollInterval: 10,
+          workerSlotId: "drain-slot",
+          shutdownDrainMs: 50,
+          ...config,
+        },
+      );
+    }
+
+    it("interrupts a job still running at the drain deadline and retries it later", async () => {
+      const queue = await shutdownQueue();
+      const handler = createMockHandler();
+      const signals: AbortSignal[] = [];
+      handler.process.mockImplementationOnce(
+        (
+          _data: unknown,
+          _jobId: string,
+          _reporter: ProgressReporter,
+          signal: AbortSignal,
+        ) =>
+          new Promise((_resolve, reject) => {
+            signals.push(signal);
+            signal.addEventListener("abort", () => reject(signal.reason), {
+              once: true,
+            });
+          }),
+      );
+      queue.service.registerHandler("shell:embedding", handler);
+      try {
+        const id = await queue.enqueue();
+        worker = shutdownWorker(queue.service);
+        await worker.start();
+        await waitUntil(
+          () => worker.getStats().activeJobs > 0,
+          "the worker to start the long job",
+        );
+
+        const started = performance.now();
+        await worker.stop();
+
+        expect(performance.now() - started).toBeLessThan(1_000);
+        expect(signals[0]?.aborted).toBe(true);
+        expect(handler.onError).not.toHaveBeenCalled();
+        expect(handler.onTerminalError).not.toHaveBeenCalled();
+        // Shutdown is not the job's failure: it waits with its retries intact.
+        expect(await queue.service.getStatus(id)).toMatchObject({
+          status: "pending",
+          retryCount: 0,
+          attemptId: null,
+        });
+
+        worker = shutdownWorker(queue.service);
+        await worker.start();
+        await waitUntil(
+          async () =>
+            (await queue.service.getStatus(id))?.status === "completed",
+          "the interrupted job to run again",
+        );
+        expect(handler.process).toHaveBeenCalledTimes(2);
+      } finally {
+        if (worker.isWorkerRunning()) await worker.stop();
+        await queue.cleanup();
+      }
+    });
+
+    it("fails an at-most-once job interrupted at the drain deadline, as a crash would", async () => {
+      const queue = await shutdownQueue();
+      const handler = createMockHandler();
+      handler.process.mockImplementationOnce(
+        (
+          _data: unknown,
+          _jobId: string,
+          _reporter: ProgressReporter,
+          signal: AbortSignal,
+        ) =>
+          new Promise((_resolve, reject) => {
+            signal.addEventListener("abort", () => reject(signal.reason), {
+              once: true,
+            });
+          }),
+      );
+      queue.service.registerHandler("shell:embedding", handler);
+      try {
+        const id = await queue.enqueue(0);
+        worker = shutdownWorker(queue.service);
+        await worker.start();
+        await waitUntil(
+          () => worker.getStats().activeJobs > 0,
+          "the worker to start the long job",
+        );
+
+        await worker.stop();
+
+        expect(await queue.service.getStatus(id)).toMatchObject({
+          status: "failed",
+        });
+        expect(handler.onTerminalError).toHaveBeenCalledTimes(1);
+      } finally {
+        if (worker.isWorkerRunning()) await worker.stop();
+        await queue.cleanup();
+      }
+    });
+
+    it("returns a job to the queue when its handler answers the interruption with a failure result", async () => {
+      const queue = await shutdownQueue();
+      const handler = createMockHandler();
+      handler.process.mockImplementationOnce(
+        (
+          _data: unknown,
+          _jobId: string,
+          _reporter: ProgressReporter,
+          signal: AbortSignal,
+        ) =>
+          new Promise((resolve) => {
+            signal.addEventListener(
+              "abort",
+              () => resolve({ success: false, error: "aborted" }),
+              { once: true },
+            );
+          }),
+      );
+      queue.service.registerHandler("shell:embedding", handler);
+      try {
+        const id = await queue.enqueue();
+        worker = shutdownWorker(queue.service);
+        await worker.start();
+        await waitUntil(
+          () => worker.getStats().activeJobs > 0,
+          "the worker to start the long job",
+        );
+
+        await worker.stop();
+
+        expect(handler.onTerminalError).not.toHaveBeenCalled();
+        expect(await queue.service.getStatus(id)).toMatchObject({
+          status: "pending",
+          retryCount: 0,
+        });
+      } finally {
+        if (worker.isWorkerRunning()) await worker.stop();
+        await queue.cleanup();
+      }
+    });
+
+    it("completes a job whose handler still succeeds after the interruption", async () => {
+      const queue = await shutdownQueue();
+      const handler = createMockHandler();
+      handler.process.mockImplementationOnce(
+        (
+          _data: unknown,
+          _jobId: string,
+          _reporter: ProgressReporter,
+          signal: AbortSignal,
+        ) =>
+          new Promise((resolve) => {
+            // Its effect is committed; a rerun would repeat it.
+            signal.addEventListener("abort", () => resolve({ success: true }), {
+              once: true,
+            });
+          }),
+      );
+      queue.service.registerHandler("shell:embedding", handler);
+      try {
+        const id = await queue.enqueue();
+        worker = shutdownWorker(queue.service);
+        await worker.start();
+        await waitUntil(
+          () => worker.getStats().activeJobs > 0,
+          "the worker to start the long job",
+        );
+
+        await worker.stop();
+
+        expect(await queue.service.getStatus(id)).toMatchObject({
+          status: "completed",
+        });
+      } finally {
+        if (worker.isWorkerRunning()) await worker.stop();
+        await queue.cleanup();
+      }
+    });
+
+    it("leaves a job that ignores the interruption to be reclaimed once the worker is gone", async () => {
+      const queue = await shutdownQueue();
+      const handler = createMockHandler();
+      handler.process.mockImplementationOnce(
+        () => new Promise<never>(() => undefined),
+      );
+      queue.service.registerHandler("shell:embedding", handler);
+      const endWorkerSession = spyOn(queue.service, "endWorkerSession");
+      try {
+        const id = await queue.enqueue();
+        // A short lease the worker never renews stands in for the process
+        // exiting: the abandoned attempt lapses soon after the stop.
+        worker = shutdownWorker(queue.service, {
+          leaseDurationMs: 300,
+          attemptHeartbeatIntervalMs: 60_000,
+        });
+        await worker.start();
+        await waitUntil(
+          () => worker.getStats().activeJobs > 0,
+          "the worker to start the stuck job",
+        );
+
+        const started = performance.now();
+        await worker.stop();
+
+        expect(performance.now() - started).toBeLessThan(2_000);
+        // Its session stays, so no other worker claims the job while this
+        // process may still be running it.
+        expect(endWorkerSession).not.toHaveBeenCalled();
+        expect(await queue.service.getStatus(id)).toMatchObject({
+          status: "processing",
+        });
+
+        // Once its lease lapses, the next worker reclaims it.
+        worker = shutdownWorker(queue.service);
+        await worker.start();
+        await waitUntil(
+          async () =>
+            (await queue.service.getStatus(id))?.status === "completed",
+          "the abandoned job to be reclaimed",
+        );
+        expect(handler.process).toHaveBeenCalledTimes(2);
+      } finally {
+        if (worker.isWorkerRunning()) await worker.stop();
+        await queue.cleanup();
+      }
+    });
+
     it("should wait for active jobs before stopping", async () => {
       const handler = createMockHandler();
       let releaseProcessing = (): void => {};
@@ -1449,6 +1720,296 @@ describe("JobQueueWorker", () => {
       const stats = worker.getStats();
       expect(stats.failedJobs).toBe(1);
       expect(stats.processedJobs).toBe(0);
+    });
+  });
+
+  describe("Failure outcomes", () => {
+    function startLoggedSingleJob(
+      handler: MockHandler | undefined,
+      returns: MockJobQueueServiceReturns = {},
+      job: JobInfo = testJob,
+    ): {
+      service: IJobQueueService;
+      logger: Logger;
+      statusChanges: ReturnType<typeof spyOn>;
+    } {
+      const service = createMockJobQueueService({
+        returns: { ...returns, getHandler: handler },
+      });
+      let dequeueCalls = 0;
+      spyOn(service, "dequeue").mockImplementation(async () => {
+        dequeueCalls++;
+        return dequeueCalls === 1 ? job : null;
+      });
+      const logger = createMockLogger();
+      const progressMonitor = new MockProgressMonitor();
+      const statusChanges = spyOn(progressMonitor, "handleJobStatusChange");
+      worker = JobQueueWorker.createFresh(service, progressMonitor, logger, {
+        pollInterval: 5,
+      });
+      return { service, logger, statusChanges };
+    }
+
+    const terminallyFailed = {
+      getStatus: { ...testJob, status: "failed" as const },
+    };
+
+    async function jobSettled(): Promise<void> {
+      await waitUntil(
+        () =>
+          worker.getStats().failedJobs + worker.getStats().processedJobs > 0,
+        "the worker to settle the job",
+      );
+    }
+
+    function reportedFailure(error: string): unknown[] {
+      return ["Job failed", { jobId: testJob.id, type: testJob.type, error }];
+    }
+
+    it("reports a claim without a fencing token as failed", async () => {
+      const { logger } = startLoggedSingleJob(
+        createMockHandler(),
+        {},
+        {
+          ...testJob,
+          attemptId: null,
+        },
+      );
+
+      await worker.start();
+      await jobSettled();
+
+      expect(logger.warn).toHaveBeenCalledWith(
+        ...reportedFailure(
+          "Claimed job test-job-123 has no attempt fencing token",
+        ),
+      );
+    });
+
+    it("fails a job whose type has no handler, without terminal failure events", async () => {
+      const { service, logger, statusChanges } = startLoggedSingleJob(
+        undefined,
+        terminallyFailed,
+      );
+
+      await worker.start();
+      await jobSettled();
+
+      expect(service.fail).toHaveBeenCalledWith(
+        testJob.id,
+        new Error("No handler registered for job type: embedding"),
+        testJob.attemptId,
+      );
+      expect(logger.warn).toHaveBeenCalledWith(
+        ...reportedFailure("No handler registered for job type: embedding"),
+      );
+      expect(statusChanges).not.toHaveBeenCalled();
+    });
+
+    it("fails a handler's failure result without running onError", async () => {
+      const handler = createMockHandler();
+      handler.process.mockResolvedValue({
+        success: false,
+        error: "Title is required",
+      });
+      const { service, logger, statusChanges } = startLoggedSingleJob(
+        handler,
+        terminallyFailed,
+      );
+
+      await worker.start();
+      await jobSettled();
+
+      expect(handler.onError).not.toHaveBeenCalled();
+      expect(service.fail).toHaveBeenCalledWith(
+        testJob.id,
+        new Error("Title is required"),
+        testJob.attemptId,
+      );
+      expect(handler.onTerminalError).toHaveBeenCalledWith(
+        new Error("Title is required"),
+        { id: "entity-123", content: "test" },
+        testJob.id,
+        expect.any(Object),
+        expect.any(AbortSignal),
+      );
+      expect(statusChanges).toHaveBeenCalledWith(
+        testJob.id,
+        "failed",
+        testJob.metadata,
+      );
+      expect(logger.warn).toHaveBeenCalledWith(
+        ...reportedFailure("Title is required"),
+      );
+    });
+
+    it("names a failure result that carries no message", async () => {
+      const handler = createMockHandler();
+      handler.process.mockResolvedValue({ success: false });
+      const { service, logger } = startLoggedSingleJob(handler);
+
+      await worker.start();
+      await jobSettled();
+
+      expect(service.fail).toHaveBeenCalledWith(
+        testJob.id,
+        new Error("Handler returned failure"),
+        testJob.attemptId,
+      );
+      expect(logger.warn).toHaveBeenCalledWith(
+        ...reportedFailure("Handler returned failure"),
+      );
+    });
+
+    it("runs onError before failing a job whose handler throws", async () => {
+      const handler = createMockHandler();
+      const thrown = new Error("processing failed");
+      handler.process.mockRejectedValue(thrown);
+      const order: string[] = [];
+      handler.onError.mockImplementation(async () => {
+        order.push("onError");
+      });
+      const { service, logger, statusChanges } = startLoggedSingleJob(
+        handler,
+        terminallyFailed,
+      );
+      spyOn(service, "fail").mockImplementation(async () => {
+        order.push("fail");
+        return true;
+      });
+
+      await worker.start();
+      await jobSettled();
+
+      expect(order).toEqual(["onError", "fail"]);
+      expect(handler.onError).toHaveBeenCalledWith(
+        thrown,
+        { id: "entity-123", content: "test" },
+        testJob.id,
+        expect.any(Object),
+        expect.any(AbortSignal),
+      );
+      expect(service.fail).toHaveBeenCalledWith(
+        testJob.id,
+        thrown,
+        testJob.attemptId,
+      );
+      expect(handler.onTerminalError).toHaveBeenCalledWith(
+        thrown,
+        { id: "entity-123", content: "test" },
+        testJob.id,
+        expect.any(Object),
+        expect.any(AbortSignal),
+      );
+      expect(statusChanges).toHaveBeenCalledWith(
+        testJob.id,
+        "failed",
+        testJob.metadata,
+      );
+      expect(logger.warn).toHaveBeenCalledWith(
+        ...reportedFailure("processing failed"),
+      );
+    });
+
+    it("fails a job whose data does not validate, skipping the callbacks that need it", async () => {
+      const handler = createMockHandler();
+      handler.validateAndParse.mockReturnValue(null);
+      const { service, logger, statusChanges } = startLoggedSingleJob(
+        handler,
+        terminallyFailed,
+      );
+
+      await worker.start();
+      await jobSettled();
+
+      expect(handler.process).not.toHaveBeenCalled();
+      expect(handler.onError).not.toHaveBeenCalled();
+      expect(handler.onTerminalError).not.toHaveBeenCalled();
+      expect(service.fail).toHaveBeenCalledWith(
+        testJob.id,
+        new Error("Invalid job data for type: embedding"),
+        testJob.attemptId,
+      );
+      expect(statusChanges).toHaveBeenCalledWith(
+        testJob.id,
+        "failed",
+        testJob.metadata,
+      );
+      expect(logger.warn).toHaveBeenCalledWith(
+        ...reportedFailure("Invalid job data for type: embedding"),
+      );
+    });
+
+    it("reports a completion the attempt no longer owns as failed", async () => {
+      const handler = createMockHandler();
+      const { service, logger, statusChanges } = startLoggedSingleJob(handler);
+      spyOn(service, "complete").mockResolvedValue(false);
+
+      await worker.start();
+      await jobSettled();
+
+      expect(service.fail).not.toHaveBeenCalled();
+      expect(handler.onTerminalSuccess).not.toHaveBeenCalled();
+      expect(statusChanges).not.toHaveBeenCalled();
+      expect(worker.getStats()).toMatchObject({
+        processedJobs: 0,
+        failedJobs: 1,
+      });
+      expect(logger.warn).toHaveBeenCalledWith(
+        ...reportedFailure("Job attempt no longer owns the claim"),
+      );
+    });
+
+    it("logs a failing success callback and still completes the job", async () => {
+      const handler = createMockHandler();
+      const callbackError = new Error("success callback broke");
+      handler.onTerminalSuccess.mockRejectedValue(callbackError);
+      const { logger, statusChanges } = startLoggedSingleJob(handler);
+
+      await worker.start();
+      await jobSettled();
+
+      expect(logger.error).toHaveBeenCalledWith(
+        "Terminal job success callback failed",
+        { jobId: testJob.id, type: testJob.type, error: callbackError },
+      );
+      expect(statusChanges).toHaveBeenCalledWith(
+        testJob.id,
+        "completed",
+        testJob.metadata,
+      );
+      expect(worker.getStats().processedJobs).toBe(1);
+    });
+
+    it("logs failing error callbacks and still fails the job", async () => {
+      const handler = createMockHandler();
+      handler.process.mockRejectedValue(new Error("processing failed"));
+      const onErrorError = new Error("onError broke");
+      const onTerminalErrorError = new Error("onTerminalError broke");
+      handler.onError.mockRejectedValue(onErrorError);
+      handler.onTerminalError.mockRejectedValue(onTerminalErrorError);
+      const { service, logger, statusChanges } = startLoggedSingleJob(
+        handler,
+        terminallyFailed,
+      );
+
+      await worker.start();
+      await jobSettled();
+
+      expect(logger.error).toHaveBeenCalledWith(
+        "Job handler error callback failed",
+        { jobId: testJob.id, error: onErrorError },
+      );
+      expect(logger.error).toHaveBeenCalledWith(
+        "Job handler terminal error callback failed",
+        { jobId: testJob.id, error: onTerminalErrorError },
+      );
+      expect(service.fail).toHaveBeenCalledTimes(1);
+      expect(statusChanges).toHaveBeenCalledWith(
+        testJob.id,
+        "failed",
+        testJob.metadata,
+      );
     });
   });
 });

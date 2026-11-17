@@ -331,6 +331,25 @@ describe("entityRuntime(context) on a context the runtime did not build", () => 
       /carries no entity runtime.*first-party packages only/,
     );
   });
+
+  it("refuses a plain object under the runtime's key, which the runtime never bound", async () => {
+    const { shell } = await store(
+      observing(async (context) =>
+        Object.getOwnPropertySymbols(context).find(
+          (symbol) => symbol.description === "rizom.entity-runtime",
+        ),
+      ),
+      {},
+    );
+    await create(shell, "public");
+    const key = observed;
+    if (typeof key !== "symbol") throw new Error("No entity runtime key");
+
+    const forged = Object.freeze({ input: {}, entities: {}, [key]: {} });
+    expect(() => entityRuntime(forged)).toThrow(
+      /carries no entity runtime.*first-party packages only/,
+    );
+  });
 });
 
 // What a capability refuses with, thrown or rejected.

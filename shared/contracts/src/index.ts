@@ -363,6 +363,13 @@ export {
   type GenerateReportSuccessPayload,
 } from "./generation-commands";
 export { internalPublishProvider } from "./publish-types";
+export {
+  generateFromSourcesContract,
+  generateFromSourcesRequestSchema,
+  generateFromSourcesResponseSchema,
+  type GenerateFromSourcesRequest,
+  type GenerateFromSourcesResponse,
+} from "./generation-from-sources";
 export type {
   PublishResult,
   PublishProvider,

@@ -3,6 +3,7 @@ import type { ImageGenerateJobInput } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import {
   VALID_PNG_BASE64,
+  VALID_PNG_ASSET_REF,
   VALID_PNG_DATA_URL,
   imageJobs,
   seedPost,
@@ -160,7 +161,7 @@ describe("ImageGenerationJobHandler", () => {
       expect(stored).toMatchObject({
         id: "sunset-image",
         entityType: "image",
-        content: VALID_PNG_DATA_URL,
+        content: VALID_PNG_ASSET_REF,
         metadata: expect.objectContaining({
           title: "Sunset Image",
         }),
@@ -192,7 +193,7 @@ describe("ImageGenerationJobHandler", () => {
       const stored = await jobs.stored("image", "sunset-image");
       expect(stored).toMatchObject({
         id: "sunset-image",
-        content: VALID_PNG_DATA_URL,
+        content: VALID_PNG_ASSET_REF,
         metadata: expect.objectContaining({
           title: "Sunset Image",
           status: "draft",
@@ -230,7 +231,7 @@ describe("ImageGenerationJobHandler", () => {
       const stored = await jobs.stored("image", "sunset-image");
       expect(stored).toMatchObject({
         id: "sunset-image",
-        content: VALID_PNG_DATA_URL,
+        content: VALID_PNG_ASSET_REF,
         metadata: expect.objectContaining({ status: "draft" }),
       });
       // Neither deleted nor created anew: the same record, updated.

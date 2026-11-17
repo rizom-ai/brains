@@ -29,6 +29,7 @@ const effectiveFixtureOverrides = await registerConventionalSiteTheme(
 
 const trustedEntityTypes = [
   "note",
+  "refined-note",
   "link",
   "image",
   "doc",

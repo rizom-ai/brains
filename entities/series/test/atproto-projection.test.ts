@@ -31,6 +31,7 @@ function recordInput(
       get: async () => null,
       list: async () => [],
       count: async () => 0,
+      readBytes: async () => null,
     },
     uploadBlob: async (): Promise<never> => {
       throw new Error("not used");

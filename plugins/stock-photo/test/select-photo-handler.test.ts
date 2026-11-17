@@ -12,6 +12,9 @@ import {
   type SelectPhotoJobData,
 } from "../src/handlers/select-photo-handler";
 import type { StockPhotoProvider } from "../src/lib/types";
+import { computeAssetDigest, createAssetRef } from "@brains/plugins";
+import { createMockAssetStore } from "@brains/entity-service/test";
+import type { EntityMutationReceipt } from "@brains/entity-service";
 
 const TINY_PNG_BASE64 =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
@@ -41,7 +44,10 @@ function createProvider(): StockPhotoProvider {
 function createEntityService(
   overrides: Record<string, unknown> = {},
 ): StockPhotoEntityWriter {
+  const assets = createMockAssetStore();
   return {
+    stageAsset: assets.stageAsset,
+    discardStagedAsset: assets.discardStagedAsset,
     getEntity: async () => null,
     createEntity: async () => ({
       entityId: "abc123",
@@ -74,15 +80,30 @@ const resultSchema = z.object({
   warning: z.string().optional(),
 });
 
+/** Done-markers held in memory, as the entity service's receipts hold them. */
+function createReceipts(): SelectPhotoHandlerDeps["receipts"] {
+  const recorded = new Set<string>();
+  return {
+    getEntityMutationReceipt: async ({ namespace, key }) =>
+      recorded.has(`${namespace}/${key}`) ? { operation: "none" } : null,
+    applyEntityMutationOnce: async (
+      request,
+    ): Promise<EntityMutationReceipt> => {
+      recorded.add(`${request.receipt.namespace}/${request.receipt.key}`);
+      return { operation: "none" };
+    },
+  };
+}
+
 /** The select-photo job, run as the queue runs it, its result read back. */
-function createHandler(deps: SelectPhotoHandlerDeps): {
+function createHandler(deps: Omit<SelectPhotoHandlerDeps, "receipts">): {
   process(
     data: SelectPhotoJobData,
     jobId: string,
     progress: ProgressReporter,
   ): Promise<z.output<typeof resultSchema>>;
 } {
-  const job = selectPhotoJob(deps);
+  const job = selectPhotoJob({ ...deps, receipts: createReceipts() });
   return {
     process: async (data, jobId, progress) =>
       resultSchema.parse(
@@ -182,5 +203,42 @@ describe("the select-photo job", () => {
     expect(result.imageEntityId).toBe("abc123");
     expect(result.coverSet).toBeUndefined();
     expect(result.warning).toBeUndefined();
+  });
+
+  it("stores the downloaded photo as a staged asset", async () => {
+    let created: { entity?: unknown; stagedAsset?: unknown } | undefined;
+    const entityService = createEntityService({
+      createEntity: async (request: {
+        entity: unknown;
+        stagedAsset?: unknown;
+      }) => {
+        created = request;
+        return { entityId: "abc123", jobId: "job-1", skipped: false };
+      },
+    });
+    const handler = createHandler({
+      provider: createProvider(),
+      entityService,
+      fetchImage: async (): Promise<string> => TINY_PNG_DATA_URL,
+    });
+
+    await handler.process(jobData, "job-123", progressReporter);
+
+    const ref = createAssetRef(
+      computeAssetDigest(Buffer.from(TINY_PNG_BASE64, "base64")),
+    );
+    expect(created).toEqual({
+      entity: expect.objectContaining({
+        id: "abc123",
+        entityType: "image",
+        content: ref,
+        metadata: expect.objectContaining({
+          format: "png",
+          mediaType: "image/png",
+          sourceUrl: jobData.imageUrl,
+        }),
+      }),
+      stagedAsset: expect.objectContaining({ ref }),
+    });
   });
 });

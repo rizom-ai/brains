@@ -1,5 +1,152 @@
 # @rizom/brain
 
+## 0.2.0-alpha.730
+
+### Patch Changes
+
+- [#987](https://github.com/rizom-ai/brains/pull/987) [`658cd5f`](https://github.com/rizom-ai/brains/commit/658cd5fe5c9298fcc31796a8e3a8212f6b930214) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A duplicate FAQ folds whichever of the pair's reconcile jobs confirms it. Each FAQ's reconcile job asks the model whether its nearest neighbor asks the same question, but only the newer FAQ's job could fold the pair: when the older FAQ's check said "same", that verdict was dropped, and because the verdict varies a real duplicate pair folded only about two times in three. Either job now folds the pair, always the newer draft into the older one, or a draft into a published FAQ; when both jobs fold at once, one folds and the other finds the pair changed and writes nothing. A published FAQ still never folds or is deleted.
+
+- [#986](https://github.com/rizom-ai/brains/pull/986) [`afabeda`](https://github.com/rizom-ai/brains/commit/afabedac5368eab68aa851c9beeace5d3b74142d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - An author-defined message interface now edits its reply when a job that reply started makes progress or finishes. Before, its progress and completion events never reached it: the interface listened under its plugin id, while the job recorded only the channel type. A turn now records which installed interface it came through, and its jobs and tool events are routed back to that interface, so two installed interfaces with the same channel type no longer pick up each other's jobs. Built-in interfaces behave as before.
+
+## 0.2.0-alpha.729
+
+### Patch Changes
+
+- [#985](https://github.com/rizom-ai/brains/pull/985) [`a4b9043`](https://github.com/rizom-ai/brains/commit/a4b9043d23201ce8519f19115771951832f00735) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A daemon that fails after it was ready is restarted instead of leaving the brain silently not receiving. A `defineDaemon({ run })` daemon or a message interface's `listen` that rejects, or returns before it is stopped, is logged at error level with its id and the error's message, and run again after a wait of one second that doubles up to five minutes, with jitter; health stays `error` until a restarted run reports ready, which resets the wait. An account daemon's task is restarted the same way, and is no longer left failed until its settings are saved again. Stopping the brain, removing the account or changing its settings cancels a pending restart.
+
+## 0.2.0-alpha.728
+
+### Patch Changes
+
+- [#984](https://github.com/rizom-ai/brains/pull/984) [`4d0991c`](https://github.com/rizom-ai/brains/commit/4d0991c3a4f921fe4fadc942d9532c10740710a8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A running brain removes leftover database leases. A brain removed expired lease rows only when it started, so a row left by a container killed while its lease was fresh outlived the next start and stayed until another one, and the offline asset commands kept finding a stale lease to refuse or skip. Each renewal of a brain's lease, every 10 seconds, now also deletes rows that have expired, other than its own, so such a row is gone within about one renewal of expiring. Fresh rows, including a maintenance command's, are left alone.
+
+## 0.2.0-alpha.727
+
+### Patch Changes
+
+- [#966](https://github.com/rizom-ai/brains/pull/966) [`a57b365`](https://github.com/rizom-ai/brains/commit/a57b365b06adc462b6c4323d17e7046119f0a90b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Notes come in two levels. A `refined-note` is one worked-out note written from one or more plain notes, which it replaces: `system_generate` with `prompt-from-source`, `entityType: "refined-note"` and the note as source writes a title, a one-sentence summary and a body from the note's text, saves it under `refined-note/`, no more visibly than the note, and then deletes the note. The confirmation names the note and says it will be removed; a caller who may not delete notes gets the delete permission error, and a failed generation keeps the note. A refined note must state its `title` and `summary`. It is in the `core` bundle; on a team brain creating and updating one needs Trusted, deleting one Admin, as for a note.
+
+  `prompt` is optional on `prompt-from-source` for every type: without it the entity is written from the source alone, and its id is taken from the source's id. A type that uses its sources up is named after its first source with a prompt too, since there the prompt directs the writing and names nothing. The operation also takes `additionalSourceIds`, further sources of the same type, so one entity can be written from several: one refined note from three notes, with one confirmation that names all three.
+
+  A type declares the source types its generation uses up with `config.consumesSources`. The runtime deletes those sources after the generated entity is saved, as the requester and under their delete policy, and `system_generate` refuses a source of any other type for it. A source that could not be deleted fails the job, which keeps what it wrote and names the source.
+
+  A type declares that its records must belong somewhere with `config.requiresGroupingMembership`. Where at least one grouping applies to the type, every create and update is refused unless the file states a value in one of them; a brain with no grouping for the type asks nothing more, and a generation's placeholder is exempt. A generation of such a type that states no membership is placed by the runtime: the brain chooses one grouping and one value, from the values a closed grouping allows or the values an open one holds. A refined note declares it. A grouping in the registry now carries `multiple` and `values`, which Studio publishes from its definitions.
+
+  Studio's library refines by hand. In a collection whose entries can be refined, each row's number is the mark it is picked with; while entries are picked the page's action is Refine instead of New, and one confirmation lists the picked entries, takes an optional direction and says they will be removed. Studio then moves to where the refined entry is written and says so until it is, and a refusal is shown in the brain's words with nothing changed. `POST /studio/api/refine` carries it, and the type list states `refinesInto` for a collection the signed-in person may refine. The system answers `generate:from-sources` on the bus with the same confirmation and refusals as `system_generate`; an approval runs only the request it was given for, so a direction stated after the confirmation opened is asked for again before it runs.
+
+  An entity named by the name it was saved under is found when that name survives only as its id: `system_get`, `system_update`, `system_delete` and a generation's source resolve "Dashboard drop-off" to the plain note `dashboard-drop-off`, whose file states no title. An entry titled exactly so still wins.
+
+- [#966](https://github.com/rizom-ai/brains/pull/966) [`65485d2`](https://github.com/rizom-ai/brains/commit/65485d2de8aaedaa77781bf3b6367cc093f86a7c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A job started by a signed-in person runs again in a brain with a separate worker. Since the typed bus contracts landed, the auth service answered `auth:principal:resolve` in the web process only, so the worker could not resolve the requester's account and refused every such job with "The requester is not permitted": a generation approved in chat or Studio failed after its confirmation. The auth service answers it in every process.
+
+## 0.2.0-alpha.726
+
+### Patch Changes
+
+- [#981](https://github.com/rizom-ai/brains/pull/981) [`5ef7f67`](https://github.com/rizom-ai/brains/commit/5ef7f67cbc710c86092d9051ecaa4618bdb97823) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A brain stopped while it is still starting now shuts down cleanly. Before, a `docker stop` (or Ctrl-C) during the first seconds of boot reached an app process before it listened for the signal, so the process died holding its database lease, and offline maintenance then refused to run until the lease expired. Now each process listens from the start of its boot: a stop during boot lets the boot finish, runs the full shutdown, and releases the lease. A stop during the migration step waits for it to finish and starts nothing.
+
+## 0.2.0-alpha.725
+
+### Patch Changes
+
+- [#980](https://github.com/rizom-ai/brains/pull/980) [`dc1e319`](https://github.com/rizom-ai/brains/commit/dc1e31912b0b146dabcb08e74be24551d0334dae) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Topic extraction now keeps a new topic that a model lists among a source's matches to existing topics, where before only a topic named as the source's proposal counted. Local models answer that way most of the time, so a brain on local models never got its first topics.
+
+## 0.2.0-alpha.724
+
+### Patch Changes
+
+- [#979](https://github.com/rizom-ai/brains/pull/979) [`50abd58`](https://github.com/rizom-ai/brains/commit/50abd5803b0d543207856be64be8fe733aa89318) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Restores graceful shutdown in deployed containers. `docker stop` now reaches the brain and runs its whole shutdown: the queues drain, plugins stop (directory-sync makes its final export and git push), the database lease is released, and the databases close. Before, the published CLI handed every command to its own install as a second process, and SIGTERM ended the first one, so the brain itself was killed without shutting down. A global `brain` run in a directory with a local install still hands off to it, and now passes SIGINT and SIGTERM on and exits with its status.
+
+## 0.2.0-alpha.723
+
+### Patch Changes
+
+- [#978](https://github.com/rizom-ai/brains/pull/978) [`28482b9`](https://github.com/rizom-ai/brains/commit/28482b9d80e7ad46e1d4d607eda7eaddf2ad2bd0) Thanks [@yeehaa123](https://github.com/yeehaa123)! - When someone without Admin access asks to delete something, the brain now declines without first searching for it or reading it. Before, about one such request in four looked the entity up first and spent its whole content on a refusal.
+
+## 0.2.0-alpha.722
+
+### Patch Changes
+
+- [#977](https://github.com/rizom-ai/brains/pull/977) [`c2f70e5`](https://github.com/rizom-ai/brains/commit/c2f70e5ce923eb40f5dd5a7e1fdcf8668b855d5c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Frontmatter is read the same everywhere: a file whose frontmatter closes with `---` followed by spaces or tabs, or that has an empty frontmatter block, now publishes and queues with its status and publish date, finds its cover and OG images, and decodes as an image file. Before, these steps treated such a file as having no frontmatter.
+
+## 0.2.0-alpha.721
+
+### Patch Changes
+
+- [#971](https://github.com/rizom-ai/brains/pull/971) [`8f24293`](https://github.com/rizom-ai/brains/commit/8f2429398e2bf1f603eb05727a3460524ee15b3c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A recurring check alert marked secret is now delivered as a secret notification. Before, its sensitivity was dropped on the way to notifications, so the email transport treated it as normal and logged its recipient and subject when a delivery failed.
+
+## 0.2.0-alpha.720
+
+### Patch Changes
+
+- [#969](https://github.com/rizom-ai/brains/pull/969) [`a83340e`](https://github.com/rizom-ai/brains/commit/a83340eccf82c69b7eb3de38bce1f9ff9ee47c6d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Choosing a stock photo now sets the cover image when the photo is already stored. Before, the select-photo job failed on the photo's taken id and never set the cover. This happened when the job was run again after it had saved the photo, or when another post had already chosen the same photo. Now the job reuses the stored photo instead of downloading it again, and pings Unsplash's download tracker once for each use. A rerun of a job that already pinged the tracker does not ping it again.
+
+## 0.2.0-alpha.719
+
+### Patch Changes
+
+- [#968](https://github.com/rizom-ai/brains/pull/968) [`214f5b4`](https://github.com/rizom-ai/brains/commit/214f5b46028f09a5c8316f529545662cc4064529) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A recurring check alert is no longer emailed twice when its run dies after the send and before the alert is marked delivered. Each delivery attempt of an alert now carries the same idempotency key, derived from the alert and the time it was first observed, and the email provider answers a repeated key without sending again. The provider keeps a key for 24 hours, so a rerun that comes more than a day after such a crash can still send the alert a second time.
+
+## 0.2.0-alpha.718
+
+### Patch Changes
+
+- [#965](https://github.com/rizom-ai/brains/pull/965) [`3d83084`](https://github.com/rizom-ai/brains/commit/3d83084c567602976126cee107e898ca95b9cf62) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A generation job that is run again after its post, deck, note, social post or newsletter was saved no longer writes a second one. Before, a job that died after saving, or whose follow-up failed so the queue retried it, saved a copy under the next free id with the same status. A queued copy was then published as well: a second LinkedIn post, a second newsletter send, or a second post whose publishing sent another newsletter. Now the job records its saved entity in the same transaction, and a rerun finishes from that entity without generating again. The job's follow-ups, such as queuing a cover image, run once per job, and a rerun skips the image job while the first one is still waiting.
+
+## 0.2.0-alpha.717
+
+### Patch Changes
+
+- [#962](https://github.com/rizom-ai/brains/pull/962) [`25c45dd`](https://github.com/rizom-ai/brains/commit/25c45dd2084be92b448d79222b5c6a83782b90cc) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A brain now finishes its shutdown when requests are still open. Before, the web process waited for every request in flight, such as an MCP or A2A stream, a long chat turn or a request body that never finished. The supervisor then killed it after 15 seconds, which skipped plugin shutdown, the database lease release and the database closes. Now the web listener stops taking requests and answers any that still arrive on an open connection with 503. It gives the requests in flight 5 seconds to finish, then closes them and logs how many there were. The MCP listener does the same.
+
+  The worker gives running jobs 8 seconds to finish and then interrupts the rest through their abort signal. A job interrupted this way goes back to the queue without using up a retry, unless its handler still succeeded. A job enqueued without retries fails as it would after a crash. If a job ignores the interruption, the worker keeps its session, so no other worker picks the job up while this process may still be running it. The job is reclaimed once the session lapses.
+
+## 0.2.0-alpha.716
+
+### Patch Changes
+
+- [#960](https://github.com/rizom-ai/brains/pull/960) [`4929c4e`](https://github.com/rizom-ai/brains/commit/4929c4eac7415aefe8af3958b962d180df06c599) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A conditional delete of a container that changed since it was read no longer deletes the container's contents: it deletes nothing.
+
+## 0.2.0-alpha.715
+
+### Patch Changes
+
+- [#959](https://github.com/rizom-ai/brains/pull/959) [`db53610`](https://github.com/rizom-ai/brains/commit/db53610d09e36b95c9f511a46f6e731dd7d81c3e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A running brain now keeps a lease in `brain.db`, renewed every 10 seconds and deleted on a clean stop. `brain assets:migrate`, `assets:reconcile` and `assets:verify` refuse while any lease is fresh, which works across containers that share the data volume, and they name the process and host holding it. A lease a crash left also refuses unless you pass `--ignore-stale-heartbeat`; a fresh lease refuses even with that flag. The `/proc` check stays as a second layer. While a migrate or reconcile run writes, it holds its own lease, and a brain that starts during the run fails with an error naming the command, so the restart is retried after the run instead of serving a half-converted database.
+
+  `system_status` now reports, for trusted and admin callers, how often each read surface still turned an asset reference back into a data URL, by entity type, with when that was first and last seen. The counts never include ids or content. They are kept in runtime state, add up across the web and worker processes and survive restarts.
+
+## 0.2.0-alpha.714
+
+### Patch Changes
+
+- [#954](https://github.com/rizom-ai/brains/pull/954) [`83ae17c`](https://github.com/rizom-ai/brains/commit/83ae17c023c39f909830a0c77320984a616869e7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `brain assets:migrate` and `brain assets:reconcile` fold their write-ahead log into the database and truncate it before they close, so the database file holds every write when the command exits.
+
+- [#954](https://github.com/rizom-ai/brains/pull/954) [`8cbb1a2`](https://github.com/rizom-ai/brains/commit/8cbb1a253b959afc574995f9a3372ae9feec7946) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `brain assets:migrate` keeps its write-ahead log to one image's work while it runs. It holds the full-text index's automatic merges off during the run, so removing one image's search entry writes only that entry, then compacts the index in small separately committed steps instead of one `optimize`, and puts the index's merge settings back as it found them.
+
+- [#954](https://github.com/rizom-ai/brains/pull/954) [`5b12579`](https://github.com/rizom-ai/brains/commit/5b12579dd395a093fc5b4d140a054eaa0321730b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Offline tools move images stored as inline data URLs into durable assets. Each runs only against a local entity database no other process holds open, detected from open file handles, and never takes a lock.
+
+  - `brain assets:migrate --dry-run` decodes every inline image one row at a time and classifies it as ready, or blocked as SVG, malformed, double-encoded, unsupported or oversized, reporting distinct and duplicate bytes, the full-text rows and content hashes that change, and the peak disk the migration needs. It fails while anything is blocked.
+  - `brain assets:migrate` brings the entity schema forward, refuses while anything is blocked, then migrates one row at a time: the bytes are staged in committed chunks and published with the row's new reference, binary metadata and content hash, and its full-text row is removed. Identity, visibility and timestamps are kept; a markdown seed's stored newline is tolerated; a rerun skips migrated rows; the placeholder a pending or failed image held is cleared, while a completed image with the same bytes migrates as any other. Each run is appended to a manifest that never holds bytes.
+  - `brain assets:verify` checks that every reference resolves to an intact asset, that no inline image or image full-text row remains and, with `--brain-data`, that each mirrored file holds the stored bytes, a markdown image file compared by the bytes it decodes to.
+  - `brain assets:reconcile` restores absent rows and lost assets from `brain-data`, repairs inline rows whose bytes were lost from their file, and reports references that disagree with their file without changing them.
+
+  The pre-deploy backup verifies the image assets in its `brain.db` snapshot, every referenced asset intact and hashing to its digest, or the backup fails and blocks the deploy; it records the asset inventory and orphan uploads beside the snapshot. Regenerate `deploy/scripts/create-predeploy-backup.ts` in existing deployments to adopt it.
+
+- [#954](https://github.com/rizom-ai/brains/pull/954) [`0741d0b`](https://github.com/rizom-ai/brains/commit/0741d0bf34ec3f086221ced6f212b57256fc4ca8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `EntityReader.readBytes(definition, id)` reads the bytes of a record of a type that declares `binaryStorage`, through the record the reader can see: an `EntityBytes` of `bytes`, `mediaType` and `sizeBytes`, or `null` when the record is not visible to the reader or holds no bytes yet. A type without `binaryStorage` is refused with `invalid_input`. `EntityBytes` is stable in `@rizom/brain/entities`. An asset-backed record's `content` is the opaque `asset://sha256/<hex>` reference to its bytes; until the data-URL compatibility is removed, reads still return a data URL in its place.
+
+## 0.2.0-alpha.713
+
+### Patch Changes
+
+- [#957](https://github.com/rizom-ai/brains/pull/957) [`061a413`](https://github.com/rizom-ai/brains/commit/061a413f983b1bab773114a463279a204acc19d8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - After the brain asks what to do with an upload, a reply of just a word or a name makes it ask what the user wants done, instead of proposing to save a note with that title.
+
+- [#958](https://github.com/rizom-ai/brains/pull/958) [`4426752`](https://github.com/rizom-ai/brains/commit/44267527f877fb811f7d9ada9577457977ab377a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A local model asked to read an updated note reads it from storage instead of answering from the partial quote of what the update stored; the user still sees the quote.
+
+## 0.2.0-alpha.712
+
+### Patch Changes
+
+- [#955](https://github.com/rizom-ai/brains/pull/955) [`3d63d17`](https://github.com/rizom-ai/brains/commit/3d63d1783447584d30d2b19661ff7b034c6a00aa) Thanks [@yeehaa123](https://github.com/yeehaa123)! - An eval's resultContains judges the tool calls that took effect: a call the tool refused, which changed nothing, no longer fails a turn whose retry returns the expected result. A turn still needs one call that took effect, and each must return the expected result.
+
 ## 0.2.0-alpha.711
 
 ### Patch Changes

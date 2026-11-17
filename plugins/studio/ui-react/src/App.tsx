@@ -2,6 +2,7 @@
 import type { AccountBootstrap } from "./account/account-view";
 import { StudioStatus } from "./studio-status";
 import { StudioGroupingView } from "./studio-groupings";
+import { useRefineOutcome } from "./studio-refine";
 import {
   groupingQuery,
   groupingSearch,
@@ -255,6 +256,8 @@ export function App(): ReactElement {
     workspaceQueries,
     editor,
   });
+  // A confirmed refine is followed to its end wherever the person goes.
+  const refineOutcome = useRefineOutcome({ entityType, entities });
   const activeGrouping =
     routeTarget.kind === "grouping"
       ? groupings.find((grouping) => grouping.key === routeTarget.grouping)
@@ -552,6 +555,8 @@ export function App(): ReactElement {
       workspaceQuery={workspaceRequestQuery}
       entityType={entityType}
       entities={entities}
+      refineNotice={refineOutcome.notice}
+      onRefineConfirmed={refineOutcome.confirmed}
       folders={entityListQuery.data?.folders ?? []}
       collectionTrail={entityListQuery.data?.trail}
       collectionPath={

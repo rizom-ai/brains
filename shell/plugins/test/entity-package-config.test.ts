@@ -202,7 +202,7 @@ async function runJob(
     handler.validateAndParse(
       queuedByPackage("@fixture/library:bookmark", input),
     ),
-    "job-under-test",
+    `job-under-test-${crypto.randomUUID()}`,
     createMockProgressReporter(),
     new AbortController().signal,
   );

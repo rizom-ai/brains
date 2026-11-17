@@ -1,3 +1,5 @@
+import type { RegisteredOAuthClient } from "./types";
+
 function isLoopbackHost(hostname: string): boolean {
   const normalized = hostname.toLowerCase();
   return (
@@ -6,6 +8,34 @@ function isLoopbackHost(hostname: string): boolean {
     normalized === "::1" ||
     normalized.startsWith("127.")
   );
+}
+
+/**
+ * Why a client's redirect URIs break its declared application_type, or
+ * undefined when they fit. Web clients redirect over HTTPS only; native clients
+ * may use plain HTTP only to a loopback host. Dynamic registration and client
+ * metadata documents share this rule and each throws its own error class.
+ */
+export function applicationTypeRedirectRefusal(client: {
+  application_type?: RegisteredOAuthClient["application_type"];
+  redirect_uris: readonly string[];
+}): string | undefined {
+  if (!client.application_type) return undefined;
+
+  for (const redirectUri of client.redirect_uris) {
+    const url = new URL(redirectUri);
+    if (client.application_type === "web" && url.protocol !== "https:") {
+      return "web application redirect_uris must use HTTPS";
+    }
+    if (
+      client.application_type === "native" &&
+      url.protocol === "http:" &&
+      !isLoopbackHost(url.hostname)
+    ) {
+      return "native application HTTP redirect_uris must use a loopback host";
+    }
+  }
+  return undefined;
 }
 
 function parseUrl(value: string): URL | undefined {

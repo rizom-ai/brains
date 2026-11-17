@@ -45,7 +45,6 @@ function runtimeEnv(): Record<string, string | undefined> {
   return {
     ...process.env,
     OPENAI_API_KEY: "packed-hermetic-runtime",
-    BRAIN_SKIP_LOCAL_REEXEC: "1",
     ...(transportUrls
       ? {
           FIXTURE_EVENT_FEED_URL: transportUrls.eventFeedUrl,

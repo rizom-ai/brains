@@ -14,6 +14,9 @@ import {
   type CreateResultAttachment,
   type IEntityService,
   type SearchWithDistancesRequest,
+  type AssetSource,
+  type StageAssetOptions,
+  type StagedAsset,
 } from "@brains/entity-service";
 import { isPlainRecord } from "@brains/utils/predicates";
 import type { Logger } from "@brains/utils/logger";
@@ -35,13 +38,19 @@ import type {
   EntityJobDeclaration,
   EntityJobHandleContext,
   EntityMarkdownCodec,
+  EntityMetadataInput,
   EntityMetadataSchema,
   EntityOf,
+  EntityBytes,
   EntityReader,
   EntityVisibility,
   OwnedEntityWriter,
 } from "./entity-definition-contract";
 import type { SchemaValue } from "../internal/schema-value";
+import {
+  attachFirstPartyRuntime,
+  firstPartyRuntimeOf,
+} from "../internal/first-party-runtime";
 import type { RetryScope } from "@brains/utils/retry-backoff";
 import type { EntityPluginContext } from "./context";
 import type {
@@ -138,6 +147,13 @@ export interface EntityRuntime {
   readonly attachments: EntityRuntimeAttachments;
   /** The runtime's shared upload store. Contract jobs only. */
   readonly uploads: EntityCreateUploadReader;
+  /**
+   * Asset-backed records of the declaring type: bytes staged and saved as a
+   * record whose content is their reference, published in that record's
+   * own mutation, and bytes read through a record the call can see.
+   * Contract jobs only.
+   */
+  readonly assets: EntityRuntimeAssets;
   /** The package's logger, as its entity plugin class logged. */
   readonly logger: Logger;
   /**
@@ -212,6 +228,8 @@ export interface AnyEntityReads {
               }
             | undefined;
           readonly limit?: number | undefined;
+          /** Asset-backed content as its stored reference; no bytes load. */
+          readonly binaryContent?: "reference" | undefined;
         }
       | undefined;
   }): Promise<BaseEntity[]>;
@@ -233,6 +251,45 @@ export interface EntityRuntimeImages {
     prompt: string,
     options?: { readonly aspectRatio?: ImageAspectRatio | undefined },
   ): Promise<{ readonly dataUrl: string }>;
+}
+
+/**
+ * Asset-backed records: their bytes staged, saved and read. A save writes
+ * only the declaring type, over the record its id names or as a new one;
+ * reads go through a record visible at the call's scope, never a bare
+ * reference, so bytes that dedupe across visibilities never leak.
+ */
+export interface EntityRuntimeAssets {
+  /** Durably stage bytes for one later save; unsaved bytes are swept. */
+  stage(source: AssetSource, options?: StageAssetOptions): Promise<StagedAsset>;
+  /** Discard staged bytes no save will publish. */
+  discard(asset: StagedAsset): Promise<void>;
+  /**
+   * Save a record of the declaring type whose content is the staged
+   * reference: over the record with this id, such as a pending placeholder,
+   * or as a new one. The bytes publish in that write, or not at all.
+   */
+  save<TDefinition extends AnyEntityDefinition>(
+    definition: TDefinition,
+    id: string,
+    record: {
+      readonly metadata: EntityMetadataInput<TDefinition["metadata"]>;
+      readonly visibility?: EntityVisibility | undefined;
+    },
+    asset: StagedAsset,
+  ): Promise<{ readonly entityId: string }>;
+  /** The record as stored at the call's scope: its reference, no bytes. */
+  getStored<TDefinition extends AnyEntityDefinition>(
+    definition: TDefinition,
+    id: string,
+  ): Promise<EntityOf<TDefinition> | null>;
+  /** A visible record's bytes as chunks; null when none is visible. */
+  open(
+    definition: AnyEntityDefinition,
+    id: string,
+  ): Promise<AsyncIterable<Uint8Array> | Iterable<Uint8Array> | null>;
+  /** A visible record's whole bytes; null when none is visible. */
+  read(definition: AnyEntityDefinition, id: string): Promise<Uint8Array | null>;
 }
 
 export interface EntityRuntimeAttachments {
@@ -334,6 +391,7 @@ export interface ContractJobRuntimeBinding {
   readonly images: EntityRuntimeImages;
   readonly attachments: EntityRuntimeAttachments;
   readonly uploads: EntityCreateUploadReader;
+  readonly assets: EntityRuntimeAssets;
   readonly logger: Logger;
   linkInto(entityId: string, link: EntityGenerationLink): Promise<void>;
 }
@@ -379,9 +437,14 @@ export interface EntityRuntimeBinding {
   readonly runGeneration?: EntityRuntime["runGeneration"] | undefined;
   /** The declaring type's own projection rules, run; unset, refused. */
   readonly runProjectionRule?: EntityRuntime["runProjectionRule"] | undefined;
+  /** Asset reads (and writes) outside a contract job; unset, the job's. */
+  readonly assets?: EntityRuntimeAssets | undefined;
 }
 
 const entityRuntimeKey = Symbol("rizom.entity-runtime");
+
+/** Every runtime the brain bound, so one read back is known to be one. */
+const boundEntityRuntimes = new WeakSet<object>();
 const ordinaryCreateKey = Symbol("rizom.ordinary-create");
 const queuedCreateKey = Symbol("rizom.queued-create");
 const storedCreateKey = Symbol("rizom.stored-create");
@@ -532,6 +595,13 @@ function ownTypesOnly(
       own(definition);
       return reader.count(definition);
     },
+    readBytes: async (
+      definition: AnyEntityDefinition,
+      id: string,
+    ): Promise<EntityBytes | null> => {
+      own(definition);
+      return reader.readBytes(definition, id);
+    },
   });
 }
 
@@ -570,6 +640,14 @@ function unavailableJob(where: string): ContractJobRuntimeBinding {
     uploads: Object.freeze({
       read: unavailable("uploads", where),
       readRecord: unavailable("uploads", where),
+    }),
+    assets: Object.freeze({
+      stage: unavailable("assets", where),
+      discard: unavailable("assets", where),
+      save: unavailable("assets", where),
+      getStored: unavailable("assets", where),
+      open: unavailable("assets", where),
+      read: unavailable("assets", where),
     }),
     linkInto: unavailable("linkInto", where),
     logger: unavailableLogger(where),
@@ -611,6 +689,7 @@ function scopedAnyEntities({
     ): Promise<BaseEntity[]> => {
       const metadata = request.options?.filter?.metadata;
       const limit = request.options?.limit;
+      const binaryContent = request.options?.binaryContent;
       const scoped = visibility(request.entityType);
       return service.listEntities({
         entityType: request.entityType,
@@ -622,6 +701,7 @@ function scopedAnyEntities({
             },
           }),
           ...(limit !== undefined && { limit }),
+          ...(binaryContent !== undefined && { binaryContent }),
         },
       });
     },
@@ -639,10 +719,8 @@ function scopedAnyEntities({
     ): Promise<BaseEntity | null> =>
       findEntityByIdentifier(
         service,
-        entityType,
-        identifier,
-        undefined,
-        scope ? scope(entityType) : undefined,
+        { entityType, identifier },
+        { visibilityScope: scope ? scope(entityType) : "public" },
       ),
   });
 }
@@ -733,6 +811,7 @@ function bindEntityRuntime(binding: EntityRuntimeBinding): EntityRuntime {
     images: job.images,
     attachments: job.attachments,
     uploads: job.uploads,
+    assets: binding.assets ?? job.assets,
     logger: binding.logger ?? job.logger,
     get caller(): EntityCreateCaller {
       if (!binding.caller) {
@@ -774,6 +853,7 @@ export function withDataSourceRuntime<TContext extends object>(
     get: unavailable("packageEntities", where),
     list: unavailable("packageEntities", where),
     count: unavailable("packageEntities", where),
+    readBytes: unavailable("packageEntities", where),
   });
   const runtime = bindEntityRuntime({
     where,
@@ -784,13 +864,7 @@ export function withDataSourceRuntime<TContext extends object>(
     generateObject: unavailable("generateObject", where),
     anyEntities: { service },
   });
-  Object.defineProperty(context, entityRuntimeKey, {
-    value: runtime,
-    enumerable: false,
-    writable: false,
-    configurable: false,
-  });
-  return Object.freeze(context);
+  return attachEntityRuntime(context, runtime);
 }
 
 /**
@@ -802,17 +876,21 @@ export function withEntityRuntime<TContext extends object>(
   context: TContext,
   binding: EntityRuntimeBinding,
 ): Readonly<TContext> {
-  Object.defineProperty(context, entityRuntimeKey, {
-    value: bindEntityRuntime(binding),
-    enumerable: false,
-    writable: false,
-    configurable: false,
-  });
-  return Object.freeze(context);
+  return attachEntityRuntime(context, bindEntityRuntime(binding));
 }
 
-function isEntityRuntime(value: unknown): value is EntityRuntime {
-  return typeof value === "object" && value !== null;
+function attachEntityRuntime<TContext extends object>(
+  context: TContext,
+  runtime: EntityRuntime,
+): Readonly<TContext> {
+  boundEntityRuntimes.add(runtime);
+  return Object.freeze(
+    attachFirstPartyRuntime(context, entityRuntimeKey, runtime),
+  );
+}
+
+function isEntityRuntime(value: object | undefined): value is EntityRuntime {
+  return value !== undefined && boundEntityRuntimes.has(value);
 }
 
 /** What a first-party entity type's answer is handed with its request. */
@@ -1420,7 +1498,7 @@ export function uniqueTitleContext(runtime: EntityRuntime): UniqueTitleContext {
  * has none, and is refused.
  */
 export function entityRuntime(context: object): EntityRuntime {
-  const runtime: unknown = Reflect.get(context, entityRuntimeKey);
+  const runtime = firstPartyRuntimeOf(context, entityRuntimeKey);
   if (!isEntityRuntime(runtime)) {
     throw new Error(
       "This context carries no entity runtime: entityRuntime() reaches internal capabilities of a callback context the brain's runtime built, for first-party packages only",
