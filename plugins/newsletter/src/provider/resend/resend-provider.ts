@@ -13,6 +13,7 @@ import {
   type ResendClientConfig,
   type ResendClientDeps,
 } from "./resend-client";
+import { readSubject } from "../publish-handler";
 
 /** Newsletter provider adapter backed by Resend Broadcasts and Segments. */
 export class ResendNewsletterProvider implements NewsletterDeliveryProvider {
@@ -92,14 +93,6 @@ export class ResendNewsletterProvider implements NewsletterDeliveryProvider {
   async validateCredentials(): Promise<boolean> {
     return this.client.validateCredentials();
   }
-}
-
-function readSubject(metadata: Record<string, unknown>): string {
-  const subject = metadata["subject"];
-  if (typeof subject !== "string" || subject.trim().length === 0) {
-    throw new Error("Newsletter subject is required for publishing");
-  }
-  return subject;
 }
 
 function readOptionalString(

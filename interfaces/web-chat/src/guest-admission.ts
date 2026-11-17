@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { guestExecutionLimitsSchema } from "@brains/contracts/chat";
 import type {
   ClassRuntimeState,
@@ -20,6 +20,7 @@ import {
   type GuestExecutionLease,
   type GuestTurnOutcome,
 } from "./guest-admission-state";
+import { digest } from "./guest-digest";
 
 const minuteMs = 60_000;
 const dayMs = 86_400_000;
@@ -27,10 +28,6 @@ const maxAttempts = 32;
 const microUsd = 1_000_000;
 /** The largest monthly budget an owner can set: $10,000. */
 const maxMonthlyMicroUsd = 10_000 * microUsd;
-
-function digest(...parts: string[]): string {
-  return createHash("sha256").update(JSON.stringify(parts)).digest("hex");
-}
 
 function denied(reason: GuestAdmissionDenial): GuestAdmissionResult {
   return { kind: "denied", reason };

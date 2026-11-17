@@ -362,6 +362,7 @@ export {
   type GenerateReportFailurePayload,
   type GenerateReportSuccessPayload,
 } from "./generation-commands";
+export { internalPublishProvider } from "./publish-types";
 export {
   generateFromSourcesContract,
   generateFromSourcesRequestSchema,

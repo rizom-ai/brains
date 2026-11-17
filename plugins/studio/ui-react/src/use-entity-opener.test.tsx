@@ -29,6 +29,7 @@ import {
   type EntityOpener,
   type EntityOpenerInput,
 } from "./use-entity-opener";
+import { deferred, type Deferred } from "@brains/utils/deferred";
 
 const capabilities: StudioTypeCapabilities = {
   canRead: true,
@@ -62,19 +63,6 @@ function entity(id: string): EntityDetail {
     body: `# ${id}`,
     contentHash: `hash-${id}`,
   };
-}
-
-interface Deferred {
-  resolve: () => void;
-  promise: Promise<void>;
-}
-
-function deferred(): Deferred {
-  let resolve: () => void = () => undefined;
-  const promise = new Promise<void>((done) => {
-    resolve = done;
-  });
-  return { resolve, promise };
 }
 
 interface Transport {

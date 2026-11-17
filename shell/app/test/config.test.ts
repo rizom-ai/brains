@@ -19,9 +19,9 @@ describe("appConfigSchema", () => {
 
   it("shares the log level and reasoning effort enums with the shell config", () => {
     expect(appConfigSchema.shape.logLevel.unwrap()).toBe(logLevelSchema);
-    expect(appConfigSchema.shape.aiReasoningEffort.unwrap()).toBe(
-      reasoningEffortSchema,
-    );
+    expect(
+      appConfigSchema.shape.ai.unwrap().shape.reasoningEffort.unwrap(),
+    ).toBe(reasoningEffortSchema);
   });
 });
 
@@ -43,7 +43,7 @@ describe("defineConfig", () => {
   const validConfig: AppConfigInput = {
     name: "test-app",
     version: "1.0.0",
-    aiProviderKeys: { openai: "test-key" },
+    ai: { providerKeys: { openai: "test-key" } },
     plugins: [mockPlugin],
   };
 
@@ -52,7 +52,7 @@ describe("defineConfig", () => {
 
     expect(result.name).toBe("test-app");
     expect(result.version).toBe("1.0.0");
-    expect(result.aiProviderKeys).toEqual({ openai: "test-key" });
+    expect(result.ai?.providerKeys).toEqual({ openai: "test-key" });
     expect(result.plugins).toHaveLength(1);
     expect(result.deployment).toBeDefined();
     expect(result.deployment.provider).toBe("hetzner");
@@ -70,7 +70,7 @@ describe("defineConfig", () => {
     expect(result.name).toBe("test-app");
     expect(result.version).toBe("1.0.0");
     expect(result.plugins).toEqual([]);
-    expect(result.aiProviderKeys).toBeUndefined();
+    expect(result.ai?.providerKeys).toBeUndefined();
     expect(result.logLevel).toBeUndefined();
     expect(result.database).toBeUndefined();
   });

@@ -5,12 +5,12 @@
  * Provides default internal provider for types without explicit registration.
  */
 
-import type {
-  PublishConfig,
-  PublishExecutionMode,
-  PublishProvider,
+import {
+  internalPublishProvider,
+  type PublishConfig,
+  type PublishExecutionMode,
+  type PublishProvider,
 } from "@brains/contracts";
-import { InternalPublishProvider } from "./types/provider";
 
 export class ProviderRegistry {
   // Map of entityType -> provider
@@ -20,7 +20,7 @@ export class ProviderRegistry {
   private publishTimestampFields: Map<string, string> = new Map();
 
   // Default provider for internal publishing (blog, decks, etc.)
-  private defaultProvider: PublishProvider = new InternalPublishProvider();
+  private defaultProvider: PublishProvider = internalPublishProvider;
 
   public static createFresh(): ProviderRegistry {
     return new ProviderRegistry();

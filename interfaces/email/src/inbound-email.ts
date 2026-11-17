@@ -255,11 +255,21 @@ export interface InboundEmailSelection {
   uidValidity: string;
 }
 
-export interface InboundEmailCursor {
-  mailbox: string;
-  uidValidity: string;
-  lastUid: number;
-}
+/** Where the mailbox was last read up to, as runtime state keeps it. */
+export const inboundEmailCursorSchema: z.ZodObject<
+  {
+    mailbox: z.ZodString;
+    uidValidity: z.ZodString;
+    lastUid: z.ZodNumber;
+  },
+  z.core.$strict
+> = z.strictObject({
+  mailbox: z.string().min(1),
+  uidValidity: z.string().regex(/^[1-9]\d*$/),
+  lastUid: z.number().int().nonnegative(),
+});
+
+export type InboundEmailCursor = z.output<typeof inboundEmailCursorSchema>;
 
 export function createInboundEmailSourceRef(
   selection: InboundEmailSelection,

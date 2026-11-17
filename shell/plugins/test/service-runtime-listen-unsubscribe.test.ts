@@ -2,13 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { defineChannel } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { createMockShell, type MockShell } from "../src/test/mock-shell";
-import {
-  defineServicePlugin,
-  instantiatePluginPackageDefinition,
-  serviceRuntime,
-  type Plugin,
-  type ServiceRuntime,
-} from "../src";
+import { probeService } from "../src/test/probe-service-runtime";
 
 /**
  * A first-party service converted from a class stops hearing a channel
@@ -19,29 +13,6 @@ import {
  */
 
 const progress = defineChannel("probe:progress", z.object({ id: z.string() }));
-
-async function runtimeOn(
-  shell: MockShell,
-): Promise<{ runtime: ServiceRuntime; plugin: Plugin }> {
-  let runtime: ServiceRuntime | undefined;
-  const [plugin] = instantiatePluginPackageDefinition(
-    defineServicePlugin({
-      id: "probe",
-      config: z.object({}),
-      setup: (context) => {
-        runtime = serviceRuntime(context);
-        return {};
-      },
-    }),
-    {},
-    { name: "@brains/probe", version: "0.1.0" },
-    { pluginId: "probe" },
-  );
-  if (!plugin) throw new Error("No plugin");
-  await plugin.register(shell);
-  if (!runtime) throw new Error("Setup did not run");
-  return { runtime, plugin };
-}
 
 async function announce(shell: MockShell, id: string): Promise<void> {
   await shell.getMessageBus().send({
@@ -55,7 +26,7 @@ async function announce(shell: MockShell, id: string): Promise<void> {
 describe("a first-party service's listener it stops itself", () => {
   it("hears nothing once stopped, and its shutdown leaves others listening", async () => {
     const shell = createMockShell();
-    const { runtime, plugin } = await runtimeOn(shell);
+    const { runtime, plugin } = await probeService(shell);
     const heard: string[] = [];
     const stop = runtime.listen(progress, ({ payload }) => {
       heard.push(payload.id);
@@ -82,7 +53,7 @@ describe("a first-party service's listener it stops itself", () => {
 
   it("is released when the package shuts down, if never stopped", async () => {
     const shell = createMockShell();
-    const { runtime, plugin } = await runtimeOn(shell);
+    const { runtime, plugin } = await probeService(shell);
     const heard: string[] = [];
     runtime.listen(progress, ({ payload }) => {
       heard.push(payload.id);

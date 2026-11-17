@@ -1,17 +1,9 @@
 import { describe, expect, it } from "bun:test";
 import { baseEntitySchema } from "@brains/entity-service";
 import { createTestEntityAdapter } from "@brains/entity-service/test";
-import { z } from "@brains/utils/zod";
-import { createMockShell, type MockShell } from "../src/test/mock-shell";
-import {
-  createServicePluginContext,
-  defineServicePlugin,
-  instantiatePluginPackageDefinition,
-  serviceRuntime,
-  type InboxSource,
-  type Plugin,
-  type ServiceRuntime,
-} from "../src";
+import { createMockShell } from "../src/test/mock-shell";
+import { createServicePluginContext, type InboxSource } from "../src";
+import { probeService } from "../src/test/probe-service-runtime";
 
 /**
  * A first-party service converted from a class takes the part in the
@@ -21,36 +13,6 @@ import {
  * job worker, each as its class did through its context. Email triage's
  * Inbox, its classification prompt and its thread ordinals use them.
  */
-
-async function runtimeOn(
-  shell: MockShell,
-  executionOnly = false,
-): Promise<{
-  runtime: ServiceRuntime;
-  plugin: Plugin;
-}> {
-  let runtime: ServiceRuntime | undefined;
-  const [plugin] = instantiatePluginPackageDefinition(
-    defineServicePlugin({
-      id: "probe",
-      config: z.object({}),
-      setup: (context) => {
-        runtime = serviceRuntime(context);
-        return {};
-      },
-    }),
-    {},
-    { name: "@brains/probe", version: "0.1.0" },
-    { pluginId: "probe" },
-  );
-  if (!plugin) throw new Error("No plugin");
-  await plugin.register(
-    shell,
-    executionOnly ? { executionOnly: true } : undefined,
-  );
-  if (!runtime) throw new Error("Setup did not run");
-  return { runtime, plugin };
-}
 
 const triage: InboxSource = {
   sourceId: "email-triage",
@@ -62,7 +24,7 @@ const triage: InboxSource = {
 describe("a first-party service's part in the brain", () => {
   it("offers an Inbox source under its plugin's id, as its class did", async () => {
     const shell = createMockShell();
-    const { runtime } = await runtimeOn(shell);
+    const { runtime } = await probeService(shell);
 
     runtime.inboxSource(triage);
     // The shell closes Inbox registration once every plugin has registered.
@@ -81,7 +43,7 @@ describe("a first-party service's part in the brain", () => {
 
   it("resolves a prompt by its target, falling back to its default", async () => {
     const shell = createMockShell();
-    const { runtime } = await runtimeOn(shell);
+    const { runtime } = await probeService(shell);
     const context = createServicePluginContext(shell, "probe");
 
     expect(
@@ -116,7 +78,7 @@ describe("a first-party service's part in the brain", () => {
         updated: at,
       },
     ]);
-    const { runtime } = await runtimeOn(shell);
+    const { runtime } = await probeService(shell);
 
     expect(
       await runtime.entityReads.countEntities({
@@ -130,11 +92,12 @@ describe("a first-party service's part in the brain", () => {
   });
 
   it("knows whether it runs in a job worker", async () => {
-    expect((await runtimeOn(createMockShell())).runtime.executionOnly).toBe(
+    expect((await probeService(createMockShell())).runtime.executionOnly).toBe(
       false,
     );
     expect(
-      (await runtimeOn(createMockShell(), true)).runtime.executionOnly,
+      (await probeService(createMockShell(), { executionOnly: true })).runtime
+        .executionOnly,
     ).toBe(true);
   });
 });

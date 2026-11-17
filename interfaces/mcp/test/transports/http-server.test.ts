@@ -178,6 +178,17 @@ async function connectClient(
 
 describe("StreamableHTTPServer", () => {
   let server: StreamableHTTPServer | undefined;
+  let port = 0;
+  const listeners: ReturnType<typeof Bun.serve>[] = [];
+
+  /** The handler behind a real port, as the brain's web server mounts it. */
+  function listen(mounted: StreamableHTTPServer): number {
+    const listener = Bun.serve({ port: 0, fetch: mounted.getApp().fetch });
+    listeners.push(listener);
+    if (listener.port === undefined) throw new Error("No port was bound");
+    return listener.port;
+  }
+
   let mockLogger: TransportLogger;
 
   beforeEach(() => {
@@ -192,6 +203,7 @@ describe("StreamableHTTPServer", () => {
 
   afterEach(async () => {
     await server?.stop();
+    for (const listener of listeners.splice(0)) await listener.stop(true);
   });
 
   describe("lifecycle", () => {
@@ -200,121 +212,20 @@ describe("StreamableHTTPServer", () => {
         /requires an auth token/,
       );
     });
-
-    test("starts and stops the standalone test listener", async () => {
-      server = new StreamableHTTPServer({
-        port: 0,
-        logger: mockLogger,
-        auth: { disabled: true },
-      });
-
-      await server.start();
-      expect(server.isRunning()).toBe(true);
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        `StreamableHTTP server listening on http://0.0.0.0:${server.getPort()}/mcp`,
-      );
-
-      await server.stop();
-      expect(server.isRunning()).toBe(false);
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        "StreamableHTTP server stopped",
-      );
-    });
-
-    test("rejects a second start", async () => {
-      server = new StreamableHTTPServer({
-        port: 0,
-        logger: mockLogger,
-        auth: { disabled: true },
-      });
-      await server.start();
-
-      // eslint-disable-next-line @typescript-eslint/await-thenable -- bun expect(...).rejects returns a thenable the rule does not recognise
-      await expect(server.start()).rejects.toThrow("Server is already running");
-    });
-
-    test("closes a request still in flight once the drain deadline passes", async () => {
-      const entered = Promise.withResolvers<void>();
-      server = new StreamableHTTPServer({
-        port: 0,
-        host: "127.0.0.1",
-        logger: mockLogger,
-        shutdownDrainMs: 50,
-        auth: {
-          verifyBearerToken: (): Promise<undefined> => {
-            entered.resolve();
-            return new Promise(() => undefined);
-          },
-        },
-      });
-      await server.start();
-      const held = fetch(`http://127.0.0.1:${server.getPort()}/mcp`, {
-        method: "POST",
-        headers: { Authorization: "Bearer held" },
-      }).then(
-        () => "answered",
-        () => "closed",
-      );
-      await entered.promise;
-
-      const outcome = await Promise.race([
-        server.stop().then(() => "stopped"),
-        Bun.sleep(1000).then(() => "hung"),
-      ]);
-
-      expect(outcome).toBe("stopped");
-      expect(server.isRunning()).toBe(false);
-      expect(await held).toBe("closed");
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        "StreamableHTTP server drain passed 50ms with 1 request(s) in flight; closing them",
-      );
-    });
-
-    test("reports a port collision", async () => {
-      const first = new StreamableHTTPServer({
-        port: 0,
-        logger: mockLogger,
-        auth: { disabled: true },
-      });
-      await first.start();
-      try {
-        server = new StreamableHTTPServer({
-          port: first.getPort(),
-          logger: mockLogger,
-          auth: { disabled: true },
-        });
-        // eslint-disable-next-line @typescript-eslint/await-thenable -- bun expect(...).rejects returns a thenable the rule does not recognise
-        await expect(server.start()).rejects.toThrow();
-        expect(mockLogger.error).toHaveBeenCalledWith(
-          `Port ${first.getPort()} is already in use`,
-        );
-      } finally {
-        await first.stop();
-      }
-    });
   });
 
   describe("shared HTTP surface", () => {
     beforeEach(async () => {
       server = new StreamableHTTPServer({
-        port: 0,
         logger: mockLogger,
         auth: { disabled: true },
       });
-      await server.start();
+      port = listen(server);
     });
 
-    test("serves health and stateless status", async () => {
+    test("serves stateless status", async () => {
       if (!server) throw new Error("Server not initialized");
-      const health = await makeRequest(server.getPort(), "GET", "/health");
-      expect(health.status).toBe(200);
-      expect(health.body).toMatchObject({
-        status: "ok",
-        transport: "streamable-http",
-        timestamp: expect.any(String),
-      });
-
-      const status = await makeRequest(server.getPort(), "GET", "/status");
+      const status = await makeRequest(port, "GET", "/status");
       expect(status.body).toEqual({
         status: "ok",
         protocol: "stateless",
@@ -323,7 +234,7 @@ describe("StreamableHTTPServer", () => {
 
     test("returns 503 before an MCP factory is connected", async () => {
       if (!server) throw new Error("Server not initialized");
-      const response = await makeRequest(server.getPort(), "POST", "/mcp", {
+      const response = await makeRequest(port, "POST", "/mcp", {
         body: createInitializeRequest(),
       });
       expect(response.status).toBe(503);
@@ -337,7 +248,7 @@ describe("StreamableHTTPServer", () => {
 
     test("serves CORS preflight without authentication", async () => {
       if (!server) throw new Error("Server not initialized");
-      const response = await makeRequest(server.getPort(), "OPTIONS", "/mcp", {
+      const response = await makeRequest(port, "OPTIONS", "/mcp", {
         headers: {
           Origin: "https://inspector.modelcontextprotocol.io",
           "Access-Control-Request-Method": "POST",
@@ -364,7 +275,7 @@ describe("StreamableHTTPServer", () => {
       "keeps removed endpoint %s unavailable",
       async (path) => {
         if (!server) throw new Error("Server not initialized");
-        const response = await makeRequest(server.getPort(), "POST", path, {
+        const response = await makeRequest(port, "POST", path, {
           body: { message: "hi" },
         });
         expect(response.status).toBe(404);
@@ -380,17 +291,16 @@ describe("StreamableHTTPServer", () => {
   describe("protocol eras", () => {
     beforeEach(async () => {
       server = new StreamableHTTPServer({
-        port: 0,
         logger: mockLogger,
         auth: { disabled: true },
       });
       connectFactory(server, () => createToolServer());
-      await server.start();
+      port = listen(server);
     });
 
     test("serves 2025-era clients through the stateless legacy path", async () => {
       if (!server) throw new Error("Server not initialized");
-      const client = await connectClient(server.getPort(), { modern: false });
+      const client = await connectClient(port, { modern: false });
       try {
         expect(client.getProtocolEra()).toBe("legacy");
         const tools = await client.listTools();
@@ -402,7 +312,7 @@ describe("StreamableHTTPServer", () => {
 
     test("serves 2026-07-28 clients without an initialize session", async () => {
       if (!server) throw new Error("Server not initialized");
-      const client = await connectClient(server.getPort(), { modern: true });
+      const client = await connectClient(port, { modern: true });
       try {
         expect(client.getProtocolEra()).toBe("modern");
         const tools = await client.listTools();
@@ -414,7 +324,7 @@ describe("StreamableHTTPServer", () => {
 
     test("does not issue session IDs to legacy initialize requests", async () => {
       if (!server) throw new Error("Server not initialized");
-      const response = await makeRequest(server.getPort(), "POST", "/mcp", {
+      const response = await makeRequest(port, "POST", "/mcp", {
         body: createInitializeRequest(),
       });
 
@@ -432,7 +342,7 @@ describe("StreamableHTTPServer", () => {
       "rejects legacy %s session operations because HTTP is stateless",
       async (method) => {
         if (!server) throw new Error("Server not initialized");
-        const response = await makeRequest(server.getPort(), method, "/mcp", {
+        const response = await makeRequest(port, method, "/mcp", {
           headers: { "mcp-session-id": "obsolete-session" },
         });
         expect(response.status).toBe(405);
@@ -441,7 +351,7 @@ describe("StreamableHTTPServer", () => {
 
     test("rejects malformed JSON", async () => {
       if (!server) throw new Error("Server not initialized");
-      const response = await fetch(`http://localhost:${server.getPort()}/mcp`, {
+      const response = await fetch(`http://localhost:${port}/mcp`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -461,7 +371,7 @@ describe("StreamableHTTPServer", () => {
       let toolName = "first_tool";
       connectFactory(server, () => createToolServer(toolName));
 
-      const first = await connectClient(server.getPort(), { modern: true });
+      const first = await connectClient(port, { modern: true });
       try {
         expect(
           (await first.listTools()).tools.map((tool) => tool.name),
@@ -471,7 +381,7 @@ describe("StreamableHTTPServer", () => {
       }
 
       toolName = "second_tool";
-      const second = await connectClient(server.getPort(), { modern: true });
+      const second = await connectClient(port, { modern: true });
       try {
         expect(
           (await second.listTools()).tools.map((tool) => tool.name),
@@ -487,15 +397,14 @@ describe("StreamableHTTPServer", () => {
 
     test("rejects an unauthenticated legacy request before invoking the factory", async () => {
       server = new StreamableHTTPServer({
-        port: 0,
         logger: mockLogger,
         auth: { token: staticToken },
       });
       const createMcpServer = connectFactory(server, () => createToolServer());
-      await server.start();
+      port = listen(server);
       createMcpServer.mockClear();
 
-      const response = await makeRequest(server.getPort(), "POST", "/mcp", {
+      const response = await makeRequest(port, "POST", "/mcp", {
         body: createInitializeRequest(),
       });
 
@@ -508,14 +417,13 @@ describe("StreamableHTTPServer", () => {
 
     test("rejects invalid static tokens without advertising OAuth", async () => {
       server = new StreamableHTTPServer({
-        port: 0,
         logger: mockLogger,
         auth: { token: staticToken },
       });
       connectFactory(server, () => createToolServer());
-      await server.start();
+      port = listen(server);
 
-      const response = await makeRequest(server.getPort(), "POST", "/mcp", {
+      const response = await makeRequest(port, "POST", "/mcp", {
         headers: { Authorization: "Bearer wrong-token" },
         body: createInitializeRequest(),
       });
@@ -532,7 +440,6 @@ describe("StreamableHTTPServer", () => {
     test("passes static-token identity to modern tool handlers", async () => {
       let observedContext: ServerContext | undefined;
       server = new StreamableHTTPServer({
-        port: 0,
         logger: mockLogger,
         auth: { token: staticToken },
       });
@@ -541,9 +448,9 @@ describe("StreamableHTTPServer", () => {
           observedContext = context;
         }),
       );
-      await server.start();
+      port = listen(server);
 
-      const client = await connectClient(server.getPort(), {
+      const client = await connectClient(port, {
         modern: true,
         headers: { Authorization: `Bearer ${staticToken}` },
       });
@@ -573,7 +480,6 @@ describe("StreamableHTTPServer", () => {
         displayName: "Mira",
       }));
       server = new StreamableHTTPServer({
-        port: 0,
         logger: mockLogger,
         auth: { verifyBearerToken, requiredScopes: ["mcp"] },
       });
@@ -582,9 +488,9 @@ describe("StreamableHTTPServer", () => {
           observedContext = context;
         }),
       );
-      await server.start();
+      port = listen(server);
 
-      const trustedClient = await connectClient(server.getPort(), {
+      const trustedClient = await connectClient(port, {
         modern: true,
         headers: { Authorization: "Bearer trusted-token" },
       });
@@ -614,7 +520,7 @@ describe("StreamableHTTPServer", () => {
 
       createMcpServer.mockClear();
       permissionLevel = "public";
-      const publicClient = await connectClient(server.getPort(), {
+      const publicClient = await connectClient(port, {
         modern: true,
         headers: { Authorization: "Bearer public-token" },
       });
@@ -631,7 +537,6 @@ describe("StreamableHTTPServer", () => {
 
     test("rejects OAuth tokens missing the required scope with 403", async () => {
       server = new StreamableHTTPServer({
-        port: 0,
         logger: mockLogger,
         auth: {
           requiredScopes: ["mcp"],
@@ -645,10 +550,10 @@ describe("StreamableHTTPServer", () => {
         },
       });
       const createMcpServer = connectFactory(server, () => createToolServer());
-      await server.start();
+      port = listen(server);
       createMcpServer.mockClear();
 
-      const response = await makeRequest(server.getPort(), "POST", "/mcp", {
+      const response = await makeRequest(port, "POST", "/mcp", {
         headers: { Authorization: "Bearer no-mcp-scope" },
         body: createInitializeRequest(),
       });
@@ -666,7 +571,6 @@ describe("StreamableHTTPServer", () => {
 
     test("advertises OAuth metadata using the forwarded public origin", async () => {
       server = new StreamableHTTPServer({
-        port: 0,
         logger: mockLogger,
         auth: {
           requiredScopes: ["mcp"],
@@ -674,9 +578,9 @@ describe("StreamableHTTPServer", () => {
         },
       });
       connectFactory(server, () => createToolServer());
-      await server.start();
+      port = listen(server);
 
-      const response = await makeRequest(server.getPort(), "POST", "/mcp", {
+      const response = await makeRequest(port, "POST", "/mcp", {
         headers: {
           Host: "docs.rizom.ai",
           "X-Forwarded-Proto": "https",

@@ -1,11 +1,11 @@
 import type { JSX } from "react";
 import { z } from "@brains/utils/zod";
-import { formatDate as formatDateStyled } from "@rizom/brain-ui";
 import { OgCard } from "@rizom/brain-ui/internal";
 import {
   createTemplate,
   type Template,
 } from "@brains/sdk/internal/presentation";
+import { attachmentDate } from "./attachment-date";
 
 export const BLOG_OG_IMAGE_ATTACHMENT_TYPE = "og-image";
 export const BLOG_OG_IMAGE_TEMPLATE_NAME = "blog:og-image";
@@ -44,13 +44,6 @@ export const blogOgImageTemplate: Template =
     layout: { formats: { image: renderBlogOgImage } },
   });
 
-function formatDate(value: string | null): string | undefined {
-  if (!value) return undefined;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return undefined;
-  return formatDateStyled(date, { style: "medium" });
-}
-
 function renderBlogOgImage(data: BlogOgImageTemplateData): JSX.Element {
   return (
     <OgCard
@@ -59,7 +52,7 @@ function renderBlogOgImage(data: BlogOgImageTemplateData): JSX.Element {
       title={data.title}
       subtitle={data.excerpt ?? undefined}
       meta={[data.author ?? undefined]}
-      tag={formatDate(data.publishedAt)}
+      tag={attachmentDate(data.publishedAt, "medium")}
     />
   );
 }

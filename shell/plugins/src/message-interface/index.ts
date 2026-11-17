@@ -137,6 +137,7 @@ export {
 
 export {
   defaultMessageUploadFilename,
+  chatAttachmentFromUpload,
   getMessageUploadKind,
   isLikelyUtf8Text,
   isMessageUploadDeclaredSizeAllowed,

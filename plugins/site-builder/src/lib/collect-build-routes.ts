@@ -7,6 +7,7 @@ import {
   type SiteMetadataTranslation,
 } from "@brains/site-composition";
 import type { RouteRegistry } from "@brains/site-engine";
+import { languageEntry } from "@brains/utils/language-entry";
 
 /** The registered routes with the pages plugins add to one build; a page
  * never displaces a registered route at its path. Nothing is kept: the next
@@ -63,17 +64,6 @@ type TranslatedRoute = Omit<
   "alternates" | "siteNavigation" | "siteTranslation"
 >;
 
-/** A language's entry in a record keyed by language tag, whatever its case. */
-function translationFor<T>(
-  translations: Record<string, T> | undefined,
-  language: string,
-): T | undefined {
-  const tag = language.toLowerCase();
-  return Object.entries(translations ?? {}).find(
-    ([key]) => key.toLowerCase() === tag,
-  )?.[1];
-}
-
 /** The routes one language is built in, by the id of the route translated. */
 interface LanguageBuild {
   language: string;
@@ -101,7 +91,7 @@ export async function collectBuildRoutes(
     options.languages ?? [];
   const otherLanguages = declared.filter(
     (language) =>
-      translationFor(options.siteTranslations, language) !== undefined,
+      languageEntry(options.siteTranslations, language) !== undefined,
   );
 
   const translatable = registered.filter(
@@ -143,7 +133,7 @@ export async function collectBuildRoutes(
     const versionByDefaultPath = new Map(
       registered.flatMap((route) => {
         const translated = byRouteId.get(route.id);
-        const translation = translationFor(route.translations, language);
+        const translation = languageEntry(route.translations, language);
         return translated
           ? [
               [
@@ -186,7 +176,7 @@ export async function collectBuildRoutes(
       })),
       ...builds.flatMap((build) => {
         const siteNavigation = navigationOf(build);
-        const siteTranslation = translationFor(
+        const siteTranslation = languageEntry(
           options.siteTranslations,
           build.language,
         );
@@ -225,7 +215,7 @@ async function translateRoute(
   hasSavedCopy: (id: string) => Promise<boolean>,
 ): Promise<TranslatedRoute | undefined> {
   const id = `${language.toLowerCase()}:${route.id}`;
-  const translation = translationFor(route.translations, language);
+  const translation = languageEntry(route.translations, language);
   // Its plugin fills it in this language per request; it needs no copy.
   if (route.languages !== undefined)
     return route.languages.some(

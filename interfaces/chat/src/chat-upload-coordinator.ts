@@ -12,7 +12,7 @@ import type { ChatPlatform } from "./types";
 import { canonicalChatUploadRefKind } from "./upload-store";
 
 interface ChatUploadCoordinatorDeps {
-  getContext: () => ChatHost | undefined;
+  host: ChatHost;
   logger: {
     debug: (message: string, context?: Record<string, unknown>) => void;
   };
@@ -42,8 +42,8 @@ export class ChatUploadCoordinator {
     this.continuity.slack.clear();
   }
 
-  getCanonicalStore(): ScopedRuntimeUploadStore | undefined {
-    return this.deps.getContext()?.sharedUploads();
+  getCanonicalStore(): ScopedRuntimeUploadStore {
+    return this.deps.host.sharedUploads();
   }
 
   async selectPriorUploads(input: {
@@ -85,15 +85,12 @@ export class ChatUploadCoordinator {
     return new MessageUploadContinuity({
       sourceKind: canonicalChatUploadRefKind,
       loadMessages: async (conversationId): Promise<readonly unknown[]> => {
-        return (
-          (await this.deps
-            .getContext()
-            ?.conversations.getMessages(conversationId, { limit: 50 })) ?? []
-        );
+        return this.deps.host.conversations.getMessages(conversationId, {
+          limit: 50,
+        });
       },
       restoreAttachment: async (uploadId): Promise<ChatAttachment> => {
         const uploadStore = this.getCanonicalStore();
-        if (!uploadStore) throw new Error("Chat upload store unavailable");
         const resolved = await uploadStore.read(uploadId);
         return chatAttachmentFromStoredUpload(
           resolved.record.filename,

@@ -1,14 +1,14 @@
 import { describe, expect, it } from "bun:test";
 import { RetryScope } from "@brains/utils/retry-backoff";
 import { z } from "@brains/utils/zod";
-import { createMockShell, type MockShell } from "../src/test/mock-shell";
+import { createMockShell } from "../src/test/mock-shell";
 import {
   defineServicePlugin,
   instantiatePluginPackageDefinition,
   serviceRuntime,
-  type Plugin,
   type ServiceRuntime,
 } from "../src";
+import { probeService } from "../src/test/probe-service-runtime";
 
 /**
  * A first-party service converted from a class retries work a refusal
@@ -17,33 +17,9 @@ import {
  * owns. Content-pipeline retries a refused publish asset job this way.
  */
 
-async function runtimeOn(shell: MockShell): Promise<{
-  runtime: ServiceRuntime;
-  plugin: Plugin;
-}> {
-  let runtime: ServiceRuntime | undefined;
-  const [plugin] = instantiatePluginPackageDefinition(
-    defineServicePlugin({
-      id: "probe",
-      config: z.object({}),
-      setup: (context) => {
-        runtime = serviceRuntime(context);
-        return {};
-      },
-    }),
-    {},
-    { name: "@brains/probe", version: "0.1.0" },
-    { pluginId: "probe" },
-  );
-  if (!plugin) throw new Error("No plugin");
-  await plugin.register(shell);
-  if (!runtime) throw new Error("Setup did not run");
-  return { runtime, plugin };
-}
-
 describe("a first-party service's retries", () => {
   it("retry a refused attempt until the package shuts down", async () => {
-    const { runtime, plugin } = await runtimeOn(createMockShell());
+    const { runtime, plugin } = await probeService(createMockShell());
     const attempts: number[] = [];
     const attempt = async (): Promise<void> => {
       attempts.push(attempts.length);

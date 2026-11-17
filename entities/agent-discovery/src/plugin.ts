@@ -35,7 +35,6 @@ import {
 } from "./tools/agent-scan-directories";
 import { createAgentSetTrustLevelTool } from "./tools/agent-set-trust-level";
 import { createNetworkAskTool } from "./tools/network-ask";
-import { AgentSightingsInboxSource } from "./inbox-source";
 
 const atprotoNotificationCandidateSchema = z
   .object({
@@ -160,8 +159,6 @@ export function createAgentDiscoveryPackages(
           namespace: "agent-discovery.atproto-conflicts",
           schema: atprotoConflictNotificationSchema,
         });
-
-        runtime.inboxSource(new AgentSightingsInboxSource(context));
 
         runtime.listen(atprotoBrainDiscoveredChannel, async ({ payload }) => {
           if (!config.notifyOnNewAgents) return;

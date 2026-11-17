@@ -111,7 +111,7 @@ export const homepageDataSource: DataSourceDefinition = defineDataSource({
         context,
         context.sharedState(askBoxAvailabilityState),
       ),
-      loadPublicFaqs(build, HOMEPAGE_FAQ_LIMIT, runtime.logger),
+      loadPublicFaqs(build, HOMEPAGE_FAQ_LIMIT),
     ]);
     return organizationHomepageData({
       profile,

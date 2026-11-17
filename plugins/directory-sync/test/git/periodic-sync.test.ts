@@ -13,6 +13,7 @@ import type { PullResult } from "../../src/types";
 import type { BatchResult } from "../../src/lib/batch-operations";
 import { createMockDirectorySync, createMockGitSync } from "../fixtures";
 import type { MatchesHead } from "../../src/lib/file-watcher";
+import { deferred } from "@brains/utils/deferred";
 
 const emptyBatchResult: BatchResult = {
   batchId: "batch-1",
@@ -21,17 +22,6 @@ const emptyBatchResult: BatchResult = {
   importOperationsCount: 1,
   totalFiles: 3,
 };
-
-function deferred(): {
-  promise: Promise<void>;
-  resolve(): void;
-} {
-  let settle: (() => void) | undefined;
-  const promise = new Promise<void>((resolve) => {
-    settle = resolve;
-  });
-  return { promise, resolve: (): void => settle?.() };
-}
 
 function yieldToFibers(): Effect.Effect<void> {
   return Effect.yieldNow.pipe(Effect.andThen(Effect.yieldNow));

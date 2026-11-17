@@ -5,6 +5,7 @@ import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { installDomGlobals, type RestoreGlobals } from "@brains/test-utils";
 import { useGuestGate, type GuestGate } from "./use-guest-gate";
+import { deferred } from "@brains/utils/deferred";
 
 let restoreGlobals: RestoreGlobals;
 let windowInstance: Window;
@@ -37,14 +38,6 @@ async function renderGate(): Promise<() => GuestGate> {
     if (!latest) throw new Error("hook did not render");
     return latest;
   };
-}
-
-function deferred(): { promise: Promise<void>; release: () => void } {
-  let release = (): void => undefined;
-  const promise = new Promise<void>((resolve) => {
-    release = resolve;
-  });
-  return { promise, release };
 }
 
 describe("useGuestGate", () => {
@@ -103,7 +96,7 @@ describe("useGuestGate", () => {
     expect(second).toBe(false);
 
     await act(async () => {
-      held.release();
+      held.resolve();
       await first;
     });
     expect(gate().busy).toBe(false);
@@ -170,7 +163,7 @@ describe("useGuestGate", () => {
     expect(gate().locked()).toBe(true);
 
     await act(async () => {
-      held.release();
+      held.resolve();
       await first;
     });
     expect(gate().locked()).toBe(false);

@@ -12,7 +12,7 @@ import { z } from "@brains/utils/zod";
 import type { IDirectorySync, IGitSync } from "../types";
 import type { DirectorySyncOperationStatusService } from "../lib/directory-sync-operation-status";
 import { requestDirectorySync } from "../lib/request-directory-sync";
-import { handleHistory } from "./history";
+import { handleHistory, historyActionSchema } from "./history";
 
 const directorySyncInputSchema = z.object({
   action: z
@@ -60,13 +60,7 @@ const directorySyncActionSchema = z.discriminatedUnion("action", [
 const gitDirectorySyncActionSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("sync"), full: z.boolean().optional() }),
   z.object({ action: z.literal("status") }),
-  z.object({
-    action: z.literal("history"),
-    entityType: z.string().min(1),
-    id: z.string().min(1),
-    sha: z.string().optional(),
-    limit: z.number().int().positive().optional().default(10),
-  }),
+  historyActionSchema,
 ]);
 
 export function createDirectorySyncTools(

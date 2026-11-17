@@ -1,3 +1,4 @@
+import type { ChatAttachment } from "../contracts/agent";
 export const defaultMessageUploadFilename = "upload.txt";
 export const messageTextUploadAccept =
   ".md,.txt,.markdown,text/plain,text/markdown,text/x-markdown";
@@ -322,4 +323,45 @@ function hasAsciiAt(
   return Array.from(expected).every(
     (char, index) => bytes[offset + index] === char.charCodeAt(0),
   );
+}
+
+/**
+ * An upload as the agent is handed it, by the rule uploads are accepted
+ * under: text for a file the policy reads as text (its BOM dropped), a file
+ * for anything else. Used when an upload arrives and when an earlier one is
+ * brought back, so an attachment stays what it was when it was uploaded.
+ * `text` is what an upload's validation already read.
+ */
+export function chatAttachmentFromUpload(input: {
+  readonly filename: string;
+  readonly mediaType: string;
+  readonly content: Uint8Array;
+  readonly sizeBytes?: number | undefined;
+  readonly source?: ChatAttachment["source"];
+  readonly text?: string | undefined;
+}): ChatAttachment {
+  const sizeBytes = input.sizeBytes ?? input.content.byteLength;
+  const source = input.source !== undefined ? { source: input.source } : {};
+  const isText =
+    input.text !== undefined ||
+    getMessageUploadKind(input.filename, input.mediaType) === "text";
+  if (isText) {
+    return {
+      kind: "text",
+      filename: input.filename,
+      mediaType: input.mediaType,
+      // TextDecoder drops a leading BOM by default.
+      content: input.text ?? new TextDecoder("utf-8").decode(input.content),
+      sizeBytes,
+      ...source,
+    };
+  }
+  return {
+    kind: "file",
+    filename: input.filename,
+    mediaType: input.mediaType,
+    data: new Uint8Array(input.content),
+    sizeBytes,
+    ...source,
+  };
 }

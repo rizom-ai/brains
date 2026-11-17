@@ -54,7 +54,12 @@ export function isFakePeerHost(host: string): boolean {
   return host.endsWith(".example");
 }
 
-const LOOPBACK_HOSTNAMES = new Set(["localhost", "127.0.0.1", "[::1]"]);
+/** The hosts that are this machine, as a URL names them. */
+export const LOOPBACK_HOSTNAMES: ReadonlySet<string> = new Set([
+  "localhost",
+  "127.0.0.1",
+  "[::1]",
+]);
 
 /**
  * Where an eval seed agent may point: a `.example` host this process answers,

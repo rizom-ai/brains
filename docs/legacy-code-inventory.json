@@ -57,15 +57,27 @@
       "targetRelease": "0.3.0-or-later"
     },
     {
+      "id": "mcp-retired-port-config-error",
+      "paths": ["interfaces/mcp/src/config.ts"],
+      "symbol": "httpPort rejection",
+      "owner": "@brains/mcp",
+      "class": "rejection-only-compatibility",
+      "behavior": "Rejects the retired MCP httpPort setting with an error that says to remove it; MCP is served by the brain's own web server.",
+      "currentConsumers": "Operators upgrading a brain.yaml that still sets httpPort.",
+      "removalPrerequisite": "The minimum supported upgrade source no longer documents or accepts the removed field.",
+      "rollbackDependency": "None; the setting was not read.",
+      "targetRelease": "0.3.0"
+    },
+    {
       "id": "a2a-removed-token-config-errors",
       "paths": ["interfaces/a2a/src/config.ts"],
-      "symbol": "trustedTokens/outboundTokens rejection",
+      "symbol": "trustedTokens/outboundTokens/port rejection",
       "owner": "@brains/a2a",
       "class": "rejection-only-compatibility",
-      "behavior": "Rejects removed token configuration with an actionable error.",
-      "currentConsumers": "Operators upgrading configurations that predate signed A2A trust.",
-      "removalPrerequisite": "The minimum supported upgrade source no longer documents or accepts either removed field.",
-      "rollbackDependency": "None; the fields are already rejected.",
+      "behavior": "Rejects removed token configuration, and the retired port setting, with an actionable error.",
+      "currentConsumers": "Operators upgrading configurations that predate signed A2A trust or still set a port.",
+      "removalPrerequisite": "The minimum supported upgrade source no longer documents or accepts any of the removed fields.",
+      "rollbackDependency": "None; the token fields are already rejected and the port was not read.",
       "targetRelease": "0.3.0"
     },
     {

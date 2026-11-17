@@ -14,6 +14,7 @@ import {
 } from "./agent-results";
 import { isRecord } from "@brains/utils/is-record";
 import { z } from "@brains/utils/zod";
+import { isPdfAttachment } from "./attachment-kind";
 
 export function toModelMessages(messages: Message[]): ModelMessage[] {
   return messages.map((msg) =>
@@ -479,10 +480,6 @@ function formatTextAttachment(
   attachment: Extract<ChatAttachment, { kind: "text" }>,
 ): string {
   return framedFileText("a file", attachment.filename, attachment.content);
-}
-
-function isPdfAttachment(attachment: ChatAttachment): boolean {
-  return attachment.mediaType.toLowerCase() === "application/pdf";
 }
 
 function formatKeepAllCandidateLine(

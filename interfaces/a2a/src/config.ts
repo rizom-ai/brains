@@ -3,7 +3,7 @@ import { publicAsksConfigSchema } from "./public-asks";
 
 type A2AConfigSchema = z.ZodObject<
   {
-    port: z.ZodDefault<z.ZodNumber>;
+    port: z.ZodOptional<z.ZodNever>;
     organization: z.ZodOptional<z.ZodString>;
     requestTimeoutMs: z.ZodDefault<z.ZodNumber>;
     streamIdleTimeoutMs: z.ZodDefault<z.ZodNumber>;
@@ -21,8 +21,17 @@ type A2AConfigSchema = z.ZodObject<
  */
 export const a2aConfigSchema: A2AConfigSchema = z
   .object({
-    /** Port for the A2A HTTP server */
-    port: z.number().default(3334),
+    /**
+     * Removed: A2A is mounted on the brain's own web server and never opened
+     * a port of its own. A configuration that still sets it is refused with
+     * what to do.
+     */
+    port: z
+      .never({
+        error:
+          "port is no longer supported: A2A is served by the brain's own web server; remove this setting",
+      })
+      .optional(),
 
     /** Organization name for the Agent Card provider field */
     organization: z.string().optional(),

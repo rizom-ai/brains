@@ -14,6 +14,7 @@ import {
   proximityPoint,
   proximityReach,
 } from "../lib/proximity-map";
+import { seededRandom } from "@brains/utils/seeded-random";
 export { proximityMapScript } from "./proximity-map-script";
 export { proximityMapWidgetStyles };
 
@@ -40,17 +41,6 @@ interface NodeLayout {
   labelX: number;
   labelY: number;
   labelAnchor: "start" | "end";
-}
-
-function mulberry32(seed: number): () => number {
-  let value = seed >>> 0;
-  return (): number => {
-    value |= 0;
-    value = (value + 0x6d2b79f5) | 0;
-    let mixed = Math.imul(value ^ (value >>> 15), 1 | value);
-    mixed = (mixed + Math.imul(mixed ^ (mixed >>> 7), 61 | mixed)) ^ mixed;
-    return ((mixed ^ (mixed >>> 14)) >>> 0) / 4_294_967_296;
-  };
 }
 
 function radiusForDistance(distance: number, maxDistance: number): number {
@@ -160,7 +150,7 @@ function buildNodeLayouts(
   nodes: ProximityMapNode[],
   maxDistance: number,
 ): NodeLayout[] {
-  const random = mulberry32(133);
+  const random = seededRandom(133);
   const positioned = nodes.map((node) => ({
     node,
     point: polar(node.distance, node.bearing, maxDistance),
@@ -368,8 +358,8 @@ export function ProximityMap({
     for (const memberId of cluster.memberIds)
       clusterIdByNode.set(memberId, `cluster-${index}`);
   });
-  const weaveRandom = mulberry32(7331);
-  const sightingRandom = mulberry32(4242);
+  const weaveRandom = seededRandom(7331);
+  const sightingRandom = seededRandom(4242);
   const activeNodes = data.nodes.filter((node) => node.status !== "archived");
   // Render only sightings whose introducers are actually on this map —
   // a thread has to grow from somewhere.
@@ -792,7 +782,7 @@ export function ProximityMap({
         })}
 
         {Array.from({ length: 9 }, (_, index) => {
-          const random = mulberry32(900 + index);
+          const random = seededRandom(900 + index);
           return (
             <circle
               key={index}

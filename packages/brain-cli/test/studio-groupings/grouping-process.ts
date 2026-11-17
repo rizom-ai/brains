@@ -8,6 +8,7 @@ import { generateMarkdown } from "@brains/utils/markdown-frontmatter";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import { installStudioGroupings } from "@brains/studio/test";
+import { createRefusingEmbeddingService } from "@brains/entity-service/test";
 
 const commandSchema = z.object({
   id: z.number(),
@@ -34,15 +35,7 @@ const service = EntityService.createFresh({
   logger,
   jobQueueService: shell.getJobQueueService(),
   embeddingsEnabled: false,
-  embeddingService: {
-    identity: { model: "test:mock", dimensions: 1536, promptRevision: 0 },
-    embedQuery: async () => {
-      throw new Error("Unexpected embedding");
-    },
-    embedDocuments: async () => {
-      throw new Error("Unexpected embedding");
-    },
-  },
+  embeddingService: createRefusingEmbeddingService(),
 });
 shell.getEntityRegistry = (): EntityRegistry => registry;
 shell.getEntityService = (): EntityService => service;

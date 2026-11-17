@@ -11,14 +11,10 @@ import {
   type McpServer,
 } from "@modelcontextprotocol/server";
 import type { ActorRef } from "@brains/contracts";
-import {
-  DEFAULT_SHUTDOWN_DRAIN_MS,
-  stopServerWithinDrain,
-} from "@brains/utils/drain-server";
 import type { Logger } from "@brains/utils/logger";
-import { z } from "@brains/utils/zod";
 import type { TransportLogger } from "./types";
 import { adaptLogger, createConsoleLogger } from "./types";
+import { withHeaders } from "@brains/utils/http-response";
 
 export interface VerifiedBearerToken {
   subject: string;
@@ -39,15 +35,8 @@ export interface AuthConfig {
 }
 
 export interface StreamableHTTPServerConfig {
-  port?: number | string;
-  host?: string;
   logger?: Logger | TransportLogger;
   auth?: AuthConfig;
-  /**
-   * How long stop() lets requests in flight finish before it closes them.
-   * Defaults to {@link DEFAULT_SHUTDOWN_DRAIN_MS}.
-   */
-  shutdownDrainMs?: number;
 }
 
 const CORS_HEADERS = {
@@ -58,10 +47,6 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Private-Network": "true",
   "X-Content-Type-Options": "nosniff",
 } as const;
-
-const errorCodeSchema = z.looseObject({
-  code: z.string().optional(),
-});
 
 function requestOrigin(request: Request): string {
   const url = new URL(request.url);
@@ -75,7 +60,8 @@ function requestOrigin(request: Request): string {
 }
 
 /**
- * Stateless MCP HTTP server.
+ * Stateless MCP HTTP handler, mounted on the brain's own web server: it
+ * opens no port of its own.
  *
  * Authentication is resolved for every request before the SDK handler runs.
  * The handler then builds a fresh permission-scoped MCP server from the live
@@ -85,8 +71,6 @@ function requestOrigin(request: Request): string {
 export class StreamableHTTPServer {
   private mcpTransport: InterfaceRuntime["mcpTransport"] | null = null;
   private mcpHandler: McpHttpHandler | null = null;
-  private server: ReturnType<typeof Bun.serve> | null = null;
-  private boundPort: number | null = null;
   private readonly config: StreamableHTTPServerConfig;
   private readonly logger: TransportLogger;
   private readonly authConfig: AuthConfig;
@@ -117,16 +101,7 @@ export class StreamableHTTPServer {
   }
 
   private withCors(response: Response): Response {
-    const headers = new Headers(response.headers);
-    for (const [key, value] of Object.entries(CORS_HEADERS)) {
-      headers.set(key, value);
-    }
-
-    return new Response(response.body, {
-      status: response.status,
-      statusText: response.statusText,
-      headers,
-    });
+    return withHeaders(response, CORS_HEADERS);
   }
 
   private createJsonResponse(data: unknown, status = 200): Response {
@@ -203,7 +178,6 @@ export class StreamableHTTPServer {
     const pathname = new URL(request.url).pathname;
 
     if (
-      pathname === "/health" ||
       pathname === "/status" ||
       (pathname === "/mcp" && request.method === "OPTIONS")
     ) {
@@ -348,14 +322,6 @@ export class StreamableHTTPServer {
     }
     const authInfo = authentication ?? undefined;
 
-    if (url.pathname === "/health") {
-      return this.createJsonResponse({
-        status: "ok",
-        transport: "streamable-http",
-        timestamp: new Date().toISOString(),
-      });
-    }
-
     if (url.pathname === "/status") {
       return this.createJsonResponse({
         status: "ok",
@@ -405,59 +371,10 @@ export class StreamableHTTPServer {
     this.logger.debug("MCP server connected to StreamableHTTP transport");
   }
 
-  public async start(): Promise<void> {
-    if (this.server) {
-      throw new Error("Server is already running");
-    }
-
-    const port = Number(this.config.port ?? 3333);
-    const host = this.config.host ?? "0.0.0.0";
-
-    try {
-      this.server = Bun.serve({
-        port,
-        hostname: host,
-        fetch: (request) => this.handleRequest(request),
-      });
-      this.boundPort = this.server.port ?? port;
-      this.logger.info(
-        `StreamableHTTP server listening on http://${host}:${this.boundPort}/mcp`,
-      );
-    } catch (error) {
-      const parsedError = errorCodeSchema.safeParse(error);
-      if (parsedError.success && parsedError.data.code === "EADDRINUSE") {
-        this.logger.error(`Port ${port} is already in use`);
-      }
-      throw error;
-    }
-  }
-
   public async stop(): Promise<void> {
     await this.mcpHandler?.close();
     this.mcpHandler = null;
     this.mcpTransport = null;
-
-    const server = this.server;
-    if (server) {
-      try {
-        await stopServerWithinDrain(server, {
-          drainMs: this.config.shutdownDrainMs ?? DEFAULT_SHUTDOWN_DRAIN_MS,
-          logger: this.logger,
-          label: "StreamableHTTP server",
-        });
-      } finally {
-        this.server = null;
-        this.boundPort = null;
-      }
-      this.logger.info("StreamableHTTP server stopped");
-    }
-  }
-
-  public getPort(): number {
-    if (this.boundPort === null) {
-      throw new Error("Server is not running");
-    }
-    return this.boundPort;
   }
 
   public getApp(): { fetch: (request: Request) => Promise<Response> } {
@@ -465,10 +382,6 @@ export class StreamableHTTPServer {
       fetch: (request: Request): Promise<Response> =>
         this.handleRequest(request),
     };
-  }
-
-  public isRunning(): boolean {
-    return this.server !== null;
   }
 }
 

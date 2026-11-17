@@ -8,12 +8,7 @@ import {
 import { PermissionService, type Template } from "@brains/templates";
 import { z } from "@brains/utils/zod";
 import { createMockShell, type MockShell } from "../src/test/mock-shell";
-import {
-  defineServicePlugin,
-  instantiatePluginPackageDefinition,
-  serviceRuntime,
-  type ServiceRuntime,
-} from "../src";
+import { probeRuntime } from "../src/test/probe-service-runtime";
 
 /**
  * A first-party service converted from a class registers the templates its
@@ -47,26 +42,6 @@ function brain(): MockShell {
   return shell;
 }
 
-async function runtimeOn(shell: MockShell): Promise<ServiceRuntime> {
-  let runtime: ServiceRuntime | undefined;
-  const [plugin] = instantiatePluginPackageDefinition(
-    defineServicePlugin({
-      id: "site-content",
-      config: z.object({}),
-      setup: (context) => {
-        runtime = serviceRuntime(context);
-        return {};
-      },
-    }),
-    {},
-    { name: "@brains/site-content", version: "0.1.0" },
-    { pluginId: "site-content" },
-  );
-  await plugin?.register(shell);
-  if (!runtime) throw new Error("Setup did not run");
-  return runtime;
-}
-
 const target: ContentGenerationTargetInput = {
   templateName: "landing-page:hero",
   context: { data: { routeId: "home", sectionId: "hero" } },
@@ -83,7 +58,7 @@ const jobIdOf = (item: ContentGenerationItemResult | undefined): string =>
 describe("a first-party service's templates and content generation", () => {
   it("registers a template under the namespace it names, as its class did", async () => {
     const shell = brain();
-    const runtime = await runtimeOn(shell);
+    const runtime = await probeRuntime(shell, { id: "site-content" });
 
     runtime.template("hero", hero, { namespace: "landing-page" });
     runtime.template("intro", { ...hero, name: "intro" });
@@ -95,7 +70,7 @@ describe("a first-party service's templates and content generation", () => {
 
   it("queues the targets with the tool call's caller, as its class did", async () => {
     const shell = brain();
-    const runtime = await runtimeOn(shell);
+    const runtime = await probeRuntime(shell, { id: "site-content" });
     runtime.template("hero", hero, { namespace: "landing-page" });
     const toolContext = {
       interfaceType: "mcp",
@@ -129,7 +104,7 @@ describe("a first-party service's templates and content generation", () => {
 
   it("queues as the package's own grant without a tool call, and plans a dry run", async () => {
     const shell = brain();
-    const runtime = await runtimeOn(shell);
+    const runtime = await probeRuntime(shell, { id: "site-content" });
     runtime.template("hero", hero, { namespace: "landing-page" });
 
     const planned = await runtime.generateContent({
@@ -155,7 +130,7 @@ describe("a first-party service's templates and content generation", () => {
 
   it("stops before it plans when the call is cancelled", async () => {
     const shell = brain();
-    const runtime = await runtimeOn(shell);
+    const runtime = await probeRuntime(shell, { id: "site-content" });
     runtime.template("hero", hero, { namespace: "landing-page" });
     const reason = new Error("cancelled");
 

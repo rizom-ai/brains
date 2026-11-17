@@ -3,23 +3,13 @@ import type { AgentNamespace, AgentResponse } from "@brains/plugins";
 import { handleJsonRpc, handleStreamMessage } from "../src/jsonrpc-handler";
 import { TaskManager } from "../src/task-manager";
 import { A2ATurnSupervisor } from "../src/turn-supervisor";
+import { deferred, type Deferred } from "@brains/utils/deferred";
 
 const usage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
 
-function deferred(): {
-  promise: Promise<void>;
-  resolve(): void;
-} {
-  let settle: (() => void) | undefined;
-  const promise = new Promise<void>((resolve) => {
-    settle = resolve;
-  });
-  return { promise, resolve: (): void => settle?.() };
-}
-
 function slowAgent(
-  started: ReturnType<typeof deferred>,
-  release: ReturnType<typeof deferred>,
+  started: Deferred,
+  release: Deferred,
   captureSignal: (signal: AbortSignal | undefined) => void,
 ): AgentNamespace {
   return {

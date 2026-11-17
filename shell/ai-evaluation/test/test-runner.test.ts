@@ -4,10 +4,11 @@ import { createExternalActorId } from "@brains/contracts";
 import { TestRunner } from "../src/test-runner";
 import type { ILLMJudge, RequirementVerdict } from "../src/types";
 import type { AgentTestCase, TestCase } from "../src/schemas";
-import type {
-  AgentResponse,
-  ChatContext,
-  IAgentService,
+import {
+  aiProviderDeclinedMessage,
+  type AgentResponse,
+  type ChatContext,
+  type IAgentService,
 } from "@brains/ai-service";
 import type {
   IRuntimeUploadsNamespace,
@@ -84,6 +85,51 @@ describe("TestRunner", () => {
       invalidateAgent: (): void => {},
     };
     testRunner = TestRunner.createFresh(mockAgentService);
+  });
+
+  describe("a turn the agent could not answer", () => {
+    const erroredTurn = (error: string): void => {
+      mockAgentService.chat.mockResolvedValue(
+        createMockResponse({ text: error, error }),
+      );
+    };
+
+    it("fails on the error itself, and judges nothing of its text", async () => {
+      erroredTurn("Model unavailable");
+      const judge = judgeReturning([
+        { requirement, met: false, reason: "Not a list of sources." },
+      ]);
+
+      const result = await TestRunner.createFresh(
+        mockAgentService,
+        judge,
+      ).runTest(judgedCase());
+
+      expect(result.passed).toBe(false);
+      expect(result.failures).toEqual([
+        expect.objectContaining({
+          criterion: "agentError",
+          actual: "Model unavailable",
+        }),
+      ]);
+      expect(judge.judgeRequirements).not.toHaveBeenCalled();
+      expect(result.turnResults[0]?.criteriaResults).toEqual([
+        expect.objectContaining({ criterion: "agentError", passed: false }),
+      ]);
+    });
+
+    it("names a provider that declined the turn", async () => {
+      erroredTurn(aiProviderDeclinedMessage);
+
+      const result = await testRunner.runTest(judgedCase());
+
+      expect(result.failures).toEqual([
+        expect.objectContaining({
+          criterion: "providerDeclined",
+          actual: aiProviderDeclinedMessage,
+        }),
+      ]);
+    });
   });
 
   describe("judged response requirements", () => {

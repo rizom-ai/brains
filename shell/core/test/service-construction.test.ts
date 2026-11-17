@@ -16,6 +16,7 @@ import { DaemonRegistry } from "../src/daemon-registry";
 import { migrateJobQueue } from "@brains/job-queue/migrate";
 import { ENTITY_CHANNELS } from "@brains/contracts";
 import type { PeerChannel, PeerEvent } from "../src/peer-event-relay";
+import { createMockEmbeddingService } from "@brains/entity-service/test";
 
 function createTestConfig(dir: string): ShellConfigInput {
   return {
@@ -234,17 +235,7 @@ describe("Shell service construction", () => {
 
     const dependencies: ShellDependencies = {
       logger: createSilentLogger("test"),
-      embeddingService: {
-        identity: { model: "test:mock", dimensions: 1536, promptRevision: 0 },
-        embedQuery: async () => ({
-          embedding: new Float32Array(1536).fill(0.1),
-          usage: { tokens: 1 },
-        }),
-        embedDocuments: async (texts: { content: string }[]) => ({
-          embeddings: texts.map(() => new Float32Array(1536).fill(0.1)),
-          usage: { tokens: texts.length },
-        }),
-      },
+      embeddingService: createMockEmbeddingService(),
       runtimeStateService: {
         initialize: async (): Promise<void> => {},
         scoped: <T, TInput = T>(): IRuntimeStateStore<T, TInput> => ({

@@ -55,3 +55,23 @@ function defaultFormatError(response: Response, payload: unknown): string {
       : `: ${typeof payload === "string" ? payload : JSON.stringify(payload)}`;
   return ` (${response.status} ${response.statusText}${body})`;
 }
+
+/**
+ * The same response, its status and body kept, with `headers` set over the
+ * ones it carries: how a handler adds CORS or cache headers to an answer it
+ * did not build.
+ */
+export function withHeaders(
+  response: Response,
+  headers: Readonly<Record<string, string>>,
+): Response {
+  const merged = new Headers(response.headers);
+  for (const [key, value] of Object.entries(headers)) {
+    merged.set(key, value);
+  }
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: merged,
+  });
+}

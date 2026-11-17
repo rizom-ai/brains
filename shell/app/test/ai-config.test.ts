@@ -8,7 +8,7 @@ describe("resolveAIConfig", () => {
       ANTHROPIC_API_KEY: "sk-ant-test",
       GOOGLE_GENERATIVE_AI_API_KEY: "AIzatest",
     });
-    expect(config.aiProviderKeys).toEqual({
+    expect(config.providerKeys).toEqual({
       openai: "sk-proj-test",
       anthropic: "sk-ant-test",
       google: "AIzatest",
@@ -16,7 +16,7 @@ describe("resolveAIConfig", () => {
   });
 
   it("sets no keys when no provider variable is set", () => {
-    expect(resolveAIConfig({}).aiProviderKeys).toBeUndefined();
+    expect(resolveAIConfig({}).providerKeys).toBeUndefined();
   });
 
   it("ignores the single legacy keys", () => {
@@ -24,7 +24,7 @@ describe("resolveAIConfig", () => {
       AI_API_KEY: "sk-proj-test",
       AI_IMAGE_KEY: "AIzatest",
     });
-    expect(config.aiProviderKeys).toBeUndefined();
+    expect(config.providerKeys).toBeUndefined();
   });
 
   it("should pass model through when specified", () => {
@@ -32,8 +32,8 @@ describe("resolveAIConfig", () => {
       { OPENAI_API_KEY: "sk-test" },
       { model: "gpt-4o-mini" },
     );
-    expect(config.aiModel).toBe("gpt-4o-mini");
-    expect(config.aiProviderKeys).toEqual({ openai: "sk-test" });
+    expect(config.model).toBe("gpt-4o-mini");
+    expect(config.providerKeys).toEqual({ openai: "sk-test" });
   });
 
   it("keeps an explicit provider prefix on the model", () => {
@@ -41,7 +41,7 @@ describe("resolveAIConfig", () => {
       { OPENAI_API_KEY: "sk-test" },
       { model: "openai:gpt-4o-mini" },
     );
-    expect(config.aiModel).toBe("openai:gpt-4o-mini");
+    expect(config.model).toBe("openai:gpt-4o-mini");
   });
 
   it("passes the embedding model through with its provider prefix", () => {
@@ -49,13 +49,13 @@ describe("resolveAIConfig", () => {
       { OPENAI_API_KEY: "sk-test" },
       { embeddingModel: "openai:text-embedding-3-large" },
     );
-    expect(config.aiEmbeddingModel).toBe("openai:text-embedding-3-large");
+    expect(config.embeddingModel).toBe("openai:text-embedding-3-large");
   });
 
   it("takes the model runtime the deploy runs alongside the brain", () => {
     expect(
       resolveAIConfig({ MODEL_RUNTIME_URL: "http://rover-models:11434" })
-        .aiModelRuntimeUrl,
+        .modelRuntimeUrl,
     ).toBe("http://rover-models:11434");
   });
 
@@ -64,38 +64,38 @@ describe("resolveAIConfig", () => {
       resolveAIConfig(
         { MODEL_RUNTIME_URL: "http://rover-models:11434" },
         { modelRuntimeUrl: "http://localhost:11434" },
-      ).aiModelRuntimeUrl,
+      ).modelRuntimeUrl,
     ).toBe("http://localhost:11434");
   });
 
   it("passes the answer model through", () => {
     expect(
       resolveAIConfig({}, { answerModel: "local:qwen3:30b-a3b-instruct" })
-        .aiAnswerModel,
+        .answerModel,
     ).toBe("local:qwen3:30b-a3b-instruct");
   });
 
   it("passes the vision model through", () => {
     expect(
-      resolveAIConfig({}, { visionModel: "local:qwen3-vl:8b" }).aiVisionModel,
+      resolveAIConfig({}, { visionModel: "local:qwen3-vl:8b" }).visionModel,
     ).toBe("local:qwen3-vl:8b");
   });
 
   it("passes the image model through", () => {
     expect(
-      resolveAIConfig({}, { imageModel: "local:z-image-turbo" }).aiImageModel,
+      resolveAIConfig({}, { imageModel: "local:z-image-turbo" }).imageModel,
     ).toBe("local:z-image-turbo");
   });
 
   it("does not set an embedding model when none is configured", () => {
     expect(
-      resolveAIConfig({ OPENAI_API_KEY: "sk-test" }).aiEmbeddingModel,
+      resolveAIConfig({ OPENAI_API_KEY: "sk-test" }).embeddingModel,
     ).toBeUndefined();
   });
 
   it("should not set model when no model specified", () => {
     const config = resolveAIConfig({ OPENAI_API_KEY: "sk-test" });
-    expect(config.aiModel).toBeUndefined();
+    expect(config.model).toBeUndefined();
   });
 
   it("should pass through configured reasoning effort", () => {
@@ -104,7 +104,7 @@ describe("resolveAIConfig", () => {
       { model: "gpt-5.6-luna", reasoningEffort: "low" },
     );
 
-    expect(config.aiModel).toBe("gpt-5.6-luna");
-    expect(config.aiReasoningEffort).toBe("low");
+    expect(config.model).toBe("gpt-5.6-luna");
+    expect(config.reasoningEffort).toBe("low");
   });
 });

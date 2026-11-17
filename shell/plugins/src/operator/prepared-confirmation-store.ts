@@ -1,5 +1,6 @@
 import type { JsonValue } from "@brains/contracts";
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
+import { sha256Hex } from "@brains/utils/hash";
 
 const PREPARED_CONFIRMATION_TTL_MS = 5 * 60 * 1_000;
 const MAX_PREPARED_CONFIRMATIONS_PER_WORKSPACE = 1_000;
@@ -53,7 +54,7 @@ function canonicalJson(value: JsonValue): string {
 }
 
 function inputDigest(value: JsonValue): string {
-  return createHash("sha256").update(canonicalJson(value)).digest("hex");
+  return sha256Hex(canonicalJson(value));
 }
 
 /** In-memory, per-workspace store of prepared action confirmations. */

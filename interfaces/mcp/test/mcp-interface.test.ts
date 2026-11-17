@@ -77,7 +77,6 @@ describe("MCPInterface", () => {
     it("should create instance with http transport", () => {
       const plugin = createMcpPlugin({
         transport: "http",
-        httpPort: 3001,
       });
       expect(plugin.id).toBe("mcp");
     });
@@ -130,7 +129,7 @@ describe("MCPInterface", () => {
   describe("shared web routes", () => {
     it("should expose shared-host routes for HTTP transport", async () => {
       serveHttp();
-      const plugin = createMcpPlugin({ transport: "http", httpPort: 3001 });
+      const plugin = createMcpPlugin({ transport: "http" });
       await harness.installPlugin(plugin);
 
       const routes = routesOf(plugin);
@@ -158,7 +157,6 @@ describe("MCPInterface", () => {
 
       const plugin = createMcpPlugin({
         transport: "http",
-        httpPort: 3001,
         authToken: "test-token",
       });
       await harness.installPlugin(plugin);
@@ -258,7 +256,6 @@ describe("MCPInterface", () => {
       serveHttp();
       const plugin = createMcpPlugin({
         transport: "http",
-        httpPort: 3001,
         authToken: "test-token",
         mode: "debug",
       });
@@ -275,7 +272,6 @@ describe("MCPInterface", () => {
       serveHttp();
       const plugin = createMcpPlugin({
         transport: "http",
-        httpPort: 3001,
         mode: "debug",
       });
 
@@ -367,7 +363,6 @@ describe("MCPInterface", () => {
     it("should require the brain to serve HTTP for http transport", async () => {
       const plugin = createMcpPlugin({
         transport: "http",
-        httpPort: 0,
         authToken: "test-token",
       });
 

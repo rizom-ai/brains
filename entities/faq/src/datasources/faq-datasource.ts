@@ -2,7 +2,6 @@ import type {
   ServiceCorpusReads,
   ServiceDataSourceDeclaration,
 } from "@brains/sdk/internal/service-runtime";
-import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import { readFaq } from "../lib/faq-body";
 import { faqSchema, type FaqEntity, type FaqSource } from "../schemas/faq";
@@ -146,7 +145,6 @@ export async function loadPublicFaqs(
     readonly publishedOnly?: boolean | undefined;
   },
   limit: number,
-  _logger?: Logger,
 ): Promise<FaqItem[]> {
   if (!context.entityService.hasEntityType("faq")) return [];
   const section = await fetchFaqSection({ query: { limit } }, context);

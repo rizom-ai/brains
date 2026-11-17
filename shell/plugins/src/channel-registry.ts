@@ -1,4 +1,5 @@
 import { z } from "@brains/utils/zod";
+import { registrationOwner } from "./utils/registration-owner";
 
 const channelTypePattern = /^[a-z][a-z0-9-]*$/;
 
@@ -115,7 +116,7 @@ export class ChannelRegistry implements IChannelRegistry {
 
   registerDescriptor(pluginId: string, descriptor: ChannelDescriptor): void {
     this.assertRegistrationOpen();
-    const owner = normalizePluginId(pluginId);
+    const owner = registrationOwner(pluginId, "Channel");
     const parsed = channelDescriptorSchema.parse(descriptor);
     if (parsed.subjectPattern) {
       new RegExp(parsed.subjectPattern.source, parsed.subjectPattern.flags);
@@ -143,7 +144,7 @@ export class ChannelRegistry implements IChannelRegistry {
     provider: ChannelDeliveryProvider,
   ): void {
     this.assertRegistrationOpen();
-    const owner = normalizePluginId(pluginId);
+    const owner = registrationOwner(pluginId, "Channel");
     const channelType = normalizeChannelType(provider.channelType);
     if (
       typeof provider.isAvailable !== "function" ||
@@ -265,13 +266,6 @@ export class ChannelRegistry implements IChannelRegistry {
   private assertFinalized(): void {
     if (!this.finalized) throw new Error("Channel registry is not finalized");
   }
-}
-
-function normalizePluginId(pluginId: string): string {
-  const normalized = pluginId.trim();
-  if (!normalized)
-    throw new Error("Channel registration plugin id is required");
-  return normalized;
 }
 
 function normalizeChannelType(channelType: string): string {

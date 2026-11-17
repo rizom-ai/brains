@@ -6,6 +6,7 @@ import { faqDocument, faqMetadata } from "../../src/lib/faq-body";
 import { faqSchema, type FaqEntity } from "../../src/schemas/faq";
 import { reconcileFaq } from "../../src/handlers/faq-reconcile-handler";
 import { faqType } from "./faq-type";
+import { createRefusingEmbeddingService } from "@brains/entity-service/test";
 
 export async function openFoldStorage(dir: string): Promise<EntityService> {
   const logger = createSilentLogger();
@@ -23,15 +24,7 @@ export async function openFoldStorage(dir: string): Promise<EntityService> {
     logger,
     jobQueueService: createMockShell().getJobQueueService(),
     embeddingsEnabled: false,
-    embeddingService: {
-      identity: { model: "test:mock", dimensions: 1536, promptRevision: 0 },
-      embedQuery: async () => {
-        throw new Error("Unexpected provider call");
-      },
-      embedDocuments: async () => {
-        throw new Error("Unexpected provider call");
-      },
-    },
+    embeddingService: createRefusingEmbeddingService(),
   });
 }
 

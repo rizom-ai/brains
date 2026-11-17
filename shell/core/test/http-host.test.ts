@@ -17,20 +17,11 @@ import type { ShellRuntimeOptions } from "../src/runtime-process-role";
 import { Shell, type ShellDependencies } from "../src/shell";
 import type { ShellConfigInput } from "../src/config";
 import { createTestShellConfig } from "./helpers/test-config";
+import { createMockEmbeddingService } from "@brains/entity-service/test";
 
 const dependencies: Partial<ShellDependencies> = {
   logger: createSilentLogger("http-host-test"),
-  embeddingService: {
-    identity: { model: "test:mock", dimensions: 1536, promptRevision: 0 },
-    embedQuery: async () => ({
-      embedding: new Float32Array(1536).fill(0.1),
-      usage: { tokens: 1 },
-    }),
-    embedDocuments: async (documents: unknown[]) => ({
-      embeddings: documents.map(() => new Float32Array(1536).fill(0.1)),
-      usage: { tokens: documents.length },
-    }),
-  },
+  embeddingService: createMockEmbeddingService(),
 };
 
 function freePort(): number {

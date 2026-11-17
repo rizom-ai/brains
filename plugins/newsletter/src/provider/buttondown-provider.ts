@@ -13,6 +13,7 @@ import type {
   NewsletterSubscribeInput,
 } from "./contracts";
 import { renderNewsletterEmail } from "./email-renderer";
+import { readSubject } from "./publish-handler";
 
 const BUTTONDOWN_HTML_MODE = "<!-- buttondown-editor-mode: fancy -->";
 
@@ -82,12 +83,4 @@ export class ButtondownNewsletterProvider implements NewsletterDeliveryProvider 
   async validateCredentials(): Promise<boolean> {
     return this.client.validateCredentials();
   }
-}
-
-function readSubject(metadata: Record<string, unknown>): string {
-  const subject = metadata["subject"];
-  if (typeof subject !== "string" || subject.trim().length === 0) {
-    throw new Error("Newsletter subject is required for publishing");
-  }
-  return subject;
 }

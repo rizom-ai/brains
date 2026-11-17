@@ -31,7 +31,7 @@ describe("Agent Card follows the brain's current identity", () => {
   });
 
   async function installA2A(): Promise<Plugin> {
-    const plugin = createA2APlugin({ port: 0 });
+    const plugin = createA2APlugin({});
     await harness.installPlugin(plugin);
     harness.getMockShell().getProfileKindRegistry().finalize();
     return plugin;

@@ -4,7 +4,6 @@ import type { Logger } from "@brains/utils/logger";
 import type { Tool } from "@brains/mcp-service";
 import type { JobProgressEvent } from "@brains/job-queue";
 import type { AnyAccountSettingsDefinition } from "../operator/account-settings-definition-contract";
-import { createAccountDaemon } from "../operator/account-daemon-supervisor";
 import type { AccountSettingsRegistration } from "../operator/account-settings-registry";
 import type { z } from "@brains/utils/zod";
 import {
@@ -31,7 +30,7 @@ import { packageRuntimeState } from "../internal/state-namespace";
 import { anonymousCaller } from "../service/job-authority";
 import type { WebRouteDefinition } from "../types/web-routes";
 import { createDeclaredRoute } from "../internal/declared-route";
-import { createDeclarativeDaemon } from "./declarative-daemon";
+import { declaredDaemon } from "./declarative-daemon";
 import {
   createInterfacePluginContext,
   createMessageInterfacePluginContext,
@@ -186,29 +185,16 @@ class InterfaceDeclaration<
     for (const daemon of daemonDefinitions) {
       claimDaemonId(daemon.id);
       this.hasRequiredDaemon ||= daemon.required;
-      if (daemon.forAccounts) {
-        if (daemon.forAccounts !== this.definition.accountSettings) {
-          throw new Error(
-            `Interface "${this.definition.id}" account-bound daemon "${daemon.id}" must reference its attached account settings`,
-          );
-        }
-        const registration = this.accountSettingsRegistration;
-        if (!registration) {
-          throw new Error(
-            `Interface "${this.definition.id}" account-bound daemon "${daemon.id}" has no registered account settings`,
-          );
-        }
-        context.daemons.register(
-          daemon.id,
-          createAccountDaemon(daemon, registration, context.accountSettings, {
-            logger: this.owner.logger(),
-          }),
-        );
-        continue;
-      }
       context.daemons.register(
         daemon.id,
-        createDeclarativeDaemon(daemon, { logger: this.owner.logger() }),
+        declaredDaemon({
+          owner: `Interface "${this.definition.id}"`,
+          daemon,
+          attached: this.definition.accountSettings,
+          registration: this.accountSettingsRegistration,
+          accountSettings: context.accountSettings,
+          logger: this.owner.logger(),
+        }),
       );
     }
 
@@ -780,6 +766,12 @@ export function createDeclarativeInterfacePlugin<
   declarations: FirstPartyInterfaceDeclarations = noFirstPartyDeclarations,
 ): Plugin {
   if (declarations.protocol) {
+    // A protocol host is not a message interface: it would register neither.
+    if (declarations.transport ?? declarations.channels) {
+      throw new Error(
+        `Interface "${id}" hosts a protocol and cannot also declare a message transport or channels`,
+      );
+    }
     return new DeclarativeProtocolHostInterfacePlugin(
       definition,
       declarations,

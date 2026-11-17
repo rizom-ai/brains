@@ -8,6 +8,7 @@ import {
 import {
   createMockShell,
   type MockShell,
+  registerAll,
   isDeclaredEntityType,
 } from "@brains/plugins/test";
 import type { AssessmentConfigInput } from "../src";
@@ -41,15 +42,7 @@ async function installed(
       },
     );
   const plugins = createAssessmentPlugins(config);
-  const capabilities: PluginCapabilities[] = [];
-  for (const plugin of plugins) {
-    capabilities.push(
-      await plugin.register(
-        shell,
-        options.executionOnly ? { executionOnly: true } : undefined,
-      ),
-    );
-  }
+  const capabilities = await registerAll(shell, plugins, options);
   await shell.getMessageBus().send({
     type: SYSTEM_CHANNELS.pluginsRegistered,
     payload: {},

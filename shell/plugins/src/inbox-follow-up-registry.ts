@@ -13,6 +13,7 @@ import {
   type InboxActor,
   type InboxItem,
 } from "./inbox-registry";
+import { registrationOwner } from "./utils/registration-owner";
 
 const MAX_TARGET_LENGTH = 2_048;
 const MAX_STATE_BYTES = 8 * 1_024;
@@ -204,7 +205,7 @@ export class InboxFollowUpRegistry implements IInboxFollowUpRegistry {
     registration: InboxFollowUpKindRegistration,
   ): void {
     this.assertRegistrationOpen();
-    const owner = normalizePluginId(pluginId);
+    const owner = registrationOwner(pluginId, "Inbox follow-up");
     const normalized = Object.freeze(
       kindRegistrationSchema.parse(registration),
     );
@@ -400,12 +401,4 @@ function compareKinds(
   right: RegisteredInboxFollowUpKind,
 ): number {
   return left.priority - right.priority || left.kind.localeCompare(right.kind);
-}
-
-function normalizePluginId(pluginId: string): string {
-  const normalized = pluginId.trim();
-  if (!normalized) {
-    throw new Error("Inbox follow-up registration plugin id is required");
-  }
-  return normalized;
 }

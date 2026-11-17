@@ -432,7 +432,7 @@ async function storedResult(h: Harness): Promise<QuizResult> {
 }
 
 describe("a quiz result in the Inbox", () => {
-  it("shows an admin who took it, its results and its answers, and no one else", async () => {
+  it("shows an admin who took it, its results and its answers", async () => {
     const f = await setup();
     await take(f.plugin, "/brand-test", [
       ["q1", "a"],
@@ -458,18 +458,6 @@ describe("a quiz result in the Inbox", () => {
       text: "Quiz: brand-test\nEmail: ada@example.com\n\nIdentity: Seeking\n\nWho are you?: Seeking",
       truncated: false,
     });
-    for (const permissionLevel of ["public", "trusted"] as const) {
-      expect(
-        source.resolveDetail?.(
-          item.id,
-          { permissionLevel },
-          new AbortController().signal,
-        ),
-      ).rejects.toThrow(new Error("Quiz inbox requires admin permission"));
-      expect(
-        source.act(item.id, "mark-handled", { permissionLevel }),
-      ).rejects.toThrow(new Error("Quiz inbox requires admin permission"));
-    }
     expect(source.act(item.id, "publish", admin)).rejects.toThrow(
       new Error("Invalid quiz inbox action"),
     );

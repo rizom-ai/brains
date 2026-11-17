@@ -1,6 +1,10 @@
 import { describe, expect, it } from "bun:test";
 import type { Plugin, PluginCapabilities } from "@brains/plugins";
-import { createMockShell, type MockShell } from "@brains/plugins/test";
+import {
+  createMockShell,
+  type MockShell,
+  registerAll,
+} from "@brains/plugins/test";
 import { createGuidePlugins } from "./guide-plugins";
 
 interface Installed {
@@ -12,10 +16,7 @@ interface Installed {
 async function installed(): Promise<Installed> {
   const shell = createMockShell();
   const plugins = createGuidePlugins();
-  const capabilities: PluginCapabilities[] = [];
-  for (const plugin of plugins) {
-    capabilities.push(await plugin.register(shell));
-  }
+  const capabilities = await registerAll(shell, plugins);
   return { shell, plugins, capabilities };
 }
 

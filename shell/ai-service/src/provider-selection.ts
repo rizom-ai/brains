@@ -141,17 +141,6 @@ function resolvedSupportsTemperature(resolved: ResolvedModelProvider): boolean {
   return !NO_TEMPERATURE_PATTERN.test(resolved.modelId);
 }
 
-/**
- * Some providers/models reject temperature entirely.
- *
- * OpenAI reasoning models (gpt-5*, gpt-6*, o*) currently warn or fail when
- * temperature is passed, so callers should omit it.
- */
-export function supportsTemperature(model?: string): boolean {
-  if (!model) return true;
-  return resolvedSupportsTemperature(resolveTextProvider(model));
-}
-
 export interface TextModelCapabilities {
   provider: string;
   supportsTemperature: boolean;

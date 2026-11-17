@@ -280,11 +280,13 @@ export function createBrainAgentFactory(
         assertGuestCallOptions(params.options);
         const policy = requireGuestExecutionPolicy(params.options);
         if (!policy) {
-          const { result, text, retriedAfter } = await retryDeclinedTurnOnce(
-            (onStepEnd) => agent.generate({ ...params, onStepEnd }),
-          );
+          const { result, text, declined, retriedAfter } =
+            await retryDeclinedTurnOnce((onStepEnd) =>
+              agent.generate({ ...params, onStepEnd }),
+            );
           return {
             text,
+            ...(declined && { declined: true as const }),
             steps: result.steps,
             usage: turnUsage([
               ...(retriedAfter ? [retriedAfter.totalUsage] : []),
@@ -321,11 +323,13 @@ export function createBrainAgentFactory(
             guestSettlement: guestTurnSettlement(judged, options.guestPricing),
             guestScreening: { outcome: "refused", category: judgment.category },
           };
-        const { result, text, retriedAfter } = await retryDeclinedTurnOnce(
-          (onStepEnd) => agent.generate({ ...params, onStepEnd }),
-        );
+        const { result, text, declined, retriedAfter } =
+          await retryDeclinedTurnOnce((onStepEnd) =>
+            agent.generate({ ...params, onStepEnd }),
+          );
         return {
           text,
+          ...(declined && { declined: true as const }),
           steps: result.steps,
           usage: turnUsage([
             ...judged.map((call) => call.usage),

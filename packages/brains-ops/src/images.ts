@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import { verifyRuntimeImage } from "./image-inventory";
 import { assertRuntimeImageLock } from "./runtime-image-lock";
 import type { RequiredImage } from "./image-types";
@@ -8,6 +7,7 @@ import {
   runSubprocess,
   type RunCommand,
 } from "@brains/deploy-support/run-subprocess";
+import { sha256Hex } from "@brains/utils/hash";
 
 /** The longest tag a container registry accepts. */
 const TAG_LIMIT = 128;
@@ -38,10 +38,10 @@ export function runtimeImageTag(
         .replace(/@(?=[^@]*$)/, "-"),
     )
     .join("--")}`;
-  const digest = createHash("sha256")
-    .update(JSON.stringify([brainVersion, ...pins]))
-    .digest("hex")
-    .slice(0, 12);
+  const digest = sha256Hex(JSON.stringify([brainVersion, ...pins])).slice(
+    0,
+    12,
+  );
   const suffix = `--s${digest}`;
   return `${spelled.length + suffix.length <= TAG_LIMIT ? spelled : base}${suffix}`;
 }

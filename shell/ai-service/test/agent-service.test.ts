@@ -2323,6 +2323,30 @@ describe("AgentService", () => {
       expect(response.error).toBe(declined);
     });
 
+    it("reports a refusal after a tool ran as an error, not as an answer", async () => {
+      const declined =
+        "The AI provider declined this request. Try rephrasing your message.";
+      mockGenerate.mockImplementation(async () => ({
+        text: declined,
+        steps: [],
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+        declined: true as const,
+      }));
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      const response = await service.chat("hello", "test-conversation");
+
+      expect(response.text).toBe(declined);
+      expect(response.error).toBe(declined);
+    });
+
     it("drains queued messages after a turn errors", async () => {
       let releaseFirst!: () => void;
       const firstTurnGate = new Promise<void>((resolve) => {

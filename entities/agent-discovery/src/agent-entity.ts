@@ -1,6 +1,7 @@
 import { defineEntity, type EntityDefinition } from "@brains/sdk/entities";
 import {
   storedDocumentCodec,
+  bodyUnderHeader,
   withFrontmatterSchema,
   withPublishedStatuses,
   writesInDocumentOrder,
@@ -10,6 +11,7 @@ import { agentMetadataOf } from "./lib/agent-content";
 import { agentGeneration } from "./lib/agent-generation";
 import { AGENT_ENTITY_TYPE } from "./lib/constants";
 import { agentFrontmatterSchema, agentMetadataSchema } from "./schemas/agent";
+import { agentSightingsInbox } from "./agent-sightings-inbox";
 
 const storedAgent = storedDocumentCodec<
   typeof agentFrontmatterSchema,
@@ -18,17 +20,8 @@ const storedAgent = storedDocumentCodec<
   header: agentFrontmatterSchema,
   deriveMetadata: agentMetadataOf,
   readAsWritten: true,
-});
-// The agent adapter wrote an agent's body from the line under its header.
-// The codec stays the one storedDocumentCodec made, which is what reads as
-// written.
-const storedDecode = storedAgent.decode;
-Object.assign(storedAgent, {
-  decode: (document: Parameters<typeof storedDecode>[0]) =>
-    storedDecode({
-      ...document,
-      content: document.content.replace(/^\n+/u, ""),
-    }),
+  // The agent adapter wrote an agent's body from the line under its header.
+  prepare: bodyUnderHeader,
 });
 
 /**
@@ -52,6 +45,7 @@ export function agentEntity(
             "A saved remote peer-brain contact in the local agent directory.",
           metadata: agentMetadataSchema,
           markdown: storedAgent,
+          inbox: agentSightingsInbox,
           config: {
             projectionSourceRole: "supporting",
             // Nothing reads these; did and a2aEndpoint duplicate brainDid and url.

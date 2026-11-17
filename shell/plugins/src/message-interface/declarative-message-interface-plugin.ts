@@ -16,9 +16,11 @@ import type {
 } from "../interfaces";
 import { PluginCore } from "../plugin-core";
 import type { AnyAccountSettingsDefinition } from "../operator/account-settings-definition-contract";
-import { createAccountDaemon } from "../operator/account-daemon-supervisor";
 import type { AccountSettingsRegistration } from "../operator/account-settings-registry";
-import { createDeclarativeDaemon } from "../interface/declarative-daemon";
+import {
+  createDeclarativeDaemon,
+  declaredDaemon,
+} from "../interface/declarative-daemon";
 import { packageRuntimeState } from "../internal/state-namespace";
 import {
   identityConfigSchema,
@@ -220,29 +222,16 @@ class DeclarativeMessageInterfacePlugin<
       }
       daemonIds.add(daemon.id);
       this.hasRequiredDaemon ||= daemon.required;
-      if (daemon.forAccounts) {
-        if (daemon.forAccounts !== this.definition.accountSettings) {
-          throw new Error(
-            `Message interface "${this.definition.id}" account-bound daemon "${daemon.id}" must reference its attached account settings`,
-          );
-        }
-        const registration = this.accountSettingsRegistration;
-        if (!registration) {
-          throw new Error(
-            `Message interface "${this.definition.id}" account-bound daemon "${daemon.id}" has no registered account settings`,
-          );
-        }
-        context.daemons.register(
-          daemon.id,
-          createAccountDaemon(daemon, registration, context.accountSettings, {
-            logger: this.logger,
-          }),
-        );
-        continue;
-      }
       context.daemons.register(
         daemon.id,
-        createDeclarativeDaemon(daemon, { logger: this.logger }),
+        declaredDaemon({
+          owner: `Message interface "${this.definition.id}"`,
+          daemon,
+          attached: this.definition.accountSettings,
+          registration: this.accountSettingsRegistration,
+          accountSettings: context.accountSettings,
+          logger: this.logger,
+        }),
       );
     }
 

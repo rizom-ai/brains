@@ -1,6 +1,4 @@
 export const AGENT_ENTITY_TYPE = "agent";
-export const AGENT_DISCOVERY_PLUGIN_ID = "agent-discovery";
-export const AGENT_GENERATION_JOB_TYPE = "agent:generation";
 export const AGENT_NETWORK_WIDGET_ID = "agent-network";
 export const AGENT_PROXIMITY_WIDGET_ID = "agent-proximity";
 export const AGENT_DATASOURCE_ID = "agent-discovery:entities";

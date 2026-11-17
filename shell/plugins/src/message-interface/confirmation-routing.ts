@@ -1,4 +1,5 @@
 import { parseConfirmationResponse } from "./confirmation-handler";
+import { escapeRegExp } from "@brains/utils/string-utils";
 
 export type ConfirmationRouteResult =
   | { kind: "not-confirmation" }
@@ -97,7 +98,7 @@ export function containsApprovalIdToken(
   message: string,
   approvalId: string,
 ): boolean {
-  const escapedApprovalId = approvalId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const escapedApprovalId = escapeRegExp(approvalId);
   return new RegExp(`(^|[^a-z0-9_-])${escapedApprovalId}($|[^a-z0-9_-])`).test(
     message,
   );

@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import {
   defineStudioWorkspace,
   defineWorkspaceAction,
@@ -34,6 +33,7 @@ import {
   type GuestUsageEvent,
   type GuestUsageRecord,
 } from "./guest-usage-record";
+import { sha256Hex } from "@brains/utils/hash";
 
 const RECENT = 20;
 const VISITORS = 10;
@@ -578,10 +578,6 @@ async function load(
   };
 }
 
-function digest(text: string): string {
-  return createHash("sha256").update(text).digest("hex");
-}
-
 /**
  * The owner's view of the public endpoint: what visitors asked and what it
  * cost, refusals by reason, the record's health, and the switch beside them.
@@ -669,7 +665,7 @@ export async function registerGuestMonitor(
                     : event.question;
                 return {
                   summary: `Save this visitor question as a private note? “${shown}”`,
-                  revision: digest(event.question),
+                  revision: sha256Hex(event.question),
                 };
               },
             ),

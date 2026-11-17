@@ -9,6 +9,7 @@ import {
   formatByteSize,
   capitalize,
   escapeXml,
+  escapeRegExp,
   pluralizeLabel,
   toDisplayName,
   normalizeTag,
@@ -347,6 +348,21 @@ describe("string-utils", () => {
 
     it("leaves text without special characters unchanged", () => {
       expect(escapeXml("Erstes Hauptstück")).toBe("Erstes Hauptstück");
+    });
+  });
+
+  describe("escapeRegExp", () => {
+    it("matches a string holding every special character literally", () => {
+      const text = "a.b*c+d?e^f$g{h}i(j)k|l[m]n\\o";
+      expect(new RegExp(`^${escapeRegExp(text)}$`).test(text)).toBe(true);
+    });
+
+    it("stops a dot from matching any character", () => {
+      expect(new RegExp(escapeRegExp("a.c")).test("abc")).toBe(false);
+    });
+
+    it("leaves text without special characters unchanged", () => {
+      expect(escapeRegExp("plain-text_1")).toBe("plain-text_1");
     });
   });
 });

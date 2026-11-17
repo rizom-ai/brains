@@ -7,7 +7,11 @@ import {
   type Plugin,
   type PluginCapabilities,
 } from "@brains/plugins";
-import { createMockShell, type MockShell } from "@brains/plugins/test";
+import {
+  createMockShell,
+  type MockShell,
+  registerAll,
+} from "@brains/plugins/test";
 import { createContentPipelinePlugins } from "./content-pipeline-plugins";
 
 const installedPlugins: Plugin[] = [];
@@ -67,15 +71,7 @@ async function installed(
   );
   const plugins = createContentPipelinePlugins();
   installedPlugins.push(...plugins);
-  const capabilities: PluginCapabilities[] = [];
-  for (const plugin of plugins) {
-    capabilities.push(
-      await plugin.register(
-        shell,
-        options.executionOnly ? { executionOnly: true } : undefined,
-      ),
-    );
-  }
+  const capabilities = await registerAll(shell, plugins, options);
   return { shell, plugins, capabilities, events };
 }
 

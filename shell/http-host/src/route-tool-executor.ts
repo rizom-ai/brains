@@ -1,5 +1,9 @@
 import { createExternalActorId, PLUGIN_CHANNELS } from "@brains/contracts";
-import type { IMessageBus, RegisteredApiRoute } from "@brains/plugins";
+import type {
+  IMessageBus,
+  RegisteredApiRoute,
+  ToolExecuteRequest,
+} from "@brains/plugins";
 
 /** Runs a tool-backed API route's tool; resolves to the owning plugin's bus reply. */
 export type RouteToolExecutor = (
@@ -30,7 +34,7 @@ export function createRouteToolExecutor(
           kind: "external",
           externalActorId: createExternalActorId(hostId, "anonymous"),
         },
-      },
+      } satisfies ToolExecuteRequest,
       sender: hostId,
     });
 }

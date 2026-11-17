@@ -8,6 +8,7 @@ import {
   keyMismatchWarning,
   PROVIDERS,
   resolveTextProvider,
+  selectImageProvider,
   type KeyProviderId,
 } from "@brains/ai-service";
 import type { ScaffoldOptions } from "../commands/init";
@@ -44,7 +45,7 @@ export async function promptInitOptions(
   // 1. AI models and provider keys — written to brain.yaml and .env so the
   //    brain can boot. One key per distinct provider.
   if (!result.apiKeys) {
-    Object.assign(result, await promptAIProviders());
+    Object.assign(result, await promptAIProviders(result));
   }
 
   // 2. Content git repo — optional, controls whether brain.yaml's git block
@@ -128,90 +129,128 @@ function unwrap<T>(value: T | symbol): T {
   return value;
 }
 
-async function promptModel(
-  message: string,
-  placeholder: string,
-): Promise<string> {
-  return unwrap(
-    await p.text({
-      message,
-      placeholder,
-      validate: (value) =>
-        value && value.trim().length > 0 ? undefined : "A model is required.",
-    }),
-  ).trim();
+/** The questions the AI setup asks, answered on the terminal by default. */
+export interface SetupQuestions {
+  confirm(message: string, initialValue: boolean): Promise<boolean>;
+  select(
+    message: string,
+    providers: readonly KeyProviderId[],
+  ): Promise<KeyProviderId>;
+  model(message: string, placeholder: string): Promise<string>;
+  key(provider: KeyProviderId): Promise<string>;
+  note(message: string): void;
+  warn(message: string): void;
 }
 
-async function selectProvider(
-  message: string,
-  providers: readonly KeyProviderId[],
-): Promise<KeyProviderId> {
-  return unwrap(
-    await p.select<KeyProviderId>({
-      message,
-      options: providers.map((id) => ({
-        value: id,
-        label: PROVIDERS[id].label,
-      })),
-    }),
-  );
+const terminalQuestions: SetupQuestions = {
+  confirm: async (message, initialValue) =>
+    unwrap(await p.confirm({ message, initialValue })),
+  select: async (message, providers) =>
+    unwrap(
+      await p.select<KeyProviderId>({
+        message,
+        options: providers.map((id) => ({
+          value: id,
+          label: PROVIDERS[id].label,
+        })),
+      }),
+    ),
+  model: async (message, placeholder) =>
+    unwrap(
+      await p.text({
+        message,
+        placeholder,
+        validate: (value) =>
+          value && value.trim().length > 0 ? undefined : "A model is required.",
+      }),
+    ).trim(),
+  key: async (provider) => {
+    const { label } = PROVIDERS[provider];
+    return unwrap(
+      await p.password({
+        message: `${label} API key`,
+        validate: (value) =>
+          value?.trim()
+            ? undefined
+            : `An API key for ${label} is required to boot the brain.`,
+      }),
+    ).trim();
+  },
+  note: (message) => p.note(message),
+  warn: (message) => p.log.warn(message),
+};
+
+/** The provider a chosen model runs on, or none for one no key reaches. */
+function keyProviderOfModel(provider: string): KeyProviderId | undefined {
+  return isKeyProviderId(provider) ? provider : undefined;
 }
 
 /**
  * Pick a provider per capability, then ask once per distinct provider for
- * its key. A brain on the default provider for everything needs one key.
+ * its key. A model named on the command line fixes its provider and is
+ * kept: only the questions it leaves open are asked. A brain on the default
+ * provider for everything needs one key.
  */
-async function promptAIProviders(): Promise<
-  Pick<ScaffoldOptions, "apiKeys" | "model" | "imageModel">
-> {
-  const defaultLabel = PROVIDERS[DEFAULT_PROVIDER].label;
-  const oneProvider = unwrap(
-    await p.confirm({
-      message: `Use ${defaultLabel} for chat, embeddings and images (one API key)?`,
-      initialValue: true,
-    }),
-  );
+export async function promptAIProviders(
+  initial: Pick<ScaffoldOptions, "model" | "imageModel">,
+  ask: SetupQuestions = terminalQuestions,
+): Promise<Pick<ScaffoldOptions, "apiKeys" | "model" | "imageModel">> {
+  const named = initial.model !== undefined || initial.imageModel !== undefined;
+  const oneProvider =
+    !named &&
+    (await ask.confirm(
+      `Use ${PROVIDERS[DEFAULT_PROVIDER].label} for chat, embeddings and images (one API key)?`,
+      true,
+    ));
 
-  const chat = oneProvider
-    ? DEFAULT_PROVIDER
-    : await selectProvider("Chat provider", KEY_PROVIDER_IDS);
-  const model =
-    chat === DEFAULT_PROVIDER
-      ? undefined
-      : await promptModel(
-          `${PROVIDERS[chat].label} chat model`,
-          MODEL_EXAMPLES[chat]?.chat ?? "",
-        );
-  const image = oneProvider
-    ? DEFAULT_PROVIDER
-    : await selectProvider("Image provider", IMAGE_PROVIDERS);
-  const imageModel =
-    image === DEFAULT_PROVIDER
-      ? undefined
-      : await promptModel(
-          `${PROVIDERS[image].label} image model`,
-          MODEL_EXAMPLES[image]?.image ?? "",
-        );
-  if (!oneProvider) {
-    p.note(`Embeddings use ${PROVIDERS[EMBEDDING_PROVIDER].label}.`);
+  let model = initial.model;
+  let chat: KeyProviderId | undefined;
+  if (model !== undefined) {
+    chat = keyProviderOfModel(resolveTextProvider(model).provider);
+  } else {
+    chat = oneProvider
+      ? DEFAULT_PROVIDER
+      : await ask.select("Chat provider", KEY_PROVIDER_IDS);
+    if (chat !== DEFAULT_PROVIDER) {
+      model = await ask.model(
+        `${PROVIDERS[chat].label} chat model`,
+        MODEL_EXAMPLES[chat]?.chat ?? "",
+      );
+    }
   }
 
-  const providers = [...new Set([chat, EMBEDDING_PROVIDER, image])];
+  let imageModel = initial.imageModel;
+  let image: KeyProviderId | undefined;
+  if (imageModel !== undefined) {
+    image = keyProviderOfModel(selectImageProvider(imageModel).provider);
+  } else {
+    image = oneProvider
+      ? DEFAULT_PROVIDER
+      : await ask.select("Image provider", IMAGE_PROVIDERS);
+    if (image !== DEFAULT_PROVIDER) {
+      imageModel = await ask.model(
+        `${PROVIDERS[image].label} image model`,
+        MODEL_EXAMPLES[image]?.image ?? "",
+      );
+    }
+  }
+  if (!oneProvider) {
+    ask.note(`Embeddings use ${PROVIDERS[EMBEDDING_PROVIDER].label}.`);
+  }
+
+  const providers = [
+    ...new Set(
+      [chat, EMBEDDING_PROVIDER, image].filter(
+        (provider): provider is KeyProviderId => provider !== undefined,
+      ),
+    ),
+  ];
   const entries = await providers.reduce<Promise<Array<[string, string]>>>(
     async (previous, provider) => {
       const collected = await previous;
-      const { label } = PROVIDERS[provider];
-      const key = unwrap(
-        await p.password({
-          message: `${label} API key`,
-          validate: (value) =>
-            value?.trim()
-              ? undefined
-              : `An API key for ${label} is required to boot the brain.`,
-        }),
-      ).trim();
+      const key = await ask.key(provider);
       const warning = keyMismatchWarning(provider, key);
-      if (warning) p.log.warn(warning);
+      if (warning) ask.warn(warning);
       return [...collected, [keyEnvVar(provider), key]];
     },
     Promise.resolve([]),

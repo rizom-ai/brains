@@ -1,23 +1,10 @@
 import type { IEmbeddingService } from "../../src/embedding-types";
+import {
+  MOCK_EMBEDDING_DIMENSIONS,
+  createMockEmbeddingService,
+} from "../../src/test/mock-embedding-service";
 
-export const MOCK_DIMENSIONS = 1536;
+export const MOCK_DIMENSIONS: number = MOCK_EMBEDDING_DIMENSIONS;
 
-/**
- * Mock embedding service that returns fixed-dimension float arrays.
- * Matches OpenAI text-embedding-3-small dimensions.
- */
-export const mockEmbeddingService: IEmbeddingService = {
-  identity: {
-    model: "test:mock",
-    dimensions: MOCK_DIMENSIONS,
-    promptRevision: 0,
-  },
-  embedQuery: async () => ({
-    embedding: new Float32Array(MOCK_DIMENSIONS).fill(0.1),
-    usage: { tokens: 10 },
-  }),
-  embedDocuments: async (texts: { content: string }[]) => ({
-    embeddings: texts.map(() => new Float32Array(MOCK_DIMENSIONS).fill(0.1)),
-    usage: { tokens: texts.length * 10 },
-  }),
-};
+export const mockEmbeddingService: IEmbeddingService =
+  createMockEmbeddingService();

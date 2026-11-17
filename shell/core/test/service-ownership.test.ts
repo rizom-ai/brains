@@ -25,6 +25,7 @@ import { createSilentLogger, createTestDirectory } from "@brains/test-utils";
 import type { ShellConfigInput } from "../src/config";
 import { DaemonRegistry } from "../src/daemon-registry";
 import { Shell, type ShellDependencies } from "../src/shell";
+import { createMockEmbeddingService } from "@brains/entity-service/test";
 
 interface TestDirectory {
   dir: string;
@@ -76,17 +77,7 @@ const dependencyAudit: Record<keyof ShellDependencies, DependencyAuditEntry> = {
 
 const logger = createSilentLogger("service-ownership");
 
-const embeddingService: IEmbeddingService = {
-  identity: { model: "test:mock", dimensions: 1536, promptRevision: 0 },
-  embedQuery: async () => ({
-    embedding: new Float32Array(1536).fill(0.1),
-    usage: { tokens: 1 },
-  }),
-  embedDocuments: async (texts) => ({
-    embeddings: texts.map(() => new Float32Array(1536).fill(0.1)),
-    usage: { tokens: texts.length },
-  }),
-};
+const embeddingService: IEmbeddingService = createMockEmbeddingService();
 
 function createTestConfig(dir: string): ShellConfigInput {
   return {

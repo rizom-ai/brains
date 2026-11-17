@@ -18,24 +18,17 @@ const storedTopic = storedDocumentCodec<
   header: topicFrontmatterSchema,
   deriveMetadata: () => ({}),
   readAsWritten: true,
-});
-// A read is the stored document as written. A write drops the Sources
-// section old topics kept, and states a header that names no title under
-// "Unknown Topic", as the topics class wrote every topic. The codec stays
-// the one storedDocumentCodec made, which is what reads as written.
-const storedDecode = storedTopic.decode;
-Object.assign(storedTopic, {
-  decode: (document: Parameters<typeof storedDecode>[0]) => {
+  // A read is the stored document as written. A write drops the Sources
+  // section old topics kept, and states a header that names no title under
+  // "Unknown Topic", as the topics class wrote every topic.
+  prepare: (document) => {
     const { visibility: _visibility, ...header } = document.frontmatter;
     return topicFrontmatterSchema.safeParse(header).success
-      ? storedDecode({
-          ...document,
-          content: withoutLegacySources(document.content),
-        })
-      : storedDecode({
+      ? { ...document, content: withoutLegacySources(document.content) }
+      : {
           content: document.content,
           frontmatter: { ...document.frontmatter, title: "Unknown Topic" },
-        });
+        };
   },
 });
 

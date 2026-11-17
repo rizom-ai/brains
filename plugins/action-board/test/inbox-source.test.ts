@@ -141,25 +141,6 @@ describe("the action-items Inbox source", () => {
       text: "Book the venue for the spring gathering",
       truncated: false,
     });
-    expect(
-      source.resolveDetail(
-        "venue",
-        { permissionLevel: "trusted" },
-        new AbortController().signal,
-      ),
-    ).rejects.toThrow("admin");
-  });
-
-  it("acts only for an admin", async () => {
-    const context = await brain([
-      { id: "venue", text: "Book the venue", status: "blocked" },
-    ]);
-    const source = new ActionItemInboxSource(context);
-
-    expect(
-      source.act("venue", "resume", { permissionLevel: "trusted" }),
-    ).rejects.toThrow("admin");
-    expect((await stored(context, "venue"))?.status).toBe("blocked");
   });
 
   it("refuses an unknown action and a card no longer blocked", async () => {

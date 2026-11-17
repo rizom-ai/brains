@@ -1,4 +1,5 @@
 import { z } from "@brains/utils/zod";
+import { registrationOwner } from "./utils/registration-owner";
 
 const inboxIdPattern = /^[a-z][a-z0-9-]*$/;
 
@@ -312,7 +313,7 @@ export class InboxRegistry implements IInboxRegistry {
 
   registerSource(pluginId: string, source: InboxSource): void {
     this.assertRegistrationOpen();
-    const owner = normalizePluginId(pluginId);
+    const owner = registrationOwner(pluginId, "Inbox");
     const descriptor = inboxSourceDescriptorSchema.parse({
       sourceId: source.sourceId,
       displayName: source.displayName,
@@ -400,6 +401,15 @@ function normalizeSource(
 ): InboxSource {
   const normalizedFacets = freezeFacetDefinitions(facets);
   const sourceFacetsSchema = createSourceFacetsSchema(normalizedFacets);
+  // An Inbox item's detail and actions are an admin's, for every source:
+  // the registry refuses anyone else before the source is reached.
+  const adminActor = (actor: InboxActor): InboxActor => {
+    const parsed = inboxActorSchema.parse(actor);
+    if (parsed.permissionLevel !== "admin") {
+      throw new Error(`${metadata.displayName} requires admin permission`);
+    }
+    return parsed;
+  };
   return Object.freeze({
     ...metadata,
     ...(normalizedFacets.length > 0 ? { facets: normalizedFacets } : {}),
@@ -423,7 +433,7 @@ function normalizeSource(
             return inboxItemDetailSchema.parse(
               await source.resolveDetail?.(
                 inboxItemIdSchema.parse(itemId),
-                inboxActorSchema.parse(actor),
+                adminActor(actor),
                 signal,
               ),
             );
@@ -435,13 +445,10 @@ function normalizeSource(
       actionId: string,
       actor: InboxActor,
     ): Promise<void> => {
+      const admin = adminActor(actor);
       const normalizedItemId = inboxItemIdSchema.parse(itemId);
       const normalizedActionId = inboxIdSchema.parse(actionId);
-      await source.act(
-        normalizedItemId,
-        normalizedActionId,
-        inboxActorSchema.parse(actor),
-      );
+      await source.act(normalizedItemId, normalizedActionId, admin);
     },
   });
 }
@@ -505,12 +512,6 @@ function createSourceFacetsSchema(
       }
     }
   });
-}
-
-function normalizePluginId(pluginId: string): string {
-  const normalized = pluginId.trim();
-  if (!normalized) throw new Error("Inbox registration plugin id is required");
-  return normalized;
 }
 
 function normalizeSourceId(sourceId: string): string {

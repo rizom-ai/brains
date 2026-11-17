@@ -34,9 +34,9 @@ import {
 import type { IMCPService } from "@brains/mcp-service";
 import {
   SYSTEM_CHANNELS,
+  chatAttachmentFromUpload,
   identityChangedChannel,
   sharedUploadScope,
-  type ResolvedRuntimeUpload,
   type RuntimeUploadRegistry,
 } from "@brains/plugins";
 import {
@@ -151,7 +151,8 @@ async function resolveRuntimeUploadAttachment(
       refKind: source.kind,
       routePath: "",
     });
-    return toChatAttachment(await store.read(source.id), source);
+    const { record, content } = await store.read(source.id);
+    return chatAttachmentFromUpload({ ...record, content, source });
   } catch (error) {
     // A prior upload may legitimately be gone by now. Skipping it keeps the
     // rest of the conversation's attachments intact.
@@ -168,37 +169,6 @@ function getRuntimeUploadNamespace(refKind: string): string | null {
   return refKind === sharedUploadScope.refKind
     ? sharedUploadScope.namespace
     : null;
-}
-
-function toChatAttachment(
-  resolved: ResolvedRuntimeUpload,
-  source: ChatAttachmentSource,
-): ChatAttachment {
-  const { record, content } = resolved;
-  if (isTextUpload(record.mediaType)) {
-    return {
-      kind: "text",
-      filename: record.filename,
-      mediaType: record.mediaType,
-      content: new TextDecoder("utf-8").decode(content).replace(/^\uFEFF/, ""),
-      sizeBytes: record.sizeBytes,
-      source,
-    };
-  }
-
-  return {
-    kind: "file",
-    filename: record.filename,
-    mediaType: record.mediaType,
-    data: new Uint8Array(content),
-    sizeBytes: record.sizeBytes,
-    source,
-  };
-}
-
-function isTextUpload(mediaType: string): boolean {
-  const normalized = mediaType.toLowerCase();
-  return normalized.startsWith("text/") || normalized === "application/json";
 }
 
 export function initializeIdentityAndAgentServices(

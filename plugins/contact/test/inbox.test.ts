@@ -100,21 +100,9 @@ describe("contact inbox", () => {
     expect(await source.list()).toEqual([]);
   });
 
-  it("denies non-admin detail/actions and unknown actions", async () => {
+  it("refuses an action it does not offer", async () => {
     const { context } = await fixture();
     const source = new FormInboxSource(context, contactRequestTarget);
-    for (const permissionLevel of ["public", "trusted"] as const) {
-      expect(
-        source.resolveDetail(
-          "contact-test",
-          { permissionLevel },
-          new AbortController().signal,
-        ),
-      ).rejects.toThrow("Contact inbox requires admin permission");
-      expect(
-        source.act("contact-test", "mark-handled", { permissionLevel }),
-      ).rejects.toThrow("Contact inbox requires admin permission");
-    }
     expect(source.act("contact-test", "publish", admin)).rejects.toThrow(
       "Invalid contact inbox action",
     );

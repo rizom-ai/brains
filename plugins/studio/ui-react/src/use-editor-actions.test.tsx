@@ -34,6 +34,7 @@ import {
   type EditorActions,
   type EditorActionsInput,
 } from "./use-editor-actions";
+import { deferred, type Deferred } from "@brains/utils/deferred";
 
 const capabilities: StudioTypeCapabilities = {
   canRead: true,
@@ -70,19 +71,6 @@ function editing(entity: EntityDetail): EditorWorkflowState {
     draft: { ...entity.frontmatter },
     body: entity.body,
   };
-}
-
-interface Deferred {
-  resolve: () => void;
-  promise: Promise<void>;
-}
-
-function deferred(): Deferred {
-  let resolve: () => void = () => undefined;
-  const promise = new Promise<void>((done) => {
-    resolve = done;
-  });
-  return { resolve, promise };
 }
 
 let restoreGlobals: RestoreGlobals;

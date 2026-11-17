@@ -1,13 +1,12 @@
 import {
+  chatAttachmentFromUpload,
   getMessageUploadKind,
   isMessageUploadDeclaredSizeAllowed,
-  isUploadableTextFile,
   normalizeMessageUploadMediaType,
   sanitizeUploadFilename,
   validateMessageUpload,
   type ChatAttachment,
 } from "@brains/sdk/internal/interface-runtime";
-import { bufferView } from "@brains/utils/bytes";
 import type { Message } from "chat";
 import type { ChatThread, ChatUploadStore } from "./types";
 
@@ -110,13 +109,13 @@ export class ChatInputBuilder {
           metadata: this.buildMetadata(platform, thread, message),
         });
         agentInput.attachments.push(
-          toChatAttachment(
-            record.filename,
-            record.mediaType,
+          chatAttachmentFromUpload({
+            filename: record.filename,
+            mediaType: record.mediaType,
             content,
-            record.ref,
-            validation.kind === "text",
-          ),
+            source: record.ref,
+            ...(validation.kind === "text" && { text: validation.text }),
+          }),
         );
       } catch (error: unknown) {
         this.deps.logger.error("Failed to read chat attachment", {
@@ -176,13 +175,7 @@ export function chatAttachmentFromStoredUpload(
   content: Uint8Array,
   source: { kind: string; id: string },
 ): ChatAttachment {
-  return toChatAttachment(
-    filename,
-    mediaType,
-    content,
-    source,
-    isUploadableTextFile(filename, mediaType),
-  );
+  return chatAttachmentFromUpload({ filename, mediaType, content, source });
 }
 
 function normalizeIncomingMessageText(
@@ -196,33 +189,4 @@ function normalizeIncomingMessageText(
   // text so Chat SDK can detect app mentions. Do not pass that routing marker
   // through to the agent as user intent.
   return text.replace(/(^|\s)@[UW][A-Z0-9]+\b\s*/g, "$1").trim();
-}
-
-function toChatAttachment(
-  filename: string,
-  mediaType: string,
-  content: Uint8Array,
-  source: { kind: string; id: string },
-  isText: boolean,
-): ChatAttachment {
-  if (isText) {
-    return {
-      kind: "text",
-      filename,
-      mediaType,
-      content: bufferView(content)
-        .toString("utf8")
-        .replace(/^\uFEFF/, ""),
-      sizeBytes: content.byteLength,
-      source,
-    };
-  }
-  return {
-    kind: "file",
-    filename,
-    mediaType,
-    data: content,
-    sizeBytes: content.byteLength,
-    source,
-  };
 }

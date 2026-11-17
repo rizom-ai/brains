@@ -5,6 +5,7 @@ import {
   type LinkMetadata,
   type linkMetadataSchema,
 } from "../schemas/link";
+import { definedFields } from "@brains/utils/strip-undefined";
 
 /**
  * A link's frontmatter, in the order the link adapter wrote a new link:
@@ -14,16 +15,14 @@ import {
 export function linkFrontmatter(
   metadata: LinkMetadata,
 ): Record<string, unknown> {
-  return Object.fromEntries(
-    Object.entries({
-      status: metadata.status,
-      title: metadata.title,
-      url: metadata.url,
-      description: metadata.description,
-      capturedAt: metadata.capturedAt,
-      source: { ref: metadata.source.ref, label: metadata.source.label },
-    }).filter(([, value]) => value !== undefined),
-  );
+  return definedFields({
+    status: metadata.status,
+    title: metadata.title,
+    url: metadata.url,
+    description: metadata.description,
+    capturedAt: metadata.capturedAt,
+    source: { ref: metadata.source.ref, label: metadata.source.label },
+  });
 }
 
 /** A link's frontmatter is its metadata; its body is its summary. */

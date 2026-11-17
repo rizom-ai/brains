@@ -16,6 +16,7 @@ import {
   createMockShell,
   createTestEntityAdapter,
   type MockShell,
+  registerAll,
 } from "@brains/plugins/test";
 import { EntityRegistry } from "@brains/entity-service";
 import { createSilentLogger } from "@brains/test-utils";
@@ -51,15 +52,7 @@ async function installed(
       id === "web-chat" ? "@brains/web-chat" : undefined,
     );
   const plugins = createStudioPlugins();
-  const capabilities: PluginCapabilities[] = [];
-  for (const plugin of plugins) {
-    capabilities.push(
-      await plugin.register(
-        shell,
-        options.executionOnly ? { executionOnly: true } : undefined,
-      ),
-    );
-  }
+  const capabilities = await registerAll(shell, plugins, options);
   return { shell, plugins, capabilities };
 }
 

@@ -16,6 +16,7 @@ import {
   type SocialPostMetadata,
   type SocialPostWithData,
 } from "../schemas/social-post";
+import { definedFields } from "@brains/utils/strip-undefined";
 
 /** A post's slug: its platform and its title, as the adapter resolved it. */
 export function socialPostSlug(platform: Platform, title: string): string {
@@ -31,20 +32,18 @@ export function socialPostSlug(platform: Platform, title: string): string {
 export function socialPostFrontmatter(
   metadata: SocialPostMetadata,
 ): Record<string, unknown> {
-  return Object.fromEntries(
-    Object.entries({
-      title: metadata.title,
-      platform: metadata.platform,
-      status: metadata.status,
-      coverImageId: metadata.coverImageId,
-      documents: metadata.documents?.map(({ id }) => ({ id })),
-      publishedAt: metadata.publishedAt,
-      platformPostId: metadata.platformPostId,
-      sourceEntityId: metadata.sourceEntityId,
-      sourceEntityType: metadata.sourceEntityType,
-      slug: metadata.statedSlug,
-    }).filter(([, value]) => value !== undefined),
-  );
+  return definedFields({
+    title: metadata.title,
+    platform: metadata.platform,
+    status: metadata.status,
+    coverImageId: metadata.coverImageId,
+    documents: metadata.documents?.map(({ id }) => ({ id })),
+    publishedAt: metadata.publishedAt,
+    platformPostId: metadata.platformPostId,
+    sourceEntityId: metadata.sourceEntityId,
+    sourceEntityType: metadata.sourceEntityType,
+    slug: metadata.statedSlug,
+  });
 }
 
 /** What a file states: a file may leave out the platform and the status. */

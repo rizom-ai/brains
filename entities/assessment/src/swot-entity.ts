@@ -7,6 +7,7 @@ import {
 import {
   entityRuntime,
   storedDocumentCodec,
+  bodyUnderHeader,
   withFrontmatterSchema,
   writesInDocumentOrder,
 } from "@brains/sdk/internal/entity-runtime";
@@ -33,17 +34,8 @@ const storedSwot = storedDocumentCodec<
   header: swotFrontmatterSchema,
   deriveMetadata: ({ derivedAt }) => ({ derivedAt }),
   readAsWritten: true,
-});
-// The swot adapter wrote a hand-added body from the line under its header.
-// The codec stays the one storedDocumentCodec made, which is what reads as
-// written.
-const storedDecode = storedSwot.decode;
-Object.assign(storedSwot, {
-  decode: (document: Parameters<typeof storedDecode>[0]) =>
-    storedDecode({
-      ...document,
-      content: document.content.replace(/^\n+/u, ""),
-    }),
+  // The swot adapter wrote a hand-added body from the line under its header.
+  prepare: bodyUnderHeader,
 });
 
 /**

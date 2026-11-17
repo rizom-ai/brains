@@ -1,5 +1,11 @@
 import { describe, it, expect } from "bun:test";
-import { readString, readNumber } from "../src/record-fields";
+import {
+  asRecord,
+  readBoolean,
+  readNumber,
+  readString,
+  readValue,
+} from "../src/record-fields";
 
 describe("readString", () => {
   it("returns the value when it is a string", () => {
@@ -37,5 +43,36 @@ describe("readNumber", () => {
     expect(readNumber({}, "n")).toBeUndefined();
     expect(readNumber(undefined, "n")).toBeUndefined();
     expect(readNumber(null, "n")).toBeUndefined();
+  });
+});
+
+describe("readBoolean", () => {
+  it("returns booleans only", () => {
+    expect(readBoolean({ ok: false }, "ok")).toBe(false);
+    expect(readBoolean({ ok: true }, "ok")).toBe(true);
+    expect(readBoolean({ ok: "true" }, "ok")).toBeUndefined();
+    expect(readBoolean(undefined, "ok")).toBeUndefined();
+  });
+});
+
+describe("a bag of unknown shape", () => {
+  it("reads a field from a plain object", () => {
+    const payload: unknown = { title: "A note", size: 3, nested: { id: "n" } };
+    expect(readString(payload, "title")).toBe("A note");
+    expect(readNumber(payload, "size")).toBe(3);
+    expect(readValue(payload, "nested")).toEqual({ id: "n" });
+    expect(asRecord(payload)).toEqual({
+      title: "A note",
+      size: 3,
+      nested: { id: "n" },
+    });
+  });
+
+  it("reads nothing from what is not a plain object", () => {
+    expect(readString("title", "length")).toBeUndefined();
+    expect(readNumber(["a"], "length")).toBeUndefined();
+    expect(readValue(new Date(0), "getTime")).toBeUndefined();
+    expect(asRecord(["a"])).toBeUndefined();
+    expect(asRecord(null)).toBeUndefined();
   });
 });

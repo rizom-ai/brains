@@ -13,13 +13,12 @@ const metadata = { name: packageJson.name, version: packageJson.version };
 /**
  * The directory-sync service as a test drives it: the plugin the canonical
  * brain composes, with its lifecycle, and the running sync its class
- * exposed (`getDirectorySync`, `configure`, `hasGitSync`).
+ * exposed (`getDirectorySync`, `hasGitSync`).
  */
 export type DirectorySyncPlugin = Plugin & {
   ready(): Promise<void>;
   shutdown(): Promise<void>;
   getDirectorySync(): DirectorySync | undefined;
-  configure(options: { syncPath: string }): Promise<void>;
   hasGitSync(): boolean;
 };
 
@@ -41,17 +40,11 @@ export function createDirectorySyncPlugin(
   if (!plugin?.ready || !plugin.shutdown)
     throw new Error("The package installs no service plugin");
   const { ready, shutdown } = plugin;
-  const sync = (): DirectorySyncService => {
-    if (!held.sync) throw new Error("Directory sync is not set up");
-    return held.sync;
-  };
   return Object.assign(plugin, {
     ready: (): Promise<void> => ready.call(plugin),
     shutdown: (): Promise<void> => shutdown.call(plugin),
     getDirectorySync: (): DirectorySync | undefined =>
       held.sync?.getDirectorySync(),
-    configure: (options: { syncPath: string }): Promise<void> =>
-      sync().configure(options),
     hasGitSync: (): boolean => held.sync?.hasGitSync() ?? false,
   });
 }

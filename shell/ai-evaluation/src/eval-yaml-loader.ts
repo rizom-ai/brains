@@ -210,10 +210,10 @@ export async function loadPluginEvalConfig(
   return defineConfig({
     name: `${pluginId}-eval`,
     version: "0.1.0",
-    ...(Object.keys(providerKeys).length > 0
-      ? { aiProviderKeys: providerKeys }
-      : {}),
-    ...(resolvedModel ? { aiModel: resolvedModel } : {}),
+    ai: {
+      ...(Object.keys(providerKeys).length > 0 && { providerKeys }),
+      ...(resolvedModel && { model: resolvedModel }),
+    },
     plugins,
     shellConfig: {
       database: { url: `file:${evalDbBase}.db` },

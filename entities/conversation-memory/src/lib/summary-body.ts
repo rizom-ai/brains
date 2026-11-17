@@ -1,6 +1,7 @@
 import { readMarkdownFrontmatter } from "@brains/utils/markdown-frontmatter";
 import { z } from "@brains/utils/zod";
 import { summaryBodySchema, type SummaryEntry } from "../schemas/summary";
+import { escapeRegExp } from "@brains/utils/string-utils";
 
 /*
  * A summary's markdown body: "# Conversation Summary", then one "## <title>"
@@ -36,7 +37,7 @@ function renderEntries(entries: SummaryEntry[]): string {
 }
 
 function parseList(text: string, title: string): string[] {
-  const escapedTitle = title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const escapedTitle = escapeRegExp(title);
   const match = text.match(
     new RegExp(`^###\\s+${escapedTitle}\\s*\\n([\\s\\S]*?)(?=^###\\s+|$)`, "m"),
   );

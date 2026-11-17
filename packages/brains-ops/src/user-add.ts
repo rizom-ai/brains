@@ -1,4 +1,4 @@
-import { access, mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 
 import { isNotFoundError } from "@brains/utils/predicates";
@@ -6,6 +6,7 @@ import { capitalize } from "@brains/utils/string-utils";
 import { parseYamlDocument } from "@brains/utils/yaml";
 
 import { type CohortConfig, cohortSchema, handleSchema } from "./schema";
+import { fileExists } from "./fs-paths";
 
 export interface AddPilotUserOptions {
   cohort: string;
@@ -183,15 +184,6 @@ async function writeFileIfMissing(
       return false;
     }
     throw error;
-  }
-}
-
-async function fileExists(path: string): Promise<boolean> {
-  try {
-    await access(path);
-    return true;
-  } catch {
-    return false;
   }
 }
 

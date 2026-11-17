@@ -5,7 +5,7 @@ import type {
 import {
   checkEntityText,
   entityRuntime,
-  entityTextError,
+  entityTextRefusal,
   readEntityText,
   statedDateSchema,
 } from "@brains/sdk/internal/entity-runtime";
@@ -61,13 +61,7 @@ export const postFromText: EntityCreateRoute<typeof blogPostMetadataSchema> = {
     if (read.kind === "not-text")
       return entityRuntime(context).ordinaryCreate();
     if (read.kind !== "text") {
-      const refused = entityTextError(read);
-      return {
-        refuse:
-          refused.kind === "handled" && !refused.result.success
-            ? refused.result.error
-            : "This text cannot be saved as a post",
-      };
+      return { refuse: entityTextRefusal(read) };
     }
     const { title, body, fields } = read.text;
     const id = slugify(title);

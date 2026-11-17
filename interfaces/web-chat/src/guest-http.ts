@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { isIP } from "node:net";
 import {
   createUIMessageStream,
@@ -72,6 +72,7 @@ import type { WebChatConversation } from "./conversation-access";
 import { writeTextPart } from "./stream-writer";
 
 import type { AskContent } from "@brains/contracts";
+import { sha256Hex } from "@brains/utils/hash";
 
 export interface GuestHttpOptions {
   /** Bounded public authored copy, not execution configuration. */
@@ -485,9 +486,7 @@ export class GuestHttpHandlers {
     // Stable across retries of a first send, but minted using server-owned identity.
     const id =
       parsed.data.id ??
-      `guest-${createHash("sha256")
-        .update(JSON.stringify([visitor.id, message.id]))
-        .digest("hex")}`;
+      `guest-${sha256Hex(JSON.stringify([visitor.id, message.id]))}`;
     if (/[\r\n]/u.test(id))
       throw new GuestHttpError(400, "Invalid guest message");
     return {

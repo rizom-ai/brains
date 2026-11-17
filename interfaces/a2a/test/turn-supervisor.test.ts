@@ -2,14 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { Effect } from "@brains/utils/effect";
 import { TestClock } from "@brains/utils/effect/test";
 import { A2ATurnSupervisor } from "../src/turn-supervisor";
-
-function deferred(): { promise: Promise<void>; resolve(): void } {
-  let settle: (() => void) | undefined;
-  const promise = new Promise<void>((resolve) => {
-    settle = resolve;
-  });
-  return { promise, resolve: (): void => settle?.() };
-}
+import { deferred } from "@brains/utils/deferred";
 
 describe("A2ATurnSupervisor", () => {
   it("runs heartbeats on the injected Effect clock and stops them on close", async () => {

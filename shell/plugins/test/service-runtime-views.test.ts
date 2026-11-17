@@ -1,14 +1,9 @@
 import { describe, expect, it, spyOn } from "bun:test";
 import { z } from "@brains/utils/zod";
 import { createElement as h } from "react";
-import { createMockShell, type MockShell } from "../src/test/mock-shell";
-import {
-  createTemplate,
-  defineServicePlugin,
-  instantiatePluginPackageDefinition,
-  serviceRuntime,
-  type ServiceRuntime,
-} from "../src";
+import { createMockShell } from "../src/test/mock-shell";
+import { createTemplate } from "../src";
+import { probeRuntime } from "../src/test/probe-service-runtime";
 
 /**
  * A first-party site builder converted from a class reads the brain's view
@@ -27,31 +22,11 @@ const hero = createTemplate({
   layout: { component: () => h("section", {}) },
 });
 
-async function runtimeOn(shell: MockShell): Promise<ServiceRuntime> {
-  let runtime: ServiceRuntime | undefined;
-  const [plugin] = instantiatePluginPackageDefinition(
-    defineServicePlugin({
-      id: "probe",
-      config: z.object({}),
-      setup: (context) => {
-        runtime = serviceRuntime(context);
-        return {};
-      },
-    }),
-    {},
-    { name: "@brains/probe", version: "0.1.0" },
-    { pluginId: "probe" },
-  );
-  await plugin?.register(shell);
-  if (!runtime) throw new Error("Setup did not run");
-  return runtime;
-}
-
 describe("a first-party service's views and template content", () => {
   it("reads every registered view by name, as its class did", async () => {
     const shell = createMockShell();
     shell.registerTemplates({ hero }, "landing");
-    const runtime = await runtimeOn(shell);
+    const runtime = await probeRuntime(shell);
 
     expect(runtime.views.list().map(({ name }) => name)).toContain(
       "landing:hero",
@@ -71,7 +46,7 @@ describe("a first-party service's views and template content", () => {
         return { headline: "Welcome" };
       },
     );
-    const runtime = await runtimeOn(shell);
+    const runtime = await probeRuntime(shell);
     const options = {
       savedContent: { entityType: "site-content", entityId: "home:hero" },
       fallback: { headline: "Welcome" },

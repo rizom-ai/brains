@@ -81,6 +81,9 @@ function createTransport(options: { extraTool?: boolean } = {}): {
         },
       },
       ({ message, conversationId }) => {
+        if (message === "declined") {
+          return toolResult({ success: false, error: DECLINED });
+        }
         if (message === "write" || message === "write with reply") {
           return toolResult({
             needsConfirmation: true,
@@ -170,7 +173,26 @@ function serveOverHttp(
   };
 }
 
+const DECLINED =
+  "The AI provider declined this request. Try rephrasing your message.";
+
 describe("MCPProtocolAgentService", () => {
+  test("reads a failed chat call as a turn that ended in an error", async () => {
+    const { transport, bus } = createTransport();
+    const service = await MCPProtocolAgentService.connect(transport, bus);
+
+    try {
+      const response = await service.chat("declined", "conversation-1", {
+        userPermissionLevel: "public",
+      });
+
+      expect(response.text).toBe(DECLINED);
+      expect(response.error).toBe(DECLINED);
+    } finally {
+      await service.close();
+    }
+  });
+
   test("refuses a turn with attachments, which basic MCP chat cannot carry", async () => {
     const { transport, bus } = createTransport();
     const service = await MCPProtocolAgentService.connect(transport, bus);

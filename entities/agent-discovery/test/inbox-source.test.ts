@@ -4,24 +4,31 @@ import {
 } from "../src/lib/agent-content";
 import { agentDiscoveryPlugins, installAll } from "./agent-discovery-plugins";
 import { describe, expect, it } from "bun:test";
-import type { Plugin } from "@brains/plugins";
+import type { InboxSource, Plugin } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 import { agentEntitySchema } from "../src/schemas/agent";
-import { AgentSightingsInboxSource } from "../src/inbox-source";
 import { createTestAgent } from "./fixtures/agent";
+
+/** The agent sightings source, as the Inbox reaches it. */
+function sightingsOf(
+  harness: ReturnType<typeof createPluginHarness<Plugin>>,
+): InboxSource {
+  const source = harness
+    .getMockShell()
+    .getInboxRegistry()
+    .getSource("agent-sightings");
+  if (!source) throw new Error("No agent sightings source");
+  return source;
+}
 
 async function createSource(): Promise<{
   harness: ReturnType<typeof createPluginHarness<Plugin>>;
-  source: AgentSightingsInboxSource;
+  source: InboxSource;
 }> {
   const harness = createPluginHarness<Plugin>();
   await installAll(harness, agentDiscoveryPlugins());
-  return {
-    harness,
-    source: new AgentSightingsInboxSource(
-      harness.getServiceContext("agent-discovery"),
-    ),
-  };
+  await harness.finalizeRegistration();
+  return { harness, source: sightingsOf(harness) };
 }
 
 describe("agent sightings Inbox source", () => {
@@ -78,6 +85,7 @@ describe("agent sightings Inbox source", () => {
       },
     ]);
 
+    if (!source.resolveDetail) throw new Error("No sighting detail");
     const detail = await source.resolveDetail(
       "vale.example",
       { permissionLevel: "admin" },
@@ -90,7 +98,7 @@ describe("agent sightings Inbox source", () => {
     await harness.reset();
   });
 
-  it("connects or dismisses a sighting through admin-only entity updates", async () => {
+  it("connects or dismisses a sighting through entity updates", async () => {
     const { harness, source } = await createSource();
     for (const id of ["connect.example", "dismiss.example"]) {
       await harness.getEntityService().createEntity({
@@ -104,11 +112,6 @@ describe("agent sightings Inbox source", () => {
       });
     }
 
-    expect(
-      source.act("connect.example", "connect", {
-        permissionLevel: "trusted",
-      }),
-    ).rejects.toThrow("Agent sightings require admin permission");
     expect(
       source.act("connect.example", "resolve", {
         permissionLevel: "admin",
@@ -155,7 +158,8 @@ describe("agent sightings Inbox source", () => {
   it("does not overwrite a card refresh that lands while a sighting is connected", async () => {
     const harness = createPluginHarness<Plugin>();
     await installAll(harness, agentDiscoveryPlugins());
-    const context = harness.getServiceContext("agent-discovery");
+    await harness.finalizeRegistration();
+    const context = { entityService: harness.getEntityService() };
     await context.entityService.createEntity({
       entity: createTestAgent({
         id: "vale.example",
@@ -186,7 +190,7 @@ describe("agent sightings Inbox source", () => {
       });
       return update(request);
     };
-    const source = new AgentSightingsInboxSource(context);
+    const source = sightingsOf(harness);
 
     const outcome = await source
       .act("vale.example", "connect", { permissionLevel: "admin" })
@@ -194,7 +198,7 @@ describe("agent sightings Inbox source", () => {
         () => "connected",
         (error: unknown) => {
           expect(error).toEqual(
-            new Error("Agent sighting changed; reload it and try again"),
+            new Error("The agent changed meanwhile; try again"),
           );
           return "conflict";
         },

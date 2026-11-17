@@ -62,19 +62,10 @@ const storedActionItem = storedDocumentCodec<
   header: actionItemHeader,
   deriveMetadata: (header) => actionItemStoredMetadataSchema.parse(header),
   readAsWritten: true,
-});
-// A write states the owned fields from metadata, in their current shape,
-// then every extension (a grouping) as the document states it, under the
-// card's body, as the action-item adapter wrote every card. The codec stays
-// the one storedDocumentCodec made, which is what reads as written.
-type ActionItemCodec = typeof storedActionItem;
-Object.assign(storedActionItem, {
-  encode: ({
-    content,
-    metadata,
-  }: Parameters<NonNullable<ActionItemCodec["encode"]>>[0]): ReturnType<
-    NonNullable<ActionItemCodec["encode"]>
-  > => ({
+  // A write states the owned fields from metadata, in their current shape,
+  // then every extension (a grouping) as the document states it, under the
+  // card's body, as the action-item adapter wrote every card.
+  encode: ({ content, metadata }) => ({
     content: actionItemBody(content),
     frontmatter: actionItemFrontmatter({
       content,

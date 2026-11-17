@@ -29,6 +29,7 @@ import {
   type EmailImapConfig,
   type InboundEmailClientFactory,
   type InboundEmailCursor,
+  inboundEmailCursorSchema,
 } from "./inbound-email";
 import {
   InboundEmailSupervisor,
@@ -191,11 +192,7 @@ export function createEmailInterface(
         config: imap,
         cursor: runtime.classRuntimeState.scoped({
           namespace: "email.inbound.uid-cursor",
-          schema: z.strictObject({
-            mailbox: z.string().min(1),
-            uidValidity: z.string().regex(/^[1-9]\d*$/),
-            lastUid: z.number().int().nonnegative(),
-          }),
+          schema: inboundEmailCursorSchema,
         }),
         sourceLocators: new EmailSourceLocatorStore(
           runtime.classRuntimeState.scoped({

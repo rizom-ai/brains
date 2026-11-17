@@ -9,6 +9,7 @@ import {
   frontmatterSources,
 } from "./lib/faq-body";
 import { faqFrontmatterSchema, faqMetadataSchema } from "./schemas/faq";
+import { faqInbox } from "./lib/faq-inbox";
 
 /**
  * A FAQ: a question and its answer, captured from a chat. Its frontmatter
@@ -39,6 +40,7 @@ export const faq: EntityDefinition<"faq", typeof faqMetadataSchema> =
             frontmatter: faqFrontmatterSchema.parse(metadata),
           }),
         },
+        inbox: faqInbox,
         config: {
           projectionSource: false,
           projectionSourceRole: "excluded",

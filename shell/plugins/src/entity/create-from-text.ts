@@ -239,13 +239,23 @@ export function checkEntityText<TFields>(
  * confirmed save still meets is refused with how to answer it.
  */
 export function entityTextError(
-  refusal: string | EntityTextQuestion | { kind: "error"; error: string },
+  refusal: EntityTextRefusal,
 ): CreateInterceptionResult {
-  const error =
-    typeof refusal === "string"
-      ? refusal
-      : refusal.kind === "error"
-        ? refusal.error
-        : `${refusal.question} ${refusal.answerWith}`;
-  return { kind: "handled", result: { success: false, error } };
+  return {
+    kind: "handled",
+    result: { success: false, error: entityTextRefusal(refusal) },
+  };
+}
+
+/** What stops a create of the writer's text: a reason, an error or a question. */
+export type EntityTextRefusal =
+  string | EntityTextQuestion | { kind: "error"; error: string };
+
+/** Why a create of the writer's text cannot go ahead, as a create route refuses it. */
+export function entityTextRefusal(refusal: EntityTextRefusal): string {
+  return typeof refusal === "string"
+    ? refusal
+    : refusal.kind === "error"
+      ? refusal.error
+      : `${refusal.question} ${refusal.answerWith}`;
 }

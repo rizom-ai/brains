@@ -119,40 +119,21 @@ function applyAIConfig(
   options?: InitializeOptions,
 ): void {
   const isStartupCheck = options?.mode === "startup-check";
-  if (
-    !config.aiProviderKeys &&
-    !config.aiModel &&
-    !config.aiEmbeddingModel &&
-    !config.aiModelRuntimeUrl &&
-    !config.aiAnswerModel &&
-    !config.aiVisionModel &&
-    !config.aiImageModel &&
-    !config.aiReasoningEffort &&
-    !isStartupCheck
-  ) {
+  const { providerKeys, ...models } = definedFields(config.ai ?? {});
+  if (!providerKeys && Object.keys(models).length === 0 && !isStartupCheck) {
     return;
   }
 
+  // Provider keys merge with the shell's own; each model the app names
+  // replaces the shell's.
   shellConfig.ai = {
     ...shellConfig.ai,
     providerKeys: {
       ...(isStartupCheck && startupCheckProviderKeys()),
       ...shellConfig.ai?.providerKeys,
-      ...config.aiProviderKeys,
+      ...providerKeys,
     },
-    ...(config.aiModel && { model: config.aiModel }),
-    ...(config.aiEmbeddingModel && {
-      embeddingModel: config.aiEmbeddingModel,
-    }),
-    ...(config.aiModelRuntimeUrl && {
-      modelRuntimeUrl: config.aiModelRuntimeUrl,
-    }),
-    ...(config.aiAnswerModel && { answerModel: config.aiAnswerModel }),
-    ...(config.aiVisionModel && { visionModel: config.aiVisionModel }),
-    ...(config.aiImageModel && { imageModel: config.aiImageModel }),
-    ...(config.aiReasoningEffort && {
-      reasoningEffort: config.aiReasoningEffort,
-    }),
+    ...models,
   };
 }
 

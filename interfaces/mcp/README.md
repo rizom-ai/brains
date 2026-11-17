@@ -37,7 +37,6 @@ const stdioInterface = new MCPInterface({
 // For HTTP transport with a static token (local development only; a production brain refuses it)
 const httpInterface = new MCPInterface({
   transport: "http",
-  httpPort: 3333,
   authToken: process.env.MCP_AUTH_TOKEN,
 });
 
@@ -93,21 +92,10 @@ await stdioServer.start();
 
 #### HTTP Transport
 
-For web-based MCP clients:
-
-```typescript
-import { StreamableHTTPServer } from "@brains/mcp";
-
-const httpServer = StreamableHTTPServer.getInstance({
-  port: 3333,
-  host: "0.0.0.0",
-  logger: consoleLogger,
-});
-
-// Connect MCP server from core service
-httpServer.connectMCPServer(mcpServer);
-await httpServer.start();
-```
+For web-based MCP clients. The HTTP transport opens no port of its own: the
+interface mounts it on the brain's own web server, at `/mcp` and `/status`.
+A configuration that still sets the retired `httpPort` is refused with a
+message saying to remove it.
 
 ## Transport Logger
 
@@ -131,7 +119,6 @@ The HTTP transport provides these endpoints:
 - `POST /mcp` - Handle stateless MCP requests for both 2026-07-28 and legacy clients
 - `GET /mcp` - Reserved for protocol streams; legacy session requests return `405`
 - `DELETE /mcp` - Legacy session termination requests return `405`
-- `GET /health` - Health check
 - `GET /status` - Server status
 
 ## Stateless HTTP
@@ -186,7 +173,6 @@ const config = defineConfig({
 interface MCPConfig {
   transport: "stdio" | "http";
   mode?: "basic" | "debug"; // default: "basic"
-  httpPort?: number; // For HTTP transport
   authToken?: string; // Static bearer token: local development only; a production brain refuses it
 }
 ```
@@ -232,9 +218,8 @@ interface StdioMCPServerConfig {
 
 // HTTP config
 interface StreamableHTTPServerConfig {
-  port?: number;
-  host?: string;
   logger?: TransportLogger;
+  auth?: AuthConfig;
 }
 ```
 
@@ -278,8 +263,9 @@ describe("StdioMCPServer", () => {
 // Test HTTP transport
 describe("StreamableHTTPServer", () => {
   const server = StreamableHTTPServer.createFresh({
-    port: testPort,
+    auth: { disabled: true },
   });
+  // Drive it through server.handleRequest(request).
   // ... tests
 });
 ```

@@ -85,7 +85,6 @@ export class FormInboxSource<
     actor: InboxActor,
     signal: AbortSignal,
   ): Promise<InboxItemDetail> {
-    this.requireAdmin(actor);
     signal.throwIfAborted();
     try {
       const entity = await this.read(itemId, actor);
@@ -106,7 +105,6 @@ export class FormInboxSource<
     actionId: string,
     actor: InboxActor,
   ): Promise<void> {
-    this.requireAdmin(actor);
     if (actionId !== MARK_HANDLED)
       throw new Error(`Invalid ${this.inbox.label.toLowerCase()} inbox action`);
     this.context.permissions.assertEntityActionAllowed(
@@ -127,11 +125,6 @@ export class FormInboxSource<
     } catch {
       throw this.unavailable();
     }
-  }
-
-  private requireAdmin(actor: InboxActor): void {
-    if (actor.permissionLevel !== "admin")
-      throw new Error(`${this.inbox.label} inbox requires admin permission`);
   }
 
   private unavailable(): Error {

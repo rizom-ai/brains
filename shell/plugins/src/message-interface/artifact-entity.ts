@@ -4,6 +4,7 @@ import {
   type AssetOpener,
 } from "@brains/entity-service";
 import type { AttachmentCard } from "../contracts/agent";
+import { parseBase64DataUrl } from "@brains/utils/data-url";
 import { formatContentDispositionHeader } from "./content-disposition";
 
 export type ArtifactEntityType = "document" | "image";
@@ -78,7 +79,7 @@ export function parseArtifactDataUrl(
   entityType: ArtifactEntityType,
   content: string,
 ): ParsedArtifactDataUrl | undefined {
-  const parsed = parseBase64DataUrl(content, ARTIFACT_MEDIA_TYPES[entityType]);
+  const parsed = parseDataUrlOf(content, ARTIFACT_MEDIA_TYPES[entityType]);
   if (!parsed) return undefined;
   if (
     entityType === "document" &&
@@ -252,20 +253,15 @@ function streamChunks(
   });
 }
 
-function parseBase64DataUrl(
+function parseDataUrlOf(
   dataUrl: string,
   mediaTypePattern: RegExp,
 ): ParsedArtifactDataUrl | undefined {
-  // A data URL read from a markdown file keeps that file's newline.
-  const match = dataUrl.trim().match(/^data:([^;]+);base64,(.+)$/i);
-  const mimeType = match?.[1];
-  const encoded = match?.[2];
-  if (!mimeType || !encoded || !mediaTypePattern.test(mimeType)) {
-    return undefined;
-  }
-  const buffer = Buffer.from(encoded, "base64");
+  const parsed = parseBase64DataUrl(dataUrl);
+  if (!parsed || !mediaTypePattern.test(parsed.mimeType)) return undefined;
+  const buffer = parsed.data;
   return {
-    mimeType,
+    mimeType: parsed.mimeType,
     data: buffer.buffer.slice(
       buffer.byteOffset,
       buffer.byteOffset + buffer.byteLength,

@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import { defineJobContract, type PublishMediaData } from "@brains/contracts";
 import {
   countPdfPages,
@@ -23,6 +22,7 @@ import { getErrorMessage } from "@brains/utils/error";
 import { parseMarkdown } from "@brains/utils/markdown";
 import { slugify } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
+import { sha256Hex } from "@brains/utils/hash";
 
 type DocumentDefinition = EntityDefinition<
   "document",
@@ -532,10 +532,7 @@ function normalizeDocumentId(base: string): string {
 }
 
 function shortHash(value: string): string {
-  return createHash("sha256")
-    .update(value)
-    .digest("hex")
-    .slice(0, DOCUMENT_ID_HASH_LENGTH);
+  return sha256Hex(value).slice(0, DOCUMENT_ID_HASH_LENGTH);
 }
 
 function isDocumentReference(value: unknown): value is { id: string } {

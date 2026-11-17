@@ -3,15 +3,8 @@ import {
   EntityActionPermissionError,
   PermissionService,
 } from "@brains/templates";
-import { z } from "@brains/utils/zod";
 import { createMockShell, type MockShell } from "../src/test/mock-shell";
-import {
-  defineServicePlugin,
-  instantiatePluginPackageDefinition,
-  serviceRuntime,
-  type Plugin,
-  type ServiceRuntime,
-} from "../src";
+import { probeService } from "../src/test/probe-service-runtime";
 
 /**
  * A first-party service converted from a class checks the brain's entity
@@ -21,30 +14,6 @@ import {
  * restricted passes. Content-pipeline checks who may queue and publish a
  * type this way.
  */
-
-async function runtimeOn(shell: MockShell): Promise<{
-  runtime: ServiceRuntime;
-  plugin: Plugin;
-}> {
-  let runtime: ServiceRuntime | undefined;
-  const [plugin] = instantiatePluginPackageDefinition(
-    defineServicePlugin({
-      id: "probe",
-      config: z.object({}),
-      setup: (context) => {
-        runtime = serviceRuntime(context);
-        return {};
-      },
-    }),
-    {},
-    { name: "@brains/probe", version: "0.1.0" },
-    { pluginId: "probe" },
-  );
-  if (!plugin) throw new Error("No plugin");
-  await plugin.register(shell);
-  if (!runtime) throw new Error("Setup did not run");
-  return { runtime, plugin };
-}
 
 function brainWithPublishPolicy(): MockShell {
   const shell = createMockShell();
@@ -57,7 +26,7 @@ function brainWithPublishPolicy(): MockShell {
 
 describe("a first-party service's entity action checks", () => {
   it("refuse a caller below the level the action needs, as its class did", async () => {
-    const { runtime } = await runtimeOn(brainWithPublishPolicy());
+    const { runtime } = await probeService(brainWithPublishPolicy());
 
     expect(() =>
       runtime.permissions.assertEntityActionAllowed("social-post", "publish", {
@@ -72,7 +41,7 @@ describe("a first-party service's entity action checks", () => {
   });
 
   it("pass an action no policy restricts", async () => {
-    const { runtime } = await runtimeOn(brainWithPublishPolicy());
+    const { runtime } = await probeService(brainWithPublishPolicy());
 
     expect(() =>
       runtime.permissions.assertEntityActionAllowed("social-post", "update", {

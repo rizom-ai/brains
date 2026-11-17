@@ -1,7 +1,11 @@
 import { existsSync, readFileSync } from "fs";
 import { join } from "path";
 import type { FetchLike } from "@brains/utils/fetch-like";
-import { createFakePeerFetch, type FakePeer } from "./fake-a2a-peers";
+import {
+  createFakePeerFetch,
+  LOOPBACK_HOSTNAMES,
+  type FakePeer,
+} from "./fake-a2a-peers";
 
 /**
  * The network an eval brain sees.
@@ -131,12 +135,6 @@ const MODEL_PROVIDER_HOSTS: ReadonlySet<string> = new Set([
   "api.openai.com",
   "api.anthropic.com",
   "generativelanguage.googleapis.com",
-]);
-
-const LOOPBACK_HOSTNAMES: ReadonlySet<string> = new Set([
-  "localhost",
-  "127.0.0.1",
-  "[::1]",
 ]);
 
 export interface EvalNetworkOptions {

@@ -10,6 +10,7 @@ import { appConfigSchema } from "../src/types";
 import { Shell } from "@brains/core";
 import { ProcessExited } from "@brains/test-utils";
 import { createMockShell } from "./helpers/mock-shell";
+import { deferred } from "@brains/utils/deferred";
 
 const originalNodeEnv = process.env["NODE_ENV"];
 
@@ -22,14 +23,6 @@ afterEach(() => {
 });
 
 // Create a mock Shell
-function deferred(): { promise: Promise<void>; resolve: () => void } {
-  let resolve: () => void = () => {};
-  const promise = new Promise<void>((complete) => {
-    resolve = complete;
-  });
-  return { promise, resolve };
-}
-
 describe("App", () => {
   describe("create", () => {
     it("should create an app with default config", () => {
@@ -46,7 +39,7 @@ describe("App", () => {
           name: "test-app",
           version: "2.0.0",
           database: "/tmp/test.db",
-          aiProviderKeys: { openai: "test-key" },
+          ai: { providerKeys: { openai: "test-key" } },
           logLevel: "debug",
         },
         mockShell,
@@ -363,7 +356,7 @@ describe("buildShellConfig", () => {
 
   it("prefers a configured key over the startup-check placeholder", () => {
     const shellConfig = buildShellConfig(
-      toAppConfig({ aiProviderKeys: { openai: "real" } }),
+      toAppConfig({ ai: { providerKeys: { openai: "real" } } }),
       { mode: "startup-check" },
     );
 

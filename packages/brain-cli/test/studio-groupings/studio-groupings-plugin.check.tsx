@@ -23,6 +23,7 @@ import {
   type GroupingDefinitionsFrontmatter,
 } from "@brains/studio/test";
 import { StudioApi, mountStudio, waitForStudio } from "@brains/studio/test/ui";
+import { createRefusingEmbeddingService } from "@brains/entity-service/test";
 
 const type = "grouping-definitions";
 const base = "/authoring";
@@ -55,15 +56,7 @@ async function fixture(): Promise<{
     embeddingDbConfig: { url: `file:${directory.dir}/embeddings.db` },
     jobQueueService: createMockShell().getJobQueueService(),
     embeddingsEnabled: false,
-    embeddingService: {
-      identity: { model: "test:mock", dimensions: 1536, promptRevision: 0 },
-      embedQuery: async () => {
-        throw new Error("Unexpected embedding");
-      },
-      embedDocuments: async () => {
-        throw new Error("Unexpected embedding");
-      },
-    },
+    embeddingService: createRefusingEmbeddingService(),
   });
   cleanups.push(async (): Promise<void> => {
     service.close();

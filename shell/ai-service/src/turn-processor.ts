@@ -84,6 +84,7 @@ import { buildConfirmedActionResult } from "./confirmed-action";
 import { composeConfirmationReply } from "./confirmation-reply";
 import { buildMessageMetadata, withMessageMetadata } from "./message-metadata";
 import { toTokenUsage } from "./generation-options";
+import { aiProviderDeclinedMessage } from "./errors";
 
 /**
  * The conversation operations the agent performs.
@@ -725,6 +726,7 @@ export class TurnProcessor {
 
     return {
       text: responseText,
+      ...(result.declined && { error: aiProviderDeclinedMessage }),
       toolResults,
       ...(responseCards.length > 0 ? { cards: responseCards } : {}),
       usage: toTokenUsage(result.usage),

@@ -2,7 +2,6 @@ import {
   type InterfaceRuntime,
   coerceConversationMetadata,
 } from "@brains/sdk/internal/interface-runtime";
-import { createHash } from "node:crypto";
 import {
   chatContextHandoffRequestSchema,
   chatContextHandoffResponseSchema,
@@ -13,6 +12,7 @@ import {
   type WebChatConversationAccess,
 } from "./conversation-access";
 import type { UserPermissionLevel } from "@brains/sdk/interfaces";
+import { sha256Hex } from "@brains/utils/hash";
 
 type ConversationService = InterfaceRuntime["conversations"];
 
@@ -130,17 +130,14 @@ function contextConversationId(
   personId: string,
   handoff: ChatContextHandoffRequest,
 ): string {
-  const digest = createHash("sha256")
-    .update(
-      JSON.stringify([
-        handoff.version,
-        personId,
-        handoff.sourceId,
-        handoff.itemId,
-      ]),
-    )
-    .digest("hex")
-    .slice(0, 32);
+  const digest = sha256Hex(
+    JSON.stringify([
+      handoff.version,
+      personId,
+      handoff.sourceId,
+      handoff.itemId,
+    ]),
+  ).slice(0, 32);
   return `web-context-${digest}`;
 }
 

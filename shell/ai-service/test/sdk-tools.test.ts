@@ -180,50 +180,6 @@ describe("convertToSDKTools", () => {
     });
   });
 
-  it("exposes source only for model-visible system_create source selection", () => {
-    const tool: Tool = {
-      name: "system_create",
-      description: "Create",
-      inputSchema: {
-        entityType: z.string(),
-        title: z.string().optional(),
-        visibility: z.enum(["public", "shared", "restricted"]).optional(),
-        source: z
-          .object({ kind: z.literal("text"), content: z.string() })
-          .optional(),
-        content: z.string().optional(),
-        prompt: z.string().optional(),
-        url: z.string().optional(),
-        from: z.object({ kind: z.literal("conversation-message") }).optional(),
-        upload: z
-          .object({ kind: z.literal("upload"), id: z.string() })
-          .optional(),
-        transform: z.string().optional(),
-        sourceAttachment: z
-          .object({
-            sourceEntityType: z.string(),
-            sourceEntityId: z.string(),
-            attachmentType: z.string(),
-          })
-          .optional(),
-      },
-      visibility: "public",
-      handler: mock(async () => ({ success: true as const })),
-    };
-
-    const modelVisibleInputSchema = toModelVisibleInputSchema(
-      tool.inputSchema,
-      { toolName: "system_create" },
-    );
-
-    expect(Object.keys(modelVisibleInputSchema)).toEqual([
-      "entityType",
-      "title",
-      "visibility",
-      "source",
-    ]);
-  });
-
   it("exposes upload preserve through system_create source", () => {
     const uploadRef = z.object({ kind: z.literal("upload"), id: z.string() });
     const runtimeSource = z.discriminatedUnion("kind", [
@@ -248,7 +204,6 @@ describe("convertToSDKTools", () => {
     };
     const modelVisibleInputSchema = toModelVisibleInputSchema(
       createTool.inputSchema,
-      { toolName: "system_create" },
     );
     expect(
       modelVisibleInputSchema["source"]?.safeParse({
@@ -276,10 +231,7 @@ describe("convertToSDKTools", () => {
       handler: mock(async () => ({ success: true as const })),
     };
 
-    const modelVisibleInputSchema = toModelVisibleInputSchema(
-      tool.inputSchema,
-      { toolName: "system_search" },
-    );
+    const modelVisibleInputSchema = toModelVisibleInputSchema(tool.inputSchema);
 
     expect(Object.keys(modelVisibleInputSchema)).toEqual([
       "query",
@@ -337,10 +289,7 @@ describe("convertToSDKTools", () => {
       handler: mock(async () => ({ success: true as const })),
     };
 
-    const modelVisibleInputSchema = toModelVisibleInputSchema(
-      tool.inputSchema,
-      { toolName: "system_generate" },
-    );
+    const modelVisibleInputSchema = toModelVisibleInputSchema(tool.inputSchema);
 
     expect(Object.keys(modelVisibleInputSchema)).toEqual(["operation"]);
     expect(

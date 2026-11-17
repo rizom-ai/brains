@@ -1,6 +1,15 @@
 import { toError } from "@brains/utils/error";
 import type { Daemon, DaemonHealth } from "../manager/daemon-types";
-import type { InterfaceDaemonDefinition } from "./interface-definition-contract";
+import type {
+  AnyInterfaceDaemonDefinition,
+  InterfaceDaemonDefinition,
+} from "./interface-definition-contract";
+import { createAccountDaemon } from "../operator/account-daemon-supervisor";
+import type {
+  AccountSettingsRegistration,
+  AccountSettingsRegistry,
+} from "../operator/account-settings-registry";
+import type { AnyAccountSettingsDefinition } from "../operator/account-settings-definition-contract";
 import {
   createRestartBackoff,
   daemonTimers,
@@ -163,4 +172,39 @@ export function createDeclarativeDaemon(
       return Promise.resolve({ ...health, lastCheck: new Date() });
     },
   };
+}
+
+/**
+ * The daemon a declared definition runs as: one of its own, or, bound to
+ * accounts, one task per stored account of the account settings its owner
+ * attached. `owner` names the owner in a refusal, as `Interface "chat"`.
+ */
+export function declaredDaemon(input: {
+  readonly owner: string;
+  readonly daemon: AnyInterfaceDaemonDefinition;
+  readonly attached: AnyAccountSettingsDefinition | undefined;
+  readonly registration: AccountSettingsRegistration | undefined;
+  readonly accountSettings: AccountSettingsRegistry;
+  /** Where a daemon that fails and restarts is reported. */
+  readonly logger: DaemonSupervision["logger"];
+}): Daemon {
+  const { owner, daemon } = input;
+  const supervision: DaemonSupervision = { logger: input.logger };
+  if (!daemon.forAccounts) return createDeclarativeDaemon(daemon, supervision);
+  if (daemon.forAccounts !== input.attached) {
+    throw new Error(
+      `${owner} account-bound daemon "${daemon.id}" must reference its attached account settings`,
+    );
+  }
+  if (!input.registration) {
+    throw new Error(
+      `${owner} account-bound daemon "${daemon.id}" has no registered account settings`,
+    );
+  }
+  return createAccountDaemon(
+    daemon,
+    input.registration,
+    input.accountSettings,
+    supervision,
+  );
 }

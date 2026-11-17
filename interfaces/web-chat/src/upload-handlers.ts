@@ -1,19 +1,18 @@
 import { chatUploadResponseSchema } from "@brains/contracts/chat";
 import {
   RuntimeUploadStoreError,
+  defaultMessageUploadFilename,
+  chatAttachmentFromUpload,
   formatContentDispositionHeader,
+  messageUploadMaxBytes,
+  sanitizeUploadFilename,
+  validateMessageUpload,
   type ChatAttachment,
   type ResolvedRuntimeUpload,
   type RuntimeUploadRecord,
   type ScopedRuntimeUploadStore,
+  type ValidatedMessageUpload,
 } from "@brains/sdk/internal/interface-runtime";
-import {
-  defaultWebChatUploadFilename,
-  sanitizeUploadFilename,
-  validateWebChatUpload,
-  webChatUploadMaxBytes,
-  type ValidatedWebChatUpload,
-} from "./upload-policy";
 import { webChatUploadRefKind } from "./upload-store";
 
 const webChatUploadFormField = "file";
@@ -42,7 +41,7 @@ export async function handleUploadRequest(
   const declaredSize = Number(request.headers.get("content-length"));
   if (
     Number.isFinite(declaredSize) &&
-    declaredSize > webChatUploadMaxBytes + webChatUploadEnvelopeSlackBytes
+    declaredSize > messageUploadMaxBytes + webChatUploadEnvelopeSlackBytes
   ) {
     return new Response("File upload too large", { status: 400 });
   }
@@ -60,7 +59,7 @@ export async function handleUploadRequest(
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
-  const validated = validateWebChatUpload({
+  const validated = validateMessageUpload({
     filename: file.name,
     mediaType: file.type,
     content: buffer,
@@ -124,7 +123,7 @@ export function resolveInlineUploadPart(file: {
   url: string;
 }): ChatAttachment | Response {
   const filename = sanitizeUploadFilename(
-    file.filename ?? defaultWebChatUploadFilename,
+    file.filename ?? defaultMessageUploadFilename,
   );
   const decoded = decodeUploadedDataUrl(file.url);
   if (!decoded) {
@@ -133,7 +132,7 @@ export function resolveInlineUploadPart(file: {
     });
   }
 
-  const validated = validateWebChatUpload({
+  const validated = validateMessageUpload({
     filename,
     mediaType: file.mediaType,
     content: decoded.buffer,
@@ -142,7 +141,7 @@ export function resolveInlineUploadPart(file: {
     return new Response(validated.message, { status: 400 });
   }
 
-  return toChatAttachment(validated, decoded.buffer);
+  return uploadAttachment(validated, decoded.buffer);
 }
 
 export async function resolveReferencedUpload(
@@ -156,7 +155,7 @@ export async function resolveReferencedUpload(
   const validated = validateStoredUpload(record, content);
   if (validated instanceof Response) return validated;
 
-  return toChatAttachment(validated, content, {
+  return uploadAttachment(validated, content, {
     kind: webChatUploadRefKind,
     id: uploadId,
   });
@@ -179,8 +178,8 @@ async function readStoredUpload(
 function validateStoredUpload(
   record: RuntimeUploadRecord,
   content: Uint8Array,
-): ValidatedWebChatUpload | Response {
-  const validated = validateWebChatUpload({
+): ValidatedMessageUpload | Response {
+  const validated = validateMessageUpload({
     filename: record.filename,
     mediaType: record.mediaType,
     content,
@@ -189,32 +188,6 @@ function validateStoredUpload(
     return new Response(validated.message, { status: 400 });
   }
   return validated;
-}
-
-function toChatAttachment(
-  upload: ValidatedWebChatUpload,
-  content: Uint8Array,
-  source?: ChatAttachment["source"],
-): ChatAttachment {
-  if (upload.kind === "text") {
-    return {
-      kind: "text",
-      filename: upload.filename,
-      mediaType: upload.mediaType,
-      content: upload.text,
-      sizeBytes: upload.sizeBytes,
-      ...(source !== undefined ? { source } : {}),
-    };
-  }
-
-  return {
-    kind: "file",
-    filename: upload.filename,
-    mediaType: upload.mediaType,
-    data: new Uint8Array(content),
-    sizeBytes: upload.sizeBytes,
-    ...(source !== undefined ? { source } : {}),
-  };
 }
 
 function uploadStoreErrorToResponse(error: RuntimeUploadStoreError): Response {
@@ -246,4 +219,20 @@ function decodeUploadedDataUrl(
   } catch {
     return null;
   }
+}
+
+/** A validated upload as the agent is handed it, its text as validation read it. */
+function uploadAttachment(
+  upload: ValidatedMessageUpload,
+  content: Uint8Array,
+  source?: ChatAttachment["source"],
+): ChatAttachment {
+  return chatAttachmentFromUpload({
+    filename: upload.filename,
+    mediaType: upload.mediaType,
+    content,
+    sizeBytes: upload.sizeBytes,
+    source,
+    ...(upload.kind === "text" && { text: upload.text }),
+  });
 }

@@ -267,7 +267,7 @@ describe("resolve", () => {
       GOOGLE_GENERATIVE_AI_API_KEY: "AIza-img-456",
     });
 
-    expect(config.aiProviderKeys).toEqual({
+    expect(config.ai?.providerKeys).toEqual({
       openai: "sk-test-123",
       google: "AIza-img-456",
     });
@@ -287,7 +287,7 @@ describe("resolve", () => {
       { model: "gpt-4o-mini" },
     );
 
-    expect(config.aiModel).toBe("gpt-4o-mini");
+    expect(config.ai?.model).toBe("gpt-4o-mini");
   });
 
   test("should resolve the embedding model from overrides", () => {
@@ -298,10 +298,10 @@ describe("resolve", () => {
       interfaces: [],
     });
 
-    expect(resolve(def, {}).aiEmbeddingModel).toBeUndefined();
+    expect(resolve(def, {}).ai?.embeddingModel).toBeUndefined();
     expect(
-      resolve(def, {}, { embeddingModel: "openai:text-embedding-3-large" })
-        .aiEmbeddingModel,
+      resolve(def, {}, { embeddingModel: "openai:text-embedding-3-large" }).ai
+        ?.embeddingModel,
     ).toBe("openai:text-embedding-3-large");
   });
 
@@ -314,8 +314,8 @@ describe("resolve", () => {
     });
 
     expect(
-      resolve(def, {}, { answerModel: "local:qwen3:30b-a3b-instruct" })
-        .aiAnswerModel,
+      resolve(def, {}, { answerModel: "local:qwen3:30b-a3b-instruct" }).ai
+        ?.answerModel,
     ).toBe("local:qwen3:30b-a3b-instruct");
   });
 
@@ -328,8 +328,8 @@ describe("resolve", () => {
     });
 
     expect(
-      resolve(def, {}, { modelRuntime: { url: "http://models:11434" } })
-        .aiModelRuntimeUrl,
+      resolve(def, {}, { modelRuntime: { url: "http://models:11434" } }).ai
+        ?.modelRuntimeUrl,
     ).toBe("http://models:11434");
   });
 
@@ -343,9 +343,9 @@ describe("resolve", () => {
       interfaces: [],
     });
 
-    expect(resolve(def, {}).aiReasoningEffort).toBe("low");
+    expect(resolve(def, {}).ai?.reasoningEffort).toBe("low");
     expect(
-      resolve(def, {}, { reasoningEffort: "medium" }).aiReasoningEffort,
+      resolve(def, {}, { reasoningEffort: "medium" }).ai?.reasoningEffort,
     ).toBe("medium");
   });
 

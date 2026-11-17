@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it } from "bun:test";
 import { randomUUID } from "node:crypto";
 import type { ContentVisibility, EntityPluginContext } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
-import { createSilentLogger } from "@brains/test-utils";
 import {
   faqDocument,
   faqMetadata,
@@ -202,13 +201,11 @@ describe("FaqDataSource", () => {
     const preview = await loadPublicFaqs(
       { entityService: context.entityService, publishedOnly: false },
       2,
-      createSilentLogger(),
     );
     expect(preview.map((faq) => faq.id)).toEqual(["thrice", "draft"]);
     const production = await loadPublicFaqs(
       { entityService: context.entityService, publishedOnly: true },
       6,
-      createSilentLogger(),
     );
     expect(production.map((faq) => faq.id)).toEqual(["thrice", "once"]);
   });
@@ -221,7 +218,6 @@ describe("FaqDataSource", () => {
       await loadPublicFaqs(
         { entityService: harness.getEntityService(), publishedOnly: true },
         6,
-        createSilentLogger(),
       ),
     ).toEqual([]);
   });

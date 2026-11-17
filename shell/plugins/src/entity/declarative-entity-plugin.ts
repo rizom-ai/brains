@@ -1387,10 +1387,15 @@ class DeclarativeEntityPlugin extends PluginCore<
     return widgets;
   }
 
-  /** The shell removes a plugin's Inbox sources with the plugin. */
+  /**
+   * The shell removes a plugin's Inbox sources with the plugin. The Inbox is
+   * read in the main process; a worker registers none.
+   */
   private registerInboxSource(): void {
     const inbox = this.definition.inbox;
-    if (inbox) this.getContext().inbox.registerSource(this.inboxSource(inbox));
+    const context = this.getContext();
+    if (inbox && !context.executionOnly)
+      context.inbox.registerSource(this.inboxSource(inbox));
   }
 
   /**
@@ -1666,13 +1671,6 @@ class DeclarativeEntityPlugin extends PluginCore<
         entities: createEntityReader(context.entityService, scope),
       };
     };
-    // An Inbox item is the operator's to open and act on, whichever surface
-    // reaches it, so the source itself refuses anyone below admin.
-    const requireAdmin = (actor: InboxActor): void => {
-      if (actor.permissionLevel !== "admin") {
-        throw new Error(`${declared.displayName} requires admin permission`);
-      }
-    };
     const resolveDetail = declared.resolveDetail?.bind(declared);
     return {
       sourceId: declared.sourceId,
@@ -1695,7 +1693,6 @@ class DeclarativeEntityPlugin extends PluginCore<
           actor: InboxActor,
           signal: AbortSignal,
         ): Promise<InboxItemDetail> => {
-          requireAdmin(actor);
           return resolveDetail(
             itemId,
             Object.freeze({ ...asActor(actor), signal }),
@@ -1707,7 +1704,6 @@ class DeclarativeEntityPlugin extends PluginCore<
         actionId: string,
         actor: InboxActor,
       ): Promise<void> => {
-        requireAdmin(actor);
         return declared.act(
           itemId,
           actionId,

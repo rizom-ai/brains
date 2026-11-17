@@ -233,8 +233,7 @@ export const professionalSiteRuntime: SiteRuntimeDeclaration<
                   read,
                   read.sharedState(askBoxAvailabilityState),
                 ),
-              loadFaqs: (build) =>
-                loadPublicFaqs(build, HOMEPAGE_FAQ_LIMIT, runtime.logger),
+              loadFaqs: (build) => loadPublicFaqs(build, HOMEPAGE_FAQ_LIMIT),
             })
           : undefined,
       ),

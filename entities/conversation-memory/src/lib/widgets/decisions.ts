@@ -6,13 +6,13 @@ import type {
 } from "@brains/sdk/internal/service-runtime";
 import type { MemoryEntityService } from "../memory-context";
 import { z } from "@brains/utils/zod";
-import { firstSentence } from "@brains/utils/string-utils";
 import {
   decisionSchema,
   type DecisionEntity,
 } from "../../schemas/conversation-memory";
 import { DECISION_ENTITY_TYPE } from "../constants";
 import { formatTimeRange } from "./format";
+import { listBlockItems, listItemOf } from "./list-item";
 
 const MAX_ITEMS = 6;
 const WIDGET_ID = "decisions";
@@ -40,7 +40,6 @@ const decisionsWidgetDataSchema: z.ZodObject<{
 });
 
 export type DecisionsWidgetData = z.output<typeof decisionsWidgetDataSchema>;
-export type DecisionWidgetItem = DecisionsWidgetData["items"][number];
 
 const decisionsWidget = defineDashboardWidget({
   id: WIDGET_ID,
@@ -56,18 +55,9 @@ const decisionsWidget = defineDashboardWidget({
         type: "list",
         id: "decisions",
         empty: "No decisions recorded yet.",
-        items: data.items.map((item) => ({
-          id: item.id,
-          title: item.name,
-          ...(item.description ? { description: item.description } : {}),
-          metadata: item.meta,
-          badges: [
-            {
-              label: item.status,
-              tone: item.status === "active" ? "good" : "neutral",
-            },
-          ],
-        })),
+        items: listBlockItems(data.items, (status) =>
+          status === "active" ? "good" : "neutral",
+        ),
       },
     ],
   }),
@@ -75,18 +65,6 @@ const decisionsWidget = defineDashboardWidget({
 
 function statusOrder(status: DecisionEntity["metadata"]["status"]): number {
   return status === "active" ? 0 : 1;
-}
-
-function entityTitle(entity: DecisionEntity): string {
-  const match = entity.content.match(/^#\s+(.+)$/m);
-  return match?.[1]?.trim() ?? entity.id;
-}
-
-function entityBody(entity: DecisionEntity): string {
-  return entity.content
-    .replace(/^---[\s\S]*?---/m, "")
-    .replace(/^#\s+.+$/m, "")
-    .trim();
 }
 
 export async function buildDecisionsWidgetData(
@@ -111,20 +89,13 @@ export async function buildDecisionsWidgetData(
   });
 
   return {
-    items: sorted.slice(0, MAX_ITEMS).map((entity) => {
-      const description = firstSentence(entityBody(entity));
-      const meta = [
+    items: sorted.slice(0, MAX_ITEMS).map((entity) => ({
+      ...listItemOf(entity, [
         channelLabel(entity.metadata.channelName, entity.metadata.channelId),
         formatTimeRange(entity.metadata.timeRange),
-      ].filter((segment) => segment.length > 0);
-      return {
-        id: entity.id,
-        name: entityTitle(entity),
-        ...(description ? { description } : {}),
-        meta,
-        status: entity.metadata.status,
-      };
-    }),
+      ]),
+      status: entity.metadata.status,
+    })),
   };
 }
 
@@ -142,5 +113,3 @@ export function registerDecisionsWidget(
     },
   });
 }
-
-export const DECISIONS_WIDGET_ID: typeof WIDGET_ID = WIDGET_ID;

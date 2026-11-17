@@ -4,20 +4,13 @@ import { TestClock } from "@brains/utils/effect/test";
 import type { OAuthClientPersistence } from "../src/client-store";
 import { OAuthClientMaintenanceSupervisor } from "../src/oauth-client-maintenance-supervisor";
 import { OAuthEndpoints } from "../src/oauth-endpoints";
+import { deferred } from "@brains/utils/deferred";
 
 /** A member this test never exercises: reaching it is the failure. */
 function notUsedHere(name: string): () => never {
   return () => {
     throw new Error(`${name} is not stubbed in this test`);
   };
-}
-
-function deferred(): { promise: Promise<void>; resolve(): void } {
-  let settle: (() => void) | undefined;
-  const promise = new Promise<void>((resolve) => {
-    settle = resolve;
-  });
-  return { promise, resolve: (): void => settle?.() };
 }
 
 describe("OAuthClientMaintenanceSupervisor", () => {

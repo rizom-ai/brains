@@ -1,5 +1,5 @@
-import { createHash } from "node:crypto";
 import { z } from "@brains/utils/zod";
+import { sha256Hex } from "@brains/utils/hash";
 
 export const STUDIO_ENTRY_NAMING = "studio-app-[hash].js";
 
@@ -31,5 +31,5 @@ export const studioAssetManifestSchema: z.ZodType<{
   );
 
 export function studioStylesheetName(content: string): string {
-  return `studio-app-${createHash("sha256").update(content).digest("hex")}.css`;
+  return `studio-app-${sha256Hex(content)}.css`;
 }

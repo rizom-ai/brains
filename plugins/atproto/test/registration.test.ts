@@ -4,7 +4,11 @@ import {
   type Plugin,
   type PluginCapabilities,
 } from "@brains/plugins";
-import { createMockShell, type MockShell } from "@brains/plugins/test";
+import {
+  createMockShell,
+  type MockShell,
+  registerAll,
+} from "@brains/plugins/test";
 import type { AtprotoConfigInput } from "../src/config";
 import { createAtprotoPlugins } from "./atproto-plugins";
 
@@ -31,15 +35,7 @@ async function installed(
 ): Promise<Installed> {
   const shell = createMockShell({ domain: "brain.example" });
   const plugins = createAtprotoPlugins(config);
-  const capabilities: PluginCapabilities[] = [];
-  for (const plugin of plugins) {
-    capabilities.push(
-      await plugin.register(
-        shell,
-        options.executionOnly ? { executionOnly: true } : undefined,
-      ),
-    );
-  }
+  const capabilities = await registerAll(shell, plugins, options);
   const handlers = Object.fromEntries(
     channels.map((channel) => [
       channel,

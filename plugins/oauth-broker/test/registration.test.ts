@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import type { OAuthBrokerProvider } from "@brains/contracts";
 import type { PluginCapabilities } from "@brains/plugins";
-import { createMockShell } from "@brains/plugins/test";
+import { createMockShell, registerAll } from "@brains/plugins/test";
 import { brokerRoutes, createOAuthBrokerPlugins } from "./broker-plugins";
 
 const config = {
@@ -40,15 +40,7 @@ async function installed(
     { ...config, ...overrides },
     { providers: { linkedin: fakeProvider(options.provider) } },
   );
-  const capabilities: PluginCapabilities[] = [];
-  for (const plugin of plugins) {
-    capabilities.push(
-      await plugin.register(
-        shell,
-        options.executionOnly ? { executionOnly: true } : undefined,
-      ),
-    );
-  }
+  const capabilities = await registerAll(shell, plugins, options);
   return { shell, plugins, capabilities };
 }
 

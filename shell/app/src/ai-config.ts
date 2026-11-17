@@ -9,67 +9,29 @@
  * The model fields determine the provider (resolved by AI service at runtime).
  */
 
-import { readProviderKeys, type ProviderKeys } from "@brains/core";
-import type { ReasoningEffort } from "./types";
+import { readProviderKeys } from "@brains/core";
+import { definedFields } from "@brains/utils/strip-undefined";
+import { appAIConfigSchema, type AppAIConfig } from "./types";
 
-/** Fields that resolveAIConfig adds to AppConfig */
-export interface AIConfigFields {
-  aiProviderKeys?: ProviderKeys;
-  aiModel?: string;
-  aiEmbeddingModel?: string;
-  aiModelRuntimeUrl?: string;
-  aiAnswerModel?: string;
-  aiVisionModel?: string;
-  aiImageModel?: string;
-  aiReasoningEffort?: ReasoningEffort;
-}
-
+/**
+ * The app's AI settings: each provider's key from the environment, and the
+ * models brain.yaml names. A setting that is absent or empty is left out.
+ */
 export function resolveAIConfig(
   env: Record<string, string | undefined>,
-  overrides?: {
-    model?: string;
-    embeddingModel?: string;
-    modelRuntimeUrl?: string;
-    answerModel?: string;
-    visionModel?: string;
-    imageModel?: string;
-    reasoningEffort?: ReasoningEffort;
-  },
-): AIConfigFields {
-  const result: AIConfigFields = {};
-
+  overrides: Omit<AppAIConfig, "providerKeys"> = {},
+): AppAIConfig {
   const providerKeys = readProviderKeys(env);
-  if (Object.keys(providerKeys).length > 0) {
-    result.aiProviderKeys = providerKeys;
-  }
-
-  // Models keep an explicit provider prefix ("openai:gpt-4o-mini"); the AI
-  // service resolves the provider from it, or from the bare model name.
-  if (overrides?.model) {
-    result.aiModel = overrides.model;
-  }
-  if (overrides?.embeddingModel) {
-    result.aiEmbeddingModel = overrides.embeddingModel;
-  }
-  if (overrides?.answerModel) {
-    result.aiAnswerModel = overrides.answerModel;
-  }
-  if (overrides?.visionModel) {
-    result.aiVisionModel = overrides.visionModel;
-  }
-  if (overrides?.imageModel) {
-    result.aiImageModel = overrides.imageModel;
-  }
   // brain.yaml names the model runtime, or the deploy that runs one beside
   // the brain does.
-  const modelRuntimeUrl =
-    overrides?.modelRuntimeUrl ?? env["MODEL_RUNTIME_URL"];
-  if (modelRuntimeUrl) {
-    result.aiModelRuntimeUrl = modelRuntimeUrl;
-  }
-  if (overrides?.reasoningEffort) {
-    result.aiReasoningEffort = overrides.reasoningEffort;
-  }
-
-  return result;
+  const modelRuntimeUrl = overrides.modelRuntimeUrl ?? env["MODEL_RUNTIME_URL"];
+  // Models keep an explicit provider prefix ("openai:gpt-4o-mini"); the AI
+  // service resolves the provider from it, or from the bare model name.
+  return appAIConfigSchema.parse(
+    definedFields({
+      ...overrides,
+      ...(Object.keys(providerKeys).length > 0 && { providerKeys }),
+      ...(modelRuntimeUrl && { modelRuntimeUrl }),
+    }),
+  );
 }

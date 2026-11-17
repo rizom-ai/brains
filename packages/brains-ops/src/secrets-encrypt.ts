@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { access, rm, writeFile } from "node:fs/promises";
+import { rm, writeFile } from "node:fs/promises";
 import { join, relative } from "node:path";
 
 import { Decrypter, Encrypter, armor } from "age-encryption";
@@ -15,6 +15,7 @@ import { z } from "@brains/utils/zod";
 import { extractAgeIdentity } from "./age-key-bootstrap";
 import { findUser } from "./reconcile-lib";
 import { getErrorMessage } from "@brains/utils/error";
+import { fileExists, normalizePath } from "./fs-paths";
 
 const encryptedUserSecretsSchema: z.ZodObject<{
   gitSyncToken: z.ZodOptional<z.ZodString>;
@@ -542,17 +543,4 @@ async function writePlaintextSecretsTemplate(
     "",
   ].join("\n");
   await writeFile(plaintextPath, template, { flag: "wx" });
-}
-
-async function fileExists(path: string): Promise<boolean> {
-  try {
-    await access(path);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function normalizePath(path: string): string {
-  return path.replaceAll("\\", "/");
 }

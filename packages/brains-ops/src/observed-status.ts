@@ -3,6 +3,10 @@ import { lookup } from "node:dns/promises";
 import type { FetchLike } from "@brains/utils/fetch-like";
 
 import type { ObservedUserStatus, ResolvedUserIdentity } from "./load-registry";
+import { fetchWithTimeout } from "./fetch-with-timeout";
+
+/** How long an observed endpoint may take to answer. */
+const OBSERVE_TIMEOUT_MS = 5000;
 
 export interface LookupResult {
   address: string;
@@ -65,6 +69,7 @@ async function probeHealth(
       {
         method: "GET",
       },
+      OBSERVE_TIMEOUT_MS,
     );
     return response.ok ? "ready" : "failed";
   } catch {
@@ -94,6 +99,7 @@ async function probeMcpAuthGate(
           params: {},
         }),
       },
+      OBSERVE_TIMEOUT_MS,
     );
 
     return response.status === 401 || response.ok ? "ready" : "failed";
@@ -101,23 +107,5 @@ async function probeMcpAuthGate(
     // Same probe contract as above: unreachable and unhealthy both report
     // failed, because neither means the gate is serving.
     return "failed";
-  }
-}
-
-async function fetchWithTimeout(
-  fetchImpl: FetchLike,
-  input: string,
-  init: RequestInit,
-): Promise<Response> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 5000);
-
-  try {
-    return await fetchImpl(input, {
-      ...init,
-      signal: controller.signal,
-    });
-  } finally {
-    clearTimeout(timeout);
   }
 }

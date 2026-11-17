@@ -1,7 +1,7 @@
 import {
   checkEntityText,
   entityRuntime,
-  entityTextError,
+  entityTextRefusal,
   readEntityText,
   type EntityTextResult,
 } from "@brains/sdk/internal/entity-runtime";
@@ -14,6 +14,7 @@ import type {
 import { generateMarkdown } from "@brains/utils/markdown-frontmatter";
 import { z } from "@brains/sdk/entities";
 import { docFrontmatterSchema, type docMetadataSchema } from "../schemas/doc";
+import { definedFields } from "@brains/utils/strip-undefined";
 
 type DocDefinition = EntityDefinition<"doc", typeof docMetadataSchema>;
 
@@ -111,23 +112,15 @@ export function docFromText(
       const runtime = entityRuntime(context);
       if (read.kind === "not-text") return runtime.ordinaryCreate();
       if (read.kind !== "text") {
-        const refused = entityTextError(read);
-        return {
-          refuse:
-            refused.kind === "handled" && !refused.result.success
-              ? refused.result.error
-              : "This page cannot be saved as a doc",
-        };
+        return { refuse: entityTextRefusal(read) };
       }
       const { title, body, fields } = read.text;
-      const frontmatter = Object.fromEntries(
-        Object.entries({
-          title,
-          section: fields.section,
-          order: fields.order,
-          description: fields.description,
-        }).filter(([, value]) => value !== undefined),
-      );
+      const frontmatter = definedFields({
+        title,
+        section: fields.section,
+        order: fields.order,
+        description: fields.description,
+      });
       return runtime.ordinaryCreate({
         title,
         content: generateMarkdown(frontmatter, body),

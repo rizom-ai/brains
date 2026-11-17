@@ -15,6 +15,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
+import { isRecord } from "@brains/utils/is-record";
 
 const FRONTMATTER = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/;
 
@@ -29,10 +30,6 @@ const ATPROTO_CARD_FIELDS = [
   "cardUnavailableAt",
   "cardStaleAfter",
 ] as const;
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
-}
 
 function parseAgent(
   markdown: string,

@@ -1,22 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import type { PublishProvider } from "@brains/contracts";
 import type { PublishResult } from "@brains/contracts";
-import { InternalPublishProvider } from "../src/types/provider";
-
-describe("InternalPublishProvider", () => {
-  it("should have name 'internal'", () => {
-    const provider = new InternalPublishProvider();
-    expect(provider.name).toBe("internal");
-  });
-
-  it("should return id 'internal' when publishing", async () => {
-    const provider = new InternalPublishProvider();
-    // InternalPublishProvider ignores content/metadata since it's just a marker
-    const result = await provider.publish("test content", { title: "Test" });
-
-    expect(result).toEqual({ id: "internal" });
-  });
-});
 
 describe("PublishProvider interface", () => {
   it("should allow custom providers", async () => {

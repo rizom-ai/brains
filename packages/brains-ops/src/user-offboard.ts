@@ -1,4 +1,4 @@
-import { access, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 
 import type { FetchLike } from "@brains/utils/fetch-like";
@@ -9,6 +9,7 @@ import { loadPilotRegistry, type PilotRegistry } from "./load-registry";
 import { derivePreviewDomain } from "./preview-domain";
 import { writeUsersTable } from "./render-users-table";
 import { cohortSchema, handleSchema } from "./schema";
+import { fileExists } from "./fs-paths";
 
 export interface OffboardPilotUsersOptions {
   handles: string[];
@@ -542,15 +543,6 @@ function requireString(value: unknown, label: string): string {
 function requireNumber(value: unknown, label: string): number {
   if (typeof value !== "number") throw new Error(`Missing ${label}`);
   return value;
-}
-
-async function fileExists(path: string): Promise<boolean> {
-  try {
-    await access(path);
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 export async function assertPilotUsersRemoved(

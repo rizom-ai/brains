@@ -26,6 +26,7 @@ import {
   type ToolPart,
 } from "./tool";
 import { getErrorMessage } from "@brains/utils/error";
+import { readString, readValue } from "@brains/utils/record-fields";
 
 export {
   attachmentStatusLabel,
@@ -50,20 +51,8 @@ const TOOL_STATES: readonly ToolPart["state"][] = [
   "output-error",
 ];
 
-const dataRecordSchema = z.record(z.string(), z.unknown());
-
 function narrowToolState(value: string | undefined): ToolPart["state"] {
   return TOOL_STATES.find((state) => state === value) ?? "input-available";
-}
-
-function getRecordValue(data: unknown, key: string): unknown {
-  const parsed = dataRecordSchema.safeParse(data);
-  return parsed.success ? parsed.data[key] : undefined;
-}
-
-function getStringValue(data: unknown, key: string): string | undefined {
-  const value = getRecordValue(data, key);
-  return typeof value === "string" ? value : undefined;
 }
 
 export function ToolCallsGroup({
@@ -92,9 +81,9 @@ export function ToolResultPart({
   data: unknown;
 }): React.ReactElement {
   const toolName =
-    getStringValue(data, "toolName") ??
-    getStringValue(data, "name") ??
-    getStringValue(data, "tool");
+    readString(data, "toolName") ??
+    readString(data, "name") ??
+    readString(data, "tool");
   const label = toolName ? `tool · ${toolName}` : "tool result";
 
   return (
@@ -115,7 +104,7 @@ export function ToolResultPart({
 export function formatNativeToolDisplay(
   data: unknown,
 ): ConfirmationResultDisplay | null {
-  const state = narrowToolState(getStringValue(data, "state"));
+  const state = narrowToolState(readString(data, "state"));
   if (
     state !== "output-available" &&
     state !== "output-error" &&
@@ -124,18 +113,18 @@ export function formatNativeToolDisplay(
     return null;
   }
 
-  const toolName = getStringValue(data, "toolName") ?? "tool";
+  const toolName = readString(data, "toolName") ?? "tool";
 
   return formatSharedConfirmationResult(
     {
-      text: getStringValue(data, "title") ?? "",
+      text: readString(data, "title") ?? "",
       cards: [
         {
           kind: "tool-approval",
           toolName,
           state,
-          output: getRecordValue(data, "output"),
-          error: getStringValue(data, "errorText"),
+          output: readValue(data, "output"),
+          error: readString(data, "errorText"),
         },
       ],
     },
@@ -277,12 +266,11 @@ export function NativeToolPart({
 }: {
   data: unknown;
 }): React.ReactElement {
-  const toolName = getStringValue(data, "toolName") ?? "tool";
-  const state = narrowToolState(getStringValue(data, "state"));
-  const title = getStringValue(data, "title") ?? `tool · ${toolName}`;
-  const output =
-    getRecordValue(data, "output") ?? getRecordValue(data, "input");
-  const errorText = getStringValue(data, "errorText");
+  const toolName = readString(data, "toolName") ?? "tool";
+  const state = narrowToolState(readString(data, "state"));
+  const title = readString(data, "title") ?? `tool · ${toolName}`;
+  const output = readValue(data, "output") ?? readValue(data, "input");
+  const errorText = readString(data, "errorText");
   const display = formatNativeToolDisplay(data);
 
   return (
@@ -320,12 +308,11 @@ export function ConfirmationPart({
     reason?: string;
   }) => void | PromiseLike<void>;
 }): React.ReactElement {
-  const title = getStringValue(data, "title") ?? "Confirmation required";
+  const title = readString(data, "title") ?? "Confirmation required";
   const description =
-    getStringValue(data, "description") ?? getStringValue(data, "title");
-  const approval = getRecordValue(data, "approval");
-  const approvalId =
-    getStringValue(data, "id") ?? getStringValue(approval, "id");
+    readString(data, "description") ?? readString(data, "title");
+  const approval = readValue(data, "approval");
+  const approvalId = readString(data, "id") ?? readString(approval, "id");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [decision, setDecision] = useState<"approved" | "declined" | null>(
     null,

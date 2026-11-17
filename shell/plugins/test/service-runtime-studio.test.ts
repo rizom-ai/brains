@@ -1,23 +1,16 @@
 import { describe, expect, it, spyOn } from "bun:test";
-import { z } from "@brains/utils/zod";
 import type {
   BaseEntity,
   CreateResult,
   EntityHierarchyPage,
 } from "@brains/entity-service";
-import { createMockShell, type MockShell } from "../src/test/mock-shell";
+import { createMockShell } from "../src/test/mock-shell";
 import { createTempDataDir } from "../src/test/temp-dir";
 import { baseEntitySchema, createTestEntityAdapter } from "../test";
 import { EntityRegistry } from "@brains/entity-service";
 import { createSilentLogger } from "@brains/test-utils";
-import {
-  defineServicePlugin,
-  deriveConsoleSurfaces,
-  instantiatePluginPackageDefinition,
-  serviceRuntime,
-  type Plugin,
-  type ServiceRuntime,
-} from "../src";
+import { deriveConsoleSurfaces } from "../src";
+import { probeService } from "../src/test/probe-service-runtime";
 
 /**
  * A first-party service converted from a class reaches what Studio's
@@ -26,38 +19,10 @@ import {
  * writes, the shared upload store, and the members it may assign.
  */
 
-async function runtimeOn(
-  shell: MockShell,
-  executionOnly = false,
-  id = "probe",
-): Promise<{ runtime: ServiceRuntime; plugin: Plugin }> {
-  let runtime: ServiceRuntime | undefined;
-  const [plugin] = instantiatePluginPackageDefinition(
-    defineServicePlugin({
-      id,
-      config: z.object({}),
-      setup: (context) => {
-        runtime = serviceRuntime(context);
-        return {};
-      },
-    }),
-    {},
-    { name: `@brains/${id}`, version: "0.1.0" },
-    { pluginId: id },
-  );
-  if (!plugin) throw new Error("No plugin");
-  await plugin.register(
-    shell,
-    executionOnly ? { executionOnly: true } : undefined,
-  );
-  if (!runtime) throw new Error("Setup did not run");
-  return { runtime, plugin };
-}
-
 describe("a first-party service reaching what Studio's class did", () => {
   it("offers an Inbox follow-up kind under its plugin id, as its class registered one", async () => {
     const shell = createMockShell();
-    const { runtime } = await runtimeOn(shell);
+    const { runtime } = await probeService(shell);
     runtime.inboxFollowUpKind({
       kind: "open-entity",
       label: "Open source entity",
@@ -84,7 +49,7 @@ describe("a first-party service reaching what Studio's class did", () => {
     const read = spyOn(shell, "getRuntimeReadiness").mockResolvedValue(
       readiness,
     );
-    const { runtime } = await runtimeOn(shell);
+    const { runtime } = await probeService(shell);
     expect(await runtime.readiness()).toBe(readiness);
     expect(read).toHaveBeenCalledTimes(1);
   });
@@ -98,7 +63,7 @@ describe("a first-party service reaching what Studio's class did", () => {
       subjectLabel: "Email address",
     });
     channels.finalize();
-    const { runtime } = await runtimeOn(shell);
+    const { runtime } = await probeService(shell);
     expect(runtime.channelDescriptors()).toEqual(channels.listDescriptors());
     expect(runtime.channelDescriptors().map(({ type }) => type)).toEqual([
       "email",
@@ -108,7 +73,7 @@ describe("a first-party service reaching what Studio's class did", () => {
   it("reads a type's hierarchy and config and parses a document, as the editor did", async () => {
     const shell = createMockShell();
     const entities = shell.getEntityService();
-    const { runtime } = await runtimeOn(shell);
+    const { runtime } = await probeService(shell);
     const request = {
       entityType: "note",
       visibilityScope: "public" as const,
@@ -144,7 +109,7 @@ describe("a first-party service reaching what Studio's class did", () => {
       mediaTypes: ["image/png"],
       handler,
     });
-    const { runtime } = await runtimeOn(shell);
+    const { runtime } = await probeService(shell);
     expect(runtime.uploadSaveHandler("image/png")?.entityType).toBe("image");
     expect(runtime.uploadSaveHandler("text/plain")).toBeUndefined();
 
@@ -171,7 +136,7 @@ describe("a first-party service reaching what Studio's class did", () => {
     const ready = spyOn(entities, "ensureGroupingsReady").mockResolvedValue(
       true,
     );
-    const { runtime } = await runtimeOn(shell, false, "studio");
+    const { runtime } = await probeService(shell, { id: "studio" });
     const groupings = runtime.groupings();
     expect(groupings.getGroupings()).toEqual(registry.getGroupings());
     expect(await groupings.ensureGroupingsReady()).toBe(true);
@@ -186,7 +151,7 @@ describe("a first-party service reaching what Studio's class did", () => {
     await groupings.ensureGroupingsCurrent();
     expect(ensured).toBe(1);
 
-    const other = await runtimeOn(createMockShell(), false, "probe");
+    const other = await probeService(createMockShell(), { id: "probe" });
     expect(() => other.runtime.groupings()).toThrow(
       `Service "probe" cannot reach the brain's groupings: Studio owns them`,
     );
@@ -215,7 +180,7 @@ describe("a first-party service reaching what Studio's class did", () => {
     spyOn(shell.getEntityService(), "getEntityTypeConfig").mockImplementation(
       (type) => registry.getEntityTypeConfig(type),
     );
-    const { runtime } = await runtimeOn(shell, false, "studio");
+    const { runtime } = await probeService(shell, { id: "studio" });
     const groupings = runtime.groupings();
     const validator = async (): Promise<void> => {};
     groupings.registerGroupingSource({
@@ -253,7 +218,7 @@ describe("a first-party service reaching what Studio's class did", () => {
       getFolderTitles: (entity: { content: string }) => [entity.content],
     });
     registry.registerEntityType("site-info", baseEntitySchema, bodyless);
-    const { runtime } = await runtimeOn(shell);
+    const { runtime } = await probeService(shell);
     const shapes = runtime.entityShapes;
     expect(shapes.hasBody("note")).toBe(true);
     expect(shapes.hasBody("site-info")).toBe(false);
@@ -282,7 +247,7 @@ describe("a first-party service reaching what Studio's class did", () => {
       baseEntitySchema,
       createTestEntityAdapter("note"),
     );
-    const { runtime } = await runtimeOn(shell);
+    const { runtime } = await probeService(shell);
     const record = (
       entityType: string,
       metadata: Record<string, unknown>,
@@ -310,7 +275,7 @@ describe("a first-party service reaching what Studio's class did", () => {
 
   it("derives the console surfaces from the routes registered when asked, never handing them out", async () => {
     const shell = createMockShell();
-    const { runtime } = await runtimeOn(shell);
+    const { runtime } = await probeService(shell);
     const options = {
       activeId: "dashboard",
       permissionLevel: "admin",
@@ -358,7 +323,7 @@ describe("a first-party service reaching what Studio's class did", () => {
     const shell = createMockShell();
     const auth = shell.getAuthRegistry();
     const listed = spyOn(auth, "listAssignableMembers").mockResolvedValue([]);
-    const { runtime } = await runtimeOn(shell);
+    const { runtime } = await probeService(shell);
     expect(await runtime.assignableMembers()).toEqual([]);
     expect(listed).toHaveBeenCalledTimes(1);
   });

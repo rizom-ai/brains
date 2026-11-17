@@ -2,13 +2,8 @@ import { describe, expect, it } from "bun:test";
 import { z } from "@brains/utils/zod";
 import { createMockShell, type MockShell } from "../src/test/mock-shell";
 import { MemoryAccountSettingsBackend } from "../src/test/memory-account-settings-backend";
-import {
-  defineAccountSettings,
-  defineServicePlugin,
-  instantiatePluginPackageDefinition,
-  serviceRuntime,
-  type ServiceRuntime,
-} from "../src";
+import { defineAccountSettings } from "../src";
+import { probeRuntime } from "../src/test/probe-service-runtime";
 
 /**
  * A first-party service converted from a class keeps its account settings
@@ -29,30 +24,6 @@ const linkedIn = defineAccountSettings({
     expiresAt: { label: "Expires" },
   },
 });
-
-async function runtimeOn(
-  shell: MockShell,
-  id: string,
-  packageName = `@brains/${id}`,
-): Promise<ServiceRuntime> {
-  let runtime: ServiceRuntime | undefined;
-  const [plugin] = instantiatePluginPackageDefinition(
-    defineServicePlugin({
-      id,
-      config: z.object({}),
-      setup: (context) => {
-        runtime = serviceRuntime(context);
-        return {};
-      },
-    }),
-    {},
-    { name: packageName, version: "0.1.0" },
-    { pluginId: id },
-  );
-  await plugin?.register(shell);
-  if (!runtime) throw new Error("Setup did not run");
-  return runtime;
-}
 
 function shellWithStore(): {
   shell: MockShell;
@@ -76,11 +47,7 @@ describe("a first-party service keeping its account settings as its class did", 
       },
       { accessToken: "stored-token", expiresAt: "2099-01-01T00:00:00Z" },
     );
-    const runtime = await runtimeOn(
-      shell,
-      "linkedin-import",
-      "@brains/linkedin-import",
-    );
+    const runtime = await probeRuntime(shell, { id: "linkedin-import" });
     const registration = runtime.accountSettings.register({
       ownerPluginId: "linkedin-import",
       packageName: "@brains/linkedin-import",
@@ -103,7 +70,7 @@ describe("a first-party service keeping its account settings as its class did", 
 
   it("writes and forgets the settings of the account it names", async () => {
     const { shell, backend } = shellWithStore();
-    const runtime = await runtimeOn(shell, "linkedin-import");
+    const runtime = await probeRuntime(shell, { id: "linkedin-import" });
     const registration = runtime.accountSettings.register({
       ownerPluginId: "linkedin-import",
       packageName: "@brains/linkedin-import",
@@ -130,7 +97,7 @@ describe("a first-party service keeping its account settings as its class did", 
 
   it("registers no settings under another plugin's id", async () => {
     const { shell } = shellWithStore();
-    const runtime = await runtimeOn(shell, "linkedin-import");
+    const runtime = await probeRuntime(shell, { id: "linkedin-import" });
     expect(() =>
       runtime.accountSettings.register({
         ownerPluginId: "profile",
@@ -154,7 +121,7 @@ describe("a first-party service keeping its account settings as its class did", 
     await shell
       .getAccountSettingsRegistry()
       .save(other.id, "u-ada", { accessToken: "mail-token" });
-    const runtime = await runtimeOn(shell, "linkedin-import");
+    const runtime = await probeRuntime(shell, { id: "linkedin-import" });
     const refusal = `Service "linkedin-import" reaches only the account settings it registered`;
     expect(runtime.accountSettings.getForActor(other, "u-ada")).rejects.toThrow(
       refusal,

@@ -1,14 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { Context, Effect, Exit, Layer } from "@brains/utils/effect";
 import { ShellLifecycle } from "../src/initialization/shell-lifecycle";
-
-function deferred(): { promise: Promise<void>; resolve(): void } {
-  let settle: (() => void) | undefined;
-  const promise = new Promise<void>((resolve) => {
-    settle = resolve;
-  });
-  return { promise, resolve: (): void => settle?.() };
-}
+import { deferred } from "@brains/utils/deferred";
 
 describe("ShellLifecycle", () => {
   it("owns scoped layers for the shell lifetime", () => {

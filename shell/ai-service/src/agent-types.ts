@@ -28,10 +28,6 @@ export type {
 } from "@brains/contracts";
 import type { UserPermissionLevel } from "@brains/templates";
 import type {
-  ConversationMessageActor,
-  ConversationMessageSource,
-} from "@brains/conversation-service";
-import type {
   ICanonicalIdentityService,
   BrainCharacter,
   AnchorProfile,
@@ -42,10 +38,8 @@ import { z } from "@brains/utils/zod";
 import {
   guestExecutionPolicySchema,
   guestScreeningSchema,
-  type GuestScreening,
   type GuestScreeningOutcome,
   type GuestTurnSettlement,
-  type GuestExecutionPolicy,
 } from "@brains/contracts/chat";
 
 /**
@@ -115,6 +109,11 @@ export interface BrainAgentConfig {
  */
 export interface BrainAgentResult {
   text: string;
+  /**
+   * The provider declined the answer after a tool ran: `text` is the
+   * declined message, and the turn is an error, not an answer.
+   */
+  declined?: true;
   steps: Array<{
     toolCalls: Array<{
       toolCallId: string;
@@ -244,56 +243,18 @@ export interface AskedBeforeAnswer {
   sources: SourceCitation[];
 }
 
-/**
- * Context for a chat message
- * Contains per-message information like user permission level
- */
-export interface ChatAttachmentSource {
-  kind: string;
-  id: string;
-}
-
-export interface TextChatAttachment {
-  kind: "text";
-  filename: string;
-  mediaType: string;
-  content: string;
-  sizeBytes?: number | undefined;
-  source?: ChatAttachmentSource | undefined;
-}
-
-export interface FileChatAttachment {
-  kind: "file";
-  filename: string;
-  mediaType: string;
-  data: Uint8Array;
-  sizeBytes?: number | undefined;
-  source?: ChatAttachmentSource | undefined;
-}
-
-export type ChatAttachment = TextChatAttachment | FileChatAttachment;
-
-export interface ChatContext {
-  /** Server-owned limits bound to the already-reserved guest execution. */
-  guestExecution?: GuestExecutionPolicy;
-  /** The site's scope and refusal copy a guest question is screened against. */
-  guestScreening?: GuestScreening;
-  userPermissionLevel?: UserPermissionLevel; // Defaults to "public" for safety
-  /** Whether the authenticated caller is the brain's configured Anchor. */
-  isAnchor?: boolean;
-  interfaceType?: string; // e.g., "matrix", "cli", "mcp"
-  /**
-   * The installed interface the turn came through, its plugin id. Jobs and
-   * tool events the turn starts carry it, so their progress goes back to
-   * that interface even when another one shares its channel type.
-   */
-  interfaceId?: string;
-  channelId?: string; // Transport channel/room identifier when distinct from conversationId
-  channelName?: string; // Human-readable name for the transport channel/room
-  actor?: ConversationMessageActor; // Stable speaker identity for the incoming message
-  source?: ConversationMessageSource; // Platform-specific source provenance
-  attachments?: ChatAttachment[] | undefined; // Native same-turn attachments supplied by the interface
-}
+export type {
+  ChatAttachment,
+  ChatAttachmentSource,
+  ChatContext,
+  FileChatAttachment,
+  TextChatAttachment,
+} from "./chat-context";
+import type {
+  ChatAttachment,
+  ChatAttachmentSource,
+  ChatContext,
+} from "./chat-context";
 
 /**
  * Agent service interface
