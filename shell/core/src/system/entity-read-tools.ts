@@ -122,6 +122,8 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
               limit: searchLimit(input.limit, services.searchBudget),
               filter: { visibilityScope },
               ...publishedOnlyFor(visibilityScope),
+              // Search hits mask binary content, so its bytes never load.
+              binaryContent: "reference",
             },
           });
           return {

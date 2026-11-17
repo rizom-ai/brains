@@ -25,7 +25,7 @@ import {
   type MockShell,
 } from "@brains/plugins/test";
 
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it, spyOn } from "bun:test";
 import { isRecord } from "@brains/utils/is-record";
 import {
   studioPlugin,
@@ -853,6 +853,25 @@ describe("Studio Overview workspace", () => {
     expect(payload).toContain("Transport rejected the payload");
     expect(payload).toContain('"title":"field-log"');
     expect(payload).toContain("Note updated");
+  });
+
+  it("reads an entry an event names only by id as stored, without its bytes", async () => {
+    const shell = createMockShell({ domain: "brain.test" });
+    const plugin = studioPlugin();
+    await plugin.register(shell);
+    const read = spyOn(shell.getEntityService(), "getEntity");
+
+    await shell.getMessageBus().send({
+      type: ENTITY_CHANNELS.updated,
+      sender: "test",
+      payload: { entityType: "image", entityId: "cover" },
+    });
+
+    expect(read).toHaveBeenCalledWith({
+      entityType: "image",
+      id: "cover",
+      binaryContent: "reference",
+    });
   });
 
   it("shows the entity changes the other process made, such as a git sync", async () => {

@@ -945,6 +945,7 @@ class WebChatHost {
           entityType: string;
           id: string;
           visibilityScope?: "public" | "shared" | "restricted" | undefined;
+          binaryContent?: "reference";
         }): Promise<MessageArtifactEntity | null | undefined> =>
           streamContext.entityReads.getEntity(ref),
       },

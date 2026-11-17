@@ -1,3 +1,4 @@
+import { inlineAssetContent } from "@brains/entity-service";
 import type { ResourceTemplate } from "@brains/mcp-service";
 import type { ResourceVars } from "@brains/mcp-service";
 import type { SystemServices } from "./types";
@@ -79,19 +80,31 @@ export function createSystemResourceTemplates(
       }: ResourceVars<"type" | "id">): Promise<{
         contents: Array<{ uri: string; mimeType: string; text: string }>;
       }> => {
+        // As stored: an asset-backed record's bytes are read for this record
+        // alone and handed out as the data URL this resource has served.
         const entity = await entityService.getEntity({
           entityType: type,
           id: id,
+          binaryContent: "reference",
         });
         if (!entity) {
           throw new Error(`Entity not found: ${type}/${id}`);
         }
+        const text =
+          services.entityRegistry.getEntityTypeConfig(type).binaryStorage ===
+          "asset"
+            ? await inlineAssetContent(
+                entityService,
+                entity.content,
+                entity.metadata,
+              )
+            : entity.content;
         return {
           contents: [
             {
               uri: `entity://${type}/${id}`,
               mimeType: "text/markdown",
-              text: entity.content,
+              text,
             },
           ],
         };

@@ -242,6 +242,65 @@ coverImageId: cover-img-1
       expect(result.markdown.startsWith("<!-- .slide:")).toBe(true);
     });
 
+    it("encodes an asset-backed cover from its bytes, not its reference", async () => {
+      const bytes = Buffer.from([0x89, 0x50, 0x4e, 0x47, 1, 2, 3]);
+      const entityService = shell.getEntityService();
+      const asset = await entityService.stageAsset(bytes);
+      shell.addEntities([
+        createMockDeckEntity({
+          id: "deck-with-asset-cover",
+          title: "Deck With Asset Cover",
+          status: "published",
+          publishedAt: "2025-01-01T10:00:00.000Z",
+          content: `---
+title: Deck With Asset Cover
+slug: deck-with-asset-cover
+status: published
+coverImageId: asset-cover
+---
+
+# Title Slide
+
+---
+
+# Slide 2`,
+          metadata: {
+            title: "Deck With Asset Cover",
+            slug: "deck-with-asset-cover",
+            status: "published",
+            publishedAt: "2025-01-01T10:00:00.000Z",
+            coverImageId: "asset-cover",
+          },
+        }),
+        {
+          id: "asset-cover",
+          entityType: "image",
+          content: asset.ref,
+          visibility: "public",
+          metadata: {
+            title: "Cover",
+            format: "png",
+            mediaType: "image/png",
+            width: 1,
+            height: 1,
+          },
+          created: new Date().toISOString(),
+          updated: new Date().toISOString(),
+          contentHash: "asset-cover-hash",
+        },
+      ]);
+
+      const result = await datasource.fetch(
+        { entityType: "deck", query: { id: "deck-with-asset-cover" } },
+        detailSchema,
+        mockContext,
+      );
+
+      expect(result.markdown).toBe(
+        `<!-- .slide: data-background-image="data:image/png;base64,${bytes.toString("base64")}" data-background-opacity="0.4" -->\n# Title Slide\n\n---\n\n# Slide 2`,
+      );
+    });
+
     it("should not inject directive when no coverImageId", async () => {
       shell.addEntities([
         createMockDeck(

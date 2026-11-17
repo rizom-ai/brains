@@ -161,11 +161,13 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
     } catch (error) {
       return failure(getErrorMessage(error, "Failed to update entity"));
     }
-    // Read the entity back, so the confirmation shows what storage holds.
+    // Read the entity back, so the confirmation shows what storage holds:
+    // binary content as its reference, as the entity was read to update it.
     const stored = await entityService.getEntity({
       entityType: entity.entityType,
       id: entity.id,
       visibilityScope: permissionToVisibilityScope(context.userPermissionLevel),
+      binaryContent: "reference",
     });
     const completionDetail = stored
       ? describeStoredChange(entity, stored)

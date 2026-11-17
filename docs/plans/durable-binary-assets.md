@@ -1,13 +1,13 @@
 # Durable Binary Asset Storage Plan
 
-Last updated: 2026-11-15
+Last updated: 2026-11-16
 
 ## Status
 
 In progress. Phases 1–5 are one PR, #954, which re-applies #476 to the declarative
 packages, one commit group per phase; #470's streamed file import is part of Phase 3.
 Entity migration `0013_staged_asset_chunks` replaces the empty single-BLOB `assets`
-table. No instance has migrated.
+table.
 
 Rehearsals on copies:
 
@@ -22,8 +22,13 @@ Rehearsals on copies:
   image valid and four mirrors that differ, images edited after the database copy;
   `VACUUM INTO` takes the file from 1,364 MiB to 332 MiB and it still verifies.
 
-Next: merge and release, then the production cutover on `yeehaa.io` from a fresh
-snapshot, its soak and bridge removal.
+Every brain with images runs migrated storage: smoke, thefourth and `yeehaa.io`.
+After the cutover, `yeehaa.io` still counted legacy image reads; site builds on a
+migrated copy of its database made them all from deck cover slides. That reader and
+the other first-party ones that could still reach an asset-backed image now read its
+reference and its bytes explicitly.
+
+Next: release that and roll it out, then the zero-use soak and bridge removal.
 
 This plan is a stable `0.2.0` release gate: images and PDFs reach their completion
 criteria, including bridge removal, before the final alpha is nominated. It is the

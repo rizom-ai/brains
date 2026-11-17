@@ -141,9 +141,11 @@ export function selectPhotoJob(
 
       await trackDownloadOnce(deps, jobId, data.downloadLocation);
 
+      // Only whether it is saved is read: its reference, no bytes.
       const stored = await deps.entityService.getEntity({
         entityType: "image",
         id: data.photoId,
+        binaryContent: "reference",
       });
       const entityId = stored
         ? stored.id

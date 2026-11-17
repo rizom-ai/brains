@@ -31,6 +31,7 @@ export {
   EntityService,
   type LegacyBinaryMaterialization,
 } from "./entityService";
+export { inlineAssetContent } from "./lib/asset-data-url";
 export {
   decodeEntityIdPath,
   encodeEntityIdPath,
