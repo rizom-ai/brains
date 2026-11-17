@@ -20,12 +20,13 @@ import { parseDocumentDataUrl } from "./document-utils";
 export const DOCUMENT_ASSET_MAX_BYTES: number = 25 * 1024 * 1024;
 
 /**
- * What pending documents stored before they stopped carrying a placeholder.
- * A pending or failed row holding exactly this has no real bytes.
+ * What pending documents stored before they stopped carrying a placeholder:
+ * "%PDF-1.4\n% Pending document placeholder\n%%EOF\n", base64-encoded. A
+ * pending or failed row holding exactly this has no real bytes. A literal,
+ * since this module also loads in the browser, where there is no Buffer.
  */
-export const LEGACY_PENDING_DOCUMENT_PLACEHOLDER: string = `data:application/pdf;base64,${Buffer.from(
-  "%PDF-1.4\n% Pending document placeholder\n%%EOF\n",
-).toString("base64")}`;
+export const LEGACY_PENDING_DOCUMENT_PLACEHOLDER: string =
+  "data:application/pdf;base64,JVBERi0xLjQKJSBQZW5kaW5nIGRvY3VtZW50IHBsYWNlaG9sZGVyCiUlRU9GCg==";
 
 /** What is known beside a document's bytes. */
 export interface DocumentDescription {
@@ -55,12 +56,12 @@ export interface StagedDocumentEntity {
   stagedAsset: StagedAsset;
 }
 
-/** Every PDF starts with this signature. */
-const PDF_SIGNATURE = Buffer.from("%PDF-");
+/** Every PDF starts with this signature, "%PDF-". */
+const PDF_SIGNATURE: readonly number[] = [0x25, 0x50, 0x44, 0x46, 0x2d];
 
 export function isPdfBytes(bytes: Uint8Array): boolean {
   return (
-    bytes.byteLength >= PDF_SIGNATURE.byteLength &&
+    bytes.byteLength >= PDF_SIGNATURE.length &&
     PDF_SIGNATURE.every((byte, index) => bytes[index] === byte)
   );
 }
