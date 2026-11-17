@@ -71,6 +71,8 @@ describe("the WebDAV plugin's registered surface", () => {
         "COPY",
         "PROPPATCH",
         "MKCOL",
+        "LOCK",
+        "UNLOCK",
       ].map((method) => ["/dav", "prefix", method, true, undefined]),
     );
     expect(shell.listInteractions()).toEqual([

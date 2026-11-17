@@ -8,6 +8,7 @@ import {
   serviceRuntime,
   withWebRoutes,
 } from "@brains/sdk/internal/service-runtime";
+import { IMAGE_ASSET_MAX_BYTES } from "@brains/image";
 import { z } from "@brains/utils/zod";
 import { createDavRoutes } from "./dav-routes";
 
@@ -62,6 +63,11 @@ const service = defineServicePlugin({
         reader: runtime.entityReads,
         writes: {
           maxFileBytes: context.config.maxFileBytes,
+          maxAssetBytes: IMAGE_ASSET_MAX_BYTES,
+          stageAsset: (source, options) =>
+            runtime.entityWrites.stageAsset(source, options),
+          discardStagedAsset: (asset) =>
+            runtime.entityWrites.discardStagedAsset(asset),
           deserializeEntity: (markdown, entityType) =>
             runtime.entityReads.deserializeEntity(markdown, entityType),
           createEntity: (request) => runtime.entityWrites.createEntity(request),

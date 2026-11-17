@@ -9,6 +9,13 @@ import { fakeReader } from "./fake-reader";
 /** Writes for a test that makes none: every one of them fails loudly. */
 export const noWrites: DavRoutesOptions["writes"] = {
   maxFileBytes: 1024,
+  maxAssetBytes: 4096,
+  stageAsset: async () => {
+    throw new Error("No writes expected");
+  },
+  discardStagedAsset: async () => {
+    throw new Error("No writes expected");
+  },
   deserializeEntity: () => {
     throw new Error("No writes expected");
   },
@@ -45,6 +52,10 @@ export interface FakeBrain {
   updates: RecordedUpdate[];
   creates: RecordedUpdate[];
   deletes: Array<{ entityType: string; id: string }>;
+  /** Published asset bytes by reference: what the drive can read back. */
+  assets: Record<string, Uint8Array>;
+  /** References staged and then discarded without being published. */
+  discarded: string[];
   audit: AppendAuthAuditEventInput[];
   /** Runs once, just before the next update is applied: another writer. */
   beforeNextUpdate: (() => void) | undefined;
@@ -72,17 +83,26 @@ export function fakeBrain(
   entities: BaseEntity[],
   /** Registered types; those of the entities when not given. */
   types?: string[],
+  assets: Record<string, Uint8Array> = {},
 ): FakeBrain {
+  const staged = new Map<string, Uint8Array>();
+  /** Staged bytes are published with the entity that references them. */
+  const publish = (asset: { ref: string } | undefined): void => {
+    const bytes = asset ? staged.get(asset.ref) : undefined;
+    if (asset && bytes) assets[asset.ref] = bytes;
+  };
   const brain: FakeBrain = {
     entities,
     updates: [],
     creates: [],
     deletes: [],
+    assets,
+    discarded: [],
     audit: [],
     beforeNextUpdate: undefined,
     options: {
       reader: {
-        ...fakeReader({ entities, ...(types ? { types } : {}) }),
+        ...fakeReader({ entities, assets, ...(types ? { types } : {}) }),
         getEntityTypeConfig: (type) =>
           type === "post"
             ? { publish: { publishStatuses: ["published"] } }
@@ -90,6 +110,22 @@ export function fakeBrain(
       },
       writes: {
         maxFileBytes: 1024,
+        maxAssetBytes: 4096,
+        stageAsset: async (source) => {
+          if (!(source instanceof Uint8Array)) {
+            throw new Error("The drive stages whole byte arrays");
+          }
+          const digest = new Bun.CryptoHasher("sha256")
+            .update(source)
+            .digest("hex");
+          const ref = `asset://sha256/${digest}` as const;
+          staged.set(ref, source);
+          return { ref, digest, sizeBytes: source.byteLength };
+        },
+        discardStagedAsset: async (asset) => {
+          staged.delete(asset.ref);
+          brain.discarded.push(asset.ref);
+        },
         deserializeEntity: (markdown, entityType) => {
           const fields = frontmatter(markdown);
           if (fields["title"] === "UNPARSEABLE") {
@@ -145,6 +181,14 @@ export function fakeBrain(
               skipReason: "content-conflict" as const,
             };
           }
+          // A write that changes nothing is skipped, with no conflict.
+          if (
+            stored.content === request.entity.content &&
+            stored.visibility === request.entity.visibility
+          ) {
+            return { entityId: stored.id, jobId: "", skipped: true };
+          }
+          publish(request.stagedAsset);
           brain.updates.push({
             entity: request.entity,
             expectedContentHash: expected,
@@ -197,6 +241,7 @@ export function fakeBrain(
             updated: "2026-11-18T09:00:00.000Z",
             contentHash: `hash-created-${id}`,
           };
+          publish(request.stagedAsset);
           brain.creates.push({
             entity,
             expectedContentHash: undefined,

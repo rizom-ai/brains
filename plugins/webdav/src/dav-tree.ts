@@ -227,12 +227,13 @@ export class DavTree {
   }
 
   /**
-   * The entity a new markdown file at a path would be: a registered type and
+   * The entity a new file at a path would be: a registered type and
    * an id whose placement is exactly that path. Anything else cannot be
    * exported to `brain-data/`, so it cannot be created here either.
    */
   placementAt(
     segments: string[],
+    extension: string,
   ): { entityType: string; id: string } | undefined {
     if (segments.length === 0 || !segments.every(isSafeSegment)) {
       return undefined;
@@ -243,7 +244,7 @@ export class DavTree {
     const placement = resolveEntityPlacement(
       entityType,
       id,
-      ".md",
+      extension,
       this.containment,
     );
     return placement.writable && placement.relativePath === path

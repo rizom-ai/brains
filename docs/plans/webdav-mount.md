@@ -4,7 +4,7 @@ Last updated: 2026-11-17
 
 ## Status
 
-In progress on `work/webdav-mount` (#990). Phases 1–3 are implemented and verified against the `personal` test app with rclone and GNOME's gvfs: the drive matches `brain-data/` file for file and byte for byte, and saving (in place, `sed -i`, write-then-rename), creating (at the root, in a type folder, in a new nested folder) and deleting through a mount reach the entity and `brain-data/`. The check through Cloudflare on a deployed brain remains. Phase 4 has not started.
+In progress on `work/webdav-mount` (#990). All four phases are implemented. Verified against the `personal` test app with rclone and GNOME's gvfs: the drive matches `brain-data/` file for file and byte for byte, and saving (in place, `sed -i`, write-then-rename), creating (at the root, in a type folder, in a new nested folder) and deleting through a mount reach the entity and `brain-data/`. Image saves and the lock protocol are verified with curl. Two checks remain, both on a deployed brain: `PROPFIND` through Cloudflare, and mounting writable in macOS Finder and Windows Explorer.
 
 ## Goal
 
@@ -137,11 +137,11 @@ Editors save through files that are not entities: `.goutputstream-*` (GNOME), `.
 
 ### Locking
 
-`OPTIONS` advertises `DAV: 1` until Phase 4 ships and `DAV: 1, 2` from then on, so davfs2 does not attempt locks before they exist. `LOCK` and `UNLOCK` keep advisory exclusive write locks in memory, per path, with the requested timeout capped at 10 minutes. A PUT, DELETE or MOVE onto a path locked by another lock token is 423. Finder and Windows mount read-only without class 2, so the locks exist for them; correctness still rests on the ETag checks.
+`OPTIONS` advertises `DAV: 1, 2`. A lock is granted on a path whether or not a file is there yet, because a client creating a file locks its name first; that lock creates nothing. `LOCK` and `UNLOCK` keep advisory exclusive write locks in memory, per path, with the requested timeout capped at 10 minutes. A PUT, DELETE or MOVE onto a path locked by another lock token is 423. Finder and Windows mount read-only without class 2, so the locks exist for them; correctness still rests on the ETag checks.
 
 ### Limits
 
-`maxFileBytes` defaults to directory-sync's `maxImportFileBytes`. Image PUTs stream into `stageAsset`, as directory-sync's image import does.
+`maxFileBytes` defaults to directory-sync's `maxImportFileBytes` (5 MiB). An image may be as large as any image asset (25 MiB) and is staged with `stageAsset`, as directory-sync's image import does, only once the save is known to be allowed; a write that then fails discards the staged bytes. An image is stored only under the extension its bytes have.
 
 ## Phases
 

@@ -126,6 +126,8 @@ describe("WebDAV routes", () => {
       "COPY",
       "PROPPATCH",
       "MKCOL",
+      "LOCK",
+      "UNLOCK",
     ]);
   });
 
@@ -143,12 +145,12 @@ describe("WebDAV routes", () => {
     }
   });
 
-  it("answers OPTIONS without credentials as a class 1 server", async () => {
+  it("answers OPTIONS without credentials as a class 2 server", async () => {
     const response = await drive()("OPTIONS", "/dav/", { as: "nobody" });
     expect(response.status).toBe(200);
-    expect(response.headers.get("dav")).toBe("1");
+    expect(response.headers.get("dav")).toBe("1, 2");
     expect(response.headers.get("allow")).toBe(
-      "OPTIONS, GET, HEAD, PROPFIND, PUT, DELETE, MOVE, COPY, PROPPATCH, MKCOL",
+      "OPTIONS, GET, HEAD, PROPFIND, PUT, DELETE, MOVE, COPY, PROPPATCH, MKCOL, LOCK, UNLOCK",
     );
   });
 

@@ -9,8 +9,14 @@ import {
   type WriteOutcome,
 } from "./dav-saves";
 import { ScratchStore, isScratchName, type ScratchFile } from "./dav-scratch";
+import { LockStore, requestedLockSeconds } from "./dav-locks";
 import { DavTree, type DavNode, type DavReader } from "./dav-tree";
-import { davErrorXml, multistatusXml, type DavResourceProps } from "./dav-xml";
+import {
+  davErrorXml,
+  lockDiscoveryXml,
+  multistatusXml,
+  type DavResourceProps,
+} from "./dav-xml";
 
 export interface DavRoutesOptions {
   /** Where the drive is mounted, without a trailing slash: `/dav`. */
@@ -35,6 +41,8 @@ const WRITE_METHODS = [
   "COPY",
   "PROPPATCH",
   "MKCOL",
+  "LOCK",
+  "UNLOCK",
 ] as const;
 const METHODS = [...READ_METHODS, ...WRITE_METHODS] as const;
 type DavMethod = (typeof METHODS)[number];
@@ -71,10 +79,11 @@ interface DavRequest {
 interface DavServer {
   options: DavRoutesOptions;
   scratch: ScratchStore;
+  locks: LockStore;
 }
 
 /**
- * A WebDAV class 1 server (RFC 4918) over a brain's entities: browse with
+ * A WebDAV class 2 server (RFC 4918) over a brain's entities: browse with
  * PROPFIND, read with GET and HEAD, save with PUT, remove with DELETE. Each
  * method is its own prefix route; the routes are public to the host and
  * authenticate every request themselves, with an app password.
@@ -85,6 +94,7 @@ export function createDavRoutes(
   const server: DavServer = {
     options,
     scratch: new ScratchStore(options.now),
+    locks: new LockStore(options.now),
   };
   const handlers: Record<
     Exclude<DavMethod, "OPTIONS">,
@@ -100,6 +110,8 @@ export function createDavRoutes(
     COPY: async () => forbidden("The drive does not copy files"),
     PROPPATCH: async () => forbidden("The drive does not store properties"),
     MKCOL: makeFolder,
+    LOCK: lock,
+    UNLOCK: unlock,
   };
 
   return METHODS.map((method): WebRouteDefinition => ({
@@ -118,19 +130,42 @@ export function createDavRoutes(
         return inert(forbidden("This app password is read-only"));
       }
 
-      return inert(
-        await handlers[method](server, {
-          request,
-          grant,
-          tree: new DavTree(
-            options.reader,
-            permissionToVisibilityScope(grant.principal.permissionLevel),
-          ),
-          path: pathBelow(options.basePath, new URL(request.url).pathname),
-        }),
-      );
+      const dav: DavRequest = {
+        request,
+        grant,
+        tree: new DavTree(
+          options.reader,
+          permissionToVisibilityScope(grant.principal.permissionLevel),
+        ),
+        path: pathBelow(options.basePath, new URL(request.url).pathname),
+      };
+      // LOCK and UNLOCK answer for the lock themselves; every other write
+      // to a locked path needs its holder and its token.
+      if (
+        isWriteMethod(method) &&
+        method !== "LOCK" &&
+        method !== "UNLOCK" &&
+        dav.path &&
+        !permitted(server, dav, dav.path.segments)
+      ) {
+        return inert(locked());
+      }
+      return inert(await handlers[method](server, dav));
     },
   }));
+}
+
+/** Whether a lock on a path lets this request write to it. */
+function permitted(
+  server: DavServer,
+  dav: DavRequest,
+  segments: string[],
+): boolean {
+  return server.locks.permits(
+    segments,
+    dav.grant.principal.userId,
+    dav.request.headers.get("if"),
+  );
 }
 
 function isWriteMethod(method: DavMethod): boolean {
@@ -271,7 +306,12 @@ async function put(server: DavServer, dav: DavRequest): Promise<Response> {
   if (!path) return notFound();
   if (path.asFolder || path.segments.length === 0) return folderHasNoContent();
 
-  const bytes = await readBody(dav.request, server.options.writes.maxFileBytes);
+  // The ceiling for any file; a save then applies the limit of its kind.
+  const { maxFileBytes, maxAssetBytes } = server.options.writes;
+  const bytes = await readBody(
+    dav.request,
+    Math.max(maxFileBytes, maxAssetBytes),
+  );
   if (!bytes) {
     return new Response("The file is larger than the drive accepts", {
       status: 413,
@@ -388,6 +428,7 @@ async function move(server: DavServer, dav: DavRequest): Promise<Response> {
 
   const { path } = dav;
   if (!path) return notFound();
+  if (!permitted(server, dav, destination.segments)) return locked();
   if (path.asFolder || !isScratchPath(path.segments)) {
     return forbidden("The drive does not rename files");
   }
@@ -422,6 +463,71 @@ async function move(server: DavServer, dav: DavRequest): Promise<Response> {
   // A refused save keeps the temporary file: the editor still has its work.
   if (outcome.status < 300) server.scratch.delete(userId, path.segments);
   return written(server, dav, destination.segments, outcome);
+}
+
+/**
+ * LOCK takes a path's exclusive write lock, or, when the request names a
+ * token it holds and sends no lock body, refreshes it. A client creating a
+ * file locks its name first; that lock is granted and creates nothing.
+ */
+async function lock(server: DavServer, dav: DavRequest): Promise<Response> {
+  const { path } = dav;
+  if (!path || path.segments.length === 0) return notFound();
+  const userId = dav.grant.principal.userId;
+  const seconds = requestedLockSeconds(dav.request.headers.get("timeout"));
+  const ifHeader = dav.request.headers.get("if");
+  const hasBody = (await dav.request.arrayBuffer()).byteLength > 0;
+
+  if (ifHeader && !hasBody) {
+    const refreshed = server.locks.refresh(
+      path.segments,
+      userId,
+      ifHeader,
+      seconds,
+    );
+    return refreshed
+      ? lockGranted(server, path.segments, refreshed, 200)
+      : preconditionFailed("No such lock to refresh");
+  }
+  const granted = server.locks.acquire(path.segments, userId, seconds);
+  if (!granted) return locked();
+  const exists =
+    scratchAt(server, dav) !== undefined ||
+    (await nodeAt(server, dav)) !== undefined;
+  return lockGranted(server, path.segments, granted, exists ? 200 : 201);
+}
+
+function lockGranted(
+  server: DavServer,
+  segments: string[],
+  granted: { token: string; seconds: number },
+  status: 200 | 201,
+): Response {
+  return new Response(
+    lockDiscoveryXml({
+      ...granted,
+      href: `${server.options.basePath}/${encodePath(segments)}`,
+    }),
+    {
+      status,
+      headers: {
+        "Content-Type": XML_TYPE,
+        "Lock-Token": `<${granted.token}>`,
+      },
+    },
+  );
+}
+
+async function unlock(server: DavServer, dav: DavRequest): Promise<Response> {
+  const { path } = dav;
+  if (!path) return notFound();
+  const token = /<([^>]+)>/.exec(
+    dav.request.headers.get("lock-token") ?? "",
+  )?.[1];
+  if (!token) return new Response("Lock-Token required", { status: 400 });
+  return server.locks.release(path.segments, dav.grant.principal.userId, token)
+    ? noContent()
+    : new Response("No such lock", { status: 409 });
 }
 
 /** The answer to a write; a created entity makes its folders real. */
@@ -561,7 +667,7 @@ function multistatus(resources: DavResourceProps[]): Response {
 function optionsResponse(): Response {
   return new Response(null, {
     status: 200,
-    headers: { DAV: "1", Allow: ALLOW, "MS-Author-Via": "DAV" },
+    headers: { DAV: "1, 2", Allow: ALLOW, "MS-Author-Via": "DAV" },
   });
 }
 
@@ -591,6 +697,10 @@ function notFound(): Response {
 
 function forbidden(message: string): Response {
   return new Response(message, { status: 403 });
+}
+
+function locked(): Response {
+  return new Response("The file is locked", { status: 423 });
 }
 
 function preconditionFailed(message: string): Response {

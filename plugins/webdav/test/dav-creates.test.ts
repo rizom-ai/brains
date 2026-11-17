@@ -1,18 +1,7 @@
 import { describe, expect, it } from "bun:test";
-import type { AuthAppPasswordGrant } from "@brains/contracts";
-import { createDavRoutes } from "../src/dav-routes";
+import { dest, doc, drive, hrefs } from "./drive";
 import { fakeBrain, type FakeBrain } from "./fake-brain";
 import { entity } from "./fake-reader";
-
-type Level = "admin" | "trusted";
-interface As {
-  level?: Level;
-  access?: "read" | "write";
-  user?: string;
-}
-
-const doc = (title: string, extra = ""): string =>
-  `---\ntitle: ${title}\n${extra}---\n\nBody of ${title}`;
 
 function library(): FakeBrain {
   return fakeBrain(
@@ -30,75 +19,7 @@ function library(): FakeBrain {
   );
 }
 
-function drive(
-  brain: FakeBrain,
-  clock: { now: number } = { now: 1_800_000_000_000 },
-): (
-  method: string,
-  path: string,
-  options?: { as?: As; headers?: Record<string, string>; body?: BodyInit },
-) => Promise<Response> {
-  const routes = createDavRoutes({
-    basePath: "/dav",
-    realm: "Test Brain",
-    ...brain.options,
-    now: () => clock.now,
-    resolveAppPassword: async (request): Promise<AuthAppPasswordGrant> => {
-      const level =
-        request.headers.get("x-level") === "admin" ? "admin" : "trusted";
-      const user = request.headers.get("x-user") ?? `usr_${level}`;
-      return {
-        principal: {
-          userId: user,
-          personId: `prsn_${user}`,
-          displayName: user,
-          role: level,
-          status: "active",
-          permissionLevel: level,
-          isAnchor: false,
-        },
-        access: request.headers.get("x-access") === "read" ? "read" : "write",
-        appPasswordId: `pw_${user}`,
-      };
-    },
-  });
-  return async (method, path, options = {}) => {
-    const route = routes.find((candidate) => candidate.method === method);
-    if (!route) throw new Error(`No ${method} route`);
-    return route.handler(
-      new Request(`https://brain.example${path}`, {
-        method,
-        headers: {
-          "x-level": options.as?.level ?? "trusted",
-          "x-access": options.as?.access ?? "write",
-          ...(options.as?.user ? { "x-user": options.as.user } : {}),
-          ...options.headers,
-        },
-        ...(options.body !== undefined ? { body: options.body } : {}),
-      }),
-    );
-  };
-}
-
-async function hrefs(response: Response): Promise<string[]> {
-  return [
-    ...(await response.text()).matchAll(/<D:href>([^<]*)<\/D:href>/g),
-  ].map((match) => match[1] ?? "");
-}
-
-const dest = (path: string): Record<string, string> => ({
-  destination: `https://brain.example${path}`,
-});
-
 describe("WebDAV creating files", () => {
-  it("declares MKCOL beside the other methods", async () => {
-    expect(
-      (await drive(library())("OPTIONS", "/dav/")).headers.get("allow"),
-    ).toBe(
-      "OPTIONS, GET, HEAD, PROPFIND, PUT, DELETE, MOVE, COPY, PROPPATCH, MKCOL",
-    );
-  });
-
   it("creates the entity a new file names, as its author, only if absent", async () => {
     const brain = library();
     const dav = drive(brain);
