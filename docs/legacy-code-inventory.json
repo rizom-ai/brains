@@ -431,6 +431,18 @@
       "targetRelease": "post-image-migration-soak"
     },
     {
+      "id": "retired-binary-bridge-runtime-state",
+      "paths": ["shell/core/src/retired-runtime-state.ts"],
+      "symbol": "boot-time deletion of the shell.legacy-binary-content runtime-state namespace",
+      "owner": "@brains/core",
+      "class": "durable-data-compatibility",
+      "behavior": "Each boot deletes any rows left in the runtime-state namespace where the removed data-URL bridge kept its per-surface use counts, so no brain keeps dead state.",
+      "currentConsumers": "Brains that ran a release with the data-URL bridge and still hold its counts.",
+      "removalPrerequisite": "Every deployed brain has booted once on a release with this cleanup.",
+      "rollbackDependency": "A rollback to a release with the bridge starts its counts from zero; nothing depends on the deleted rows.",
+      "targetRelease": "after-every-brain-boots-the-bridge-removal-release"
+    },
+    {
       "id": "frontmatter-yaml-scalar-semantics",
       "paths": ["shared/utils/src/frontmatter-schema.ts"],
       "symbol": "frontmatterSchema scalar grammar, colon-string quoting, and binary representation",

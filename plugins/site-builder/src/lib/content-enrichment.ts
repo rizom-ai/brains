@@ -322,8 +322,6 @@ async function forEachEntityPage(
       // The stored record: a declared type reads back its body alone, and
       // its cover and OG images are named in its frontmatter.
       source: true,
-      // An asset-backed record names no images; its bytes never load.
-      binaryContent: "reference",
     },
   });
   visit(page);

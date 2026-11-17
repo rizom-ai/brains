@@ -187,7 +187,6 @@ async function fetchPublishDocumentItem(
   const entity = await context.entityService.getEntity({
     entityType: "document",
     id: reference.id,
-    binaryContent: "reference",
   });
   if (!entity?.content) return undefined;
 

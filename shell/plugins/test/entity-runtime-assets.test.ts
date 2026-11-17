@@ -131,7 +131,6 @@ const picture: EntityDefinition<"picture", typeof pictureMetadata> =
               seen = await entityRuntime(context).anyEntities.getEntity({
                 entityType: "picture",
                 id: input.id,
-                binaryContent: "reference",
               });
               return {};
           }
@@ -299,8 +298,8 @@ describe("entity runtime assets", () => {
     expect(saved?.visibility).toBe("restricted");
   });
 
-  it("reads any type's record as its stored reference when asked", async () => {
-    const { shell, service } = await install();
+  it("reads any type's record as its stored reference", async () => {
+    const { shell } = await install();
     await run(shell, { action: "save", id: "first" });
 
     await run(shell, { action: "any-get-reference", id: "first" });
@@ -308,7 +307,6 @@ describe("entity runtime assets", () => {
     expect(z.object({ content: z.string() }).parse(seen).content).toMatch(
       /^asset:\/\/sha256\//,
     );
-    expect(service.getLegacyBinaryMaterializations()).toEqual([]);
   });
 
   it("refuses to save another type's record and publishes nothing", async () => {

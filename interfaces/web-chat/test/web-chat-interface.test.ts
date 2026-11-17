@@ -2405,7 +2405,6 @@ describe("WebChatPlugin", () => {
         },
       },
     ]);
-    const read = spyOn(harness.getEntityService(), "getEntity");
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/attachments/document", "GET");
 
@@ -2425,9 +2424,6 @@ describe("WebChatPlugin", () => {
       "attachment; filename=\"stored-carousel.pdf\"; filename*=UTF-8''stored-carousel.pdf",
     );
     expect(new Uint8Array(body ?? new ArrayBuffer(0))).toEqual(bytes);
-    for (const [request] of read.mock.calls) {
-      expect(request.binaryContent).toBe("reference");
-    }
   });
 
   it("does not serve restricted document attachments to trusted callers", async () => {

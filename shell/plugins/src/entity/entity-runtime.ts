@@ -234,10 +234,7 @@ export interface AnyEntityReads {
   getEntity(request: {
     readonly entityType: string;
     readonly id: string;
-    /** Asset-backed content as its stored reference; no bytes load. */
-    readonly binaryContent?: "reference" | undefined;
   }): Promise<BaseEntity | null>;
-  /** A record by its id| null>;
   /** A record by its id, else its slug, else its title. */
   find(entityType: string, identifier: string): Promise<BaseEntity | null>;
 }
@@ -729,9 +726,6 @@ function scopedAnyEntities({
         entityType: request.entityType,
         id: request.id,
         ...visibility(request.entityType),
-        ...(request.binaryContent !== undefined && {
-          binaryContent: request.binaryContent,
-        }),
       }),
     find: (
       entityType: string,
