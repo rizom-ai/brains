@@ -313,6 +313,8 @@ export async function resolveCreateTarget(
     visibilityScope: permissionToVisibilityScope(
       toolContext.userPermissionLevel,
     ),
+    // Only its presence and status are read, never its bytes.
+    binaryContent: "reference",
   });
   if (!existing) return { kind: "ok", value: undefined };
   // Replacing deletes, so it takes the authority system_delete takes.

@@ -751,8 +751,9 @@ async function storedTitle(
 ): Promise<string | undefined> {
   // A missing or unreadable entry keeps its id in the feed; activity is
   // informational and must not fail the event it observes.
+  // Only its title is read: binary content stays its stored reference.
   const entity = await context.entityService
-    .getEntity({ entityType, id: entityId })
+    .getEntity({ entityType, id: entityId, binaryContent: "reference" })
     .catch(() => null);
   return entity ? entityDisplayTitle(context, entity) : undefined;
 }

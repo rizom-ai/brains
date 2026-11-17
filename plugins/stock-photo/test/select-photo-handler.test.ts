@@ -241,4 +241,35 @@ describe("the select-photo job", () => {
       stagedAsset: expect.objectContaining({ ref }),
     });
   });
+
+  it("finds a photo it already saved as stored, without its bytes", async () => {
+    const reads: unknown[] = [];
+    const entityService = createEntityService({
+      getEntity: async (request: { entityType: string; id: string }) => {
+        reads.push(request);
+        return request.entityType === "image"
+          ? {
+              id: request.id,
+              entityType: "image",
+              content: createAssetRef("a".repeat(64)),
+              metadata: { title: "Saved photo" },
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            }
+          : null;
+      },
+    });
+    const handler = createHandler({
+      provider: createProvider(),
+      entityService,
+      fetchImage: async (): Promise<string> => TINY_PNG_DATA_URL,
+    });
+
+    const result = await handler.process(jobData, "job-123", progressReporter);
+
+    expect(result.imageEntityId).toBe(jobData.photoId);
+    expect(reads).toEqual([
+      { entityType: "image", id: jobData.photoId, binaryContent: "reference" },
+    ]);
+  });
 });

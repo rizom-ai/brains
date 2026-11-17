@@ -19,13 +19,14 @@ import { deckViewSchema } from "../templates/deck-view-schema";
 type DeckDefinition = EntityDefinition<"deck", typeof deckMetadataSchema>;
 
 /**
- * The image a deck's cover names, read for its data URL. The image type is
- * the images package's; a deck reads it by this shape and never installs it.
+ * The image a deck's cover names, read for its bytes. The image type is the
+ * images package's; a deck reads it by this shape and never installs it.
  */
 const imageShape = defineEntity({
   type: "image",
   purpose: "An image a deck shows as its cover.",
   metadata: imageMetadataSchema,
+  config: { binaryStorage: "asset" },
 });
 
 /**
@@ -59,16 +60,20 @@ function deckWithData(entity: EntityOf<DeckDefinition>): DeckWithData {
   };
 }
 
-/** The cover image, as a slide directive on the first slide. */
+/**
+ * The cover image, as a slide directive on the first slide: its bytes,
+ * read through the cover the build can see, encoded as a data URL.
+ */
 async function withCover(
   deck: DeckWithData,
   entities: EntityReader,
 ): Promise<DeckWithData> {
   const coverImageId = deck.frontmatter.coverImageId;
   if (!coverImageId) return deck;
-  const image = await entities.get(imageShape, coverImageId);
+  const image = await entities.readBytes(imageShape, coverImageId);
   if (!image) return deck;
-  const directive = `<!-- .slide: data-background-image="${image.content}" data-background-opacity="0.4" -->`;
+  const dataUrl = `data:${image.mediaType};base64,${Buffer.from(image.bytes).toString("base64")}`;
+  const directive = `<!-- .slide: data-background-image="${dataUrl}" data-background-opacity="0.4" -->`;
   return { ...deck, body: `${directive}\n${deck.body}` };
 }
 
