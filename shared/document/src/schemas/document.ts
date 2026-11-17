@@ -1,4 +1,4 @@
-import { baseEntityParserSchema } from "@brains/entity-service";
+import { assetRefSchema, baseEntityParserSchema } from "@brains/entity-service";
 import { z } from "@brains/utils/zod";
 
 export const documentMimeTypeSchema: z.ZodLiteral<"application/pdf"> =
@@ -21,6 +21,7 @@ type DocumentMetadataSchema = z.ZodObject<{
   mimeType: typeof documentMimeTypeSchema;
   filename: z.ZodString;
   pageCount: z.ZodOptional<z.ZodNumber>;
+  sizeBytes: z.ZodOptional<z.ZodNumber>;
   status: z.ZodOptional<typeof documentIngestionStatusSchema>;
   processingJobId: z.ZodOptional<z.ZodString>;
   processingError: z.ZodOptional<z.ZodString>;
@@ -39,6 +40,13 @@ export const documentMetadataSchema: DocumentMetadataSchema = z.object({
   mimeType: documentMimeTypeSchema.meta({ studioWidget: "provenance" }),
   filename: z.string().min(1).meta({ studioWidget: "provenance" }),
   pageCount: z
+    .number()
+    .int()
+    .min(0)
+    .optional()
+    .meta({ studioWidget: "provenance" }),
+  // Recorded from the bytes of an asset-backed document.
+  sizeBytes: z
     .number()
     .int()
     .min(0)
@@ -75,12 +83,20 @@ export type DocumentMetadata = z.output<typeof documentMetadataSchema>;
 export const documentSchema: ReturnType<
   typeof baseEntityParserSchema.extend<{
     entityType: z.ZodLiteral<"document">;
-    content: z.ZodString;
+    content: z.ZodUnion<
+      readonly [typeof assetRefSchema, z.ZodString, z.ZodLiteral<"">]
+    >;
     metadata: DocumentMetadataSchema;
   }>
 > = baseEntityParserSchema.extend({
   entityType: z.literal("document"),
-  content: z.string().regex(/^data:application\/pdf;base64,.+$/),
+  // An asset reference, an inline PDF stored before assets, or nothing yet
+  // while the document is pending or failed.
+  content: z.union([
+    assetRefSchema,
+    z.string().regex(/^data:application\/pdf;base64,.+$/),
+    z.literal(""),
+  ]),
   metadata: documentMetadataSchema,
 });
 

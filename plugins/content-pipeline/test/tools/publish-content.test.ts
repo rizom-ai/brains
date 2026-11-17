@@ -259,6 +259,73 @@ Post with PDF carousel.`;
     );
   });
 
+  it("reads a staged document attachment from its stored chunks", async () => {
+    const asset = await context.entityService.stageAsset(
+      Buffer.from("%PDF-1.7"),
+    );
+    await context.entityService.createEntity({
+      entity: {
+        id: "stored-pdf",
+        entityType: "document",
+        content: asset.ref,
+        metadata: {
+          filename: "stored.pdf",
+          mimeType: "application/pdf",
+          sizeBytes: 8,
+        },
+      },
+    });
+
+    const result = await preparePublishContent(
+      context,
+      createPublishableEntity(`---
+documents:
+  - id: stored-pdf
+---
+Post with PDF carousel.`),
+    );
+
+    expect(result.documentData?.[0]).toMatchObject({
+      type: "document",
+      mimeType: "application/pdf",
+      filename: "stored.pdf",
+    });
+    expect(new TextDecoder().decode(result.documentData?.[0]?.data)).toBe(
+      "%PDF-1.7",
+    );
+  });
+
+  it("publishes no document that is not public, even when a public one shares its bytes", async () => {
+    const asset = await context.entityService.stageAsset(
+      Buffer.from("%PDF-1.7"),
+    );
+    for (const [id, visibility] of [
+      ["private-pdf", "restricted"],
+      ["public-twin-pdf", "public"],
+    ] as const) {
+      await context.entityService.createEntity({
+        entity: {
+          id,
+          entityType: "document",
+          content: asset.ref,
+          metadata: { filename: `${id}.pdf`, mimeType: "application/pdf" },
+          visibility,
+        },
+      });
+    }
+
+    const result = await preparePublishContent(
+      context,
+      createPublishableEntity(`---
+documents:
+  - id: private-pdf
+---
+Post with PDF carousel.`),
+    );
+
+    expect(result.documentData).toBeUndefined();
+  });
+
   it("should resolve source-derived carousel attachments when no explicit documents are set", async () => {
     context.attachments.register("deck", "carousel", {
       resolve: (request) => {

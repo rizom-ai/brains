@@ -16,9 +16,9 @@ export async function inlineAssetContent(
   const ref = assetRefSchema.safeParse(content);
   if (!ref.success) return content;
   const bytes = await readAssetBytes(opener, ref.data);
+  // Images record a `mediaType`, documents a `mimeType`.
+  const recorded = metadata["mediaType"] ?? metadata["mimeType"];
   const mediaType =
-    typeof metadata["mediaType"] === "string"
-      ? metadata["mediaType"]
-      : "application/octet-stream";
+    typeof recorded === "string" ? recorded : "application/octet-stream";
   return `data:${mediaType};base64,${bytes.toString("base64")}`;
 }

@@ -181,6 +181,31 @@ describe("starter character generation", () => {
     ).toBe(false);
   });
 
+  test("samples content as stored, so an asset-backed type loads no bytes", async () => {
+    const harness = createHarness();
+    harness.addEntities([
+      {
+        id: "carousel",
+        entityType: "document",
+        content: `asset://sha256/${"a".repeat(64)}`,
+        metadata: { filename: "carousel.pdf" },
+      },
+    ]);
+    const list = spyOn(harness.getEntityService(), "listEntities");
+
+    await buildStarterCharacterBrief({
+      entityService: harness.getEntityService(),
+      anchorEntity: null,
+      includeAnchor: false,
+    });
+
+    const sampled = list.mock.calls.filter(
+      ([request]) => request.entityType === "document",
+    );
+    expect(sampled).toHaveLength(1);
+    expect(sampled[0]?.[0].options?.binaryContent).toBe("reference");
+  });
+
   test("builds a bounded factual brief without markdown bodies", async () => {
     const harness = createHarness();
     const longTitle = `Signal ${"x".repeat(220)}`;

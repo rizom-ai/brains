@@ -15,6 +15,7 @@ import {
 } from "@brains/plugins/test";
 import { createMockLogger, createSilentLogger } from "@brains/test-utils";
 import { createPdfDataUrl } from "@brains/document";
+import { assetRefSchema } from "@brains/entity-service";
 import type { Logger } from "@brains/utils/logger";
 import {
   getDocumentId,
@@ -113,6 +114,17 @@ function DocumentGenerationJob(
   };
 }
 
+/**
+ * A generated document's bytes: stored as an asset, never inline, and
+ * read back through its reference.
+ */
+async function generatedPdf(
+  document: { content: string } | null | undefined,
+): Promise<Buffer> {
+  const ref = assetRefSchema.parse(document?.content);
+  return Buffer.from(await shell.getEntityService().readAsset(ref));
+}
+
 describe("DocumentGenerationJobHandler", () => {
   let context: ServicePluginContext;
 
@@ -163,7 +175,7 @@ describe("DocumentGenerationJobHandler", () => {
       entityType: "document",
       id: "carousel",
     });
-    expect(document?.content).toBe(createPdfDataUrl(pdfBuffer));
+    expect(await generatedPdf(document)).toEqual(Buffer.from(pdfBuffer));
     expect(document?.metadata).toMatchObject({
       mimeType: "application/pdf",
       filename: "carousel.pdf",
@@ -212,7 +224,7 @@ describe("DocumentGenerationJobHandler", () => {
       entityType: "document",
       id: "carousel",
     });
-    expect(document?.content).toBe(createPdfDataUrl(pdfBuffer));
+    expect(await generatedPdf(document)).toEqual(Buffer.from(pdfBuffer));
     expect(document?.metadata).toMatchObject({
       status: "draft",
       filename: "carousel.pdf",
@@ -350,7 +362,7 @@ describe("DocumentGenerationJobHandler", () => {
       entityType: "document",
       id: "requested-carousel",
     });
-    expect(requested?.content).toBe(createPdfDataUrl(requestedPdf));
+    expect(await generatedPdf(requested)).toEqual(Buffer.from(requestedPdf));
 
     const existing = await context.entityService.getEntity({
       entityType: "document",
@@ -465,7 +477,9 @@ describe("DocumentGenerationJobHandler", () => {
       entityType: "document",
       id: result.documentId,
     });
-    expect(replacement?.content).toBe(createPdfDataUrl(replacementPdf));
+    expect(await generatedPdf(replacement)).toEqual(
+      Buffer.from(replacementPdf),
+    );
   });
 
   it("freezes a source-derived document attachment into a document entity", async () => {
@@ -504,7 +518,7 @@ describe("DocumentGenerationJobHandler", () => {
       entityType: "document",
       id: "frozen-carousel",
     });
-    expect(document?.content).toBe(createPdfDataUrl(pdfBuffer));
+    expect(await generatedPdf(document)).toEqual(Buffer.from(pdfBuffer));
     expect(document?.metadata).toMatchObject({
       filename: "from-provider.pdf",
       attachmentType: "carousel",

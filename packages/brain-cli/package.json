@@ -61,6 +61,7 @@
     "@brains/deploy-support": "workspace:*",
     "@brains/directory-sync": "workspace:*",
     "@brains/doc": "workspace:*",
+    "@brains/document": "workspace:*",
     "@brains/document-plugin": "workspace:*",
     "@brains/email": "workspace:*",
     "@brains/email-workflows": "workspace:*",
