@@ -15,10 +15,10 @@ The brain needs its web bundle: the drive is served by the brain's own HTTP list
 
 ## Signing in
 
-Mount clients send a username and password. A person creates an app password in their account (`POST /auth/account/mutations`, action `createAppPassword`); the generated username and password are shown once. An app password:
+Mount clients send a username and password. A person creates an app password in Studio under Account → Drive; the generated username and password are shown once. The tab appears when this plugin is on, and also shows the drive address and the steps per client. An app password:
 
 - works only on `/dav`: it is never a session or a bearer token;
-- is read-only unless created with `access: "write"`;
+- is read-only;
 - expires a year after creation and can be revoked at any time;
 - is refused over plain HTTP, except on `localhost`;
 - cannot be created by a public-level account.
@@ -33,7 +33,7 @@ Mount clients send a username and password. A person creates an app password in 
 /dav/document/<id>.pdf         document PDF
 ```
 
-Paths come from `@brains/entity-placement`, the same placement directory-sync writes `brain-data/` with.
+Paths come from `@brains/entity-placement`, the same placement directory-sync writes `brain-data/` with. One name can differ: an image that `brain-data/` still keeps as a markdown file holding its data URL (`image/cover.md`) is on the drive as the image itself (`image/cover.png`).
 
 Every request runs at the visibility scope of the app password's owner: a trusted person sees public and shared entities, an admin restricted ones too. Anything outside the scope is not listed and answers 404, as a path that does not exist. A folder exists while something the caller may see is inside it.
 
@@ -41,6 +41,5 @@ Files carry their `contentHash` as a strong ETag. Markdown is served as `text/pl
 
 ## Mount
 
-- GNOME Files: `davs://<host>/dav/`
-- rclone: a WebDAV remote with vendor `other`, URL `https://<host>/dav/`
-- davfs2: `https://<host>/dav/` in `/etc/fstab`, credentials in `/etc/davfs2/secrets`
+- GNOME Files: connect to `davs://<host>/dav/`
+- rclone: `rclone config create <name> webdav url=https://<host>/dav/ vendor=other user=<username> pass=<password> --obscure`, then `rclone mount <name>: ~/Brain --read-only`

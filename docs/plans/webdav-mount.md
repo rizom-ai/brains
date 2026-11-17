@@ -4,7 +4,7 @@ Last updated: 2026-11-17
 
 ## Status
 
-Proposed. No implementation has started.
+In progress. Phase 1 (the read-only mount) is implemented on `work/webdav-mount`: mounted with rclone and GNOME's gvfs against the `personal` test app, where the drive matches `brain-data/` file for file and byte for byte. The check through Cloudflare on a deployed brain remains. Phases 2–4 have not started.
 
 ## Goal
 
@@ -46,7 +46,7 @@ A failed or missing credential returns 401 with `WWW-Authenticate: Basic realm="
 
 ### Account → Drive tab
 
-Studio's Account workspace gets a **Drive** tab next to AI tools. The `webdav` plugin registers a `webdav` interaction in the app info, as the MCP interface registers `mcp`; Studio resolves it against the issuer origin and passes it to the Account bootstrap as `davUrl`, and without it the tab is not rendered. The tab shows the mount address (`<issuer>/dav/`), the person's app passwords (label, access mode, created, expires, last used, revoke), a create button that shows the new username and password once with copy buttons, and one card per client: GNOME Files (`davs://<host>/dav/`), davfs2 (`/etc/fstab` line and `secrets` entry), rclone (`rclone config` WebDAV remote, vendor `other`, then `rclone mount --vfs-cache-mode writes`), macOS Finder (Connect to Server) and Windows (Map network drive). The tab is deep-linkable with `?section=drive`.
+Studio's Account workspace gets a **Drive** tab next to AI tools. The `webdav` plugin registers a `webdav` interaction in the app info, as the MCP interface registers `mcp`; Studio resolves it against the issuer origin and passes it to the Account bootstrap as `davUrl`, and without it the tab is not rendered. The tab shows the mount address (`<issuer>/dav/`), the person's app passwords (label, access mode, created, expires, last used, revoke), a create button that shows the new username and password once with copy buttons, and one card per client. A client is listed once it has mounted a brain with exactly the steps on its card: GNOME Files (`davs://<host>/dav/`) and rclone (`rclone config create` with vendor `other`, then `rclone mount`) today; davfs2, macOS Finder and Windows join as their phases verify them. Until the drive takes changes (Phase 2) the tab creates read-only app passwords only; the access mode choice arrives with it. The tab is deep-linkable with `?section=drive`.
 
 ### The tree
 
@@ -67,6 +67,7 @@ Studio's Account workspace gets a **Drive** tab next to AI tools. The `webdav` p
 - Files carry `getetag` = the quoted `contentHash`, `getcontentlength`, `getlastmodified` = `updated`, and `resourcetype`. `PROPPATCH` answers 403 per property: properties are not stored.
 - `PROPFIND` with `Depth: infinity` is 403 (RFC 4918 `propfind-finite-depth`); depths 0 and 1 are served.
 - Document sidecar JSON files are not shown.
+- An image is on the drive under the extension its bytes have. directory-sync keeps an image's existing markdown file (its data URL as text) when one is already on disk; the drive has no disk to consult, so that one name differs from `brain-data/`.
 
 ### Request flows
 

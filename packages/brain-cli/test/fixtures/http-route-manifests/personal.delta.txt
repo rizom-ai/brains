@@ -95,3 +95,7 @@
 + web-chat|handler|POST|/api/chat|exact|true
 + web-chat|handler|PUT|/api/chat/sessions/archive|exact|true
 + web-chat|handler|PUT|/api/chat/sessions|exact|true
++ webdav|handler|GET|/dav|prefix|true
++ webdav|handler|HEAD|/dav|prefix|true
++ webdav|handler|OPTIONS|/dav|prefix|true
++ webdav|handler|PROPFIND|/dav|prefix|true

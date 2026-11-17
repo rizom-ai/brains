@@ -15,7 +15,9 @@ const repoRoot = join(import.meta.dir, "../../..");
 
 function* sourceFiles(dir: string): Generator<string> {
   for (const entry of readdirSync(dir)) {
-    if (entry === "node_modules" || entry === "dist" || entry === ".turbo") {
+    // Dot directories hold no source, and `.cache` is scratch space other
+    // suites create and remove while this one walks the tree.
+    if (entry === "node_modules" || entry === "dist" || entry.startsWith(".")) {
       continue;
     }
     const path = join(dir, entry);
