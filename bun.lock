@@ -811,6 +811,7 @@
         "@brains/unified-inbox": "workspace:*",
         "@brains/utils": "workspace:*",
         "@brains/web-chat": "workspace:*",
+        "@brains/webdav": "workspace:*",
         "@brains/wishlist": "workspace:*",
         "@libsql/client": "^0.17.4",
         "@manypkg/get-packages": "^3.1.0",
@@ -1545,6 +1546,26 @@
         "bun-types": "^1.4.0",
         "eslint": "^10.5.0",
         "react-dom": "^19.2.7",
+        "typescript": "^7.0.2",
+      },
+    },
+    "plugins/webdav": {
+      "name": "@brains/webdav",
+      "version": "0.2.0-alpha.733",
+      "dependencies": {
+        "@brains/contracts": "workspace:*",
+        "@brains/entity-placement": "workspace:*",
+        "@brains/sdk": "workspace:*",
+        "@brains/utils": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/plugins": "workspace:*",
+        "@brains/test-utils": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "^1.4.0",
+        "bun-types": "^1.4.0",
+        "eslint": "^10.5.0",
         "typescript": "^7.0.2",
       },
     },
@@ -3021,6 +3042,8 @@
     "@brains/utils": ["@brains/utils@workspace:shared/utils"],
 
     "@brains/web-chat": ["@brains/web-chat@workspace:interfaces/web-chat"],
+
+    "@brains/webdav": ["@brains/webdav@workspace:plugins/webdav"],
 
     "@brains/wishlist": ["@brains/wishlist@workspace:entities/wishlist"],
 

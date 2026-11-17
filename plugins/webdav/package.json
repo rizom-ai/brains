@@ -1,0 +1,33 @@
+{
+  "name": "@brains/webdav",
+  "license": "AGPL-3.0-only",
+  "version": "0.2.0-alpha.733",
+  "description": "Mount a brain as a network drive: its entities as files over WebDAV",
+  "dependencies": {
+    "@brains/contracts": "workspace:*",
+    "@brains/entity-placement": "workspace:*",
+    "@brains/sdk": "workspace:*",
+    "@brains/utils": "workspace:*"
+  },
+  "devDependencies": {
+    "@brains/eslint-config": "workspace:*",
+    "@brains/plugins": "workspace:*",
+    "@brains/test-utils": "workspace:*",
+    "@brains/typescript-config": "workspace:*",
+    "@types/bun": "^1.4.0",
+    "bun-types": "^1.4.0",
+    "eslint": "^10.5.0",
+    "typescript": "^7.0.2"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "private": true,
+  "scripts": {
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --max-warnings 0 --fix",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "type": "module"
+}

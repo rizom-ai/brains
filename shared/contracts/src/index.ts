@@ -440,6 +440,7 @@ export type {
 } from "./console";
 export { consoleJumpDestinationsContract } from "./console";
 export { MCP_INTERACTION_ID } from "./mcp";
+export { WEBDAV_INTERACTION_ID } from "./webdav";
 export {
   CHAT_INTERACTION_ID,
   STUDIO_ACCOUNT_WORKSPACE_ID,
