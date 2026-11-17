@@ -351,7 +351,8 @@ const assetsMigrate: BrainCommand = defineCommand({
   name: "assets:migrate",
   usage:
     "[--dry-run] [--database <path>] [--manifest <path>] [--ignore-stale-heartbeat]",
-  description: "Move inline images into durable assets (offline, app stopped)",
+  description:
+    "Move inline images and PDFs into durable assets (offline, app stopped)",
   flags: {
     "ignore-stale-heartbeat": STALE_HEARTBEAT_FLAG,
     database: {
@@ -361,7 +362,8 @@ const assetsMigrate: BrainCommand = defineCommand({
     },
     "dry-run": {
       type: "boolean",
-      description: "Decode every inline image and report without writing",
+      description:
+        "Decode every inline image and PDF and report without writing",
     },
     manifest: {
       type: "string",
@@ -385,7 +387,7 @@ const assetsVerify: BrainCommand = defineCommand({
   name: "assets:verify",
   usage: "[--database <path>] [--brain-data <dir>] [--ignore-stale-heartbeat]",
   description:
-    "Check migrated images resolve to intact assets (offline, app stopped)",
+    "Check migrated images and PDFs resolve to intact assets (offline, app stopped)",
   flags: {
     "ignore-stale-heartbeat": STALE_HEARTBEAT_FLAG,
     database: {
@@ -396,7 +398,8 @@ const assetsVerify: BrainCommand = defineCommand({
     "brain-data": {
       type: "string",
       placeholder: "<dir>",
-      description: "Synced content directory whose image files to compare",
+      description:
+        "Synced content directory whose image and PDF files to compare",
     },
   },
   run: async ({ flags }, dir): Promise<CommandResult> => {
@@ -414,7 +417,7 @@ const assetsReconcile: BrainCommand = defineCommand({
   usage:
     "[--from <dir>] [--dry-run] [--database <path>] [--ignore-stale-heartbeat]",
   description:
-    "Restore image rows and assets from brain-data (offline, app stopped)",
+    "Restore image and PDF rows and assets from brain-data (offline, app stopped)",
   flags: {
     "ignore-stale-heartbeat": STALE_HEARTBEAT_FLAG,
     database: {

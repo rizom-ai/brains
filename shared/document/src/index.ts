@@ -27,3 +27,18 @@ export {
   extractPdfMarkdown,
   type ExtractPdfMarkdownOptions,
 } from "./lib/pdf-markdown";
+export {
+  assertStoredDocumentContent,
+  DOCUMENT_ASSET_MAX_BYTES,
+  LEGACY_PENDING_DOCUMENT_PLACEHOLDER,
+  classifyInlineDocument,
+  createPendingDocumentEntity,
+  inlineDocumentPayload,
+  isPdfBytes,
+  stageDocumentEntity,
+  type DocumentAssetStager,
+  type DocumentDescription,
+  type InlineDocumentBlocker,
+  type InlineDocumentVerdict,
+  type StagedDocumentEntity,
+} from "./lib/document-asset";

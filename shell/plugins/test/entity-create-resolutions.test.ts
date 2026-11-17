@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { defineJobContract } from "@brains/contracts";
 import {
+  assetRefSchema,
   EntityRegistry,
   EntityService,
   type CreateExecutionContext,
@@ -59,6 +60,20 @@ const scan = defineEntity({
   },
 });
 
+/** A file kept as its bytes: its content is the bare asset reference. */
+const scroll = defineEntity({
+  type: "scroll",
+  purpose: "A file its route stores as bytes.",
+  metadata: scanMetadata,
+  config: { binaryStorage: "asset", embeddable: false },
+  markdown: { decode: ({ content }) => ({ content, metadata: {} }) },
+  create: {
+    fromPrompt: {
+      resolve: async (context) => answer(context),
+    },
+  },
+});
+
 let close: (() => Promise<void>) | undefined;
 afterEach(async () => {
   await close?.();
@@ -72,18 +87,29 @@ async function install(): Promise<{
   const directory = await createTestDirectory();
   const logger = createSilentLogger();
   const registry = EntityRegistry.createFresh(logger);
-  const plugins = instantiatePluginPackageDefinition(
-    defineEntityPackage({ id: "scans", entities: [scan] }),
-    {},
-    { name: "@fixture/scans", version: "0.1.0" },
-    { pluginId: "scans" },
-  );
+  const plugins = [
+    ...instantiatePluginPackageDefinition(
+      defineEntityPackage({ id: "scans", entities: [scan] }),
+      {},
+      { name: "@fixture/scans", version: "0.1.0" },
+      { pluginId: "scans" },
+    ),
+    ...instantiatePluginPackageDefinition(
+      defineEntityPackage({ id: "scrolls", entities: [scroll] }),
+      {},
+      { name: "@fixture/scrolls", version: "0.1.0" },
+      { pluginId: "scrolls" },
+    ),
+  ];
   for (const plugin of plugins) {
     if (isDeclaredEntityType(plugin)) {
       registry.registerEntityType(
         plugin.entityType,
         plugin.schema,
         plugin.adapter,
+        ...(plugin.entityType === "scroll"
+          ? [{ binaryStorage: "asset" as const, embeddable: false }]
+          : []),
       );
     }
   }
@@ -126,10 +152,13 @@ const caller: CreateExecutionContext = {
 async function create(
   shell: MockShell,
   input: Partial<CreateInput> = {},
+  entityType = "scan",
 ): Promise<unknown> {
-  const interceptor = shell.getEntityRegistry().getCreateInterceptor("scan");
-  if (!interceptor) throw new Error("No scan create route");
-  return interceptor({ entityType: "scan", prompt: "A dot", ...input }, caller);
+  const interceptor = shell
+    .getEntityRegistry()
+    .getCreateInterceptor(entityType);
+  if (!interceptor) throw new Error(`No ${entityType} create route`);
+  return interceptor({ entityType, prompt: "A dot", ...input }, caller);
 }
 
 const queued = (
@@ -429,6 +458,48 @@ describe("a stored create", () => {
         })
       )?.visibility,
     ).toBe("restricted");
+  });
+});
+
+describe("a stored create with bytes", () => {
+  it("stages the bytes and publishes them with the record, its content their reference", async () => {
+    const { shell, service } = await install();
+    const bytes = Buffer.from([0x89, 0x50, 0x4e, 0x47, 1, 2, 3]);
+    answer = (context): { readonly refuse: string } =>
+      entityRuntime(context).stored({
+        record: { id: "dot", metadata: { title: "Dot" } },
+        bytes,
+        attachment: ({ entityId }) => attachment(entityId),
+      });
+
+    expect(await create(shell, {}, "scroll")).toMatchObject({
+      kind: "handled",
+      result: { success: true, data: { entityId: "dot", status: "created" } },
+    });
+    const stored = await service.getEntity({
+      entityType: "scroll",
+      id: "dot",
+      binaryContent: "reference",
+    });
+    const ref = assetRefSchema.parse(stored?.content);
+    expect(Buffer.from(await service.readAsset(ref))).toEqual(bytes);
+  });
+
+  it("refuses bytes for a type that does not store them, writing nothing", async () => {
+    const { shell, service } = await install();
+    answer = (context): { readonly refuse: string } =>
+      entityRuntime(context).stored({
+        record: { id: "dot", metadata: { title: "Dot" } },
+        bytes: Buffer.from("bytes"),
+        attachment: ({ entityId }) => attachment(entityId),
+      });
+
+    expect(create(shell)).rejects.toThrow(
+      "not registered for asset-backed storage",
+    );
+    expect(
+      await service.getEntity({ entityType: "scan", id: "dot" }),
+    ).toBeNull();
   });
 });
 

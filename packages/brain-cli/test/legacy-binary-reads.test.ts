@@ -5,16 +5,23 @@ import { Client } from "@modelcontextprotocol/client";
 import { InMemoryTransport } from "@modelcontextprotocol/server";
 import type { App } from "@brains/app";
 import type { Shell } from "@brains/core";
+import { stageDocumentEntity } from "@brains/document";
 import { stageImageEntity } from "@brains/image";
 import type { ToolContext } from "@brains/mcp-service";
 import { isRecord } from "@brains/utils/is-record";
 import { CallbackProgressReporter } from "@brains/utils/progress";
 import { createFullPresetApp } from "./helpers/full-preset-app";
-import { GIF, PNG, dataUrl } from "./helpers/binary-asset-fixture";
+import {
+  GIF,
+  PDF,
+  PNG,
+  dataUrl,
+  pdfDataUrl,
+} from "./helpers/binary-asset-fixture";
 
 /**
- * The reads a brain makes of its images once they are durable assets: a
- * production site build, and the tools and resources an operator reads
+ * The reads a brain makes of its images and PDFs once they are durable
+ * assets: a production site build, and the tools and resources an operator reads
  * through. None of them may ask the entity service to turn a reference back
  * into a data URL; that legacy form is what the bridge removal retires, and
  * it may go only once nothing first-party still asks for it.
@@ -79,6 +86,23 @@ async function seed(shell: Shell): Promise<void> {
     );
     await entityService.createEntity({
       entity: { ...staged.entity, id },
+      stagedAsset: staged.stagedAsset,
+    });
+  }
+  // A rendered carousel and an uploaded brief, as the document jobs and
+  // upload route store them.
+  for (const [id, visibility] of [
+    ["deck-carousel", "public"],
+    ["private-brief", "restricted"],
+  ] as const) {
+    const staged = await stageDocumentEntity(entityService, PDF, {
+      filename: `${id}.pdf`,
+      title: id,
+      pageCount: 1,
+      status: "draft",
+    });
+    await entityService.createEntity({
+      entity: { ...staged.entity, id, visibility },
       stagedAsset: staged.stagedAsset,
     });
   }
@@ -149,6 +173,26 @@ async function seed(shell: Shell): Promise<void> {
       input: { entityType, id, markdown: content },
     });
   }
+  // A published social post carrying the carousel, as a build lists it.
+  await entityService.createEntityFromMarkdown({
+    input: {
+      entityType: "social-post",
+      id: "carousel-post",
+      markdown: [
+        "---",
+        "title: Carousel post",
+        "platform: linkedin",
+        "status: published",
+        'publishedAt: "2025-11-20T00:00:00.000Z"',
+        "documents:",
+        "  - id: deck-carousel",
+        "---",
+        "",
+        "A post with a PDF carousel.",
+        "",
+      ].join("\n"),
+    },
+  });
 }
 
 async function bootBrain(): Promise<{ shell: Shell; directory: string }> {
@@ -264,6 +308,40 @@ describe("a brain whose images are durable assets", () => {
     expect(await legacyReads(shell)).toEqual([]);
     // The resource still reads an image as the data URL it always returned.
     expect(detail).toBe(dataUrl("png", PNG));
+    expect(updated).toMatchObject({ success: true });
+    expect(JSON.stringify(updated)).not.toContain("base64");
+  }, 120_000);
+
+  it("answers the operator's PDF reads without materializing a data URL", async () => {
+    const { shell } = await bootBrain();
+
+    const listed = await callTool(shell, "system_list", {
+      entityType: "document",
+    });
+    await callTool(shell, "system_get", {
+      entityType: "document",
+      id: "deck-carousel",
+    });
+    await callTool(shell, "system_search", {
+      query: "carousel",
+      scope: { kind: "type", entityType: "document" },
+    });
+    await readResource(shell, "entity://document");
+    const detail = await readResource(shell, "entity://document/deck-carousel");
+    const proposal = await callTool(shell, "system_update", {
+      entityType: "document",
+      id: "deck-carousel",
+      operation: { fields: { visibility: "shared" } },
+    });
+    const confirmed = isRecord(proposal) ? proposal["args"] : undefined;
+    if (!isRecord(confirmed))
+      throw new Error("The update asked for no confirmation");
+    const updated = await callTool(shell, "system_update", confirmed);
+
+    expect(await legacyReads(shell)).toEqual([]);
+    expect(JSON.stringify(listed)).toContain("private-brief");
+    // The resource still reads a document as the data URL it always returned.
+    expect(detail).toBe(pdfDataUrl(PDF));
     expect(updated).toMatchObject({ success: true });
     expect(JSON.stringify(updated)).not.toContain("base64");
   }, 120_000);

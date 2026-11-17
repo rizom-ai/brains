@@ -3,16 +3,12 @@ import {
   readInlineBinaryRow,
   type OfflineReader,
 } from "@brains/entity-service";
-import {
-  classifyInlineImage,
-  LEGACY_PENDING_IMAGE_PLACEHOLDER,
-  type InlineImageBlocker,
-} from "@brains/image";
+import type { BinaryAssetKind, InlineBlocker } from "./binary-asset-kinds";
 
-/** One inline image that cannot become an asset as it is. */
-export interface BlockedImage {
+/** One inline row that cannot become an asset as it is. */
+export interface BlockedRow {
   id: string;
-  reason: InlineImageBlocker;
+  reason: InlineBlocker;
   sizeBytes?: number;
 }
 
@@ -30,23 +26,24 @@ export interface MigrationDiskEstimate {
   peakBytes: number;
 }
 
-/** What migrating every inline image to an asset would do. */
-export interface ImageAssetMigrationPlan {
+/** What migrating every inline row of one type to an asset would do. */
+export interface BinaryAssetMigrationPlan {
+  kind: BinaryAssetKind;
   inlineRows: number;
   ready: number;
-  blocked: BlockedImage[];
+  blocked: BlockedRow[];
   alreadyMigrated: number;
-  /** Pending or failed images: no bytes yet, so nothing to migrate. */
+  /** Pending or failed rows: no bytes yet, so nothing to migrate. */
   awaitingRows: number;
-  /** Awaiting images still holding the old 1x1 placeholder, to clear. */
+  /** Awaiting rows still holding the old placeholder, to clear. */
   placeholdersToClear: number;
-  /** Distinct images among the ready rows. */
+  /** Distinct bytes among the ready rows. */
   uniqueDigests: number;
   /** Ready rows whose bytes another ready row also carries. */
   duplicateRows: number;
-  /** Distinct ready images already published as assets. */
+  /** Distinct ready bytes already published as assets. */
   alreadyStoredDigests: number;
-  /** New asset bytes: distinct ready images not yet stored. */
+  /** New asset bytes: distinct ready bytes not yet stored. */
   bytesToStore: number;
   /** Inline content leaving the entities table. */
   inlineBytesFreed: number;
@@ -56,33 +53,34 @@ export interface ImageAssetMigrationPlan {
 }
 
 /**
- * Plan the image migration without writing: every inline row is decoded and
- * classified one at a time, and only its digest and size are kept.
+ * Plan one type's migration without writing: every inline row is decoded
+ * and classified one at a time, and only its digest and size are kept.
  */
-export async function planImageAssetMigration(
+export async function planBinaryAssetMigration(
   reader: OfflineReader,
+  kind: BinaryAssetKind,
   options: { databaseBytes: number },
-): Promise<ImageAssetMigrationPlan> {
+): Promise<BinaryAssetMigrationPlan> {
   const inventory = await readBinaryAssetInventory(
     reader,
-    "image",
-    LEGACY_PENDING_IMAGE_PLACEHOLDER,
+    kind.entityType,
+    kind.placeholder,
   );
-  const blocked: BlockedImage[] = [];
+  const blocked: BlockedRow[] = [];
   const ready: Array<{ digest: string; sizeBytes: number; inline: number }> =
     [];
   for (const id of inventory.inlineIds) {
     // Each row decodes up to the write cap; collecting before the next keeps
-    // peak memory flat however many images the database holds.
+    // peak memory flat however many rows the database holds.
     Bun.gc(true);
     const row = await readInlineBinaryRow(
       reader,
-      "image",
+      kind.entityType,
       id,
-      LEGACY_PENDING_IMAGE_PLACEHOLDER,
+      kind.placeholder,
     );
     if (!row) continue;
-    const verdict = classifyInlineImage(row.content);
+    const verdict = kind.classify(row.content);
     if (verdict.status === "ready") {
       ready.push({
         digest: verdict.digest,
@@ -94,18 +92,19 @@ export async function planImageAssetMigration(
     }
   }
 
-  const distinct = new Map(ready.map((image) => [image.digest, image]));
+  const distinct = new Map(ready.map((entry) => [entry.digest, entry]));
   const stored = [...distinct.keys()].filter((digest) =>
     inventory.storedDigests.has(digest),
   );
   const bytesToStore = [...distinct.values()]
-    .filter((image) => !inventory.storedDigests.has(image.digest))
-    .reduce((sum, image) => sum + image.sizeBytes, 0);
-  const inlineBytesFreed = ready.reduce((sum, image) => sum + image.inline, 0);
+    .filter((entry) => !inventory.storedDigests.has(entry.digest))
+    .reduce((sum, entry) => sum + entry.sizeBytes, 0);
+  const inlineBytesFreed = ready.reduce((sum, entry) => sum + entry.inline, 0);
   const afterMigrationBytes = options.databaseBytes + bytesToStore;
   const vacuumBytes = Math.max(0, afterMigrationBytes - inlineBytesFreed);
 
   return {
+    kind,
     inlineRows: inventory.inlineIds.length,
     ready: ready.length,
     blocked: blocked.sort((a, b) => a.id.localeCompare(b.id)),

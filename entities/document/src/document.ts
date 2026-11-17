@@ -1,4 +1,7 @@
-import { documentMetadataSchema, parseDocumentDataUrl } from "@brains/document";
+import {
+  assertStoredDocumentContent,
+  documentMetadataSchema,
+} from "@brains/document";
 import { defineEntity, type EntityDefinition } from "@brains/sdk/entities";
 import { documentCreateRouting } from "./create-routes";
 import {
@@ -10,8 +13,8 @@ const DOCUMENT_INSTRUCTIONS =
   "Document entities store durable file artifacts such as PDFs. Uploaded PDFs are raw document files, not decks: preserve them with system_create upload transform preserve. Render PDF artifacts such as carousel or printable with system_generate operation.kind attachment.";
 
 /**
- * A document: a durable file artifact such as a rendered PDF, its bytes as
- * a data URL, its filename, page count and provenance beside them.
+ * A document: a durable file artifact such as a rendered PDF, its bytes kept
+ * as a durable asset, its filename, page count and provenance beside them.
  */
 export function documentEntity(
   deps: DocumentGenerationHandlerDeps = {},
@@ -24,15 +27,18 @@ export function documentEntity(
       metadata: documentMetadataSchema,
       config: {
         embeddable: false,
-        binaryStorage: "data-url",
+        // Bytes live in asset rows; the stored reference is not searchable text.
+        binaryStorage: "asset",
+        fullTextSearchable: false,
         projectionSource: false,
         projectionSourceRole: "excluded",
       },
-      // The bytes are checked to be a PDF; the filename, page count, dedup key
-      // and provenance arrive beside them.
+      // A stored reference, an inline PDF stored before assets, or nothing
+      // while pending; the filename, page count, dedup key and provenance
+      // arrive beside them.
       markdown: {
         decode: ({ content }) => {
-          parseDocumentDataUrl(content);
+          assertStoredDocumentContent(content);
           return { content, metadata: {} };
         },
       },

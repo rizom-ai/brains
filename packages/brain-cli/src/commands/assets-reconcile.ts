@@ -7,14 +7,13 @@ import {
   parseAssetRef,
   type OfflineEntityConnection,
 } from "@brains/entity-service";
-import { classifyInlineImage, type ImageByteDescription } from "@brains/image";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import {
-  listImageFiles,
-  readReadableImageFile,
-  type ImageFile,
-} from "../lib/brain-data-images";
+  BINARY_ASSET_KINDS,
+  type BinaryAssetKind,
+  type BrainDataFile,
+} from "../lib/binary-asset-kinds";
 import type { CommandResult } from "../lib/command-result";
 import {
   defaultOfflineDatabaseDeps,
@@ -35,7 +34,7 @@ export interface AssetsReconcileOptions {
   ignoreStaleHeartbeat?: boolean | undefined;
 }
 
-/** What reconciling one image did, or would do. */
+/** What reconciling one record did, or would do. */
 type Outcome =
   | "in sync"
   | "awaiting its bytes, left alone"
@@ -63,11 +62,12 @@ const rowSchema = z.object({
   contentHash: z.string(),
   status: z.string().nullable(),
 });
-type ImageRow = z.output<typeof rowSchema>;
+type BinaryRow = z.output<typeof rowSchema>;
 const digestSchema = z.object({ digest: z.string() });
 
 /**
- * Rebuild image rows and assets from brain-data while the app is stopped:
+ * Rebuild image and document rows and their assets from brain-data while
+ * the app is stopped:
  * absent rows are created and lost assets restored, each with its bytes in
  * one transaction. A reference that disagrees with its file is reported and
  * never changed.
@@ -86,10 +86,7 @@ export async function runAssetsReconcile(
     const failed = await migrateOfflineSchema(database.path);
     if (failed) return failed;
   }
-  const directory = join(
-    resolveLocalPath(cwd, options.from ?? "brain-data"),
-    "image",
-  );
+  const root = resolveLocalPath(cwd, options.from ?? "brain-data");
   const run = await openOfflineRun(database.path, {
     command: "assets:reconcile",
     dryRun: options.dryRun,
@@ -97,73 +94,43 @@ export async function runAssetsReconcile(
   if (!("connection" in run)) return run;
   const { connection } = run;
   try {
-    const rows = new Map(
-      (
-        await connection.client.execute(
-          "SELECT id, content, contentHash, json_extract(metadata, '$.status') AS status FROM entities WHERE entityType = 'image'",
-        )
-      ).rows.map((raw) => {
-        const row = rowSchema.parse(raw);
-        return [row.id, row] as const;
-      }),
-    );
     const stored = await storedDigests(connection);
-    const files = await listImageFiles(directory);
     const migrator = new OfflineBinaryMigrator(connection);
-    const outcomes = new Map<Outcome, string[]>();
-    const unreadable: string[] = [];
-    const record = (outcome: Outcome, id: string): void => {
-      outcomes.set(outcome, [...(outcomes.get(outcome) ?? []), id]);
-    };
-
-    for (const [id, paths] of [...files].sort(([a], [b]) =>
-      a.localeCompare(b),
-    )) {
-      const readable = await readReadableImageFile(id, paths);
-      unreadable.push(...readable.unreadable);
-      const { file } = readable;
-      if (!file) {
-        record("unsupported file", id);
-        continue;
-      }
-      const row = rows.get(id);
-      const action = decide(row, file, stored);
-      record(
-        options.dryRun || !isWrite(action)
-          ? action
-          : await apply(migrator, action, file, file.description, row),
-        id,
+    const reports: KindReport[] = [];
+    for (const kind of BINARY_ASSET_KINDS) {
+      reports.push(
+        await reconcileKind(connection, migrator, kind, {
+          directory: join(root, kind.entityType),
+          stored,
+          dryRun: options.dryRun === true,
+        }),
       );
     }
-    // A reference with no asset is only recoverable from a file.
-    for (const [id, { content }] of rows) {
-      if (
-        content.startsWith(ASSET_REF_PREFIX) &&
-        !files.has(id) &&
-        !stored.has(getAssetDigest(parseAssetRef(content)))
-      ) {
-        record("unrecoverable", id);
-      }
-    }
-
-    const failed = [...outcomes.keys()].some((outcome) =>
-      FAILURES.has(outcome),
+    const failed = reports.some((report) =>
+      [...report.outcomes.keys()].some((outcome) => FAILURES.has(outcome)),
     );
     return {
       success: !failed,
       message: [
-        `Binary asset reconcile${options.dryRun ? " dry-run" : ""} for ${database.path} from ${directory}`,
-        ...(unreadable.length > 0
-          ? [
-              `ignored unreadable file(s): ${unreadable.map((path) => basename(path)).join(", ")}`,
-            ]
-          : []),
-        ...[...outcomes].map(
-          ([outcome, ids]) =>
-            `${options.dryRun && isWrite(outcome) ? `would ${verb(outcome)}` : outcome}: ${ids.join(", ")}`,
+        `Binary asset reconcile${options.dryRun ? " dry-run" : ""} for ${database.path} from ${root}`,
+        ...reports.flatMap((report) =>
+          report.outcomes.size === 0 && report.unreadable.length === 0
+            ? []
+            : [
+                `${report.kind.noun}s:`,
+                ...(report.unreadable.length > 0
+                  ? [
+                      `ignored unreadable file(s): ${report.unreadable.map((path) => basename(path)).join(", ")}`,
+                    ]
+                  : []),
+                ...[...report.outcomes].map(
+                  ([outcome, ids]) =>
+                    `${options.dryRun && isWrite(outcome) ? `would ${verb(outcome)}` : outcome}: ${ids.join(", ")}`,
+                ),
+              ],
         ),
         failed
-          ? "Resolve every mismatched, unrecoverable or changed image by hand."
+          ? "Resolve every mismatched, unrecoverable or changed row by hand."
           : "Reconciled.",
       ].join("\n"),
     };
@@ -177,10 +144,73 @@ export async function runAssetsReconcile(
   }
 }
 
+/** What reconciling one type's files and rows did, or would do. */
+interface KindReport {
+  kind: BinaryAssetKind;
+  outcomes: Map<Outcome, string[]>;
+  unreadable: string[];
+}
+
+async function reconcileKind(
+  connection: OfflineEntityConnection,
+  migrator: OfflineBinaryMigrator,
+  kind: BinaryAssetKind,
+  options: { directory: string; stored: Set<string>; dryRun: boolean },
+): Promise<KindReport> {
+  const { stored } = options;
+  const rows = new Map(
+    (
+      await connection.client.execute({
+        sql: "SELECT id, content, contentHash, json_extract(metadata, '$.status') AS status FROM entities WHERE entityType = ?",
+        args: [kind.entityType],
+      })
+    ).rows.map((raw) => {
+      const row = rowSchema.parse(raw);
+      return [row.id, row] as const;
+    }),
+  );
+  const files = await kind.listFiles(options.directory);
+  const outcomes = new Map<Outcome, string[]>();
+  const unreadable: string[] = [];
+  const record = (outcome: Outcome, id: string): void => {
+    outcomes.set(outcome, [...(outcomes.get(outcome) ?? []), id]);
+  };
+
+  for (const [id, paths] of [...files].sort(([a], [b]) => a.localeCompare(b))) {
+    const readable = await kind.readFile(id, paths);
+    unreadable.push(...readable.unreadable);
+    const { file } = readable;
+    if (!file) {
+      record("unsupported file", id);
+      continue;
+    }
+    const row = rows.get(id);
+    const action = decide(kind, row, file, stored);
+    record(
+      options.dryRun || !isWrite(action)
+        ? action
+        : await apply(migrator, kind, action, file, row),
+      id,
+    );
+  }
+  // A reference with no asset is only recoverable from a file.
+  for (const [id, { content }] of rows) {
+    if (
+      content.startsWith(ASSET_REF_PREFIX) &&
+      !files.has(id) &&
+      !stored.has(getAssetDigest(parseAssetRef(content)))
+    ) {
+      record("unrecoverable", id);
+    }
+  }
+  return { kind, outcomes, unreadable };
+}
+
 /** What a file and its row call for; never a change to another reference. */
 function decide(
-  row: ImageRow | undefined,
-  file: ImageFile,
+  kind: BinaryAssetKind,
+  row: BinaryRow | undefined,
+  file: BrainDataFile,
   stored: Set<string>,
 ): Outcome {
   if (row === undefined) return "created";
@@ -194,7 +224,7 @@ function decide(
     return stored.has(file.digest) ? "in sync" : "restored asset";
   }
   if (content.startsWith(ASSET_REF_PREFIX)) return "mismatch";
-  const verdict = classifyInlineImage(content);
+  const verdict = kind.classify(content);
   if (verdict.status === "ready") return "inline, run assets:migrate";
   // Only rows whose stored bytes are lost are repaired from the file.
   return verdict.reason === "malformed" || verdict.reason === "double-encoded"
@@ -218,15 +248,16 @@ function verb(outcome: Outcome): string {
 
 async function apply(
   migrator: OfflineBinaryMigrator,
+  kind: BinaryAssetKind,
   action: Outcome,
-  file: ImageFile,
-  described: ImageByteDescription,
-  row: ImageRow | undefined,
+  file: BrainDataFile,
+  row: BinaryRow | undefined,
 ): Promise<Outcome> {
+  const { entityType } = kind;
   const bytes = { bytes: file.source(), expectedSize: file.sizeBytes };
-  const metadata = { ...described, sizeBytes: file.sizeBytes };
+  const { metadata } = file;
   if (action === "created") {
-    const result = await migrator.createRow("image", {
+    const result = await migrator.createRow(entityType, {
       id: file.id,
       ...bytes,
       metadata,
@@ -236,7 +267,7 @@ async function apply(
     return result.outcome === "created" ? action : "changed during the run";
   }
   if (action === "restored asset") {
-    const result = await migrator.restoreAsset("image", {
+    const result = await migrator.restoreAsset(entityType, {
       id: file.id,
       ref: createAssetRef(file.digest),
       ...bytes,
@@ -244,7 +275,7 @@ async function apply(
     return result.outcome === "restored" ? action : "changed during the run";
   }
   if (!row) return "changed during the run";
-  const result = await migrator.migrateRow("image", {
+  const result = await migrator.migrateRow(entityType, {
     id: file.id,
     expectedContentHash: row.contentHash,
     ...bytes,

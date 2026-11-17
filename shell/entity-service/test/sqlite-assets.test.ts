@@ -635,6 +635,21 @@ describe("SQLite durable assets", () => {
       expect(listed.map((entity) => entity.content)).toEqual([asset.ref]);
     });
 
+    test("materializes a document's bytes as the MIME type it records", async () => {
+      await createAssetEntity("document-reader", {
+        mimeType: "application/pdf",
+      });
+
+      const raw = await ctx.entityService.getEntityRaw({
+        entityType: "test",
+        id: "document-reader",
+      });
+
+      expect(raw?.content).toBe(
+        `data:application/pdf;base64,${bytes.toString("base64")}`,
+      );
+    });
+
     test("materializes bytes without a recorded media type as octet-stream", async () => {
       await createAssetEntity("untyped", {});
 

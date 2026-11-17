@@ -1,9 +1,6 @@
 import {
   createArtifactResponse,
   type InterfaceRuntime,
-  formatContentDispositionHeader,
-  getArtifactEntityFilename,
-  parseArtifactDataUrl,
   resolveMessageArtifactAccess,
 } from "@brains/sdk/internal/interface-runtime";
 import type { UserPermissionLevel } from "@brains/sdk/interfaces";
@@ -44,27 +41,17 @@ export async function handleDocumentAttachmentRequest(
   if (!document) {
     return new Response("Document not found", { status: 404 });
   }
-  if (typeof document.content !== "string") {
-    return new Response("Document content is not a PDF", { status: 415 });
-  }
-
-  const parsed = parseArtifactDataUrl("document", document.content);
-  if (!parsed) {
-    return new Response("Document content is not a PDF", { status: 415 });
-  }
-
-  const filename = getArtifactEntityFilename(
-    document.metadata,
-    documentId,
-    "document",
-    parsed.mimeType,
-  );
-  return createBinaryAttachmentResponse({
-    requestUrl: url,
-    data: parsed.data,
-    mediaType: parsed.mimeType,
-    filename,
+  // Only the reference of the record read at the caller's scope is opened:
+  // bytes shared with another document never answer for this one.
+  const response = await createArtifactResponse(deps.entityService, {
+    entityType: "document",
+    id: documentId,
+    entity: document,
+    disposition: url.searchParams.has("download") ? "attachment" : "inline",
   });
+  return (
+    response ?? new Response("Document content is not a PDF", { status: 415 })
+  );
 }
 
 export async function handleImageAttachmentRequest(
@@ -130,23 +117,4 @@ async function resolveVisibleArtifactEntity(input: {
   });
 
   return access.status === "visible" ? access.entity : undefined;
-}
-
-function createBinaryAttachmentResponse(input: {
-  requestUrl: URL;
-  data: ArrayBuffer;
-  mediaType: string;
-  filename: string;
-}): Response {
-  const headers = new Headers({
-    "Content-Type": input.mediaType,
-    "Content-Length": String(input.data.byteLength),
-    "Content-Disposition": formatContentDispositionHeader({
-      disposition: input.requestUrl.searchParams.has("download")
-        ? "attachment"
-        : "inline",
-      filename: input.filename,
-    }),
-  });
-  return new Response(input.data, { headers });
 }

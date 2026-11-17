@@ -227,7 +227,7 @@ export class FileOperations {
    * dropped in by hand without a sidecar) so the document schema's required
    * filename always has a value.
    */
-  private async readDocumentSidecar(
+  async readDocumentSidecar(
     fullPdfPath: string,
     relativePath: string,
   ): Promise<Record<string, unknown>> {
@@ -329,11 +329,13 @@ export class FileOperations {
 
     const assetRef = assetRefSchema.safeParse(entity.content);
     if (assetRef.success) {
-      // Stored assets stream to the file; an identical file is left alone.
+      // Stored assets stream to the file; an identical file is left alone,
+      // though a document's metadata beside it may still have changed.
       if (
         (await pathExists(filePath)) &&
         (await fileDigest(filePath)) === getAssetDigest(assetRef.data)
       ) {
+        if (isDocument) await this.writeDocumentSidecar(entity, filePath);
         return;
       }
       await this.ensureEntityDirectory(filePath);
@@ -459,8 +461,8 @@ export class FileOperations {
   /**
    * Persist document metadata that does not survive in the PDF bytes
    * (filename, page count, dedup key, source provenance) in a sidecar JSON
-   * file. `mimeType` is omitted because it is implicit in the .pdf extension
-   * and would be regenerated from the data URL on read.
+   * file. `mimeType` and `sizeBytes` are omitted: the .pdf extension implies
+   * the one and the file's bytes are the other.
    */
   private async writeDocumentSidecar(
     entity: BaseEntity,
@@ -469,7 +471,7 @@ export class FileOperations {
     const metadata = entity.metadata;
     const persistable: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(metadata)) {
-      if (key === "mimeType") continue;
+      if (key === "mimeType" || key === "sizeBytes") continue;
       if (value === undefined) continue;
       persistable[key] = value;
     }
@@ -688,7 +690,7 @@ function dataUrlDigest(content: string): string | undefined {
 }
 
 /** The digest of the bytes a row stores: its asset's, or its inline data URL's. */
-function storedBytesDigest(content: string): string | undefined {
+export function storedBytesDigest(content: string): string | undefined {
   const ref = assetRefSchema.safeParse(content);
   return ref.success ? getAssetDigest(ref.data) : dataUrlDigest(content);
 }

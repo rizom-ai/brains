@@ -18,6 +18,8 @@ import {
 import { deserializeImportEntity } from "./import-deserialization";
 import { queueImportImageConversions } from "./import-image-conversions";
 import { getImportPathDecision } from "./import-path-filter";
+import { importDocumentFile } from "./document-file-import";
+import { isDocumentFile } from "./document-file-utils";
 import { importImageFile } from "./image-file-import";
 import { isImageFile } from "./image-file-utils";
 import { persistImportEntity } from "./import-persistence";
@@ -106,6 +108,10 @@ async function importFile(
         .binaryStorage === "asset";
     if (assetBacked && isImageFile(placedPath)) {
       await importImageFile(deps, placedPath, admission, snapshot, result);
+      return;
+    }
+    if (assetBacked && isDocumentFile(placedPath)) {
+      await importDocumentFile(deps, placedPath, admission, snapshot, result);
       return;
     }
     const rawEntity = await deps.fileOperations.readEntity(

@@ -183,21 +183,33 @@ async function fetchPublishDocumentItem(
   context: PipelineContext,
   reference: PublishDocumentReference,
 ): Promise<PublishMediaData | undefined> {
+  // Read at the public scope, as stored: the bytes are read for this
+  // document only, never for a reference another document shares.
   const entity = await context.entityService.getEntity({
     entityType: "document",
     id: reference.id,
+    binaryContent: "reference",
   });
   if (!entity?.content) return undefined;
 
-  const parsed = parseBase64DataUrl(entity.content);
-  if (parsed?.mimeType !== "application/pdf") return undefined;
+  const ref = assetRefSchema.safeParse(entity.content);
+  const data = ref.success
+    ? Buffer.from(await context.entityService.readAsset(ref.data))
+    : pdfDataUrlBytes(entity.content);
+  if (!data) return undefined;
 
   return {
     type: "document",
-    data: parsed.data,
+    data,
     mimeType: "application/pdf",
     filename: getFilename(entity, reference.id),
   };
+}
+
+/** An inline PDF stored before assets. */
+function pdfDataUrlBytes(content: string): Buffer | undefined {
+  const parsed = parseBase64DataUrl(content);
+  return parsed?.mimeType === "application/pdf" ? parsed.data : undefined;
 }
 
 function getFilename(entity: BaseEntity, fallbackId: string): string {

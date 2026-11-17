@@ -1,7 +1,6 @@
 import { readFile, rename, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import type { OfflineEntityConnection } from "@brains/entity-service";
-import type { InlineImageBlocker } from "@brains/image";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import type { CommandResult } from "../lib/command-result";
@@ -13,12 +12,13 @@ import {
   resolveOfflineDatabase,
   type OfflineDatabaseDeps,
 } from "../lib/offline-database";
+import { BINARY_ASSET_KINDS } from "../lib/binary-asset-kinds";
 import {
-  planImageAssetMigration,
-  type ImageAssetMigrationPlan,
+  planBinaryAssetMigration,
+  type BinaryAssetMigrationPlan,
 } from "../lib/binary-asset-migration-plan";
 import {
-  runImageAssetMigration,
+  runBinaryAssetMigration,
   type MigrationManifestEntry,
 } from "../lib/binary-asset-migration-run";
 
@@ -32,22 +32,10 @@ export interface AssetsMigrateOptions {
   manifest?: string | undefined;
 }
 
-/** How an operator resolves each kind of blocked image. */
-const BLOCKER_HINTS: Record<InlineImageBlocker, string> = {
-  svg: "SVG cannot become an image asset; replace it with a PNG, JPEG, GIF or WebP, or delete it",
-  malformed:
-    "the row is not a valid base64 image data URL; restore the image from its source file",
-  "double-encoded":
-    "an earlier export decoded the whole data URL and the row lost bytes; restore the image from its source file",
-  unsupported:
-    "the bytes are not a PNG, JPEG, GIF or WebP; convert or delete the image",
-  oversized: "the image is above the asset write cap; shrink it or delete it",
-};
-
 /**
- * Move inline images into durable assets, offline: the app must be stopped
- * and the entity database local. A dry-run decodes every inline image
- * without writing and fails while any row would be blocked; a migration
+ * Move inline images and documents into durable assets, offline: the app
+ * must be stopped and the entity database local. A dry-run decodes every
+ * inline row without writing and fails while any would be blocked; a migration
  * refuses to start while any is, and records every run in a manifest.
  */
 export async function runAssetsMigrate(
@@ -57,7 +45,8 @@ export async function runAssetsMigrate(
   migrate: (
     connection: OfflineEntityConnection,
     entries: MigrationManifestEntry[],
-  ) => Promise<unknown> = runImageAssetMigration,
+  ) => Promise<unknown> = (connection, entries) =>
+    runBinaryAssetMigration(connection, BINARY_ASSET_KINDS, entries),
 ): Promise<CommandResult> {
   const database = await resolveOfflineDatabase(cwd, options.database, deps, {
     ignoreStaleHeartbeat: options.ignoreStaleHeartbeat,
@@ -77,13 +66,19 @@ export async function runAssetsMigrate(
   if (!("connection" in run)) return run;
   const { connection } = run;
   try {
-    const plan = await planImageAssetMigration(connection.client, {
-      databaseBytes: size,
-    });
-    if (options.dryRun || plan.blocked.length > 0) {
+    const plans: BinaryAssetMigrationPlan[] = [];
+    for (const kind of BINARY_ASSET_KINDS) {
+      plans.push(
+        await planBinaryAssetMigration(connection.client, kind, {
+          databaseBytes: size,
+        }),
+      );
+    }
+    const blocked = plans.some((plan) => plan.blocked.length > 0);
+    if (options.dryRun || blocked) {
       return {
-        success: Boolean(options.dryRun) && plan.blocked.length === 0,
-        message: renderPlan(path, plan),
+        success: Boolean(options.dryRun) && !blocked,
+        message: renderPlans(path, size, plans),
       };
     }
     const startedAt = new Date().toISOString();
@@ -114,13 +109,20 @@ export async function runAssetsMigrate(
         ].join("\n"),
       };
     }
-    const count = (outcome: MigrationManifestEntry["outcome"]): number =>
-      entries.filter((entry) => entry.outcome === outcome).length;
+    const count = (
+      outcome: MigrationManifestEntry["outcome"],
+      entityType?: string,
+    ): number =>
+      entries.filter(
+        (entry) =>
+          entry.outcome === outcome &&
+          (entityType === undefined || entry.entityType === entityType),
+      ).length;
     const unfinished = count("changed") + count("blocked");
     return {
       success: unfinished === 0,
       message: [
-        `Migrated ${count("migrated")} image(s); ${count("changed")} changed during the run; ${count("blocked")} blocked.`,
+        `Migrated ${BINARY_ASSET_KINDS.map((kind) => `${count("migrated", kind.entityType)} ${kind.noun}(s)`).join(", ")}; ${count("changed")} changed during the run; ${count("blocked")} blocked.`,
         `Manifest: ${manifestPath}`,
         unfinished === 0
           ? "Next: verify, then VACUUM once acceptance passes."
@@ -162,30 +164,60 @@ async function appendManifestRun(
   await rename(next, path);
 }
 
-function renderPlan(path: string, plan: ImageAssetMigrationPlan): string {
+function renderPlans(
+  path: string,
+  databaseBytes: number,
+  plans: readonly BinaryAssetMigrationPlan[],
+): string {
   const mib = (bytes: number): string =>
     `${(bytes / (1024 * 1024)).toFixed(1)} MiB`;
+  // Every type's new chunks land in the one database, as their inline
+  // content leaves it.
+  const bytesToStore = plans.reduce((sum, plan) => sum + plan.bytesToStore, 0);
+  const inlineBytesFreed = plans.reduce(
+    (sum, plan) => sum + plan.inlineBytesFreed,
+    0,
+  );
+  const afterMigrationBytes = databaseBytes + bytesToStore;
+  const vacuumBytes = Math.max(0, afterMigrationBytes - inlineBytesFreed);
+  const blocked = plans.some((plan) => plan.blocked.length > 0);
   return [
     `Binary asset migration dry-run for ${path}`,
-    `${plan.inlineRows} inline image(s): ${plan.ready} ready, ${plan.blocked.length} blocked; ${plan.alreadyMigrated} already migrated.`,
+    ...plans.flatMap((plan) => renderKind(plan, mib)),
+    `New asset bytes: ${mib(bytesToStore)}; inline content removed: ${mib(inlineBytesFreed)}.`,
+    `Full-text rows to remove: ${plans.reduce((sum, plan) => sum + plan.ftsRows, 0)}. Content hashes that change: ${plans.reduce((sum, plan) => sum + plan.contentHashChanges, 0)}.`,
+    `Disk: database ${mib(databaseBytes)}, backup ${mib(databaseBytes)}, after migration ${mib(afterMigrationBytes)}, VACUUM copy ${mib(vacuumBytes)}; peak ${mib(databaseBytes + afterMigrationBytes + vacuumBytes)}.`,
+    blocked ? "Resolve every blocked row before migrating." : "No blockers.",
+  ].join("\n");
+}
+
+/** One type's part of a dry-run; a type with no rows is left out. */
+function renderKind(
+  plan: BinaryAssetMigrationPlan,
+  mib: (bytes: number) => string,
+): string[] {
+  const { noun, hints } = plan.kind;
+  if (
+    plan.inlineRows === 0 &&
+    plan.alreadyMigrated === 0 &&
+    plan.awaitingRows === 0
+  ) {
+    return [];
+  }
+  return [
+    `${plan.inlineRows} inline ${noun}(s): ${plan.ready} ready, ${plan.blocked.length} blocked; ${plan.alreadyMigrated} already migrated.`,
     ...plan.blocked.map(
-      (image) =>
-        `  blocked ${image.id}: ${image.reason}${image.sizeBytes === undefined ? "" : ` (${mib(image.sizeBytes)})`}`,
+      (row) =>
+        `  blocked ${row.id}: ${row.reason}${row.sizeBytes === undefined ? "" : ` (${mib(row.sizeBytes)})`}`,
     ),
     ...(plan.awaitingRows > 0
       ? [
-          `${plan.awaitingRows} image(s) awaiting their bytes; ${plan.placeholdersToClear} old placeholder${plan.placeholdersToClear === 1 ? "" : "s"} to clear.`,
+          `${plan.awaitingRows} ${noun}(s) awaiting their bytes; ${plan.placeholdersToClear} old placeholder${plan.placeholdersToClear === 1 ? "" : "s"} to clear.`,
         ]
       : []),
-    `Ready images: ${plan.uniqueDigests} distinct, ${plan.duplicateRows} duplicate row(s), ${plan.alreadyStoredDigests} already stored.`,
-    `New asset bytes: ${mib(plan.bytesToStore)}; inline content removed: ${mib(plan.inlineBytesFreed)}.`,
-    `Full-text rows to remove: ${plan.ftsRows}. Content hashes that change: ${plan.contentHashChanges}.`,
-    `Disk: database ${mib(plan.disk.databaseBytes)}, backup ${mib(plan.disk.backupBytes)}, after migration ${mib(plan.disk.afterMigrationBytes)}, VACUUM copy ${mib(plan.disk.vacuumBytes)}; peak ${mib(plan.disk.peakBytes)}.`,
-    ...[...new Set(plan.blocked.map((image) => image.reason))].map(
-      (reason) => `  ${reason}: ${BLOCKER_HINTS[reason]}`,
+    `Ready ${noun}s: ${plan.uniqueDigests} distinct, ${plan.duplicateRows} duplicate row(s), ${plan.alreadyStoredDigests} already stored.`,
+    ...[...new Set(plan.blocked.map((row) => row.reason))].map(
+      (reason) => `  ${reason}: ${hints[reason] ?? "resolve this row by hand"}`,
     ),
-    plan.blocked.length === 0
-      ? "No blockers."
-      : "Resolve every blocked image before migrating.",
-  ].join("\n");
+  ];
 }
