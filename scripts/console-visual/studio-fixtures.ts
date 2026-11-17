@@ -1,3 +1,4 @@
+import type { AuthAccountSnapshot } from "@brains/contracts";
 import { systemFixtures } from "../fixtures/studio-system";
 import type { StudioStudyState } from "../fixtures/studio-study-state";
 
@@ -422,13 +423,14 @@ export function studioWorkspaces(badges: {
 /** The signed-in account; the empty study state keeps only what must remain. */
 export function accountFixture(
   studyState: StudioStudyState | undefined,
-): Record<string, unknown> {
+): AuthAccountSnapshot {
   return {
     ...(studyState === "empty"
       ? { profileEntityId: "anchor-profile/anchor-profile" }
       : {}),
     displayName: "Mira Reyes",
     role: "admin",
+    appPasswords: [],
     connectedChannels:
       studyState === "empty"
         ? []
