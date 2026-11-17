@@ -4,7 +4,7 @@ Last updated: 2026-11-17
 
 ## Status
 
-In progress. Phase 1 (the read-only mount) is implemented on `work/webdav-mount`: mounted with rclone and GNOME's gvfs against the `personal` test app, where the drive matches `brain-data/` file for file and byte for byte. The check through Cloudflare on a deployed brain remains. Phases 2–4 have not started.
+In progress on `work/webdav-mount` (#990). Phases 1 and 2 are implemented and verified against the `personal` test app with rclone and GNOME's gvfs: the drive matches `brain-data/` file for file and byte for byte, and in-place, `sed -i` and write-then-rename saves through a mount reach the entity and `brain-data/`. The check through Cloudflare on a deployed brain remains. Phases 3 and 4 have not started.
 
 ## Goal
 
@@ -46,7 +46,7 @@ A failed or missing credential returns 401 with `WWW-Authenticate: Basic realm="
 
 ### Account → Drive tab
 
-Studio's Account workspace gets a **Drive** tab next to AI tools. The `webdav` plugin registers a `webdav` interaction in the app info, as the MCP interface registers `mcp`; Studio resolves it against the issuer origin and passes it to the Account bootstrap as `davUrl`, and without it the tab is not rendered. The tab shows the mount address (`<issuer>/dav/`), the person's app passwords (label, access mode, created, expires, last used, revoke), a create button that shows the new username and password once with copy buttons, and one card per client. A client is listed once it has mounted a brain with exactly the steps on its card: GNOME Files (`davs://<host>/dav/`) and rclone (`rclone config create` with vendor `other`, then `rclone mount`) today; davfs2, macOS Finder and Windows join as their phases verify them. Until the drive takes changes (Phase 2) the tab creates read-only app passwords only; the access mode choice arrives with it. The tab is deep-linkable with `?section=drive`.
+Studio's Account workspace gets a **Drive** tab next to AI tools. The `webdav` plugin registers a `webdav` interaction in the app info, as the MCP interface registers `mcp`; Studio resolves it against the issuer origin and passes it to the Account bootstrap as `davUrl`, and without it the tab is not rendered. The tab shows the mount address (`<issuer>/dav/`), the person's app passwords (label, access mode, created, expires, last used, revoke), a create button that shows the new username and password once with copy buttons, and one card per client. A client is listed once it has mounted a brain with exactly the steps on its card: GNOME Files (`davs://<host>/dav/`) and rclone (`rclone config create` with vendor `other`, then `rclone mount`) today; davfs2, macOS Finder and Windows join as their phases verify them. Creating one offers "Allow saving changes", off by default. The tab is deep-linkable with `?section=drive`.
 
 ### The tree
 
@@ -89,7 +89,7 @@ Every `/dav` response carries `X-Content-Type-Options: nosniff` and `Content-Sec
 auth ─fail→ 401
 body > maxFileBytes → 413
 type document → 403
-deserializeEntity(markdown, type) ─EntityValidationError→ 422, entity unchanged
+deserializeEntity(markdown, type) ─any failure to read the document→ 422, entity unchanged
 action policy (update; publish when status crosses the publish boundary) ─deny→ 403
 visibility policy ─deny→ 403
 updateEntity({ expectedContentHash })
@@ -128,7 +128,7 @@ Writes carry `eventContext.interfaceType: "webdav"` and the acting user. directo
 
 Editors save through files that are not entities: `.goutputstream-*` (GNOME), `.swp`/`.swx`/`~` backups (vim), `.~lock.*#`, `._*` and `.DS_Store` (macOS), and `*.tmp`/`.<name>.<random>` (VS Code and others).
 
-- Any path that `parseEntityPath` rejects, or whose leaf starts with `.` or ends with `~`, `.tmp`, `.swp` or `.swx`, lives in a per-user scratch area: in memory, 10-minute idle expiry, 16 MiB per user. It supports GET, HEAD, PUT, DELETE, PROPFIND (listed beside real files) and MOVE.
+- Any path whose leaf starts with `.` or does not end in an extension entities are stored under (`.md`, an image extension, `.pdf`) lives in a per-user scratch area: in memory, 10-minute idle expiry, 16 MiB per user. It supports GET, HEAD, PUT, DELETE, PROPFIND (listed beside real files) and MOVE.
 - `MOVE` from a scratch file onto an entity path is a PUT of the scratch content onto that entity, with the same flow, and removes the scratch file. This is how atomic-rename saves work.
 - `MOVE` or `COPY` between two entity paths is 403: renames stay in Studio and chat.
 - `MKCOL` creates a scratch folder, which shows until it expires or a file is saved inside it. On a folder that already exists, real or scratch, it is 405, which clients that create parent folders before every upload (rclone) take as success.

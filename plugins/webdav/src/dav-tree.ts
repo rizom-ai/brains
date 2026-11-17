@@ -81,8 +81,8 @@ export class DavTree {
     if (segments.length === 0) return { kind: "folder", segments };
     if (!segments.every(isSafeSegment)) return undefined;
 
-    const file = await this.fileAt(segments);
-    if (file) return file;
+    const located = await this.entityAt(segments);
+    if (located) return located.file;
 
     // A folder exists while something visible is inside it.
     const children = await this.children(segments);
@@ -198,7 +198,13 @@ export class DavTree {
       );
   }
 
-  private async fileAt(segments: string[]): Promise<DavFile | undefined> {
+  /** The entity whose file is at a path, if the caller may see it. */
+  async entityAt(
+    segments: string[],
+  ): Promise<{ entity: BaseEntity; file: DavFile } | undefined> {
+    if (segments.length === 0 || !segments.every(isSafeSegment)) {
+      return undefined;
+    }
     const { entityType, id } = parseEntityPath(
       segments.join("/"),
       this.containment,
@@ -215,7 +221,9 @@ export class DavTree {
     const file = entity ? await this.fileOf(entity) : undefined;
     // Only the canonical path names the entity: `post/first`, `post/first.txt`
     // and `note/readme.md` parse to an entity too, and are not its file.
-    return file?.segments.join("/") === segments.join("/") ? file : undefined;
+    return entity && file?.segments.join("/") === segments.join("/")
+      ? { entity, file }
+      : undefined;
   }
 
   /** The file an entity is, or nothing when it has no place or no bytes yet. */

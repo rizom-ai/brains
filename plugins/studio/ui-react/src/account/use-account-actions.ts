@@ -3,6 +3,7 @@ import {
   AUTH_ACCOUNT_MUTATION_ACTIONS,
   type AuthAccountAppPasswordSecret,
   type AuthAccountMutation,
+  type AuthAppPasswordAccess,
   type AuthAccountPluginSettingsForm,
   type AuthAccountSnapshot,
 } from "@brains/contracts";
@@ -93,7 +94,7 @@ export interface AccountActions {
   removeSettings: (settings: AuthAccountPluginSettingsForm) => void;
   /** The app password just created: the only time its password is known. */
   createdAppPassword: AuthAccountAppPasswordSecret | null;
-  createAppPassword: (label: string) => void;
+  createAppPassword: (label: string, access: AuthAppPasswordAccess) => void;
   dismissCreatedAppPassword: () => void;
   revokeAppPassword: (appPasswordId: string) => void;
 }
@@ -259,13 +260,14 @@ export function useAccountActions(input: AccountActionsInput): AccountActions {
       );
     },
     createdAppPassword,
-    // Read-only: the drive does not take changes yet.
-    createAppPassword: (label): void => {
+    createAppPassword: (label, access): void => {
       void run("Creating app password…", "App password created.", async () => {
         const created = await client.mutateAccount({
           action: AUTH_ACCOUNT_MUTATION_ACTIONS.createAppPassword,
           confirmation: AUTH_ACCOUNT_MUTATION_ACTIONS.createAppPassword,
           label,
+          // Read-only is the default; only the wider access is named.
+          ...(access === "write" ? { access } : {}),
         });
         setCreatedAppPassword(created.appPassword ?? null);
         return created.account;

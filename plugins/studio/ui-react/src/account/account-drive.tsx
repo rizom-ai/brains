@@ -1,10 +1,10 @@
 /** @jsxImportSource react */
-import { Button, Input } from "@brains/app-ui-react";
+import { Button, Input, Switch } from "@brains/app-ui-react";
 import type {
   AuthAccountAppPassword,
   AuthAccountSnapshot,
 } from "@brains/contracts";
-import type { ReactElement } from "react";
+import { useState, type ReactElement } from "react";
 import {
   accountClass,
   accountStyles as accountLayout,
@@ -17,6 +17,7 @@ import { driveClients } from "./drive-clients";
 import type { AccountActions } from "./use-account-actions";
 
 const LABEL_FIELD = "app-password-label";
+const WRITE_FIELD = "app-password-write";
 
 /** App password times arrive in seconds; the day is what a person plans by. */
 function day(seconds: number): string {
@@ -48,11 +49,12 @@ export function AccountDriveTab(props: {
   const { account, actions } = props;
   const { busy, createdAppPassword } = actions;
   const nowSeconds = Math.floor(Date.now() / 1000);
+  const [allowSaving, setAllowSaving] = useState(false);
   return (
     <div className={accountClass("", accountLayout.column)}>
       <AccountDetailSection
         title="Drive"
-        description="Mount this brain as a network drive. It shows the notes, posts and files you can see here, as folders and files, to read and open on your computer."
+        description="Mount this brain as a network drive. It shows the notes, posts and files you can see here, as folders and files, to open and edit on your computer."
       >
         <article className={accountClass("drive-address", s.client)}>
           <h4 className={accountClass("", s.clientName)}>
@@ -64,7 +66,7 @@ export function AccountDriveTab(props: {
 
       <AccountDetailSection
         title="App passwords"
-        description="A mount signs in with an app password instead of your passkey. Each one is read-only, works only for the drive, expires after a year and can be revoked here."
+        description="A mount signs in with an app password instead of your passkey. It works only for the drive, expires after a year and can be revoked here. It can only read unless you allow saving changes."
       >
         {createdAppPassword ? (
           <article
@@ -124,8 +126,12 @@ export function AccountDriveTab(props: {
             const form = event.currentTarget;
             const label = String(new FormData(form).get(LABEL_FIELD) ?? "");
             if (label.trim() === "") return;
-            actions.createAppPassword(label.trim());
+            actions.createAppPassword(
+              label.trim(),
+              allowSaving ? "write" : "read",
+            );
             form.reset();
+            setAllowSaving(false);
           }}
         >
           <label
@@ -143,6 +149,20 @@ export function AccountDriveTab(props: {
               maxLength={100}
               placeholder="Laptop"
               autoComplete="off"
+            />
+          </label>
+          <label
+            htmlFor={WRITE_FIELD}
+            className={accountClass("", accountLayout.field)}
+          >
+            <span className={accountClass("", accountLayout.formLabel)}>
+              Allow saving changes
+            </span>
+            <Switch
+              id={WRITE_FIELD}
+              aria-label="Allow saving changes"
+              checked={allowSaving}
+              onCheckedChange={setAllowSaving}
             />
           </label>
           <div

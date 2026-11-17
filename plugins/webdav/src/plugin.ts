@@ -14,8 +14,19 @@ import { createDavRoutes } from "./dav-routes";
 /** Where the drive is mounted on the brain's own origin. */
 export const WEBDAV_BASE_PATH = "/dav";
 
-export const webdavConfigSchema: z.ZodObject<Record<never, never>> =
-  z.strictObject({});
+/** The same ceiling directory-sync puts on an imported file. */
+const DEFAULT_MAX_FILE_BYTES = 5 * 1024 * 1024;
+
+export const webdavConfigSchema: z.ZodObject<{
+  maxFileBytes: z.ZodDefault<z.ZodNumber>;
+}> = z.strictObject({
+  maxFileBytes: z
+    .number()
+    .int()
+    .positive()
+    .describe("Maximum bytes of a file a client may save")
+    .default(DEFAULT_MAX_FILE_BYTES),
+});
 
 export interface WebdavState {
   routes: WebRouteDefinition[];
@@ -49,6 +60,17 @@ const service = defineServicePlugin({
         basePath: WEBDAV_BASE_PATH,
         realm: runtime.identity.get().name,
         reader: runtime.entityReads,
+        writes: {
+          maxFileBytes: context.config.maxFileBytes,
+          deserializeEntity: (markdown, entityType) =>
+            runtime.entityReads.deserializeEntity(markdown, entityType),
+          updateEntity: (request) => runtime.entityWrites.updateEntity(request),
+          permissions: runtime.permissions,
+          // Without auth nobody is admitted, so nothing reaches here.
+          recordAudit: async (event) => {
+            await runtime.auth()?.recordAuditEvent(event);
+          },
+        },
         // Read when asked: auth-service binds after plugins register, and a
         // brain without it admits nobody.
         resolveAppPassword: async (request) =>

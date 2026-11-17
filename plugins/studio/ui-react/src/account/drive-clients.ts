@@ -45,7 +45,7 @@ export function driveClients(address: string): readonly DriveClient[] {
       after: [
         [
           "Then mount it on an empty folder: ",
-          { code: `rclone mount ${name}: ~/Brain --read-only` },
+          { code: `rclone mount ${name}: ~/Brain --vfs-cache-mode writes` },
           ".",
         ],
       ],

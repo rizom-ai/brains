@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import type { AuthAppPasswordGrant } from "@brains/contracts";
 import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
 import { createDavRoutes } from "../src/dav-routes";
+import { noWrites } from "./fake-brain";
 import { entity, fakeReader } from "./fake-reader";
 
 const PNG = new Uint8Array([137, 80, 78, 71, 1, 2, 3]);
@@ -54,6 +55,7 @@ function drive(): (
   const routes = createDavRoutes({
     basePath: "/dav",
     realm: "Test Brain",
+    writes: noWrites,
     reader: fakeReader({
       entities: library,
       containedIn: { "book-section": "book" },
@@ -105,18 +107,24 @@ async function hrefs(response: Response): Promise<string[]> {
 }
 
 describe("WebDAV routes", () => {
-  it("declares only the reading methods", () => {
+  it("declares one prefix route per method", () => {
     const routes = createDavRoutes({
       basePath: "/dav",
       realm: "Test Brain",
+      writes: noWrites,
       reader: fakeReader({ entities: [] }),
       resolveAppPassword: async () => undefined,
     });
-    expect(routes.map((route) => route.method).sort()).toEqual([
+    expect(routes.map((route) => route.method)).toEqual([
+      "OPTIONS",
       "GET",
       "HEAD",
-      "OPTIONS",
       "PROPFIND",
+      "PUT",
+      "DELETE",
+      "MOVE",
+      "COPY",
+      "PROPPATCH",
     ]);
   });
 
@@ -138,7 +146,9 @@ describe("WebDAV routes", () => {
     const response = await drive()("OPTIONS", "/dav/", { as: "nobody" });
     expect(response.status).toBe(200);
     expect(response.headers.get("dav")).toBe("1");
-    expect(response.headers.get("allow")).toBe("OPTIONS, GET, HEAD, PROPFIND");
+    expect(response.headers.get("allow")).toBe(
+      "OPTIONS, GET, HEAD, PROPFIND, PUT, DELETE, MOVE, COPY, PROPPATCH",
+    );
   });
 
   it("marks every response inert for a browser on the brain's origin", async () => {
@@ -386,6 +396,7 @@ describe("WebDAV routes", () => {
     const routes = createDavRoutes({
       basePath: "/dav",
       realm: "Test Brain",
+      writes: noWrites,
       reader: fakeReader({ entities: [entity("post", "a b&c")] }),
       resolveAppPassword: async () => grant("trusted"),
     });

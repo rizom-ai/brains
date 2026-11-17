@@ -60,13 +60,17 @@ describe("the WebDAV plugin's registered surface", () => {
         preview,
       ]),
     ).toEqual(
-      ["OPTIONS", "GET", "HEAD", "PROPFIND"].map((method) => [
-        "/dav",
-        "prefix",
-        method,
-        true,
-        undefined,
-      ]),
+      [
+        "OPTIONS",
+        "GET",
+        "HEAD",
+        "PROPFIND",
+        "PUT",
+        "DELETE",
+        "MOVE",
+        "COPY",
+        "PROPPATCH",
+      ].map((method) => ["/dav", "prefix", method, true, undefined]),
     );
     expect(shell.listInteractions()).toEqual([
       expect.objectContaining({

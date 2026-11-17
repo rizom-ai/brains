@@ -420,3 +420,55 @@ it("revokes an app password only once it is confirmed", async () => {
   );
   expect(document.body.textContent).toContain("No app passwords yet.");
 });
+
+it("creates a read-and-write app password when saving is allowed", async () => {
+  const sent: Array<{ path: string; body: unknown }> = [];
+  await mountDrive(
+    { ...driveAccount, appPasswords: [] },
+    () => ({
+      account: {
+        ...driveAccount,
+        appPasswords: driveAccount.appPasswords.map((appPassword) => ({
+          ...appPassword,
+          access: "write",
+        })),
+      },
+      appPassword: { username: "dav-k3x9", password: "s3cret-shown-once" },
+    }),
+    sent,
+  );
+
+  const input = document.querySelector<HTMLInputElement>(
+    'input[name="app-password-label"]',
+  );
+  const allowSaving = document.querySelector<HTMLElement>(
+    '[role="switch"][aria-label="Allow saving changes"]',
+  );
+  if (!input || !allowSaving) throw Error("Missing app password form");
+  expect(allowSaving.getAttribute("aria-checked")).toBe("false");
+  input.value = "Desktop";
+  await act(async () => {
+    allowSaving.click();
+  });
+  await act(async () => {
+    input.form?.dispatchEvent(
+      new Event("submit", { bubbles: true, cancelable: true }),
+    );
+  });
+
+  expect(sent.map((request) => request.body)).toEqual([
+    {
+      action: "createAppPassword",
+      confirmation: "createAppPassword",
+      label: "Desktop",
+      access: "write",
+    },
+  ]);
+  expect(document.body.textContent).toContain("Read and write");
+  // The next password starts read-only again.
+  expect(
+    document
+      .querySelector('[role="switch"][aria-label="Allow saving changes"]')
+      ?.getAttribute("aria-checked"),
+  ).toBe("false");
+});
