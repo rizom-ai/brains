@@ -17,6 +17,8 @@ import { z } from "@brains/utils/zod";
 import {
   capturePredeployBackup,
   parsePredeployBackupOutput,
+  predeployBackupFailureLines,
+  predeployBackupLogLines,
   renderPredeployBackupRemoteScript,
   predeployBackupNotices,
   renderPredeployReadinessProgram,
@@ -76,6 +78,48 @@ VERIFICATION=passed
     expect(() =>
       parsePredeployBackupOutput("SNAPSHOT_ID=incomplete\n"),
     ).toThrow("Incomplete predeploy backup result");
+  });
+
+  it("carries the snapshot's asset verification counts into the deploy log", () => {
+    const result =
+      parsePredeployBackupOutput(`SNAPSHOT_ID=predeploy-smoke-v1-20260901T000000Z
+BACKUP=/opt/brain-state/backups/predeploy-smoke-v1-20260901T000000Z
+SOURCE_VERSION=0.2.0-alpha.342
+TARGET_VERSION=v1
+ASSETS_REFERENCED=3
+ASSETS_VERIFIED=3
+ASSETS_FAILED=0
+TOTAL_BYTES=123
+DURATION_SECONDS=4
+VERIFICATION=passed
+`);
+
+    expect(result).toMatchObject({
+      assets: { referenced: 3, verified: 3, failed: 0 },
+    });
+    expect(predeployBackupLogLines(result)).toEqual([
+      "pre-deploy snapshot verified: predeploy-smoke-v1-20260901T000000Z",
+      "pre-deploy snapshot assets: 3 referenced, 3 verified, 0 failed",
+    ]);
+  });
+
+  it("names each failed asset in the deploy log when verification blocks the backup", () => {
+    const digest = "a".repeat(64);
+    expect(
+      predeployBackupFailureLines(
+        "ASSETS_REFERENCED=2\nASSETS_VERIFIED=1\nASSETS_FAILED=1\n",
+        `pre-deploy snapshot: asset failed: ${digest} (image/cover, image/og): chunks hash to a different digest\nerror: brain.db: asset verification failed\n`,
+      ),
+    ).toEqual([
+      "pre-deploy snapshot assets: 2 referenced, 1 verified, 1 failed",
+      `::error title=Pre-deploy backup::asset failed: ${digest} (image/cover, image/og): chunks hash to a different digest`,
+    ]);
+    expect(
+      predeployBackupFailureLines(
+        "",
+        "pre-deploy snapshot: insufficient disk\n",
+      ),
+    ).toEqual([]);
   });
 
   it("renders a secret-safe fail-closed remote program", async () => {
@@ -699,6 +743,8 @@ describe("predeploy asset verification", () => {
     "base64",
   );
   const digest = new Bun.CryptoHasher("sha256").update(PNG).digest("hex");
+  /** A digest no published asset holds. */
+  const MISSING = "f".repeat(64);
 
   async function contentCheckout(root: string): Promise<string> {
     const contentDir = join(root, "content");
@@ -719,7 +765,12 @@ describe("predeploy asset verification", () => {
   /** A brain.db with one image referencing one staged, published asset. */
   function brainDatabase(
     path: string,
-    options: { assets?: boolean; corrupt?: boolean; orphan?: boolean } = {},
+    options: {
+      assets?: boolean;
+      corrupt?: boolean;
+      orphan?: boolean;
+      missing?: boolean;
+    } = {},
   ): void {
     const database = new Database(path, { create: true });
     database.run(
@@ -758,12 +809,28 @@ describe("predeploy asset verification", () => {
     database.run("INSERT INTO entities VALUES ('cover-copy', 'image', ?)", [
       `asset://sha256/${digest}`,
     ]);
+    if (options.missing) {
+      database.run("INSERT INTO entities VALUES ('lost', 'image', ?)", [
+        `asset://sha256/${MISSING}`,
+      ]);
+    }
     database.close(false);
   }
 
   async function capture(
     options: Parameters<typeof brainDatabase>[1] = {},
-  ): Promise<{ backupDir: string; error?: unknown }> {
+  ): Promise<{
+    backupDir: string;
+    error?: unknown;
+    stdout: string[];
+    stderr: string[];
+  }> {
+    const stdout: string[] = [];
+    const stderr: string[] = [];
+    const output = {
+      stdout: (line: string): void => void stdout.push(line),
+      stderr: (line: string): void => void stderr.push(line),
+    };
     const root = await mkdtemp(join(tmpdir(), "predeploy-assets-"));
     temporaryDirectories.push(root);
     const backupDir = join(root, "backup");
@@ -771,35 +838,38 @@ describe("predeploy asset verification", () => {
     const source = join(root, "brain.db");
     brainDatabase(source, options);
     try {
-      await capturePredeployBackup({
-        backupDir,
-        contentRoot: await contentCheckout(root),
-        databases: [
-          {
-            source,
-            name: "brain.db",
-            method: "vacuum",
-            quickCheck: "bun",
-            logicalVector: false,
-            assets: true,
+      await capturePredeployBackup(
+        {
+          backupDir,
+          contentRoot: await contentCheckout(root),
+          databases: [
+            {
+              source,
+              name: "brain.db",
+              method: "vacuum",
+              quickCheck: "bun",
+              logicalVector: false,
+              assets: true,
+            },
+          ],
+          metadata: {
+            snapshotId: "predeploy-test-assets",
+            targetHandle: "test",
+            host: "test-host",
+            startedAt: new Date().toISOString(),
+            sourceVersion: "source",
+            targetVersion: "target",
+            toolVersion: "test",
+            containerId: "container",
+            imageId: "image",
+            imageDigest: "digest",
           },
-        ],
-        metadata: {
-          snapshotId: "predeploy-test-assets",
-          targetHandle: "test",
-          host: "test-host",
-          startedAt: new Date().toISOString(),
-          sourceVersion: "source",
-          targetVersion: "target",
-          toolVersion: "test",
-          containerId: "container",
-          imageId: "image",
-          imageDigest: "digest",
         },
-      });
-      return { backupDir };
+        output,
+      );
+      return { backupDir, stdout, stderr };
     } catch (error) {
-      return { backupDir, error };
+      return { backupDir, error, stdout, stderr };
     }
   }
 
@@ -808,11 +878,20 @@ describe("predeploy asset verification", () => {
     assets: z.number(),
     totalBytes: z.number(),
     orphanUploads: z.number(),
+    verified: z.number(),
+    failed: z.number(),
+    failures: z.array(
+      z.object({
+        digest: z.string(),
+        entities: z.array(z.string()),
+        reason: z.string(),
+      }),
+    ),
     digests: z.array(z.string()),
   });
 
   it("records the verified asset inventory of the snapshot", async () => {
-    const { backupDir, error } = await capture({ orphan: true });
+    const { backupDir, error, stdout } = await capture({ orphan: true });
 
     expect(error).toBeUndefined();
     const report = assetReportSchema.parse(
@@ -825,17 +904,65 @@ describe("predeploy asset verification", () => {
       assets: 1,
       totalBytes: PNG.byteLength,
       orphanUploads: 1,
+      verified: 1,
+      failed: 0,
+      failures: [],
       digests: [digest],
     });
+    // The deploy log carries the counts, not only the file beside the snapshot.
+    expect(stdout).toEqual([
+      "ASSETS_REFERENCED=1",
+      "ASSETS_VERIFIED=1",
+      "ASSETS_FAILED=0",
+    ]);
   });
 
   it("blocks the backup when a referenced asset's bytes do not match", async () => {
-    const { backupDir, error } = await capture({ corrupt: true });
+    const { backupDir, error, stdout, stderr } = await capture({
+      corrupt: true,
+    });
 
-    expect(String(error)).toContain("asset verification failed");
+    expect(String(error)).toContain(
+      "brain.db: asset verification failed: 1 of 1 referenced assets",
+    );
     expect(await Bun.file(join(backupDir, "manifest.json")).exists()).toBe(
       false,
     );
+    const report = assetReportSchema.parse(
+      JSON.parse(
+        await readFile(join(backupDir, "brain.db.asset-verify.json"), "utf8"),
+      ),
+    );
+    expect(report).toMatchObject({
+      assets: 1,
+      verified: 0,
+      failed: 1,
+      failures: [
+        {
+          digest,
+          entities: ["image/cover", "image/cover-copy"],
+          reason: "chunks hash to a different digest",
+        },
+      ],
+    });
+    expect(stdout).toEqual([
+      "ASSETS_REFERENCED=1",
+      "ASSETS_VERIFIED=0",
+      "ASSETS_FAILED=1",
+    ]);
+    expect(stderr).toEqual([
+      `pre-deploy snapshot: asset failed: ${digest} (image/cover, image/cover-copy): chunks hash to a different digest`,
+    ]);
+  });
+
+  it("reports every failed asset, not only the first", async () => {
+    const { error, stderr } = await capture({ corrupt: true, missing: true });
+
+    expect(String(error)).toContain("2 of 2 referenced assets");
+    expect(stderr).toEqual([
+      `pre-deploy snapshot: asset failed: ${digest} (image/cover, image/cover-copy): chunks hash to a different digest`,
+      `pre-deploy snapshot: asset failed: ${MISSING} (image/lost): has no published asset`,
+    ]);
   });
 
   it("passes a database from before staged asset storage", async () => {
