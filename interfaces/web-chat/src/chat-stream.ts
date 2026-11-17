@@ -50,8 +50,6 @@ interface StreamDeps {
       // than as `unknown`, which forced the caller to assert the ref back into
       // the real request type.
       visibilityScope?: "public" | "shared" | "restricted" | undefined;
-      /** Access is decided on the record as stored, never its bytes. */
-      binaryContent?: "reference";
     }) => Promise<MessageArtifactEntity | null | undefined>;
   };
 }
@@ -69,7 +67,6 @@ async function deniedArtifactCardIds(
       deps.entityService.getEntity({
         ...ref,
         visibilityScope,
-        binaryContent: "reference",
       }),
   });
 }

@@ -1,8 +1,5 @@
 import { createMockJobQueueService } from "@brains/job-queue/test";
-import {
-  EntityService,
-  type EntityServiceOptions,
-} from "../../src/entityService";
+import { EntityService } from "../../src/entityService";
 import { EntityRegistry } from "../../src/entityRegistry";
 import { createSilentLogger } from "@brains/test-utils";
 import type { IJobQueueService } from "@brains/job-queue";
@@ -44,7 +41,6 @@ export async function setupEntityService(
   options?: {
     messageBus?: EntityEventBus;
     embeddingsEnabled?: boolean;
-    onLegacyBinaryMaterialization?: EntityServiceOptions["onLegacyBinaryMaterialization"];
   },
 ): Promise<EntityServiceTestContext> {
   const testDb = await createTestEntityDatabase();
@@ -74,9 +70,6 @@ export async function setupEntityService(
     dbConfig: testDb.config,
     embeddingDbConfig: testDb.embeddingConfig,
     ...(options?.messageBus && { messageBus: options.messageBus }),
-    ...(options?.onLegacyBinaryMaterialization && {
-      onLegacyBinaryMaterialization: options.onLegacyBinaryMaterialization,
-    }),
   });
 
   const cleanup = async (): Promise<void> => {

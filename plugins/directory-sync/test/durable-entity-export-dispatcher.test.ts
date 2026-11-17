@@ -101,7 +101,6 @@ describe("DurableEntityExportDispatcher", () => {
             id: entity.id,
             visibilityScope: "restricted",
             source: true,
-            binaryContent: "reference",
           });
           expect(pending).toEqual([]);
 

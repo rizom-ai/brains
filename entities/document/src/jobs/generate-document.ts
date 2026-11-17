@@ -157,8 +157,6 @@ async function getDedupKey(
   const source = await runtime.anyEntities.getEntity({
     entityType: data.sourceEntityType,
     id: data.sourceEntityId,
-    // Only its hash is read.
-    binaryContent: "reference",
   });
   return source ? `${base}:${source.contentHash}` : base;
 }
@@ -175,11 +173,7 @@ async function findDocumentByDedupKey(
   const documents = (
     await runtime.anyEntities.listEntities({
       entityType: "document",
-      // Only ids and metadata are read: stored references, no bytes.
-      options: {
-        filter: { metadata: { dedupKey } },
-        binaryContent: "reference",
-      },
+      options: { filter: { metadata: { dedupKey } } },
     })
   ).map((document) => ({
     id: document.id,
@@ -297,7 +291,6 @@ async function supersededReferences(
         document: await runtime.anyEntities.getEntity({
           entityType: "document",
           id: reference.id,
-          binaryContent: "reference",
         }),
       })),
   );

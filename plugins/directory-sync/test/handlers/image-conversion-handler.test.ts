@@ -362,11 +362,6 @@ Some content here.
       const jobData = createValidJobData();
       await handler.process(jobData, "job-123", progressReporter);
 
-      expect(context.entityService.listEntities).toHaveBeenCalledWith(
-        expect.objectContaining({
-          options: expect.objectContaining({ binaryContent: "reference" }),
-        }),
-      );
       expect(context.entityService.createEntity).toHaveBeenCalledWith({
         stagedAsset: expect.objectContaining({ ref: PNG_ASSET_REF }),
         entity: expect.objectContaining({

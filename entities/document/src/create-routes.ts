@@ -70,8 +70,7 @@ async function findExistingDocument(
 ): Promise<{ readonly id: string } | undefined> {
   const [found] = await entityRuntime(context).anyEntities.listEntities({
     entityType: "document",
-    // Only its id is read: the stored reference, no bytes.
-    options: { filter: { metadata: { dedupKey } }, binaryContent: "reference" },
+    options: { filter: { metadata: { dedupKey } } },
   });
   return found;
 }

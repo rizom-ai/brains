@@ -27,10 +27,7 @@ export {
   type StageAssetOptions,
   type StagedAsset,
 } from "@brains/assets";
-export {
-  EntityService,
-  type LegacyBinaryMaterialization,
-} from "./entityService";
+export { EntityService } from "./entityService";
 export { inlineAssetContent } from "./lib/asset-data-url";
 export {
   decodeEntityIdPath,
@@ -216,7 +213,6 @@ export type {
   EntitySearchRequest,
   SearchWithDistancesRequest,
   EntityRegistry as IEntityRegistry,
-  BinaryContentMode,
   EntityService as IEntityService,
   ReadOnlyEntityService,
   EntityServiceClient,

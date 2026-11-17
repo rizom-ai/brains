@@ -262,7 +262,6 @@ async function getAllEntities(
       options: {
         limit: 1000,
         filter: { visibilityScope },
-        binaryContent: "reference",
       },
     });
     all.push(...entities);

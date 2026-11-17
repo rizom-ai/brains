@@ -120,8 +120,6 @@ function createSelectTool(pluginId: string, deps: StockPhotoToolsDeps): Tool {
         options: {
           limit: 1,
           filter: { metadata: { sourceUrl: imageUrl } },
-          // Only the id is read: stored references, no bytes.
-          binaryContent: "reference",
         },
       });
 

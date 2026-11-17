@@ -90,7 +90,6 @@ describe("series projection rule", () => {
     expect(listRequests).toContainEqual(
       expect.objectContaining({
         entityType: "image",
-        options: expect.objectContaining({ binaryContent: "reference" }),
       }),
     );
   });

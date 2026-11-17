@@ -211,8 +211,6 @@ export async function imageJobs(
         id,
         visibilityScope: "restricted",
         source: true,
-        // As stored: an asset-backed image is its reference.
-        binaryContent: "reference",
       }),
     async close(): Promise<void> {
       service.close();

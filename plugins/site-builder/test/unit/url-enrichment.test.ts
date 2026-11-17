@@ -94,27 +94,6 @@ describe("SiteBuilder - URL Enrichment", () => {
     );
   });
 
-  it("scans every type as stored, so an asset-backed one loads no bytes", async () => {
-    spyOn(mockContext.entityService, "getEntityTypes").mockReturnValue([
-      "post",
-      "document",
-    ]);
-    const list = spyOn(
-      mockContext.entityService,
-      "listEntities",
-    ).mockResolvedValue([]);
-
-    await collectAllImageIds(mockContext.entityService, logger);
-
-    expect(list.mock.calls.map(([request]) => request.entityType)).toEqual([
-      "post",
-      "document",
-    ]);
-    for (const [request] of list.mock.calls) {
-      expect(request.options?.binaryContent).toBe("reference");
-    }
-  });
-
   it("prepares the image an anchor profile's photo names", async () => {
     spyOn(mockContext.entityService, "getEntityTypes").mockReturnValue([
       "anchor-profile",
@@ -482,10 +461,7 @@ coverImageId: project-cover-image
 # Test Project`,
         metadata: { slug: "test-project", title: "Test Project" },
       });
-      const getEntity = spyOn(
-        mockContext.entityService,
-        "getEntity",
-      ).mockResolvedValue({
+      spyOn(mockContext.entityService, "getEntity").mockResolvedValue({
         id: "project-cover-image",
         entityType: "image",
         content: asset.ref,
@@ -502,9 +478,6 @@ coverImageId: project-cover-image
 
       expect(result.coverImageUrl).toBe(
         `data:image/png;base64,${bytes.toString("base64")}`,
-      );
-      expect(getEntity).toHaveBeenCalledWith(
-        expect.objectContaining({ binaryContent: "reference" }),
       );
     });
 

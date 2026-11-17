@@ -493,11 +493,6 @@ slug: test-post
     await converter.convert(content, "test-post");
 
     const ref = createAssetRef(computeAssetDigest(TINY_PNG_BYTES));
-    expect(mockEntityService.listEntities).toHaveBeenCalledWith(
-      expect.objectContaining({
-        options: expect.objectContaining({ binaryContent: "reference" }),
-      }),
-    );
     expect(mockEntityService.createEntity).toHaveBeenCalledWith({
       stagedAsset: expect.objectContaining({ ref }),
       entity: expect.objectContaining({

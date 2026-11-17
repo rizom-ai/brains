@@ -67,7 +67,6 @@ export {
   readAssetBytes,
   type AssetRef,
   type AssetSource,
-  type BinaryContentMode,
   type StageAssetOptions,
   type StagedAsset,
 } from "@brains/plugins";

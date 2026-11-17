@@ -71,7 +71,6 @@ export async function findEntityByIdentifier(
   const readOptions: EntityLookupOptions = {
     ...(read.signal && { signal: read.signal }),
     ...(read.publishedOnly && { publishedOnly: true }),
-    ...(read.binaryContent && { binaryContent: read.binaryContent }),
     ...(read.source && { source: true }),
   };
   try {

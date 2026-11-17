@@ -43,7 +43,6 @@ export function createSystemResourceTemplates(
         }
         const entities = await entityService.listEntities({
           entityType: type,
-          options: { binaryContent: "reference" },
         });
         const items = entities.map((e) => ({
           id: e.id,
@@ -85,7 +84,6 @@ export function createSystemResourceTemplates(
         const entity = await entityService.getEntity({
           entityType: type,
           id: id,
-          binaryContent: "reference",
         });
         if (!entity) {
           throw new Error(`Entity not found: ${type}/${id}`);

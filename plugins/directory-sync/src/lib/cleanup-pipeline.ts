@@ -1,6 +1,5 @@
 import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
 import {
-  type BinaryContentMode,
   type ContentVisibility,
   internalFullScope,
 } from "@brains/sdk/internal/service-runtime";
@@ -24,7 +23,6 @@ export interface CleanupPipelineDeps {
         limit?: number;
         offset?: number;
         filter?: { visibilityScope?: ContentVisibility };
-        binaryContent?: BinaryContentMode;
       };
     }): Promise<BaseEntity[]>;
     deleteEntity(request: {
@@ -104,8 +102,6 @@ async function findOrphans(
     options: {
       limit: ORPHAN_SCAN_PAGE,
       offset,
-      // Paths and writes need references, never materialized bytes.
-      binaryContent: "reference",
       filter: {
         visibilityScope: internalFullScope(
           "directory sync cleanup spans all visibility tiers",

@@ -479,7 +479,6 @@ describe("a stored create with bytes", () => {
     const stored = await service.getEntity({
       entityType: "scroll",
       id: "dot",
-      binaryContent: "reference",
     });
     const ref = assetRefSchema.parse(stored?.content);
     expect(Buffer.from(await service.readAsset(ref))).toEqual(bytes);

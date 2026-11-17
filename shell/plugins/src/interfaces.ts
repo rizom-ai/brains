@@ -89,7 +89,6 @@ import {
   interactionInfoSchema,
   interactionKindSchema,
   interactionStatusSchema,
-  legacyBinaryContentUseSchema,
 } from "./contracts/runtime-app-info";
 import type {
   BackgroundWorkInfo,
@@ -98,7 +97,6 @@ import type {
   EntityCount,
   InteractionInfo,
   InteractionInfoInput,
-  LegacyBinaryContentUse,
   RuntimeAppInfo,
 } from "./contracts/runtime-app-info";
 import type { EvalHandler } from "./contracts/handlers";
@@ -116,7 +114,6 @@ export {
   interactionInfoSchema,
   interactionKindSchema,
   interactionStatusSchema,
-  legacyBinaryContentUseSchema,
 };
 export type {
   BackgroundWorkInfo,
@@ -126,7 +123,6 @@ export type {
   EntityCount,
   EvalHandler,
   GenerateContentFunction,
-  LegacyBinaryContentUse,
   GenerationStyleGuide,
   InteractionInfo,
   InteractionInfoInput,

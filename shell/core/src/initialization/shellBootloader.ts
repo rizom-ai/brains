@@ -27,6 +27,7 @@ import {
   type RuntimeRoleProfile,
 } from "../runtime-process-role";
 import { HTTP_HOST_DAEMON } from "../http-host";
+import { clearRetiredRuntimeState } from "../retired-runtime-state";
 
 const INDEX_READINESS_POLL_INTERVAL_MS = 250;
 
@@ -230,6 +231,12 @@ export class ShellBootloader {
       this.services.logger.debug("Shell boot complete (register-only mode)");
       return;
     }
+
+    // What a removed feature kept in runtime state is deleted once it boots.
+    await clearRetiredRuntimeState(
+      this.services.runtimeStateService,
+      this.services.logger,
+    );
 
     // Both roles serve the identity stored by earlier runs from here on, and
     // follow what imports bring. Only a settled startup may create defaults:

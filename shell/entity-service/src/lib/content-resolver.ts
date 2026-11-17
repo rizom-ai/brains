@@ -126,7 +126,6 @@ export class ContentResolver {
           entityType: "image",
           id: imageId,
           visibilityScope,
-          binaryContent: "reference",
         });
         if (image?.content) {
           // Resolved markdown inlines the image; assets are encoded here.

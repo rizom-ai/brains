@@ -99,7 +99,6 @@ describe("ImageBuildService", () => {
     await service.resolveAll(["cover-photo"], new AbortController().signal);
 
     expect(service.get("cover-photo")?.src).toContain(".webp");
-    expect(reads[0]).toMatchObject({ binaryContent: "reference" });
     // Read at the build's own scope: the default, public, never widened.
     expect(reads[0]).not.toHaveProperty("visibilityScope");
     expect(

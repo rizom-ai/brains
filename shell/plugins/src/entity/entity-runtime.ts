@@ -228,18 +228,13 @@ export interface AnyEntityReads {
               }
             | undefined;
           readonly limit?: number | undefined;
-          /** Asset-backed content as its stored reference; no bytes load. */
-          readonly binaryContent?: "reference" | undefined;
         }
       | undefined;
   }): Promise<BaseEntity[]>;
   getEntity(request: {
     readonly entityType: string;
     readonly id: string;
-    /** Asset-backed content as its stored reference; no bytes load. */
-    readonly binaryContent?: "reference" | undefined;
   }): Promise<BaseEntity | null>;
-  /** A record by its id| null>;
   /** A record by its id, else its slug, else its title. */
   find(entityType: string, identifier: string): Promise<BaseEntity | null>;
 }
@@ -710,7 +705,6 @@ function scopedAnyEntities({
     ): Promise<BaseEntity[]> => {
       const metadata = request.options?.filter?.metadata;
       const limit = request.options?.limit;
-      const binaryContent = request.options?.binaryContent;
       const scoped = visibility(request.entityType);
       return service.listEntities({
         entityType: request.entityType,
@@ -722,7 +716,6 @@ function scopedAnyEntities({
             },
           }),
           ...(limit !== undefined && { limit }),
-          ...(binaryContent !== undefined && { binaryContent }),
         },
       });
     },
@@ -733,9 +726,6 @@ function scopedAnyEntities({
         entityType: request.entityType,
         id: request.id,
         ...visibility(request.entityType),
-        ...(request.binaryContent !== undefined && {
-          binaryContent: request.binaryContent,
-        }),
       }),
     find: (
       entityType: string,

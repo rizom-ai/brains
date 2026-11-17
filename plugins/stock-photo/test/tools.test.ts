@@ -319,37 +319,6 @@ describe("stock-photo tools", () => {
       });
     });
 
-    it("looks the photo up by source URL without loading image bytes", async () => {
-      const modes: unknown[] = [];
-      entityService = createEntityServiceWith({
-        listEntities: async (
-          request?: Parameters<IEntityService["listEntities"]>[0],
-        ) => {
-          modes.push(request?.options?.binaryContent);
-          return [
-            createTestEntity<BaseEntity>("image", {
-              id: "existing-id",
-              content: TINY_PNG_DATA_URL,
-              metadata: { sourceUrl: validInput.imageUrl },
-            }),
-          ];
-        },
-      });
-      tools = createStockPhotoTools("stock-photo", {
-        provider,
-        entityService,
-        fetchImage: mockFetchImage(),
-        jobs,
-      });
-
-      await findTool(tools, "stock-photo_select").handler(
-        validInput,
-        mockContext,
-      );
-
-      expect(modes).toEqual(["reference"]);
-    });
-
     it("should report cover as pending when queuing with a target entity", async () => {
       let updatedEntity: unknown;
 

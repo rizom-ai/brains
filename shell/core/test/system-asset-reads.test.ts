@@ -18,8 +18,8 @@ import { createTestShellConfig } from "./helpers/test-config";
 
 /**
  * The system tools and resources read an asset-backed record as its stored
- * reference and load its bytes only where they hand them out, so none asks
- * the entity service for the legacy data URL form.
+ * reference and load its bytes only where they hand them out: tool output
+ * never carries the bytes, and the entity resource still serves a data URL.
  */
 
 const cleanups: Array<() => Promise<void>> = [];
@@ -105,10 +105,6 @@ async function readResource(shell: Shell, uri: string): Promise<unknown> {
   }
 }
 
-/** What `system_status` reports of legacy reads, the soak's own signal. */
-const legacyReads = async (shell: Shell): Promise<unknown[]> =>
-  (await shell.getAppInfo()).legacyBinaryContent;
-
 it("lists a type without embeddings for a search as stored", async () => {
   const shell = await bootShell();
 
@@ -117,7 +113,6 @@ it("lists a type without embeddings for a search as stored", async () => {
     scope: { kind: "type", entityType: "picture" },
   });
 
-  expect(await legacyReads(shell)).toEqual([]);
   expect(JSON.stringify(result)).toContain("[binary picture data");
 });
 
@@ -126,7 +121,6 @@ it("serves an entity resource's data URL from the asset's bytes", async () => {
 
   const contents = await readResource(shell, "entity://picture/cover");
 
-  expect(await legacyReads(shell)).toEqual([]);
   expect(contents).toEqual([
     {
       uri: "entity://picture/cover",
@@ -149,7 +143,6 @@ it("reads an update back as stored, with no bytes in the confirmation", async ()
 
   const updated = await callTool(shell, "system_update", args);
 
-  expect(await legacyReads(shell)).toEqual([]);
   expect(updated).toMatchObject({ success: true });
   expect(JSON.stringify(updated)).not.toContain("base64");
 });
@@ -163,6 +156,5 @@ it("checks a create's id against the stored record", async () => {
     source: { kind: "text", content: "anything" },
   });
 
-  expect(await legacyReads(shell)).toEqual([]);
   expect(JSON.stringify(result)).toContain("already exists");
 });

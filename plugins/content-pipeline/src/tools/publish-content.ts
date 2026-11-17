@@ -147,7 +147,6 @@ async function fetchPublishImageData(
   const image = await context.entityService.getEntity({
     entityType: "image",
     id: coverImageId,
-    binaryContent: "reference",
   });
   if (!image?.content) return undefined;
 
@@ -188,7 +187,6 @@ async function fetchPublishDocumentItem(
   const entity = await context.entityService.getEntity({
     entityType: "document",
     id: reference.id,
-    binaryContent: "reference",
   });
   if (!entity?.content) return undefined;
 

@@ -96,7 +96,6 @@ export class ImageBuildService {
     const image = await this.entityService.getEntity({
       entityType: "image",
       id: imageId,
-      binaryContent: "reference",
     });
     signal.throwIfAborted();
 

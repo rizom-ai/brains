@@ -252,9 +252,6 @@ async function collectContentSignals(
           // so only public content may shape it.
           visibilityScope: "public",
         },
-        // Only frontmatter labels are read: an asset-backed record's bytes
-        // never load.
-        binaryContent: "reference",
       },
     });
 

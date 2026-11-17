@@ -21,10 +21,10 @@ import {
 
 /**
  * The reads a brain makes of its images and PDFs once they are durable
- * assets: a production site build, and the tools and resources an operator reads
- * through. None of them may ask the entity service to turn a reference back
- * into a data URL; that legacy form is what the bridge removal retires, and
- * it may go only once nothing first-party still asks for it.
+ * assets: a production site build, and the tools and resources an operator
+ * reads through. Every read hands back the stored reference; only the places
+ * that render or serve the bytes encode them, so the output is what it was
+ * when binaries were stored inline.
  */
 
 const apps: App[] = [];
@@ -42,7 +42,7 @@ afterEach(async () => {
 async function brainDirectory(): Promise<string> {
   const cache = join(import.meta.dir, "..", ".cache");
   await mkdir(cache, { recursive: true });
-  const directory = await mkdtemp(join(cache, "legacy-binary-reads-"));
+  const directory = await mkdtemp(join(cache, "binary-asset-reads-"));
   directories.push(directory);
   return directory;
 }
@@ -230,7 +230,7 @@ async function callTool(
 
 async function readResource(shell: Shell, uri: string): Promise<string> {
   const server = shell.getMCPService().createMcpServer("admin");
-  const client = new Client({ name: "legacy-binary-reads", version: "1.0.0" });
+  const client = new Client({ name: "binary-asset-reads", version: "1.0.0" });
   const [clientTransport, serverTransport] =
     InMemoryTransport.createLinkedPair();
   await server.connect(serverTransport);
@@ -246,13 +246,8 @@ async function readResource(shell: Shell, uri: string): Promise<string> {
   }
 }
 
-/** What `system_status` reports of legacy reads, the soak's own signal. */
-async function legacyReads(shell: Shell): Promise<unknown[]> {
-  return (await shell.getAppInfo()).legacyBinaryContent;
-}
-
 describe("a brain whose images are durable assets", () => {
-  it("builds its production site without materializing a data URL", async () => {
+  it("builds its production site, encoding images from their bytes", async () => {
     const { shell, directory } = await bootBrain();
     const build = shell
       .getJobQueueService()
@@ -270,30 +265,31 @@ describe("a brain whose images are durable assets", () => {
     );
 
     expect(result).toMatchObject({ success: true });
-    expect(await legacyReads(shell)).toEqual([]);
     // The deck still opens on its cover, encoded from the asset's bytes.
     expect(
       await readFile(join(outputDir, "decks/imaged-deck/index.html"), "utf8"),
     ).toContain(`data-background-image="${dataUrl("png", PNG)}"`);
   }, 120_000);
 
-  it("answers the operator's reads without materializing a data URL", async () => {
+  it("answers the operator's reads with references, never bytes", async () => {
     const { shell } = await bootBrain();
 
-    await callTool(shell, "system_list", { entityType: "image" });
-    await callTool(shell, "system_get", {
-      entityType: "image",
-      id: "deck-cover",
-    });
-    await callTool(shell, "system_search", {
-      query: "cover",
-      scope: { kind: "type", entityType: "image" },
-    });
-    await callTool(shell, "system_search", {
-      query: "cover",
-      scope: { kind: "all" },
-    });
-    await readResource(shell, "entity://image");
+    const reads = [
+      await callTool(shell, "system_list", { entityType: "image" }),
+      await callTool(shell, "system_get", {
+        entityType: "image",
+        id: "deck-cover",
+      }),
+      await callTool(shell, "system_search", {
+        query: "cover",
+        scope: { kind: "type", entityType: "image" },
+      }),
+      await callTool(shell, "system_search", {
+        query: "cover",
+        scope: { kind: "all" },
+      }),
+      await readResource(shell, "entity://image"),
+    ];
     const detail = await readResource(shell, "entity://image/deck-cover");
     const proposal = await callTool(shell, "system_update", {
       entityType: "image",
@@ -305,28 +301,31 @@ describe("a brain whose images are durable assets", () => {
       throw new Error("The update asked for no confirmation");
     const updated = await callTool(shell, "system_update", confirmed);
 
-    expect(await legacyReads(shell)).toEqual([]);
     // The resource still reads an image as the data URL it always returned.
     expect(detail).toBe(dataUrl("png", PNG));
     expect(updated).toMatchObject({ success: true });
     expect(JSON.stringify(updated)).not.toContain("base64");
+    expect(JSON.stringify(reads)).not.toContain(PNG.toString("base64"));
   }, 120_000);
 
-  it("answers the operator's PDF reads without materializing a data URL", async () => {
+  it("answers the operator's PDF reads with references, never bytes", async () => {
     const { shell } = await bootBrain();
 
     const listed = await callTool(shell, "system_list", {
       entityType: "document",
     });
-    await callTool(shell, "system_get", {
-      entityType: "document",
-      id: "deck-carousel",
-    });
-    await callTool(shell, "system_search", {
-      query: "carousel",
-      scope: { kind: "type", entityType: "document" },
-    });
-    await readResource(shell, "entity://document");
+    const reads = [
+      listed,
+      await callTool(shell, "system_get", {
+        entityType: "document",
+        id: "deck-carousel",
+      }),
+      await callTool(shell, "system_search", {
+        query: "carousel",
+        scope: { kind: "type", entityType: "document" },
+      }),
+      await readResource(shell, "entity://document"),
+    ];
     const detail = await readResource(shell, "entity://document/deck-carousel");
     const proposal = await callTool(shell, "system_update", {
       entityType: "document",
@@ -338,11 +337,11 @@ describe("a brain whose images are durable assets", () => {
       throw new Error("The update asked for no confirmation");
     const updated = await callTool(shell, "system_update", confirmed);
 
-    expect(await legacyReads(shell)).toEqual([]);
     expect(JSON.stringify(listed)).toContain("private-brief");
     // The resource still reads a document as the data URL it always returned.
     expect(detail).toBe(pdfDataUrl(PDF));
     expect(updated).toMatchObject({ success: true });
     expect(JSON.stringify(updated)).not.toContain("base64");
+    expect(JSON.stringify(reads)).not.toContain(PDF.toString("base64"));
   }, 120_000);
 });
