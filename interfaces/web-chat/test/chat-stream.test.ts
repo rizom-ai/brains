@@ -235,58 +235,6 @@ describe("chat stream", () => {
     expect(streamed).not.toContain("card-restricted");
   });
 
-  it("checks an artifact card's access on the record as stored, without its bytes", async () => {
-    const { writer } = createWriter();
-    const imageCard: StructuredChatCard = {
-      kind: "attachment",
-      id: "card-image",
-      title: "Cover",
-      attachment: {
-        filename: "cover.png",
-        mediaType: "image/png",
-        url: "/api/files/cover.png",
-        source: { entityType: "image", entityId: "cover" },
-      },
-    };
-    const reads: unknown[] = [];
-    const deps = createDeps(
-      {
-        chat: mock(async () => ({
-          text: "Here is the cover.",
-          toolResults: [],
-          cards: [imageCard],
-          usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
-        })),
-      },
-      {
-        getEntity: async (ref) => {
-          reads.push(ref);
-          return { content: "asset://sha256/" + "a".repeat(64), metadata: {} };
-        },
-      },
-    );
-
-    await handleStreamedChat(
-      {
-        writer,
-        conversationId: "conversation-1",
-        message: "show me the cover",
-        permissionLevel: "public",
-        attachments: [],
-        interfaceType: "web-chat",
-      },
-      deps,
-    );
-
-    expect(reads).toEqual([
-      expect.objectContaining({
-        entityType: "image",
-        id: "cover",
-        binaryContent: "reference",
-      }),
-    ]);
-  });
-
   it("terminally resolves an expired approval response", async () => {
     const { writer, writes } = createWriter();
     const deps = createDeps({

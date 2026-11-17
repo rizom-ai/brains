@@ -431,30 +431,6 @@
       "targetRelease": "post-image-migration-soak"
     },
     {
-      "id": "binary-content-legacy-read-mode",
-      "paths": [
-        "shell/entity-service/src/entityService.ts",
-        "shell/entity-service/src/index.ts",
-        "shell/entity-service/src/types.ts",
-        "shell/core/src/app-info.ts",
-        "shell/core/src/initialization/service-factory.ts",
-        "shell/core/src/legacy-binary-ledger.ts",
-        "shell/core/src/shell-shutdown.ts",
-        "shell/core/src/types/shell-types.ts",
-        "shell/plugins/src/contracts/runtime-app-info.ts",
-        "shell/plugins/src/index.ts",
-        "shell/plugins/src/interfaces.ts"
-      ],
-      "symbol": "binaryContent legacy-data-url read mode",
-      "owner": "@brains/entity-service",
-      "class": "runtime-compatibility",
-      "behavior": "Entity reads default to materializing asset references as the data URLs inline storage returned, so readers not yet on reference mode keep working. Each materialization is counted by read surface and entity type, never by id or content, in runtime state shared by every process and kept across restarts, and reported to trusted callers in system_status.",
-      "currentConsumers": "Reads through the public authoring API, whose entity reads return content as stored before assets until the 0.2.0 shape is decided, and any reader not passing reference mode. First-party image readers read references and bytes explicitly.",
-      "removalPrerequisite": "Move every reader to reference mode or explicit asset reads, then observe zero legacy materializations through the image migration soak.",
-      "rollbackDependency": "The pre-cutover release reads inline data URLs only; the transitional release keeps materializing until the rollback window closes.",
-      "targetRelease": "post-image-migration-soak"
-    },
-    {
       "id": "frontmatter-yaml-scalar-semantics",
       "paths": ["shared/utils/src/frontmatter-schema.ts"],
       "symbol": "frontmatterSchema scalar grammar, colon-string quoting, and binary representation",

@@ -60,7 +60,7 @@ export function createEntityDeleteTool(services: SystemServices): Tool {
       const resolved = await resolveEntityOrError(
         entityService,
         { entityType: input.entityType, identifier: input.id },
-        { visibilityScope, logger, read: { binaryContent: "reference" } },
+        { visibilityScope, logger },
       );
       if (!resolved.ok) return { success: false, error: resolved.error };
       const { entity } = resolved;

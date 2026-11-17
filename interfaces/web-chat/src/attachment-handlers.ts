@@ -112,7 +112,6 @@ async function resolveVisibleArtifactEntity(input: {
       input.entityService.getEntity({
         ...ref,
         visibilityScope,
-        binaryContent: "reference",
       }),
   });
 

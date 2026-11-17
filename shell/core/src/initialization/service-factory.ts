@@ -67,7 +67,6 @@ import {
 import { relayPeerEvents, type PeerChannel } from "../peer-event-relay";
 import { initializeIdentityAndAgentServices } from "./identity-agent-services";
 import { initializeJobServices } from "./job-services";
-import { LegacyBinaryLedger, legacyBinaryStore } from "../legacy-binary-ledger";
 import { createRecurringCheckDelivery } from "./recurring-check-delivery";
 import { createRecurringCheckInboxSource } from "./recurring-check-inbox-source";
 import {
@@ -183,12 +182,6 @@ export function createShellServices(options: {
     runtimeStateContext,
     RuntimeStateServiceTag,
   );
-  // Every process counts into the same runtime state, which outlives it.
-  const legacyBinaryLedger = new LegacyBinaryLedger({
-    store: legacyBinaryStore(runtimeStateService),
-    logger,
-  });
-  lifecycle.addSyncFinalizer(() => legacyBinaryLedger.dispose());
   const projectionRuntimeSupervisor =
     dependencies?.projectionRuntimeSupervisor ??
     ProjectionRuntimeSupervisor.createFresh(operationContext, {
@@ -281,7 +274,6 @@ export function createShellServices(options: {
       jobQueueService,
       messageBus,
       mutationAdmission: projectionRuntimeSupervisor,
-      onLegacyBinaryMaterialization: (use) => legacyBinaryLedger.record(use),
       ...(dependencies?.projectionRuntime?.now && {
         projectionNow: dependencies.projectionRuntime.now,
       }),
@@ -411,7 +403,6 @@ export function createShellServices(options: {
     attachmentRegistry,
     runtimeUploadRegistry,
     runtimeStateService,
-    legacyBinaryLedger,
     recurringCheckService,
   };
 }

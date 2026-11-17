@@ -354,7 +354,6 @@ describe("read tools enforce caller visibility scope", () => {
           limit: 1,
           filter: { visibilityScope: "restricted" },
           sortFields: [{ field: "publishedAt", direction: "desc" }],
-          binaryContent: "reference",
         },
       });
     });
@@ -370,7 +369,6 @@ describe("read tools enforce caller visibility scope", () => {
         options: {
           limit: 20,
           filter: { visibilityScope: "restricted" },
-          binaryContent: "reference",
         },
       });
     });
@@ -384,20 +382,6 @@ describe("read tools enforce caller visibility scope", () => {
       ).entity.content;
     const withFrontmatter =
       "---\ntitle: Plan\nstatus: draft\n---\n# Plan\n\nBody line.\n";
-
-    it("reads the stored reference, so a binary record's bytes never load", async () => {
-      services.addEntities([makeEntity("doc-stored", "public")]);
-
-      await getTool("system_get").handler(
-        { entityType: "doc", id: "doc-stored" },
-        baseContext("public"),
-      );
-
-      expect(services.getRawReadModes().length).toBeGreaterThan(0);
-      expect(new Set(services.getRawReadModes())).toEqual(
-        new Set(["reference"]),
-      );
-    });
 
     it("returns only the Markdown body when asked for the body part", async () => {
       services.addEntities([

@@ -475,7 +475,6 @@ export type {
   ToolVisibility,
   RuntimeAppInfo,
   BackgroundWorkInfo,
-  LegacyBinaryContentUse,
   EndpointInfo,
   EndpointInfoInput,
   EntityCount,
@@ -500,7 +499,6 @@ export {
   interactionInfoSchema,
   interactionKindSchema,
   interactionStatusSchema,
-  legacyBinaryContentUseSchema,
   pluginMetadataSchema,
   toolResponseSchema,
 } from "./interfaces";
@@ -637,7 +635,6 @@ export {
   type AssetRef,
   type AssetSource,
   type AssetStat,
-  type BinaryContentMode,
   type StageAssetOptions,
   type StagedAsset,
 } from "@brains/entity-service";

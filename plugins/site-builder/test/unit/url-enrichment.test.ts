@@ -482,10 +482,7 @@ coverImageId: project-cover-image
 # Test Project`,
         metadata: { slug: "test-project", title: "Test Project" },
       });
-      const getEntity = spyOn(
-        mockContext.entityService,
-        "getEntity",
-      ).mockResolvedValue({
+      spyOn(mockContext.entityService, "getEntity").mockResolvedValue({
         id: "project-cover-image",
         entityType: "image",
         content: asset.ref,
@@ -502,9 +499,6 @@ coverImageId: project-cover-image
 
       expect(result.coverImageUrl).toBe(
         `data:image/png;base64,${bytes.toString("base64")}`,
-      );
-      expect(getEntity).toHaveBeenCalledWith(
-        expect.objectContaining({ binaryContent: "reference" }),
       );
     });
 

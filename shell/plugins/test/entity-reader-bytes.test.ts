@@ -107,6 +107,20 @@ async function addPhoto(
   });
 }
 
+describe("EntityReader.get and list", () => {
+  it("hand back an asset-backed record's reference, never its bytes", async () => {
+    const service = await store();
+    await addPhoto(service, "cover", "public");
+    const reader = createEntityReader(service, "public");
+
+    const ref = (await service.stageAsset(PNG)).ref;
+    expect((await reader.get(photo, "cover"))?.content).toBe(ref);
+    expect((await reader.list(photo)).map((record) => record.content)).toEqual([
+      ref,
+    ]);
+  });
+});
+
 describe("EntityReader.readBytes", () => {
   it("reads a visible record's bytes with their media type and size", async () => {
     const service = await store();

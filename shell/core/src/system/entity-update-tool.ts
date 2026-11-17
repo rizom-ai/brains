@@ -167,7 +167,6 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
       entityType: entity.entityType,
       id: entity.id,
       visibilityScope: permissionToVisibilityScope(context.userPermissionLevel),
-      binaryContent: "reference",
     });
     const completionDetail = stored
       ? describeStoredChange(entity, stored)
@@ -260,7 +259,6 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
             context.userPermissionLevel,
           ),
           logger,
-          read: { binaryContent: "reference" },
         },
       );
       if (!resolved.ok) return failure(resolved.error);

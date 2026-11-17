@@ -294,7 +294,6 @@ describe("entity runtime assets", () => {
       entityType: "picture",
       id: "pending",
       visibilityScope: "restricted",
-      binaryContent: "reference",
     });
     expect(saved?.metadata).toEqual({ title: "pending", status: "draft" });
     expect(saved?.visibility).toBe("restricted");
@@ -343,7 +342,7 @@ describe("entity runtime assets", () => {
   });
 
   it("reads the stored reference without loading bytes", async () => {
-    const { shell, service, db } = await install();
+    const { shell, db } = await install();
     await run(shell, { action: "save", id: "kept" });
 
     await run(shell, { action: "get-stored", id: "kept" });
@@ -353,7 +352,6 @@ describe("entity runtime assets", () => {
     expect(z.object({ content: z.string() }).parse(seen).content).toBe(
       kept ?? "",
     );
-    expect(service.getLegacyBinaryMaterializations()).toEqual([]);
   });
 
   it("keeps the reference when the record's metadata alone is updated", async () => {

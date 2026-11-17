@@ -679,17 +679,12 @@ export interface SortField {
  * Generic over metadata type for type-safe filtering
  */
 /**
- * How asset-backed binary content is returned. `"legacy-data-url"` loads the
- * bytes and returns a data URL, as inline storage did; `"reference"` returns
- * the stored asset reference without loading bytes.
+ * How entities are read. An asset-backed record is read as stored: its
+ * content is the asset reference, and its bytes are read separately.
  */
-export type BinaryContentMode = "legacy-data-url" | "reference";
-
 export interface EntityReadOptions {
   /** Cooperative boundary checks, not proof of remote SQL cancellation. */
   signal?: AbortSignal;
-  /** Defaults to `"legacy-data-url"` during the asset compatibility window. */
-  binaryContent?: BinaryContentMode | undefined;
 }
 
 export interface ListOptions<

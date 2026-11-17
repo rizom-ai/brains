@@ -139,6 +139,5 @@ describe("SourceImageRenderJobHandler deduplication", () => {
       reused: true,
     });
     // The lookup reads stored references: no image was materialized.
-    expect(jobs.service.getLegacyBinaryMaterializations()).toEqual([]);
   });
 });

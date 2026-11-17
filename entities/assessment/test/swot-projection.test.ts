@@ -208,7 +208,6 @@ async function runRule(
         entities: entities.length,
         entityCounts: [],
         embeddings: 0,
-        legacyBinaryContent: [],
         backgroundWork: {
           status: "operational",
           reasons: [],

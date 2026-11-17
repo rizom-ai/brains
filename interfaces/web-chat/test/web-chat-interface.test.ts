@@ -2509,7 +2509,6 @@ describe("WebChatPlugin", () => {
         },
       },
     ]);
-    const read = spyOn(harness.getEntityService(), "getEntity");
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/attachments/image", "GET");
 
@@ -2525,11 +2524,6 @@ describe("WebChatPlugin", () => {
     );
     expect(response?.headers.get("x-content-type-options")).toBe("nosniff");
     expect(new Uint8Array(body ?? new ArrayBuffer(0))).toEqual(bytes);
-    // Access checks read the stored reference; bytes load only for the body.
-    expect(read.mock.calls.length).toBeGreaterThan(0);
-    for (const [request] of read.mock.calls) {
-      expect(request.binaryContent).toBe("reference");
-    }
   });
 
   it("serves a hidden image's bytes by no path, even when a visible image shares them", async () => {

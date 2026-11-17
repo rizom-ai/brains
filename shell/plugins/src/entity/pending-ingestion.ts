@@ -1,7 +1,6 @@
 import {
   internalFullScope,
   type BaseEntity,
-  type BinaryContentMode,
   type ContentVisibility,
   type CreateEntityOptions,
   type EntityInput,
@@ -23,7 +22,6 @@ export interface PendingEntityService {
     entityType: string;
     id: string;
     visibilityScope?: ContentVisibility;
-    binaryContent?: BinaryContentMode;
   }): Promise<BaseEntity | null>;
   createEntity(request: {
     entity: EntityInput<BaseEntity>;
@@ -73,8 +71,6 @@ export async function createPendingEntity({
     entityType: entity.entityType,
     id: entity.id,
     visibilityScope: internalFullScope("pending entity identity check"),
-    // Only identity and visibility are read; stored bytes stay unloaded.
-    binaryContent: "reference",
   });
 
   if (existingEntity) {

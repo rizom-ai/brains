@@ -147,7 +147,6 @@ async function fetchPublishImageData(
   const image = await context.entityService.getEntity({
     entityType: "image",
     id: coverImageId,
-    binaryContent: "reference",
   });
   if (!image?.content) return undefined;
 

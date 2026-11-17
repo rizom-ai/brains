@@ -325,7 +325,6 @@ describe("createOgImageProvider", () => {
     });
 
     expect(resolved).toBe(`data:image/png;base64,${bytes.toString("base64")}`);
-    expect(reads.at(-1)).toMatchObject({ binaryContent: "reference" });
   });
 
   it("ignores image references that are not inline data URLs", async () => {

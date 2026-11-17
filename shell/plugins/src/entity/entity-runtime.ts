@@ -228,8 +228,6 @@ export interface AnyEntityReads {
               }
             | undefined;
           readonly limit?: number | undefined;
-          /** Asset-backed content as its stored reference; no bytes load. */
-          readonly binaryContent?: "reference" | undefined;
         }
       | undefined;
   }): Promise<BaseEntity[]>;
@@ -710,7 +708,6 @@ function scopedAnyEntities({
     ): Promise<BaseEntity[]> => {
       const metadata = request.options?.filter?.metadata;
       const limit = request.options?.limit;
-      const binaryContent = request.options?.binaryContent;
       const scoped = visibility(request.entityType);
       return service.listEntities({
         entityType: request.entityType,
@@ -722,7 +719,6 @@ function scopedAnyEntities({
             },
           }),
           ...(limit !== undefined && { limit }),
-          ...(binaryContent !== undefined && { binaryContent }),
         },
       });
     },

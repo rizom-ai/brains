@@ -145,7 +145,6 @@ export function selectPhotoJob(
       const stored = await deps.entityService.getEntity({
         entityType: "image",
         id: data.photoId,
-        binaryContent: "reference",
       });
       const entityId = stored
         ? stored.id
