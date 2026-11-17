@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.733
+
+### Patch Changes
+
+- [#989](https://github.com/rizom-ai/brains/pull/989) [`454af05`](https://github.com/rizom-ai/brains/commit/454af05264d1b93f3b10f5d3e945045abdc92b79) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The pre-deploy backup prints its asset verification in the deploy log: `pre-deploy snapshot assets: N referenced, N verified, N failed` after the verified snapshot line, and the same counts in the step summary. Every referenced asset is checked, not only up to the first bad one. When any fails, the log shows the counts reached and one error per failed asset, naming its digest, the entities that reference it (`type/id`) and why it failed, and the backup still blocks the deploy. `brain.db.asset-verify.json` records the same counts and failures. Regenerate `deploy/scripts/create-predeploy-backup.ts` in existing deployments to adopt it.
+
 ## 0.2.0-alpha.732
 
 No changes in this release.
