@@ -26,7 +26,7 @@ Tool routes (`api-routes.ts`) and the public declarative route contract (`route-
 
 ### One placement implementation for `brain-data/` and the drive
 
-The pure path functions in `plugins/directory-sync/src/lib/entity-paths.ts` (`parseEntityPath`, `buildEntityFilePath`, `resolveEntityPlacement`, `getEntityFileExtension`, `containmentOf`) move to a new shared package, `@brains/entity-placement`. directory-sync and the WebDAV plugin both import it, so a file has the same path on the drive, in `brain-data/` and in the content repo. directory-sync keeps answering `sync:path:request` through the same functions.
+The pure path functions in `plugins/directory-sync/src/lib/entity-paths.ts` (`parseEntityPath`, `buildEntityFilePath`, `resolveEntityPlacement`, `getEntityFileExtension`, `containmentOf`) move to a new shared package, `@brains/entity-placement`, together with what they import: the image and document extension lists (`IMAGE_EXTENSIONS`, `getExtensionForFormat`, `DOCUMENT_EXTENSIONS`) and the relative-path helper. The package works on sync-relative paths only; directory-sync joins its own `syncPath` on the way in and out, and the WebDAV plugin uses the path below `/dav` as is. directory-sync and the WebDAV plugin both import it, so a file has the same path on the drive, in `brain-data/` and in the content repo. directory-sync keeps answering `sync:path:request` through the same functions.
 
 ### App passwords
 
@@ -43,7 +43,7 @@ A failed or missing credential returns 401 with `WWW-Authenticate: Basic realm="
 
 ### Account → Drive tab
 
-Studio's Account workspace gets a **Drive** tab next to AI tools, rendered only when the `webdav` plugin is registered. It shows the mount address (`<issuer>/dav/`), the person's app passwords (label, created, last used, revoke), a create button that shows the new username and password once with copy buttons, and one card per client: GNOME Files (`davs://<host>/dav/`), davfs2 (`/etc/fstab` line and `secrets` entry), rclone (`rclone config` WebDAV remote, vendor `other`, then `rclone mount --vfs-cache-mode writes`), macOS Finder (Connect to Server) and Windows (Map network drive). The tab is deep-linkable with `?section=drive`.
+Studio's Account workspace gets a **Drive** tab next to AI tools. The `webdav` plugin registers a `webdav` interaction in the app info, as the MCP interface registers `mcp`; Studio resolves it against the issuer origin and passes it to the Account bootstrap as `davUrl`, and without it the tab is not rendered. The tab shows the mount address (`<issuer>/dav/`), the person's app passwords (label, created, last used, revoke), a create button that shows the new username and password once with copy buttons, and one card per client: GNOME Files (`davs://<host>/dav/`), davfs2 (`/etc/fstab` line and `secrets` entry), rclone (`rclone config` WebDAV remote, vendor `other`, then `rclone mount --vfs-cache-mode writes`), macOS Finder (Connect to Server) and Windows (Map network drive). The tab is deep-linkable with `?section=drive`.
 
 ### The tree
 
@@ -51,12 +51,15 @@ Studio's Account workspace gets a **Drive** tab next to AI tools, rendered only 
 /dav/                         type folders + root-level notes (note entities)
 /dav/<type>/                  subfolders (id segments) + entity files
 /dav/<type>/<a>/<b>.md        entity <type>, id a:b
+/dav/book/<book>/<section>.md contained type: book-section, id <book>:<section>
 /dav/image/<id>.<ext>         image bytes
 /dav/document/<id>.pdf        document PDF, read-only
 ```
 
-- The root lists every entity type with at least one entity visible at the caller's scope (`getEntityCounts(scope)`), plus root-level notes.
-- A type folder lists its subfolders and entities through `queryEntityHierarchy`, paged internally until complete.
+- Which entity a path names, and which path an entity has, is whatever `@brains/entity-placement` says. A contained type (`containedIn`, such as `book-section` in `book`) has no folder of its own: its entities live inside their container's folder.
+- The root lists every entity type that is not contained and has at least one entity visible at the caller's scope (`getEntityCounts(scope)`), or whose contained type has one, plus root-level notes.
+- A type folder lists its subfolders and entities through `queryEntityHierarchy`, paged internally until complete. A container's folder merges its own hierarchy with its contained type's at the same prefix.
+- An entity whose placement is not writable (a historical invalid id that directory-sync refuses to export) is not on the drive.
 - A path that does not exist, or that the caller may not see, is 404: hidden entities do not leak as 403.
 - Files carry `getetag` = the quoted `contentHash`, `getcontentlength`, `getlastmodified` = `updated`, and `resourcetype`. `PROPPATCH` answers 403 per property: properties are not stored.
 - `PROPFIND` with `Depth: infinity` is 403 (RFC 4918 `propfind-finite-depth`); depths 0 and 1 are served.
@@ -71,8 +74,10 @@ auth ─fail→ 401
 path → (type, id) ─no parse→ 404
 getEntityRaw({ source: true, visibilityScope }) ─absent/hidden→ 404
 image/document → stream openAsset
-else → stored markdown, ETag = "contentHash"
+else → stored markdown as text/plain; charset=utf-8, ETag = "contentHash"
 ```
+
+Every `/dav` response carries `X-Content-Type-Options: nosniff` and `Content-Security-Policy: sandbox`. `/dav` shares its origin with Studio and the session cookie, so nothing it serves may run as a page there: an SVG image or an HTML scratch file opened in a browser stays inert. Scratch files are served as `application/octet-stream` with `Content-Disposition: attachment`.
 
 **PUT existing file**
 
@@ -87,8 +92,12 @@ updateEntity({ expectedContentHash })
    If-Match given    → expectedContentHash = If-Match
    no If-Match       → expectedContentHash = hash read at request start (last write wins, atomically)
    ─hash mismatch→ 412
-→ 204, ETag = new contentHash, audit event
+→ 204, audit event
+   stored markdown equals the uploaded bytes → ETag = new contentHash
+   otherwise                                 → no ETag; the client re-reads
 ```
+
+The entity service stores `serializeEntity` output, so the stored markdown can differ from the upload (frontmatter order, applied visibility). A PUT response names an ETag only for bytes the client already holds.
 
 **PUT new file**
 
@@ -118,12 +127,12 @@ Editors save through files that are not entities: `.goutputstream-*` (GNOME), `.
 - Any path that `parseEntityPath` rejects, or whose leaf starts with `.` or ends with `~`, `.tmp`, `.swp` or `.swx`, lives in a per-user scratch area: in memory, 10-minute idle expiry, 16 MiB per user. It supports GET, HEAD, PUT, DELETE, PROPFIND (listed beside real files) and MOVE.
 - `MOVE` from a scratch file onto an entity path is a PUT of the scratch content onto that entity, with the same flow, and removes the scratch file. This is how atomic-rename saves work.
 - `MOVE` or `COPY` between two entity paths is 403: renames stay in Studio and chat.
-- `MKCOL` creates a scratch folder, which shows until it expires or a file is saved inside it.
+- `MKCOL` creates a scratch folder, which shows until it expires or a file is saved inside it. On a folder that already exists, real or scratch, it is 405, which clients that create parent folders before every upload (rclone) take as success.
 - Scratch state is lost on restart; only unsaved editor temporaries live there.
 
 ### Locking
 
-`OPTIONS` advertises `DAV: 1, 2`. `LOCK` and `UNLOCK` keep advisory exclusive write locks in memory, per path, with the requested timeout capped at 10 minutes. A PUT, DELETE or MOVE onto a path locked by another lock token is 423. Finder and Windows mount read-only without class 2, so the locks exist for them; correctness still rests on the ETag checks.
+`OPTIONS` advertises `DAV: 1` until Phase 4 ships and `DAV: 1, 2` from then on, so davfs2 does not attempt locks before they exist. `LOCK` and `UNLOCK` keep advisory exclusive write locks in memory, per path, with the requested timeout capped at 10 minutes. A PUT, DELETE or MOVE onto a path locked by another lock token is 423. Finder and Windows mount read-only without class 2, so the locks exist for them; correctness still rests on the ETag checks.
 
 ### Limits
 
@@ -135,25 +144,25 @@ One PR (`work/webdav-mount`, worktree `~/Documents/brains-worktrees/webdav-mount
 
 ### Phase 1 — read-only mount
 
-1. Tests: the registry accepts the eight new methods on web routes and still rejects them on tool routes; `@brains/entity-placement` passes directory-sync's existing placement tests (including the golden inventory) unchanged; app passwords create, resolve, revoke and stop resolving for a suspended user, and are rejected by `resolveSession`, `resolveBearerGrant` and `/mcp`; the WebDAV handler answers `OPTIONS`, `PROPFIND` (depth 0 and 1, 403 on infinity), `GET` and `HEAD` at each permission level, with 404 for hidden entities; the Account Drive tab renders only with the plugin registered.
+1. Tests: the registry accepts the eight new methods on web routes and still rejects them on tool routes; `@brains/entity-placement` passes directory-sync's existing placement tests (including the golden inventory) unchanged; app passwords create, resolve, revoke and stop resolving for a suspended user, and are rejected by `resolveSession`, `resolveBearerGrant` and `/mcp`; the WebDAV handler answers `OPTIONS`, `PROPFIND` (depth 0 and 1, 403 on infinity), `GET` and `HEAD` at each permission level, with 404 for hidden entities, `DAV: 1`, and the `nosniff` and `sandbox` headers on every response; a container folder lists its contained type's entities, a contained type has no root folder, and an unplaceable entity is absent; the Account Drive tab renders only when the `webdav` interaction is registered.
 2. Implement the method list, the package move, app passwords and their runtime migration, the read routes, image and document streaming, the Drive tab, and the canonical capability entry.
 3. Verify: start the `personal` test app, create an app password in Studio, mount it with GNOME Files and with `rclone mount`, browse and open notes and images.
 
 ### Phase 2 — edit existing files
 
-1. Tests: PUT existing with and without `If-Match`; 422 on invalid frontmatter leaves the entity unchanged; 403 on policy; 412 on a stale hash; 413 over the limit; scratch PUT/GET/PROPFIND/DELETE and expiry; MOVE scratch → entity saves; MOVE entity → entity is 403.
+1. Tests: PUT existing with and without `If-Match`; 422 on invalid frontmatter leaves the entity unchanged; 403 on policy; 412 on a stale hash; 413 over the limit; the PUT response carries an ETag only when the stored markdown equals the upload; scratch PUT/GET/PROPFIND/DELETE and expiry, served as an attachment; MOVE scratch → entity saves; MOVE entity → entity is 403.
 2. Implement.
 3. Verify: edit and save a note in GNOME Text Editor, vim and VS Code on the mounted drive; the change appears in Studio and `brain-data/`.
 
 ### Phase 3 — create and delete
 
-1. Tests: PUT new at a writable path creates; at an unwritable path is 403; PUT onto an existing id through the create path is 412; DELETE with and without `If-Match`; collection DELETE is 403; MKCOL scratch folder then a file inside creates the entity.
+1. Tests: PUT new at a writable path creates; at an unwritable path is 403; PUT onto an existing id through the create path is 412; DELETE with and without `If-Match`; collection DELETE is 403; MKCOL scratch folder then a file inside creates the entity; MKCOL on an existing folder is 405.
 2. Implement.
 3. Verify: create a note in a new subfolder and delete another from GNOME Files.
 
 ### Phase 4 — locking and image writes
 
-1. Tests: LOCK/UNLOCK, timeout cap, 423 on a foreign lock token; image PUT stages an asset and replaces the image entity; document PUT is 403.
+1. Tests: `OPTIONS` advertises `DAV: 1, 2`; LOCK/UNLOCK, timeout cap, 423 on a foreign lock token; image PUT stages an asset and replaces the image entity; document PUT is 403.
 2. Implement.
 3. Verify: mount writable in macOS Finder and Windows Explorer against a deployed brain; copy an image onto `image/`.
 
