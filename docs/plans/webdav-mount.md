@@ -32,8 +32,11 @@ The pure path functions in `plugins/directory-sync/src/lib/entity-paths.ts` (`pa
 
 Mount clients other than rclone send only HTTP Basic credentials, and a brain has no long-lived credential today: passkey sessions last 12 hours and OAuth access tokens 15 minutes. auth-service gains app passwords:
 
-- A trusted or admin user creates one in Studio's Account workspace, with a label. Public-level users cannot create one.
-- The username is generated (`dav-<id>`) and the password is 32 random bytes, base64url. Both are shown once; the runtime database stores the id, the user, the label, `hashToken(password)`, `createdAt`, `lastUsedAt` and `revokedAt`.
+- A trusted or admin user creates one in Studio's Account workspace, with a label and an access mode: **read-only** (the default) or **read and write**. Public-level users cannot create one.
+- A read-only app password answers every writing method (PUT, DELETE, MKCOL, MOVE, COPY, PROPPATCH, LOCK) with 403, scratch files included.
+- An app password expires one year after creation. The Drive tab shows the expiry date; an expired password stops resolving and is replaced by creating a new one.
+- An app password is refused over plain HTTP unless the request host is `localhost` or a loopback address: Basic credentials travel on every request.
+- The username is generated (`dav-<id>`) and the password is 32 random bytes, base64url. Both are shown once; the runtime database stores the id, the user, the label, the access mode, `hashToken(password)`, `createdAt`, `expiresAt`, `lastUsedAt` and `revokedAt`.
 - An app password is accepted only by the WebDAV routes, through a new `AuthBackend.resolveAppPassword(request)` that returns the principal of an active user. Chat, MCP, Studio and the OAuth endpoints never accept it.
 - The principal's level decides everything, exactly as a session would: visibility scope (admin → restricted, trusted → shared) and per-type action policy. Suspending the user stops every app password at once.
 - Revoking is immediate. Creating, revoking and first use after creation are audit events.
@@ -43,7 +46,7 @@ A failed or missing credential returns 401 with `WWW-Authenticate: Basic realm="
 
 ### Account → Drive tab
 
-Studio's Account workspace gets a **Drive** tab next to AI tools. The `webdav` plugin registers a `webdav` interaction in the app info, as the MCP interface registers `mcp`; Studio resolves it against the issuer origin and passes it to the Account bootstrap as `davUrl`, and without it the tab is not rendered. The tab shows the mount address (`<issuer>/dav/`), the person's app passwords (label, created, last used, revoke), a create button that shows the new username and password once with copy buttons, and one card per client: GNOME Files (`davs://<host>/dav/`), davfs2 (`/etc/fstab` line and `secrets` entry), rclone (`rclone config` WebDAV remote, vendor `other`, then `rclone mount --vfs-cache-mode writes`), macOS Finder (Connect to Server) and Windows (Map network drive). The tab is deep-linkable with `?section=drive`.
+Studio's Account workspace gets a **Drive** tab next to AI tools. The `webdav` plugin registers a `webdav` interaction in the app info, as the MCP interface registers `mcp`; Studio resolves it against the issuer origin and passes it to the Account bootstrap as `davUrl`, and without it the tab is not rendered. The tab shows the mount address (`<issuer>/dav/`), the person's app passwords (label, access mode, created, expires, last used, revoke), a create button that shows the new username and password once with copy buttons, and one card per client: GNOME Files (`davs://<host>/dav/`), davfs2 (`/etc/fstab` line and `secrets` entry), rclone (`rclone config` WebDAV remote, vendor `other`, then `rclone mount --vfs-cache-mode writes`), macOS Finder (Connect to Server) and Windows (Map network drive). The tab is deep-linkable with `?section=drive`.
 
 ### The tree
 
@@ -144,13 +147,13 @@ One PR (`work/webdav-mount`, worktree `~/Documents/brains-worktrees/webdav-mount
 
 ### Phase 1 — read-only mount
 
-1. Tests: the registry accepts the eight new methods on web routes and still rejects them on tool routes; `@brains/entity-placement` passes directory-sync's existing placement tests (including the golden inventory) unchanged; app passwords create, resolve, revoke and stop resolving for a suspended user, and are rejected by `resolveSession`, `resolveBearerGrant` and `/mcp`; the WebDAV handler answers `OPTIONS`, `PROPFIND` (depth 0 and 1, 403 on infinity), `GET` and `HEAD` at each permission level, with 404 for hidden entities, `DAV: 1`, and the `nosniff` and `sandbox` headers on every response; a container folder lists its contained type's entities, a contained type has no root folder, and an unplaceable entity is absent; the Account Drive tab renders only when the `webdav` interaction is registered.
+1. Tests: the registry accepts the eight new methods on web routes and still rejects them on tool routes; `@brains/entity-placement` passes directory-sync's existing placement tests (including the golden inventory) unchanged; app passwords create, resolve, revoke, expire after a year, are refused over plain HTTP off loopback, and stop resolving for a suspended user, and are rejected by `resolveSession`, `resolveBearerGrant` and `/mcp`; the WebDAV handler answers `OPTIONS`, `PROPFIND` (depth 0 and 1, 403 on infinity), `GET` and `HEAD` at each permission level, with 404 for hidden entities, `DAV: 1`, and the `nosniff` and `sandbox` headers on every response; a container folder lists its contained type's entities, a contained type has no root folder, and an unplaceable entity is absent; the Account Drive tab renders only when the `webdav` interaction is registered.
 2. Implement the method list, the package move, app passwords and their runtime migration, the read routes, image and document streaming, the Drive tab, and the canonical capability entry.
-3. Verify: start the `personal` test app, create an app password in Studio, mount it with GNOME Files and with `rclone mount`, browse and open notes and images.
+3. Verify: with the routes deployed to a pilot brain, `PROPFIND` reaches the handler through Cloudflare. Start the `personal` test app, create an app password in Studio, mount it with GNOME Files and with `rclone mount`, browse and open notes and images.
 
 ### Phase 2 — edit existing files
 
-1. Tests: PUT existing with and without `If-Match`; 422 on invalid frontmatter leaves the entity unchanged; 403 on policy; 412 on a stale hash; 413 over the limit; the PUT response carries an ETag only when the stored markdown equals the upload; scratch PUT/GET/PROPFIND/DELETE and expiry, served as an attachment; MOVE scratch → entity saves; MOVE entity → entity is 403.
+1. Tests: every writing method is 403 with a read-only app password; PUT existing with and without `If-Match`; 422 on invalid frontmatter leaves the entity unchanged; 403 on policy; 412 on a stale hash; 413 over the limit; the PUT response carries an ETag only when the stored markdown equals the upload; scratch PUT/GET/PROPFIND/DELETE and expiry, served as an attachment; MOVE scratch → entity saves; MOVE entity → entity is 403.
 2. Implement.
 3. Verify: edit and save a note in GNOME Text Editor, vim and VS Code on the mounted drive; the change appears in Studio and `brain-data/`.
 
