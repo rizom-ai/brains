@@ -1,84 +1,32 @@
 import {
-  decodeEntityIdPath,
-  encodeEntityIdPath,
-  entityIdPathSchema,
-  type BaseEntity,
-} from "@brains/sdk/internal/entity-runtime";
-import { extname, join } from "path";
-import { readString } from "@brains/utils/record-fields";
-import { IMAGE_EXTENSIONS, getExtensionForFormat } from "./image-file-utils";
-import { DOCUMENT_EXTENSIONS } from "./document-file-utils";
+  buildEntityPath,
+  parseEntityPath as parseRelativeEntityPath,
+  type Containment,
+} from "@brains/entity-placement";
+import { join } from "path";
 import { toSyncRelativePath } from "./path-utils";
 
 /**
- * Each contained type with the type it is contained in: book-section → book.
- * A contained entity lives inside its container's folder.
+ * Placement itself is `@brains/entity-placement`, shared with every other
+ * surface that shows entities as files. These bind it to this plugin's sync
+ * directory on disk.
  */
-export type Containment = ReadonlyMap<string, string>;
-
-/** The containment the registry holds, read off each type's config. */
-export function containmentOf(registry: {
-  getEntityTypes(): string[];
-  getEntityTypeConfig(type: string): { containedIn?: string | undefined };
-}): Containment {
-  return new Map(
-    registry.getEntityTypes().flatMap((type) => {
-      const container = registry.getEntityTypeConfig(type).containedIn;
-      return container === undefined ? [] : [[type, container] as const];
-    }),
-  );
-}
-
-/** The type contained in a container, if any; the registry allows one. */
-function containedIn(
-  container: string,
-  containment: Containment,
-): string | undefined {
-  return [...containment].find(([, owner]) => owner === container)?.[0];
-}
+export {
+  containmentOf,
+  getEntityFileExtension,
+  resolveEntityPlacement,
+  type Containment,
+} from "@brains/entity-placement";
 
 export function parseEntityPath(
   syncPath: string,
   filePath: string,
   containment: Containment,
 ): { entityType: string; id: string } {
-  const relativePath = toSyncRelativePath(syncPath, filePath);
-  const pathParts = relativePath.split("/");
-
-  // Note entities are in root; subdirectory name is the entity type
-  let entityType: string;
-  let idPathParts: string[];
-
-  if (pathParts.length === 1) {
-    entityType = "note";
-    idPathParts = pathParts;
-  } else if (pathParts.length > 1 && pathParts[0]) {
-    idPathParts = pathParts.slice(1);
-    // Inside a container's folder, a nested path is its contained type.
-    const contained =
-      idPathParts.length > 1
-        ? containedIn(pathParts[0], containment)
-        : undefined;
-    entityType = contained ?? pathParts[0];
-  } else {
-    entityType = "note";
-    idPathParts = pathParts;
-  }
-
-  // Reconstruct ID: nested paths become colon-separated
-  // e.g., site-content/landing/hero.md -> id: "landing:hero"
-  let id: string;
-  if (idPathParts.length > 1) {
-    const lastPart = idPathParts[idPathParts.length - 1];
-    if (lastPart) {
-      idPathParts[idPathParts.length - 1] = stripEntityExtension(lastPart);
-    }
-    id = encodeEntityIdPath([idPathParts[0] ?? "", ...idPathParts.slice(1)]);
-  } else {
-    id = stripEntityExtension(idPathParts[0] ?? "");
-  }
-
-  return { entityType, id };
+  return parseRelativeEntityPath(
+    toSyncRelativePath(syncPath, filePath),
+    containment,
+  );
 }
 
 export function buildEntityFilePath(
@@ -88,88 +36,8 @@ export function buildEntityFilePath(
   extension: string,
   containment: Containment,
 ): string {
-  // A contained entity lives in its container's folder.
-  const folder = containment.get(entityType) ?? entityType;
-  // Empty components are omitted only for filesystem placement, not identity.
-  const cleanParts = decodeEntityIdPath(entityId).filter(
-    (part) => part.length > 0,
-  );
-  const isRootNote = entityType === "note";
-
-  if (cleanParts.length === 1) {
-    return isRootNote
-      ? join(syncPath, `${cleanParts[0]}${extension}`)
-      : join(syncPath, folder, `${cleanParts[0]}${extension}`);
-  }
-
-  // Every segment is identity, including one equal to the entity type.
-  const filename = cleanParts[cleanParts.length - 1];
-  const directories = cleanParts.slice(0, -1);
-
-  if (isRootNote) {
-    return join(syncPath, ...directories, `${filename}${extension}`);
-  }
-
-  return join(syncPath, folder, ...directories, `${filename}${extension}`);
-}
-
-/** Pure placement admission. Historical paths remain available for diagnostics. */
-export function resolveEntityPlacement(
-  syncPath: string,
-  entityType: string,
-  entityId: string,
-  extension: string,
-  containment: Containment,
-): {
-  relativePath: string;
-  owner: { entityType: string; id: string };
-  writable: boolean;
-} {
-  const filePath = buildEntityFilePath(
+  return join(
     syncPath,
-    entityId,
-    entityType,
-    extension,
-    containment,
+    buildEntityPath(entityId, entityType, extension, containment),
   );
-  const owner = parseEntityPath(syncPath, filePath, containment);
-  const segments = decodeEntityIdPath(entityId);
-  return {
-    relativePath: toSyncRelativePath(syncPath, filePath),
-    owner,
-    writable:
-      entityIdPathSchema.safeParse(segments).success &&
-      (entityType !== "note" || segments.length === 1) &&
-      owner.entityType === entityType &&
-      owner.id === entityId,
-  };
-}
-
-export function getEntityFileExtension(
-  entity: Pick<BaseEntity, "entityType" | "metadata" | "content">,
-): string {
-  if (entity.entityType === "document") {
-    return ".pdf";
-  }
-
-  if (entity.entityType !== "image") {
-    return ".md";
-  }
-
-  const format = readString(entity.metadata, "format");
-  if (format) {
-    return getExtensionForFormat(format);
-  }
-
-  const match = entity.content.match(/^data:image\/([a-z+]+);base64,/i);
-  return match?.[1] ? getExtensionForFormat(match[1]) : ".md";
-}
-
-function stripEntityExtension(filename: string): string {
-  const ext = extname(filename).toLowerCase();
-  return ext === ".md" ||
-    IMAGE_EXTENSIONS.includes(ext) ||
-    DOCUMENT_EXTENSIONS.includes(ext)
-    ? filename.slice(0, -ext.length)
-    : filename;
 }

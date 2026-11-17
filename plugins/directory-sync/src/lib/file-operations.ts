@@ -100,7 +100,6 @@ export class FileOperations {
     const { entityType, id } = this.parseEntityFromPath(filePath);
     if (!containment.has(entityType)) return undefined;
     const placement = resolveEntityPlacement(
-      this.syncPath,
       entityType,
       id,
       extname(filePath),
@@ -267,7 +266,6 @@ export class FileOperations {
     extension: string,
   ): void {
     const placement = resolveEntityPlacement(
-      this.syncPath,
       entityType,
       entityId,
       extension,

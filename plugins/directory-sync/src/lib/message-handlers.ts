@@ -38,7 +38,6 @@ export function registerMessageHandlers(
   context.runtime.answer(directorySyncPathContract, ({ request: input }) => {
     const extension = getEntityFileExtension(input);
     const { relativePath, owner, writable } = resolveEntityPlacement(
-      ".",
       input.entityType,
       input.entityId,
       extension,

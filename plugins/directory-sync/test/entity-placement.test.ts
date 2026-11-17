@@ -72,13 +72,8 @@ describe("injective entity placement", () => {
           id,
         });
         expect(
-          resolveEntityPlacement(
-            "/content",
-            entityType,
-            id,
-            extension,
-            NO_CONTAINMENT,
-          ).writable,
+          resolveEntityPlacement(entityType, id, extension, NO_CONTAINMENT)
+            .writable,
         ).toBe(true);
       }
     },
@@ -208,13 +203,7 @@ describe("injective entity placement", () => {
 
   test("a nested note names the type and identity its path reads as", () => {
     expect(
-      resolveEntityPlacement(
-        "/content",
-        "note",
-        "book:intro",
-        ".md",
-        NO_CONTAINMENT,
-      ),
+      resolveEntityPlacement("note", "book:intro", ".md", NO_CONTAINMENT),
     ).toEqual({
       relativePath: "book/intro.md",
       owner: { entityType: "book", id: "intro" },
@@ -256,26 +245,15 @@ describe("contained entity placement", () => {
   test("admits only placements that read back as themselves", () => {
     // A nested book id would read back as a section, a flat section id as a book.
     expect(
-      resolveEntityPlacement("/content", "book", "zara:x", ".md", containment)
+      resolveEntityPlacement("book", "zara:x", ".md", containment).writable,
+    ).toBe(false);
+    expect(
+      resolveEntityPlacement("book-section", "zara", ".md", containment)
         .writable,
     ).toBe(false);
     expect(
-      resolveEntityPlacement(
-        "/content",
-        "book-section",
-        "zara",
-        ".md",
-        containment,
-      ).writable,
-    ).toBe(false);
-    expect(
-      resolveEntityPlacement(
-        "/content",
-        "book-section",
-        "zara:x",
-        ".md",
-        containment,
-      ).writable,
+      resolveEntityPlacement("book-section", "zara:x", ".md", containment)
+        .writable,
     ).toBe(true);
   });
 
