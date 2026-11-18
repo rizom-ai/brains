@@ -1,5 +1,20 @@
 # @brains/agent-discovery
 
+## 0.2.0-alpha.741
+
+### Patch Changes
+
+- [#998](https://github.com/rizom-ai/brains/pull/998) [`6453383`](https://github.com/rizom-ai/brains/commit/6453383150e6efc77580cd9e34c817e5ae001d0b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The agent saves a file attached in chat with system_create instead of first syncing the content directory: directory_sync now covers only the brain's content directory and says a chat upload is not in it. Approving or archiving a contact named by its domain is one system_update on that id, with no search, get or list first.
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.741
+  - @rizom/brain-ui@0.2.0-alpha.741
+  - @brains/dashboard@0.2.0-alpha.741
+  - @brains/atproto-contracts@0.2.0-alpha.741
+  - @brains/content-formatters@0.2.0-alpha.741
+  - @brains/contracts@0.2.0-alpha.741
+  - @brains/http-signatures@0.2.0-alpha.741
+  - @brains/utils@0.2.0-alpha.741
+
 ## 0.2.0-alpha.740
 
 ### Patch Changes

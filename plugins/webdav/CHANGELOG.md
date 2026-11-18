@@ -1,5 +1,16 @@
 # @brains/webdav
 
+## 0.2.0-alpha.741
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.741
+  - @brains/contracts@0.2.0-alpha.741
+  - @brains/entity-placement@0.2.0-alpha.741
+  - @brains/image@0.2.0-alpha.741
+  - @brains/utils@0.2.0-alpha.741
+
 ## 0.2.0-alpha.740
 
 ### Patch Changes
