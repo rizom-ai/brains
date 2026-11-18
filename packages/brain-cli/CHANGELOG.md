@@ -1,5 +1,18 @@
 # @rizom/brain
 
+## 0.2.0-alpha.737
+
+### Patch Changes
+
+- [#993](https://github.com/rizom-ai/brains/pull/993) [`f776305`](https://github.com/rizom-ai/brains/commit/f77630581f21279651418f96793bd70757d5a0ed) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A placeholder an earlier export mirrored is no longer stored as a record's bytes.
+
+  - Directory sync skips a file holding the old pending document placeholder, and skips the old 1x1 placeholder PNG for an image still awaiting its bytes, binary or text-form. The file stays in place and is reported as skipped. Before, a document that `assets:migrate` had cleared took its mirrored placeholder back on the next boot, as a published asset.
+  - `assets:reconcile` reports such a file as `old pending placeholder, ignored` and creates or restores nothing from it.
+  - The WebDAV drive refuses that 1x1 PNG saved over an image awaiting its bytes, with a 422. It also takes no image or document as a `.md` text file, which would have stored a data URL, the placeholder's included, without the checks its bytes get. An image is saved as its image file, and documents are not taken.
+  - A complete image may still be any 1x1 PNG.
+
+- [#994](https://github.com/rizom-ai/brains/pull/994) [`18d3e1d`](https://github.com/rizom-ai/brains/commit/18d3e1d134f551e2fb1af4d53a8e0a01e3635412) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Both scaffolded Deploy workflows take an operator-confirmed `skip_predeploy_backup` input. They are the rover-pilot workflow from `brains-ops init` and the standalone brain workflow from `brain init`. When a manually dispatched deploy sets the input, the verified predeploy snapshot is skipped. That is for a runtime whose own startup work keeps its job queue busy, so it can never pass the idle gate. The input is off by default, and a deploy started by a push or another workflow carries no inputs, so its snapshot always runs. Both workflows render the input and the step condition from one shared definition. `brains-ops init` now keeps the input that pilot repos added by hand instead of dropping it on every upgrade. The operator playbook and the deployment guide document the skip.
+
 ## 0.2.0-alpha.736
 
 ### Patch Changes

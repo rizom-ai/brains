@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.737
+
+### Patch Changes
+
+- [#994](https://github.com/rizom-ai/brains/pull/994) [`18d3e1d`](https://github.com/rizom-ai/brains/commit/18d3e1d134f551e2fb1af4d53a8e0a01e3635412) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Both scaffolded Deploy workflows take an operator-confirmed `skip_predeploy_backup` input. They are the rover-pilot workflow from `brains-ops init` and the standalone brain workflow from `brain init`. When a manually dispatched deploy sets the input, the verified predeploy snapshot is skipped. That is for a runtime whose own startup work keeps its job queue busy, so it can never pass the idle gate. The input is off by default, and a deploy started by a push or another workflow carries no inputs, so its snapshot always runs. Both workflows render the input and the step condition from one shared definition. `brains-ops init` now keeps the input that pilot repos added by hand instead of dropping it on every upgrade. The operator playbook and the deployment guide document the skip.
+
 ## 0.2.0-alpha.736
 
 No changes in this release.
