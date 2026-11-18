@@ -12,6 +12,7 @@ on:
         required: false
         type: boolean
         default: false
+__PREDEPLOY_BACKUP_SKIP_INPUT__
   push:
     branches: ["main"]
     paths:
@@ -200,6 +201,7 @@ jobs:
           exit 1
 
       - name: Create verified predeploy backup
+__PREDEPLOY_BACKUP_SKIP_CONDITION__
         env:
           SERVER_IP: ${{ steps.provision.outputs.server_ip }}
           TARGET_HANDLE: ${{ matrix.handle }}

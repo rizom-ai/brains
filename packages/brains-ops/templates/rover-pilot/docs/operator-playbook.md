@@ -102,7 +102,19 @@ Verified snapshots are finalized atomically under:
 
 Files use mode `0600` and the directory uses `0700`. A `.incomplete` directory is diagnostic evidence, never a rollback point. Checksums and the versioned manifest must verify before finalization. The default retention is five verified snapshots per target; incomplete or unverified directories do not count, and the snapshot created by the current deployment is never pruned.
 
-These are same-server rollback snapshots, not off-host disaster recovery. There is no normal skip and no automatic restore. Restoration requires separate approval: stop replacement/application processes, recheck the selected snapshot's checksums, preserve the current state, restore databases and exact Git state, then validate health, queues, Git checkpoints, durable export intents, preview, and production output before reopening the target.
+These are same-server rollback snapshots, not off-host disaster recovery. Push, reconcile and ordinary manual deploys always take one, and there is no automatic restore.
+
+A runtime whose own startup work keeps its job queue busy never passes the idle gate, so no deploy can replace it. For that case only, a manually dispatched Deploy can skip the snapshot once the operator has confirmed that the target's last verified snapshot stands:
+
+```sh
+gh workflow run Deploy --ref main \
+  -f handle=<handle> \
+  -f skip_predeploy_backup=true
+```
+
+The input is off by default and scoped to one handle; push and reconcile deploys carry no inputs, so their snapshot always runs.
+
+Restoration requires separate approval: stop replacement/application processes, recheck the selected snapshot's checksums, preserve the current state, restore databases and exact Git state, then validate health, queues, Git checkpoints, durable export intents, preview, and production output before reopening the target.
 
 ## Retired projection job recovery
 

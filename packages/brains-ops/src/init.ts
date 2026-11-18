@@ -8,6 +8,8 @@ import {
   isStaleDeployDockerfile,
   isStaleDeployMounts,
   isStaleDeployScript,
+  predeployBackupSkipCondition,
+  predeployBackupSkipInput,
   renderDockerfile,
   stripDeployVolumes,
   renderKamalDeploy,
@@ -336,7 +338,12 @@ async function renderStarterFile(relativePath: string): Promise<string> {
 function renderTemplate(templateContent: string): string {
   return templateContent
     .replaceAll("__BRAINS_OPS_VERSION__", packageJson.version)
-    .replaceAll("__BUN_VERSION__", Bun.version);
+    .replaceAll("__BUN_VERSION__", Bun.version)
+    .replaceAll("__PREDEPLOY_BACKUP_SKIP_INPUT__", predeployBackupSkipInput)
+    .replaceAll(
+      "__PREDEPLOY_BACKUP_SKIP_CONDITION__",
+      predeployBackupSkipCondition,
+    );
 }
 
 function isErrnoExceptionWithCode(
