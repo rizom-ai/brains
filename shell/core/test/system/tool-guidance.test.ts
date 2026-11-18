@@ -112,6 +112,20 @@ describe("system tool descriptions carry their own guidance", () => {
     );
   });
 
+  // Results that hold the type's entities but not the asked-for detail are
+  // the answer: the detail is not saved there, and a second search of the
+  // same type with more words only finds the same entities again.
+  it("system_search: a detail missing from a typed search's results is reported, not searched again", () => {
+    const search = description("system_search");
+
+    expect(search).toContain(
+      "When a typed search's results hold that type's entities but not a detail the user asked about, the detail is not saved there",
+    );
+    expect(search).toContain(
+      "rather than searching the same type again with added words",
+    );
+  });
+
   it("system_get: a requested read reads storage, not the conversation", () => {
     const get = description("system_get");
 
