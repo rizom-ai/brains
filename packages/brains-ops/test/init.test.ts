@@ -1007,6 +1007,73 @@ describe("initPilotRepo", () => {
     expect(await readFile(stressPath, "utf8")).toBe(divergedStress);
   });
 
+  it("gives Deploy an operator-confirmed skip of the predeploy backup, which a rerun keeps", async () => {
+    const root = await createTempDir("brains-ops-init-");
+    const repo = join(root, "rover-pilot");
+
+    await initPilotRepo(repo);
+
+    const deployPath = join(repo, ".github", "workflows", "deploy.yml");
+    const canonical = await readFile(deployPath, "utf8");
+    const workflow = z
+      .object({
+        on: z.object({
+          workflow_dispatch: z.object({
+            inputs: z.record(z.string(), z.unknown()),
+          }),
+        }),
+        jobs: z.object({
+          deploy: z.object({
+            steps: z.array(
+              z.looseObject({
+                name: z.string().optional(),
+                if: z.string().optional(),
+              }),
+            ),
+          }),
+        }),
+      })
+      .parse(parseYaml(canonical));
+
+    // Off by default and only on a dispatched run: push and workflow_run
+    // deploys carry no inputs, so their backup always runs.
+    expect(
+      workflow.on.workflow_dispatch.inputs["skip_predeploy_backup"],
+    ).toEqual({
+      description:
+        "Skip the predeploy backup, operator-confirmed, when the running runtime cannot go idle; its last verified backup stands",
+      required: false,
+      type: "boolean",
+      default: false,
+    });
+    const gated = workflow.jobs.deploy.steps.filter((step) =>
+      step.if?.includes("skip_predeploy_backup"),
+    );
+    expect(gated.map((step) => [step.name, step.if])).toEqual([
+      [
+        "Create verified predeploy backup",
+        "${{ !inputs.skip_predeploy_backup }}",
+      ],
+    ]);
+
+    const operatorPlaybook = await readFile(
+      join(repo, "docs", "operator-playbook.md"),
+      "utf8",
+    );
+    expect(operatorPlaybook).toContain("-f skip_predeploy_backup=true");
+
+    // A prior vintage without the input is refreshed to one that has it.
+    const withoutSkip = canonical
+      .replace(/\n {6}skip_predeploy_backup:\n(?: {8}.*\n)+/, "\n")
+      .replace("        if: ${{ !inputs.skip_predeploy_backup }}\n", "");
+    expect(withoutSkip).not.toContain("skip_predeploy_backup");
+    await writeFile(deployPath, withoutSkip);
+
+    await initPilotRepo(repo);
+
+    expect(await readFile(deployPath, "utf8")).toBe(canonical);
+  });
+
   it("keeps first-run example content deleted by the operator on rerun", async () => {
     const root = await createTempDir("brains-ops-init-");
     const repo = join(root, "rover-pilot");
