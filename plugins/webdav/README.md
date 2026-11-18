@@ -62,7 +62,7 @@ Renaming and copying entity files answer 403.
 
 ## Images
 
-An image file in `image/` is saved the way a file dropped into `brain-data/image/` is imported: its bytes say what it is, they are stored as an asset, and the image entity that references them is written with them. Replacing an image keeps its title, alt text and visibility. The bytes must be a PNG, JPEG, GIF or WebP of at most 25 MiB, under the extension that format is stored with (`.png`, `.jpg`, `.gif`, `.webp`); anything else answers 422 and stores nothing.
+An image file in `image/` is saved the way a file dropped into `brain-data/image/` is imported: its bytes say what it is, they are stored as an asset, and the image entity that references them is written with them. Replacing an image keeps its title, alt text and visibility. The bytes must be a PNG, JPEG, GIF or WebP of at most 25 MiB, under the extension that format is stored with (`.png`, `.jpg`, `.gif`, `.webp`); anything else answers 422 and stores nothing. So does the old 1x1 placeholder PNG saved over an image still awaiting its bytes. An image or document is never saved as a `.md` text file: that answers 403.
 
 ## Locks
 

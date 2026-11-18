@@ -436,13 +436,14 @@
         "plugins/directory-sync/src/lib/document-file-import.ts",
         "plugins/directory-sync/src/lib/image-file-import.ts",
         "plugins/directory-sync/src/lib/import-persistence.ts",
-        "plugins/directory-sync/src/lib/import-result.ts"
+        "plugins/directory-sync/src/lib/import-result.ts",
+        "plugins/webdav/src/dav-saves.ts"
       ],
-      "symbol": "directory-sync import refusal of the old pending document and image placeholders",
+      "symbol": "directory-sync import and WebDAV save refusal of the old pending document and image placeholders",
       "owner": "@brains/directory-sync",
       "class": "durable-data-compatibility",
-      "behavior": "Skips a mirrored file holding the placeholder PDF, or the 1x1 PNG of an image awaiting its bytes, that pending records held before they stopped carrying one, so an import never stores it as a record's bytes.",
-      "currentConsumers": "Brains whose brain-data or content remote still holds a placeholder file an earlier export mirrored for a pending or failed record.",
+      "behavior": "Skips a mirrored file holding the placeholder PDF, or the 1x1 PNG of an image awaiting its bytes, that pending records held before they stopped carrying one, so an import never stores it as a record's bytes; the WebDAV drive refuses the 1x1 PNG saved over an image awaiting its bytes, as a copy of such a file would be.",
+      "currentConsumers": "Brains whose brain-data or content remote still holds a placeholder file an earlier export mirrored for a pending or failed record, and copies people took of one.",
       "removalPrerequisite": "No deployed brain's brain-data or content remote holds a placeholder file.",
       "rollbackDependency": "None; the files stay in place and nothing reads them.",
       "targetRelease": "after-every-mirrored-placeholder-is-gone"
