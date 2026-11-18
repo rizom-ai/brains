@@ -38,6 +38,7 @@ export interface AssetsReconcileOptions {
 type Outcome =
   | "in sync"
   | "awaiting its bytes, left alone"
+  | "old pending placeholder, ignored"
   | "created"
   | "restored asset"
   | "restored from file"
@@ -213,11 +214,21 @@ function decide(
   file: BrainDataFile,
   stored: Set<string>,
 ): Outcome {
-  if (row === undefined) return "created";
   // Its bytes are still being produced; a file is no newer than that.
-  if (row.status === "pending" || row.status === "failed") {
+  if (row?.status === "pending" || row?.status === "failed") {
     return "awaiting its bytes, left alone";
   }
+  // An earlier export mirrored the placeholder a pending record held.
+  const status = row ? (row.status ?? undefined) : file.metadata["status"];
+  if (
+    kind.isPlaceholderBytes(
+      file.digest,
+      typeof status === "string" ? status : undefined,
+    )
+  ) {
+    return "old pending placeholder, ignored";
+  }
+  if (row === undefined) return "created";
   const { content } = row;
   const ref = createAssetRef(file.digest);
   if (content === ref) {

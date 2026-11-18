@@ -89,6 +89,7 @@ export {
 export {
   classifyInlineImage,
   inlineImagePayload,
+  isLegacyPendingImageBytes,
   LEGACY_PENDING_IMAGE_PLACEHOLDER,
   type InlineImageBlocker,
   type InlineImageVerdict,

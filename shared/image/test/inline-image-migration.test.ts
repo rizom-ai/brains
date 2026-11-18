@@ -1,6 +1,10 @@
 import { describe, expect, it } from "bun:test";
 import { computeAssetDigest } from "@brains/entity-service";
-import { classifyInlineImage } from "../src";
+import {
+  classifyInlineImage,
+  LEGACY_PENDING_IMAGE_PLACEHOLDER,
+  isLegacyPendingImageBytes,
+} from "../src";
 
 const PNG = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
@@ -110,5 +114,28 @@ describe("classifyInlineImage", () => {
       reason: "oversized",
       sizeBytes: PNG.byteLength,
     });
+  });
+});
+
+describe("the old pending image placeholder", () => {
+  it("is never the bytes of an image awaiting them", () => {
+    expect(LEGACY_PENDING_IMAGE_PLACEHOLDER).toBe(pngDataUrl);
+    const digest = computeAssetDigest(PNG);
+
+    expect(isLegacyPendingImageBytes(digest, "pending")).toBe(true);
+    expect(isLegacyPendingImageBytes(digest, "failed")).toBe(true);
+  });
+
+  it("is a complete image's bytes like any other 1x1 PNG", () => {
+    const digest = computeAssetDigest(PNG);
+
+    expect(isLegacyPendingImageBytes(digest, undefined)).toBe(false);
+    expect(isLegacyPendingImageBytes(digest, "completed")).toBe(false);
+    expect(
+      isLegacyPendingImageBytes(
+        computeAssetDigest(Buffer.from("x")),
+        "pending",
+      ),
+    ).toBe(false);
   });
 });

@@ -9,6 +9,7 @@ import {
   createPendingDocumentEntity,
   documentSchema,
   inlineDocumentPayload,
+  isLegacyPendingDocumentBytes,
   stageDocumentEntity,
 } from "../src";
 
@@ -148,5 +149,16 @@ describe("classifyInlineDocument", () => {
         "%PDF-1.4\n% Pending document placeholder\n%%EOF\n",
       ).toString("base64")}`,
     );
+  });
+
+  it("knows that placeholder's bytes, which are never a document's", () => {
+    const placeholder = Buffer.from(
+      "%PDF-1.4\n% Pending document placeholder\n%%EOF\n",
+    );
+
+    expect(isLegacyPendingDocumentBytes(computeAssetDigest(placeholder))).toBe(
+      true,
+    );
+    expect(isLegacyPendingDocumentBytes(computeAssetDigest(PDF))).toBe(false);
   });
 });

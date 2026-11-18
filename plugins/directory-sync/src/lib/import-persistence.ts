@@ -12,11 +12,21 @@ import type { Logger } from "@brains/utils/logger";
 import { getErrorMessage } from "@brains/utils/error";
 import { computeContentHash } from "@brains/utils/hash";
 import { readMarkdownFrontmatter } from "@brains/utils/markdown-frontmatter";
-import { base64ImageReader, describeImage } from "@brains/image";
+import { createHash } from "node:crypto";
+import {
+  base64ImageReader,
+  describeImage,
+  isLegacyPendingImageBytes,
+} from "@brains/image";
 import type { ImportResult, RawEntity } from "../types";
 
 import { resolveInSyncPath } from "./path-utils";
-import { recordImportIssue, recordSkippedImport } from "./import-result";
+import {
+  recordedStatus,
+  recordImportIssue,
+  recordLegacyPlaceholderSkip,
+  recordSkippedImport,
+} from "./import-result";
 import { isRecord } from "@brains/utils/is-record";
 
 export interface ImportPersistenceDeps {
@@ -155,9 +165,14 @@ export async function persistImportEntity(
       updated: rawEntity.updated.toISOString(),
       contentHash: "",
     };
-    const { entity, stagedAsset } = staged
+    const staging = staged
       ? { entity: inline, stagedAsset: staged }
-      : await stageAssetContent(deps, inline);
+      : await stageAssetContent(deps, inline, existing);
+    if ("placeholder" in staging) {
+      recordLegacyPlaceholderSkip(result, filePath);
+      return;
+    }
+    const { entity, stagedAsset } = staging;
     unpublished = stagedAsset;
     // Store canonical hash so auto-sync writes don't trigger a re-import:
     // after auto-sync writes serializeEntity(entity) to disk, the file hash
@@ -270,12 +285,16 @@ const DATA_URL_PAYLOAD = /^data:[^;,]+;base64,([\s\S]*)$/;
  * the reference, with the facts a reader needs without loading bytes. A
  * markdown image file holds its data URL as text: it is decoded and staged
  * the same way. Content that is not a supported raster image stays as it
- * was stored before assets.
+ * was stored before assets. The old placeholder of an image awaiting its
+ * bytes is never staged.
  */
 async function stageAssetContent(
   deps: ImportPersistenceDeps,
   entity: BaseEntity,
-): Promise<{ entity: BaseEntity; stagedAsset?: StagedAsset }> {
+  existing: BaseEntity | null,
+): Promise<
+  { entity: BaseEntity; stagedAsset?: StagedAsset } | { placeholder: true }
+> {
   if (
     deps.entityService.getEntityTypeConfig(entity.entityType).binaryStorage !==
     "asset"
@@ -289,6 +308,14 @@ async function stageAssetContent(
   if (!payload) return { entity };
   const described = await describeImage(base64ImageReader(payload));
   if (!described) return { entity };
+  const status =
+    recordedStatus(existing?.metadata) ?? recordedStatus(entity.metadata);
+  if (
+    status !== undefined &&
+    isLegacyPendingImageBytes(payloadDigest(payload), status)
+  ) {
+    return { placeholder: true };
+  }
   const stagedAsset = await deps.entityService.stageAsset(
     base64AssetSource(payload),
     { maxBytes: deps.maxAssetImportBytes },
@@ -305,4 +332,11 @@ async function stageAssetContent(
       },
     },
   };
+}
+
+/** The SHA-256 of a base64 payload's bytes, decoded a slice at a time. */
+function payloadDigest(payload: string): string {
+  const hash = createHash("sha256");
+  for (const slice of base64AssetSource(payload)) hash.update(slice);
+  return hash.digest("hex");
 }

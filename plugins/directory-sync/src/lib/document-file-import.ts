@@ -1,3 +1,4 @@
+import { isLegacyPendingDocumentBytes } from "@brains/document";
 import {
   assetRefSchema,
   type ServiceEntityMirrorClient,
@@ -12,7 +13,11 @@ import {
   persistImportEntity,
   type ImportPersistenceDeps,
 } from "./import-persistence";
-import { recordImportIssue, recordSkippedImport } from "./import-result";
+import {
+  recordImportIssue,
+  recordLegacyPlaceholderSkip,
+  recordSkippedImport,
+} from "./import-result";
 
 /** What importing a document file needs: persistence plus file reads. */
 export interface DocumentFileImportDeps extends ImportPersistenceDeps {
@@ -59,6 +64,12 @@ export async function importDocumentFile(
     return;
   }
 
+  const digest = await fileDigest(file.fullPath);
+  if (isLegacyPendingDocumentBytes(digest)) {
+    recordLegacyPlaceholderSkip(result, filePath);
+    return;
+  }
+
   const sidecar = await deps.fileOperations.readDocumentSidecar(
     file.fullPath,
     filePath,
@@ -66,9 +77,7 @@ export async function importDocumentFile(
   const existing = snapshot?.entity;
   const storedDigest =
     existing === undefined ? undefined : storedBytesDigest(existing.content);
-  const sameBytes =
-    storedDigest !== undefined &&
-    storedDigest === (await fileDigest(file.fullPath));
+  const sameBytes = storedDigest !== undefined && storedDigest === digest;
   if (sameBytes && existing && sameMetadata(existing.metadata, sidecar)) {
     recordSkippedImport(result);
     return;

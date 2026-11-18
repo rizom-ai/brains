@@ -24,6 +24,25 @@ export type InlineImageVerdict =
 export const LEGACY_PENDING_IMAGE_PLACEHOLDER =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
 
+/** The SHA-256 of that placeholder's bytes, as an asset names them. */
+const LEGACY_PENDING_IMAGE_PLACEHOLDER_DIGEST =
+  "6b7fa434f92a8b80aab02d9bf1a12e49ffcae424e4013a1c4f68b67e3d2bbcd0";
+
+/**
+ * Whether bytes, by their asset digest, are the old 1x1 placeholder of an
+ * image still awaiting its bytes, which nothing that reads files back may
+ * store as that image's. A complete image may be any 1x1 PNG, this one too.
+ */
+export function isLegacyPendingImageBytes(
+  digest: string,
+  status: string | undefined,
+): boolean {
+  return (
+    (status === "pending" || status === "failed") &&
+    digest === LEGACY_PENDING_IMAGE_PLACEHOLDER_DIGEST
+  );
+}
+
 /** Payloads may be wrapped or padded with whitespace, as files were. */
 const INLINE_DATA_URL = /^data:image\/([a-z0-9.+-]+);base64,([\s\S]*)$/i;
 

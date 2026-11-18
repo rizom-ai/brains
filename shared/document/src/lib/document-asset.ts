@@ -28,6 +28,19 @@ export const DOCUMENT_ASSET_MAX_BYTES: number = 25 * 1024 * 1024;
 export const LEGACY_PENDING_DOCUMENT_PLACEHOLDER: string =
   "data:application/pdf;base64,JVBERi0xLjQKJSBQZW5kaW5nIGRvY3VtZW50IHBsYWNlaG9sZGVyCiUlRU9GCg==";
 
+/** The SHA-256 of that placeholder's bytes, as an asset names them. */
+const LEGACY_PENDING_DOCUMENT_PLACEHOLDER_DIGEST =
+  "a713a5137a324b30c640f5364679381651eb85d8ea49b0613069873baaedf184";
+
+/**
+ * Whether bytes, by their asset digest, are the old pending placeholder. They
+ * are never a document's, so nothing that reads files back, such as a mirror
+ * an earlier export wrote, may store them as one.
+ */
+export function isLegacyPendingDocumentBytes(digest: string): boolean {
+  return digest === LEGACY_PENDING_DOCUMENT_PLACEHOLDER_DIGEST;
+}
+
 /** What is known beside a document's bytes. */
 export interface DocumentDescription {
   filename: string;

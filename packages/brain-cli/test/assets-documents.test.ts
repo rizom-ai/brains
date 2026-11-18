@@ -216,4 +216,33 @@ describe("assets:reconcile with documents", () => {
       createAssetRef("a".repeat(64)),
     );
   });
+
+  it("creates no document from a mirrored old pending placeholder", async () => {
+    const path = await fixture([]);
+    const from = join(dirname(path), "brain-data");
+    await mkdir(join(from, "document"), { recursive: true });
+    await writeFile(
+      join(from, "document", "note.pdf"),
+      Buffer.from(
+        String(LEGACY_PENDING_DOCUMENT_PLACEHOLDER.split(",")[1]),
+        "base64",
+      ),
+    );
+    await writeFile(
+      join(from, "document", "note.pdf.meta.json"),
+      JSON.stringify({ filename: "note.pdf", status: "failed" }),
+    );
+
+    const result = await runAssetsReconcile(
+      "/",
+      { database: path, from },
+      stopped,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.message).toContain(
+      "documents:\nold pending placeholder, ignored: note",
+    );
+    expect(await row(path, "note")).toBeUndefined();
+  });
 });

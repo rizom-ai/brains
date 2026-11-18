@@ -1,6 +1,11 @@
 import { createHash } from "node:crypto";
 import { basename, dirname, extname, join } from "node:path";
-import { describeImage, fileImageReader, tryParseDataUrl } from "@brains/image";
+import {
+  describeImage,
+  fileImageReader,
+  isLegacyPendingImageBytes,
+  tryParseDataUrl,
+} from "@brains/image";
 import {
   assetRefSchema,
   base64AssetSource,
@@ -14,7 +19,12 @@ import {
   persistImportEntity,
   type ImportPersistenceDeps,
 } from "./import-persistence";
-import { recordImportIssue, recordSkippedImport } from "./import-result";
+import {
+  recordedStatus,
+  recordImportIssue,
+  recordLegacyPlaceholderSkip,
+  recordSkippedImport,
+} from "./import-result";
 
 /** What importing an image file needs: persistence plus file stats. */
 export interface ImageFileImportDeps extends ImportPersistenceDeps {
@@ -62,6 +72,15 @@ export async function importImageFile(
       );
       return;
     }
+  }
+
+  const status = recordedStatus(snapshot?.entity.metadata);
+  if (
+    status !== undefined &&
+    isLegacyPendingImageBytes(await fileDigest(file.fullPath), status)
+  ) {
+    recordLegacyPlaceholderSkip(result, filePath);
+    return;
   }
 
   const described = await describeImage(fileImageReader(file.fullPath));

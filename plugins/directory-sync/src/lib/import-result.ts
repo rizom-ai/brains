@@ -28,6 +28,31 @@ export function recordImportIssue(
   (result.issues ??= []).push({ path: filePath, message });
 }
 
+/**
+ * A file holding the placeholder a pending record once carried: an earlier
+ * export mirrored it, and its bytes are never the record's. It stays in
+ * place, as an unsupported file does, until the record's bytes replace it.
+ */
+export function recordLegacyPlaceholderSkip(
+  result: ImportResult,
+  filePath: string,
+): void {
+  recordSkippedImport(result);
+  recordImportIssue(
+    result,
+    filePath,
+    "Skipped: the file holds the old pending placeholder, not the record's bytes.",
+  );
+}
+
+/** The ingestion status a record's metadata names, if any. */
+export function recordedStatus(
+  metadata: Record<string, unknown> | undefined,
+): string | undefined {
+  const status = metadata?.["status"];
+  return typeof status === "string" ? status : undefined;
+}
+
 export function recordImportReadError(
   logger: Logger,
   filePath: string,
