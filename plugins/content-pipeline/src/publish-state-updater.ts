@@ -1,3 +1,5 @@
+import { writeOnCurrent } from "@brains/utils/write-on-current";
+import { internalFullScope } from "@brains/sdk/internal/service-runtime";
 import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
 import type { PublishResult } from "@brains/contracts";
 import { updateFrontmatterField } from "@brains/utils/markdown";
@@ -17,14 +19,12 @@ export interface MarkPublishedOptions {
  * entity already has a frontmatter block, so plain-text publishable entities do
  * not gain YAML as a side effect.
  */
-export async function markEntityPublished<
-  TMetadata extends Record<string, unknown>,
->(
+export async function markEntityPublished(
   context: Pick<PipelineContext, "entityService">,
-  entity: BaseEntity<TMetadata>,
+  entity: BaseEntity,
   result: PublishResult,
   options: MarkPublishedOptions = {},
-): Promise<BaseEntity<TMetadata>> {
+): Promise<BaseEntity> {
   const publishTimestampField = options.publishTimestampField ?? "publishedAt";
   const existingPublishedAt = entity.metadata[publishTimestampField];
   const publishedAt =
@@ -33,28 +33,49 @@ export async function markEntityPublished<
       ? existingPublishedAt
       : undefined) ??
     new Date().toISOString();
-  const metadata = {
-    ...entity.metadata,
-    status: "published",
-    [publishTimestampField]: publishedAt,
-    platformId: result.id,
-    ...getPublishResultMetadata(result.id, options.publishResultIdField),
-  };
-
-  const updated = {
-    ...entity,
+  const asPublished = (current: BaseEntity): BaseEntity => ({
+    ...current,
     content: updatePublishFrontmatter(
-      entity.content,
+      current.content,
       publishedAt,
       result.id,
       options.publishResultIdField,
       publishTimestampField,
     ),
-    metadata,
-  };
+    metadata: {
+      ...current.metadata,
+      status: "published",
+      [publishTimestampField]: publishedAt,
+      platformId: result.id,
+      ...getPublishResultMetadata(result.id, options.publishResultIdField),
+    },
+  });
 
-  await context.entityService.updateEntity({ entity: updated });
-  return updated;
+  // The post is out already, so this result is never dropped: over a
+  // version that changed while the provider published, the publish fields
+  // are set on that version and its text stays.
+  const written: { entity: BaseEntity } = {
+    entity: asPublished(entity),
+  };
+  await writeOnCurrent({
+    from: entity,
+    read: () =>
+      context.entityService.getEntity({
+        entityType: entity.entityType,
+        id: entity.id,
+        visibilityScope: internalFullScope("record a completed publish"),
+      }),
+    change: (current) => {
+      written.entity = asPublished(current);
+      return written.entity;
+    },
+    write: (changed, expectedContentHash) =>
+      context.entityService.updateEntity({
+        entity: changed,
+        options: { expectedContentHash },
+      }),
+  });
+  return written.entity;
 }
 
 export function updatePublishFrontmatter(

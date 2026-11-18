@@ -116,6 +116,7 @@ export async function reconcileTopics(
             content: synthesized.content,
           },
           visibility: targetVisibility,
+          synthesizedFrom: canonical.contentHash,
         });
         if (!merged) {
           result.skipped++;

@@ -205,6 +205,48 @@ async function setup(): Promise<{
 }
 
 describe("MailThreadOrdinalCoordinator", () => {
+  it("sets an ordinal on the current version of an item that changed meanwhile", async () => {
+    const { harness, coordinator } = await setup();
+    await persist(harness, projection("first", "2026-08-11T08:00:00.000Z"), {
+      legacy: true,
+    });
+    const entityService = harness.getEntityService();
+    const updateEntity = entityService.updateEntity.bind(entityService);
+    let raced = false;
+    entityService.updateEntity = async (
+      request,
+    ): ReturnType<typeof updateEntity> => {
+      if (!raced) {
+        raced = true;
+        // Triage marks the item handled just before the ordinal is written.
+        const [current] = await threadedItems(harness);
+        if (!current) throw new Error("No mail item");
+        const parsed = mailItemAdapter.parseMailItemContent(current.content);
+        const content = mailItemAdapter.createMailItemContent(
+          { ...parsed.frontmatter, status: "handled" },
+          parsed.summary,
+        );
+        await updateEntity({
+          entity: {
+            ...current,
+            content,
+            metadata: { ...current.metadata, status: "handled" },
+          },
+        });
+      }
+      return updateEntity(request);
+    };
+
+    await coordinator.initialize();
+
+    const [item] = await threadedItems(harness);
+    if (!item) throw new Error("No mail item");
+    const { frontmatter } = mailItemAdapter.parseMailItemContent(item.content);
+    expect(frontmatter.status).toBe("handled");
+    expect(frontmatter.source.threadOrdinal).toBe(1);
+    expect(item.metadata.threadOrdinal).toBe(1);
+  });
+
   it("restarts an interrupted paged migration without exposing partial ordinals", async () => {
     const { harness, state, coordinator } = await setup();
     await persist(harness, projection("first", "2026-08-11T08:00:00.000Z"), {

@@ -378,6 +378,46 @@ describe("ATProto brain cards for agents already saved above public", () => {
   });
 });
 
+describe("an ATProto brain card over an agent that changed meanwhile", () => {
+  it("refreshes the current version, keeping an approval made in between", async () => {
+    const service = await realEntityService();
+    await service.createEntity({
+      entity: savedAgent("open.example", "public"),
+    });
+    const context = createMockEntityPluginContext({ entityService: service });
+    // A person approves the agent after the card handler read it.
+    const updateEntity = service.updateEntity.bind(service);
+    let raced = false;
+    service.updateEntity = async (request): ReturnType<typeof updateEntity> => {
+      if (!raced) {
+        raced = true;
+        await updateEntity({
+          entity: {
+            ...createTestAgent({
+              id: "open.example",
+              name: "Saved",
+              url: "https://open.example/a2a",
+              status: "approved",
+            }),
+            visibility: "public",
+          },
+        });
+      }
+      return updateEntity(request);
+    };
+
+    const result = await upsertAgentFromCard(
+      context,
+      brainCard("open.example"),
+    );
+
+    const saved = await readFull(service, "open.example");
+    expect(saved?.metadata.status).toBe("approved");
+    expect(saved?.metadata.repoDid).toBe("did:plc:claimant");
+    expect(result.agent.metadata.status).toBe("approved");
+  });
+});
+
 describe("agent_set_trust_level for agents saved above public", () => {
   it("lets an admin set inbound trust for an agent saved restricted", async () => {
     const service = await realEntityService();

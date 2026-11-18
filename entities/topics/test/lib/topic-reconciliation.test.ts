@@ -102,6 +102,78 @@ describe("reconcileTopics", () => {
     );
   });
 
+  it("drops a merge written from a topic that changed while it was synthesized", async () => {
+    const logger = createSilentLogger();
+    const mockShell = createMockShell({ logger });
+    const context = createEntityPluginContext(mockShell, "topics");
+    const canonical = makeTopic({
+      id: "human-ai-collaboration",
+      title: "Human-AI Collaboration",
+      content: "Humans and AI systems collaborate in shared workflows.",
+      created: "2026-01-01T00:00:00Z",
+    });
+    mockShell.addEntities([
+      canonical,
+      makeTopic({
+        id: "human-agent-collaboration",
+        title: "Human-Agent Collaboration",
+        content: "Software agents participate alongside people.",
+        created: "2026-01-02T00:00:00Z",
+      }),
+    ]);
+    spyOn(context.entityService, "searchWithDistances").mockResolvedValue([
+      {
+        entityId: "human-agent-collaboration",
+        entityType: "topic",
+        distance: 0.18,
+      },
+    ]);
+    const synthesizer: ITopicMergeSynthesizer = {
+      synthesize: mock(async () => {
+        // A person rewrites the topic while the synthesis is running.
+        await context.entityService.updateEntity({
+          entity: {
+            ...canonical,
+            content: adapter.createTopicBody({
+              title: "Human-AI Collaboration",
+              content: "Rewritten by a person.",
+            }),
+          },
+        });
+        return {
+          verdict: "merge" as const,
+          title: "Human-AI Collaboration",
+          content: "Text synthesized from the older version.",
+        };
+      }),
+    };
+
+    const result = await reconcileTopics({
+      context,
+      logger,
+      semanticMergeDistance: 0.35,
+      targetVisibility: "public",
+      synthesizer,
+    });
+
+    expect(result).toMatchObject({ merged: 0, skipped: 1 });
+    expect(result.deletedIds).toEqual([]);
+    const remaining = await context.entityService.listEntities(
+      {
+        entityType: "topic",
+        options: { filter: { visibilityScope: "public" } },
+      },
+      topicEntitySchema,
+    );
+    expect(remaining.map((topic) => topic.id).sort()).toEqual([
+      "human-agent-collaboration",
+      "human-ai-collaboration",
+    ]);
+    expect(
+      remaining.find((topic) => topic.id === "human-ai-collaboration")?.content,
+    ).toContain("Rewritten by a person.");
+  });
+
   it("keeps semantically close topics when the synthesizer returns distinct", async () => {
     const logger = createSilentLogger();
     const mockShell = createMockShell({ logger });

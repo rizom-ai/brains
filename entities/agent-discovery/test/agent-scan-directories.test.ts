@@ -445,6 +445,62 @@ describe("agent_scan_directories", () => {
     await harness.reset();
   });
 
+  it("leaves a sighting a person approved while the directories were being fetched", async () => {
+    const network = createMockNetwork({
+      "lumen.brain": {
+        directory: directoryOf("https://vale.example/a2a"),
+      },
+    });
+    const harness = await setupHarness(network);
+    const entityService = harness.getEntityService();
+    await entityService.createEntity({
+      entity: createTestAgent({ id: "lumen.brain", status: "approved" }),
+    });
+    await entityService.createEntity({
+      entity: createTestAgent({
+        id: "vale.example",
+        name: "Vale",
+        url: "https://vale.example/a2a",
+        status: "discovered",
+        introducedBy: ["kai.brain"],
+        hops: 2,
+      }),
+    });
+    const approved = createTestAgent({
+      id: "vale.example",
+      name: "Vale",
+      url: "https://vale.example/a2a",
+      status: "approved",
+    });
+    // The approval lands after the scan read the agent, before it writes.
+    const updateEntity = entityService.updateEntity.bind(entityService);
+    let raced = false;
+    entityService.updateEntity = async (
+      request,
+    ): ReturnType<typeof updateEntity> => {
+      if (!raced) {
+        raced = true;
+        await updateEntity({ entity: approved });
+      }
+      return updateEntity(request);
+    };
+
+    const result = await harness.executeTool("agent_scan_directories", {});
+
+    expectSuccess(result);
+    expect(result.data).toMatchObject({ updated: 0 });
+    const stored = await entityService.getEntity(
+      { entityType: "agent", id: "vale.example" },
+      agentEntitySchema,
+    );
+    if (!stored) throw new Error("Expected the agent");
+    const parsed = parseAgentEntity(stored);
+    expect(parsed.frontmatter.status).toBe("approved");
+    expect(parsed.frontmatter.introducedBy).toBeUndefined();
+
+    await harness.reset();
+  });
+
   it("does not attach provenance to agents known first-hand", async () => {
     const network = createMockNetwork({
       "kai.brain": {

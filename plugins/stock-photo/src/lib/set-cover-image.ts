@@ -1,3 +1,4 @@
+import { writeOnCurrent } from "@brains/utils/write-on-current";
 import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
 import type { ServiceEntityWrites } from "@brains/sdk/internal/service-runtime";
 
@@ -29,20 +30,16 @@ export async function setCoverImage(
   entityId: string,
   imageEntityId: string,
 ): Promise<boolean> {
-  const target = await entityService.getEntity({
-    entityType,
-    id: entityId,
-  });
-  if (!target) return false;
-
-  await entityService.updateEntity({
-    entity: {
+  // Over the version read only: an edit made meanwhile keeps its text and
+  // gets the cover set on top of it.
+  const outcome = await writeOnCurrent({
+    read: () => entityService.getEntity({ entityType, id: entityId }),
+    change: (target) => ({
       ...target,
-      metadata: {
-        ...target.metadata,
-        coverImageId: imageEntityId,
-      },
-    },
+      metadata: { ...target.metadata, coverImageId: imageEntityId },
+    }),
+    write: (entity, expectedContentHash) =>
+      entityService.updateEntity({ entity, options: { expectedContentHash } }),
   });
-  return true;
+  return outcome === "written";
 }

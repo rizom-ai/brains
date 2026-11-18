@@ -1,3 +1,4 @@
+import { writeOnCurrent } from "@brains/utils/write-on-current";
 import {
   agentFromMarkdown,
   parseAgentEntity,
@@ -140,22 +141,53 @@ export async function scanAgentDirectories(
         alreadyKnown += 1;
         continue;
       }
-      const merged = [
-        ...prior,
-        ...[...introducers].filter((id) => !prior.includes(id)),
-      ];
-      if (merged.length === prior.length) continue;
+      if ([...introducers].every((id) => prior.includes(id))) continue;
 
-      await context.entityService.updateEntity({
-        entity: {
-          ...existing,
-          content: rewriteAgentContent(parsed, {
-            introducedBy: merged,
-          }),
-          updated: now,
+      // The agent was read before the directories were fetched. Over a
+      // version that changed since, the introducers are merged into that
+      // one; an agent no longer a public sighting is left as it is.
+      const outcome = await writeOnCurrent({
+        from: existing,
+        read: () =>
+          context.entityService.getEntity(
+            {
+              entityType: AGENT_ENTITY_TYPE,
+              id: domain,
+              visibilityScope: internalFullScope(
+                "merge introducers into a sighting on its current version",
+              ),
+            },
+            agentEntitySchema,
+          ),
+        change: (current) => {
+          const currentParsed = parseAgentEntity(current);
+          const known = currentParsed.frontmatter.introducedBy ?? [];
+          const merged = [
+            ...known,
+            ...[...introducers].filter((id) => !known.includes(id)),
+          ];
+          if (
+            current.visibility !== "public" ||
+            currentParsed.frontmatter.status !== "discovered" ||
+            known.length === 0 ||
+            merged.length === known.length
+          )
+            return undefined;
+          return {
+            ...current,
+            content: rewriteAgentContent(currentParsed, {
+              introducedBy: merged,
+            }),
+            updated: now,
+          };
         },
+        write: (entity, expectedContentHash) =>
+          context.entityService.updateEntity({
+            entity,
+            options: { expectedContentHash },
+          }),
       });
-      updated += 1;
+      if (outcome === "written") updated += 1;
       continue;
     }
 

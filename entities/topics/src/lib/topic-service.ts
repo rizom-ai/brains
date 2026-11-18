@@ -147,6 +147,11 @@ export class TopicService {
       metadata?: TopicMetadata;
     },
     visibility: ContentVisibility = "public",
+    /**
+     * The version the update was worked out from. When the topic has moved
+     * on from it, nothing is written and null is returned.
+     */
+    expectedContentHash?: string,
   ): Promise<TopicEntity | null> {
     const existing = await this.getTopic(id, visibility);
     if (!existing) {
@@ -164,13 +169,17 @@ export class TopicService {
       content,
     });
 
-    const { entityId } = await this.entityService.updateEntity({
+    const { entityId, skipReason } = await this.entityService.updateEntity({
       entity: {
         ...existing,
         content: newBody,
         metadata,
       },
+      ...(expectedContentHash !== undefined && {
+        options: { expectedContentHash },
+      }),
     });
+    if (skipReason === "content-conflict") return null;
 
     const updatedTopic: TopicEntity = {
       ...existing,
@@ -319,6 +328,12 @@ export class TopicService {
       content: string;
     };
     visibility?: ContentVisibility;
+    /**
+     * The content hash of the topic the synthesis read. A topic that changed
+     * since is not overwritten with text written from its older version:
+     * the merge is dropped, and a later run reviews the pair again.
+     */
+    synthesizedFrom?: string;
   }): Promise<TopicEntity | null> {
     const visibility = params.visibility ?? "public";
     const existing = await this.getTopic(params.existingId, visibility);
@@ -331,6 +346,7 @@ export class TopicService {
         content: params.synthesized.content,
       },
       visibility,
+      params.synthesizedFrom,
     );
   }
 

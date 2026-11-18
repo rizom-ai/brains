@@ -1,3 +1,4 @@
+import { writeOnCurrent } from "@brains/utils/write-on-current";
 import {
   internalFullScope,
   type ClassRuntimeStateStore,
@@ -160,27 +161,24 @@ export class MailThreadOrdinalCoordinator {
     entity: MailItemEntity,
     ordinal: number,
   ): Promise<void> {
-    const parsed = mailItemAdapter.parseMailItemContent(entity.content);
-    const threadKey = parsed.frontmatter.source.threadKey;
-    if (!threadKey) return;
-    if (
-      parsed.frontmatter.source.threadOrdinal === ordinal &&
-      entity.metadata.threadKey === threadKey &&
-      entity.metadata.threadOrdinal === ordinal
-    ) {
-      return;
-    }
-    const content = mailItemAdapter.createMailItemContent(
-      {
-        ...parsed.frontmatter,
-        source: { ...parsed.frontmatter.source, threadOrdinal: ordinal },
+    // The ordinal comes from the order mail was received in, not from the
+    // item's text: over a version that changed meanwhile it is set again.
+    await writeOnCurrent({
+      from: entity,
+      read: async () => {
+        const current = await this.entityService.getEntity({
+          entityType: entity.entityType,
+          id: entity.id,
+          visibilityScope: entity.visibility,
+        });
+        return current ? mailItemSchema.parse(current) : null;
       },
-      parsed.summary,
-    );
-    const metadata = mailItemAdapter.fromMarkdown(content).metadata;
-    if (!metadata) throw new Error("Mail item metadata could not be derived");
-    await this.entityService.updateEntity({
-      entity: { ...entity, content, metadata },
+      change: (current) => withThreadOrdinal(current, ordinal),
+      write: (changed, expectedContentHash) =>
+        this.entityService.updateEntity({
+          entity: changed,
+          options: { expectedContentHash },
+        }),
     });
   }
 
@@ -258,4 +256,31 @@ class SharedExclusiveGate {
       }
     });
   }
+}
+
+/** The mail item with its place in its thread set, or nothing to change. */
+function withThreadOrdinal(
+  entity: MailItemEntity,
+  ordinal: number,
+): MailItemEntity | undefined {
+  const parsed = mailItemAdapter.parseMailItemContent(entity.content);
+  const threadKey = parsed.frontmatter.source.threadKey;
+  if (!threadKey) return undefined;
+  if (
+    parsed.frontmatter.source.threadOrdinal === ordinal &&
+    entity.metadata.threadKey === threadKey &&
+    entity.metadata.threadOrdinal === ordinal
+  ) {
+    return undefined;
+  }
+  const content = mailItemAdapter.createMailItemContent(
+    {
+      ...parsed.frontmatter,
+      source: { ...parsed.frontmatter.source, threadOrdinal: ordinal },
+    },
+    parsed.summary,
+  );
+  const metadata = mailItemAdapter.fromMarkdown(content).metadata;
+  if (!metadata) throw new Error("Mail item metadata could not be derived");
+  return { ...entity, content, metadata };
 }
