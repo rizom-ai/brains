@@ -22,3 +22,5 @@ A drive save that names no version (rclone, Finder, Explorer) is now based on th
 A Studio save over a version that changed since the editor opened it is kept as a conflict in the Inbox before it is refused, so closing the tab no longer loses it. The save and its version check are now one write, and a save that names no version is refused. A save that changes nothing stays a save.
 
 Background work no longer overwrites an edit made while it was running. Recording a completed or failed publish, setting a stock photo as cover, numbering mail in a thread, refreshing or archiving a discovered agent and merging directory introducers now write only over the version they read, and make their change again on the current version when it moved on. A topic merge synthesized from a version that changed since is dropped and reviewed again on a later run.
+
+An image saved over a newer image, as a file in `brain-data/` or through the drive, is kept in the Inbox too: the brain keeps its image, the Inbox names both, and the other one can be applied or dismissed. A losing image is held in a second type, `conflict-image`, which has no file in `brain-data/`.

@@ -14,6 +14,7 @@ import type { RecordConflictRequest } from "@brains/contracts";
 import {
   EntityRegistry,
   EntityService,
+  assetRefSchema,
   baseEntitySchema,
 } from "@brains/entity-service";
 import { migrateEntities } from "@brains/entity-service/migrate";
@@ -26,6 +27,7 @@ import { z } from "@brains/utils/zod";
 import { DirectorySync } from "../src/lib/directory-sync";
 import { memorySyncBase, type SyncBaseStore } from "../src/lib/sync-base";
 import type { PullConflict } from "../src/types";
+import { TINY_PNG_BYTES } from "./fixtures";
 
 /**
  * A type whose stored form differs from what a person may type: line endings
@@ -69,6 +71,15 @@ describe("directory-sync against the version it last synced", () => {
     const dbConfig = { url: `file:${root}/entities.db` };
     await migrateEntities(dbConfig, logger);
     const registry = EntityRegistry.createFresh(logger);
+    // Images as the brain stores them: nothing but a reference to bytes.
+    for (const type of ["image", "conflict-image"]) {
+      registry.registerEntityType(
+        type,
+        baseEntitySchema,
+        new PlainAdapter(type),
+        { binaryStorage: "asset" },
+      );
+    }
     for (const type of ["post", "conflict"]) {
       registry.registerEntityType(
         type,
@@ -496,6 +507,156 @@ describe("directory-sync against the version it last synced", () => {
         conflict.id,
       ]);
       expect(brain.recorded).toEqual([]);
+    });
+  });
+
+  describe("an image file", () => {
+    // Bytes after a PNG's end are ignored by a reader, and make another file.
+    const png = (mark: string): Buffer =>
+      Buffer.concat([TINY_PNG_BYTES, Buffer.from(mark)]);
+    const writeImage = (bytes: Buffer): void => {
+      mkdirSync(file("image"), { recursive: true });
+      writeFileSync(file("image/cover.png"), bytes);
+    };
+    const storedImage = async (): Promise<Buffer> => {
+      const entity = await brain.service.getEntity({
+        entityType: "image",
+        id: "cover",
+        visibilityScope: "restricted",
+        source: true,
+      });
+      if (!entity) throw new Error("No image");
+      return Buffer.from(
+        await brain.service.readAsset(assetRefSchema.parse(entity.content)),
+      );
+    };
+    const replaceInBrain = async (bytes: Buffer): Promise<void> => {
+      const entity = await brain.service.getEntity({
+        entityType: "image",
+        id: "cover",
+        visibilityScope: "restricted",
+        source: true,
+      });
+      if (!entity) throw new Error("No image");
+      const stagedAsset = await brain.service.stageAsset(bytes);
+      await brain.service.updateEntity({
+        entity: { ...entity, content: stagedAsset.ref },
+        stagedAsset,
+      });
+    };
+    const syncedImage = async (): Promise<void> => {
+      writeImage(png("first"));
+      await brain.sync.importEntities(["image/cover.png"]);
+    };
+
+    it("replaces an image that has not changed in the brain", async () => {
+      await syncedImage();
+      writeImage(png("from the file"));
+
+      const result = await brain.sync.importEntities(["image/cover.png"]);
+
+      expect(result.imported).toBe(1);
+      expect(await storedImage()).toEqual(png("from the file"));
+      expect(brain.recorded).toEqual([]);
+    });
+
+    it("becomes an image conflict when the brain's image changed too", async () => {
+      await syncedImage();
+      await replaceInBrain(png("from the brain"));
+      writeImage(png("from the file"));
+
+      const result = await brain.sync.importEntities(["image/cover.png"]);
+
+      expect(result.imported).toBe(0);
+      expect(await storedImage()).toEqual(png("from the brain"));
+      expect(brain.recorded).toHaveLength(1);
+      const [conflict] = brain.recorded;
+      expect(conflict).toMatchObject({
+        entityType: "image",
+        entityId: "cover",
+        origin: "file",
+        text: "",
+      });
+      expect(
+        Buffer.from(conflict?.image?.bytes ?? new Uint8Array()).toString(
+          "base64",
+        ),
+      ).toBe(png("from the file").toString("base64"));
+      expect(conflict?.image?.metadata).toMatchObject({ format: "png" });
+      // The file holds the brain's image again.
+      expect(readFileSync(file("image/cover.png")).toString("base64")).toBe(
+        png("from the brain").toString("base64"),
+      );
+    });
+
+    it("does not let an untouched image file replace a newer image", async () => {
+      await syncedImage();
+      await replaceInBrain(png("from the brain"));
+
+      await brain.sync.importEntities(["image/cover.png"]);
+
+      expect(await storedImage()).toEqual(png("from the brain"));
+      expect(brain.recorded).toEqual([]);
+    });
+  });
+
+  describe("image conflicts and files", () => {
+    const seedImageConflict = async (): Promise<void> => {
+      const stagedAsset = await brain.service.stageAsset(TINY_PNG_BYTES);
+      await brain.service.createEntity({
+        entity: {
+          id: "image:cover:20261118T102030Z",
+          entityType: "conflict-image",
+          content: stagedAsset.ref,
+          visibility: "shared",
+          metadata: {},
+        },
+        stagedAsset,
+      });
+    };
+    const held = async (): Promise<number> =>
+      (
+        await brain.service.listEntities({
+          entityType: "conflict-image",
+          options: { filter: { visibilityScope: "restricted" } },
+        })
+      ).length;
+
+    it("are not written to brain-data, and outlive every sweep for missing files", async () => {
+      await seedImageConflict();
+      const [conflict] = await brain.service.listEntities({
+        entityType: "conflict-image",
+        options: { filter: { visibilityScope: "restricted" } },
+      });
+      if (!conflict) throw new Error("No image conflict");
+
+      await brain.sync.writeEntityFile(conflict);
+      await brain.sync.exportEntities(["conflict-image"]);
+      await brain.sync.removeOrphanedEntities();
+      expect(
+        await brain.sync.deleteForRemovedFile(
+          "conflict-image",
+          "image:cover:20261118T102030Z",
+        ),
+      ).toBe("kept");
+
+      expect(await held()).toBe(1);
+      expect(existsSync(file("conflict-image"))).toBe(false);
+    });
+
+    it("are never made from a file", async () => {
+      mkdirSync(file("conflict-image/image/cover"), { recursive: true });
+      writeFileSync(
+        file("conflict-image/image/cover/20261118T999999Z.png"),
+        TINY_PNG_BYTES,
+      );
+
+      const result = await brain.sync.importEntities([
+        "conflict-image/image/cover/20261118T999999Z.png",
+      ]);
+
+      expect(result.imported).toBe(0);
+      expect(await held()).toBe(0);
     });
   });
 });

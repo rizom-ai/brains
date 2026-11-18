@@ -200,8 +200,9 @@ describe("canonical brain core", () => {
     const resolvedIds = headless.plugins?.map((plugin) => plugin.id) ?? [];
     expect(resolvedIds).toEqual([
       "prompt",
-      // The conflict type installs apart from the service that keeps conflicts.
+      // The conflict types install apart from the service that keeps conflicts.
       "conflict",
+      "conflict-image",
       "conflicts",
       "profile",
       "style-guide",

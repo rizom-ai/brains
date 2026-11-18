@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { basename, dirname, extname, join } from "node:path";
 import {
@@ -120,6 +121,7 @@ export async function importImageFile(
     result,
     snapshot,
     stagedAsset,
+    { read: () => readFile(file.fullPath), metadata: { ...described } },
   );
 }
 

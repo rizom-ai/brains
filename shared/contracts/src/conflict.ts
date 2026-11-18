@@ -4,6 +4,13 @@ import { defineBusContract, type BusContract } from "./bus-contract";
 /** The entity type that holds an edit made over a newer version. */
 export const CONFLICT_ENTITY_TYPE = "conflict";
 
+/**
+ * The entity type that holds an image saved over a newer one. Image bytes
+ * are kept as an asset, which only an entity that is nothing but its asset
+ * can hold, so a losing image has a type of its own beside `conflict`.
+ */
+export const CONFLICT_IMAGE_ENTITY_TYPE = "conflict-image";
+
 type ConflictOriginSchema = z.ZodEnum<{
   studio: "studio";
   drive: "drive";
@@ -41,6 +48,12 @@ type RecordConflictRequestSchema = z.ZodObject<{
   base: z.ZodOptional<z.ZodString>;
   current: z.ZodString;
   text: z.ZodString;
+  image: z.ZodOptional<
+    z.ZodObject<{
+      bytes: z.ZodCustom<Uint8Array, Uint8Array>;
+      metadata: z.ZodRecord<z.ZodString, z.ZodUnknown>;
+    }>
+  >;
   targetVisibility: ConflictVisibilitySchema;
   declaredVisibility: z.ZodOptional<ConflictVisibilitySchema>;
 }>;
@@ -61,8 +74,20 @@ export const recordConflictRequestSchema: RecordConflictRequestSchema =
     base: z.string().min(1).optional(),
     /** The content hash of the version the edit would have replaced. */
     current: z.string().min(1),
-    /** The losing file exactly as it arrived. */
+    /** The losing file exactly as it arrived; empty for an image. */
     text: z.string(),
+    /**
+     * A losing image: its bytes, and what they are (format, dimensions) as
+     * the way in read them. The request stays in the process it was made in.
+     */
+    image: z
+      .object({
+        bytes: z.custom<Uint8Array>((value) => value instanceof Uint8Array, {
+          message: "Image bytes must be a Uint8Array",
+        }),
+        metadata: z.record(z.string(), z.unknown()),
+      })
+      .optional(),
     /** The target's visibility now. */
     targetVisibility: visibilitySchema,
     /** The visibility the losing text names for itself, if it names one. */

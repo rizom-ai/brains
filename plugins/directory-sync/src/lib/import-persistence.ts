@@ -114,6 +114,13 @@ function dropsFrontmatterFields(file: string, stored: string): boolean {
   });
 }
 
+/** An image file as a conflict would keep it. */
+export interface LosingImage {
+  read(): Promise<Uint8Array>;
+  /** What the bytes are: format and dimensions. */
+  metadata: Record<string, unknown>;
+}
+
 export async function persistImportEntity(
   deps: ImportPersistenceDeps,
   rawEntity: RawEntity,
@@ -125,6 +132,8 @@ export async function persistImportEntity(
   >,
   /** Bytes already staged from the file; otherwise inline content is staged here. */
   staged?: StagedAsset,
+  /** The file as an image, when it is one: what a conflict would keep. */
+  losingImage?: LosingImage,
 ): Promise<void> {
   // Staged bytes no upsert takes are discarded on every other way out.
   let unpublished = staged;
@@ -223,13 +232,18 @@ export async function persistImportEntity(
       return;
     }
     // A file that differs from its entity is an edit only against the
-    // version the two last agreed on. Binary files keep winning for now:
-    // a losing image has no text to hold.
-    if (existing && deps.conflicts && !staged && !stagedAsset) {
+    // version the two last agreed on. Text and images are settled that
+    // way; any other binary file keeps winning, having nothing a conflict
+    // could hold.
+    if (
+      existing &&
+      deps.conflicts &&
+      (losingImage !== undefined || (!staged && !stagedAsset))
+    ) {
       const settled = await settleAgainstBase(
         deps,
         deps.conflicts,
-        { rawEntity, entity, existing, filePath },
+        { rawEntity, entity, existing, filePath, losingImage },
         result,
       );
       if (settled) return;
@@ -327,10 +341,11 @@ async function settleAgainstBase(
     entity: BaseEntity;
     existing: BaseEntity;
     filePath: string;
+    losingImage?: LosingImage | undefined;
   },
   result: ImportResult,
 ): Promise<boolean> {
-  const { rawEntity, entity, existing, filePath } = edit;
+  const { rawEntity, entity, existing, filePath, losingImage } = edit;
   const base = await conflicts.base.get(existing.entityType, existing.id);
   const verdict = compareWithBase({
     base,
@@ -346,7 +361,15 @@ async function settleAgainstBase(
       origin: "file",
       ...(base ? { base } : {}),
       current: existing.contentHash,
-      text: rawEntity.content,
+      ...(losingImage
+        ? {
+            text: "",
+            image: {
+              bytes: await losingImage.read(),
+              metadata: losingImage.metadata,
+            },
+          }
+        : { text: rawEntity.content }),
       targetVisibility: existing.visibility,
       ...(entity.visibility !== existing.visibility
         ? { declaredVisibility: entity.visibility }

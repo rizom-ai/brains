@@ -303,3 +303,111 @@ describe("the drive and conflict files", () => {
     );
   });
 });
+
+describe("a drive image save over a newer image", () => {
+  const PNG = Uint8Array.from(
+    atob(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+    ),
+    (char) => char.charCodeAt(0),
+  );
+  const OLD_REF = `asset://sha256/${"b".repeat(64)}` as const;
+  const NEWER_REF = `asset://sha256/${"c".repeat(64)}` as const;
+  const IMAGE = "/dav/image/cover.png";
+
+  function gallery(): FakeBrain {
+    return fakeBrain(
+      [
+        entity("image", "cover", {
+          content: OLD_REF,
+          metadata: { format: "png" },
+        }),
+      ],
+      ["image"],
+      {
+        [OLD_REF]: new Uint8Array([137, 80, 78, 71, 1]),
+        [NEWER_REF]: new Uint8Array([137, 80, 78, 71, 2]),
+      },
+    );
+  }
+  /** The brain replaces the image: another writer. */
+  function replaceInBrain(brain: FakeBrain): void {
+    const index = brain.entities.findIndex((c) => c.id === "cover");
+    const current = brain.entities[index];
+    if (!current) throw new Error("No image");
+    brain.entities[index] = {
+      ...current,
+      content: NEWER_REF,
+      contentHash: "hash-newer-image",
+    };
+  }
+
+  it("is kept as an image conflict when the mount read an older image", async () => {
+    const brain = gallery();
+    const dav = drive(brain);
+    await dav("GET", IMAGE, { as: laptop });
+    replaceInBrain(brain);
+
+    const response = await dav("PUT", IMAGE, { as: laptop, body: PNG });
+
+    expect(response.status).toBe(204);
+    expect(stored(brain, "cover")).toBe(NEWER_REF);
+    expect(brain.conflicts).toHaveLength(1);
+    const [conflict] = brain.conflicts;
+    expect(conflict).toMatchObject({
+      entityType: "image",
+      entityId: "cover",
+      origin: "drive",
+      actor: "laptop",
+      base: "hash-image-cover",
+      current: "hash-newer-image",
+      text: "",
+    });
+    expect([...(conflict?.image?.bytes ?? [])]).toEqual([...PNG]);
+    expect(conflict?.image?.metadata).toMatchObject({ format: "png" });
+    // Nothing was staged for an entity that was not written.
+    expect(brain.updates).toEqual([]);
+  });
+
+  it("is kept once when the same bytes come again", async () => {
+    const brain = gallery();
+    const dav = drive(brain);
+    await dav("GET", IMAGE, { as: laptop });
+    replaceInBrain(brain);
+
+    await dav("PUT", IMAGE, { as: laptop, body: PNG });
+    const retry = await dav("PUT", IMAGE, { as: laptop, body: PNG });
+
+    expect(retry.status).toBe(204);
+    expect(brain.conflicts).toHaveLength(1);
+  });
+
+  it("replaces the image when the mount holds no older version", async () => {
+    const brain = gallery();
+    replaceInBrain(brain);
+
+    const response = await drive(brain)("PUT", IMAGE, {
+      as: laptop,
+      body: PNG,
+    });
+
+    expect(response.status).toBe(204);
+    expect(stored(brain, "cover")).not.toBe(NEWER_REF);
+    expect(brain.conflicts).toEqual([]);
+  });
+
+  it("takes a mount's own image save as its base", async () => {
+    const brain = gallery();
+    const dav = drive(brain);
+    await dav("GET", IMAGE, { as: laptop });
+
+    await dav("PUT", IMAGE, { as: laptop, body: PNG });
+    const again = await dav("PUT", IMAGE, {
+      as: laptop,
+      body: Uint8Array.from([...PNG, 0]),
+    });
+
+    expect(again.status).toBe(204);
+    expect(brain.conflicts).toEqual([]);
+  });
+});

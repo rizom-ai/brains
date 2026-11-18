@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { relative } from "node:path";
 import {
   CONFLICT_ENTITY_TYPE,
+  CONFLICT_IMAGE_ENTITY_TYPE,
   recordConflictRequestSchema,
   type RecordConflictRequest,
 } from "@brains/contracts";
@@ -27,6 +28,12 @@ function declaredVisibility(
   );
   return declared.success ? declared.data : undefined;
 }
+
+/** The types a missing file never deletes: only the Inbox resolves them. */
+const HELD_TYPES: ReadonlySet<string> = new Set([
+  CONFLICT_ENTITY_TYPE,
+  CONFLICT_IMAGE_ENTITY_TYPE,
+]);
 
 /** What became of an entity whose file was removed. */
 export type RemovedFileOutcome = "deleted" | "kept" | "missing";
@@ -68,6 +75,8 @@ export class SyncGuard {
    */
   async writeEntityFile(entity: BaseEntity): Promise<void> {
     const { conflicts, fileOperations } = this.deps;
+    // An image conflict is kept by the brain alone: it has no file.
+    if (entity.entityType === CONFLICT_IMAGE_ENTITY_TYPE) return;
     if (!conflicts) {
       await fileOperations.writeEntity(entity);
       return;
@@ -105,12 +114,10 @@ export class SyncGuard {
     id: string,
   ): Promise<RemovedFileOutcome> {
     const { conflicts, entityService } = this.deps;
-    const base =
-      entityType === CONFLICT_ENTITY_TYPE
-        ? undefined
-        : await conflicts?.base.get(entityType, id);
+    const held = HELD_TYPES.has(entityType);
+    const base = held ? undefined : await conflicts?.base.get(entityType, id);
     const deleted =
-      entityType !== CONFLICT_ENTITY_TYPE &&
+      !held &&
       (await entityService.deleteEntity({
         entityType,
         id,
@@ -135,6 +142,7 @@ export class SyncGuard {
       await conflicts?.base.delete(entityType, id);
       return "missing";
     }
+    if (entityType === CONFLICT_IMAGE_ENTITY_TYPE) return "kept";
     await this.deps.fileOperations.writeEntity(entity);
     await conflicts?.base.set(
       entityType,

@@ -1,5 +1,6 @@
 import {
   CONFLICT_ENTITY_TYPE,
+  CONFLICT_IMAGE_ENTITY_TYPE,
   type RecordConflictRequest,
   type RecordConflictResponse,
 } from "@brains/contracts";
@@ -21,7 +22,11 @@ import { createTwoFilesPatch } from "diff";
 import { conflictId, conflictStamp } from "./conflict-id";
 import { conflictVisibility } from "./conflict-visibility";
 import { decodeLosingText, encodeLosingText } from "./losing-text";
-import { conflictFieldsSchema, type ConflictFields } from "../schemas";
+import {
+  conflictFieldsSchema,
+  conflictImageFieldsSchema,
+  type ConflictFields,
+} from "../schemas";
 
 export interface ConflictStoreDeps {
   reads: Pick<
@@ -30,7 +35,11 @@ export interface ConflictStoreDeps {
   >;
   writes: Pick<
     ServiceEntityWrites,
-    "createEntity" | "updateEntity" | "deleteEntity"
+    | "createEntity"
+    | "updateEntity"
+    | "deleteEntity"
+    | "stageAsset"
+    | "discardStagedAsset"
   >;
   permissions: ServicePermissions;
   now: () => Date;
@@ -38,6 +47,8 @@ export interface ConflictStoreDeps {
 
 /** A conflict as the Inbox lists it: what it is about, never its text. */
 export interface ConflictItem extends ConflictFields {
+  /** A losing text, or a losing image held as its bytes. */
+  kind: "text" | "image";
   /** Short and stable, for an Inbox item id; the conflict's own id can be long. */
   itemId: string;
   conflictId: string;
@@ -69,9 +80,13 @@ export class ConflictStore {
   async record(
     request: RecordConflictRequest,
   ): Promise<RecordConflictResponse> {
-    const edit = computeContentHash(request.text);
+    const { image } = request;
+    // What makes the same edit one conflict: the text, or the image's bytes.
+    const edit = image
+      ? new Bun.CryptoHasher("sha256").update(image.bytes).digest("hex")
+      : computeContentHash(request.text);
     const [held] = await this.deps.reads.listEntities({
-      entityType: CONFLICT_ENTITY_TYPE,
+      entityType: image ? CONFLICT_IMAGE_ENTITY_TYPE : CONFLICT_ENTITY_TYPE,
       options: {
         filter: {
           metadata: {
@@ -113,7 +128,22 @@ export class ConflictStore {
       request.entityId,
       attempt === 1 ? stamp : `${stamp}-${attempt}`,
     );
+    const visibility = conflictVisibility(
+      request.targetVisibility,
+      request.declaredVisibility,
+    );
+    // Only if absent: a taken stamp is another conflict, never replaced.
+    const options = { conditionalWrite: { expectedRevision: null } };
     try {
+      if (request.image) {
+        await this.createImage(request.image, {
+          id,
+          metadata: fields,
+          created: at.toISOString(),
+          visibility,
+        });
+        return id;
+      }
       await this.deps.writes.createEntity({
         entity: {
           id,
@@ -121,13 +151,9 @@ export class ConflictStore {
           content: encodeLosingText(request.text),
           metadata: fields,
           created: at.toISOString(),
-          visibility: conflictVisibility(
-            request.targetVisibility,
-            request.declaredVisibility,
-          ),
+          visibility,
         },
-        // Only if absent: a taken stamp is another conflict, never replaced.
-        options: { conditionalWrite: { expectedRevision: null } },
+        options,
       });
       return id;
     } catch (error) {
@@ -144,28 +170,82 @@ export class ConflictStore {
     }
   }
 
-  /** Every conflict, oldest first. */
-  async list(): Promise<ConflictItem[]> {
-    const conflicts = await this.deps.reads.listEntities({
-      entityType: CONFLICT_ENTITY_TYPE,
-      options: {
-        filter: { visibilityScope: SYSTEM_SCOPE },
-        sortFields: [{ field: "created", direction: "asc" }],
-        limit: LIST_LIMIT,
-      },
+  /**
+   * Keep a losing image as its bytes. They are staged for this one create,
+   * which publishes them with the conflict or discards them.
+   */
+  private async createImage(
+    image: NonNullable<RecordConflictRequest["image"]>,
+    conflict: Pick<BaseEntity, "id" | "created" | "visibility"> & {
+      metadata: ConflictFields;
+    },
+  ): Promise<void> {
+    const { writes } = this.deps;
+    const stagedAsset = await writes.stageAsset(image.bytes, {
+      expectedSize: image.bytes.byteLength,
     });
-    return conflicts.map((conflict) => ({
+    await writes.createEntity({
+      entity: {
+        ...conflict,
+        entityType: CONFLICT_IMAGE_ENTITY_TYPE,
+        content: stagedAsset.ref,
+        metadata: {
+          ...conflict.metadata,
+          image: { ...image.metadata, sizeBytes: stagedAsset.sizeBytes },
+        },
+      },
+      stagedAsset,
+      options: { conditionalWrite: { expectedRevision: null } },
+    });
+  }
+
+  /** Every conflict, text and image, oldest first. */
+  async list(): Promise<ConflictItem[]> {
+    const [texts, images] = await Promise.all(
+      [CONFLICT_ENTITY_TYPE, CONFLICT_IMAGE_ENTITY_TYPE].map((entityType) =>
+        this.deps.reads.listEntities({
+          entityType,
+          options: {
+            filter: { visibilityScope: SYSTEM_SCOPE },
+            sortFields: [{ field: "created", direction: "asc" }],
+            limit: LIST_LIMIT,
+          },
+        }),
+      ),
+    );
+    const item = (
+      kind: ConflictItem["kind"],
+      conflict: BaseEntity,
+    ): ConflictItem => ({
       ...conflictFieldsSchema.parse(conflict.metadata),
+      kind,
       itemId: itemIdOf(conflict.id),
       conflictId: conflict.id,
       created: conflict.created,
-    }));
+    });
+    return [
+      ...(texts ?? []).map((conflict) => item("text", conflict)),
+      ...(images ?? []).map((conflict) => item("image", conflict)),
+    ]
+      .sort((left, right) => left.created.localeCompare(right.created))
+      .slice(0, LIST_LIMIT);
   }
 
   /** A line diff from the target's current version to the losing text. */
   async detail(itemId: string, actor: InboxActor): Promise<string> {
     const conflict = await this.require(itemId);
     const target = await this.target(conflict.fields, actor);
+    if (conflict.fields.kind === "image") {
+      const { image } = conflictImageFieldsSchema.parse(
+        conflict.entity.metadata,
+      );
+      return [
+        target
+          ? `Current image: ${describeImage(target.metadata)}`
+          : "The image no longer exists.",
+        `This version: ${describeImage(image)}`,
+      ].join("\n");
+    }
     const losing = decodeLosingText(conflict.entity.content);
     if (!target) {
       return `The entry no longer exists. The edit that lost:\n\n${losing}`;
@@ -192,6 +272,9 @@ export class ConflictStore {
     const conflict = await this.require(itemId);
     const target = await this.target(conflict.fields, actor);
     if (!target) throw new Error("The entry no longer exists");
+    if (conflict.fields.kind === "image") {
+      return this.applyImage(conflict.entity, target, actor);
+    }
 
     const text = decodeLosingText(conflict.entity.content);
     const parsed = reads.deserializeEntity(text, target.entityType);
@@ -244,24 +327,63 @@ export class ConflictStore {
     });
   }
 
+  /**
+   * Make the losing image the target's image: the target takes the
+   * reference to bytes the conflict already holds, and what those bytes are.
+   */
+  private async applyImage(
+    conflict: BaseEntity,
+    target: BaseEntity,
+    actor: InboxActor,
+  ): Promise<void> {
+    const { writes, permissions } = this.deps;
+    const { image } = conflictImageFieldsSchema.parse(conflict.metadata);
+    permissions.assertEntityActionAllowed(target.entityType, "update", {
+      userPermissionLevel: actor.permissionLevel,
+    });
+    const result = await writes.updateEntity({
+      entity: {
+        ...target,
+        content: conflict.content,
+        metadata: { ...target.metadata, ...image },
+      },
+      options: {
+        expectedContentHash: target.contentHash,
+        eventContext: { interfaceType: "inbox" },
+      },
+    });
+    if (result.skipReason === "content-conflict") {
+      throw new Error(
+        "The entry changed while this version was being applied; review the new current version",
+      );
+    }
+    await writes.deleteEntity({
+      entityType: conflict.entityType,
+      id: conflict.id,
+    });
+  }
+
   /** Keep the current version: the conflict goes, the target is untouched. */
   async dismiss(itemId: string): Promise<void> {
     const conflict = await this.require(itemId);
     await this.deps.writes.deleteEntity({
-      entityType: CONFLICT_ENTITY_TYPE,
+      entityType: conflict.entity.entityType,
       id: conflict.entity.id,
     });
   }
 
   private async require(
     itemId: string,
-  ): Promise<{ entity: BaseEntity; fields: ConflictFields }> {
+  ): Promise<{ entity: BaseEntity; fields: ConflictItem }> {
     const item = (await this.list()).find(
       (candidate) => candidate.itemId === itemId,
     );
     const entity = item
       ? await this.deps.reads.getEntity({
-          entityType: CONFLICT_ENTITY_TYPE,
+          entityType:
+            item.kind === "image"
+              ? CONFLICT_IMAGE_ENTITY_TYPE
+              : CONFLICT_ENTITY_TYPE,
           id: item.conflictId,
           visibilityScope: SYSTEM_SCOPE,
         })
@@ -282,6 +404,18 @@ export class ConflictStore {
       source: true,
     });
   }
+}
+
+/** An image in words: its format, its dimensions when known, its size. */
+function describeImage(metadata: Record<string, unknown>): string {
+  const { format, width, height, sizeBytes } = metadata;
+  return [
+    typeof format === "string" ? format : "unknown format",
+    ...(typeof width === "number" && typeof height === "number"
+      ? [`${width} × ${height}`]
+      : []),
+    ...(typeof sizeBytes === "number" ? [`${sizeBytes} bytes`] : []),
+  ].join(", ");
 }
 
 function itemIdOf(id: string): string {

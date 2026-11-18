@@ -34,6 +34,7 @@
       },
       "required": ["targetType", "targetId", "origin", "current", "edit"]
     },
+    "conflict-image": null,
     "form": {
       "type": "object",
       "properties": {

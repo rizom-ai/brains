@@ -98,6 +98,7 @@ export {
 } from "./asked-before";
 export {
   CONFLICT_ENTITY_TYPE,
+  CONFLICT_IMAGE_ENTITY_TYPE,
   conflictOriginSchema,
   recordConflictContract,
   recordConflictRequestSchema,
