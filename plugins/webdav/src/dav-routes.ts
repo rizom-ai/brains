@@ -9,6 +9,7 @@ import {
   type WriteOutcome,
 } from "./dav-saves";
 import { ScratchStore, isScratchName, type ScratchFile } from "./dav-scratch";
+import { CleanupGuard } from "./dav-cleanups";
 import { LockStore, requestedLockSeconds } from "./dav-locks";
 import { DavTree, type DavNode, type DavReader } from "./dav-tree";
 import {
@@ -81,6 +82,7 @@ interface DavServer {
   options: DavRoutesOptions;
   scratch: ScratchStore;
   locks: LockStore;
+  cleanups: CleanupGuard;
 }
 
 /**
@@ -96,6 +98,7 @@ export function createDavRoutes(
     options,
     scratch: new ScratchStore(options.now),
     locks: new LockStore(options.now),
+    cleanups: new CleanupGuard(options.now),
   };
   const handlers: Record<
     Exclude<DavMethod, "OPTIONS">,
@@ -323,31 +326,34 @@ async function put(server: DavServer, dav: DavRequest): Promise<Response> {
     dav.request,
     Math.max(maxFileBytes, maxAssetBytes),
   );
+  const userId = dav.grant.principal.userId;
+  const scratch = isScratchPath(path.segments);
   if (!bytes) {
+    if (!scratch) server.cleanups.expect(userId, path.segments);
     return new Response("The file is larger than the drive accepts", {
       status: 413,
     });
   }
-  const userId = dav.grant.principal.userId;
-  if (isScratchPath(path.segments)) {
+  if (scratch) {
     // A folder's name has no extension either; it is not a temporary file.
     if (await folderExists(server, dav, path.segments)) {
       return folderHasNoContent();
     }
     return scratchWritten(server.scratch.put(userId, path.segments, bytes));
   }
-  return written(
-    server,
-    dav,
-    path.segments,
-    await saveEntityFile(writeDeps(server, dav), {
-      segments: path.segments,
-      bytes,
-      ifMatch: dav.request.headers.get("if-match"),
-      onlyIfAbsent: dav.request.headers.get("if-none-match")?.trim() === "*",
-      grant: dav.grant,
-    }),
-  );
+  const outcome = await saveEntityFile(writeDeps(server, dav), {
+    segments: path.segments,
+    bytes,
+    ifMatch: dav.request.headers.get("if-match"),
+    onlyIfAbsent: dav.request.headers.get("if-none-match")?.trim() === "*",
+    grant: dav.grant,
+  });
+  // A refused save, or one stored in another form (it has no ETag), is an
+  // upload a client takes as failed and cleans up after with a delete.
+  if ("message" in outcome || outcome.etag === undefined) {
+    server.cleanups.expect(userId, path.segments);
+  }
+  return written(server, dav, path.segments, outcome);
 }
 
 async function remove(server: DavServer, dav: DavRequest): Promise<Response> {
@@ -366,13 +372,20 @@ async function remove(server: DavServer, dav: DavRequest): Promise<Response> {
     return forbidden("The drive does not delete folders");
   }
   if (path.asFolder) return notFound();
+  const ifMatch = dav.request.headers.get("if-match");
+  if (ifMatch === null && server.cleanups.take(userId, path.segments)) {
+    return new Response(
+      "The file is kept: the save just before was refused or stored in another form. Delete it again to remove it.",
+      { status: 409 },
+    );
+  }
   return written(
     server,
     dav,
     path.segments,
     await deleteEntityFile(writeDeps(server, dav), {
       segments: path.segments,
-      ifMatch: dav.request.headers.get("if-match"),
+      ifMatch,
       grant: dav.grant,
     }),
   );

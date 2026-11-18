@@ -58,6 +58,8 @@ A file is created inside a folder that exists. A new folder (`MKCOL`) is only a 
 
 Deleting a file deletes its entity, under the delete action policy and only while it is still the version read. A folder cannot be deleted; it goes when the last entity inside it does.
 
+rclone takes a save the drive refuses, or stores in another form than it was sent, as a failed upload, and deletes the file to clean up after it. The first delete without `If-Match` that the same person sends for that file within 30 seconds of such a save answers 409 and keeps the entity; a second delete, or one naming the version, deletes it.
+
 Renaming and copying entity files answer 403.
 
 ## Images

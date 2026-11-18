@@ -1,6 +1,6 @@
 # WebDAV mount: a brain as a network drive
 
-Last updated: 2026-11-17
+Last updated: 2026-11-18
 
 ## Status
 
@@ -116,12 +116,15 @@ createEntity({ conditionalWrite: { expectedRevision: null } }) ─exists→ 412
 **DELETE file**
 
 ```text
+no If-Match, within 30 s of this person's save of the file that was refused or stored in another form ─→ 409, once
 action policy (delete) ─deny→ 403
 deleteEntity({ expectedContentHash: If-Match }) ─mismatch→ 412
 → 204, audit event
 ```
 
 A collection DELETE is 403: a folder disappears when its last entity is deleted.
+
+rclone deletes a file after an upload it takes as failed: one the server refuses (`backend/webdav` `Object.Update`), and one whose size read back differs from what it sent (copy verify → `removeFailedCopy`), which a save stored in another form is. It retries the upload every few minutes while mounted. On the smoke brain a neovim save of `brandbook.md` was followed by that delete and removed the note. The drive therefore refuses the one delete without `If-Match` that follows such a save from the same person.
 
 Writes carry `eventContext.interfaceType: "webdav"` and the acting user. directory-sync then exports them to `brain-data/` and git as it does any other change.
 
