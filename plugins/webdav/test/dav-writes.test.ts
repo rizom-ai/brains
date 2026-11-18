@@ -506,4 +506,81 @@ describe("WebDAV editor temporary files", () => {
       ).status,
     ).toBe(502);
   });
+
+  it("keeps the entity when an editor renames it to its backup", async () => {
+    const brain = library();
+    const dav = drive(brain);
+
+    const backup = await dav("MOVE", "/dav/post/first.md", {
+      headers: dest("/dav/post/first.md~"),
+    });
+
+    expect(backup.status).toBe(201);
+    expect(await (await dav("GET", "/dav/post/first.md~")).text()).toBe(
+      doc("First", "status: draft\n"),
+    );
+    expect(stored(brain, "post", "first")).toBe(
+      doc("First", "status: draft\n"),
+    );
+    expect(brain.deletes).toEqual([]);
+    const listing = await (
+      await dav("PROPFIND", "/dav/post/", { headers: { depth: "1" } })
+    ).text();
+    expect(listing).toContain("<D:href>/dav/post/first.md</D:href>");
+    expect(listing).toContain("<D:href>/dav/post/first.md~</D:href>");
+  });
+
+  it("saves through neovim's backup by rename", async () => {
+    const brain = library();
+    const dav = drive(brain);
+    const edited = doc("First, edited", "status: draft\n");
+
+    // `:w` with neovim's defaults (writebackup, backupcopy=auto): probe
+    // whether a new file keeps its owner, clear the backup's name, rename
+    // the file to it, write the file anew, then drop the backup. A refused
+    // rename makes neovim copy the file and delete the original instead.
+    await dav("PUT", "/dav/post/4913", { body: "" });
+    await dav("DELETE", "/dav/post/4913");
+    await dav("DELETE", "/dav/post/first.md~");
+    const rename = await dav("MOVE", "/dav/post/first.md", {
+      headers: dest("/dav/post/first.md~"),
+    });
+    const write = await dav("PUT", "/dav/post/first.md", { body: edited });
+    const drop = await dav("DELETE", "/dav/post/first.md~");
+
+    expect([rename.status, write.status, drop.status]).toEqual([201, 204, 204]);
+    expect(stored(brain, "post", "first")).toBe(edited);
+    expect(brain.deletes).toEqual([]);
+    expect((await dav("GET", "/dav/post/first.md~")).status).toBe(404);
+  });
+
+  it("keeps an earlier backup unless the rename may overwrite it", async () => {
+    const brain = library();
+    const dav = drive(brain);
+    await dav("PUT", "/dav/post/first.md~", { body: "older backup" });
+
+    const guarded = await dav("MOVE", "/dav/post/first.md", {
+      headers: { ...dest("/dav/post/first.md~"), overwrite: "F" },
+    });
+    expect(guarded.status).toBe(412);
+    expect(await (await dav("GET", "/dav/post/first.md~")).text()).toBe(
+      "older backup",
+    );
+
+    const replaced = await dav("MOVE", "/dav/post/first.md", {
+      headers: dest("/dav/post/first.md~"),
+    });
+    expect(replaced.status).toBe(204);
+    expect(await (await dav("GET", "/dav/post/first.md~")).text()).toBe(
+      doc("First", "status: draft\n"),
+    );
+    // Renaming one entity onto another is still not offered.
+    expect(
+      (
+        await dav("MOVE", "/dav/post/first.md", {
+          headers: dest("/dav/post/renamed.md"),
+        })
+      ).status,
+    ).toBe(403);
+  });
 });

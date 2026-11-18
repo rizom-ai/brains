@@ -60,7 +60,7 @@ Deleting a file deletes its entity, under the delete action policy and only whil
 
 rclone takes a save the drive refuses, or stores in another form than it was sent, as a failed upload, and deletes the file to clean up after it. The first delete without `If-Match` that the same person sends for that file within 30 seconds of such a save answers 409 and keeps the entity; a second delete, or one naming the version, deletes it.
 
-Renaming and copying entity files answer 403.
+Renaming and copying entity files answer 403, with one exception: renaming an entity's file onto a temporary name (`note.md` → `note.md~`) is an editor making its backup before it saves. The file's bytes are copied to the person's temporary files and the entity stays, for the save that follows to replace. Refusing that rename makes neovim copy the file and delete the original, which would delete the entity.
 
 ## Images
 

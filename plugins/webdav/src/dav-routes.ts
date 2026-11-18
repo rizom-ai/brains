@@ -461,7 +461,8 @@ async function makeFolder(
 /**
  * MOVE is how an editor finishes an atomic save: it wrote a temporary file
  * and renames it onto the real one. That rename is a save of the temporary
- * file's bytes. Renaming an entity is not offered.
+ * file's bytes. Renaming an entity is not offered, except onto a temporary
+ * name, which is an editor's backup.
  */
 async function move(server: DavServer, dav: DavRequest): Promise<Response> {
   const header = dav.request.headers.get("destination");
@@ -479,14 +480,17 @@ async function move(server: DavServer, dav: DavRequest): Promise<Response> {
   const { path } = dav;
   if (!path) return notFound();
   if (!permitted(server, dav, destination.segments)) return locked();
-  if (path.asFolder || !isScratchPath(path.segments)) {
-    return forbidden("The drive does not rename files");
+  const overwrite = dav.request.headers.get("overwrite")?.toUpperCase() !== "F";
+  if (path.asFolder) return forbidden("The drive does not rename files");
+  if (!isScratchPath(path.segments)) {
+    return isScratchPath(destination.segments)
+      ? backUp(server, dav, path.segments, destination.segments, overwrite)
+      : forbidden("The drive does not rename files");
   }
   const userId = dav.grant.principal.userId;
   const source = server.scratch.get(userId, path.segments);
   if (!source) return notFound();
 
-  const overwrite = dav.request.headers.get("overwrite")?.toUpperCase() !== "F";
   if (isScratchPath(destination.segments)) {
     if (!overwrite && server.scratch.get(userId, destination.segments)) {
       return preconditionFailed("The destination exists");
@@ -513,6 +517,34 @@ async function move(server: DavServer, dav: DavRequest): Promise<Response> {
   // A refused save keeps the temporary file: the editor still has its work.
   if (outcome.status < 300) server.scratch.delete(userId, path.segments);
   return written(server, dav, destination.segments, outcome);
+}
+
+/**
+ * An editor that keeps a backup renames the file it is about to save onto
+ * the backup's name (`note.md` → `note.md~`) and then writes the file anew.
+ * Refusing that rename makes neovim copy the file and delete the original
+ * instead (`vim_rename`), which deletes the entity. So a rename of an entity
+ * onto a temporary name is taken as the backup: the file's bytes are copied
+ * to the person's temporary files and the entity stays, for the save that
+ * follows to replace.
+ */
+async function backUp(
+  server: DavServer,
+  dav: DavRequest,
+  source: string[],
+  destination: string[],
+  overwrite: boolean,
+): Promise<Response> {
+  const located = await dav.tree.entityAt(source);
+  if (!located) return notFound();
+  const userId = dav.grant.principal.userId;
+  if (!overwrite && server.scratch.get(userId, destination)) {
+    return preconditionFailed("The destination exists");
+  }
+  const bytes = new Uint8Array(
+    await new Response(await located.file.open()).arrayBuffer(),
+  );
+  return scratchWritten(server.scratch.put(userId, destination, bytes));
 }
 
 /**
