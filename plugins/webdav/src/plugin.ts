@@ -1,3 +1,8 @@
+import {
+  CONFLICT_ENTITY_TYPE,
+  recordConflictContract,
+} from "@brains/contracts";
+import { runtimeStateMountBases } from "./dav-mounts";
 import { WEBDAV_INTERACTION_ID } from "@brains/contracts";
 import {
   defineServicePlugin,
@@ -46,6 +51,18 @@ const service = defineServicePlugin({
     // A job worker serves no HTTP and offers no way in.
     if (runtime.executionOnly) return { routes: [] };
 
+    // A save that loses to a newer version is kept as a conflict. Without
+    // the type that holds one it would be dropped, so the brain stops.
+    runtime.registered(() => {
+      if (runtime.entityReads.getEntityTypes().includes(CONFLICT_ENTITY_TYPE))
+        return;
+      throw new Error(
+        `webdav needs the "${CONFLICT_ENTITY_TYPE}" entity type to keep saves that lose to a newer version. Add "conflict" to this brain, which the core bundle includes.`,
+      );
+    });
+    const mounts = runtimeStateMountBases(runtime.classRuntimeState);
+    runtime.ready(() => mounts.sweep());
+
     runtime.interaction({
       id: WEBDAV_INTERACTION_ID,
       label: "Drive",
@@ -83,6 +100,12 @@ const service = defineServicePlugin({
         // brain without it admits nobody.
         resolveAppPassword: async (request) =>
           runtime.auth()?.resolveAppPassword(request),
+        mounts,
+        // Unanswered when no conflict service runs here; the save is then
+        // refused, which keeps the edit with the client.
+        recordConflict: async (request) =>
+          (await runtime.messaging.request(recordConflictContract, request))
+            .status === "answered",
       }),
     };
   },

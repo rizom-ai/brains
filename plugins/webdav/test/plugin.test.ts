@@ -1,18 +1,40 @@
 import { describe, expect, it } from "bun:test";
 import { WEBDAV_INTERACTION_ID } from "@brains/contracts";
 import {
+  BaseEntityAdapter,
   instantiatePluginPackageDefinition,
+  type BaseEntity,
   type Plugin,
   type WebRouteDefinition,
 } from "@brains/plugins";
 import {
+  baseEntitySchema,
   createMockAuthBackend,
   createMockShell,
   registerAll,
   type MockShell,
 } from "@brains/plugins/test";
+import { getErrorMessage } from "@brains/utils/error";
+import { z } from "@brains/utils/zod";
 import webdavPackage from "../src";
 import packageJson from "../package.json";
+
+class PlainAdapter extends BaseEntityAdapter<BaseEntity> {
+  constructor(entityType: string) {
+    super({
+      entityType,
+      purpose: "A type the drive's start check looks for",
+      schema: baseEntitySchema,
+      frontmatterSchema: z.object({}),
+    });
+  }
+  public override toMarkdown(entity: BaseEntity): string {
+    return entity.content;
+  }
+  public fromMarkdown(markdown: string): Partial<BaseEntity> {
+    return { content: markdown };
+  }
+}
 
 function plugins(): Plugin[] {
   return instantiatePluginPackageDefinition(
@@ -124,5 +146,32 @@ describe("the WebDAV plugin's registered surface", () => {
     expect(response.status).toBe(207);
     expect(await response.text()).toContain("<D:href>/dav/</D:href>");
     expect(seen).toHaveLength(1);
+  });
+});
+
+describe("the WebDAV plugin and the conflict type", () => {
+  const finalized = async (types: string[]): Promise<string> => {
+    const shell = createMockShell();
+    for (const type of types) {
+      shell
+        .getEntityRegistry()
+        .registerEntityType(type, baseEntitySchema, new PlainAdapter(type));
+    }
+    const installedPlugins = plugins();
+    await registerAll(shell, installedPlugins);
+    return Promise.all(
+      installedPlugins.map(async (plugin) => plugin.finalizeRegistration?.()),
+    ).then(
+      () => "",
+      (error: unknown) => getErrorMessage(error),
+    );
+  };
+
+  it("refuses to start in a brain that cannot keep a losing save", async () => {
+    expect(await finalized([])).toContain('needs the "conflict" entity type');
+  });
+
+  it("starts in a brain that has the conflict type", async () => {
+    expect(await finalized(["conflict"])).toBe("");
   });
 });

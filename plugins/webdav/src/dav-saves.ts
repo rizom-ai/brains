@@ -1,3 +1,6 @@
+import type { RecordConflictRequest } from "@brains/contracts";
+import { computeContentHash } from "@brains/utils/hash";
+import type { MountBase } from "./dav-mounts";
 import type {
   AppendAuthAuditEventInput,
   AuthAppPasswordGrant,
@@ -53,10 +56,21 @@ export type WriteOutcome =
   | { status: 201 | 204; etag?: string | undefined }
   | { status: 403 | 404 | 409 | 412 | 413 | 422; message: string };
 
+/** What the mount making a request last held of the file it names. */
+export interface MountView {
+  base(): Promise<MountBase | undefined>;
+  held(hash: string): Promise<void>;
+  conflictKept(edit: string): Promise<void>;
+  forget(): Promise<void>;
+}
+
 export interface WriteDeps {
   tree: DavTree;
   reader: DavReader;
   writes: DavWrites;
+  mount: MountView;
+  /** Keep a losing save as a conflict; false when nothing holds it now. */
+  recordConflict(request: RecordConflictRequest): Promise<boolean>;
   /** Whether a folder is there for this person: real, or one they made. */
   folderExists(segments: string[]): Promise<boolean>;
 }
@@ -133,6 +147,15 @@ async function updateEntityFile(
 
   const document = readDocument(writes, request.bytes, existing.entityType);
   if ("status" in document) return document;
+  // An edit the type reads to what is already stored changes nothing,
+  // whatever version it was based on.
+  if (readsAsStored(writes, document.parsed, existing)) {
+    await deps.mount.held(existing.contentHash);
+    return {
+      status: 204,
+      etag: await etagIfStoredAsSent(deps, request, document.text),
+    };
+  }
 
   const { visibility: _policy, ...metadata } =
     document.parsed.metadata ?? existing.metadata;
@@ -159,6 +182,21 @@ async function updateEntityFile(
   ]);
   if (refused) return refused;
 
+  // A save that names no version is based on the one this mount last held.
+  // Over a newer one it loses, and is kept instead of dropped: a client
+  // that sent no version has nowhere to show a refusal, and would retry.
+  if (request.ifMatch === null) {
+    const base = await deps.mount.base();
+    if (base !== undefined && base.hash !== existing.contentHash) {
+      return keepAsConflict(deps, request, {
+        existing,
+        base,
+        text: document.text,
+        declared: document.parsed.visibility,
+      });
+    }
+  }
+
   const result = await attemptAsync(() =>
     writes.updateEntity({
       entity,
@@ -177,10 +215,64 @@ async function updateEntityFile(
   if (!result.value.skipped) {
     await audit(writes, request.grant, "update", "allowed", entity);
   }
+  const saved = await deps.tree.entityAt(request.segments);
+  if (saved) await deps.mount.held(saved.entity.contentHash);
   return {
     status: 204,
-    etag: await etagIfStoredAsSent(deps, request, document.text),
+    etag: saved?.entity.content === document.text ? saved.file.etag : undefined,
   };
+}
+
+/** Whether a document reads to the entity that is already stored. */
+function readsAsStored(
+  writes: DavWrites,
+  parsed: Partial<BaseEntity>,
+  existing: BaseEntity,
+): boolean {
+  const stored = attempt(() =>
+    writes.deserializeEntity(existing.content, existing.entityType),
+  );
+  return (
+    stored.ok &&
+    (parsed.visibility ?? existing.visibility) === existing.visibility &&
+    Bun.deepEquals(parsed, stored.value)
+  );
+}
+
+/**
+ * Hand a save that lost to whoever keeps conflicts, and answer it as saved.
+ * The same losing save again is answered the same way and kept once, also
+ * after its conflict was resolved, until the mount reads the file again.
+ */
+async function keepAsConflict(
+  deps: WriteDeps,
+  request: SaveRequest,
+  lost: {
+    existing: BaseEntity;
+    base: MountBase;
+    text: string;
+    declared: ContentVisibility | undefined;
+  },
+): Promise<WriteOutcome> {
+  const { existing, base, text, declared } = lost;
+  const edit = computeContentHash(text);
+  if (base.conflictEdit === edit) return { status: 204 };
+  const kept = await deps.recordConflict({
+    entityType: existing.entityType,
+    entityId: existing.id,
+    origin: "drive",
+    actor: request.grant.principal.userId,
+    base: base.hash,
+    current: existing.contentHash,
+    text,
+    targetVisibility: existing.visibility,
+    ...(declared !== undefined &&
+      declared !== existing.visibility && { declaredVisibility: declared }),
+  });
+  // Nothing holds a conflict: refusing is the only way not to lose the edit.
+  if (!kept) return stale();
+  await deps.mount.conflictKept(edit);
+  return { status: 204 };
 }
 
 async function createEntityFile(
@@ -369,6 +461,19 @@ export async function deleteEntityFile(
   ]);
   if (refused) return refused;
 
+  // A delete that names no version removes the one this mount last held.
+  // A newer one stays: a delete carries no text to keep, and 409 is the
+  // answer a client does not retry.
+  if (request.ifMatch === null) {
+    const base = await deps.mount.base();
+    if (base !== undefined && base.hash !== entity.contentHash) {
+      return {
+        status: 409,
+        message: "The file changed since this drive last read it",
+      };
+    }
+  }
+
   const deleted = await deps.writes.deleteEntity({
     entityType: entity.entityType,
     id: entity.id,
@@ -378,6 +483,7 @@ export async function deleteEntityFile(
     },
   });
   if (!deleted) return stale();
+  await deps.mount.forget();
   await audit(deps.writes, request.grant, "delete", "allowed", entity);
   return { status: 204 };
 }
