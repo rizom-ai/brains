@@ -289,12 +289,17 @@ jobs:
           bun run --filter @brains/web-chat build
           bun run --filter @brains/studio build
 
-      - name: Compare console baselines
+      - name: Test the axe audit helper
+        env:
+          CONSOLE_CHROMIUM_PATH: ${{ steps.chrome.outputs.chrome-path }}
+        run: bun test scripts/accessibility
+
+      - name: Compare console baselines and audit accessibility
         env:
           CONSOLE_CHROMIUM_PATH: ${{ steps.chrome.outputs.chrome-path }}
           # Use the same reviewed RGB rendering as local baseline comparisons.
           FONTCONFIG_FILE: ${{ github.workspace }}/test/visual/console/fontconfig-rgb.conf
-        run: bun run visual:console
+        run: bun run visual:console -- --a11y
 
       - name: Upload failed console captures
         if: failure()

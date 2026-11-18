@@ -25,7 +25,9 @@ Proposed, with a deadline: everything below is released and deployed to the flee
 
 - **Surfaces.** Studio chat, a Studio Library note page, the web-chat guest page, and rizom.ai/ask. They are what a person and a visitor actually use, and what the application's video shows.
 - **Standard and threshold.** The same axe tags as the console capture (WCAG 2.0–2.2, A and AA). Critical and serious findings are fixed; moderate and minor ones are recorded in the report with a decision each.
-- **One runner.** The audit reuses the console capture's axe injection, extracted into a shared helper, rather than adding `@axe-core/playwright`. It runs against a test app for CI and against a given URL for live checks.
+- **One runner.** The audit and the console capture share one axe helper (`scripts/accessibility/axe-audit.ts`) rather than adding `@axe-core/playwright`. CI audits the Studio fixture surfaces through `visual:console --a11y`; `bun run a11y:audit` audits given URLs.
+- **Studio behind sign-in.** Production Studio needs the owner's passkey, so Studio surfaces are audited on a test app at the released version, signed in with Chrome's virtual authenticator (`--setup`, then `--passkey`). The public surfaces are audited on production.
+- **Climates.** Studio is audited in instrument and paper; the paper climate is where the baseline findings are.
 - **Report.** `docs/accessibility-audit.md` records the date, the surfaces, findings before and after per surface, and each fix with its PR.
 - **Alt text source.** The image entity gains `altSource: "fallback" | "generated" | "owner"` in its Zod schema, defaulting to `fallback` for existing images. A generated description never overwrites `owner`. An edit to `alt` in Studio sets `owner`.
 - **When alt text is written.** A job runs when an image becomes public or is published and its `altSource` is `fallback`. It asks the brain's `visionModel` (local or cloud) for one sentence of at most 125 characters describing what the image shows, and stores it with `altSource: "generated"`.
@@ -33,13 +35,9 @@ Proposed, with a deadline: everything below is released and deployed to the flee
 
 ## Phases
 
-### 1. Audit runner and baseline (Wednesday 18 November)
+### 1. Audit runner and baseline (Wednesday 18 November) — done
 
-- Test first: the shared axe helper returns violations for a fixture page with a known missing label and none for a clean one.
-- A script, `bun run a11y:audit -- <url>…`, runs the helper on each surface and prints violations by impact.
-- Run it on the test app and on the live surfaces; write the baseline counts into `docs/accessibility-audit.md`.
-
-Done when the baseline report exists with counts per surface.
+The helper, `bun run a11y:audit` and the baseline in [accessibility-audit.md](../accessibility-audit.md): four paper-climate `color-contrast` findings in Studio and one `aria-hidden-focus` on rizom.ai/ask, all serious; nothing critical, moderate or minor.
 
 ### 2. Fix critical and serious findings (Thursday 19 November)
 
