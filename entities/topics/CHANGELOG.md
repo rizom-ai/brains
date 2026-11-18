@@ -1,5 +1,17 @@
 # @brains/topics
 
+## 0.2.0-alpha.742
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.742
+  - @brains/atproto-contracts@0.2.0-alpha.742
+  - @rizom/brain-ui@0.2.0-alpha.742
+  - @brains/content-formatters@0.2.0-alpha.742
+  - @brains/contracts@0.2.0-alpha.742
+  - @brains/utils@0.2.0-alpha.742
+
 ## 0.2.0-alpha.741
 
 ### Patch Changes

@@ -1,5 +1,13 @@
 # @brains/refined-note
 
+## 0.2.0-alpha.742
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.742
+  - @brains/utils@0.2.0-alpha.742
+
 ## 0.2.0-alpha.741
 
 ### Patch Changes

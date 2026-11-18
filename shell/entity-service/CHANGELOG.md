@@ -1,5 +1,19 @@
 # @brains/entity-service
 
+## 0.2.0-alpha.742
+
+### Patch Changes
+
+- [#1000](https://github.com/rizom-ai/brains/pull/1000) [`5e26114`](https://github.com/rizom-ai/brains/commit/5e2611450d45c0aeb09865ec7757362b6b761f40) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A field update to a type read as written now persists. Approving or archiving a saved agent with system_update reported "Updated agent." but stored nothing: the agent's read hands back its header as stored, and the update laid that unchanged header back over the new status. Only the header fields an update changes against the stored document now count as written, so a field change reaches storage and a header an editor rewrites still wins. Forms, topics, SWOT assessments and conversation summaries, also read as written, were affected the same way.
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.742
+  - @brains/content-formatters@0.2.0-alpha.742
+  - @brains/contracts@0.2.0-alpha.742
+  - @brains/db@0.2.0-alpha.742
+  - @brains/utils@0.2.0-alpha.742
+  - @brains/job-queue@0.2.0-alpha.742
+  - @brains/messaging-service@0.2.0-alpha.742
+
 ## 0.2.0-alpha.741
 
 ### Patch Changes
