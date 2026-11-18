@@ -59,7 +59,7 @@ export const SocialPostDetailTemplate = ({
               post.coverImageHeight && (
                 <CoverImage
                   src={post.coverImageUrl}
-                  alt={post.frontmatter.title}
+                  alt={post.coverImageAlt ?? post.frontmatter.title}
                   width={post.coverImageWidth}
                   height={post.coverImageHeight}
                   className="mb-8"

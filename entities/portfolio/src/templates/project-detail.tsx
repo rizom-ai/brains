@@ -103,7 +103,7 @@ export const ProjectDetailTemplate = ({
               project.coverImageHeight && (
                 <CoverImage
                   src={coverImageUrl}
-                  alt={frontmatter.title}
+                  alt={project.coverImageAlt ?? frontmatter.title}
                   width={project.coverImageWidth}
                   height={project.coverImageHeight}
                   className="mb-8 shadow-lg"

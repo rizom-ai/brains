@@ -124,7 +124,7 @@ export const HomepageLayout = ({
                 {post.coverImageUrl ? (
                   <img
                     src={post.coverImageUrl}
-                    alt={post.metadata.title}
+                    alt={post.coverImageAlt ?? post.metadata.title}
                     className="w-full aspect-[16/10] object-cover bg-theme-muted"
                   />
                 ) : (

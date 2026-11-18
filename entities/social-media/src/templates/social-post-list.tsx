@@ -42,7 +42,7 @@ export const SocialPostListTemplate = ({
                       {post.coverImageUrl && (
                         <img
                           src={post.coverImageUrl}
-                          alt={post.frontmatter.title}
+                          alt={post.coverImageAlt ?? post.frontmatter.title}
                           className="w-full sm:w-24 h-48 sm:h-24 object-cover rounded-lg shrink-0"
                         />
                       )}

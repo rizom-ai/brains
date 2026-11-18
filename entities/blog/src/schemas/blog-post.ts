@@ -105,11 +105,14 @@ export const blogPostWithDataSchema: ReturnType<
     frontmatter: BlogPostFrontmatterSchema;
     body: z.ZodString;
     coverImageUrl: z.ZodOptional<z.ZodString>;
+    coverImageAlt: z.ZodOptional<z.ZodString>;
   }>
 > = blogPostSchema.extend({
   frontmatter: blogPostFrontmatterSchema,
   body: z.string(),
   coverImageUrl: z.string().optional(), // Resolved data URL from coverImageId
+  /** The cover image's own alt text, when it describes the image. */
+  coverImageAlt: z.string().optional(),
 });
 
 export type BlogPostWithData = z.output<typeof blogPostWithDataSchema>;
@@ -127,6 +130,7 @@ export const enrichedBlogPostSchema: ReturnType<
     listLabel: z.ZodOptional<z.ZodString>;
     seriesUrl: z.ZodOptional<z.ZodString>;
     coverImageUrl: z.ZodOptional<z.ZodString>;
+    coverImageAlt: z.ZodOptional<z.ZodString>;
     ogImageUrl: z.ZodOptional<z.ZodString>;
     coverImageWidth: z.ZodOptional<z.ZodNumber>;
     coverImageHeight: z.ZodOptional<z.ZodNumber>;
@@ -140,6 +144,8 @@ export const enrichedBlogPostSchema: ReturnType<
   listLabel: z.string().optional(),
   seriesUrl: z.string().optional(),
   coverImageUrl: z.string().optional(),
+  /** The cover image's own alt text, when it describes the image. */
+  coverImageAlt: z.string().optional(),
   ogImageUrl: z.string().optional(),
   coverImageWidth: z.number().optional(),
   coverImageHeight: z.number().optional(),
@@ -159,6 +165,7 @@ export const templateBlogPostSchema: ReturnType<
     listLabel: z.ZodString;
     seriesUrl: z.ZodOptional<z.ZodString>;
     coverImageUrl: z.ZodOptional<z.ZodString>;
+    coverImageAlt: z.ZodOptional<z.ZodString>;
     ogImageUrl: z.ZodOptional<z.ZodString>;
     coverImageWidth: z.ZodOptional<z.ZodNumber>;
     coverImageHeight: z.ZodOptional<z.ZodNumber>;
@@ -172,6 +179,8 @@ export const templateBlogPostSchema: ReturnType<
   listLabel: z.string(),
   seriesUrl: z.string().optional(), // URL to series detail page (if post is in a series)
   coverImageUrl: z.string().optional(),
+  /** The cover image's own alt text, when it describes the image. */
+  coverImageAlt: z.string().optional(),
   ogImageUrl: z.string().optional(),
   coverImageWidth: z.number().optional(),
   coverImageHeight: z.number().optional(),

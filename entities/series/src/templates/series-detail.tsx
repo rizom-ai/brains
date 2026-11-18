@@ -78,7 +78,9 @@ export const SeriesDetailTemplate = ({
             series.coverImageHeight && (
               <CoverImage
                 src={coverImageUrl}
-                alt={`Cover image for ${seriesName} series`}
+                alt={
+                  series.coverImageAlt ?? `Cover image for ${seriesName} series`
+                }
                 width={series.coverImageWidth}
                 height={series.coverImageHeight}
                 className="mb-8"

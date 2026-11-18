@@ -14,6 +14,8 @@ export {
   type ResolvedImage,
 } from "./schemas/image";
 
+export { describedImageAlt } from "./lib/described-alt";
+
 // Image entity data
 export {
   createAssetImageEntity,

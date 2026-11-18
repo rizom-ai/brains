@@ -41,6 +41,7 @@ describe("projectViewSchema", () => {
       "url",
       "typeLabel",
       "coverImageUrl",
+      "coverImageAlt",
       "ogImageUrl",
       "coverImageWidth",
       "coverImageHeight",

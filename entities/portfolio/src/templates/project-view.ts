@@ -74,6 +74,7 @@ export const projectViewSchema: z.ZodObject<
     url: typeof viewLinkFields.url;
     typeLabel: typeof viewLinkFields.typeLabel;
     coverImageUrl: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+    coverImageAlt: z.ZodDefault<z.ZodNullable<z.ZodString>>;
     ogImageUrl: z.ZodDefault<z.ZodNullable<z.ZodString>>;
     coverImageWidth: z.ZodDefault<z.ZodNullable<z.ZodNumber>>;
     coverImageHeight: z.ZodDefault<z.ZodNullable<z.ZodNumber>>;
@@ -85,6 +86,8 @@ export const projectViewSchema: z.ZodObject<
   url: viewLinkFields.url,
   typeLabel: viewLinkFields.typeLabel,
   coverImageUrl: nullableString,
+  /** The cover image's own alt text, when it describes the image. */
+  coverImageAlt: nullableString,
   ogImageUrl: nullableString,
   coverImageWidth: nullableNumber,
   coverImageHeight: nullableNumber,
