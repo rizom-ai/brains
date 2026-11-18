@@ -4,7 +4,7 @@ Last updated: 2026-11-17
 
 ## Status
 
-In progress on `work/webdav-mount` (#990). All four phases are implemented. Verified against the `personal` test app with rclone and GNOME's gvfs: the drive matches `brain-data/` file for file and byte for byte, and saving (in place, `sed -i`, write-then-rename), creating (at the root, in a type folder, in a new nested folder) and deleting through a mount reach the entity and `brain-data/`. Image saves and the lock protocol are verified with curl. Two checks remain, both on a deployed brain: `PROPFIND` through Cloudflare, and mounting writable in macOS Finder and Windows Explorer.
+Shipped in `@rizom/brain@0.2.0-alpha.736` (#990) and running on the smoke brain (`https://smoke.rizom.ai/dav/`). All four phases are implemented. Verified against the `personal` test app with rclone and GNOME's gvfs: the drive matches `brain-data/` file for file and byte for byte, and saving (in place, `sed -i`, write-then-rename), creating (at the root, in a type folder, in a new nested folder) and deleting through a mount reach the entity and `brain-data/`. Image saves and the lock protocol are verified with curl. Through Cloudflare, every WebDAV method reaches the handler on smoke: each answers the drive's own 401 challenge. One check remains: mounting writable in macOS Finder and Windows Explorer.
 
 ## Goal
 
