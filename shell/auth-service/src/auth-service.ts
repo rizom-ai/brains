@@ -6,6 +6,7 @@ import type {
   AuthAuditEvent,
   AuthAuditQuery,
   AuthAuditQueryResult,
+  AuthAppPasswordGrant,
   AuthBearerGrant,
   AuthIdentityAccessResolution,
   AuthMutationContext,
@@ -805,6 +806,15 @@ export class AuthService implements AuthBackend {
       return this.runtime
         .getPrincipalService()
         .resolveBearerGrant(request, options);
+    });
+  }
+
+  async resolveAppPassword(
+    request: Request,
+  ): Promise<AuthAppPasswordGrant | undefined> {
+    return this.operations.run(async () => {
+      await this.runtime.ensureStarted();
+      return this.runtime.getPrincipalService().resolveAppPassword(request);
     });
   }
 

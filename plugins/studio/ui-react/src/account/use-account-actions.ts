@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   AUTH_ACCOUNT_MUTATION_ACTIONS,
+  type AuthAccountAppPasswordSecret,
   type AuthAccountMutation,
+  type AuthAppPasswordAccess,
   type AuthAccountPluginSettingsForm,
   type AuthAccountSnapshot,
 } from "@brains/contracts";
@@ -39,6 +41,14 @@ const CONFIRMED_MUTATIONS = {
     confirmLabel: "End session",
     pending: "Ending session…",
     complete: "Session ended.",
+  },
+  revokeAppPassword: {
+    title: "Revoke this app password?",
+    message:
+      "Anything mounted with it stops working at once. Its password cannot be recovered.",
+    confirmLabel: "Revoke app password",
+    pending: "Revoking app password…",
+    complete: "App password revoked.",
   },
   revokeOtherSessions: {
     title: "End every other browser session?",
@@ -82,6 +92,11 @@ export interface AccountActions {
     formData: FormData,
   ) => void;
   removeSettings: (settings: AuthAccountPluginSettingsForm) => void;
+  /** The app password just created: the only time its password is known. */
+  createdAppPassword: AuthAccountAppPasswordSecret | null;
+  createAppPassword: (label: string, access: AuthAppPasswordAccess) => void;
+  dismissCreatedAppPassword: () => void;
+  revokeAppPassword: (appPasswordId: string) => void;
 }
 
 /**
@@ -101,6 +116,8 @@ export function useAccountActions(input: AccountActionsInput): AccountActions {
   const [confirmation, setConfirmation] = useState<AccountConfirmation | null>(
     null,
   );
+  const [createdAppPassword, setCreatedAppPassword] =
+    useState<AuthAccountAppPasswordSecret | null>(null);
 
   useEffect(() => {
     if (initialAccount) return;
@@ -242,6 +259,27 @@ export function useAccountActions(input: AccountActionsInput): AccountActions {
         }),
       );
     },
+    createdAppPassword,
+    createAppPassword: (label, access): void => {
+      void run("Creating app password…", "App password created.", async () => {
+        const created = await client.mutateAccount({
+          action: AUTH_ACCOUNT_MUTATION_ACTIONS.createAppPassword,
+          confirmation: AUTH_ACCOUNT_MUTATION_ACTIONS.createAppPassword,
+          label,
+          // Read-only is the default; only the wider access is named.
+          ...(access === "write" ? { access } : {}),
+        });
+        setCreatedAppPassword(created.appPassword ?? null);
+        return created.account;
+      });
+    },
+    dismissCreatedAppPassword: () => setCreatedAppPassword(null),
+    revokeAppPassword: (appPasswordId) =>
+      confirmMutation(CONFIRMED_MUTATIONS.revokeAppPassword, {
+        action: AUTH_ACCOUNT_MUTATION_ACTIONS.revokeAppPassword,
+        confirmation: AUTH_ACCOUNT_MUTATION_ACTIONS.revokeAppPassword,
+        appPasswordId,
+      }),
     removeSettings: (settings) =>
       setConfirmation({
         title: `Remove ${settings.title}?`,

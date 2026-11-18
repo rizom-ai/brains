@@ -18,6 +18,7 @@ const account: AuthAccountSnapshot = {
   displayName: "Mira Reyes",
   role: "trusted",
   pluginSettings: [],
+  appPasswords: [],
   connectedChannels: [
     {
       type: "email",
@@ -230,6 +231,126 @@ describe("Account surface", () => {
     });
 
     expect(html.match(/>Revoke<\/button>/g)).toHaveLength(2);
+  });
+
+  describe("Drive", () => {
+    const davUrl = "https://becca.rizom.ai/dav/";
+    const withPassword: AuthAccountSnapshot = {
+      ...account,
+      appPasswords: [
+        {
+          id: "k3x9",
+          username: "dav-k3x9",
+          label: "Laptop",
+          access: "read",
+          createdAt: 1_735_689_600,
+          expiresAt: 4_102_444_800,
+          lastUsedAt: 1_735_776_000,
+        },
+      ],
+    };
+    const visiblePanel = (html: string): string =>
+      withDocument(
+        html,
+        (document) =>
+          [...document.querySelectorAll('[role="tabpanel"]')].find(
+            (panel) => !panel.hasAttribute("hidden"),
+          )?.innerHTML ?? "",
+      );
+
+    it("adds a Drive tab after AI tools when the brain serves a drive", () => {
+      const tabs = withDocument(
+        render(account, { davUrl, mcpUrl: "https://becca.rizom.ai/mcp" }),
+        (document) =>
+          [...document.querySelectorAll('[role="tab"]')].map(
+            (tab) => tab.textContent,
+          ),
+      );
+
+      expect(tabs).toEqual([
+        "Profile",
+        "Sign-in & sessions",
+        "Linked identities",
+        "AI tools",
+        "Drive",
+      ]);
+    });
+
+    it("names the drive in the account scope only when the tab is there", () => {
+      expect(render(account, { davUrl })).toContain(
+        "sign-in security, linked identities and your drive here",
+      );
+      expect(render()).not.toContain("your drive");
+    });
+
+    it("has no Drive tab without a drive address", () => {
+      const html = render(withPassword, { initialSection: "drive" });
+
+      expect(html).not.toContain("Drive");
+      expect(html).not.toContain("dav-k3x9");
+      expect(
+        withDocument(html, (document) =>
+          [...document.querySelectorAll('[role="tab"]')]
+            .filter((tab) => tab.getAttribute("aria-selected") === "true")
+            .map((tab) => tab.textContent),
+        ),
+      ).toEqual(["Profile"]);
+    });
+
+    it("opens on Drive from the section link with the address and the steps per client", () => {
+      const visible = visiblePanel(
+        render(account, { davUrl, initialSection: "drive" }),
+      );
+
+      expect(visible).toContain(davUrl);
+      expect(visible).toContain("GNOME Files");
+      expect(visible).toContain("davs://becca.rizom.ai/dav/");
+      expect(visible).toContain("rclone");
+      expect(visible).toContain(
+        "rclone config create becca-rizom-ai webdav url=https://becca.rizom.ai/dav/ vendor=other user=YOUR_USERNAME",
+      );
+      expect(visible).toContain("No app passwords yet.");
+      expect(visible).toContain("New app password");
+    });
+
+    it("lists each app password with its username, access and dates, never a password", () => {
+      const visible = visiblePanel(
+        render(withPassword, { davUrl, initialSection: "drive" }),
+      );
+
+      expect(visible).toContain("Laptop");
+      expect(visible).toContain("dav-k3x9");
+      expect(visible).toContain("Read-only");
+      expect(visible).toContain("Created:");
+      expect(visible).toContain("Expires:");
+      expect(visible).toContain("Last used:");
+      expect(visible).toContain(">Revoke</button>");
+      expect(visible).not.toContain("No app passwords yet.");
+    });
+
+    it("says when an app password has never been used or has expired", () => {
+      const visible = visiblePanel(
+        render(
+          {
+            ...account,
+            appPasswords: [
+              {
+                id: "old",
+                username: "dav-old",
+                label: "Old laptop",
+                access: "read",
+                createdAt: 1_600_000_000,
+                expiresAt: 1_631_536_000,
+              },
+            ],
+          },
+          { davUrl, initialSection: "drive" },
+        ),
+      );
+
+      expect(visible).toContain("Never used");
+      expect(visible).toContain("Expired:");
+    });
   });
 
   describe("AI tools", () => {

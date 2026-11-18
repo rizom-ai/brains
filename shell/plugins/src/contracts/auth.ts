@@ -3,6 +3,7 @@ import type {
   A2ASigningKey,
   AppendAuthAuditEventInput,
   AssignableMember,
+  AuthAppPasswordGrant,
   AttachAuthIdentityInput,
   AuthAdminRole,
   AuthAdminStatus,
@@ -37,6 +38,14 @@ export interface AuthBackend {
   resolveSession(request: Request): Promise<AuthPrincipal | undefined>;
   createAuthLoginResponse(request: Request): Response;
   resolveBearerGrant(request: Request): Promise<AuthBearerGrant | undefined>;
+  /**
+   * The person behind a request's HTTP Basic app password, for a route whose
+   * clients cannot sign in any other way. Only that route calls this: an app
+   * password is never a session or a bearer token.
+   */
+  resolveAppPassword(
+    request: Request,
+  ): Promise<AuthAppPasswordGrant | undefined>;
   resolveIdentityAccess(
     input: ResolveAuthIdentityInput,
   ): Promise<AuthIdentityAccessResolution>;

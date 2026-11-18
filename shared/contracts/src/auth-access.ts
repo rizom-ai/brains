@@ -38,6 +38,19 @@ export interface AuthBearerGrant {
   token: VerifiedAccessToken;
 }
 
+/**
+ * What an app password lets its client do: `read` never changes anything,
+ * `write` acts with everything its owner's permission level allows.
+ */
+export type AuthAppPasswordAccess = "read" | "write";
+
+/** The person an app password authenticated, and how much it may do. */
+export interface AuthAppPasswordGrant {
+  principal: AuthPrincipal;
+  access: AuthAppPasswordAccess;
+  appPasswordId: string;
+}
+
 export interface AuthMutationContext {
   /** Authenticated user performing the mutation, for audit attribution. */
   actorUserId?: string;

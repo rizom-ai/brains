@@ -1,6 +1,7 @@
+import { DOCUMENT_EXTENSIONS } from "@brains/entity-placement";
 import { extname } from "path";
 
-export const DOCUMENT_EXTENSIONS: readonly string[] = [".pdf"];
+export { DOCUMENT_EXTENSIONS };
 export const DOCUMENT_SIDECAR_SUFFIX: string = ".meta.json";
 
 export function isDocumentFile(filePath: string): boolean {

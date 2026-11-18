@@ -1,4 +1,5 @@
 import type {
+  AuthAccountAppPasswordSecret,
   AuthAccountMutation,
   AuthAccountPluginSettingsMutation,
   AuthAccountSnapshot,
@@ -9,6 +10,8 @@ import type { FetchLike } from "@brains/utils/fetch-like";
 
 export interface AccountMutationResponse {
   account?: AuthAccountSnapshot;
+  /** Present once, in the answer to creating an app password. */
+  appPassword?: AuthAccountAppPasswordSecret;
   revoked?: { sessions: number; refreshTokens?: number };
   signedOut?: boolean;
 }
@@ -39,6 +42,17 @@ const rawAccountSnapshotSchema = z.object({
       credentialBackedUp: z.boolean(),
       createdAt: z.number(),
       updatedAt: z.number(),
+    }),
+  ),
+  appPasswords: z.array(
+    z.object({
+      id: z.string(),
+      username: z.string(),
+      label: z.string(),
+      access: z.enum(["read", "write"]),
+      createdAt: z.number(),
+      expiresAt: z.number(),
+      lastUsedAt: z.number().optional(),
     }),
   ),
   connectedChannels: z.array(
@@ -93,6 +107,9 @@ const accountResponseSchema = z.object({
 
 const rawAccountMutationResponseSchema = z.object({
   account: accountSnapshotSchema.optional(),
+  appPassword: z
+    .object({ username: z.string(), password: z.string() })
+    .optional(),
   revoked: z
     .object({
       sessions: z.number(),

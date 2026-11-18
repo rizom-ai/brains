@@ -1,13 +1,7 @@
+import { IMAGE_EXTENSIONS } from "@brains/entity-placement";
 import { extname } from "path";
 
-export const IMAGE_EXTENSIONS: readonly string[] = [
-  ".png",
-  ".jpg",
-  ".jpeg",
-  ".webp",
-  ".gif",
-  ".svg",
-];
+export { IMAGE_EXTENSIONS };
 
 export function isImageFile(filePath: string): boolean {
   const ext = extname(filePath).toLowerCase();
@@ -30,16 +24,5 @@ export function getMimeTypeForExtension(ext: string): string {
       return "image/svg+xml";
     default:
       return "image/png";
-  }
-}
-
-export function getExtensionForFormat(format: string): string {
-  switch (format.toLowerCase()) {
-    case "jpeg":
-      return ".jpg";
-    case "svg+xml":
-      return ".svg";
-    default:
-      return `.${format.toLowerCase()}`;
   }
 }

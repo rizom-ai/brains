@@ -1,3 +1,5 @@
+import type { AuthAppPasswordAccess } from "./auth-access";
+
 /** Browser-safe, session-derived own-account contracts. */
 export const AUTH_ACCOUNT_MUTATION_ACTIONS = {
   updateDisplayName: "updateDisplayName",
@@ -5,6 +7,8 @@ export const AUTH_ACCOUNT_MUTATION_ACTIONS = {
   revokeSession: "revokeSession",
   revokeOtherSessions: "revokeOtherSessions",
   revokeAllSessions: "revokeAllSessions",
+  createAppPassword: "createAppPassword",
+  revokeAppPassword: "revokeAppPassword",
 } as const;
 
 export type AuthAccountRole = "admin" | "trusted" | "public";
@@ -32,7 +36,36 @@ export type AuthAccountMutation =
   | {
       action: typeof AUTH_ACCOUNT_MUTATION_ACTIONS.revokeAllSessions;
       confirmation: typeof AUTH_ACCOUNT_MUTATION_ACTIONS.revokeAllSessions;
+    }
+  | {
+      action: typeof AUTH_ACCOUNT_MUTATION_ACTIONS.createAppPassword;
+      confirmation: typeof AUTH_ACCOUNT_MUTATION_ACTIONS.createAppPassword;
+      label: string;
+      /** Read-only when omitted. */
+      access?: AuthAppPasswordAccess | undefined;
+    }
+  | {
+      action: typeof AUTH_ACCOUNT_MUTATION_ACTIONS.revokeAppPassword;
+      confirmation: typeof AUTH_ACCOUNT_MUTATION_ACTIONS.revokeAppPassword;
+      appPasswordId: string;
     };
+
+/** An app password as its owner sees it afterwards: never the password. */
+export interface AuthAccountAppPassword {
+  id: string;
+  username: string;
+  label: string;
+  access: AuthAppPasswordAccess;
+  createdAt: number;
+  expiresAt: number;
+  lastUsedAt?: number | undefined;
+}
+
+/** Returned once, by the mutation that created the app password. */
+export interface AuthAccountAppPasswordSecret {
+  username: string;
+  password: string;
+}
 
 export interface AuthAccountPasskey {
   id: string;
@@ -96,6 +129,8 @@ export interface AuthAccountSnapshot {
    */
   profileEntityId?: string | undefined;
   passkeys: AuthAccountPasskey[];
+  /** Not revoked, newest first; an expired one stays listed until revoked. */
+  appPasswords: AuthAccountAppPassword[];
   connectedChannels: AuthAccountConnectedChannel[];
   pluginSettings: readonly AuthAccountPluginSettingsForm[];
   sessions: AuthAccountSessionSummary[];

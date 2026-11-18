@@ -77,6 +77,18 @@ describe("renderEditorShellHtml", () => {
     );
   });
 
+  it("passes the brain's drive address to the Account view only when given", () => {
+    expect(
+      renderEditorShellHtml({
+        ...SHELL_OPTIONS,
+        davUrl: "https://yeehaa.io/dav/",
+      }),
+    ).toContain('data-studio-dav-url="https://yeehaa.io/dav/"');
+    expect(renderEditorShellHtml(SHELL_OPTIONS)).not.toContain(
+      "data-studio-dav-url",
+    );
+  });
+
   it("loads the shared ramp plus the Studio editorial mono face", () => {
     const html = renderEditorShellHtml(SHELL_OPTIONS);
 

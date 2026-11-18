@@ -134,6 +134,8 @@ export {
   type AuthAuditEvent,
   type AuthAuditQuery,
   type AuthAuditQueryResult,
+  type AuthAppPasswordAccess,
+  type AuthAppPasswordGrant,
   type AuthBearerGrant,
   type AuthExternalPeerInvitationAccess,
   type AuthIdentityAccessResolution,
@@ -173,6 +175,8 @@ export {
 } from "./auth-admin";
 export {
   AUTH_ACCOUNT_MUTATION_ACTIONS,
+  type AuthAccountAppPassword,
+  type AuthAccountAppPasswordSecret,
   type AuthAccountConnectedChannel,
   type AuthAccountMutation,
   type AuthAccountPasskey,
@@ -436,10 +440,12 @@ export type {
 } from "./console";
 export { consoleJumpDestinationsContract } from "./console";
 export { MCP_INTERACTION_ID } from "./mcp";
+export { WEBDAV_INTERACTION_ID } from "./webdav";
 export {
   CHAT_INTERACTION_ID,
   STUDIO_ACCOUNT_WORKSPACE_ID,
   STUDIO_AI_TOOLS_SECTION,
+  STUDIO_DRIVE_SECTION,
   STUDIO_INTERACTION_ID,
   studioAiToolsHref,
 } from "./studio-links";

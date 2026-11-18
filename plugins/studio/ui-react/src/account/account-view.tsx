@@ -12,7 +12,10 @@ import {
   accountStyles as accountLayout,
 } from "../studio-account.styles";
 import type { AuthAccountRole, AuthAccountSnapshot } from "@brains/contracts";
-import { STUDIO_AI_TOOLS_SECTION } from "@brains/contracts";
+import {
+  STUDIO_AI_TOOLS_SECTION,
+  STUDIO_DRIVE_SECTION,
+} from "@brains/contracts";
 import { useMemo, useState } from "react";
 import { AccountClient } from "./account-api";
 import {
@@ -22,6 +25,7 @@ import {
   AccountSettingsTab,
 } from "./account-tabs";
 import { AccountAiToolsTab } from "./account-ai-tools";
+import { AccountDriveTab } from "./account-drive";
 import { useAccountActions } from "./use-account-actions";
 import { useStudioApi } from "../studio-api-context";
 import { StudioPageHead, studioAccessRequirement } from "../studio-page-head";
@@ -33,6 +37,8 @@ export interface AccountBootstrap {
   studioPath: string;
   /** This brain's MCP address, present when the person can connect AI tools. */
   mcpUrl?: string | undefined;
+  /** This brain's WebDAV address, present when the person can mount it. */
+  davUrl?: string | undefined;
   /** Tab to open first, from the `section` query parameter. */
   initialSection?: string | undefined;
 }
@@ -43,6 +49,7 @@ const ACCOUNT_SECTIONS = [
   "identities",
   "settings",
   STUDIO_AI_TOOLS_SECTION,
+  STUDIO_DRIVE_SECTION,
 ] as const;
 
 function openingSection(bootstrap: AccountBootstrap): string {
@@ -51,7 +58,8 @@ function openingSection(bootstrap: AccountBootstrap): string {
   );
   if (
     !requested ||
-    (requested === STUDIO_AI_TOOLS_SECTION && !bootstrap.mcpUrl)
+    (requested === STUDIO_AI_TOOLS_SECTION && !bootstrap.mcpUrl) ||
+    (requested === STUDIO_DRIVE_SECTION && !bootstrap.davUrl)
   ) {
     return "profile";
   }
@@ -62,6 +70,7 @@ function openingSection(bootstrap: AccountBootstrap): string {
 function accountScope(sections: {
   settings: boolean;
   aiTools: boolean;
+  drive: boolean;
 }): string {
   const parts = [
     "your profile",
@@ -69,6 +78,7 @@ function accountScope(sections: {
     "linked identities",
     ...(sections.settings ? ["personal settings"] : []),
     ...(sections.aiTools ? ["AI tools"] : []),
+    ...(sections.drive ? ["your drive"] : []),
   ];
   const list = `${parts.slice(0, -1).join(", ")} and ${parts.at(-1)}`;
   return `Your account on this brain. Manage ${list} here—not shared services or other people’s access.`;
@@ -121,6 +131,7 @@ export function AccountApp({
           {accountScope({
             settings: (current?.pluginSettings.length ?? 0) > 0,
             aiTools: Boolean(bootstrap.mcpUrl),
+            drive: Boolean(bootstrap.davUrl),
           })}
         </p>
         <p
@@ -166,6 +177,11 @@ export function AccountApp({
               {bootstrap.mcpUrl && (
                 <TabsTrigger value={STUDIO_AI_TOOLS_SECTION} disabled={busy}>
                   AI tools
+                </TabsTrigger>
+              )}
+              {bootstrap.davUrl && (
+                <TabsTrigger value={STUDIO_DRIVE_SECTION} disabled={busy}>
+                  Drive
                 </TabsTrigger>
               )}
             </TabsList>
@@ -219,6 +235,20 @@ export function AccountApp({
                 className={accountClass("", accountLayout.tabPanel)}
               >
                 <AccountAiToolsTab mcpUrl={bootstrap.mcpUrl} />
+              </TabsContent>
+            )}
+            {bootstrap.davUrl && (
+              <TabsContent
+                value={STUDIO_DRIVE_SECTION}
+                forceMount
+                hidden={section !== STUDIO_DRIVE_SECTION}
+                className={accountClass("", accountLayout.tabPanel)}
+              >
+                <AccountDriveTab
+                  davUrl={bootstrap.davUrl}
+                  account={current}
+                  actions={actions}
+                />
               </TabsContent>
             )}
           </Tabs>

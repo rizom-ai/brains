@@ -26,7 +26,7 @@ function Text(props: { text: AiToolText }): ReactElement {
   );
 }
 
-function Snippet(props: { label: string; code: string }): ReactElement {
+export function Snippet(props: { label: string; code: string }): ReactElement {
   const [copied, setCopied] = useState<"idle" | "copied" | "unavailable">(
     "idle",
   );
@@ -60,7 +60,10 @@ function Snippet(props: { label: string; code: string }): ReactElement {
   );
 }
 
-function ClientCard(props: { client: AiToolClient }): ReactElement {
+/** One client's connection steps; the Drive tab's cards read the same way. */
+export function ClientCard(props: {
+  client: Omit<AiToolClient, "id" | "group">;
+}): ReactElement {
   const { client } = props;
   return (
     <article className={accountClass("ai-tools-client", s.client)}>

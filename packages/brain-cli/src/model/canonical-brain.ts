@@ -57,6 +57,7 @@ import notificationsPackage from "@brains/notifications";
 import { linkedInImportPackage } from "@brains/linkedin-import";
 import { createLinkedInBrokerProvider } from "@brains/linkedin-import/broker-provider";
 import { createOAuthBrokerPackage } from "@brains/oauth-broker";
+import webdavPackage from "@brains/webdav";
 import obsidianVaultPackage from "@brains/obsidian-vault";
 import playbooksPackage from "@brains/playbooks";
 import portfolioPackage from "@brains/portfolio";
@@ -512,6 +513,9 @@ export const canonicalBrain: BrainDefinition = defineBrain({
       }),
       { pluginId: "oauth-broker" },
     ),
+    packageCapability("webdav", "@brains/webdav", webdavPackage, {
+      pluginId: "webdav",
+    }),
   ],
   interfaces: [
     packageInterface(

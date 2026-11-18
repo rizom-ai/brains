@@ -8,11 +8,14 @@ import type {
   VerifiedAccessToken,
 } from "@brains/contracts";
 import type {
+  AuthAppPasswordGrant,
   AuthPrincipal,
   AuthIdentityAccessResolution,
   AuthBearerGrant,
 } from "@brains/contracts";
 import type { ActorRef } from "@brains/contracts";
+import type { AppPasswordPersistence } from "./app-password-store";
+import type { AuthAuditStore } from "./audit-store";
 import type { AuthIdentityStore } from "./identity-store";
 import type { AuthBrainAnchor, AuthUser } from "./runtime-schema";
 import type {
@@ -25,6 +28,8 @@ import type { JwksResponse } from "./types";
 import type { AuthUserStore } from "./user-store";
 
 export interface AuthPrincipalServiceOptions {
+  appPasswords: AppPasswordPersistence;
+  audit: Pick<AuthAuditStore, "append">;
   issuer: string;
   trustedIssuers: Iterable<string>;
   allowLocalhostIssuers: boolean;
@@ -36,6 +41,8 @@ export interface AuthPrincipalServiceOptions {
 }
 
 export class AuthPrincipalService {
+  private readonly appPasswords: AppPasswordPersistence;
+  private readonly audit: Pick<AuthAuditStore, "append">;
   private readonly issuer: string;
   private readonly trustedIssuers: Set<string>;
   private readonly allowLocalhostIssuers: boolean;
@@ -46,6 +53,8 @@ export class AuthPrincipalService {
   private readonly getJwks: () => Promise<JwksResponse>;
 
   constructor(options: AuthPrincipalServiceOptions) {
+    this.appPasswords = options.appPasswords;
+    this.audit = options.audit;
     this.issuer = options.issuer;
     this.trustedIssuers = new Set(options.trustedIssuers);
     this.allowLocalhostIssuers = options.allowLocalhostIssuers;
@@ -149,6 +158,49 @@ export class AuthPrincipalService {
       : undefined;
   }
 
+  /**
+   * The person behind a request's HTTP Basic app password. Basic credentials
+   * travel on every request, so they are refused over plain HTTP anywhere but
+   * loopback. The owner's standing is read on every call: a suspended or
+   * public-level owner stops their app passwords at once.
+   */
+  async resolveAppPassword(
+    request: Request,
+  ): Promise<AuthAppPasswordGrant | undefined> {
+    const credentials = getBasicCredentials(request);
+    if (!credentials) return undefined;
+
+    // No configured-issuer fallback: a request that does not say how it
+    // arrived is judged by its own URL, never assumed to be HTTPS.
+    const issuer = issuerFromRequest(request);
+    if (!issuer.startsWith("https://") && !isLoopbackIssuer(issuer)) {
+      return undefined;
+    }
+
+    const resolved = await this.appPasswords.resolve(
+      credentials.username,
+      credentials.password,
+    );
+    if (!resolved) return undefined;
+
+    const user = await this.users.getUser(resolved.record.userId);
+    if (user?.status !== "active" || user.role === "public") return undefined;
+
+    if (resolved.firstUse) {
+      await this.audit.append({
+        actorUserId: user.id,
+        action: "auth.app_password.first_used",
+        targetType: "app_password",
+        targetId: resolved.record.id,
+      });
+    }
+    return {
+      principal: await this.principalFromUser(user),
+      access: resolved.record.access,
+      appPasswordId: resolved.record.id,
+    };
+  }
+
   async resolveBearerToken(
     request: Request,
     options: { issuer?: string; audience?: string } = {},
@@ -169,6 +221,24 @@ export class AuthPrincipalService {
       `Request issuer ${requestIssuer} is not in trusted issuers`,
     );
   }
+}
+
+/** The username and password of an HTTP Basic `Authorization` header. */
+function getBasicCredentials(
+  request: Request,
+): { username: string; password: string } | undefined {
+  const match = /^Basic\s+([A-Za-z0-9+/]+={0,2})$/i.exec(
+    request.headers.get("authorization")?.trim() ?? "",
+  );
+  if (!match?.[1]) return undefined;
+
+  const decoded = Buffer.from(match[1], "base64").toString("utf8");
+  const separator = decoded.indexOf(":");
+  if (separator < 1) return undefined;
+  return {
+    username: decoded.slice(0, separator),
+    password: decoded.slice(separator + 1),
+  };
 }
 
 export function principalFromUser(

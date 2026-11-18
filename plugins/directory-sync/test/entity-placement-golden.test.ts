@@ -172,13 +172,8 @@ describe("released entity placement golden", () => {
     "%s / %s (%s) exports only when its path reads back as itself",
     (entityType, id, extension, writable) => {
       expect(
-        resolveEntityPlacement(
-          "/content",
-          entityType,
-          id,
-          extension,
-          NO_CONTAINMENT,
-        ).writable,
+        resolveEntityPlacement(entityType, id, extension, NO_CONTAINMENT)
+          .writable,
       ).toBe(writable);
     },
   );
@@ -187,13 +182,7 @@ describe("released entity placement golden", () => {
     for (const [entityType, id] of placements) {
       if (entityType !== "note" || !id.includes(":")) continue;
       expect(
-        resolveEntityPlacement(
-          "/content",
-          entityType,
-          id,
-          ".md",
-          NO_CONTAINMENT,
-        ).writable,
+        resolveEntityPlacement(entityType, id, ".md", NO_CONTAINMENT).writable,
       ).toBe(false);
     }
   });

@@ -168,29 +168,30 @@ Entity packages live in `entities/`. Most packages define one entity type; a few
 
 Service plugins live in `plugins/` and provide tools, handlers, routes, orchestration, or external integrations.
 
-| Package                    | Purpose                                                                                            |
-| -------------------------- | -------------------------------------------------------------------------------------------------- |
-| `plugins/analytics`        | Analytics integration and reports                                                                  |
-| `plugins/atproto`          | AT Protocol identity, publishing, discovery, feeds                                                 |
-| `plugins/atproto-registry` | Canonical Rizom AT Protocol lexicon registry                                                       |
-| `plugins/content-pipeline` | Publishing queue, scheduling, retries                                                              |
-| `plugins/contact`          | The contact form on the forms engine, its restricted `contact-request` records and Inbox source    |
-| `plugins/dashboard`        | Dashboard widgets and UI slots                                                                     |
-| `plugins/directory-sync`   | File sync + git operations                                                                         |
-| `plugins/email-workflows`  | Restricted mail triage, Inbox detail, and a dormant tested reply backend                           |
-| `plugins/linkedin-import`  | Anchor-only Studio import of the owner's LinkedIn profile into `anchor-profile`, through `profile` |
-| `plugins/newsletter`       | Compound newsletter entity with selectable Buttondown or Resend delivery                           |
-| `plugins/notifications`    | Notification routing for transactional and administrative messages                                 |
-| `plugins/oauth-broker`     | Managed OAuth broker: one central callback per provider, one-time grants for instance brains       |
-| `plugins/knowledge-map`    | The corpus in semantic space with topic territories: a site section and a Dashboard widget         |
-| `plugins/obsidian-vault`   | Obsidian export/templates                                                                          |
-| `plugins/quiz`             | Quizzes defined in content on the forms engine, each one taken a restricted `quiz-result`          |
-| `plugins/site-builder`     | Static site build orchestration                                                                    |
-| `plugins/site-content`     | Site route/section discovery over the shell's generic content generation                           |
-| `plugins/site-info`        | The `site-info` singleton and the site metadata it answers for                                     |
-| `plugins/stock-photo`      | Stock-photo search and selection                                                                   |
-| `plugins/unified-inbox`    | Live inbox projection, source facets, resolved launches, registered Studio triage, summary, digest |
-| `plugins/studio`           | Browser authoring routes + Studio config                                                           |
+| Package                    | Purpose                                                                                               |
+| -------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `plugins/analytics`        | Analytics integration and reports                                                                     |
+| `plugins/atproto`          | AT Protocol identity, publishing, discovery, feeds                                                    |
+| `plugins/atproto-registry` | Canonical Rizom AT Protocol lexicon registry                                                          |
+| `plugins/content-pipeline` | Publishing queue, scheduling, retries                                                                 |
+| `plugins/contact`          | The contact form on the forms engine, its restricted `contact-request` records and Inbox source       |
+| `plugins/dashboard`        | Dashboard widgets and UI slots                                                                        |
+| `plugins/directory-sync`   | File sync + git operations                                                                            |
+| `plugins/email-workflows`  | Restricted mail triage, Inbox detail, and a dormant tested reply backend                              |
+| `plugins/linkedin-import`  | Anchor-only Studio import of the owner's LinkedIn profile into `anchor-profile`, through `profile`    |
+| `plugins/newsletter`       | Compound newsletter entity with selectable Buttondown or Resend delivery                              |
+| `plugins/notifications`    | Notification routing for transactional and administrative messages                                    |
+| `plugins/oauth-broker`     | Managed OAuth broker: one central callback per provider, one-time grants for instance brains          |
+| `plugins/knowledge-map`    | The corpus in semantic space with topic territories: a site section and a Dashboard widget            |
+| `plugins/obsidian-vault`   | Obsidian export/templates                                                                             |
+| `plugins/quiz`             | Quizzes defined in content on the forms engine, each one taken a restricted `quiz-result`             |
+| `plugins/site-builder`     | Static site build orchestration                                                                       |
+| `plugins/site-content`     | Site route/section discovery over the shell's generic content generation                              |
+| `plugins/site-info`        | The `site-info` singleton and the site metadata it answers for                                        |
+| `plugins/stock-photo`      | Stock-photo search and selection                                                                      |
+| `plugins/unified-inbox`    | Live inbox projection, source facets, resolved launches, registered Studio triage, summary, digest    |
+| `plugins/studio`           | Browser authoring routes + Studio config                                                              |
+| `plugins/webdav`           | The brain as a network drive: entities as files over WebDAV on `/dav`, signed in with an app password |
 
 ### Interface plugins
 
@@ -207,14 +208,15 @@ Interface packages live in `interfaces/`. Conversational transports are message 
 
 ### Sites, themes, and the canonical definition
 
-| Area                  | Current packages                                                                         |
-| --------------------- | ---------------------------------------------------------------------------------------- |
-| `sites/`              | `default`, `personal`, `professional`, `rizom` and app-specific compositions             |
-| `shared/theme-*`      | `default`, `rizom`, `signal`, and related theme packages                                 |
-| `shared/forms`        | The forms engine: definitions, admission, intake, delivery and rendering for site forms  |
-| `packages/brain-cli`  | canonical catalog/bundles, recipes, runtime assets, and the published `@rizom/brain` CLI |
-| `packages/brain-sdk`  | `@brains/sdk`, the authoring surface the `@rizom/brain` entries re-export                |
-| `packages/brains-ops` | published `@rizom/ops` fleet tooling                                                     |
+| Area                      | Current packages                                                                                     |
+| ------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `sites/`                  | `default`, `personal`, `professional`, `rizom` and app-specific compositions                         |
+| `shared/theme-*`          | `default`, `rizom`, `signal`, and related theme packages                                             |
+| `shared/forms`            | The forms engine: definitions, admission, intake, delivery and rendering for site forms              |
+| `shared/entity-placement` | Which file path an entity has and which entity a path names, for directory-sync and the WebDAV drive |
+| `packages/brain-cli`      | canonical catalog/bundles, recipes, runtime assets, and the published `@rizom/brain` CLI             |
+| `packages/brain-sdk`      | `@brains/sdk`, the authoring surface the `@rizom/brain` entries re-export                            |
+| `packages/brains-ops`     | published `@rizom/ops` fleet tooling                                                                 |
 
 ## Plugin model
 

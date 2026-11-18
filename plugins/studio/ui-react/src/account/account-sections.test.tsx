@@ -16,6 +16,7 @@ const snapshot: AuthAccountSnapshot = {
   displayName: "Mira",
   role: "trusted",
   passkeys: [],
+  appPasswords: [],
   sessions: [],
   connectedChannels: [],
   pluginSettings: [
@@ -296,4 +297,178 @@ it("saves personal settings with checkbox and number values as their types", asy
       },
     },
   ]);
+});
+
+const driveAccount: AuthAccountSnapshot = {
+  ...snapshot,
+  pluginSettings: [],
+  appPasswords: [
+    {
+      id: "k3x9",
+      username: "dav-k3x9",
+      label: "Laptop",
+      access: "read",
+      createdAt: 1_735_689_600,
+      expiresAt: 1_767_225_600,
+    },
+  ],
+};
+
+async function mountDrive(
+  account: AuthAccountSnapshot,
+  respond: (body: unknown) => unknown,
+  sent: Array<{ path: string; body: unknown }>,
+): Promise<void> {
+  const client = new AccountClient({
+    fetch: async (input, init): Promise<Response> => {
+      const body: unknown =
+        typeof init?.body === "string" ? JSON.parse(init.body) : undefined;
+      sent.push({ path: String(input), body });
+      return Response.json(respond(body));
+    },
+  });
+  await act(async () =>
+    root.render(
+      createElement(AccountApp, {
+        bootstrap: {
+          displayName: "Mira",
+          role: "trusted",
+          routePath: "/studio/workspaces/studio%3Aaccount",
+          studioPath: "/studio",
+          davUrl: "https://brain.test/dav/",
+        },
+        initialAccount: account,
+        client,
+      }),
+    ),
+  );
+  await select("Drive");
+}
+
+it("creates a read-only app password and shows its password once", async () => {
+  const sent: Array<{ path: string; body: unknown }> = [];
+  await mountDrive(
+    { ...driveAccount, appPasswords: [] },
+    () => ({
+      account: driveAccount,
+      appPassword: { username: "dav-k3x9", password: "s3cret-shown-once" },
+    }),
+    sent,
+  );
+
+  const input = document.querySelector<HTMLInputElement>(
+    'input[name="app-password-label"]',
+  );
+  if (!input) throw Error("Missing app password label input");
+  input.value = "Laptop";
+  await act(async () => {
+    input.form?.dispatchEvent(
+      new Event("submit", { bubbles: true, cancelable: true }),
+    );
+  });
+
+  expect(sent).toEqual([
+    {
+      path: "/auth/account/mutations",
+      body: {
+        action: "createAppPassword",
+        confirmation: "createAppPassword",
+        label: "Laptop",
+      },
+    },
+  ]);
+  expect(document.querySelector('[role="status"]')?.textContent).toBe(
+    "App password created.",
+  );
+  const reveal = document.querySelector("[data-app-password-reveal]");
+  expect(reveal?.textContent).toContain("dav-k3x9");
+  expect(reveal?.textContent).toContain("s3cret-shown-once");
+  expect(reveal?.textContent).toContain("shown only once");
+
+  await press("Done");
+  expect(document.querySelector("[data-app-password-reveal]")).toBeNull();
+  expect(document.body.textContent).not.toContain("s3cret-shown-once");
+  // The password is listed from now on, without its secret.
+  expect(document.body.textContent).toContain("dav-k3x9");
+});
+
+it("revokes an app password only once it is confirmed", async () => {
+  const sent: Array<{ path: string; body: unknown }> = [];
+  await mountDrive(
+    driveAccount,
+    () => ({ account: { ...driveAccount, appPasswords: [] } }),
+    sent,
+  );
+
+  await press("Revoke");
+  expect(sent).toEqual([]);
+  expect(document.body.textContent).toContain("Revoke this app password?");
+
+  await press("Revoke app password");
+  expect(sent).toEqual([
+    {
+      path: "/auth/account/mutations",
+      body: {
+        action: "revokeAppPassword",
+        confirmation: "revokeAppPassword",
+        appPasswordId: "k3x9",
+      },
+    },
+  ]);
+  expect(document.querySelector('[role="status"]')?.textContent).toBe(
+    "App password revoked.",
+  );
+  expect(document.body.textContent).toContain("No app passwords yet.");
+});
+
+it("creates a read-and-write app password when saving is allowed", async () => {
+  const sent: Array<{ path: string; body: unknown }> = [];
+  await mountDrive(
+    { ...driveAccount, appPasswords: [] },
+    () => ({
+      account: {
+        ...driveAccount,
+        appPasswords: driveAccount.appPasswords.map((appPassword) => ({
+          ...appPassword,
+          access: "write",
+        })),
+      },
+      appPassword: { username: "dav-k3x9", password: "s3cret-shown-once" },
+    }),
+    sent,
+  );
+
+  const input = document.querySelector<HTMLInputElement>(
+    'input[name="app-password-label"]',
+  );
+  const allowSaving = document.querySelector<HTMLElement>(
+    '[role="switch"][aria-label="Allow saving changes"]',
+  );
+  if (!input || !allowSaving) throw Error("Missing app password form");
+  expect(allowSaving.getAttribute("aria-checked")).toBe("false");
+  input.value = "Desktop";
+  await act(async () => {
+    allowSaving.click();
+  });
+  await act(async () => {
+    input.form?.dispatchEvent(
+      new Event("submit", { bubbles: true, cancelable: true }),
+    );
+  });
+
+  expect(sent.map((request) => request.body)).toEqual([
+    {
+      action: "createAppPassword",
+      confirmation: "createAppPassword",
+      label: "Desktop",
+      access: "write",
+    },
+  ]);
+  expect(document.body.textContent).toContain("Read and write");
+  // The next password starts read-only again.
+  expect(
+    document
+      .querySelector('[role="switch"][aria-label="Allow saving changes"]')
+      ?.getAttribute("aria-checked"),
+  ).toBe("false");
 });

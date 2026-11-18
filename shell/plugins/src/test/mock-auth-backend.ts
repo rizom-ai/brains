@@ -15,6 +15,7 @@ export function createMockAuthBackend(
     createAuthLoginResponse: () =>
       new Response("Authentication required", { status: 401 }),
     resolveBearerGrant: unstubbed("resolveBearerGrant"),
+    resolveAppPassword: unstubbed("resolveAppPassword"),
     resolveIdentityAccess: unstubbed("resolveIdentityAccess"),
     listUsers: unstubbed("listUsers"),
     listAdminUsers: unstubbed("listAdminUsers"),
