@@ -27,6 +27,15 @@ describe("getAgentDiscoveryInstructions", () => {
       "call system_update directly when it is callable",
     );
     expect(instructions).toContain("never substitute agent_connect");
+    // A named domain is the contact's id: approving it is one update, with
+    // no search, get, or list to find a record the request already names.
+    expect(instructions).toContain("An agent's id is its domain");
+    expect(instructions).toContain(
+      "on entityType agent with that id and status approved or archived",
+    );
+    expect(instructions).toContain(
+      "never substitute agent_connect or run system_search, system_get, or system_list first",
+    );
     expect(instructions).toContain(
       "agent_connect only to verify and save a new domain/URL",
     );
