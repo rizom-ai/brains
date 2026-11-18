@@ -1,6 +1,6 @@
 # WebDAV mount: a brain as a network drive
 
-Last updated: 2026-11-17
+Last updated: 2026-11-18
 
 ## Status
 
@@ -116,12 +116,15 @@ createEntity({ conditionalWrite: { expectedRevision: null } }) ─exists→ 412
 **DELETE file**
 
 ```text
+no If-Match, within 30 s of this person's save of the file that was refused or stored in another form ─→ 409, once
 action policy (delete) ─deny→ 403
 deleteEntity({ expectedContentHash: If-Match }) ─mismatch→ 412
 → 204, audit event
 ```
 
 A collection DELETE is 403: a folder disappears when its last entity is deleted.
+
+rclone deletes a file after an upload it takes as failed: one the server refuses (`backend/webdav` `Object.Update`), and one whose size read back differs from what it sent (copy verify → `removeFailedCopy`), which a save stored in another form is. It retries the upload every few minutes while mounted. A plain note saved with a final newline is stored without it, so every such save through an rclone mount was followed by a delete of the entity. The drive therefore refuses the one delete without `If-Match` that follows such a save from the same person.
 
 Writes carry `eventContext.interfaceType: "webdav"` and the acting user. directory-sync then exports them to `brain-data/` and git as it does any other change.
 
@@ -132,6 +135,7 @@ Editors save through files that are not entities: `.goutputstream-*` (GNOME), `.
 - Any path with a segment that starts with `.` (a hidden file, or anything inside a hidden folder such as `.Trashes` or `.TemporaryItems`, at any level including the root), or whose leaf does not end in an extension entities are stored under (`.md`, an image extension, `.pdf`) lives in a per-user scratch area: in memory, 10-minute idle expiry, 16 MiB per user. It supports GET, HEAD, PUT, DELETE, PROPFIND (listed beside real files) and MOVE.
 - `MOVE` from a scratch file onto an entity path is a PUT of the scratch content onto that entity, with the same flow, and removes the scratch file. This is how atomic-rename saves work.
 - `MOVE` or `COPY` between two entity paths is 403: renames stay in Studio and chat.
+- `MOVE` from an entity path onto a scratch name is an editor's backup before it saves: the entity's bytes are copied into the person's scratch area, the entity stays, and the save that follows replaces it. neovim's default `:w` renames `note.md` to `note.md~` and, when the rename is refused, copies the file and deletes the original (`vim_rename`); on the smoke brain that delete removed `brandbook.md`.
 - `MKCOL` creates a scratch folder, which shows until it expires or a file is saved inside it. On a folder that already exists, real or scratch, it is 405, which clients that create parent folders before every upload (rclone) take as success.
 - Scratch state is lost on restart; only unsaved editor temporaries live there.
 
