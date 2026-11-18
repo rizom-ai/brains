@@ -58,4 +58,8 @@ permissions:
 
 efficiency:
   maxToolCalls: 6
-  maxTokens: 33000
+  # Trusted is refused by system_update and then answers: two model steps,
+  # each carrying the typed field-change lists (2026-11-09) that the
+  # 2026-10-09 baseline predates. Highest of five samples on 2026-11-18 was
+  # 33,669 (Trusted), plus 25%, rounded up to 1,000.
+  maxTokens: 43000
