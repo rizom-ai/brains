@@ -50,6 +50,13 @@ export function AccountDriveTab(props: {
   const { busy, createdAppPassword } = actions;
   const nowSeconds = Math.floor(Date.now() / 1000);
   const [allowSaving, setAllowSaving] = useState(false);
+  const clients = driveClients(props.davUrl);
+  const fileManagers = clients.filter(
+    (client) => client.group === "file-manager",
+  );
+  const commandLine = clients.filter(
+    (client) => client.group === "command-line",
+  );
   return (
     <div className={accountClass("", accountLayout.column)}>
       <AccountDetailSection
@@ -178,12 +185,34 @@ export function AccountDriveTab(props: {
         </form>
       </AccountDetailSection>
 
-      <AccountDetailSection title="Mount it">
+      <AccountDetailSection
+        title="Connect your computer"
+        description="Use your computer’s own file manager. The brain then appears as a drive beside your other folders."
+      >
         <div className={accountClass("drive-clients", s.clients)}>
-          {driveClients(props.davUrl).map((client) => (
+          {fileManagers.map((client) => (
             <ClientCard key={client.id} client={client} />
           ))}
         </div>
+        <details className={accountClass("drive-command-line", s.developer)}>
+          <summary className={accountClass("", s.developerSummary)}>
+            Command line
+            <span className={accountClass("", s.developerHint)}>
+              {commandLine.map((client) => client.name).join(", ")}
+            </span>
+          </summary>
+          <div
+            className={accountClass(
+              "drive-command-line-clients",
+              s.clients,
+              s.developerClients,
+            )}
+          >
+            {commandLine.map((client) => (
+              <ClientCard key={client.id} client={client} />
+            ))}
+          </div>
+        </details>
       </AccountDetailSection>
     </div>
   );

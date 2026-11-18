@@ -313,6 +313,38 @@ describe("Account surface", () => {
       expect(visible).toContain("New app password");
     });
 
+    it("leads with macOS and Windows, then GNOME Files, and keeps the command line closed", () => {
+      const visible = visiblePanel(
+        render(account, { davUrl, initialSection: "drive" }),
+      );
+      const cards = withDocument(visible, (document) =>
+        [...document.querySelectorAll(".drive-clients > article h4")].map(
+          (heading) => heading.textContent,
+        ),
+      );
+      expect(cards).toEqual(["macOS", "Windows", "GNOME Files"]);
+
+      expect(visible).toContain("Connect to Server");
+      expect(visible).toContain("Map network drive");
+      // Finder and Explorer take the address as it is shown.
+      expect(visible.split(davUrl).length - 1).toBeGreaterThanOrEqual(3);
+
+      const commandLine = withDocument(visible, (document) => {
+        const details = document.querySelector("details.drive-command-line");
+        return {
+          open: details?.hasAttribute("open"),
+          summary: details?.querySelector("summary")?.textContent,
+          cards: [...(details?.querySelectorAll("article h4") ?? [])].map(
+            (heading) => heading.textContent,
+          ),
+        };
+      });
+      expect(commandLine.open).toBe(false);
+      expect(commandLine.summary).toContain("Command line");
+      expect(commandLine.summary).toContain("rclone");
+      expect(commandLine.cards).toEqual(["rclone"]);
+    });
+
     it("lists each app password with its username, access and dates, never a password", () => {
       const visible = visiblePanel(
         render(withPassword, { davUrl, initialSection: "drive" }),

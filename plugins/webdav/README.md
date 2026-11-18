@@ -72,5 +72,7 @@ Files carry their `contentHash` as a strong ETag. Markdown is served as `text/pl
 
 ## Mount
 
+- macOS: Finder → Go → Connect to Server → `https://<host>/dav/`
+- Windows: File Explorer → This PC → Map network drive → `https://<host>/dav/`, with "Connect using different credentials"
 - GNOME Files: connect to `davs://<host>/dav/`
 - rclone: `rclone config create <name> webdav url=https://<host>/dav/ vendor=other user=<username> pass=<password> --obscure`, then `rclone mount <name>: ~/Brain --vfs-cache-mode writes`
