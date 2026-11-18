@@ -4,17 +4,21 @@ Last updated: 2026-11-18
 
 ## Status
 
-Proposed; nothing is implemented. It follows #999, which stops saves through the WebDAV drive from deleting entities, and replaces the per-path rules below with one.
+Proposed; nothing is implemented. It follows #999 (merged 2026-11-18), which stops saves through the WebDAV drive from deleting entities, and replaces the per-path rules below with one.
 
 ## Goal
 
-The brain's entity database is the source of truth for content, and git is its backup and history. Every way an edit reaches the brain names the version it started from. An edit made over a newer version is never written over that version and never thrown away. An edit held nowhere else becomes a `conflict` entity, shown in the Inbox until someone applies or dismisses it: one from Studio, the WebDAV drive, a file in `brain-data/` or a git pull. An edit already held durably is refused: one from chat, whose conversation keeps it and whose agent can read the current version and try again.
+The brain's entity database is the source of truth for content, and git is its backup and history. Every way an edit reaches the brain names the version it started from. An edit made over a newer version is never written over that version and never thrown away:
+
+- An edit held nowhere else becomes a `conflict` entity, shown in the Inbox until someone applies or dismisses it: one from Studio, from a drive client that names no version, from a file in `brain-data/` or from a git pull.
+- An edit its sender still holds is refused: one from chat, whose conversation keeps it, one from a drive client that named the version it edited, and one from a background job, which reads the current version and does its work again.
+- A delete made over a newer version does not happen.
 
 ## Non-goals
 
 - No merging of entity content inside the brain. Git still merges hunks that do not overlap; nothing else merges.
 - No change to `.invalid` quarantine (`plugins/directory-sync/src/lib/quarantine.ts`): it handles files that fail validation, not edits that clash.
-- No storing of drive saves byte for byte. The brain rewrites many saves (a plain note's final newline, CRLF, a BOM, flow lists, quotes, YAML comments, `visibility: public`, a hand-written `created:`), which keeps rclone retrying; that is its own change.
+- No storing of drive saves byte for byte. The brain rewrites many saves (a plain note's final newline, CRLF, a BOM, flow lists, quotes, YAML comments, `visibility: public`, a hand-written `created:`), and rclone reads a file's size back after an upload and uploads again when it differs. A save filed as a conflict leaves the other version on the drive, so rclone keeps retrying it; this plan makes each retry a no-op and leaves the retrying itself to that change.
 - No conflict for an edit that changes nothing.
 
 ## Today
@@ -25,9 +29,10 @@ Each way in decides on its own who wins:
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Studio                | Refused with 409 when `baseContentHash` is stale (`plugins/studio/src/editor-entities.ts:606-619`), but the base is optional and the write itself passes no `expectedContentHash` (`:643-646`), so a change between check and write is overwritten.                                                                                                                                                                                               |
 | Chat and MCP          | `system_update` writes with `expectedContentHash` and fails on `content-conflict` (`shell/core/src/system/entity-update-tool.ts:153-163`).                                                                                                                                                                                                                                                                                                        |
-| WebDAV drive          | The save wins over whatever is current: rclone never sends `If-Match` (`plugins/webdav/src/dav-saves.ts:132,168`), and it retries a failed upload indefinitely.                                                                                                                                                                                                                                                                                   |
+| WebDAV drive          | A save with `If-Match` is refused with 412 when stale. A save without one wins over whatever is current: rclone never sends `If-Match` (`plugins/webdav/src/dav-saves.ts:132,168`), and it retries a failed upload indefinitely.                                                                                                                                                                                                                  |
 | File in `brain-data/` | The file wins. directory-sync keeps no record of what it exported, so an edited file and a changed entity look like one edit; the stale-import guard only covers the time between queueing and writing (`import-pipeline.ts:85-102`), and a skipped stale import is then overwritten by export (`file-operations.ts:387-397`). An import also clears a pending export without looking (`shell/entity-service/src/entity-mutations.ts:1479-1481`). |
 | Git pull              | The remote wins: `-Xtheirs` settles overlapping hunks inside the pull, and conflicts git cannot settle are checked out `--theirs` (`plugins/directory-sync/src/lib/broker/git-pull.ts:45-57,188-204`).                                                                                                                                                                                                                                            |
+| Background jobs       | The job wins. Email workflows, topics, agent discovery, the content pipeline and stock photos read an entity, work, and write it back with no `expectedContentHash`; content generation already passes one (`shell/content-service/src/handlers/contentGenerationJobHandler.ts`).                                                                                                                                                                 |
 
 ## Decisions
 
@@ -35,66 +40,83 @@ Each way in decides on its own who wins:
 
 - **Studio** requires `baseContentHash` and writes with it as `expectedContentHash`, so the check and the write are one. A stale save still answers 409, and records the edit as a conflict first: today the text is held only in the browser (`StudioConflictRecovery`), and a closed tab loses it. The 409 names the conflict, and the editor's recovery panel becomes a view of it with the Inbox's two actions, so resolving it in the editor resolves the Inbox item too.
 - **Chat and MCP** keep today's check and refuse a stale edit; a proposal without `contentHash` is refused instead of written blind. No conflict is recorded: the conversation holds the edit.
-- **The drive** takes `If-Match` when a client sends one. Otherwise the base is the ETag the drive last served that person for that path when they read the file (GET or HEAD), recorded durably in runtime-state so it outlives a restart: rclone edits its cached copy without reading the file again. A listing does not record a base. A save with no recorded read (a file written without being opened) counts as based on the current version, as today.
-- **A file in `brain-data/`**: directory-sync records, per entity, the content hash it last exported or imported, durably beside the export state. A file whose hash differs from that base is an edit. If the entity's hash differs from the base as well, both sides changed: the entity stays and the file's text becomes a conflict, then export rewrites the file.
-- **A git pull** fetches and merges without `-Xtheirs`. Hunks that do not overlap merge as now. A file git cannot merge keeps the brain's side (`--ours`, the committed export) and the remote side becomes a conflict.
+- **The drive, with `If-Match`**: a client that names the version it edited still holds the edit and tells its user when a save is refused. A stale save answers 412, as today, and records no conflict.
+- **The drive, without `If-Match`**: the base is the version this mount last held for that path. A mount is an app password; two computers of one person have two. The base is set when the mount reads the file (GET or HEAD) and when its own save succeeds, to the version the brain stored; a listing does not set it. It is recorded in runtime-state, so it outlives a restart, and dropped with the app password or after 30 days without use. A save over a newer version than the base is stored as a conflict and answers 204: rclone has nowhere to show a refusal and would retry it. A save with no recorded base (a file written without being opened) counts as based on the current version, as today.
+- **A file in `brain-data/`**: directory-sync records, per entity, the hash it last exported or imported, in runtime-state. The hash is of the file as its type reads and writes it back, the form the import already computes (`plugins/directory-sync/src/lib/import-persistence.ts:177-181`), so a file that differs only in bytes (CRLF from a checkout, a missing final newline) is no edit. A file whose hash differs from that base is an edit. If the entity's hash differs from the base as well, both sides changed: the entity stays and the file's text becomes a conflict, then export rewrites the file. An entity with no recorded base (every entity on the first run) is handled as today, and its base is recorded then.
+- **A git pull** fetches and merges without `-Xtheirs`. Hunks that do not overlap merge as now. A file git cannot merge keeps the brain's side (`--ours`, the pre-pull commit) and the remote side becomes a conflict.
+- **A background job** writes with the hash of the version it read as `expectedContentHash`. When that version is stale, the job reads the current one and does its work again, or drops its result when the work no longer applies. It never records a conflict.
+
+### A delete over a newer version does not happen
+
+A delete names its base as an edit does: the drive's `If-Match` or the mount's base, the hash directory-sync recorded for a removed file, the pre-pull commit for a file the remote deleted. When the entity is newer than that base, it stays, export writes its file back, and nothing is put in the Inbox: a delete carries no text to keep, and the person can delete the current version. The drive answers such a delete 412 when it named a version and 409 otherwise, which rclone does not retry (#999).
 
 ### An edit that changes nothing is never a conflict
 
-An edit whose text the type reads to the entity that is already stored is a save that changes nothing, whatever its base. rclone's retry of a save the brain stored in another form is one of these. A conflict is not recorded twice: the same target and the same losing text make one.
+An edit whose text the type reads to the entity that is already stored is a save that changes nothing, whatever its base. rclone's retry of a save the brain stored in another form is one of these.
+
+A conflict is not recorded twice: the same target and the same losing text make one, found by the conflict's `edit` hash. A conflict that was resolved does not come back either: the drive remembers, per mount and path, the `edit` hash of a conflict that was applied or dismissed, and answers the same save again with 204 and no new conflict, until that mount reads the file again or its app password ends. Files and pulls are not sent twice and need no such memory.
 
 ### The `conflict` entity type
 
-`entities/conflict` (`@brains/conflict`), a `defineEntityPackage` with no CRUD tools, `classification: "system"`, in the `core` bundle beside `prompt` and `directory-sync` (`packages/brain-cli/src/model/canonical-bundles.ts`). The drive and directory-sync check for the type once plugins are registered and refuse to start without it, since without it they could only lose the edit.
+`entities/conflict` (`@brains/conflict`) pairs the type with a first-party service, as `entities/assessment` and `entities/agent-discovery` do. It is in the `core` bundle beside `prompt` and `directory-sync` (`packages/brain-cli/src/model/canonical-bundles.ts`), with `classification: "system"`. The drive and directory-sync check for the type once plugins are registered and refuse to start without it, since without it they could only lose the edit.
 
 - **Id**: `<entityType>:<entity id>:<stamp>`, placed at `brain-data/conflict/<entityType>/<id path>/<stamp>.md` (`shared/entity-placement/src/placement.ts`). The stamp is the UTC time `YYYYMMDDTHHMMSSZ`, with `-2`, `-3` appended when taken; it holds no `:`.
-- **Frontmatter**: `entityType`, `entityId`, `origin` (`studio` | `drive` | `file` | `git`), `actor` (the user id, or none for a file or a pull), `base` (the content hash the edit started from), `current` (the content hash it would have replaced), `created`.
+- **Frontmatter**: `entityType`, `entityId`, `origin` (`studio` | `drive` | `file` | `git`), `actor` (the user id, or none for a file or a pull), `base` (the content hash the edit started from), `current` (the content hash it would have replaced), `edit` (the content hash of the losing text), `created`.
 - **Body**: the losing file exactly as it arrived.
-- **Visibility**: the target's, so a restricted note's losing edit stays restricted.
-- **Kept out of the brain's knowledge**: `embeddable: false`, `fullTextSearchable: false`, `includeInBroadSearch: false`, `projectionSource: false` (`shell/entity-service/src/types.ts:751-791`). Nothing publishes a conflict.
-- **Fixed once written**: only the brain creates one, and nobody edits one. The drive answers a write to `conflict/` with 403; an edited conflict file in `brain-data/` is not imported and export restores it.
+- **Visibility**: the stricter of the target's and the one the losing text declares, and never public: a conflict on a public note is shared. A losing edit can be an unpublished draft, and `classification: "system"` hides a type from grouping and Studio's navigation, not from a public read.
+- **Kept out of the brain's knowledge**: `embeddable: false`, `fullTextSearchable: false`, `includeInBroadSearch: false`, `projectionSource: false` (`shell/entity-service/src/types.ts:751-795`). Nothing publishes a conflict.
+- **Fixed once written**: its action policy is `never` for create, update and delete (`shell/entity-service/src/types.ts:787-792`), so Studio, chat and MCP cannot write one; only the package's service creates and removes them. The drive answers a write or a delete under `conflict/` with 403. An edited or removed conflict file in `brain-data/`, or one a pull changes or deletes, is not imported, and export restores it.
 
 It travels to `brain-data/` and git like any type, so an unresolved conflict is in the backup, and shows as a `conflict/` folder on the drive.
 
 ### The Inbox resolves it
 
-The type declares an Inbox source (`EntityInboxDeclaration`, `shell/plugins/src/entity/entity-definition-contract.ts:298-317`), the way FAQ offers its alternatives (`entities/faq/src/lib/faq-inbox.ts:62-68,133-158`). An item names the target, where the edit came from, who made it and when; its detail is the losing text.
+The package's service offers the Inbox source through `runtime.inboxSource`, as email workflows and the action board do. It does not use the type's own `inbox` declaration: that contract is part of the stable 0.2 authoring surface, its edits reach only records of the declaring type (`shell/plugins/src/entity/entity-definition-contract.ts:245-256`), and the brain holds its actions to admins.
 
-- **Apply this version** writes the conflict's body to the target over the version it holds now, through `ctx.edits` with the target's current content hash, then deletes the conflict. When the target changed meanwhile, the item stays and shows the new current version.
-- **Keep current** deletes the conflict; git history still holds it.
+The Inbox listing is gathered with no viewer behind it (`shell/plugins/src/inbox-registry.ts:284-292`), so an item carries no text: it names the target's type and id, where the edit came from, who made it and when. Opening an item and acting on it run as the actor. The detail shows the current version and the losing text side by side, to an actor who may read the target at the conflict's visibility. Either action needs the right to update the target, under its type's action policy.
 
-A person sees and resolves the conflicts of entities they may update.
+- **Apply this version** writes the conflict's body to the target over the version it holds now, with the target's current content hash as `expectedContentHash`, held to the update action (publish, when it moves the target into a published status) and the visibility policy at the actor's level, then removes the conflict. When the target changed meanwhile, the item stays and shows the new current version.
+- **Keep current** removes the conflict; git history still holds it.
+
+### A losing image
+
+An image save over a newer version follows the same rule as text. The losing bytes are staged as an asset, and the conflict's body is its reference, with the image's format and size in its metadata. The Inbox detail shows both images. Apply writes the reference to the target, as an image save does; Keep current removes the conflict and, with it, the last reference to the asset.
 
 ## Phases
 
-One PR per phase, tests first in each, and a changeset.
+One PR, a commit per phase, tests first in each, and a changeset.
 
-### Phase 1 — the `conflict` type and its Inbox
+### Phase 1 — a file in `brain-data/` that loses lands in the Inbox
 
-1. Tests: placement and id round trip, including nested target ids; the type's flags keep it out of search and projections; visibility follows the target; the drive refuses writes under `conflict/`; the two Inbox actions, including a target that changed meanwhile; one conflict for a repeated losing text.
-2. Implement `entities/conflict`, add it to `core`, and add the start check to the drive and directory-sync.
+1. Tests: the `conflict` type's placement and id round trip, including nested target ids; its flags keep it out of search and projections; its visibility is the stricter of the target's and the losing text's, and never public; Studio, chat and MCP cannot create, update or delete one; an edited or removed conflict file is not imported and export restores it. An edited file over an unchanged entity imports; an edited file over a changed entity becomes a conflict and the file is rewritten; a file that differs from its base only in bytes is no edit; an entity with no recorded base imports as today and records one; the brain's own echo stays an echo; a stale import that is skipped today becomes a conflict; an import no longer clears another write's pending export; a file removed over a changed entity deletes nothing and is written back. The two Inbox actions, including a target that changed meanwhile and an actor who may not update the target; one conflict for a repeated losing text.
+2. Implement `entities/conflict` with its service and Inbox source, add it to `core`, add the start check to directory-sync, and implement the per-entity base in runtime-state and the conflict path in the import pipeline.
 
-### Phase 2 — files in `brain-data/`
+### Phase 2 — git pulls
 
-1. Tests: an edited file over an unchanged entity imports; an edited file over a changed entity becomes a conflict and the file is rewritten; the brain's own echo stays an echo; a stale import that is skipped today becomes a conflict; an import no longer clears another write's pending export.
-2. Implement the durable per-entity base hash and the conflict path in the import pipeline.
-
-### Phase 3 — git pulls
-
-1. Tests: a remote edit to a file the brain has not changed imports; non-overlapping edits on both sides merge; overlapping edits keep the brain's side and record the remote's as a conflict; a remote delete of a file the brain changed becomes a conflict, not a delete.
+1. Tests: a remote edit to a file the brain has not changed imports; non-overlapping edits on both sides merge; overlapping edits keep the brain's side and record the remote's as a conflict; a remote delete of a file the brain changed deletes nothing; a conflict file the remote changed or deleted is restored.
 2. Implement fetch plus merge without `-Xtheirs`, and per-file conflict recording before the merge commit.
 
-### Phase 4 — the drive
+### Phase 3 — the drive
 
-1. Tests: a PUT with `If-Match` over a newer version becomes a conflict and answers 204; a PUT without it, based on the ETag last served to that person, does the same, also after a restart; a save that changes nothing is a no-op, also when rclone retries it; a save with no recorded read saves over the current version.
-2. Implement the durable per-person read base and the conflict path in `saveEntityFile`.
+1. Tests: a PUT with a stale `If-Match` answers 412 and records nothing; a PUT without one, over a newer version than the mount's base, becomes a conflict and answers 204, also after a restart; a mount's own save sets its base, so its next save is no conflict; two mounts of one person keep separate bases; a save that changes nothing is a no-op, also when rclone retries it; the same losing save again makes no second conflict, before and after the first is resolved; a save with no recorded base saves over the current version; a DELETE over a newer version deletes nothing and answers 412 or 409; a write or a delete under `conflict/` answers 403.
+2. Implement the per-mount base and the resolved-edit memory in runtime-state, the conflict path in `saveEntityFile`, the base check in `deleteEntityFile`, and the start check.
 
-### Phase 5 — Studio and chat
+### Phase 4 — Studio and chat
 
 1. Tests: Studio refuses a save without `baseContentHash`; a stale save answers 409 naming a conflict that holds the edit, including a change made between check and write; resolving it from the editor's recovery panel removes the Inbox item; `system_update` refuses a stale edit and a proposal without `contentHash`, and records no conflict.
 2. Implement the conflict path in Studio's save route and the recovery panel over the conflict.
 
+### Phase 5 — images
+
+1. Tests: an image file in `brain-data/` and an image save from a mount, each over a newer image, become a conflict whose body is the staged asset's reference; the detail names both images; Apply writes the reference to the target; Keep current removes the conflict and leaves no unreferenced asset.
+2. Implement the image path in the import pipeline and in the drive's image save.
+
+### Phase 6 — background jobs
+
+1. Tests: for each writer that reads an entity and writes it back (email workflows, topics, agent discovery, the content pipeline, stock photos), a change made between its read and its write is not overwritten; the job does its work again on the current version or drops its result, and records no conflict.
+2. Pass `expectedContentHash` at each writer and handle `content-conflict`.
+
 ## Validation
 
 - The affected workspaces' typecheck, lint and tests, plus brain-cli `bun run test`.
-- On the `personal` test app: edit a note in Studio while an rclone mount saves an older copy, edit the same line in the content repo and in Studio before a pull, and restart during an export; each ends with the brain's version live and the other in the Inbox as a conflict, and nothing lost.
+- On the `personal` test app: edit a note in Studio while an rclone mount saves an older copy, edit the same line in the content repo and in Studio before a pull, and restart during an export; each ends with the brain's version live and the other in the Inbox as a conflict, and nothing lost. Dismiss the mount's conflict and leave rclone retrying: no conflict comes back.
