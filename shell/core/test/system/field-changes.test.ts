@@ -1,4 +1,5 @@
 import { describe, expect, it, mock } from "bun:test";
+import { PermissionService } from "@brains/templates";
 import { z } from "@brains/utils/zod";
 import {
   fieldChangeListSchema,
@@ -20,6 +21,11 @@ const editable: Record<string, z.ZodObject> = {
     title: z.string(),
     status: z.enum(["draft", "published"]),
     aliases: z.record(z.string(), z.unknown()).optional(),
+  }),
+  // A record only the brain writes: system tools never create it.
+  snapshot: z.object({
+    title: z.string(),
+    days: z.array(z.string()),
   }),
 };
 
@@ -109,6 +115,23 @@ describe("a list of field changes", () => {
     ).toBe(true);
   });
 
+  it("leaves out the fields of a type the tool never writes", () => {
+    const shown = (on: "create" | "update"): string =>
+      JSON.stringify(
+        jsonOf(
+          fieldChangeListSchema(registry, {
+            on,
+            neverWrites: (type, action) =>
+              type === "snapshot" && action === "create",
+          }),
+        ),
+      );
+
+    expect(shown("create")).not.toContain('"days"');
+    expect(shown("create")).toContain("title (every type)");
+    expect(shown("update")).toContain('"days"');
+  });
+
   it("names the entity types that take each field", () => {
     const json = JSON.stringify(
       jsonOf(fieldChangeListSchema(registry, { on: "create" })),
@@ -128,10 +151,14 @@ describe("a list of field changes", () => {
   });
 });
 
-function toolNamed(name: string): ReturnType<typeof createSystemTools>[number] {
+function toolNamed(
+  name: string,
+  permissionService?: PermissionService,
+): ReturnType<typeof createSystemTools>[number] {
   const services = createMockSystemServices();
   const tool = createSystemTools({
     ...services,
+    ...(permissionService && { permissionService }),
     entityRegistry: { ...services.entityRegistry, ...registry },
   }).find((candidate) => candidate.name === name);
   if (!tool?.modelInput) throw new Error(`${name} has no model input`);
@@ -212,6 +239,25 @@ describe("a field a type takes only on create", () => {
   it("is not offered on update", () => {
     expect(shown("system_update")).not.toContain('"layout"');
   });
+});
+
+describe("a type the brain's action policy never lets system tools write", () => {
+  const shown = (name: string): string => {
+    const permissions = new PermissionService({
+      entityActions: { snapshot: { create: "never", update: "never" } },
+    });
+    const { modelInput } = toolNamed(name, permissions);
+    if (!modelInput) throw new Error("Expected a model input");
+    return JSON.stringify(jsonOf(z.object(modelInput.inputSchema())));
+  };
+
+  it.each(["system_create", "system_update"])(
+    "has no fields offered on %s",
+    (name) => {
+      expect(shown(name)).not.toContain('"days"');
+      expect(shown(name)).toContain('"status"');
+    },
+  );
 });
 
 describe("system_update's model input", () => {

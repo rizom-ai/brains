@@ -26,3 +26,19 @@ export function entityActionRefusal(
     throw error;
   }
 }
+
+/**
+ * Whether the brain's resolved action policy never lets system tools take
+ * this action on the entity type, whoever calls: the same for every caller,
+ * so a tool's schema can leave the type out.
+ */
+export function systemToolsNeverWrite(
+  permissionService: Pick<
+    SystemServices["permissionService"],
+    "getEntityActionRequiredLevel"
+  >,
+): (entityType: string, action: EntityAction) => boolean {
+  return (entityType, action) =>
+    permissionService.getEntityActionRequiredLevel(entityType, action) ===
+    "never";
+}
