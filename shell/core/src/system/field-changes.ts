@@ -24,6 +24,9 @@ type FieldRegistry = Pick<
 /** Which tool sets the fields: create also takes fields stated only then. */
 type FieldsOn = "create" | "update";
 
+/** Whether system tools may never take this action on the entity type. */
+export type NeverWrites = (type: string, action: FieldsOn) => boolean;
+
 function fieldsOn(
   registry: Pick<
     IEntityRegistry,
@@ -77,16 +80,20 @@ function strictValue(json: Record<string, unknown>): boolean {
  * typed as each type declares the field. A field leaves the list when its
  * value is itself a map of any keys, which a strict schema cannot hold.
  * On update, a null value removes the field. Read from the registry each
- * time, so fields registered while the brain runs are offered too.
+ * time, so fields registered while the brain runs are offered too. A type
+ * the tool never writes, such as a record only the brain captures, offers
+ * none: its fields would only cost every call that shows the tool.
  */
 export function fieldChangeListSchema(
   registry: FieldRegistry,
-  options: { on: FieldsOn; omit?: string[] },
+  options: { on: FieldsOn; omit?: string[]; neverWrites?: NeverWrites },
 ): z.ZodArray<z.ZodType> {
   const values = new Map<string, Map<string, z.ZodType>>();
   // The entity types that take each field, for the model to read.
   const takenBy = new Map<string, string[]>();
-  const types = registry.getAllEntityTypes();
+  const types = registry
+    .getAllEntityTypes()
+    .filter((type) => !options.neverWrites?.(type, options.on));
   for (const type of types) {
     const settable = fieldsOn(registry, type, options.on);
     for (const [name, field] of Object.entries(settable?.shape ?? {})) {
@@ -187,6 +194,7 @@ function withFieldMap(input: Record<string, unknown>): Record<string, unknown> {
  */
 export function createModelInput(
   registry: FieldRegistry,
+  neverWrites?: NeverWrites,
 ): NonNullable<Tool["modelInput"]> {
   return {
     // Grouping fields come from a definitions entity, read when first needed.
@@ -196,6 +204,7 @@ export function createModelInput(
       const changes = fieldChangeListSchema(registry, {
         on: "create",
         omit: ["visibility"],
+        ...(neverWrites && { neverWrites }),
       });
       const item = uploadsSourceInputSchema.shape.items.element;
       const uploads = uploadsSourceInputSchema.extend({
@@ -261,6 +270,7 @@ function required<T extends z.ZodType>(field: z.ZodOptional<T>): T {
  */
 export function updateModelInput(
   registry: FieldRegistry,
+  neverWrites?: NeverWrites,
 ): NonNullable<Tool["modelInput"]> {
   const { content, edits, source } = updateOperationInputSchema.shape;
   return {
@@ -271,7 +281,10 @@ export function updateModelInput(
       operation: z
         .union([
           z.strictObject({
-            fields: fieldChangeListSchema(registry, { on: "update" }).describe(
+            fields: fieldChangeListSchema(registry, {
+              on: "update",
+              ...(neverWrites && { neverWrites }),
+            }).describe(
               "Change frontmatter or metadata fields, one { name, value } per field changed. Use this for status, title, coverImageId, ogImageId, and metadata changes such as approving an agent. To set an existing image as an entity cover, change coverImageId to that image id. To remove a field, such as a cover image, give it the value null, not an empty string. Do not use fields for anchor-profile; anchor-profile updates require the content operation.",
             ),
           }),

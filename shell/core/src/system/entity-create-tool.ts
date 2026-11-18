@@ -16,6 +16,7 @@ import { slugify } from "@brains/utils/string-utils";
 import type { z } from "@brains/utils/zod";
 import { createInputSchema } from "./schemas";
 import { createModelInput, uneditableFieldsError } from "./field-changes";
+import { systemToolsNeverWrite } from "./entity-action-policy";
 import {
   admitCreate,
   confirmOrRun,
@@ -1241,5 +1242,11 @@ export function createEntityCreateTool(services: SystemServices): Tool {
     { visibility: "trusted", sideEffects: "writes" },
   );
   // The model writes field changes as a list, which strict mode can hold.
-  return { ...tool, modelInput: createModelInput(services.entityRegistry) };
+  return {
+    ...tool,
+    modelInput: createModelInput(
+      services.entityRegistry,
+      systemToolsNeverWrite(services.permissionService),
+    ),
+  };
 }

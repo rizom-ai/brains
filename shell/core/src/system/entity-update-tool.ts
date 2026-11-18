@@ -10,7 +10,10 @@ import { getErrorMessage } from "@brains/utils/error";
 import { updateInputSchema, exactlyOneUpdateOperation } from "./schemas";
 import { uneditableFieldsError, updateModelInput } from "./field-changes";
 import { applyContentEdits } from "./content-edits";
-import { entityActionRefusal } from "./entity-action-policy";
+import {
+  entityActionRefusal,
+  systemToolsNeverWrite,
+} from "./entity-action-policy";
 import {
   applyUpdateOperation,
   buildUpdateDiff,
@@ -300,5 +303,11 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
     { visibility: "trusted", sideEffects: "writes" },
   );
   // The model writes field changes as a list, which strict mode can hold.
-  return { ...tool, modelInput: updateModelInput(services.entityRegistry) };
+  return {
+    ...tool,
+    modelInput: updateModelInput(
+      services.entityRegistry,
+      systemToolsNeverWrite(services.permissionService),
+    ),
+  };
 }

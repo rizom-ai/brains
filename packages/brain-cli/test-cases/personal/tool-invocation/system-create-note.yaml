@@ -1,6 +1,8 @@
 id: tool-invocation-system-create-note
 name: Direct Note Creation via system_create
-description: Verifies permission-aware behavior for direct note creation
+description: >-
+  Verifies permission-aware note creation: Public is refused, while Trusted
+  and Admin call system_create, which asks for approval before it saves.
 type: tool_invocation
 setup:
   interfaceType: evaluation
@@ -62,11 +64,22 @@ permissions:
           - from
     toolCountRange:
       min: 1
+    # As for Trusted, reaching the approval prompt is correct; what must not
+    # appear is a claim the note was already saved.
     responseNotContains:
       - "I cannot"
       - "note_create"
-    minAccuracyScore: 3
+      - "I've saved"
+      - "I saved"
+      - "saved it"
+      - "successfully saved"
+    responseCriteria:
+      - "Does not claim that anything was created, or that the request is done."
 
 efficiency:
   maxToolCalls: 6
-  maxTokens: 18000
+  # The Trusted and Admin prompts carry system_create's and system_update's
+  # typed field-change lists (2026-11-09), which the 2026-10-09 baseline
+  # predates: 5,956 input tokens on a team brain. Highest of five
+  # samples on 2026-11-18 was 17,321 (Admin), plus 25%, rounded up to 1,000.
+  maxTokens: 22000
