@@ -41,7 +41,6 @@ For the `0.2.x` line, removals, renamed required fields, narrowed author inputs,
 
 ### 1. Integrate the intended stable source
 
-- Land durable binary asset storage for images and PDFs on `main`, through bridge removal ([durable-binary-assets.md](./durable-binary-assets.md)), so the persisted format is final at `0.2.0`.
 - The authoring guide states that `binaryStorage: "data-url"` no longer serves images or PDFs once they use asset storage.
 - Reconcile every branch selected for the candidate at the declarative boundary; Public Ask and Studio are already integrated on the authoring branch, while generic content generation is included only if separately approved to land before nomination.
 - Require clean generated declarations, export-ledger agreement, architecture checks, and no private workspace types in published output.

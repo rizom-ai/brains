@@ -145,7 +145,6 @@ Site and theme packages already publish independently with standard peer metadat
 Plans:
 
 - [public-authoring-api-0.2.md](./plans/public-authoring-api-0.2.md) — **P0 release gate**: final-alpha evidence, release authorization, stable publication, and baseline freezing.
-- [durable-binary-assets.md](./plans/durable-binary-assets.md) — **P0 release gate**: move image and PDF bytes into same-database content-addressed storage as staged chunk rows published atomically with their entity, cut `yeehaa.io` over, soak, and remove the legacy bridge before stable `0.2.0`.
 - [npm-package-boundaries.md](./plans/npm-package-boundaries.md) — narrow official package dependencies and prove an official package through public-only imports.
 - [atproto-integration.md](./plans/atproto-integration.md) — finish the safe known-peer discovery tail before any Jetstream canary; later ingestion/feed work remains demand-gated.
 - [trustflow-federation-integration.md](./plans/trustflow-federation-integration.md) — proposed asset-catalogue federation, gated on a real external catalogue endpoint.

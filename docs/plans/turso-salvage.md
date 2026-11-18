@@ -17,7 +17,7 @@ small PRs, one at a time.
   gain. Every instance would still need an offline import, restore and soak. Turso is
   revisited only on a concrete need (measured write contention, or libSQL end of
   support), as an engine swap against a mature release.
-- **Assets are owned by [durable-binary-assets.md](./durable-binary-assets.md).** Bytes
+- **Assets live in `brain.db`.** Bytes
   stay in `brain.db` as staged chunk rows, published atomically with their entity
   reference, on the application thread. Git sync is optional, so the entity database
   must be a complete, portable copy of an instance on its own.
@@ -71,7 +71,7 @@ adapter or owner transport.
    - ship the snapshot off-host;
    - restore into an isolated destination.
 
-   Asset verification follows `durable-binary-assets.md` once assets are active.
+   Asset verification uses `brain assets:verify`.
 
 8. **Small independent fixes.** Settle durable exports before startup import
    (`9a32c1c49a`). The buffered URL downloader removal (`1fb4acae9d`) is reference
