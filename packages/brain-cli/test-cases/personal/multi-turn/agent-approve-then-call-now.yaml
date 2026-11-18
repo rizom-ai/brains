@@ -1,6 +1,9 @@
 id: multi-turn-agent-approve-then-call-now
 name: Approve Then Call Uses Approved Status Immediately
-description: Verifies that approving a discovered agent goes through confirmation, then an immediate follow-up call sees the approved status and proceeds to agent_call.
+description: >-
+  Verifies that approving a saved agent (archived in the network seed) goes
+  through confirmation and is stored, so an immediate follow-up call sees the
+  approved status and proceeds to agent_call.
 type: multi_turn
 setup:
   permissionLevel: admin
@@ -54,4 +57,8 @@ successCriteria: {}
 
 efficiency:
   maxToolCalls: 5
-  maxTokens: 39000
+  # Approve, confirm and call are three model turns, each carrying the typed
+  # field-change lists (2026-11-09) that the 2026-10-09 budget predates; the
+  # call reaches the agent only since an approval is stored. Highest of five
+  # samples on 2026-11-18 was 55,365, plus 25%, rounded up to 1,000.
+  maxTokens: 70000

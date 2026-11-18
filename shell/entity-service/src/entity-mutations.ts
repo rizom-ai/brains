@@ -595,6 +595,9 @@ export class EntityMutations {
     // Validate and serialize first to compute the new content hash
     const current = this.entitySerializer.withFrontmatterWrites(
       this.entitySerializer.withoutRetiredFields(entity),
+      this.entitySerializer.carriesFrontmatter(entity)
+        ? await this.storedContent(entity)
+        : undefined,
     );
     const updatedEntity = {
       ...current,
