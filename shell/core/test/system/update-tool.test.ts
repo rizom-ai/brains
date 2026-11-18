@@ -454,6 +454,49 @@ describe("system_update tool", () => {
     );
   });
 
+  it("refuses a confirmed update that names no version it was reviewed against", async () => {
+    const confirmation = await exec({
+      entityType: "agent",
+      id: "old-agent.io",
+      operation: { fields: { status: "approved" } },
+    });
+    const { contentHash: _reviewed, ...args } =
+      expectConfirmationArgs(confirmation);
+
+    const result = await exec(args);
+
+    expect(result).toMatchObject({ success: false });
+    // The approval was given for arguments that name the reviewed version.
+    expect(expectToolError(result).error).toContain(
+      "do not match the pending approval",
+    );
+    expect(services.getEntities().get("old-agent.io")?.metadata["status"]).toBe(
+      "active",
+    );
+  });
+
+  it("refuses a confirmed update when the entity changed since the review", async () => {
+    const confirmation = await exec({
+      entityType: "agent",
+      id: "old-agent.io",
+      operation: { fields: { status: "approved" } },
+    });
+    const reviewed = expectDefined(services.getEntities().get("old-agent.io"));
+    services
+      .getEntities()
+      .set("old-agent.io", { ...reviewed, contentHash: "hash-after-studio" });
+
+    const result = await exec(expectConfirmationArgs(confirmation));
+
+    expect(result).toMatchObject({ success: false });
+    expect(expectToolError(result).error).toContain(
+      "modified since you reviewed",
+    );
+    expect(services.getEntities().get("old-agent.io")?.metadata["status"]).toBe(
+      "active",
+    );
+  });
+
   it("uses non-title metadata as the display label in update confirmations", async () => {
     const result = await exec({
       entityType: "newsletter",

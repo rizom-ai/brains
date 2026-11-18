@@ -170,13 +170,22 @@ describe("Studio mutation actor attribution", () => {
     expect(created.status).toBe(201);
     expect(updated.status).toBe(200);
     expect(deleted.status).toBe(200);
-    for (const mutationSpy of [createSpy, updateSpy, deleteSpy]) {
+    for (const mutationSpy of [createSpy, deleteSpy]) {
       expect(mutationSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           options: { eventContext: expectedEventContext },
         }),
       );
     }
+    // An update also names the version it replaces.
+    expect(updateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: {
+          eventContext: expectedEventContext,
+          expectedContentHash: stored.contentHash,
+        },
+      }),
+    );
     expect(
       JSON.stringify({ content: stored.content, metadata: stored.metadata }),
     ).not.toContain(principal.userId);

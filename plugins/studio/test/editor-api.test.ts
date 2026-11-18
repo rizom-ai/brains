@@ -194,6 +194,20 @@ function createEditorTestShell(): MockShell {
   return shell;
 }
 
+/** The stored version a save names as the one it edited. */
+async function versionOf(
+  shell: MockShell,
+  entityType: string,
+  id: string,
+): Promise<string> {
+  const stored = await shell.getEntityService().getEntity({
+    entityType,
+    id,
+    visibilityScope: "restricted",
+  });
+  return stored?.contentHash ?? "no-such-version";
+}
+
 async function seedPost(
   shell: MockShell,
   overrides: { id?: string; title?: string; body?: string } = {},
@@ -1532,6 +1546,7 @@ describe("studio editor api", () => {
         body: {
           entityType: "note",
           id: "rule-note",
+          baseContentHash: await versionOf(shell, "note", "rule-note"),
           frontmatter: { visibility: "restricted" },
           body: newBody,
         },
@@ -1588,6 +1603,7 @@ describe("studio editor api", () => {
         body: {
           entityType: "brief",
           id: "restricted-brief",
+          baseContentHash: await versionOf(shell, "brief", "restricted-brief"),
           frontmatter: { title: "Restricted", visibility: "public" },
           body: "Edited.\n",
         },
@@ -1869,6 +1885,7 @@ describe("studio editor api", () => {
     const writeBody = {
       entityType: "post",
       id: "hello-world",
+      baseContentHash: await versionOf(shell, "post", "hello-world"),
       frontmatter: { title: "Edited Once" },
       body: "The edited body.",
     };
@@ -1951,6 +1968,7 @@ describe("studio editor api", () => {
         body: {
           entityType: "post",
           id: "hello-world",
+          baseContentHash: await versionOf(shell, "post", "hello-world"),
           frontmatter: { title: "Hello Again", summary: "Now with summary" },
         },
       }),
@@ -1991,6 +2009,7 @@ describe("studio editor api", () => {
         body: {
           entityType: "post",
           id: "hello-world",
+          baseContentHash: await versionOf(shell, "post", "hello-world"),
           frontmatter: { title: "Hello Body" },
           body: "A **rewritten** body.\n\nWith two paragraphs.",
         },
@@ -2262,6 +2281,7 @@ describe("studio editor api", () => {
         body: {
           entityType: "post",
           id: "ghost",
+          baseContentHash: await versionOf(shell, "post", "ghost"),
           frontmatter: { title: "Ghost" },
         },
       }),

@@ -1,3 +1,4 @@
+import { asJustOpened } from "../helpers/just-opened";
 import { afterEach, describe, expect, spyOn, test } from "bun:test";
 import { act } from "react";
 import { createClient } from "@libsql/client";
@@ -171,7 +172,8 @@ async function open(
     service,
     registry,
     source,
-    request: async (method, path, body, role = "admin"): Promise<Response> => {
+    request: async (method, path, sent, role = "admin"): Promise<Response> => {
+      const body = await asJustOpened(service, method, path, sent);
       const route = routes.find(
         (entry) =>
           entry.method === method &&

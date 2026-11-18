@@ -1,3 +1,4 @@
+import { asJustOpened } from "./helpers/just-opened";
 import { afterEach, describe, expect, spyOn, test } from "bun:test";
 import { createClient } from "@libsql/client";
 import { generateMarkdown } from "@brains/utils/markdown-frontmatter";
@@ -180,7 +181,8 @@ describe("Clients through the real Note and BlogPost adapters", () => {
     }
     await service.reprojectRegisteredGroupings();
     const routes = plugin.getWebRoutes();
-    return async (method, path, body, role = "trusted"): Promise<Response> => {
+    return async (method, path, sent, role = "trusted"): Promise<Response> => {
+      const body = await asJustOpened(service, method, path, sent);
       const route = routes.find(
         (entry) =>
           entry.method === method &&

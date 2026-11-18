@@ -1,3 +1,4 @@
+import { recordConflictContract } from "@brains/contracts";
 import {
   encodeEntityIdPath,
   canWriteVisibility,
@@ -126,8 +127,11 @@ const updateEntityPayloadSchema = z.object({
   id: z.string(),
   frontmatter: z.record(z.string(), z.unknown()),
   body: z.string().optional(),
-  /** Content hash the edit was based on; stale writes are rejected. */
-  baseContentHash: z.string().optional(),
+  /**
+   * Content hash of the version the edit started from. Required: a save
+   * over a newer version is kept as a conflict, never written blind.
+   */
+  baseContentHash: z.string().min(1),
 });
 
 const createEntityPayloadSchema = z.object({
@@ -601,22 +605,24 @@ export async function handleUpdateEntity(
     );
   }
 
-  // Stale-write guard: another writer (an agent, or a git import through
-  // directory-sync) may have touched this entity since it was opened.
-  if (
-    payload.baseContentHash !== undefined &&
-    payload.baseContentHash !== existing.contentHash
-  ) {
-    return jsonResponse(
-      {
-        error:
-          "This entry changed since it was opened — likely updated by " +
-          "another writer (an agent, or a git import via directory-sync). " +
-          "Reload to review before saving again.",
-        currentContentHash: existing.contentHash,
-      },
-      409,
-    );
+  // Another writer (an agent, a drive, a file import) may have changed this
+  // entity since it was opened. The edit is then kept as a conflict before
+  // the save is refused: until now it lived only in the browser tab.
+  if (payload.baseContentHash !== existing.contentHash) {
+    // An edit that changes nothing is a save, whatever version it started
+    // from: a second click on Save, or a retry of one that went through.
+    if (
+      content === existing.content &&
+      entity.visibility === existing.visibility
+    ) {
+      return jsonResponse({ entityId: id, jobId: "", skipped: true });
+    }
+    return staleStudioSave(context, access, {
+      existing,
+      base: payload.baseContentHash,
+      text: content,
+      declared: entity.visibility,
+    });
   }
 
   const persistenceDenied = requireEntityAction(
@@ -642,12 +648,25 @@ export async function handleUpdateEntity(
   try {
     result = await context.entityService.updateEntity({
       entity,
-      options: studioMutationOptions(access),
+      options: {
+        ...studioMutationOptions(access),
+        // The check above and this write are one: a change made between
+        // them is not overwritten.
+        expectedContentHash: payload.baseContentHash,
+      },
     });
   } catch (error) {
     const invalid = editorValidationResponse(error);
     if (invalid) return invalid;
     throw error;
+  }
+  if (result.skipReason === "content-conflict") {
+    return staleStudioSave(context, access, {
+      existing,
+      base: payload.baseContentHash,
+      text: content,
+      declared: entity.visibility,
+    });
   }
   await recordStudioMutationAudit(
     recordAuditEvent,
@@ -664,6 +683,54 @@ export async function handleUpdateEntity(
     jobId: result.jobId,
     skipped: result.skipped,
   });
+}
+
+/**
+ * Refuse a save over a newer version, with its text kept as a conflict
+ * first. The 409 names the conflict when one holds the edit; when nothing
+ * can hold it, the editor still has it.
+ */
+async function staleStudioSave(
+  context: StudioContext,
+  access: StudioRequestAccess,
+  lost: {
+    existing: BaseEntity;
+    base: string;
+    text: string;
+    declared: BaseEntity["visibility"];
+  },
+): Promise<Response> {
+  const { existing, base, text, declared } = lost;
+  // The version to replace is read again: the one this request loaded may
+  // already be behind the one that overtook it.
+  const current =
+    (await readEditorEntity(context, {
+      entityType: existing.entityType,
+      id: existing.id,
+      visibilityScope: access.visibilityScope,
+    })) ?? existing;
+  const kept = await context.messaging.request(recordConflictContract, {
+    entityType: current.entityType,
+    entityId: current.id,
+    origin: "studio",
+    actor: access.principal.userId,
+    base,
+    current: current.contentHash,
+    text,
+    targetVisibility: current.visibility,
+    ...(declared !== current.visibility && { declaredVisibility: declared }),
+  });
+  return jsonResponse(
+    {
+      error:
+        kept.status === "answered"
+          ? "This entry changed since it was opened. Your version is kept as a conflict in the Inbox; reload to review the current one."
+          : "This entry changed since it was opened. Reload to review before saving again.",
+      currentContentHash: current.contentHash,
+      ...(kept.status === "answered" && { conflictId: kept.data.conflictId }),
+    },
+    409,
+  );
 }
 
 function deserializeStudioEntity(

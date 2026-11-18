@@ -2,6 +2,7 @@
 "@brains/conflict": patch
 "@brains/contracts": patch
 "@brains/directory-sync": patch
+"@brains/studio": patch
 "@brains/webdav": patch
 "@rizom/brain": patch
 ---
@@ -11,3 +12,5 @@ A file in `brain-data/` edited while its entry also changed in the brain no long
 A git pull no longer lets the remote overwrite what the brain changed. Changes to different parts of a file merge; where both changed the same lines the brain's version stays and the remote's is kept as a conflict in the Inbox. A file the remote deleted while the brain changed it is kept. A checkout that shares no history with its remote still takes the remote's version.
 
 A drive save that names no version (rclone, Finder, Explorer) is now based on the version that mount last read or saved. Over a newer version it is kept as a conflict and answered as saved, so the client does not retry it and the newer version is not overwritten; a delete over a newer version is refused with 409. Saves that name their version with `If-Match` still get 412. The drive refuses to start in a brain without the `conflict` type.
+
+A Studio save over a version that changed since the editor opened it is kept as a conflict in the Inbox before it is refused, so closing the tab no longer loses it. The save and its version check are now one write, and a save that names no version is refused. A save that changes nothing stays a save.
