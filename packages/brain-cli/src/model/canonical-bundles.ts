@@ -24,6 +24,7 @@ export const coreBundle: CapabilityBundleDefinition = defineBundle({
   members: [
     "profile",
     "prompt",
+    "conflict",
     "style-guide",
     "directory-sync",
     "note",

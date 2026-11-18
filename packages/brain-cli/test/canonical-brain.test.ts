@@ -8,6 +8,7 @@ import { openAiGuestPricing } from "@brains/ai-service";
 
 const expectedCatalogIds = [
   "prompt",
+  "conflict",
   "profile",
   "style-guide",
   "ask-content",
@@ -69,6 +70,7 @@ const bundleContract = "capability-bundles-v1" as const;
 const expectedCoreMembers = [
   "profile",
   "prompt",
+  "conflict",
   "style-guide",
   "directory-sync",
   "note",
@@ -198,6 +200,9 @@ describe("canonical brain core", () => {
     const resolvedIds = headless.plugins?.map((plugin) => plugin.id) ?? [];
     expect(resolvedIds).toEqual([
       "prompt",
+      // The conflict type installs apart from the service that keeps conflicts.
+      "conflict",
+      "conflicts",
       "profile",
       "style-guide",
       "note",

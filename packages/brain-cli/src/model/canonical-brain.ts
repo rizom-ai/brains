@@ -62,6 +62,7 @@ import obsidianVaultPackage from "@brains/obsidian-vault";
 import playbooksPackage from "@brains/playbooks";
 import portfolioPackage from "@brains/portfolio";
 import profilePackage from "@brains/profile";
+import conflictPackage from "@brains/conflict";
 import promptPackage from "@brains/prompt";
 import refinedNotePackage from "@brains/refined-note";
 import onboardingPackage from "@brains/onboarding";
@@ -210,6 +211,11 @@ export const canonicalBrain: BrainDefinition = defineBrain({
   capabilities: [
     packageCapability("prompt", "@brains/prompt", promptPackage, {
       pluginId: "prompt",
+    }),
+    // The type installs as `conflict`; the service that keeps conflicts
+    // beside it.
+    packageCapability("conflict", "@brains/conflict", conflictPackage, {
+      pluginId: "conflicts",
     }),
     packageCapability("profile", "@brains/profile", profilePackage, {
       pluginId: "profile",

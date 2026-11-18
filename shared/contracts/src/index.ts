@@ -97,6 +97,16 @@ export {
   type AskedBeforeResponse,
 } from "./asked-before";
 export {
+  CONFLICT_ENTITY_TYPE,
+  conflictOriginSchema,
+  recordConflictContract,
+  recordConflictRequestSchema,
+  recordConflictResponseSchema,
+  type ConflictOrigin,
+  type RecordConflictRequest,
+  type RecordConflictResponse,
+} from "./conflict";
+export {
   agentContextContract,
   agentContextRequestSchema,
   type AgentContextRequest,
