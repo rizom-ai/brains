@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.740
+
+### Patch Changes
+
+- [#997](https://github.com/rizom-ai/brains/pull/997) [`7fa12e5`](https://github.com/rizom-ai/brains/commit/7fa12e5f8fc9f1b1fa023445f45305125de49614) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Connecting the drive from macOS no longer reports "operation not permitted". The hidden folders a desktop makes on a mounted volume (`.Trashes`, `.TemporaryItems`, `.Spotlight-V100`), at the top of the drive or inside any folder, and every file inside them, are temporary items held per person in memory, never entities. A property change (`PROPPATCH`), which macOS and Windows send after a save, is accepted and stores nothing instead of answering 403.
+
 ## 0.2.0-alpha.739
 
 ### Patch Changes

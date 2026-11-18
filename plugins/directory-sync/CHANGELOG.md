@@ -1,5 +1,18 @@
 # @brains/directory-sync
 
+## 0.2.0-alpha.740
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.740
+  - @brains/content-formatters@0.2.0-alpha.740
+  - @brains/contracts@0.2.0-alpha.740
+  - @brains/document@0.2.0-alpha.740
+  - @brains/entity-placement@0.2.0-alpha.740
+  - @brains/image@0.2.0-alpha.740
+  - @brains/utils@0.2.0-alpha.740
+
 ## 0.2.0-alpha.739
 
 ### Patch Changes
