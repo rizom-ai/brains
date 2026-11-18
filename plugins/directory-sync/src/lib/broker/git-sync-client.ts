@@ -209,6 +209,11 @@ export class BrokerGitSync {
     );
   }
 
+  async acknowledgePullConflicts(ids: string[]): Promise<void> {
+    if (ids.length === 0) return;
+    await this.#run({ name: "acknowledge-pull-conflicts", ids });
+  }
+
   getReconciliationDelta(
     checkpoint?: GitReconciliationCheckpoint,
   ): Promise<GitReconciliationDelta> {

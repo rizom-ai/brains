@@ -6,6 +6,7 @@ import { commitGitChanges, pushGitChanges } from "./git-commit";
 import { reconcileRemoteDeletedFiles } from "../git-remote-deletion-reconciliation";
 import { GitStallError, runGitCommandWithStallTimeout } from "./git-stall";
 import type { GitNetwork } from "./git-stall";
+import { listPullConflicts, spoolPullConflict } from "./pull-conflict-spool";
 
 interface ChangedPaths {
   files: string[];
@@ -44,18 +45,23 @@ export async function pullGitChanges(
     // unresponsive remote can't hang the caller and wedge the git lock.
     await runGitCommandWithStallTimeout(
       net,
-      [
-        "pull",
-        "origin",
-        branch,
-        "--no-rebase",
-        "--allow-unrelated-histories",
-        "--strategy=recursive",
-        "-Xtheirs",
-      ],
+      ["fetch", "origin", branch],
       signal,
     );
     signal?.throwIfAborted();
+    await mergeRemote(git, branch);
+    // A merge that stops on conflicts reports them on stdout and may not
+    // fail the command, so the index is asked.
+    const unmerged = (await git.status()).conflicted;
+    if (unmerged.length > 0) {
+      await resolveMergeConflicts(
+        git,
+        logger,
+        net.baseDir,
+        "merge stopped on conflicts",
+        unmerged,
+      );
+    }
 
     const result = await getPullChanges(
       git,
@@ -70,7 +76,7 @@ export async function pullGitChanges(
       deletedFiles: result.deletedFiles ?? [],
     });
     signal?.throwIfAborted();
-    return result;
+    return await withUnacknowledgedConflicts(result, net.baseDir);
   } catch (pullError) {
     return handlePullError(
       { git, logger, branch, net, headBefore, remoteHeadBefore, signal },
@@ -105,7 +111,13 @@ async function handlePullError(
   const mergeStatus = await git.status();
 
   if (msg.includes("CONFLICT") || mergeStatus.conflicted.length > 0) {
-    await resolveRemoteConflicts(git, logger, msg, mergeStatus.conflicted);
+    await resolveMergeConflicts(
+      git,
+      logger,
+      net.baseDir,
+      msg,
+      mergeStatus.conflicted,
+    );
     const result = await getPullChanges(
       git,
       headBefore,
@@ -118,7 +130,7 @@ async function handlePullError(
       syncPath: net.baseDir,
       deletedFiles: result.deletedFiles ?? [],
     });
-    return result;
+    return withUnacknowledgedConflicts(result, net.baseDir);
   }
 
   if (msg.includes("couldn't find remote ref")) {
@@ -150,8 +162,65 @@ async function getPullChanges(
     files: [
       ...new Set([...localChanges.files, ...(remoteChanges?.files ?? [])]),
     ],
-    deletedFiles: remoteChanges?.deletedFiles ?? localChanges.deletedFiles,
+    deletedFiles: await withoutKeptFiles(
+      git,
+      remoteChanges?.deletedFiles ?? localChanges.deletedFiles,
+    ),
   };
+}
+
+/**
+ * The deletions the checkout took. A file the remote deleted and the brain
+ * changed stays in the merge, and is no deletion.
+ */
+export async function withoutKeptFiles(
+  git: SimpleGit,
+  deletedFiles: string[],
+): Promise<string[]> {
+  const kept = await Promise.all(
+    deletedFiles.map((file) =>
+      git.raw(["cat-file", "-e", `HEAD:${file}`]).then(
+        () => true,
+        () => false,
+      ),
+    ),
+  );
+  return deletedFiles.filter((_, index) => !kept[index]);
+}
+
+/**
+ * Merge what was fetched. Histories that share a version merge as git
+ * merges them, and what it cannot merge is left for the caller. Histories
+ * that share none, a seeded checkout meeting its remote for the first time,
+ * have no version both sides started from: the remote wins, as it always did.
+ */
+async function mergeRemote(git: SimpleGit, branch: string): Promise<void> {
+  const remoteRef = `refs/remotes/origin/${branch}`;
+  const related = await git.raw(["merge-base", "HEAD", remoteRef]).then(
+    (base) => base.trim().length > 0,
+    () => false,
+  );
+  await git.raw(
+    related
+      ? ["merge", "--no-edit", remoteRef]
+      : [
+          "merge",
+          "--no-edit",
+          "--allow-unrelated-histories",
+          "--strategy=recursive",
+          "-Xtheirs",
+          remoteRef,
+        ],
+  );
+}
+
+/** The pull's result with every remote text still waiting to be recorded. */
+async function withUnacknowledgedConflicts(
+  result: PullResult,
+  baseDir: string,
+): Promise<PullResult> {
+  const conflicts = await listPullConflicts(baseDir);
+  return conflicts.length === 0 ? result : { ...result, conflicts };
 }
 
 export async function getChangedPaths(
@@ -185,22 +254,49 @@ export async function tryResolveRemoteHead(
   }
 }
 
-async function resolveRemoteConflicts(
+/** Whether the index holds this side of a conflicted file. */
+const hasSide = (git: SimpleGit, side: 2 | 3, file: string): Promise<boolean> =>
+  git.raw(["cat-file", "-e", `:${side}:${file}`]).then(
+    () => true,
+    () => false,
+  );
+
+/**
+ * Settle the files git could not merge. Text both sides changed keeps the
+ * brain's side, and the remote's text is spooled to become a conflict. A
+ * file the remote deleted and the brain changed stays. A file the brain
+ * deleted and the remote changed comes back. A binary file takes the
+ * remote's side, as it always did: it has no text to keep.
+ */
+async function resolveMergeConflicts(
   git: SimpleGit,
   logger: Logger,
+  baseDir: string,
   msg: string,
   conflictedFiles: string[],
 ): Promise<void> {
   logger.warn("Resolving merge conflict", { error: msg });
+  const remoteCommit = (await git.revparse(["MERGE_HEAD"])).trim();
   for (const file of conflictedFiles) {
-    try {
-      await git.raw(["checkout", "--theirs", file]);
-    } catch {
-      await git.raw(["rm", "--force", file]);
+    const ours = await hasSide(git, 2, file);
+    const theirs = await hasSide(git, 3, file);
+    if (ours && theirs && file.endsWith(".md")) {
+      await spoolPullConflict(baseDir, {
+        path: file,
+        text: await git.show([`:3:${file}`]),
+        remoteCommit,
+      });
+      await git.raw(["checkout", "--ours", "--", file]);
+    } else if (ours && !theirs) {
+      await git.raw(["checkout", "--ours", "--", file]);
+    } else if (theirs) {
+      await git.raw(["checkout", "--theirs", "--", file]);
+    } else {
+      await git.raw(["rm", "--force", "--", file]);
     }
   }
   await git.add(["-A"]);
-  await git.commit("Auto-resolve merge conflict (remote wins)");
+  await git.commit("Auto-resolve merge conflict (the brain's version kept)");
 }
 
 async function bootstrapRemoteBranch(

@@ -123,7 +123,17 @@ export class GitReconciliationService {
     // Safe to compose: the delta is derived from the durable checkpoint to
     // current HEAD, so an interleaved commit widens it rather than skipping
     // it, and the checkpoint only advances once the batch is durable.
-    await options.gitSync.pull(options.signal, options.onGitProgress);
+    const pulled = await options.gitSync.pull(
+      options.signal,
+      options.onGitProgress,
+    );
+    // Before anything is queued: the remote texts the merge left out are
+    // kept as conflicts, and only then dropped from the broker's spool.
+    if (pulled.conflicts && pulled.conflicts.length > 0) {
+      await options.gitSync.acknowledgePullConflicts(
+        await options.directorySync.recordPullConflicts(pulled.conflicts),
+      );
+    }
     options.signal?.throwIfAborted();
     return this.queueCurrentDelta(options);
   }

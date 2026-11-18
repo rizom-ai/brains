@@ -52,6 +52,7 @@ export const GIT_OPERATIONS: readonly [
   "get-checkpoint",
   "log-file",
   "show-file",
+  "acknowledge-pull-conflicts",
 ] = [
   "initialize",
   "get-status",
@@ -64,6 +65,7 @@ export const GIT_OPERATIONS: readonly [
   "get-checkpoint",
   "log-file",
   "show-file",
+  "acknowledge-pull-conflicts",
 ];
 
 export type GitOperationName = (typeof GIT_OPERATIONS)[number];
@@ -107,6 +109,10 @@ export const gitOperationSchema: z.ZodDiscriminatedUnion<
       sha: z.ZodString;
       filePath: z.ZodString;
     }>,
+    Strict<{
+      name: z.ZodLiteral<"acknowledge-pull-conflicts">;
+      ids: z.ZodArray<z.ZodString>;
+    }>,
   ],
   "name"
 > = z.discriminatedUnion("name", [
@@ -138,6 +144,13 @@ export const gitOperationSchema: z.ZodDiscriminatedUnion<
       name: z.literal("show-file"),
       sha: z.string().min(1),
       filePath: z.string().min(1),
+    })
+    .strict(),
+  // Dropping a spooled text twice drops it once: safe to replay.
+  z
+    .object({
+      name: z.literal("acknowledge-pull-conflicts"),
+      ids: z.array(z.string().regex(/^[a-f0-9]{64}$/)).max(10_000),
     })
     .strict(),
 ]);
@@ -186,6 +199,7 @@ interface GitOperationResultSchemas {
   "get-checkpoint": typeof gitReconciliationCheckpointSchema;
   "log-file": z.ZodArray<typeof gitLogEntrySchema>;
   "show-file": z.ZodString;
+  "acknowledge-pull-conflicts": typeof nothing;
 }
 
 const resultSchemas: GitOperationResultSchemas = {
@@ -194,6 +208,7 @@ const resultSchemas: GitOperationResultSchemas = {
   push: nothing,
   "has-local-changes": z.boolean(),
   "show-file": z.string(),
+  "acknowledge-pull-conflicts": nothing,
   "get-checkpoint": gitReconciliationCheckpointSchema,
   "get-status": gitSyncStatusSchema,
   "commit-and-push": commitAndPushResultSchema,

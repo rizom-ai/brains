@@ -674,4 +674,32 @@ describe("GitReconciliationService", () => {
       rmSync(root, { recursive: true, force: true });
     }
   });
+
+  it("records the remote texts a pull hands back and acknowledges the ones it recorded", async () => {
+    const { context } = createTypedContext(["doc"]);
+    const service = new GitReconciliationService(context.runtimeState);
+    const conflicts = [
+      { id: "a".repeat(64), path: "doc/a.md", text: "Remote a\n" },
+      { id: "b".repeat(64), path: "doc/b.md", text: "Remote b\n" },
+    ];
+    const recordPullConflicts = mock(async () => ["a".repeat(64)]);
+    const acknowledgePullConflicts = mock(async () => {});
+
+    await service.pullAndQueue({
+      gitSync: createMockGitSync({
+        pull: mock(async () => ({ files: [], conflicts })),
+        acknowledgePullConflicts,
+        getReconciliationDelta: fullOrIncremental(),
+      }),
+      directorySync: createMockDirectorySync({
+        queueSyncBatch: mock(async () => QUEUED),
+        recordPullConflicts,
+      }),
+      context,
+      source: "periodic-sync",
+    });
+
+    expect(recordPullConflicts).toHaveBeenCalledWith(conflicts);
+    expect(acknowledgePullConflicts).toHaveBeenCalledWith(["a".repeat(64)]);
+  });
 });

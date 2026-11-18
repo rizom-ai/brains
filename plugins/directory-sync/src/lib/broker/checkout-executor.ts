@@ -5,6 +5,7 @@ import { commitGitChanges, pushGitChanges } from "./git-commit";
 import { getFileHistory, showFileAtCommit } from "./git-history";
 import { initializeGitRepository } from "./git-init";
 import { pullGitChanges } from "./git-pull";
+import { acknowledgePullConflicts } from "./pull-conflict-spool";
 import {
   getCurrentReconciliationCheckpoint,
   getReconciliationDelta,
@@ -242,6 +243,10 @@ export class CheckoutOperationExecutor {
           this.#netFor(runOptions),
           runOptions.signal,
         );
+
+      case "acknowledge-pull-conflicts":
+        await acknowledgePullConflicts(this.#options.dataDir, operation.ids);
+        return undefined;
 
       case "get-reconciliation-delta":
         return getReconciliationDelta(

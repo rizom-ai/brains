@@ -25,6 +25,7 @@ import { computeContentHash } from "@brains/utils/hash";
 import { z } from "@brains/utils/zod";
 import { DirectorySync } from "../src/lib/directory-sync";
 import { memorySyncBase, type SyncBaseStore } from "../src/lib/sync-base";
+import type { PullConflict } from "../src/types";
 
 /**
  * A type whose stored form differs from what a person may type: line endings
@@ -440,6 +441,61 @@ describe("directory-sync against the version it last synced", () => {
       expect(read("conflict/post/a/20261118T102030Z.md")).toContain(
         "The conflict as the brain wrote it",
       );
+    });
+  });
+
+  describe("a remote text a pull did not take", () => {
+    const pulled = (text: string, path = "post/a.md"): PullConflict => ({
+      id: hash(`${path}\n${text}`),
+      path,
+      text,
+    });
+
+    it("becomes a conflict from git on the entity the brain kept", async () => {
+      await synced();
+      await editInBrain("Edited in Studio\n");
+      const conflict = pulled("Edited remotely\n");
+
+      expect(await brain.sync.recordPullConflicts([conflict])).toEqual([
+        conflict.id,
+      ]);
+      expect(brain.recorded).toEqual([
+        {
+          entityType: "post",
+          entityId: "a",
+          origin: "git",
+          current: hash("Edited in Studio\n"),
+          text: "Edited remotely\n",
+          targetVisibility: "public",
+        },
+      ]);
+    });
+
+    it("carries the visibility the remote text declares", async () => {
+      await synced();
+      const conflict = pulled("---\nvisibility: restricted\n---\nDraft\n");
+
+      await brain.sync.recordPullConflicts([conflict]);
+
+      expect(brain.recorded[0]?.declaredVisibility).toBe("restricted");
+    });
+
+    it("stays unacknowledged while nothing can hold the conflict", async () => {
+      await synced();
+      brain.conflictsAvailable = false;
+
+      expect(
+        await brain.sync.recordPullConflicts([pulled("Edited remotely\n")]),
+      ).toEqual([]);
+    });
+
+    it("is dropped when its file belongs to no entity", async () => {
+      const conflict = pulled("Edited remotely\n", "post/gone.md");
+
+      expect(await brain.sync.recordPullConflicts([conflict])).toEqual([
+        conflict.id,
+      ]);
+      expect(brain.recorded).toEqual([]);
     });
   });
 });

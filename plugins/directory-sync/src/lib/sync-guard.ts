@@ -1,6 +1,13 @@
 import { readFile } from "node:fs/promises";
 import { relative } from "node:path";
-import { CONFLICT_ENTITY_TYPE } from "@brains/contracts";
+import {
+  CONFLICT_ENTITY_TYPE,
+  recordConflictRequestSchema,
+  type RecordConflictRequest,
+} from "@brains/contracts";
+import { isRecord } from "@brains/utils/is-record";
+import { readMarkdownFrontmatter } from "@brains/utils/markdown-frontmatter";
+import type { PullConflict } from "../types/results";
 import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
 import {
   internalFullScope,
@@ -9,6 +16,17 @@ import {
 import { computeContentHash } from "@brains/utils/hash";
 import type { FileOperations } from "./file-operations";
 import type { SyncConflicts } from "./sync-base";
+
+/** The visibility a text's frontmatter declares, if it declares one. */
+function declaredVisibility(
+  text: string,
+): RecordConflictRequest["targetVisibility"] | undefined {
+  const { data } = readMarkdownFrontmatter(text);
+  const declared = recordConflictRequestSchema.shape.targetVisibility.safeParse(
+    isRecord(data) ? data["visibility"] : undefined,
+  );
+  return declared.success ? declared.data : undefined;
+}
 
 /** What became of an entity whose file was removed. */
 export type RemovedFileOutcome = "deleted" | "kept" | "missing";
@@ -20,7 +38,10 @@ export interface SyncGuardDeps {
   >;
   fileOperations: Pick<
     FileOperations,
-    "writeEntity" | "resolveEntityFilePath" | "fileExists"
+    | "writeEntity"
+    | "resolveEntityFilePath"
+    | "fileExists"
+    | "parseEntityFromPath"
   >;
   syncPath: string;
   conflicts?: SyncConflicts | undefined;
@@ -122,6 +143,42 @@ export class SyncGuard {
       await this.textFileHash(entity),
     );
     return "kept";
+  }
+
+  /**
+   * Keep the remote texts a pull did not take as conflicts on the entities
+   * the brain kept. Answers the ids that need no further keeping: recorded,
+   * or of a file that belongs to no entity.
+   */
+  async recordPullConflicts(pulled: PullConflict[]): Promise<string[]> {
+    const { conflicts, entityService, fileOperations } = this.deps;
+    if (!conflicts) return [];
+    const settled = await Promise.all(
+      pulled.map(async ({ path, text }) => {
+        const target = fileOperations.parseEntityFromPath(path);
+        const entity = await entityService.getEntityRaw({
+          entityType: target.entityType,
+          id: target.id,
+          visibilityScope: internalFullScope(
+            "keep a pulled text as a conflict on its entity",
+          ),
+          source: true,
+        });
+        if (!entity) return true;
+        const declared = declaredVisibility(text);
+        return conflicts.record({
+          entityType: entity.entityType,
+          entityId: entity.id,
+          origin: "git",
+          current: entity.contentHash,
+          text,
+          targetVisibility: entity.visibility,
+          ...(declared !== undefined &&
+            declared !== entity.visibility && { declaredVisibility: declared }),
+        });
+      }),
+    );
+    return pulled.flatMap(({ id }, index) => (settled[index] ? [id] : []));
   }
 
   /**

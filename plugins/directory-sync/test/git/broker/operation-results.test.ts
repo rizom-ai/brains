@@ -42,6 +42,7 @@ describe("git operation results", () => {
       push: undefined,
       "has-local-changes": true,
       "show-file": "hello\n",
+      "acknowledge-pull-conflicts": undefined,
       "get-status": STATUS,
       "get-checkpoint": CHECKPOINT,
       "commit-and-push": { pushed: true, checkpoint: CHECKPOINT },

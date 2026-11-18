@@ -22,6 +22,7 @@ export type {
   GitReconciliationFallbackReason,
   GitSyncStatus,
   ImportResult,
+  PullConflict,
   PullResult,
   RawEntity,
   SyncResult,

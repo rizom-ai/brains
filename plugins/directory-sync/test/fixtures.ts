@@ -121,6 +121,7 @@ export function createMockDirectorySync(
     })),
     processEntityExport: mock(async () => ({ success: true })),
     deleteForRemovedFile: mock(async () => "deleted" as const),
+    recordPullConflicts: mock(async () => []),
     exportEntities: mock(async () => emptyExportResult()),
     importEntitiesWithProgress: mock(async () => emptyImportResult()),
     exportEntitiesWithProgress: mock(async () => emptyExportResult()),
@@ -192,6 +193,7 @@ export function createMockGitSync(overrides: Partial<IGitSync> = {}): IGitSync {
       return { pushed: true, checkpoint };
     },
     pull: mock(async () => ({ files: [] })),
+    acknowledgePullConflicts: mock(async () => {}),
     getReconciliationDelta: mock(async () => ({
       mode: "full" as const,
       checkpoint: {

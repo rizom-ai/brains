@@ -48,11 +48,8 @@ Initial sync pulls remote content before importing files into the Brain database
 
 ```bash
 cd brain-data
-git pull origin main \
-  --no-rebase \
-  --allow-unrelated-histories \
-  --strategy=recursive \
-  -Xtheirs
+git fetch origin main
+git merge --no-edit refs/remotes/origin/main
 ```
 
 Then directory-sync imports the resulting files:
@@ -126,11 +123,8 @@ git add -A
 git commit -m "Pre-pull commit: preserving local changes"
 
 # Pull remote content.
-git pull origin main \
-  --no-rebase \
-  --allow-unrelated-histories \
-  --strategy=recursive \
-  -Xtheirs
+git fetch origin main
+git merge --no-edit refs/remotes/origin/main
 
 # Import resulting files into the Brain DB.
 ```
@@ -142,11 +136,8 @@ Any entity changes caused by the import are later handled by the normal export a
 When `autoSync` and git sync are enabled, directory-sync periodically pulls remote changes:
 
 ```bash
-git pull origin main \
-  --no-rebase \
-  --allow-unrelated-histories \
-  --strategy=recursive \
-  -Xtheirs
+git fetch origin main
+git merge --no-edit refs/remotes/origin/main
 ```
 
 If files changed, it queues imports through the job system. Resulting entity changes are committed and pushed by auto-commit.
@@ -155,7 +146,7 @@ If files changed, it queues imports through the job system. Resulting entity cha
 
 Conflict handling is git-level. Directory-sync does not do a semantic, entity-aware merge.
 
-### Pull conflicts: remote wins
+### Pull conflicts: the brain's version stays
 
 Before pulling, dirty local work is preserved in a local commit:
 
@@ -164,37 +155,34 @@ git add -A
 git commit -m "Pre-pull commit: preserving local changes"
 ```
 
-Then pull uses `-Xtheirs`:
+Then the pull fetches and merges:
 
 ```bash
-git pull origin main \
-  --no-rebase \
-  --allow-unrelated-histories \
-  --strategy=recursive \
-  -Xtheirs
+git fetch origin main
+git merge --no-edit refs/remotes/origin/main
 ```
 
 This means:
 
-- non-conflicting changes merge normally;
-- when both local and remote changed the same lines, remote content wins;
-- local work is preserved in history but may not appear in the final merged file.
+- changes to different files, or to different parts of one file, merge normally;
+- when both the brain and the remote changed the same lines of a Markdown file, the brain's version stays and the remote's version is kept as a conflict in the Inbox, where it can be applied over the current version or dismissed;
+- a file the remote deleted while the brain changed it stays, and its entity is not deleted;
+- a file the brain deleted while the remote changed it comes back;
+- a binary file both sides changed takes the remote's version.
 
-If git still reports conflicts after the pull, directory-sync resolves each conflicted file with the remote version:
-
-```bash
-git checkout --theirs <conflicted-file>
-git add -A
-git commit -m "Auto-resolve merge conflict (remote wins)"
-```
-
-If checking out the remote version fails, for example in some delete/rename conflicts, the file is removed:
+The remote's text of a conflicted file is held beside the checkout's git state until the conflict is recorded, so a restart between the merge and the recording does not lose it. The merge is committed as:
 
 ```bash
-git rm --force <conflicted-file>
+git commit -m "Auto-resolve merge conflict (the brain's version kept)"
 ```
 
-After conflict resolution, the final file state is imported into the Brain DB.
+A checkout whose history shares no commit with the remote, such as a seeded directory meeting its remote for the first time, has no version both sides started from. There the remote wins:
+
+```bash
+git merge --no-edit --allow-unrelated-histories --strategy=recursive -Xtheirs refs/remotes/origin/main
+```
+
+After the merge, the final file state is imported into the Brain DB.
 
 ### Auto-commit conflicts: local wins
 
@@ -226,6 +214,6 @@ git push
 
 Its default conflict policy is:
 
-- **remote wins during pull**;
+- **the brain's version stays during pull**, and the remote's text of the same lines is kept as a conflict in the Inbox;
 - **local wins during auto-commit cleanup**;
 - **manual intervention is required if conflict markers would be committed**.

@@ -1,3 +1,4 @@
+import type { PullConflict } from "../types/results";
 import { SyncGuard, type RemovedFileOutcome } from "./sync-guard";
 import type { ServiceEntityMirrorClient } from "@brains/sdk/internal/service-runtime";
 import type { DirectorySyncCore } from "./sync-context";
@@ -307,6 +308,11 @@ export class DirectorySync implements IDirectorySync {
   /** Write an entity's file, keeping an edit the file holds as a conflict. */
   writeEntityFile(entity: BaseEntity): Promise<void> {
     return this.guard.writeEntityFile(entity);
+  }
+
+  /** Keep the remote texts a pull did not take as conflicts. */
+  recordPullConflicts(conflicts: PullConflict[]): Promise<string[]> {
+    return this.guard.recordPullConflicts(conflicts);
   }
 
   /** Delete the entity of a removed file unless it changed since they agreed. */
