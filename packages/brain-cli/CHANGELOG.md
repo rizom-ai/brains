@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.744
+
+### Patch Changes
+
+- [#1002](https://github.com/rizom-ai/brains/pull/1002) [`a4a8107`](https://github.com/rizom-ai/brains/commit/a4a810724f580cfefcf1e260b2f456ddbf8c2d0d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - When a typed system_search returns that type's entities but not a detail the user asked about, the agent answers from what the results say and names what is missing, instead of searching the same type again with added words. A question about something the saved content does not state no longer costs extra model steps.
+
 ## 0.2.0-alpha.743
 
 ### Patch Changes
