@@ -16,6 +16,7 @@ const map: ProximityMapData = {
   nodes: [
     {
       id: "becca",
+      slug: "becca",
       name: "Becca",
       kind: "person",
       status: "approved",
@@ -25,6 +26,7 @@ const map: ProximityMapData = {
     },
     {
       id: "jo",
+      slug: "jo",
       name: "Jo",
       kind: "person",
       status: "approved",

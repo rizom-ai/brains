@@ -27,6 +27,7 @@ export type ProximityMapCenter = z.output<typeof proximityMapCenterSchema>;
 
 export const proximityMapNodeSchema: z.ZodObject<{
   id: z.ZodString;
+  slug: z.ZodString;
   name: z.ZodString;
   kind: typeof agentKindSchema;
   status: typeof agentStatusSchema;
@@ -35,6 +36,8 @@ export const proximityMapNodeSchema: z.ZodObject<{
   bearing: z.ZodNumber;
 }> = z.object({
   id: z.string(),
+  /** The agent's page slug, as `/agents/<slug>` routes it. */
+  slug: z.string(),
   name: z.string(),
   kind: agentKindSchema,
   status: agentStatusSchema,
