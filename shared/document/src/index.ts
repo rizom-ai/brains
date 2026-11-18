@@ -34,6 +34,7 @@ export {
   classifyInlineDocument,
   createPendingDocumentEntity,
   inlineDocumentPayload,
+  isLegacyPendingDocumentBytes,
   isPdfBytes,
   stageDocumentEntity,
   type DocumentAssetStager,

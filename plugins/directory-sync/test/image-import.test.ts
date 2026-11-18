@@ -402,13 +402,16 @@ describe("Image Import - Regression Tests", () => {
       expect(stage).not.toHaveBeenCalled();
     });
 
-    function storeImage(content: string): void {
+    function storeImage(
+      content: string,
+      metadata: Record<string, unknown> = {},
+    ): void {
       const stored: BaseEntity = {
         id: "robot",
         entityType: "image",
         content,
         contentHash: "stored",
-        metadata: {},
+        metadata,
         visibility: "public",
         created: "2026-01-01T00:00:00.000Z",
         updated: "2026-01-01T00:00:00.000Z",
@@ -418,6 +421,56 @@ describe("Image Import - Regression Tests", () => {
         revision: string;
       }> => ({ entity: stored, revision: "stored" });
     }
+
+    describe("the old 1x1 placeholder an earlier export mirrored", () => {
+      // The fixture's 1x1 PNG is the placeholder pending images held.
+      it("never becomes the bytes of an image awaiting them", async () => {
+        mkdirSync(join(testDir, "image"), { recursive: true });
+        writeFileSync(join(testDir, "image", "robot.png"), TINY_PNG_BYTES);
+        storeImage("", { status: "pending" });
+        const upserts = captureUpserts();
+        const stage = spyOn(mockEntityService, "stageAsset");
+
+        const result = await dirSync.importEntities();
+
+        expect(upserts).toHaveLength(0);
+        expect(stage).not.toHaveBeenCalled();
+        expect(result.skipped).toBe(1);
+        expect(JSON.stringify(result)).toContain("old pending placeholder");
+        expect(existsSync(join(testDir, "image", "robot.png"))).toBe(true);
+      });
+
+      it("never becomes them from a text-form file either", async () => {
+        mkdirSync(join(testDir, "image"), { recursive: true });
+        writeFileSync(
+          join(testDir, "image", "robot.md"),
+          `${TINY_PNG_DATA_URL}\n`,
+        );
+        storeImage("", { status: "failed" });
+        const upserts = captureUpserts();
+        const stage = spyOn(mockEntityService, "stageAsset");
+
+        const result = await dirSync.importEntities();
+
+        expect(upserts).toHaveLength(0);
+        expect(stage).not.toHaveBeenCalled();
+        expect(result.skipped).toBe(1);
+      });
+
+      it("is an image's bytes like any other once the image is complete", async () => {
+        mkdirSync(join(testDir, "image"), { recursive: true });
+        writeFileSync(join(testDir, "image", "robot.png"), TINY_PNG_BYTES);
+        storeImage(createAssetRef(computeAssetDigest(Buffer.from("other"))));
+        const upserts = captureUpserts();
+
+        const result = await dirSync.importEntities();
+
+        expect(result.imported).toBe(1);
+        expect(upserts[0]?.entity.content).toBe(
+          createAssetRef(computeAssetDigest(TINY_PNG_BYTES)),
+        );
+      });
+    });
 
     it("leaves an inline image whose bytes match the file for the offline migration", async () => {
       mkdirSync(join(testDir, "image"), { recursive: true });

@@ -18,10 +18,20 @@ import {
   IMAGE_EXTENSIONS,
   getExtensionForFormat,
 } from "@brains/entity-placement";
-import { bytesImageReader, describeImage } from "@brains/image";
+import { createHash } from "node:crypto";
+import {
+  bytesImageReader,
+  describeImage,
+  isLegacyPendingImageBytes,
+} from "@brains/image";
 import { getErrorMessage } from "@brains/utils/error";
 import { posix } from "path";
-import type { DavFile, DavReader, DavTree } from "./dav-tree";
+import {
+  storesBytes,
+  type DavFile,
+  type DavReader,
+  type DavTree,
+} from "./dav-tree";
 
 /** What the drive needs to change an entity. */
 export interface DavWrites {
@@ -94,6 +104,19 @@ export async function saveEntityFile(
   }
   if (request.bytes.byteLength > deps.writes.maxFileBytes) return tooLarge();
   const located = await deps.tree.entityAt(request.segments);
+  // An image or document is stored by its bytes, never as text: a data URL
+  // written here would skip the checks its bytes get, the old pending
+  // placeholder's among them.
+  const entityType =
+    located?.entity.entityType ??
+    deps.tree.placementAt(request.segments, extension)?.entityType;
+  if (entityType !== undefined && storesBytes(entityType)) {
+    return forbidden(
+      entityType === IMAGE_TYPE
+        ? "An image is stored as its image file"
+        : "The drive cannot take documents",
+    );
+  }
   return located
     ? updateEntityFile(deps, request, located)
     : createEntityFile(deps, request);
@@ -258,6 +281,22 @@ async function saveImageFile(
     return {
       status: 422,
       message: `These bytes are stored as ${stored}; save the image under that extension`,
+    };
+  }
+  // A copy of a file an earlier export mirrored for an image still awaiting
+  // its bytes holds the placeholder it once carried, never its bytes.
+  const status = located?.entity.metadata["status"];
+  if (
+    typeof status === "string" &&
+    isLegacyPendingImageBytes(
+      createHash("sha256").update(bytes).digest("hex"),
+      status,
+    )
+  ) {
+    return {
+      status: 422,
+      message:
+        "These bytes are the old pending placeholder, not this image's bytes",
     };
   }
 

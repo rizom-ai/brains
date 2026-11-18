@@ -182,4 +182,50 @@ describe("importing a PDF file of an asset-backed document type", () => {
     expect(JSON.stringify(result)).toContain("not a PDF");
     expect(existsSync(join(testDir, "document", "carousel.pdf"))).toBe(true);
   });
+
+  describe("the old pending placeholder an earlier export mirrored", () => {
+    const placeholder = Buffer.from(
+      "%PDF-1.4\n% Pending document placeholder\n%%EOF\n",
+    );
+    const path = (): string => join(testDir, "document", "carousel.pdf");
+
+    function writePlaceholder(): void {
+      writeFileSync(path(), placeholder);
+      writeFileSync(
+        `${path()}.meta.json`,
+        JSON.stringify({ filename: "carousel.pdf", status: "failed" }),
+      );
+    }
+
+    it("never becomes the bytes of a document awaiting them", async () => {
+      writePlaceholder();
+      store("", {
+        mimeType: "application/pdf",
+        filename: "carousel.pdf",
+        status: "failed",
+      });
+      const upserts = captureUpserts();
+      const stage = spyOn(mockEntityService, "stageAsset");
+
+      const result = await dirSync.importEntities();
+
+      expect(upserts).toHaveLength(0);
+      expect(stage).not.toHaveBeenCalled();
+      expect(result.skipped).toBe(1);
+      expect(JSON.stringify(result)).toContain("old pending placeholder");
+      expect(existsSync(path())).toBe(true);
+    });
+
+    it("never becomes a document of its own", async () => {
+      writePlaceholder();
+      const upserts = captureUpserts();
+      const stage = spyOn(mockEntityService, "stageAsset");
+
+      const result = await dirSync.importEntities();
+
+      expect(upserts).toHaveLength(0);
+      expect(stage).not.toHaveBeenCalled();
+      expect(result.skipped).toBe(1);
+    });
+  });
 });

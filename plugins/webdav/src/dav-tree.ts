@@ -47,6 +47,11 @@ export type DavNode = DavFolder | DavFile;
 const NOTE_TYPE = "note";
 const HIERARCHY_PAGE = 100;
 const BINARY_TYPES = new Set(["image", "document"]);
+
+/** Whether a type's entities are files of bytes rather than documents. */
+export function storesBytes(entityType: string): boolean {
+  return BINARY_TYPES.has(entityType);
+}
 const CONTENT_TYPES: Record<string, string> = {
   ".md": "text/plain; charset=utf-8",
   ".png": "image/png",

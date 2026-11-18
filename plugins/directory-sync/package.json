@@ -6,6 +6,7 @@
   "dependencies": {
     "@brains/content-formatters": "workspace:*",
     "@brains/contracts": "workspace:*",
+    "@brains/document": "workspace:*",
     "@brains/entity-placement": "workspace:*",
     "@brains/image": "workspace:*",
     "@brains/sdk": "workspace:*",

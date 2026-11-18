@@ -202,4 +202,104 @@ describe("WebDAV image files", () => {
         .status,
     ).toBe(403);
   });
+
+  describe("the old 1x1 placeholder pending images held", () => {
+    // The 1x1 PNG above is that placeholder.
+    function awaiting(status: string): FakeBrain {
+      return fakeBrain(
+        [
+          entity("image", "retry", {
+            content: OLD_REF,
+            metadata: { format: "png", status },
+          }),
+          entity("image", "pending", {
+            content: "",
+            metadata: { format: "png", status: "pending" },
+          }),
+        ],
+        ["image"],
+        { [OLD_REF]: OLD },
+      );
+    }
+
+    it("is never stored as the bytes of an image awaiting them", async () => {
+      for (const status of ["pending", "failed"]) {
+        const brain = awaiting(status);
+        const dav = drive(brain);
+
+        const response = await dav("PUT", "/dav/image/retry.png", {
+          body: PNG,
+        });
+
+        expect(response.status).toBe(422);
+        expect(await response.text()).toContain("old pending placeholder");
+        expect(brain.updates).toHaveLength(0);
+        expect(brain.discarded).toHaveLength(0);
+        expect(
+          brain.entities.find((candidate) => candidate.id === "retry")?.content,
+        ).toBe(OLD_REF);
+      }
+    });
+
+    it("never fills an image whose bytes are still pending", async () => {
+      const brain = awaiting("failed");
+      const dav = drive(brain);
+
+      const response = await dav("PUT", "/dav/image/pending.png", {
+        body: PNG,
+      });
+
+      expect(response.status).toBe(412);
+      expect(brain.creates).toHaveLength(0);
+      expect(
+        brain.entities.find((candidate) => candidate.id === "pending")?.content,
+      ).toBe("");
+    });
+
+    it("cannot be written as text, since images and documents are stored by their bytes", async () => {
+      const brain = fakeBrain(
+        [
+          entity("image", "cover", {
+            content: OLD_REF,
+            metadata: { format: "png" },
+          }),
+          entity("document", "deck", {
+            content: OLD_REF,
+            metadata: { mimeType: "application/pdf", filename: "deck.pdf" },
+          }),
+        ],
+        ["image", "document"],
+        { [OLD_REF]: OLD },
+      );
+      const dav = drive(brain);
+      const placeholders: Array<[string, string]> = [
+        [
+          "/dav/image/sketch.md",
+          "---\nstatus: pending\n---\ndata:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==\n",
+        ],
+        [
+          "/dav/document/note.md",
+          "---\nstatus: failed\n---\ndata:application/pdf;base64,JVBERi0xLjQKJSBQZW5kaW5nIGRvY3VtZW50IHBsYWNlaG9sZGVyCiUlRU9GCg==\n",
+        ],
+      ];
+
+      for (const [path, body] of placeholders) {
+        const response = await dav("PUT", path, { body });
+
+        expect(response.status).toBe(403);
+      }
+      expect(brain.creates).toHaveLength(0);
+    });
+
+    it("is a complete image's bytes like any other 1x1 PNG", async () => {
+      const brain = awaiting("completed");
+      const dav = drive(brain);
+
+      const response = await dav("PUT", "/dav/image/retry.png", {
+        body: PNG,
+      });
+
+      expect(response.status).toBe(204);
+    });
+  });
 });

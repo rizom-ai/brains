@@ -5,12 +5,14 @@ import type { AssetSource } from "@brains/entity-service";
 import {
   classifyInlineDocument,
   inlineDocumentPayload,
+  isLegacyPendingDocumentBytes,
   LEGACY_PENDING_DOCUMENT_PLACEHOLDER,
   type InlineDocumentBlocker,
 } from "@brains/document";
 import {
   classifyInlineImage,
   inlineImagePayload,
+  isLegacyPendingImageBytes,
   LEGACY_PENDING_IMAGE_PLACEHOLDER,
   type InlineImageBlocker,
 } from "@brains/image";
@@ -67,6 +69,11 @@ export interface BinaryAssetKind {
   /** The word for one record, as messages name it. */
   noun: string;
   placeholder: string;
+  /**
+   * Whether bytes, by their digest, are that placeholder for a record with
+   * this status: never a record's bytes, so a file holding them restores none.
+   */
+  isPlaceholderBytes(digest: string, status: string | undefined): boolean;
   classify(content: string): InlineVerdict;
   payload(content: string): string | undefined;
   /** How an operator resolves each kind of blocked row. */
@@ -82,6 +89,7 @@ export const IMAGE_ASSET_KIND: BinaryAssetKind = {
   entityType: "image",
   noun: "image",
   placeholder: LEGACY_PENDING_IMAGE_PLACEHOLDER,
+  isPlaceholderBytes: isLegacyPendingImageBytes,
   classify(content) {
     const verdict = classifyInlineImage(content);
     if (verdict.status === "blocked") return verdict;
@@ -138,6 +146,7 @@ export const DOCUMENT_ASSET_KIND: BinaryAssetKind = {
   entityType: "document",
   noun: "document",
   placeholder: LEGACY_PENDING_DOCUMENT_PLACEHOLDER,
+  isPlaceholderBytes: (digest) => isLegacyPendingDocumentBytes(digest),
   classify(content) {
     const verdict = classifyInlineDocument(content);
     if (verdict.status === "blocked") return verdict;
