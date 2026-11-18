@@ -88,6 +88,7 @@ describe("a first-party service generating through a template", () => {
     ).rejects.toThrow();
     expect(asked).toBe(0);
     expect(Object.keys(runtime.ai).sort()).toEqual([
+      "canDescribeImages",
       "generate",
       "generateObject",
       "judge",

@@ -48,7 +48,7 @@ import bookPackage from "@brains/book";
 import documentPackage from "@brains/document-plugin";
 import emailInterface from "@brains/email";
 import emailWorkflowsPackage from "@brains/email-workflows";
-import imagePackage from "@brains/image-plugin";
+import imagePackage, { imageAltTextPackage } from "@brains/image-plugin";
 import linkPackage from "@brains/link";
 import mcpInterface from "@brains/mcp";
 import { selectNewsletterPackages } from "@brains/newsletter";
@@ -220,9 +220,17 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     packageCapability("ask-content", "@brains/ask-content", askContentPackage, {
       pluginId: "ask-content",
     }),
-    packageCapability("image", "@brains/image-plugin", imagePackage, {
-      pluginId: "image",
-    }),
+    // The images, and the service that writes their alt text beside them.
+    [
+      "image",
+      (config: PluginConfig): Plugin[] => [
+        ...packagePlugins("@brains/image-plugin", imagePackage, {
+          pluginId: "image",
+        })(config),
+        ...packagePlugins("@brains/image-plugin", imageAltTextPackage, {})({}),
+      ],
+      undefined,
+    ],
     packageCapability("document", "@brains/document-plugin", documentPackage, {
       pluginId: "document",
     }),

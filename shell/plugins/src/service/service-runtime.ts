@@ -1007,7 +1007,7 @@ export interface ServiceGitBroker {
 /** What a first-party service asks the brain's AI. */
 export interface ServiceAI extends Pick<
   IEntityAINamespace,
-  "generateObject" | "generate"
+  "generateObject" | "generate" | "canDescribeImages"
 > {
   readonly judge: IShell["judge"];
 }
