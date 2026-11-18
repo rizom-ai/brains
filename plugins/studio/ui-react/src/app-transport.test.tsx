@@ -971,7 +971,16 @@ describe("Studio App transport", () => {
     const changes: unknown[] = [];
     const api = new StudioApi({
       basePath: "/studio",
-      fetch: async (): Promise<Response> => {
+      fetch: async (_url, init): Promise<Response> => {
+        // The field also reads the current image's details; only uploads count.
+        if (init?.method !== "POST")
+          return Response.json({
+            id: "old-image",
+            title: "Old",
+            alt: "Old",
+            altSource: "owner",
+            contentHash: "v1",
+          });
         uploads += 1;
         return uploads === 1
           ? Response.json({ error: "Connection interrupted" }, { status: 503 })

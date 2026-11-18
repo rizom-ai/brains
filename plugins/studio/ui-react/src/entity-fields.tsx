@@ -22,6 +22,7 @@ import type { FieldDescriptor, ValidationIssue } from "./api";
 import { uploadImage, type UploadImageResult } from "./mutations";
 import { invalidateAfterUpload } from "./queries";
 import { useStudioApi } from "./studio-api-context";
+import { StudioImageDetails } from "./studio-image-details";
 
 /** Host presentation only: never changes adapter body support or permissions. */
 /**
@@ -126,6 +127,7 @@ function ImageField(props: {
           </Button>
         </p>
       )}
+      {current && <StudioImageDetails imageId={current} />}
       <label {...stylex.props(f.upload)}>
         <span {...stylex.props(f.glyph)} aria-hidden="true">
           ↑

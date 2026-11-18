@@ -117,6 +117,25 @@ export function createFixtureRoutes(
         })
       : undefined;
 
+  // The image a cover field refers to: the verdigris board, described by the
+  // brain's vision model, for the editor's image details.
+  const studioImage: FixtureRoute = (request, url) => {
+    if (url.pathname === "/studio/api/images")
+      return new Response(context.fixtureImage, {
+        headers: { "content-type": "image/png" },
+      });
+    if (url.pathname !== "/studio/api/image-details") return undefined;
+    if (request.method === "PUT")
+      return json({ entityId: "image/verdigris-board", skipped: false });
+    return json({
+      id: url.searchParams.get("id") ?? "image/verdigris-board",
+      title: "Verdigris board",
+      alt: "A flat verdigris board under even light",
+      altSource: "generated",
+      contentHash: "fixture",
+    });
+  };
+
   const dashboard: FixtureRoute = (request, url) =>
     url.pathname === "/dashboard"
       ? new Response(
@@ -510,6 +529,7 @@ export function createFixtureRoutes(
     chatMessages,
     studioShell,
     studioAsset,
+    studioImage,
     studioTypes,
     refine,
     studioWorkspace,

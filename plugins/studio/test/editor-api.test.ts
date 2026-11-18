@@ -2517,3 +2517,130 @@ describe("studio image previews", () => {
     expect(response.status).toBe(404);
   });
 });
+
+describe("studio image details", () => {
+  const png = Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+    "base64",
+  );
+
+  async function detailsShell(): Promise<{
+    shell: MockShell;
+    plugin: StudioPlugin;
+    cookie: string;
+    ref: string;
+  }> {
+    const shell = createEditorTestShell();
+    shell.getEntityRegistry().registerEntityType(
+      "image",
+      baseEntitySchema,
+      new TestAdapter({
+        entityType: "image",
+        frontmatterSchema: z.object({}),
+        hasBody: false,
+      }),
+    );
+    const { ref } = await shell.getEntityService().stageAsset(png);
+    await shell.getEntityService().createEntity({
+      entity: {
+        id: "harbor",
+        entityType: "image",
+        content: ref,
+        metadata: {
+          title: "Harbor",
+          alt: "Fishing boats moored at dawn",
+          altSource: "generated",
+          mediaType: "image/png",
+          sizeBytes: png.byteLength,
+        },
+        visibility: "public",
+        created: "2026-07-01T00:00:00.000Z",
+        updated: "2026-07-01T00:00:00.000Z",
+      },
+    });
+    const plugin = await registerPlugin(shell);
+    return { shell, plugin, cookie: await createSessionCookie(shell), ref };
+  }
+
+  it("reads an image's title and alt text, and who wrote it", async () => {
+    const { plugin, cookie } = await detailsShell();
+
+    const response = await findRoute(
+      plugin,
+      "/studio/api/image-details",
+    ).handler(apiRequest("/studio/api/image-details?id=harbor", { cookie }));
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      id: "harbor",
+      title: "Harbor",
+      alt: "Fishing boats moored at dawn",
+      altSource: "generated",
+    });
+  });
+
+  it("saves a title and alt text as the owner's, keeping the bytes", async () => {
+    const { shell, plugin, cookie, ref } = await detailsShell();
+    const read = await findRoute(plugin, "/studio/api/image-details").handler(
+      apiRequest("/studio/api/image-details?id=harbor", { cookie }),
+    );
+    const { contentHash } = z
+      .object({ contentHash: z.string() })
+      .parse(await read.json());
+
+    const response = await findRoute(
+      plugin,
+      "/studio/api/image-details",
+      "PUT",
+    ).handler(
+      apiRequest("/studio/api/image-details", {
+        cookie,
+        method: "PUT",
+        body: {
+          id: "harbor",
+          title: "Our harbor",
+          alt: "Our harbor, the morning we left",
+          baseContentHash: contentHash,
+        },
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    const stored = await shell.getEntityService().getEntityRaw({
+      entityType: "image",
+      id: "harbor",
+      visibilityScope: "restricted",
+      source: true,
+    });
+    expect(stored?.content).toBe(ref);
+    expect(stored?.metadata).toMatchObject({
+      title: "Our harbor",
+      alt: "Our harbor, the morning we left",
+      altSource: "owner",
+      mediaType: "image/png",
+    });
+  });
+
+  it("refuses a save made against an older version of the image", async () => {
+    const { plugin, cookie } = await detailsShell();
+
+    const response = await findRoute(
+      plugin,
+      "/studio/api/image-details",
+      "PUT",
+    ).handler(
+      apiRequest("/studio/api/image-details", {
+        cookie,
+        method: "PUT",
+        body: {
+          id: "harbor",
+          title: "Harbor",
+          alt: "Boats",
+          baseContentHash: "stale",
+        },
+      }),
+    );
+
+    expect(response.status).toBe(409);
+  });
+});

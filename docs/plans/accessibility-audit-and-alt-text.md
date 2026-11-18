@@ -31,7 +31,7 @@ Proposed, with a deadline: everything below is released and deployed to the flee
 - **Report.** `docs/accessibility-audit.md` records the date, the surfaces, findings before and after per surface, and each fix with its PR.
 - **Alt text source.** The image metadata gains `altSource: "fallback" | "generated" | "owner"`; an image without it is `fallback`. A generated description never overwrites `owner`.
 - **When alt text is written.** As soon as a public image is ready (its bytes stored, whether generated, uploaded or rendered) and its `altSource` is `fallback`, and when a restricted image is made public. A one-time catch-up at start-up queues the public images that still carry a fallback. The job asks for one sentence of at most 125 characters describing what the image shows: the configured local `visionModel`, else the cloud model, which reads images itself. It stores the sentence with `altSource: "generated"`. SVG images are skipped.
-- **Owner edits.** Studio opens an image with its preview and two editable fields, title and alt. An update that changes `alt` without setting `altSource` (Studio or the agent) marks it `owner`.
+- **Owner edits.** Studio opens an image with its preview and two editable fields, title and alt, in the image field of the entry that uses it (images have no Library page). An update that changes `alt` without setting `altSource` (Studio or the agent) marks it `owner`.
 - **Rendering.** Sites render a cover image with the image's own alt, not the post's title; the site builder carries it beside the cover URL to every template that draws a cover.
 
 ## Phases
@@ -40,7 +40,7 @@ Proposed, with a deadline: everything below is released and deployed to the flee
 
 The helper, `bun run a11y:audit` and the baseline in [accessibility-audit.md](../accessibility-audit.md): four paper-climate `color-contrast` findings in Studio and one `aria-hidden-focus` on rizom.ai/ask, all serious; nothing critical, moderate or minor.
 
-### 2. Fix critical and serious findings (Thursday 19 November)
+### 2. Fix critical and serious findings (Thursday 19 November) — fixed, not yet deployed
 
 - One commit per finding class, each with a test or fixture assertion that fails before the fix.
 - Rerun the audit; the report gets the after counts and the fixes.
@@ -48,7 +48,7 @@ The helper, `bun run a11y:audit` and the baseline in [accessibility-audit.md](..
 
 Done when production shows no critical or serious findings on the four surfaces.
 
-### 3. Alt text from the vision model (Thursday 19 November)
+### 3. Alt text from the vision model (Thursday 19 November) — built, not yet deployed
 
 - Test first, slice by slice: the image job writes a fake vision model's sentence and skips `owner`; a public ready image queues the job and an alt edit marks `owner`; a cover renders the image's alt; Studio saves an image's title and alt.
 - Slices: `altSource` and the describe job; the image describer on the AI service and entity runtime; the image listener with its start-up catch-up; cover alt through the site builder and templates; Studio image editing.

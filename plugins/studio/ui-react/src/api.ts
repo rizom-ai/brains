@@ -310,6 +310,15 @@ export interface StudioApiDeps {
 
 const globalFetch: FetchLike = (input, init) => fetch(input, init);
 
+/** An image's editable description, as Studio reads it. */
+export interface ImageDetails {
+  id: string;
+  title: string;
+  alt: string;
+  altSource: "fallback" | "generated" | "owner";
+  contentHash: string;
+}
+
 export class StudioApi {
   private readonly basePath: string;
   /**
@@ -491,6 +500,30 @@ export class StudioApi {
       { signal },
     );
     return response.blob();
+  }
+
+  /** An image's title and alt text, who wrote the alt text, and its version. */
+  async fetchImageDetails(id: string): Promise<ImageDetails> {
+    return this.requestJson<ImageDetails>(
+      this.path(`image-details?id=${encodeURIComponent(id)}`),
+    );
+  }
+
+  /** Save an image's title and alt text; the alt text becomes the owner's. */
+  async saveImageDetails(input: {
+    id: string;
+    title: string;
+    alt: string;
+    baseContentHash: string;
+  }): Promise<{ entityId: string; skipped: boolean }> {
+    return this.requestJson<{ entityId: string; skipped: boolean }>(
+      this.path("image-details"),
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+      },
+    );
   }
 
   async fetchEntity(entityType: string, id: string): Promise<EntityDetail> {
