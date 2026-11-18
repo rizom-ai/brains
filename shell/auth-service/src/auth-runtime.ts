@@ -38,6 +38,7 @@ import type { OnboardingContext } from "./invitation-service";
 import type { OnboardingDetails } from "./onboarding-emails";
 import { RuntimeA2APeerTrustStore } from "./peer-trust-store";
 import { AuthPrincipalService } from "./principal-service";
+import { RuntimeAppPasswordStore } from "./app-password-store";
 import { RuntimeRefreshTokenStore } from "./refresh-token-store";
 import {
   AuthRuntimeDatabase,
@@ -109,6 +110,7 @@ export class AuthRuntime {
   private readonly runtimeDatabase: AuthRuntimeDatabase;
   private readonly runBackgroundOperation: AuthRuntimeOptions["runBackgroundOperation"];
   private readonly refreshTokenStore: RuntimeRefreshTokenStore;
+  private readonly appPasswordStore: RuntimeAppPasswordStore;
   private readonly issuer: string;
   private readonly trustedIssuers: Set<string>;
   private readonly allowLocalhostIssuers: boolean;
@@ -192,6 +194,7 @@ export class AuthRuntime {
     );
     this.sessionStore = new RuntimeAuthSessionStore(this.runtimeDatabase);
     this.refreshTokenStore = new RuntimeRefreshTokenStore(this.runtimeDatabase);
+    this.appPasswordStore = new RuntimeAppPasswordStore(this.runtimeDatabase);
     this.peerTrustStore = new RuntimeA2APeerTrustStore(this.runtimeDatabase);
     this.passkeyService = new PasskeyService({
       runtimeDatabase: this.runtimeDatabase,
@@ -416,6 +419,8 @@ export class AuthRuntime {
         : {}),
     });
     this.principalService = new AuthPrincipalService({
+      appPasswords: this.appPasswordStore,
+      audit: this.auditStore,
       issuer: this.issuer,
       trustedIssuers: this.trustedIssuers,
       allowLocalhostIssuers: this.allowLocalhostIssuers,
@@ -433,6 +438,7 @@ export class AuthRuntime {
       credentials: credentialStore,
       sessions: this.sessionStore,
       refreshTokens: this.refreshTokenStore,
+      appPasswords: this.appPasswordStore,
       passkeys: this.passkeyService,
       audit: this.auditStore,
       ...(this.isChannelTypeRegistered

@@ -20,6 +20,7 @@ const currentAuthTableNames = [
   "a2a_peer_trust",
   "auth_access_seed_state",
   "auth_account_plugin_settings",
+  "auth_app_passwords",
   "auth_audit_events",
   "auth_brain_anchor",
   "auth_identity_evidence",
@@ -278,7 +279,7 @@ describe("AuthRuntimeDatabase", () => {
       const migrations = await second.client.execute(
         "SELECT hash, created_at FROM __drizzle_migrations",
       );
-      expect(migrations.rows).toHaveLength(12);
+      expect(migrations.rows).toHaveLength(13);
       expect(
         migrations.rows.every(
           (migration) => Number(migration["created_at"]) > 0,

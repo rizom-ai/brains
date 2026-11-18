@@ -10,6 +10,9 @@ export const STUDIO_ACCOUNT_WORKSPACE_ID = "studio:account";
 /** Account section that shows how to connect AI tools over MCP. */
 export const STUDIO_AI_TOOLS_SECTION = "ai-tools";
 
+/** Account section that shows how to mount the brain as a network drive. */
+export const STUDIO_DRIVE_SECTION = "drive";
+
 /**
  * Deep link to Account → AI tools, given Studio's mount (the href of the
  * `studio` interaction). Shared so emails can link to it without knowing

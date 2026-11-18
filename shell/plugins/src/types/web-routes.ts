@@ -1,11 +1,24 @@
 import type { WebRouteRole } from "@brains/contracts";
 
+/**
+ * The methods a handler route may declare. HEAD and the WebDAV methods
+ * (RFC 4918) are here for a route that speaks WebDAV; tool routes and the
+ * public route contract keep their own, shorter lists.
+ */
 export const WebRouteMethods = [
   "GET",
+  "HEAD",
   "POST",
   "PUT",
   "DELETE",
   "OPTIONS",
+  "PROPFIND",
+  "PROPPATCH",
+  "MKCOL",
+  "COPY",
+  "MOVE",
+  "LOCK",
+  "UNLOCK",
 ] as const;
 export type WebRouteMethod = (typeof WebRouteMethods)[number];
 

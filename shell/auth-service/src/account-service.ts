@@ -5,14 +5,22 @@ import type {
   RegistrationResponseJSON,
 } from "@simplewebauthn/server";
 import type {
+  AuthAccountAppPassword,
+  AuthAccountAppPasswordSecret,
   AuthAccountConnectedChannel,
   AuthAccountSnapshot,
   AuthAccountSessionSummary,
+  AuthAppPasswordAccess,
 } from "@brains/contracts";
+import type {
+  AppPasswordPersistence,
+  AppPasswordRecord,
+} from "./app-password-store";
 import type { AuthAuditStore } from "./audit-store";
 import type { AuthCredentialStore } from "./credential-store";
 import type { AuthIdentityRecord, AuthIdentityStore } from "./identity-store";
 import type { PasskeyService, WebAuthnRequestContext } from "./passkey-service";
+import { appPasswordUsername } from "./app-password-store";
 import { passkeySummary } from "./passkey-summary";
 import type { RuntimeRefreshTokenStore } from "./refresh-token-store";
 import type {
@@ -33,6 +41,7 @@ export interface AuthAccountServiceOptions {
   credentials: AuthCredentialStore;
   sessions: RuntimeAuthSessionStore;
   refreshTokens: RuntimeRefreshTokenStore;
+  appPasswords: AppPasswordPersistence;
   passkeys: PasskeyService;
   audit: AuthAuditStore;
   isChannelTypeRegistered?: (channelType: string) => boolean;
@@ -44,6 +53,7 @@ export class AuthAccountService {
   private readonly credentials: AuthCredentialStore;
   private readonly sessions: RuntimeAuthSessionStore;
   private readonly refreshTokens: RuntimeRefreshTokenStore;
+  private readonly appPasswords: AppPasswordPersistence;
   private readonly passkeys: PasskeyService;
   private readonly audit: AuthAuditStore;
   private readonly isChannelTypeRegistered:
@@ -55,6 +65,7 @@ export class AuthAccountService {
     this.credentials = options.credentials;
     this.sessions = options.sessions;
     this.refreshTokens = options.refreshTokens;
+    this.appPasswords = options.appPasswords;
     this.passkeys = options.passkeys;
     this.audit = options.audit;
     this.isChannelTypeRegistered = options.isChannelTypeRegistered;
@@ -62,19 +73,20 @@ export class AuthAccountService {
 
   async getSnapshot(context: AuthAccountContext): Promise<AuthAccountSnapshot> {
     const user = await this.requireActiveUser(context.userId);
-    const [identities, passkeys, sessions, profileEntityId] = await Promise.all(
-      [
+    const [identities, passkeys, sessions, profileEntityId, appPasswords] =
+      await Promise.all([
         this.identities.listIdentities(user.id),
         this.credentials.listPasskeys(user.id),
         this.sessions.listActiveSessionsForSubject(user.id),
         this.anchorProfileEntityId(user.personId),
-      ],
-    );
+        this.appPasswords.list(user.id),
+      ]);
     return {
       displayName: user.displayName,
       role: user.role,
       ...(profileEntityId ? { profileEntityId } : {}),
       passkeys: passkeys.map(passkeySummary),
+      appPasswords: appPasswords.map(appPasswordSummary),
       connectedChannels: identities.flatMap((identity) =>
         connectedChannelSummary(identity, this.isChannelTypeRegistered),
       ),
@@ -139,6 +151,57 @@ export class AuthAccountService {
       action: "auth.account.passkey_revoked",
       targetType: "passkey",
       targetId: credentialId,
+    });
+    return this.getSnapshot(context);
+  }
+
+  /**
+   * A username and password for a client that cannot sign in with a passkey.
+   * The password is returned here and nowhere else. A public-level account
+   * has nothing such a client may reach, so it cannot create one.
+   */
+  async createAppPassword(
+    context: AuthAccountContext,
+    input: { label: string; access: AuthAppPasswordAccess },
+  ): Promise<{
+    account: AuthAccountSnapshot;
+    appPassword: AuthAccountAppPasswordSecret;
+  }> {
+    const user = await this.requireActiveUser(context.userId);
+    if (user.role === "public") {
+      throw new Error("This account cannot create app passwords");
+    }
+    const issued = await this.appPasswords.create({
+      userId: user.id,
+      label: input.label,
+      access: input.access,
+    });
+    await this.audit.append({
+      actorUserId: user.id,
+      action: "auth.account.app_password_created",
+      targetType: "app_password",
+      targetId: issued.record.id,
+      metadata: { access: issued.record.access },
+    });
+    return {
+      account: await this.getSnapshot(context),
+      appPassword: { username: issued.username, password: issued.password },
+    };
+  }
+
+  async revokeAppPassword(
+    context: AuthAccountContext,
+    appPasswordId: string,
+  ): Promise<AuthAccountSnapshot> {
+    await this.requireActiveUser(context.userId);
+    if (!(await this.appPasswords.revoke(context.userId, appPasswordId))) {
+      throw new Error("App password not found");
+    }
+    await this.audit.append({
+      actorUserId: context.userId,
+      action: "auth.account.app_password_revoked",
+      targetType: "app_password",
+      targetId: appPasswordId,
     });
     return this.getSnapshot(context);
   }
@@ -269,6 +332,20 @@ export class AuthAccountService {
     }
     return user;
   }
+}
+
+function appPasswordSummary(record: AppPasswordRecord): AuthAccountAppPassword {
+  return {
+    id: record.id,
+    username: appPasswordUsername(record.id),
+    label: record.label,
+    access: record.access,
+    createdAt: record.createdAt,
+    expiresAt: record.expiresAt,
+    ...(record.lastUsedAt !== undefined
+      ? { lastUsedAt: record.lastUsedAt }
+      : {}),
+  };
 }
 
 export function accountSessionId(internalSessionId: string): string {

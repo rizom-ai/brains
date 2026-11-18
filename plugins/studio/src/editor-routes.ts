@@ -18,6 +18,7 @@ import { studioAssetManifestSchema, studioAssetPathSchema } from "./ui-assets";
 import type { UserPermissionLevel } from "@brains/sdk/interfaces";
 import {
   MCP_INTERACTION_ID,
+  WEBDAV_INTERACTION_ID,
   directorySyncStatusContract,
 } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
@@ -247,10 +248,15 @@ export function createEditorRoutes(
     const context = getContext();
     const dashboardHref = context.routeByRole("dashboard")?.fullPath;
     const profileName = context.identity.getProfile().name.trim();
-    const mcpUrl = await resolveMcpUrl(
-      context,
-      request,
-      resolution.access.principal.role,
+    const [mcpUrl, davUrl] = await Promise.all(
+      [MCP_INTERACTION_ID, WEBDAV_INTERACTION_ID].map((interactionId) =>
+        resolveInteractionUrl(
+          context,
+          request,
+          resolution.access.principal.role,
+          interactionId,
+        ),
+      ),
     );
     let manifest: z.output<typeof studioAssetManifestSchema>;
     try {
@@ -276,6 +282,7 @@ export function createEditorRoutes(
           role: resolution.access.principal.role,
         },
         mcpUrl,
+        davUrl,
       }),
       {
         headers: {
@@ -897,22 +904,24 @@ async function handleGetSchema(
 }
 
 /**
- * The address AI tools connect to, when this brain serves MCP over HTTP and the
+ * The address a client connects to for one of the brain's protocols — MCP for
+ * AI tools, WebDAV for the drive — when the brain serves it over HTTP and the
  * person's role can use it. Built from the request's public origin, the same
  * one OAuth issues tokens for.
  */
-async function resolveMcpUrl(
+async function resolveInteractionUrl(
   context: StudioContext,
   request: Request,
   role: UserPermissionLevel,
+  interactionId: string,
 ): Promise<string | undefined> {
   const appInfo = await context.identity.getAppInfo().catch(() => undefined);
-  const mcp = appInfo?.interactions.find(
+  const served = appInfo?.interactions.find(
     (interaction) =>
-      interaction.id === MCP_INTERACTION_ID && interaction.href.startsWith("/"),
+      interaction.id === interactionId && interaction.href.startsWith("/"),
   );
-  if (!mcp || !hasPermission(role, mcp.visibility)) {
+  if (!served || !hasPermission(role, served.visibility)) {
     return undefined;
   }
-  return `${issuerFromRequest(request)}${mcp.href}`;
+  return `${issuerFromRequest(request)}${served.href}`;
 }

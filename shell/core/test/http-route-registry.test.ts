@@ -234,6 +234,46 @@ describe("HttpRouteRegistry", () => {
     );
   });
 
+  it("accepts HEAD and the WebDAV methods on web routes only", () => {
+    const methods = [
+      "HEAD",
+      "PROPFIND",
+      "PROPPATCH",
+      "MKCOL",
+      "COPY",
+      "MOVE",
+      "LOCK",
+      "UNLOCK",
+    ] as const;
+
+    const routes = HttpRouteRegistry.createFresh().finalize([
+      contributor("webdav", {
+        webRoutes: methods.map((method) =>
+          webRoute("/dav", { method, match: "prefix", public: true }),
+        ),
+        apiRoutes: [],
+      }),
+    ]);
+    expect(routes.map((route) => route.method)).toEqual([...methods]);
+
+    methods.forEach((method) => {
+      const toolRoute: ApiRouteDefinition = {
+        path: "/run",
+        method: "POST",
+        tool: "run",
+        public: true,
+      };
+      Reflect.set(toolRoute, "method", method);
+      expect(() =>
+        HttpRouteRegistry.createFresh().finalize([
+          contributor("example", { webRoutes: [], apiRoutes: [toolRoute] }),
+        ]),
+      ).toThrow(
+        `Invalid HTTP route method "${method}" declared by plugin "example"`,
+      );
+    });
+  });
+
   it("rejects OPTIONS for tool-backed routes", () => {
     const invalidMethod: ApiRouteDefinition = {
       path: "/run",

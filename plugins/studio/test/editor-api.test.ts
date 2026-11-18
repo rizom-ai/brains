@@ -1,5 +1,6 @@
 import {
   MCP_INTERACTION_ID,
+  WEBDAV_INTERACTION_ID,
   a2aAgentsContract,
   a2aCallContract,
   consoleJumpDestinationsContract,
@@ -220,6 +221,17 @@ function mcpInteraction(): Parameters<MockShell["registerInteraction"]>[0] {
     pluginId: "mcp",
     label: "MCP",
     href: "/mcp",
+    kind: "protocol",
+    visibility: "trusted",
+  };
+}
+
+function webdavInteraction(): Parameters<MockShell["registerInteraction"]>[0] {
+  return {
+    id: WEBDAV_INTERACTION_ID,
+    pluginId: "webdav",
+    label: "Drive",
+    href: "/dav/",
     kind: "protocol",
     visibility: "trusted",
   };
@@ -534,6 +546,33 @@ describe("studio editor shell", () => {
     expect(await response.text()).toContain(
       'data-studio-mcp-url="https://yeehaa.io/mcp"',
     );
+  });
+
+  it("gives the Account view the brain's drive address when the WebDAV plugin serves one", async () => {
+    const shell = createEditorTestShell();
+    shell.registerInteraction(webdavInteraction());
+    const cookie = await createSessionCookie(shell);
+    const plugin = await registerPlugin(shell);
+
+    const response = await findRoute(plugin, "/studio/workspaces").handler(
+      apiRequest("/studio/workspaces/studio%3Aaccount", { cookie }),
+    );
+
+    expect(await response.text()).toContain(
+      'data-studio-dav-url="https://yeehaa.io/dav/"',
+    );
+  });
+
+  it("omits the drive address without the WebDAV plugin", async () => {
+    const shell = createEditorTestShell();
+    const cookie = await createSessionCookie(shell);
+    const plugin = await registerPlugin(shell);
+
+    const response = await findRoute(plugin, "/studio/workspaces").handler(
+      apiRequest("/studio/workspaces/studio%3Aaccount", { cookie }),
+    );
+
+    expect(await response.text()).not.toContain("data-studio-dav-url");
   });
 
   it("omits the MCP address without an HTTP MCP interface", async () => {

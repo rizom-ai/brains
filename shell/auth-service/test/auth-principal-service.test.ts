@@ -2,6 +2,8 @@ import { afterEach, describe, expect, it } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { RuntimeAppPasswordStore } from "../src/app-password-store";
+import { AuthAuditStore } from "../src/audit-store";
 import { AuthIdentityStore } from "../src/identity-store";
 import { AuthPrincipalService } from "../src/principal-service";
 import { AuthRuntimeDatabase } from "../src/runtime-db";
@@ -29,6 +31,8 @@ describe("AuthPrincipalService", () => {
       const user = await users.ensureFirstAdminUser({ displayName: "Admin" });
       const created = await sessions.createSession(user.id);
       const service = new AuthPrincipalService({
+        appPasswords: new RuntimeAppPasswordStore(database),
+        audit: new AuthAuditStore(database.db),
         issuer: "http://localhost:8080",
         trustedIssuers: ["http://localhost:8080"],
         allowLocalhostIssuers: true,

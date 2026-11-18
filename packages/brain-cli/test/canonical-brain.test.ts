@@ -56,6 +56,7 @@ const expectedCatalogIds = [
   "unified-inbox",
   "linkedin-import",
   "oauth-broker",
+  "webdav",
   "mcp",
   "email",
   "web-chat",

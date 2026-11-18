@@ -861,6 +861,64 @@ describe("ServerManager (in-process)", () => {
     ).toBe(404);
   });
 
+  it("hands HEAD and the WebDAV methods to their prefix route with the handler's response untouched", async () => {
+    testDir = mkdtempSync(join(tmpdir(), "webserver-webdav-methods-"));
+    const prodDir = join(testDir, "dist", "production");
+    const imagesDir = join(testDir, "dist", "images");
+    mkdirSync(prodDir, { recursive: true });
+    mkdirSync(imagesDir, { recursive: true });
+
+    const methods = [
+      "HEAD",
+      "PROPFIND",
+      "PROPPATCH",
+      "MKCOL",
+      "COPY",
+      "MOVE",
+      "LOCK",
+      "UNLOCK",
+    ] as const;
+
+    manager = new ServerManager({
+      logger: createSilentLogger("test"),
+      productionDistDir: prodDir,
+      sharedImagesDir: imagesDir,
+      productionPort: 0,
+      getRoutes: (): readonly RegisteredHttpRoute[] =>
+        methods.map((method) =>
+          handlerRoute(
+            "webdav",
+            "/dav",
+            async (request): Promise<Response> =>
+              new Response(null, {
+                status: 207,
+                headers: { ETag: '"entity-hash"', "X-Seen": request.method },
+              }),
+            { method, match: "prefix" },
+          ),
+        ),
+    });
+    await manager.start();
+
+    const url = manager.getStatus().productionUrl;
+    expect(url).toBeDefined();
+    if (!url) return;
+
+    const seen = await Promise.all(
+      methods.map(async (method) => {
+        const response = await fetch(`${url}/dav/note/one.md`, { method });
+        return [
+          response.status,
+          response.headers.get("X-Seen"),
+          response.headers.get("ETag"),
+        ];
+      }),
+    );
+    expect(seen).toEqual(
+      methods.map((method) => [207, method, '"entity-hash"']),
+    );
+  });
+
   it("asks claim routes about a path only when no exact or prefix route has it, before static pages", async () => {
     testDir = mkdtempSync(join(tmpdir(), "webserver-claim-routes-"));
     const prodDir = join(testDir, "dist", "production");

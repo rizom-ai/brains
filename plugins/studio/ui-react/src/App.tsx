@@ -123,6 +123,7 @@ function accountBootstrap(
   const role =
     ACCOUNT_ROLES.find((candidate) => candidate === rawRole) ?? "public";
   const mcpUrl = root?.getAttribute("data-studio-mcp-url") ?? undefined;
+  const davUrl = root?.getAttribute("data-studio-dav-url") ?? undefined;
   const initialSection =
     new URLSearchParams(rawSearch).get("section") ?? undefined;
   return {
@@ -131,6 +132,7 @@ function accountBootstrap(
     routePath,
     studioPath,
     ...(mcpUrl ? { mcpUrl } : {}),
+    ...(davUrl ? { davUrl } : {}),
     ...(initialSection ? { initialSection } : {}),
   };
 }

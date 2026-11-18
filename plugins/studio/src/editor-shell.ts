@@ -31,6 +31,8 @@ export interface EditorShellOptions {
   principal?: EditorShellPrincipal | undefined;
   /** This brain's MCP address, for the Account view's AI tools tab. */
   mcpUrl?: string | undefined;
+  /** This brain's WebDAV address, for the Account view's Drive tab. */
+  davUrl?: string | undefined;
 }
 
 /**
@@ -74,6 +76,10 @@ ${CONSOLE_THEME_CSS}
     }${
       options.mcpUrl
         ? ` data-studio-mcp-url="${escapeHtml(options.mcpUrl)}"`
+        : ""
+    }${
+      options.davUrl
+        ? ` data-studio-dav-url="${escapeHtml(options.davUrl)}"`
         : ""
     }><p class="${classes.boot}">Opening the content studio…</p></div>
     <script type="module" src="${options.assetPath}"></script>
