@@ -1,5 +1,18 @@
 # @brains/studio
 
+## 0.2.0-alpha.738
+
+### Patch Changes
+
+- [#995](https://github.com/rizom-ai/brains/pull/995) [`555a07f`](https://github.com/rizom-ai/brains/commit/555a07fc1a8e945870d1a73bcd78552a6ddb37a0) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Account → Drive leads with the file managers people have: a card each for macOS (Finder → Connect to Server), Windows (File Explorer → Map network drive) and GNOME Files, with the drive's address to paste. rclone moves into a closed Command line section.
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.738
+  - @brains/app-ui-react@0.2.0-alpha.738
+  - @brains/console-theme@0.2.0-alpha.738
+  - @brains/contracts@0.2.0-alpha.738
+  - @brains/operator-view-react@0.2.0-alpha.738
+  - @brains/utils@0.2.0-alpha.738
+
 ## 0.2.0-alpha.737
 
 ### Patch Changes
