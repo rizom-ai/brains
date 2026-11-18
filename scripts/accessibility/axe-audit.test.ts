@@ -51,8 +51,9 @@ describe.skipIf(!CHROMIUM_PATH)("runAxeAudit", () => {
     });
   });
 
+  // Only this suite's view closes: test files share one Chrome process.
   afterAll(async () => {
-    Bun.WebView.closeAll();
+    view.close();
     await server.stop(true);
   });
 

@@ -2,10 +2,7 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { FIXTURE_THEMES } from "../console-visual/fixture-themes";
-import {
-  startFixtureServer,
-  type FixtureServer,
-} from "../console-visual/fixture-server";
+import type { FixtureServer } from "../console-visual/fixture-server";
 import { runAxeAudit } from "./axe-audit";
 import { chromeBackend, waitForQuietDom } from "./browser";
 
@@ -35,11 +32,15 @@ describe.skipIf(!CHROMIUM_PATH || !STUDIO_BUILT)(
     let server: FixtureServer;
 
     beforeAll(async () => {
+      // Imported here: the fixture serves Studio, which loads built UI
+      // packages that a run without them (skipping this suite) never has.
+      const { startFixtureServer } =
+        await import("../console-visual/fixture-server");
       server = await startFixtureServer();
     });
 
+    // Each case closes its own page: test files share one Chrome process.
     afterAll(async () => {
-      Bun.WebView.closeAll();
       await server.stop();
     });
 
