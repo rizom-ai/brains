@@ -13,6 +13,7 @@ import {
 import type { Logger } from "@brains/utils/logger";
 import type { EntityData } from "./entity-data";
 import { toEntityValidationError } from "./errors";
+import { stableJson } from "./entity-revision";
 import {
   dropFields,
   preserveSourceFrontmatter,
@@ -348,6 +349,19 @@ export class EntitySerializer {
   }
 
   /**
+   * Whether an update carries frontmatter for a type whose metadata is its
+   * frontmatter: what it writes there is told from what a read handed back
+   * against the stored document.
+   */
+  public carriesFrontmatter(entity: BaseEntity): boolean {
+    return (
+      this.entityRegistry.getAdapter(entity.entityType)
+        .metadataFromFrontmatter === true &&
+      !this.keepsStoredFrontmatter(entity)
+    );
+  }
+
+  /**
    * Whether an update has to keep authored frontmatter from the stored
    * record: a declared type's reads hand back its body alone, so a writer
    * that sends the body back has not seen that frontmatter, and leaving it
@@ -369,30 +383,39 @@ export class EntitySerializer {
 
   /**
    * An update to a type whose metadata is its frontmatter, with the
-   * frontmatter it writes carried into its metadata. Reads hand such a type
-   * back its body alone, so frontmatter on an update is one the caller
-   * wrote: it is laid over the metadata the caller read and decoded through
-   * the type's adapter, so the stored metadata matches the stored
-   * frontmatter at once rather than at the next import.
+   * frontmatter it writes carried into its metadata: it is laid over the
+   * metadata the caller read and decoded through the type's adapter, so the
+   * stored metadata matches the stored frontmatter at once rather than at
+   * the next import. Only the fields the caller wrote are laid over: a type
+   * read as written hands back its header as stored, so a field update that
+   * changes its metadata returns that header unchanged, and a header field
+   * that still reads as `stored` holds is the read's, not a write.
    */
-  public withFrontmatterWrites<T extends BaseEntity>(entity: T): T {
+  public withFrontmatterWrites<T extends BaseEntity>(
+    entity: T,
+    stored?: string,
+  ): T {
     const adapter = this.entityRegistry.getAdapter(entity.entityType);
     if (adapter.metadataFromFrontmatter !== true) return entity;
-    const written = readMarkdownFrontmatter(entity.content);
-    if (!isPlainRecord(written.data)) return entity;
-    if (Object.keys(written.data).length === 0) return entity;
+    const document = readMarkdownFrontmatter(entity.content);
+    if (!isPlainRecord(document.data)) return entity;
+    const written = writtenOver(document.data, stored);
+    if (Object.keys(written).length === 0) return entity;
     const encoded = readMarkdownFrontmatter(
-      adapter.toMarkdown({ ...entity, content: written.content }),
+      adapter.toMarkdown({ ...entity, content: document.content }),
     );
     let decoded: Partial<BaseEntity>;
     try {
       decoded = adapter.fromMarkdown(
         generateMarkdown(
           {
+            // The header as handed in keeps the fields metadata does not
+            // name; metadata states its own; the fields written win.
+            ...document.data,
             ...(isPlainRecord(encoded.data) ? encoded.data : {}),
-            ...written.data,
+            ...written,
           },
-          written.content,
+          document.content,
         ),
       );
     } catch (error) {
@@ -455,4 +478,31 @@ function unwrittenSource(stored: string, serialized: string): string {
     ),
   );
   return Object.keys(kept).length > 0 ? generateMarkdown(kept, "") : "";
+}
+
+/**
+ * The header fields an update writes: each one whose value differs from the
+ * header `stored` holds, or every field when there is no stored document.
+ */
+function writtenOver(
+  header: Record<string, unknown>,
+  stored: string | undefined,
+): Record<string, unknown> {
+  if (stored === undefined) return header;
+  let storedHeader: unknown;
+  try {
+    storedHeader = readMarkdownFrontmatter(stored).data;
+  } catch {
+    // A stored header that does not parse, kept for an editor to repair,
+    // holds nothing to tell a read from a write: every field is written.
+    return header;
+  }
+  if (!isPlainRecord(storedHeader)) return header;
+  return Object.fromEntries(
+    Object.entries(header).filter(
+      ([key, value]) =>
+        !Object.hasOwn(storedHeader, key) ||
+        stableJson(value) !== stableJson(storedHeader[key]),
+    ),
+  );
 }
