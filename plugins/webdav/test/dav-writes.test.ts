@@ -302,7 +302,7 @@ describe("WebDAV saves", () => {
     expect(brain.updates).toEqual([]);
   });
 
-  it("refuses renaming and copying entities, and setting properties", async () => {
+  it("refuses renaming and copying entities", async () => {
     const brain = library();
     const dav = drive(brain);
     expect(
@@ -318,9 +318,6 @@ describe("WebDAV saves", () => {
           headers: dest("/dav/post/copy.md"),
         })
       ).status,
-    ).toBe(403);
-    expect(
-      (await dav("PROPPATCH", "/dav/post/first.md", { body: "<x/>" })).status,
     ).toBe(403);
     expect(stored(brain, "post", "first")).toBe(
       doc("First", "status: draft\n"),

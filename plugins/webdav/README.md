@@ -48,7 +48,7 @@ A save goes through what a Studio edit goes through:
 - a markdown file larger than `maxFileBytes` (default 5 MiB) answers 413;
 - a save that changes nothing succeeds and writes nothing.
 
-Editors save through their own files: swap files, backups, and a temporary file renamed onto the real one. Any name that is a dot file or does not end in an entity's extension is such a file. It is kept in memory for the person who wrote it, for ten minutes after its last use and 16 MiB at most, and is never an entity. Renaming one onto an entity's file is a save.
+Editors and desktops write their own files on a mounted drive: swap files, backups, a temporary file renamed onto the real one, and macOS's hidden folders (`.Trashes`, `.TemporaryItems`). Any name that is a dot file or does not end in an entity's extension, and anything inside a hidden folder, is such a file. It is kept in memory for the person who wrote it, for ten minutes after its last use and 16 MiB at most, and is never an entity. Renaming one onto an entity's file is a save.
 
 ## Creating and deleting
 

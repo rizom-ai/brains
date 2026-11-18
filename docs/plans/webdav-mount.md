@@ -64,7 +64,7 @@ Studio's Account workspace gets a **Drive** tab next to AI tools. The `webdav` p
 - A type folder lists its subfolders and entities through `queryEntityHierarchy`, paged internally until complete. A container's folder merges its own hierarchy with its contained type's at the same prefix.
 - An entity whose placement is not writable (a historical invalid id that directory-sync refuses to export) is not on the drive.
 - A path that does not exist, or that the caller may not see, is 404: hidden entities do not leak as 403.
-- Files carry `getetag` = the quoted `contentHash`, `getcontentlength`, `getlastmodified` = `updated`, and `resourcetype`. `PROPPATCH` answers 403 per property: properties are not stored.
+- Files carry `getetag` = the quoted `contentHash`, `getcontentlength`, `getlastmodified` = `updated`, and `resourcetype`. `PROPPATCH` is accepted and stores nothing: macOS and Windows set a file's times and attributes after a save and report a refusal as an error.
 - `PROPFIND` with `Depth: infinity` is 403 (RFC 4918 `propfind-finite-depth`); depths 0 and 1 are served.
 - Document sidecar JSON files are not shown.
 - An image is on the drive under the extension its bytes have. directory-sync keeps an image's existing markdown file (its data URL as text) when one is already on disk; the drive has no disk to consult, so that one name differs from `brain-data/`.
@@ -129,7 +129,7 @@ Writes carry `eventContext.interfaceType: "webdav"` and the acting user. directo
 
 Editors save through files that are not entities: `.goutputstream-*` (GNOME), `.swp`/`.swx`/`~` backups (vim), `.~lock.*#`, `._*` and `.DS_Store` (macOS), and `*.tmp`/`.<name>.<random>` (VS Code and others).
 
-- Any path whose leaf starts with `.` or does not end in an extension entities are stored under (`.md`, an image extension, `.pdf`) lives in a per-user scratch area: in memory, 10-minute idle expiry, 16 MiB per user. It supports GET, HEAD, PUT, DELETE, PROPFIND (listed beside real files) and MOVE.
+- Any path with a segment that starts with `.` (a hidden file, or anything inside a hidden folder such as `.Trashes` or `.TemporaryItems`, at any level including the root), or whose leaf does not end in an extension entities are stored under (`.md`, an image extension, `.pdf`) lives in a per-user scratch area: in memory, 10-minute idle expiry, 16 MiB per user. It supports GET, HEAD, PUT, DELETE, PROPFIND (listed beside real files) and MOVE.
 - `MOVE` from a scratch file onto an entity path is a PUT of the scratch content onto that entity, with the same flow, and removes the scratch file. This is how atomic-rename saves work.
 - `MOVE` or `COPY` between two entity paths is 403: renames stay in Studio and chat.
 - `MKCOL` creates a scratch folder, which shows until it expires or a file is saved inside it. On a folder that already exists, real or scratch, it is 405, which clients that create parent folders before every upload (rclone) take as success.

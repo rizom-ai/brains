@@ -76,3 +76,12 @@ export function lockDiscoveryXml(lock: {
     `</D:activelock></D:lockdiscovery></D:prop>`
   );
 }
+
+/** The answer to PROPPATCH: every change to the resource was accepted (RFC 4918 §9.2). */
+export function propertiesAcceptedXml(href: string): string {
+  return (
+    `<?xml version="1.0" encoding="utf-8"?><D:multistatus xmlns:D="DAV:">` +
+    `<D:response><D:href>${escapeXml(href)}</D:href>` +
+    `<D:status>HTTP/1.1 200 OK</D:status></D:response></D:multistatus>`
+  );
+}

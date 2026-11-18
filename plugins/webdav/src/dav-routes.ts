@@ -14,6 +14,7 @@ import { DavTree, type DavNode, type DavReader } from "./dav-tree";
 import {
   davErrorXml,
   lockDiscoveryXml,
+  propertiesAcceptedXml,
   multistatusXml,
   type DavResourceProps,
 } from "./dav-xml";
@@ -106,9 +107,9 @@ export function createDavRoutes(
     PUT: put,
     DELETE: remove,
     MOVE: move,
-    // Copying an entity would create one, and properties are not stored.
+    // Copying an entity would create one.
     COPY: async () => forbidden("The drive does not copy files"),
-    PROPPATCH: async () => forbidden("The drive does not store properties"),
+    PROPPATCH: patchProperties,
     MKCOL: makeFolder,
     LOCK: lock,
     UNLOCK: unlock,
@@ -183,9 +184,19 @@ function scratchAt(
     : undefined;
 }
 
+/**
+ * Whether a path is a temporary item and never an entity: its name is an
+ * editor's own, or it lies in a hidden folder. A desktop keeps its own
+ * housekeeping there (`.Trashes`, `.TemporaryItems`, `.Spotlight-V100`),
+ * whatever the files inside are called.
+ */
 function isScratchPath(segments: string[]): boolean {
   const name = segments[segments.length - 1];
-  return name !== undefined && isScratchName(name);
+  return name !== undefined && (isHiddenPath(segments) || isScratchName(name));
+}
+
+function isHiddenPath(segments: string[]): boolean {
+  return segments.some((segment) => segment.startsWith("."));
 }
 
 async function nodeAt(
@@ -368,6 +379,28 @@ async function remove(server: DavServer, dav: DavRequest): Promise<Response> {
 }
 
 /**
+ * PROPPATCH is accepted and stores nothing. macOS and Windows set a file's
+ * times and attributes after they save it, and report a refusal as an error
+ * although the save went through. What a file's properties are is the
+ * entity's to say, so the change is acknowledged and dropped.
+ */
+async function patchProperties(
+  server: DavServer,
+  dav: DavRequest,
+): Promise<Response> {
+  const node = scratchAt(server, dav) ?? (await nodeAt(server, dav));
+  if (!node || !dav.path) return notFound();
+  const folder = "kind" in node && node.kind === "folder";
+  const encoded = encodePath(dav.path.segments);
+  return new Response(
+    propertiesAcceptedXml(
+      `${server.options.basePath}/${encoded}${folder && encoded ? "/" : ""}`,
+    ),
+    { status: 207, headers: { "Content-Type": XML_TYPE } },
+  );
+}
+
+/**
  * A new folder is only a place to save into: it is the person's own, in
  * memory, until an entity is saved inside it, and that entity's id is what
  * makes the folder real. MKCOL on a folder that is there answers 405, which
@@ -399,9 +432,13 @@ async function makeFolder(
     return new Response("The parent folder does not exist", { status: 409 });
   }
   // Every folder at the root is an entity type; inside one, a folder is an
-  // id segment and may have any name.
+  // id segment and may have any name. A hidden folder is neither: it is the
+  // desktop's own and never holds an entity.
   const [type] = segments;
-  if (type === undefined || !dav.tree.isFolderType(type)) {
+  if (
+    !isHiddenPath(segments) &&
+    (type === undefined || !dav.tree.isFolderType(type))
+  ) {
     return forbidden("Only an entity type can be a folder here");
   }
   server.scratch.makeFolder(userId, segments);
