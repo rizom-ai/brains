@@ -58,6 +58,8 @@ export type MockEntityPluginContext = Omit<
  */
 export interface MockAIReturns {
   canGenerateImages?: boolean;
+  canDescribeImages?: boolean;
+  describeImage?: string;
   generateImage?: { base64: string; dataUrl: string };
   generateImageError?: Error;
   generate?: Record<string, unknown>;
@@ -172,6 +174,8 @@ export function createMockEntityPluginContext(
             ),
       ),
       canGenerateImages: mock(() => ai?.canGenerateImages ?? false),
+      describeImage: mock(() => Promise.resolve(ai?.describeImage)),
+      canDescribeImages: mock(() => ai?.canDescribeImages ?? false),
     },
   };
 }

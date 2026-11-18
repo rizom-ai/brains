@@ -54,6 +54,7 @@ export type {
   IAIService,
   JudgeInput,
   AspectRatio,
+  ImageBytes,
   ImageGenerationOptions,
   ImageGenerationResult,
 } from "./types";

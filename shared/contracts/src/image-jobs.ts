@@ -51,6 +51,25 @@ export type ImageGenerateJobInput = z.output<
   typeof imageGenerateJobInputSchema
 >;
 
+type ImageDescribeJobInputSchema = z.ZodObject<{ imageId: z.ZodString }>;
+
+export const imageDescribeJobInputSchema: ImageDescribeJobInputSchema =
+  z.object({ imageId: z.string().min(1) });
+
+export type ImageDescribeJobInput = z.output<
+  typeof imageDescribeJobInputSchema
+>;
+
+/**
+ * Write an image's alt text from what the brain's vision model sees in it,
+ * unless its owner wrote the alt text.
+ */
+export const imageDescribeJobContract: JobContract<ImageDescribeJobInputSchema> =
+  defineJobContract({
+    type: "image:image-describe",
+    input: imageDescribeJobInputSchema,
+  });
+
 /** Generate an image from a prompt, optionally as another entity's cover. */
 export const imageGenerateJobContract: JobContract<ImageGenerateJobInputSchema> =
   defineJobContract({

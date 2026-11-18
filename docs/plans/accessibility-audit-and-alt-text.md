@@ -29,9 +29,10 @@ Proposed, with a deadline: everything below is released and deployed to the flee
 - **Studio behind sign-in.** Production Studio needs the owner's passkey, so Studio surfaces are audited on a test app at the released version, signed in with Chrome's virtual authenticator (`--setup`, then `--passkey`). The public surfaces are audited on production.
 - **Climates.** Studio is audited in instrument and paper; the paper climate is where the baseline findings are.
 - **Report.** `docs/accessibility-audit.md` records the date, the surfaces, findings before and after per surface, and each fix with its PR.
-- **Alt text source.** The image entity gains `altSource: "fallback" | "generated" | "owner"` in its Zod schema, defaulting to `fallback` for existing images. A generated description never overwrites `owner`. An edit to `alt` in Studio sets `owner`.
-- **When alt text is written.** A job runs when an image becomes public or is published and its `altSource` is `fallback`. It asks the brain's `visionModel` (local or cloud) for one sentence of at most 125 characters describing what the image shows, and stores it with `altSource: "generated"`.
-- **Rendering.** Sites already render `alt={…alt}`; no site change beyond checking that templates use the entity's `alt`, not its title.
+- **Alt text source.** The image metadata gains `altSource: "fallback" | "generated" | "owner"`; an image without it is `fallback`. A generated description never overwrites `owner`.
+- **When alt text is written.** As soon as a public image is ready (its bytes stored, whether generated, uploaded or rendered) and its `altSource` is `fallback`, and when a restricted image is made public. A one-time catch-up at start-up queues the public images that still carry a fallback. The job asks for one sentence of at most 125 characters describing what the image shows: the configured local `visionModel`, else the cloud model, which reads images itself. It stores the sentence with `altSource: "generated"`. SVG images are skipped.
+- **Owner edits.** Studio opens an image with its preview and two editable fields, title and alt. An update that changes `alt` without setting `altSource` (Studio or the agent) marks it `owner`.
+- **Rendering.** Sites render a cover image with the image's own alt, not the post's title; the site builder carries it beside the cover URL to every template that draws a cover.
 
 ## Phases
 
@@ -49,8 +50,8 @@ Done when production shows no critical or serious findings on the four surfaces.
 
 ### 3. Alt text from the vision model (Thursday 19 November)
 
-- Test first: an image with `altSource: "fallback"` that becomes public gets generated alt text from a fake vision model; an image with `altSource: "owner"` is left alone; an edit in Studio sets `owner`.
-- Schema field, job and Studio edit path.
+- Test first, slice by slice: the image job writes a fake vision model's sentence and skips `owner`; a public ready image queues the job and an alt edit marks `owner`; a cover renders the image's alt; Studio saves an image's title and alt.
+- Slices: `altSource` and the describe job; the image describer on the AI service and entity runtime; the image listener with its start-up catch-up; cover alt through the site builder and templates; Studio image editing.
 - Verify with a local vision model (`qwen3-vl:8b` or the configured `visionModel`) and with the cloud default.
 - Release and deploy with phase 2.
 

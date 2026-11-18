@@ -549,6 +549,18 @@ export function contractJobHandler(
                   );
                   return { dataUrl };
                 },
+                canDescribe: (): boolean => context.ai.canDescribeImages(),
+                describe: (
+                  image: {
+                    readonly bytes: Uint8Array;
+                    readonly mediaType: string;
+                  },
+                  instruction: string,
+                ): Promise<string | undefined> =>
+                  context.ai.describeImage(
+                    { bytes: image.bytes, mediaType: image.mediaType },
+                    instruction,
+                  ),
               }),
               attachments: Object.freeze({
                 resolve: (request: AttachmentResolveRequest) =>

@@ -71,6 +71,9 @@ export function createAINamespace(shell: IShell): IEntityAINamespace {
     canGenerateImages: (): boolean => {
       return shell.canGenerateImages();
     },
+    describeImage: (image, instruction) =>
+      shell.describeImage(image, instruction),
+    canDescribeImages: (): boolean => shell.canDescribeImages(),
   };
 }
 

@@ -1,6 +1,7 @@
 import { imageMetadataFor, imageMetadataSchema } from "@brains/image";
 import { defineEntity, type EntityDefinition } from "@brains/sdk/entities";
 import { imageCreateRouting } from "./create-routes";
+import { describeImageJob } from "./jobs/describe-image";
 import { generateImageJob } from "./jobs/generate-image";
 import { promoteUploadJob } from "./jobs/promote-upload";
 import { renderSourceImageJob } from "./jobs/render-source-image";
@@ -40,6 +41,7 @@ export const image: EntityDefinition<"image", typeof imageMetadataSchema> =
     create: imageCreateRouting,
     // The jobs write the type they are declared on, once it is defined.
     jobs: {
+      "image-describe": describeImageJob(() => image),
       "image-generate": generateImageJob(() => image),
       "image-render-source": renderSourceImageJob(() => image),
       "upload-promote": promoteUploadJob(() => image),

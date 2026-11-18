@@ -71,6 +71,12 @@ export interface ImageJobs {
     ) => Promise<{ base64: string; dataUrl: string }>
   >;
   readonly generateObject: Mock<(prompt: string) => Promise<unknown>>;
+  readonly describeImage: Mock<
+    (
+      image: { bytes: Uint8Array; mediaType: string },
+      instruction: string,
+    ) => Promise<string | undefined>
+  >;
   readonly progress: Array<{ progress: number; message?: string }>;
   handler(type: string): JobHandler;
   run(type: string, data: unknown): Promise<unknown>;
@@ -87,6 +93,8 @@ export async function imageJobs(
     ) => Promise<{ base64: string; dataUrl: string }>;
     readonly distilled?: string;
     readonly attachment?: PublishMediaData;
+    /** What the image-reading model says; none reads images when unset. */
+    readonly description?: string;
   } = {},
 ): Promise<ImageJobs> {
   attachment = options.attachment;
@@ -167,6 +175,15 @@ export async function imageJobs(
   ): Promise<{ object: T }> => ({
     object: schema.parse(await generateObject(prompt)),
   });
+  const describeImage = mock(
+    async (
+      _image: { bytes: Uint8Array; mediaType: string },
+      _instruction: string,
+    ): Promise<string | undefined> => options.description,
+  );
+  shell.canDescribeImages = (): boolean => options.description !== undefined;
+  shell.describeImage = (image, instruction): Promise<string | undefined> =>
+    describeImage(image, instruction);
   for (const plugin of plugins) await plugin.register(shell);
 
   const progress: Array<{ progress: number; message?: string }> = [];
@@ -192,6 +209,7 @@ export async function imageJobs(
     service,
     generateImage,
     generateObject,
+    describeImage,
     progress,
     handler,
     async run(type, data): Promise<unknown> {
