@@ -37,7 +37,7 @@ async function findImageByDedupKey(
   const images = await runtime.anyEntities.listEntities({
     entityType: "image",
     // Only identity and status are read: stored references, no bytes.
-    options: { filter: { metadata: { dedupKey } }, binaryContent: "reference" },
+    options: { filter: { metadata: { dedupKey } } },
   });
   return images.find((image) => {
     const { status } = imageMetadataSchema.parse(image.metadata);

@@ -1,5 +1,19 @@
 # @brains/operation-context
 
+## 0.2.0-alpha.735
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.735
+
+## 0.2.0-alpha.734
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.734
+
 ## 0.2.0-alpha.733
 
 ### Patch Changes

@@ -143,7 +143,6 @@ export function createOwnedEntityWriter<TCall extends OwnedWriteCall>(
       entityType: definition.type,
       id: record.id,
       visibilityScope: binding.readScope(call, definition.type, access),
-      binaryContent: "reference",
     });
     if (!stored) {
       throw new SdkError("not_found", {
@@ -176,7 +175,6 @@ export function createOwnedEntityWriter<TCall extends OwnedWriteCall>(
           visibilityScope: internalFullScope(
             "an owned create checks whether its id is taken; no content returned",
           ),
-          binaryContent: "reference",
         });
         if (taken) {
           throw new SdkError("conflict", {
@@ -274,7 +272,6 @@ export function createOwnedAssetWriter<TCall extends OwnedWriteCall>(
       entityType: definition.type,
       id,
       visibilityScope: binding.readScope(call, definition.type, access),
-      binaryContent: "reference",
     });
   }
 
@@ -296,7 +293,6 @@ export function createOwnedAssetWriter<TCall extends OwnedWriteCall>(
       visibilityScope: internalFullScope(
         "an asset save writes over the record its id names; no bytes returned",
       ),
-      binaryContent: "reference",
     });
     if (stored) {
       await binding.assertWriteAllowed(declared.type, "update", call);
@@ -425,7 +421,6 @@ export function createScopedAssetReads(
       entityType: definition.type,
       id,
       visibilityScope,
-      binaryContent: "reference",
     });
     return record?.entityType === definition.type ? record : null;
   };

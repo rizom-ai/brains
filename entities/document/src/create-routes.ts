@@ -1,5 +1,7 @@
 import {
-  createDocumentEntity,
+  createPendingDocumentEntity,
+  DOCUMENT_ASSET_MAX_BYTES,
+  isPdfBytes,
   type documentMetadataSchema,
 } from "@brains/document";
 import type {
@@ -11,7 +13,6 @@ import {
   entityRuntime,
   uploadTitle,
 } from "@brains/sdk/internal/entity-runtime";
-import { toDataUrl } from "@brains/utils/bytes";
 import { slugify } from "@brains/utils/string-utils";
 import {
   documentGenerationJobContract,
@@ -25,10 +26,6 @@ type CreateResultAttachment = ReturnType<EntityCreateAttachment>;
 interface Resolution {
   readonly refuse: string;
 }
-
-const PENDING_PDF_DATA_URL = `data:application/pdf;base64,${Buffer.from(
-  "%PDF-1.4\n% Pending document placeholder\n%%EOF\n",
-).toString("base64")}`;
 
 function buildUploadedDocumentAttachment(input: {
   entityId: string;
@@ -109,8 +106,8 @@ async function routeAttachment(
       : await findExistingDocument(context, dedupKey);
   const documentId = existing?.id ?? getDocumentId(generationData, dedupKey);
   const filename = `${documentId}.pdf`;
-  const pending = createDocumentEntity({
-    dataUrl: PENDING_PDF_DATA_URL,
+  // No payload until the job fills it: a pending document claims no bytes.
+  const pending = createPendingDocumentEntity({
     filename,
     title: generationData.title ?? documentId,
     status: "pending",
@@ -173,24 +170,30 @@ async function routeUpload(context: EntityCreateContext): Promise<Resolution> {
     };
   }
 
-  const documentEntity = createDocumentEntity({
-    dataUrl: toDataUrl(upload.record.mediaType, upload.content),
-    filename: upload.record.filename,
-    title,
-    status: "draft",
-    sourceUploadId: uploadRef.id,
-    sourceFilename: upload.record.filename,
-    sourceMediaType: upload.record.mediaType,
-    attachmentType: "uploaded",
-    dedupKey: `upload:${uploadRef.kind}:${uploadRef.id}`,
-  });
+  if (!isPdfBytes(upload.content)) {
+    return { refuse: "The uploaded file is not a PDF" };
+  }
+
   const filename = upload.record.filename;
+  // The bytes are staged by the runtime and published with the record.
   return entityRuntime(context).stored({
     record: {
       id,
-      content: documentEntity.content,
-      metadata: documentEntity.metadata,
+      metadata: {
+        mimeType: "application/pdf",
+        sizeBytes: upload.content.byteLength,
+        filename,
+        title,
+        status: "draft",
+        sourceUploadId: uploadRef.id,
+        sourceFilename: filename,
+        sourceMediaType: upload.record.mediaType,
+        attachmentType: "uploaded",
+        dedupKey: `upload:${uploadRef.kind}:${uploadRef.id}`,
+      },
     },
+    bytes: upload.content,
+    maxBytes: DOCUMENT_ASSET_MAX_BYTES,
     attachment: ({ entityId }) =>
       buildUploadedDocumentAttachment({ entityId, filename }),
   });

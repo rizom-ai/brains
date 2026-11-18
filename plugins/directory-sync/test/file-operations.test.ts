@@ -761,6 +761,60 @@ describe("FileOperations", () => {
       });
     });
 
+    it("writes an asset-backed document from its stored chunks, its size implicit in the file", async () => {
+      const asset = await assetStore.stageAsset(TINY_PDF_BYTES);
+      const entity = createTestEntity("document", {
+        id: "stored-carousel",
+        content: asset.ref,
+        metadata: {
+          mimeType: "application/pdf",
+          sizeBytes: TINY_PDF_BYTES.byteLength,
+          filename: "carousel.pdf",
+          pageCount: 3,
+        },
+      });
+
+      await fileOps.writeEntity(entity);
+
+      expect(
+        readFileSync(join(testDir, "document", "stored-carousel.pdf")).equals(
+          TINY_PDF_BYTES,
+        ),
+      ).toBe(true);
+      expect(
+        JSON.parse(
+          readFileSync(
+            join(testDir, "document", "stored-carousel.pdf.meta.json"),
+            "utf-8",
+          ),
+        ),
+      ).toEqual({ filename: "carousel.pdf", pageCount: 3 });
+    });
+
+    it("rewrites an asset-backed document's sidecar when only its metadata changed", async () => {
+      const asset = await assetStore.stageAsset(TINY_PDF_BYTES);
+      const entity = createTestEntity("document", {
+        id: "stored-carousel",
+        content: asset.ref,
+        metadata: { mimeType: "application/pdf", filename: "carousel.pdf" },
+      });
+      await fileOps.writeEntity(entity);
+
+      await fileOps.writeEntity({
+        ...entity,
+        metadata: { ...entity.metadata, title: "Renamed" },
+      });
+
+      expect(
+        JSON.parse(
+          readFileSync(
+            join(testDir, "document", "stored-carousel.pdf.meta.json"),
+            "utf-8",
+          ),
+        ),
+      ).toEqual({ filename: "carousel.pdf", title: "Renamed" });
+    });
+
     it("should read document sidecar metadata with a path-derived filename fallback", async () => {
       mkdirSync(join(testDir, "document"), { recursive: true });
       writeFileSync(join(testDir, "document", "carousel.pdf"), TINY_PDF_BYTES);

@@ -6,11 +6,6 @@ import type {
   PluginCapabilities,
   WebRouteDefinition,
 } from "@brains/plugins";
-import { baseEntitySchema } from "@brains/entity-service";
-import {
-  createTestEntity,
-  createTestEntityAdapter,
-} from "@brains/entity-service/test";
 import { createSilentLogger } from "@brains/test-utils";
 import { createTestDirectory } from "@brains/test-utils";
 import {
@@ -205,33 +200,8 @@ describe("Shell shutdown", () => {
         ],
       });
       const shell = Shell.createFresh(config, deps, { processRole: "web" });
-      shell
-        .getEntityRegistry()
-        .registerEntityType(
-          "picture",
-          baseEntitySchema,
-          createTestEntityAdapter("picture"),
-          {
-            binaryStorage: "asset",
-            embeddable: false,
-            fullTextSearchable: false,
-          },
-        );
       await shell.initialize();
       const entityService = shell.getEntityService();
-      const asset = await entityService.stageAsset(
-        Buffer.from([0x89, 0x50, 0x4e, 0x47, 1, 2, 3]),
-      );
-      await entityService.createEntity({
-        entity: createTestEntity("picture", {
-          id: "cover",
-          content: asset.ref,
-          metadata: { mediaType: "image/png" },
-        }),
-        stagedAsset: asset,
-      });
-      // A legacy read the ledger holds until its final flush.
-      await entityService.getEntityRaw({ entityType: "picture", id: "cover" });
 
       const openStream = await fetch(`http://127.0.0.1:${port}/stream`);
       const events = openStream.body?.getReader();
@@ -273,20 +243,6 @@ describe("Shell shutdown", () => {
         String(closedError) +
           (closedError instanceof Error ? String(closedError.cause) : ""),
       ).toContain("CLIENT_CLOSED");
-
-      const next = Shell.createFresh(createTestShellConfig(testDir.dir), deps, {
-        processRole: "web",
-      });
-      await next.initialize();
-      try {
-        expect(
-          (await next.getAppInfo()).legacyBinaryContent.map(
-            ({ method, count }) => [method, count],
-          ),
-        ).toEqual([["getEntityRaw", 1]]);
-      } finally {
-        await next.shutdown();
-      }
     },
     { timeout: 20_000 },
   );

@@ -122,8 +122,6 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
               limit: searchLimit(input.limit, services.searchBudget),
               filter: { visibilityScope },
               ...publishedOnlyFor(visibilityScope),
-              // Search hits mask binary content, so its bytes never load.
-              binaryContent: "reference",
             },
           });
           return {
@@ -221,7 +219,6 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
             read: {
               ...publishedOnlyFor(visibilityScope),
               source: true,
-              binaryContent: "reference",
             },
           },
         );
@@ -281,8 +278,6 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
           options: {
             limit: input.limit ?? 20,
             filter,
-            // Tool output masks binary content, so never load it.
-            binaryContent: "reference",
             ...publishedOnlyFor(visibilityScope),
             ...(defaultSort ? { sortFields: defaultSort } : {}),
           },

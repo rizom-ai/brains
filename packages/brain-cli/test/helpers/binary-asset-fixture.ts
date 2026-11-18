@@ -17,6 +17,13 @@ export const GIF: Buffer = Buffer.from(
 export const dataUrl = (type: string, bytes: Buffer): string =>
   `data:image/${type};base64,${bytes.toString("base64")}`;
 
+/** A small, real PDF: its signature, one page, and its end marker. */
+export const PDF: Buffer = Buffer.from(
+  "%PDF-1.4\n1 0 obj << /Type /Pages /Count 1 >> endobj\n%%EOF\n",
+);
+export const pdfDataUrl = (bytes: Buffer): string =>
+  `data:application/pdf;base64,${bytes.toString("base64")}`;
+
 const directories: string[] = [];
 
 /** Remove every database a test created; call from afterEach. */
@@ -26,9 +33,20 @@ export async function removeFixtures(): Promise<void> {
   );
 }
 
-/** A stopped app's entity database with inline images in every state. */
+/**
+ * A stopped app's entity database with inline binaries in every state:
+ * images unless a row names another type, with the metadata it gives.
+ */
 export async function fixture(
-  rows: Array<[id: string, content: string]>,
+  rows: Array<
+    | [id: string, content: string]
+    | [
+        id: string,
+        content: string,
+        entityType: string,
+        metadata?: Record<string, unknown>,
+      ]
+  >,
   fts: string[] = [],
 ): Promise<string> {
   const directory = await mkdtemp(join(tmpdir(), "assets-migrate-"));
@@ -41,10 +59,16 @@ export async function fixture(
       "CREATE VIRTUAL TABLE IF NOT EXISTS entity_fts USING fts5(entity_id UNINDEXED, entity_type UNINDEXED, content)",
     );
     await Promise.all(
-      rows.map(([id, content]) =>
+      rows.map(([id, content, entityType = "image", metadata = {}]) =>
         client.execute({
-          sql: "INSERT INTO entities (id, entityType, content, contentHash, created, updated) VALUES (?, 'image', ?, ?, 1, 2)",
-          args: [id, content, `hash-${id}`],
+          sql: "INSERT INTO entities (id, entityType, content, contentHash, metadata, created, updated) VALUES (?, ?, ?, ?, ?, 1, 2)",
+          args: [
+            id,
+            entityType,
+            content,
+            `hash-${id}`,
+            JSON.stringify(metadata),
+          ],
         }),
       ),
     );

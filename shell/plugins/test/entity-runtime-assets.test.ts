@@ -48,6 +48,7 @@ const actionSchema = z.object({
     "get-stored",
     "rename",
     "read-photo",
+    "any-get-reference",
   ]),
   id: z.string(),
 });
@@ -126,6 +127,12 @@ const picture: EntityDefinition<"picture", typeof pictureMetadata> =
               seen = bytes ? Buffer.from(bytes) : null;
               return {};
             }
+            case "any-get-reference":
+              seen = await entityRuntime(context).anyEntities.getEntity({
+                entityType: "picture",
+                id: input.id,
+              });
+              return {};
           }
         },
       }),
@@ -286,10 +293,20 @@ describe("entity runtime assets", () => {
       entityType: "picture",
       id: "pending",
       visibilityScope: "restricted",
-      binaryContent: "reference",
     });
     expect(saved?.metadata).toEqual({ title: "pending", status: "draft" });
     expect(saved?.visibility).toBe("restricted");
+  });
+
+  it("reads any type's record as its stored reference", async () => {
+    const { shell } = await install();
+    await run(shell, { action: "save", id: "first" });
+
+    await run(shell, { action: "any-get-reference", id: "first" });
+
+    expect(z.object({ content: z.string() }).parse(seen).content).toMatch(
+      /^asset:\/\/sha256\//,
+    );
   });
 
   it("refuses to save another type's record and publishes nothing", async () => {
@@ -323,7 +340,7 @@ describe("entity runtime assets", () => {
   });
 
   it("reads the stored reference without loading bytes", async () => {
-    const { shell, service, db } = await install();
+    const { shell, db } = await install();
     await run(shell, { action: "save", id: "kept" });
 
     await run(shell, { action: "get-stored", id: "kept" });
@@ -333,7 +350,6 @@ describe("entity runtime assets", () => {
     expect(z.object({ content: z.string() }).parse(seen).content).toBe(
       kept ?? "",
     );
-    expect(service.getLegacyBinaryMaterializations()).toEqual([]);
   });
 
   it("keeps the reference when the record's metadata alone is updated", async () => {

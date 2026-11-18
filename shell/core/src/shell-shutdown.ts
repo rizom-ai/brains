@@ -18,9 +18,6 @@ export function registerShellRuntimeFinalizers(
   // Registered first, so it runs last: once nothing writes any more, the
   // entity database lease is deleted, which tells offline maintenance the
   // brain stopped cleanly.
-  // Uses collected since the last flush reach runtime state before it closes.
-  lifecycle.addFinalizer(() => services.legacyBinaryLedger.flush());
-
   lifecycle.addFinalizer(async () => {
     const { entityService } = services;
     if (hasDatabaseLease(entityService)) {

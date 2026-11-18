@@ -28,7 +28,8 @@ import {
   stopped,
   walBytes,
 } from "./helpers/binary-asset-fixture";
-import { planImageAssetMigration } from "../src/lib/binary-asset-migration-plan";
+import { IMAGE_ASSET_KIND } from "../src/lib/binary-asset-kinds";
+import { planBinaryAssetMigration } from "../src/lib/binary-asset-migration-plan";
 
 afterEach(removeFixtures);
 
@@ -62,7 +63,7 @@ const manifestSchema = z.object({
   ),
 });
 
-describe("planImageAssetMigration", () => {
+describe("planBinaryAssetMigration for images", () => {
   it("reports what migrating every inline image would do", async () => {
     const path = await fixture(
       [
@@ -77,7 +78,7 @@ describe("planImageAssetMigration", () => {
     );
     const client = openOfflineEntityDatabase(path).client;
     try {
-      const plan = await planImageAssetMigration(client, {
+      const plan = await planBinaryAssetMigration(client, IMAGE_ASSET_KIND, {
         databaseBytes: 1000,
       });
 
@@ -124,7 +125,9 @@ describe("planImageAssetMigration", () => {
         args: [computeAssetDigest(PNG), PNG.byteLength],
       });
 
-      const plan = await planImageAssetMigration(client, { databaseBytes: 0 });
+      const plan = await planBinaryAssetMigration(client, IMAGE_ASSET_KIND, {
+        databaseBytes: 0,
+      });
 
       expect(plan.alreadyStoredDigests).toBe(1);
       expect(plan.bytesToStore).toBe(0);
@@ -334,6 +337,7 @@ describe("assets:migrate", () => {
     const manifest = manifestSchema.parse(JSON.parse(manifestText));
     expect(manifest.runs).toHaveLength(1);
     expect(manifest.runs[0]?.entries).toContainEqual({
+      entityType: "image",
       id: "cover",
       outcome: "migrated",
       oldContentHash: "hash-cover",
@@ -429,6 +433,7 @@ describe("assets:migrate", () => {
       stopped,
       async (_connection, entries) => {
         entries.push({
+          entityType: "image",
           id: "cover",
           outcome: "changed",
           oldContentHash: "hash-cover",
@@ -451,7 +456,12 @@ describe("assets:migrate", () => {
       })
       .parse(JSON.parse(await readFile(manifestPath, "utf8"))).runs[0];
     expect(run?.entries).toEqual([
-      { id: "cover", outcome: "changed", oldContentHash: "hash-cover" },
+      {
+        entityType: "image",
+        id: "cover",
+        outcome: "changed",
+        oldContentHash: "hash-cover",
+      },
     ]);
     expect(run?.error).toContain("disk full");
   });

@@ -97,7 +97,6 @@ export class ArtifactDeliveryResolver {
         context.entityReads.getEntity({
           ...ref,
           visibilityScope,
-          binaryContent: "reference",
         }),
     });
     if (access.status === "denied") return { denied: true };

@@ -1,6 +1,5 @@
 import {
   SerialQueue,
-  type BinaryContentMode,
   type ContentVisibility,
 } from "@brains/sdk/internal/service-runtime";
 import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
@@ -30,7 +29,6 @@ export interface DurableEntityExportEntityService {
     id: string;
     visibilityScope?: ContentVisibility;
     source?: true;
-    binaryContent?: BinaryContentMode;
   }): Promise<BaseEntity | null>;
 }
 
@@ -163,7 +161,6 @@ export class DurableEntityExportDispatcher {
       }): Promise<BaseEntity | null> =>
         this.entityService.getEntityRaw({
           ...request,
-          binaryContent: "reference",
         }),
       writeEntity: async (entity: BaseEntity): Promise<void> => {
         this.directorySync.suppressWatchPaths(

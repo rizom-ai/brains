@@ -1,10 +1,10 @@
 import { defineJobContract, type PublishMediaData } from "@brains/contracts";
 import {
   countPdfPages,
-  createDocumentEntity,
-  createPdfDataUrl,
   documentMetadataSchema,
+  stageDocumentEntity,
   type DocumentMetadata,
+  type StagedDocumentEntity,
 } from "@brains/document";
 import { renderPdf as defaultRenderPdf } from "@brains/media-renderer";
 import type { PdfRenderOptions } from "@brains/media-renderer";
@@ -305,32 +305,36 @@ async function supersededReferences(
   );
 }
 
-/** Save the rendered document over its pending placeholder, or as a new one. */
-async function saveProcessedDocument(
-  entities: DocumentEntities,
+/**
+ * Save the rendered document's staged bytes over its pending placeholder,
+ * or as a new one; the bytes publish with the record.
+ */
+async function saveStagedDocument(
+  runtime: EntityRuntime,
   document: DocumentDefinition,
   id: string,
-  made: { readonly content: string; readonly metadata: DocumentMetadata },
+  staged: StagedDocumentEntity,
 ): Promise<void> {
-  const existing = await entities.get(document, id);
-  if (existing) {
-    await entities.update(document, existing, {
-      content: made.content,
-      metadata: made.metadata,
-    });
-    return;
-  }
-  await entities.create(document, { id, ...made });
+  await runtime.assets.save(
+    document,
+    id,
+    { metadata: documentMetadataSchema.parse(staged.entity.metadata) },
+    staged.stagedAsset,
+  );
 }
 
-/** Mark a pending document failed, keeping it to be seen and retried. */
+/**
+ * Mark a pending document failed, keeping it to be seen and retried. It is
+ * read as stored, so no bytes are loaded and none are written back.
+ */
 async function failPendingDocument(
   entities: DocumentEntities,
+  runtime: EntityRuntime,
   document: DocumentDefinition,
   id: string,
   error: string,
 ): Promise<void> {
-  const existing = await entities.get(document, id);
+  const existing = await runtime.assets.getStored(document, id);
   if (!existing) return;
   await entities.update(document, existing, {
     metadata: {
@@ -442,23 +446,24 @@ export function generateDocumentJob(
           (data.renderUrl === undefined
             ? attachment.filename
             : `${documentId}.pdf`);
-        const entityData = createDocumentEntity({
-          dataUrl: createPdfDataUrl(pdf),
-          filename,
-          ...(data.title && { title: data.title }),
-          ...(pageCount !== undefined && { pageCount }),
-          status: "draft",
-          sourceEntityType: data.sourceEntityType,
-          sourceEntityId: data.sourceEntityId,
-          attachmentType: data.attachmentType,
-          dedupKey,
-        });
-        await saveProcessedDocument(
-          entities,
-          document(),
-          documentId,
-          entityData,
+        const staged = await stageDocumentEntity(
+          {
+            stageAsset: (source, options) =>
+              runtime.assets.stage(source, options),
+          },
+          pdf,
+          {
+            filename,
+            ...(data.title && { title: data.title }),
+            ...(pageCount !== undefined && { pageCount }),
+            status: "draft",
+            sourceEntityType: data.sourceEntityType,
+            sourceEntityId: data.sourceEntityId,
+            attachmentType: data.attachmentType,
+            dedupKey,
+          },
         );
+        await saveStagedDocument(runtime, document(), documentId, staged);
 
         if (data.targetEntityType && data.targetEntityId) {
           await attachDocumentToTarget(
@@ -483,6 +488,7 @@ export function generateDocumentJob(
         });
         await failPendingDocument(
           entities,
+          runtime,
           document(),
           documentId,
           errorMessage,

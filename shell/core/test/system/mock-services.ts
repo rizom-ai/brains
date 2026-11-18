@@ -87,7 +87,6 @@ export function createMockSystemServices(
   /** Get the last job enqueued via jobs.enqueue */
   getLastEnqueuedJob: () => { type: string; data: unknown } | undefined;
   /** The binary content mode of every raw read, in order */
-  getRawReadModes: () => readonly (string | undefined)[];
   /** Get the last direct create request */
   getLastCreateRequest: () => unknown;
   /** Get the last update request */
@@ -354,13 +353,10 @@ export function createMockSystemServices(
     );
   };
 
-  const rawReadModes: (string | undefined)[] = [];
-
   const readEntity = async (request: {
     entityType: string;
     id: string;
     visibilityScope?: BaseEntity["visibility"];
-    binaryContent?: string | undefined;
   }): Promise<SeedEntity | null> => {
     const entity = entities.get(request.id);
     if (entity?.entityType !== request.entityType) return null;
@@ -399,7 +395,6 @@ export function createMockSystemServices(
     getEntity: readEntity,
     // The double holds stored content only, so a raw read is the same read.
     getEntityRaw: async (request: Parameters<typeof readEntity>[0]) => {
-      rawReadModes.push(request.binaryContent);
       return readEntity(request);
     },
     listEntities: async (request: ListEntitiesRequest) => {
@@ -662,15 +657,6 @@ export function createMockSystemServices(
           stalled: false,
         },
       },
-      legacyBinaryContent: [
-        {
-          method: "listEntities",
-          entityType: "image",
-          count: 3,
-          firstAt: "2026-11-15T03:00:00.000Z",
-          lastAt: "2026-11-15T04:00:00.000Z",
-        },
-      ],
       ai: {
         model: "gpt-4.1",
         embeddingModel: "text-embedding-3-small",
@@ -694,7 +680,6 @@ export function createMockSystemServices(
     getLastEnqueuedJob: () => enqueuedJobs[enqueuedJobs.length - 1],
     getLastCreateRequest: () => lastCreateRequest,
     getLastUpdateRequest: () => lastUpdateRequest,
-    getRawReadModes: () => rawReadModes,
     getLastMarkdownCreate: () => markdownCreates[markdownCreates.length - 1],
   };
 }

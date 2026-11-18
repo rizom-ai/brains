@@ -216,7 +216,6 @@ export class DavTree {
       id,
       visibilityScope: this.scope,
       source: true,
-      binaryContent: "reference",
     });
     const file = entity ? await this.fileOf(entity) : undefined;
     // Only the canonical path names the entity: `post/first`, `post/first.txt`

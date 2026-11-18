@@ -753,7 +753,7 @@ async function storedTitle(
   // informational and must not fail the event it observes.
   // Only its title is read: binary content stays its stored reference.
   const entity = await context.entityService
-    .getEntity({ entityType, id: entityId, binaryContent: "reference" })
+    .getEntity({ entityType, id: entityId })
     .catch(() => null);
   return entity ? entityDisplayTitle(context, entity) : undefined;
 }

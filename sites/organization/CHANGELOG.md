@@ -1,5 +1,35 @@
 # @brains/site-organization
 
+## 0.2.0-alpha.735
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/agent-discovery@0.2.0-alpha.735
+  - @brains/faq@0.2.0-alpha.735
+  - @brains/sdk@0.2.0-alpha.735
+  - @rizom/brain-ui@0.2.0-alpha.735
+  - @brains/profile@0.2.0-alpha.735
+  - @brains/contracts@0.2.0-alpha.735
+  - @brains/site-atlas@0.2.0-alpha.735
+  - @brains/site-composition@0.2.0-alpha.735
+  - @brains/utils@0.2.0-alpha.735
+
+## 0.2.0-alpha.734
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/agent-discovery@0.2.0-alpha.734
+  - @brains/faq@0.2.0-alpha.734
+  - @brains/sdk@0.2.0-alpha.734
+  - @rizom/brain-ui@0.2.0-alpha.734
+  - @brains/profile@0.2.0-alpha.734
+  - @brains/contracts@0.2.0-alpha.734
+  - @brains/site-atlas@0.2.0-alpha.734
+  - @brains/site-composition@0.2.0-alpha.734
+  - @brains/utils@0.2.0-alpha.734
+
 ## 0.2.0-alpha.733
 
 ### Patch Changes

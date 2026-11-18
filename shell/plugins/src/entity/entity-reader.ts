@@ -91,7 +91,6 @@ export function createEntityReader(
         entityType: definition.type,
         id,
         ...scope,
-        binaryContent: "reference",
       });
       if (record?.entityType !== definition.type) return null;
       return recordBytes(entityService, record);

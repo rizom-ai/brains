@@ -2389,6 +2389,43 @@ describe("WebChatPlugin", () => {
     );
   });
 
+  it("streams an asset-backed document from its stored bytes, read as a reference", async () => {
+    const plugin = adminPlugin();
+    const bytes = new Uint8Array(Buffer.from("%PDF-1.7\n%stored\n"));
+    const asset = await harness.getEntityService().stageAsset(bytes);
+    harness.addEntities([
+      {
+        id: "stored-carousel",
+        entityType: "document",
+        content: asset.ref,
+        metadata: {
+          filename: "stored-carousel.pdf",
+          mimeType: "application/pdf",
+          sizeBytes: bytes.byteLength,
+        },
+      },
+    ]);
+    await harness.installPlugin(plugin);
+    const route = getRoute(plugin, "/api/chat/attachments/document", "GET");
+
+    const response = await route?.handler(
+      new Request(
+        "http://brain/api/chat/attachments/document?id=stored-carousel&download=1",
+      ),
+    );
+    const body = await response?.arrayBuffer();
+
+    expect(response?.status).toBe(200);
+    expect(response?.headers.get("content-type")).toBe("application/pdf");
+    expect(response?.headers.get("content-length")).toBe(
+      String(bytes.byteLength),
+    );
+    expect(response?.headers.get("content-disposition")).toBe(
+      "attachment; filename=\"stored-carousel.pdf\"; filename*=UTF-8''stored-carousel.pdf",
+    );
+    expect(new Uint8Array(body ?? new ArrayBuffer(0))).toEqual(bytes);
+  });
+
   it("does not serve restricted document attachments to trusted callers", async () => {
     const plugin = trustedPlugin();
     harness.addEntities([
@@ -2468,7 +2505,6 @@ describe("WebChatPlugin", () => {
         },
       },
     ]);
-    const read = spyOn(harness.getEntityService(), "getEntity");
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/attachments/image", "GET");
 
@@ -2484,11 +2520,6 @@ describe("WebChatPlugin", () => {
     );
     expect(response?.headers.get("x-content-type-options")).toBe("nosniff");
     expect(new Uint8Array(body ?? new ArrayBuffer(0))).toEqual(bytes);
-    // Access checks read the stored reference; bytes load only for the body.
-    expect(read.mock.calls.length).toBeGreaterThan(0);
-    for (const [request] of read.mock.calls) {
-      expect(request.binaryContent).toBe("reference");
-    }
   });
 
   it("serves a hidden image's bytes by no path, even when a visible image shares them", async () => {

@@ -20,7 +20,7 @@ export async function resolveImage(
   entityService: ICoreEntityService,
 ): Promise<ResolvedImage | undefined> {
   const image = await entityService.getEntity(
-    { entityType: "image", id: imageId, binaryContent: "reference" },
+    { entityType: "image", id: imageId },
     imageSchema,
   );
 

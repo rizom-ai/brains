@@ -30,7 +30,6 @@ export async function getOrCreateImageEntity(
     options: {
       filter: { metadata: { sourceUrl } },
       limit: 1,
-      binaryContent: "reference",
     },
   });
 

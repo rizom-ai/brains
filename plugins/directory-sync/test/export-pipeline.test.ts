@@ -84,7 +84,6 @@ describe("exportEntities visibility", () => {
       expect.objectContaining({
         entityType: "note",
         options: expect.objectContaining({
-          binaryContent: "reference",
           filter: expect.objectContaining({
             visibilityScope: "restricted",
           }),

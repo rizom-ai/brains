@@ -2,6 +2,7 @@ import { describe, expect, it, spyOn } from "bun:test";
 import { createTempDir } from "@brains/test-utils";
 import { createPluginHarness } from "@brains/plugins/test";
 import { createPdfDataUrl } from "@brains/document";
+import { assetRefSchema } from "@brains/entity-service";
 import { documentPlugin, type DocumentEntityPlugin } from "./document-plugin";
 
 describe("DocumentPlugin", () => {
@@ -21,8 +22,8 @@ describe("DocumentPlugin", () => {
     const capabilities = await harness.installPlugin(documentPlugin());
 
     expect(
-      harness.getEntityRegistry().getEntityTypeConfig("document").binaryStorage,
-    ).toBe("data-url");
+      harness.getEntityRegistry().getEntityTypeConfig("document"),
+    ).toMatchObject({ binaryStorage: "asset", fullTextSearchable: false });
     expect(capabilities.tools.map((tool) => tool.name)).not.toContain(
       "document_generate",
     );
@@ -109,6 +110,8 @@ describe("DocumentPlugin", () => {
       entityType: "document",
     });
     const pending = documents.find((document) => document.id === entityId);
+    // A pending document claims no bytes until its job fills it.
+    expect(pending?.content).toBe("");
     expect(pending?.metadata).toMatchObject({
       status: "pending",
       sourceEntityType: "deck",
@@ -178,13 +181,21 @@ describe("DocumentPlugin", () => {
       id: "brief",
       visibilityScope: "shared",
     });
-    expect(entity?.content).toBe(
-      `data:application/pdf;base64,${Buffer.from("%PDF-1.4\n%EOF\n").toString("base64")}`,
+    // The bytes are stored as an asset; the record holds their reference.
+    const ref = assetRefSchema.parse(entity?.content);
+    expect(
+      Buffer.from(await harness.getEntityService().readAsset(ref)).toString(),
+    ).toBe("%PDF-1.4\n%EOF\n");
+    expect(createSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        stagedAsset: expect.objectContaining({ ref }),
+      }),
     );
     expect(entity?.metadata).toMatchObject({
       title: "Brief",
       filename: "brief.pdf",
       mimeType: "application/pdf",
+      sizeBytes: Buffer.byteLength("%PDF-1.4\n%EOF\n"),
       attachmentType: "uploaded",
     });
     expect(entity?.visibility).toBe("shared");
@@ -318,6 +329,12 @@ describe("the document adapter", () => {
     // metadata is intentionally absent: filename/mimeType/dedupKey/source
     // provenance come from the directory-sync sidecar, not from the bytes.
     expect(partial.metadata).toBeUndefined();
+  });
+
+  it("reads an asset reference, and the empty content of a pending document", () => {
+    const ref = `asset://sha256/${"a".repeat(64)}`;
+    expect(documentPlugin().adapter.fromMarkdown(ref).content).toBe(ref);
+    expect(documentPlugin().adapter.fromMarkdown("").content).toBe("");
   });
 
   it("rejects non-PDF content via fromMarkdown", () => {

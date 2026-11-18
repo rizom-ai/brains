@@ -760,22 +760,48 @@ export class EntityCreateRouter {
   ): Promise<CreateResult> {
     const metadata = this.definition.metadata.safeParse(stored.record.metadata);
     if (!metadata.success) return createFailure(this.invalid(metadata.error));
+    const { entityService } = this.context;
+    // Bytes are staged first and published only with the record: a create
+    // that does not write leaves an unpublished upload, discarded here.
+    const stagedAsset =
+      stored.bytes === undefined
+        ? undefined
+        : await entityService.stageAsset(stored.bytes, {
+            ...(stored.maxBytes !== undefined && { maxBytes: stored.maxBytes }),
+          });
+    const content = stagedAsset
+      ? stagedAsset.ref
+      : "content" in stored.record
+        ? stored.record.content
+        : undefined;
+    if (content === undefined) {
+      return createFailure("A stored create needs content or bytes");
+    }
     const now = new Date().toISOString();
-    const written = await this.context.entityService.createEntity({
-      entity: {
-        id: stored.record.id,
-        entityType: this.entityType,
-        content: stored.record.content,
-        metadata: metadata.data,
-        ...(input.visibility !== undefined && { visibility: input.visibility }),
-        created: now,
-        updated: now,
-      },
-      options: {
-        deduplicateId: true,
-        eventContext: eventContextOf(executionContext),
-      },
-    });
+    let written: Awaited<ReturnType<typeof entityService.createEntity>>;
+    try {
+      written = await entityService.createEntity({
+        entity: {
+          id: stored.record.id,
+          entityType: this.entityType,
+          content,
+          metadata: metadata.data,
+          ...(input.visibility !== undefined && {
+            visibility: input.visibility,
+          }),
+          created: now,
+          updated: now,
+        },
+        ...(stagedAsset && { stagedAsset }),
+        options: {
+          deduplicateId: true,
+          eventContext: eventContextOf(executionContext),
+        },
+      });
+    } catch (error) {
+      if (stagedAsset) await entityService.discardStagedAsset(stagedAsset);
+      throw error;
+    }
     return {
       success: true,
       data: {

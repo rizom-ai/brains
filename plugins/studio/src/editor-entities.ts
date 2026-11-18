@@ -105,7 +105,6 @@ export async function handleGetImagePreview(
         entityType: "image",
         id: query.data.id,
         visibilityScope: access.visibilityScope,
-        binaryContent: "reference",
       })
     : null;
   const response =

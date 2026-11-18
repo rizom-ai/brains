@@ -20,8 +20,6 @@ export interface StockPhotoEntityWriter extends Pick<
   getEntity(request: {
     entityType: string;
     id: string;
-    /** An image is read as its stored reference, never its bytes. */
-    binaryContent?: "reference";
   }): Promise<BaseEntity | null>;
 }
 

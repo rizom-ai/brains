@@ -286,7 +286,6 @@ Some text
       expect(mockEntityService.getEntityRaw).toHaveBeenCalledWith({
         entityType: "image",
         id: "test-id",
-        binaryContent: "reference",
       });
       expect(mockEntityService.getEntity).not.toHaveBeenCalled();
     });

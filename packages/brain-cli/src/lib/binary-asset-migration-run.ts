@@ -6,17 +6,11 @@ import {
   type BinaryAssetInventory,
   type OfflineEntityConnection,
 } from "@brains/entity-service";
-import {
-  classifyInlineImage,
-  inlineImagePayload,
-  LEGACY_PENDING_IMAGE_PLACEHOLDER,
-} from "@brains/image";
-import type { InlineImageBlocker } from "@brains/image";
+import type { BinaryAssetKind, InlineBlocker } from "./binary-asset-kinds";
 
-/** What happened to one inline image; never its bytes. */
-export type MigrationManifestEntry =
+/** What happened to one inline row; never its bytes. */
+export type MigrationManifestEntry = { entityType: string; id: string } & (
   | {
-      id: string;
       outcome: "migrated";
       oldContentHash: string;
       newContentHash: string;
@@ -24,67 +18,70 @@ export type MigrationManifestEntry =
       mediaType: string;
       sizeBytes: number;
     }
-  | { id: string; outcome: "changed"; oldContentHash: string }
-  | { id: string; outcome: "cleared"; oldContentHash: string }
-  | {
-      id: string;
-      outcome: "blocked";
-      reason: InlineImageBlocker;
-      oldContentHash: string;
-    };
+  | { outcome: "changed"; oldContentHash: string }
+  | { outcome: "cleared"; oldContentHash: string }
+  | { outcome: "blocked"; reason: InlineBlocker; oldContentHash: string }
+);
 
 /**
- * Migrate every inline image, one row at a time: each is decoded, staged in
- * committed chunks and published with its row in one transaction. Rows
- * already migrated are no longer inline, so a rerun skips them. Each
- * finished row is appended to `entries` as it commits, so a run that throws
- * still leaves the record of what it changed.
+ * Migrate every inline row of each type, one row at a time: each is
+ * decoded, staged in committed chunks and published with its row in one
+ * transaction. Rows already migrated are no longer inline, so a rerun skips
+ * them. Each finished row is appended to `entries` as it commits, so a run
+ * that throws still leaves the record of what it changed.
  */
-export async function runImageAssetMigration(
+export async function runBinaryAssetMigration(
   connection: OfflineEntityConnection,
+  kinds: readonly BinaryAssetKind[],
   entries: MigrationManifestEntry[] = [],
 ): Promise<MigrationManifestEntry[]> {
-  const inventory = await readBinaryAssetInventory(
-    connection.client,
-    "image",
-    LEGACY_PENDING_IMAGE_PLACEHOLDER,
-  );
-  if (!(await hasFullTextIndex(connection))) {
-    return migrateRows(connection, inventory, entries, false);
-  }
-  const restore = await suspendFullTextMerges(connection);
+  const fullText = await hasFullTextIndex(connection);
+  const restore = fullText
+    ? await suspendFullTextMerges(connection)
+    : undefined;
   try {
-    return await migrateRows(connection, inventory, entries, true);
+    for (const kind of kinds) {
+      const inventory = await readBinaryAssetInventory(
+        connection.client,
+        kind.entityType,
+        kind.placeholder,
+      );
+      await migrateRows(connection, kind, inventory, entries, fullText);
+    }
+    return entries;
   } finally {
-    await restore();
+    await restore?.();
   }
 }
 
 async function migrateRows(
   connection: OfflineEntityConnection,
+  kind: BinaryAssetKind,
   inventory: BinaryAssetInventory,
   entries: MigrationManifestEntry[],
   fullText: boolean,
-): Promise<MigrationManifestEntry[]> {
+): Promise<void> {
+  const { entityType } = kind;
   const migrator = new OfflineBinaryMigrator(connection);
   for (const [index, id] of inventory.inlineIds.entries()) {
     if (fullText && index > 0 && index % COMPACT_EVERY_ROWS === 0) {
       await compactFullText(connection);
     }
     // Each row decodes up to the write cap; collecting before the next keeps
-    // peak memory flat however many images the database holds.
+    // peak memory flat however many rows the database holds.
     Bun.gc(true);
     const row = await readInlineBinaryRow(
       connection.client,
-      "image",
+      entityType,
       id,
-      LEGACY_PENDING_IMAGE_PLACEHOLDER,
+      kind.placeholder,
     );
     if (!row) continue;
-    const verdict = classifyInlineImage(row.content);
-    const payload = inlineImagePayload(row.content);
+    const verdict = kind.classify(row.content);
+    const payload = kind.payload(row.content);
     if (verdict.status === "blocked" || payload === undefined) {
       entries.push({
+        entityType,
         id,
         outcome: "blocked",
         reason: verdict.status === "blocked" ? verdict.reason : "malformed",
@@ -92,56 +89,55 @@ async function migrateRows(
       });
       continue;
     }
-    const { digest, sizeBytes, ...facts } = verdict;
-    const result = await migrator.migrateRow("image", {
+    const result = await migrator.migrateRow(entityType, {
       id,
       expectedContentHash: row.contentHash,
       bytes: base64AssetSource(payload),
-      expectedSize: sizeBytes,
-      metadata: {
-        format: facts.format,
-        mediaType: facts.mediaType,
-        width: facts.width,
-        height: facts.height,
-        sizeBytes,
-      },
+      expectedSize: verdict.sizeBytes,
+      metadata: verdict.metadata,
     });
     entries.push(
       result.outcome === "migrated"
         ? {
+            entityType,
             id,
             outcome: "migrated",
             oldContentHash: row.contentHash,
             newContentHash: result.contentHash,
-            digest,
-            mediaType: facts.mediaType,
-            sizeBytes,
+            digest: verdict.digest,
+            mediaType: verdict.mediaType,
+            sizeBytes: verdict.sizeBytes,
           }
-        : { id, outcome: "changed", oldContentHash: row.contentHash },
+        : {
+            entityType,
+            id,
+            outcome: "changed",
+            oldContentHash: row.contentHash,
+          },
     );
   }
-  // Pending or failed images have no bytes to migrate; one still holding
-  // the old 1x1 placeholder keeps nothing instead.
+  // Pending or failed rows have no bytes to migrate; one still holding the
+  // old placeholder keeps nothing instead.
   for (const id of inventory.placeholderIds) {
-    const oldContentHash = await readContentHash(connection, id);
+    const oldContentHash = await readContentHash(connection, entityType, id);
     if (oldContentHash === undefined) continue;
-    const result = await migrator.clearPlaceholder("image", {
+    const result = await migrator.clearPlaceholder(entityType, {
       id,
       expectedContentHash: oldContentHash,
     });
-    entries.push({ id, outcome: result.outcome, oldContentHash });
+    entries.push({ entityType, id, outcome: result.outcome, oldContentHash });
   }
   if (fullText) await compactFullText(connection);
-  return entries;
 }
 
 async function readContentHash(
   connection: OfflineEntityConnection,
+  entityType: string,
   id: string,
 ): Promise<string | undefined> {
   const result = await connection.client.execute({
-    sql: "SELECT contentHash FROM entities WHERE entityType = 'image' AND id = ?",
-    args: [id],
+    sql: "SELECT contentHash FROM entities WHERE entityType = ? AND id = ?",
+    args: [entityType, id],
   });
   const value = result.rows[0]?.["contentHash"];
   return typeof value === "string" ? value : undefined;

@@ -228,8 +228,6 @@ export interface AnyEntityReads {
               }
             | undefined;
           readonly limit?: number | undefined;
-          /** Asset-backed content as its stored reference; no bytes load. */
-          readonly binaryContent?: "reference" | undefined;
         }
       | undefined;
   }): Promise<BaseEntity[]>;
@@ -370,14 +368,32 @@ export interface QueuedCreate {
   readonly attachment?: CreateResultAttachment | undefined;
 }
 
-export interface StoredCreate {
-  readonly record: {
-    readonly id: string;
-    readonly content: string;
-    readonly metadata: Readonly<Record<string, unknown>>;
-  };
+/**
+ * A complete record a first-party route stores: its content as written, or
+ * bytes the runtime stages and publishes with the record, whose content is
+ * then their asset reference. Bytes need an asset-backed type.
+ */
+export type StoredCreate = {
   attachment(written: { readonly entityId: string }): CreateResultAttachment;
-}
+} & (
+  | {
+      readonly record: {
+        readonly id: string;
+        readonly content: string;
+        readonly metadata: Readonly<Record<string, unknown>>;
+      };
+      readonly bytes?: undefined;
+    }
+  | {
+      readonly record: {
+        readonly id: string;
+        readonly metadata: Readonly<Record<string, unknown>>;
+      };
+      readonly bytes: Uint8Array;
+      /** The largest the bytes may be; the contract ceiling when unset. */
+      readonly maxBytes?: number | undefined;
+    }
+);
 
 /** Where an untyped view reads, and the scope it reads each type at. */
 export interface AnyEntityBinding {
@@ -689,7 +705,6 @@ function scopedAnyEntities({
     ): Promise<BaseEntity[]> => {
       const metadata = request.options?.filter?.metadata;
       const limit = request.options?.limit;
-      const binaryContent = request.options?.binaryContent;
       const scoped = visibility(request.entityType);
       return service.listEntities({
         entityType: request.entityType,
@@ -701,7 +716,6 @@ function scopedAnyEntities({
             },
           }),
           ...(limit !== undefined && { limit }),
-          ...(binaryContent !== undefined && { binaryContent }),
         },
       });
     },

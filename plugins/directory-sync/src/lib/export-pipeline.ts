@@ -1,7 +1,6 @@
 import { getErrorMessage } from "@brains/utils/error";
 import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
 import {
-  type BinaryContentMode,
   type ContentVisibility,
   internalFullScope,
 } from "@brains/sdk/internal/service-runtime";
@@ -24,7 +23,6 @@ export interface ExportPipelineDeps {
         limit?: number;
         filter?: { visibilityScope?: ContentVisibility };
         source?: true;
-        binaryContent?: BinaryContentMode;
       };
     }): Promise<BaseEntity[]>;
     deleteEntity(request: { entityType: string; id: string }): Promise<boolean>;
@@ -61,8 +59,6 @@ export async function exportEntities(
         // As stored: a declared type reads back its body alone, and the file
         // is its stored document, frontmatter it does not write included.
         source: true,
-        // Paths and writes need references, never materialized bytes.
-        binaryContent: "reference",
         filter: {
           visibilityScope: internalFullScope(
             "directory sync exports entities across all visibility tiers",

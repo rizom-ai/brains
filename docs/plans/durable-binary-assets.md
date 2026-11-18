@@ -1,6 +1,6 @@
 # Durable Binary Asset Storage Plan
 
-Last updated: 2026-11-16
+Last updated: 2026-11-17
 
 ## Status
 
@@ -28,7 +28,30 @@ migrated copy of its database made them all from deck cover slides. That reader 
 the other first-party ones that could still reach an asset-backed image now read its
 reference and its bytes explicitly.
 
-Next: release that and roll it out, then the zero-use soak and bridge removal.
+That release is alpha.733. Instead of a timed soak, zero use is proven with fresh
+production and preview builds on `yeehaa.io` running 733: its `legacyBinaryContent`
+entries keep their counts, with `lastAt` before the rollout.
+
+The PDF phase (#991):
+
+- documents store asset references;
+- uploads and rendered PDFs stage their bytes, and a pending document holds no
+  placeholder payload;
+- downloads, publishing, MCP resources and directory sync read references and bytes
+  explicitly;
+- `assets:migrate`, `assets:verify` and `assets:reconcile` cover documents beside
+  images; the pre-deploy backup already verifies every asset reference.
+
+On the July copy of the `yeehaa.io` database, the migration moves 14 inline PDFs
+(14 distinct, 3.5 MB) with no blockers, and verify reports every document valid with
+all 14 mirrored PDFs matching.
+
+The bridge is removed: every entity read hands back what is stored, so an
+asset-backed record's content is its reference, and the legacy read mode and its use
+counts are gone, the counts' runtime-state rows deleted at boot. The removal covers
+every asset-backed type, documents included, so PDFs ship with no bridge of their own.
+
+Next: roll out the PDF phase and the bridge removal, and migrate each brain's PDFs.
 
 This plan is a stable `0.2.0` release gate: images and PDFs reach their completion
 criteria, including bridge removal, before the final alpha is nominated. It is the
@@ -228,16 +251,12 @@ every entity reference, rollback retention, directory-sync recovery and backup r
 
 ### Compatibility window
 
-Entity get/list gain a `binaryContent` mode. Until bridge removal, which lands before stable `0.2.0`, an omitted mode means
-`"legacy-data-url"`, which materializes today's data URLs for legacy callers. New
-internal callers pass `"reference"`, which returns the stored reference and never loads
-bytes. The entity service counts legacy materializations by read surface and entity
-type, never by id or content, in runtime state shared by every process and kept across
-restarts; trusted callers see them, with when each was first and last seen, in
-`system_status`. After a zero-use soak, legacy mode is removed and an
-omitted mode means `"reference"`. First-party image readers already read references; the
-remaining legacy use is the public authoring API, whose shape for asset-backed records
-after bridge removal is a `0.2.0` API decision.
+Until bridge removal, entity reads took a `binaryContent` mode whose default,
+`"legacy-data-url"`, turned an asset reference back into the data URL inline storage
+returned, and `system_status` counted each such read by surface and type. The bridge
+is removed: reads take no mode and hand back the stored content, so an asset-backed
+record's content is its reference, through the public authoring API too. A reader that
+renders or serves the bytes reads them explicitly.
 
 ### Reading bytes
 
@@ -357,8 +376,9 @@ Each phase is a commit group, tests first.
    `brain assets:reconcile`, plus asset verification in the pre-deploy backup.
 6. **Rehearsal and production cutover** on a `0.2` alpha. `yeehaa.io` runs migrated
    storage before final-alpha nomination.
-7. **Soak and bridge removal**, before stable `0.2.0`.
-8. **PDFs**, after images soak without open defects, before stable `0.2.0`.
+7. **Bridge removal**, before stable `0.2.0`; zero use proven on `yeehaa.io` instead of
+   a timed soak.
+8. **PDFs**, after the image bridge removal, before stable `0.2.0`.
 
 ### Migration (Phase 5)
 
@@ -482,7 +502,7 @@ release, restart and verify. Never attempt in-place reverse conversion.
   - no new write stores a data URL;
   - no image bytes appear in FTS, embeddings, lists or events;
   - UX acceptance passes on the personal app and `yeehaa.io`;
-  - legacy materialization records zero use before the bridge is removed.
+  - legacy materialization records zero use before the bridge is removed (done).
 - **PDFs** repeat the same criteria independently. Extracted PDF text, if searchable, is
   a separate textual projection.
 
