@@ -164,6 +164,33 @@ describe("sync tool", () => {
     expect(directoryTool.description).toContain("bare 'what is the status'");
   });
 
+  it.each([
+    ["without git", false],
+    ["with git", true],
+  ])(
+    "syncs only the content directory and sends a chat upload to system_create (%s)",
+    (_label, withGit) => {
+      const { directorySync } = createMockDirectorySync();
+      const { gitSync } = createMockGitSync();
+      const { description } = findTool(
+        createDirectorySyncTools(
+          directorySync,
+          context,
+          "directory-sync",
+          withGit ? gitSync : undefined,
+        ),
+        "directory_sync",
+      );
+
+      expect(description).toContain("content directory");
+      expect(description).toContain(
+        "A file attached in chat is not in the content directory",
+      );
+      expect(description).toContain("system_create with source kind upload");
+      expect(description).not.toContain("filesystem import");
+    },
+  );
+
   it("routes sync and status actions through directory_sync", async () => {
     const { directorySync, queueSyncBatchMock, getStatusMock } =
       createMockDirectorySync();
