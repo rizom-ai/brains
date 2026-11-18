@@ -135,6 +135,25 @@ jobs:
 `;
 }
 
+/**
+ * The operator-confirmed skip of the verified predeploy snapshot, for a
+ * runtime whose own startup work keeps its job queue busy and so never
+ * passes the idle gate. It is a `workflow_dispatch` input, off by default:
+ * a deploy started by a push or another workflow carries no inputs, so its
+ * snapshot always runs. Both Deploy workflows (a standalone brain's, which
+ * `renderDeployWorkflow` renders, and the rover-pilot template's) use these
+ * lines verbatim, the input under `workflow_dispatch.inputs` and the
+ * condition on the "Create verified predeploy backup" step.
+ */
+export const predeployBackupSkipInput = `      skip_predeploy_backup:
+        description: Skip the predeploy backup, operator-confirmed, when the running runtime cannot go idle; its last verified backup stands
+        required: false
+        type: boolean
+        default: false`;
+
+export const predeployBackupSkipCondition =
+  "        if: ${{ !inputs.skip_predeploy_backup }}";
+
 export function renderDeployWorkflow(
   options: DeployWorkflowTemplateOptions,
 ): string {
@@ -151,6 +170,8 @@ on:
     branches: ["main"]
     types: [completed]
   workflow_dispatch:
+    inputs:
+${predeployBackupSkipInput}
 
 jobs:
   deploy:
@@ -376,6 +397,7 @@ ${workflowSecretsEnv}
           exit 1
 
       - name: Create verified predeploy backup
+${predeployBackupSkipCondition}
         env:
           SERVER_IP: \${{ steps.provision.outputs.server_ip }}
           TARGET_HANDLE: \${{ github.event.repository.name }}

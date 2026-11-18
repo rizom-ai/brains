@@ -4,6 +4,8 @@ import { fileURLToPath } from "url";
 import dockerfileTemplate from "./Dockerfile" with { type: "text" };
 import kamalDeployTemplate from "./kamal-deploy.yml" with { type: "text" };
 export {
+  predeployBackupSkipCondition,
+  predeployBackupSkipInput,
   renderDeployWorkflow,
   renderExtractBrainConfigScript,
   renderPreDeployHook,

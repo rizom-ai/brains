@@ -291,6 +291,14 @@ Existing stateful targets are captured under `/opt/brain-state/backups/` before 
 
 The default retention is five verified snapshots per target. Snapshot files are private (`0600`) and completed directories use `0700`; `.incomplete` directories are never rollback points. These snapshots remain on the same server and therefore do not replace encrypted off-host disaster recovery. Restore is deliberately manual and requires separate approval.
 
+A deploy started by Publish Image always takes a snapshot. The one exception is a runtime whose own startup work keeps its job queue busy: it never passes the idle gate, so no deploy can replace it. For that case only, a manually dispatched Deploy can skip the snapshot once the operator has confirmed that the last verified snapshot stands:
+
+```bash
+gh workflow run Deploy --ref main -f skip_predeploy_backup=true
+```
+
+The input is off by default and exists only on a dispatched run.
+
 ## Common operations
 
 ```bash

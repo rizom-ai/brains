@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from "bun:test";
 import { createTempDirSync } from "@brains/test-utils";
 import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { z } from "@brains/utils/zod";
 import {
   backendBootstrapEnvSchema,
   deployProvisionEnvSchema,
@@ -167,6 +168,53 @@ RUN test -n "$BRAIN_VERSION" \\
     expect(backupIndex).toBeGreaterThan(-1);
     expect(lockIndex).toBeGreaterThan(backupIndex);
     expect(deployIndex).toBeGreaterThan(lockIndex);
+  });
+
+  it("lets a dispatched deploy skip the predeploy backup, operator-confirmed", () => {
+    const workflow = z
+      .object({
+        on: z.object({
+          workflow_dispatch: z.object({
+            inputs: z.record(z.string(), z.unknown()),
+          }),
+        }),
+        jobs: z.object({
+          deploy: z.object({
+            steps: z.array(
+              z.looseObject({
+                name: z.string().optional(),
+                if: z.string().optional(),
+              }),
+            ),
+          }),
+        }),
+      })
+      .parse(
+        Bun.YAML.parse(
+          renderDeployWorkflow({ secretNames: [], bootstrapSecrets: [] }),
+        ),
+      );
+
+    // Off by default and only on a dispatched run: a deploy started by
+    // Publish Image carries no inputs, so its backup always runs.
+    expect(workflow.on.workflow_dispatch.inputs).toEqual({
+      skip_predeploy_backup: {
+        description:
+          "Skip the predeploy backup, operator-confirmed, when the running runtime cannot go idle; its last verified backup stands",
+        required: false,
+        type: "boolean",
+        default: false,
+      },
+    });
+    const gated = workflow.jobs.deploy.steps.filter((step) =>
+      step.if?.includes("skip_predeploy_backup"),
+    );
+    expect(gated.map((step) => [step.name, step.if])).toEqual([
+      [
+        "Create verified predeploy backup",
+        "${{ !inputs.skip_predeploy_backup }}",
+      ],
+    ]);
   });
 
   it("ships a dedicated host watchdog installer that records incidents before restart", () => {
