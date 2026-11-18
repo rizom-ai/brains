@@ -54,12 +54,12 @@ export const actionLinkStyles: Record<
   primary: {
     borderColor: "var(--console-rule-accent)",
     backgroundColor: "var(--console-accent-soft)",
-    color: "var(--console-accent)",
+    color: "var(--console-accent-text)",
   },
   label: { minWidth: 0, overflowWrap: "anywhere" },
   indicator: {
     flexShrink: 0,
-    color: "var(--console-accent)",
+    color: "var(--console-accent-text)",
     transform: {
       default: "none",
       [stylex.when.ancestor(":hover")]: "translate(2px, -1px)",

@@ -49,7 +49,7 @@ export const rendererLayoutStyles: Record<
   kicker: {
     display: "block",
     marginBottom: 6,
-    color: "var(--console-accent)",
+    color: "var(--console-accent-text)",
     fontFamily: "var(--console-mono)",
     fontSize: 9,
     letterSpacing: ".18em",

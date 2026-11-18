@@ -289,7 +289,7 @@ jobs:
           bun run --filter @brains/web-chat build
           bun run --filter @brains/studio build
 
-      - name: Test the axe audit helper
+      - name: Audit Studio in every site theme, and test the axe helper
         env:
           CONSOLE_CHROMIUM_PATH: ${{ steps.chrome.outputs.chrome-path }}
         run: bun test scripts/accessibility

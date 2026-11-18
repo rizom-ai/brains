@@ -77,6 +77,13 @@
     var(--console-accent) 48%,
     transparent
   );
+  /* The accent as text: pulled toward the text color until small type
+     reads at 4.5:1 in every shipped theme, light or dark. */
+  --console-accent-text: color-mix(
+    in srgb,
+    var(--console-accent) 65%,
+    var(--console-text)
+  );
   --console-accent-dim: color-mix(
     in srgb,
     var(--console-accent) 72%,
@@ -142,7 +149,7 @@
 }
 .cp-input-row::before {
   content: "⌕";
-  color: var(--console-accent);
+  color: var(--console-accent-text);
   font-family: var(--console-mono);
   font-size: 18px;
 }
@@ -209,7 +216,7 @@
 }
 .cp-glyph {
   grid-row: span 2;
-  color: var(--console-accent);
+  color: var(--console-accent-text);
   font-family: var(--console-mono);
   font-size: 10px;
   text-align: center;
@@ -221,7 +228,7 @@
 }
 .cp-title mark {
   background: none;
-  color: var(--console-accent);
+  color: var(--console-accent-text);
   font-weight: 500;
 }
 .cp-sub {

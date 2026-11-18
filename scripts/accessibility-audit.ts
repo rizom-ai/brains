@@ -27,12 +27,8 @@ import {
   type AxeAudit,
   type ImpactCounts,
 } from "./accessibility/axe-audit";
-import { chromeBackend } from "./accessibility/browser";
-import {
-  clickSelector,
-  evaluatePage,
-  waitForPage,
-} from "./console-visual/page";
+import { chromeBackend, waitForQuietDom } from "./accessibility/browser";
+import { clickSelector, waitForPage } from "./console-visual/page";
 
 const { values, positionals: urls } = parseArgs({
   allowPositionals: true,
@@ -139,34 +135,6 @@ interface PageAudit {
   incomplete: AxeAudit["incomplete"];
 }
 
-/** Resolves once the DOM has not changed for a second, or after 15 seconds. */
-async function settle(page: Bun.WebView): Promise<void> {
-  await evaluatePage(
-    page,
-    () =>
-      new Promise<void>((resolve) => {
-        const finish = (): void => {
-          observer.disconnect();
-          clearTimeout(quiet);
-          clearTimeout(cap);
-          resolve();
-        };
-        let quiet = setTimeout(finish, 1_000);
-        const cap = setTimeout(finish, 15_000);
-        const observer = new MutationObserver(() => {
-          clearTimeout(quiet);
-          quiet = setTimeout(finish, 1_000);
-        });
-        observer.observe(document, {
-          subtree: true,
-          childList: true,
-          attributes: true,
-          characterData: true,
-        });
-      }),
-  );
-}
-
 async function auditPage(
   url: string,
   viewport: { width: number; height: number },
@@ -180,7 +148,7 @@ async function auditPage(
       });
     }
     await page.navigate(url);
-    await settle(page);
+    await waitForQuietDom(page);
     const audit = await runAxeAudit(page);
     return {
       url,

@@ -30,7 +30,7 @@ export const disclosureStyles: Record<
     borderColor: "var(--console-rule-accent)",
     borderRadius: 6,
     backgroundColor: "var(--console-accent-soft)",
-    color: "var(--console-accent)",
+    color: "var(--console-accent-text)",
     cursor: "pointer",
     fontFamily: "var(--console-mono)",
     fontSize: 10,

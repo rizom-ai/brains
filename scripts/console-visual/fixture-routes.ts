@@ -4,6 +4,7 @@ import type { z } from "@brains/utils/zod";
 import { isRecord } from "@brains/utils/is-record";
 import { renameChatSessionRequestSchema } from "@brains/contracts/chat";
 import { renderEditorShellHtml, studioTypeHierarchy } from "@brains/studio";
+import { FIXTURE_THEMES } from "./fixture-themes";
 import { renderDashboardPageHtml } from "@brains/dashboard";
 import type { studioAssetManifestSchema } from "../../plugins/studio/src/ui-assets";
 import type { createAdministrationFixture } from "../fixtures/studio-administration";
@@ -86,7 +87,9 @@ function climateHtml(html: string, request: Request): string {
 /** The workspace query a provider reads: everything but routing and climate. */
 function workspaceQuery(url: URL): Record<string, string> {
   return Object.fromEntries(
-    [...url.searchParams].filter(([key]) => key !== "id" && key !== "climate"),
+    [...url.searchParams].filter(
+      ([key]) => key !== "id" && key !== "climate" && key !== "theme",
+    ),
   );
 }
 
@@ -242,6 +245,7 @@ export function createFixtureRoutes(
               dashboardHref: "/dashboard",
               brandName: "Rover Collective",
               principal: { displayName: "Mira Reyes", role: "admin" },
+              themeCSS: FIXTURE_THEMES[url.searchParams.get("theme") ?? ""],
             }),
             request,
           ),

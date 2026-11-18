@@ -12,7 +12,7 @@ for (const width of [1440, 768, 390])
     const window = new Window({ width });
     try {
       const doc = window.document;
-      doc.head.innerHTML = `<style>:root{--console-accent:rgb(180,60,20);--console-text-dim:rgb(100,100,100)}${operatorViewStylexCSS}</style>`;
+      doc.head.innerHTML = `<style>:root{--console-accent-text:rgb(180,60,20);--console-text-dim:rgb(100,100,100)}${operatorViewStylexCSS}</style>`;
       const href = "/studio?source=a%2Fb&mode=review#exact";
       doc.body.innerHTML = renderToStaticMarkup(
         <OperatorActionLinks aria-label="Actions">

@@ -61,8 +61,7 @@ export const fieldStyles: Record<FieldStyle, stylex.StyleXStyles> =
       fontFamily: "var(--console-mono)",
       fontStyle: "normal",
       fontSize: 10,
-      color:
-        "color-mix(in srgb, var(--console-accent) 75%, var(--console-text))",
+      color: "var(--console-accent-text)",
     },
     kind: {
       fontFamily: "var(--console-mono)",

@@ -309,6 +309,13 @@ exports[`renderDashboardPageHtml renders the anonymous card without restricted-a
     var(--console-accent) 48%,
     transparent
   );
+  /* The accent as text: pulled toward the text color until small type
+     reads at 4.5:1 in every shipped theme, light or dark. */
+  --console-accent-text: color-mix(
+    in srgb,
+    var(--console-accent) 65%,
+    var(--console-text)
+  );
   --console-accent-dim: color-mix(
     in srgb,
     var(--console-accent) 72%,
@@ -374,7 +381,7 @@ exports[`renderDashboardPageHtml renders the anonymous card without restricted-a
 }
 .cp-input-row::before {
   content: "⌕";
-  color: var(--console-accent);
+  color: var(--console-accent-text);
   font-family: var(--console-mono);
   font-size: 18px;
 }
@@ -441,7 +448,7 @@ exports[`renderDashboardPageHtml renders the anonymous card without restricted-a
 }
 .cp-glyph {
   grid-row: span 2;
-  color: var(--console-accent);
+  color: var(--console-accent-text);
   font-family: var(--console-mono);
   font-size: 10px;
   text-align: center;
@@ -453,7 +460,7 @@ exports[`renderDashboardPageHtml renders the anonymous card without restricted-a
 }
 .cp-title mark {
   background: none;
-  color: var(--console-accent);
+  color: var(--console-accent-text);
   font-weight: 500;
 }
 .cp-sub {
@@ -921,7 +928,7 @@ html {
 .x1gj8qfm:not(#\\#):not(#\\#):not(#\\#){clip-path:none}
 .x15rks2t:not(#\\#):not(#\\#):not(#\\#){color:currentColor}
 .x1heor9g:not(#\\#):not(#\\#):not(#\\#){color:inherit}
-.x1myn341:not(#\\#):not(#\\#):not(#\\#){color:var(--console-accent)}
+.x1q7454x:not(#\\#):not(#\\#):not(#\\#){color:var(--console-accent-text)}
 .x1mel2pz:not(#\\#):not(#\\#):not(#\\#){color:var(--console-err)}
 .x19k5i5u:not(#\\#):not(#\\#):not(#\\#){color:var(--console-ok)}
 .x1um1dla:not(#\\#):not(#\\#):not(#\\#){color:var(--console-on-accent)}
@@ -1886,7 +1893,7 @@ html {
                         ],
                         [
                           "class",
-                          "xrvj5dj xgd8bvy xjjy2jw x1fgtraw x1iwbelc x3psx0u x1ku5rj1 xmkeg23 x1y0btm7 xawfzfr x16rqkct x1myn341 xssy22x xfifm61 x1im5e5j",
+                          "xrvj5dj xgd8bvy xjjy2jw x1fgtraw x1iwbelc x3psx0u x1ku5rj1 xmkeg23 x1y0btm7 xawfzfr x16rqkct x1q7454x xssy22x xfifm61 x1im5e5j",
                         ],
                       ],
                       "children": [
@@ -1915,7 +1922,7 @@ html {
                           "attributes": [
                             [
                               "class",
-                              "x1myn341 x1k4tb9n x184j2wm",
+                              "x1q7454x x1k4tb9n x184j2wm",
                             ],
                           ],
                           "children": [
@@ -2066,7 +2073,7 @@ html {
                               "attributes": [
                                 [
                                   "class",
-                                  "x1myn341 x1k4tb9n x184j2wm x62unnn",
+                                  "x1q7454x x1k4tb9n x184j2wm x62unnn",
                                 ],
                               ],
                               "children": [
