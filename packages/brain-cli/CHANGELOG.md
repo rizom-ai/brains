@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.743
+
+### Patch Changes
+
+- [#999](https://github.com/rizom-ai/brains/pull/999) [`b48bf16`](https://github.com/rizom-ai/brains/commit/b48bf16951bd8797544eb434b9d7ccaff4e3c57e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Saving a file through an rclone mount no longer deletes it when the drive refuses the save or stores it in another form. rclone takes such a save as a failed upload and deletes the file to clean up; the drive now answers that one delete with 409 and keeps the entity. A second delete, or one naming the version with `If-Match`, still deletes the file.
+
+- [#999](https://github.com/rizom-ai/brains/pull/999) [`8f34251`](https://github.com/rizom-ai/brains/commit/8f34251336ae411b94d7afd3f8e36b2b74bfadbe) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Saving a file on the drive with neovim no longer deletes it. neovim renames the file to its backup name (`note.md~`) before writing it anew, and when the drive refused that rename it copied the file and deleted the original, which deleted the entity. A rename of an entity's file onto a temporary name is now taken as that backup: the bytes are copied to the person's temporary files and the entity stays, for the save that follows to replace.
+
 ## 0.2.0-alpha.742
 
 ### Patch Changes
