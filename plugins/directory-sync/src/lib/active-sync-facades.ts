@@ -11,6 +11,8 @@ export function createDirectorySyncFacade(
       getActive().setJobQueueCallback(callback),
     sync: () => getActive().sync(),
     processEntityExport: (entity) => getActive().processEntityExport(entity),
+    deleteForRemovedFile: (entityType, id) =>
+      getActive().deleteForRemovedFile(entityType, id),
     exportEntities: (entityTypes) => getActive().exportEntities(entityTypes),
     importEntitiesWithProgress: (
       paths,

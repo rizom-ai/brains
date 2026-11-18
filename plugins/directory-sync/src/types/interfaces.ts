@@ -97,6 +97,11 @@ export interface IDirectorySync {
   withoutStoredEchoes(paths: string[]): Promise<string[]>;
   recordPendingPullDeletes(paths: string[]): Promise<void>;
   isPendingDelete(entityType: string, entityId: string): boolean;
+  /** Delete the entity of a removed file unless it changed since they agreed. */
+  deleteForRemovedFile(
+    entityType: string,
+    id: string,
+  ): Promise<"deleted" | "kept" | "missing">;
   completePendingDelete(
     entityType: string,
     entityId: string,

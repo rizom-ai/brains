@@ -35,9 +35,10 @@ export interface DurableEntityExportEntityService {
 export interface DurableEntityExportDirectory {
   suppressWatchPaths(paths: string[]): void;
   isPendingDelete(entityType: string, entityId: string): boolean;
+  /** Write an entity's file, keeping an edit the file holds as a conflict. */
+  writeEntityFile(entity: BaseEntity): Promise<void>;
   fileOps: {
     getEntityConvergencePaths(entity: BaseEntity): string[];
-    writeEntity(entity: BaseEntity): Promise<void>;
     getEntityDeletePaths(entityType: string, entityId: string): string[];
     deleteEntityFiles(entityType: string, entityId: string): Promise<void>;
   };
@@ -167,7 +168,7 @@ export class DurableEntityExportDispatcher {
           this.directorySync.fileOps.getEntityConvergencePaths(entity),
         );
         try {
-          await this.directorySync.fileOps.writeEntity(entity);
+          await this.directorySync.writeEntityFile(entity);
         } catch (error) {
           if (error instanceof EntityPlacementError) {
             // Persist the standing issue before the helper acknowledges this

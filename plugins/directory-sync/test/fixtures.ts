@@ -120,6 +120,7 @@ export function createMockDirectorySync(
       duration: 0,
     })),
     processEntityExport: mock(async () => ({ success: true })),
+    deleteForRemovedFile: mock(async () => "deleted" as const),
     exportEntities: mock(async () => emptyExportResult()),
     importEntitiesWithProgress: mock(async () => emptyImportResult()),
     exportEntitiesWithProgress: mock(async () => emptyExportResult()),

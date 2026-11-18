@@ -96,11 +96,13 @@ export async function processEntityExport(
           entityId: entity.id,
           entityType: entity.entityType,
         });
-        await deps.entityService.deleteEntity({
+        const deleted = await deps.entityService.deleteEntity({
           entityType: entity.entityType,
           id: entity.id,
         });
-        return { success: true, deleted: true };
+        // An entity that changed since its file was last written stays,
+        // and its file has been written back.
+        return deleted ? { success: true, deleted: true } : { success: true };
       }
     }
 

@@ -1,3 +1,5 @@
+import type { SyncGuard } from "./sync-guard";
+import type { SyncConflicts } from "./sync-base";
 import type { ImportLimits } from "./directory-options";
 import type { ServiceEntityMirrorClient } from "@brains/sdk/internal/service-runtime";
 import type { Logger } from "@brains/utils/logger";
@@ -56,6 +58,8 @@ export function createDirectoryOperationDeps(
   pendingDeletes: PendingDeleteRegistry,
   getJobQueueCallback: () =>
     ((job: JobRequest) => Promise<string | undefined>) | undefined,
+  conflicts?: SyncConflicts,
+  guard?: SyncGuard,
 ): DirectoryOperationDeps {
   return new DirectoryOperationDeps({
     entityService,
@@ -68,5 +72,7 @@ export function createDirectoryOperationDeps(
     ...importLimits,
     pendingDeletes,
     getJobQueueCallback,
+    conflicts,
+    guard,
   });
 }

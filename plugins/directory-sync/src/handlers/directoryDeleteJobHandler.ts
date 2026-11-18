@@ -144,17 +144,22 @@ export class DirectoryDeleteJobHandler {
     }
 
     try {
-      const deleted = await this.context.entityService.deleteEntity({
-        entityType: deletion.entityType,
-        id: deletion.entityId,
-        options: { persistenceOrigin: "directory-sync" },
-      });
+      const outcome = await this.directorySync.deleteForRemovedFile(
+        deletion.entityType,
+        deletion.entityId,
+      );
+      const deleted = outcome === "deleted";
 
       if (deleted) {
         this.logger.info("Successfully deleted entity for removed file", {
           entityId: deletion.entityId,
           entityType: deletion.entityType,
         });
+      } else if (outcome === "kept") {
+        this.logger.info(
+          "Kept an entity that changed since its file was last written",
+          { entityId: deletion.entityId, entityType: deletion.entityType },
+        );
       } else {
         this.logger.warn("Entity not found in database", {
           entityId: deletion.entityId,

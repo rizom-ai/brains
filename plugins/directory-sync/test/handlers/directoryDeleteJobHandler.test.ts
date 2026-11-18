@@ -1,5 +1,5 @@
 import { createMockServicePluginContext } from "@brains/plugins/test";
-import { describe, it, expect, mock, spyOn } from "bun:test";
+import { describe, it, expect, mock } from "bun:test";
 import { DirectoryDeleteJobHandler } from "../../src/handlers/directoryDeleteJobHandler";
 import {
   createMockLogger,
@@ -27,8 +27,10 @@ describe("DirectoryDeleteJobHandler", () => {
       });
       const mockProgressReporter = createMockProgressReporter();
       const completePendingDelete = mock(() => {});
+      const deleteForRemovedFile = mock(async () => "deleted" as const);
       const directorySync = createMockDirectorySync({
         completePendingDelete,
+        deleteForRemovedFile,
       });
       const handler = new DirectoryDeleteJobHandler(
         logger,
@@ -42,11 +44,10 @@ describe("DirectoryDeleteJobHandler", () => {
         mockProgressReporter,
       );
 
-      expect(mockContext.entityService.deleteEntity).toHaveBeenCalledWith({
-        entityType: "topic",
-        id: "technology:ai",
-        options: { persistenceOrigin: "directory-sync" },
-      });
+      expect(deleteForRemovedFile).toHaveBeenCalledWith(
+        "topic",
+        "technology:ai",
+      );
       expect(result).toEqual({
         deleted: true,
         entityId: "technology:ai",
@@ -76,9 +77,11 @@ describe("DirectoryDeleteJobHandler", () => {
       }));
       const completePendingDelete = mock(() => {});
       const base = createMockDirectorySync();
+      const deleteForRemovedFile = mock(async () => "deleted" as const);
       const directorySync = createMockDirectorySync({
         importEntities,
         completePendingDelete,
+        deleteForRemovedFile,
         fileOps: {
           ...base.fileOps,
           getEntityDeletePaths: (): string[] => [
@@ -107,7 +110,7 @@ describe("DirectoryDeleteJobHandler", () => {
         createMockProgressReporter(),
       );
 
-      expect(mockContext.entityService.deleteEntity).not.toHaveBeenCalled();
+      expect(deleteForRemovedFile).not.toHaveBeenCalled();
       expect(importEntities).toHaveBeenCalledWith(["/sync/image/cover.png"]);
       expect(completePendingDelete).toHaveBeenCalledWith(
         "image",
@@ -139,9 +142,11 @@ describe("DirectoryDeleteJobHandler", () => {
       }));
       const completePendingDelete = mock(() => {});
       const base = createMockDirectorySync();
+      const deleteForRemovedFile = mock(async () => "deleted" as const);
       const directorySync = createMockDirectorySync({
         importEntities,
         completePendingDelete,
+        deleteForRemovedFile,
         fileOps: {
           ...base.fileOps,
           getEntityDeletePaths: (): string[] => [validData.filePath],
@@ -160,7 +165,7 @@ describe("DirectoryDeleteJobHandler", () => {
         createMockProgressReporter(),
       );
 
-      expect(mockContext.entityService.deleteEntity).not.toHaveBeenCalled();
+      expect(deleteForRemovedFile).not.toHaveBeenCalled();
       expect(importEntities).toHaveBeenCalledWith([validData.filePath]);
       expect(completePendingDelete).toHaveBeenCalledWith(
         validData.entityType,
@@ -176,10 +181,14 @@ describe("DirectoryDeleteJobHandler", () => {
       });
       const mockProgressReporter = createMockProgressReporter();
       const completePendingDelete = mock(() => {});
+      const deleteForRemovedFile = mock(async () => "deleted" as const);
       const handler = new DirectoryDeleteJobHandler(
         logger,
         mockContext,
-        createMockDirectorySync({ completePendingDelete }),
+        createMockDirectorySync({
+          completePendingDelete,
+          deleteForRemovedFile,
+        }),
       );
       const deletions = [
         validData,
@@ -210,7 +219,7 @@ describe("DirectoryDeleteJobHandler", () => {
           filePath: "/path/to/second.md",
         },
       ]);
-      expect(mockContext.entityService.deleteEntity).toHaveBeenCalledTimes(2);
+      expect(deleteForRemovedFile).toHaveBeenCalledTimes(2);
       expect(completePendingDelete).toHaveBeenCalledTimes(2);
       expect(mockProgressReporter.report).toHaveBeenLastCalledWith({
         progress: 2,
@@ -224,10 +233,11 @@ describe("DirectoryDeleteJobHandler", () => {
         returns: { entityService: { deleteEntity: false } },
       });
       const mockProgressReporter = createMockProgressReporter();
+      const deleteForRemovedFile = mock(async () => "missing" as const);
       const handler = new DirectoryDeleteJobHandler(
         logger,
         mockContext,
-        mockDirectorySync,
+        createMockDirectorySync({ deleteForRemovedFile }),
       );
 
       const result = await handler.process(
@@ -236,17 +246,41 @@ describe("DirectoryDeleteJobHandler", () => {
         mockProgressReporter,
       );
 
-      expect(mockContext.entityService.deleteEntity).toHaveBeenCalledWith({
-        entityType: "topic",
-        id: "technology:ai",
-        options: { persistenceOrigin: "directory-sync" },
-      });
+      expect(deleteForRemovedFile).toHaveBeenCalledWith(
+        "topic",
+        "technology:ai",
+      );
       expect(result).toEqual({
         deleted: false,
         entityId: "technology:ai",
         entityType: "topic",
         filePath: "/path/to/topic/technology/ai.md",
       });
+    });
+
+    it("reports an entity that changed since its file was written as kept", async () => {
+      const completePendingDelete = mock(() => {});
+      const handler = new DirectoryDeleteJobHandler(
+        logger,
+        createMockServicePluginContext(),
+        createMockDirectorySync({
+          completePendingDelete,
+          deleteForRemovedFile: mock(async () => "kept" as const),
+        }),
+      );
+
+      const result = await handler.process(
+        validData,
+        jobId,
+        createMockProgressReporter(),
+      );
+
+      expect(result).toEqual({ deleted: false, ...validData });
+      expect(completePendingDelete).toHaveBeenCalledWith(
+        validData.entityType,
+        validData.entityId,
+        validData.filePath,
+      );
     });
 
     it("should handle deletion errors gracefully", async () => {
@@ -256,10 +290,12 @@ describe("DirectoryDeleteJobHandler", () => {
       const handler = new DirectoryDeleteJobHandler(
         logger,
         mockContext,
-        createMockDirectorySync({ completePendingDelete }),
-      );
-      spyOn(mockContext.entityService, "deleteEntity").mockRejectedValue(
-        new Error("Database connection failed"),
+        createMockDirectorySync({
+          completePendingDelete,
+          deleteForRemovedFile: mock(async () => {
+            throw new Error("Database connection failed");
+          }),
+        }),
       );
 
       const error = await handler

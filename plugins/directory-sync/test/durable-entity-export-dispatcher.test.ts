@@ -60,9 +60,9 @@ describe("DurableEntityExportDispatcher", () => {
           const directorySync: DurableEntityExportDirectory = {
             suppressWatchPaths: () => {},
             isPendingDelete: () => false,
+            writeEntityFile: writeEntity,
             fileOps: {
               getEntityConvergencePaths: () => [`${entity.id}.md`],
-              writeEntity,
               getEntityDeletePaths: () => [`${entity.id}.md`],
               deleteEntityFiles: async () => {},
             },
