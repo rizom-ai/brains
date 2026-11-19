@@ -31,4 +31,7 @@ successCriteria:
 
 efficiency:
   maxToolCalls: 6
-  maxTokens: 46000
+  # A search returns a long doc excerpted, and system_get then reads it
+  # whole, as the search description directs: two model steps. Highest of
+  # three samples on 2026-11-19 was 53,701, plus 25%, rounded up to 1,000.
+  maxTokens: 68000
