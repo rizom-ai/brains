@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.746
+
+### Patch Changes
+
+- [#1005](https://github.com/rizom-ai/brains/pull/1005) [`afa1359`](https://github.com/rizom-ai/brains/commit/afa1359bf77ddfebc6c227e72bc6a0a5eb3dddf0) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A note saved with a title now keeps that title. Before, the brain asked to create "Small teams" and then titled the note with the first line of its text, because the title never reached a type whose frontmatter has one.
+
 ## 0.2.0-alpha.745
 
 ### Patch Changes

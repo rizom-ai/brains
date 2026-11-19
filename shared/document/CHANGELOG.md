@@ -1,5 +1,13 @@
 # @brains/document
 
+## 0.2.0-alpha.746
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.746
+  - @brains/entity-service@0.2.0-alpha.746
+
 ## 0.2.0-alpha.745
 
 ### Patch Changes

@@ -1,5 +1,14 @@
 # @brains/http-host
 
+## 0.2.0-alpha.746
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.746
+  - @brains/utils@0.2.0-alpha.746
+  - @brains/plugins@0.2.0-alpha.746
+
 ## 0.2.0-alpha.745
 
 ### Patch Changes
