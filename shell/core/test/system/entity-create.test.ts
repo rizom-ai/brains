@@ -1705,6 +1705,65 @@ status: draft
     expect(entity?.content).toBe("No frontmatter required.");
   });
 
+  describe("a title given with plain content", () => {
+    const titledFrontmatter = z.object({
+      title: z.string().optional(),
+      status: z.string().optional(),
+    });
+
+    it("is stated in the frontmatter of a type whose frontmatter has a title", async () => {
+      services.registerEntityTypes(["note"], { note: titledFrontmatter });
+
+      await exec({
+        entityType: "note",
+        title: "Small teams",
+        content:
+          "Small teams keep helping each other when everyone can see who needs help.",
+      });
+
+      expect(services.getLastMarkdownCreate()).toEqual({
+        entityType: "note",
+        id: "small-teams",
+        markdown: `---
+title: Small teams
+---
+Small teams keep helping each other when everyone can see who needs help.
+`,
+      });
+    });
+
+    it("leaves a title the content's frontmatter already states", async () => {
+      services.registerEntityTypes(["note"], { note: titledFrontmatter });
+      const markdown = `---
+title: Stated In The File
+---
+
+The file names itself.`;
+
+      await exec({
+        entityType: "note",
+        title: "Given Title",
+        content: markdown,
+      });
+
+      expect(services.getLastMarkdownCreate()?.markdown).toBe(markdown);
+    });
+
+    it("is not added to a type whose frontmatter has no title", async () => {
+      services.registerEntityTypes(["note"], {
+        note: z.object({ status: z.string().optional() }),
+      });
+
+      await exec({
+        entityType: "note",
+        title: "Untitled Type",
+        content: "Only a body.",
+      });
+
+      expect(services.getLastMarkdownCreate()?.markdown).toBe("Only a body.");
+    });
+  });
+
   it("should queue generation job when prompt provided", async () => {
     services.addEntities([
       {
