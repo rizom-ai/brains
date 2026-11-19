@@ -24,3 +24,5 @@ A Studio save over a version that changed since the editor opened it is kept as 
 Background work no longer overwrites an edit made while it was running. Recording a completed or failed publish, setting a stock photo as cover, numbering mail in a thread, refreshing or archiving a discovered agent and merging directory introducers now write only over the version they read, and make their change again on the current version when it moved on. A topic merge synthesized from a version that changed since is dropped and reviewed again on a later run.
 
 An image saved over a newer image, as a file in `brain-data/` or through the drive, is kept in the Inbox too: the brain keeps its image, the Inbox names both, and the other one can be applied or dismissed. A losing image is held in a second type, `conflict-image`, which has no file in `brain-data/`.
+
+From the editor's comparison, the person whose save was refused can settle it there: save their kept version over the latest, or take the latest, which removes the conflict from the Inbox. An editor can resolve only a conflict that holds their own save; an admin can resolve any.

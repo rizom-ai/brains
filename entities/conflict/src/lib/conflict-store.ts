@@ -56,6 +56,9 @@ export interface ConflictItem extends ConflictFields {
   created: string;
 }
 
+/** What can be done with a conflict: take the losing version, or leave it. */
+export type ConflictAction = "apply" | "keep-current";
+
 /** The most conflicts one listing reads; the Inbox shows the oldest first. */
 const LIST_LIMIT = 500;
 /** How many conflicts over one entity one second may hold. */
@@ -370,6 +373,28 @@ export class ConflictStore {
       entityType: conflict.entity.entityType,
       id: conflict.entity.id,
     });
+  }
+
+  /**
+   * Apply or dismiss a conflict by its id, as the person whose edit it holds
+   * or as an admin: the way an editor settles a save of their own that lost,
+   * without the Inbox. An apply is still held to the target's own rules.
+   */
+  async resolve(
+    conflictId: string,
+    action: ConflictAction,
+    actor: InboxActor & { userId: string },
+  ): Promise<void> {
+    const itemId = itemIdOf(conflictId);
+    const { fields } = await this.require(itemId);
+    if (actor.permissionLevel !== "admin" && fields.actor !== actor.userId) {
+      throw new Error(
+        "Only the person whose edit this is, or an admin, can resolve it",
+      );
+    }
+    return action === "apply"
+      ? this.apply(itemId, actor)
+      : this.dismiss(itemId);
   }
 
   private async require(

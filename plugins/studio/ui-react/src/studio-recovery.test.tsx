@@ -194,3 +194,82 @@ it("preserves the draft after a failed comparison and replaces it only after exp
   expect(replacements).toEqual([latest]);
   expect(reads).toBe(2);
 }, 30_000);
+
+it("resolves the conflict that holds a refused save, from the comparison", async () => {
+  // Runs with the interaction above, in its child process.
+  if (process.env["STUDIO_RECOVERY_TEST_CHILD"] !== "1") return;
+  const original: EntityDetail = {
+    id: "note-1",
+    entityType: "note",
+    frontmatter: { visibility: "public" },
+    body: "Original",
+    contentHash: "old",
+    created: "2026-09-11T00:00:00Z",
+    updated: "2026-09-11T00:00:00Z",
+  };
+  const stored = { current: { ...original, body: "Remote changes" } };
+  const resolved: unknown[] = [];
+  const replacements: EntityDetail[] = [];
+  const api = new StudioApi({
+    basePath: "/studio",
+    fetch: Object.assign(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        if (String(input).endsWith("/api/conflicts")) {
+          const request: unknown = JSON.parse(String(init?.body));
+          resolved.push(request);
+          // Applying makes the kept version the current one.
+          if (JSON.stringify(request).includes('"apply"')) {
+            stored.current = { ...original, body: "My unsaved changes" };
+          }
+          return Response.json({ resolved: true });
+        }
+        return Response.json({ entity: stored.current });
+      },
+      { preconnect: globalThis.fetch.preconnect },
+    ),
+  });
+  const render = async (): Promise<void> =>
+    act(async () =>
+      root.render(
+        createElement(
+          StudioApiProvider,
+          { api },
+          createElement(StudioConflictRecovery, {
+            entity: original,
+            draft: { visibility: "public" },
+            body: "My unsaved changes",
+            conflictId: "note:note-1:20261118T102030Z",
+            onUseLatest: (entity) => replacements.push(entity),
+          }),
+        ),
+      ),
+    );
+
+  await render();
+  await click("Compare changes");
+  expect(document.body.textContent).toContain(
+    "Your version is also kept in the Inbox",
+  );
+  await click("Save my version");
+  expect(resolved).toHaveLength(0);
+  await click("Save over latest");
+  expect(resolved).toEqual([
+    { conflictId: "note:note-1:20261118T102030Z", action: "apply" },
+  ]);
+  // The editor reopens on what is stored now: the version that was kept.
+  expect(replacements.map((entity) => entity.body)).toEqual([
+    "My unsaved changes",
+  ]);
+
+  // Taking the latest instead dismisses the kept version.
+  stored.current = { ...original, body: "Remote changes" };
+  await render();
+  await click("Compare changes");
+  await click("Use latest version");
+  await click("Replace with latest");
+  expect(resolved[1]).toEqual({
+    conflictId: "note:note-1:20261118T102030Z",
+    action: "keep-current",
+  });
+  expect(replacements[1]?.body).toBe("Remote changes");
+}, 30_000);

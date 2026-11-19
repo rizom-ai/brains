@@ -50,6 +50,7 @@ import {
   handlePreviewDestination,
   handleUpdateEntity,
 } from "./editor-entities";
+import { handleResolveConflict } from "./editor-conflicts";
 import { handleUpload } from "./editor-upload";
 import {
   handleAskAgent,
@@ -471,6 +472,19 @@ export function createEditorRoutes(
           access,
           options.recordAuditEvent,
         );
+      },
+    },
+    {
+      // An editor settles a save of their own that lost to a newer version.
+      path: apiPath("conflicts"),
+      method: "POST",
+      public: true,
+      handler: async (request): Promise<Response> => {
+        const access = await requireTrustedAccess(request);
+        if (access instanceof Response) return access;
+        const requestDenied = requireSameOriginJson(request);
+        if (requestDenied) return requestDenied;
+        return handleResolveConflict(getContext(), request, access);
       },
     },
     {

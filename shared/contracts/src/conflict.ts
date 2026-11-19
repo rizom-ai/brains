@@ -128,3 +128,60 @@ export const recordConflictContract: BusContract<
   response: recordConflictResponseSchema,
   delivery: "request",
 });
+
+type ConflictActionSchema = z.ZodEnum<{
+  apply: "apply";
+  "keep-current": "keep-current";
+}>;
+
+/** What can be done with a conflict: take the losing version, or leave it. */
+export const conflictActionSchema: ConflictActionSchema = z.enum([
+  "apply",
+  "keep-current",
+]);
+
+type ResolveConflictRequestSchema = z.ZodObject<{
+  conflictId: z.ZodString;
+  action: ConflictActionSchema;
+  userId: z.ZodString;
+  permissionLevel: z.ZodEnum<{
+    admin: "admin";
+    trusted: "trusted";
+    public: "public";
+  }>;
+}>;
+
+/**
+ * Settle a conflict outside the Inbox, as a person: the one whose edit it
+ * holds, or an admin. Anyone else is refused.
+ */
+export const resolveConflictRequestSchema: ResolveConflictRequestSchema =
+  z.object({
+    conflictId: z.string().min(1),
+    action: conflictActionSchema,
+    /** Who is resolving it, as the way in authenticated them. */
+    userId: z.string().min(1),
+    permissionLevel: z.enum(["admin", "trusted", "public"]),
+  });
+
+export type ResolveConflictRequest = z.output<
+  typeof resolveConflictRequestSchema
+>;
+
+type ResolveConflictResponseSchema = z.ZodObject<{
+  resolved: z.ZodLiteral<true>;
+}>;
+
+export const resolveConflictResponseSchema: ResolveConflictResponseSchema =
+  z.object({ resolved: z.literal(true) });
+
+export const resolveConflictContract: BusContract<
+  ResolveConflictRequestSchema,
+  ResolveConflictResponseSchema,
+  "request"
+> = defineBusContract({
+  channel: "conflict:resolve",
+  request: resolveConflictRequestSchema,
+  response: resolveConflictResponseSchema,
+  delivery: "request",
+});

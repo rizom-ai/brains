@@ -323,4 +323,97 @@ describe("the conflict store", () => {
       "no longer",
     );
   });
+
+  describe("resolved by the person whose edit it was", () => {
+    const editor = {
+      userId: "usr_editor",
+      permissionLevel: "trusted",
+    } as const;
+    const other = { userId: "usr_other", permissionLevel: "trusted" } as const;
+    const anAdmin = { userId: "usr_admin", permissionLevel: "admin" } as const;
+    const current = async (): Promise<string> =>
+      (
+        await brain.service.getEntity({
+          entityType: "post",
+          id: "first",
+          visibilityScope: "restricted",
+          source: true,
+        })
+      )?.content ?? "";
+
+    it("applies their own conflict, by its id", async () => {
+      await seed(brain, "post", "first", doc("First"));
+      const { conflictId: id } = await record({
+        origin: "studio",
+        actor: "usr_editor",
+      });
+
+      await brain.store.resolve(id, "apply", editor);
+
+      expect(await current()).toContain("First, from the file");
+      expect(await brain.store.list()).toEqual([]);
+    });
+
+    it("dismisses their own conflict", async () => {
+      await seed(brain, "post", "first", doc("First"));
+      const { conflictId: id } = await record({
+        origin: "studio",
+        actor: "usr_editor",
+      });
+
+      await brain.store.resolve(id, "keep-current", editor);
+
+      expect(await current()).not.toContain("from the file");
+      expect(await brain.store.list()).toEqual([]);
+    });
+
+    it("refuses someone else's conflict, and one nobody is named on", async () => {
+      await seed(brain, "post", "first", doc("First"));
+      const mine = await record({ origin: "studio", actor: "usr_editor" });
+      const unnamed = await record({ text: doc("From a file") });
+
+      for (const id of [mine.conflictId, unnamed.conflictId]) {
+        expect(
+          await rejection(brain.store.resolve(id, "apply", other)),
+        ).toContain("Only the person whose edit this is, or an admin");
+      }
+      expect(await current()).not.toContain("from the file");
+      expect(await brain.store.list()).toHaveLength(2);
+    });
+
+    it("lets an admin resolve anyone's", async () => {
+      await seed(brain, "post", "first", doc("First"));
+      const { conflictId: id } = await record({
+        origin: "studio",
+        actor: "usr_editor",
+      });
+
+      await brain.store.resolve(id, "apply", anAdmin);
+
+      expect(await current()).toContain("First, from the file");
+    });
+
+    it("holds their apply to the target's own rules", async () => {
+      await seed(brain, "post", "first", doc("First", "status: draft\n"));
+      const { conflictId: id } = await record({
+        origin: "studio",
+        actor: "usr_editor",
+        // Publishing needs an admin.
+        text: doc("First", "status: published\n"),
+      });
+
+      expect(
+        await rejection(brain.store.resolve(id, "apply", editor)),
+      ).toContain("admin");
+      expect(await brain.store.list()).toHaveLength(1);
+    });
+
+    it("says so when the conflict is gone", async () => {
+      expect(
+        await rejection(
+          brain.store.resolve("post:first:20261118T102030Z", "apply", editor),
+        ),
+      ).toContain("no longer exists");
+    });
+  });
 });

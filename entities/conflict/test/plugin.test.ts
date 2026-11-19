@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import {
   recordConflictContract,
   recordConflictResponseSchema,
+  resolveConflictContract,
   type RecordConflictRequest,
 } from "@brains/contracts";
 import { inboxItemSchema, type Plugin } from "@brains/plugins";
@@ -193,5 +194,55 @@ describe("the conflict service", () => {
     await source.act(item.id, "keep-current", { permissionLevel: "admin" });
 
     expect(await source.list()).toEqual([]);
+  });
+
+  it("lets the person whose edit lost resolve it over the bus, and refuses anyone else", async () => {
+    const harness = await running();
+    const { conflictId } = recordConflictResponseSchema.parse(
+      await harness.sendMessage(recordConflictContract.name, {
+        ...lost,
+        origin: "studio",
+        actor: "usr_editor",
+      }),
+    );
+    const resolve = (userId: string): Promise<unknown> =>
+      harness.sendMessage(resolveConflictContract.name, {
+        conflictId,
+        action: "keep-current",
+        userId,
+        permissionLevel: "trusted",
+      });
+    const held = async (): Promise<number> =>
+      (
+        (await harness
+          .getMockShell()
+          .getInboxRegistry()
+          .getSource("conflicts")
+          ?.list()) ?? []
+      ).length;
+
+    // A refusal is no answer, and says why in words the asker may show.
+    expect(await resolve("usr_other")).toBeUndefined();
+    const refusal = await harness
+      .getMockShell()
+      .getMessageBus()
+      .send({
+        type: resolveConflictContract.name,
+        payload: {
+          conflictId,
+          action: "keep-current",
+          userId: "usr_other",
+          permissionLevel: "trusted",
+        },
+        sender: "test",
+      });
+    expect(refusal).toMatchObject({
+      success: false,
+      error: "Only the person whose edit this is, or an admin, can resolve it",
+    });
+    expect(await held()).toBe(1);
+
+    expect(await resolve("usr_editor")).toEqual({ resolved: true });
+    expect(await held()).toBe(0);
   });
 });

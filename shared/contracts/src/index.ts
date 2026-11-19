@@ -99,6 +99,11 @@ export {
 export {
   CONFLICT_ENTITY_TYPE,
   CONFLICT_IMAGE_ENTITY_TYPE,
+  conflictActionSchema,
+  resolveConflictContract,
+  resolveConflictRequestSchema,
+  resolveConflictResponseSchema,
+  type ResolveConflictRequest,
   conflictOriginSchema,
   recordConflictContract,
   recordConflictRequestSchema,

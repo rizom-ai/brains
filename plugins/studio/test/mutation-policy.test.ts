@@ -1,7 +1,10 @@
 import {
   recordConflictContract,
   recordConflictRequestSchema,
+  resolveConflictContract,
+  resolveConflictRequestSchema,
   type RecordConflictRequest,
+  type ResolveConflictRequest,
 } from "@brains/contracts";
 import type { AuthPrincipal } from "@brains/contracts";
 import { createMockShell, type MockShell } from "@brains/plugins/test";
@@ -184,12 +187,12 @@ async function createMutationFixture(
 function findRoute(
   routes: WebRouteDefinition[],
   method: "POST" | "PUT" | "DELETE",
+  path = "/studio/api/entities",
 ): WebRouteDefinition {
   const route = routes.find(
-    (candidate) =>
-      candidate.path === "/studio/api/entities" && candidate.method === method,
+    (candidate) => candidate.path === path && candidate.method === method,
   );
-  if (!route) throw new Error(`Missing ${method} entity route`);
+  if (!route) throw new Error(`Missing ${method} ${path} route`);
   return route;
 }
 
@@ -618,6 +621,86 @@ describe("Studio entity mutation policy", () => {
       expect((await current(shell)).content).toContain(
         "shared-draft updated body",
       );
+    });
+  });
+
+  describe("resolving a conflict from the editor", () => {
+    const CONFLICT = "post:shared-draft:20261118T102030Z";
+    /** The conflict service: it settles only the caller's own conflict. */
+    function resolveConflicts(shell: MockShell): ResolveConflictRequest[] {
+      const asked: ResolveConflictRequest[] = [];
+      shell
+        .getMessageBus()
+        .subscribe(resolveConflictContract.name, async (message) => {
+          const request = resolveConflictRequestSchema.parse(message.payload);
+          asked.push(request);
+          if (request.userId !== "usr_trusted") {
+            // A refusal, as the bus carries one.
+            return {
+              success: false,
+              error:
+                "Only the person whose edit this is, or an admin, can resolve it",
+            };
+          }
+          return { success: true, data: { resolved: true } };
+        });
+      return asked;
+    }
+    const resolve = (
+      routes: WebRouteDefinition[],
+      body: Record<string, unknown>,
+    ): Response | Promise<Response> =>
+      findRoute(routes, "POST", "/studio/api/conflicts").handler(
+        mutationRequest("/studio/api/conflicts", "POST", body),
+      );
+
+    it("asks the conflict service as the signed-in person", async () => {
+      const { routes, shell } = await createMutationFixture("trusted");
+      const asked = resolveConflicts(shell);
+
+      const response = await resolve(routes, {
+        conflictId: CONFLICT,
+        action: "apply",
+      });
+
+      expect(response.status).toBe(200);
+      expect(asked).toEqual([
+        {
+          conflictId: CONFLICT,
+          action: "apply",
+          userId: "usr_trusted",
+          permissionLevel: "trusted",
+        },
+      ]);
+    });
+
+    it("passes on a refusal, and says so when nothing keeps conflicts", async () => {
+      const admin = await createMutationFixture("admin");
+      resolveConflicts(admin.shell);
+      const refused = await resolve(admin.routes, {
+        conflictId: CONFLICT,
+        action: "keep-current",
+      });
+      expect(refused.status).toBe(409);
+
+      const bare = await createMutationFixture("trusted");
+      const unavailable = await resolve(bare.routes, {
+        conflictId: CONFLICT,
+        action: "keep-current",
+      });
+      expect(unavailable.status).toBe(503);
+    });
+
+    it("refuses a request that names no conflict or an unknown action", async () => {
+      const { routes, shell } = await createMutationFixture("trusted");
+      const asked = resolveConflicts(shell);
+
+      expect((await resolve(routes, { action: "apply" })).status).toBe(400);
+      expect(
+        (await resolve(routes, { conflictId: CONFLICT, action: "delete" }))
+          .status,
+      ).toBe(400);
+      expect(asked).toEqual([]);
     });
   });
 

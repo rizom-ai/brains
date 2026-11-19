@@ -229,6 +229,8 @@ export class ApiError extends Error {
   readonly issues: ValidationIssue[];
   readonly code: string | undefined;
   readonly retryAfterMs: number | undefined;
+  /** The conflict that holds a save refused over a newer version. */
+  readonly conflictId: string | undefined;
 
   constructor(
     status: number,
@@ -237,6 +239,7 @@ export class ApiError extends Error {
     details: {
       code?: string | undefined;
       retryAfterMs?: number | undefined;
+      conflictId?: string | undefined;
     } = {},
   ) {
     super(message);
@@ -244,6 +247,7 @@ export class ApiError extends Error {
     this.issues = issues;
     this.code = details.code;
     this.retryAfterMs = details.retryAfterMs;
+    this.conflictId = details.conflictId;
   }
 }
 
@@ -257,9 +261,15 @@ function apiErrorPayload(payload: unknown): {
   error: string | undefined;
   issues: ValidationIssue[];
   code: string | undefined;
+  conflictId: string | undefined;
 } {
   if (typeof payload !== "object" || payload === null) {
-    return { error: undefined, issues: [], code: undefined };
+    return {
+      error: undefined,
+      issues: [],
+      code: undefined,
+      conflictId: undefined,
+    };
   }
   const error =
     "error" in payload && typeof payload.error === "string"
@@ -281,6 +291,10 @@ function apiErrorPayload(payload: unknown): {
     code:
       "code" in payload && typeof payload.code === "string"
         ? payload.code
+        : undefined,
+    conflictId:
+      "conflictId" in payload && typeof payload.conflictId === "string"
+        ? payload.conflictId
         : undefined,
   };
 }
@@ -341,6 +355,7 @@ export class StudioApi {
       details.issues,
       {
         code: details.code,
+        conflictId: details.conflictId,
         retryAfterMs: response.headers.has("Retry-After")
           ? Number(response.headers.get("Retry-After")) * 1000
           : undefined,
@@ -500,6 +515,21 @@ export class StudioApi {
       ),
     );
     return entity;
+  }
+
+  /**
+   * Settle the conflict that holds a save of one's own: apply the kept
+   * version over the current one, or keep the current one.
+   */
+  async resolveConflict(
+    conflictId: string,
+    action: "apply" | "keep-current",
+  ): Promise<void> {
+    await this.requestJson<{ resolved: boolean }>(this.path("conflicts"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ conflictId, action }),
+    });
   }
 
   async updateEntity(input: {

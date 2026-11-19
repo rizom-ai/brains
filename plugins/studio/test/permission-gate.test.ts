@@ -147,6 +147,12 @@ function apiRouteRequests(): RouteRequest[] {
         request("/studio/api/entities", { cookie, method: "PUT", body: {} }),
     },
     {
+      routePath: "/studio/api/conflicts",
+      method: "POST",
+      request: (cookie) =>
+        request("/studio/api/conflicts", { cookie, method: "POST", body: {} }),
+    },
+    {
       routePath: "/studio/api/entities",
       method: "POST",
       request: (cookie) =>
