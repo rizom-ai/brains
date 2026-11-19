@@ -235,7 +235,7 @@ export function createModelInput(
         fields: changes
           .optional()
           .describe(
-            "Field changes for facts the user states outside the source text, one { name, value } per field, e.g. a post first published elsewhere: [{ name: 'status', value: 'published' }, { name: 'publishedAt', value: '2025-03-12' }, { name: 'canonicalUrl', value }]; the section a doc goes in, named exactly as the user names it: [{ name: 'section', value }]; the year a project began: [{ name: 'year', value }]. Never copy values from the text or its frontmatter; omit when nothing extra is stated.",
+            "Field changes for facts the user states outside the source text, one { name, value } per field, e.g. a post first published elsewhere: [{ name: 'status', value: 'published' }, { name: 'publishedAt', value: '2025-03-12' }, { name: 'canonicalUrl', value }]; the section a doc goes in, named exactly as the user names it: [{ name: 'section', value }]; the year a project began: [{ name: 'year', value }]. Never copy values from the text or its frontmatter; omit when nothing extra is stated, and never fill in one the user did not state, such as a default section: leave it out, and the tool asks for it.",
           ),
       };
     },

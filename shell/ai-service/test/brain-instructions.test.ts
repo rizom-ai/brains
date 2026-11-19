@@ -45,6 +45,17 @@ describe("brain instructions", () => {
 
   // The system tools' Entity CRUD rules say how a write is confirmed; a second
   // copy here was resent on every step.
+  // Told only in the tool rules that deletion is Admin-only, a Trusted
+  // caller read the target before refusing; Public, told in its own line
+  // that it cannot delete, never did.
+  it("tell a Trusted caller it cannot delete, so it refuses without a lookup", () => {
+    const instructions = buildInstructions(identity, "trusted");
+
+    expect(instructions).toContain(
+      "Trusted access cannot delete: refuse a delete request directly, without reading or searching for the target.",
+    );
+  });
+
   it("leave write confirmation to the system tool rules", () => {
     const instructions = buildInstructions(identity, "admin");
 

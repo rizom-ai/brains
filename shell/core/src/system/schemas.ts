@@ -551,7 +551,7 @@ export const createInputSchema: StrictObjectSchema<{
       .string()
       .optional()
       .describe(
-        "Title for a new entity. Leave it out when saving several uploads: each item in source.items takes its own title.",
+        "Title for a new entity. For an upload, give only a title the user named; otherwise leave it out, so the first heading of the file titles it. Leave it out when saving several uploads: each item in source.items takes its own title.",
       ),
     visibility: canonicalContentVisibilitySchema
       .optional()
