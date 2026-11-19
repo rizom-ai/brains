@@ -76,3 +76,20 @@ Default and books passed in both climates. The team brain runs the rizom theme.
 | `aria-hidden-focus` on rizom.ai/ask (5)   | Network marks leave the tab order; `/agents` lists the same brains. The marks also linked to `/agents/<domain>`, which 404s, and now link to the agent's page slug. | #1001 |
 
 After the fixes the theme audit passes in all ten cases. CI runs it on every push, beside `visual:console --a11y`.
+
+## After deploy, 19 November 2026
+
+rizom.ai and team.rizom.ai on brain 0.2.0-alpha.745 (rizom.ai site 0.2.0-alpha.287, theme 0.2.0-alpha.236), yeehaa.io on 0.2.0-alpha.746. No violations of any impact:
+
+| Surface                     | Where audited                                   | 1280×800 | 390×844 |
+| --------------------------- | ----------------------------------------------- | -------- | ------- |
+| rizom.ai Ask room           | https://rizom.ai/ask, production                | none     | none    |
+| Web-chat guest page         | https://yeehaa.io/ask, production               | none     | none    |
+| Sign-in pages               | yeehaa.io/login and team.rizom.ai/login         | none     | none    |
+| Studio chat, note, overview | rizom-ai test app at the release, both climates | none     | none    |
+
+The only remaining axe results are `color-contrast` incompletes for text over images and gradients, left to the manual pass.
+
+## Alt text
+
+Public images are described by the brain's vision model, as soon as they are ready and once at start-up for those already there; covers on brain sites render the description, and Studio's image fields edit it. On yeehaa.io every essay cover now carries one, for example "Three people brace a crumbling classical building amid scattered bricks, gears, a chess knight, an hourglass, and a raven." One description cut mid-clause ("…crowded industrial towns, and") led to #1006, which cuts at a clause and trims such endings at start-up.

@@ -126,7 +126,6 @@ Plans:
 
 - [public-ask.md](./plans/public-ask.md) — the whole Ask surface: record and display guest usage before any deployment opens production guest access, then take each site through its own content, door and enablement decisions.
 - [studio-ux-improvements.md](./plans/studio-ux-improvements.md) — the remaining release-candidate and manual accessibility acceptance, and the draft-recovery decision.
-- [accessibility-audit-and-alt-text.md](./plans/accessibility-audit-and-alt-text.md) — an axe audit of Studio chat, the Library, the web-chat guest page and rizom.ai/ask with every critical and serious finding fixed, and alt text written by the brain's vision model; due in production by Thursday 19 November 2026.
 - [studio-grouping-definitions.md](./plans/studio-grouping-definitions.md) — document-owned groupings with convention-first type exclusions, shipped and deployed to smoke; live smoke acceptance remains.
 - [operator-console-pwa.md](./plans/operator-console-pwa.md) — optional network-first installable shell without an offline-authoring claim.
 - [email-reply-drafts.md](./plans/email-reply-drafts.md) — a reply the brain writes on request is saved into the mailbox's Drafts folder and sent from the mail program; the brain never sends a reply, and the dormant send backend is removed.
