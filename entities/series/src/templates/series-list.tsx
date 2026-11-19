@@ -60,7 +60,7 @@ export const SeriesListTemplate = ({
                 {item.coverImageUrl && (
                   <CardImage
                     src={item.coverImageUrl}
-                    alt={item.frontmatter.title}
+                    alt={item.coverImageAlt ?? item.frontmatter.title}
                     size="small"
                   />
                 )}

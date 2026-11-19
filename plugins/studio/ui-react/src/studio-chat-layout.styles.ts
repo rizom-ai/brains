@@ -253,13 +253,13 @@ export const chatLayout: Record<
     color: "var(--console-text)",
     textAlign: "left",
     cursor: "pointer",
-    ":hover": { color: "var(--console-accent)" },
+    ":hover": { color: "var(--console-accent-text)" },
     ":focus-visible": {
       outline: "2px solid var(--console-accent)",
       outlineOffset: -2,
     },
   },
-  activeSession: { color: "var(--console-accent)" },
+  activeSession: { color: "var(--console-accent-text)" },
   sessionTitle: {
     fontFamily: "var(--console-ui)",
     fontSize: 14,

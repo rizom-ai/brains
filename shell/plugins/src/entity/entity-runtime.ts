@@ -249,6 +249,13 @@ export interface EntityRuntimeImages {
     prompt: string,
     options?: { readonly aspectRatio?: ImageAspectRatio | undefined },
   ): Promise<{ readonly dataUrl: string }>;
+  /** Whether the brain has a model that reads images. */
+  canDescribe(): boolean;
+  /** What that model sees in the image, following the instruction. */
+  describe(
+    image: { readonly bytes: Uint8Array; readonly mediaType: string },
+    instruction: string,
+  ): Promise<string | undefined>;
 }
 
 /**
@@ -649,6 +656,8 @@ function unavailableJob(where: string): ContractJobRuntimeBinding {
     images: Object.freeze({
       canGenerate: unavailable("images", where),
       generate: unavailable("images", where),
+      canDescribe: unavailable("images", where),
+      describe: unavailable("images", where),
     }),
     attachments: Object.freeze({
       resolve: unavailable("attachments", where),

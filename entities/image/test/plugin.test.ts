@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
 import { imagePlugin, type ImageEntityPlugin } from "./image-plugin";
 import {
+  imageDescribeJobContract,
   imageGenerateJobContract,
   imageRenderSourceJobContract,
 } from "@brains/contracts";
@@ -77,6 +78,7 @@ describe("ImagePlugin", () => {
   it("registers each image job once, under its contract", () => {
     expect([...registeredHandlers.keys()].sort()).toEqual(
       [
+        imageDescribeJobContract.type,
         imageGenerateJobContract.type,
         imageRenderSourceJobContract.type,
         "image:upload-promote",

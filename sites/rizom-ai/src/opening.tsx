@@ -330,7 +330,13 @@ export function NetworkLayer({
                 ...clocks({ "--net-slot": slots.get(brain.id) ?? "0" }),
               }}
             >
-              <a href={`/agents/${brain.id}`} aria-label={brain.name}>
+              {/* Out of the tab order: the drawing is hidden from assistive
+                  technology, and /agents lists the same brains. */}
+              <a
+                href={`/agents/${brain.slug}`}
+                tabIndex={-1}
+                aria-label={brain.name}
+              >
                 <i />
               </a>
             </li>

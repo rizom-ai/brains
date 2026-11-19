@@ -111,6 +111,21 @@ function apiRouteRequests(): RouteRequest[] {
       request: (cookie) => request("/studio/api/images?id=example", { cookie }),
     },
     {
+      routePath: "/studio/api/image-details",
+      request: (cookie) =>
+        request("/studio/api/image-details?id=example", { cookie }),
+    },
+    {
+      routePath: "/studio/api/image-details",
+      method: "PUT",
+      request: (cookie) =>
+        request("/studio/api/image-details", {
+          cookie,
+          method: "PUT",
+          body: {},
+        }),
+    },
+    {
       routePath: "/studio/api/destination",
       method: "POST",
       request: (cookie) =>

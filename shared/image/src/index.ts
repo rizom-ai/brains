@@ -4,13 +4,17 @@ export {
   imageMetadataSchema,
   imageFormatSchema,
   imageIngestionStatusSchema,
+  imageAltSourceSchema,
   resolvedImageSchema,
   type Image,
   type ImageMetadata,
   type ImageFormat,
   type ImageIngestionStatus,
+  type ImageAltSource,
   type ResolvedImage,
 } from "./schemas/image";
+
+export { describedImageAlt } from "./lib/described-alt";
 
 // Image entity data
 export {

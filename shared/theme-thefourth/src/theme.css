@@ -26,6 +26,22 @@
   [data-theme="dark"] {
     color-scheme: light;
 
+    /* One light ground in both modes, so status colors are the light ones
+       even where the base would hand a dark mode its pale inks. */
+    --color-status-neutral-bg: #f0ece6;
+    --color-status-neutral-text: #4b4652;
+    --color-status-info-bg: #e7edf7;
+    --color-status-info-text: #31527c;
+    --color-status-success-bg: #e4f3e8;
+    --color-status-success-text: #2d6a42;
+    --color-status-danger-bg: #f8e4e4;
+    --color-status-danger-text: #8f2f2f;
+    --color-status-warning-bg: #f7edcf;
+    --color-status-warning-text: #7a4a05;
+    --color-success: var(--color-status-success-text);
+    --color-warning: var(--color-status-warning-text);
+    --color-error: var(--color-status-danger-text);
+
     /* Layout */
     --layout-max-width: 85rem;
     --layout-gutter: clamp(20px, 4vw, 56px);

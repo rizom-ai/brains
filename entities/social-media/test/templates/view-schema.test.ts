@@ -42,6 +42,7 @@ describe("socialPostViewSchema", () => {
       "listLabel",
       "typeLabel",
       "coverImageUrl",
+      "coverImageAlt",
       "coverImageWidth",
       "coverImageHeight",
     ]);

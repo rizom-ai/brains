@@ -22,7 +22,7 @@ const ProjectCard = ({ project }: { project: ProjectView }): JSX.Element => {
       {coverImageUrl && (
         <img
           src={coverImageUrl}
-          alt={frontmatter.title}
+          alt={project.coverImageAlt ?? frontmatter.title}
           className="w-full h-56 object-cover rounded-md mb-4"
         />
       )}

@@ -14,7 +14,7 @@ export const groupingSharedStyles: Record<
     marginInlineStart: 8,
     padding: "2px 5px",
     border: "1px solid var(--console-accent)",
-    color: "var(--console-accent)",
+    color: "var(--console-accent-text)",
     fontFamily: "var(--console-mono)",
     fontSize: 10,
     fontWeight: 400,

@@ -42,6 +42,7 @@ const map = {
   nodes: [
     {
       id: "becca.rizom.ai",
+      slug: "becca-rizom-ai",
       name: "Becca",
       kind: "person",
       status: "approved",
@@ -51,6 +52,7 @@ const map = {
     },
     {
       id: "jo.rizom.ai",
+      slug: "jo-rizom-ai",
       name: "Jo",
       kind: "person",
       status: "approved",

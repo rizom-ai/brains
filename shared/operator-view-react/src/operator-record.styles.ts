@@ -89,7 +89,7 @@ export const recordStyles: Record<
     padding: 0,
     borderWidth: 0,
     backgroundColor: "transparent",
-    color: "var(--console-accent)",
+    color: "var(--console-accent-text)",
     fontFamily: "inherit",
     fontSize: "inherit",
     fontWeight: "inherit",

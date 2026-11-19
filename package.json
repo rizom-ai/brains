@@ -57,6 +57,7 @@
   "packageManager": "bun@1.4.0",
   "private": true,
   "scripts": {
+    "a11y:audit": "bun scripts/accessibility-audit.ts",
     "arch:check": "bun scripts/architecture-check.ts",
     "arch:graph": "bun scripts/architecture-check.ts --reporter dot | dot -T svg > dependency-graph.svg",
     "build": "turbo run build",

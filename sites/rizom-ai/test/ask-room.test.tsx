@@ -15,6 +15,7 @@ const map = {
   nodes: [
     {
       id: "becca",
+      slug: "becca-rizom-ai",
       name: "Becca",
       kind: "person",
       status: "approved",
@@ -84,6 +85,7 @@ describe("the Ask room on /ask", () => {
         ...map.nodes,
         {
           id: "team",
+          slug: "team-rizom-ai",
           name: "Rizom Core Team",
           kind: "team",
           status: "approved",
@@ -93,6 +95,7 @@ describe("the Ask room on /ask", () => {
         },
         {
           id: "org",
+          slug: "mindinn-rizom-ai",
           name: "Mindinn",
           kind: "organization",
           status: "approved",
@@ -161,8 +164,10 @@ describe("the Ask room on /ask", () => {
     expect(html).toContain(
       '<li class="net-mark" data-brain="org" data-ask-mark="org" data-kind="organization"',
     );
+    // A mark opens the brain's page, and stays out of the tab order: the
+    // drawing is hidden from assistive technology, and /agents lists the brains.
     expect(html).toMatch(
-      /<a href="\/agents\/becca" aria-label="Becca"><i><\/i><\/a>/,
+      /<a href="\/agents\/becca-rizom-ai" tabindex="-1" aria-label="Becca"><i><\/i><\/a>/,
     );
     // Names carry no glyph; the shape does. Each sits below its light, aligned inward at the edges.
     expect(html).toMatch(

@@ -146,7 +146,7 @@ const styles = stylex.create({
   link: {
     backgroundColor: "transparent",
     borderColor: "transparent",
-    color: "var(--console-accent)",
+    color: "var(--console-accent-text)",
     minHeight: "auto",
     paddingBlock: "2px",
     paddingInline: 0,

@@ -1,6 +1,7 @@
 import type { DefaultQueryResponse } from "@brains/contracts";
 import type { ZodType } from "@brains/utils/zod";
 import type {
+  ImageBytes,
   ImageGenerationOptions,
   ImageGenerationResult,
 } from "@brains/ai-service";
@@ -34,4 +35,10 @@ export interface IEntityAINamespace {
     options?: ImageGenerationOptions,
   ) => Promise<ImageGenerationResult>;
   canGenerateImages: () => boolean;
+  /** What the brain's image-reading model sees, following the instruction. */
+  describeImage: (
+    image: ImageBytes,
+    instruction: string,
+  ) => Promise<string | undefined>;
+  canDescribeImages: () => boolean;
 }

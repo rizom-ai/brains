@@ -75,6 +75,7 @@ import type {
   IAIService,
   IAgentService,
   AIGenerationSchema,
+  ImageBytes,
   ImageGenerationOptions,
   ImageGenerationResult,
   JudgeInput,
@@ -534,6 +535,17 @@ export class Shell implements IShell {
 
   public canGenerateImages(): boolean {
     return this.services.aiService.canGenerateImages();
+  }
+
+  public canDescribeImages(): boolean {
+    return this.services.aiService.canDescribeImages?.() ?? false;
+  }
+
+  public async describeImage(
+    image: ImageBytes,
+    instruction: string,
+  ): Promise<string | undefined> {
+    return this.services.aiService.describeImage?.(image, instruction);
   }
 
   public getPluginManager(): PluginManager {

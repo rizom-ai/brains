@@ -4,7 +4,7 @@ import { pLimit } from "@brains/utils/p-limit";
 import { promises as fs } from "fs";
 import { join } from "path";
 import { ImageOptimizer } from "./image-optimizer";
-import { readImageBytes } from "@brains/image";
+import { describedImageAlt, readImageBytes } from "@brains/image";
 import type {
   AssetRef,
   BaseEntity,
@@ -125,8 +125,10 @@ export class ImageBuildService {
     const variants = await this.optimizer.optimize(buffer, originalUrl);
     signal.throwIfAborted();
 
+    const alt = describedImageAlt(image.metadata);
     if (variants) {
       this.imageMap[imageId] = {
+        ...(alt && { alt }),
         src: variants.src,
         srcset: variants.srcset,
         sizes: variants.sizes,
@@ -135,6 +137,7 @@ export class ImageBuildService {
       };
     } else {
       this.imageMap[imageId] = {
+        ...(alt && { alt }),
         src: originalUrl,
         width: getNumericMetadata(image.metadata, "width"),
         height: getNumericMetadata(image.metadata, "height"),

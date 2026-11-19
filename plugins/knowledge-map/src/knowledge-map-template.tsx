@@ -97,7 +97,7 @@ const SITE_STYLES = `
   align-items: center;
   gap: 0.85rem;
   margin: 0;
-  color: var(--console-accent);
+  color: var(--console-accent-text);
   font-family: var(--console-mono);
   font-size: 0.67rem;
   font-weight: 500;
@@ -122,7 +122,7 @@ const SITE_STYLES = `
   line-height: 1.1;
 }
 .knowledge-map-site__heading em {
-  color: var(--console-accent);
+  color: var(--console-accent-text);
   font-style: italic;
   font-weight: 400;
 }

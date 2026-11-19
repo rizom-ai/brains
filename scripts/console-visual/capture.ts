@@ -1,7 +1,7 @@
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
-import axe from "axe-core";
 import { getErrorMessage } from "@brains/utils/error";
+import { runAxeAudit } from "../accessibility/axe-audit";
 import {
   ARTIFACT_DIR,
   AUDIT_ACCESSIBILITY,
@@ -132,21 +132,7 @@ export async function auditStudioAccessibility(
   name: string,
 ): Promise<void> {
   if (!AUDIT_ACCESSIBILITY) return;
-  await page.evaluate(`(() => { ${axe.source}; return true; })()`);
-  const audit = await evaluatePage(page, async () => {
-    const runtime = (globalThis as unknown as { axe: typeof axe }).axe;
-    const result = await runtime.run(document, {
-      runOnly: {
-        type: "tag",
-        values: ["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"],
-      },
-    });
-    return {
-      violations: result.violations,
-      incomplete: result.incomplete,
-      passedRules: result.passes.map((rule) => rule.id),
-    };
-  });
+  const audit = await runAxeAudit(page);
   await writeFile(
     path.join(ARTIFACT_DIR, `${name}-a11y.json`),
     JSON.stringify(audit, null, 2),

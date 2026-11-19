@@ -61,7 +61,7 @@ export const chromeStyles: Record<
     borderStyle: "solid",
     borderColor: "var(--console-accent)",
     borderRadius: "50%",
-    color: "var(--console-accent)",
+    color: "var(--console-accent-text)",
     fontFamily: "var(--console-display)",
     fontSize: 12,
     fontWeight: 620,
@@ -78,7 +78,7 @@ export const chromeStyles: Record<
     whiteSpace: "nowrap",
   },
   accent: {
-    color: "var(--console-accent)",
+    color: "var(--console-accent-text)",
     fontStyle: "italic",
     fontWeight: 470,
   },

@@ -52,6 +52,10 @@ import {
 } from "./editor-entities";
 import { handleUpload } from "./editor-upload";
 import {
+  handleGetImageDetails,
+  handleUpdateImageDetails,
+} from "./editor-image-details";
+import {
   handleAskAgent,
   handleAssist,
   handleListAgents,
@@ -404,6 +408,33 @@ export function createEditorRoutes(
         const access = await requireTrustedAccess(request);
         if (access instanceof Response) return access;
         return handleGetImagePreview(getContext(), request, access);
+      },
+    },
+    {
+      path: apiPath("image-details"),
+      method: "GET",
+      public: true,
+      handler: async (request): Promise<Response> => {
+        const access = await requireTrustedAccess(request);
+        if (access instanceof Response) return access;
+        return handleGetImageDetails(getContext(), request, access);
+      },
+    },
+    {
+      path: apiPath("image-details"),
+      method: "PUT",
+      public: true,
+      handler: async (request): Promise<Response> => {
+        const access = await requireTrustedAccess(request);
+        if (access instanceof Response) return access;
+        const requestDenied = requireSameOriginJson(request);
+        if (requestDenied) return requestDenied;
+        return handleUpdateImageDetails(
+          getContext(),
+          request,
+          access,
+          options.recordAuditEvent,
+        );
       },
     },
     {

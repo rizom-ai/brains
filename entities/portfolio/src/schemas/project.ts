@@ -122,6 +122,7 @@ export const projectWithDataSchema: ReturnType<
     body: z.ZodString;
     structuredContent: z.ZodOptional<ProjectContentSchema>;
     coverImageUrl: z.ZodOptional<z.ZodString>;
+    coverImageAlt: z.ZodOptional<z.ZodString>;
     ogImageUrl: z.ZodOptional<z.ZodString>;
   }>
 > = projectSchema.extend({
@@ -129,6 +130,8 @@ export const projectWithDataSchema: ReturnType<
   body: z.string(),
   structuredContent: projectContentSchema.optional(),
   coverImageUrl: z.string().optional(), // Resolved data URL from coverImageId
+  /** The cover image's own alt text, when it describes the image. */
+  coverImageAlt: z.string().optional(),
   ogImageUrl: z.string().optional(), // Absolute URL for social preview metadata
 });
 
@@ -143,6 +146,7 @@ export const enrichedProjectSchema: ReturnType<
     url: z.ZodOptional<z.ZodString>;
     typeLabel: z.ZodOptional<z.ZodString>;
     coverImageUrl: z.ZodOptional<z.ZodString>;
+    coverImageAlt: z.ZodOptional<z.ZodString>;
     ogImageUrl: z.ZodOptional<z.ZodString>;
     coverImageWidth: z.ZodOptional<z.ZodNumber>;
     coverImageHeight: z.ZodOptional<z.ZodNumber>;
@@ -151,6 +155,8 @@ export const enrichedProjectSchema: ReturnType<
   url: z.string().optional(),
   typeLabel: z.string().optional(),
   coverImageUrl: z.string().optional(),
+  /** The cover image's own alt text, when it describes the image. */
+  coverImageAlt: z.string().optional(),
   ogImageUrl: z.string().optional(),
   coverImageWidth: z.number().optional(),
   coverImageHeight: z.number().optional(),
@@ -165,6 +171,7 @@ export const templateProjectSchema: ReturnType<
     url: z.ZodString;
     typeLabel: z.ZodString;
     coverImageUrl: z.ZodOptional<z.ZodString>;
+    coverImageAlt: z.ZodOptional<z.ZodString>;
     ogImageUrl: z.ZodOptional<z.ZodString>;
     coverImageWidth: z.ZodOptional<z.ZodNumber>;
     coverImageHeight: z.ZodOptional<z.ZodNumber>;
@@ -173,6 +180,8 @@ export const templateProjectSchema: ReturnType<
   url: z.string(),
   typeLabel: z.string(),
   coverImageUrl: z.string().optional(),
+  /** The cover image's own alt text, when it describes the image. */
+  coverImageAlt: z.string().optional(),
   ogImageUrl: z.string().optional(),
   coverImageWidth: z.number().optional(),
   coverImageHeight: z.number().optional(),

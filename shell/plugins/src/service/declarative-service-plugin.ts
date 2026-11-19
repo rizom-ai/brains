@@ -1516,6 +1516,7 @@ class DeclarativeServicePlugin<
         generate: (config, schema, signal) =>
           context.ai.generate(config, schema, signal),
         judge: (input) => context.judge(input),
+        canDescribeImages: () => context.ai.canDescribeImages(),
       }),
       dataSource: (declaration, options = {}): void => {
         this.serveDataSource(declaration, options);

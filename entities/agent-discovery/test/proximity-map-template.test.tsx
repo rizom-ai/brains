@@ -42,6 +42,7 @@ const data: ProximityMapData = {
   nodes: [
     {
       id: "alpha",
+      slug: "alpha",
       name: "Alpha",
       kind: "person",
       status: "approved",
@@ -51,6 +52,7 @@ const data: ProximityMapData = {
     },
     {
       id: "beta",
+      slug: "beta",
       name: "Beta",
       kind: "team",
       status: "discovered",
@@ -60,6 +62,7 @@ const data: ProximityMapData = {
     },
     {
       id: "old",
+      slug: "old",
       name: "Old Agent",
       kind: "person",
       status: "archived",

@@ -8,12 +8,15 @@ export const resolvedSiteImageSchema: z.ZodObject<{
   sizes: z.ZodOptional<z.ZodString>;
   width: z.ZodNumber;
   height: z.ZodNumber;
+  alt: z.ZodOptional<z.ZodString>;
 }> = z.object({
   src: z.string(),
   srcset: z.string().optional(),
   sizes: z.string().optional(),
   width: z.number(),
   height: z.number(),
+  /** The image's own alt text, when it describes the image. */
+  alt: z.string().optional(),
 });
 
 export type ResolvedSiteImage = z.output<typeof resolvedSiteImageSchema>;

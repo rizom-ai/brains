@@ -93,6 +93,7 @@ describe("buildProximityMapData", () => {
     expect(result.nodes).toEqual([
       {
         id: "alpha",
+        slug: "alpha-io",
         name: "Alpha",
         kind: "person",
         status: "approved",
@@ -102,6 +103,7 @@ describe("buildProximityMapData", () => {
       },
       {
         id: "beta",
+        slug: "beta-io",
         name: "Beta",
         kind: "team",
         status: "discovered",
@@ -111,6 +113,7 @@ describe("buildProximityMapData", () => {
       },
       {
         id: "old",
+        slug: "old-agent-io",
         name: "Old Agent",
         kind: "person",
         status: "archived",

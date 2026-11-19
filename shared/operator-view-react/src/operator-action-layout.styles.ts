@@ -17,7 +17,7 @@ export const actionLayoutStyles: Record<
     padding: 0,
     minHeight: { default: 32, "@media (max-width: 640px)": 44 },
     backgroundColor: "transparent",
-    color: "var(--console-accent)",
+    color: "var(--console-accent-text)",
     fontFamily: "var(--console-ui)",
     fontSize: 12,
     fontWeight: 600,

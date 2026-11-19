@@ -6,6 +6,7 @@
  * `test/visual/console/README.md` for running it.
  */
 import { mkdir } from "node:fs/promises";
+import { chromeBackend } from "./accessibility/browser";
 import { supportsStudioStudyState } from "./fixtures/studio-study-state";
 import { systemFixtures } from "./fixtures/studio-system";
 import {
@@ -197,16 +198,7 @@ if (!executablePath) {
   await fixtureServer.stop();
   throw new Error("Set CONSOLE_CHROMIUM_PATH to a Chromium executable.");
 }
-const browserArgs =
-  process.getuid?.() === 0 || process.env["CI"] === "true"
-    ? ["--no-sandbox", "--disable-dev-shm-usage"]
-    : [];
-const browserBackend: Bun.WebView.Backend = {
-  type: "chrome",
-  url: false,
-  path: executablePath,
-  ...(browserArgs.length > 0 ? { argv: browserArgs } : {}),
-};
+const browserBackend = chromeBackend(executablePath);
 try {
   for (const climate of CLIMATES) {
     if (CLIMATE_FILTER && climate !== CLIMATE_FILTER) continue;
