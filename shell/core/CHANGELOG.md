@@ -1,5 +1,24 @@
 # @brains/core
 
+## 0.2.0-alpha.748
+
+### Patch Changes
+
+- [#1007](https://github.com/rizom-ai/brains/pull/1007) [`1769bfb`](https://github.com/rizom-ai/brains/commit/1769bfbdf261b5e966d9dd831a81ae8b691fe686) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The agent's entity-type list leaves out a type that no system tool can write or find, such as conflicts and traffic snapshots, which their own Inbox or analytics tools handle. A conflict's description no longer says only an admin resolves it: whoever made the edit settles it from the editor, and an admin settles any conflict from the Inbox.
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.748
+  - @brains/contracts@0.2.0-alpha.748
+  - @brains/image@0.2.0-alpha.748
+  - @brains/operation-context@0.2.0-alpha.748
+  - @brains/site-composition@0.2.0-alpha.748
+  - @brains/utils@0.2.0-alpha.748
+  - @brains/http-host@0.2.0-alpha.748
+  - @brains/plugins@0.2.0-alpha.748
+  - @brains/recurring-checks@0.2.0-alpha.748
+  - @brains/runtime-state@0.2.0-alpha.748
+  - @brains/scheduler@0.2.0-alpha.748
+  - @brains/templates@0.2.0-alpha.748
+
 ## 0.2.0-alpha.747
 
 ### Patch Changes

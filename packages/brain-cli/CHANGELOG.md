@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.748
+
+### Patch Changes
+
+- [#1007](https://github.com/rizom-ai/brains/pull/1007) [`1769bfb`](https://github.com/rizom-ai/brains/commit/1769bfbdf261b5e966d9dd831a81ae8b691fe686) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The agent's entity-type list leaves out a type that no system tool can write or find, such as conflicts and traffic snapshots, which their own Inbox or analytics tools handle. A conflict's description no longer says only an admin resolves it: whoever made the edit settles it from the editor, and an admin settles any conflict from the Inbox.
+
 ## 0.2.0-alpha.747
 
 ### Patch Changes
