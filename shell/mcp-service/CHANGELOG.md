@@ -1,5 +1,15 @@
 # @brains/mcp-service
 
+## 0.2.0-alpha.747
+
+### Patch Changes
+
+- Updated dependencies [[`2aaa9d1`](https://github.com/rizom-ai/brains/commit/2aaa9d14fb6facf57d4767663729d8e983428f9a)]:
+  - @brains/contracts@0.2.0-alpha.747
+  - @brains/utils@0.2.0-alpha.747
+  - @brains/messaging-service@0.2.0-alpha.747
+  - @brains/templates@0.2.0-alpha.747
+
 ## 0.2.0-alpha.746
 
 ### Patch Changes

@@ -1,5 +1,19 @@
 # @brains/site-personal
 
+## 0.2.0-alpha.747
+
+### Patch Changes
+
+- Updated dependencies [[`2aaa9d1`](https://github.com/rizom-ai/brains/commit/2aaa9d14fb6facf57d4767663729d8e983428f9a)]:
+  - @brains/utils@0.2.0-alpha.747
+  - @brains/blog@0.2.0-alpha.747
+  - @brains/sdk@0.2.0-alpha.747
+  - @rizom/brain-ui@0.2.0-alpha.747
+  - @brains/profile@0.2.0-alpha.747
+  - @brains/site-composition@0.2.0-alpha.747
+  - @brains/site-engine@0.2.0-alpha.747
+  - @brains/site-info@0.2.0-alpha.747
+
 ## 0.2.0-alpha.746
 
 ### Patch Changes

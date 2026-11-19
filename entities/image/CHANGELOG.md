@@ -1,5 +1,16 @@
 # @brains/image-plugin
 
+## 0.2.0-alpha.747
+
+### Patch Changes
+
+- [#1006](https://github.com/rizom-ai/brains/pull/1006) [`1cbd3be`](https://github.com/rizom-ai/brains/commit/1cbd3be9bcbdf5500812230dc9b8baac62d9bc6f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Generated alt text longer than 125 characters is cut at its last clause, and never ends on a word that leaves it hanging ("…crowded industrial towns, and"). At start-up the brain trims alt text an earlier release cut that way. Writes the alt-text service makes are no longer taken for the owner's edits.
+- Updated dependencies [[`2aaa9d1`](https://github.com/rizom-ai/brains/commit/2aaa9d14fb6facf57d4767663729d8e983428f9a)]:
+  - @brains/contracts@0.2.0-alpha.747
+  - @brains/utils@0.2.0-alpha.747
+  - @brains/sdk@0.2.0-alpha.747
+  - @brains/image@0.2.0-alpha.747
+
 ## 0.2.0-alpha.746
 
 ### Patch Changes
