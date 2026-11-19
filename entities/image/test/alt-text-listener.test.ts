@@ -104,6 +104,22 @@ describe("an image change", () => {
   });
 });
 
+describe("a change a service made", () => {
+  it("is not taken for the owner's edit", async () => {
+    const edited = { ...ready, alt: "Boats at dawn", altSource: "generated" };
+    const d = deps({ stored: [image("harbor", edited)] });
+    await handleImageChange(d, {
+      entityType: "image",
+      entityId: "harbor",
+      entity: image("harbor", edited),
+      previousMetadata: { ...edited, alt: "Boats at dawn, and" },
+      actor: { kind: "service", serviceId: "image-alt-text" },
+    });
+
+    expect(d.updated).toEqual([]);
+  });
+});
+
 describe("the start-up catch-up", () => {
   it("queues every public image whose alt text is still a stand-in", async () => {
     const d = deps({
@@ -126,6 +142,35 @@ describe("the start-up catch-up", () => {
 
     await queueUndescribedImages(d);
 
+    expect(d.queued).toEqual([]);
+  });
+});
+
+describe("the start-up catch-up, for alt text cut before this release", () => {
+  it("trims generated alt text that ends on a word leaving it hanging", async () => {
+    const d = deps({
+      stored: [
+        image("cut", {
+          ...ready,
+          alt: "A Bitcoin landscape amid coins, crowded industrial towns, and",
+          altSource: "generated",
+        }),
+        image("whole", {
+          ...ready,
+          alt: "Fishing boats moored at dawn.",
+          altSource: "generated",
+        }),
+        image("owned", { ...ready, alt: "Rock and", altSource: "owner" }),
+      ],
+    });
+
+    await queueUndescribedImages(d);
+
+    expect(
+      d.updated.map((entity) => [entity.id, entity.metadata["alt"]]),
+    ).toEqual([
+      ["cut", "A Bitcoin landscape amid coins, crowded industrial towns"],
+    ]);
     expect(d.queued).toEqual([]);
   });
 });
