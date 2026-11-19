@@ -1,5 +1,24 @@
 # @brains/core
 
+## 0.2.0-alpha.745
+
+### Patch Changes
+
+- [#1001](https://github.com/rizom-ai/brains/pull/1001) [`0875c14`](https://github.com/rizom-ai/brains/commit/0875c14c126c95e76cc5c9df7401a44412a4ef9b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A brain can describe an image for its alt text. The new `image:image-describe` job asks the image-reading model (the configured local `visionModel`, else a cloud model, which reads images itself) for one sentence of at most 125 characters, and stores it with `altSource: "generated"`. Alt text the owner wrote (`altSource: "owner"`) is never replaced; SVG images and brains with no model that reads images keep their fallback. Entity jobs reach the model through `images.canDescribe()` and `images.describe()`.
+- Updated dependencies [[`f0bee6f`](https://github.com/rizom-ai/brains/commit/f0bee6f03f08ef0be00b1cd9eacfbf5393c3fb40), [`0875c14`](https://github.com/rizom-ai/brains/commit/0875c14c126c95e76cc5c9df7401a44412a4ef9b), [`8393f8e`](https://github.com/rizom-ai/brains/commit/8393f8e871f863905249e550cfae2f58c2fc4e64)]:
+  - @brains/image@0.2.0-alpha.745
+  - @brains/plugins@0.2.0-alpha.745
+  - @brains/contracts@0.2.0-alpha.745
+  - @brains/http-host@0.2.0-alpha.745
+  - @brains/atproto-contracts@0.2.0-alpha.745
+  - @brains/operation-context@0.2.0-alpha.745
+  - @brains/site-composition@0.2.0-alpha.745
+  - @brains/templates@0.2.0-alpha.745
+  - @brains/recurring-checks@0.2.0-alpha.745
+  - @brains/utils@0.2.0-alpha.745
+  - @brains/runtime-state@0.2.0-alpha.745
+  - @brains/scheduler@0.2.0-alpha.745
+
 ## 0.2.0-alpha.744
 
 ### Patch Changes

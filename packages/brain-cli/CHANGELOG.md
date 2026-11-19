@@ -1,5 +1,23 @@
 # @rizom/brain
 
+## 0.2.0-alpha.745
+
+### Patch Changes
+
+- [#1001](https://github.com/rizom-ai/brains/pull/1001) [`f0bee6f`](https://github.com/rizom-ai/brains/commit/f0bee6f03f08ef0be00b1cd9eacfbf5393c3fb40) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Cover images on brain sites say what they show. Posts, projects, social posts, series and the personal homepage render a cover with the image's own alt text once the brain's vision model or its owner has written one, carried as `coverImageAlt`; until then the cover keeps the post's title. A stand-in alt (a title or `cover-<post>`) is never used.
+
+- [#1001](https://github.com/rizom-ai/brains/pull/1001) [`0875c14`](https://github.com/rizom-ai/brains/commit/0875c14c126c95e76cc5c9df7401a44412a4ef9b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A brain can describe an image for its alt text. The new `image:image-describe` job asks the image-reading model (the configured local `visionModel`, else a cloud model, which reads images itself) for one sentence of at most 125 characters, and stores it with `altSource: "generated"`. Alt text the owner wrote (`altSource: "owner"`) is never replaced; SVG images and brains with no model that reads images keep their fallback. Entity jobs reach the model through `images.canDescribe()` and `images.describe()`.
+
+- [#1001](https://github.com/rizom-ai/brains/pull/1001) [`8393f8e`](https://github.com/rizom-ai/brains/commit/8393f8e871f863905249e550cfae2f58c2fc4e64) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Public images get alt text that describes them. As soon as a public image is ready, or a restricted one is made public, and its alt text is still a stand-in (a title, a prompt's start, `cover-<post>`), the brain queues `image:image-describe`; at start-up it queues the public images already there that still carry one. Alt text someone rewrites, in Studio or through the agent, becomes the owner's and is never replaced. A brain with no model that reads images queues nothing.
+
+- [#1004](https://github.com/rizom-ai/brains/pull/1004) [`cc9e2b7`](https://github.com/rizom-ai/brains/commit/cc9e2b737eb80fec0d26ea1bc23d996317d12032) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A local model that thinks past 3,000 tokens on a chat step is now stopped and asked for the answer it had settled on. Before, a question answered in one word could take two to three minutes.
+
+- [#1001](https://github.com/rizom-ai/brains/pull/1001) [`3ef8609`](https://github.com/rizom-ai/brains/commit/3ef86095ddf65f1bd00eed786c64d10342af23f0) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Each brain on the network map now carries the slug of its agent page, so a site can link a brain to `/agents/<slug>`; the map's ids are domains, which no agent page is routed by.
+
+- [#1001](https://github.com/rizom-ai/brains/pull/1001) [`1b0d534`](https://github.com/rizom-ai/brains/commit/1b0d534a0effa5198b08058b7a955b79dbd62bd1) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Studio opens the image an image field refers to, with its preview, title and alt text, and says who wrote the alt text: not described yet, the brain's vision model, or you. Saving makes the alt text the owner's, so the brain never replaces it. The editor reads and saves through `GET` and `PUT /studio/api/image-details`, which leave the image's bytes as stored and refuse a save against an older version.
+
+- [#1001](https://github.com/rizom-ai/brains/pull/1001) [`eaccaa1`](https://github.com/rizom-ai/brains/commit/eaccaa13fc1d2cd28e794c206a222bd3021031f7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Studio's small text now reads at WCAG AA contrast (4.5:1) in every shipped theme and in both climates. Accent-colored text (the active rail number, links, the "required" marker, chat sessions) uses a new `--console-accent-text` token, the theme's accent pulled toward its text color, so a light accent such as rizom.ai's brass stays legible on paper. In the Rizom theme's paper climate, muted text is darker and success ink is the base's readable green instead of the dark mode's terminal green.
+
 ## 0.2.0-alpha.744
 
 ### Patch Changes

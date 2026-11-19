@@ -1,5 +1,17 @@
 # @brains/knowledge-map
 
+## 0.2.0-alpha.745
+
+### Patch Changes
+
+- [#1001](https://github.com/rizom-ai/brains/pull/1001) [`eaccaa1`](https://github.com/rizom-ai/brains/commit/eaccaa13fc1d2cd28e794c206a222bd3021031f7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Studio's small text now reads at WCAG AA contrast (4.5:1) in every shipped theme and in both climates. Accent-colored text (the active rail number, links, the "required" marker, chat sessions) uses a new `--console-accent-text` token, the theme's accent pulled toward its text color, so a light accent such as rizom.ai's brass stays legible on paper. In the Rizom theme's paper climate, muted text is darker and success ink is the base's readable green instead of the dark mode's terminal green.
+- Updated dependencies [[`0875c14`](https://github.com/rizom-ai/brains/commit/0875c14c126c95e76cc5c9df7401a44412a4ef9b)]:
+  - @brains/contracts@0.2.0-alpha.745
+  - @brains/sdk@0.2.0-alpha.745
+  - @rizom/brain-ui@0.2.0-alpha.745
+  - @brains/content-formatters@0.2.0-alpha.745
+  - @brains/utils@0.2.0-alpha.745
+
 ## 0.2.0-alpha.744
 
 ### Patch Changes

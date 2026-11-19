@@ -1,5 +1,18 @@
 # @brains/series
 
+## 0.2.0-alpha.745
+
+### Patch Changes
+
+- [#1001](https://github.com/rizom-ai/brains/pull/1001) [`f0bee6f`](https://github.com/rizom-ai/brains/commit/f0bee6f03f08ef0be00b1cd9eacfbf5393c3fb40) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Cover images on brain sites say what they show. Posts, projects, social posts, series and the personal homepage render a cover with the image's own alt text once the brain's vision model or its owner has written one, carried as `coverImageAlt`; until then the cover keeps the post's title. A stand-in alt (a title or `cover-<post>`) is never used.
+- Updated dependencies [[`0875c14`](https://github.com/rizom-ai/brains/commit/0875c14c126c95e76cc5c9df7401a44412a4ef9b)]:
+  - @brains/contracts@0.2.0-alpha.745
+  - @brains/sdk@0.2.0-alpha.745
+  - @rizom/brain-ui@0.2.0-alpha.745
+  - @brains/atproto-contracts@0.2.0-alpha.745
+  - @brains/content-formatters@0.2.0-alpha.745
+  - @brains/utils@0.2.0-alpha.745
+
 ## 0.2.0-alpha.744
 
 ### Patch Changes

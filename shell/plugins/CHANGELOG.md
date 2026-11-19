@@ -1,5 +1,30 @@
 # @brains/plugins
 
+## 0.2.0-alpha.745
+
+### Patch Changes
+
+- [#1001](https://github.com/rizom-ai/brains/pull/1001) [`0875c14`](https://github.com/rizom-ai/brains/commit/0875c14c126c95e76cc5c9df7401a44412a4ef9b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A brain can describe an image for its alt text. The new `image:image-describe` job asks the image-reading model (the configured local `visionModel`, else a cloud model, which reads images itself) for one sentence of at most 125 characters, and stores it with `altSource: "generated"`. Alt text the owner wrote (`altSource: "owner"`) is never replaced; SVG images and brains with no model that reads images keep their fallback. Entity jobs reach the model through `images.canDescribe()` and `images.describe()`.
+
+- [#1001](https://github.com/rizom-ai/brains/pull/1001) [`8393f8e`](https://github.com/rizom-ai/brains/commit/8393f8e871f863905249e550cfae2f58c2fc4e64) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Public images get alt text that describes them. As soon as a public image is ready, or a restricted one is made public, and its alt text is still a stand-in (a title, a prompt's start, `cover-<post>`), the brain queues `image:image-describe`; at start-up it queues the public images already there that still carry one. Alt text someone rewrites, in Studio or through the agent, becomes the owner's and is never replaced. A brain with no model that reads images queues nothing.
+- Updated dependencies [[`0875c14`](https://github.com/rizom-ai/brains/commit/0875c14c126c95e76cc5c9df7401a44412a4ef9b)]:
+  - @brains/ai-service@0.2.0-alpha.745
+  - @brains/contracts@0.2.0-alpha.745
+  - @brains/content-service@0.2.0-alpha.745
+  - @brains/atproto-contracts@0.2.0-alpha.745
+  - @brains/content-formatters@0.2.0-alpha.745
+  - @brains/site-composition@0.2.0-alpha.745
+  - @brains/conversation-service@0.2.0-alpha.745
+  - @brains/entity-service@0.2.0-alpha.745
+  - @brains/identity-service@0.2.0-alpha.745
+  - @brains/job-queue@0.2.0-alpha.745
+  - @brains/mcp-service@0.2.0-alpha.745
+  - @brains/messaging-service@0.2.0-alpha.745
+  - @brains/templates@0.2.0-alpha.745
+  - @brains/recurring-checks@0.2.0-alpha.745
+  - @brains/utils@0.2.0-alpha.745
+  - @brains/runtime-state@0.2.0-alpha.745
+
 ## 0.2.0-alpha.744
 
 ### Patch Changes

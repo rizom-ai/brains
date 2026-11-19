@@ -1,5 +1,19 @@
 # @brains/ai-evaluation
 
+## 0.2.0-alpha.745
+
+### Patch Changes
+
+- Updated dependencies [[`0875c14`](https://github.com/rizom-ai/brains/commit/0875c14c126c95e76cc5c9df7401a44412a4ef9b), [`8393f8e`](https://github.com/rizom-ai/brains/commit/8393f8e871f863905249e550cfae2f58c2fc4e64)]:
+  - @brains/ai-service@0.2.0-alpha.745
+  - @brains/plugins@0.2.0-alpha.745
+  - @brains/contracts@0.2.0-alpha.745
+  - @brains/app@0.2.0-alpha.745
+  - @brains/content-formatters@0.2.0-alpha.745
+  - @brains/mcp-service@0.2.0-alpha.745
+  - @brains/templates@0.2.0-alpha.745
+  - @brains/utils@0.2.0-alpha.745
+
 ## 0.2.0-alpha.744
 
 ### Patch Changes
