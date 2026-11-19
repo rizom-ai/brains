@@ -1,4 +1,8 @@
-import { wrapLanguageModel, type LanguageModelMiddleware } from "ai";
+import {
+  APICallError,
+  wrapLanguageModel,
+  type LanguageModelMiddleware,
+} from "ai";
 import type { LanguageModel } from "ai";
 import { createImageDescriber } from "./image-description";
 import { requiredToolChoice } from "./required-tool-choice";
@@ -138,6 +142,15 @@ function concludingFrom(
  * further. One stopped inside its reply is asked again in full. A step with
  * no tools, which writes a draft, has no limit.
  */
+/** The runtime's error for a tool call whose arguments end early. */
+function cutToolCall(error: unknown): boolean {
+  return (
+    APICallError.isInstance(error) &&
+    /invalid tool call arguments/.test(error.message) &&
+    /unexpected end of JSON input/.test(error.message)
+  );
+}
+
 const boundedThinking: LanguageModelMiddleware = {
   specificationVersion: "v3",
   wrapGenerate: async ({ doGenerate, params, model }) => {
@@ -148,10 +161,16 @@ const boundedThinking: LanguageModelMiddleware = {
       thinks &&
       (params.maxOutputTokens ?? Infinity) > THINKING_LIMIT;
     if (!bounded) return doGenerate();
-    const result = await model.doGenerate({
-      ...params,
-      maxOutputTokens: THINKING_LIMIT,
+    const result = await Promise.resolve(
+      model.doGenerate({ ...params, maxOutputTokens: THINKING_LIMIT }),
+    ).catch((error: unknown) => {
+      // A call cut off mid-arguments reaches us as the runtime's error,
+      // not as a step stopped at the limit: a long call, such as an edit
+      // that restates a whole note, is asked again without the limit.
+      if (cutToolCall(error)) return null;
+      throw error;
     });
+    if (!result) return model.doGenerate(params);
     if (result.finishReason.unified !== "length") return result;
     const retry = await model.doGenerate(
       silent(result) ? concludingFrom(params, result) : params,
