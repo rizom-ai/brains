@@ -123,6 +123,20 @@ Agent evals by model size, 2026-11-15, both suites at `f1bb03475c`, same runtime
 - The local configuration saves or generates on a bare label after an image upload 3 of 3 and says "saved as" in a read-only PDF summary 2 of 3.
 - Some failures are only a token or tool-call budget exceeded, with no failed criterion: three of the local configuration's five headless failures (the public-user case in both runs, 18–19k tokens against 14k, and topics analytics), one of its personal failures (6 tool calls against 5), the cloud default's delete at trusted (22k tokens against 14k), three of `qwen3:8b`'s headless failures and one of `qwen3:14b`'s. On criteria alone the local configuration passes 35 and 35 of 36 on headless and the cloud default 35.
 - The cloud default's other headless failure is skill derivation, judged 3 on accuracy against a minimum of 4.
+
+Agent evals at `6447e82d63`, 2026-11-19, after #978, #980, #982 and #1004, same runtime and judge: headless (37 cases) two runs and personal (31 cases) three runs on the local configuration, the 8B model on headless only, the cloud default one run each:
+
+| Model                                                                    | Headless (mean) | Personal (mean) | Avg duration: headless, personal |
+| ------------------------------------------------------------------------ | --------------- | --------------- | -------------------------------- |
+| `gpt-6-luna` (default)                                                   | 37/37 (100%)    | 30/31 (97%)     | 6.4 s, 7.8 s                     |
+| `qwen3:8b` (8.2B), `visionModel: local:qwen3-vl:8b`                      | 32.0/37 (86%)   | —               | 21–27 s, —                       |
+| `qwen3.6:35b` deciding and seeing images itself, instruct-2507 answering | 35.0/37 (95%)   | 27.3/31 (88%)   | 9–17 s, 33–39 s                  |
+
+- Runs: `qwen3:8b` 33 and 31; the local configuration 35 and 35, then 27, 26 and 29. One local headless run crashed in Bun (a segmentation fault Bun reports as its own bug) and was run again.
+- Topics are extracted on the local configuration (#980): the topics case calls analytics once and answers from the extracted topic.
+- The 17 KB title-and-body patch (`mcp-long-note-update`) fails 3 of 3 on the local configuration, against 0 of 3 on 2026-11-13: the runtime rejects the `system_update` call ("llama-server returned invalid tool call arguments … unexpected end of JSON input"), and each attempt takes 200–265 s. Cause not yet established.
+- Other local failures: the bare label after an image upload 2 of 3; the public-user case 2 of 2, once on its token budget only; `qwen3:8b` fails the anchor-admin and base-note mapping cases 2 of 2 and the private note at trusted 1 of 2.
+- The two local headless runs took 9.4 s and 17.3 s per case; another session's evals shared the machine during the slower one.
 - Weights: `qwen3:8b` with `qwen3-vl:8b` is 11.4 GB and `qwen3:14b` with it 15.5 GB, against 41.2 GB for the local configuration's two text models.
 
 ## Goal
