@@ -83,7 +83,6 @@ Plans:
 - [generation-voice-and-prompt-freshness.md](./plans/generation-voice-and-prompt-freshness.md) — make the style guide govern voice and form over templates, send each template once, and keep materialized prompt copies fresh, correctly keyed, and editable without restart.
 - [moving-in-guides.md](./plans/moving-in-guides.md) — a `guide` entity in the doc-brain with designed walkthroughs per kind of user (writer, researcher, consultant, team) plus one for running your own brain, synced from `docs/guides/` with the docs.
 - [linkedin-import.md](./plans/linkedin-import.md) — an opt-in plugin that imports the owner's LinkedIn profile, skills and history into `anchor-profile` from Studio, through LinkedIn's DMA portability API (EEA) or an uploaded data export, merging without overwriting what the owner wrote.
-- [sync-conflicts.md](./plans/sync-conflicts.md) — one sync rule for Studio, chat, the WebDAV drive, `brain-data/` files and git pulls: the brain's database decides, every way in names its base, and an edit made over a newer version is refused when held elsewhere (chat) or kept as a `conflict` entity resolved in the Inbox, never lost.
 - [forms-plugin.md](./plans/forms-plugin.md) — a `forms` engine for every public form on a brain's site, whose submissions become domain entities owned by their packages: `contact` rebuilt on it, a `quiz` package for scored forms, and The Fourth's brand test replacing its Tally form.
 
 ### 2. The collective posture
@@ -131,7 +130,6 @@ Plans:
 - [studio-grouping-definitions.md](./plans/studio-grouping-definitions.md) — document-owned groupings with convention-first type exclusions, shipped and deployed to smoke; live smoke acceptance remains.
 - [operator-console-pwa.md](./plans/operator-console-pwa.md) — optional network-first installable shell without an offline-authoring claim.
 - [email-reply-drafts.md](./plans/email-reply-drafts.md) — a reply the brain writes on request is saved into the mailbox's Drafts folder and sent from the mail program; the brain never sends a reply, and the dormant send backend is removed.
-- [webdav-mount.md](./plans/webdav-mount.md) — mount a brain as a network drive over WebDAV: the `brain-data/` layout under `/dav`, scoped to the signed-in person, with app passwords for GNOME Files, Finder and Windows.
 - [whatsapp-interface.md](./plans/whatsapp-interface.md) — WhatsApp direct messages and groups through our own Baileys adapter in `@brains/chat`: unofficial, on a dedicated number.
 - [brain-web-chat-sdk-adapter.md](./plans/brain-web-chat-sdk-adapter.md) — parked strategy for deeper Chat SDK semantic alignment.
 - [chat-interface-forms-modals.md](./plans/chat-interface-forms-modals.md) — parked transport-neutral structured forms.

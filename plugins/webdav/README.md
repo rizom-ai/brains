@@ -2,7 +2,7 @@
 
 A brain as a network drive. The plugin serves the brain's entities over WebDAV on `/dav`, as the same folders and files `brain-data/` holds, so GNOME Files, davfs2, rclone, macOS Finder and Windows Explorer can mount it.
 
-The drive browses, opens, saves, creates and deletes markdown files and images, and offers the locks macOS Finder and Windows need to mount it writable. Documents (PDFs) are read-only. The design is in [the plan](../../docs/plans/webdav-mount.md).
+The drive browses, opens, saves, creates and deletes markdown files and images, and offers the locks macOS Finder and Windows need to mount it writable. Documents (PDFs) are read-only.
 
 ## Enable
 
