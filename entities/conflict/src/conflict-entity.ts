@@ -13,8 +13,9 @@ import { conflictFieldsSchema } from "./schemas";
  * names the entity and the versions involved; its body is the losing file
  * exactly as it arrived.
  *
- * Only the brain writes one. Nobody edits it: it is applied or dismissed
- * from the Inbox, and stays out of search, embeddings and projections.
+ * Only the brain writes one. Nobody edits it: whoever made the edit applies
+ * or dismisses it from the editor, or an admin does from the Inbox, and it
+ * stays out of search, embeddings and projections.
  */
 export const conflict: EntityDefinition<
   typeof CONFLICT_ENTITY_TYPE,
@@ -24,7 +25,7 @@ export const conflict: EntityDefinition<
     type: CONFLICT_ENTITY_TYPE,
     classification: "system",
     purpose:
-      "An edit made over a newer version of an entry, kept until an admin applies or dismisses it in the Inbox.",
+      "An edit made over a newer version of an entry, kept until it is applied or dismissed.",
     metadata: conflictFieldsSchema,
     markdown: {
       decode: ({ content, frontmatter }) => ({

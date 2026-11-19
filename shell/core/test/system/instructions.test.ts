@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { createSystemInstructions } from "../../src/system/instructions";
+import { PermissionService } from "@brains/templates";
 import { createMockSystemServices } from "./mock-services";
 
 describe("system instructions", () => {
@@ -102,6 +103,36 @@ describe("system instructions", () => {
     expect(instructions).toContain("- note:");
     expect(instructions).not.toContain("- post:");
     expect(instructions).not.toContain("- deck:");
+  });
+
+  // Every type listed is resent on each step. A type no system tool can
+  // write or find gives the model nothing to do with it but look it up.
+  it("leaves out a type system tools can neither write nor find", () => {
+    const never = {
+      create: "never",
+      update: "never",
+      delete: "never",
+    } as const;
+    const services = createMockSystemServices({
+      permissionService: new PermissionService({
+        entityActions: { conflict: never, book: never },
+      }),
+    });
+    services.registerEntityTypes(["note", "conflict", "book"]);
+    const config = services.entityRegistry.getEntityTypeConfig;
+    services.entityRegistry.getEntityTypeConfig = (
+      type,
+    ): ReturnType<typeof config> =>
+      type === "conflict"
+        ? { embeddable: false, fullTextSearchable: false }
+        : config(type);
+
+    const instructions = createSystemInstructions(services);
+
+    expect(instructions).not.toContain("- conflict:");
+    // Never written, but still found by search: it stays.
+    expect(instructions).toContain("- book:");
+    expect(instructions).toContain("- note:");
   });
 
   it("lists each registered entity type by its declared purpose, not example phrasings", () => {

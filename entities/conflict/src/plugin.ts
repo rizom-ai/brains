@@ -22,8 +22,8 @@ const conflictConfigSchema: z.ZodObject<Record<string, never>> = z.object({});
  * The conflict type and the service that keeps conflicts. Every way an edit
  * reaches the brain hands one that lost to this service, in whichever
  * process it lost: imports run on the worker, saves on the web process. The
- * Inbox, where an admin applies or dismisses it, is offered where the Inbox
- * is served.
+ * Inbox, where an admin applies or dismisses any conflict, is offered where
+ * the Inbox is served.
  */
 export const conflictPackage: ServicePackageDefinition<
   typeof conflictConfigSchema

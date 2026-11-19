@@ -1,4 +1,22 @@
 import type { SystemServices } from "./types";
+import { systemToolsNeverWrite } from "./entity-action-policy";
+
+/**
+ * Whether no system tool can act on the type: it is never created, updated
+ * or deleted through them, and search cannot find it, as a type kept out of
+ * embeddings and full-text search. Its own tools or the Inbox handle it.
+ */
+function outOfSystemTools(services: SystemServices, type: string): boolean {
+  const neverWrites = systemToolsNeverWrite(services.permissionService);
+  const config = services.entityRegistry.getEntityTypeConfig(type);
+  return (
+    (["create", "update", "delete"] as const).every((action) =>
+      neverWrites(type, action),
+    ) &&
+    config.embeddable === false &&
+    config.fullTextSearchable === false
+  );
+}
 
 export function createSystemInstructions(services: SystemServices): string {
   const types = services.entityService.getEntityTypes();
@@ -6,9 +24,12 @@ export function createSystemInstructions(services: SystemServices): string {
   // entity adapter. The model selects `entityType` from what each type is for —
   // no hardcoded "phrase → entityType" routing examples, and only types that
   // are actually registered are ever offered.
-  const typeDescriptions = types.map(
-    (type) => `- ${type}: ${services.entityRegistry.getAdapter(type).purpose}`,
-  );
+  const typeDescriptions = types
+    .filter((type) => !outOfSystemTools(services, type))
+    .map(
+      (type) =>
+        `- ${type}: ${services.entityRegistry.getAdapter(type).purpose}`,
+    );
 
   // Rules that span the system tools only. Each tool's own contract lives in
   // its description, which reaches the model with the tool — and only when
