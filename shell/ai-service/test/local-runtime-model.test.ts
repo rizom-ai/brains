@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import {
+  APICallError,
   generateText,
   jsonSchema,
   stepCountIs,
@@ -306,6 +307,83 @@ describe("a step that may call tools", () => {
       undefined,
       withoutThinking,
     ]);
+  });
+
+  describe("whose tool call the limit cut off", () => {
+    /** The error the runtime returns for a call cut off mid-arguments. */
+    const cutCall = (): APICallError =>
+      new APICallError({
+        message:
+          'llama-server returned invalid tool call arguments for "system_create": unexpected end of JSON input',
+        url: "http://127.0.0.1:11434/v1/chat/completions",
+        requestBodyValues: {},
+        statusCode: 500,
+        isRetryable: true,
+      });
+
+    /** A model that fails each call under the limit with `failure`. */
+    function failingUnderLimit(failure: () => Error): MockLanguageModelV3 {
+      return new MockLanguageModelV3({
+        doGenerate: async (options): Promise<ModelResponse> => {
+          if (options.maxOutputTokens === 3000) throw failure();
+          return respond([
+            {
+              type: "tool-call",
+              toolCallId: "call-1",
+              toolName: "system_create",
+              input: JSON.stringify({ title: "Harbor" }),
+            },
+          ]);
+        },
+      });
+    }
+
+    it("is asked again once without the limit, so a long call can finish", async () => {
+      const inner = failingUnderLimit(cutCall);
+
+      const result = await generateText({
+        model: withLocalRuntime(inner, {}),
+        prompt: "Keep these files.",
+        tools: { system_create: save },
+        maxRetries: 0,
+      });
+
+      expect(result.steps[0]?.toolCalls.map((call) => call.input)).toEqual([
+        { title: "Harbor" },
+      ]);
+      expect(inner.doGenerateCalls.map((call) => call.maxOutputTokens)).toEqual(
+        [3000, undefined],
+      );
+      // Thinking stays on: only the limit is lifted.
+      expect(inner.doGenerateCalls[1]?.providerOptions).toBeUndefined();
+    });
+
+    it("leaves any other runtime failure to the caller", async () => {
+      const inner = failingUnderLimit(
+        () =>
+          new APICallError({
+            message: "model runner has unexpectedly stopped",
+            url: "http://127.0.0.1:11434/v1/chat/completions",
+            requestBodyValues: {},
+            statusCode: 500,
+          }),
+      );
+
+      const failure = await generateText({
+        model: withLocalRuntime(inner, {}),
+        prompt: "Keep these files.",
+        tools: { system_create: save },
+        maxRetries: 0,
+      }).then(
+        () => undefined,
+        (error: unknown) => error,
+      );
+
+      expect(String(failure)).toContain(
+        "model runner has unexpectedly stopped",
+      );
+      expect(inner.doGenerateCalls).toHaveLength(1);
+    });
   });
 
   it("is asked again in full when its reply is what the limit cut off", async () => {
