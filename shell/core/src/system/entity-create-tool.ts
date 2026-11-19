@@ -9,7 +9,10 @@ import {
 } from "@brains/entity-service";
 import { sharedUploadScope } from "@brains/plugins";
 import { bufferView } from "@brains/utils/bytes";
-import { markdownBody } from "@brains/utils/markdown-frontmatter";
+import {
+  markdownBody,
+  parseMarkdown,
+} from "@brains/utils/markdown-frontmatter";
 import { generateMarkdown } from "@brains/utils/markdown";
 import type { Tool, ToolResponse } from "@brains/mcp-service";
 import { slugify } from "@brains/utils/string-utils";
@@ -271,6 +274,36 @@ async function executeUploadPreserve(
 }
 
 /**
+ * The markdown a structured create stores: the text, with the fields the
+ * caller set, and the title the caller gave stated in the frontmatter when
+ * the type's frontmatter has a title and the text carries none, neither in
+ * its frontmatter nor as its heading. Without it the type falls back to a
+ * title taken from the body, not the one the user approved; text that
+ * already names itself is stored exactly as written.
+ */
+function structuredCreateMarkdown(
+  createInput: CreateInput,
+  content: string,
+  frontmatterHasTitle: boolean,
+): string {
+  const parsed = parseMarkdown(content);
+  const heading = parsed.content.match(/^#\s+(.+)$/m)?.[1]?.trim();
+  const statesTitle =
+    createInput.fields?.["title"] !== undefined ||
+    parsed.frontmatter["title"] !== undefined ||
+    (heading !== undefined && heading === createInput.title?.trim());
+  const title =
+    frontmatterHasTitle && !statesTitle ? createInput.title : undefined;
+  const fields = {
+    ...(title !== undefined && { title }),
+    ...createInput.fields,
+  };
+  return Object.keys(fields).length > 0
+    ? generateMarkdown(fields, content)
+    : content;
+}
+
+/**
  * Persist a content/text-source create directly, choosing markdown or raw
  * creation based on whether the entity type has structured frontmatter.
  */
@@ -306,9 +339,11 @@ async function executeDirectCreate(
             input: {
               entityType: createInput.entityType,
               id,
-              markdown: createInput.fields
-                ? generateMarkdown(createInput.fields, createInput.content)
-                : createInput.content,
+              markdown: structuredCreateMarkdown(
+                createInput,
+                createInput.content,
+                "title" in (frontmatterSchema?.shape ?? {}),
+              ),
               ...(createInput.visibility !== undefined
                 ? { visibility: createInput.visibility }
                 : {}),

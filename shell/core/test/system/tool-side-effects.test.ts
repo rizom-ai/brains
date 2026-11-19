@@ -1,5 +1,6 @@
 import { expectToolError } from "@brains/mcp-service/test";
 import { describe, expect, it } from "bun:test";
+import { parseMarkdown } from "@brains/utils/markdown-frontmatter";
 import type { Message } from "@brains/conversation-service";
 import type { ToolContext, ToolResponse } from "@brains/mcp-service";
 import { createEntityCreateTool } from "../../src/system/entity-create-tool";
@@ -142,9 +143,13 @@ describe("system_create conversation-message sources", () => {
 
     const confirmed = await tool.handler(confirmation.args, toolContext);
     expect(confirmed).toMatchObject({ success: true });
-    expect(services.getEntities().get("saved-answer")?.content).toBe(
-      "Stored assistant answer.",
-    );
+    // The answer is saved as written, under the title the user approved.
+    expect(
+      parseMarkdown(services.getEntities().get("saved-answer")?.content ?? ""),
+    ).toEqual({
+      frontmatter: { title: "Saved answer" },
+      content: "Stored assistant answer.",
+    });
   });
 
   it("resolves an explicit message id from the current conversation", async () => {
@@ -348,8 +353,9 @@ describe("system_create conversation-message sources", () => {
     const confirmed = await tool.handler(confirmation.args, toolContext);
 
     expect(confirmed).toMatchObject({ success: true });
-    expect(services.getEntities().get("frozen-answer")?.content).toBe(
-      "Original stored answer.",
-    );
+    expect(
+      parseMarkdown(services.getEntities().get("frozen-answer")?.content ?? "")
+        .content,
+    ).toBe("Original stored answer.");
   });
 });
