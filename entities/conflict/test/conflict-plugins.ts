@@ -22,15 +22,15 @@ export function createConflictPlugins(): Plugin[] {
   );
 }
 
-/** A conflict type as the installed package declares it. */
-export function conflictType(
-  entityType: "conflict" | "conflict-image" = "conflict",
-): DeclaredEntityTypePlugin {
+/** The conflict type as the installed package declares it. */
+export function conflictType(): {
+  schema: DeclaredEntityTypePlugin["schema"];
+  adapter: DeclaredEntityTypePlugin["adapter"];
+} {
   const plugin = createConflictPlugins().find(
     (candidate): candidate is DeclaredEntityTypePlugin =>
-      isDeclaredEntityType(candidate) && candidate.entityType === entityType,
+      isDeclaredEntityType(candidate),
   );
-  if (!plugin)
-    throw new Error(`The conflict package declares no ${entityType}`);
-  return plugin;
+  if (!plugin) throw new Error("The conflict package declares no type");
+  return { schema: plugin.schema, adapter: plugin.adapter };
 }

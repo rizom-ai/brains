@@ -114,13 +114,6 @@ function dropsFrontmatterFields(file: string, stored: string): boolean {
   });
 }
 
-/** An image file as a conflict would keep it. */
-export interface LosingImage {
-  read(): Promise<Uint8Array>;
-  /** What the bytes are: format and dimensions. */
-  metadata: Record<string, unknown>;
-}
-
 export async function persistImportEntity(
   deps: ImportPersistenceDeps,
   rawEntity: RawEntity,
@@ -132,8 +125,11 @@ export async function persistImportEntity(
   >,
   /** Bytes already staged from the file; otherwise inline content is staged here. */
   staged?: StagedAsset,
-  /** The file as an image, when it is one: what a conflict would keep. */
-  losingImage?: LosingImage,
+  /**
+   * The file is an image. An image is settled against its base as text is,
+   * but one that loses is not kept: the brain's image stands.
+   */
+  imageFile = false,
 ): Promise<void> {
   // Staged bytes no upsert takes are discarded on every other way out.
   let unpublished = staged;
@@ -233,17 +229,16 @@ export async function persistImportEntity(
     }
     // A file that differs from its entity is an edit only against the
     // version the two last agreed on. Text and images are settled that
-    // way; any other binary file keeps winning, having nothing a conflict
-    // could hold.
+    // way; any other binary file keeps winning.
     if (
       existing &&
       deps.conflicts &&
-      (losingImage !== undefined || (!staged && !stagedAsset))
+      (imageFile || (!staged && !stagedAsset))
     ) {
       const settled = await settleAgainstBase(
         deps,
         deps.conflicts,
-        { rawEntity, entity, existing, filePath, losingImage },
+        { rawEntity, entity, existing, filePath, imageFile },
         result,
       );
       if (settled) return;
@@ -341,11 +336,11 @@ async function settleAgainstBase(
     entity: BaseEntity;
     existing: BaseEntity;
     filePath: string;
-    losingImage?: LosingImage | undefined;
+    imageFile: boolean;
   },
   result: ImportResult,
 ): Promise<boolean> {
-  const { rawEntity, entity, existing, filePath, losingImage } = edit;
+  const { rawEntity, entity, existing, filePath, imageFile } = edit;
   const base = await conflicts.base.get(existing.entityType, existing.id);
   const verdict = compareWithBase({
     base,
@@ -354,6 +349,23 @@ async function settleAgainstBase(
   });
   if (verdict === "import") return false;
 
+  if (verdict === "conflict" && imageFile) {
+    // A losing image is not kept for the Inbox: the brain's newer image
+    // stands, and the file takes it.
+    await deps.restoreEntityFile?.(existing);
+    await conflicts.base.set(
+      existing.entityType,
+      existing.id,
+      existing.contentHash,
+    );
+    recordSkippedImport(result);
+    recordImportIssue(
+      result,
+      filePath,
+      "Not imported: the image changed in the brain too. The file now holds the brain's image.",
+    );
+    return true;
+  }
   if (verdict === "conflict") {
     const held = await conflicts.record({
       entityType: existing.entityType,
@@ -361,15 +373,7 @@ async function settleAgainstBase(
       origin: "file",
       ...(base ? { base } : {}),
       current: existing.contentHash,
-      ...(losingImage
-        ? {
-            text: "",
-            image: {
-              bytes: await losingImage.read(),
-              metadata: losingImage.metadata,
-            },
-          }
-        : { text: rawEntity.content }),
+      text: rawEntity.content,
       targetVisibility: existing.visibility,
       ...(entity.visibility !== existing.visibility
         ? { declaredVisibility: entity.visibility }

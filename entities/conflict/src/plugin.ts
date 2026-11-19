@@ -13,7 +13,6 @@ import { getErrorMessage } from "@brains/utils/error";
 import { truncateText } from "@brains/utils/string-utils";
 import { serviceRuntime } from "@brains/sdk/internal/service-runtime";
 import { conflict } from "./conflict-entity";
-import { conflictImage } from "./conflict-image-entity";
 import { ConflictInboxSource } from "./inbox-source";
 import { ConflictStore } from "./lib/conflict-store";
 
@@ -31,7 +30,7 @@ export const conflictPackage: ServicePackageDefinition<
 > = defineServicePlugin({
   id: "conflicts",
   config: conflictConfigSchema,
-  entities: [conflict, conflictImage],
+  entities: [conflict],
   setup: (context): Record<never, never> => {
     const runtime = serviceRuntime(context);
     const store = new ConflictStore({

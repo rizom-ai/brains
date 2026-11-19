@@ -342,7 +342,7 @@ describe("a drive image save over a newer image", () => {
     };
   }
 
-  it("is kept as an image conflict when the mount read an older image", async () => {
+  it("is refused when the mount read an older image, and nothing is kept", async () => {
     const brain = gallery();
     const dav = drive(brain);
     await dav("GET", IMAGE, { as: laptop });
@@ -350,36 +350,11 @@ describe("a drive image save over a newer image", () => {
 
     const response = await dav("PUT", IMAGE, { as: laptop, body: PNG });
 
-    expect(response.status).toBe(204);
+    // The image stays with the person who sent it.
+    expect(response.status).toBe(409);
     expect(stored(brain, "cover")).toBe(NEWER_REF);
-    expect(brain.conflicts).toHaveLength(1);
-    const [conflict] = brain.conflicts;
-    expect(conflict).toMatchObject({
-      entityType: "image",
-      entityId: "cover",
-      origin: "drive",
-      actor: "laptop",
-      base: "hash-image-cover",
-      current: "hash-newer-image",
-      text: "",
-    });
-    expect([...(conflict?.image?.bytes ?? [])]).toEqual([...PNG]);
-    expect(conflict?.image?.metadata).toMatchObject({ format: "png" });
-    // Nothing was staged for an entity that was not written.
+    expect(brain.conflicts).toEqual([]);
     expect(brain.updates).toEqual([]);
-  });
-
-  it("is kept once when the same bytes come again", async () => {
-    const brain = gallery();
-    const dav = drive(brain);
-    await dav("GET", IMAGE, { as: laptop });
-    replaceInBrain(brain);
-
-    await dav("PUT", IMAGE, { as: laptop, body: PNG });
-    const retry = await dav("PUT", IMAGE, { as: laptop, body: PNG });
-
-    expect(retry.status).toBe(204);
-    expect(brain.conflicts).toHaveLength(1);
   });
 
   it("replaces the image when the mount holds no older version", async () => {
@@ -393,7 +368,6 @@ describe("a drive image save over a newer image", () => {
 
     expect(response.status).toBe(204);
     expect(stored(brain, "cover")).not.toBe(NEWER_REF);
-    expect(brain.conflicts).toEqual([]);
   });
 
   it("takes a mount's own image save as its base", async () => {
@@ -408,6 +382,5 @@ describe("a drive image save over a newer image", () => {
     });
 
     expect(again.status).toBe(204);
-    expect(brain.conflicts).toEqual([]);
   });
 });

@@ -60,7 +60,6 @@ describe("the conflict package's registered surface", () => {
       plugins.map(({ id, type, packageName }) => [id, type, packageName]),
     ).toEqual([
       ["conflict", "entity", "@brains/conflict"],
-      ["conflict-image", "entity", "@brains/conflict"],
       ["conflicts", "service", "@brains/conflict"],
     ]);
     for (const plugin of plugins) {
@@ -73,35 +72,20 @@ describe("the conflict package's registered surface", () => {
   it("registers the conflict type: system, written only by the brain, and out of search, embeddings and projections", async () => {
     const { shell } = await installed();
     const registry = shell.getEntityRegistry();
-    expect(registry.getAllEntityTypes()).toEqual([
-      "conflict",
-      "conflict-image",
-    ]);
-    for (const type of ["conflict", "conflict-image"]) {
-      expect(registry.getEntityTypeConfig(type)).toMatchObject({
-        classification: "system",
-        actionPolicy: never,
-        embeddable: false,
-        fullTextSearchable: false,
-        includeInBroadSearch: false,
-        projectionSource: false,
-        projectionSourceRole: "excluded",
-      });
-    }
-    // A losing image is held as its bytes.
-    expect(registry.getEntityTypeConfig("conflict-image").binaryStorage).toBe(
-      "asset",
-    );
-    expect(
-      registry.getEntityTypeConfig("conflict").binaryStorage,
-    ).toBeUndefined();
+    expect(registry.getAllEntityTypes()).toEqual(["conflict"]);
+    expect(registry.getEntityTypeConfig("conflict")).toMatchObject({
+      classification: "system",
+      actionPolicy: never,
+      embeddable: false,
+      fullTextSearchable: false,
+      includeInBroadSearch: false,
+      projectionSource: false,
+      projectionSourceRole: "excluded",
+    });
   });
 
   it("never stores a public conflict", async () => {
     const { shell } = await installed();
-    expect(
-      shell.getEntityRegistry().getPersistValidator("conflict-image"),
-    ).toBeFunction();
     const validate = shell.getEntityRegistry().getPersistValidator("conflict");
     expect(validate).toBeFunction();
     const persisted = async (

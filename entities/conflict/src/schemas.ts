@@ -34,21 +34,3 @@ export const conflictFieldsSchema: ConflictFieldsSchema = z.object({
 });
 
 export type ConflictFields = z.output<typeof conflictFieldsSchema>;
-
-type ConflictImageFieldsSchema = z.ZodObject<
-  ConflictFieldsSchema["shape"] & {
-    image: z.ZodRecord<z.ZodString, z.ZodUnknown>;
-  }
->;
-
-/**
- * What an image conflict says: the same fields as a text conflict, and what
- * the losing image is (format, dimensions, size), as the way in read it.
- * `edit` is the digest of its bytes.
- */
-export const conflictImageFieldsSchema: ConflictImageFieldsSchema =
-  conflictFieldsSchema.extend({
-    image: z.record(z.string(), z.unknown()),
-  });
-
-export type ConflictImageFields = z.output<typeof conflictImageFieldsSchema>;

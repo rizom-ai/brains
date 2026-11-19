@@ -1,8 +1,5 @@
 import { computeContentHash } from "@brains/utils/hash";
-import {
-  CONFLICT_ENTITY_TYPE,
-  CONFLICT_IMAGE_ENTITY_TYPE,
-} from "@brains/contracts";
+import { CONFLICT_ENTITY_TYPE } from "@brains/contracts";
 import type { SyncConflicts } from "./sync-base";
 import type { ImportLimits } from "./directory-options";
 import {
@@ -94,16 +91,6 @@ async function importFile(
     if (!admission) throw new Error("Missing directory import precondition");
     if (admission.entityType === CONFLICT_ENTITY_TYPE) {
       await restoreConflictFile(deps, filePath, admission, result);
-      return;
-    }
-    if (admission.entityType === CONFLICT_IMAGE_ENTITY_TYPE) {
-      // Image conflicts have no files: none is ever read as one.
-      recordSkippedImport(result);
-      recordImportIssue(
-        result,
-        filePath,
-        "Not imported: image conflicts are kept only by the brain.",
-      );
       return;
     }
     const snapshot = await deps.entityService.getEntityWriteSnapshot({

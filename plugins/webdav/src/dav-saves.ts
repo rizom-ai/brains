@@ -252,14 +252,10 @@ async function keepAsConflict(
     base: MountBase;
     text: string;
     declared: ContentVisibility | undefined;
-    /** A losing image, in place of text. */
-    image?: NonNullable<RecordConflictRequest["image"]>;
   },
 ): Promise<WriteOutcome> {
-  const { existing, base, text, declared, image } = lost;
-  const edit = image
-    ? createHash("sha256").update(image.bytes).digest("hex")
-    : computeContentHash(text);
+  const { existing, base, text, declared } = lost;
+  const edit = computeContentHash(text);
   if (base.conflictEdit === edit) return { status: 204 };
   const kept = await deps.recordConflict({
     entityType: existing.entityType,
@@ -269,7 +265,6 @@ async function keepAsConflict(
     base: base.hash,
     current: existing.contentHash,
     text,
-    ...(image && { image }),
     targetVisibility: existing.visibility,
     ...(declared !== undefined &&
       declared !== existing.visibility && { declaredVisibility: declared }),
@@ -406,18 +401,16 @@ async function saveImageFile(
   const refused = await refusal(deps, grant, operation, target, [operation]);
   if (refused) return refused;
 
-  // As for text: a save that names no version is based on the image this
-  // mount last held, and over a newer one it is kept as a conflict.
+  // A save that names no version is based on the image this mount last
+  // held. Over a newer one it is refused: the image stays with the person
+  // who sent it, and nothing is kept for the Inbox.
   if (located && request.ifMatch === null) {
     const base = await deps.mount.base();
     if (base !== undefined && base.hash !== located.entity.contentHash) {
-      return keepAsConflict(deps, request, {
-        existing: located.entity,
-        base,
-        text: "",
-        declared: undefined,
-        image: { bytes, metadata: { ...described } },
-      });
+      return {
+        status: 409,
+        message: "The image changed since this drive last read it",
+      };
     }
   }
 

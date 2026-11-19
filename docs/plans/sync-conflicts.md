@@ -82,7 +82,7 @@ The Inbox is the admin's. The registry refuses detail and actions to anyone belo
 
 ### A losing image
 
-An image over a newer image follows the same rule as text, from a file in `brain-data/` and from a mount. The entity service binds an asset only to an entity whose whole content is the asset's reference, so a losing image is held in a type of its own, `conflict-image`, beside `conflict`: asset-backed, its content the reference to the losing bytes, its metadata the conflict's fields and what the image is (format, dimensions, size). The same service records it, lists it in the Inbox with the text conflicts, and resolves it: the detail names both images, Apply gives the target the reference and the image's metadata, and Keep current removes the conflict. An image conflict has no file: directory-sync neither exports nor imports the type, and no sweep for missing files deletes one. The bytes cross the bus in the request, which stays in the process the edit lost in. A binary file a pull cannot merge still takes the remote's side.
+An image is not kept as a conflict. Two people replacing one image between syncs is rare, the losing image usually still exists where it came from, and an asset can only be held by an entity that is nothing but its asset, which a conflict is not. An image is still settled against its base, so the brain's newer image is never replaced by an older one: an image file in `brain-data/` that loses is overwritten with the brain's image, and a drive save without `If-Match` over a newer image than the mount read answers 409, which leaves the image with the person who sent it. A binary file a pull cannot merge takes the remote's side.
 
 ## Phases
 
@@ -110,8 +110,8 @@ One PR, a commit per phase, tests first in each, and a changeset.
 
 ### Phase 5 — images
 
-1. Tests: an image file in `brain-data/` and an image save from a mount, each over a newer image, become a conflict whose body is the staged asset's reference; the detail names both images; Apply writes the reference to the target; Keep current removes the conflict and leaves no unreferenced asset.
-2. Implement the image path in the import pipeline and in the drive's image save.
+1. Tests: an image file in `brain-data/` over an unchanged image imports; over an image that changed in the brain too it is not imported, the file takes the brain's image and nothing is recorded; an untouched image file does not replace a newer image. A drive image save over a newer image than the mount read answers 409 and records nothing; with no base it saves; a mount's own image save sets its base.
+2. Implement the base check for images in the import pipeline and in the drive's image save.
 
 ### Phase 6 — background jobs
 

@@ -32,23 +32,6 @@ class PostAdapter extends BaseEntityAdapter<BaseEntity> {
   }
 }
 
-class ImageAdapter extends BaseEntityAdapter<BaseEntity> {
-  constructor() {
-    super({
-      entityType: "image",
-      purpose: "Conflict test image",
-      schema: baseEntitySchema,
-      frontmatterSchema: z.object({}),
-    });
-  }
-  public override toMarkdown(entity: BaseEntity): string {
-    return entity.content;
-  }
-  fromMarkdown(markdown: string): Partial<BaseEntity> {
-    return { content: markdown };
-  }
-}
-
 export interface Brain {
   service: EntityService;
   store: ConflictStore;
@@ -68,17 +51,6 @@ export async function openBrain(dir: string): Promise<Brain> {
   const registry = EntityRegistry.createFresh(logger);
   const conflict = conflictType();
   registry.registerEntityType("conflict", conflict.schema, conflict.adapter);
-  const conflictImage = conflictType("conflict-image");
-  registry.registerEntityType(
-    "conflict-image",
-    conflictImage.schema,
-    conflictImage.adapter,
-    { binaryStorage: "asset" },
-  );
-  // An image as the brain stores one: nothing but a reference to its bytes.
-  registry.registerEntityType("image", baseEntitySchema, new ImageAdapter(), {
-    binaryStorage: "asset",
-  });
   registry.registerEntityType(
     "post",
     baseEntitySchema,
