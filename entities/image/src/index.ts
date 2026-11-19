@@ -57,8 +57,17 @@ function altTextDeps(runtime: ServiceRuntime): AltTextDeps {
         entityType: "image",
         options: { filter: { visibilityScope: "public" } },
       }),
+    // Signed as the service, so the listener never takes it for the owner's.
     update: (entity): Promise<unknown> =>
-      runtime.entityWrites.updateEntity({ entity }),
+      runtime.entityWrites.updateEntity({
+        entity,
+        options: {
+          eventContext: {
+            actor: { kind: "service", serviceId: "image-alt-text" },
+            interfaceType: "job",
+          },
+        },
+      }),
     enqueueDescribe: (imageId): Promise<unknown> =>
       runtime.retries.run(
         () =>

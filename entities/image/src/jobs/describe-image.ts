@@ -24,15 +24,41 @@ export type ImageDescribeResult =
   | { readonly entityId: string; readonly status: "described" | "kept" }
   | { readonly success: false; readonly error: string };
 
-/** The description cut to the limit at a word, without trailing punctuation. */
+/** Words that leave a cut sentence hanging when it ends on them. */
+const DANGLING_WORD =
+  /\s+(?:and|or|but|nor|with|without|of|in|on|at|to|for|from|by|amid|among|beside|near|under|over|into|onto|a|an|the)$/i;
+
+/** Whether the text ends on a word that leaves it hanging. */
+export function endsHanging(text: string): boolean {
+  return DANGLING_WORD.test(text.replace(/[\s,;:.–—-]+$/, ""));
+}
+
+/** The text without trailing punctuation or a word that leaves it hanging. */
+export function withoutDanglingEnd(text: string): string {
+  const trimmed = text.replace(/[\s,;:.–—-]+$/, "");
+  return DANGLING_WORD.test(trimmed)
+    ? withoutDanglingEnd(trimmed.replace(DANGLING_WORD, ""))
+    : trimmed;
+}
+
+/**
+ * The description within the limit: whole when it fits, else cut at its last
+ * clause (a comma or semicolon past half the limit) or, without one, at a
+ * word, never ending on a word that leaves it hanging.
+ */
 export function altTextFrom(description: string): string {
   const sentence = description.replace(/\s+/g, " ").trim();
   if (sentence.length <= ALT_TEXT_LIMIT) return sentence;
   const cut = sentence.slice(0, ALT_TEXT_LIMIT + 1);
+  const lastClause = Math.max(cut.lastIndexOf(","), cut.lastIndexOf(";"));
   const lastSpace = cut.lastIndexOf(" ");
-  return (lastSpace > 0 ? cut.slice(0, lastSpace) : cut.slice(0, -1))
-    .replace(/[\s,;:.–—-]+$/, "")
-    .trim();
+  const end =
+    lastClause >= ALT_TEXT_LIMIT / 2
+      ? lastClause
+      : lastSpace > 0
+        ? lastSpace
+        : ALT_TEXT_LIMIT;
+  return withoutDanglingEnd(cut.slice(0, end));
 }
 
 /**

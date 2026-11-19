@@ -1,5 +1,7 @@
+import type { ActorRef } from "@brains/contracts";
 import { imageMetadataSchema, type ImageMetadata } from "@brains/image";
 import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
+import { endsHanging, withoutDanglingEnd } from "../jobs/describe-image";
 import { altTextAction } from "./alt-text-policy";
 
 /** What the alt-text listener reads, writes and queues through. */
@@ -20,6 +22,8 @@ export interface ImageChangeEvent {
   readonly entityId: string;
   readonly entity?: BaseEntity | undefined;
   readonly previousMetadata?: Record<string, unknown> | undefined;
+  /** Who made the change; a service's write is never the owner's edit. */
+  readonly actor?: ActorRef | undefined;
 }
 
 const metadataOf = (value: unknown): Partial<ImageMetadata> | undefined => {
@@ -48,7 +52,7 @@ export async function handleImageChange(
   if (action === "describe" && deps.canDescribe()) {
     await deps.enqueueDescribe(change.entityId);
   }
-  if (action === "mark-owner") {
+  if (action === "mark-owner" && change.actor?.kind !== "service") {
     // The record as stored now: its alt text must still be the edit's.
     const stored = await deps.readStored(change.entityId);
     if (!stored || stored.metadata["alt"] !== metadata.alt) return;
@@ -59,14 +63,33 @@ export async function handleImageChange(
   }
 }
 
-/** Queue a description for every public image whose alt text is a stand-in. */
+/**
+ * Queue a description for every public image whose alt text is a stand-in,
+ * and trim generated alt text an earlier release cut on a word that leaves
+ * it hanging ("…towns, and").
+ */
 export async function queueUndescribedImages(deps: AltTextDeps): Promise<void> {
-  if (!deps.canDescribe()) return;
   const images = await deps.listPublic();
   for (const image of images) {
     const metadata = metadataOf(image.metadata);
+    if (!metadata) continue;
     if (
-      metadata &&
+      metadata.altSource === "generated" &&
+      metadata.alt !== undefined &&
+      endsHanging(metadata.alt)
+    ) {
+      // The record as stored, its bytes left as they are.
+      const stored = await deps.readStored(image.id);
+      if (stored)
+        await deps.update({
+          ...stored,
+          metadata: {
+            ...stored.metadata,
+            alt: withoutDanglingEnd(metadata.alt),
+          },
+        });
+    } else if (
+      deps.canDescribe() &&
       altTextAction({ visibility: image.visibility, metadata }) === "describe"
     ) {
       await deps.enqueueDescribe(image.id);
