@@ -64,6 +64,7 @@ const targetRecipes: Record<TargetRecipeName, TargetRecipeSelection> = {
 const expectedMembers: Record<TargetRecipeName, string[]> = {
   headless: [
     "prompt",
+    "conflict",
     "profile",
     "style-guide",
     "note",
@@ -78,6 +79,7 @@ const expectedMembers: Record<TargetRecipeName, string[]> = {
   ],
   personal: [
     "prompt",
+    "conflict",
     "profile",
     "style-guide",
     "ask-content",
@@ -105,6 +107,7 @@ const expectedMembers: Record<TargetRecipeName, string[]> = {
   ],
   professional: [
     "prompt",
+    "conflict",
     "profile",
     "style-guide",
     "ask-content",
@@ -149,6 +152,7 @@ const expectedMembers: Record<TargetRecipeName, string[]> = {
   ],
   team: [
     "prompt",
+    "conflict",
     "profile",
     "style-guide",
     "ask-content",

@@ -1,3 +1,11 @@
+import {
+  recordConflictContract,
+  recordConflictRequestSchema,
+  resolveConflictContract,
+  resolveConflictRequestSchema,
+  type RecordConflictRequest,
+  type ResolveConflictRequest,
+} from "@brains/contracts";
 import type { AuthPrincipal } from "@brains/contracts";
 import { createMockShell, type MockShell } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
@@ -179,12 +187,12 @@ async function createMutationFixture(
 function findRoute(
   routes: WebRouteDefinition[],
   method: "POST" | "PUT" | "DELETE",
+  path = "/studio/api/entities",
 ): WebRouteDefinition {
   const route = routes.find(
-    (candidate) =>
-      candidate.path === "/studio/api/entities" && candidate.method === method,
+    (candidate) => candidate.path === path && candidate.method === method,
   );
-  if (!route) throw new Error(`Missing ${method} entity route`);
+  if (!route) throw new Error(`Missing ${method} ${path} route`);
   return route;
 }
 
@@ -229,6 +237,7 @@ function updatePayload(input: {
   id: string;
   status: "draft" | "published";
   visibility?: "public" | "shared" | "restricted";
+  /** The version the edit started from; the fixture's own when not given. */
   baseContentHash?: string;
 }): Record<string, unknown> {
   return {
@@ -240,9 +249,7 @@ function updatePayload(input: {
       visibility: input.visibility ?? "shared",
     },
     body: `${input.id} updated body`,
-    ...(input.baseContentHash
-      ? { baseContentHash: input.baseContentHash }
-      : {}),
+    baseContentHash: input.baseContentHash ?? `${input.id}-hash`,
   };
 }
 
@@ -474,21 +481,227 @@ describe("Studio entity mutation policy", () => {
     ).toContain("shared-draft body");
   });
 
-  it("preserves stale-write checks after authorization", async () => {
-    const { routes } = await createMutationFixture("trusted");
-    const response = await findRoute(routes, "PUT").handler(
-      mutationRequest(
-        "/studio/api/entities",
-        "PUT",
-        updatePayload({
-          id: "shared-draft",
-          status: "draft",
-          baseContentHash: "stale-hash",
-        }),
-      ),
-    );
+  describe("a save over a newer version", () => {
+    /** The conflict service, answering on the bus as the real one does. */
+    function keepConflicts(shell: MockShell): RecordConflictRequest[] {
+      const kept: RecordConflictRequest[] = [];
+      shell
+        .getMessageBus()
+        .subscribe(recordConflictContract.name, async (message) => {
+          kept.push(recordConflictRequestSchema.parse(message.payload));
+          return {
+            success: true,
+            data: {
+              conflictId: "post:shared-draft:20261118T102030Z",
+              created: true,
+            },
+          };
+        });
+      return kept;
+    }
+    const save = async (
+      routes: WebRouteDefinition[],
+      baseContentHash?: string,
+    ): Promise<{ status: number; body: Record<string, unknown> }> => {
+      const response = await findRoute(routes, "PUT").handler(
+        mutationRequest(
+          "/studio/api/entities",
+          "PUT",
+          baseContentHash === undefined
+            ? withoutBase(
+                updatePayload({ id: "shared-draft", status: "draft" }),
+              )
+            : updatePayload({
+                id: "shared-draft",
+                status: "draft",
+                baseContentHash,
+              }),
+        ),
+      );
+      return {
+        status: response.status,
+        body: z.record(z.string(), z.unknown()).parse(await response.json()),
+      };
+    };
+    const withoutBase = ({
+      baseContentHash: _base,
+      ...payload
+    }: Record<string, unknown>): Record<string, unknown> => payload;
+    const current = async (shell: MockShell): Promise<BaseEntity> => {
+      const entity = await shell.getEntityService().getEntity({
+        visibilityScope: "restricted",
+        entityType: "post",
+        id: "shared-draft",
+      });
+      if (!entity) throw new Error("No shared draft");
+      return entity;
+    };
 
-    expect(response.status).toBe(409);
+    it("refuses a save that does not name the version it edited", async () => {
+      const { routes, shell } = await createMutationFixture("trusted");
+      const kept = keepConflicts(shell);
+
+      const { status } = await save(routes);
+
+      expect(status).toBe(400);
+      expect(kept).toEqual([]);
+      expect((await current(shell)).content).toContain("shared-draft body");
+    });
+
+    it("keeps a stale save as a conflict and names it in the 409", async () => {
+      const { routes, shell } = await createMutationFixture("trusted");
+      const kept = keepConflicts(shell);
+      const before = await current(shell);
+
+      const { status, body } = await save(routes, "stale-hash");
+
+      expect(status).toBe(409);
+      expect(body).toMatchObject({
+        conflictId: "post:shared-draft:20261118T102030Z",
+        currentContentHash: before.contentHash,
+      });
+      expect(kept).toHaveLength(1);
+      expect(kept[0]).toMatchObject({
+        entityType: "post",
+        entityId: "shared-draft",
+        origin: "studio",
+        actor: "usr_trusted",
+        base: "stale-hash",
+        current: before.contentHash,
+        targetVisibility: "shared",
+      });
+      expect(kept[0]?.text).toContain("shared-draft updated body");
+      expect((await current(shell)).content).toBe(before.content);
+    });
+
+    it("keeps a save that another writer overtook between the check and the write", async () => {
+      const { routes, shell } = await createMutationFixture("trusted");
+      const kept = keepConflicts(shell);
+      const before = await current(shell);
+      const service = shell.getEntityService();
+      const options: Array<string | undefined> = [];
+      service.updateEntity = async (
+        request,
+      ): ReturnType<typeof service.updateEntity> => {
+        options.push(request.options?.expectedContentHash);
+        return {
+          entityId: request.entity.id,
+          jobId: "",
+          skipped: true,
+          skipReason: "content-conflict" as const,
+        };
+      };
+
+      const { status, body } = await save(routes, before.contentHash);
+
+      // The write names the version the editor opened: check and write are one.
+      expect(options).toEqual([before.contentHash]);
+      expect(status).toBe(409);
+      expect(body["conflictId"]).toBe("post:shared-draft:20261118T102030Z");
+      expect(kept).toHaveLength(1);
+    });
+
+    it("still answers 409 when nothing can hold the conflict", async () => {
+      const { routes } = await createMutationFixture("trusted");
+
+      const { status, body } = await save(routes, "stale-hash");
+
+      expect(status).toBe(409);
+      expect(body["conflictId"]).toBeUndefined();
+    });
+
+    it("saves over the version the editor opened", async () => {
+      const { routes, shell } = await createMutationFixture("trusted");
+      const kept = keepConflicts(shell);
+
+      const { status } = await save(routes, (await current(shell)).contentHash);
+
+      expect(status).toBe(200);
+      expect(kept).toEqual([]);
+      expect((await current(shell)).content).toContain(
+        "shared-draft updated body",
+      );
+    });
+  });
+
+  describe("resolving a conflict from the editor", () => {
+    const CONFLICT = "post:shared-draft:20261118T102030Z";
+    /** The conflict service: it settles only the caller's own conflict. */
+    function resolveConflicts(shell: MockShell): ResolveConflictRequest[] {
+      const asked: ResolveConflictRequest[] = [];
+      shell
+        .getMessageBus()
+        .subscribe(resolveConflictContract.name, async (message) => {
+          const request = resolveConflictRequestSchema.parse(message.payload);
+          asked.push(request);
+          if (request.userId !== "usr_trusted") {
+            // A refusal, as the bus carries one.
+            return {
+              success: false,
+              error:
+                "Only the person whose edit this is, or an admin, can resolve it",
+            };
+          }
+          return { success: true, data: { resolved: true } };
+        });
+      return asked;
+    }
+    const resolve = (
+      routes: WebRouteDefinition[],
+      body: Record<string, unknown>,
+    ): Response | Promise<Response> =>
+      findRoute(routes, "POST", "/studio/api/conflicts").handler(
+        mutationRequest("/studio/api/conflicts", "POST", body),
+      );
+
+    it("asks the conflict service as the signed-in person", async () => {
+      const { routes, shell } = await createMutationFixture("trusted");
+      const asked = resolveConflicts(shell);
+
+      const response = await resolve(routes, {
+        conflictId: CONFLICT,
+        action: "apply",
+      });
+
+      expect(response.status).toBe(200);
+      expect(asked).toEqual([
+        {
+          conflictId: CONFLICT,
+          action: "apply",
+          userId: "usr_trusted",
+          permissionLevel: "trusted",
+        },
+      ]);
+    });
+
+    it("passes on a refusal, and says so when nothing keeps conflicts", async () => {
+      const admin = await createMutationFixture("admin");
+      resolveConflicts(admin.shell);
+      const refused = await resolve(admin.routes, {
+        conflictId: CONFLICT,
+        action: "keep-current",
+      });
+      expect(refused.status).toBe(409);
+
+      const bare = await createMutationFixture("trusted");
+      const unavailable = await resolve(bare.routes, {
+        conflictId: CONFLICT,
+        action: "keep-current",
+      });
+      expect(unavailable.status).toBe(503);
+    });
+
+    it("refuses a request that names no conflict or an unknown action", async () => {
+      const { routes, shell } = await createMutationFixture("trusted");
+      const asked = resolveConflicts(shell);
+
+      expect((await resolve(routes, { action: "apply" })).status).toBe(400);
+      expect(
+        (await resolve(routes, { conflictId: CONFLICT, action: "delete" }))
+          .status,
+      ).toBe(400);
+      expect(asked).toEqual([]);
+    });
   });
 
   it("re-resolves changed roles and enforces wildcard delete policy", async () => {

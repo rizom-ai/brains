@@ -69,3 +69,9 @@ export {
 
 // Round-trip contract for structured body formatters
 export { expectBodyRoundTrip, type BodyFormatter } from "./body-round-trip";
+export {
+  createRacingStore,
+  type RacingStore,
+  type RacingUpdateResult,
+  type VersionedEntity,
+} from "./racing-store";

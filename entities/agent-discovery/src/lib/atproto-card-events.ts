@@ -1,3 +1,4 @@
+import { writeOnCurrent } from "@brains/utils/write-on-current";
 import {
   createAgentContent,
   parseAgentEntity,
@@ -206,83 +207,122 @@ export async function upsertAgentFromCard(
     return { agent: existing, created: false, conflict: true };
   }
 
-  const existingParsed = existing ? parseAgentEntity(existing) : undefined;
+  /**
+   * The agent as the signed card describes it, over what is saved of it:
+   * local relationship fields stay, the card's own are refreshed.
+   */
+  const project = (
+    saved: AgentEntity | null,
+  ): Pick<AgentEntity, "content" | "metadata"> => {
+    const savedParsed = saved ? parseAgentEntity(saved) : undefined;
 
-  const brainDid = record.brain.did;
-  const cardSkills = toAgentSkills(record);
+    const brainDid = record.brain.did;
+    const cardSkills = toAgentSkills(record);
 
-  // Keep local relationship fields (approval/status, stored endpoint URL,
-  // notes) while refreshing remote-owned identity and public capability
-  // snapshot fields from the signed card.
-  const status: AgentStatus = existing?.metadata.status ?? "discovered";
-  const url = existing?.metadata.url ?? siteUrl;
-  const slug = existing?.metadata.slug ?? slugifyUrl(url);
-  const name = record.anchor.name;
-  const kind = record.anchor.category;
-  const discoveredAt = existing?.metadata.discoveredAt ?? now;
-  const about =
-    record.brain.purpose.length > 0
-      ? record.brain.purpose
-      : (existingParsed?.body.about ?? "");
-  const skills =
-    cardSkills.length > 0 ? cardSkills : (existingParsed?.body.skills ?? []);
-  const notes =
-    existingParsed?.body.notes ??
-    buildNotes({
+    // Keep local relationship fields (approval/status, stored endpoint URL,
+    // notes) while refreshing remote-owned identity and public capability
+    // snapshot fields from the signed card.
+    const status: AgentStatus = saved?.metadata.status ?? "discovered";
+    const url = saved?.metadata.url ?? siteUrl;
+    const slug = saved?.metadata.slug ?? slugifyUrl(url);
+    const name = record.anchor.name;
+    const kind = record.anchor.category;
+    const discoveredAt = saved?.metadata.discoveredAt ?? now;
+    const about =
+      record.brain.purpose.length > 0
+        ? record.brain.purpose
+        : (savedParsed?.body.about ?? "");
+    const skills =
+      cardSkills.length > 0 ? cardSkills : (savedParsed?.body.skills ?? []);
+    const notes =
+      savedParsed?.body.notes ??
+      buildNotes({
+        repoDid: input.repoDid,
+        uri: input.uri,
+        cid: input.cid,
+      });
+
+    // Card refresh state lives in the refresh record, not on the agent.
+    const preservedMetadata = { ...(saved?.metadata ?? {}) };
+    delete preservedMetadata.cardCid;
+    delete preservedMetadata.cardLastError;
+    delete preservedMetadata.cardFailureCount;
+    delete preservedMetadata.cardUnavailableAt;
+    delete preservedMetadata.cardStaleAfter;
+    const metadata = {
+      ...preservedMetadata,
+      name,
+      url,
+      status,
+      discoveredAt,
+      slug,
       repoDid: input.repoDid,
-      uri: input.uri,
-      cid: input.cid,
+      ...(brainDid && { brainDid }),
+      cardUri: input.uri,
+    };
+
+    const content = createAgentContent({
+      name,
+      kind,
+      ...(savedParsed?.frontmatter.organization && {
+        organization: savedParsed.frontmatter.organization,
+      }),
+      brainName: record.brain.name,
+      url,
+      ...(brainDid && { brainDid }),
+      repoDid: input.repoDid,
+      cardUri: input.uri,
+      status,
+      discoveredAt,
+      about,
+      skills,
+      notes,
     });
-
-  // Card refresh state lives in the refresh record, not on the agent.
-  const preservedMetadata = { ...(existing?.metadata ?? {}) };
-  delete preservedMetadata.cardCid;
-  delete preservedMetadata.cardLastError;
-  delete preservedMetadata.cardFailureCount;
-  delete preservedMetadata.cardUnavailableAt;
-  delete preservedMetadata.cardStaleAfter;
-  const metadata = {
-    ...preservedMetadata,
-    name,
-    url,
-    status,
-    discoveredAt,
-    slug,
-    repoDid: input.repoDid,
-    ...(brainDid && { brainDid }),
-    cardUri: input.uri,
+    return { content, metadata };
   };
-
-  const content = createAgentContent({
-    name,
-    kind,
-    ...(existingParsed?.frontmatter.organization && {
-      organization: existingParsed.frontmatter.organization,
-    }),
-    brainName: record.brain.name,
-    url,
-    ...(brainDid && { brainDid }),
-    repoDid: input.repoDid,
-    cardUri: input.uri,
-    status,
-    discoveredAt,
-    about,
-    skills,
-    notes,
-  });
+  const { content, metadata } = project(existing);
 
   // Applying a snapshot clears any failure the refresh record held.
   await cardRefreshStore(context).set(agentId, { cid: input.cid });
 
   if (existing) {
-    const updated: AgentEntity = {
-      ...existing,
-      content,
-      metadata,
-      updated: now,
+    // Over the version read only. An agent that changed meanwhile is
+    // projected again from its current version, so a status or a note set
+    // in between stays; one moved above public, or claimed by another
+    // repo, is left as it is.
+    const written: { agent: AgentEntity } = {
+      agent: { ...existing, content, metadata, updated: now },
     };
-    await context.entityService.updateEntity({ entity: updated });
-    return { agent: updated, created: false };
+    await writeOnCurrent({
+      from: existing,
+      read: () =>
+        context.entityService.getEntity(
+          {
+            entityType: "agent",
+            id: agentId,
+            visibilityScope: internalFullScope(
+              "refresh a saved agent from its card on its current version",
+            ),
+          },
+          agentEntitySchema,
+        ),
+      change: (current) => {
+        if (
+          current.visibility !== "public" ||
+          (current.metadata.repoDid !== undefined &&
+            current.metadata.repoDid !== input.repoDid)
+        )
+          return undefined;
+        written.agent = { ...current, ...project(current), updated: now };
+        return written.agent;
+      },
+      write: (entity, expectedContentHash) =>
+        context.entityService.updateEntity({
+          entity,
+          options: { expectedContentHash },
+        }),
+    });
+    return { agent: written.agent, created: false };
   }
 
   const agent: AgentEntity = {
@@ -436,17 +476,38 @@ async function archiveExpiredStaleCandidate(
   agent: AgentEntity,
   now: string,
 ): Promise<void> {
-  const parsed = parseAgentEntity(agent);
-  const content = rewriteAgentContent(parsed, {
-    status: "archived",
-  });
-  await context.entityService.updateEntity({
-    entity: {
-      ...agent,
-      content,
-      metadata: { ...agent.metadata, status: "archived" },
-      updated: now,
-    },
+  // The agent was read before a round of network lookups. One whose status
+  // changed since, approved by a person for instance, is no longer the
+  // stale candidate this was decided for, and stays as it is.
+  await writeOnCurrent({
+    from: agent,
+    read: () =>
+      context.entityService.getEntity(
+        {
+          entityType: "agent",
+          id: agent.id,
+          visibilityScope: internalFullScope(
+            "archive a stale agent on its current version",
+          ),
+        },
+        agentEntitySchema,
+      ),
+    change: (current): AgentEntity | undefined =>
+      current.metadata.status === agent.metadata.status
+        ? {
+            ...current,
+            content: rewriteAgentContent(parseAgentEntity(current), {
+              status: "archived",
+            }),
+            metadata: { ...current.metadata, status: "archived" },
+            updated: now,
+          }
+        : undefined,
+    write: (entity, expectedContentHash) =>
+      context.entityService.updateEntity({
+        entity,
+        options: { expectedContentHash },
+      }),
   });
 }
 

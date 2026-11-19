@@ -1,3 +1,6 @@
+import { computeContentHash } from "@brains/utils/hash";
+import { CONFLICT_ENTITY_TYPE } from "@brains/contracts";
+import type { SyncConflicts } from "./sync-base";
 import type { ImportLimits } from "./directory-options";
 import {
   type ServiceEntityMirrorClient,
@@ -39,6 +42,8 @@ export interface ImportPipelineDeps extends ImportLimits {
   quarantine: Quarantine;
   imageJobQueue: ImageJobQueueDeps;
   entityTypes?: string[] | undefined;
+  conflicts?: SyncConflicts | undefined;
+  restoreEntityFile?: ((entity: BaseEntity) => Promise<void>) | undefined;
 }
 
 export async function importEntities(
@@ -84,6 +89,10 @@ async function importFile(
   try {
     const admission = plan.find((entry) => entry.path === filePath);
     if (!admission) throw new Error("Missing directory import precondition");
+    if (admission.entityType === CONFLICT_ENTITY_TYPE) {
+      await restoreConflictFile(deps, filePath, admission, result);
+      return;
+    }
     const snapshot = await deps.entityService.getEntityWriteSnapshot({
       entityType: admission.entityType,
       id: admission.id,
@@ -91,7 +100,17 @@ async function importFile(
         "check directory import write preconditions",
       ),
     });
-    if ((snapshot?.revision ?? null) !== admission.expectedRevision) {
+    // With a recorded base, the base decides what a file over a changed
+    // entity is: stale, or a conflict. Without one, a change since the sync
+    // was queued still stops the import, as before bases existed.
+    const base = await deps.conflicts?.base.get(
+      admission.entityType,
+      admission.id,
+    );
+    if (
+      base === undefined &&
+      (snapshot?.revision ?? null) !== admission.expectedRevision
+    ) {
       recordSkippedImport(result);
       recordImportIssue(
         result,
@@ -189,6 +208,13 @@ async function processEntityImport(
 
   const existing = snapshot?.entity ?? null;
   if (existing && canSkipBeforeDeserialization(deps, existing, rawEntity)) {
+    // The file is the entity's stored form: that is their base.
+    await deps.conflicts?.base.set(
+      existing.entityType,
+      existing.id,
+      existing.contentHash,
+      computeContentHash(rawEntity.content),
+    );
     recordSkippedImport(result);
     return;
   }
@@ -219,6 +245,35 @@ async function processEntityImport(
       filePath,
       deps.entityService.getEntityTypeConfig(rawEntity.entityType),
     );
+}
+
+/**
+ * A conflict is fixed once written: its file is never imported. A file that
+ * was edited is put back as the brain wrote it; one no conflict stands
+ * behind is left for a person to look at.
+ */
+async function restoreConflictFile(
+  deps: ImportPipelineDeps,
+  filePath: string,
+  admission: { entityType: string; id: string },
+  result: ImportResult,
+): Promise<void> {
+  recordSkippedImport(result);
+  const conflict = await deps.entityService.getEntityRaw({
+    entityType: admission.entityType,
+    id: admission.id,
+    visibilityScope: internalFullScope("restore a conflict's file"),
+    source: true,
+  });
+  if (!conflict) {
+    recordImportIssue(
+      result,
+      filePath,
+      "Not imported: conflicts are written only by the brain, and this file belongs to none.",
+    );
+    return;
+  }
+  await deps.fileOperations.writeEntity(conflict);
 }
 
 function canSkipBeforeDeserialization(

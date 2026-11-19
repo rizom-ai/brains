@@ -1,5 +1,39 @@
 {
   "schemas": {
+    "conflict": {
+      "type": "object",
+      "properties": {
+        "targetType": {
+          "type": "string",
+          "minLength": 1
+        },
+        "targetId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "origin": {
+          "type": "string",
+          "enum": ["studio", "drive", "file", "git"]
+        },
+        "actor": {
+          "type": "string",
+          "minLength": 1
+        },
+        "base": {
+          "type": "string",
+          "minLength": 1
+        },
+        "current": {
+          "type": "string",
+          "minLength": 1
+        },
+        "edit": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": ["targetType", "targetId", "origin", "current", "edit"]
+    },
     "form": {
       "type": "object",
       "properties": {

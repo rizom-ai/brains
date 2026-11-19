@@ -109,6 +109,7 @@ describe("the Studio package's registered surface", () => {
       "GET /studio/api/hierarchy exact",
       "GET /studio/api/entities exact",
       "PUT /studio/api/entities exact",
+      "POST /studio/api/conflicts exact",
       "POST /studio/api/entities exact",
       "DELETE /studio/api/entities exact",
       "POST /studio/api/upload exact",

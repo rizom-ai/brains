@@ -408,43 +408,6 @@ describe("GitSync (simplified)", () => {
       expect(result.deletedFiles).not.toContain("post/new.md");
     });
 
-    it("keeps remote deletions authoritative over a committed local modification", async () => {
-      const gs = await createGitSync();
-      await gs.initialize();
-
-      mkdirSync(join(dataDir, "post"), { recursive: true });
-      const probePath = join(dataDir, "post", "probe.md");
-      writeFileSync(probePath, "# Baseline");
-      await gs.commit("initial probe");
-      await gs.push();
-
-      const cloneDir = join(testDir, "delete-clone");
-      await seedClone(cloneDir);
-      await runGit(["config", "user.name", "Test"], cloneDir);
-      await runGit(["config", "user.email", "test@test.com"], cloneDir);
-
-      writeFileSync(probePath, "# Locally exported after baseline");
-      await gs.commit("local export before pull");
-
-      await runGit(["rm", "post/probe.md"], cloneDir);
-      await runGit(["commit", "-m", "remote delete"], cloneDir);
-      await runGit(["push"], cloneDir);
-
-      const result = await gs.pull();
-
-      expect(existsSync(probePath)).toBe(false);
-      expect(result.files).toContain("post/probe.md");
-      expect(result.deletedFiles).toContain("post/probe.md");
-      expect(
-        (
-          await runGit(
-            ["diff", "--name-only", "origin/main", "--", "post/probe.md"],
-            dataDir,
-          )
-        ).trim(),
-      ).toBe("");
-    });
-
     it("should return empty files array when no changes", async () => {
       const gs = await createGitSync();
       await gs.initialize();

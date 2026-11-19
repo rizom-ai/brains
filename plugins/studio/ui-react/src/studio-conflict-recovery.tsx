@@ -27,6 +27,12 @@ export function StudioConflictRecovery(props: {
   entity: EntityDetail;
   draft: Record<string, unknown>;
   body: string;
+  /**
+   * The conflict the server keeps this refused save in. With one, the
+   * comparison can settle it: save the kept version over the latest, or
+   * take the latest and drop the kept version.
+   */
+  conflictId?: string;
   onUseLatest: (entity: EntityDetail) => void;
 }): ReactElement {
   const api = useStudioApi();
@@ -36,6 +42,35 @@ export function StudioConflictRecovery(props: {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [confirm, setConfirm] = useState(false);
+  const [confirmMine, setConfirmMine] = useState(false);
+  const [resolving, setResolving] = useState(false);
+  const { conflictId } = props;
+  /** Settle the kept version, then reopen on what is stored. */
+  const resolve = async (action: "apply" | "keep-current"): Promise<void> => {
+    if (conflictId === undefined) return;
+    setResolving(true);
+    setError(null);
+    try {
+      await api.resolveConflict(conflictId, action);
+      const stored = await api.fetchEntity(
+        props.entity.entityType,
+        props.entity.id,
+      );
+      setConfirm(false);
+      setConfirmMine(false);
+      setOpen(false);
+      props.onUseLatest(stored);
+    } catch (cause) {
+      setConfirm(false);
+      setConfirmMine(false);
+      setError(
+        getErrorMessage(cause, "The conflict could not be resolved") ||
+          "The conflict could not be resolved",
+      );
+    } finally {
+      setResolving(false);
+    }
+  };
   const request = useRef(0);
   const trigger = useRef<HTMLSpanElement | null>(null);
   useEffect(
@@ -125,6 +160,12 @@ export function StudioConflictRecovery(props: {
             Your draft is unchanged. Review both versions before choosing to
             replace it.
           </p>
+          {conflictId !== undefined && (
+            <p>
+              Your version is also kept in the Inbox as a conflict, so it is not
+              lost if you close this page.
+            </p>
+          )}
           {error && <StudioStatus tone="error">{error}</StudioStatus>}
           <div {...stylex.props(styles.versions)}>
             <label>
@@ -164,6 +205,16 @@ export function StudioConflictRecovery(props: {
             >
               Keep editing my version
             </Button>
+            {conflictId !== undefined && (
+              <Button
+                type="button"
+                variant="ghost"
+                disabled={!latest || loading || resolving}
+                onClick={() => setConfirmMine(true)}
+              >
+                Save my version
+              </Button>
+            )}
             <Button
               type="button"
               disabled={!latest || loading || error !== null}
@@ -183,6 +234,11 @@ export function StudioConflictRecovery(props: {
           confirmLabel="Replace with latest"
           onCancel={() => setConfirm(false)}
           onConfirm={() => {
+            // With a kept version, taking the latest also drops it.
+            if (conflictId !== undefined) {
+              void resolve("keep-current");
+              return;
+            }
             props.onUseLatest(latest);
             setConfirm(false);
             setOpen(false);
@@ -191,6 +247,22 @@ export function StudioConflictRecovery(props: {
           <p>
             This discards your local edits. Copy your version first if you want
             to keep it. Nothing is written to the server.
+          </p>
+        </ConfirmDialog>
+      )}
+      {confirmMine && latest && (
+        <ConfirmDialog
+          title="Save your version over the latest?"
+          titleId="apply-kept-version"
+          mark="↑"
+          cancelLabel="Not now"
+          confirmLabel="Save over latest"
+          onCancel={() => setConfirmMine(false)}
+          onConfirm={() => void resolve("apply")}
+        >
+          <p>
+            This replaces the latest saved version with the version you tried to
+            save. The latest version's changes are overwritten.
           </p>
         </ConfirmDialog>
       )}

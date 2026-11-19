@@ -42,6 +42,7 @@ describe("git operation contract", () => {
       push: "push",
       commitAndPush: "commit-and-push",
       pull: "pull",
+      acknowledgePullConflicts: "acknowledge-pull-conflicts",
       getReconciliationDelta: "get-reconciliation-delta",
       log: "log-file",
       show: "show-file",

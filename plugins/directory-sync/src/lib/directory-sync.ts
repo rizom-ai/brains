@@ -1,3 +1,5 @@
+import type { PullConflict } from "../types/results";
+import { SyncGuard, type RemovedFileOutcome } from "./sync-guard";
 import type { ServiceEntityMirrorClient } from "@brains/sdk/internal/service-runtime";
 import type { DirectorySyncCore } from "./sync-context";
 import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
@@ -76,6 +78,7 @@ export class DirectorySync implements IDirectorySync {
   private fileOperations: FileOperations;
   private progressOperations: ProgressOperations;
   private operationDeps: DirectoryOperationDeps;
+  private readonly guard: SyncGuard;
   private jobQueueCallback?:
     ((job: JobRequest) => Promise<string | undefined>) | undefined;
   private readonly pendingDeletes: PendingDeleteRegistry;
@@ -107,6 +110,14 @@ export class DirectorySync implements IDirectorySync {
     this.fileOperations = dependencies.fileOperations;
     this.batchQueue = dependencies.batchQueue;
     this.progressOperations = dependencies.progressOperations;
+    this.guard = new SyncGuard({
+      entityService: this.entityService,
+      fileOperations: this.fileOperations,
+      syncPath: this.syncPath,
+      conflicts: options.conflicts,
+      importPaths: (paths): Promise<unknown> =>
+        this.importEntitiesUnbatched(paths),
+    });
     this.operationDeps = createDirectoryOperationDeps(
       this.logger,
       this.entityService,
@@ -119,6 +130,8 @@ export class DirectorySync implements IDirectorySync {
       this.pendingDeletes,
       (): ((job: JobRequest) => Promise<string | undefined>) | undefined =>
         this.jobQueueCallback,
+      options.conflicts,
+      this.guard,
     );
 
     this.logger.debug("Initialized with path", {
@@ -290,6 +303,24 @@ export class DirectorySync implements IDirectorySync {
       },
       mutation,
     );
+  }
+
+  /** Write an entity's file, keeping an edit the file holds as a conflict. */
+  writeEntityFile(entity: BaseEntity): Promise<void> {
+    return this.guard.writeEntityFile(entity);
+  }
+
+  /** Keep the remote texts a pull did not take as conflicts. */
+  recordPullConflicts(conflicts: PullConflict[]): Promise<string[]> {
+    return this.guard.recordPullConflicts(conflicts);
+  }
+
+  /** Delete the entity of a removed file unless it changed since they agreed. */
+  deleteForRemovedFile(
+    entityType: string,
+    id: string,
+  ): Promise<RemovedFileOutcome> {
+    return this.guard.deleteForRemovedFile(entityType, id);
   }
 
   get fileOps(): FileOperations {

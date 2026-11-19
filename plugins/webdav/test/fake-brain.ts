@@ -1,3 +1,5 @@
+import type { RecordConflictRequest } from "@brains/contracts";
+import { memoryMountBases } from "../src/dav-mounts";
 import type { AppendAuthAuditEventInput } from "@brains/contracts";
 import {
   EntityValidationError,
@@ -47,7 +49,14 @@ export interface RecordedUpdate {
 }
 
 export interface FakeBrain {
-  options: Pick<DavRoutesOptions, "reader" | "writes">;
+  options: Pick<
+    DavRoutesOptions,
+    "reader" | "writes" | "mounts" | "recordConflict"
+  >;
+  /** Losing saves the drive handed over to be kept. */
+  conflicts: RecordConflictRequest[];
+  /** Whether anything holds a conflict; a brain without it refuses. */
+  conflictsAvailable: boolean;
   entities: BaseEntity[];
   updates: RecordedUpdate[];
   creates: RecordedUpdate[];
@@ -100,7 +109,16 @@ export function fakeBrain(
     discarded: [],
     audit: [],
     beforeNextUpdate: undefined,
+    conflicts: [],
+    conflictsAvailable: true,
     options: {
+      // Held by the brain, as runtime-state is: a new server finds it again.
+      mounts: memoryMountBases(() => 1_800_000_000_000),
+      recordConflict: async (request): Promise<boolean> => {
+        if (!brain.conflictsAvailable) return false;
+        brain.conflicts.push(request);
+        return true;
+      },
       reader: {
         ...fakeReader({ entities, assets, ...(types ? { types } : {}) }),
         getEntityTypeConfig: (type) =>
@@ -151,7 +169,7 @@ export function fakeBrain(
         },
         permissions: {
           assertEntityActionAllowed: (entityType, action, context) => {
-            if (entityType === "locked") {
+            if (entityType === "locked" || entityType === "conflict") {
               throw new Error(`To ${action} \`locked\` is not allowed.`);
             }
             if (

@@ -120,6 +120,7 @@ export async function importImageFile(
     result,
     snapshot,
     stagedAsset,
+    true,
   );
 }
 

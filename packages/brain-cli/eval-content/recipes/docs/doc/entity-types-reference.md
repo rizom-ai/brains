@@ -42,6 +42,7 @@ Core fields such as `id`, `entityType`, `created`, `updated`, and the markdown b
 | `note`                               | `@brains/note`                       | `core`       | Root-level notes and general markdown knowledge.           |
 | `refined-note`                       | `@brains/refined-note`               | `core`       | Worked-out notes written from notes, which they replace.   |
 | `prompt`                             | `@brains/prompt`                     | `core`       | Prompt/template overrides.                                 |
+| `conflict`                           | `@brains/conflict`                   | `core`       | An edit that lost to a newer version, kept for the Inbox.  |
 | `link`                               | `@brains/link`                       | `core`       | Captured links and extracted summaries.                    |
 | `wish`                               | `@brains/wishlist`                   | `core`       | User requests and roadmap wishes.                          |
 | `topic`                              | `@brains/topics`                     | `core`       | Derived topic clusters.                                    |

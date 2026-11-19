@@ -1,3 +1,4 @@
+import { writeOnCurrent } from "@brains/utils/write-on-current";
 import {
   internalFullScope,
   type ClassRuntimeStateStore,
@@ -305,14 +306,33 @@ export class PublicationQueueService {
     status: "draft" | "queued" | "failed",
     error?: string,
   ): Promise<void> {
-    const metadata: Record<string, unknown> = { ...entity.metadata, status };
-    if (error) metadata["error"] = error;
-    else delete metadata["error"];
-    const content = FRONTMATTER_BLOCK.test(entity.content)
-      ? updateFrontmatterField(entity.content, "status", status)
-      : entity.content;
-    await this.context.entityService.updateEntity({
-      entity: { ...entity, metadata, content },
+    // The status is set on the current version: an edit made since the
+    // entity was read keeps its text.
+    await writeOnCurrent({
+      from: entity,
+      read: () =>
+        this.context.entityService.getEntity({
+          entityType: entity.entityType,
+          id: entity.id,
+          visibilityScope: internalFullScope("publication queue bookkeeping"),
+        }),
+      change: (current) => {
+        const metadata: Record<string, unknown> = {
+          ...current.metadata,
+          status,
+        };
+        if (error) metadata["error"] = error;
+        else delete metadata["error"];
+        const content = FRONTMATTER_BLOCK.test(current.content)
+          ? updateFrontmatterField(current.content, "status", status)
+          : current.content;
+        return { ...current, metadata, content };
+      },
+      write: (changed, expectedContentHash) =>
+        this.context.entityService.updateEntity({
+          entity: changed,
+          options: { expectedContentHash },
+        }),
     });
   }
 

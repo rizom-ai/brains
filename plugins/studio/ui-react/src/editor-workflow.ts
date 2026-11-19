@@ -7,7 +7,8 @@ export type SaveState =
   | { kind: "saving" }
   /** noop: the entity service skipped a byte-identical write. */
   | { kind: "saved"; noop?: boolean }
-  | { kind: "conflict"; message: string }
+  /** conflictId: the conflict that holds the refused save, when one does. */
+  | { kind: "conflict"; message: string; conflictId?: string }
   | { kind: "error"; message: string; issues?: ValidationIssue[] };
 
 export type EditorMode =

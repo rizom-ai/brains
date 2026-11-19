@@ -1,3 +1,8 @@
+import {
+  CONFLICT_ENTITY_TYPE,
+  recordConflictContract,
+} from "@brains/contracts";
+import { runtimeStateSyncBase } from "./lib/sync-base";
 import type { DirectorySyncContext } from "./lib/sync-context";
 import type {
   Tool,
@@ -472,6 +477,18 @@ export class DirectorySyncService {
     );
   }
 
+  /**
+   * Directory-sync turns an edit that lost into a conflict. Without the
+   * type that holds one, the edit would be dropped, so the brain stops.
+   */
+  assertConflictsCanBeKept(): void {
+    const types = this.getContext().entityService.getEntityTypes();
+    if (types.includes(CONFLICT_ENTITY_TYPE)) return;
+    throw new Error(
+      `directory-sync needs the "${CONFLICT_ENTITY_TYPE}" entity type to keep edits that lose to a newer version. Add "conflict" to this brain, which the core bundle includes.`,
+    );
+  }
+
   /** Once the brain is ready, where the class's onReady ran. */
   async ready(): Promise<void> {
     if (this.config.seedContent && this.config.strictSeedEntityTypes) {
@@ -528,6 +545,18 @@ export class DirectorySyncService {
         maxAssetImportBytes: this.config.maxAssetImportBytes,
         entityService: context.entityService,
         logger: context.logger,
+        conflicts: {
+          base: runtimeStateSyncBase(context.runtimeState),
+          // Unanswered when the conflict service is not running here; the
+          // file then stays as it is until one answers.
+          record: async (request): Promise<boolean> =>
+            (
+              await context.runtime.messaging.request(
+                recordConflictContract,
+                request,
+              )
+            ).status === "answered",
+        },
       },
       this.pendingDeletes,
     );

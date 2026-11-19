@@ -1,3 +1,6 @@
+import type { RecordConflictRequest } from "@brains/contracts";
+import { memoryMountBases, type MountBases } from "./dav-mounts";
+import type { MountView } from "./dav-saves";
 import type { AuthAppPasswordGrant } from "@brains/contracts";
 import type { WebRouteDefinition } from "@brains/sdk/internal/interface-runtime";
 import { permissionToVisibilityScope } from "@brains/sdk/internal/service-runtime";
@@ -33,6 +36,10 @@ export interface DavRoutesOptions {
   ) => Promise<AuthAppPasswordGrant | undefined>;
   /** Milliseconds since the epoch; the clock temporary files age by. */
   now?: () => number;
+  /** The versions mounts hold; kept in memory when not given. */
+  mounts?: MountBases;
+  /** Keep a losing save as a conflict; nothing holds one when not given. */
+  recordConflict?: (request: RecordConflictRequest) => Promise<boolean>;
 }
 
 const READ_METHODS = ["OPTIONS", "GET", "HEAD", "PROPFIND"] as const;
@@ -80,6 +87,7 @@ interface DavRequest {
 
 interface DavServer {
   options: DavRoutesOptions;
+  mounts: MountBases;
   scratch: ScratchStore;
   locks: LockStore;
   cleanups: CleanupGuard;
@@ -96,6 +104,7 @@ export function createDavRoutes(
 ): WebRouteDefinition[] {
   const server: DavServer = {
     options,
+    mounts: options.mounts ?? memoryMountBases(options.now),
     scratch: new ScratchStore(options.now),
     locks: new LockStore(options.now),
     cleanups: new CleanupGuard(options.now),
@@ -228,11 +237,26 @@ async function folderExists(
   );
 }
 
+/** What this request's mount holds of the file the request names. */
+function mountView(server: DavServer, dav: DavRequest): MountView {
+  const mount = dav.grant.appPasswordId;
+  const path = (dav.path?.segments ?? []).join("/");
+  return {
+    base: () => server.mounts.get(mount, path),
+    held: (hash) => server.mounts.held(mount, path, hash),
+    conflictKept: (edit) => server.mounts.conflictKept(mount, path, edit),
+    forget: () => server.mounts.forget(mount, path),
+  };
+}
+
 function writeDeps(server: DavServer, dav: DavRequest): WriteDeps {
   return {
     tree: dav.tree,
     reader: server.options.reader,
     writes: server.options.writes,
+    mount: mountView(server, dav),
+    recordConflict: async (request) =>
+      (await server.options.recordConflict?.(request)) ?? false,
     folderExists: (segments) => folderExists(server, dav, segments),
   };
 }
@@ -260,6 +284,9 @@ async function read(
   const node = await nodeAt(server, dav);
   if (!node) return notFound();
   if (node.kind === "folder") return folderHasNoContent();
+  // Reading a file is what a mount's next save without a version is based
+  // on. The ETag is the content hash, quoted.
+  await mountView(server, dav).held(node.etag.replace(/^"|"$/g, ""));
   return new Response(withBody ? await node.open() : null, {
     status: 200,
     headers: {

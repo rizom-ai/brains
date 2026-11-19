@@ -11,6 +11,10 @@ export function createDirectorySyncFacade(
       getActive().setJobQueueCallback(callback),
     sync: () => getActive().sync(),
     processEntityExport: (entity) => getActive().processEntityExport(entity),
+    recordPullConflicts: (conflicts) =>
+      getActive().recordPullConflicts(conflicts),
+    deleteForRemovedFile: (entityType, id) =>
+      getActive().deleteForRemovedFile(entityType, id),
     exportEntities: (entityTypes) => getActive().exportEntities(entityTypes),
     importEntitiesWithProgress: (
       paths,
@@ -75,6 +79,8 @@ export function createGitSyncFacade(getActive: () => IGitSync): IGitSync {
     commitAndPush: () => getActive().commitAndPush(),
     push: (signal) => getActive().push(signal),
     pull: (signal) => getActive().pull(signal),
+    acknowledgePullConflicts: (ids) =>
+      getActive().acknowledgePullConflicts(ids),
     getReconciliationDelta: (checkpoint) =>
       getActive().getReconciliationDelta(checkpoint),
     cleanup: () => getActive().cleanup(),

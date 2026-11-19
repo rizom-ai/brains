@@ -3,7 +3,11 @@ import type {
   GitReconciliationCheckpoint,
   GitReconciliationDelta,
 } from "../../types";
-import { getChangedPaths, tryResolveRemoteHead } from "./git-pull";
+import {
+  getChangedPaths,
+  tryResolveRemoteHead,
+  withoutKeptFiles,
+} from "./git-pull";
 
 /**
  * Reconciliation state derived from the repository itself.
@@ -79,7 +83,7 @@ async function getRemoteChanges(
   if (!(await isAncestor(git, previousHead, currentHead))) return undefined;
   if (previousHead === currentHead) return { deletedFiles: [] };
   const changes = await getChangedPaths(git, previousHead, currentHead);
-  return { deletedFiles: changes.deletedFiles };
+  return { deletedFiles: await withoutKeptFiles(git, changes.deletedFiles) };
 }
 
 export async function getReconciliationDelta(

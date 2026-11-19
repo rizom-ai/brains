@@ -107,6 +107,10 @@ export function StudioEditorSaveBar(
                 entity={mode.entity}
                 draft={draft}
                 body={body}
+                {...(saveState.kind === "conflict" &&
+                  saveState.conflictId !== undefined && {
+                    conflictId: saveState.conflictId,
+                  })}
                 onUseLatest={(entity) =>
                   dispatchEditor({
                     type: "documentOpened",

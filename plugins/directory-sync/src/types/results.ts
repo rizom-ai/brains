@@ -76,15 +76,32 @@ export type GitSyncStatus = z.output<typeof gitSyncStatusSchema>;
 /**
  * Pull result — files changed by the pull operation.
  */
+export const pullConflictSchema: z.ZodObject<
+  { id: z.ZodString; path: z.ZodString; text: z.ZodString },
+  z.core.$strict
+> = z.strictObject({
+  id: z.string().regex(/^[a-f0-9]{64}$/),
+  /** The file, relative to the sync directory. */
+  path: z.string().min(1),
+  /** The remote's version of it, which the merge did not take. */
+  text: z.string(),
+});
+
+/** A remote text a pull left out because the brain changed the same lines. */
+export type PullConflict = z.output<typeof pullConflictSchema>;
+
 export const pullResultSchema: z.ZodObject<
   {
     files: z.ZodArray<z.ZodString>;
     deletedFiles: z.ZodOptional<z.ZodArray<z.ZodString>>;
+    conflicts: z.ZodOptional<z.ZodArray<typeof pullConflictSchema>>;
   },
   z.core.$strict
 > = z.strictObject({
   files: z.array(z.string()),
   deletedFiles: z.array(z.string()).optional(),
+  /** Every remote text not acknowledged yet, from this pull or an earlier one. */
+  conflicts: z.array(pullConflictSchema).optional(),
 });
 
 export type PullResult = z.output<typeof pullResultSchema>;

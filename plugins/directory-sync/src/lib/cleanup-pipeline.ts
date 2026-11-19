@@ -69,11 +69,13 @@ export async function removeOrphanedEntities(
     const orphans = await findOrphans(deps, entityType, 0);
     for (const entity of orphans) {
       try {
-        await deps.entityService.deleteEntity({
+        const deleted = await deps.entityService.deleteEntity({
           entityType: entity.entityType,
           id: entity.id,
           options: { persistenceOrigin: "directory-sync" },
         });
+        // An entity that changed since its file was last written stays.
+        if (!deleted) continue;
         deps.onEntityDeleted?.(entity);
         recordCleanupDeleted(deps.logger, result, entity);
       } catch (error) {

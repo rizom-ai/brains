@@ -52,6 +52,7 @@ Common capabilities include:
 
 - brain and Anchor identity through `profile`, `prompt`, and `style-guide`;
 - markdown vault synchronization through `directory-sync`;
+- edits that lost to a newer version, kept through `conflict` and resolved in the Inbox;
 - universal knowledge atoms through `note`, `link`, and `topics`;
 - the live operator-attention projection through `unified-inbox`;
 - MCP over stdio;

@@ -255,6 +255,8 @@ describe("the stock-photo package's registered surface", () => {
           ...post,
           metadata: { ...post.metadata, coverImageId: "abc123" },
         },
+        // Over the version it read only.
+        options: { expectedContentHash: post.contentHash },
       },
     ]);
     expect(handler.validateAndParse({ photoId: "x" })).toBeNull();
@@ -290,6 +292,8 @@ describe("the stock-photo package's registered surface", () => {
           ...post,
           metadata: { ...post.metadata, coverImageId: "existing-image" },
         },
+        // Over the version it read only.
+        options: { expectedContentHash: post.contentHash },
       },
     ]);
   });

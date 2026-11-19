@@ -90,6 +90,7 @@ describe("studio plugin", () => {
       "GET /studio/api/hierarchy exact",
       "GET /studio/api/entities exact",
       "PUT /studio/api/entities exact",
+      "POST /studio/api/conflicts exact",
       "POST /studio/api/entities exact",
       "DELETE /studio/api/entities exact",
       "POST /studio/api/upload exact",

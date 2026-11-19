@@ -12,6 +12,7 @@ import type {
   GitReconciliationDelta,
   GitSyncStatus,
   ImportResult,
+  PullConflict,
   PullResult,
   RawEntity,
 } from "./results";
@@ -97,6 +98,16 @@ export interface IDirectorySync {
   withoutStoredEchoes(paths: string[]): Promise<string[]>;
   recordPendingPullDeletes(paths: string[]): Promise<void>;
   isPendingDelete(entityType: string, entityId: string): boolean;
+  /** Delete the entity of a removed file unless it changed since they agreed. */
+  deleteForRemovedFile(
+    entityType: string,
+    id: string,
+  ): Promise<"deleted" | "kept" | "missing">;
+  /**
+   * Keep the remote texts a pull did not take as conflicts. Answers the ids
+   * that need no further keeping: recorded, or belonging to no entity.
+   */
+  recordPullConflicts(conflicts: PullConflict[]): Promise<string[]>;
   completePendingDelete(
     entityType: string,
     entityId: string,
@@ -127,6 +138,8 @@ export interface IGitSync {
   }>;
   push(signal?: AbortSignal): Promise<void>;
   pull(signal?: AbortSignal, onProgress?: () => void): Promise<PullResult>;
+  /** Drop remote texts a pull handed back, once they are recorded. */
+  acknowledgePullConflicts(ids: string[]): Promise<void>;
   getReconciliationDelta(
     checkpoint?: GitReconciliationCheckpoint,
   ): Promise<GitReconciliationDelta>;

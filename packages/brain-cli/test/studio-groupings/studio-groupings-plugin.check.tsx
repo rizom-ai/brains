@@ -1,4 +1,5 @@
 /** @jsxImportSource react */
+import { asJustOpened } from "../helpers/just-opened";
 import { afterEach, expect, spyOn, test } from "bun:test";
 import { act } from "react";
 import { authServiceOf, authServicePlugin } from "@brains/auth-service";
@@ -145,15 +146,17 @@ async function fixture(): Promise<{
             role,
           ),
       }),
-    request: (method, path, body, role = "admin"): Promise<Response> =>
-      dispatch(
+    request: async (method, path, sent, role = "admin"): Promise<Response> => {
+      const body = await asJustOpened(service, method, path, sent);
+      return dispatch(
         new Request(`https://studio.test${base}/api/${path}`, {
           method,
           headers: { "Content-Type": "application/json" },
           ...(body === undefined ? {} : { body: JSON.stringify(body) }),
         }),
         role,
-      ),
+      );
+    },
   };
 }
 

@@ -289,7 +289,13 @@ export function useEditorActions(input: EditorActionsInput): EditorActions {
             error instanceof ApiError &&
             error.status === 409 &&
             mode.kind === "edit"
-              ? { kind: "conflict", message: errorMessage(error) }
+              ? {
+                  kind: "conflict",
+                  message: errorMessage(error),
+                  ...(error.conflictId !== undefined && {
+                    conflictId: error.conflictId,
+                  }),
+                }
               : {
                   kind: "error",
                   message:

@@ -138,7 +138,9 @@ export class PublishExecutor implements PublishEntityExecutor {
     // delivery, and the overlap is collapsed by the job dedupe key.
     await this.runPublishAssetPreflight(updated);
 
-    return { entity: updated, result };
+    // Read back as written: it may be a newer version with the publish
+    // fields set on it.
+    return { entity: publishableEntitySchema.parse(updated), result };
   }
 
   private async runPublishAssetPreflight(entity: BaseEntity): Promise<void> {

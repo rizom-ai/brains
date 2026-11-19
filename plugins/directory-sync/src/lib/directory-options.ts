@@ -4,6 +4,7 @@ import { z } from "@brains/utils/zod";
 import { resolveSyncPath } from "./directory-path";
 import { IMAGE_ASSET_MAX_BYTES } from "@brains/image";
 import { DEFAULT_MAX_IMPORT_FILE_BYTES } from "./oversized-file-error";
+import type { SyncConflicts } from "./sync-base";
 
 export const directorySyncOptionsSchema: z.ZodObject<{
   syncPath: z.ZodString;
@@ -32,6 +33,11 @@ export type DirectorySyncOptionsInput = z.output<
 export interface DirectorySyncOptions extends DirectorySyncOptionsInput {
   entityService: ServiceEntityMirrorClient;
   logger: Logger;
+  /**
+   * The versions files and entities last agreed on, and where an edit that
+   * lost goes. Without it every differing file wins, as before bases existed.
+   */
+  conflicts?: SyncConflicts | undefined;
 }
 
 /** File-size limits applied when a file is read for import. */

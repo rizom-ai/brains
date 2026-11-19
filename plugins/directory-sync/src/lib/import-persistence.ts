@@ -1,3 +1,4 @@
+import { compareWithBase, type SyncConflicts } from "./sync-base";
 import {
   base64AssetSource,
   type ServiceEntityMirrorClient,
@@ -40,6 +41,10 @@ export interface ImportPersistenceDeps {
   >;
   maxAssetImportBytes: number;
   logger: Logger;
+  /** Bases and conflicts; without them a differing file always wins. */
+  conflicts?: SyncConflicts | undefined;
+  /** Write an entity's file as export does, where a file must not win. */
+  restoreEntityFile?: ((entity: BaseEntity) => Promise<void>) | undefined;
   quarantine: {
     isValidationError(error: unknown): boolean;
     quarantineInvalidFile(
@@ -120,6 +125,11 @@ export async function persistImportEntity(
   >,
   /** Bytes already staged from the file; otherwise inline content is staged here. */
   staged?: StagedAsset,
+  /**
+   * The file is an image. An image is settled against its base as text is,
+   * but one that loses is not kept: the brain's image stands.
+   */
+  imageFile = false,
 ): Promise<void> {
   // Staged bytes no upsert takes are discarded on every other way out.
   let unpublished = staged;
@@ -205,8 +215,33 @@ export async function persistImportEntity(
       existing.visibility === entity.visibility &&
       Bun.deepEquals(existing.metadata, entity.metadata)
     ) {
+      // The two agree: that is their base, whatever was recorded before.
+      await deps.conflicts?.base.set(
+        entity.entityType,
+        entity.id,
+        existing.contentHash,
+        staged || stagedAsset
+          ? undefined
+          : computeContentHash(rawEntity.content),
+      );
       recordSkippedImport(result);
       return;
+    }
+    // A file that differs from its entity is an edit only against the
+    // version the two last agreed on. Text and images are settled that
+    // way; any other binary file keeps winning.
+    if (
+      existing &&
+      deps.conflicts &&
+      (imageFile || (!staged && !stagedAsset))
+    ) {
+      const settled = await settleAgainstBase(
+        deps,
+        deps.conflicts,
+        { rawEntity, entity, existing, filePath, imageFile },
+        result,
+      );
+      if (settled) return;
     }
     const options = {
       persistenceOrigin: writeBack
@@ -230,6 +265,15 @@ export async function persistImportEntity(
       jobId: upsertResult.jobId,
     });
 
+    // A file written back differs from the one read; export records it.
+    await deps.conflicts?.base.set(
+      entity.entityType,
+      entity.id,
+      entity.contentHash,
+      writeBack || staged || stagedAsset
+        ? undefined
+        : computeContentHash(rawEntity.content),
+    );
     await deps.quarantine.markAsRecoveredIfNeeded(filePath);
   } catch (error) {
     if (error instanceof EntityWriteConflictError) {
@@ -276,6 +320,93 @@ export async function persistImportEntity(
         .catch(() => undefined);
     }
   }
+}
+
+/**
+ * Decide a differing file against the version it last agreed with its
+ * entity on. True when the file must not be imported: it is stale, or both
+ * changed and its text is now a conflict. Either way the entity stands, and
+ * its file is written back so the two agree again.
+ */
+async function settleAgainstBase(
+  deps: ImportPersistenceDeps,
+  conflicts: SyncConflicts,
+  edit: {
+    rawEntity: RawEntity;
+    entity: BaseEntity;
+    existing: BaseEntity;
+    filePath: string;
+    imageFile: boolean;
+  },
+  result: ImportResult,
+): Promise<boolean> {
+  const { rawEntity, entity, existing, filePath, imageFile } = edit;
+  const base = await conflicts.base.get(existing.entityType, existing.id);
+  const verdict = compareWithBase({
+    base,
+    fileHash: entity.contentHash,
+    entityHash: existing.contentHash,
+  });
+  if (verdict === "import") return false;
+
+  if (verdict === "conflict" && imageFile) {
+    // A losing image is not kept for the Inbox: the brain's newer image
+    // stands, and the file takes it.
+    await deps.restoreEntityFile?.(existing);
+    await conflicts.base.set(
+      existing.entityType,
+      existing.id,
+      existing.contentHash,
+    );
+    recordSkippedImport(result);
+    recordImportIssue(
+      result,
+      filePath,
+      "Not imported: the image changed in the brain too. The file now holds the brain's image.",
+    );
+    return true;
+  }
+  if (verdict === "conflict") {
+    const held = await conflicts.record({
+      entityType: existing.entityType,
+      entityId: existing.id,
+      origin: "file",
+      ...(base ? { base } : {}),
+      current: existing.contentHash,
+      text: rawEntity.content,
+      targetVisibility: existing.visibility,
+      ...(entity.visibility !== existing.visibility
+        ? { declaredVisibility: entity.visibility }
+        : {}),
+    });
+    if (!held) {
+      // The file is the edit's only copy: it stays as it is.
+      recordSkippedImport(result);
+      recordImportIssue(
+        result,
+        filePath,
+        "Not imported: the entry changed in the brain too, and this file's edit could not be kept as a conflict. The file is left as it is.",
+      );
+      return true;
+    }
+  }
+  await deps.restoreEntityFile?.(existing);
+  await conflicts.base.set(
+    existing.entityType,
+    existing.id,
+    existing.contentHash,
+  );
+  recordSkippedImport(result);
+  // A stale file is the ordinary case of an export that had not run yet,
+  // and nothing to report; a conflict is.
+  if (verdict === "conflict") {
+    recordImportIssue(
+      result,
+      filePath,
+      "Not imported: the entry changed in the brain too. This file's edit is kept as a conflict in the Inbox, and the file now holds the brain's version.",
+    );
+  }
+  return true;
 }
 
 const DATA_URL_PAYLOAD = /^data:[^;,]+;base64,([\s\S]*)$/;

@@ -43,6 +43,9 @@ export function createDirectorySyncPackage(
       await sync.registerCommon();
       // After its job handlers: a replay Git runs here queues them.
       runtime.registering(() => sync.registerRoles());
+      // Once every type is registered: a brain that cannot keep a losing
+      // edit must not sync files at all.
+      runtime.registered(() => sync.assertConflictsCanBeKept());
       runtime.ready(() => sync.ready());
       context.lifecycle.onCleanup(() => sync.shutdown());
       const state = { sync };
