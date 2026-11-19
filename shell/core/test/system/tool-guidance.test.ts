@@ -2,7 +2,10 @@ import { describe, expect, it } from "bun:test";
 import type { Tool } from "@brains/mcp-service";
 import { createSystemTools } from "../../src/system/tools";
 import { createMockSystemServices } from "./mock-services";
-import { generateInputSchema } from "../../src/system/schemas";
+import {
+  createInputSchema,
+  generateInputSchema,
+} from "../../src/system/schemas";
 import { z } from "@brains/utils/zod";
 
 function description(name: string): string {
@@ -122,7 +125,23 @@ describe("system tool descriptions carry their own guidance", () => {
       "When a typed search's results hold that type's entities but not a detail the user asked about, the detail is not saved there",
     );
     expect(search).toContain(
-      "rather than searching the same type again with added words",
+      "rather than searching the same type again with added words or a lower minScore",
+    );
+  });
+
+  // A one-line PDF read as "little content" was generated from; an upload
+  // the user asks to turn into a note is always extracted, never generated.
+  it("system_generate: an upload turned into a note is extracted, not generated", () => {
+    expect(description("system_generate")).toContain(
+      "Turning an uploaded file into a note is extraction too: system_create on the upload with transform extract-markdown, never generation",
+    );
+  });
+
+  // Since a create keeps the title it is given, a title guessed from the
+  // filename of an upload replaced the first heading of the file itself.
+  it("system_create: an upload takes only a title the user named", () => {
+    expect(createInputSchema.shape.title.description).toContain(
+      "For an upload, give only a title the user named; otherwise leave it out, so the first heading of the file titles it.",
     );
   });
 

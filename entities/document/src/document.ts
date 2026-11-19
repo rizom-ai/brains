@@ -10,7 +10,7 @@ import {
 } from "./jobs/generate-document";
 
 const DOCUMENT_INSTRUCTIONS =
-  "Document entities store durable file artifacts such as PDFs. Uploaded PDFs are raw document files, not decks: preserve them with system_create upload transform preserve. Render PDF artifacts such as carousel or printable with system_generate operation.kind attachment.";
+  "Document entities store durable file artifacts such as PDFs. Uploaded PDFs are raw document files, not decks: preserve them with system_create upload transform preserve; asked to turn one into a note, import its text with system_create upload transform extract-markdown. Render PDF artifacts such as carousel or printable with system_generate operation.kind attachment.";
 
 /**
  * A document: a durable file artifact such as a rendered PDF, its bytes kept

@@ -52,7 +52,7 @@ export function buildInstructions(
     userPermissionLevel === "admin"
       ? "The current caller's canonical permission level is **Admin**. This authorizes administrative actions and reading restricted/private content returned by tools. If asked to show/read a restricted record and the tool returns content, display it."
       : userPermissionLevel === "trusted"
-        ? "The current caller's canonical permission level is **Trusted**."
+        ? "The current caller's canonical permission level is **Trusted**. Trusted access cannot delete: refuse a delete request directly, without reading or searching for the target."
         : "The current caller's canonical permission level is **Public**. Public access is limited and read-oriented and generally cannot create, update, delete, publish, sync, or otherwise mutate content.";
   const anchorContext = isAnchor
     ? "The current caller is the brain's configured Anchor identity. This identity fact does not grant Admin permission; authorization comes only from the permission level above."

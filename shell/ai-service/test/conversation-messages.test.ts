@@ -583,6 +583,28 @@ describe("buildMessageWithAttachments", () => {
     );
   });
 
+  // Read against "create a new note with such changes", a bare "turn it into
+  // a note" was sometimes generated instead of extracted.
+  it("tells the model an upload turned into a note with no changes is extracted", () => {
+    const content = buildMessageWithAttachments(
+      "turn it into a note",
+      undefined,
+      {
+        uploadRefs: [
+          {
+            filename: "distributed-systems-primer.pdf",
+            mediaType: "application/pdf",
+            source: { kind: "upload", id: "upload-pdf" },
+          },
+        ],
+      },
+    );
+
+    expect(content).toContain(
+      "Turning an upload into a note with no changes asked is extract-markdown, however little text it holds.",
+    );
+  });
+
   it("tells the model that upload descriptions and summaries are read-only", () => {
     const content = buildMessageWithAttachments(
       "Summarize the uploaded PDF.",

@@ -10,7 +10,7 @@ Team Brain sits between the work and the world, and keeps both honest.
 
 ## Intro
 
-Capture sources flow into a shared brain; the brain organizes, summarizes, and — selectively — exposes a public surface. Everything else stays private and operational.
+Capture sources flow into a shared brain; the brain organizes, summarizes, and — selectively — exposes a public surface. Everything else stays private and operational. Three principles guide it: capture what the team already does, synthesize it on the brain's own time, and share only a small public surface.
 
 ## Primary CTA
 

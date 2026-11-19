@@ -215,6 +215,20 @@ describe("system_create's model input", () => {
     ).toContain("each item in source.items takes its own");
   });
 
+  // A model that filled in a doc section the user never named, such as
+  // "Uncategorized", saved the doc there instead of being asked for one.
+  it("tells the model never to fill in a field the user did not state", () => {
+    const { modelInput } = toolNamed("system_create");
+    if (!modelInput) throw new Error("Expected a model input");
+
+    const fields = modelInput.inputSchema()["fields"];
+    expect(
+      fields instanceof z.ZodType ? fields.description : undefined,
+    ).toContain(
+      "never fill in one the user did not state, such as a default section: leave it out, and the tool asks for it",
+    );
+  });
+
   it("shows the model field changes, not a map of any keys", () => {
     const { modelInput } = toolNamed("system_create");
     if (!modelInput) throw new Error("Expected a model input");

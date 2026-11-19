@@ -188,6 +188,9 @@ describe("sync tool", () => {
       );
       expect(description).toContain("system_create with source kind upload");
       expect(description).not.toContain("filesystem import");
+      // An imperative "immediately sync" for any import drew a save of an
+      // attached file into a sync: a sync waits for the user to ask for one.
+      expect(description).toContain("only when the user asks to sync, refresh");
     },
   );
 
@@ -571,7 +574,9 @@ describe("status tool", () => {
     expect(statusTool.sideEffects).toBe("external");
   });
 
-  it("should omit git field when not configured", async () => {
+  // Without a git field, a model reported git status as merely not shown;
+  // the status says git is not configured, so the reply can say so plainly.
+  it("says git is not configured when it is not", async () => {
     const { directorySync } = createMockDirectorySync();
 
     const tools = createDirectorySyncTools(
@@ -586,7 +591,7 @@ describe("status tool", () => {
 
     expect(result.success).toBe(true);
     expect(result.data?.["syncPath"]).toBe("/data/brain");
-    expect(result.data?.["git"]).toBeUndefined();
+    expect(result.data?.["git"]).toEqual({ configured: false });
   });
 
   it("should include git info when configured", async () => {

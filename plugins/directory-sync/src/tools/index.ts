@@ -74,8 +74,8 @@ export function createDirectorySyncTools(
     "directory",
     "sync",
     gitSync
-      ? "Manage directory and git sync with an action discriminator. For requests such as 'sync with git', immediately call action=sync with no entityType, id, or sha; never ask for those fields because they apply only to action=history. Action=sync queues a git pull plus a scan of the brain's content directory and also handles refresh, pull, backup-to-git, and requests to import files changed in the content directory. A file attached in chat is not in the content directory: save it with system_create with source kind upload, never by syncing. For every sync or git status follow-up after action=sync, including a bare 'what is the status', immediately call action=status with no entity fields; a sync jobId is not a system_job_status batchId. Use action=history to read git version history for a specific entity."
-      : "Manage the brain's content directory sync with an action discriminator. Immediately call action=sync for refresh or content sync requests, and to import files changed in the content directory. A file attached in chat is not in the content directory: save it with system_create with source kind upload, never by syncing. Immediately call action=status for directory sync status follow-ups, including a bare 'what is the status'.",
+      ? "Manage directory and git sync with an action discriminator. For requests such as 'sync with git', immediately call action=sync with no entityType, id, or sha; never ask for those fields because they apply only to action=history. Action=sync queues a git pull plus a scan of the brain's content directory; call it only when the user asks to sync, refresh, pull, or back up the content. A file attached in chat is not in the content directory: save it with system_create with source kind upload, never by syncing. For every sync or git status follow-up after action=sync, including a bare 'what is the status', immediately call action=status with no entity fields; a sync jobId is not a system_job_status batchId. Use action=history to read git version history for a specific entity."
+      : "Manage the brain's content directory sync with an action discriminator. Call action=sync only when the user asks to sync, refresh, or import the content directory itself, such as 'refresh my content from the filesystem'. A file attached in chat is not in the content directory: save it with system_create with source kind upload, never by syncing. Immediately call action=status for directory sync status follow-ups, including a bare 'what is the status'.",
     gitSync ? gitDirectorySyncInputSchema : directorySyncInputSchema,
     async (input, context) => {
       const parsed = gitSync
@@ -192,7 +192,9 @@ async function handleStatus(
       watching: syncStatus.watching,
     };
 
-    if (gitSync) {
+    if (!gitSync) {
+      data["git"] = { configured: false };
+    } else {
       const gitStatus = await gitSync.getStatus();
       data["git"] = {
         isRepo: gitStatus.isRepo,
