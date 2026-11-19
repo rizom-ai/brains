@@ -27,6 +27,8 @@ export type BrainKind = ProximityMapData["nodes"][number]["kind"];
 
 export interface PlacedBrain {
   id: string;
+  /** Its page under `/agents/`. */
+  slug: string;
   name: string;
   kind: BrainKind;
   /** Percent of the drawing. */
@@ -106,6 +108,7 @@ export function placeNetwork(map: ProximityMapData): PlacedNetwork {
     const p = at(bearing, radius);
     return {
       id: node.id,
+      slug: node.slug,
       name: node.name,
       kind: node.kind,
       x: r1(p.x),

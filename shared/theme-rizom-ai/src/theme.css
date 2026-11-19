@@ -288,7 +288,11 @@
 
     --color-text: var(--palette-ink);
     --color-text-muted: rgb(from var(--palette-ink) r g b / 0.76);
-    --color-text-light: rgb(from var(--palette-ink) r g b / 0.52);
+    /* Strong enough for small type: 4.5:1 on every paper surface. */
+    --color-text-light: rgb(from var(--palette-ink) r g b / 0.6);
+    /* :root's terminal green is for the night ground; paper takes the
+       base's readable success ink. */
+    --color-success: var(--color-status-success-text);
     --color-text-inverse: var(--palette-cream);
     --color-heading: var(--palette-ink);
 

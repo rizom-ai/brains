@@ -459,6 +459,7 @@ function agentProximityWidget(
         nodes: [
           {
             id: "agent:atlas",
+            slug: "agent:atlas",
             name: "Atlas",
             kind: "team",
             status: "approved",
@@ -468,6 +469,7 @@ function agentProximityWidget(
           },
           {
             id: "agent:moss",
+            slug: "agent:moss",
             name: "Moss",
             kind: "person",
             status: "approved",

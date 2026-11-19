@@ -69,6 +69,7 @@ import type {
 } from "./entity/projection-rule";
 import type {
   AIGenerationSchema,
+  ImageBytes,
   ImageGenerationOptions,
   ImageGenerationResult,
 } from "@brains/ai-service";
@@ -286,6 +287,12 @@ export interface IShell {
     options?: ImageGenerationOptions,
   ): Promise<ImageGenerationResult>;
   canGenerateImages(): boolean;
+  // Image description (the vision model, or a cloud model that reads images)
+  canDescribeImages(): boolean;
+  describeImage(
+    image: ImageBytes,
+    instruction: string,
+  ): Promise<string | undefined>;
 
   registerTemplates(
     templates: Record<string, Template>,

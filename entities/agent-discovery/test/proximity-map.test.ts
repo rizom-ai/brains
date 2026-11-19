@@ -14,6 +14,7 @@ import type { ProximityMapNode } from "../src/lib/proximity-map-schema";
 function node(id: string, tags: string[], bearing = 0): ProximityMapNode {
   return {
     id,
+    slug: id,
     name: id,
     kind: "person",
     status: "approved",

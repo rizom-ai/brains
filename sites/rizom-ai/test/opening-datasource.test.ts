@@ -14,6 +14,7 @@ const map = {
   nodes: [
     {
       id: "jo",
+      slug: "jo",
       name: "Jo",
       kind: "person",
       status: "approved",

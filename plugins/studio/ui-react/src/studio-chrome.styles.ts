@@ -79,7 +79,7 @@ export const chromeStyles: Record<ChromeStyle, stylex.StyleXStyles> =
       borderStyle: "solid",
       borderColor: "var(--console-accent)",
       borderRadius: "50%",
-      color: "var(--console-accent)",
+      color: "var(--console-accent-text)",
       fontFamily: "var(--console-display)",
       fontSize: "12px",
       fontWeight: 400,

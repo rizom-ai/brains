@@ -178,7 +178,7 @@ export const navigationStyles: Record<NavigationStyle, stylex.StyleXStyles> =
     // Attention takes the accent; a tally stays quiet. Same slot, two meanings.
     mobileAttention: {
       marginLeft: "auto",
-      color: "var(--console-accent)",
+      color: "var(--console-accent-text)",
       fontFamily: "var(--console-mono)",
       fontSize: "11px",
       fontWeight: 650,
@@ -261,7 +261,7 @@ export const navigationStyles: Record<NavigationStyle, stylex.StyleXStyles> =
       fontStyle: "normal",
       fontWeight: 600,
     },
-    ordinalActive: { color: "var(--console-accent)" },
+    ordinalActive: { color: "var(--console-accent-text)" },
 
     leaf: {
       display: "grid",

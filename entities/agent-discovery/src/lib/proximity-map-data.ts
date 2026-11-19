@@ -104,6 +104,7 @@ export async function buildProximityMapData(
 
     nodes.push({
       id: agent.id,
+      slug: agent.metadata.slug,
       name: frontmatter.name,
       kind: frontmatter.kind,
       status: frontmatter.status,

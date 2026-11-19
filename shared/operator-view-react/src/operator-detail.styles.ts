@@ -65,7 +65,7 @@ export const detailStyles: Record<
     backgroundColor: "transparent",
     fontFamily: "var(--console-ui)",
     fontSize: 12,
-    color: "var(--console-accent)",
+    color: "var(--console-accent-text)",
     cursor: "pointer",
     ":focus-visible": {
       outline: "2px solid var(--console-accent)",

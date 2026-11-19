@@ -280,7 +280,7 @@ export const markdownStyles: Record<MarkdownStyle, stylex.StyleXStyles> =
     image: { display: "block", maxWidth: "100%", borderRadius: 8 },
     assist: { marginBottom: 6 },
     link: {
-      color: "var(--console-accent)",
+      color: "var(--console-accent-text)",
       textDecorationLine: "underline",
       textDecorationThickness: "1px",
       textUnderlineOffset: "0.18em",

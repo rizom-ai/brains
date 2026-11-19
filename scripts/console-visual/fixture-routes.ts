@@ -4,6 +4,7 @@ import type { z } from "@brains/utils/zod";
 import { isRecord } from "@brains/utils/is-record";
 import { renameChatSessionRequestSchema } from "@brains/contracts/chat";
 import { renderEditorShellHtml, studioTypeHierarchy } from "@brains/studio";
+import { FIXTURE_THEMES } from "./fixture-themes";
 import { renderDashboardPageHtml } from "@brains/dashboard";
 import type { studioAssetManifestSchema } from "../../plugins/studio/src/ui-assets";
 import type { createAdministrationFixture } from "../fixtures/studio-administration";
@@ -86,7 +87,9 @@ function climateHtml(html: string, request: Request): string {
 /** The workspace query a provider reads: everything but routing and climate. */
 function workspaceQuery(url: URL): Record<string, string> {
   return Object.fromEntries(
-    [...url.searchParams].filter(([key]) => key !== "id" && key !== "climate"),
+    [...url.searchParams].filter(
+      ([key]) => key !== "id" && key !== "climate" && key !== "theme",
+    ),
   );
 }
 
@@ -113,6 +116,25 @@ export function createFixtureRoutes(
           headers: { "content-type": "image/png" },
         })
       : undefined;
+
+  // The image a cover field refers to: the verdigris board, described by the
+  // brain's vision model, for the editor's image details.
+  const studioImage: FixtureRoute = (request, url) => {
+    if (url.pathname === "/studio/api/images")
+      return new Response(context.fixtureImage, {
+        headers: { "content-type": "image/png" },
+      });
+    if (url.pathname !== "/studio/api/image-details") return undefined;
+    if (request.method === "PUT")
+      return json({ entityId: "image/verdigris-board", skipped: false });
+    return json({
+      id: url.searchParams.get("id") ?? "image/verdigris-board",
+      title: "Verdigris board",
+      alt: "A flat verdigris board under even light",
+      altSource: "generated",
+      contentHash: "fixture",
+    });
+  };
 
   const dashboard: FixtureRoute = (request, url) =>
     url.pathname === "/dashboard"
@@ -242,6 +264,7 @@ export function createFixtureRoutes(
               dashboardHref: "/dashboard",
               brandName: "Rover Collective",
               principal: { displayName: "Mira Reyes", role: "admin" },
+              themeCSS: FIXTURE_THEMES[url.searchParams.get("theme") ?? ""],
             }),
             request,
           ),
@@ -506,6 +529,7 @@ export function createFixtureRoutes(
     chatMessages,
     studioShell,
     studioAsset,
+    studioImage,
     studioTypes,
     refine,
     studioWorkspace,

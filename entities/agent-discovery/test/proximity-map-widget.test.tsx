@@ -30,6 +30,7 @@ const data: ProximityMapData = {
   nodes: [
     {
       id: "alpha",
+      slug: "alpha",
       name: "Alpha",
       kind: "person",
       status: "approved",
@@ -39,6 +40,7 @@ const data: ProximityMapData = {
     },
     {
       id: "beta",
+      slug: "beta",
       name: "Beta",
       kind: "team",
       status: "discovered",
@@ -48,6 +50,7 @@ const data: ProximityMapData = {
     },
     {
       id: "old",
+      slug: "old",
       name: "Old Agent",
       kind: "person",
       status: "archived",
@@ -57,6 +60,7 @@ const data: ProximityMapData = {
     },
     {
       id: "gamma",
+      slug: "gamma",
       name: "Gamma",
       kind: "organization",
       status: "approved",
@@ -233,6 +237,7 @@ describe("ProximityMap", () => {
       ...data,
       nodes: Array.from({ length: 32 }, (_, index) => ({
         id: `agent-${index}`,
+        slug: `agent-${index}`,
         name: `Agent ${index}`,
         kind: "person" as const,
         status: "approved" as const,

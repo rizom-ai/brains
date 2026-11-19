@@ -1,4 +1,5 @@
 import {
+  describedImageAlt,
   extractCoverImageId,
   extractOgImageId,
   imageDataUrl,
@@ -65,6 +66,8 @@ export interface EnrichedEntity extends EntityWithSlug {
   coverImageHeight?: number | undefined;
   coverImageSrcset?: string | undefined;
   coverImageSizes?: string | undefined;
+  /** The cover image's own alt text, when it describes the image. */
+  coverImageAlt?: string | undefined;
 }
 
 export interface ContentEnrichmentOptions {
@@ -176,6 +179,7 @@ async function resolveImageFields(
       coverImageUrl: preResolved.src,
       coverImageWidth: preResolved.width,
       coverImageHeight: preResolved.height,
+      ...(preResolved.alt && { coverImageAlt: preResolved.alt }),
       ...(preResolved.srcset && {
         coverImageSrcset: preResolved.srcset,
         coverImageSizes: preResolved.sizes,
@@ -192,6 +196,7 @@ async function resolveImageFields(
     coverImageUrl: image.url,
     ...(image.width && { coverImageWidth: image.width }),
     ...(image.height && { coverImageHeight: image.height }),
+    ...(image.alt && { coverImageAlt: image.alt }),
   };
 }
 
@@ -229,6 +234,7 @@ async function resolveCoverImage(
       url: string;
       width?: number;
       height?: number;
+      alt?: string;
     }
   | undefined
 > {
@@ -244,8 +250,10 @@ async function resolveCoverImage(
   const url = await imageDataUrl(entityService, imageCheck.data);
   if (!url) return undefined;
 
+  const alt = describedImageAlt(imageCheck.data.metadata);
   return {
     url,
+    ...(alt && { alt }),
     ...(imageCheck.data.metadata.width && {
       width: imageCheck.data.metadata.width,
     }),

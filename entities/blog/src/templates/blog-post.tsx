@@ -314,7 +314,7 @@ export const BlogPostTemplate = ({
             post.coverImageHeight && (
               <CoverImage
                 src={post.coverImageUrl}
-                alt={post.frontmatter.title}
+                alt={post.coverImageAlt ?? post.frontmatter.title}
                 width={post.coverImageWidth}
                 height={post.coverImageHeight}
                 {...(post.coverImageSrcset

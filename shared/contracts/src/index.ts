@@ -488,11 +488,14 @@ export {
 export { defineJobContract, type JobContract } from "./job-contract";
 export {
   imageAspectRatioSchema,
+  imageDescribeJobContract,
+  imageDescribeJobInputSchema,
   imageGenerateJobContract,
   imageGenerateJobInputSchema,
   imageRenderSourceJobContract,
   imageRenderSourceJobInputSchema,
   type ImageAspectRatio,
+  type ImageDescribeJobInput,
   type ImageGenerateJobInput,
   type ImageRenderSourceJobInput,
 } from "./image-jobs";

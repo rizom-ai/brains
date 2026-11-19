@@ -68,6 +68,7 @@ export const blogViewSchema: z.ZodObject<
   } & typeof viewLinkFields & {
       seriesUrl: z.ZodDefault<z.ZodNullable<z.ZodString>>;
       coverImageUrl: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+      coverImageAlt: z.ZodDefault<z.ZodNullable<z.ZodString>>;
       ogImageUrl: z.ZodDefault<z.ZodNullable<z.ZodString>>;
       coverImageWidth: z.ZodDefault<z.ZodNullable<z.ZodNumber>>;
       coverImageHeight: z.ZodDefault<z.ZodNullable<z.ZodNumber>>;
@@ -80,6 +81,8 @@ export const blogViewSchema: z.ZodObject<
   ...viewLinkFields,
   seriesUrl: nullableString,
   coverImageUrl: nullableString,
+  /** The cover image's own alt text, when it describes the image. */
+  coverImageAlt: nullableString,
   ogImageUrl: nullableString,
   coverImageWidth: nullableNumber,
   coverImageHeight: nullableNumber,

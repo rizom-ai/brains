@@ -1,5 +1,48 @@
 # @brains/agent-discovery
 
+## 0.2.0-alpha.746
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.746
+  - @rizom/brain-ui@0.2.0-alpha.746
+  - @brains/dashboard@0.2.0-alpha.746
+  - @brains/atproto-contracts@0.2.0-alpha.746
+  - @brains/content-formatters@0.2.0-alpha.746
+  - @brains/contracts@0.2.0-alpha.746
+  - @brains/http-signatures@0.2.0-alpha.746
+  - @brains/utils@0.2.0-alpha.746
+
+## 0.2.0-alpha.745
+
+### Patch Changes
+
+- [#1001](https://github.com/rizom-ai/brains/pull/1001) [`3ef8609`](https://github.com/rizom-ai/brains/commit/3ef86095ddf65f1bd00eed786c64d10342af23f0) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Each brain on the network map now carries the slug of its agent page, so a site can link a brain to `/agents/<slug>`; the map's ids are domains, which no agent page is routed by.
+- Updated dependencies [[`0875c14`](https://github.com/rizom-ai/brains/commit/0875c14c126c95e76cc5c9df7401a44412a4ef9b)]:
+  - @brains/contracts@0.2.0-alpha.745
+  - @brains/sdk@0.2.0-alpha.745
+  - @brains/dashboard@0.2.0-alpha.745
+  - @rizom/brain-ui@0.2.0-alpha.745
+  - @brains/atproto-contracts@0.2.0-alpha.745
+  - @brains/content-formatters@0.2.0-alpha.745
+  - @brains/http-signatures@0.2.0-alpha.745
+  - @brains/utils@0.2.0-alpha.745
+
+## 0.2.0-alpha.744
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.744
+  - @rizom/brain-ui@0.2.0-alpha.744
+  - @brains/dashboard@0.2.0-alpha.744
+  - @brains/atproto-contracts@0.2.0-alpha.744
+  - @brains/content-formatters@0.2.0-alpha.744
+  - @brains/contracts@0.2.0-alpha.744
+  - @brains/http-signatures@0.2.0-alpha.744
+  - @brains/utils@0.2.0-alpha.744
+
 ## 0.2.0-alpha.743
 
 ### Patch Changes

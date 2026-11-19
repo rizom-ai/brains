@@ -596,6 +596,8 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       };
     },
     canGenerateImages: () => false,
+    canDescribeImages: () => false,
+    describeImage: async () => undefined,
 
     // Templates
     registerTemplates: (tmpls: Record<string, Template>, pluginId?: string) => {

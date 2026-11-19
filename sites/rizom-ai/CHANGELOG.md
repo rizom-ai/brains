@@ -1,5 +1,11 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.287
+
+### Patch Changes
+
+- [#1001](https://github.com/rizom-ai/brains/pull/1001) [`3ef8609`](https://github.com/rizom-ai/brains/commit/3ef86095ddf65f1bd00eed786c64d10342af23f0) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A brain's mark in the Ask room's network drawing opens its agent page again; it linked to `/agents/<domain>`, which answered 404. The marks also leave the tab order: the drawing is hidden from assistive technology, so keyboard users reached links that screen readers were told do not exist. `/agents` lists the same brains.
+
 ## 0.2.0-alpha.286
 
 ### Patch Changes

@@ -103,6 +103,24 @@ export interface IAIService {
    * Check if image generation is available (OpenAI or Google API key configured)
    */
   canGenerateImages(): boolean;
+
+  /** Whether a model can describe an image (see {@link describeImage}). */
+  canDescribeImages?(): boolean;
+
+  /**
+   * What the vision model, or a cloud model that reads images, sees in an
+   * image following the instruction; undefined when none can.
+   */
+  describeImage?(
+    image: ImageBytes,
+    instruction: string,
+  ): Promise<string | undefined>;
+}
+
+/** An image's bytes and the media type they are. */
+export interface ImageBytes {
+  bytes: Uint8Array;
+  mediaType: string;
 }
 
 /**

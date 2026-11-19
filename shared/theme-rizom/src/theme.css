@@ -343,8 +343,12 @@
       );
 
     --color-text: var(--palette-text-light);
-    --color-text-muted: rgb(from var(--palette-text-light) r g b / 0.55);
-    --color-text-light: rgb(from var(--palette-text-light) r g b / 0.38);
+    /* Strong enough for small type: 4.5:1 on every paper surface. */
+    --color-text-muted: rgb(from var(--palette-text-light) r g b / 0.72);
+    --color-text-light: rgb(from var(--palette-text-light) r g b / 0.65);
+    /* :root's terminal green is for the dark ground; paper takes the
+       base's readable success ink. */
+    --color-success: var(--color-status-success-text);
     --color-text-inverse: var(--palette-white);
     --color-heading: var(--palette-text-light);
 

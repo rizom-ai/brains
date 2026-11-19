@@ -178,6 +178,7 @@ export const enrichedSocialPostSchema: ReturnType<
     listLabel: z.ZodOptional<z.ZodString>;
     typeLabel: z.ZodOptional<z.ZodString>;
     coverImageUrl: z.ZodOptional<z.ZodString>;
+    coverImageAlt: z.ZodOptional<z.ZodString>;
     coverImageWidth: z.ZodOptional<z.ZodNumber>;
     coverImageHeight: z.ZodOptional<z.ZodNumber>;
   }>
@@ -187,6 +188,8 @@ export const enrichedSocialPostSchema: ReturnType<
   listLabel: z.string().optional(),
   typeLabel: z.string().optional(),
   coverImageUrl: z.string().optional(),
+  /** The cover image's own alt text, when it describes the image. */
+  coverImageAlt: z.string().optional(),
   coverImageWidth: z.number().optional(),
   coverImageHeight: z.number().optional(),
 });

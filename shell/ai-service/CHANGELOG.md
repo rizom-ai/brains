@@ -1,5 +1,51 @@
 # @brains/ai-service
 
+## 0.2.0-alpha.746
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.746
+  - @brains/document@0.2.0-alpha.746
+  - @brains/utils@0.2.0-alpha.746
+  - @brains/conversation-service@0.2.0-alpha.746
+  - @brains/entity-service@0.2.0-alpha.746
+  - @brains/identity-service@0.2.0-alpha.746
+  - @brains/mcp-service@0.2.0-alpha.746
+  - @brains/messaging-service@0.2.0-alpha.746
+  - @brains/templates@0.2.0-alpha.746
+
+## 0.2.0-alpha.745
+
+### Patch Changes
+
+- [#1001](https://github.com/rizom-ai/brains/pull/1001) [`0875c14`](https://github.com/rizom-ai/brains/commit/0875c14c126c95e76cc5c9df7401a44412a4ef9b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A brain can describe an image for its alt text. The new `image:image-describe` job asks the image-reading model (the configured local `visionModel`, else a cloud model, which reads images itself) for one sentence of at most 125 characters, and stores it with `altSource: "generated"`. Alt text the owner wrote (`altSource: "owner"`) is never replaced; SVG images and brains with no model that reads images keep their fallback. Entity jobs reach the model through `images.canDescribe()` and `images.describe()`.
+- Updated dependencies [[`0875c14`](https://github.com/rizom-ai/brains/commit/0875c14c126c95e76cc5c9df7401a44412a4ef9b)]:
+  - @brains/contracts@0.2.0-alpha.745
+  - @brains/conversation-service@0.2.0-alpha.745
+  - @brains/entity-service@0.2.0-alpha.745
+  - @brains/identity-service@0.2.0-alpha.745
+  - @brains/mcp-service@0.2.0-alpha.745
+  - @brains/messaging-service@0.2.0-alpha.745
+  - @brains/templates@0.2.0-alpha.745
+  - @brains/document@0.2.0-alpha.745
+  - @brains/utils@0.2.0-alpha.745
+
+## 0.2.0-alpha.744
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.744
+  - @brains/document@0.2.0-alpha.744
+  - @brains/utils@0.2.0-alpha.744
+  - @brains/conversation-service@0.2.0-alpha.744
+  - @brains/entity-service@0.2.0-alpha.744
+  - @brains/identity-service@0.2.0-alpha.744
+  - @brains/mcp-service@0.2.0-alpha.744
+  - @brains/messaging-service@0.2.0-alpha.744
+  - @brains/templates@0.2.0-alpha.744
+
 ## 0.2.0-alpha.743
 
 ### Patch Changes

@@ -446,6 +446,64 @@ coverImageId: project-cover-image
       expect(result.coverImageWidth).toBe(800);
       expect(result.coverImageHeight).toBe(600);
       expect(result.url).toBe("/projects/test-project");
+      // A stand-in alt is not the image's description; the page keeps its own.
+      expect(await enrich(entity)).not.toHaveProperty("coverImageAlt");
+    });
+
+    it("carries a described cover image's alt text, built or not", async () => {
+      const content = `---
+title: Harbor Notes
+slug: harbor-notes
+coverImageId: harbor
+---
+# Harbor Notes`;
+      const entity = createTestEntity("post", {
+        id: "post-1",
+        content,
+        created: "2025-01-01T00:00:00.000Z",
+        updated: "2025-01-01T00:00:00.000Z",
+        metadata: { slug: "harbor-notes", title: "Harbor Notes" },
+      });
+      spyOn(mockContext.entityService, "getEntity").mockResolvedValue({
+        id: "harbor",
+        entityType: "image",
+        content: "data:image/png;base64,abc123",
+        contentHash: "hash",
+        visibility: "public",
+        created: "2025-01-01T00:00:00.000Z",
+        updated: "2025-01-01T00:00:00.000Z",
+        metadata: {
+          alt: "Fishing boats moored at dawn",
+          altSource: "generated",
+          title: "Harbor",
+          width: 800,
+          height: 600,
+        },
+      });
+      const built: SiteImageLookup = {
+        get: (id: string) =>
+          id === "harbor"
+            ? {
+                src: "/images/harbor.png",
+                width: 800,
+                height: 600,
+                alt: "Our harbor, the morning we left",
+              }
+            : undefined,
+      };
+
+      expect(await enrich(entity)).toMatchObject({
+        coverImageAlt: "Fishing boats moored at dawn",
+      });
+      expect(
+        await enrichWithUrls(entity, {
+          pipelineContext: {
+            services: createSiteBuilderServices(mockContext),
+            entityDisplay,
+          },
+          imageBuildService: built,
+        }),
+      ).toMatchObject({ coverImageAlt: "Our harbor, the morning we left" });
     });
 
     it("encodes an asset-backed cover image when no built file exists", async () => {

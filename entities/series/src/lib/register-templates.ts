@@ -34,6 +34,8 @@ const seriesListItemSchema = z.object({
   description: z.string().nullable().default(null),
   postCount: z.number(),
   coverImageUrl: z.string().nullable().default(null),
+  /** The cover image's own alt text, when it describes the image. */
+  coverImageAlt: z.string().nullable().default(null),
   coverImageWidth: z.number().nullable().default(null),
   coverImageHeight: z.number().nullable().default(null),
 });

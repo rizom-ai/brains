@@ -8,6 +8,7 @@ import type {
   AIModelConfig,
   AIModelConfigUpdate,
   IAIService,
+  ImageBytes,
   ImageGenerationOptions,
   ImageGenerationResult,
   JudgeInput,
@@ -301,6 +302,47 @@ export class AIService implements IAIService {
       this.providers,
       this.logger,
     );
+  }
+
+  /**
+   * The model that reads an image: the vision model, else the configured
+   * model when it is a cloud model, which reads images itself. A local model
+   * without a vision model sees none.
+   */
+  private getImageReader(): LanguageModel | undefined {
+    const visionModel = this.getVisionModel();
+    if (visionModel) return visionModel;
+    return this.capabilities.provider === "local" ? undefined : this.getModel();
+  }
+
+  /** Whether a model can describe an image. */
+  public canDescribeImages(): boolean {
+    return this.getImageReader() !== undefined;
+  }
+
+  /**
+   * What a model sees in an image, following the instruction: its trimmed
+   * text, or undefined when no model reads images or it said nothing.
+   */
+  public async describeImage(
+    image: ImageBytes,
+    instruction: string,
+  ): Promise<string | undefined> {
+    const model = this.getImageReader();
+    if (!model) return undefined;
+    const result = await generateText({
+      model,
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: instruction },
+            { type: "file", data: image.bytes, mediaType: image.mediaType },
+          ],
+        },
+      ],
+    });
+    return result.text.trim() || undefined;
   }
 
   /**

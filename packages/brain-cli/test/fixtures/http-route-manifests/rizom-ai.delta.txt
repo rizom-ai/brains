@@ -71,6 +71,7 @@
 + studio|handler|GET|/studio/api/groups/members|exact|true
 + studio|handler|GET|/studio/api/groups/usage|exact|true
 + studio|handler|GET|/studio/api/hierarchy|exact|true
++ studio|handler|GET|/studio/api/image-details|exact|true
 + studio|handler|GET|/studio/api/images|exact|true
 + studio|handler|GET|/studio/api/members|exact|true
 + studio|handler|GET|/studio/api/schema|exact|true
@@ -91,6 +92,7 @@
 + studio|handler|POST|/studio/api/upload|exact|true
 + studio|handler|POST|/studio/api/workspace|exact|true
 + studio|handler|PUT|/studio/api/entities|exact|true
++ studio|handler|PUT|/studio/api/image-details|exact|true
 + web-chat|handler|DELETE|/api/chat/guest/sessions|exact|true
 + web-chat|handler|DELETE|/api/chat/sessions|exact|true
 + web-chat|handler|GET|/api/chat/attachments/document|exact|true

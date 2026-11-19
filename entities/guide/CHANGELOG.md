@@ -1,5 +1,35 @@
 # @brains/guide
 
+## 0.2.0-alpha.746
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.746
+  - @rizom/brain-ui@0.2.0-alpha.746
+  - @brains/docs-chrome@0.2.0-alpha.746
+  - @brains/utils@0.2.0-alpha.746
+
+## 0.2.0-alpha.745
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.745
+  - @rizom/brain-ui@0.2.0-alpha.745
+  - @brains/docs-chrome@0.2.0-alpha.745
+  - @brains/utils@0.2.0-alpha.745
+
+## 0.2.0-alpha.744
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.744
+  - @rizom/brain-ui@0.2.0-alpha.744
+  - @brains/docs-chrome@0.2.0-alpha.744
+  - @brains/utils@0.2.0-alpha.744
+
 ## 0.2.0-alpha.743
 
 ### Patch Changes

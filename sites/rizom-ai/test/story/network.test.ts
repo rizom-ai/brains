@@ -10,7 +10,7 @@ function node(
   status: "approved" | "discovered" | "archived" = "approved",
   kind: "person" | "team" | "organization" = "person",
 ): ProximityMapData["nodes"][number] {
-  return { id, name, kind, status, tags: [], distance, bearing };
+  return { id, slug: id, name, kind, status, tags: [], distance, bearing };
 }
 
 const map: ProximityMapData = {

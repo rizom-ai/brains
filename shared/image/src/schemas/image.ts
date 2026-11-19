@@ -28,9 +28,22 @@ export const imageIngestionStatusSchema: z.ZodEnum<{
 
 export type ImageIngestionStatus = z.output<typeof imageIngestionStatusSchema>;
 
+/**
+ * Who wrote an image's alt text: a stand-in from its title or prompt, the
+ * brain's vision model, or the owner. An image without one has a fallback.
+ */
+export const imageAltSourceSchema: z.ZodEnum<{
+  fallback: "fallback";
+  generated: "generated";
+  owner: "owner";
+}> = z.enum(["fallback", "generated", "owner"]);
+
+export type ImageAltSource = z.output<typeof imageAltSourceSchema>;
+
 type ImageMetadataSchema = z.ZodObject<{
   title: z.ZodOptional<z.ZodString>;
   alt: z.ZodOptional<z.ZodString>;
+  altSource: z.ZodOptional<typeof imageAltSourceSchema>;
   format: z.ZodOptional<typeof imageFormatSchema>;
   mediaType: z.ZodOptional<z.ZodString>;
   sizeBytes: z.ZodOptional<z.ZodNumber>;
@@ -56,6 +69,9 @@ export const imageMetadataSchema: ImageMetadataSchema = z
   .object({
     title: z.string().optional(),
     alt: z.string().optional(),
+    altSource: imageAltSourceSchema
+      .optional()
+      .meta({ studioWidget: "provenance" }),
     format: imageFormatSchema.optional().meta({ studioWidget: "provenance" }),
     // Set for asset-backed images: the type the bytes are served as, and
     // the stored byte count.

@@ -100,6 +100,8 @@ export const socialPostViewSchema: z.ZodObject<
     listLabel: typeof viewLinkFields.listLabel;
     typeLabel: typeof viewLinkFields.typeLabel;
     coverImageUrl: typeof nullableString;
+    /** The cover image's own alt text, when it describes the image. */
+    coverImageAlt: typeof nullableString;
     coverImageWidth: typeof nullableNumber;
     coverImageHeight: typeof nullableNumber;
   }
@@ -111,6 +113,8 @@ export const socialPostViewSchema: z.ZodObject<
   listLabel: viewLinkFields.listLabel,
   typeLabel: viewLinkFields.typeLabel,
   coverImageUrl: nullableString,
+  /** The cover image's own alt text, when it describes the image. */
+  coverImageAlt: nullableString,
   coverImageWidth: nullableNumber,
   coverImageHeight: nullableNumber,
 });

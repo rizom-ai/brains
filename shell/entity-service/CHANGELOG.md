@@ -1,5 +1,44 @@
 # @brains/entity-service
 
+## 0.2.0-alpha.746
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.746
+  - @brains/content-formatters@0.2.0-alpha.746
+  - @brains/contracts@0.2.0-alpha.746
+  - @brains/db@0.2.0-alpha.746
+  - @brains/utils@0.2.0-alpha.746
+  - @brains/job-queue@0.2.0-alpha.746
+  - @brains/messaging-service@0.2.0-alpha.746
+
+## 0.2.0-alpha.745
+
+### Patch Changes
+
+- Updated dependencies [[`0875c14`](https://github.com/rizom-ai/brains/commit/0875c14c126c95e76cc5c9df7401a44412a4ef9b)]:
+  - @brains/contracts@0.2.0-alpha.745
+  - @brains/content-formatters@0.2.0-alpha.745
+  - @brains/job-queue@0.2.0-alpha.745
+  - @brains/messaging-service@0.2.0-alpha.745
+  - @brains/assets@0.2.0-alpha.745
+  - @brains/db@0.2.0-alpha.745
+  - @brains/utils@0.2.0-alpha.745
+
+## 0.2.0-alpha.744
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.744
+  - @brains/content-formatters@0.2.0-alpha.744
+  - @brains/contracts@0.2.0-alpha.744
+  - @brains/db@0.2.0-alpha.744
+  - @brains/utils@0.2.0-alpha.744
+  - @brains/job-queue@0.2.0-alpha.744
+  - @brains/messaging-service@0.2.0-alpha.744
+
 ## 0.2.0-alpha.743
 
 ### Patch Changes

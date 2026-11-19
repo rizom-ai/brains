@@ -1,5 +1,62 @@
 # @brains/site-professional
 
+## 0.2.0-alpha.746
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.746
+  - @brains/decks@0.2.0-alpha.746
+  - @brains/faq@0.2.0-alpha.746
+  - @brains/sdk@0.2.0-alpha.746
+  - @rizom/brain-ui@0.2.0-alpha.746
+  - @brains/knowledge-map@0.2.0-alpha.746
+  - @brains/profile@0.2.0-alpha.746
+  - @brains/site-info@0.2.0-alpha.746
+  - @brains/content-formatters@0.2.0-alpha.746
+  - @brains/contracts@0.2.0-alpha.746
+  - @brains/site-atlas@0.2.0-alpha.746
+  - @brains/site-composition@0.2.0-alpha.746
+  - @brains/utils@0.2.0-alpha.746
+
+## 0.2.0-alpha.745
+
+### Patch Changes
+
+- Updated dependencies [[`f0bee6f`](https://github.com/rizom-ai/brains/commit/f0bee6f03f08ef0be00b1cd9eacfbf5393c3fb40), [`0875c14`](https://github.com/rizom-ai/brains/commit/0875c14c126c95e76cc5c9df7401a44412a4ef9b), [`eaccaa1`](https://github.com/rizom-ai/brains/commit/eaccaa13fc1d2cd28e794c206a222bd3021031f7)]:
+  - @brains/blog@0.2.0-alpha.745
+  - @brains/contracts@0.2.0-alpha.745
+  - @brains/knowledge-map@0.2.0-alpha.745
+  - @brains/decks@0.2.0-alpha.745
+  - @brains/site-atlas@0.2.0-alpha.745
+  - @brains/faq@0.2.0-alpha.745
+  - @brains/sdk@0.2.0-alpha.745
+  - @brains/profile@0.2.0-alpha.745
+  - @brains/site-info@0.2.0-alpha.745
+  - @rizom/brain-ui@0.2.0-alpha.745
+  - @brains/content-formatters@0.2.0-alpha.745
+  - @brains/site-composition@0.2.0-alpha.745
+  - @brains/utils@0.2.0-alpha.745
+
+## 0.2.0-alpha.744
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.744
+  - @brains/decks@0.2.0-alpha.744
+  - @brains/faq@0.2.0-alpha.744
+  - @brains/sdk@0.2.0-alpha.744
+  - @rizom/brain-ui@0.2.0-alpha.744
+  - @brains/knowledge-map@0.2.0-alpha.744
+  - @brains/profile@0.2.0-alpha.744
+  - @brains/site-info@0.2.0-alpha.744
+  - @brains/content-formatters@0.2.0-alpha.744
+  - @brains/contracts@0.2.0-alpha.744
+  - @brains/site-atlas@0.2.0-alpha.744
+  - @brains/site-composition@0.2.0-alpha.744
+  - @brains/utils@0.2.0-alpha.744
+
 ## 0.2.0-alpha.743
 
 ### Patch Changes

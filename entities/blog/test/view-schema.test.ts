@@ -38,6 +38,7 @@ describe("blogViewSchema", () => {
       "listLabel",
       "seriesUrl",
       "coverImageUrl",
+      "coverImageAlt",
       "ogImageUrl",
       "coverImageWidth",
       "coverImageHeight",
