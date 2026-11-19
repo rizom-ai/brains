@@ -253,6 +253,108 @@ describe("a first step that ends with no reply and no call", () => {
   });
 });
 
+describe("a step that may call tools", () => {
+  const withoutThinking = { local: { reasoningEffort: "none" } } as const;
+  /** A step the runtime stopped at its output limit. */
+  const cutOff = (content: ModelResponse["content"]): ModelResponse => ({
+    ...respond(content),
+    finishReason: { unified: "length", raw: "length" },
+  });
+
+  async function ask(
+    responses: ModelResponse[],
+    options: {
+      maxOutputTokens?: number;
+      providerOptions?: typeof withoutThinking;
+    } = {},
+  ): Promise<{ text: string; inputTokens: number | undefined; calls: Call[] }> {
+    const inner = scripted(responses);
+    const result = await generateText({
+      model: withLocalRuntime(inner, {}),
+      prompt: "Am I Karim?",
+      tools: { system_create: save },
+      ...options,
+    });
+    return {
+      text: result.text,
+      inputTokens: result.usage.inputTokens,
+      calls: inner.doGenerateCalls,
+    };
+  }
+
+  it("concludes from the end of its reasoning, without thinking further, when its thinking runs past the limit, counting both", async () => {
+    const { text, inputTokens, calls } = await ask([
+      cutOff([
+        { type: "reasoning", text: `${"x".repeat(5000)} I will answer: No.` },
+      ]),
+      reply("No."),
+    ]);
+    const conclusion = userParts(calls[1]).at(-1)?.text ?? "";
+    expect(conclusion).toContain("I will answer: No.");
+    expect(conclusion).toContain("Give the reply or the tool call");
+    // Only the end of the reasoning is handed back.
+    expect(conclusion.length).toBeLessThan(4300);
+    expect(userParts(calls[0])).toHaveLength(1);
+
+    expect(text).toBe("No.");
+    expect(inputTokens).toBe(2);
+    expect(calls.map((call) => call.maxOutputTokens)).toEqual([
+      3000,
+      undefined,
+    ]);
+    expect(calls.map((call) => call.providerOptions)).toEqual([
+      undefined,
+      withoutThinking,
+    ]);
+  });
+
+  it("is asked again in full when its reply is what the limit cut off", async () => {
+    const { text, calls } = await ask([
+      cutOff([{ type: "text", text: "The long answer starts" }]),
+      reply("The long answer, whole."),
+    ]);
+
+    expect(text).toBe("The long answer, whole.");
+    expect(calls.map((call) => call.maxOutputTokens)).toEqual([
+      3000,
+      undefined,
+    ]);
+    expect(calls.map((call) => call.providerOptions)).toEqual([
+      undefined,
+      undefined,
+    ]);
+  });
+
+  it("keeps a smaller limit the caller set", async () => {
+    const { calls } = await ask([reply("No.")], { maxOutputTokens: 500 });
+
+    expect(calls.map((call) => call.maxOutputTokens)).toEqual([500]);
+  });
+
+  it("has no limit when it is asked not to think", async () => {
+    const { calls } = await ask([reply("No.")], {
+      providerOptions: withoutThinking,
+    });
+
+    expect(calls.map((call) => call.maxOutputTokens)).toEqual([undefined]);
+  });
+});
+
+describe("a step with no tools to call", () => {
+  it("has no limit, as a draft may be long", async () => {
+    const inner = scripted([reply("A long draft.")]);
+
+    await generateText({
+      model: withLocalRuntime(inner, {}),
+      prompt: "Draft the essay.",
+    });
+
+    expect(inner.doGenerateCalls.map((call) => call.maxOutputTokens)).toEqual([
+      undefined,
+    ]);
+  });
+});
+
 describe("an earlier reply that quoted what an update stored", () => {
   it("reaches a local model without the quote, which it reads from storage", async () => {
     const inner = scripted([reply("Done.")]);

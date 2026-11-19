@@ -24,9 +24,10 @@ export interface LocalRuntimeOptions {
  * uploads reach the model as text, but for the images a model that reads
  * images sees itself; a first step that
  * ends with no reply and no call, as a thinking model's does when it settles
- * on a call in its reasoning, is asked again for that call; a required call
- * is constrained to one, since the runtime ignores the tool choice; and a
- * tool result can be answered without thinking, which costs most of a turn
+ * on a call in its reasoning, is asked again for that call; a step that may
+ * call tools and thinks past a limit is answered without thinking; a required
+ * call is constrained to one, since the runtime ignores the tool choice; and
+ * a tool result can be answered without thinking, which costs most of a turn
  * at ~20 tokens/s while tool choice is where thinking pays.
  */
 export function withLocalRuntime(
@@ -40,6 +41,7 @@ export function withLocalRuntime(
       ...(options.answersWithoutThinking ? [answerWithoutThinking] : []),
       withoutStoredQuotes,
       callAfterSilence,
+      boundedThinking,
       requiredToolChoice,
     ],
   });
@@ -62,6 +64,21 @@ function textOnlyFiles(options: LocalRuntimeOptions): LanguageModelMiddleware {
   };
 }
 
+type GenerateParams = Parameters<
+  NonNullable<LanguageModelMiddleware["transformParams"]>
+>[0]["params"];
+
+/** The same request with the model's thinking turned off. */
+function withoutThinking(params: GenerateParams): GenerateParams {
+  return {
+    ...params,
+    providerOptions: {
+      ...params.providerOptions,
+      local: { ...params.providerOptions?.["local"], reasoningEffort: "none" },
+    },
+  };
+}
+
 const answerWithoutThinking: LanguageModelMiddleware = {
   specificationVersion: "v3",
   // Only an effort the brain asked for is turned off: without one, the
@@ -69,17 +86,78 @@ const answerWithoutThinking: LanguageModelMiddleware = {
   transformParams: async ({ params }) =>
     params.prompt.at(-1)?.role === "tool" &&
     params.providerOptions?.["local"]?.["reasoningEffort"] !== undefined
-      ? {
-          ...params,
-          providerOptions: {
-            ...params.providerOptions,
-            local: {
-              ...params.providerOptions["local"],
-              reasoningEffort: "none",
-            },
-          },
-        }
+      ? withoutThinking(params)
       : params,
+};
+
+/**
+ * The output a step that may call tools gets before its thinking is taken to
+ * have run away. Of 227 turns measured on qwen3.6:35b, 221 spent under 2,400
+ * tokens; the other six spent 5,000 to 9,700, up to 192 s, on questions
+ * answered in a word.
+ */
+const THINKING_LIMIT = 3_000;
+
+/** The end of a cut-off step's reasoning that the model concludes from. */
+const REASONING_TAIL = 4_000;
+
+/**
+ * The same request, ending with the model's own cut-off reasoning and asked
+ * for what it had settled on, without thinking further.
+ */
+function concludingFrom(
+  params: GenerateParams,
+  result: GenerateResult,
+): GenerateParams {
+  const reasoning = result.content
+    .flatMap((part) => (part.type === "reasoning" ? [part.text] : []))
+    .join("\n")
+    .slice(-REASONING_TAIL);
+  return withoutThinking({
+    ...params,
+    prompt: [
+      ...params.prompt,
+      {
+        role: "user",
+        content: [
+          {
+            type: "text",
+            text: `Your thinking on this was cut off for length. It ended:\n\n${reasoning}\n\nGive the reply or the tool call you had settled on, without thinking further.`,
+          },
+        ],
+      },
+    ],
+  });
+}
+
+/**
+ * A step that may call tools replies or calls in a few hundred tokens. A
+ * thinking model sometimes settles its answer early and then redrafts it for
+ * thousands more, so a step the runtime stops at the limit with nothing but
+ * reasoning concludes from the end of that reasoning, without thinking
+ * further. One stopped inside its reply is asked again in full. A step with
+ * no tools, which writes a draft, has no limit.
+ */
+const boundedThinking: LanguageModelMiddleware = {
+  specificationVersion: "v3",
+  wrapGenerate: async ({ doGenerate, params, model }) => {
+    const thinks =
+      params.providerOptions?.["local"]?.["reasoningEffort"] !== "none";
+    const bounded =
+      (params.tools?.length ?? 0) > 0 &&
+      thinks &&
+      (params.maxOutputTokens ?? Infinity) > THINKING_LIMIT;
+    if (!bounded) return doGenerate();
+    const result = await model.doGenerate({
+      ...params,
+      maxOutputTokens: THINKING_LIMIT,
+    });
+    if (result.finishReason.unified !== "length") return result;
+    const retry = await model.doGenerate(
+      silent(result) ? concludingFrom(params, result) : params,
+    );
+    return { ...retry, usage: addUsage(result.usage, retry.usage) };
+  },
 };
 
 /** A step that ends with no reply and no call. */
