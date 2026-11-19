@@ -4,7 +4,7 @@ Last updated: 2026-11-18
 
 ## Status
 
-**Nominated candidate: `@rizom/brain@0.2.0-alpha.744` with `@rizom/site@0.2.0-alpha.246`, from source `82b8adfcac90f1488c1bca763a80be9ae706418d`.** Gates 1–4 pass. The one open item is the smoke canary's app-managed site rebuild, which waits on a Smoke Rover sign-in.
+**Nominated candidate: `@rizom/brain@0.2.0-alpha.744` with `@rizom/site@0.2.0-alpha.246`, from source `82b8adfcac90f1488c1bca763a80be9ae706418d`.** Gates 1–4 pass, including the smoke canary's app-managed site rebuild.
 
 This record is evidence, not authorization to exit prerelease mode, dispatch a stable workflow, publish stable packages, change npm dist-tags, or roll out a stable release.
 
@@ -97,13 +97,13 @@ Every brain returned `/health/ready` 200 with all checks healthy. Predeploy back
 - **Convergence:** `reconcile-all --dry-run` showed zero second-pass drift for both cohorts in the rollout, and again on rover-pilot `main` (`d04d21e`) with ops 744: no first-pass change and no second-pass drift. `brains-ops init` on ops 744 changed only `package.json` and `bun.lock`.
 - **Locks:** each runtime lock differs from its 743 counterpart only in `@rizom/brain`.
 - **`yeehaa.io`:** `system_status` reports 744, operational, with no legacy binary content, on migrated asset storage. App-managed preview and production rebuilds ran as jobs `Lwe4kBbCpVja` and `8-tGJ1WEz2Pe`; completed site builds went from 1036 to 1038 and failed stayed at 13. Afterwards all 147 sitemap pages and all 123 images returned 200, six baseline pages were unchanged, and the preview returned 200.
-- **Pending:** the app-managed site rebuild on the smoke canary, which needs a Smoke Rover sign-in.
+- **Smoke canary:** `system_status` reports 744, operational. App-managed preview and production rebuilds requested through the Smoke Rover connector on 2026-11-19; completed site builds went from 172 (05:05:46 UTC) to 174 (05:06:12 UTC) and failed stayed at 1. `/health/ready` returned 200 with all checks healthy and the site returned 200.
 
 No timed soak was approved for this candidate.
 
 ## Remaining gates
 
-- [ ] App-managed site rebuild on the smoke canary.
+- [x] App-managed site rebuild on the smoke canary.
 - [ ] Explicit authorization for prerelease exit, stable Site publication, exact stable-site registry verification, stable Brain publication, dist-tag changes, and fleet rollout.
 - [ ] After stable publication, freeze and rename all eight fixtures as the immutable `0.2.0` compatibility baseline.
 
@@ -120,7 +120,7 @@ No timed soak was approved for this candidate.
 | Credentialed live authoring harness | Pass, `gpt-5.6-luna`, 21 s                                           |
 | Personal eval                       | 31 of 31, `gpt-6-luna` / `gpt-5.4-mini`                              |
 | Team eval                           | 49 of 49, `gpt-6-luna` / `gpt-5.4-mini`                              |
-| Canary convergence and soak         | Zero second-pass drift; no soak approved; smoke rebuild pending      |
+| Canary convergence and soak         | Zero second-pass drift; no soak approved; smoke rebuild passed       |
 | `yeehaa.io` validation              | Pass on 744                                                          |
 | Release authorization               | Pending                                                              |
 | Stable Site publication             | Pending                                                              |
