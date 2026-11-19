@@ -1749,6 +1749,15 @@ The file names itself.`;
       expect(services.getLastMarkdownCreate()?.markdown).toBe(markdown);
     });
 
+    it("leaves text whose heading already is that title as written", async () => {
+      services.registerEntityTypes(["note"], { note: titledFrontmatter });
+      const content = "# Small teams\n\nThe heading already names the note.";
+
+      await exec({ entityType: "note", title: "Small teams", content });
+
+      expect(services.getLastMarkdownCreate()?.markdown).toBe(content);
+    });
+
     it("is not added to a type whose frontmatter has no title", async () => {
       services.registerEntityTypes(["note"], {
         note: z.object({ status: z.string().optional() }),

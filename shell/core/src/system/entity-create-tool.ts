@@ -276,18 +276,22 @@ async function executeUploadPreserve(
 /**
  * The markdown a structured create stores: the text, with the fields the
  * caller set, and the title the caller gave stated in the frontmatter when
- * the type's frontmatter has a title and the text states none. Without it
- * the type falls back to a title taken from the body, not the one the user
- * approved.
+ * the type's frontmatter has a title and the text carries none, neither in
+ * its frontmatter nor as its heading. Without it the type falls back to a
+ * title taken from the body, not the one the user approved; text that
+ * already names itself is stored exactly as written.
  */
 function structuredCreateMarkdown(
   createInput: CreateInput,
   content: string,
   frontmatterHasTitle: boolean,
 ): string {
+  const parsed = parseMarkdown(content);
+  const heading = parsed.content.match(/^#\s+(.+)$/m)?.[1]?.trim();
   const statesTitle =
     createInput.fields?.["title"] !== undefined ||
-    parseMarkdown(content).frontmatter["title"] !== undefined;
+    parsed.frontmatter["title"] !== undefined ||
+    (heading !== undefined && heading === createInput.title?.trim());
   const title =
     frontmatterHasTitle && !statesTitle ? createInput.title : undefined;
   const fields = {
