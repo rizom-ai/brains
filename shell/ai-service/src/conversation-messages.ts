@@ -498,17 +498,19 @@ function formatKeepAllCandidateLine(
 }
 
 /**
- * Several files attached to one message are kept together: the candidate
- * names every one of them, each with the transform that keeps it as itself
- * (a text file as a note, a PDF as a document), so none is left out of a
- * request to keep them. With a PDF among them, a second candidate keeps them
- * as notes, the PDF's text extracted the way a single PDF note import does.
+ * Several files attached to one message are kept together, and a request
+ * that names none of them keeps them all: the candidate names every one,
+ * each with the transform that keeps it as itself (a text file as a note, a
+ * PDF as a document), so none is left out of a request to keep them. With
+ * a PDF among them, a second candidate keeps them as notes, the PDF's text
+ * extracted the way a single PDF note import does.
  */
 function formatKeepAllCandidate(attachments: ChatAttachment[]): string[] {
   const kept = attachments.filter((attachment) => attachment.source);
   if (kept.length < 2) return [];
   const hasPdf = kept.some(isPdfAttachment);
   return [
+    "Several files are attached to this message: a request to keep, save, or import them that names none of them keeps all of them in one system_create call with source.kind uploads, never only one.",
     formatKeepAllCandidateLine(
       hasPdf
         ? ", each as itself, text files as notes and PDFs as documents"
