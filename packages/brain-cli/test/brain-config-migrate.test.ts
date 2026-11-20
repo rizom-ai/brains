@@ -338,6 +338,7 @@ describe("brain config migration preview", () => {
           "refined-note",
           "studio",
           "unified-inbox",
+          "webdav",
         ],
         // playbook folded into playbooks, which installs the playbook type.
         removed: ["account", "assessment", "cms", "playbook", "wishlist"],
@@ -359,6 +360,7 @@ describe("brain config migration preview", () => {
           "refined-note",
           "studio",
           "unified-inbox",
+          "webdav",
         ],
         removed: [
           "account",

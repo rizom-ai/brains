@@ -65,7 +65,7 @@ The product is one brain composed from fixed capability bundles:
 - **`core`** — identity, markdown knowledge, Inbox, MCP stdio, A2A, and agent discovery;
 - **`media`** — documents and images;
 - **`automation`** — playbooks and onboarding;
-- **`web`** — HTTP, auth, Account/Admin, Dashboard, and Studio;
+- **`web`** — HTTP, auth, Account/Admin, Dashboard, Studio, and the WebDAV drive;
 - **`chat`** — platform chat, Web Chat, email, notifications, and conversation memory;
 - **`site`** — site-info, site-content, site-builder, and analytics;
 - **`publishing`** — blog/post, series, portfolio, decks, pipeline, social, newsletter, and stock-photo workflows;

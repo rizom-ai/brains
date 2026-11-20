@@ -110,3 +110,15 @@
 + web-chat|handler|POST|/api/chat|exact|true
 + web-chat|handler|PUT|/api/chat/sessions/archive|exact|true
 + web-chat|handler|PUT|/api/chat/sessions|exact|true
++ webdav|handler|COPY|/dav|prefix|true
++ webdav|handler|DELETE|/dav|prefix|true
++ webdav|handler|GET|/dav|prefix|true
++ webdav|handler|HEAD|/dav|prefix|true
++ webdav|handler|LOCK|/dav|prefix|true
++ webdav|handler|MKCOL|/dav|prefix|true
++ webdav|handler|MOVE|/dav|prefix|true
++ webdav|handler|OPTIONS|/dav|prefix|true
++ webdav|handler|PROPFIND|/dav|prefix|true
++ webdav|handler|PROPPATCH|/dav|prefix|true
++ webdav|handler|PUT|/dav|prefix|true
++ webdav|handler|UNLOCK|/dav|prefix|true

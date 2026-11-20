@@ -229,6 +229,19 @@ describe("canonical brain core", () => {
     expect(resolvedIds).not.toContain("notifications");
   });
 
+  test("serves the drive with the web bundle, which signs people in", () => {
+    const ids = (bundles: string[]): string[] =>
+      (
+        resolve(canonicalBrain, {}, { bundleContract, bundles }).plugins ?? []
+      ).map((plugin) => plugin.id);
+
+    // A headless brain has no HTTP listener and no app passwords to admit.
+    expect(ids(["core"])).not.toContain("webdav");
+    expect(ids(["core", "web"])).toEqual(
+      expect.arrayContaining(["auth-service", "webdav"]),
+    );
+  });
+
   test("keeps posture-independent permissions on the definition", () => {
     expect(canonicalBrain.permissions).toEqual(definitionPermissionBaseline);
 

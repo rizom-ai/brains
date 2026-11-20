@@ -17,7 +17,7 @@ There is one configurable brain. It composes from eight capability bundles plus 
 | `core`       | Identity, markdown knowledge, Inbox, MCP stdio, A2A, and agent discovery                |
 | `media`      | Durable documents and images                                                            |
 | `automation` | Playbooks and onboarding                                                                |
-| `web`        | HTTP, authentication, account/admin, Dashboard, and Studio                              |
+| `web`        | HTTP, authentication, account/admin, Dashboard, Studio, and the WebDAV drive            |
 | `chat`       | Platform chat, web chat, email, notifications, and conversation memory                  |
 | `site`       | Public site information, content, building, and analytics                               |
 | `publishing` | Blog, series, portfolio, decks, pipeline, social, newsletter, and stock-photo workflows |
@@ -84,6 +84,7 @@ A core-only brain is headless and private. It can call approved peers, but it se
 - Account and Admin consoles;
 - Dashboard operator views;
 - Studio entity editing and plugin workspaces;
+- the WebDAV drive, which mounts the brain as a network drive for people with an app password;
 - HTTP MCP publication.
 
 `chat` owns conversational channels:

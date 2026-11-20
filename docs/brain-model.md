@@ -106,7 +106,7 @@ Definition authors may use arbitrary ordered bundles over their own catalog. Can
 - `core` — identity, markdown knowledge, Inbox, MCP stdio, A2A, and agent discovery;
 - `media` — documents and images;
 - `automation` — playbooks and onboarding;
-- `web` — HTTP, auth, account/admin, Dashboard, and CMS;
+- `web` — HTTP, auth, account/admin, Dashboard, Studio, and the WebDAV drive;
 - `chat` — platform chat, web chat, email, notifications, and conversation memory;
 - `site` — site information, content, building, and analytics;
 - `publishing` — long-form content and distribution workflows;

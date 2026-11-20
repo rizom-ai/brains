@@ -133,6 +133,15 @@ describe("built binary boot smoke", () => {
       const response = await fetch(`http://localhost:${productionPort}/`);
       expect(await response.text()).not.toBe("Internal Server Error");
       expect(response.status).toBe(200);
+
+      // The drive comes with the web bundle, on a brain with no content
+      // repository and no site, and asks a client without a password for one.
+      const drive = await fetch(`http://localhost:${productionPort}/dav/`, {
+        method: "PROPFIND",
+        headers: { Depth: "0" },
+      });
+      expect(drive.status).toBe(401);
+      expect(drive.headers.get("WWW-Authenticate")).toStartWith("Basic ");
     } finally {
       proc.kill();
       await proc.exited;

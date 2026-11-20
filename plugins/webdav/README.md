@@ -6,12 +6,12 @@ The drive browses, opens, saves, creates and deletes markdown files and images, 
 
 ## Enable
 
+The drive is part of the `web` bundle, so every brain that serves HTTP has it: it is served by the brain's own HTTP listener and signs people in through `auth-service`. A brain without `web` has no drive. To turn it off:
+
 ```yaml
-add:
+remove:
   - webdav
 ```
-
-The brain needs its web bundle: the drive is served by the brain's own HTTP listener and signs people in through `auth-service`.
 
 ## Signing in
 
