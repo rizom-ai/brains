@@ -10,7 +10,6 @@ bundles:
 
 add:
   - obsidian-vault
-  - webdav
 
 plugins:
   directory-sync:

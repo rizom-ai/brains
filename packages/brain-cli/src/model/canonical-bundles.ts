@@ -51,8 +51,9 @@ export const automationBundle: CapabilityBundleDefinition = defineBundle({
 
 export const webBundle: CapabilityBundleDefinition = defineBundle({
   id: WEB_BUNDLE_ID,
-  members: ["auth-service", "admin", "dashboard", "studio"],
-  // The runtime serves the web surface, health and the built site over HTTP.
+  members: ["auth-service", "admin", "dashboard", "studio", "webdav"],
+  // The runtime serves the web surface, health, the built site and the drive
+  // over HTTP; the drive signs people in through auth-service.
   http: true,
   config: [{ member: "dashboard", value: { routePath: "/" } }],
   permissions: [
