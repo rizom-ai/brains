@@ -45,7 +45,7 @@ export function createStatusTools(services: SystemServices): Tool[] {
     createTool(
       "system",
       "status",
-      "Get system status including version, background work, and the web surfaces (such as the dashboard and Studio) the caller can open, with their paths; trusted callers also get the model and entity totals",
+      "Get system status including version, background work, and the web surfaces the caller can open, with their paths; trusted callers also get the model and entity totals. Report only the paths it lists; when a surface the user asks about is not listed, say its path was not reported.",
       z.object({}),
       async (_input, context) => ({
         success: true,
