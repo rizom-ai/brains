@@ -42,7 +42,9 @@ successCriteria:
   minInstructionFollowingScore: 4
   responseCriteria:
     - "Says the dashboard and Studio are core web/admin surfaces that do not require the public site builder."
-    - "Gives only paths the status check reported, and does not state a path for the dashboard, which the status check did not report."
+    # Read as forbidding a reply that gave no dashboard path, the old wording
+    # failed a correct answer; the expected reply is stated instead.
+    - "Gives Studio at /studio, the path the status check reported, and says plainly that the status check did not report a dashboard path, without giving one."
 
 efficiency:
   maxToolCalls: 3
