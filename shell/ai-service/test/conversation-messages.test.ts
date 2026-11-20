@@ -866,6 +866,46 @@ describe("buildMessageWithAttachments", () => {
     });
   });
 
+  // Offered the candidates that keep every file, a model still saved only
+  // one of three files for "keep these as notes", in 1 of 10 samples.
+  it("tells the model a request naming none of several files keeps them all", () => {
+    const rule =
+      "Several files are attached to this message: a request to keep, save, or import them that names none of them keeps all of them in one system_create call with source.kind uploads, never only one.";
+    const several = buildMessageWithAttachments("Keep these as notes.", [
+      {
+        kind: "text",
+        filename: "survey-plan.md",
+        mediaType: "text/markdown",
+        content: "# Survey plan",
+        source: { kind: "upload", id: "upload-text" },
+      },
+      {
+        kind: "file",
+        filename: "tidal-energy.pdf",
+        mediaType: "application/pdf",
+        data: new Uint8Array([1]),
+        sizeBytes: 1,
+        source: { kind: "upload", id: "upload-pdf" },
+      },
+    ]);
+    const one = buildMessageWithAttachments("Keep this as a note.", [
+      {
+        kind: "text",
+        filename: "survey-plan.md",
+        mediaType: "text/markdown",
+        content: "# Survey plan",
+        source: { kind: "upload", id: "upload-text" },
+      },
+    ]);
+    const textOf = (content: typeof several): string => {
+      const part = Array.isArray(content) ? content[0] : undefined;
+      return part?.type === "text" ? part.text : String(content);
+    };
+
+    expect(textOf(several)).toContain(rule);
+    expect(textOf(one)).not.toContain(rule);
+  });
+
   it("offers every file attached to the message as one keep candidate", () => {
     const content = buildMessageWithAttachments("Keep these files.", [
       {
