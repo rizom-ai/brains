@@ -319,10 +319,13 @@ describe("Shell projection runtime lifecycle", () => {
       plugins: projectionTargetPlugins(),
       embedding: { enabled: false },
     });
-    const shell = Shell.createFresh(config, {
-      logger: createSilentLogger(),
-      embeddingService,
-    });
+    // A web process runs no worker: the projection the source note queues is
+    // not written behind the check that the on-demand run writes nothing.
+    const shell = Shell.createFresh(
+      config,
+      { logger: createSilentLogger(), embeddingService },
+      { processRole: "web" },
+    );
     shells.push(shell);
     await shell.initialize();
     await shell.getEntityService().createEntity({

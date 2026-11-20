@@ -336,7 +336,7 @@
       "access-control-allow-headers": "Content-Type, Signature, Signature-Input, Content-Digest, Date",
       "access-control-allow-methods": "GET, POST, OPTIONS",
       "access-control-allow-origin": "*",
-      "content-length": "6512",
+      "content-length": "6591",
       "content-type": "application/json",
       "date": "<date>",
       "x-content-type-options": "nosniff"

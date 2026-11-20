@@ -145,6 +145,17 @@ describe("system tool descriptions carry their own guidance", () => {
     );
   });
 
+  // Told the surfaces include "the dashboard and Studio", a model gave a
+  // dashboard path the status did not list, and the brain did not serve.
+  it("system_status: only the paths it lists are reported", () => {
+    const status = description("system_status");
+
+    expect(status).not.toContain("such as the dashboard and Studio");
+    expect(status).toContain(
+      "Report only the paths it lists; when a surface the user asks about is not listed, say its path was not reported",
+    );
+  });
+
   it("system_get: a requested read reads storage, not the conversation", () => {
     const get = description("system_get");
 
