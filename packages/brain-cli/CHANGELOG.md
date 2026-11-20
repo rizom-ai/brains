@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.752
+
+### Patch Changes
+
+- [#1011](https://github.com/rizom-ai/brains/pull/1011) [`7457410`](https://github.com/rizom-ai/brains/commit/74574108ba311951d1545c1cde1857c7830587f1) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Asked to keep, save, or import several attached files without naming one, the agent keeps all of them in one system_create call with source.kind uploads, instead of sometimes saving only one of them.
+
 ## 0.2.0-alpha.751
 
 ### Patch Changes
