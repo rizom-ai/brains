@@ -1,5 +1,24 @@
 # @brains/core
 
+## 0.2.0-alpha.751
+
+### Patch Changes
+
+- [#1010](https://github.com/rizom-ai/brains/pull/1010) [`d418e07`](https://github.com/rizom-ai/brains/commit/d418e07980b6e04278135d66bb0d9538bd0839bf) Thanks [@yeehaa123](https://github.com/yeehaa123)! - system_status no longer names the dashboard as an example surface, and tells the agent to report only the paths it lists. Asked for a surface the status does not list, the agent says its path was not reported instead of guessing one, such as a dashboard path a brain does not serve.
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.751
+  - @brains/contracts@0.2.0-alpha.751
+  - @brains/image@0.2.0-alpha.751
+  - @brains/operation-context@0.2.0-alpha.751
+  - @brains/site-composition@0.2.0-alpha.751
+  - @brains/utils@0.2.0-alpha.751
+  - @brains/http-host@0.2.0-alpha.751
+  - @brains/plugins@0.2.0-alpha.751
+  - @brains/recurring-checks@0.2.0-alpha.751
+  - @brains/runtime-state@0.2.0-alpha.751
+  - @brains/scheduler@0.2.0-alpha.751
+  - @brains/templates@0.2.0-alpha.751
+
 ## 0.2.0-alpha.750
 
 ### Patch Changes
