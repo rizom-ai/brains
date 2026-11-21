@@ -12,10 +12,12 @@ import {
 } from "@brains/sdk/entities";
 import {
   storedDocumentCodec,
+  storedFormCodec,
   bodyUnderHeader,
-  withFrontmatterSchema,
   withPersistValidator,
+  type StoredDocument,
 } from "@brains/sdk/internal/entity-runtime";
+import { parseMarkdown } from "@brains/utils/markdown-frontmatter";
 
 type FormMetadataSchema = z.ZodObject<{
   title: z.ZodString;
@@ -45,12 +47,87 @@ const storedForm = storedDocumentCodec<
     target,
     ...(path !== undefined && { path }),
   }),
-  readAsWritten: true,
   prepare: (document) =>
-    bodyUnderHeader({
-      ...document,
-      frontmatter: withoutEmptyPath(document.frontmatter),
+    inCurrentShape(
+      bodyUnderHeader({
+        ...document,
+        frontmatter: withoutEmptyPath(document.frontmatter),
+      }),
+    ),
+});
+
+/**
+ * A form in either stored form, its introduction as the body, as the
+ * current form holds it: the next (docs/plans/one-stored-form.md) is a
+ * YAML file, its introduction the intro key.
+ */
+function inCurrentShape(document: StoredDocument): StoredDocument {
+  const { intro, ...frontmatter } = document.frontmatter;
+  return typeof intro === "string" ? { content: intro, frontmatter } : document;
+}
+
+/**
+ * The header and introduction a write states: the document's whole header,
+ * the fields its metadata names the record's. A body handed in without its
+ * header (a field write) states those fields alone, and the serializer
+ * keeps the rest of the stored header.
+ */
+function written(content: string, metadata: FormMetadata): StoredDocument {
+  const stated = {
+    title: metadata.title,
+    target: metadata.target,
+    ...(metadata.path !== undefined && { path: metadata.path }),
+  };
+  const parsed = parseMarkdown(content);
+  // An empty path is none, as a read has it.
+  const document = inCurrentShape({
+    content: parsed.content,
+    frontmatter: withoutEmptyPath(parsed.frontmatter),
+  });
+  return {
+    content: document.content,
+    frontmatter: { ...document.frontmatter, ...stated },
+  };
+}
+
+/** The next form's header: the introduction beside the thanks text. */
+function withIntro(document: StoredDocument): Record<string, unknown> {
+  const intro = document.content.trim();
+  if (intro === "") return document.frontmatter;
+  const entries = Object.entries(document.frontmatter);
+  const at = entries.findIndex(([key]) => key === "thanks");
+  const placed: [string, unknown][] = [["intro", intro]];
+  return Object.fromEntries(
+    at < 0
+      ? [...entries, ...placed]
+      : [...entries.slice(0, at), ...placed, ...entries.slice(at)],
+  );
+}
+
+/**
+ * Read as its stored document in either form; the store's form is
+ * written: the current, a header and its introduction as the body, or the
+ * next, a YAML file of the whole definition.
+ */
+const formMarkdown = storedFormCodec<typeof formMetadataSchema>({
+  decode: storedForm.decode,
+  encode: {
+    old: ({ content, metadata }) => written(content, metadata),
+    new: ({ content, metadata }) => ({
+      content: "",
+      frontmatter: withIntro(written(content, metadata)),
     }),
+  },
+  header: {
+    old: formFrontmatterSchema,
+    new: z.object({
+      ...formFrontmatterSchema.shape,
+      intro: z.string().optional(),
+    }),
+  },
+  // An introduction moved to the header sits beside the thanks text.
+  places: [["intro", "thanks"]],
+  readAsWritten: true,
 });
 
 /**
@@ -63,32 +140,31 @@ const storedForm = storedDocumentCodec<
  * refused before it is stored.
  */
 export const form: EntityDefinition<"form", typeof formMetadataSchema> =
-  withFrontmatterSchema(
-    withPersistValidator(
-      defineEntity({
-        type: "form",
-        purpose:
-          "A public form on the brain's site: its fields, copy and what its submissions become. Served by the package that stores them; never knowledge or model input.",
-        metadata: formMetadataSchema,
-        hasBody: true,
-        markdown: storedForm,
-        config: {
-          embeddable: false,
-          fullTextSearchable: false,
-          projectionSource: false,
-          projectionSourceRole: "excluded",
-        },
-      }),
-      ({ id, content }) => {
-        try {
-          parseFormMarkdown(id, content);
-        } catch {
-          // The engine says why on import; never echo the definition here.
-          throw new Error("Invalid form");
-        }
+  withPersistValidator(
+    defineEntity({
+      type: "form",
+      purpose:
+        "A public form on the brain's site: its fields, copy and what its submissions become. Served by the package that stores them; never knowledge or model input.",
+      metadata: formMetadataSchema,
+      hasBody: true,
+      markdown: formMarkdown,
+      config: {
+        // Its next form is a YAML file (docs/plans/one-stored-form.md).
+        storage: "yaml",
+        embeddable: false,
+        fullTextSearchable: false,
+        projectionSource: false,
+        projectionSourceRole: "excluded",
       },
-    ),
-    formFrontmatterSchema,
+    }),
+    ({ id, content }) => {
+      try {
+        parseFormMarkdown(id, content);
+      } catch {
+        // The engine says why on import; never echo the definition here.
+        throw new Error("Invalid form");
+      }
+    },
   );
 
 /** The form type, as one package. */
