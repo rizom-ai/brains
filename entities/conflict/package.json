@@ -1,7 +1,7 @@
 {
   "name": "@brains/conflict",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.754",
+  "version": "0.2.0-alpha.755",
   "description": "Conflict entity type — an edit made over a newer version, kept until someone applies or dismisses it",
   "dependencies": {
     "@brains/contracts": "workspace:*",
