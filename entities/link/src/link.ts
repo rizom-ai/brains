@@ -1,8 +1,5 @@
 import { defineEntity, type EntityDefinition } from "@brains/sdk/entities";
-import {
-  withUrlRoute,
-  writesInDocumentOrder,
-} from "@brains/sdk/internal/entity-runtime";
+import { withUrlRoute } from "@brains/sdk/internal/entity-runtime";
 import { linkAtproto } from "./atproto-projection";
 import {
   linkFromContent,
@@ -25,29 +22,27 @@ import { linkListTemplate } from "./templates/link-list";
  */
 export const link: EntityDefinition<"link", typeof linkMetadataSchema> =
   withUrlRoute(
-    writesInDocumentOrder(
-      defineEntity({
-        type: "link",
-        purpose:
-          "A saved external URL or web resource captured for later reference.",
-        metadata: linkMetadataSchema,
-        markdown: linkMarkdown,
-        // domain is the URL's hostname; readers take it from url.
-        config: {
-          projectionSourceRole: "supporting",
-          retiredFields: ["domain"],
-        },
-        templates: {
-          extraction: linkExtractionTemplate,
-          "link-list": linkListTemplate,
-          "link-detail": linkDetailTemplate,
-        },
-        create: {
-          fromContent: linkFromContent(() => link),
-          fromPrompt: linkFromPrompt,
-        },
-        atproto: linkAtproto,
-      }),
-    ),
+    defineEntity({
+      type: "link",
+      purpose:
+        "A saved external URL or web resource captured for later reference.",
+      metadata: linkMetadataSchema,
+      markdown: linkMarkdown,
+      // domain is the URL's hostname; readers take it from url.
+      config: {
+        projectionSourceRole: "supporting",
+        retiredFields: ["domain"],
+      },
+      templates: {
+        extraction: linkExtractionTemplate,
+        "link-list": linkListTemplate,
+        "link-detail": linkDetailTemplate,
+      },
+      create: {
+        fromContent: linkFromContent(() => link),
+        fromPrompt: linkFromPrompt,
+      },
+      atproto: linkAtproto,
+    }),
     linkFromUrl,
   );

@@ -71,9 +71,9 @@ export const noteMarkdown: EntityMarkdownCodec<typeof noteMetadataSchema> = {
       },
     };
   },
-  // The body as the note adapter wrote it: trimmed.
+  // The body as handed; the serializer frames it as it frames every write.
   encode: ({ content, metadata }) => ({
-    content: content.trim(),
+    content,
     frontmatter: {
       ...(metadata.titleStated === true && { title: metadata.title }),
       ...(metadata.status !== undefined && { status: metadata.status }),

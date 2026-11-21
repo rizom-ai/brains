@@ -1,8 +1,5 @@
 import { defineEntity, z, type EntityDefinition } from "@brains/sdk/entities";
-import {
-  storedDocumentCodec,
-  writesInDocumentOrder,
-} from "@brains/sdk/internal/entity-runtime";
+import { storedDocumentCodec } from "@brains/sdk/internal/entity-runtime";
 import {
   ACTION_ITEM_ENTITY_TYPE,
   ACTION_ITEM_RETIRED_FIELDS,
@@ -32,25 +29,23 @@ function bodyHeading(content: string): string | undefined {
 export const decision: EntityDefinition<
   typeof DECISION_ENTITY_TYPE,
   typeof decisionMetadataSchema
-> = writesInDocumentOrder(
-  defineEntity({
-    type: DECISION_ENTITY_TYPE,
-    purpose: "A decision recorded from a conversation.",
-    metadata: decisionMetadataSchema,
-    markdown: {
-      decode: ({ content, frontmatter }) => ({
-        content: content.replace(/^\n+/u, ""),
-        metadata: decisionMetadataSchema.parse(frontmatter),
-      }),
-      encode: ({ content, metadata }) => ({
-        content,
-        frontmatter: decisionMetadataSchema.parse(metadata),
-      }),
-    },
-    displayTitle: ({ content }) => bodyHeading(content),
-    config: { retiredFields: [...DECISION_RETIRED_FIELDS] },
-  }),
-);
+> = defineEntity({
+  type: DECISION_ENTITY_TYPE,
+  purpose: "A decision recorded from a conversation.",
+  metadata: decisionMetadataSchema,
+  markdown: {
+    decode: ({ content, frontmatter }) => ({
+      content: content.replace(/^\n+/u, ""),
+      metadata: decisionMetadataSchema.parse(frontmatter),
+    }),
+    encode: ({ content, metadata }) => ({
+      content,
+      frontmatter: decisionMetadataSchema.parse(metadata),
+    }),
+  },
+  displayTitle: ({ content }) => bodyHeading(content),
+  config: { retiredFields: [...DECISION_RETIRED_FIELDS] },
+});
 
 /** Every header field is read as stored; metadata parses its own. */
 const actionItemHeader: z.ZodObject = z.looseObject({});

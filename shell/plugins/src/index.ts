@@ -1000,7 +1000,6 @@ export {
   withPublishedStatuses,
   type RecordDisplayTitle,
   withUrlRoute,
-  writesInDocumentOrder,
   storedDocumentCodec,
   bodyUnderHeader,
   type StoredDocument,

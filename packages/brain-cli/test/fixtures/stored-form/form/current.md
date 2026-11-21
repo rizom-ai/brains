@@ -1,0 +1,29 @@
+---
+target: contact-request
+path: /work-with-us
+title: Work with us
+pageTitle: Work with us
+submitLabel: Send
+steps:
+  - title: You
+    fields:
+      - kind: text
+        id: name
+        label: Name
+        required: true
+        maxLength: 120
+      - kind: email
+        id: email
+        label: Email
+        required: true
+  - title: Your plans
+    fields:
+      - kind: longText
+        id: message
+        label: What do you have in mind?
+        required: true
+thanks:
+  title: Thank you
+  body: We will be in touch.
+---
+Tell us what you have in mind.

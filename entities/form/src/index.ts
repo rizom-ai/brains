@@ -15,7 +15,6 @@ import {
   bodyUnderHeader,
   withFrontmatterSchema,
   withPersistValidator,
-  writesInDocumentOrder,
 } from "@brains/sdk/internal/entity-runtime";
 
 type FormMetadataSchema = z.ZodObject<{
@@ -64,34 +63,32 @@ const storedForm = storedDocumentCodec<
  * refused before it is stored.
  */
 export const form: EntityDefinition<"form", typeof formMetadataSchema> =
-  writesInDocumentOrder(
-    withFrontmatterSchema(
-      withPersistValidator(
-        defineEntity({
-          type: "form",
-          purpose:
-            "A public form on the brain's site: its fields, copy and what its submissions become. Served by the package that stores them; never knowledge or model input.",
-          metadata: formMetadataSchema,
-          hasBody: true,
-          markdown: storedForm,
-          config: {
-            embeddable: false,
-            fullTextSearchable: false,
-            projectionSource: false,
-            projectionSourceRole: "excluded",
-          },
-        }),
-        ({ id, content }) => {
-          try {
-            parseFormMarkdown(id, content);
-          } catch {
-            // The engine says why on import; never echo the definition here.
-            throw new Error("Invalid form");
-          }
+  withFrontmatterSchema(
+    withPersistValidator(
+      defineEntity({
+        type: "form",
+        purpose:
+          "A public form on the brain's site: its fields, copy and what its submissions become. Served by the package that stores them; never knowledge or model input.",
+        metadata: formMetadataSchema,
+        hasBody: true,
+        markdown: storedForm,
+        config: {
+          embeddable: false,
+          fullTextSearchable: false,
+          projectionSource: false,
+          projectionSourceRole: "excluded",
         },
-      ),
-      formFrontmatterSchema,
+      }),
+      ({ id, content }) => {
+        try {
+          parseFormMarkdown(id, content);
+        } catch {
+          // The engine says why on import; never echo the definition here.
+          throw new Error("Invalid form");
+        }
+      },
     ),
+    formFrontmatterSchema,
   );
 
 /** The form type, as one package. */
