@@ -31,6 +31,8 @@ export {
   type StoredDocument,
   withFrontmatterSchema,
   storedFormCodec,
+  bodyFieldsCodec,
+  leadAndSections,
   storedFormWrites,
   type StoredForm,
   afterGeneration,

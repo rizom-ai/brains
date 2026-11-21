@@ -4,6 +4,7 @@ import {
 } from "@brains/content-formatters";
 import {
   generateMarkdownWithFrontmatter,
+  leadAndSections,
   parseTypedFrontmatter,
 } from "@brains/sdk/internal/entity-runtime";
 import { parseMarkdown } from "@brains/utils/markdown-frontmatter";
@@ -59,14 +60,6 @@ export function createSwotContent(input: SwotFrontmatter): string {
   return generateMarkdownWithFrontmatter("", input);
 }
 
-/** A body's text above its first section, and the sections from there. */
-function splitLead(body: string): { lead: string; sections: string } {
-  const at = `\n${body}`.search(/\n## /u);
-  return at < 0
-    ? { lead: body, sections: "" }
-    : { lead: body.slice(0, at), sections: body.slice(at) };
-}
-
 /**
  * A stored SWOT in either form, its quadrants in the header and its body
  * the text an author added, as the current form holds them.
@@ -77,7 +70,7 @@ export function swotInCurrentShape(document: {
 }): { content: string; frontmatter: Record<string, unknown> } {
   if (QUADRANTS.some((key) => Object.hasOwn(document.frontmatter, key)))
     return { content: document.content, frontmatter: document.frontmatter };
-  const { lead, sections } = splitLead(document.content);
+  const { lead, sections } = leadAndSections(document.content);
   if (sections.length === 0)
     return { content: document.content, frontmatter: document.frontmatter };
   return {

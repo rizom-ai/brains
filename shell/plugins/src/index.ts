@@ -1005,6 +1005,8 @@ export {
   type StoredDocument,
   withFrontmatterSchema,
   storedFormCodec,
+  bodyFieldsCodec,
+  leadAndSections,
   type EntityAnswerContext,
   type EntityAnswerDeclaration,
   type AnyEntityReads,
