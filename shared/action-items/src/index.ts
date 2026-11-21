@@ -74,6 +74,12 @@ export {
 } from "./write";
 export { channelLabel, formatAge, formatShortDate } from "./format";
 export {
+  ACTION_ITEM_PLACES,
+  actionItemNextHeaderSchema,
+  inCurrentShape,
+  inNextForm,
+} from "./stored-form";
+export {
   isActorRefText,
   peopleFromIndex,
   peopleIndex,

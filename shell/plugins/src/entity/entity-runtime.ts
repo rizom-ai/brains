@@ -1347,6 +1347,8 @@ export function storedFormCodec<
    * order its author gave.
    */
   readonly places?: readonly (readonly string[])[];
+  /** A read is the stored document byte for byte (storedDocumentCodec's). */
+  readonly readAsWritten?: boolean;
 }): EntityMarkdownCodec<TMetadataSchema> {
   const codec: EntityMarkdownCodec<TMetadataSchema> = {
     decode: options.decode,
@@ -1357,6 +1359,7 @@ export function storedFormCodec<
     header: options.header,
     places: options.places,
   });
+  if (options.readAsWritten === true) readAsWrittenCodecs.add(codec);
   return codec;
 }
 

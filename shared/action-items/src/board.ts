@@ -6,6 +6,7 @@ import {
 } from "@brains/utils/markdown-frontmatter";
 import { CONVERSATION_SUMMARY_ENTITY_TYPE } from "./constants";
 import { channelLabel } from "./format";
+import { ACTION_ITEM_NEXT_FORM_FIELDS, bodyAbovePeople } from "./stored-form";
 import {
   ACTION_ITEM_RETIRED_FIELDS,
   ACTION_ITEM_TRANSLATED_FIELDS,
@@ -18,10 +19,14 @@ import {
   type ActionItemStatus,
 } from "./schema";
 
-/** Frontmatter keys the action-item schema owns; any other key is an extension such as a grouping. */
-const OWNED_FIELDS: ReadonlySet<string> = new Set(
-  Object.keys(actionItemMetadataSchema.shape),
-);
+/**
+ * Frontmatter keys the action-item schema owns, in either stored form; any
+ * other key is an extension such as a grouping.
+ */
+const OWNED_FIELDS: ReadonlySet<string> = new Set([
+  ...Object.keys(actionItemMetadataSchema.shape),
+  ...ACTION_ITEM_NEXT_FORM_FIELDS,
+]);
 const RETIRED_FIELDS: ReadonlySet<string> = new Set([
   ...ACTION_ITEM_RETIRED_FIELDS,
   ...ACTION_ITEM_TRANSLATED_FIELDS,
@@ -72,9 +77,13 @@ export function actionItemFrontmatter(
   return Object.fromEntries([...owned, ...extensions]);
 }
 
-/** The markdown body after the frontmatter, untrimmed. */
+/**
+ * The markdown body after the frontmatter, untrimmed, above the People
+ * section a card in the next stored form closes with: the same body in
+ * either form.
+ */
 export function actionItemBody(content: string): string {
-  return readMarkdownFrontmatter(content).content;
+  return bodyAbovePeople(readMarkdownFrontmatter(content).content);
 }
 
 export function actionItemBodyHash(content: string): string {

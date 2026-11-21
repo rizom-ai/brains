@@ -11,7 +11,15 @@ import {
   ACTION_ITEM_TRANSLATED_FIELDS,
   actionItemAdapter,
 } from "../src";
-import { actionItemBody, applyMove, applyNote, isBoardOwned } from "../src";
+import {
+  actionItemBody,
+  actionItemText,
+  applyMove,
+  applyNote,
+  inCurrentShape,
+  inNextForm,
+  isBoardOwned,
+} from "../src";
 import {
   actionItemSchema,
   type ActionItemEntity,
@@ -327,5 +335,63 @@ describe("adding a note", () => {
     expect(() =>
       applyNote(projected(), { text: "  ", at: "2026-10-15T08:02:00.000Z" }),
     ).toThrow("text");
+  });
+});
+
+// A card in the next stored form (docs/plans/one-stored-form.md) closes its
+// body with a People section and states its source and people as flat keys.
+// The board reads it as it reads the same card in the current form.
+describe("a card in the next stored form", () => {
+  const current = projected({
+    sourceRef: { sourceId: "mail", entityType: "mail-item", entityId: "m-1" },
+    assignedTo: [{ name: "Sam Rivera", id: "user:u-sam" }],
+  });
+  const document = readMarkdownFrontmatter(current.content);
+  const next = inNextForm({
+    content: document.content,
+    frontmatter: frontmatterOf(current.content),
+  });
+  const card = withContent(
+    current,
+    generateMarkdown(next.frontmatter, next.content),
+  );
+
+  it("states its people in the body and its source as flat keys", () => {
+    expect(card.content).toContain("## People");
+    expect(frontmatterOf(card.content)).toMatchObject({
+      sourceRef: "mail",
+      sourceEntityType: "mail-item",
+      sourceEntityId: "m-1",
+      assignedTo: ["user:u-sam"],
+    });
+  });
+
+  it("has the body, the text and the owner of the current form", () => {
+    expect(actionItemBody(card.content)).toBe(actionItemBody(current.content));
+    expect(actionItemText(card)).toBe(actionItemText(current));
+    expect(isBoardOwned(card)).toBe(isBoardOwned(current));
+    expect(isBoardOwned(card)).toBe(false);
+  });
+
+  it("reads back in the current shape", () => {
+    expect(
+      inCurrentShape({
+        content: readMarkdownFrontmatter(card.content).content,
+        frontmatter: frontmatterOf(card.content),
+      }),
+    ).toEqual({
+      content: document.content,
+      frontmatter: frontmatterOf(current.content),
+    });
+  });
+
+  it("takes a note above nothing it reads past", () => {
+    const noted = applyNote(card, {
+      text: "Booked.",
+      actorName: "Sam",
+      at: "2026-01-02T00:00:00.000Z",
+    });
+    expect(actionItemText(noted)).toContain("Booked.");
+    expect(actionItemText(noted)).not.toContain("People");
   });
 });

@@ -389,9 +389,12 @@ function markdownStorage(
     // class kept it.
     ...(header
       ? {
-          writtenFrontmatterSchema: definition.metadata
-            .extend(header.old.shape)
-            .extend(header.new.shape),
+          // From the shapes: a refined schema cannot be extended.
+          writtenFrontmatterSchema: z.object({
+            ...definition.metadata.shape,
+            ...header.old.shape,
+            ...header.new.shape,
+          }),
         }
       : frontmatterSchemaOf(definition) && {
           writtenFrontmatterSchema: definition.metadata,
