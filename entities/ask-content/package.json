@@ -4,6 +4,7 @@
   "version": "0.2.0-alpha.756",
   "description": "Authored singleton presentation shared by public Ask surfaces",
   "dependencies": {
+    "@brains/content-formatters": "workspace:*",
     "@brains/contracts": "workspace:*",
     "@brains/sdk": "workspace:*",
     "@brains/utils": "workspace:*"

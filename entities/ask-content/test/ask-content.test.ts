@@ -67,3 +67,16 @@ describe("Ask content entity", () => {
     expect(parseAskContent(createAskContent({}))).toEqual({});
   });
 });
+
+// The next stored form (docs/plans/one-stored-form.md) states the contact
+// note and the refusal under the introduction.
+describe("an ask-content document in the next stored form", () => {
+  test("reads the same presentation as the current form", () => {
+    const current =
+      "---\ncontactLabel: Talk to us\ncontactNote: We read every message.\nrefusal: Only our work.\n---\nWe are a small team.\n";
+    const next =
+      "---\ncontactLabel: Talk to us\n---\nWe are a small team.\n\n## Contact note\n\nWe read every message.\n\n## Refusal\n\nOnly our work.\n";
+    expect(parseAskContent(next)).toEqual(parseAskContent(current));
+    expect(parseAskContent(next).introduction).toBe("We are a small team.");
+  });
+});

@@ -1,9 +1,11 @@
+import { bodyFields } from "@brains/content-formatters";
 import {
   askContentFrontmatterSchema,
-  parseAskContent,
+  askContentFromRecord,
   type AskContent,
   type AskContentFrontmatter,
 } from "@brains/contracts";
+import { bodyFieldsCodec } from "@brains/sdk/internal/entity-runtime";
 import {
   defineEntity,
   defineEntityPackage,
@@ -11,7 +13,18 @@ import {
   type EntityOf,
   type EntityPackageDefinition,
 } from "@brains/sdk/entities";
-import { generateMarkdown } from "@brains/utils/markdown-frontmatter";
+import {
+  generateMarkdown,
+  parseMarkdown,
+} from "@brains/utils/markdown-frontmatter";
+
+/**
+ * The copy the next stored form (docs/plans/one-stored-form.md) states in
+ * the body, under the introduction: the contact note and the refusal.
+ */
+const BODY_FIELDS = ["contactNote", "refusal"] as const;
+
+const askContentBody = bodyFields(askContentFrontmatterSchema, BODY_FIELDS);
 
 /**
  * The authored welcome and suggested topics public Ask surfaces share: one
@@ -29,6 +42,10 @@ export const askContent: EntityDefinition<
   metadata: askContentFrontmatterSchema,
   singleton: true,
   hasBody: true,
+  markdown: bodyFieldsCodec({
+    metadata: askContentFrontmatterSchema,
+    bodyFields: BODY_FIELDS,
+  }),
   config: { embeddable: false },
 });
 
@@ -56,4 +73,14 @@ export function createAskContent(
     : introduction;
 }
 
-export { parseAskContent, type AskContent, type AskContentFrontmatter };
+/**
+ * Server-side authoring parser: the Ask presentation an ask-content
+ * document holds, in either stored form.
+ */
+export function parseAskContent(markdown: string): AskContent {
+  const { frontmatter, content } = parseMarkdown(markdown);
+  const read = askContentBody.read(frontmatter, content);
+  return askContentFromRecord({ content: read.lead, metadata: read.header });
+}
+
+export { type AskContent, type AskContentFrontmatter };

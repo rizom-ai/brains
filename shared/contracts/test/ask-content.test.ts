@@ -1,9 +1,11 @@
 import { describe, expect, test } from "bun:test";
 import { askContentSchema } from "../src/ask-content";
-import {
-  askContentFromRecord,
-  parseAskContent,
-} from "../src/ask-content-markdown";
+import { askContentFromRecord } from "../src/ask-content-markdown";
+
+/** A raw stored document read as a record, its header its fields. */
+const parseAskContent = (
+  content: string,
+): ReturnType<typeof askContentFromRecord> => askContentFromRecord({ content });
 
 describe("authored Ask presentation", () => {
   test("has no invented defaults", () => {
