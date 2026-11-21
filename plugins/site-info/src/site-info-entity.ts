@@ -1,8 +1,9 @@
 import { defineEntity, type EntityDefinition } from "@brains/sdk/entities";
 import {
   withFrontmatterSchema,
+  storedFormCodec,
+  storedFormWrites,
   withWrittenFrontmatterSchema,
-  type StoredForm,
 } from "@brains/sdk/internal/entity-runtime";
 import {
   StructuredContentFormatter,
@@ -175,12 +176,12 @@ export type SiteInfoDefinition = EntityDefinition<
  * blurbs and translations. A singleton read as its fields: in memory its
  * metadata keeps one shape whichever form its file is in, so readers never
  * see the difference. It reads the old form (everything in the header) and
- * the new one (a flat header and a body); `form` decides which it writes.
+ * the new one (a flat header and a body), and writes the one its store writes.
  * Its body is an encoding of its fields, edited in the file, so a read hands
  * back the fields and no body. Configuration rather than content, so it
  * stays out of embeddings and projections.
  */
-export function siteInfoDefinition(form: StoredForm): SiteInfoDefinition {
+export function siteInfoDefinition(): SiteInfoDefinition {
   const definition = defineEntity({
     type: SITE_INFO,
     classification: "system",
@@ -188,24 +189,25 @@ export function siteInfoDefinition(form: StoredForm): SiteInfoDefinition {
     metadata: siteInfoBodySchema,
     singleton: true,
     hasBody: false,
-    markdown: {
+    markdown: storedFormCodec<typeof siteInfoBodySchema>({
       decode: (document) => ({
         content: "",
         metadata: decodeSiteInfo(document),
       }),
-      encode: ({ metadata }) =>
-        form === "new"
-          ? encodeNewForm(metadata)
-          : { content: "", frontmatter: metadata },
-    },
+      encode: {
+        old: ({ metadata }) => ({ content: "", frontmatter: metadata }),
+        new: ({ metadata }) => encodeNewForm(metadata),
+      },
+    }),
     config: {
       embeddable: false,
       projectionSource: false,
       projectionSourceRole: "excluded",
     },
   });
+  // Studio and the Obsidian vault present the header this release writes.
   return withWrittenFrontmatterSchema(
-    form === "new"
+    storedFormWrites === "new"
       ? withFrontmatterSchema(definition, newHeaderSchema)
       : definition,
     bothFormsHeaderSchema,

@@ -1,3 +1,4 @@
+import type { StoredForm } from "./stored-form";
 import type { EntityTypeClassification } from "./entity-type-classification";
 import type { GroupingProjectionTarget } from "./grouping-projection-state";
 import type {
@@ -555,7 +556,12 @@ export interface EntityAdapter<
   schema: EntitySchema<TEntity>;
 
   // Convert entity to markdown content (may include frontmatter for entity-specific fields)
-  toMarkdown(entity: TEntity): string;
+  /**
+   * The stored document for an entity. `form` is the stored form the store
+   * writes (docs/plans/one-stored-form.md); a type that reads two forms
+   * writes this one, and every other type ignores it.
+   */
+  toMarkdown(entity: TEntity, options?: { form?: StoredForm }): string;
 
   // Extract entity-specific fields from markdown
   // Returns Partial<TEntity> as core fields come from database
@@ -1462,9 +1468,7 @@ export interface EntityServiceClient extends ICoreEntityService {
    * Rewrite stored rows whose document differs from the form their type
    * writes now, quietly: content and hash only, no event, marked for export.
    */
-  rewriteStoredForms(options?: {
-    form?: "old" | "new";
-  }): Promise<{ rewritten: number; deferred: number }>;
+  rewriteStoredForms(): Promise<{ rewritten: number; deferred: number }>;
   isIndexReady(): boolean;
   awaitIndexReady(
     options: IndexReadinessOptions,

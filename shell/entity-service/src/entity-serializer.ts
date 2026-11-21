@@ -6,6 +6,7 @@ import {
 import { isPlainRecord } from "@brains/utils/predicates";
 import { z } from "@brains/utils/zod";
 import type { BaseEntity, EntityRegistry, SourceReadOption } from "./types";
+import { storedFormWrites, type StoredForm } from "./stored-form";
 import {
   ENTITY_SYSTEM_FIELDS,
   applyVisibilityToMarkdown,
@@ -186,10 +187,17 @@ export function framedDocument(markdown: string): string {
 export class EntitySerializer {
   private entityRegistry: EntityRegistry;
   private logger: Logger;
+  /** The stored form this serializer writes. */
+  public readonly storedForm: StoredForm;
 
-  constructor(entityRegistry: EntityRegistry, logger: Logger) {
+  constructor(
+    entityRegistry: EntityRegistry,
+    logger: Logger,
+    storedForm: StoredForm = storedFormWrites,
+  ) {
     this.entityRegistry = entityRegistry;
     this.logger = logger.child("EntitySerializer");
+    this.storedForm = storedForm;
   }
 
   /**
@@ -203,7 +211,7 @@ export class EntitySerializer {
       this.entityRegistry.getEntityTypeConfig(entity.entityType)
         .binaryStorage === "asset";
     // An asset-backed row stores the bare reference; visibility lives on the row.
-    const markdown = adapter.toMarkdown(entity);
+    const markdown = adapter.toMarkdown(entity, { form: this.storedForm });
     const serialized = assetBacked
       ? markdown
       : applyVisibilityToMarkdown(markdown, entity.visibility);
@@ -550,7 +558,10 @@ export class EntitySerializer {
     const written = writtenOver(document.data, stored);
     if (Object.keys(written).length === 0) return entity;
     const encoded = readMarkdownFrontmatter(
-      adapter.toMarkdown({ ...entity, content: document.content }),
+      adapter.toMarkdown(
+        { ...entity, content: document.content },
+        { form: this.storedForm },
+      ),
     );
     let decoded: Partial<BaseEntity>;
     try {

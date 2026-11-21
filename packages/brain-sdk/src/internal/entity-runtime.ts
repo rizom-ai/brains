@@ -31,6 +31,7 @@ export {
   type StoredDocument,
   withFrontmatterSchema,
   withWrittenFrontmatterSchema,
+  storedFormCodec,
   storedFormWrites,
   type StoredForm,
   afterGeneration,

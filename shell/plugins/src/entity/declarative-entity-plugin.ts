@@ -1,3 +1,4 @@
+import type { StoredForm } from "@brains/entity-service";
 import { createScopedAssetReads } from "./owned-entity-writer-runtime";
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
@@ -68,6 +69,7 @@ import {
   restatedMetadataOf,
   urlRouteOf,
   writtenFrontmatterSchemaOf,
+  encoderFor,
   readsAsWritten,
   frontmatterSchemaOf,
   builtProvider,
@@ -265,9 +267,13 @@ function encodeParts(
     readonly content: string;
     readonly metadata: Record<string, unknown>;
   },
+  form?: StoredForm,
 ): { readonly content: string; readonly frontmatter: Record<string, unknown> } {
-  return definition.markdown?.encode
-    ? definition.markdown.encode({
+  const encode = definition.markdown
+    ? encoderFor(definition.markdown, form)
+    : undefined;
+  return encode
+    ? encode({
         content: input.content,
         metadata: definition.metadata.parse(
           currentMetadata(definition, input.metadata),
@@ -282,8 +288,9 @@ function encodeEntityMarkdown(
     readonly content: string;
     readonly metadata: Record<string, unknown>;
   },
+  form?: StoredForm,
 ): string {
-  const encoded = encodeParts(definition, input);
+  const encoded = encodeParts(definition, input, form);
   return generateMarkdownWithFrontmatter(encoded.content, encoded.frontmatter);
 }
 
@@ -380,11 +387,12 @@ function markdownStorage(
     // body under its own frontmatter, in its own order, as an entity plugin
     // class's adapter did, and the serializer keeps after it the frontmatter
     // the type does not write.
-    toMarkdown(entity): string {
-      return encodeEntityMarkdown(definition, {
-        ...entity,
-        content: bodyAsRead(definition, entity.content),
-      });
+    toMarkdown(entity, options): string {
+      return encodeEntityMarkdown(
+        definition,
+        { ...entity, content: bodyAsRead(definition, entity.content) },
+        options?.form,
+      );
     },
     fromMarkdown(markdown): Partial<EntityOf<AnyEntityDefinition>> {
       if (readsAsWritten(definition.markdown))

@@ -21,7 +21,11 @@ import {
 import { isPlainRecord } from "@brains/utils/predicates";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
-import { generateMarkdownWithFrontmatter } from "@brains/entity-service";
+import {
+  generateMarkdownWithFrontmatter,
+  storedFormWrites,
+  type StoredForm,
+} from "@brains/entity-service";
 import type { AnchorProfile } from "../contracts/identity";
 import type { AIGenerationSchema } from "./ai-types";
 import type { UniqueTitleContext } from "../service/create-entity-with-unique-title";
@@ -1304,6 +1308,47 @@ export function storedDocumentCodec<
   };
   if (options.readAsWritten === true) readAsWrittenCodecs.add(codec);
   return codec;
+}
+
+type CodecEncode<TMetadataSchema extends EntityMetadataSchema> = NonNullable<
+  EntityMarkdownCodec<TMetadataSchema>["encode"]
+>;
+
+/** The encoders of the codecs that write either stored form. */
+const formEncoders = new WeakMap<
+  object,
+  Record<StoredForm, CodecEncode<EntityMetadataSchema>>
+>();
+
+/**
+ * The codec of a first-party type that reads two stored forms
+ * (docs/plans/one-stored-form.md): one `decode` reads a file in either, and
+ * `encode` names the encoder for each. The store hands the codec the form
+ * it writes; without one, the codec writes the form this release writes.
+ * Pair it with `withWrittenFrontmatterSchema`, so neither form leaves the
+ * other's header keys behind.
+ */
+export function storedFormCodec<
+  TMetadataSchema extends EntityMetadataSchema,
+>(options: {
+  readonly decode: EntityMarkdownCodec<TMetadataSchema>["decode"];
+  readonly encode: Readonly<Record<StoredForm, CodecEncode<TMetadataSchema>>>;
+}): EntityMarkdownCodec<TMetadataSchema> {
+  const codec: EntityMarkdownCodec<TMetadataSchema> = {
+    decode: options.decode,
+    encode: options.encode[storedFormWrites],
+  };
+  formEncoders.set(codec, options.encode);
+  return codec;
+}
+
+/** The encoder a codec writes `form` with: its own when it reads one form. */
+export function encoderFor<TMetadataSchema extends EntityMetadataSchema>(
+  codec: EntityMarkdownCodec<TMetadataSchema>,
+  form: StoredForm | undefined,
+): EntityMarkdownCodec<TMetadataSchema>["encode"] {
+  const encoders = formEncoders.get(codec);
+  return encoders && form ? encoders[form] : codec.encode;
 }
 
 /** The stored-document codecs whose read is the document as written. */

@@ -3,10 +3,6 @@ import {
   type DataSourceDefinition,
 } from "@brains/sdk/entities";
 import {
-  storedFormWrites,
-  type StoredForm,
-} from "@brains/sdk/internal/entity-runtime";
-import {
   defineServicePlugin,
   z,
   type ServicePackageDefinition,
@@ -40,8 +36,7 @@ const PLACEHOLDER_SITE_INFO = {
 } as const;
 
 /** The site-info type in the form this release writes. */
-export const siteInfo: SiteInfoDefinition =
-  siteInfoDefinition(storedFormWrites);
+export const siteInfo: SiteInfoDefinition = siteInfoDefinition();
 
 /**
  * Website-only channel configuration from the site-info record, read at the
@@ -115,96 +110,83 @@ export function resolveIdentityFallbacks(
 /**
  * Site-info: the site-info type, the `site-info:entities` data source site
  * layouts read, and the service that answers for the site's metadata and
- * announces when it changes. `form` is the stored form its type writes;
- * the default export writes the form this release writes.
+ * announces when it changes.
  */
-export function siteInfoPackageFor(
-  form: StoredForm,
-): ServicePackageDefinition<z.ZodType<object, object>> {
-  const siteInfo = siteInfoDefinition(form);
-  const siteInfoService = defineServicePlugin(
-    {
-      // Not "site-info": the type the service owns is installed under that id.
-      id: "site-metadata",
-      config: siteInfoConfigSchema,
-      entities: [siteInfo],
-    },
-    {
-      subscriptions: (context) => {
-        const { config, entities, messaging } = context;
-        const runtime = serviceRuntime(context);
-        const { logger } = runtime;
-        const defaults: SiteInfoBody = siteInfoBodySchema.parse({
-          represents: "anchor",
-          ...config.siteInfo,
-        });
+const siteInfoService = defineServicePlugin(
+  {
+    // Not "site-info": the type the service owns is installed under that id.
+    id: "site-metadata",
+    config: siteInfoConfigSchema,
+    entities: [siteInfo],
+  },
+  {
+    subscriptions: (context) => {
+      const { config, entities, messaging } = context;
+      const runtime = serviceRuntime(context);
+      const { logger } = runtime;
+      const defaults: SiteInfoBody = siteInfoBodySchema.parse({
+        represents: "anchor",
+        ...config.siteInfo,
+      });
 
-        /**
-         * The site's metadata as it stands, from the database every time so
-         * an edit reaches the next build. Read as a class read it, at public
-         * scope: a record only some may see does not set the public site.
-         */
-        const currentSiteInfo = async (): Promise<ResolvedSiteInfoBody> => {
-          try {
-            const record = await entities.get(siteInfo, SITE_INFO);
-            if (record?.visibility === "public") {
-              return resolveIdentityFallbacks(
-                record.metadata,
-                runtime.identity,
-              );
-            }
-          } catch (error) {
-            logger.debug("Site info not found, using defaults", { error });
+      /**
+       * The site's metadata as it stands, from the database every time so
+       * an edit reaches the next build. Read as a class read it, at public
+       * scope: a record only some may see does not set the public site.
+       */
+      const currentSiteInfo = async (): Promise<ResolvedSiteInfoBody> => {
+        try {
+          const record = await entities.get(siteInfo, SITE_INFO);
+          if (record?.visibility === "public") {
+            return resolveIdentityFallbacks(record.metadata, runtime.identity);
           }
-          return resolveIdentityFallbacks(defaults, runtime.identity);
-        };
+        } catch (error) {
+          logger.debug("Site info not found, using defaults", { error });
+        }
+        return resolveIdentityFallbacks(defaults, runtime.identity);
+      };
 
-        // Answered in every process: the worker builds the site.
-        runtime.answer(siteMetadataContract, () => currentSiteInfo(), {
-          everyProcess: true,
-        });
+      // Answered in every process: the worker builds the site.
+      runtime.answer(siteMetadataContract, () => currentSiteInfo(), {
+        everyProcess: true,
+      });
 
-        // Observed: a site-info change synced by the worker refreshes this
-        // process's metadata too.
-        runtime.listen(
-          entityUpdatedChannel,
-          async ({ payload }) => {
-            if (payload.entityType !== SITE_INFO) return;
-            await messaging.publish(
-              siteMetadataUpdatedChannel,
-              await currentSiteInfo(),
-            );
-          },
-          { mode: "observe" },
-        );
+      // Observed: a site-info change synced by the worker refreshes this
+      // process's metadata too.
+      runtime.listen(
+        entityUpdatedChannel,
+        async ({ payload }) => {
+          if (payload.entityType !== SITE_INFO) return;
+          await messaging.publish(
+            siteMetadataUpdatedChannel,
+            await currentSiteInfo(),
+          );
+        },
+        { mode: "observe" },
+      );
 
-        // The default record, once seed content is imported, unless an import
-        // already wrote one.
-        runtime.listen(SYSTEM_CHANNELS.initialSyncCompleted, async () => {
-          try {
-            if (await entities.get(siteInfo, SITE_INFO)) return;
-            logger.info("No site info found, creating default site info");
-            await entities.create(siteInfo, {
-              id: SITE_INFO,
-              content: "",
-              metadata: defaults,
-            });
-            logger.info("Default site info created successfully");
-          } catch (error) {
-            logger.error("Failed to initialize site info", { error });
-          }
-        });
-        return [];
-      },
+      // The default record, once seed content is imported, unless an import
+      // already wrote one.
+      runtime.listen(SYSTEM_CHANNELS.initialSyncCompleted, async () => {
+        try {
+          if (await entities.get(siteInfo, SITE_INFO)) return;
+          logger.info("No site info found, creating default site info");
+          await entities.create(siteInfo, {
+            id: SITE_INFO,
+            content: "",
+            metadata: defaults,
+          });
+          logger.info("Default site info created successfully");
+        } catch (error) {
+          logger.error("Failed to initialize site info", { error });
+        }
+      });
+      return [];
     },
-  );
-
-  return withOwnedDataSources(siteInfoService, [
-    siteInfoDataSourceFor(siteInfo),
-  ]);
-}
+  },
+);
 
 const siteInfoPackage: ServicePackageDefinition<z.ZodType<object, object>> =
-  siteInfoPackageFor(storedFormWrites);
+  withOwnedDataSources(siteInfoService, [siteInfoDataSourceFor(siteInfo)]);
 
 export default siteInfoPackage;
