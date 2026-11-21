@@ -198,6 +198,29 @@ describe("mail-item entity", () => {
     expect(serialized).toContain("Canonical Sender · example.com");
   });
 
+  // A file in the next stored form (docs/plans/one-stored-form.md) states
+  // its source as flat keys; every reader reads the source nested.
+  it("reads a document in the next form with its source nested", () => {
+    const nested = mailItemAdapter.createMailItemContent(
+      frontmatter,
+      classification.summary,
+    );
+    const next = nested.replace(
+      /^source:\n((?: {2}.*\n)+)/m,
+      (_, held: string) =>
+        held.replace(/^ {2}ref:/m, "sourceRef:").replace(/^ {2}/gm, ""),
+    );
+    expect(next).toContain("sourceRef: ");
+    expect(next).not.toContain("source:");
+
+    expect(mailItemAdapter.parseMailItemContent(next)).toEqual(
+      mailItemAdapter.parseMailItemContent(nested),
+    );
+    expect(mailItemAdapter.fromMarkdown(next).metadata).toEqual(
+      mailItemAdapter.fromMarkdown(nested).metadata,
+    );
+  });
+
   it("keeps only the source fields a reader uses", () => {
     for (const projection of [
       createMailItemProjection(email, classification),
