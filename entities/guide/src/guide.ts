@@ -1,4 +1,4 @@
-import { withFrontmatterSchema } from "@brains/sdk/internal/entity-runtime";
+import { bodyFieldsCodec } from "@brains/sdk/internal/entity-runtime";
 import { defineEntity, type EntityDefinition } from "@brains/sdk/entities";
 import { getTemplates } from "./lib/register-templates";
 import { guideMetadataSchema } from "./schemas/guide";
@@ -28,26 +28,40 @@ export function statedGuideFields(
  * editor and the vault's templates.
  */
 export const guide: EntityDefinition<"guide", typeof guideMetadataSchema> =
-  withFrontmatterSchema(
-    defineEntity({
-      type: "guide",
-      purpose:
-        "A moving-in guide: how one kind of user brings their material and habits into a brain.",
+  defineEntity({
+    type: "guide",
+    purpose:
+      "A moving-in guide: how one kind of user brings their material and habits into a brain.",
+    metadata: guideMetadataSchema,
+    // Its next form (docs/plans/one-stored-form.md) states who it is
+    // for and the material it moves in above the guide's own sections,
+    // one heading per source.
+    markdown: bodyFieldsCodec({
       metadata: guideMetadataSchema,
-      markdown: {
-        decode: ({ content, frontmatter }) => ({
-          // The class wrote its body from the line under its header.
-          content: content.replace(/^\n+/u, ""),
-          metadata: guideFrontmatterSchema.parse(frontmatter),
-        }),
-        encode: ({ content, metadata }) => ({
-          content: content.replace(/^\n+/u, ""),
-          frontmatter: statedGuideFields(metadata),
-        }),
-      },
-      config: { projectionSourceRole: "primary" },
-      instructions: GUIDE_INSTRUCTIONS,
-      templates: getTemplates(),
+      header: guideFrontmatterSchema,
+      bodyFields: ["for", "material"],
+      place: "above",
+      mappings: [
+        { key: "for", label: "For", type: "string" },
+        {
+          key: "material",
+          label: "Material",
+          type: "array",
+          itemType: "object",
+          itemTitle: "from",
+          itemMappings: [
+            { key: "from", label: "From", type: "string" },
+            { key: "where", label: "Where", type: "string", line: true },
+            { key: "becomes", label: "Becomes", type: "string", line: true },
+            { key: "how", label: "How", type: "string", line: true },
+          ],
+        },
+      ],
+      // The class wrote its body from the line under its header.
+      content: (content) => content.replace(/^\n+/u, ""),
+      stated: statedGuideFields,
     }),
-    guideFrontmatterSchema,
-  );
+    config: { projectionSourceRole: "primary" },
+    instructions: GUIDE_INSTRUCTIONS,
+    templates: getTemplates(),
+  });

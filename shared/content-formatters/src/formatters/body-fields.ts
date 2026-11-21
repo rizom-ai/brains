@@ -20,6 +20,39 @@ export function leadAndSections(body: string): {
   };
 }
 
+const FENCE = /^\s*(```|~~~)/u;
+
+/**
+ * A body's leading sections whose headings name a field, and the body
+ * after them; a heading inside a code block is not a section.
+ */
+function leadingSections(
+  body: string,
+  labels: ReadonlySet<string>,
+): { sections: string; rest: string } {
+  const lines = body.split("\n");
+  const headings = lines.reduce<{ fenced: boolean; at: number[] }>(
+    (state, line, index) => {
+      if (FENCE.test(line)) return { ...state, fenced: !state.fenced };
+      return !state.fenced && line.startsWith("## ")
+        ? { ...state, at: [...state.at, index] }
+        : state;
+    },
+    { fenced: false, at: [] },
+  ).at;
+  const opening = lines.findIndex((line) => line.trim() !== "");
+  if (headings[0] === undefined || headings[0] !== opening)
+    return { sections: "", rest: body };
+  const named = (index: number): boolean =>
+    labels.has((lines[index] ?? "").slice(3).trim().toLowerCase());
+  const cut = headings.find((index) => !named(index)) ?? lines.length;
+  if (!named(opening)) return { sections: "", rest: body };
+  return {
+    sections: lines.slice(0, cut).join("\n"),
+    rest: lines.slice(cut).join("\n"),
+  };
+}
+
 /**
  * How a type's next stored form (docs/plans/one-stored-form.md) states
  * some of its header fields in its body: one section per field, in the
@@ -46,13 +79,20 @@ export interface BodyFields {
 
 /**
  * The body fields of a type whose schema is `schema`: `fields` move to the
- * body, in their order, each under the label its schema gives it.
+ * body, in their order, each under the label its schema gives it; below
+ * the author's text (the default), or above the body its author wrote,
+ * for a body that is itself sections.
  */
 export function bodyFields(
   schema: z.ZodObject,
   fields: readonly string[],
-  mappings?: FieldMapping[],
+  options: {
+    readonly mappings?: FieldMapping[];
+    readonly place?: "below" | "above";
+  } = {},
 ): BodyFields {
+  const { mappings } = options;
+  const above = options.place === "above";
   const moved: ReadonlySet<string> = new Set(fields);
   const bodySchema = z.object(
     Object.fromEntries(
@@ -62,11 +102,15 @@ export function bodyFields(
       }),
     ),
   );
+  const fieldMappings = mappings ?? fieldMappingsFromSchema(bodySchema);
   const formatter = new StructuredContentFormatter(bodySchema, {
     title: "",
     layout: "compact",
-    mappings: mappings ?? fieldMappingsFromSchema(bodySchema),
+    mappings: fieldMappings,
   });
+  const labels: ReadonlySet<string> = new Set(
+    fieldMappings.map((mapping) => mapping.label.toLowerCase()),
+  );
   return {
     nextHeader: z.object(
       Object.fromEntries(
@@ -76,7 +120,13 @@ export function bodyFields(
     read(header, body): { header: Record<string, unknown>; lead: string } {
       if (fields.some((key) => Object.hasOwn(header, key)))
         return { header: { ...header }, lead: body };
-      const { lead, sections } = leadAndSections(body);
+      const leading = above ? leadingSections(body, labels) : undefined;
+      const { lead, sections } = leading
+        ? {
+            sections: leading.sections,
+            lead: leading.rest.replace(/^\n+/u, ""),
+          }
+        : leadAndSections(body);
       if (sections.length === 0) return { header: { ...header }, lead: body };
       try {
         return { header: { ...header, ...formatter.parse(sections) }, lead };
@@ -94,6 +144,18 @@ export function bodyFields(
         ),
       );
       const text = lead.replace(/\n+$/u, "");
+      if (above)
+        return {
+          header: Object.fromEntries(
+            Object.entries(values).filter(([key]) => !moved.has(key)),
+          ),
+          body:
+            text.length === 0
+              ? sections
+              : sections.length === 0
+                ? `${text}\n`
+                : `${sections}\n${text}\n`,
+        };
       return {
         header: Object.fromEntries(
           Object.entries(values).filter(([key]) => !moved.has(key)),

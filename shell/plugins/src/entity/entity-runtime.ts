@@ -1603,29 +1603,60 @@ export function bodyFieldsCodec<
   readonly mappings?: FieldMapping[];
   /** The body a read hands back, from the text its author wrote. */
   readonly content?: (content: string) => string;
+  /** Above the body its author wrote, for a body that is itself sections. */
+  readonly place?: "below" | "above";
+  /**
+   * The current form's header, as Studio and the vault are shown it, when
+   * it is not the metadata; the next form's is it without the moved fields.
+   */
+  readonly header?: z.ZodObject;
+  /** The header fields a write states, from its metadata; all by default. */
+  readonly stated?: (
+    metadata: Record<string, unknown>,
+  ) => Record<string, unknown>;
 }): EntityMarkdownCodec<TMetadataSchema> {
   const { metadata } = options;
-  const fields = bodyFields(metadata, options.bodyFields, options.mappings);
+  const stated =
+    options.stated ??
+    ((values: Record<string, unknown>): Record<string, unknown> => values);
+  const fields = bodyFields(metadata, options.bodyFields, {
+    ...(options.mappings && { mappings: options.mappings }),
+    ...(options.place && { place: options.place }),
+  });
   const authored = options.content ?? ((content: string): string => content);
   return storedFormCodec<TMetadataSchema>({
     decode: ({ content, frontmatter }) => {
       const read = fields.read(frontmatter, content);
       return {
         content: authored(read.lead),
-        metadata: metadata.parse(read.header),
+        // A stated current header reads first, its defaults filled.
+        metadata: metadata.parse(
+          options.header ? options.header.parse(read.header) : read.header,
+        ),
       };
     },
     encode: {
       old: ({ content, metadata: values }) => ({
         content,
-        frontmatter: metadata.parse(values),
+        frontmatter: stated(metadata.parse(values)),
       }),
       new: ({ content, metadata: values }) => {
-        const written = fields.write(metadata.parse(values), content);
+        const written = fields.write(stated(metadata.parse(values)), content);
         return { content: written.body, frontmatter: written.header };
       },
     },
-    header: { old: metadata, new: fields.nextHeader },
+    header: {
+      old: options.header ?? metadata,
+      new: options.header
+        ? z.object(
+            Object.fromEntries(
+              Object.entries(options.header.shape).filter(
+                ([key]) => !options.bodyFields.includes(key),
+              ),
+            ),
+          )
+        : fields.nextHeader,
+    },
     places: [Object.keys(metadata.shape)],
   });
 }
