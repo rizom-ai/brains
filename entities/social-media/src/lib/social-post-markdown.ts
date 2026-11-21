@@ -1,4 +1,4 @@
-import { frontmatterRecordFields } from "@brains/contracts";
+import { recordFields } from "@brains/contracts";
 import type { EntityMarkdownCodec } from "@brains/sdk/entities";
 import {
   generateMarkdown,
@@ -102,7 +102,7 @@ export function socialPostDocument(post: {
  * metadata; a stored document carries its frontmatter in its content.
  */
 export function socialPostWithData(entity: SocialPost): SocialPostWithData {
-  const { fields, body } = frontmatterRecordFields(entity);
+  const { fields, body } = recordFields(entity);
   const stored =
     Object.keys(parseMarkdown(entity.content).frontmatter).length > 0;
   return socialPostWithDataSchema.parse({

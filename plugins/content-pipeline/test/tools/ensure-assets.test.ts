@@ -18,7 +18,12 @@ status: published
 ${options.ogImageId ? `ogImageId: ${options.ogImageId}\n` : ""}---
 Body`,
     visibility: "public",
-    metadata: { status: "published", slug: id },
+    // A read's metadata holds every field its file states.
+    metadata: {
+      status: "published",
+      slug: id,
+      ...(options.ogImageId && { ogImageId: options.ogImageId }),
+    },
     created: "2026-06-04T12:00:00.000Z",
     updated: "2026-06-04T12:00:00.000Z",
     contentHash: `${id}-hash`,

@@ -1,5 +1,5 @@
 import { StructuredContentFormatter } from "@brains/content-formatters";
-import { frontmatterRecordFields } from "@brains/contracts";
+import { recordFields } from "@brains/contracts";
 import { generateMarkdownWithFrontmatter } from "@brains/sdk/internal/entity-runtime";
 import { z } from "@brains/utils/zod";
 import {
@@ -208,7 +208,7 @@ export function readFaq(record: {
   readonly content: string;
   readonly metadata?: Readonly<Record<string, unknown>> | undefined;
 }): FaqParts {
-  const { fields, body } = frontmatterRecordFields(record);
+  const { fields, body } = recordFields(record);
   return {
     frontmatter: faqFrontmatterSchema.parse(fields),
     ...bodyParts(body, frontmatterSources(fields)),

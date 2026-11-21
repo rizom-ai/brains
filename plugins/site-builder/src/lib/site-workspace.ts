@@ -120,6 +120,11 @@ type SiteCardBlock = Extract<SiteRegionBlock, { type: "card" }>;
 /** How many routes the workspace shows before summarising the remainder. */
 const ROUTE_PREVIEW_COUNT = 8;
 
+/**
+ * A handle to the site-info record, for the settings link and the permission
+ * checks below: never registered and never read through. Its stored form is
+ * the one @brains/site-info declares.
+ */
 const siteInfoEntity = defineEntity({
   type: "site-info",
   purpose: "Site identity and navigation settings",

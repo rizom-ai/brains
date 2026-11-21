@@ -165,29 +165,56 @@ export function formatVisualGuidance(styleGuide: StyleGuide): string {
  * the lookup without depending on each other.
  */
 /**
- * A stored record of a type whose fields are frontmatter: as an entity
- * plugin class reads it, the content carries the frontmatter; as a declared
- * type reads it, the content is the body and the frontmatter its metadata.
+ * A stored record as a reader sees it: its fields are its metadata, which
+ * keeps one shape whatever form its file is in, and its content is its body,
+ * or its whole document when it was read as stored
+ * (docs/plans/one-stored-form.md).
  */
 export interface FrontmatterRecord {
   readonly content: string;
   readonly metadata?: Readonly<Record<string, unknown>> | undefined;
 }
 
-/** The record's frontmatter fields and its body, whichever way it was read. */
-export function frontmatterRecordFields(record: FrontmatterRecord): {
-  fields: unknown;
+/** A record's body: its content without the header it carries when read as stored. */
+export function recordBody(record: Pick<FrontmatterRecord, "content">): string {
+  return parseMarkdown(record.content).content;
+}
+
+/**
+ * A record's fields and its body. Its fields are its metadata, which keeps
+ * one shape whatever form its file is in, so a reader never depends on how
+ * the file lays them out. Only a record with no metadata at all (a document
+ * decoded before it is stored, or a row from before its type was declared)
+ * is read from the header its content carries.
+ */
+export function recordFields(record: FrontmatterRecord): {
+  fields: Readonly<Record<string, unknown>>;
   body: string;
 } {
   const parsed = parseMarkdown(record.content);
-  return Object.keys(parsed.frontmatter).length > 0
-    ? { fields: parsed.frontmatter, body: parsed.content }
-    : { fields: record.metadata ?? {}, body: parsed.content };
+  const metadata = record.metadata ?? {};
+  return {
+    fields: Object.keys(metadata).length > 0 ? metadata : parsed.frontmatter,
+    body: parsed.content,
+  };
+}
+
+/**
+ * A document read as stored (`source: true`), split into its header and its
+ * body. Only for the type's own package, or a type whose header is part of
+ * its contract: every other reader reads a record's fields from its metadata.
+ */
+export function storedDocumentParts(content: string): {
+  header: Record<string, unknown>;
+  body: string;
+} {
+  const parsed = parseMarkdown(content);
+  return { header: parsed.frontmatter, body: parsed.content };
 }
 
 /** The style guide a stored style-guide record holds. */
 export function styleGuideFromRecord(record: FrontmatterRecord): StyleGuide {
-  const { fields, body } = frontmatterRecordFields(record);
+  const { fields, body } = recordFields(record);
   return {
     ...styleGuideFrontmatterSchema.parse(fields),
     guidance: body,
