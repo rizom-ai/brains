@@ -1393,6 +1393,33 @@ export function frontmatterSchemaOf(
   return schema instanceof z.ZodObject ? schema : undefined;
 }
 
+const writtenFrontmatterSchemaKey = Symbol("rizom.written-frontmatter-schema");
+
+/**
+ * A first-party definition that reads two stored forms states every header
+ * key either form writes (docs/plans/one-stored-form.md): the serializer
+ * treats them all as the type's own, so writing one form after reading the
+ * other leaves none of the other's keys behind, and none is reported as a
+ * key the type does not name. Without it, the keys a type writes are its
+ * metadata's.
+ */
+export function withWrittenFrontmatterSchema<
+  TDefinition extends AnyEntityDefinition,
+>(definition: TDefinition, schema: z.ZodObject): TDefinition {
+  return Object.freeze({
+    ...definition,
+    [writtenFrontmatterSchemaKey]: schema,
+  });
+}
+
+/** The written frontmatter schema a definition states, if it states one. */
+export function writtenFrontmatterSchemaOf(
+  definition: object,
+): z.ZodObject | undefined {
+  const schema: unknown = Reflect.get(definition, writtenFrontmatterSchemaKey);
+  return schema instanceof z.ZodObject ? schema : undefined;
+}
+
 /** Whether a definition writes in the order of the document it replaces. */
 export function writesInDocumentOrderOf(definition: object): boolean {
   return Reflect.get(definition, documentOrderKey) === true;

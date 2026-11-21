@@ -155,7 +155,7 @@ describe("atomic conditional entity writes (real SQLite)", () => {
       options: { conditionalWrite: { expectedRevision: observed.revision } },
     });
     const after = await snapshot();
-    expect(after.entity.content).toBe("Generated");
+    expect(after.entity.content).toBe("Generated\n");
     expect(after.revision).not.toBe(observed.revision);
   });
 
@@ -234,7 +234,7 @@ describe("atomic conditional entity writes (real SQLite)", () => {
           conditionalWrite: { expectedRevision: observed.revision },
         },
       });
-      expect((await snapshot()).entity.content).toBe("Generated");
+      expect((await snapshot()).entity.content).toBe("Generated\n");
     },
   );
 
@@ -287,7 +287,7 @@ describe("atomic conditional entity writes (real SQLite)", () => {
       const loser = results.findIndex((result) => result.status === "rejected");
       expect(winner).not.toBe(-1);
       expect(loser).not.toBe(-1);
-      expect((await snapshot()).entity.content).toBe(`writer-${winner}`);
+      expect((await snapshot()).entity.content).toBe(`writer-${winner}\n`);
       // A connection may first lose with SQLITE_BUSY; retrying must conflict,
       // not adopt the winner's revision and overwrite it.
       expect(
@@ -374,7 +374,7 @@ describe("atomic conditional entity writes (real SQLite)", () => {
         "SELECT content FROM entity_fts WHERE entity_id = 'chapter'",
       );
       expect(fts.rows.map((row) => row["content"])).toEqual(
-        before ? ["Original"] : [],
+        before ? ["Original\n"] : [],
       );
     },
   );
@@ -416,7 +416,7 @@ describe("atomic conditional entity writes (real SQLite)", () => {
           id: "chapter",
         })
       )?.content,
-    ).toBe("Editor wins");
+    ).toBe("Editor wins\n");
   });
 
   test("revisions derive from the stored row, so direct SQL writers are detected and snapshots stay visibility scoped", async () => {

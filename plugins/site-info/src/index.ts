@@ -2,6 +2,7 @@ export { default } from "./plugin";
 export {
   resolveIdentityFallbacks,
   siteInfo,
+  siteInfoPackageFor,
   type SiteInfoConfig,
   type SiteInfoConfigInput,
 } from "./plugin";

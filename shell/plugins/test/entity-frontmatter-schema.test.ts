@@ -6,6 +6,7 @@ import {
   defineEntityPackage,
   instantiatePluginPackageDefinition,
   withFrontmatterSchema,
+  withWrittenFrontmatterSchema,
   writesInDocumentOrder,
   type AnyEntityDefinition,
 } from "../src";
@@ -99,6 +100,39 @@ describe("a declared type's frontmatter schema", () => {
     expect(Object.keys(adapter.writtenFrontmatterSchema?.shape ?? {})).toEqual([
       "title",
       "indexedAt",
+    ]);
+  });
+
+  // A type that reads two stored forms owns the keys of both: writing one
+  // form after reading the other leaves none of the other's keys behind as
+  // a key the type does not name.
+  it("writes every key a type states it owns across its stored forms", async () => {
+    const harness = createPluginHarness();
+    const both = z.object({
+      title: z.string(),
+      indexedAt: z.string(),
+      ctaHeading: z.string().optional(),
+    });
+    for (const plugin of instantiatePluginPackageDefinition(
+      defineEntityPackage({
+        id: "tickets",
+        entities: [
+          withWrittenFrontmatterSchema(
+            withFrontmatterSchema(ticket("ticket"), header),
+            both,
+          ),
+        ],
+      }),
+      {},
+      { name: "@fixture/tickets", version: "0.1.0" },
+    )) {
+      await harness.installPlugin(plugin);
+    }
+    const adapter = harness.getEntityRegistry().getAdapter("ticket");
+    expect(Object.keys(adapter.writtenFrontmatterSchema?.shape ?? {})).toEqual([
+      "title",
+      "indexedAt",
+      "ctaHeading",
     ]);
   });
 });

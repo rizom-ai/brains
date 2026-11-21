@@ -89,13 +89,49 @@ export function preserveSourceFrontmatter(
   const merged = { ...serializedFields };
   for (const key of removals) delete merged[key];
   for (const [key, value] of additions) merged[key] = value;
+  // An object the type owns keeps a key inside it the type does not name,
+  // as the top level keeps one: an author's `cta.subtitle` is not deleted
+  // because the schema strips it on read.
+  const nested = Object.entries(sourceFields).flatMap(([key, value]) => {
+    const written = merged[key];
+    const shape = Object.hasOwn(ownerSchema.shape, key)
+      ? objectShapeOf(ownerSchema.shape[key])
+      : undefined;
+    if (!shape || !isRecord(value) || !isRecord(written)) return [];
+    const kept = Object.entries(value).filter(
+      ([inner]) =>
+        !Object.hasOwn(shape, inner) && !Object.hasOwn(written, inner),
+    );
+    return kept.length > 0
+      ? [[key, { ...written, ...Object.fromEntries(kept) }] as const]
+      : [];
+  });
+  for (const [key, value] of nested) merged[key] = value;
   const result = dropFields(merged, retiredFields) ?? merged;
-  if (additions.length === 0 && removals.length === 0 && result === merged)
+  if (
+    additions.length === 0 &&
+    removals.length === 0 &&
+    nested.length === 0 &&
+    result === merged
+  )
     return serializedContent;
   // Unlike the domain formatter, preserve explicit null in unclaimed fields.
   return Object.keys(result).length > 0
     ? generateMarkdown(result, serialized.content)
     : serialized.content;
+}
+
+/**
+ * The shape of the object a field holds, through the optional, default and
+ * nullable wrappers around it; none for a field that holds no object.
+ */
+export function objectShapeOf(
+  schema: unknown,
+): Readonly<Record<string, unknown>> | undefined {
+  if (schema instanceof z.ZodObject) return schema.shape;
+  if (!(schema instanceof z.ZodType)) return undefined;
+  const inner: unknown = Reflect.get(schema._zod.def, "innerType");
+  return inner === undefined ? undefined : objectShapeOf(inner);
 }
 
 /** Keys a type never writes: its retired and its translated fields. */

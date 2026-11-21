@@ -8,7 +8,7 @@ export interface HomepageData {
   profile: PersonalProfile;
   posts: BlogPostView[];
   postsListUrl: string;
-  cta: SiteInfoCTA & { subtitle: string | null };
+  cta: Omit<SiteInfoCTA, "subtitle"> & { subtitle: string | null };
 }
 
 function formatDate(dateString: string): string {

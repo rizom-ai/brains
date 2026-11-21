@@ -193,7 +193,7 @@ describe("generation persistence and recovery (real SQLite, mocked AI)", () => {
         });
         if (force)
           expect(saved).toMatchObject({
-            content: "Original",
+            content: "Original\n",
             visibility: "public",
             metadata,
           });
@@ -257,7 +257,7 @@ describe("generation persistence and recovery (real SQLite, mocked AI)", () => {
             id: output.entityId,
           })
         )?.content,
-      ).toBe("# Generated chapter");
+      ).toBe("# Generated chapter\n");
     } finally {
       clearWakeup();
     }
@@ -289,7 +289,7 @@ describe("generation persistence and recovery (real SQLite, mocked AI)", () => {
         entityType: output.entityType,
         id: output.entityId,
       });
-      expect(saved?.content).toBe("# Generated chapter");
+      expect(saved?.content).toBe("# Generated chapter\n");
       expect(saved?.metadata).toEqual(metadata);
     }
   });
@@ -317,7 +317,7 @@ describe("generation persistence and recovery (real SQLite, mocked AI)", () => {
           id: output.entityId,
         })
       )?.content,
-    ).toBe("# Generated chapter");
+    ).toBe("# Generated chapter\n");
   });
 
   test.each([false, true])(
@@ -360,7 +360,7 @@ describe("generation persistence and recovery (real SQLite, mocked AI)", () => {
         id: job.destination.entityId,
       });
       expect(saved?.content).toBe(
-        force ? "# Generated chapter" : "Editor wins",
+        force ? "# Generated chapter\n" : "Editor wins\n",
       );
       if (force) expect(saved?.metadata["order"]).toBe(3);
     },

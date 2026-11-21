@@ -65,7 +65,8 @@ class NoteTestAdapter extends BaseEntityAdapter<Note> {
   public fromMarkdown(markdown: string): Partial<Note> {
     const titleMatch = markdown.match(/title:\s*(.+)/);
     const title = titleMatch?.[1] ?? "Untitled";
-    const bodyMatch = markdown.match(/---\n\n(.+)/s);
+    // The body under the header's closing delimiter, however it is framed.
+    const bodyMatch = markdown.match(/^---\n[\s\S]*?\n---\n\n?([\s\S]+)$/);
     const content = bodyMatch?.[1] ?? markdown;
     return { title, content, tags: [] };
   }

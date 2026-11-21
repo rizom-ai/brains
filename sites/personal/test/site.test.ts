@@ -90,4 +90,30 @@ describe("personal site", () => {
       )?.postsListUrl,
     ).toBe("/essays");
   });
+
+  it("shows the call to action's subtitle the site info states", async () => {
+    const harness = installed();
+    harness.addEntities([
+      {
+        id: "anchor-profile",
+        entityType: "anchor-profile",
+        content: "---\nname: Ada Morgan\n---\n",
+        metadata: {},
+      },
+      {
+        id: "site-info",
+        entityType: "site-info",
+        content:
+          "---\ntitle: Ada\ndescription: Notes\ncta:\n  heading: Say hi\n  subtitle: Got an opinion?\n  buttonText: Write\n  buttonLink: /contact\n---\n",
+        metadata: {},
+      },
+    ]);
+    const source = harness.getDataSources().get("personal-site:homepage");
+    const data = await source?.fetch?.(
+      {},
+      z.object({ cta: z.object({ subtitle: z.string().nullable() }) }),
+      { entityService: harness.getEntityService() },
+    );
+    expect(data?.cta.subtitle).toBe("Got an opinion?");
+  });
 });

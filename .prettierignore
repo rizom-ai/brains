@@ -44,6 +44,8 @@ coverage/
 # Exact-byte Markdown eval fixtures (size, backslashes, and line endings are assertions)
 packages/brain-cli/eval-content/recipes/personal/long-note-update-*.md
 packages/brain-cli/eval-content/recipes/personal/mcp-long-note-update.md
+# Stored-form golden files: their bytes are the format
+packages/brain-cli/test/fixtures/stored-form/
 
 # Matrix storage
 .matrix-storage/

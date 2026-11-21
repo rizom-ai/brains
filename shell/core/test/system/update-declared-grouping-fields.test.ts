@@ -5,6 +5,9 @@ import {
   defineEntity,
   defineEntityPackage,
   instantiatePluginPackageDefinition,
+  storedDocumentCodec,
+  withFrontmatterSchema,
+  type AnyEntityDefinition,
 } from "@brains/plugins";
 import { createMockShell, isDeclaredEntityType } from "@brains/plugins/test";
 import { createSilentLogger, createTestDirectory } from "@brains/test-utils";
@@ -23,7 +26,7 @@ import { createRefusingEmbeddingService } from "@brains/entity-service/test";
 const memo = defineEntity({
   type: "memo",
   purpose: "A memo in a grouping.",
-  metadata: z.object({ title: z.string() }),
+  metadata: z.object({ title: z.string(), summary: z.string().optional() }),
 });
 
 let close: (() => Promise<void>) | undefined;
@@ -32,7 +35,34 @@ afterEach(async () => {
   close = undefined;
 });
 
-async function fixture(): Promise<{
+/**
+ * A memo read as its stored document, whose file states a layout its
+ * metadata does not hold: the header presents it, as the grouping
+ * definitions document presents its groupings, but the type never writes
+ * it from its fields.
+ */
+const layoutHeader = z.looseObject({ title: z.string() });
+const layoutMemo = withFrontmatterSchema(
+  defineEntity({
+    type: "memo",
+    purpose: "A memo whose file states a layout.",
+    metadata: z.object({ title: z.string() }),
+    markdown: storedDocumentCodec<
+      typeof layoutHeader,
+      z.ZodObject<{ title: z.ZodString }>
+    >({
+      header: layoutHeader,
+      deriveMetadata: (header) => ({ title: header.title }),
+      readAsWritten: true,
+    }),
+  }),
+  z.object({ title: z.string(), layout: z.string().optional() }),
+);
+
+async function fixture(
+  definition: AnyEntityDefinition = memo,
+  markdown = "---\ntitle: Member\nclients: [Acme]\nprojects: [Launch]\nunclaimed: null\n---\nBody\n",
+): Promise<{
   stored: () => Promise<string>;
   exec: (
     input: Record<string, unknown>,
@@ -42,7 +72,7 @@ async function fixture(): Promise<{
   const logger = createSilentLogger();
   const registry = EntityRegistry.createFresh(logger);
   for (const plugin of instantiatePluginPackageDefinition(
-    defineEntityPackage({ id: "memos", entities: [memo] }),
+    defineEntityPackage({ id: "memos", entities: [definition] }),
     {},
     { name: "@fixture/memos", version: "0.1.0" },
   )) {
@@ -82,8 +112,7 @@ async function fixture(): Promise<{
     input: {
       entityType: "memo",
       id: "member",
-      markdown:
-        "---\ntitle: Member\nclients: [Acme]\nprojects: [Launch]\nunclaimed: null\n---\nBody\n",
+      markdown,
     },
   });
   const tool = createEntityUpdateTool(
@@ -147,4 +176,55 @@ test("removes a field and keeps the others", async () => {
   expect(await stored()).toBe(
     "---\ntitle: Member\nprojects:\n  - Launch\nunclaimed: null\n---\nBody\n",
   );
+});
+
+// The document a field update writes is the stored one, every key in its
+// place: a field of the type's own that the update removes stays removed.
+test("removes a field of the type's own beside a grouping field", async () => {
+  const { stored, exec } = await fixture();
+  const setting = confirmation.parse(
+    await exec({
+      entityType: "memo",
+      id: "member",
+      operation: { fields: { summary: "Short", clients: ["Beta"] } },
+    }),
+  );
+  expect(await exec(setting.args)).toMatchObject({ success: true });
+  expect(await stored()).toBe(
+    "---\ntitle: Member\nclients:\n  - Beta\nprojects:\n  - Launch\nunclaimed: null\nsummary: Short\n---\nBody\n",
+  );
+
+  const removing = confirmation.parse(
+    await exec({
+      entityType: "memo",
+      id: "member",
+      operation: { fields: { summary: null, clients: ["Gamma"] } },
+    }),
+  );
+  expect(await exec(removing.args)).toMatchObject({ success: true });
+  expect(await stored()).toBe(
+    "---\ntitle: Member\nclients:\n  - Gamma\nprojects:\n  - Launch\nunclaimed: null\n---\nBody\n",
+  );
+});
+
+// A key the document holds that the type does not write from its fields is
+// the file's own: a field update cannot change it, and says so rather than
+// reporting a change it does not make.
+test("refuses to write a header key the type does not write from its fields", async () => {
+  const { stored, exec } = await fixture(
+    layoutMemo,
+    "---\ntitle: Member\nlayout: wide\n---\nBody\n",
+  );
+  const before = await stored();
+  expect(
+    await exec({
+      entityType: "memo",
+      id: "member",
+      operation: { fields: { layout: "narrow" } },
+    }),
+  ).toMatchObject({
+    success: false,
+    error: expect.stringContaining("does not persist layout through 'fields'"),
+  });
+  expect(await stored()).toBe(before);
 });

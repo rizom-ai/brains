@@ -302,6 +302,8 @@ export function sectionGroup(
 
 export interface SiteMetadataCTA {
   heading: string;
+  /** A line under the heading, when the site has one. */
+  subtitle?: string | undefined;
   buttonText: string;
   buttonLink: string;
 }

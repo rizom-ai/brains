@@ -26,6 +26,7 @@ export type ServiceEntityMirrorClient = Pick<
   | "runBulkMutation"
   | "serializeEntity"
   | "deserializeEntity"
+  | "unknownFrontmatterKeys"
   | "listPendingEntityExports"
   | "hasPendingEntityExports"
   | "acknowledgeEntityExports"
@@ -93,6 +94,9 @@ export function entityMirrorOf(
     },
     get deserializeEntity(): ServiceEntityMirrorClient["deserializeEntity"] {
       return entityService.deserializeEntity.bind(entityService);
+    },
+    get unknownFrontmatterKeys(): ServiceEntityMirrorClient["unknownFrontmatterKeys"] {
+      return entityService.unknownFrontmatterKeys.bind(entityService);
     },
     get listPendingEntityExports(): ServiceEntityMirrorClient["listPendingEntityExports"] {
       return entityService.listPendingEntityExports.bind(entityService);

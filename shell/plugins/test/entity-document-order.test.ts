@@ -180,14 +180,16 @@ describe("a type that writes in the document's order", () => {
   });
 });
 
+// Every type keeps the order of the document it replaces
+// (docs/plans/one-stored-form.md): asking for it is no longer needed.
 describe("a type that does not ask", () => {
-  it("writes its own order", async () => {
+  it("keeps the order of the document it replaces too", async () => {
     const { service, stored } = await store(link);
     await service.createEntityFromMarkdown({
       input: { entityType: "link", id: "saved", markdown: handWritten },
     });
     expect(await stored("saved")).toBe(
-      "---\nstatus: draft\ntitle: Saved\nsource:\n  ref: 'cli:local'\n  label: CLI\nnote: kept here\n---\nSummary\n",
+      "---\ntitle: Saved\nnote: kept here\nstatus: draft\nsource:\n  label: CLI\n  ref: 'cli:local'\n---\nSummary\n",
     );
   });
 });

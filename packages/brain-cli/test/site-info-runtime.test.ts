@@ -16,7 +16,6 @@ import decksPackage, { siteThemeMode } from "@brains/decks";
 import professionalSite from "@brains/site-professional";
 import personalSite from "@brains/site-personal";
 import { siteMetadataContract, siteRuntimeOf } from "@brains/site-composition";
-import { generateMarkdownWithFrontmatter } from "@brains/entity-service";
 import { z } from "@brains/utils/zod";
 import { canonicalBrain } from "../src/model/canonical-brain";
 import {
@@ -64,17 +63,15 @@ async function askSiteMetadata(opened: DeclaredEntityStore): Promise<unknown> {
 }
 
 describe("the declared site-info on the entity store", () => {
-  test("writes the default record the class wrote, byte for byte", async () => {
+  test("writes the default record with what it was configured with, and no default", async () => {
     const opened = await store({ siteInfo: { title: "Configured" } });
 
     await opened.completeInitialSync({ success: true });
 
-    // The class wrote createSiteInfoContent({ represents: "anchor", ...defaults }).
+    // A file states only what its author stated (docs/plans/one-stored-form.md):
+    // `represents` is the schema's default, so readers see it unwritten.
     expect((await opened.stored("site-info", "site-info"))?.content).toBe(
-      generateMarkdownWithFrontmatter("", {
-        represents: "anchor",
-        title: "Configured",
-      }),
+      "---\ntitle: Configured\n---\n\n",
     );
     expect(await askSiteMetadata(opened)).toMatchObject({
       status: "answered",

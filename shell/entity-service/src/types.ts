@@ -1468,6 +1468,13 @@ export interface EntityServiceClient extends ICoreEntityService {
   rewriteRetiredFields(): Promise<{ rewritten: number }>;
   /** Re-derive declared types' stored metadata from their stored markdown, the metadata column alone. */
   reconcileDeclaredMetadata(): Promise<{ reconciled: number }>;
+  /**
+   * Rewrite stored rows whose document differs from the form their type
+   * writes now, quietly: content and hash only, no event, marked for export.
+   */
+  rewriteStoredForms(options?: {
+    form?: "old" | "new";
+  }): Promise<{ rewritten: number; deferred: number }>;
   isIndexReady(): boolean;
   awaitIndexReady(
     options: IndexReadinessOptions,
@@ -1476,6 +1483,8 @@ export interface EntityServiceClient extends ICoreEntityService {
   // Serialization
   serializeEntity(entity: BaseEntity): string;
   deserializeEntity(markdown: string, entityType: string): Partial<BaseEntity>;
+  /** The header keys a document holds that its type does not name, as `key` or `parent.key`. */
+  unknownFrontmatterKeys(markdown: string, entityType: string): string[];
 
   // Counts
   countEmbeddings(): Promise<number>;

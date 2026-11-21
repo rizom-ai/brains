@@ -17,13 +17,20 @@ export interface FieldMapping {
   /** The markdown heading label */
   label: string;
   /** The field type */
-  type: "string" | "number" | "object" | "array" | "custom";
+  type: "string" | "number" | "object" | "array" | "custom" | "record";
   /** Child mappings for object types */
   children?: FieldMapping[];
   /** For arrays: the type of each item */
   itemType?: "string" | "number" | "object";
   /** For arrays of objects: mappings for each item's fields */
   itemMappings?: FieldMapping[];
+  /** For records: mappings for the fields of each value, keyed by the record key */
+  valueMappings?: FieldMapping[];
+  /**
+   * Compact layout: a single-line value, written as `- **Label:** value`
+   * under the section it belongs to.
+   */
+  line?: boolean;
   /** Custom formatter function for the field */
   formatter?: (value: unknown) => string;
   /** Custom parser function for the field */
@@ -38,7 +45,22 @@ export interface FormatterConfig {
   title: string;
   /** Field mappings that define the structure */
   mappings: FieldMapping[];
+  /**
+   * `sections` (the default) gives every field its own heading under a
+   * title line. `compact` (docs/plans/one-stored-form.md, Body) writes no
+   * title line, a single-line value as a labeled line, a group's one prose
+   * field as its plain text and a keyed record as one heading per key; it
+   * reads the sectioned layout too, and refuses a heading or a label the
+   * type does not name, and a named section stated twice.
+   */
+  layout?: "sections" | "compact";
 }
+
+/** A labeled line as the compact layout writes it: `**Label:** value`. */
+const LABELED_LINE = /^\*\*([^*\n]+?):\*\*[ \t]*(.*)$/su;
+
+/** Text that would read back as a labeled line of its section. */
+const LOOKS_LABELED = /^\s*[-*+] \*\*[^*\n]+:\*\*/mu;
 
 /**
  * Generic formatter for structured content that uses declarative field mappings
@@ -121,6 +143,7 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
 
   /** Render already-validated data as markdown (the codec's encode side). */
   private render(data: unknown): string {
+    if (this.config.layout === "compact") return this.renderCompact(data);
     const lines: string[] = [`# ${this.config.title}`, ""];
 
     for (const mapping of this.config.mappings) {
@@ -132,6 +155,7 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
 
   /** Build unvalidated data from markdown sections (the codec's decode side). */
   private readSections(markdown: string): Record<string, unknown> {
+    if (this.config.layout === "compact") return this.readCompact(markdown);
     const tree = this.processor.parse(markdown);
     const sections = this.extractSections(tree, 2);
     return this.buildDataFromSections(sections, this.config.mappings, markdown);
@@ -550,5 +574,336 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
     }
 
     return items;
+  }
+
+  // ── Compact layout ──
+
+  private renderCompact(data: unknown): string {
+    const blocks: string[] = [];
+    for (const mapping of this.config.mappings) {
+      this.compactField(data, mapping, 2, blocks);
+    }
+    return blocks.length > 0 ? `${blocks.join("\n\n")}\n` : "";
+  }
+
+  /** One field under its own heading at `depth`. */
+  private compactField(
+    data: unknown,
+    mapping: FieldMapping,
+    depth: number,
+    blocks: string[],
+  ): void {
+    const value = this.getValueByPath(data, mapping.key);
+    if (value === undefined || value === null) return;
+    const heading = `${"#".repeat(depth)} ${mapping.label}`;
+    switch (mapping.type) {
+      case "custom": {
+        blocks.push(heading);
+        const formatted = mapping.formatter?.(value);
+        if (formatted) blocks.push(formatted);
+        return;
+      }
+      case "string":
+      case "number":
+        blocks.push(heading, this.escapeBlockMarkup(String(value)));
+        return;
+      case "object":
+        blocks.push(heading);
+        this.compactGroup(value, mapping.children ?? [], depth + 1, blocks);
+        return;
+      case "record": {
+        blocks.push(heading);
+        const record = recordSchema.safeParse(value);
+        if (!record.success) return;
+        for (const [key, entry] of Object.entries(record.data)) {
+          blocks.push(`${"#".repeat(depth + 1)} ${key}`);
+          if (mapping.valueMappings) {
+            this.compactGroup(entry, mapping.valueMappings, depth + 2, blocks);
+          } else if (entry !== undefined && entry !== null) {
+            blocks.push(this.escapeBlockMarkup(String(entry)));
+          }
+        }
+        return;
+      }
+      case "array": {
+        if (!Array.isArray(value)) return;
+        blocks.push(heading);
+        if (mapping.itemType === "object" && mapping.itemMappings) {
+          value.forEach((item, index) => {
+            blocks.push(
+              `${"#".repeat(depth + 1)} ${mapping.label} ${index + 1}`,
+            );
+            this.compactGroup(
+              item,
+              mapping.itemMappings ?? [],
+              depth + 2,
+              blocks,
+            );
+          });
+        } else if (value.length > 0) {
+          blocks.push(
+            value.map((item) => `- ${this.compactListItem(item)}`).join("\n"),
+          );
+        }
+        return;
+      }
+    }
+  }
+
+  /** A list item's text; a structured item has no list form and is refused. */
+  private compactListItem(item: unknown): string {
+    if (typeof item === "string" || typeof item === "number")
+      return String(item);
+    throw new Error("A list holds only text or numbers in the compact layout");
+  }
+
+  /**
+   * The fields of one object under its heading: labeled lines, then its one
+   * prose field as plain text (or each prose field under its own heading),
+   * then its structured fields.
+   */
+  private compactGroup(
+    data: unknown,
+    mappings: readonly FieldMapping[],
+    depth: number,
+    blocks: string[],
+  ): void {
+    const present = mappings.filter((mapping) => {
+      const value = this.getValueByPath(data, mapping.key);
+      return value !== undefined && value !== null;
+    });
+    const text = (mapping: FieldMapping): string =>
+      String(this.getValueByPath(data, mapping.key));
+    const lines = present.filter(
+      (mapping) => mapping.line === true && !text(mapping).includes("\n"),
+    );
+    const prose = present.filter(
+      (mapping) =>
+        !lines.includes(mapping) &&
+        (mapping.type === "string" || mapping.type === "number"),
+    );
+    const structured = present.filter(
+      (mapping) => !lines.includes(mapping) && !prose.includes(mapping),
+    );
+    if (lines.length > 0) {
+      blocks.push(
+        lines
+          .map((mapping) => `- **${mapping.label}:** ${text(mapping)}`)
+          .join("\n"),
+      );
+    }
+    const [only] = prose;
+    if (only && prose.length === 1 && !LOOKS_LABELED.test(text(only))) {
+      blocks.push(this.escapeBlockMarkup(text(only)));
+    } else {
+      for (const mapping of prose)
+        this.compactField(data, mapping, depth, blocks);
+    }
+    for (const mapping of structured) {
+      this.compactField(data, mapping, depth, blocks);
+    }
+  }
+
+  private readCompact(markdown: string): Record<string, unknown> {
+    const tree = this.processor.parse(markdown);
+    // The title line the sectioned layout wrote is read past; anything else
+    // above the first section would be lost on the next write.
+    const lead = this.leadNodes(tree.children, 2).filter(
+      (node) =>
+        !(node.type === "heading" && node.depth === 1) &&
+        !this.isPlaceholderComment(node),
+    );
+    if (lead.length > 0) {
+      throw new Error("Text above the first section belongs to no field");
+    }
+    return this.readGroup(
+      tree.children,
+      this.config.mappings,
+      2,
+      markdown,
+      true,
+    );
+  }
+
+  /** The nodes before the first heading of `depth` or shallower. */
+  private leadNodes(
+    nodes: readonly RootContent[],
+    depth: number,
+  ): RootContent[] {
+    const first = nodes.findIndex(
+      (node) => node.type === "heading" && node.depth <= depth,
+    );
+    return first === -1 ? [...nodes] : nodes.slice(0, first);
+  }
+
+  /** Subsections at `depth`, keyed by heading text as written, in order. */
+  private headedSections(
+    nodes: readonly RootContent[],
+    depth: number,
+  ): { label: string; nodes: RootContent[] }[] {
+    const sections: { label: string; nodes: RootContent[] }[] = [];
+    for (const node of nodes) {
+      if (node.type === "heading" && node.depth === depth) {
+        sections.push({ label: this.getHeadingText(node).trim(), nodes: [] });
+      } else if (
+        node.type === "heading" &&
+        node.depth < depth &&
+        sections.length > 0
+      ) {
+        // A shallower heading closes the scope; one above every section,
+        // such as the title line, is read past.
+        break;
+      } else {
+        sections.at(-1)?.nodes.push(node);
+      }
+    }
+    return sections;
+  }
+
+  /**
+   * One object's fields from the nodes under its heading: subsections named
+   * by a field's label, labeled lines, and plain prose for its one prose
+   * field. `top` reads the document's sections, where nothing sits above.
+   */
+  private readGroup(
+    nodes: readonly RootContent[],
+    mappings: readonly FieldMapping[],
+    depth: number,
+    source: string,
+    top = false,
+  ): Record<string, unknown> {
+    const result: Record<string, unknown> = {};
+    const byLabel = new Map(
+      mappings.map((mapping) => [mapping.label.toLowerCase(), mapping]),
+    );
+    const sections = this.headedSections(nodes, depth);
+    const seen = new Set<string>();
+    for (const section of sections) {
+      const mapping = byLabel.get(section.label.toLowerCase());
+      if (!mapping) {
+        throw new Error(`Unknown section "${section.label}"`);
+      }
+      if (seen.has(mapping.key)) {
+        throw new Error(`Section "${section.label}" is stated twice`);
+      }
+      seen.add(mapping.key);
+      this.setValueByPath(
+        result,
+        mapping.key,
+        this.readCompactField(section.nodes, mapping, depth, source),
+      );
+    }
+    if (top) return result;
+
+    const lead = this.leadNodes(nodes, depth).filter(
+      (node) => !this.isPlaceholderComment(node),
+    );
+    const labeled = lead.filter(
+      (node) =>
+        node.type === "list" &&
+        node.children.length > 0 &&
+        node.children.every((item) =>
+          LABELED_LINE.test(this.sourceOf(item.children, source)),
+        ),
+    );
+    for (const list of labeled) {
+      if (list.type !== "list") continue;
+      for (const item of list.children) {
+        const match = LABELED_LINE.exec(this.sourceOf(item.children, source));
+        const label = match?.[1]?.trim() ?? "";
+        const mapping = byLabel.get(label.toLowerCase());
+        if (mapping?.line !== true) {
+          throw new Error(`Unknown labeled line "${label}"`);
+        }
+        if (seen.has(mapping.key)) {
+          throw new Error(`Field "${label}" is stated twice`);
+        }
+        seen.add(mapping.key);
+        const value = match?.[2]?.trim() ?? "";
+        this.setValueByPath(
+          result,
+          mapping.key,
+          mapping.type === "number" ? Number(value) : value,
+        );
+      }
+    }
+    const prose = lead.filter((node) => !labeled.includes(node));
+    if (prose.length > 0) {
+      const candidates = mappings.filter(
+        (mapping) =>
+          !seen.has(mapping.key) &&
+          (mapping.type === "string" || mapping.type === "number") &&
+          mapping.line !== true,
+      );
+      const [only] = candidates;
+      if (!only || candidates.length !== 1) {
+        throw new Error("Text in a section belongs to no single field");
+      }
+      const text = this.getTextFromSection(prose, source);
+      this.setValueByPath(
+        result,
+        only.key,
+        only.type === "number" ? Number(text) : text,
+      );
+    }
+    return result;
+  }
+
+  /** A field's value from the nodes under its heading at `depth`. */
+  private readCompactField(
+    nodes: readonly RootContent[],
+    mapping: FieldMapping,
+    depth: number,
+    source: string,
+  ): unknown {
+    const content = [...nodes];
+    switch (mapping.type) {
+      case "custom":
+        return mapping.parser
+          ? mapping.parser(this.getTextFromSection(content, source))
+          : this.getTextFromSection(content, source);
+      case "string":
+        return this.getTextFromSection(content, source);
+      case "number":
+        return Number(this.getTextFromSection(content, source));
+      case "object":
+        return this.readGroup(
+          content,
+          mapping.children ?? [],
+          depth + 1,
+          source,
+        );
+      case "record": {
+        const record: Record<string, unknown> = {};
+        for (const entry of this.headedSections(content, depth + 1)) {
+          if (Object.hasOwn(record, entry.label)) {
+            throw new Error(`"${entry.label}" is stated twice`);
+          }
+          record[entry.label] = mapping.valueMappings
+            ? this.readGroup(
+                entry.nodes,
+                mapping.valueMappings,
+                depth + 2,
+                source,
+              )
+            : this.getTextFromSection(entry.nodes, source);
+        }
+        return record;
+      }
+      case "array":
+        if (mapping.itemType === "object" && mapping.itemMappings) {
+          return this.headedSections(content, depth + 1).map((item) =>
+            this.readGroup(
+              item.nodes,
+              mapping.itemMappings ?? [],
+              depth + 2,
+              source,
+            ),
+          );
+        }
+        return mapping.itemType === "number"
+          ? this.extractSimpleArrayItems(content, source).map(Number)
+          : this.extractSimpleArrayItems(content, source);
+    }
   }
 }

@@ -207,9 +207,7 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
       visibilityScope,
       source: true,
     });
-    return stored
-      ? withStoredSourceFields(entity, stored.content, entityRegistry)
-      : entity;
+    return stored ? withStoredSourceFields(entity, stored.content) : entity;
   };
 
   const proposeUpdate = (

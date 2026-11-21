@@ -86,10 +86,15 @@ import type { EmbeddingIdentity, IEmbeddingService } from "./embedding-types";
 import type { IJobQueueService } from "@brains/job-queue";
 import { EmbeddingJobHandler } from "./handlers/embeddingJobHandler";
 import { EntitySearch } from "./entity-search";
-import { EntitySerializer } from "./entity-serializer";
+import { EntitySerializer, framedDocument } from "./entity-serializer";
 import { unwrittenFields } from "./frontmatter-extensions";
 import { EntityQueries } from "./entity-queries";
-import { EntityMutations, validatePersist } from "./entity-mutations";
+import {
+  EntityMutations,
+  validatePersist,
+  type StoredFormRewrite,
+} from "./entity-mutations";
+import { storedFormWrites, type StoredForm } from "./stored-form";
 import {
   entityMutationReceiptKeySchema,
   type EntityMutationReceipt,
@@ -256,7 +261,12 @@ export class EntityService implements IEntityService {
             },
           );
           await validatePersist(options.entityRegistry, validated, operation);
-          return validated;
+          // A projection's text is framed as every other write frames it,
+          // so its row holds the bytes an ordinary write of it would.
+          return options.entityRegistry.getEntityTypeConfig(entity.entityType)
+            .binaryStorage === undefined
+            ? { ...validated, content: framedDocument(validated.content) }
+            : validated;
         },
         isAssetBacked: (entityType): boolean =>
           options.entityRegistry.getEntityTypeConfig(entityType)
@@ -823,6 +833,26 @@ export class EntityService implements IEntityService {
     return { reconciled };
   }
 
+  public async rewriteStoredForms(
+    options: { form?: StoredForm } = {},
+  ): Promise<StoredFormRewrite> {
+    await this.initialize();
+    const form = options.form ?? storedFormWrites;
+    return this.entityRegistry
+      .getAllEntityTypes()
+      .reduce<Promise<StoredFormRewrite>>(
+        async (total, type) => {
+          const sum = await total;
+          const one = await this.entityMutations.rewriteStoredForms(type, form);
+          return {
+            rewritten: sum.rewritten + one.rewritten,
+            deferred: sum.deferred + one.deferred,
+          };
+        },
+        Promise.resolve({ rewritten: 0, deferred: 0 }),
+      );
+  }
+
   /** Entities of one type still carrying a retired field, rewritten one by one. */
   private async rewriteType(type: string): Promise<number> {
     const ids = await this.entityQueries.idsCarryingFrontmatterFields(
@@ -1295,6 +1325,13 @@ export class EntityService implements IEntityService {
 
   public serializeEntity(entity: BaseEntity): string {
     return this.entitySerializer.serializeEntity(entity);
+  }
+
+  public unknownFrontmatterKeys(
+    markdown: string,
+    entityType: string,
+  ): string[] {
+    return this.entitySerializer.unknownFrontmatterKeys(markdown, entityType);
   }
 
   public deserializeEntity(

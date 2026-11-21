@@ -27,10 +27,12 @@ export const SITE_METADATA_UPDATED_CHANNEL = "site:metadata:updated";
 
 export const siteMetadataCTASchema: z.ZodObject<{
   heading: z.ZodString;
+  subtitle: z.ZodOptional<z.ZodString>;
   buttonText: z.ZodString;
   buttonLink: z.ZodString;
 }> = z.object({
   heading: z.string().describe("Main CTA heading text"),
+  subtitle: z.string().optional().describe("A line under the CTA heading"),
   buttonText: z.string().describe("Call-to-action button text"),
   buttonLink: z.string().describe("URL or anchor for the CTA button"),
 });

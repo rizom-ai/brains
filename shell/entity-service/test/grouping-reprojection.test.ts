@@ -38,6 +38,8 @@ const grouping = {
 const query = { grouping: "clients", entityTypes: ["test"] };
 const content = (value: string): string =>
   `---\nclients: ${value}\n---\n\nBody`;
+/** The same document as a write stores it: body under its header, one final newline. */
+const stored = (value: string): string => `---\nclients: ${value}\n---\nBody\n`;
 
 describe("grouping startup reprojection", () => {
   let ctx: EntityServiceTestContext;
@@ -126,7 +128,7 @@ describe("grouping startup reprojection", () => {
     ).toEqual([]);
     expect(
       db.query("SELECT content FROM entities WHERE id = 'entry'").get(),
-    ).toEqual({ content: content("[Acme]") });
+    ).toEqual({ content: stored("[Acme]") });
   });
   test("discovers existing source without saves, timestamps, events, or export work", async () => {
     await seed("legacy\u0000id");
@@ -239,7 +241,7 @@ describe("grouping startup reprojection", () => {
     expect(
       db.query("SELECT content FROM entities WHERE id = 'bad-status'").get(),
     ).toEqual({
-      content: `---\nstatus: bogus\nclients:\n  - Acme\n---\n\nBody`,
+      content: `---\nstatus: bogus\nclients:\n  - Acme\n---\nBody\n`,
     });
   });
   test("removes stale projections and preserves malformed authored values", async () => {

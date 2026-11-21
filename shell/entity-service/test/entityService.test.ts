@@ -698,7 +698,7 @@ describe("EntityService", (): void => {
     });
 
     const markdown = entityService.serializeEntity(testEntity);
-    expect(markdown).toBe("# Test Note\n\nTest content");
+    expect(markdown).toBe("# Test Note\n\nTest content\n");
   });
 
   test("deserializeEntity converts markdown to entities", () => {

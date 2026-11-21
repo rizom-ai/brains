@@ -42,7 +42,16 @@ import type {
   EntityRegistry,
   EntityMutationAdmission,
 } from "./types";
-import type { EntitySerializer } from "./entity-serializer";
+import { framedDocument, type EntitySerializer } from "./entity-serializer";
+import type { StoredForm } from "./stored-form";
+
+/** What a quiet rewrite did: rows rewritten, and rows waiting for the new form. */
+export interface StoredFormRewrite {
+  rewritten: number;
+  deferred: number;
+}
+import { normalizeEntityRow, type EntityData } from "./entity-data";
+import { getErrorMessage } from "@brains/utils/error";
 import type { EntityQueries } from "./entity-queries";
 import type {
   MarkProjectionDirtyInput,
@@ -64,7 +73,7 @@ import {
   type EnqueueEmbeddingInput,
 } from "./embedding-index-coordinator";
 import type { EntityTransaction } from "./projection-transaction-runner";
-import { and, eq, sql } from "drizzle-orm";
+import { and, asc, eq, gt, sql } from "drizzle-orm";
 import {
   entityWriteConditionSchema,
   EntityWriteConflictError,
@@ -78,6 +87,9 @@ import {
   isSchemaPhaseValidationError,
   toEntityValidationError,
 } from "./errors";
+
+/** Rows a quiet rewrite reads at once. */
+const STORED_FORM_REWRITE_PAGE = 200;
 
 /** Shared by ordinary mutations and atomic projection upserts. */
 export async function validatePersist(
@@ -1155,6 +1167,139 @@ export class EntityMutations {
         });
       }),
     );
+  }
+
+  /**
+   * Bring one type's stored rows to the form it writes now, page by page:
+   * a row whose stored document differs from the document a write of it
+   * would store is rewritten quietly. Only its content and content hash
+   * change; `updated` and metadata stay, no entity event is sent, so no
+   * projection or derived job is queued, and the row is marked for export.
+   * Its embedding is kept when only the framing changed, else it is
+   * embedded again. A row that does not decode is logged and left as
+   * stored. While the old form is written (alpha R), only a row whose
+   * difference is its framing is rewritten: one that differs further waits
+   * for the new form and is counted as deferred, so a type's change of form
+   * never reaches stored rows before its release writes it.
+   */
+  public async rewriteStoredForms(
+    entityType: string,
+    form: StoredForm,
+    after?: string,
+  ): Promise<StoredFormRewrite> {
+    if (
+      this.entityRegistry.getEntityTypeConfig(entityType).binaryStorage !==
+      undefined
+    )
+      return { rewritten: 0, deferred: 0 };
+    const rows = await this.db
+      .select()
+      .from(entities)
+      .where(
+        and(
+          eq(entities.entityType, entityType),
+          after === undefined ? undefined : gt(entities.id, after),
+        ),
+      )
+      .orderBy(asc(entities.id))
+      .limit(STORED_FORM_REWRITE_PAGE);
+    const page = await rows.reduce<Promise<StoredFormRewrite>>(
+      async (total, row) => {
+        const sum = await total;
+        const outcome = await this.rewriteStoredForm(
+          normalizeEntityRow(row),
+          form,
+        );
+        return {
+          rewritten: sum.rewritten + (outcome === "rewritten" ? 1 : 0),
+          deferred: sum.deferred + (outcome === "deferred" ? 1 : 0),
+        };
+      },
+      Promise.resolve({ rewritten: 0, deferred: 0 }),
+    );
+    const tail = rows.at(-1);
+    if (!tail || rows.length < STORED_FORM_REWRITE_PAGE) return page;
+    const rest = await this.rewriteStoredForms(
+      entityType,
+      form,
+      normalizeEntityRow(tail).id,
+    );
+    return {
+      rewritten: page.rewritten + rest.rewritten,
+      deferred: page.deferred + rest.deferred,
+    };
+  }
+
+  /** One row's quiet rewrite. */
+  private async rewriteStoredForm(
+    row: EntityData,
+    form: StoredForm,
+  ): Promise<"rewritten" | "unchanged" | "deferred"> {
+    let canonical: string;
+    try {
+      canonical = this.entitySerializer.serializeEntity(
+        this.entitySerializer.reconstructEntity(row, true),
+      );
+    } catch (error) {
+      this.logger.warn("Stored entity left in its stored form", {
+        entityType: row.entityType,
+        id: row.id,
+        error: getErrorMessage(error),
+      });
+      return "unchanged";
+    }
+    if (canonical === row.content) return "unchanged";
+    const framingOnly = framedDocument(row.content) === canonical;
+    if (form === "old" && !framingOnly) return "deferred";
+    const contentHash = computeContentHash(canonical);
+    // A write since the row was read wins: the rewrite only replaces the
+    // document it read.
+    const committed = await this.projectionStore.runTransaction(
+      async (transaction) => {
+        const result = await transaction
+          .update(entities)
+          .set({ content: canonical, contentHash })
+          .where(
+            and(
+              eq(entities.id, row.id),
+              eq(entities.entityType, row.entityType),
+              eq(entities.contentHash, row.contentHash),
+            ),
+          );
+        if (Number(result.rowsAffected) === 0) return false;
+        await this.syncFtsIndex(transaction, row.id, row.entityType, canonical);
+        await this.persistEntityExport(
+          transaction,
+          {
+            entityType: row.entityType,
+            entityId: row.id,
+            operation: "upsert",
+          },
+          undefined,
+        );
+        return true;
+      },
+    );
+    if (!committed) return "unchanged";
+    if (framingOnly) {
+      await this.embeddingIndex.retag(
+        row.entityType,
+        row.id,
+        row.contentHash,
+        contentHash,
+      );
+    } else {
+      await this.enqueueEmbedding(
+        {
+          entityId: row.id,
+          entityType: row.entityType,
+          contentHash,
+          operation: "update",
+        },
+        undefined,
+      );
+    }
+    return "rewritten";
   }
 
   /**

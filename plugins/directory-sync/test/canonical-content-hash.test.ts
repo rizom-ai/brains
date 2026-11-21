@@ -198,6 +198,41 @@ describe("contentHash regression: canonical form, not raw content", () => {
     expect(upsert).toHaveBeenCalledTimes(1);
   });
 
+  it("leaves an unchanged file alone when its row was stored in an earlier form", async () => {
+    // A release that frames documents differently stores the same record
+    // under a new hash: the row from before still holds the earlier bytes.
+    // Its file is unchanged, so the import writes nothing; the quiet
+    // rewrite on start brings the row to the new form.
+    const rawContent = "Hello world";
+    const row: BaseEntity = baseEntitySchema.parse({
+      id: "my-note",
+      entityType: "note",
+      content: rawContent,
+      contentHash: computeContentHash("an earlier form of the same record"),
+      created: "2026-01-01T00:00:00.000Z",
+      updated: "2026-01-01T00:00:00.000Z",
+      visibility: "public",
+      metadata: {},
+    });
+    const upsert = spyOn(mockEntityService, "upsertEntity");
+    mockEntityService.getEntityWriteSnapshot = async (): Promise<{
+      entity: BaseEntity;
+      revision: string;
+    }> => ({ entity: row, revision: row.contentHash });
+    const dirSync = new DirectorySync({
+      syncPath: testDir,
+      entityService: mockEntityService,
+      logger: createSilentLogger("test"),
+    });
+    writeFileSync(join(testDir, "note", "my-note.md"), rawContent);
+
+    const result = await dirSync.importEntities(["note/my-note.md"]);
+
+    expect(result.skipped).toBe(1);
+    expect(result.imported).toBe(0);
+    expect(upsert).not.toHaveBeenCalled();
+  });
+
   it("imports a document metadata-only sidecar change", async () => {
     mkdirSync(join(testDir, "document"), { recursive: true });
     const documentPath = join(testDir, "document", "report.pdf");

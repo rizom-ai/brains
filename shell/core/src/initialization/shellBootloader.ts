@@ -376,6 +376,15 @@ export class ShellBootloader {
 
   /** Create ready-state defaults, then announce that startup content settled. */
   private async settleStartupContent(): Promise<void> {
+    // Stored rows take the form their types write now, quietly: after the
+    // initial import, so a file edited while the brain was down lands first.
+    const forms = await this.services.entityService.rewriteStoredForms();
+    if (forms.rewritten > 0 || forms.deferred > 0) {
+      this.services.logger.info(
+        "Brought stored entities to their stored form",
+        forms,
+      );
+    }
     await this.prepareReadyState();
     await broadcastChannel(
       this.services.messageBus,
