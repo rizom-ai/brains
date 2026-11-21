@@ -73,3 +73,21 @@ export {
   type WithdrawActionItemResult,
 } from "./write";
 export { channelLabel, formatAge, formatShortDate } from "./format";
+export {
+  ACTION_ITEM_PLACES,
+  actionItemNextHeaderSchema,
+  inCurrentShape,
+  inNextForm,
+} from "./stored-form";
+export {
+  isActorRefText,
+  peopleFromIndex,
+  peopleIndex,
+  peopleSection,
+  readMemoryPeople,
+  splitPeopleSection,
+  writeMemoryPeople,
+  type MemoryPerson,
+  type PeopleList,
+  type StoredPerson,
+} from "./people-section";

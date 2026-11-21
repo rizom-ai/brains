@@ -6,7 +6,8 @@ import {
   defineEntityPackage,
   instantiatePluginPackageDefinition,
   withFrontmatterSchema,
-  withWrittenFrontmatterSchema,
+  storedFormCodec,
+  storedFormWrites,
   type AnyEntityDefinition,
 } from "../src";
 
@@ -91,35 +92,56 @@ describe("a declared type's frontmatter schema", () => {
     ]);
   });
 
-  // A type that reads two stored forms owns the keys of both: writing one
-  // form after reading the other leaves none of the other's keys behind as
-  // a key the type does not name.
-  it("writes every key a type states it owns across its stored forms", async () => {
-    const harness = createPluginHarness();
-    const both = z.object({
+  // A type that reads two stored forms presents the header of the form
+  // the release writes, and owns the keys of both: writing one form after
+  // reading the other leaves none of the other's keys behind as a key the
+  // type does not name.
+  it("presents the header its release writes and owns both forms' keys", async () => {
+    const old = z.object({
       title: z.string(),
-      indexedAt: z.string(),
-      ctaHeading: z.string().optional(),
+      cta: z.object({ heading: z.string() }),
+    });
+    const next = z.object({ title: z.string(), ctaHeading: z.string() });
+    // A field its metadata names beyond its header is still its own.
+    const metadata = old.extend({ slug: z.string().optional() });
+    const harness = createPluginHarness();
+    const definition = defineEntity({
+      type: "ticket",
+      purpose: "A record that reads two stored forms.",
+      metadata,
+      markdown: storedFormCodec<typeof metadata>({
+        decode: ({ content, frontmatter }) => ({
+          content,
+          metadata: metadata.parse(frontmatter),
+        }),
+        encode: {
+          old: ({ content, metadata }) => ({ content, frontmatter: metadata }),
+          new: ({ content, metadata }) => ({
+            content,
+            frontmatter: {
+              title: metadata.title,
+              ctaHeading: metadata.cta.heading,
+            },
+          }),
+        },
+        header: { old, new: next },
+      }),
     });
     for (const plugin of instantiatePluginPackageDefinition(
-      defineEntityPackage({
-        id: "tickets",
-        entities: [
-          withWrittenFrontmatterSchema(
-            withFrontmatterSchema(ticket("ticket"), header),
-            both,
-          ),
-        ],
-      }),
+      defineEntityPackage({ id: "tickets", entities: [definition] }),
       {},
       { name: "@fixture/tickets", version: "0.1.0" },
     )) {
       await harness.installPlugin(plugin);
     }
     const adapter = harness.getEntityRegistry().getAdapter("ticket");
+    expect(Object.keys(adapter.frontmatterSchema?.shape ?? {})).toEqual(
+      Object.keys((storedFormWrites === "new" ? next : old).shape),
+    );
     expect(Object.keys(adapter.writtenFrontmatterSchema?.shape ?? {})).toEqual([
       "title",
-      "indexedAt",
+      "cta",
+      "slug",
       "ctaHeading",
     ]);
   });

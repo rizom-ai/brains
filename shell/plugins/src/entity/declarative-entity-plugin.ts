@@ -1,3 +1,4 @@
+import { storedFormWrites, type StoredForm } from "@brains/entity-service";
 import { createScopedAssetReads } from "./owned-entity-writer-runtime";
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
@@ -67,7 +68,8 @@ import {
   recordPersistValidatorOf,
   restatedMetadataOf,
   urlRouteOf,
-  writtenFrontmatterSchemaOf,
+  encoderFor,
+  storedFormsOf,
   readsAsWritten,
   frontmatterSchemaOf,
   builtProvider,
@@ -265,9 +267,13 @@ function encodeParts(
     readonly content: string;
     readonly metadata: Record<string, unknown>;
   },
+  form?: StoredForm,
 ): { readonly content: string; readonly frontmatter: Record<string, unknown> } {
-  return definition.markdown?.encode
-    ? definition.markdown.encode({
+  const encode = definition.markdown
+    ? encoderFor(definition.markdown, form)
+    : undefined;
+  return encode
+    ? encode({
         content: input.content,
         metadata: definition.metadata.parse(
           currentMetadata(definition, input.metadata),
@@ -282,8 +288,9 @@ function encodeEntityMarkdown(
     readonly content: string;
     readonly metadata: Record<string, unknown>;
   },
+  form?: StoredForm,
 ): string {
-  const encoded = encodeParts(definition, input);
+  const encoded = encodeParts(definition, input, form);
   return generateMarkdownWithFrontmatter(encoded.content, encoded.frontmatter);
 }
 
@@ -363,28 +370,46 @@ function markdownStorage(
   | "parseFrontMatter"
   | "generateFrontMatter"
   | "metadataFromFrontmatter"
+  | "headerKeyPlaces"
 > {
+  // A type that reads two stored forms states each form's header.
+  const forms = storedFormsOf(definition.markdown);
+  const header = forms?.header;
   return {
-    // The header its class declared, when it states one; else its metadata.
-    frontmatterSchema: frontmatterSchemaOf(definition) ?? definition.metadata,
-    // What it writes is still every field its metadata names; a header
-    // field metadata does not name is the file's own, which the serializer
-    // keeps from the document written, as a stored-document class kept it.
-    ...((frontmatterSchemaOf(definition) ??
-      writtenFrontmatterSchemaOf(definition)) && {
-      writtenFrontmatterSchema:
-        writtenFrontmatterSchemaOf(definition) ?? definition.metadata,
-    }),
+    // The header of the form this release writes, the header its class
+    // declared when it states one, else its metadata.
+    frontmatterSchema:
+      header?.[storedFormWrites] ??
+      frontmatterSchemaOf(definition) ??
+      definition.metadata,
+    // What it writes is every field its metadata names and, for a type
+    // that reads two stored forms, every key of both forms' headers. A
+    // header field none of them names is the file's own, which the
+    // serializer keeps from the document written, as a stored-document
+    // class kept it.
+    ...(header
+      ? {
+          // From the shapes: a refined schema cannot be extended.
+          writtenFrontmatterSchema: z.object({
+            ...definition.metadata.shape,
+            ...header.old.shape,
+            ...header.new.shape,
+          }),
+        }
+      : frontmatterSchemaOf(definition) && {
+          writtenFrontmatterSchema: definition.metadata,
+        }),
     // A whole document handed in, as an import or an editor writes one, had
     // its frontmatter decoded into the metadata already: the type writes the
     // body under its own frontmatter, in its own order, as an entity plugin
     // class's adapter did, and the serializer keeps after it the frontmatter
     // the type does not write.
-    toMarkdown(entity): string {
-      return encodeEntityMarkdown(definition, {
-        ...entity,
-        content: bodyAsRead(definition, entity.content),
-      });
+    toMarkdown(entity, options): string {
+      return encodeEntityMarkdown(
+        definition,
+        { ...entity, content: bodyAsRead(definition, entity.content) },
+        options?.form,
+      );
     },
     fromMarkdown(markdown): Partial<EntityOf<AnyEntityDefinition>> {
       if (readsAsWritten(definition.markdown))
@@ -418,6 +443,7 @@ function markdownStorage(
     // Metadata is the frontmatter, decoded by fromMarkdown, so a frontmatter
     // write on an update carries into metadata.
     metadataFromFrontmatter: true,
+    ...(forms?.places && { headerKeyPlaces: forms.places }),
   };
 }
 

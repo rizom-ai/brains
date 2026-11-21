@@ -1,19 +1,27 @@
 import { defineEntity, z, type EntityDefinition } from "@brains/sdk/entities";
-import { storedDocumentCodec } from "@brains/sdk/internal/entity-runtime";
+import {
+  storedDocumentCodec,
+  storedFormCodec,
+} from "@brains/sdk/internal/entity-runtime";
 import {
   ACTION_ITEM_ENTITY_TYPE,
+  ACTION_ITEM_PLACES,
   ACTION_ITEM_RETIRED_FIELDS,
   ACTION_ITEM_TRANSLATED_FIELDS,
   actionItemBody,
   actionItemFrontmatter,
   actionItemMetadataSchema,
+  actionItemNextHeaderSchema,
   actionItemStoredMetadataSchema,
+  inCurrentShape,
+  inNextForm,
 } from "@brains/action-items";
 import {
   DECISION_RETIRED_FIELDS,
   decisionMetadataSchema,
 } from "./schemas/conversation-memory";
 import { DECISION_ENTITY_TYPE } from "./lib/constants";
+import { memoryCodec } from "./lib/memory-codec";
 
 /** An entry is named by its body heading; its id is a reference. */
 function bodyHeading(content: string): string | undefined {
@@ -25,6 +33,9 @@ function bodyHeading(content: string): string | undefined {
  * A decision recorded from a conversation: a heading and its text, its
  * frontmatter its metadata. A write keeps the header in the order of the
  * document it replaces, as the decision adapter wrote documents as given.
+ * Its next form states the time range as startedAt and endedAt and its
+ * people as actor refs, each person whole in the body's People section;
+ * it reads either form and writes the one its store writes.
  */
 export const decision: EntityDefinition<
   typeof DECISION_ENTITY_TYPE,
@@ -33,16 +44,14 @@ export const decision: EntityDefinition<
   type: DECISION_ENTITY_TYPE,
   purpose: "A decision recorded from a conversation.",
   metadata: decisionMetadataSchema,
-  markdown: {
-    decode: ({ content, frontmatter }) => ({
-      content: content.replace(/^\n+/u, ""),
-      metadata: decisionMetadataSchema.parse(frontmatter),
-    }),
-    encode: ({ content, metadata }) => ({
-      content,
-      frontmatter: decisionMetadataSchema.parse(metadata),
-    }),
-  },
+  markdown: memoryCodec({
+    schema: decisionMetadataSchema,
+    people: [
+      { key: "decidedBy", label: "Decided by" },
+      { key: "mentionedBy", label: "Mentioned by" },
+    ],
+    body: (content) => content,
+  }),
   displayTitle: ({ content }) => bodyHeading(content),
   config: { retiredFields: [...DECISION_RETIRED_FIELDS] },
 });
@@ -55,18 +64,46 @@ const storedActionItem = storedDocumentCodec<
   typeof actionItemMetadataSchema
 >({
   header: actionItemHeader,
+  // A card in the next form reads in the current shape.
+  prepare: inCurrentShape,
   deriveMetadata: (header) => actionItemStoredMetadataSchema.parse(header),
-  readAsWritten: true,
-  // A write states the owned fields from metadata, in their current shape,
-  // then every extension (a grouping) as the document states it, under the
-  // card's body, as the action-item adapter wrote every card.
-  encode: ({ content, metadata }) => ({
+});
+
+/**
+ * A write states the owned fields from metadata, in their current shape,
+ * then every extension (a grouping) as the document states it, under the
+ * card's body, as the action-item adapter wrote every card.
+ */
+function currentForm({
+  content,
+  metadata,
+}: {
+  content: string;
+  metadata: z.input<typeof actionItemMetadataSchema>;
+}): { content: string; frontmatter: Record<string, unknown> } {
+  return {
     content: actionItemBody(content),
     frontmatter: actionItemFrontmatter({
       content,
       metadata: actionItemStoredMetadataSchema.parse(metadata),
     }),
-  }),
+  };
+}
+
+/**
+ * Either stored form reads, as the card's stored document; the store's
+ * form is written. The next form states the card's Inbox source and people
+ * as flat keys, each person whole in a People section closing the body.
+ */
+const actionItemMarkdown = storedFormCodec<typeof actionItemMetadataSchema>({
+  decode: storedActionItem.decode,
+  encode: {
+    old: currentForm,
+    new: (document) => inNextForm(currentForm(document)),
+  },
+  header: { old: actionItemMetadataSchema, new: actionItemNextHeaderSchema },
+  places: ACTION_ITEM_PLACES,
+  readAsWritten: true,
 });
 
 /**
@@ -83,7 +120,7 @@ export const actionItem: EntityDefinition<
   type: ACTION_ITEM_ENTITY_TYPE,
   purpose: "An action item captured from a conversation.",
   metadata: actionItemMetadataSchema,
-  markdown: storedActionItem,
+  markdown: actionItemMarkdown,
   // A card is named by its text; one with no heading by its id.
   displayTitle: ({ content }) => {
     const title = bodyHeading(content)?.replace(/^Action item:\s*/, "");

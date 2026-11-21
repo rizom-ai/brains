@@ -1,4 +1,3 @@
-import { parseMarkdown } from "@brains/utils/markdown-frontmatter";
 import {
   askContentFrontmatterSchema,
   askContentSchema,
@@ -11,12 +10,6 @@ function askContent(fields: unknown, body: string): AskContent {
     ...askContentFrontmatterSchema.parse(fields),
     ...(body.trim() ? { introduction: body.trim() } : {}),
   });
-}
-
-/** Server-side authoring parser. Keep markdown dependencies out of the browser Chat contract. */
-export function parseAskContent(markdown: string): AskContent {
-  const { frontmatter, content } = parseMarkdown(markdown);
-  return askContent(frontmatter, content);
 }
 
 /** The Ask presentation a stored ask-content record holds, however it was read. */

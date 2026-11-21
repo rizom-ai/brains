@@ -3,12 +3,22 @@ import {
   parseMarkdownWithFrontmatter,
   parseTypedFrontmatter,
 } from "@brains/sdk/internal/entity-runtime";
+import { isPlainRecord } from "@brains/utils/predicates";
 import { z } from "@brains/utils/zod";
 import {
   mailItemFrontmatterSchema,
+  withNestedSource,
   type MailItemEntity,
   type MailItemFrontmatter,
 } from "../schemas/mail-item";
+
+/** A stored header in either form, read with its source nested. */
+const storedHeaderSchema = {
+  parse: (data: unknown): MailItemFrontmatter =>
+    mailItemFrontmatterSchema.parse(
+      isPlainRecord(data) ? withNestedSource(data) : data,
+    ),
+};
 
 const mailItemSummarySchema = z.string().min(1).max(1_000);
 const frontmatterRecordSchema = z.record(z.string(), z.unknown());
@@ -48,7 +58,7 @@ export const mailItemAdapter: {
       frontmatter: parseTypedFrontmatter(
         "mail-item",
         content,
-        mailItemFrontmatterSchema,
+        storedHeaderSchema,
       ),
       summary: mailItemSummarySchema.parse(
         parseMarkdownWithFrontmatter(

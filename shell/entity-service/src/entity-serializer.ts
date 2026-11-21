@@ -6,6 +6,7 @@ import {
 import { isPlainRecord } from "@brains/utils/predicates";
 import { z } from "@brains/utils/zod";
 import type { BaseEntity, EntityRegistry, SourceReadOption } from "./types";
+import { storedFormWrites, type StoredForm } from "./stored-form";
 import {
   ENTITY_SYSTEM_FIELDS,
   applyVisibilityToMarkdown,
@@ -74,7 +75,11 @@ function headerText(markdown: string): string | undefined {
   return HEADER.exec(markdown)?.[0].replace(/\n$/u, "");
 }
 
-function inDocumentOrder(written: string, replaced: string): string {
+function inDocumentOrder(
+  written: string,
+  replaced: string,
+  places: readonly (readonly string[])[] = [],
+): string {
   // A header the write leaves as the document it replaces states it is
   // kept byte for byte: its author's YAML style is not redrawn.
   const writtenHeader = headerText(written);
@@ -102,10 +107,48 @@ function inDocumentOrder(written: string, replaced: string): string {
     ),
     ...target.data,
   };
-  const ordered = [
-    ...Object.keys(source).filter((key) => Object.hasOwn(fields, key)),
-    ...Object.keys(fields).filter((key) => !Object.hasOwn(source, key)),
-  ];
+  // A key the written document states in place of one the replaced
+  // document holds (one stored form's key for another's) takes its place.
+  const standIns = (key: string): string[] =>
+    places
+      .filter((group) => group.includes(key))
+      .flatMap((group) =>
+        group.filter(
+          (other) =>
+            other !== key &&
+            Object.hasOwn(fields, other) &&
+            !Object.hasOwn(source, other),
+        ),
+      );
+  const placed = Object.keys(source).flatMap((key) =>
+    Object.hasOwn(fields, key) ? [key] : standIns(key),
+  );
+  // A key the written document adds takes the place its place group's
+  // order gives it among the group's keys already placed: before the first
+  // that follows it in the group, else after the last (a list's aliases
+  // follow the list). Any other added key closes the header.
+  const ordered = Object.keys(fields)
+    .filter((key) => !Object.hasOwn(source, key) && !placed.includes(key))
+    .reduce<string[]>(
+      (list, key) => {
+        const group = places.find((members) => members.includes(key));
+        if (!group) return [...list, key];
+        const rank = group.indexOf(key);
+        const before = list.findIndex(
+          (held) => group.includes(held) && group.indexOf(held) > rank,
+        );
+        const at =
+          before >= 0
+            ? before
+            : list.reduce(
+                (last, held, index) =>
+                  group.includes(held) ? index + 1 : last,
+                list.length,
+              );
+        return [...list.slice(0, at), key, ...list.slice(at)];
+      },
+      [...new Set(placed)],
+    );
   const result = Object.fromEntries(
     ordered.map((key) => [
       key,
@@ -186,10 +229,17 @@ export function framedDocument(markdown: string): string {
 export class EntitySerializer {
   private entityRegistry: EntityRegistry;
   private logger: Logger;
+  /** The stored form this serializer writes. */
+  public readonly storedForm: StoredForm;
 
-  constructor(entityRegistry: EntityRegistry, logger: Logger) {
+  constructor(
+    entityRegistry: EntityRegistry,
+    logger: Logger,
+    storedForm: StoredForm = storedFormWrites,
+  ) {
     this.entityRegistry = entityRegistry;
     this.logger = logger.child("EntitySerializer");
+    this.storedForm = storedForm;
   }
 
   /**
@@ -203,7 +253,7 @@ export class EntitySerializer {
       this.entityRegistry.getEntityTypeConfig(entity.entityType)
         .binaryStorage === "asset";
     // An asset-backed row stores the bare reference; visibility lives on the row.
-    const markdown = adapter.toMarkdown(entity);
+    const markdown = adapter.toMarkdown(entity, { form: this.storedForm });
     const serialized = assetBacked
       ? markdown
       : applyVisibilityToMarkdown(markdown, entity.visibility);
@@ -232,7 +282,11 @@ export class EntitySerializer {
       return written;
     }
     const replaced = stored ?? entity.content;
-    const ordered = inDocumentOrder(written, replaced);
+    const ordered = inDocumentOrder(
+      written,
+      replaced,
+      adapter.headerKeyPlaces ?? [],
+    );
     return framedDocument(
       adapter.metadataFromFrontmatter === true
         ? withoutUnstatedDefaults(ordered, replaced, adapter.frontmatterSchema)
@@ -550,7 +604,10 @@ export class EntitySerializer {
     const written = writtenOver(document.data, stored);
     if (Object.keys(written).length === 0) return entity;
     const encoded = readMarkdownFrontmatter(
-      adapter.toMarkdown({ ...entity, content: document.content }),
+      adapter.toMarkdown(
+        { ...entity, content: document.content },
+        { form: this.storedForm },
+      ),
     );
     let decoded: Partial<BaseEntity>;
     try {

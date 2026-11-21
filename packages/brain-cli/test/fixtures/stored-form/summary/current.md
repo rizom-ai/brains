@@ -6,6 +6,16 @@ timeRange:
   start: '2026-05-09T15:00:00.000Z'
   end: '2026-05-09T15:08:00.000Z'
 messageCount: 5
+participants:
+  - identity:
+      kind: user
+      userId: usr_mira
+    identityAliases:
+      - kind: external
+        externalActorId: discord_mira
+    displayName: Mira
+    roles:
+      - user
 sourceHash: team-poc-conflict-new-v1
 visibility: shared
 ---

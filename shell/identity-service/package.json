@@ -4,6 +4,7 @@
   "version": "0.2.0-alpha.757",
   "description": "Identity service for managing brain character and anchor profile",
   "dependencies": {
+    "@brains/content-formatters": "workspace:*",
     "@brains/contracts": "workspace:*",
     "@brains/conversation-service": "workspace:*",
     "@brains/entity-service": "workspace:*",

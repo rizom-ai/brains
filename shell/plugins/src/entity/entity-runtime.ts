@@ -1,3 +1,5 @@
+import { bodyFields, type FieldMapping } from "@brains/content-formatters";
+export { leadAndSections } from "@brains/content-formatters";
 import {
   SdkError,
   type ActorRef,
@@ -21,7 +23,11 @@ import {
 import { isPlainRecord } from "@brains/utils/predicates";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
-import { generateMarkdownWithFrontmatter } from "@brains/entity-service";
+import {
+  generateMarkdownWithFrontmatter,
+  storedFormWrites,
+  type StoredForm,
+} from "@brains/entity-service";
 import type { AnchorProfile } from "../contracts/identity";
 import type { AIGenerationSchema } from "./ai-types";
 import type { UniqueTitleContext } from "../service/create-entity-with-unique-title";
@@ -1306,6 +1312,75 @@ export function storedDocumentCodec<
   return codec;
 }
 
+type CodecEncode<TMetadataSchema extends EntityMetadataSchema> = NonNullable<
+  EntityMarkdownCodec<TMetadataSchema>["encode"]
+>;
+
+/** What a codec that reads two stored forms states about each. */
+interface StoredForms {
+  readonly encode: Record<StoredForm, CodecEncode<EntityMetadataSchema>>;
+  readonly header?: Readonly<Record<StoredForm, z.ZodObject>> | undefined;
+  readonly places?: readonly (readonly string[])[] | undefined;
+}
+
+const storedForms = new WeakMap<object, StoredForms>();
+
+/**
+ * The codec of a first-party type that reads two stored forms
+ * (docs/plans/one-stored-form.md): one `decode` reads a file in either, and
+ * `encode` names the encoder for each. The store hands the codec the form
+ * it writes; without one, the codec writes the form this release writes.
+ */
+export function storedFormCodec<
+  TMetadataSchema extends EntityMetadataSchema,
+>(options: {
+  readonly decode: EntityMarkdownCodec<TMetadataSchema>["decode"];
+  readonly encode: Readonly<Record<StoredForm, CodecEncode<TMetadataSchema>>>;
+  /**
+   * Each form's header. The type presents the one this release writes, to
+   * Studio and the Obsidian vault, and owns the keys of both, so writing
+   * one form after reading the other leaves none of the other's behind.
+   * Without it, both forms' header is the type's metadata.
+   */
+  readonly header?: Readonly<Record<StoredForm, z.ZodObject>>;
+  /**
+   * Header keys that stand for one another across the two forms, each group
+   * one place in the header: a file converted to the other form keeps the
+   * order its author gave.
+   */
+  readonly places?: readonly (readonly string[])[];
+  /** A read is the stored document byte for byte (storedDocumentCodec's). */
+  readonly readAsWritten?: boolean;
+}): EntityMarkdownCodec<TMetadataSchema> {
+  const codec: EntityMarkdownCodec<TMetadataSchema> = {
+    decode: options.decode,
+    encode: options.encode[storedFormWrites],
+  };
+  storedForms.set(codec, {
+    encode: options.encode,
+    header: options.header,
+    places: options.places,
+  });
+  if (options.readAsWritten === true) readAsWrittenCodecs.add(codec);
+  return codec;
+}
+
+/** What a codec states about the two stored forms it reads, if it reads two. */
+export function storedFormsOf(
+  codec: object | undefined,
+): StoredForms | undefined {
+  return codec ? storedForms.get(codec) : undefined;
+}
+
+/** The encoder a codec writes `form` with: its own when it reads one form. */
+export function encoderFor<TMetadataSchema extends EntityMetadataSchema>(
+  codec: EntityMarkdownCodec<TMetadataSchema>,
+  form: StoredForm | undefined,
+): EntityMarkdownCodec<TMetadataSchema>["encode"] {
+  const forms = storedForms.get(codec);
+  return forms && form ? forms.encode[form] : codec.encode;
+}
+
 /** The stored-document codecs whose read is the document as written. */
 const readAsWrittenCodecs = new WeakSet<object>();
 
@@ -1375,33 +1450,6 @@ export function frontmatterSchemaOf(
   definition: object,
 ): z.ZodObject | undefined {
   const schema: unknown = Reflect.get(definition, frontmatterSchemaKey);
-  return schema instanceof z.ZodObject ? schema : undefined;
-}
-
-const writtenFrontmatterSchemaKey = Symbol("rizom.written-frontmatter-schema");
-
-/**
- * A first-party definition that reads two stored forms states every header
- * key either form writes (docs/plans/one-stored-form.md): the serializer
- * treats them all as the type's own, so writing one form after reading the
- * other leaves none of the other's keys behind, and none is reported as a
- * key the type does not name. Without it, the keys a type writes are its
- * metadata's.
- */
-export function withWrittenFrontmatterSchema<
-  TDefinition extends AnyEntityDefinition,
->(definition: TDefinition, schema: z.ZodObject): TDefinition {
-  return Object.freeze({
-    ...definition,
-    [writtenFrontmatterSchemaKey]: schema,
-  });
-}
-
-/** The written frontmatter schema a definition states, if it states one. */
-export function writtenFrontmatterSchemaOf(
-  definition: object,
-): z.ZodObject | undefined {
-  const schema: unknown = Reflect.get(definition, writtenFrontmatterSchemaKey);
   return schema instanceof z.ZodObject ? schema : undefined;
 }
 
@@ -1535,4 +1583,80 @@ export function entityRuntime(context: object): EntityRuntime {
     );
   }
   return runtime;
+}
+
+/**
+ * The codec of a first-party type whose next stored form
+ * (docs/plans/one-stored-form.md) states some of its header fields in its
+ * body: one section per field, in the compact layout, under the text its
+ * author wrote (bodyFields). It reads either form; the current form writes
+ * every field in the header, the next the moved ones in the body; a field
+ * brought back to the header takes its place in the schema's order.
+ */
+export function bodyFieldsCodec<
+  TMetadataSchema extends EntityMetadataSchema,
+>(options: {
+  readonly metadata: TMetadataSchema;
+  /** The metadata fields the next form states in the body, in its order. */
+  readonly bodyFields: readonly string[];
+  /** The body's mappings, when the fields' schema does not give them. */
+  readonly mappings?: FieldMapping[];
+  /** The body a read hands back, from the text its author wrote. */
+  readonly content?: (content: string) => string;
+  /** Above the body its author wrote, for a body that is itself sections. */
+  readonly place?: "below" | "above";
+  /**
+   * The current form's header, as Studio and the vault are shown it, when
+   * it is not the metadata; the next form's is it without the moved fields.
+   */
+  readonly header?: z.ZodObject;
+  /** The header fields a write states, from its metadata; all by default. */
+  readonly stated?: (
+    metadata: Record<string, unknown>,
+  ) => Record<string, unknown>;
+}): EntityMarkdownCodec<TMetadataSchema> {
+  const { metadata } = options;
+  const stated =
+    options.stated ??
+    ((values: Record<string, unknown>): Record<string, unknown> => values);
+  const fields = bodyFields(metadata, options.bodyFields, {
+    ...(options.mappings && { mappings: options.mappings }),
+    ...(options.place && { place: options.place }),
+  });
+  const authored = options.content ?? ((content: string): string => content);
+  return storedFormCodec<TMetadataSchema>({
+    decode: ({ content, frontmatter }) => {
+      const read = fields.read(frontmatter, content);
+      return {
+        content: authored(read.lead),
+        // A stated current header reads first, its defaults filled.
+        metadata: metadata.parse(
+          options.header ? options.header.parse(read.header) : read.header,
+        ),
+      };
+    },
+    encode: {
+      old: ({ content, metadata: values }) => ({
+        content,
+        frontmatter: stated(metadata.parse(values)),
+      }),
+      new: ({ content, metadata: values }) => {
+        const written = fields.write(stated(metadata.parse(values)), content);
+        return { content: written.body, frontmatter: written.header };
+      },
+    },
+    header: {
+      old: options.header ?? metadata,
+      new: options.header
+        ? z.object(
+            Object.fromEntries(
+              Object.entries(options.header.shape).filter(
+                ([key]) => !options.bodyFields.includes(key),
+              ),
+            ),
+          )
+        : fields.nextHeader,
+    },
+    places: [Object.keys(metadata.shape)],
+  });
 }

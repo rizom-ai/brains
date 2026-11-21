@@ -11,6 +11,7 @@ export { UpdateEntityResponseFormatter } from "./update-entity";
 // Content formatters
 export {
   StructuredContentFormatter,
+  fieldMappingsFromSchema,
   type FieldMapping,
   type FormatterConfig,
 } from "./structured-content";
@@ -20,3 +21,4 @@ export {
   DefaultContentFormatter,
   getDefaultContentFormatter,
 } from "./default-content-formatter";
+export { bodyFields, leadAndSections, type BodyFields } from "./body-fields";

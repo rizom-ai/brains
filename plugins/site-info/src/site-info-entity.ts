@@ -1,9 +1,5 @@
 import { defineEntity, type EntityDefinition } from "@brains/sdk/entities";
-import {
-  withFrontmatterSchema,
-  withWrittenFrontmatterSchema,
-  type StoredForm,
-} from "@brains/sdk/internal/entity-runtime";
+import { storedFormCodec } from "@brains/sdk/internal/entity-runtime";
 import {
   StructuredContentFormatter,
   type FieldMapping,
@@ -35,9 +31,6 @@ const flatCtaShape = {
 const newHeaderSchema = siteInfoBodySchema
   .omit({ cta: true, sections: true, translations: true })
   .extend(flatCtaShape);
-
-/** Every header key either form writes, so neither leaves the other's behind. */
-const bothFormsHeaderSchema = siteInfoBodySchema.extend(flatCtaShape);
 
 const bodySchema = z.object({
   subtitle: z.string().optional(),
@@ -175,39 +168,34 @@ export type SiteInfoDefinition = EntityDefinition<
  * blurbs and translations. A singleton read as its fields: in memory its
  * metadata keeps one shape whichever form its file is in, so readers never
  * see the difference. It reads the old form (everything in the header) and
- * the new one (a flat header and a body); `form` decides which it writes.
+ * the new one (a flat header and a body), and writes the one its store writes.
  * Its body is an encoding of its fields, edited in the file, so a read hands
  * back the fields and no body. Configuration rather than content, so it
  * stays out of embeddings and projections.
  */
-export function siteInfoDefinition(form: StoredForm): SiteInfoDefinition {
-  const definition = defineEntity({
+export function siteInfoDefinition(): SiteInfoDefinition {
+  return defineEntity({
     type: SITE_INFO,
     classification: "system",
     purpose: "Singleton configuration describing the published site.",
     metadata: siteInfoBodySchema,
     singleton: true,
     hasBody: false,
-    markdown: {
+    markdown: storedFormCodec<typeof siteInfoBodySchema>({
       decode: (document) => ({
         content: "",
         metadata: decodeSiteInfo(document),
       }),
-      encode: ({ metadata }) =>
-        form === "new"
-          ? encodeNewForm(metadata)
-          : { content: "", frontmatter: metadata },
-    },
+      encode: {
+        old: ({ metadata }) => ({ content: "", frontmatter: metadata }),
+        new: ({ metadata }) => encodeNewForm(metadata),
+      },
+      header: { old: siteInfoBodySchema, new: newHeaderSchema },
+    }),
     config: {
       embeddable: false,
       projectionSource: false,
       projectionSourceRole: "excluded",
     },
   });
-  return withWrittenFrontmatterSchema(
-    form === "new"
-      ? withFrontmatterSchema(definition, newHeaderSchema)
-      : definition,
-    bothFormsHeaderSchema,
-  );
 }

@@ -53,3 +53,23 @@ describe("style guide", () => {
   // Imported extension fields are kept by the runtime's serialization of
   // the declared type: packages/brain-cli/test/style-guide-runtime.test.ts.
 });
+
+// The next stored form (docs/plans/one-stored-form.md) states the
+// structured guidance as body sections above the free-form guidance.
+describe("a style guide in the next stored form", () => {
+  test("reads the same guide as the current form, guidance sections included", () => {
+    const guidance = "## Exceptions\n\nQuote people as they spoke.\n";
+    const current = createStyleGuideContent(
+      {
+        name: "Default",
+        messaging: { positioning: "For builders", audiences: ["builders"] },
+        voice: { summary: "Clear and direct", avoid: ["jargon"] },
+      },
+      guidance,
+    );
+    const next = `---\nname: Default\n---\n## Messaging\n\n- **Positioning:** For builders\n\n### Audiences\n\n- builders\n\n## Voice\n\n- **Summary:** Clear and direct\n\n### Avoid\n\n- jargon\n\n${guidance}`;
+    expect(parseStyleGuideContent(next)).toEqual(
+      parseStyleGuideContent(current),
+    );
+  });
+});

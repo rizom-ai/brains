@@ -1,7 +1,11 @@
 import { defineEntity, type EntityDefinition } from "@brains/sdk/entities";
-import { withFrontmatterSchema } from "@brains/sdk/internal/entity-runtime";
+import {
+  storedFormCodec,
+  withFrontmatterSchema,
+} from "@brains/sdk/internal/entity-runtime";
 import {
   currentFaqBody,
+  faqBodyIn,
   faqMetadata,
   frontmatterSources,
 } from "./lib/faq-body";
@@ -22,7 +26,9 @@ export const faq: EntityDefinition<"faq", typeof faqMetadataSchema> =
         "A reusable question and answer captured from a chat conversation, kept at the visibility of the turn that answered it.",
       classification: "content",
       metadata: faqMetadataSchema,
-      markdown: {
+      // Its next form writes the body in the compact layout; a body in
+      // either layout reads.
+      markdown: storedFormCodec<typeof faqMetadataSchema>({
         decode: ({ content, frontmatter }) => ({
           // The class wrote its body from the line under its header.
           content: currentFaqBody(
@@ -31,11 +37,17 @@ export const faq: EntityDefinition<"faq", typeof faqMetadataSchema> =
           ),
           metadata: faqMetadata(faqFrontmatterSchema.parse(frontmatter)),
         }),
-        encode: ({ content, metadata }) => ({
-          content: currentFaqBody(content.replace(/^\n+/u, ""), []),
-          frontmatter: faqFrontmatterSchema.parse(metadata),
-        }),
-      },
+        encode: {
+          old: ({ content, metadata }) => ({
+            content: faqBodyIn("old", content.replace(/^\n+/u, "")),
+            frontmatter: faqFrontmatterSchema.parse(metadata),
+          }),
+          new: ({ content, metadata }) => ({
+            content: faqBodyIn("new", content.replace(/^\n+/u, "")),
+            frontmatter: faqFrontmatterSchema.parse(metadata),
+          }),
+        },
+      }),
       inbox: faqInbox,
       config: {
         projectionSource: false,

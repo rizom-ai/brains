@@ -7,7 +7,6 @@ rank: 2
 # FAQ
 
 ## Answer
-
 Write to the address on the contact page.
 
 ## Sources
@@ -16,8 +15,7 @@ Write to the address on the contact page.
 
 ## Alternative answers
 
-### Item 1
+### Alternative answer 1
 
 #### Answer
-
 Use the contact form.

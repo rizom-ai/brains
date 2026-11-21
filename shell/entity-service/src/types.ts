@@ -1,3 +1,4 @@
+import type { StoredForm } from "./stored-form";
 import type { EntityTypeClassification } from "./entity-type-classification";
 import type { GroupingProjectionTarget } from "./grouping-projection-state";
 import type {
@@ -555,7 +556,12 @@ export interface EntityAdapter<
   schema: EntitySchema<TEntity>;
 
   // Convert entity to markdown content (may include frontmatter for entity-specific fields)
-  toMarkdown(entity: TEntity): string;
+  /**
+   * The stored document for an entity. `form` is the stored form the store
+   * writes (docs/plans/one-stored-form.md); a type that reads two forms
+   * writes this one, and every other type ignores it.
+   */
+  toMarkdown(entity: TEntity, options?: { form?: StoredForm }): string;
 
   // Extract entity-specific fields from markdown
   // Returns Partial<TEntity> as core fields come from database
@@ -578,6 +584,14 @@ export interface EntityAdapter<
 
   // Generate frontmatter for markdown
   generateFrontMatter(entity: TEntity): string;
+
+  /**
+   * Optional: groups of header keys that stand for one another across a
+   * type's stored forms (a nested `source` and its flat `sourceRef` and
+   * `sourceLabel`): a write that states one group's keys in place of
+   * another's puts them where the replaced document held those.
+   */
+  headerKeyPlaces?: readonly (readonly string[])[];
 
   /** Optional: Zod schema for frontmatter fields. Used by Studio config generation. */
   frontmatterSchema?: z.ZodObject<z.ZodRawShape>;
@@ -1462,9 +1476,7 @@ export interface EntityServiceClient extends ICoreEntityService {
    * Rewrite stored rows whose document differs from the form their type
    * writes now, quietly: content and hash only, no event, marked for export.
    */
-  rewriteStoredForms(options?: {
-    form?: "old" | "new";
-  }): Promise<{ rewritten: number; deferred: number }>;
+  rewriteStoredForms(): Promise<{ rewritten: number; deferred: number }>;
   isIndexReady(): boolean;
   awaitIndexReady(
     options: IndexReadinessOptions,

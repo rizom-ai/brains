@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   generateMarkdown,
@@ -38,6 +38,8 @@ interface Golden {
   type: string;
   id: string;
   markdown: string;
+  /** The form a later release writes, for a type that moves to one. */
+  next?: string;
 }
 
 const goldens: Golden[] = readdirSync(GOLDEN)
@@ -54,6 +56,9 @@ const goldens: Golden[] = readdirSync(GOLDEN)
     type,
     id: readFileSync(join(GOLDEN, type, "id.txt"), "utf8").trim(),
     markdown: readFileSync(join(GOLDEN, type, "current.md"), "utf8"),
+    ...(existsSync(join(GOLDEN, type, "next.md")) && {
+      next: readFileSync(join(GOLDEN, type, "next.md"), "utf8"),
+    }),
   }));
 
 function header(markdown: string): Record<string, unknown> {
@@ -79,9 +84,22 @@ afterEach(async () => {
   store = undefined;
 });
 
-async function opened(): Promise<CanonicalEntityStore> {
-  store = await canonicalEntityStore();
+async function opened(
+  storedForm?: "old" | "new",
+): Promise<CanonicalEntityStore> {
+  store = await canonicalEntityStore(storedForm ? { storedForm } : {});
   return store;
+}
+
+/** Whether a header value is one Obsidian shows as a property. */
+function isPropertyValue(value: unknown): boolean {
+  return (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean" ||
+    value instanceof Date ||
+    (Array.isArray(value) && value.every((item) => typeof item === "string"))
+  );
 }
 
 async function imported(
@@ -215,3 +233,72 @@ describe("every text type's stored form", () => {
     },
   );
 });
+
+/**
+ * A type that moves to a new form (docs/plans/one-stored-form.md, phase 4)
+ * has a next.md golden beside current.md: it reads either, writes the one
+ * its store writes, and the rewrite on start brings a row to its store's
+ * form once, quietly.
+ */
+const moving = goldens.filter(
+  (golden): golden is Golden & { next: string } => golden.next !== undefined,
+);
+
+describe.each(moving.map((golden) => [golden.type, golden] as const))(
+  "%s, from its current form to its next",
+  (_, golden) => {
+    test("both forms decode to the same fields", async () => {
+      const { service } = await opened();
+      expect(
+        service.deserializeEntity(golden.next, golden.type).metadata,
+      ).toEqual(
+        service.deserializeEntity(golden.markdown, golden.type).metadata,
+      );
+    });
+
+    test("a store writing the current form writes it from either file", async () => {
+      const opened_ = await opened("old");
+      expect(await imported(opened_, golden, golden.next)).toBe(
+        golden.markdown,
+      );
+      expect(await imported(opened_, golden, golden.markdown)).toBe(
+        golden.markdown,
+      );
+    });
+
+    test("a store writing the next form writes it from either file", async () => {
+      const opened_ = await opened("new");
+      expect(await imported(opened_, golden, golden.markdown)).toBe(
+        golden.next,
+      );
+      expect(await imported(opened_, golden, golden.next)).toBe(golden.next);
+    });
+
+    test("the next form's header holds only Obsidian properties", () => {
+      expect(
+        Object.entries(header(golden.next)).filter(
+          ([, value]) => !isPropertyValue(value),
+        ),
+      ).toEqual([]);
+    });
+
+    test("the rewrite on start brings a row to the next form once, quietly", async () => {
+      const opened_ = await opened("new");
+      await imported(opened_, golden, golden.next);
+      await opened_.storeAsBefore(golden.type, golden.id, golden.markdown);
+      const before = await opened_.stored(golden.type, golden.id);
+
+      expect(await opened_.service.rewriteStoredForms()).toEqual({
+        rewritten: 1,
+        deferred: 0,
+      });
+      const after = await opened_.stored(golden.type, golden.id);
+      expect(after?.content).toBe(golden.next);
+      expect(after?.updated).toBe(before?.updated);
+      expect(await opened_.service.rewriteStoredForms()).toEqual({
+        rewritten: 0,
+        deferred: 0,
+      });
+    });
+  },
+);

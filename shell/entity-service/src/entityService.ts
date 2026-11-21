@@ -123,6 +123,11 @@ export interface EntityServiceOptions {
   mutationAdmission?: EntityMutationAdmission;
   /** Clock used for durable projection-ingress timestamps. */
   projectionNow?: (() => number) | undefined;
+  /**
+   * The stored form this store writes (docs/plans/one-stored-form.md):
+   * the form the release writes unless a test opens a store in another.
+   */
+  storedForm?: StoredForm | undefined;
   dbConfig: EntityDbConfig;
   /** Embedding database config. Embeddings are stored in a dedicated
    *  database file, separate from entities. */
@@ -325,6 +330,7 @@ export class EntityService implements IEntityService {
       this.entitySerializer = new EntitySerializer(
         this.entityRegistry,
         this.logger,
+        options.storedForm ?? storedFormWrites,
       );
       this.entityQueries = new EntityQueries({
         db: this.db,
@@ -833,11 +839,9 @@ export class EntityService implements IEntityService {
     return { reconciled };
   }
 
-  public async rewriteStoredForms(
-    options: { form?: StoredForm } = {},
-  ): Promise<StoredFormRewrite> {
+  public async rewriteStoredForms(): Promise<StoredFormRewrite> {
     await this.initialize();
-    const form = options.form ?? storedFormWrites;
+    const form = this.entitySerializer.storedForm;
     return this.entityRegistry
       .getAllEntityTypes()
       .reduce<Promise<StoredFormRewrite>>(

@@ -108,6 +108,78 @@ export const mailItemFrontmatterSchema: MailItemFrontmatterSchema =
     requestedActions: z.array(z.string().min(1).max(240)).max(10),
   });
 
+/**
+ * The next form's flat source keys (docs/plans/one-stored-form.md), each
+ * with the key it holds under the nested source, in the source's order.
+ */
+const flatSourceKeys = {
+  sourceRef: "ref",
+  threadKey: "threadKey",
+  threadOrdinal: "threadOrdinal",
+  personId: "personId",
+} as const;
+
+/** The next form's header: the source as flat keys Obsidian shows. */
+export const mailItemNextHeaderSchema: z.ZodObject = mailItemFrontmatterSchema
+  .omit({ source: true })
+  .extend({
+    sourceRef: mailItemSourceSchema.shape.ref.meta({
+      studioWidget: "provenance",
+    }),
+    threadKey: mailThreadKeySchema
+      .optional()
+      .meta({ studioWidget: "provenance" }),
+    threadOrdinal: mailThreadOrdinalSchema
+      .optional()
+      .meta({ studioWidget: "provenance" }),
+    personId: z
+      .string()
+      .min(1)
+      .max(200)
+      .optional()
+      .meta({ studioWidget: "provenance" }),
+  });
+
+/**
+ * A stored header in either form with its source nested, as the readers
+ * read it: a file in the next form has its flat source keys gathered under
+ * `source`, and any other key is left for the schema to judge.
+ */
+export function withNestedSource(
+  header: Record<string, unknown>,
+): Record<string, unknown> {
+  if (!Object.hasOwn(header, "sourceRef")) return header;
+  const flat = new Map<string, string>(Object.entries(flatSourceKeys));
+  const entries = Object.entries(header);
+  const source = Object.fromEntries(
+    entries.flatMap(([key, value]) => {
+      const nested = flat.get(key);
+      return nested === undefined ? [] : [[nested, value]];
+    }),
+  );
+  return Object.fromEntries([
+    ...entries.filter(([key]) => !flat.has(key)),
+    ["source", source],
+  ]);
+}
+
+/** A header in the next form: its source as flat keys, in the source's place. */
+export function mailItemNextHeader(
+  frontmatter: Partial<MailItemFrontmatter>,
+): Record<string, unknown> {
+  const { source } = frontmatter;
+  return Object.fromEntries(
+    Object.entries(frontmatter).flatMap(([key, value]): [string, unknown][] =>
+      key === "source" && source
+        ? Object.entries(flatSourceKeys).flatMap(([flatKey, nested]) => {
+            const held = source[nested];
+            return held === undefined ? [] : [[flatKey, held]];
+          })
+        : [[key, value]],
+    ),
+  );
+}
+
 type MailItemMetadataSchema = z.ZodObject<
   Pick<
     MailItemFrontmatterSchema["shape"],

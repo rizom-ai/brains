@@ -234,6 +234,7 @@ describe("the quiet rewrite of stored rows", () => {
       embeddable?: boolean;
       bus?: EntityEventBus;
       adapter?: CardAdapter;
+      storedForm?: "old" | "new";
     } = {},
   ): Promise<EntityServiceTestContext> {
     ctx = await setupEntityService(
@@ -248,6 +249,7 @@ describe("the quiet rewrite of stored rows", () => {
       {
         embeddingsEnabled: options.embeddable ?? false,
         ...(options.bus && { messageBus: options.bus }),
+        ...(options.storedForm && { storedForm: options.storedForm }),
       },
     );
     await ctx.entityService.initialize();
@@ -387,6 +389,7 @@ describe("the quiet rewrite of stored rows", () => {
     const context = await opened({
       embeddable: true,
       adapter: new MovedTagsAdapter(),
+      storedForm: "new",
     });
     // Its tags were in the header; the type now writes them in the body.
     const oldForm = "---\ntitle: One\ntags:\n  - a\n---\nBody\n";
@@ -404,7 +407,7 @@ describe("the quiet rewrite of stored rows", () => {
     const enqueue = spyOn(context.jobQueueService, "enqueue");
     enqueue.mockClear();
 
-    await context.entityService.rewriteStoredForms({ form: "new" });
+    await context.entityService.rewriteStoredForms();
 
     const moved = "---\ntitle: One\n---\nBody\n\nTags: a\n";
     expect((await row(context)).content).toBe(moved);
@@ -427,9 +430,10 @@ describe("the quiet rewrite while the old form is written", () => {
   });
 
   it("frames a row but leaves one that differs beyond its framing, and counts it", async () => {
-    ctx = await setupEntityService([
-      { name: "card", schema: cardSchema, adapter: new MovedTagsAdapter() },
-    ]);
+    ctx = await setupEntityService(
+      [{ name: "card", schema: cardSchema, adapter: new MovedTagsAdapter() }],
+      { storedForm: "old" },
+    );
     await ctx.entityService.initialize();
     const oldForm = "---\ntitle: One\ntags:\n  - a\n---\n\nBody\n";
     await ctx.entityService.createEntity({
@@ -448,9 +452,10 @@ describe("the quiet rewrite while the old form is written", () => {
     });
     db.close();
 
-    expect(await ctx.entityService.rewriteStoredForms({ form: "old" })).toEqual(
-      { rewritten: 0, deferred: 1 },
-    );
+    expect(await ctx.entityService.rewriteStoredForms()).toEqual({
+      rewritten: 0,
+      deferred: 1,
+    });
     const after = createClient({ url: ctx.dbConfig.url });
     const stored = await after.execute(
       "SELECT content FROM entities WHERE id = 'one'",

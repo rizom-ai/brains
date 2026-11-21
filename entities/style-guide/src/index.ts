@@ -8,6 +8,7 @@ export {
   type StyleGuideEntity,
 } from "./definition";
 export { createStyleGuideContent } from "./markdown";
+export { parseStyleGuideContent } from "./stored-form";
 export {
   DEFAULT_STYLE_GUIDE,
   fetchStyleGuide,
@@ -15,7 +16,6 @@ export {
   formatStyleGuidance,
   formatVisualGuidance,
   formatVoiceGuidance,
-  parseStyleGuideContent,
   styleGuideFromRecord,
   styleGuideFrontmatterSchema,
   styleGuideMessagingSchema,

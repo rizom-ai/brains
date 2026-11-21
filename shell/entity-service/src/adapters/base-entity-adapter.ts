@@ -67,6 +67,12 @@ export interface BaseEntityAdapterConfig<
   purpose: string;
   schema: EntitySchema<TEntity>;
   frontmatterSchema: BaseEntityFrontmatterSchema<TFrontmatter>;
+  /**
+   * The header Studio and the vault are shown, when it is not the one the
+   * adapter parses: a type that reads two stored forms presents the one
+   * the release writes (docs/plans/one-stored-form.md).
+   */
+  presentedFrontmatterSchema?: z.ZodObject<z.ZodRawShape>;
   createFieldsSchema?: z.ZodObject<z.ZodRawShape>;
   isSingleton?: boolean;
   hasBody?: boolean;
@@ -109,7 +115,8 @@ export abstract class BaseEntityAdapter<
     this.entityType = config.entityType;
     this.purpose = config.purpose;
     this.schema = config.schema;
-    this.frontmatterSchema = config.frontmatterSchema;
+    this.frontmatterSchema =
+      config.presentedFrontmatterSchema ?? config.frontmatterSchema;
     this.fmSchema = config.frontmatterSchema;
     this.bodyFormatter = config.bodyFormatter ?? defaultBodyFormatter;
     if (config.createFieldsSchema !== undefined)

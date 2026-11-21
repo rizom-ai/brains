@@ -4,7 +4,7 @@ export {
   type AskContent,
   type AskContentFrontmatter,
 } from "./ask-content";
-export { askContentFromRecord, parseAskContent } from "./ask-content-markdown";
+export { askContentFromRecord } from "./ask-content-markdown";
 export {
   ASK_BOX_ATTRIBUTE,
   ASK_COVER_ATTRIBUTE,
@@ -311,7 +311,6 @@ export {
   formatStyleGuidance,
   formatVisualGuidance,
   formatVoiceGuidance,
-  parseStyleGuideContent,
   recordBody,
   recordFields,
   storedDocumentParts,

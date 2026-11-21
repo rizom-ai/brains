@@ -78,6 +78,8 @@ export async function declaredEntityStore(
   // register them, for readers that read across types, and groupings over
   // the package's own types: run once the package's types are registered.
   registerTypes: (registry: EntityRegistry) => void = (): void => {},
+  // The stored form the store writes; the release's own unless a test asks.
+  storeOptions: { storedForm?: "old" | "new" } = {},
 ): Promise<DeclaredEntityStore> {
   const temporary = await createTestDirectory();
   const logger = createSilentLogger();
@@ -120,6 +122,7 @@ export async function declaredEntityStore(
     logger,
     jobQueueService: createMockShell().getJobQueueService(),
     embeddingsEnabled: false,
+    ...(storeOptions.storedForm && { storedForm: storeOptions.storedForm }),
     embeddingService: {
       identity: { model: "test:none", dimensions: 1536, promptRevision: 0 },
       embedQuery: async () => {

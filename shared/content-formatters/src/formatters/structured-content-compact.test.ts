@@ -1,6 +1,9 @@
 import { describe, it, expect } from "bun:test";
 import { z } from "@brains/utils/zod";
-import { StructuredContentFormatter } from "./structured-content";
+import {
+  fieldMappingsFromSchema,
+  StructuredContentFormatter,
+} from "./structured-content";
 import type { FieldMapping } from "./structured-content";
 
 /**
@@ -216,5 +219,134 @@ Comece
     ).toEqual({
       title: "Hi",
     });
+  });
+});
+
+/**
+ * Lists of objects in the compact layout: an item whose type names a title
+ * field is headed by its title; any other item by a stated item label and
+ * its number. The mapping can be derived from the schema, its labels and
+ * single-line marking schema metadata.
+ */
+describe("StructuredContentFormatter, compact lists of objects", () => {
+  const swotSchema = z.object({
+    strengths: z.array(z.object({ title: z.string(), detail: z.string() })),
+    steps: z.array(z.object({ text: z.string() })).optional(),
+  });
+  type Swot = z.output<typeof swotSchema>;
+  const swot = new StructuredContentFormatter<Swot>(swotSchema, {
+    title: "SWOT",
+    layout: "compact",
+    mappings: [
+      {
+        key: "strengths",
+        label: "Strengths",
+        type: "array",
+        itemType: "object",
+        itemTitle: "title",
+        itemMappings: [
+          { key: "title", label: "Title", type: "string" },
+          { key: "detail", label: "Detail", type: "string" },
+        ],
+      },
+      {
+        key: "steps",
+        label: "Steps",
+        type: "array",
+        itemType: "object",
+        itemLabel: "Step",
+        itemMappings: [{ key: "text", label: "Text", type: "string" }],
+      },
+    ],
+  });
+  const data: Swot = {
+    strengths: [
+      { title: "Fast", detail: "Ships weekly." },
+      { title: "Fast", detail: "Answers in a day." },
+    ],
+    steps: [{ text: "Draft." }, { text: "Review." }],
+  };
+  const markdown = `## Strengths
+
+### Fast
+
+Ships weekly.
+
+### Fast
+
+Answers in a day.
+
+## Steps
+
+### Step 1
+
+Draft.
+
+### Step 2
+
+Review.
+`;
+
+  it("heads a titled item by its title and a numbered one by its stated label", () => {
+    expect(swot.format(data)).toBe(markdown);
+  });
+
+  // Two items of one list may share a title.
+  it("reads back what it writes, titles shared or not", () => {
+    expect(swot.parse(markdown)).toEqual(data);
+  });
+
+  it("derives the mapping from the schema and its metadata", () => {
+    const schema = z.object({
+      name: z.string().meta({ label: "Name", line: true }),
+      purpose: z.string().optional(),
+      ctaButtonText: z.string().optional().meta({ line: true }),
+      strengths: z
+        .array(z.object({ title: z.string(), detail: z.string() }))
+        .meta({ itemTitle: "title" }),
+      steps: z
+        .array(z.object({ text: z.string() }))
+        .meta({ itemLabel: "Step" }),
+      tags: z.array(z.string()).optional(),
+      sections: z
+        .record(z.string(), z.object({ blurb: z.string() }))
+        .optional(),
+    });
+    expect(fieldMappingsFromSchema(schema)).toEqual([
+      { key: "name", label: "Name", type: "string", line: true },
+      { key: "purpose", label: "Purpose", type: "string" },
+      {
+        key: "ctaButtonText",
+        label: "Cta button text",
+        type: "string",
+        line: true,
+      },
+      {
+        key: "strengths",
+        label: "Strengths",
+        type: "array",
+        itemType: "object",
+        itemTitle: "title",
+        itemMappings: [
+          { key: "title", label: "Title", type: "string" },
+          { key: "detail", label: "Detail", type: "string" },
+        ],
+      },
+      {
+        key: "steps",
+        label: "Steps",
+        type: "array",
+        itemType: "object",
+        itemLabel: "Step",
+        itemMappings: [{ key: "text", label: "Text", type: "string" }],
+      },
+      { key: "tags", label: "Tags", type: "array", itemType: "string" },
+      {
+        key: "sections",
+        label: "Sections",
+        type: "record",
+        valueMappings: [{ key: "blurb", label: "Blurb", type: "string" }],
+      },
+    ]);
   });
 });
