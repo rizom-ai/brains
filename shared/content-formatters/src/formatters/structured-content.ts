@@ -27,6 +27,17 @@ export interface FieldMapping {
   /** For records: mappings for the fields of each value, keyed by the record key */
   valueMappings?: FieldMapping[];
   /**
+   * Compact layout, for arrays of objects: the item field whose value is
+   * the item's heading. Two items may share a title.
+   */
+  itemTitle?: string;
+  /**
+   * Compact layout, for arrays of objects without a title field: the word
+   * a numbered item's heading opens with (`Step` gives `### Step 1`); the
+   * list's label without it.
+   */
+  itemLabel?: string;
+  /**
    * Compact layout: a single-line value, written as `- **Label:** value`
    * under the section it belongs to.
    */
@@ -629,16 +640,17 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
         if (!Array.isArray(value)) return;
         blocks.push(heading);
         if (mapping.itemType === "object" && mapping.itemMappings) {
+          const { itemTitle } = mapping;
+          const fields = mapping.itemMappings.filter(
+            (item) => item.key !== itemTitle,
+          );
           value.forEach((item, index) => {
-            blocks.push(
-              `${"#".repeat(depth + 1)} ${mapping.label} ${index + 1}`,
-            );
-            this.compactGroup(
-              item,
-              mapping.itemMappings ?? [],
-              depth + 2,
-              blocks,
-            );
+            const title =
+              itemTitle === undefined
+                ? `${mapping.itemLabel ?? mapping.label} ${index + 1}`
+                : String(this.getValueByPath(item, itemTitle) ?? "");
+            blocks.push(`${"#".repeat(depth + 1)} ${title}`);
+            this.compactGroup(item, fields, depth + 2, blocks);
           });
         } else if (value.length > 0) {
           blocks.push(
@@ -892,18 +904,117 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
       }
       case "array":
         if (mapping.itemType === "object" && mapping.itemMappings) {
-          return this.headedSections(content, depth + 1).map((item) =>
-            this.readGroup(
-              item.nodes,
-              mapping.itemMappings ?? [],
-              depth + 2,
-              source,
-            ),
+          const { itemTitle } = mapping;
+          const fields = mapping.itemMappings.filter(
+            (item) => item.key !== itemTitle,
           );
+          // A numbered item's heading is its place; a titled one's, its title.
+          return this.headedSections(content, depth + 1).map((item) => ({
+            ...(itemTitle !== undefined && { [itemTitle]: item.label }),
+            ...this.readGroup(item.nodes, fields, depth + 2, source),
+          }));
         }
         return mapping.itemType === "number"
           ? this.extractSimpleArrayItems(content, source).map(Number)
           : this.extractSimpleArrayItems(content, source);
     }
   }
+}
+
+/** What a field's schema metadata may state about its place in a body. */
+const mappingMetaSchema = z
+  .object({
+    label: z.string().optional(),
+    line: z.boolean().optional(),
+    itemTitle: z.string().optional(),
+    itemLabel: z.string().optional(),
+  })
+  .loose();
+
+/** A key as a label: `ctaButtonText` gives `Cta button text`. */
+function labelOf(key: string): string {
+  const words = key.replace(/([a-z0-9])([A-Z])/gu, "$1 $2").toLowerCase();
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
+/** A schema without its optional, default and nullable wrappers, and every meta it carries. */
+function unwrapped(schema: z.core.$ZodType): {
+  inner: z.core.$ZodType;
+  meta: z.output<typeof mappingMetaSchema>;
+} {
+  const own = mappingMetaSchema.parse(z.globalRegistry.get(schema) ?? {});
+  if (
+    schema instanceof z.ZodOptional ||
+    schema instanceof z.ZodNullable ||
+    schema instanceof z.ZodDefault
+  ) {
+    const inner = unwrapped(schema.unwrap());
+    return { inner: inner.inner, meta: { ...inner.meta, ...own } };
+  }
+  return { inner: schema, meta: own };
+}
+
+function scalarType(schema: z.core.$ZodType): "string" | "number" | undefined {
+  if (
+    schema instanceof z.ZodString ||
+    schema instanceof z.ZodEnum ||
+    schema instanceof z.ZodLiteral
+  )
+    return "string";
+  if (schema instanceof z.ZodNumber) return "number";
+  return undefined;
+}
+
+function mappingOf(key: string, schema: z.core.$ZodType): FieldMapping {
+  const { inner, meta } = unwrapped(schema);
+  const base = {
+    key,
+    label: meta.label ?? labelOf(key),
+  };
+  const scalar = scalarType(inner);
+  if (scalar)
+    return { ...base, type: scalar, ...(meta.line === true && { line: true }) };
+  if (inner instanceof z.ZodObject)
+    return {
+      ...base,
+      type: "object",
+      children: fieldMappingsFromSchema(inner),
+    };
+  if (inner instanceof z.ZodRecord) {
+    const value = unwrapped(inner.valueType).inner;
+    return {
+      ...base,
+      type: "record",
+      ...(value instanceof z.ZodObject && {
+        valueMappings: fieldMappingsFromSchema(value),
+      }),
+    };
+  }
+  if (inner instanceof z.ZodArray) {
+    const element = unwrapped(inner.element).inner;
+    const item = scalarType(element);
+    if (item) return { ...base, type: "array", itemType: item };
+    if (element instanceof z.ZodObject)
+      return {
+        ...base,
+        type: "array",
+        itemType: "object",
+        ...(meta.itemTitle !== undefined && { itemTitle: meta.itemTitle }),
+        ...(meta.itemLabel !== undefined && { itemLabel: meta.itemLabel }),
+        itemMappings: fieldMappingsFromSchema(element),
+      };
+  }
+  throw new Error(`Field "${key}" has no place in a structured body`);
+}
+
+/**
+ * A body's field mappings derived from its schema: each field's label is
+ * its `label` metadata or its key in words, a `line: true` field is a
+ * labeled line, and a list of objects is headed by its `itemTitle` field
+ * or numbered under its `itemLabel`.
+ */
+export function fieldMappingsFromSchema(schema: z.ZodObject): FieldMapping[] {
+  return Object.entries(schema.shape).map(([key, field]) =>
+    mappingOf(key, field),
+  );
 }

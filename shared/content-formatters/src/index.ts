@@ -19,6 +19,7 @@ export {
   ResponseFormatter,
   SimpleTextResponseFormatter,
   StructuredContentFormatter,
+  fieldMappingsFromSchema,
   UpdateEntityResponseFormatter,
   getArrayProp,
   getBooleanProp,

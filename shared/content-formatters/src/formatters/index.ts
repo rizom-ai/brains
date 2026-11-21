@@ -11,6 +11,7 @@ export { UpdateEntityResponseFormatter } from "./update-entity";
 // Content formatters
 export {
   StructuredContentFormatter,
+  fieldMappingsFromSchema,
   type FieldMapping,
   type FormatterConfig,
 } from "./structured-content";
