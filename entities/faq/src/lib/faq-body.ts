@@ -1,4 +1,7 @@
-import { StructuredContentFormatter } from "@brains/content-formatters";
+import {
+  StructuredContentFormatter,
+  type FieldMapping,
+} from "@brains/content-formatters";
 import { recordFields } from "@brains/contracts";
 import { generateMarkdownWithFrontmatter } from "@brains/sdk/internal/entity-runtime";
 import { z } from "@brains/utils/zod";
@@ -103,29 +106,49 @@ function parseSources(markdown: string): FaqSource[] {
     .map((line) => parseSourceItem(line.trim()));
 }
 
+const faqBodyMappings: FieldMapping[] = [
+  { key: "answer", label: "Answer", type: "string" },
+  {
+    key: "sources",
+    label: "Sources",
+    type: "custom",
+    formatter: (value: unknown): string =>
+      z.array(faqSourceSchema).parse(value).map(sourceItem).join("\n"),
+    parser: parseSources,
+  },
+  {
+    key: "alternatives",
+    label: "Alternative answers",
+    type: "array",
+    itemType: "object",
+    itemLabel: "Alternative",
+    itemMappings: [{ key: "answer", label: "Answer", type: "string" }],
+  },
+];
+
 /** Markdown body ↔ FAQ body, through the structured content formatter. */
 export const faqBodyFormatter: StructuredContentFormatter<FaqBody> =
   new StructuredContentFormatter(faqBodySchema, {
     title: "FAQ",
-    mappings: [
-      { key: "answer", label: "Answer", type: "string" },
-      {
-        key: "sources",
-        label: "Sources",
-        type: "custom",
-        formatter: (value: unknown): string =>
-          z.array(faqSourceSchema).parse(value).map(sourceItem).join("\n"),
-        parser: parseSources,
-      },
-      {
-        key: "alternatives",
-        label: "Alternative answers",
-        type: "array",
-        itemType: "object",
-        itemMappings: [{ key: "answer", label: "Answer", type: "string" }],
-      },
-    ],
+    mappings: faqBodyMappings,
   });
+
+/**
+ * The body in the next stored form's layout (docs/plans/one-stored-form.md):
+ * no title line, each alternative's answer as its plain text. It reads the
+ * sectioned layout too, so every reader reads a body through it.
+ */
+const faqCompactFormatter: StructuredContentFormatter<FaqBody> =
+  new StructuredContentFormatter(faqBodySchema, {
+    title: "FAQ",
+    layout: "compact",
+    mappings: faqBodyMappings,
+  });
+
+/** Whether a body is in the sectioned layout, which opens on its title line. */
+function isSectioned(body: string): boolean {
+  return /^# FAQ[ \t]*$/mu.test(body);
+}
 
 /** Markdown body ↔ FAQ body; a write is validated like a read. */
 export const faqBodyCodec: typeof faqBodyFormatter.codec =
@@ -159,7 +182,7 @@ function bodyParts(
 ): Omit<FaqParts, "frontmatter"> {
   const parsed = isStoredFaqBody(body)
     ? parseStoredFaqBody(body)
-    : z.decode(faqBodyCodec, body);
+    : z.decode(faqCompactFormatter.codec, body);
   const sources = "sources" in parsed ? (parsed.sources ?? []) : [];
   return {
     answer: parsed.answer,
@@ -186,6 +209,25 @@ export function currentFaqBody(
     return body;
   const { answer, sources, alternatives } = bodyParts(body, frontmatterSources);
   return faqBody(answer, sources, alternatives);
+}
+
+/**
+ * The body a write states in the stored form `form`: the current form's
+ * sectioned layout, kept as stored as `currentFaqBody` keeps it, or the
+ * next form's compact layout.
+ */
+export function faqBodyIn(form: "old" | "new", body: string): string {
+  if (form === "old" && (isSectioned(body) || isStoredFaqBody(body)))
+    return currentFaqBody(body, []);
+  const { answer, sources, alternatives } = bodyParts(body, []);
+  const parts = {
+    answer,
+    ...(sources.length > 0 ? { sources } : {}),
+    ...(alternatives.length > 0 ? { alternatives } : {}),
+  };
+  return form === "old"
+    ? z.encode(faqBodyCodec, parts)
+    : z.encode(faqCompactFormatter.codec, parts);
 }
 
 /** Sources an FAQ kept in its frontmatter before they moved to the body. */
