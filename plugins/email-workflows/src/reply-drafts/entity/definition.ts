@@ -46,7 +46,7 @@ export const emailReplyDraftEntity: EntityDefinition<
       return { content: document, metadata: parsed };
     },
     encode: ({ content, metadata }) => ({
-      content: content.trim(),
+      content,
       frontmatter: { ...metadata },
     }),
   },

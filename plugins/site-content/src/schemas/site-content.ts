@@ -26,10 +26,10 @@ export const siteContentEntity: ReturnType<
       content,
       metadata: siteContentMetadataSchema.parse(frontmatter),
     }),
-    // The body trimmed under the frontmatter, as the class's adapter wrote
-    // it: a section with no frontmatter ends at its last line.
+    // The body as handed; the serializer frames it as it frames every
+    // write (docs/plans/one-stored-form.md).
     encode: ({ content, metadata }) => ({
-      content: content.trim(),
+      content,
       frontmatter: metadata,
     }),
   },

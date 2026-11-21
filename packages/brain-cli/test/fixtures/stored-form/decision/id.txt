@@ -1,0 +1,1 @@
+adopt-summaries-in-core

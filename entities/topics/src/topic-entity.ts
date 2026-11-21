@@ -2,7 +2,6 @@ import { defineEntity, z, type EntityDefinition } from "@brains/sdk/entities";
 import {
   storedDocumentCodec,
   withFrontmatterSchema,
-  writesInDocumentOrder,
 } from "@brains/sdk/internal/entity-runtime";
 import { topicAtproto } from "./atproto-projection";
 import { withoutLegacySources } from "./lib/topic-document";
@@ -41,22 +40,19 @@ const storedTopic = storedDocumentCodec<
  * drops the legacy Sources section old topics kept, as the class did.
  */
 export const topic: EntityDefinition<"topic", typeof topicMetadata> =
-  writesInDocumentOrder(
-    withFrontmatterSchema(
-      defineEntity({
-        type: "topic",
-        purpose:
-          "A recurring theme or subject derived from the user's content.",
-        classification: "content",
-        metadata: topicMetadata,
-        markdown: storedTopic,
-        config: {
-          weight: 0.5,
-          projectionSource: false,
-          projectionSourceRole: "excluded",
-        },
-        atproto: topicAtproto,
-      }),
-      topicFrontmatterSchema,
-    ),
+  withFrontmatterSchema(
+    defineEntity({
+      type: "topic",
+      purpose: "A recurring theme or subject derived from the user's content.",
+      classification: "content",
+      metadata: topicMetadata,
+      markdown: storedTopic,
+      config: {
+        weight: 0.5,
+        projectionSource: false,
+        projectionSourceRole: "excluded",
+      },
+      atproto: topicAtproto,
+    }),
+    topicFrontmatterSchema,
   );

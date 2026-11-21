@@ -229,9 +229,7 @@ export class EntitySerializer {
       this.entityRegistry.getEntityTypeConfig(entity.entityType)
         .binaryStorage !== undefined
     ) {
-      return adapter.writesInDocumentOrder === true
-        ? inDocumentOrder(written, stored ?? entity.content)
-        : written;
+      return written;
     }
     const replaced = stored ?? entity.content;
     const ordered = inDocumentOrder(written, replaced);

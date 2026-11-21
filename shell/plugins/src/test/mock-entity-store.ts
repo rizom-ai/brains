@@ -3,6 +3,7 @@ import {
   readMarkdownFrontmatter,
 } from "@brains/utils/markdown-frontmatter";
 import {
+  framedDocument,
   preserveSourceFrontmatter,
   type BaseEntity,
   type EntityAdapter,
@@ -90,6 +91,12 @@ export function createMockEntityStore(): MockEntityStore {
       if (typeof adapter?.toMarkdown !== "function") {
         return { content: entity.content, metadata: entity.metadata };
       }
+      // A declared type's text is framed as the real serializer frames every
+      // write; bytes are stored as handed.
+      const frame = (content: string): string =>
+        typeConfigs.get(entity.entityType)?.binaryStorage === undefined
+          ? framedDocument(content)
+          : content;
       const serialized = adapter.toMarkdown(entity);
       const metadata = adapter.extractMetadata(entity);
       // As the real serializer keeps it, for a type whose metadata is its
@@ -104,13 +111,15 @@ export function createMockEntityStore(): MockEntityStore {
           ? unwrittenHeader(stored, serialized)
           : entity.content;
       return {
-        content: preserveSourceFrontmatter(
-          source,
-          serialized,
-          adapter.writtenFrontmatterSchema ?? adapter.frontmatterSchema,
-          [],
-          [],
-          [...(typeConfigs.get(entity.entityType)?.retiredFields ?? [])],
+        content: frame(
+          preserveSourceFrontmatter(
+            source,
+            serialized,
+            adapter.writtenFrontmatterSchema ?? adapter.frontmatterSchema,
+            [],
+            [],
+            [...(typeConfigs.get(entity.entityType)?.retiredFields ?? [])],
+          ),
         ),
         metadata,
       };

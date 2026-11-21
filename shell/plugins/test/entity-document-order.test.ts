@@ -8,7 +8,6 @@ import {
   defineEntity,
   defineEntityPackage,
   instantiatePluginPackageDefinition,
-  writesInDocumentOrder,
   type AnyEntityDefinition,
 } from "../src";
 import { createRefusingEmbeddingService } from "@brains/entity-service/test";
@@ -52,8 +51,6 @@ const link = defineEntity({
     }),
   },
 });
-
-const ordered = writesInDocumentOrder(link);
 
 const handWritten =
   "---\ntitle: Saved\nnote: kept here\nstatus: draft\nsource:\n  label: CLI\n  ref: cli:local\n---\nSummary\n";
@@ -115,9 +112,11 @@ async function store(definition: AnyEntityDefinition): Promise<{
   };
 }
 
-describe("a type that writes in the document's order", () => {
+// Every type keeps the order of the document it replaces
+// (docs/plans/one-stored-form.md).
+describe("a type writes in the document's order", () => {
   it("keeps a hand-written file's order, nested keys and the fields it does not write", async () => {
-    const { service, stored } = await store(ordered);
+    const { service, stored } = await store(link);
     await service.createEntityFromMarkdown({
       input: { entityType: "link", id: "saved", markdown: handWritten },
     });
@@ -127,7 +126,7 @@ describe("a type that writes in the document's order", () => {
   });
 
   it("keeps it through an update of the body, and writes a changed value in place", async () => {
-    const { service, stored } = await store(ordered);
+    const { service, stored } = await store(link);
     await service.createEntityFromMarkdown({
       input: { entityType: "link", id: "saved", markdown: handWritten },
     });
@@ -146,7 +145,7 @@ describe("a type that writes in the document's order", () => {
   });
 
   it("keeps the record dates a hand-written file states, as the class kept them", async () => {
-    const { service, stored } = await store(ordered);
+    const { service, stored } = await store(link);
     await service.createEntityFromMarkdown({
       input: {
         entityType: "link",
@@ -161,7 +160,7 @@ describe("a type that writes in the document's order", () => {
   });
 
   it("writes a field the file lacks after the rest", async () => {
-    const { service, stored } = await store(ordered);
+    const { service, stored } = await store(link);
     await service.createEntity({
       entity: {
         id: "made",
@@ -176,20 +175,6 @@ describe("a type that writes in the document's order", () => {
     });
     expect(await stored("made")).toBe(
       "---\ntitle: Made\nstatus: draft\nsource:\n  ref: 'cli:local'\n  label: CLI\n---\nBody\n",
-    );
-  });
-});
-
-// Every type keeps the order of the document it replaces
-// (docs/plans/one-stored-form.md): asking for it is no longer needed.
-describe("a type that does not ask", () => {
-  it("keeps the order of the document it replaces too", async () => {
-    const { service, stored } = await store(link);
-    await service.createEntityFromMarkdown({
-      input: { entityType: "link", id: "saved", markdown: handWritten },
-    });
-    expect(await stored("saved")).toBe(
-      "---\ntitle: Saved\nnote: kept here\nstatus: draft\nsource:\n  label: CLI\n  ref: 'cli:local'\n---\nSummary\n",
     );
   });
 });

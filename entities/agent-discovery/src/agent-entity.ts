@@ -4,7 +4,6 @@ import {
   bodyUnderHeader,
   withFrontmatterSchema,
   withPublishedStatuses,
-  writesInDocumentOrder,
 } from "@brains/sdk/internal/entity-runtime";
 import type { FetchLike } from "@brains/utils/fetch-like";
 import { agentMetadataOf } from "./lib/agent-content";
@@ -35,37 +34,35 @@ const storedAgent = storedDocumentCodec<
 export function agentEntity(
   fetch: FetchLike | undefined,
 ): EntityDefinition<typeof AGENT_ENTITY_TYPE, typeof agentMetadataSchema> {
-  return writesInDocumentOrder(
-    withPublishedStatuses(
-      withFrontmatterSchema(
-        defineEntity({
-          type: AGENT_ENTITY_TYPE,
-          classification: "system",
-          purpose:
-            "A saved remote peer-brain contact in the local agent directory.",
-          metadata: agentMetadataSchema,
-          markdown: storedAgent,
-          inbox: agentSightingsInbox,
-          config: {
-            projectionSourceRole: "supporting",
-            // Nothing reads these; did and a2aEndpoint duplicate brainDid and url.
-            retiredFields: [
-              "cardObservedAt",
-              "cardLastCheckedAt",
-              "a2aEndpoint",
-              "did",
-              "anchorDid",
-            ],
-          },
-          generation: agentGeneration(fetch),
-        }),
-        // The header the agent adapter declared: Studio's editor, the vault
-        // and frontmatter extensions read it as the type's frontmatter.
-        agentFrontmatterSchema,
-      ),
-      // Approval is the directory's publish gate: production builds publish
-      // approved agents' pages, never discovered or archived ones.
-      ["approved"],
+  return withPublishedStatuses(
+    withFrontmatterSchema(
+      defineEntity({
+        type: AGENT_ENTITY_TYPE,
+        classification: "system",
+        purpose:
+          "A saved remote peer-brain contact in the local agent directory.",
+        metadata: agentMetadataSchema,
+        markdown: storedAgent,
+        inbox: agentSightingsInbox,
+        config: {
+          projectionSourceRole: "supporting",
+          // Nothing reads these; did and a2aEndpoint duplicate brainDid and url.
+          retiredFields: [
+            "cardObservedAt",
+            "cardLastCheckedAt",
+            "a2aEndpoint",
+            "did",
+            "anchorDid",
+          ],
+        },
+        generation: agentGeneration(fetch),
+      }),
+      // The header the agent adapter declared: Studio's editor, the vault
+      // and frontmatter extensions read it as the type's frontmatter.
+      agentFrontmatterSchema,
     ),
+    // Approval is the directory's publish gate: production builds publish
+    // approved agents' pages, never discovered or archived ones.
+    ["approved"],
   );
 }

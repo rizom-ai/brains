@@ -7,7 +7,6 @@ import {
   defineEntityPackage,
   instantiatePluginPackageDefinition,
   storedDocumentCodec,
-  writesInDocumentOrder,
 } from "../src";
 import { isDeclaredEntityType } from "../src/test/declared-entity-type";
 
@@ -27,20 +26,18 @@ const header = z.object({
   source: z.object({ ref: z.string() }),
 });
 
-const ticket = writesInDocumentOrder(
-  defineEntity({
-    type: "ticket",
-    purpose: "A record whose metadata indexes part of its header.",
-    metadata: z.object({ title: z.string(), status: z.enum(["new", "done"]) }),
-    markdown: storedDocumentCodec({
-      header,
-      deriveMetadata: (parsed) => ({
-        title: parsed.title,
-        status: parsed.status,
-      }),
+const ticket = defineEntity({
+  type: "ticket",
+  purpose: "A record whose metadata indexes part of its header.",
+  metadata: z.object({ title: z.string(), status: z.enum(["new", "done"]) }),
+  markdown: storedDocumentCodec({
+    header,
+    deriveMetadata: (parsed) => ({
+      title: parsed.title,
+      status: parsed.status,
     }),
   }),
-);
+});
 
 const document =
   "---\ntitle: First\nstatus: new\nsource:\n  ref: private-locator\n---\nThe summary.\n";
@@ -148,20 +145,18 @@ describe("a stored-document codec", () => {
  * included, and a header that does not parse still reads, so an editor can
  * show it for repair.
  */
-const settings = writesInDocumentOrder(
-  defineEntity({
-    type: "settings",
-    purpose: "One document an admin writes and repairs by hand.",
-    metadata: z.object({}),
-    singleton: true,
-    hasBody: false,
-    markdown: storedDocumentCodec({
-      header: z.looseObject({}),
-      deriveMetadata: () => ({}),
-      readAsWritten: true,
-    }),
+const settings = defineEntity({
+  type: "settings",
+  purpose: "One document an admin writes and repairs by hand.",
+  metadata: z.object({}),
+  singleton: true,
+  hasBody: false,
+  markdown: storedDocumentCodec({
+    header: z.looseObject({}),
+    deriveMetadata: () => ({}),
+    readAsWritten: true,
   }),
-);
+});
 
 function settingsAdapter(): EntityAdapter<BaseEntity> {
   const [plugin] = instantiatePluginPackageDefinition(

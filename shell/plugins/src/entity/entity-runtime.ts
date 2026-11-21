@@ -1227,20 +1227,6 @@ function isCreateRoute(value: unknown): value is EntityCreateRoute {
   );
 }
 
-const documentOrderKey = Symbol("rizom.document-order");
-
-/**
- * A first-party definition whose files people write by hand: each write
- * keeps the frontmatter order of the document it replaces, as an entity
- * plugin class's adapter wrote over existing frontmatter, so directory sync
- * leaves a file it only read as it was.
- */
-export function writesInDocumentOrder<TDefinition extends AnyEntityDefinition>(
-  definition: TDefinition,
-): TDefinition {
-  return Object.freeze({ ...definition, [documentOrderKey]: true });
-}
-
 /** A stored document as a codec is handed it: its body and its header. */
 export interface StoredDocument {
   readonly content: string;
@@ -1263,9 +1249,8 @@ export function bodyUnderHeader(document: StoredDocument): StoredDocument {
  * schema; metadata indexes only what `deriveMetadata` takes from it; a
  * read hands back the whole document, the header as stored and the body;
  * a write states the header fields metadata names and the serializer keeps
- * the rest of the header once. Pair it with `writesInDocumentOrder`, so a
- * write keeps the header in the order of the document it replaces. An
- * exception to metadata being the frontmatter, for a type whose header
+ * the rest of the header once, in the order of the document it replaces,
+ * as every write keeps it. An exception to metadata being the frontmatter, for a type whose header
  * holds what must not be indexed (a mail item's sender and source) or what
  * is too large to (a traffic snapshot's days).
  *
@@ -1311,7 +1296,7 @@ export function storedDocumentCodec<
     encode:
       options.encode ??
       (({ content, metadata }): EncodedEntityMarkdown => ({
-        content: content.trim(),
+        content,
         frontmatter: Object.fromEntries(
           Object.entries(metadata).filter(([key]) => headerKeys.has(key)),
         ),
@@ -1418,11 +1403,6 @@ export function writtenFrontmatterSchemaOf(
 ): z.ZodObject | undefined {
   const schema: unknown = Reflect.get(definition, writtenFrontmatterSchemaKey);
   return schema instanceof z.ZodObject ? schema : undefined;
-}
-
-/** Whether a definition writes in the order of the document it replaces. */
-export function writesInDocumentOrderOf(definition: object): boolean {
-  return Reflect.get(definition, documentOrderKey) === true;
 }
 
 /** How a first-party generation came out: the record it wrote, or why it failed. */

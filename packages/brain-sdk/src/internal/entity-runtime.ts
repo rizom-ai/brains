@@ -24,7 +24,6 @@ export {
   withPersistValidator,
   withPublishedStatuses,
   withUrlRoute,
-  writesInDocumentOrder,
   storedDocumentCodec,
   slugStatingFrontmatter,
   slugStatingMetadata,

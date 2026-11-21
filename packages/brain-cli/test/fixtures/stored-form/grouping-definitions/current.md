@@ -1,0 +1,9 @@
+---
+groupings:
+  clients:
+    label: Clients
+    multiple: true
+    values: []
+visibility: shared
+---
+

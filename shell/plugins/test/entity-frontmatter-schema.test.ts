@@ -7,7 +7,6 @@ import {
   instantiatePluginPackageDefinition,
   withFrontmatterSchema,
   withWrittenFrontmatterSchema,
-  writesInDocumentOrder,
   type AnyEntityDefinition,
 } from "../src";
 
@@ -63,17 +62,6 @@ describe("a declared type's frontmatter schema", () => {
     expect(schema?.shape["status"]?.meta()).toEqual({
       studioWidget: "provenance",
     });
-  });
-
-  it("composes with writing in document order, either way round", async () => {
-    for (const definition of [
-      writesInDocumentOrder(withFrontmatterSchema(ticket("ticket"), header)),
-      withFrontmatterSchema(writesInDocumentOrder(ticket("ticket")), header),
-    ]) {
-      expect(
-        Object.keys((await frontmatterOf(definition))?.shape ?? {}),
-      ).toEqual(["title", "status", "source"]);
-    }
   });
 
   it("is its metadata when it states none", async () => {

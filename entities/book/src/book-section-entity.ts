@@ -3,7 +3,6 @@ import { defineEntity, type EntityDefinition } from "@brains/sdk/entities";
 import {
   withFolderTitles,
   withFrontmatterSchema,
-  writesInDocumentOrder,
 } from "@brains/sdk/internal/entity-runtime";
 import { READ_ONLY } from "./book-entity";
 import { bookSectionSlug } from "./lib/slugs";
@@ -22,53 +21,51 @@ export const bookSection: EntityDefinition<
   "book-section",
   typeof bookSectionMetadataSchema
 > = withFolderTitles(
-  writesInDocumentOrder(
-    withFrontmatterSchema(
-      defineEntity({
-        type: "book-section",
-        purpose:
-          "A section of a published book, kept verbatim and cited by its section.",
-        classification: "content",
-        metadata: bookSectionMetadataSchema,
-        markdown: {
-          decode: ({ content, frontmatter }) => {
-            const fields = bookSectionFrontmatterSchema.parse(frontmatter);
-            return {
-              // The class wrote its body from the line under its header.
-              content: content.replace(/^\n+/u, ""),
-              metadata: {
-                title: fields.title,
-                section: fields.section,
-                book: fields.book,
-                order: fields.order,
-                slug: bookSectionSlug(fields.book, fields.order),
-                pageTitle: fields.section ?? fields.title,
-              },
-            };
-          },
-          encode: ({ content, metadata }) => ({
+  withFrontmatterSchema(
+    defineEntity({
+      type: "book-section",
+      purpose:
+        "A section of a published book, kept verbatim and cited by its section.",
+      classification: "content",
+      metadata: bookSectionMetadataSchema,
+      markdown: {
+        decode: ({ content, frontmatter }) => {
+          const fields = bookSectionFrontmatterSchema.parse(frontmatter);
+          return {
+            // The class wrote its body from the line under its header.
             content: content.replace(/^\n+/u, ""),
-            frontmatter: {
-              title: metadata.title,
-              book: metadata.book,
-              order: metadata.order,
-              ...(metadata.section !== null && { section: metadata.section }),
+            metadata: {
+              title: fields.title,
+              section: fields.section,
+              book: fields.book,
+              order: fields.order,
+              slug: bookSectionSlug(fields.book, fields.order),
+              pageTitle: fields.section ?? fields.title,
             },
-          }),
+          };
         },
-        config: {
-          includeInBroadSearch: true,
-          // A book brain's sections are its primary texts; its topics map their themes.
-          projectionSourceRole: "canonical",
-          // Ids carry zero-padded reading order.
-          defaultSort: [{ field: "id", direction: "asc" }],
-          actionPolicy: READ_ONLY,
-          // A section lives in its book: stored, shown and deleted with it.
-          containedIn: "book",
-        },
-      }),
-      bookSectionFrontmatterSchema,
-    ),
+        encode: ({ content, metadata }) => ({
+          content: content.replace(/^\n+/u, ""),
+          frontmatter: {
+            title: metadata.title,
+            book: metadata.book,
+            order: metadata.order,
+            ...(metadata.section !== null && { section: metadata.section }),
+          },
+        }),
+      },
+      config: {
+        includeInBroadSearch: true,
+        // A book brain's sections are its primary texts; its topics map their themes.
+        projectionSourceRole: "canonical",
+        // Ids carry zero-padded reading order.
+        defaultSort: [{ field: "id", direction: "asc" }],
+        actionPolicy: READ_ONLY,
+        // A section lives in its book: stored, shown and deleted with it.
+        containedIn: "book",
+      },
+    }),
+    bookSectionFrontmatterSchema,
   ),
   // Its book's folder is titled by the book; its headings title the rest.
   // Studio reads the tree as stored, so the headings are the file's.

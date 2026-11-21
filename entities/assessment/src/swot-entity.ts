@@ -9,7 +9,6 @@ import {
   storedDocumentCodec,
   bodyUnderHeader,
   withFrontmatterSchema,
-  writesInDocumentOrder,
 } from "@brains/sdk/internal/entity-runtime";
 import { parseSwotContent } from "./lib/swot-content";
 import {
@@ -61,31 +60,29 @@ export function swotWritten(
  * brain as it stands, scheduled or not.
  */
 function swotDefinition(rule: ProjectionRule): SwotDefinition {
-  const definition: SwotDefinition = writesInDocumentOrder(
-    withFrontmatterSchema(
-      defineEntity({
-        type: "swot",
-        classification: "system",
-        purpose:
-          "A SWOT analysis of strengths, weaknesses, opportunities, and threats.",
-        metadata: swotMetadataSchema,
-        markdown: storedSwot,
-        config: { projectionSource: false, projectionSourceRole: "excluded" },
-        projectionRules: [rule],
-        evals: {
-          deriveSwot: async (_input, context) =>
-            swotWritten(
-              await entityRuntime(context).runProjectionRule(
-                SWOT_DERIVATION_RULE_ID,
-              ),
+  const definition: SwotDefinition = withFrontmatterSchema(
+    defineEntity({
+      type: "swot",
+      classification: "system",
+      purpose:
+        "A SWOT analysis of strengths, weaknesses, opportunities, and threats.",
+      metadata: swotMetadataSchema,
+      markdown: storedSwot,
+      config: { projectionSource: false, projectionSourceRole: "excluded" },
+      projectionRules: [rule],
+      evals: {
+        deriveSwot: async (_input, context) =>
+          swotWritten(
+            await entityRuntime(context).runProjectionRule(
+              SWOT_DERIVATION_RULE_ID,
             ),
-        },
-        dashboardWidgets: (context) => [swotWidgetOf(context, definition)],
-      }),
-      // The header the swot adapter declared: Studio's editor reads it as
-      // the type's frontmatter.
-      swotFrontmatterSchema,
-    ),
+          ),
+      },
+      dashboardWidgets: (context) => [swotWidgetOf(context, definition)],
+    }),
+    // The header the swot adapter declared: Studio's editor reads it as
+    // the type's frontmatter.
+    swotFrontmatterSchema,
   );
   return definition;
 }

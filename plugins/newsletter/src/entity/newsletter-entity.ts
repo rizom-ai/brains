@@ -42,7 +42,7 @@ export const newsletterEntity: EntityDefinition<
         metadata: newsletterMetadataSchema.parse(frontmatter),
       }),
       encode: ({ content, metadata }) => ({
-        content: content.trim(),
+        content,
         frontmatter: metadata,
       }),
     },

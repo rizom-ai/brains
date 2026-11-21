@@ -10,7 +10,7 @@ import { definedFields } from "@brains/utils/strip-undefined";
 /**
  * A link's frontmatter, in the order the link adapter wrote a new link:
  * its status, title, URL, description, when and where it was captured.
- * A file people wrote keeps its own order (writesInDocumentOrder).
+ * A file people wrote keeps its own order, as every write keeps it.
  */
 export function linkFrontmatter(
   metadata: LinkMetadata,
