@@ -61,6 +61,8 @@ function weekTotals(frontmatter: TrafficSnapshotFrontmatter): {
 export const trafficSnapshotAdapter: {
   /** The snapshot's markdown, its body rebuilt from the numbers. */
   createContent(frontmatter: TrafficSnapshotFrontmatter): string;
+  /** The body the current form stores: the numbers rendered as a table. */
+  bodyOf(frontmatter: TrafficSnapshotFrontmatter): string;
   parseContent(content: string): TrafficSnapshotFrontmatter;
   metadataFor(frontmatter: TrafficSnapshotFrontmatter): TrafficSnapshotMetadata;
   fromMarkdown(markdown: string): Partial<TrafficSnapshot>;
@@ -68,6 +70,9 @@ export const trafficSnapshotAdapter: {
   createContent(frontmatter: TrafficSnapshotFrontmatter): string {
     const parsed = trafficSnapshotFrontmatterSchema.parse(frontmatter);
     return generateMarkdownWithFrontmatter(summarize(parsed), parsed);
+  },
+  bodyOf(frontmatter: TrafficSnapshotFrontmatter): string {
+    return summarize(trafficSnapshotFrontmatterSchema.parse(frontmatter));
   },
   parseContent(content: string): TrafficSnapshotFrontmatter {
     return parseTypedFrontmatter(

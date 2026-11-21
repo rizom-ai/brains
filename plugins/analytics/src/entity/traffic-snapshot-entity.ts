@@ -1,13 +1,53 @@
 import { defineEntity, type EntityDefinition } from "@brains/sdk/entities";
 import {
   storedDocumentCodec,
+  storedFormCodec,
   withFrontmatterSchema,
 } from "@brains/sdk/internal/entity-runtime";
+import { parseMarkdown } from "@brains/utils/markdown-frontmatter";
 import { trafficSnapshotAdapter } from "./adapter";
 import {
   trafficSnapshotFrontmatterSchema,
   trafficSnapshotMetadataSchema,
 } from "./schema";
+
+const storedSnapshot = storedDocumentCodec({
+  header: trafficSnapshotFrontmatterSchema,
+  deriveMetadata: (header) => trafficSnapshotAdapter.metadataFor(header),
+});
+
+/**
+ * Either form reads; the store's is written: the current, its body the
+ * days rendered as a table, or the next, the days alone, no longer stored
+ * twice.
+ */
+const trafficSnapshotMarkdown = storedFormCodec<
+  typeof trafficSnapshotMetadataSchema
+>({
+  decode: storedSnapshot.decode,
+  encode: {
+    // The body as stored; one brought back from the next form, which has
+    // none, is rendered from the days.
+    old: (document) => {
+      const encoded = storedSnapshot.encode?.(document) ?? {
+        content: document.content,
+        frontmatter: {},
+      };
+      return parseMarkdown(document.content).content.trim() === ""
+        ? {
+            ...encoded,
+            content: trafficSnapshotAdapter.bodyOf(
+              trafficSnapshotAdapter.parseContent(document.content),
+            ),
+          }
+        : encoded;
+    },
+    new: (document) => ({
+      ...(storedSnapshot.encode?.(document) ?? { frontmatter: {} }),
+      content: "",
+    }),
+  },
+});
 
 /**
  * A week of site traffic the daily check captured from Cloudflare Web
@@ -33,11 +73,10 @@ export const trafficSnapshotEntity: EntityDefinition<
       "A week of site traffic captured from Cloudflare Web Analytics: per day pageviews, visits, top paths, referrers and countries. Restricted operational data for the owner.",
     classification: "system",
     metadata: trafficSnapshotMetadataSchema,
-    markdown: storedDocumentCodec({
-      header: trafficSnapshotFrontmatterSchema,
-      deriveMetadata: (header) => trafficSnapshotAdapter.metadataFor(header),
-    }),
+    markdown: trafficSnapshotMarkdown,
     config: {
+      // Its next form is a YAML file of the days (docs/plans/one-stored-form.md).
+      storage: "yaml",
       // The capture's record of what Cloudflare counted: written only by
       // the daily check, never by hand.
       actionPolicy: {
