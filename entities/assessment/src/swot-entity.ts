@@ -7,10 +7,16 @@ import {
 import {
   entityRuntime,
   storedDocumentCodec,
+  storedFormCodec,
   bodyUnderHeader,
-  withFrontmatterSchema,
 } from "@brains/sdk/internal/entity-runtime";
-import { parseSwotContent } from "./lib/swot-content";
+import { parseMarkdown } from "@brains/utils/markdown-frontmatter";
+import {
+  parseSwotContent,
+  swotInCurrentShape,
+  swotInNextForm,
+  swotNextHeaderSchema,
+} from "./lib/swot-content";
 import {
   SWOT_DERIVATION_RULE_ID,
   createSwotProjectionRule,
@@ -32,9 +38,48 @@ const storedSwot = storedDocumentCodec<
 >({
   header: swotFrontmatterSchema,
   deriveMetadata: ({ derivedAt }) => ({ derivedAt }),
+  // The swot adapter wrote a hand-added body from the line under its
+  // header; a SWOT in the next form reads in the current shape.
+  prepare: (document) => swotInCurrentShape(bodyUnderHeader(document)),
+});
+
+/**
+ * The current shape a write states: the document's whole header, the time
+ * the record was derived, and the text an author added.
+ */
+function currentShape(
+  content: string,
+  derivedAt: string,
+): { content: string; frontmatter: Record<string, unknown> } {
+  const parsed = parseMarkdown(content);
+  const document = swotInCurrentShape({
+    content: parsed.content,
+    frontmatter: parsed.frontmatter,
+  });
+  return {
+    content: document.content,
+    frontmatter: { ...document.frontmatter, derivedAt },
+  };
+}
+
+/**
+ * Read as its stored document in either form; the store's form is
+ * written: the current, all header, or the next, the quadrants in the
+ * body.
+ */
+const swotMarkdown = storedFormCodec<typeof swotMetadataSchema>({
+  decode: storedSwot.decode,
+  encode: {
+    old: ({ content, metadata }) => currentShape(content, metadata.derivedAt),
+    new: ({ content, metadata }) =>
+      swotInNextForm(currentShape(content, metadata.derivedAt)),
+  },
+  header: { old: swotFrontmatterSchema, new: swotNextHeaderSchema },
+  // The quadrants a file brought back to the current form opens with.
+  places: [
+    ["strengths", "weaknesses", "opportunities", "threats", "derivedAt"],
+  ],
   readAsWritten: true,
-  // The swot adapter wrote a hand-added body from the line under its header.
-  prepare: bodyUnderHeader,
 });
 
 /**
@@ -60,30 +105,25 @@ export function swotWritten(
  * brain as it stands, scheduled or not.
  */
 function swotDefinition(rule: ProjectionRule): SwotDefinition {
-  const definition: SwotDefinition = withFrontmatterSchema(
-    defineEntity({
-      type: "swot",
-      classification: "system",
-      purpose:
-        "A SWOT analysis of strengths, weaknesses, opportunities, and threats.",
-      metadata: swotMetadataSchema,
-      markdown: storedSwot,
-      config: { projectionSource: false, projectionSourceRole: "excluded" },
-      projectionRules: [rule],
-      evals: {
-        deriveSwot: async (_input, context) =>
-          swotWritten(
-            await entityRuntime(context).runProjectionRule(
-              SWOT_DERIVATION_RULE_ID,
-            ),
+  const definition: SwotDefinition = defineEntity({
+    type: "swot",
+    classification: "system",
+    purpose:
+      "A SWOT analysis of strengths, weaknesses, opportunities, and threats.",
+    metadata: swotMetadataSchema,
+    markdown: swotMarkdown,
+    config: { projectionSource: false, projectionSourceRole: "excluded" },
+    projectionRules: [rule],
+    evals: {
+      deriveSwot: async (_input, context) =>
+        swotWritten(
+          await entityRuntime(context).runProjectionRule(
+            SWOT_DERIVATION_RULE_ID,
           ),
-      },
-      dashboardWidgets: (context) => [swotWidgetOf(context, definition)],
-    }),
-    // The header the swot adapter declared: Studio's editor reads it as
-    // the type's frontmatter.
-    swotFrontmatterSchema,
-  );
+        ),
+    },
+    dashboardWidgets: (context) => [swotWidgetOf(context, definition)],
+  });
   return definition;
 }
 
