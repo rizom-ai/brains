@@ -163,12 +163,12 @@
     "id": "conv-2:action-item:1:ef3456",
     "file": "---\nconversationId: conv-2\nspaceId: discord:1\nchannelId: discord-1\ninterfaceType: discord\ntimeRange:\n  start: '2026-02-01T00:00:00.000Z'\n  end: '2026-02-01T00:01:00.000Z'\nstatus: open\nassignedTo:\n  - identity:\n      kind: user\n      userId: u-alex\n    displayName: Alex\nsourceSummaryId: conv-2\nprojectionVersion: 3\n---\n# Action item: Send the notes\n\nSend the meeting notes.\n",
     "stored": {
-      "content": "---\nconversationId: conv-2\ninterfaceType: discord\nchannelId: discord-1\ncapturedAt: '2026-02-01T00:01:00.000Z'\nstatus: open\nassignedTo:\n  - name: Alex\n    id: 'user:u-alex'\n---\n# Action item: Send the notes\n\nSend the meeting notes.\n",
+      "content": "---\nconversationId: conv-2\nchannelId: discord-1\ninterfaceType: discord\nstatus: open\nassignedTo:\n  - name: Alex\n    id: 'user:u-alex'\ncapturedAt: '2026-02-01T00:01:00.000Z'\n---\n# Action item: Send the notes\n\nSend the meeting notes.\n",
       "metadata": "{\"conversationId\":\"conv-2\",\"interfaceType\":\"discord\",\"channelId\":\"discord-1\",\"capturedAt\":\"2026-02-01T00:01:00.000Z\",\"status\":\"open\",\"assignedTo\":[{\"name\":\"Alex\",\"id\":\"user:u-alex\"}]}",
       "visibility": "public"
     },
     "read": {
-      "content": "---\nconversationId: conv-2\ninterfaceType: discord\nchannelId: discord-1\ncapturedAt: '2026-02-01T00:01:00.000Z'\nstatus: open\nassignedTo:\n  - name: Alex\n    id: 'user:u-alex'\n---\n# Action item: Send the notes\n\nSend the meeting notes.\n",
+      "content": "---\nconversationId: conv-2\nchannelId: discord-1\ninterfaceType: discord\nstatus: open\nassignedTo:\n  - name: Alex\n    id: 'user:u-alex'\ncapturedAt: '2026-02-01T00:01:00.000Z'\n---\n# Action item: Send the notes\n\nSend the meeting notes.\n",
       "metadata": {
         "conversationId": "conv-2",
         "interfaceType": "discord",
@@ -184,7 +184,7 @@
       },
       "visibility": "public"
     },
-    "exported": "---\nconversationId: conv-2\ninterfaceType: discord\nchannelId: discord-1\ncapturedAt: '2026-02-01T00:01:00.000Z'\nstatus: open\nassignedTo:\n  - name: Alex\n    id: 'user:u-alex'\n---\n# Action item: Send the notes\n\nSend the meeting notes.\n"
+    "exported": "---\nconversationId: conv-2\nchannelId: discord-1\ninterfaceType: discord\nstatus: open\nassignedTo:\n  - name: Alex\n    id: 'user:u-alex'\ncapturedAt: '2026-02-01T00:01:00.000Z'\n---\n# Action item: Send the notes\n\nSend the meeting notes.\n"
   },
   "itemBoard": {
     "id": "board:roof",

@@ -85,13 +85,15 @@ const noSlug =
   "---\nexcerpt: Desc\ntitle: No Slug\nstatus: draft\nauthor: Alex\ntags: x\n---\nFree text body\n";
 
 describe("the declared posts on the entity store", () => {
-  // Each expected document is what BlogPostAdapter.toMarkdown stored for it.
+  // Each expected document is what BlogPostAdapter.toMarkdown stored for it,
+  // in the order the file states its keys (docs/plans/one-stored-form.md):
+  // a key the file lacks, such as a resolved slug, follows the rest.
   test.each([
     ["a full post", city, storedCity],
     [
       "a post without a slug, with frontmatter it does not write",
       noSlug,
-      "---\ntitle: No Slug\nstatus: draft\nexcerpt: Desc\nauthor: Alex\nslug: no-slug\ntags: x\n---\nFree text body\n",
+      "---\nexcerpt: Desc\ntitle: No Slug\nstatus: draft\nauthor: Alex\ntags: x\nslug: no-slug\n---\nFree text body\n",
     ],
     [
       "a blank line after the frontmatter",
@@ -127,8 +129,8 @@ describe("the declared posts on the entity store", () => {
       noSlug,
       "Free text",
       "Changed text",
-      // Once stored, the file states its slug.
-      "---\ntitle: No Slug\nslug: no-slug\nstatus: draft\nexcerpt: Desc\nauthor: Alex\ntags: x\n---\nChanged text body\n",
+      // Once stored, the file states its slug, where it was first written.
+      "---\nexcerpt: Desc\ntitle: No Slug\nstatus: draft\nauthor: Alex\ntags: x\nslug: no-slug\n---\nChanged text body\n",
     ],
   ])(
     "keeps a post's form through an update of its body: %s",
@@ -166,7 +168,7 @@ describe("the declared posts on the entity store", () => {
       { publishedAt: "2026-01-01T00:00:00.000Z" },
     );
     expect((await opened.stored("post", "queued"))?.content).toBe(
-      "---\ntitle: Queued Post\nslug: queued-post\nstatus: published\npublishedAt: '2026-01-01T00:00:00.000Z'\nexcerpt: Soon.\nauthor: Alex\ncoverImageId: cov\n---\nQueued body\n",
+      "---\ntitle: Queued Post\nstatus: published\nexcerpt: Soon.\nauthor: Alex\ncoverImageId: cov\nslug: queued-post\npublishedAt: '2026-01-01T00:00:00.000Z'\n---\nQueued body\n",
     );
   });
 });

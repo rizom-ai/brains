@@ -67,12 +67,13 @@ async function generate(
 }
 
 describe("the declared notes on the entity store", () => {
-  // Each expected document is what NoteAdapter.toMarkdown stored for it.
+  // Each expected document is what NoteAdapter.toMarkdown stored for it,
+  // framed as every write frames it now: one newline at the end.
   test.each([
     [
       "a plain note",
       "# Simple Note\n\nJust content, no frontmatter.",
-      "# Simple Note\n\nJust content, no frontmatter.",
+      "# Simple Note\n\nJust content, no frontmatter.\n",
       { title: "Simple Note" },
     ],
     [
@@ -102,7 +103,7 @@ describe("the declared notes on the entity store", () => {
     [
       "a first line",
       "Just a line\nSecond line",
-      "Just a line\nSecond line",
+      "Just a line\nSecond line\n",
       { title: "Just a line" },
     ],
     [
@@ -125,7 +126,7 @@ describe("the declared notes on the entity store", () => {
   test.each([
     [
       "# Simple Note\n\nJust content, no frontmatter.",
-      "# Simple Note\n\nJust Changed, no frontmatter.",
+      "# Simple Note\n\nJust Changed, no frontmatter.\n",
     ],
     [
       "---\ntitle: My Note\n---\nContent here",
@@ -166,11 +167,11 @@ describe("the declared note generation on the entity store", () => {
       title: "Gen Title",
     });
     expect((await opened.stored("note", "gen-title"))?.content).toBe(
-      "Generated body text.",
+      "Generated body text.\n",
     );
   });
 
-  test("keeps a generated body's frontmatter, its title first", async () => {
+  test("keeps a generated body's frontmatter, its title after it", async () => {
     const opened = await store();
     reply = { title: "Fm Title", body: "---\nextra: kept\n---\nBody with fm" };
     expect(await generate(opened, { prompt: "x" })).toEqual({
@@ -179,7 +180,7 @@ describe("the declared note generation on the entity store", () => {
       title: "Fm Title",
     });
     expect((await opened.stored("note", "fm-title"))?.content).toBe(
-      "---\ntitle: Fm Title\nextra: kept\n---\nBody with fm\n",
+      "---\nextra: kept\ntitle: Fm Title\n---\nBody with fm\n",
     );
   });
 

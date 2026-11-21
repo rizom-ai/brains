@@ -23,7 +23,7 @@ import { createRefusingEmbeddingService } from "@brains/entity-service/test";
 const memo = defineEntity({
   type: "memo",
   purpose: "A memo in a grouping.",
-  metadata: z.object({ title: z.string() }),
+  metadata: z.object({ title: z.string(), summary: z.string().optional() }),
 });
 
 let close: (() => Promise<void>) | undefined;
@@ -146,5 +146,34 @@ test("removes a field and keeps the others", async () => {
   expect(await exec(proposal.args)).toMatchObject({ success: true });
   expect(await stored()).toBe(
     "---\ntitle: Member\nprojects:\n  - Launch\nunclaimed: null\n---\nBody\n",
+  );
+});
+
+// The document a field update writes is the stored one, every key in its
+// place: a field of the type's own that the update removes stays removed.
+test("removes a field of the type's own beside a grouping field", async () => {
+  const { stored, exec } = await fixture();
+  const setting = confirmation.parse(
+    await exec({
+      entityType: "memo",
+      id: "member",
+      operation: { fields: { summary: "Short", clients: ["Beta"] } },
+    }),
+  );
+  expect(await exec(setting.args)).toMatchObject({ success: true });
+  expect(await stored()).toBe(
+    "---\ntitle: Member\nclients:\n  - Beta\nprojects:\n  - Launch\nunclaimed: null\nsummary: Short\n---\nBody\n",
+  );
+
+  const removing = confirmation.parse(
+    await exec({
+      entityType: "memo",
+      id: "member",
+      operation: { fields: { summary: null, clients: ["Gamma"] } },
+    }),
+  );
+  expect(await exec(removing.args)).toMatchObject({ success: true });
+  expect(await stored()).toBe(
+    "---\ntitle: Member\nclients:\n  - Gamma\nprojects:\n  - Launch\nunclaimed: null\n---\nBody\n",
   );
 });

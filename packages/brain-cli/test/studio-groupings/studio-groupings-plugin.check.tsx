@@ -116,7 +116,11 @@ async function fixture(): Promise<{
     { pluginId: "image" },
   );
   if (!isDeclaredEntityType(images)) throw new Error("No image plugin");
-  registry.registerEntityType("image", images.schema, images.adapter);
+  // Binary, as the brain registers it: its content is its bytes, never
+  // framed as a document. Held here as a data URL.
+  registry.registerEntityType("image", images.schema, images.adapter, {
+    binaryStorage: "data-url",
+  });
   await plugin.finalizeRegistration();
   await service.reprojectRegisteredGroupings();
   const routes = plugin.getWebRoutes();

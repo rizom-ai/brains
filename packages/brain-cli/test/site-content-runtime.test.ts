@@ -72,12 +72,23 @@ async function store(): Promise<DeclaredEntityStore> {
   return opened;
 }
 
-/** What main recorded for a record, its ordinary read the body alone. */
+/** A stored document as every write frames it: one newline at its end. */
+const framed = (content: string): string =>
+  content.endsWith("\n") ? content : `${content}\n`;
+
+/**
+ * What main recorded for a record, its ordinary read the body alone, and
+ * its stored bytes framed as a write frames them now
+ * (docs/plans/one-stored-form.md).
+ */
 function declared(
   record: z.output<typeof recordSchema>,
 ): z.output<typeof recordSchema> {
   return {
     ...record,
+    stored: { ...record.stored, content: framed(record.stored.content) },
+    raw: { ...record.raw, content: framed(record.raw.content) },
+    exported: framed(record.exported),
     read: {
       ...record.read,
       content: parseMarkdown(record.read.content).content,

@@ -142,6 +142,29 @@ export class EmbeddingIndexCoordinator {
       });
   }
 
+  /**
+   * Carry an embedding over to a row's new content hash, when what it
+   * embeds is unchanged: only an embedding of the old content moves, so a
+   * newer one, or none, is left for the backfill to find.
+   */
+  public async retag(
+    entityType: string,
+    entityId: string,
+    from: string,
+    to: string,
+  ): Promise<void> {
+    await this.embeddingDb
+      .update(embeddings)
+      .set({ contentHash: to })
+      .where(
+        and(
+          eq(embeddings.entityType, entityType),
+          eq(embeddings.entityId, entityId),
+          eq(embeddings.contentHash, from),
+        ),
+      );
+  }
+
   public async backfillMissing(): Promise<EmbeddingBackfillResult> {
     if (!this.embeddingsEnabled) {
       this.logger.debug(

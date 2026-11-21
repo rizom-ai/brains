@@ -95,7 +95,10 @@ This content must be preserved exactly.`;
       },
       markdownDocSchema,
     );
-    expect(stored?.content).toBe(markdown);
+    // Stored framed: the body directly under its header, one final newline.
+    expect(stored?.content).toBe(
+      markdown.replace("---\n\n# Approved", "---\n# Approved") + "\n",
+    );
     expect(stored?.headline).toBe("Approved Markdown Doc");
     expect(stored?.metadata).toEqual({
       title: "Approved Markdown Doc",

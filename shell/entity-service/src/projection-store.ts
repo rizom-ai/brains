@@ -239,6 +239,13 @@ export class ProjectionStore {
       );
   }
 
+  /** Run one transaction in turn with this database's other transactions. */
+  public runTransaction<TResult>(
+    mutation: (transaction: EntityTransaction) => Promise<TResult>,
+  ): Promise<TResult> {
+    return this.transactions.run(mutation);
+  }
+
   /** Run one autocommit write in turn with this database's transactions. */
   public runSqliteWrite<TResult>(
     write: () => Promise<TResult>,

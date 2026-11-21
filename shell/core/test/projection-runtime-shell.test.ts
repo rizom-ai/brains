@@ -355,7 +355,7 @@ describe("Shell projection runtime lifecycle", () => {
         entity: {
           id: "source-note",
           entityType: "projection-target",
-          content: "Projection source",
+          content: "Projection source\n",
           metadata: { sourceId: "source-note" },
           visibility: "public",
         },

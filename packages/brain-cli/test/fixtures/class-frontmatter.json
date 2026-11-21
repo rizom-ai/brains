@@ -1199,6 +1199,10 @@
               "type": "string",
               "description": "Main CTA heading text"
             },
+            "subtitle": {
+              "type": "string",
+              "description": "A line under the CTA heading"
+            },
             "buttonText": {
               "type": "string",
               "description": "Call-to-action button text"
@@ -1251,6 +1255,10 @@
                   "heading": {
                     "type": "string",
                     "description": "Main CTA heading text"
+                  },
+                  "subtitle": {
+                    "type": "string",
+                    "description": "A line under the CTA heading"
                   },
                   "buttonText": {
                     "type": "string",

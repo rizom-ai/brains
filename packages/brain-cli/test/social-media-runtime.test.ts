@@ -132,7 +132,7 @@ describe("declared social posts on the entity store", () => {
         "---\nstatus: queued\ncoverImageId: img-1\ntitle: Reordered Post\nnote: kept\nplatform: linkedin\ndocuments:\n  - id: doc-1\n---\n\nBody\n",
       ),
     ).toBe(
-      "---\ntitle: Reordered Post\nplatform: linkedin\nstatus: queued\ncoverImageId: img-1\ndocuments:\n  - id: doc-1\nnote: kept\n---\nBody\n",
+      "---\nstatus: queued\ncoverImageId: img-1\ntitle: Reordered Post\nnote: kept\nplatform: linkedin\ndocuments:\n  - id: doc-1\n---\nBody\n",
     );
     // A file with a title alone is a LinkedIn draft.
     expect(
@@ -158,7 +158,8 @@ describe("declared social posts on the entity store", () => {
         "---\ntitle: Dated\nplatform: linkedin\nstatus: draft\ncreated: 2025-09-20T00:00:00.000Z\nslug: custom-slug\n---\nDated body\n",
       ),
     ).toBe(
-      "---\ntitle: Dated\nplatform: linkedin\nstatus: draft\nslug: custom-slug\n---\nDated body\n",
+      // A record date the file states is kept where it states it.
+      "---\ntitle: Dated\nplatform: linkedin\nstatus: draft\ncreated: '2025-09-20T00:00:00.000Z'\nslug: custom-slug\n---\nDated body\n",
     );
     expect(
       (
@@ -190,7 +191,7 @@ describe("declared social posts on the entity store", () => {
       },
     });
     expect(await storedPost(store, "reordered")).toBe(
-      "---\ntitle: Reordered Post\nplatform: linkedin\nstatus: failed\ncoverImageId: img-1\ndocuments:\n  - id: doc-1\nnote: kept\n---\nBody\n",
+      "---\nstatus: failed\ncoverImageId: img-1\ntitle: Reordered Post\nnote: kept\nplatform: linkedin\ndocuments:\n  - id: doc-1\n---\nBody\n",
     );
     expect(
       (
@@ -228,7 +229,7 @@ describe("declared social posts on the entity store", () => {
       },
     });
     const published =
-      "---\ntitle: Launch Day\nplatform: linkedin\nstatus: published\npublishedAt: '2025-04-01T00:00:00.000Z'\nplatformPostId: 'urn:2'\nsourceEntityId: my-post\nsourceEntityType: post\n---\n";
+      "---\ntitle: Launch Day\nplatform: linkedin\nstatus: published\nsourceEntityId: my-post\nsourceEntityType: post\npublishedAt: '2025-04-01T00:00:00.000Z'\nplatformPostId: 'urn:2'\n---\n";
     expect(await storedPost(store, "canonical")).toBe(
       `${published}Body text\n`,
     );

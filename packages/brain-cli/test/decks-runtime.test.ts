@@ -96,7 +96,7 @@ describe("the declared decks on the entity store", () => {
         "---\ntitle: No Slug Deck\nstatus: draft\ndescription: Short\n---\n# No Slug\n\n---\n\nTwo\n",
       ),
     ).toBe(
-      "---\ntitle: No Slug Deck\ndescription: Short\nstatus: draft\nslug: no-slug-deck\n---\n# No Slug\n\n---\n\nTwo\n",
+      "---\ntitle: No Slug Deck\nstatus: draft\ndescription: Short\nslug: no-slug-deck\n---\n# No Slug\n\n---\n\nTwo\n",
     );
     expect(
       await imported(
@@ -105,7 +105,7 @@ describe("the declared decks on the entity store", () => {
         "---\ntitle: Out There\nstatus: published\npublishedAt: 2026-01-02T00:00:00.000Z\nslug: out-there\n---\n# Out\n\n---\n\nThere\n",
       ),
     ).toBe(
-      "---\ntitle: Out There\nslug: out-there\nstatus: published\npublishedAt: '2026-01-02T00:00:00.000Z'\n---\n# Out\n\n---\n\nThere\n",
+      "---\ntitle: Out There\nstatus: published\npublishedAt: '2026-01-02T00:00:00.000Z'\nslug: out-there\n---\n# Out\n\n---\n\nThere\n",
     );
     expect(
       await imported(
@@ -152,10 +152,10 @@ describe("the declared decks on the entity store", () => {
     await opened.service.updateEntity({
       entity: { ...read, content: read.content.replace("Two", "Changed") },
     });
-    // As DeckAdapter stored it: the stored file states its slug, so the
-    // update writes it where a stated slug goes.
+    // The stored file states its slug, so the update keeps it where the
+    // file states it (docs/plans/one-stored-form.md).
     expect((await opened.stored("deck", "noslug"))?.content).toBe(
-      "---\ntitle: No Slug Deck\nslug: no-slug-deck\ndescription: Short\nstatus: draft\n---\n# No Slug\n\n---\n\nChanged\n",
+      "---\ntitle: No Slug Deck\nstatus: draft\ndescription: Short\nslug: no-slug-deck\n---\n# No Slug\n\n---\n\nChanged\n",
     );
   });
 
@@ -216,7 +216,7 @@ describe("a deck written whole, as an editor writes it", () => {
     );
     const stored = await imported(opened, "tagged", tagged);
     expect(stored).toBe(
-      "---\ntitle: Tidal Systems\nslug: tidal-systems\ndescription: How tides move\nauthor: Ada\nstatus: draft\nevent: Harbour Conf\ncoverImageId: tide-cover\ntags: tides\n---\n# Tidal Systems\n\n---\n\n## Second\n\nBody\n",
+      "---\ntitle: Tidal Systems\nslug: tidal-systems\ndescription: How tides move\nauthor: Ada\nstatus: draft\ntags: tides\nevent: Harbour Conf\ncoverImageId: tide-cover\n---\n# Tidal Systems\n\n---\n\n## Second\n\nBody\n",
     );
     const read = await opened.service.getEntity({
       entityType: "deck",
@@ -379,7 +379,7 @@ describe("the declared deck generation on the entity store", () => {
       slug: "alloc",
     });
     expect((await opened.stored("deck", "alloc"))?.content).toBe(
-      "---\ntitle: Alloc\nslug: alloc\ndescription: D\nstatus: draft\n---\n# Alloc\n\n---\n\nS\n",
+      "---\ntitle: Alloc\nslug: alloc\nstatus: draft\ndescription: D\n---\n# Alloc\n\n---\n\nS\n",
     );
 
     expect(

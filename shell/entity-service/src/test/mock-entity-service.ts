@@ -219,6 +219,7 @@ export function createMockEntityService(
     getWeightMap: mock(() => ({})),
     serializeEntity: mock(() => ""),
     deserializeEntity: mock(() => ({})),
+    unknownFrontmatterKeys: mock(() => []),
     getAsyncJobStatus: mock(() =>
       Promise.resolve({ status: "completed" as const }),
     ),
@@ -242,6 +243,9 @@ export function createMockEntityService(
     ),
     rewriteRetiredFields: mock(() => Promise.resolve({ rewritten: 0 })),
     reconcileDeclaredMetadata: mock(() => Promise.resolve({ reconciled: 0 })),
+    rewriteStoredForms: mock(() =>
+      Promise.resolve({ rewritten: 0, deferred: 0 }),
+    ),
     isIndexReady: mock(() => true),
     awaitIndexReady: mock(() =>
       Promise.resolve({

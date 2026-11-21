@@ -68,6 +68,7 @@ import {
   restatedMetadataOf,
   urlRouteOf,
   writesInDocumentOrderOf,
+  writtenFrontmatterSchemaOf,
   readsAsWritten,
   frontmatterSchemaOf,
   builtProvider,
@@ -370,8 +371,10 @@ function markdownStorage(
     // What it writes is still every field its metadata names; a header
     // field metadata does not name is the file's own, which the serializer
     // keeps from the document written, as a stored-document class kept it.
-    ...(frontmatterSchemaOf(definition) && {
-      writtenFrontmatterSchema: definition.metadata,
+    ...((frontmatterSchemaOf(definition) ??
+      writtenFrontmatterSchemaOf(definition)) && {
+      writtenFrontmatterSchema:
+        writtenFrontmatterSchemaOf(definition) ?? definition.metadata,
     }),
     // A whole document handed in, as an import or an editor writes one, had
     // its frontmatter decoded into the metadata already: the type writes the

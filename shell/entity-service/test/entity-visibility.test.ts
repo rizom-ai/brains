@@ -611,7 +611,7 @@ describe("note visibility serialization", () => {
 
     expect(stored?.visibility).toBe("public");
     expect(stored ? ctx.entityService.serializeEntity(stored) : "").toBe(
-      rawContent,
+      `${rawContent}\n`,
     );
   });
 

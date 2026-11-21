@@ -4,6 +4,7 @@ import {
   readMarkdownFrontmatter,
 } from "@brains/utils/markdown-frontmatter";
 import { isPlainRecord } from "@brains/utils/predicates";
+import { z } from "@brains/utils/zod";
 import type { BaseEntity, EntityRegistry, SourceReadOption } from "./types";
 import {
   ENTITY_SYSTEM_FIELDS,
@@ -16,6 +17,7 @@ import { toEntityValidationError } from "./errors";
 import { stableJson } from "./entity-revision";
 import {
   dropFields,
+  objectShapeOf,
   preserveSourceFrontmatter,
   unwrittenFields,
   withoutFrontmatterFields,
@@ -53,12 +55,32 @@ function sameValue(left: unknown, right: unknown): boolean {
  * own value when it equals the written one (so a nested value keeps its
  * key order), and the keys the document lacks after the rest.
  */
-const KEPT_RECORD_FIELDS: ReadonlySet<string> = new Set(
-  ENTITY_SYSTEM_FIELDS.filter((field) => field !== "visibility"),
-);
+// The record's dates a file states stay in it; its identity, content and
+// hash are the record's own and never come from a file.
+const KEPT_RECORD_FIELDS: ReadonlySet<string> = new Set(["created", "updated"]);
+
+/** A record date a file states: a parsed date, or text that reads as one. */
+function isStatedDate(value: unknown): boolean {
+  if (value instanceof Date) return !Number.isNaN(value.getTime());
+  return (
+    typeof value === "string" &&
+    /^\d{4}-\d{2}-\d{2}/u.test(value) &&
+    !Number.isNaN(Date.parse(value))
+  );
+}
+
+/** The header block of a document as written, or none. */
+function headerText(markdown: string): string | undefined {
+  return HEADER.exec(markdown)?.[0].replace(/\n$/u, "");
+}
 
 function inDocumentOrder(written: string, replaced: string): string {
-  const source = readMarkdownFrontmatter(replaced).data;
+  // A header the write leaves as the document it replaces states it is
+  // kept byte for byte: its author's YAML style is not redrawn.
+  const writtenHeader = headerText(written);
+  if (writtenHeader !== undefined && writtenHeader === headerText(replaced))
+    return written;
+  const source = headerOf(replaced);
   const target = readMarkdownFrontmatter(written);
   if (!isPlainRecord(source) || !isPlainRecord(target.data)) return written;
   // The record fields a file states stay where it states them, as an
@@ -69,7 +91,10 @@ function inDocumentOrder(written: string, replaced: string): string {
   const fields = {
     ...Object.fromEntries(
       Object.entries(source)
-        .filter(([key]) => KEPT_RECORD_FIELDS.has(key))
+        // A forged or malformed date is not the record's; it is not kept.
+        .filter(
+          ([key, value]) => KEPT_RECORD_FIELDS.has(key) && isStatedDate(value),
+        )
         .map(([key, value]) => [
           key,
           value instanceof Date ? value.toISOString() : value,
@@ -88,6 +113,70 @@ function inDocumentOrder(written: string, replaced: string): string {
     ]),
   );
   return generateMarkdown(result, target.content);
+}
+
+/** A document's header, or none when it has none or it does not parse. */
+function headerOf(markdown: string): Record<string, unknown> | undefined {
+  try {
+    const { data } = readMarkdownFrontmatter(markdown);
+    return isPlainRecord(data) ? data : undefined;
+  } catch {
+    // A stored header kept for an editor to repair states nothing a write
+    // can keep: the write is ordered and stated as the type declares it.
+    return undefined;
+  }
+}
+
+/** The value a schema supplies for a key a document leaves out, if any. */
+function schemaDefault(schema: unknown): { value: unknown } | undefined {
+  if (!(schema instanceof z.ZodType)) return undefined;
+  const result = schema.safeParse(undefined);
+  return result.success && result.data !== undefined
+    ? { value: result.data }
+    : undefined;
+}
+
+/**
+ * The written document without a key the document it replaces does not
+ * state and whose value is the one the schema supplies: a file states only
+ * what its author stated. Metadata keeps the default, so readers see it
+ * whether or not the file says so.
+ */
+function withoutUnstatedDefaults(
+  written: string,
+  replaced: string,
+  schema: z.ZodObject<z.ZodRawShape> | undefined,
+): string {
+  if (!schema) return written;
+  const document = readMarkdownFrontmatter(written);
+  if (!isPlainRecord(document.data)) return written;
+  const source = headerOf(replaced) ?? {};
+  const fields = Object.entries(document.data);
+  const kept = fields.filter(([key, value]) => {
+    if (key === "visibility" || Object.hasOwn(source, key)) return true;
+    const supplied = schemaDefault(schema.shape[key]);
+    return !supplied || !sameValue(supplied.value, value);
+  });
+  if (kept.length === fields.length) return written;
+  return kept.length > 0
+    ? generateMarkdown(Object.fromEntries(kept), document.content)
+    : document.content;
+}
+
+const HEADER = /^---[^\n]*\n(?:[\s\S]*?\n)?---(?:\n|$)/u;
+
+/**
+ * A text document framed the one way every path writes it: the header,
+ * then the body with no blank line above it and one newline at its end. A
+ * document without a body is its header and one empty line.
+ */
+export function framedDocument(markdown: string): string {
+  const header = HEADER.exec(markdown)?.[0];
+  const rest = header === undefined ? markdown : markdown.slice(header.length);
+  const body = rest.replace(/^(?:[ \t]*\n)+/u, "").trimEnd();
+  if (header === undefined) return body.length > 0 ? `${body}\n` : "";
+  const closed = header.endsWith("\n") ? header : `${header}\n`;
+  return body.length > 0 ? `${closed}${body}\n` : `${closed}\n`;
 }
 
 /**
@@ -135,9 +224,70 @@ export class EntitySerializer {
         this.entityRegistry.getEntityTypeConfig(entity.entityType),
       ),
     );
-    return adapter.writesInDocumentOrder === true
-      ? inDocumentOrder(written, stored ?? entity.content)
-      : written;
+    // Bytes keep the form they were handed; text takes the stored form.
+    if (
+      this.entityRegistry.getEntityTypeConfig(entity.entityType)
+        .binaryStorage !== undefined
+    ) {
+      return adapter.writesInDocumentOrder === true
+        ? inDocumentOrder(written, stored ?? entity.content)
+        : written;
+    }
+    const replaced = stored ?? entity.content;
+    const ordered = inDocumentOrder(written, replaced);
+    return framedDocument(
+      adapter.metadataFromFrontmatter === true
+        ? withoutUnstatedDefaults(ordered, replaced, adapter.frontmatterSchema)
+        : ordered,
+    );
+  }
+
+  /**
+   * The header keys a document holds that its type does not name, at the
+   * top level or one level inside an object the type owns, as `parent.key`:
+   * kept as written, and reported by whoever wrote them.
+   */
+  public unknownFrontmatterKeys(
+    markdown: string,
+    entityType: string,
+  ): string[] {
+    const adapter = this.entityRegistry.getAdapter(entityType);
+    const config = this.entityRegistry.getEntityTypeConfig(entityType);
+    const schemas = [
+      adapter.frontmatterSchema,
+      adapter.writtenFrontmatterSchema,
+    ].filter((schema) => schema !== undefined);
+    const header = headerOf(markdown);
+    if (config.binaryStorage !== undefined || schemas.length === 0 || !header)
+      return [];
+    const known = new Set([
+      ...schemas.flatMap((schema) => Object.keys(schema.shape)),
+      ...this.entityRegistry
+        .getFrontmatterExtensions(entityType)
+        .flatMap((schema) => Object.keys(schema.shape)),
+      ...this.entityRegistry
+        .getGroupings()
+        .filter((grouping) => grouping.types.includes(entityType))
+        .map((grouping) => grouping.field),
+      ...ENTITY_SYSTEM_FIELDS,
+      ...unwrittenFields(config),
+    ]);
+    const unwritten = new Set(unwrittenFields(config));
+    return Object.entries(header).flatMap(([key, value]) => {
+      if (!known.has(key)) return [key];
+      if (!isPlainRecord(value)) return [];
+      const shapes = schemas
+        .map((schema) => objectShapeOf(schema.shape[key]))
+        .filter((shape) => shape !== undefined);
+      if (shapes.length === 0) return [];
+      return Object.keys(value)
+        .filter(
+          (nested) =>
+            !shapes.some((shape) => Object.hasOwn(shape, nested)) &&
+            !unwritten.has(`${key}.${nested}`),
+        )
+        .map((nested) => `${key}.${nested}`);
+    });
   }
 
   /**

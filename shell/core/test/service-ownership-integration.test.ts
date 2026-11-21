@@ -136,7 +136,7 @@ async function writeAndReadShellState(
     shell.getJobQueueService().getStatus(jobId),
   ]);
 
-  expect(entity?.content).toBe(`${label} entity content`);
+  expect(entity?.content).toBe(`${label} entity content\n`);
   expect(messages.map((message) => message.content)).toEqual([
     `${label} conversation content`,
   ]);

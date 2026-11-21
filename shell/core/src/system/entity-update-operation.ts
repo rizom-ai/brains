@@ -93,19 +93,14 @@ function currentFieldValue(
 export function withStoredSourceFields(
   entity: BaseEntity,
   stored: string,
-  registry: SystemServices["entityRegistry"],
 ): BaseEntity {
-  // The type's own fields come from its metadata; the source fields
-  // (groupings and extensions), and fields no one claims, from the file.
-  const sourceFields = sourceFieldKeys(entity.entityType, registry);
-  const owned = new Set(
-    Object.keys(
-      registry.getAdapter(entity.entityType).frontmatterSchema?.shape ?? {},
-    ).filter((key) => !sourceFields.has(key)),
-  );
+  // The document the update replaces, every key in its place
+  // (docs/plans/one-stored-form.md): the write keeps its order and what it
+  // states. The type's own values still come from its metadata, which an
+  // encode states over these; visibility is the record's own.
   const kept = Object.fromEntries(
     Object.entries(parseMarkdown(stored).frontmatter).filter(
-      ([key]) => !owned.has(key),
+      ([key]) => key !== "visibility",
     ),
   );
   return Object.keys(kept).length > 0
@@ -124,19 +119,27 @@ export function applyFieldUpdates(
       ? entity.visibility
       : contentVisibilitySchema.parse(visibility);
 
-  const withCoverImage = Object.hasOwn(fields, "coverImageId")
-    ? setCoverImageId(
-        entity,
-        typeof coverImageId === "string" ? coverImageId : null,
-      )
-    : entity;
+  // A declared type read as its body carries its images in metadata (below);
+  // a header made of them alone would move them ahead of the stored ones.
+  const imagesInContent = !(
+    registry.getAdapter(entity.entityType).metadataFromFrontmatter === true &&
+    !FRONTMATTER_BLOCK.test(entity.content)
+  );
+  const withCoverImage =
+    imagesInContent && Object.hasOwn(fields, "coverImageId")
+      ? setCoverImageId(
+          entity,
+          typeof coverImageId === "string" ? coverImageId : null,
+        )
+      : entity;
 
-  const withOgImage = Object.hasOwn(fields, "ogImageId")
-    ? setOgImageId(
-        withCoverImage,
-        typeof ogImageId === "string" ? ogImageId : null,
-      )
-    : withCoverImage;
+  const withOgImage =
+    imagesInContent && Object.hasOwn(fields, "ogImageId")
+      ? setOgImageId(
+          withCoverImage,
+          typeof ogImageId === "string" ? ogImageId : null,
+        )
+      : withCoverImage;
 
   const nextMetadata = { ...entity.metadata };
   for (const [key, value] of Object.entries(metadataFields)) {
@@ -166,11 +169,29 @@ export function applyFieldUpdates(
   }
 
   const sourceFields = sourceFieldKeys(entity.entityType, registry);
+  // A declared type's document carries its own fields too, where it read
+  // the stored one: a field it sets or removes is set or removed there, so
+  // the stored copy does not bring a removed one back.
+  const header =
+    registry.getAdapter(entity.entityType).metadataFromFrontmatter === true
+      ? parseMarkdown(nextEntity.content).frontmatter
+      : {};
   let authored = false;
   for (const [key, value] of Object.entries(fields)) {
-    if (!sourceFields.has(key)) continue;
-    nextEntity.content = updateFrontmatterField(nextEntity.content, key, value);
-    authored = true;
+    if (sourceFields.has(key)) {
+      nextEntity.content = updateFrontmatterField(
+        nextEntity.content,
+        key,
+        value,
+      );
+      authored = true;
+    } else if (Object.hasOwn(header, key)) {
+      nextEntity.content = updateFrontmatterField(
+        nextEntity.content,
+        key,
+        value,
+      );
+    }
   }
   if (authored)
     nextEntity.metadata = registry.projectMetadata(

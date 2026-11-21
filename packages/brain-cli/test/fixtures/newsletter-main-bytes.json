@@ -81,11 +81,11 @@
   },
   "published": {
     "stored": {
-      "content": "---\nsubject: Weekly digest\nstatus: published\nentityIds:\n  - post-1\n  - post-2\nsentAt: '2026-02-01T00:00:00.000Z'\nsourceEntityType: post\n---\n# Weekly digest\n\nTwo posts.\n",
+      "content": "---\nsubject: Weekly digest\nstatus: published\nentityIds:\n  - post-1\n  - post-2\nsourceEntityType: post\nsentAt: '2026-02-01T00:00:00.000Z'\n---\n# Weekly digest\n\nTwo posts.\n",
       "metadata": "{\"subject\":\"Weekly digest\",\"status\":\"published\",\"entityIds\":[\"post-1\",\"post-2\"],\"sentAt\":\"2026-02-01T00:00:00.000Z\",\"sourceEntityType\":\"post\"}"
     },
     "read": {
-      "content": "---\nsubject: Weekly digest\nstatus: published\nentityIds:\n  - post-1\n  - post-2\nsentAt: '2026-02-01T00:00:00.000Z'\nsourceEntityType: post\n---\n# Weekly digest\n\nTwo posts.\n",
+      "content": "---\nsubject: Weekly digest\nstatus: published\nentityIds:\n  - post-1\n  - post-2\nsourceEntityType: post\nsentAt: '2026-02-01T00:00:00.000Z'\n---\n# Weekly digest\n\nTwo posts.\n",
       "metadata": {
         "subject": "Weekly digest",
         "status": "published",
@@ -94,7 +94,7 @@
         "sourceEntityType": "post"
       }
     },
-    "exported": "---\nsubject: Weekly digest\nstatus: published\nentityIds:\n  - post-1\n  - post-2\nsentAt: '2026-02-01T00:00:00.000Z'\nsourceEntityType: post\n---\n# Weekly digest\n\nTwo posts.\n"
+    "exported": "---\nsubject: Weekly digest\nstatus: published\nentityIds:\n  - post-1\n  - post-2\nsourceEntityType: post\nsentAt: '2026-02-01T00:00:00.000Z'\n---\n# Weekly digest\n\nTwo posts.\n"
   },
   "edited": {
     "stored": {

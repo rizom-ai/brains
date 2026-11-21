@@ -108,6 +108,15 @@ function asMain(row: z.output<typeof rowSchema>): RowView {
   };
 }
 
+/**
+ * The row main stored for a document that left `asked` to its default: a
+ * write states only what its author stated (docs/plans/one-stored-form.md),
+ * so the file no longer gains `asked: 1`; the record still reads 1.
+ */
+function unstatedAsked(row: RowView): RowView {
+  return { ...row, stored: row.stored?.replace("asked: 1\n", "") };
+}
+
 async function imported(
   opened: DeclaredEntityStore,
   id: string,
@@ -126,7 +135,7 @@ describe("the declared faq on the entity store", () => {
       asMain(main.current),
     );
     expect(await imported(opened, "write", main.sparse)).toEqual(
-      asMain(main.sparse),
+      unstatedAsked(asMain(main.sparse)),
     );
   });
 
@@ -185,7 +194,9 @@ describe("the declared faq on the entity store", () => {
         visibility: "public",
       },
     });
-    expect(await rowOf(opened, "commissions")).toEqual(asMain(main.captured));
+    expect(await rowOf(opened, "commissions")).toEqual(
+      unstatedAsked(asMain(main.captured)),
+    );
 
     await opened.service.createEntityFromMarkdown({
       input: { entityType: "faq", id: "reach", markdown: main.current.file },

@@ -248,6 +248,33 @@ describe("persistImportEntity of a declared type", () => {
   });
 });
 
+describe("persistImportEntity with keys its type does not name", () => {
+  it("imports the file and warns about each key, naming the file", async () => {
+    const f = setup();
+    spyOn(f.deps.entityService, "unknownFrontmatterKeys").mockImplementation(
+      () => ["subtitle", "cta.tagline"],
+    );
+    const warn = spyOn(f.deps.logger, "warn");
+
+    await f.importFile(undefined, "---\nsubtitle: Hi\n---\nBody\n");
+
+    expect(f.upsert).toHaveBeenCalled();
+    expect(warn).toHaveBeenCalledWith(
+      "Imported file holds frontmatter keys its type does not name; kept as written",
+      { path: "note/note-1.md", keys: ["subtitle", "cta.tagline"] },
+    );
+  });
+
+  it("does not warn about a file whose keys its type names", async () => {
+    const f = setup();
+    const warn = spyOn(f.deps.logger, "warn");
+
+    await f.importFile();
+
+    expect(warn).not.toHaveBeenCalled();
+  });
+});
+
 describe("persistImportEntity staged bytes", () => {
   async function importStaged(
     parsedId: string,
@@ -263,6 +290,10 @@ describe("persistImportEntity staged bytes", () => {
     spyOn(entityService, "serializeEntity").mockImplementation(
       (entity) => entity.content,
     );
+    // An image is stored as an asset, as the brain registers it.
+    spyOn(entityService, "getEntityTypeConfig").mockImplementation(() => ({
+      binaryStorage: "asset",
+    }));
     const staged = await entityService.stageAsset(Buffer.from("image bytes"));
     const existing: BaseEntity = {
       id: "robot",

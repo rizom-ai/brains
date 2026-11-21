@@ -298,6 +298,12 @@ describe("supervised runtime process roles", () => {
       order.push("declared metadata");
       return { reconciled: 0 };
     });
+    spyOn(shell.getEntityService(), "rewriteStoredForms").mockImplementation(
+      async () => {
+        order.push("stored forms");
+        return { rewritten: 0, deferred: 0 };
+      },
+    );
     shell
       .getMessageBus()
       .subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
@@ -309,12 +315,15 @@ describe("supervised runtime process roles", () => {
     // Stored entities lose retired frontmatter once groupings are current,
     // then declared types' metadata is re-derived from what is stored, all
     // before pluginsRegistered: the initial sync it queues plans its import
-    // against those rows. The embedding backfill runs off the boot path.
+    // against those rows. Stored forms are rewritten once startup content
+    // settles, after that import, so a pending file edit lands first. The
+    // embedding backfill runs off the boot path.
     expect(order.filter((step) => step !== "embeddings")).toEqual([
       "groupings",
       "retired fields",
       "declared metadata",
       "plugins registered",
+      "stored forms",
     ]);
     expect(shell.getEntityService().areGroupingsReady()).toBe(true);
     expect(shell.isInitialized()).toBe(true);
@@ -389,10 +398,12 @@ describe("supervised runtime process roles", () => {
       shell.getEntityService(),
       "reconcileDeclaredMetadata",
     );
+    const storedForms = spyOn(shell.getEntityService(), "rewriteStoredForms");
     await shell.initialize();
     expect(reproject).not.toHaveBeenCalled();
     expect(rewrite).not.toHaveBeenCalled();
     expect(reconcile).not.toHaveBeenCalled();
+    expect(storedForms).not.toHaveBeenCalled();
 
     const registrations = shell
       .getJobQueueService()

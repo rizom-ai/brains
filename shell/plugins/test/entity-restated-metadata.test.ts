@@ -153,14 +153,14 @@ async function importThenEdit(
 }
 
 describe("a first-party type's restated metadata", () => {
-  it("stores what the written document states, so the next write places it as stated", async () => {
+  it("stores what the written document states, and keeps it where it is stated", async () => {
     expect(await importThenEdit("restated")).toEqual({
       // The first write resolves the slug and writes it after the rest.
       imported:
         "---\ntitle: No Slug\nstatus: draft\nslug: no-slug\n---\nBody\n",
-      // From then on the file states it.
+      // From then on the file states it, where it stands.
       edited:
-        "---\ntitle: No Slug\nslug: no-slug\nstatus: draft\n---\nEdited\n",
+        "---\ntitle: No Slug\nstatus: draft\nslug: no-slug\n---\nEdited\n",
       slugStated: true,
     });
   });

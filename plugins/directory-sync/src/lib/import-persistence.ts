@@ -34,6 +34,7 @@ export interface ImportPersistenceDeps {
   entityService: Pick<
     ServiceEntityMirrorClient,
     | "serializeEntity"
+    | "unknownFrontmatterKeys"
     | "upsertEntity"
     | "getEntityTypeConfig"
     | "stageAsset"
@@ -189,6 +190,17 @@ export async function persistImportEntity(
     // matches this hash and shouldUpdateEntity returns false.
     const stored = deps.entityService.serializeEntity(entity);
     entity.contentHash = computeContentHash(stored);
+    // A key the type does not name is kept as written; its author is told.
+    const unknownKeys = deps.entityService.unknownFrontmatterKeys(
+      rawEntity.content,
+      rawEntity.entityType,
+    );
+    if (unknownKeys.length > 0) {
+      deps.logger.warn(
+        "Imported file holds frontmatter keys its type does not name; kept as written",
+        { path: filePath, keys: unknownKeys },
+      );
+    }
     // The brain keeps none of a field its stored form drops, such as one the
     // type has retired. Such a file is written back in its stored form, so it
     // stops showing what the brain no longer holds.
@@ -208,10 +220,18 @@ export async function persistImportEntity(
     // A file that is not in canonical form (a missing final newline, say)
     // hashes differently from the stored row on every sync, yet parses to
     // exactly what is stored. Writing it again would only move `updated`
-    // and queue derived work, so leave it.
+    // and queue derived work, so leave it. A row a release stored in an
+    // earlier form holds the same record under another hash: it is the same
+    // record when it serializes now to what the file does, and the quiet
+    // rewrite on start brings the row to that form.
     if (
       !writeBack &&
-      existing?.contentHash === entity.contentHash &&
+      existing &&
+      (existing.contentHash === entity.contentHash ||
+        (deps.entityService.getEntityTypeConfig(entity.entityType)
+          .binaryStorage === undefined &&
+          computeContentHash(deps.entityService.serializeEntity(existing)) ===
+            entity.contentHash)) &&
       existing.visibility === entity.visibility &&
       Bun.deepEquals(existing.metadata, entity.metadata)
     ) {

@@ -80,8 +80,16 @@ async function exported(
   return opened.service.serializeEntity(entity);
 }
 
+/** The class wrote the defaults a file left out; a write now states only
+ * what its author stated (docs/plans/one-stored-form.md). */
+const unstatedDefaults = (markdown: string): string =>
+  markdown.replace(
+    "status: active\naudience: admin\ncompletionMode: agent-confirmed\n",
+    "",
+  );
+
 describe("the declared playbook on the entity store", () => {
-  test("stores a hand-written file as the class did, with its defaults stated", async () => {
+  test("stores a hand-written file as it states it, its defaults in metadata", async () => {
     const opened = await store();
     await opened.service.createEntityFromMarkdown({
       input: {
@@ -92,7 +100,7 @@ describe("the declared playbook on the entity store", () => {
     });
 
     expect((await opened.stored("playbook", "hand-written"))?.content).toBe(
-      main.handWritten.imported,
+      unstatedDefaults(main.handWritten.imported),
     );
     const read = await opened.service.getEntity({
       entityType: "playbook",
@@ -101,7 +109,7 @@ describe("the declared playbook on the entity store", () => {
     expect(read?.metadata).toEqual(main.handWritten.metadata);
   });
 
-  test("keeps the class's bytes through a body update and the export", async () => {
+  test("keeps the file's bytes through a body update and the export", async () => {
     const opened = await store();
     await opened.service.createEntityFromMarkdown({
       input: {
@@ -121,10 +129,10 @@ describe("the declared playbook on the entity store", () => {
     });
 
     expect((await opened.stored("playbook", "hand-written"))?.content).toBe(
-      main.handWritten.updated,
+      unstatedDefaults(main.handWritten.updated),
     );
     expect(await exported(opened, "hand-written")).toBe(
-      main.handWritten.exported,
+      unstatedDefaults(main.handWritten.exported),
     );
   });
 

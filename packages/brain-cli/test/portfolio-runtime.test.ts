@@ -84,7 +84,7 @@ describe("the declared projects on the entity store", () => {
     [
       "a project without a slug, with frontmatter it does not write",
       "---\nyear: 2023\ntitle: No Slug\nstatus: draft\ndescription: Desc\ntags: x\n---\nFree text body\n",
-      "---\ntitle: No Slug\nstatus: draft\ndescription: Desc\nyear: 2023\nslug: no-slug\ntags: x\n---\nFree text body\n",
+      "---\nyear: 2023\ntitle: No Slug\nstatus: draft\ndescription: Desc\ntags: x\nslug: no-slug\n---\nFree text body\n",
     ],
     [
       "a blank line after the frontmatter",
@@ -121,7 +121,7 @@ describe("the declared projects on the entity store", () => {
       "Free text",
       "Changed text",
       // Once stored, the file states its slug.
-      "---\ntitle: No Slug\nslug: no-slug\nstatus: draft\ndescription: Desc\nyear: 2023\ntags: x\n---\nChanged text body\n",
+      "---\nyear: 2023\ntitle: No Slug\nstatus: draft\ndescription: Desc\ntags: x\nslug: no-slug\n---\nChanged text body\n",
     ],
   ])(
     "keeps a project's form through an update of its body: %s",

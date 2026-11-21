@@ -56,11 +56,18 @@ export type ResolvedSiteInfoBody = SiteInfoBody & {
 export type SiteInfoCTA = NonNullable<SiteInfoBody["cta"]>;
 
 /**
- * The site info a stored site-info record holds: its frontmatter, carried in
- * the content or, for the declared type, in the record's metadata.
+ * The site info a stored site-info record holds: its metadata, which keeps
+ * one shape whichever stored form its file is in (docs/plans/one-stored-form.md).
+ * A record read before its type was declared, whose metadata is empty, is
+ * read from the frontmatter its content still carries.
  */
 export function siteInfoFromRecord(record: FrontmatterRecord): SiteInfoBody {
-  return siteInfoBodySchema.parse(frontmatterRecordFields(record).fields);
+  const metadata = record.metadata ?? {};
+  return siteInfoBodySchema.parse(
+    Object.keys(metadata).length > 0
+      ? metadata
+      : frontmatterRecordFields(record).fields,
+  );
 }
 
 /**

@@ -18,6 +18,7 @@ import {
   parseMarkdown,
   updateFrontmatterField,
 } from "@brains/utils/markdown";
+import { FRONTMATTER_BLOCK } from "@brains/utils/markdown-frontmatter";
 import {
   PROGRESS_STEPS,
   JobResult,
@@ -617,11 +618,16 @@ export abstract class BaseGenerationJobHandler<
       await this.context.entityService.updateEntity({
         entity: {
           ...existing,
-          content: updateFrontmatterField(
-            updateFrontmatterField(existing.content, "status", "failed"),
-            "error",
-            error,
-          ),
+          // A read that carries its document has the failure written there;
+          // a declared type's read is its body, and its metadata carries it,
+          // so the stored header keeps its order.
+          content: FRONTMATTER_BLOCK.test(existing.content)
+            ? updateFrontmatterField(
+                updateFrontmatterField(existing.content, "status", "failed"),
+                "error",
+                error,
+              )
+            : existing.content,
           metadata: {
             ...existing.metadata,
             status: "failed",

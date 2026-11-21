@@ -1260,12 +1260,12 @@ export function createPlaybooksPackage(
             ),
           });
           if (existing) return { created: false };
-          // Written as the type writes any document: its frontmatter with
-          // its defaults stated, then its body, as the adapter stored it.
+          // Handed in whole, as an import hands a file: the record states
+          // what the bundled file states, its defaults included, in its order.
           const document = parseMarkdown(request.markdown);
           await entities.create(playbookEntity, {
             id: request.id,
-            content: document.content,
+            content: request.markdown,
             metadata: playbookFrontmatterSchema.parse(document.frontmatter),
           });
           return { created: true };

@@ -107,7 +107,7 @@ async function store(): Promise<{
 }
 
 describe("a declared type handed a whole document", () => {
-  it("writes its frontmatter in its own order, keeping what it does not write after it", async () => {
+  it("writes its frontmatter in the order the document states it, keeping what it does not write", async () => {
     const { service, stored } = await store();
     await service.createEntityFromMarkdown({
       input: {
@@ -118,7 +118,7 @@ describe("a declared type handed a whole document", () => {
       },
     });
     expect(await stored("memo-1")).toBe(
-      "---\ntitle: Memo\nstatus: draft\nnote: kept\nchecksum: seed\n---\nBody\n",
+      "---\nchecksum: seed\nstatus: draft\nnote: kept\ntitle: Memo\n---\nBody\n",
     );
   });
 
@@ -140,7 +140,7 @@ describe("a declared type handed a whole document", () => {
       },
     });
     expect(await stored("memo-1")).toBe(
-      "---\ntitle: Memo\nstatus: queued\n---\nRetold\n",
+      "---\nstatus: queued\ntitle: Memo\n---\nRetold\n",
     );
   });
 });
