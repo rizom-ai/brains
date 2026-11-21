@@ -46,9 +46,11 @@ describe("WebDAV deletes after a save a client takes as failed", () => {
     expect(save.headers.get("etag")).toBeNull();
     expect(cleanup.status).toBe(409);
     expect(brain.deletes).toEqual([]);
-    expect(await (await dav("GET", "/dav/post/first.md")).text()).toContain(
-      "title: Normalized",
-    );
+    // Another app password: the one that saved is shown its save as sent.
+    const read = await dav("GET", "/dav/post/first.md", {
+      as: { level: "admin" },
+    });
+    expect(await read.text()).toContain("title: Normalized");
   });
 
   it("keeps the entity through every retry of the same failed upload", async () => {

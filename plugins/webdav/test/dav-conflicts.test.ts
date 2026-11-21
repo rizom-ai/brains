@@ -191,6 +191,8 @@ describe("a drive save over a newer version", () => {
     await dav("GET", PATH, { as: laptop });
     editInBrain(brain, doc("Studio"));
     await dav("PUT", PATH, { as: laptop, body: doc("Mine") });
+    // Until then the mount is shown its own save, and reads move nothing.
+    brain.resolveConflicts();
 
     await dav("GET", PATH, { as: laptop });
     const response = await dav("PUT", PATH, { as: laptop, body: doc("Mine") });

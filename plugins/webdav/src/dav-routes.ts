@@ -13,6 +13,7 @@ import {
 } from "./dav-saves";
 import { ScratchStore, isScratchName, type ScratchFile } from "./dav-scratch";
 import { CleanupGuard } from "./dav-cleanups";
+import { SaveHolds, type SaveHold } from "./dav-holds";
 import { LockStore, requestedLockSeconds } from "./dav-locks";
 import { DavTree, type DavNode, type DavReader } from "./dav-tree";
 import {
@@ -38,8 +39,15 @@ export interface DavRoutesOptions {
   now?: () => number;
   /** The versions mounts hold; kept in memory when not given. */
   mounts?: MountBases;
-  /** Keep a losing save as a conflict; nothing holds one when not given. */
-  recordConflict?: (request: RecordConflictRequest) => Promise<boolean>;
+  /**
+   * Keep a losing save as a conflict, answering the id of the conflict that
+   * keeps it; nothing holds one when not given, or when it answers undefined.
+   */
+  recordConflict?: (
+    request: RecordConflictRequest,
+  ) => Promise<string | undefined>;
+  /** Whether a conflict still waits to be resolved; taken as yes when not given. */
+  conflictPending?: (conflictId: string) => Promise<boolean>;
 }
 
 const READ_METHODS = ["OPTIONS", "GET", "HEAD", "PROPFIND"] as const;
@@ -91,6 +99,7 @@ interface DavServer {
   scratch: ScratchStore;
   locks: LockStore;
   cleanups: CleanupGuard;
+  holds: SaveHolds;
 }
 
 /**
@@ -108,6 +117,7 @@ export function createDavRoutes(
     scratch: new ScratchStore(options.now),
     locks: new LockStore(options.now),
     cleanups: new CleanupGuard(options.now),
+    holds: new SaveHolds(options.now),
   };
   const handlers: Record<
     Exclude<DavMethod, "OPTIONS">,
@@ -237,6 +247,66 @@ async function folderExists(
   );
 }
 
+/**
+ * The save this request's app password is shown for a file instead of the
+ * stored version, while it lasts: until the entity changes again, or the
+ * conflict that keeps the save is resolved.
+ */
+async function liveHold(
+  server: DavServer,
+  dav: DavRequest,
+  node: DavNode,
+): Promise<SaveHold | undefined> {
+  if (node.kind !== "file") return undefined;
+  const mount = dav.grant.appPasswordId;
+  const hold = server.holds.get(mount, node.segments);
+  if (!hold) return undefined;
+  const { conflictPending } = server.options;
+  const pending =
+    hold.conflictId === undefined ||
+    conflictPending === undefined ||
+    (await conflictPending(hold.conflictId));
+  if (pending && node.etag === `"${hold.storedHash}"`) return hold;
+  server.holds.release(mount, node.segments);
+  return undefined;
+}
+
+/**
+ * The version a write names. The ETag of a held save stands for the version
+ * that save was made over, which is the mount's base: it is never taken for
+ * the stored version it differs from.
+ */
+async function namedVersion(
+  server: DavServer,
+  dav: DavRequest,
+  segments: string[],
+): Promise<string | null> {
+  const ifMatch = dav.request.headers.get("if-match");
+  if (ifMatch === null) return null;
+  if (!server.holds.get(dav.grant.appPasswordId, segments)) return ifMatch;
+  const node = await dav.tree.resolve(segments);
+  const hold = node ? await liveHold(server, dav, node) : undefined;
+  return hold?.etag === ifMatch ? null : ifMatch;
+}
+
+/** What a listing says of a node, as this request's app password sees it. */
+async function propsFor(
+  server: DavServer,
+  dav: DavRequest,
+  node: DavNode,
+): Promise<DavResourceProps> {
+  const props = nodeProps(node, server.options.basePath);
+  const hold = await liveHold(server, dav, node);
+  return hold
+    ? {
+        ...props,
+        contentLength: hold.bytes.byteLength,
+        etag: hold.etag,
+        lastModified: hold.savedAt,
+      }
+    : props;
+}
+
 /** What this request's mount holds of the file the request names. */
 function mountView(server: DavServer, dav: DavRequest): MountView {
   const mount = dav.grant.appPasswordId;
@@ -244,7 +314,8 @@ function mountView(server: DavServer, dav: DavRequest): MountView {
   return {
     base: () => server.mounts.get(mount, path),
     held: (hash) => server.mounts.held(mount, path, hash),
-    conflictKept: (edit) => server.mounts.conflictKept(mount, path, edit),
+    conflictKept: (edit, conflictId) =>
+      server.mounts.conflictKept(mount, path, edit, conflictId),
     forget: () => server.mounts.forget(mount, path),
   };
 }
@@ -255,8 +326,7 @@ function writeDeps(server: DavServer, dav: DavRequest): WriteDeps {
     reader: server.options.reader,
     writes: server.options.writes,
     mount: mountView(server, dav),
-    recordConflict: async (request) =>
-      (await server.options.recordConflict?.(request)) ?? false,
+    recordConflict: async (request) => server.options.recordConflict?.(request),
     folderExists: (segments) => folderExists(server, dav, segments),
   };
 }
@@ -284,6 +354,20 @@ async function read(
   const node = await nodeAt(server, dav);
   if (!node) return notFound();
   if (node.kind === "folder") return folderHasNoContent();
+  const hold = await liveHold(server, dav, node);
+  if (hold) {
+    // Not a read of the stored version: the mount's base stays the one its
+    // held save was made over, so a save from the held text loses again.
+    return new Response(withBody ? hold.bytes : null, {
+      status: 200,
+      headers: {
+        "Content-Type": node.contentType,
+        "Content-Length": String(hold.bytes.byteLength),
+        ETag: hold.etag,
+        "Last-Modified": hold.savedAt.toUTCString(),
+      },
+    });
+  }
   // Reading a file is what a mount's next save without a version is based
   // on. The ETag is the content hash, quoted.
   await mountView(server, dav).held(node.etag.replace(/^"|"$/g, ""));
@@ -315,7 +399,7 @@ async function propfind(server: DavServer, dav: DavRequest): Promise<Response> {
   const node = await nodeAt(server, dav);
   if (!node) return notFound();
   if (node.kind === "file" || depth === "0") {
-    return multistatus([nodeProps(node, basePath)]);
+    return multistatus([await propsFor(server, dav, node)]);
   }
   const userId = dav.grant.principal.userId;
   const children = await dav.tree.children(node.segments);
@@ -326,7 +410,9 @@ async function propfind(server: DavServer, dav: DavRequest): Promise<Response> {
   );
   return multistatus([
     nodeProps(node, basePath),
-    ...children.map((child) => nodeProps(child, basePath)),
+    ...(await Promise.all(
+      children.map((child) => propsFor(server, dav, child)),
+    )),
     ...server.scratch
       .listFolders(userId, node.segments)
       .filter((name) => !realFolders.has(name))
@@ -371,7 +457,7 @@ async function put(server: DavServer, dav: DavRequest): Promise<Response> {
   const outcome = await saveEntityFile(writeDeps(server, dav), {
     segments: path.segments,
     bytes,
-    ifMatch: dav.request.headers.get("if-match"),
+    ifMatch: await namedVersion(server, dav, path.segments),
     onlyIfAbsent: dav.request.headers.get("if-none-match")?.trim() === "*",
     grant: dav.grant,
   });
@@ -380,7 +466,37 @@ async function put(server: DavServer, dav: DavRequest): Promise<Response> {
   if ("message" in outcome || outcome.etag === undefined) {
     server.cleanups.expect(userId, path.segments);
   }
+  await holdSave(server, dav, path.segments, bytes, outcome);
   return written(server, dav, path.segments, outcome);
+}
+
+/**
+ * A save answered as saved that the brain did not store as sent, kept as a
+ * conflict or stored in another form, is shown back as sent to the app
+ * password that sent it. rclone reads a file's size back after it uploads
+ * it, and takes any other size as a corrupted upload it deletes and sends
+ * again for as long as it is mounted. A save stored as sent ends the hold.
+ */
+async function holdSave(
+  server: DavServer,
+  dav: DavRequest,
+  segments: string[],
+  bytes: Uint8Array<ArrayBuffer>,
+  outcome: WriteOutcome,
+): Promise<void> {
+  if ("message" in outcome) return;
+  const mount = dav.grant.appPasswordId;
+  if (outcome.etag !== undefined) {
+    server.holds.release(mount, segments);
+    return;
+  }
+  const stored = await dav.tree.entityAt(segments);
+  if (!stored) return;
+  server.holds.hold(mount, segments, {
+    bytes,
+    storedHash: stored.entity.contentHash,
+    conflictId: outcome.conflictId,
+  });
 }
 
 async function remove(server: DavServer, dav: DavRequest): Promise<Response> {
@@ -399,23 +515,24 @@ async function remove(server: DavServer, dav: DavRequest): Promise<Response> {
     return forbidden("The drive does not delete folders");
   }
   if (path.asFolder) return notFound();
-  const ifMatch = dav.request.headers.get("if-match");
-  if (ifMatch === null && server.cleanups.take(userId, path.segments)) {
+  if (
+    dav.request.headers.get("if-match") === null &&
+    server.cleanups.take(userId, path.segments)
+  ) {
     return new Response(
       "The file is kept: the save just before was refused or stored in another form. Delete it again to remove it.",
       { status: 409 },
     );
   }
-  return written(
-    server,
-    dav,
-    path.segments,
-    await deleteEntityFile(writeDeps(server, dav), {
-      segments: path.segments,
-      ifMatch,
-      grant: dav.grant,
-    }),
-  );
+  const outcome = await deleteEntityFile(writeDeps(server, dav), {
+    segments: path.segments,
+    ifMatch: await namedVersion(server, dav, path.segments),
+    grant: dav.grant,
+  });
+  if (!("message" in outcome)) {
+    server.holds.release(dav.grant.appPasswordId, path.segments);
+  }
+  return written(server, dav, path.segments, outcome);
 }
 
 /**
@@ -542,7 +659,11 @@ async function move(server: DavServer, dav: DavRequest): Promise<Response> {
     grant: dav.grant,
   });
   // A refused save keeps the temporary file: the editor still has its work.
-  if (outcome.status < 300) server.scratch.delete(userId, path.segments);
+  if (outcome.status < 300) {
+    server.scratch.delete(userId, path.segments);
+    // A newer save of the file: an earlier one is no longer shown back.
+    server.holds.release(dav.grant.appPasswordId, destination.segments);
+  }
   return written(server, dav, destination.segments, outcome);
 }
 

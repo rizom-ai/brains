@@ -11,6 +11,8 @@ export interface MountBase {
   hash: string;
   /** The hash of a losing save already kept as a conflict from this base. */
   conflictEdit?: string | undefined;
+  /** The conflict that keeps it, when the keeper named one. */
+  conflictId?: string | undefined;
 }
 
 /**
@@ -24,7 +26,12 @@ export interface MountBases {
   /** The mount read this version, or saved it. */
   held(mount: string, path: string, hash: string): Promise<void>;
   /** A save from the mount's base lost, and is kept as a conflict. */
-  conflictKept(mount: string, path: string, edit: string): Promise<void>;
+  conflictKept(
+    mount: string,
+    path: string,
+    edit: string,
+    conflictId?: string,
+  ): Promise<void>;
   forget(mount: string, path: string): Promise<void>;
   /** Forget every entry not used for thirty days. */
   sweep(): Promise<void>;
@@ -60,18 +67,22 @@ function mountBases(
             ...(entry.conflictEdit !== undefined && {
               conflictEdit: entry.conflictEdit,
             }),
+            ...(entry.conflictId !== undefined && {
+              conflictId: entry.conflictId,
+            }),
           }
         : undefined;
     },
     held: async (mount, path, hash): Promise<void> => {
       await store.set(keyOf(mount, path), { hash, usedAt: now() });
     },
-    conflictKept: async (mount, path, edit): Promise<void> => {
+    conflictKept: async (mount, path, edit, conflictId): Promise<void> => {
       const entry = await store.get(keyOf(mount, path));
       if (!fresh(entry)) return;
       await store.set(keyOf(mount, path), {
         hash: entry.hash,
         conflictEdit: edit,
+        ...(conflictId !== undefined && { conflictId }),
         usedAt: now(),
       });
     },
@@ -107,10 +118,12 @@ const NAMESPACE = "webdav.mount-base";
 const storedSchema: z.ZodObject<{
   hash: z.ZodString;
   conflictEdit: z.ZodOptional<z.ZodString>;
+  conflictId: z.ZodOptional<z.ZodString>;
   usedAt: z.ZodNumber;
 }> = z.object({
   hash: z.string().min(1),
   conflictEdit: z.string().min(1).optional(),
+  conflictId: z.string().min(1).optional(),
   usedAt: z.number(),
 });
 

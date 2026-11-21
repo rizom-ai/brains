@@ -1,5 +1,8 @@
 import { describe, expect, it } from "bun:test";
-import { WEBDAV_INTERACTION_ID } from "@brains/contracts";
+import {
+  WEBDAV_INTERACTION_ID,
+  recordConflictContract,
+} from "@brains/contracts";
 import {
   BaseEntityAdapter,
   instantiatePluginPackageDefinition,
@@ -173,5 +176,92 @@ describe("the WebDAV plugin and the conflict type", () => {
 
   it("starts in a brain that has the conflict type", async () => {
     expect(await finalized(["conflict"])).toBe("");
+  });
+});
+
+describe("the WebDAV plugin and a held losing save", () => {
+  const conflictId = "note:held:20261120T120000Z";
+  const authorization = "Basic ZGF2LWlkOnNlY3JldA==";
+  const route = (
+    routes: WebRouteDefinition[],
+    method: string,
+  ): ((body?: string) => Promise<Response>) => {
+    const found = routes.find((candidate) => candidate.method === method);
+    if (!found) throw new Error(`No ${method} route`);
+    return async (body) =>
+      found.handler(
+        new Request("http://localhost/dav/held.md", {
+          method,
+          headers: { authorization },
+          ...(body !== undefined ? { body } : {}),
+        }),
+      );
+  };
+  const note = (content: string, contentHash: string): BaseEntity => ({
+    id: "held",
+    entityType: "note",
+    content,
+    contentHash,
+    visibility: "public",
+    metadata: {},
+    created: "2026-11-20T12:00:00.000Z",
+    updated: "2026-11-20T12:00:00.000Z",
+  });
+
+  it("names the conflict the brain keeps it as, and is shown back until that conflict is gone", async () => {
+    const shell = createMockShell();
+    for (const type of ["note", "conflict"]) {
+      shell
+        .getEntityRegistry()
+        .registerEntityType(type, baseEntitySchema, new PlainAdapter(type));
+    }
+    shell.addEntities([note("Mine before", "hash-before")]);
+    shell.getMessageBus().subscribe(recordConflictContract.name, async () => {
+      shell.addEntities([
+        {
+          ...note("kept", "hash-conflict"),
+          id: conflictId,
+          entityType: "conflict",
+        },
+      ]);
+      return { success: true, data: { conflictId, created: true } };
+    });
+    shell.getAuthRegistry().bindBackend(
+      createMockAuthBackend({
+        resolveAppPassword: async () => ({
+          principal: {
+            userId: "usr_1",
+            personId: "prsn_1",
+            displayName: "Mira",
+            role: "admin",
+            status: "active",
+            permissionLevel: "admin",
+            isAnchor: false,
+          },
+          access: "write",
+          appPasswordId: "pw_1",
+        }),
+      }),
+    );
+    const installedPlugins = plugins();
+    await registerAll(shell, installedPlugins);
+    const routes = installedPlugins.flatMap(
+      (plugin) => plugin.getWebRoutes?.() ?? [],
+    );
+    const get = route(routes, "GET");
+    const put = route(routes, "PUT");
+
+    await get();
+    shell.addEntities([note("Newer, from Studio", "hash-newer")]);
+    const save = await put("Mine after");
+    const held = await (await get()).text();
+    await shell
+      .getEntityService()
+      .deleteEntity({ entityType: "conflict", id: conflictId });
+    const settled = await (await get()).text();
+
+    expect(save.status).toBe(204);
+    expect(held).toBe("Mine after");
+    expect(settled).toBe("Newer, from Studio");
   });
 });

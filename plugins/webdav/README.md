@@ -44,9 +44,24 @@ A save goes through what a Studio edit goes through:
 - the type's adapter reads the document; one it cannot read (a schema it fails, frontmatter that is not YAML) answers 422 with the reason and changes nothing;
 - the entity action policy and the visibility policy apply at the saver's permission level, and moving into a published status needs the publish action; a refusal answers 403 and is recorded in the audit log;
 - a file that names no `visibility` keeps the stored one;
-- the write only goes through over the version it was based on (`If-Match`, or the version read when the save arrived); otherwise it answers 412;
+- the write only goes through over the version it was based on: the one `If-Match` names, or else the one this app password last read or saved. A save naming an older version answers 412. A save naming none, over a newer version than this app password last had, is kept as a conflict in the Inbox, where it can be applied or dismissed, and answers 204; the newer version stays;
 - a markdown file larger than `maxFileBytes` (default 5 MiB) answers 413;
 - a save that changes nothing succeeds and writes nothing.
+
+### Saves shown back as sent
+
+rclone reads a file's size back after it uploads it, and takes any other size as a corrupted upload: it deletes the file and uploads it again, with a growing wait, for as long as the drive is mounted. A save the drive answers as saved but does not store as sent, because it is kept as a conflict or stored in another form (frontmatter written differently, a blank line dropped), would be such an upload.
+
+So for ten minutes after such a save, the app password that sent it reads that file (GET, HEAD and PROPFIND) as it was sent, with the size it had. Nothing else changes: every other app password, Studio and the brain itself have the stored version, and nothing of the held save is stored. The hold:
+
+- ends early once the entity changes again, or once the conflict that keeps the save is applied or dismissed;
+- ends when the same app password saves the file again and it is stored as sent, or deletes it;
+- is in memory, at most 16 MiB per app password, and a restart ends it;
+- does not move what the app password last read: a save made from the held text is based on the version the held save lost to, so it is kept as another conflict, never written over the newer version. The held file's ETag stands for that same version.
+
+Ten minutes outlasts rclone's defaults: it uploads a closed file after 5 seconds (`--vfs-write-back`), reads its size back at once, and then trusts its listing for 5 minutes (`--dir-cache-time`). Within the hold, the listing rclone fetches after that still agrees with the upload it verified. After the hold, the next listing has the stored size, and the mount reads the stored version.
+
+rclone tells versions apart by size alone. When the stored version has the same size as the save that was held, rclone does not see the change after the hold ends and keeps showing the held text from its cache until it drops that file (`--vfs-cache-max-age`, an hour by default) or is remounted. Saving from that text is kept as a conflict, as above.
 
 Editors and desktops write their own files on a mounted drive: swap files, backups, a temporary file renamed onto the real one, and macOS's hidden folders (`.Trashes`, `.TemporaryItems`). Any name that is a dot file or does not end in an entity's extension, and anything inside a hidden folder, is such a file. It is kept in memory for the person who wrote it, for ten minutes after its last use and 16 MiB at most, and is never an entity. Renaming one onto an entity's file is a save.
 
@@ -58,7 +73,7 @@ A file is created inside a folder that exists. A new folder (`MKCOL`) is only a 
 
 Deleting a file deletes its entity, under the delete action policy and only while it is still the version read. A folder cannot be deleted; it goes when the last entity inside it does.
 
-rclone takes a save the drive refuses, or stores in another form than it was sent, as a failed upload, and deletes the file to clean up after it. The first delete without `If-Match` that the same person sends for that file within 30 seconds of such a save answers 409 and keeps the entity; a second delete, or one naming the version, deletes it.
+rclone takes a save the drive refuses as a failed upload and deletes the file to clean up after it. It would do the same after a save kept as a conflict or stored in another form, were that save not shown back as sent (see Saving). The first delete without `If-Match` that the same person sends for that file within 30 seconds of such a save answers 409 and keeps the entity; a second delete, or one naming the version, deletes it.
 
 Renaming and copying entity files answer 403, with one exception: renaming an entity's file onto a temporary name (`note.md` → `note.md~`) is an editor making its backup before it saves. The file's bytes are copied to the person's temporary files and the entity stays, for the save that follows to replace. Refusing that rename makes neovim copy the file and delete the original, which would delete the entity.
 

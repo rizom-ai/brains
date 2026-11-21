@@ -10,6 +10,7 @@ import {
 } from "@brains/sdk/services";
 import type { WebRouteDefinition } from "@brains/sdk/internal/interface-runtime";
 import {
+  internalFullScope,
   serviceRuntime,
   withWebRoutes,
 } from "@brains/sdk/internal/service-runtime";
@@ -103,9 +104,25 @@ const service = defineServicePlugin({
         mounts,
         // Unanswered when no conflict service runs here; the save is then
         // refused, which keeps the edit with the client.
-        recordConflict: async (request) =>
-          (await runtime.messaging.request(recordConflictContract, request))
-            .status === "answered",
+        recordConflict: async (request) => {
+          const answer = await runtime.messaging.request(
+            recordConflictContract,
+            request,
+          );
+          return answer.status === "answered"
+            ? answer.data.conflictId
+            : undefined;
+        },
+        // A resolved conflict, applied or dismissed, is deleted. Asked at
+        // the widest scope: only whether it is there, nothing of it is read.
+        conflictPending: async (conflictId) =>
+          (await runtime.entityReads.getEntityRaw({
+            entityType: CONFLICT_ENTITY_TYPE,
+            id: conflictId,
+            visibilityScope: internalFullScope(
+              "ask only whether a conflict is still waiting to be resolved",
+            ),
+          })) !== null,
       }),
     };
   },

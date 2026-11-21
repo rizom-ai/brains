@@ -53,14 +53,19 @@ export interface DavWrites {
 }
 
 export type WriteOutcome =
-  | { status: 201 | 204; etag?: string | undefined }
+  | {
+      status: 201 | 204;
+      etag?: string | undefined;
+      /** The conflict that keeps a save that lost to a newer version. */
+      conflictId?: string | undefined;
+    }
   | { status: 403 | 404 | 409 | 412 | 413 | 422; message: string };
 
 /** What the mount making a request last held of the file it names. */
 export interface MountView {
   base(): Promise<MountBase | undefined>;
   held(hash: string): Promise<void>;
-  conflictKept(edit: string): Promise<void>;
+  conflictKept(edit: string, conflictId?: string): Promise<void>;
   forget(): Promise<void>;
 }
 
@@ -69,8 +74,11 @@ export interface WriteDeps {
   reader: DavReader;
   writes: DavWrites;
   mount: MountView;
-  /** Keep a losing save as a conflict; false when nothing holds it now. */
-  recordConflict(request: RecordConflictRequest): Promise<boolean>;
+  /**
+   * Keep a losing save as a conflict: the id of the conflict that keeps it,
+   * or undefined when nothing holds one now.
+   */
+  recordConflict(request: RecordConflictRequest): Promise<string | undefined>;
   /** Whether a folder is there for this person: real, or one they made. */
   folderExists(segments: string[]): Promise<boolean>;
 }
@@ -256,8 +264,10 @@ async function keepAsConflict(
 ): Promise<WriteOutcome> {
   const { existing, base, text, declared } = lost;
   const edit = computeContentHash(text);
-  if (base.conflictEdit === edit) return { status: 204 };
-  const kept = await deps.recordConflict({
+  if (base.conflictEdit === edit) {
+    return { status: 204, conflictId: base.conflictId };
+  }
+  const conflictId = await deps.recordConflict({
     entityType: existing.entityType,
     entityId: existing.id,
     origin: "drive",
@@ -270,9 +280,9 @@ async function keepAsConflict(
       declared !== existing.visibility && { declaredVisibility: declared }),
   });
   // Nothing holds a conflict: refusing is the only way not to lose the edit.
-  if (!kept) return stale();
-  await deps.mount.conflictKept(edit);
-  return { status: 204 };
+  if (conflictId === undefined) return stale();
+  await deps.mount.conflictKept(edit, conflictId);
+  return { status: 204, conflictId };
 }
 
 async function createEntityFile(
