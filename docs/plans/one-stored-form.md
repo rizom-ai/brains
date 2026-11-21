@@ -57,14 +57,14 @@ Shared decisions and field notes captured in flow.
 - **Framing.** Header, then the body with no blank line above it and one newline at its end. A document without a body is its header followed by one empty line, as today.
 - **Key order.** A write keeps the key order of the document it replaces. A key that document lacks follows the rest, in the order the type declares.
 - **Defaults.** A value the schema supplies is not written. A file states only what its author stated.
-- **Unknown keys.** A key the type does not name is kept as written, and the write says so.
+- **Unknown keys.** A key the type does not name is kept as written, and the write says so. A type whose header is strict (contact requests, quiz results, mail items, forms) refuses the file instead and leaves its stored row as it was: the key is never dropped silently.
 - **Idempotence.** Writing back what a read returned changes no byte.
 - **Whole documents or bodies.** A writer hands over the stored document, or the body alone for a type read as its body, never a header of only the keys it changes: a partial header would move the keys it leaves out behind the ones it states.
 
 ### Contract
 
 - **Two formats.** A stored entity is a markdown document or a YAML data file. There is no third.
-- **The file shape is private to the type's codec.** Every reader uses the entity's metadata and typed fields. Nothing outside a codec parses a header.
+- **The file shape is private to the type's codec.** Every reader takes a record's fields from its metadata through `recordFields` (`@brains/contracts`), and its body through `recordBody`; only a record with no metadata at all is read from its header. A type's own package may read its documents as stored through `storedDocumentParts`, as the book package reads its books and the topics it shows.
 - **Enforced at registration.** A markdown type whose header schema holds an object, a list of objects or a record is refused when it registers, first-party or not. `0.2.0` ships with the check on, so no outside type can start out nested.
 - **Changing a field after `0.2.0`.** A key moves, is renamed or changes shape only through a translation in its type's codec: the old form is read, the new one written, stored rows rewritten quietly on start. An old key stays readable through the next minor release.
 - **Frozen by golden files.** One golden file per type, in old and new form, fixes the format; a change to a golden file is a format change and needs a translation.
@@ -363,7 +363,7 @@ An `<id>.md` that appears later under a YAML type's folder is imported through t
 
 ### Readers
 
-63 source files in 32 packages parse a document's header directly instead of reading the entity's metadata, among them every caller of `frontmatterRecordFields` (`siteInfoFromRecord`, `styleGuideFromRecord`, the book, deck, post and social-post readers), Studio's editor, the Obsidian plugin and `scripts/sync-docs-content.ts`. Each would see the new file shape as missing fields. Alpha R moves all of them onto metadata and deletes `frontmatterRecordFields`; the codecs, directory sync and the serializer are the only code left that parses a header, and `arch:check` refuses a new one.
+Done in phase 3. `frontmatterRecordFields`, which read a record's header whenever its content carried one, is removed. The style guide, ask-content, site info, publishing (covers, attachments, sources), social posts, posts, decks, FAQs and playbooks read through `recordFields`. The site builder's own `site-info` is a never-registered handle for a settings link and permission checks, not a stored shape, and stays; no `arch:check` rule is added, because each moved type's readers are checked against both forms by the contract test in phase 4.
 
 ### Studio
 
@@ -415,9 +415,9 @@ For every moved type and every section template, from a golden file in the old f
 
 ## Phases
 
-1. **site-info, end to end.** The contract test for one type, failing on nesting and on form; then the formatter's strict headings, record mapping and labeled lines, the flat `cta` keys, `sections` and `translations` in the body, its readers on metadata, the serializer changes (framing, document order, stated fields only, unknown keys) and the quiet rewrite. Verified in the `rizom-ai` test app in two builds: with the old encoder the old `site-info.md` reads and is left alone; with the new one it is rewritten once, `updated` unchanged, the site builds the same, Studio edits the `cta` keys as fields and the sections in the body, the Obsidian fileClass lists only flat keys, and a `system_update` changes only the field updated.
-2. **Form for every type.** The contract test's form assertions cover all registered types; codecs drop their own trims; `writesInDocumentOrder` is deleted. The `summary` and `faq` body rewrites and the `note` order flip are fixed where the test shows them.
-3. **Readers on metadata.** The 63 files, `frontmatterRecordFields` deleted, one `site-info` definition, the `arch:check` rule.
+1. **site-info, end to end.** Done (#1014). The contract test for one type, failing on nesting and on form; then the formatter's strict headings, record mapping and labeled lines, the flat `cta` keys, `sections` and `translations` in the body, its readers on metadata, the serializer changes (framing, document order, stated fields only, unknown keys) and the quiet rewrite. Verified in the `rizom-ai` test app in two builds: with the old encoder the old `site-info.md` reads and is left alone; with the new one it is rewritten once, `updated` unchanged, the site builds the same, Studio edits the `cta` keys as fields and the sections in the body, the Obsidian fileClass lists only flat keys, and a `system_update` changes only the field updated.
+2. **Form for every type.** Done (#1015): `packages/brain-cli/test/stored-form-every-type.test.ts` holds all 37 text types to a golden file each; `writesInDocumentOrder` is deleted and codecs no longer trim their own body.
+3. **Readers on metadata.** Done (#1016): `recordFields`, `recordBody` and `storedDocumentParts` replace `frontmatterRecordFields`.
 4. **Every moved type reads both forms.** The rest of the formatter (titled items, schema-derived mappings, no title line), reading both layouts, with `faq` and `series` moved onto it; codecs, `translatedFields` and golden files for the authored-copy types (`style-guide`, `swot`, `guide`, `anchor-profile` with the profile extensions, `brain-character`, `skill`, `ask-content`, `quiz-result`) and the shared shapes (`link`, `mail-item`, `action-item`, `decision`, `summary`, `social-post`). All still write the old form.
 5. **YAML files.** The storage format, proven on `grouping-definitions`, then `traffic-snapshot` and `form`: read as `.md` or `.yaml`, still written as `.md`.
 6. **Alpha R and site release R.** Phases 1 to 5 released, with `@rizom/site-rizom-ai` built on the both-layouts formatter; every brain moved to alpha R and every pin of that site to its release R.
