@@ -1,10 +1,10 @@
 # Plan: Stored format for `0.2.0`
 
-Last updated: 2026-11-20
+Last updated: 2026-11-21
 
 ## Status
 
-Proposed stable-release gate. Nothing is built. The file format a brain stores is part of what `0.2.0` makes public: content repositories, Obsidian vaults and outside entity packages all depend on it. It is settled and every type conforms before the stable release, and brains running an alpha today are carried over without a manual step. The findings come from a walk of the header schema of every registered type, from real files of each type (six content repositories, the recipe seeds and the eval content), and from round-tripping those files through each type's serializer, on `516c6dd214`. Eleven types have no real file in those sources and are described from their schema alone: `book-section`, `conflict`, `contact-request`, `form`, `grouping-definitions`, `mail-item`, `note`, `playbook`, `quiz-result`, `refined-note`, `traffic-snapshot`.
+Proposed stable-release gate. Nothing is built. The file format a brain stores is part of what `0.2.0` makes public: content repositories, Obsidian vaults and outside entity packages all depend on it. It is settled and every type conforms before the stable release, and brains running an alpha today are carried over without a manual step. The findings come from a walk of the header schema of every registered type, from real files of each type (six content repositories, the recipe seeds and the eval content), and from round-tripping those files through each type's serializer, on `516c6dd214`. Types missing from those sources were read elsewhere: `book-section` in a pilot brain's book content, `grouping-definitions` in a pilot user's content, `playbook` in the onboarding content this repository ships, `traffic-snapshot` and `refined-note` on a live brain. Five types have no stored instance anywhere that could be read (`conflict`, `contact-request`, `form`, `mail-item`, `quiz-result`); they are written only by their own code, and are described from their schema and the stored documents in their tests.
 
 ## Problem
 
@@ -20,11 +20,37 @@ Entity files are inconsistent in two ways.
 
 - **The header holds only what Obsidian shows as a property:** text, number, checkbox, date, date and time, and lists of text. No objects, no lists of objects, no keyed records, in any type. Every type's files reach the vault, so no type is exempt.
 - **The header holds what the brain lists, filters, sorts or routes by:** titles, slugs, statuses, dates, flags, references to other entities.
-- **Prose goes in the body.** Anything sentence-length is markdown, never a YAML scalar. Structured copy is written as headings through `StructuredContentFormatter` (`@brains/content-formatters`), at most two heading levels under the title.
+- **Prose goes in the body.** Anything sentence-length is markdown, never a YAML scalar. Structured copy is written through `StructuredContentFormatter` (`@brains/content-formatters`) in the layout under [Body](#body).
 - **A short group of settings is flat keys with a shared prefix** (`ctaHeading`, `ctaButtonText`, `ctaButtonLink`).
-- **Data without prose is a YAML file.** A definition or a measured record that cannot be flat and has no body to read is stored as `<id>.yaml`, validated whole by the type's schema. Obsidian's properties never see it. The test for the format is strict: no body, and nobody reads the file as a document.
+- **Data without prose is a YAML file.** A definition or a measured record that cannot be flat and has no body to read is stored as `<id>.yaml`, validated whole by the type's schema. Obsidian's properties never see it. The test for the format is strict: the record is structure that cannot be flat, and nobody reads the file as a document. Prose such a record carries is a YAML block scalar.
 - **One shape per concept.** A source reference, a person, a time range and a list of references are written the same way in every type.
 - A value is stored once. A body rendered from a header field, or a header field restating the body, is not stored twice.
+
+### Body
+
+```markdown
+## Translations
+
+### nl
+
+- **Title:** Yeehaa
+- **Description:** Essays, lezingen en projecten.
+
+## Inputs
+
+### Discord
+
+- **Label:** Source · chat
+
+Shared decisions and field notes captured in flow.
+```
+
+- **No fixed title line.** A body does not open with a constant heading such as `# FAQ`.
+- **A single-line value is a labeled line,** `- **Label:** value`, under the section it belongs to.
+- **Prose is text under its heading.** A section's one prose field is the section's plain text; a second prose field gets its own heading.
+- **A list item is headed by its own title,** not by a number. An item with no title keeps a numbered heading.
+- **A keyed record is one heading per key,** the key as the heading text.
+- **Nothing is skipped.** A heading or a label the type does not name, and a named section stated twice, refuse the write.
 
 ### Form
 
@@ -39,7 +65,7 @@ Entity files are inconsistent in two ways.
 - **Two formats.** A stored entity is a markdown document or a YAML data file. There is no third.
 - **The file shape is private to the type's codec.** Every reader uses the entity's metadata and typed fields. Nothing outside a codec parses a header.
 - **Enforced at registration.** A markdown type whose header schema holds an object, a list of objects or a record is refused when it registers, first-party or not. `0.2.0` ships with the check on, so no outside type can start out nested.
-- **Changing a field after `0.2.0`.** A key moves or is renamed only through `translatedFields`: the old key is read, the new one written, stored rows rewritten quietly on start. An old key stays readable through the next minor release.
+- **Changing a field after `0.2.0`.** A key moves, is renamed or changes shape only through a translation in its type's codec: the old form is read, the new one written, stored rows rewritten quietly on start. An old key stays readable through the next minor release.
 - **Frozen by golden files.** One golden file per type, in old and new form, fixes the format; a change to a golden file is a format change and needs a translation.
 
 ## Findings: placement and nesting
@@ -93,12 +119,13 @@ The same thing nested in different ways:
 | `guide`                           | all                                   | `for`, `material`, `persona`, `summary`                                                                                                                                                                                                                |
 | `ask-content`                     | 1 of 1                                | page copy: `topicsHeading`, `contactLabel`, `contactNote`, `mapCaption`, `refusal`, `faqHeading`                                                                                                                                                       |
 | `form`                            | `hasBody: true`                       | the whole form definition                                                                                                                                                                                                                              |
-| `playbook`                        | no sample                             | `description`, `starterText`, `starterPrompt`                                                                                                                                                                                                          |
 | `quiz-result`, `traffic-snapshot` | no sample                             | the record itself                                                                                                                                                                                                                                      |
 
 Types whose authored content is in the body, as headings: `site-content` (31 of 56 files have no header at all), `agent` (`# Agent` / `## About` / `## Skills` / `## Notes`), `faq` (`# FAQ` / `## Answer`), `series` (`## Description`), `project` (`## Context` / `## Problem` / `## Solution` / `## Outcome`), `summary`, `decision`, `action-item`, `doc`, `deck`, `book`.
 
 Types whose body is free text under a small flat header: `note`, `refined-note`, `post`, `newsletter`, `social-post`, `prompt`, `wish`, `topic`, `link`, `contact-request`, `email-reply-draft`, `conflict`, `book-section`, `mail-item`.
+
+`playbook` needs no move: its header fields (`description`, `starterText`, `starterPrompt`) are one line each in the shipped files, and its body is already headings (`## Purpose`, `## Operating Rules`).
 
 The same data placed two ways:
 
@@ -110,23 +137,25 @@ The same data placed two ways:
 
 Nested fields:
 
-| Field                                                                                                      | Becomes                                                                                                                                                                        |
-| ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `site-info` `cta`                                                                                          | header keys `ctaHeading`, `ctaButtonText`, `ctaButtonLink`                                                                                                                     |
-| `site-info` `sections`                                                                                     | body: `## Sections`, one `###` per section id holding its blurb                                                                                                                |
-| `site-info` `translations`                                                                                 | body: `## Translations`, one `###` per language holding title, description, copyright and call to action as labeled lines                                                      |
-| `style-guide` `messaging`, `voice`, `visual`                                                               | body sections above the guidance                                                                                                                                               |
-| `swot` four lists                                                                                          | body: one `##` per quadrant, one `###` per item                                                                                                                                |
-| `guide` `material`                                                                                         | body: `## Material`, one `###` per source                                                                                                                                      |
-| `anchor-profile` `socialLinks`                                                                             | body: `## Links`, a markdown link list                                                                                                                                         |
-| `form` (whole definition)                                                                                  | a YAML file                                                                                                                                                                    |
-| `grouping-definitions` `groupings`                                                                         | a YAML file                                                                                                                                                                    |
-| `quiz-result` `results`, `answers`                                                                         | body: `## Results` and `## Answers`                                                                                                                                            |
-| `traffic-snapshot` `days`                                                                                  | a YAML file; the rendered body tables are no longer stored                                                                                                                     |
-| `link`, `mail-item` `source`; `action-item` `sourceRef`                                                    | header `sourceRef` (text) and, where the type has them, `sourceLabel`, `threadKey`, `threadOrdinal`, `personId`                                                                |
-| `decision`, `summary` `timeRange`                                                                          | header `startedAt`, `endedAt` (date and time)                                                                                                                                  |
-| `social-post` `documents`                                                                                  | header `documentIds`, a list of text                                                                                                                                           |
-| `decision` `decidedBy`, `mentionedBy`; `summary` `participants`; `action-item` `assignedTo`, `requestedBy` | header: a list of actor references as text (`user:<id>`, `agent:<id>`, `external:<id>`, `service:<id>`) and a second list with the `Aliases` suffix; display names in the body |
+| Field                                                                                                      | Becomes                                                                                                                                                                                                     |
+| ---------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `site-info` `cta`                                                                                          | header keys `ctaHeading`, `ctaButtonText`, `ctaButtonLink`                                                                                                                                                  |
+| `site-info` `sections`                                                                                     | body: `## Sections`, one `###` per section id holding its blurb                                                                                                                                             |
+| `site-info` `translations`                                                                                 | body: `## Translations`, one `###` per language, its title, description, copyright and call to action as labeled lines                                                                                      |
+| `style-guide` `messaging`, `voice`, `visual`                                                               | body sections above the guidance                                                                                                                                                                            |
+| `swot` four lists                                                                                          | body: one `##` per quadrant, one `###` per item                                                                                                                                                             |
+| `guide` `material`                                                                                         | body: `## Material`, one `###` per source                                                                                                                                                                   |
+| `anchor-profile` `socialLinks`                                                                             | body: `## Links`, a markdown link list                                                                                                                                                                      |
+| `form` (whole definition)                                                                                  | a YAML file; the introduction a form keeps in its markdown body today becomes its `intro` key                                                                                                               |
+| `grouping-definitions` `groupings`                                                                         | a YAML file                                                                                                                                                                                                 |
+| `quiz-result` `results`, `answers`                                                                         | body: `## Results` and `## Answers`                                                                                                                                                                         |
+| `traffic-snapshot` `days`                                                                                  | a YAML file; the rendered body tables are no longer stored                                                                                                                                                  |
+| `link`, `mail-item` `source`; `action-item` `sourceRef`                                                    | header `sourceRef` (text) and, where the type has them, `sourceLabel`, `threadKey`, `threadOrdinal`, `personId`; for `action-item` also `sourceEntityType` and `sourceEntityId`                             |
+| `decision`, `summary` `timeRange`                                                                          | header `startedAt`, `endedAt` (date and time)                                                                                                                                                               |
+| `social-post` `documents`                                                                                  | header `documentIds`, a list of text                                                                                                                                                                        |
+| `decision` `decidedBy`, `mentionedBy`; `summary` `participants`; `action-item` `assignedTo`, `requestedBy` | the same key as a list of actor references as text (`user:<id>`, `agent:<id>`, `external:<id>`, `service:<id>`), and a second key with the `Aliases` suffix (`decidedByAliases`); display names in the body |
+
+`sections` and `translations` are records keyed by a name the author chooses. `StructuredContentFormatter` maps fixed objects and lists only, so it gains a record mapping: one heading per key, the key as the heading text. That is part of phase 1.
 
 The retriever reads people as the union of identities and aliases (`conversation-memory-retriever.ts`), so two flat lists carry what it needs.
 
@@ -140,7 +169,6 @@ Flat fields that hold prose and move to the body:
 | `anchor-profile`  | `description`, `intro`, `currentFocus`, `availability`, and the team and organization `purpose`, `mission`, `workingPrinciples`; the existing free body becomes the `## Story` section |
 | `guide`           | `for`                                                                                                                                                                                  |
 | `ask-content`     | `contactNote`, `refusal`                                                                                                                                                               |
-| `playbook`        | `description`, `starterText`, `starterPrompt`                                                                                                                                          |
 
 ## Findings: form
 
@@ -194,18 +222,47 @@ old file (field nested in the header)
   -> decode: new location absent -> read the old header key (listed in translatedFields)
   -> metadata and typed fields as before, so readers do not change
   -> encode: flat header keys; body sections for the rest
-  -> rewrite on start (rewriteRetiredFields) stores the new form; directory sync exports it
+  -> the quiet rewrite on start stores the new form; directory sync exports it
 new file
   -> decode: flat keys and body sections are read back into the same metadata
 ```
 
 Failure branches: a file that states a field in both places reads the new location and drops the old key on the next write. A body section that does not parse refuses the write with the type's validation error and leaves the stored row as it was; an import sets the file aside as it does for any invalid file.
 
-Each moved type gets a markdown codec and lists the old keys in `EntityTypeConfig.translatedFields`, the mechanism [frontmatter-hygiene.md](./frontmatter-hygiene.md) built. In-memory metadata keeps its current shape (`metadata.cta.heading` stays), so data sources, templates and tools are untouched; only the codec knows the file shape. `hasBody` becomes true, so Studio shows a body where it showed a frontmatter form; Studio keeps editing the moved fields as fields; see [Migration](#migration).
+Each moved type gets a markdown codec. A key that goes away (`cta`, `source`, `timeRange`) is listed in `EntityTypeConfig.translatedFields`, the mechanism [frontmatter-hygiene.md](./frontmatter-hygiene.md) built: it is read and never written. A key that keeps its name and changes shape (`action-item` `sourceRef` from an object to text, the people lists from objects to text) cannot be listed there, because a translated key is never written. Its codec decodes either shape and encodes the new one, and the quiet rewrite finds the row because its stored document differs from its canonical form. In-memory metadata keeps its current shape (`metadata.cta.heading` stays), so data sources, templates and tools are untouched; only the codec knows the file shape. `hasBody` becomes true where it was false.
+
+`anchor-profile` and `brain-character` are not declared types. The shell registers them with class adapters whose truth is the content's frontmatter (`shell/identity-service/src/singleton-frontmatter-adapter.ts`), and the profile plugin extends the anchor's header with its own fields. Their adapters gain the same decode and encode through the formatter, the profile extensions state which of their fields are body sections, and the identity service keeps reading through the adapter, so `getProfile()` and `get()` return what they return now.
 
 ### Obsidian
 
 The fileClass generator in `plugins/obsidian-vault` reads the type's frontmatter schema, which today yields a text `Input` for `cta` and `sections`. Each moved type states its flat file header through `withFrontmatterSchema`, so fileClasses, templates and Studio's form show exactly the keys the file has.
+
+### The formatter
+
+`StructuredContentFormatter` today, and what changes:
+
+| Today                                                                                                                      | End state                                                                                      |
+| -------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| A heading no mapping names is ignored, and the next write deletes its content; of two sections with one name the last wins | both refuse the write                                                                          |
+| A list of objects is written as `### Input 1`, the item's title one level down                                             | the item's title is the heading                                                                |
+| The item heading is the label minus its last letter (`Opportunities` gives `Opportunitie 1`)                               | no derived singular; a numbered heading uses a stated item label                               |
+| Fixed objects and lists only                                                                                               | a record mapping for keyed records                                                             |
+| Every scalar is its own heading                                                                                            | single-line values are labeled lines                                                           |
+| A constant `# Title` line opens every body                                                                                 | none                                                                                           |
+| A list item that is not a string or number is written as JSON text                                                         | refused                                                                                        |
+| Each type hand-writes keys, labels and types beside its Zod schema                                                         | the mapping is derived from the schema; labels and the single-line marking are schema metadata |
+
+```
+read   -> a value under its own heading or as a labeled line; a numbered or a titled item;
+          with or without the title line  -> the same typed body
+write  -> the new layout, for a type or section template that has opted in; the old one otherwise
+```
+
+Failure branches. A prose field whose own text would parse as a labeled line of its section is written under its own heading, so the output never reads back differently. A numbered item is told from a titled one by a title field inside it. Two items of one list may share a title; the duplicate check applies to named sections only.
+
+Two files handle a body's headings themselves instead of going through the formatter: `entities/faq/src/lib/stored-body.ts` and `entities/series/src/lib/series-projection.ts`. Both move onto the formatter in phase 4. Body templates shown to an author or a model come from the formatter's own `generateBodyTemplate`, so they follow the layout without a separate change.
+
+The formatter reads both layouts from alpha R on. The seven places that construct one opt in to the new layout at alpha W, except the section templates, which follow under [Sites](#sites).
 
 ### YAML files
 
@@ -222,9 +279,9 @@ Failure branches: a file that does not parse or fails the schema is refused with
 
 - Visibility is a top-level `visibility` key, written only when not public, as in a markdown header.
 - The form rules hold: document key order kept, no default written, unknown keys kept and reported.
-- A YAML type has no body, so it is not embedded and is found by its metadata only.
-- Prose inside a YAML type (a form's intro and thanks text) stays a YAML string. The no-prose-in-YAML rule is for markdown headers.
-- Markdown is assumed in about 28 places across directory sync, WebDAV, Studio, the Obsidian plugin and the entity service. The binary types (`image`, `document`) are the precedent for another extension, but that path is for assets. Phase 5 starts by tracing each of those places for a text type that is not markdown.
+- A YAML type has no body. `grouping-definitions` and `traffic-snapshot` are found by their metadata only; a form's `intro` and title are what is embedded for it.
+- A form has a markdown body today: the introduction shown above its fields (`entities/form/test/form-entity.test.ts`). In the YAML file it is the `intro` key, a block scalar, beside the thanks text. The no-prose-in-YAML rule is for markdown headers, where a scalar is one line in Obsidian; a block scalar in a data file keeps its line breaks and is edited as text.
+- A `.md` file name is assumed in 28 places in 13 files: eight in directory sync (nine of them in `file-operations.ts`, three in `file-discovery.ts`), four in WebDAV (`dav-tree.ts`, `dav-saves.ts`, `dav-routes.ts`, `dav-scratch.ts`) and the Obsidian plugin. The entity service, the core and Studio assume none. Each of the 13 asks the type for its file extension. The binary types (`image`, `document`) already store under other extensions, but through the asset path, which a YAML type does not use.
 - Obsidian hides non-markdown files by default, so these three types are edited in Studio or a text editor.
 
 CSV is not added. None of the three is one table: a form and the groupings are trees, and a snapshot's day carries four nested lists. CSV also has no types and nowhere to state visibility.
@@ -243,7 +300,7 @@ For a type whose metadata is its frontmatter, the serializer writes a key only w
 
 ### Unknown keys
 
-A key the type does not name is kept as written, and the write reports it: an import logs a warning naming the file and the key, and `system_update` returns it in its result. Until a type's header is flat, `preserveSourceFrontmatter` also keeps an unclaimed key one level inside an object the type owns, so `cta.subtitle` is no longer deleted. A retired `parent.key` is still dropped.
+A key the type does not name is kept as written, and the write reports it: an import logs a warning naming the file and the key, and `system_update` returns it in its result. Until a type's header is flat, `preserveSourceFrontmatter` also keeps an unclaimed key one level inside an object the type owns, so `cta.subtitle` is no longer deleted. When the object is flattened, an unknown key inside it is carried over under the same prefix (`cta.subtitle` becomes `ctaSubtitle`) and reported like any unknown key; an unknown scalar key inside an object that moves to the body is carried into the header the same way, since the body refuses a label it does not name. An unknown nested value that is itself an object has no flat form: that row is left in its old form, still read, and reported, for its author to settle. A retired `parent.key` is still dropped.
 
 ### Stored rows
 
@@ -255,11 +312,11 @@ Every serving start, rows whose stored document differs from its canonical form 
 
 ## Migration
 
-Every brain today runs an alpha and is deployed from this repository's releases; no outside package defines an entity type yet. The whole migration happens on alphas before `0.2.0`, and `0.2.0` contains only the final format plus the reading of old forms.
+Every brain today runs an alpha and is deployed from this repository's releases. The entity types defined outside the canonical brain (the public-authoring fixtures under `packages/brain-cli/test/fixtures` and the `brain-plugin-recipes` package) have flat headers of scalars and string lists and pass the registration check unchanged. The whole migration happens on alphas before `0.2.0`, and `0.2.0` contains only the final format plus the reading of old forms.
 
-What a brain's owner sees: nothing. No command, no setting, no changed timestamps, no reprocessing, the same site and the same answers. The content repository gains one commit.
+What a brain's owner sees: nothing. No command, no setting, no changed timestamps, no derived work queued, the same site and the same answers. An entity whose embedded text changed is re-embedded once; that includes every `site-content` section, which is embedded like any text type. The content repository gains one commit for the brain's types and, where the brain serves a site, one for that site's sections.
 
-### Three alphas
+### Two alphas, then the stable release
 
 ```
 alpha R  every reader uses metadata; every moved type reads old and new form; all write the old form
@@ -267,20 +324,21 @@ alpha W  every moved type writes the new form; stored rows are rewritten quietly
 0.2.0    the format is frozen; old forms are still read
 ```
 
-R is deployed to every brain before W is released, so a brain rolled back from W lands on a version that reads what W wrote. Failure branch: a brain that skips R and is rolled back from W to an older alpha cannot read its files; the fleet pins make R a required step, and W refuses to start its rewrite unless the brain's runtime state records a completed start on R or later.
+R is deployed to every brain before W is released, so a brain rolled back from W lands on a version that reads what W wrote. That ordering is the whole of the rollback design: W is the commit that switches each moved type's encoder to the new form and deletes the old encoder. No setting selects between forms and no runtime guard checks the order; the fleet pins decide which version a brain runs. A brain first started on W or later stores what it imports, old-form files included, in the new form at import.
 
 Old keys stay declared in `translatedFields`, so an old-form file arriving after W (a hand edit from habit, an old branch merged into a content repository, seed content from an older template) still imports and is rewritten.
 
 ### The rewrite is quiet
 
-The existing rewrite on start calls `updateEntity`, an ordinary update. A migration rewrite is a separate write that changes only the stored document:
+The existing rewrite on start calls `updateEntity`. An ordinary update moves `updated`, marks the entity as a dirty input for projections, queues an embedding job and emits the entity-updated event (`shell/entity-service/src/entity-mutations.ts`). A migration rewrite is a separate write that changes only the stored document:
 
 ```
 rewrite on start (after the initial import, so a pending file edit lands first)
   -> stored document differs from its canonical form?  no -> skip
   -> write content and contentHash; keep `updated`
+  -> update the full-text index row from the new document
   -> text the type embeds unchanged?  yes -> keep the embedding; no -> re-embed
-  -> no entity-updated event, so no projection or derived job is queued
+  -> not marked as a dirty projection input and no entity-updated event, so no derived job is queued
   -> mark for export, so directory sync writes the file
 ```
 
@@ -306,11 +364,42 @@ An `<id>.md` that appears later under a YAML type's folder is imported through t
 
 ### Studio
 
-A field that moves to the body stays editable as a field: Studio's form follows the type's fields, not the file header, so it is the same before and after. How Studio builds its form today is read in phase 1; if it can only edit header keys as fields, editing body sections as fields is part of alpha R.
+Studio builds its form from the type's frontmatter schema and shows a nested object or a list of objects read-only (`plugins/studio/ui-react/src/entity-fields.tsx`). So `cta`, `sections` and `translations` cannot be edited in Studio today. After the move, the flat keys are ordinary editable fields and the body sections are edited in the body editor. Nothing that is editable in Studio today stops being editable, and no Studio work gates the migration.
 
 ### Obsidian
 
 Fileclasses and templates are regenerated from the flat header on W. The three YAML types leave Obsidian's default file view.
+
+### Sites
+
+`site-info` needs nothing from a site. Layouts get the site's metadata from the build, and the `personal` and `professional` homepages and the deck carousel read it through `fetchSiteInfo`; metadata keeps its shape, so a site pinned to an older release reads the same values.
+
+`site-content` is different in two ways. Its codec passes the body through; the body is parsed at build time by each section template's formatter (`shared/site-composition/src/section-templates.ts`), so the quiet rewrite, which works through a type's codec, cannot convert it. And sites are pinned separately from the brain (a fleet image names its site pins; an instance repository pins `@rizom/brain` and `@rizom/site` on their own), so a site can run an older formatter than its brain.
+
+```
+alpha R + site release R   the formatter reads both layouts; section templates write the old one
+every brain moved to alpha R; every pin of @rizom/site-rizom-ai moved to its release R
+alpha W                    the brain's own types write the new layout
+  -> a site the brain formats: its section templates write the new layout too, and the
+     site builder rewrites that site's site-content quietly and exports it in one commit
+  -> @rizom/site-rizom-ai: its site-content is left as it is
+site release W             @rizom/site-rizom-ai's section templates opt in to the new layout
+  -> its site builder rewrites its site-content the same way
+```
+
+Failure branch: a site still pinned before site release R, served by a brain whose `site-content` is already in the new layout, cannot parse its sections. Site release W is therefore pinned for a brain only after that brain is on alpha W and its `@rizom/site-rizom-ai` pin is on site release R or later.
+
+Only `@rizom/site-rizom-ai` carries its own formatter: its build bundles everything but React, `clsx` and `tailwind-merge`, and three of its sources import `@brains/content-formatters` and two `@brains/site-composition`. The other published sites (`docs`, `hub`, `thefourth`, `books`) are published as source with no build step and import nothing from `@brains/*`, and a site written against `@rizom/site` has Zod as its only dependency; none of them can carry a formatter, so their sections are formatted by the brain. So site release R and W are releases of `@rizom/site-rizom-ai` alone; for every other site the order is the brain's two alphas, and its sections are rewritten at alpha W.
+
+### What is removed, and when
+
+| Code                                                                                                                                       | Removed                                           |
+| ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------- |
+| The 63 direct header readers, `frontmatterRecordFields`, `writesInDocumentOrder`, each codec's own trim, the second `site-info` definition | during the work, by alpha R                       |
+| Encoders for the old header forms and the old body layout                                                                                  | at alpha W (site release W for section templates) |
+| Decoders for the old header forms, the old body layout, and `.md` files of the YAML types                                                  | one minor release after `0.2.0`                   |
+
+Reading outlives writing because an old file can still arrive after the migration: a backup restored, an old branch merged into a content repository, a brain that was off during the upgrade. Each old decoder is listed in `docs/legacy-code-inventory.json` with the release that removes it. The quiet rewrite and the read-old, write-new translation are permanent; a format change after `0.2.0` reuses them.
 
 ### What the owner of a brain may notice
 
@@ -319,18 +408,18 @@ Fileclasses and templates are regenerated from the flat header on W. The three Y
 
 ### What the contract test adds
 
-For every moved type, from a golden file in the old form and one in the new: both decode to the same metadata; the type's readers return the same values from either; the rewrite leaves `updated` unchanged and queues no job; a second rewrite changes nothing; an edited old-form file is imported, not overwritten.
+For every moved type and every section template, from a golden file in the old form and one in the new: both decode to the same metadata; the type's readers return the same values from either; the rewrite leaves `updated` unchanged and queues no job; a second rewrite changes nothing; an edited old-form file is imported, not overwritten.
 
 ## Phases
 
-1. **site-info, end to end.** The contract test for one type, failing on nesting and on form; then the flat `cta` keys, `sections` and `translations` in the body, its readers on metadata, the serializer changes (framing, document order, stated fields only, unknown keys) and the quiet rewrite. Verified in the `rizom-ai` test app in both steps: on R the old `site-info.md` reads and is left alone; on W it is rewritten once, `updated` unchanged, the site builds the same, Studio edits the same fields, the Obsidian fileClass lists only flat keys, and a `system_update` changes only the field updated.
+1. **site-info, end to end.** The contract test for one type, failing on nesting and on form; then the formatter's strict headings, record mapping and labeled lines, the flat `cta` keys, `sections` and `translations` in the body, its readers on metadata, the serializer changes (framing, document order, stated fields only, unknown keys) and the quiet rewrite. Verified in the `rizom-ai` test app in two builds: with the old encoder the old `site-info.md` reads and is left alone; with the new one it is rewritten once, `updated` unchanged, the site builds the same, Studio edits the `cta` keys as fields and the sections in the body, the Obsidian fileClass lists only flat keys, and a `system_update` changes only the field updated.
 2. **Form for every type.** The contract test's form assertions cover all registered types; codecs drop their own trims; `writesInDocumentOrder` is deleted. The `summary` and `faq` body rewrites and the `note` order flip are fixed where the test shows them.
 3. **Readers on metadata.** The 63 files, `frontmatterRecordFields` deleted, one `site-info` definition, the `arch:check` rule.
-4. **Every moved type reads both forms.** Codecs, `translatedFields` and golden files for the authored-copy types (`style-guide`, `swot`, `guide`, `anchor-profile` with the profile extensions, `brain-character`, `skill`, `ask-content`, `playbook`, `quiz-result`) and the shared shapes (`link`, `mail-item`, `action-item`, `decision`, `summary`, `social-post`). All still write the old form.
+4. **Every moved type reads both forms.** The rest of the formatter (titled items, schema-derived mappings, no title line), reading both layouts, with `faq` and `series` moved onto it; codecs, `translatedFields` and golden files for the authored-copy types (`style-guide`, `swot`, `guide`, `anchor-profile` with the profile extensions, `brain-character`, `skill`, `ask-content`, `quiz-result`) and the shared shapes (`link`, `mail-item`, `action-item`, `decision`, `summary`, `social-post`). All still write the old form.
 5. **YAML files.** The storage format, proven on `grouping-definitions`, then `traffic-snapshot` and `form`: read as `.md` or `.yaml`, still written as `.md`.
-6. **Alpha R.** Phases 1 to 5 released and deployed to every brain.
-7. **Alpha W.** Every moved type writes the new form; seed, recipe and eval content rewritten in the same commit; the quiet rewrite on. Verified on the test apps, then on the smoke brain, then the fleet.
-8. **Freeze.** The registration check refuses a nested header; the authoring docs state the format and the rule for changing a field; the golden files join the public authoring golden test. `0.2.0` is cut after this phase.
+6. **Alpha R and site release R.** Phases 1 to 5 released, with `@rizom/site-rizom-ai` built on the both-layouts formatter; every brain moved to alpha R and every pin of that site to its release R.
+7. **Alpha W, then site release W.** Every moved type's encoder switches to the new form and the old encoders are deleted; seed, recipe and eval content rewritten in the same commit; the quiet rewrite on. Verified on the test apps, then on the smoke brain, then the fleet. Sites formatted by the brain have their `site-content` rewritten in this step. Then `@rizom/site-rizom-ai` opts in with its release W and its sections are rewritten by its site builder.
+8. **Freeze.** The registration check refuses a nested header; the old decoders are entered in `docs/legacy-code-inventory.json` with their removal release; the authoring docs state the format and the rule for changing a field; the golden files join the public authoring golden test. `0.2.0` is cut after this phase.
 
 ## Supersedes
 
