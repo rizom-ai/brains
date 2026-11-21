@@ -123,12 +123,26 @@ function inDocumentOrder(
   const placed = Object.keys(source).flatMap((key) =>
     Object.hasOwn(fields, key) ? [key] : standIns(key),
   );
-  const ordered = [
-    ...new Set([
-      ...placed,
-      ...Object.keys(fields).filter((key) => !Object.hasOwn(source, key)),
-    ]),
-  ];
+  // A key the written document adds follows the last key of its place
+  // group already placed (a list's aliases follow the list); any other
+  // added key closes the header.
+  const ordered = Object.keys(fields)
+    .filter((key) => !Object.hasOwn(source, key) && !placed.includes(key))
+    .reduce<string[]>(
+      (list, key) => {
+        const group = places.find((members) => members.includes(key));
+        const anchor = group
+          ? list.reduce(
+              (at, held, index) => (group.includes(held) ? index : at),
+              -1,
+            )
+          : -1;
+        return anchor < 0
+          ? [...list, key]
+          : [...list.slice(0, anchor + 1), key, ...list.slice(anchor + 1)];
+      },
+      [...new Set(placed)],
+    );
   const result = Object.fromEntries(
     ordered.map((key) => [
       key,

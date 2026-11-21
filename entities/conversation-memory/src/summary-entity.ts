@@ -6,13 +6,15 @@ import {
   summaryMetadataSchema,
 } from "./schemas/summary";
 import { SUMMARY_ENTITY_TYPE } from "./lib/constants";
+import { memoryCodec } from "./lib/memory-codec";
 
 /**
  * A read-only, system-maintained summary derived from stored conversation
  * messages: its body is its entries, its frontmatter its metadata. A read
  * takes the body as stored, as the summary adapter kept it; a write renders
  * the body from its entries, refusing one that does not parse, as the
- * adapter did, so a malformed summary is never imported.
+ * adapter did, so a malformed summary is never imported. It reads either
+ * stored form and writes the one its store writes.
  */
 export const summary: EntityDefinition<
   typeof SUMMARY_ENTITY_TYPE,
@@ -23,16 +25,13 @@ export const summary: EntityDefinition<
     purpose:
       "A read-only, system-maintained summary derived from stored conversation messages.",
     metadata: summaryMetadataSchema,
-    markdown: {
-      decode: ({ content, frontmatter }) => ({
-        content: content.replace(/^\n+/u, ""),
-        metadata: summaryMetadataSchema.parse(frontmatter),
-      }),
-      encode: ({ content, metadata }) => ({
-        content: composeSummaryBody(parseSummaryBody(content).entries),
-        frontmatter: summaryMetadataSchema.parse(metadata),
-      }),
-    },
+    // Its next form states the time range as startedAt and endedAt and its
+    // participants as actor refs, each whole in the body's People section.
+    markdown: memoryCodec({
+      schema: summaryMetadataSchema,
+      people: [{ key: "participants", label: "Participants" }],
+      body: (content) => composeSummaryBody(parseSummaryBody(content).entries),
+    }),
     config: {
       projectionSource: false,
       projectionSourceRole: "excluded",

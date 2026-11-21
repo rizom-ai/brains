@@ -8,10 +8,10 @@ endedAt: '2026-05-06T10:18:00.000Z'
 status: active
 decidedBy:
   - 'user:usr_mira'
-mentionedBy:
-  - 'agent:team-brain'
 decidedByAliases:
   - 'external:discord_mira'
+mentionedBy:
+  - 'agent:team-brain'
 ---
 # Add summaries to Team Brain's core preset
 
