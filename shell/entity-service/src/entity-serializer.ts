@@ -75,7 +75,11 @@ function headerText(markdown: string): string | undefined {
   return HEADER.exec(markdown)?.[0].replace(/\n$/u, "");
 }
 
-function inDocumentOrder(written: string, replaced: string): string {
+function inDocumentOrder(
+  written: string,
+  replaced: string,
+  places: readonly (readonly string[])[] = [],
+): string {
   // A header the write leaves as the document it replaces states it is
   // kept byte for byte: its author's YAML style is not redrawn.
   const writtenHeader = headerText(written);
@@ -103,9 +107,27 @@ function inDocumentOrder(written: string, replaced: string): string {
     ),
     ...target.data,
   };
+  // A key the written document states in place of one the replaced
+  // document holds (one stored form's key for another's) takes its place.
+  const standIns = (key: string): string[] =>
+    places
+      .filter((group) => group.includes(key))
+      .flatMap((group) =>
+        group.filter(
+          (other) =>
+            other !== key &&
+            Object.hasOwn(fields, other) &&
+            !Object.hasOwn(source, other),
+        ),
+      );
+  const placed = Object.keys(source).flatMap((key) =>
+    Object.hasOwn(fields, key) ? [key] : standIns(key),
+  );
   const ordered = [
-    ...Object.keys(source).filter((key) => Object.hasOwn(fields, key)),
-    ...Object.keys(fields).filter((key) => !Object.hasOwn(source, key)),
+    ...new Set([
+      ...placed,
+      ...Object.keys(fields).filter((key) => !Object.hasOwn(source, key)),
+    ]),
   ];
   const result = Object.fromEntries(
     ordered.map((key) => [
@@ -240,7 +262,11 @@ export class EntitySerializer {
       return written;
     }
     const replaced = stored ?? entity.content;
-    const ordered = inDocumentOrder(written, replaced);
+    const ordered = inDocumentOrder(
+      written,
+      replaced,
+      adapter.headerKeyPlaces ?? [],
+    );
     return framedDocument(
       adapter.metadataFromFrontmatter === true
         ? withoutUnstatedDefaults(ordered, replaced, adapter.frontmatterSchema)

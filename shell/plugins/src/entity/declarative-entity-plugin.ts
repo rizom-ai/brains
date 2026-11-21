@@ -70,6 +70,7 @@ import {
   urlRouteOf,
   writtenFrontmatterSchemaOf,
   encoderFor,
+  headerKeyPlacesOf,
   readsAsWritten,
   frontmatterSchemaOf,
   builtProvider,
@@ -370,7 +371,10 @@ function markdownStorage(
   | "parseFrontMatter"
   | "generateFrontMatter"
   | "metadataFromFrontmatter"
+  | "headerKeyPlaces"
 > {
+  // The header keys that stand for one another across its stored forms.
+  const places = headerKeyPlacesOf(definition.markdown);
   return {
     // The header its class declared, when it states one; else its metadata.
     frontmatterSchema: frontmatterSchemaOf(definition) ?? definition.metadata,
@@ -426,6 +430,7 @@ function markdownStorage(
     // Metadata is the frontmatter, decoded by fromMarkdown, so a frontmatter
     // write on an update carries into metadata.
     metadataFromFrontmatter: true,
+    ...(places && { headerKeyPlaces: places }),
   };
 }
 

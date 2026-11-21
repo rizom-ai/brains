@@ -1314,6 +1314,9 @@ type CodecEncode<TMetadataSchema extends EntityMetadataSchema> = NonNullable<
   EntityMarkdownCodec<TMetadataSchema>["encode"]
 >;
 
+/** The header keys that stand for one another, per form-reading codec. */
+const formPlaces = new WeakMap<object, readonly (readonly string[])[]>();
+
 /** The encoders of the codecs that write either stored form. */
 const formEncoders = new WeakMap<
   object,
@@ -1333,13 +1336,27 @@ export function storedFormCodec<
 >(options: {
   readonly decode: EntityMarkdownCodec<TMetadataSchema>["decode"];
   readonly encode: Readonly<Record<StoredForm, CodecEncode<TMetadataSchema>>>;
+  /**
+   * Header keys that stand for one another across the two forms, each group
+   * one place in the header: a file converted to the other form keeps the
+   * order its author gave.
+   */
+  readonly places?: readonly (readonly string[])[];
 }): EntityMarkdownCodec<TMetadataSchema> {
   const codec: EntityMarkdownCodec<TMetadataSchema> = {
     decode: options.decode,
     encode: options.encode[storedFormWrites],
   };
   formEncoders.set(codec, options.encode);
+  if (options.places) formPlaces.set(codec, options.places);
   return codec;
+}
+
+/** The header keys a form-reading codec says stand for one another. */
+export function headerKeyPlacesOf(
+  codec: object | undefined,
+): readonly (readonly string[])[] | undefined {
+  return codec ? formPlaces.get(codec) : undefined;
 }
 
 /** The encoder a codec writes `form` with: its own when it reads one form. */

@@ -1,5 +1,7 @@
 import type { EntityMarkdownCodec } from "@brains/sdk/entities";
+import { storedFormCodec } from "@brains/sdk/internal/entity-runtime";
 import { parseMarkdown } from "@brains/utils/markdown-frontmatter";
+import { z } from "@brains/utils/zod";
 import {
   linkFrontmatterSchema,
   type LinkMetadata,
@@ -25,19 +27,65 @@ export function linkFrontmatter(
   });
 }
 
-/** A link's frontmatter is its metadata; its body is its summary. */
-export const linkMarkdown: EntityMarkdownCodec<typeof linkMetadataSchema> = {
-  decode: ({ content, frontmatter }) => ({
-    content,
-    metadata: linkFrontmatterSchema.parse(frontmatter),
-  }),
-  // A whole document handed in has had its frontmatter decoded into the
-  // metadata already; the body is written as the adapter wrote it.
-  encode: ({ content, metadata }) => ({
-    content: parseMarkdown(content).content,
-    frontmatter: linkFrontmatter(metadata),
-  }),
-};
+/**
+ * The next form's frontmatter (docs/plans/one-stored-form.md): the source a
+ * link was captured from as two flat keys, which Obsidian shows as
+ * properties, in the place the nested source held.
+ */
+function linkNextFrontmatter(metadata: LinkMetadata): Record<string, unknown> {
+  const { source, ...rest } = linkFrontmatter(metadata);
+  return {
+    ...rest,
+    sourceRef: metadata.source.ref,
+    sourceLabel: metadata.source.label,
+    ...(source === undefined && {}),
+  };
+}
+
+/** Every header key either form writes: the nested source and its flat keys. */
+export const linkWrittenFrontmatterSchema: z.ZodObject =
+  linkFrontmatterSchema.extend({
+    sourceRef: z.string().optional(),
+    sourceLabel: z.string().optional(),
+  });
+
+/**
+ * A link's frontmatter is its metadata; its body is its summary. It reads a
+ * file in either form, the flat source keys over a nested source, and
+ * writes the form its store writes.
+ */
+export const linkMarkdown: EntityMarkdownCodec<typeof linkMetadataSchema> =
+  storedFormCodec<typeof linkMetadataSchema>({
+    decode: ({ content, frontmatter }) => {
+      const { sourceRef, sourceLabel, ...rest } = frontmatter;
+      const nested =
+        typeof rest["source"] === "object" && rest["source"] !== null
+          ? rest["source"]
+          : {};
+      return {
+        content,
+        metadata: linkFrontmatterSchema.parse({
+          ...rest,
+          ...(sourceRef !== undefined && {
+            source: { ...nested, ref: sourceRef, label: sourceLabel },
+          }),
+        }),
+      };
+    },
+    places: [["source", "sourceRef", "sourceLabel"]],
+    // A whole document handed in has had its frontmatter decoded into the
+    // metadata already; the body is written as the adapter wrote it.
+    encode: {
+      old: ({ content, metadata }) => ({
+        content: parseMarkdown(content).content,
+        frontmatter: linkFrontmatter(metadata),
+      }),
+      new: ({ content, metadata }) => ({
+        content: parseMarkdown(content).content,
+        frontmatter: linkNextFrontmatter(metadata),
+      }),
+    },
+  });
 
 /** A link's summary: its body, trimmed, as the adapter read it. */
 export function linkSummary(body: string): string {

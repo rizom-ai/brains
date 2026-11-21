@@ -585,6 +585,14 @@ export interface EntityAdapter<
   // Generate frontmatter for markdown
   generateFrontMatter(entity: TEntity): string;
 
+  /**
+   * Optional: groups of header keys that stand for one another across a
+   * type's stored forms (a nested `source` and its flat `sourceRef` and
+   * `sourceLabel`): a write that states one group's keys in place of
+   * another's puts them where the replaced document held those.
+   */
+  headerKeyPlaces?: readonly (readonly string[])[];
+
   /** Optional: Zod schema for frontmatter fields. Used by Studio config generation. */
   frontmatterSchema?: z.ZodObject<z.ZodRawShape>;
 

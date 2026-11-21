@@ -12,6 +12,7 @@ import {
 import type { Plugin } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 import { createSilentLogger, createTestDirectory } from "@brains/test-utils";
+import { computeContentHash } from "@brains/utils/hash";
 import { canonicalBrain } from "../../src/model/canonical-brain";
 
 /** A stored row, as the database holds it. */
@@ -25,6 +26,8 @@ export interface CanonicalEntityStore {
   /** Every text type the store registers, sorted. */
   textTypes: readonly string[];
   stored(entityType: string, id: string): Promise<StoredDocument | null>;
+  /** Put a row back as an earlier release stored it, last written long ago. */
+  storeAsBefore(entityType: string, id: string, content: string): Promise<void>;
   close(): Promise<void>;
 }
 
@@ -35,7 +38,9 @@ export interface CanonicalEntityStore {
  * through. Plugins are installed on a test harness only to collect their
  * types; nothing they subscribe to runs against this store.
  */
-export async function canonicalEntityStore(): Promise<CanonicalEntityStore> {
+export async function canonicalEntityStore(
+  options: { storedForm?: "old" | "new" } = {},
+): Promise<CanonicalEntityStore> {
   const harness = createPluginHarness({
     dataDir: "/tmp/canonical-entity-store",
     domain: "brain.test",
@@ -111,6 +116,7 @@ export async function canonicalEntityStore(): Promise<CanonicalEntityStore> {
     logger,
     jobQueueService: harness.getMockShell().getJobQueueService(),
     embeddingsEnabled: false,
+    ...(options.storedForm && { storedForm: options.storedForm }),
     embeddingService: {
       identity: { model: "test:none", dimensions: 1536, promptRevision: 0 },
       embedQuery: async () => {
@@ -141,6 +147,18 @@ export async function canonicalEntityStore(): Promise<CanonicalEntityStore> {
       return row
         ? { content: String(row["content"]), updated: Number(row["updated"]) }
         : null;
+    },
+    async storeAsBefore(entityType, id, content): Promise<void> {
+      await db.execute({
+        sql: "UPDATE entities SET content = ?, contentHash = ?, updated = ? WHERE entityType = ? AND id = ?",
+        args: [
+          content,
+          computeContentHash(content),
+          Date.UTC(2026, 0, 1),
+          entityType,
+          id,
+        ],
+      });
     },
     async close(): Promise<void> {
       db.close();
