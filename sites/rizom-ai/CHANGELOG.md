@@ -1,5 +1,11 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.289
+
+### Patch Changes
+
+- [#1018](https://github.com/rizom-ai/brains/pull/1018) [`51aca2f`](https://github.com/rizom-ai/brains/commit/51aca2fa07b0ad49521e7399940ef2a8ab2ea600) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's site reads its section copy in either stored layout, the sectioned one and the compact one with titled items, so its content moves to the next stored form without a change to the site.
+
 ## 0.2.0-alpha.288
 
 ### Patch Changes
