@@ -2304,6 +2304,7 @@ function entityReadsOf(context: ServicePluginContext): ServiceEntityReads {
     queryEntityHierarchy: (request) =>
       entityService.queryEntityHierarchy(request),
     getEntityTypeConfig: (type) => entityService.getEntityTypeConfig(type),
+    fileExtension: (type) => entityService.fileExtension(type),
     deserializeEntity: (markdown, entityType) =>
       entityService.deserializeEntity(markdown, entityType),
     // A reference is not access: a service serves bytes only for a record
@@ -2464,6 +2465,10 @@ function entityShapesOf(context: ServicePluginContext): ServiceEntityShapes {
       context.entities.getAdapter(type)?.isSingleton === true,
     bodyTemplate: (type: string) =>
       context.entities.getAdapter(type)?.getBodyTemplate() ?? "",
+    fileExtension: (type: string) =>
+      context.entityService.hasEntityType(type)
+        ? context.entityService.fileExtension(type)
+        : ".md",
     hasBody: (type: string) =>
       context.entities.getAdapter(type)?.hasBody !== false,
     metadataFromFrontmatter: (type: string) =>

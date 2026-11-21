@@ -27,8 +27,10 @@ export type HistoryInput = z.output<typeof historyActionSchema>;
 export async function handleHistory(
   input: HistoryInput,
   gitSync: IGitSync,
+  /** The extension the type's files take in the form the store writes. */
+  extension: ".md" | ".yaml" = ".md",
 ): Promise<ToolResult> {
-  const filePath = `${input.entityType}/${input.id}.md`;
+  const filePath = `${input.entityType}/${input.id}${extension}`;
 
   try {
     if (input.sha) {

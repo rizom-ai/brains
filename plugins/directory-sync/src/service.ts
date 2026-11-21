@@ -280,6 +280,10 @@ export class DirectorySyncService {
       context.jobs,
       this.logger.child("OperationStatus"),
       syncPath,
+      {
+        fileExtension: (entityType: string): string =>
+          context.entityService.fileExtension(entityType),
+      },
     );
     const recovery = createInterruptedPullRecovery({
       operationStatus: this.operationStatus,

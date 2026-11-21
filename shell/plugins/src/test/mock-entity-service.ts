@@ -3,6 +3,8 @@ import {
   entityRevision,
   EntityWriteConflictError,
   normalizeContentVisibility,
+  storedFileExtension,
+  storedFormWrites,
   type BaseEntity,
   type CreateEntityRequest,
   type EntityMutationResult,
@@ -455,6 +457,9 @@ export function createMockEntityService(
       };
     },
     getEntityTypeConfig: store.typeConfig,
+    // The release's form: a YAML type's files are YAML once it writes the next.
+    fileExtension: (type: string) =>
+      storedFileExtension(store.typeConfig(type).storage, storedFormWrites),
     isProjectionOwnedEntity: async () => false,
     releaseProjectionOwnership: async (): Promise<void> => {},
     listPendingEntityExports: async () =>

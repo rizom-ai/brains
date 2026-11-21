@@ -1,3 +1,4 @@
+import { contentOfYamlFile } from "@brains/sdk/internal/entity-runtime";
 import type { RecordConflictRequest } from "@brains/contracts";
 import { computeContentHash } from "@brains/utils/hash";
 import type { MountBase } from "./dav-mounts";
@@ -111,15 +112,21 @@ const INTERFACE_TYPE = "webdav";
  */
 export async function saveEntityFile(
   deps: WriteDeps,
-  request: SaveRequest,
+  sent: SaveRequest,
 ): Promise<WriteOutcome> {
   const extension = posix
-    .extname(request.segments[request.segments.length - 1] ?? "")
+    .extname(sent.segments[sent.segments.length - 1] ?? "")
     .toLowerCase();
   if (IMAGE_EXTENSIONS.includes(extension)) {
-    return saveImageFile(deps, request, extension);
+    return saveImageFile(deps, sent, extension);
   }
-  if (extension !== ".md") {
+  const request = extension === ".yaml" ? asStoredDocument(deps, sent) : sent;
+  if (request === undefined) {
+    return (await parentExists(deps, sent))
+      ? forbidden("No entry can be stored at this path")
+      : noFolder();
+  }
+  if (extension !== ".md" && extension !== ".yaml") {
     return (await parentExists(deps, request))
       ? forbidden("The drive cannot take documents")
       : noFolder();
@@ -141,7 +148,33 @@ export async function saveEntityFile(
   }
   return located
     ? updateEntityFile(deps, request, located)
-    : createEntityFile(deps, request);
+    : createEntityFile(deps, request, extension);
+}
+
+/**
+ * A YAML file sent for a YAML type whose store writes the next form, as
+ * the stored document it is the header of (docs/plans/one-stored-form.md);
+ * none for any other.
+ */
+function asStoredDocument(
+  deps: WriteDeps,
+  request: SaveRequest,
+): SaveRequest | undefined {
+  const entityType = deps.tree.placementAt(
+    request.segments,
+    ".yaml",
+  )?.entityType;
+  if (
+    entityType === undefined ||
+    deps.tree.textExtension(entityType) !== ".yaml"
+  )
+    return undefined;
+  const text = decodeUtf8(request.bytes);
+  if (text === undefined) return request;
+  return {
+    ...request,
+    bytes: new Uint8Array(Buffer.from(contentOfYamlFile(text), "utf8")),
+  };
 }
 
 async function updateEntityFile(
@@ -288,11 +321,12 @@ async function keepAsConflict(
 async function createEntityFile(
   deps: WriteDeps,
   request: SaveRequest,
+  extension: string,
 ): Promise<WriteOutcome> {
   const { writes, tree } = deps;
   const { segments } = request;
   if (!(await parentExists(deps, request))) return noFolder();
-  const placement = tree.placementAt(segments, ".md");
+  const placement = tree.placementAt(segments, extension);
   if (!placement) return forbidden("No entry can be stored at this path");
 
   const document = readDocument(writes, request.bytes, placement.entityType);

@@ -1,3 +1,7 @@
+import {
+  contentOfYamlFile,
+  yamlFileOf,
+} from "@brains/sdk/internal/entity-runtime";
 import type { ServiceEntityMirrorClient } from "@brains/sdk/internal/service-runtime";
 import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
 import { createHash } from "node:crypto";
@@ -68,6 +72,7 @@ export type FileOperationsEntityService = Pick<
   | "hasEntityType"
   | "getEntityTypes"
   | "getEntityTypeConfig"
+  | "fileExtension"
   | "openAsset"
 >;
 
@@ -151,6 +156,7 @@ export class FileOperations {
 
     const isSyncFile =
       entityPath.endsWith(".md") ||
+      (entityPath.endsWith(".yaml") && this.isYamlType(entityType)) ||
       (entityType === "image" && isImageFile(entityPath)) ||
       (entityType === "document" && isDocumentFile(entityPath));
     if (!isSyncFile) return undefined;
@@ -186,6 +192,38 @@ export class FileOperations {
     };
   }
 
+  /** Whether a type stores its records as YAML files in the next form. */
+  isYamlType(entityType: string): boolean {
+    // From the type's config alone: placement never consults the registry.
+    return (
+      this.entityService.getEntityTypeConfig(entityType).storage === "yaml"
+    );
+  }
+
+  /**
+   * Whether a file is an entity's: a markdown file, a YAML file under a
+   * YAML type's folder, or an image or document under its own. A YAML file
+   * under a markdown type's folder is not one and is left alone.
+   */
+  isEntityFile(filePath: string): boolean {
+    if (filePath.endsWith(".md")) return true;
+    const { entityType } = this.parseEntityFromPath(filePath);
+    if (filePath.endsWith(".yaml")) return this.isYamlType(entityType);
+    return (
+      (entityType === "image" && isImageFile(filePath)) ||
+      (entityType === "document" && isDocumentFile(filePath))
+    );
+  }
+
+  /**
+   * A text entity's file as its stored document: a YAML file is the header
+   * of the document it holds (docs/plans/one-stored-form.md).
+   */
+  async readStoredText(filePath: string): Promise<string> {
+    const text = await readFile(filePath, "utf-8");
+    return filePath.endsWith(".yaml") ? contentOfYamlFile(text) : text;
+  }
+
   async readEntity(filePath: string, maxBytes?: number): Promise<RawEntity> {
     const { fullPath, entityType, id, created, updated } =
       await this.statEntityFile(filePath, maxBytes);
@@ -204,7 +242,7 @@ export class FileOperations {
         metadata = await this.readDocumentSidecar(fullPath, filePath);
       }
     } else {
-      content = await readFile(fullPath, "utf-8");
+      content = await this.readStoredText(fullPath);
     }
 
     const result: RawEntity = {
@@ -256,7 +294,7 @@ export class FileOperations {
     this.assertPlacement(
       entity.entityType,
       entity.id,
-      getEntityFileExtension(entity),
+      this.entityFileExtension(entity),
     );
   }
 
@@ -287,7 +325,11 @@ export class FileOperations {
    */
   async writeEntity(entity: BaseEntity): Promise<void> {
     this.assertEntityPlacement(entity);
-    const filePath = await this.resolveEntityFilePath(entity);
+    // A YAML type's record is written in the extension the store writes,
+    // whichever file it was read from.
+    const filePath = this.isYamlType(entity.entityType)
+      ? this.getEntityFilePath(entity)
+      : await this.resolveEntityFilePath(entity);
     const isImage = entity.entityType === "image";
     const isDocument = entity.entityType === "document";
 
@@ -385,7 +427,11 @@ export class FileOperations {
         return;
       }
     } else {
-      const contentToWrite = this.entityService.serializeEntity(entity);
+      const serialized = this.entityService.serializeEntity(entity);
+      // A YAML type's file is its document's header.
+      const contentToWrite = filePath.endsWith(".yaml")
+        ? yamlFileOf(serialized)
+        : serialized;
 
       if (await pathExists(filePath)) {
         const currentContent = await readFile(filePath, "utf-8");
@@ -506,7 +552,15 @@ export class FileOperations {
     return this.getFilePath(
       entity.id,
       entity.entityType,
-      getEntityFileExtension(entity),
+      this.entityFileExtension(entity),
+    );
+  }
+
+  /** The extension an entity's file takes in the form the store writes. */
+  private entityFileExtension(entity: BaseEntity): string {
+    return getEntityFileExtension(
+      entity,
+      this.entityService.fileExtension(entity.entityType),
     );
   }
 
@@ -517,6 +571,11 @@ export class FileOperations {
    */
   getEntityFileCandidates(entity: BaseEntity): string[] {
     const filePath = this.getEntityFilePath(entity);
+    // A YAML type's file may still be in the other form's extension.
+    if (this.isYamlType(entity.entityType)) {
+      const other = filePath.endsWith(".yaml") ? ".md" : ".yaml";
+      return [filePath, this.getFilePath(entity.id, entity.entityType, other)];
+    }
     if (entity.entityType !== "image") return [filePath];
     const markdownPath = this.getFilePath(entity.id, entity.entityType, ".md");
     return filePath === markdownPath ? [filePath] : [filePath, markdownPath];
@@ -552,7 +611,11 @@ export class FileOperations {
       return [filePath, getDocumentSidecarPath(filePath)];
     }
     const extensions =
-      entityType === "image" ? [...IMAGE_EXTENSIONS, ".md"] : [".md"];
+      entityType === "image"
+        ? [...IMAGE_EXTENSIONS, ".md"]
+        : this.isYamlType(entityType)
+          ? [".md", ".yaml"]
+          : [".md"];
     return extensions.map((extension) =>
       this.getFilePath(entityId, entityType, extension),
     );

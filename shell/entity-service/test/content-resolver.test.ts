@@ -159,6 +159,7 @@ Some text
         countEntities: mock(() => Promise.resolve(0)),
         getEntityCounts: mock(() => Promise.resolve([])),
         getEntityTypeConfig: mock(() => ({})),
+        fileExtension: mock((): ".md" | ".yaml" => ".md"),
         getWeightMap: mock(() => ({})),
       };
     });

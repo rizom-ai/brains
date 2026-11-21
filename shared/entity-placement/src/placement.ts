@@ -147,16 +147,21 @@ export function resolveEntityPlacement(
   };
 }
 
-/** The file extension an entity is stored under. */
+/**
+ * The file extension an entity is stored under. A text type's is the one
+ * its store writes: `.md`, or `.yaml` for a YAML type once the store writes
+ * the next form (docs/plans/one-stored-form.md).
+ */
 export function getEntityFileExtension(
   entity: Pick<BaseEntity, "entityType" | "metadata" | "content">,
+  textExtension: ".md" | ".yaml" = ".md",
 ): string {
   if (entity.entityType === "document") {
     return ".pdf";
   }
 
   if (entity.entityType !== "image") {
-    return ".md";
+    return textExtension;
   }
 
   const format = readString(entity.metadata, "format");
@@ -171,6 +176,7 @@ export function getEntityFileExtension(
 function stripEntityExtension(filename: string): string {
   const ext = posix.extname(filename).toLowerCase();
   return ext === ".md" ||
+    ext === ".yaml" ||
     IMAGE_EXTENSIONS.includes(ext) ||
     DOCUMENT_EXTENSIONS.includes(ext)
     ? filename.slice(0, -ext.length)

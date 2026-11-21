@@ -680,6 +680,7 @@ describe("a first-party service's read-only view of the entity service", () => {
     expect(Object.keys(view).sort()).toEqual([
       "countEntities",
       "deserializeEntity",
+      "fileExtension",
       "getEntity",
       "getEntityCounts",
       "getEntityRaw",

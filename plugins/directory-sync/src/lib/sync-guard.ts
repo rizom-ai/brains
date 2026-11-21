@@ -1,4 +1,3 @@
-import { readFile } from "node:fs/promises";
 import { relative } from "node:path";
 import {
   CONFLICT_ENTITY_TYPE,
@@ -41,6 +40,7 @@ export interface SyncGuardDeps {
     | "writeEntity"
     | "resolveEntityFilePath"
     | "fileExists"
+    | "readStoredText"
     | "parseEntityFromPath"
   >;
   syncPath: string;
@@ -92,7 +92,7 @@ export class SyncGuard {
       return undefined;
     const filePath = await fileOperations.resolveEntityFilePath(entity);
     if (!(await fileOperations.fileExists(filePath))) return undefined;
-    return computeContentHash(await readFile(filePath, "utf-8"));
+    return computeContentHash(await fileOperations.readStoredText(filePath));
   }
 
   /**
@@ -202,7 +202,9 @@ export class SyncGuard {
     if (base === undefined || base === entity.contentHash) return false;
     const filePath = await fileOperations.resolveEntityFilePath(entity);
     if (!(await fileOperations.fileExists(filePath))) return false;
-    const fileHash = computeContentHash(await readFile(filePath, "utf-8"));
+    const fileHash = computeContentHash(
+      await fileOperations.readStoredText(filePath),
+    );
     const lastSeen =
       (await conflicts.base.fileBytes(entity.entityType, entity.id)) ?? base;
     if (

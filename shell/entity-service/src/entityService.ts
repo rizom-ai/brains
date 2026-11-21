@@ -95,6 +95,7 @@ import {
   type StoredFormRewrite,
 } from "./entity-mutations";
 import { storedFormWrites, type StoredForm } from "./stored-form";
+import { storedFileExtension } from "./yaml-storage";
 import {
   entityMutationReceiptKeySchema,
   type EntityMutationReceipt,
@@ -1353,6 +1354,13 @@ export class EntityService implements IEntityService {
 
   public hasEntityType(type: string): boolean {
     return this.entityRegistry.hasEntityType(type);
+  }
+
+  public fileExtension(type: string): ".md" | ".yaml" {
+    return storedFileExtension(
+      this.entityRegistry.getEntityTypeConfig(type).storage,
+      this.entitySerializer.storedForm,
+    );
   }
 
   public getEntityTypeConfig(type: string): EntityTypeConfig {

@@ -215,6 +215,11 @@ export interface ServiceEntityShapes {
   isSingleton(type: string): boolean;
   /** The body a new record of the type starts with; empty when unknown. */
   bodyTemplate(type: string): string;
+  /**
+   * The extension the type's files take in the form the store writes:
+   * `.yaml` for a YAML type once it writes the next form, else `.md`.
+   */
+  fileExtension(type: string): ".md" | ".yaml";
   /** Whether the type's records have a body; true when unknown. */
   hasBody(type: string): boolean;
   /** Whether a frontmatter write carries into the type's metadata. */
@@ -832,6 +837,8 @@ export interface ServiceEntityReads {
   queryEntityHierarchy: IEntityService["queryEntityHierarchy"];
   /** A registered type's config. */
   getEntityTypeConfig: IEntityService["getEntityTypeConfig"];
+  /** The extension a text type's files take in the form the store writes. */
+  fileExtension: IEntityService["fileExtension"];
   /** A document parsed as its type's adapter reads it, written nowhere. */
   deserializeEntity: IEntityService["deserializeEntity"];
   /**

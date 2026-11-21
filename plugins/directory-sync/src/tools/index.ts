@@ -104,7 +104,11 @@ export function createDirectorySyncTools(
         );
       }
 
-      return handleHistory(parsed, gitSync);
+      return handleHistory(
+        parsed,
+        gitSync,
+        pluginContext.entityService.fileExtension(parsed.entityType),
+      );
     },
     {
       visibility: "admin",

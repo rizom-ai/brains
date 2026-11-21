@@ -40,6 +40,13 @@ export function shouldProcessPath(path: string, syncPath: string): boolean {
   const firstSegment = relativePath.split("/")[0];
   if (firstSegment?.startsWith("_")) return false;
   if (path.endsWith(".md")) return true;
+  // A YAML type's file; the import leaves one under any other folder alone.
+  if (
+    path.endsWith(".yaml") &&
+    firstSegment !== undefined &&
+    relativePath.includes("/")
+  )
+    return true;
   return isImageInImageDir(path, syncPath);
 }
 

@@ -111,6 +111,7 @@ describe("a declared type's frontmatter, as its class declared it", () => {
           registry.getEffectiveFrontmatterSchema(type),
         isSingleton: (type) => registry.getAdapter(type).isSingleton === true,
         bodyTemplate: (type) => registry.getAdapter(type).getBodyTemplate(),
+        fileExtension: (): ".md" | ".yaml" => ".md",
       },
       dataDir: "/vault",
       config: { baseFolder: "_obsidian" },

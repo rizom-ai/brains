@@ -1,3 +1,4 @@
+import type { StorageFormat } from "./yaml-storage";
 import type { StoredForm } from "./stored-form";
 import type { EntityTypeClassification } from "./entity-type-classification";
 import type { GroupingProjectionTarget } from "./grouping-projection-state";
@@ -766,6 +767,12 @@ export interface EntityTypeConfig {
   includeInBroadSearch?: boolean;
   /** Binary storage policy. Absence means text content. */
   binaryStorage?: "data-url" | "asset";
+  /**
+   * How a text type's records are stored as files: markdown (the default),
+   * or YAML, for a type whose record is data with no body; its files are
+   * YAML once the store writes the next form (docs/plans/one-stored-form.md).
+   */
+  storage?: StorageFormat;
   /** Default system_list order, applied by the entity service before pagination. */
   defaultSort?: SortField[];
   /** Accepts upload text extraction through system_create extract-markdown. */
@@ -1254,6 +1261,12 @@ export interface ICoreEntityService {
 
   /** Get configuration for a specific entity type */
   getEntityTypeConfig(type: string): EntityTypeConfig;
+
+  /**
+   * The extension a text type's files take in the form this store writes:
+   * `.yaml` for a YAML type once it writes the next form, else `.md`.
+   */
+  fileExtension(type: string): ".md" | ".yaml";
 
   /** Get weight map for all registered entity types with non-default weights */
   getWeightMap(): Record<string, number>;

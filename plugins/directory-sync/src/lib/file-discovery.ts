@@ -8,6 +8,34 @@ import { pathExists } from "./fs-utils";
 
 export interface EntityTypeRegistry {
   hasEntityType(type: string): boolean;
+  /** A type's storage; a YAML type's folder also holds `.yaml` files. */
+  getEntityTypeConfig?(type: string): { storage?: "markdown" | "yaml" };
+  /** The extension the store writes a type's files in. */
+  fileExtension?(type: string): ".md" | ".yaml";
+}
+
+/**
+ * One file per record: where a YAML type's record has both a `.md` and a
+ * `.yaml` file, the one in the extension the store writes is its file and
+ * the other is left alone (docs/plans/one-stored-form.md, From .md to .yaml).
+ */
+function oneFilePerRecord(
+  files: readonly string[],
+  entityRegistry: EntityTypeRegistry,
+): string[] {
+  const present = new Set(files);
+  return files.filter((file) => {
+    const [type] = file.split("/");
+    if (type === undefined) return true;
+    const other = file.endsWith(".yaml")
+      ? `${file.slice(0, -".yaml".length)}.md`
+      : file.endsWith(".md")
+        ? `${file.slice(0, -".md".length)}.yaml`
+        : undefined;
+    if (other === undefined || !present.has(other)) return true;
+    const written = entityRegistry.fileExtension?.(type) ?? ".md";
+    return file.endsWith(written);
+  });
 }
 
 /**
@@ -172,6 +200,7 @@ async function findFiles(
     relativePath: string = "",
     inImageDir: boolean = false,
     inDocumentDir: boolean = false,
+    inYamlDir: boolean = false,
   ): Promise<void> => {
     const entries = await readdir(currentPath, { withFileTypes: true });
     for (const entry of entries) {
@@ -183,6 +212,8 @@ async function findFiles(
         !isDocumentSidecarFile(entry.name)
       ) {
         if (entry.name.endsWith(".md")) {
+          files.push(rel);
+        } else if (inYamlDir && entry.name.endsWith(".yaml")) {
           files.push(rel);
         } else if (
           opts.includeImages &&
@@ -205,16 +236,20 @@ async function findFiles(
         const entryPath = join(currentPath, entry.name);
         const isImgDir = entry.name === "image" && relativePath === "";
         const isDocDir = entry.name === "document" && relativePath === "";
+        const isYamlDir =
+          relativePath === "" &&
+          entityRegistry.getEntityTypeConfig?.(entry.name).storage === "yaml";
         await walk(
           entryPath,
           rel,
           inImageDir || isImgDir,
           inDocumentDir || isDocDir,
+          inYamlDir || isYamlDir,
         );
       }
     }
   };
 
   await walk(syncPath);
-  return files;
+  return oneFilePerRecord(files, entityRegistry);
 }

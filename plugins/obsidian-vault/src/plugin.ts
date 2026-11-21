@@ -57,7 +57,11 @@ export interface ObsidianSyncInput {
   /** The shape of every registered entity type, as the vault reads it. */
   shapes: Pick<
     ServiceEntityShapes,
-    "types" | "frontmatterSchema" | "isSingleton" | "bodyTemplate"
+    | "types"
+    | "frontmatterSchema"
+    | "isSingleton"
+    | "bodyTemplate"
+    | "fileExtension"
   >;
   dataDir: string;
   config: ObsidianVaultConfig;
@@ -133,6 +137,13 @@ export function syncObsidianVault(
   }[] = [];
 
   for (const entityType of targetTypes) {
+    // Obsidian hides a YAML file: a YAML type's records are edited in
+    // Studio or a text editor (docs/plans/one-stored-form.md).
+    if (shapes.fileExtension(entityType) === ".yaml") {
+      logger.debug(`Skipping ${entityType}: its files are YAML`);
+      skipped.push(entityType);
+      continue;
+    }
     const schema = shapes.frontmatterSchema(entityType);
     if (!schema) {
       logger.debug(`Skipping ${entityType}: no frontmatter schema`);

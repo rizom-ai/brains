@@ -1,3 +1,4 @@
+import { yamlFileOf } from "@brains/sdk/internal/entity-runtime";
 import {
   buildEntityPath,
   containmentOf,
@@ -18,6 +19,7 @@ export type DavReader = Pick<
   ServiceEntityReads,
   | "getEntityTypes"
   | "getEntityTypeConfig"
+  | "fileExtension"
   | "getEntityCounts"
   | "queryEntityHierarchy"
   | "getEntityRaw"
@@ -54,6 +56,7 @@ export function storesBytes(entityType: string): boolean {
 }
 const CONTENT_TYPES: Record<string, string> = {
   ".md": "text/plain; charset=utf-8",
+  ".yaml": "text/plain; charset=utf-8",
   ".png": "image/png",
   ".jpg": "image/jpeg",
   ".jpeg": "image/jpeg",
@@ -235,6 +238,11 @@ export class DavTree {
    * an id whose placement is exactly that path. Anything else cannot be
    * exported to `brain-data/`, so it cannot be created here either.
    */
+  /** The extension a text type's files take in the form the store writes. */
+  textExtension(entityType: string): ".md" | ".yaml" {
+    return this.reader.fileExtension(entityType);
+  }
+
   placementAt(
     segments: string[],
     extension: string,
@@ -258,7 +266,10 @@ export class DavTree {
 
   /** The file an entity is, or nothing when it has no place or no bytes yet. */
   private async fileOf(entity: BaseEntity): Promise<DavFile | undefined> {
-    const extension = getEntityFileExtension(entity);
+    const extension = getEntityFileExtension(
+      entity,
+      this.reader.fileExtension(entity.entityType),
+    );
     const placement = resolveEntityPlacement(
       entity.entityType,
       entity.id,
@@ -282,7 +293,9 @@ export class DavTree {
       modified: new Date(entity.updated),
     };
     if (!BINARY_TYPES.has(entity.entityType) || extension === ".md") {
-      const text = entity.content;
+      // A YAML type's file is its document's header.
+      const text =
+        extension === ".yaml" ? yamlFileOf(entity.content) : entity.content;
       return {
         ...base,
         size: Buffer.byteLength(text),

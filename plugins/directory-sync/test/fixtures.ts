@@ -128,6 +128,8 @@ export function createMockDirectorySync(
     importEntities: mock(async () => emptyImportResult()),
     removeOrphanedEntities: mock(async () => ({ deleted: 0, errors: [] })),
     fileOps: {
+      isEntityFile: mock(() => true),
+      readStoredText: mock(async () => ""),
       readEntity: mock(async (): Promise<RawEntity> => ({
         entityType: "topic",
         id: "test",
