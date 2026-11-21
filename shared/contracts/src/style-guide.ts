@@ -79,14 +79,6 @@ export const DEFAULT_STYLE_GUIDE: StyleGuide = {
   guidance: "",
 };
 
-export function parseStyleGuideContent(content: string): StyleGuide {
-  const parsed = parseMarkdown(content);
-  return {
-    ...styleGuideFrontmatterSchema.parse(parsed.frontmatter),
-    guidance: parsed.content,
-  };
-}
-
 function addList(lines: string[], label: string, values?: string[]): void {
   if (values && values.length > 0) {
     lines.push(`${label}: ${values.join(", ")}`);

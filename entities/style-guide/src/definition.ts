@@ -2,6 +2,8 @@ import {
   DEFAULT_STYLE_GUIDE,
   styleGuideFrontmatterSchema,
 } from "@brains/contracts";
+import { bodyFieldsCodec } from "@brains/sdk/internal/entity-runtime";
+import { STYLE_GUIDE_BODY_FIELDS, styleGuideBodyMappings } from "./stored-form";
 import {
   defineEntity,
   defineEntityPackage,
@@ -30,6 +32,14 @@ export const styleGuide: EntityDefinition<
   metadata: styleGuideFrontmatterSchema,
   singleton: true,
   hasBody: true,
+  // Its next form states the structured guidance as body sections above
+  // the free-form guidance.
+  markdown: bodyFieldsCodec({
+    metadata: styleGuideFrontmatterSchema,
+    bodyFields: STYLE_GUIDE_BODY_FIELDS,
+    mappings: styleGuideBodyMappings,
+    place: "above",
+  }),
   config: { embeddable: false },
   seed: {
     on: "startup-content-settled",

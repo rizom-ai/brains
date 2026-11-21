@@ -311,7 +311,6 @@ export {
   formatStyleGuidance,
   formatVisualGuidance,
   formatVoiceGuidance,
-  parseStyleGuideContent,
   recordBody,
   recordFields,
   storedDocumentParts,
