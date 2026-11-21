@@ -1,3 +1,4 @@
+import { contentOfYamlFile, yamlFileOf } from "@brains/entity-service";
 import { afterEach, describe, expect, test } from "bun:test";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -40,6 +41,8 @@ interface Golden {
   markdown: string;
   /** The form a later release writes, for a type that moves to one. */
   next?: string;
+  /** A YAML type's next file, whose header the next stored document is. */
+  nextYaml?: string;
 }
 
 const goldens: Golden[] = readdirSync(GOLDEN)
@@ -59,7 +62,16 @@ const goldens: Golden[] = readdirSync(GOLDEN)
     ...(existsSync(join(GOLDEN, type, "next.md")) && {
       next: readFileSync(join(GOLDEN, type, "next.md"), "utf8"),
     }),
+    ...nextYamlOf(type),
   }));
+
+/** A YAML type's next file, and the stored document it is the header of. */
+function nextYamlOf(type: string): { nextYaml?: string; next?: string } {
+  const path = join(GOLDEN, type, "next.yaml");
+  if (!existsSync(path)) return {};
+  const nextYaml = readFileSync(path, "utf8");
+  return { nextYaml, next: contentOfYamlFile(nextYaml) };
+}
 
 function header(markdown: string): Record<string, unknown> {
   const { data } = readMarkdownFrontmatter(markdown);
@@ -247,6 +259,18 @@ const moving = goldens.filter(
 describe.each(moving.map((golden) => [golden.type, golden] as const))(
   "%s, from its current form to its next",
   (_, golden) => {
+    test.skipIf(golden.nextYaml === undefined)(
+      "a YAML type's next file is the golden, and only the next form's",
+      async () => {
+        const opened_ = await opened("new");
+        const written = await imported(opened_, golden, golden.markdown);
+        expect(yamlFileOf(written)).toBe(golden.nextYaml ?? "");
+        expect(opened_.service.fileExtension(golden.type)).toBe(".yaml");
+        const old = await opened("old");
+        expect(old.service.fileExtension(golden.type)).toBe(".md");
+      },
+    );
+
     test("both forms decode to the same fields", async () => {
       const { service } = await opened();
       expect(
@@ -274,13 +298,18 @@ describe.each(moving.map((golden) => [golden.type, golden] as const))(
       expect(await imported(opened_, golden, golden.next)).toBe(golden.next);
     });
 
-    test("the next form's header holds only Obsidian properties", () => {
-      expect(
-        Object.entries(header(golden.next)).filter(
-          ([, value]) => !isPropertyValue(value),
-        ),
-      ).toEqual([]);
-    });
+    // A YAML file is data, edited as text; only a markdown header is shown
+    // as properties.
+    test.skipIf(golden.nextYaml !== undefined)(
+      "the next form's header holds only Obsidian properties",
+      () => {
+        expect(
+          Object.entries(header(golden.next)).filter(
+            ([, value]) => !isPropertyValue(value),
+          ),
+        ).toEqual([]);
+      },
+    );
 
     test("the rewrite on start brings a row to the next form once, quietly", async () => {
       const opened_ = await opened("new");
