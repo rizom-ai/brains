@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.756
+
+### Patch Changes
+
+- [#1015](https://github.com/rizom-ai/brains/pull/1015) [`1107d91`](https://github.com/rizom-ai/brains/commit/1107d917aa2b771063623ccb6edabb21001c72d7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Every text type is held to one stored form by a contract test that runs each one through import, write-back, re-spacing, reordering and unknown keys against a golden file. A type whose header is strict (contact requests, quiz results, mail items, forms) refuses a file with a key it does not name instead of storing it without that key. The `writesInDocumentOrder` marker is gone: every type keeps the key order of the document it replaces. Codecs no longer trim their own body; the serializer frames every write, so a body that opens with an indented line keeps its indentation.
+
 ## 0.2.0-alpha.755
 
 ### Patch Changes
