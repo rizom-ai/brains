@@ -87,13 +87,17 @@ export const seriesBodySchema: z.ZodObject<{
 export type SeriesBody = z.output<typeof seriesBodySchema>;
 
 /**
- * Create formatter for series content body
+ * Create formatter for series content body. The next stored form
+ * (docs/plans/one-stored-form.md) writes it in the compact layout, without
+ * the title line; that layout reads the sectioned one too.
  */
 export function createSeriesBodyFormatter(
   title: string,
+  layout: "sections" | "compact" = "sections",
 ): StructuredContentFormatter<SeriesBody> {
   return new StructuredContentFormatter(seriesBodySchema, {
     title,
+    layout,
     mappings: [{ key: "description", label: "Description", type: "string" }],
   });
 }
@@ -104,7 +108,7 @@ export function createSeriesBodyFormatter(
  */
 export function parseSeriesBody(title: string, body: string): SeriesBody {
   try {
-    return createSeriesBodyFormatter(title).parse(body);
+    return createSeriesBodyFormatter(title, "compact").parse(body);
   } catch {
     // A malformed body has no description to read, which is the same answer
     // as a body without one.
