@@ -1,10 +1,5 @@
 import { defineEntity, type EntityDefinition } from "@brains/sdk/entities";
-import {
-  withFrontmatterSchema,
-  storedFormCodec,
-  storedFormWrites,
-  withWrittenFrontmatterSchema,
-} from "@brains/sdk/internal/entity-runtime";
+import { storedFormCodec } from "@brains/sdk/internal/entity-runtime";
 import {
   StructuredContentFormatter,
   type FieldMapping,
@@ -36,9 +31,6 @@ const flatCtaShape = {
 const newHeaderSchema = siteInfoBodySchema
   .omit({ cta: true, sections: true, translations: true })
   .extend(flatCtaShape);
-
-/** Every header key either form writes, so neither leaves the other's behind. */
-const bothFormsHeaderSchema = siteInfoBodySchema.extend(flatCtaShape);
 
 const bodySchema = z.object({
   subtitle: z.string().optional(),
@@ -182,7 +174,7 @@ export type SiteInfoDefinition = EntityDefinition<
  * stays out of embeddings and projections.
  */
 export function siteInfoDefinition(): SiteInfoDefinition {
-  const definition = defineEntity({
+  return defineEntity({
     type: SITE_INFO,
     classification: "system",
     purpose: "Singleton configuration describing the published site.",
@@ -198,6 +190,7 @@ export function siteInfoDefinition(): SiteInfoDefinition {
         old: ({ metadata }) => ({ content: "", frontmatter: metadata }),
         new: ({ metadata }) => encodeNewForm(metadata),
       },
+      header: { old: siteInfoBodySchema, new: newHeaderSchema },
     }),
     config: {
       embeddable: false,
@@ -205,11 +198,4 @@ export function siteInfoDefinition(): SiteInfoDefinition {
       projectionSourceRole: "excluded",
     },
   });
-  // Studio and the Obsidian vault present the header this release writes.
-  return withWrittenFrontmatterSchema(
-    storedFormWrites === "new"
-      ? withFrontmatterSchema(definition, newHeaderSchema)
-      : definition,
-    bothFormsHeaderSchema,
-  );
 }

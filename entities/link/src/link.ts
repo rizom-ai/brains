@@ -1,18 +1,12 @@
 import { defineEntity, type EntityDefinition } from "@brains/sdk/entities";
-import {
-  withUrlRoute,
-  withWrittenFrontmatterSchema,
-} from "@brains/sdk/internal/entity-runtime";
+import { withUrlRoute } from "@brains/sdk/internal/entity-runtime";
 import { linkAtproto } from "./atproto-projection";
 import {
   linkFromContent,
   linkFromPrompt,
   linkFromUrl,
 } from "./lib/create-from-url";
-import {
-  linkMarkdown,
-  linkWrittenFrontmatterSchema,
-} from "./lib/link-markdown";
+import { linkMarkdown } from "./lib/link-markdown";
 import { linkMetadataSchema } from "./schemas/link";
 import { linkExtractionTemplate } from "./templates/extraction-template";
 import { linkDetailTemplate } from "./templates/link-detail";
@@ -28,30 +22,27 @@ import { linkListTemplate } from "./templates/link-list";
  */
 export const link: EntityDefinition<"link", typeof linkMetadataSchema> =
   withUrlRoute(
-    withWrittenFrontmatterSchema(
-      defineEntity({
-        type: "link",
-        purpose:
-          "A saved external URL or web resource captured for later reference.",
-        metadata: linkMetadataSchema,
-        markdown: linkMarkdown,
-        // domain is the URL's hostname; readers take it from url.
-        config: {
-          projectionSourceRole: "supporting",
-          retiredFields: ["domain"],
-        },
-        templates: {
-          extraction: linkExtractionTemplate,
-          "link-list": linkListTemplate,
-          "link-detail": linkDetailTemplate,
-        },
-        create: {
-          fromContent: linkFromContent(() => link),
-          fromPrompt: linkFromPrompt,
-        },
-        atproto: linkAtproto,
-      }),
-      linkWrittenFrontmatterSchema,
-    ),
+    defineEntity({
+      type: "link",
+      purpose:
+        "A saved external URL or web resource captured for later reference.",
+      metadata: linkMetadataSchema,
+      markdown: linkMarkdown,
+      // domain is the URL's hostname; readers take it from url.
+      config: {
+        projectionSourceRole: "supporting",
+        retiredFields: ["domain"],
+      },
+      templates: {
+        extraction: linkExtractionTemplate,
+        "link-list": linkListTemplate,
+        "link-detail": linkDetailTemplate,
+      },
+      create: {
+        fromContent: linkFromContent(() => link),
+        fromPrompt: linkFromPrompt,
+      },
+      atproto: linkAtproto,
+    }),
     linkFromUrl,
   );

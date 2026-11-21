@@ -1004,7 +1004,6 @@ export {
   bodyUnderHeader,
   type StoredDocument,
   withFrontmatterSchema,
-  withWrittenFrontmatterSchema,
   storedFormCodec,
   type EntityAnswerContext,
   type EntityAnswerDeclaration,

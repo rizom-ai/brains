@@ -1314,28 +1314,33 @@ type CodecEncode<TMetadataSchema extends EntityMetadataSchema> = NonNullable<
   EntityMarkdownCodec<TMetadataSchema>["encode"]
 >;
 
-/** The header keys that stand for one another, per form-reading codec. */
-const formPlaces = new WeakMap<object, readonly (readonly string[])[]>();
+/** What a codec that reads two stored forms states about each. */
+interface StoredForms {
+  readonly encode: Record<StoredForm, CodecEncode<EntityMetadataSchema>>;
+  readonly header?: Readonly<Record<StoredForm, z.ZodObject>> | undefined;
+  readonly places?: readonly (readonly string[])[] | undefined;
+}
 
-/** The encoders of the codecs that write either stored form. */
-const formEncoders = new WeakMap<
-  object,
-  Record<StoredForm, CodecEncode<EntityMetadataSchema>>
->();
+const storedForms = new WeakMap<object, StoredForms>();
 
 /**
  * The codec of a first-party type that reads two stored forms
  * (docs/plans/one-stored-form.md): one `decode` reads a file in either, and
  * `encode` names the encoder for each. The store hands the codec the form
  * it writes; without one, the codec writes the form this release writes.
- * Pair it with `withWrittenFrontmatterSchema`, so neither form leaves the
- * other's header keys behind.
  */
 export function storedFormCodec<
   TMetadataSchema extends EntityMetadataSchema,
 >(options: {
   readonly decode: EntityMarkdownCodec<TMetadataSchema>["decode"];
   readonly encode: Readonly<Record<StoredForm, CodecEncode<TMetadataSchema>>>;
+  /**
+   * Each form's header. The type presents the one this release writes, to
+   * Studio and the Obsidian vault, and owns the keys of both, so writing
+   * one form after reading the other leaves none of the other's behind.
+   * Without it, both forms' header is the type's metadata.
+   */
+  readonly header?: Readonly<Record<StoredForm, z.ZodObject>>;
   /**
    * Header keys that stand for one another across the two forms, each group
    * one place in the header: a file converted to the other form keeps the
@@ -1347,16 +1352,19 @@ export function storedFormCodec<
     decode: options.decode,
     encode: options.encode[storedFormWrites],
   };
-  formEncoders.set(codec, options.encode);
-  if (options.places) formPlaces.set(codec, options.places);
+  storedForms.set(codec, {
+    encode: options.encode,
+    header: options.header,
+    places: options.places,
+  });
   return codec;
 }
 
-/** The header keys a form-reading codec says stand for one another. */
-export function headerKeyPlacesOf(
+/** What a codec states about the two stored forms it reads, if it reads two. */
+export function storedFormsOf(
   codec: object | undefined,
-): readonly (readonly string[])[] | undefined {
-  return codec ? formPlaces.get(codec) : undefined;
+): StoredForms | undefined {
+  return codec ? storedForms.get(codec) : undefined;
 }
 
 /** The encoder a codec writes `form` with: its own when it reads one form. */
@@ -1364,8 +1372,8 @@ export function encoderFor<TMetadataSchema extends EntityMetadataSchema>(
   codec: EntityMarkdownCodec<TMetadataSchema>,
   form: StoredForm | undefined,
 ): EntityMarkdownCodec<TMetadataSchema>["encode"] {
-  const encoders = formEncoders.get(codec);
-  return encoders && form ? encoders[form] : codec.encode;
+  const forms = storedForms.get(codec);
+  return forms && form ? forms.encode[form] : codec.encode;
 }
 
 /** The stored-document codecs whose read is the document as written. */
@@ -1437,33 +1445,6 @@ export function frontmatterSchemaOf(
   definition: object,
 ): z.ZodObject | undefined {
   const schema: unknown = Reflect.get(definition, frontmatterSchemaKey);
-  return schema instanceof z.ZodObject ? schema : undefined;
-}
-
-const writtenFrontmatterSchemaKey = Symbol("rizom.written-frontmatter-schema");
-
-/**
- * A first-party definition that reads two stored forms states every header
- * key either form writes (docs/plans/one-stored-form.md): the serializer
- * treats them all as the type's own, so writing one form after reading the
- * other leaves none of the other's keys behind, and none is reported as a
- * key the type does not name. Without it, the keys a type writes are its
- * metadata's.
- */
-export function withWrittenFrontmatterSchema<
-  TDefinition extends AnyEntityDefinition,
->(definition: TDefinition, schema: z.ZodObject): TDefinition {
-  return Object.freeze({
-    ...definition,
-    [writtenFrontmatterSchemaKey]: schema,
-  });
-}
-
-/** The written frontmatter schema a definition states, if it states one. */
-export function writtenFrontmatterSchemaOf(
-  definition: object,
-): z.ZodObject | undefined {
-  const schema: unknown = Reflect.get(definition, writtenFrontmatterSchemaKey);
   return schema instanceof z.ZodObject ? schema : undefined;
 }
 

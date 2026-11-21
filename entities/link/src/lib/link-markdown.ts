@@ -42,11 +42,12 @@ function linkNextFrontmatter(metadata: LinkMetadata): Record<string, unknown> {
   };
 }
 
-/** Every header key either form writes: the nested source and its flat keys. */
-export const linkWrittenFrontmatterSchema: z.ZodObject =
-  linkFrontmatterSchema.extend({
-    sourceRef: z.string().optional(),
-    sourceLabel: z.string().optional(),
+/** The next form's header: the source as two flat keys. */
+const linkNextHeaderSchema = linkFrontmatterSchema
+  .omit({ source: true })
+  .extend({
+    sourceRef: z.string().meta({ studioWidget: "provenance" }),
+    sourceLabel: z.string().meta({ studioWidget: "provenance" }),
   });
 
 /**
@@ -72,6 +73,7 @@ export const linkMarkdown: EntityMarkdownCodec<typeof linkMetadataSchema> =
         }),
       };
     },
+    header: { old: linkFrontmatterSchema, new: linkNextHeaderSchema },
     places: [["source", "sourceRef", "sourceLabel"]],
     // A whole document handed in has had its frontmatter decoded into the
     // metadata already; the body is written as the adapter wrote it.

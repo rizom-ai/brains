@@ -30,7 +30,6 @@ export {
   bodyUnderHeader,
   type StoredDocument,
   withFrontmatterSchema,
-  withWrittenFrontmatterSchema,
   storedFormCodec,
   storedFormWrites,
   type StoredForm,
