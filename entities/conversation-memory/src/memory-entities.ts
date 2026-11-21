@@ -1,5 +1,8 @@
 import { defineEntity, z, type EntityDefinition } from "@brains/sdk/entities";
-import { storedDocumentCodec } from "@brains/sdk/internal/entity-runtime";
+import {
+  storedDocumentCodec,
+  storedFormCodec,
+} from "@brains/sdk/internal/entity-runtime";
 import {
   ACTION_ITEM_ENTITY_TYPE,
   ACTION_ITEM_RETIRED_FIELDS,
@@ -8,12 +11,19 @@ import {
   actionItemFrontmatter,
   actionItemMetadataSchema,
   actionItemStoredMetadataSchema,
+  readMemoryPeople,
+  writeMemoryPeople,
 } from "@brains/action-items";
 import {
   DECISION_RETIRED_FIELDS,
   decisionMetadataSchema,
 } from "./schemas/conversation-memory";
 import { DECISION_ENTITY_TYPE } from "./lib/constants";
+import {
+  readTimeRange,
+  timeRangeHeader,
+  timeRangeHeaderShape,
+} from "./lib/time-range-header";
 
 /** An entry is named by its body heading; its id is a reference. */
 function bodyHeading(content: string): string | undefined {
@@ -21,10 +31,41 @@ function bodyHeading(content: string): string | undefined {
   return heading !== undefined && heading.length > 0 ? heading : undefined;
 }
 
+/** The people a decision names, each list under its heading. */
+const DECISION_PEOPLE = [
+  { key: "decidedBy", label: "Decided by" },
+  { key: "mentionedBy", label: "Mentioned by" },
+] as const;
+
+const peopleIndexShape = {
+  decidedBy: z.array(z.string()).optional().meta({ studioWidget: "people" }),
+  decidedByAliases: z
+    .array(z.string())
+    .optional()
+    .meta({ studioWidget: "hidden" }),
+  mentionedBy: z.array(z.string()).optional().meta({ studioWidget: "people" }),
+  mentionedByAliases: z
+    .array(z.string())
+    .optional()
+    .meta({ studioWidget: "hidden" }),
+};
+
+/**
+ * A decision's next header (docs/plans/one-stored-form.md): its time range
+ * as two dates and its people indexed as actor refs, every key one
+ * Obsidian shows as a property.
+ */
+const decisionNextHeaderSchema = decisionMetadataSchema
+  .omit({ timeRange: true, decidedBy: true, mentionedBy: true })
+  .extend({ ...timeRangeHeaderShape, ...peopleIndexShape });
+
 /**
  * A decision recorded from a conversation: a heading and its text, its
  * frontmatter its metadata. A write keeps the header in the order of the
  * document it replaces, as the decision adapter wrote documents as given.
+ * Its next form states the time range as startedAt and endedAt and its
+ * people as actor refs, each person whole in the body's People section;
+ * it reads either form and writes the one its store writes.
  */
 export const decision: EntityDefinition<
   typeof DECISION_ENTITY_TYPE,
@@ -33,16 +74,48 @@ export const decision: EntityDefinition<
   type: DECISION_ENTITY_TYPE,
   purpose: "A decision recorded from a conversation.",
   metadata: decisionMetadataSchema,
-  markdown: {
-    decode: ({ content, frontmatter }) => ({
-      content: content.replace(/^\n+/u, ""),
-      metadata: decisionMetadataSchema.parse(frontmatter),
-    }),
-    encode: ({ content, metadata }) => ({
-      content,
-      frontmatter: decisionMetadataSchema.parse(metadata),
-    }),
-  },
+  markdown: storedFormCodec<typeof decisionMetadataSchema>({
+    decode: ({ content, frontmatter }) => {
+      const read = readMemoryPeople(
+        content.replace(/^\n+/u, ""),
+        frontmatter,
+        DECISION_PEOPLE,
+      );
+      const {
+        decidedByAliases: _decidedByAliases,
+        mentionedByAliases: _mentionedByAliases,
+        ...header
+      } = readTimeRange(frontmatter);
+      return {
+        content: read.body,
+        metadata: decisionMetadataSchema.parse({ ...header, ...read.people }),
+      };
+    },
+    encode: {
+      old: ({ content, metadata }) => ({
+        content,
+        frontmatter: decisionMetadataSchema.parse(metadata),
+      }),
+      new: ({ content, metadata }) => {
+        const { timeRange, decidedBy, mentionedBy, ...rest } =
+          decisionMetadataSchema.parse(metadata);
+        const people = writeMemoryPeople(content, DECISION_PEOPLE, {
+          decidedBy,
+          mentionedBy,
+        });
+        return {
+          content: people.body,
+          frontmatter: {
+            ...rest,
+            ...timeRangeHeader(timeRange),
+            ...people.header,
+          },
+        };
+      },
+    },
+    header: { old: decisionMetadataSchema, new: decisionNextHeaderSchema },
+    places: [["timeRange", "startedAt", "endedAt"]],
+  }),
   displayTitle: ({ content }) => bodyHeading(content),
   config: { retiredFields: [...DECISION_RETIRED_FIELDS] },
 });

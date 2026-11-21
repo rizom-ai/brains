@@ -7,6 +7,18 @@ timeRange:
   start: '2026-05-06T10:00:00.000Z'
   end: '2026-05-06T10:18:00.000Z'
 status: active
+decidedBy:
+  - identity:
+      kind: user
+      userId: usr_mira
+    identityAliases:
+      - kind: external
+        externalActorId: discord_mira
+    displayName: Mira
+mentionedBy:
+  - identity:
+      kind: agent
+      agentId: team-brain
 ---
 # Add summaries to Team Brain's core preset
 
