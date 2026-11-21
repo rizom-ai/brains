@@ -17,10 +17,12 @@ import { z } from "@brains/utils/zod";
  * The character's next stored form (docs/plans/one-stored-form.md): its
  * name and role in the header, its purpose and values in the body.
  */
-const characterBody = bodyFields(brainCharacterBodySchema, [
-  "purpose",
-  "values",
-]);
+const characterBody = bodyFields(
+  brainCharacterBodySchema,
+  ["purpose", "values"],
+  // A field update writes into the header, over the section it replaces.
+  { headerWins: true },
+);
 
 const headerRecordSchema = z.record(z.string(), z.unknown());
 

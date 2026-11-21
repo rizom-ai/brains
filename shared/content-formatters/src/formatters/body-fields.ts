@@ -89,6 +89,12 @@ export function bodyFields(
   options: {
     readonly mappings?: FieldMapping[];
     readonly place?: "below" | "above";
+    /**
+     * Read the body's sections whatever the header holds, a field in the
+     * header over the section it replaces: for a type whose field writes
+     * go straight to its header, and whose current form has no body.
+     */
+    readonly headerWins?: boolean;
   } = {},
 ): BodyFields {
   const { mappings } = options;
@@ -118,7 +124,10 @@ export function bodyFields(
       ),
     ),
     read(header, body): { header: Record<string, unknown>; lead: string } {
-      if (fields.some((key) => Object.hasOwn(header, key)))
+      if (
+        options.headerWins !== true &&
+        fields.some((key) => Object.hasOwn(header, key))
+      )
         return { header: { ...header }, lead: body };
       const leading = above ? leadingSections(body, labels) : undefined;
       const { lead, sections } = leading
@@ -129,7 +138,7 @@ export function bodyFields(
         : leadAndSections(body);
       if (sections.length === 0) return { header: { ...header }, lead: body };
       try {
-        return { header: { ...header, ...formatter.parse(sections) }, lead };
+        return { header: { ...formatter.parse(sections), ...header }, lead };
       } catch {
         // Sections an author wrote that are not the fields are their text.
         return { header: { ...header }, lead: body };
