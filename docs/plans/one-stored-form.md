@@ -59,6 +59,7 @@ Shared decisions and field notes captured in flow.
 - **Defaults.** A value the schema supplies is not written. A file states only what its author stated.
 - **Unknown keys.** A key the type does not name is kept as written, and the write says so.
 - **Idempotence.** Writing back what a read returned changes no byte.
+- **Whole documents or bodies.** A writer hands over the stored document, or the body alone for a type read as its body, never a header of only the keys it changes: a partial header would move the keys it leaves out behind the ones it states.
 
 ### Contract
 
@@ -229,7 +230,9 @@ new file
 
 Failure branches: a file that states a field in both places reads the new location and drops the old key on the next write. A body section that does not parse refuses the write with the type's validation error and leaves the stored row as it was; an import sets the file aside as it does for any invalid file.
 
-Each moved type gets a markdown codec. A key that goes away (`cta`, `source`, `timeRange`) is listed in `EntityTypeConfig.translatedFields`, the mechanism [frontmatter-hygiene.md](./frontmatter-hygiene.md) built: it is read and never written. A key that keeps its name and changes shape (`action-item` `sourceRef` from an object to text, the people lists from objects to text) cannot be listed there, because a translated key is never written. Its codec decodes either shape and encodes the new one, and the quiet rewrite finds the row because its stored document differs from its canonical form. In-memory metadata keeps its current shape (`metadata.cta.heading` stays), so data sources, templates and tools are untouched; only the codec knows the file shape. `hasBody` becomes true where it was false.
+Each moved type gets a markdown codec. A key that goes away (`cta`, `source`, `timeRange`) is listed in `EntityTypeConfig.translatedFields`, the mechanism [frontmatter-hygiene.md](./frontmatter-hygiene.md) built: it is read and never written. A key that keeps its name and changes shape (`action-item` `sourceRef` from an object to text, the people lists from objects to text) cannot be listed there, because a translated key is never written. Its codec decodes either shape and encodes the new one, and the quiet rewrite finds the row because its stored document differs from its canonical form. In-memory metadata keeps its current shape (`metadata.cta.heading` stays), so data sources, templates and tools are untouched; only the codec knows the file shape. A type whose body is an encoding of its fields, as `site-info`'s is, keeps `hasBody: false`: a read hands back its fields and no body, so a field update and a body edit cannot overwrite each other, and the body is edited in the file or in Studio's raw mode. A type whose body is prose it authors moves fields into a body it already has.
+
+A type that reads two forms states every key either form writes with `withWrittenFrontmatterSchema`, so writing one form after reading the other leaves none of the other's keys behind as unknown.
 
 `anchor-profile` and `brain-character` are not declared types. The shell registers them with class adapters whose truth is the content's frontmatter (`shell/identity-service/src/singleton-frontmatter-adapter.ts`), and the profile plugin extends the anchor's header with its own fields. Their adapters gain the same decode and encode through the formatter, the profile extensions state which of their fields are body sections, and the identity service keeps reading through the adapter, so `getProfile()` and `get()` return what they return now.
 
@@ -262,7 +265,7 @@ Failure branches. A prose field whose own text would parse as a labeled line of 
 
 Two files handle a body's headings themselves instead of going through the formatter: `entities/faq/src/lib/stored-body.ts` and `entities/series/src/lib/series-projection.ts`. Both move onto the formatter in phase 4. Body templates shown to an author or a model come from the formatter's own `generateBodyTemplate`, so they follow the layout without a separate change.
 
-The formatter reads both layouts from alpha R on. The seven places that construct one opt in to the new layout at alpha W, except the section templates, which follow under [Sites](#sites).
+The compact layout and its strict checks come with a type opting in (`layout: "compact"`): a type that has not opted in reads and writes the sectioned layout exactly as before, so no file a brain holds today is refused by a check it did not have. The formatter reads both layouts from alpha R on. The seven places that construct one opt in to the new layout at alpha W, except the section templates, which follow under [Sites](#sites).
 
 ### YAML files
 
@@ -304,7 +307,7 @@ A key the type does not name is kept as written, and the write reports it: an im
 
 ### Stored rows
 
-Every serving start, rows whose stored document differs from its canonical form are rewritten by the quiet rewrite described under [Migration](#migration). Order and stated keys are properties of the document a write replaces, so existing rows already satisfy them and need no rewrite.
+Every serving start, once startup content settles, rows whose stored document differs from its canonical form are rewritten by the quiet rewrite described under [Migration](#migration). While the old form is written (alpha R), only a row whose difference is its framing is rewritten; a row that differs further waits for alpha W and is counted as deferred in the start log, so a type's change of form never reaches stored rows before its release writes it. An unchanged file whose row was stored in an earlier framing is not imported again: directory sync compares it with the row as the row serializes now. Order and stated keys are properties of the document a write replaces, so existing rows already satisfy them and need no rewrite.
 
 ### Contract test
 
