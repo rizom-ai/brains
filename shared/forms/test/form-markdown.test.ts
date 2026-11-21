@@ -70,3 +70,17 @@ describe("a form in the brain's content", () => {
     ).toEqual(pathless);
   });
 });
+
+// A form's next stored form (docs/plans/one-stored-form.md) is a YAML file:
+// its introduction is the intro key, not a body.
+describe("a form in its next stored form", () => {
+  it("reads its introduction from the intro key", () => {
+    const current =
+      "---\ntarget: contact-request\ntitle: Work with us\nsteps:\n  - title: You\n    fields:\n      - kind: text\n        id: name\n        label: Name\n---\nTell us what you have in mind.\n";
+    const next =
+      "---\ntarget: contact-request\ntitle: Work with us\nsteps:\n  - title: You\n    fields:\n      - kind: text\n        id: name\n        label: Name\nintro: Tell us what you have in mind.\n---\n";
+    expect(parseFormMarkdown("work", next)).toEqual(
+      parseFormMarkdown("work", current),
+    );
+  });
+});

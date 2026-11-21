@@ -272,6 +272,12 @@ export {
 
 export { preserveSourceFrontmatter } from "./frontmatter-extensions";
 export { storedFormWrites, type StoredForm } from "./stored-form";
+export {
+  contentOfYamlFile,
+  storedFileExtension,
+  yamlFileOf,
+  type StorageFormat,
+} from "./yaml-storage";
 export { framedDocument } from "./entity-serializer";
 export {
   ENTITY_SYSTEM_FIELDS,

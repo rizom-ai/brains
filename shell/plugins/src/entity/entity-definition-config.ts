@@ -49,6 +49,7 @@ export const entityDefinitionConfigSchema: z.ZodObject<
     binaryStorage: z.ZodOptional<
       z.ZodEnum<{ "data-url": "data-url"; asset: "asset" }>
     >;
+    storage: z.ZodOptional<z.ZodEnum<{ markdown: "markdown"; yaml: "yaml" }>>;
     defaultSort: z.ZodOptional<z.ZodArray<SortFieldSchema>>;
     markdownImport: z.ZodOptional<z.ZodBoolean>;
     retiredFields: FieldNamesSchema;
@@ -79,6 +80,7 @@ export const entityDefinitionConfigSchema: z.ZodObject<
   fullTextSearchable: z.boolean().optional(),
   includeInBroadSearch: z.boolean().optional(),
   binaryStorage: z.enum(["data-url", "asset"]).optional(),
+  storage: z.enum(["markdown", "yaml"]).optional(),
   defaultSort: z.array(sortFieldSchema).max(10).optional(),
   markdownImport: z.boolean().optional(),
   retiredFields: fieldNamesSchema,

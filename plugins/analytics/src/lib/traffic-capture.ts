@@ -174,7 +174,15 @@ export class TrafficCapture {
     const content = trafficSnapshotAdapter.createContent(frontmatter);
     const contentHash = computeContentHash(content);
     const prior = existing.get(week.id);
-    if (prior?.contentHash === contentHash) return;
+    // The week's days, whatever form the snapshot is stored in: one stored
+    // in the next form holds no rendered body (docs/plans/one-stored-form.md).
+    if (
+      prior &&
+      JSON.stringify(
+        trafficSnapshotAdapter.parseContent(prior.content).days,
+      ) === JSON.stringify(trafficSnapshotAdapter.parseContent(content).days)
+    )
+      return;
 
     const now = (this.deps.now ?? ((): Date => new Date()))().toISOString();
     await this.deps.store.save({

@@ -17,6 +17,7 @@ export type ServiceEntityMirrorClient = Pick<
   | "getEntityTypes"
   | "hasEntityType"
   | "getEntityTypeConfig"
+  | "fileExtension"
   | "listEntities"
   | "getEntityRaw"
   | "getEntityWriteSnapshot"
@@ -67,6 +68,9 @@ export function entityMirrorOf(
     },
     get getEntityTypeConfig(): ServiceEntityMirrorClient["getEntityTypeConfig"] {
       return entityService.getEntityTypeConfig.bind(entityService);
+    },
+    get fileExtension(): ServiceEntityMirrorClient["fileExtension"] {
+      return entityService.fileExtension.bind(entityService);
     },
     get listEntities(): ServiceEntityMirrorClient["listEntities"] {
       return entityService.listEntities.bind(entityService);

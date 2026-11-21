@@ -69,6 +69,7 @@ function createCapturedService(): CapturedService {
     countEntities: async () => 0,
     getEntityCounts: async () => [],
     getEntityTypeConfig: (): EntityTypeConfig => ({}),
+    fileExtension: (): ".md" | ".yaml" => ".md",
     getWeightMap: () => ({}),
   };
 

@@ -6,6 +6,7 @@ import { posix } from "path";
 
 const ENTITY_EXTENSIONS = new Set([
   ".md",
+  ".yaml",
   ...IMAGE_EXTENSIONS,
   ...DOCUMENT_EXTENSIONS,
 ]);

@@ -125,3 +125,20 @@ describe("entity placement", () => {
     expect(getEntityFileExtension(entity("image"))).toBe(".md");
   });
 });
+
+// A YAML type's file (docs/plans/one-stored-form.md, YAML files) is named
+// by its ID, as a markdown file is.
+describe("a YAML type's file", () => {
+  it("reads its ID without the extension", () => {
+    expect(parseEntityPath("form/contact.yaml", none)).toEqual({
+      entityType: "form",
+      id: "contact",
+    });
+  });
+
+  it("takes the text extension its store writes", () => {
+    const form = { entityType: "form", metadata: {}, content: "" };
+    expect(getEntityFileExtension(form, ".yaml")).toBe(".yaml");
+    expect(getEntityFileExtension(form)).toBe(".md");
+  });
+});

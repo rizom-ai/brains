@@ -29,10 +29,14 @@ export function parseFormMarkdown(
   markdown: string,
 ): FormDefinition {
   const { frontmatter, content } = parseMarkdown(markdown);
+  // In its next stored form (docs/plans/one-stored-form.md) a form is a
+  // YAML file, its introduction the intro key; in its current, the body.
+  const { intro: statedIntro, ...header } = frontmatter;
+  const intro = typeof statedIntro === "string" ? statedIntro : content;
   return formDefinitionSchema.parse({
-    ...formFrontmatterSchema.parse(withoutEmptyPath(frontmatter)),
+    ...formFrontmatterSchema.parse(withoutEmptyPath(header)),
     id,
-    ...(content ? { intro: content } : {}),
+    ...(intro ? { intro } : {}),
   });
 }
 

@@ -45,5 +45,6 @@ export function shapesOf(harness: Harness): ObsidianSyncInput["shapes"] {
     frontmatterSchema: (type) => registry.getEffectiveFrontmatterSchema(type),
     isSingleton: (type) => adapterOf(type)?.isSingleton === true,
     bodyTemplate: (type) => adapterOf(type)?.getBodyTemplate() ?? "",
+    fileExtension: (type) => entityService.fileExtension(type),
   };
 }

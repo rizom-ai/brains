@@ -45,6 +45,7 @@ describe("FileOperations", () => {
       hasEntityType: (): boolean => true,
       openAsset: assetStore.openAsset,
       getEntityTypes: (): string[] => [],
+      fileExtension: (): ".md" | ".yaml" => ".md",
       getEntityTypeConfig: (): { containedIn?: string } => ({}),
     };
 
@@ -374,6 +375,7 @@ describe("FileOperations", () => {
           hasEntityType: (type: string) => ["post", "link"].includes(type),
           openAsset: assetStore.openAsset,
           getEntityTypes: () => ["post", "link"],
+          fileExtension: (): ".md" | ".yaml" => ".md",
           getEntityTypeConfig: (): { containedIn?: string } => ({}),
         };
         const selectiveFileOps = new FileOperations(testDir, selectiveService);
@@ -403,6 +405,7 @@ describe("FileOperations", () => {
       serializeEntity: (entity: BaseEntity): string => entity.content,
       hasEntityType: (type: string) => ["book", "book-section"].includes(type),
       getEntityTypes: () => ["book", "book-section"],
+      fileExtension: (): ".md" | ".yaml" => ".md",
       getEntityTypeConfig: (type: string) =>
         type === "book-section" ? { containedIn: "book" } : {},
       openAsset: createMockAssetStore().openAsset,

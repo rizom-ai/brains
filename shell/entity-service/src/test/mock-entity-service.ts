@@ -216,6 +216,7 @@ export function createMockEntityService(
     hasPendingEntityExports: mock(() => Promise.resolve(false)),
     acknowledgeEntityExports: mock(() => Promise.resolve(0)),
     getEntityTypeConfig: mock(() => ({})),
+    fileExtension: mock((): ".md" | ".yaml" => ".md"),
     getWeightMap: mock(() => ({})),
     serializeEntity: mock(() => ""),
     deserializeEntity: mock(() => ({})),

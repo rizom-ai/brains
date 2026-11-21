@@ -8,6 +8,11 @@ import { z } from "@brains/utils/zod";
 import type { BaseEntity, EntityRegistry, SourceReadOption } from "./types";
 import { storedFormWrites, type StoredForm } from "./stored-form";
 import {
+  contentOfYamlFile,
+  storedFileExtension,
+  yamlFileOf,
+} from "./yaml-storage";
+import {
   ENTITY_SYSTEM_FIELDS,
   applyVisibilityToMarkdown,
   extractVisibilityFromMarkdown,
@@ -287,11 +292,19 @@ export class EntitySerializer {
       replaced,
       adapter.headerKeyPlaces ?? [],
     );
-    return framedDocument(
+    const framed = framedDocument(
       adapter.metadataFromFrontmatter === true
         ? withoutUnstatedDefaults(ordered, replaced, adapter.frontmatterSchema)
         : ordered,
     );
+    // A YAML type's document in the next form is the one its file holds:
+    // its header, and nothing under it.
+    return storedFileExtension(
+      this.entityRegistry.getEntityTypeConfig(entity.entityType).storage,
+      this.storedForm,
+    ) === ".yaml"
+      ? contentOfYamlFile(yamlFileOf(framed))
+      : framed;
   }
 
   /**

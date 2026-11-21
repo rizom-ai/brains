@@ -32,6 +32,10 @@ export interface IFileOperations {
   fileExists(filePath: string): Promise<boolean>;
   /** Every file an entity can be written to, in preference order. */
   getEntityDeletePaths(entityType: string, entityId: string): string[];
+  /** Whether a file is an entity's, a YAML file only under a YAML type's folder. */
+  isEntityFile(filePath: string): boolean;
+  /** A text entity's file as its stored document. */
+  readStoredText(filePath: string): Promise<string>;
 }
 
 /**

@@ -15,6 +15,8 @@ describe("EventHandler", () => {
 
     mockFileOperations = {
       getEntityDeletePaths: mock().mockReturnValue([]),
+      isEntityFile: mock().mockReturnValue(true),
+      readStoredText: mock().mockResolvedValue(""),
       parseEntityFromPath: mock().mockReturnValue({
         entityType: "topic",
         id: "technology:ai",

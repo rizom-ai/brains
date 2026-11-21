@@ -39,6 +39,8 @@ export function fakeReader(options: {
   containedIn?: Record<string, string>;
   types?: string[];
   assets?: Record<string, Uint8Array>;
+  /** Types whose store writes YAML files (docs/plans/one-stored-form.md). */
+  yamlTypes?: string[];
 }): DavReader {
   const visible = (scope: Scope | undefined): BaseEntity[] =>
     options.entities.filter((candidate) =>
@@ -52,10 +54,17 @@ export function fakeReader(options: {
 
   return {
     getEntityTypes: () => types,
-    getEntityTypeConfig: (type): { containedIn?: string } => {
+    getEntityTypeConfig: (
+      type,
+    ): { containedIn?: string; storage?: "markdown" | "yaml" } => {
       const container = options.containedIn?.[type];
-      return container ? { containedIn: container } : {};
+      return {
+        ...(container && { containedIn: container }),
+        ...(options.yamlTypes?.includes(type) && { storage: "yaml" as const }),
+      };
     },
+    fileExtension: (type): ".md" | ".yaml" =>
+      options.yamlTypes?.includes(type) ? ".yaml" : ".md",
     getEntityCounts: async (scope) =>
       types
         .map((entityType) => ({

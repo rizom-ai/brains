@@ -2,7 +2,6 @@ import {
   type ServiceEntityMirrorClient,
   internalFullScope,
 } from "@brains/sdk/internal/service-runtime";
-import { readFile } from "node:fs/promises";
 import { computeContentHash } from "@brains/utils/hash";
 import type { IFileOperations } from "../types/interfaces";
 import { resolveInSyncPath } from "./path-utils";
@@ -13,7 +12,10 @@ export interface StoredEchoDeps {
     ServiceEntityMirrorClient,
     "getEntityWriteSnapshot" | "hasEntityType"
   >;
-  fileOperations: Pick<IFileOperations, "parseEntityFromPath">;
+  fileOperations: Pick<
+    IFileOperations,
+    "parseEntityFromPath" | "isEntityFile" | "readStoredText"
+  >;
 }
 
 /**
@@ -37,14 +39,14 @@ async function isStoredEcho(
   deps: StoredEchoDeps,
   path: string,
 ): Promise<boolean> {
-  if (!path.endsWith(".md")) return false;
+  if (!path.endsWith(".md") && !path.endsWith(".yaml")) return false;
+  if (!deps.fileOperations.isEntityFile(path)) return false;
   try {
     const target = deps.fileOperations.parseEntityFromPath(path);
     // While plugins register, a later plugin's type has no adapter yet.
     if (!deps.entityService.hasEntityType(target.entityType)) return false;
-    const content = await readFile(
+    const content = await deps.fileOperations.readStoredText(
       resolveInSyncPath(deps.syncPath, path),
-      "utf8",
     );
     const snapshot = await deps.entityService.getEntityWriteSnapshot({
       ...target,

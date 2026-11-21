@@ -187,6 +187,8 @@ export interface DirectorySyncOperationStatusOptions {
   inactivityTimeoutMs?: number | undefined;
   staleGraceMs?: number | undefined;
   progressPersistenceIntervalMs?: number | undefined;
+  /** The extension a type's files take in the form the store writes. */
+  fileExtension?: ((entityType: string) => string) | undefined;
 }
 
 /**
@@ -198,6 +200,7 @@ export class DirectorySyncOperationStatusService {
   private readonly progressStore: ClassRuntimeStateStore<
     z.infer<typeof progressSchema>
   >;
+  private readonly fileExtension: (entityType: string) => string;
   private readonly jobs: Pick<
     DirectorySyncCore["jobs"],
     "getStatus" | "getBatchStatus"
@@ -233,6 +236,7 @@ export class DirectorySyncOperationStatusService {
     this.logger = logger;
     this.syncPath = syncPath;
     this.now = options.now ?? Date.now;
+    this.fileExtension = options.fileExtension ?? ((): string => ".md");
     this.inactivityTimeoutMs =
       options.inactivityTimeoutMs ?? DEFAULT_GIT_TIMEOUT_MS;
     this.staleGraceMs = options.staleGraceMs ?? DEFAULT_STALE_GRACE_MS;
@@ -412,7 +416,7 @@ export class DirectorySyncOperationStatusService {
       for (const error of result.errors) {
         this.prependIssue(status, {
           kind: "export",
-          path: `${error.entityType}/${error.entityId}.md`,
+          path: `${error.entityType}/${error.entityId}${this.fileExtension(error.entityType)}`,
           message: error.error,
         });
       }
