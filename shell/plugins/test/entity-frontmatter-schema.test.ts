@@ -102,15 +102,17 @@ describe("a declared type's frontmatter schema", () => {
       cta: z.object({ heading: z.string() }),
     });
     const next = z.object({ title: z.string(), ctaHeading: z.string() });
+    // A field its metadata names beyond its header is still its own.
+    const metadata = old.extend({ slug: z.string().optional() });
     const harness = createPluginHarness();
     const definition = defineEntity({
       type: "ticket",
       purpose: "A record that reads two stored forms.",
-      metadata: old,
-      markdown: storedFormCodec<typeof old>({
+      metadata,
+      markdown: storedFormCodec<typeof metadata>({
         decode: ({ content, frontmatter }) => ({
           content,
-          metadata: old.parse(frontmatter),
+          metadata: metadata.parse(frontmatter),
         }),
         encode: {
           old: ({ content, metadata }) => ({ content, frontmatter: metadata }),
@@ -139,6 +141,7 @@ describe("a declared type's frontmatter schema", () => {
     expect(Object.keys(adapter.writtenFrontmatterSchema?.shape ?? {})).toEqual([
       "title",
       "cta",
+      "slug",
       "ctaHeading",
     ]);
   });

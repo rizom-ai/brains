@@ -1,5 +1,7 @@
 import { recordFields } from "@brains/contracts";
 import type { EntityMarkdownCodec } from "@brains/sdk/entities";
+import { storedFormCodec } from "@brains/sdk/internal/entity-runtime";
+import { z } from "@brains/utils/zod";
 import {
   generateMarkdown,
   parseMarkdown,
@@ -46,6 +48,46 @@ export function socialPostFrontmatter(
   });
 }
 
+/**
+ * A post's frontmatter in its next form (docs/plans/one-stored-form.md):
+ * its document attachments as a list of document ids, which Obsidian shows
+ * as a property, in the place the list of attachments held.
+ */
+function socialPostNextFrontmatter(
+  metadata: SocialPostMetadata,
+): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(socialPostFrontmatter(metadata)).map(([key, value]) =>
+      key === "documents"
+        ? ["documentIds", metadata.documents?.map(({ id }) => id)]
+        : [key, value],
+    ),
+  );
+}
+
+/** The next form's header: the attachments as a list of document ids. */
+const socialPostNextHeaderSchema = socialPostFrontmatterSchema
+  .omit({ documents: true })
+  .extend({
+    documentIds: z
+      .array(z.string().min(1))
+      .optional()
+      .describe("Document entity IDs attached for publishing"),
+  });
+
+/** A file's attachments: its document ids over a list of attachments. */
+function statedDocuments(
+  frontmatter: Record<string, unknown>,
+): Record<string, unknown> {
+  const { documentIds, ...rest } = frontmatter;
+  return Array.isArray(documentIds)
+    ? {
+        ...rest,
+        documents: documentIds.map((id: unknown) => ({ id })),
+      }
+    : rest;
+}
+
 /** What a file states: a file may leave out the platform and the status. */
 const statedSchema = socialPostMetadataSchema
   .omit({ slug: true, error: true, statedSlug: true })
@@ -57,13 +99,14 @@ const statedSchema = socialPostMetadataSchema
 /**
  * A post's frontmatter is its metadata, a file that names no platform or
  * status a LinkedIn draft, its slug resolved from them; its body is the
- * post's text.
+ * post's text. It reads a file in either stored form and writes the form
+ * its store writes.
  */
 export const socialPostMarkdown: EntityMarkdownCodec<
   typeof socialPostMetadataSchema
-> = {
+> = storedFormCodec<typeof socialPostMetadataSchema>({
   decode: ({ content, frontmatter }) => {
-    const stated = statedSchema.parse(frontmatter);
+    const stated = statedSchema.parse(statedDocuments(frontmatter));
     // A post that names neither is a LinkedIn draft, as the adapter read it.
     const platform = stated.platform ?? "linkedin";
     const status = stated.status ?? "draft";
@@ -81,18 +124,30 @@ export const socialPostMarkdown: EntityMarkdownCodec<
   },
   // A whole document handed in has had its frontmatter decoded into the
   // metadata already; the body is written as the adapter wrote it.
-  encode: ({ content, metadata }) => ({
-    content: parseMarkdown(content).content,
-    frontmatter: socialPostFrontmatter(metadata),
-  }),
-};
+  encode: {
+    old: ({ content, metadata }) => ({
+      content: parseMarkdown(content).content,
+      frontmatter: socialPostFrontmatter(metadata),
+    }),
+    new: ({ content, metadata }) => ({
+      content: parseMarkdown(content).content,
+      frontmatter: socialPostNextFrontmatter(metadata),
+    }),
+  },
+  header: { old: socialPostFrontmatterSchema, new: socialPostNextHeaderSchema },
+  places: [["documents", "documentIds"]],
+});
 
-/** A post as its stored document: its frontmatter and its text. */
+/** A post as its stored document, in the form the release writes. */
 export function socialPostDocument(post: {
   readonly content: string;
   readonly metadata: SocialPostMetadata;
 }): string {
-  return generateMarkdown(socialPostFrontmatter(post.metadata), post.content);
+  const encoded = socialPostMarkdown.encode?.(post);
+  return generateMarkdown(
+    encoded?.frontmatter ?? socialPostFrontmatter(post.metadata),
+    encoded?.content ?? post.content,
+  );
 }
 
 /**

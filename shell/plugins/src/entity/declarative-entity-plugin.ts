@@ -382,12 +382,17 @@ function markdownStorage(
       header?.[storedFormWrites] ??
       frontmatterSchemaOf(definition) ??
       definition.metadata,
-    // What it writes is every key of both forms' headers; for a type with
-    // one form, every field its metadata names: a header field metadata
-    // does not name is the file's own, which the serializer keeps from the
-    // document written, as a stored-document class kept it.
+    // What it writes is every field its metadata names and, for a type
+    // that reads two stored forms, every key of both forms' headers. A
+    // header field none of them names is the file's own, which the
+    // serializer keeps from the document written, as a stored-document
+    // class kept it.
     ...(header
-      ? { writtenFrontmatterSchema: header.old.extend(header.new.shape) }
+      ? {
+          writtenFrontmatterSchema: definition.metadata
+            .extend(header.old.shape)
+            .extend(header.new.shape),
+        }
       : frontmatterSchemaOf(definition) && {
           writtenFrontmatterSchema: definition.metadata,
         }),
