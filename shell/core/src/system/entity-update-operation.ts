@@ -170,10 +170,19 @@ export function applyFieldUpdates(
 
   const sourceFields = sourceFieldKeys(entity.entityType, registry);
   // A declared type's document carries its own fields too, where it read
-  // the stored one: a field it sets or removes is set or removed there, so
-  // the stored copy does not bring a removed one back.
+  // the stored one: a field it writes from its metadata that the update sets
+  // or removes is set or removed there, so the stored copy does not bring a
+  // removed one back. A header key it does not write from metadata (a
+  // grouping definitions document's groupings) is never written this way.
+  const adapter = registry.getAdapter(entity.entityType);
+  const writes = new Set(
+    Object.keys(
+      (adapter.writtenFrontmatterSchema ?? adapter.frontmatterSchema)?.shape ??
+        {},
+    ),
+  );
   const header =
-    registry.getAdapter(entity.entityType).metadataFromFrontmatter === true
+    adapter.metadataFromFrontmatter === true
       ? parseMarkdown(nextEntity.content).frontmatter
       : {};
   let authored = false;
@@ -185,7 +194,7 @@ export function applyFieldUpdates(
         value,
       );
       authored = true;
-    } else if (Object.hasOwn(header, key)) {
+    } else if (Object.hasOwn(header, key) && writes.has(key)) {
       nextEntity.content = updateFrontmatterField(
         nextEntity.content,
         key,
