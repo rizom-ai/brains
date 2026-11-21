@@ -1,7 +1,7 @@
 {
   "name": "@brains/assets",
   "license": "Apache-2.0",
-  "version": "0.2.0-alpha.756",
+  "version": "0.2.0-alpha.757",
   "description": "Content-addressed binary asset contracts",
   "dependencies": {
     "@brains/utils": "workspace:*"
