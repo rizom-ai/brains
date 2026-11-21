@@ -1,5 +1,13 @@
 # @brains/obsidian-vault
 
+## 0.2.0-alpha.758
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.758
+  - @brains/utils@0.2.0-alpha.758
+
 ## 0.2.0-alpha.757
 
 ### Patch Changes
