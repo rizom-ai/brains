@@ -21,3 +21,4 @@ export {
   DefaultContentFormatter,
   getDefaultContentFormatter,
 } from "./default-content-formatter";
+export { bodyFields, leadAndSections, type BodyFields } from "./body-fields";

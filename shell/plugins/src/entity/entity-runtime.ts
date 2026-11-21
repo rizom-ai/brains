@@ -1,8 +1,5 @@
-import {
-  StructuredContentFormatter,
-  fieldMappingsFromSchema,
-  type FieldMapping,
-} from "@brains/content-formatters";
+import { bodyFields, type FieldMapping } from "@brains/content-formatters";
+export { leadAndSections } from "@brains/content-formatters";
 import {
   SdkError,
   type ActorRef,
@@ -1588,33 +1585,13 @@ export function entityRuntime(context: object): EntityRuntime {
   return runtime;
 }
 
-/** A body's text above its first section, and the sections from there. */
-export function leadAndSections(body: string): {
-  lead: string;
-  sections: string;
-} {
-  const at = `\n${body}`.search(/\n## /u);
-  return at < 0
-    ? { lead: body, sections: "" }
-    : {
-        // The author's text ends on one newline; blank text is none.
-        lead:
-          body.slice(0, at).trim() === ""
-            ? ""
-            : body.slice(0, at).replace(/\n+$/u, "\n"),
-        sections: body.slice(at),
-      };
-}
-
 /**
  * The codec of a first-party type whose next stored form
  * (docs/plans/one-stored-form.md) states some of its header fields in its
  * body: one section per field, in the compact layout, under the text its
- * author wrote. It reads either form: the fields from the header, or from
- * the body's sections; sections that do not read as the fields are the
- * author's text. The current form writes every field in the header, the
- * next the moved ones in the body; a field brought back to the header
- * takes its place in the schema's order.
+ * author wrote (bodyFields). It reads either form; the current form writes
+ * every field in the header, the next the moved ones in the body; a field
+ * brought back to the header takes its place in the schema's order.
  */
 export function bodyFieldsCodec<
   TMetadataSchema extends EntityMetadataSchema,
@@ -1627,82 +1604,28 @@ export function bodyFieldsCodec<
   /** The body a read hands back, from the text its author wrote. */
   readonly content?: (content: string) => string;
 }): EntityMarkdownCodec<TMetadataSchema> {
-  const { metadata, bodyFields } = options;
-  const moved: ReadonlySet<string> = new Set(bodyFields);
-  const shape = Object.entries(metadata.shape);
-  const bodySchema = z.object(
-    Object.fromEntries(
-      bodyFields.flatMap((key) => {
-        const field = metadata.shape[key];
-        return field ? [[key, z.optional(field)]] : [];
-      }),
-    ),
-  );
-  const formatter = new StructuredContentFormatter(bodySchema, {
-    title: "",
-    layout: "compact",
-    mappings: options.mappings ?? fieldMappingsFromSchema(bodySchema),
-  });
+  const { metadata } = options;
+  const fields = bodyFields(metadata, options.bodyFields, options.mappings);
   const authored = options.content ?? ((content: string): string => content);
-  const readBody = (
-    body: string,
-  ): { lead: string; fields: Record<string, unknown> } => {
-    const { lead, sections } = leadAndSections(body);
-    if (sections.length === 0) return { lead: body, fields: {} };
-    try {
-      return { lead, fields: formatter.parse(sections) };
-    } catch {
-      // Sections an author wrote that are not the fields are their text.
-      return { lead: body, fields: {} };
-    }
-  };
   return storedFormCodec<TMetadataSchema>({
     decode: ({ content, frontmatter }) => {
-      if (bodyFields.some((key) => Object.hasOwn(frontmatter, key)))
-        return {
-          content: authored(content),
-          metadata: metadata.parse(frontmatter),
-        };
-      const read = readBody(content);
+      const read = fields.read(frontmatter, content);
       return {
         content: authored(read.lead),
-        metadata: metadata.parse({ ...frontmatter, ...read.fields }),
+        metadata: metadata.parse(read.header),
       };
     },
     encode: {
-      old: ({ content, metadata: fields }) => ({
+      old: ({ content, metadata: values }) => ({
         content,
-        frontmatter: metadata.parse(fields),
+        frontmatter: metadata.parse(values),
       }),
-      new: ({ content, metadata: fields }) => {
-        const parsed: Record<string, unknown> = metadata.parse(fields);
-        const sections = formatter.format(
-          Object.fromEntries(
-            Object.entries(parsed).filter(
-              ([key, value]) => moved.has(key) && value !== undefined,
-            ),
-          ),
-        );
-        const text = content.replace(/\n+$/u, "");
-        return {
-          content:
-            text.length === 0
-              ? sections
-              : sections.length === 0
-                ? `${text}\n`
-                : `${text}\n\n${sections}`,
-          frontmatter: Object.fromEntries(
-            Object.entries(parsed).filter(([key]) => !moved.has(key)),
-          ),
-        };
+      new: ({ content, metadata: values }) => {
+        const written = fields.write(metadata.parse(values), content);
+        return { content: written.body, frontmatter: written.header };
       },
     },
-    header: {
-      old: metadata,
-      new: z.object(
-        Object.fromEntries(shape.filter(([key]) => !moved.has(key))),
-      ),
-    },
-    places: [shape.map(([key]) => key)],
+    header: { old: metadata, new: fields.nextHeader },
+    places: [Object.keys(metadata.shape)],
   });
 }
