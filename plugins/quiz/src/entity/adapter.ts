@@ -2,6 +2,9 @@ import {
   generateMarkdownWithFrontmatter,
   parseTypedFrontmatter,
 } from "@brains/sdk/internal/entity-runtime";
+import { isRecord } from "@brains/utils/is-record";
+import { parseMarkdown } from "@brains/utils/markdown-frontmatter";
+import { inCurrentShape } from "./stored-form";
 import {
   quizResultFrontmatterSchema,
   type QuizResult,
@@ -36,11 +39,18 @@ export const quizResultAdapter: {
   parseContent(content: string): { frontmatter: QuizResultFrontmatter } {
     try {
       return {
-        frontmatter: parseTypedFrontmatter(
-          "quiz-result",
-          content,
-          quizResultFrontmatterSchema,
-        ),
+        // A document in either stored form reads in the current shape.
+        frontmatter: parseTypedFrontmatter("quiz-result", content, {
+          parse: (data: unknown) =>
+            quizResultFrontmatterSchema.parse(
+              isRecord(data)
+                ? inCurrentShape({
+                    content: parseMarkdown(content).content,
+                    frontmatter: data,
+                  }).frontmatter
+                : data,
+            ),
+        }),
       };
     } catch {
       // YAML errors can echo source lines containing personal information.

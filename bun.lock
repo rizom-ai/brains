@@ -1390,6 +1390,7 @@
       "name": "@brains/quiz",
       "version": "0.2.0-alpha.756",
       "dependencies": {
+        "@brains/content-formatters": "workspace:*",
         "@brains/forms": "workspace:*",
         "@brains/sdk": "workspace:*",
         "@brains/utils": "workspace:*",
