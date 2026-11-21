@@ -51,10 +51,12 @@ export interface RecordedUpdate {
 export interface FakeBrain {
   options: Pick<
     DavRoutesOptions,
-    "reader" | "writes" | "mounts" | "recordConflict"
+    "reader" | "writes" | "mounts" | "recordConflict" | "conflictPending"
   >;
   /** Losing saves the drive handed over to be kept. */
   conflicts: RecordConflictRequest[];
+  /** Settle every conflict kept so far, as the Inbox does. */
+  resolveConflicts(): void;
   /** Whether anything holds a conflict; a brain without it refuses. */
   conflictsAvailable: boolean;
   entities: BaseEntity[];
@@ -95,6 +97,7 @@ export function fakeBrain(
   assets: Record<string, Uint8Array> = {},
 ): FakeBrain {
   const staged = new Map<string, Uint8Array>();
+  const resolved = new Set<string>();
   /** Staged bytes are published with the entity that references them. */
   const publish = (asset: { ref: string } | undefined): void => {
     const bytes = asset ? staged.get(asset.ref) : undefined;
@@ -111,14 +114,21 @@ export function fakeBrain(
     beforeNextUpdate: undefined,
     conflicts: [],
     conflictsAvailable: true,
+    resolveConflicts: (): void => {
+      brain.conflicts.forEach((_, index) =>
+        resolved.add(`conflict-${index + 1}`),
+      );
+    },
     options: {
       // Held by the brain, as runtime-state is: a new server finds it again.
       mounts: memoryMountBases(() => 1_800_000_000_000),
-      recordConflict: async (request): Promise<boolean> => {
-        if (!brain.conflictsAvailable) return false;
+      recordConflict: async (request): Promise<string | undefined> => {
+        if (!brain.conflictsAvailable) return undefined;
         brain.conflicts.push(request);
-        return true;
+        return `conflict-${brain.conflicts.length}`;
       },
+      conflictPending: async (conflictId): Promise<boolean> =>
+        !resolved.has(conflictId),
       reader: {
         ...fakeReader({ entities, assets, ...(types ? { types } : {}) }),
         getEntityTypeConfig: (type) =>
