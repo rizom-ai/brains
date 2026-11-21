@@ -73,6 +73,7 @@
     "@brains/forms": "workspace:*",
     "@brains/guide": "workspace:*",
     "@brains/http-host": "workspace:*",
+    "@brains/identity-service": "workspace:*",
     "@brains/image": "workspace:*",
     "@brains/image-plugin": "workspace:*",
     "@brains/knowledge-map": "workspace:*",
