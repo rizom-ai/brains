@@ -1,7 +1,4 @@
-import {
-  frontmatterRecordFields,
-  type FrontmatterRecord,
-} from "@brains/contracts";
+import { recordFields, type FrontmatterRecord } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { siteMetadataCTASchema, siteMetadataSchema } from "./metadata";
 
@@ -58,16 +55,9 @@ export type SiteInfoCTA = NonNullable<SiteInfoBody["cta"]>;
 /**
  * The site info a stored site-info record holds: its metadata, which keeps
  * one shape whichever stored form its file is in (docs/plans/one-stored-form.md).
- * A record read before its type was declared, whose metadata is empty, is
- * read from the frontmatter its content still carries.
  */
 export function siteInfoFromRecord(record: FrontmatterRecord): SiteInfoBody {
-  const metadata = record.metadata ?? {};
-  return siteInfoBodySchema.parse(
-    Object.keys(metadata).length > 0
-      ? metadata
-      : frontmatterRecordFields(record).fields,
-  );
+  return siteInfoBodySchema.parse(recordFields(record).fields);
 }
 
 /**

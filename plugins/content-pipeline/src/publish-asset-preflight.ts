@@ -1,6 +1,5 @@
+import { recordFields } from "@brains/contracts";
 import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
-import { frontmatterRecordFields } from "@brains/contracts";
-import { isRecord } from "@brains/utils/is-record";
 import type { RetryScope } from "@brains/utils/retry-backoff";
 import { slugify } from "@brains/utils/string-utils";
 import {
@@ -189,10 +188,8 @@ export class PublishAssetPreflight {
       return hasValue(entity.metadata[targetField.field]);
     }
 
-    // A declared type reads back as its body, its frontmatter its metadata;
-    // a stored document carries its frontmatter in its content.
-    const { fields } = frontmatterRecordFields(entity);
-    return isRecord(fields) && hasValue(fields[targetField.field]);
+    // A record's fields are its metadata, whatever form its file is in.
+    return hasValue(recordFields(entity).fields[targetField.field]);
   }
 
   private getPredictedMediaId(

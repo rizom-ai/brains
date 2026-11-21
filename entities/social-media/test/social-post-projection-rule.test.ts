@@ -114,11 +114,14 @@ const existingSocialPost = entity({
   id: "linkedin-post-1",
   entityType: "social-post",
   content: `---\ntitle: Existing post\nplatform: linkedin\nstatus: draft\nsourceEntityType: post\nsourceEntityId: post-1\n---\nExisting body`,
+  // A read's metadata holds every field its file states.
   metadata: {
     title: "Existing post",
     slug: "linkedin-existing-post",
     platform: "linkedin",
     status: "draft",
+    sourceEntityType: "post",
+    sourceEntityId: "post-1",
   },
 });
 

@@ -1,4 +1,4 @@
-import { frontmatterRecordFields } from "@brains/contracts";
+import { storedDocumentParts } from "@brains/contracts";
 import {
   bookWithDataSchema,
   type Book,
@@ -16,16 +16,16 @@ import {
  * class indexed it, and the file holds the rest.
  */
 export function parseBookData(entity: Book): BookWithData {
-  const { fields, body } = frontmatterRecordFields(entity);
-  return bookWithDataSchema.parse({ ...entity, frontmatter: fields, body });
+  const { header, body } = storedDocumentParts(entity.content);
+  return bookWithDataSchema.parse({ ...entity, frontmatter: header, body });
 }
 
 /** A section as its page shows it, read as stored like a book. */
 export function parseBookSectionData(entity: BookSection): BookSectionWithData {
-  const { fields, body } = frontmatterRecordFields(entity);
+  const { header, body } = storedDocumentParts(entity.content);
   return bookSectionWithDataSchema.parse({
     ...entity,
-    frontmatter: fields,
+    frontmatter: header,
     body,
   });
 }

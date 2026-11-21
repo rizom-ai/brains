@@ -3,7 +3,7 @@ import {
   agentActionContract,
   agentContextContract,
   defineBusContract,
-  frontmatterRecordFields,
+  recordFields,
   lifecycleStarterRegistrationContract,
   playbookSeedContract,
   type AgentActionRequest,
@@ -1167,9 +1167,7 @@ const PLAYBOOK_MANAGE_DESCRIPTION =
 function parsedPlaybook(
   record: EntityOf<typeof playbookEntity>,
 ): ParsedPlaybook | undefined {
-  // As a declared type reads it, the body and its metadata; as a whole
-  // document, its frontmatter.
-  const { fields, body } = frontmatterRecordFields(record);
+  const { fields, body } = recordFields(record);
   const metadata = playbookFrontmatterSchema.safeParse(fields);
   if (!metadata.success) return undefined;
   const entity = playbookEntitySchema.safeParse({

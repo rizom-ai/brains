@@ -1,4 +1,4 @@
-import { frontmatterRecordFields } from "@brains/contracts";
+import { storedDocumentParts } from "@brains/contracts";
 import type {
   ServiceCorpusReads,
   ServiceDataSourceDeclaration,
@@ -127,8 +127,9 @@ export async function fetchBookTheme(
     source: true,
   });
   if (!topic) throw new Error(`topic not found: ${id}`);
-  const { fields, body } = frontmatterRecordFields(topic);
-  const page = topicFrontmatterSchema.parse(fields);
+  // A topic's header is the page it shows, read as stored.
+  const { header, body } = storedDocumentParts(topic.content);
+  const page = topicFrontmatterSchema.parse(header);
 
   // Up to THEME_REACH sections count toward the strand, so each is read
   // from the index's fields, never loaded with its text.

@@ -1,4 +1,4 @@
-import { frontmatterRecordFields } from "@brains/contracts";
+import { storedDocumentParts } from "@brains/contracts";
 import { defineEntity, type EntityDefinition } from "@brains/sdk/entities";
 import {
   withFolderTitles,
@@ -75,6 +75,6 @@ export const bookSection: EntityDefinition<
 function headingsOf(content: string): string[] {
   const parsed = bookSectionFrontmatterSchema
     .pick({ headings: true })
-    .safeParse(frontmatterRecordFields({ content }).fields);
+    .safeParse(storedDocumentParts(content).header);
   return parsed.success ? parsed.data.headings : [];
 }

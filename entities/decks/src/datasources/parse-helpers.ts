@@ -1,4 +1,4 @@
-import { frontmatterRecordFields } from "@brains/contracts";
+import { recordFields } from "@brains/contracts";
 import {
   deckFrontmatterSchema,
   type DeckEntity,
@@ -11,6 +11,6 @@ import {
  * a document carries its frontmatter in its content.
  */
 export function parseDeckData(entity: DeckEntity): DeckWithData {
-  const { fields, body } = frontmatterRecordFields(entity);
+  const { fields, body } = recordFields(entity);
   return { ...entity, frontmatter: deckFrontmatterSchema.parse(fields), body };
 }

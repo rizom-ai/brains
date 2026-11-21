@@ -6,26 +6,36 @@ import { imageRenderSourceJobContract } from "@brains/contracts";
 import { createSilentLogger, waitUntil } from "@brains/test-utils";
 import { isRecord } from "@brains/utils/is-record";
 import { RetryScope } from "@brains/utils/retry-backoff";
+import { parseMarkdown } from "@brains/utils/markdown-frontmatter";
 import { describe, expect, it, type mock } from "bun:test";
 import type { BaseEntity } from "@brains/plugins";
 import { PublishAssetPreflight } from "../src/publish-asset-preflight";
 import { PublishAssetRegistry } from "../src/publish-assets";
 
 function createPublishedPost(overrides: Partial<BaseEntity> = {}): BaseEntity {
-  return {
-    id: "post-1",
-    entityType: "post",
-    content: `---
+  const content =
+    overrides.content ??
+    `---
 title: Test Post
 status: published
 ---
-Body`,
+Body`;
+  return {
+    id: "post-1",
+    entityType: "post",
     visibility: "public",
-    metadata: { status: "published", slug: "post-1" },
     created: "2026-06-04T12:00:00.000Z",
     updated: "2026-06-04T12:00:00.000Z",
     contentHash: "hash",
     ...overrides,
+    content,
+    // A read's metadata holds every field its file states.
+    metadata: {
+      status: "published",
+      slug: "post-1",
+      ...parseMarkdown(content).frontmatter,
+      ...overrides.metadata,
+    },
   };
 }
 

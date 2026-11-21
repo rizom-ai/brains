@@ -1,7 +1,4 @@
-import {
-  frontmatterRecordFields,
-  generationResultSchema,
-} from "@brains/contracts";
+import { recordBody, generationResultSchema } from "@brains/contracts";
 import type {
   EntityGenerationContext,
   EntityGenerationDeclaration,
@@ -139,7 +136,7 @@ async function readSourceMaterial(
       if (!entity) return [];
       const title = entity.metadata["title"];
       return [
-        `## ${typeof title === "string" ? title : id}\n\n${frontmatterRecordFields(entity).body}`,
+        `## ${typeof title === "string" ? title : id}\n\n${recordBody(entity)}`,
       ];
     })
     .join("\n\n---\n\n");

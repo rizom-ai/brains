@@ -1,5 +1,5 @@
 import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
-import { frontmatterRecordFields } from "@brains/contracts";
+import { recordFields } from "@brains/contracts";
 import { assetRefSchema } from "@brains/sdk/internal/service-runtime";
 import { z } from "@brains/utils/zod";
 import type { PublishImageData, PublishMediaData } from "@brains/contracts";
@@ -81,9 +81,9 @@ function parsePublishContent(entity: PublishableEntity): ParsedPublishContent {
   // its cover image and attachments dropped.
   let parsed;
   try {
-    // A declared type reads back as its body, its frontmatter its metadata;
-    // a stored document carries its frontmatter in its content.
-    parsed = frontmatterRecordFields(entity);
+    // A record's fields are its metadata, whatever form its file is in;
+    // its body is its content without the header a stored read carries.
+    parsed = recordFields(entity);
   } catch {
     return { bodyContent: content };
   }

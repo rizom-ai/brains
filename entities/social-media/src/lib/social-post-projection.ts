@@ -7,7 +7,8 @@ import {
 } from "@brains/sdk/entities";
 import {
   formatVoiceGuidance,
-  frontmatterRecordFields,
+  recordBody,
+  recordFields,
   styleGuideFromRecord,
 } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
@@ -62,7 +63,7 @@ function toSourcePost(
   if (metadata.status !== "queued") return null;
   return {
     id: entity.id,
-    content: frontmatterRecordFields(entity).body,
+    content: recordBody(entity),
     title: metadata.title ?? entity.id,
     slug: metadata.slug ?? entity.id,
     visibility: entity.visibility,
@@ -71,9 +72,7 @@ function toSourcePost(
 
 /** The post a social post was written from, as its file or record names it. */
 function sourceEntityIdOf(entity: BaseEntity): string | undefined {
-  const fields = sourceFieldsSchema.safeParse(
-    frontmatterRecordFields(entity).fields,
-  );
+  const fields = sourceFieldsSchema.safeParse(recordFields(entity).fields);
   return fields.success ? fields.data.sourceEntityId : undefined;
 }
 

@@ -1,4 +1,4 @@
-import { frontmatterRecordFields } from "@brains/contracts";
+import { recordFields } from "@brains/contracts";
 import type { EntityMarkdownCodec } from "@brains/sdk/entities";
 import {
   generateMarkdown,
@@ -74,7 +74,7 @@ export const postMarkdown: EntityMarkdownCodec<typeof blogPostMetadataSchema> =
  * a stored document carries its frontmatter in its content.
  */
 export function postWithData(entity: BlogPost): BlogPostWithData {
-  const { fields, body } = frontmatterRecordFields(entity);
+  const { fields, body } = recordFields(entity);
   const stored =
     Object.keys(parseMarkdown(entity.content).frontmatter).length > 0;
   return blogPostWithDataSchema.parse({

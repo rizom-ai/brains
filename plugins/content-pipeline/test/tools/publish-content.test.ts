@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from "bun:test";
+import { parseMarkdown } from "@brains/utils/markdown-frontmatter";
 import {
   baseEntitySchema,
   createMockShell,
@@ -44,7 +45,8 @@ function createPublishableEntity(
     visibility: "public",
     created: new Date().toISOString(),
     updated: new Date().toISOString(),
-    metadata,
+    // A read's metadata holds every field its file states.
+    metadata: { ...readableHeader(content), ...metadata },
   };
 }
 
@@ -495,3 +497,13 @@ Post without usable image.`;
     expect(result.imageData).toBeUndefined();
   });
 });
+
+/** The fields a readable header states; none for one that will not parse. */
+function readableHeader(content: string): Record<string, unknown> {
+  try {
+    return parseMarkdown(content).frontmatter;
+  } catch {
+    // A malformed header is what the verbatim-publish test is about.
+    return {};
+  }
+}

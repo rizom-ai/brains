@@ -535,10 +535,13 @@ status: draft
 coverImageId: test-cover-image
 ---
 Post content with an image.`,
+          // A read's metadata holds every field its file states.
           metadata: {
             slug: "post-with-image",
+            title: "Post With Image",
             platform: "linkedin",
             status: "draft",
+            coverImageId: "test-cover-image",
           },
         },
       });

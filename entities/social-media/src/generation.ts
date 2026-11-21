@@ -1,5 +1,5 @@
 import {
-  frontmatterRecordFields,
+  recordFields,
   generationResultSchema,
   imageGenerateJobContract,
 } from "@brains/contracts";
@@ -142,7 +142,7 @@ async function sourcePrompt(
   const slug = z
     .looseObject({ slug: z.string() })
     .safeParse(sourceEntity.metadata);
-  const source = frontmatterRecordFields(sourceEntity);
+  const source = recordFields(sourceEntity);
   const sourceTitle = z
     .looseObject({ title: z.string() })
     .safeParse(source.fields);

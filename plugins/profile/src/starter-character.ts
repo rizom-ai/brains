@@ -8,7 +8,7 @@ import {
   internalFullScope,
   type ProfileCategory,
 } from "@brains/sdk/internal/service-runtime";
-import { frontmatterRecordFields } from "@brains/contracts";
+import { recordFields } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { isRecord } from "@brains/utils/is-record";
 
@@ -161,15 +161,15 @@ function parseFrontmatter(content: string): Record<string, unknown> | null {
 }
 
 /**
- * A record's frontmatter fields: from its content as an entity plugin class
- * reads it, or its metadata as a declared type does.
+ * A declared record's fields: its metadata, whatever form its file is in
+ * (docs/plans/one-stored-form.md).
  */
 function recordFrontmatter(
   entity: Pick<BaseEntity, "content" | "metadata">,
 ): Record<string, unknown> | null {
   try {
-    const { fields } = frontmatterRecordFields(entity);
-    return isRecord(fields) ? fields : null;
+    const { fields } = recordFields(entity);
+    return isRecord(fields) ? { ...fields } : null;
   } catch {
     // Unparseable authored frontmatter gives no signals, as parseFrontmatter
     // treats it.
