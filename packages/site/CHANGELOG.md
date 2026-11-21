@@ -1,5 +1,11 @@
 # @rizom/site
 
+## 0.2.0-alpha.247
+
+### Patch Changes
+
+- [#1014](https://github.com/rizom-ai/brains/pull/1014) [`d3c1582`](https://github.com/rizom-ai/brains/commit/d3c158253cce4346b1bb95e17083d2a47e30e725) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `SiteMetadataCTA` has an optional `subtitle`, a line under the call to action's heading, which the site-info record now keeps.
+
 ## 0.2.0-alpha.246
 
 ### Patch Changes
