@@ -205,6 +205,19 @@ Comece
     expect(compact.parse(compact.format(tricky))).toEqual(tricky);
   });
 
+  it("reads a numbered list of bold labels as prose, which a labeled line never is", () => {
+    const steps: Body = {
+      translations: { nl: { title: "Rizom" } },
+      sections: {
+        essays: {
+          blurb:
+            "1. **Align:** agree on the challenge.\n2. **Validate:** test it.",
+        },
+      },
+    };
+    expect(compact.parse(compact.format(steps))).toEqual(steps);
+  });
+
   it("leaves the sectioned layout as it was for a formatter that does not opt in", () => {
     const sectioned = new StructuredContentFormatter<{ title: string }>(
       z.object({ title: z.string() }),
