@@ -24,7 +24,7 @@ Files that stay in the vault only are listed, with the reason, from the status b
 
 ## Install
 
-Until it is in Obsidian's community directory: build it (`bun run build` in this package), then copy `dist/main.js`, `dist/manifest.json` and `dist/styles.css` into `<vault>/.obsidian/plugins/brain-sync/` and turn it on under Settings → Community plugins.
+Until it is in Obsidian's community directory: download the `brain-sync` artifact of the latest "Obsidian plugin" workflow run, or build it (`bun run build` in this package), then copy `dist/main.js`, `dist/manifest.json` and `dist/styles.css` into `<vault>/.obsidian/plugins/brain-sync/` and turn it on under Settings → Community plugins.
 
 ## Connect
 

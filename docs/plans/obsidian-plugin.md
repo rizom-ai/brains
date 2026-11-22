@@ -2,7 +2,13 @@
 
 ## Status
 
-Proposed.
+Phases 1 to 9 are built on #1028, with the first half of phase 10: CI builds the plugin and keeps its three files as a run artifact. Still to do: the public repository and the community directory submission, which publish the plugin, and a check on iOS and Android.
+
+Where the build differs from the plan:
+
+- For a sync client the drive lists every entity type's folder, empty or not, and takes a save into an empty one. Without that, a brain with no images yet had no `image/` folder to save into.
+- Renaming a note moves its pending conflicts and rewrites FAQ sources that cite it. Documents and images generated from an entry are made only from posts and decks, so a note rename never reaches them.
+- A file edited a moment ago is still uploaded by a sync; only writing into it waits until the person stops typing.
 
 ## Background
 
