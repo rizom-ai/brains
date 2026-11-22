@@ -196,6 +196,25 @@ describe("the drive and a sync client", () => {
     expect(created.status).toBe(201);
   });
 
+  it("describes the brain's types to a sync client, and to no one else", async () => {
+    const brain = library();
+    const dav = drive(brain);
+
+    const response = await dav("GET", "/dav/.brain/vault-shapes.json", {
+      headers: SYNC,
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toContain("application/json");
+    expect(response.headers.get("etag")).toMatch(/^"[0-9a-f]{64}"$/);
+    expect(await response.json()).toEqual({
+      shapes: [expect.objectContaining({ entityType: "post" })],
+    });
+    expect((await dav("GET", "/dav/.brain/vault-shapes.json")).status).toBe(
+      404,
+    );
+  });
+
   it("leaves a desktop client's mount as it was", async () => {
     const brain = library();
     const dav = drive(brain);

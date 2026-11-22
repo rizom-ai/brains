@@ -118,7 +118,6 @@ function migrationTarget(
         ...expandBrainRecipe("professional"),
         anchor: "person",
         bundles: professionalBundles,
-        add: ["obsidian-vault"],
         remove: roverDefaultRemovals,
       };
     }
@@ -127,7 +126,6 @@ function migrationTarget(
         ...expandBrainRecipe("professional"),
         anchor: "person",
         bundles: professionalBundles,
-        add: ["obsidian-vault"],
       };
     }
   }

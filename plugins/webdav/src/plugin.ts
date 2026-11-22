@@ -80,6 +80,7 @@ const service = defineServicePlugin({
         basePath: WEBDAV_BASE_PATH,
         realm: runtime.identity.get().name,
         reader: runtime.entityReads,
+        shapes: runtime.entityShapes,
         writes: {
           maxFileBytes: context.config.maxFileBytes,
           maxAssetBytes: IMAGE_ASSET_MAX_BYTES,

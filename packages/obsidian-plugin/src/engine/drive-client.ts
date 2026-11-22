@@ -1,4 +1,5 @@
 import { bytesOf, textOf } from "./hash";
+import { vaultShapesSchema, type VaultShape } from "../vault-files/shapes";
 
 /** One HTTP exchange, as Obsidian's `requestUrl` and a test both make it. */
 export interface HttpRequest {
@@ -237,6 +238,19 @@ export class DriveClient {
     // A read-only app password is refused before anything is looked at.
     const response = await this.send("PROPPATCH", "");
     return { writable: response.status !== 403 };
+  }
+
+  /**
+   * The brain's types, as the vault writes templates, fileClasses and bases
+   * from them; nothing from a brain whose drive does not describe them.
+   */
+  async vaultShapes(): Promise<VaultShape[] | undefined> {
+    const response = await this.send("GET", ".brain/vault-shapes.json");
+    if (response.status !== 200) return undefined;
+    const parsed = vaultShapesSchema.safeParse(
+      JSON.parse(textOf(response.body)),
+    );
+    return parsed.success ? parsed.data.shapes : undefined;
   }
 
   async get(path: string): Promise<DriveFile | undefined> {

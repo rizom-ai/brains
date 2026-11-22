@@ -1,5 +1,9 @@
 import { TFile, TFolder, normalizePath, type App } from "obsidian";
+import { z } from "@brains/utils/zod";
 import type { SyncVault } from "../engine";
+
+/** The settings Obsidian's Templates core plugin keeps; others are left. */
+const templatesConfigSchema = z.looseObject({ folder: z.string().optional() });
 
 /** How long after a change a file counts as being typed in. */
 export const BUSY_MS = 5_000;
@@ -128,5 +132,37 @@ export class ObsidianVault implements SyncVault {
 
   async exists(path: string): Promise<boolean> {
     return this.app.vault.getAbstractFileByPath(normalizePath(path)) !== null;
+  }
+
+  /** Where Obsidian's core Templates plugin keeps its settings. */
+  private templatesConfig(): string {
+    return normalizePath(`${this.app.vault.configDir}/templates.json`);
+  }
+
+  async getTemplateFolder(): Promise<string | undefined> {
+    const adapter = this.app.vault.adapter;
+    const path = this.templatesConfig();
+    if (!(await adapter.exists(path))) return undefined;
+    const parsed = templatesConfigSchema.safeParse(
+      JSON.parse(await adapter.read(path)),
+    );
+    const folder = parsed.success ? parsed.data.folder : undefined;
+    return folder === undefined || folder.trim() === "" ? undefined : folder;
+  }
+
+  async setTemplateFolder(folder: string): Promise<void> {
+    const adapter = this.app.vault.adapter;
+    const path = this.templatesConfig();
+    const current = (await adapter.exists(path))
+      ? templatesConfigSchema.safeParse(JSON.parse(await adapter.read(path)))
+      : undefined;
+    await adapter.write(
+      path,
+      JSON.stringify(
+        { ...(current?.success ? current.data : {}), folder },
+        null,
+        2,
+      ),
+    );
   }
 }

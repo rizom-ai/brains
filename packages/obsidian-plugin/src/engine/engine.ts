@@ -9,6 +9,7 @@ import {
 import { getErrorMessage } from "@brains/utils/error";
 import { bytesOf, sameBytes, sha256Hex, textOf } from "./hash";
 import { imagesDown, imagesUp } from "./images";
+import { TEMPLATES_FOLDER, vaultFiles } from "../vault-files/vault-files";
 import {
   IMAGE_FOLDER,
   conflictCopyPath,
@@ -160,6 +161,7 @@ export class SyncEngine {
           context.report.firstSync = await this.planFirstSync(context, remote);
           return;
         }
+        await this.writeVaultFiles();
         await this.replayRenames(context);
         const local = await this.scanLocal(context);
         await this.reconcile(context, remote, local);
@@ -202,6 +204,7 @@ export class SyncEngine {
           if (file) await this.upload(context, path, file, { ifAbsent: true });
         }
         context.state.initialized = true;
+        await this.writeVaultFiles();
         context.report.status = "synced";
       }),
     );
@@ -333,6 +336,30 @@ export class SyncEngine {
       await this.store.save(state);
     }
     return context.report;
+  }
+
+  /**
+   * The templates, fileClasses and bases for the brain's types. The brain's
+   * templates and fileClasses are kept as it writes them; a base is written
+   * only where missing, and is the person's from then on. A file being typed
+   * in is left for the next sync. Obsidian's Templates is pointed at them
+   * when the person has not chosen a folder.
+   */
+  private async writeVaultFiles(): Promise<void> {
+    const shapes = await this.drive.vaultShapes();
+    if (shapes === undefined) return;
+    for (const file of vaultFiles(shapes)) {
+      if (this.vault.isBusy(file.path)) continue;
+      const exists = await this.vault.exists(file.path);
+      if (exists && file.owner === "person") continue;
+      if (exists && textOf(await this.vault.read(file.path)) === file.content) {
+        continue;
+      }
+      await this.vault.write(file.path, bytesOf(file.content));
+    }
+    if ((await this.vault.getTemplateFolder()) === undefined) {
+      await this.vault.setTemplateFolder(TEMPLATES_FOLDER);
+    }
   }
 
   /** Every synced file the brain lists, folder by folder. */

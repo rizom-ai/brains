@@ -4,8 +4,8 @@ import {
   generateBase,
   generatePipelineBase,
   generateSettingsBase,
-} from "../src/lib/base-generator";
-import type { FieldInfo } from "../src/lib/schema-introspector";
+} from "../src/vault-files/base-generator";
+import type { FieldInfo } from "../src/vault-files/shapes";
 import { fromYaml, parseYamlDocument } from "@brains/utils/yaml";
 import { z } from "@brains/utils/zod";
 

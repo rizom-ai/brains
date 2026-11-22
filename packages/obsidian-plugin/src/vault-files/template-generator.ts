@@ -1,4 +1,4 @@
-import type { FieldInfo } from "./schema-introspector";
+import type { FieldInfo } from "./shapes";
 
 /**
  * Get the default YAML value for a field in an Obsidian template.

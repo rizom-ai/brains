@@ -238,7 +238,7 @@ A type that reads two forms states every key either form writes with `withWritte
 
 ### Obsidian
 
-The fileClass generator in `plugins/obsidian-vault` reads the type's frontmatter schema, which today yields a text `Input` for `cta` and `sections`. Each moved type states its flat file header through `withFrontmatterSchema`, so fileClasses, templates and Studio's form show exactly the keys the file has.
+The fileClass generator (now in `packages/obsidian-plugin`, from the drive's description of each type) reads the type's frontmatter schema, which today yields a text `Input` for `cta` and `sections`. Each moved type states its flat file header through `withFrontmatterSchema`, so fileClasses, templates and Studio's form show exactly the keys the file has.
 
 ### The formatter
 

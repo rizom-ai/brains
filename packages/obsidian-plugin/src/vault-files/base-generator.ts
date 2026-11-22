@@ -1,6 +1,6 @@
-import { pluralize, toDisplayName } from "@brains/utils/string-utils";
+import { toDisplayName } from "@brains/utils/string-utils";
 import { toYaml } from "@brains/utils/yaml";
-import type { FieldInfo } from "./schema-introspector";
+import type { FieldInfo } from "./shapes";
 
 const EXCLUDED_COLUMNS = new Set(["entityType"]);
 
@@ -11,20 +11,6 @@ const DISPLAY_NAME_OVERRIDES: Record<string, string> = {
 /** A type's name as people read it, e.g. "FAQs" or "Site Content". */
 export function displayNameFor(entityType: string): string {
   return DISPLAY_NAME_OVERRIDES[entityType] ?? toDisplayName(entityType);
-}
-
-/**
- * The name bases were written under before labels kept acronyms and mass
- * nouns ("Faqs", "Site Contents"), so a vault's existing base can be found.
- */
-export function previousDisplayName(entityType: string): string {
-  const override = DISPLAY_NAME_OVERRIDES[entityType];
-  if (override) return override;
-  const words = entityType
-    .split("-")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1));
-  const last = words.pop();
-  return [...words, ...(last ? [pluralize(last)] : [])].join(" ");
 }
 
 /** Entity types stored at vault root rather than in a subfolder */
@@ -58,8 +44,8 @@ function hasStatusField(fields: FieldInfo[]): boolean {
 export function generateBase(
   entityType: string,
   fields: FieldInfo[],
-  displayName: string = displayNameFor(entityType),
 ): BaseGeneratorResult {
+  const displayName = displayNameFor(entityType);
   const status = hasStatusField(fields);
   const columns = buildColumnOrder(fields);
 

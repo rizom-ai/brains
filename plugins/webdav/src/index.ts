@@ -7,4 +7,11 @@ export {
   type WebdavState,
 } from "./plugin";
 
+export {
+  vaultShapes,
+  type FieldInfo,
+  type VaultShape,
+  type VaultShapeSource,
+} from "./dav-shapes";
+
 export default webdavPackage;

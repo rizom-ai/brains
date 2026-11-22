@@ -37,3 +37,4 @@ export {
   type SyncState,
 } from "./state";
 export { MemoryVault, type SyncVault } from "./vault";
+export { vaultFiles, type VaultFile } from "../vault-files/vault-files";

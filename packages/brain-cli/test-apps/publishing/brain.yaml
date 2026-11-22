@@ -13,8 +13,6 @@ bundles:
   - federation
 domain: alex.example.com
 
-add:
-  - obsidian-vault
 
 permissions:
   rules:

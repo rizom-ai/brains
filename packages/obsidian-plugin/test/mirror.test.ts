@@ -61,9 +61,13 @@ describe("a vault that mirrors the brain's notes", () => {
 
     expect(report.downloaded).toEqual([]);
     expect(report.uploaded).toEqual([]);
-    expect(synced.brain.requests.every((r) => r.startsWith("PROPFIND"))).toBe(
-      true,
-    );
+    // Listings, and the brain's description of its types.
+    expect(
+      synced.brain.requests.every(
+        (r) =>
+          r.startsWith("PROPFIND") || r === "GET /dav/.brain/vault-shapes.json",
+      ),
+    ).toBe(true);
   });
 
   it("stops at a refused password and changes nothing", async () => {

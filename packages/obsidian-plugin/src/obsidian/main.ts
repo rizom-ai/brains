@@ -509,6 +509,12 @@ class BrainSyncSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
+      .setName("Templates, dropdowns and tables")
+      .setDesc(
+        "The brain's templates, field definitions and table views are in _obsidian/. Templates work from Obsidian's Templates; tables open as Bases. For dropdowns on fields like status, install the Metadata Menu plugin and set its class files path to _obsidian/fileClasses.",
+      );
+
+    new Setting(containerEl)
       .setName("Pasted images")
       .setDesc(
         "Your brain keeps images in the image folder. To have pasted images go there, set Files and links → Default location for new attachments to “In the folder specified below” and enter image.",

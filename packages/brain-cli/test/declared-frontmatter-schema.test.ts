@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { syncObsidianVault } from "@brains/obsidian-vault";
+import { vaultFiles } from "@brains/obsidian-plugin";
 import { type Plugin } from "@brains/plugins";
 import {
   createMockShell,
@@ -9,8 +9,8 @@ import {
   type DeclaredEntityTypePlugin,
 } from "@brains/plugins/test";
 import { zodFieldToStudioWidget } from "@brains/studio";
-import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
+import { vaultShapes } from "@brains/webdav";
 import { canonicalBrain } from "../src/model/canonical-brain";
 
 /**
@@ -104,37 +104,27 @@ describe("a declared type's frontmatter, as its class declared it or its stored 
       await plugin.register(shell);
     }
     const registry = shell.getEntityRegistry();
-    const written = new Map<string, string>();
-    syncObsidianVault({
-      shapes: {
-        types: () => ["post", "playbook"],
-        frontmatterSchema: (type) =>
-          registry.getEffectiveFrontmatterSchema(type),
-        isSingleton: (type) => registry.getAdapter(type).isSingleton === true,
-        bodyTemplate: (type) => registry.getAdapter(type).getBodyTemplate(),
-        fileExtension: (): ".md" | ".yaml" => ".md",
-      },
-      dataDir: "/vault",
-      config: { baseFolder: "_obsidian" },
-      deps: {
-        mkdir: (): void => {},
-        writeFile: (path: string, content: string): void => {
-          written.set(path, content);
-        },
-        existsFile: (): boolean => false,
-        readFile: (): string => "",
-        removeFile: (): void => {},
-        renameFile: (): void => {},
-      },
-      logger: createSilentLogger(),
-    });
+    // As a vault gets them: the drive describes the types, and Brain Sync
+    // writes the files from that description.
+    const written = new Map(
+      vaultFiles(
+        vaultShapes({
+          types: () => ["post", "playbook"],
+          frontmatterSchema: (type) =>
+            registry.getEffectiveFrontmatterSchema(type),
+          isSingleton: (type) => registry.getAdapter(type).isSingleton === true,
+          bodyTemplate: (type) => registry.getAdapter(type).getBodyTemplate(),
+          fileExtension: (): ".md" | ".yaml" => ".md",
+        }),
+      ).map((file) => [file.path, file.content]),
+    );
     for (const type of ["post", "playbook"]) {
       const expected = classes.obsidian[type];
       if (!expected) throw new Error(`No captured ${type}`);
-      expect(written.get(`/vault/_obsidian/fileClasses/${type}.md`)).toBe(
+      expect(written.get(`_obsidian/fileClasses/${type}.md`)).toBe(
         expected.fileClass,
       );
-      expect(written.get(`/vault/_obsidian/templates/${type}.md`)).toBe(
+      expect(written.get(`_obsidian/templates/${type}.md`)).toBe(
         expected.template,
       );
       const schema = registry.getEffectiveFrontmatterSchema(type);

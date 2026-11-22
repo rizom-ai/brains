@@ -1,5 +1,5 @@
 import { toYaml } from "@brains/utils/yaml";
-import type { FieldInfo } from "./schema-introspector";
+import type { FieldInfo } from "./shapes";
 
 const typeMap: Record<FieldInfo["type"], string> = {
   string: "Input",

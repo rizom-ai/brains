@@ -13,6 +13,9 @@ const TEXT_EXTENSIONS: readonly string[] = [".md", ".yaml"];
 /** Where the plugin puts a version that lost; never synced. */
 export const CONFLICTS_FOLDER = "Conflicts";
 
+/** Where the plugin writes the brain's templates, fileClasses and bases. */
+export const OBSIDIAN_FILES_FOLDER = "_obsidian";
+
 /** The folder of image entities. */
 export const IMAGE_FOLDER = "image";
 
@@ -55,7 +58,11 @@ export function placementOf(
   if (first === undefined || segments.some((name) => name.startsWith("."))) {
     return { kind: "ignored" };
   }
-  if (first === CONFLICTS_FOLDER) return { kind: "ignored" };
+  // The plugin's own: copies of versions that lost, and the templates,
+  // fileClasses and bases it writes from the brain's types.
+  if (first === CONFLICTS_FOLDER || first === OBSIDIAN_FILES_FOLDER) {
+    return { kind: "ignored" };
+  }
   const extension = extensionOf(path);
   if (segments.length === 1) {
     return extension === ".md"

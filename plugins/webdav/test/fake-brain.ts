@@ -8,6 +8,7 @@ import {
 } from "@brains/sdk/internal/entity-runtime";
 import type { DavRoutesOptions } from "../src/dav-routes";
 import { fakeReader } from "./fake-reader";
+import { z } from "@brains/utils/zod";
 
 /** Writes for a test that makes none: every one of them fails loudly. */
 export const noWrites: DavRoutesOptions["writes"] = {
@@ -61,6 +62,7 @@ export interface FakeBrain {
     | "kept"
     | "recordConflict"
     | "conflictPending"
+    | "shapes"
   >;
   /** Losing saves the drive handed over to be kept. */
   conflicts: RecordConflictRequest[];
@@ -150,6 +152,15 @@ export function fakeBrain(
       },
       conflictPending: async (conflictId): Promise<boolean> =>
         !resolved.has(conflictId),
+      // Every type the brain registers, each with a title.
+      shapes: {
+        types: (): string[] =>
+          types ?? [...new Set(entities.map((one) => one.entityType))],
+        frontmatterSchema: () => z.object({ title: z.string() }),
+        isSingleton: (): boolean => false,
+        bodyTemplate: (): string => "",
+        fileExtension: (): ".md" => ".md",
+      },
       reader: {
         ...fakeReader({ entities, assets, ...(types ? { types } : {}) }),
         getEntityTypeConfig: (type) =>

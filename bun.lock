@@ -804,7 +804,7 @@
         "@brains/note": "workspace:*",
         "@brains/notifications": "workspace:*",
         "@brains/oauth-broker": "workspace:*",
-        "@brains/obsidian-vault": "workspace:*",
+        "@brains/obsidian-plugin": "workspace:*",
         "@brains/onboarding": "workspace:*",
         "@brains/operation-context": "workspace:*",
         "@brains/playbooks": "workspace:*",
@@ -1319,24 +1319,6 @@
       "version": "0.2.0-alpha.765",
       "dependencies": {
         "@brains/contracts": "workspace:*",
-        "@brains/sdk": "workspace:*",
-        "@brains/utils": "workspace:*",
-      },
-      "devDependencies": {
-        "@brains/eslint-config": "workspace:*",
-        "@brains/plugins": "workspace:*",
-        "@brains/test-utils": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "@types/bun": "^1.4.0",
-        "bun-types": "^1.4.0",
-        "eslint": "^10.5.0",
-        "typescript": "^7.0.2",
-      },
-    },
-    "plugins/obsidian-vault": {
-      "name": "@brains/obsidian-vault",
-      "version": "0.2.0-alpha.765",
-      "dependencies": {
         "@brains/sdk": "workspace:*",
         "@brains/utils": "workspace:*",
       },
@@ -3021,8 +3003,6 @@
     "@brains/oauth-broker": ["@brains/oauth-broker@workspace:plugins/oauth-broker"],
 
     "@brains/obsidian-plugin": ["@brains/obsidian-plugin@workspace:packages/obsidian-plugin"],
-
-    "@brains/obsidian-vault": ["@brains/obsidian-vault@workspace:plugins/obsidian-vault"],
 
     "@brains/onboarding": ["@brains/onboarding@workspace:plugins/onboarding"],
 

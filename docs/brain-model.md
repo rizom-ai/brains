@@ -45,7 +45,7 @@ bundles:
   - federation
 
 add:
-  - obsidian-vault
+  - docs
 remove:
   - newsletter
 

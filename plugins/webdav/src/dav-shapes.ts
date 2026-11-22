@@ -82,3 +82,43 @@ export function introspectSchema(schema: ZodObjectLike): FieldInfo[] {
 
   return fields;
 }
+
+/** What a sync client needs of a type to write its template, fileClass and base. */
+export interface VaultShape {
+  entityType: string;
+  /** A singleton gets no template or base of its own, only a place in Settings. */
+  singleton: boolean;
+  /** The body a new entry of the type starts from. */
+  bodyTemplate: string;
+  fields: FieldInfo[];
+}
+
+/** The parts of the brain's entity shapes the vault description reads. */
+export interface VaultShapeSource {
+  types(): string[];
+  frontmatterSchema(type: string): ZodObjectLike | undefined;
+  isSingleton(type: string): boolean;
+  bodyTemplate(type: string): string;
+  fileExtension(type: string): ".md" | ".yaml";
+}
+
+/**
+ * Every type a vault writes markdown for, with its fields. A YAML type is
+ * left out (Obsidian hides YAML files: its records are edited in Studio), as
+ * is a type with no frontmatter schema.
+ */
+export function vaultShapes(source: VaultShapeSource): VaultShape[] {
+  return source.types().flatMap((entityType): VaultShape[] => {
+    if (source.fileExtension(entityType) === ".yaml") return [];
+    const schema = source.frontmatterSchema(entityType);
+    if (!schema) return [];
+    return [
+      {
+        entityType,
+        singleton: source.isSingleton(entityType),
+        bodyTemplate: source.bodyTemplate(entityType),
+        fields: introspectSchema(schema),
+      },
+    ];
+  });
+}

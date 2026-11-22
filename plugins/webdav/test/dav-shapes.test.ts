@@ -1,6 +1,6 @@
 import { describe, it, expect } from "bun:test";
 import { z } from "@brains/utils/zod";
-import { introspectSchema } from "../src/lib/schema-introspector";
+import { introspectSchema, vaultShapes } from "../src/dav-shapes";
 
 describe("introspectSchema", () => {
   it("should extract required string fields", () => {
@@ -180,5 +180,65 @@ describe("introspectSchema", () => {
       }),
     );
     expect(fields.map(({ name }) => name)).toEqual(["title", "source"]);
+  });
+});
+
+describe("the vault shapes a sync client reads", () => {
+  const shapes = {
+    types: (): string[] => [
+      "note",
+      "post",
+      "anchor-profile",
+      "contact",
+      "conflict",
+    ],
+    frontmatterSchema: (
+      type: string,
+    ): z.ZodObject<z.ZodRawShape> | undefined =>
+      type === "conflict"
+        ? undefined
+        : z.object({
+            title: z.string(),
+            ...(type === "post" && {
+              status: z.enum(["draft", "published"]).default("draft"),
+            }),
+          }),
+    isSingleton: (type: string): boolean => type === "anchor-profile",
+    bodyTemplate: (type: string): string =>
+      type === "post" ? "## Intro\n" : "",
+    fileExtension: (type: string): ".md" | ".yaml" =>
+      type === "contact" ? ".yaml" : ".md",
+  };
+
+  it("describes each markdown type with a frontmatter schema", () => {
+    expect(vaultShapes(shapes)).toEqual([
+      {
+        entityType: "note",
+        singleton: false,
+        bodyTemplate: "",
+        fields: [{ name: "title", type: "string", required: true }],
+      },
+      {
+        entityType: "post",
+        singleton: false,
+        bodyTemplate: "## Intro\n",
+        fields: [
+          { name: "title", type: "string", required: true },
+          {
+            name: "status",
+            type: "enum",
+            required: false,
+            defaultValue: "draft",
+            enumValues: ["draft", "published"],
+          },
+        ],
+      },
+      {
+        entityType: "anchor-profile",
+        singleton: true,
+        bodyTemplate: "",
+        fields: [{ name: "title", type: "string", required: true }],
+      },
+    ]);
   });
 });

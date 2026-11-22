@@ -17,6 +17,8 @@ import { ScratchStore, isScratchName, type ScratchFile } from "./dav-scratch";
 import { CleanupGuard } from "./dav-cleanups";
 import { SaveHolds, type SaveHold } from "./dav-holds";
 import { LockStore, requestedLockSeconds } from "./dav-locks";
+import { computeContentHash } from "@brains/utils/hash";
+import { vaultShapes, type VaultShapeSource } from "./dav-shapes";
 import {
   DavTree,
   type DavFile,
@@ -57,7 +59,12 @@ export interface DavRoutesOptions {
   ) => Promise<string | undefined>;
   /** Whether a conflict still waits to be resolved; taken as yes when not given. */
   conflictPending?: (conflictId: string) => Promise<boolean>;
+  /** The brain's types, as a sync client writes templates, fileClasses and bases from them. */
+  shapes?: VaultShapeSource;
 }
+
+/** Where a sync client reads the brain's types; nobody else sees it. */
+const VAULT_SHAPES_PATH = [".brain", "vault-shapes.json"];
 
 const READ_METHODS = ["OPTIONS", "GET", "HEAD", "PROPFIND"] as const;
 const WRITE_METHODS = [
@@ -360,6 +367,21 @@ async function read(
   dav: DavRequest,
   withBody: boolean,
 ): Promise<Response> {
+  const { shapes } = server.options;
+  if (
+    dav.sync &&
+    shapes !== undefined &&
+    dav.path?.segments.join("/") === VAULT_SHAPES_PATH.join("/")
+  ) {
+    const body = JSON.stringify({ shapes: vaultShapes(shapes) });
+    return new Response(withBody ? body : null, {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json; charset=utf-8",
+        ETag: `"${computeContentHash(body)}"`,
+      },
+    });
+  }
   const scratch = scratchAt(server, dav);
   if (scratch) {
     return new Response(withBody ? scratch.bytes : null, {

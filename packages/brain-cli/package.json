@@ -85,7 +85,7 @@
     "@brains/note": "workspace:*",
     "@brains/notifications": "workspace:*",
     "@brains/oauth-broker": "workspace:*",
-    "@brains/obsidian-vault": "workspace:*",
+    "@brains/obsidian-plugin": "workspace:*",
     "@brains/onboarding": "workspace:*",
     "@brains/operation-context": "workspace:*",
     "@brains/playbooks": "workspace:*",

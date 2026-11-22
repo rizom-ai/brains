@@ -1,6 +1,6 @@
 import { describe, it, expect } from "bun:test";
-import { generateTemplate } from "../src/lib/template-generator";
-import type { FieldInfo } from "../src/lib/schema-introspector";
+import { generateTemplate } from "../src/vault-files/template-generator";
+import type { FieldInfo } from "../src/vault-files/shapes";
 
 describe("generateTemplate", () => {
   it("should generate frontmatter with title using Obsidian variable", () => {

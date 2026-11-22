@@ -58,7 +58,6 @@ import { linkedInImportPackage } from "@brains/linkedin-import";
 import { createLinkedInBrokerProvider } from "@brains/linkedin-import/broker-provider";
 import { createOAuthBrokerPackage } from "@brains/oauth-broker";
 import webdavPackage from "@brains/webdav";
-import obsidianVaultPackage from "@brains/obsidian-vault";
 import playbooksPackage from "@brains/playbooks";
 import portfolioPackage from "@brains/portfolio";
 import profilePackage from "@brains/profile";
@@ -492,13 +491,6 @@ export const canonicalBrain: BrainDefinition = defineBrain({
       ownedTypePluginId: "book-entity",
     }),
 
-    packageCapability(
-      "obsidian-vault",
-      "@brains/obsidian-vault",
-      obsidianVaultPackage,
-      { pluginId: "obsidian-vault" },
-      { autoSync: true },
-    ),
     packageCapability(
       "email-workflows",
       "@brains/email-workflows",
