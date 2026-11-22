@@ -106,6 +106,14 @@ describe("a first-party service's conditional and once-only writes", () => {
         calls.push(["purgeEntityType", entityType]);
         return 2;
       },
+      restateEntity: async (request: {
+        entityType: string;
+        id: string;
+        body: string;
+      }) => {
+        calls.push(["restateEntity", request]);
+        return null;
+      },
       searchWithDistances: async (request: SearchWithDistancesRequest) => {
         calls.push(["searchWithDistances", request]);
         return [{ entityId: "reach", entityType: "faq", distance: 0.1 }];
@@ -148,6 +156,10 @@ describe("a first-party service's conditional and once-only writes", () => {
     expect(await runtime.entityMutations.purgeEntityType("network-piece")).toBe(
       2,
     );
+    // A section's saved copy restated in its template's layout, as the
+    // site builder restates it at boot.
+    const restate = { entityType: "site-content", id: "home:hero", body: "x" };
+    expect(await runtime.entityMutations.restateEntity(restate)).toBeNull();
     const search: SearchWithDistancesRequest = {
       query: "How?",
       types: ["faq"],
@@ -165,6 +177,7 @@ describe("a first-party service's conditional and once-only writes", () => {
       ["foldEntity", fold],
       ["releaseProjectionOwnership", { entityType: "topic", id: "tides" }],
       ["purgeEntityType", "network-piece"],
+      ["restateEntity", restate],
       ["searchWithDistances", search],
     ]);
     expect(Object.keys(runtime.entityMutations).sort()).toEqual([
@@ -174,6 +187,7 @@ describe("a first-party service's conditional and once-only writes", () => {
       "getEntityWriteSnapshot",
       "purgeEntityType",
       "releaseProjectionOwnership",
+      "restateEntity",
     ]);
   });
 });

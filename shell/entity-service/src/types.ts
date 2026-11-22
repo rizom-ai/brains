@@ -1520,6 +1520,16 @@ export interface EntityServiceClient extends ICoreEntityService {
    * writes now, quietly: content and hash only, no event, marked for export.
    */
   rewriteStoredForms(): Promise<StoredFormRewrite>;
+  /**
+   * Restate one entity with a new body, quietly, as the rewrite on start
+   * writes; for a body its codec passes through and something outside it
+   * lays out. Nothing when the stored document would not change.
+   */
+  restateEntity(request: {
+    entityType: string;
+    id: string;
+    body: string;
+  }): Promise<RestatedEntity | null>;
   isIndexReady(): boolean;
   awaitIndexReady(
     options: IndexReadinessOptions,

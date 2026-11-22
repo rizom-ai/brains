@@ -1,5 +1,8 @@
 import { broadcastChannel, collectContract } from "@brains/messaging-service";
-import { projectionWaveReadyContract } from "@brains/contracts";
+import {
+  projectionWaveReadyContract,
+  storedContentRestateContract,
+} from "@brains/contracts";
 import { deferred } from "@brains/utils/deferred";
 import {
   initialSyncOutcomeSchema,
@@ -389,13 +392,35 @@ export class ShellBootloader {
         },
       );
     }
+    // A body its type's codec passes through is laid out by a plugin (a
+    // site section's template); each restates its own.
+    const byPlugins = await collectContract(
+      this.services.messageBus,
+      storedContentRestateContract,
+      {},
+      "shell",
+    );
+    const restated = [
+      ...forms.restated,
+      ...(byPlugins.status === "unavailable"
+        ? []
+        : byPlugins.answers.flatMap((answer) => answer.restated)),
+    ];
+    if (byPlugins.status !== "unavailable" && byPlugins.failures.length > 0) {
+      this.services.logger.warn(
+        "A plugin could not restate its stored content",
+        {
+          failures: byPlugins.failures.length,
+        },
+      );
+    }
     // Work keyed by a restated row's content hash moves to its new hash
     // before anything acts on startup content.
-    if (forms.restated.length > 0) {
+    if (restated.length > 0) {
       await broadcastChannel(
         this.services.messageBus,
         entitiesRestatedChannel,
-        { entities: forms.restated },
+        { entities: restated },
         "shell",
       );
     }

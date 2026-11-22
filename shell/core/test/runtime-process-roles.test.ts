@@ -1,3 +1,4 @@
+import { storedContentRestateContract } from "@brains/contracts";
 import { afterEach, describe, expect, it, spyOn } from "bun:test";
 import { migrateConversations } from "@brains/conversation-service/migrate";
 import { migrateEntities } from "@brains/entity-service/migrate";
@@ -398,6 +399,57 @@ describe("supervised runtime process roles", () => {
     await shell.initialize();
 
     expect(heard).toEqual([{ entities: [restated] }, "settled"]);
+  });
+
+  // A body its type's codec passes through is laid out by a plugin (a site
+  // section's template): the plugin restates it when asked, and its rows
+  // join the shell's announcement.
+  it("announces the rows a plugin restated with the rewrite's own", async () => {
+    const testDirectory = await createTestDirectory();
+    cleanups.push(testDirectory.cleanup);
+    await Promise.all([
+      migrateEntities({ url: `file:${testDirectory.dir}/test.db` }),
+      migrateJobQueue({ url: `file:${testDirectory.dir}/test-jobs.db` }),
+      migrateConversations({ url: `file:${testDirectory.dir}/test-conv.db` }),
+      migrateRuntimeState({
+        url: `file:${testDirectory.dir}/test-runtime-state.db`,
+      }),
+    ]);
+    const shell = Shell.createFresh(
+      createTestShellConfig(testDirectory.dir, { plugins: [] }),
+      {
+        logger: createSilentLogger("restated-by-plugin-test"),
+        jobQueueWorker: createTrackingWorker(() => {}),
+      },
+      { processRole: "web" },
+    );
+    shells.push(shell);
+    const fromSection = {
+      entityType: "site-content",
+      entityId: "home:hero",
+      previousHash: "sectioned",
+      contentHash: "compact",
+    };
+    spyOn(shell.getEntityService(), "rewriteStoredForms").mockImplementation(
+      async () => ({ rewritten: 0, deferred: 0, restated: [] }),
+    );
+    shell
+      .getMessageBus()
+      .subscribe(storedContentRestateContract.name, async () => ({
+        success: true,
+        data: { restated: [fromSection] },
+      }));
+    const heard: unknown[] = [];
+    shell
+      .getMessageBus()
+      .subscribe(SYSTEM_CHANNELS.entitiesRestated, async (message) => {
+        heard.push(message.payload);
+        return { success: true };
+      });
+
+    await shell.initialize();
+
+    expect(heard).toEqual([{ entities: [fromSection] }]);
   });
 
   it("boots only immutable execution capabilities in the worker", async () => {

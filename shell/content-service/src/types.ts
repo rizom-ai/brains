@@ -186,4 +186,14 @@ export interface ContentService {
     content: string,
     pluginId?: string,
   ): unknown;
+
+  /**
+   * A template's stored copy as its formatter writes it now; none for a
+   * template without a formatter.
+   */
+  layOutContent(
+    templateName: string,
+    content: string,
+    pluginId?: string,
+  ): string | undefined;
 }

@@ -115,6 +115,7 @@ export function createMockContentServices(
     parseContent: (_templateName: string, content: string): unknown => ({
       parsed: content,
     }),
+    layOutContent: (): string | undefined => undefined,
     getTemplate: (name: string): ContentTemplate<unknown> | null => {
       const template = deps.templates.get(name);
       return template ? toContentTemplate(template) : null;

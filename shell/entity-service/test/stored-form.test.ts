@@ -440,6 +440,105 @@ describe("the quiet rewrite of stored rows", () => {
   });
 });
 
+/**
+ * A body a type's codec passes through, laid out by something outside it
+ * (a site section's template), is restated by whoever lays it out: quietly,
+ * as the rewrite on start writes.
+ */
+describe("restating an entity's body", () => {
+  let ctx: EntityServiceTestContext | undefined;
+  afterEach(async () => {
+    await ctx?.cleanup();
+    ctx = undefined;
+  });
+
+  async function opened(
+    bus?: EntityEventBus,
+  ): Promise<EntityServiceTestContext> {
+    ctx = await setupEntityService(
+      [
+        {
+          name: "card",
+          schema: cardSchema,
+          adapter: new CardAdapter(),
+          config: { embeddable: false },
+        },
+      ],
+      { embeddingsEnabled: false, ...(bus && { messageBus: bus }) },
+    );
+    await ctx.entityService.initialize();
+    await ctx.entityService.createEntity({
+      entity: {
+        id: "one",
+        entityType: "card",
+        content: "Body",
+        metadata: { title: "One", status: "draft" },
+        visibility: "public",
+      },
+    });
+    const db = createClient({ url: ctx.dbConfig.url });
+    await db.execute("UPDATE entities SET updated = 1 WHERE id = 'one'");
+    await db.execute("DELETE FROM entity_export_intents");
+    db.close();
+    return ctx;
+  }
+
+  it("writes the new body quietly and reports the row restated", async () => {
+    const events: string[] = [];
+    const context = await opened({
+      send: async (request): Promise<{ success: true }> => {
+        events.push(request.type);
+        return { success: true };
+      },
+    });
+    const before = await context.entityService.getEntityRaw({
+      entityType: "card",
+      id: "one",
+      source: true,
+    });
+
+    events.splice(0);
+    const restated = await context.entityService.restateEntity({
+      entityType: "card",
+      id: "one",
+      body: "Body, laid out anew",
+    });
+
+    const after = await context.entityService.getEntityRaw({
+      entityType: "card",
+      id: "one",
+      source: true,
+    });
+    expect(after?.content).toStartWith("---\ntitle: One\n");
+    expect(after?.content).toEndWith("---\nBody, laid out anew\n");
+    expect(restated).toEqual({
+      entityType: "card",
+      entityId: "one",
+      previousHash: before?.contentHash ?? "",
+      contentHash: after?.contentHash ?? "",
+    });
+    expect(after?.updated).toBe(before?.updated);
+    expect(events).toEqual([]);
+    expect(
+      (await context.entityService.listPendingEntityExports()).map(
+        ({ entityId }) => entityId,
+      ),
+    ).toEqual(["one"]);
+  });
+
+  it("restates nothing when the body is the one stored", async () => {
+    const context = await opened();
+    expect(
+      await context.entityService.restateEntity({
+        entityType: "card",
+        id: "one",
+        body: "Body",
+      }),
+    ).toBeNull();
+    expect(await context.entityService.listPendingEntityExports()).toEqual([]);
+  });
+});
+
 describe("the quiet rewrite while the old form is written", () => {
   let ctx: EntityServiceTestContext | undefined;
   afterEach(async () => {

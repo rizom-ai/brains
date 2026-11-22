@@ -96,7 +96,9 @@ describe("sectionToTemplate", () => {
     expect(formatter.parse(formatter.format(value))).toEqual(value);
   });
 
-  test("uses the section title as H1 and title-cases derived field labels", () => {
+  // The compact layout (docs/plans/one-stored-form.md): no title line, a
+  // single-line value as a labeled line, read back from either layout.
+  test("writes the compact layout with title-cased field labels, and reads the sectioned one", () => {
     const { formatter } = sectionToTemplate(
       "cta",
       defineSection(z.object({ buttonText: z.string() }), noop, {
@@ -107,8 +109,12 @@ describe("sectionToTemplate", () => {
     if (!formatter) throw new Error("expected a formatter");
 
     const md = formatter.format({ buttonText: "Go" });
-    expect(md).toContain("# Call To Action");
-    expect(md).toContain("## Button Text");
+    expect(md).not.toContain("# Call To Action");
+    expect(md).toContain("Button Text");
+    expect(formatter.parse(md)).toEqual({ buttonText: "Go" });
+    expect(
+      formatter.parse("# Call To Action\n\n## Button Text\n\nGo\n"),
+    ).toEqual({ buttonText: "Go" });
   });
 
   test("throws at definition time on an unsupported field schema", () => {

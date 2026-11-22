@@ -90,7 +90,7 @@ import { EntitySerializer, framedDocument } from "./entity-serializer";
 import { unwrittenFields } from "./frontmatter-extensions";
 import { EntityQueries } from "./entity-queries";
 import { EntityMutations, validatePersist } from "./entity-mutations";
-import type { StoredFormRewrite } from "./types";
+import type { RestatedEntity, StoredFormRewrite } from "./types";
 import { storedFormWrites, type StoredForm } from "./stored-form";
 import { storedFileExtension } from "./yaml-storage";
 import {
@@ -835,6 +835,15 @@ export class EntityService implements IEntityService {
       Promise.resolve(0),
     );
     return { reconciled };
+  }
+
+  public async restateEntity(request: {
+    entityType: string;
+    id: string;
+    body: string;
+  }): Promise<RestatedEntity | null> {
+    await this.initialize();
+    return this.entityMutations.restateEntity(request);
   }
 
   public async rewriteStoredForms(): Promise<StoredFormRewrite> {
