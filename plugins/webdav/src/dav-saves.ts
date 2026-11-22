@@ -92,6 +92,12 @@ export interface SaveRequest {
   ifMatch: string | null;
   /** True for `If-None-Match: *`: save only if no file is there yet. */
   onlyIfAbsent?: boolean;
+  /**
+   * A sync client's save that loses (a newer version, or a name taken) is
+   * kept as a conflict instead of refused. The client has its own copy and
+   * shows the person where the other version went.
+   */
+  keepAsConflict?: boolean;
   grant: AuthAppPasswordGrant;
 }
 
@@ -186,8 +192,13 @@ async function updateEntityFile(
   { entity: existing, file }: Located,
 ): Promise<WriteOutcome> {
   const { writes } = deps;
-  if (request.onlyIfAbsent) return taken();
-  if (!matches(request.ifMatch, file.etag)) return stale();
+  // A create over a taken name, or a save over another version than the
+  // one it names, loses: refused, or kept as a conflict when asked.
+  const loses =
+    request.onlyIfAbsent === true || !matches(request.ifMatch, file.etag);
+  if (loses && !request.keepAsConflict) {
+    return request.onlyIfAbsent ? taken() : stale();
+  }
 
   const document = readDocument(writes, request.bytes, existing.entityType);
   if ("status" in document) return document;
@@ -225,6 +236,19 @@ async function updateEntityFile(
     crossesIntoPublished ? "publish" : "update",
   ]);
   if (refused) return refused;
+
+  if (loses) {
+    return keepAsConflict(deps, request, {
+      existing,
+      // A create over a taken name was based on no version of it.
+      base:
+        request.onlyIfAbsent || request.ifMatch === null
+          ? undefined
+          : { hash: request.ifMatch.replace(/^"|"$/g, "") },
+      text: document.text,
+      declared: document.parsed.visibility,
+    });
+  }
 
   // A save that names no version is based on the one this mount last held.
   // Over a newer one it loses, and is kept instead of dropped: a client
@@ -293,14 +317,15 @@ async function keepAsConflict(
   request: SaveRequest,
   lost: {
     existing: BaseEntity;
-    base: MountBase;
+    /** The version the save was made over; none for a create. */
+    base: MountBase | undefined;
     text: string;
     declared: ContentVisibility | undefined;
   },
 ): Promise<WriteOutcome> {
   const { existing, base, text, declared } = lost;
   const edit = computeContentHash(text);
-  if (base.conflictEdit === edit) {
+  if (base?.conflictEdit === edit) {
     return { status: 204, conflictId: base.conflictId };
   }
   const conflictId = await deps.recordConflict({
@@ -308,7 +333,7 @@ async function keepAsConflict(
     entityId: existing.id,
     origin: "drive",
     actor: request.grant.principal.userId,
-    base: base.hash,
+    ...(base !== undefined && { base: base.hash }),
     current: existing.contentHash,
     text,
     targetVisibility: existing.visibility,

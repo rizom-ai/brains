@@ -17,7 +17,12 @@ import { ScratchStore, isScratchName, type ScratchFile } from "./dav-scratch";
 import { CleanupGuard } from "./dav-cleanups";
 import { SaveHolds, type SaveHold } from "./dav-holds";
 import { LockStore, requestedLockSeconds } from "./dav-locks";
-import { DavTree, type DavNode, type DavReader } from "./dav-tree";
+import {
+  DavTree,
+  type DavFile,
+  type DavNode,
+  type DavReader,
+} from "./dav-tree";
 import {
   davErrorXml,
   lockDiscoveryXml,
@@ -93,6 +98,12 @@ interface DavRequest {
   request: Request;
   grant: AuthAppPasswordGrant;
   tree: DavTree;
+  /**
+   * The request is a sync client's (`X-Brain-Sync: 1`): it keeps its own
+   * copy and wants the stored version at once, so no save is held back for
+   * it, and a save is answered with the version the brain stored.
+   */
+  sync: boolean;
   /** Undefined when the request path names nothing on the drive. */
   path: DavPath | undefined;
 }
@@ -157,14 +168,17 @@ export function createDavRoutes(
         return inert(forbidden("This app password is read-only"));
       }
 
+      const sync = request.headers.get("x-brain-sync")?.trim() === "1";
       const dav: DavRequest = {
         request,
         grant,
         tree: new DavTree(
           options.reader,
           permissionToVisibilityScope(grant.principal.permissionLevel),
+          { everyType: sync },
         ),
         path: pathBelow(options.basePath, new URL(request.url).pathname),
+        sync,
       };
       // LOCK and UNLOCK answer for the lock themselves; every other write
       // to a locked path needs its holder and its token.
@@ -266,7 +280,7 @@ async function liveHold(
   dav: DavRequest,
   node: DavNode,
 ): Promise<SaveHold | undefined> {
-  if (node.kind !== "file") return undefined;
+  if (node.kind !== "file" || dav.sync) return undefined;
   const mount = dav.grant.appPasswordId;
   const hold = server.holds.get(mount, node.segments);
   if (!hold) return undefined;
@@ -292,6 +306,7 @@ async function namedVersion(
 ): Promise<string | null> {
   const ifMatch = dav.request.headers.get("if-match");
   if (ifMatch === null) return null;
+  if (dav.sync) return ifMatch;
   if (!server.holds.get(dav.grant.appPasswordId, segments)) return ifMatch;
   const node = await dav.tree.resolve(segments);
   const hold = node ? await liveHold(server, dav, node) : undefined;
@@ -468,8 +483,12 @@ async function put(server: DavServer, dav: DavRequest): Promise<Response> {
     bytes,
     ifMatch: await namedVersion(server, dav, path.segments),
     onlyIfAbsent: dav.request.headers.get("if-none-match")?.trim() === "*",
+    keepAsConflict:
+      dav.sync &&
+      dav.request.headers.get("x-brain-keep")?.trim() === "conflict",
     grant: dav.grant,
   });
+  if (dav.sync) return syncWritten(server, dav, path.segments, bytes, outcome);
   // A refused save, or one stored in another form (it has no ETag), is an
   // upload a client takes as failed and cleans up after with a delete.
   if ("message" in outcome || outcome.etag === undefined) {
@@ -477,6 +496,52 @@ async function put(server: DavServer, dav: DavRequest): Promise<Response> {
   }
   await holdSave(server, dav, path.segments, bytes, outcome);
   return written(server, dav, path.segments, outcome);
+}
+
+/**
+ * A sync client's save, answered with what the brain now holds: the stored
+ * version's ETag, whether it was stored as sent or in another form, and the
+ * conflict a losing save is kept as. Nothing is held back for it.
+ */
+async function syncWritten(
+  server: DavServer,
+  dav: DavRequest,
+  segments: string[],
+  sent: Uint8Array,
+  outcome: WriteOutcome,
+): Promise<Response> {
+  if ("message" in outcome) return written(server, dav, segments, outcome);
+  server.holds.release(dav.grant.appPasswordId, segments);
+  const saved = await dav.tree.entityAt(segments);
+  const headers: Record<string, string> = {};
+  if (saved) {
+    headers["ETag"] = saved.file.etag;
+    headers["X-Brain-Stored"] =
+      outcome.conflictId !== undefined
+        ? "conflict"
+        : (await storedAsSent(saved.file, sent))
+          ? "as-sent"
+          : "other-form";
+  }
+  if (outcome.conflictId !== undefined) {
+    headers["X-Brain-Conflict"] = outcome.conflictId;
+  }
+  if (outcome.status === 201) {
+    server.scratch.forgetFolders(
+      dav.grant.principal.userId,
+      segments.slice(0, -1),
+    );
+  }
+  return new Response(null, { status: outcome.status, headers });
+}
+
+/** Whether a stored file's bytes are the ones a save sent. */
+async function storedAsSent(file: DavFile, sent: Uint8Array): Promise<boolean> {
+  if (file.size !== sent.byteLength) return false;
+  const stored = new Uint8Array(
+    await new Response(await file.open()).arrayBuffer(),
+  );
+  return Buffer.from(stored).equals(Buffer.from(sent));
 }
 
 /**
