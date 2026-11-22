@@ -11,6 +11,7 @@ import {
   type EntitySchema,
   type GetEntityRequest,
   type IEntityService,
+  type RenameEntityResult,
   type ListEntitiesRequest,
   type UpdateEntityRequest,
   type UpsertEntityRequest,
@@ -412,6 +413,35 @@ export function createMockEntityService(
         request.options?.persistenceOrigin,
       );
       return true;
+    },
+    // As the real store renames: the same entity under another id.
+    renameEntity: async (request): Promise<RenameEntityResult> => {
+      const { entityType, id, newId, options } = request;
+      const current = store.entities.get(id);
+      if (current?.entityType !== entityType)
+        throw new Error(`Entity not found: ${entityType}:${id}`);
+      if (
+        options?.expectedContentHash !== undefined &&
+        current.contentHash !== options.expectedContentHash
+      )
+        return { renamed: false, skipReason: "content-conflict" };
+      if (store.entities.has(newId))
+        throw new EntityWriteConflictError(entityType, newId);
+      store.entities.delete(id);
+      store.entities.set(newId, { ...current, id: newId });
+      store.markExportIntent(
+        entityType,
+        id,
+        "delete",
+        options?.persistenceOrigin,
+      );
+      store.markExportIntent(
+        entityType,
+        newId,
+        "upsert",
+        options?.persistenceOrigin,
+      );
+      return { renamed: true };
     },
     getEntity: getEntityFake,
     listEntities: listEntitiesFake,

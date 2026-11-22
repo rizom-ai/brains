@@ -2363,6 +2363,7 @@ function entityWritesOf(context: ServicePluginContext): ServiceEntityWrites {
     updateEntity: (request) => entityService.updateEntity(request),
     upsertEntity: (request) => entityService.upsertEntity(request),
     deleteEntity: (request) => entityService.deleteEntity(request),
+    renameEntity: (request) => entityService.renameEntity(request),
     stageAsset: (source, options) => entityService.stageAsset(source, options),
     discardStagedAsset: (asset) => entityService.discardStagedAsset(asset),
   } satisfies ServiceEntityWrites);

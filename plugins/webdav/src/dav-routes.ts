@@ -7,6 +7,7 @@ import type { WebRouteDefinition } from "@brains/sdk/internal/interface-runtime"
 import { permissionToVisibilityScope } from "@brains/sdk/internal/service-runtime";
 import {
   deleteEntityFile,
+  renameNoteFile,
   saveEntityFile,
   type DavWrites,
   type WriteDeps,
@@ -637,7 +638,7 @@ async function move(server: DavServer, dav: DavRequest): Promise<Response> {
   if (!isScratchPath(path.segments)) {
     return isScratchPath(destination.segments)
       ? backUp(server, dav, path.segments, destination.segments, overwrite)
-      : forbidden("The drive does not rename files");
+      : rename(server, dav, path.segments, destination.segments);
   }
   const userId = dav.grant.principal.userId;
   const source = server.scratch.get(userId, path.segments);
@@ -673,6 +674,29 @@ async function move(server: DavServer, dav: DavRequest): Promise<Response> {
     server.holds.release(dav.grant.appPasswordId, destination.segments);
   }
   return written(server, dav, destination.segments, outcome);
+}
+
+/** Rename a note by its file, and move what the mount held with it. */
+async function rename(
+  server: DavServer,
+  dav: DavRequest,
+  from: string[],
+  to: string[],
+): Promise<Response> {
+  const outcome = await renameNoteFile(writeDeps(server, dav), {
+    from,
+    to,
+    grant: dav.grant,
+  });
+  if (outcome.status < 300) {
+    const mount = dav.grant.appPasswordId;
+    // What this mount held of the old name is the renamed note's.
+    const held = await server.mounts.get(mount, from.join("/"));
+    await server.mounts.forget(mount, from.join("/"));
+    if (held) await server.mounts.held(mount, to.join("/"), held.hash);
+    server.holds.release(mount, from);
+  }
+  return written(server, dav, to, outcome);
 }
 
 /**

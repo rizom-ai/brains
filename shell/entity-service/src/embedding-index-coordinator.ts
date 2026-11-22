@@ -109,6 +109,28 @@ export class EmbeddingIndexCoordinator {
     this.retries = options.retries;
   }
 
+  /**
+   * Keep a renamed entity's embedding under its new id. The text it was
+   * made from did not change, so nothing is embedded again.
+   */
+  public async renameEmbedding(
+    entityType: string,
+    from: string,
+    to: string,
+  ): Promise<void> {
+    this.retries?.cancel(embeddingRetryKey(entityType, from));
+    await this.deleteEmbedding(entityType, to);
+    await this.embeddingDb
+      .update(embeddings)
+      .set({ entityId: to })
+      .where(
+        and(
+          eq(embeddings.entityType, entityType),
+          eq(embeddings.entityId, from),
+        ),
+      );
+  }
+
   public async deleteEmbedding(
     entityType: string,
     entityId: string,

@@ -52,6 +52,8 @@ import type {
   EntityGroupingMembers,
   CountEntitiesRequest,
   DeleteEntityRequest,
+  RenameEntityRequest,
+  RenameEntityResult,
   FoldEntityRequest,
   ApplyEntityMutationOnceRequest,
   EntitySearchRequest,
@@ -711,6 +713,18 @@ export class EntityService implements IEntityService {
     await this.entityRegistry.ensureGroupingsCurrent();
     const result = await this.entityMutations.foldEntity(request);
     await this.afterGroupingSourceMutation(request.entity.entityType);
+    return result;
+  }
+
+  public async renameEntity(
+    request: RenameEntityRequest,
+  ): Promise<RenameEntityResult> {
+    await this.initialize();
+    if (request.entityType === this.entityRegistry.getGroupingSourceType())
+      await this.entityRegistry.ensureGroupingsCurrent();
+    const result = await this.entityMutations.renameEntity(request);
+    if (result.renamed)
+      await this.afterGroupingSourceMutation(request.entityType);
     return result;
   }
 

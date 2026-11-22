@@ -96,6 +96,29 @@ export const entityDeletedChannel: Channel<
   typeof ENTITY_CHANNELS.deleted
 > = defineChannel(ENTITY_CHANNELS.deleted, entityChangePayloadSchema);
 
+type EntityRenamedPayloadSchema = z.ZodObject<
+  EntityChangePayloadSchema["shape"] & { previousId: z.ZodString }
+>;
+
+/**
+ * An entity has another id and is otherwise as it was. It was neither
+ * deleted nor created: whatever follows an entity's life keeps following
+ * this one under its new id.
+ */
+export const entityRenamedPayloadSchema: EntityRenamedPayloadSchema =
+  entityChangePayloadSchema.extend({
+    /** The id the entity had before; `entityId` is the one it has now. */
+    previousId: z.string().min(1),
+  });
+
+export type EntityRenamedPayload = z.output<typeof entityRenamedPayloadSchema>;
+
+export const entityRenamedChannel: Channel<
+  EntityRenamedPayload,
+  unknown,
+  typeof ENTITY_CHANNELS.renamed
+> = defineChannel(ENTITY_CHANNELS.renamed, entityRenamedPayloadSchema);
+
 export const embeddingReadyChannel: Channel<
   EmbeddingReadyPayload,
   unknown,

@@ -971,6 +971,28 @@ export interface FoldEntityRequest<T extends BaseEntity = BaseEntity> {
   >;
 }
 
+/**
+ * Give an entity another id and keep everything else about it: one change,
+ * never a delete and a create. The new id must be free.
+ */
+export interface RenameEntityRequest {
+  entityType: string;
+  id: string;
+  newId: string;
+  options?:
+    | (Pick<EntityJobOptions, "eventContext" | "persistenceOrigin"> & {
+        /** Rename only while the stored entity still has this content hash. */
+        expectedContentHash?: string | undefined;
+      })
+    | undefined;
+}
+
+export interface RenameEntityResult {
+  renamed: boolean;
+  /** Why nothing was renamed: the stored version is not the one named. */
+  skipReason?: "content-conflict";
+}
+
 export interface DeleteEntityRequest {
   entityType: string;
   id: string;
@@ -1497,6 +1519,7 @@ export interface EntityServiceClient extends ICoreEntityService {
    */
   purgeEntityType(entityType: string): Promise<number>;
   foldEntity(request: FoldEntityRequest): Promise<EntityMutationResult>;
+  renameEntity(request: RenameEntityRequest): Promise<RenameEntityResult>;
   getEntityMutationReceipt(
     key: EntityMutationReceiptKey,
   ): Promise<EntityMutationReceipt | null>;

@@ -576,6 +576,7 @@ export {
   entityChangePayloadSchema,
   entityCreatedChannel,
   entityDeletedChannel,
+  entityRenamedChannel,
   entityUpdatedChannel,
   type EmbeddingReadyPayload,
   type EntityChangePayload,

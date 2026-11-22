@@ -320,6 +320,11 @@ export class DirectorySync implements IDirectorySync {
     return this.guard.recordPullConflicts(conflicts);
   }
 
+  /** Remove the files, and the recorded version, of an entity that is gone. */
+  removeEntityFiles(entityType: string, id: string): Promise<void> {
+    return this.guard.removeEntityFiles(entityType, id);
+  }
+
   /** Delete the entity of a removed file unless it changed since they agreed. */
   deleteForRemovedFile(
     entityType: string,

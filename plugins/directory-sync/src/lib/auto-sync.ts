@@ -3,6 +3,7 @@ import { createId } from "@brains/utils/id";
 import {
   entityCreatedChannel,
   entityDeletedChannel,
+  entityRenamedChannel,
   entityUpdatedChannel,
 } from "@brains/sdk/internal/service-runtime";
 import type { Logger } from "@brains/utils/logger";
@@ -30,6 +31,8 @@ export function setupAutoSync(
     entityCreatedChannel,
     entityUpdatedChannel,
     entityDeletedChannel,
+    // A rename is in the outbox as its old file's removal and its new one.
+    entityRenamedChannel,
   ]) {
     context.runtime.listen(
       event,

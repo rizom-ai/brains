@@ -329,6 +329,17 @@ describe("directory-sync against the version it last synced", () => {
       await brain.sync.writeEntityFile(current);
     };
 
+    it("forgets the version of an entity whose file it removes", async () => {
+      await synced();
+      expect(await brain.base.get("post", "a")).toBeDefined();
+
+      // What the export does for an entity that was deleted or renamed.
+      await brain.sync.removeEntityFiles("post", "a");
+
+      expect(existsSync(file("post/a.md"))).toBe(false);
+      expect(await brain.base.get("post", "a")).toBeUndefined();
+    });
+
     it("records the version it wrote", async () => {
       await synced();
       await editInBrain("Edited in Studio\n");

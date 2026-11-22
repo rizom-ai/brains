@@ -92,6 +92,7 @@ const service = defineServicePlugin({
           createEntity: (request) => runtime.entityWrites.createEntity(request),
           updateEntity: (request) => runtime.entityWrites.updateEntity(request),
           deleteEntity: (request) => runtime.entityWrites.deleteEntity(request),
+          renameEntity: (request) => runtime.entityWrites.renameEntity(request),
           permissions: runtime.permissions,
           // Without auth nobody is admitted, so nothing reaches here.
           recordAudit: async (event) => {

@@ -61,10 +61,10 @@ describe("DurableEntityExportDispatcher", () => {
             suppressWatchPaths: () => {},
             isPendingDelete: () => false,
             writeEntityFile: writeEntity,
+            removeEntityFiles: async () => {},
             fileOps: {
               getEntityConvergencePaths: () => [`${entity.id}.md`],
               getEntityDeletePaths: () => [`${entity.id}.md`],
-              deleteEntityFiles: async () => {},
             },
           };
           const dispatcher = new DurableEntityExportDispatcher({

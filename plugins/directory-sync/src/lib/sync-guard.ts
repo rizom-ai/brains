@@ -37,6 +37,7 @@ export interface SyncGuardDeps {
   >;
   fileOperations: Pick<
     FileOperations,
+    | "deleteEntityFiles"
     | "writeEntity"
     | "resolveEntityFilePath"
     | "fileExists"
@@ -93,6 +94,16 @@ export class SyncGuard {
     const filePath = await fileOperations.resolveEntityFilePath(entity);
     if (!(await fileOperations.fileExists(filePath))) return undefined;
     return computeContentHash(await fileOperations.readStoredText(filePath));
+  }
+
+  /**
+   * Remove the files of an entity that is gone from the brain, deleted or
+   * renamed, and the version recorded for it: there is no file left to
+   * compare with, and the id may be given to another entity later.
+   */
+  async removeEntityFiles(entityType: string, id: string): Promise<void> {
+    await this.deps.fileOperations.deleteEntityFiles(entityType, id);
+    await this.deps.conflicts?.base.delete(entityType, id);
   }
 
   /**

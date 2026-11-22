@@ -49,6 +49,7 @@ export interface DavWrites {
   createEntity: ServiceEntityWrites["createEntity"];
   updateEntity: ServiceEntityWrites["updateEntity"];
   deleteEntity: ServiceEntityWrites["deleteEntity"];
+  renameEntity: ServiceEntityWrites["renameEntity"];
   permissions: ServicePermissions;
   recordAudit(event: AppendAuthAuditEventInput): Promise<void>;
 }
@@ -94,13 +95,15 @@ export interface SaveRequest {
   grant: AuthAppPasswordGrant;
 }
 
-type Operation = "create" | "update" | "delete";
+type Operation = "create" | "update" | "delete" | "rename";
 interface Located {
   entity: BaseEntity;
   file: DavFile;
 }
 
 const IMAGE_TYPE = "image";
+/** Notes sit at the drive's root, each file named by its id. */
+const NOTE_TYPE = "note";
 const INTERFACE_TYPE = "webdav";
 
 /**
@@ -502,6 +505,54 @@ async function saveImageFile(
   const saved = await tree.entityAt(segments);
   if (saved) await deps.mount.held(saved.entity.contentHash);
   return { status: located ? 204 : 201, etag: saved?.file.etag };
+}
+
+/**
+ * Rename a note by renaming its file: the same note under the id its new
+ * path names. A notes app shows the file's name as the note's, so this is
+ * how a person names one. Only notes: every other type's file name is an id
+ * other things are built on (a post's address, an image's references).
+ */
+export async function renameNoteFile(
+  deps: WriteDeps,
+  request: { from: string[]; to: string[]; grant: AuthAppPasswordGrant },
+): Promise<WriteOutcome> {
+  const { writes, tree } = deps;
+  const located = await tree.entityAt(request.from);
+  if (!located) return { status: 404, message: "Not found" };
+  const { entity } = located;
+  const destination = tree.placementAt(request.to, ".md");
+  if (
+    entity.entityType !== NOTE_TYPE ||
+    destination?.entityType !== NOTE_TYPE
+  ) {
+    return forbidden("The drive renames notes only, to another note's name");
+  }
+  if (await tree.entityAt(request.to)) return taken();
+
+  const refused = await refusal(deps, request.grant, "rename", entity, [
+    "update",
+  ]);
+  if (refused) return refused;
+
+  const result = await attemptAsync(() =>
+    writes.renameEntity({
+      entityType: entity.entityType,
+      id: entity.id,
+      newId: destination.id,
+      options: {
+        // Only the version this request found: a note that changed
+        // meanwhile keeps its name.
+        expectedContentHash: entity.contentHash,
+        eventContext: eventContext(request.grant),
+      },
+    }),
+  );
+  // A name taken by a note this person may not see is taken all the same.
+  if (!result.ok) return createFailure(result.error);
+  if (!result.value.renamed) return stale();
+  await audit(writes, request.grant, "rename", "allowed", entity);
+  return { status: 201 };
 }
 
 /** Delete the entity a file is, only while it is still the version read. */

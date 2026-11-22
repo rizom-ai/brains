@@ -77,7 +77,9 @@ Deleting a file deletes its entity, under the delete action policy and only whil
 
 rclone takes a save the drive refuses as a failed upload and deletes the file to clean up after it. It would do the same after a save kept as a conflict or stored in another form, were that save not shown back as sent (see Saving). The first delete without `If-Match` that the same person sends for that file within 30 seconds of such a save answers 409 and keeps the entity; a second delete, or one naming the version, deletes it.
 
-Renaming and copying entity files answer 403, with one exception: renaming an entity's file onto a temporary name (`note.md` → `note.md~`) is an editor making its backup before it saves. The file's bytes are copied to the person's temporary files and the entity stays, for the save that follows to replace. Refusing that rename makes neovim copy the file and delete the original, which would delete the entity.
+Renaming a note's file renames the note: a notes app shows a file's name as the note's, and a note's file name is its id. The note keeps its text, its metadata, its visibility and the day it was made; only its id changes, in one step, so its embedding and its place in topics are kept and not worked out again. The new name must be free (412 when it is taken, whatever `Overwrite` says), the note must be the version the request found (412), and the person must be allowed to update it. In `brain-data/` the file moves, and git records a rename.
+
+Renaming any other type's file and copying entity files answer 403, with one exception: renaming an entity's file onto a temporary name (`note.md` → `note.md~`) is an editor making its backup before it saves. The file's bytes are copied to the person's temporary files and the entity stays, for the save that follows to replace. Refusing that rename makes neovim copy the file and delete the original, which would delete the entity.
 
 ## Images
 

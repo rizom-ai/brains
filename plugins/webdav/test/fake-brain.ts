@@ -31,6 +31,9 @@ export const noWrites: DavRoutesOptions["writes"] = {
   deleteEntity: async () => {
     throw new Error("No writes expected");
   },
+  renameEntity: async () => {
+    throw new Error("No writes expected");
+  },
   permissions: {
     assertEntityActionAllowed: () => {
       throw new Error("No writes expected");
@@ -69,6 +72,15 @@ export interface FakeBrain {
   updates: RecordedUpdate[];
   creates: RecordedUpdate[];
   deletes: Array<{ entityType: string; id: string }>;
+  /** What a rename handed the entity service. */
+  renames: Array<{
+    entityType: string;
+    id: string;
+    newId: string;
+    expectedContentHash: string | undefined;
+    actorUserId: string | undefined;
+    interfaceType: string | undefined;
+  }>;
   /** Published asset bytes by reference: what the drive can read back. */
   assets: Record<string, Uint8Array>;
   /** References staged and then discarded without being published. */
@@ -114,6 +126,7 @@ export function fakeBrain(
     updates: [],
     creates: [],
     deletes: [],
+    renames: [],
     assets,
     discarded: [],
     audit: [],
@@ -312,6 +325,45 @@ export function fakeBrain(
             id: request.id,
           });
           return true;
+        },
+        renameEntity: async (request) => {
+          brain.beforeNextUpdate?.();
+          brain.beforeNextUpdate = undefined;
+          const index = entities.findIndex(
+            (candidate) =>
+              candidate.entityType === request.entityType &&
+              candidate.id === request.id,
+          );
+          const current = entities[index];
+          if (!current) throw new Error("Entity not found");
+          const expected = request.options?.expectedContentHash;
+          if (expected !== undefined && current.contentHash !== expected) {
+            return { renamed: false, skipReason: "content-conflict" as const };
+          }
+          if (
+            entities.some(
+              (candidate) =>
+                candidate.entityType === request.entityType &&
+                candidate.id === request.newId,
+            )
+          ) {
+            throw Object.assign(new Error("Taken"), {
+              name: "EntityWriteConflictError",
+            });
+          }
+          entities[index] = { ...current, id: request.newId };
+          brain.renames.push({
+            entityType: request.entityType,
+            id: request.id,
+            newId: request.newId,
+            expectedContentHash: expected,
+            interfaceType: request.options?.eventContext?.interfaceType,
+            actorUserId:
+              request.options?.eventContext?.actor?.kind === "user"
+                ? request.options.eventContext.actor.userId
+                : undefined,
+          });
+          return { renamed: true };
         },
         recordAudit: async (event) => {
           brain.audit.push(event);

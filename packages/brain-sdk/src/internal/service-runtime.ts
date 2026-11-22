@@ -77,6 +77,7 @@ export {
   type EntitiesRestated,
   entityCreatedChannel,
   entityDeletedChannel,
+  entityRenamedChannel,
   entityUpdatedChannel,
   initialSyncCompletedChannel,
   conversationMessageAddedChannel,

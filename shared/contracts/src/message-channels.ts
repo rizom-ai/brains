@@ -5,6 +5,7 @@ export const ENTITY_CHANNELS = {
   created: "entity:created",
   updated: "entity:updated",
   deleted: "entity:deleted",
+  renamed: "entity:renamed",
   embeddingReady: "entity:embedding:ready",
 } as const;
 
