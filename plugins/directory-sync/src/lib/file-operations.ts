@@ -74,6 +74,7 @@ export type FileOperationsEntityService = Pick<
   | "getEntityTypeConfig"
   | "fileExtension"
   | "openAsset"
+  | "deserializeEntity"
 >;
 
 const sidecarMetadataSchema = z.record(z.string(), z.unknown());
@@ -190,6 +191,30 @@ export class FileOperations {
       created: stats.birthtime.getTime() > 0 ? stats.birthtime : stats.mtime,
       updated: stats.mtime,
     };
+  }
+
+  /**
+   * The .md file a YAML type's record was stored in before its .yaml, once
+   * the .yaml is written (docs/plans/one-stored-form.md, From .md to .yaml):
+   * gone when it reads as the record written, kept when it reads as
+   * anything else, an edit the next import reads.
+   */
+  private async removeOldCopy(
+    entity: BaseEntity,
+    serialized: string,
+  ): Promise<void> {
+    const oldPath = this.getFilePath(entity.id, entity.entityType, ".md");
+    if (!(await pathExists(oldPath))) return;
+    const old = await readFile(oldPath, "utf-8");
+    const read = this.entityService.deserializeEntity(old, entity.entityType);
+    const asWritten = this.entityService.serializeEntity({
+      ...entity,
+      ...read,
+      content: read.content ?? old,
+    });
+    if (computeContentHash(asWritten) !== computeContentHash(serialized))
+      return;
+    await unlink(oldPath);
   }
 
   /** Whether a type stores its records as YAML files in the next form. */
@@ -445,6 +470,8 @@ export class FileOperations {
 
       await this.ensureEntityDirectory(filePath);
       await writeFileAtomic(filePath, contentToWrite);
+      if (filePath.endsWith(".yaml"))
+        await this.removeOldCopy(entity, serialized);
     }
 
     // Preserve entity timestamps on the file to prevent unnecessary re-syncs

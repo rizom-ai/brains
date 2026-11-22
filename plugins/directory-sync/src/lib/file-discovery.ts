@@ -14,28 +14,43 @@ export interface EntityTypeRegistry {
   fileExtension?(type: string): ".md" | ".yaml";
 }
 
+/** A file's other-extension sibling, for a .md or a .yaml file. */
+function siblingOf(file: string): string | undefined {
+  if (file.endsWith(".yaml")) return `${file.slice(0, -".yaml".length)}.md`;
+  if (file.endsWith(".md")) return `${file.slice(0, -".md".length)}.yaml`;
+  return undefined;
+}
+
 /**
  * One file per record: where a YAML type's record has both a `.md` and a
- * `.yaml` file, the one in the extension the store writes is its file and
- * the other is left alone (docs/plans/one-stored-form.md, From .md to .yaml).
+ * `.yaml` file, the newer is its file, an edit made to either read; on a
+ * tie, the one in the extension the store writes (docs/plans/one-stored-form.md,
+ * From .md to .yaml).
  */
-function oneFilePerRecord(
+async function oneFilePerRecord(
+  syncPath: string,
   files: readonly string[],
   entityRegistry: EntityTypeRegistry,
-): string[] {
+): Promise<string[]> {
   const present = new Set(files);
-  return files.filter((file) => {
-    const [type] = file.split("/");
-    if (type === undefined) return true;
-    const other = file.endsWith(".yaml")
-      ? `${file.slice(0, -".yaml".length)}.md`
-      : file.endsWith(".md")
-        ? `${file.slice(0, -".md".length)}.yaml`
-        : undefined;
-    if (other === undefined || !present.has(other)) return true;
-    const written = entityRegistry.fileExtension?.(type) ?? ".md";
-    return file.endsWith(written);
-  });
+  const modified = async (file: string): Promise<number> =>
+    (await stat(join(syncPath, file))).mtimeMs;
+  const kept = await Promise.all(
+    files.map(async (file) => {
+      const [type] = file.split("/");
+      const other = siblingOf(file);
+      if (type === undefined || other === undefined || !present.has(other))
+        return true;
+      const [mine, theirs] = await Promise.all([
+        modified(file),
+        modified(other),
+      ]);
+      if (mine !== theirs) return mine > theirs;
+      const written = entityRegistry.fileExtension?.(type) ?? ".md";
+      return file.endsWith(written);
+    }),
+  );
+  return files.filter((_, index) => kept[index]);
 }
 
 /**
@@ -251,5 +266,5 @@ async function findFiles(
   };
 
   await walk(syncPath);
-  return oneFilePerRecord(files, entityRegistry);
+  return oneFilePerRecord(syncPath, files, entityRegistry);
 }
