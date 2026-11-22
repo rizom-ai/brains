@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.763
+
+### Patch Changes
+
+- [#1025](https://github.com/rizom-ai/brains/pull/1025) [`26a0981`](https://github.com/rizom-ai/brains/commit/26a0981634f5e529a0c88f69cdd818d3358cf549) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A section whose data source fails is logged as a warning, naming the template and the error. It was logged at debug level only, so a page section that rendered empty (as yeehaa.io's homepage did) left nothing in the log.
+
+- [#1024](https://github.com/rizom-ai/brains/pull/1024) [`f012627`](https://github.com/rizom-ai/brains/commit/f0126274115dbfd67d50dd825eaad26cd2b4949a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A semantic projection of the whole corpus, as the homepage atlas draws it, reads only the entity types the brain loads. Rows of a type the brain no longer loads, which keep their embeddings, were projected into the atlas and logged as unparsable on every site build.
+
 ## 0.2.0-alpha.762
 
 ### Patch Changes
