@@ -46,4 +46,12 @@ export interface ContentFormatter<T = unknown> {
    * @throws Error if the content cannot be parsed
    */
   parse(content: string): T;
+
+  /**
+   * A stored document as the formatter writes it now, when it decides that
+   * itself: a formatter that reads an older layout leniently refuses to lay
+   * out a document it would write with something left out. Without it, the
+   * document is read and written again.
+   */
+  layOut?(content: string): string;
 }

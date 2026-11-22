@@ -1694,4 +1694,52 @@ describe("ContentService.resolveContent", () => {
       expect(result).toBe("Content");
     });
   });
+
+  // A saved copy brought to what its template writes now (a site section's
+  // saved copy, at boot); a template without a formatter lays out nothing.
+  describe("layOutContent", () => {
+    it("writes a stored copy as the template's formatter lays it out", () => {
+      templateRegistry.register("upper", {
+        name: "upper",
+        description: "Upper",
+        schema: z.string(),
+        formatter: {
+          format: (data) => String(data).toUpperCase(),
+          parse: (content) => content.trim(),
+          layOut: (content) => content.trim().toUpperCase(),
+        },
+        requiredPermission: "public",
+      });
+      expect(contentService.layOutContent("upper", " old copy \n")).toBe(
+        "OLD COPY",
+      );
+    });
+
+    // A formatter that does not lay out (an older site bundle's) could
+    // drop what it does not read: its copy is left as written.
+    it("lays out nothing through a formatter that does not lay out", () => {
+      templateRegistry.register("older", {
+        name: "older",
+        description: "Older",
+        schema: z.string(),
+        formatter: {
+          format: (data) => String(data).toUpperCase(),
+          parse: (content) => content.trim(),
+        },
+        requiredPermission: "public",
+      });
+      expect(contentService.layOutContent("older", "copy")).toBeUndefined();
+    });
+
+    it("lays out nothing for a template without a formatter", () => {
+      templateRegistry.register("data-only", {
+        name: "data-only",
+        description: "Data only",
+        dataSourceId: "shell:data",
+        schema: z.string(),
+        requiredPermission: "public",
+      });
+      expect(contentService.layOutContent("data-only", "copy")).toBeUndefined();
+    });
+  });
 });

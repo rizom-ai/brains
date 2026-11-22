@@ -334,6 +334,11 @@ export interface ServiceRuntime {
     options?: ResolutionOptions,
   ): Promise<unknown>;
   /**
+   * A template's stored copy as its formatter writes it now; none for a
+   * template without a formatter. Throws when the formatter cannot read it.
+   */
+  layOutTemplate(templateName: string, content: string): string | undefined;
+  /**
    * Queue a job as the class queued it through `context.jobs`: the type
    * scoped to the plugin unless it names a scope, sourced to the plugin,
    * attributed to the call the request names and to nobody when it names
@@ -879,6 +884,7 @@ export type ServiceEntityMutations = Pick<
   | "foldEntity"
   | "releaseProjectionOwnership"
   | "purgeEntityType"
+  | "restateEntity"
 >;
 
 /** The conversation reads a class made, and nothing that searches or writes. */

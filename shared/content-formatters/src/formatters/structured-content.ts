@@ -139,6 +139,26 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
   }
 
   /**
+   * A stored document as the type writes it now. A sectioned file with a
+   * heading the type does not name is refused rather than written without
+   * it: it stays as written, for its author to settle.
+   */
+  public layOut(content: string): string {
+    // A type that writes the sectioned layout restates nothing: its reader
+    // ignores a heading it does not name, and writing would drop it.
+    if (this.config.layout !== "compact") return content;
+    try {
+      this.readCompact(content, true);
+    } catch (error) {
+      throw new Error(
+        `Failed to lay out structured content: ${this.describeError(error)}`,
+        { cause: error },
+      );
+    }
+    return this.format(this.parse(content));
+  }
+
+  /**
    * Parse human-readable markdown back to structured data
    */
   public parse(content: string): T {
@@ -716,8 +736,29 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
     }
   }
 
-  private readCompact(markdown: string): Record<string, unknown> {
+  /** Set while a sectioned file is read: its unknown sections are ignored. */
+  private ignoringUnknownSections = false;
+
+  /**
+   * A document in the sectioned layout opens on its title line; a compact
+   * document never has one.
+   */
+  private isSectionedDocument(tree: Root): boolean {
+    const first = tree.children.find(
+      (node) => !this.isPlaceholderComment(node),
+    );
+    return first?.type === "heading" && first.depth === 1;
+  }
+
+  private readCompact(
+    markdown: string,
+    strict = false,
+  ): Record<string, unknown> {
     const tree = this.processor.parse(markdown);
+    // A file in the sectioned layout reads as the sectioned reader read it:
+    // a heading the type does not name is ignored, so no file a brain holds
+    // is refused by a check it did not have. Laying it out anew is strict.
+    const lenient = !strict && this.isSectionedDocument(tree);
     // The title line the sectioned layout wrote is read past; anything else
     // above the first section would be lost on the next write.
     const lead = this.leadNodes(tree.children, 2).filter(
@@ -728,13 +769,18 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
     if (lead.length > 0) {
       throw new Error("Text above the first section belongs to no field");
     }
-    return this.readGroup(
-      tree.children,
-      this.config.mappings,
-      2,
-      markdown,
-      true,
-    );
+    this.ignoringUnknownSections = lenient;
+    try {
+      return this.readGroup(
+        tree.children,
+        this.config.mappings,
+        2,
+        markdown,
+        true,
+      );
+    } finally {
+      this.ignoringUnknownSections = false;
+    }
   }
 
   /** The nodes before the first heading of `depth` or shallower. */
@@ -793,6 +839,7 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
     for (const section of sections) {
       const mapping = byLabel.get(section.label.toLowerCase());
       if (!mapping) {
+        if (this.ignoringUnknownSections) continue;
         throw new Error(`Unknown section "${section.label}"`);
       }
       if (seen.has(mapping.key)) {

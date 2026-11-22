@@ -1,3 +1,5 @@
+import { storedContentRestateContract } from "@brains/contracts";
+import { restateSectionContent } from "./lib/restate-section-content";
 import { access } from "node:fs/promises";
 import { join } from "node:path";
 import {
@@ -215,6 +217,33 @@ async function setUpSiteBuilder(
     logger.debug("Auto-rebuild enabled");
     rebuilds.setupAutoRebuild();
   }
+
+  // At boot, before startup content settles, every section's saved copy is
+  // brought to the layout its template writes now, quietly
+  // (docs/plans/one-stored-form.md). Answered where the shell boots.
+  if (!runtime.executionOnly)
+    runtime.answer(storedContentRestateContract, async () => ({
+      restated: await restateSectionContent({
+        routes: () => routes.list(),
+        savedBody: async (id) =>
+          (
+            await runtime.entityReads.getEntity({
+              entityType: "site-content",
+              id,
+            })
+          )?.content ?? null,
+        // A template without a formatter lays out no saved copy.
+        layOut: (template, body) =>
+          runtime.layOutTemplate(template, body) ?? body,
+        restate: (id, body) =>
+          runtime.entityMutations.restateEntity({
+            entityType: "site-content",
+            id,
+            body,
+          }),
+        warn: (message, context) => logger.warn(message, context),
+      }),
+    }));
 
   // Rebuilt once startup content has settled, so a queued startup import
   // is in the site before it renders.

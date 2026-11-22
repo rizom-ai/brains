@@ -516,6 +516,7 @@ export function createMockEntityService(
     backfillMissingEmbeddings: async () => ({ queued: 0, skipped: 0 }),
     rewriteRetiredFields: async () => ({ rewritten: 0 }),
     reconcileDeclaredMetadata: async () => ({ reconciled: 0 }),
+    restateEntity: async () => null,
     rewriteStoredForms: async () => ({
       rewritten: 0,
       deferred: 0,

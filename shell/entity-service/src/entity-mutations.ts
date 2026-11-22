@@ -1256,6 +1256,47 @@ export class EntityMutations {
     if (canonical === row.content) return "unchanged";
     const framingOnly = framedDocument(row.content) === canonical;
     if (form === "old" && !framingOnly) return "deferred";
+    return this.storeRestatement(row, canonical, framingOnly);
+  }
+
+  /**
+   * Restate one entity with a new body, quietly, as the rewrite on start
+   * writes: for a body its codec passes through and something outside it
+   * lays out (a site section's template). Nothing when the stored document
+   * would not change, or the row changed since it was read.
+   */
+  public async restateEntity(request: {
+    entityType: string;
+    id: string;
+    body: string;
+  }): Promise<RestatedEntity | null> {
+    const [stored] = await this.db
+      .select()
+      .from(entities)
+      .where(
+        and(
+          eq(entities.id, request.id),
+          eq(entities.entityType, request.entityType),
+        ),
+      )
+      .limit(1);
+    if (!stored) return null;
+    const row = normalizeEntityRow(stored);
+    const canonical = this.entitySerializer.serializeEntity({
+      ...this.entitySerializer.reconstructEntity(row, true),
+      content: request.body,
+    });
+    if (canonical === row.content) return null;
+    const restated = await this.storeRestatement(row, canonical, false);
+    return restated === "unchanged" ? null : restated;
+  }
+
+  /** A restated document stored quietly: content and hash only, exported. */
+  private async storeRestatement(
+    row: EntityData,
+    canonical: string,
+    framingOnly: boolean,
+  ): Promise<RestatedEntity | "unchanged"> {
     const contentHash = computeContentHash(canonical);
     // A write since the row was read wins: the rewrite only replaces the
     // document it read.

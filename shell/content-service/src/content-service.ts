@@ -398,6 +398,24 @@ export class ContentService implements IContentService {
   }
 
   /**
+   * A template's stored copy as its formatter lays it out now; none for a
+   * template whose formatter does not lay out. Throws when the formatter
+   * refuses the copy.
+   */
+  layOutContent(
+    templateName: string,
+    content: string,
+    pluginId?: string,
+  ): string | undefined {
+    const template = this.getTemplate(
+      scopeTemplateName(templateName, pluginId),
+    );
+    // Only a formatter that lays out decides what it writes: one that does
+    // not (an older site bundle's) could drop what it does not read.
+    return template?.formatter?.layOut?.(content);
+  }
+
+  /**
    * Parse existing content using a template's formatter
    */
   parseContent(
