@@ -1259,6 +1259,8 @@ export {
   anchorProfileBodySchema,
   anchorProfileKindSchema,
   brainCharacterBodySchema,
+  readAnchorProfileDocument,
+  readBrainCharacterDocument,
 } from "@brains/identity-service";
 
 // ============================================================================

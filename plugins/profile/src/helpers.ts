@@ -1,6 +1,7 @@
-import { parseMarkdownWithFrontmatter } from "@brains/sdk/internal/entity-runtime";
-import type { ServiceEntityReads } from "@brains/sdk/internal/service-runtime";
-import { z } from "@brains/utils/zod";
+import {
+  readAnchorProfileDocument,
+  type ServiceEntityReads,
+} from "@brains/sdk/internal/service-runtime";
 
 interface ProfileSchema<T> {
   parse(data: unknown): T;
@@ -32,10 +33,9 @@ export async function fetchAnchorProfileData<T extends object>(
   entityService: AnchorProfileReader,
   schema: ProfileSchema<T>,
 ): Promise<T> {
-  const markdown = await fetchAnchorProfile(entityService);
-  const { metadata, content } = parseMarkdownWithFrontmatter(
-    markdown,
-    z.record(z.string(), z.unknown()),
+  // A document in either stored form: its fields, and its story.
+  const { header, story } = readAnchorProfileDocument(
+    await fetchAnchorProfile(entityService),
   );
-  return schema.parse(content ? { ...metadata, story: content } : metadata);
+  return schema.parse(story ? { ...header, story } : header);
 }

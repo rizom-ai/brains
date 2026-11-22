@@ -84,6 +84,8 @@ export {
 export {
   anchorProfileBodySchema,
   brainCharacterBodySchema,
+  readAnchorProfileDocument,
+  readBrainCharacterDocument,
   type BrainCharacter,
   type ProfileCategory,
   type ProfileKindDefinition,
