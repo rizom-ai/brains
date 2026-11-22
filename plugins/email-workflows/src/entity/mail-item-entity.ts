@@ -100,21 +100,16 @@ export const mailItemEntity: EntityDefinition<
     projectionSourceRole: "excluded",
     retiredFields: MAIL_ITEM_RETIRED_FIELDS,
   },
-  // Either stored form reads; the store's form is written, the whole
-  // header from the document handed in.
+  // Either stored form reads; the new form is written, the whole header
+  // from the document handed in.
   markdown: storedFormCodec<typeof mailItemMetadataSchema>({
     decode: routing.decode,
-    encode: {
-      old: ({ content, metadata }) => ({
-        content: parseMarkdown(content).content,
-        frontmatter: writtenHeader(content, metadata),
-      }),
-      new: ({ content, metadata }) => ({
-        content: parseMarkdown(content).content,
-        frontmatter: mailItemNextHeader(writtenHeader(content, metadata)),
-      }),
-    },
-    header: { old: mailItemFrontmatterSchema, new: mailItemNextHeaderSchema },
+    encode: ({ content, metadata }) => ({
+      content: parseMarkdown(content).content,
+      frontmatter: mailItemNextHeader(writtenHeader(content, metadata)),
+    }),
+    header: mailItemNextHeaderSchema,
+    oldHeader: mailItemFrontmatterSchema,
     places: [["source", "sourceRef", "threadKey", "threadOrdinal", "personId"]],
   }),
   // Restricted, always; and only the system fallback may carry no

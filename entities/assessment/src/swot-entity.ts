@@ -63,19 +63,16 @@ function currentShape(
 }
 
 /**
- * Read as its stored document in either form; the store's form is
- * written: the current, all header, or the next, the quadrants in the
- * body.
+ * Read as its stored document in either form, all header or the quadrants
+ * in the body; the quadrants are written in the body.
  */
 const swotMarkdown = storedFormCodec<typeof swotMetadataSchema>({
   decode: storedSwot.decode,
-  encode: {
-    old: ({ content, metadata }) => currentShape(content, metadata.derivedAt),
-    new: ({ content, metadata }) =>
-      swotInNextForm(currentShape(content, metadata.derivedAt)),
-  },
-  header: { old: swotFrontmatterSchema, new: swotNextHeaderSchema },
-  // The quadrants a file brought back to the current form opens with.
+  encode: ({ content, metadata }) =>
+    swotInNextForm(currentShape(content, metadata.derivedAt)),
+  header: swotNextHeaderSchema,
+  oldHeader: swotFrontmatterSchema,
+  // The quadrants a file read in the old form opens with.
   places: [
     ["strengths", "weaknesses", "opportunities", "threats", "derivedAt"],
   ],

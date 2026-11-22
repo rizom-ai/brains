@@ -19,8 +19,8 @@ import {
  * bytes it stores are the same on every path, in the order of the document
  * they replace, with no default written and unknown keys kept.
  *
- * A moved type is tested in the form alpha W writes, built explicitly; on
- * alpha R it still writes the old form. A type not yet moved is pending:
+ * A moved type is tested in the new form it writes, from a file in either
+ * form. A type not yet moved is pending:
  * the list is empty at alpha W. A type added later fails here until it is
  * moved or listed, so it is covered without a new test.
  */
@@ -122,9 +122,7 @@ afterEach(async () => {
 
 const SITE_INFO = { entityType: "site-info", id: "site-info" } as const;
 
-async function siteInfoStore(
-  form: "old" | "new",
-): Promise<DeclaredEntityStore> {
+async function siteInfoStore(): Promise<DeclaredEntityStore> {
   const opened = await declaredEntityStore(
     siteInfoPackage,
     "@brains/site-info",
@@ -138,7 +136,6 @@ async function siteInfoStore(
     [],
     {},
     () => {},
-    { storedForm: form },
   );
   stores.push(opened);
   return opened;
@@ -202,9 +199,9 @@ describe("the stored-form contract", () => {
   });
 });
 
-describe("site-info, in the form alpha W writes", () => {
+describe("site-info, in the new form", () => {
   test("its header holds only Obsidian properties", async () => {
-    const opened = await siteInfoStore("new");
+    const opened = await siteInfoStore();
     const written = await imported(opened, await golden("site-info", "old"));
     expect(
       Object.entries(header(written)).filter(
@@ -214,8 +211,8 @@ describe("site-info, in the form alpha W writes", () => {
   });
 
   test("an old-form and a new-form file store the same bytes", async () => {
-    const fromOld = await siteInfoStore("new");
-    const fromNew = await siteInfoStore("new");
+    const fromOld = await siteInfoStore();
+    const fromNew = await siteInfoStore();
     expect(await imported(fromOld, await golden("site-info", "old"))).toBe(
       await golden("site-info", "new"),
     );
@@ -225,7 +222,7 @@ describe("site-info, in the form alpha W writes", () => {
   });
 
   test("writing back what a read returned changes no byte", async () => {
-    const opened = await siteInfoStore("new");
+    const opened = await siteInfoStore();
     const expected = await imported(opened, await golden("site-info", "new"));
 
     const read = await opened.service.getEntity(SITE_INFO);
@@ -243,7 +240,7 @@ describe("site-info, in the form alpha W writes", () => {
   });
 
   test("a visibility change writes only the visibility line", async () => {
-    const opened = await siteInfoStore("new");
+    const opened = await siteInfoStore();
     const expected = await imported(opened, await golden("site-info", "new"));
     const read = await opened.service.getEntity(SITE_INFO);
     if (!read) throw new Error("No site-info");
@@ -270,7 +267,7 @@ describe("site-info, in the form alpha W writes", () => {
   });
 
   test("keeps the key order of the file it imports", async () => {
-    const opened = await siteInfoStore("new");
+    const opened = await siteInfoStore();
     const reordered = (await golden("site-info", "new")).replace(
       "title: Rizom\ndescription: Build the agent that represents you.\ncopyright: © 2026 Rizom\nthemeMode: dark\n",
       "themeMode: dark\ncopyright: © 2026 Rizom\ntitle: Rizom\ndescription: Build the agent that represents you.\n",
@@ -279,7 +276,7 @@ describe("site-info, in the form alpha W writes", () => {
   });
 
   test("writes no default the file did not state, and keeps one it did", async () => {
-    const opened = await siteInfoStore("new");
+    const opened = await siteInfoStore();
     const written = await imported(opened, await golden("site-info", "new"));
     expect(header(written)).not.toHaveProperty("represents");
     expect(
@@ -294,7 +291,7 @@ describe("site-info, in the form alpha W writes", () => {
   });
 
   test("keeps a key the type does not name, and says so", async () => {
-    const opened = await siteInfoStore("new");
+    const opened = await siteInfoStore();
     const unknown = (await golden("site-info", "new")).replace(
       "themeMode: dark\n",
       "themeMode: dark\npinned: true\n",
@@ -308,7 +305,7 @@ describe("site-info, in the form alpha W writes", () => {
 
 describe("site-info, from the old form to the new", () => {
   test("both forms decode to the same metadata", async () => {
-    const opened = await siteInfoStore("new");
+    const opened = await siteInfoStore();
     expect(
       opened.service.deserializeEntity(
         await golden("site-info", "old"),
@@ -323,25 +320,15 @@ describe("site-info, from the old form to the new", () => {
   });
 
   test("its readers return the same values from either form", async () => {
-    const fromOld = await siteInfoStore("new");
+    const fromOld = await siteInfoStore();
     await imported(fromOld, await golden("site-info", "old"));
-    const fromNew = await siteInfoStore("new");
+    const fromNew = await siteInfoStore();
     await imported(fromNew, await golden("site-info", "new"));
     expect(await readers(fromOld)).toEqual(await readers(fromNew));
   });
 
-  test("alpha R reads the new form and writes the old one", async () => {
-    const opened = await siteInfoStore("old");
-    expect(await imported(opened, await golden("site-info", "new"))).toBe(
-      await golden("site-info", "old"),
-    );
-    expect(await imported(opened, await golden("site-info", "old"))).toBe(
-      await golden("site-info", "old"),
-    );
-  });
-
   test("the rewrite on start stores the new form quietly, once", async () => {
-    const opened = await siteInfoStore("new");
+    const opened = await siteInfoStore();
     await imported(opened, await golden("site-info", "new"));
     const old = await golden("site-info", "old");
     // The row as alpha R stored it, last written a while ago.
@@ -352,7 +339,6 @@ describe("site-info, from the old form to the new", () => {
 
     expect(await opened.service.rewriteStoredForms()).toMatchObject({
       rewritten: 1,
-      deferred: 0,
     });
 
     const after = await opened.stored("site-info", "site-info");
@@ -362,7 +348,6 @@ describe("site-info, from the old form to the new", () => {
     // A second start rewrites nothing.
     expect(await opened.service.rewriteStoredForms()).toMatchObject({
       rewritten: 0,
-      deferred: 0,
     });
     expect((await opened.stored("site-info", "site-info"))?.content).toBe(
       await golden("site-info", "new"),
@@ -370,7 +355,7 @@ describe("site-info, from the old form to the new", () => {
   });
 
   test("an edited old-form file is imported, not overwritten", async () => {
-    const opened = await siteInfoStore("new");
+    const opened = await siteInfoStore();
     await imported(opened, await golden("site-info", "old"));
     const edited = (await golden("site-info", "old")).replace(
       "heading: Build your brain",

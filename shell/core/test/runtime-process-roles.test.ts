@@ -302,7 +302,7 @@ describe("supervised runtime process roles", () => {
     spyOn(shell.getEntityService(), "rewriteStoredForms").mockImplementation(
       async () => {
         order.push("stored forms");
-        return { rewritten: 0, deferred: 0, restated: [] };
+        return { rewritten: 0, restated: [] };
       },
     );
     shell
@@ -380,7 +380,7 @@ describe("supervised runtime process roles", () => {
       contentHash: "after",
     };
     spyOn(shell.getEntityService(), "rewriteStoredForms").mockImplementation(
-      async () => ({ rewritten: 1, deferred: 0, restated: [restated] }),
+      async () => ({ rewritten: 1, restated: [restated] }),
     );
     const heard: unknown[] = [];
     shell
@@ -431,7 +431,7 @@ describe("supervised runtime process roles", () => {
       contentHash: "compact",
     };
     spyOn(shell.getEntityService(), "rewriteStoredForms").mockImplementation(
-      async () => ({ rewritten: 0, deferred: 0, restated: [] }),
+      async () => ({ rewritten: 0, restated: [] }),
     );
     shell
       .getMessageBus()

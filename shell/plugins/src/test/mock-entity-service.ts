@@ -4,7 +4,6 @@ import {
   EntityWriteConflictError,
   normalizeContentVisibility,
   storedFileExtension,
-  storedFormWrites,
   type BaseEntity,
   type CreateEntityRequest,
   type EntityMutationResult,
@@ -457,9 +456,8 @@ export function createMockEntityService(
       };
     },
     getEntityTypeConfig: store.typeConfig,
-    // The release's form: a YAML type's files are YAML once it writes the next.
     fileExtension: (type: string) =>
-      storedFileExtension(store.typeConfig(type).storage, storedFormWrites),
+      storedFileExtension(store.typeConfig(type).storage),
     isProjectionOwnedEntity: async () => false,
     releaseProjectionOwnership: async (): Promise<void> => {},
     listPendingEntityExports: async () =>
@@ -517,11 +515,7 @@ export function createMockEntityService(
     rewriteRetiredFields: async () => ({ rewritten: 0 }),
     reconcileDeclaredMetadata: async () => ({ reconciled: 0 }),
     restateEntity: async () => null,
-    rewriteStoredForms: async () => ({
-      rewritten: 0,
-      deferred: 0,
-      restated: [],
-    }),
+    rewriteStoredForms: async () => ({ rewritten: 0, restated: [] }),
     isIndexReady: (): boolean => true,
     awaitIndexReady: async () => ({
       ready: true,

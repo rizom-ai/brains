@@ -383,13 +383,10 @@ export class ShellBootloader {
     // Stored rows take the form their types write now, quietly: after the
     // initial import, so a file edited while the brain was down lands first.
     const forms = await this.services.entityService.rewriteStoredForms();
-    if (forms.rewritten > 0 || forms.deferred > 0) {
+    if (forms.rewritten > 0) {
       this.services.logger.info(
         "Brought stored entities to their stored form",
-        {
-          rewritten: forms.rewritten,
-          deferred: forms.deferred,
-        },
+        { rewritten: forms.rewritten },
       );
     }
     // A body its type's codec passes through is laid out by a plugin (a

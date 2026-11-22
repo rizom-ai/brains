@@ -31,10 +31,9 @@ describe("a YAML type's file", () => {
     expect(() => yamlFileOf("---\ntitle: T\n---\nBody\n")).toThrow();
   });
 
-  it("is .yaml only for a YAML type in the next form", () => {
-    expect(storedFileExtension("yaml", "new")).toBe(".yaml");
-    expect(storedFileExtension("yaml", "old")).toBe(".md");
-    expect(storedFileExtension(undefined, "new")).toBe(".md");
-    expect(storedFileExtension("markdown", "new")).toBe(".md");
+  it("is .yaml only for a YAML type", () => {
+    expect(storedFileExtension("yaml")).toBe(".yaml");
+    expect(storedFileExtension(undefined)).toBe(".md");
+    expect(storedFileExtension("markdown")).toBe(".md");
   });
 });

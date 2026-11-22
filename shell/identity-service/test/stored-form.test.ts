@@ -5,9 +5,9 @@ import type { AnchorProfileEntity } from "../src/anchor-profile-schema";
 import type { BrainCharacterEntity } from "../src/brain-character-schema";
 
 /**
- * The identity singletons in their next stored form
+ * The identity singletons in their new stored form
  * (docs/plans/one-stored-form.md). A field update writes a field straight
- * into a singleton's header; on a document in the next form the header's
+ * into a singleton's header; on a document in the new form the header's
  * value is the fresh one, over the body section it replaces, and the
  * write that follows states it in the body once.
  */
@@ -54,14 +54,14 @@ function character(content: string): BrainCharacterEntity {
   };
 }
 
-describe("an identity singleton in the next stored form", () => {
+describe("an identity singleton in the new stored form", () => {
   it("reads a field update's header value over the body section it replaces", () => {
     const adapter = new AnchorProfileAdapter();
     expect(adapter.parseProfileBody(profileNext)).toMatchObject({
       name: "Alex Chen",
       description: "Architect and writer.",
     });
-    expect(adapter.toMarkdown(profile(profileNext), { form: "new" })).toBe(`---
+    expect(adapter.toMarkdown(profile(profileNext))).toBe(`---
 name: Alex Chen
 ---
 ## Description
@@ -78,11 +78,13 @@ I started in telecom.
 `);
   });
 
-  it("keeps a current-form story that opens on a heading as it is", () => {
+  it("reads an old-form story that opens on a heading as its story", () => {
     const adapter = new AnchorProfileAdapter();
-    const current =
+    const old =
       "---\nname: Alex Chen\ndescription: Writer.\n---\n## About me\n\nI write.\n";
-    expect(adapter.toMarkdown(profile(current), { form: "old" })).toBe(current);
+    expect(adapter.toMarkdown(profile(old))).toBe(
+      "---\nname: Alex Chen\n---\n## Description\n\nWriter.\n\n## Story\n\n## About me\n\nI write.\n",
+    );
   });
 
   it("reads the character's purpose from its header over a stale section", () => {
@@ -95,7 +97,7 @@ I started in telecom.
       purpose: "Fresh purpose.",
       values: ["clarity"],
     });
-    expect(adapter.toMarkdown(character(next), { form: "new" })).toBe(
+    expect(adapter.toMarkdown(character(next))).toBe(
       "---\nname: Brain\nrole: Assistant\n---\n## Purpose\n\nFresh purpose.\n\n## Values\n\n- clarity\n",
     );
   });

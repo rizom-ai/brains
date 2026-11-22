@@ -10,7 +10,6 @@ import {
   generateMarkdownWithFrontmatter,
   parseMarkdownWithFrontmatter,
 } from "../src/frontmatter";
-import { storedFormWrites } from "../src/stored-form";
 import {
   baseEntitySchema,
   type EntityEventBus,
@@ -83,12 +82,6 @@ function serializer(config: EntityTypeConfig = {}): EntitySerializer {
   registry.registerEntityType("card", cardSchema, new CardAdapter(), config);
   return new EntitySerializer(registry, logger);
 }
-
-describe("the switch between the stored forms", () => {
-  it("writes the new form from alpha W", () => {
-    expect(storedFormWrites).toBe("new");
-  });
-});
 
 describe("a stored document's framing", () => {
   it("puts the body under the header with one newline at its end", () => {
@@ -234,7 +227,6 @@ describe("the quiet rewrite of stored rows", () => {
       embeddable?: boolean;
       bus?: EntityEventBus;
       adapter?: CardAdapter;
-      storedForm?: "old" | "new";
     } = {},
   ): Promise<EntityServiceTestContext> {
     ctx = await setupEntityService(
@@ -249,7 +241,6 @@ describe("the quiet rewrite of stored rows", () => {
       {
         embeddingsEnabled: options.embeddable ?? false,
         ...(options.bus && { messageBus: options.bus }),
-        ...(options.storedForm && { storedForm: options.storedForm }),
       },
     );
     await ctx.entityService.initialize();
@@ -306,7 +297,6 @@ describe("the quiet rewrite of stored rows", () => {
 
     expect(await context.entityService.rewriteStoredForms()).toMatchObject({
       rewritten: 1,
-      deferred: 0,
     });
 
     expect(await row(context)).toEqual({
@@ -343,7 +333,6 @@ describe("the quiet rewrite of stored rows", () => {
 
     expect(await context.entityService.rewriteStoredForms()).toMatchObject({
       rewritten: 0,
-      deferred: 0,
     });
   });
 
@@ -353,7 +342,6 @@ describe("the quiet rewrite of stored rows", () => {
 
     expect(await context.entityService.rewriteStoredForms()).toMatchObject({
       rewritten: 0,
-      deferred: 0,
     });
     expect((await row(context)).content).toBe(
       "---\nstatus: nonsense\n---\nBody\n",
@@ -389,7 +377,6 @@ describe("the quiet rewrite of stored rows", () => {
     const context = await opened({
       embeddable: true,
       adapter: new MovedTagsAdapter(),
-      storedForm: "new",
     });
     // Its tags were in the header; the type now writes them in the body.
     const oldForm = "---\ntitle: One\ntags:\n  - a\n---\nBody\n";
@@ -538,51 +525,6 @@ describe("restating an entity's body", () => {
     expect(await context.entityService.listPendingEntityExports()).toEqual([]);
   });
 });
-
-describe("the quiet rewrite while the old form is written", () => {
-  let ctx: EntityServiceTestContext | undefined;
-  afterEach(async () => {
-    await ctx?.cleanup();
-    ctx = undefined;
-  });
-
-  it("frames a row but leaves one that differs beyond its framing, and counts it", async () => {
-    ctx = await setupEntityService(
-      [{ name: "card", schema: cardSchema, adapter: new MovedTagsAdapter() }],
-      { storedForm: "old" },
-    );
-    await ctx.entityService.initialize();
-    const oldForm = "---\ntitle: One\ntags:\n  - a\n---\n\nBody\n";
-    await ctx.entityService.createEntity({
-      entity: {
-        id: "one",
-        entityType: "card",
-        content: "Body",
-        metadata: { title: "One", status: "draft", tags: ["a"] },
-        visibility: "public",
-      },
-    });
-    const db = createClient({ url: ctx.dbConfig.url });
-    await db.execute({
-      sql: "UPDATE entities SET content = ?, contentHash = ? WHERE id = 'one'",
-      args: [oldForm, computeContentHash(oldForm)],
-    });
-    db.close();
-
-    expect(await ctx.entityService.rewriteStoredForms()).toEqual({
-      rewritten: 0,
-      deferred: 1,
-      restated: [],
-    });
-    const after = createClient({ url: ctx.dbConfig.url });
-    const stored = await after.execute(
-      "SELECT content FROM entities WHERE id = 'one'",
-    );
-    after.close();
-    expect(stored.rows[0]?.["content"]).toBe(oldForm);
-  });
-});
-
 /** A type that moved its tags from the header into the body. */
 class MovedTagsAdapter extends CardAdapter {
   public override toMarkdown(entity: Card): string {
@@ -624,7 +566,7 @@ class MovedTagsAdapter extends CardAdapter {
 }
 
 /**
- * A key a type's next stored form states in its body is never carried back
+ * A key a type's new stored form states in its body is never carried back
  * into its header, even when a frontmatter extension names it, as a profile
  * kind names an anchor profile's purpose (docs/plans/one-stored-form.md).
  */
@@ -632,12 +574,11 @@ class BodyTagsAdapter extends MovedTagsAdapter {
   public readonly bodyFieldKeys: readonly string[] = ["tags"];
 }
 
-describe("a key the next form states in the body", () => {
+describe("a key the new form states in the body", () => {
   it("is not carried back into the header by an extension that names it", async () => {
-    const context = await setupEntityService(
-      [{ name: "card", schema: cardSchema, adapter: new BodyTagsAdapter() }],
-      { storedForm: "new" },
-    );
+    const context = await setupEntityService([
+      { name: "card", schema: cardSchema, adapter: new BodyTagsAdapter() },
+    ]);
     context.entityRegistry.extendFrontmatterSchema(
       "card",
       z.object({ tags: z.array(z.string()).optional() }),

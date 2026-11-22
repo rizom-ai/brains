@@ -145,11 +145,6 @@ const faqCompactFormatter: StructuredContentFormatter<FaqBody> =
     mappings: faqBodyMappings,
   });
 
-/** Whether a body is in the sectioned layout, which opens on its title line. */
-function isSectioned(body: string): boolean {
-  return /^# FAQ[ \t]*$/mu.test(body);
-}
-
 /**
  * Markdown body ↔ FAQ body, in the layout the release writes: the compact
  * one, which reads the sectioned layout too. A write is validated like a
@@ -215,23 +210,10 @@ export function currentFaqBody(
   return faqBody(answer, sources, alternatives);
 }
 
-/**
- * The body a write states in the stored form `form`: the current form's
- * sectioned layout, kept as stored as `currentFaqBody` keeps it, or the
- * next form's compact layout.
- */
-export function faqBodyIn(form: "old" | "new", body: string): string {
-  if (form === "old" && (isSectioned(body) || isStoredFaqBody(body)))
-    return currentFaqBody(body, []);
+/** The body a write states: the compact layout, from a body in any layout. */
+export function writtenFaqBody(body: string): string {
   const { answer, sources, alternatives } = bodyParts(body, []);
-  const parts = {
-    answer,
-    ...(sources.length > 0 ? { sources } : {}),
-    ...(alternatives.length > 0 ? { alternatives } : {}),
-  };
-  return form === "old"
-    ? z.encode(faqBodyCodec, parts)
-    : z.encode(faqCompactFormatter.codec, parts);
+  return faqBody(answer, sources, alternatives);
 }
 
 /** Sources an FAQ kept in its frontmatter before they moved to the body. */

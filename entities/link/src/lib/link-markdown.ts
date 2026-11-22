@@ -73,20 +73,15 @@ export const linkMarkdown: EntityMarkdownCodec<typeof linkMetadataSchema> =
         }),
       };
     },
-    header: { old: linkFrontmatterSchema, new: linkNextHeaderSchema },
+    header: linkNextHeaderSchema,
+    oldHeader: linkFrontmatterSchema,
     places: [["source", "sourceRef", "sourceLabel"]],
     // A whole document handed in has had its frontmatter decoded into the
     // metadata already; the body is written as the adapter wrote it.
-    encode: {
-      old: ({ content, metadata }) => ({
-        content: parseMarkdown(content).content,
-        frontmatter: linkFrontmatter(metadata),
-      }),
-      new: ({ content, metadata }) => ({
-        content: parseMarkdown(content).content,
-        frontmatter: linkNextFrontmatter(metadata),
-      }),
-    },
+    encode: ({ content, metadata }) => ({
+      content: parseMarkdown(content).content,
+      frontmatter: linkNextFrontmatter(metadata),
+    }),
   });
 
 /** A link's summary: its body, trimmed, as the adapter read it. */

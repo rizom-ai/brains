@@ -55,7 +55,7 @@ function peopleIndexShape(
 
 /**
  * The codec of a memory whose metadata holds a time range and lists of
- * people: it reads either stored form and writes the one its store writes.
+ * people: it reads either stored form and writes the new one.
  * `body` is the body a write states, from the body a read handed back.
  */
 export function memoryCodec<TSchema extends z.ZodObject>(options: {
@@ -98,51 +98,46 @@ export function memoryCodec<TSchema extends z.ZodObject>(options: {
         metadata: schema.parse({ ...header, ...read.people }),
       };
     },
-    encode: {
-      old: ({ content, metadata }) => ({
-        content: body(content),
-        frontmatter: schema.parse(metadata),
-      }),
-      new: ({ content, metadata }) => {
-        const parsed: Record<string, unknown> = schema.parse(metadata);
-        const { timeRange, ...rest } = parsed;
-        const written = writeMemoryPeople(
-          body(content),
-          people,
-          Object.fromEntries(
-            peopleKeys.map((key) => [key, memoryPeopleSchema.parse(rest[key])]),
+    encode: ({ content, metadata }) => {
+      const parsed: Record<string, unknown> = schema.parse(metadata);
+      const { timeRange, ...rest } = parsed;
+      const written = writeMemoryPeople(
+        body(content),
+        people,
+        Object.fromEntries(
+          peopleKeys.map((key) => [key, memoryPeopleSchema.parse(rest[key])]),
+        ),
+      );
+      const range = memoryTimeRangeSchema.optional().parse(timeRange);
+      // The time range and each list's index take the place of the keys
+      // they replace.
+      return {
+        content: written.body,
+        frontmatter: Object.fromEntries(
+          Object.entries(parsed).flatMap(
+            ([key, value]): [string, unknown][] => {
+              if (key === "timeRange")
+                return range
+                  ? [
+                      ["startedAt", range.start],
+                      ["endedAt", range.end],
+                    ]
+                  : [];
+              if (peopleKeys.includes(key))
+                return [key, `${key}Aliases`].flatMap(
+                  (indexKey): [string, unknown][] =>
+                    Object.hasOwn(written.header, indexKey)
+                      ? [[indexKey, written.header[indexKey]]]
+                      : [],
+                );
+              return indexKeys.has(key) ? [] : [[key, value]];
+            },
           ),
-        );
-        const range = memoryTimeRangeSchema.optional().parse(timeRange);
-        // The time range and each list's index take the place of the keys
-        // they replace.
-        return {
-          content: written.body,
-          frontmatter: Object.fromEntries(
-            Object.entries(parsed).flatMap(
-              ([key, value]): [string, unknown][] => {
-                if (key === "timeRange")
-                  return range
-                    ? [
-                        ["startedAt", range.start],
-                        ["endedAt", range.end],
-                      ]
-                    : [];
-                if (peopleKeys.includes(key))
-                  return [key, `${key}Aliases`].flatMap(
-                    (indexKey): [string, unknown][] =>
-                      Object.hasOwn(written.header, indexKey)
-                        ? [[indexKey, written.header[indexKey]]]
-                        : [],
-                  );
-                return indexKeys.has(key) ? [] : [[key, value]];
-              },
-            ),
-          ),
-        };
-      },
+        ),
+      };
     },
-    header: { old: schema, new: nextHeader },
+    header: nextHeader,
+    oldHeader: schema,
     // A list's aliases follow the list.
     places: [
       ["timeRange", "startedAt", "endedAt"],

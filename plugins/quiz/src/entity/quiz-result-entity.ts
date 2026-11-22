@@ -66,23 +66,15 @@ export const quizResultEntity: EntityDefinition<
   purpose:
     "A restricted record of one quiz taken on the brain's site: what was asked and answered, and the results shown. Never public knowledge or model input.",
   metadata: quizResultMetadataSchema,
-  // Either stored form reads; the store's is written: the current, all
-  // header, or the next, what was answered and shown in the body.
+  // Either stored form reads, all header or what was answered and shown
+  // in the body; the body form is written.
   markdown: storedFormCodec<typeof quizResultMetadataSchema>({
     decode: stored.decode,
-    encode: {
-      old: ({ content, metadata }) => ({
-        content: "",
-        frontmatter: writtenHeader(content, metadata),
-      }),
-      new: ({ content, metadata }) =>
-        inNextForm(writtenHeader(content, metadata)),
-    },
-    header: {
-      old: quizResultFrontmatterSchema,
-      new: quizResultNextHeaderSchema,
-    },
-    // What was answered, brought back to the header, comes before the
+    encode: ({ content, metadata }) =>
+      inNextForm(writtenHeader(content, metadata)),
+    header: quizResultNextHeaderSchema,
+    oldHeader: quizResultFrontmatterSchema,
+    // What was answered, read in the old form's header, comes before the
     // visibility that closes it.
     places: [["results", "answers", "visibility"]],
   }),

@@ -624,14 +624,12 @@ export {
   type RelatedEntityReader,
 } from "./service/related-entities";
 export { paginationInfoSchema } from "@brains/entity-service";
-// The stored form first-party types write (docs/plans/one-stored-form.md).
+// How first-party types store their files (docs/plans/one-stored-form.md).
 export {
   contentOfYamlFile,
   storedFileExtension,
-  storedFormWrites,
   yamlFileOf,
   type StorageFormat,
-  type StoredForm,
 } from "@brains/entity-service";
 
 // Durable binary assets

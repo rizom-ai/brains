@@ -1,10 +1,10 @@
 import { describe, expect, it } from "bun:test";
 import { z } from "@brains/utils/zod";
-import { faqBodyCodec, faqBodyIn } from "../src/lib/faq-body";
+import { faqBodyCodec, writtenFaqBody } from "../src/lib/faq-body";
 
 /**
  * An answer whose steps are a numbered list of bold labels, as a chat
- * answer often is, reads back from the next stored form
+ * answer often is, reads back from the new stored form
  * (docs/plans/one-stored-form.md): the list is the answer's text, never a
  * field line.
  */
@@ -23,8 +23,8 @@ A practical path:
 2. **Validate:** Test whether people commit resources.
 `;
 
-  it("reads back in the next stored form as it reads in the current one", () => {
-    const next = faqBodyIn("new", sectioned);
+  it("reads back in the new stored form as it reads in the old one", () => {
+    const next = writtenFaqBody(sectioned);
     expect(z.decode(faqBodyCodec, next)).toEqual(
       z.decode(faqBodyCodec, sectioned),
     );
