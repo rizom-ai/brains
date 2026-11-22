@@ -66,6 +66,10 @@ describe("a YAML type's files", () => {
   it("keeps one file per record, the one in the extension the store writes", async () => {
     writeFileSync(join(dir, "form", "contact.yaml"), YAML);
     writeFileSync(join(dir, "form", "contact.md"), STORED);
+    // Written in the same moment: neither is the newer one.
+    const at = new Date(Date.UTC(2026, 0, 1));
+    utimesSync(join(dir, "form", "contact.yaml"), at, at);
+    utimesSync(join(dir, "form", "contact.md"), at, at);
     expect(await operations(".md").getAllSyncFiles()).toEqual([
       "form/contact.md",
     ]);
