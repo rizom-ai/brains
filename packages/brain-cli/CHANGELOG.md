@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.765
+
+### Patch Changes
+
+- [#1029](https://github.com/rizom-ai/brains/pull/1029) [`5548f30`](https://github.com/rizom-ai/brains/commit/5548f30f7fe7418f6c5e71a49a200cc53e67181d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The stored format is frozen. A markdown type whose header nests (an object, a record, a list of objects) is refused when it registers, and a codec that writes such a header is refused at the write; a YAML type's file may nest. The authoring guide states the format and the rule for changing a field, and the old forms' decoders are listed for removal in 0.3.0.
+
+- [#1027](https://github.com/rizom-ai/brains/pull/1027) [`83024c8`](https://github.com/rizom-ai/brains/commit/83024c8518c6d000dcd41c8d7c61f66571ec7579) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The brain can no longer write the old stored form: every moved type has one encoder, the new form, and a store has no setting that selects another. A file in the old form still reads, is stored in the new form on import, and a row stored in it is brought to the new form by the quiet rewrite on start. The rewrite no longer reports rows it deferred, since none wait for a later release.
+
 ## 0.2.0-alpha.764
 
 ### Patch Changes

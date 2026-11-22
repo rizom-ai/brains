@@ -1,5 +1,17 @@
 # @brains/sdk
 
+## 0.2.0-alpha.765
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.765
+  - @brains/utils@0.2.0-alpha.765
+  - @brains/entity-service@0.2.0-alpha.765
+  - @brains/plugins@0.2.0-alpha.765
+  - @brains/scheduler@0.2.0-alpha.765
+  - @brains/templates@0.2.0-alpha.765
+
 ## 0.2.0-alpha.764
 
 ### Patch Changes
