@@ -418,6 +418,31 @@ describe("ContentService.resolveContent", () => {
       expect(mockDataSource.fetch).toHaveBeenCalled();
     });
 
+    // A section whose data source fails renders empty or from its fallback:
+    // the operator must see why (a homepage rendered empty with nothing in
+    // the log).
+    it("warns that the data source failed, naming the template and the error", async () => {
+      const warn = spyOn(mockDependencies.logger, "warn");
+      templateRegistry.register("error-test", {
+        name: "error-test",
+        description: "Error test template",
+        dataSourceId: "shell:failing-source",
+        schema: z.string(),
+        requiredPermission: "public",
+      });
+      dataSourceGetSpy.mockReturnValue({
+        id: "shell:failing-source",
+        fetch: mock().mockRejectedValue(new Error("Unknown labeled line")),
+      });
+
+      await contentService.resolveContent("error-test");
+
+      expect(warn).toHaveBeenCalledWith(
+        "Data source failed for error-test",
+        expect.objectContaining({ error: "Unknown labeled line" }),
+      );
+    });
+
     it("should continue to next strategy when entity not found", async () => {
       const mockTemplate: Template = {
         name: "entity-error",
