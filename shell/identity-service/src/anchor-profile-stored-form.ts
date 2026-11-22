@@ -14,7 +14,7 @@ import { z } from "@brains/utils/zod";
  */
 
 /** The header keys the next form states in the body, in its order. */
-const PROFILE_BODY_FIELDS = [
+export const PROFILE_BODY_FIELDS = [
   "description",
   "intro",
   "purpose",

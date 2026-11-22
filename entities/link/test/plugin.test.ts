@@ -57,7 +57,7 @@ describe("the link adapter", () => {
       }),
     });
     expect(adapter.toMarkdown(entity)).toBe(
-      "---\nstatus: draft\ntitle: Test Article\nurl: 'https://example.com/test'\ndescription: A test article\ncapturedAt: '2025-01-30T10:00:00.000Z'\nsource:\n  ref: 'cli:local'\n  label: CLI\n---\nThis is a test article summary.\n",
+      "---\nstatus: draft\ntitle: Test Article\nurl: 'https://example.com/test'\ndescription: A test article\ncapturedAt: '2025-01-30T10:00:00.000Z'\nsourceRef: 'cli:local'\nsourceLabel: CLI\n---\nThis is a test article summary.\n",
     );
   });
 });

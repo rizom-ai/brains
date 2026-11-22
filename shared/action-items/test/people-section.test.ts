@@ -155,7 +155,7 @@ describe("a memory's people in either stored form", () => {
       mentionedBy: [helper],
     });
     expect(readMemoryPeople(written.body, written.header, lists)).toEqual({
-      body: "# Ship it\n\nWe ship.\n",
+      body: "# Ship it\n\nWe ship.",
       people: { decidedBy: [mira], mentionedBy: [helper] },
     });
   });

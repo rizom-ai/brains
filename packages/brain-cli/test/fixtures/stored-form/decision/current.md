@@ -3,23 +3,27 @@ conversationId: team-poc-sync
 channelId: team-poc
 channelName: team-poc
 interfaceType: discord
-timeRange:
-  start: '2026-05-06T10:00:00.000Z'
-  end: '2026-05-06T10:18:00.000Z'
+startedAt: '2026-05-06T10:00:00.000Z'
+endedAt: '2026-05-06T10:18:00.000Z'
 status: active
 decidedBy:
-  - identity:
-      kind: user
-      userId: usr_mira
-    identityAliases:
-      - kind: external
-        externalActorId: discord_mira
-    displayName: Mira
+  - 'user:usr_mira'
+decidedByAliases:
+  - 'external:discord_mira'
 mentionedBy:
-  - identity:
-      kind: agent
-      agentId: team-brain
+  - 'agent:team-brain'
 ---
 # Add summaries to Team Brain's core preset
 
 Conversations are first-class team memory and belong in core, not gated behind larger presets. Core's job is to validate private team memory and coordination, and durable summaries are central to that.
+
+## People
+
+### Decided by
+
+- user:usr_mira — Mira
+  - also: external:discord_mira
+
+### Mentioned by
+
+- agent:team-brain

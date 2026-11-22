@@ -371,6 +371,7 @@ function markdownStorage(
   | "generateFrontMatter"
   | "metadataFromFrontmatter"
   | "headerKeyPlaces"
+  | "bodyFieldKeys"
 > {
   // A type that reads two stored forms states each form's header.
   const forms = storedFormsOf(definition.markdown);
@@ -444,6 +445,7 @@ function markdownStorage(
     // write on an update carries into metadata.
     metadataFromFrontmatter: true,
     ...(forms?.places && { headerKeyPlaces: forms.places }),
+    ...(forms?.bodyFields && { bodyFieldKeys: forms.bodyFields }),
   };
 }
 

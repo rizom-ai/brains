@@ -16,7 +16,9 @@ import {
  * The declared traffic-snapshot on the brain's own entity store, byte for
  * byte as main's adapter stored it (the bytes in
  * fixtures/traffic-snapshot-main-bytes.json were captured from that
- * adapter). A read hands back the whole document, as the class read it;
+ * adapter), in the next stored form: a YAML file of its days, the table
+ * main rendered from them no longer stored under the header. A read hands
+ * back the whole document, as the class read it;
  * the per-day numbers its header holds stay in the file and out of
  * metadata.
  */
@@ -75,6 +77,7 @@ async function store(): Promise<DeclaredEntityStore> {
     "@brains/analytics",
     "analytics",
     {
+      storage: "yaml",
       classification: "system",
       actionPolicy: {
         create: "never",
@@ -115,14 +118,28 @@ async function reads(
   };
 }
 
-/** What a read hands back on main, the whole document, without its visibility. */
+/** A document main stored, as the next form stores it: its header alone. */
+function headerOnly(document: string): string {
+  return document.replace(/^(---\n[\s\S]*?\n---\n)[\s\S]*$/u, "$1");
+}
+
+/**
+ * What a read hands back on main, the whole document, without its
+ * visibility; each document its header alone, as the next form stores it.
+ * A read frames that header as a document without a body: an empty line
+ * under it.
+ */
 function declared(record: MainRecord): MainRecord {
   return {
-    ...record,
+    stored: { ...record.stored, content: headerOnly(record.stored.content) },
     read: {
       ...record.read,
-      content: record.read.content.replace("visibility: restricted\n", ""),
+      content: `${headerOnly(record.read.content).replace(
+        "visibility: restricted\n",
+        "",
+      )}\n`,
     },
+    exported: headerOnly(record.exported),
   };
 }
 
@@ -189,7 +206,7 @@ describe("the declared traffic snapshot on the entity store", () => {
     expect(await reads(opened, "2026-W01")).toEqual(declared(main.afterRetire));
   });
 
-  test("never writes the header twice: an import, a body update and the export round-trip", async () => {
+  test("never writes the header twice: an import, an update and the export round-trip", async () => {
     const opened = await store();
     await save(opened, [day("2026-01-05", 100), day("2026-01-06", 42, true)]);
     const { exported } = await reads(opened, "2026-W02");
@@ -198,7 +215,8 @@ describe("the declared traffic snapshot on the entity store", () => {
     expect(reimported.stored.content).toBe(exported);
     expect(reimported.exported).toBe(exported);
 
-    // A body update keeps the header once, as it was.
+    // An update keeps the header once, as it was but for what it changed:
+    // the next form stores no body to update, so it edits a day.
     const current = await opened.service.getEntity({
       entityType: "traffic-snapshot",
       id: "2026-W02-reimported",
@@ -208,13 +226,11 @@ describe("the declared traffic snapshot on the entity store", () => {
     await opened.service.updateEntity({
       entity: {
         ...current,
-        content: current.content.replace("# Traffic", "# Site traffic"),
+        content: current.content.replace("visits: 21", "visits: 22"),
       },
     });
     const updated = await reads(opened, "2026-W02-reimported");
-    expect(updated.exported).toBe(
-      exported.replace("# Traffic", "# Site traffic"),
-    );
+    expect(updated.exported).toBe(exported.replace("visits: 21", "visits: 22"));
     for (const key of ["days:", "visibility:", "- date: '2026-01-06'"]) {
       expect(updated.stored.content.split(key)).toHaveLength(2);
     }
@@ -236,6 +252,6 @@ describe("the declared traffic snapshot on the entity store", () => {
       expect(stored.metadata).not.toContain(detail);
     }
     // The days stay in the file, as main stored them.
-    expect(stored.content).toBe(main.secondDay.stored.content);
+    expect(stored.content).toBe(headerOnly(main.secondDay.stored.content));
   });
 });

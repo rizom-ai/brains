@@ -9,4 +9,4 @@
 export type StoredForm = "old" | "new";
 
 /** Flipped to "new" in its own commit, for alpha W. */
-export const storedFormWrites: StoredForm = "old";
+export const storedFormWrites: StoredForm = "new";

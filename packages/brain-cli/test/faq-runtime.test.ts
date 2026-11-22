@@ -16,8 +16,10 @@ import {
 /**
  * The declared faq on the brain's own entity store, byte for byte as main's
  * adapter stored it (the bytes in fixtures/faq-main-bytes.json were
- * captured from the faq class): current, sparse and legacy files, a
- * capture's write and two merges. A read hands back the body, in the
+ * captured from the faq class, then moved into the formatter's compact layout
+ * the next stored form writes: no `# FAQ` line, a blank line under each
+ * heading, an alternative headed `### Alternative N`): current, sparse and
+ * legacy files, a capture's write and two merges. A read hands back the body, in the
  * formatter's layout, and the metadata main indexed.
  */
 
@@ -129,7 +131,7 @@ async function imported(
 }
 
 describe("the declared faq on the entity store", () => {
-  test("stores current and sparse files as the faq adapter wrote them", async () => {
+  test("stores current and sparse files in the compact layout", async () => {
     const opened = await store();
     expect(await imported(opened, "reach", main.current)).toEqual(
       asMain(main.current),

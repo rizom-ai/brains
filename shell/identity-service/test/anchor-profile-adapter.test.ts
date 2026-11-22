@@ -57,8 +57,9 @@ describe("AnchorProfileAdapter", () => {
     it("should expose frontmatterSchema for Studio", () => {
       expect(adapter.frontmatterSchema).toBeDefined();
       expect(adapter.frontmatterSchema.shape).toHaveProperty("name");
-      expect(adapter.frontmatterSchema.shape).toHaveProperty("description");
-      expect(adapter.frontmatterSchema.shape).toHaveProperty("socialLinks");
+      // The description and links are body sections in the stored form.
+      expect(adapter.frontmatterSchema.shape).not.toHaveProperty("description");
+      expect(adapter.frontmatterSchema.shape).not.toHaveProperty("socialLinks");
       expect(adapter.frontmatterSchema.shape).not.toHaveProperty("kind");
     });
 
@@ -96,7 +97,7 @@ describe("AnchorProfileAdapter", () => {
 
       expect(markdown).toContain("---");
       expect(markdown).toContain("name: Rizom");
-      expect(markdown).toContain("description:");
+      expect(markdown).toContain("## Description");
       expect(markdown).toContain("privacy-first tools");
       expect(markdown).toMatch(/website:.*https:\/\/rizom\.ai/);
       expect(markdown).toContain("email: contact@rizom.ai");

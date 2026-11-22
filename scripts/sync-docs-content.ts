@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 
 import { guideFrontmatterSchema } from "@brains/guide/frontmatter";
+import { guideBody } from "@brains/guide/stored-form";
 import { getErrorMessage } from "@brains/utils/error";
 import {
   generateMarkdown,
@@ -242,8 +243,12 @@ function buildGuide(
     ),
   );
   const body = rewriteMarkdownLinks(content.trim(), entry.source, sourceToHref);
+  // The guide in the stored form a brain writes (docs/plans/one-stored-form.md):
+  // who it is for and its material above its own sections.
+  const written = guideBody.write(frontmatter, body);
 
-  return generateMarkdown(frontmatter, `\n${body}\n`);
+  // A blank line under the header, as the formatter keeps markdown files.
+  return generateMarkdown(written.header, `\n${written.body}`);
 }
 
 function listMarkdownFiles(dir: string): string[] {

@@ -19,7 +19,8 @@ import {
  * The declared mail-item and email-reply-draft on the brain's own entity
  * store, byte for byte as main's adapters stored them (the bytes in
  * fixtures/email-workflows-main-bytes.json were captured from those
- * adapters). A read hands back the whole document, as the class read it;
+ * adapters), a mail item's source flat (sourceRef, threadKey,
+ * threadOrdinal, personId) as the next stored form has it. A read hands back the whole document, as the class read it;
  * the header a mail item's metadata does not index stays in the file and
  * out of metadata.
  */
@@ -144,7 +145,7 @@ function declared(record: MainRecord): MainRecord {
 }
 
 describe("the declared mail item on the entity store", () => {
-  test("stores triage, a status change and a thread ordinal as the class did", async () => {
+  test("stores triage, a status change and a thread ordinal as the class did, its source flat", async () => {
     const opened = await store();
     const projection = createMailItemProjection(email, classification);
     await opened.service.createEntity({ entity: projection });
@@ -261,7 +262,7 @@ describe("the declared mail item on the entity store", () => {
     expect(reimported.stored.content).toBe(exported);
     expect(reimported.exported).toBe(exported);
     // One header: every key once.
-    for (const key of ["title:", "source:", "senderLabel:", "visibility:"]) {
+    for (const key of ["title:", "sourceRef:", "senderLabel:", "visibility:"]) {
       expect(reimported.stored.content.split(key)).toHaveLength(2);
     }
   });

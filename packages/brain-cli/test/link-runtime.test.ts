@@ -9,7 +9,8 @@ import {
 
 /**
  * The declared links on the brain's own entity store: every link stored as
- * the link adapter wrote it, byte for byte (a hand-written file in its own
+ * the link adapter wrote it, its source flat (sourceRef, sourceLabel) as the
+ * next stored form has it, byte for byte (a hand-written file in its own
  * order), whether imported, updated, captured from a request or by its
  * capture job, and the capture queued as the link plugin class queued it.
  */
@@ -92,27 +93,31 @@ const matrix = {
 } satisfies CreateExecutionContext;
 
 describe("the declared links on the entity store", () => {
-  // Each expected document is what the link adapter stored for it.
+  // Each expected document is what the link adapter stored for it, its
+  // source flat.
   test.each([
     [
       "a link in the adapter's order",
       "---\nstatus: draft\ntitle: Example\nurl: https://example.com/a\ndescription: An example.\ncapturedAt: 2025-01-01T00:00:00.000Z\nsource:\n  ref: cli:local\n  label: CLI\n---\nSummary text\n",
-      "---\nstatus: draft\ntitle: Example\nurl: 'https://example.com/a'\ndescription: An example.\ncapturedAt: '2025-01-01T00:00:00.000Z'\nsource:\n  ref: 'cli:local'\n  label: CLI\n---\nSummary text\n",
+      "---\nstatus: draft\ntitle: Example\nurl: 'https://example.com/a'\ndescription: An example.\ncapturedAt: '2025-01-01T00:00:00.000Z'\nsourceRef: 'cli:local'\nsourceLabel: CLI\n---\nSummary text\n",
     ],
     [
       "a hand-written link in its own order",
       reordered,
-      "---\ntitle: Reordered\nurl: 'https://example.com/b'\nnote: kept\nstatus: published\ncapturedAt: '2025-01-01T00:00:00.000Z'\nsource:\n  label: CLI\n  ref: 'cli:local'\n---\nSummary\n",
+      "---\ntitle: Reordered\nurl: 'https://example.com/b'\nnote: kept\nstatus: published\ncapturedAt: '2025-01-01T00:00:00.000Z'\nsourceRef: 'cli:local'\nsourceLabel: CLI\n---\nSummary\n",
     ],
     [
       "a pending link without a description or summary",
       "---\nstatus: pending\ntitle: example.com\nurl: https://example.com/c\ncapturedAt: 2025-01-01T00:00:00.000Z\nsource:\n  ref: mcp:local\n  label: MCP\n---\n",
-      "---\nstatus: pending\ntitle: example.com\nurl: 'https://example.com/c'\ncapturedAt: '2025-01-01T00:00:00.000Z'\nsource:\n  ref: 'mcp:local'\n  label: MCP\n---\n\n",
+      "---\nstatus: pending\ntitle: example.com\nurl: 'https://example.com/c'\ncapturedAt: '2025-01-01T00:00:00.000Z'\nsourceRef: 'mcp:local'\nsourceLabel: MCP\n---\n\n",
     ],
-  ])("stores %s as the link adapter wrote it", async (_, markdown, content) => {
-    const opened = await store();
-    expect(await imported(opened, "link-1", markdown)).toBe(content);
-  });
+  ])(
+    "stores %s as the link adapter wrote it, its source flat",
+    async (_, markdown, content) => {
+      const opened = await store();
+      expect(await imported(opened, "link-1", markdown)).toBe(content);
+    },
+  );
 
   test("keeps a hand-written link's order through an update of its summary", async () => {
     const opened = await store();
@@ -129,7 +134,7 @@ describe("the declared links on the entity store", () => {
       },
     });
     expect((await opened.stored("link", "reordered"))?.content).toBe(
-      "---\ntitle: Reordered\nurl: 'https://example.com/b'\nnote: kept\nstatus: published\ncapturedAt: '2025-01-01T00:00:00.000Z'\nsource:\n  label: CLI\n  ref: 'cli:local'\n---\nChanged summary\n",
+      "---\ntitle: Reordered\nurl: 'https://example.com/b'\nnote: kept\nstatus: published\ncapturedAt: '2025-01-01T00:00:00.000Z'\nsourceRef: 'cli:local'\nsourceLabel: CLI\n---\nChanged summary\n",
     );
   });
 });
@@ -163,7 +168,7 @@ describe("a link captured from a request on the entity store", () => {
       },
     });
     expect(await stored(opened, "example-com-3641c5")).toBe(
-      "---\nstatus: pending\ntitle: example.com\nurl: 'https://example.com/page'\ndescription: Link capture is in progress.\ncapturedAt: <now>\nsource:\n  ref: 'matrix:!room:server'\n  label: '#eng'\n---\nPending link capture for https://example.com/page.\n",
+      "---\nstatus: pending\ntitle: example.com\nurl: 'https://example.com/page'\ndescription: Link capture is in progress.\ncapturedAt: <now>\nsourceRef: 'matrix:!room:server'\nsourceLabel: '#eng'\n---\nPending link capture for https://example.com/page.\n",
     );
     const [job] = await opened.shell
       .getJobQueueService()
@@ -226,7 +231,7 @@ describe("a link captured from a request on the entity store", () => {
     });
     expect(await opened.stored("link", "httpsexamplecomdirect")).toMatchObject({
       content:
-        "---\ntitle: Direct\nurl: 'https://example.com/direct'\nstatus: draft\ncapturedAt: '2025-02-02T00:00:00.000Z'\nsource:\n  ref: 'cli:local'\n  label: CLI\n---\nDirect summary\n",
+        "---\ntitle: Direct\nurl: 'https://example.com/direct'\nstatus: draft\ncapturedAt: '2025-02-02T00:00:00.000Z'\nsourceRef: 'cli:local'\nsourceLabel: CLI\n---\nDirect summary\n",
     });
     expect(
       await intercept(
@@ -245,7 +250,7 @@ describe("a link captured from a request on the entity store", () => {
   test("stores a full link document that validates byte for byte as written", async () => {
     const opened = await store();
     const document =
-      "---\nstatus: published\ntitle: As Written\nurl: 'https://example.com/as-written'\ndescription: Kept.\ncapturedAt: '2025-02-02T00:00:00.000Z'\nsource:\n  ref: 'cli:local'\n  label: CLI\n---\nWritten summary\n";
+      "---\nstatus: published\ntitle: As Written\nurl: 'https://example.com/as-written'\ndescription: Kept.\ncapturedAt: '2025-02-02T00:00:00.000Z'\nsourceRef: 'cli:local'\nsourceLabel: CLI\n---\nWritten summary\n";
     const cli: CreateExecutionContext = {
       interfaceType: "cli",
       actor: { kind: "user", userId: "u2" },
@@ -294,7 +299,7 @@ describe("a link captured from a request on the entity store", () => {
     expect(ids).not.toContain("httpsexamplecominvalid");
     const [captured] = ids;
     expect(await stored(opened, captured ?? "")).toBe(
-      "---\nstatus: pending\ntitle: example.com\nurl: 'https://example.com/invalid'\ndescription: Link capture is in progress.\ncapturedAt: <now>\nsource:\n  ref: 'cli:local'\n  label: CLI\n---\nPending link capture for https://example.com/invalid.\n",
+      "---\nstatus: pending\ntitle: example.com\nurl: 'https://example.com/invalid'\ndescription: Link capture is in progress.\ncapturedAt: <now>\nsourceRef: 'cli:local'\nsourceLabel: CLI\n---\nPending link capture for https://example.com/invalid.\n",
     );
     const queued = await opened.shell
       .getJobQueueService()
@@ -347,7 +352,7 @@ describe("the declared link capture on the entity store", () => {
     };
     expect(await capture(opened, "link:capture", data)).toEqual(captured);
     expect(await stored(opened, "example-com-3641c5")).toBe(
-      "---\nstatus: draft\ntitle: Example Page\nurl: 'https://example.com/page'\ndescription: An example.\ncapturedAt: <now>\nsource:\n  ref: 'matrix:!room:server'\n  label: '#eng'\n---\nIt explains examples.\n",
+      "---\nstatus: draft\ntitle: Example Page\nurl: 'https://example.com/page'\ndescription: An example.\ncapturedAt: <now>\nsourceRef: 'matrix:!room:server'\nsourceLabel: '#eng'\n---\nIt explains examples.\n",
     );
     expect(
       await capture(opened, "link:capture", {
@@ -377,7 +382,7 @@ describe("the declared link capture on the entity store", () => {
       status: "pending",
     });
     expect(await stored(opened, "example-com-61072d")).toBe(
-      "---\nstatus: pending\ntitle: example.com\nurl: 'https://example.com/incomplete'\ndescription: ''\ncapturedAt: <now>\nsource:\n  ref: 'cli:local'\n  label: CLI\n---\n\n",
+      "---\nstatus: pending\ntitle: example.com\nurl: 'https://example.com/incomplete'\ndescription: ''\ncapturedAt: <now>\nsourceRef: 'cli:local'\nsourceLabel: CLI\n---\n\n",
     );
   });
 
@@ -399,7 +404,7 @@ describe("the declared link capture on the entity store", () => {
         "Could not capture link: Page not found: https://example.com/missing",
     });
     expect(await stored(opened, "example-com-5f3c18")).toBe(
-      "---\nstatus: pending\ntitle: example.com\nurl: 'https://example.com/missing'\ndescription: 'Could not capture link: Page not found: https://example.com/missing'\ncapturedAt: <now>\nsource:\n  ref: 'cli:local'\n  label: CLI\n---\nCould not capture link: Page not found: https://example.com/missing\n",
+      "---\nstatus: pending\ntitle: example.com\nurl: 'https://example.com/missing'\ndescription: 'Could not capture link: Page not found: https://example.com/missing'\ncapturedAt: <now>\nsourceRef: 'cli:local'\nsourceLabel: CLI\n---\nCould not capture link: Page not found: https://example.com/missing\n",
     );
   });
 
@@ -424,7 +429,7 @@ describe("the declared link capture on the entity store", () => {
       status: "draft",
     });
     expect(await stored(opened, "example-com-9f24c9")).toBe(
-      "---\nstatus: draft\ntitle: Gen Page\nurl: 'https://example.com/gen'\ndescription: Gen.\ncapturedAt: <now>\nsource:\n  ref: 'cli:local'\n  label: CLI\n---\nGen summary.\n",
+      "---\nstatus: draft\ntitle: Gen Page\nurl: 'https://example.com/gen'\ndescription: Gen.\ncapturedAt: <now>\nsourceRef: 'cli:local'\nsourceLabel: CLI\n---\nGen summary.\n",
     );
   });
 });

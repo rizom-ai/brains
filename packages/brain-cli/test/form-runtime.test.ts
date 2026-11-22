@@ -12,8 +12,10 @@ import {
 /**
  * The declared form on the brain's own entity store, byte for byte as main's
  * adapter stored it (the bytes in fixtures/form-main-bytes.json were
- * captured from the form entity plugin class). A form reads as its stored
- * document, as the class read it: the forms engine parses its steps, copy
+ * captured from the form entity plugin class), in the next stored form: a
+ * YAML file of the whole definition, its introduction the `intro` key
+ * beside the thanks text, and nothing under the header. A form reads as its
+ * stored document, as the class read it: the forms engine parses its steps, copy
  * and scoring from the content. Metadata indexes its title, target and
  * path, which the engine lists forms by; a form whose file names no path
  * has none. A row main stored reads, lists and is found by its target
@@ -54,12 +56,43 @@ const main = z
   );
 
 /**
+ * A document as the next stored form writes it: its introduction, the body
+ * main stored under its header, the `intro` key beside the thanks text,
+ * and nothing under the header.
+ */
+function inNextForm(document: string): string {
+  const [, header = "", body = ""] =
+    /^---\n([\s\S]*?)---\n([\s\S]*)$/u.exec(document) ?? [];
+  const intro = body.trim();
+  const placed =
+    intro === ""
+      ? header
+      : header.includes("\nthanks:")
+        ? header.replace("\nthanks:", `\nintro: ${intro}\nthanks:`)
+        : `${header}intro: ${intro}\n`;
+  return `---\n${placed}---\n`;
+}
+
+/** Main's record, its documents in the next stored form. */
+function inNextFormRecord(
+  record: z.output<typeof recordSchema>,
+): z.output<typeof recordSchema> {
+  return {
+    ...record,
+    stored: { ...record.stored, content: inNextForm(record.stored.content) },
+    read: { ...record.read, content: inNextForm(record.read.content) },
+    exported: inNextForm(record.exported),
+    listed: record.listed.map(([id, content]) => [id, inNextForm(content)]),
+  };
+}
+
+/**
  * A form whose file names no path, stored as the sparse form is but without
  * one: main wrote `path: ''` into it, which no read took. The forms engine
  * serves such a form beneath /forms, as it serves any form without a path.
  */
 const pathless = {
-  content: main.pathless.stored.content.replace("path: ''\n", ""),
+  content: inNextForm(main.pathless.stored.content.replace("path: ''\n", "")),
   metadata: JSON.stringify({ title: "Fit: a check", target: "quiz-result" }),
 };
 
@@ -84,6 +117,7 @@ async function store(): Promise<DeclaredEntityStore> {
     "@brains/form",
     "form",
     {
+      storage: "yaml",
       embeddable: false,
       fullTextSearchable: false,
       projectionSource: false,
@@ -143,17 +177,19 @@ function asMain(
 }
 
 describe("the declared form on the entity store", () => {
-  test("stores imported forms as the form adapter wrote them, and reads them whole", async () => {
+  test("stores imported forms in the next form, and reads them whole", async () => {
     const opened = await store();
     for (const row of [main.full, main.sparse]) {
       await opened.service.createEntityFromMarkdown({
         input: { entityType: "form", id: row.id, markdown: row.file },
       });
-      expect(await recordOf(opened, row.id)).toEqual(asMain(row));
+      expect(await recordOf(opened, row.id)).toEqual(
+        inNextFormRecord(asMain(row)),
+      );
     }
   });
 
-  test("writes an edited form back as main wrote it", async () => {
+  test("writes an edited form back as main wrote it, in the next form", async () => {
     const opened = await store();
     await opened.service.createEntityFromMarkdown({
       input: { entityType: "form", id: main.full.id, markdown: main.full.file },
@@ -170,7 +206,9 @@ describe("the declared form on the entity store", () => {
         content: read.content.replace("Tell us what", "Tell us all"),
       },
     });
-    expect(await recordOf(opened, main.full.id)).toEqual(asMain(main.updated));
+    expect(await recordOf(opened, main.full.id)).toEqual(
+      inNextFormRecord(asMain(main.updated)),
+    );
   });
 
   test("stores a form whose file names no path without one, reads it, and the engine serves it beneath /forms", async () => {
@@ -301,7 +339,11 @@ describe("the declared form on the entity store", () => {
     const expectReadable = async (): Promise<void> => {
       for (const row of [main.full, main.sparse]) {
         const record = await recordOf(opened, row.id);
-        expect({ ...record, stored: row.stored }).toEqual(asMain(row));
+        // Read as main stored it; exported as the next form writes it.
+        expect({ ...record, stored: row.stored }).toEqual({
+          ...asMain(row),
+          exported: inNextForm(row.exported),
+        });
       }
     };
     await expectReadable();

@@ -22,7 +22,8 @@ import {
  * for byte as main's adapters stored them (the bytes in
  * fixtures/agent-discovery-main-bytes.json were captured from the
  * agent-discovery and skill classes). Every row is stored as main stored
- * it and keeps main's metadata. An agent reads as its stored document,
+ * it, a skill's description and examples as body sections below its text
+ * as the next stored form has them, and keeps main's metadata. An agent reads as its stored document,
  * since its header holds what its metadata does not and the directory's
  * readers parse it from content; a skill reads as its body, its fields as
  * metadata. A row main stored reads, lists and searches before the boot
@@ -181,6 +182,38 @@ function asMain(
   };
 }
 
+const skillFieldsSchema = z.object({
+  description: z.string(),
+  examples: z.array(z.string()),
+});
+
+/**
+ * Main's skill row, stored as the next stored form writes it: its
+ * description and examples out of the header, as sections below the
+ * skill's own text.
+ */
+function skillInNextForm(view: RowView): RowView {
+  const document = view.stored ?? "";
+  const { description, examples } = skillFieldsSchema.parse(
+    readMarkdownFrontmatter(document).data,
+  );
+  const [, header = "", body = ""] =
+    /^---\n([\s\S]*?)---\n([\s\S]*)$/u.exec(document) ?? [];
+  const kept = header.replace(
+    /^(?:description|examples):.*\n(?: {2}.*\n)*/gmu,
+    "",
+  );
+  const listed = examples.map((example) => `- ${example}`).join("\n");
+  const sections = `## Description\n\n${description}\n\n## Examples\n${
+    listed === "" ? "" : `\n${listed}\n`
+  }`;
+  const authored = body.trim();
+  return {
+    ...view,
+    stored: `---\n${kept}---\n${authored === "" ? "" : `${authored}\n\n`}${sections}`,
+  };
+}
+
 async function imported(
   opened: DeclaredEntityStore,
   entityType: string,
@@ -234,7 +267,7 @@ describe("the declared agent and skill types on the entity store", () => {
     );
   });
 
-  test("store skills as the skill adapter wrote them", async () => {
+  test("store skills as the skill adapter wrote them, in the next form", async () => {
     const opened = await skillStore();
     expect(
       await imported(
@@ -243,7 +276,7 @@ describe("the declared agent and skill types on the entity store", () => {
         main.skillImported.id,
         main.skillImported.file,
       ),
-    ).toEqual(asMain(main.skillImported, "body"));
+    ).toEqual(skillInNextForm(asMain(main.skillImported, "body")));
     await opened.service.createEntity({
       entity: {
         id: main.skillCreated.id,
@@ -254,7 +287,7 @@ describe("the declared agent and skill types on the entity store", () => {
       },
     });
     expect(await rowOf(opened, "skill", main.skillCreated.id)).toEqual(
-      asMain(main.skillCreated, "body"),
+      skillInNextForm(asMain(main.skillCreated, "body")),
     );
   });
 

@@ -5,6 +5,7 @@ import {
 } from "@brains/entity-service";
 import { z } from "@brains/utils/zod";
 import {
+  PROFILE_BODY_FIELDS,
   PROFILE_KEY_ORDER,
   profileInCurrentShape,
   profileInNextForm,
@@ -48,6 +49,9 @@ export class AnchorProfileAdapter extends SingletonFrontmatterAdapter<
       hasBody: true,
     });
   }
+
+  /** The header keys the next form states in the body. */
+  public readonly bodyFieldKeys: readonly string[] = PROFILE_BODY_FIELDS;
 
   /** A file brought back to the current form keeps the profile's key order. */
   public readonly headerKeyPlaces: readonly (readonly string[])[] = [

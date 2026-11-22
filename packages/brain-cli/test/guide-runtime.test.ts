@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import docsPackage from "@brains/doc";
 import guidesPackage from "@brains/guide";
+import { computeContentHash } from "@brains/utils/hash";
 import { readMarkdownFrontmatter } from "@brains/utils/markdown-frontmatter";
 import { z } from "@brains/utils/zod";
 import {
@@ -13,9 +14,10 @@ import {
 /**
  * The declared guide on the brain's own entity store, byte for byte as
  * main's adapter stored it (the bytes in fixtures/guide-main-bytes.json were
- * captured from the guides entity plugin class). A guide reads as its body,
- * its frontmatter as metadata; its file states only the fields it sets, in
- * the order main wrote them. The data sources hand the templates what main's
+ * captured from the guides entity plugin class), in the next stored form:
+ * who it is for and the material it moves in as sections above the guide's
+ * own. A guide reads as its body, its frontmatter as metadata; its file
+ * states only the fields it sets, in the order main wrote them. The data sources hand the templates what main's
  * handed them.
  */
 
@@ -107,15 +109,67 @@ async function rowOf(
   };
 }
 
+const movedSchema = z.object({
+  for: z.string(),
+  material: z.array(
+    z.object({
+      from: z.string(),
+      where: z.string(),
+      becomes: z.string(),
+      how: z.string(),
+    }),
+  ),
+});
+
+/**
+ * A document main stored, as the next stored form writes it: `for` and
+ * `material` out of the header, stated as sections above the guide's own,
+ * one heading per source and its details as labeled lines.
+ */
+function inNextForm(document: string): string {
+  const moved = movedSchema.parse(readMarkdownFrontmatter(document).data);
+  const [, header = "", body = ""] =
+    /^---\n([\s\S]*?)---\n([\s\S]*)$/u.exec(document) ?? [];
+  const kept = header
+    .replace(/^for: .*\n/mu, "")
+    .replace(/^material:.*\n(?: {2}.*\n)*/mu, "");
+  const material = moved.material
+    .map(
+      ({ from, where, becomes, how }) =>
+        `### ${from}\n\n- **Where:** ${where}\n- **Becomes:** ${becomes}\n- **How:** ${how}\n\n`,
+    )
+    .join("");
+  return `---\n${kept}---\n## For\n\n${moved.for}\n\n## Material\n\n${material}${body}`;
+}
+
 /** Main's row, read as the declared type reads it: its body. */
 function asMain(row: z.output<typeof rowSchema>): RowView {
   return {
-    stored: row.stored.content,
+    stored: inNextForm(row.stored.content),
     metadata: JSON.parse(row.stored.metadata),
     read: readMarkdownFrontmatter(row.read.content).content.trim(),
     readMetadata: row.read.metadata,
-    exported: row.exported,
+    exported: inNextForm(row.exported),
   };
+}
+
+/**
+ * A data source's answer as main's, each guide's content hash that of the
+ * row the next stored form writes for it.
+ */
+function withNextFormHashes(value: unknown): unknown {
+  return JSON.parse(JSON.stringify(value), (_key: string, field: unknown) => {
+    if (typeof field !== "object" || field === null) return field;
+    const guide = z
+      .object({ entityType: z.literal("guide"), content: z.string() })
+      .safeParse(field);
+    return guide.success && "contentHash" in field
+      ? {
+          ...field,
+          contentHash: computeContentHash(inNextForm(guide.data.content)),
+        }
+      : field;
+  });
 }
 
 async function imported(
@@ -154,7 +208,7 @@ function undated(value: unknown): unknown {
 }
 
 describe("the declared guide on the entity store", () => {
-  test("stores imported guides as the guide adapter wrote them", async () => {
+  test("stores imported guides in the next form", async () => {
     const opened = await store();
     for (const row of [main.full, main.sparse]) {
       await imported(opened, row);
@@ -162,7 +216,7 @@ describe("the declared guide on the entity store", () => {
     }
   });
 
-  test("writes an edited body back as main wrote it, stating no unset field", async () => {
+  test("writes an edited body back in the next form, stating no unset field", async () => {
     const opened = await store();
     await imported(opened, main.full);
     await imported(opened, main.sparse);
@@ -210,7 +264,7 @@ describe("the declared guide on the entity store", () => {
     const expectReadable = async (metadata: unknown): Promise<void> => {
       const row = await rowOf(opened, "legacy");
       expect(row.read).toBe(asMain(main.legacy).read);
-      expect(row.exported).toBe(main.legacy.exported);
+      expect(row.exported).toBe(inNextForm(main.legacy.exported));
       expect(row.readMetadata).toEqual(metadata);
       const listed = await opened.service.listEntities({
         entityType: "guide",
@@ -311,7 +365,7 @@ describe("the declared guide on the entity store", () => {
           context,
         ),
       ),
-    ).toEqual(main.dataSources.list);
+    ).toEqual(withNextFormHashes(main.dataSources.list));
     expect(
       undated(
         await opened.fetchData(
@@ -321,7 +375,7 @@ describe("the declared guide on the entity store", () => {
           context,
         ),
       ),
-    ).toEqual(main.dataSources.detail);
+    ).toEqual(withNextFormHashes(main.dataSources.detail));
     expect(
       undated(
         await opened.fetchData(
@@ -331,6 +385,6 @@ describe("the declared guide on the entity store", () => {
           context,
         ),
       ),
-    ).toEqual(main.dataSources.sections);
+    ).toEqual(withNextFormHashes(main.dataSources.sections));
   });
 });

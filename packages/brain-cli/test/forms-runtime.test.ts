@@ -18,6 +18,7 @@ import {
   type BaseEntity,
   type EntitySchema,
 } from "@brains/plugins";
+import { readMarkdownFrontmatter } from "@brains/utils/markdown-frontmatter";
 import { z } from "@brains/utils/zod";
 import {
   declaredEntityStore,
@@ -27,8 +28,10 @@ import {
 /**
  * The declared contact-request and quiz-result on the brain's own entity
  * store, byte for byte as main's adapters stored them (the bytes in
- * fixtures/forms-main-bytes.json were captured from those adapters). A
- * read hands back the whole document, as the classes read it; who wrote
+ * fixtures/forms-main-bytes.json were captured from those adapters), a quiz
+ * result's results and answers stored as body sections, as the next stored
+ * form has them. A read hands back the whole document, as the classes read
+ * it; who wrote
  * in, what they answered and their results stay in the file and out of
  * metadata.
  */
@@ -178,6 +181,65 @@ function declared(record: MainRecord): MainRecord {
       ...record.read,
       content: record.read.content.replace("visibility: restricted\n", ""),
     },
+  };
+}
+
+const quizListsSchema = z.object({
+  results: z.array(
+    z.object({
+      dimension: z.string(),
+      title: z.string(),
+      outcome: z.string(),
+      outcomeTitle: z.string(),
+    }),
+  ),
+  answers: z.array(
+    z.object({
+      field: z.string(),
+      label: z.string(),
+      value: z.union([z.string(), z.array(z.string())]),
+    }),
+  ),
+});
+
+/**
+ * A quiz result main stored, as the next stored form writes it: its results
+ * and answers out of the header, as body sections headed by each result's
+ * title and each answer's question, its fields as labeled lines and the
+ * answer's text or choices under them.
+ */
+function quizInNextForm(document: string): string {
+  const { results, answers } = quizListsSchema.parse(
+    readMarkdownFrontmatter(document).data,
+  );
+  const [, header = ""] = /^---\n([\s\S]*?)---\n/u.exec(document) ?? [];
+  const kept = header.replace(/^(?:results|answers):.*\n(?: {2}.*\n)*/gmu, "");
+  const resulted = results
+    .map(
+      ({ dimension, title, outcome, outcomeTitle }) =>
+        `### ${title}\n\n- **Dimension:** ${dimension}\n- **Outcome:** ${outcome}\n- **Outcome title:** ${outcomeTitle}\n\n`,
+    )
+    .join("");
+  const answered = answers
+    .map(
+      ({ field, label, value }) =>
+        `\n### ${label}\n\n- **Field:** ${field}\n\n${
+          Array.isArray(value)
+            ? value.map((choice) => `- ${choice}`).join("\n")
+            : value
+        }\n`,
+    )
+    .join("");
+  return `---\n${kept}---\n## Results\n\n${resulted}## Answers\n${answered}`;
+}
+
+/** Main's quiz result, stored and exported as the next stored form writes it. */
+function quizDeclared(record: MainRecord): MainRecord {
+  const read = declared(record);
+  return {
+    ...read,
+    stored: { ...read.stored, content: quizInNextForm(read.stored.content) },
+    exported: quizInNextForm(read.exported),
   };
 }
 
@@ -383,26 +445,26 @@ describe("the declared contact request on the entity store", () => {
 });
 
 describe("the declared quiz result on the entity store", () => {
-  test("stores a result, its alert, its handling, an anonymous one and an older file as the class did", async () => {
+  test("stores a result, its alert, its handling, an anonymous one and an older file as the class did, its lists in the body", async () => {
     const opened = await quizStore();
     await create(opened, "quiz-result", "fit-1", {
       content: quizResultAdapter.createContent(quizFrontmatter),
       metadata: quizResultAdapter.metadataFor(quizFrontmatter),
     });
     expect(await reads(opened, "quiz-result", "fit-1")).toEqual(
-      declared(main.quizCreated),
+      quizDeclared(main.quizCreated),
     );
     await change(opened, "quiz-result", "fit-1", quizResultSchema, (entity) =>
       quizResultTarget.withNotification(entity, "sent"),
     );
     expect(await reads(opened, "quiz-result", "fit-1")).toEqual(
-      declared(main.quizNotified),
+      quizDeclared(main.quizNotified),
     );
     await change(opened, "quiz-result", "fit-1", quizResultSchema, (entity) =>
       quizResultTarget.inbox.withHandled(entity),
     );
     expect(await reads(opened, "quiz-result", "fit-1")).toEqual(
-      declared(main.quizHandled),
+      quizDeclared(main.quizHandled),
     );
 
     await create(opened, "quiz-result", "fit-2", {
@@ -410,12 +472,12 @@ describe("the declared quiz result on the entity store", () => {
       metadata: quizResultAdapter.metadataFor(anonymousQuiz),
     });
     expect(await reads(opened, "quiz-result", "fit-2")).toEqual(
-      declared(main.quizAnonymous),
+      quizDeclared(main.quizAnonymous),
     );
 
     await importFile(opened, "quiz-result", "fit-old", olderQuiz);
     expect(await reads(opened, "quiz-result", "fit-old")).toEqual(
-      declared(main.quizOlder),
+      quizDeclared(main.quizOlder),
     );
   });
 
@@ -434,7 +496,7 @@ describe("the declared quiz result on the entity store", () => {
     expect(updated.exported).toBe(
       exported.replace("status: new", "status: handled"),
     );
-    for (const key of ["quiz:", "email:", "results:", "visibility:"]) {
+    for (const key of ["quiz:", "email:", "## Results", "visibility:"]) {
       expect(updated.stored.content.split(key)).toHaveLength(2);
     }
   });

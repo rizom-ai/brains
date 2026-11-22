@@ -1321,6 +1321,7 @@ interface StoredForms {
   readonly encode: Record<StoredForm, CodecEncode<EntityMetadataSchema>>;
   readonly header?: Readonly<Record<StoredForm, z.ZodObject>> | undefined;
   readonly places?: readonly (readonly string[])[] | undefined;
+  readonly bodyFields?: readonly string[] | undefined;
 }
 
 const storedForms = new WeakMap<object, StoredForms>();
@@ -1349,6 +1350,8 @@ export function storedFormCodec<
    * order its author gave.
    */
   readonly places?: readonly (readonly string[])[];
+  /** Header keys the next form states in the body. */
+  readonly bodyFields?: readonly string[];
   /** A read is the stored document byte for byte (storedDocumentCodec's). */
   readonly readAsWritten?: boolean;
 }): EntityMarkdownCodec<TMetadataSchema> {
@@ -1360,6 +1363,7 @@ export function storedFormCodec<
     encode: options.encode,
     header: options.header,
     places: options.places,
+    bodyFields: options.bodyFields,
   });
   if (options.readAsWritten === true) readAsWrittenCodecs.add(codec);
   return codec;
@@ -1605,6 +1609,8 @@ export function bodyFieldsCodec<
   readonly content?: (content: string) => string;
   /** Above the body its author wrote, for a body that is itself sections. */
   readonly place?: "below" | "above";
+  /** Above the author's text: the heading it sits under when it opens on none. */
+  readonly leadHeading?: string;
   /**
    * The current form's header, as Studio and the vault are shown it, when
    * it is not the metadata; the next form's is it without the moved fields.
@@ -1622,6 +1628,7 @@ export function bodyFieldsCodec<
   const fields = bodyFields(metadata, options.bodyFields, {
     ...(options.mappings && { mappings: options.mappings }),
     ...(options.place && { place: options.place }),
+    ...(options.leadHeading && { leadHeading: options.leadHeading }),
   });
   const authored = options.content ?? ((content: string): string => content);
   return storedFormCodec<TMetadataSchema>({
@@ -1658,5 +1665,6 @@ export function bodyFieldsCodec<
         : fields.nextHeader,
     },
     places: [Object.keys(metadata.shape)],
+    bodyFields: options.bodyFields,
   });
 }

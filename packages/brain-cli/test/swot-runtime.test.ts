@@ -2,6 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { swotPackage } from "@brains/assessment";
+import { readMarkdownFrontmatter } from "@brains/utils/markdown-frontmatter";
 import { z } from "@brains/utils/zod";
 import {
   declaredEntityStore,
@@ -11,9 +12,10 @@ import {
 /**
  * The declared swot type on the brain's own entity store, byte for byte as
  * main's adapter stored, read and exported it (the bytes in
- * fixtures/swot-main-bytes.json were captured from the swot class). A SWOT
- * is all header, so it reads as its stored document, as the class read it,
- * and its metadata is the time it was derived. A row main stored reads and
+ * fixtures/swot-main-bytes.json were captured from the swot class), in the
+ * next stored form: its four lists out of the header, each a body section of
+ * one heading per item. A SWOT reads as its stored document, as the class
+ * read it, and its metadata is the time it was derived. A row main stored reads and
  * lists before the boot pass that re-derives declared metadata reaches it
  * and after, and the pass writes nothing to it.
  */
@@ -109,18 +111,76 @@ function asMain(row: z.output<typeof rowSchema>): RowView {
   };
 }
 
+const SECTIONS = [
+  ["strengths", "Strengths"],
+  ["weaknesses", "Weaknesses"],
+  ["opportunities", "Opportunities"],
+  ["threats", "Threats"],
+] as const;
+const itemsSchema = z
+  .array(z.object({ title: z.string(), detail: z.string().optional() }))
+  .default([]);
+const listsSchema = z.object({
+  strengths: itemsSchema,
+  weaknesses: itemsSchema,
+  opportunities: itemsSchema,
+  threats: itemsSchema,
+});
+
+/**
+ * A document main stored, as the next stored form writes it: each list a
+ * body section of one heading per item, its detail the text under it, an
+ * empty list stated by no section, and the body main kept after them.
+ */
+function inNextForm(document: string): string {
+  const lists = listsSchema.parse(readMarkdownFrontmatter(document).data);
+  const [, header = "", body = ""] =
+    /^---\n([\s\S]*?)---\n([\s\S]*)$/u.exec(document) ?? [];
+  const kept = header.replace(
+    /^(?:strengths|weaknesses|opportunities|threats):.*\n(?: {2}.*\n)*/gmu,
+    "",
+  );
+  const sections = SECTIONS.flatMap(([key, label]) =>
+    lists[key].length === 0
+      ? []
+      : [
+          `## ${label}\n\n${lists[key]
+            .map(({ title, detail }) =>
+              detail === undefined
+                ? `### ${title}`
+                : `### ${title}\n\n${detail}`,
+            )
+            .join("\n\n")}`,
+        ],
+  );
+  const parts = [...sections, body.trim()].filter((part) => part !== "");
+  return `---\n${kept}---\n${parts.join("\n\n")}\n`;
+}
+
+/** Main's row with every document in the next stored form. */
+function inNextFormView(view: RowView): RowView {
+  const next = (document: string | undefined): string | undefined =>
+    document === undefined ? undefined : inNextForm(document);
+  return {
+    ...view,
+    stored: next(view.stored),
+    read: next(view.read),
+    exported: next(view.exported),
+  };
+}
+
 describe("the declared swot type on the entity store", () => {
-  test("stores imported SWOTs as the swot adapter wrote them", async () => {
+  test("stores imported SWOTs in the next form", async () => {
     const opened = await store();
     for (const row of [main.imported, main.importedExtra]) {
       await opened.service.createEntityFromMarkdown({
         input: { entityType: "swot", id: row.id, markdown: row.file },
       });
-      expect(await rowOf(opened, row.id)).toEqual(asMain(row));
+      expect(await rowOf(opened, row.id)).toEqual(inNextFormView(asMain(row)));
     }
   });
 
-  test("stores a derivation's create and its re-derivation as main stored them", async () => {
+  test("stores a derivation's create and its re-derivation in the next form", async () => {
     const opened = await store();
     await opened.service.createEntity({
       entity: {
@@ -131,7 +191,9 @@ describe("the declared swot type on the entity store", () => {
         visibility: "public",
       },
     });
-    expect(await rowOf(opened, main.derived.id)).toEqual(asMain(main.derived));
+    expect(await rowOf(opened, main.derived.id)).toEqual(
+      inNextFormView(asMain(main.derived)),
+    );
     const existing = await opened.service.getEntity({
       entityType: "swot",
       id: main.derived.id,
@@ -145,7 +207,7 @@ describe("the declared swot type on the entity store", () => {
       },
     });
     expect(await rowOf(opened, main.derived.id)).toEqual(
-      asMain(main.rederived),
+      inNextFormView(asMain(main.rederived)),
     );
   });
 
@@ -175,7 +237,11 @@ describe("the declared swot type on the entity store", () => {
     const exportsBefore = await opened.service.listPendingEntityExports();
 
     const expectReadable = async (): Promise<void> => {
-      expect(await rowOf(opened, row.id)).toEqual(asMain(row));
+      // Read as main stored it; exported as the next form writes it.
+      expect(await rowOf(opened, row.id)).toEqual({
+        ...asMain(row),
+        exported: inNextForm(row.exported),
+      });
       const listed = await opened.service.listEntities({
         entityType: "swot",
         options: { filter: EVERY },

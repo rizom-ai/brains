@@ -114,15 +114,31 @@ export function memoryCodec<TSchema extends z.ZodObject>(options: {
           ),
         );
         const range = memoryTimeRangeSchema.optional().parse(timeRange);
+        // The time range and each list's index take the place of the keys
+        // they replace.
         return {
           content: written.body,
-          frontmatter: {
-            ...Object.fromEntries(
-              Object.entries(rest).filter(([key]) => !indexKeys.has(key)),
+          frontmatter: Object.fromEntries(
+            Object.entries(parsed).flatMap(
+              ([key, value]): [string, unknown][] => {
+                if (key === "timeRange")
+                  return range
+                    ? [
+                        ["startedAt", range.start],
+                        ["endedAt", range.end],
+                      ]
+                    : [];
+                if (peopleKeys.includes(key))
+                  return [key, `${key}Aliases`].flatMap(
+                    (indexKey): [string, unknown][] =>
+                      Object.hasOwn(written.header, indexKey)
+                        ? [[indexKey, written.header[indexKey]]]
+                        : [],
+                  );
+                return indexKeys.has(key) ? [] : [[key, value]];
+              },
             ),
-            ...(range && { startedAt: range.start, endedAt: range.end }),
-            ...written.header,
-          },
+          ),
         };
       },
     },

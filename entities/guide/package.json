@@ -4,6 +4,7 @@
   "version": "0.2.0-alpha.759",
   "description": "Guide entity type — moving-in walkthroughs for kinds of brain users",
   "dependencies": {
+    "@brains/content-formatters": "workspace:*",
     "@brains/docs-chrome": "workspace:*",
     "@brains/sdk": "workspace:*",
     "@brains/utils": "workspace:*",
@@ -20,7 +21,8 @@
   },
   "exports": {
     ".": "./src/index.ts",
-    "./frontmatter": "./src/schemas/guide-frontmatter.ts"
+    "./frontmatter": "./src/schemas/guide-frontmatter.ts",
+    "./stored-form": "./src/schemas/guide-stored-form.ts"
   },
   "private": true,
   "scripts": {

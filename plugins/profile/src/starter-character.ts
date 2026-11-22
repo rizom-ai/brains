@@ -1,7 +1,5 @@
-import {
-  parseMarkdownWithFrontmatter,
-  type BaseEntity,
-} from "@brains/sdk/internal/entity-runtime";
+import { readAnchorProfileDocument } from "@brains/sdk/internal/service-runtime";
+import { type BaseEntity } from "@brains/sdk/internal/entity-runtime";
 import {
   type ServiceAI,
   type ServiceEntityReads,
@@ -17,8 +15,6 @@ const MAX_CONTENT_SIGNALS = 12;
 const MAX_CONTEXT_SIGNALS = 12;
 const MAX_SIGNAL_LENGTH = 160;
 const NON_IDENTITY_MODEL_LABEL_PATTERN = /\b(?:ranger|relay|rover)\b/iu;
-
-const rawFrontmatterSchema = z.record(z.string(), z.unknown());
 
 const CONTENT_SIGNAL_KEYS = [
   "title",
@@ -152,9 +148,10 @@ function toSignalValues(value: unknown): string[] {
   return [];
 }
 
-function parseFrontmatter(content: string): Record<string, unknown> | null {
+/** The anchor profile's fields, from its document in either stored form. */
+function anchorProfileFields(content: string): Record<string, unknown> | null {
   try {
-    return parseMarkdownWithFrontmatter(content, rawFrontmatterSchema).metadata;
+    return readAnchorProfileDocument(content).header;
   } catch {
     return null;
   }
@@ -204,7 +201,8 @@ function collectPathSignals(
 }
 
 function extractContentSignal(entity: BaseEntity): string | null {
-  const metadata = parseFrontmatter(entity.content);
+  // A record's fields in whatever form its file is in.
+  const metadata = recordFrontmatter(entity);
   if (!metadata) return null;
 
   const parts: string[] = [];
@@ -293,7 +291,7 @@ export async function buildStarterCharacterBrief(options: {
 
   const anchorMetadata =
     includeAnchor && anchorEntity
-      ? parseFrontmatter(anchorEntity.content)
+      ? anchorProfileFields(anchorEntity.content)
       : null;
   const anchorSignals = anchorMetadata
     ? collectPathSignals(anchorMetadata, ANCHOR_SIGNAL_PATHS)

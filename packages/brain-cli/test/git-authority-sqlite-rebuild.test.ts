@@ -199,15 +199,21 @@ describe("Git-authoritative SQLite rebuild", () => {
         ),
         writeFile(
           join(dataDir, "brain-character", "brain-character.md"),
+          // In the stored form the release writes, its purpose and values
+          // as sections, so the rebuild has nothing to write back.
           [
             "---",
             "name: Authoritative Brain",
             "role: Rebuild verifier",
-            "purpose: Verify Git-authoritative recovery",
-            "values:",
-            "  - durability",
-            "  - hermeticity",
             "---",
+            "## Purpose",
+            "",
+            "Verify Git-authoritative recovery",
+            "",
+            "## Values",
+            "",
+            "- durability",
+            "- hermeticity",
             "",
           ].join("\n"),
         ),

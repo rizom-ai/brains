@@ -4,9 +4,8 @@ status: published
 asked: 3
 rank: 2
 ---
-# FAQ
-
 ## Answer
+
 Write to the address on the contact page.
 
 ## Sources
@@ -15,7 +14,6 @@ Write to the address on the contact page.
 
 ## Alternative answers
 
-### Alternative answer 1
+### Alternative 1
 
-#### Answer
 Use the contact form.

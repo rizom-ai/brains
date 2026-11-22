@@ -59,7 +59,7 @@ describe("a social post's markdown", () => {
         platform: "linkedin",
         status: "published",
         coverImageId: "img-1",
-        documents: [{ id: "doc-1" }],
+        documentIds: ["doc-1"],
         publishedAt: "2025-03-01T10:00:00.000Z",
         platformPostId: "urn:1",
         sourceEntityId: "my-post",

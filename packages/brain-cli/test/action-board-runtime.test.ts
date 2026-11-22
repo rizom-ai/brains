@@ -10,6 +10,7 @@ import {
   declaredEntityStore,
   type DeclaredEntityStore,
 } from "./helpers/declared-entity-store";
+import { inNextForm } from "./helpers/memory-next-form";
 
 /**
  * The action board on the brain's own entity store, over action items as
@@ -18,7 +19,8 @@ import {
  * its track follow-up. What each answered and every card it wrote match
  * what the action-board class answered and wrote on main
  * (fixtures/action-board-main.json, captured with the clock at the same
- * instant). action-item reads as its stored document, so the board reads a
+ * instant), each card in the next stored form: its people as actor refs,
+ * each whole in a closing `## People` section, and its source flat. action-item reads as its stored document, so the board reads a
  * card's header, groupings included, from its content, as it did.
  */
 
@@ -83,7 +85,7 @@ afterEach(async () => {
 });
 
 describe("the action board on the entity store", () => {
-  test("answers and writes as main's class did, over main's action items", async () => {
+  test("answers and writes as main's class did, over main's action items, in the next form", async () => {
     setSystemTime(new Date("2026-04-10T12:00:00.000Z"));
     const opened = await declaredEntityStore(
       conversationMemoryPackage,
@@ -124,7 +126,14 @@ describe("the action board on the entity store", () => {
       createActionBoardPlugins(),
     );
 
-    expect(rows).toEqual(main.rows);
+    expect(rows).toEqual(
+      Object.fromEntries(
+        Object.entries(main.rows).map(([id, row]) => [
+          id,
+          row && { ...row, content: inNextForm(row.content) },
+        ]),
+      ),
+    );
     for (const [name, answer] of Object.entries(main.answers)) {
       expect({ [name]: answers[name] }).toEqual({ [name]: answer });
     }

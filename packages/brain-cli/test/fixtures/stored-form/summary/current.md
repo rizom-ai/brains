@@ -2,20 +2,13 @@
 channelId: team-poc
 channelName: team-poc
 interfaceType: discord
-timeRange:
-  start: '2026-05-09T15:00:00.000Z'
-  end: '2026-05-09T15:08:00.000Z'
+startedAt: '2026-05-09T15:00:00.000Z'
+endedAt: '2026-05-09T15:08:00.000Z'
 messageCount: 5
 participants:
-  - identity:
-      kind: user
-      userId: usr_mira
-    identityAliases:
-      - kind: external
-        externalActorId: discord_mira
-    displayName: Mira
-    roles:
-      - user
+  - 'user:usr_mira'
+participantsAliases:
+  - 'external:discord_mira'
 sourceHash: team-poc-conflict-new-v1
 visibility: shared
 ---
@@ -31,3 +24,11 @@ The team revisited the Team Brain conflict protocol and superseded the older dra
 ### Key Points
 
 - This update supersedes the earlier conflict protocol draft.
+
+## People
+
+### Participants
+
+- user:usr_mira — Mira
+  - also: external:discord_mira
+  - roles: user

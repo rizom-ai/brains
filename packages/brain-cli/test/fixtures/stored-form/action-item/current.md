@@ -3,21 +3,30 @@ conversationId: team-poc-sync
 channelId: team-poc
 channelName: team-poc
 interfaceType: discord
-sourceRef:
-  sourceId: mail
-  entityType: mail-item
-  entityId: mail-eval-content
+sourceRef: mail
+sourceEntityType: mail-item
+sourceEntityId: mail-eval-content
 status: done
 capturedAt: '2026-05-06T10:18:00.000Z'
 assignedTo:
-  - name: Mira
-    id: 'user:usr_mira'
-    aliases:
-      - 'external:discord_mira'
-  - name: Jan
+  - 'user:usr_mira'
+assignedToAliases:
+  - 'external:discord_mira'
 requestedBy:
-  - id: 'agent:team-brain'
+  - 'agent:team-brain'
 ---
 # Audit eval-content for stale generic fixtures
 
 Initial pass through eval-content marking which directories still hold pre-Team Brain generic fixtures so the team can plan replacements.
+
+## People
+
+### Assigned to
+
+- user:usr_mira — Mira
+  - also: external:discord_mira
+- Jan
+
+### Requested by
+
+- agent:team-brain

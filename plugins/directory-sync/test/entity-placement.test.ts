@@ -91,6 +91,7 @@ describe("injective entity placement", () => {
         // Placement reads where contained types live; there are none here.
         getEntityTypes: (): string[] => [],
         fileExtension: (): ".md" | ".yaml" => ".md",
+        deserializeEntity: (): Record<string, never> => ({}),
         getEntityTypeConfig: (): { containedIn?: string } => ({}),
       });
       const first = createTestEntity("site-content", {
@@ -151,6 +152,7 @@ describe("injective entity placement", () => {
           // Placement reads where contained types live; there are none here.
           getEntityTypes: (): string[] => [],
           fileExtension: (): ".md" | ".yaml" => ".md",
+          deserializeEntity: (): Record<string, never> => ({}),
           getEntityTypeConfig: (): { containedIn?: string } => ({}),
         });
         // Include an obsolete image representation and a document sidecar: no

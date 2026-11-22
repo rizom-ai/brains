@@ -10,6 +10,7 @@ import { StudioApi, mountStudio, waitForStudio } from "@brains/studio/test/ui";
 import {
   EntityRegistry,
   EntityService,
+  yamlFileOf,
   type ProjectionWriteIntent,
 } from "@brains/entity-service";
 import { migrateEntities } from "@brains/entity-service/migrate";
@@ -1358,22 +1359,26 @@ describe("document-backed runtime definitions with real adapters", () => {
       await sync.fileOps.writeEntity(before);
       await mkdir(join(syncPath, "note"), { recursive: true });
       await writeFile(join(syncPath, "note/first.md"), "# First imported note");
-      const sourcePath = join(syncPath, type, `${type}.md`);
+      // The definitions' file, a YAML file in the stored form written now.
+      const sourceFile = `${type}/${type}.yaml`;
+      const sourcePath = join(syncPath, sourceFile);
       if (phase === "reading")
         await writeFile(
           sourcePath,
-          generateMarkdown(
-            {
-              visibility: "shared",
-              groupings: {
-                areas: {
-                  ...areas,
-                  label: "Imported areas",
-                  excludeTypes: ["post"],
+          yamlFileOf(
+            generateMarkdown(
+              {
+                visibility: "shared",
+                groupings: {
+                  areas: {
+                    ...areas,
+                    label: "Imported areas",
+                    excludeTypes: ["post"],
+                  },
                 },
               },
-            },
-            "",
+              "",
+            ),
           ),
         );
       const oldSource = await readFile(sourcePath, "utf8");
@@ -1382,10 +1387,7 @@ describe("document-backed runtime definitions with real adapters", () => {
       const reader = spyOn(sync.fileOps, "readEntity").mockImplementation(
         async (path, maxBytes) => {
           const raw = await read(path, maxBytes);
-          if (
-            path ===
-            (phase === "queued" ? "note/first.md" : `${type}/${type}.md`)
-          ) {
+          if (path === (phase === "queued" ? "note/first.md" : sourceFile)) {
             expect((await save(fixture, { areas }, "PUT")).status).toBe(200);
             const latest = await fixture.service.getEntityRaw({
               entityType: type,
@@ -1398,10 +1400,7 @@ describe("document-backed runtime definitions with real adapters", () => {
           return raw;
         },
       );
-      const result = await sync.importEntities([
-        "note/first.md",
-        `${type}/${type}.md`,
-      ]);
+      const result = await sync.importEntities(["note/first.md", sourceFile]);
       expect(result).toMatchObject({
         imported: 1,
         skipped: 1,
@@ -1409,7 +1408,7 @@ describe("document-backed runtime definitions with real adapters", () => {
         quarantined: 0,
         issues: [
           {
-            path: `${type}/${type}.md`,
+            path: sourceFile,
             message: expect.stringContaining("Skipped stale import"),
           },
         ],
@@ -1438,9 +1437,7 @@ describe("document-backed runtime definitions with real adapters", () => {
       // stale import neither clears that intent nor quarantines the old file.
       reader.mockRestore();
       await sync.fileOps.writeEntity(saved);
-      expect((await sync.importEntities([`${type}/${type}.md`])).skipped).toBe(
-        1,
-      );
+      expect((await sync.importEntities([sourceFile])).skipped).toBe(1);
       expect(
         (await readFile(sourcePath, "utf8")).includes("excludeTypes"),
       ).toBe(false);
@@ -1461,7 +1458,9 @@ describe("document-backed runtime definitions with real adapters", () => {
       url: "https://example.invalid/member",
       domain: "example.invalid",
       capturedAt: "2026-09-28T00:00:00.000Z",
-      source: { ref: "cli:test", label: "Test" },
+      // Its source flat, as the link's file header has it.
+      sourceRef: "cli:test",
+      sourceLabel: "Test",
       visibility: "shared",
       areas: [exact],
     };

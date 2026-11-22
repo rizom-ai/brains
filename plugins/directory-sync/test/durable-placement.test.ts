@@ -40,6 +40,7 @@ async function fixture(): Promise<{
     openAsset: createMockAssetStore().openAsset,
     getEntityTypes: (): string[] => [],
     fileExtension: (): ".md" | ".yaml" => ".md",
+    deserializeEntity: (): Record<string, never> => ({}),
     getEntityTypeConfig: (): { containedIn?: string } => ({}),
   });
   let pending: DurableEntityExportIntent[] = [];

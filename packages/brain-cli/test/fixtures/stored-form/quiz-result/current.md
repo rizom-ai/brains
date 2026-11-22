@@ -7,20 +7,27 @@ status: new
 notification: pending
 name: Bea Taker
 email: bea@example.com
-results:
-  - dimension: d
-    title: Fit
-    outcome: high
-    outcomeTitle: High fit
-answers:
-  - field: q1
-    label: Question one
-    value: 'Yes'
-  - field: q2
-    label: Pick some
-    value:
-      - A
-      - B
 visibility: restricted
 ---
+## Results
 
+### Fit
+
+- **Dimension:** d
+- **Outcome:** high
+- **Outcome title:** High fit
+
+## Answers
+
+### Question one
+
+- **Field:** q1
+
+Yes
+
+### Pick some
+
+- **Field:** q2
+
+- A
+- B

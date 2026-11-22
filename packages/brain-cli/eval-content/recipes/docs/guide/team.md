@@ -3,30 +3,40 @@ title: Moving in as a team
 slug: team
 order: 40
 persona: The team
-for: >-
-  What your team knows is spread across people, channels and shared drives. It
-  leaves when someone does.
 recipe: team
 section: Use a brain
 summary: What a team knows, in one place
-material:
-  - from: Shared documents
-    where: Google Drive, wiki pages, handbooks
-    becomes: note
-    how: Export as Markdown or PDF, upload in chat
-  - from: The team handbook
-    where: How you work, onboarding, policies
-    becomes: doc
-    how: Paste each page in chat and keep it as a doc
-  - from: Open work
-    where: To-do lists, issue trackers, sticky notes
-    becomes: action-item
-    how: Ask the brain to add an action item
-  - from: Reference links
-    where: Bookmarks, pinned messages
-    becomes: link
-    how: Paste the URL in chat; it keeps a summary
 ---
+
+## For
+
+What your team knows is spread across people, channels and shared drives. It leaves when someone does.
+
+## Material
+
+### Shared documents
+
+- **Where:** Google Drive, wiki pages, handbooks
+- **Becomes:** note
+- **How:** Export as Markdown or PDF, upload in chat
+
+### The team handbook
+
+- **Where:** How you work, onboarding, policies
+- **Becomes:** doc
+- **How:** Paste each page in chat and keep it as a doc
+
+### Open work
+
+- **Where:** To-do lists, issue trackers, sticky notes
+- **Becomes:** action-item
+- **How:** Ask the brain to add an action item
+
+### Reference links
+
+- **Where:** Bookmarks, pinned messages
+- **Becomes:** link
+- **How:** Paste the URL in chat; it keeps a summary
 
 ## Invite your people
 

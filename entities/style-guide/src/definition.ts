@@ -39,6 +39,7 @@ export const styleGuide: EntityDefinition<
     bodyFields: STYLE_GUIDE_BODY_FIELDS,
     mappings: styleGuideBodyMappings,
     place: "above",
+    leadHeading: "Guidance",
   }),
   config: { embeddable: false },
   seed: {

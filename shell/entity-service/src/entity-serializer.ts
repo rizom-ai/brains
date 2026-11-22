@@ -275,9 +275,13 @@ export class EntitySerializer {
         .getGroupings()
         .filter((grouping) => grouping.types.includes(entity.entityType))
         .map((grouping) => grouping.field),
-      unwrittenFields(
-        this.entityRegistry.getEntityTypeConfig(entity.entityType),
-      ),
+      [
+        ...unwrittenFields(
+          this.entityRegistry.getEntityTypeConfig(entity.entityType),
+        ),
+        // A key the next form states in the body stays out of the header.
+        ...(this.storedForm === "new" ? (adapter.bodyFieldKeys ?? []) : []),
+      ],
     );
     // Bytes keep the form they were handed; text takes the stored form.
     if (

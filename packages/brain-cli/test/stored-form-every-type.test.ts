@@ -38,39 +38,49 @@ const STRICT_HEADER = new Set([
 interface Golden {
   type: string;
   id: string;
+  /** The stored document the release writes. */
   markdown: string;
-  /** The form a later release writes, for a type that moves to one. */
-  next?: string;
-  /** A YAML type's next file, whose header the next stored document is. */
-  nextYaml?: string;
+  /**
+   * The form an earlier release wrote, for a type whose layout moved
+   * (docs/plans/one-stored-form.md): read, and brought to the current form.
+   */
+  previous?: string;
+  /** A YAML type's file, whose header the stored document is. */
+  yaml?: string;
 }
 
 const goldens: Golden[] = readdirSync(GOLDEN)
-  .filter((type) => {
-    try {
-      readFileSync(join(GOLDEN, type, "current.md"));
-      return true;
-    } catch {
-      return false;
-    }
-  })
+  .filter(
+    (type) =>
+      existsSync(join(GOLDEN, type, "current.md")) ||
+      existsSync(join(GOLDEN, type, "current.yaml")),
+  )
   .sort()
   .map((type) => ({
     type,
     id: readFileSync(join(GOLDEN, type, "id.txt"), "utf8").trim(),
-    markdown: readFileSync(join(GOLDEN, type, "current.md"), "utf8"),
-    ...(existsSync(join(GOLDEN, type, "next.md")) && {
-      next: readFileSync(join(GOLDEN, type, "next.md"), "utf8"),
+    ...currentOf(type),
+    ...(existsSync(join(GOLDEN, type, "previous.md")) && {
+      previous: readFileSync(join(GOLDEN, type, "previous.md"), "utf8"),
     }),
-    ...nextYamlOf(type),
   }));
 
-/** A YAML type's next file, and the stored document it is the header of. */
-function nextYamlOf(type: string): { nextYaml?: string; next?: string } {
-  const path = join(GOLDEN, type, "next.yaml");
-  if (!existsSync(path)) return {};
-  const nextYaml = readFileSync(path, "utf8");
-  return { nextYaml, next: contentOfYamlFile(nextYaml) };
+/** A document as a type stores it: a YAML type's, its header alone. */
+function asStored(golden: Golden, markdown: string): string {
+  return golden.yaml === undefined
+    ? markdown
+    : contentOfYamlFile(yamlFileOf(markdown));
+}
+
+/** A type's current golden: its markdown, or its YAML file and the document it holds. */
+function currentOf(type: string): { markdown: string; yaml?: string } {
+  const yamlPath = join(GOLDEN, type, "current.yaml");
+  if (!existsSync(yamlPath))
+    return {
+      markdown: readFileSync(join(GOLDEN, type, "current.md"), "utf8"),
+    };
+  const yaml = readFileSync(yamlPath, "utf8");
+  return { yaml, markdown: contentOfYamlFile(yaml) };
 }
 
 function header(markdown: string): Record<string, unknown> {
@@ -203,7 +213,9 @@ describe("every text type's stored form", () => {
             ...(visibility !== undefined && { visibility }),
           };
         });
-        expect(await imported(opened_, golden, reversed)).toBe(reversed);
+        expect(await imported(opened_, golden, reversed)).toBe(
+          asStored(golden, reversed),
+        );
       });
 
       test.if(STRICT_HEADER.has(golden.type))(
@@ -236,7 +248,9 @@ describe("every text type's stored form", () => {
               ...(visibility !== undefined && { visibility }),
             };
           });
-          expect(await imported(opened_, golden, unknown)).toBe(unknown);
+          expect(await imported(opened_, golden, unknown)).toBe(
+            asStored(golden, unknown),
+          );
           expect(
             opened_.service.unknownFrontmatterKeys(unknown, golden.type),
           ).toContain("zzKeptKey");
@@ -247,74 +261,66 @@ describe("every text type's stored form", () => {
 });
 
 /**
- * A type that moves to a new form (docs/plans/one-stored-form.md, phase 4)
- * has a next.md golden beside current.md: it reads either, writes the one
- * its store writes, and the rewrite on start brings a row to its store's
- * form once, quietly.
+ * A type whose layout moved (docs/plans/one-stored-form.md) has a
+ * previous.md golden beside its current one: it reads the previous form as
+ * the current, writes the current from either file, and the rewrite on
+ * start brings a row stored in the previous form to the current once,
+ * quietly.
  */
-const moving = goldens.filter(
-  (golden): golden is Golden & { next: string } => golden.next !== undefined,
+const moved = goldens.filter(
+  (golden): golden is Golden & { previous: string } =>
+    golden.previous !== undefined,
 );
 
-describe.each(moving.map((golden) => [golden.type, golden] as const))(
-  "%s, from its current form to its next",
+describe.each(moved.map((golden) => [golden.type, golden] as const))(
+  "%s, from its previous form",
   (_, golden) => {
-    test.skipIf(golden.nextYaml === undefined)(
-      "a YAML type's next file is the golden, and only the next form's",
+    test.skipIf(golden.yaml === undefined)(
+      "a YAML type's file is the golden",
       async () => {
-        const opened_ = await opened("new");
-        const written = await imported(opened_, golden, golden.markdown);
-        expect(yamlFileOf(written)).toBe(golden.nextYaml ?? "");
+        const opened_ = await opened();
+        const written = await imported(opened_, golden, golden.previous);
+        expect(yamlFileOf(written)).toBe(golden.yaml ?? "");
         expect(opened_.service.fileExtension(golden.type)).toBe(".yaml");
-        const old = await opened("old");
-        expect(old.service.fileExtension(golden.type)).toBe(".md");
       },
     );
 
     test("both forms decode to the same fields", async () => {
       const { service } = await opened();
       expect(
-        service.deserializeEntity(golden.next, golden.type).metadata,
+        service.deserializeEntity(golden.previous, golden.type).metadata,
       ).toEqual(
         service.deserializeEntity(golden.markdown, golden.type).metadata,
       );
     });
 
-    test("a store writing the current form writes it from either file", async () => {
-      const opened_ = await opened("old");
-      expect(await imported(opened_, golden, golden.next)).toBe(
+    test("the current form is written from either file", async () => {
+      const opened_ = await opened();
+      expect(await imported(opened_, golden, golden.previous)).toBe(
         golden.markdown,
       );
       expect(await imported(opened_, golden, golden.markdown)).toBe(
         golden.markdown,
       );
-    });
-
-    test("a store writing the next form writes it from either file", async () => {
-      const opened_ = await opened("new");
-      expect(await imported(opened_, golden, golden.markdown)).toBe(
-        golden.next,
-      );
-      expect(await imported(opened_, golden, golden.next)).toBe(golden.next);
     });
 
     // A YAML file is data, edited as text; only a markdown header is shown
     // as properties.
-    test.skipIf(golden.nextYaml !== undefined)(
-      "the next form's header holds only Obsidian properties",
+    test.skipIf(golden.yaml !== undefined)(
+      "the current form's header holds only Obsidian properties",
       () => {
         expect(
-          Object.entries(header(golden.next)).filter(
+          Object.entries(header(golden.markdown)).filter(
             ([, value]) => !isPropertyValue(value),
           ),
         ).toEqual([]);
       },
     );
 
-    test("the rewrite on start brings a row to the next form once, quietly", async () => {
-      const opened_ = await opened("new");
-      await imported(opened_, golden, golden.next);
-      await opened_.storeAsBefore(golden.type, golden.id, golden.markdown);
+    test("the rewrite on start brings a row to the current form once, quietly", async () => {
+      const opened_ = await opened();
+      await imported(opened_, golden, golden.markdown);
+      await opened_.storeAsBefore(golden.type, golden.id, golden.previous);
       const before = await opened_.stored(golden.type, golden.id);
 
       expect(await opened_.service.rewriteStoredForms()).toEqual({
@@ -322,7 +328,7 @@ describe.each(moving.map((golden) => [golden.type, golden] as const))(
         deferred: 0,
       });
       const after = await opened_.stored(golden.type, golden.id);
-      expect(after?.content).toBe(golden.next);
+      expect(after?.content).toBe(golden.markdown);
       expect(after?.updated).toBe(before?.updated);
       expect(await opened_.service.rewriteStoredForms()).toEqual({
         rewritten: 0,

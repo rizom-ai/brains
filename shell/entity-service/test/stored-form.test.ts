@@ -85,8 +85,8 @@ function serializer(config: EntityTypeConfig = {}): EntitySerializer {
 }
 
 describe("the switch between the stored forms", () => {
-  it("writes the old form until alpha W", () => {
-    expect(storedFormWrites).toBe("old");
+  it("writes the new form from alpha W", () => {
+    expect(storedFormWrites).toBe("new");
   });
 });
 
@@ -504,3 +504,40 @@ class MovedTagsAdapter extends CardAdapter {
         };
   }
 }
+
+/**
+ * A key a type's next stored form states in its body is never carried back
+ * into its header, even when a frontmatter extension names it, as a profile
+ * kind names an anchor profile's purpose (docs/plans/one-stored-form.md).
+ */
+class BodyTagsAdapter extends MovedTagsAdapter {
+  public readonly bodyFieldKeys: readonly string[] = ["tags"];
+}
+
+describe("a key the next form states in the body", () => {
+  it("is not carried back into the header by an extension that names it", async () => {
+    const context = await setupEntityService(
+      [{ name: "card", schema: cardSchema, adapter: new BodyTagsAdapter() }],
+      { storedForm: "new" },
+    );
+    context.entityRegistry.extendFrontmatterSchema(
+      "card",
+      z.object({ tags: z.array(z.string()).optional() }),
+    );
+    await context.entityService.initialize();
+    const file = "---\ntitle: One\ntags:\n  - a\n---\nBody\n";
+    const read = context.entityService.deserializeEntity(file, "card");
+    const written = context.entityService.serializeEntity({
+      id: "one",
+      entityType: "card",
+      content: file,
+      contentHash: "",
+      created: "2026-01-01T00:00:00.000Z",
+      updated: "2026-01-01T00:00:00.000Z",
+      visibility: "public",
+      metadata: read.metadata ?? {},
+    });
+    expect(written).toBe("---\ntitle: One\n---\nBody\n\nTags: a\n");
+    await context.cleanup();
+  });
+});

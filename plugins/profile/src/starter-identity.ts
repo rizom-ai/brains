@@ -7,6 +7,7 @@ import {
   type ClaimedSystemType,
   internalFullScope,
   brainCharacterBodySchema,
+  readBrainCharacterDocument,
   type ProfileCategory,
   type BrainCharacter,
 } from "@brains/sdk/internal/service-runtime";
@@ -219,6 +220,19 @@ function parseRawContent(content: string): {
   }
 }
 
+/** A character document in either stored form, its fields in the header. */
+function parseCharacterContent(content: string): {
+  metadata: Record<string, unknown>;
+  body: string;
+} | null {
+  try {
+    const { header, body } = readBrainCharacterDocument(content);
+    return { metadata: header, body: body.trim() };
+  } catch {
+    return null;
+  }
+}
+
 function hasExactKeys(
   metadata: Record<string, unknown>,
   expectedKeys: readonly string[],
@@ -232,7 +246,7 @@ function hasExactKeys(
 }
 
 export function isLegacyBrainCharacterContent(content: string): boolean {
-  const parsed = parseRawContent(content);
+  const parsed = parseCharacterContent(content);
   if (
     !parsed ||
     parsed.body ||

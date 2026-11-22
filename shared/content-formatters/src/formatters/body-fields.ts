@@ -95,8 +95,15 @@ export function bodyFields(
      * go straight to its header, and whose current form has no body.
      */
     readonly headerWins?: boolean;
+    /**
+     * Above the author's text: the heading it sits under when it opens on
+     * none of its own, so it does not read as the last field's.
+     */
+    readonly leadHeading?: string;
   } = {},
 ): BodyFields {
+  const leadHeadingLine =
+    options.leadHeading === undefined ? undefined : `## ${options.leadHeading}`;
   const { mappings } = options;
   const above = options.place === "above";
   const moved: ReadonlySet<string> = new Set(fields);
@@ -117,6 +124,16 @@ export function bodyFields(
   const labels: ReadonlySet<string> = new Set(
     fieldMappings.map((mapping) => mapping.label.toLowerCase()),
   );
+  /** The author's text without the heading it was written under. */
+  function withoutLeadHeading(text: string): string {
+    if (
+      leadHeadingLine === undefined ||
+      !text.startsWith(`${leadHeadingLine}\n`)
+    )
+      return text;
+    return text.slice(leadHeadingLine.length + 1).replace(/^\n+/u, "");
+  }
+
   return {
     nextHeader: z.object(
       Object.fromEntries(
@@ -133,7 +150,7 @@ export function bodyFields(
       const { lead, sections } = leading
         ? {
             sections: leading.sections,
-            lead: leading.rest.replace(/^\n+/u, ""),
+            lead: withoutLeadHeading(leading.rest.replace(/^\n+/u, "")),
           }
         : leadAndSections(body);
       if (sections.length === 0) return { header: { ...header }, lead: body };
@@ -152,7 +169,16 @@ export function bodyFields(
           ),
         ),
       );
-      const text = lead.replace(/\n+$/u, "");
+      // An author's text starts on its first line and ends on its last.
+      const stated = lead.replace(/^\n+/u, "").replace(/\n+$/u, "");
+      // An author's text above which the fields sit opens on a heading.
+      const text =
+        above &&
+        leadHeadingLine !== undefined &&
+        stated.length > 0 &&
+        !stated.startsWith("## ")
+          ? `${leadHeadingLine}\n\n${stated}`
+          : stated;
       if (above)
         return {
           header: Object.fromEntries(
