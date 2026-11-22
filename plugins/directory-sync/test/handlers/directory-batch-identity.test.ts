@@ -11,6 +11,7 @@ import {
 import { DirectorySync } from "../../src/lib/directory-sync";
 import { DirectoryImportJobHandler } from "../../src/handlers/directoryImportJobHandler";
 import { DirectoryCleanupJobHandler } from "../../src/handlers/directoryCleanupJobHandler";
+import { DirectoryDeleteJobHandler } from "../../src/handlers/directoryDeleteJobHandler";
 
 // Exercise the real DirectorySync behind the handlers: a mocked DirectorySync
 // hides the second runBulkMutation boundary that caused production imports to fail.
@@ -106,6 +107,31 @@ describe("directory job projection-batch identity", () => {
         },
       },
       "cleanup-job",
+      createMockProgressReporter(),
+    );
+    expect(identities).toEqual([
+      { source: "directory-sync", operationId: "root-sync" },
+    ]);
+  });
+
+  it("keeps a record another of its files holds under the durable job's identity", async () => {
+    const { sync, context, logger, identities } = setup();
+    // The removal was seen, but the file is back (git removes and
+    // recreates a pulled file), so the record is imported, not deleted.
+    writeFileSync(join(path, "plan.md"), "# Team plan\n");
+    const handler = new DirectoryDeleteJobHandler(logger, context, sync);
+    await handler.process(
+      {
+        deletions: [
+          {
+            entityType: "note",
+            entityId: "plan",
+            filePath: join(path, "plan.md"),
+          },
+        ],
+        projectionBatch: { ...projectionBatch, childKey: "1:directory-delete" },
+      },
+      "delete-job",
       createMockProgressReporter(),
     );
     expect(identities).toEqual([

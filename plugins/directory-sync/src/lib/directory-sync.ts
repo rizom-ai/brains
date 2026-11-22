@@ -250,9 +250,14 @@ export class DirectorySync implements IDirectorySync {
     );
   }
 
-  async importEntities(paths?: string[]): Promise<ImportResult> {
-    return this.runBulkMutation("import", () =>
-      this.importEntitiesUnbatched(paths),
+  async importEntities(
+    paths?: string[],
+    projectionBatch?: DirectoryProjectionBatchRef,
+  ): Promise<ImportResult> {
+    return this.runBulkMutation(
+      "import",
+      () => this.importEntitiesUnbatched(paths),
+      projectionBatch,
     );
   }
 

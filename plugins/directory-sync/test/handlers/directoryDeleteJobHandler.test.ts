@@ -111,7 +111,10 @@ describe("DirectoryDeleteJobHandler", () => {
       );
 
       expect(deleteForRemovedFile).not.toHaveBeenCalled();
-      expect(importEntities).toHaveBeenCalledWith(["/sync/image/cover.png"]);
+      expect(importEntities).toHaveBeenCalledWith(
+        ["/sync/image/cover.png"],
+        undefined,
+      );
       expect(completePendingDelete).toHaveBeenCalledWith(
         "image",
         "cover",
@@ -166,7 +169,10 @@ describe("DirectoryDeleteJobHandler", () => {
       );
 
       expect(deleteForRemovedFile).not.toHaveBeenCalled();
-      expect(importEntities).toHaveBeenCalledWith([validData.filePath]);
+      expect(importEntities).toHaveBeenCalledWith(
+        [validData.filePath],
+        undefined,
+      );
       expect(completePendingDelete).toHaveBeenCalledWith(
         validData.entityType,
         validData.entityId,
