@@ -11,7 +11,7 @@ import {
 
 /**
  * The people a memory names, in its next stored form
- * (docs/plans/one-stored-form.md): the header indexes them as actor refs,
+ * (docs/external-plugin-authoring.md, The stored format): the header indexes them as actor refs,
  * which Obsidian shows as properties, and the body's People section holds
  * each person whole, so nothing a person carries is lost.
  */

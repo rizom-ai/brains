@@ -38,7 +38,7 @@ export function getImportPathDecision(
   }
 
   // A YAML file under a markdown type's folder is not an entity's: it is
-  // left alone (docs/plans/one-stored-form.md, YAML files).
+  // left alone (docs/external-plugin-authoring.md, The stored format).
   if (
     filePath.endsWith(".yaml") &&
     !deps.fileOperations.isEntityFile(filePath)

@@ -7,7 +7,7 @@ import type { TopicVote } from "../../src/schemas/votes";
 
 /**
  * A quiet rewrite restates a row under a new content hash
- * (docs/plans/one-stored-form.md). Its vote and its failure count move to
+ * (docs/external-plugin-authoring.md, The stored format). Its vote and its failure count move to
  * the new hash, so the source is not read again for a restatement.
  */
 describe("a restated source's votes", () => {

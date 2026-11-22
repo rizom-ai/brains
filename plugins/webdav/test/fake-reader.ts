@@ -39,7 +39,7 @@ export function fakeReader(options: {
   containedIn?: Record<string, string>;
   types?: string[];
   assets?: Record<string, Uint8Array>;
-  /** Types whose store writes YAML files (docs/plans/one-stored-form.md). */
+  /** Types whose store writes YAML files (docs/external-plugin-authoring.md, The stored format). */
   yamlTypes?: string[];
 }): DavReader {
   const visible = (scope: Scope | undefined): BaseEntity[] =>

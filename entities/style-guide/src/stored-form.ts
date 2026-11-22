@@ -10,7 +10,7 @@ import {
 import { parseMarkdown } from "@brains/utils/markdown-frontmatter";
 
 /**
- * The style guide's next stored form (docs/plans/one-stored-form.md): its
+ * The style guide's next stored form (docs/external-plugin-authoring.md, The stored format): its
  * name in the header, its messaging, voice and visual guidance as body
  * sections above the free-form guidance, a one-line value as a labeled
  * line and a list as a list.

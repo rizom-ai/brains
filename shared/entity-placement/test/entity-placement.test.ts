@@ -126,7 +126,7 @@ describe("entity placement", () => {
   });
 });
 
-// A YAML type's file (docs/plans/one-stored-form.md, YAML files) is named
+// A YAML type's file (docs/external-plugin-authoring.md, The stored format) is named
 // by its ID, as a markdown file is.
 describe("a YAML type's file", () => {
   it("reads its ID without the extension", () => {

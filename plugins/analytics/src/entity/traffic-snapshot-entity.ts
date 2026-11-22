@@ -55,7 +55,7 @@ export const trafficSnapshotEntity: EntityDefinition<
     metadata: trafficSnapshotMetadataSchema,
     markdown: trafficSnapshotMarkdown,
     config: {
-      // Its next form is a YAML file of the days (docs/plans/one-stored-form.md).
+      // Its next form is a YAML file of the days (docs/external-plugin-authoring.md, The stored format).
       storage: "yaml",
       // The capture's record of what Cloudflare counted: written only by
       // the daily check, never by hand.

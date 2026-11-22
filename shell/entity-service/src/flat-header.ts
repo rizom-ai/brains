@@ -49,7 +49,7 @@ function isFlat(field: unknown): boolean {
 
 /**
  * The keys of a header that nest: an object, a record, or a list of
- * anything but scalars (docs/plans/one-stored-form.md, Rule). A markdown
+ * anything but scalars (docs/external-plugin-authoring.md, The stored format). A markdown
  * file's header is flat, so Obsidian shows every key as a property.
  */
 export function nestedHeaderKeys(header: z.ZodObject<z.ZodRawShape>): string[] {

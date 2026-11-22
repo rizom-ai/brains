@@ -79,7 +79,7 @@ const framed = (content: string): string =>
 /**
  * What main recorded for a record, its ordinary read the body alone, and
  * its stored bytes framed as a write frames them now
- * (docs/plans/one-stored-form.md).
+ * (docs/external-plugin-authoring.md, The stored format).
  */
 function declared(
   record: z.output<typeof recordSchema>,

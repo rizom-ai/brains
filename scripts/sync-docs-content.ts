@@ -243,7 +243,7 @@ function buildGuide(
     ),
   );
   const body = rewriteMarkdownLinks(content.trim(), entry.source, sourceToHref);
-  // The guide in the stored form a brain writes (docs/plans/one-stored-form.md):
+  // The guide in the stored form a brain writes (docs/external-plugin-authoring.md, The stored format):
   // who it is for and its material above its own sections.
   const written = guideBody.write(frontmatter, body);
 

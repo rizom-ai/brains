@@ -153,7 +153,7 @@ export function sectionToTemplate(
     );
   }
 
-  // The compact layout (docs/plans/one-stored-form.md), which reads the
+  // The compact layout (docs/external-plugin-authoring.md, The stored format), which reads the
   // sectioned layout a section's copy was saved in before too.
   const formatter = new StructuredContentFormatter(objectSchema, {
     title: section.title,

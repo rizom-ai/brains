@@ -5,7 +5,7 @@ import { guideFrontmatterSchema } from "./guide-frontmatter";
 // script writes guide sources in their stored form through the package's
 // `./stored-form` export.
 
-/** The fields a guide's stored form (docs/plans/one-stored-form.md) states in its body. */
+/** The fields a guide's stored form (docs/external-plugin-authoring.md, The stored format) states in its body. */
 export const GUIDE_BODY_FIELDS: readonly string[] = ["for", "material"];
 
 /** Who a guide is for, and one heading per source of its material. */

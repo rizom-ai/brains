@@ -86,7 +86,7 @@ const noSlug =
 
 describe("the declared posts on the entity store", () => {
   // Each expected document is what BlogPostAdapter.toMarkdown stored for it,
-  // in the order the file states its keys (docs/plans/one-stored-form.md):
+  // in the order the file states its keys (docs/external-plugin-authoring.md, The stored format):
   // a key the file lacks, such as a resolved slug, follows the rest.
   test.each([
     ["a full post", city, storedCity],

@@ -7,7 +7,7 @@ import { characterBody } from "./brain-character-adapter";
 
 /*
  * The identity singletons' documents in either stored form
- * (docs/plans/one-stored-form.md), as the current form holds them: every
+ * (docs/external-plugin-authoring.md, The stored format), as the current form holds them: every
  * field in the header, and a profile's story as its body. For a reader of
  * the stored document that does not go through the singleton's adapter.
  */

@@ -625,7 +625,7 @@ export {
   type RelatedEntityReader,
 } from "./service/related-entities";
 export { paginationInfoSchema } from "@brains/entity-service";
-// How first-party types store their files (docs/plans/one-stored-form.md).
+// How first-party types store their files (docs/external-plugin-authoring.md, The stored format).
 export {
   contentOfYamlFile,
   storedFileExtension,

@@ -174,7 +174,7 @@ const post = defineEntity({
     documents: z.array(z.object({ id: z.string() })).default([]),
   }),
   // A list of objects in metadata, stated in the header as a list of ids
-  // (docs/plans/one-stored-form.md: a markdown header is flat).
+  // (docs/external-plugin-authoring.md, The stored format: a markdown header is flat).
   markdown: {
     decode: ({ content, frontmatter }) => {
       const { documents, ...rest } = frontmatter;

@@ -128,7 +128,7 @@ describe("mergeProfileImport", () => {
   });
 });
 
-// A profile in its next stored form (docs/plans/one-stored-form.md) keeps
+// A profile in its next stored form (docs/external-plugin-authoring.md, The stored format) keeps
 // its description in a body section: an imported story fills the story
 // alone, and the description the owner wrote stays.
 describe("an import into a profile in its next stored form", () => {

@@ -197,7 +197,7 @@ export class FileOperations {
 
   /**
    * The .md file a YAML type's record was stored in before its .yaml, once
-   * the .yaml is written (docs/plans/one-stored-form.md, From .md to .yaml):
+   * the .yaml is written (docs/external-plugin-authoring.md, The stored format):
    * gone when it reads as the record written, kept when it reads as
    * anything else, an edit the next import reads.
    */
@@ -244,7 +244,7 @@ export class FileOperations {
 
   /**
    * A text entity's file as its stored document: a YAML file is the header
-   * of the document it holds (docs/plans/one-stored-form.md).
+   * of the document it holds (docs/external-plugin-authoring.md, The stored format).
    */
   async readStoredText(filePath: string): Promise<string> {
     const text = await readFile(filePath, "utf-8");

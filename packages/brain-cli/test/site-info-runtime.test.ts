@@ -68,7 +68,7 @@ describe("the declared site-info on the entity store", () => {
 
     await opened.completeInitialSync({ success: true });
 
-    // A file states only what its author stated (docs/plans/one-stored-form.md):
+    // A file states only what its author stated (docs/external-plugin-authoring.md, The stored format):
     // `represents` is the schema's default, so readers see it unwritten.
     expect((await opened.stored("site-info", "site-info"))?.content).toBe(
       "---\ntitle: Configured\n---\n\n",

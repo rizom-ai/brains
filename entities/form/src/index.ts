@@ -60,7 +60,7 @@ const storedForm = storedDocumentCodec<
 
 /**
  * A form in either stored form, its introduction as the body, as the
- * current form holds it: the next (docs/plans/one-stored-form.md) is a
+ * current form holds it: the next (docs/external-plugin-authoring.md, The stored format) is a
  * YAML file, its introduction the intro key.
  */
 function inCurrentShape(document: StoredDocument): StoredDocument {
@@ -147,7 +147,7 @@ export const form: EntityDefinition<"form", typeof formMetadataSchema> =
       hasBody: true,
       markdown: formMarkdown,
       config: {
-        // Its next form is a YAML file (docs/plans/one-stored-form.md).
+        // Its next form is a YAML file (docs/external-plugin-authoring.md, The stored format).
         storage: "yaml",
         embeddable: false,
         fullTextSearchable: false,

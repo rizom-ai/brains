@@ -153,7 +153,7 @@ describe("the declared decks on the entity store", () => {
       entity: { ...read, content: read.content.replace("Two", "Changed") },
     });
     // The stored file states its slug, so the update keeps it where the
-    // file states it (docs/plans/one-stored-form.md).
+    // file states it (docs/external-plugin-authoring.md, The stored format).
     expect((await opened.stored("deck", "noslug"))?.content).toBe(
       "---\ntitle: No Slug Deck\nstatus: draft\ndescription: Short\nslug: no-slug-deck\n---\n# No Slug\n\n---\n\nChanged\n",
     );

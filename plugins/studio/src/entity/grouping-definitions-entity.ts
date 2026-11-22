@@ -37,7 +37,7 @@ export const groupingDefinitionsEntity: EntityDefinition<
       readAsWritten: true,
     }),
     config: {
-      // Its next form is a YAML file (docs/plans/one-stored-form.md).
+      // Its next form is a YAML file (docs/external-plugin-authoring.md, The stored format).
       storage: "yaml",
       embeddable: false,
       projectionSource: false,

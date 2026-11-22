@@ -220,7 +220,7 @@ async function setUpSiteBuilder(
 
   // At boot, before startup content settles, every section's saved copy is
   // brought to the layout its template writes now, quietly
-  // (docs/plans/one-stored-form.md). Answered where the shell boots.
+  // (docs/external-plugin-authoring.md, The stored format). Answered where the shell boots.
   if (!runtime.executionOnly)
     runtime.answer(storedContentRestateContract, async () => ({
       restated: await restateSectionContent({

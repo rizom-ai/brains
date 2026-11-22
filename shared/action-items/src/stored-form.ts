@@ -11,7 +11,7 @@ import {
 import { actionItemMetadataSchema } from "./schema";
 
 /**
- * An action item's next stored form (docs/plans/one-stored-form.md): its
+ * An action item's next stored form (docs/external-plugin-authoring.md, The stored format): its
  * Inbox source as sourceRef, sourceEntityType and sourceEntityId, and its
  * people indexed as actor refs, every header key an Obsidian property;
  * each person stated whole in a People section closing the body.

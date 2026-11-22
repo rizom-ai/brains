@@ -516,7 +516,7 @@
       "symbol": "Decoders of the old stored headers (storedFormCodec decode and oldHeader, bodyFields read of header fields)",
       "owner": "@brains/entity-service",
       "class": "durable-data-compatibility",
-      "behavior": "Reads a file in the header form the releases before alpha W wrote (docs/plans/one-stored-form.md): fields stated in the header that the new form states in the body, nested source, people and time-range objects, site info's cta, sections and translations, social posts' documents, and the identity singletons' header fields. The rewrite on start stores such a row in the new form once, quietly.",
+      "behavior": "Reads a file in the header form the releases before alpha W wrote (docs/external-plugin-authoring.md, The stored format): fields stated in the header that the new form states in the body, nested source, people and time-range objects, site info's cta, sections and translations, social posts' documents, and the identity singletons' header fields. The rewrite on start stores such a row in the new form once, quietly.",
       "currentConsumers": "Files in content repositories, backups and branches written before 0.2.0-alpha.760; every brain in the fleet was rewritten on alpha.760.",
       "removalPrerequisite": "One minor release after 0.2.0, and zero old-form files observed in supported upgrade sources (content repositories, restored backups).",
       "rollbackDependency": "A brain rolled back to 0.2.0-alpha.759 (alpha R) reads both forms; any earlier release cannot read a file in the new form.",

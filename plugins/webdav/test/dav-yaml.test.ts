@@ -3,8 +3,7 @@ import { DavTree } from "../src/dav-tree";
 import { entity, fakeReader } from "./fake-reader";
 
 /**
- * A YAML type's file on the drive (docs/plans/one-stored-form.md, YAML
- * files): once its store writes the next form, a form is `form/<id>.yaml`,
+ * A YAML type's file on the drive (docs/external-plugin-authoring.md, The stored format): once its store writes the next form, a form is `form/<id>.yaml`,
  * the header of its stored document; before, it is `form/<id>.md`.
  */
 const stored = "---\ntitle: Work with us\nsubmitLabel: Send\n---\n";

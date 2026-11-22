@@ -56,7 +56,7 @@ function leadingSections(
 }
 
 /**
- * How a type's next stored form (docs/plans/one-stored-form.md) states
+ * How a type's next stored form (docs/external-plugin-authoring.md, The stored format) states
  * some of its header fields in its body: one section per field, in the
  * compact layout, under the text its author wrote.
  */

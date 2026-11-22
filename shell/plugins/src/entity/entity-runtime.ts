@@ -1320,7 +1320,7 @@ const storedForms = new WeakMap<object, StoredForms>();
 
 /**
  * The codec of a first-party type that reads two stored forms
- * (docs/plans/one-stored-form.md): one `decode` reads a file in either,
+ * (docs/external-plugin-authoring.md, The stored format): one `decode` reads a file in either,
  * and `encode` writes the new form. The old form is read until its
  * decoder is removed, one minor release after 0.2.0; it is never written.
  */
@@ -1577,7 +1577,7 @@ export function entityRuntime(context: object): EntityRuntime {
 
 /**
  * The codec of a first-party type whose new stored form
- * (docs/plans/one-stored-form.md) states some of its header fields in its
+ * (docs/external-plugin-authoring.md, The stored format) states some of its header fields in its
  * body: one section per field, in the compact layout, under the text its
  * author wrote (bodyFields). It reads either form, the old one with every
  * field in the header, and writes the new; a field brought back to the

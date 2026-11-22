@@ -7,7 +7,7 @@ import {
 import type { FieldMapping } from "./structured-content";
 
 /**
- * The compact layout (docs/plans/one-stored-form.md, Body): no title line,
+ * The compact layout (docs/external-plugin-authoring.md, The stored format): no title line,
  * a single-line value as a labeled line, a group's one prose field as its
  * plain text, a keyed record as one heading per key, and nothing skipped.
  * It reads the sectioned layout too, so a file in the old layout imports.

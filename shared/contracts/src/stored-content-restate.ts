@@ -38,7 +38,7 @@ export type StoredContentRestateAnswer = z.output<
  * At boot, after the rewrite on start and before startup content settles,
  * the shell asks every plugin that lays out a body its type's codec passes
  * through (a site section's template) to restate those bodies in the form
- * it writes now (docs/plans/one-stored-form.md). Each answers with the rows
+ * it writes now (docs/external-plugin-authoring.md, The stored format). Each answers with the rows
  * it restated, which the shell announces with its own.
  */
 export const storedContentRestateContract: BusContract<

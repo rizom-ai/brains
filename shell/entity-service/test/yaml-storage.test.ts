@@ -6,7 +6,7 @@ import {
 } from "../src/yaml-storage";
 
 /**
- * A YAML type's file (docs/plans/one-stored-form.md, YAML files): the
+ * A YAML type's file (docs/external-plugin-authoring.md, The stored format): the
  * header of its stored document, without the markdown delimiters. The
  * stored row keeps the framed document, so every reader reads it as
  * before; only the file is YAML, and only once the store writes the next

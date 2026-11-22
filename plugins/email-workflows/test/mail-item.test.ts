@@ -198,7 +198,7 @@ describe("mail-item entity", () => {
     expect(serialized).toContain("Canonical Sender · example.com");
   });
 
-  // A file in the next stored form (docs/plans/one-stored-form.md) states
+  // A file in the next stored form (docs/external-plugin-authoring.md, The stored format) states
   // its source as flat keys; every reader reads the source nested.
   it("reads a document in the next form with its source nested", () => {
     const nested = mailItemAdapter.createMailItemContent(

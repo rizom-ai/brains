@@ -1,7 +1,7 @@
 // Legacy: also reads a YAML type's record from its .md file; removed with stored-form-yaml-type-markdown-files (docs/legacy-code-inventory.json).
 /**
- * How a type's records are stored as files (docs/plans/one-stored-form.md,
- * YAML files): as markdown, the default, or as YAML, for a type whose
+ * How a type's records are stored as files (docs/external-plugin-authoring.md,
+ * The stored format): as markdown, the default, or as YAML, for a type whose
  * record is data with no body. A YAML type's stored row keeps the framed
  * document every reader reads; its file is the document's header, written
  * as YAML.

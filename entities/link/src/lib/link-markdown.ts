@@ -30,7 +30,7 @@ export function linkFrontmatter(
 }
 
 /**
- * The next form's frontmatter (docs/plans/one-stored-form.md): the source a
+ * The next form's frontmatter (docs/external-plugin-authoring.md, The stored format): the source a
  * link was captured from as two flat keys, which Obsidian shows as
  * properties, in the place the nested source held.
  */

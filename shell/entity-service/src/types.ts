@@ -579,7 +579,7 @@ export interface EntityAdapter<
   // Convert entity to markdown content (may include frontmatter for entity-specific fields)
   /**
    * The stored document for an entity. `form` is the stored form the store
-   * writes (docs/plans/one-stored-form.md); a type that reads two forms
+   * writes (docs/external-plugin-authoring.md, The stored format); a type that reads two forms
    * writes this one, and every other type ignores it.
    */
   toMarkdown(entity: TEntity): string;
@@ -616,7 +616,7 @@ export interface EntityAdapter<
 
   /**
    * Optional: header keys the type's next stored form states in its body
-   * (docs/plans/one-stored-form.md). Once the store writes that form, a key
+   * (docs/external-plugin-authoring.md, The stored format). Once the store writes that form, a key
    * a file states in its header is never carried back into the header,
    * even where a frontmatter extension names it.
    */
@@ -804,7 +804,7 @@ export interface EntityTypeConfig {
   /**
    * How a text type's records are stored as files: markdown (the default),
    * or YAML, for a type whose record is data with no body; its files are
-   * YAML once the store writes the next form (docs/plans/one-stored-form.md).
+   * YAML once the store writes the next form (docs/external-plugin-authoring.md, The stored format).
    */
   storage?: StorageFormat;
   /** Default system_list order, applied by the entity service before pagination. */

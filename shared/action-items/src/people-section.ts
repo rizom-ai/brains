@@ -3,7 +3,7 @@ import { actorRefKey, type ActorRef } from "@brains/contracts";
 // Legacy: also reads the header form written before 0.2.0-alpha.760; removed with stored-form-old-headers (docs/legacy-code-inventory.json).
 /**
  * The people a memory names, in its next stored form
- * (docs/plans/one-stored-form.md). The header indexes them, each list as
+ * (docs/external-plugin-authoring.md, The stored format). The header indexes them, each list as
  * the actor refs of the people on it and their aliases (`decidedBy`,
  * `decidedByAliases`), which Obsidian shows as properties; the body's
  * closing People section states each person whole: their ref, their name,

@@ -12,7 +12,7 @@ import {
 } from "./helpers/canonical-entity-store";
 
 /**
- * The form every text type stores (docs/plans/one-stored-form.md, Form):
+ * The form every text type stores (docs/external-plugin-authoring.md, The stored format):
  * the same bytes on every path, in the order of the document they replace,
  * unknown keys kept. Each type's golden file (fixtures/stored-form/<type>/
  * current.md) is the form it writes now; every write path must leave it
@@ -42,7 +42,7 @@ interface Golden {
   markdown: string;
   /**
    * The form an earlier release wrote, for a type whose layout moved
-   * (docs/plans/one-stored-form.md): read, and brought to the current form.
+   * (docs/external-plugin-authoring.md, The stored format): read, and brought to the current form.
    */
   previous?: string;
   /** A YAML type's file, whose header the stored document is. */
@@ -259,7 +259,7 @@ describe("every text type's stored form", () => {
 });
 
 /**
- * A type whose layout moved (docs/plans/one-stored-form.md) has a
+ * A type whose layout moved (docs/external-plugin-authoring.md, The stored format) has a
  * previous.md golden beside its current one: it reads the previous form as
  * the current, writes the current from either file, and the rewrite on
  * start brings a row stored in the previous form to the current once,

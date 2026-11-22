@@ -10,7 +10,7 @@ import {
 
 /**
  * A section's saved copy is laid out by its template, which writes the
- * compact layout now (docs/plans/one-stored-form.md). At boot the site
+ * compact layout now (docs/external-plugin-authoring.md, The stored format). At boot the site
  * builder brings every saved copy to what its template writes, quietly.
  */
 describe("restating the sections' saved copy", () => {

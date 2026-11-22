@@ -136,7 +136,7 @@ export const faqBodyFormatter: StructuredContentFormatter<FaqBody> =
   });
 
 /**
- * The body in the next stored form's layout (docs/plans/one-stored-form.md):
+ * The body in the next stored form's layout (docs/external-plugin-authoring.md, The stored format):
  * no title line, each alternative's answer as its plain text. It reads the
  * sectioned layout too, so every reader reads a body through it.
  */

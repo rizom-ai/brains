@@ -12,7 +12,7 @@ import { z } from "@brains/utils/zod";
 // Legacy: also reads the header form written before 0.2.0-alpha.760; removed with stored-form-old-headers (docs/legacy-code-inventory.json).
 
 /**
- * A memory's next stored form (docs/plans/one-stored-form.md): its time
+ * A memory's next stored form (docs/external-plugin-authoring.md, The stored format): its time
  * range as startedAt and endedAt, and its people indexed in the header as
  * actor refs, every header key an Obsidian property; each person stated
  * whole in a People section closing the body.

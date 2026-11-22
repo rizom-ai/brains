@@ -19,7 +19,7 @@ export interface RestateSectionContentDeps {
 
 /**
  * Bring every section's saved copy to the layout its template writes now
- * (docs/plans/one-stored-form.md), quietly: a site-content body is passed
+ * (docs/external-plugin-authoring.md, The stored format), quietly: a site-content body is passed
  * through by its codec and laid out by the section's template, so the
  * rewrite on start cannot reach it. A copy the template cannot read is left
  * as it is and reported.
