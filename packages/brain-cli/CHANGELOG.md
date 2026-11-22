@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.764
+
+### Patch Changes
+
+- [#1026](https://github.com/rizom-ai/brains/pull/1026) [`79a4e97`](https://github.com/rizom-ai/brains/commit/79a4e97ca2822d9f60c30f4a6f5c9925d6a7fe89) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A site's section templates write the compact layout, and at start the site builder brings every section's saved copy to it quietly, exported in one commit. A copy in the older sectioned layout still reads as before, a heading its section does not name ignored; one with such a heading is left as written and reported rather than written without it. A site whose own bundle carries an older formatter is left as it is.
+
 ## 0.2.0-alpha.763
 
 ### Patch Changes
