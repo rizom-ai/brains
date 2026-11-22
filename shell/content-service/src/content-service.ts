@@ -22,6 +22,7 @@ import { authorizeGenerationWrite } from "./generation-write-authorization";
 import { scopeTemplateName } from "./template-scope";
 import type { BaseEntity, IEntityService } from "@brains/entity-service";
 import type { IAIService } from "@brains/ai-service";
+import { getErrorMessage } from "@brains/utils/error";
 import { isPlainRecord } from "@brains/utils/predicates";
 import type { Logger } from "@brains/utils/logger";
 import type { ContentService as IContentService } from "./types";
@@ -208,9 +209,11 @@ export class ContentService implements IContentService {
             }
           }
         } catch (error) {
-          this.dependencies.logger.debug(
-            `DataSource operation failed for ${scopedTemplateName}`,
-            { error },
+          // The section falls back to saved or static content, or renders
+          // empty: the operator sees why.
+          this.dependencies.logger.warn(
+            `Data source failed for ${scopedTemplateName}`,
+            { error: getErrorMessage(error) },
           );
         }
       }
