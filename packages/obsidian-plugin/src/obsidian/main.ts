@@ -28,12 +28,12 @@ import {
   parsePluginData,
   stateFor,
   withState,
-  type BrainSyncSettings,
+  type RizomBrainSettings,
   type PluginData,
 } from "./settings";
 
 /** The `obsidian://` action the brain hands a new app password back to. */
-const PROTOCOL_ACTION = "brain-sync";
+const PROTOCOL_ACTION = "rizom-brain";
 
 /** Requests through Obsidian, on desktop and mobile, without CORS. */
 const obsidianFetch: HttpFetch = async (request) => {
@@ -81,7 +81,7 @@ function randomState(): string {
     .join("");
 }
 
-export default class BrainSyncPlugin extends Plugin {
+export default class RizomBrainPlugin extends Plugin {
   data: PluginData = parsePluginData({});
   private vault: ObsidianVault | undefined;
   private engine: SyncEngine | undefined;
@@ -103,10 +103,10 @@ export default class BrainSyncPlugin extends Plugin {
   override async onload(): Promise<void> {
     this.data = parsePluginData(await this.loadData());
     this.vault = new ObsidianVault(this.app);
-    this.addSettingTab(new BrainSyncSettingTab(this.app, this));
+    this.addSettingTab(new RizomBrainSettingTab(this.app, this));
 
     this.statusEl = this.addStatusBarItem();
-    this.statusEl.addClass("brain-sync-status");
+    this.statusEl.addClass("rizom-brain-status");
     this.statusEl.onClickEvent(() => this.showFiles());
     this.renderStatus();
 
@@ -142,7 +142,7 @@ export default class BrainSyncPlugin extends Plugin {
     for (const timer of this.saveTimers.values()) window.clearTimeout(timer);
   }
 
-  get config(): BrainSyncSettings {
+  get config(): RizomBrainSettings {
     return this.data.settings;
   }
 
@@ -150,7 +150,7 @@ export default class BrainSyncPlugin extends Plugin {
    * Change settings. Each brain keeps its own sync state, so editing the
    * address, even one letter and back, loses nothing.
    */
-  async updateSettings(change: Partial<BrainSyncSettings>): Promise<void> {
+  async updateSettings(change: Partial<RizomBrainSettings>): Promise<void> {
     this.data.settings = { ...this.data.settings, ...change };
     await this.saveData(this.data);
     if (change.intervalMinutes !== undefined) this.restartInterval();
@@ -282,7 +282,7 @@ export default class BrainSyncPlugin extends Plugin {
 
     if (report.status === "signed-out") {
       new Notice(
-        "Your brain did not accept the app password. It may have expired or been revoked: connect again in the Brain Sync settings. Nothing was changed.",
+        "Your brain did not accept the app password. It may have expired or been revoked: connect again in the Rizom Brain settings. Nothing was changed.",
         0,
       );
     }
@@ -384,7 +384,7 @@ export default class BrainSyncPlugin extends Plugin {
     const origin = originOf(this.config.address);
     if (origin === undefined) {
       new Notice(
-        "Enter your brain's address in the Brain Sync settings first.",
+        "Enter your brain's address in the Rizom Brain settings first.",
       );
       return;
     }
@@ -413,10 +413,10 @@ export default class BrainSyncPlugin extends Plugin {
   }
 }
 
-class BrainSyncSettingTab extends PluginSettingTab {
-  private readonly plugin: BrainSyncPlugin;
+class RizomBrainSettingTab extends PluginSettingTab {
+  private readonly plugin: RizomBrainPlugin;
 
-  constructor(app: App, plugin: BrainSyncPlugin) {
+  constructor(app: App, plugin: RizomBrainPlugin) {
     super(app, plugin);
     this.plugin = plugin;
   }

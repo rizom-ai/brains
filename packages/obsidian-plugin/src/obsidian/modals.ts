@@ -4,7 +4,7 @@ import type { DeleteDecision, FileNote, FirstSyncPlan } from "../engine";
 function list(container: HTMLElement, title: string, items: string[]): void {
   if (items.length === 0) return;
   container.createEl("h4", { text: `${title} (${items.length})` });
-  const ul = container.createEl("ul", { cls: "brain-sync-list" });
+  const ul = container.createEl("ul", { cls: "rizom-brain-list" });
   for (const item of items.slice(0, 50)) ul.createEl("li", { text: item });
   if (items.length > 50) {
     ul.createEl("li", { text: `…and ${items.length - 50} more` });
@@ -176,11 +176,11 @@ export class FilesModal extends Modal {
     const section = (title: string, notes: FileNote[]): void => {
       if (notes.length === 0) return;
       contentEl.createEl("h4", { text: `${title} (${notes.length})` });
-      const ul = contentEl.createEl("ul", { cls: "brain-sync-list" });
+      const ul = contentEl.createEl("ul", { cls: "rizom-brain-list" });
       for (const note of notes) {
         const li = ul.createEl("li");
         li.createEl("strong", { text: note.path });
-        li.createEl("div", { text: note.reason, cls: "brain-sync-reason" });
+        li.createEl("div", { text: note.reason, cls: "rizom-brain-reason" });
       }
     };
     section("Your brain did not take these", this.issues);

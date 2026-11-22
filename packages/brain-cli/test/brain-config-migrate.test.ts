@@ -339,7 +339,7 @@ describe("brain config migration preview", () => {
           "webdav",
         ],
         // playbook folded into playbooks, which installs the playbook type;
-        // obsidian-vault folded into the Brain Sync plugin for Obsidian.
+        // obsidian-vault folded into the Rizom Brain plugin for Obsidian.
         removed: [
           "account",
           "assessment",

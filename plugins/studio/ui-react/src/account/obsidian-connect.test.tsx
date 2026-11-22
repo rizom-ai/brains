@@ -41,7 +41,7 @@ describe("connecting Obsidian", () => {
     const link = new URL(obsidianConnectLink("ab12cd34ef56", created));
 
     expect(link.protocol).toBe("obsidian:");
-    expect(link.host + link.pathname).toBe("brain-sync");
+    expect(link.host + link.pathname).toBe("rizom-brain");
     expect(link.searchParams.get("state")).toBe("ab12cd34ef56");
     expect(link.searchParams.get("username")).toBe("dav-k3x9");
     expect(link.searchParams.get("password")).toBe("s3cret pass&word");
@@ -98,7 +98,7 @@ describe("connecting Obsidian", () => {
     );
 
     expect(html).toContain("Open Obsidian");
-    expect(html).toContain('href="obsidian://brain-sync?');
+    expect(html).toContain('href="obsidian://rizom-brain?');
     expect(html).not.toContain(">s3cret");
   });
 });

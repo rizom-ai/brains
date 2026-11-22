@@ -105,7 +105,7 @@ describe("a declared type's frontmatter, as its class declared it or its stored 
       await plugin.register(shell);
     }
     const registry = shell.getEntityRegistry();
-    // As a vault gets them: the drive describes the types, and Brain Sync
+    // As a vault gets them: the drive describes the types, and Rizom Brain
     // writes the files from that description.
     const written = new Map(
       vaultFiles(

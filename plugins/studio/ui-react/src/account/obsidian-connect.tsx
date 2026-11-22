@@ -14,8 +14,8 @@ export interface ObsidianConnect {
   state: string;
 }
 
-/** The `obsidian://` action the Brain Sync plugin answers. */
-const PROTOCOL = "obsidian://brain-sync";
+/** The `obsidian://` action the Rizom Brain plugin answers. */
+const PROTOCOL = "obsidian://rizom-brain";
 const STATE = /^[A-Za-z0-9_-]{8,128}$/;
 
 /** The Connect request in this page's query, if Obsidian opened it. */

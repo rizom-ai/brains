@@ -228,9 +228,9 @@ export function AccountDriveTab(props: {
         description="Keep an Obsidian vault on your computer in step with your brain. Obsidian stays fast and works offline; notes and images sync in the background."
       >
         <article className={accountClass("drive-obsidian", s.client)}>
-          <h4 className={accountClass("", s.clientName)}>Brain Sync</h4>
+          <h4 className={accountClass("", s.clientName)}>Rizom Brain</h4>
           <ol className={accountClass("", s.steps)}>
-            <li>Install the Brain Sync plugin in Obsidian and turn it on.</li>
+            <li>Install the Rizom Brain plugin in Obsidian and turn it on.</li>
             <li>
               In its settings, enter your brain’s address:{" "}
               <code>{new URL(props.davUrl).host}</code>

@@ -21,7 +21,7 @@ export function originOf(address: string): string | undefined {
 }
 
 /**
- * The app password in an `obsidian://brain-sync` link, when the link answers
+ * The app password in an `obsidian://rizom-brain` link, when the link answers
  * the request this vault opened, for the brain its address still names. A
  * link from anywhere else never changes where the vault syncs.
  */

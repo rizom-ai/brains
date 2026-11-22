@@ -20,10 +20,10 @@ export const settingsSchema: SettingsSchema = z.object({
   intervalMinutes: z.number().int().min(1).max(60).default(5),
 });
 
-export type BrainSyncSettings = z.output<SettingsSchema>;
+export type RizomBrainSettings = z.output<SettingsSchema>;
 
 export interface PluginData {
-  settings: BrainSyncSettings;
+  settings: RizomBrainSettings;
   /** Each brain's sync state, by its drive address. */
   states: Record<string, SyncState>;
 }

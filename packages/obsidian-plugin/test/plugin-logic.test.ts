@@ -50,7 +50,7 @@ describe("a Connect answer", () => {
     origin: "https://brain.example",
   };
   const answer = {
-    action: "brain-sync",
+    action: "rizom-brain",
     state: "ab12cd34ef56ab12",
     username: "dav-k3x9",
     password: "secret",

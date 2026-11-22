@@ -375,7 +375,7 @@ describe("Account surface", () => {
           document.querySelector(".drive-obsidian")?.textContent ?? "",
       );
 
-      expect(obsidian).toContain("Brain Sync");
+      expect(obsidian).toContain("Rizom Brain");
       expect(obsidian).toContain("Connect");
       expect(obsidian).toContain("becca.rizom.ai");
     });
