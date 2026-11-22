@@ -35,10 +35,12 @@ module.exports = {
       name: "not-to-unresolvable",
       severity: "error",
       comment:
-        "Unresolved imports hide dependencies and make boundary checks incomplete",
+        "Unresolved imports hide dependencies and make boundary checks incomplete. " +
+        "The obsidian package holds only types: Obsidian supplies the module to the plugin at runtime.",
       from: {},
       to: {
         couldNotResolve: true,
+        pathNot: "^obsidian$",
       },
     },
     {
