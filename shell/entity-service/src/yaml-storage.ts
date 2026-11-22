@@ -1,3 +1,4 @@
+// Legacy: also reads a YAML type's record from its .md file; removed with stored-form-yaml-type-markdown-files (docs/legacy-code-inventory.json).
 /**
  * How a type's records are stored as files (docs/plans/one-stored-form.md,
  * YAML files): as markdown, the default, or as YAML, for a type whose

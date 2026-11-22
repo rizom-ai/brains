@@ -353,3 +353,4 @@ export {
   type HeldDatabaseLease,
 } from "./database-lease";
 export type { RestatedEntity, StoredFormRewrite } from "./types";
+export { nestedHeaderKeys, nestedHeaderValueKeys } from "./flat-header";

@@ -17,9 +17,8 @@ import { isDeclaredEntityType } from "../src/test/declared-entity-type";
  * A first-party type whose files people write by hand keeps each file's
  * own frontmatter order, as an entity plugin class's adapter did, so
  * directory sync does not rewrite a file it only read: the values the type
- * writes land where the file has them, a nested value it writes unchanged
- * keeps the file's own key order, and a field the file lacks follows the
- * rest. A type that does not ask writes its own order.
+ * writes land where the file has them, and a field the file lacks follows
+ * the rest. A type that does not ask writes its own order.
  */
 
 const link = defineEntity({
@@ -31,29 +30,40 @@ const link = defineEntity({
     source: z.object({ ref: z.string(), label: z.string() }),
   }),
   markdown: {
-    decode: ({ content, frontmatter }) => ({
-      content,
-      metadata: z
+    decode: ({ content, frontmatter }) => {
+      const header = z
         .object({
           status: z.string(),
           title: z.string(),
-          source: z.object({ ref: z.string(), label: z.string() }),
+          sourceRef: z.string(),
+          sourceLabel: z.string(),
         })
-        .parse(frontmatter),
-    }),
+        .parse(frontmatter);
+      return {
+        content,
+        metadata: {
+          status: header.status,
+          title: header.title,
+          source: { ref: header.sourceRef, label: header.sourceLabel },
+        },
+      };
+    },
+    // The header is flat (docs/plans/one-stored-form.md): the nested
+    // source is stated as two keys.
     encode: ({ content, metadata }) => ({
       content,
       frontmatter: {
         status: metadata.status,
         title: metadata.title,
-        source: { ref: metadata.source.ref, label: metadata.source.label },
+        sourceRef: metadata.source.ref,
+        sourceLabel: metadata.source.label,
       },
     }),
   },
 });
 
 const handWritten =
-  "---\ntitle: Saved\nnote: kept here\nstatus: draft\nsource:\n  label: CLI\n  ref: cli:local\n---\nSummary\n";
+  "---\ntitle: Saved\nnote: kept here\nstatus: draft\nsourceLabel: CLI\nsourceRef: cli:local\n---\nSummary\n";
 
 let close: (() => Promise<void>) | undefined;
 afterEach(async () => {
@@ -115,13 +125,13 @@ async function store(definition: AnyEntityDefinition): Promise<{
 // Every type keeps the order of the document it replaces
 // (docs/plans/one-stored-form.md).
 describe("a type writes in the document's order", () => {
-  it("keeps a hand-written file's order, nested keys and the fields it does not write", async () => {
+  it("keeps a hand-written file's order and the fields it does not write", async () => {
     const { service, stored } = await store(link);
     await service.createEntityFromMarkdown({
       input: { entityType: "link", id: "saved", markdown: handWritten },
     });
     expect(await stored("saved")).toBe(
-      "---\ntitle: Saved\nnote: kept here\nstatus: draft\nsource:\n  label: CLI\n  ref: 'cli:local'\n---\nSummary\n",
+      "---\ntitle: Saved\nnote: kept here\nstatus: draft\nsourceLabel: CLI\nsourceRef: 'cli:local'\n---\nSummary\n",
     );
   });
 
@@ -140,7 +150,7 @@ describe("a type writes in the document's order", () => {
       },
     });
     expect(await stored("saved")).toBe(
-      "---\ntitle: Saved\nnote: kept here\nstatus: published\nsource:\n  label: CLI\n  ref: 'cli:local'\n---\nChanged summary\n",
+      "---\ntitle: Saved\nnote: kept here\nstatus: published\nsourceLabel: CLI\nsourceRef: 'cli:local'\n---\nChanged summary\n",
     );
   });
 
@@ -151,11 +161,11 @@ describe("a type writes in the document's order", () => {
         entityType: "link",
         id: "dated",
         markdown:
-          "---\ntitle: Dated\nstatus: draft\nsource:\n  ref: cli:local\n  label: CLI\ncreated: 2025-09-20T00:00:00.000Z\nupdated: 2025-09-20T00:00:00.000Z\n---\nSummary\n",
+          "---\ntitle: Dated\nstatus: draft\nsourceRef: cli:local\nsourceLabel: CLI\ncreated: 2025-09-20T00:00:00.000Z\nupdated: 2025-09-20T00:00:00.000Z\n---\nSummary\n",
       },
     });
     expect(await stored("dated")).toBe(
-      "---\ntitle: Dated\nstatus: draft\nsource:\n  ref: 'cli:local'\n  label: CLI\ncreated: '2025-09-20T00:00:00.000Z'\nupdated: '2025-09-20T00:00:00.000Z'\n---\nSummary\n",
+      "---\ntitle: Dated\nstatus: draft\nsourceRef: 'cli:local'\nsourceLabel: CLI\ncreated: '2025-09-20T00:00:00.000Z'\nupdated: '2025-09-20T00:00:00.000Z'\n---\nSummary\n",
     );
   });
 
@@ -174,7 +184,40 @@ describe("a type writes in the document's order", () => {
       },
     });
     expect(await stored("made")).toBe(
-      "---\ntitle: Made\nstatus: draft\nsource:\n  ref: 'cli:local'\n  label: CLI\n---\nBody\n",
+      "---\ntitle: Made\nstatus: draft\nsourceRef: 'cli:local'\nsourceLabel: CLI\n---\nBody\n",
     );
+  });
+});
+
+describe("a codec's header", () => {
+  it("is refused when it nests, at the write", async () => {
+    const nesting = defineEntity({
+      type: "bookmark",
+      purpose: "A bookmark whose codec nests its header.",
+      metadata: z.object({ source: z.object({ ref: z.string() }) }),
+      markdown: {
+        decode: ({ content, frontmatter }) => ({
+          content,
+          metadata: z
+            .object({ source: z.object({ ref: z.string() }) })
+            .parse(frontmatter),
+        }),
+        encode: ({ content, metadata }) => ({
+          content,
+          frontmatter: { source: { ref: metadata.source.ref } },
+        }),
+      },
+    });
+    const { service } = await store(nesting);
+    expect(
+      service.createEntity({
+        entity: {
+          id: "one",
+          entityType: "bookmark",
+          content: "Body",
+          metadata: { source: { ref: "cli:local" } },
+        },
+      }),
+    ).rejects.toThrow("bookmark's codec wrote a header that nests source");
   });
 });

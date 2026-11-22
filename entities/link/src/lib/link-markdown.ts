@@ -9,6 +9,8 @@ import {
 } from "../schemas/link";
 import { definedFields } from "@brains/utils/strip-undefined";
 
+// Legacy: also reads the header form written before 0.2.0-alpha.760; removed with stored-form-old-headers (docs/legacy-code-inventory.json).
+
 /**
  * A link's frontmatter, in the order the link adapter wrote a new link:
  * its status, title, URL, description, when and where it was captured.

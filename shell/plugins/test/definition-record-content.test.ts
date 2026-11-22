@@ -495,6 +495,29 @@ describe("a generation links into a declared target through the real service", (
       coverImageId: z.string().optional(),
       renders: z.array(z.object({ id: z.string() })).default([]),
     }),
+    // A list of objects in metadata, stated in the header as a list of ids
+    // (docs/plans/one-stored-form.md: a markdown header is flat).
+    markdown: {
+      decode: ({ content, frontmatter }) => {
+        const { renders, ...rest } = frontmatter;
+        return {
+          content,
+          metadata: {
+            ...rest,
+            renders: (Array.isArray(renders) ? renders : []).map((id) => ({
+              id: String(id),
+            })),
+          },
+        };
+      },
+      encode: ({ content, metadata }) => ({
+        content,
+        frontmatter: {
+          ...metadata,
+          renders: metadata.renders.map(({ id }) => id),
+        },
+      }),
+    },
     coverImage: true,
   });
 

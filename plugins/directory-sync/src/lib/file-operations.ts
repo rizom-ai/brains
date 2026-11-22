@@ -63,6 +63,8 @@ import { pathExists } from "./fs-utils";
 import { OversizedFileError } from "./oversized-file-error";
 import type { PendingDeleteTarget } from "./pending-delete-registry";
 
+// Legacy: also reads a YAML type's record from its .md file; removed with stored-form-yaml-type-markdown-files (docs/legacy-code-inventory.json).
+
 export { IMAGE_EXTENSIONS, isImageFile } from "./image-file-utils";
 export { DOCUMENT_EXTENSIONS, isDocumentFile } from "./document-file-utils";
 

@@ -633,6 +633,12 @@ export interface EntityAdapter<
    * names. The serializer keeps from the source only fields neither names.
    */
   writtenFrontmatterSchema?: z.ZodObject<z.ZodRawShape>;
+  /**
+   * The header is what a codec writes, not a schema the type states: the
+   * registry cannot check it when the type registers, so each write is
+   * checked instead.
+   */
+  headerWrittenByCodec?: boolean;
 
   /**
    * Optional: fields a creator may state that the type does not store, such

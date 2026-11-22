@@ -1,6 +1,8 @@
 import { baseEntityParserSchema } from "@brains/sdk/internal/entity-runtime";
 import { z } from "@brains/utils/zod";
 
+// Legacy: also reads the header form written before 0.2.0-alpha.760; removed with stored-form-old-headers (docs/legacy-code-inventory.json).
+
 const mailCategories = [
   "opportunity",
   "recruiting",
