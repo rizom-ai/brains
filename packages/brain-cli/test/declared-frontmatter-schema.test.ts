@@ -21,7 +21,8 @@ import { canonicalBrain } from "../src/model/canonical-brain";
  * (docs/plans/one-stored-form.md), the header its next stored form writes:
  * what Studio's editor, the Obsidian vault's templates and fileClasses, and
  * frontmatter extensions read as the type's frontmatter. For post and playbook, the vault files and Studio's
- * editor fields are those the classes produced.
+ * editor fields are those the classes produced, except that a new post's
+ * template starts as a draft, not in the state the brain sets while it writes.
  */
 
 const fixtureSchema = z.object({

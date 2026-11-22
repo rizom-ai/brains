@@ -71,6 +71,15 @@ describe("templates, fileClasses and bases", () => {
     );
   });
 
+  it("are not written for the brain's own types the vault does not sync", async () => {
+    synced = await fresh();
+    await connect(synced);
+
+    const files = await synced.vault.listFiles();
+    expect(files.some((path) => path.includes("conflict"))).toBe(false);
+    expect(files).not.toContain("_obsidian/bases/Conflicts.base");
+  });
+
   it("leaves the person's own template folder setting as it is", async () => {
     synced = await fresh();
     synced.vault.templateFolder = "My templates";

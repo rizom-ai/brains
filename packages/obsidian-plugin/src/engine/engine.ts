@@ -348,7 +348,8 @@ export class SyncEngine {
   private async writeVaultFiles(): Promise<void> {
     const shapes = await this.drive.vaultShapes();
     if (shapes === undefined) return;
-    for (const file of vaultFiles(shapes)) {
+    const synced = shapes.filter((shape) => isSyncedType(shape.entityType));
+    for (const file of vaultFiles(synced)) {
       if (this.vault.isBusy(file.path)) continue;
       const exists = await this.vault.exists(file.path);
       if (exists && file.owner === "person") continue;

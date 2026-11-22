@@ -1,5 +1,8 @@
 import type { FieldInfo } from "./shapes";
 
+/** States the brain sets while it writes an entry, and no person does. */
+const BRAIN_SET_STATES: ReadonlySet<string> = new Set(["generating", "failed"]);
+
 /**
  * Get the default YAML value for a field in an Obsidian template.
  */
@@ -32,13 +35,18 @@ function getDefaultValue(field: FieldInfo, entityType: string): string {
     return String(field.defaultValue);
   }
 
-  // Enums — use first value
+  // Enums — a draft when the type has one, else the first value a person
+  // sets: never a state only the brain sets while it writes an entry.
   if (
     field.type === "enum" &&
     field.enumValues &&
     field.enumValues.length > 0
   ) {
-    return field.enumValues[0] ?? "";
+    const values = field.enumValues;
+    if (values.includes("draft")) return "draft";
+    return (
+      values.find((value) => !BRAIN_SET_STATES.has(value)) ?? values[0] ?? ""
+    );
   }
 
   // Type-based defaults
@@ -74,6 +82,16 @@ export function generateTemplate(
   const lines: string[] = ["---"];
 
   for (const field of fields) {
+    // An optional choice with no default is left to the type: its first
+    // value is not a starting point (a note's status is set only while the
+    // AI writes it, and a post without one is a draft).
+    if (
+      field.type === "enum" &&
+      !field.required &&
+      field.defaultValue === undefined
+    ) {
+      continue;
+    }
     const value = getDefaultValue(field, entityType);
     if (value === "") {
       lines.push(`${field.name}:`);

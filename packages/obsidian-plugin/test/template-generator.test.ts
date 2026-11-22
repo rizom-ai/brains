@@ -37,6 +37,58 @@ describe("generateTemplate", () => {
     expect(result).toContain("status: draft");
   });
 
+  it("leaves out an optional choice with no default, so the type's own default applies", () => {
+    // A note's status is set only while the AI writes it; a post's status
+    // falls back to a draft. Neither is the first value of its list.
+    const fields: FieldInfo[] = [
+      { name: "title", type: "string", required: true },
+      {
+        name: "status",
+        type: "enum",
+        required: false,
+        enumValues: ["generating", "failed"],
+      },
+    ];
+    const result = generateTemplate("note", fields);
+    expect(result).not.toContain("status");
+    expect(result).toContain('title: "{{title}}"');
+  });
+
+  it("never starts a required status in a state only the brain sets", () => {
+    const fields: FieldInfo[] = [
+      {
+        name: "status",
+        type: "enum",
+        required: true,
+        enumValues: ["generating", "draft", "queued", "published", "failed"],
+      },
+    ];
+    expect(generateTemplate("post", fields)).toContain("status: draft");
+    expect(
+      generateTemplate("deck", [
+        {
+          name: "status",
+          type: "enum",
+          required: true,
+          enumValues: ["generating", "failed", "ready"],
+        },
+      ]),
+    ).toContain("status: ready");
+  });
+
+  it("keeps an optional choice that has a default, at its default", () => {
+    const fields: FieldInfo[] = [
+      {
+        name: "status",
+        type: "enum",
+        required: false,
+        defaultValue: "draft",
+        enumValues: ["generating", "draft", "published"],
+      },
+    ];
+    expect(generateTemplate("post", fields)).toContain("status: draft");
+  });
+
   it("should set created/updated dates to Obsidian date variable", () => {
     const fields: FieldInfo[] = [
       { name: "created", type: "date", required: false },
