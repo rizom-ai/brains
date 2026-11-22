@@ -1,5 +1,13 @@
 # @brains/entity-placement
 
+## 0.2.0-alpha.760
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.760
+  - @brains/entity-service@0.2.0-alpha.760
+
 ## 0.2.0-alpha.759
 
 ### Patch Changes
