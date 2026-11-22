@@ -127,3 +127,20 @@ describe("mergeProfileImport", () => {
     expect(result).toEqual({ content, changed: false, fields: [] });
   });
 });
+
+// A profile in its next stored form (docs/plans/one-stored-form.md) keeps
+// its description in a body section: an imported story fills the story
+// alone, and the description the owner wrote stays.
+describe("an import into a profile in its next stored form", () => {
+  it("fills the story without touching the profile's other sections", () => {
+    const content =
+      "---\nname: Alex\n---\n## Description\n\nWrites about cities.\n";
+    const merged = mergeProfileImport(content, {
+      story: "Started in telecom.",
+    });
+    expect(merged.changed).toBe(true);
+    expect(merged.content).toContain("description: Writes about cities.");
+    expect(merged.content).toContain("Started in telecom.");
+    expect(merged.content).not.toContain("## Description");
+  });
+});

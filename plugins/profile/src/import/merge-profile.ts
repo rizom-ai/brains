@@ -1,7 +1,5 @@
-import {
-  generateMarkdownWithFrontmatter,
-  parseMarkdownWithFrontmatter,
-} from "@brains/sdk/internal/entity-runtime";
+import { generateMarkdownWithFrontmatter } from "@brains/sdk/internal/entity-runtime";
+import { readAnchorProfileDocument } from "@brains/sdk/internal/service-runtime";
 import { z } from "@brains/utils/zod";
 import {
   profileImportFieldNames,
@@ -65,8 +63,11 @@ export function mergeProfileImport(
   content: string,
   imported: ProfileImportFields,
 ): ProfileImportMerge {
-  const parsed = parseMarkdownWithFrontmatter(content, frontmatterSchema);
-  const body = parsed.content.trim();
+  // The profile in either stored form, as the current form holds it: its
+  // fields in the header and its story as the body.
+  const document = readAnchorProfileDocument(content);
+  const parsed = { metadata: frontmatterSchema.parse(document.header) };
+  const body = document.story.trim();
   const fields = FIELDS.flatMap((field): ProfileImportField[] => {
     const value = imported[field];
     if (value === undefined) return [];

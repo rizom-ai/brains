@@ -1,3 +1,4 @@
+import { readAnchorProfileDocument } from "@brains/sdk/internal/service-runtime";
 import {
   EntityValidationError,
   parseMarkdownWithFrontmatter,
@@ -335,15 +336,17 @@ export function validateProfileContent(
   content: string,
   selection?: ProfileValidationSelection,
 ): void {
-  const { metadata } = parseMarkdownWithFrontmatter(
+  const { metadata: stated } = parseMarkdownWithFrontmatter(
     content,
     rawFrontmatterSchema,
   );
-  if (Object.hasOwn(metadata, "story")) {
+  if (Object.hasOwn(stated, "story")) {
     throw new Error(
       "anchor-profile story must be stored in the markdown body, not frontmatter",
     );
   }
+  // The fields in either stored form, as the current form holds them.
+  const metadata = readAnchorProfileDocument(content).header;
 
   const selectedFields = selection?.fields.shape ?? {};
   anchorProfileBodySchema
