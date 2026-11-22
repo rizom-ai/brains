@@ -10,7 +10,8 @@ import {
 
 /**
  * The declared series on the brain's own entity store: stored as the series
- * adapter wrote it, its cover kept in its frontmatter and metadata, and its
+ * adapter wrote it, in the compact layout the next stored form writes (no
+ * title line, a blank line under each heading), its cover kept in its frontmatter and metadata, and its
  * pages read across every type at the build's scope.
  */
 
@@ -59,13 +60,13 @@ async function create(
 }
 
 describe("the declared series on the entity store", () => {
-  test("stores a series as the series adapter wrote it", async () => {
+  test("stores a series as the series adapter wrote it, in the compact layout", async () => {
     const opened = await store();
     await create(opened, described);
 
-    // What SeriesAdapter.toMarkdown wrote for this document.
+    // What SeriesAdapter.toMarkdown wrote for this document, compact.
     expect((await opened.stored("series", "systems"))?.content).toBe(
-      "---\ntitle: Systems\nslug: systems\n---\n# Systems\n\n## Description\nHow the pieces connect.\n",
+      "---\ntitle: Systems\nslug: systems\n---\n## Description\n\nHow the pieces connect.\n",
     );
   });
 
@@ -75,7 +76,7 @@ describe("the declared series on the entity store", () => {
 
     const stored = await opened.stored("series", "systems");
     expect(stored?.content).toBe(
-      "---\ntitle: Systems\nslug: systems\ncoverImageId: systems-cover\n---\n# Systems\n\n## Description\nHow the pieces connect.\n",
+      "---\ntitle: Systems\nslug: systems\ncoverImageId: systems-cover\n---\n## Description\n\nHow the pieces connect.\n",
     );
     expect(JSON.parse(stored?.metadata ?? "{}")).toEqual({
       title: "Systems",
@@ -98,7 +99,7 @@ describe("the declared series on the entity store", () => {
     });
 
     expect((await opened.stored("series", "systems"))?.content).toBe(
-      "---\ntitle: Systems\nslug: systems\ncoverImageId: systems-cover\n---\n# Systems\n\n## Description\nRetold.\n",
+      "---\ntitle: Systems\nslug: systems\ncoverImageId: systems-cover\n---\n## Description\n\nRetold.\n",
     );
   });
 
@@ -188,7 +189,7 @@ describe("the series data source", () => {
     expect(listed.series).toHaveLength(1);
     const [systems] = listed.series;
     expect(systems?.content).toBe(
-      "---\ntitle: Systems\nslug: systems\ncoverImageId: systems-cover\n---\n# Systems\n\n## Description\nHow the pieces connect.\n",
+      "---\ntitle: Systems\nslug: systems\ncoverImageId: systems-cover\n---\n## Description\n\nHow the pieces connect.\n",
     );
     expect(systems?.metadata).toEqual({ title: "Systems", slug: "systems" });
     expect(systems?.frontmatter).toEqual({

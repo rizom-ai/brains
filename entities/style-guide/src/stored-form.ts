@@ -74,7 +74,7 @@ export const styleGuideBodyMappings: FieldMapping[] = [
 export const styleGuideBody: BodyFields = bodyFields(
   styleGuideFrontmatterSchema,
   STYLE_GUIDE_BODY_FIELDS,
-  { mappings: styleGuideBodyMappings, place: "above" },
+  { mappings: styleGuideBodyMappings, place: "above", leadHeading: "Guidance" },
 );
 
 /** The style guide a stored document holds, in either stored form. */

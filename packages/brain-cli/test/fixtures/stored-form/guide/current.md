@@ -3,9 +3,6 @@ title: Moving in as a consultant
 slug: consultant
 order: 30
 persona: The consultant
-for: >-
-  Your expertise is locked in client work, slide decks and a LinkedIn summary.
-  You want it findable and askable without writing it all again.
 recipe: professional
 brings:
   - A profile your site and answers start from
@@ -15,24 +12,37 @@ brings:
   - An agent card, so other brains can find you
 section: Use a brain
 summary: Client work, decks and a profile
-material:
-  - from: What you do
-    where: Your bio, a LinkedIn summary, a pitch
-    becomes: anchor-profile
-    how: Fill it in Studio, or paste it in chat
-  - from: Past engagements
-    where: Case write-ups, proposals, reports
-    becomes: project
-    how: Paste a write-up in chat; your text is kept as written
-  - from: Talks and workshops
-    where: Slide outlines, workshop scripts
-    becomes: deck
-    how: Paste an outline in chat, or write the slides in Studio
-  - from: What you know
-    where: Articles, newsletters, long posts
-    becomes: post
-    how: Upload in chat; the original address stays canonical
 ---
+## For
+
+Your expertise is locked in client work, slide decks and a LinkedIn summary. You want it findable and askable without writing it all again.
+
+## Material
+
+### What you do
+
+- **Where:** Your bio, a LinkedIn summary, a pitch
+- **Becomes:** anchor-profile
+- **How:** Fill it in Studio, or paste it in chat
+
+### Past engagements
+
+- **Where:** Case write-ups, proposals, reports
+- **Becomes:** project
+- **How:** Paste a write-up in chat; your text is kept as written
+
+### Talks and workshops
+
+- **Where:** Slide outlines, workshop scripts
+- **Becomes:** deck
+- **How:** Paste an outline in chat, or write the slides in Studio
+
+### What you know
+
+- **Where:** Articles, newsletters, long posts
+- **Becomes:** post
+- **How:** Upload in chat; the original address stays canonical
+
 ## Say who you are
 
 Your profile holds your tagline, a short introduction, your story, who you work for, your expertise and what you are focused on now. Fill it in Studio under **System → Anchor Profile**, or paste your bio in chat and ask the brain to fill in your profile from it, naming the parts you want: tagline, introduction, expertise, current focus. It shows you the change and asks you to confirm.

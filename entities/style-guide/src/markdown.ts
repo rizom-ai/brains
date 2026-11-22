@@ -3,8 +3,13 @@ import {
   type StyleGuideFrontmatter,
 } from "@brains/contracts";
 import { generateMarkdown } from "@brains/utils/markdown-frontmatter";
+import { styleGuideBody } from "./stored-form";
 
-/** A style guide's markdown: its structured guidance as frontmatter. */
+/**
+ * A style guide's markdown in its stored form (docs/plans/one-stored-form.md):
+ * its name as frontmatter, its structured guidance as body sections above
+ * the free-form guidance.
+ */
 export function createStyleGuideContent(
   frontmatter: StyleGuideFrontmatter,
   guidance = "",
@@ -14,5 +19,6 @@ export function createStyleGuideContent(
       ([, value]) => value !== undefined,
     ),
   );
-  return generateMarkdown(fields, guidance);
+  const written = styleGuideBody.write(fields, guidance);
+  return generateMarkdown(written.header, written.body);
 }

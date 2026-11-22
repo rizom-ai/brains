@@ -150,9 +150,13 @@ function isSectioned(body: string): boolean {
   return /^# FAQ[ \t]*$/mu.test(body);
 }
 
-/** Markdown body ↔ FAQ body; a write is validated like a read. */
+/**
+ * Markdown body ↔ FAQ body, in the layout the release writes: the compact
+ * one, which reads the sectioned layout too. A write is validated like a
+ * read.
+ */
 export const faqBodyCodec: typeof faqBodyFormatter.codec =
-  faqBodyFormatter.codec;
+  faqCompactFormatter.codec;
 
 /** A FAQ as its readers take it: its fields, its answer, sources and alternatives. */
 export interface FaqParts {

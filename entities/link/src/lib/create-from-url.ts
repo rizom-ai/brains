@@ -19,6 +19,7 @@ import {
   type linkMetadataSchema,
 } from "../schemas/link";
 import { UrlUtils } from "./url-utils";
+import { linkMarkdown } from "./link-markdown";
 
 type LinkDefinition = EntityDefinition<"link", typeof linkMetadataSchema>;
 
@@ -117,6 +118,18 @@ function linkRoute(
 }
 
 /** A full link document: its frontmatter a link's, decoded. */
+/** A header read as a link's, in either stored form; none when it is not one. */
+function readLinkHeader(
+  content: string,
+  frontmatter: Record<string, unknown>,
+): unknown {
+  try {
+    return linkMarkdown.decode({ content, frontmatter }).metadata;
+  } catch {
+    return undefined;
+  }
+}
+
 function linkDocument(
   content: string,
 ): { readonly id: string; readonly metadata: LinkMetadata } | undefined {
@@ -125,7 +138,11 @@ function linkDocument(
     content,
     z.record(z.string(), z.unknown()),
   );
-  const decoded = linkFrontmatterSchema.safeParse(parsed.metadata);
+  // A document in either stored form reads as the link it holds; any
+  // other text is no link document.
+  const decoded = linkFrontmatterSchema.safeParse(
+    readLinkHeader(parsed.content, parsed.metadata),
+  );
   if (!decoded.success) return undefined;
   const [url] = UrlUtils.extractUrls(content);
   if (!url) return undefined;

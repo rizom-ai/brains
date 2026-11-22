@@ -26,7 +26,13 @@ describe("Ask content entity", () => {
     expect(plugin.entityType).toBe("ask-content");
     expect(plugin.adapter.isSingleton).toBe(true);
     expect(plugin.adapter.hasBody).toBe(true);
-    expect(plugin.adapter.frontmatterSchema).toBe(askContentFrontmatterSchema);
+    // Studio and the vault are shown the header the release writes: the
+    // contact note and the refusal are body sections.
+    expect(Object.keys(plugin.adapter.frontmatterSchema?.shape ?? {})).toEqual(
+      Object.keys(askContentFrontmatterSchema.shape).filter(
+        (key) => key !== "contactNote" && key !== "refusal",
+      ),
+    );
   });
   test("round trips authored copy through markdown", () => {
     const markdown = createAskContent(

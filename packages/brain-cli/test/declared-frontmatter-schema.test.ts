@@ -17,9 +17,10 @@ import { canonicalBrain } from "../src/model/canonical-brain";
  * Every declared entity type on the canonical brain reports the frontmatter
  * schema its entity plugin class declared, as JSON Schema captured from the
  * class at the commit before its conversion
- * (fixtures/class-frontmatter.json): what Studio's editor, the Obsidian
- * vault's templates and fileClasses, and frontmatter extensions read as the
- * type's frontmatter. For post and playbook, the vault files and Studio's
+ * (fixtures/class-frontmatter.json), or, for a type whose file layout moved
+ * (docs/plans/one-stored-form.md), the header its next stored form writes:
+ * what Studio's editor, the Obsidian vault's templates and fileClasses, and
+ * frontmatter extensions read as the type's frontmatter. For post and playbook, the vault files and Studio's
  * editor fields are those the classes produced.
  */
 
@@ -77,8 +78,8 @@ function jsonSchemaOf(schema: z.ZodType | undefined): unknown {
   return json;
 }
 
-describe("a declared type's frontmatter, as its class declared it", () => {
-  it("is the class's frontmatter schema for every declared type", () => {
+describe("a declared type's frontmatter, as its class declared it or its stored form moved it", () => {
+  it("is the class's frontmatter schema, or its stored form's header, for every declared type", () => {
     const declared = declaredEntityPlugins();
     expect([...declared.keys()].sort()).toEqual(
       Object.keys(classes.schemas).sort(),

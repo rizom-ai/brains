@@ -12,7 +12,8 @@ import {
 
 /**
  * The declared social posts on the brain's own entity store: every post
- * stored as the social post adapter wrote it, byte for byte, whether
+ * stored as the social post adapter wrote it, byte for byte (its documents
+ * as `documentIds`, as the next stored form has them), whether
  * imported, updated by the publish pipeline, generated or scheduled, and
  * the follow-up work and pipeline reports as the class's generation
  * handler sent them.
@@ -124,7 +125,8 @@ describe("declared social posts on the entity store", () => {
     ).toBe(
       "---\ntitle: Launch Day\nplatform: linkedin\nstatus: draft\nsourceEntityId: my-post\nsourceEntityType: post\n---\nBody text\n",
     );
-    // The type's own order, a field it does not know kept after it.
+    // The type's own order, a field it does not know kept after it; its
+    // documents as a list of ids.
     expect(
       await imported(
         store,
@@ -132,7 +134,7 @@ describe("declared social posts on the entity store", () => {
         "---\nstatus: queued\ncoverImageId: img-1\ntitle: Reordered Post\nnote: kept\nplatform: linkedin\ndocuments:\n  - id: doc-1\n---\n\nBody\n",
       ),
     ).toBe(
-      "---\nstatus: queued\ncoverImageId: img-1\ntitle: Reordered Post\nnote: kept\nplatform: linkedin\ndocuments:\n  - id: doc-1\n---\nBody\n",
+      "---\nstatus: queued\ncoverImageId: img-1\ntitle: Reordered Post\nnote: kept\nplatform: linkedin\ndocumentIds:\n  - doc-1\n---\nBody\n",
     );
     // A file with a title alone is a LinkedIn draft.
     expect(
@@ -191,7 +193,7 @@ describe("declared social posts on the entity store", () => {
       },
     });
     expect(await storedPost(store, "reordered")).toBe(
-      "---\nstatus: failed\ncoverImageId: img-1\ntitle: Reordered Post\nnote: kept\nplatform: linkedin\ndocuments:\n  - id: doc-1\n---\nBody\n",
+      "---\nstatus: failed\ncoverImageId: img-1\ntitle: Reordered Post\nnote: kept\nplatform: linkedin\ndocumentIds:\n  - doc-1\n---\nBody\n",
     );
     expect(
       (

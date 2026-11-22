@@ -1605,6 +1605,8 @@ export function bodyFieldsCodec<
   readonly content?: (content: string) => string;
   /** Above the body its author wrote, for a body that is itself sections. */
   readonly place?: "below" | "above";
+  /** Above the author's text: the heading it sits under when it opens on none. */
+  readonly leadHeading?: string;
   /**
    * The current form's header, as Studio and the vault are shown it, when
    * it is not the metadata; the next form's is it without the moved fields.
@@ -1622,6 +1624,7 @@ export function bodyFieldsCodec<
   const fields = bodyFields(metadata, options.bodyFields, {
     ...(options.mappings && { mappings: options.mappings }),
     ...(options.place && { place: options.place }),
+    ...(options.leadHeading && { leadHeading: options.leadHeading }),
   });
   const authored = options.content ?? ((content: string): string => content);
   return storedFormCodec<TMetadataSchema>({

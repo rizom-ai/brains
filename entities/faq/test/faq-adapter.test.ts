@@ -66,7 +66,7 @@ describe("a FAQ document", () => {
       ),
     );
     expect(markdown).toContain(
-      "## Answer\nOpen it in Studio and choose Publish.",
+      "## Answer\n\nOpen it in Studio and choose Publish.",
     );
     const parsed = faqAdapter.parseFaqContent(markdown);
     expect(parsed.frontmatter).toEqual(frontmatter);
@@ -217,7 +217,7 @@ describe("FAQs stored before the formatter", () => {
     const written = faqAdapter.toMarkdown(stored(legacyBody));
     const body = written.split("---").slice(2).join("---");
 
-    expect(body).toContain("## Answer\nA personal knowledge service.");
+    expect(body).toContain("## Answer\n\nA personal knowledge service.");
     expect(body).toContain(
       "## Sources\n\n- [Publishing from Studio](post:publishing)\n",
     );

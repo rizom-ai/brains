@@ -173,8 +173,11 @@ export function splitPeopleSection(
   if (start < 0) return { body, people: {} };
   const people = parseSection(body.slice(start + HEADING.length + 1), lists);
   if (!people) return { body, people: {} };
+  // The body above the section ends as the whole body did, so a body
+  // reads the same in either stored form.
   const above = body.slice(0, start).replace(/\n+$/u, "");
-  return { body: above.length > 0 ? `${above}\n` : "", people };
+  const ending = /\n*$/u.exec(body)?.[0] ?? "";
+  return { body: above.length > 0 ? `${above}${ending}` : "", people };
 }
 
 /** A list's header index: each person's ref, and every alias not a ref. */

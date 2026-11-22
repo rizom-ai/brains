@@ -76,10 +76,13 @@ describe("the declared style guide on the entity store", () => {
     );
     expect(after.frontmatter).toEqual({
       name: "Imported",
-      voice: { summary: "Precise" },
       customExamples: ["Keep this extension"],
     });
-    expect(after.content.trim()).toBe("Revised guidance.");
+    // Its voice is a section above the guidance, as the next stored form
+    // writes it, and the guidance, which opens on no heading, sits under one.
+    expect(after.content.trim()).toBe(
+      "## Voice\n\n- **Summary:** Precise\n\n## Guidance\n\nRevised guidance.",
+    );
   });
 
   test("reads a guide the class wrote before and after its metadata is reconciled", async () => {

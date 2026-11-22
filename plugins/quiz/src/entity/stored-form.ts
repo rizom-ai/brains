@@ -149,7 +149,12 @@ export function inNextForm(header: Record<string, unknown>): {
     Object.entries(header).filter(([key]) => BODY_KEYS.has(key)),
   );
   return {
-    content: bodyFormatter.format(bodySchema.parse(body)),
+    // A field write's bare body states the indexed fields alone: what was
+    // answered stays as stored.
+    content:
+      Object.keys(body).length === 0
+        ? ""
+        : bodyFormatter.format(bodySchema.parse(body)),
     frontmatter: Object.fromEntries(
       Object.entries(header).filter(([key]) => !BODY_KEYS.has(key)),
     ),

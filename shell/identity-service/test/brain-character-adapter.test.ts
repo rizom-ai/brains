@@ -67,8 +67,9 @@ describe("BrainCharacterAdapter", () => {
       expect(adapter.frontmatterSchema).toBeDefined();
       expect(adapter.frontmatterSchema.shape).toHaveProperty("name");
       expect(adapter.frontmatterSchema.shape).toHaveProperty("role");
-      expect(adapter.frontmatterSchema.shape).toHaveProperty("purpose");
-      expect(adapter.frontmatterSchema.shape).toHaveProperty("values");
+      // The purpose and values are body sections in the stored form.
+      expect(adapter.frontmatterSchema.shape).not.toHaveProperty("purpose");
+      expect(adapter.frontmatterSchema.shape).not.toHaveProperty("values");
     });
 
     it("should be a singleton", () => {
@@ -97,12 +98,12 @@ describe("BrainCharacterAdapter", () => {
 
       const markdown = adapter.toMarkdown(entity);
 
-      // Should be frontmatter format
+      // Its name and role in the header, its purpose and values below.
       expect(markdown).toContain("---");
       expect(markdown).toContain("name: Brain");
       expect(markdown).toContain("role: Knowledge assistant");
-      expect(markdown).toContain("purpose:");
-      expect(markdown).toContain("values:");
+      expect(markdown).toContain("## Purpose");
+      expect(markdown).toContain("## Values");
       expect(markdown).toContain("- clarity");
       expect(markdown).toContain("- accuracy");
       expect(markdown).toContain("- helpfulness");

@@ -57,12 +57,19 @@ describe("the summary type", () => {
     );
   });
 
-  it("writes the body from its entries and its metadata as frontmatter", () => {
+  it("writes the body from its entries and its metadata as frontmatter, its time range as two dates", () => {
     const body = composeSummaryBody([entry]);
+    const { timeRange, ...rest } = defaultSummaryMetadata;
 
     expect(written(body)).toEqual({
       content: body,
-      frontmatter: defaultSummaryMetadata,
+      frontmatter: {
+        ...rest,
+        ...(timeRange && {
+          startedAt: timeRange.start,
+          endedAt: timeRange.end,
+        }),
+      },
     });
   });
 });

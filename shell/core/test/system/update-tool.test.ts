@@ -1816,19 +1816,35 @@ describe("system_update tool", () => {
       entityType: "brain-character",
       id: "brain-character",
       operation: {
-        fields: {
-          role: "Research partner",
-          purpose: "Accelerate research",
-        },
+        fields: { role: "Research partner" },
       },
     });
 
     expect(result).toEqual({
       success: false,
       error:
-        "brain-character does not persist role, purpose through 'fields'. " +
+        "brain-character does not persist role through 'fields'. " +
         "The update would report success without changing anything. " +
         "Provide full markdown with frontmatter via 'content' instead.",
+    });
+    expect(services.getLastUpdateRequest()).toBeUndefined();
+  });
+
+  // In its stored form the character's purpose is a body section, which no
+  // field names (docs/plans/one-stored-form.md).
+  it("names no field for what a body-backed adapter keeps in its body", async () => {
+    useBrainCharacterAdapter();
+
+    const result = await exec({
+      entityType: "brain-character",
+      id: "brain-character",
+      operation: { fields: { purpose: "Accelerate research" } },
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error:
+        'A brain-character has no field "purpose" a caller can set; its fields are name, role.',
     });
     expect(services.getLastUpdateRequest()).toBeUndefined();
   });

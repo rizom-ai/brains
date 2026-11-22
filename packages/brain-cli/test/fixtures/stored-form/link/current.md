@@ -8,9 +8,8 @@ keywords:
   - green-software
   - carbon
 capturedAt: '2025-10-10T00:00:00.000Z'
-source:
-  ref: 'cli:local'
-  label: CLI
+sourceRef: 'cli:local'
+sourceLabel: CLI
 checksum: seed
 created: '2025-10-10T00:00:00.000Z'
 updated: '2025-10-10T00:00:00.000Z'

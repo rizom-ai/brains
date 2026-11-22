@@ -85,8 +85,8 @@ function serializer(config: EntityTypeConfig = {}): EntitySerializer {
 }
 
 describe("the switch between the stored forms", () => {
-  it("writes the old form until alpha W", () => {
-    expect(storedFormWrites).toBe("old");
+  it("writes the new form from alpha W", () => {
+    expect(storedFormWrites).toBe("new");
   });
 });
 

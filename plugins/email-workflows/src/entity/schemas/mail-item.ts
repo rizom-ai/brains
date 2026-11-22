@@ -157,10 +157,17 @@ export function withNestedSource(
       return nested === undefined ? [] : [[nested, value]];
     }),
   );
-  return Object.fromEntries([
-    ...entries.filter(([key]) => !flat.has(key)),
-    ["source", source],
-  ]);
+  // The source takes the place of its first flat key.
+  const first = entries.findIndex(([key]) => flat.has(key));
+  return Object.fromEntries(
+    entries.flatMap(([key, value], index): [string, unknown][] =>
+      index === first
+        ? [["source", source]]
+        : flat.has(key)
+          ? []
+          : [[key, value]],
+    ),
+  );
 }
 
 /** A header in the next form: its source as flat keys, in the source's place. */

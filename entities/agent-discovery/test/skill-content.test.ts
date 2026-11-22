@@ -64,7 +64,8 @@ examples:
 
       const output = (await skillTypeAdapter()).toMarkdown(entity);
       expect(output).toContain("name: Test");
-      expect(output).toContain("description: Test skill");
+      // The next stored form states the description in the body.
+      expect(output).toContain("## Description\n\nTest skill");
       expect(output).not.toContain("name: Stale");
     });
   });

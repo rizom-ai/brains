@@ -10,13 +10,16 @@ import {
   declaredEntityStore,
   type DeclaredEntityStore,
 } from "./helpers/declared-entity-store";
+import { inNextForm } from "./helpers/memory-next-form";
 
 /**
  * The declared summary, decision and action-item types on the brain's own
  * entity store, byte for byte as main's adapters stored them (the bytes in
  * fixtures/conversation-memory-main-bytes.json were captured from the
- * conversation-memory class). Every row is stored as main stored it and
- * keeps main's metadata. A summary and a decision read as their body, their
+ * conversation-memory class). Every row is stored as main stored it, in the
+ * next stored form (a time range as `startedAt` and `endedAt`, a list of
+ * people as their actor refs and aliases, each person whole in a closing
+ * `## People` section), and keeps main's metadata. A summary and a decision read as their body, their
  * fields as metadata; an action item reads as its stored document, since
  * the board and its writers read a card's header from its content. A row
  * main stored reads, lists and searches before the boot pass that
@@ -176,6 +179,25 @@ function asMain(
   };
 }
 
+/**
+ * Main's row as the next stored form stores it, and, for a type read as
+ * its stored document, reads it; a body reads as main's did.
+ */
+function inNextFormRow(
+  row: {
+    stored: z.output<typeof storedSchema>;
+    read: z.output<typeof readSchema>;
+  },
+  reads: "body" | "document",
+): RowView {
+  const view = asMain(row, reads);
+  return {
+    ...view,
+    stored: inNextForm(row.stored.content),
+    read: reads === "document" ? inNextForm(row.read.content) : view.read,
+  };
+}
+
 async function imported(
   opened: DeclaredEntityStore,
   entityType: string,
@@ -189,11 +211,11 @@ async function imported(
 }
 
 describe("the declared conversation memory types on the entity store", () => {
-  test("store imported summaries as the summary adapter wrote them, and refuse one main refused", async () => {
+  test("store imported summaries in the next form, and refuse one main refused", async () => {
     const opened = await store();
     for (const row of [main.summaryCurrent, main.summaryLegacy]) {
       expect(await imported(opened, "summary", row.id, row.file)).toEqual(
-        asMain(row, "body"),
+        inNextFormRow(row, "body"),
       );
     }
     expect(
@@ -234,25 +256,25 @@ describe("the declared conversation memory types on the entity store", () => {
     }
   });
 
-  test("store imported decisions as the decision adapter wrote them", async () => {
+  test("store imported decisions in the next form", async () => {
     const opened = await store();
     for (const row of [main.decisionCurrent, main.decisionLegacy]) {
       expect(await imported(opened, "decision", row.id, row.file)).toEqual(
-        asMain(row, "body"),
+        inNextFormRow(row, "body"),
       );
     }
   });
 
-  test("store imported action items as the action-item adapter wrote them", async () => {
+  test("store imported action items in the next form", async () => {
     const opened = await store();
     for (const row of [main.itemCurrent, main.itemLegacy, main.itemBoard]) {
       expect(await imported(opened, "action-item", row.id, row.file)).toEqual(
-        asMain(row, "document"),
+        inNextFormRow(row, "document"),
       );
     }
   });
 
-  test("store a pickup's card and the board's moves as main stored them", async () => {
+  test("store a pickup's card and the board's moves as main stored them, in the next form", async () => {
     const opened = await store();
     await opened.service.createEntityFromMarkdown({
       input: {
@@ -284,7 +306,7 @@ describe("the declared conversation memory types on the entity store", () => {
       },
     );
     expect(await rowOf(opened, "action-item", "call-the-printer")).toEqual(
-      asMain(main.itemCreated, "document"),
+      inNextFormRow(main.itemCreated, "document"),
     );
     const moving = {
       entityService: opened.service,
@@ -297,7 +319,7 @@ describe("the declared conversation memory types on the entity store", () => {
       to: "done",
     });
     expect(await rowOf(opened, "action-item", "call-the-printer")).toEqual(
-      asMain(main.itemMoved, "document"),
+      inNextFormRow(main.itemMoved, "document"),
     );
     await moveActionItem(moving, {
       id: main.itemLegacy.id,
@@ -305,11 +327,11 @@ describe("the declared conversation memory types on the entity store", () => {
       to: "doing",
     });
     expect(await rowOf(opened, "action-item", main.itemLegacy.id)).toEqual(
-      asMain(main.itemLegacyMoved, "document"),
+      inNextFormRow(main.itemLegacyMoved, "document"),
     );
   });
 
-  test("move colon ids to flat ids once startup content settles, as main moved them", async () => {
+  test("move colon ids to flat ids once startup content settles, as main moved them, in the next form", async () => {
     const opened = await store();
     for (const [entityType, row] of [
       ["summary", main.summaryCurrent],
@@ -351,7 +373,7 @@ describe("the declared conversation memory types on the entity store", () => {
     for (const [key, row] of Object.entries(main.flattened.rows)) {
       const [entityType = "", id = ""] = key.split("/");
       expect(await rowOf(opened, entityType, id)).toEqual(
-        asMain(row, entityType === "action-item" ? "document" : "body"),
+        inNextFormRow(row, entityType === "action-item" ? "document" : "body"),
       );
     }
   });

@@ -120,7 +120,8 @@ const formMarkdown = storedFormCodec<typeof formMetadataSchema>({
   },
   header: {
     old: formFrontmatterSchema,
-    new: z.object({
+    // Strict, as the current header is: an unknown key is refused.
+    new: z.strictObject({
       ...formFrontmatterSchema.shape,
       intro: z.string().optional(),
     }),

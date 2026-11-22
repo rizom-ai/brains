@@ -37,13 +37,24 @@
     "form": {
       "type": "object",
       "properties": {
-        "target": { "type": "string", "pattern": "^[a-z][a-z0-9-]{0,63}$" },
+        "target": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,63}$"
+        },
         "path": {
           "type": "string",
           "pattern": "^(?:\\/[a-z0-9]+(?:-[a-z0-9]+)*)+$"
         },
-        "title": { "type": "string", "minLength": 1, "maxLength": 200 },
-        "pageTitle": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "pageTitle": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
         "submitLabel": {
           "default": "Send",
           "type": "string",
@@ -51,12 +62,26 @@
           "maxLength": 200
         },
         "thanks": {
-          "default": { "title": "Thank you", "showResults": true },
+          "default": {
+            "title": "Thank you",
+            "showResults": true
+          },
           "type": "object",
           "properties": {
-            "title": { "type": "string", "minLength": 1, "maxLength": 200 },
-            "body": { "type": "string", "minLength": 1, "maxLength": 4000 },
-            "showResults": { "default": true, "type": "boolean" }
+            "title": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "body": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4000
+            },
+            "showResults": {
+              "default": true,
+              "type": "boolean"
+            }
           },
           "required": ["title"],
           "additionalProperties": false
@@ -68,8 +93,16 @@
           "items": {
             "type": "object",
             "properties": {
-              "title": { "type": "string", "minLength": 1, "maxLength": 200 },
-              "intro": { "type": "string", "minLength": 1, "maxLength": 4000 },
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "intro": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4000
+              },
               "fields": {
                 "minItems": 1,
                 "maxItems": 50,
@@ -79,7 +112,10 @@
                     {
                       "type": "object",
                       "properties": {
-                        "kind": { "type": "string", "const": "text" },
+                        "kind": {
+                          "type": "string",
+                          "const": "text"
+                        },
                         "id": {
                           "type": "string",
                           "pattern": "^[a-z][a-z0-9_-]{0,63}$"
@@ -89,7 +125,10 @@
                           "minLength": 1,
                           "maxLength": 200
                         },
-                        "required": { "default": false, "type": "boolean" },
+                        "required": {
+                          "default": false,
+                          "type": "boolean"
+                        },
                         "maxLength": {
                           "default": 200,
                           "type": "integer",
@@ -107,7 +146,10 @@
                     {
                       "type": "object",
                       "properties": {
-                        "kind": { "type": "string", "const": "email" },
+                        "kind": {
+                          "type": "string",
+                          "const": "email"
+                        },
                         "id": {
                           "type": "string",
                           "pattern": "^[a-z][a-z0-9_-]{0,63}$"
@@ -117,7 +159,10 @@
                           "minLength": 1,
                           "maxLength": 200
                         },
-                        "required": { "default": false, "type": "boolean" },
+                        "required": {
+                          "default": false,
+                          "type": "boolean"
+                        },
                         "maxLength": {
                           "default": 254,
                           "type": "integer",
@@ -135,7 +180,10 @@
                     {
                       "type": "object",
                       "properties": {
-                        "kind": { "type": "string", "const": "longText" },
+                        "kind": {
+                          "type": "string",
+                          "const": "longText"
+                        },
                         "id": {
                           "type": "string",
                           "pattern": "^[a-z][a-z0-9_-]{0,63}$"
@@ -145,7 +193,10 @@
                           "minLength": 1,
                           "maxLength": 200
                         },
-                        "required": { "default": false, "type": "boolean" },
+                        "required": {
+                          "default": false,
+                          "type": "boolean"
+                        },
                         "maxLength": {
                           "default": 4000,
                           "type": "integer",
@@ -163,7 +214,10 @@
                     {
                       "type": "object",
                       "properties": {
-                        "kind": { "type": "string", "const": "choice" },
+                        "kind": {
+                          "type": "string",
+                          "const": "choice"
+                        },
                         "id": {
                           "type": "string",
                           "pattern": "^[a-z][a-z0-9_-]{0,63}$"
@@ -173,7 +227,10 @@
                           "minLength": 1,
                           "maxLength": 200
                         },
-                        "required": { "default": false, "type": "boolean" },
+                        "required": {
+                          "default": false,
+                          "type": "boolean"
+                        },
                         "options": {
                           "minItems": 1,
                           "maxItems": 50,
@@ -228,7 +285,10 @@
                     {
                       "type": "object",
                       "properties": {
-                        "kind": { "type": "string", "const": "choices" },
+                        "kind": {
+                          "type": "string",
+                          "const": "choices"
+                        },
                         "id": {
                           "type": "string",
                           "pattern": "^[a-z][a-z0-9_-]{0,63}$"
@@ -238,7 +298,10 @@
                           "minLength": 1,
                           "maxLength": 200
                         },
-                        "required": { "default": false, "type": "boolean" },
+                        "required": {
+                          "default": false,
+                          "type": "boolean"
+                        },
                         "options": {
                           "minItems": 1,
                           "maxItems": 50,
@@ -304,11 +367,20 @@
           }
         },
         "notify": {
-          "default": { "enabled": true },
+          "default": {
+            "enabled": true
+          },
           "type": "object",
           "properties": {
-            "enabled": { "default": true, "type": "boolean" },
-            "title": { "type": "string", "minLength": 1, "maxLength": 200 }
+            "enabled": {
+              "default": true,
+              "type": "boolean"
+            },
+            "title": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
           },
           "additionalProperties": false
         },
@@ -330,7 +402,11 @@
               "minimum": 1,
               "maximum": 1000
             },
-            "globalForms": { "type": "integer", "minimum": 1, "maximum": 1000 },
+            "globalForms": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000
+            },
             "networkForms": {
               "type": "integer",
               "minimum": 1,
@@ -356,7 +432,11 @@
               "minimum": 1,
               "maximum": 86400
             },
-            "maxEntries": { "type": "integer", "minimum": 1, "maximum": 1000 }
+            "maxEntries": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000
+            }
           },
           "additionalProperties": false
         },
@@ -423,13 +503,21 @@
           "additionalProperties": {
             "type": "object",
             "properties": {
-              "title": { "type": "string", "minLength": 1, "maxLength": 200 },
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
               "pageTitle": {
                 "type": "string",
                 "minLength": 1,
                 "maxLength": 200
               },
-              "intro": { "type": "string", "minLength": 1, "maxLength": 4000 },
+              "intro": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4000
+              },
               "submitLabel": {
                 "type": "string",
                 "minLength": 1,
@@ -473,7 +561,9 @@
               },
               "fields": {
                 "type": "object",
-                "propertyNames": { "type": "string" },
+                "propertyNames": {
+                  "type": "string"
+                },
                 "additionalProperties": {
                   "type": "object",
                   "properties": {
@@ -484,7 +574,9 @@
                     },
                     "options": {
                       "type": "object",
-                      "propertyNames": { "type": "string" },
+                      "propertyNames": {
+                        "type": "string"
+                      },
                       "additionalProperties": {
                         "type": "string",
                         "minLength": 1,
@@ -497,7 +589,9 @@
               },
               "dimensions": {
                 "type": "object",
-                "propertyNames": { "type": "string" },
+                "propertyNames": {
+                  "type": "string"
+                },
                 "additionalProperties": {
                   "type": "object",
                   "properties": {
@@ -508,7 +602,9 @@
                     },
                     "outcomes": {
                       "type": "object",
-                      "propertyNames": { "type": "string" },
+                      "propertyNames": {
+                        "type": "string"
+                      },
                       "additionalProperties": {
                         "type": "object",
                         "properties": {
@@ -533,6 +629,9 @@
             },
             "additionalProperties": false
           }
+        },
+        "intro": {
+          "type": "string"
         }
       },
       "required": ["target", "title", "steps"],
@@ -541,20 +640,30 @@
     "guide": {
       "type": "object",
       "properties": {
-        "title": { "type": "string" },
-        "slug": { "type": "string" },
+        "title": {
+          "type": "string"
+        },
+        "slug": {
+          "type": "string"
+        },
         "order": {
           "type": "integer",
           "minimum": -9007199254740991,
           "maximum": 9007199254740991
         },
-        "persona": { "type": "string" },
-        "for": { "type": "string" },
+        "persona": {
+          "type": "string"
+        },
         "recipe": {
           "default": null,
           "anyOf": [
-            { "type": "string", "enum": ["personal", "professional", "team"] },
-            { "type": "null" }
+            {
+              "type": "string",
+              "enum": ["personal", "professional", "team"]
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "brings": {
@@ -563,34 +672,42 @@
             {
               "minItems": 1,
               "type": "array",
-              "items": { "type": "string", "minLength": 1 }
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
             },
-            { "type": "null" }
+            {
+              "type": "null"
+            }
           ]
         },
         "section": {
           "default": null,
-          "anyOf": [{ "type": "string", "minLength": 1 }, { "type": "null" }]
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "summary": {
           "default": null,
-          "anyOf": [{ "type": "string", "minLength": 1 }, { "type": "null" }]
-        },
-        "material": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "from": { "type": "string" },
-              "where": { "type": "string" },
-              "becomes": { "type": "string" },
-              "how": { "type": "string" }
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
             },
-            "required": ["from", "where", "becomes", "how"]
-          }
+            {
+              "type": "null"
+            }
+          ]
         }
       },
-      "required": ["title", "slug", "order", "persona", "for", "material"]
+      "required": ["title", "slug", "order", "persona"]
     },
     "ask-content": {
       "type": "object",
@@ -619,20 +736,10 @@
           "minLength": 1,
           "maxLength": 80
         },
-        "contactNote": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 240
-        },
         "mapCaption": {
           "type": "string",
           "minLength": 1,
           "maxLength": 160
-        },
-        "refusal": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 500
         },
         "faqHeading": {
           "type": "string",
@@ -834,21 +941,23 @@
           "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
           "studioWidget": "provenance"
         },
-        "source": {
-          "type": "object",
-          "properties": {
-            "ref": {
-              "type": "string"
-            },
-            "label": {
-              "type": "string"
-            }
-          },
-          "required": ["ref", "label"],
+        "sourceRef": {
+          "type": "string",
+          "studioWidget": "provenance"
+        },
+        "sourceLabel": {
+          "type": "string",
           "studioWidget": "provenance"
         }
       },
-      "required": ["status", "title", "url", "capturedAt", "source"]
+      "required": [
+        "status",
+        "title",
+        "url",
+        "capturedAt",
+        "sourceRef",
+        "sourceLabel"
+      ]
     },
     "note": {
       "type": "object",
@@ -963,21 +1072,6 @@
           "description": "Image entity ID for post image",
           "type": "string"
         },
-        "documents": {
-          "description": "Document attachments for publishing",
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string",
-                "minLength": 1,
-                "description": "Document entity ID"
-              }
-            },
-            "required": ["id"]
-          }
-        },
         "publishedAt": {
           "studioWidget": "provenance",
           "type": "string",
@@ -999,6 +1093,14 @@
           "studioWidget": "provenance",
           "type": "string",
           "enum": ["post", "deck"]
+        },
+        "documentIds": {
+          "description": "Document entity IDs attached for publishing",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       },
       "required": ["title", "platform", "status"]
@@ -1009,84 +1111,6 @@
         "name": {
           "type": "string",
           "description": "Style guide name"
-        },
-        "messaging": {
-          "type": "object",
-          "properties": {
-            "audiences": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            },
-            "positioning": {
-              "type": "string"
-            }
-          }
-        },
-        "voice": {
-          "type": "object",
-          "properties": {
-            "summary": {
-              "type": "string"
-            },
-            "traits": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            },
-            "principles": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            },
-            "preferredTerms": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            },
-            "avoid": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            }
-          }
-        },
-        "visual": {
-          "type": "object",
-          "properties": {
-            "artDirection": {
-              "type": "string"
-            },
-            "palette": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            },
-            "composition": {
-              "type": "string"
-            },
-            "mood": {
-              "type": "string"
-            },
-            "preferred": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            },
-            "avoid": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            }
-          }
         }
       },
       "required": ["name"]
@@ -1191,88 +1215,17 @@
           "type": "string",
           "enum": ["light", "dark"]
         },
-        "cta": {
-          "description": "Call-to-action configuration",
-          "type": "object",
-          "properties": {
-            "heading": {
-              "type": "string",
-              "description": "Main CTA heading text"
-            },
-            "subtitle": {
-              "type": "string",
-              "description": "A line under the CTA heading"
-            },
-            "buttonText": {
-              "type": "string",
-              "description": "Call-to-action button text"
-            },
-            "buttonLink": {
-              "type": "string",
-              "description": "URL or anchor for the CTA button"
-            }
-          },
-          "required": ["heading", "buttonText", "buttonLink"]
+        "ctaHeading": {
+          "description": "Main CTA heading text",
+          "type": "string"
         },
-        "sections": {
-          "description": "Optional per-section blurbs, keyed by section id (e.g. 'essays', 'presentations', 'about'). Used by homepage templates that render editorial section headers.",
-          "type": "object",
-          "propertyNames": {
-            "type": "string"
-          },
-          "additionalProperties": {
-            "type": "object",
-            "properties": {
-              "blurb": {
-                "description": "Short italic subtitle under the section title",
-                "type": "string"
-              }
-            }
-          }
+        "ctaButtonText": {
+          "description": "Call-to-action button text",
+          "type": "string"
         },
-        "translations": {
-          "description": "The site's title, description, copyright and call to action in its other languages, keyed by language tag. A site is built in a language only once it has one.",
-          "type": "object",
-          "propertyNames": {
-            "type": "string",
-            "pattern": "^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$"
-          },
-          "additionalProperties": {
-            "type": "object",
-            "properties": {
-              "title": {
-                "type": "string"
-              },
-              "description": {
-                "type": "string"
-              },
-              "copyright": {
-                "type": "string"
-              },
-              "cta": {
-                "type": "object",
-                "properties": {
-                  "heading": {
-                    "type": "string",
-                    "description": "Main CTA heading text"
-                  },
-                  "subtitle": {
-                    "type": "string",
-                    "description": "A line under the CTA heading"
-                  },
-                  "buttonText": {
-                    "type": "string",
-                    "description": "Call-to-action button text"
-                  },
-                  "buttonLink": {
-                    "type": "string",
-                    "description": "URL or anchor for the CTA button"
-                  }
-                },
-                "required": ["heading", "buttonText", "buttonLink"]
-              }
-            }
-          }
+        "ctaButtonLink": {
+          "description": "URL or anchor for the CTA button",
+          "type": "string"
         }
       }
     },
@@ -1354,33 +1307,6 @@
           "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
           "studioWidget": "provenance"
         },
-        "source": {
-          "type": "object",
-          "properties": {
-            "ref": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 1024
-            },
-            "threadKey": {
-              "type": "string",
-              "pattern": "^[a-f0-9]{64}$"
-            },
-            "threadOrdinal": {
-              "type": "integer",
-              "exclusiveMinimum": 0,
-              "maximum": 9007199254740991
-            },
-            "personId": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 200
-            }
-          },
-          "required": ["ref"],
-          "additionalProperties": false,
-          "studioWidget": "provenance"
-        },
         "senderLabel": {
           "studioWidget": "provenance",
           "type": "string",
@@ -1400,6 +1326,29 @@
             "minLength": 1,
             "maxLength": 240
           }
+        },
+        "sourceRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024,
+          "studioWidget": "provenance"
+        },
+        "threadKey": {
+          "studioWidget": "provenance",
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "threadOrdinal": {
+          "studioWidget": "provenance",
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "personId": {
+          "studioWidget": "provenance",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
         }
       },
       "required": [
@@ -1408,8 +1357,8 @@
         "status",
         "needsReply",
         "receivedAt",
-        "source",
-        "requestedActions"
+        "requestedActions",
+        "sourceRef"
       ],
       "additionalProperties": false
     },
@@ -1608,71 +1557,9 @@
           "maxLength": 254,
           "format": "email",
           "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
-        },
-        "results": {
-          "maxItems": 20,
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "dimension": {
-                "type": "string"
-              },
-              "title": {
-                "type": "string"
-              },
-              "outcome": {
-                "type": "string"
-              },
-              "outcomeTitle": {
-                "type": "string"
-              }
-            },
-            "required": ["dimension", "title", "outcome", "outcomeTitle"],
-            "additionalProperties": false
-          },
-          "studioWidget": "provenance"
-        },
-        "answers": {
-          "maxItems": 200,
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "field": {
-                "type": "string"
-              },
-              "label": {
-                "type": "string"
-              },
-              "value": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  }
-                ]
-              }
-            },
-            "required": ["field", "label", "value"],
-            "additionalProperties": false
-          },
-          "studioWidget": "provenance"
         }
       },
-      "required": [
-        "quiz",
-        "receivedAt",
-        "status",
-        "notification",
-        "results",
-        "answers"
-      ],
+      "required": ["quiz", "receivedAt", "status", "notification"],
       "additionalProperties": false
     },
     "site-content": {
@@ -1683,7 +1570,9 @@
     "book": {
       "type": "object",
       "properties": {
-        "title": { "type": "string" },
+        "title": {
+          "type": "string"
+        },
         "source": {
           "type": "string",
           "format": "uri",
@@ -1691,7 +1580,14 @@
         },
         "author": {
           "default": null,
-          "anyOf": [{ "type": "string" }, { "type": "null" }]
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "year": {
           "default": null,
@@ -1701,7 +1597,9 @@
               "minimum": -9007199254740991,
               "maximum": 9007199254740991
             },
-            { "type": "null" }
+            {
+              "type": "null"
+            }
           ]
         },
         "kind": {
@@ -1711,12 +1609,21 @@
               "type": "string",
               "enum": ["work", "nachlass", "letters", "excerpt"]
             },
-            { "type": "null" }
+            {
+              "type": "null"
+            }
           ]
         },
         "edition": {
           "default": null,
-          "anyOf": [{ "type": "string" }, { "type": "null" }]
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "license": {
           "default": null,
@@ -1725,31 +1632,59 @@
               "type": "string",
               "enum": ["public-domain", "CC-BY-SA-4.0", "CC-BY-NC-ND-4.0"]
             },
-            { "type": "null" }
+            {
+              "type": "null"
+            }
           ]
         },
         "attribution": {
           "default": null,
-          "anyOf": [{ "type": "string" }, { "type": "null" }]
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "published": {
           "default": null,
-          "anyOf": [{ "type": "boolean" }, { "type": "null" }]
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "length": {
           "default": null,
           "studioWidget": "provenance",
           "anyOf": [
-            { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
-            { "type": "null" }
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "sections": {
           "default": null,
           "studioWidget": "provenance",
           "anyOf": [
-            { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
-            { "type": "null" }
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "continuations": {
@@ -1764,7 +1699,14 @@
         },
         "shortTitle": {
           "default": null,
-          "anyOf": [{ "type": "string" }, { "type": "null" }]
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "required": ["title", "source"]
@@ -1772,8 +1714,13 @@
     "book-section": {
       "type": "object",
       "properties": {
-        "title": { "type": "string" },
-        "book": { "type": "string", "minLength": 1 },
+        "title": {
+          "type": "string"
+        },
+        "book": {
+          "type": "string",
+          "minLength": 1
+        },
         "order": {
           "type": "integer",
           "minimum": 1,
@@ -1781,16 +1728,32 @@
         },
         "section": {
           "default": null,
-          "anyOf": [{ "type": "string" }, { "type": "null" }]
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "page": {
           "default": null,
-          "anyOf": [{ "type": "string" }, { "type": "null" }]
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "headings": {
           "default": [],
           "type": "array",
-          "items": { "type": "string" }
+          "items": {
+            "type": "string"
+          }
         },
         "source": {
           "type": "string",
@@ -1803,8 +1766,13 @@
     "faq": {
       "type": "object",
       "properties": {
-        "question": { "type": "string" },
-        "status": { "type": "string", "enum": ["draft", "published"] },
+        "question": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["draft", "published"]
+        },
         "asked": {
           "default": 1,
           "studioWidget": "provenance",
@@ -1812,14 +1780,21 @@
           "minimum": 1,
           "maximum": 9007199254740991
         },
-        "rank": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 }
+        "rank": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
       },
       "required": ["question", "status"]
     },
     "topic": {
       "type": "object",
       "properties": {
-        "title": { "type": "string", "description": "Topic title" }
+        "title": {
+          "type": "string",
+          "description": "Topic title"
+        }
       },
       "required": ["title"]
     },
@@ -1838,184 +1813,41 @@
           "type": "string",
           "studioWidget": "provenance"
         },
-        "timeRange": {
-          "studioWidget": "provenance",
-          "type": "object",
-          "properties": {
-            "start": {
-              "type": "string",
-              "format": "date-time",
-              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
-            },
-            "end": {
-              "type": "string",
-              "format": "date-time",
-              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
-            }
-          },
-          "required": ["start", "end"]
-        },
         "messageCount": {
           "type": "integer",
           "minimum": 0,
           "maximum": 9007199254740991,
           "studioWidget": "provenance"
         },
+        "sourceHash": {
+          "type": "string",
+          "studioWidget": "hidden"
+        },
+        "startedAt": {
+          "studioWidget": "provenance",
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+        },
+        "endedAt": {
+          "studioWidget": "provenance",
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+        },
         "participants": {
           "studioWidget": "people",
           "type": "array",
           "items": {
-            "type": "object",
-            "properties": {
-              "identity": {
-                "oneOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "kind": {
-                        "type": "string",
-                        "const": "user"
-                      },
-                      "userId": {
-                        "type": "string",
-                        "minLength": 1
-                      },
-                      "canonicalId": {
-                        "type": "string",
-                        "minLength": 1
-                      }
-                    },
-                    "required": ["kind", "userId"]
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "kind": {
-                        "type": "string",
-                        "const": "external"
-                      },
-                      "externalActorId": {
-                        "type": "string",
-                        "minLength": 1
-                      }
-                    },
-                    "required": ["kind", "externalActorId"]
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "kind": {
-                        "type": "string",
-                        "const": "agent"
-                      },
-                      "agentId": {
-                        "type": "string",
-                        "minLength": 1
-                      }
-                    },
-                    "required": ["kind", "agentId"]
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "kind": {
-                        "type": "string",
-                        "const": "service"
-                      },
-                      "serviceId": {
-                        "type": "string",
-                        "minLength": 1
-                      }
-                    },
-                    "required": ["kind", "serviceId"]
-                  }
-                ]
-              },
-              "identityAliases": {
-                "type": "array",
-                "items": {
-                  "oneOf": [
-                    {
-                      "type": "object",
-                      "properties": {
-                        "kind": {
-                          "type": "string",
-                          "const": "user"
-                        },
-                        "userId": {
-                          "type": "string",
-                          "minLength": 1
-                        },
-                        "canonicalId": {
-                          "type": "string",
-                          "minLength": 1
-                        }
-                      },
-                      "required": ["kind", "userId"]
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "kind": {
-                          "type": "string",
-                          "const": "external"
-                        },
-                        "externalActorId": {
-                          "type": "string",
-                          "minLength": 1
-                        }
-                      },
-                      "required": ["kind", "externalActorId"]
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "kind": {
-                          "type": "string",
-                          "const": "agent"
-                        },
-                        "agentId": {
-                          "type": "string",
-                          "minLength": 1
-                        }
-                      },
-                      "required": ["kind", "agentId"]
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "kind": {
-                          "type": "string",
-                          "const": "service"
-                        },
-                        "serviceId": {
-                          "type": "string",
-                          "minLength": 1
-                        }
-                      },
-                      "required": ["kind", "serviceId"]
-                    }
-                  ]
-                }
-              },
-              "displayName": {
-                "type": "string"
-              },
-              "roles": {
-                "minItems": 1,
-                "type": "array",
-                "items": {
-                  "type": "string",
-                  "enum": ["user", "assistant", "system"]
-                }
-              }
-            },
-            "required": ["identity", "roles"]
+            "type": "string"
           }
         },
-        "sourceHash": {
-          "type": "string",
-          "studioWidget": "hidden"
+        "participantsAliases": {
+          "studioWidget": "hidden",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       },
       "required": ["channelId", "interfaceType", "messageCount", "sourceHash"]
@@ -2039,323 +1871,52 @@
           "type": "string",
           "studioWidget": "provenance"
         },
-        "timeRange": {
-          "type": "object",
-          "properties": {
-            "start": {
-              "type": "string",
-              "format": "date-time",
-              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
-            },
-            "end": {
-              "type": "string",
-              "format": "date-time",
-              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
-            }
-          },
-          "required": ["start", "end"],
-          "studioWidget": "provenance"
-        },
         "status": {
           "type": "string",
           "enum": ["active", "superseded"]
+        },
+        "startedAt": {
+          "studioWidget": "provenance",
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+        },
+        "endedAt": {
+          "studioWidget": "provenance",
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
         },
         "decidedBy": {
           "studioWidget": "people",
           "type": "array",
           "items": {
-            "type": "object",
-            "properties": {
-              "identity": {
-                "oneOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "kind": {
-                        "type": "string",
-                        "const": "user"
-                      },
-                      "userId": {
-                        "type": "string",
-                        "minLength": 1
-                      },
-                      "canonicalId": {
-                        "type": "string",
-                        "minLength": 1
-                      }
-                    },
-                    "required": ["kind", "userId"]
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "kind": {
-                        "type": "string",
-                        "const": "external"
-                      },
-                      "externalActorId": {
-                        "type": "string",
-                        "minLength": 1
-                      }
-                    },
-                    "required": ["kind", "externalActorId"]
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "kind": {
-                        "type": "string",
-                        "const": "agent"
-                      },
-                      "agentId": {
-                        "type": "string",
-                        "minLength": 1
-                      }
-                    },
-                    "required": ["kind", "agentId"]
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "kind": {
-                        "type": "string",
-                        "const": "service"
-                      },
-                      "serviceId": {
-                        "type": "string",
-                        "minLength": 1
-                      }
-                    },
-                    "required": ["kind", "serviceId"]
-                  }
-                ]
-              },
-              "identityAliases": {
-                "type": "array",
-                "items": {
-                  "oneOf": [
-                    {
-                      "type": "object",
-                      "properties": {
-                        "kind": {
-                          "type": "string",
-                          "const": "user"
-                        },
-                        "userId": {
-                          "type": "string",
-                          "minLength": 1
-                        },
-                        "canonicalId": {
-                          "type": "string",
-                          "minLength": 1
-                        }
-                      },
-                      "required": ["kind", "userId"]
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "kind": {
-                          "type": "string",
-                          "const": "external"
-                        },
-                        "externalActorId": {
-                          "type": "string",
-                          "minLength": 1
-                        }
-                      },
-                      "required": ["kind", "externalActorId"]
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "kind": {
-                          "type": "string",
-                          "const": "agent"
-                        },
-                        "agentId": {
-                          "type": "string",
-                          "minLength": 1
-                        }
-                      },
-                      "required": ["kind", "agentId"]
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "kind": {
-                          "type": "string",
-                          "const": "service"
-                        },
-                        "serviceId": {
-                          "type": "string",
-                          "minLength": 1
-                        }
-                      },
-                      "required": ["kind", "serviceId"]
-                    }
-                  ]
-                }
-              },
-              "displayName": {
-                "type": "string"
-              }
-            },
-            "required": ["identity"]
+            "type": "string"
+          }
+        },
+        "decidedByAliases": {
+          "studioWidget": "hidden",
+          "type": "array",
+          "items": {
+            "type": "string"
           }
         },
         "mentionedBy": {
           "studioWidget": "people",
           "type": "array",
           "items": {
-            "type": "object",
-            "properties": {
-              "identity": {
-                "oneOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "kind": {
-                        "type": "string",
-                        "const": "user"
-                      },
-                      "userId": {
-                        "type": "string",
-                        "minLength": 1
-                      },
-                      "canonicalId": {
-                        "type": "string",
-                        "minLength": 1
-                      }
-                    },
-                    "required": ["kind", "userId"]
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "kind": {
-                        "type": "string",
-                        "const": "external"
-                      },
-                      "externalActorId": {
-                        "type": "string",
-                        "minLength": 1
-                      }
-                    },
-                    "required": ["kind", "externalActorId"]
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "kind": {
-                        "type": "string",
-                        "const": "agent"
-                      },
-                      "agentId": {
-                        "type": "string",
-                        "minLength": 1
-                      }
-                    },
-                    "required": ["kind", "agentId"]
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "kind": {
-                        "type": "string",
-                        "const": "service"
-                      },
-                      "serviceId": {
-                        "type": "string",
-                        "minLength": 1
-                      }
-                    },
-                    "required": ["kind", "serviceId"]
-                  }
-                ]
-              },
-              "identityAliases": {
-                "type": "array",
-                "items": {
-                  "oneOf": [
-                    {
-                      "type": "object",
-                      "properties": {
-                        "kind": {
-                          "type": "string",
-                          "const": "user"
-                        },
-                        "userId": {
-                          "type": "string",
-                          "minLength": 1
-                        },
-                        "canonicalId": {
-                          "type": "string",
-                          "minLength": 1
-                        }
-                      },
-                      "required": ["kind", "userId"]
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "kind": {
-                          "type": "string",
-                          "const": "external"
-                        },
-                        "externalActorId": {
-                          "type": "string",
-                          "minLength": 1
-                        }
-                      },
-                      "required": ["kind", "externalActorId"]
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "kind": {
-                          "type": "string",
-                          "const": "agent"
-                        },
-                        "agentId": {
-                          "type": "string",
-                          "minLength": 1
-                        }
-                      },
-                      "required": ["kind", "agentId"]
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "kind": {
-                          "type": "string",
-                          "const": "service"
-                        },
-                        "serviceId": {
-                          "type": "string",
-                          "minLength": 1
-                        }
-                      },
-                      "required": ["kind", "serviceId"]
-                    }
-                  ]
-                }
-              },
-              "displayName": {
-                "type": "string"
-              }
-            },
-            "required": ["identity"]
+            "type": "string"
+          }
+        },
+        "mentionedByAliases": {
+          "studioWidget": "hidden",
+          "type": "array",
+          "items": {
+            "type": "string"
           }
         }
       },
-      "required": [
-        "conversationId",
-        "channelId",
-        "interfaceType",
-        "timeRange",
-        "status"
-      ]
+      "required": ["conversationId", "channelId", "interfaceType", "status"]
     },
     "action-item": {
       "type": "object",
@@ -2381,25 +1942,6 @@
           "studioWidget": "provenance",
           "type": "string"
         },
-        "sourceRef": {
-          "studioWidget": "provenance",
-          "type": "object",
-          "properties": {
-            "sourceId": {
-              "type": "string",
-              "minLength": 1
-            },
-            "entityType": {
-              "type": "string",
-              "minLength": 1
-            },
-            "entityId": {
-              "type": "string",
-              "minLength": 1
-            }
-          },
-          "required": ["sourceId", "entityType", "entityId"]
-        },
         "capturedAt": {
           "type": "string",
           "format": "date-time",
@@ -2409,56 +1951,6 @@
         "status": {
           "type": "string",
           "enum": ["open", "doing", "blocked", "done", "dropped"]
-        },
-        "assignedTo": {
-          "studioWidget": "members",
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "name": {
-                "type": "string",
-                "minLength": 1
-              },
-              "id": {
-                "type": "string",
-                "pattern": "^(user|external|agent|service):.+$"
-              },
-              "aliases": {
-                "type": "array",
-                "items": {
-                  "type": "string",
-                  "pattern": "^(user|external|agent|service):.+$"
-                }
-              }
-            },
-            "required": ["name"]
-          }
-        },
-        "requestedBy": {
-          "studioWidget": "people",
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "name": {
-                "type": "string",
-                "minLength": 1
-              },
-              "id": {
-                "type": "string",
-                "pattern": "^(user|external|agent|service):.+$"
-              },
-              "aliases": {
-                "type": "array",
-                "items": {
-                  "type": "string",
-                  "pattern": "^(user|external|agent|service):.+$"
-                }
-              }
-            },
-            "required": ["id"]
-          }
         },
         "dueDate": {
           "type": "string",
@@ -2478,6 +1970,49 @@
           "type": "string",
           "format": "date",
           "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+        },
+        "sourceRef": {
+          "studioWidget": "provenance",
+          "type": "string",
+          "minLength": 1
+        },
+        "sourceEntityType": {
+          "studioWidget": "provenance",
+          "type": "string",
+          "minLength": 1
+        },
+        "sourceEntityId": {
+          "studioWidget": "provenance",
+          "type": "string",
+          "minLength": 1
+        },
+        "assignedTo": {
+          "studioWidget": "members",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "assignedToAliases": {
+          "studioWidget": "hidden",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "requestedBy": {
+          "studioWidget": "people",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "requestedByAliases": {
+          "studioWidget": "hidden",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       },
       "required": ["capturedAt", "status"]
@@ -2586,9 +2121,6 @@
         "name": {
           "type": "string"
         },
-        "description": {
-          "type": "string"
-        },
         "tags": {
           "maxItems": 30,
           "type": "array",
@@ -2597,67 +2129,13 @@
             "minLength": 1,
             "maxLength": 120
           }
-        },
-        "examples": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
         }
       },
-      "required": ["name", "description", "tags", "examples"]
+      "required": ["name", "tags"]
     },
     "swot": {
       "type": "object",
       "properties": {
-        "strengths": {
-          "default": [],
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "title": { "type": "string" },
-              "detail": { "type": "string" }
-            },
-            "required": ["title"]
-          }
-        },
-        "weaknesses": {
-          "default": [],
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "title": { "type": "string" },
-              "detail": { "type": "string" }
-            },
-            "required": ["title"]
-          }
-        },
-        "opportunities": {
-          "default": [],
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "title": { "type": "string" },
-              "detail": { "type": "string" }
-            },
-            "required": ["title"]
-          }
-        },
-        "threats": {
-          "default": [],
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "title": { "type": "string" },
-              "detail": { "type": "string" }
-            },
-            "required": ["title"]
-          }
-        },
         "derivedAt": {
           "type": "string",
           "format": "date-time",
@@ -2684,7 +2162,10 @@
           "type": "string",
           "enum": ["generating", "failed"]
         },
-        "error": { "studioWidget": "provenance", "type": "string" }
+        "error": {
+          "studioWidget": "provenance",
+          "type": "string"
+        }
       },
       "required": ["title", "summary"]
     }
