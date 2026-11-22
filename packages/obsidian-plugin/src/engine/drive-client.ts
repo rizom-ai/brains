@@ -26,6 +26,20 @@ export class DriveOfflineError extends Error {
   }
 }
 
+/**
+ * The brain is there but not answering for now: a gateway or the brain
+ * itself said so (502, 503, 504, 429), as during a deploy. Nothing was
+ * changed by this request; it is tried again later.
+ */
+export class DriveUnavailableError extends Error {
+  constructor(status: number) {
+    super(`The brain is not answering for now (${status})`);
+    this.name = "DriveUnavailableError";
+  }
+}
+
+const UNAVAILABLE: ReadonlySet<number> = new Set([429, 502, 503, 504]);
+
 /** The app password is wrong, revoked or expired. */
 export class DriveAuthError extends Error {
   constructor() {
@@ -198,6 +212,9 @@ export class DriveClient {
       throw new DriveOfflineError(error);
     });
     if (response.status === 401) throw new DriveAuthError();
+    if (UNAVAILABLE.has(response.status)) {
+      throw new DriveUnavailableError(response.status);
+    }
     return response;
   }
 

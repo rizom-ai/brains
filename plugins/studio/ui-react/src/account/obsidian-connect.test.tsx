@@ -5,6 +5,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import {
   ObsidianConnectCard,
+  connectPassword,
   obsidianConnectLink,
   parseObsidianConnect,
 } from "./obsidian-connect";
@@ -44,6 +45,30 @@ describe("connecting Obsidian", () => {
     expect(link.searchParams.get("state")).toBe("ab12cd34ef56");
     expect(link.searchParams.get("username")).toBe("dav-k3x9");
     expect(link.searchParams.get("password")).toBe("s3cret pass&word");
+  });
+
+  it("hands over only the app password Connect created, never one made before", () => {
+    const secret = { username: "dav-k3x9", password: "secret" };
+    const finder = { username: "dav-old1", password: "older" };
+    const listed = [
+      { ...created, username: "dav-k3x9" },
+      {
+        ...created,
+        id: "old1",
+        username: "dav-old1",
+        label: "Finder",
+        access: "read" as const,
+      },
+    ];
+
+    // Chosen with a password made by hand still shown: that one stays here.
+    expect(connectPassword(finder, "dav-old1", listed)).toBeNull();
+    expect(connectPassword(secret, "dav-old1", listed)).toEqual(secret);
+    expect(connectPassword(secret, null, listed)).toEqual(secret);
+    expect(connectPassword(null, null, listed)).toBeNull();
+    // Only an Obsidian password that may save is Connect's.
+    expect(connectPassword(finder, null, listed)).toBeNull();
+    expect(connectPassword(secret, null, [])).toBeNull();
   });
 
   it("asks before it creates anything, and says what Connect creates", () => {

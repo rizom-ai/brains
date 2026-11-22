@@ -15,7 +15,9 @@ import { accountTimestamp } from "./account-format";
 import { AccountAccessItem, AccountDetailSection } from "./account-primitives";
 import { driveClients } from "./drive-clients";
 import {
+  CONNECT_LABEL,
   ObsidianConnectCard,
+  connectPassword,
   obsidianConnectLink,
   type ObsidianConnect,
 } from "./obsidian-connect";
@@ -55,16 +57,24 @@ export function AccountDriveTab(props: {
   const { account, actions, connect } = props;
   const { busy, createdAppPassword } = actions;
   // Obsidian asked: the app password Connect creates goes to Obsidian, and
-  // is never shown here.
-  const [connecting, setConnecting] = useState(false);
-  const forObsidian = connect !== undefined && connecting;
+  // is never shown here. Which password was shown when Connect was chosen,
+  // so that one is never taken for it.
+  const [connectingFrom, setConnectingFrom] = useState<
+    string | null | undefined
+  >(undefined);
+  const handed =
+    connect !== undefined && connectingFrom !== undefined
+      ? connectPassword(
+          createdAppPassword,
+          connectingFrom,
+          account.appPasswords,
+        )
+      : null;
   useEffect(() => {
-    if (connect && connecting && createdAppPassword) {
-      window.location.assign(
-        obsidianConnectLink(connect.state, createdAppPassword),
-      );
+    if (connect && handed) {
+      window.location.assign(obsidianConnectLink(connect.state, handed));
     }
-  }, [connect, connecting, createdAppPassword]);
+  }, [connect, handed]);
   const nowSeconds = Math.floor(Date.now() / 1000);
   const [allowSaving, setAllowSaving] = useState(false);
   const clients = driveClients(props.davUrl);
@@ -83,11 +93,11 @@ export function AccountDriveTab(props: {
         {connect ? (
           <ObsidianConnectCard
             connect={connect}
-            created={forObsidian ? createdAppPassword : null}
-            busy={busy}
+            created={handed}
+            busy={busy || (connectingFrom !== undefined && handed === null)}
             onConnect={() => {
-              setConnecting(true);
-              actions.createAppPassword("Obsidian", "write");
+              setConnectingFrom(createdAppPassword?.username ?? null);
+              actions.createAppPassword(CONNECT_LABEL, "write");
             }}
           />
         ) : null}
@@ -103,7 +113,7 @@ export function AccountDriveTab(props: {
         title="App passwords"
         description="A mount signs in with an app password instead of your passkey. It works only for the drive, expires after a year and can be revoked here. It can only read unless you allow saving changes."
       >
-        {createdAppPassword && !forObsidian ? (
+        {createdAppPassword && createdAppPassword !== handed ? (
           <article
             data-app-password-reveal
             className={accountClass("drive-reveal", s.client)}

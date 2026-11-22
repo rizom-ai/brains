@@ -1,5 +1,5 @@
 import { z } from "@brains/utils/zod";
-import { parseState, type SyncState } from "../engine";
+import { driveUrl, emptyState, parseState, type SyncState } from "../engine";
 
 type SettingsSchema = z.ZodObject<{
   address: z.ZodDefault<z.ZodString>;
@@ -24,19 +24,56 @@ export type BrainSyncSettings = z.output<SettingsSchema>;
 
 export interface PluginData {
   settings: BrainSyncSettings;
-  state: SyncState;
+  /** Each brain's sync state, by its drive address. */
+  states: Record<string, SyncState>;
+}
+
+/** A brain's drive address, however it was typed; "" when it is not one. */
+export function addressKey(address: string): string {
+  if (address.trim() === "") return "";
+  try {
+    return driveUrl(address).href;
+  } catch {
+    // An address being typed is not one yet.
+    return "";
+  }
+}
+
+/**
+ * The sync state of the brain an address names. Each brain keeps its own:
+ * editing the address and back never loses one.
+ */
+export function stateFor(data: PluginData, address: string): SyncState {
+  const key = addressKey(address);
+  return structuredClone(data.states[key] ?? emptyState(key));
+}
+
+export function withState(
+  data: PluginData,
+  key: string,
+  state: SyncState,
+): PluginData {
+  return { ...data, states: { ...data.states, [key]: structuredClone(state) } };
 }
 
 /** The plugin's stored data, with defaults for what is missing. */
 export function parsePluginData(value: unknown): PluginData {
   const stored = z
-    .object({ settings: z.unknown(), state: z.unknown() })
+    .object({ settings: z.unknown(), states: z.unknown() })
     .partial()
     .safeParse(value ?? {});
   const record = stored.success ? stored.data : {};
   const settings = settingsSchema.safeParse(record.settings ?? {});
+  const states = z
+    .record(z.string(), z.unknown())
+    .safeParse(record.states ?? {});
   return {
     settings: settings.success ? settings.data : settingsSchema.parse({}),
-    state: parseState(record.state),
+    states: Object.fromEntries(
+      Object.entries(states.success ? states.data : {}).map(([key, state]) => [
+        key,
+        parseState(state),
+      ]),
+    ),
   };
 }

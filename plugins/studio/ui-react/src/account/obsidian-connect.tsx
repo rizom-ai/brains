@@ -1,6 +1,9 @@
 /** @jsxImportSource react */
 import { Button } from "@brains/app-ui-react";
-import type { AuthAccountAppPasswordSecret } from "@brains/contracts";
+import type {
+  AuthAccountAppPassword,
+  AuthAccountAppPasswordSecret,
+} from "@brains/contracts";
 import type { ReactElement } from "react";
 import { accountClass } from "../studio-account.styles";
 import { aiToolsStyles as s } from "../studio-ai-tools.styles";
@@ -23,6 +26,30 @@ export function parseObsidianConnect(
   const state = params.get("state");
   if (params.get("connect") !== "obsidian" || state === null) return undefined;
   return STATE.test(state) ? { state } : undefined;
+}
+
+/** The name Connect gives the app password it creates. */
+export const CONNECT_LABEL = "Obsidian";
+
+/**
+ * The app password Connect created, once it exists: named Obsidian, allowed
+ * to save, and not the one shown when the person chose Connect. A password
+ * made by hand before stays on this page and never goes to Obsidian.
+ */
+export function connectPassword(
+  created: AuthAccountAppPasswordSecret | null,
+  /** The username of the password shown when Connect was chosen. */
+  shownBefore: string | null,
+  /** The account's app passwords, which say each one's name and access. */
+  listed: readonly AuthAccountAppPassword[],
+): AuthAccountAppPasswordSecret | null {
+  if (created === null || created.username === shownBefore) return null;
+  const entry = listed.find(
+    (candidate) => candidate.username === created.username,
+  );
+  return entry?.label === CONNECT_LABEL && entry.access === "write"
+    ? created
+    : null;
 }
 
 /** The link that hands a new app password to the Obsidian that asked. */

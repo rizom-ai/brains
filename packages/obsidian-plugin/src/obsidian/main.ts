@@ -13,17 +13,21 @@ import {
   DriveClient,
   DriveMissingError,
   DriveOfflineError,
+  DriveUnavailableError,
   SyncEngine,
-  emptyState,
   type FileNote,
   type HttpFetch,
   type SyncReport,
   type SyncState,
 } from "../engine";
+import { acceptConnect, originOf, type PendingConnect } from "./connect";
 import { DeletesModal, FilesModal, FirstSyncModal } from "./modals";
 import { BUSY_MS, ObsidianVault } from "./obsidian-vault";
 import {
+  addressKey,
   parsePluginData,
+  stateFor,
+  withState,
   type BrainSyncSettings,
   type PluginData,
 } from "./settings";
@@ -60,6 +64,7 @@ const STATUS_TEXT: Record<SyncReport["status"], string> = {
   synced: "Brain: synced",
   "first-sync": "Brain: waiting to start",
   offline: "Brain: offline",
+  unavailable: "Brain: not answering, trying again",
   "signed-out": "Brain: sign in again",
   "no-drive": "Brain: no drive at this address",
 };
@@ -87,7 +92,13 @@ export default class BrainSyncPlugin extends Plugin {
   private saveTimers = new Map<string, number>();
   private interval: number | undefined;
   /** The Connect request this vault opened, until the brain answers it. */
-  private pendingConnect: { state: string; address: string } | undefined;
+  private pendingConnect: PendingConnect | undefined;
+  /** Every engine call runs after the one before, across engines too. */
+  private queue: Promise<unknown> = Promise.resolve();
+  /** Which brain and app password the engine was made for. */
+  private engineFor = "";
+  /** One dialog of each kind at a time. */
+  private asking = { firstSync: false, deletes: false };
 
   override async onload(): Promise<void> {
     this.data = parsePluginData(await this.loadData());
@@ -135,19 +146,21 @@ export default class BrainSyncPlugin extends Plugin {
     return this.data.settings;
   }
 
-  /** Change settings; a different brain starts from a fresh sync state. */
+  /**
+   * Change settings. Each brain keeps its own sync state, so editing the
+   * address, even one letter and back, loses nothing.
+   */
   async updateSettings(change: Partial<BrainSyncSettings>): Promise<void> {
-    const before = this.data.settings;
-    this.data.settings = { ...before, ...change };
-    if (
-      change.address !== undefined &&
-      change.address.trim() !== this.data.state.address
-    ) {
-      this.data.state = emptyState(change.address.trim());
-    }
-    this.engine = undefined;
+    this.data.settings = { ...this.data.settings, ...change };
     await this.saveData(this.data);
-    this.restartInterval();
+    if (change.intervalMinutes !== undefined) this.restartInterval();
+  }
+
+  /** Run an engine call after the one before, whichever engine made it. */
+  private serially<T>(work: () => Promise<T>): Promise<T> {
+    const run = this.queue.then(work, work);
+    this.queue = run.catch(() => undefined);
+    return run;
   }
 
   private connected(): boolean {
@@ -162,18 +175,20 @@ export default class BrainSyncPlugin extends Plugin {
 
   private getEngine(): SyncEngine | undefined {
     if (!this.connected() || !this.vault) return undefined;
-    if (!this.engine) {
-      if (this.data.state.address === "") {
-        this.data.state.address = this.config.address.trim();
-      }
+    const { address, username, password } = this.config;
+    const key = addressKey(address);
+    if (key === "") return undefined;
+    const made = `${key} ${username} ${password}`;
+    if (!this.engine || this.engineFor !== made) {
+      this.engineFor = made;
       this.engine = new SyncEngine({
         vault: this.vault,
         drive: this.drive(),
+        // The state of the brain this engine syncs with, and no other.
         store: {
-          load: async (): Promise<SyncState> =>
-            structuredClone(this.data.state),
+          load: async (): Promise<SyncState> => stateFor(this.data, key),
           save: async (state): Promise<void> => {
-            this.data.state = structuredClone(state);
+            this.data = withState(this.data, key, state);
             await this.saveData(this.data);
           },
         },
@@ -202,14 +217,18 @@ export default class BrainSyncPlugin extends Plugin {
     this.registerEvent(
       this.app.vault.on("delete", (file) => {
         if (!(file instanceof TFile) || vault.isOwnEvent(file.path)) return;
-        void this.getEngine()?.noteDeleted(file.path);
+        const engine = this.getEngine();
+        if (engine) void this.serially(() => engine.noteDeleted(file.path));
       }),
     );
     this.registerEvent(
       this.app.vault.on("rename", (file, oldPath) => {
         if (!(file instanceof TFile)) return;
         if (vault.isOwnEvent(file.path) || vault.isOwnEvent(oldPath)) return;
-        void this.getEngine()?.noteRenamed(oldPath, file.path);
+        const engine = this.getEngine();
+        if (engine) {
+          void this.serially(() => engine.noteRenamed(oldPath, file.path));
+        }
       }),
     );
   }
@@ -223,8 +242,11 @@ export default class BrainSyncPlugin extends Plugin {
       window.setTimeout(() => {
         this.saveTimers.delete(path);
         const engine = this.getEngine();
-        if (engine)
-          void engine.syncFile(path).then((report) => this.show(report));
+        if (engine) {
+          void this.serially(() => engine.syncFile(path)).then((report) =>
+            this.show(report),
+          );
+        }
       }, BUSY_MS + 500),
     );
   }
@@ -246,7 +268,7 @@ export default class BrainSyncPlugin extends Plugin {
       return;
     }
     this.renderStatus("Brain: syncing…");
-    this.show(await engine.sync());
+    this.show(await this.serially(() => engine.sync()));
   }
 
   /** Show what a sync did, and ask what it could not decide alone. */
@@ -278,15 +300,35 @@ export default class BrainSyncPlugin extends Plugin {
       }
     }
     const engine = this.getEngine();
-    if (report.firstSync && engine) {
-      new FirstSyncModal(this.app, report.firstSync, () => {
-        void engine.applyFirstSync().then((applied) => this.show(applied));
-      }).open();
+    if (report.firstSync && engine && !this.asking.firstSync) {
+      this.asking.firstSync = true;
+      new FirstSyncModal(
+        this.app,
+        report.firstSync,
+        () => {
+          void this.serially(() => engine.applyFirstSync()).then((applied) =>
+            this.show(applied),
+          );
+        },
+        () => {
+          this.asking.firstSync = false;
+        },
+      ).open();
     }
-    if (report.decision && engine) {
-      new DeletesModal(this.app, report.decision, (answer) => {
-        void engine.resolveDeletes(answer).then((done) => this.show(done));
-      }).open();
+    if (report.decision && engine && !this.asking.deletes) {
+      this.asking.deletes = true;
+      new DeletesModal(
+        this.app,
+        report.decision,
+        (answer) => {
+          void this.serially(() => engine.resolveDeletes(answer)).then((done) =>
+            this.show(done),
+          );
+        },
+        () => {
+          this.asking.deletes = false;
+        },
+      ).open();
     }
   }
 
@@ -330,46 +372,42 @@ export default class BrainSyncPlugin extends Plugin {
       if (error instanceof DriveOfflineError) {
         return "Your brain cannot be reached. Check the address and your connection.";
       }
+      if (error instanceof DriveUnavailableError) {
+        return "Your brain is not answering for now. Try again in a minute.";
+      }
       throw error;
     }
   }
 
   /** Open the brain in the browser, where the person confirms the connection. */
   startConnect(): void {
-    const address = this.config.address.trim();
-    if (address === "") {
+    const origin = originOf(this.config.address);
+    if (origin === undefined) {
       new Notice(
         "Enter your brain's address in the Brain Sync settings first.",
       );
       return;
     }
-    const origin = new URL(
-      /^https?:\/\//i.test(address) ? address : `https://${address}`,
-    ).origin;
     const state = randomState();
-    this.pendingConnect = { state, address: origin };
+    this.pendingConnect = { state, origin };
     window.open(connectUrl(origin, state));
   }
 
   /** The brain handed back a new app password for the Connect this vault opened. */
   private async finishConnect(params: ObsidianProtocolData): Promise<void> {
-    const pending = this.pendingConnect;
-    const { state, username, password } = params;
-    // Only an answer to the request this vault made is taken: a link from
-    // anywhere else never changes where the vault syncs.
-    if (
-      !pending ||
-      state !== pending.state ||
-      username === undefined ||
-      password === undefined
-    ) {
+    const accepted = acceptConnect(
+      this.pendingConnect,
+      params,
+      this.config.address,
+    );
+    if (!accepted) {
       new Notice(
-        "This connection link was not opened from this vault, so it was ignored.",
+        "This connection link does not answer a Connect from this vault for this brain, so it was ignored.",
       );
       return;
     }
     this.pendingConnect = undefined;
-    await this.updateSettings({ username, password });
+    await this.updateSettings(accepted);
     new Notice("Connected to your brain.");
     await this.syncNow();
   }

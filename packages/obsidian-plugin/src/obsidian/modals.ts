@@ -15,11 +15,18 @@ function list(container: HTMLElement, title: string, items: string[]): void {
 export class FirstSyncModal extends Modal {
   private readonly plan: FirstSyncPlan;
   private readonly onConfirm: () => void;
+  private readonly onClosed: () => void;
 
-  constructor(app: App, plan: FirstSyncPlan, onConfirm: () => void) {
+  constructor(
+    app: App,
+    plan: FirstSyncPlan,
+    onConfirm: () => void,
+    onClosed: () => void,
+  ) {
     super(app);
     this.plan = plan;
     this.onConfirm = onConfirm;
+    this.onClosed = onClosed;
   }
 
   override onOpen(): void {
@@ -58,6 +65,7 @@ export class FirstSyncModal extends Modal {
 
   override onClose(): void {
     this.contentEl.empty();
+    this.onClosed();
   }
 }
 
@@ -70,15 +78,18 @@ export interface DeleteAnswer {
 export class DeletesModal extends Modal {
   private readonly decision: DeleteDecision;
   private readonly onAnswer: (answer: DeleteAnswer) => void;
+  private readonly onClosed: () => void;
 
   constructor(
     app: App,
     decision: DeleteDecision,
     onAnswer: (answer: DeleteAnswer) => void,
+    onClosed: () => void,
   ) {
     super(app);
     this.decision = decision;
     this.onAnswer = onAnswer;
+    this.onClosed = onClosed;
   }
 
   override onOpen(): void {
@@ -138,6 +149,7 @@ export class DeletesModal extends Modal {
 
   override onClose(): void {
     this.contentEl.empty();
+    this.onClosed();
   }
 }
 

@@ -2,6 +2,7 @@ import {
   DriveAuthError,
   DriveMissingError,
   DriveOfflineError,
+  DriveUnavailableError,
   type DriveClient,
   type PutOptions,
 } from "./drive-client";
@@ -26,6 +27,8 @@ export type SyncStatus =
   /** The vault was never synced: a plan waits for the person's yes. */
   | "first-sync"
   | "offline"
+  /** The brain is there but not answering for now, as during a deploy. */
+  | "unavailable"
   | "signed-out"
   | "no-drive";
 
@@ -169,6 +172,12 @@ export class SyncEngine {
     return this.exclusive(() =>
       this.guarded(async (context) => {
         const remote = await this.listRemote(context);
+        // Said yes again: the first sync was made, and this is a sync.
+        if (context.state.initialized) {
+          await this.replayRenames(context);
+          await this.reconcile(context, remote, await this.scanLocal(context));
+          return;
+        }
         const plan = await this.planFirstSync(context, remote);
         const local = await this.scanLocal(context);
         for (const path of plan.agreed) {
@@ -177,9 +186,13 @@ export class SyncEngine {
           if (file && etag) await this.record(context, path, etag, file);
         }
         for (const path of plan.replace) {
-          // The vault's version goes aside; the brain's takes its place.
-          await this.vault.rename(path, conflictCopyPath(path, this.now()));
-          await this.download(context, path, undefined);
+          // The vault's version is copied aside, never moved: a move would
+          // point other notes' links at the copy. The brain's takes its place.
+          const file = local.get(path);
+          if (!file) continue;
+          const bytes = await file.bytes();
+          await this.vault.write(conflictCopyPath(path, this.now()), bytes);
+          await this.download(context, path, file);
         }
         for (const path of plan.download) {
           await this.download(context, path, undefined);
@@ -209,11 +222,7 @@ export class SyncEngine {
         const hash = await sha256Hex(bytes);
         const known = context.state.paths[path];
         if (known?.hash === hash) return;
-        context.vaultImages = new Set(
-          (await this.vault.listFiles()).filter((name) =>
-            name.startsWith(`${IMAGE_FOLDER}/`),
-          ),
-        );
+        await this.loadVaultImages(context);
         await this.upload(
           context,
           path,
@@ -261,6 +270,7 @@ export class SyncEngine {
           }
         }
         const gone = answer.remoteGone;
+        if (gone?.action === "keep") await this.loadVaultImages(context);
         for (const path of gone?.paths ?? []) {
           if (gone?.action === "trash") {
             await this.vault.trash(path);
@@ -309,6 +319,8 @@ export class SyncEngine {
     } catch (error) {
       if (error instanceof DriveOfflineError) {
         context.report.status = "offline";
+      } else if (error instanceof DriveUnavailableError) {
+        context.report.status = "unavailable";
       } else if (error instanceof DriveAuthError) {
         context.report.status = "signed-out";
       } else if (error instanceof DriveMissingError) {
@@ -477,6 +489,10 @@ export class SyncEngine {
       // to send, it is left for the next sync. Sending one only writes back
       // over the text it sent.
       const editedHere = file !== undefined && file.hash !== known?.hash;
+      // A file that is there again was not deleted after all.
+      if (file !== undefined && state.deletes.includes(path)) {
+        state.deletes = state.deletes.filter((marked) => marked !== path);
+      }
       if (this.vault.isBusy(path) && !editedHere) continue;
       try {
         if (!known) {
@@ -520,6 +536,7 @@ export class SyncEngine {
       } catch (error) {
         if (
           error instanceof DriveOfflineError ||
+          error instanceof DriveUnavailableError ||
           error instanceof DriveAuthError
         ) {
           throw error;
@@ -611,32 +628,67 @@ export class SyncEngine {
     } else {
       await this.vault.write(path, bytes);
     }
-    const stat = await this.vault.stat(path);
-    await this.record(context, path, etag, {
-      hash: await sha256Hex(bytes),
-      size: stat?.size ?? bytes.byteLength,
-      mtime: stat?.mtime ?? 0,
-    });
+    await this.settle(context, path, etag, bytes);
     context.report.downloaded.push(path);
     return true;
   }
 
-  /** Make sure the brain holds an image a note embeds, before the note goes up. */
-  private async ensureImage(context: Context, path: string): Promise<void> {
-    if (context.state.paths[path] || context.remote?.files.has(path)) return;
+  /**
+   * Record that the vault and the brain agree on `kept`. The file's size and
+   * time are kept only while it still holds those bytes: a file changed
+   * meanwhile, by a save during the upload, is hashed again by the next
+   * sync, which then sees the change.
+   */
+  private async settle(
+    context: Context,
+    path: string,
+    etag: string,
+    kept: Uint8Array,
+  ): Promise<void> {
+    const hash = await sha256Hex(kept);
     const stat = await this.vault.stat(path);
-    if (!stat) return;
+    const unchanged =
+      stat !== undefined &&
+      (await sha256Hex(await this.vault.read(path))) === hash;
+    context.state.paths[path] = unchanged
+      ? { etag, hash, size: stat.size, mtime: stat.mtime }
+      : { etag, hash };
+    // The file is in both places: whatever delete was marked for it is over.
+    context.state.deletes = context.state.deletes.filter(
+      (marked) => marked !== path,
+    );
+    await this.store.save(context.state);
+  }
+
+  private async loadVaultImages(context: Context): Promise<void> {
+    context.vaultImages = new Set(
+      (await this.vault.listFiles()).filter((name) =>
+        name.startsWith(`${IMAGE_FOLDER}/`),
+      ),
+    );
+  }
+
+  /**
+   * Make sure the brain holds an image a note embeds, before the note goes
+   * up. Why the brain did not take it, when it did not.
+   */
+  private async ensureImage(
+    context: Context,
+    path: string,
+  ): Promise<string | undefined> {
+    if (context.state.paths[path] || context.remote?.files.has(path)) {
+      return undefined;
+    }
+    if (!(await this.vault.exists(path))) return "It is not in the vault.";
     const bytes = await this.vault.read(path);
     const result = await this.drive.put(path, bytes, { ifAbsent: true });
     if ((result.status === 201 || result.status === 204) && result.etag) {
-      await this.record(context, path, result.etag, {
-        hash: await sha256Hex(bytes),
-        size: stat.size,
-        mtime: stat.mtime,
-      });
+      await this.settle(context, path, result.etag, bytes);
       context.imageFiles.set(stemOf(path), path);
       context.report.uploaded.push(path);
+      return undefined;
     }
+    return result.message || `The brain refused it (${result.status}).`;
   }
 
   /** Send a file to the brain, and settle the vault with what the brain kept. */
@@ -649,12 +701,35 @@ export class SyncEngine {
     const local = await file.bytes();
     let send = local;
     if (file.flavor === "text") {
-      const up = imagesUp(textOf(local), context.vaultImages);
-      for (const image of up.images) await this.ensureImage(context, image);
-      if (up.outside.length > 0) {
+      const first = imagesUp(textOf(local), context.vaultImages);
+      const refused = new Map<string, string>();
+      for (const image of first.images) {
+        const reason = await this.ensureImage(context, image);
+        if (reason !== undefined) refused.set(image, reason);
+      }
+      // An image the brain did not take keeps its embed: a reference to an
+      // image the brain does not hold would show nothing anywhere.
+      const held = new Set(
+        [...context.vaultImages].filter((image) => !refused.has(image)),
+      );
+      const up = imagesUp(textOf(local), held);
+      const refusedNames = new Set(
+        [...refused.keys()].flatMap((image) => [
+          image,
+          image.slice(IMAGE_FOLDER.length + 1),
+        ]),
+      );
+      const outside = up.outside.filter((name) => !refusedNames.has(name));
+      for (const [image, reason] of refused) {
         context.report.issues.push({
           path,
-          reason: `The brain cannot show images from outside image/: ${up.outside.join(", ")}`,
+          reason: `The brain did not take ${image}, so the note keeps its embed: ${reason}`,
+        });
+      }
+      if (outside.length > 0) {
+        context.report.issues.push({
+          path,
+          reason: `The brain cannot show images from outside image/: ${outside.join(", ")}`,
         });
       }
       send = bytesOf(up.text);
@@ -682,12 +757,7 @@ export class SyncEngine {
           }
         }
       }
-      const stat = await this.vault.stat(path);
-      await this.record(context, path, etag, {
-        hash: await sha256Hex(kept),
-        size: stat?.size ?? kept.byteLength,
-        mtime: stat?.mtime ?? 0,
-      });
+      await this.settle(context, path, etag, kept);
       context.report.uploaded.push(path);
       return;
     }
@@ -728,8 +798,25 @@ export class SyncEngine {
   /** Delete an entry the person deleted, only as the version they last saw. */
   private async deleteInBrain(context: Context, path: string): Promise<void> {
     const known = context.state.paths[path];
-    if (!known) return;
+    const forget = (): void => {
+      context.state.deletes = context.state.deletes.filter(
+        (marked) => marked !== path,
+      );
+    };
+    if (!known) {
+      forget();
+      return;
+    }
     const status = await this.drive.delete(path, known.etag);
+    if (status >= 500) {
+      // Not a refusal: the delete is tried again at the next sync.
+      context.report.issues.push({
+        path,
+        reason: `The brain could not delete this entry yet (${status}); it is tried again.`,
+      });
+      return;
+    }
+    forget();
     if (status === 204 || status === 200 || status === 404) {
       delete context.state.paths[path];
       await this.store.save(context.state);
@@ -778,6 +865,13 @@ export class SyncEngine {
             }
           } else if (result.status === 404) {
             delete state.paths[rename.from];
+          } else if (result.status >= 500) {
+            // Not a refusal: the rename waits for the next sync, in order.
+            context.report.issues.push({
+              path: rename.to,
+              reason: `The brain could not rename this yet (${result.status}); it is tried again.`,
+            });
+            return;
           } else {
             await this.undoRename(
               context,

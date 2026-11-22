@@ -3,6 +3,7 @@ export {
   DriveClient,
   DriveMissingError,
   DriveOfflineError,
+  DriveUnavailableError,
   driveUrl,
   parseMultistatus,
   type DriveCredentials,
