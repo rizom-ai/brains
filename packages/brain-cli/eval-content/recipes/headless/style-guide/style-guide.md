@@ -1,13 +1,21 @@
 ---
 name: Brain evaluation style
-voice:
-  summary: Clear, systems-minded, and practical
-  traits:
-    - direct
-    - grounded
-visual:
-  artDirection: Contemporary conceptual editorial illustration
-  avoid:
-    - photorealism
-    - text inside images
 ---
+
+## Voice
+
+- **Summary:** Clear, systems-minded, and practical
+
+### Traits
+
+- direct
+- grounded
+
+## Visual
+
+- **Art direction:** Contemporary conceptual editorial illustration
+
+### Avoid
+
+- photorealism
+- text inside images

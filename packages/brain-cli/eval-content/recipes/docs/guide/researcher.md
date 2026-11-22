@@ -3,30 +3,40 @@ title: Moving in as a researcher
 slug: researcher
 order: 20
 persona: The researcher
-for: >-
-  Years of notes, papers and saved links you want to connect and question. Most
-  of it sits in apps that never talk to each other.
 recipe: personal
 section: Use a brain
 summary: Notes, papers and saved links
-material:
-  - from: Notes and fragments
-    where: Obsidian, Apple Notes, a notes app
-    becomes: note
-    how: Export as Markdown, upload in chat
-  - from: Papers and reports
-    where: PDFs, exported articles
-    becomes: note
-    how: Upload the PDF in chat; its text becomes a note
-  - from: What you read
-    where: Bookmarks, open tabs, reading lists
-    becomes: link
-    how: Paste the URL in chat; it keeps a summary
-  - from: Diagrams and photos
-    where: Whiteboards, sketches, screenshots
-    becomes: image
-    how: Upload in chat and ask the brain to save it
 ---
+
+## For
+
+Years of notes, papers and saved links you want to connect and question. Most of it sits in apps that never talk to each other.
+
+## Material
+
+### Notes and fragments
+
+- **Where:** Obsidian, Apple Notes, a notes app
+- **Becomes:** note
+- **How:** Export as Markdown, upload in chat
+
+### Papers and reports
+
+- **Where:** PDFs, exported articles
+- **Becomes:** note
+- **How:** Upload the PDF in chat; its text becomes a note
+
+### What you read
+
+- **Where:** Bookmarks, open tabs, reading lists
+- **Becomes:** link
+- **How:** Paste the URL in chat; it keeps a summary
+
+### Diagrams and photos
+
+- **Where:** Whiteboards, sketches, screenshots
+- **Becomes:** image
+- **How:** Upload in chat and ask the brain to save it
 
 ## Bring your notes in
 

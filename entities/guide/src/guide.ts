@@ -3,6 +3,10 @@ import { defineEntity, type EntityDefinition } from "@brains/sdk/entities";
 import { getTemplates } from "./lib/register-templates";
 import { guideMetadataSchema } from "./schemas/guide";
 import { guideFrontmatterSchema } from "./schemas/guide-frontmatter";
+import {
+  GUIDE_BODY_FIELDS,
+  guideBodyMappings,
+} from "./schemas/guide-stored-form";
 
 const GUIDE_INSTRUCTIONS = [
   'Guides (entityType "guide") walk one kind of user through moving into a brain: a writer, researcher, consultant, team, or someone running their own brain.',
@@ -39,24 +43,9 @@ export const guide: EntityDefinition<"guide", typeof guideMetadataSchema> =
     markdown: bodyFieldsCodec({
       metadata: guideMetadataSchema,
       header: guideFrontmatterSchema,
-      bodyFields: ["for", "material"],
+      bodyFields: GUIDE_BODY_FIELDS,
       place: "above",
-      mappings: [
-        { key: "for", label: "For", type: "string" },
-        {
-          key: "material",
-          label: "Material",
-          type: "array",
-          itemType: "object",
-          itemTitle: "from",
-          itemMappings: [
-            { key: "from", label: "From", type: "string" },
-            { key: "where", label: "Where", type: "string", line: true },
-            { key: "becomes", label: "Becomes", type: "string", line: true },
-            { key: "how", label: "How", type: "string", line: true },
-          ],
-        },
-      ],
+      mappings: guideBodyMappings,
       // The class wrote its body from the line under its header.
       content: (content) => content.replace(/^\n+/u, ""),
       stated: statedGuideFields,

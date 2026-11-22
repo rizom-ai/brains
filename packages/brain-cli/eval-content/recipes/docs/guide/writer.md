@@ -3,30 +3,40 @@ title: Moving in as a writer
 slug: writer
 order: 10
 persona: The writer
-for: >-
-  You have years of essays and a folder of drafts. Some of it is published on
-  platforms you don't own. Most of it never left Google Docs.
 recipe: professional
 section: Use a brain
 summary: Years of essays and drafts
-material:
-  - from: Drafts and fragments
-    where: Google Docs, Word, a notes app
-    becomes: note
-    how: Download as Markdown, bring the files in
-  - from: Published essays
-    where: Substack, Medium, your old blog
-    becomes: post
-    how: Upload in chat; the original address stays canonical
-  - from: Essays that belong together
-    where: A run you wrote over months
-    becomes: series
-    how: Ask the brain to group posts into a series
-  - from: What you read
-    where: Bookmarks, open tabs, sources you cite
-    becomes: link
-    how: Share the URL in chat; it keeps a summary
 ---
+
+## For
+
+You have years of essays and a folder of drafts. Some of it is published on platforms you don't own. Most of it never left Google Docs.
+
+## Material
+
+### Drafts and fragments
+
+- **Where:** Google Docs, Word, a notes app
+- **Becomes:** note
+- **How:** Download as Markdown, bring the files in
+
+### Published essays
+
+- **Where:** Substack, Medium, your old blog
+- **Becomes:** post
+- **How:** Upload in chat; the original address stays canonical
+
+### Essays that belong together
+
+- **Where:** A run you wrote over months
+- **Becomes:** series
+- **How:** Ask the brain to group posts into a series
+
+### What you read
+
+- **Where:** Bookmarks, open tabs, sources you cite
+- **Becomes:** link
+- **How:** Share the URL in chat; it keeps a summary
 
 ## Bring your drafts in
 

@@ -3,25 +3,33 @@ title: Running your own brain
 slug: self-hosting
 order: 50
 persona: Running your own brain
-for: >-
-  You want the brain on your own machine or server, your content in a folder and
-  a git repository you control, and the site on your own domain.
 section: Run a brain
 summary: Your own server, content and domain
-material:
-  - from: A folder of Markdown
-    where: An Obsidian vault, a notes folder
-    becomes: note
-    how: Copy it into brain-data/
-  - from: Saved links
-    where: Bookmarks you keep as Markdown files
-    becomes: link
-    how: Put them in brain-data/link/ with the link fields at the top
-  - from: Pictures
-    where: Images your notes refer to
-    becomes: image
-    how: Put them in brain-data/image/
 ---
+
+## For
+
+You want the brain on your own machine or server, your content in a folder and a git repository you control, and the site on your own domain.
+
+## Material
+
+### A folder of Markdown
+
+- **Where:** An Obsidian vault, a notes folder
+- **Becomes:** note
+- **How:** Copy it into brain-data/
+
+### Saved links
+
+- **Where:** Bookmarks you keep as Markdown files
+- **Becomes:** link
+- **How:** Put them in brain-data/link/ with the link fields at the top
+
+### Pictures
+
+- **Where:** Images your notes refer to
+- **Becomes:** image
+- **How:** Put them in brain-data/image/
 
 ## Install and start
 
