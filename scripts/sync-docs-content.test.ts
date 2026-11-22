@@ -69,19 +69,27 @@ material: []
 Text.
 `;
 
+// In the guide's stored form (docs/plans/one-stored-form.md): who it is
+// for and its material above its own sections.
 const expectedWriter = `---
 title: Moving in as a writer
 slug: writer
 order: 10
 persona: The writer
-for: You have years of essays.
 recipe: professional
-material:
-  - from: Drafts and fragments
-    where: Google Docs
-    becomes: note
-    how: Download as Markdown
 ---
+
+## For
+
+You have years of essays.
+
+## Material
+
+### Drafts and fragments
+
+- **Where:** Google Docs
+- **Becomes:** note
+- **How:** Download as Markdown
 
 ## Bring your drafts in
 
