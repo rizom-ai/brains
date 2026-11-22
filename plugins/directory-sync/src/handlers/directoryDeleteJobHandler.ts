@@ -1,7 +1,7 @@
 import type { DirectorySyncCore } from "../lib/sync-context";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
-import type { IDirectorySync } from "../types";
+import type { DirectoryProjectionBatchRef, IDirectorySync } from "../types";
 import {
   directoryDeleteJobSchema,
   type DeleteResult,
@@ -62,6 +62,7 @@ export class DirectoryDeleteJobHandler {
               index + 1,
               deletions.length,
               progressReporter,
+              validatedData.projectionBatch,
             ),
           );
         }
@@ -115,6 +116,7 @@ export class DirectoryDeleteJobHandler {
     progress: number,
     total: number,
     progressReporter: ProgressReporter,
+    projectionBatch?: DirectoryProjectionBatchRef,
   ): Promise<DeleteResult> {
     this.logger.info("Processing entity deletion for removed file", deletion);
 
@@ -129,7 +131,9 @@ export class DirectoryDeleteJobHandler {
         ...deletion,
         remaining,
       });
-      await this.directorySync.importEntities(remaining);
+      // Under the job's own batch: a delete job of a durable sync runs
+      // inside its root, which a batch of another identity cannot join.
+      await this.directorySync.importEntities(remaining, projectionBatch);
       await progressReporter.report({
         progress,
         total,

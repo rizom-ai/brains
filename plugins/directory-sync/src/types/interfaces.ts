@@ -71,7 +71,10 @@ export interface IDirectorySync {
     reporter: ProgressReporter,
     batchSize: number,
   ): Promise<ExportResult>;
-  importEntities(paths?: string[]): Promise<ImportResult>;
+  importEntities(
+    paths?: string[],
+    projectionBatch?: DirectoryProjectionBatchRef,
+  ): Promise<ImportResult>;
   removeOrphanedEntities(
     projectionBatch?: DirectoryProjectionBatchRef,
   ): Promise<CleanupResult>;
