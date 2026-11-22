@@ -37,7 +37,7 @@ export const guide: EntityDefinition<"guide", typeof guideMetadataSchema> =
     purpose:
       "A moving-in guide: how one kind of user brings their material and habits into a brain.",
     metadata: guideMetadataSchema,
-    // Its next form (docs/plans/one-stored-form.md) states who it is
+    // Its next form (docs/external-plugin-authoring.md, The stored format) states who it is
     // for and the material it moves in above the guide's own sections,
     // one heading per source.
     markdown: bodyFieldsCodec({

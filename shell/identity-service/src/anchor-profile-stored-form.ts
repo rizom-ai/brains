@@ -7,7 +7,7 @@ import { z } from "@brains/utils/zod";
 // Legacy: also reads the header form written before 0.2.0-alpha.760; removed with stored-form-old-headers (docs/legacy-code-inventory.json).
 
 /*
- * The anchor profile's next stored form (docs/plans/one-stored-form.md):
+ * The anchor profile's next stored form (docs/external-plugin-authoring.md, The stored format):
  * its short facts in the header; its prose (description, intro, purpose,
  * mission, current focus, availability), its working principles and its
  * links as body sections; and the free text the current form keeps as its

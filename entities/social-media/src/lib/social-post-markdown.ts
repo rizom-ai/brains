@@ -51,7 +51,7 @@ export function socialPostFrontmatter(
 }
 
 /**
- * A post's frontmatter in its next form (docs/plans/one-stored-form.md):
+ * A post's frontmatter in its next form (docs/external-plugin-authoring.md, The stored format):
  * its document attachments as a list of document ids, which Obsidian shows
  * as a property, in the place the list of attachments held.
  */

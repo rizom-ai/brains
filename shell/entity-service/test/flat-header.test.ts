@@ -7,7 +7,7 @@ import { nestedHeaderValueKeys } from "../src/flat-header";
 import { baseEntitySchema, type BaseEntity } from "../src/types";
 
 /**
- * A markdown file's header is flat (docs/plans/one-stored-form.md, Rule):
+ * A markdown file's header is flat (docs/external-plugin-authoring.md, The stored format):
  * scalars and lists of scalars, so Obsidian shows every key as a property
  * and a reader never meets an object it cannot edit. A type whose header
  * nests is refused when it registers; a YAML file's header may nest.

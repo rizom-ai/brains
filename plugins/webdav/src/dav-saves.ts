@@ -153,7 +153,7 @@ export async function saveEntityFile(
 
 /**
  * A YAML file sent for a YAML type whose store writes the next form, as
- * the stored document it is the header of (docs/plans/one-stored-form.md);
+ * the stored document it is the header of (docs/external-plugin-authoring.md, The stored format);
  * none for any other.
  */
 function asStoredDocument(

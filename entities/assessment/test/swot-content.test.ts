@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { parseSwotContent } from "../src/lib/swot-content";
 
 /**
- * A SWOT in either stored form (docs/plans/one-stored-form.md) reads the
+ * A SWOT in either stored form (docs/external-plugin-authoring.md, The stored format) reads the
  * same quadrants: every reader, the widget among them, parses its
  * document through parseSwotContent.
  */

@@ -5,7 +5,7 @@ import { faqBodyCodec, writtenFaqBody } from "../src/lib/faq-body";
 /**
  * An answer whose steps are a numbered list of bold labels, as a chat
  * answer often is, reads back from the new stored form
- * (docs/plans/one-stored-form.md): the list is the answer's text, never a
+ * (docs/external-plugin-authoring.md, The stored format): the list is the answer's text, never a
  * field line.
  */
 describe("a FAQ answer of numbered steps", () => {

@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { quizResultAdapter } from "../src/entity/adapter";
 
 /**
- * A quiz result in either stored form (docs/plans/one-stored-form.md)
+ * A quiz result in either stored form (docs/external-plugin-authoring.md, The stored format)
  * reads the same: the target and the persistence check parse it through
  * the adapter, which reads what was answered from the header or the body.
  */

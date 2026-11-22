@@ -21,7 +21,7 @@ import {
 } from "./helpers/setup-entity-service";
 
 /**
- * The form a stored document takes (docs/plans/one-stored-form.md): framed
+ * The form a stored document takes (docs/external-plugin-authoring.md, The stored format): framed
  * the same on every path, in the order of the document it replaces, with
  * no default its author did not state, unknown keys kept, and stored rows
  * brought to that form by a quiet rewrite on start.
@@ -572,7 +572,7 @@ class MovedTagsAdapter extends CardAdapter {
 /**
  * A key a type's new stored form states in its body is never carried back
  * into its header, even when a frontmatter extension names it, as a profile
- * kind names an anchor profile's purpose (docs/plans/one-stored-form.md).
+ * kind names an anchor profile's purpose (docs/external-plugin-authoring.md, The stored format).
  */
 class BodyTagsAdapter extends MovedTagsAdapter {
   public readonly bodyFieldKeys: readonly string[] = ["tags"];

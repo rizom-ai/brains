@@ -70,7 +70,7 @@ export interface BaseEntityAdapterConfig<
   /**
    * The header Studio and the vault are shown, when it is not the one the
    * adapter parses: a type that reads two stored forms presents the one
-   * the release writes (docs/plans/one-stored-form.md).
+   * the release writes (docs/external-plugin-authoring.md, The stored format).
    */
   presentedFrontmatterSchema?: z.ZodObject<z.ZodRawShape>;
   createFieldsSchema?: z.ZodObject<z.ZodRawShape>;

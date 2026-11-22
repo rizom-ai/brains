@@ -11,7 +11,7 @@ type SkillDefinition = EntityDefinition<
 
 /**
  * A skill's markdown. Its current form states every field in the header,
- * with no body; its next (docs/plans/one-stored-form.md) keeps its name
+ * with no body; its next (docs/external-plugin-authoring.md, The stored format) keeps its name
  * and tags there and states its description and examples in the body.
  */
 const skillMarkdown: NonNullable<SkillDefinition["markdown"]> = bodyFieldsCodec(

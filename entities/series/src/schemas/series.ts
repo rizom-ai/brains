@@ -88,7 +88,7 @@ export type SeriesBody = z.output<typeof seriesBodySchema>;
 
 /**
  * Create formatter for series content body. The next stored form
- * (docs/plans/one-stored-form.md) writes it in the compact layout, without
+ * (docs/external-plugin-authoring.md, The stored format) writes it in the compact layout, without
  * the title line; that layout reads the sectioned one too.
  */
 export function createSeriesBodyFormatter(

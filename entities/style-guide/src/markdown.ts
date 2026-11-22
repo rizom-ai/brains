@@ -6,7 +6,7 @@ import { generateMarkdown } from "@brains/utils/markdown-frontmatter";
 import { styleGuideBody } from "./stored-form";
 
 /**
- * A style guide's markdown in its stored form (docs/plans/one-stored-form.md):
+ * A style guide's markdown in its stored form (docs/external-plugin-authoring.md, The stored format):
  * its name as frontmatter, its structured guidance as body sections above
  * the free-form guidance.
  */

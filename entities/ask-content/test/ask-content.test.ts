@@ -74,7 +74,7 @@ describe("Ask content entity", () => {
   });
 });
 
-// The next stored form (docs/plans/one-stored-form.md) states the contact
+// The next stored form (docs/external-plugin-authoring.md, The stored format) states the contact
 // note and the refusal under the introduction.
 describe("an ask-content document in the next stored form", () => {
   test("reads the same presentation as the current form", () => {

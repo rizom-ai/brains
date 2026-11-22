@@ -60,7 +60,7 @@ export interface FormatterConfig {
   mappings: FieldMapping[];
   /**
    * `sections` (the default) gives every field its own heading under a
-   * title line. `compact` (docs/plans/one-stored-form.md, Body) writes no
+   * title line. `compact` (docs/external-plugin-authoring.md, The stored format) writes no
    * title line, a single-line value as a labeled line, a group's one prose
    * field as its plain text and a keyed record as one heading per key; it
    * reads the sectioned layout too, and refuses a heading or a label the

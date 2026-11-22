@@ -4,7 +4,7 @@ import { z } from "@brains/utils/zod";
 /*
  * Conversation memory documents (summaries, decisions, action items) as
  * main stored them, moved into the next stored form
- * (docs/plans/one-stored-form.md), for tests that compare the rows a store
+ * (docs/external-plugin-authoring.md, The stored format), for tests that compare the rows a store
  * writes now with the bytes captured from main's classes.
  */
 

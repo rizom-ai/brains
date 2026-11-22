@@ -6,7 +6,7 @@ import { StructuredContentFormatter } from "./structured-content";
  * A file a brain holds in the sectioned layout is read by a type that opted
  * in to the compact layout as the sectioned reader read it: a heading the
  * type does not name is ignored, "so no file a brain holds today is refused
- * by a check it did not have" (docs/plans/one-stored-form.md). Laying it out
+ * by a check it did not have" (docs/external-plugin-authoring.md, The stored format). Laying it out
  * anew refuses to drop that heading: the file stays as written, for its
  * author to settle.
  */

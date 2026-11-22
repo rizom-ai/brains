@@ -18,7 +18,7 @@ import { canonicalBrain } from "../src/model/canonical-brain";
  * schema its entity plugin class declared, as JSON Schema captured from the
  * class at the commit before its conversion
  * (fixtures/class-frontmatter.json), or, for a type whose file layout moved
- * (docs/plans/one-stored-form.md), the header its next stored form writes:
+ * (docs/external-plugin-authoring.md, The stored format), the header its next stored form writes:
  * what Studio's editor, the Obsidian vault's templates and fileClasses, and
  * frontmatter extensions read as the type's frontmatter. For post and playbook, the vault files and Studio's
  * editor fields are those the classes produced.

@@ -150,7 +150,7 @@ export function resolveEntityPlacement(
 /**
  * The file extension an entity is stored under. A text type's is the one
  * its store writes: `.md`, or `.yaml` for a YAML type once the store writes
- * the next form (docs/plans/one-stored-form.md).
+ * the next form (docs/external-plugin-authoring.md, The stored format).
  */
 export function getEntityFileExtension(
   entity: Pick<BaseEntity, "entityType" | "metadata" | "content">,

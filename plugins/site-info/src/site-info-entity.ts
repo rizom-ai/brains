@@ -26,7 +26,7 @@ const flatCtaShape = {
 };
 
 /**
- * The new form's header (docs/plans/one-stored-form.md): only what Obsidian
+ * The new form's header (docs/external-plugin-authoring.md, The stored format): only what Obsidian
  * shows as a property. The call to action is three flat keys; its subtitle,
  * the section blurbs and the translations are in the body.
  */

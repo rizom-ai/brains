@@ -95,7 +95,7 @@ export function withStoredSourceFields(
   stored: string,
 ): BaseEntity {
   // The document the update replaces, every key in its place
-  // (docs/plans/one-stored-form.md): the write keeps its order and what it
+  // (docs/external-plugin-authoring.md, The stored format): the write keeps its order and what it
   // states. The type's own values still come from its metadata, which an
   // encode states over these; visibility is the record's own.
   const kept = Object.fromEntries(

@@ -138,7 +138,7 @@ export function syncObsidianVault(
 
   for (const entityType of targetTypes) {
     // Obsidian hides a YAML file: a YAML type's records are edited in
-    // Studio or a text editor (docs/plans/one-stored-form.md).
+    // Studio or a text editor (docs/external-plugin-authoring.md, The stored format).
     if (shapes.fileExtension(entityType) === ".yaml") {
       logger.debug(`Skipping ${entityType}: its files are YAML`);
       skipped.push(entityType);

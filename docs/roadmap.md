@@ -162,7 +162,6 @@ Active cleanup and infrastructure plans:
 - [http-route-registry-hardening.md](./plans/http-route-registry-hardening.md) — continue security, matching, advertising, and cleanup beyond the shipped normalized registry.
 - [turso-salvage.md](./plans/turso-salvage.md) — carry the engine-independent parts of the frozen Turso branch onto libSQL; `0.3` stays on libSQL.
 - [frontmatter-hygiene.md](./plans/frontmatter-hygiene.md) — keep entity frontmatter to what a person authors or reads: a retired-fields mechanism with a rewrite on start, then verified trims of conversation memory, agents, publishing and small types.
-- [one-stored-form.md](./plans/one-stored-form.md) — the stored format frozen for `0.2.0`: a flat, Obsidian-readable markdown header, prose in the body, YAML files for data, one form whatever path wrote it, and a silent migration for brains on an alpha.
 - [local-model-runtime.md](./plans/local-model-runtime.md) — per-brain model selection for embeddings, text and images, with a local runtime sidecar; a fully local proof-of-concept brain (text + embeddings) by 2026-11-20 for the Mozilla Human-Scale AI application.
 
 Research probes (parked):

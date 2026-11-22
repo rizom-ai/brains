@@ -1831,7 +1831,7 @@ describe("system_update tool", () => {
   });
 
   // In its stored form the character's purpose is a body section, which no
-  // field names (docs/plans/one-stored-form.md).
+  // field names (docs/external-plugin-authoring.md, The stored format).
   it("names no field for what a body-backed adapter keeps in its body", async () => {
     useBrainCharacterAdapter();
 
