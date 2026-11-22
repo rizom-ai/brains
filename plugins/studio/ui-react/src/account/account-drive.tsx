@@ -4,7 +4,7 @@ import type {
   AuthAccountAppPassword,
   AuthAccountSnapshot,
 } from "@brains/contracts";
-import { useState, type ReactElement } from "react";
+import { useEffect, useState, type ReactElement } from "react";
 import {
   accountClass,
   accountStyles as accountLayout,
@@ -14,6 +14,11 @@ import { ClientCard, Snippet } from "./account-ai-tools";
 import { accountTimestamp } from "./account-format";
 import { AccountAccessItem, AccountDetailSection } from "./account-primitives";
 import { driveClients } from "./drive-clients";
+import {
+  ObsidianConnectCard,
+  obsidianConnectLink,
+  type ObsidianConnect,
+} from "./obsidian-connect";
 import type { AccountActions } from "./use-account-actions";
 
 const LABEL_FIELD = "app-password-label";
@@ -45,9 +50,21 @@ export function AccountDriveTab(props: {
   davUrl: string;
   account: AuthAccountSnapshot;
   actions: AccountActions;
+  connect?: ObsidianConnect | undefined;
 }): ReactElement {
-  const { account, actions } = props;
+  const { account, actions, connect } = props;
   const { busy, createdAppPassword } = actions;
+  // Obsidian asked: the app password Connect creates goes to Obsidian, and
+  // is never shown here.
+  const [connecting, setConnecting] = useState(false);
+  const forObsidian = connect !== undefined && connecting;
+  useEffect(() => {
+    if (connect && connecting && createdAppPassword) {
+      window.location.assign(
+        obsidianConnectLink(connect.state, createdAppPassword),
+      );
+    }
+  }, [connect, connecting, createdAppPassword]);
   const nowSeconds = Math.floor(Date.now() / 1000);
   const [allowSaving, setAllowSaving] = useState(false);
   const clients = driveClients(props.davUrl);
@@ -63,6 +80,17 @@ export function AccountDriveTab(props: {
         title="Drive"
         description="Mount this brain as a network drive. It shows the notes, posts and files you can see here, as folders and files, to open and edit on your computer."
       >
+        {connect ? (
+          <ObsidianConnectCard
+            connect={connect}
+            created={forObsidian ? createdAppPassword : null}
+            busy={busy}
+            onConnect={() => {
+              setConnecting(true);
+              actions.createAppPassword("Obsidian", "write");
+            }}
+          />
+        ) : null}
         <article className={accountClass("drive-address", s.client)}>
           <h4 className={accountClass("", s.clientName)}>
             Your brain’s drive address
@@ -75,7 +103,7 @@ export function AccountDriveTab(props: {
         title="App passwords"
         description="A mount signs in with an app password instead of your passkey. It works only for the drive, expires after a year and can be revoked here. It can only read unless you allow saving changes."
       >
-        {createdAppPassword ? (
+        {createdAppPassword && !forObsidian ? (
           <article
             data-app-password-reveal
             className={accountClass("drive-reveal", s.client)}
@@ -183,6 +211,23 @@ export function AccountDriveTab(props: {
             </Button>
           </div>
         </form>
+      </AccountDetailSection>
+
+      <AccountDetailSection
+        title="Use it in Obsidian"
+        description="Keep an Obsidian vault on your computer in step with your brain. Obsidian stays fast and works offline; notes and images sync in the background."
+      >
+        <article className={accountClass("drive-obsidian", s.client)}>
+          <h4 className={accountClass("", s.clientName)}>Brain Sync</h4>
+          <ol className={accountClass("", s.steps)}>
+            <li>Install the Brain Sync plugin in Obsidian and turn it on.</li>
+            <li>
+              In its settings, enter your brain’s address:{" "}
+              <code>{new URL(props.davUrl).host}</code>
+            </li>
+            <li>Choose Connect, and confirm on the page that opens here.</li>
+          </ol>
+        </article>
       </AccountDetailSection>
 
       <AccountDetailSection
