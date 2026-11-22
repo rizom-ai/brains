@@ -23,6 +23,13 @@ What the drive already offers a sync client:
 - `MOVE` of a note onto another note's name renames the note (`renameNoteFile`, on #1028).
 - App passwords, read-only or read-and-write, valid a year (`shell/auth-service/src/app-password-store.ts`).
 
+What Obsidian offers a plugin, from its published API (`obsidianmd/obsidian-api`, `obsidian.d.ts`):
+
+- `requestUrl` sends any method, headers and a text or binary body without the browser's cross-origin rules, and returns the status and headers. Remotely Save sends `PROPFIND` through it on iOS, so WebDAV's methods reach a server from the mobile apps.
+- `Vault.on` reports `create`, `modify`, `delete` and `rename` with the old path.
+- `Vault.process` rewrites a file atomically from its current text; `createBinary`, `modifyBinary` and `readBinary` handle images; `FileManager.trashFile` deletes as the person's settings say.
+- `registerObsidianProtocolHandler` receives an `obsidian://` link; `loadData` and `saveData` keep the plugin's own state.
+
 ## Goal
 
 A person installs one plugin in Obsidian, enters their brain's address, signs in, and works in a vault on their own disk that stays in step with the brain.
@@ -30,7 +37,7 @@ A person installs one plugin in Obsidian, enters their brain's address, signs in
 1. Obsidian is as fast as on any local vault, wherever the brain runs, and works offline.
 2. Notes and images written in Obsidian become entries in the brain; entries changed in the brain appear in the vault.
 3. Renaming a note in Obsidian renames the note in the brain.
-4. An edit made in both places is never lost: the brain's version is in the vault and the other is in the Inbox.
+4. An edit made in both places is never lost: the brain's version is in the vault, and the other is in the Inbox and in a `Conflicts` folder in the vault.
 5. What the brain does not store stays in the vault, untouched and unsynced, and the plugin says which files those are.
 
 It works on Obsidian's desktop and mobile apps.
@@ -41,6 +48,7 @@ It works on Obsidian's desktop and mobile apps.
 - No sync of `.obsidian`. Settings are per device; the drive keeps `.obsidian` for a mounted vault and that stays as it is.
 - No end-to-end encryption. The brain reads what it stores.
 - No merging of text inside a note. Two versions of one note are a conflict.
+- Not part of stable 0.2.0. The drive's changes for it are additive and answer only a request that carries the sync header.
 - No PDFs or other documents in the first version; the drive takes none (`dav-saves.ts`, "The drive cannot take documents").
 - No folders for notes in the first version. A brain's notes are single files at the root (`shared/entity-placement/src/placement.ts`: a note is writable only with one id segment), so a note inside a folder that is not an entity type has no place in the brain.
 
@@ -65,7 +73,7 @@ Per synced path the plugin stores, in its own data file: the ETag the brain had 
 
 ### One sync
 
-A sync runs when the vault opens, after a save (debounced), on a timer, and on command.
+A full sync runs when the vault opens, every five minutes, and on command. A save in Obsidian uploads that one file, without a listing.
 
 ```
 list the drive: root, then each entity-type folder (PROPFIND, Depth 1)
@@ -76,24 +84,56 @@ for each path known to either side:
   local changed, brain unchanged        → PUT If-Match: <stored ETag>
         204 with the stored version's ETag
               stored as sent            → store ETag and hash
-              stored in another form    → GET, write the stored form locally, store
+              stored in another form    → write the stored form locally (see "Writing into the vault")
         412 (changed since the listing) → handle as "both changed"
         403 / 422                       → leave the file, show the reason on it
-  both changed                          → PUT as a sync client (see below)
+  both changed                          → copy the local text to Conflicts/, then PUT as a sync client
         kept as a conflict              → GET the brain's version, write it,
-                                          notice: "kept in the Inbox", with a link
+                                          notice: where the other version is
   new local file                        → PUT If-None-Match: *
         201                             → store
         412 (the name is taken)         → handle as "both changed"
         403 / 422                       → local only, with the reason
   new entry in the brain                → GET, create the file
-  local file deleted, brain unchanged   → DELETE If-Match: <stored ETag>
+  local file deleted, brain unchanged   → DELETE If-Match: <stored ETag>   (see "Deletes")
         412                             → the entry changed: GET it back
-  entry deleted, local unchanged        → move the file to Obsidian's trash
+  entry deleted, local unchanged        → trash the file as the person's settings say
   entry deleted, local changed          → PUT If-None-Match: * (the edit survives as a new entry)
+  401                                   → stop; status "sign in again"; nothing is changed
 ```
 
 A request that fails for the network leaves the path as it was; the next sync tries again. A sync never runs twice at once.
+
+### Deletes
+
+A file missing from the vault deletes its entry only when the plugin saw the delete happen (`Vault.on('delete')`) or the person confirms it. A full sync that finds files missing without that event, as after a vault folder was emptied or restored from a backup, deletes nothing: it lists the entries and asks whether to delete them in the brain or download them again. The same question is asked when one sync would delete more than five entries.
+
+### The first sync of a vault
+
+Before anything is written on either side, the plugin shows what it will do and waits for a yes:
+
+```
+only in the brain                 → download
+only in the vault, a place the brain has → upload as a new entry
+only in the vault, no such place  → local only
+in both, same text                → record as agreed
+in both, different text           → the brain's version goes into the vault;
+                                    the vault's file is moved to Conflicts/ first.
+                                    Nothing is sent to the Inbox: these were never
+                                    edits of the brain's version.
+```
+
+### The Conflicts folder
+
+`Conflicts/` at the vault's root is not an entity type, so it is never uploaded. A local version that loses is copied there as `<name> <date and time>.md` before the brain's version replaces it. The Inbox holds the same text for an admin and for Studio's editor; the folder is what a person of any role has at hand in Obsidian.
+
+### Writing into the vault
+
+The plugin never writes into a note that is being typed in. A download or a stored form waits until the file has had no `modify` event for five seconds, and is written with `Vault.process`, which only replaces the text the plugin last saw: when the file changed again in between, nothing is written and the next sync compares anew.
+
+### Images in notes
+
+A brain's note refers to an image as `![alt](entity://image/<id>)` (`shell/entity-service/src/lib/content-resolver.ts`); Obsidian shows an embed of the file itself, as a Markdown image link to its path under `image/` or as `![[<file>]]`. The plugin translates between the two as a note passes through: on the way down, a reference to an image entity becomes a link to its file in `image/`; on the way up, an embed of a file in `image/` becomes a reference to that image's entity, uploaded first when it is new. The stored state keeps the brain's ETag and the hash of the translated local text, so the difference between the two forms is never taken for an edit. An embed of a file outside `image/` is left as it is and the note is marked: the brain cannot show that image.
 
 ### Renames
 
@@ -119,14 +159,14 @@ Without the header the drive behaves as it does today.
 
 ### Signing in
 
-First version: the person creates a read-and-write app password in Studio's Drive tab and pastes the user name and password into the plugin's settings. The plugin checks them with one listing and says what is wrong when it fails: wrong password, read-only password, no drive on this brain.
+First version: the person creates a read-and-write app password in Studio's Drive tab and pastes the user name and password into the plugin's settings. The plugin checks them with one listing and says what is wrong when it fails: wrong password, read-only password, no drive on this brain. An app password ends after a year or when it is revoked; the drive then answers 401, the plugin stops syncing, changes nothing on either side, and asks for a new one. Edits made meanwhile are uploaded after signing in again.
 
 Later version: **Connect** in the plugin opens the brain in the browser, the person confirms there, and the brain hands a new app password back to Obsidian through an `obsidian://` link. No password is seen or pasted.
 
 ### What the person sees
 
 - A status bar item: synced, syncing, offline, or a count of files that need attention.
-- A notice when an edit went to the Inbox, with a link that opens the Inbox.
+- A notice when a version lost, naming its copy in `Conflicts/`.
 - A list, from the status bar, of files that are local only and why (a folder the brain has no type for, a file type the brain does not store, a refusal by the brain with its message).
 - Settings: the brain's address, the app password, sync on save, the interval, and **Sync now**.
 
@@ -154,18 +194,20 @@ On first connect to a vault that already holds files, the plugin lists what it w
 
 One PR, a commit per phase, tests first in each.
 
-1. **A vault that mirrors the brain's notes.** Settings with address and app password, the connection check, the engine's list and download for notes at the root. Read-only: nothing is uploaded. Tests: the engine against the drive in process; a note appears, changes and disappears in the vault as it does in the brain.
-2. **Editing a note.** Upload of a changed note with `If-Match`, the sync-client mode on the drive, writing the stored form back when it differs. Tests: stored as sent, stored in another form, refused.
-3. **Both sides changed.** The conflict path, the notice and the Inbox link. Tests: the brain's version lands in the vault and one conflict holds the other; a repeat sync makes no second conflict.
-4. **New notes and deletes**, in both directions, with the first-connect confirmation.
-5. **Renames.** `MOVE` from Obsidian's rename event, undo on refusal, offline replay; in the brain, the update of what points at a renamed note.
-6. **Other entity types and images.** The type folders the drive lists, images in `image/`, and the offer to make `image/` the vault's attachment folder.
-7. **Local-only files made visible.** The status bar count and the list with reasons.
-8. **Connect without a password**, and the Obsidian card in Studio's Drive tab.
-9. **Distribution.** CI release assets, the public repository, the community directory submission, a check on iOS and Android.
+1. **A vault that mirrors the brain's notes.** Settings with address and app password, the connection check with its failure messages, the first-sync summary, the engine's list and download for notes at the root. Read-only: nothing is uploaded. Tests: the engine against the drive in process; a note appears, changes and disappears in the vault as it does in the brain; a 401 stops the sync and changes nothing.
+2. **Editing a note.** Upload of a saved note with `If-Match`, the sync-client mode on the drive, the stored form written back by the rules for writing into the vault. Tests: stored as sent, stored in another form, refused; a note typed in during the upload is not overwritten.
+3. **Both sides changed.** The copy in `Conflicts/`, the conflict in the brain, the notice. Tests: the brain's version lands in the vault, one conflict and one copy hold the other; a repeat sync makes no second of either.
+4. **New notes and deletes**, in both directions, with the delete rules. Tests: a delete seen by the plugin deletes the entry; files found missing delete nothing and ask; more than five deletes ask.
+5. **The first sync of a vault that already holds files.** Tests: each row of the table, and that nothing is written before the yes.
+6. **Renames.** `MOVE` from Obsidian's rename event, undo on refusal, offline replay; in the brain, the update of what points at a renamed note.
+7. **Other entity types and images.** The type folders the drive lists, images in `image/`, the translation of image references, and the offer to make `image/` the vault's attachment folder.
+8. **Local-only files made visible.** The status bar count and the list with reasons.
+9. **Connect without a password**, and the Obsidian card in Studio's Drive tab.
+10. **Distribution.** CI release assets, the public repository, the community directory submission, a check on iOS and Android.
 
 ## Validation
 
 - Each phase: the plugin package's tests and the drive's tests, typecheck, lint.
 - From phase 2 on, on the `personal` test app with Obsidian running on a hidden display against a local vault: edit in Obsidian and in Studio, together and apart, rename, delete, restart the brain mid-sync. Each ends with the vault and the brain agreeing and nothing lost.
+- From phase 4 on: empty the vault folder with the plugin's state kept, and restore an older copy of the vault; neither deletes an entry without a yes.
 - Before distribution: a vault on macOS against a deployed brain over a slow link, timed against the mounted drive.
