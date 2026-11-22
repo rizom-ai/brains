@@ -89,11 +89,8 @@ import { EntitySearch } from "./entity-search";
 import { EntitySerializer, framedDocument } from "./entity-serializer";
 import { unwrittenFields } from "./frontmatter-extensions";
 import { EntityQueries } from "./entity-queries";
-import {
-  EntityMutations,
-  validatePersist,
-  type StoredFormRewrite,
-} from "./entity-mutations";
+import { EntityMutations, validatePersist } from "./entity-mutations";
+import type { StoredFormRewrite } from "./types";
 import { storedFormWrites, type StoredForm } from "./stored-form";
 import { storedFileExtension } from "./yaml-storage";
 import {
@@ -852,9 +849,14 @@ export class EntityService implements IEntityService {
           return {
             rewritten: sum.rewritten + one.rewritten,
             deferred: sum.deferred + one.deferred,
+            restated: [...sum.restated, ...one.restated],
           };
         },
-        Promise.resolve({ rewritten: 0, deferred: 0 }),
+        Promise.resolve<StoredFormRewrite>({
+          rewritten: 0,
+          deferred: 0,
+          restated: [],
+        }),
       );
   }
 

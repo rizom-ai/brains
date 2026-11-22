@@ -18,6 +18,13 @@ export const SYSTEM_CHANNELS = {
    * ready-state defaults exist. Seed defaults here, never earlier.
    */
   startupContentSettled: "system:startup-content:settled",
+  /**
+   * Emitted at boot, before startupContentSettled, with the rows the quiet
+   * rewrite restated: each one the same entity under a new content hash.
+   * Work keyed by a row's content hash (a vote, a failure count) moves to
+   * the new hash here, so nothing is redone for a restatement.
+   */
+  entitiesRestated: "system:entities:restated",
   /** Emitted after shell boot completes and guarded shell APIs are available. */
   shellReady: "system:shell:ready",
   /**
@@ -80,6 +87,37 @@ const systemTimestampSchema: SystemTimestampSchema = z.object({
 });
 
 export type SystemTimestamp = z.output<typeof systemTimestampSchema>;
+
+type RestatedEntitySchema = z.ZodObject<{
+  entityType: z.ZodString;
+  entityId: z.ZodString;
+  previousHash: z.ZodString;
+  contentHash: z.ZodString;
+}>;
+
+const restatedEntitySchema: RestatedEntitySchema = z.object({
+  entityType: z.string().min(1),
+  entityId: z.string().min(1),
+  previousHash: z.string().min(1),
+  contentHash: z.string().min(1),
+});
+
+type EntitiesRestatedSchema = z.ZodObject<{
+  entities: z.ZodArray<RestatedEntitySchema>;
+}>;
+
+export const entitiesRestatedSchema: EntitiesRestatedSchema = z.object({
+  entities: z.array(restatedEntitySchema),
+});
+
+export type EntitiesRestated = z.output<typeof entitiesRestatedSchema>;
+
+/** Broadcast by the shell with the rows its quiet rewrite restated. */
+export const entitiesRestatedChannel: Channel<
+  EntitiesRestated,
+  unknown,
+  typeof SYSTEM_CHANNELS.entitiesRestated
+> = defineChannel(SYSTEM_CHANNELS.entitiesRestated, entitiesRestatedSchema);
 
 /** Broadcast by the shell once startup content is in place. */
 export const startupContentSettledChannel: Channel<

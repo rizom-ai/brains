@@ -73,6 +73,8 @@ export {
 export type { AuthBackend, ContentVisibility } from "@brains/plugins";
 export {
   SYSTEM_CHANNELS,
+  entitiesRestatedChannel,
+  type EntitiesRestated,
   entityCreatedChannel,
   entityDeletedChannel,
   entityUpdatedChannel,

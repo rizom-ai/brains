@@ -350,7 +350,7 @@ describe("site-info, from the old form to the new", () => {
     await opened.setCreated("site-info", "site-info", Date.UTC(2026, 0, 1));
     const before = await opened.stored("site-info", "site-info");
 
-    expect(await opened.service.rewriteStoredForms()).toEqual({
+    expect(await opened.service.rewriteStoredForms()).toMatchObject({
       rewritten: 1,
       deferred: 0,
     });
@@ -360,7 +360,7 @@ describe("site-info, from the old form to the new", () => {
     expect(after?.updated).toBe(before?.updated);
     expect(after?.metadata).toBe(before?.metadata);
     // A second start rewrites nothing.
-    expect(await opened.service.rewriteStoredForms()).toEqual({
+    expect(await opened.service.rewriteStoredForms()).toMatchObject({
       rewritten: 0,
       deferred: 0,
     });

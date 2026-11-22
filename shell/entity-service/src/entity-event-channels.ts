@@ -60,6 +60,7 @@ type EmbeddingReadyPayloadSchema = z.ZodObject<{
   entityType: z.ZodString;
   entityId: z.ZodString;
   entity: EventEntitySchema;
+  restated: z.ZodOptional<z.ZodBoolean>;
 }>;
 
 /** An entity's embedding is stored, so it can be found by meaning. */
@@ -68,6 +69,9 @@ export const embeddingReadyPayloadSchema: EmbeddingReadyPayloadSchema =
     entityType: z.string().min(1),
     entityId: z.string().min(1),
     entity: eventEntitySchema,
+    // A quiet rewrite restated the entity: the embedding is fresh, the
+    // entity was findable by meaning before.
+    restated: z.boolean().optional(),
   });
 
 export type EmbeddingReadyPayload = z.output<

@@ -304,7 +304,7 @@ describe("the quiet rewrite of stored rows", () => {
     const context = await opened();
     await storedAsBefore(context, before);
 
-    expect(await context.entityService.rewriteStoredForms()).toEqual({
+    expect(await context.entityService.rewriteStoredForms()).toMatchObject({
       rewritten: 1,
       deferred: 0,
     });
@@ -341,7 +341,7 @@ describe("the quiet rewrite of stored rows", () => {
     await storedAsBefore(context, before);
     await context.entityService.rewriteStoredForms();
 
-    expect(await context.entityService.rewriteStoredForms()).toEqual({
+    expect(await context.entityService.rewriteStoredForms()).toMatchObject({
       rewritten: 0,
       deferred: 0,
     });
@@ -351,7 +351,7 @@ describe("the quiet rewrite of stored rows", () => {
     const context = await opened();
     await storedAsBefore(context, "---\nstatus: nonsense\n---\nBody\n");
 
-    expect(await context.entityService.rewriteStoredForms()).toEqual({
+    expect(await context.entityService.rewriteStoredForms()).toMatchObject({
       rewritten: 0,
       deferred: 0,
     });
@@ -412,13 +412,31 @@ describe("the quiet rewrite of stored rows", () => {
     const moved = "---\ntitle: One\n---\nBody\n\nTags: a\n";
     expect((await row(context)).content).toBe(moved);
     expect(enqueue).toHaveBeenCalledTimes(1);
+    // A restatement: what derives from the row's meaning is not redone.
     expect(enqueue.mock.calls[0]?.[0]).toMatchObject({
       data: {
         id: "one",
         entityType: "card",
         contentHash: computeContentHash(moved),
+        restated: true,
       },
     });
+  });
+
+  it("reports each row it restates, with the hash it had and the one it has", async () => {
+    const context = await opened();
+    await storedAsBefore(context, before);
+
+    expect((await context.entityService.rewriteStoredForms()).restated).toEqual(
+      [
+        {
+          entityType: "card",
+          entityId: "one",
+          previousHash: computeContentHash(before),
+          contentHash: computeContentHash(canonical),
+        },
+      ],
+    );
   });
 });
 
@@ -455,6 +473,7 @@ describe("the quiet rewrite while the old form is written", () => {
     expect(await ctx.entityService.rewriteStoredForms()).toEqual({
       rewritten: 0,
       deferred: 1,
+      restated: [],
     });
     const after = createClient({ url: ctx.dbConfig.url });
     const stored = await after.execute(

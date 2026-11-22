@@ -154,6 +154,9 @@ export {
 
 export {
   SYSTEM_CHANNELS,
+  entitiesRestatedChannel,
+  entitiesRestatedSchema,
+  type EntitiesRestated,
   identityChangedChannel,
   identityChangedSchema,
   initialSyncCompletedChannel,

@@ -301,7 +301,7 @@ describe("supervised runtime process roles", () => {
     spyOn(shell.getEntityService(), "rewriteStoredForms").mockImplementation(
       async () => {
         order.push("stored forms");
-        return { rewritten: 0, deferred: 0 };
+        return { rewritten: 0, deferred: 0, restated: [] };
       },
     );
     shell
@@ -348,6 +348,56 @@ describe("supervised runtime process roles", () => {
       },
     });
     expect(jobId).toBeString();
+  });
+
+  // What derives from a restated row's meaning, keyed by its content hash,
+  // moves to its new hash before anything acts on startup content.
+  it("announces the rows the rewrite restated before startup content settles", async () => {
+    const testDirectory = await createTestDirectory();
+    cleanups.push(testDirectory.cleanup);
+    await Promise.all([
+      migrateEntities({ url: `file:${testDirectory.dir}/test.db` }),
+      migrateJobQueue({ url: `file:${testDirectory.dir}/test-jobs.db` }),
+      migrateConversations({ url: `file:${testDirectory.dir}/test-conv.db` }),
+      migrateRuntimeState({
+        url: `file:${testDirectory.dir}/test-runtime-state.db`,
+      }),
+    ]);
+    const shell = Shell.createFresh(
+      createTestShellConfig(testDirectory.dir, { plugins: [] }),
+      {
+        logger: createSilentLogger("restated-rows-test"),
+        jobQueueWorker: createTrackingWorker(() => {}),
+      },
+      { processRole: "web" },
+    );
+    shells.push(shell);
+    const restated = {
+      entityType: "post",
+      entityId: "one",
+      previousHash: "before",
+      contentHash: "after",
+    };
+    spyOn(shell.getEntityService(), "rewriteStoredForms").mockImplementation(
+      async () => ({ rewritten: 1, deferred: 0, restated: [restated] }),
+    );
+    const heard: unknown[] = [];
+    shell
+      .getMessageBus()
+      .subscribe(SYSTEM_CHANNELS.entitiesRestated, async (message) => {
+        heard.push(message.payload);
+        return { success: true };
+      });
+    shell
+      .getMessageBus()
+      .subscribe(SYSTEM_CHANNELS.startupContentSettled, async () => {
+        heard.push("settled");
+        return { success: true };
+      });
+
+    await shell.initialize();
+
+    expect(heard).toEqual([{ entities: [restated] }, "settled"]);
   });
 
   it("boots only immutable execution capabilities in the worker", async () => {

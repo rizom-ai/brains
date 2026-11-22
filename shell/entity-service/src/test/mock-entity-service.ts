@@ -245,7 +245,7 @@ export function createMockEntityService(
     rewriteRetiredFields: mock(() => Promise.resolve({ rewritten: 0 })),
     reconcileDeclaredMetadata: mock(() => Promise.resolve({ reconciled: 0 })),
     rewriteStoredForms: mock(() =>
-      Promise.resolve({ rewritten: 0, deferred: 0 }),
+      Promise.resolve({ rewritten: 0, deferred: 0, restated: [] }),
     ),
     isIndexReady: mock(() => true),
     awaitIndexReady: mock(() =>

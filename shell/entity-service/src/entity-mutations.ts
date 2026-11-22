@@ -42,14 +42,10 @@ import type {
   EntityRegistry,
   EntityMutationAdmission,
 } from "./types";
+import type { RestatedEntity, StoredFormRewrite } from "./types";
 import { framedDocument, type EntitySerializer } from "./entity-serializer";
 import type { StoredForm } from "./stored-form";
 
-/** What a quiet rewrite did: rows rewritten, and rows waiting for the new form. */
-export interface StoredFormRewrite {
-  rewritten: number;
-  deferred: number;
-}
 import { normalizeEntityRow, type EntityData } from "./entity-data";
 import { getErrorMessage } from "@brains/utils/error";
 import type { EntityQueries } from "./entity-queries";
@@ -1191,7 +1187,7 @@ export class EntityMutations {
       this.entityRegistry.getEntityTypeConfig(entityType).binaryStorage !==
       undefined
     )
-      return { rewritten: 0, deferred: 0 };
+      return { rewritten: 0, deferred: 0, restated: [] };
     const rows = await this.db
       .select()
       .from(entities)
@@ -1211,11 +1207,19 @@ export class EntityMutations {
           form,
         );
         return {
-          rewritten: sum.rewritten + (outcome === "rewritten" ? 1 : 0),
+          rewritten: sum.rewritten + (typeof outcome === "object" ? 1 : 0),
           deferred: sum.deferred + (outcome === "deferred" ? 1 : 0),
+          restated:
+            typeof outcome === "object"
+              ? [...sum.restated, outcome]
+              : sum.restated,
         };
       },
-      Promise.resolve({ rewritten: 0, deferred: 0 }),
+      Promise.resolve<StoredFormRewrite>({
+        rewritten: 0,
+        deferred: 0,
+        restated: [],
+      }),
     );
     const tail = rows.at(-1);
     if (!tail || rows.length < STORED_FORM_REWRITE_PAGE) return page;
@@ -1227,6 +1231,7 @@ export class EntityMutations {
     return {
       rewritten: page.rewritten + rest.rewritten,
       deferred: page.deferred + rest.deferred,
+      restated: [...page.restated, ...rest.restated],
     };
   }
 
@@ -1234,7 +1239,7 @@ export class EntityMutations {
   private async rewriteStoredForm(
     row: EntityData,
     form: StoredForm,
-  ): Promise<"rewritten" | "unchanged" | "deferred"> {
+  ): Promise<RestatedEntity | "unchanged" | "deferred"> {
     let canonical: string;
     try {
       canonical = this.entitySerializer.serializeEntity(
@@ -1295,11 +1300,18 @@ export class EntityMutations {
           entityType: row.entityType,
           contentHash,
           operation: "update",
+          // A restatement: the fresh embedding is not new meaning.
+          restated: true,
         },
         undefined,
       );
     }
-    return "rewritten";
+    return {
+      entityType: row.entityType,
+      entityId: row.id,
+      previousHash: row.contentHash,
+      contentHash,
+    };
   }
 
   /**
@@ -1435,7 +1447,7 @@ export class EntityMutations {
   private enqueueEmbedding(
     target: Pick<
       EnqueueEmbeddingInput,
-      "entityId" | "entityType" | "contentHash" | "operation"
+      "entityId" | "entityType" | "contentHash" | "operation" | "restated"
     >,
     options: EntityJobOptions | undefined,
   ): Promise<EntityMutationResult> {

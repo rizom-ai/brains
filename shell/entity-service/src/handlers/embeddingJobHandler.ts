@@ -21,6 +21,7 @@ const embeddingJobDataSchema = z.object({
   entityType: z.string().min(1, "Entity type is required"),
   contentHash: z.string().min(1, "Content hash is required"),
   operation: z.enum(["create", "update"]),
+  restated: z.literal(true).optional(),
 });
 
 function splitModel(qualified: string): [string, string] {
@@ -163,6 +164,7 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
             entityType: data.entityType,
             entityId: data.id,
             entity: { ...currentEntity },
+            ...(data.restated && { restated: true }),
           },
           "entity-service",
         );

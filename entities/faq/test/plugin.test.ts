@@ -365,6 +365,29 @@ describe("the faq package reconciliation", () => {
         .map((job) => JSON.parse(job.data)),
     ).toEqual([{ entityId: "faq-1" }]);
   });
+
+  // A quiet rewrite re-embeds a FAQ it restated: the FAQ was findable by
+  // meaning before, so there is nothing new to fold.
+  it("queues no reconcile for a restated FAQ's fresh embedding", async () => {
+    const harness = createPluginHarness({
+      dataDir: `/tmp/test-faq-plugin-${randomUUID()}`,
+    });
+    for (const plugin of createFaqPlugins())
+      await harness.installPlugin(plugin);
+
+    await harness.sendMessage("entity:embedding:ready", {
+      ...embeddingReady("faq", "faq-1"),
+      restated: true,
+    });
+
+    const jobs = await harness
+      .getMockShell()
+      .getJobQueueService()
+      .getActiveJobs();
+    expect(jobs.filter((job) => job.type.endsWith("faq-reconcile"))).toEqual(
+      [],
+    );
+  });
 });
 
 describe("the faq package evals", () => {

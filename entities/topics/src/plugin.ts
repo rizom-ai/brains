@@ -16,6 +16,7 @@ import {
   serviceRuntime,
   withJobHandlers,
   type ServiceRuntime,
+  entitiesRestatedChannel,
 } from "@brains/sdk/internal/service-runtime";
 import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
 import {
@@ -23,6 +24,7 @@ import {
   type TopicsPluginConfig,
 } from "./schemas/config";
 import { topic } from "./topic-entity";
+import { carryRestatedSources } from "./lib/restated-sources";
 import { getTopicTitle } from "./lib/topic-presenter";
 import { topicExtractionTemplate } from "./templates/extraction-template";
 import { topicMergeSynthesisTemplate } from "./templates/merge-synthesis-template";
@@ -171,6 +173,14 @@ export const topicsPackage: ServicePackageDefinition<
         topicsDataSource(runtime.logger.child("TopicsDataSource")),
       );
       await releaseRetiredProjectionOwnership(context);
+      // A row the shell's quiet rewrite restated keeps its vote under its
+      // new hash, before the extraction startup queues reads the corpus.
+      runtime.listen(entitiesRestatedChannel, async ({ payload }) => {
+        await carryRestatedSources(
+          topicExtractionStores(context),
+          payload.entities,
+        );
+      });
       if (config.enableAutoExtraction)
         listenForSources(runtime, context, config);
 

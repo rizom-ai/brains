@@ -7,6 +7,7 @@ import {
   pluginsRegisteredAnswerSchema,
   SYSTEM_CHANNELS,
   startupContentSettledChannel,
+  entitiesRestatedChannel,
   type ProjectionExecutionContext,
   type ProjectionInputContext,
 } from "@brains/plugins";
@@ -382,7 +383,20 @@ export class ShellBootloader {
     if (forms.rewritten > 0 || forms.deferred > 0) {
       this.services.logger.info(
         "Brought stored entities to their stored form",
-        forms,
+        {
+          rewritten: forms.rewritten,
+          deferred: forms.deferred,
+        },
+      );
+    }
+    // Work keyed by a restated row's content hash moves to its new hash
+    // before anything acts on startup content.
+    if (forms.restated.length > 0) {
+      await broadcastChannel(
+        this.services.messageBus,
+        entitiesRestatedChannel,
+        { entities: forms.restated },
+        "shell",
       );
     }
     await this.prepareReadyState();

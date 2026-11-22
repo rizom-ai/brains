@@ -323,14 +323,14 @@ describe.each(moved.map((golden) => [golden.type, golden] as const))(
       await opened_.storeAsBefore(golden.type, golden.id, golden.previous);
       const before = await opened_.stored(golden.type, golden.id);
 
-      expect(await opened_.service.rewriteStoredForms()).toEqual({
+      expect(await opened_.service.rewriteStoredForms()).toMatchObject({
         rewritten: 1,
         deferred: 0,
       });
       const after = await opened_.stored(golden.type, golden.id);
       expect(after?.content).toBe(golden.markdown);
       expect(after?.updated).toBe(before?.updated);
-      expect(await opened_.service.rewriteStoredForms()).toEqual({
+      expect(await opened_.service.rewriteStoredForms()).toMatchObject({
         rewritten: 0,
         deferred: 0,
       });

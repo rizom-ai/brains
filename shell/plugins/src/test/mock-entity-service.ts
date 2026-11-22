@@ -516,7 +516,11 @@ export function createMockEntityService(
     backfillMissingEmbeddings: async () => ({ queued: 0, skipped: 0 }),
     rewriteRetiredFields: async () => ({ rewritten: 0 }),
     reconcileDeclaredMetadata: async () => ({ reconciled: 0 }),
-    rewriteStoredForms: async () => ({ rewritten: 0, deferred: 0 }),
+    rewriteStoredForms: async () => ({
+      rewritten: 0,
+      deferred: 0,
+      restated: [],
+    }),
     isIndexReady: (): boolean => true,
     awaitIndexReady: async () => ({
       ready: true,

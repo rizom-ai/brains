@@ -246,3 +246,45 @@ describe("EmbeddingJobHandler documents", () => {
     ]);
   });
 });
+
+describe("the ready event of a restatement's embedding", () => {
+  async function readyPayloads(restated: boolean): Promise<unknown[]> {
+    const entity = createTestEntity<BaseEntity>("note", {
+      id: "one",
+      content: "Body",
+    });
+    const sent: unknown[] = [];
+    const handler = EmbeddingJobHandler.createFresh(
+      createEntityServiceStub(async () => entity),
+      mockEmbeddingService,
+      {
+        send: async (request): Promise<{ success: true }> => {
+          sent.push(request.payload);
+          return { success: true };
+        },
+      },
+    );
+    await handler.process(
+      {
+        id: "one",
+        entityType: "note",
+        contentHash: entity.contentHash,
+        operation: "update",
+        ...(restated && { restated: true }),
+      },
+      "job-1",
+      mockProgressReporter,
+    );
+    return sent;
+  }
+
+  // A quiet rewrite's embedding is fresh, the entity was findable before:
+  // a listener that acts once an entity first becomes findable skips it.
+  test("says the entity was restated", async () => {
+    expect((await readyPayloads(true))[0]).toMatchObject({ restated: true });
+  });
+
+  test("says nothing of a restatement for an ordinary update", async () => {
+    expect((await readyPayloads(false))[0]).not.toHaveProperty("restated");
+  });
+});
