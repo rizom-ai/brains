@@ -124,6 +124,35 @@ describe("FaqDataSource", () => {
     expect(section.faqs.map((faq) => faq.id)).toEqual(["thrice", "once"]);
   });
 
+  // One FAQ whose body does not read must not take the page with it: a
+  // homepage that shows FAQs beside its opening rendered empty for one.
+  it("leaves out a FAQ whose body does not read, and serves the others", async () => {
+    const listed = await context.entityService.listEntities({
+      entityType: "faq",
+      options: { filter: { visibility: "public" } },
+    });
+    const first = listed[0];
+    if (!first) throw new Error("No FAQ seeded");
+    const unreadable = {
+      ...first,
+      id: "unreadable",
+      content:
+        "---\nquestion: Unreadable?\nstatus: published\nasked: 99\n---\n## Answer\n\nA\n\n## Bogus\n\nx\n",
+    };
+    const section = await fetchFaqSection(
+      { query: {} },
+      {
+        entityService: {
+          ...context.entityService,
+          listEntities: async () => [unreadable, ...listed],
+        },
+        publishedOnly: false,
+      },
+    );
+    expect(section.faqs.map(({ id }) => id)).not.toContain("unreadable");
+    expect(section.faqs.length).toBe(listed.length);
+  });
+
   it("serves only the answer, never the alternative answers below it", async () => {
     await context.entityService.createEntity({
       entity: {

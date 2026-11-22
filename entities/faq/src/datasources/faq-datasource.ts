@@ -75,6 +75,19 @@ function faqItem(entity: FaqEntity): FaqItem {
   };
 }
 
+/**
+ * A FAQ as the section shows it, or none when its body does not read: one
+ * such FAQ must not take the page that shows FAQs with it. Its export and
+ * every job that reads it still report it.
+ */
+function readableItem(entity: unknown): FaqItem[] {
+  try {
+    return [faqItem(faqSchema.parse(entity))];
+  } catch {
+    return [];
+  }
+}
+
 /** The page of the section a template asks for. */
 const faqQuerySchema = z.looseObject({
   query: z
@@ -118,9 +131,7 @@ export async function fetchFaqSection(
       ...(build.publishedOnly === true && { publishedOnly: true }),
     },
   });
-  return {
-    faqs: entities.map((entity) => faqItem(faqSchema.parse(entity))),
-  };
+  return { faqs: entities.flatMap(readableItem) };
 }
 
 /** The FAQ section's source as the brain registers it: `faq:entities`. */
