@@ -353,3 +353,4 @@ export {
   type DatabaseLeaseRole,
   type HeldDatabaseLease,
 } from "./database-lease";
+export type { RestatedEntity, StoredFormRewrite } from "./types";

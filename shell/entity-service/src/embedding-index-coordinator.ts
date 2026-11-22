@@ -219,6 +219,7 @@ export class EmbeddingIndexCoordinator {
       entityType,
       contentHash,
       operation,
+      restated,
       priority,
       maxRetries,
       eventContext,
@@ -241,6 +242,7 @@ export class EmbeddingIndexCoordinator {
       entityType,
       contentHash,
       operation,
+      ...(restated && { restated }),
     };
     const enqueueJob = (): Promise<string> =>
       this.jobQueueService.enqueue({

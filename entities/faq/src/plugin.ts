@@ -80,6 +80,9 @@ function listenForReplies(runtime: ServiceRuntime): void {
     embeddingReadyChannel,
     async ({ payload: ready }) => {
       if (ready.entityType !== faq.type) return;
+      // A quiet rewrite restated the FAQ: it was findable before, and was
+      // folded or kept then.
+      if (ready.restated) return;
       const data: FaqReconcileJobData = { entityId: ready.entityId };
       await runtime.retries.run(
         () => runtime.jobs.enqueue({ type: "faq-reconcile", data }),

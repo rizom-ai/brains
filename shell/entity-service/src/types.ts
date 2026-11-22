@@ -64,6 +64,26 @@ import {
 export const NOTE_ENTITY_TYPE = "note";
 
 /**
+ * A row a quiet rewrite restated: the same entity, its document written in
+ * the form its type writes now. What derives from its meaning (a vote, a
+ * fold) is not redone; whoever keys such work by content hash moves it
+ * from the hash the row had to the one it has.
+ */
+export interface RestatedEntity {
+  entityType: string;
+  entityId: string;
+  previousHash: string;
+  contentHash: string;
+}
+
+/** What a quiet rewrite did: rows rewritten, and rows waiting for the new form. */
+export interface StoredFormRewrite {
+  rewritten: number;
+  deferred: number;
+  restated: RestatedEntity[];
+}
+
+/**
  * Embedding job data - minimal data for job queue
  * Content is NOT stored to avoid large base64 data in job queue
  * (which would end up in dashboard hydration props JSON)
@@ -75,6 +95,8 @@ export interface EmbeddingJobData {
   /** Hash of content at job creation time - for staleness detection */
   contentHash: string;
   operation: "create" | "update";
+  /** Queued by a quiet rewrite: the row was restated, not changed in meaning. */
+  restated?: true | undefined;
 }
 
 /**
@@ -1497,7 +1519,7 @@ export interface EntityServiceClient extends ICoreEntityService {
    * Rewrite stored rows whose document differs from the form their type
    * writes now, quietly: content and hash only, no event, marked for export.
    */
-  rewriteStoredForms(): Promise<{ rewritten: number; deferred: number }>;
+  rewriteStoredForms(): Promise<StoredFormRewrite>;
   isIndexReady(): boolean;
   awaitIndexReady(
     options: IndexReadinessOptions,
