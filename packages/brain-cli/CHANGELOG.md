@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.762
+
+### Patch Changes
+
+- [#1022](https://github.com/rizom-ai/brains/pull/1022) [`0ce3214`](https://github.com/rizom-ai/brains/commit/0ce3214566b2566aea055872d1863f7dbb02b09d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A delete job of a durable sync that finds the record still held by another of its files, such as a `.md` moved to its `.yaml`, imports that file within the sync's own batch. It opened a second batch the sync's refused ("cannot join active batch"), and the job failed.
+
+- [#1023](https://github.com/rizom-ai/brains/pull/1023) [`e616ff9`](https://github.com/rizom-ai/brains/commit/e616ff9d937cdfee64e3d7476e64745f08ce40b6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A FAQ whose body does not read is left out of the FAQ section and the homepage's FAQs instead of failing them. On yeehaa.io one such FAQ left the homepage empty.
+
 ## 0.2.0-alpha.761
 
 ### Patch Changes
