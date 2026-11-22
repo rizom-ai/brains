@@ -1,4 +1,3 @@
-import { storedFormWrites, type StoredForm } from "@brains/entity-service";
 import { createScopedAssetReads } from "./owned-entity-writer-runtime";
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
@@ -20,6 +19,7 @@ import {
   applyVisibilityToMarkdown,
   generateFrontmatter,
   generateMarkdownWithFrontmatter,
+  nestedHeaderValueKeys,
   parseMarkdownWithFrontmatter,
   type BaseEntity,
   type ContentVisibility,
@@ -68,7 +68,6 @@ import {
   recordPersistValidatorOf,
   restatedMetadataOf,
   urlRouteOf,
-  encoderFor,
   storedFormsOf,
   readsAsWritten,
   frontmatterSchemaOf,
@@ -267,19 +266,25 @@ function encodeParts(
     readonly content: string;
     readonly metadata: Record<string, unknown>;
   },
-  form?: StoredForm,
 ): { readonly content: string; readonly frontmatter: Record<string, unknown> } {
-  const encode = definition.markdown
-    ? encoderFor(definition.markdown, form)
-    : undefined;
-  return encode
-    ? encode({
-        content: input.content,
-        metadata: definition.metadata.parse(
-          currentMetadata(definition, input.metadata),
-        ),
-      })
-    : { content: input.content, frontmatter: input.metadata };
+  const encode = definition.markdown?.encode;
+  if (!encode) return { content: input.content, frontmatter: input.metadata };
+  const encoded = encode({
+    content: input.content,
+    metadata: definition.metadata.parse(
+      currentMetadata(definition, input.metadata),
+    ),
+  });
+  // A markdown file's header is flat; a YAML file's may nest.
+  if (definition.config?.storage !== "yaml") {
+    const nested = nestedHeaderValueKeys(encoded.frontmatter);
+    if (nested.length > 0) {
+      throw new Error(
+        `${definition.type}'s codec wrote a header that nests ${nested.join(", ")}; a markdown header holds scalars and lists of scalars, and nested copy belongs in the body`,
+      );
+    }
+  }
+  return encoded;
 }
 
 function encodeEntityMarkdown(
@@ -288,9 +293,8 @@ function encodeEntityMarkdown(
     readonly content: string;
     readonly metadata: Record<string, unknown>;
   },
-  form?: StoredForm,
 ): string {
-  const encoded = encodeParts(definition, input, form);
+  const encoded = encodeParts(definition, input);
   return generateMarkdownWithFrontmatter(encoded.content, encoded.frontmatter);
 }
 
@@ -372,29 +376,35 @@ function markdownStorage(
   | "metadataFromFrontmatter"
   | "headerKeyPlaces"
   | "bodyFieldKeys"
+  | "headerWrittenByCodec"
 > {
-  // A type that reads two stored forms states each form's header.
+  // A type that reads the old stored form as well states the header it
+  // writes and the old form's.
   const forms = storedFormsOf(definition.markdown);
   const header = forms?.header;
+  const oldHeader = forms?.oldHeader;
   return {
-    // The header of the form this release writes, the header its class
-    // declared when it states one, else its metadata.
+    // The header the type writes, the header its class declared when it
+    // states one, else its metadata.
     frontmatterSchema:
-      header?.[storedFormWrites] ??
-      frontmatterSchemaOf(definition) ??
-      definition.metadata,
+      header ?? frontmatterSchemaOf(definition) ?? definition.metadata,
+    // A plain codec writes a header no schema states: each write is checked.
+    ...(definition.markdown &&
+      !header &&
+      !frontmatterSchemaOf(definition) && { headerWrittenByCodec: true }),
     // What it writes is every field its metadata names and, for a type
-    // that reads two stored forms, every key of both forms' headers. A
-    // header field none of them names is the file's own, which the
-    // serializer keeps from the document written, as a stored-document
-    // class kept it.
-    ...(header
+    // that reads the old stored form as well, every key of the header it
+    // writes and of the old form's, so rewriting an old file leaves none of
+    // the old keys behind. A header field none of them names is the file's
+    // own, which the serializer keeps from the document written, as a
+    // stored-document class kept it.
+    ...(header || oldHeader
       ? {
           // From the shapes: a refined schema cannot be extended.
           writtenFrontmatterSchema: z.object({
             ...definition.metadata.shape,
-            ...header.old.shape,
-            ...header.new.shape,
+            ...oldHeader?.shape,
+            ...header?.shape,
           }),
         }
       : frontmatterSchemaOf(definition) && {
@@ -405,12 +415,11 @@ function markdownStorage(
     // body under its own frontmatter, in its own order, as an entity plugin
     // class's adapter did, and the serializer keeps after it the frontmatter
     // the type does not write.
-    toMarkdown(entity, options): string {
-      return encodeEntityMarkdown(
-        definition,
-        { ...entity, content: bodyAsRead(definition, entity.content) },
-        options?.form,
-      );
+    toMarkdown(entity): string {
+      return encodeEntityMarkdown(definition, {
+        ...entity,
+        content: bodyAsRead(definition, entity.content),
+      });
     },
     fromMarkdown(markdown): Partial<EntityOf<AnyEntityDefinition>> {
       if (readsAsWritten(definition.markdown))

@@ -1,5 +1,4 @@
 import type { StorageFormat } from "./yaml-storage";
-import type { StoredForm } from "./stored-form";
 import type { EntityTypeClassification } from "./entity-type-classification";
 import type { GroupingProjectionTarget } from "./grouping-projection-state";
 import type {
@@ -76,10 +75,9 @@ export interface RestatedEntity {
   contentHash: string;
 }
 
-/** What a quiet rewrite did: rows rewritten, and rows waiting for the new form. */
+/** What a quiet rewrite did: the rows it rewrote. */
 export interface StoredFormRewrite {
   rewritten: number;
-  deferred: number;
   restated: RestatedEntity[];
 }
 
@@ -584,7 +582,7 @@ export interface EntityAdapter<
    * writes (docs/plans/one-stored-form.md); a type that reads two forms
    * writes this one, and every other type ignores it.
    */
-  toMarkdown(entity: TEntity, options?: { form?: StoredForm }): string;
+  toMarkdown(entity: TEntity): string;
 
   // Extract entity-specific fields from markdown
   // Returns Partial<TEntity> as core fields come from database
@@ -635,6 +633,12 @@ export interface EntityAdapter<
    * names. The serializer keeps from the source only fields neither names.
    */
   writtenFrontmatterSchema?: z.ZodObject<z.ZodRawShape>;
+  /**
+   * The header is what a codec writes, not a schema the type states: the
+   * registry cannot check it when the type registers, so each write is
+   * checked instead.
+   */
+  headerWrittenByCodec?: boolean;
 
   /**
    * Optional: fields a creator may state that the type does not store, such
@@ -1543,6 +1547,16 @@ export interface EntityServiceClient extends ICoreEntityService {
    * writes now, quietly: content and hash only, no event, marked for export.
    */
   rewriteStoredForms(): Promise<StoredFormRewrite>;
+  /**
+   * Restate one entity with a new body, quietly, as the rewrite on start
+   * writes; for a body its codec passes through and something outside it
+   * lays out. Nothing when the stored document would not change.
+   */
+  restateEntity(request: {
+    entityType: string;
+    id: string;
+    body: string;
+  }): Promise<RestatedEntity | null>;
   isIndexReady(): boolean;
   awaitIndexReady(
     options: IndexReadinessOptions,

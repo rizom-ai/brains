@@ -11,6 +11,8 @@ import {
 import { isPlainRecord } from "@brains/utils/predicates";
 import { z } from "@brains/utils/zod";
 
+// Legacy: also reads the header form written before 0.2.0-alpha.760; removed with stored-form-old-headers (docs/legacy-code-inventory.json).
+
 export const SITE_INFO = "site-info" as const;
 
 /** The call-to-action fields the new form keeps in the header, flat. */
@@ -186,11 +188,9 @@ export function siteInfoDefinition(): SiteInfoDefinition {
         content: "",
         metadata: decodeSiteInfo(document),
       }),
-      encode: {
-        old: ({ metadata }) => ({ content: "", frontmatter: metadata }),
-        new: ({ metadata }) => encodeNewForm(metadata),
-      },
-      header: { old: siteInfoBodySchema, new: newHeaderSchema },
+      encode: ({ metadata }) => encodeNewForm(metadata),
+      header: newHeaderSchema,
+      oldHeader: siteInfoBodySchema,
     }),
     config: {
       embeddable: false,

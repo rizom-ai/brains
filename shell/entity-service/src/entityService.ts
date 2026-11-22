@@ -92,8 +92,7 @@ import { EntitySerializer, framedDocument } from "./entity-serializer";
 import { unwrittenFields } from "./frontmatter-extensions";
 import { EntityQueries } from "./entity-queries";
 import { EntityMutations, validatePersist } from "./entity-mutations";
-import type { StoredFormRewrite } from "./types";
-import { storedFormWrites, type StoredForm } from "./stored-form";
+import type { RestatedEntity, StoredFormRewrite } from "./types";
 import { storedFileExtension } from "./yaml-storage";
 import {
   entityMutationReceiptKeySchema,
@@ -123,11 +122,6 @@ export interface EntityServiceOptions {
   mutationAdmission?: EntityMutationAdmission;
   /** Clock used for durable projection-ingress timestamps. */
   projectionNow?: (() => number) | undefined;
-  /**
-   * The stored form this store writes (docs/plans/one-stored-form.md):
-   * the form the release writes unless a test opens a store in another.
-   */
-  storedForm?: StoredForm | undefined;
   dbConfig: EntityDbConfig;
   /** Embedding database config. Embeddings are stored in a dedicated
    *  database file, separate from entities. */
@@ -330,7 +324,6 @@ export class EntityService implements IEntityService {
       this.entitySerializer = new EntitySerializer(
         this.entityRegistry,
         this.logger,
-        options.storedForm ?? storedFormWrites,
       );
       this.entityQueries = new EntityQueries({
         db: this.db,
@@ -851,26 +844,29 @@ export class EntityService implements IEntityService {
     return { reconciled };
   }
 
+  public async restateEntity(request: {
+    entityType: string;
+    id: string;
+    body: string;
+  }): Promise<RestatedEntity | null> {
+    await this.initialize();
+    return this.entityMutations.restateEntity(request);
+  }
+
   public async rewriteStoredForms(): Promise<StoredFormRewrite> {
     await this.initialize();
-    const form = this.entitySerializer.storedForm;
     return this.entityRegistry
       .getAllEntityTypes()
       .reduce<Promise<StoredFormRewrite>>(
         async (total, type) => {
           const sum = await total;
-          const one = await this.entityMutations.rewriteStoredForms(type, form);
+          const one = await this.entityMutations.rewriteStoredForms(type);
           return {
             rewritten: sum.rewritten + one.rewritten,
-            deferred: sum.deferred + one.deferred,
             restated: [...sum.restated, ...one.restated],
           };
         },
-        Promise.resolve<StoredFormRewrite>({
-          rewritten: 0,
-          deferred: 0,
-          restated: [],
-        }),
+        Promise.resolve<StoredFormRewrite>({ rewritten: 0, restated: [] }),
       );
   }
 
@@ -1375,7 +1371,6 @@ export class EntityService implements IEntityService {
   public fileExtension(type: string): ".md" | ".yaml" {
     return storedFileExtension(
       this.entityRegistry.getEntityTypeConfig(type).storage,
-      this.entitySerializer.storedForm,
     );
   }
 

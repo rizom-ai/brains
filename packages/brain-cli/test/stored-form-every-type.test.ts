@@ -106,10 +106,8 @@ afterEach(async () => {
   store = undefined;
 });
 
-async function opened(
-  storedForm?: "old" | "new",
-): Promise<CanonicalEntityStore> {
-  store = await canonicalEntityStore(storedForm ? { storedForm } : {});
+async function opened(): Promise<CanonicalEntityStore> {
+  store = await canonicalEntityStore();
   return store;
 }
 
@@ -325,14 +323,12 @@ describe.each(moved.map((golden) => [golden.type, golden] as const))(
 
       expect(await opened_.service.rewriteStoredForms()).toMatchObject({
         rewritten: 1,
-        deferred: 0,
       });
       const after = await opened_.stored(golden.type, golden.id);
       expect(after?.content).toBe(golden.markdown);
       expect(after?.updated).toBe(before?.updated);
       expect(await opened_.service.rewriteStoredForms()).toMatchObject({
         rewritten: 0,
-        deferred: 0,
       });
     });
   },

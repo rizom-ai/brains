@@ -19,6 +19,8 @@ import {
 } from "@brains/sdk/internal/entity-runtime";
 import { parseMarkdown } from "@brains/utils/markdown-frontmatter";
 
+// Legacy: also reads the header form written before 0.2.0-alpha.760; removed with stored-form-old-headers (docs/legacy-code-inventory.json).
+
 type FormMetadataSchema = z.ZodObject<{
   title: z.ZodString;
   target: z.ZodString;
@@ -105,27 +107,22 @@ function withIntro(document: StoredDocument): Record<string, unknown> {
 }
 
 /**
- * Read as its stored document in either form; the store's form is
- * written: the current, a header and its introduction as the body, or the
- * next, a YAML file of the whole definition.
+ * Read as its stored document in either form, a header and its
+ * introduction as the body or a YAML file of the whole definition; the
+ * YAML file is written.
  */
 const formMarkdown = storedFormCodec<typeof formMetadataSchema>({
   decode: storedForm.decode,
-  encode: {
-    old: ({ content, metadata }) => written(content, metadata),
-    new: ({ content, metadata }) => ({
-      content: "",
-      frontmatter: withIntro(written(content, metadata)),
-    }),
-  },
-  header: {
-    old: formFrontmatterSchema,
-    // Strict, as the current header is: an unknown key is refused.
-    new: z.strictObject({
-      ...formFrontmatterSchema.shape,
-      intro: z.string().optional(),
-    }),
-  },
+  encode: ({ content, metadata }) => ({
+    content: "",
+    frontmatter: withIntro(written(content, metadata)),
+  }),
+  // Strict, as the old header is: an unknown key is refused.
+  header: z.strictObject({
+    ...formFrontmatterSchema.shape,
+    intro: z.string().optional(),
+  }),
+  oldHeader: formFrontmatterSchema,
   // An introduction moved to the header sits beside the thanks text.
   places: [["intro", "thanks"]],
   readAsWritten: true,

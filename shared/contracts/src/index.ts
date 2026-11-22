@@ -305,6 +305,10 @@ export {
   type ProjectionWaveReady,
 } from "./projection-wave";
 export {
+  storedContentRestateContract,
+  type StoredContentRestateAnswer,
+} from "./stored-content-restate";
+export {
   DEFAULT_STYLE_GUIDE,
   fetchStyleGuide,
   fetchVoiceGuidance,

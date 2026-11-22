@@ -52,6 +52,9 @@ export interface IServiceTemplatesNamespace {
   /** Parsed by the template's own formatter; callers narrow what they read. */
   parse: (templateName: string, content: string) => unknown;
 
+  /** A stored copy as the template's formatter writes it now; none without one. */
+  layOut: (templateName: string, content: string) => string | undefined;
+
   /**
    * Resolve content from a template. Returns `unknown`: resolution validates
    * against the template's own schema, which a caller-chosen type parameter
@@ -250,6 +253,8 @@ export function createServicePluginContext(
       },
       parse: (templateName: string, content: string): unknown =>
         contentService.parseContent(templateName, content, pluginId),
+      layOut: (templateName: string, content: string): string | undefined =>
+        contentService.layOutContent(templateName, content, pluginId),
       resolve: async (
         templateName: string,
         options?: ResolutionOptions,

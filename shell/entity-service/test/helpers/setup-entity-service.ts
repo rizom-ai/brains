@@ -41,7 +41,6 @@ export async function setupEntityService(
   options?: {
     messageBus?: EntityEventBus;
     embeddingsEnabled?: boolean;
-    storedForm?: "old" | "new";
   },
 ): Promise<EntityServiceTestContext> {
   const testDb = await createTestEntityDatabase();
@@ -71,7 +70,6 @@ export async function setupEntityService(
     dbConfig: testDb.config,
     embeddingDbConfig: testDb.embeddingConfig,
     ...(options?.messageBus && { messageBus: options.messageBus }),
-    ...(options?.storedForm && { storedForm: options.storedForm }),
   });
 
   const cleanup = async (): Promise<void> => {

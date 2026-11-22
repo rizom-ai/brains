@@ -242,12 +242,15 @@ describe("retired nested fields", () => {
   type Mail = z.infer<typeof mailSchema>;
 
   class MailAdapter extends BaseEntityAdapter<Mail, Mail["metadata"]> {
+    // An older file's nested object, read and written back, never presented.
+    public readonly writtenFrontmatterSchema = mailFields;
     constructor() {
       super({
         entityType: "mail",
         purpose: "Nested retired-field fixture",
         schema: mailSchema,
         frontmatterSchema: mailFields,
+        presentedFrontmatterSchema: mailFields.omit({ source: true }),
       });
     }
     fromMarkdown(content: string): Partial<Mail> {

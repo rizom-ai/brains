@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { z } from "@brains/utils/zod";
 import { runProcess } from "@brains/utils/run-process";
 import {
   existsSync,
@@ -931,5 +932,44 @@ describe("public authoring 0.2 export ledger", () => {
         `${relative(repositoryRoot, path)} is not a source file`,
       ).toBeTrue();
     }
+  });
+});
+
+/**
+ * The stored form is part of the authoring contract
+ * (docs/plans/one-stored-form.md): one golden file per type fixes it, and
+ * a change to a golden file is a change of format, which needs a read of
+ * the old form and a quiet rewrite. The ledger records each golden file's
+ * hash, so such a change is made on purpose: in the golden file, the
+ * type's codec, and this ledger together.
+ */
+describe("the stored form's golden files", () => {
+  const storedFormRoot = join(import.meta.dir, "fixtures", "stored-form");
+  const storedFormLedgerPath = join(storedFormRoot, "ledger.json");
+
+  function hashes(): Record<string, string> {
+    return Object.fromEntries(
+      readdirSync(storedFormRoot)
+        .filter((type) => statSync(join(storedFormRoot, type)).isDirectory())
+        .sort()
+        .flatMap((type) =>
+          readdirSync(join(storedFormRoot, type))
+            .filter((file) => /^(current|previous)\.(md|yaml)$/.test(file))
+            .sort()
+            .map((file): [string, string] => [
+              `${type}/${file}`,
+              new Bun.CryptoHasher("sha256")
+                .update(readFileSync(join(storedFormRoot, type, file)))
+                .digest("hex"),
+            ]),
+        ),
+    );
+  }
+
+  it("are the format the ledger records", () => {
+    const ledger = z
+      .record(z.string(), z.string())
+      .parse(JSON.parse(readFileSync(storedFormLedgerPath, "utf8")));
+    expect(hashes()).toEqual(ledger);
   });
 });

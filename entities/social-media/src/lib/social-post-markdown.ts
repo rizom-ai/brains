@@ -20,6 +20,8 @@ import {
 } from "../schemas/social-post";
 import { definedFields } from "@brains/utils/strip-undefined";
 
+// Legacy: also reads the header form written before 0.2.0-alpha.760; removed with stored-form-old-headers (docs/legacy-code-inventory.json).
+
 /** A post's slug: its platform and its title, as the adapter resolved it. */
 export function socialPostSlug(platform: Platform, title: string): string {
   return `${platform}-${slugify(title)}`;
@@ -124,17 +126,12 @@ export const socialPostMarkdown: EntityMarkdownCodec<
   },
   // A whole document handed in has had its frontmatter decoded into the
   // metadata already; the body is written as the adapter wrote it.
-  encode: {
-    old: ({ content, metadata }) => ({
-      content: parseMarkdown(content).content,
-      frontmatter: socialPostFrontmatter(metadata),
-    }),
-    new: ({ content, metadata }) => ({
-      content: parseMarkdown(content).content,
-      frontmatter: socialPostNextFrontmatter(metadata),
-    }),
-  },
-  header: { old: socialPostFrontmatterSchema, new: socialPostNextHeaderSchema },
+  encode: ({ content, metadata }) => ({
+    content: parseMarkdown(content).content,
+    frontmatter: socialPostNextFrontmatter(metadata),
+  }),
+  header: socialPostNextHeaderSchema,
+  oldHeader: socialPostFrontmatterSchema,
   places: [["documents", "documentIds"]],
 });
 

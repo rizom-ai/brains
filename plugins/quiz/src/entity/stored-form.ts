@@ -6,6 +6,8 @@ import { parseMarkdown } from "@brains/utils/markdown-frontmatter";
 import { z } from "@brains/utils/zod";
 import { quizResultFrontmatterSchema } from "./schema";
 
+// Legacy: also reads the header form written before 0.2.0-alpha.760; removed with stored-form-old-headers (docs/legacy-code-inventory.json).
+
 /*
  * A quiz result's next stored form (docs/plans/one-stored-form.md): what
  * was answered and shown moves from the header to the body, under

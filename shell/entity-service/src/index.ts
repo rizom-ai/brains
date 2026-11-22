@@ -276,7 +276,6 @@ export {
 } from "./publish-policy";
 
 export { preserveSourceFrontmatter } from "./frontmatter-extensions";
-export { storedFormWrites, type StoredForm } from "./stored-form";
 export {
   contentOfYamlFile,
   storedFileExtension,
@@ -359,3 +358,4 @@ export {
   type HeldDatabaseLease,
 } from "./database-lease";
 export type { RestatedEntity, StoredFormRewrite } from "./types";
+export { nestedHeaderKeys, nestedHeaderValueKeys } from "./flat-header";

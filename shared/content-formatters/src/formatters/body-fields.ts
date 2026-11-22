@@ -5,6 +5,8 @@ import {
   type FieldMapping,
 } from "./structured-content";
 
+// Legacy: also reads the header form written before 0.2.0-alpha.760; removed with stored-form-old-headers (docs/legacy-code-inventory.json).
+
 /** A body's text above its first section, and the sections from there. */
 export function leadAndSections(body: string): {
   lead: string;

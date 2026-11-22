@@ -6,6 +6,8 @@ import { isDocumentFile, isDocumentSidecarFile } from "./document-file-utils";
 import { parseEntityPath, type Containment } from "./entity-paths";
 import { pathExists } from "./fs-utils";
 
+// Legacy: also reads a YAML type's record from its .md file; removed with stored-form-yaml-type-markdown-files (docs/legacy-code-inventory.json).
+
 export interface EntityTypeRegistry {
   hasEntityType(type: string): boolean;
   /** A type's storage; a YAML type's folder also holds `.yaml` files. */

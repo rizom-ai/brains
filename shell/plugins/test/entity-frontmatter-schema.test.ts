@@ -7,7 +7,6 @@ import {
   instantiatePluginPackageDefinition,
   withFrontmatterSchema,
   storedFormCodec,
-  storedFormWrites,
   type AnyEntityDefinition,
 } from "../src";
 
@@ -92,11 +91,10 @@ describe("a declared type's frontmatter schema", () => {
     ]);
   });
 
-  // A type that reads two stored forms presents the header of the form
-  // the release writes, and owns the keys of both: writing one form after
-  // reading the other leaves none of the other's keys behind as a key the
-  // type does not name.
-  it("presents the header its release writes and owns both forms' keys", async () => {
+  // A type that reads two stored forms presents the header it writes, and
+  // owns the keys of both: rewriting an old-form file leaves none of the
+  // old keys behind as a key the type does not name.
+  it("presents the header it writes and owns both forms' keys", async () => {
     const old = z.object({
       title: z.string(),
       cta: z.object({ heading: z.string() }),
@@ -114,17 +112,15 @@ describe("a declared type's frontmatter schema", () => {
           content,
           metadata: metadata.parse(frontmatter),
         }),
-        encode: {
-          old: ({ content, metadata }) => ({ content, frontmatter: metadata }),
-          new: ({ content, metadata }) => ({
-            content,
-            frontmatter: {
-              title: metadata.title,
-              ctaHeading: metadata.cta.heading,
-            },
-          }),
-        },
-        header: { old, new: next },
+        encode: ({ content, metadata }) => ({
+          content,
+          frontmatter: {
+            title: metadata.title,
+            ctaHeading: metadata.cta.heading,
+          },
+        }),
+        header: next,
+        oldHeader: old,
       }),
     });
     for (const plugin of instantiatePluginPackageDefinition(
@@ -136,7 +132,7 @@ describe("a declared type's frontmatter schema", () => {
     }
     const adapter = harness.getEntityRegistry().getAdapter("ticket");
     expect(Object.keys(adapter.frontmatterSchema?.shape ?? {})).toEqual(
-      Object.keys((storedFormWrites === "new" ? next : old).shape),
+      Object.keys(next.shape),
     );
     expect(Object.keys(adapter.writtenFrontmatterSchema?.shape ?? {})).toEqual([
       "title",

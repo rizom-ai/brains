@@ -23,11 +23,7 @@ import {
 import { isPlainRecord } from "@brains/utils/predicates";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
-import {
-  generateMarkdownWithFrontmatter,
-  storedFormWrites,
-  type StoredForm,
-} from "@brains/entity-service";
+import { generateMarkdownWithFrontmatter } from "@brains/entity-service";
 import type { AnchorProfile } from "../contracts/identity";
 import type { AIGenerationSchema } from "./ai-types";
 import type { UniqueTitleContext } from "../service/create-entity-with-unique-title";
@@ -1312,14 +1308,10 @@ export function storedDocumentCodec<
   return codec;
 }
 
-type CodecEncode<TMetadataSchema extends EntityMetadataSchema> = NonNullable<
-  EntityMarkdownCodec<TMetadataSchema>["encode"]
->;
-
-/** What a codec that reads two stored forms states about each. */
+/** What a codec that reads the old stored form as well states about both. */
 interface StoredForms {
-  readonly encode: Record<StoredForm, CodecEncode<EntityMetadataSchema>>;
-  readonly header?: Readonly<Record<StoredForm, z.ZodObject>> | undefined;
+  readonly header?: z.ZodObject | undefined;
+  readonly oldHeader?: z.ZodObject | undefined;
   readonly places?: readonly (readonly string[])[] | undefined;
   readonly bodyFields?: readonly string[] | undefined;
 }
@@ -1328,40 +1320,43 @@ const storedForms = new WeakMap<object, StoredForms>();
 
 /**
  * The codec of a first-party type that reads two stored forms
- * (docs/plans/one-stored-form.md): one `decode` reads a file in either, and
- * `encode` names the encoder for each. The store hands the codec the form
- * it writes; without one, the codec writes the form this release writes.
+ * (docs/plans/one-stored-form.md): one `decode` reads a file in either,
+ * and `encode` writes the new form. The old form is read until its
+ * decoder is removed, one minor release after 0.2.0; it is never written.
  */
 export function storedFormCodec<
   TMetadataSchema extends EntityMetadataSchema,
 >(options: {
   readonly decode: EntityMarkdownCodec<TMetadataSchema>["decode"];
-  readonly encode: Readonly<Record<StoredForm, CodecEncode<TMetadataSchema>>>;
+  readonly encode: NonNullable<EntityMarkdownCodec<TMetadataSchema>["encode"]>;
   /**
-   * Each form's header. The type presents the one this release writes, to
-   * Studio and the Obsidian vault, and owns the keys of both, so writing
-   * one form after reading the other leaves none of the other's behind.
-   * Without it, both forms' header is the type's metadata.
+   * The header the type writes, presented to Studio and the Obsidian vault.
+   * Without it, the header is the type's metadata.
    */
-  readonly header?: Readonly<Record<StoredForm, z.ZodObject>>;
+  readonly header?: z.ZodObject;
+  /**
+   * The old form's header, when its keys are not the new one's: the type
+   * owns them, so rewriting an old file leaves none of them behind.
+   */
+  readonly oldHeader?: z.ZodObject;
   /**
    * Header keys that stand for one another across the two forms, each group
-   * one place in the header: a file converted to the other form keeps the
+   * one place in the header: a file converted to the new form keeps the
    * order its author gave.
    */
   readonly places?: readonly (readonly string[])[];
-  /** Header keys the next form states in the body. */
+  /** Header keys the new form states in the body. */
   readonly bodyFields?: readonly string[];
   /** A read is the stored document byte for byte (storedDocumentCodec's). */
   readonly readAsWritten?: boolean;
 }): EntityMarkdownCodec<TMetadataSchema> {
   const codec: EntityMarkdownCodec<TMetadataSchema> = {
     decode: options.decode,
-    encode: options.encode[storedFormWrites],
+    encode: options.encode,
   };
   storedForms.set(codec, {
-    encode: options.encode,
     header: options.header,
+    oldHeader: options.oldHeader,
     places: options.places,
     bodyFields: options.bodyFields,
   });
@@ -1374,15 +1369,6 @@ export function storedFormsOf(
   codec: object | undefined,
 ): StoredForms | undefined {
   return codec ? storedForms.get(codec) : undefined;
-}
-
-/** The encoder a codec writes `form` with: its own when it reads one form. */
-export function encoderFor<TMetadataSchema extends EntityMetadataSchema>(
-  codec: EntityMarkdownCodec<TMetadataSchema>,
-  form: StoredForm | undefined,
-): EntityMarkdownCodec<TMetadataSchema>["encode"] {
-  const forms = storedForms.get(codec);
-  return forms && form ? forms.encode[form] : codec.encode;
 }
 
 /** The stored-document codecs whose read is the document as written. */
@@ -1590,18 +1576,18 @@ export function entityRuntime(context: object): EntityRuntime {
 }
 
 /**
- * The codec of a first-party type whose next stored form
+ * The codec of a first-party type whose new stored form
  * (docs/plans/one-stored-form.md) states some of its header fields in its
  * body: one section per field, in the compact layout, under the text its
- * author wrote (bodyFields). It reads either form; the current form writes
- * every field in the header, the next the moved ones in the body; a field
- * brought back to the header takes its place in the schema's order.
+ * author wrote (bodyFields). It reads either form, the old one with every
+ * field in the header, and writes the new; a field brought back to the
+ * header takes its place in the schema's order.
  */
 export function bodyFieldsCodec<
   TMetadataSchema extends EntityMetadataSchema,
 >(options: {
   readonly metadata: TMetadataSchema;
-  /** The metadata fields the next form states in the body, in its order. */
+  /** The metadata fields the new form states in the body, in its order. */
   readonly bodyFields: readonly string[];
   /** The body's mappings, when the fields' schema does not give them. */
   readonly mappings?: FieldMapping[];
@@ -1612,8 +1598,8 @@ export function bodyFieldsCodec<
   /** Above the author's text: the heading it sits under when it opens on none. */
   readonly leadHeading?: string;
   /**
-   * The current form's header, as Studio and the vault are shown it, when
-   * it is not the metadata; the next form's is it without the moved fields.
+   * The old form's header, when it is not the metadata; the new form's,
+   * shown to Studio and the vault, is it without the moved fields.
    */
   readonly header?: z.ZodObject;
   /** The header fields a write states, from its metadata; all by default. */
@@ -1636,34 +1622,26 @@ export function bodyFieldsCodec<
       const read = fields.read(frontmatter, content);
       return {
         content: authored(read.lead),
-        // A stated current header reads first, its defaults filled.
+        // A stated old header reads first, its defaults filled.
         metadata: metadata.parse(
           options.header ? options.header.parse(read.header) : read.header,
         ),
       };
     },
-    encode: {
-      old: ({ content, metadata: values }) => ({
-        content,
-        frontmatter: stated(metadata.parse(values)),
-      }),
-      new: ({ content, metadata: values }) => {
-        const written = fields.write(stated(metadata.parse(values)), content);
-        return { content: written.body, frontmatter: written.header };
-      },
+    encode: ({ content, metadata: values }) => {
+      const written = fields.write(stated(metadata.parse(values)), content);
+      return { content: written.body, frontmatter: written.header };
     },
-    header: {
-      old: options.header ?? metadata,
-      new: options.header
-        ? z.object(
-            Object.fromEntries(
-              Object.entries(options.header.shape).filter(
-                ([key]) => !options.bodyFields.includes(key),
-              ),
+    header: options.header
+      ? z.object(
+          Object.fromEntries(
+            Object.entries(options.header.shape).filter(
+              ([key]) => !options.bodyFields.includes(key),
             ),
-          )
-        : fields.nextHeader,
-    },
+          ),
+        )
+      : fields.nextHeader,
+    oldHeader: options.header ?? metadata,
     places: [Object.keys(metadata.shape)],
     bodyFields: options.bodyFields,
   });

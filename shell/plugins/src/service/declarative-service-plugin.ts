@@ -1480,6 +1480,7 @@ class DeclarativeServicePlugin<
     ServiceRuntimeBinding,
     | "views"
     | "resolveTemplate"
+    | "layOutTemplate"
     | "template"
     | "prompts"
     | "instructions"
@@ -1495,6 +1496,8 @@ class DeclarativeServicePlugin<
       }),
       resolveTemplate: (templateName, options) =>
         context.templates.resolve(templateName, options),
+      layOutTemplate: (templateName, content) =>
+        context.templates.layOut(templateName, content),
       template: (name, template, options = {}): void => {
         context.templates.register(
           { [name]: template },
@@ -2331,6 +2334,7 @@ function entityMutationsOf(
     releaseProjectionOwnership: (request) =>
       entityService.releaseProjectionOwnership(request),
     purgeEntityType: (entityType) => entityService.purgeEntityType(entityType),
+    restateEntity: (request) => entityService.restateEntity(request),
   } satisfies ServiceEntityMutations);
 }
 

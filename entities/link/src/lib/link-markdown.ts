@@ -9,6 +9,8 @@ import {
 } from "../schemas/link";
 import { definedFields } from "@brains/utils/strip-undefined";
 
+// Legacy: also reads the header form written before 0.2.0-alpha.760; removed with stored-form-old-headers (docs/legacy-code-inventory.json).
+
 /**
  * A link's frontmatter, in the order the link adapter wrote a new link:
  * its status, title, URL, description, when and where it was captured.
@@ -73,20 +75,15 @@ export const linkMarkdown: EntityMarkdownCodec<typeof linkMetadataSchema> =
         }),
       };
     },
-    header: { old: linkFrontmatterSchema, new: linkNextHeaderSchema },
+    header: linkNextHeaderSchema,
+    oldHeader: linkFrontmatterSchema,
     places: [["source", "sourceRef", "sourceLabel"]],
     // A whole document handed in has had its frontmatter decoded into the
     // metadata already; the body is written as the adapter wrote it.
-    encode: {
-      old: ({ content, metadata }) => ({
-        content: parseMarkdown(content).content,
-        frontmatter: linkFrontmatter(metadata),
-      }),
-      new: ({ content, metadata }) => ({
-        content: parseMarkdown(content).content,
-        frontmatter: linkNextFrontmatter(metadata),
-      }),
-    },
+    encode: ({ content, metadata }) => ({
+      content: parseMarkdown(content).content,
+      frontmatter: linkNextFrontmatter(metadata),
+    }),
   });
 
 /** A link's summary: its body, trimmed, as the adapter read it. */

@@ -6,12 +6,10 @@ import {
 } from "./brain-character-schema";
 import { SingletonFrontmatterAdapter } from "./singleton-frontmatter-adapter";
 import { bodyFields } from "@brains/content-formatters";
-import {
-  parseMarkdownWithFrontmatter,
-  storedFormWrites,
-  type StoredForm,
-} from "@brains/entity-service";
+import { parseMarkdownWithFrontmatter } from "@brains/entity-service";
 import { z } from "@brains/utils/zod";
+
+// Legacy: also reads the header form written before 0.2.0-alpha.760; removed with stored-form-old-headers (docs/legacy-code-inventory.json).
 
 /**
  * The character's next stored form (docs/plans/one-stored-form.md): its
@@ -40,10 +38,8 @@ export class BrainCharacterAdapter extends SingletonFrontmatterAdapter<
       purpose: "The brain's own identity, character, and purpose (singleton).",
       schema: brainCharacterSchema,
       frontmatterSchema: brainCharacterBodySchema,
-      // Studio and the vault present the header the release writes.
-      ...(storedFormWrites === "new" && {
-        presentedFrontmatterSchema: characterBody.nextHeader,
-      }),
+      // Studio and the vault present the header the character writes.
+      presentedFrontmatterSchema: characterBody.nextHeader,
       isSingleton: true,
       hasBody: false,
     });
@@ -68,7 +64,7 @@ export class BrainCharacterAdapter extends SingletonFrontmatterAdapter<
     return this.parseFrontmatter(content);
   }
 
-  /** The header keys the next form states in the body. */
+  /** The header keys the new form states in the body. */
   public readonly bodyFieldKeys: readonly string[] = ["purpose", "values"];
 
   /** Either form's header keys are the character's own. */
@@ -76,16 +72,10 @@ export class BrainCharacterAdapter extends SingletonFrontmatterAdapter<
     brainCharacterBodySchema.extend(characterBody.nextHeader.shape);
 
   /**
-   * Convert character entity to markdown in the store's form. The current
-   * form has no body, so serialization is exactly the regenerated
-   * frontmatter; the next states the purpose and values in the body.
+   * Convert character entity to markdown in the new form: its name and role
+   * in the header, its purpose and values in the body.
    */
-  public override toMarkdown(
-    entity: BrainCharacterEntity,
-    options?: { form?: StoredForm },
-  ): string {
-    if ((options?.form ?? storedFormWrites) === "old")
-      return this.generateFrontMatter(entity);
+  public override toMarkdown(entity: BrainCharacterEntity): string {
     const written = characterBody.write(
       this.parseFrontmatter(entity.content),
       "",

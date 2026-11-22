@@ -47,7 +47,6 @@ import type {
 } from "./types";
 import type { RestatedEntity, StoredFormRewrite } from "./types";
 import { framedDocument, type EntitySerializer } from "./entity-serializer";
-import type { StoredForm } from "./stored-form";
 
 import { normalizeEntityRow, type EntityData } from "./entity-data";
 import { getErrorMessage } from "@brains/utils/error";
@@ -1176,21 +1175,17 @@ export class EntityMutations {
    * projection or derived job is queued, and the row is marked for export.
    * Its embedding is kept when only the framing changed, else it is
    * embedded again. A row that does not decode is logged and left as
-   * stored. While the old form is written (alpha R), only a row whose
-   * difference is its framing is rewritten: one that differs further waits
-   * for the new form and is counted as deferred, so a type's change of form
-   * never reaches stored rows before its release writes it.
+   * stored.
    */
   public async rewriteStoredForms(
     entityType: string,
-    form: StoredForm,
     after?: string,
   ): Promise<StoredFormRewrite> {
     if (
       this.entityRegistry.getEntityTypeConfig(entityType).binaryStorage !==
       undefined
     )
-      return { rewritten: 0, deferred: 0, restated: [] };
+      return { rewritten: 0, restated: [] };
     const rows = await this.db
       .select()
       .from(entities)
@@ -1205,35 +1200,24 @@ export class EntityMutations {
     const page = await rows.reduce<Promise<StoredFormRewrite>>(
       async (total, row) => {
         const sum = await total;
-        const outcome = await this.rewriteStoredForm(
-          normalizeEntityRow(row),
-          form,
-        );
-        return {
-          rewritten: sum.rewritten + (typeof outcome === "object" ? 1 : 0),
-          deferred: sum.deferred + (outcome === "deferred" ? 1 : 0),
-          restated:
-            typeof outcome === "object"
-              ? [...sum.restated, outcome]
-              : sum.restated,
-        };
+        const outcome = await this.rewriteStoredForm(normalizeEntityRow(row));
+        return outcome === "unchanged"
+          ? sum
+          : {
+              rewritten: sum.rewritten + 1,
+              restated: [...sum.restated, outcome],
+            };
       },
-      Promise.resolve<StoredFormRewrite>({
-        rewritten: 0,
-        deferred: 0,
-        restated: [],
-      }),
+      Promise.resolve<StoredFormRewrite>({ rewritten: 0, restated: [] }),
     );
     const tail = rows.at(-1);
     if (!tail || rows.length < STORED_FORM_REWRITE_PAGE) return page;
     const rest = await this.rewriteStoredForms(
       entityType,
-      form,
       normalizeEntityRow(tail).id,
     );
     return {
       rewritten: page.rewritten + rest.rewritten,
-      deferred: page.deferred + rest.deferred,
       restated: [...page.restated, ...rest.restated],
     };
   }
@@ -1241,8 +1225,7 @@ export class EntityMutations {
   /** One row's quiet rewrite. */
   private async rewriteStoredForm(
     row: EntityData,
-    form: StoredForm,
-  ): Promise<RestatedEntity | "unchanged" | "deferred"> {
+  ): Promise<RestatedEntity | "unchanged"> {
     let canonical: string;
     try {
       canonical = this.entitySerializer.serializeEntity(
@@ -1258,7 +1241,47 @@ export class EntityMutations {
     }
     if (canonical === row.content) return "unchanged";
     const framingOnly = framedDocument(row.content) === canonical;
-    if (form === "old" && !framingOnly) return "deferred";
+    return this.storeRestatement(row, canonical, framingOnly);
+  }
+
+  /**
+   * Restate one entity with a new body, quietly, as the rewrite on start
+   * writes: for a body its codec passes through and something outside it
+   * lays out (a site section's template). Nothing when the stored document
+   * would not change, or the row changed since it was read.
+   */
+  public async restateEntity(request: {
+    entityType: string;
+    id: string;
+    body: string;
+  }): Promise<RestatedEntity | null> {
+    const [stored] = await this.db
+      .select()
+      .from(entities)
+      .where(
+        and(
+          eq(entities.id, request.id),
+          eq(entities.entityType, request.entityType),
+        ),
+      )
+      .limit(1);
+    if (!stored) return null;
+    const row = normalizeEntityRow(stored);
+    const canonical = this.entitySerializer.serializeEntity({
+      ...this.entitySerializer.reconstructEntity(row, true),
+      content: request.body,
+    });
+    if (canonical === row.content) return null;
+    const restated = await this.storeRestatement(row, canonical, false);
+    return restated === "unchanged" ? null : restated;
+  }
+
+  /** A restated document stored quietly: content and hash only, exported. */
+  private async storeRestatement(
+    row: EntityData,
+    canonical: string,
+    framingOnly: boolean,
+  ): Promise<RestatedEntity | "unchanged"> {
     const contentHash = computeContentHash(canonical);
     // A write since the row was read wins: the rewrite only replaces the
     // document it read.

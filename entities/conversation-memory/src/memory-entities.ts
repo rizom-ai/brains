@@ -91,17 +91,15 @@ function currentForm({
 }
 
 /**
- * Either stored form reads, as the card's stored document; the store's
- * form is written. The next form states the card's Inbox source and people
- * as flat keys, each person whole in a People section closing the body.
+ * Either stored form reads, as the card's stored document; the new form is
+ * written. It states the card's Inbox source and people as flat keys, each
+ * person whole in a People section closing the body.
  */
 const actionItemMarkdown = storedFormCodec<typeof actionItemMetadataSchema>({
   decode: storedActionItem.decode,
-  encode: {
-    old: currentForm,
-    new: (document) => inNextForm(currentForm(document)),
-  },
-  header: { old: actionItemMetadataSchema, new: actionItemNextHeaderSchema },
+  encode: (document) => inNextForm(currentForm(document)),
+  header: actionItemNextHeaderSchema,
+  oldHeader: actionItemMetadataSchema,
   places: ACTION_ITEM_PLACES,
   readAsWritten: true,
 });
