@@ -338,7 +338,7 @@ describe("adding a note", () => {
   });
 });
 
-// A card in the next stored form (docs/plans/one-stored-form.md) closes its
+// A card in the next stored form (docs/external-plugin-authoring.md, The stored format) closes its
 // body with a People section and states its source and people as flat keys.
 // The board reads it as it reads the same card in the current form.
 describe("a card in the next stored form", () => {

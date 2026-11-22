@@ -6,7 +6,7 @@ import type { BrainCharacterEntity } from "../src/brain-character-schema";
 
 /**
  * The identity singletons in their new stored form
- * (docs/plans/one-stored-form.md). A field update writes a field straight
+ * (docs/external-plugin-authoring.md, The stored format). A field update writes a field straight
  * into a singleton's header; on a document in the new form the header's
  * value is the fresh one, over the body section it replaces, and the
  * write that follows states it in the body once.

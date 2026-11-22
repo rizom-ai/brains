@@ -160,7 +160,7 @@ export function formatVisualGuidance(styleGuide: StyleGuide): string {
  * A stored record as a reader sees it: its fields are its metadata, which
  * keeps one shape whatever form its file is in, and its content is its body,
  * or its whole document when it was read as stored
- * (docs/plans/one-stored-form.md).
+ * (docs/external-plugin-authoring.md, The stored format).
  */
 export interface FrontmatterRecord {
   readonly content: string;

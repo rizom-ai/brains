@@ -27,7 +27,7 @@ export const siteContentEntity: ReturnType<
       metadata: siteContentMetadataSchema.parse(frontmatter),
     }),
     // The body as handed; the serializer frames it as it frames every
-    // write (docs/plans/one-stored-form.md).
+    // write (docs/external-plugin-authoring.md, The stored format).
     encode: ({ content, metadata }) => ({
       content,
       frontmatter: metadata,

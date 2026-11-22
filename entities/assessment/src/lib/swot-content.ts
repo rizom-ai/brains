@@ -17,7 +17,7 @@ import {
 
 /*
  * A SWOT's markdown. The current stored form, as the swot adapter wrote
- * it, is all header. The next (docs/plans/one-stored-form.md) keeps the
+ * it, is all header. The next (docs/external-plugin-authoring.md, The stored format) keeps the
  * time it was derived in the header and states each quadrant in the body,
  * one heading per quadrant and one per item, its detail as plain text;
  * text an author added above the quadrants stays there.

@@ -54,7 +54,7 @@ export type SiteInfoCTA = NonNullable<SiteInfoBody["cta"]>;
 
 /**
  * The site info a stored site-info record holds: its metadata, which keeps
- * one shape whichever stored form its file is in (docs/plans/one-stored-form.md).
+ * one shape whichever stored form its file is in (docs/external-plugin-authoring.md, The stored format).
  */
 export function siteInfoFromRecord(record: FrontmatterRecord): SiteInfoBody {
   return siteInfoBodySchema.parse(recordFields(record).fields);

@@ -26,8 +26,8 @@ function siblingOf(file: string): string | undefined {
 /**
  * One file per record: where a YAML type's record has both a `.md` and a
  * `.yaml` file, the newer is its file, an edit made to either read; on a
- * tie, the one in the extension the store writes (docs/plans/one-stored-form.md,
- * From .md to .yaml).
+ * tie, the one in the extension the store writes (docs/external-plugin-authoring.md,
+ * The stored format).
  */
 async function oneFilePerRecord(
   syncPath: string,

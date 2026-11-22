@@ -13,7 +13,7 @@ import {
 } from "./helpers/declared-entity-store";
 
 /**
- * The stored-form contract (docs/plans/one-stored-form.md). Every type the
+ * The stored-form contract (docs/external-plugin-authoring.md, The stored format). Every type the
  * canonical brain registers, and the two the shell registers, stores one
  * form: its header holds only what Obsidian shows as a property, and the
  * bytes it stores are the same on every path, in the order of the document

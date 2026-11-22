@@ -62,7 +62,7 @@ async function store(): Promise<DeclaredEntityStore> {
     "studio",
     {
       classification: "system",
-      // A YAML file, as the type declares it (docs/plans/one-stored-form.md).
+      // A YAML file, as the type declares it (docs/external-plugin-authoring.md, The stored format).
       storage: "yaml",
       embeddable: false,
       projectionSource: false,
@@ -80,7 +80,7 @@ async function store(): Promise<DeclaredEntityStore> {
 
 /**
  * Main's record as the type stores it now: a YAML file since
- * 0.2.0-alpha.760 (docs/plans/one-stored-form.md), whose header-only
+ * 0.2.0-alpha.760 (docs/external-plugin-authoring.md, The stored format), whose header-only
  * document ends on its closing line, where main's markdown adapter wrote
  * one empty line more. Everything else is main's, byte for byte.
  */

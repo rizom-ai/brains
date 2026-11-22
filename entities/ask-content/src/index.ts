@@ -19,7 +19,7 @@ import {
 } from "@brains/utils/markdown-frontmatter";
 
 /**
- * The copy the next stored form (docs/plans/one-stored-form.md) states in
+ * The copy the next stored form (docs/external-plugin-authoring.md, The stored format) states in
  * the body, under the introduction: the contact note and the refusal.
  */
 const BODY_FIELDS = ["contactNote", "refusal"] as const;

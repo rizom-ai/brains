@@ -4,7 +4,7 @@ import type { TopicExtractionStores } from "./topic-extraction-run";
 
 /**
  * A restated row is the same source under a new content hash
- * (docs/plans/one-stored-form.md): the vote cast on it and its failed
+ * (docs/external-plugin-authoring.md, The stored format): the vote cast on it and its failed
  * attempts move to the new hash, so it is not read again. A vote cast
  * under another hash belongs to an edit and stays as it is.
  */

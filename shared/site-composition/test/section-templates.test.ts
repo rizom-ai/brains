@@ -96,7 +96,7 @@ describe("sectionToTemplate", () => {
     expect(formatter.parse(formatter.format(value))).toEqual(value);
   });
 
-  // The compact layout (docs/plans/one-stored-form.md): no title line, a
+  // The compact layout (docs/external-plugin-authoring.md, The stored format): no title line, a
   // single-line value as a labeled line, read back from either layout.
   test("writes the compact layout with title-cased field labels, and reads the sectioned one", () => {
     const { formatter } = sectionToTemplate(

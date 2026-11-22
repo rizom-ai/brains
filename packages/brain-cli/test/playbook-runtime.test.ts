@@ -81,7 +81,7 @@ async function exported(
 }
 
 /** The class wrote the defaults a file left out; a write now states only
- * what its author stated (docs/plans/one-stored-form.md). */
+ * what its author stated (docs/external-plugin-authoring.md, The stored format). */
 const unstatedDefaults = (markdown: string): string =>
   markdown.replace(
     "status: active\naudience: admin\ncompletionMode: agent-confirmed\n",

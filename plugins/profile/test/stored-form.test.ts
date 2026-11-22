@@ -8,7 +8,7 @@ import { isLegacyBrainCharacterContent } from "../src/starter-identity";
 
 /**
  * The identity singletons in their next stored form
- * (docs/plans/one-stored-form.md): the profile's data and the starter's
+ * (docs/external-plugin-authoring.md, The stored format): the profile's data and the starter's
  * legacy check read a document in either form the same.
  */
 const reader = (content: string): AnchorProfileReader => ({

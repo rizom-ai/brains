@@ -54,7 +54,7 @@ describe("style guide", () => {
   // the declared type: packages/brain-cli/test/style-guide-runtime.test.ts.
 });
 
-// The next stored form (docs/plans/one-stored-form.md) states the
+// The next stored form (docs/external-plugin-authoring.md, The stored format) states the
 // structured guidance as body sections above the free-form guidance.
 describe("a style guide in the next stored form", () => {
   test("reads the same guide as the current form, guidance sections included", () => {

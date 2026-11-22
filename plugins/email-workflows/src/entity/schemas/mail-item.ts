@@ -111,7 +111,7 @@ export const mailItemFrontmatterSchema: MailItemFrontmatterSchema =
   });
 
 /**
- * The next form's flat source keys (docs/plans/one-stored-form.md), each
+ * The next form's flat source keys (docs/external-plugin-authoring.md, The stored format), each
  * with the key it holds under the nested source, in the source's order.
  */
 const flatSourceKeys = {

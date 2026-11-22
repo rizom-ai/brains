@@ -71,7 +71,7 @@ describe("a form in the brain's content", () => {
   });
 });
 
-// A form's next stored form (docs/plans/one-stored-form.md) is a YAML file:
+// A form's next stored form (docs/external-plugin-authoring.md, The stored format) is a YAML file:
 // its introduction is the intro key, not a body.
 describe("a form in its next stored form", () => {
   it("reads its introduction from the intro key", () => {

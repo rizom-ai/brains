@@ -211,7 +211,7 @@ describe("the declared refined note generation on the entity store", () => {
       (await opened.stored("refined-note", "push-beats-pull"))?.content,
     ).toBe(
       // The membership is the generated document's header; the note's
-      // own fields follow it (docs/plans/one-stored-form.md).
+      // own fields follow it (docs/external-plugin-authoring.md, The stored format).
       refined.replace("---\n", "---\nprojects:\n  - Lighthouse\n"),
     );
   });

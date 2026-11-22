@@ -3,7 +3,7 @@ import { z } from "@brains/utils/zod";
 import { bodyFieldsCodec } from "../src";
 
 /**
- * A type whose new stored form (docs/plans/one-stored-form.md) states some
+ * A type whose new stored form (docs/external-plugin-authoring.md, The stored format) states some
  * header fields in its body: one section per field, under the text its
  * author wrote. It reads either form and writes the new one.
  */

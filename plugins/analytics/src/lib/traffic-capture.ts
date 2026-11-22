@@ -175,7 +175,7 @@ export class TrafficCapture {
     const contentHash = computeContentHash(content);
     const prior = existing.get(week.id);
     // The week's days, whatever form the snapshot is stored in: one stored
-    // in the next form holds no rendered body (docs/plans/one-stored-form.md).
+    // in the next form holds no rendered body (docs/external-plugin-authoring.md, The stored format).
     if (
       prior &&
       JSON.stringify(

@@ -112,7 +112,7 @@ function asMain(row: z.output<typeof rowSchema>): RowView {
 
 /**
  * The row main stored for a document that left `asked` to its default: a
- * write states only what its author stated (docs/plans/one-stored-form.md),
+ * write states only what its author stated (docs/external-plugin-authoring.md, The stored format),
  * so the file no longer gains `asked: 1`; the record still reads 1.
  */
 function unstatedAsked(row: RowView): RowView {

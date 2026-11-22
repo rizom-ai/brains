@@ -9,7 +9,7 @@ import { quizResultFrontmatterSchema } from "./schema";
 // Legacy: also reads the header form written before 0.2.0-alpha.760; removed with stored-form-old-headers (docs/legacy-code-inventory.json).
 
 /*
- * A quiz result's next stored form (docs/plans/one-stored-form.md): what
+ * A quiz result's next stored form (docs/external-plugin-authoring.md, The stored format): what
  * was answered and shown moves from the header to the body, under
  * "## Results" and "## Answers". A result is headed by its title, its
  * dimension and outcome labeled lines; an answer is headed by its question,

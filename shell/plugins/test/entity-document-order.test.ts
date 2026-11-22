@@ -48,7 +48,7 @@ const link = defineEntity({
         },
       };
     },
-    // The header is flat (docs/plans/one-stored-form.md): the nested
+    // The header is flat (docs/external-plugin-authoring.md, The stored format): the nested
     // source is stated as two keys.
     encode: ({ content, metadata }) => ({
       content,
@@ -123,7 +123,7 @@ async function store(definition: AnyEntityDefinition): Promise<{
 }
 
 // Every type keeps the order of the document it replaces
-// (docs/plans/one-stored-form.md).
+// (docs/external-plugin-authoring.md, The stored format).
 describe("a type writes in the document's order", () => {
   it("keeps a hand-written file's order and the fields it does not write", async () => {
     const { service, stored } = await store(link);

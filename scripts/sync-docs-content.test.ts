@@ -69,7 +69,7 @@ material: []
 Text.
 `;
 
-// In the guide's stored form (docs/plans/one-stored-form.md): who it is
+// In the guide's stored form (docs/external-plugin-authoring.md, The stored format): who it is
 // for and its material above its own sections.
 const expectedWriter = `---
 title: Moving in as a writer

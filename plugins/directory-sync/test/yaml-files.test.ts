@@ -18,7 +18,7 @@ import { FileOperations } from "../src/lib/file-operations";
 import type { FileOperationsEntityService } from "../src/lib/file-operations";
 
 /**
- * A YAML type's files (docs/plans/one-stored-form.md, YAML files): found
+ * A YAML type's files (docs/external-plugin-authoring.md, The stored format): found
  * under its own folder, read as the stored document whose header they
  * are, and written as YAML once the store writes the next form. A YAML
  * file under a markdown type's folder is not an entity's.
@@ -107,8 +107,8 @@ describe("a YAML type's files", () => {
 });
 
 /**
- * A record moving from its .md to its .yaml file (docs/plans/one-stored-form.md,
- * From .md to .yaml): an .md that reads as the record is the old copy and
+ * A record moving from its .md to its .yaml file (docs/external-plugin-authoring.md,
+ * The stored format): an .md that reads as the record is the old copy and
  * goes once the .yaml is written; an edited one is kept and, being newer,
  * is the file read.
  */

@@ -937,7 +937,7 @@ describe("public authoring 0.2 export ledger", () => {
 
 /**
  * The stored form is part of the authoring contract
- * (docs/plans/one-stored-form.md): one golden file per type fixes it, and
+ * (docs/external-plugin-authoring.md, The stored format): one golden file per type fixes it, and
  * a change to a golden file is a change of format, which needs a read of
  * the old form and a quiet rewrite. The ledger records each golden file's
  * hash, so such a change is made on purpose: in the golden file, the

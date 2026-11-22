@@ -496,7 +496,7 @@ describe("a generation links into a declared target through the real service", (
       renders: z.array(z.object({ id: z.string() })).default([]),
     }),
     // A list of objects in metadata, stated in the header as a list of ids
-    // (docs/plans/one-stored-form.md: a markdown header is flat).
+    // (docs/external-plugin-authoring.md, The stored format: a markdown header is flat).
     markdown: {
       decode: ({ content, frontmatter }) => {
         const { renders, ...rest } = frontmatter;

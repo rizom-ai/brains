@@ -159,7 +159,7 @@ function anchorProfileFields(content: string): Record<string, unknown> | null {
 
 /**
  * A declared record's fields: its metadata, whatever form its file is in
- * (docs/plans/one-stored-form.md).
+ * (docs/external-plugin-authoring.md, The stored format).
  */
 function recordFrontmatter(
   entity: Pick<BaseEntity, "content" | "metadata">,
