@@ -1,5 +1,16 @@
 # @brains/identity-service
 
+## 0.2.0-alpha.761
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.761
+  - @brains/contracts@0.2.0-alpha.761
+  - @brains/utils@0.2.0-alpha.761
+  - @brains/conversation-service@0.2.0-alpha.761
+  - @brains/entity-service@0.2.0-alpha.761
+
 ## 0.2.0-alpha.760
 
 ### Patch Changes

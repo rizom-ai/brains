@@ -1,5 +1,15 @@
 # @brains/image-plugin
 
+## 0.2.0-alpha.761
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.761
+  - @brains/contracts@0.2.0-alpha.761
+  - @brains/image@0.2.0-alpha.761
+  - @brains/utils@0.2.0-alpha.761
+
 ## 0.2.0-alpha.760
 
 ### Patch Changes

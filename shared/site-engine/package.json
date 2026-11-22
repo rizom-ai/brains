@@ -1,7 +1,7 @@
 {
   "name": "@brains/site-engine",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.760",
+  "version": "0.2.0-alpha.761",
   "description": "Renderer-agnostic site build engine utilities",
   "dependencies": {
     "@brains/contracts": "workspace:*",

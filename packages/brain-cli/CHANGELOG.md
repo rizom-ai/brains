@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.761
+
+### Patch Changes
+
+- [#1020](https://github.com/rizom-ai/brains/pull/1020) [`2b828bc`](https://github.com/rizom-ai/brains/commit/2b828bc9a6b9c3678216eaff3aca6fd87e88bf29) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A FAQ answer whose steps are a numbered list of bold labels (`1. **Align:** …`) reads back from the compact layout as its text. It was taken for field lines and refused, so the FAQ could not be read or exported after the stored-form rewrite.
+
+- [#1021](https://github.com/rizom-ai/brains/pull/1021) [`250effc`](https://github.com/rizom-ai/brains/commit/250effca88a1ebb452e7ec79e911ff0b720658e8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The rewrite on start no longer redoes work derived from a row's meaning. A restated row keeps its topic votes and failure counts under its new content hash, so topic extraction does not read it again or replace topics. A FAQ's fresh embedding from the rewrite no longer folds it into a near-duplicate. The shell announces the restated rows on `system:entities:restated` before startup content settles, and embedding-ready events carry `restated: true` for them.
+
 ## 0.2.0-alpha.760
 
 ### Patch Changes
