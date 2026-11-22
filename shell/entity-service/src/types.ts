@@ -1,5 +1,4 @@
 import type { StorageFormat } from "./yaml-storage";
-import type { StoredForm } from "./stored-form";
 import type { EntityTypeClassification } from "./entity-type-classification";
 import type { GroupingProjectionTarget } from "./grouping-projection-state";
 import type {
@@ -76,10 +75,9 @@ export interface RestatedEntity {
   contentHash: string;
 }
 
-/** What a quiet rewrite did: rows rewritten, and rows waiting for the new form. */
+/** What a quiet rewrite did: the rows it rewrote. */
 export interface StoredFormRewrite {
   rewritten: number;
-  deferred: number;
   restated: RestatedEntity[];
 }
 
@@ -584,7 +582,7 @@ export interface EntityAdapter<
    * writes (docs/plans/one-stored-form.md); a type that reads two forms
    * writes this one, and every other type ignores it.
    */
-  toMarkdown(entity: TEntity, options?: { form?: StoredForm }): string;
+  toMarkdown(entity: TEntity): string;
 
   // Extract entity-specific fields from markdown
   // Returns Partial<TEntity> as core fields come from database

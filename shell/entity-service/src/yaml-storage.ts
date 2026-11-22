@@ -1,22 +1,19 @@
-import type { StoredForm } from "./stored-form";
-
 /**
  * How a type's records are stored as files (docs/plans/one-stored-form.md,
  * YAML files): as markdown, the default, or as YAML, for a type whose
  * record is data with no body. A YAML type's stored row keeps the framed
  * document every reader reads; its file is the document's header, written
- * as YAML once the store writes the next form.
+ * as YAML.
  */
 export type StorageFormat = "markdown" | "yaml";
 
 const FRAMED = /^---\n([\s\S]*?)^---\n?([\s\S]*)$/mu;
 
-/** The extension a type's text files take in the stored form `form`. */
+/** The extension a type's text files take. */
 export function storedFileExtension(
   storage: StorageFormat | undefined,
-  form: StoredForm,
 ): ".md" | ".yaml" {
-  return storage === "yaml" && form === "new" ? ".yaml" : ".md";
+  return storage === "yaml" ? ".yaml" : ".md";
 }
 
 /** A stored document's file as YAML: its header, which is all it holds. */

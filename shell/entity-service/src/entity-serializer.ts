@@ -6,7 +6,6 @@ import {
 import { isPlainRecord } from "@brains/utils/predicates";
 import { z } from "@brains/utils/zod";
 import type { BaseEntity, EntityRegistry, SourceReadOption } from "./types";
-import { storedFormWrites, type StoredForm } from "./stored-form";
 import {
   contentOfYamlFile,
   storedFileExtension,
@@ -234,17 +233,10 @@ export function framedDocument(markdown: string): string {
 export class EntitySerializer {
   private entityRegistry: EntityRegistry;
   private logger: Logger;
-  /** The stored form this serializer writes. */
-  public readonly storedForm: StoredForm;
 
-  constructor(
-    entityRegistry: EntityRegistry,
-    logger: Logger,
-    storedForm: StoredForm = storedFormWrites,
-  ) {
+  constructor(entityRegistry: EntityRegistry, logger: Logger) {
     this.entityRegistry = entityRegistry;
     this.logger = logger.child("EntitySerializer");
-    this.storedForm = storedForm;
   }
 
   /**
@@ -258,7 +250,7 @@ export class EntitySerializer {
       this.entityRegistry.getEntityTypeConfig(entity.entityType)
         .binaryStorage === "asset";
     // An asset-backed row stores the bare reference; visibility lives on the row.
-    const markdown = adapter.toMarkdown(entity, { form: this.storedForm });
+    const markdown = adapter.toMarkdown(entity);
     const serialized = assetBacked
       ? markdown
       : applyVisibilityToMarkdown(markdown, entity.visibility);
@@ -279,8 +271,8 @@ export class EntitySerializer {
         ...unwrittenFields(
           this.entityRegistry.getEntityTypeConfig(entity.entityType),
         ),
-        // A key the next form states in the body stays out of the header.
-        ...(this.storedForm === "new" ? (adapter.bodyFieldKeys ?? []) : []),
+        // A key the type states in the body stays out of the header.
+        ...(adapter.bodyFieldKeys ?? []),
       ],
     );
     // Bytes keep the form they were handed; text takes the stored form.
@@ -301,11 +293,10 @@ export class EntitySerializer {
         ? withoutUnstatedDefaults(ordered, replaced, adapter.frontmatterSchema)
         : ordered,
     );
-    // A YAML type's document in the next form is the one its file holds:
-    // its header, and nothing under it.
+    // A YAML type's document is the one its file holds: its header, and
+    // nothing under it.
     return storedFileExtension(
       this.entityRegistry.getEntityTypeConfig(entity.entityType).storage,
-      this.storedForm,
     ) === ".yaml"
       ? contentOfYamlFile(yamlFileOf(framed))
       : framed;
@@ -621,10 +612,7 @@ export class EntitySerializer {
     const written = writtenOver(document.data, stored);
     if (Object.keys(written).length === 0) return entity;
     const encoded = readMarkdownFrontmatter(
-      adapter.toMarkdown(
-        { ...entity, content: document.content },
-        { form: this.storedForm },
-      ),
+      adapter.toMarkdown({ ...entity, content: document.content }),
     );
     let decoded: Partial<BaseEntity>;
     try {

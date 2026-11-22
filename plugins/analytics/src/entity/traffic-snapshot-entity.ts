@@ -4,7 +4,6 @@ import {
   storedFormCodec,
   withFrontmatterSchema,
 } from "@brains/sdk/internal/entity-runtime";
-import { parseMarkdown } from "@brains/utils/markdown-frontmatter";
 import { trafficSnapshotAdapter } from "./adapter";
 import {
   trafficSnapshotFrontmatterSchema,
@@ -17,36 +16,17 @@ const storedSnapshot = storedDocumentCodec({
 });
 
 /**
- * Either form reads; the store's is written: the current, its body the
- * days rendered as a table, or the next, the days alone, no longer stored
- * twice.
+ * Either form reads, its body the days rendered as a table or none; the
+ * days alone are written, no longer stored twice.
  */
 const trafficSnapshotMarkdown = storedFormCodec<
   typeof trafficSnapshotMetadataSchema
 >({
   decode: storedSnapshot.decode,
-  encode: {
-    // The body as stored; one brought back from the next form, which has
-    // none, is rendered from the days.
-    old: (document) => {
-      const encoded = storedSnapshot.encode?.(document) ?? {
-        content: document.content,
-        frontmatter: {},
-      };
-      return parseMarkdown(document.content).content.trim() === ""
-        ? {
-            ...encoded,
-            content: trafficSnapshotAdapter.bodyOf(
-              trafficSnapshotAdapter.parseContent(document.content),
-            ),
-          }
-        : encoded;
-    },
-    new: (document) => ({
-      ...(storedSnapshot.encode?.(document) ?? { frontmatter: {} }),
-      content: "",
-    }),
-  },
+  encode: (document) => ({
+    ...(storedSnapshot.encode?.(document) ?? { frontmatter: {} }),
+    content: "",
+  }),
 });
 
 /**

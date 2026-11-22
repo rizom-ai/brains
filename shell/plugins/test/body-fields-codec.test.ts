@@ -1,12 +1,11 @@
 import { describe, expect, it } from "bun:test";
 import { z } from "@brains/utils/zod";
 import { bodyFieldsCodec } from "../src";
-import { encoderFor } from "../src/entity/entity-runtime";
 
 /**
- * A type whose next stored form (docs/plans/one-stored-form.md) states some
+ * A type whose new stored form (docs/plans/one-stored-form.md) states some
  * header fields in its body: one section per field, under the text its
- * author wrote. It reads either form and writes the one its store writes.
+ * author wrote. It reads either form and writes the new one.
  */
 const metadata = z.object({
   name: z.string(),
@@ -71,15 +70,9 @@ describe("a codec that moves header fields to the body", () => {
     );
   });
 
-  it("writes the current form as the header, the next as body sections", () => {
+  it("writes the moved fields as body sections", () => {
     expect(
-      encoderFor(codec, "old")?.({ content: "", metadata: fields }),
-    ).toEqual({ content: "", frontmatter: fields });
-    expect(
-      encoderFor(
-        codec,
-        "new",
-      )?.({ content: "Written by hand.", metadata: fields }),
+      codec.encode?.({ content: "Written by hand.", metadata: fields }),
     ).toEqual({
       content: `Written by hand.\n\n${nextBody}`,
       frontmatter: { name: fields.name, tags: fields.tags },

@@ -124,17 +124,12 @@ export const socialPostMarkdown: EntityMarkdownCodec<
   },
   // A whole document handed in has had its frontmatter decoded into the
   // metadata already; the body is written as the adapter wrote it.
-  encode: {
-    old: ({ content, metadata }) => ({
-      content: parseMarkdown(content).content,
-      frontmatter: socialPostFrontmatter(metadata),
-    }),
-    new: ({ content, metadata }) => ({
-      content: parseMarkdown(content).content,
-      frontmatter: socialPostNextFrontmatter(metadata),
-    }),
-  },
-  header: { old: socialPostFrontmatterSchema, new: socialPostNextHeaderSchema },
+  encode: ({ content, metadata }) => ({
+    content: parseMarkdown(content).content,
+    frontmatter: socialPostNextFrontmatter(metadata),
+  }),
+  header: socialPostNextHeaderSchema,
+  oldHeader: socialPostFrontmatterSchema,
   places: [["documents", "documentIds"]],
 });
 

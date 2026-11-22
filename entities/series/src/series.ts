@@ -16,14 +16,13 @@ import {
 } from "./schemas/series";
 import { seriesDescriptionTemplate } from "./templates/description-template";
 
-/** A series' stored document in one body layout. */
+/** A series' stored document, its body in the compact layout. */
 function seriesDocument(
-  layout: "sections" | "compact",
   content: string,
   metadata: z.output<typeof seriesMetadataSchema>,
 ): { content: string; frontmatter: Record<string, unknown> } {
   return {
-    content: createSeriesBodyFormatter(metadata.title, layout).format(
+    content: createSeriesBodyFormatter(metadata.title, "compact").format(
       parseSeriesBody(metadata.title, content),
     ),
     frontmatter: {
@@ -61,13 +60,8 @@ export const series: EntityDefinition<"series", typeof seriesMetadataSchema> =
           },
         };
       },
-      // The current form writes the sectioned layout; the next, the compact.
-      encode: {
-        old: ({ content, metadata }) =>
-          seriesDocument("sections", content, metadata),
-        new: ({ content, metadata }) =>
-          seriesDocument("compact", content, metadata),
-      },
+      // A body in the sectioned layout reads; the compact one is written.
+      encode: ({ content, metadata }) => seriesDocument(content, metadata),
     }),
     // Supporting weight: a series is an index over other content, so it
     // should not outrank the content it points at.

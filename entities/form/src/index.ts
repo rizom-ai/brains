@@ -105,27 +105,22 @@ function withIntro(document: StoredDocument): Record<string, unknown> {
 }
 
 /**
- * Read as its stored document in either form; the store's form is
- * written: the current, a header and its introduction as the body, or the
- * next, a YAML file of the whole definition.
+ * Read as its stored document in either form, a header and its
+ * introduction as the body or a YAML file of the whole definition; the
+ * YAML file is written.
  */
 const formMarkdown = storedFormCodec<typeof formMetadataSchema>({
   decode: storedForm.decode,
-  encode: {
-    old: ({ content, metadata }) => written(content, metadata),
-    new: ({ content, metadata }) => ({
-      content: "",
-      frontmatter: withIntro(written(content, metadata)),
-    }),
-  },
-  header: {
-    old: formFrontmatterSchema,
-    // Strict, as the current header is: an unknown key is refused.
-    new: z.strictObject({
-      ...formFrontmatterSchema.shape,
-      intro: z.string().optional(),
-    }),
-  },
+  encode: ({ content, metadata }) => ({
+    content: "",
+    frontmatter: withIntro(written(content, metadata)),
+  }),
+  // Strict, as the old header is: an unknown key is refused.
+  header: z.strictObject({
+    ...formFrontmatterSchema.shape,
+    intro: z.string().optional(),
+  }),
+  oldHeader: formFrontmatterSchema,
   // An introduction moved to the header sits beside the thanks text.
   places: [["intro", "thanks"]],
   readAsWritten: true,

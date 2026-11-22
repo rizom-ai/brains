@@ -186,11 +186,9 @@ export function siteInfoDefinition(): SiteInfoDefinition {
         content: "",
         metadata: decodeSiteInfo(document),
       }),
-      encode: {
-        old: ({ metadata }) => ({ content: "", frontmatter: metadata }),
-        new: ({ metadata }) => encodeNewForm(metadata),
-      },
-      header: { old: siteInfoBodySchema, new: newHeaderSchema },
+      encode: ({ metadata }) => encodeNewForm(metadata),
+      header: newHeaderSchema,
+      oldHeader: siteInfoBodySchema,
     }),
     config: {
       embeddable: false,

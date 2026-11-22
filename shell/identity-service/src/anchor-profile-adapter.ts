@@ -1,8 +1,4 @@
-import {
-  parseMarkdownWithFrontmatter,
-  storedFormWrites,
-  type StoredForm,
-} from "@brains/entity-service";
+import { parseMarkdownWithFrontmatter } from "@brains/entity-service";
 import { z } from "@brains/utils/zod";
 import {
   PROFILE_BODY_FIELDS,
@@ -38,22 +34,20 @@ export class AnchorProfileAdapter extends SingletonFrontmatterAdapter<
       purpose: "The profile of the brain's Anchor (singleton).",
       schema: anchorProfileSchema,
       frontmatterSchema: anchorProfileBodySchema,
-      // Studio and the vault present the header the release writes.
-      ...(storedFormWrites === "new" && {
-        presentedFrontmatterSchema: anchorProfileBodySchema.omit({
-          description: true,
-          socialLinks: true,
-        }),
+      // Studio and the vault present the header the profile writes.
+      presentedFrontmatterSchema: anchorProfileBodySchema.omit({
+        description: true,
+        socialLinks: true,
       }),
       isSingleton: true,
       hasBody: true,
     });
   }
 
-  /** The header keys the next form states in the body. */
+  /** The header keys the new form states in the body. */
   public readonly bodyFieldKeys: readonly string[] = PROFILE_BODY_FIELDS;
 
-  /** A file brought back to the current form keeps the profile's key order. */
+  /** A file read in the old form keeps the profile's key order. */
   public readonly headerKeyPlaces: readonly (readonly string[])[] = [
     PROFILE_KEY_ORDER,
   ];
@@ -84,17 +78,11 @@ export class AnchorProfileAdapter extends SingletonFrontmatterAdapter<
   }
 
   /**
-   * The profile in the store's form: the current keeps every field in the
-   * header and its story as the body; the next states its prose, principles
-   * and links as body sections and its story under "## Story".
+   * The profile in the new form, from a document in either: its prose,
+   * principles and links as body sections and its story under "## Story".
    */
-  public override toMarkdown(
-    entity: AnchorProfileEntity,
-    options?: { form?: StoredForm },
-  ): string {
+  public override toMarkdown(entity: AnchorProfileEntity): string {
     const current = this.inCurrentShape(entity.content);
-    if ((options?.form ?? storedFormWrites) === "old")
-      return super.toMarkdown({ ...entity, content: current });
     const { metadata, content } = parseMarkdownWithFrontmatter(
       current,
       headerRecordSchema,

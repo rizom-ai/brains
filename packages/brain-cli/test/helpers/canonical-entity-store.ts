@@ -38,9 +38,7 @@ export interface CanonicalEntityStore {
  * through. Plugins are installed on a test harness only to collect their
  * types; nothing they subscribe to runs against this store.
  */
-export async function canonicalEntityStore(
-  options: { storedForm?: "old" | "new" } = {},
-): Promise<CanonicalEntityStore> {
+export async function canonicalEntityStore(): Promise<CanonicalEntityStore> {
   const harness = createPluginHarness({
     dataDir: "/tmp/canonical-entity-store",
     domain: "brain.test",
@@ -116,7 +114,6 @@ export async function canonicalEntityStore(
     logger,
     jobQueueService: harness.getMockShell().getJobQueueService(),
     embeddingsEnabled: false,
-    ...(options.storedForm && { storedForm: options.storedForm }),
     embeddingService: {
       identity: { model: "test:none", dimensions: 1536, promptRevision: 0 },
       embedQuery: async () => {
