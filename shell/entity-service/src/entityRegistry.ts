@@ -1,3 +1,4 @@
+import { nestedHeaderKeys } from "./flat-header";
 import {
   GroupingProjectionState,
   type GroupingProjectionTarget,
@@ -126,6 +127,15 @@ export class EntityRegistry implements IEntityRegistry {
       throw new Error(
         `Entity type registration failed: ${type} retires ${stillDeclared}, which its metadata schema still declares`,
       );
+    }
+
+    // A markdown file's header is flat; a YAML file's may nest.
+    if (
+      config?.storage !== "yaml" &&
+      adapter.frontmatterSchema &&
+      adapter.headerWrittenByCodec !== true
+    ) {
+      refuseNestedHeader(type, adapter.frontmatterSchema);
     }
 
     // Register schema, adapter, and config
@@ -415,6 +425,9 @@ export class EntityRegistry implements IEntityRegistry {
           `Cannot replace registered grouping field ${type}.${grouping.field}`,
         );
       }
+    }
+    if (this.entityConfigs.get(type)?.storage !== "yaml") {
+      refuseNestedHeader(type, extension);
     }
     const existing = this.frontmatterExtensions.get(type) ?? [];
     existing.push(extension);
@@ -782,4 +795,17 @@ function declaredMetadataKeys(
   return metadata instanceof z.ZodObject
     ? new Set(Object.keys(metadata.shape))
     : new Set();
+}
+
+/** A markdown type's header nests: refused, naming its nested keys. */
+function refuseNestedHeader(
+  type: string,
+  header: z.ZodObject<z.ZodRawShape>,
+): void {
+  const nested = nestedHeaderKeys(header);
+  if (nested.length > 0) {
+    throw new Error(
+      `Entity type registration failed: ${type}'s header nests ${nested.join(", ")}; a markdown header holds scalars and lists of scalars, and nested copy belongs in the body`,
+    );
+  }
 }

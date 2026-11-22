@@ -1,3 +1,4 @@
+import { actionItemNextHeaderSchema } from "./stored-form";
 import {
   generateFrontmatter,
   generateMarkdownWithFrontmatter,
@@ -46,7 +47,10 @@ export const actionItemAdapter: ActionItemAdapter = Object.freeze({
   entityType: ACTION_ITEM_ENTITY_TYPE,
   purpose: "An action item captured from a conversation.",
   schema: actionItemSchema,
-  frontmatterSchema: actionItemMetadataSchema,
+  // The header the card states: flat, as the action board's definition
+  // presents it. The keys an older file states nested are still its own.
+  frontmatterSchema: actionItemNextHeaderSchema,
+  writtenFrontmatterSchema: actionItemMetadataSchema,
   toMarkdown: (entity: ActionItemEntity): string =>
     generateMarkdown(
       actionItemFrontmatter(entity),

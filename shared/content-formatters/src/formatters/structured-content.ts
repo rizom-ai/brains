@@ -4,6 +4,8 @@ import { remark } from "remark";
 import type { Root, Heading, RootContent } from "mdast";
 import { getErrorMessage } from "@brains/utils/error";
 
+// Legacy: also reads the sectioned body layout written before 0.2.0-alpha.760; removed with stored-form-sectioned-body-layout (docs/legacy-code-inventory.json).
+
 const recordSchema = z.record(z.string(), z.unknown());
 
 export type StructuredContentSchema<T> = ZodType<T, unknown>;

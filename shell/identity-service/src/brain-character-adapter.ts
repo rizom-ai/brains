@@ -9,6 +9,8 @@ import { bodyFields } from "@brains/content-formatters";
 import { parseMarkdownWithFrontmatter } from "@brains/entity-service";
 import { z } from "@brains/utils/zod";
 
+// Legacy: also reads the header form written before 0.2.0-alpha.760; removed with stored-form-old-headers (docs/legacy-code-inventory.json).
+
 /**
  * The character's next stored form (docs/plans/one-stored-form.md): its
  * name and role in the header, its purpose and values in the body.

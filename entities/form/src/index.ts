@@ -19,6 +19,8 @@ import {
 } from "@brains/sdk/internal/entity-runtime";
 import { parseMarkdown } from "@brains/utils/markdown-frontmatter";
 
+// Legacy: also reads the header form written before 0.2.0-alpha.760; removed with stored-form-old-headers (docs/legacy-code-inventory.json).
+
 type FormMetadataSchema = z.ZodObject<{
   title: z.ZodString;
   target: z.ZodString;

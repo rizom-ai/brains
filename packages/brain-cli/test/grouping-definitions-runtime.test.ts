@@ -62,6 +62,8 @@ async function store(): Promise<DeclaredEntityStore> {
     "studio",
     {
       classification: "system",
+      // A YAML file, as the type declares it (docs/plans/one-stored-form.md).
+      storage: "yaml",
       embeddable: false,
       projectionSource: false,
       actionPolicy: {
@@ -74,6 +76,21 @@ async function store(): Promise<DeclaredEntityStore> {
   );
   stores.push(opened);
   return opened;
+}
+
+/**
+ * Main's record as the type stores it now: a YAML file since
+ * 0.2.0-alpha.760 (docs/plans/one-stored-form.md), whose header-only
+ * document ends on its closing line, where main's markdown adapter wrote
+ * one empty line more. Everything else is main's, byte for byte.
+ */
+function asYamlType(record: MainRecord): MainRecord {
+  const framed = (text: string): string => text.replace(/---\n\n$/u, "---\n");
+  return {
+    stored: { ...record.stored, content: framed(record.stored.content) },
+    read: { ...record.read, content: framed(record.read.content) },
+    exported: framed(record.exported),
+  };
 }
 
 async function reads(opened: DeclaredEntityStore): Promise<MainRecord> {
@@ -119,7 +136,7 @@ describe("the declared grouping definitions on the entity store", () => {
   test("imports, updates and reimports a document that needs repair as the class did", async () => {
     const opened = await store();
     await importFile(opened, valid);
-    expect(await reads(opened)).toEqual(main.imported);
+    expect(await reads(opened)).toEqual(asYamlType(main.imported));
 
     const current = await opened.service.getEntity({
       entityType: type,
@@ -133,9 +150,9 @@ describe("the declared grouping definitions on the entity store", () => {
         content: current.content.replace("Clients", "Customers"),
       },
     });
-    expect(await reads(opened)).toEqual(main.updated);
+    expect(await reads(opened)).toEqual(asYamlType(main.updated));
 
     await importFile(opened, needsRepair);
-    expect(await reads(opened)).toEqual(main.needsRepair);
+    expect(await reads(opened)).toEqual(asYamlType(main.needsRepair));
   });
 });

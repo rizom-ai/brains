@@ -19,6 +19,7 @@ import {
   applyVisibilityToMarkdown,
   generateFrontmatter,
   generateMarkdownWithFrontmatter,
+  nestedHeaderValueKeys,
   parseMarkdownWithFrontmatter,
   type BaseEntity,
   type ContentVisibility,
@@ -267,14 +268,23 @@ function encodeParts(
   },
 ): { readonly content: string; readonly frontmatter: Record<string, unknown> } {
   const encode = definition.markdown?.encode;
-  return encode
-    ? encode({
-        content: input.content,
-        metadata: definition.metadata.parse(
-          currentMetadata(definition, input.metadata),
-        ),
-      })
-    : { content: input.content, frontmatter: input.metadata };
+  if (!encode) return { content: input.content, frontmatter: input.metadata };
+  const encoded = encode({
+    content: input.content,
+    metadata: definition.metadata.parse(
+      currentMetadata(definition, input.metadata),
+    ),
+  });
+  // A markdown file's header is flat; a YAML file's may nest.
+  if (definition.config?.storage !== "yaml") {
+    const nested = nestedHeaderValueKeys(encoded.frontmatter);
+    if (nested.length > 0) {
+      throw new Error(
+        `${definition.type}'s codec wrote a header that nests ${nested.join(", ")}; a markdown header holds scalars and lists of scalars, and nested copy belongs in the body`,
+      );
+    }
+  }
+  return encoded;
 }
 
 function encodeEntityMarkdown(
@@ -366,6 +376,7 @@ function markdownStorage(
   | "metadataFromFrontmatter"
   | "headerKeyPlaces"
   | "bodyFieldKeys"
+  | "headerWrittenByCodec"
 > {
   // A type that reads the old stored form as well states the header it
   // writes and the old form's.
@@ -377,6 +388,10 @@ function markdownStorage(
     // states one, else its metadata.
     frontmatterSchema:
       header ?? frontmatterSchemaOf(definition) ?? definition.metadata,
+    // A plain codec writes a header no schema states: each write is checked.
+    ...(definition.markdown &&
+      !header &&
+      !frontmatterSchemaOf(definition) && { headerWrittenByCodec: true }),
     // What it writes is every field its metadata names and, for a type
     // that reads the old stored form as well, every key of the header it
     // writes and of the old form's, so rewriting an old file leaves none of

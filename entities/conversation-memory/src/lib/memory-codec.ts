@@ -9,6 +9,8 @@ import type { EntityMarkdownCodec } from "@brains/sdk/entities";
 import { storedFormCodec } from "@brains/sdk/internal/entity-runtime";
 import { z } from "@brains/utils/zod";
 
+// Legacy: also reads the header form written before 0.2.0-alpha.760; removed with stored-form-old-headers (docs/legacy-code-inventory.json).
+
 /**
  * A memory's next stored form (docs/plans/one-stored-form.md): its time
  * range as startedAt and endedAt, and its people indexed in the header as

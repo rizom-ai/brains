@@ -265,6 +265,30 @@ them. Projections reference source/target definitions and write through the
 typed target helper. Persistence, markdown/frontmatter validation, visibility,
 search indexing, scheduling, and loop prevention stay runtime-owned.
 
+### The stored format
+
+An entity is stored as a markdown file: a header and a body. The header is
+flat. Each key holds a scalar (text, a number, a flag, a date, one of a set of
+values) or a list of scalars, so Obsidian shows every key as a property and
+an author never meets an object they cannot edit. Prose and structured copy go
+in the body, as `##` sections. A type whose header would nest (an object, a
+record, a list of objects) is refused when it registers. A record that is data
+rather than prose, such as a form definition, is stored as a YAML file with
+`config: { storage: "yaml" }`, and its file may nest.
+
+Every path writes the same bytes for the same entity. Keys keep the order of
+the file they replace, and a key the type does not name is kept as written and
+reported. For a type whose header is its metadata, a key that holds its
+default is left out unless the file stated it.
+
+A stored file outlives the release that wrote it. To rename or move a field,
+the type's codec reads both forms and writes the new one: `decode` accepts the
+old key or section as well as the new, and `encode` writes only the new. When
+the brain starts, it rewrites stored rows that differ from the form their type
+writes now. The rewrite changes no timestamps and queues no derived work, and
+the rewritten files are exported in one commit. Keep reading the old form for
+at least one minor release after the release that stops writing it.
+
 ### Entity data and templates
 
 An entity type can declare presentation `templates` and a `feed` of its own;

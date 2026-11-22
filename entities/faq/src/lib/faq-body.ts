@@ -23,6 +23,8 @@ import {
   withoutStoredExcerpts,
 } from "./stored-body";
 
+// Legacy: also reads the sectioned body layout written before 0.2.0-alpha.760; removed with stored-form-sectioned-body-layout (docs/legacy-code-inventory.json).
+
 /** The query-friendly metadata a FAQ's frontmatter implies. */
 export function faqMetadata(frontmatter: FaqFrontmatter): FaqMetadata {
   return {

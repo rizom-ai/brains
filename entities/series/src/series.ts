@@ -16,6 +16,8 @@ import {
 } from "./schemas/series";
 import { seriesDescriptionTemplate } from "./templates/description-template";
 
+// Legacy: also reads the sectioned body layout written before 0.2.0-alpha.760; removed with stored-form-sectioned-body-layout (docs/legacy-code-inventory.json).
+
 /** A series' stored document, its body in the compact layout. */
 function seriesDocument(
   content: string,

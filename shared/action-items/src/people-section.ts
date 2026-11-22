@@ -1,4 +1,6 @@
 import { actorRefKey, type ActorRef } from "@brains/contracts";
+
+// Legacy: also reads the header form written before 0.2.0-alpha.760; removed with stored-form-old-headers (docs/legacy-code-inventory.json).
 /**
  * The people a memory names, in its next stored form
  * (docs/plans/one-stored-form.md). The header indexes them, each list as

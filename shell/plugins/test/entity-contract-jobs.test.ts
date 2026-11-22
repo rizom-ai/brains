@@ -173,6 +173,29 @@ const post = defineEntity({
     coverImageId: z.string().nullable().default(null),
     documents: z.array(z.object({ id: z.string() })).default([]),
   }),
+  // A list of objects in metadata, stated in the header as a list of ids
+  // (docs/plans/one-stored-form.md: a markdown header is flat).
+  markdown: {
+    decode: ({ content, frontmatter }) => {
+      const { documents, ...rest } = frontmatter;
+      return {
+        content,
+        metadata: {
+          ...rest,
+          documents: (Array.isArray(documents) ? documents : []).map((id) => ({
+            id: String(id),
+          })),
+        },
+      };
+    },
+    encode: ({ content, metadata }) => ({
+      content,
+      frontmatter: {
+        ...metadata,
+        documents: metadata.documents.map(({ id }) => id),
+      },
+    }),
+  },
 });
 const note = defineEntity({
   type: "note",

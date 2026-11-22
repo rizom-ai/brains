@@ -39,12 +39,16 @@ type Card = z.infer<typeof cardSchema>;
 /** A declared type's adapter: its metadata is its frontmatter. */
 class CardAdapter extends BaseEntityAdapter<Card, Card["metadata"]> {
   public readonly metadataFromFrontmatter = true;
+  // As a moved type carries its old header: `link` is a nested key an
+  // older file states, written back and read, never presented as a field.
+  public readonly writtenFrontmatterSchema = cardFields;
   constructor() {
     super({
       entityType: "card",
       purpose: "Stored-form fixture",
       schema: cardSchema,
       frontmatterSchema: cardFields,
+      presentedFrontmatterSchema: cardFields.omit({ link: true }),
     });
   }
   public override toMarkdown(entity: Card): string {
