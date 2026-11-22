@@ -59,6 +59,19 @@ describe("editing a note", () => {
     expect(synced.vault.text("tea.md")).toBe("# Tea\n\nFrom Studio.\n");
   });
 
+  it("uploads a note edited a moment ago when a sync runs", async () => {
+    synced = await withTea();
+    synced.vault.setText("tea.md", "# Tea\n\nJust typed.\n");
+    synced.vault.setText("coffee.md", "# Coffee\n");
+    synced.vault.busy.add("tea.md");
+    synced.vault.busy.add("coffee.md");
+
+    const report = await synced.engine.sync();
+
+    expect(report.uploaded.sort()).toEqual(["coffee.md", "tea.md"]);
+    expect(await stored(synced, "tea")).toBe("# Tea\n\nJust typed.\n");
+  });
+
   it("leaves a note the person changed while it was downloading", async () => {
     synced = await withTea();
     await synced.brain.write("note", "tea", "# Tea\n\nFrom Studio.\n");

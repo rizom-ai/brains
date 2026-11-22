@@ -103,7 +103,7 @@ export class DeletesModal extends Modal {
         .addButton((button) =>
           button
             .setButtonText("Delete in my brain")
-            .setDestructive()
+            .setClass("mod-warning")
             .onClick(() => {
               this.close();
               this.onAnswer({
@@ -127,7 +127,7 @@ export class DeletesModal extends Modal {
         .addButton((button) =>
           button
             .setButtonText("Move to trash")
-            .setDestructive()
+            .setClass("mod-warning")
             .onClick(() => {
               this.close();
               this.onAnswer({ remoteGone: { paths: gone, action: "trash" } });

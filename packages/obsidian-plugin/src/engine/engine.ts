@@ -470,11 +470,14 @@ export class SyncEngine {
     const remoteGone: string[] = [];
 
     for (const path of paths) {
-      // A file being typed in is left for the next sync.
-      if (this.vault.isBusy(path)) continue;
       const known = state.paths[path];
       const etag = remote.files.get(path);
       const file = local.get(path);
+      // A file being typed in is never written into: unless it has an edit
+      // to send, it is left for the next sync. Sending one only writes back
+      // over the text it sent.
+      const editedHere = file !== undefined && file.hash !== known?.hash;
+      if (this.vault.isBusy(path) && !editedHere) continue;
       try {
         if (!known) {
           if (file && etag !== undefined) {
