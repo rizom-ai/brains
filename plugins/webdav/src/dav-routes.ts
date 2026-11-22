@@ -1,5 +1,6 @@
 import type { RecordConflictRequest } from "@brains/contracts";
 import { memoryMountBases, type MountBases } from "./dav-mounts";
+import type { KeptStore } from "./dav-kept";
 import type { MountView } from "./dav-saves";
 import type { AuthAppPasswordGrant } from "@brains/contracts";
 import type { WebRouteDefinition } from "@brains/sdk/internal/interface-runtime";
@@ -37,6 +38,8 @@ export interface DavRoutesOptions {
   ) => Promise<AuthAppPasswordGrant | undefined>;
   /** Milliseconds since the epoch; the clock temporary files age by. */
   now?: () => number;
+  /** Where a person's `.obsidian` outlives the process; memory when not given. */
+  kept?: KeptStore;
   /** The versions mounts hold; kept in memory when not given. */
   mounts?: MountBases;
   /**
@@ -114,7 +117,7 @@ export function createDavRoutes(
   const server: DavServer = {
     options,
     mounts: options.mounts ?? memoryMountBases(options.now),
-    scratch: new ScratchStore(options.now),
+    scratch: new ScratchStore(options.now, options.kept),
     locks: new LockStore(options.now),
     cleanups: new CleanupGuard(options.now),
     holds: new SaveHolds(options.now),
@@ -173,7 +176,12 @@ export function createDavRoutes(
       ) {
         return inert(locked());
       }
-      return inert(await handlers[method](server, dav));
+      // A person's kept folders are in memory before anything looks for
+      // them, and every change to them is stored before it is answered.
+      await server.scratch.open(grant.principal.userId);
+      const response = await handlers[method](server, dav);
+      await server.scratch.settle();
+      return inert(response);
     },
   }));
 }

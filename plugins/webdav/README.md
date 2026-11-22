@@ -65,6 +65,8 @@ rclone tells versions apart by size alone. When the stored version has the same 
 
 Editors and desktops write their own files on a mounted drive: swap files, backups, a temporary file renamed onto the real one, and macOS's hidden folders (`.Trashes`, `.TemporaryItems`). Any name that is a dot file or does not end in an entity's extension, and anything inside a hidden folder, is such a file. It is kept in memory for the person who wrote it, for ten minutes after its last use and 16 MiB at most, and is never an entity. Renaming one onto an entity's file is a save.
 
+One hidden folder is kept instead of forgotten: `.obsidian` at the root, where Obsidian holds a vault's settings, open tabs and plugins when the drive is opened as a vault. It is still the person's own and never an entity, but it is stored with the brain's runtime state, so it is there after ten minutes, after a restart and from that person's other devices. One person's `.obsidian` holds 32 MiB at most.
+
 ## Creating and deleting
 
 A new file creates the entity its path names, only if none is there yet: `post/first.md` is the post `first`, a file at the root is a note. The path must be one `brain-data/` could hold; any other answers 403. A file that names no `visibility` is public, as an imported file is. An id already taken, by an entity the person may see or not, answers 412. `If-None-Match: *` saves only if no file is there.

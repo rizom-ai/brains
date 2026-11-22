@@ -1,3 +1,4 @@
+import { memoryKeptStore } from "../src/dav-kept";
 import type { RecordConflictRequest } from "@brains/contracts";
 import { memoryMountBases } from "../src/dav-mounts";
 import type { AppendAuthAuditEventInput } from "@brains/contracts";
@@ -51,7 +52,12 @@ export interface RecordedUpdate {
 export interface FakeBrain {
   options: Pick<
     DavRoutesOptions,
-    "reader" | "writes" | "mounts" | "recordConflict" | "conflictPending"
+    | "reader"
+    | "writes"
+    | "mounts"
+    | "kept"
+    | "recordConflict"
+    | "conflictPending"
   >;
   /** Losing saves the drive handed over to be kept. */
   conflicts: RecordConflictRequest[];
@@ -122,6 +128,8 @@ export function fakeBrain(
     options: {
       // Held by the brain, as runtime-state is: a new server finds it again.
       mounts: memoryMountBases(() => 1_800_000_000_000),
+      // Held by the brain, as runtime-state is: a new server finds it again.
+      kept: memoryKeptStore(),
       recordConflict: async (request): Promise<string | undefined> => {
         if (!brain.conflictsAvailable) return undefined;
         brain.conflicts.push(request);

@@ -3,6 +3,12 @@ import {
   IMAGE_EXTENSIONS,
 } from "@brains/entity-placement";
 import { posix } from "path";
+import {
+  isKeptPath,
+  KEPT_CAP_BYTES,
+  memoryKeptStore,
+  type KeptStore,
+} from "./dav-kept";
 
 const ENTITY_EXTENSIONS = new Set([
   ".md",
@@ -24,6 +30,10 @@ export interface ScratchFile {
 interface StoredScratchFile extends ScratchFile {
   touched: number;
 }
+
+/** A kept path never goes idle; anything else does. */
+const idle = (key: string, touched: number, now: number): boolean =>
+  !isKeptPath(key.split("/")) && now - touched >= SCRATCH_IDLE_MS;
 
 /**
  * Whether a name is an editor's own file rather than an entity's: a dot
@@ -49,9 +59,53 @@ export class ScratchStore {
   /** Folders a person made and has not saved into yet, by path, with their last use. */
   private readonly folders = new Map<string, Map<string, number>>();
   private readonly now: () => number;
+  private readonly kept: KeptStore;
+  /** The people whose kept folders are in memory. */
+  private readonly opened = new Map<string, Promise<void>>();
+  /** Writes to the kept store that have not finished yet, in order. */
+  private pending: Promise<void> = Promise.resolve();
 
-  constructor(now: () => number = Date.now) {
+  constructor(
+    now: () => number = Date.now,
+    kept: KeptStore = memoryKeptStore(),
+  ) {
     this.now = now;
+    this.kept = kept;
+  }
+
+  /**
+   * Bring a person's kept folders into memory, once. Every request of
+   * theirs waits for it, so a kept file is there before it is asked for.
+   */
+  open(userId: string): Promise<void> {
+    const opened =
+      this.opened.get(userId) ??
+      this.kept.load(userId).then((entries) => {
+        entries.forEach(({ path, bytes, modified }) => {
+          const segments = path.split("/");
+          if (bytes === undefined) {
+            this.foldersOf(userId).set(path, modified);
+          } else {
+            this.filesOf(userId).set(path, {
+              segments,
+              bytes,
+              modified: new Date(modified),
+              touched: modified,
+            });
+          }
+        });
+      });
+    this.opened.set(userId, opened);
+    return opened;
+  }
+
+  /** Wait until every change to a kept folder is stored. */
+  settle(): Promise<void> {
+    return this.pending;
+  }
+
+  private persist(write: () => Promise<void>): void {
+    this.pending = this.pending.then(write);
   }
 
   get(userId: string, segments: string[]): ScratchFile | undefined {
@@ -81,24 +135,42 @@ export class ScratchStore {
     const files = this.live(userId);
     const key = segments.join("/");
     const replaced = files.get(key);
-    const held = [...files.values()].reduce(
-      (total, file) => total + file.bytes.byteLength,
-      0,
-    );
+    // Kept folders and temporary files each have their own room.
+    const kept = isKeptPath(segments);
+    const held = [...files.values()]
+      .filter((file) => isKeptPath(file.segments) === kept)
+      .reduce((total, file) => total + file.bytes.byteLength, 0);
     if (
       held - (replaced?.bytes.byteLength ?? 0) + bytes.byteLength >
-      SCRATCH_CAP_BYTES
+      (kept ? KEPT_CAP_BYTES : SCRATCH_CAP_BYTES)
     ) {
       return "full";
     }
     const now = this.now();
     files.set(key, { segments, bytes, modified: new Date(now), touched: now });
     this.files.set(userId, files);
+    if (kept) {
+      // A kept file's folders are kept with it: they are how it is found
+      // again after a restart.
+      segments
+        .slice(0, -1)
+        .forEach((_, index) =>
+          this.makeFolder(userId, segments.slice(0, index + 1)),
+        );
+      this.persist(() =>
+        this.kept.put(userId, { path: key, bytes, modified: now }),
+      );
+    }
     return replaced ? "replaced" : "created";
   }
 
   delete(userId: string, segments: string[]): boolean {
-    return this.live(userId).delete(segments.join("/"));
+    const key = segments.join("/");
+    const deleted = this.live(userId).delete(key);
+    if (deleted && isKeptPath(segments)) {
+      this.persist(() => this.kept.remove(userId, [key]));
+    }
+    return deleted;
   }
 
   /** Whether a person has made a folder here that holds nothing real yet. */
@@ -124,8 +196,14 @@ export class ScratchStore {
 
   makeFolder(userId: string, segments: string[]): void {
     const folders = this.liveFolders(userId);
-    folders.set(segments.join("/"), this.now());
+    const key = segments.join("/");
+    const known = folders.has(key);
+    const now = this.now();
+    folders.set(key, now);
     this.folders.set(userId, folders);
+    if (!known && isKeptPath(segments)) {
+      this.persist(() => this.kept.put(userId, { path: key, modified: now }));
+    }
   }
 
   /** Drop a folder a person made, with everything temporary inside it. */
@@ -135,9 +213,15 @@ export class ScratchStore {
       candidate === key || candidate.startsWith(`${key}/`);
     const folders = this.liveFolders(userId);
     if (!folders.has(key)) return false;
-    [...folders.keys()].filter(inside).forEach((name) => folders.delete(name));
     const files = this.live(userId);
-    [...files.keys()].filter(inside).forEach((name) => files.delete(name));
+    const gone = [...folders.keys(), ...files.keys()].filter(inside);
+    gone.forEach((name) => {
+      folders.delete(name);
+      files.delete(name);
+    });
+    if (isKeptPath(segments)) {
+      this.persist(() => this.kept.remove(userId, gone));
+    }
     return true;
   }
 
@@ -166,11 +250,24 @@ export class ScratchStore {
     return outcome;
   }
 
+  private foldersOf(userId: string): Map<string, number> {
+    const folders = this.folders.get(userId) ?? new Map<string, number>();
+    this.folders.set(userId, folders);
+    return folders;
+  }
+
+  private filesOf(userId: string): Map<string, StoredScratchFile> {
+    const files =
+      this.files.get(userId) ?? new Map<string, StoredScratchFile>();
+    this.files.set(userId, files);
+    return files;
+  }
+
   private liveFolders(userId: string): Map<string, number> {
     const folders = this.folders.get(userId) ?? new Map<string, number>();
     const now = this.now();
     [...folders].forEach(([key, touched]) => {
-      if (now - touched >= SCRATCH_IDLE_MS) folders.delete(key);
+      if (idle(key, touched, now)) folders.delete(key);
     });
     if (folders.size === 0) this.folders.delete(userId);
     return folders;
@@ -182,7 +279,7 @@ export class ScratchStore {
       this.files.get(userId) ?? new Map<string, StoredScratchFile>();
     const now = this.now();
     [...files].forEach(([key, file]) => {
-      if (now - file.touched >= SCRATCH_IDLE_MS) files.delete(key);
+      if (idle(key, file.touched, now)) files.delete(key);
     });
     if (files.size === 0) this.files.delete(userId);
     return files;

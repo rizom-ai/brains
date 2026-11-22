@@ -3,6 +3,7 @@ import {
   recordConflictContract,
 } from "@brains/contracts";
 import { runtimeStateMountBases } from "./dav-mounts";
+import { runtimeStateKeptStore } from "./dav-kept";
 import { WEBDAV_INTERACTION_ID } from "@brains/contracts";
 import {
   defineServicePlugin,
@@ -102,6 +103,7 @@ const service = defineServicePlugin({
         resolveAppPassword: async (request) =>
           runtime.auth()?.resolveAppPassword(request),
         mounts,
+        kept: runtimeStateKeptStore(runtime.classRuntimeState),
         // Unanswered when no conflict service runs here; the save is then
         // refused, which keeps the edit with the client.
         recordConflict: async (request) => {
