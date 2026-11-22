@@ -810,9 +810,12 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
     const lead = this.leadNodes(nodes, depth).filter(
       (node) => !this.isPlaceholderComment(node),
     );
+    // Labeled lines are written as a bulleted list only: a numbered list of
+    // bold labels is the text of a prose field.
     const labeled = lead.filter(
       (node) =>
         node.type === "list" &&
+        node.ordered !== true &&
         node.children.length > 0 &&
         node.children.every((item) =>
           LABELED_LINE.test(this.sourceOf(item.children, source)),
