@@ -1,3 +1,4 @@
+import { createClient } from "@libsql/client";
 import { createTestEntity } from "../src/test/index";
 import { afterEach, beforeEach, describe, expect, test, spyOn } from "bun:test";
 import {
@@ -50,6 +51,27 @@ describe("projectSemanticSpace", () => {
       contentHash: entity.contentHash,
     });
   }
+
+  // A row of a type the brain no longer loads keeps its embedding; a
+  // projection of the whole corpus reads only the types it loads, so no
+  // reader is handed a type it cannot parse.
+  test("projects only the types the brain loads", async () => {
+    await seedEmbedding({ id: "kept", values: [1, 0] });
+    await seedEmbedding({ id: "stale", values: [0, 1] });
+    for (const url of [ctx.dbConfig.url, ctx.embeddingDbConfig.url]) {
+      const db = createClient({ url });
+      await db.execute(
+        url === ctx.dbConfig.url
+          ? "UPDATE entities SET entityType = 'wish' WHERE id = 'stale'"
+          : "UPDATE embeddings SET entity_type = 'wish' WHERE entity_id = 'stale'",
+      );
+      db.close();
+    }
+
+    const result = await ctx.entityService.projectSemanticSpace({});
+
+    expect(result.points.map(({ entityId }) => entityId)).toEqual(["kept"]);
+  });
 
   test("projects visible entities without exposing vectors", async () => {
     await seedEmbedding({ id: "origin", values: [1, 0] });
