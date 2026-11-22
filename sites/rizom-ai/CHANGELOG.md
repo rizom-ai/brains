@@ -1,5 +1,11 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.290
+
+### Patch Changes
+
+- [#1030](https://github.com/rizom-ai/brains/pull/1030) [`e8df84c`](https://github.com/rizom-ai/brains/commit/e8df84c44976e84c1c81c7da40d68a01e77e9a07) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai's section templates write the compact layout, and at start the brain brings each section's saved copy to it, quietly and in one export. Copy with a heading its section no longer names is left as written, still read as before, and reported for its author to settle.
+
 ## 0.2.0-alpha.289
 
 ### Patch Changes
