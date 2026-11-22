@@ -1,0 +1,13 @@
+.brain-sync-status {
+  cursor: pointer;
+}
+
+.brain-sync-list {
+  max-height: 16em;
+  overflow-y: auto;
+}
+
+.brain-sync-reason {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+}

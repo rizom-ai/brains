@@ -1,0 +1,490 @@
+import {
+  Notice,
+  Plugin,
+  PluginSettingTab,
+  Setting,
+  TFile,
+  requestUrl,
+  type App,
+  type ObsidianProtocolData,
+} from "obsidian";
+import {
+  DriveAuthError,
+  DriveClient,
+  DriveMissingError,
+  DriveOfflineError,
+  SyncEngine,
+  emptyState,
+  type FileNote,
+  type HttpFetch,
+  type SyncReport,
+  type SyncState,
+} from "../engine";
+import { DeletesModal, FilesModal, FirstSyncModal } from "./modals";
+import { BUSY_MS, ObsidianVault } from "./obsidian-vault";
+import {
+  parsePluginData,
+  type BrainSyncSettings,
+  type PluginData,
+} from "./settings";
+
+/** The `obsidian://` action the brain hands a new app password back to. */
+const PROTOCOL_ACTION = "brain-sync";
+
+/** Requests through Obsidian, on desktop and mobile, without CORS. */
+const obsidianFetch: HttpFetch = async (request) => {
+  const body =
+    request.body === undefined
+      ? undefined
+      : new Uint8Array(request.body).buffer;
+  const response = await requestUrl({
+    url: request.url,
+    method: request.method,
+    headers: request.headers,
+    ...(body !== undefined && { body }),
+    throw: false,
+  });
+  return {
+    status: response.status,
+    headers: Object.fromEntries(
+      Object.entries(response.headers).map(([name, value]) => [
+        name.toLowerCase(),
+        value,
+      ]),
+    ),
+    body: new Uint8Array(response.arrayBuffer),
+  };
+};
+
+const STATUS_TEXT: Record<SyncReport["status"], string> = {
+  synced: "Brain: synced",
+  "first-sync": "Brain: waiting to start",
+  offline: "Brain: offline",
+  "signed-out": "Brain: sign in again",
+  "no-drive": "Brain: no drive at this address",
+};
+
+/** The Drive section of the brain's Account page, where Connect is confirmed. */
+function connectUrl(origin: string, state: string): string {
+  const account = encodeURIComponent("studio:account");
+  return `${origin}/studio/workspaces/${account}?section=drive&connect=obsidian&state=${encodeURIComponent(state)}`;
+}
+
+function randomState(): string {
+  return [...crypto.getRandomValues(new Uint8Array(16))]
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+export default class BrainSyncPlugin extends Plugin {
+  data: PluginData = parsePluginData({});
+  private vault: ObsidianVault | undefined;
+  private engine: SyncEngine | undefined;
+  private statusEl: HTMLElement | undefined;
+  private issues: FileNote[] = [];
+  private localOnly: FileNote[] = [];
+  private status: SyncReport["status"] | "not-connected" = "not-connected";
+  private saveTimers = new Map<string, number>();
+  private interval: number | undefined;
+  /** The Connect request this vault opened, until the brain answers it. */
+  private pendingConnect: { state: string; address: string } | undefined;
+
+  override async onload(): Promise<void> {
+    this.data = parsePluginData(await this.loadData());
+    this.vault = new ObsidianVault(this.app);
+    this.addSettingTab(new BrainSyncSettingTab(this.app, this));
+
+    this.statusEl = this.addStatusBarItem();
+    this.statusEl.addClass("brain-sync-status");
+    this.statusEl.onClickEvent(() => this.showFiles());
+    this.renderStatus();
+
+    this.addCommand({
+      id: "sync-now",
+      name: "Sync with your brain now",
+      callback: () => void this.syncNow(),
+    });
+    this.addCommand({
+      id: "show-unsynced-files",
+      name: "Show files that are not synced",
+      callback: () => this.showFiles(),
+    });
+    this.addCommand({
+      id: "connect",
+      name: "Connect to your brain",
+      callback: () => this.startConnect(),
+    });
+
+    this.registerObsidianProtocolHandler(
+      PROTOCOL_ACTION,
+      (params) => void this.finishConnect(params),
+    );
+
+    this.app.workspace.onLayoutReady(() => {
+      this.registerVaultEvents();
+      this.restartInterval();
+      void this.syncNow();
+    });
+  }
+
+  override onunload(): void {
+    for (const timer of this.saveTimers.values()) window.clearTimeout(timer);
+  }
+
+  get config(): BrainSyncSettings {
+    return this.data.settings;
+  }
+
+  /** Change settings; a different brain starts from a fresh sync state. */
+  async updateSettings(change: Partial<BrainSyncSettings>): Promise<void> {
+    const before = this.data.settings;
+    this.data.settings = { ...before, ...change };
+    if (
+      change.address !== undefined &&
+      change.address.trim() !== this.data.state.address
+    ) {
+      this.data.state = emptyState(change.address.trim());
+    }
+    this.engine = undefined;
+    await this.saveData(this.data);
+    this.restartInterval();
+  }
+
+  private connected(): boolean {
+    const { address, username, password } = this.config;
+    return address.trim() !== "" && username !== "" && password !== "";
+  }
+
+  private drive(): DriveClient {
+    const { address, username, password } = this.config;
+    return new DriveClient({ address, username, password }, obsidianFetch);
+  }
+
+  private getEngine(): SyncEngine | undefined {
+    if (!this.connected() || !this.vault) return undefined;
+    if (!this.engine) {
+      if (this.data.state.address === "") {
+        this.data.state.address = this.config.address.trim();
+      }
+      this.engine = new SyncEngine({
+        vault: this.vault,
+        drive: this.drive(),
+        store: {
+          load: async (): Promise<SyncState> =>
+            structuredClone(this.data.state),
+          save: async (state): Promise<void> => {
+            this.data.state = structuredClone(state);
+            await this.saveData(this.data);
+          },
+        },
+      });
+    }
+    return this.engine;
+  }
+
+  private registerVaultEvents(): void {
+    const vault = this.vault;
+    if (!vault) return;
+    this.registerEvent(
+      this.app.vault.on("modify", (file) => {
+        if (!(file instanceof TFile) || vault.isOwnEvent(file.path)) return;
+        vault.noteEdit(file.path);
+        if (this.config.syncOnSave) this.scheduleUpload(file.path);
+      }),
+    );
+    this.registerEvent(
+      this.app.vault.on("create", (file) => {
+        if (!(file instanceof TFile) || vault.isOwnEvent(file.path)) return;
+        vault.noteEdit(file.path);
+        if (this.config.syncOnSave) this.scheduleUpload(file.path);
+      }),
+    );
+    this.registerEvent(
+      this.app.vault.on("delete", (file) => {
+        if (!(file instanceof TFile) || vault.isOwnEvent(file.path)) return;
+        void this.getEngine()?.noteDeleted(file.path);
+      }),
+    );
+    this.registerEvent(
+      this.app.vault.on("rename", (file, oldPath) => {
+        if (!(file instanceof TFile)) return;
+        if (vault.isOwnEvent(file.path) || vault.isOwnEvent(oldPath)) return;
+        void this.getEngine()?.noteRenamed(oldPath, file.path);
+      }),
+    );
+  }
+
+  /** Upload a saved file once the person has stopped typing in it. */
+  private scheduleUpload(path: string): void {
+    const previous = this.saveTimers.get(path);
+    if (previous !== undefined) window.clearTimeout(previous);
+    this.saveTimers.set(
+      path,
+      window.setTimeout(() => {
+        this.saveTimers.delete(path);
+        const engine = this.getEngine();
+        if (engine)
+          void engine.syncFile(path).then((report) => this.show(report));
+      }, BUSY_MS + 500),
+    );
+  }
+
+  private restartInterval(): void {
+    if (this.interval !== undefined) window.clearInterval(this.interval);
+    this.interval = window.setInterval(
+      () => void this.syncNow(),
+      this.config.intervalMinutes * 60_000,
+    );
+    this.registerInterval(this.interval);
+  }
+
+  async syncNow(): Promise<void> {
+    const engine = this.getEngine();
+    if (!engine) {
+      this.status = "not-connected";
+      this.renderStatus();
+      return;
+    }
+    this.renderStatus("Brain: syncing…");
+    this.show(await engine.sync());
+  }
+
+  /** Show what a sync did, and ask what it could not decide alone. */
+  private show(report: SyncReport): void {
+    this.status = report.status;
+    if (report.status === "synced" || report.localOnly.length > 0) {
+      this.localOnly = report.localOnly;
+    }
+    if (report.status === "synced") this.issues = report.issues;
+    this.renderStatus();
+
+    if (report.status === "signed-out") {
+      new Notice(
+        "Your brain did not accept the app password. It may have expired or been revoked: connect again in the Brain Sync settings. Nothing was changed.",
+        0,
+      );
+    }
+    for (const notice of report.notices) {
+      if (notice.kind === "conflict") {
+        new Notice(
+          `${notice.path} was also changed in your brain. Your brain's version is here now; yours is in ${notice.copy}${notice.inInbox ? " and in your brain's Inbox" : ""}.`,
+          0,
+        );
+      } else {
+        new Notice(
+          `${notice.from} could not be renamed to ${notice.to}: ${notice.reason} It was renamed back.`,
+          10_000,
+        );
+      }
+    }
+    const engine = this.getEngine();
+    if (report.firstSync && engine) {
+      new FirstSyncModal(this.app, report.firstSync, () => {
+        void engine.applyFirstSync().then((applied) => this.show(applied));
+      }).open();
+    }
+    if (report.decision && engine) {
+      new DeletesModal(this.app, report.decision, (answer) => {
+        void engine.resolveDeletes(answer).then((done) => this.show(done));
+      }).open();
+    }
+  }
+
+  private renderStatus(override?: string): void {
+    if (!this.statusEl) return;
+    const attention = this.issues.length;
+    const text =
+      override ??
+      (this.status === "not-connected"
+        ? "Brain: not connected"
+        : this.status === "synced" && attention > 0
+          ? `Brain: ${attention} file${attention === 1 ? "" : "s"} need attention`
+          : STATUS_TEXT[this.status]);
+    this.statusEl.setText(text);
+    this.statusEl.setAttr(
+      "aria-label",
+      "Show files that are not synced with your brain",
+    );
+  }
+
+  showFiles(): void {
+    new FilesModal(this.app, this.issues, this.localOnly).open();
+  }
+
+  /** Check the address and app password; say plainly what is wrong. */
+  async checkConnection(): Promise<string> {
+    if (!this.connected())
+      return "Enter your brain's address and an app password first.";
+    try {
+      const { writable } = await this.drive().check();
+      return writable
+        ? "Connected. This app password can read and save."
+        : "Connected, but this app password can only read. Create one that may save changes in your brain's Drive settings.";
+    } catch (error) {
+      if (error instanceof DriveAuthError) {
+        return "Your brain did not accept this username and password.";
+      }
+      if (error instanceof DriveMissingError) {
+        return "There is no drive at this address. Check the address, and that the drive is turned on for this brain.";
+      }
+      if (error instanceof DriveOfflineError) {
+        return "Your brain cannot be reached. Check the address and your connection.";
+      }
+      throw error;
+    }
+  }
+
+  /** Open the brain in the browser, where the person confirms the connection. */
+  startConnect(): void {
+    const address = this.config.address.trim();
+    if (address === "") {
+      new Notice(
+        "Enter your brain's address in the Brain Sync settings first.",
+      );
+      return;
+    }
+    const origin = new URL(
+      /^https?:\/\//i.test(address) ? address : `https://${address}`,
+    ).origin;
+    const state = randomState();
+    this.pendingConnect = { state, address: origin };
+    window.open(connectUrl(origin, state));
+  }
+
+  /** The brain handed back a new app password for the Connect this vault opened. */
+  private async finishConnect(params: ObsidianProtocolData): Promise<void> {
+    const pending = this.pendingConnect;
+    const { state, username, password } = params;
+    // Only an answer to the request this vault made is taken: a link from
+    // anywhere else never changes where the vault syncs.
+    if (
+      !pending ||
+      state !== pending.state ||
+      username === undefined ||
+      password === undefined
+    ) {
+      new Notice(
+        "This connection link was not opened from this vault, so it was ignored.",
+      );
+      return;
+    }
+    this.pendingConnect = undefined;
+    await this.updateSettings({ username, password });
+    new Notice("Connected to your brain.");
+    await this.syncNow();
+  }
+}
+
+class BrainSyncSettingTab extends PluginSettingTab {
+  private readonly plugin: BrainSyncPlugin;
+
+  constructor(app: App, plugin: BrainSyncPlugin) {
+    super(app, plugin);
+    this.plugin = plugin;
+  }
+
+  override display(): void {
+    const { containerEl, plugin } = this;
+    containerEl.empty();
+
+    new Setting(containerEl)
+      .setName("Brain address")
+      .setDesc("The address of your brain, for example yourname.rizom.ai.")
+      .addText((text) =>
+        text
+          .setPlaceholder("yourname.rizom.ai")
+          .setValue(plugin.config.address)
+          .onChange((value) => void plugin.updateSettings({ address: value })),
+      );
+
+    new Setting(containerEl)
+      .setName("Connect")
+      .setDesc(
+        "Opens your brain in the browser. Confirm there, and this vault gets its own app password.",
+      )
+      .addButton((button) =>
+        button
+          .setButtonText("Connect")
+          .setCta()
+          .onClick(() => plugin.startConnect()),
+      );
+
+    new Setting(containerEl)
+      .setName("App password")
+      .setDesc(
+        "Filled in by Connect. You can also create an app password that may save changes in your brain's Drive settings and enter it here.",
+      )
+      .addText((text) =>
+        text
+          .setPlaceholder("Username")
+          .setValue(plugin.config.username)
+          .onChange(
+            (value) => void plugin.updateSettings({ username: value.trim() }),
+          ),
+      )
+      .addText((text) => {
+        text.inputEl.type = "password";
+        text
+          .setPlaceholder("Password")
+          .setValue(plugin.config.password)
+          .onChange(
+            (value) => void plugin.updateSettings({ password: value.trim() }),
+          );
+      });
+
+    const check = new Setting(containerEl)
+      .setName("Check the connection")
+      .addButton((button) =>
+        button.setButtonText("Check").onClick(async () => {
+          check.setDesc("Checking…");
+          check.setDesc(await plugin.checkConnection());
+        }),
+      );
+
+    new Setting(containerEl)
+      .setName("Sync after saving")
+      .setDesc("Send a note to your brain a few seconds after you stop typing.")
+      .addToggle((toggle) =>
+        toggle
+          .setValue(plugin.config.syncOnSave)
+          .onChange(
+            (value) => void plugin.updateSettings({ syncOnSave: value }),
+          ),
+      );
+
+    new Setting(containerEl)
+      .setName("Sync every")
+      .setDesc("How often everything is compared with your brain.")
+      .addDropdown((dropdown) =>
+        dropdown
+          .addOptions({
+            "1": "minute",
+            "5": "5 minutes",
+            "15": "15 minutes",
+            "60": "hour",
+          })
+          .setValue(String(plugin.config.intervalMinutes))
+          .onChange(
+            (value) =>
+              void plugin.updateSettings({ intervalMinutes: Number(value) }),
+          ),
+      );
+
+    new Setting(containerEl)
+      .setName("Pasted images")
+      .setDesc(
+        "Your brain keeps images in the image folder. To have pasted images go there, set Files and links → Default location for new attachments to “In the folder specified below” and enter image.",
+      );
+
+    new Setting(containerEl)
+      .setName("Sync now")
+      .addButton((button) =>
+        button.setButtonText("Sync now").onClick(() => void plugin.syncNow()),
+      )
+      .addButton((button) =>
+        button
+          .setButtonText("Files that are not synced")
+          .onClick(() => plugin.showFiles()),
+      );
+  }
+}
