@@ -594,6 +594,14 @@ export interface EntityAdapter<
    */
   headerKeyPlaces?: readonly (readonly string[])[];
 
+  /**
+   * Optional: header keys the type's next stored form states in its body
+   * (docs/plans/one-stored-form.md). Once the store writes that form, a key
+   * a file states in its header is never carried back into the header,
+   * even where a frontmatter extension names it.
+   */
+  bodyFieldKeys?: readonly string[];
+
   /** Optional: Zod schema for frontmatter fields. Used by Studio config generation. */
   frontmatterSchema?: z.ZodObject<z.ZodRawShape>;
 

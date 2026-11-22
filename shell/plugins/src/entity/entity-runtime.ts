@@ -1321,6 +1321,7 @@ interface StoredForms {
   readonly encode: Record<StoredForm, CodecEncode<EntityMetadataSchema>>;
   readonly header?: Readonly<Record<StoredForm, z.ZodObject>> | undefined;
   readonly places?: readonly (readonly string[])[] | undefined;
+  readonly bodyFields?: readonly string[] | undefined;
 }
 
 const storedForms = new WeakMap<object, StoredForms>();
@@ -1349,6 +1350,8 @@ export function storedFormCodec<
    * order its author gave.
    */
   readonly places?: readonly (readonly string[])[];
+  /** Header keys the next form states in the body. */
+  readonly bodyFields?: readonly string[];
   /** A read is the stored document byte for byte (storedDocumentCodec's). */
   readonly readAsWritten?: boolean;
 }): EntityMarkdownCodec<TMetadataSchema> {
@@ -1360,6 +1363,7 @@ export function storedFormCodec<
     encode: options.encode,
     header: options.header,
     places: options.places,
+    bodyFields: options.bodyFields,
   });
   if (options.readAsWritten === true) readAsWrittenCodecs.add(codec);
   return codec;
@@ -1661,5 +1665,6 @@ export function bodyFieldsCodec<
         : fields.nextHeader,
     },
     places: [Object.keys(metadata.shape)],
+    bodyFields: options.bodyFields,
   });
 }

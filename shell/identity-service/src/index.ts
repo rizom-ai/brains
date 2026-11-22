@@ -49,3 +49,7 @@ export {
   type CanonicalIdentityResolver,
   type ICanonicalIdentityService,
 } from "./canonical-identity-service";
+export {
+  readAnchorProfileDocument,
+  readBrainCharacterDocument,
+} from "./identity-documents";

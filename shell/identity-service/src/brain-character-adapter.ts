@@ -17,7 +17,7 @@ import { z } from "@brains/utils/zod";
  * The character's next stored form (docs/plans/one-stored-form.md): its
  * name and role in the header, its purpose and values in the body.
  */
-const characterBody = bodyFields(
+export const characterBody: ReturnType<typeof bodyFields> = bodyFields(
   brainCharacterBodySchema,
   ["purpose", "values"],
   // A field update writes into the header, over the section it replaces.
@@ -67,6 +67,9 @@ export class BrainCharacterAdapter extends SingletonFrontmatterAdapter<
   public parseCharacterBody(content: string): BrainCharacter {
     return this.parseFrontmatter(content);
   }
+
+  /** The header keys the next form states in the body. */
+  public readonly bodyFieldKeys: readonly string[] = ["purpose", "values"];
 
   /** Either form's header keys are the character's own. */
   public readonly writtenFrontmatterSchema: z.ZodObject =
