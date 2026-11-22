@@ -660,7 +660,12 @@ export async function linkTargetProblem(
     [linked]:
       "field" in link
         ? "linked-entity"
-        : appendToList(target.metadata[link.list], link, "linked-entity"),
+        : appendToList(
+            target.metadata[link.list],
+            link,
+            "linked-entity",
+            listHoldsText(context, link.entityType, link.list),
+          ),
   };
   let parsed: unknown;
   try {
@@ -675,9 +680,55 @@ export async function linkTargetProblem(
     : `Entity type '${link.entityType}' declares no metadata field '${linked}' to link into`;
 }
 
+/** A schema with its optional, nullable and defaulted wrappers off. */
+function unwrapped(schema: unknown): unknown {
+  return schema instanceof z.ZodOptional ||
+    schema instanceof z.ZodNullable ||
+    schema instanceof z.ZodDefault ||
+    schema instanceof z.ZodPrefault
+    ? unwrapped(schema.unwrap())
+    : schema;
+}
+
+/**
+ * Whether the target type's metadata declares the list as plain text: then
+ * a link writes the id itself, so a flat header holds the list with no
+ * codec of the type's own. Otherwise it writes `{ id }`, as it always did.
+ */
+function listHoldsText(
+  context: EntityPluginContext,
+  entityType: string,
+  list: string,
+): boolean {
+  const entity = unwrapped(context.entities.getAdapter(entityType)?.schema);
+  const metadata =
+    entity instanceof z.ZodObject
+      ? unwrapped(entity.shape["metadata"])
+      : undefined;
+  const field =
+    metadata instanceof z.ZodObject
+      ? unwrapped(metadata.shape[list])
+      : undefined;
+  const element =
+    field instanceof z.ZodArray ? unwrapped(field.element) : undefined;
+  return element instanceof z.ZodType && element.def.type === "string";
+}
+
+/** A list entry's id: the text itself, or an `{ id }` entry's id. */
+function entryId(item: unknown): string | undefined {
+  if (typeof item === "string") return item;
+  return typeof item === "object" &&
+    item !== null &&
+    "id" in item &&
+    typeof item.id === "string"
+    ? item.id
+    : undefined;
+}
+
 /**
  * The target's list with this entity in it and superseded entries out, in
- * order, without listing an entity twice.
+ * order, without listing an entity twice: ids as text for a list of text,
+ * `{ id }` entries otherwise.
  */
 function appendToList(
   held: unknown,
@@ -686,20 +737,15 @@ function appendToList(
     readonly replaces?: readonly string[] | undefined;
   },
   entityId: string,
-): { id: string }[] {
+  asText: boolean,
+): string[] | { id: string }[] {
   const dropped = new Set(link.replaces ?? []);
-  const kept = (Array.isArray(held) ? held : []).flatMap((item: unknown) =>
-    typeof item === "object" &&
-    item !== null &&
-    "id" in item &&
-    typeof item.id === "string" &&
-    !dropped.has(item.id)
-      ? [{ id: item.id }]
-      : [],
-  );
-  return kept.some(({ id }) => id === entityId)
-    ? kept
-    : [...kept, { id: entityId }];
+  const kept = (Array.isArray(held) ? held : []).flatMap((item: unknown) => {
+    const id = entryId(item);
+    return id !== undefined && !dropped.has(id) ? [id] : [];
+  });
+  const ids = kept.includes(entityId) ? kept : [...kept, entityId];
+  return asText ? ids : ids.map((id) => ({ id }));
 }
 
 /** Point the target at what a generation produced. */
@@ -733,7 +779,15 @@ export async function writeGenerationLink(
   const [field, value] =
     "field" in link
       ? [link.field, entityId]
-      : [link.list, appendToList(fields[link.list], link, entityId)];
+      : [
+          link.list,
+          appendToList(
+            fields[link.list],
+            link,
+            entityId,
+            listHoldsText(context, link.entityType, link.list),
+          ),
+        ];
   await context.entityService.updateEntity({
     entity: {
       ...target,
