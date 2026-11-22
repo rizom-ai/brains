@@ -501,8 +501,11 @@ export class EntitySearch {
     entityIds?: readonly string[],
   ): Promise<SemanticEmbedding[]> {
     const conditions = this.buildVisibilityConditions(visibilityScope);
-    if (types && types.length > 0) {
-      conditions.push(inArray(entities.entityType, types));
+    // Only the types the brain loads: a row of a type it no longer loads
+    // keeps its embedding, and no reader can parse it.
+    const loaded = this.searchableTypes(types ?? []);
+    if (loaded.length > 0 || this.registeredTypes) {
+      conditions.push(inArray(entities.entityType, loaded));
     }
     if (entityIds !== undefined) {
       conditions.push(inArray(entities.id, [...entityIds]));
@@ -626,6 +629,7 @@ export class EntitySearch {
       await this.embeddingService.embedQuery(preparedQuery);
     const embeddingArray = JSON.stringify(Array.from(queryEmbedding));
 
+    const loaded = this.searchableTypes(filters.types ?? []);
     const distanceExpr = sql<number>`vector_distance_cos(emb_e.embedding, vector32(${embeddingArray}))`;
 
     const results = await this.db
@@ -641,8 +645,9 @@ export class EntitySearch {
       )
       .where(
         and(
-          filters.types && filters.types.length > 0
-            ? inArray(entities.entityType, filters.types)
+          // Only the types the brain loads, as every embedding read.
+          loaded.length > 0 || this.registeredTypes
+            ? inArray(entities.entityType, loaded)
             : undefined,
           filters.maxDistance !== undefined
             ? sql`${distanceExpr} <= ${filters.maxDistance}`
