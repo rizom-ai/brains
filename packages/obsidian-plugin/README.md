@@ -16,6 +16,7 @@ The brain's structure leads. The vault mirrors it:
 Files that stay in the vault only are listed, with the reason, from the status bar.
 
 - A version is told by the brain's ETag and a hash of the vault's file, never by size or time.
+- Files that only need fetching are fetched six at a time, so a first sync with a brain far away takes a fraction of the time it would one by one.
 - Changes made in the brain arrive as they happen: the plugin asks the drive what changed (`.brain/changes`), the brain holds the ask until something does, and only the folders of the types that changed are listed again. After a gap in asking, or when the brain cannot place the plugin's cursor, everything is compared. Everything is also compared when the vault opens and every 30 minutes; every five at most while the brain cannot be asked for changes.
 - Renaming a note renames it in the brain. A rename the brain refuses is undone, with a notice.
 - When a note changed in both places, the brain's version goes into the vault; the other is copied to `Conflicts/` and kept in the brain's Inbox.

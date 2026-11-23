@@ -24,6 +24,9 @@ import type { SyncVault } from "./vault";
 /** The type of the files at the vault's root. */
 const NOTE_TYPE = "note";
 
+/** How many files are fetched at once: a far brain answers each one slowly. */
+export const DOWNLOADS_AT_ONCE = 6;
+
 /** How many deletions one sync makes before it asks first. */
 export const DELETE_LIMIT = 5;
 
@@ -234,9 +237,9 @@ export class SyncEngine {
           await this.vault.write(conflictCopyPath(path, this.now()), bytes);
           await this.download(context, path, file);
         }
-        for (const path of plan.download) {
-          await this.download(context, path, undefined);
-        }
+        await this.together(plan.download, (path) =>
+          this.download(context, path, undefined),
+        );
         for (const path of plan.upload) {
           const file = local.get(path);
           if (file) await this.upload(context, path, file, { ifAbsent: true });
@@ -306,11 +309,13 @@ export class SyncEngine {
     return this.exclusive(() =>
       this.guarded(async (context) => {
         const missing = answer.localMissing;
-        for (const path of missing?.paths ?? []) {
-          if (missing?.action === "delete") {
+        if (missing?.action === "restore") {
+          await this.together(missing.paths, (path) =>
+            this.download(context, path, undefined),
+          );
+        } else {
+          for (const path of missing?.paths ?? []) {
             await this.deleteInBrain(context, path);
-          } else {
-            await this.download(context, path, undefined);
           }
         }
         const gone = answer.remoteGone;
@@ -624,6 +629,8 @@ export class SyncEngine {
     const localMissing: string[] = [];
     const seenDeletes: string[] = [];
     const remoteGone: string[] = [];
+    // Files that only need fetching, gathered to be fetched several at once.
+    const downloads: { path: string; file: LocalFile | undefined }[] = [];
 
     for (const path of paths) {
       const known = state.paths[path];
@@ -645,7 +652,7 @@ export class SyncEngine {
           } else if (file) {
             await this.upload(context, path, file, { ifAbsent: true });
           } else if (etag !== undefined) {
-            await this.download(context, path, undefined);
+            downloads.push({ path, file: undefined });
           }
           continue;
         }
@@ -657,7 +664,7 @@ export class SyncEngine {
             // brain keeps this one as a conflict.
             await this.upload(context, path, file, { ifMatch: known.etag });
           } else if (remoteChanged) {
-            await this.download(context, path, file);
+            downloads.push({ path, file });
           }
         } else if (file) {
           if (localChanged) {
@@ -668,7 +675,7 @@ export class SyncEngine {
           }
         } else if (etag !== undefined) {
           if (remoteChanged) {
-            await this.download(context, path, undefined);
+            downloads.push({ path, file: undefined });
           } else if (state.deletes.includes(path)) {
             seenDeletes.push(path);
           } else {
@@ -678,19 +685,17 @@ export class SyncEngine {
           delete state.paths[path];
         }
       } catch (error) {
-        if (
-          error instanceof DriveOfflineError ||
-          error instanceof DriveUnavailableError ||
-          error instanceof DriveAuthError
-        ) {
-          throw error;
-        }
-        context.report.issues.push({
-          path,
-          reason: getErrorMessage(error),
-        });
+        this.fileFailed(context, path, error);
       }
     }
+
+    await this.together(downloads, async ({ path, file }) => {
+      try {
+        await this.download(context, path, file);
+      } catch (error) {
+        this.fileFailed(context, path, error);
+      }
+    });
 
     const decision: DeleteDecision = { localMissing, remoteGone: [] };
     if (seenDeletes.length > DELETE_LIMIT) {
@@ -709,6 +714,42 @@ export class SyncEngine {
     }
     if (decision.localMissing.length > 0 || decision.remoteGone.length > 0) {
       context.report.decision = decision;
+    }
+  }
+
+  /**
+   * One file's failure is listed and the sync goes on, unless it is the
+   * brain itself that is away or refusing: that ends the sync.
+   */
+  private fileFailed(context: Context, path: string, error: unknown): void {
+    if (
+      error instanceof DriveOfflineError ||
+      error instanceof DriveUnavailableError ||
+      error instanceof DriveAuthError
+    ) {
+      throw error;
+    }
+    context.report.issues.push({ path, reason: getErrorMessage(error) });
+  }
+
+  /**
+   * Do the same work for many files, several at once. Every one of a group
+   * finishes before a failure ends the rest, so nothing is still running
+   * when the sync's state is saved.
+   */
+  private async together<T>(
+    items: readonly T[],
+    work: (item: T) => Promise<unknown>,
+  ): Promise<void> {
+    const groups = Array.from(
+      { length: Math.ceil(items.length / DOWNLOADS_AT_ONCE) },
+      (_, index) =>
+        items.slice(index * DOWNLOADS_AT_ONCE, (index + 1) * DOWNLOADS_AT_ONCE),
+    );
+    for (const group of groups) {
+      const results = await Promise.allSettled(group.map(work));
+      const failed = results.find((result) => result.status === "rejected");
+      if (failed?.status === "rejected") throw failed.reason;
     }
   }
 

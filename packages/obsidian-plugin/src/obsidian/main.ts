@@ -115,6 +115,8 @@ export default class RizomBrainPlugin extends Plugin {
     fullSync: (): void => void this.syncNow(),
   });
   private lastFullSync = 0;
+  /** Writes of the plugin's data file, one after another. */
+  private saving: Promise<void> = Promise.resolve();
   /** The Connect request this vault opened, until the brain answers it. */
   private pendingConnect: PendingConnect | undefined;
   /** Every engine call runs after the one before, across engines too. */
@@ -230,9 +232,13 @@ export default class RizomBrainPlugin extends Plugin {
         // The state of the brain this engine syncs with, and no other.
         store: {
           load: async (): Promise<SyncState> => stateFor(this.data, key),
-          save: async (state): Promise<void> => {
+          // One write of the data file at a time: files fetched together
+          // each record themselves, and the last write holds them all.
+          save: (state): Promise<void> => {
             this.data = withState(this.data, key, state);
-            await this.saveData(this.data);
+            const saved = this.saving.then(() => this.saveData(this.data));
+            this.saving = saved.catch(() => undefined);
+            return saved;
           },
         },
       });

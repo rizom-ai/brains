@@ -25,6 +25,8 @@ export class ObsidianVault implements SyncVault {
   private readonly app: App;
   private readonly lastEdit = new Map<string, number>();
   private readonly ownEvents = new Map<string, number>();
+  /** Folder making, one after another. */
+  private folders: Promise<void> = Promise.resolve();
 
   constructor(app: App) {
     this.app = app;
@@ -56,14 +58,27 @@ export class ObsidianVault implements SyncVault {
     return found instanceof TFile ? found : undefined;
   }
 
-  private async ensureFolder(path: string): Promise<void> {
+  /**
+   * Make the folders a file sits in. Files written at the same time into a
+   * folder that is not there yet share one making of it, in order.
+   */
+  private ensureFolder(path: string): Promise<void> {
     const folder = path.split("/").slice(0, -1).join("/");
-    if (folder === "") return;
-    const existing = this.app.vault.getAbstractFileByPath(folder);
-    if (existing instanceof TFolder) return;
-    await this.ensureFolder(folder);
-    this.own(folder);
-    await this.app.vault.createFolder(folder);
+    if (folder === "") return Promise.resolve();
+    const names = folder.split("/");
+    // Each level from the top, so a folder is made after the one it is in.
+    const levels = names.map((_, index) => names.slice(0, index + 1).join("/"));
+    const making = this.folders.then(async () => {
+      for (const level of levels) {
+        const existing = this.app.vault.getAbstractFileByPath(level);
+        if (existing instanceof TFolder) continue;
+        this.own(level);
+        await this.app.vault.createFolder(level);
+      }
+    });
+    // The next one waits for this one, whether or not it worked.
+    this.folders = making.catch(() => undefined);
+    return making;
   }
 
   async listFiles(): Promise<string[]> {
