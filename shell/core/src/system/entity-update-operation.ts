@@ -208,6 +208,29 @@ export function applyFieldUpdates(
       nextEntity.content,
       nextMetadata,
     );
+  // A declared type read as its body alone has no header to set a field in.
+  // The field is set in the file as the type stores it, and the file is read
+  // back, so its codec says what the value is: a note's title set this way is
+  // stated, and written to its file instead of left to its heading.
+  const stated = Object.keys(metadataFields).filter(
+    (key) => writes.has(key) && !sourceFields.has(key),
+  );
+  if (
+    adapter.metadataFromFrontmatter === true &&
+    !FRONTMATTER_BLOCK.test(entity.content) &&
+    stated.length > 0
+  ) {
+    let document = adapter.toMarkdown(nextEntity);
+    for (const key of stated)
+      document = updateFrontmatterField(document, key, metadataFields[key]);
+    const decoded = adapter.fromMarkdown(document).metadata ?? {};
+    const metadata = { ...nextEntity.metadata };
+    for (const key of writes) {
+      if (Object.hasOwn(decoded, key)) metadata[key] = decoded[key];
+      else delete metadata[key];
+    }
+    nextEntity.metadata = metadata;
+  }
   // Where metadata is the frontmatter, covers and social cards are metadata
   // too. Such a type is read back as its body alone, so a cleared one has no
   // frontmatter to be removed from; the metadata carries the change.
@@ -230,8 +253,16 @@ function applyContentUpdate(
   registry: SystemServices["entityRegistry"],
 ): BaseEntity {
   const adapter = registry.getAdapter(entity.entityType);
-  const previous = adapter.fromMarkdown(entity.content);
-  const parsed = adapter.fromMarkdown(content);
+  // A declared type is read back as its body alone, which states none of the
+  // metadata its schema may require, such as a refined note's title and
+  // summary: a body is decoded as the file it is stored as, under the stored
+  // metadata, so only what the body changes is refreshed.
+  const asStored = (text: string): string =>
+    adapter.metadataFromFrontmatter === true && !FRONTMATTER_BLOCK.test(text)
+      ? adapter.toMarkdown({ ...entity, content: text })
+      : text;
+  const previous = adapter.fromMarkdown(asStored(entity.content));
+  const parsed = adapter.fromMarkdown(asStored(content));
   const metadata = { ...entity.metadata };
   // Refresh changed source-derived values, but keep curated metadata when its
   // source did not change (for example a custom title during a body-only edit).

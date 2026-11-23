@@ -23,7 +23,7 @@ import { isPlainRecord } from "@brains/utils/predicates";
 import type { ProgressReporter } from "@brains/utils/progress";
 import type { RetryScope } from "@brains/utils/retry-backoff";
 import { definedFields } from "@brains/utils/strip-undefined";
-import { slugify } from "@brains/utils/string-utils";
+import { escapeRegExp, slugify } from "@brains/utils/string-utils";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import {
@@ -660,7 +660,12 @@ export async function linkTargetProblem(
     [linked]:
       "field" in link
         ? "linked-entity"
-        : appendToList(target.metadata[link.list], link, "linked-entity"),
+        : appendToList(
+            target.metadata[link.list],
+            link,
+            "linked-entity",
+            listHoldsText(context, link.entityType, link.list),
+          ),
   };
   let parsed: unknown;
   try {
@@ -675,9 +680,55 @@ export async function linkTargetProblem(
     : `Entity type '${link.entityType}' declares no metadata field '${linked}' to link into`;
 }
 
+/** A schema with its optional, nullable and defaulted wrappers off. */
+function unwrapped(schema: unknown): unknown {
+  return schema instanceof z.ZodOptional ||
+    schema instanceof z.ZodNullable ||
+    schema instanceof z.ZodDefault ||
+    schema instanceof z.ZodPrefault
+    ? unwrapped(schema.unwrap())
+    : schema;
+}
+
+/**
+ * Whether the target type's metadata declares the list as plain text: then
+ * a link writes the id itself, so a flat header holds the list with no
+ * codec of the type's own. Otherwise it writes `{ id }`, as it always did.
+ */
+function listHoldsText(
+  context: EntityPluginContext,
+  entityType: string,
+  list: string,
+): boolean {
+  const entity = unwrapped(context.entities.getAdapter(entityType)?.schema);
+  const metadata =
+    entity instanceof z.ZodObject
+      ? unwrapped(entity.shape["metadata"])
+      : undefined;
+  const field =
+    metadata instanceof z.ZodObject
+      ? unwrapped(metadata.shape[list])
+      : undefined;
+  const element =
+    field instanceof z.ZodArray ? unwrapped(field.element) : undefined;
+  return element instanceof z.ZodType && element.def.type === "string";
+}
+
+/** A list entry's id: the text itself, or an `{ id }` entry's id. */
+function entryId(item: unknown): string | undefined {
+  if (typeof item === "string") return item;
+  return typeof item === "object" &&
+    item !== null &&
+    "id" in item &&
+    typeof item.id === "string"
+    ? item.id
+    : undefined;
+}
+
 /**
  * The target's list with this entity in it and superseded entries out, in
- * order, without listing an entity twice.
+ * order, without listing an entity twice: ids as text for a list of text,
+ * `{ id }` entries otherwise.
  */
 function appendToList(
   held: unknown,
@@ -686,20 +737,15 @@ function appendToList(
     readonly replaces?: readonly string[] | undefined;
   },
   entityId: string,
-): { id: string }[] {
+  asText: boolean,
+): string[] | { id: string }[] {
   const dropped = new Set(link.replaces ?? []);
-  const kept = (Array.isArray(held) ? held : []).flatMap((item: unknown) =>
-    typeof item === "object" &&
-    item !== null &&
-    "id" in item &&
-    typeof item.id === "string" &&
-    !dropped.has(item.id)
-      ? [{ id: item.id }]
-      : [],
-  );
-  return kept.some(({ id }) => id === entityId)
-    ? kept
-    : [...kept, { id: entityId }];
+  const kept = (Array.isArray(held) ? held : []).flatMap((item: unknown) => {
+    const id = entryId(item);
+    return id !== undefined && !dropped.has(id) ? [id] : [];
+  });
+  const ids = kept.includes(entityId) ? kept : [...kept, entityId];
+  return asText ? ids : ids.map((id) => ({ id }));
 }
 
 /** Point the target at what a generation produced. */
@@ -733,7 +779,15 @@ export async function writeGenerationLink(
   const [field, value] =
     "field" in link
       ? [link.field, entityId]
-      : [link.list, appendToList(fields[link.list], link, entityId)];
+      : [
+          link.list,
+          appendToList(
+            fields[link.list],
+            link,
+            entityId,
+            listHoldsText(context, link.entityType, link.list),
+          ),
+        ];
   await context.entityService.updateEntity({
     entity: {
       ...target,
@@ -1041,7 +1095,7 @@ export class DeclarativeGenerationHandler extends BaseGenerationJobHandler<unkno
         this.currentRun().authority,
       );
     }
-    await this.removeUsedUpSources();
+    await this.removeUsedUpSources(entityId);
     await this.runStep({
       written: { entityId, ...definedFields({ title: generated.title }) },
     });
@@ -1184,9 +1238,9 @@ export class DeclarativeGenerationHandler extends BaseGenerationJobHandler<unkno
    * and only those it can see. One it may not or could not delete is kept
    * and recorded on the run with why, so the result names it. One that is
    * already gone is removed: a job killed after removing it runs this
-   * again.
+   * again. Links to a removed source then point at what was written.
    */
-  private async removeUsedUpSources(): Promise<void> {
+  private async removeUsedUpSources(writtenId: string): Promise<void> {
     const { source, authority, kept } = this.currentRun();
     const usedUp =
       this.context.entityService.getEntityTypeConfig(this.entityType)
@@ -1225,6 +1279,44 @@ export class DeclarativeGenerationHandler extends BaseGenerationJobHandler<unkno
       }),
     );
     kept.push(...outcomes.filter((outcome) => outcome !== undefined));
+    const removed = source.ids.filter(
+      (_id, index) => outcomes[index] === undefined,
+    );
+    for (const id of removed) await this.redirectLinks(id, writtenId);
+  }
+
+  /**
+   * Point the links to a removed source at what was written from it, so
+   * none is left pointing nowhere: `[[id]]`, `[[id|label]]` and
+   * `[[id#heading]]`, in every entry its requester may see and update. An
+   * entry they may not update keeps its link, and one changed meanwhile is
+   * left as it is.
+   */
+  private async redirectLinks(fromId: string, toId: string): Promise<void> {
+    if (fromId === toId) return;
+    const { authority } = this.currentRun();
+    const service = this.context.entityService;
+    const link = new RegExp(`\\[\\[${escapeRegExp(fromId)}(?=[\\]|#])`, "g");
+    for (const entityType of service.getEntityTypes()) {
+      if (authority.refusal(entityType, "update")) continue;
+      const linking = await service.listEntities({
+        entityType,
+        options: {
+          filter: {
+            contentContains: `[[${fromId}`,
+            visibilityScope: authority.scope(entityType),
+          },
+        },
+      });
+      for (const entity of linking) {
+        const content = entity.content.replace(link, `[[${toId}`);
+        if (content === entity.content) continue;
+        await service.updateEntity({
+          entity: { ...entity, content },
+          options: { expectedContentHash: entity.contentHash },
+        });
+      }
+    }
   }
 
   /** The generation `process` is running; the base handler calls back inside it. */

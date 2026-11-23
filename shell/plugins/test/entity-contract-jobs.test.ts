@@ -202,6 +202,15 @@ const note = defineEntity({
   purpose: "A note.",
   metadata: z.object({ title: z.string() }),
 });
+// A type whose list is plain text: a flat header, with no codec of its own.
+const reading = defineEntity({
+  type: "reading",
+  purpose: "A reading list.",
+  metadata: z.object({
+    title: z.string(),
+    pages: z.array(z.string()).default([]),
+  }),
+});
 
 async function install(): Promise<{
   shell: MockShell;
@@ -219,7 +228,7 @@ async function install(): Promise<{
       { pluginId: "renders" },
     ),
     ...instantiatePluginPackageDefinition(
-      defineEntityPackage({ id: "posts", entities: [post, note] }),
+      defineEntityPackage({ id: "posts", entities: [post, note, reading] }),
       {},
       { name: "@fixture/posts", version: "0.1.0" },
     ),
@@ -299,6 +308,15 @@ async function install(): Promise<{
       entityType: "note",
       content: "A note",
       metadata: { title: "plain-note" },
+    },
+  });
+  await service.createEntity({
+    entity: {
+      id: "list",
+      entityType: "reading",
+      content: "Pages",
+      metadata: { title: "list", pages: [] },
+      visibility: "public",
     },
   });
   return { shell, service, logger };
@@ -518,6 +536,29 @@ describe("a contract job's link", () => {
 
     expect(await stored(service, "post", "public-post")).toMatchObject({
       documents: [{ id: "second-pdf" }],
+    });
+  });
+
+  // A list of plain text takes the id as text: a flat header, and no codec
+  // of the type's own to state it.
+  it("adds an id to a list of text, and drops the ids it supersedes", async () => {
+    const { shell, service } = await install();
+    await run(shell, {
+      renderId: "first-pdf",
+      link: { entityType: "reading", entityId: "list", list: "pages" },
+    });
+    await run(shell, {
+      renderId: "second-pdf",
+      link: {
+        entityType: "reading",
+        entityId: "list",
+        list: "pages",
+        replaces: ["first-pdf"],
+      },
+    });
+
+    expect(await stored(service, "reading", "list")).toMatchObject({
+      pages: ["second-pdf"],
     });
   });
 

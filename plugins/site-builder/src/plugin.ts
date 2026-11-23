@@ -1,5 +1,8 @@
 import { storedContentRestateContract } from "@brains/contracts";
-import { restateSectionContent } from "./lib/restate-section-content";
+import {
+  restateSectionContent,
+  savedSectionBody,
+} from "./lib/restate-section-content";
 import { access } from "node:fs/promises";
 import { join } from "node:path";
 import {
@@ -225,13 +228,7 @@ async function setUpSiteBuilder(
     runtime.answer(storedContentRestateContract, async () => ({
       restated: await restateSectionContent({
         routes: () => routes.list(),
-        savedBody: async (id) =>
-          (
-            await runtime.entityReads.getEntity({
-              entityType: "site-content",
-              id,
-            })
-          )?.content ?? null,
+        savedBody: savedSectionBody(runtime.entityReads),
         // A template without a formatter lays out no saved copy.
         layOut: (template, body) =>
           runtime.layOutTemplate(template, body) ?? body,

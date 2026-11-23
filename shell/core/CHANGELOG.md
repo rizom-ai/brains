@@ -1,5 +1,59 @@
 # @brains/core
 
+## 0.2.0-alpha.768
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.768
+  - @brains/contracts@0.2.0-alpha.768
+  - @brains/image@0.2.0-alpha.768
+  - @brains/operation-context@0.2.0-alpha.768
+  - @brains/site-composition@0.2.0-alpha.768
+  - @brains/utils@0.2.0-alpha.768
+  - @brains/http-host@0.2.0-alpha.768
+  - @brains/plugins@0.2.0-alpha.768
+  - @brains/recurring-checks@0.2.0-alpha.768
+  - @brains/runtime-state@0.2.0-alpha.768
+  - @brains/scheduler@0.2.0-alpha.768
+  - @brains/templates@0.2.0-alpha.768
+
+## 0.2.0-alpha.767
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.767
+  - @brains/contracts@0.2.0-alpha.767
+  - @brains/image@0.2.0-alpha.767
+  - @brains/operation-context@0.2.0-alpha.767
+  - @brains/site-composition@0.2.0-alpha.767
+  - @brains/utils@0.2.0-alpha.767
+  - @brains/http-host@0.2.0-alpha.767
+  - @brains/plugins@0.2.0-alpha.767
+  - @brains/recurring-checks@0.2.0-alpha.767
+  - @brains/runtime-state@0.2.0-alpha.767
+  - @brains/scheduler@0.2.0-alpha.767
+  - @brains/templates@0.2.0-alpha.767
+
+## 0.2.0-alpha.766
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.766
+  - @brains/contracts@0.2.0-alpha.766
+  - @brains/image@0.2.0-alpha.766
+  - @brains/operation-context@0.2.0-alpha.766
+  - @brains/site-composition@0.2.0-alpha.766
+  - @brains/utils@0.2.0-alpha.766
+  - @brains/http-host@0.2.0-alpha.766
+  - @brains/plugins@0.2.0-alpha.766
+  - @brains/recurring-checks@0.2.0-alpha.766
+  - @brains/runtime-state@0.2.0-alpha.766
+  - @brains/scheduler@0.2.0-alpha.766
+  - @brains/templates@0.2.0-alpha.766
+
 ## 0.2.0-alpha.765
 
 ### Patch Changes

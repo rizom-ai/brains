@@ -1,5 +1,47 @@
 # @brains/ai-evaluation
 
+## 0.2.0-alpha.768
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.768
+  - @brains/contracts@0.2.0-alpha.768
+  - @brains/utils@0.2.0-alpha.768
+  - @brains/ai-service@0.2.0-alpha.768
+  - @brains/app@0.2.0-alpha.768
+  - @brains/mcp-service@0.2.0-alpha.768
+  - @brains/plugins@0.2.0-alpha.768
+  - @brains/templates@0.2.0-alpha.768
+
+## 0.2.0-alpha.767
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.767
+  - @brains/contracts@0.2.0-alpha.767
+  - @brains/utils@0.2.0-alpha.767
+  - @brains/ai-service@0.2.0-alpha.767
+  - @brains/app@0.2.0-alpha.767
+  - @brains/mcp-service@0.2.0-alpha.767
+  - @brains/plugins@0.2.0-alpha.767
+  - @brains/templates@0.2.0-alpha.767
+
+## 0.2.0-alpha.766
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.766
+  - @brains/contracts@0.2.0-alpha.766
+  - @brains/utils@0.2.0-alpha.766
+  - @brains/ai-service@0.2.0-alpha.766
+  - @brains/app@0.2.0-alpha.766
+  - @brains/mcp-service@0.2.0-alpha.766
+  - @brains/plugins@0.2.0-alpha.766
+  - @brains/templates@0.2.0-alpha.766
+
 ## 0.2.0-alpha.765
 
 ### Patch Changes

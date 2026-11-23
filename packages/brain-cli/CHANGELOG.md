@@ -1,5 +1,27 @@
 # @rizom/brain
 
+## 0.2.0-alpha.768
+
+### Patch Changes
+
+- [#1034](https://github.com/rizom-ai/brains/pull/1034) [`98f0936`](https://github.com/rizom-ai/brains/commit/98f09367bb8e36c147e4c38e93d40febb77c9a56) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Renaming a note through `system_update` reaches its file. A note's title set through fields changed the database only: the note's file states a title only when one was stated, so the file kept none, and the next import from git took the title from the body's heading again. A field update of a declared type read as its body is now applied to the file as the type stores it and read back, so a title set this way is stated and written.
+
+- [#1035](https://github.com/rizom-ai/brains/pull/1035) [`e86beb0`](https://github.com/rizom-ai/brains/commit/e86beb0438fe8a7b83ed9a6c302b2339afe41f23) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Refining notes no longer leaves links pointing nowhere. A refined note removes the notes it was written from, and a `[[note-id]]` link to one of them in another entry kept pointing at a note that was gone. Links to a removed source, bare, with a label or to a heading, now point at the refined note, in every entry its requester may see and update.
+
+## 0.2.0-alpha.767
+
+### Patch Changes
+
+- [#1033](https://github.com/rizom-ai/brains/pull/1033) [`5a03041`](https://github.com/rizom-ai/brains/commit/5a030418a1eb6ada2ab5a846b097515db840f6c8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Editing a refined note's text works. Every edit or replacement of a refined note was refused on approval with "expected string, received undefined" for its title and summary: the update decoded the note's body on its own, which states neither. A declared type's body is now decoded as the file it is stored as, under its stored metadata, so an edit keeps the title and summary and a replacement that states its own frontmatter takes what it states.
+
+## 0.2.0-alpha.766
+
+### Patch Changes
+
+- [#1032](https://github.com/rizom-ai/brains/pull/1032) [`62f4751`](https://github.com/rizom-ai/brains/commit/62f47515e195050c90afcdb4cf71e66153685a8e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A generation that links into a list the target's metadata declares as plain text writes the id itself, so a type with a flat header takes list links without a codec of its own. A list of objects takes `{ id }` entries as before.
+
+- [`c763868`](https://github.com/rizom-ai/brains/commit/c763868c9d3f717890ee963f93e23fdeeb025811) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Restating the sections' saved copy at start reads each copy as stored, so a section's image stays its `entity://image/<id>` reference. The restate read through the resolving lookup, which inlines every image as a data URL, and wrote those bytes back over the reference: a site's photo fields then held no image the build writes, and the photos went missing from the page.
+
 ## 0.2.0-alpha.765
 
 ### Patch Changes

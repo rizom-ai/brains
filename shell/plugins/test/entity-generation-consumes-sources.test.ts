@@ -110,9 +110,15 @@ async function install(
     entry("first", SCRAP, "public"),
     entry("second", SCRAP, "restricted"),
     entry("an-essay", "essay", "public"),
+    { ...entry("a-plan", "essay", "public"), content: LINKING },
   ]);
   return shell;
 }
+
+// An entry that links the first scrap, bare, with a label and to a heading,
+// and an entry whose id only starts like it.
+const LINKING =
+  "See [[first]], [[first|the first scrap]], [[first#notes]] and [[first-draft]].";
 
 function toolCaller(userId: string, level: Level): ToolContext {
   return {
@@ -263,6 +269,76 @@ describe("a generation whose type uses up its sources", () => {
     expect(await exists(shell, "polished", "polished")).toBe(false);
     expect(await exists(shell, SCRAP, "first")).toBe(true);
     expect(await exists(shell, SCRAP, "second")).toBe(true);
+  });
+});
+
+async function contentOf(
+  shell: MockShell,
+  entityType: string,
+  id: string,
+): Promise<string | undefined> {
+  const found = await shell
+    .getEntityService()
+    .getEntity({ entityType, id, visibilityScope: "restricted" });
+  return found?.content;
+}
+
+describe("links to a source a generation uses up", () => {
+  it("point at what was written from it", async () => {
+    const shell = await install({ usr_admin: "admin" });
+
+    expect(
+      await generate(
+        shell,
+        "polished",
+        { sourceEntityType: SCRAP, sourceEntityIds: ["first"] },
+        toolCaller("usr_admin", "admin"),
+      ),
+    ).toEqual({ success: true, entityId: "polished" });
+
+    expect(await contentOf(shell, "essay", "a-plan")).toBe(
+      "See [[polished]], [[polished|the first scrap]], [[polished#notes]] and [[first-draft]].",
+    );
+  });
+
+  it("stay as they are in an entry its requester may not update", async () => {
+    const shell = await install(
+      { usr_trusted: "trusted" },
+      new PermissionService({
+        entityActions: { essay: { update: "admin" } },
+      }),
+    );
+
+    expect(
+      await generate(
+        shell,
+        "polished",
+        { sourceEntityType: SCRAP, sourceEntityIds: ["first"] },
+        toolCaller("usr_trusted", "trusted"),
+      ),
+    ).toEqual({ success: true, entityId: "polished" });
+
+    expect(await exists(shell, SCRAP, "first")).toBe(false);
+    expect(await contentOf(shell, "essay", "a-plan")).toBe(LINKING);
+  });
+
+  it("stay as they are while the source is kept", async () => {
+    const shell = await install(
+      { usr_trusted: "trusted" },
+      new PermissionService({
+        entityActions: { [SCRAP]: { delete: "admin" } },
+      }),
+    );
+
+    await generate(
+      shell,
+      "polished",
+      { sourceEntityType: SCRAP, sourceEntityIds: ["first"] },
+      toolCaller("usr_trusted", "trusted"),
+    );
+
+    expect(await exists(shell, SCRAP, "first")).toBe(true);
+    expect(await contentOf(shell, "essay", "a-plan")).toBe(LINKING);
   });
 });
 
