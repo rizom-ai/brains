@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.766
+
+### Patch Changes
+
+- [#1032](https://github.com/rizom-ai/brains/pull/1032) [`62f4751`](https://github.com/rizom-ai/brains/commit/62f47515e195050c90afcdb4cf71e66153685a8e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A generation that links into a list the target's metadata declares as plain text writes the id itself, so a type with a flat header takes list links without a codec of its own. A list of objects takes `{ id }` entries as before.
+
+- [`c763868`](https://github.com/rizom-ai/brains/commit/c763868c9d3f717890ee963f93e23fdeeb025811) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Restating the sections' saved copy at start reads each copy as stored, so a section's image stays its `entity://image/<id>` reference. The restate read through the resolving lookup, which inlines every image as a data URL, and wrote those bytes back over the reference: a site's photo fields then held no image the build writes, and the photos went missing from the page.
+
 ## 0.2.0-alpha.765
 
 ### Patch Changes
