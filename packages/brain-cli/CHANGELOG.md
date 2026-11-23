@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.767
+
+### Patch Changes
+
+- [#1033](https://github.com/rizom-ai/brains/pull/1033) [`5a03041`](https://github.com/rizom-ai/brains/commit/5a030418a1eb6ada2ab5a846b097515db840f6c8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Editing a refined note's text works. Every edit or replacement of a refined note was refused on approval with "expected string, received undefined" for its title and summary: the update decoded the note's body on its own, which states neither. A declared type's body is now decoded as the file it is stored as, under its stored metadata, so an edit keeps the title and summary and a replacement that states its own frontmatter takes what it states.
+
 ## 0.2.0-alpha.766
 
 ### Patch Changes
