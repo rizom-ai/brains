@@ -51,7 +51,7 @@ Your content lives in `brain-data/`. A Markdown file at the top becomes a note; 
 
 The brain keeps the folder and itself in step while it runs: add or edit a file and the brain updates; change something in chat or Studio and the file changes.
 
-To use the folder as an Obsidian vault, add the `obsidian-vault` plugin under `add:` in `brain.yaml`. It writes templates, field definitions and table views for every type into `brain-data/_obsidian/`.
+To work in Obsidian, install the Rizom Brain plugin and connect it from your account's Drive section in Studio. It keeps a vault on your computer in step with the brain, and writes templates, field definitions and table views for every type into the vault's `_obsidian/` folder.
 
 Exact steps: [Content management](/docs/content-management).
 

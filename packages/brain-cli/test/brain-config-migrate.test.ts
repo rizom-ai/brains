@@ -229,7 +229,6 @@ describe("brain config migration preview", () => {
     });
     expectMigrationSelection("rover", "default", {
       bundles: professionalBundles,
-      add: ["obsidian-vault"],
       remove: [
         "series",
         "portfolio",
@@ -243,7 +242,6 @@ describe("brain config migration preview", () => {
     });
     expectMigrationSelection("rover", "full", {
       bundles: professionalBundles,
-      add: ["obsidian-vault"],
       anchor: "person",
       kind: "professional",
     });
@@ -340,8 +338,16 @@ describe("brain config migration preview", () => {
           "unified-inbox",
           "webdav",
         ],
-        // playbook folded into playbooks, which installs the playbook type.
-        removed: ["account", "assessment", "cms", "playbook", "wishlist"],
+        // playbook folded into playbooks, which installs the playbook type;
+        // obsidian-vault folded into the Rizom Brain plugin for Obsidian.
+        removed: [
+          "account",
+          "assessment",
+          "cms",
+          "obsidian-vault",
+          "playbook",
+          "wishlist",
+        ],
       })),
       ...(["core", "default", "full"] as const).map((preset) => ({
         model: "relay" as const,
@@ -451,7 +457,7 @@ permissions:
     expect(result.output).toContain("${SETUP_EMAIL_API_KEY}");
     expect(result.output).toContain("${SETUP_EMAIL_FROM}");
     expect(parsed.kind).toBe("professional");
-    expect(parsed.add).toEqual(["docs", "onboarding", "obsidian-vault"]);
+    expect(parsed.add).toEqual(["docs", "onboarding"]);
     expect(parsed.remove).toEqual([
       "dashboard",
       "series",

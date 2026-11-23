@@ -147,6 +147,55 @@ export class ConflictStore {
     }
   }
 
+  /**
+   * A target was renamed: its pending conflicts move with it, so each is
+   * still listed, shown and applied over the entry it is about. A conflict's
+   * id names its target, so each is written again under the new id, with
+   * its stamp, text and visibility, and the old one removed.
+   */
+  async followRename(
+    targetType: string,
+    previousId: string,
+    newId: string,
+  ): Promise<string[]> {
+    const conflicts = await this.deps.reads.listEntities({
+      entityType: CONFLICT_ENTITY_TYPE,
+      options: {
+        filter: {
+          metadata: { targetType, targetId: previousId },
+          visibilityScope: SYSTEM_SCOPE,
+        },
+        limit: LIST_LIMIT,
+      },
+    });
+    const moved: string[] = [];
+    for (const conflict of conflicts) {
+      const prefix = conflictId(targetType, previousId, "");
+      const stamp = conflict.id.startsWith(prefix)
+        ? conflict.id.slice(prefix.length)
+        : conflictStamp(new Date(conflict.created));
+      const id = conflictId(targetType, newId, stamp);
+      const fields = conflictFieldsSchema.parse(conflict.metadata);
+      await this.deps.writes.createEntity({
+        entity: {
+          id,
+          entityType: CONFLICT_ENTITY_TYPE,
+          content: conflict.content,
+          metadata: { ...fields, targetId: newId },
+          created: conflict.created,
+          visibility: conflict.visibility,
+        },
+        options: { conditionalWrite: { expectedRevision: null } },
+      });
+      await this.deps.writes.deleteEntity({
+        entityType: CONFLICT_ENTITY_TYPE,
+        id: conflict.id,
+      });
+      moved.push(id);
+    }
+    return moved;
+  }
+
   /** Every conflict, oldest first. */
   async list(): Promise<ConflictItem[]> {
     const conflicts = await this.deps.reads.listEntities({

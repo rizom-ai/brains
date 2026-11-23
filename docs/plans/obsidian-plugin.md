@@ -2,7 +2,17 @@
 
 ## Status
 
-Proposed.
+Phases 1 to 9 are built on #1028, with the first half of phase 10: CI builds the plugin and keeps its three files as a run artifact. Still to do: the public repository and the community directory submission, which publish the plugin, and a check on iOS and Android.
+
+Where the build differs from the plan:
+
+- For a sync client the drive lists every entity type's folder, empty or not, and takes a save into an empty one. Without that, a brain with no images yet had no `image/` folder to save into.
+- Renaming a note moves its pending conflicts and rewrites FAQ sources that cite it. Documents and images generated from an entry are made only from posts and decks, so a note rename never reaches them.
+- A file edited a moment ago is still uploaded by a sync; only writing into it waits until the person stops typing.
+- The plugin is named Rizom Brain (id `rizom-brain`).
+- The plugin took over the brain-side `obsidian-vault` capability, which is retired. The drive describes the brain's types to sync clients (`.brain/vault-shapes.json`), and the plugin writes `_obsidian/` from that: templates and fileClasses as the brain writes them, bases only where missing.
+- Each brain keeps its own sync state in the plugin, so changing the address loses nothing.
+- Changes in the brain reach the vault as they happen. The plugin asks the drive what changed since its cursor (`.brain/changes`), the brain holds the ask until something does, and the plugin lists only the folders of the types that changed. The timed full sync, now every 30 minutes, is the safety net.
 
 ## Background
 

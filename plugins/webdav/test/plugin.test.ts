@@ -265,3 +265,159 @@ describe("the WebDAV plugin and a held losing save", () => {
     expect(settled).toBe("Newer, from Studio");
   });
 });
+
+describe("the WebDAV plugin and a person's Obsidian folder", () => {
+  const authorization = "Basic ZGF2LWlkOnNlY3JldA==";
+
+  /** The drive as one brain process serves it, over the given shell. */
+  async function served(
+    shell: MockShell,
+  ): Promise<
+    (method: string, path: string, body?: string) => Promise<Response>
+  > {
+    const installedPlugins = plugins();
+    await registerAll(shell, installedPlugins);
+    const routes = installedPlugins.flatMap(
+      (plugin) => plugin.getWebRoutes?.() ?? [],
+    );
+    return async (method, path, body) => {
+      const found = routes.find((candidate) => candidate.method === method);
+      if (!found) throw new Error(`No ${method} route`);
+      return found.handler(
+        new Request(`http://localhost${path}`, {
+          method,
+          headers: { authorization },
+          ...(body !== undefined ? { body } : {}),
+        }),
+      );
+    };
+  }
+
+  it("keeps it in the brain's own state, so another process finds it", async () => {
+    const shell = createMockShell();
+    shell
+      .getEntityRegistry()
+      .registerEntityType(
+        "conflict",
+        baseEntitySchema,
+        new PlainAdapter("conflict"),
+      );
+    shell.getAuthRegistry().bindBackend(
+      createMockAuthBackend({
+        resolveAppPassword: async () => ({
+          principal: {
+            userId: "usr_1",
+            personId: "prsn_1",
+            displayName: "Mira",
+            role: "trusted",
+            status: "active",
+            permissionLevel: "trusted",
+            isAnchor: false,
+          },
+          access: "write",
+          appPasswordId: "pw_1",
+        }),
+      }),
+    );
+
+    const first = await served(shell);
+    expect(
+      (await first("PUT", "/dav/.obsidian/plugins/calendar/data.json", "{}"))
+        .status,
+    ).toBe(201);
+    expect(
+      (await first("PUT", "/dav/.obsidian/workspace.json", '{"tabs":1}'))
+        .status,
+    ).toBe(201);
+
+    // The brain restarts: a new plugin instance over the same stored state.
+    const second = await served(shell);
+    const workspace = await second("GET", "/dav/.obsidian/workspace.json");
+    expect(workspace.status).toBe(200);
+    expect(await workspace.text()).toBe('{"tabs":1}');
+    expect(
+      (await second("GET", "/dav/.obsidian/plugins/calendar/data.json")).status,
+    ).toBe(200);
+
+    expect(
+      (await second("DELETE", "/dav/.obsidian/workspace.json")).status,
+    ).toBe(204);
+    const third = await served(shell);
+    expect((await third("GET", "/dav/.obsidian/workspace.json")).status).toBe(
+      404,
+    );
+  });
+});
+
+describe("the WebDAV plugin and a sync client waiting for changes", () => {
+  it("tells it which type changed when the brain says an entity did", async () => {
+    const { shell, routes } = await installed();
+    shell.getAuthRegistry().bindBackend(
+      createMockAuthBackend({
+        resolveAppPassword: async () => ({
+          principal: {
+            userId: "usr_1",
+            personId: "prsn_1",
+            displayName: "Mira",
+            role: "trusted",
+            status: "active",
+            permissionLevel: "trusted",
+            isAnchor: false,
+          },
+          access: "read",
+          appPasswordId: "pw_1",
+        }),
+      }),
+    );
+    const route = routes.find((candidate) => candidate.method === "GET");
+    if (!route) throw new Error("No GET route");
+    const ask = async (query: string): Promise<unknown> =>
+      (
+        await route.handler(
+          new Request(`https://brain.example/dav/.brain/changes${query}`, {
+            headers: {
+              authorization: "Basic ZGF2LWlkOnNlY3JldA==",
+              "x-brain-sync": "1",
+            },
+          }),
+        )
+      ).json();
+    const first = z.object({ cursor: z.string() }).parse(await ask("?wait=0"));
+
+    for (const change of [
+      { type: "entity:updated", entityId: "tea" },
+      { type: "entity:renamed", entityId: "green-tea" },
+    ]) {
+      await shell.getMessageBus().send({
+        type: change.type,
+        payload: {
+          entityType: "note",
+          entityId: change.entityId,
+          previousId: "tea",
+        },
+        sender: "test",
+        broadcast: true,
+      });
+    }
+
+    expect(await ask(`?since=${first.cursor}&wait=0`)).toEqual({
+      cursor: expect.any(String),
+      types: ["note"],
+    });
+
+    // Told the brain is stopping, it lets a waiting client go at once.
+    const now = z
+      .object({ cursor: z.string() })
+      .parse(await ask("?wait=0")).cursor;
+    const waiting = ask(`?since=${now}&wait=30`);
+    const started = Date.now();
+    await shell.getMessageBus().send({
+      type: "system:shutting-down",
+      payload: { timestamp: new Date().toISOString() },
+      sender: "shell",
+      broadcast: true,
+    });
+    expect(await waiting).toEqual({ cursor: now, types: [] });
+    expect(Date.now() - started).toBeLessThan(1_000);
+  });
+});

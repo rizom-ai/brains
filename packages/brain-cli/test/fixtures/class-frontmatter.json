@@ -2173,7 +2173,7 @@
   "obsidian": {
     "post": {
       "fileClass": "---\nfields:\n  - id: title\n    name: title\n    type: Input\n  - id: slug\n    name: slug\n    type: Input\n  - id: status\n    name: status\n    options:\n      '0': generating\n      '1': draft\n      '2': queued\n      '3': published\n      '4': failed\n    type: Select\n  - id: publishedAt\n    name: publishedAt\n    type: Input\n  - id: excerpt\n    name: excerpt\n    type: Input\n  - id: author\n    name: author\n    type: Input\n  - id: coverImageId\n    name: coverImageId\n    type: Input\n  - id: ogImageId\n    name: ogImageId\n    type: Input\n  - id: seriesName\n    name: seriesName\n    type: Input\n  - id: seriesIndex\n    name: seriesIndex\n    type: Number\n  - id: ogImage\n    name: ogImage\n    type: Input\n  - id: canonicalUrl\n    name: canonicalUrl\n    type: Input\nfilesPaths: post\n---\n",
-      "template": "---\ntitle: \"{{title}}\"\nslug: \"\"\nstatus: generating\npublishedAt: \"\"\nexcerpt: \"\"\nauthor: \"\"\ncoverImageId: \"\"\nogImageId: \"\"\nseriesName: \"\"\nseriesIndex:\nogImage: \"\"\ncanonicalUrl: \"\"\n---\n\n<!-- Write your content here -->\n",
+      "template": "---\ntitle: \"{{title}}\"\nslug: \"\"\nstatus: draft\npublishedAt: \"\"\nexcerpt: \"\"\nauthor: \"\"\ncoverImageId: \"\"\nogImageId: \"\"\nseriesName: \"\"\nseriesIndex:\nogImage: \"\"\ncanonicalUrl: \"\"\n---\n\n<!-- Write your content here -->\n",
       "studioFields": [
         {
           "name": "title",

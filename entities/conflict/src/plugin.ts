@@ -11,7 +11,10 @@ import {
 } from "@brains/sdk/services";
 import { getErrorMessage } from "@brains/utils/error";
 import { truncateText } from "@brains/utils/string-utils";
-import { serviceRuntime } from "@brains/sdk/internal/service-runtime";
+import {
+  entityRenamedChannel,
+  serviceRuntime,
+} from "@brains/sdk/internal/service-runtime";
 import { conflict } from "./conflict-entity";
 import { ConflictInboxSource } from "./inbox-source";
 import { ConflictStore } from "./lib/conflict-store";
@@ -43,6 +46,19 @@ export const conflictPackage: ServicePackageDefinition<
       recordConflictContract,
       ({ request }): Promise<RecordConflictResponse> => store.record(request),
       { everyProcess: true },
+    );
+    // A renamed entry keeps its pending conflicts: they move to its new id.
+    // Execution listeners run once, in the process that made the change.
+    runtime.listen(
+      entityRenamedChannel,
+      async ({ payload }) => {
+        await store.followRename(
+          payload.entityType,
+          payload.previousId,
+          payload.entityId,
+        );
+      },
+      { mode: "execution" },
     );
     if (!runtime.executionOnly) {
       runtime.inboxSource(new ConflictInboxSource(store));

@@ -1,4 +1,5 @@
 /** @jsxImportSource react */
+import { parseObsidianConnect } from "./account/obsidian-connect";
 import type { AccountBootstrap } from "./account/account-view";
 import { StudioStatus } from "./studio-status";
 import { StudioGroupingView } from "./studio-groupings";
@@ -126,6 +127,7 @@ function accountBootstrap(
   const davUrl = root?.getAttribute("data-studio-dav-url") ?? undefined;
   const initialSection =
     new URLSearchParams(rawSearch).get("section") ?? undefined;
+  const connect = parseObsidianConnect(rawSearch);
   return {
     displayName,
     role,
@@ -134,6 +136,7 @@ function accountBootstrap(
     ...(mcpUrl ? { mcpUrl } : {}),
     ...(davUrl ? { davUrl } : {}),
     ...(initialSection ? { initialSection } : {}),
+    ...(connect ? { connect } : {}),
   };
 }
 

@@ -1,0 +1,12 @@
+{
+  "extends": "@brains/typescript-config/base.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "composite": true,
+    "esModuleInterop": true,
+    "isolatedDeclarations": true,
+    "lib": ["ESNext", "DOM", "DOM.Iterable"]
+  },
+  "include": ["src/**/*", "test/**/*", "scripts/**/*"],
+  "exclude": ["node_modules", "dist"]
+}

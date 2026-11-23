@@ -83,7 +83,6 @@ function canonicalSelection(selection: LegacySelection): CanonicalSelection {
         "publishing",
         "federation",
       ],
-      add: ["obsidian-vault"],
       remove: [...defaultRemovals],
     };
   }
@@ -98,7 +97,6 @@ function canonicalSelection(selection: LegacySelection): CanonicalSelection {
       "publishing",
       "federation",
     ],
-    add: ["obsidian-vault"],
   };
 }
 

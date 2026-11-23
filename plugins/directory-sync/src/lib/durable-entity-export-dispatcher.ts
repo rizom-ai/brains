@@ -35,12 +35,13 @@ export interface DurableEntityExportEntityService {
 export interface DurableEntityExportDirectory {
   suppressWatchPaths(paths: string[]): void;
   isPendingDelete(entityType: string, entityId: string): boolean;
+  /** Remove the files, and the recorded version, of an entity that is gone. */
+  removeEntityFiles(entityType: string, entityId: string): Promise<void>;
   /** Write an entity's file, keeping an edit the file holds as a conflict. */
   writeEntityFile(entity: BaseEntity): Promise<void>;
   fileOps: {
     getEntityConvergencePaths(entity: BaseEntity): string[];
     getEntityDeletePaths(entityType: string, entityId: string): string[];
-    deleteEntityFiles(entityType: string, entityId: string): Promise<void>;
   };
 }
 
@@ -194,10 +195,7 @@ export class DurableEntityExportDispatcher {
         this.directorySync.suppressWatchPaths(
           this.directorySync.fileOps.getEntityDeletePaths(entityType, entityId),
         );
-        await this.directorySync.fileOps.deleteEntityFiles(
-          entityType,
-          entityId,
-        );
+        await this.directorySync.removeEntityFiles(entityType, entityId);
       },
       isPendingRemoteDelete: (entityType: string, entityId: string): boolean =>
         this.directorySync.isPendingDelete(entityType, entityId),

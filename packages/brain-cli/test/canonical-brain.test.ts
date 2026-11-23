@@ -52,7 +52,6 @@ const expectedCatalogIds = [
   "docs",
   "guides",
   "book",
-  "obsidian-vault",
   "email-workflows",
   "unified-inbox",
   "linkedin-import",

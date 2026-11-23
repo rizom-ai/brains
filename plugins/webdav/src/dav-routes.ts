@@ -1,11 +1,13 @@
 import type { RecordConflictRequest } from "@brains/contracts";
 import { memoryMountBases, type MountBases } from "./dav-mounts";
+import type { KeptStore } from "./dav-kept";
 import type { MountView } from "./dav-saves";
 import type { AuthAppPasswordGrant } from "@brains/contracts";
 import type { WebRouteDefinition } from "@brains/sdk/internal/interface-runtime";
 import { permissionToVisibilityScope } from "@brains/sdk/internal/service-runtime";
 import {
   deleteEntityFile,
+  renameNoteFile,
   saveEntityFile,
   type DavWrites,
   type WriteDeps,
@@ -15,7 +17,16 @@ import { ScratchStore, isScratchName, type ScratchFile } from "./dav-scratch";
 import { CleanupGuard } from "./dav-cleanups";
 import { SaveHolds, type SaveHold } from "./dav-holds";
 import { LockStore, requestedLockSeconds } from "./dav-locks";
-import { DavTree, type DavNode, type DavReader } from "./dav-tree";
+import { computeContentHash } from "@brains/utils/hash";
+import type { ChangeFeed } from "./dav-changes";
+import { vaultShapes, type VaultShapeSource } from "./dav-shapes";
+import {
+  DavTree,
+  NOTE_TYPE,
+  type DavFile,
+  type DavNode,
+  type DavReader,
+} from "./dav-tree";
 import {
   davErrorXml,
   lockDiscoveryXml,
@@ -37,6 +48,8 @@ export interface DavRoutesOptions {
   ) => Promise<AuthAppPasswordGrant | undefined>;
   /** Milliseconds since the epoch; the clock temporary files age by. */
   now?: () => number;
+  /** Where a person's `.obsidian` outlives the process; memory when not given. */
+  kept?: KeptStore;
   /** The versions mounts hold; kept in memory when not given. */
   mounts?: MountBases;
   /**
@@ -48,7 +61,20 @@ export interface DavRoutesOptions {
   ) => Promise<string | undefined>;
   /** Whether a conflict still waits to be resolved; taken as yes when not given. */
   conflictPending?: (conflictId: string) => Promise<boolean>;
+  /** The brain's types, as a sync client writes templates, fileClasses and bases from them. */
+  shapes?: VaultShapeSource;
+  /** Which types changed, for sync clients that wait to be told. */
+  changes?: ChangeFeed;
 }
+
+/** Where a sync client asks what changed since its cursor. */
+const CHANGES_PATH = [".brain", "changes"];
+/** The longest a sync client is kept waiting for a change, in seconds. */
+const MAX_CHANGES_WAIT = 50;
+const DEFAULT_CHANGES_WAIT = 25;
+
+/** Where a sync client reads the brain's types; nobody else sees it. */
+const VAULT_SHAPES_PATH = [".brain", "vault-shapes.json"];
 
 const READ_METHODS = ["OPTIONS", "GET", "HEAD", "PROPFIND"] as const;
 const WRITE_METHODS = [
@@ -89,6 +115,12 @@ interface DavRequest {
   request: Request;
   grant: AuthAppPasswordGrant;
   tree: DavTree;
+  /**
+   * The request is a sync client's (`X-Brain-Sync: 1`): it keeps its own
+   * copy and wants the stored version at once, so no save is held back for
+   * it, and a save is answered with the version the brain stored.
+   */
+  sync: boolean;
   /** Undefined when the request path names nothing on the drive. */
   path: DavPath | undefined;
 }
@@ -114,7 +146,7 @@ export function createDavRoutes(
   const server: DavServer = {
     options,
     mounts: options.mounts ?? memoryMountBases(options.now),
-    scratch: new ScratchStore(options.now),
+    scratch: new ScratchStore(options.now, options.kept),
     locks: new LockStore(options.now),
     cleanups: new CleanupGuard(options.now),
     holds: new SaveHolds(options.now),
@@ -153,14 +185,17 @@ export function createDavRoutes(
         return inert(forbidden("This app password is read-only"));
       }
 
+      const sync = request.headers.get("x-brain-sync")?.trim() === "1";
       const dav: DavRequest = {
         request,
         grant,
         tree: new DavTree(
           options.reader,
           permissionToVisibilityScope(grant.principal.permissionLevel),
+          { everyType: sync },
         ),
         path: pathBelow(options.basePath, new URL(request.url).pathname),
+        sync,
       };
       // LOCK and UNLOCK answer for the lock themselves; every other write
       // to a locked path needs its holder and its token.
@@ -173,7 +208,12 @@ export function createDavRoutes(
       ) {
         return inert(locked());
       }
-      return inert(await handlers[method](server, dav));
+      // A person's kept folders are in memory before anything looks for
+      // them, and every change to them is stored before it is answered.
+      await server.scratch.open(grant.principal.userId);
+      const response = await handlers[method](server, dav);
+      await server.scratch.settle();
+      return inert(response);
     },
   }));
 }
@@ -257,7 +297,7 @@ async function liveHold(
   dav: DavRequest,
   node: DavNode,
 ): Promise<SaveHold | undefined> {
-  if (node.kind !== "file") return undefined;
+  if (node.kind !== "file" || dav.sync) return undefined;
   const mount = dav.grant.appPasswordId;
   const hold = server.holds.get(mount, node.segments);
   if (!hold) return undefined;
@@ -283,10 +323,45 @@ async function namedVersion(
 ): Promise<string | null> {
   const ifMatch = dav.request.headers.get("if-match");
   if (ifMatch === null) return null;
+  if (dav.sync) return ifMatch;
   if (!server.holds.get(dav.grant.appPasswordId, segments)) return ifMatch;
   const node = await dav.tree.resolve(segments);
   const hold = node ? await liveHold(server, dav, node) : undefined;
   return hold?.etag === ifMatch ? null : ifMatch;
+}
+
+/**
+ * What changed since the asker's cursor, held until there is something to
+ * tell or its wait is over. A type is named as the folder a vault has for
+ * it: a type kept inside another's folder as that folder's type.
+ */
+async function changesAnswer(
+  changes: ChangeFeed,
+  dav: DavRequest,
+): Promise<Response> {
+  const query = new URL(dav.request.url).searchParams;
+  const asked = Number(query.get("wait") ?? DEFAULT_CHANGES_WAIT);
+  const seconds = Number.isFinite(asked)
+    ? Math.min(Math.max(asked, 0), MAX_CHANGES_WAIT)
+    : DEFAULT_CHANGES_WAIT;
+  const answer = await changes.wait(
+    query.get("since"),
+    seconds * 1_000,
+    dav.request.signal,
+  );
+  const body =
+    "reset" in answer
+      ? answer
+      : {
+          cursor: answer.cursor,
+          types: [
+            ...new Set(answer.types.map((type) => dav.tree.folderTypeOf(type))),
+          ],
+        };
+  return new Response(JSON.stringify(body), {
+    status: 200,
+    headers: { "Content-Type": "application/json; charset=utf-8" },
+  });
 }
 
 /** What a listing says of a node, as this request's app password sees it. */
@@ -336,6 +411,37 @@ async function read(
   dav: DavRequest,
   withBody: boolean,
 ): Promise<Response> {
+  const { shapes, changes } = server.options;
+  if (
+    dav.sync &&
+    changes !== undefined &&
+    dav.path?.segments.join("/") === CHANGES_PATH.join("/")
+  ) {
+    return changesAnswer(changes, dav);
+  }
+  if (
+    dav.sync &&
+    shapes !== undefined &&
+    dav.path?.segments.join("/") === VAULT_SHAPES_PATH.join("/")
+  ) {
+    // A vault holds notes at its root and a folder per type; a type kept
+    // inside another's folder has no place of its own to make a template or
+    // a table for.
+    const body = JSON.stringify({
+      shapes: vaultShapes(shapes).filter(
+        (shape) =>
+          shape.entityType === NOTE_TYPE ||
+          dav.tree.isFolderType(shape.entityType),
+      ),
+    });
+    return new Response(withBody ? body : null, {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json; charset=utf-8",
+        ETag: `"${computeContentHash(body)}"`,
+      },
+    });
+  }
   const scratch = scratchAt(server, dav);
   if (scratch) {
     return new Response(withBody ? scratch.bytes : null, {
@@ -459,8 +565,12 @@ async function put(server: DavServer, dav: DavRequest): Promise<Response> {
     bytes,
     ifMatch: await namedVersion(server, dav, path.segments),
     onlyIfAbsent: dav.request.headers.get("if-none-match")?.trim() === "*",
+    keepAsConflict:
+      dav.sync &&
+      dav.request.headers.get("x-brain-keep")?.trim() === "conflict",
     grant: dav.grant,
   });
+  if (dav.sync) return syncWritten(server, dav, path.segments, bytes, outcome);
   // A refused save, or one stored in another form (it has no ETag), is an
   // upload a client takes as failed and cleans up after with a delete.
   if ("message" in outcome || outcome.etag === undefined) {
@@ -468,6 +578,52 @@ async function put(server: DavServer, dav: DavRequest): Promise<Response> {
   }
   await holdSave(server, dav, path.segments, bytes, outcome);
   return written(server, dav, path.segments, outcome);
+}
+
+/**
+ * A sync client's save, answered with what the brain now holds: the stored
+ * version's ETag, whether it was stored as sent or in another form, and the
+ * conflict a losing save is kept as. Nothing is held back for it.
+ */
+async function syncWritten(
+  server: DavServer,
+  dav: DavRequest,
+  segments: string[],
+  sent: Uint8Array,
+  outcome: WriteOutcome,
+): Promise<Response> {
+  if ("message" in outcome) return written(server, dav, segments, outcome);
+  server.holds.release(dav.grant.appPasswordId, segments);
+  const saved = await dav.tree.entityAt(segments);
+  const headers: Record<string, string> = {};
+  if (saved) {
+    headers["ETag"] = saved.file.etag;
+    headers["X-Brain-Stored"] =
+      outcome.conflictId !== undefined
+        ? "conflict"
+        : (await storedAsSent(saved.file, sent))
+          ? "as-sent"
+          : "other-form";
+  }
+  if (outcome.conflictId !== undefined) {
+    headers["X-Brain-Conflict"] = outcome.conflictId;
+  }
+  if (outcome.status === 201) {
+    server.scratch.forgetFolders(
+      dav.grant.principal.userId,
+      segments.slice(0, -1),
+    );
+  }
+  return new Response(null, { status: outcome.status, headers });
+}
+
+/** Whether a stored file's bytes are the ones a save sent. */
+async function storedAsSent(file: DavFile, sent: Uint8Array): Promise<boolean> {
+  if (file.size !== sent.byteLength) return false;
+  const stored = new Uint8Array(
+    await new Response(await file.open()).arrayBuffer(),
+  );
+  return Buffer.from(stored).equals(Buffer.from(sent));
 }
 
 /**
@@ -629,7 +785,7 @@ async function move(server: DavServer, dav: DavRequest): Promise<Response> {
   if (!isScratchPath(path.segments)) {
     return isScratchPath(destination.segments)
       ? backUp(server, dav, path.segments, destination.segments, overwrite)
-      : forbidden("The drive does not rename files");
+      : rename(server, dav, path.segments, destination.segments);
   }
   const userId = dav.grant.principal.userId;
   const source = server.scratch.get(userId, path.segments);
@@ -665,6 +821,29 @@ async function move(server: DavServer, dav: DavRequest): Promise<Response> {
     server.holds.release(dav.grant.appPasswordId, destination.segments);
   }
   return written(server, dav, destination.segments, outcome);
+}
+
+/** Rename a note by its file, and move what the mount held with it. */
+async function rename(
+  server: DavServer,
+  dav: DavRequest,
+  from: string[],
+  to: string[],
+): Promise<Response> {
+  const outcome = await renameNoteFile(writeDeps(server, dav), {
+    from,
+    to,
+    grant: dav.grant,
+  });
+  if (outcome.status < 300) {
+    const mount = dav.grant.appPasswordId;
+    // What this mount held of the old name is the renamed note's.
+    const held = await server.mounts.get(mount, from.join("/"));
+    await server.mounts.forget(mount, from.join("/"));
+    if (held) await server.mounts.held(mount, to.join("/"), held.hash);
+    server.holds.release(mount, from);
+  }
+  return written(server, dav, to, outcome);
 }
 
 /**

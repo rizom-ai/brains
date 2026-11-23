@@ -163,7 +163,7 @@ describe("Seed Content Git Detection", () => {
     });
 
     it("should copy seed content when brain-data only has underscore-prefixed scaffold dirs", async () => {
-      // Simulate obsidian-vault plugin creating scaffold dirs before seed copy
+      // Scaffold dirs, as the retired obsidian-vault plugin left them, before the seed copy
       mkdirSync(join(brainDataPath, "_obsidian", "templates"), {
         recursive: true,
       });

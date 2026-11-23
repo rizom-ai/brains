@@ -1,0 +1,50 @@
+name: Obsidian plugin
+
+# Builds the Rizom Brain plugin as Obsidian loads it and keeps the three files
+# as a run artifact to download and install by hand. Nothing is published.
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "packages/obsidian-plugin/**"
+      - ".github/workflows/obsidian-plugin.yml"
+  pull_request:
+    types: [opened, synchronize]
+    paths:
+      - "packages/obsidian-plugin/**"
+      - ".github/workflows/obsidian-plugin.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v5
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build the plugin
+        working-directory: packages/obsidian-plugin
+        run: bun run build
+
+      - name: Keep the plugin files
+        uses: actions/upload-artifact@v4
+        with:
+          name: rizom-brain
+          path: |
+            packages/obsidian-plugin/dist/main.js
+            packages/obsidian-plugin/dist/manifest.json
+            packages/obsidian-plugin/dist/styles.css
+          if-no-files-found: error

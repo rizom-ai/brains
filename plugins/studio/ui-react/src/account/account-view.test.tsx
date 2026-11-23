@@ -345,6 +345,41 @@ describe("Account surface", () => {
       expect(commandLine.cards).toEqual(["rclone"]);
     });
 
+    it("opens on Drive with the Connect card when Obsidian asked to connect", () => {
+      const html = render(account, {
+        davUrl,
+        connect: { state: "ab12cd34ef56" },
+      });
+      const visible = visiblePanel(html);
+
+      expect(visible).toContain("data-obsidian-connect");
+      expect(visible).toContain(">Connect Obsidian</button>");
+      expect(visible).toContain(davUrl);
+    });
+
+    it("shows no Connect card when Obsidian did not ask", () => {
+      const visible = visiblePanel(
+        render(account, { davUrl, initialSection: "drive" }),
+      );
+
+      expect(visible).not.toContain("data-obsidian-connect");
+    });
+
+    it("says how to use the brain in Obsidian", () => {
+      const visible = visiblePanel(
+        render(account, { davUrl, initialSection: "drive" }),
+      );
+      const obsidian = withDocument(
+        visible,
+        (document) =>
+          document.querySelector(".drive-obsidian")?.textContent ?? "",
+      );
+
+      expect(obsidian).toContain("Rizom Brain");
+      expect(obsidian).toContain("Connect");
+      expect(obsidian).toContain("becca.rizom.ai");
+    });
+
     it("lists each app password with its username, access and dates, never a password", () => {
       const visible = visiblePanel(
         render(withPassword, { davUrl, initialSection: "drive" }),

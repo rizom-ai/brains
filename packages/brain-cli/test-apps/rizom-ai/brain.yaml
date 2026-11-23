@@ -17,7 +17,6 @@ add:
   - web-chat
   - email
   - notifications
-  - obsidian-vault
   - contact
   # The FAQs behind "Asked before" on the homepage, as production's chat bundle carries them.
   - faq

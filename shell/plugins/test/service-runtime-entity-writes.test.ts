@@ -9,6 +9,7 @@ import type {
 } from "@brains/entity-service";
 
 type DeleteEntityRequest = Parameters<IEntityService["deleteEntity"]>[0];
+type RenameEntityRequest = Parameters<IEntityService["renameEntity"]>[0];
 import { createMockShell } from "../src/test/mock-shell";
 import {
   defineServicePlugin,
@@ -44,6 +45,7 @@ describe("a first-party service writing as its class wrote", () => {
     const updated: UpdateEntityRequest<BaseEntity>[] = [];
     const upserted: UpsertEntityRequest<BaseEntity>[] = [];
     const deleted: DeleteEntityRequest[] = [];
+    const renamed: RenameEntityRequest[] = [];
     const shell = createMockShell({
       entityService: {
         ...createMockEntityService(),
@@ -68,6 +70,12 @@ describe("a first-party service writing as its class wrote", () => {
         ): Promise<boolean> => {
           deleted.push(request);
           return true;
+        },
+        renameEntity: async (
+          request: RenameEntityRequest,
+        ): Promise<{ renamed: boolean }> => {
+          renamed.push(request);
+          return { renamed: true };
         },
         upsertEntity: async <T extends BaseEntity>(
           request: UpsertEntityRequest<T>,
@@ -153,6 +161,17 @@ describe("a first-party service writing as its class wrote", () => {
       }),
     ).toBe(true);
     expect(deleted).toEqual([{ entityType: "post", id: "my-post" }]);
+    // A note a person renames from a mounted drive.
+    expect(
+      await runtime.entityWrites.renameEntity({
+        entityType: "note",
+        id: "draft",
+        newId: "final",
+      }),
+    ).toEqual({ renamed: true });
+    expect(renamed).toEqual([
+      { entityType: "note", id: "draft", newId: "final" },
+    ]);
 
     expect(upserted).toEqual([
       { entity: { ...post, id: "week", entityType: "traffic-snapshot" } },
@@ -161,6 +180,7 @@ describe("a first-party service writing as its class wrote", () => {
       "createEntity",
       "deleteEntity",
       "discardStagedAsset",
+      "renameEntity",
       "stageAsset",
       "updateEntity",
       "upsertEntity",

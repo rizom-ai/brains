@@ -33,6 +33,13 @@ export const SYSTEM_CHANNELS = {
    * not to the raw entity events, which race the cache refresh.
    */
   identityChanged: "system:identity:changed",
+  /**
+   * Emitted first of all when the brain stops, before the HTTP host stops
+   * admitting requests and drains the ones in flight. A plugin that holds a
+   * request open until something happens lets it go here, so the brain does
+   * not wait its drain out. Plugin shutdown comes later, after the host.
+   */
+  shuttingDown: "system:shutting-down",
 } as const;
 
 export type SystemChannelName =
@@ -132,6 +139,13 @@ export const shellReadyChannel: Channel<
   unknown,
   typeof SYSTEM_CHANNELS.shellReady
 > = defineChannel(SYSTEM_CHANNELS.shellReady, systemTimestampSchema);
+
+/** Broadcast by the shell when it starts stopping, before the HTTP host drains. */
+export const shuttingDownChannel: Channel<
+  SystemTimestamp,
+  unknown,
+  typeof SYSTEM_CHANNELS.shuttingDown
+> = defineChannel(SYSTEM_CHANNELS.shuttingDown, systemTimestampSchema);
 
 type IdentityChangedSchema = z.ZodObject<{ entityType: z.ZodString }>;
 

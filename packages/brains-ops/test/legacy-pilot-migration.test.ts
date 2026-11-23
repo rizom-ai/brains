@@ -47,7 +47,6 @@ describe("offline legacy pilot migration", () => {
         "publishing",
         "federation",
       ],
-      add: ["obsidian-vault"],
       remove: [
         "series",
         "portfolio",

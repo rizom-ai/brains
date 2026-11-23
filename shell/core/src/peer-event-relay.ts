@@ -19,6 +19,7 @@ const RELAYED_CHANNELS: readonly string[] = [
   ENTITY_CHANNELS.created,
   ENTITY_CHANNELS.updated,
   ENTITY_CHANNELS.deleted,
+  ENTITY_CHANNELS.renamed,
 ];
 
 /**

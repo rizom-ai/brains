@@ -3,6 +3,7 @@ import {
   recordConflictContract,
 } from "@brains/contracts";
 import { runtimeStateMountBases } from "./dav-mounts";
+import { runtimeStateKeptStore } from "./dav-kept";
 import { WEBDAV_INTERACTION_ID } from "@brains/contracts";
 import {
   defineServicePlugin,
@@ -10,10 +11,16 @@ import {
 } from "@brains/sdk/services";
 import type { WebRouteDefinition } from "@brains/sdk/internal/interface-runtime";
 import {
+  entityCreatedChannel,
+  entityDeletedChannel,
+  entityRenamedChannel,
+  entityUpdatedChannel,
   internalFullScope,
+  SYSTEM_CHANNELS,
   serviceRuntime,
   withWebRoutes,
 } from "@brains/sdk/internal/service-runtime";
+import { ChangeFeed } from "./dav-changes";
 import { IMAGE_ASSET_MAX_BYTES } from "@brains/image";
 import { z } from "@brains/utils/zod";
 import { createDavRoutes } from "./dav-routes";
@@ -61,6 +68,27 @@ const service = defineServicePlugin({
         `webdav needs the "${CONFLICT_ENTITY_TYPE}" entity type to keep saves that lose to a newer version. Add "conflict" to this brain, which the core bundle includes.`,
       );
     });
+    // Sync clients wait to be told what changed. Every change is heard
+    // here, whichever process made it: the event is only a wake-up, and a
+    // client that misses one compares everything at its next full sync.
+    const changes = new ChangeFeed();
+    for (const channel of [
+      entityCreatedChannel,
+      entityUpdatedChannel,
+      entityDeletedChannel,
+      entityRenamedChannel,
+    ]) {
+      runtime.listen(
+        channel,
+        ({ payload }) => changes.record(payload.entityType),
+        { mode: "observe" },
+      );
+    }
+    // Before the host drains: a client held waiting for a change is let go,
+    // and asks again once the brain is back.
+    runtime.listen(SYSTEM_CHANNELS.shuttingDown, () => changes.close(), {
+      mode: "observe",
+    });
     const mounts = runtimeStateMountBases(runtime.classRuntimeState);
     runtime.ready(() => mounts.sweep());
 
@@ -79,6 +107,8 @@ const service = defineServicePlugin({
         basePath: WEBDAV_BASE_PATH,
         realm: runtime.identity.get().name,
         reader: runtime.entityReads,
+        shapes: runtime.entityShapes,
+        changes,
         writes: {
           maxFileBytes: context.config.maxFileBytes,
           maxAssetBytes: IMAGE_ASSET_MAX_BYTES,
@@ -91,6 +121,7 @@ const service = defineServicePlugin({
           createEntity: (request) => runtime.entityWrites.createEntity(request),
           updateEntity: (request) => runtime.entityWrites.updateEntity(request),
           deleteEntity: (request) => runtime.entityWrites.deleteEntity(request),
+          renameEntity: (request) => runtime.entityWrites.renameEntity(request),
           permissions: runtime.permissions,
           // Without auth nobody is admitted, so nothing reaches here.
           recordAudit: async (event) => {
@@ -102,6 +133,7 @@ const service = defineServicePlugin({
         resolveAppPassword: async (request) =>
           runtime.auth()?.resolveAppPassword(request),
         mounts,
+        kept: runtimeStateKeptStore(runtime.classRuntimeState),
         // Unanswered when no conflict service runs here; the save is then
         // refused, which keeps the edit with the client.
         recordConflict: async (request) => {

@@ -1,5 +1,7 @@
 import type { ShellLifecycle } from "./initialization/shell-lifecycle";
 import type { ShellServices } from "./types/shell-types";
+import { broadcastChannel } from "@brains/messaging-service";
+import { shuttingDownChannel } from "@brains/plugins";
 import { HTTP_HOST_DAEMON } from "./http-host";
 
 /**
@@ -12,9 +14,9 @@ export function registerShellRuntimeFinalizers(
   services: ShellServices,
 ): void {
   // Scope finalizers run in reverse registration order. Dependents are added
-  // after their dependencies so shutdown runs recurring checks, agent turns,
-  // job runtime, the HTTP host, then plugins before package/database scopes
-  // close.
+  // after their dependencies so shutdown tells plugins it is stopping, then
+  // runs recurring checks, agent turns, job runtime, the HTTP host, then
+  // plugins before package/database scopes close.
   // Registered first, so it runs last: once nothing writes any more, the
   // entity database lease is deleted, which tells offline maintenance the
   // brain stopped cleanly.
@@ -48,6 +50,24 @@ export function registerShellRuntimeFinalizers(
   lifecycle.addFinalizer(() =>
     services.daemonRegistry.unregister("shell:recurring-checks"),
   );
+
+  // Registered last, so it runs first: plugins hear the brain is stopping
+  // while everything still runs, and let go of requests they hold open
+  // before the host drains. A listener that fails does not stop the stop.
+  lifecycle.addFinalizer(async () => {
+    try {
+      await broadcastChannel(
+        services.messageBus,
+        shuttingDownChannel,
+        { timestamp: new Date().toISOString() },
+        "shell",
+      );
+    } catch (error) {
+      services.logger.warn("Telling plugins the brain is stopping failed", {
+        error,
+      });
+    }
+  });
 }
 
 function hasDatabaseLease(

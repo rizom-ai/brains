@@ -82,24 +82,24 @@ Entity plugins define content types with schemas, adapters, generation handlers,
 
 Plugins that provide MCP tools, orchestration, or infrastructure operations.
 
-| Package                    | Purpose                                                          |
-| -------------------------- | ---------------------------------------------------------------- |
-| `plugins/site-builder`     | SSR static site generation                                       |
-| `plugins/studio`           | Browser authoring routes + Studio config                         |
-| `plugins/content-pipeline` | Publish orchestration, scheduling                                |
-| `plugins/newsletter`       | Compound newsletter entity + Buttondown-backed service           |
-| `plugins/playbooks`        | Compound playbook entity + runtime orchestration service         |
-| `plugins/analytics`        | Cloudflare analytics + query tool                                |
-| `plugins/dashboard`        | Widget system                                                    |
-| `plugins/directory-sync`   | File + git sync                                                  |
-| `plugins/knowledge-map`    | Semantic map of the corpus: site section + Dashboard widget      |
-| `plugins/obsidian-vault`   | Obsidian template generation                                     |
-| `plugins/stock-photo`      | Unsplash stock photo search                                      |
-| `plugins/site-content`     | Site section content generation                                  |
-| `plugins/site-info`        | Compound site-info singleton + site metadata service             |
-| `plugins/atproto`          | AT Protocol identity, publishing, discovery, feeds               |
-| `plugins/atproto-registry` | Canonical Rizom AT Protocol lexicon registry                     |
-| `plugins/notifications`    | Notification routing for transactional + administrative messages |
+| Package                    | Purpose                                                                |
+| -------------------------- | ---------------------------------------------------------------------- |
+| `plugins/site-builder`     | SSR static site generation                                             |
+| `plugins/studio`           | Browser authoring routes + Studio config                               |
+| `plugins/content-pipeline` | Publish orchestration, scheduling                                      |
+| `plugins/newsletter`       | Compound newsletter entity + Buttondown-backed service                 |
+| `plugins/playbooks`        | Compound playbook entity + runtime orchestration service               |
+| `plugins/analytics`        | Cloudflare analytics + query tool                                      |
+| `plugins/dashboard`        | Widget system                                                          |
+| `plugins/directory-sync`   | File + git sync                                                        |
+| `plugins/knowledge-map`    | Semantic map of the corpus: site section + Dashboard widget            |
+| `packages/obsidian-plugin` | Rizom Brain for Obsidian, with template, fileClass and base generation |
+| `plugins/stock-photo`      | Unsplash stock photo search                                            |
+| `plugins/site-content`     | Site section content generation                                        |
+| `plugins/site-info`        | Compound site-info singleton + site metadata service                   |
+| `plugins/atproto`          | AT Protocol identity, publishing, discovery, feeds                     |
+| `plugins/atproto-registry` | Canonical Rizom AT Protocol lexicon registry                           |
+| `plugins/notifications`    | Notification routing for transactional + administrative messages       |
 
 Note: system tools (create/update/delete/search/status) are registered directly on the shell, not a plugin. See `shell/core/src/system/`.
 

@@ -303,6 +303,64 @@ describe("the conflict store", () => {
     );
   });
 
+  it("moves a target's pending conflicts with it when it is renamed", async () => {
+    await seed(brain, "post", "first", doc("First"));
+    const recorded = await record();
+    const other = await seed(brain, "post", "second", doc("Second"));
+    await brain.store.record({
+      entityType: "post",
+      entityId: "second",
+      origin: "drive",
+      current: other.contentHash,
+      text: doc("Second, edited"),
+      targetVisibility: "public",
+    });
+    await brain.service.renameEntity({
+      entityType: "post",
+      id: "first",
+      newId: "renamed",
+    });
+
+    const moved = await brain.store.followRename("post", "first", "renamed");
+
+    expect(moved).toEqual(["post:renamed:20261118T102030Z"]);
+    expect(
+      await brain.service.getEntity({
+        entityType: "conflict",
+        id: recorded.conflictId,
+        visibilityScope: "restricted",
+      }),
+    ).toBeNull();
+    const conflict = await brain.service.getEntity({
+      entityType: "conflict",
+      id: "post:renamed:20261118T102030Z",
+      visibilityScope: "restricted",
+    });
+    expect(conflict?.metadata).toEqual(
+      expect.objectContaining({ targetType: "post", targetId: "renamed" }),
+    );
+    expect(decodeLosingText(conflict?.content ?? "")).toBe(losing);
+    // It is applied over the renamed target.
+    const item = (await brain.store.list()).find(
+      (candidate) => candidate.conflictId === "post:renamed:20261118T102030Z",
+    );
+    if (!item) throw new Error("The moved conflict is not listed");
+    await brain.store.apply(item.itemId, admin);
+    expect(
+      (
+        await brain.service.getEntity({
+          entityType: "post",
+          id: "renamed",
+          visibilityScope: "restricted",
+        })
+      )?.content,
+    ).toContain("First, from the file");
+    // Another target's conflict stays where it is.
+    expect((await brain.store.list()).map((item) => item.conflictId)).toEqual([
+      expect.stringMatching(/^post:second:/),
+    ]);
+  });
+
   it("keeps the current version by removing the conflict, and nothing else", async () => {
     await seed(brain, "post", "first", doc("First"));
     await record();

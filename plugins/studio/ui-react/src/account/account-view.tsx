@@ -26,6 +26,7 @@ import {
 } from "./account-tabs";
 import { AccountAiToolsTab } from "./account-ai-tools";
 import { AccountDriveTab } from "./account-drive";
+import type { ObsidianConnect } from "./obsidian-connect";
 import { useAccountActions } from "./use-account-actions";
 import { useStudioApi } from "../studio-api-context";
 import { StudioPageHead, studioAccessRequirement } from "../studio-page-head";
@@ -41,6 +42,8 @@ export interface AccountBootstrap {
   davUrl?: string | undefined;
   /** Tab to open first, from the `section` query parameter. */
   initialSection?: string | undefined;
+  /** Obsidian asked to connect to this brain: Drive opens with its card. */
+  connect?: ObsidianConnect | undefined;
 }
 
 const ACCOUNT_SECTIONS = [
@@ -53,9 +56,9 @@ const ACCOUNT_SECTIONS = [
 ] as const;
 
 function openingSection(bootstrap: AccountBootstrap): string {
-  const requested = ACCOUNT_SECTIONS.find(
-    (section) => section === bootstrap.initialSection,
-  );
+  const requested = bootstrap.connect
+    ? STUDIO_DRIVE_SECTION
+    : ACCOUNT_SECTIONS.find((section) => section === bootstrap.initialSection);
   if (
     !requested ||
     (requested === STUDIO_AI_TOOLS_SECTION && !bootstrap.mcpUrl) ||
@@ -248,6 +251,7 @@ export function AccountApp({
                   davUrl={bootstrap.davUrl}
                   account={current}
                   actions={actions}
+                  connect={bootstrap.connect}
                 />
               </TabsContent>
             )}

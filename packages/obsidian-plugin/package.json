@@ -1,0 +1,41 @@
+{
+  "name": "@brains/obsidian-plugin",
+  "license": "AGPL-3.0-only",
+  "version": "0.2.0-alpha.768",
+  "dependencies": {
+    "@brains/utils": "workspace:*"
+  },
+  "devDependencies": {
+    "@brains/conflict": "workspace:*",
+    "@brains/contracts": "workspace:*",
+    "@brains/entity-service": "workspace:*",
+    "@brains/image": "workspace:*",
+    "@brains/image-plugin": "workspace:*",
+    "@brains/note": "workspace:*",
+    "@brains/plugins": "workspace:*",
+    "@brains/test-utils": "workspace:*",
+    "@brains/typescript-config": "workspace:*",
+    "@brains/webdav": "workspace:*",
+    "@types/node": "^24.13.3",
+    "bun-types": "^1.4.0",
+    "obsidian": "^1.14.4",
+    "typescript": "^7.0.2"
+  },
+  "exports": {
+    ".": {
+      "types": "./src/engine/index.ts",
+      "default": "./src/engine/index.ts"
+    }
+  },
+  "main": "./src/engine/index.ts",
+  "private": true,
+  "scripts": {
+    "build": "bun scripts/build.ts",
+    "clean": "rm -rf dist",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --max-warnings 0 --fix",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "type": "module"
+}

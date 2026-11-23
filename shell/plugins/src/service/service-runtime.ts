@@ -931,6 +931,7 @@ export type ServiceEntityWrites = Pick<
   | "updateEntity"
   | "upsertEntity"
   | "deleteEntity"
+  | "renameEntity"
   | "stageAsset"
   | "discardStagedAsset"
 >;

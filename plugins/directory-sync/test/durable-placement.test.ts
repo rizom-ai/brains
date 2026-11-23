@@ -52,6 +52,8 @@ async function fixture(): Promise<{
     directorySync: {
       fileOps: files,
       writeEntityFile: (entity): Promise<void> => files.writeEntity(entity),
+      removeEntityFiles: (entityType, id): Promise<void> =>
+        files.deleteEntityFiles(entityType, id),
       suppressWatchPaths: (): void => {},
       isPendingDelete: (): boolean => false,
     },

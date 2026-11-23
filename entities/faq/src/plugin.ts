@@ -8,6 +8,7 @@ import {
   conversationGuestMessageAddedChannel,
   conversationMessageAddedChannel,
   embeddingReadyChannel,
+  entityRenamedChannel,
   serviceRuntime,
   withJobHandlers,
   type ServiceRuntime,
@@ -27,6 +28,7 @@ import { SAME_QUESTION_DISTANCE } from "./lib/faq-store";
 import { answerAskedBefore } from "./lib/asked-before";
 import { capturedReplyStore } from "./lib/captured-replies";
 import { registerFaqEvalHandlers } from "./lib/eval-handlers";
+import { followSourceRename } from "./lib/source-rename";
 import { getTemplates } from "./templates/faq-section";
 
 export const faqConfigSchema: z.ZodObject<{
@@ -167,6 +169,23 @@ export const faqPackage: ServicePackageDefinition<typeof faqConfigSchema> =
           context: runtime,
           sameQuestionDistance: config.sameQuestionDistance,
         });
+        // A FAQ keeps citing an entry that was renamed, captured or not.
+        // Execution listeners run once, in the process that made the change.
+        runtime.listen(
+          entityRenamedChannel,
+          async ({ payload }) => {
+            await followSourceRename(
+              {
+                entityService: {
+                  listEntities: runtime.entityReads.listEntities,
+                  updateEntity: runtime.entityWrites.updateEntity,
+                },
+              },
+              payload,
+            );
+          },
+          { mode: "execution" },
+        );
         if (!config.enabled) return {};
         // A visitor's question a published FAQ already answers is answered
         // from it before the model is asked; the web process answers.

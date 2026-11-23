@@ -183,7 +183,7 @@ Service plugins live in `plugins/` and provide tools, handlers, routes, orchestr
 | `plugins/notifications`    | Notification routing for transactional and administrative messages                                    |
 | `plugins/oauth-broker`     | Managed OAuth broker: one central callback per provider, one-time grants for instance brains          |
 | `plugins/knowledge-map`    | The corpus in semantic space with topic territories: a site section and a Dashboard widget            |
-| `plugins/obsidian-vault`   | Obsidian export/templates                                                                             |
+| `packages/obsidian-plugin` | Rizom Brain: an Obsidian vault in step with a brain, with templates, fileClasses and bases            |
 | `plugins/quiz`             | Quizzes defined in content on the forms engine, each one taken a restricted `quiz-result`             |
 | `plugins/site-builder`     | Static site build orchestration                                                                       |
 | `plugins/site-content`     | Site route/section discovery over the shell's generic content generation                              |

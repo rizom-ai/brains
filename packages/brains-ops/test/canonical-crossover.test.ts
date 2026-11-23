@@ -46,7 +46,6 @@ const canonicalPilot = {
     "publishing",
     "federation",
   ],
-  add: ["obsidian-vault"],
   remove: [
     "series",
     "portfolio",

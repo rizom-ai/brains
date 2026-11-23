@@ -49,6 +49,7 @@ export interface DavWrites {
   createEntity: ServiceEntityWrites["createEntity"];
   updateEntity: ServiceEntityWrites["updateEntity"];
   deleteEntity: ServiceEntityWrites["deleteEntity"];
+  renameEntity: ServiceEntityWrites["renameEntity"];
   permissions: ServicePermissions;
   recordAudit(event: AppendAuthAuditEventInput): Promise<void>;
 }
@@ -91,16 +92,24 @@ export interface SaveRequest {
   ifMatch: string | null;
   /** True for `If-None-Match: *`: save only if no file is there yet. */
   onlyIfAbsent?: boolean;
+  /**
+   * A sync client's save that loses (a newer version, or a name taken) is
+   * kept as a conflict instead of refused. The client has its own copy and
+   * shows the person where the other version went.
+   */
+  keepAsConflict?: boolean;
   grant: AuthAppPasswordGrant;
 }
 
-type Operation = "create" | "update" | "delete";
+type Operation = "create" | "update" | "delete" | "rename";
 interface Located {
   entity: BaseEntity;
   file: DavFile;
 }
 
 const IMAGE_TYPE = "image";
+/** Notes sit at the drive's root, each file named by its id. */
+const NOTE_TYPE = "note";
 const INTERFACE_TYPE = "webdav";
 
 /**
@@ -183,8 +192,13 @@ async function updateEntityFile(
   { entity: existing, file }: Located,
 ): Promise<WriteOutcome> {
   const { writes } = deps;
-  if (request.onlyIfAbsent) return taken();
-  if (!matches(request.ifMatch, file.etag)) return stale();
+  // A create over a taken name, or a save over another version than the
+  // one it names, loses: refused, or kept as a conflict when asked.
+  const loses =
+    request.onlyIfAbsent === true || !matches(request.ifMatch, file.etag);
+  if (loses && !request.keepAsConflict) {
+    return request.onlyIfAbsent ? taken() : stale();
+  }
 
   const document = readDocument(writes, request.bytes, existing.entityType);
   if ("status" in document) return document;
@@ -222,6 +236,19 @@ async function updateEntityFile(
     crossesIntoPublished ? "publish" : "update",
   ]);
   if (refused) return refused;
+
+  if (loses) {
+    return keepAsConflict(deps, request, {
+      existing,
+      // A create over a taken name was based on no version of it.
+      base:
+        request.onlyIfAbsent || request.ifMatch === null
+          ? undefined
+          : { hash: request.ifMatch.replace(/^"|"$/g, "") },
+      text: document.text,
+      declared: document.parsed.visibility,
+    });
+  }
 
   // A save that names no version is based on the one this mount last held.
   // Over a newer one it loses, and is kept instead of dropped: a client
@@ -290,14 +317,15 @@ async function keepAsConflict(
   request: SaveRequest,
   lost: {
     existing: BaseEntity;
-    base: MountBase;
+    /** The version the save was made over; none for a create. */
+    base: MountBase | undefined;
     text: string;
     declared: ContentVisibility | undefined;
   },
 ): Promise<WriteOutcome> {
   const { existing, base, text, declared } = lost;
   const edit = computeContentHash(text);
-  if (base.conflictEdit === edit) {
+  if (base?.conflictEdit === edit) {
     return { status: 204, conflictId: base.conflictId };
   }
   const conflictId = await deps.recordConflict({
@@ -305,7 +333,7 @@ async function keepAsConflict(
     entityId: existing.id,
     origin: "drive",
     actor: request.grant.principal.userId,
-    base: base.hash,
+    ...(base !== undefined && { base: base.hash }),
     current: existing.contentHash,
     text,
     targetVisibility: existing.visibility,
@@ -502,6 +530,54 @@ async function saveImageFile(
   const saved = await tree.entityAt(segments);
   if (saved) await deps.mount.held(saved.entity.contentHash);
   return { status: located ? 204 : 201, etag: saved?.file.etag };
+}
+
+/**
+ * Rename a note by renaming its file: the same note under the id its new
+ * path names. A notes app shows the file's name as the note's, so this is
+ * how a person names one. Only notes: every other type's file name is an id
+ * other things are built on (a post's address, an image's references).
+ */
+export async function renameNoteFile(
+  deps: WriteDeps,
+  request: { from: string[]; to: string[]; grant: AuthAppPasswordGrant },
+): Promise<WriteOutcome> {
+  const { writes, tree } = deps;
+  const located = await tree.entityAt(request.from);
+  if (!located) return { status: 404, message: "Not found" };
+  const { entity } = located;
+  const destination = tree.placementAt(request.to, ".md");
+  if (
+    entity.entityType !== NOTE_TYPE ||
+    destination?.entityType !== NOTE_TYPE
+  ) {
+    return forbidden("The drive renames notes only, to another note's name");
+  }
+  if (await tree.entityAt(request.to)) return taken();
+
+  const refused = await refusal(deps, request.grant, "rename", entity, [
+    "update",
+  ]);
+  if (refused) return refused;
+
+  const result = await attemptAsync(() =>
+    writes.renameEntity({
+      entityType: entity.entityType,
+      id: entity.id,
+      newId: destination.id,
+      options: {
+        // Only the version this request found: a note that changed
+        // meanwhile keeps its name.
+        expectedContentHash: entity.contentHash,
+        eventContext: eventContext(request.grant),
+      },
+    }),
+  );
+  // A name taken by a note this person may not see is taken all the same.
+  if (!result.ok) return createFailure(result.error);
+  if (!result.value.renamed) return stale();
+  await audit(writes, request.grant, "rename", "allowed", entity);
+  return { status: 201 };
 }
 
 /** Delete the entity a file is, only while it is still the version read. */

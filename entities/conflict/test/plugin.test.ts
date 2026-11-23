@@ -160,6 +160,27 @@ describe("the conflict service", () => {
     expect(JSON.stringify(item)).not.toContain("Edited in a file");
   });
 
+  it("moves a pending conflict to its target's new id when the target is renamed", async () => {
+    const harness = await running();
+    await harness.sendMessage(recordConflictContract.name, lost);
+
+    await harness.sendMessage(
+      "entity:renamed",
+      { entityType: "note", entityId: "guide", previousId: "readme" },
+      "test",
+      true,
+    );
+
+    const source = harness
+      .getMockShell()
+      .getInboxRegistry()
+      .getSource("conflicts");
+    const items = (await source?.list()) ?? [];
+    expect(items.map((item) => item.entityRef)).toEqual([
+      { entityType: "note", entityId: "guide" },
+    ]);
+  });
+
   it("removes the conflict when an admin keeps the current version", async () => {
     const harness = await running();
     await harness.sendMessage(recordConflictContract.name, lost);

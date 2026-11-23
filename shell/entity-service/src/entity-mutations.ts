@@ -5,6 +5,7 @@ import { broadcastChannel } from "@brains/messaging-service";
 import {
   entityCreatedChannel,
   entityDeletedChannel,
+  entityRenamedChannel,
   entityUpdatedChannel,
   type EntityChangePayload,
 } from "./entity-event-channels";
@@ -32,6 +33,8 @@ import type {
   StoreEmbeddingData,
   EntityEventBus,
   DeleteEntityRequest,
+  RenameEntityRequest,
+  RenameEntityResult,
   CreateEntityOptions,
   CreateEntityRequest,
   UpdateEntityRequest,
@@ -1597,6 +1600,170 @@ export class EntityMutations {
       operation: "delete",
       markedAt: this.projectionNow(),
     };
+  }
+
+  /**
+   * Give an entity another id. The row, its search index and both journals
+   * move in one transaction; its embedding follows, unchanged. Nothing is
+   * deleted or created, and one event says so.
+   */
+  public async renameEntity(
+    request: RenameEntityRequest,
+  ): Promise<RenameEntityResult> {
+    const { entityType, id, newId, options } = request;
+    if (newId.length === 0) throw new Error("A rename needs a new id");
+    if (newId === id) throw new Error("A rename needs another id");
+    // A container's contents carry its id in theirs; they are not moved yet.
+    if ([...this.entityRegistry.getContainment().values()].includes(entityType))
+      throw new Error(
+        `A ${entityType} holds other entries and cannot be renamed`,
+      );
+
+    const scope = internalFullScope("rename check, internal mutation");
+    const priorData = await this.entityQueries.getEntityData(
+      entityType,
+      id,
+      scope,
+    );
+    if (!priorData) throw new Error(`Entity not found: ${entityType}:${id}`);
+    const expectedContentHash = options?.expectedContentHash;
+    if (
+      expectedContentHash !== undefined &&
+      priorData.contentHash !== expectedContentHash
+    ) {
+      return { renamed: false, skipReason: "content-conflict" };
+    }
+    if (await this.entityQueries.getEntityData(entityType, newId, scope))
+      throw new EntityWriteConflictError(entityType, newId);
+    await this.mutationAdmission?.assertMutationAdmission({
+      operation: "delete",
+      entityType,
+      entityId: id,
+    });
+
+    const revision = entityRevision({
+      contentHash: priorData.contentHash,
+      metadata: priorData.metadata,
+      visibility: priorData.visibility,
+    });
+    try {
+      await this.projectionStore.withDirtyInputs(
+        [
+          this.dirtyDelete({ entityType, entityId: id }, revision),
+          {
+            sourceType: entityType,
+            sourceId: newId,
+            revision,
+            operation: "upsert",
+            markedAt: this.projectionNow(),
+          },
+        ],
+        async (transaction) => {
+          const [row] = await transaction
+            .select()
+            .from(entities)
+            .where(
+              and(eq(entities.entityType, entityType), eq(entities.id, id)),
+            );
+          // Changed or gone between the check and the write.
+          if (row?.contentHash !== priorData.contentHash)
+            throw new StaleEntityUpdateError();
+          const [taken] = await transaction
+            .select({ id: entities.id })
+            .from(entities)
+            .where(
+              and(eq(entities.entityType, entityType), eq(entities.id, newId)),
+            );
+          if (taken) throw new EntityWriteConflictError(entityType, newId);
+          await transaction.insert(entities).values({ ...row, id: newId });
+          await transaction
+            .delete(entities)
+            .where(
+              and(eq(entities.entityType, entityType), eq(entities.id, id)),
+            );
+          await this.recordEntityRemoval(
+            transaction,
+            { entityType, entityId: id },
+            options?.persistenceOrigin,
+          );
+          await this.recordEntityUpsert(
+            transaction,
+            {
+              operation: "create",
+              entityType,
+              entityId: newId,
+              markdown: row.content,
+            },
+            undefined,
+            options?.persistenceOrigin,
+          );
+        },
+      );
+    } catch (error) {
+      if (!(error instanceof StaleEntityUpdateError)) throw error;
+      return { renamed: false, skipReason: "content-conflict" };
+    }
+    await this.embeddingIndex.renameEmbedding(entityType, id, newId);
+    await this.notifyProjectionScheduler();
+
+    const renamed = await this.entityQueries.getEntityData(
+      entityType,
+      newId,
+      scope,
+    );
+    const entity =
+      renamed && this.entityRegistry.hasEntityType(entityType)
+        ? ((await this.entitySerializer.convertToEntity(renamed)) ?? undefined)
+        : undefined;
+    await this.emitEntityRenamed({
+      entityType,
+      entityId: newId,
+      previousId: id,
+      entity,
+      eventContext: options?.eventContext,
+    });
+    return { renamed: true };
+  }
+
+  private async emitEntityRenamed(
+    change: EntityChange & { previousId: string },
+  ): Promise<void> {
+    if (!this.messageBus) return;
+    const { entityType, entityId, previousId, entity, eventContext } = change;
+    try {
+      await broadcastChannel(
+        this.messageBus,
+        entityRenamedChannel,
+        {
+          entityType,
+          entityId,
+          previousId,
+          ...(eventContext?.conversationId
+            ? { conversationId: eventContext.conversationId }
+            : {}),
+          ...(eventContext?.channelId
+            ? { channelId: eventContext.channelId }
+            : {}),
+          ...(eventContext?.runId ? { runId: eventContext.runId } : {}),
+          ...(eventContext?.toolCallId
+            ? { toolCallId: eventContext.toolCallId }
+            : {}),
+          ...(eventContext?.actor ? { actor: eventContext.actor } : {}),
+          ...(eventContext?.interfaceType
+            ? { interfaceType: eventContext.interfaceType }
+            : {}),
+          ...(entity ? { entity: { ...entity } } : {}),
+        },
+        "entity-service",
+      );
+    } catch (error) {
+      // As for every lifecycle event: delivery is a wake-up, and the durable
+      // journals carry the change without it.
+      this.logger.error(
+        `Failed to publish ${entityRenamedChannel.name} for ${entityType}:${entityId}`,
+        error,
+      );
+    }
   }
 
   /**

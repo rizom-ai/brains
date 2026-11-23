@@ -1,3 +1,4 @@
+import { memoryKeptStore } from "../src/dav-kept";
 import type { RecordConflictRequest } from "@brains/contracts";
 import { memoryMountBases } from "../src/dav-mounts";
 import type { AppendAuthAuditEventInput } from "@brains/contracts";
@@ -7,6 +8,7 @@ import {
 } from "@brains/sdk/internal/entity-runtime";
 import type { DavRoutesOptions } from "../src/dav-routes";
 import { fakeReader } from "./fake-reader";
+import { z } from "@brains/utils/zod";
 
 /** Writes for a test that makes none: every one of them fails loudly. */
 export const noWrites: DavRoutesOptions["writes"] = {
@@ -30,6 +32,9 @@ export const noWrites: DavRoutesOptions["writes"] = {
   deleteEntity: async () => {
     throw new Error("No writes expected");
   },
+  renameEntity: async () => {
+    throw new Error("No writes expected");
+  },
   permissions: {
     assertEntityActionAllowed: () => {
       throw new Error("No writes expected");
@@ -51,7 +56,14 @@ export interface RecordedUpdate {
 export interface FakeBrain {
   options: Pick<
     DavRoutesOptions,
-    "reader" | "writes" | "mounts" | "recordConflict" | "conflictPending"
+    | "reader"
+    | "writes"
+    | "mounts"
+    | "kept"
+    | "recordConflict"
+    | "conflictPending"
+    | "shapes"
+    | "changes"
   >;
   /** Losing saves the drive handed over to be kept. */
   conflicts: RecordConflictRequest[];
@@ -63,6 +75,15 @@ export interface FakeBrain {
   updates: RecordedUpdate[];
   creates: RecordedUpdate[];
   deletes: Array<{ entityType: string; id: string }>;
+  /** What a rename handed the entity service. */
+  renames: Array<{
+    entityType: string;
+    id: string;
+    newId: string;
+    expectedContentHash: string | undefined;
+    actorUserId: string | undefined;
+    interfaceType: string | undefined;
+  }>;
   /** Published asset bytes by reference: what the drive can read back. */
   assets: Record<string, Uint8Array>;
   /** References staged and then discarded without being published. */
@@ -108,6 +129,7 @@ export function fakeBrain(
     updates: [],
     creates: [],
     deletes: [],
+    renames: [],
     assets,
     discarded: [],
     audit: [],
@@ -122,6 +144,8 @@ export function fakeBrain(
     options: {
       // Held by the brain, as runtime-state is: a new server finds it again.
       mounts: memoryMountBases(() => 1_800_000_000_000),
+      // Held by the brain, as runtime-state is: a new server finds it again.
+      kept: memoryKeptStore(),
       recordConflict: async (request): Promise<string | undefined> => {
         if (!brain.conflictsAvailable) return undefined;
         brain.conflicts.push(request);
@@ -129,6 +153,15 @@ export function fakeBrain(
       },
       conflictPending: async (conflictId): Promise<boolean> =>
         !resolved.has(conflictId),
+      // Every type the brain registers, each with a title.
+      shapes: {
+        types: (): string[] =>
+          types ?? [...new Set(entities.map((one) => one.entityType))],
+        frontmatterSchema: () => z.object({ title: z.string() }),
+        isSingleton: (): boolean => false,
+        bodyTemplate: (): string => "",
+        fileExtension: (): ".md" => ".md",
+      },
       reader: {
         ...fakeReader({ entities, assets, ...(types ? { types } : {}) }),
         getEntityTypeConfig: (type) =>
@@ -304,6 +337,45 @@ export function fakeBrain(
             id: request.id,
           });
           return true;
+        },
+        renameEntity: async (request) => {
+          brain.beforeNextUpdate?.();
+          brain.beforeNextUpdate = undefined;
+          const index = entities.findIndex(
+            (candidate) =>
+              candidate.entityType === request.entityType &&
+              candidate.id === request.id,
+          );
+          const current = entities[index];
+          if (!current) throw new Error("Entity not found");
+          const expected = request.options?.expectedContentHash;
+          if (expected !== undefined && current.contentHash !== expected) {
+            return { renamed: false, skipReason: "content-conflict" as const };
+          }
+          if (
+            entities.some(
+              (candidate) =>
+                candidate.entityType === request.entityType &&
+                candidate.id === request.newId,
+            )
+          ) {
+            throw Object.assign(new Error("Taken"), {
+              name: "EntityWriteConflictError",
+            });
+          }
+          entities[index] = { ...current, id: request.newId };
+          brain.renames.push({
+            entityType: request.entityType,
+            id: request.id,
+            newId: request.newId,
+            expectedContentHash: expected,
+            interfaceType: request.options?.eventContext?.interfaceType,
+            actorUserId:
+              request.options?.eventContext?.actor?.kind === "user"
+                ? request.options.eventContext.actor.userId
+                : undefined,
+          });
+          return { renamed: true };
         },
         recordAudit: async (event) => {
           brain.audit.push(event);

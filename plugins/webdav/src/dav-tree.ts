@@ -46,7 +46,7 @@ export interface DavFile {
 
 export type DavNode = DavFolder | DavFile;
 
-const NOTE_TYPE = "note";
+export const NOTE_TYPE = "note";
 const HIERARCHY_PAGE = 100;
 const BINARY_TYPES = new Set(["image", "document"]);
 
@@ -77,11 +77,18 @@ export class DavTree {
   private readonly reader: DavReader;
   private readonly scope: ContentVisibility;
   private readonly containment: Containment;
+  /** Every type's folder exists, empty or not: what a sync client sees. */
+  private readonly everyType: boolean;
 
-  constructor(reader: DavReader, scope: ContentVisibility) {
+  constructor(
+    reader: DavReader,
+    scope: ContentVisibility,
+    options: { everyType?: boolean } = {},
+  ) {
     this.reader = reader;
     this.scope = scope;
     this.containment = containmentOf(reader);
+    this.everyType = options.everyType ?? false;
   }
 
   /** The folder or file at a path, if the caller may see one there. */
@@ -91,6 +98,15 @@ export class DavTree {
 
     const located = await this.entityAt(segments);
     if (located) return located.file;
+    const [type] = segments;
+    if (
+      this.everyType &&
+      segments.length === 1 &&
+      type !== undefined &&
+      this.isFolderType(type)
+    ) {
+      return { kind: "folder", segments };
+    }
 
     // A folder exists while something visible is inside it.
     const children = await this.children(segments);
@@ -129,9 +145,10 @@ export class DavTree {
       .filter(
         (type) =>
           this.isFolderType(type) &&
-          [type, this.containedIn(type)].some(
-            (member) => member !== undefined && (counts.get(member) ?? 0) > 0,
-          ),
+          (this.everyType ||
+            [type, this.containedIn(type)].some(
+              (member) => member !== undefined && (counts.get(member) ?? 0) > 0,
+            )),
       );
     const notes = this.reader.getEntityTypes().includes(NOTE_TYPE)
       ? (await this.hierarchy(NOTE_TYPE, [])).entities
@@ -330,6 +347,11 @@ export class DavTree {
       !this.containment.has(type) &&
       this.reader.getEntityTypes().includes(type)
     );
+  }
+
+  /** The type whose folder holds a type's files: its container's, or its own. */
+  folderTypeOf(type: string): string {
+    return this.containment.get(type) ?? type;
   }
 
   private containedIn(container: string): string | undefined {
