@@ -16,6 +16,7 @@ import {
   entityRenamedChannel,
   entityUpdatedChannel,
   internalFullScope,
+  SYSTEM_CHANNELS,
   serviceRuntime,
   withWebRoutes,
 } from "@brains/sdk/internal/service-runtime";
@@ -83,6 +84,11 @@ const service = defineServicePlugin({
         { mode: "observe" },
       );
     }
+    // Before the host drains: a client held waiting for a change is let go,
+    // and asks again once the brain is back.
+    runtime.listen(SYSTEM_CHANNELS.shuttingDown, () => changes.close(), {
+      mode: "observe",
+    });
     const mounts = runtimeStateMountBases(runtime.classRuntimeState);
     runtime.ready(() => mounts.sweep());
 

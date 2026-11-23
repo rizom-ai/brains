@@ -125,6 +125,19 @@ describe("the drive's change feed", () => {
 });
 
 describe("a change feed", () => {
+  it("lets every waiting asker go when the brain is stopping, and holds none after", async () => {
+    const feed = new ChangeFeed();
+    const cursor = feed.cursor();
+    const waiting = feed.wait(cursor, 20_000);
+
+    const started = Date.now();
+    feed.close();
+
+    expect(await waiting).toEqual({ cursor, types: [] });
+    expect(await feed.wait(cursor, 20_000)).toEqual({ cursor, types: [] });
+    expect(Date.now() - started).toBeLessThan(500);
+  });
+
   it("forgets changes older than it keeps, and says so", () => {
     const feed = new ChangeFeed({ keep: 3 });
     const start = feed.cursor();

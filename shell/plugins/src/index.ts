@@ -163,6 +163,7 @@ export {
   initialSyncOutcomeSchema,
   pluginsRegisteredAnswerSchema,
   shellReadyChannel,
+  shuttingDownChannel,
   startupContentSettledChannel,
   type IdentityChanged,
   type InitialSyncOutcome,

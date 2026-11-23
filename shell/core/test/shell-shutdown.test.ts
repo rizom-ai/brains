@@ -6,6 +6,7 @@ import type {
   PluginCapabilities,
   WebRouteDefinition,
 } from "@brains/plugins";
+import { SYSTEM_CHANNELS } from "@brains/plugins";
 import { createSilentLogger } from "@brains/test-utils";
 import { createTestDirectory } from "@brains/test-utils";
 import {
@@ -243,6 +244,68 @@ describe("Shell shutdown", () => {
         String(closedError) +
           (closedError instanceof Error ? String(closedError.cause) : ""),
       ).toContain("CLIENT_CLOSED");
+    },
+    { timeout: 20_000 },
+  );
+
+  it(
+    "tells plugins it is stopping before the host drains, so a held request is let go at once",
+    async () => {
+      await runMigrations(testDir.dir);
+      const port = freePort();
+      const entered = Promise.withResolvers<void>();
+      const order: string[] = [];
+      // Holds a request until something happens, as a change feed does, and
+      // lets it go when the brain says it is stopping.
+      const holder: Plugin = {
+        id: "request-holder",
+        packageName: "@test/request-holder",
+        type: "service",
+        version: "1.0.0",
+        register: async (shell): Promise<PluginCapabilities> => {
+          shell
+            .getMessageBus()
+            .subscribe(SYSTEM_CHANNELS.shuttingDown, async () => {
+              order.push("told");
+              release.resolve();
+              return { success: true };
+            });
+          return { tools: [], resources: [] };
+        },
+        shutdown: async (): Promise<void> => {
+          order.push("shutdown");
+        },
+        getWebRoutes: (): WebRouteDefinition[] => [
+          {
+            path: "/held",
+            public: true,
+            handler: async (): Promise<Response> => {
+              entered.resolve();
+              await release.promise;
+              return new Response("let go");
+            },
+          },
+        ],
+      };
+      const release = Promise.withResolvers<void>();
+      const config = createTestShellConfig(testDir.dir, {
+        http: { enabled: true, hostname: "127.0.0.1", port },
+        plugins: [holder],
+      });
+      const shell = Shell.createFresh(config, deps, { processRole: "web" });
+      await shell.initialize();
+      const held = fetch(`http://127.0.0.1:${port}/held`).then((response) =>
+        response.text(),
+      );
+      await entered.promise;
+
+      const started = performance.now();
+      await shell.shutdown();
+
+      // Well under the host's five-second drain: nothing was left to wait for.
+      expect(performance.now() - started).toBeLessThan(2_500);
+      expect(await held).toBe("let go");
+      expect(order).toEqual(["told", "shutdown"]);
     },
     { timeout: 20_000 },
   );

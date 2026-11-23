@@ -23,6 +23,7 @@ export class ChangeFeed {
   private sequence = 0;
   private recent: { sequence: number; type: string }[] = [];
   private waiting = new Set<() => void>();
+  private closed = false;
 
   constructor(options: { keep?: number } = {}) {
     this.keep = options.keep ?? DEFAULT_KEEP;
@@ -40,6 +41,17 @@ export class ChangeFeed {
       ...this.recent.slice(-(this.keep - 1)),
       { sequence: this.sequence, type },
     ];
+    const waiting = [...this.waiting];
+    this.waiting.clear();
+    for (const wake of waiting) wake();
+  }
+
+  /**
+   * The brain is stopping: every waiting asker is answered now, and none is
+   * held from here on, so no held request keeps the brain from stopping.
+   */
+  close(): void {
+    this.closed = true;
     const waiting = [...this.waiting];
     this.waiting.clear();
     for (const wake of waiting) wake();
@@ -82,7 +94,7 @@ export class ChangeFeed {
   ): Promise<ChangesAnswer> {
     const now = this.since(cursor);
     if ("reset" in now || now.types.length > 0 || cursor === null) return now;
-    if (milliseconds <= 0) return now;
+    if (milliseconds <= 0 || this.closed) return now;
     await new Promise<void>((resolve) => {
       const done = (): void => {
         clearTimeout(timer);

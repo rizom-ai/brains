@@ -404,5 +404,20 @@ describe("the WebDAV plugin and a sync client waiting for changes", () => {
       cursor: expect.any(String),
       types: ["note"],
     });
+
+    // Told the brain is stopping, it lets a waiting client go at once.
+    const now = z
+      .object({ cursor: z.string() })
+      .parse(await ask("?wait=0")).cursor;
+    const waiting = ask(`?since=${now}&wait=30`);
+    const started = Date.now();
+    await shell.getMessageBus().send({
+      type: "system:shutting-down",
+      payload: { timestamp: new Date().toISOString() },
+      sender: "shell",
+      broadcast: true,
+    });
+    expect(await waiting).toEqual({ cursor: now, types: [] });
+    expect(Date.now() - started).toBeLessThan(1_000);
   });
 });
