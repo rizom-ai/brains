@@ -13,6 +13,12 @@ export {
   type HttpRequest,
   type HttpResponse,
 } from "./drive-client";
+export {
+  ChangeFollower,
+  mergePartial,
+  typeOfPath,
+  type Watching,
+} from "./change-follower";
 export { ChangeWatcher, type WatchState } from "./change-watcher";
 export {
   DELETE_LIMIT,

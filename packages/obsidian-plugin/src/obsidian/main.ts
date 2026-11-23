@@ -9,6 +9,8 @@ import {
   type ObsidianProtocolData,
 } from "obsidian";
 import {
+  ChangeFollower,
+  type Watching,
   ChangeWatcher,
   DriveAuthError,
   DriveClient,
@@ -16,6 +18,7 @@ import {
   DriveOfflineError,
   DriveUnavailableError,
   SyncEngine,
+  mergePartial,
   type FileNote,
   type HttpFetch,
   type SyncReport,
@@ -95,12 +98,22 @@ export default class RizomBrainPlugin extends Plugin {
   private saveTimers = new Map<string, number>();
   private interval: number | undefined;
   /** Waits on the brain for changes, so they arrive as they happen. */
-  private watcher: ChangeWatcher | undefined;
-  /** Which brain and app password the watcher asks. */
-  private watchingFor = "";
-  /** Types the brain said changed, until the sync that fetches them. */
-  private changed = new Set<string>();
-  private changedTimer: number | undefined;
+  private readonly follower = new ChangeFollower({
+    watch: (_key, onChange, onReset): Watching => {
+      const watcher = new ChangeWatcher({
+        drive: this.drive(),
+        onChange,
+        onReset,
+      });
+      watcher.start();
+      return watcher;
+    },
+    syncTypes: async (types): Promise<void> => {
+      const engine = this.getEngine();
+      if (engine) await this.run(() => engine.syncTypes(types));
+    },
+    fullSync: (): void => void this.syncNow(),
+  });
   private lastFullSync = 0;
   /** The Connect request this vault opened, until the brain answers it. */
   private pendingConnect: PendingConnect | undefined;
@@ -151,41 +164,16 @@ export default class RizomBrainPlugin extends Plugin {
 
   override onunload(): void {
     for (const timer of this.saveTimers.values()) window.clearTimeout(timer);
-    if (this.changedTimer !== undefined) window.clearTimeout(this.changedTimer);
-    this.watcher?.stop();
+    this.follower.stop();
   }
 
-  /**
-   * Ask the brain this vault syncs with for changes, and keep asking. A
-   * change is fetched a moment later, several at once when they come
-   * together; a gap in asking ends in a full compare.
-   */
-  private watch(): void {
+  /** The brain and app password the settings name; "" when not connected. */
+  private watchKey(): string {
     const { address, username, password } = this.config;
-    const key = this.connected()
-      ? `${addressKey(address)} ${username} ${password}`
+    const brain = addressKey(address);
+    return this.connected() && brain !== ""
+      ? `${brain} ${username} ${password}`
       : "";
-    if (key === this.watchingFor) return;
-    this.watcher?.stop();
-    this.watcher = undefined;
-    this.watchingFor = key;
-    if (key === "") return;
-    this.watcher = new ChangeWatcher({
-      drive: this.drive(),
-      onChange: (types): void => {
-        for (const type of types) this.changed.add(type);
-        if (this.changedTimer !== undefined) return;
-        this.changedTimer = window.setTimeout(() => {
-          this.changedTimer = undefined;
-          const types = [...this.changed];
-          this.changed.clear();
-          const engine = this.getEngine();
-          if (engine) void this.run(() => engine.syncTypes(types), true);
-        }, 1_000);
-      },
-      onReset: (): void => void this.syncNow(),
-    });
-    this.watcher.start();
   }
 
   get config(): RizomBrainSettings {
@@ -199,7 +187,16 @@ export default class RizomBrainPlugin extends Plugin {
   async updateSettings(change: Partial<RizomBrainSettings>): Promise<void> {
     this.data.settings = { ...this.data.settings, ...change };
     await this.saveData(this.data);
-    this.watch();
+    // Nothing is asked while the settings are typed: a watcher on a brain
+    // they no longer name stops, and the next sync starts the right one.
+    this.follower.settingsChanged(this.watchKey());
+  }
+
+  /** The settings were closed: sync with what they now say. */
+  settingsClosed(): void {
+    if (this.connected() && this.follower.state() === "idle") {
+      void this.syncNow();
+    }
   }
 
   /** Run an engine call after the one before, whichever engine made it. */
@@ -304,7 +301,7 @@ export default class RizomBrainPlugin extends Plugin {
           Date.now(),
           this.lastFullSync,
           this.config.intervalMinutes,
-          this.watcher?.state() ?? "idle",
+          this.follower.state(),
         )
       ) {
         void this.syncNow();
@@ -316,27 +313,26 @@ export default class RizomBrainPlugin extends Plugin {
   async syncNow(): Promise<void> {
     const engine = this.getEngine();
     if (!engine) {
+      this.follower.follow("");
       this.status = "not-connected";
       this.renderStatus();
       return;
     }
     this.renderStatus("Brain: syncing…");
     this.lastFullSync = Date.now();
+    // Watching starts before the compare, so a change made while it runs is
+    // told afterwards instead of missed.
+    this.follower.follow(this.watchKey());
     await this.run(() => engine.sync());
-    this.watch();
   }
 
   /**
    * Run a sync step and show what it did. One that fails says so in the
    * status bar and a notice; the next sync tries again.
    */
-  private async run(
-    work: () => Promise<SyncReport>,
-    /** Only some types were compared: what is known of the rest stands. */
-    partial = false,
-  ): Promise<void> {
+  private async run(work: () => Promise<SyncReport>): Promise<void> {
     try {
-      this.show(await this.serially(work), partial);
+      this.show(await this.serially(work));
     } catch (error) {
       this.renderStatus("Brain: sync failed");
       new Notice(
@@ -347,19 +343,17 @@ export default class RizomBrainPlugin extends Plugin {
   }
 
   /** Show what a sync did, and ask what it could not decide alone. */
-  private show(report: SyncReport, partial = false): void {
+  private show(report: SyncReport): void {
     this.status = report.status;
     if (report.status === "synced" || report.localOnly.length > 0) {
-      this.localOnly = report.localOnly;
+      this.localOnly = mergePartial(
+        this.localOnly,
+        report.localOnly,
+        report.scope,
+      );
     }
     if (report.status === "synced") {
-      const reported = new Set(report.issues.map((issue) => issue.path));
-      this.issues = partial
-        ? [
-            ...this.issues.filter((issue) => !reported.has(issue.path)),
-            ...report.issues,
-          ]
-        : report.issues;
+      this.issues = mergePartial(this.issues, report.issues, report.scope);
     }
     this.renderStatus();
 
@@ -498,6 +492,10 @@ class RizomBrainSettingTab extends PluginSettingTab {
   constructor(app: App, plugin: RizomBrainPlugin) {
     super(app, plugin);
     this.plugin = plugin;
+  }
+
+  override hide(): void {
+    this.plugin.settingsClosed();
   }
 
   override display(): void {

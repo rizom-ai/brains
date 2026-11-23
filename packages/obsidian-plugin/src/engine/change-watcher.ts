@@ -30,9 +30,10 @@ const UNHELD_PAUSE_MS = 2_000;
 /**
  * Waits on the brain for changes. Each ask is held by the brain until
  * something changes, so a change reaches the vault within a moment and an
- * idle vault costs one quiet request. A gap in asking (the brain away, the
- * device asleep) or a cursor the brain cannot place ends in a full compare,
- * so nothing that happened meanwhile is missed.
+ * idle vault costs one quiet request. After a gap in asking (the brain away,
+ * the device asleep) it asks again from the cursor it had, so the brain
+ * tells what happened meanwhile, or to compare everything when it cannot
+ * place the cursor.
  */
 export class ChangeWatcher {
   private readonly options: ChangeWatcherOptions;
@@ -97,7 +98,11 @@ export class ChangeWatcher {
         return;
       }
       this.current = "watching";
-      this.retry = this.options.retryMilliseconds ?? 5_000;
+      // Only a held ask that was answered shows the brain can hold one: a
+      // cursor fetched between failures does not shorten the wait.
+      if (cursor !== undefined) {
+        this.retry = this.options.retryMilliseconds ?? 5_000;
+      }
       const quiet = !("reset" in answer) && answer.types.length === 0;
       if ("reset" in answer || afterGap) this.options.onReset();
       else if (!quiet) this.options.onChange(answer.types);
@@ -124,7 +129,11 @@ export class ChangeWatcher {
       this.current = "retrying";
       const wait = this.retry;
       this.retry = Math.min(this.retry * 2, MAX_RETRY_MS);
-      this.later(wait, () => void this.ask(undefined, true));
+      // From the cursor it had: the brain then tells what changed during
+      // the gap, or to compare everything if it cannot place the cursor.
+      // With no cursor yet, changes before the first one are not in any
+      // answer, so the first cursor after a failure compares everything.
+      this.later(wait, () => void this.ask(cursor, cursor === undefined));
     }
   }
 }

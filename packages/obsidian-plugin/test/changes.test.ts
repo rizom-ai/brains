@@ -96,13 +96,33 @@ describe("following a change the brain told of", () => {
     expect(await stored(synced, "coffee")).toBe("# Coffee\n");
   });
 
-  it("does nothing before the first sync is confirmed", async () => {
+  it("does nothing before the first sync is confirmed, and does not call the vault synced", async () => {
     synced = await fresh();
     await synced.brain.write("note", "tea", "# Tea\n");
 
-    await synced.engine.syncTypes(["note"]);
+    const report = await synced.engine.syncTypes(["note"]);
 
     expect(await synced.vault.listFiles()).toEqual([]);
+    expect(report.status).toBe("first-sync");
+    expect((await synced.engine.syncFile("tea.md")).status).toBe("first-sync");
+  });
+
+  it("asks the brain nothing about a type the vault does not hold", async () => {
+    synced = await withTeaAndCup();
+
+    const report = await synced.engine.syncTypes(["conflict", "document"]);
+
+    expect(synced.brain.requests).toEqual([]);
+    expect(report.scope).toEqual([]);
+  });
+
+  it("says which types it compared", async () => {
+    synced = await withTeaAndCup();
+
+    expect((await synced.engine.syncTypes(["note", "conflict"])).scope).toEqual(
+      ["note"],
+    );
+    expect((await synced.engine.sync()).scope).toBeUndefined();
   });
 });
 
@@ -218,6 +238,92 @@ describe("waiting for the brain's changes", () => {
     // Back after a gap: whatever happened meanwhile is found by comparing.
     expect(heard).toEqual(["reset"]);
     expect(watcher.state()).toBe("watching");
+  });
+
+  it("asks again from its cursor after a held ask fails, without comparing everything", async () => {
+    synced = await fresh();
+    const made = synced;
+    const asks: (string | null)[] = [];
+    let heldFailures = 2;
+    made.brain.fetch = async (request): Promise<HttpResponse> => {
+      const since = new URL(request.url).searchParams.get("since");
+      asks.push(since);
+      if (since === null) {
+        return {
+          status: 200,
+          headers: {},
+          body: new TextEncoder().encode('{"cursor":"run:1","types":[]}'),
+        };
+      }
+      // A proxy cuts the held request, twice.
+      if (heldFailures > 0) {
+        heldFailures -= 1;
+        throw new Error("socket hang up");
+      }
+      return {
+        status: 200,
+        headers: {},
+        body: new TextEncoder().encode(
+          since === "run:1"
+            ? '{"cursor":"run:2","types":["note"]}'
+            : '{"cursor":"run:2","types":[]}',
+        ),
+      };
+    };
+    const heard: string[] = [];
+    watcher = new ChangeWatcher({
+      drive: driveOf(made),
+      waitSeconds: 0,
+      retryMilliseconds: 10,
+      onChange: (types): void => {
+        heard.push(types.join(","));
+      },
+      onReset: (): void => {
+        heard.push("reset");
+      },
+    });
+    watcher.start();
+    await Bun.sleep(150);
+    watcher.stop();
+
+    expect(heard).toEqual(["note"]);
+    // The cursor was fetched once; every retry asked from it.
+    expect(asks.filter((since) => since === null)).toHaveLength(1);
+    expect(asks.slice(1, 4)).toEqual(["run:1", "run:1", "run:1"]);
+  });
+
+  it("waits longer each time while held asks keep failing", async () => {
+    synced = await fresh();
+    const made = synced;
+    let held = 0;
+    made.brain.fetch = async (request): Promise<HttpResponse> => {
+      if (new URL(request.url).searchParams.get("since") === null) {
+        return {
+          status: 200,
+          headers: {},
+          body: new TextEncoder().encode('{"cursor":"run:1","types":[]}'),
+        };
+      }
+      held += 1;
+      throw new Error("socket hang up");
+    };
+    const heard: string[] = [];
+    watcher = new ChangeWatcher({
+      drive: driveOf(made),
+      waitSeconds: 0,
+      retryMilliseconds: 20,
+      onChange: (): void => undefined,
+      onReset: (): void => {
+        heard.push("reset");
+      },
+    });
+    watcher.start();
+    await Bun.sleep(330);
+    watcher.stop();
+
+    // 20, 40, 80, 160 ms apart: four or five asks, never dozens.
+    expect(held).toBeLessThanOrEqual(5);
+    expect(heard).toEqual([]);
   });
 
   it("stops when the app password is refused", async () => {

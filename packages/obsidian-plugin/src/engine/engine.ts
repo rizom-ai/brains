@@ -79,6 +79,8 @@ export interface SyncReport {
   issues: FileNote[];
   /** Files the brain has no place for. */
   localOnly: FileNote[];
+  /** The types a partial sync compared; absent when everything was. */
+  scope?: string[];
   decision?: DeleteDecision;
 }
 
@@ -181,8 +183,18 @@ export class SyncEngine {
   syncTypes(types: readonly string[]): Promise<SyncReport> {
     return this.exclusive(() =>
       this.guarded(async (context) => {
-        if (!context.state.initialized) return;
-        const wanted = new Set(types);
+        if (!context.state.initialized) {
+          context.report.status = "first-sync";
+          return;
+        }
+        // Only types the vault holds: the brain's own, like its conflict
+        // records, change without anything here to fetch.
+        const held = new Set([NOTE_TYPE, ...context.state.typeFolders]);
+        const wanted = new Set(
+          types.filter((type) => held.has(type) && isSyncedType(type)),
+        );
+        context.report.scope = [...wanted];
+        if (wanted.size === 0) return;
         const inScope = (path: string): boolean => {
           const slash = path.indexOf("/");
           return wanted.has(slash < 0 ? NOTE_TYPE : path.slice(0, slash));
@@ -240,7 +252,10 @@ export class SyncEngine {
   syncFile(path: string): Promise<SyncReport> {
     return this.exclusive(() =>
       this.guarded(async (context) => {
-        if (!context.state.initialized) return;
+        if (!context.state.initialized) {
+          context.report.status = "first-sync";
+          return;
+        }
         await this.replayRenames(context);
         const placement = placementOf(path, context.types);
         if (placement.kind !== "synced" || this.vault.isBusy(path)) return;
