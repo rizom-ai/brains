@@ -1,5 +1,14 @@
 # @brains/book-import
 
+## 0.2.0-alpha.769
+
+### Patch Changes
+
+- Updated dependencies [[`f388015`](https://github.com/rizom-ai/brains/commit/f3880158840d002dfd99e8f776302f36b63b2a76), [`dbdacf0`](https://github.com/rizom-ai/brains/commit/dbdacf0ad7012517a1b8b767393f43e0d734a399)]:
+  - @brains/plugins@0.2.0-alpha.769
+  - @brains/book@0.2.0-alpha.769
+  - @brains/utils@0.2.0-alpha.769
+
 ## 0.2.0-alpha.768
 
 ### Patch Changes

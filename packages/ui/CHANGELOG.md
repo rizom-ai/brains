@@ -1,5 +1,9 @@
 # @rizom/brain-ui
 
+## 0.2.0-alpha.769
+
+No changes in this release.
+
 ## 0.2.0-alpha.768
 
 No changes in this release.

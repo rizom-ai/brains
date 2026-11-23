@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.769
+
+### Patch Changes
+
+- [#1028](https://github.com/rizom-ai/brains/pull/1028) [`ef6d11f`](https://github.com/rizom-ai/brains/commit/ef6d11f90a9949768cc2409e13460f41844e75fd) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The `obsidian-vault` capability is retired: the Rizom Brain plugin for Obsidian writes the templates, fileClasses and bases into the vault itself, from a description of the brain's types the drive gives sync clients (`.brain/vault-shapes.json`). A brain no longer writes `_obsidian/` into `brain-data/`; files already there are left as they are. A `brain.yaml` that still adds `obsidian-vault` boots with a warning that the name is ignored, and `brain config migrate` no longer adds it.
+
 ## 0.2.0-alpha.768
 
 No changes in this release.

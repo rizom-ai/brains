@@ -1,5 +1,17 @@
 # @brains/faq
 
+## 0.2.0-alpha.769
+
+### Patch Changes
+
+- [#1028](https://github.com/rizom-ai/brains/pull/1028) [`7dd7f0a`](https://github.com/rizom-ai/brains/commit/7dd7f0ac52dee78a8491144f8f32970015fa7d49) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A renamed entry keeps what points at it: its pending conflicts move to its new id, so they are still listed and applied over it, and FAQs that cite it from this brain cite it by its new id.
+- Updated dependencies [[`f388015`](https://github.com/rizom-ai/brains/commit/f3880158840d002dfd99e8f776302f36b63b2a76)]:
+  - @brains/contracts@0.2.0-alpha.769
+  - @brains/sdk@0.2.0-alpha.769
+  - @rizom/brain-ui@0.2.0-alpha.769
+  - @brains/content-formatters@0.2.0-alpha.769
+  - @brains/utils@0.2.0-alpha.769
+
 ## 0.2.0-alpha.768
 
 ### Patch Changes

@@ -1,5 +1,20 @@
 # @brains/studio
 
+## 0.2.0-alpha.769
+
+### Patch Changes
+
+- [#1028](https://github.com/rizom-ai/brains/pull/1028) [`c475d9e`](https://github.com/rizom-ai/brains/commit/c475d9e6506b3634cde295dd421d615cad00cf58) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The Drive section says how to use the brain in Obsidian, and connects the Rizom Brain plugin without a pasted password: when Obsidian opens the page to connect, the section shows a Connect Obsidian card; confirming creates an app password named Obsidian that may save changes and hands it to Obsidian through an `obsidian://` link, without showing it.
+
+- [#1028](https://github.com/rizom-ai/brains/pull/1028) [`1ed8b56`](https://github.com/rizom-ai/brains/commit/1ed8b5685b7e582c85cdc076457238e39ce8a63c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Connect Obsidian hands over only the app password it created: one made by hand and still shown when Connect is chosen stays on the page.
+- Updated dependencies [[`f388015`](https://github.com/rizom-ai/brains/commit/f3880158840d002dfd99e8f776302f36b63b2a76)]:
+  - @brains/contracts@0.2.0-alpha.769
+  - @brains/sdk@0.2.0-alpha.769
+  - @brains/operator-view-react@0.2.0-alpha.769
+  - @brains/app-ui-react@0.2.0-alpha.769
+  - @brains/console-theme@0.2.0-alpha.769
+  - @brains/utils@0.2.0-alpha.769
+
 ## 0.2.0-alpha.768
 
 ### Patch Changes
