@@ -16,6 +16,7 @@ The brain's structure leads. The vault mirrors it:
 Files that stay in the vault only are listed, with the reason, from the status bar.
 
 - A version is told by the brain's ETag and a hash of the vault's file, never by size or time.
+- Changes made in the brain arrive as they happen: the plugin asks the drive what changed (`.brain/changes`), the brain holds the ask until something does, and only the folders of the types that changed are listed again. After a gap in asking, or when the brain cannot place the plugin's cursor, everything is compared. Everything is also compared when the vault opens and every 30 minutes; every five at most while the brain cannot be asked for changes.
 - Renaming a note renames it in the brain. A rename the brain refuses is undone, with a notice.
 - When a note changed in both places, the brain's version goes into the vault; the other is copied to `Conflicts/` and kept in the brain's Inbox.
 - A file deleted in Obsidian is deleted in the brain. Files that went missing without Obsidian seeing it (an emptied folder, a restored backup), and more than five deletions at once, are deleted only after you say so.

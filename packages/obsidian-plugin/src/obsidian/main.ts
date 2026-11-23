@@ -9,6 +9,7 @@ import {
   type ObsidianProtocolData,
 } from "obsidian";
 import {
+  ChangeWatcher,
   DriveAuthError,
   DriveClient,
   DriveMissingError,
@@ -24,6 +25,7 @@ import { acceptConnect, originOf, type PendingConnect } from "./connect";
 import { getErrorMessage } from "@brains/utils/error";
 import { DeletesModal, FilesModal, FirstSyncModal } from "./modals";
 import { BUSY_MS, ObsidianVault } from "./obsidian-vault";
+import { fullSyncDue } from "./schedule";
 import {
   addressKey,
   parsePluginData,
@@ -92,6 +94,14 @@ export default class RizomBrainPlugin extends Plugin {
   private status: SyncReport["status"] | "not-connected" = "not-connected";
   private saveTimers = new Map<string, number>();
   private interval: number | undefined;
+  /** Waits on the brain for changes, so they arrive as they happen. */
+  private watcher: ChangeWatcher | undefined;
+  /** Which brain and app password the watcher asks. */
+  private watchingFor = "";
+  /** Types the brain said changed, until the sync that fetches them. */
+  private changed = new Set<string>();
+  private changedTimer: number | undefined;
+  private lastFullSync = 0;
   /** The Connect request this vault opened, until the brain answers it. */
   private pendingConnect: PendingConnect | undefined;
   /** Every engine call runs after the one before, across engines too. */
@@ -141,6 +151,41 @@ export default class RizomBrainPlugin extends Plugin {
 
   override onunload(): void {
     for (const timer of this.saveTimers.values()) window.clearTimeout(timer);
+    if (this.changedTimer !== undefined) window.clearTimeout(this.changedTimer);
+    this.watcher?.stop();
+  }
+
+  /**
+   * Ask the brain this vault syncs with for changes, and keep asking. A
+   * change is fetched a moment later, several at once when they come
+   * together; a gap in asking ends in a full compare.
+   */
+  private watch(): void {
+    const { address, username, password } = this.config;
+    const key = this.connected()
+      ? `${addressKey(address)} ${username} ${password}`
+      : "";
+    if (key === this.watchingFor) return;
+    this.watcher?.stop();
+    this.watcher = undefined;
+    this.watchingFor = key;
+    if (key === "") return;
+    this.watcher = new ChangeWatcher({
+      drive: this.drive(),
+      onChange: (types): void => {
+        for (const type of types) this.changed.add(type);
+        if (this.changedTimer !== undefined) return;
+        this.changedTimer = window.setTimeout(() => {
+          this.changedTimer = undefined;
+          const types = [...this.changed];
+          this.changed.clear();
+          const engine = this.getEngine();
+          if (engine) void this.run(() => engine.syncTypes(types), true);
+        }, 1_000);
+      },
+      onReset: (): void => void this.syncNow(),
+    });
+    this.watcher.start();
   }
 
   get config(): RizomBrainSettings {
@@ -154,7 +199,7 @@ export default class RizomBrainPlugin extends Plugin {
   async updateSettings(change: Partial<RizomBrainSettings>): Promise<void> {
     this.data.settings = { ...this.data.settings, ...change };
     await this.saveData(this.data);
-    if (change.intervalMinutes !== undefined) this.restartInterval();
+    this.watch();
   }
 
   /** Run an engine call after the one before, whichever engine made it. */
@@ -250,12 +295,21 @@ export default class RizomBrainPlugin extends Plugin {
     );
   }
 
+  /** Every minute: compare everything again when it is due. */
   private restartInterval(): void {
     if (this.interval !== undefined) window.clearInterval(this.interval);
-    this.interval = window.setInterval(
-      () => void this.syncNow(),
-      this.config.intervalMinutes * 60_000,
-    );
+    this.interval = window.setInterval(() => {
+      if (
+        fullSyncDue(
+          Date.now(),
+          this.lastFullSync,
+          this.config.intervalMinutes,
+          this.watcher?.state() ?? "idle",
+        )
+      ) {
+        void this.syncNow();
+      }
+    }, 60_000);
     this.registerInterval(this.interval);
   }
 
@@ -267,16 +321,22 @@ export default class RizomBrainPlugin extends Plugin {
       return;
     }
     this.renderStatus("Brain: syncing…");
+    this.lastFullSync = Date.now();
     await this.run(() => engine.sync());
+    this.watch();
   }
 
   /**
    * Run a sync step and show what it did. One that fails says so in the
    * status bar and a notice; the next sync tries again.
    */
-  private async run(work: () => Promise<SyncReport>): Promise<void> {
+  private async run(
+    work: () => Promise<SyncReport>,
+    /** Only some types were compared: what is known of the rest stands. */
+    partial = false,
+  ): Promise<void> {
     try {
-      this.show(await this.serially(work));
+      this.show(await this.serially(work), partial);
     } catch (error) {
       this.renderStatus("Brain: sync failed");
       new Notice(
@@ -287,12 +347,20 @@ export default class RizomBrainPlugin extends Plugin {
   }
 
   /** Show what a sync did, and ask what it could not decide alone. */
-  private show(report: SyncReport): void {
+  private show(report: SyncReport, partial = false): void {
     this.status = report.status;
     if (report.status === "synced" || report.localOnly.length > 0) {
       this.localOnly = report.localOnly;
     }
-    if (report.status === "synced") this.issues = report.issues;
+    if (report.status === "synced") {
+      const reported = new Set(report.issues.map((issue) => issue.path));
+      this.issues = partial
+        ? [
+            ...this.issues.filter((issue) => !reported.has(issue.path)),
+            ...report.issues,
+          ]
+        : report.issues;
+    }
     this.renderStatus();
 
     if (report.status === "signed-out") {
@@ -502,14 +570,16 @@ class RizomBrainSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName("Sync every")
-      .setDesc("How often everything is compared with your brain.")
+      .setName("Compare everything every")
+      .setDesc(
+        "Changes in your brain arrive as they happen. This full comparison catches anything missed, and runs every five minutes at most while your brain cannot be asked for changes.",
+      )
       .addDropdown((dropdown) =>
         dropdown
           .addOptions({
-            "1": "minute",
             "5": "5 minutes",
             "15": "15 minutes",
+            "30": "30 minutes",
             "60": "hour",
           })
           .setValue(String(plugin.config.intervalMinutes))

@@ -12,6 +12,7 @@ Where the build differs from the plan:
 - The plugin is named Rizom Brain (id `rizom-brain`).
 - The plugin took over the brain-side `obsidian-vault` capability, which is retired. The drive describes the brain's types to sync clients (`.brain/vault-shapes.json`), and the plugin writes `_obsidian/` from that: templates and fileClasses as the brain writes them, bases only where missing.
 - Each brain keeps its own sync state in the plugin, so changing the address loses nothing.
+- Changes in the brain reach the vault as they happen. The plugin asks the drive what changed since its cursor (`.brain/changes`), the brain holds the ask until something does, and the plugin lists only the folders of the types that changed. The timed full sync, now every 30 minutes, is the safety net.
 
 ## Background
 

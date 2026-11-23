@@ -21,6 +21,9 @@ import {
 import type { StateStore, SyncState } from "./state";
 import type { SyncVault } from "./vault";
 
+/** The type of the files at the vault's root. */
+const NOTE_TYPE = "note";
+
 /** How many deletions one sync makes before it asks first. */
 export const DELETE_LIMIT = 5;
 
@@ -166,6 +169,28 @@ export class SyncEngine {
         await this.replayRenames(context);
         const local = await this.scanLocal(context);
         await this.reconcile(context, remote, local);
+      }),
+    );
+  }
+
+  /**
+   * A sync of only the types the brain said changed ("note" is the vault's
+   * root): their folders are listed and compared, and every other file is
+   * left exactly as it is.
+   */
+  syncTypes(types: readonly string[]): Promise<SyncReport> {
+    return this.exclusive(() =>
+      this.guarded(async (context) => {
+        if (!context.state.initialized) return;
+        const wanted = new Set(types);
+        const inScope = (path: string): boolean => {
+          const slash = path.indexOf("/");
+          return wanted.has(slash < 0 ? NOTE_TYPE : path.slice(0, slash));
+        };
+        const remote = await this.listRemote(context, wanted);
+        await this.replayRenames(context);
+        const local = await this.scanLocal(context);
+        await this.reconcile(context, remote, local, inScope);
       }),
     );
   }
@@ -424,7 +449,11 @@ export class SyncEngine {
   }
 
   /** Every synced file the brain lists, folder by folder. */
-  private async listRemote(context: Context): Promise<Remote> {
+  private async listRemote(
+    context: Context,
+    /** Only these types' folders, when given; every folder otherwise. */
+    only?: ReadonlySet<string>,
+  ): Promise<Remote> {
     const root = await this.drive.list("");
     const typeFolders = root
       .filter((entry) => entry.folder && !entry.path.startsWith("."))
@@ -436,9 +465,11 @@ export class SyncEngine {
         files.set(path, etag);
       }
     };
-    root
-      .filter((entry) => !entry.folder)
-      .forEach((entry) => take(entry.path, entry.etag));
+    if (only === undefined || only.has(NOTE_TYPE)) {
+      root
+        .filter((entry) => !entry.folder)
+        .forEach((entry) => take(entry.path, entry.etag));
+    }
     const walk = async (folder: string): Promise<void> => {
       for (const entry of await this.drive.list(folder)) {
         const name = entry.path.slice(entry.path.lastIndexOf("/") + 1);
@@ -447,12 +478,18 @@ export class SyncEngine {
         else take(entry.path, entry.etag);
       }
     };
-    for (const type of typeFolders.filter(isSyncedType)) await walk(type);
+    for (const type of typeFolders.filter(isSyncedType)) {
+      if (only === undefined || only.has(type)) await walk(type);
+    }
 
     context.state.typeFolders = typeFolders;
     context.types = types;
     context.remote = { files, typeFolders };
-    context.imageFiles = imageFilesOf([...files.keys()]);
+    // Images known from before count too: a partial listing has not seen them.
+    context.imageFiles = imageFilesOf([
+      ...Object.keys(context.state.paths),
+      ...files.keys(),
+    ]);
     return context.remote;
   }
 
@@ -550,6 +587,8 @@ export class SyncEngine {
     context: Context,
     remote: Remote,
     local: Map<string, LocalFile>,
+    /** Only these paths, when given: the rest was not listed. */
+    inScope: (path: string) => boolean = (): boolean => true,
   ): Promise<void> {
     const { state } = context;
     const paths = [
@@ -558,13 +597,15 @@ export class SyncEngine {
         ...remote.files.keys(),
         ...local.keys(),
       ]),
-    ].sort(
-      // Images first: a note that embeds a new image needs it in the brain.
-      (left, right) =>
-        Number(!left.startsWith(`${IMAGE_FOLDER}/`)) -
-          Number(!right.startsWith(`${IMAGE_FOLDER}/`)) ||
-        left.localeCompare(right),
-    );
+    ]
+      .filter(inScope)
+      .sort(
+        // Images first: a note that embeds a new image needs it in the brain.
+        (left, right) =>
+          Number(!left.startsWith(`${IMAGE_FOLDER}/`)) -
+            Number(!right.startsWith(`${IMAGE_FOLDER}/`)) ||
+          left.localeCompare(right),
+      );
     const localMissing: string[] = [];
     const seenDeletes: string[] = [];
     const remoteGone: string[] = [];

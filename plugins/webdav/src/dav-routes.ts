@@ -18,6 +18,7 @@ import { CleanupGuard } from "./dav-cleanups";
 import { SaveHolds, type SaveHold } from "./dav-holds";
 import { LockStore, requestedLockSeconds } from "./dav-locks";
 import { computeContentHash } from "@brains/utils/hash";
+import type { ChangeFeed } from "./dav-changes";
 import { vaultShapes, type VaultShapeSource } from "./dav-shapes";
 import {
   DavTree,
@@ -62,7 +63,15 @@ export interface DavRoutesOptions {
   conflictPending?: (conflictId: string) => Promise<boolean>;
   /** The brain's types, as a sync client writes templates, fileClasses and bases from them. */
   shapes?: VaultShapeSource;
+  /** Which types changed, for sync clients that wait to be told. */
+  changes?: ChangeFeed;
 }
+
+/** Where a sync client asks what changed since its cursor. */
+const CHANGES_PATH = [".brain", "changes"];
+/** The longest a sync client is kept waiting for a change, in seconds. */
+const MAX_CHANGES_WAIT = 50;
+const DEFAULT_CHANGES_WAIT = 25;
 
 /** Where a sync client reads the brain's types; nobody else sees it. */
 const VAULT_SHAPES_PATH = [".brain", "vault-shapes.json"];
@@ -321,6 +330,40 @@ async function namedVersion(
   return hold?.etag === ifMatch ? null : ifMatch;
 }
 
+/**
+ * What changed since the asker's cursor, held until there is something to
+ * tell or its wait is over. A type is named as the folder a vault has for
+ * it: a type kept inside another's folder as that folder's type.
+ */
+async function changesAnswer(
+  changes: ChangeFeed,
+  dav: DavRequest,
+): Promise<Response> {
+  const query = new URL(dav.request.url).searchParams;
+  const asked = Number(query.get("wait") ?? DEFAULT_CHANGES_WAIT);
+  const seconds = Number.isFinite(asked)
+    ? Math.min(Math.max(asked, 0), MAX_CHANGES_WAIT)
+    : DEFAULT_CHANGES_WAIT;
+  const answer = await changes.wait(
+    query.get("since"),
+    seconds * 1_000,
+    dav.request.signal,
+  );
+  const body =
+    "reset" in answer
+      ? answer
+      : {
+          cursor: answer.cursor,
+          types: [
+            ...new Set(answer.types.map((type) => dav.tree.folderTypeOf(type))),
+          ],
+        };
+  return new Response(JSON.stringify(body), {
+    status: 200,
+    headers: { "Content-Type": "application/json; charset=utf-8" },
+  });
+}
+
 /** What a listing says of a node, as this request's app password sees it. */
 async function propsFor(
   server: DavServer,
@@ -368,7 +411,14 @@ async function read(
   dav: DavRequest,
   withBody: boolean,
 ): Promise<Response> {
-  const { shapes } = server.options;
+  const { shapes, changes } = server.options;
+  if (
+    dav.sync &&
+    changes !== undefined &&
+    dav.path?.segments.join("/") === CHANGES_PATH.join("/")
+  ) {
+    return changesAnswer(changes, dav);
+  }
   if (
     dav.sync &&
     shapes !== undefined &&

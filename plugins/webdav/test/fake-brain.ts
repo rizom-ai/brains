@@ -63,6 +63,7 @@ export interface FakeBrain {
     | "recordConflict"
     | "conflictPending"
     | "shapes"
+    | "changes"
   >;
   /** Losing saves the drive handed over to be kept. */
   conflicts: RecordConflictRequest[];

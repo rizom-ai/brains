@@ -11,10 +11,15 @@ import {
 } from "@brains/sdk/services";
 import type { WebRouteDefinition } from "@brains/sdk/internal/interface-runtime";
 import {
+  entityCreatedChannel,
+  entityDeletedChannel,
+  entityRenamedChannel,
+  entityUpdatedChannel,
   internalFullScope,
   serviceRuntime,
   withWebRoutes,
 } from "@brains/sdk/internal/service-runtime";
+import { ChangeFeed } from "./dav-changes";
 import { IMAGE_ASSET_MAX_BYTES } from "@brains/image";
 import { z } from "@brains/utils/zod";
 import { createDavRoutes } from "./dav-routes";
@@ -62,6 +67,22 @@ const service = defineServicePlugin({
         `webdav needs the "${CONFLICT_ENTITY_TYPE}" entity type to keep saves that lose to a newer version. Add "conflict" to this brain, which the core bundle includes.`,
       );
     });
+    // Sync clients wait to be told what changed. Every change is heard
+    // here, whichever process made it: the event is only a wake-up, and a
+    // client that misses one compares everything at its next full sync.
+    const changes = new ChangeFeed();
+    for (const channel of [
+      entityCreatedChannel,
+      entityUpdatedChannel,
+      entityDeletedChannel,
+      entityRenamedChannel,
+    ]) {
+      runtime.listen(
+        channel,
+        ({ payload }) => changes.record(payload.entityType),
+        { mode: "observe" },
+      );
+    }
     const mounts = runtimeStateMountBases(runtime.classRuntimeState);
     runtime.ready(() => mounts.sweep());
 
@@ -81,6 +102,7 @@ const service = defineServicePlugin({
         realm: runtime.identity.get().name,
         reader: runtime.entityReads,
         shapes: runtime.entityShapes,
+        changes,
         writes: {
           maxFileBytes: context.config.maxFileBytes,
           maxAssetBytes: IMAGE_ASSET_MAX_BYTES,

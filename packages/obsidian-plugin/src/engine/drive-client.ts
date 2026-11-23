@@ -1,3 +1,4 @@
+import { z } from "@brains/utils/zod";
 import { bytesOf, textOf } from "./hash";
 import { vaultShapesSchema, type VaultShape } from "../vault-files/shapes";
 
@@ -118,6 +119,21 @@ function basicAuth(username: string, password: string): string {
   return `Basic ${btoa(binary)}`;
 }
 
+type DriveChangesSchema = z.ZodUnion<
+  readonly [
+    z.ZodObject<{ cursor: z.ZodString; reset: z.ZodLiteral<true> }>,
+    z.ZodObject<{ cursor: z.ZodString; types: z.ZodArray<z.ZodString> }>,
+  ]
+>;
+
+/** What the drive answers at `.brain/changes`. */
+export const driveChangesSchema: DriveChangesSchema = z.union([
+  z.object({ cursor: z.string().min(1), reset: z.literal(true) }),
+  z.object({ cursor: z.string().min(1), types: z.array(z.string()) }),
+]);
+
+export type DriveChanges = z.output<DriveChangesSchema>;
+
 /** Text read as JSON, or nothing when it is not JSON. */
 export function jsonOf(text: string): unknown {
   try {
@@ -208,8 +224,13 @@ export class DriveClient {
     path: string,
     headers: Record<string, string> = {},
     body?: Uint8Array,
+    query?: Record<string, string>,
   ): Promise<HttpResponse> {
-    const url = new URL(encodePath(path), this.root).toString();
+    const target = new URL(encodePath(path), this.root);
+    for (const [name, value] of Object.entries(query ?? {})) {
+      target.searchParams.set(name, value);
+    }
+    const url = target.toString();
     const response = await this.fetch({
       url,
       method,
@@ -260,6 +281,26 @@ export class DriveClient {
     // Anything but the description (a proxy's page, say) is no description.
     const parsed = vaultShapesSchema.safeParse(jsonOf(textOf(response.body)));
     return parsed.success ? parsed.data.shapes : undefined;
+  }
+
+  /**
+   * What changed in the brain since a cursor. The brain holds the ask until
+   * something changes or the wait is over. Nothing from a brain that has no
+   * change feed.
+   */
+  async changes(
+    since: string | undefined,
+    waitSeconds: number,
+  ): Promise<DriveChanges | undefined> {
+    const response = await this.send("GET", ".brain/changes", {}, undefined, {
+      ...(since !== undefined && { since }),
+      wait: String(waitSeconds),
+    });
+    if (response.status === 404) return undefined;
+    if (response.status !== 200) {
+      throw new Error(`Asking for changes answered ${response.status}`);
+    }
+    return driveChangesSchema.parse(jsonOf(textOf(response.body)));
   }
 
   async get(path: string): Promise<DriveFile | undefined> {

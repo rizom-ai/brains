@@ -348,3 +348,61 @@ describe("the WebDAV plugin and a person's Obsidian folder", () => {
     );
   });
 });
+
+describe("the WebDAV plugin and a sync client waiting for changes", () => {
+  it("tells it which type changed when the brain says an entity did", async () => {
+    const { shell, routes } = await installed();
+    shell.getAuthRegistry().bindBackend(
+      createMockAuthBackend({
+        resolveAppPassword: async () => ({
+          principal: {
+            userId: "usr_1",
+            personId: "prsn_1",
+            displayName: "Mira",
+            role: "trusted",
+            status: "active",
+            permissionLevel: "trusted",
+            isAnchor: false,
+          },
+          access: "read",
+          appPasswordId: "pw_1",
+        }),
+      }),
+    );
+    const route = routes.find((candidate) => candidate.method === "GET");
+    if (!route) throw new Error("No GET route");
+    const ask = async (query: string): Promise<unknown> =>
+      (
+        await route.handler(
+          new Request(`https://brain.example/dav/.brain/changes${query}`, {
+            headers: {
+              authorization: "Basic ZGF2LWlkOnNlY3JldA==",
+              "x-brain-sync": "1",
+            },
+          }),
+        )
+      ).json();
+    const first = z.object({ cursor: z.string() }).parse(await ask("?wait=0"));
+
+    for (const change of [
+      { type: "entity:updated", entityId: "tea" },
+      { type: "entity:renamed", entityId: "green-tea" },
+    ]) {
+      await shell.getMessageBus().send({
+        type: change.type,
+        payload: {
+          entityType: "note",
+          entityId: change.entityId,
+          previousId: "tea",
+        },
+        sender: "test",
+        broadcast: true,
+      });
+    }
+
+    expect(await ask(`?since=${first.cursor}&wait=0`)).toEqual({
+      cursor: expect.any(String),
+      types: ["note"],
+    });
+  });
+});

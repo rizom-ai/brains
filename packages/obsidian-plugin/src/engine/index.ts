@@ -13,6 +13,7 @@ export {
   type HttpRequest,
   type HttpResponse,
 } from "./drive-client";
+export { ChangeWatcher, type WatchState } from "./change-watcher";
 export {
   DELETE_LIMIT,
   SyncEngine,

@@ -349,6 +349,11 @@ export class DavTree {
     );
   }
 
+  /** The type whose folder holds a type's files: its container's, or its own. */
+  folderTypeOf(type: string): string {
+    return this.containment.get(type) ?? type;
+  }
+
   private containedIn(container: string): string | undefined {
     return [...this.containment].find(([, owner]) => owner === container)?.[0];
   }

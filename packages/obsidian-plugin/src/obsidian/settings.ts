@@ -16,8 +16,8 @@ export const settingsSchema: SettingsSchema = z.object({
   password: z.string().default(""),
   /** Upload a note a few seconds after it was saved. */
   syncOnSave: z.boolean().default(true),
-  /** How often a full sync runs. */
-  intervalMinutes: z.number().int().min(1).max(60).default(5),
+  /** How often everything is compared; changes arrive as they happen in between. */
+  intervalMinutes: z.number().int().min(1).max(60).default(30),
 });
 
 export type RizomBrainSettings = z.output<SettingsSchema>;

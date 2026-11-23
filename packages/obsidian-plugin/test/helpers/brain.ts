@@ -19,6 +19,7 @@ import {
 } from "@brains/plugins";
 import {
   createMockAuthBackend,
+  createMockMessageBus,
   createMockShell,
   isDeclaredEntityType,
   registerAll,
@@ -73,16 +74,23 @@ export async function openBrain(): Promise<TestBrain> {
   const dbConfig = { url: `file:${directory}/entities.db` };
   await migrateEntities(dbConfig, logger);
   const registry = EntityRegistry.createFresh(logger);
+  // One bus for the store and the shell, so the drive hears every change.
+  const messageBus = createMockMessageBus();
   const service = EntityService.createFresh({
     dbConfig,
     embeddingDbConfig: { url: `file:${directory}/embeddings.db` },
     entityRegistry: registry,
     logger,
     jobQueueService: createMockShell().getJobQueueService(),
+    messageBus,
     embeddingsEnabled: false,
     embeddingService: createRefusingEmbeddingService(),
   });
-  const shell = createMockShell({ entityService: service, dataDir: directory });
+  const shell = createMockShell({
+    entityService: service,
+    dataDir: directory,
+    messageBus,
+  });
   spyOn(shell, "getEntityRegistry").mockReturnValue(registry);
   shell.getAuthRegistry().bindBackend(
     createMockAuthBackend({

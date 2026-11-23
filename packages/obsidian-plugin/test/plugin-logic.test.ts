@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { emptyState } from "../src/engine";
 import { acceptConnect } from "../src/obsidian/connect";
+import { fullSyncDue } from "../src/obsidian/schedule";
 import {
   addressKey,
   parsePluginData,
@@ -79,5 +80,28 @@ describe("a Connect answer", () => {
 
   it("is ignored when the address changed since Connect opened the brain", () => {
     expect(acceptConnect(pending, answer, "other.example")).toBeUndefined();
+  });
+});
+
+describe("when everything is compared again", () => {
+  const minute = 60_000;
+
+  it("waits the chosen time while the brain tells of changes itself", () => {
+    expect(fullSyncDue(29 * minute, 0, 30, "watching")).toBe(false);
+    expect(fullSyncDue(30 * minute, 0, 30, "watching")).toBe(true);
+  });
+
+  it("compares every five minutes at most while the brain cannot tell", () => {
+    for (const state of [
+      "unsupported",
+      "retrying",
+      "stopped",
+      "idle",
+    ] as const) {
+      expect(fullSyncDue(4 * minute, 0, 30, state)).toBe(false);
+      expect(fullSyncDue(5 * minute, 0, 30, state)).toBe(true);
+    }
+    // A shorter chosen time still holds.
+    expect(fullSyncDue(2 * minute, 0, 2, "unsupported")).toBe(true);
   });
 });
