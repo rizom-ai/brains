@@ -1,5 +1,17 @@
 # @brains/site-engine
 
+## 0.2.0-alpha.768
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/brain-ui@0.2.0-alpha.768
+  - @brains/contracts@0.2.0-alpha.768
+  - @brains/image@0.2.0-alpha.768
+  - @brains/site-composition@0.2.0-alpha.768
+  - @brains/utils@0.2.0-alpha.768
+  - @brains/entity-service@0.2.0-alpha.768
+
 ## 0.2.0-alpha.767
 
 ### Patch Changes

@@ -1,5 +1,14 @@
 # @brains/atproto-contracts
 
+## 0.2.0-alpha.768
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.768
+  - @brains/utils@0.2.0-alpha.768
+  - @brains/entity-service@0.2.0-alpha.768
+
 ## 0.2.0-alpha.767
 
 ### Patch Changes
