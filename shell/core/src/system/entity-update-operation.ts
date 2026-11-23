@@ -230,8 +230,16 @@ function applyContentUpdate(
   registry: SystemServices["entityRegistry"],
 ): BaseEntity {
   const adapter = registry.getAdapter(entity.entityType);
-  const previous = adapter.fromMarkdown(entity.content);
-  const parsed = adapter.fromMarkdown(content);
+  // A declared type is read back as its body alone, which states none of the
+  // metadata its schema may require, such as a refined note's title and
+  // summary: a body is decoded as the file it is stored as, under the stored
+  // metadata, so only what the body changes is refreshed.
+  const asStored = (text: string): string =>
+    adapter.metadataFromFrontmatter === true && !FRONTMATTER_BLOCK.test(text)
+      ? adapter.toMarkdown({ ...entity, content: text })
+      : text;
+  const previous = adapter.fromMarkdown(asStored(entity.content));
+  const parsed = adapter.fromMarkdown(asStored(content));
   const metadata = { ...entity.metadata };
   // Refresh changed source-derived values, but keep curated metadata when its
   // source did not change (for example a custom title during a body-only edit).
