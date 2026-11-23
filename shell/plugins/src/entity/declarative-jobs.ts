@@ -23,7 +23,7 @@ import { isPlainRecord } from "@brains/utils/predicates";
 import type { ProgressReporter } from "@brains/utils/progress";
 import type { RetryScope } from "@brains/utils/retry-backoff";
 import { definedFields } from "@brains/utils/strip-undefined";
-import { slugify } from "@brains/utils/string-utils";
+import { escapeRegExp, slugify } from "@brains/utils/string-utils";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import {
@@ -1095,7 +1095,7 @@ export class DeclarativeGenerationHandler extends BaseGenerationJobHandler<unkno
         this.currentRun().authority,
       );
     }
-    await this.removeUsedUpSources();
+    await this.removeUsedUpSources(entityId);
     await this.runStep({
       written: { entityId, ...definedFields({ title: generated.title }) },
     });
@@ -1238,9 +1238,9 @@ export class DeclarativeGenerationHandler extends BaseGenerationJobHandler<unkno
    * and only those it can see. One it may not or could not delete is kept
    * and recorded on the run with why, so the result names it. One that is
    * already gone is removed: a job killed after removing it runs this
-   * again.
+   * again. Links to a removed source then point at what was written.
    */
-  private async removeUsedUpSources(): Promise<void> {
+  private async removeUsedUpSources(writtenId: string): Promise<void> {
     const { source, authority, kept } = this.currentRun();
     const usedUp =
       this.context.entityService.getEntityTypeConfig(this.entityType)
@@ -1279,6 +1279,44 @@ export class DeclarativeGenerationHandler extends BaseGenerationJobHandler<unkno
       }),
     );
     kept.push(...outcomes.filter((outcome) => outcome !== undefined));
+    const removed = source.ids.filter(
+      (_id, index) => outcomes[index] === undefined,
+    );
+    for (const id of removed) await this.redirectLinks(id, writtenId);
+  }
+
+  /**
+   * Point the links to a removed source at what was written from it, so
+   * none is left pointing nowhere: `[[id]]`, `[[id|label]]` and
+   * `[[id#heading]]`, in every entry its requester may see and update. An
+   * entry they may not update keeps its link, and one changed meanwhile is
+   * left as it is.
+   */
+  private async redirectLinks(fromId: string, toId: string): Promise<void> {
+    if (fromId === toId) return;
+    const { authority } = this.currentRun();
+    const service = this.context.entityService;
+    const link = new RegExp(`\\[\\[${escapeRegExp(fromId)}(?=[\\]|#])`, "g");
+    for (const entityType of service.getEntityTypes()) {
+      if (authority.refusal(entityType, "update")) continue;
+      const linking = await service.listEntities({
+        entityType,
+        options: {
+          filter: {
+            contentContains: `[[${fromId}`,
+            visibilityScope: authority.scope(entityType),
+          },
+        },
+      });
+      for (const entity of linking) {
+        const content = entity.content.replace(link, `[[${toId}`);
+        if (content === entity.content) continue;
+        await service.updateEntity({
+          entity: { ...entity, content },
+          options: { expectedContentHash: entity.contentHash },
+        });
+      }
+    }
   }
 
   /** The generation `process` is running; the base handler calls back inside it. */
