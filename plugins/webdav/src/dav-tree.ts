@@ -46,7 +46,7 @@ export interface DavFile {
 
 export type DavNode = DavFolder | DavFile;
 
-const NOTE_TYPE = "note";
+export const NOTE_TYPE = "note";
 const HIERARCHY_PAGE = 100;
 const BINARY_TYPES = new Set(["image", "document"]);
 

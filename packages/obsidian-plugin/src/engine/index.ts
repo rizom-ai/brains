@@ -5,6 +5,7 @@ export {
   DriveOfflineError,
   DriveUnavailableError,
   driveUrl,
+  jsonOf,
   parseMultistatus,
   type DriveCredentials,
   type DriveEntry,

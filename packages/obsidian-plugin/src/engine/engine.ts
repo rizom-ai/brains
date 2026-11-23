@@ -12,6 +12,7 @@ import { imagesDown, imagesUp } from "./images";
 import { TEMPLATES_FOLDER, vaultFiles } from "../vault-files/vault-files";
 import {
   IMAGE_FOLDER,
+  OBSIDIAN_FILES_FOLDER,
   conflictCopyPath,
   extensionOf,
   isSyncedType,
@@ -161,7 +162,7 @@ export class SyncEngine {
           context.report.firstSync = await this.planFirstSync(context, remote);
           return;
         }
-        await this.writeVaultFiles();
+        await this.writeVaultFiles(context);
         await this.replayRenames(context);
         const local = await this.scanLocal(context);
         await this.reconcile(context, remote, local);
@@ -204,7 +205,7 @@ export class SyncEngine {
           if (file) await this.upload(context, path, file, { ifAbsent: true });
         }
         context.state.initialized = true;
-        await this.writeVaultFiles();
+        await this.writeVaultFiles(context);
         context.report.status = "synced";
       }),
     );
@@ -345,21 +346,80 @@ export class SyncEngine {
    * in is left for the next sync. Obsidian's Templates is pointed at them
    * when the person has not chosen a folder.
    */
-  private async writeVaultFiles(): Promise<void> {
-    const shapes = await this.drive.vaultShapes();
-    if (shapes === undefined) return;
-    const synced = shapes.filter((shape) => isSyncedType(shape.entityType));
-    for (const file of vaultFiles(synced)) {
-      if (this.vault.isBusy(file.path)) continue;
-      const exists = await this.vault.exists(file.path);
-      if (exists && file.owner === "person") continue;
-      if (exists && textOf(await this.vault.read(file.path)) === file.content) {
-        continue;
+  private async writeVaultFiles(context: Context): Promise<void> {
+    const { state } = context;
+    try {
+      const shapes = await this.drive.vaultShapes();
+      if (shapes === undefined) return;
+      const files = vaultFiles(
+        shapes.filter((shape) => isSyncedType(shape.entityType)),
+      );
+      for (const file of files) {
+        if (this.vault.isBusy(file.path)) continue;
+        const bytes = bytesOf(file.content);
+        const hash = await sha256Hex(bytes);
+        if (await this.vault.exists(file.path)) {
+          const current = await sha256Hex(await this.vault.read(file.path));
+          if (current === hash) {
+            state.generated[file.path] = hash;
+            continue;
+          }
+          // A base is the person's once they change it. One still as the
+          // plugin wrote it follows the brain, so it gains new types.
+          if (
+            file.owner === "person" &&
+            state.generated[file.path] !== current
+          ) {
+            continue;
+          }
+        }
+        await this.vault.write(file.path, bytes);
+        state.generated[file.path] = hash;
       }
-      await this.vault.write(file.path, bytesOf(file.content));
+      await this.removeRetiredVaultFiles(
+        state,
+        new Set(files.map((file) => file.path)),
+      );
+      // Once: a person who clears the folder afterwards keeps it cleared.
+      if (!state.templateFolderSet) {
+        if ((await this.vault.getTemplateFolder()) === undefined) {
+          await this.vault.setTemplateFolder(TEMPLATES_FOLDER);
+        }
+        state.templateFolderSet = true;
+      }
+    } catch (error) {
+      if (
+        error instanceof DriveOfflineError ||
+        error instanceof DriveUnavailableError ||
+        error instanceof DriveAuthError
+      ) {
+        throw error;
+      }
+      // Templates and tables are a convenience: notes sync without them.
+      context.report.issues.push({
+        path: OBSIDIAN_FILES_FOLDER,
+        reason: `The brain's templates and tables could not be written: ${getErrorMessage(error)}`,
+      });
     }
-    if ((await this.vault.getTemplateFolder()) === undefined) {
-      await this.vault.setTemplateFolder(TEMPLATES_FOLDER);
+  }
+
+  /**
+   * Files the plugin wrote for a type the brain no longer has: its template
+   * and fileClass go, and its base goes when the person never changed it.
+   */
+  private async removeRetiredVaultFiles(
+    state: SyncState,
+    wanted: ReadonlySet<string>,
+  ): Promise<void> {
+    const bases = `${OBSIDIAN_FILES_FOLDER}/bases/`;
+    for (const [path, written] of Object.entries(state.generated)) {
+      if (wanted.has(path)) continue;
+      if (await this.vault.exists(path)) {
+        const untouched =
+          (await sha256Hex(await this.vault.read(path))) === written;
+        if (!path.startsWith(bases) || untouched) await this.vault.trash(path);
+      }
+      delete state.generated[path];
     }
   }
 

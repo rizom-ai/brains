@@ -21,6 +21,7 @@ import { computeContentHash } from "@brains/utils/hash";
 import { vaultShapes, type VaultShapeSource } from "./dav-shapes";
 import {
   DavTree,
+  NOTE_TYPE,
   type DavFile,
   type DavNode,
   type DavReader,
@@ -373,7 +374,16 @@ async function read(
     shapes !== undefined &&
     dav.path?.segments.join("/") === VAULT_SHAPES_PATH.join("/")
   ) {
-    const body = JSON.stringify({ shapes: vaultShapes(shapes) });
+    // A vault holds notes at its root and a folder per type; a type kept
+    // inside another's folder has no place of its own to make a template or
+    // a table for.
+    const body = JSON.stringify({
+      shapes: vaultShapes(shapes).filter(
+        (shape) =>
+          shape.entityType === NOTE_TYPE ||
+          dav.tree.isFolderType(shape.entityType),
+      ),
+    });
     return new Response(withBody ? body : null, {
       status: 200,
       headers: {

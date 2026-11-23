@@ -16,6 +16,13 @@ export function displayNameFor(entityType: string): string {
 /** Entity types stored at vault root rather than in a subfolder */
 const ROOT_ENTITY_TYPES = new Set(["note"]);
 
+/** The filter that finds a type's files: its folder, or the root for notes. */
+function folderFilter(entityType: string): string {
+  return ROOT_ENTITY_TYPES.has(entityType)
+    ? 'file.folder == "/"'
+    : `file.inFolder("${entityType}")`;
+}
+
 export interface BaseGeneratorResult {
   filename: string;
   content: string;
@@ -66,9 +73,7 @@ export function generateBase(
     });
   }
 
-  const filter = ROOT_ENTITY_TYPES.has(entityType)
-    ? 'file.folder == "/"'
-    : `file.inFolder("${entityType}")`;
+  const filter = folderFilter(entityType);
 
   const data: Record<string, unknown> = {
     filters: { and: [filter] },
@@ -119,7 +124,7 @@ export function generatePipelineBase(
 ): string | null {
   if (entries.length === 0) return null;
 
-  const folderFilters = entries.map((e) => `file.inFolder("${e.entityType}")`);
+  const folderFilters = entries.map((e) => folderFilter(e.entityType));
 
   const data: Record<string, unknown> = {
     filters: {

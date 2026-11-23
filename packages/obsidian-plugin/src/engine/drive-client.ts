@@ -118,6 +118,16 @@ function basicAuth(username: string, password: string): string {
   return `Basic ${btoa(binary)}`;
 }
 
+/** Text read as JSON, or nothing when it is not JSON. */
+export function jsonOf(text: string): unknown {
+  try {
+    return JSON.parse(text);
+  } catch {
+    // Not JSON: the caller's schema refuses undefined.
+    return undefined;
+  }
+}
+
 /** Path segments as they go into a URL; `(` and `)` too, for Markdown. */
 export function encodePath(path: string): string {
   return path
@@ -247,9 +257,8 @@ export class DriveClient {
   async vaultShapes(): Promise<VaultShape[] | undefined> {
     const response = await this.send("GET", ".brain/vault-shapes.json");
     if (response.status !== 200) return undefined;
-    const parsed = vaultShapesSchema.safeParse(
-      JSON.parse(textOf(response.body)),
-    );
+    // Anything but the description (a proxy's page, say) is no description.
+    const parsed = vaultShapesSchema.safeParse(jsonOf(textOf(response.body)));
     return parsed.success ? parsed.data.shapes : undefined;
   }
 

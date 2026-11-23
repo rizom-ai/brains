@@ -1,6 +1,6 @@
 import { TFile, TFolder, normalizePath, type App } from "obsidian";
 import { z } from "@brains/utils/zod";
-import type { SyncVault } from "../engine";
+import { jsonOf, type SyncVault } from "../engine";
 
 /** The settings Obsidian's Templates core plugin keeps; others are left. */
 const templatesConfigSchema = z.looseObject({ folder: z.string().optional() });
@@ -144,7 +144,7 @@ export class ObsidianVault implements SyncVault {
     const path = this.templatesConfig();
     if (!(await adapter.exists(path))) return undefined;
     const parsed = templatesConfigSchema.safeParse(
-      JSON.parse(await adapter.read(path)),
+      jsonOf(await adapter.read(path)),
     );
     const folder = parsed.success ? parsed.data.folder : undefined;
     return folder === undefined || folder.trim() === "" ? undefined : folder;
@@ -154,7 +154,7 @@ export class ObsidianVault implements SyncVault {
     const adapter = this.app.vault.adapter;
     const path = this.templatesConfig();
     const current = (await adapter.exists(path))
-      ? templatesConfigSchema.safeParse(JSON.parse(await adapter.read(path)))
+      ? templatesConfigSchema.safeParse(jsonOf(await adapter.read(path)))
       : undefined;
     await adapter.write(
       path,

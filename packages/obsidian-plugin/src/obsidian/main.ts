@@ -21,6 +21,7 @@ import {
   type SyncState,
 } from "../engine";
 import { acceptConnect, originOf, type PendingConnect } from "./connect";
+import { getErrorMessage } from "@brains/utils/error";
 import { DeletesModal, FilesModal, FirstSyncModal } from "./modals";
 import { BUSY_MS, ObsidianVault } from "./obsidian-vault";
 import {
@@ -243,9 +244,7 @@ export default class RizomBrainPlugin extends Plugin {
         this.saveTimers.delete(path);
         const engine = this.getEngine();
         if (engine) {
-          void this.serially(() => engine.syncFile(path)).then((report) =>
-            this.show(report),
-          );
+          void this.run(() => engine.syncFile(path));
         }
       }, BUSY_MS + 500),
     );
@@ -268,7 +267,23 @@ export default class RizomBrainPlugin extends Plugin {
       return;
     }
     this.renderStatus("Brain: syncing…");
-    this.show(await this.serially(() => engine.sync()));
+    await this.run(() => engine.sync());
+  }
+
+  /**
+   * Run a sync step and show what it did. One that fails says so in the
+   * status bar and a notice; the next sync tries again.
+   */
+  private async run(work: () => Promise<SyncReport>): Promise<void> {
+    try {
+      this.show(await this.serially(work));
+    } catch (error) {
+      this.renderStatus("Brain: sync failed");
+      new Notice(
+        `Rizom Brain could not sync: ${getErrorMessage(error)} It tries again at the next sync.`,
+        10_000,
+      );
+    }
   }
 
   /** Show what a sync did, and ask what it could not decide alone. */
@@ -306,9 +321,7 @@ export default class RizomBrainPlugin extends Plugin {
         this.app,
         report.firstSync,
         () => {
-          void this.serially(() => engine.applyFirstSync()).then((applied) =>
-            this.show(applied),
-          );
+          void this.run(() => engine.applyFirstSync());
         },
         () => {
           this.asking.firstSync = false;
@@ -321,9 +334,7 @@ export default class RizomBrainPlugin extends Plugin {
         this.app,
         report.decision,
         (answer) => {
-          void this.serially(() => engine.resolveDeletes(answer)).then((done) =>
-            this.show(done),
-          );
+          void this.run(() => engine.resolveDeletes(answer));
         },
         () => {
           this.asking.deletes = false;

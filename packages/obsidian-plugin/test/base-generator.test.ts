@@ -164,6 +164,24 @@ describe("generateBase", () => {
   });
 });
 
+describe("generatePipelineBase for notes", () => {
+  it("finds notes at the vault's root, where they are", () => {
+    const content = generatePipelineBase([
+      {
+        entityType: "note",
+        fields: [{ name: "status", type: "enum", required: false }],
+      },
+      {
+        entityType: "post",
+        fields: [{ name: "status", type: "enum", required: true }],
+      },
+    ]);
+    expect(content).toContain('file.folder == "/"');
+    expect(content).not.toContain('file.inFolder("note")');
+    expect(content).toContain('file.inFolder("post")');
+  });
+});
+
 describe("generatePipelineBase", () => {
   it("should combine multiple entity types with or-clause", () => {
     const entries = [

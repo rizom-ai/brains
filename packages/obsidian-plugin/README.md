@@ -21,7 +21,7 @@ Files that stay in the vault only are listed, with the reason, from the status b
 - A file deleted in Obsidian is deleted in the brain. Files that went missing without Obsidian seeing it (an emptied folder, a restored backup), and more than five deletions at once, are deleted only after you say so.
 - The first sync of a vault shows what it will download, upload and replace, and starts only on a yes.
 - An image a note embeds from `image/` becomes the brain's image reference (`entity://image/<id>`), and back.
-- The brain describes its types (`.brain/vault-shapes.json` on the drive), and the plugin writes `_obsidian/` from it: a template and a fileClass per type, kept as the brain writes them, and a base per type plus `Settings.base` and `Pipeline.base`, written only when missing and yours to change. Obsidian's Templates is pointed at `_obsidian/templates` unless you chose a folder. Dropdowns from the fileClasses need the Metadata Menu plugin, with its class files path set to `_obsidian/fileClasses`.
+- The brain describes its types (`.brain/vault-shapes.json` on the drive), and the plugin writes `_obsidian/` from it: a template and a fileClass per type, kept as the brain writes them, and a base per type plus `Settings.base` and `Pipeline.base`, yours once you change them: one you never changed follows the brain, so it gains new types. Files of a type the brain no longer has are removed, except a base you changed. If these files cannot be written, notes still sync and the reason is listed. Obsidian's Templates is pointed at `_obsidian/templates` unless you chose a folder. Dropdowns from the fileClasses need the Metadata Menu plugin, with its class files path set to `_obsidian/fileClasses`.
 
 ## Install
 

@@ -215,6 +215,38 @@ describe("the drive and a sync client", () => {
     );
   });
 
+  it("describes only the types that have a place of their own in a vault", async () => {
+    const brain = fakeBrain(
+      [entity("book", "walden", { content: doc("Walden") })],
+      ["note", "book", "book-section"],
+    );
+    const reader = brain.options.reader;
+    brain.options.reader = {
+      ...reader,
+      // A section is kept inside its book's folder.
+      getEntityTypeConfig: (
+        type,
+      ): ReturnType<typeof reader.getEntityTypeConfig> =>
+        type === "book-section" ? { containedIn: "book" } : {},
+    };
+
+    const response = await drive(brain)(
+      "GET",
+      "/dav/.brain/vault-shapes.json",
+      {
+        headers: SYNC,
+      },
+    );
+    const body: unknown = await response.json();
+
+    expect(body).toEqual({
+      shapes: [
+        expect.objectContaining({ entityType: "note" }),
+        expect.objectContaining({ entityType: "book" }),
+      ],
+    });
+  });
+
   it("leaves a desktop client's mount as it was", async () => {
     const brain = library();
     const dav = drive(brain);

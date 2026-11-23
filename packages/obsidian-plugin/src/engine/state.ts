@@ -28,6 +28,8 @@ type SyncStateSchema = z.ZodObject<{
     z.ZodArray<z.ZodObject<{ from: z.ZodString; to: z.ZodString }>>
   >;
   deletes: z.ZodDefault<z.ZodArray<z.ZodString>>;
+  generated: z.ZodDefault<z.ZodRecord<z.ZodString, z.ZodString>>;
+  templateFolderSet: z.ZodDefault<z.ZodBoolean>;
 }>;
 
 export const syncStateSchema: SyncStateSchema = z.object({
@@ -42,6 +44,10 @@ export const syncStateSchema: SyncStateSchema = z.object({
   renames: z.array(z.object({ from: z.string(), to: z.string() })).default([]),
   /** Files the person deleted in the vault, waiting to be deleted in the brain. */
   deletes: z.array(z.string()).default([]),
+  /** The templates, fileClasses and bases the plugin wrote, by path, each with the hash of what it wrote. */
+  generated: z.record(z.string(), z.string()).default({}),
+  /** Whether Obsidian's Templates was pointed at the brain's templates; done once. */
+  templateFolderSet: z.boolean().default(false),
 });
 
 export type SyncState = z.output<SyncStateSchema>;
@@ -55,6 +61,8 @@ export function emptyState(address = ""): SyncState {
     paths: {},
     renames: [],
     deletes: [],
+    generated: {},
+    templateFolderSet: false,
   };
 }
 
