@@ -1,5 +1,6 @@
 import type { StoredContentRestateAnswer } from "@brains/contracts";
 import type { RouteDefinition } from "@brains/site-composition";
+import type { ServiceRuntime } from "@brains/sdk/internal/service-runtime";
 import { getErrorMessage } from "@brains/utils/error";
 
 type RestatedEntity = StoredContentRestateAnswer["restated"][number];
@@ -58,4 +59,17 @@ export async function restateSectionContent(
     },
     Promise.resolve([]),
   );
+}
+
+/**
+ * A section's saved copy as stored. The resolving lookup inlines every
+ * `entity://image/<id>` as a data URL, and restating that would write the
+ * bytes over the reference the site maps to the image it builds.
+ */
+export function savedSectionBody(
+  reads: Pick<ServiceRuntime["entityReads"], "getEntityRaw">,
+): RestateSectionContentDeps["savedBody"] {
+  return async (id) =>
+    (await reads.getEntityRaw({ entityType: "site-content", id }))?.content ??
+    null;
 }

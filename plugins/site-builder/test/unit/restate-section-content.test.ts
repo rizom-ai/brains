@@ -1,10 +1,13 @@
 import { describe, expect, it } from "bun:test";
+import { createTestEntity } from "@brains/entity-service/test";
+import type { ServiceRuntime } from "@brains/sdk/internal/service-runtime";
 import {
   RouteDefinitionSchema,
   type RouteDefinition,
 } from "@brains/site-composition";
 import {
   restateSectionContent,
+  savedSectionBody,
   type RestateSectionContentDeps,
 } from "../../src/lib/restate-section-content";
 
@@ -83,5 +86,42 @@ describe("restating the sections' saved copy", () => {
     expect(restated).toEqual([{ id: "home:intro", body: "FINE" }]);
     expect(result).toHaveLength(1);
     expect(warnings).toHaveLength(1);
+  });
+
+  // The resolving lookup inlines every entity://image/<id> as a data URL.
+  // Restating what it read wrote the bytes over the stored reference, and a
+  // section's photo no longer pointed at the image the build writes.
+  it("reads the saved copy as stored, so its image references stay references", async () => {
+    const stored = createTestEntity("site-content", {
+      id: "home:hero",
+      content: "## Photo\n![Becca Chen](entity://image/becca-chen)",
+    });
+    const reads: Pick<
+      ServiceRuntime["entityReads"],
+      "getEntity" | "getEntityRaw"
+    > = {
+      getEntity: async ({ id }) =>
+        id === stored.id
+          ? {
+              ...stored,
+              content:
+                "## Photo\n![Becca Chen](data:image/webp;base64,UklGRg==)",
+            }
+          : null,
+      getEntityRaw: async ({ id }) => (id === stored.id ? stored : null),
+    };
+    const { deps: d, restated } = deps({});
+    await restateSectionContent({
+      ...d,
+      savedBody: savedSectionBody(reads),
+      // The template's own layout: a blank line after every heading.
+      layOut: (_template, body) => body.replace(/^(#+ .*)\n(?!\n)/gm, "$1\n\n"),
+    });
+    expect(restated).toEqual([
+      {
+        id: "home:hero",
+        body: "## Photo\n\n![Becca Chen](entity://image/becca-chen)",
+      },
+    ]);
   });
 });
