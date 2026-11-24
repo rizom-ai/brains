@@ -50,12 +50,12 @@ The cost is two more brains to run: servers, certificates, content repos and upg
 8. **Members' writing is curated on `rizom.foundation`.** The Foundation selects; every article stays published on its author's own Brain, and the Foundation stores a pointer, never a copy (see below).
 9. **Public material only** until the open decisions below close. No testimonials, client names or board names without the decision and, for clients, their consent.
 10. **No pledge deadline on the site.** As on the founding-supporters page of 21 November, the public text asks for €50,000 in founding support without a date; the 31 December date stays in material for the board.
+11. **The board is named.** `rizom.foundation` lists the board by name and role, the four independent members marked as such: the independent majority is part of what the site asks readers to check, and an ANBI must publish its board.
 
 ## Open decisions before migration
 
 Content, for Jan Hein and the board:
 
-- whether to list the board on `rizom.foundation`;
 - prices for hub Brains, member Brains, setups and the monthly fee (a B.V. decision);
 - client references, with consent;
 - which team members appear on `rizom.work`, in which roles;
@@ -80,6 +80,7 @@ The founding pledge round closes on 31 December, so the Foundation site goes fir
 3. rover-pilot `users/rizom-foundation.yaml`: `domainOverride: rizom.foundation`, `cloudflareZoneId`, `profileKind: organization`, `contentRepoOverride`, exact `siteOverride` pins, and `addOverride` with at least `site-content` and `contact`. A cohort with the `site` bundle.
 4. `brains-ops cert:bootstrap --handle rizom-foundation`, `secrets:encrypt`, push, then `verify-user`.
 5. Remove the Cloudflare 301 on the `rizom.foundation` zone; redirect `rizom.ai/foundation*` to `rizom.foundation`.
+6. An ANBI page with what the status requires the Foundation to publish: name, RSIN, contact details, objective, policy plan, board composition and names, remuneration policy, a report on activities and the financial statement.
 
 If Phase 1 cannot ship by mid-December, the founding-supporters section goes on `rizom.ai/foundation` as a stopgap and Phase 1 follows in January.
 
