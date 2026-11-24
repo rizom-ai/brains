@@ -148,6 +148,7 @@ Plans:
 - [npm-package-boundaries.md](./plans/npm-package-boundaries.md) — narrow official package dependencies and prove an official package through public-only imports.
 - [atproto-integration.md](./plans/atproto-integration.md) — finish the safe known-peer discovery tail before any Jetstream canary; later ingestion/feed work remains demand-gated.
 - [trustflow-federation-integration.md](./plans/trustflow-federation-integration.md) — proposed asset-catalogue federation, gated on a real external catalogue endpoint.
+- [curated-member-posts.md](./plans/curated-member-posts.md) — a brain features a curated selection of other brains' articles as pointers, never copies: metadata from the author's own feed, a daily recheck that drops withdrawn articles, and a site section; first used by `rizom.foundation`.
 - [cross-brain-entity-sharing.md](./plans/cross-brain-entity-sharing.md) — proposed one-directional entity sharing between brains: visibility picks the transport, A2A carries `shared`, ATProto signals `public`.
 - [bd-priority-engine.md](./plans/bd-priority-engine.md) — in-flight opportunity capture, ranking, focus, and state suggestions.
 - [lead-management.md](./plans/lead-management.md) — inbound qualification over the shared opportunity lifecycle, gated on the opportunity package.
