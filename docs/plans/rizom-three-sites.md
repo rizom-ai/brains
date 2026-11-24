@@ -6,11 +6,11 @@ Last updated: 2026-11-24
 
 **Mockups only. Nothing is migrated.** The static mockups are the visual and content contract for this plan:
 
-- [rizom.ai](../design/rizom-three-sites/rizom-ai.html), its [Brain page](../design/rizom-three-sites/rizom-ai-brain.html) and its [docs page](../design/rizom-three-sites/rizom-ai-docs.html)
+- [rizom.ai](../design/rizom-three-sites/rizom-ai.html), which opens with the network map and tells the Brain story, and its [docs page](../design/rizom-three-sites/rizom-ai-docs.html)
 - [rizom.work](../design/rizom-three-sites/rizom-work.html)
 - [rizom.foundation](../design/rizom-three-sites/rizom-foundation.html), its [Common Sense reading page](../design/rizom-three-sites/rizom-foundation-common-sense.html) and its [founding-supporters page](../design/rizom-three-sites/rizom-foundation-support.html), the text of `~/Documents/fundraising/become-a-founding-supporter.html` of 21 November
 
-They are built from snapshots of today's live rizom.ai pages: the story layout, the organisms, the rail, the room accents, the components and the built `main.css`, `story.css` and `story.js` are the live ones. What changes per site is the bar (a `rizom.<domain>` wordmark, the site's own navigation and button), a three-site strip above it, the footer, the links and doors that pointed at the audit or `docs.rizom.ai`, the chapters of `rizom.work` and `rizom.foundation`, and the labels in the work organism, which told the audit story. `three-sites.css` holds only the strip, the wordmark suffix, the open-decision boxes and the docs layout.
+They are built from snapshots of today's live rizom.ai pages: the story layout, the rail, the room accents, the components and the built `main.css`, `story.css` and `story.js` are the live ones. Each site has a new drawing, written in the live organism format and rendered by the site's own `sites/rizom-ai/src/story/organism.tsx`, so it moves exactly like today's drawings but follows the new chapters: `rizom.ai` opens with today's network map and continues with the Brain stages, `rizom.work` draws heroics, the team's shared memory, a hub, a setup and a public body, and `rizom.foundation` draws members' Brains, the curated selection, no one in the middle, the gatherings, gifts and a sponsor, and the Foundation beside the licensed B.V. Their specs are in [organisms.ts](../design/rizom-three-sites/organisms.ts). The team-memory science from today's homepage moves to `rizom.work`. `three-sites.css` holds only the strip, the wordmark suffix, the open-decision boxes and the reading and docs layouts.
 
 The copy is public material only: the public text of Common Sense, today's rizom.ai copy and the public parts of the Rizom angles. Anything that needs a decision first is shown as a dashed "Open decision" box, never filled in.
 
@@ -100,7 +100,7 @@ Store `at://` URI and CID references to members' `ai.rizom.brain.post` records a
 
 The founding pledge round closes on 31 December, so the Foundation site goes first with only what the round needs:
 
-1. `@rizom/site-rizom-foundation` with Common Sense, founding supporters, members' writing as hand-authored rows (the shipped `foundation:research` row shape), events, and why a foundation. Its six chapters follow the foundation organism in order (the grid, the essays, the pattern, the cities, the funnel into the commons), and the full Common Sense is a reading page of its own, as in the mockup.
+1. `@rizom/site-rizom-foundation` with Common Sense, members' writing as hand-authored rows (the shipped `foundation:research` row shape), events, founding supporters and why a foundation, in six chapters that follow its new organism, plus the Common Sense and founding-supporters reading pages, as in the mockup. The mockup's organism spec becomes `foundation-organism.tsx`.
 2. Content repo `rizom-ai/rizom-foundation-content`.
 3. rover-pilot `users/rizom-foundation.yaml`: `domainOverride: rizom.foundation`, `cloudflareZoneId`, `profileKind: organization`, `contentRepoOverride`, exact `siteOverride` pins, and `addOverride` with at least `site-content` and `contact`. A cohort with the `site` bundle.
 4. `brains-ops cert:bootstrap --handle rizom-foundation`, `secrets:encrypt`, push, then `verify-user`.
@@ -110,11 +110,11 @@ If Phase 1 cannot ship by mid-December, the founding-supporters section goes on 
 
 ### Phase 2 — `rizom.work`
 
-The same steps for `@rizom/site-rizom-work`, `rizom-ai/rizom-work-content` and `users/rizom-work.yaml`, with the hub and team offer replacing the Knowledge Audit, contact topics `hub` and `team`, the zone 301 removed and `rizom.ai/work*` redirected to `rizom.work`. "Book an audit" leaves the `rizom.ai` bar. The work organism's labels move from the audit story to the hub and team story, as in the mockup.
+The same steps for `@rizom/site-rizom-work`, `rizom-ai/rizom-work-content` and `users/rizom-work.yaml`, with the hub and team offer replacing the Knowledge Audit, the team-memory science moved in from today's homepage, contact topics `hub` and `team`, the zone 301 removed and `rizom.ai/work*` redirected to `rizom.work`. "Book an audit" leaves the `rizom.ai` bar. The mockup's organism spec becomes `work-organism.tsx`.
 
 ### Phase 3 — `rizom.ai` becomes platform and docs
 
-1. Home is the Brain story (today's `/brain`); `/ask` stays.
+1. Home opens with today's network map and tells the Brain story, with "Measure. Connect. Coordinate." after the collective, as in the mockup; its organism spec joins the site package. `/brain` redirects to `/`, `/ask` stays, and the team-memory science moves to `rizom.work`.
 2. `@rizom/site-rizom-ai` gains `entityDisplay` entries for `doc` (plural `docs`) and `guide`, and a `/docs` route from the `docs:doc-home-*` and `guides:guide-*` templates; the bar and footer link `/docs`.
 3. rover-pilot `users/rizom-ai.yaml` adds `docs` and `guides` to `addOverride`.
 4. The release workflow's "Sync docs content repo" step writes `doc/` and `guide/` into `rizom-content` instead of `doc-brain-content`.
