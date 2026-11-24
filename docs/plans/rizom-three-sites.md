@@ -113,6 +113,7 @@ When `curated-member-posts.md` ships, its section replaces Phase 1's hand-author
 
 ## References to update
 
+- **A colour error on the live site:** `.chapters` in `sites/rizom-ai/src/story.css` paints solid `--color-bg` over the page's `--bg-noise` texture, and `.bg-nav-fade` hides it in the bar, so beside the 1440px frame the sides look lighter. The mockups fix it in `three-sites.css`: the chapters column paints nothing, the drawing's wash fades out toward the text instead, and the bar carries the texture. The same change belongs in the site package, ahead of the split.
 - `sites/rizom-ai/src/layout.tsx` footer and bar, and `rizom-content` `site-content/brain/quickstart.md` (both link `docs.rizom.ai`)
 - `sites/hub` links to `rizom.ai/work` and `rizom.ai/foundation`
 - `sites/rizom-ai/src/rizom/ui/ecosystem-content.ts`

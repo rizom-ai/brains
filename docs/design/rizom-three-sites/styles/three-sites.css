@@ -136,3 +136,20 @@
 .reading__doors { margin-top: 2rem; }
 .reading .open-decision { font-family: var(--font-body); }
 @media (prefers-reduced-motion: reduce) { .sites-strip a { transition: none; } }
+
+/* The page's background is --color-bg with the --bg-noise texture (on html). Layers that painted plain
+   --color-bg over it showed as flat bands with an edge against the textured sides. The chapters column
+   painted it only to keep the drawing's wash from showing behind the text; the wash now fades out toward
+   the text instead (the profile the chapters gradient gave it), so the column paints nothing. The bar keeps
+   its fade but carries the texture, and the strip shows the page itself. */
+.story .chapters { background: none; }
+.story .figure::before {
+  -webkit-mask-image: linear-gradient(90deg, transparent 0 23%, rgb(0 0 0 / 0.3) 39%, #000 57%);
+  mask-image: linear-gradient(90deg, transparent 0 23%, rgb(0 0 0 / 0.3) 39%, #000 57%);
+}
+.bar.bg-nav-fade {
+  background-image:
+    var(--bg-noise),
+    linear-gradient(180deg, rgb(from var(--color-bg) r g b / 0.95) 0%, rgb(from var(--color-bg) r g b / 0.75) 100%);
+}
+.sites-strip { background: transparent; }
