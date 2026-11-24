@@ -49,12 +49,12 @@ The cost is two more brains to run: servers, certificates, content repos and upg
 7. **Events have one calendar**, on `rizom.foundation`. The other two sites link to it.
 8. **Members' writing is curated on `rizom.foundation`.** The Foundation selects; every article stays published on its author's own Brain, and the Foundation stores a pointer, never a copy (see below).
 9. **Public material only** until the open decisions below close. No testimonials, client names or board names without the decision and, for clients, their consent.
+10. **No pledge deadline on the site.** As on the founding-supporters page of 21 November, the public text asks for €50,000 in founding support without a date; the 31 December date stays in material for the board.
 
 ## Open decisions before migration
 
 Content, for Jan Hein and the board:
 
-- whether the site states the 31 December 2026 pledge deadline (the founding-supporters page of 21 November does not);
 - whether to list the board on `rizom.foundation`;
 - prices for hub Brains, member Brains, setups and the monthly fee (a B.V. decision);
 - client references, with consent;
