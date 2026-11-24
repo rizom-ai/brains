@@ -25,6 +25,14 @@ describe("theme-rizom-ai", () => {
     );
   });
 
+  it("keeps the page's texture in the fade behind the chrome", () => {
+    // html paints --color-bg with the --bg-noise texture; a fade of plain
+    // --color-bg over it showed the bar as a flat band against the page.
+    expect(themeCSSOnly).toMatch(
+      /\.bg-nav-fade \{\s*background:\s*var\(--bg-noise\),\s*linear-gradient\(/,
+    );
+  });
+
   it("defines the rev-5 palette", () => {
     // Deep indigo ground, warm off-white, brass/ruby/moss accents
     expect(themeCSSOnly).toContain("#14132b");
