@@ -65,7 +65,7 @@ Content, for Jan Hein and the board:
 
 ## Members' writing on `rizom.foundation`
 
-How a brain features a curated selection of other brains' articles is its own plan, `curated-member-posts.md` (branch `plan/curated-member-posts`), so it can be built and released independently of this one. Until it ships, `rizom.foundation` features members' articles as hand-authored rows, as in Phase 1 below.
+How a brain features a curated selection of other brains' articles is its own plan, [curated-member-posts.md](./curated-member-posts.md), so it can be built and released independently of this one. Until it ships, `rizom.foundation` features members' articles as hand-authored rows, as in Phase 1 below.
 
 ## Phases
 
