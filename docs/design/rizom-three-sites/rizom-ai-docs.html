@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Getting Started — Rizom Brain docs — mockup</title>
+<link rel="stylesheet" href="mockup.css">
+</head>
+<body data-site="ai">
+
+<div class="sites"><div class="wrap">
+  <a href="rizom-ai.html" aria-current="true">rizom.ai · Platform</a>
+  <a href="rizom-work.html">rizom.work · Work</a>
+  <a href="rizom-foundation.html">rizom.foundation · Foundation</a>
+  <span class="note">Mockup · November 2026</span>
+</div></div>
+
+<header class="bar"><div class="wrap">
+  <a class="wordmark" href="rizom-ai.html">rizom<span class="dot">.</span><span class="suffix">ai</span></a>
+  <nav class="nav">
+    <a href="rizom-ai.html#brain">The Brain</a>
+    <a href="rizom-ai-docs.html" style="color:var(--text)">Docs</a>
+    <a href="rizom-ai.html#network">Network</a>
+    <a href="https://github.com/rizom-ai/brains">GitHub ↗</a>
+  </nav>
+  <span class="spacer"></span>
+  <button class="toggle" type="button" onclick="toggleTheme()">☀ Light</button>
+  <a class="cta" href="rizom-ai.html#quickstart">Get started</a>
+</div></header>
+
+<main class="wrap">
+  <div class="docs">
+    <nav aria-label="Documentation">
+    <h4>Use a brain</h4>
+    <a href="rizom-ai-docs.html">Documentation</a>
+    <a href="rizom-ai-docs.html">Feature Overview</a>
+    <a href="rizom-ai-docs.html">Content Management</a>
+    <a href="rizom-ai-docs.html">Entity Types Reference</a>
+    <h4>Run a brain</h4>
+    <a href="rizom-ai-docs.html" aria-current="page">Getting Started</a>
+    <a href="rizom-ai-docs.html">brain.yaml Reference</a>
+    <a href="rizom-ai-docs.html">CLI Reference</a>
+    <a href="rizom-ai-docs.html">Deployment Guide</a>
+    <a href="rizom-ai-docs.html">Interface Setup</a>
+    <a href="rizom-ai-docs.html">Directory Sync</a>
+    <a href="rizom-ai-docs.html">MCP Inspector Guide</a>
+    <h4>Extend a brain</h4>
+    <a href="rizom-ai-docs.html">Customization Guide</a>
+    <a href="rizom-ai-docs.html">Theming Guide</a>
+    <a href="rizom-ai-docs.html">Plugin System</a>
+    <a href="rizom-ai-docs.html">Package Quickstart</a>
+    <a href="rizom-ai-docs.html">External Plugin Authoring</a>
+    <a href="rizom-ai-docs.html">External Site and Theme Authoring</a>
+    <a href="rizom-ai-docs.html">Architecture Overview</a>
+    <a href="rizom-ai-docs.html">Agent Discovery</a>
+    <a href="rizom-ai-docs.html">ATProto Lexicons</a>
+    <h4>Guides</h4>
+    <a href="rizom-ai-docs.html">Writer</a>
+    <a href="rizom-ai-docs.html">Researcher</a>
+    <a href="rizom-ai-docs.html">Consultant</a>
+    <a href="rizom-ai-docs.html">Team</a>
+    <a href="rizom-ai-docs.html">Self-hosting</a>
+    </nav>
+    <article class="doc">
+      <a class="contents" href="rizom-ai-docs.html">☰ Contents</a>
+      <p class="crumbs">rizom.ai/docs/getting-started · was docs.rizom.ai/docs/getting-started</p>
+      <p class="eyebrow">Run a brain</p>
+      <h1>Getting Started</h1>
+<h2 id="what-is-a-brain">What is a Brain?</h2>
+<p>A brain is a private AI runtime whose durable knowledge is markdown. One canonical definition supplies the capability catalog; each instance selects explicit bundles and keeps identity, content, site, theme, permissions, and integrations visible in <code>brain.yaml</code>.</p>
+<h2 id="prerequisites">Prerequisites</h2>
+<ul>
+<li>Bun 1.4.0 or newer</li>
+<li>an API key supported by the configured AI provider</li>
+</ul>
+<h2 id="quick-start">Quick start</h2>
+<div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">bun</span> add <span class="at">-g</span> @rizom/brain</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="ex">brain</span> init my-brain <span class="at">--recipe</span> personal</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> my-brain</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co"># edit .env: set OPENAI_API_KEY</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="ex">brain</span> start</span></code></pre></div>
+<p><code>OPENAI_API_KEY</code> is the only required variable for the default models. A brain on other models needs the key of each model's provider (<code>ANTHROPIC_API_KEY</code>, <code>GOOGLE_GENERATIVE_AI_API_KEY</code>), and <code>brain start</code> names any that is missing; a brain whose <code>model</code> and <code>embeddingModel</code> are both <code>local:</code> (see the brain.yaml reference) runs without a key. On first start the brain prints a one-time <code>/setup</code> link in the terminal; open it to register your passkey.</p>
+<p>To receive setup links and invitations by email instead, set <code>SETUP_EMAIL_TO</code> (the address to send the first setup link to), <code>SETUP_EMAIL_API_KEY</code> (a Resend API key), and <code>SETUP_EMAIL_FROM</code> (a verified Resend sender). The personal, professional, and team recipes wire these into <code>brain.yaml</code>; with them unset, team members are added through Admin → Add a person with a manual invite link.</p>
+<p><code>brain init</code> writes explicit bundle selection. Recipes are compile-time scaffolding only.</p>
+<h2 id="recipes">Recipes</h2>
+<div class="sourceCode" id="cb2"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">brain</span> init headless-brain <span class="at">--recipe</span> headless</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="ex">brain</span> init personal-brain <span class="at">--recipe</span> personal</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="ex">brain</span> init professional-brain <span class="at">--recipe</span> professional</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="ex">brain</span> init team-brain <span class="at">--recipe</span> team</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Recipe</th>
+<th>Canonical selection</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>headless</code></td>
+<td><code>core</code></td>
+</tr>
+<tr>
+<td><code>personal</code></td>
+<td><code>core</code>, <code>media</code>, <code>web</code>, <code>chat</code></td>
+</tr>
+<tr>
+<td><code>professional</code></td>
+<td><code>core</code>, <code>media</code>, <code>automation</code>, <code>web</code>, <code>chat</code>, <code>site</code>, <code>publishing</code>, <code>federation</code></td>
+</tr>
+<tr>
+<td><code>team</code></td>
+<td><code>core</code>, <code>media</code>, <code>automation</code>, <code>web</code>, <code>chat</code>, <code>site</code>, <code>team</code>, plus <code>docs</code> and <code>action-board</code></td>
+</tr>
+</tbody>
+</table>
+<p>Each recipe also copies instance-owned starter content into <code>seed-content/</code>.</p>
+<h2 id="what-brain-init-creates">What <code>brain init</code> creates</h2>
+<ul>
+<li><code>brain.yaml</code> — explicit bundles and instance overrides</li>
+<li><code>seed-content/</code> — recipe-owned first-boot markdown</li>
+<li><code>package.json</code> — pinned <code>@rizom/brain</code> dependency</li>
+<li><code>.env.example</code> and <code>.env.schema</code> — environment contract</li>
+<li><code>.gitignore</code> and <code>tsconfig.json</code></li>
+<li><code>src/site.tsx</code> and <code>src/theme.css</code> for site-enabled recipes</li>
+<li>optional deployment files with <code>--deploy</code></li>
+</ul>
+<h2 id="init-options">Init options</h2>
+<pre class="text"><code>--recipe &lt;name&gt;        headless | personal | professional | team
+--domain &lt;domain&gt;      defaults to {directory}.rizom.ai
+--content-repo &lt;repo&gt;  owner/name or github:owner/name
+--backend &lt;name&gt;       secret backend; default none
+--openai-api-key &lt;key&gt; writes the initial local .env (also --anthropic-api-key, --google-api-key)
+--deploy               include deployment scaffolding
+--regen                regenerate derived deployment files
+--no-interactive       disable prompts</code></pre>
+
+      <p class="wire">… the rest of the page follows the source in packages/brain-cli/docs/getting-started.md</p>
+    </article>
+  </div>
+</main>
+
+<footer class="foot"><div class="wrap">
+  <div class="cols">
+    <div>
+      <a class="wordmark" href="rizom-ai.html">rizom<span class="dot">.</span><span class="suffix">ai</span></a>
+      <p class="tag">Build the agent that represents you.</p>
+    </div>
+    <div><h5>Platform</h5><a href="rizom-ai.html#quickstart">Get started</a><a href="rizom-ai-docs.html">Documentation</a><a href="rizom-ai.html#network">Ask the network</a><a href="https://github.com/rizom-ai/brains">GitHub ↗</a></div>
+    <div><h5>Work · rizom.work</h5><a href="rizom-work.html#hubs">For hubs</a><a href="rizom-work.html#teams">For teams</a><a href="rizom-work.html#contact">Talk to us</a></div>
+    <div><h5>Foundation · rizom.foundation</h5><a href="rizom-foundation.html">Common Sense</a><a href="rizom-foundation.html#writing">Members' writing</a><a href="rizom-foundation.html#events">Events</a></div>
+  </div>
+  <p class="legal">Brains is open source and held by the Rizom Foundation. The runtime under AGPL-3.0, the SDK and contracts under Apache-2.0.</p>
+</div></footer>
+
+<script>
+function toggleTheme() {
+  var root = document.documentElement;
+  var next = root.getAttribute("data-theme") === "light" ? "dark" : "light";
+  root.setAttribute("data-theme", next);
+  try { localStorage.setItem("rizom-mock-theme", next); } catch (e) {}
+}
+try { var saved = /theme=light/.test(location.search) ? "light" : localStorage.getItem("rizom-mock-theme"); if (saved) document.documentElement.setAttribute("data-theme", saved); } catch (e) {}
+</script>
+</body>
+</html>
