@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="stylesheet" href="styles/main.css">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Rizom Foundation</title>
+    <meta name="description" content="Essays, gatherings, and stewardship of open AI infrastructure">
+    <meta property="og:title" content="Rizom Foundation">
+    <meta property="og:description" content="Essays, gatherings, and stewardship of open AI infrastructure">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Rizom Foundation">
+    <meta name="twitter:description" content="Essays, gatherings, and stewardship of open AI infrastructure">
+    <link rel="canonical" href="/foundation">
+    
+    <script>
+      (function() {
+        // Theme handling
+        const stored = localStorage.getItem('theme');
+        const theme = stored || 'dark';
+        document.documentElement.setAttribute('data-theme', theme);
+
+        window.toggleTheme = function() {
+          const current = document.documentElement.getAttribute('data-theme');
+          const next = current === 'dark' ? 'light' : 'dark';
+          document.documentElement.setAttribute('data-theme', next);
+          localStorage.setItem('theme', next);
+        };
+
+        // Mobile menu handling
+        window.toggleMobileMenu = function() {
+          const menu = document.getElementById('mobile-menu');
+          const button = document.getElementById('mobile-menu-button');
+          if (!menu || !button) return;
+
+          const isOpen = !menu.classList.contains('max-h-0');
+          const willOpen = !isOpen;
+
+          // Toggle height and opacity classes
+          menu.classList.toggle('max-h-0');
+          menu.classList.toggle('max-h-screen');
+          menu.classList.toggle('opacity-0');
+          menu.classList.toggle('opacity-100');
+
+          button.setAttribute('aria-expanded', String(willOpen));
+
+          // Toggle icon visibility
+          const menuIcon = button.querySelector('.menu-icon');
+          const closeIcon = button.querySelector('.close-icon');
+          if (menuIcon && closeIcon) {
+            menuIcon.classList.toggle('hidden');
+            closeIcon.classList.toggle('hidden');
+          }
+
+          if (willOpen) {
+            // Focus first link when menu opens
+            const firstLink = menu.querySelector('a');
+            if (firstLink) {
+              setTimeout(function() { firstLink.focus(); }, 100);
+            }
+            // Add keyboard listeners
+            document.addEventListener('keydown', window.handleMobileMenuKeydown);
+          } else {
+            // Return focus to button when menu closes
+            button.focus();
+            // Remove keyboard listeners
+            document.removeEventListener('keydown', window.handleMobileMenuKeydown);
+          }
+        };
+
+        // Close mobile menu (for link clicks)
+        window.closeMobileMenu = function() {
+          const menu = document.getElementById('mobile-menu');
+          if (menu && !menu.classList.contains('max-h-0')) {
+            window.toggleMobileMenu();
+          }
+        };
+
+        // Handle keyboard events for mobile menu
+        window.handleMobileMenuKeydown = function(e) {
+          const menu = document.getElementById('mobile-menu');
+          const button = document.getElementById('mobile-menu-button');
+          if (!menu || !button) return;
+
+          // Close on Escape
+          if (e.key === 'Escape') {
+            window.closeMobileMenu();
+            return;
+          }
+
+          // Focus trap on Tab
+          if (e.key === 'Tab') {
+            const focusableElements = menu.querySelectorAll('a, button');
+            if (focusableElements.length === 0) return;
+
+            const firstElement = focusableElements[0];
+            const lastElement = focusableElements[focusableElements.length - 1];
+
+            if (e.shiftKey) {
+              // Shift+Tab: wrap from first to last (or button)
+              if (document.activeElement === firstElement || document.activeElement === button) {
+                e.preventDefault();
+                lastElement.focus();
+              }
+            } else {
+              // Tab: wrap from last to button
+              if (document.activeElement === lastElement) {
+                e.preventDefault();
+                button.focus();
+              }
+            }
+          }
+        };
+
+        // React static markup intentionally omits string event-handler props.
+        // Bind the server-rendered controls once at the document boundary.
+        document.addEventListener('click', function(e) {
+          const target = e.target;
+          if (!(target instanceof Element)) return;
+
+          if (target.closest('[data-theme-toggle]')) {
+            window.toggleTheme();
+          }
+          if (target.closest('#mobile-menu-button')) {
+            window.toggleMobileMenu();
+          }
+          if (target.closest('#mobile-menu a')) {
+            window.closeMobileMenu();
+          }
+        });
+      })();
+    </script>
+    <script src="boot.js" defer></script>
+<link rel="stylesheet" href="styles/three-sites.css"/><script>if(/theme=light/.test(location.search))document.documentElement.setAttribute("data-theme","light");</script></head>
+<body class="h-full font-sans">
+  <div id="root" class="min-h-screen">
+    <link rel="stylesheet" href="styles/story.css" data-precedence="page"/><div class="max-w-[1440px] mx-auto relative overflow-x-clip"><div data-room="foundation" class="relative"><div class="sites-strip"><div class="sites-strip__inner"><a href="rizom-ai.html" data-room="brain">rizom<span class="sites-strip__dot">.</span>ai</a><a href="rizom-work.html" data-room="work">rizom<span class="sites-strip__dot">.</span>work</a><a href="rizom-foundation.html" data-room="foundation" aria-current="true">rizom<span class="sites-strip__dot">.</span>foundation</a><span class="sites-strip__note">mockup</span></div></div><header class="bar sticky top-0 z-[100] border-b border-theme-light bg-nav-fade backdrop-blur-[12px]"><div class="bar__inner shell mx-auto flex h-[4.6rem] max-w-[80rem] items-center gap-4 px-4 sm:gap-8 sm:px-6 md:px-10 xl:px-20"><a href="rizom-foundation.html" class="wordmark font-display font-semibold tracking-[-0.01em] [font-variation-settings:&#x27;SOFT&#x27;_100] text-[clamp(22px,5.5vw,26px)]" aria-label="rizom.foundation"><span class="text-theme">rizom</span><span class="text-accent">.</span><span class="wordmark__suffix">foundation</span></a><nav class="bar__nav hidden items-center gap-6 sm:flex" aria-label="Site"><a href="rizom-foundation-common-sense.html" class="bar__link font-body text-[16px] transition-colors hover:text-theme text-theme-light">Common Sense</a><a href="rizom-foundation.html#writing" class="bar__link font-body text-[16px] transition-colors hover:text-theme text-theme-light">Writing</a><a href="rizom-foundation.html#events" class="bar__link font-body text-[16px] transition-colors hover:text-theme text-theme-light">Events</a><a href="rizom-foundation.html#support" class="bar__link font-body text-[16px] transition-colors hover:text-theme text-theme-light">Support</a></nav><div class="flex-1"></div><button id="themeToggle" type="button" aria-label="Toggle color theme" class="cursor-pointer font-label text-label-xs uppercase tracking-[0.12em] text-theme-light transition-colors hover:text-theme">☀ Light</button><a href="mailto:yeehaa@rizom.ai?subject=Founding%20pledge" class="button self-center whitespace-nowrap rounded-[3px] bg-accent px-3.5 py-2 font-body text-[15px] font-medium text-theme-inverse transition-[filter,transform] hover:brightness-110 hover:-translate-y-px sm:px-[18px] sm:py-[9px] sm:text-[16px]">Pledge</a></div></header><main class="reading-page"><article class="reading">
+<header class="reading__head"><h1>Become a founding supporter</h1><p class="reading__sub">Rizom Foundation</p></header>
+<p>Most organizations keep what they know in the heads of a few people, and more and more in AI tools owned by one company. When those people leave, or that company changes its terms, the knowledge goes with them, and everyone else is left patching the gaps by hand. The Rizom Foundation works on the alternative: organizations that hold their own memory (who knows what, why decisions were made, whose judgment counts), so that it no longer depends on who is still in the room. It researches how that works, tests it in public with hubs and partners, and builds the open tools that make it last.</p>
+<h2>Why founding supporters, and why now</h2><p>The Foundation takes no investors, so that its work stays open for good and belongs to no one. Its first year is started instead by people and organizations who care how institutions remember and decide: its founding supporters. They make it possible to do this work in public from the first day, and because every result is published, they can see what their support made possible.</p><p>The timing is good. As organizations start working with AI, they are rethinking how they share knowledge and make decisions, and the habits formed in this period will last for years. Founding support lets the Foundation help shape those habits while they are still being formed.</p>
+<h2>What your support makes happen</h2><p>By the end of 2027, in public.</p><dl class="reading__goals"><dt>Organizations that hold their own memory</dt><dd>At least three organizations keeping who knows what and why for six months or more without the founder&#x27;s help, with the effect measured before and after.</dd><dt>A method that no longer depends on its author</dt><dd>At least two practitioners certified by the Foundation, one of whom has done the work for an organization on their own, as well as the founder does.</dd><dt>An ecosystem that remembers</dt><dd>A first public program at a hub, whose memory its participants still use six months later.</dd><dt>Research anyone can check</dt><dd>Every assumption behind the work published with its test before the test runs, and with its results afterwards, including what fails.</dd></dl><p>Founding pledges pay for the first stretch of all of it.</p>
+<h2>What founding supporters get</h2><p>A pledge is a gift: it buys no stake and no vote, which keeps the Foundation independent. What founding supporters get is a view from the inside and a place in the record.</p><p><strong>The founders&#x27; letter.</strong> Every quarter, a letter on what was tried, what worked and what did not, with the numbers and the reasons.</p><p><strong>A pledge you can trace.</strong> The Foundation&#x27;s own Brain links each pledge to the essays, software and register entries it helped pay for.</p><p><strong>Your name among the founders,</strong> if you want it there, in the founding charter and the Foundation&#x27;s public list of founding supporters. Organizations that want to be named publicly do so as sponsors.</p><p><strong>A place in the network.</strong> The Foundation brings together the people around the work (partners, researchers, hubs and supporters) at roundtables, dinners and public programs, and founding supporters are part of that circle from the start.</p>
+<h2>Why you can trust it</h2><p>The Foundation is new, so you are backing people and work rather than a track record. Here is what you can check for yourself.</p><p>The work is already running. More than fifteen Brains are in use today, each owned by the person or organization that runs it, and for now five of them run without the founder&#x27;s help. Every line of the code is public at github.com/rizom-ai/brains, with more than 10,000 changes so far, and the Foundation&#x27;s own board keeps its memory the same way.</p><p>The structure protects what you fund. The Foundation owns the code, the method and the name, so no company, Rizom&#x27;s own included, can take them, and an independent majority of its board decides anything that touches them. It publishes what it sets out to achieve before it starts, and reports the results whether they are good or not.</p>
+<h2>Two ways to give</h2><h3>As a gift</h3><p>Anyone, a person or an organization, can give once or commit to a fixed amount each year for five years. The five-year form is a periodic gift: it is set down in a short written agreement with the Foundation, and for Dutch taxpayers it is fully deductible, without the threshold that applies to one-off gifts. The Foundation is applying for recognition as a public-benefit institution (ANBI), effective from its founding date. Once that is granted, gifts made from the start are deductible, and companies can deduct a gift from their corporate tax within the usual limits.</p><h3>As a sponsor</h3><p>An organization that wants to be seen supporting the work can become a founding sponsor instead. Sponsors get everything founding supporters get, and what a gift cannot carry: their name on the Foundation&#x27;s site, in its code repository and at its public programs, seats for their people at the roundtables and dinners, and the chance to host a roundtable of their own. They get no say over the research, the code or the name. Sponsorship is invoiced with VAT and treated as a business expense rather than a gift, so a VAT-registered company can usually reclaim the VAT.</p>
+<h2>How to pledge</h2><p class="reading__mission">We ask €50,000 in founding support to start the Foundation&#x27;s first year, and anything beyond that takes the work further.</p><p>Any amount is welcome, from individuals and from organizations. Write to yeehaa@rizom.ai, or join one of the small sessions first, where the work is shown live, in person or online, and decide after you have seen it.</p>
+<p class="reading__close">Jan Hein Hoogstad, founder and chair</p>
+<p class="doors-in reading__doors"><a href="mailto:yeehaa@rizom.ai?subject=Founding%20pledge">Pledge as a founding supporter →</a><a href="rizom-foundation-common-sense.html">Read Common Sense</a></p>
+</article></main><footer class="site-footer footer-grid relative z-[1] grid gap-10 border-t border-theme px-4 pt-11 pb-[38px] sm:grid-cols-2 sm:px-6 md:px-10 lg:grid-cols-[1.3fr_1fr_1fr_1fr] xl:px-20"><div class="footer-brand"><a href="rizom-foundation.html" class="wordmark font-display font-semibold tracking-[-0.01em] [font-variation-settings:&#x27;SOFT&#x27;_100] text-[30px]" aria-label="rizom.foundation"><span class="text-theme">rizom</span><span class="text-accent">.</span><span class="wordmark__suffix">foundation</span></a><p class="mt-2.5 max-w-[26ch] font-body text-[13.5px] text-theme-light">A think tank that builds. Memory of their own, and connections no one in the middle owns.</p></div><div class="footer-col"><div class="small-label mb-3 font-label text-[11px] uppercase tracking-[0.18em] text-theme-light">rizom.ai</div><a href="rizom-ai-brain.html" class="block py-1.5 font-body text-[15.5px] text-theme-light no-underline transition-colors hover:text-theme">The Brain</a><a href="rizom-ai-docs.html" class="block py-1.5 font-body text-[15.5px] text-theme-light no-underline transition-colors hover:text-theme">Documentation</a><a href="https://rizom.ai/ask" class="block py-1.5 font-body text-[15.5px] text-theme-light no-underline transition-colors hover:text-theme">Ask the network</a><a href="https://github.com/rizom-ai/brains" class="block py-1.5 font-body text-[15.5px] text-theme-light no-underline transition-colors hover:text-theme">GitHub ↗</a></div><div class="footer-col"><div class="small-label mb-3 font-label text-[11px] uppercase tracking-[0.18em] text-theme-light">rizom.work</div><a href="rizom-work.html#hubs" class="block py-1.5 font-body text-[15.5px] text-theme-light no-underline transition-colors hover:text-theme">For hubs</a><a href="rizom-work.html#teams" class="block py-1.5 font-body text-[15.5px] text-theme-light no-underline transition-colors hover:text-theme">For teams</a><a href="rizom-work.html#partners" class="block py-1.5 font-body text-[15.5px] text-theme-light no-underline transition-colors hover:text-theme">Partners</a><a href="rizom-work.html#contact" class="block py-1.5 font-body text-[15.5px] text-theme-light no-underline transition-colors hover:text-theme">Talk to us</a></div><div class="footer-col"><div class="small-label mb-3 font-label text-[11px] uppercase tracking-[0.18em] text-theme-light">rizom.foundation</div><a href="rizom-foundation-common-sense.html" class="block py-1.5 font-body text-[15.5px] text-theme-light no-underline transition-colors hover:text-theme">Common Sense</a><a href="rizom-foundation.html#writing" class="block py-1.5 font-body text-[15.5px] text-theme-light no-underline transition-colors hover:text-theme">Members&#x27; writing</a><a href="rizom-foundation.html#events" class="block py-1.5 font-body text-[15.5px] text-theme-light no-underline transition-colors hover:text-theme">Events</a><a href="rizom-foundation-support.html" class="block py-1.5 font-body text-[15.5px] text-theme-light no-underline transition-colors hover:text-theme">Founding supporters</a></div><div class="footer-base col-span-full mt-2 flex flex-wrap items-center gap-x-[22px] gap-y-2 border-t border-theme-light pt-4 font-label text-[11.5px] text-theme-light"><span>© 2026 Rizom</span><span>The Rizom Foundation owns the code, the method and the Rizom name.</span></div></footer></div></div>
+  </div>
+</body>
+</html>

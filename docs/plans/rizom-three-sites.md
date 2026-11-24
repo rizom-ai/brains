@@ -8,7 +8,7 @@ Last updated: 2026-11-24
 
 - [rizom.ai](../design/rizom-three-sites/rizom-ai.html), its [Brain page](../design/rizom-three-sites/rizom-ai-brain.html) and its [docs page](../design/rizom-three-sites/rizom-ai-docs.html)
 - [rizom.work](../design/rizom-three-sites/rizom-work.html)
-- [rizom.foundation](../design/rizom-three-sites/rizom-foundation.html) and its [Common Sense reading page](../design/rizom-three-sites/rizom-foundation-common-sense.html)
+- [rizom.foundation](../design/rizom-three-sites/rizom-foundation.html), its [Common Sense reading page](../design/rizom-three-sites/rizom-foundation-common-sense.html) and its [founding-supporters page](../design/rizom-three-sites/rizom-foundation-support.html), the text of `~/Documents/fundraising/become-a-founding-supporter.html` of 21 November
 
 They are built from snapshots of today's live rizom.ai pages: the story layout, the organisms, the rail, the room accents, the components and the built `main.css`, `story.css` and `story.js` are the live ones. What changes per site is the bar (a `rizom.<domain>` wordmark, the site's own navigation and button), a three-site strip above it, the footer, the links and doors that pointed at the audit or `docs.rizom.ai`, the chapters of `rizom.work` and `rizom.foundation`, and the labels in the work organism, which told the audit story. `three-sites.css` holds only the strip, the wordmark suffix, the open-decision boxes and the docs layout.
 
@@ -54,7 +54,7 @@ The cost is two more brains to run: servers, certificates, content repos and upg
 
 Content, for Jan Hein and the board:
 
-- founding supporters: pledge amounts, what supporters receive, whether they are named;
+- whether the site states the 31 December 2026 pledge deadline (the founding-supporters page of 21 November does not);
 - whether to list the board on `rizom.foundation`;
 - prices for hub Brains, member Brains, setups and the monthly fee (a B.V. decision);
 - client references, with consent;
