@@ -29,6 +29,10 @@ Files that stay in the vault only are listed, with the reason, from the status b
 
 Until it is in Obsidian's community directory: download the `rizom-brain` artifact of the latest "Obsidian plugin" workflow run, or build it (`bun run build` in this package), then copy `dist/main.js`, `dist/manifest.json` and `dist/styles.css` into `<vault>/.obsidian/plugins/rizom-brain/` and turn it on under Settings → Community plugins.
 
+## Publishing
+
+Obsidian reads a community plugin from its own public repository. `public/README.md`, `manifest.json`, `versions.json` and the license are that repository's root (`bun scripts/public-repo.ts` assembles them), and the built plugin goes into a release there, tagged with the manifest's version. The "Obsidian plugin release" workflow does both when started by hand, once the repository variable `OBSIDIAN_PLUGIN_REPO` and the secret `OBSIDIAN_PLUGIN_RELEASE_TOKEN` exist. To release, raise `version` in `manifest.json` (and add it to `versions.json` when `minAppVersion` changes), merge, and start the workflow.
+
 ## Connect
 
 In the plugin's settings, enter the brain's address and choose **Connect**. The brain opens in the browser, on the Drive section of your account; confirm there, and the brain creates an app password that may save changes and hands it back to Obsidian. You can also create such an app password yourself in the Drive section and enter its username and password.

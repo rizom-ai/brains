@@ -1,0 +1,86 @@
+name: Obsidian plugin release
+
+# Publishes the Rizom Brain plugin to its own public repository, which
+# Obsidian reads it from: the repository's root files, and a release tagged
+# with the manifest's version holding the built plugin. It runs only when
+# started by hand, and only once the repository variable
+# OBSIDIAN_PLUGIN_REPO (owner/name) and the secret
+# OBSIDIAN_PLUGIN_RELEASE_TOKEN (contents: write on that repository) exist.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: Release
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    env:
+      TARGET_REPO: ${{ vars.OBSIDIAN_PLUGIN_REPO }}
+      GH_TOKEN: ${{ secrets.OBSIDIAN_PLUGIN_RELEASE_TOKEN }}
+    steps:
+      - name: Check where to publish
+        run: |
+          if [ -z "$TARGET_REPO" ] || [ -z "$GH_TOKEN" ]; then
+            echo "Set the repository variable OBSIDIAN_PLUGIN_REPO and the secret OBSIDIAN_PLUGIN_RELEASE_TOKEN first." >&2
+            exit 1
+          fi
+
+      - name: Check out code
+        uses: actions/checkout@v5
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Test and build the plugin
+        working-directory: packages/obsidian-plugin
+        run: |
+          bun test
+          bun run build
+          bun scripts/public-repo.ts dist/public-repo
+
+      - name: Read the version
+        id: version
+        working-directory: packages/obsidian-plugin
+        run: echo "version=$(bun -e 'console.log((await Bun.file("manifest.json").json()).version)')" >> "$GITHUB_OUTPUT"
+
+      - name: Refuse a version that is already released
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          if gh release view "$VERSION" --repo "$TARGET_REPO" >/dev/null 2>&1; then
+            echo "Version $VERSION is already released. Raise the version in packages/obsidian-plugin/manifest.json." >&2
+            exit 1
+          fi
+
+      - name: Update the plugin's repository
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          git clone "https://x-access-token:${GH_TOKEN}@github.com/${TARGET_REPO}.git" target
+          cp packages/obsidian-plugin/dist/public-repo/* target/
+          cd target
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md LICENSE manifest.json versions.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Rizom Brain $VERSION"
+            git push
+          fi
+
+      - name: Release the built plugin
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        working-directory: packages/obsidian-plugin/dist
+        run: |
+          gh release create "$VERSION" main.js manifest.json styles.css \
+            --repo "$TARGET_REPO" \
+            --title "$VERSION" \
+            --notes "Rizom Brain $VERSION. Built from https://github.com/${GITHUB_REPOSITORY}/tree/${GITHUB_SHA}/packages/obsidian-plugin."
