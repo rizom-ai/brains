@@ -1,0 +1,92 @@
+/* Additions for the three-site mockups. Everything else is the live rizom.ai build (main.css, story.css).
+   Only the theme's own variables are used, so light and dark follow the live toggle. */
+
+/* The three-site strip above the bar: one family, three doors. */
+.sites-strip {
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg-subtle);
+  font-family: var(--font-label);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.sites-strip__inner {
+  max-width: 80rem;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 1.75rem;
+  min-height: 2.25rem;
+  padding: 0 1rem;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+@media (min-width: 640px) { .sites-strip__inner { padding: 0 1.5rem; } }
+@media (min-width: 768px) { .sites-strip__inner { padding: 0 2.5rem; } }
+@media (min-width: 1280px) { .sites-strip__inner { padding: 0 5rem; } }
+.sites-strip a { color: var(--color-text-light); text-decoration: none; }
+.sites-strip a:hover { color: var(--color-text); }
+.sites-strip a[aria-current="true"] { color: var(--color-accent); }
+.sites-strip__note { margin-left: auto; color: var(--color-text-light); }
+
+/* rizom.<suffix>: the dot carries the site's accent, the suffix stays quiet. */
+.wordmark__suffix { color: var(--color-text-light); font-weight: 500; }
+
+/* An open decision: shown, never filled in. */
+.open-decision {
+  display: block;
+  margin-top: 1.5rem;
+  padding: 0.9rem 1.1rem;
+  border: 1px dashed var(--color-rule-strong);
+  border-radius: 3px;
+  font-family: var(--font-body);
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: var(--color-text-muted);
+}
+.open-decision::before {
+  content: "Open decision";
+  display: block;
+  margin-bottom: 0.3rem;
+  font-family: var(--font-label);
+  font-size: 10.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-text-light);
+}
+
+/* Docs on rizom.ai, in the site's own chrome. */
+.docs-page__inner {
+  max-width: 80rem;
+  margin: 0 auto;
+  padding: 3rem clamp(1rem, 5vw, 5rem) 6rem;
+  display: grid;
+  grid-template-columns: 15rem minmax(0, 1fr);
+  gap: clamp(2rem, 4vw, 4rem);
+}
+.docs-nav { position: sticky; top: 6rem; align-self: start; font-family: var(--font-body); font-size: 15px; }
+.docs-nav h4 { margin: 1.6rem 0 0.5rem; font-family: var(--font-label); font-size: 11px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-accent); }
+.docs-nav h4:first-child { margin-top: 0; }
+.docs-nav a { display: block; padding: 0.18rem 0; color: var(--color-text-muted); text-decoration: none; }
+.docs-nav a:hover, .docs-nav a[aria-current="page"] { color: var(--color-text); }
+.docs-nav a[aria-current="page"] { font-weight: 500; }
+.doc { max-width: 44rem; min-width: 0; font-family: var(--font-body); font-size: 17px; line-height: 1.7; color: var(--color-text-muted); }
+.doc h1, .doc h2, .doc h3 { font-family: var(--font-display); font-weight: 400; color: var(--color-heading, var(--color-text)); font-variation-settings: "SOFT" 70; line-height: 1.1; }
+.doc h1 { font-size: clamp(2.4rem, 3.6vw, 3.4rem); margin: 0.4rem 0 1.5rem; }
+.doc h2 { font-size: 1.75rem; margin: 2.6rem 0 0.8rem; }
+.doc code { font-family: var(--font-mono); font-size: 0.88em; color: var(--color-text); }
+.doc pre { margin: 1.2rem 0; padding: 1.1rem 1.3rem; overflow-x: auto; background: var(--color-bg-subtle); border: 1px solid var(--color-border); border-radius: 3px; font-size: 14px; line-height: 1.7; }
+.doc table { display: block; overflow-x: auto; width: 100%; margin: 1.2rem 0; border-collapse: collapse; font-size: 14px; }
+.doc th, .doc td { padding: 0.5rem 0.7rem; border-bottom: 1px solid var(--color-border); text-align: left; vertical-align: top; }
+.doc th { font-family: var(--font-label); font-size: 11px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-accent); }
+.doc .eyebrow { font-family: var(--font-label); font-size: 0.72rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-accent); margin: 0; }
+.doc__crumbs { font-family: var(--font-label); font-size: 12px; letter-spacing: 0.06em; color: var(--color-text-light); }
+.doc__contents { display: none; }
+@media (max-width: 60rem) {
+  .docs-page__inner { grid-template-columns: minmax(0, 1fr); }
+  .docs-nav { display: none; }
+  .doc__contents { display: inline-block; margin-bottom: 0.5rem; font-family: var(--font-label); font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-accent); }
+}
+.doc ul { list-style: disc; padding-left: 1.3rem; margin: 0.8rem 0; }
+.doc ol { list-style: decimal; padding-left: 1.3rem; margin: 0.8rem 0; }
+.doc p { margin: 0.9rem 0; }
