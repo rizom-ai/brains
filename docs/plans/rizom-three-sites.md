@@ -51,6 +51,7 @@ The cost is two more brains to run: servers, certificates, content repos and upg
 9. **Public material only** until the open decisions below close. No testimonials, client names or board names without the decision and, for clients, their consent.
 10. **No pledge deadline on the site.** As on the founding-supporters page of 21 November, the public text asks for €50,000 in founding support without a date; the 31 December date stays in material for the board.
 11. **The board is named.** `rizom.foundation` lists the board by name and role, the four independent members marked as such: the independent majority is part of what the site asks readers to check, and an ANBI must publish its board.
+12. **The Foundation has its own voice.** The newsletter (essays and research) moves from the `rizom.ai` brain to the `rizom.foundation` brain with its subscribers, and the Foundation publishes as `@rizom.foundation` on ATProto. `@rizom.ai` stays the platform's account and the lexicon authority.
 
 ## Open decisions before migration
 
@@ -59,7 +60,6 @@ Content, for Jan Hein and the board:
 - prices for hub Brains, member Brains, setups and the monthly fee (a B.V. decision);
 - client references, with consent;
 - which team members appear on `rizom.work`, in which roles;
-- the Foundation's ATProto identity and newsletter (both run as `@rizom.ai` today);
 - whether `rizom.ai` keeps a `/writing` index for product writing;
 - one spelling standard across the three sites (Common Sense uses US spelling, the angle copy UK).
 
@@ -81,6 +81,7 @@ The founding pledge round closes on 31 December, so the Foundation site goes fir
 4. `brains-ops cert:bootstrap --handle rizom-foundation`, `secrets:encrypt`, push, then `verify-user`.
 5. Remove the Cloudflare 301 on the `rizom.foundation` zone; redirect `rizom.ai/foundation*` to `rizom.foundation`.
 6. An ANBI page with what the status requires the Foundation to publish: name, RSIN, contact details, objective, policy plan, board composition and names, remuneration policy, a report on activities and the financial statement.
+7. The newsletter moves: `newsletter` joins the Foundation brain's `addOverride` and leaves `rizom-ai`'s, the subscriber list moves with it, and subscribers are told once that the Foundation now sends it. The Foundation's `users/rizom-foundation.yaml` gets its own `atproto` block for the `rizom.foundation` handle; `rizom-ai` keeps `lexiconAuthority`.
 
 If Phase 1 cannot ship by mid-December, the founding-supporters section goes on `rizom.ai/foundation` as a stopgap and Phase 1 follows in January.
 
@@ -128,5 +129,5 @@ When `curated-member-posts.md` ships, its section replaces Phase 1's hand-author
 ## Risks
 
 - **Capacity.** Two more brains to operate while the team is small. Phase 1 stays minimal and Phase 4 waits for demand.
-- **Split audience.** Newsletter and ATProto followers sit on `@rizom.ai` today; moving the Foundation's voice needs a decision, not a silent fork.
+- **Moving the audience.** Newsletter subscribers and ATProto followers sit on `@rizom.ai` today; subscribers move with the newsletter and are told once, and followers are pointed to `@rizom.foundation` from the platform account.
 - **The pledge deadline.** The stopgap in Phase 1 keeps the round from depending on a new deployment.
