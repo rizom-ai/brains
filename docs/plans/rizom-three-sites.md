@@ -8,7 +8,7 @@ Last updated: 2026-11-24
 
 - [rizom.ai](../design/rizom-three-sites/rizom-ai.html), its [Brain page](../design/rizom-three-sites/rizom-ai-brain.html) and its [docs page](../design/rizom-three-sites/rizom-ai-docs.html)
 - [rizom.work](../design/rizom-three-sites/rizom-work.html)
-- [rizom.foundation](../design/rizom-three-sites/rizom-foundation.html)
+- [rizom.foundation](../design/rizom-three-sites/rizom-foundation.html) and its [Common Sense reading page](../design/rizom-three-sites/rizom-foundation-common-sense.html)
 
 They are built from snapshots of today's live rizom.ai pages: the story layout, the organisms, the rail, the room accents, the components and the built `main.css`, `story.css` and `story.js` are the live ones. What changes per site is the bar (a `rizom.<domain>` wordmark, the site's own navigation and button), a three-site strip above it, the footer, the links and doors that pointed at the audit or `docs.rizom.ai`, the chapters of `rizom.work` and `rizom.foundation`, and the labels in the work organism, which told the audit story. `three-sites.css` holds only the strip, the wordmark suffix, the open-decision boxes and the docs layout.
 
@@ -100,7 +100,7 @@ Store `at://` URI and CID references to members' `ai.rizom.brain.post` records a
 
 The founding pledge round closes on 31 December, so the Foundation site goes first with only what the round needs:
 
-1. `@rizom/site-rizom-foundation` with Common Sense, founding supporters, members' writing as hand-authored rows (the shipped `foundation:research` row shape), events, and why a foundation. The mockup has thirteen chapters against the foundation organism's five stages, so the drawing holds its last stage from the sixth chapter on; either the organism gains stages or chapters are grouped.
+1. `@rizom/site-rizom-foundation` with Common Sense, founding supporters, members' writing as hand-authored rows (the shipped `foundation:research` row shape), events, and why a foundation. Its six chapters follow the foundation organism in order (the grid, the essays, the pattern, the cities, the funnel into the commons), and the full Common Sense is a reading page of its own, as in the mockup.
 2. Content repo `rizom-ai/rizom-foundation-content`.
 3. rover-pilot `users/rizom-foundation.yaml`: `domainOverride: rizom.foundation`, `cloudflareZoneId`, `profileKind: organization`, `contentRepoOverride`, exact `siteOverride` pins, and `addOverride` with at least `site-content` and `contact`. A cohort with the `site` bundle.
 4. `brains-ops cert:bootstrap --handle rizom-foundation`, `secrets:encrypt`, push, then `verify-user`.

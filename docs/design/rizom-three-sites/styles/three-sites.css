@@ -1,22 +1,20 @@
 /* Additions for the three-site mockups. Everything else is the live rizom.ai build (main.css, story.css).
    Only the theme's own variables are used, so light and dark follow the live toggle. */
 
-/* The three-site strip above the bar: one family, three doors. */
+/* The three domains above the bar. Quiet: plain text, each dot in its own site's accent. */
 .sites-strip {
   border-bottom: 1px solid var(--color-border);
   background: var(--color-bg-subtle);
-  font-family: var(--font-label);
-  font-size: 11px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-family: var(--font-body);
+  font-size: 13.5px;
 }
 .sites-strip__inner {
   max-width: 80rem;
   margin: 0 auto;
   display: flex;
   align-items: center;
-  gap: 1.75rem;
-  min-height: 2.25rem;
+  gap: 1.6rem;
+  min-height: 2.1rem;
   padding: 0 1rem;
   overflow-x: auto;
   white-space: nowrap;
@@ -25,9 +23,10 @@
 @media (min-width: 768px) { .sites-strip__inner { padding: 0 2.5rem; } }
 @media (min-width: 1280px) { .sites-strip__inner { padding: 0 5rem; } }
 .sites-strip a { color: var(--color-text-light); text-decoration: none; }
-.sites-strip a:hover { color: var(--color-text); }
-.sites-strip a[aria-current="true"] { color: var(--color-accent); }
-.sites-strip__note { margin-left: auto; color: var(--color-text-light); }
+.sites-strip a:hover, .sites-strip a:focus-visible { color: var(--color-text); }
+.sites-strip a[aria-current="true"] { color: var(--color-text); }
+.sites-strip__dot { color: var(--color-accent); }
+.sites-strip__note { margin-left: auto; color: var(--color-text-light); font-style: italic; }
 
 /* rizom.<suffix>: the dot carries the site's accent, the suffix stays quiet. */
 .wordmark__suffix { color: var(--color-text-light); font-weight: 500; }
@@ -80,6 +79,9 @@
 .doc th, .doc td { padding: 0.5rem 0.7rem; border-bottom: 1px solid var(--color-border); text-align: left; vertical-align: top; }
 .doc th { font-family: var(--font-label); font-size: 11px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-accent); }
 .doc .eyebrow { font-family: var(--font-label); font-size: 0.72rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-accent); margin: 0; }
+.doc ul { list-style: disc; padding-left: 1.3rem; margin: 0.8rem 0; }
+.doc ol { list-style: decimal; padding-left: 1.3rem; margin: 0.8rem 0; }
+.doc p { margin: 0.9rem 0; }
 .doc__crumbs { font-family: var(--font-label); font-size: 12px; letter-spacing: 0.06em; color: var(--color-text-light); }
 .doc__contents { display: none; }
 @media (max-width: 60rem) {
@@ -87,6 +89,50 @@
   .docs-nav { display: none; }
   .doc__contents { display: inline-block; margin-bottom: 0.5rem; font-family: var(--font-label); font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-accent); }
 }
-.doc ul { list-style: disc; padding-left: 1.3rem; margin: 0.8rem 0; }
-.doc ol { list-style: decimal; padding-left: 1.3rem; margin: 0.8rem 0; }
-.doc p { margin: 0.9rem 0; }
+
+/* Common Sense as a reading page: one serif column, set for reading rather than scanning. */
+.reading-page { padding: clamp(3.5rem, 8vw, 6.5rem) clamp(1rem, 5vw, 5rem) 6rem; }
+.reading {
+  max-width: 38rem;
+  margin: 0 auto;
+  font-family: var(--font-display);
+  font-weight: 350;
+  font-size: 19px;
+  line-height: 1.75;
+  color: var(--color-text-muted);
+  font-variation-settings: "opsz" 24;
+}
+.reading__head { margin-bottom: 3rem; }
+.reading h1 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(3rem, 6vw, 5rem);
+  line-height: 1;
+  color: var(--color-text);
+  font-variation-settings: "SOFT" 70, "opsz" 96;
+  margin: 0;
+}
+.reading__sub { margin: 0.8rem 0 0; font-style: italic; font-size: 1.35rem; color: var(--color-accent); }
+.reading h2 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.85rem;
+  line-height: 1.15;
+  color: var(--color-text);
+  font-variation-settings: "SOFT" 70, "opsz" 72;
+  margin: 3.2rem 0 0.9rem;
+}
+.reading h3 { font-family: var(--font-display); font-weight: 500; font-size: 1.2rem; color: var(--color-text); margin: 1.8rem 0 0.4rem; }
+.reading p { margin: 0 0 1.1rem; }
+.reading strong { font-weight: 500; color: var(--color-text); }
+.reading__mission { font-size: 1.3rem; line-height: 1.6; color: var(--color-text); border-left: 2px solid var(--color-accent); padding-left: 1.2rem; }
+.reading__assumptions { margin: 0 0 1.2rem; padding-left: 1.6rem; }
+.reading__assumptions li { margin: 0 0 0.7rem; padding-left: 0.3rem; }
+.reading__assumptions li::marker { color: var(--color-accent); font-family: var(--font-label); font-size: 0.8em; }
+.reading__goals { margin: 0; }
+.reading__goals dt { margin-top: 1.2rem; font-weight: 500; color: var(--color-text); }
+.reading__goals dd { margin: 0.2rem 0 0; }
+.reading__close { margin-top: 3.2rem; padding-top: 1.6rem; border-top: 1px solid var(--color-border); font-style: italic; }
+.reading__doors { margin-top: 2rem; }
+.reading .open-decision { font-family: var(--font-body); }
+@media (prefers-reduced-motion: reduce) { .sites-strip a { transition: none; } }
