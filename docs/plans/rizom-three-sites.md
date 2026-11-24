@@ -65,32 +65,7 @@ Content, for Jan Hein and the board:
 
 ## Members' writing on `rizom.foundation`
 
-What ships today: brains publish `post` and `link` records outbound over ATProto (`ai.rizom.brain.post`, `ai.rizom.brain.link`), every site writes an RSS 2.0 `feed.xml`, the `link` entity exists, and the agent directory lists approved peers. Nothing reads other brains' posts: there is no inbound ATProto ingestion or `listRecords`, no RSS parser, and cross-brain entity sharing is proposed only.
-
-### Option A — curated pointers in the Foundation brain (recommended)
-
-A Foundation-owned entity, working name `featured-article`, one file per selected article:
-
-| Field                                       | Source                                                                |
-| ------------------------------------------- | --------------------------------------------------------------------- |
-| `url`                                       | the article on the member's own site                                  |
-| `title`, `excerpt`, `publishedAt`, `series` | the member's `feed.xml` item, or their `ai.rizom.brain.post` record   |
-| `author`, `authorBrain` (domain and DID)    | the feed or record, matched against the agent directory               |
-| `source`, `sourceRef`                       | `rss` with the item `guid`, or `atproto` with the `at://` URI and CID |
-| `status`                                    | `draft` until the editor selects it, then `published`                 |
-| `checkedAt`, `sourceState`                  | `active` or `gone`, from a periodic refresh                           |
-
-The editor pastes a URL in the Foundation brain's chat; the brain fetches the metadata and creates a draft; publishing it puts the article on the site. A refresh job rechecks each pointer and drops withdrawn articles from the page. The site gets a members' writing section and an index page.
-
-Still to build: the entity and its plugin, an RSS item fetcher (then an ATProto `getRecord`/`listRecords` path), the refresh job and the section template. The RSS item `link` is the member's `/posts/<slug>` page, not `canonicalUrl`, so the fetcher prefers `canonicalUrl` when the record gives one. The existing `link` projection has no `isPublishable` hook, so drafts must not be projected if the curation is published over ATProto.
-
-### Option B — ATProto record references (later)
-
-Store `at://` URI and CID references to members' `ai.rizom.brain.post` records and render from the record. This fits "the author keeps it" best, but needs members' ATProto switched on, `listRecords`, the deferred inbound phase of [atproto-integration.md](./atproto-integration.md), and optionally a curation record (the planned `ai.rizom.brain.reaction` is closest). Option A's `source: atproto` converges on this without changing the editorial model.
-
-### Option C — cross-brain mirroring (not for this)
-
-[cross-brain-entity-sharing.md](./cross-brain-entity-sharing.md) copies full entities between approved peers. It is heavier than a pointer, forbids republishing mirrored content, and requires members to declare visibility explicitly on every post.
+How a brain features a curated selection of other brains' articles is its own plan, `curated-member-posts.md` (branch `plan/curated-member-posts`), so it can be built and released independently of this one. Until it ships, `rizom.foundation` features members' articles as hand-authored rows, as in Phase 1 below.
 
 ## Phases
 
@@ -123,7 +98,7 @@ The same steps for `@rizom/site-rizom-work`, `rizom-ai/rizom-work-content` and `
 
 ### Phase 4 — curated members' writing
 
-Option A, replacing Phase 1's hand-authored rows.
+When `curated-member-posts.md` ships, its section replaces Phase 1's hand-authored rows.
 
 ## Redirects
 
