@@ -1,5 +1,11 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.291
+
+### Patch Changes
+
+- [#1037](https://github.com/rizom-ai/brains/pull/1037) [`8f301c0`](https://github.com/rizom-ai/brains/commit/8f301c03350a716f012169c8eef64e2e08841750) Thanks [@yeehaa123](https://github.com/yeehaa123)! - On screens wider than rizom.ai's page frame the sides no longer read lighter than the middle. The page's background carries a fine texture, and the story pages' chapters column and the bar painted plain background colour over it, so they showed as flat bands with an edge against the textured sides. On the full grid the chapters column now paints nothing and the drawing's wash fades out toward the words instead; below it, where the drawing runs under the words, the backing stays. The theme's fade behind the bar keeps the texture.
+
 ## 0.2.0-alpha.290
 
 ### Patch Changes
