@@ -142,10 +142,13 @@
    painted it only to keep the drawing's wash from showing behind the text; the wash now fades out toward
    the text instead (the profile the chapters gradient gave it), so the column paints nothing. The bar keeps
    its fade but carries the texture, and the strip shows the page itself. */
-.story .chapters { background: none; }
-.story .figure::before {
-  -webkit-mask-image: linear-gradient(90deg, transparent 0 23%, rgb(0 0 0 / 0.3) 39%, #000 57%);
-  mask-image: linear-gradient(90deg, transparent 0 23%, rgb(0 0 0 / 0.3) 39%, #000 57%);
+/* As in @rizom/site-rizom-ai (PR #1037): on the full grid only. Below it the drawing runs under the words,
+   the column starts at the page's edge, and the backing stays. */
+@media (min-width: 80.0625rem) {
+  .story .chapters { background: none; }
+  .story .figure::before {
+    mask-image: linear-gradient(90deg, transparent 0 23%, rgb(0 0 0 / 0.3) 39%, #000 57%);
+  }
 }
 .bar.bg-nav-fade {
   background-image:
