@@ -23,7 +23,7 @@ import {
 } from "@brains/atproto-contracts";
 import { createSilentLogger } from "@brains/test-utils";
 import type { AtprotoContext } from "../src/atproto-context";
-import { AtprotoPdsClient } from "../src/pds-client";
+import { AtprotoPdsClient } from "@brains/atproto-client";
 import { AtprotoService } from "../src/plugin";
 
 const PDS_ENDPOINT =

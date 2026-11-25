@@ -13,7 +13,6 @@ import { publishCompletedChannel } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import { type FetchLike } from "@brains/utils/fetch-like";
 import {
-  assertSafePublicHttpsUrl,
   createSafePublicFetch,
   UnsafePublicResourceError,
   type ResolveHostname,
@@ -23,13 +22,17 @@ import {
   type AtprotoConfig,
   type AtprotoConfigInput,
 } from "./config";
-import { AtprotoPdsClient } from "./pds-client";
+import {
+  AtprotoPdsClient,
+  listAllRecords,
+  recordKeyOf,
+} from "@brains/atproto-client";
 import {
   AtprotoIdentityResolver,
   DiscoveryRejectionError,
 } from "./identity-resolver";
 import { PublishingTaskQueue } from "./publishing-tasks";
-import { isCurrentRecord, listCollectionRecords } from "./record-reconcile";
+import { isCurrentRecord } from "./record-reconcile";
 import type { AtprotoBus, AtprotoContext } from "./atproto-context";
 import { EntityUrlGenerator } from "@brains/site-composition";
 import {
@@ -156,6 +159,7 @@ export class AtprotoService {
       identifier: this.config.identifier ?? "",
       appPassword: this.config.appPassword ?? "",
       requestTimeoutMs: this.config.jetstream.requestTimeoutMs,
+      resolveHostname: deps.resolveHostname,
       createPdsClient: deps.createPdsClient,
     });
   }
@@ -484,21 +488,8 @@ export class AtprotoService {
     const results: DiscoverBrainCardResult[] = [];
     for (const repo of repos) {
       try {
-        const resolved = await this.identity.resolveRepoPdsEndpoint(repo);
-        await assertSafePublicHttpsUrl(
-          resolved.pdsEndpoint,
-          this.deps.resolveHostname,
-        );
-        const client = this.identity.createPublicPdsClient(
-          resolved.pdsEndpoint,
-        );
-        if (!client.getRecord) {
-          throw new DiscoveryRejectionError(
-            "AT Protocol PDS client does not support record reads",
-          );
-        }
-        const record = await client.getRecord({
-          repo: resolved.repoDid,
+        const resolved = await this.identity.repos.open(repo);
+        const record = await resolved.getRecord({
           collection: BRAIN_CARD_COLLECTION,
           rkey: BRAIN_CARD_RKEY,
         });
@@ -821,12 +812,15 @@ export class AtprotoService {
     if (!client.listRecords) {
       throw new Error("AT Protocol PDS client does not support record listing");
     }
-    const stored = await listCollectionRecords(
-      client.listRecords.bind(client),
-      {
-        repo,
-        collection: projection.collection,
-      },
+    const listed = await listAllRecords(client.listRecords.bind(client), {
+      repo,
+      collection: projection.collection,
+    });
+    const stored = new Map(
+      listed.flatMap((record) => {
+        const rkey = recordKeyOf(record.uri);
+        return rkey ? [[rkey, record.value] as const] : [];
+      }),
     );
 
     const { entityType } = projection;
