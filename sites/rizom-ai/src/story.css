@@ -21,12 +21,6 @@
   margin: 0 auto;
   padding: 0 clamp(1rem, 5vw, 5rem);
   box-sizing: border-box;
-  background: linear-gradient(
-    90deg,
-    var(--color-bg) 0 26%,
-    rgb(from var(--color-bg) r g b / 0.7) 40%,
-    rgb(from var(--color-bg) r g b / 0) 56%
-  );
 }
 .chapter {
   min-height: calc(100svh - 8rem);
@@ -429,6 +423,19 @@
   border-radius: 50%;
   background: radial-gradient(circle, var(--color-wash-a), transparent 68%);
 }
+/* On the full grid the chapters column paints no backing, so the page's
+   texture runs unbroken beside the frame; the wash fades out toward the
+   words instead of showing behind them. */
+@media (min-width: 80.0625rem) {
+  .figure::before {
+    mask-image: linear-gradient(
+      90deg,
+      transparent 0 23%,
+      rgb(0 0 0 / 0.3) 39%,
+      #000 57%
+    );
+  }
+}
 .o-box {
   position: relative;
   flex: none;
@@ -712,7 +719,7 @@
 }
 
 /* ---- Narrow screens and reduced motion ---------------------------------------- */
-/* Below the full grid the drawing runs under the column; the backing widens so the words stay clear. */
+/* Below the full grid the drawing runs under the column, which starts at the page's edge; a backing keeps the words clear. */
 @media (max-width: 80rem) {
   .chapters {
     background: linear-gradient(

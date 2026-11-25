@@ -380,13 +380,16 @@
     background-color: transparent;
   }
 
-  /* Fade from theme-bg to transparent behind the fixed chrome. */
+  /* Fade from theme-bg to transparent behind the fixed chrome, keeping the
+     page's texture so the bar doesn't read as a flat band against it. */
   .bg-nav-fade {
-    background: linear-gradient(
-      180deg,
-      rgb(from var(--color-bg) r g b / 0.95) 0%,
-      rgb(from var(--color-bg) r g b / 0.75) 100%
-    );
+    background:
+      var(--bg-noise),
+      linear-gradient(
+        180deg,
+        rgb(from var(--color-bg) r g b / 0.95) 0%,
+        rgb(from var(--color-bg) r g b / 0.75) 100%
+      );
   }
 
   .bg-footer {
