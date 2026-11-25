@@ -1,5 +1,6 @@
 ---
 "@brains/reference": patch
+"@rizom/brain": patch
 "@brains/atproto-client": patch
 ---
 
@@ -10,3 +11,5 @@ Every day each reference is checked against its record. A changed record updates
 A site shows the selection with the `references:list` section on the `references:entities` data source: each entry's series, author and date, its title and the author's own summary, linking to the entity on its author's site, newest first. A production build shows only published entries whose source is active; a preview also shows drafts; a withdrawn entry appears in neither.
 
 A reference can point to a post, a deck, a project or a series. A post shows its series as its kicker; the others show what they are.
+
+References are an added capability: a brain that features other brains' work lists `references` under `add` in `brain.yaml`.

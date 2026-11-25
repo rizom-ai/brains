@@ -17,6 +17,7 @@ const expectedCatalogIds = [
   "note",
   "refined-note",
   "link",
+  "references",
   "wishlist",
   "topics",
   "decks",
@@ -108,6 +109,25 @@ const definitionPermissionBaseline = {
 } satisfies NonNullable<BrainDefinition["permissions"]>;
 
 describe("canonical brain core", () => {
+  test("a brain that adds references installs the reference type and its service", () => {
+    const resolved = resolve(
+      canonicalBrain,
+      {},
+      { bundleContract, bundles: ["core"], add: ["references"] },
+    );
+    const ids = (resolved.plugins ?? []).map(({ id }) => id);
+
+    expect(ids).toContain("reference");
+    expect(ids).toContain("references");
+    expect(
+      resolve(
+        canonicalBrain,
+        {},
+        { bundleContract, bundles: ["core"] },
+      ).plugins?.map(({ id }) => id),
+    ).not.toContain("references");
+  });
+
   test("defaults to GPT-6 Luna at low reasoning, priced for guest turns", () => {
     expect(canonicalBrain.model).toBe("gpt-6-luna");
     expect(canonicalBrain.reasoningEffort).toBe("low");

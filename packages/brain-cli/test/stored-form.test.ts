@@ -61,6 +61,7 @@ const PENDING = new Set([
   "project",
   "prompt",
   "quiz-result",
+  "reference",
   "refined-note",
   "series",
   "site-content",

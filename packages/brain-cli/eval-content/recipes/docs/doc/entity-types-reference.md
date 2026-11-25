@@ -525,6 +525,23 @@ Key frontmatter:
 - `status` (`new` or `handled`)
 - `notification` (`pending`, `sent`, `failed`, or `none`)
 
+### `reference`
+
+`reference` records are created only by the explicitly added `@brains/reference` capability (`add: [references]` in `brain.yaml`). Each points to an entity another brain publishes: a post, deck, project or series. It holds what a reader is shown and where the entity lives, never its content, and has no body of its own.
+
+A reference is created from the entity's address on its author's brain, with `system_create` and `source: { kind: "url", url }`. The capture finds the author's AT Protocol repo, reads the record whose `canonicalUrl` is that address, and writes a draft. Publishing the draft features it. A daily check keeps the fields and byline current and marks the entry `withdrawn` when the author's record is gone.
+
+Key frontmatter:
+
+- `status`: `draft` or `published`
+- `title`, `summary`, `series` (the author's own words)
+- `author` (the anchor name on the author's brain card), `authorSite`
+- `url`, `publishedAt`
+- `sourceState`: `active` or `withdrawn`
+- `sourceUri` (the record's `at://` URI), `sourceEntityType`, `sourceEntityId`, `sourceBrain`
+
+A site shows the selection with the `references:list` template on the `references:entities` data source.
+
 ## Site forms
 
 ### `form`
