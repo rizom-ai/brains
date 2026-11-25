@@ -3,10 +3,7 @@ import bootScript from "./boot/boot.boot.js" with { type: "text" };
 import storyStyles from "../../story.css" with { type: "text" };
 import writingStyles from "../../writing.css" with { type: "text" };
 import favicon from "../../favicon.svg" with { type: "text" };
-import { brainOrganism } from "../../story/brain-organism";
-import { foundationOrganism } from "../../story/foundation-organism";
-import { livingOrganism } from "../../story/living-organism";
-import { workOrganism } from "../../story/work-organism";
+import type { Organism } from "../../story/organism";
 import { storyRuntimeScript } from "../../story/runtime";
 import { ASK_ROOM_STYLES } from "@brains/site-atlas";
 
@@ -28,19 +25,28 @@ export const rizomAtprotoLexiconStaticAssets: Record<string, string> =
     ]),
   );
 
+export const STORY_STYLESHEET_PATH = "/styles/story.css";
+
+/** The story pages' stylesheet: the page shape, the reading thread and the given drawings. */
+export function storyStylesheet(organisms: readonly Organism[] = []): string {
+  return (
+    storyStyles +
+    ASK_ROOM_STYLES +
+    organisms.map((drawing) => drawing.css()).join("")
+  );
+}
+
+/**
+ * What every Rizom site serves. A site's own drawings join the story
+ * stylesheet through `createRizomSite`; the ATProto lexicons are rizom.ai's
+ * alone, as their authority.
+ */
 export const rizomRuntimeStaticAssets: Record<string, string> = {
-  ...rizomAtprotoLexiconStaticAssets,
   // The site's icon: the lantern the drawings use for a brain.
   "/favicon.svg": favicon,
   "/boot.js": bootScript,
   "/story.js": storyRuntimeScript,
-  // The story pages: the page shape, the drawings and the reading thread.
-  "/styles/story.css":
-    storyStyles +
-    ASK_ROOM_STYLES +
-    livingOrganism.css() +
-    brainOrganism.css() +
-    workOrganism.css() +
-    foundationOrganism.css(),
+  // The story pages: the page shape and the reading thread.
+  [STORY_STYLESHEET_PATH]: storyStylesheet(),
   "/styles/writing.css": writingStyles,
 };

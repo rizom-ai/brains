@@ -12,6 +12,11 @@ import { writingDataSource } from "./writing-datasource";
 import { workSections } from "./work";
 import { foundationSections } from "./foundation";
 import { aiRoutes } from "./routes";
+import { rizomAtprotoLexiconStaticAssets } from "./rizom/runtime/plugin";
+import { brainOrganism } from "./story/brain-organism";
+import { foundationOrganism } from "./story/foundation-organism";
+import { livingOrganism } from "./story/living-organism";
+import { workOrganism } from "./story/work-organism";
 
 export const rizomAiSite: SitePackage = createRizomSite({
   packageName: "@rizom/site-rizom-ai",
@@ -19,6 +24,9 @@ export const rizomAiSite: SitePackage = createRizomSite({
   // room accents key off data-room, set by the layout.
   layout: AiLayout,
   routes: aiRoutes,
+  organisms: [livingOrganism, brainOrganism, workOrganism, foundationOrganism],
+  // rizom.ai is the authority for the ATProto lexicons and serves them.
+  staticAssets: rizomAtprotoLexiconStaticAssets,
   runtime: {
     contentNamespace: "rizom",
     templates: {
