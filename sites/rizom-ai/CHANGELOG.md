@@ -1,5 +1,11 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.292
+
+### Patch Changes
+
+- [#1038](https://github.com/rizom-ai/brains/pull/1038) [`997251c`](https://github.com/rizom-ai/brains/commit/997251cec2d440a30e404da954512dff06083b54) Thanks [@yeehaa123](https://github.com/yeehaa123)! - On a phone the story pages' text no longer runs off the screen: the quick start's code block widened the chapters column past the screen, and the column may now shrink while the block scrolls inside itself. The reading thread no longer crosses the footer's wordmark and text: the footer lies over it and carries the page's texture.
+
 ## 0.2.0-alpha.291
 
 ### Patch Changes
