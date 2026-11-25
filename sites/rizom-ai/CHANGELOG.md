@@ -1,5 +1,11 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.294
+
+### Patch Changes
+
+- [#1040](https://github.com/rizom-ai/brains/pull/1040) [`ee3e97f`](https://github.com/rizom-ai/brains/commit/ee3e97f6290f7c1cfc1955a7c640257a2b85472c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The Foundation's column in the three-site footer links "The board"; it named an ANBI page that does not exist yet.
+
 ## 0.2.0-alpha.293
 
 ### Patch Changes

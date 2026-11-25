@@ -4,7 +4,15 @@ Last updated: 2026-11-25
 
 ## Status
 
-**Mockups only. Nothing is migrated.** The static mockups are the visual and content contract for this plan:
+**Phase 1 is being built. Nothing is deployed.** So far:
+
+- the story pages fit a phone and the reading thread stays out of the footer on `rizom.ai` ([#1038](https://github.com/rizom-ai/brains/pull/1038), merged);
+- `@rizom/site-rizom-ai` exports the story page, the drawing builder and the shared chrome ([#1039](https://github.com/rizom-ai/brains/pull/1039), merged, released as `0.2.0-alpha.293`);
+- `@rizom/site-rizom-foundation` is written and checked on a running app against the mockups ([#1040](https://github.com/rizom-ai/brains/pull/1040), open: merging it publishes the package).
+
+Still to do in Phase 1: the ANBI page, the content repo, the rover-pilot user, the certificate, the redirects, the newsletter and the ATProto account.
+
+The static mockups are the visual and content contract for this plan:
 
 - [rizom.ai](../design/rizom-three-sites/rizom-ai.html), which opens with the network map and tells the Brain story, and its [docs page](../design/rizom-three-sites/rizom-ai-docs.html)
 - [rizom.work](../design/rizom-three-sites/rizom-work.html)
@@ -50,7 +58,7 @@ The cost is two more brains to run: servers, certificates, content repos and upg
    | foundation | hero, research, pullquote, chapters, support, follow      | hero, writing, mission, events, support, why                   |
    | work       | hero, problem, workshop, personas, quotes, roster, closer | hero, science, problem, hubs, teams, public, partners, contact |
 
-   Only the `foundation:research` row shape (members' writing) and the `foundation:chapters` list (events) carry over as they are. The `work` and `foundation` section groups move out of `@rizom/site-rizom-ai` into their own packages when their rooms leave `rizom.ai`.
+   Only the row shape of `foundation:research` and `foundation:chapters` carries over, for members' writing and events; their headings were fixed in the components, so the new package has sections of its own. The `work` and `foundation` section groups move out of `@rizom/site-rizom-ai` into their own packages when their rooms leave `rizom.ai`.
 
 5. **One content repo per brain.** `rizom-ai/rizom-work-content` and `rizom-ai/rizom-foundation-content` follow the `thefourth` precedent. Copy for the sections that carry over moves from `site-content/work/*` and `site-content/foundation/*` in `rizom-content`; copy for the new sections is written from the mockups.
 6. **Docs live on `rizom.ai`.** `@rizom/site-rizom-ai` renders `doc` and `guide` entities at `/docs/<slug>` and `/guides/<slug>`; the release workflow syncs them into `rizom-content`; the docs brain is retired.
@@ -109,7 +117,7 @@ The same steps for `@rizom/site-rizom-work`, `rizom-ai/rizom-work-content` and `
 
 ### Phase 4 — curated members' writing
 
-When slice 4 of [cross-brain-entity-sharing.md](./cross-brain-entity-sharing.md) ships, its `featured` section replaces Phase 1's hand-authored rows.
+When slice 4 of [cross-brain-entity-sharing.md](./cross-brain-entity-sharing.md) ships, its `references` section replaces Phase 1's hand-authored rows.
 
 ## Redirects
 
