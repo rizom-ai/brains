@@ -156,3 +156,50 @@
     linear-gradient(180deg, rgb(from var(--color-bg) r g b / 0.95) 0%, rgb(from var(--color-bg) r g b / 0.75) 100%);
 }
 .sites-strip { background: transparent; }
+
+/* A phone is narrower than the quick start's code block, and a grid column is never narrower than its
+   content: the column grew to the block's width and every chapter's text ran off the screen (the live
+   /brain does the same). The column may now shrink, and the block scrolls inside itself. */
+.story .chapters { min-width: 0; }
+.story .chapter pre { max-width: 100%; overflow-x: auto; }
+
+/* The reading thread is fixed to the screen and ran through the footer's wordmark and text (as on the live
+   site). The footer now lies over it, carrying the page's own texture so no band shows. */
+.site-footer {
+  z-index: 60;
+  background-color: var(--color-bg);
+  background-image: var(--bg-noise);
+}
+
+/* The bar's call to action in full where it fits, in one word beside the wordmark on a phone. */
+.cta-short { display: none; }
+@media (max-width: 39.9375rem) {
+  .cta-long { display: none; }
+  .cta-short { display: inline; }
+}
+
+/* Figures that carry a claim: the number in the display face at reading size, what it counts beside it. */
+.figures { margin: 2rem 0 0; display: grid; gap: 1.1rem; }
+.figures div { display: grid; grid-template-columns: 8.5rem minmax(0, 1fr); align-items: baseline; gap: 1.2rem; padding-top: 1.1rem; border-top: 1px solid var(--color-border); }
+.figures dt { font-family: var(--font-display); font-weight: 400; font-size: clamp(2.2rem, 3.4vw, 3rem); line-height: 1; color: var(--color-accent); font-variation-settings: "SOFT" 70, "opsz" 96; }
+.figures dd { margin: 0; font-family: var(--font-body); font-size: 15px; line-height: 1.55; color: var(--color-text-muted); }
+.figures dd b { display: block; font-family: var(--font-display); font-weight: 500; font-size: 1.15rem; color: var(--color-text); }
+.figures dd a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+
+/* The reading pages' closing links: two doors side by side, not one run of text. */
+.reading__doors { display: flex; flex-wrap: wrap; gap: 0.6rem 1.8rem; font-style: italic; }
+.reading__doors a { color: var(--color-accent); text-decoration: none; }
+.reading__doors a:hover, .reading__doors a:focus-visible { text-decoration: underline; text-underline-offset: 3px; }
+
+/* The five assumptions, numbered large in the margin: each is a claim that gets its own test. */
+.reading__assumptions { list-style: none; padding: 0; counter-reset: assumption; }
+.reading__assumptions li { counter-increment: assumption; display: grid; grid-template-columns: 2.6rem minmax(0, 1fr); gap: 0.4rem; margin: 0; padding: 0.9rem 0; border-top: 1px solid var(--color-border); color: var(--color-text); }
+.reading__assumptions li::before { content: counter(assumption); font-size: 1.9rem; line-height: 1; color: var(--color-accent); font-variation-settings: "SOFT" 70, "opsz" 96; }
+.reading__assumptions li:last-child { border-bottom: 1px solid var(--color-border); margin-bottom: 1.2rem; }
+
+/* The goals as a ledger: what is promised on the left, what would show it on the right. */
+@media (min-width: 48rem) {
+  .reading__goals { display: grid; grid-template-columns: 11rem minmax(0, 1fr); column-gap: 1.6rem; }
+  .reading__goals dt, .reading__goals dd { margin: 0; padding: 0.9rem 0; border-top: 1px solid var(--color-border); }
+}
+@media (max-width: 39.9375rem) { .figures div { grid-template-columns: 5.5rem minmax(0, 1fr); } }
