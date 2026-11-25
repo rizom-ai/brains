@@ -4,13 +4,17 @@ Last updated: 2026-11-25
 
 ## Status
 
-**Phase 1 is being built. Nothing is deployed.** So far:
+**The code for all three sites is written. Nothing is deployed.** Merged:
 
-- the story pages fit a phone and the reading thread stays out of the footer on `rizom.ai` ([#1038](https://github.com/rizom-ai/brains/pull/1038), merged);
-- `@rizom/site-rizom-ai` exports the story page, the drawing builder and the shared chrome ([#1039](https://github.com/rizom-ai/brains/pull/1039), merged, released as `0.2.0-alpha.293`);
-- `@rizom/site-rizom-foundation` is written and checked on a running app against the mockups ([#1040](https://github.com/rizom-ai/brains/pull/1040), open: merging it publishes the package).
+- the story pages fit a phone and the reading thread stays out of the footer on `rizom.ai` ([#1038](https://github.com/rizom-ai/brains/pull/1038));
+- `@rizom/site-rizom-ai` exports the story page, the drawing builder and the shared chrome ([#1039](https://github.com/rizom-ai/brains/pull/1039));
+- `@rizom/site-rizom-foundation`, checked on a running app against the mockups ([#1040](https://github.com/rizom-ai/brains/pull/1040)); its `0.2.0-alpha.236` is not on npm yet, because the package needs trusted publishing set up again;
+- `rizom.ai` can carry the documentation at `/docs`, `/docs/<slug>` and `/guides/<slug>` once its brain has the `docs` and `guides` plugins ([#1042](https://github.com/rizom-ai/brains/pull/1042));
+- the hub site links `rizom.work` and `rizom.foundation` ([#1043](https://github.com/rizom-ai/brains/pull/1043)).
 
-Still to do in Phase 1: the ANBI page, the content repo, the rover-pilot user, the certificate, the redirects, the newsletter and the ATProto account.
+Open: `@rizom/site-rizom-work`, checked the same way ([#1041](https://github.com/rizom-ai/brains/pull/1041)); merging it publishes the package, which needs trusted publishing too.
+
+Still to do, all of it needing decisions, accounts or a deploy: the ANBI page, the two content repos, the rover-pilot users, certificates, the redirects, the newsletter and the Foundation's ATProto account (Phases 1 and 2); `rizom.ai`'s new home, its bar and footer, the docs plugins on its brain, the docs sync and retiring docs.rizom.ai (Phase 3); and in `rizom-content`, the science sentence and the brand book's "one brain, one site".
 
 The static mockups are the visual and content contract for this plan:
 
