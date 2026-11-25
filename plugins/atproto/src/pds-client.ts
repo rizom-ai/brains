@@ -63,6 +63,18 @@ export interface GetRecordResult {
   value: Record<string, unknown>;
 }
 
+export interface ListRecordsInput {
+  repo: string;
+  collection: string;
+  limit?: number;
+  cursor?: string;
+}
+
+export interface ListRecordsResult {
+  records: GetRecordResult[];
+  cursor?: string;
+}
+
 export interface DeleteRecordInput {
   repo: string;
   collection: string;
@@ -97,6 +109,16 @@ const recordResultSchema = z.looseObject({
 const getRecordResultSchema = recordResultSchema.extend({
   value: z.record(z.string(), z.unknown()),
 });
+
+const listRecordsResultSchema = z
+  .looseObject({
+    records: z.array(getRecordResultSchema),
+    cursor: z.string().optional(),
+  })
+  .transform(({ records, cursor }): ListRecordsResult => ({
+    records,
+    ...(cursor !== undefined && { cursor }),
+  }));
 
 const blobRefSchema = z
   .looseObject({
@@ -253,6 +275,22 @@ export class AtprotoPdsClient {
     );
 
     return parseJsonResponse(response, getRecordResultSchema);
+  }
+
+  /** One page of a collection, read without a session as any reader may. */
+  async listRecords(input: ListRecordsInput): Promise<ListRecordsResult> {
+    const params = new URLSearchParams({
+      repo: input.repo,
+      collection: input.collection,
+      ...(input.limit !== undefined && { limit: String(input.limit) }),
+      ...(input.cursor !== undefined && { cursor: input.cursor }),
+    });
+    const response = await this.fetchFn(
+      `${this.pdsEndpoint}/xrpc/com.atproto.repo.listRecords?${params.toString()}`,
+      { method: "GET" },
+    );
+
+    return parseJsonResponse(response, listRecordsResultSchema);
   }
 
   async deleteRecord(input: DeleteRecordInput): Promise<void> {

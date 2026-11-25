@@ -216,6 +216,77 @@ describe("AtprotoPdsClient", () => {
     expect(calls[0]?.init?.method).toBe("GET");
   });
 
+  it("lists one page of a collection without a session", async () => {
+    const calls: Array<{ url: string; init: RequestInit | undefined }> = [];
+    const fetchMock: FetchLike = (input, init) => {
+      calls.push({ url: String(input), init });
+      return Promise.resolve(
+        jsonResponse({
+          cursor: "next-page",
+          records: [
+            {
+              uri: "at://did:plc:repo/ai.rizom.brain.post/first",
+              cid: "cid-first",
+              value: { title: "First" },
+            },
+          ],
+        }),
+      );
+    };
+    const client = new AtprotoPdsClient({
+      pdsEndpoint: "https://pds.example.com",
+      identifier: "brain.example.com",
+      appPassword: "secret",
+      fetch: fetchMock,
+    });
+
+    const page = await client.listRecords({
+      repo: "did:plc:repo",
+      collection: "ai.rizom.brain.post",
+      limit: 25,
+      cursor: "previous-page",
+    });
+
+    expect(page).toEqual({
+      cursor: "next-page",
+      records: [
+        {
+          uri: "at://did:plc:repo/ai.rizom.brain.post/first",
+          cid: "cid-first",
+          value: { title: "First" },
+        },
+      ],
+    });
+    expect(calls).toHaveLength(1);
+    expect(calls[0]?.url).toBe(
+      "https://pds.example.com/xrpc/com.atproto.repo.listRecords?repo=did%3Aplc%3Arepo&collection=ai.rizom.brain.post&limit=25&cursor=previous-page",
+    );
+    expect(calls[0]?.init?.method).toBe("GET");
+  });
+
+  it("lists a collection's last page without a cursor", async () => {
+    const urls: string[] = [];
+    const client = new AtprotoPdsClient({
+      pdsEndpoint: "https://pds.example.com",
+      identifier: "brain.example.com",
+      appPassword: "secret",
+      fetch: (input): Promise<Response> => {
+        urls.push(String(input));
+        return Promise.resolve(jsonResponse({ records: [] }));
+      },
+    });
+
+    const page = await client.listRecords({
+      repo: "did:plc:repo",
+      collection: "ai.rizom.brain.post",
+    });
+
+    expect(page).toEqual({ records: [] });
+    expect(urls).toEqual([
+      "https://pds.example.com/xrpc/com.atproto.repo.listRecords?repo=did%3Aplc%3Arepo&collection=ai.rizom.brain.post",
+    ]);
+  });
+
   it("deletes records with an authenticated session", async () => {
     const calls: Array<{ url: string; init: RequestInit | undefined }> = [];
     const fetchMock: FetchLike = (input, init) => {

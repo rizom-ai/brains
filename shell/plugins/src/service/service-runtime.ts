@@ -861,6 +861,8 @@ export interface ServiceAtprotoProjections {
     entityType: "post",
   ): AtprotoProjection<AtprotoProjectedPostRecord> | undefined;
   get(entityType: string): AtprotoProjection | undefined;
+  /** Every type's newest projection. */
+  list(): AtprotoProjection[];
 }
 
 /** The entity action policy check a class made, and nothing that sets one. */
