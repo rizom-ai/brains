@@ -117,7 +117,7 @@ The same steps for `@rizom/site-rizom-work`, `rizom-ai/rizom-work-content` and `
 
 ### Phase 4 — curated members' writing
 
-When slice 4 of [cross-brain-entity-sharing.md](./cross-brain-entity-sharing.md) ships, its `featured` section replaces Phase 1's hand-authored rows.
+When slice 4 of [cross-brain-entity-sharing.md](./cross-brain-entity-sharing.md) ships, its `references` section replaces Phase 1's hand-authored rows.
 
 ## Redirects
 
