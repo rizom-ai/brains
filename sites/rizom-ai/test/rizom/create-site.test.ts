@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { createElement as h } from "react";
 import { defineSection, sectionGroup, z } from "@rizom/site";
 import { createRizomSite } from "../../src/rizom/create-site";
+import { organism } from "../../src/story/organism";
 
 const baseOptions = {
   packageName: "@rizom/site-test",
@@ -49,5 +50,46 @@ describe("createRizomSite", () => {
 
     expect(groups.map((g) => g.namespace)).toEqual(["home"]);
     expect(Object.keys(groups[0]?.sections ?? {})).toEqual(["hero"]);
+  });
+});
+
+describe("the story stylesheet of a site built on the base", () => {
+  const drawing = organism({
+    id: "test-org",
+    stages: [{ A: [300, 300, 8, 1] }],
+    links: [],
+    visible: [[]],
+    flowing: [[]],
+    labels: [[]],
+  });
+
+  test("carries the page shape and the site's own drawings", () => {
+    const site = createRizomSite({ ...baseOptions, organisms: [drawing] });
+    const css = site.staticAssets?.["/styles/story.css"] ?? "";
+    expect(css).toContain(".chapters {");
+    expect(css).toContain(drawing.css());
+  });
+
+  test("carries no drawing of another site", () => {
+    const css =
+      createRizomSite(baseOptions).staticAssets?.["/styles/story.css"] ?? "";
+    expect(css).toContain(".chapters {");
+    for (const other of ["living-org", "brain-org", "work-org"]) {
+      expect(css).not.toContain(`.${other}[data-stage`);
+    }
+  });
+
+  test("serves the site's own static files beside the base's", () => {
+    const site = createRizomSite({
+      ...baseOptions,
+      staticAssets: { "/styles/reading.css": ".reading {}" },
+    });
+    expect(site.staticAssets?.["/styles/reading.css"]).toBe(".reading {}");
+    expect(site.staticAssets?.["/boot.js"]).toBeDefined();
+  });
+
+  test("serves no ATProto lexicons: only rizom.ai is their authority", () => {
+    const paths = Object.keys(createRizomSite(baseOptions).staticAssets ?? {});
+    expect(paths.filter((path) => path.startsWith("/atproto/"))).toEqual([]);
   });
 });

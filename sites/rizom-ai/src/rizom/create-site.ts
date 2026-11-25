@@ -14,7 +14,12 @@ import type {
 } from "@rizom/site";
 import { rizomBaseSite } from "./runtime";
 import type { SitePackage } from "./contracts";
-import { buildRizomHeadScript } from "./runtime/plugin";
+import {
+  buildRizomHeadScript,
+  STORY_STYLESHEET_PATH,
+  storyStylesheet,
+} from "./runtime/plugin";
+import type { Organism } from "../story/organism";
 
 export interface RizomRuntimeHooks {
   contentNamespace: string;
@@ -52,6 +57,10 @@ export interface CreateRizomSiteOptions {
    * surface plugin lists — e.g. `post`→"Essay", `deck`→"Talk" — set it here.
    */
   entityDisplay?: Record<string, EntityDisplayEntry>;
+  /** The drawings the site's story pages scroll beside; their styles join the story stylesheet. */
+  organisms?: readonly Organism[];
+  /** The site's own static files, served beside the base's. */
+  staticAssets?: Record<string, string>;
   /** Advanced runtime hooks for in-repo sites that need custom template/data-source wiring. */
   runtime?: RizomRuntimeHooks;
 }
@@ -75,6 +84,12 @@ export function createRizomSite(options: CreateRizomSiteOptions): SitePackage {
     ...(options.content ? { content: options.content } : {}),
     ...(options.sections ? { sections: options.sections } : {}),
     headScripts: [buildRizomHeadScript()],
+    staticAssets: {
+      ...options.staticAssets,
+      ...(options.organisms?.length
+        ? { [STORY_STYLESHEET_PATH]: storyStylesheet(options.organisms) }
+        : {}),
+    },
     ...(options.themeOverride ? { themeOverride: options.themeOverride } : {}),
   });
   const { runtime } = options;
