@@ -10,6 +10,7 @@ describe("@rizom/site-rizom-ai", () => {
       "brain",
       "public-ask",
       "writing",
+      "docs",
       "work",
       "foundation",
     ]);
