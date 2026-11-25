@@ -168,6 +168,52 @@ describe("featuring an entity another brain publishes", () => {
     expect(await brain.references()).toHaveLength(1);
   });
 
+  it("features an essay first published elsewhere by its page on the author's brain, and links there", async () => {
+    const repo = authorRepo({
+      essay: postRecord("essay", {
+        canonicalUrl: "https://medium.example/@ada/essay",
+        pageUrl: "https://author.example/essays/essay",
+      }),
+    });
+    const brain = await referenceBrain(repo);
+
+    await brain.feature("https://author.example/essays/essay");
+
+    expect((await brain.references())[0]?.metadata).toMatchObject({
+      url: "https://author.example/essays/essay",
+      authorSite: "author.example",
+    });
+  });
+
+  it("finds that essay by its outside address too, and still links to the author's brain", async () => {
+    const repo = authorRepo({
+      essay: postRecord("essay", {
+        canonicalUrl: "https://medium.example/@ada/essay",
+        pageUrl: "https://author.example/essays/essay",
+      }),
+    });
+    const brain = await referenceBrain(repo);
+    brain.harness.getMockShell().addEntities([
+      {
+        id: "medium.example",
+        entityType: "agent",
+        content: "",
+        created: "2026-01-01T00:00:00.000Z",
+        updated: "2026-01-01T00:00:00.000Z",
+        visibility: "public",
+        contentHash: "agent",
+        metadata: { repoDid: AUTHOR_REPO, status: "approved" },
+      },
+    ]);
+
+    await brain.feature("https://medium.example/@ada/essay");
+
+    expect((await brain.references())[0]?.metadata).toMatchObject({
+      url: "https://author.example/essays/essay",
+      authorSite: "author.example",
+    });
+  });
+
   it("says the article has no record yet, and creates nothing", async () => {
     const brain = await referenceBrain(essays());
 

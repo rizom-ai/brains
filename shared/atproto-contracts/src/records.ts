@@ -102,6 +102,8 @@ export interface AtprotoBrainPostRecord extends Record<string, unknown> {
   brainDid?: string;
   anchorDid?: string;
   canonicalUrl?: string;
+  /** The post's page on its author's brain, wherever it was first published. */
+  pageUrl?: string;
   topics?: string[];
   coverImage?: {
     blob: AtprotoBlobRef;

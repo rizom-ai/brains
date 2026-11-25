@@ -35,6 +35,7 @@ const sourceRecordSchema = z.object({
   summary: z.string().optional(),
   description: z.string().optional(),
   canonicalUrl: z.url().optional(),
+  pageUrl: z.url().optional(),
   publishedAt: z.string().optional(),
   createdAt: z.string(),
   series: z.string().optional(),
@@ -85,12 +86,15 @@ export async function findRecordByAddress(
       repo.listRecords(collection, { pageSize: LIST_PAGE_SIZE }),
     ),
   );
-  return listed.flat().find((record) => {
-    const canonicalUrl = record.value["canonicalUrl"];
-    return (
-      typeof canonicalUrl === "string" && comparableUrl(canonicalUrl) === wanted
+  // Its page on the author's brain, or the address it was first published at.
+  return listed
+    .flat()
+    .find((record) =>
+      [record.value["pageUrl"], record.value["canonicalUrl"]].some(
+        (address) =>
+          typeof address === "string" && comparableUrl(address) === wanted,
+      ),
     );
-  });
 }
 
 /** The name the author gave their own brain's anchor, from their brain card. */
@@ -117,7 +121,10 @@ export function sourceFieldsOf(
     throw new Error(`${record.uri} is not a record a reference can show`);
   }
   const source = parsed.data;
-  if (!source.canonicalUrl) {
+  // A reader is sent to the author's own brain, wherever the piece first
+  // appeared; a record that names no page there has its one address.
+  const url = source.pageUrl ?? source.canonicalUrl;
+  if (!url) {
     throw new Error(`${record.uri} names no address, so it cannot be featured`);
   }
   const summary = source.summary ?? source.description;
@@ -133,8 +140,8 @@ export function sourceFieldsOf(
     title: source.title,
     ...(summary !== undefined && { summary }),
     author,
-    authorSite: new URL(source.canonicalUrl).host,
-    url: source.canonicalUrl,
+    authorSite: new URL(url).host,
+    url,
     publishedAt: source.publishedAt ?? source.createdAt,
     ...(source.series !== undefined && { series: source.series }),
     sourceUri: record.uri,

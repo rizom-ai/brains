@@ -91,6 +91,7 @@ export async function buildBlogAtprotoPostRecord(
       seriesIndex: metadata.seriesIndex,
     }),
     ...atprotoProvenance({ config, pageUrl: canonicalUrl }, entity),
+    ...(pageUrl && { pageUrl }),
     sourceEntityType: "post",
     ...(metadata.publishedAt && { publishedAt: metadata.publishedAt }),
   };

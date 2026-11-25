@@ -14,6 +14,17 @@ const PROJECTED = [
   "ai.rizom.brain.socialPost",
 ] as const;
 
+describe("a post's page on its author's brain", () => {
+  it("ai.rizom.brain.post declares an optional pageUrl", () => {
+    const main = canonicalAtprotoLexicons["ai.rizom.brain.post"].defs["main"];
+    expect(main.record.properties["pageUrl"]).toMatchObject({
+      type: "string",
+      format: "uri",
+    });
+    expect(main.record.required ?? []).not.toContain("pageUrl");
+  });
+});
+
 describe("a projected record's page address", () => {
   for (const id of PROJECTED) {
     it(`${id} declares an optional canonicalUrl`, () => {
