@@ -27,6 +27,6 @@ export const FoundationLayout: SiteLayout = createSiteLayout({
   footerNote:
     "The Rizom Foundation owns the code, the method and the Rizom name.",
   figures: {
-    "/": { className: "foundation-org", organism: foundationOrganism },
+    "/": { className: "commons-org", organism: foundationOrganism },
   },
 });

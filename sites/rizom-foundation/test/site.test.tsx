@@ -171,7 +171,7 @@ describe("rizom.foundation's chrome and drawing", () => {
   });
 
   test("only the home is told beside the drawing", () => {
-    expect(page("/")).toContain('class="figure foundation-org" data-stage="0"');
+    expect(page("/")).toContain('class="figure commons-org" data-stage="0"');
     expect(page("/common-sense")).not.toContain("<figure");
   });
 
@@ -188,5 +188,22 @@ describe("rizom.foundation's chrome and drawing", () => {
     expect(
       Object.keys(assets).filter((path) => path.startsWith("/atproto/")),
     ).toEqual([]);
+  });
+});
+
+describe("rizom.foundation speaks for the Foundation", () => {
+  test("its home tells the Foundation's case without the company", () => {
+    const html = renderRoute("home");
+    expect(html).not.toMatch(/B\.V\.|25%|the company/);
+    expect(html).toContain("holds them as a commons that cannot be sold");
+  });
+});
+
+describe("the Foundation's drawing", () => {
+  test("names no company and puts no one in the middle", () => {
+    const svg = render(foundationOrganism.svg());
+    expect(svg).not.toMatch(/B\.V\.|25%|license/);
+    expect(svg).toContain("no one in the middle");
+    expect(svg).toContain("the code, the method, the name, held in common");
   });
 });
