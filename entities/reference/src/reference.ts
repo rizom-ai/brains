@@ -29,6 +29,8 @@ export function referenceEntity(repos: PublicRepoReader): ReferenceDefinition {
         metadata: referenceMetadataSchema,
         // A curator's note here would be public beside the author's words.
         hasBody: false,
+        // Fields and nothing under them: stored as a YAML file.
+        config: { storage: "yaml" },
         create: {
           fromPrompt: referenceFromAddress,
           fromContent: referenceFromAddress,

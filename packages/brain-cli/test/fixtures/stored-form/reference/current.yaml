@@ -1,4 +1,3 @@
----
 status: published
 title: Scale without a centre
 summary: How a network grows with no one in the middle.
@@ -12,5 +11,3 @@ sourceUri: 'at://did:plc:author/ai.rizom.brain.post/scale-without-a-centre'
 sourceEntityType: post
 sourceEntityId: scale-without-a-centre
 sourceBrain: 'did:web:author.example'
----
-
