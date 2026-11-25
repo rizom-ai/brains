@@ -434,6 +434,26 @@
         "typescript": "^7.0.2",
       },
     },
+    "entities/reference": {
+      "name": "@brains/reference",
+      "version": "0.2.0-alpha.769",
+      "dependencies": {
+        "@brains/atproto-client": "workspace:*",
+        "@brains/contracts": "workspace:*",
+        "@brains/sdk": "workspace:*",
+        "@brains/utils": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/plugins": "workspace:*",
+        "@brains/test-utils": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "^1.4.0",
+        "bun-types": "^1.4.0",
+        "eslint": "^10.5.0",
+        "typescript": "^7.0.2",
+      },
+    },
     "entities/refined-note": {
       "name": "@brains/refined-note",
       "version": "0.2.0-alpha.769",
@@ -3043,6 +3063,8 @@
     "@brains/quiz": ["@brains/quiz@workspace:plugins/quiz"],
 
     "@brains/recurring-checks": ["@brains/recurring-checks@workspace:shell/recurring-checks"],
+
+    "@brains/reference": ["@brains/reference@workspace:entities/reference"],
 
     "@brains/refined-note": ["@brains/refined-note@workspace:entities/refined-note"],
 
