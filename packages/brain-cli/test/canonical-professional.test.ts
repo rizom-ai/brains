@@ -147,7 +147,8 @@ describe("canonical professional posture", () => {
     expect(pluginIds(resolved)).not.toContain("buttondown");
     expect(pluginIds(resolved)).not.toContain("resend");
     expect(pluginIds(resolved)).toContain("atproto");
-    expect(pluginIds(resolved)).toContain("atproto-registry");
+    expect(pluginIds(resolved)).toContain("references");
+    expect(pluginIds(resolved)).not.toContain("atproto-registry");
   });
 
   test("preserves the base professional site's runtime under local site overrides", async () => {
@@ -213,8 +214,23 @@ describe("canonical professional posture", () => {
       {},
       canonicalOverrides({ bundles: ["core", "federation"] }),
     );
+    // Federation is both directions: the brain publishes itself, and points
+    // to what other brains publish. The lexicon registry is rizom.ai's alone.
     expect(pluginIds(federationOnly)).toContain("atproto");
+    expect(pluginIds(federationOnly)).toContain("references");
+    expect(pluginIds(federationOnly)).toContain("reference");
+    expect(pluginIds(federationOnly)).not.toContain("atproto-registry");
     expect(pluginIds(federationOnly)).not.toContain("site-builder");
+
+    const registryAdded = resolve(
+      canonicalBrain,
+      {},
+      canonicalOverrides({
+        bundles: ["core", "federation"],
+        add: ["atproto-registry"],
+      }),
+    );
+    expect(pluginIds(registryAdded)).toContain("atproto-registry");
   });
 
   test("keeps publishing instructions definition-owned and neutral", () => {

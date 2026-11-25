@@ -20,6 +20,8 @@ add:
   - contact
   # The FAQs behind "Asked before" on the homepage, as production's chat bundle carries them.
   - faq
+  # rizom.ai is the lexicon authority: the one brain that serves the registry.
+  - atproto-registry
 
 # Local test app: Admin tools (build-site etc.) available over MCP
 # http transport.

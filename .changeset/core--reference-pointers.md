@@ -1,6 +1,7 @@
 ---
 "@brains/reference": patch
 "@rizom/brain": patch
+"@brains/atproto-registry": patch
 "@brains/atproto-client": patch
 ---
 
@@ -12,6 +13,6 @@ A site shows the selection with the `references:list` section on the `references
 
 A reference can point to a post, a deck, a project or a series. A post shows its series as its kicker; the others show what they are.
 
-References are an added capability: a brain that features other brains' work lists `references` under `add` in `brain.yaml`.
+References are part of the `federation` bundle, which now covers both directions: a brain publishes itself and points to what other brains publish. The lexicon registry (`atproto-registry`) leaves the bundle; the brain that is the lexicon authority adds it with `add: [atproto-registry]`.
 
 A reference is stored as a YAML file. An author's entries are also withdrawn when their PDS or the PLC directory reports the account itself deleted, deactivated, taken down or suspended; a timeout or a server error still changes nothing.

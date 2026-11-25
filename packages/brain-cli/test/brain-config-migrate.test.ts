@@ -333,6 +333,8 @@ describe("brain config migration preview", () => {
           "faq",
           // Forms in content come with every site.
           "form",
+          // Federation points to what other brains publish.
+          "references",
           "refined-note",
           "studio",
           "unified-inbox",
@@ -340,9 +342,11 @@ describe("brain config migration preview", () => {
         ],
         // playbook folded into playbooks, which installs the playbook type;
         // obsidian-vault folded into the Rizom Brain plugin for Obsidian.
+        // The lexicon registry is the authority's alone, added by rizom.ai.
         removed: [
           "account",
           "assessment",
+          "atproto-registry",
           "cms",
           "obsidian-vault",
           "playbook",

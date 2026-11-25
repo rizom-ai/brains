@@ -74,12 +74,16 @@ suites:
           apiKey: eval-placeholder-buttondown-key
       stock-photo:
         apiKey: eval-placeholder-stock-photo-key
-  # Professional with the agent network and saved pages: the seed peer brains,
+  # Professional with the agent network, the lexicon registry and saved pages: the seed peer brains,
   # on .example hosts, and the pages links are saved from, which the eval
   # process answers itself from shell/ai-evaluation/src/eval-pages.
   network:
     extends: professional
     inheritTags: false
+    # The lexicon registry is the authority's alone, so no recipe a member
+    # runs carries it; this suite adds it to prove its tools.
+    add:
+      - atproto-registry
     tags:
       - recipe-network
   team:

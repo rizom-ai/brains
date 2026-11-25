@@ -252,8 +252,8 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     packageCapability("link", "@brains/link", linkPackage, {
       pluginId: "link",
     }),
-    // Pointers to what other brains publish; a brain that features other
-    // brains' work adds it. The type installs as itself beside its service.
+    // Pointers to what other brains publish. The type installs as itself
+    // beside its service.
     packageCapability("references", "@brains/reference", referencePackage, {
       pluginId: "references",
       ownedTypePluginId: "reference",

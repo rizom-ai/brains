@@ -5,7 +5,7 @@ type: tool_invocation
 setup:
   permissionLevel: admin
 tags:
-  - recipe-professional
+  - recipe-network
   - federation
   - atproto
 

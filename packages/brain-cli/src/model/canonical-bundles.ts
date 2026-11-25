@@ -132,7 +132,10 @@ export const publishingBundle: CapabilityBundleDefinition = defineBundle({
 
 export const federationBundle: CapabilityBundleDefinition = defineBundle({
   id: FEDERATION_BUNDLE_ID,
-  members: ["atproto", "atproto-registry"],
+  // Both directions: the brain publishes itself, and points to what other
+  // brains publish. The lexicon registry is the authority's alone, added by
+  // the one brain that serves it.
+  members: ["atproto", "references"],
   evalDisable: ["atproto"],
 });
 

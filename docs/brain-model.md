@@ -110,7 +110,7 @@ Definition authors may use arbitrary ordered bundles over their own catalog. Can
 - `chat` — platform chat, web chat, email, notifications, and conversation memory;
 - `site` — site information, content, building, and analytics;
 - `publishing` — long-form content and distribution workflows;
-- `federation` — AT Protocol publication and registry capabilities;
+- `federation` — AT Protocol publication, and references to what other brains publish;
 - `team` — policy-only shared-memory defaults and trusted collaborative writes.
 
 Site and publishing remain independent. Optional capabilities are selected explicitly with `add`.

@@ -39,7 +39,7 @@ export function referenceEntity(repos: PublicRepoReader): ReferenceDefinition {
           capture: referenceCaptureJob(() => reference, repos),
         },
         instructions:
-          "To feature something another brain published, create a `reference` from its address on the author's own brain. The reference starts as a draft; publishing it is the choice to feature it.",
+          "A `reference` features something another brain published, on this brain's site: create one from the piece's address on its author's own brain. It starts as a draft, and publishing it is the choice to feature it. Saving a web page to read or cite later is a `link`, not a reference.",
       }),
       referenceFromAddress,
     ),
