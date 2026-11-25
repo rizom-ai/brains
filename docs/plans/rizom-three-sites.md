@@ -73,7 +73,7 @@ Content, for Jan Hein and the board:
 
 ## Members' writing on `rizom.foundation`
 
-How a brain features a curated selection of other brains' articles is its own plan, [curated-member-posts.md](./curated-member-posts.md), so it can be built and released independently of this one. Until it ships, `rizom.foundation` features members' articles as hand-authored rows, as in Phase 1 below.
+How a brain features a curated selection of other brains' articles is part of [cross-brain-entity-sharing.md](./cross-brain-entity-sharing.md), so it can be built and released independently of this one. Until its slice 4 ships, `rizom.foundation` features members' articles as hand-authored rows, as in Phase 1 below.
 
 ## Phases
 
@@ -109,7 +109,7 @@ The same steps for `@rizom/site-rizom-work`, `rizom-ai/rizom-work-content` and `
 
 ### Phase 4 — curated members' writing
 
-When `curated-member-posts.md` ships, its section replaces Phase 1's hand-authored rows.
+When slice 4 of [cross-brain-entity-sharing.md](./cross-brain-entity-sharing.md) ships, its `featured` section replaces Phase 1's hand-authored rows.
 
 ## Redirects
 
