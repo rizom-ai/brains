@@ -109,11 +109,34 @@ describe("the kinds of entity a reference can point to", () => {
     });
   });
 
-  it("does not point to kinds a site has no entry for", async () => {
+  for (const [collection, kind] of [
+    ["ai.rizom.brain.link", "link"],
+    ["ai.rizom.brain.note", "note"],
+    ["ai.rizom.brain.topic", "topic"],
+    ["ai.rizom.brain.socialPost", "social-post"],
+  ] as const) {
+    it(`points to a ${kind} that has a page on its author's site`, async () => {
+      const repo = publishing(collection, "a-piece", {
+        title: "A piece",
+        body: "THE WHOLE TEXT",
+        canonicalUrl: `https://author.example/${kind}/a-piece`,
+        createdAt: "2026-01-01T00:00:00.000Z",
+      });
+
+      expect(
+        await captured(repo, `https://author.example/${kind}/a-piece`),
+      ).toMatchObject({
+        title: "A piece",
+        sourceEntityType: kind,
+        sourceUri: `at://did:plc:author/${collection}/a-piece`,
+      });
+    });
+  }
+
+  it("does not point to a piece its author's site gives no page", async () => {
     const repo = publishing("ai.rizom.brain.note", "a-note", {
       title: "A note",
       body: "NOTE",
-      canonicalUrl: "https://author.example/notes/a-note",
       sourceEntityType: "note",
       sourceEntityId: "a-note",
       createdAt: "2026-01-01T00:00:00.000Z",

@@ -20,3 +20,5 @@ References are part of the `federation` bundle, which now covers both directions
 A reference is stored as a YAML file. An author's entries are also withdrawn when their PDS or the PLC directory reports the account itself deleted, deactivated, taken down or suspended; a timeout or a server error still changes nothing.
 
 A reference links to the piece on its author's own brain, wherever it first appeared. A post record now carries `pageUrl`, its page on the author's brain, beside `canonicalUrl`; a curator can give either address.
+
+Links, notes, topics and social posts that have a page on their author's site can be referenced too.

@@ -133,6 +133,10 @@ describe("the references section", () => {
         reference("deck", { sourceEntityType: "deck" }),
         reference("project", { sourceEntityType: "project" }),
         reference("series", { sourceEntityType: "series" }),
+        reference("link", { sourceEntityType: "link" }),
+        reference("note", { sourceEntityType: "note" }),
+        reference("topic", { sourceEntityType: "topic" }),
+        reference("social", { sourceEntityType: "social-post" }),
       ],
       { publishedOnly: true },
     );
@@ -145,6 +149,10 @@ describe("the references section", () => {
       deck: "Deck",
       project: "Project",
       series: "Series",
+      link: "Link",
+      note: "Note",
+      topic: "Topic",
+      social: "Social post",
     });
   });
 

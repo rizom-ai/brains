@@ -12,6 +12,10 @@ export const REFERENCE_COLLECTIONS: Readonly<Record<string, string>> = {
   deck: "ai.rizom.brain.deck",
   project: "ai.rizom.brain.project",
   series: "ai.rizom.brain.series",
+  link: "ai.rizom.brain.link",
+  note: "ai.rizom.brain.note",
+  topic: "ai.rizom.brain.topic",
+  "social-post": "ai.rizom.brain.socialPost",
 };
 
 /** The kind of entity a record of a collection is, when a reference may point to it. */
