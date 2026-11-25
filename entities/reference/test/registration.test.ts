@@ -35,7 +35,7 @@ describe("the references' registered surface", () => {
         .getJobQueueService()
         .getRegisteredTypes()
         .filter((type) => type.includes("reference")),
-    ).toEqual(["@brains/reference:reference:capture"]);
+    ).toEqual(["reference:capture"]);
   });
 
   it("stores a reference as frontmatter alone", async () => {

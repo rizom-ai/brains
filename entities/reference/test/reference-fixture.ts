@@ -7,6 +7,7 @@ import { createPluginHarness } from "@brains/plugins/test";
 import { createMockProgressReporter } from "@brains/test-utils";
 import type { FetchLike } from "@brains/utils/fetch-like";
 import { createReferencePackage, type ReferenceNetwork } from "../src";
+import { sourceCheckStore } from "../src/lib/recheck";
 import packageJson from "../package.json";
 
 export const AUTHOR_REPO = "did:plc:author";
@@ -21,6 +22,8 @@ export function referencePlugins(network: ReferenceNetwork = {}): Plugin[] {
     createReferencePackage(network),
     {},
     { name: packageJson.name, version: packageJson.version },
+    // Under the ids the canonical brain installs them by.
+    { pluginId: "references", ownedTypePluginId: "reference" },
   );
 }
 
@@ -60,6 +63,8 @@ export interface AuthorRepo {
   handle: string;
   /** Set to make the PDS fail every request. */
   down: boolean;
+  /** Set to make the PLC directory forget the repo. */
+  unresolvable: boolean;
   urls: string[];
   fetch: FetchLike;
 }
@@ -78,6 +83,7 @@ export function authorRepo(
     },
     handle: "author.example",
     down: false,
+    unresolvable: false,
     urls: [],
     fetch: async (request) => {
       const url = new URL(String(request));
@@ -90,6 +96,7 @@ export function authorRepo(
       if (
         url.href === `https://plc.directory/${encodeURIComponent(AUTHOR_REPO)}`
       ) {
+        if (repo.unresolvable) return jsonResponse({}, 404);
         return jsonResponse({
           id: AUTHOR_REPO,
           service: [{ id: "#atproto_pds", serviceEndpoint: AUTHOR_PDS }],
@@ -160,6 +167,14 @@ export interface ReferenceBrain {
   /** Create from an address and run its capture. */
   feature(url: string): Promise<unknown>;
   references(): Promise<StoredReference[]>;
+  /** Mark a stored reference published, as a curator does. */
+  publish(id: string): Promise<void>;
+  /** Run the daily recheck. */
+  recheck(): Promise<void>;
+  /** What the recheck keeps about one reference, outside the entity. */
+  checkState(id: string): Promise<unknown>;
+  /** The reasons of the site rebuilds asked for so far. */
+  rebuilds: string[];
 }
 
 /** A brain with references installed, reaching one author's repo. */
@@ -188,9 +203,14 @@ export async function referenceBrain(
     if (!interceptor) throw new Error("References intercept no create");
     return interceptor({ entityType: "reference", ...input }, admin);
   };
+  // Two jobs queued in one millisecond have no "most recent"; each runs once.
+  const ran = new Set<string>();
   const runCapture: ReferenceBrain["runCapture"] = async () => {
-    const [queued] = await jobs.getRecentJobs(undefined, 1);
+    const queued = (await jobs.getRecentJobs(undefined, 50)).find(
+      ({ id }) => !ran.has(id),
+    );
     if (!queued) throw new Error("No capture was queued");
+    ran.add(queued.id);
     const handler: JobHandler | undefined = jobs.getHandler(queued.type);
     if (!handler) throw new Error(`No handler for ${queued.type}`);
     return handler.process(
@@ -200,8 +220,38 @@ export async function referenceBrain(
       new AbortController().signal,
     );
   };
+  const rebuilds: string[] = [];
+  harness.subscribe("site:build:requested", (message) => {
+    rebuilds.push(String(Reflect.get(Object(message.payload), "reason")));
+    return { success: true };
+  });
+  const entityService = harness.getEntityService();
   return {
     harness,
+    rebuilds,
+    checkState: (id) =>
+      sourceCheckStore(harness.getMockShell().getRuntimeState()).get(id),
+    publish: async (id): Promise<void> => {
+      const entity = await entityService.getEntity({
+        entityType: "reference",
+        id,
+        visibilityScope: "restricted",
+      });
+      if (!entity) throw new Error(`No reference ${id}`);
+      await entityService.updateEntity({
+        entity: {
+          ...entity,
+          metadata: { ...entity.metadata, status: "published" },
+        },
+      });
+    },
+    recheck: async (): Promise<void> => {
+      const check = harness
+        .getMockShell()
+        .getRecurringCheck("references:source-recheck");
+      if (!check) throw new Error("No recheck is registered");
+      await check.run({ signal: new AbortController().signal });
+    },
     create,
     runCapture,
     feature: async (url): Promise<unknown> => {

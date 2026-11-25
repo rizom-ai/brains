@@ -5,7 +5,7 @@ import {
 } from "@brains/sdk/internal/entity-runtime";
 import { referenceCaptureJob } from "./jobs/capture";
 import { referenceFromAddress } from "./lib/create-from-address";
-import { referenceRepos, type ReferenceNetwork } from "./lib/network";
+import type { PublicRepoReader } from "@brains/atproto-client";
 import { referenceMetadataSchema } from "./schemas/reference";
 
 export type ReferenceDefinition = EntityDefinition<
@@ -19,10 +19,7 @@ export type ReferenceDefinition = EntityDefinition<
  * gives, starts as a draft, and is featured by publishing it. The author
  * keeps the entity on their own brain, and the reference links to it there.
  */
-export function referenceEntity(
-  network: ReferenceNetwork = {},
-): ReferenceDefinition {
-  const repos = referenceRepos(network);
+export function referenceEntity(repos: PublicRepoReader): ReferenceDefinition {
   const reference: ReferenceDefinition = withPublishedStatuses(
     withUrlRoute(
       defineEntity({

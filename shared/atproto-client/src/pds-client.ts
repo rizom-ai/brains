@@ -91,8 +91,26 @@ export interface UploadBlobResult {
 }
 
 const atprotoErrorResponseSchema = z.looseObject({
-  message: z.string(),
+  error: z.string().optional(),
+  message: z.string().optional(),
 });
+
+/**
+ * A request the PDS refused: its HTTP status and, when it gave one, its
+ * error code (`RecordNotFound`), so a caller can tell a record that is gone
+ * from a PDS that is failing.
+ */
+export class AtprotoRequestError extends Error {
+  readonly status: number;
+  readonly code: string | undefined;
+
+  constructor(message: string, status: number, code: string | undefined) {
+    super(message);
+    this.name = "AtprotoRequestError";
+    this.status = status;
+    this.code = code;
+  }
+}
 
 const atprotoSessionSchema = z.looseObject({
   did: z.string(),
@@ -172,10 +190,11 @@ function assertResponseOk(response: Response, body: unknown): void {
   if (response.ok) return;
 
   const error = atprotoErrorResponseSchema.safeParse(body);
-  throw new Error(
-    error.success
-      ? error.data.message
-      : `AT Protocol request failed with ${response.status}`,
+  throw new AtprotoRequestError(
+    (error.success ? error.data.message : undefined) ??
+      `AT Protocol request failed with ${response.status}`,
+    response.status,
+    error.success ? error.data.error : undefined,
   );
 }
 

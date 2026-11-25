@@ -3,7 +3,9 @@ import {
   z,
   type ServicePackageDefinition,
 } from "@brains/sdk/services";
-import type { ReferenceNetwork } from "./lib/network";
+import { serviceRuntime } from "@brains/sdk/internal/service-runtime";
+import { referenceRepos, type ReferenceNetwork } from "./lib/network";
+import { recheckContextOf, recheckReferences } from "./lib/recheck";
 import { referenceEntity } from "./reference";
 
 const emptyConfigSchema: z.ZodObject<Record<string, never>> = z.object({});
@@ -15,11 +17,25 @@ const emptyConfigSchema: z.ZodObject<Record<string, never>> = z.object({});
 export function createReferencePackage(
   network: ReferenceNetwork = {},
 ): ServicePackageDefinition<typeof emptyConfigSchema> {
+  const repos = referenceRepos(network);
   return defineServicePlugin({
     id: "references",
     config: emptyConfigSchema,
-    entities: [referenceEntity(network)],
-    setup: async (): Promise<Record<never, never>> => ({}),
+    entities: [referenceEntity(repos)],
+    setup: async (setupContext): Promise<Record<never, never>> => {
+      const runtime = serviceRuntime(setupContext);
+      const context = recheckContextOf(runtime, repos);
+      runtime.recurringCheck({
+        id: "source-recheck",
+        cadence: "daily",
+        deliverAlerts: false,
+        run: async ({ signal }) => {
+          await recheckReferences(context, signal);
+          return {};
+        },
+      });
+      return {};
+    },
   });
 }
 

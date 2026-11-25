@@ -1,5 +1,6 @@
 export {
   AtprotoPdsClient,
+  AtprotoRequestError,
   type AtprotoPdsClientConfig,
   type AtprotoSession,
   type CreateRecordInput,
