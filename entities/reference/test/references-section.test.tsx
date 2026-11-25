@@ -137,6 +137,10 @@ describe("the references section", () => {
         reference("note", { sourceEntityType: "note" }),
         reference("topic", { sourceEntityType: "topic" }),
         reference("social", { sourceEntityType: "social-post" }),
+        reference("newsletter", { sourceEntityType: "newsletter" }),
+        reference("doc", { sourceEntityType: "doc" }),
+        reference("guide", { sourceEntityType: "guide" }),
+        reference("book", { sourceEntityType: "book" }),
       ],
       { publishedOnly: true },
     );
@@ -153,6 +157,10 @@ describe("the references section", () => {
       note: "Note",
       topic: "Topic",
       social: "Social post",
+      newsletter: "Newsletter",
+      doc: "Doc",
+      guide: "Guide",
+      book: "Book",
     });
   });
 

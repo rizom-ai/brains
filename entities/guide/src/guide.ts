@@ -1,5 +1,6 @@
 import { bodyFieldsCodec } from "@brains/sdk/internal/entity-runtime";
 import { defineEntity, type EntityDefinition } from "@brains/sdk/entities";
+import { guideAtproto } from "./atproto-projection";
 import { getTemplates } from "./lib/register-templates";
 import { guideMetadataSchema } from "./schemas/guide";
 import { guideFrontmatterSchema } from "./schemas/guide-frontmatter";
@@ -52,5 +53,6 @@ export const guide: EntityDefinition<"guide", typeof guideMetadataSchema> =
     }),
     config: { projectionSourceRole: "primary" },
     instructions: GUIDE_INSTRUCTIONS,
+    atproto: guideAtproto,
     templates: getTemplates(),
   });

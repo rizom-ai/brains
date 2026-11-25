@@ -134,6 +134,7 @@
       "name": "@brains/book",
       "version": "0.2.0-alpha.769",
       "dependencies": {
+        "@brains/atproto-contracts": "workspace:*",
         "@brains/contracts": "workspace:*",
         "@brains/media-page-composer": "workspace:*",
         "@brains/sdk": "workspace:*",
@@ -229,6 +230,7 @@
       "name": "@brains/doc",
       "version": "0.2.0-alpha.769",
       "dependencies": {
+        "@brains/atproto-contracts": "workspace:*",
         "@brains/docs-chrome": "workspace:*",
         "@brains/sdk": "workspace:*",
         "@brains/utils": "workspace:*",
@@ -312,6 +314,7 @@
       "name": "@brains/guide",
       "version": "0.2.0-alpha.769",
       "dependencies": {
+        "@brains/atproto-contracts": "workspace:*",
         "@brains/content-formatters": "workspace:*",
         "@brains/docs-chrome": "workspace:*",
         "@brains/sdk": "workspace:*",
@@ -1302,6 +1305,7 @@
       "name": "@brains/newsletter",
       "version": "0.2.0-alpha.769",
       "dependencies": {
+        "@brains/atproto-contracts": "workspace:*",
         "@brains/contracts": "workspace:*",
         "@brains/sdk": "workspace:*",
         "@brains/site-composition": "workspace:*",

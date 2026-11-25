@@ -519,7 +519,7 @@ Key frontmatter:
 
 ### `reference`
 
-`reference` records belong to `@brains/reference`, in the `federation` bundle. Each points to an entity another brain publishes that has a page on its author's site: a post, deck, project, series, link, note, topic or social post. It holds what a reader is shown and where the entity lives, never its content. It has no body of its own and is stored as a YAML file.
+`reference` records belong to `@brains/reference`, in the `federation` bundle. Each points to an entity another brain publishes that has a page on its author's site: a post, deck, project, series, link, note, topic, social post, newsletter, doc, guide or book. It holds what a reader is shown and where the entity lives, never its content. It has no body of its own and is stored as a YAML file.
 
 A reference is created from the entity's address on its author's brain, with `system_create` and `source: { kind: "url", url }`. The capture finds the author's AT Protocol repo, reads the record whose `canonicalUrl` is that address, and writes a draft. Publishing the draft features it. A daily check keeps the fields and byline current and marks the entry `withdrawn` when the author's record is gone.
 

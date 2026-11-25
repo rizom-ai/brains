@@ -4,6 +4,7 @@
   "version": "0.2.0-alpha.769",
   "description": "Documentation entity type — markdown docs as first-class brain content",
   "dependencies": {
+    "@brains/atproto-contracts": "workspace:*",
     "@brains/docs-chrome": "workspace:*",
     "@brains/sdk": "workspace:*",
     "@brains/utils": "workspace:*",
