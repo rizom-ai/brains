@@ -57,6 +57,8 @@ export function postRecord(
 export interface AuthorRepo {
   /** Post records by record key; mutate to change what the author publishes. */
   posts: Map<string, Record<string, unknown>>;
+  /** Records of the other collections, by collection and record key. */
+  others: Map<string, Map<string, Record<string, unknown>>>;
   /** The author's brain card, or none. */
   card: Record<string, unknown> | undefined;
   /** The handle the repo answers to. */
@@ -78,6 +80,7 @@ export function authorRepo(
 ): AuthorRepo {
   const repo: AuthorRepo = {
     posts: new Map(Object.entries(posts)),
+    others: new Map(),
     card: {
       anchor: { did: "did:web:author.example:anchor", name: "Ada Author" },
     },
@@ -105,6 +108,12 @@ export function authorRepo(
       if (url.origin !== AUTHOR_PDS) return jsonResponse({}, 404);
       if (repo.down) return jsonResponse({ message: "Upstream failure" }, 502);
       const collection = url.searchParams.get("collection");
+      const stored = (
+        name: string | null,
+      ): Map<string, Record<string, unknown>> =>
+        name === POSTS
+          ? repo.posts
+          : (repo.others.get(name ?? "") ?? new Map());
       const record = (
         rkey: string,
         value: Record<string, unknown>,
@@ -114,15 +123,15 @@ export function authorRepo(
         value,
       });
       if (url.pathname === "/xrpc/com.atproto.repo.listRecords") {
-        if (collection !== POSTS) return jsonResponse({ records: [] });
-        const keys = [...repo.posts.keys()];
+        const listed = stored(collection);
+        const keys = [...listed.keys()];
         const limit = Number(url.searchParams.get("limit"));
         const cursor = url.searchParams.get("cursor");
         const start = cursor ? keys.indexOf(cursor) + 1 : 0;
         const page = keys.slice(start, start + limit);
         const last = page.at(-1);
         return jsonResponse({
-          records: page.map((rkey) => record(rkey, repo.posts.get(rkey) ?? {})),
+          records: page.map((rkey) => record(rkey, listed.get(rkey) ?? {})),
           ...(last !== undefined &&
             start + limit < keys.length && { cursor: last }),
         });
@@ -132,7 +141,7 @@ export function authorRepo(
         const value =
           collection === "ai.rizom.brain.card"
             ? repo.card
-            : repo.posts.get(rkey);
+            : stored(collection).get(rkey);
         return value
           ? jsonResponse(record(rkey, value))
           : jsonResponse(

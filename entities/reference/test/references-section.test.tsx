@@ -118,10 +118,33 @@ describe("the references section", () => {
           authorSite: "author.example",
           url: "https://author.example/essays/essay",
           publishedAt: "2026-05-02T09:00:00.000Z",
-          series: "Common Sense",
+          kicker: "Common Sense",
           status: "published",
         },
       ],
+    });
+  });
+
+  it("gives each kind a kicker: a post its series, the others what they are", async () => {
+    const data = await section(
+      [
+        reference("in-series", { series: "Common Sense" }),
+        reference("plain-post"),
+        reference("deck", { sourceEntityType: "deck" }),
+        reference("project", { sourceEntityType: "project" }),
+        reference("series", { sourceEntityType: "series" }),
+      ],
+      { publishedOnly: true },
+    );
+
+    expect(
+      Object.fromEntries(data.references.map(({ id, kicker }) => [id, kicker])),
+    ).toEqual({
+      "in-series": "Common Sense",
+      "plain-post": null,
+      deck: "Deck",
+      project: "Project",
+      series: "Series",
     });
   });
 
@@ -138,7 +161,7 @@ describe("the references section", () => {
             authorSite: "author.example",
             url: "https://author.example/essays/scale-without-a-centre",
             publishedAt: "2026-05-02T09:00:00.000Z",
-            series: "Common Sense",
+            kicker: "Common Sense",
             status: "published",
           },
         ]}
@@ -171,7 +194,7 @@ describe("the references section", () => {
             authorSite: "author.example",
             url: "https://author.example/essays/draft",
             publishedAt: "2026-05-02T09:00:00.000Z",
-            series: null,
+            kicker: null,
             status: "draft",
           },
         ]}

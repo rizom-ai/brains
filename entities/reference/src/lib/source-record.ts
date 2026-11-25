@@ -1,11 +1,25 @@
-import type { ListedRecord, PublicRepo } from "@brains/atproto-client";
+import {
+  recordKeyOf,
+  type ListedRecord,
+  type PublicRepo,
+} from "@brains/atproto-client";
 import { z } from "@brains/utils/zod";
 import type { ReferenceMetadata } from "../schemas/reference";
 
 /** The collection each kind of entity a reference may point to is read from. */
 export const REFERENCE_COLLECTIONS: Readonly<Record<string, string>> = {
   post: "ai.rizom.brain.post",
+  deck: "ai.rizom.brain.deck",
+  project: "ai.rizom.brain.project",
+  series: "ai.rizom.brain.series",
 };
+
+/** The kind of entity a record of a collection is, when a reference may point to it. */
+function kindOfCollection(collection: string | undefined): string | undefined {
+  return Object.entries(REFERENCE_COLLECTIONS).find(
+    ([, name]) => name === collection,
+  )?.[0];
+}
 
 const BRAIN_CARD = { collection: "ai.rizom.brain.card", rkey: "self" };
 
@@ -24,8 +38,8 @@ const sourceRecordSchema = z.object({
   publishedAt: z.string().optional(),
   createdAt: z.string(),
   series: z.string().optional(),
-  sourceEntityType: z.string(),
-  sourceEntityId: z.string(),
+  sourceEntityType: z.string().optional(),
+  sourceEntityId: z.string().optional(),
   brainDid: z.string().optional(),
 });
 
@@ -107,6 +121,14 @@ export function sourceFieldsOf(
     throw new Error(`${record.uri} names no address, so it cannot be featured`);
   }
   const summary = source.summary ?? source.description;
+  // A record that does not say what it came from is named by where it is.
+  const sourceEntityType =
+    source.sourceEntityType ??
+    kindOfCollection(/^at:\/\/[^/]+\/([^/]+)\//.exec(record.uri)?.[1]);
+  const sourceEntityId = source.sourceEntityId ?? recordKeyOf(record.uri);
+  if (!sourceEntityType || !sourceEntityId) {
+    throw new Error(`${record.uri} does not say what it is a record of`);
+  }
   return {
     title: source.title,
     ...(summary !== undefined && { summary }),
@@ -116,8 +138,8 @@ export function sourceFieldsOf(
     publishedAt: source.publishedAt ?? source.createdAt,
     ...(source.series !== undefined && { series: source.series }),
     sourceUri: record.uri,
-    sourceEntityType: source.sourceEntityType,
-    sourceEntityId: source.sourceEntityId,
+    sourceEntityType,
+    sourceEntityId,
     ...(source.brainDid !== undefined && { sourceBrain: source.brainDid }),
   };
 }

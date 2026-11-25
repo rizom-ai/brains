@@ -13,7 +13,7 @@ type ReferenceListItemSchema = z.ZodObject<{
   authorSite: z.ZodString;
   url: z.ZodURL;
   publishedAt: z.ZodString;
-  series: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+  kicker: z.ZodDefault<z.ZodNullable<z.ZodString>>;
   status: typeof referenceStatusSchema;
 }>;
 
@@ -28,7 +28,8 @@ export const referenceListItemSchema: ReferenceListItemSchema = z.object({
   authorSite: z.string(),
   url: z.url(),
   publishedAt: z.string(),
-  series: z.string().nullable().default(null),
+  /** What sets the entry apart: a post's series, else what kind of thing it is. */
+  kicker: z.string().nullable().default(null),
   status: referenceStatusSchema,
 });
 
@@ -41,8 +42,8 @@ export const referenceListSchema: z.ZodObject<{
 export type ReferenceListData = z.output<typeof referenceListSchema>;
 
 /**
- * A selection of what other brains publish. Each entry is its kicker (the
- * series, the author and the date), its title and its author's own summary,
+ * A selection of what other brains publish. Each entry is its kicker (a
+ * post's series or the kind of thing it is, the author and the date), its title and its author's own summary,
  * and leads to the entity on its author's site. There are no local pages.
  */
 export const ReferenceList = ({
@@ -56,8 +57,8 @@ export const ReferenceList = ({
           <li key={reference.id} className="py-6">
             <article>
               <p className="mb-2 flex flex-wrap items-center gap-x-2 text-xs uppercase tracking-wide text-theme-muted">
-                {reference.series && (
-                  <span className="text-brand">{reference.series}</span>
+                {reference.kicker && (
+                  <span className="text-brand">{reference.kicker}</span>
                 )}
                 <span>{reference.author}</span>
                 <time dateTime={reference.publishedAt}>

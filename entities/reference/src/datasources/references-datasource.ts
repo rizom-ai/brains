@@ -9,6 +9,13 @@ import type {
   ReferenceListItem,
 } from "../templates/reference-list";
 
+/** What a reference of a kind other than a post is called on a site. */
+const KIND_LABELS: Readonly<Record<string, string>> = {
+  deck: "Deck",
+  project: "Project",
+  series: "Series",
+};
+
 function referenceItem(
   entity: EntityOf<ReferenceDefinition>,
 ): ReferenceListItem {
@@ -22,7 +29,7 @@ function referenceItem(
     authorSite: metadata.authorSite,
     url: metadata.url,
     publishedAt: metadata.publishedAt,
-    series: metadata.series ?? null,
+    kicker: metadata.series ?? KIND_LABELS[metadata.sourceEntityType] ?? null,
     status: metadata.status,
   };
 }
