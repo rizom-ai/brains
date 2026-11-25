@@ -17,6 +17,9 @@
   position: relative;
   z-index: 1;
   width: 100%;
+  /* A grid column is never narrower than its content: without this the
+     quick start's code block widened the column past a phone's screen. */
+  min-width: 0;
   max-width: 80rem;
   margin: 0 auto;
   padding: 0 clamp(1rem, 5vw, 5rem);
@@ -596,6 +599,13 @@
   bottom: 0;
   width: 70px;
   pointer-events: none;
+}
+/* The thread is fixed to the screen, so the footer lies over it, carrying
+   the page's own texture so it shows no band against the page. */
+footer.site-footer {
+  z-index: 60;
+  background-color: var(--color-bg);
+  background-image: var(--bg-noise);
 }
 .rail__svg {
   position: absolute;
