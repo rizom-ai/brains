@@ -38,6 +38,23 @@ describe("the references' registered surface", () => {
     ).toEqual(["reference:capture"]);
   });
 
+  it("registers the section template on its data source, and the daily recheck", async () => {
+    const harness = await installed();
+
+    expect(
+      [...harness.getTemplates()]
+        .filter(([name]) => name.startsWith("references:"))
+        .map(([name, template]) => [name, template.dataSourceId ?? null]),
+    ).toEqual([["references:list", "references:entities"]]);
+    expect([...harness.getDataSources().keys()]).toContain(
+      "references:entities",
+    );
+    expect(
+      harness.getMockShell().getRecurringCheck("references:source-recheck")
+        ?.cadence,
+    ).toBe("daily");
+  });
+
   it("stores a reference as frontmatter alone", async () => {
     const harness = await installed();
     const adapter = harness.getEntityRegistry().getAdapter("reference");
