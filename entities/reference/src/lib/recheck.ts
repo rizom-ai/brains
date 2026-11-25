@@ -1,6 +1,8 @@
 import {
   AtprotoRequestError,
+  RepoGoneError,
   recordKeyOf,
+  type ListedRecord,
   type PublicRepo,
   type PublicRepoReader,
 } from "@brains/atproto-client";
@@ -97,6 +99,34 @@ function collectionOf(sourceUri: string): string | undefined {
   return /^at:\/\/[^/]+\/([^/]+)\//.exec(sourceUri)?.[1];
 }
 
+/** A reference's record as its author publishes it now, and their byline. */
+interface Source {
+  readonly record: ListedRecord;
+  readonly author: string | undefined;
+}
+
+/**
+ * What a PDS answers when the record, or the whole account, is no longer
+ * published: said outright, never inferred from a timeout or a failure.
+ */
+const GONE_CODES = new Set([
+  "RecordNotFound",
+  "RepoNotFound",
+  "RepoDeactivated",
+  "RepoTakendown",
+  "RepoSuspended",
+]);
+
+/** Whether a read failed because its author no longer publishes the source. */
+function isSourceGone(error: unknown): boolean {
+  return (
+    error instanceof RepoGoneError ||
+    (error instanceof AtprotoRequestError &&
+      error.code !== undefined &&
+      GONE_CODES.has(error.code))
+  );
+}
+
 /** Write a reference's metadata over the version read; a newer one is left alone. */
 async function writeMetadata(
   context: RecheckContext,
@@ -111,38 +141,21 @@ async function writeMetadata(
 
 /**
  * Check one reference against its record: the same version changes
- * nothing, a new one updates the fields in place, a record that is gone
- * withdraws the entry, and one that returned makes it active again.
+ * nothing, a new one updates the fields in place, a record or an account
+ * that is gone withdraws the entry, and one that returned makes it active
+ * again.
  * Anything else that goes wrong is thrown, and changes nothing.
  */
 async function recheckOne(
   context: RecheckContext,
   stored: StoredReference,
-  repo: PublicRepo,
-  author: string | undefined,
+  source: Source | undefined,
   state: SourceCheckState,
   now: string,
 ): Promise<Outcome> {
   const { metadata } = stored;
-  const collection = collectionOf(metadata.sourceUri);
-  const rkey = recordKeyOf(metadata.sourceUri);
-  if (!collection || !rkey) {
-    throw new Error(`${metadata.sourceUri} is not a record address`);
-  }
 
-  const record = await repo
-    .getRecord({ collection, rkey })
-    .catch((error: unknown) => {
-      if (
-        error instanceof AtprotoRequestError &&
-        error.code === "RecordNotFound"
-      ) {
-        return undefined;
-      }
-      throw error;
-    });
-
-  if (!record) {
+  if (!source) {
     if (metadata.sourceState === "withdrawn") return "unchanged";
     await writeMetadata(context, stored, {
       ...metadata,
@@ -152,6 +165,7 @@ async function recheckOne(
     return "withdrawn";
   }
 
+  const { record, author } = source;
   // The byline is the author's own; a card that cannot be read keeps the last one.
   const byline = author ?? metadata.author;
   const seen =
@@ -232,19 +246,24 @@ export async function recheckReferences(
     result.checked += 1;
     const state = (await context.checks.get(stored.entity.id)) ?? {};
     try {
-      const repoDid = repoOf(stored.metadata.sourceUri);
-      if (!repoDid) {
-        throw new Error(`${stored.metadata.sourceUri} is not a record address`);
+      const { sourceUri } = stored.metadata;
+      const repoDid = repoOf(sourceUri);
+      const collection = collectionOf(sourceUri);
+      const rkey = recordKeyOf(sourceUri);
+      if (!repoDid || !collection || !rkey) {
+        throw new Error(`${sourceUri} is not a record address`);
       }
-      const { repo, author } = await authorOf(repoDid);
-      const outcome = await recheckOne(
-        context,
-        stored,
-        repo,
-        author,
-        state,
-        now,
-      );
+      // No source when the record, or the author's whole account, is gone.
+      const source = await authorOf(repoDid)
+        .then(async ({ repo, author }): Promise<Source> => ({
+          record: await repo.getRecord({ collection, rkey }),
+          author,
+        }))
+        .catch((error: unknown) => {
+          if (isSourceGone(error)) return undefined;
+          throw error;
+        });
+      const outcome = await recheckOne(context, stored, source, state, now);
       if (outcome === "updated") result.updated += 1;
       if (outcome === "withdrawn") result.withdrawn += 1;
     } catch (error) {

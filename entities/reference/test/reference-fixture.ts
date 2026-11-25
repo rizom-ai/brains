@@ -67,6 +67,10 @@ export interface AuthorRepo {
   down: boolean;
   /** Set to make the PLC directory forget the repo. */
   unresolvable: boolean;
+  /** Set to make the PLC directory report the account deleted for good. */
+  tombstoned: boolean;
+  /** Set to make the PDS refuse every record read with this error code. */
+  accountError: string | undefined;
   urls: string[];
   fetch: FetchLike;
 }
@@ -87,6 +91,8 @@ export function authorRepo(
     handle: "author.example",
     down: false,
     unresolvable: false,
+    tombstoned: false,
+    accountError: undefined,
     urls: [],
     fetch: async (request) => {
       const url = new URL(String(request));
@@ -100,6 +106,9 @@ export function authorRepo(
         url.href === `https://plc.directory/${encodeURIComponent(AUTHOR_REPO)}`
       ) {
         if (repo.unresolvable) return jsonResponse({}, 404);
+        if (repo.tombstoned) {
+          return jsonResponse({ message: "DID not available" }, 410);
+        }
         return jsonResponse({
           id: AUTHOR_REPO,
           service: [{ id: "#atproto_pds", serviceEndpoint: AUTHOR_PDS }],
@@ -107,6 +116,12 @@ export function authorRepo(
       }
       if (url.origin !== AUTHOR_PDS) return jsonResponse({}, 404);
       if (repo.down) return jsonResponse({ message: "Upstream failure" }, 502);
+      if (repo.accountError) {
+        return jsonResponse(
+          { error: repo.accountError, message: "Repo is not available" },
+          400,
+        );
+      }
       const collection = url.searchParams.get("collection");
       const stored = (
         name: string | null,

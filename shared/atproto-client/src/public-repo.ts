@@ -24,6 +24,20 @@ const didDocumentServiceSchema = z.looseObject({
     .optional(),
 });
 
+/**
+ * A repo whose identity its directory reports deleted for good. Thrown
+ * apart from a repo that merely could not be reached, so a reader can tell
+ * an author who left from a directory that is failing.
+ */
+export class RepoGoneError extends Error {
+  constructor(repoDid: string) {
+    super(`AT Protocol repo is gone: ${repoDid}`);
+    this.name = "RepoGoneError";
+  }
+}
+
+const HTTP_GONE = 410;
+
 export interface PublicRepoReaderOptions {
   /**
    * What every request goes through. Each address read is someone else's, so
@@ -130,7 +144,7 @@ export class PublicRepoReader {
 
   async resolveDidToPdsEndpoint(did: string): Promise<string | undefined> {
     const didDocument = did.startsWith("did:plc:")
-      ? await this.fetchJson(`https://plc.directory/${encodeURIComponent(did)}`)
+      ? await this.fetchPlcDocument(did)
       : did.startsWith("did:web:")
         ? await this.fetchJson(didWebDocumentUrl(did))
         : undefined;
@@ -159,6 +173,16 @@ export class PublicRepoReader {
         requestTimeoutMs: this.options.requestTimeoutMs,
       }),
     });
+  }
+
+  /** A `did:plc` identity's document; a tombstoned identity is gone. */
+  private async fetchPlcDocument(did: string): Promise<unknown> {
+    const response = await this.options.fetch(
+      `https://plc.directory/${encodeURIComponent(did)}`,
+    );
+    if (response.status === HTTP_GONE) throw new RepoGoneError(did);
+    if (!response.ok) return undefined;
+    return response.json();
   }
 
   private async fetchJson(url: string): Promise<unknown> {

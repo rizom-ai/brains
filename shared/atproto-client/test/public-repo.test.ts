@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import type { FetchLike } from "@brains/utils/fetch-like";
 import { UnsafePublicResourceError } from "@brains/utils/safe-public-fetch";
-import { PublicRepoReader } from "../src";
+import { PublicRepoReader, RepoGoneError } from "../src";
 
 const REPO = "did:plc:author";
 const PDS = "https://pds.author.example";
@@ -158,6 +158,20 @@ describe("PublicRepoReader", () => {
     expect(reader(fetch).open("nobody.example")).rejects.toThrow(
       "Could not resolve AT Protocol repo: nobody.example",
     );
+  });
+
+  it("says an identity deleted for good is gone, not unreachable", async () => {
+    const fetch: FetchLike = async () =>
+      jsonResponse({ message: "DID not available" }, 410);
+
+    const failure = await reader(fetch)
+      .open(REPO)
+      .then(
+        () => undefined,
+        (error: unknown) => error,
+      );
+
+    expect(failure).toBeInstanceOf(RepoGoneError);
   });
 
   it("reads one record", async () => {

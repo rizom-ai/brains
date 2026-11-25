@@ -169,6 +169,42 @@ describe("the daily recheck of what a brain features", () => {
     expect(await brain.checkState(ID)).not.toHaveProperty("failureCount");
   });
 
+  for (const code of ["RepoNotFound", "RepoDeactivated", "RepoTakendown"]) {
+    it(`withdraws an author's entries when their account is reported ${code}`, async () => {
+      const { repo, brain } = await featured();
+      repo.accountError = code;
+
+      await brain.recheck();
+
+      expect(await metadataOf(brain)).toMatchObject({
+        status: "published",
+        sourceState: "withdrawn",
+      });
+      expect(brain.rebuilds).toHaveLength(1);
+    });
+  }
+
+  it("withdraws an author's entries when their identity is deleted for good", async () => {
+    const { repo, brain } = await featured();
+    repo.tombstoned = true;
+
+    await brain.recheck();
+
+    expect((await metadataOf(brain))["sourceState"]).toBe("withdrawn");
+    expect(brain.rebuilds).toHaveLength(1);
+  });
+
+  it("makes the entries active again when the account returns", async () => {
+    const { repo, brain } = await featured();
+    repo.accountError = "RepoDeactivated";
+    await brain.recheck();
+
+    repo.accountError = undefined;
+    await brain.recheck();
+
+    expect((await metadataOf(brain))["sourceState"]).toBe("active");
+  });
+
   it("changes nothing when the author's repo cannot be found", async () => {
     const { repo, brain } = await featured();
     repo.unresolvable = true;

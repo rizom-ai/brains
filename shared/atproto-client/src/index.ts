@@ -23,6 +23,7 @@ export {
 } from "./list-records";
 export {
   PublicRepoReader,
+  RepoGoneError,
   didWebDocumentUrl,
   type PublicRepo,
   type PublicRepoReaderOptions,
