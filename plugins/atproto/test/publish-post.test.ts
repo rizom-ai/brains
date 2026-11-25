@@ -348,7 +348,11 @@ describe("AT Protocol post publishing", () => {
     expect(buildRecord).toHaveBeenCalledWith(
       expect.objectContaining({
         entity: expect.objectContaining({ id: "post-123" }),
-        config: expect.objectContaining({ identifier: "brain.example.com" }),
+        // Who the record names, and nothing the brain signs in with.
+        config: {
+          brainDid: "did:plc:session-repo",
+          anchorDid: "did:plc:session-repo",
+        },
       }),
     );
     expect(putRecord).toHaveBeenCalledWith({

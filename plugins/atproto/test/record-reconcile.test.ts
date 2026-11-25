@@ -60,7 +60,10 @@ function note(
   };
 }
 
-/** The record the test projection builds for a note. */
+/**
+ * The record the test projection builds for a note. A brain with no site
+ * and no configured DIDs is named, as its anchor is, by its repo.
+ */
 function noteRecord(
   entity: BaseEntity,
   extra: StoredRecord = {},
@@ -69,7 +72,18 @@ function noteRecord(
     $type: NOTES,
     title: String(entity.metadata["title"]),
     createdAt: entity.created,
+    brainDid: REPO,
+    anchorDid: REPO,
     ...extra,
+  };
+}
+
+/** A record as an earlier release wrote it: naming no brain and no anchor. */
+function unnamedRecord(entity: BaseEntity): StoredRecord {
+  return {
+    $type: NOTES,
+    title: String(entity.metadata["title"]),
+    createdAt: entity.created,
   };
 }
 
@@ -87,6 +101,7 @@ const noteLexicon: AtprotoLexicon = {
           title: { type: "string" },
           createdAt: { type: "string", format: "datetime" },
           brainDid: { type: "string" },
+          anchorDid: { type: "string" },
         },
       },
     },
@@ -102,10 +117,11 @@ function createRegistry(): AtprotoProjectionRegistry {
     lexicon: noteLexicon,
     validate: false,
     isPublishable: (entity) => entity.metadata["status"] === "published",
-    buildRecord: async ({ entity, config }) =>
-      noteRecord(entity, {
-        ...(config.brainDid && { brainDid: config.brainDid }),
-      }),
+    buildRecord: async ({ entity, config }) => ({
+      ...unnamedRecord(entity),
+      ...(config.brainDid && { brainDid: config.brainDid }),
+      ...(config.anchorDid && { anchorDid: config.anchorDid }),
+    }),
   });
   return registry;
 }
@@ -260,6 +276,64 @@ describe("AT Protocol records kept complete on every start", () => {
     expect(repo.records.get("essay")).toEqual(
       noteRecord(entity, { brainDid: "did:web:brain.example.com" }),
     );
+  });
+
+  it("rewrites a record written before records named their brain", async () => {
+    const entity = note("essay");
+    const repo = createRepo({ essay: unnamedRecord(entity) });
+
+    await start(repo.client, [entity]);
+
+    expect(noteWrites(repo)).toEqual(["essay"]);
+    expect(repo.records.get("essay")).toEqual(noteRecord(entity));
+  });
+
+  it("names a brain with a site, and its anchor, by the site", async () => {
+    const entity = note("essay");
+    const repo = createRepo({ essay: unnamedRecord(entity) });
+    const plugin = createPlugin(repo.client);
+    const shell = createMockShell();
+    shell.serveHttp();
+    shell.addEntities([entity]);
+    await plugin.register(shell);
+    await broadcast(shell, SYSTEM_CHANNELS.pluginsRegistered);
+
+    await broadcast(shell, SYSTEM_CHANNELS.startupContentSettled);
+    await plugin.shutdown();
+
+    expect(repo.records.get("essay")).toEqual(
+      noteRecord(entity, {
+        brainDid: "did:web:brain.example.com",
+        anchorDid: "did:web:brain.example.com:anchor",
+      }),
+    );
+  });
+
+  it("writes nothing on a second start when the repo is the session's, not configured", async () => {
+    const entity = note("essay");
+    const repo = createRepo();
+    const boot = async (): Promise<void> => {
+      const plugin = createAtprotoPlugin(
+        { identifier: "brain.example.com", appPassword: "secret" },
+        {
+          projectionRegistry: createRegistry(),
+          createPdsClient: () => repo.client,
+        },
+      );
+      const shell = createMockShell();
+      shell.addEntities([entity]);
+      await plugin.register(shell);
+      await broadcast(shell, SYSTEM_CHANNELS.pluginsRegistered);
+      await broadcast(shell, SYSTEM_CHANNELS.startupContentSettled);
+      await plugin.shutdown();
+    };
+    await boot();
+    expect(repo.records.get("essay")).toEqual(noteRecord(entity));
+    repo.putRecord.mockClear();
+
+    await boot();
+
+    expect(noteWrites(repo)).toEqual([]);
   });
 
   it("deletes a record whose entity is gone", async () => {

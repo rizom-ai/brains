@@ -61,8 +61,9 @@ import {
   type AtprotoBrainCardRecord,
   type AtprotoProjection,
   type AtprotoPdsClientLike,
+  type AtprotoPublishConfig,
 } from "@brains/atproto-contracts";
-import { buildBrainCardRecord } from "./records";
+import { buildBrainCardRecord, resolveBrainIdentityDids } from "./records";
 import {
   JetstreamConsumer,
   type CreateJetstreamSocket,
@@ -650,6 +651,7 @@ export class AtprotoService {
         context,
         projection,
         entity,
+        repo,
         options.topics,
       );
       validateAtprotoRecord(projection.lexicon, record);
@@ -664,7 +666,7 @@ export class AtprotoService {
     const record = await projection.buildRecord({
       entity,
       context,
-      config: this.config,
+      config: this.recordIdentityOf(context, targetRepo),
       client,
       ...(options.topics && { topics: options.topics }),
       ...(pageUrl && { pageUrl }),
@@ -755,18 +757,38 @@ export class AtprotoService {
     );
   }
 
-  /** The record an entity projects today, built without writing or uploading. */
+  /**
+   * The brain and anchor a record names: as the brain card names them, so a
+   * brain's records and its card agree without either being configured.
+   */
+  private recordIdentityOf(
+    context: AtprotoContext,
+    repo: string | undefined,
+  ): AtprotoPublishConfig {
+    const { brainDid, anchorDid } = resolveBrainIdentityDids(
+      context,
+      this.config,
+      repo,
+    );
+    return { brainDid, anchorDid };
+  }
+
+  /**
+   * The record an entity projects today, built without writing or
+   * uploading, as it would be written to `repo`.
+   */
   private buildDryRunRecord<TRecord extends Record<string, unknown>>(
     context: AtprotoContext,
     projection: AtprotoProjection<TRecord>,
     entity: BaseEntity,
+    repo: string | undefined,
     topics?: string[],
   ): Promise<TRecord> {
     const pageUrl = this.pageUrlOf(context, entity);
     return projection.buildRecord({
       entity,
       context,
-      config: this.config,
+      config: this.recordIdentityOf(context, repo),
       ...(topics && { topics }),
       ...(pageUrl && { pageUrl }),
       dryRun: true,
@@ -844,6 +866,7 @@ export class AtprotoService {
           context,
           projection,
           entity,
+          repo,
         ).then(
           (built) => isCurrentRecord(record, built),
           () => false,
