@@ -132,6 +132,7 @@ Plans:
 - [email-reply-drafts.md](./plans/email-reply-drafts.md) — a reply the brain writes on request is saved into the mailbox's Drafts folder and sent from the mail program; the brain never sends a reply, and the dormant send backend is removed.
 - [obsidian-plugin.md](./plans/obsidian-plugin.md) — an Obsidian plugin that keeps a vault on the person's own disk in step with a brain through the WebDAV drive: notes and images both ways, renames as renames, colliding edits in the Inbox; fast from anywhere and usable without a terminal.
 - [whatsapp-interface.md](./plans/whatsapp-interface.md) — WhatsApp direct messages and groups through our own Baileys adapter in `@brains/chat`: unofficial, on a dedicated number.
+- [matrix-messaging.md](./plans/matrix-messaging.md) — a `matrix-server` plugin that runs a federated homeserver at the brain's domain as its default messaging platform, with sign-in by brain account, one Matrix identity per person, and a room per trusted peer brain.
 - [brain-web-chat-sdk-adapter.md](./plans/brain-web-chat-sdk-adapter.md) — parked strategy for deeper Chat SDK semantic alignment.
 - [chat-interface-forms-modals.md](./plans/chat-interface-forms-modals.md) — parked transport-neutral structured forms.
 - [message-feedback.md](./plans/message-feedback.md) — parked transport-neutral response feedback pending a real sink.

@@ -26,6 +26,7 @@ Three kinds of subject talk to a brain, over five kinds of channel:
 | Peer brains (directed RPC)       | A2A                                              | Domain, proven by RFC 9421 signature        | shipped (`shared/http-signatures`)                 |
 | Peer brains (ambient pub/sub)    | AT Protocol                                      | DID (`did:web:<domain>` by convention)      | [atproto-integration.md](./atproto-integration.md) |
 | Platform users                   | Discord (and future platform adapters)           | Platform id (`discord:<snowflake>`) + rules | interface config / `brain.yaml` rules              |
+| Platform users                   | Matrix (proposed)                                | Matrix user id (`matrix:@user:<domain>`)    | [matrix-messaging.md](./matrix-messaging.md)       |
 
 Everything downstream of identity is the same: the resolved subject maps
 into the single permission model (`admin` / `trusted` / `public`) through
