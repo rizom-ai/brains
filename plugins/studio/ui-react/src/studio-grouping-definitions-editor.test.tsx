@@ -117,6 +117,12 @@ test("first visit does not publish an empty document or mark it pending", async 
   expect(status.pendingChanges).toBe(false);
   expect(status.issues).toEqual([]);
   expect(document.body.textContent).toContain("Your first grouping");
+  // Every eligible content type takes part, so the first visit neither asks
+  // for types nor names only some of them.
+  expect(document.body.textContent).toContain(
+    "Bring related entries together, of any content type, without moving them.",
+  );
+  expect(document.body.textContent).not.toContain("its types");
   await click("Add grouping");
   expect(document.activeElement?.getAttribute("aria-label")).toBe(
     "New grouping label",

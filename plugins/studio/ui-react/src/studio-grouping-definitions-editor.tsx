@@ -175,9 +175,9 @@ export function StudioGroupingDefinitionsEditor(props: {
             <section {...stylex.props(s.first)}>
               <h2 {...stylex.props(v.title)}>Your first grouping</h2>
               <p {...stylex.props(s.intro)}>
-                Bring related Notes and Posts together without moving them.
-                Define a label, its types, and whether editors choose one value
-                or several.
+                Bring related entries together, of any content type, without
+                moving them. Give a grouping a label and say whether an entry
+                belongs to one value or several.
               </p>
             </section>
           )}
