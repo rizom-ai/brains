@@ -72,6 +72,7 @@ export class PersonExternalPeerStore {
         role: input.role,
         status: "invited",
         canonicalId: `user:${userId.slice("usr_".length)}`,
+        username: null,
         createdAt: now,
         updatedAt: now,
       } satisfies typeof authUsers.$inferInsert;

@@ -125,6 +125,7 @@ export async function createDurableInvitation(
       role: input.role,
       status: "invited" as const,
       canonicalId: `user:${userId.slice("usr_".length)}`,
+      username: null,
       createdAt: now,
       updatedAt: now,
     } satisfies typeof authUsers.$inferInsert;

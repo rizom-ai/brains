@@ -1,6 +1,7 @@
 import { randomUUID, timingSafeEqual } from "node:crypto";
 import { hashToken } from "./token-hash";
-import { and, eq, lt, notExists } from "drizzle-orm";
+import { and, eq, lt, notExists, sql } from "drizzle-orm";
+import { provisionOAuthClientInputSchema } from "@brains/contracts";
 import { nowSeconds } from "@brains/utils/date";
 import { z } from "@brains/utils/zod";
 import type { AuthRuntimeDatabase } from "./runtime-db";
@@ -151,6 +152,43 @@ export class RuntimeOAuthClientStore implements OAuthClientPersistence {
     return client;
   }
 
+  /**
+   * Register or update a confidential client under the id and secret the
+   * caller chose. Provisioning again replaces the secret, name and redirect
+   * URIs, so a plugin can re-provision on every start.
+   */
+  async provisionClient(input: unknown): Promise<RegisteredOAuthClient> {
+    const parsed = provisionOAuthClientInputSchema.safeParse(input);
+    if (!parsed.success) {
+      throw new InvalidClientMetadataError(parsed.error.message);
+    }
+    const existing = await this.getPersistedClient(parsed.data.clientId);
+    const client: RegisteredOAuthClient = {
+      client_id: parsed.data.clientId,
+      client_id_issued_at: existing?.client.client_id_issued_at ?? nowSeconds(),
+      redirect_uris: parsed.data.redirectUris,
+      token_endpoint_auth_method: "client_secret_post",
+      grant_types: ["authorization_code", "refresh_token"],
+      response_types: ["code"],
+      client_name: parsed.data.clientName,
+      client_secret: parsed.data.clientSecret,
+      client_secret_expires_at: 0,
+    };
+    const row = clientToRow(client, { method: "provisioned" });
+    await this.database.db
+      .insert(oauthClients)
+      .values(row)
+      .onConflictDoUpdate({
+        target: oauthClients.clientId,
+        set: {
+          secretHash: row.secretHash,
+          metadataJson: row.metadataJson,
+          updatedAt: nowSeconds(),
+        },
+      });
+    return client;
+  }
+
   async upsertClientMetadataDocument(
     client: RegisteredOAuthClient,
   ): Promise<RegisteredOAuthClient> {
@@ -231,7 +269,7 @@ export class RuntimeOAuthClientStore implements OAuthClientPersistence {
     persisted: PersistedOAuthClient,
     issuer?: string,
   ): boolean {
-    if (!issuer || persisted.registration.method === "metadata_document") {
+    if (!issuer || persisted.registration.method !== "dynamic") {
       return true;
     }
     const registrationIssuer =
@@ -245,6 +283,9 @@ export class RuntimeOAuthClientStore implements OAuthClientPersistence {
       .where(
         and(
           lt(oauthClients.createdAt, createdBefore),
+          // A provisioned client belongs to a plugin, not to a visitor
+          // who may never come back.
+          sql`coalesce(json_extract(${oauthClients.metadataJson}, '$._brains_registration.method'), '') != 'provisioned'`,
           notExists(
             this.database.db
               .select({ clientId: oauthAuthCodes.clientId })
@@ -318,7 +359,7 @@ function clientToRow(
 }
 
 interface OAuthClientRegistration {
-  method: "dynamic" | "metadata_document";
+  method: "dynamic" | "metadata_document" | "provisioned";
   issuer?: string;
 }
 
@@ -328,7 +369,7 @@ interface PersistedOAuthClient {
 }
 
 const oauthClientRegistrationSchema = z.object({
-  method: z.enum(["dynamic", "metadata_document"]),
+  method: z.enum(["dynamic", "metadata_document", "provisioned"]),
   issuer: z.string().optional(),
 });
 

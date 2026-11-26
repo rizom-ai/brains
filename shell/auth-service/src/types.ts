@@ -28,6 +28,7 @@ export interface AuthorizationServerMetadata extends JsonObject {
   issuer: string;
   authorization_endpoint: string;
   token_endpoint: string;
+  userinfo_endpoint: string;
   registration_endpoint: string;
   revocation_endpoint: string;
   jwks_uri: string;
@@ -39,6 +40,7 @@ export interface AuthorizationServerMetadata extends JsonObject {
   scopes_supported: string[];
   subject_types_supported: string[];
   id_token_signing_alg_values_supported: string[];
+  claims_supported: string[];
 }
 
 export interface ProtectedResourceMetadata extends JsonObject {
@@ -59,6 +61,7 @@ export interface ValidAuthorizationRequest {
   codeChallenge: string;
   scope?: string;
   state?: string;
+  nonce?: string;
   clientName: string;
 }
 

@@ -150,6 +150,8 @@ describe("OAuthClientMaintenanceSupervisor", () => {
           },
           resolveSession: async (): Promise<undefined> => undefined,
           keyStore: { getPrivateJwk: notUsedHere("getPrivateJwk") },
+          getJwks: notUsedHere("getJwks"),
+          resolveProfile: notUsedHere("resolveProfile"),
           clientMaintenanceIntervalMs: 100,
           clientMaintenanceClock: clock,
         });

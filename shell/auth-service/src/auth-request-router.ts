@@ -100,6 +100,13 @@ export class AuthRequestRouter {
       },
       {
         method: "GET",
+        path: "/.well-known/openid-configuration",
+        cors: true,
+        handler: (_request, context): Response =>
+          jsonResponse(options.getAuthorizationServerMetadata(context.issuer)),
+      },
+      {
+        method: "GET",
         path: "/.well-known/jwks.json",
         cors: true,
         handler: async (): Promise<Response> =>
@@ -195,6 +202,20 @@ export class AuthRequestRouter {
         cors: true,
         handler: (request, context): Promise<Response> =>
           options.oauthEndpoints.handleTokenRequest(request, context.issuer),
+      },
+      {
+        method: "GET",
+        path: "/userinfo",
+        cors: true,
+        handler: (request, context): Promise<Response> =>
+          options.oauthEndpoints.handleUserinfoRequest(request, context.issuer),
+      },
+      {
+        method: "POST",
+        path: "/userinfo",
+        cors: true,
+        handler: (request, context): Promise<Response> =>
+          options.oauthEndpoints.handleUserinfoRequest(request, context.issuer),
       },
       {
         method: "POST",
