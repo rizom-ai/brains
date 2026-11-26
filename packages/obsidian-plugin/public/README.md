@@ -2,7 +2,7 @@
 
 Keep an Obsidian vault on your own device in step with your Rizom brain. Obsidian stays as fast as with any local vault and works offline; notes and images sync in the background.
 
-You need a Rizom brain with its drive turned on, and an account on it.
+You need a Rizom brain at version 0.2.0-alpha.769 or later with its drive turned on, and an account on it. With an older brain the plugin cannot sync.
 
 ## What it does
 
