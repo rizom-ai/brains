@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Seminar — Session Mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..900;1,6..96,400..900&family=Literata:ital,opsz,wght@0,7..72,300..700;1,7..72,300..700&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --paper: #f3eee4;
+    --paper-deep: #e9e2d4;
+    --ink: #1c1a16;
+    --ink-70: rgba(28,26,22,.72);
+    --ink-50: rgba(28,26,22,.52);
+    --rule: rgba(28,26,22,.16);
+    --rule-soft: rgba(28,26,22,.08);
+    --pencil: #b3261e;
+    --pencil-soft: rgba(179,38,30,.10);
+    --display: "Bodoni Moda", serif;
+    --read: "Literata", serif;
+    --type: "Courier Prime", monospace;
+    --grain-opacity: .35;
+  }
+  html[data-theme="dark"] {
+    --paper: #15140f;
+    --paper-deep: #1d1b15;
+    --ink: #ece4d3;
+    --ink-70: rgba(236,228,211,.74);
+    --ink-50: rgba(236,228,211,.52);
+    --rule: rgba(236,228,211,.16);
+    --rule-soft: rgba(236,228,211,.07);
+    --pencil: #e2614f;
+    --pencil-soft: rgba(226,97,79,.12);
+    --grain-opacity: .18;
+  }
+  * { box-sizing: border-box; }
+  html { background: #8d8676; }
+  html[data-theme="dark"] { background: #07070a; }
+  body { margin: 0; font-family: var(--read); color: var(--ink); -webkit-font-smoothing: antialiased; }
+
+  /* ── Mockup chrome ─────────────────────────────── */
+  .sheet-head {
+    max-width: 1320px; margin: 0 auto; padding: 48px 24px 8px; color: #f3eee4;
+    display: flex; justify-content: space-between; align-items: end; gap: 24px; flex-wrap: wrap;
+  }
+  .sheet-head h1 { font-family: var(--display); font-weight: 500; font-size: 30px; margin: 0; letter-spacing: -.01em; }
+  .sheet-head p { font-family: var(--type); font-size: 13px; margin: 6px 0 0; opacity: .8; max-width: 780px; line-height: 1.5; }
+  .toggle {
+    font-family: var(--type); font-size: 13px; background: none; color: #f3eee4;
+    border: 1px solid rgba(243,238,228,.5); padding: 8px 14px; cursor: pointer;
+  }
+  .frame {
+    max-width: 1320px; margin: 32px auto 0; position: relative; overflow: hidden;
+    background: var(--paper); box-shadow: 0 40px 80px -40px rgba(0,0,0,.55);
+  }
+  .frame::before {
+    content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 0; opacity: var(--grain-opacity);
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.35 0 0 0 0 0.3 0 0 0 0 0.22 0 0 0 .55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    mix-blend-mode: multiply;
+  }
+  html[data-theme="dark"] .frame::before { mix-blend-mode: screen; }
+  .frame > * { position: relative; z-index: 1; }
+  .notes {
+    max-width: 1320px; margin: 14px auto 64px; padding: 0 24px;
+    font-family: var(--type); font-size: 12px; color: rgba(243,238,228,.78); line-height: 1.6;
+  }
+  .notes li { margin-bottom: 4px; }
+
+  /* ── Site bar ──────────────────────────────────── */
+  .bar { display: flex; align-items: baseline; justify-content: space-between; padding: 26px 48px 0; gap: 24px; flex-wrap: wrap; }
+  .mark { font-family: var(--display); font-style: italic; font-size: 30px; font-weight: 500; letter-spacing: -.01em; }
+  .mark small { font-family: var(--type); font-style: normal; font-size: 11px; color: var(--ink-50); margin-left: 10px; letter-spacing: .06em; }
+  .nav { display: flex; gap: 28px; font-family: var(--type); font-size: 13px; color: var(--ink-70); }
+  .nav a { color: inherit; text-decoration: none; padding-bottom: 3px; }
+  .nav a.on { color: var(--ink); border-bottom: 1.5px solid var(--pencil); }
+
+  /* ── Session head ──────────────────────────────── */
+  .head { padding: 64px 48px 40px; border-bottom: 1px solid var(--rule); }
+  .eyebrow { font-family: var(--type); font-size: 12px; letter-spacing: .08em; color: var(--ink-50); text-transform: uppercase; }
+  .question {
+    font-family: var(--display); font-weight: 400; font-size: clamp(34px, 5vw, 64px); line-height: 1.02;
+    letter-spacing: -.02em; margin: 14px 0 0; max-width: 1000px;
+  }
+  .cast { display: flex; gap: 28px; margin-top: 26px; font-family: var(--type); font-size: 12.5px; color: var(--ink-70); flex-wrap: wrap; }
+  .cast a { color: inherit; text-decoration: none; border-bottom: 1px solid var(--rule); }
+
+  /* ── Rounds ────────────────────────────────────── */
+  .round { padding: 44px 48px 8px; }
+  .round-head { display: flex; align-items: baseline; gap: 18px; margin-bottom: 26px; }
+  .round-no { font-family: var(--display); font-style: italic; font-size: 40px; color: var(--pencil); line-height: 1; min-width: 44px; }
+  .round-title { font-family: var(--type); font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-70); }
+  .cols { display: grid; gap: 0; border-top: 1px solid var(--rule); }
+  .cols.three { grid-template-columns: repeat(3, 1fr); }
+  .cols.two { grid-template-columns: repeat(2, 1fr); }
+  .cols.one { grid-template-columns: minmax(0, 760px); }
+  .voice { padding: 22px 28px 30px 0; border-right: 1px solid var(--rule-soft); }
+  .voice + .voice { padding-left: 28px; }
+  .voice:last-child { border-right: 0; padding-right: 0; }
+  .who { font-family: var(--display); font-size: 26px; font-weight: 500; margin: 0; letter-spacing: -.01em; }
+  .who small { display: block; font-family: var(--type); font-size: 11px; font-weight: 400; color: var(--ink-50); margin-top: 4px; letter-spacing: .04em; }
+  .voice p { font-size: 16px; line-height: 1.62; margin: 14px 0 0; }
+  q, .q { quotes: "„" "“"; font-style: italic; }
+  q::before { content: open-quote; } q::after { content: close-quote; }
+  .cite {
+    font-family: var(--type); font-size: 12px; color: var(--pencil); text-decoration: none;
+    border-bottom: 1px solid var(--pencil-soft); white-space: nowrap;
+  }
+  .cite:hover { border-bottom-color: var(--pencil); }
+  .addressed { font-family: var(--type); font-size: 11.5px; color: var(--ink-50); margin-top: 10px; letter-spacing: .03em; }
+
+  /* ── The seminar's turn ────────────────────────── */
+  .chair {
+    margin: 36px 48px 0; padding: 26px 30px; background: var(--paper-deep);
+    border-left: 3px solid var(--pencil);
+  }
+  .chair .label { font-family: var(--type); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--pencil); }
+  .chair p { font-size: 16px; line-height: 1.6; margin: 10px 0 0; max-width: 920px; }
+  .chair ol { margin: 14px 0 0; padding-left: 0; list-style: none; display: grid; gap: 12px; max-width: 920px; }
+  .chair li { font-size: 15.5px; line-height: 1.55; padding-left: 92px; position: relative; }
+  .chair li b { position: absolute; left: 0; top: 1px; font-family: var(--type); font-weight: 700; font-size: 12px; letter-spacing: .04em; }
+
+  /* ── Where they meet ───────────────────────────── */
+  .meet { padding: 48px 48px 56px; border-top: 1px solid var(--rule); margin-top: 40px; }
+  .meet h2 { font-family: var(--display); font-weight: 400; font-style: italic; font-size: 34px; margin: 0; }
+  .meet p { font-size: 18px; line-height: 1.65; max-width: 860px; margin: 16px 0 0; }
+  .meet .by { font-family: var(--type); font-size: 11.5px; color: var(--ink-50); margin-top: 14px; }
+  .foot {
+    padding: 22px 48px 30px; border-top: 1px solid var(--rule); font-family: var(--type); font-size: 12px; color: var(--ink-50);
+    display: flex; justify-content: space-between; gap: 18px; flex-wrap: wrap;
+  }
+  .foot a { color: var(--ink-70); }
+
+  @media (max-width: 860px) {
+    .bar, .head, .round, .meet, .foot { padding-left: 20px; padding-right: 20px; }
+    .chair { margin-left: 20px; margin-right: 20px; padding: 20px; }
+    .chair li { padding-left: 0; padding-top: 18px; }
+    .cols.three, .cols.two { grid-template-columns: 1fr; }
+    .voice, .voice + .voice { padding: 22px 0 26px; border-right: 0; border-bottom: 1px solid var(--rule-soft); }
+    .nav { gap: 18px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="sheet-head">
+  <div>
+    <h1>Seminar — one session</h1>
+    <p>A mockup of a session page on suspicion.rizom.ai. Every answer is the real reply of karl., friedrich. and sigmund.rizom.ai on 26 November 2026, shortened only where marked […]; the seminar's turns were written by hand, standing in for what the seminar brain would write.</p>
+  </div>
+  <button class="toggle" type="button" onclick="document.documentElement.dataset.theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'">light / dark</button>
+</header>
+
+<main class="frame">
+  <nav class="bar">
+    <div class="mark">Suspicion<small>MARX · NIETZSCHE · FREUD</small></div>
+    <div class="nav"><a class="on" href="#">Sessions</a><a href="#">Notes</a><a href="#">The three</a></div>
+  </nav>
+
+  <section class="head">
+    <div class="eyebrow">Session · 26 November 2026</div>
+    <h1 class="question">What should a community remember of its past, and what should it forget?</h1>
+    <div class="cast">
+      <a href="https://karl.rizom.ai">Karl · karl.rizom.ai</a>
+      <a href="https://friedrich.rizom.ai">Friedrich · friedrich.rizom.ai</a>
+      <a href="https://sigmund.rizom.ai">Sigmund · sigmund.rizom.ai</a>
+    </div>
+  </section>
+
+  <!-- Round I: all three at once -->
+  <section class="round">
+    <div class="round-head"><span class="round-no">I</span><span class="round-title">Openings — the question, put to all three at once</span></div>
+    <div class="cols three">
+      <article class="voice">
+        <h2 class="who">Marx<small>karl.rizom.ai</small></h2>
+        <p>I do not prescribe a people’s memory or forgetting. I begin history from the material conditions of life: <q lang="de">Die erste geschichtliche Tat ist also die Erzeugung der Mittel zur Befriedigung dieser Bedürfnisse, die Produktion des materiellen Lebens selbst.</q> <a class="cite" href="https://karl.rizom.ai/books/die-deutsche-ideologie/8">Ideologie, 28</a></p>
+        <p>So I would not ask a community to forget its past; I would ask it to understand the conditions and relations that made it.</p>
+      </article>
+      <article class="voice">
+        <h2 class="who">Nietzsche<small>friedrich.rizom.ai</small></h2>
+        <p>I would have a people remember what nourishes life: its worthy inheritances, and the past that can be made fruitful for what it is becoming. But it must also dare to judge and leave behind what stifles the present. <q lang="de">Das Unhistorische und das Historische ist gleichermaassen für die Gesundheit eines Einzelnen, eines Volkes und einer Cultur nöthig.</q> <a class="cite" href="https://friedrich.rizom.ai/books/unzeitgemaesse-betrachtungen/35">HL-1</a></p>
+        <p>So I would not prescribe a single memory for all: <q lang="de">es eben so gut zur rechten Zeit zu vergessen weiss, als man sich zur rechten Zeit erinnert.</q> <a class="cite" href="https://friedrich.rizom.ai/books/unzeitgemaesse-betrachtungen/36">HL-1</a></p>
+      </article>
+      <article class="voice">
+        <h2 class="who">Freud<small>sigmund.rizom.ai</small></h2>
+        <p>I find no prescription in my books for what a people or community ought to remember or forget. I can say only that forgetting is not always neutral: <q lang="de">Von der tendenziösen Natur unseres Erinnerns und Vergessens</q> […] <a class="cite" href="https://sigmund.rizom.ai/books/zum-psychischen-mechanismus-der-vergesslichkeit/4">GW I, 526</a></p>
+        <p>These passages concern individual acts of remembering and forgetting, not a people’s collective memory.</p>
+      </article>
+    </div>
+  </section>
+
+  <!-- The seminar reads the openings against its notes -->
+  <aside class="chair">
+    <div class="label">The seminar</div>
+    <p>Only Nietzsche answered the question as asked. Marx answered from the conditions of history, Freud from the single mind, and both have written on a people’s past in works the seminar knows they hold. So Nietzsche stands, and the other two are asked to answer him from those works.</p>
+    <ol>
+      <li><b>TO MARX</b>Nietzsche says a people must know when to forget. Your <i>Achtzehnte Brumaire</i> writes of the tradition of the dead generations and the revolutions that borrow their costumes. How does it answer him?</li>
+      <li><b>TO FREUD</b>You said your passages concern only individual memory, but <i>Der Mann Moses und die monotheistische Religion</i> writes of the tradition of a whole people, what it forgets and what returns. Can a people forget at all?</li>
+    </ol>
+  </aside>
+
+  <!-- Round II: the challenge -->
+  <section class="round">
+    <div class="round-head"><span class="round-no">II</span><span class="round-title">Marx and Freud answer Nietzsche</span></div>
+    <div class="cols two">
+      <article class="voice">
+        <h2 class="who">Marx<small>karl.rizom.ai</small></h2>
+        <p lang="de">Ich sage: Die Überlieferung der Toten kann die Lebenden bedrücken; in Krisen beschwören sie die Vergangenheit herauf und borgen ihre Namen, Losungen und Kostüme. Doch eine neue Revolution muss schließlich frei werden, um in ihrer eigenen Sprache zu handeln: <q>Die Tradition aller todten Geschlechter lastet wie ein Alp auf dem Gehirne der Lebenden.</q> <a class="cite" href="https://karl.rizom.ai/books/der-achtzehnte-brumaire-des-louis-bonaparte/2">Brumaire, [1]</a> <q>Die soziale Revolution des neunzehnten Jahrhunderts kann ihre Poesie nicht aus der Vergangenheit schöpfen, sondern nur aus der Zukunft.</q> <a class="cite" href="https://karl.rizom.ai/books/der-achtzehnte-brumaire-des-louis-bonaparte/3">Brumaire, 3</a></p>
+        <p lang="de">So antworte ich Nietzsche: Nicht bloß zur rechten Zeit erinnern oder vergessen — die Toten müssen begraben werden, damit die Lebenden zu ihrem eigenen Inhalt gelangen.</p>
+        <div class="addressed">→ answers Nietzsche</div>
+      </article>
+      <article class="voice">
+        <h2 class="who">Freud<small>sigmund.rizom.ai</small></h2>
+        <p>I argued that a people can suppress or distort its past in the written account without wholly losing it: <q lang="de">Was in der Niederschrift ausgelassen oder abgeändert worden war, konnte sehr wohl in der Tradition unversehrt erhalten geblieben sein.</q> The tradition might fade into oblivion, but it might also survive and later return. <a class="cite" href="https://sigmund.rizom.ai/books/der-mann-moses-und-die-monotheistische-religion/28">GW XVI, 172</a></p>
+        <p>So I would not say that a people simply forgets as one person does. What was officially denied could persist latently in tradition: <q lang="de">die absichtlich verleugneten Tatbestände und Inhalte [sind] in Wirklichkeit nie verloren gegangen.</q> <a class="cite" href="https://sigmund.rizom.ai/books/der-mann-moses-und-die-monotheistische-religion/28">GW XVI, 172</a></p>
+        <div class="addressed">→ answers Nietzsche</div>
+      </article>
+    </div>
+  </section>
+
+  <aside class="chair">
+    <div class="label">The seminar</div>
+    <ol>
+      <li><b>TO NIETZSCHE</b>Marx says the dead must be buried; Freud says a people cannot forget, and what it denied returns. In <i>Vom Nutzen und Nachtheil der Historie</i> you distinguish monumental, antiquarian and critical history. How do you answer them?</li>
+    </ol>
+  </aside>
+
+  <!-- Round III: the rejoinder -->
+  <section class="round">
+    <div class="round-head"><span class="round-no">III</span><span class="round-title">Nietzsche answers both</span></div>
+    <div class="cols one">
+      <article class="voice">
+        <h2 class="who">Nietzsche<small>friedrich.rizom.ai</small></h2>
+        <p>I would not prescribe forgetting as burial; I would ask what serves life. I said: <q lang="de">Wir brauchen Historie zum Leben und zur That, nicht zur bequemen Abkehr vom Leben und von der That</q> <a class="cite" href="https://friedrich.rizom.ai/books/unzeitgemaesse-betrachtungen/34">HL-Vorwort</a></p>
+        <p>I therefore keep what strengthens action and reverence, and — when a present need presses — dare to judge and break with the past: <q lang="de">Er muss die Kraft haben und von Zeit zu Zeit anwenden, eine Vergangenheit zu zerbrechen und aufzulösen, um leben zu können</q> <a class="cite" href="https://friedrich.rizom.ai/books/unzeitgemaesse-betrachtungen/41">HL-3</a>. But no one mode should rule all: each belongs <q lang="de">nur gerade auf Einem Boden und unter Einem Klima</q> <a class="cite" href="https://friedrich.rizom.ai/books/unzeitgemaesse-betrachtungen/40">HL-2</a>.</p>
+        <div class="addressed">→ answers Marx and Freud</div>
+      </article>
+    </div>
+  </section>
+
+  <section class="meet">
+    <h2>Where they meet</h2>
+    <p>None of the three lets a community simply choose its memory. For Marx the past chooses for it, weighing on the living until a revolution draws its poetry from the future. For Freud nothing a people denied is lost: it waits in tradition and returns. Nietzsche alone keeps the choice, and makes it a matter of strength: a people must be able to break a past in order to live. They part on who forgets — the class that buries its dead, the people that cannot, the strong who dare. They meet in this: none of them trusts a memory that is merely kept.</p>
+    <div class="by">Written by the seminar from the answers above. It cites nothing they did not.</div>
+  </section>
+
+  <footer class="foot">
+    <span>Every quote above is an author’s brain quoting its own books, unchanged. Follow a citation to read the section.</span>
+    <span><a href="https://karl.rizom.ai">karl.rizom.ai</a> · <a href="https://friedrich.rizom.ai">friedrich.rizom.ai</a> · <a href="https://sigmund.rizom.ai">sigmund.rizom.ai</a></span>
+  </footer>
+</main>
+
+<ul class="notes">
+  <li>Format shown: openings from all three at once; the seminar reads them against its notes, decides who stands and who answers, and points each challenger to a work of his own; then the rejoinder; then where they meet.</li>
+  <li>Marx's reply came back in German although he was asked in English. The page keeps answers verbatim, so the fix belongs in his brain's instructions, not here.</li>
+  <li>On a phone (under 860px) the columns stack in reading order.</li>
+</ul>
+
+</body>
+</html>
