@@ -125,7 +125,14 @@ export interface MatrixAdapterFactoryConfig {
     userID: string;
   };
   userName?: string;
-  inviteAutoJoin?: { inviterAllowlist?: string[] };
+  inviteAutoJoin?: {
+    inviterAllowlist?: string[];
+    accept?: (invite: {
+      roomID: string;
+      inviter: string | undefined;
+      isDirect: boolean;
+    }) => Promise<boolean>;
+  };
   matrixSDKLogLevel?: string;
 }
 

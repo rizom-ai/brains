@@ -444,7 +444,12 @@ describe("agent_set_standing for agents saved above public", () => {
       await storage.cleanup();
     });
     const tool = createAgentSetStandingTool(
-      { entityService: service, auth: { get: () => auth } },
+      {
+        entityService: service,
+        auth: { get: () => auth },
+        messaging: createMockEntityPluginContext({ entityService: service })
+          .messaging,
+      },
       noApprovals,
     );
     const toolContext: ToolContext = {

@@ -38,7 +38,7 @@ describe("Matrix in the chat interface", () => {
         userID: "@_brain:brain.example.com",
       },
       userName: "brain",
-      inviteAutoJoin: {},
+      inviteAutoJoin: { accept: expect.any(Function) },
       matrixSDKLogLevel: "warn",
     });
     expect(MockChatSdk.instances[0]?.config.adapters).toMatchObject({
@@ -49,16 +49,22 @@ describe("Matrix in the chat interface", () => {
     ).toHaveLength(1);
   });
 
-  it("joins no rooms on invite when DMs are off", async () => {
+  it("declines direct invites when DMs are off", async () => {
     await suite.harness.installPlugin(
       createChatPlugin({
         adapters: { matrix: { ...baseMatrixConfig, allowDMs: false } },
       }),
     );
+    const accept =
+      createMatrixAdapterMock.mock.calls[0]?.[0].inviteAutoJoin?.accept;
 
-    expect(createMatrixAdapterMock.mock.calls[0]?.[0]).not.toHaveProperty(
-      "inviteAutoJoin",
-    );
+    expect(
+      await accept?.({
+        roomID: "!dm:brain.example.com",
+        inviter: "@alice:other.example",
+        isDirect: true,
+      }),
+    ).toBe(false);
   });
 
   it("starts the Chat SDK app, which starts Matrix sync, when the daemon starts", async () => {

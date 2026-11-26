@@ -7,12 +7,14 @@ import {
   serviceRuntime,
   withWebRoutes,
 } from "@brains/sdk/internal/service-runtime";
+import { a2aPeerTrustChangedChannel } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { ensureBotAccount, type MatrixFetch } from "./bot-account";
 import {
   HOMESERVER_CLIENT_ID,
   homeserverCallbackUrl,
 } from "./homeserver-config";
+import { PeerRooms } from "./peer-rooms";
 import { forwardingRoutes, wellKnownRoutes } from "./routes";
 
 /** How long to wait before asking a homeserver that is still starting again. */
@@ -84,6 +86,32 @@ export function createMatrixServerPackage(
       const publicBaseUrl = (
         config.publicBaseUrl ?? `https://${config.serverName}`
       ).replace(/\/+$/, "");
+
+      // A room per trusted peer, opened and closed as trust changes.
+      const peerRooms = new PeerRooms({
+        homeserverUrl: config.homeserverUrl,
+        serverName: config.serverName,
+        botUserId: config.botUserId,
+        botPassword: config.botPassword,
+        ...(deps.fetch ? { fetch: deps.fetch } : {}),
+      });
+      runtime.listen(
+        a2aPeerTrustChangedChannel,
+        async ({ payload }) => {
+          try {
+            await (payload.level === "trusted"
+              ? peerRooms.trusted(payload.domain)
+              : peerRooms.revoked(payload.domain));
+          } catch (error) {
+            runtime.logger.warn("Could not update the peer's Matrix room", {
+              error,
+              domain: payload.domain,
+              level: payload.level,
+            });
+          }
+        },
+        { mode: "observe" },
+      );
 
       runtime.ready(async () => {
         // Provisioning again on each start keeps the secret in step with

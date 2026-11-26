@@ -35,7 +35,7 @@ import type {
   Plugin,
   ToolResponse,
 } from "@brains/plugins";
-import { PLUGIN_CHANNELS } from "@brains/contracts";
+import { PLUGIN_CHANNELS, a2aPeerTrustChangedChannel } from "@brains/contracts";
 import type { FetchLike } from "@brains/utils/fetch-like";
 import {
   CARD_REFRESH_STATE_NAMESPACE,
@@ -925,6 +925,14 @@ describe("AgentDiscoveryPlugin", () => {
       displayName: "Owner",
       role: "admin",
     });
+    const trustChanges: unknown[] = [];
+    harness
+      .getMockShell()
+      .getMessageBus()
+      .subscribe(a2aPeerTrustChangedChannel.name, async (message) => {
+        trustChanges.push(message.payload);
+        return { success: true };
+      });
     const result = await harness.executeTool(
       "agent_set_standing",
       confirmationArgs(confirmation),
@@ -942,6 +950,9 @@ describe("AgentDiscoveryPlugin", () => {
       grantedLevel: "trusted",
       keyFingerprint: keyFingerprint(remoteA2AKey),
     });
+    expect(trustChanges).toEqual([
+      { domain: "trust.example", level: "trusted" },
+    ]);
     expect(fetchMock.calls).toEqual([
       "https://trust.example/.well-known/jwks.json",
     ]);

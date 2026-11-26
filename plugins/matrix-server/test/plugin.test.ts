@@ -9,7 +9,10 @@ import {
   createMockShell,
   registerAll,
 } from "@brains/plugins/test";
-import type { ProvisionOAuthClientInput } from "@brains/contracts";
+import {
+  a2aPeerTrustChangedChannel,
+  type ProvisionOAuthClientInput,
+} from "@brains/contracts";
 import { createMatrixServerPackage } from "../src";
 import packageJson from "../package.json";
 
@@ -116,5 +119,60 @@ describe("the matrix-server plugin", () => {
       },
     ]);
     expect(requests).toEqual(["/_matrix/client/v3/login"]);
+  });
+});
+
+describe("rooms for trusted peers, as the plugin hears them", () => {
+  it("opens the peer's room when its trust is granted, and closes it on a revoke", async () => {
+    const requests: string[] = [];
+    const shell = createMockShell();
+    shell
+      .getAuthRegistry()
+      .bindBackend(
+        createMockAuthBackend({ provisionOAuthClient: async () => undefined }),
+      );
+    const plugins = instantiatePluginPackageDefinition(
+      createMatrixServerPackage({
+        fetch: async (input, init) => {
+          const path = decodeURIComponent(new URL(String(input)).pathname);
+          requests.push(`${init?.method ?? "GET"} ${path}`);
+          if (path.includes("/directory/room/")) {
+            return requests.some((request) => request.endsWith("/createRoom"))
+              ? Response.json({ room_id: "!peer:brain.example.com" })
+              : Response.json({ errcode: "M_NOT_FOUND" }, { status: 404 });
+          }
+          if (path.endsWith("/createRoom")) {
+            return Response.json({ room_id: "!peer:brain.example.com" });
+          }
+          return Response.json({ access_token: "t" });
+        },
+      }),
+      CONFIG,
+      { name: packageJson.name, version: packageJson.version },
+      { pluginId: "matrix-server" },
+    );
+    await registerAll(shell, plugins);
+    const bus = shell.getMessageBus();
+
+    await bus.send({
+      type: a2aPeerTrustChangedChannel.name,
+      payload: { domain: "team.rizom.ai", level: "trusted" },
+      sender: "agent-discovery",
+      broadcast: true,
+    });
+    await bus.send({
+      type: a2aPeerTrustChangedChannel.name,
+      payload: { domain: "team.rizom.ai", level: "public" },
+      sender: "agent-discovery",
+      broadcast: true,
+    });
+
+    expect(requests.filter((request) => !request.endsWith("/login"))).toEqual([
+      "GET /_matrix/client/v3/directory/room/#team-rizom-ai:brain.example.com",
+      "POST /_matrix/client/v3/createRoom",
+      "GET /_matrix/client/v3/directory/room/#team-rizom-ai:brain.example.com",
+      "POST /_matrix/client/v3/rooms/!peer:brain.example.com/kick",
+      "PUT /_matrix/client/v3/rooms/!peer:brain.example.com/state/m.room.server_acl/",
+    ]);
   });
 });

@@ -16,12 +16,15 @@ import type {
   SlackChatAdapterConfig,
 } from "./config";
 import type { ChatSdkApp } from "./chat-sdk-app";
+import type { MatrixInvite } from "./matrix-invites";
 
 interface CreateChatSdkAppOptions {
   userName: string;
   discord: DiscordChatAdapterConfig | undefined;
   slack: SlackChatAdapterConfig | undefined;
   matrix: MatrixChatAdapterConfig | undefined;
+  /** Which Matrix invites the bot accepts; direct ones while DMs are allowed, if unset. */
+  acceptMatrixInvite?: ((invite: MatrixInvite) => Promise<boolean>) | undefined;
   /** Long-lived adapters are handed to their daemon-owned listener loops. */
   gatewayLoop: { setAdapter(adapter: DiscordChatAdapter): void };
   slackSocketLoop: { setAdapter(adapter: SlackChatAdapter): void };
@@ -97,9 +100,14 @@ export function createChatSdkApp(options: CreateChatSdkAppOptions): ChatSdkApp {
           userID: matrix.userId,
         },
         userName: options.userName,
-        // Joining on invite is how a person opens a DM with the bot. In a
-        // room the bot still answers only mentions, in allowed channels.
-        ...(matrix.allowDMs ? { inviteAutoJoin: {} } : {}),
+        // Joining on invite is how a person opens a DM with the bot and how
+        // a trusted peer's bot reaches the room its brain keeps for this one.
+        inviteAutoJoin: {
+          accept:
+            options.acceptMatrixInvite ??
+            ((invite): Promise<boolean> =>
+              Promise.resolve(invite.isDirect && matrix.allowDMs)),
+        },
         // matrix-js-sdk logs every request at debug; the brain log keeps warnings.
         matrixSDKLogLevel: "warn",
       })

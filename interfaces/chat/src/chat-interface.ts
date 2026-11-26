@@ -46,6 +46,7 @@ import { ChatInputBuilder, type ChatFetch } from "./chat-input-builder";
 import { postSpaceNotice } from "./space-notice";
 import { ChannelNames } from "./channel-names";
 import { MATRIX_USER_ID_PATTERN, MatrixDelivery } from "./matrix-delivery";
+import { matrixInviteDecision } from "./matrix-invites";
 import type { ChatIdentityAccess } from "./chat-identity";
 import {
   createDiscordThreadSubscriptionStore,
@@ -238,6 +239,14 @@ export function createChatInterface(
               discord: config.adapters.discord,
               slack: config.adapters.slack,
               matrix: config.adapters.matrix,
+              ...(config.adapters.matrix
+                ? {
+                    acceptMatrixInvite: matrixInviteDecision({
+                      allowDMs: config.adapters.matrix.allowDMs,
+                      peerTrust: () => runtime.auth(),
+                    }),
+                  }
+                : {}),
               gatewayLoop: state.gatewayLoop,
               slackSocketLoop: state.slackSocketLoop,
               runtimeState,
