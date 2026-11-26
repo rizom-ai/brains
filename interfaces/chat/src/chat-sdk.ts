@@ -2,6 +2,7 @@ import type { ClassRuntimeState } from "@brains/sdk/internal/interface-runtime";
 import { Chat, type Adapter } from "chat";
 import { createDiscordAdapter } from "@chat-adapter/discord";
 import { createSlackAdapter } from "@chat-adapter/slack";
+import { createMatrixAdapter } from "@beeper/chat-adapter-matrix";
 import { createMemoryState } from "@chat-adapter/state-memory";
 import { createChatSubscriptionStateAdapter } from "./subscription-state";
 import type {
@@ -11,6 +12,7 @@ import type {
 } from "./types";
 import type {
   DiscordChatAdapterConfig,
+  MatrixChatAdapterConfig,
   SlackChatAdapterConfig,
 } from "./config";
 import type { ChatSdkApp } from "./chat-sdk-app";
@@ -19,6 +21,7 @@ interface CreateChatSdkAppOptions {
   userName: string;
   discord: DiscordChatAdapterConfig | undefined;
   slack: SlackChatAdapterConfig | undefined;
+  matrix: MatrixChatAdapterConfig | undefined;
   /** Long-lived adapters are handed to their daemon-owned listener loops. */
   gatewayLoop: { setAdapter(adapter: DiscordChatAdapter): void };
   slackSocketLoop: { setAdapter(adapter: SlackChatAdapter): void };
@@ -35,7 +38,7 @@ function requireConfigValue(
 
 /** Build one Chat SDK app for all configured chat adapters. */
 export function createChatSdkApp(options: CreateChatSdkAppOptions): ChatSdkApp {
-  const { discord, slack } = options;
+  const { discord, slack, matrix } = options;
   const discordAdapter = discord
     ? createDiscordAdapter({
         botToken: discord.botToken,
@@ -81,13 +84,41 @@ export function createChatSdkApp(options: CreateChatSdkAppOptions): ChatSdkApp {
     options.slackSocketLoop.setAdapter(compatibleSlackAdapter);
   }
 
+  // The Matrix adapter syncs from initialize() onward, reconnecting on its
+  // own, so it needs no listener loop. It logs in with the bot's password
+  // once and keeps the session in the chat state, which persists its keys.
+  const createdMatrixAdapter = matrix
+    ? createMatrixAdapter({
+        baseURL: matrix.baseUrl,
+        auth: {
+          type: "password",
+          username: matrix.userId.slice(1).split(":")[0] ?? "",
+          password: matrix.password,
+          userID: matrix.userId,
+        },
+        userName: options.userName,
+        // Joining on invite is how a person opens a DM with the bot. In a
+        // room the bot still answers only mentions, in allowed channels.
+        ...(matrix.allowDMs ? { inviteAutoJoin: {} } : {}),
+        // matrix-js-sdk logs every request at debug; the brain log keeps warnings.
+        matrixSDKLogLevel: "warn",
+      })
+    : undefined;
+  // Under exactOptionalPropertyTypes, the Chat SDK adapters' botUserId
+  // (string | undefined) does not satisfy Adapter's optional botUserId (absent
+  // or string). The runtime contract is the same.
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- see above: no honest type describes the vendored adapter under this compiler option
+  const matrixAdapter = createdMatrixAdapter as Adapter | undefined;
+
   const adapters = {
     ...(compatibleDiscordAdapter ? { discord: compatibleDiscordAdapter } : {}),
     ...(compatibleSlackAdapter ? { slack: compatibleSlackAdapter } : {}),
+    ...(matrixAdapter ? { matrix: matrixAdapter } : {}),
   } satisfies ChatAdapterMap;
   const enabledPlatforms = [
     ...(discord ? (["discord"] as const) : []),
     ...(slack ? (["slack"] as const) : []),
+    ...(matrix ? (["matrix"] as const) : []),
   ];
   const state =
     enabledPlatforms.length > 0
@@ -100,7 +131,7 @@ export function createChatSdkApp(options: CreateChatSdkAppOptions): ChatSdkApp {
   return new Chat({
     userName: options.userName,
     adapters,
-    ...(discord || slack
+    ...(enabledPlatforms.length > 0
       ? {
           concurrency: {
             strategy: "queue" as const,

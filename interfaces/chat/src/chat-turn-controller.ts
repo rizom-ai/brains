@@ -8,6 +8,7 @@ import type { ActionEvent, Message, MessageContext } from "chat";
 import type {
   ChatConfig,
   DiscordChatAdapterConfig,
+  MatrixChatAdapterConfig,
   SlackChatAdapterConfig,
 } from "./config";
 import type { ChatInputBuilder } from "./chat-input-builder";
@@ -44,6 +45,7 @@ import {
   getSpaceId,
   getSpaceThreadId,
   isAllowedChannel,
+  isKnownBot,
   shouldHandleChatAction,
   shouldRouteChatMessage,
 } from "./discord-routing";
@@ -124,7 +126,7 @@ export class ChatTurnController {
           message,
         );
       } else if (
-        platform === "slack" &&
+        (platform === "slack" || platform === "matrix") &&
         platformConfig &&
         shouldRouteChatMessage(thread, message, platformConfig) &&
         !thread.isDM
@@ -518,7 +520,7 @@ export class ChatTurnController {
     const platformConfig = this.getPlatformConfig(thread);
     if (!platformConfig) return;
     if (thread.isDM) return;
-    if (message.author.isMe || message.author.isBot) return;
+    if (message.author.isMe || isKnownBot(message.author)) return;
     if (!isAllowedChannel(thread, platformConfig)) return;
 
     const spaceId = getSpaceId(platform, thread);
@@ -582,7 +584,7 @@ export class ChatTurnController {
     if (!platformConfig.requireMention) return;
     if (!isAllowedChannel(thread, platformConfig)) return;
     if (message.author.isMe) return;
-    if (message.author.isBot) return;
+    if (isKnownBot(message.author)) return;
     if (message.isMention) return;
 
     const urls = this.deps.host.extractCaptureableUrls(
@@ -628,10 +630,15 @@ export class ChatTurnController {
 
   private getPlatformConfig(
     thread: ChatThread,
-  ): DiscordChatAdapterConfig | SlackChatAdapterConfig | undefined {
+  ):
+    | DiscordChatAdapterConfig
+    | SlackChatAdapterConfig
+    | MatrixChatAdapterConfig
+    | undefined {
     const platform = this.getPlatform(thread);
     if (platform === "discord") return this.deps.config.adapters.discord;
     if (platform === "slack") return this.deps.config.adapters.slack;
+    if (platform === "matrix") return this.deps.config.adapters.matrix;
     return undefined;
   }
 }
@@ -643,5 +650,6 @@ export function isEnabledChatPlatform(
   const enabledPlatforms = new Set<ChatPlatform>();
   if (config.adapters.discord) enabledPlatforms.add("discord");
   if (config.adapters.slack) enabledPlatforms.add("slack");
+  if (config.adapters.matrix) enabledPlatforms.add("matrix");
   return ownsChatPlatform(interfaceType, enabledPlatforms);
 }

@@ -12,4 +12,7 @@ export const chatEnvSchema: EnvVarDecl[] = [
   { name: "DISCORD_APPLICATION_ID" },
   { name: "SLACK_BOT_TOKEN", sensitive: true },
   { name: "SLACK_APP_TOKEN", sensitive: true },
+  { name: "MATRIX_BASE_URL" },
+  { name: "MATRIX_USER_ID" },
+  { name: "MATRIX_PASSWORD", sensitive: true },
 ];

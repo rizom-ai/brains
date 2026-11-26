@@ -1,7 +1,7 @@
 import type { MessageInterfaceOutput } from "@brains/sdk/internal/interface-runtime";
 import { z } from "@brains/utils/zod";
 import type { CardElement } from "chat";
-import { parseChatPlatform } from "./chat-platform";
+import { rendersCards } from "./chat-platform";
 import { getErrorMessage } from "@brains/utils/error";
 
 export interface ChatCardOutput {
@@ -41,7 +41,7 @@ export function toPlatformPostOutput(
   if (typeof output === "string") return undefined;
   const cardOutput = toChatCardOutput(output);
   if (!cardOutput) return undefined;
-  if (parseChatPlatform(channelId) === "slack" && cardOutput.fallbackText) {
+  if (!rendersCards(channelId) && cardOutput.fallbackText) {
     return cardOutput.fallbackText;
   }
   return cardOutput;

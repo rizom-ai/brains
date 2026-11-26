@@ -13,6 +13,8 @@ import {
   captureUrlViaAgent,
   extractCaptureableUrls,
   getToolStatusKey,
+  type ChannelDeliveryInput,
+  type ChannelDeliveryResult,
   type DaemonHealth,
   type JobProgressEvent,
   type MessageInterfaceOutput,
@@ -21,7 +23,11 @@ import {
 } from "@brains/sdk/internal/interface-runtime";
 import type { PluginPackageDefinition } from "@brains/sdk";
 import { defineInterface } from "@brains/sdk/interfaces";
-import { chatConfigSchema, type ChatConfig } from "./config";
+import {
+  chatConfigSchema,
+  type ChatConfig,
+  type MatrixChatAdapterConfig,
+} from "./config";
 import { PromptActionStore } from "./prompt-action-store";
 import { ThreadRegistry } from "./thread-registry";
 import { ToolStatusMessenger } from "./tool-status-messenger";
@@ -39,10 +45,12 @@ import { SubscriptionRouter } from "./subscription-router";
 import { ChatInputBuilder, type ChatFetch } from "./chat-input-builder";
 import { postSpaceNotice } from "./space-notice";
 import { ChannelNames } from "./channel-names";
+import { MATRIX_USER_ID_PATTERN, MatrixDelivery } from "./matrix-delivery";
 import type { ChatIdentityAccess } from "./chat-identity";
 import {
   createDiscordThreadSubscriptionStore,
   createSlackThreadSubscriptionStore,
+  createThreadSubscriptionStore,
   type ChatThreadSubscriptionStore,
 } from "./subscription-state";
 import { getThreadIdParts, isBotCreatedDiscordThread } from "./discord-routing";
@@ -58,6 +66,26 @@ const MAX_PROMPT_ACTIONS = 1000;
 
 /** The interface type its progress and tool events are routed to. */
 const CHAT_INTERFACE_ID = "chat";
+
+/** Delivery on the matrix channel, available whenever Matrix is configured. */
+function matrixDelivery(
+  config: MatrixChatAdapterConfig,
+  fetchFn: ChatFetch | undefined,
+): {
+  isAvailable(): Promise<boolean>;
+  send(input: ChannelDeliveryInput): Promise<ChannelDeliveryResult>;
+} {
+  const delivery = new MatrixDelivery({
+    baseUrl: config.baseUrl,
+    userId: config.userId,
+    password: config.password,
+    ...(fetchFn ? { fetch: fetchFn } : {}),
+  });
+  return {
+    isAvailable: (): Promise<boolean> => Promise.resolve(true),
+    send: (input): Promise<ChannelDeliveryResult> => delivery.send(input),
+  };
+}
 
 /**
  * Runtime collaborators the interface needs that are not configuration.
@@ -209,6 +237,7 @@ export function createChatInterface(
               userName: config.userName,
               discord: config.adapters.discord,
               slack: config.adapters.slack,
+              matrix: config.adapters.matrix,
               gatewayLoop: state.gatewayLoop,
               slackSocketLoop: state.slackSocketLoop,
               runtimeState,
@@ -219,6 +248,9 @@ export function createChatInterface(
 
       let discordSubscriptions: ChatThreadSubscriptionStore | undefined;
       let slackSubscriptions: ChatThreadSubscriptionStore | undefined;
+      const matrixSubscriptions = config.adapters.matrix
+        ? createThreadSubscriptionStore(runtime.classRuntimeState, "matrix")
+        : undefined;
       if (config.adapters.discord)
         discordSubscriptions = createDiscordThreadSubscriptionStore(
           runtime.classRuntimeState,
@@ -269,7 +301,9 @@ export function createChatInterface(
               ? discordSubscriptions
               : platform === "slack"
                 ? slackSubscriptions
-                : undefined,
+                : platform === "matrix"
+                  ? matrixSubscriptions
+                  : undefined,
           getPlatform: (thread): string => thread.adapter.name,
           isBotCreatedThread: isBotCreatedDiscordThread,
           logger,
@@ -343,6 +377,21 @@ export function createChatInterface(
           },
         ]
       : []),
+    ...(config.adapters.matrix
+      ? [
+          {
+            descriptor: {
+              type: "matrix",
+              displayName: "Matrix",
+              subjectLabel: "Matrix user ID",
+              subjectPattern: { source: MATRIX_USER_ID_PATTERN.source },
+            },
+            // Straight to the homeserver: the worker delivers too, and no
+            // Matrix sync runs there.
+            delivery: matrixDelivery(config.adapters.matrix, deps.fetch),
+          },
+        ]
+      : []),
   ]);
 
   /** The Discord and Slack webhooks, delegated to the Chat SDK app. */
@@ -357,7 +406,13 @@ export function createChatInterface(
     ({ config, state }: ChatSlotContext) => {
       const discordEnabled = Boolean(config.adapters.discord);
       const slackSocketEnabled = config.adapters.slack?.mode === "socket";
-      if (!discordEnabled && !config.adapters.slack) return undefined;
+      if (
+        !discordEnabled &&
+        !config.adapters.slack &&
+        !config.adapters.matrix
+      ) {
+        return undefined;
+      }
 
       return {
         id: CHAT_INTERFACE_ID,

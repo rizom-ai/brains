@@ -1,0 +1,41 @@
+diff --git a/dist/index.js b/dist/index.js
+index 3360d7352fec0df580a474088205519227cc8be0..8374d6ba067f5bbfd8c81d81b834158b712964c6 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -466,6 +466,7 @@ var MatrixAdapter = class {
+   secretsBundleUnavailableLogged = false;
+   liveSyncReady = false;
+   shuttingDown = false;
++  joinedDirectRoomIDs = /* @__PURE__ */ new Set();
+   constructor(config) {
+     this.validateConfig(config);
+     this.baseURL = config.baseURL;
+@@ -591,6 +592,13 @@ var MatrixAdapter = class {
+     const { roomID } = this.decodeThreadId(threadId);
+     return this.encodeThreadId({ roomID });
+   }
++  isDM(threadId) {
++    if (!this.client) {
++      return false;
++    }
++    const { roomID } = this.decodeThreadId(threadId);
++    return this.joinedDirectRoomIDs.has(roomID) || this.directAccountDataContainsRoom(this.loadCachedDirectAccountData(), roomID);
++  }
+   renderFormatted(content) {
+     return stringifyMarkdown(content);
+   }
+@@ -1737,6 +1745,14 @@ var MatrixAdapter = class {
+     }
+     try {
+       await this.joinRoomWithRetry(roomID);
++      if (inviter && event.getContent()?.is_direct === true) {
++        this.joinedDirectRoomIDs.add(roomID);
++        await this.persistDirectAccountDataRoom(
++          inviter,
++          roomID,
++          this.loadCachedDirectAccountData()
++        );
++      }
+       this.logger.info("Accepted Matrix invite", {
+         roomId: roomID,
+         inviter
