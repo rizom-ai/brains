@@ -19,6 +19,24 @@ function recordInput(
     entity,
     config: {},
     dryRun: false,
+    // A book's metadata indexes its title alone; the rest is in its file.
+    storedDocument: async () =>
+      [
+        "---",
+        "title: The Gay Science",
+        "source: https://www.nietzschesource.org/#eKGWB/FW",
+        "author: Friedrich Nietzsche",
+        "year: 1882",
+        "kind: work",
+        "edition: eKGWB",
+        "license: public-domain",
+        "attribution: Digital critical edition, Nietzsche Source",
+        "sections: 383",
+        "---",
+        "## Contents",
+        "",
+        "1. Preface",
+      ].join("\n"),
     entities: {
       get: async () => null,
       list: async () => [],
@@ -44,6 +62,13 @@ describe("book ATProto projection", () => {
     expect(record).toEqual({
       $type: "ai.rizom.brain.book",
       title: "The Gay Science",
+      author: "Friedrich Nietzsche",
+      year: 1882,
+      kind: "work",
+      edition: "eKGWB",
+      license: "public-domain",
+      attribution: "Digital critical edition, Nietzsche Source",
+      source: "https://www.nietzschesource.org/#eKGWB/FW",
       canonicalUrl: "https://brain.example.com/book/the-gay-science",
       brainDid: "did:web:brain.example.com",
       sourceEntityType: "book",
@@ -52,6 +77,25 @@ describe("book ATProto projection", () => {
       updatedAt: "2026-05-28T11:00:00.000Z",
     });
     expect(JSON.stringify(record)).not.toContain("Contents");
+  });
+
+  it("leaves out what the book's file does not state", async () => {
+    const record = await buildBookAtprotoRecord(
+      recordInput({
+        storedDocument: async () =>
+          "---\ntitle: The Gay Science\nsource: https://example.org/fw\n---\n",
+      }),
+    );
+
+    expect(record).toEqual({
+      $type: "ai.rizom.brain.book",
+      title: "The Gay Science",
+      source: "https://example.org/fw",
+      sourceEntityType: "book",
+      sourceEntityId: "the-gay-science",
+      createdAt: "2026-05-28T09:00:00.000Z",
+      updatedAt: "2026-05-28T11:00:00.000Z",
+    });
   });
 
   it("publishes under the canonical book lexicon", () => {

@@ -27,6 +27,7 @@ function recordInput(
     entity: series,
     config: {},
     dryRun: false,
+    storedDocument: async () => "",
     entities: {
       get: async () => null,
       list: async () => [],

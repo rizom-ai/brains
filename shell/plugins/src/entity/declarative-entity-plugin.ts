@@ -1870,6 +1870,15 @@ class DeclarativeEntityPlugin extends PluginCore<
                 topics: topics && Object.freeze([...topics]),
               }),
               dryRun: dryRun === true,
+              storedDocument: async (): Promise<string> => {
+                // Public only, like every read a record is built from.
+                const stored = await context.entityService.getEntity({
+                  entityType: entity.entityType,
+                  id: entity.id,
+                  source: true,
+                });
+                return stored?.content ?? entity.content;
+              },
               entities,
               uploadBlob: async ({
                 data,
