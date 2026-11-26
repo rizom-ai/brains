@@ -25,16 +25,3 @@ export function inline(text: string): (string | JSX.Element)[] {
     return part;
   });
 }
-
-/** Authored `*emphasis*` in a heading, as the accent's italic. */
-export function accent(text: string): (string | JSX.Element)[] {
-  return text.split(/\*([^*]+)\*/g).map((part, i) =>
-    i % 2 === 1 ? (
-      <span key={`${i}-${part}`} className="italic font-[400] text-accent">
-        {part}
-      </span>
-    ) : (
-      part
-    ),
-  );
-}

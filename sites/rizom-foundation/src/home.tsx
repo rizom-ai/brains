@@ -1,8 +1,8 @@
 import type { JSX } from "react";
 import type { SiteSectionGroup } from "@rizom/site";
 import { defineSection, sectionGroup, z } from "@rizom/site";
-import { emphasize } from "@rizom/site-rizom-ai";
-import { accent, inline } from "./inline";
+import { emphasize, renderHighlightedText } from "@rizom/site-rizom-ai";
+import { inline } from "./inline";
 import { FOUNDATION_STYLESHEET_PATH } from "./styles";
 
 /**
@@ -14,6 +14,8 @@ import { FOUNDATION_STYLESHEET_PATH } from "./styles";
  */
 
 const doorSchema = z.object({ label: z.string(), href: z.string() });
+
+const ACCENT = "italic font-[400] text-accent";
 
 /* ============ the opening ============ */
 
@@ -35,7 +37,7 @@ function Hero({
   return (
     <section id="foundation-hero" className="chapter">
       <p className="eyebrow">{eyebrow}</p>
-      <h1>{accent(headline)}</h1>
+      <h1>{renderHighlightedText(headline, ACCENT)}</h1>
       <p className="lede">{lede}</p>
       {body.map((paragraph) => (
         <p key={paragraph}>{paragraph}</p>
@@ -120,7 +122,7 @@ const missionSchema = z.object({
 function Mission({ claim, body }: z.infer<typeof missionSchema>): JSX.Element {
   return (
     <section id="mission" className="chapter" data-title="Mission">
-      <p className="pull">{accent(claim)}</p>
+      <p className="pull">{renderHighlightedText(claim, ACCENT)}</p>
       {body.map((paragraph) => (
         <p key={paragraph}>{paragraph}</p>
       ))}
