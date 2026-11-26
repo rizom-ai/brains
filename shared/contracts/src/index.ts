@@ -43,6 +43,14 @@ export {
 } from "./ask-box";
 export {
   A2A_CONTACT_APPROVALS_NAMESPACE,
+  ENTITY_SHARING_EXTENSION_URI,
+  entitySharingRequestSchema,
+  sharedEntitySchema,
+  a2aSharedEntityContract,
+  sharedEntityAskResponseSchema,
+  type SharedEntityAskResponse,
+  type EntitySharingRequest,
+  type SharedEntity,
   a2aContactApprovalSchema,
   type A2AContactApproval,
   a2aAgentsContract,

@@ -121,6 +121,7 @@ describe("the agents capability's registered surface", () => {
       ["agent_connect", "trusted"],
       ["agent_scan_directories", "trusted"],
       ["agent_set_standing", "admin"],
+      ["agent_shared_entities", "admin"],
       ["network_ask", "public"],
     ]);
     expect(capabilities.flatMap(({ resources }) => resources)).toEqual([]);

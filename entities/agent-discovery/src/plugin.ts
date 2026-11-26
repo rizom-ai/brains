@@ -36,6 +36,7 @@ import {
   scanAgentDirectories,
 } from "./tools/agent-scan-directories";
 import { createAgentSetStandingTool } from "./tools/agent-set-standing";
+import { createAgentSharedEntitiesTool } from "./tools/agent-shared-entities";
 import { createNetworkAskTool } from "./tools/network-ask";
 
 const atprotoNotificationCandidateSchema = z
@@ -292,6 +293,7 @@ export function createAgentDiscoveryPackages(
         createAgentConnectTool(context, approvals, network.fetch),
         createAgentScanDirectoriesTool(context, network.fetch),
         createAgentSetStandingTool(context, approvals, network.fetch),
+        createAgentSharedEntitiesTool(context),
         createNetworkAskTool(context),
       ];
     },

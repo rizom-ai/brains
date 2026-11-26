@@ -145,3 +145,101 @@ export const a2aContactApprovalSchema: A2AContactApprovalSchema = z.object({
 });
 
 export type A2AContactApproval = z.output<typeof a2aContactApprovalSchema>;
+
+/**
+ * The A2A extension a brain declares on its Agent Card to serve its shared
+ * entities to peers it trusts. A request activates it with the
+ * `X-A2A-Extensions` header and names what it wants in a data part of an
+ * ordinary `message/send`; it is answered before any model sees it.
+ */
+export const ENTITY_SHARING_EXTENSION_URI =
+  "https://rizom.ai/ext/entity-sharing/v1";
+
+type EntitySharingRequestSchema = z.ZodObject<{
+  op: z.ZodLiteral<"get">;
+  entityType: z.ZodString;
+  id: z.ZodString;
+}>;
+
+/** One shared entity asked of a peer, by its type and id. */
+export const entitySharingRequestSchema: EntitySharingRequestSchema = z.object({
+  op: z.literal("get"),
+  entityType: z.string().min(1),
+  id: z.string().min(1),
+});
+
+export type EntitySharingRequest = z.output<typeof entitySharingRequestSchema>;
+
+type SharedEntitySchema = z.ZodObject<{
+  entityType: z.ZodString;
+  id: z.ZodString;
+  markdown: z.ZodString;
+  contentHash: z.ZodString;
+}>;
+
+/** A shared entity as its owner serves it: its stored document and that document's hash. */
+export const sharedEntitySchema: SharedEntitySchema = z.object({
+  entityType: z.string().min(1),
+  id: z.string().min(1),
+  markdown: z.string(),
+  contentHash: z.string().min(1),
+});
+
+export type SharedEntity = z.output<typeof sharedEntitySchema>;
+
+type SharedEntityAskRequestSchema = z.ZodObject<{
+  agent: z.ZodString;
+  entityType: z.ZodString;
+  id: z.ZodString;
+}>;
+
+const sharedEntityAskRequestSchema: SharedEntityAskRequestSchema = z.object({
+  /** The saved, approved peer to ask, by its id. */
+  agent: z.string().min(1),
+  entityType: z.string().min(1),
+  id: z.string().min(1),
+});
+
+type SharedEntityAskResponseSchema = z.ZodDiscriminatedUnion<
+  [
+    z.ZodObject<{ status: z.ZodLiteral<"found">; entity: SharedEntitySchema }>,
+    z.ZodObject<{ status: z.ZodLiteral<"not-found"> }>,
+    z.ZodObject<{
+      status: z.ZodLiteral<"refused">;
+      code: z.ZodString;
+      error: z.ZodString;
+    }>,
+  ]
+>;
+
+/**
+ * What asking a peer for a shared entity comes to: the entity, the peer's
+ * one answer for anything it will not serve, or why the peer was not asked
+ * or could not be read.
+ */
+export const sharedEntityAskResponseSchema: SharedEntityAskResponseSchema =
+  z.discriminatedUnion("status", [
+    z.object({ status: z.literal("found"), entity: sharedEntitySchema }),
+    z.object({ status: z.literal("not-found") }),
+    z.object({
+      status: z.literal("refused"),
+      code: z.string(),
+      error: z.string(),
+    }),
+  ]);
+
+export type SharedEntityAskResponse = z.output<
+  typeof sharedEntityAskResponseSchema
+>;
+
+/** Ask a saved, approved peer for one of its shared entities. */
+export const a2aSharedEntityContract: BusContract<
+  SharedEntityAskRequestSchema,
+  SharedEntityAskResponseSchema,
+  "request"
+> = defineBusContract({
+  channel: "a2a:shared-entity:get",
+  request: sharedEntityAskRequestSchema,
+  response: sharedEntityAskResponseSchema,
+  delivery: "request",
+});

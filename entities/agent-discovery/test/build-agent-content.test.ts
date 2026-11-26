@@ -21,6 +21,7 @@ describe("buildAgentFromCard", () => {
       kind: "professional",
       description: "A trusted contact.",
     },
+    extensions: [],
   };
 
   it("can mark explicitly saved agents as approved", () => {

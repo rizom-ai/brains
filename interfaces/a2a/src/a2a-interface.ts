@@ -1,4 +1,9 @@
 import {
+  asksForEntitySharing,
+  entitySharingRequestOf,
+  readSharedEntity,
+} from "./entity-sharing";
+import {
   A2A_CONTACT_APPROVALS_NAMESPACE,
   a2aContactApprovalSchema,
 } from "@brains/contracts";
@@ -298,6 +303,33 @@ function createApp(
           jsonrpc: "2.0",
           error: { code: -32600, message: "Invalid request" },
           id: null,
+        }),
+      );
+    }
+
+    // An entity-sharing request is answered here, before any model sees
+    // it. Every miss is the same 404, so a peer learns nothing from one.
+    if (asksForEntitySharing(c.req.raw.headers)) {
+      const shared = await readSharedEntity(
+        runtime.entityReads,
+        caller.permissionLevel,
+        parsed.data.method === "message/send"
+          ? entitySharingRequestOf(parsed.data.params)
+          : undefined,
+      );
+      if (!shared) {
+        return withCors(c.json({ error: "Not found" }, 404));
+      }
+      return withCors(
+        c.json({
+          jsonrpc: "2.0",
+          id: parsed.data.id,
+          result: {
+            kind: "message",
+            messageId: crypto.randomUUID(),
+            role: "agent",
+            parts: [{ kind: "data", data: shared }],
+          },
         }),
       );
     }

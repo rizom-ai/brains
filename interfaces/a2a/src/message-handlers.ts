@@ -1,3 +1,5 @@
+import { a2aSharedEntityContract } from "@brains/contracts";
+import { fetchSharedEntity } from "./shared-entity-client";
 import {
   type InterfaceRuntime,
   permissionToVisibilityScope,
@@ -111,6 +113,12 @@ export function registerA2ACallMessageHandlers(
       }
       return answer.data;
     },
+  );
+
+  // One shared entity from a saved, approved peer: a signed request with
+  // no model on either side.
+  runtime.answer(a2aSharedEntityContract, ({ request }) =>
+    fetchSharedEntity(request, deps),
   );
 
   runtime.answer(

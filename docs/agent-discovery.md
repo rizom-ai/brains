@@ -143,6 +143,13 @@ This is the heart of cross-brain discovery: **discovery never implies access.**
   first. It records the approval and then writes the status to match.
   Connecting a new peer with `agent_connect` and the Inbox's connect action
   record it the same way.
+- **Shared entities travel without a model.** A brain declares the
+  `https://rizom.ai/ext/entity-sharing/v1` extension on its Agent Card and
+  serves an entity its owner marked `shared` to a peer it trusts, when a
+  signed `message/send` asks for it by type and id with the
+  `X-A2A-Extensions` header. The request is answered before any model sees
+  it, and every miss (not trusted, not shared, not published, not there) is
+  the same `404`. An admin reads one with `agent_shared_entities`.
 - **URL adds are the trusted shortcut.** When a user adds a brain by URL, the
   create interceptor (`agent-create-interceptor.ts`) creates it as `approved`
   immediately, and upgrades an existing `discovered` entry to `approved`. The

@@ -86,6 +86,17 @@ export function createMockEntityService(
       request.visibilityScope ?? "public",
     ).includes(entity.visibility);
     if (!visible) return null;
+    // The real publish gate's default lifecycle: published, active, or a
+    // type with no status at all.
+    const status = entity.metadata["status"];
+    if (
+      request.publishedOnly &&
+      status !== undefined &&
+      status !== "published" &&
+      status !== "active"
+    ) {
+      return null;
+    }
     const read = readEntity(entity, request.source);
     if (!read) return null;
     return schema ? schema.parse(read) : read;
