@@ -7,6 +7,7 @@ import {
   type SiteLayoutProps,
 } from "@rizom/site";
 import { Logo } from "./logo";
+import { menuWords, PAGES } from "./pages";
 import { parsePhoto } from "./portrait";
 
 /** The brain's profiles elsewhere: every social link but the email. */
@@ -68,15 +69,15 @@ const RIZOM_HREF = "https://rizom.ai";
 function LanguageSwitch({
   language,
   alternates,
-  pill = false,
+  variant,
 }: {
   language: string;
   alternates: SiteAlternate[];
-  pill?: boolean;
+  variant?: "pill" | "menu";
 }): JSX.Element {
   return (
     <nav
-      className={pill ? "tf-lang tf-lang--pill" : "tf-lang"}
+      className={variant ? `tf-lang tf-lang--${variant}` : "tf-lang"}
       aria-label="Language"
     >
       {alternates.map((alternate, index) => {
@@ -115,28 +116,44 @@ function Wordmark({ title }: { title: string }): JSX.Element {
 }
 
 /**
- * The paper frame: the logo, the language switch and the one way to talk
- * above the story; below it, on red, the name as a wordmark beside the
- * brain's profiles (each in a new tab) and the email, then the anchor's
+ * The paper frame: the logo, the four pages, the language switch and the one
+ * way to talk above the story, the pages folding into a menu on small
+ * screens; below it, on red, the name as a wordmark beside the pages again,
+ * the brain's profiles (each in a new tab) and the email, then the anchor's
  * photo when it has one, the legal pages' places, and the switch again as a
  * pill over the copyright and a quiet credit to Rizom, in the page's
  * language. The switch shows only on a page that exists in more than one
- * language. There is no menu.
+ * language. A small arrow leads back to the top.
  */
 export function TheFourthLayout({
   sections,
   siteInfo,
+  path = "/",
   language = "en",
   alternates = [],
 }: SiteLayoutProps): JSX.Element {
   const email = emailOf(siteInfo);
   const profiles = profilesOf(siteInfo);
   const defaultLanguage = alternates[0]?.language ?? language;
-  const home = languagePath(language, defaultLanguage, "/");
+  const pathIn = (page: string): string =>
+    languagePath(language, defaultLanguage, page);
+  const home = pathIn("/");
+  // The build passes a translated page its prefixed path; accept either form.
+  const here = path.startsWith("/") ? path : `/${path}`;
+  const current = (href: string): { "aria-current"?: "page" } =>
+    href === here || href === pathIn(here) ? { "aria-current": "page" } : {};
   const lines = FOOTER_LINES[language.toLowerCase()] ?? DEFAULT_FOOTER_LINES;
+  const words = menuWords(language);
   const photo = parsePhoto(siteInfo.photo ?? "");
+  const pages = PAGES.map((page) => ({ ...page, href: pathIn(page.path) }));
+  const talk = siteInfo.cta;
+  const switchable = alternates.length > 1;
   return (
-    <div className="tf-site" lang={language}>
+    <div
+      className={here === home ? "tf-site tf-site--home" : "tf-site"}
+      id="top"
+      lang={language}
+    >
       <header className="tf-bar">
         <a
           className="tf-mark"
@@ -145,15 +162,71 @@ export function TheFourthLayout({
         >
           <Logo />
         </a>
+        <nav className="tf-nav" aria-label="Main">
+          {pages.map((page) => (
+            <a
+              key={page.id}
+              className="tf-nl"
+              href={page.href}
+              {...current(page.href)}
+            >
+              {page.label}
+            </a>
+          ))}
+        </nav>
         <div className="tf-bar__end">
-          {alternates.length > 1 && (
+          {switchable && (
             <LanguageSwitch language={language} alternates={alternates} />
           )}
-          {siteInfo.cta && (
-            <a className="tf-btn tf-btn--ink" href={siteInfo.cta.buttonLink}>
-              {siteInfo.cta.buttonText}
+          {talk && (
+            <a className="tf-btn tf-btn--ink" href={talk.buttonLink}>
+              {talk.buttonText}
             </a>
           )}
+          <details className="tf-menu">
+            <summary className="tf-menu__button">
+              <svg
+                aria-hidden="true"
+                width="18"
+                height="12"
+                viewBox="0 0 18 12"
+              >
+                <path
+                  d="M0 1h18M0 6h18M0 11h18"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                />
+              </svg>
+              {words.menu}
+            </summary>
+            <nav className="tf-menu__panel" aria-label={words.menu}>
+              <a className="tf-mlink" href={home} {...current(home)}>
+                {words.home}
+              </a>
+              {pages.map((page) => (
+                <a
+                  key={page.id}
+                  className="tf-mlink"
+                  href={page.href}
+                  {...current(page.href)}
+                >
+                  {page.label}
+                </a>
+              ))}
+              {talk && (
+                <a className="tf-mlink tf-mlink--talk" href={talk.buttonLink}>
+                  {talk.buttonText}
+                </a>
+              )}
+              {switchable && (
+                <LanguageSwitch
+                  language={language}
+                  alternates={alternates}
+                  variant="menu"
+                />
+              )}
+            </nav>
+          </details>
         </div>
       </header>
       <main className="tf-main">{sections}</main>
@@ -164,6 +237,18 @@ export function TheFourthLayout({
               <Wordmark title={siteInfo.title} />
               <span className="tf-foot__trade">{lines.trade}</span>
             </div>
+            <nav className="tf-foot__nav" aria-label="Footer">
+              {pages.map((page) => (
+                <a key={page.id} className="tf-flink" href={page.href}>
+                  {page.label}
+                </a>
+              ))}
+              {talk && (
+                <a className="tf-flink" href={talk.buttonLink}>
+                  {talk.buttonText}
+                </a>
+              )}
+            </nav>
             <div className="tf-foot__reach">
               {profiles.length > 0 && (
                 <div className="tf-foot__social">
@@ -207,11 +292,11 @@ export function TheFourthLayout({
               ))}
             </div>
             <div className="tf-foot__end">
-              {alternates.length > 1 && (
+              {switchable && (
                 <LanguageSwitch
                   language={language}
                   alternates={alternates}
-                  pill
+                  variant="pill"
                 />
               )}
               <span>{siteInfo.copyright}</span>
@@ -227,6 +312,9 @@ export function TheFourthLayout({
           </div>
         </div>
       </footer>
+      <a className="tf-top" href="#top" aria-label={words.top}>
+        ↑
+      </a>
     </div>
   );
 }
