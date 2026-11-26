@@ -132,6 +132,9 @@ server = "brain.example.com:443"
 [global.database.backup]
 path = "/var/lib/tuwunel/backup"
 
+[global.admin]
+signal_execute = ["server backup-database"]
+
 [[global.identity_provider]]
 brand = "brain"
 name = "your brain"

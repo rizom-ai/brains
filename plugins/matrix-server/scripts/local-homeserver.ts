@@ -34,7 +34,7 @@ const started = await runProcess([
   name,
   "--restart",
   "unless-stopped",
-  // On the host's network, at 127.0.0.1:8008, so it reaches the brain on
+  // On the host's network, at 127.0.0.1:6167, so it reaches the brain on
   // the host, which is its identity provider.
   "--network",
   "host",

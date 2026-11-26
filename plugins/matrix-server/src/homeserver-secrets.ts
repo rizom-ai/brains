@@ -7,7 +7,7 @@ import { renderHomeserverConfig } from "./homeserver-config";
 /** Where the homeserver keeps its database and configuration, inside its container. */
 export const HOMESERVER_CONTAINER_DATA = "/data";
 /** The port the homeserver listens on inside its container. */
-export const HOMESERVER_PORT = 8008;
+export const HOMESERVER_PORT = 6167;
 const CONFIG_FILE = "tuwunel.toml";
 
 export interface HomeserverSecrets {
