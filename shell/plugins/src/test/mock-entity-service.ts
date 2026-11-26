@@ -170,7 +170,14 @@ export function createMockEntityService(
         entity.content.toLowerCase().includes(contentContains),
       );
     if (request.options?.publishedOnly) {
-      results = results.filter((e) => e.metadata["status"] === "published");
+      // The publish gate a single read applies: published, active, or a
+      // type with no status at all.
+      results = results.filter((e) => {
+        const status = e.metadata["status"];
+        return (
+          status === undefined || status === "published" || status === "active"
+        );
+      });
     }
     if (request.options?.filter?.metadata) {
       const filterEntries = Object.entries(request.options.filter.metadata);

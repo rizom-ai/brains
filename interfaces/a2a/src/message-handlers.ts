@@ -1,5 +1,11 @@
-import { a2aSharedEntityContract } from "@brains/contracts";
-import { fetchSharedEntity } from "./shared-entity-client";
+import {
+  a2aSharedEntityContract,
+  a2aSharedEntityListContract,
+} from "@brains/contracts";
+import {
+  fetchSharedEntity,
+  fetchSharedEntityListing,
+} from "./shared-entity-client";
 import {
   type InterfaceRuntime,
   permissionToVisibilityScope,
@@ -119,6 +125,10 @@ export function registerA2ACallMessageHandlers(
   // no model on either side.
   runtime.answer(a2aSharedEntityContract, ({ request }) =>
     fetchSharedEntity(request, deps),
+  );
+  // What that peer shares with this brain, so no id has to be guessed.
+  runtime.answer(a2aSharedEntityListContract, ({ request }) =>
+    fetchSharedEntityListing(request, deps),
   );
 
   runtime.answer(

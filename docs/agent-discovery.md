@@ -154,7 +154,8 @@ This is the heart of cross-brain discovery: **discovery never implies access.**
   and the asking brain takes nothing whose hash or signature does not check
   out against the peer it asked.
 - **A copy is its own type.** An admin works with what a peer shares through
-  one tool, `agent_shared_entities`: `show` returns an entity's text and
+  one tool, `agent_shared_entities`: `list` names what the peer shares
+  with this brain, `show` returns an entity's text and
   saves nothing, `take` saves a copy after confirmation, `drop` removes
   one. A copy is a `shared-copy` entity, never a note or a post of this
   brain's own, and it is taken only when the document fits this brain's own

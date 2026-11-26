@@ -1,6 +1,7 @@
 import {
   asksForEntitySharing,
   entitySharingRequestOf,
+  listSharedEntities,
   readSharedEntity,
   type StatementSigner,
 } from "./entity-sharing";
@@ -331,14 +332,22 @@ function createApp(
     // An entity-sharing request is answered here, before any model sees
     // it. Every miss is the same 404, so a peer learns nothing from one.
     if (asksForEntitySharing(c.req.raw.headers)) {
-      const shared = await readSharedEntity(
-        runtime.entityReads,
-        caller.permissionLevel,
+      const asked =
         parsed.data.method === "message/send"
           ? entitySharingRequestOf(parsed.data.params)
-          : undefined,
-        createStatementSigner(runtime),
-      );
+          : undefined;
+      const shared =
+        asked?.op === "list"
+          ? await listSharedEntities(
+              runtime.entityReads,
+              caller.permissionLevel,
+            )
+          : await readSharedEntity(
+              runtime.entityReads,
+              caller.permissionLevel,
+              asked,
+              createStatementSigner(runtime),
+            );
       if (!shared) {
         return withCors(c.json({ error: "Not found" }, 404));
       }

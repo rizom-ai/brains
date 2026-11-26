@@ -8,7 +8,10 @@ import {
 import { signStatement } from "@brains/http-signatures";
 import { computeContentHash } from "@brains/utils/hash";
 import type { A2AClientDeps, FetchFn } from "../src/client";
-import { fetchSharedEntity } from "../src/shared-entity-client";
+import {
+  fetchSharedEntity,
+  fetchSharedEntityListing,
+} from "../src/shared-entity-client";
 
 const PEER = "peer.example";
 const PRICING = "---\ntitle: Pricing\n---\nWhat we charge.";
@@ -282,6 +285,42 @@ describe("asking a peer for one shared entity", () => {
       status: "refused",
       code: "unreadable_answer",
     });
+  });
+
+  it("lists what an approved peer offers", async () => {
+    const entities = [{ entityType: "note", id: "pricing", title: "Pricing" }];
+    const network = peer({ answer: answering({ entities }) });
+
+    expect(
+      await fetchSharedEntityListing({ agent: PEER }, deps(network)),
+    ).toEqual({ status: "found", entities });
+    const sent = network.requests.find((request) => request.method === "POST");
+    expect(sent?.headers.get("signature")).toBe("signed");
+    expect(await sent?.json()).toMatchObject({
+      params: { message: { parts: [{ kind: "data", data: { op: "list" } }] } },
+    });
+  });
+
+  it("says not found when the peer lists nothing for this brain", async () => {
+    const network = peer({
+      answer: () => Response.json({ error: "Not found" }, { status: 404 }),
+    });
+
+    expect(
+      await fetchSharedEntityListing({ agent: PEER }, deps(network)),
+    ).toEqual({ status: "not-found" });
+  });
+
+  it("refuses to list a peer that is not approved, before any network contact", async () => {
+    const network = peer();
+
+    expect(
+      await fetchSharedEntityListing(
+        { agent: PEER },
+        deps(network, { approved: false }),
+      ),
+    ).toMatchObject({ status: "refused", code: "agent_not_approved" });
+    expect(network.requests).toEqual([]);
   });
 
   it("refuses when the peer fails", async () => {

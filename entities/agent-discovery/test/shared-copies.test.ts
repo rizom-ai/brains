@@ -1,5 +1,8 @@
 import { describe, expect, it } from "bun:test";
-import { a2aSharedEntityContract } from "@brains/contracts";
+import {
+  a2aSharedEntityContract,
+  a2aSharedEntityListContract,
+} from "@brains/contracts";
 import {
   defineEntity,
   defineEntityPackage,
@@ -63,6 +66,7 @@ const pricing = "---\ntitle: Pricing\n---\nWhat we charge.";
 
 async function brain(
   answer: (request: { entityType: string; id: string }) => unknown,
+  listing: () => unknown = () => ({ status: "not-found" }),
 ): Promise<{ harness: Harness; asked: unknown[] }> {
   const harness = createPluginHarness<Plugin>({});
   await installAll(
@@ -85,6 +89,10 @@ async function brain(
       asked.push(message.payload);
       return { success: true, data: answer(message.payload) };
     },
+  );
+  harness.subscribe<{ agent: string }, unknown>(
+    a2aSharedEntityListContract.name,
+    async () => ({ success: true, data: listing() }),
   );
   return { harness, asked };
 }
@@ -276,6 +284,51 @@ describe("taking a copy of what a peer shares", () => {
 
     expect(confirmation).toMatchObject({ success: false, code: "not_found" });
     expect(await copies(harness)).toEqual([]);
+    await harness.reset();
+  });
+});
+
+describe("listing what a peer offers", () => {
+  const offered = {
+    status: "found",
+    entities: [
+      { entityType: "note", id: "pricing", title: "Pricing" },
+      { entityType: "note", id: "roadmap", title: "Roadmap" },
+    ],
+  };
+
+  it("names each entity the peer shares, and which this brain holds a copy of", async () => {
+    const { harness } = await brain(
+      () => served(pricing),
+      () => offered,
+    );
+    await take(harness);
+
+    const result = await harness.executeTool("agent_shared_entities", {
+      agent: "peer.example",
+      action: "list",
+    });
+
+    expectSuccess(result);
+    expect(result.data).toEqual({
+      agent: "peer.example",
+      entities: [
+        { entityType: "note", id: "pricing", title: "Pricing", copied: true },
+        { entityType: "note", id: "roadmap", title: "Roadmap", copied: false },
+      ],
+    });
+    await harness.reset();
+  });
+
+  it("says so when the peer shares nothing with this brain", async () => {
+    const { harness } = await brain(() => served(pricing));
+
+    const result = await harness.executeTool("agent_shared_entities", {
+      agent: "peer.example",
+      action: "list",
+    });
+
+    expect(result).toMatchObject({ success: false, code: "not_found" });
     await harness.reset();
   });
 });

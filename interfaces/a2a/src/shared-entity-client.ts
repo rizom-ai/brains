@@ -1,8 +1,11 @@
 import {
   ENTITY_SHARING_EXTENSION_URI,
+  sharedEntityListingSchema,
   sharedEntitySchema,
   sharedEntityStatement,
+  type EntitySharingRequest,
   type SharedEntityAskResponse,
+  type SharedEntityListAskResponse,
 } from "@brains/contracts";
 import { JwksResolver, verifyStatement } from "@brains/http-signatures";
 import { computeContentHash } from "@brains/utils/hash";
@@ -22,22 +25,36 @@ const answerSchema = z.looseObject({
   }),
 });
 
-function refused(code: string, error: string): SharedEntityAskResponse {
+function refused(code: string, error: string): Refused {
   return { status: "refused", code, error };
 }
 
+type Refused = Extract<SharedEntityAskResponse, { status: "refused" }>;
+
+/** A peer's answer to one entity-sharing request: its data parts, read by the caller. */
+type Exchange =
+  | Refused
+  | { status: "not-found" }
+  | {
+      status: "answered";
+      agentId: string;
+      data: unknown[];
+      fetchFn: NonNullable<A2AClientDeps["fetch"]>;
+      timeoutMs: number;
+    };
+
 /**
- * Ask a saved, approved peer for one of its shared entities, over the
- * entity-sharing extension. A peer that is not saved, is archived or is not
- * approved is refused before any network contact, and so is a brain that
- * cannot sign: a peer serves only callers it can verify. The peer's 404 is
- * "not found", whatever its reason.
+ * Send one entity-sharing request to a saved, approved peer. A peer that is
+ * not saved, is archived or is not approved is refused before any network
+ * contact, and so is a brain that cannot sign: a peer serves only callers
+ * it can verify. The peer's 404 is "not found", whatever its reason.
  */
-export async function fetchSharedEntity(
-  wanted: { agent: string; entityType: string; id: string },
+async function exchange(
+  agent: string,
+  request: EntitySharingRequest,
   deps: A2AClientDeps,
-): Promise<SharedEntityAskResponse> {
-  const agentId = wanted.agent.trim().toLowerCase();
+): Promise<Exchange> {
+  const agentId = agent.trim().toLowerCase();
   const saved = await deps.entityService?.getEntity({
     entityType: "agent",
     id: agentId,
@@ -93,7 +110,7 @@ export async function fetchSharedEntity(
         parts: [
           {
             kind: "data",
-            data: { op: "get", entityType: wanted.entityType, id: wanted.id },
+            data: request,
           },
         ],
       },
@@ -131,12 +148,56 @@ export async function fetchSharedEntity(
   const answer = answerSchema.safeParse(
     await response.json().catch(() => null),
   );
-  const entity = answer.success
-    ? answer.data.result.parts
-        .filter((part) => part.kind === "data")
-        .map((part) => sharedEntitySchema.safeParse(part.data))
-        .find((parsed) => parsed.success)?.data
-    : undefined;
+  return {
+    status: "answered",
+    agentId,
+    data: answer.success
+      ? answer.data.result.parts
+          .filter((part) => part.kind === "data")
+          .map((part) => part.data)
+      : [],
+    fetchFn,
+    timeoutMs,
+  };
+}
+
+/** Ask a saved, approved peer what it shares with this brain. */
+export async function fetchSharedEntityListing(
+  wanted: { agent: string },
+  deps: A2AClientDeps,
+): Promise<SharedEntityListAskResponse> {
+  const answered = await exchange(wanted.agent, { op: "list" }, deps);
+  if (answered.status !== "answered") return answered;
+  const listing = answered.data
+    .map((data) => sharedEntityListingSchema.safeParse(data))
+    .find((parsed) => parsed.success)?.data;
+  return listing
+    ? { status: "found", entities: listing.entities }
+    : refused(
+        "unreadable_answer",
+        `${answered.agentId} did not answer with a list.`,
+      );
+}
+
+/**
+ * Ask a saved, approved peer for one of its shared entities. What comes
+ * back is the peer's own, or it is refused: the hash is of the document
+ * served, and the signature over it is by the peer asked.
+ */
+export async function fetchSharedEntity(
+  wanted: { agent: string; entityType: string; id: string },
+  deps: A2AClientDeps,
+): Promise<SharedEntityAskResponse> {
+  const answered = await exchange(
+    wanted.agent,
+    { op: "get", entityType: wanted.entityType, id: wanted.id },
+    deps,
+  );
+  if (answered.status !== "answered") return answered;
+  const { agentId, fetchFn, timeoutMs } = answered;
+  const entity = answered.data
+    .map((data) => sharedEntitySchema.safeParse(data))
+    .find((parsed) => parsed.success)?.data;
   if (entity?.entityType !== wanted.entityType || entity.id !== wanted.id) {
     return refused(
       "unreadable_answer",

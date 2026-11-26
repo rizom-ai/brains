@@ -155,18 +155,52 @@ export type A2AContactApproval = z.output<typeof a2aContactApprovalSchema>;
 export const ENTITY_SHARING_EXTENSION_URI =
   "https://rizom.ai/ext/entity-sharing/v1";
 
-type EntitySharingRequestSchema = z.ZodObject<{
+type EntitySharingGetSchema = z.ZodObject<{
   op: z.ZodLiteral<"get">;
   entityType: z.ZodString;
   id: z.ZodString;
 }>;
 
-/** One shared entity asked of a peer, by its type and id. */
-export const entitySharingRequestSchema: EntitySharingRequestSchema = z.object({
-  op: z.literal("get"),
-  entityType: z.string().min(1),
-  id: z.string().min(1),
+type EntitySharingRequestSchema = z.ZodDiscriminatedUnion<
+  [EntitySharingGetSchema, z.ZodObject<{ op: z.ZodLiteral<"list"> }>]
+>;
+
+/**
+ * What a peer is asked over the entity-sharing extension: one shared
+ * entity by its type and id, or the list of what it shares with the asker.
+ */
+export const entitySharingRequestSchema: EntitySharingRequestSchema =
+  z.discriminatedUnion("op", [
+    z.object({
+      op: z.literal("get"),
+      entityType: z.string().min(1),
+      id: z.string().min(1),
+    }),
+    z.object({ op: z.literal("list") }),
+  ]);
+
+type SharedEntityListingSchema = z.ZodObject<{
+  entities: z.ZodArray<
+    z.ZodObject<{
+      entityType: z.ZodString;
+      id: z.ZodString;
+      title: z.ZodString;
+    }>
+  >;
+}>;
+
+/** What a brain shares with the asker: each entity named, none of its text. */
+export const sharedEntityListingSchema: SharedEntityListingSchema = z.object({
+  entities: z.array(
+    z.object({
+      entityType: z.string().min(1),
+      id: z.string().min(1),
+      title: z.string(),
+    }),
+  ),
 });
+
+export type SharedEntityListing = z.output<typeof sharedEntityListingSchema>;
 
 export type EntitySharingRequest = z.output<typeof entitySharingRequestSchema>;
 
@@ -293,5 +327,52 @@ export const a2aSharedEntityContract: BusContract<
   channel: "a2a:shared-entity:get",
   request: sharedEntityAskRequestSchema,
   response: sharedEntityAskResponseSchema,
+  delivery: "request",
+});
+
+type SharedEntityListAskRequestSchema = z.ZodObject<{ agent: z.ZodString }>;
+
+type SharedEntityListAskResponseSchema = z.ZodDiscriminatedUnion<
+  [
+    z.ZodObject<{
+      status: z.ZodLiteral<"found">;
+      entities: SharedEntityListingSchema["shape"]["entities"];
+    }>,
+    z.ZodObject<{ status: z.ZodLiteral<"not-found"> }>,
+    z.ZodObject<{
+      status: z.ZodLiteral<"refused">;
+      code: z.ZodString;
+      error: z.ZodString;
+    }>,
+  ]
+>;
+
+export const sharedEntityListAskResponseSchema: SharedEntityListAskResponseSchema =
+  z.discriminatedUnion("status", [
+    z.object({
+      status: z.literal("found"),
+      entities: sharedEntityListingSchema.shape.entities,
+    }),
+    z.object({ status: z.literal("not-found") }),
+    z.object({
+      status: z.literal("refused"),
+      code: z.string(),
+      error: z.string(),
+    }),
+  ]);
+
+export type SharedEntityListAskResponse = z.output<
+  typeof sharedEntityListAskResponseSchema
+>;
+
+/** Ask a saved, approved peer what it shares with this brain. */
+export const a2aSharedEntityListContract: BusContract<
+  SharedEntityListAskRequestSchema,
+  SharedEntityListAskResponseSchema,
+  "request"
+> = defineBusContract({
+  channel: "a2a:shared-entity:list",
+  request: z.object({ agent: z.string().min(1) }),
+  response: sharedEntityListAskResponseSchema,
   delivery: "request",
 });

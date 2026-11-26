@@ -245,6 +245,61 @@ describe("the entity-sharing extension", () => {
     ).toMatchObject({ domain: "local.example" });
   });
 
+  const listRequest = {
+    jsonrpc: "2.0",
+    id: 1,
+    method: "message/send",
+    params: {
+      message: {
+        kind: "message",
+        messageId: "msg-1",
+        role: "user",
+        parts: [{ kind: "data", data: { op: "list" } }],
+      },
+    },
+  };
+
+  it("lists what it shares to a trusted peer: its own shared, published entities", async () => {
+    const brain = await serving("trusted");
+    harness.addEntities([
+      {
+        id: "peer-example--note--pricing",
+        entityType: "shared-copy",
+        content: "What a third brain charges.",
+        metadata: { title: "Pricing", sourceBrain: "third.example" },
+        visibility: "shared",
+      },
+    ]);
+
+    const response = await ask(brain, listRequest);
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      result: {
+        parts: [
+          {
+            kind: "data",
+            data: {
+              entities: [
+                { entityType: "note", id: "shared-note", title: "shared-note" },
+              ],
+            },
+          },
+        ],
+      },
+    });
+    expect(agentTurns).toBe(0);
+  });
+
+  it("gives a peer it does not trust the 404 for the list too", async () => {
+    const brain = await serving("none");
+
+    const response = await ask(brain, listRequest);
+
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({ error: "Not found" });
+  });
+
   it("never serves onward a copy it took from another brain", async () => {
     const brain = await serving("trusted");
     harness.addEntities([

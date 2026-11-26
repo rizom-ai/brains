@@ -5,6 +5,7 @@ import {
   sharedEntityStatement,
   type EntitySharingRequest,
   type SharedEntity,
+  type SharedEntityListing,
 } from "@brains/contracts";
 import { computeContentHash } from "@brains/utils/hash";
 import type { InterfaceRuntime } from "@brains/sdk/internal/interface-runtime";
@@ -54,7 +55,7 @@ export type StatementSigner = (
 export async function readSharedEntity(
   entityReads: InterfaceRuntime["entityReads"],
   callerPermissionLevel: UserPermissionLevel,
-  request: EntitySharingRequest | undefined,
+  request: Extract<EntitySharingRequest, { op: "get" }> | undefined,
   sign: StatementSigner | undefined,
   now: () => Date = (): Date => new Date(),
 ): Promise<SharedEntity | undefined> {
@@ -85,4 +86,40 @@ export async function readSharedEntity(
     sharedEntityStatement({ ...served, attestation: { signedAt } }),
   );
   return { ...served, attestation: { signedAt, ...signed } };
+}
+
+/**
+ * What this brain shares with a peer it trusts, each entity named and none
+ * of its text: its own shared, published entities, of every type. Nothing
+ * for a caller it does not trust.
+ */
+export async function listSharedEntities(
+  entityReads: InterfaceRuntime["entityReads"],
+  callerPermissionLevel: UserPermissionLevel,
+): Promise<SharedEntityListing | undefined> {
+  if (callerPermissionLevel !== "trusted") return undefined;
+  const types = entityReads
+    .getEntityTypes()
+    .filter((entityType) => entityType !== SHARED_COPY_ENTITY_TYPE);
+  const byType = await Promise.all(
+    types.map((entityType) =>
+      entityReads.listEntities({
+        entityType,
+        options: { filter: { visibilityScope: "shared" }, publishedOnly: true },
+      }),
+    ),
+  );
+  return {
+    entities: byType
+      .flat()
+      .filter((entity) => entity.visibility === "shared")
+      .map((entity) => {
+        const title = entity.metadata["title"] ?? entity.metadata["name"];
+        return {
+          entityType: entity.entityType,
+          id: entity.id,
+          title: typeof title === "string" ? title : entity.id,
+        };
+      }),
+  };
 }

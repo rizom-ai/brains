@@ -1,4 +1,7 @@
-import type { SharedEntity } from "@brains/contracts";
+import {
+  a2aSharedEntityListContract,
+  type SharedEntity,
+} from "@brains/contracts";
 import {
   ConfirmationArgsStore,
   type Tool,
@@ -7,6 +10,7 @@ import {
 import { z } from "@brains/utils/zod";
 import { extractDomain } from "../lib/extract-domain";
 import {
+  activeCopies,
   askPeer,
   findSharedCopy,
   readAsOwnType,
@@ -22,9 +26,9 @@ const sharedEntitiesInputSchema = z.object({
     .min(1)
     .describe("The saved, approved agent to ask: its id, domain or URL."),
   action: z
-    .enum(["show", "take", "drop"])
+    .enum(["list", "show", "take", "drop"])
     .describe(
-      "show fetches one shared entity and returns its text, saving nothing. take saves it as a read-only copy. drop removes a copy this brain took.",
+      "list names what the peer shares with this brain. show fetches one shared entity and returns its text, saving nothing. take saves it as a read-only copy. drop removes a copy this brain took.",
     ),
   entityType: z
     .string()
@@ -72,7 +76,7 @@ export function createAgentSharedEntitiesTool(
   return {
     name: toolName,
     description:
-      "What an approved peer brain shares with this brain. show fetches one shared entity by its type and id and returns its text, saving nothing. take saves it as a read-only copy, kept apart from this brain's own entities and readable by its trusted users. drop removes a copy this brain took. The peer serves only entities its owner marked shared, only to a brain it trusts; anything else, it answers as not found. take and drop require confirmation. Use agent_call to ask a peer a question; use this only for a specific shared entity.",
+      "What an approved peer brain shares with this brain. list names each entity it shares, by type, id and title, and whether this brain holds a copy; it needs no entityType or id. show fetches one shared entity by its type and id and returns its text, saving nothing. take saves it as a read-only copy, kept apart from this brain's own entities and readable by its trusted users. drop removes a copy this brain took. The peer serves only entities its owner marked shared, only to a brain it trusts; anything else, it answers as not found. take and drop require confirmation. Use agent_call to ask a peer a question; use this only for a specific shared entity.",
     inputSchema: sharedEntitiesInputSchema.shape,
     visibility: "admin",
     sideEffects: "external",
@@ -86,15 +90,63 @@ export function createAgentSharedEntitiesTool(
       }
       const input = parsed.data;
       const { action, entityType, id } = input;
+      const agent = (
+        extractDomain(input.agent) || input.agent.trim()
+      ).toLowerCase();
+
+      if (action === "list") {
+        const asked = await context.messaging.request(
+          a2aSharedEntityListContract,
+          { agent },
+        );
+        if (asked.status === "unavailable") {
+          return {
+            success: false,
+            code: "a2a_unavailable",
+            error: "This brain has no A2A interface to ask a peer through.",
+          };
+        }
+        if (asked.status === "failed") {
+          return {
+            success: false,
+            code: asked.error.code,
+            error: asked.error.message,
+          };
+        }
+        const answer = asked.data;
+        if (answer.status === "not-found") {
+          return {
+            success: false,
+            code: "not_found",
+            error: `${agent} shares nothing with this brain.`,
+          };
+        }
+        if (answer.status === "refused") {
+          return { success: false, code: answer.code, error: answer.error };
+        }
+        const held = new Set(
+          (await activeCopies(context, agent)).map(({ entity }) => entity.id),
+        );
+        return {
+          success: true,
+          data: {
+            agent,
+            entities: answer.entities.map((offered) => ({
+              ...offered,
+              copied: held.has(
+                sharedCopyId(agent, offered.entityType, offered.id),
+              ),
+            })),
+          },
+        };
+      }
+
       if (!entityType || !id) {
         return {
           success: false,
           error: `${action} needs the entity's entityType and id.`,
         };
       }
-      const agent = (
-        extractDomain(input.agent) || input.agent.trim()
-      ).toLowerCase();
       const wanted = { agent, entityType, id };
 
       if (action === "show") {
