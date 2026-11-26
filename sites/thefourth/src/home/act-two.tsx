@@ -173,7 +173,7 @@ export const actTwoContent: JsonObject = {
   unlockLabel: "Unlock it",
   aside: "Smart. True. And nobody listened.",
   translationLead: "So we translated it into what they needed to hear:",
-  action: { label: "Unlock yours →", href: "mailto:nihao.fourth@gmail.com" },
+  action: { label: "Unlock yours →", href: "/work-with-us" },
   againLabel: "Try another ↻",
   spells: [
     {

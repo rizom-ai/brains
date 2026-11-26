@@ -80,21 +80,32 @@ describe("Act III, enter the guide", () => {
         `<strong class="tf-guide-spell__program">${program}</strong>`,
       );
     }
-    expect(html).not.toContain("<a ");
+    expect(html).not.toContain('<a class="tf-link"');
     expect(html).not.toContain("Explore all programs");
   });
-  test("names the worlds it works in, without links to pages that do not exist", () => {
+  test("names the worlds it works in, each leading to its part of the Who page", () => {
     const html = renderActThree();
     expect(html).toContain("Which world are you from?");
-    for (const sector of [
-      "Sustainability &amp; Impact",
-      "Tech &amp; AI",
-      "Silver Care",
-      "Art &amp; Culture",
-      "Creators",
+    for (const [sector, anchor] of [
+      ["Sustainability &amp; Impact", "sustainability"],
+      ["Health &amp; Care", "health"],
+      ["Tech &amp; AI", "tech"],
+      ["Art &amp; Culture", "art"],
     ]) {
-      expect(html).toContain(`${sector}</li>`);
+      expect(html).toMatch(
+        new RegExp(`<a class="tf-chip" href="/who#${anchor}">.*?${sector}</a>`),
+      );
     }
-    expect(html).not.toContain('href="#"');
+    expect(html).not.toContain("Silver Care");
+  });
+
+  test("keeps a world without a link as a word", () => {
+    const html = renderActThree({
+      ...site.content?.["home"]?.["act-three"],
+      sectors: [{ label: "Silver Care", light: "mustard" }],
+    });
+    expect(html).toMatch(
+      /<li><span class="tf-chip">.*Silver Care<\/span><\/li>/,
+    );
   });
 });

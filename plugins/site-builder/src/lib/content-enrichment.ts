@@ -311,6 +311,46 @@ export async function collectAllImageIds(
   return [...imageIds];
 }
 
+/** Every string a section's copy holds, however deeply nested. */
+function stringsIn(value: unknown): string[] {
+  if (typeof value === "string") return [value];
+  if (Array.isArray(value)) return value.flatMap(stringsIn);
+  if (value !== null && typeof value === "object") {
+    return Object.values(value).flatMap(stringsIn);
+  }
+  return [];
+}
+
+/** The image ids markdown names as `![alt](entity://image/<id>)`. */
+function markdownImageIds(text: string): string[] {
+  if (!text.includes("entity://image/")) return [];
+  const ids: string[] = [];
+  mapMarkdownImageUrls(text, (url) => {
+    const match = /^entity:\/\/image\/(.+)$/.exec(url);
+    if (match?.[1]) ids.push(match[1]);
+    return url;
+  });
+  return ids;
+}
+
+/**
+ * The images a site's own fallback copy names: a section a site package
+ * ships with its copy shows its photos before the brain saves copy of its
+ * own, so those images are prepared like the ones saved entities name.
+ */
+export function collectFallbackImageIds(
+  routes: ReadonlyArray<{ sections?: ReadonlyArray<{ content?: unknown }> }>,
+): string[] {
+  return [
+    ...new Set(
+      routes
+        .flatMap((route) => route.sections ?? [])
+        .flatMap((section) => stringsIn(section.content))
+        .flatMap(markdownImageIds),
+    ),
+  ];
+}
+
 /** Entities a scan holds at once: a book brain has tens of thousands. */
 const SCAN_PAGE_SIZE = 1000;
 

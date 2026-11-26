@@ -13,9 +13,15 @@ describe("motion", () => {
     expect(css).toMatch(/\.tf-l3 \{[^}]*tf-drift-down/);
   });
 
-  test("turns the pointer into the design's wand", () => {
+  test("turns the pointer into the design's key, turned on whatever can be pressed", () => {
     expect(css).toMatch(
-      /\.tf-site[^{]*\{[^}]*cursor: url\("data:image\/svg\+xml,/,
+      /\.tf-site \{ cursor: url\("data:image\/svg\+xml,[^"]+"\) 5 5, auto; \}/,
+    );
+    expect(css).toMatch(
+      /\.tf-site a, \.tf-site button, \.tf-site summary, \.tf-site \[role="button"\] \{ cursor: url\("data:image\/svg\+xml,[^"]+"\) 26 6, pointer; \}/,
+    );
+    expect(css).toContain(
+      encodeURIComponent('<g transform="rotate(90 16 16)">'),
     );
   });
 

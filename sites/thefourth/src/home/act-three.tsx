@@ -11,9 +11,8 @@ import { Eye } from "./eye";
 /**
  * Act III, enter the guide: The Fourth's three ways in, each a giant word on
  * a mint disc with its mark (an eye, a talking screen, a handset on its
- * cord), alternating sides, then the worlds it works in. Act I's "How it
- * works" lands here. Each way names its program in bold; the programs and
- * the worlds are words until they have pages of their own.
+ * cord), alternating sides, then the worlds it works in, each leading to its
+ * part of the Who page. Each way names its program in bold.
  */
 const guideSpellSchema = z.object({
   word: z.string(),
@@ -26,6 +25,7 @@ const guideSpellSchema = z.object({
 const sectorSchema = z.object({
   label: z.string(),
   light: z.enum(["red", "mint", "mustard", "ink"]),
+  href: z.string().default(""),
 });
 
 const actThreeSchema = z.object({
@@ -186,15 +186,28 @@ function ActThreeSection({
         <div className="tf-sectors tf-reveal">
           <span className="tf-story">{sectorsPrompt}</span>
           <ul className="tf-sectors__list">
-            {sectors.map((sector) => (
-              <li key={sector.label} className="tf-chip">
-                <span
-                  className={`tf-chip__dot tf-chip__dot--${sector.light}`}
-                  aria-hidden="true"
-                />
-                {sector.label}
-              </li>
-            ))}
+            {sectors.map((sector) => {
+              const words = (
+                <>
+                  <span
+                    className={`tf-chip__dot tf-chip__dot--${sector.light}`}
+                    aria-hidden="true"
+                  />
+                  {sector.label}
+                </>
+              );
+              return (
+                <li key={sector.label}>
+                  {sector.href ? (
+                    <a className="tf-chip" href={sector.href}>
+                      {words}
+                    </a>
+                  ) : (
+                    <span className="tf-chip">{words}</span>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </div>
       </div>
@@ -208,7 +221,7 @@ export const actThree: SectionDefinition = defineSection(
   {
     title: "Act III — Enter the guide",
     description:
-      "The guide's three ways in (word, name, text, mark: eye, screen or handset, and the program it names) and the worlds The Fourth works in, each with its light.",
+      "The guide's three ways in (word, name, text, mark: eye, screen or handset, and the program it names) and the worlds The Fourth works in, each with its light and, optionally, where it leads.",
   },
 );
 
@@ -243,10 +256,13 @@ export const actThreeContent: JsonObject = {
   ],
   sectorsPrompt: "Which world are you from?",
   sectors: [
-    { label: "Sustainability & Impact", light: "mint" },
-    { label: "Tech & AI", light: "red" },
-    { label: "Silver Care", light: "mustard" },
-    { label: "Art & Culture", light: "ink" },
-    { label: "Creators", light: "red" },
+    {
+      label: "Sustainability & Impact",
+      light: "mint",
+      href: "/who#sustainability",
+    },
+    { label: "Health & Care", light: "mustard", href: "/who#health" },
+    { label: "Tech & AI", light: "red", href: "/who#tech" },
+    { label: "Art & Culture", light: "ink", href: "/who#art" },
   ],
 } satisfies z.input<typeof actThreeSchema>;

@@ -60,7 +60,7 @@ function renderCover(content: Record<string, unknown>): string {
 
 describe("@rizom/site-thefourth", () => {
   test("opens on the home route, starting with the cover", () => {
-    expect(site.routes.map((route) => route.id)).toEqual(["home"]);
+    expect(site.routes[0]?.id).toBe("home");
     expect(site.routes[0]?.path).toBe("/");
     expect(site.routes[0]?.sections?.[0]).toMatchObject({
       id: "cover",
@@ -107,12 +107,10 @@ describe("@rizom/site-thefourth", () => {
     expect(html.match(/Q /g)?.length).toBe(8);
   });
 
-  test("frames every page with the logo and no menu", () => {
-    const html = renderLayout(siteInfo);
-    expect(html).toContain('aria-label="The Fourth home"');
-    expect(html).toContain('href="/"');
-    expect(html).not.toContain("<nav");
-    expect(html).not.toContain("/agents");
+  test("frames every page with the logo, leading home", () => {
+    expect(renderLayout(siteInfo)).toContain(
+      '<a class="tf-mark" href="/" aria-label="The Fourth home">',
+    );
   });
 
   test("offers the site's call to action as the one way to talk", () => {
