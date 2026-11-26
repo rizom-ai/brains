@@ -77,6 +77,11 @@ export interface OAuthEndpointsOptions {
    * active user. Called only for `openid` requests.
    */
   resolveProfile: (subject: string) => Promise<OpenIdProfile | undefined>;
+  /** Told when a client redeems a sign-in code for a subject. */
+  onCodeRedeemed?: (input: {
+    clientId: string;
+    subject: string;
+  }) => Promise<void>;
   clientMetadataDocumentResolver?: ClientMetadataDocumentResolver;
   clientMaintenanceIntervalMs?: number;
   /** Package-private deterministic clock for maintenance lifecycle tests. */
@@ -146,6 +151,9 @@ export class OAuthEndpoints {
   private readonly resolveProfile: (
     subject: string,
   ) => Promise<OpenIdProfile | undefined>;
+  private readonly onCodeRedeemed:
+    | ((input: { clientId: string; subject: string }) => Promise<void>)
+    | undefined;
   private readonly clientMetadataDocumentResolver: ClientMetadataDocumentResolver;
   private readonly clientMaintenanceIntervalMs: number;
   private readonly clientMaintenanceClock: Clock.Clock | undefined;
@@ -171,6 +179,7 @@ export class OAuthEndpoints {
     this.keyStore = options.keyStore;
     this.getJwks = options.getJwks;
     this.resolveProfile = options.resolveProfile;
+    this.onCodeRedeemed = options.onCodeRedeemed;
     this.clientMetadataDocumentResolver =
       options.clientMetadataDocumentResolver ??
       new ClientMetadataDocumentResolver();
@@ -591,6 +600,7 @@ export class OAuthEndpoints {
         redirectUri,
         codeVerifier,
       });
+      await this.onCodeRedeemed?.({ clientId, subject: consumed.subject });
       return await this.createTokenResponse({
         issuer,
         clientId,

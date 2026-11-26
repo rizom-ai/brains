@@ -108,6 +108,11 @@ describe("the matrix-server plugin", () => {
         redirectUris: [
           "https://brain.example.com/_matrix/client/unstable/login/sso/callback/matrix-homeserver",
         ],
+        identityClaim: {
+          type: "matrix",
+          subjectPrefix: "@",
+          subjectSuffix: ":brain.example.com",
+        },
       },
     ]);
     expect(requests).toEqual(["/_matrix/client/v3/login"]);

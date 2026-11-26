@@ -93,6 +93,13 @@ export function createMatrixServerPackage(
           clientSecret: config.oidcClientSecret,
           clientName: "Matrix homeserver",
           redirectUris: [homeserverCallbackUrl(publicBaseUrl)],
+          // A sign-in through the homeserver proves the person's Matrix id,
+          // which the brain then records as theirs.
+          identityClaim: {
+            type: "matrix",
+            subjectPrefix: "@",
+            subjectSuffix: `:${config.serverName}`,
+          },
         });
 
         const ensureBot = async (): Promise<void> => {

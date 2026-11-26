@@ -187,7 +187,9 @@ export {
   type VerifiedAccessToken,
 } from "./auth-access";
 export {
+  oauthClientIdentityClaimSchema,
   provisionOAuthClientInputSchema,
+  type OAuthClientIdentityClaim,
   type ProvisionOAuthClientInput,
 } from "./oauth-client";
 export {
