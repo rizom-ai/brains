@@ -38,7 +38,9 @@ export type SyncStatus =
   /** The brain is there but not answering for now, as during a deploy. */
   | "unavailable"
   | "signed-out"
-  | "no-drive";
+  | "no-drive"
+  /** The brain is from before the sync endpoints: it is not synced with. */
+  | "old-brain";
 
 export interface FileNote {
   path: string;
@@ -146,6 +148,7 @@ export class SyncEngine {
   private readonly now: () => Date;
   /** Every operation runs after the one before: a sync never runs twice at once. */
   private queue: Promise<unknown> = Promise.resolve();
+  private syncSupported = false;
 
   constructor(options: SyncEngineOptions) {
     this.vault = options.vault;
@@ -158,6 +161,12 @@ export class SyncEngine {
     const run = this.queue.then(work, work);
     this.queue = run.catch(() => undefined);
     return run;
+  }
+
+  /** Whether the brain has the sync endpoints; asked until it has, then known. */
+  private async supported(): Promise<boolean> {
+    this.syncSupported ||= await this.drive.supportsSync();
+    return this.syncSupported;
   }
 
   /** A full sync: list the brain, compare every file, make each change. */
@@ -364,7 +373,13 @@ export class SyncEngine {
       vaultImages: new Set(),
     };
     try {
-      await work(context);
+      // An older brain would hold saves back and refuse renames: nothing is
+      // read, planned or written against one.
+      if (await this.supported()) {
+        await work(context);
+      } else {
+        context.report.status = "old-brain";
+      }
     } catch (error) {
       if (error instanceof DriveOfflineError) {
         context.report.status = "offline";

@@ -4,6 +4,7 @@ export {
   DriveMissingError,
   DriveOfflineError,
   DriveUnavailableError,
+  MIN_BRAIN_VERSION,
   driveUrl,
   jsonOf,
   parseMultistatus,

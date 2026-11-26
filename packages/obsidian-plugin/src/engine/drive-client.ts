@@ -2,6 +2,9 @@ import { z } from "@brains/utils/zod";
 import { bytesOf, textOf } from "./hash";
 import { vaultShapesSchema, type VaultShape } from "../vault-files/shapes";
 
+/** The first brain release with the drive's sync endpoints. */
+export const MIN_BRAIN_VERSION = "0.2.0-alpha.769";
+
 /** One HTTP exchange, as Obsidian's `requestUrl` and a test both make it. */
 export interface HttpRequest {
   url: string;
@@ -281,6 +284,19 @@ export class DriveClient {
     // Anything but the description (a proxy's page, say) is no description.
     const parsed = vaultShapesSchema.safeParse(jsonOf(textOf(response.body)));
     return parsed.success ? parsed.data.shapes : undefined;
+  }
+
+  /**
+   * Whether the brain's drive answers a sync client: the endpoints this
+   * plugin syncs through, there from the brain release `MIN_BRAIN_VERSION` names. An older
+   * brain answers them as any unknown path. An address with no drive at all
+   * is told apart: that throws, as a listing does.
+   */
+  async supportsSync(): Promise<boolean> {
+    const response = await this.send("GET", ".brain/vault-shapes.json");
+    if (response.status !== 404) return true;
+    await this.list("");
+    return false;
   }
 
   /**
