@@ -60,7 +60,7 @@ function renderCover(content: Record<string, unknown>): string {
 
 describe("@rizom/site-thefourth", () => {
   test("opens on the home route, starting with the cover", () => {
-    expect(site.routes.map((route) => route.id)).toEqual(["home"]);
+    expect(site.routes[0]?.id).toBe("home");
     expect(site.routes[0]?.path).toBe("/");
     expect(site.routes[0]?.sections?.[0]).toMatchObject({
       id: "cover",

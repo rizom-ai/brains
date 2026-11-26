@@ -5,7 +5,7 @@
  * here, ahead of the engine's own zero-specificity look.
  */
 export const formsCSS: string = `
-.tf-site .form { max-width: 760px; margin: 0 auto; padding: calc(96px + 3vw) var(--layout-gutter) 96px; color: var(--palette-ink); line-height: 1.55; }
+.tf-site .form { max-width: 760px; margin: 0 auto; padding: clamp(24px, 4vw, 56px) var(--layout-gutter) 96px; color: var(--palette-ink); line-height: 1.55; }
 .tf-site .form h1 { margin: 0 0 20px; font-family: var(--font-sans); font-weight: 800; font-size: clamp(38px, 6vw, 84px); line-height: 0.9; letter-spacing: -0.045em; text-transform: uppercase; color: var(--palette-ink); }
 .tf-site .form p { color: var(--palette-ink); max-width: 62ch; }
 .tf-site .form .form__intro { font-family: var(--font-story); font-style: italic; font-weight: 500; font-size: clamp(18px, 1.6vw, 23px); letter-spacing: var(--tracking-story); }

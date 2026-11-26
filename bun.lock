@@ -2604,7 +2604,7 @@
     },
     "sites/hub": {
       "name": "@rizom/site-hub",
-      "version": "0.2.0-alpha.13",
+      "version": "0.2.0-alpha.14",
       "dependencies": {
         "@rizom/site": "0.2.0-alpha.239",
       },
@@ -2714,7 +2714,7 @@
     },
     "sites/rizom-ai": {
       "name": "@rizom/site-rizom-ai",
-      "version": "0.2.0-alpha.291",
+      "version": "0.2.0-alpha.295",
       "dependencies": {
         "@rizom/site": "0.2.0-alpha.247",
         "clsx": "^2.1.0",
@@ -2750,7 +2750,7 @@
     },
     "sites/rizom-foundation": {
       "name": "@rizom/site-rizom-foundation",
-      "version": "0.2.0-alpha.235",
+      "version": "0.2.0-alpha.238",
       "dependencies": {
         "@rizom/site": "0.2.0-alpha.247",
         "@rizom/site-rizom-ai": "0.2.0-alpha.291",
@@ -2776,11 +2776,12 @@
       "name": "@rizom/site-thefourth",
       "version": "0.2.0-alpha.15",
       "dependencies": {
-        "@rizom/site": "0.2.0-alpha.239",
+        "@rizom/site": "0.2.0-alpha.247",
       },
       "devDependencies": {
         "@brains/build-tools": "workspace:*",
         "@brains/eslint-config": "workspace:*",
+        "@brains/site-composition": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.4.0",
         "@types/react": "^19.2.17",

@@ -1,16 +1,22 @@
 /**
  * The page's motion, as the design has it: acts rise into view as they
  * scroll in, the arch, the discs and the photos drift at their own pace
- * (both only where view timelines exist), the pointer is a wand and a short
+ * (both only where view timelines exist), the pointer is a key and a short
  * trail of mustard sparks follows it. Reduced motion stops all of it (see ./styles);
  * touch screens get no sparks.
  */
-const WAND_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><path d="M10 10 L28 28" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round"/><path d="M10 10 L28 28" stroke="#232323" stroke-width="2.4" stroke-linecap="round"/><path d="M23 23 L28 28" stroke="#D6C91D" stroke-width="2.4" stroke-linecap="round"/><path d="M5 0.5 L6.3 3.7 L9.5 5 L6.3 6.3 L5 9.5 L3.7 6.3 L0.5 5 L3.7 3.7 Z" fill="#EF5959" stroke="#FFFFFF" stroke-width="0.8"/></svg>`;
+/** The pointer: a key with a mustard bow, from Sam's site design. */
+const KEY_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><g transform="rotate(45 16 16)"><g fill="none" stroke="#FFFFFF" stroke-width="4.5" stroke-linecap="round"><path d="M1.5 16 H20"></path><path d="M4 16 V20.5 M7.5 16 V19.5"></path><circle cx="25" cy="16" r="4.6"></circle></g><g fill="none" stroke="#232323" stroke-width="2.2" stroke-linecap="round"><path d="M1.5 16 H20"></path><path d="M4 16 V20.5 M7.5 16 V19.5"></path><circle cx="25" cy="16" r="4.6"></circle></g><circle cx="25" cy="16" r="1.6" fill="#D6C91D"></circle></g></svg>`;
 
-const WAND_CURSOR = `url("data:image/svg+xml,${encodeURIComponent(WAND_SVG)}") 5 5, auto`;
+/** Over whatever can be pressed, the key turns and its bow fills. */
+const TURNED_KEY_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><g transform="rotate(90 16 16)"><g transform="rotate(45 16 16)"><g fill="none" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round"><path d="M1.5 16 H20"></path><path d="M4 16 V20.5 M7.5 16 V19.5"></path><circle cx="25" cy="16" r="4.8"></circle></g><g fill="none" stroke="#232323" stroke-width="2.4" stroke-linecap="round"><path d="M1.5 16 H20"></path><path d="M4 16 V20.5 M7.5 16 V19.5"></path></g><circle cx="25" cy="16" r="4.8" fill="#D6C91D" stroke="#232323" stroke-width="2.2"></circle></g></g></svg>`;
+
+const cursor = (svg: string, x: number, y: number, fallback: string): string =>
+  `url("data:image/svg+xml,${encodeURIComponent(svg)}") ${x} ${y}, ${fallback}`;
 
 export const motionCSS: string = `
-.tf-site, .tf-site a, .tf-site button { cursor: ${WAND_CURSOR}; }
+.tf-site { cursor: ${cursor(KEY_SVG, 5, 5, "auto")}; }
+.tf-site a, .tf-site button, .tf-site summary, .tf-site [role="button"] { cursor: ${cursor(TURNED_KEY_SVG, 26, 6, "pointer")}; }
 .tf-spark { position: absolute; z-index: 50; width: 9px; height: 9px; pointer-events: none; background: var(--palette-mustard); clip-path: polygon(50% 0, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0 50%, 40% 40%); animation: tf-spark 0.8s ease-out both; }
 @keyframes tf-spark { 0% { opacity: 1; transform: translate(-50%, -50%) scale(1); } 100% { opacity: 0; transform: translate(-50%, 8px) scale(0.2) rotate(90deg); } }
 @keyframes tf-rise { from { opacity: 0; transform: translateY(32px); } to { opacity: 1; transform: none; } }

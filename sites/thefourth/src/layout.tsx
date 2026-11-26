@@ -7,7 +7,7 @@ import {
   type SiteLayoutProps,
 } from "@rizom/site";
 import { Logo } from "./logo";
-import { menuWords, PAGES } from "./pages";
+import { menuWords, PAGES } from "./navigation";
 import { parsePhoto } from "./portrait";
 
 /** The brain's profiles elsewhere: every social link but the email. */
