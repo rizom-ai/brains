@@ -1,5 +1,23 @@
 # @brains/core
 
+## 0.2.0-alpha.773
+
+### Patch Changes
+
+- Updated dependencies [[`eacc803`](https://github.com/rizom-ai/brains/commit/eacc803d541ffa9f20c74278176c20abc85b6778)]:
+  - @brains/plugins@0.2.0-alpha.773
+  - @brains/image@0.2.0-alpha.773
+  - @brains/http-host@0.2.0-alpha.773
+  - @brains/atproto-contracts@0.2.0-alpha.773
+  - @brains/contracts@0.2.0-alpha.773
+  - @brains/operation-context@0.2.0-alpha.773
+  - @brains/site-composition@0.2.0-alpha.773
+  - @brains/utils@0.2.0-alpha.773
+  - @brains/recurring-checks@0.2.0-alpha.773
+  - @brains/runtime-state@0.2.0-alpha.773
+  - @brains/scheduler@0.2.0-alpha.773
+  - @brains/templates@0.2.0-alpha.773
+
 ## 0.2.0-alpha.772
 
 ### Patch Changes

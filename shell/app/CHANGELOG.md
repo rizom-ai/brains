@@ -1,5 +1,26 @@
 # @brains/app
 
+## 0.2.0-alpha.773
+
+### Patch Changes
+
+- Updated dependencies [[`eacc803`](https://github.com/rizom-ai/brains/commit/eacc803d541ffa9f20c74278176c20abc85b6778)]:
+  - @brains/plugins@0.2.0-alpha.773
+  - @brains/chat-repl@0.2.0-alpha.773
+  - @brains/sdk@0.2.0-alpha.773
+  - @brains/core@0.2.0-alpha.773
+  - @brains/contracts@0.2.0-alpha.773
+  - @brains/site-composition@0.2.0-alpha.773
+  - @brains/theme-base@0.2.0-alpha.773
+  - @brains/utils@0.2.0-alpha.773
+  - @brains/conversation-service@0.2.0-alpha.773
+  - @brains/entity-service@0.2.0-alpha.773
+  - @brains/job-queue@0.2.0-alpha.773
+  - @brains/mcp-service@0.2.0-alpha.773
+  - @brains/messaging-service@0.2.0-alpha.773
+  - @brains/runtime-state@0.2.0-alpha.773
+  - @brains/templates@0.2.0-alpha.773
+
 ## 0.2.0-alpha.772
 
 ### Patch Changes
