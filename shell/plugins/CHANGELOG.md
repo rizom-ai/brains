@@ -1,5 +1,33 @@
 # @brains/plugins
 
+## 0.2.0-alpha.770
+
+### Patch Changes
+
+- [#1044](https://github.com/rizom-ai/brains/pull/1044) [`2c7ccfd`](https://github.com/rizom-ai/brains/commit/2c7ccfddef74cab5c2b9ab408c336ea5688f1e7e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A brain's AT Protocol records are kept complete on every start. Once startup content is in place, the brain lists its own records, writes the ones that are missing or no longer match their entity, and deletes the ones whose entity is gone or no longer public and published. Entities published before the projection existed now get their records without being touched.
+
+  The PDS client and the read path to another brain's public repo move into `@brains/atproto-client`, so an entity package can read a repo's records without importing the atproto plugin. Reading a peer's repo no longer hands the client this brain's credentials.
+
+  A record names its brain and anchor as the brain card does: the configured DIDs, else the site's `did:web` pair for a brain with a site, else the account or repo it publishes to. Records written before this are rewritten on the next start. A projection is handed those two DIDs and nothing the brain signs in with.
+
+- Updated dependencies [[`2c7ccfd`](https://github.com/rizom-ai/brains/commit/2c7ccfddef74cab5c2b9ab408c336ea5688f1e7e), [`d0330b2`](https://github.com/rizom-ai/brains/commit/d0330b229ba3f9ca20c81a538d67d0e05550d741)]:
+  - @brains/atproto-contracts@0.2.0-alpha.770
+  - @brains/content-formatters@0.2.0-alpha.770
+  - @brains/contracts@0.2.0-alpha.770
+  - @brains/site-composition@0.2.0-alpha.770
+  - @brains/utils@0.2.0-alpha.770
+  - @brains/ai-service@0.2.0-alpha.770
+  - @brains/content-service@0.2.0-alpha.770
+  - @brains/conversation-service@0.2.0-alpha.770
+  - @brains/entity-service@0.2.0-alpha.770
+  - @brains/identity-service@0.2.0-alpha.770
+  - @brains/job-queue@0.2.0-alpha.770
+  - @brains/mcp-service@0.2.0-alpha.770
+  - @brains/messaging-service@0.2.0-alpha.770
+  - @brains/recurring-checks@0.2.0-alpha.770
+  - @brains/runtime-state@0.2.0-alpha.770
+  - @brains/templates@0.2.0-alpha.770
+
 ## 0.2.0-alpha.769
 
 ### Patch Changes

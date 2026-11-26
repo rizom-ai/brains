@@ -1,5 +1,17 @@
 # @brains/link
 
+## 0.2.0-alpha.770
+
+### Patch Changes
+
+- Updated dependencies [[`2c7ccfd`](https://github.com/rizom-ai/brains/commit/2c7ccfddef74cab5c2b9ab408c336ea5688f1e7e), [`d0330b2`](https://github.com/rizom-ai/brains/commit/d0330b229ba3f9ca20c81a538d67d0e05550d741)]:
+  - @brains/atproto-contracts@0.2.0-alpha.770
+  - @brains/sdk@0.2.0-alpha.770
+  - @rizom/brain-ui@0.2.0-alpha.770
+  - @brains/content-formatters@0.2.0-alpha.770
+  - @brains/contracts@0.2.0-alpha.770
+  - @brains/utils@0.2.0-alpha.770
+
 ## 0.2.0-alpha.769
 
 ### Patch Changes
