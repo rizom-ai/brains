@@ -16,6 +16,10 @@ export const REFERENCE_COLLECTIONS: Readonly<Record<string, string>> = {
   note: "ai.rizom.brain.note",
   topic: "ai.rizom.brain.topic",
   "social-post": "ai.rizom.brain.socialPost",
+  newsletter: "ai.rizom.brain.newsletter",
+  doc: "ai.rizom.brain.doc",
+  guide: "ai.rizom.brain.guide",
+  book: "ai.rizom.brain.book",
 };
 
 /** The kind of entity a record of a collection is, when a reference may point to it. */

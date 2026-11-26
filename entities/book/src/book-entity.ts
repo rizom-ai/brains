@@ -1,5 +1,6 @@
 import { defineEntity, type EntityDefinition } from "@brains/sdk/entities";
 import { withFrontmatterSchema } from "@brains/sdk/internal/entity-runtime";
+import { bookAtproto } from "./atproto-projection";
 import { bookFrontmatterSchema, bookMetadataSchema } from "./schemas/book";
 
 /** The importer writes books through directory-sync; no one edits them. */
@@ -43,6 +44,7 @@ export const book: EntityDefinition<"book", typeof bookMetadataSchema> =
         projectionSourceRole: "excluded",
         actionPolicy: READ_ONLY,
       },
+      atproto: bookAtproto,
     }),
     bookFrontmatterSchema,
   );

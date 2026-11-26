@@ -1,6 +1,10 @@
 import { z } from "@brains/utils/zod";
 import { isKeyOf, objectEntries } from "@brains/utils/object-keys";
+import bookLexiconJson from "./lexicons/ai.rizom.brain.book.json";
 import cardLexiconJson from "./lexicons/ai.rizom.brain.card.json";
+import docLexiconJson from "./lexicons/ai.rizom.brain.doc.json";
+import guideLexiconJson from "./lexicons/ai.rizom.brain.guide.json";
+import newsletterLexiconJson from "./lexicons/ai.rizom.brain.newsletter.json";
 import deckLexiconJson from "./lexicons/ai.rizom.brain.deck.json";
 import linkLexiconJson from "./lexicons/ai.rizom.brain.link.json";
 import noteLexiconJson from "./lexicons/ai.rizom.brain.note.json";
@@ -85,7 +89,11 @@ export function parseAtprotoLexicon(input: unknown): AtprotoLexicon {
 }
 
 export type CanonicalAtprotoLexiconId =
+  | "ai.rizom.brain.book"
   | "ai.rizom.brain.card"
+  | "ai.rizom.brain.doc"
+  | "ai.rizom.brain.guide"
+  | "ai.rizom.brain.newsletter"
   | "ai.rizom.brain.deck"
   | "ai.rizom.brain.link"
   | "ai.rizom.brain.note"
@@ -108,6 +116,10 @@ export const canonicalAtprotoLexicons: Record<
   "ai.rizom.brain.series": parseAtprotoLexicon(seriesLexiconJson),
   "ai.rizom.brain.socialPost": parseAtprotoLexicon(socialPostLexiconJson),
   "ai.rizom.brain.topic": parseAtprotoLexicon(topicLexiconJson),
+  "ai.rizom.brain.book": parseAtprotoLexicon(bookLexiconJson),
+  "ai.rizom.brain.doc": parseAtprotoLexicon(docLexiconJson),
+  "ai.rizom.brain.guide": parseAtprotoLexicon(guideLexiconJson),
+  "ai.rizom.brain.newsletter": parseAtprotoLexicon(newsletterLexiconJson),
 };
 
 export type AtprotoLexiconStatus = "draft" | "approved" | "deprecated";
@@ -142,6 +154,25 @@ function approvedLexiconMetadata(
   };
 }
 
+/**
+ * A format not yet approved: brains publish it, and its fields may still
+ * change before another brain should depend on them.
+ */
+function draftLexiconMetadata(
+  projectionPackage: string,
+): Omit<AtprotoLexiconMetadata, "id"> {
+  return {
+    status: "draft",
+    version: "0.1.0",
+    revision: 1,
+    owner: "Rizom",
+    steward: "Rizom protocol registry",
+    projectionPackage,
+    compatibility:
+      "Draft: any field may change before approval, required-field, type and constraint changes included.",
+  };
+}
+
 export const canonicalAtprotoLexiconMetadata: Record<
   CanonicalAtprotoLexiconId,
   Omit<AtprotoLexiconMetadata, "id">
@@ -155,6 +186,10 @@ export const canonicalAtprotoLexiconMetadata: Record<
   "ai.rizom.brain.series": approvedLexiconMetadata("@brains/series"),
   "ai.rizom.brain.socialPost": approvedLexiconMetadata("@brains/social-media"),
   "ai.rizom.brain.topic": approvedLexiconMetadata("@brains/topics"),
+  "ai.rizom.brain.book": draftLexiconMetadata("@brains/book"),
+  "ai.rizom.brain.doc": draftLexiconMetadata("@brains/doc"),
+  "ai.rizom.brain.guide": draftLexiconMetadata("@brains/guide"),
+  "ai.rizom.brain.newsletter": draftLexiconMetadata("@brains/newsletter"),
 } satisfies Record<
   CanonicalAtprotoLexiconId,
   Omit<AtprotoLexiconMetadata, "id">

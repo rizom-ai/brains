@@ -114,6 +114,10 @@ describe("the kinds of entity a reference can point to", () => {
     ["ai.rizom.brain.note", "note"],
     ["ai.rizom.brain.topic", "topic"],
     ["ai.rizom.brain.socialPost", "social-post"],
+    ["ai.rizom.brain.newsletter", "newsletter"],
+    ["ai.rizom.brain.doc", "doc"],
+    ["ai.rizom.brain.guide", "guide"],
+    ["ai.rizom.brain.book", "book"],
   ] as const) {
     it(`points to a ${kind} that has a page on its author's site`, async () => {
       const repo = publishing(collection, "a-piece", {

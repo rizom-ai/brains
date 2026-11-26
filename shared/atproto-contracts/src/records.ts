@@ -187,7 +187,81 @@ export interface AtprotoBrainTopicRecord extends Record<string, unknown> {
   updatedAt?: string;
 }
 
+export interface AtprotoBrainBookRecord extends Record<string, unknown> {
+  $type?: "ai.rizom.brain.book";
+  title: string;
+  author?: string;
+  year?: number;
+  kind?: string;
+  edition?: string;
+  license?: string;
+  attribution?: string;
+  source?: string;
+  canonicalUrl?: string;
+  brainDid?: string;
+  anchorDid?: string;
+  sourceEntityType?: string;
+  sourceEntityId?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface AtprotoBrainDocRecord extends Record<string, unknown> {
+  $type?: "ai.rizom.brain.doc";
+  title: string;
+  description?: string;
+  section?: string;
+  order?: number;
+  body: string;
+  format?: "text/markdown";
+  canonicalUrl?: string;
+  brainDid?: string;
+  anchorDid?: string;
+  sourceEntityType?: string;
+  sourceEntityId?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface AtprotoBrainGuideRecord extends Record<string, unknown> {
+  $type?: "ai.rizom.brain.guide";
+  title: string;
+  summary?: string;
+  persona?: string;
+  for?: string;
+  section?: string;
+  order?: number;
+  body: string;
+  format?: "text/markdown";
+  canonicalUrl?: string;
+  brainDid?: string;
+  anchorDid?: string;
+  sourceEntityType?: string;
+  sourceEntityId?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface AtprotoBrainNewsletterRecord extends Record<string, unknown> {
+  $type?: "ai.rizom.brain.newsletter";
+  title: string;
+  body: string;
+  format?: "text/markdown";
+  sentAt?: string;
+  canonicalUrl?: string;
+  brainDid?: string;
+  anchorDid?: string;
+  sourceEntityType?: string;
+  sourceEntityId?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
 export interface CanonicalAtprotoRecordMap {
+  "ai.rizom.brain.book": AtprotoBrainBookRecord;
+  "ai.rizom.brain.doc": AtprotoBrainDocRecord;
+  "ai.rizom.brain.guide": AtprotoBrainGuideRecord;
+  "ai.rizom.brain.newsletter": AtprotoBrainNewsletterRecord;
   "ai.rizom.brain.card": AtprotoBrainCardRecord;
   "ai.rizom.brain.deck": AtprotoBrainDeckRecord;
   "ai.rizom.brain.link": AtprotoBrainLinkRecord;

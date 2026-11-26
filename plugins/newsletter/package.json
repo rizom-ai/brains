@@ -4,6 +4,7 @@
   "version": "0.2.0-alpha.770",
   "description": "Newsletter composite with selectable Buttondown and Resend delivery providers",
   "dependencies": {
+    "@brains/atproto-contracts": "workspace:*",
     "@brains/contracts": "workspace:*",
     "@brains/sdk": "workspace:*",
     "@brains/site-composition": "workspace:*",

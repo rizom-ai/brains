@@ -1,0 +1,70 @@
+{
+  "lexicon": 1,
+  "id": "ai.rizom.brain.guide",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "Public guide from a Rizom brain: a walk-through written for one kind of reader.",
+      "key": "any",
+      "record": {
+        "type": "object",
+        "required": ["title", "body", "createdAt"],
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "summary": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "persona": {
+            "type": "string"
+          },
+          "for": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "section": {
+            "type": "string"
+          },
+          "order": {
+            "type": "integer"
+          },
+          "body": {
+            "type": "string",
+            "maxLength": 100000
+          },
+          "format": {
+            "type": "string",
+            "knownValues": ["text/markdown"]
+          },
+          "canonicalUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "brainDid": {
+            "type": "string"
+          },
+          "anchorDid": {
+            "type": "string"
+          },
+          "sourceEntityType": {
+            "type": "string"
+          },
+          "sourceEntityId": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "datetime"
+          }
+        }
+      }
+    }
+  }
+}
