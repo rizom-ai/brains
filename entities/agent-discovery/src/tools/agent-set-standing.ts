@@ -139,10 +139,18 @@ async function showContact(
   });
 }
 
+/** The copies this brain took from a peer, which archiving it erases. */
+export interface CopiesOfPeer {
+  count(domain: string): Promise<number>;
+  /** Erase each down to a stub: its text removed, a record of it kept. */
+  erase(domain: string): Promise<number>;
+}
+
 export function createAgentSetStandingTool(
   context: AgentSetStandingContext,
   approvals: ContactApprovals,
   fetchFn: FetchLike = globalThis.fetch,
+  copies?: CopiesOfPeer,
 ): Tool {
   const toolName = "agent_set_standing";
   const confirmationArgsStore = new ConfirmationArgsStore();
@@ -218,6 +226,8 @@ export function createAgentSetStandingTool(
             await approvals.approve(domain, actorUserId);
           } else {
             await approvals.revoke(domain, actorUserId);
+            // What it shared was shared with a peer this brain kept.
+            await copies?.erase(domain);
           }
           await showContact(context, resolved.entity, input.contact);
           return {
@@ -267,6 +277,11 @@ export function createAgentSetStandingTool(
       if (input.contact) {
         const domain = resolved.entity.id;
         const approving = input.contact === "approved";
+        const held = approving ? 0 : ((await copies?.count(domain)) ?? 0);
+        const erased =
+          held === 0
+            ? ""
+            : ` The ${held} ${held === 1 ? "copy" : "copies"} this brain took from it ${held === 1 ? "is" : "are"} erased: ${held === 1 ? "its text is" : "their text is"} removed and a record that ${held === 1 ? "it" : "they"} existed is kept.`;
         return {
           needsConfirmation: true,
           toolName,
@@ -275,7 +290,7 @@ export function createAgentSetStandingTool(
             : `Archive ${domain} and stop contacting it?`,
           preview: approving
             ? `This brain will be allowed to contact ${domain}. Its inbound trust is not changed.`
-            : `This brain will stop contacting ${domain}, and its entry will be archived. Its inbound trust is not changed.`,
+            : `This brain will stop contacting ${domain}, and its entry will be archived.${erased} Its inbound trust is not changed.`,
           args: confirmationArgsStore.create<AgentSetStandingInput>(
             (confirmationToken) => ({
               agent: domain,

@@ -7,6 +7,7 @@ export {
   agentToolsPackage,
   createAgentDiscoveryPackages,
   derivedSkillPackage,
+  sharedCopiesPackage,
   skillPackage,
   type AgentDiscoveryPackages,
   type AgentToolsConfig,

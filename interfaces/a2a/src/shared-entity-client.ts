@@ -1,8 +1,11 @@
 import {
   ENTITY_SHARING_EXTENSION_URI,
   sharedEntitySchema,
+  sharedEntityStatement,
   type SharedEntityAskResponse,
 } from "@brains/contracts";
+import { JwksResolver, verifyStatement } from "@brains/http-signatures";
+import { computeContentHash } from "@brains/utils/hash";
 import {
   fetchVerifiedAgentCard,
   permissionToVisibilityScope,
@@ -139,6 +142,32 @@ export async function fetchSharedEntity(
       "unreadable_answer",
       `${agentId} did not answer with the entity asked for.`,
     );
+  }
+  // The copy must be the peer's own, byte for byte: the hash is of the
+  // document served, and the signature over it is by the peer asked.
+  const unverified = refused(
+    "unverified",
+    `${agentId} did not sign what it served, so it was not taken.`,
+  );
+  if (entity.contentHash !== computeContentHash(entity.markdown)) {
+    return unverified;
+  }
+  try {
+    const signer = await verifyStatement(
+      sharedEntityStatement(entity),
+      entity.attestation.signature,
+      entity.attestation.keyId,
+      new JwksResolver({
+        fetch: (url): Promise<Response> =>
+          fetchFn(url, { signal: AbortSignal.timeout(timeoutMs) }),
+      }),
+    );
+    if (signer.domain !== agentId) return unverified;
+  } catch {
+    // Whatever kept the signature from verifying (no key published, a key
+    // that cannot be fetched, a signature that does not match), the answer
+    // is the same: the entity is not taken.
+    return unverified;
   }
   return { status: "found", entity };
 }

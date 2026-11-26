@@ -13,6 +13,12 @@ import {
 } from "@brains/sdk/internal/service-runtime";
 import { computeContentHash } from "@brains/utils/hash";
 import { agentEntity } from "./agent-entity";
+import { sharedCopy } from "./shared-copy-entity";
+import {
+  activeCopies,
+  eraseCopiesFrom,
+  refreshSharedCopies,
+} from "./lib/shared-copies";
 import { BoundContactApprovals } from "./lib/contact-approvals";
 import { registerContactApprovalSync } from "./lib/contact-approval-sync";
 import { derivedSkill, skill } from "./skill-entity";
@@ -88,6 +94,8 @@ export interface AgentDiscoveryPackages {
   readonly derivedSkill: ServicePackageDefinition<typeof emptyConfigSchema>;
   /** The skill type with derivation off. */
   readonly skill: ServicePackageDefinition<typeof emptyConfigSchema>;
+  /** The shared-copy type: what this brain took of what peers share with it. */
+  readonly sharedCopies: ServicePackageDefinition<typeof emptyConfigSchema>;
 }
 
 /**
@@ -288,12 +296,20 @@ export function createAgentDiscoveryPackages(
       },
     }),
     (slotContext) => {
-      const context = agentContextOf(serviceRuntime(slotContext));
+      const runtime = serviceRuntime(slotContext);
+      const context = agentContextOf(runtime);
       return [
         createAgentConnectTool(context, approvals, network.fetch),
         createAgentScanDirectoriesTool(context, network.fetch),
-        createAgentSetStandingTool(context, approvals, network.fetch),
-        createAgentSharedEntitiesTool(context),
+        createAgentSetStandingTool(context, approvals, network.fetch, {
+          count: async (domain) => (await activeCopies(context, domain)).length,
+          erase: (domain) => eraseCopiesFrom(context, domain),
+        }),
+        createAgentSharedEntitiesTool({
+          ...context,
+          deserializeEntity: (markdown, entityType) =>
+            runtime.entityReads.deserializeEntity(markdown, entityType),
+        }),
         createNetworkAskTool(context),
       ];
     },
@@ -320,11 +336,40 @@ export function createAgentDiscoveryPackages(
       },
     });
 
+  // The copies this brain took of what peers share with it: their type,
+  // installed apart, as the skill type is.
+  const sharedCopies = defineServicePlugin({
+    id: "shared-copies",
+    config: emptyConfigSchema,
+    entities: [sharedCopy],
+    setup: (setupContext): Record<never, never> => {
+      const runtime = serviceRuntime(setupContext);
+      const context = {
+        ...agentContextOf(runtime),
+        deserializeEntity: runtime.entityReads.deserializeEntity.bind(
+          runtime.entityReads,
+        ),
+      };
+      // A copy is kept current while its owner shares it.
+      runtime.recurringCheck({
+        id: "refresh",
+        cadence: "daily",
+        deliverAlerts: false,
+        run: async ({ signal }) => {
+          await refreshSharedCopies(context, signal);
+          return {};
+        },
+      });
+      return {};
+    },
+  });
+
   return {
     agentDiscovery,
     agentTools,
     derivedSkill: skillService(derivedSkill),
     skill: skillService(skill),
+    sharedCopies,
   };
 }
 
@@ -337,4 +382,6 @@ export const agentToolsPackage: AgentDiscoveryPackages["agentTools"] =
   packages.agentTools;
 export const derivedSkillPackage: AgentDiscoveryPackages["derivedSkill"] =
   packages.derivedSkill;
+export const sharedCopiesPackage: AgentDiscoveryPackages["sharedCopies"] =
+  packages.sharedCopies;
 export const skillPackage: AgentDiscoveryPackages["skill"] = packages.skill;

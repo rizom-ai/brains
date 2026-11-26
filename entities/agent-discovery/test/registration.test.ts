@@ -19,6 +19,7 @@ import {
 } from "@brains/plugins/test";
 import type { AgentDiscoveryCompositeConfigInput } from "../src";
 import { getAgentDiscoveryInstructions } from "../src/lib/agent-instructions";
+import { SHARED_COPY_INSTRUCTIONS } from "../src/schemas/shared-copy";
 import { createAgentDiscoveryPlugins } from "./agent-discovery-plugins";
 
 interface Installed {
@@ -112,6 +113,8 @@ describe("the agents capability's registered surface", () => {
       ["agent", "service", "@brains/agent-discovery", []],
       ["skill-entity", "entity", "@brains/agent-discovery", []],
       ["skill", "service", "@brains/agent-discovery", []],
+      ["shared-copy", "entity", "@brains/agent-discovery", []],
+      ["shared-copies", "service", "@brains/agent-discovery", []],
     ]);
     expect(
       capabilities.flatMap(({ tools }) =>
@@ -134,6 +137,7 @@ describe("the agents capability's registered surface", () => {
         getAgentDiscoveryInstructions(),
         "Agent approval/archive is agent_set_standing with contact approved or archived; an agent's status field shows it and does not decide it.",
       ].join("\n"),
+      SHARED_COPY_INSTRUCTIONS,
     ]);
     for (const plugin of plugins) {
       expect(plugin.getWebRoutes?.() ?? []).toEqual([]);
@@ -144,7 +148,17 @@ describe("the agents capability's registered surface", () => {
   it("registers the agent and skill types as system types, with no action policy of their own", async () => {
     const { shell, plugins } = await installed();
     const registry = shell.getEntityRegistry();
-    expect(registry.getAllEntityTypes()).toEqual(["agent", "skill"]);
+    expect(registry.getAllEntityTypes()).toEqual([
+      "agent",
+      "skill",
+      "shared-copy",
+    ]);
+    // A copy of a peer's entity: content, kept in the database alone.
+    expect(registry.getEntityTypeConfig("shared-copy")).toMatchObject({
+      classification: "content",
+      contentRepo: false,
+      projectionSource: false,
+    });
     expect(registry.getEntityTypeConfig("agent")).toMatchObject({
       classification: "system",
       projectionSourceRole: "supporting",

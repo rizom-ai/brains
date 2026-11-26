@@ -48,6 +48,16 @@ export function skillPlugins(options: { derived?: boolean } = {}): Plugin[] {
   );
 }
 
+/** The shared-copy type and its service, as the brain installs them. */
+export function sharedCopyPlugins(): Plugin[] {
+  return instantiatePluginPackageDefinition(
+    createAgentDiscoveryPackages().sharedCopies,
+    {},
+    metadata,
+    { pluginId: "shared-copies", ownedTypePluginId: "shared-copy" },
+  );
+}
+
 /** The agents capability's plugins, as the canonical brain installs them. */
 export function createAgentDiscoveryPlugins(
   config: AgentDiscoveryCompositeConfigInput = {},
@@ -59,6 +69,7 @@ export function createAgentDiscoveryPlugins(
     ...agentDiscoveryPlugins(network),
     ...agentToolsPlugins(network, { notifyOnNewAgents }),
     ...skillPlugins({ derived: enableSkillDerivation }),
+    ...sharedCopyPlugins(),
   ];
 }
 

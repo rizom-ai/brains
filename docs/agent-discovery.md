@@ -149,7 +149,25 @@ This is the heart of cross-brain discovery: **discovery never implies access.**
   signed `message/send` asks for it by type and id with the
   `X-A2A-Extensions` header. The request is answered before any model sees
   it, and every miss (not trusted, not shared, not published, not there) is
-  the same `404`. An admin reads one with `agent_shared_entities`.
+  the same `404`. What is served is signed: the owner signs the document's
+  hash with its type, id and the time, using the key it publishes for A2A,
+  and the asking brain takes nothing whose hash or signature does not check
+  out against the peer it asked.
+- **A copy is its own type.** An admin works with what a peer shares through
+  one tool, `agent_shared_entities`: `show` returns an entity's text and
+  saves nothing, `take` saves a copy after confirmation, `drop` removes
+  one. A copy is a `shared-copy` entity, never a note or a post of this
+  brain's own, and it is taken only when the document fits this brain's own
+  schema for its type. It is readable by this brain's trusted users and
+  never by the public, cannot be edited, is not written to the content
+  repo, and is never served onward to another brain.
+- **A copy stays current while its owner shares it.** A daily check asks the
+  owner again. New text replaces the copy. When the owner answers that it
+  shares the entity no longer, the text is erased and a stub stays: the
+  title, the source, the dates, and the signed hash. An owner that cannot
+  be reached, or whose answer does not verify, changes nothing. Archiving a
+  peer erases every copy taken from it the same way, and the confirmation
+  says how many.
 - **URL adds are the trusted shortcut.** When a user adds a brain by URL, the
   create interceptor (`agent-create-interceptor.ts`) creates it as `approved`
   immediately, and upgrades an existing `discovered` entry to `approved`. The

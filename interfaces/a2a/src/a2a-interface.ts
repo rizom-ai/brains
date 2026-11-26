@@ -2,6 +2,7 @@ import {
   asksForEntitySharing,
   entitySharingRequestOf,
   readSharedEntity,
+  type StatementSigner,
 } from "./entity-sharing";
 import {
   A2A_CONTACT_APPROVALS_NAMESPACE,
@@ -26,6 +27,7 @@ import type { PluginPackageDefinition } from "@brains/sdk";
 import {
   JwksResolver,
   signRequest,
+  signStatement,
   verifyRequest,
 } from "@brains/http-signatures";
 import type { AgentCard } from "@a2a-js/sdk";
@@ -117,6 +119,25 @@ function createRequestSigner(
   return async (request): Promise<void> => {
     const signingKey = await authService.getA2ASigningKey();
     await signRequest(request, signingKey.privateJwk, signingKey.keyId);
+  };
+}
+
+/** This brain's signature over a statement, when it has a key peers can resolve. */
+function createStatementSigner(
+  runtime: InterfaceRuntime,
+): StatementSigner | undefined {
+  const authService = runtime.auth();
+  if (!authService) return undefined;
+  const issuer = authService.getIssuer();
+  if (isLoopbackIssuer(issuer) || new URL(issuer).protocol !== "https:") {
+    return undefined;
+  }
+  return async (statement) => {
+    const signingKey = await authService.getA2ASigningKey();
+    return {
+      keyId: signingKey.keyId,
+      signature: signStatement(statement, signingKey.privateJwk),
+    };
   };
 }
 
@@ -316,6 +337,7 @@ function createApp(
         parsed.data.method === "message/send"
           ? entitySharingRequestOf(parsed.data.params)
           : undefined,
+        createStatementSigner(runtime),
       );
       if (!shared) {
         return withCors(c.json({ error: "Not found" }, 404));

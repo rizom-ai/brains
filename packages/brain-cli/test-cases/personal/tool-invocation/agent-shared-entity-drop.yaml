@@ -1,0 +1,34 @@
+id: tool-invocation-agent-shared-entity-drop
+name: Drop a Copy of a Peer's Shared Entity
+description: Tests that removing a copy this brain took from a peer goes to agent_shared_entities with drop, not to system_delete.
+type: tool_invocation
+setup:
+  permissionLevel: admin
+tags:
+  - recipe-professional
+  - agent-discovery
+  - a2a
+  - tool-invocation
+
+turns:
+  - userMessage: "We no longer need our copy of the note pricing-2027 from docs.rizom.example. Drop it."
+
+successCriteria:
+  expectedTools:
+    - toolName: agent_shared_entities
+      shouldBeCalled: true
+      argsContain:
+        agent: docs.rizom.example
+        action: drop
+        entityType: note
+        id: pricing-2027
+    - toolName: system_delete
+      shouldBeCalled: false
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+
+efficiency:
+  maxToolCalls: 3
+  # One sample on 2026-11-26 was 35,727, plus 25%, rounded up to 1,000.
+  maxTokens: 45000

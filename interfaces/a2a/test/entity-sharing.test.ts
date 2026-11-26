@@ -3,8 +3,18 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { AuthService, authServicePlugin } from "@brains/auth-service";
-import { ENTITY_SHARING_EXTENSION_URI } from "@brains/contracts";
-import { keyFingerprint, signRequest } from "@brains/http-signatures";
+import {
+  ENTITY_SHARING_EXTENSION_URI,
+  sharedEntitySchema,
+  sharedEntityStatement,
+} from "@brains/contracts";
+import {
+  JwksResolver,
+  keyFingerprint,
+  signRequest,
+  verifyStatement,
+} from "@brains/http-signatures";
+import { computeContentHash } from "@brains/utils/hash";
 import type { Plugin } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 import { createSilentLogger, waitUntil } from "@brains/test-utils";
@@ -189,13 +199,71 @@ describe("the entity-sharing extension", () => {
               id: "shared-note",
               markdown:
                 "---\ntitle: shared-note\n---\nThe text of shared-note.",
-              contentHash: "hash-of-shared-note",
+              // The hash of the document served, so a copy can be checked.
+              contentHash: computeContentHash(
+                "---\ntitle: shared-note\n---\nThe text of shared-note.",
+              ),
+              attestation: {
+                signedAt: expect.any(String),
+                keyId: expect.stringContaining(
+                  "https://local.example/.well-known/jwks.json#",
+                ),
+                signature: expect.any(String),
+              },
             },
           },
         ],
       },
     });
     expect(agentTurns).toBe(0);
+  });
+
+  it("signs what it serves with the brain's own key", async () => {
+    const brain = await serving("trusted");
+    const local = harness.getMockShell().getAuthRegistry().get();
+    if (!(local instanceof AuthService)) throw new Error("Expected auth");
+    const localJwks = await local.getJwks();
+
+    const response = await ask(brain, getRequest("note", "shared-note"));
+    const answer: unknown = await response.json();
+    const served = sharedEntitySchema.parse(
+      Reflect.get(
+        Reflect.get(Reflect.get(Object(answer), "result"), "parts")[0],
+        "data",
+      ),
+    );
+
+    expect(
+      await verifyStatement(
+        sharedEntityStatement(served),
+        served.attestation.signature,
+        served.attestation.keyId,
+        new JwksResolver({
+          fetch: async (): Promise<Response> => Response.json(localJwks),
+        }),
+      ),
+    ).toMatchObject({ domain: "local.example" });
+  });
+
+  it("never serves onward a copy it took from another brain", async () => {
+    const brain = await serving("trusted");
+    harness.addEntities([
+      {
+        id: "peer-example--note--pricing",
+        entityType: "shared-copy",
+        content: "What a third brain charges.",
+        metadata: { title: "Pricing", sourceBrain: "third.example" },
+        visibility: "shared",
+      },
+    ]);
+
+    const response = await ask(
+      brain,
+      getRequest("shared-copy", "peer-example--note--pricing"),
+    );
+
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({ error: "Not found" });
   });
 
   it("answers every miss with the same 404", async () => {

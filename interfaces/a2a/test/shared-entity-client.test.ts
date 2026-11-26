@@ -1,9 +1,79 @@
 import { describe, expect, it, mock } from "bun:test";
-import { ENTITY_SHARING_EXTENSION_URI } from "@brains/contracts";
+import { generateKeyPairSync, type JsonWebKey } from "node:crypto";
+import {
+  ENTITY_SHARING_EXTENSION_URI,
+  sharedEntityStatement,
+  type SharedEntity,
+} from "@brains/contracts";
+import { signStatement } from "@brains/http-signatures";
+import { computeContentHash } from "@brains/utils/hash";
 import type { A2AClientDeps, FetchFn } from "../src/client";
 import { fetchSharedEntity } from "../src/shared-entity-client";
 
 const PEER = "peer.example";
+const PRICING = "---\ntitle: Pricing\n---\nWhat we charge.";
+
+/** A brain's signing key, as its JWKS publishes it. */
+function brainKey(domain: string): {
+  privateJwk: JsonWebKey;
+  publicJwk: JsonWebKey;
+  keyId: string;
+} {
+  const { privateKey, publicKey } = generateKeyPairSync("ed25519");
+  const publicJwk = publicKey.export({ format: "jwk" });
+  publicJwk["kid"] = "k1";
+  return {
+    privateJwk: privateKey.export({ format: "jwk" }),
+    publicJwk,
+    keyId: `https://${domain}/.well-known/jwks.json#k1`,
+  };
+}
+
+const peerKey = brainKey(PEER);
+const strangerKey = brainKey("stranger.example");
+
+/** An entity as a brain serves it: its document, that document's hash, signed. */
+function served(
+  input: {
+    id?: string;
+    markdown?: string;
+    key?: ReturnType<typeof brainKey>;
+  } = {},
+): SharedEntity {
+  const key = input.key ?? peerKey;
+  const unsigned = {
+    entityType: "note",
+    id: input.id ?? "pricing",
+    markdown: input.markdown ?? PRICING,
+    contentHash: computeContentHash(input.markdown ?? PRICING),
+  };
+  const signedAt = "2026-11-26T08:00:00.000Z";
+  return {
+    ...unsigned,
+    attestation: {
+      signedAt,
+      keyId: key.keyId,
+      signature: signStatement(
+        sharedEntityStatement({ ...unsigned, attestation: { signedAt } }),
+        key.privateJwk,
+      ),
+    },
+  };
+}
+
+function answering(data: unknown): () => Response {
+  return () =>
+    Response.json({
+      jsonrpc: "2.0",
+      id: 1,
+      result: {
+        kind: "message",
+        messageId: "m",
+        role: "agent",
+        parts: [{ kind: "data", data }],
+      },
+    });
+}
 
 interface Saved {
   id: string;
@@ -46,29 +116,16 @@ function peer(
           },
         });
       }
-      return (
-        input.answer?.() ??
-        Response.json({
-          jsonrpc: "2.0",
-          id: 1,
-          result: {
-            kind: "message",
-            messageId: "m",
-            role: "agent",
-            parts: [
-              {
-                kind: "data",
-                data: {
-                  entityType: "note",
-                  id: "pricing",
-                  markdown: "---\ntitle: Pricing\n---\nWhat we charge.",
-                  contentHash: "hash-1",
-                },
-              },
-            ],
-          },
-        })
-      );
+      if (request.url.endsWith("/.well-known/jwks.json")) {
+        return Response.json({
+          keys: [
+            request.url.includes(PEER)
+              ? peerKey.publicJwk
+              : strangerKey.publicJwk,
+          ],
+        });
+      }
+      return (input.answer ?? answering(served()))();
     },
   );
   return { fetch, requests };
@@ -102,16 +159,8 @@ describe("asking a peer for one shared entity", () => {
 
     const result = await fetchSharedEntity(wanted, deps(network));
 
-    expect(result).toEqual({
-      status: "found",
-      entity: {
-        entityType: "note",
-        id: "pricing",
-        markdown: "---\ntitle: Pricing\n---\nWhat we charge.",
-        contentHash: "hash-1",
-      },
-    });
-    const sent = network.requests.at(-1);
+    expect(result).toEqual({ status: "found", entity: served() });
+    const sent = network.requests.find((request) => request.method === "POST");
     expect(sent?.url).toBe(`https://${PEER}/a2a`);
     expect(sent?.headers.get("x-a2a-extensions")).toBe(
       ENTITY_SHARING_EXTENSION_URI,
@@ -178,29 +227,55 @@ describe("asking a peer for one shared entity", () => {
     expect(network.requests).toEqual([]);
   });
 
+  it("refuses a document that is not the one the peer signed", async () => {
+    const network = peer({
+      answer: answering({ ...served(), markdown: `${PRICING} And more.` }),
+    });
+
+    expect(await fetchSharedEntity(wanted, deps(network))).toMatchObject({
+      status: "refused",
+      code: "unverified",
+    });
+  });
+
+  it("refuses a hash the peer's signature does not cover", async () => {
+    const forged = `${PRICING} And more.`;
+    const network = peer({
+      answer: answering({
+        ...served(),
+        markdown: forged,
+        contentHash: computeContentHash(forged),
+      }),
+    });
+
+    expect(await fetchSharedEntity(wanted, deps(network))).toMatchObject({
+      status: "refused",
+      code: "unverified",
+    });
+  });
+
+  it("refuses an entity signed by a brain other than the peer asked", async () => {
+    const network = peer({ answer: answering(served({ key: strangerKey })) });
+
+    expect(await fetchSharedEntity(wanted, deps(network))).toMatchObject({
+      status: "refused",
+      code: "unverified",
+    });
+  });
+
+  it("refuses an entity that comes unsigned", async () => {
+    const { attestation: _unsigned, ...bare } = served();
+    const network = peer({ answer: answering(bare) });
+
+    expect(await fetchSharedEntity(wanted, deps(network))).toMatchObject({
+      status: "refused",
+      code: "unreadable_answer",
+    });
+  });
+
   it("refuses an answer that is not the entity asked for", async () => {
     const network = peer({
-      answer: () =>
-        Response.json({
-          jsonrpc: "2.0",
-          id: 1,
-          result: {
-            kind: "message",
-            messageId: "m",
-            role: "agent",
-            parts: [
-              {
-                kind: "data",
-                data: {
-                  entityType: "note",
-                  id: "something-else",
-                  markdown: "x",
-                  contentHash: "h",
-                },
-              },
-            ],
-          },
-        }),
+      answer: answering(served({ id: "something-else" })),
     });
 
     expect(await fetchSharedEntity(wanted, deps(network))).toMatchObject({

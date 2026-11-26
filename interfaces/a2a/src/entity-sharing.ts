@@ -1,9 +1,12 @@
 import {
   ENTITY_SHARING_EXTENSION_URI,
   entitySharingRequestSchema,
+  SHARED_COPY_ENTITY_TYPE,
+  sharedEntityStatement,
   type EntitySharingRequest,
   type SharedEntity,
 } from "@brains/contracts";
+import { computeContentHash } from "@brains/utils/hash";
 import type { InterfaceRuntime } from "@brains/sdk/internal/interface-runtime";
 import type { UserPermissionLevel } from "@brains/sdk/interfaces";
 import { z } from "@brains/utils/zod";
@@ -35,19 +38,31 @@ export function entitySharingRequestOf(
     .find((request) => request.success)?.data;
 }
 
+/** Sign a statement with this brain's key, naming the key. */
+export type StatementSigner = (
+  statement: string,
+) => Promise<{ keyId: string; signature: string }>;
+
 /**
- * The shared entity a peer may take, or nothing. Nothing is the one answer
- * for every miss: a caller who is not trusted, a type the brain does not
- * have, an entity that is absent, not published, restricted, or public.
- * Only what an owner marked shared is served; public entities are pointed
- * to, never copied.
+ * The shared entity a peer may take, signed, or nothing. Nothing is the one
+ * answer for every miss: a caller who is not trusted, a type the brain does
+ * not have, an entity that is absent, not published, restricted, or public,
+ * a copy this brain took from another, or a brain that cannot sign. Only
+ * what an owner marked shared is served, and only its own; public entities
+ * are pointed to, never copied.
  */
 export async function readSharedEntity(
   entityReads: InterfaceRuntime["entityReads"],
   callerPermissionLevel: UserPermissionLevel,
   request: EntitySharingRequest | undefined,
+  sign: StatementSigner | undefined,
+  now: () => Date = (): Date => new Date(),
 ): Promise<SharedEntity | undefined> {
-  if (!request || callerPermissionLevel !== "trusted") return undefined;
+  if (!request || !sign || callerPermissionLevel !== "trusted") {
+    return undefined;
+  }
+  // Another brain's entity is its owner's to share, never this brain's.
+  if (request.entityType === SHARED_COPY_ENTITY_TYPE) return undefined;
   if (!entityReads.hasEntityType(request.entityType)) return undefined;
   const entity = await entityReads.getEntity({
     entityType: request.entityType,
@@ -58,10 +73,16 @@ export async function readSharedEntity(
     source: true,
   });
   if (entity?.visibility !== "shared") return undefined;
-  return {
+  const served = {
     entityType: entity.entityType,
     id: entity.id,
     markdown: entity.content,
-    contentHash: entity.contentHash,
+    // Of the document served, so the taker can check its copy against it.
+    contentHash: computeContentHash(entity.content),
   };
+  const signedAt = now().toISOString();
+  const signed = await sign(
+    sharedEntityStatement({ ...served, attestation: { signedAt } }),
+  );
+  return { ...served, attestation: { signedAt, ...signed } };
 }

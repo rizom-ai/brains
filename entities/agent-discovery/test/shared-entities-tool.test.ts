@@ -37,6 +37,11 @@ const pricing = {
   id: "pricing",
   markdown: "---\ntitle: Pricing\n---\nWhat we charge.",
   contentHash: "hash-1",
+  attestation: {
+    signedAt: "2026-11-26T08:00:00.000Z",
+    keyId: "https://peer.example/.well-known/jwks.json#k1",
+    signature: "c2lnbmVk",
+  },
 };
 
 describe("agent_shared_entities", () => {

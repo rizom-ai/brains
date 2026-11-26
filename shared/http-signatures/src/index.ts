@@ -236,6 +236,57 @@ export async function verifyRequest(
   };
 }
 
+/**
+ * Sign a statement with a brain's key: a detached signature, for what a
+ * brain attests outside an HTTP exchange. Returned as base64.
+ */
+export function signStatement(
+  statement: string,
+  privateKey: SigningKey,
+): string {
+  return nodeSign(
+    null,
+    Buffer.from(statement),
+    toPrivateKey(privateKey),
+  ).toString("base64");
+}
+
+/**
+ * Verify a statement's detached signature against the key its key id
+ * names, as the signer publishes it. Throws when it does not verify.
+ */
+export async function verifyStatement(
+  statement: string,
+  signature: string,
+  keyId: string,
+  resolver: JwksResolver,
+): Promise<VerifiedSignature> {
+  const jwk = await resolver.resolveKey(keyId);
+  let ok: boolean;
+  try {
+    ok = nodeVerify(
+      null,
+      Buffer.from(statement),
+      toPublicKey(jwk),
+      Buffer.from(signature, "base64"),
+    );
+  } catch {
+    // A key or signature the verifier cannot even read is a signature
+    // that does not verify: the caller gets the one error for both.
+    ok = false;
+  }
+  if (!ok) {
+    throw new HttpSignatureVerificationError(
+      "Statement signature verification failed",
+    );
+  }
+  return {
+    keyId,
+    domain: new URL(keyId).hostname.toLowerCase(),
+    keyFingerprint: keyFingerprint(jwk),
+  };
+}
+
 export function keyFingerprint(jwk: JsonWebKey): string {
   const canonical = JSON.stringify({ crv: jwk.crv, kty: jwk.kty, x: jwk.x });
   return createHash("sha256").update(canonical).digest("base64url");

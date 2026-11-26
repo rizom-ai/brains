@@ -1,0 +1,34 @@
+id: tool-invocation-agent-shared-entity-take
+name: Take a Copy of a Peer's Shared Entity
+description: Tests that keeping a copy of one entity a peer shares goes to agent_shared_entities with take, not to a note of the brain's own.
+type: tool_invocation
+setup:
+  permissionLevel: admin
+tags:
+  - recipe-professional
+  - agent-discovery
+  - a2a
+  - tool-invocation
+
+turns:
+  - userMessage: "Keep a copy of the note with id pricing-2027 that docs.rizom.example shares with us."
+
+successCriteria:
+  expectedTools:
+    - toolName: agent_shared_entities
+      shouldBeCalled: true
+      argsContain:
+        agent: docs.rizom.example
+        action: take
+        entityType: note
+        id: pricing-2027
+    - toolName: system_create
+      shouldBeCalled: false
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+
+efficiency:
+  maxToolCalls: 3
+  # One sample on 2026-11-26 was 35,727, plus 25%, rounded up to 1,000.
+  maxTokens: 45000

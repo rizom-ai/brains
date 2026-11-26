@@ -5,7 +5,9 @@ import {
   JwksResolver,
   keyFingerprint,
   signRequest,
+  signStatement,
   verifyRequest,
+  verifyStatement,
   type HttpSignatureRequest,
 } from "../src/index";
 
@@ -153,5 +155,60 @@ describe("HTTP message signatures", () => {
 
     expect(verified?.domain).toBe("peer.example");
     expect(calls).toBe(2);
+  });
+});
+
+describe("a signed statement", () => {
+  const resolverFor = (publicJwk: JsonWebKey): JwksResolver =>
+    new JwksResolver({
+      fetch: async (): Promise<Response> =>
+        Response.json({ keys: [publicJwk] }),
+    });
+
+  it("verifies against the signer's published key, and names the signer", async () => {
+    const { privateJwk, publicJwk, keyId } = createKeys();
+    const signature = signStatement("note\npricing\nabc", privateJwk);
+
+    expect(
+      await verifyStatement(
+        "note\npricing\nabc",
+        signature,
+        keyId,
+        resolverFor(publicJwk),
+      ),
+    ).toEqual({
+      keyId,
+      domain: "peer.example",
+      keyFingerprint: keyFingerprint(publicJwk),
+    });
+  });
+
+  it("does not verify once a byte of the statement changed", async () => {
+    const { privateJwk, publicJwk, keyId } = createKeys();
+    const signature = signStatement("note\npricing\nabc", privateJwk);
+
+    expect(
+      verifyStatement(
+        "note\npricing\nabd",
+        signature,
+        keyId,
+        resolverFor(publicJwk),
+      ),
+    ).rejects.toThrow(HttpSignatureVerificationError);
+  });
+
+  it("does not verify against another signer's key", async () => {
+    const { privateJwk, keyId } = createKeys();
+    const other = createKeys();
+    const signature = signStatement("note\npricing\nabc", privateJwk);
+
+    expect(
+      verifyStatement(
+        "note\npricing\nabc",
+        signature,
+        keyId,
+        resolverFor(other.publicJwk),
+      ),
+    ).rejects.toThrow(HttpSignatureVerificationError);
   });
 });

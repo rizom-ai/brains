@@ -170,22 +170,74 @@ export const entitySharingRequestSchema: EntitySharingRequestSchema = z.object({
 
 export type EntitySharingRequest = z.output<typeof entitySharingRequestSchema>;
 
+/**
+ * The type a brain keeps its copies of other brains' entities as. Named
+ * here because both sides of an exchange know it: the brain that takes a
+ * copy stores it as one, and a brain that serves never serves one onward.
+ */
+export const SHARED_COPY_ENTITY_TYPE = "shared-copy";
+
+type SharedEntityAttestationSchema = z.ZodObject<{
+  signedAt: z.ZodString;
+  keyId: z.ZodString;
+  signature: z.ZodString;
+}>;
+
+/**
+ * The owner's signature over what it served: the entity's type, id and
+ * content hash, and the time, signed with the brain key it publishes for
+ * A2A. Anyone holding that key can check a copy against it.
+ */
+export const sharedEntityAttestationSchema: SharedEntityAttestationSchema =
+  z.object({
+    signedAt: z.string().min(1),
+    /** The signing key, as the owner's JWKS names it. */
+    keyId: z.string().min(1),
+    signature: z.string().min(1),
+  });
+
+export type SharedEntityAttestation = z.output<
+  typeof sharedEntityAttestationSchema
+>;
+
 type SharedEntitySchema = z.ZodObject<{
   entityType: z.ZodString;
   id: z.ZodString;
   markdown: z.ZodString;
   contentHash: z.ZodString;
+  attestation: SharedEntityAttestationSchema;
 }>;
 
-/** A shared entity as its owner serves it: its stored document and that document's hash. */
+/**
+ * A shared entity as its owner serves it: its stored document, that
+ * document's hash, and the owner's signature over the hash.
+ */
 export const sharedEntitySchema: SharedEntitySchema = z.object({
   entityType: z.string().min(1),
   id: z.string().min(1),
   markdown: z.string(),
+  /** The SHA-256 of `markdown`, in hex. */
   contentHash: z.string().min(1),
+  attestation: sharedEntityAttestationSchema,
 });
 
 export type SharedEntity = z.output<typeof sharedEntitySchema>;
+
+/** The statement an owner signs for an entity it serves. */
+export function sharedEntityStatement(entity: {
+  entityType: string;
+  id: string;
+  contentHash: string;
+  attestation: { signedAt: string };
+}): string {
+  return [
+    ENTITY_SHARING_EXTENSION_URI,
+    entity.entityType,
+    entity.id,
+    entity.contentHash,
+    entity.attestation.signedAt,
+  ].join("\n");
+}
 
 type SharedEntityAskRequestSchema = z.ZodObject<{
   agent: z.ZodString;
