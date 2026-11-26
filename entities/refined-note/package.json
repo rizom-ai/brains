@@ -1,7 +1,7 @@
 {
   "name": "@brains/refined-note",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.771",
+  "version": "0.2.0-alpha.772",
   "description": "Worked-out notes written from plain notes, which they replace",
   "dependencies": {
     "@brains/sdk": "workspace:*",

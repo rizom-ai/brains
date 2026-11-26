@@ -1,5 +1,24 @@
 # @brains/contracts
 
+## 0.2.0-alpha.772
+
+### Patch Changes
+
+- [#1048](https://github.com/rizom-ai/brains/pull/1048) [`08e8ee5`](https://github.com/rizom-ai/brains/commit/08e8ee536d674ee23a1abb5fd0d0a8205a12a3d4) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Whether a brain may contact a peer is decided by runtime state, not by the peer's entry in the content repo. An agent's `status` shows the approval and no longer grants it: an entry edited to `approved` without one is put back to `discovered`, and the A2A client refuses the peer. Peers approved before this release keep their approval.
+
+  `agent_set_trust_level` becomes `agent_set_standing`, the one tool for a peer's standing in both directions: `contact` approves, restores or archives a peer, and `level` grants or revokes inbound trust as before. Approving or archiving through `system_update` no longer has any effect. Connecting a new peer and the Inbox's connect action record the approval the same way.
+
+  A brain serves the entities its owner marked `shared` to a peer it trusts, over a declared A2A extension (`https://rizom.ai/ext/entity-sharing/v1`): a signed `message/send` names one entity by type and id, and is answered before any model sees it. Every miss is the same `404`. An admin reads one with the new `agent_shared_entities` tool, whose `show` returns the entity's text and stores nothing.
+
+- [#1048](https://github.com/rizom-ai/brains/pull/1048) [`74901a1`](https://github.com/rizom-ai/brains/commit/74901a1e43935e5e64ecaab090c0824689bf0631) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A brain can keep a read-only copy of an entity a peer shares with it. `agent_shared_entities` gains `list`, which names what a peer shares with this brain, `take`, which saves the copy after confirmation, and `drop`, which removes it. A copy is stored as its own `shared-copy` type, apart from the brain's own entities, and only when the document fits the brain's own schema for its type. It is readable by the brain's trusted users and never by the public, cannot be edited, is kept out of the content repo, and is never served onward.
+
+  The owner signs what it serves: the document's hash with its type, id and the time, using its A2A key. The asking brain refuses an answer whose hash or signature does not check out against the peer it asked, and keeps the signature with the copy.
+
+  A daily check keeps copies current. When the owner stops sharing an entity, its copy's text is erased and a stub stays with the title, the source and the signed hash; an unreachable owner changes nothing. Archiving a peer with `agent_set_standing` erases the copies taken from it, and its confirmation says how many.
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.772
+
 ## 0.2.0-alpha.771
 
 ### Patch Changes

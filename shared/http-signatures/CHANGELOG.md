@@ -1,5 +1,15 @@
 # @brains/http-signatures
 
+## 0.2.0-alpha.772
+
+### Patch Changes
+
+- [#1048](https://github.com/rizom-ai/brains/pull/1048) [`74901a1`](https://github.com/rizom-ai/brains/commit/74901a1e43935e5e64ecaab090c0824689bf0631) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A brain can keep a read-only copy of an entity a peer shares with it. `agent_shared_entities` gains `list`, which names what a peer shares with this brain, `take`, which saves the copy after confirmation, and `drop`, which removes it. A copy is stored as its own `shared-copy` type, apart from the brain's own entities, and only when the document fits the brain's own schema for its type. It is readable by the brain's trusted users and never by the public, cannot be edited, is kept out of the content repo, and is never served onward.
+
+  The owner signs what it serves: the document's hash with its type, id and the time, using its A2A key. The asking brain refuses an answer whose hash or signature does not check out against the peer it asked, and keeps the signature with the copy.
+
+  A daily check keeps copies current. When the owner stops sharing an entity, its copy's text is erased and a stub stays with the title, the source and the signed hash; an unreachable owner changes nothing. Archiving a peer with `agent_set_standing` erases the copies taken from it, and its confirmation says how many.
+
 ## 0.2.0-alpha.771
 
 No changes in this release.

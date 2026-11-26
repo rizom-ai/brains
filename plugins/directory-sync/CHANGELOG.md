@@ -1,5 +1,19 @@
 # @brains/directory-sync
 
+## 0.2.0-alpha.772
+
+### Patch Changes
+
+- [#1048](https://github.com/rizom-ai/brains/pull/1048) [`cb6fc29`](https://github.com/rizom-ai/brains/commit/cb6fc29dd5bed47a6d619d5e0eaeb477110d7fb3) Thanks [@yeehaa123](https://github.com/yeehaa123)! - An entity type can declare `contentRepo: false` when its records must never leave the database. No file write is queued for such a record, directory sync writes it no file and reads no file as one, and its having no file is never taken as a deletion.
+- Updated dependencies [[`08e8ee5`](https://github.com/rizom-ai/brains/commit/08e8ee536d674ee23a1abb5fd0d0a8205a12a3d4), [`74901a1`](https://github.com/rizom-ai/brains/commit/74901a1e43935e5e64ecaab090c0824689bf0631)]:
+  - @brains/contracts@0.2.0-alpha.772
+  - @brains/sdk@0.2.0-alpha.772
+  - @brains/document@0.2.0-alpha.772
+  - @brains/entity-placement@0.2.0-alpha.772
+  - @brains/image@0.2.0-alpha.772
+  - @brains/content-formatters@0.2.0-alpha.772
+  - @brains/utils@0.2.0-alpha.772
+
 ## 0.2.0-alpha.771
 
 ### Patch Changes

@@ -1,5 +1,14 @@
 # @brains/chat-repl
 
+## 0.2.0-alpha.772
+
+### Patch Changes
+
+- Updated dependencies [[`08e8ee5`](https://github.com/rizom-ai/brains/commit/08e8ee536d674ee23a1abb5fd0d0a8205a12a3d4), [`74901a1`](https://github.com/rizom-ai/brains/commit/74901a1e43935e5e64ecaab090c0824689bf0631)]:
+  - @brains/contracts@0.2.0-alpha.772
+  - @brains/sdk@0.2.0-alpha.772
+  - @brains/utils@0.2.0-alpha.772
+
 ## 0.2.0-alpha.771
 
 ### Patch Changes
