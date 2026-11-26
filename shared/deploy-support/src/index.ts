@@ -103,6 +103,7 @@ export const deployScriptNames = [
   "install-health-watchdog.ts",
   "provision-server.ts",
   "pull-local-models.ts",
+  "reload-homeserver.ts",
   "update-dns.ts",
   "validate-secrets.ts",
   "write-kamal-secrets.ts",
@@ -137,6 +138,7 @@ const deployScriptFingerprints: Record<DeployScriptName, string> = {
   "install-health-watchdog.ts": "/usr/local/sbin/brains-health-watchdog",
   "provision-server.ts": 'requireEnv("HCLOUD_TOKEN")',
   "pull-local-models.ts": "export async function pullLocalModels",
+  "reload-homeserver.ts": "export async function reloadHomeserver",
   "update-dns.ts": 'requireEnv("CF_API_TOKEN")',
   "validate-secrets.ts": "const requiredKeys = schema",
   "write-kamal-secrets.ts": ".kamal/secrets",
@@ -237,13 +239,25 @@ function normalizeOptionalWwwDeployHost(content: string): string {
   );
 }
 
-// Drops the LOCAL_MODELS ERB conditional blocks: the model runtime's URL and
-// its accessory. Copies generated before them otherwise match the template.
+// Drops the optional accessories' ERB conditional blocks — the model
+// runtime's and the Matrix homeserver's, with the `accessories:` key they
+// share and the brain's mount of the homeserver's directory. Copies generated
+// before either otherwise match the template.
 export function withoutDeployModelRuntime(content: string): string {
-  return content.replace(
-    /^ *# <% if ENV\['LOCAL_MODELS'\] && !ENV\['LOCAL_MODELS'\]\.empty\? %>\n[\s\S]*?^ *# <% end %>\n\n?/gm,
-    "",
-  );
+  return content
+    .replace(
+      /^# <% if \(ENV\['LOCAL_MODELS'\][^\n]*\|\| ENV\['MATRIX_ENABLED'\][^\n]*%>\naccessories:\n# <% end %>\n/gm,
+      "",
+    )
+    .replace(
+      /^ *# <% if ENV\['MATRIX_ENABLED'\] == 'true' %>\n[\s\S]*?^ *# <% end %>\n/gm,
+      "",
+    )
+    .replace(
+      /^ *# <% if ENV\['LOCAL_MODELS'\] && !ENV\['LOCAL_MODELS'\]\.empty\? %>\n[\s\S]*?^ *# <% end %>\n\n?/gm,
+      "",
+    )
+    .replace(/^ {2}- \/opt\/brain-matrix:\/app\/matrix\n/m, "");
 }
 
 export function isStaleDeployMounts(

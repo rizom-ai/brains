@@ -42,6 +42,7 @@ function matrixFromEnv(
   const baseUrl = env["MATRIX_BASE_URL"];
   const userId = env["MATRIX_USER_ID"];
   const password = env["MATRIX_PASSWORD"];
-  if (!baseUrl || !userId || !password) return {};
-  return { matrix: { baseUrl, userId, password } };
+  if (!baseUrl || !userId) return {};
+  // Without a password, the bot asks the brain's own homeserver for it.
+  return { matrix: { baseUrl, userId, ...(password ? { password } : {}) } };
 }

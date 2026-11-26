@@ -19,6 +19,10 @@ proxy:
   app_port: 8080
   healthcheck:
     path: /health/ready
+  # <% if ENV['MATRIX_ENABLED'] == 'true' %>
+  # A Matrix client holds /sync open for 30 seconds before its headers.
+  response_timeout: 120
+  # <% end %>
 
 registry:
   server: ghcr.io
@@ -35,6 +39,15 @@ env:
     # <% if ENV['LOCAL_MODELS'] && !ENV['LOCAL_MODELS'].empty? %>
     MODEL_RUNTIME_URL: http://__SERVICE_NAME__-models:11434
     # <% end %>
+    # <% if ENV['MATRIX_ENABLED'] == 'true' %>
+    # The brain's own homeserver: the brain writes its configuration and
+    # secrets into the shared directory, so none is set here.
+    MATRIX_HOMESERVER_URL: http://__SERVICE_NAME__-matrix:6167
+    MATRIX_BASE_URL: http://__SERVICE_NAME__-matrix:6167
+    MATRIX_SERVER_NAME: <%= ENV['BRAIN_DOMAIN'] %>
+    MATRIX_USER_ID: "@_brain:<%= ENV['BRAIN_DOMAIN'] %>"
+    MATRIX_DATA_DIR: /app/matrix
+    # <% end %>
   secret:
     - OPENAI_API_KEY
     - ANTHROPIC_API_KEY
@@ -48,8 +61,10 @@ env:
     - SETUP_EMAIL_API_KEY
     - SETUP_EMAIL_FROM
 
-# <% if ENV['LOCAL_MODELS'] && !ENV['LOCAL_MODELS'].empty? %>
+# <% if (ENV['LOCAL_MODELS'] && !ENV['LOCAL_MODELS'].empty?) || ENV['MATRIX_ENABLED'] == 'true' %>
 accessories:
+# <% end %>
+# <% if ENV['LOCAL_MODELS'] && !ENV['LOCAL_MODELS'].empty? %>
   models:
     image: ollama/ollama:0.40.11
     host: <%= ENV['SERVER_IP'] %>
@@ -63,6 +78,18 @@ accessories:
       health-cmd: ollama list
       health-interval: 30s
 # <% end %>
+# <% if ENV['MATRIX_ENABLED'] == 'true' %>
+  matrix:
+    image: ghcr.io/matrix-construct/tuwunel:v2.0.0
+    host: <%= ENV['SERVER_IP'] %>
+    env:
+      clear:
+        TUWUNEL_CONFIG: /data/tuwunel.toml
+    # Until the brain has written its configuration on the first deploy,
+    # the homeserver exits and Kamal's restart policy starts it again.
+    volumes:
+      - /opt/brain-matrix:/data
+# <% end %>
 
 volumes:
   - /opt/brain-data:/app/brain-data
@@ -71,3 +98,4 @@ volumes:
   - /opt/brain-config:/config
   - /opt/brain-dist:/app/dist
   - /opt/brain.yaml:/app/brain.yaml
+  - /opt/brain-matrix:/app/matrix

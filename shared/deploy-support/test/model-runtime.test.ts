@@ -29,7 +29,7 @@ describe("the model runtime accessory", () => {
 
   it("runs the pinned runtime image with a persistent models volume, only when the brain names local models", () => {
     const [accessory] = conditionalBlocks(deploy).filter((block) =>
-      block.includes("accessories:"),
+      block.includes("  models:"),
     );
     expect(accessory).toBeDefined();
     expect(accessory).toContain("  models:");
@@ -40,7 +40,7 @@ describe("the model runtime accessory", () => {
 
   it("serves the context an agent prompt needs, not the runtime default", () => {
     const [accessory] = conditionalBlocks(deploy).filter((block) =>
-      block.includes("accessories:"),
+      block.includes("  models:"),
     );
     expect(accessory).toContain(`OLLAMA_CONTEXT_LENGTH: "32768"`);
   });
@@ -58,21 +58,23 @@ describe("the model runtime accessory", () => {
   });
 
   it("treats a copy generated before the accessory as stale", () => {
-    // The template as generated before: no conditional lines, one blank
-    // line between the env secrets and the mounts.
+    // The template as generated before either accessory: no conditional
+    // lines, no homeserver mount, one blank line between the env secrets and
+    // the mounts.
     const beforeAccessory = deploy
       .split("\n")
       .reduce<{ lines: string[]; inside: boolean }>(
         ({ lines, inside }, line) => {
-          if (line.trim() === localModelsCondition)
+          if (/^\s*# <% if /.test(line) && !line.includes("WWW_DOMAIN"))
             return { lines, inside: true };
           if (inside) return { lines, inside: line.trim() !== "# <% end %>" };
           return { lines: [...lines, line], inside };
         },
         { lines: [], inside: false },
       )
-      .lines.join("\n")
-      .replace("\n\n\nvolumes:", "\n\nvolumes:");
+      .lines.filter((line) => line !== "  - /opt/brain-matrix:/app/matrix")
+      .join("\n")
+      .replace(/\n\n+volumes:/, "\n\nvolumes:");
     expect(beforeAccessory).not.toContain("LOCAL_MODELS");
     expect(isStaleDeployMounts(beforeAccessory, "rover")).toBe(true);
     expect(isStaleDeployMounts(deploy, "rover")).toBe(false);

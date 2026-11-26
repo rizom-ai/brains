@@ -105,7 +105,7 @@ export type SlackChatAdapterConfig = z.output<typeof slackAdapterConfigSchema>;
 type MatrixChatAdapterConfigSchema = z.ZodObject<{
   baseUrl: z.ZodURL;
   userId: z.ZodString;
-  password: z.ZodString;
+  password: z.ZodOptional<z.ZodString>;
   allowedChannels: z.ZodDefault<z.ZodArray<z.ZodString>>;
   requireMention: z.ZodDefault<z.ZodBoolean>;
   allowDMs: z.ZodDefault<z.ZodBoolean>;
@@ -120,7 +120,13 @@ const matrixAdapterConfigSchema: MatrixChatAdapterConfigSchema = z.object({
     .string()
     .regex(MATRIX_USER_ID_PATTERN, "A full Matrix user id, @name:server")
     .describe("The bot's Matrix user id"),
-  password: z.string().min(1).describe("The bot's Matrix password"),
+  password: z
+    .string()
+    .min(1)
+    .optional()
+    .describe(
+      "The bot's Matrix password; asked of the brain's own homeserver when unset",
+    ),
   /** Room ids (`!room:server`) the bot answers in; empty answers in every room it is in. */
   allowedChannels: z.array(z.string()).default([]),
   requireMention: z.boolean().default(true),

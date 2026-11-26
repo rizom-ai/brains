@@ -467,6 +467,7 @@ const SHARED_DEPLOY_SCRIPTS: readonly DeployScriptName[] = [
   "install-health-watchdog.ts",
   "provision-server.ts",
   "pull-local-models.ts",
+  "reload-homeserver.ts",
   "update-dns.ts",
   "write-ssh-key.ts",
 ];

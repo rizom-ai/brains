@@ -1,67 +1,61 @@
 /**
  * Run a brain's homeserver locally, the way a deploy runs it beside the
- * brain: Tuwunel in Docker, configured by the same renderer, its data under
- * MATRIX_DATA_DIR (default ./matrix-data). Reads the MATRIX_* values the
- * brain reads. Stops with the process.
+ * brain: Tuwunel in Docker on the directory the brain shares with it
+ * (MATRIX_DATA_DIR). The brain writes the homeserver's configuration there
+ * when it starts; until then Docker's restart policy keeps retrying, as
+ * Kamal's does. Stops the container with the process.
  * Usage: bun plugins/matrix-server/scripts/local-homeserver.ts
  */
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { runProcess } from "@brains/utils/run-process";
 import { z } from "@brains/utils/zod";
-import { renderHomeserverConfig } from "../src/homeserver-config";
+import { HOMESERVER_PORT } from "../src/homeserver-secrets";
 
 /** The Tuwunel release a deploy runs; bump both together. */
 const TUWUNEL_IMAGE = "ghcr.io/matrix-construct/tuwunel:v2.0.0";
 
 const env = z
   .object({
-    MATRIX_SERVER_NAME: z.string().min(1),
-    MATRIX_PUBLIC_URL: z.url(),
-    MATRIX_HOMESERVER_URL: z.url(),
-    MATRIX_REGISTRATION_TOKEN: z.string().min(16),
-    MATRIX_OIDC_CLIENT_SECRET: z.string().min(32),
-    MATRIX_DATA_DIR: z.string().default("matrix-data"),
+    MATRIX_DATA_DIR: z.string().min(1),
   })
   .parse(process.env);
 
 const dataDir = resolve(env.MATRIX_DATA_DIR);
 mkdirSync(dataDir, { recursive: true });
-const port = Number(new URL(env.MATRIX_HOMESERVER_URL).port || "8008");
-writeFileSync(
-  resolve(dataDir, "tuwunel.toml"),
-  renderHomeserverConfig({
-    serverName: env.MATRIX_SERVER_NAME,
-    publicBaseUrl: env.MATRIX_PUBLIC_URL,
-    registrationToken: env.MATRIX_REGISTRATION_TOKEN,
-    oidcClientSecret: env.MATRIX_OIDC_CLIENT_SECRET,
-    databasePath: "/data/db",
-    backupPath: "/data/backup",
-    port,
-  }),
+const name = `brain-matrix-${HOMESERVER_PORT}`;
+
+await runProcess(["docker", "rm", "-f", name]);
+const started = await runProcess([
+  "docker",
+  "run",
+  "--detach",
+  "--name",
+  name,
+  "--restart",
+  "unless-stopped",
+  // On the host's network, at 127.0.0.1:6167, so it reaches the brain on
+  // the host, which is its identity provider.
+  "--network",
+  "host",
+  "--volume",
+  `${dataDir}:/data`,
+  "--env",
+  "TUWUNEL_CONFIG=/data/tuwunel.toml",
+  TUWUNEL_IMAGE,
+]);
+if (started.exitCode !== 0) {
+  console.error(started.stderr);
+  process.exit(started.exitCode);
+}
+console.log(
+  `${name} is waiting for the brain to write ${dataDir}/tuwunel.toml`,
 );
 
-const docker = Bun.spawn(
-  [
-    "docker",
-    "run",
-    "--rm",
-    "--name",
-    `brain-matrix-${port}`,
-    // The brain on the host is the homeserver's identity provider.
-    "--network",
-    "host",
-    "-v",
-    `${dataDir}:/data`,
-    "-e",
-    "TUWUNEL_CONFIG=/data/tuwunel.toml",
-    TUWUNEL_IMAGE,
-  ],
-  { stdout: "inherit", stderr: "inherit" },
-);
-const stop = (): void => {
-  void runProcess(["docker", "stop", `brain-matrix-${port}`]);
+const stop = async (): Promise<void> => {
+  await runProcess(["docker", "rm", "-f", name]);
+  process.exit(0);
 };
-process.on("SIGINT", stop);
-process.on("SIGTERM", stop);
-process.exit(await docker.exited);
+process.on("SIGINT", () => void stop());
+process.on("SIGTERM", () => void stop());
+await runProcess(["docker", "logs", "--follow", name], {});

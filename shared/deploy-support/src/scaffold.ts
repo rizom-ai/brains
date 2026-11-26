@@ -45,6 +45,8 @@ local_models = [config["embeddingModel"], config["model"], config["answerModel"]
   .map { |model| model.delete_prefix("local:") }
   .uniq
   .join(",")
+# The brain's own Matrix homeserver runs beside it with the matrix bundle.
+matrix_enabled = Array(config["bundles"]).map(&:to_s).include?("matrix")
 labels = brain_domain.split(".")
 preview_domain = "preview.#{brain_domain}"
 www_domain = if labels.length == 2
@@ -78,6 +80,7 @@ File.open(github_env, "a") do |file|
   file.puts("IMAGE_REPOSITORY=ghcr.io/#{registry_username}/#{repository_name}")
   file.puts("REGISTRY_USERNAME=#{registry_username}")
   file.puts("LOCAL_MODELS=#{local_models}")
+  file.puts("MATRIX_ENABLED=#{matrix_enabled}")
 end
 `;
 }
@@ -425,6 +428,15 @@ ${predeployBackupSkipCondition}
           VERSION: \${{ github.event.workflow_run.head_sha || github.sha }}
           PREVIEW_DOMAIN: \${{ env.PREVIEW_DOMAIN }}
         run: kamal setup --skip-push
+
+      - name: Restart the homeserver on a new configuration
+        if: env.MATRIX_ENABLED == 'true'
+        env:
+          SERVER_IP: \${{ steps.provision.outputs.server_ip }}
+          SERVICE_NAME: brain
+        run: |
+          SSH_USER="$(ruby -e 'require "yaml"; config = YAML.load_file("config/deploy.yml") || {}; puts(config.dig("ssh", "user") || "root")')" \\
+            bun deploy/scripts/reload-homeserver.ts
 
       - name: Install container health watchdog
         env:

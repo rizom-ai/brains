@@ -28,7 +28,8 @@ function toml(value: string): string {
  * People sign in through the brain as the only identity provider, keyed on
  * the brain's fixed `preferred_username`; they have no Matrix password.
  * Tuwunel reads identity providers at start, so this is written before the
- * homeserver first starts and never at runtime.
+ * homeserver first starts and never at runtime. A SIGUSR2 takes an online
+ * backup into the backup path, which the predeploy backup sends.
  */
 export function renderHomeserverConfig(input: HomeserverConfigInput): string {
   const origin = input.publicBaseUrl.replace(/\/+$/, "");
@@ -46,6 +47,9 @@ server = ${toml(`${input.serverName}:443`)}
 
 [global.database.backup]
 path = ${toml(input.backupPath)}
+
+[global.admin]
+signal_execute = ["server backup-database"]
 
 [[global.identity_provider]]
 brand = "brain"

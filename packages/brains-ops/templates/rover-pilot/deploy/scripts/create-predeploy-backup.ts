@@ -905,6 +905,44 @@ export function predeployBackupNotices(stderr: string): string[] {
     );
 }
 
+/**
+ * Before a deploy, a fresh online backup of the brain's homeserver, when one
+ * runs beside it: a SIGUSR2 makes Tuwunel back its database up into
+ * `<dir>/backup`, beside the configuration that holds its secrets, and the
+ * step waits until the new backup is there. Refuses the deploy when none
+ * appears, as the rest of the predeploy backup does.
+ */
+export function renderHomeserverBackupStep(
+  options: { dir?: string; waitSeconds?: number } = {},
+): string {
+  const dir = options.dir ?? "/opt/brain-matrix";
+  const waitSeconds = options.waitSeconds ?? 120;
+  return `homeserver="\${SERVICE_NAME}-matrix"
+if docker ps --filter "name=^\${homeserver}$" --format '{{.Names}}' | grep -qx "$homeserver"; then
+  # Tuwunel keeps a set number of backups and numbers each one, so a new
+  # backup shows as a higher id rather than as one more file.
+  latest_homeserver_backup() {
+    find "${dir}/backup/meta" -maxdepth 1 -type f -printf '%f\\n' 2>/dev/null | grep -E '^[0-9]+$' | sort -n | tail -n 1 || true
+  }
+  before="$(latest_homeserver_backup)"
+  before="\${before:-0}"
+  docker kill --signal USR2 "$homeserver" >/dev/null
+  after="$before"
+  for attempt in $(seq 1 ${waitSeconds}); do
+    after="$(latest_homeserver_backup)"
+    after="\${after:-0}"
+    [ "$after" -gt "$before" ] && break
+    sleep 1
+  done
+  if [ "$after" -le "$before" ]; then
+    echo "pre-deploy snapshot: the homeserver's backup did not appear in ${dir}/backup" >&2
+    exit 1
+  fi
+  echo "pre-deploy snapshot: homeserver backed up in ${dir}/backup"
+fi
+`;
+}
+
 export function renderPredeployBackupRemoteScript(options?: {
   captureProgramBase64?: string;
 }): string {
@@ -954,6 +992,7 @@ if [ "$status" != running ] || [ "$health" != healthy ]; then
   exit 1
 fi
 
+${renderHomeserverBackupStep()}
 docker exec "$container" bun -e '
 ${renderPredeployReadinessProgram()}'
 

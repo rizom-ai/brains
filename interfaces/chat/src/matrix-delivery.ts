@@ -24,7 +24,8 @@ export interface MatrixDeliveryOptions {
   baseUrl: string;
   /** The bot's full Matrix user id. */
   userId: string;
-  password: string;
+  /** The bot's password, or how to ask for it when delivery first logs in. */
+  password: string | (() => Promise<string>);
   fetch?: MatrixFetch;
 }
 
@@ -60,7 +61,7 @@ export class MatrixDelivery {
   private readonly baseUrl: string;
   private readonly userId: string;
   private readonly localpart: string;
-  private readonly password: string;
+  private readonly password: string | (() => Promise<string>);
   private readonly fetch: MatrixFetch;
   private accessToken: string | undefined;
 
@@ -126,7 +127,10 @@ export class MatrixDelivery {
         body: JSON.stringify({
           type: "m.login.password",
           identifier: { type: "m.id.user", user: this.localpart },
-          password: this.password,
+          password:
+            typeof this.password === "string"
+              ? this.password
+              : await this.password(),
           device_id: DELIVERY_DEVICE_ID,
           initial_device_display_name: "Brain delivery",
         }),
@@ -206,4 +210,40 @@ async function errorCode(response: Response): Promise<string | undefined> {
     ),
   );
   return parsed.success ? parsed.data.errcode : undefined;
+}
+
+/**
+ * Whether the bot can log in to its homeserver right now, checked on one
+ * fixed device. The chat app is started only after this succeeds: the Chat
+ * SDK keeps its first initialization, so an adapter that failed to log in
+ * while the homeserver was still starting would stay failed.
+ */
+export async function checkMatrixLogin(options: {
+  baseUrl: string;
+  userId: string;
+  password: string;
+  fetch?: MatrixFetch | undefined;
+}): Promise<void> {
+  const response = await (options.fetch ?? fetch)(
+    `${options.baseUrl.replace(/\/+$/, "")}/_matrix/client/v3/login`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        type: "m.login.password",
+        identifier: {
+          type: "m.id.user",
+          user: options.userId.slice(1).split(":")[0] ?? "",
+        },
+        password: options.password,
+        device_id: "brain-readiness",
+        initial_device_display_name: "Brain readiness check",
+      }),
+    },
+  );
+  if (!response.ok) {
+    throw new Error(
+      `The Matrix bot cannot log in yet: ${(await errorCode(response)) ?? response.status}`,
+    );
+  }
 }

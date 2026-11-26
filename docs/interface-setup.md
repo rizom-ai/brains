@@ -266,7 +266,7 @@ Slack requires the configured app scopes for mentions, channel/DM history, users
 
 ### Matrix adapter
 
-The chat interface talks on Matrix as the brain's bot, through any homeserver. Set the homeserver's client API URL and the bot's account:
+The chat interface talks on Matrix as the brain's bot. On someone else's homeserver, set its client API URL and the bot's account:
 
 ```bash
 MATRIX_BASE_URL=https://brain.example.com
@@ -274,7 +274,7 @@ MATRIX_USER_ID=@_brain:brain.example.com
 MATRIX_PASSWORD=...
 ```
 
-The bot logs in with its password once and keeps its session and sync position in runtime state, so a restart resumes rather than logging in again. Matrix shows no cards: approvals arrive as text and are answered by typing yes or no. The bot joins a direct invite while `allowDMs` is on, and an invite to a room only from a peer brain's bot whose domain this brain trusts at `trusted`.
+With the brain's own homeserver (below), leave `MATRIX_PASSWORD` out: the brain provides it. The bot logs in with its password once and keeps its session and sync position in runtime state, so a restart resumes rather than logging in again. Matrix shows no cards: approvals arrive as text and are answered by typing yes or no. The bot joins a direct invite while `allowDMs` is on, and an invite to a room only from a peer brain's bot whose domain this brain trusts at `trusted`.
 
 The `matrix` channel delivers on its own: invitations and notifications to a `matrix:` recipient open or reuse the bot's direct room with that person. A notification default can name a Matrix user:
 
@@ -288,13 +288,14 @@ plugins:
 
 ### The brain's own homeserver
 
-The `matrix` bundle adds the `matrix-server` plugin, which fronts a [Tuwunel](https://github.com/matrix-construct/tuwunel) homeserver at the brain's own domain. The brain forwards `/_matrix` and `/_tuwunel` to it and serves `/.well-known/matrix/server` and `/.well-known/matrix/client`, so federation and clients find the homeserver at the brain's domain. When the brain is ready, the plugin registers the bot with the homeserver's registration token, the only way registration is open, and registers the homeserver as the OAuth client people sign in through.
+The `matrix` bundle adds the `matrix-server` plugin, which fronts a [Tuwunel](https://github.com/matrix-construct/tuwunel) homeserver at the brain's own domain. The brain forwards `/_matrix` and `/_tuwunel` to it and serves `/.well-known/matrix/server` and `/.well-known/matrix/client`, so federation and clients find the homeserver at the brain's domain. Nobody sets a Matrix secret. The brain writes the homeserver's configuration into a directory they share: on its first start with fresh secrets, and afterwards keeping the ones that file holds. That file, next to the homeserver's database, is the only place the secrets live, so a backup or a restore takes them together. When the brain is ready, the plugin registers the bot with the registration token, the only way registration is open, and registers the homeserver as the OAuth client people sign in through. The chat interface asks the plugin for the bot's password.
+
+In a deploy, adding the `matrix` bundle to brain.yaml is the whole setup. The deploy runs Tuwunel as a Kamal accessory on `/opt/brain-matrix`, which the brain mounts too, and sets the values below from the brain's domain. On the first deploy the homeserver restarts until the brain has written its configuration, then starts on it. Later deploys restart the homeserver only when the brain has written it a new configuration, such as after a domain change. Before each deploy, the predeploy backup takes an online backup of the homeserver into `/opt/brain-matrix/backup`.
 
 ```bash
 MATRIX_SERVER_NAME=brain.example.com
-MATRIX_HOMESERVER_URL=http://brain-matrix:8008   # where the brain reaches the homeserver
-MATRIX_REGISTRATION_TOKEN=...
-MATRIX_OIDC_CLIENT_SECRET=...                    # at least 32 characters
+MATRIX_HOMESERVER_URL=http://brain-matrix:6167   # where the brain reaches the homeserver
+MATRIX_DATA_DIR=/app/matrix                      # the directory the brain shares with it
 # MATRIX_PUBLIC_URL defaults to https://<MATRIX_SERVER_NAME>
 ```
 

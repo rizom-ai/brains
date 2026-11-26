@@ -537,3 +537,8 @@ export {
   reasoningEffortSchema,
   type ReasoningEffort,
 } from "./reasoning-effort";
+export {
+  matrixBotCredentialsContract,
+  matrixBotCredentialsSchema,
+  type MatrixBotCredentials,
+} from "./matrix";
