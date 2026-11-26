@@ -1,6 +1,6 @@
 {
   "name": "@rizom/site-thefourth",
-  "version": "0.2.0-alpha.15",
+  "version": "0.2.0-alpha.16",
   "description": "The Fourth — a story in four acts on a paper stage, for the brand consultancy in Taipei",
   "type": "module",
   "exports": {
@@ -27,6 +27,7 @@
   "devDependencies": {
     "@brains/build-tools": "workspace:*",
     "@brains/eslint-config": "workspace:*",
+    "@brains/site-composition": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.4.0",
     "@types/react": "^19.2.17",

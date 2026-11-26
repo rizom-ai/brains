@@ -12,6 +12,27 @@ import { formsCSS } from "./forms";
 import { chineseCSS, chineseFontScript } from "./languages";
 import { TheFourthLayout } from "./layout";
 import { keyholeScript, motionCSS, sparkScript } from "./motion";
+import {
+  aboutRoute,
+  cast,
+  foldScript,
+  hero,
+  mission,
+  offStage,
+} from "./pages/about";
+import { intro, nextStep } from "./pages/common";
+import {
+  benefits,
+  howCase,
+  howRoute,
+  method,
+  pattern,
+  story,
+} from "./pages/how";
+import { pagesCSS } from "./pages/pages-css";
+import { brandTest, contact, paths, steps, talkRoute } from "./pages/talk";
+import { loop, note, services, whatRoute } from "./pages/what";
+import { whoRoute, worlds } from "./pages/who";
 import { siteCSS } from "./styles";
 
 /**
@@ -27,6 +48,38 @@ const homeSections = sectionGroup("home", {
   "act-four": actFour,
   crossroads,
   epilogue,
+});
+
+/** What every inner page can open and close with. */
+const pageSections = sectionGroup("page", {
+  intro,
+  "next-step": nextStep,
+});
+
+const whatSections = sectionGroup("what", { services, loop, note });
+
+const whoSections = sectionGroup("who", { worlds });
+
+const howSections = sectionGroup("how", {
+  case: howCase,
+  story,
+  pattern,
+  method,
+  benefits,
+});
+
+const aboutSections = sectionGroup("about", {
+  hero,
+  mission,
+  cast,
+  "off-stage": offStage,
+});
+
+const talkSections = sectionGroup("talk", {
+  paths,
+  steps,
+  "brand-test": brandTest,
+  contact,
 });
 
 export const theFourthSite: SiteDefinition = defineSite({
@@ -53,8 +106,21 @@ export const theFourthSite: SiteDefinition = defineSite({
         { id: "epilogue", template: "home:epilogue" },
       ],
     },
+    whatRoute,
+    whoRoute,
+    howRoute,
+    aboutRoute,
+    talkRoute,
   ],
-  sections: [homeSections],
+  sections: [
+    homeSections,
+    pageSections,
+    whatSections,
+    whoSections,
+    howSections,
+    aboutSections,
+    talkSections,
+  ],
   content: {
     home: {
       cover: coverContent,
@@ -74,9 +140,16 @@ export const theFourthSite: SiteDefinition = defineSite({
     actFourCSS +
     finaleCSS +
     motionCSS +
+    pagesCSS +
     formsCSS +
     chineseCSS,
-  headScripts: [chineseFontScript, spellScript, sparkScript, keyholeScript],
+  headScripts: [
+    chineseFontScript,
+    spellScript,
+    sparkScript,
+    keyholeScript,
+    foldScript,
+  ],
 });
 
 export default theFourthSite;

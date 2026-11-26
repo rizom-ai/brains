@@ -67,7 +67,9 @@ const SITE_LINKS: Record<RizomSite, { label: string; href: string }[]> = {
     { label: "GitHub ↗", href: "https://github.com/rizom-ai" },
   ],
   work: [
-    { label: "Rizom Work", href: "/" },
+    { label: "For hubs", href: "/#hubs" },
+    { label: "For teams", href: "/#teams" },
+    { label: "Partners", href: "/#partners" },
     { label: "Talk to us", href: "/contact" },
   ],
   foundation: [
@@ -75,7 +77,7 @@ const SITE_LINKS: Record<RizomSite, { label: string; href: string }[]> = {
     { label: "Members' writing", href: "/#writing" },
     { label: "Events", href: "/#events" },
     { label: "Founding supporters", href: "/support" },
-    { label: "The board and ANBI", href: "/#board" },
+    { label: "The board", href: "/#board" },
   ],
 };
 

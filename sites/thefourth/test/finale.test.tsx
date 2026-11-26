@@ -86,63 +86,22 @@ describe("the epilogue", () => {
     );
   });
 
-  test("introduces the team: each guide's name, bio and areas of expertise", () => {
+  test("leads to the guides' own page instead of introducing them here", () => {
     const html = renderSection("epilogue");
-    expect(html).toMatch(
-      /<article class="tf-member[^"]*">[^]*<h3 class="tf-member__name">Samantha Shao<\/h3><p class="tf-member__bio">Samantha Shao is co-founder of The Fourth, where she leads brand strategy and client partnerships/,
-    );
-    expect(html).toMatch(
-      /<h3 class="tf-member__name">Becca Chen<\/h3><p class="tf-member__bio">Becca Chen is co-founder and CEO of The Fourth/,
-    );
     expect(html).toContain(
-      '<span class="tf-eyebrow tf-member__label">Areas of expertise</span>',
+      '<a class="tf-link" href="/about">Meet the guides →</a>',
     );
-    for (const area of [
-      "Strategic Communications",
-      "CSR/ESG Communications",
-      "Short-form video and content strategy",
-      "Video production",
-    ]) {
-      expect(html).toContain(`<li class="tf-member__tag">${area}</li>`);
-    }
+    expect(html).not.toContain("tf-member");
   });
 
-  test("leaves the bio and the tags out for a guide who has none", () => {
+  test("still reads copy saved while the guides stood on the homepage", () => {
     const html = renderSection("epilogue", {
       ...fallback("epilogue"),
-      guides: [{ name: "Samantha Shao" }],
+      more: undefined,
+      expertiseLabel: "Areas of expertise",
+      guides: [{ name: "Samantha Shao", bio: "Sam leads brand strategy." }],
     });
-    expect(html).toContain('<h3 class="tf-member__name">Samantha Shao</h3>');
-    expect(html).not.toContain("tf-member__bio");
-    expect(html).not.toContain("Areas of expertise");
-  });
-
-  test("shows the guides under an arch and in a circle, when the brain has their portraits", () => {
-    expect(renderSection("epilogue")).not.toContain("<img");
-    const html = renderSection("epilogue", {
-      ...fallback("epilogue"),
-      guides: [
-        {
-          name: "Samantha Shao",
-          photo: "![Samantha Shao](entity://image/samantha-shao)",
-        },
-        {
-          name: "Becca Chen",
-          photo: "![Becca Chen](entity://image/becca-chen)",
-        },
-      ],
-    });
-    expect(html).toContain('src="/images/samantha-shao.webp"');
-    expect(html).toContain('alt="Becca Chen"');
-    expect(html).toMatch(
-      /tf-member__portrait tf-member__portrait--arch[^]*Samantha Shao<\/h3>[^]*tf-member__portrait tf-member__portrait--circle[^]*Becca Chen<\/h3>/,
-    );
-  });
-
-  test("ends the story without a way out: no button, no meeting, no address", () => {
-    const html = renderSection("epilogue");
-    expect(html).not.toContain("<a ");
-    expect(html).not.toContain("Start your fourth act");
-    expect(html).not.toContain("Meet us");
+    expect(html).toContain('href="/about"');
+    expect(html).not.toContain("Sam leads brand strategy.");
   });
 });

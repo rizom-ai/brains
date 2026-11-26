@@ -39,9 +39,9 @@ describe("Act I, the hero", () => {
     expect(html).not.toContain("tf-key-tag__thread");
   });
 
-  test("points down to how it works as its one way on", () => {
+  test("leads on to what The Fourth does as its one way on", () => {
     const html = renderSection("act-one");
-    expect(html).toContain('href="#guide">How it works ↓</a>');
+    expect(html).toContain('href="/what">How it works →</a>');
     expect(html).not.toContain("Start with a diagnosis");
     expect(html.match(/<a /g)?.length).toBe(1);
   });
@@ -106,9 +106,9 @@ describe("Act II, the curse of jargon", () => {
     expect(html).toContain("Try another ↻");
   });
 
-  test("offers to unlock the visitor's own, by email", () => {
+  test("offers to unlock the visitor's own, on the page for talking", () => {
     expect(renderSection("act-two")).toContain(
-      'href="mailto:nihao.fourth@gmail.com">Unlock yours →</a>',
+      'href="/work-with-us">Unlock yours →</a>',
     );
   });
 

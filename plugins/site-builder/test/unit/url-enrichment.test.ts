@@ -3,6 +3,7 @@ import { createMockServicePluginContext } from "@brains/plugins/test";
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import {
   collectAllImageIds,
+  collectFallbackImageIds,
   enrichWithUrls,
 } from "../../src/lib/content-enrichment";
 import { createSiteBuilderServices } from "../test-helpers";
@@ -108,6 +109,36 @@ describe("SiteBuilder - URL Enrichment", () => {
     expect(await collectAllImageIds(mockContext.entityService, logger)).toEqual(
       ["sam-x-becca"],
     );
+  });
+
+  it("prepares the images a section's fallback copy names, before the brain saves its own", () => {
+    expect(
+      collectFallbackImageIds([
+        {
+          sections: [
+            {
+              content: {
+                guides: [
+                  { photo: "![Sam](entity://image/samantha-shao)" },
+                  { photo: "" },
+                ],
+                text: "No photo here.",
+              },
+            },
+            {
+              content:
+                "![Wall](entity://image/offstage-team) and ![x](https://example.com/x.png)",
+            },
+            {},
+          ],
+        },
+        {
+          sections: [
+            { content: { photo: "![Sam](entity://image/samantha-shao)" } },
+          ],
+        },
+      ]).sort(),
+    ).toEqual(["offstage-team", "samantha-shao"]);
   });
 
   it("scans a large type a page at a time", async () => {

@@ -1,9 +1,14 @@
 import { ImageBuildService } from "@brains/site-engine";
-import { collectAllImageIds } from "./content-enrichment";
+import {
+  collectAllImageIds,
+  collectFallbackImageIds,
+} from "./content-enrichment";
 import type { BuildPipelineContext } from "./build-pipeline-context";
 
 export interface PrepareSiteImagesOptions {
   pipelineContext: BuildPipelineContext;
+  /** The routes being built, whose fallback copy may name images too. */
+  routes: Parameters<typeof collectFallbackImageIds>[0];
   sharedImagesDir: string;
   signal: AbortSignal;
 }
@@ -18,10 +23,15 @@ export async function prepareSiteImages(
     options.sharedImagesDir,
   );
 
-  const imageIds = await collectAllImageIds(
-    options.pipelineContext.services.entityService,
-    options.pipelineContext.logger,
-  );
+  const imageIds = [
+    ...new Set([
+      ...(await collectAllImageIds(
+        options.pipelineContext.services.entityService,
+        options.pipelineContext.logger,
+      )),
+      ...collectFallbackImageIds(options.routes),
+    ]),
+  ];
   options.signal.throwIfAborted();
 
   if (imageIds.length > 0) {

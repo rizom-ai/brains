@@ -31,7 +31,7 @@ Until it is in Obsidian's community directory: download the `rizom-brain` artifa
 
 ## Publishing
 
-Obsidian reads a community plugin from its own public repository. `public/README.md`, `manifest.json`, `versions.json` and the license are that repository's root (`bun scripts/public-repo.ts` assembles them), and the built plugin goes into a release there, tagged with the manifest's version. The "Obsidian plugin release" workflow does both when started by hand, once the repository variable `OBSIDIAN_PLUGIN_REPO` and the secret `OBSIDIAN_PLUGIN_RELEASE_TOKEN` exist. To release, raise `version` in `manifest.json` (and add it to `versions.json` when `minAppVersion` changes), merge, and start the workflow.
+Obsidian reads a community plugin from its own public repository, `rizom-ai/obsidian-rizom-brain`. `public/README.md`, `manifest.json`, `versions.json` and the license are that repository's root (`bun scripts/public-repo.ts` assembles them), and the built plugin goes into a release there, tagged with the manifest's version. That repository's "Release" workflow does both when started by hand: it checks this repository out, runs this package's tests, builds, and publishes with its own permissions, so no token is kept anywhere. It has a dry run that lists what it would publish. The plugin has its own version line (Obsidian takes only `x.y.z`), apart from this repository's shared version; the public README says which brain version it needs. To release, raise `version` in `manifest.json` (and add it to `versions.json` when `minAppVersion` changes), merge, and start that workflow.
 
 ## Connect
 
