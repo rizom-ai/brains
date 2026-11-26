@@ -67,6 +67,8 @@ describe("what is published as the plugin's repository", () => {
 
     // What a person must know before installing.
     expect(readme).toContain("your brain's address");
+    // Which brain it works with: the first with the sync endpoints.
+    expect(readme).toMatch(/version \d+\.\d+\.\d+(-alpha\.\d+)? or later/);
     expect(readme).toContain("app password");
     expect(readme).toContain("data.json");
     expect(readme).toContain("No telemetry");
