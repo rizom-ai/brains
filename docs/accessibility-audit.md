@@ -1,6 +1,6 @@
 # Accessibility audit
 
-This report records what the axe audit checked on the surfaces people use on a live brain, what it found and what was fixed. It is not a conformance claim: axe checks part of WCAG automatically, and the manual pass (screen-reader announcements, focus order, dialog isolation, the contrast cases axe cannot decide) is tracked in [studio-ux-improvements.md](./plans/studio-ux-improvements.md).
+This report records what the axe audit checked on the surfaces people use on a live brain, what it found and what was fixed. It is not a conformance claim: axe checks part of WCAG automatically, and the manual pass (screen-reader announcements, focus order, dialog isolation, the contrast cases axe cannot decide) is tracked in [studio-ux-overhaul.md](./plans/studio-ux-overhaul.md).
 
 ## Standard
 

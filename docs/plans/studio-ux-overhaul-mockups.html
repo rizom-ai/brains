@@ -1,0 +1,3650 @@
+<!doctype html>
+<html lang="en" data-theme="paper">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Studio overhaul — mockups</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..800,30..100;1,9..144,300..800,30..100&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap"
+    />
+    <style>
+      :root {
+        --paper: #f4ede0;
+        --paper-soft: #faf4e6;
+        --paper-muted: #ebe2cb;
+        --paper-deep: #e3d9bf;
+        --ink: #18132a;
+        --ink-muted: #443c54;
+        --ink-subtle: #756c80;
+        --rule: #ddd2c4;
+        --accent: #b8410c;
+        --accent-soft: color-mix(in srgb, #b8410c 11%, transparent);
+        --brain: #4b2a63;
+        --brain-soft: color-mix(in srgb, #4b2a63 9%, transparent);
+        --ok: #2f6b4a;
+        --ok-soft: color-mix(in srgb, #2f6b4a 12%, transparent);
+        --err: #a3261d;
+        --err-soft: color-mix(in srgb, #a3261d 10%, transparent);
+        --on-accent: #fff8ee;
+        --shadow: 0 18px 50px -24px rgb(24 19 42 / 0.35);
+        --display: "Fraunces", "Times New Roman", serif;
+        --ui: "IBM Plex Sans", system-ui, sans-serif;
+        --mono: "JetBrains Mono", ui-monospace, monospace;
+      }
+      [data-theme="night"] {
+        --paper: #0a0819;
+        --paper-soft: #14112b;
+        --paper-muted: #110e24;
+        --paper-deep: #1b1638;
+        --ink: #faf4e6;
+        --ink-muted: rgb(251 247 239 / 0.72);
+        --ink-subtle: rgb(251 247 239 / 0.48);
+        --rule: rgb(255 255 255 / 0.11);
+        --accent: #ff8b3d;
+        --accent-soft: color-mix(in srgb, #ff8b3d 14%, transparent);
+        --brain: #a99fe0;
+        --brain-soft: color-mix(in srgb, #8c82c8 16%, transparent);
+        --ok: #6fcf97;
+        --ok-soft: color-mix(in srgb, #6fcf97 13%, transparent);
+        --err: #ff7a6b;
+        --err-soft: color-mix(in srgb, #ff7a6b 13%, transparent);
+        --on-accent: #0a0819;
+        --shadow: 0 24px 60px -20px rgb(0 0 0 / 0.7);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font: 15px/1.55 var(--ui);
+        -webkit-font-smoothing: antialiased;
+      }
+      button {
+        font: inherit;
+        color: inherit;
+      }
+      :focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+      svg.i {
+        width: 18px;
+        height: 18px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.6;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        flex: none;
+      }
+
+      /* ---------- review page ---------- */
+      .review-head {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        display: flex;
+        gap: 24px;
+        align-items: center;
+        padding: 14px 32px;
+        background: color-mix(in srgb, var(--paper) 92%, transparent);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid var(--rule);
+      }
+      .review-head strong {
+        font: 600 15px var(--ui);
+        flex: none;
+        white-space: nowrap;
+      }
+      .review-index {
+        display: flex;
+        gap: 4px;
+        flex-wrap: wrap;
+        flex: 1;
+      }
+      .review-index a {
+        color: var(--ink-muted);
+        text-decoration: none;
+        padding: 5px 10px;
+        border-radius: 999px;
+        font-size: 13.5px;
+      }
+      .review-index a:hover {
+        background: var(--paper-muted);
+        color: var(--ink);
+      }
+      .seg {
+        display: inline-flex;
+        border: 1px solid var(--rule);
+        border-radius: 999px;
+        padding: 2px;
+        gap: 2px;
+      }
+      .seg button {
+        border: 0;
+        background: none;
+        padding: 4px 12px;
+        border-radius: 999px;
+        font-size: 13px;
+        color: var(--ink-muted);
+        cursor: pointer;
+      }
+      .seg button[aria-pressed="true"] {
+        background: var(--ink);
+        color: var(--paper);
+      }
+      .intro {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 56px 32px 8px;
+      }
+      .intro h1 {
+        font: 520 46px/1.05 var(--display);
+        letter-spacing: -0.02em;
+        margin: 0 0 16px;
+        font-variation-settings: "SOFT" 60;
+      }
+      .intro p {
+        max-width: 68ch;
+        color: var(--ink-muted);
+        margin: 0 0 10px;
+        font-size: 16.5px;
+      }
+      .screen {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 64px 32px 24px;
+        scroll-margin-top: 60px;
+      }
+      .screen-caption {
+        display: grid;
+        grid-template-columns: minmax(0, 340px) minmax(0, 1fr);
+        gap: 40px;
+        margin-bottom: 24px;
+      }
+      .screen-caption h2 {
+        font: 520 30px/1.15 var(--display);
+        letter-spacing: -0.015em;
+        margin: 0 0 6px;
+      }
+      .screen-caption .replaces {
+        color: var(--ink-subtle);
+        font-size: 14px;
+        margin: 0;
+      }
+      .screen-caption ul {
+        margin: 4px 0 0;
+        padding-left: 18px;
+        color: var(--ink-muted);
+        columns: 2;
+        column-gap: 40px;
+      }
+      .screen-caption li {
+        margin-bottom: 6px;
+        break-inside: avoid;
+      }
+      .stage {
+        position: relative;
+        width: 100%;
+        height: calc(800px * var(--s, 1));
+      }
+      .stage > .app {
+        position: absolute;
+        left: 0;
+        top: 0;
+        transform: scale(var(--s, 1));
+        transform-origin: top left;
+      }
+      .phones {
+        display: flex;
+        gap: 28px;
+        flex-wrap: wrap;
+        align-items: flex-start;
+      }
+      .phone-wrap {
+        width: calc(390px * 0.78);
+        height: calc(844px * 0.78);
+        position: relative;
+      }
+      .phone-wrap > .phone {
+        position: absolute;
+        transform: scale(0.78);
+        transform-origin: top left;
+      }
+      .phone-wrap + p,
+      .phone-label {
+        font-size: 13.5px;
+        color: var(--ink-subtle);
+        margin: 10px 0 0;
+        max-width: calc(390px * 0.78);
+      }
+      @media (max-width: 860px) {
+        .screen-caption {
+          grid-template-columns: 1fr;
+          gap: 12px;
+        }
+        .screen-caption ul {
+          columns: 1;
+        }
+        .review-index {
+          display: none;
+        }
+        .intro h1 {
+          font-size: 34px;
+        }
+        .screen,
+        .intro {
+          padding-inline: 16px;
+        }
+      }
+
+      /* ---------- app frame ---------- */
+      .app {
+        width: 1280px;
+        height: 800px;
+        display: flex;
+        overflow: hidden;
+        border-radius: 14px;
+        border: 1px solid var(--rule);
+        background: var(--paper);
+        box-shadow: var(--shadow);
+        position: relative;
+      }
+      .side {
+        width: 248px;
+        flex: none;
+        background: var(--paper-muted);
+        border-right: 1px solid var(--rule);
+        display: flex;
+        flex-direction: column;
+        padding: 16px 12px;
+        gap: 14px;
+      }
+      .brainid {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 2px 6px;
+      }
+      .mark {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        border: 1.5px solid var(--accent);
+        color: var(--accent);
+        display: grid;
+        place-items: center;
+        font: 560 15px var(--display);
+        flex: none;
+      }
+      .brainid b {
+        display: block;
+        font-weight: 600;
+        font-size: 14px;
+        line-height: 1.2;
+      }
+      .brainid small {
+        color: var(--ink-subtle);
+        font-size: 12px;
+      }
+      .side-actions {
+        display: flex;
+        gap: 6px;
+      }
+      .finder {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        height: 36px;
+        padding: 0 10px;
+        border-radius: 9px;
+        background: var(--paper-soft);
+        border: 1px solid var(--rule);
+        color: var(--ink-subtle);
+        font-size: 13.5px;
+      }
+      .finder kbd,
+      kbd {
+        margin-left: auto;
+        font: 500 11px var(--mono);
+        color: var(--ink-subtle);
+        border: 1px solid var(--rule);
+        border-radius: 5px;
+        padding: 1px 5px;
+      }
+      .newbtn {
+        width: 36px;
+        height: 36px;
+        border-radius: 9px;
+        border: 0;
+        background: var(--accent);
+        color: var(--on-accent);
+        display: grid;
+        place-items: center;
+      }
+      .nav {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+      }
+      .nav a {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        height: 34px;
+        padding: 0 8px;
+        border-radius: 8px;
+        color: var(--ink-muted);
+        text-decoration: none;
+        font-size: 14px;
+      }
+      .nav a.on {
+        background: var(--paper-soft);
+        color: var(--ink);
+        font-weight: 600;
+        box-shadow: 0 1px 0 var(--rule);
+      }
+      .nav .sub {
+        height: 30px;
+        padding-left: 36px;
+        font-size: 13.5px;
+      }
+      .nav .count {
+        margin-left: auto;
+        font-size: 12px;
+        color: var(--ink-subtle);
+        font-variant-numeric: tabular-nums;
+      }
+      .nav .more {
+        color: var(--ink-subtle);
+      }
+      .side-foot {
+        margin-top: auto;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 6px 0;
+        border-top: 1px solid var(--rule);
+        font-size: 13px;
+        color: var(--ink-muted);
+      }
+      .avatar {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: var(--paper-deep);
+        display: grid;
+        place-items: center;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--ink);
+        flex: none;
+      }
+
+      /* lights */
+      .light {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--ink-subtle);
+        flex: none;
+        display: inline-block;
+      }
+      .light.accent {
+        background: var(--accent);
+        box-shadow: 0 0 0 4px var(--accent-soft);
+      }
+      .light.brain {
+        background: var(--brain);
+        box-shadow: 0 0 0 4px var(--brain-soft);
+      }
+      .light.ok {
+        background: var(--ok);
+        box-shadow: 0 0 0 4px var(--ok-soft);
+      }
+      .light.err {
+        background: var(--err);
+        box-shadow: 0 0 0 4px var(--err-soft);
+        animation: breathe 2.6s ease-in-out infinite;
+      }
+      .light.hollow {
+        background: transparent;
+        border: 1.5px solid var(--ink-subtle);
+      }
+      @keyframes breathe {
+        50% {
+          box-shadow: 0 0 0 7px var(--err-soft);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .light.err {
+          animation: none;
+        }
+      }
+
+      /* rail (collapsed sidebar) */
+      .rail {
+        width: 60px;
+        flex: none;
+        background: var(--paper-muted);
+        border-right: 1px solid var(--rule);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 16px 0;
+        gap: 6px;
+      }
+      .rail .mark {
+        margin-bottom: 10px;
+      }
+      .rail a {
+        width: 38px;
+        height: 38px;
+        border-radius: 9px;
+        display: grid;
+        place-items: center;
+        color: var(--ink-muted);
+        position: relative;
+      }
+      .rail a.on {
+        background: var(--paper-soft);
+        color: var(--ink);
+        box-shadow: 0 1px 0 var(--rule);
+      }
+      .rail a .light {
+        position: absolute;
+        top: 7px;
+        right: 7px;
+        width: 6px;
+        height: 6px;
+      }
+
+      /* buttons */
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        height: 34px;
+        padding: 0 14px;
+        border-radius: 999px;
+        border: 1px solid var(--rule);
+        background: var(--paper-soft);
+        font-size: 13.5px;
+        font-weight: 500;
+        color: var(--ink);
+        white-space: nowrap;
+      }
+      .btn.primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: var(--on-accent);
+      }
+      .btn.quiet {
+        background: none;
+        border-color: transparent;
+        color: var(--ink-muted);
+      }
+      .btn.brain {
+        color: var(--brain);
+        border-color: color-mix(in srgb, var(--brain) 35%, transparent);
+        background: var(--brain-soft);
+      }
+      .btn.sm {
+        height: 28px;
+        padding: 0 11px;
+        font-size: 12.5px;
+      }
+      .iconbtn {
+        width: 34px;
+        height: 34px;
+        border-radius: 9px;
+        border: 1px solid transparent;
+        background: none;
+        display: grid;
+        place-items: center;
+        color: var(--ink-muted);
+      }
+      .iconbtn.on {
+        background: var(--paper-muted);
+        color: var(--ink);
+        border-color: var(--rule);
+      }
+
+      .main {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        position: relative;
+      }
+      .pad {
+        padding: 36px 48px;
+      }
+      .crumb {
+        font-size: 13px;
+        color: var(--ink-subtle);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      h3.page {
+        font: 520 40px/1.05 var(--display);
+        letter-spacing: -0.02em;
+        margin: 0;
+        font-variation-settings: "SOFT" 50;
+      }
+      .sectionh {
+        font: 600 14px var(--ui);
+        margin: 0 0 12px;
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+      }
+      .sectionh span {
+        font-weight: 400;
+        color: var(--ink-subtle);
+        font-size: 13px;
+      }
+      .muted {
+        color: var(--ink-subtle);
+      }
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        height: 22px;
+        padding: 0 9px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 500;
+        border: 1px solid var(--rule);
+        color: var(--ink-muted);
+        white-space: nowrap;
+      }
+      .chip.draft {
+        color: var(--accent);
+        border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+        background: var(--accent-soft);
+      }
+      .chip.pub {
+        color: var(--ok);
+        border-color: color-mix(in srgb, var(--ok) 35%, transparent);
+        background: var(--ok-soft);
+      }
+      .chip.fail {
+        color: var(--err);
+        border-color: color-mix(in srgb, var(--err) 35%, transparent);
+        background: var(--err-soft);
+      }
+      .chip.queue {
+        color: var(--brain);
+        border-color: color-mix(in srgb, var(--brain) 35%, transparent);
+        background: var(--brain-soft);
+      }
+      .path {
+        font: 12px var(--mono);
+        color: var(--ink-subtle);
+      }
+      .dest {
+        display: inline-grid;
+        place-items: center;
+        width: 20px;
+        height: 20px;
+        border-radius: 5px;
+        border: 1px solid var(--rule);
+        font: 600 10px var(--ui);
+        color: var(--ink-muted);
+      }
+
+      /* ---------- Home ---------- */
+      .today {
+        padding: 40px 56px 0;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+      }
+      .today .date {
+        font-size: 13.5px;
+        color: var(--ink-subtle);
+      }
+      .today .lede {
+        font: 440 34px/1.2 var(--display);
+        letter-spacing: -0.015em;
+        margin: 8px 0 24px;
+        max-width: 24ch;
+        font-variation-settings: "SOFT" 80;
+      }
+      .composer {
+        border: 1px solid var(--rule);
+        background: var(--paper-soft);
+        border-radius: 16px;
+        padding: 16px 18px 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        max-width: 860px;
+      }
+      .composer .ph {
+        font: 400 18px var(--display);
+        color: var(--ink-subtle);
+        font-style: italic;
+      }
+      .composer .row {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .composer .row .hint {
+        margin-left: auto;
+        font-size: 12px;
+        color: var(--ink-subtle);
+      }
+      .today-grid {
+        display: grid;
+        grid-template-columns: 1.25fr 1fr;
+        gap: 48px;
+        margin-top: 34px;
+      }
+      .need {
+        display: grid;
+        grid-template-columns: 14px 1fr auto;
+        gap: 4px 14px;
+        align-items: start;
+        padding: 14px 0;
+        border-top: 1px solid var(--rule);
+      }
+      .need .light {
+        margin-top: 7px;
+      }
+      .need b {
+        font-weight: 600;
+        font-size: 15px;
+        display: block;
+      }
+      .need p {
+        margin: 2px 0 0;
+        color: var(--ink-muted);
+        font-size: 13.5px;
+        max-width: 52ch;
+      }
+      .need .acts {
+        display: flex;
+        gap: 6px;
+        align-self: center;
+      }
+      .cont {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .card {
+        border: 1px solid var(--rule);
+        border-radius: 12px;
+        padding: 14px 16px;
+        background: var(--paper-soft);
+      }
+      .card .t {
+        font: 500 18px/1.25 var(--display);
+        margin: 4px 0 4px;
+      }
+      .card .m {
+        font-size: 12.5px;
+        color: var(--ink-subtle);
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+      .published {
+        margin-top: 26px;
+      }
+      .pubrow {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 9px 0;
+        border-top: 1px solid var(--rule);
+        font-size: 14px;
+      }
+      .pubrow .t {
+        font-family: var(--display);
+        font-size: 16px;
+        flex: 1;
+      }
+      .statusline {
+        margin-top: auto;
+        padding: 14px 0 18px;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        font-size: 13px;
+        color: var(--ink-subtle);
+        border-top: 1px solid var(--rule);
+      }
+      .statusline a {
+        color: var(--ink-muted);
+        margin-left: auto;
+      }
+
+      /* ---------- editor ---------- */
+      .ed {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
+      .edbar {
+        height: 60px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 0 16px 0 24px;
+        border-bottom: 1px solid var(--rule);
+      }
+      .edbar .back {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--ink-muted);
+        font-size: 13.5px;
+      }
+      .lights {
+        display: flex;
+        align-items: center;
+        gap: 0;
+        margin: 0 auto;
+        font-size: 12.5px;
+        color: var(--ink-subtle);
+      }
+      .lights .step {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+      }
+      .lights .step.now {
+        color: var(--ink);
+        font-weight: 600;
+      }
+      .lights .wire {
+        width: 44px;
+        height: 1px;
+        background: var(--rule);
+        margin: 0 10px;
+      }
+      .saved {
+        font-size: 12.5px;
+        color: var(--ink-subtle);
+        margin-right: 4px;
+      }
+      .edbody {
+        flex: 1;
+        display: flex;
+        min-height: 0;
+      }
+      .manuscript {
+        flex: 1;
+        overflow: hidden;
+        padding: 52px 0 0;
+        position: relative;
+      }
+      .ms {
+        width: 640px;
+        margin: 0 auto;
+      }
+      .ms .kind {
+        font-size: 13px;
+        color: var(--ink-subtle);
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+      .ms h4 {
+        font: 520 44px/1.08 var(--display);
+        letter-spacing: -0.02em;
+        margin: 0 0 26px;
+        font-variation-settings: "SOFT" 40;
+      }
+      .ms h4.empty {
+        color: var(--ink-subtle);
+        font-style: italic;
+        font-weight: 400;
+      }
+      .ms p {
+        font: 400 18.5px/1.72 var(--display);
+        font-variation-settings:
+          "opsz" 14,
+          "SOFT" 30;
+        margin: 0 0 18px;
+        color: var(--ink);
+      }
+      .ms h5 {
+        font: 560 25px/1.25 var(--display);
+        margin: 30px 0 12px;
+        position: relative;
+      }
+      .ms h5::before {
+        content: "##";
+        position: absolute;
+        left: -40px;
+        top: 4px;
+        font: 400 14px var(--mono);
+        color: var(--ink-subtle);
+        opacity: 0.6;
+      }
+      .ms blockquote {
+        margin: 0 0 18px;
+        padding-left: 18px;
+        border-left: 2px solid var(--accent);
+        font: italic 400 18.5px/1.6 var(--display);
+        color: var(--ink-muted);
+      }
+      .ms .caret {
+        display: inline-block;
+        width: 2px;
+        height: 1.1em;
+        background: var(--accent);
+        vertical-align: -0.15em;
+        margin-left: 1px;
+      }
+      .ms .link {
+        color: var(--accent);
+        text-decoration: underline;
+        text-decoration-thickness: 1px;
+        text-underline-offset: 3px;
+      }
+      .ms .ph {
+        color: var(--ink-subtle);
+        font-style: italic;
+      }
+      .wordcount {
+        position: absolute;
+        bottom: 14px;
+        right: 22px;
+        font: 11.5px var(--mono);
+        color: var(--ink-subtle);
+      }
+      .fade {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 90px;
+        background: linear-gradient(transparent, var(--paper));
+        pointer-events: none;
+      }
+
+      .inspector {
+        width: 330px;
+        flex: none;
+        border-left: 1px solid var(--rule);
+        background: var(--paper-soft);
+        overflow: hidden;
+        padding: 20px 22px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+      .ig h6 {
+        font: 600 13.5px var(--ui);
+        margin: 0 0 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .field {
+        margin-bottom: 12px;
+      }
+      .field label {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12.5px;
+        color: var(--ink-muted);
+        margin-bottom: 5px;
+      }
+      .input {
+        min-height: 36px;
+        border: 1px solid var(--rule);
+        border-radius: 8px;
+        background: var(--paper);
+        padding: 7px 10px;
+        font-size: 13.5px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+      .input.need {
+        border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+        min-height: 62px;
+        align-items: flex-start;
+        color: var(--ink-subtle);
+        display: block;
+        padding-top: 8px;
+      }
+      .req {
+        color: var(--accent);
+        font-size: 12px;
+      }
+      .tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        background: var(--paper-muted);
+        border-radius: 6px;
+        padding: 2px 8px;
+        font-size: 12.5px;
+      }
+      .toggle {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 13.5px;
+        padding: 5px 0;
+      }
+      .sw {
+        width: 30px;
+        height: 18px;
+        border-radius: 999px;
+        background: var(--accent);
+        position: relative;
+        flex: none;
+      }
+      .sw::after {
+        content: "";
+        position: absolute;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: var(--on-accent);
+        top: 2px;
+        right: 2px;
+      }
+      .sw.off {
+        background: var(--rule);
+      }
+      .sw.off::after {
+        right: auto;
+        left: 2px;
+      }
+      .cover-empty {
+        height: 74px;
+        border: 1.5px dashed color-mix(in srgb, var(--accent) 55%, transparent);
+        border-radius: 10px;
+        display: grid;
+        place-items: center;
+        font-size: 13px;
+        color: var(--accent);
+      }
+      .disclose {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13.5px;
+        color: var(--ink-muted);
+        padding: 10px 0;
+        border-top: 1px solid var(--rule);
+      }
+      .disclose .path {
+        margin-left: auto;
+      }
+
+      /* chat dock */
+      .dock {
+        width: 400px;
+        flex: none;
+        border-left: 1px solid var(--rule);
+        background: var(--paper-soft);
+        display: flex;
+        flex-direction: column;
+      }
+      .dock-head {
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--rule);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .dock-head b {
+        font-size: 14px;
+      }
+      .ctx {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: var(--brain);
+        background: var(--brain-soft);
+        border-radius: 999px;
+        padding: 2px 10px;
+      }
+      .thread {
+        flex: 1;
+        padding: 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+        overflow: hidden;
+      }
+      .msg-you {
+        align-self: flex-end;
+        background: var(--paper-muted);
+        border-radius: 14px 14px 4px 14px;
+        padding: 10px 14px;
+        font-size: 14px;
+        max-width: 88%;
+      }
+      .msg-brain {
+        font-size: 14px;
+        color: var(--ink);
+      }
+      .msg-brain .who {
+        font-size: 12px;
+        color: var(--brain);
+        font-weight: 600;
+        margin-bottom: 6px;
+        display: flex;
+        gap: 6px;
+        align-items: center;
+      }
+      .msg-brain p {
+        margin: 0 0 10px;
+      }
+      .proposal {
+        border: 1px solid color-mix(in srgb, var(--brain) 30%, transparent);
+        border-radius: 12px;
+        padding: 12px 14px;
+        background: var(--paper);
+        margin: 4px 0 10px;
+      }
+      .proposal small {
+        font-size: 12px;
+        color: var(--ink-subtle);
+        display: block;
+        margin-bottom: 4px;
+      }
+      .proposal q {
+        font: 400 15.5px/1.5 var(--display);
+        display: block;
+        quotes: none;
+      }
+      .proposal .row {
+        display: flex;
+        gap: 6px;
+        margin-top: 10px;
+      }
+      .ent {
+        color: var(--ink);
+        text-decoration: none;
+        border-bottom: 1px solid
+          color-mix(in srgb, var(--accent) 60%, transparent);
+        font-weight: 500;
+      }
+      .sources {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+      .dock-compose {
+        margin: 0 14px 14px;
+        border: 1px solid var(--rule);
+        border-radius: 12px;
+        background: var(--paper);
+        padding: 10px 12px;
+        font-size: 14px;
+        color: var(--ink-subtle);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      /* ---------- list ---------- */
+      .listhead {
+        display: flex;
+        align-items: flex-end;
+        gap: 14px;
+      }
+      .listhead .n {
+        color: var(--ink-subtle);
+        font-size: 14px;
+        margin-bottom: 6px;
+      }
+      .listhead .btn {
+        margin-left: auto;
+      }
+      .filters {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        margin: 22px 0 6px;
+      }
+      .filters .search {
+        width: 280px;
+        height: 34px;
+        border: 1px solid var(--rule);
+        border-radius: 999px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0 12px;
+        color: var(--ink-subtle);
+        font-size: 13.5px;
+        background: var(--paper-soft);
+      }
+      .filters .sort {
+        margin-left: auto;
+        font-size: 13px;
+        color: var(--ink-muted);
+        display: flex;
+        gap: 6px;
+        align-items: center;
+      }
+      .lrow {
+        display: grid;
+        grid-template-columns: 112px 1fr auto;
+        gap: 20px;
+        align-items: center;
+        padding: 16px 0;
+        border-bottom: 1px solid var(--rule);
+        color: inherit;
+        text-decoration: none;
+      }
+      .lrow.hover {
+        background: linear-gradient(90deg, var(--paper-soft), transparent 85%);
+        margin-inline: -14px;
+        padding-inline: 14px;
+        border-radius: 10px;
+      }
+      .thumb {
+        width: 112px;
+        height: 72px;
+        border-radius: 8px;
+        overflow: hidden;
+        background: var(--paper-deep);
+        position: relative;
+      }
+      .thumb svg {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+      .thumb.none {
+        display: grid;
+        place-items: center;
+        color: var(--accent);
+        border: 1.5px dashed color-mix(in srgb, var(--accent) 45%, transparent);
+        background: none;
+        font-size: 12px;
+      }
+      .lrow .t {
+        font: 500 21px/1.25 var(--display);
+        margin: 0 0 4px;
+        letter-spacing: -0.005em;
+      }
+      .lrow .x {
+        color: var(--ink-muted);
+        font-size: 14px;
+        margin: 0 0 8px;
+        max-width: 70ch;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .lrow .meta {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        font-size: 12.5px;
+        color: var(--ink-subtle);
+      }
+      .lrow .when {
+        text-align: right;
+        font-size: 13px;
+        color: var(--ink-muted);
+      }
+      .lrow .when small {
+        display: block;
+        color: var(--ink-subtle);
+        font-size: 12px;
+      }
+      .urlhint {
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        font: 11.5px var(--mono);
+        background: var(--paper-deep);
+        color: var(--ink-muted);
+        padding: 4px 10px;
+        border-top-right-radius: 6px;
+      }
+
+      /* ---------- palette ---------- */
+      .scrim {
+        position: absolute;
+        inset: 0;
+        background: color-mix(in srgb, var(--paper) 55%, transparent);
+        backdrop-filter: blur(3px);
+        z-index: 5;
+      }
+      .palette {
+        position: absolute;
+        z-index: 6;
+        left: 50%;
+        top: 92px;
+        transform: translateX(-50%);
+        width: 620px;
+        background: var(--paper-soft);
+        border: 1px solid var(--rule);
+        border-radius: 16px;
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+      .palette .q {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 16px 18px;
+        border-bottom: 1px solid var(--rule);
+        font-size: 17px;
+      }
+      .palette .q .caret {
+        width: 1.5px;
+        height: 20px;
+        background: var(--accent);
+      }
+      .pgroup {
+        padding: 8px 8px 4px;
+      }
+      .pgroup > span {
+        display: block;
+        font-size: 12px;
+        color: var(--ink-subtle);
+        padding: 4px 10px 6px;
+      }
+      .pitem {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 8px 10px;
+        border-radius: 9px;
+        font-size: 14px;
+      }
+      .pitem.on {
+        background: var(--accent-soft);
+      }
+      .pitem .k {
+        margin-left: auto;
+        font-size: 12px;
+        color: var(--ink-subtle);
+      }
+      .pitem .ty {
+        font-size: 12px;
+        color: var(--ink-subtle);
+      }
+      .pfoot {
+        display: flex;
+        gap: 16px;
+        padding: 10px 18px;
+        border-top: 1px solid var(--rule);
+        font-size: 12px;
+        color: var(--ink-subtle);
+      }
+
+      /* ---------- publish board ---------- */
+      .tabs {
+        display: flex;
+        gap: 22px;
+        border-bottom: 1px solid var(--rule);
+        margin: 18px 0 20px;
+        font-size: 14px;
+        color: var(--ink-muted);
+      }
+      .tabs span {
+        padding: 8px 0;
+      }
+      .tabs .on {
+        color: var(--ink);
+        font-weight: 600;
+        box-shadow: inset 0 -2px 0 var(--accent);
+      }
+      .sitecard {
+        display: grid;
+        grid-template-columns: 250px 1fr auto;
+        gap: 24px;
+        align-items: center;
+        border: 1px solid var(--rule);
+        border-radius: 14px;
+        padding: 14px;
+        background: var(--paper-soft);
+      }
+      .minisite {
+        height: 140px;
+        border-radius: 8px;
+        overflow: hidden;
+        border: 1px solid var(--rule);
+        background: #f6efe2;
+        padding: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+      }
+      .minisite i {
+        display: block;
+        height: 6px;
+        border-radius: 3px;
+        background: #d7ccb9;
+      }
+      .minisite .hero {
+        height: 30px;
+        width: 70%;
+        background: #1f1a33;
+        border-radius: 3px;
+        margin: 6px 0 4px;
+      }
+      .minisite .cols {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 6px;
+        flex: 1;
+      }
+      .minisite .cols b {
+        border-radius: 4px;
+        background: #e6dcc8;
+      }
+      .minisite .cols b:first-child {
+        background: #c96a35;
+      }
+      .sitecard h6 {
+        font: 500 21px/1.25 var(--display);
+        margin: 0 0 6px;
+      }
+      .sitecard ul {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        font-size: 13.5px;
+        color: var(--ink-muted);
+      }
+      .sitecard li {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        padding: 2px 0;
+      }
+      .sitecard .acts {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        align-self: start;
+      }
+      .board {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 14px;
+        margin-top: 22px;
+        position: relative;
+      }
+      .board::before {
+        content: "";
+        position: absolute;
+        top: 12px;
+        left: 6px;
+        right: 6px;
+        height: 1px;
+        background: var(--rule);
+      }
+      .col h6 {
+        font: 600 13.5px var(--ui);
+        margin: 0 0 12px;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        position: relative;
+        background: var(--paper);
+        width: max-content;
+        padding-right: 10px;
+      }
+      .col h6 span {
+        color: var(--ink-subtle);
+        font-weight: 400;
+      }
+      .bcard {
+        border: 1px solid var(--rule);
+        border-radius: 11px;
+        padding: 11px 13px;
+        background: var(--paper-soft);
+        margin-bottom: 9px;
+      }
+      .bcard .t {
+        font: 500 15.5px/1.3 var(--display);
+        margin: 4px 0 8px;
+      }
+      .bcard .m {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: var(--ink-subtle);
+      }
+      .bcard .m .dest {
+        width: 18px;
+        height: 18px;
+      }
+      .bcard.fail {
+        border-color: color-mix(in srgb, var(--err) 45%, transparent);
+      }
+      .bcard .why {
+        font-size: 12.5px;
+        color: var(--err);
+        margin: -2px 0 8px;
+      }
+      .bcard .ty {
+        font-size: 11.5px;
+        color: var(--ink-subtle);
+      }
+
+      /* ---------- action board ---------- */
+      .kanban {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 14px;
+        margin-top: 20px;
+      }
+      .kcol {
+        background: var(--paper-muted);
+        border-radius: 14px;
+        padding: 12px;
+        min-height: 520px;
+      }
+      .kcol h6 {
+        font: 600 13.5px var(--ui);
+        margin: 2px 4px 12px;
+        display: flex;
+        gap: 8px;
+        align-items: baseline;
+      }
+      .kcol h6 span {
+        color: var(--ink-subtle);
+        font-weight: 400;
+      }
+      .kcard {
+        background: var(--paper-soft);
+        border: 1px solid var(--rule);
+        border-radius: 11px;
+        padding: 11px 13px;
+        margin-bottom: 9px;
+      }
+      .kcard .t {
+        font: 500 15.5px/1.3 var(--display);
+        margin: 0 0 8px;
+      }
+      .kcard .src {
+        font-size: 12px;
+        color: var(--ink-subtle);
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+      .kcard .foot {
+        white-space: nowrap;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        font-size: 12px;
+        color: var(--ink-subtle);
+      }
+      .kcard .foot .avatar {
+        width: 22px;
+        height: 22px;
+        font-size: 9.5px;
+        margin-left: auto;
+      }
+      .kcard .note {
+        font-size: 12.5px;
+        color: var(--ink-muted);
+        border-left: 2px solid var(--err);
+        padding-left: 8px;
+        margin: 0 0 8px;
+      }
+      .kcard.lift {
+        box-shadow: var(--shadow);
+        border-color: color-mix(in srgb, var(--accent) 40%, var(--rule));
+      }
+      .kcard .moves {
+        display: flex;
+        gap: 6px;
+        margin-top: 10px;
+      }
+      .kadd {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        font-size: 13px;
+        color: var(--ink-subtle);
+        padding: 6px 4px;
+      }
+      .supplied {
+        display: grid;
+        grid-template-columns: max-content 1fr;
+        gap: 4px 16px;
+        margin: 16px 0 0;
+        font-size: 13.5px;
+        color: var(--ink-muted);
+        max-width: 900px;
+      }
+      .supplied dt {
+        font-weight: 600;
+        color: var(--ink);
+      }
+      .supplied dd {
+        margin: 0;
+      }
+
+      /* ---------- phone ---------- */
+      .phone {
+        width: 390px;
+        height: 844px;
+        border-radius: 34px;
+        border: 1px solid var(--rule);
+        background: var(--paper);
+        overflow: hidden;
+        box-shadow: var(--shadow);
+        display: flex;
+        flex-direction: column;
+        position: relative;
+      }
+      .ptop {
+        height: 56px;
+        flex: none;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 0 14px;
+        border-bottom: 1px solid var(--rule);
+        margin-top: 18px;
+      }
+      .ptop .title {
+        font-weight: 600;
+        font-size: 15px;
+        flex: 1;
+      }
+      .pbody {
+        flex: 1;
+        overflow: hidden;
+        padding: 20px 20px 0;
+        position: relative;
+      }
+      .ptab {
+        height: 74px;
+        flex: none;
+        display: flex;
+        justify-content: space-around;
+        align-items: flex-start;
+        padding-top: 10px;
+        border-top: 1px solid var(--rule);
+        background: var(--paper-muted);
+        font-size: 11px;
+        color: var(--ink-subtle);
+      }
+      .ptab a {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 3px;
+        position: relative;
+      }
+      .ptab a.on {
+        color: var(--accent);
+        font-weight: 600;
+      }
+      .ptab .light {
+        position: absolute;
+        top: -2px;
+        right: 2px;
+        width: 6px;
+        height: 6px;
+      }
+      .pbar {
+        flex: none;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        padding: 10px 14px 26px;
+        border-top: 1px solid var(--rule);
+        background: var(--paper-soft);
+      }
+      .sheet {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 560px;
+        background: var(--paper-soft);
+        border-radius: 22px 22px 0 0;
+        border-top: 1px solid var(--rule);
+        box-shadow: 0 -20px 50px -20px rgb(0 0 0 / 0.3);
+        padding: 10px 20px;
+        z-index: 3;
+      }
+      .sheet .grab {
+        width: 40px;
+        height: 4px;
+        border-radius: 2px;
+        background: var(--rule);
+        margin: 0 auto 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <symbol id="i-home" viewBox="0 0 24 24">
+        <path d="M4 11 12 4.5l8 6.5" />
+        <path d="M6.5 9.5V19.5h11V9.5" />
+        <path d="M10.5 19.5v-5h3v5" />
+      </symbol>
+      <symbol id="i-library" viewBox="0 0 24 24">
+        <path d="M5 4.5h3.5v15H5zM10.5 4.5H14v15h-3.5z" />
+        <path d="m16 5.2 3.2-.8 2.6 14.6-3.2.8z" />
+      </symbol>
+      <symbol id="i-board" viewBox="0 0 24 24">
+        <rect x="3.5" y="4.5" width="17" height="15" rx="2" />
+        <path d="M9.5 4.5v15M15 4.5v15" />
+      </symbol>
+      <symbol id="i-write" viewBox="0 0 24 24">
+        <path d="M4 20h4L19 9l-4-4L4 16v4Z" />
+        <path d="m13.5 6.5 4 4" />
+      </symbol>
+      <symbol id="i-publish" viewBox="0 0 24 24">
+        <path d="M12 15V4M7.5 8.5 12 4l4.5 4.5" />
+        <path d="M5 14v5h14v-5" />
+      </symbol>
+      <symbol id="i-chat" viewBox="0 0 24 24">
+        <path
+          d="M5 18.5V6.5A2.5 2.5 0 0 1 7.5 4h9A2.5 2.5 0 0 1 19 6.5v7a2.5 2.5 0 0 1-2.5 2.5H9l-4 2.5Z"
+        />
+      </symbol>
+      <symbol id="i-brain" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="2.2" />
+        <circle cx="5" cy="7" r="1.6" />
+        <circle cx="19" cy="6" r="1.6" />
+        <circle cx="18" cy="18" r="1.6" />
+        <circle cx="6" cy="18" r="1.6" />
+        <path
+          d="M6.4 7.8 10.2 11M17.7 7 13.7 10.8M16.8 16.9 13.6 13.4M7.3 16.9l3.1-3.4"
+        />
+      </symbol>
+      <symbol id="i-search" viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="6" />
+        <path d="m20 20-4.5-4.5" />
+      </symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24">
+        <path d="M12 5v14M5 12h14" />
+      </symbol>
+      <symbol id="i-back" viewBox="0 0 24 24">
+        <path d="M15 5 8 12l7 7" />
+      </symbol>
+      <symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6" /></symbol>
+      <symbol id="i-right" viewBox="0 0 24 24">
+        <path d="m9 6 6 6-6 6" />
+      </symbol>
+      <symbol id="i-panel" viewBox="0 0 24 24">
+        <rect x="3.5" y="4.5" width="17" height="15" rx="2" />
+        <path d="M14.5 4.5v15" />
+      </symbol>
+      <symbol id="i-more" viewBox="0 0 24 24">
+        <circle cx="6" cy="12" r="1" />
+        <circle cx="12" cy="12" r="1" />
+        <circle cx="18" cy="12" r="1" />
+      </symbol>
+      <symbol id="i-x" viewBox="0 0 24 24">
+        <path d="M6 6l12 12M18 6 6 18" />
+      </symbol>
+      <symbol id="i-note" viewBox="0 0 24 24">
+        <path d="M6 3.5h8l4 4v13H6z" />
+        <path d="M14 3.5v4h4M9 12h6M9 15.5h4" />
+      </symbol>
+      <symbol id="i-post" viewBox="0 0 24 24">
+        <rect x="4" y="4" width="16" height="16" rx="2" />
+        <path d="M8 9h8M8 12.5h8M8 16h5" />
+      </symbol>
+      <symbol id="i-image" viewBox="0 0 24 24">
+        <rect x="3.5" y="5" width="17" height="14" rx="2" />
+        <circle cx="9" cy="10" r="1.6" />
+        <path d="m20.5 16-5-5-9 8" />
+      </symbol>
+      <symbol id="i-globe" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="8" />
+        <path
+          d="M4 12h16M12 4c2.5 2.5 2.5 13.5 0 16M12 4c-2.5 2.5-2.5 13.5 0 16"
+        />
+      </symbol>
+      <symbol id="i-sync" viewBox="0 0 24 24">
+        <path
+          d="M19 8a7.5 7.5 0 0 0-13.4-1.5M5 4v3h3M5 16a7.5 7.5 0 0 0 13.4 1.5M19 20v-3h-3"
+        />
+      </symbol>
+      <symbol id="i-sparkle" viewBox="0 0 24 24">
+        <path
+          d="M12 4c.6 4.2 2.8 6.4 7 7-4.2.6-6.4 2.8-7 7-.6-4.2-2.8-6.4-7-7 4.2-.6 6.4-2.8 7-7Z"
+        />
+      </symbol>
+      <symbol id="i-send" viewBox="0 0 24 24">
+        <path d="M12 19V5M6 11l6-6 6 6" />
+      </symbol>
+      <symbol id="i-cal" viewBox="0 0 24 24">
+        <rect x="4" y="5" width="16" height="15" rx="2" />
+        <path d="M4 10h16M9 3v4M15 3v4" />
+      </symbol>
+      <symbol id="i-person" viewBox="0 0 24 24">
+        <circle cx="12" cy="8.5" r="3.5" />
+        <path d="M5 20c1-4 4-5.5 7-5.5s6 1.5 7 5.5" />
+      </symbol>
+      <symbol id="i-inbox" viewBox="0 0 24 24">
+        <path d="M4 13.5 6.5 5h11l2.5 8.5V19H4z" />
+        <path d="M4 13.5h5l1 2h4l1-2h5" />
+      </symbol>
+      <symbol id="i-list" viewBox="0 0 24 24">
+        <path
+          d="M9 6.5h11M9 12h11M9 17.5h11M4.5 6.5h.01M4.5 12h.01M4.5 17.5h.01"
+        />
+      </symbol>
+      <symbol id="i-rows" viewBox="0 0 24 24">
+        <rect x="4" y="4.5" width="16" height="6" rx="1.5" />
+        <rect x="4" y="13.5" width="16" height="6" rx="1.5" />
+      </symbol>
+      <symbol id="contour" viewBox="0 0 112 72">
+        <rect width="112" height="72" fill="currentColor" opacity=".12" />
+        <g fill="none" stroke="currentColor" stroke-width="1" opacity=".55">
+          <path d="M-6 52c18-14 30-6 46-16s24-30 48-24 30 6 34 4" />
+          <path d="M-6 62c20-12 36-4 52-14s26-26 46-20 22 10 30 6" />
+          <path d="M-6 42c14-12 26-8 40-18S56 0 78-2s28 8 36 4" />
+          <path d="M-6 72c22-10 38-2 56-12s30-20 46-16 16 8 22 6" />
+        </g>
+        <circle cx="78" cy="22" r="3" fill="currentColor" />
+      </symbol>
+    </svg>
+
+    <header class="review-head">
+      <strong>Studio overhaul mockups</strong>
+      <nav class="review-index" aria-label="Screens">
+        <a href="#today">Home</a>
+        <a href="#board">Board</a>
+        <a href="#write">Writing</a>
+        <a href="#create">New post</a>
+        <a href="#ask">Asking while writing</a>
+        <a href="#list">Posts</a>
+        <a href="#palette">⌘K</a>
+        <a href="#publish">Publish</a>
+        <a href="#phone">On a phone</a>
+      </nav>
+      <div class="seg" role="group" aria-label="Theme">
+        <button type="button" data-theme-set="paper" aria-pressed="true">
+          Light
+        </button>
+        <button type="button" data-theme-set="night" aria-pressed="false">
+          Dark
+        </button>
+      </div>
+    </header>
+
+    <section class="intro">
+      <h1>Studio, arranged around what you come to do</h1>
+      <p>
+        These mockups go with
+        <a href="./studio-ux-overhaul.md">the overhaul plan</a>. Studio is
+        currently laid out the way the brain is built: entity types, plugin
+        workspaces, frontmatter fields. Here it is laid out around five jobs:
+        see what needs you, write, publish, ask, and tend the brain.
+      </p>
+      <p>
+        One idea runs through all of them. Publishing is a path of lights
+        (draft, queued, published), and it appears in the same form in the
+        sidebar, the editor header and the Publish board. Content comes from the
+        publishing test app; the attention items are illustrative.
+      </p>
+    </section>
+
+    <!-- ======================= TODAY ======================= -->
+    <section class="screen" id="today">
+      <div class="screen-caption">
+        <div>
+          <h2>Home</h2>
+          <p class="replaces">Replaces Overview and its event log.</p>
+        </div>
+        <ul>
+          <li>
+            A sentence says how much needs you, so a calm day reads as calm.
+          </li>
+          <li>
+            Needs you lists only actionable items, each with the verb that
+            clears it.
+          </li>
+          <li>
+            One box captures a note or asks the brain, without choosing a type
+            first.
+          </li>
+          <li>Continue brings back unfinished drafts and conversations.</li>
+          <li>
+            System health is one line; the full history moves to Brain →
+            History.
+          </li>
+          <li>
+            One sidebar with five sections replaces the rail, the leaf column
+            and the ordinals.
+          </li>
+        </ul>
+      </div>
+      <div class="stage">
+        <div class="app">
+          <aside class="side">
+            <div class="brainid">
+              <span class="mark">A</span>
+              <span><b>Alex Chen</b><small>alex.example.com</small></span>
+            </div>
+            <div class="side-actions">
+              <div class="finder">
+                <svg class="i"><use href="#i-search" /></svg>Search or do…<kbd
+                  >⌘K</kbd
+                >
+              </div>
+              <button class="newbtn" type="button" aria-label="New">
+                <svg class="i"><use href="#i-plus" /></svg>
+              </button>
+            </div>
+            <nav class="nav">
+              <a class="on"
+                ><svg class="i"><use href="#i-home" /></svg>Home<span
+                  class="count"
+                  ><span class="light accent"></span></span
+              ></a>
+              <a class="sub">Inbox<span class="count">2</span></a>
+              <a class="sub">Board<span class="count">6</span></a>
+              <a
+                ><svg class="i"><use href="#i-library" /></svg>Library</a
+              >
+              <a
+                ><svg class="i"><use href="#i-publish" /></svg>Publish<span
+                  class="count"
+                  ><span class="light err"></span></span
+              ></a>
+              <a
+                ><svg class="i"><use href="#i-chat" /></svg>Chat</a
+              >
+              <a
+                ><svg class="i"><use href="#i-brain" /></svg>Brain</a
+              >
+            </nav>
+            <div class="side-foot">
+              <span class="avatar">AC</span>Alex Chen<span
+                class="muted"
+                style="margin-left: auto"
+                >Admin</span
+              >
+            </div>
+          </aside>
+          <main class="main">
+            <div class="today">
+              <div class="date">Thursday, 26 November</div>
+              <p class="lede">
+                Three things need you, and one draft is close to done.
+              </p>
+              <div class="composer">
+                <div class="ph">Write something down, or ask your brain…</div>
+                <div class="row">
+                  <button class="btn sm" type="button">
+                    <svg class="i" style="width: 15px">
+                      <use href="#i-note" /></svg
+                    >Save as note
+                  </button>
+                  <button class="btn sm brain" type="button">
+                    <svg class="i" style="width: 15px">
+                      <use href="#i-sparkle" /></svg
+                    >Ask
+                  </button>
+                  <span class="hint">⌘↵ asks · ⇧↵ saves</span>
+                </div>
+              </div>
+              <div class="today-grid">
+                <div>
+                  <h4 class="sectionh">Needs you <span>3</span></h4>
+                  <div class="need">
+                    <span class="light err"></span>
+                    <div>
+                      <b>LinkedIn didn't take your post</b>
+                      <p>
+                        “Event sourcing, in one diagram”: LinkedIn rejected the
+                        image because it's over 5 MB.
+                      </p>
+                    </div>
+                    <div class="acts">
+                      <button class="btn sm" type="button">Replace image</button
+                      ><button class="btn sm primary" type="button">
+                        Retry
+                      </button>
+                    </div>
+                  </div>
+                  <div class="need">
+                    <span class="light brain"></span>
+                    <div>
+                      <b>2 replies in your inbox</b>
+                      <p>
+                        Comments on “Resilience Is Not Redundancy”, one asking
+                        for the source data.
+                      </p>
+                    </div>
+                    <div class="acts">
+                      <button class="btn sm" type="button">Open inbox</button>
+                    </div>
+                  </div>
+                  <div class="need">
+                    <span class="light"></span>
+                    <div>
+                      <b>Maya's invitation expires tomorrow</b>
+                      <p>She hasn't set up a passkey yet.</p>
+                    </div>
+                    <div class="acts">
+                      <button class="btn sm" type="button">Send again</button>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <h4 class="sectionh">Continue</h4>
+                  <div class="cont">
+                    <div class="card">
+                      <div class="m">
+                        <span class="chip draft">Draft</span>Post, edited 2
+                        hours ago
+                      </div>
+                      <div class="t">
+                        Urban Sensing Networks and the Data Commons
+                      </div>
+                      <div class="m">
+                        1,240 words, needs an excerpt and a cover to publish
+                      </div>
+                    </div>
+                    <div class="card">
+                      <div class="m">
+                        <svg class="i" style="width: 15px">
+                          <use href="#i-chat" /></svg
+                        >Conversation, yesterday
+                      </div>
+                      <div class="t">Outline for the City Pulse case study</div>
+                    </div>
+                  </div>
+                  <div class="published">
+                    <h4 class="sectionh">Recently published</h4>
+                    <div class="pubrow">
+                      <span class="t">Resilience Is Not Redundancy</span
+                      ><span class="dest">◐</span><span class="dest">in</span
+                      ><span class="muted">20 Nov</span>
+                    </div>
+                    <div class="pubrow">
+                      <span class="t"
+                        >Event Sourcing for Sustainability Metrics</span
+                      ><span class="dest">◐</span
+                      ><span class="muted">18 Nov</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="statusline">
+                <span class="light ok"></span>Brain running. Files synced at
+                17:03. Live site matches preview.<a>History</a>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================= BOARD ======================= -->
+    <section class="screen" id="board">
+      <div class="screen-caption">
+        <div>
+          <h2>Board, under Home</h2>
+          <p class="replaces">Shows how a plugin page finds its place.</p>
+        </div>
+        <ul>
+          <li>
+            action-board declares <code>section: "today"</code>, so its board
+            sits under Home next to Inbox. Studio has no code for it.
+          </li>
+          <li>
+            The board is a declarative block. Publish uses the same block with
+            its own columns.
+          </li>
+          <li>
+            The buttons on a card are action-board's own transitions (Start,
+            Block, Done, Reopen). Dragging runs the same actions.
+          </li>
+          <li>
+            Cards keep where the item came from: a team conversation, the inbox
+            or a chat.
+          </li>
+          <li>Blocked items also reach Home's Needs you as attention items.</li>
+        </ul>
+      </div>
+      <div class="stage">
+        <div class="app">
+          <aside class="side">
+            <div class="brainid">
+              <span class="mark">A</span>
+              <span><b>Alex Chen</b><small>alex.example.com</small></span>
+            </div>
+            <div class="side-actions">
+              <div class="finder">
+                <svg class="i"><use href="#i-search" /></svg>Search or do…<kbd
+                  >⌘K</kbd
+                >
+              </div>
+              <button class="newbtn" type="button" aria-label="New">
+                <svg class="i"><use href="#i-plus" /></svg>
+              </button>
+            </div>
+            <nav class="nav">
+              <a style="color: var(--ink); font-weight: 600"
+                ><svg class="i"><use href="#i-home" /></svg>Home<span
+                  class="count"
+                  ><span class="light accent"></span></span
+              ></a>
+              <a class="sub">Inbox<span class="count">2</span></a>
+              <a class="sub on">Board<span class="count">6</span></a>
+              <a
+                ><svg class="i"><use href="#i-library" /></svg>Library</a
+              >
+              <a
+                ><svg class="i"><use href="#i-publish" /></svg>Publish<span
+                  class="count"
+                  ><span class="light err"></span></span
+              ></a>
+              <a
+                ><svg class="i"><use href="#i-chat" /></svg>Chat</a
+              >
+              <a
+                ><svg class="i"><use href="#i-brain" /></svg>Brain</a
+              >
+            </nav>
+            <div class="side-foot">
+              <span class="avatar">AC</span>Alex Chen<span
+                class="muted"
+                style="margin-left: auto"
+                >Admin</span
+              >
+            </div>
+          </aside>
+          <main class="main">
+            <div class="pad" style="padding-top: 30px">
+              <div class="listhead">
+                <h3 class="page">Board</h3>
+                <span class="n">Action items from your conversations</span>
+                <button class="btn primary" type="button">
+                  <svg class="i" style="width: 15px"><use href="#i-plus" /></svg
+                  >Add action item
+                </button>
+              </div>
+              <div class="filters" style="margin-top: 18px">
+                <div class="seg" role="group" aria-label="Project">
+                  <button type="button" aria-pressed="true">
+                    All projects
+                  </button>
+                  <button type="button" aria-pressed="false">City Pulse</button>
+                  <button type="button" aria-pressed="false">Website</button>
+                </div>
+                <div class="sort">
+                  Everyone<svg class="i" style="width: 15px">
+                    <use href="#i-down" />
+                  </svg>
+                </div>
+              </div>
+              <div class="kanban">
+                <div class="kcol">
+                  <h6>To do <span>3</span></h6>
+                  <div class="kcard lift">
+                    <div class="t">Send Maya the sensor data export</div>
+                    <div class="src">
+                      <svg class="i" style="width: 13px">
+                        <use href="#i-chat" /></svg
+                      >From #team, 24 Nov
+                    </div>
+                    <div class="foot">
+                      <span class="tag">City Pulse</span>Due Fri<span
+                        class="avatar"
+                        >AC</span
+                      >
+                    </div>
+                    <div class="moves">
+                      <button class="btn sm" type="button">Start</button
+                      ><button class="btn sm" type="button">Block</button
+                      ><button class="btn sm" type="button">Done</button>
+                    </div>
+                  </div>
+                  <div class="kcard">
+                    <div class="t">Outline the City Pulse case study</div>
+                    <div class="src">
+                      <svg class="i" style="width: 13px">
+                        <use href="#i-sparkle" /></svg
+                      >From a chat, yesterday
+                    </div>
+                    <div class="foot">
+                      <span class="tag">City Pulse</span
+                      ><span
+                        class="avatar"
+                        style="background: none; border: 1px dashed var(--rule)"
+                        >?</span
+                      >
+                    </div>
+                  </div>
+                  <div class="kcard">
+                    <div class="t">Answer the question about source data</div>
+                    <div class="src">
+                      <svg class="i" style="width: 13px">
+                        <use href="#i-inbox" /></svg
+                      >From your inbox, today
+                    </div>
+                    <div class="foot">
+                      <span class="tag">Website</span
+                      ><span class="avatar">AC</span>
+                    </div>
+                  </div>
+                  <div class="kadd">
+                    <svg class="i" style="width: 15px">
+                      <use href="#i-plus" /></svg
+                    >Add
+                  </div>
+                </div>
+                <div class="kcol">
+                  <h6>Doing <span>2</span></h6>
+                  <div class="kcard">
+                    <div class="t">Replace the oversized LinkedIn image</div>
+                    <div class="src">
+                      <svg class="i" style="width: 13px">
+                        <use href="#i-publish" /></svg
+                      >From a failed publish, today
+                    </div>
+                    <div class="foot">
+                      <span class="tag">Website</span
+                      ><span class="avatar">AC</span>
+                    </div>
+                  </div>
+                  <div class="kcard">
+                    <div class="t">Review the About page changes</div>
+                    <div class="src">
+                      <svg class="i" style="width: 13px">
+                        <use href="#i-chat" /></svg
+                      >From #team, 25 Nov
+                    </div>
+                    <div class="foot">
+                      <span class="tag">Website</span
+                      ><span class="avatar">MV</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="kcol">
+                  <h6>Blocked <span>1</span></h6>
+                  <div class="kcard">
+                    <div class="t">Publish the air-quality dataset</div>
+                    <p class="note">
+                      Waiting for the municipality's data-sharing agreement.
+                    </p>
+                    <div class="foot">
+                      <span class="tag">City Pulse</span>Since 19 Nov<span
+                        class="avatar"
+                        >AC</span
+                      >
+                    </div>
+                  </div>
+                </div>
+                <div class="kcol">
+                  <h6>Done <span>4 this week</span></h6>
+                  <div class="kcard" style="opacity: 0.72">
+                    <div class="t">Invite Maya to the brain</div>
+                    <div class="foot">
+                      Yesterday<span class="avatar">AC</span>
+                    </div>
+                  </div>
+                  <div class="kcard" style="opacity: 0.72">
+                    <div class="t">Publish Resilience Is Not Redundancy</div>
+                    <div class="foot">20 Nov<span class="avatar">AC</span></div>
+                  </div>
+                  <div class="kadd">2 more</div>
+                </div>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+      <dl class="supplied">
+        <dt>Studio draws</dt>
+        <dd>
+          the sidebar and its sections, the page head, the board block, card
+          layout, drag and the action buttons.
+        </dd>
+        <dt>action-board supplies</dt>
+        <dd>
+          its section, the columns and their order, the cards, the project
+          filter, the move actions and the attention items for blocked work.
+        </dd>
+      </dl>
+    </section>
+
+    <!-- ======================= WRITE ======================= -->
+    <section class="screen" id="write">
+      <div class="screen-caption">
+        <div>
+          <h2>Writing</h2>
+          <p class="replaces">
+            Replaces the four-column editor and the status select.
+          </p>
+        </div>
+        <ul>
+          <li>
+            Opening an entry folds the sidebar to a rail; the manuscript gets
+            the center.
+          </li>
+          <li>
+            The title is the document heading and is edited in place. There's no
+            Title field.
+          </li>
+          <li>
+            The header shows where the post is on its path, and Publish is the
+            action that moves it.
+          </li>
+          <li>
+            Fields needed only for publishing are marked where they live, not
+            required up front.
+          </li>
+          <li>
+            Properties are an inspector that ⌘\ hides. Address and sync stay
+            folded.
+          </li>
+          <li>
+            Source shows live formatting, with heading marks in the margin;
+            Preview is one key away.
+          </li>
+        </ul>
+      </div>
+      <div class="stage">
+        <div class="app">
+          <nav class="rail" aria-label="Studio">
+            <span class="mark">A</span>
+            <a
+              ><svg class="i"><use href="#i-home" /></svg
+              ><span class="light accent"></span
+            ></a>
+            <a class="on"
+              ><svg class="i"><use href="#i-library" /></svg
+            ></a>
+            <a
+              ><svg class="i"><use href="#i-publish" /></svg
+              ><span class="light err"></span
+            ></a>
+            <a
+              ><svg class="i"><use href="#i-chat" /></svg
+            ></a>
+            <a
+              ><svg class="i"><use href="#i-brain" /></svg
+            ></a>
+          </nav>
+          <div class="ed">
+            <div class="edbar">
+              <span class="back"
+                ><svg class="i"><use href="#i-back" /></svg>Posts</span
+              >
+              <div class="lights" aria-label="Publishing path">
+                <span class="step now"
+                  ><span class="light accent"></span>Draft</span
+                ><span class="wire"></span>
+                <span class="step"
+                  ><span class="light hollow"></span>Queued</span
+                ><span class="wire"></span>
+                <span class="step"
+                  ><span class="light hollow"></span>Published</span
+                >
+              </div>
+              <span class="saved">Saved 2 min ago</span>
+              <button class="btn brain sm" type="button">
+                <svg class="i" style="width: 15px">
+                  <use href="#i-sparkle" /></svg
+                >Ask
+              </button>
+              <button class="iconbtn on" type="button" aria-label="Details">
+                <svg class="i"><use href="#i-panel" /></svg>
+              </button>
+              <button class="iconbtn" type="button" aria-label="More">
+                <svg class="i"><use href="#i-more" /></svg>
+              </button>
+              <button class="btn primary" type="button">Publish…</button>
+            </div>
+            <div class="edbody">
+              <div class="manuscript">
+                <div class="ms">
+                  <div class="kind">
+                    <svg class="i" style="width: 15px">
+                      <use href="#i-post" /></svg
+                    >Post in Urban systems
+                  </div>
+                  <h4>Urban Sensing Networks and the Data Commons</h4>
+                  <p>
+                    Cities are filling up with sensors: air quality on
+                    lampposts, footfall counters at station exits, noise meters
+                    on school roofs. Almost none of that data is shared with the
+                    people who live next to the sensors.
+                  </p>
+                  <p>
+                    The usual reason given is privacy. The real reason is that
+                    nobody designed for sharing, so the default became hoarding.
+                  </p>
+                  <h5>What a commons needs</h5>
+                  <p>
+                    A data commons is not an open-data portal. It needs three
+                    things a portal doesn't have: a
+                    <span class="link"
+                      >verifiable record of where each reading came from</span
+                    >, rules the community can change, and someone accountable
+                    for upkeep.
+                  </p>
+                  <blockquote>
+                    If residents can't trace a reading back to its sensor, they
+                    have no reason to trust the dashboard built on top of it.
+                  </blockquote>
+                  <p>
+                    The first of these is the one I've written about before, and
+                    it's the cheapest to get right<span class="caret"></span>
+                  </p>
+                </div>
+                <div class="fade"></div>
+                <span class="wordcount">1,240 words · Source</span>
+              </div>
+              <aside class="inspector" aria-label="Details">
+                <div class="ig">
+                  <h6>Publishing</h6>
+                  <div class="field">
+                    <label>Where it goes</label>
+                    <div class="toggle">
+                      <span class="sw"></span
+                      ><svg class="i" style="width: 16px">
+                        <use href="#i-globe" /></svg
+                      >Site, /posts
+                    </div>
+                    <div class="toggle">
+                      <span class="sw"></span
+                      ><span
+                        class="dest"
+                        style="width: 16px; height: 16px; font-size: 9px"
+                        >in</span
+                      >LinkedIn, as a teaser
+                    </div>
+                    <div class="toggle">
+                      <span class="sw off"></span
+                      ><svg class="i" style="width: 16px">
+                        <use href="#i-inbox" /></svg
+                      >Newsletter
+                    </div>
+                  </div>
+                </div>
+                <div class="ig">
+                  <h6>Summary</h6>
+                  <div class="field">
+                    <label
+                      >Excerpt <span class="req">Needed to publish</span></label
+                    >
+                    <div class="input need">
+                      One or two sentences for lists and link previews.
+                    </div>
+                  </div>
+                  <button class="btn sm brain" type="button">
+                    <svg class="i" style="width: 14px">
+                      <use href="#i-sparkle" /></svg
+                    >Draft from the post
+                  </button>
+                </div>
+                <div class="ig">
+                  <h6>
+                    Cover
+                    <span class="req" style="font-weight: 400"
+                      >Needed to publish</span
+                    >
+                  </h6>
+                  <div class="cover-empty">Add a cover image</div>
+                </div>
+                <div class="ig">
+                  <h6>Organize</h6>
+                  <div class="field">
+                    <label>Series</label>
+                    <div class="input">
+                      Urban systems<svg
+                        class="i"
+                        style="margin-left: auto; width: 15px"
+                      >
+                        <use href="#i-down" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div class="field">
+                    <label>Topics</label>
+                    <div class="input">
+                      <span class="tag">Sustainability data systems ×</span
+                      ><span class="tag">City Pulse ×</span>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <div class="disclose">
+                    <svg class="i" style="width: 15px">
+                      <use href="#i-right" /></svg
+                    >Address<span class="path">post/urban-sensing.md</span>
+                  </div>
+                  <div class="disclose">
+                    <svg class="i" style="width: 15px">
+                      <use href="#i-right" /></svg
+                    >Sync and history<span
+                      class="muted"
+                      style="margin-left: auto; font-size: 12.5px"
+                      >in files</span
+                    >
+                  </div>
+                </div>
+              </aside>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================= CREATE ======================= -->
+    <section class="screen" id="create">
+      <div class="screen-caption">
+        <div>
+          <h2>New post</h2>
+          <p class="replaces">
+            Replaces File name, Title and Slug asked before a word is written.
+          </p>
+        </div>
+        <ul>
+          <li>
+            A new post starts as a blank page with the cursor in the title.
+          </li>
+          <li>
+            The address comes from the title and shows as a line you can edit,
+            not a required field.
+          </li>
+          <li>
+            Status starts at Draft. Nothing else is required until you publish.
+          </li>
+          <li>
+            Save draft is always available, so the blocked Create button and
+            “Not created yet” go away.
+          </li>
+        </ul>
+      </div>
+      <div class="stage">
+        <div class="app">
+          <nav class="rail" aria-label="Studio">
+            <span class="mark">A</span>
+            <a
+              ><svg class="i"><use href="#i-home" /></svg
+              ><span class="light accent"></span
+            ></a>
+            <a class="on"
+              ><svg class="i"><use href="#i-library" /></svg
+            ></a>
+            <a
+              ><svg class="i"><use href="#i-publish" /></svg
+              ><span class="light err"></span
+            ></a>
+            <a
+              ><svg class="i"><use href="#i-chat" /></svg
+            ></a>
+            <a
+              ><svg class="i"><use href="#i-brain" /></svg
+            ></a>
+          </nav>
+          <div class="ed">
+            <div class="edbar">
+              <span class="back"
+                ><svg class="i"><use href="#i-back" /></svg>Posts</span
+              >
+              <div class="lights" aria-label="Publishing path">
+                <span class="step now"
+                  ><span class="light accent"></span>Draft</span
+                ><span class="wire"></span>
+                <span class="step"
+                  ><span class="light hollow"></span>Queued</span
+                ><span class="wire"></span>
+                <span class="step"
+                  ><span class="light hollow"></span>Published</span
+                >
+              </div>
+              <span class="saved">Not saved yet</span>
+              <button class="btn brain sm" type="button">
+                <svg class="i" style="width: 15px">
+                  <use href="#i-sparkle" /></svg
+                >Ask
+              </button>
+              <button class="iconbtn" type="button" aria-label="Details">
+                <svg class="i"><use href="#i-panel" /></svg>
+              </button>
+              <button class="btn" type="button">Save draft</button>
+            </div>
+            <div class="edbody">
+              <div class="manuscript">
+                <div class="ms">
+                  <div class="kind">
+                    <svg class="i" style="width: 15px">
+                      <use href="#i-post" /></svg
+                    >New post
+                  </div>
+                  <h4>
+                    Why sensor data needs a ledger<span class="caret"></span>
+                  </h4>
+                  <p class="ph">
+                    Start writing. ⌘J asks your brain for an outline from your
+                    notes.
+                  </p>
+                  <div
+                    class="disclose"
+                    style="margin-top: 40px; border-top: 0; padding: 0"
+                  >
+                    <span class="muted" style="font-size: 13px">Saves as</span>
+                    <span class="path" style="margin-left: 0"
+                      >post/why-sensor-data-needs-a-ledger.md</span
+                    >
+                    <a
+                      class="muted"
+                      style="font-size: 13px; text-decoration: underline"
+                      >Change</a
+                    >
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================= ASK ======================= -->
+    <section class="screen" id="ask">
+      <div class="screen-caption">
+        <div>
+          <h2>Asking while writing</h2>
+          <p class="replaces">Replaces leaving the document to use Chat.</p>
+        </div>
+        <ul>
+          <li>
+            Ask (⌘J) opens Chat beside the manuscript, already about this post.
+          </li>
+          <li>
+            Proposed text comes with Apply to excerpt, which goes through the
+            usual approval.
+          </li>
+          <li>
+            Entries the brain mentions are links, and sources are chips, not a
+            folded list.
+          </li>
+          <li>
+            Full-page Chat stays for long sessions; this panel is the same
+            conversation.
+          </li>
+        </ul>
+      </div>
+      <div class="stage">
+        <div class="app">
+          <nav class="rail" aria-label="Studio">
+            <span class="mark">A</span>
+            <a
+              ><svg class="i"><use href="#i-home" /></svg
+              ><span class="light accent"></span
+            ></a>
+            <a class="on"
+              ><svg class="i"><use href="#i-library" /></svg
+            ></a>
+            <a
+              ><svg class="i"><use href="#i-publish" /></svg
+              ><span class="light err"></span
+            ></a>
+            <a
+              ><svg class="i"><use href="#i-chat" /></svg
+            ></a>
+            <a
+              ><svg class="i"><use href="#i-brain" /></svg
+            ></a>
+          </nav>
+          <div class="ed">
+            <div class="edbar">
+              <span class="back"
+                ><svg class="i"><use href="#i-back" /></svg>Posts</span
+              >
+              <div class="lights" aria-label="Publishing path">
+                <span class="step now"
+                  ><span class="light accent"></span>Draft</span
+                ><span class="wire"></span>
+                <span class="step"
+                  ><span class="light hollow"></span>Queued</span
+                ><span class="wire"></span>
+                <span class="step"
+                  ><span class="light hollow"></span>Published</span
+                >
+              </div>
+              <span class="saved">Saved just now</span>
+              <button
+                class="btn brain sm"
+                type="button"
+                aria-pressed="true"
+                style="box-shadow: inset 0 0 0 1px var(--brain)"
+              >
+                <svg class="i" style="width: 15px">
+                  <use href="#i-sparkle" /></svg
+                >Ask
+              </button>
+              <button class="iconbtn" type="button" aria-label="Details">
+                <svg class="i"><use href="#i-panel" /></svg>
+              </button>
+              <button class="btn primary" type="button">Publish…</button>
+            </div>
+            <div class="edbody">
+              <div class="manuscript" style="padding-left: 20px">
+                <div class="ms" style="width: 600px">
+                  <div class="kind">
+                    <svg class="i" style="width: 15px">
+                      <use href="#i-post" /></svg
+                    >Post in Urban systems
+                  </div>
+                  <h4>Urban Sensing Networks and the Data Commons</h4>
+                  <p>
+                    Cities are filling up with sensors: air quality on
+                    lampposts, footfall counters at station exits, noise meters
+                    on school roofs. Almost none of that data is shared with the
+                    people who live next to the sensors.
+                  </p>
+                  <p>
+                    The usual reason given is privacy. The real reason is that
+                    nobody designed for sharing, so the default became hoarding.
+                  </p>
+                  <h5>What a commons needs</h5>
+                  <p>
+                    A data commons is not an open-data portal. It needs three
+                    things a portal doesn't have: a
+                    <span class="link"
+                      >verifiable record of where each reading came from</span
+                    >, rules the community can change, and someone accountable
+                    for upkeep.
+                  </p>
+                </div>
+                <div class="fade"></div>
+              </div>
+              <aside class="dock" aria-label="Ask">
+                <div class="dock-head">
+                  <b>Ask</b
+                  ><span class="ctx"
+                    ><svg class="i" style="width: 13px">
+                      <use href="#i-post" /></svg
+                    >About this post</span
+                  >
+                  <button
+                    class="iconbtn"
+                    type="button"
+                    style="margin-left: auto"
+                    aria-label="Close"
+                  >
+                    <svg class="i"><use href="#i-x" /></svg>
+                  </button>
+                </div>
+                <div class="thread">
+                  <div class="msg-you">
+                    Draft an excerpt, and tell me whether the argument about
+                    provenance holds up.
+                  </div>
+                  <div class="msg-brain">
+                    <div class="who">
+                      <span
+                        class="light brain"
+                        style="width: 7px; height: 7px"
+                      ></span
+                      >Your brain
+                    </div>
+                    <div class="proposal">
+                      <small>Excerpt</small>
+                      <q
+                        >Cities collect more sensor data than ever, yet
+                        residents can't trace a single reading. A commons starts
+                        with provenance, not a portal.</q
+                      >
+                      <div class="row">
+                        <button class="btn sm primary" type="button">
+                          Apply to excerpt</button
+                        ><button class="btn sm quiet" type="button">
+                          Try another
+                        </button>
+                      </div>
+                    </div>
+                    <p>
+                      The provenance argument holds, but the post asserts it
+                      without showing it. You already made the case in
+                      <a class="ent"
+                        >Event Sourcing for Sustainability Metrics</a
+                      >; linking it in “What a commons needs” would carry the
+                      point.
+                    </p>
+                    <div class="sources">
+                      <span class="chip"
+                        ><svg class="i" style="width: 13px">
+                          <use href="#i-post" /></svg
+                        >Event Sourcing for Sustainability Metrics</span
+                      ><span class="chip"
+                        ><svg class="i" style="width: 13px">
+                          <use href="#i-note" /></svg
+                        >City Pulse</span
+                      >
+                    </div>
+                  </div>
+                </div>
+                <div class="dock-compose">
+                  Ask about this post…<button
+                    class="iconbtn"
+                    type="button"
+                    style="
+                      margin-left: auto;
+                      background: var(--brain);
+                      color: var(--on-accent);
+                      width: 28px;
+                      height: 28px;
+                    "
+                    aria-label="Send"
+                  >
+                    <svg class="i" style="width: 15px">
+                      <use href="#i-send" />
+                    </svg>
+                  </button>
+                </div>
+              </aside>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================= LIST ======================= -->
+    <section class="screen" id="list">
+      <div class="screen-caption">
+        <div>
+          <h2>Posts</h2>
+          <p class="replaces">
+            Replaces numbered rows that only show title and import time.
+          </p>
+        </div>
+        <ul>
+          <li>
+            Each row shows cover, excerpt, status, series and the date that
+            matters: published, or edited for drafts.
+          </li>
+          <li>
+            Status is a filter you can see (All, Drafts, Queued, Published), not
+            one hidden in a menu.
+          </li>
+          <li>
+            Rows are links, so ⌘-click opens a new tab and you can copy the
+            address.
+          </li>
+          <li>
+            One row grammar for every type. System types like Prompts use the
+            same one.
+          </li>
+          <li>
+            Library shows the types you use; the nine empty ones live under All
+            types.
+          </li>
+        </ul>
+      </div>
+      <div class="stage">
+        <div class="app" id="list-app">
+          <aside class="side">
+            <div class="brainid">
+              <span class="mark">A</span>
+              <span><b>Alex Chen</b><small>alex.example.com</small></span>
+            </div>
+            <div class="side-actions">
+              <div class="finder">
+                <svg class="i"><use href="#i-search" /></svg>Search or do…<kbd
+                  >⌘K</kbd
+                >
+              </div>
+              <button class="newbtn" type="button" aria-label="New">
+                <svg class="i"><use href="#i-plus" /></svg>
+              </button>
+            </div>
+            <nav class="nav">
+              <a
+                ><svg class="i"><use href="#i-home" /></svg>Home<span
+                  class="count"
+                  ><span class="light accent"></span></span
+              ></a>
+              <a class="on" style="background: none; box-shadow: none"
+                ><svg class="i"><use href="#i-library" /></svg>Library</a
+              >
+              <a class="sub">Notes<span class="count">4</span></a>
+              <a class="sub on">Posts<span class="count">3</span></a>
+              <a class="sub">Social posts<span class="count">2</span></a>
+              <a class="sub">Links<span class="count">2</span></a>
+              <a class="sub">Topics<span class="count">5</span></a>
+              <a class="sub">Decks<span class="count">1</span></a>
+              <a class="sub">Projects<span class="count">1</span></a>
+              <a class="sub">Images<span class="count">2</span></a>
+              <a class="sub more">All types</a>
+              <a
+                ><svg class="i"><use href="#i-publish" /></svg>Publish<span
+                  class="count"
+                  ><span class="light err"></span></span
+              ></a>
+              <a
+                ><svg class="i"><use href="#i-chat" /></svg>Chat</a
+              >
+              <a
+                ><svg class="i"><use href="#i-brain" /></svg>Brain</a
+              >
+            </nav>
+            <div class="side-foot">
+              <span class="avatar">AC</span>Alex Chen<span
+                class="muted"
+                style="margin-left: auto"
+                >Admin</span
+              >
+            </div>
+          </aside>
+          <main class="main">
+            <div class="pad">
+              <div class="listhead">
+                <h3 class="page">Posts</h3>
+                <span class="n">3 posts</span>
+                <button class="btn primary" type="button">
+                  <svg class="i" style="width: 15px"><use href="#i-plus" /></svg
+                  >New post
+                </button>
+              </div>
+              <div class="filters">
+                <div class="seg" role="group" aria-label="Status">
+                  <button type="button" aria-pressed="true">All 3</button>
+                  <button type="button" aria-pressed="false">Drafts 1</button>
+                  <button type="button" aria-pressed="false">Queued 0</button>
+                  <button type="button" aria-pressed="false">
+                    Published 2
+                  </button>
+                </div>
+                <div class="search">
+                  <svg class="i" style="width: 16px">
+                    <use href="#i-search" /></svg
+                  >Search posts
+                </div>
+                <div class="sort">
+                  Newest first<svg class="i" style="width: 15px">
+                    <use href="#i-down" /></svg
+                  ><button
+                    class="iconbtn on"
+                    type="button"
+                    aria-label="Comfortable"
+                  >
+                    <svg class="i"><use href="#i-rows" /></svg></button
+                  ><button class="iconbtn" type="button" aria-label="Compact">
+                    <svg class="i"><use href="#i-list" /></svg>
+                  </button>
+                </div>
+              </div>
+              <a class="lrow hover">
+                <span class="thumb none">No cover</span>
+                <div>
+                  <div class="t">
+                    Urban Sensing Networks and the Data Commons
+                  </div>
+                  <p class="x muted"><i>No excerpt yet</i></p>
+                  <div class="meta">
+                    <span class="chip draft">Draft</span
+                    ><span>Urban systems</span><span>1,240 words</span>
+                  </div>
+                </div>
+                <div class="when">2 hours ago<small>edited</small></div>
+              </a>
+              <a class="lrow">
+                <span class="thumb" style="color: var(--brain)"
+                  ><svg><use href="#contour" /></svg
+                ></span>
+                <div>
+                  <div class="t">Resilience Is Not Redundancy</div>
+                  <p class="x">
+                    Adding a second copy of everything doesn't make a system
+                    resilient. Knowing how it fails does.
+                  </p>
+                  <div class="meta">
+                    <span class="chip pub">Published</span
+                    ><span>Distributed systems</span><span class="dest">◐</span
+                    ><span class="dest">in</span>
+                  </div>
+                </div>
+                <div class="when">20 Nov 2025<small>published</small></div>
+              </a>
+              <a class="lrow">
+                <span class="thumb" style="color: var(--accent)"
+                  ><svg><use href="#contour" /></svg
+                ></span>
+                <div>
+                  <div class="t">Event Sourcing for Sustainability Metrics</div>
+                  <p class="x">
+                    If you can't trace a carbon number back to its source event,
+                    the number is fiction.
+                  </p>
+                  <div class="meta">
+                    <span class="chip pub">Published</span
+                    ><span>Urban systems</span><span class="dest">◐</span>
+                  </div>
+                </div>
+                <div class="when">18 Nov 2025<small>published</small></div>
+              </a>
+            </div>
+            <span class="urlhint"
+              >alex.example.com/studio/write/post/urban-sensing</span
+            >
+          </main>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================= PALETTE ======================= -->
+    <section class="screen" id="palette">
+      <div class="screen-caption">
+        <div>
+          <h2>⌘K does things</h2>
+          <p class="replaces">
+            Replaces a search box that couldn't run commands.
+          </p>
+        </div>
+        <ul>
+          <li>
+            Actions come first, including ones about what's open: publish this,
+            ask about this.
+          </li>
+          <li>
+            Workspace actions (Build preview, Sync files, Invite someone) appear
+            here as well as on their pages.
+          </li>
+          <li>
+            Content results use titles, and recent items show before you type.
+          </li>
+          <li>The “studio” pill on every row is gone.</li>
+        </ul>
+      </div>
+      <div class="stage">
+        <div class="app" id="palette-app">
+          <nav class="rail" aria-label="Studio">
+            <span class="mark">A</span>
+            <a
+              ><svg class="i"><use href="#i-home" /></svg
+              ><span class="light accent"></span
+            ></a>
+            <a class="on"
+              ><svg class="i"><use href="#i-library" /></svg
+            ></a>
+            <a
+              ><svg class="i"><use href="#i-publish" /></svg
+              ><span class="light err"></span
+            ></a>
+            <a
+              ><svg class="i"><use href="#i-chat" /></svg
+            ></a>
+            <a
+              ><svg class="i"><use href="#i-brain" /></svg
+            ></a>
+          </nav>
+          <div class="ed">
+            <div class="edbar">
+              <span class="back"
+                ><svg class="i"><use href="#i-back" /></svg>Posts</span
+              >
+              <div class="lights">
+                <span class="step now"
+                  ><span class="light accent"></span>Draft</span
+                ><span class="wire"></span
+                ><span class="step"
+                  ><span class="light hollow"></span>Queued</span
+                ><span class="wire"></span
+                ><span class="step"
+                  ><span class="light hollow"></span>Published</span
+                >
+              </div>
+              <button class="btn primary" type="button">Publish…</button>
+            </div>
+            <div class="manuscript">
+              <div class="ms">
+                <h4>Urban Sensing Networks and the Data Commons</h4>
+                <p>
+                  Cities are filling up with sensors: air quality on lampposts,
+                  footfall counters at station exits, noise meters on school
+                  roofs.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div class="scrim"></div>
+          <div class="palette" role="dialog" aria-label="Search or do">
+            <div class="q">
+              <svg class="i"><use href="#i-search" /></svg
+              ><span class="caret"></span
+              ><span class="muted">Search or do…</span><kbd>esc</kbd>
+            </div>
+            <div class="pgroup">
+              <span>For this post</span>
+              <div class="pitem on">
+                <svg class="i"><use href="#i-publish" /></svg>Publish “Urban
+                Sensing Networks…”<span class="k">needs excerpt, cover</span>
+              </div>
+              <div class="pitem">
+                <svg class="i"><use href="#i-sparkle" /></svg>Ask about this
+                post<kbd style="margin-left: auto">⌘J</kbd>
+              </div>
+            </div>
+            <div class="pgroup">
+              <span>Actions</span>
+              <div class="pitem">
+                <svg class="i"><use href="#i-post" /></svg>New post
+              </div>
+              <div class="pitem">
+                <svg class="i"><use href="#i-note" /></svg>New note<kbd
+                  style="margin-left: auto"
+                  >⌘⇧N</kbd
+                >
+              </div>
+              <div class="pitem">
+                <svg class="i"><use href="#i-globe" /></svg>Build site preview
+              </div>
+              <div class="pitem">
+                <svg class="i"><use href="#i-sync" /></svg>Sync files now
+              </div>
+            </div>
+            <div class="pgroup">
+              <span>Recent</span>
+              <div class="pitem">
+                <svg class="i"><use href="#i-post" /></svg>Resilience Is Not
+                Redundancy<span class="k">Post</span>
+              </div>
+              <div class="pitem">
+                <svg class="i"><use href="#i-chat" /></svg>Outline for the City
+                Pulse case study<span class="k">Conversation</span>
+              </div>
+            </div>
+            <div class="pfoot">
+              <span>↑↓ move</span><span>↵ run</span
+              ><span>⌘↵ open in new tab</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================= PUBLISH ======================= -->
+    <section class="screen" id="publish">
+      <div class="screen-caption">
+        <div>
+          <h2>Publish</h2>
+          <p class="replaces">
+            Replaces “Nothing is in flight”, and Site's build diagnostics as its
+            main content.
+          </p>
+        </div>
+        <ul>
+          <li>
+            The board is the same path of lights: drafts, queued, published,
+            failed.
+          </li>
+          <li>
+            Moving a card, or using its button, queues or schedules it. Failures
+            say why and how to fix them.
+          </li>
+          <li>
+            The site leads with what it looks like and what changed since the
+            live version.
+          </li>
+          <li>
+            Build settings and logs move under Technical. Content sync moves to
+            Brain.
+          </li>
+        </ul>
+      </div>
+      <div class="stage">
+        <div class="app">
+          <aside class="side">
+            <div class="brainid">
+              <span class="mark">A</span>
+              <span><b>Alex Chen</b><small>alex.example.com</small></span>
+            </div>
+            <div class="side-actions">
+              <div class="finder">
+                <svg class="i"><use href="#i-search" /></svg>Search or do…<kbd
+                  >⌘K</kbd
+                >
+              </div>
+              <button class="newbtn" type="button" aria-label="New">
+                <svg class="i"><use href="#i-plus" /></svg>
+              </button>
+            </div>
+            <nav class="nav">
+              <a
+                ><svg class="i"><use href="#i-home" /></svg>Home<span
+                  class="count"
+                  ><span class="light accent"></span></span
+              ></a>
+              <a
+                ><svg class="i"><use href="#i-library" /></svg>Library</a
+              >
+              <a class="on" style="background: none; box-shadow: none"
+                ><svg class="i"><use href="#i-publish" /></svg>Publish<span
+                  class="count"
+                  ><span class="light err"></span></span
+              ></a>
+              <a class="sub on">Board</a>
+              <a class="sub">Site</a>
+              <a class="sub">Channels</a>
+              <a class="sub">Traffic</a>
+              <a
+                ><svg class="i"><use href="#i-chat" /></svg>Chat</a
+              >
+              <a
+                ><svg class="i"><use href="#i-brain" /></svg>Brain</a
+              >
+            </nav>
+            <div class="side-foot">
+              <span class="avatar">AC</span>Alex Chen<span
+                class="muted"
+                style="margin-left: auto"
+                >Admin</span
+              >
+            </div>
+          </aside>
+          <main class="main">
+            <div class="pad" style="padding-top: 30px">
+              <div class="listhead">
+                <h3 class="page">Publish</h3>
+                <button class="btn" type="button">
+                  <svg class="i" style="width: 15px"><use href="#i-cal" /></svg
+                  >Calendar
+                </button>
+              </div>
+              <div class="sitecard" style="margin-top: 20px">
+                <div class="minisite">
+                  <i style="width: 40%"></i>
+                  <div class="hero"></div>
+                  <i style="width: 85%"></i><i style="width: 60%"></i>
+                  <div class="cols"><b></b><b></b><b></b></div>
+                </div>
+                <div>
+                  <h6>The preview is 2 changes ahead of your live site</h6>
+                  <ul>
+                    <li>
+                      <span
+                        class="light accent"
+                        style="width: 6px; height: 6px"
+                      ></span
+                      >Edited: About page
+                    </li>
+                    <li>
+                      <span
+                        class="light accent"
+                        style="width: 6px; height: 6px"
+                      ></span
+                      >New: link to Green Software Foundation
+                    </li>
+                  </ul>
+                  <p class="muted" style="font-size: 12.5px; margin: 8px 0 0">
+                    Preview rebuilt 4 minutes ago. Live since 18 Nov.
+                  </p>
+                </div>
+                <div class="acts">
+                  <button class="btn primary" type="button">Publish site</button
+                  ><button class="btn" type="button">Open preview</button>
+                </div>
+              </div>
+              <div class="board">
+                <div class="col">
+                  <h6>
+                    <span class="light accent" style="margin-left: 2px"></span
+                    >Drafts <span>2</span>
+                  </h6>
+                  <div class="bcard">
+                    <span class="ty">Post</span>
+                    <div class="t">
+                      Urban Sensing Networks and the Data Commons
+                    </div>
+                    <div class="m">Needs excerpt and cover</div>
+                  </div>
+                  <div class="bcard">
+                    <span class="ty">Social post</span>
+                    <div class="t">A thread on provenance</div>
+                    <div class="m"><span class="dest">in</span>Ready</div>
+                    <button
+                      class="btn sm"
+                      type="button"
+                      style="margin-top: 8px"
+                    >
+                      Queue
+                    </button>
+                  </div>
+                </div>
+                <div class="col">
+                  <h6>
+                    <span class="light brain"></span>Queued <span>1</span>
+                  </h6>
+                  <div class="bcard">
+                    <span class="ty">Newsletter</span>
+                    <div class="t">November notes</div>
+                    <div class="m">
+                      <svg class="i" style="width: 14px">
+                        <use href="#i-cal" /></svg
+                      >Fri 28 Nov, 09:00 · 41 subscribers
+                    </div>
+                  </div>
+                </div>
+                <div class="col">
+                  <h6>
+                    <span class="light ok"></span>Published <span>5</span>
+                  </h6>
+                  <div class="bcard">
+                    <span class="ty">Post</span>
+                    <div class="t">Resilience Is Not Redundancy</div>
+                    <div class="m">
+                      <span class="dest">◐</span><span class="dest">in</span>20
+                      Nov
+                    </div>
+                  </div>
+                  <div class="bcard">
+                    <span class="ty">Post</span>
+                    <div class="t">
+                      Event Sourcing for Sustainability Metrics
+                    </div>
+                    <div class="m"><span class="dest">◐</span>18 Nov</div>
+                  </div>
+                  <div
+                    class="m muted"
+                    style="font-size: 12.5px; padding: 4px 2px"
+                  >
+                    3 more this month
+                  </div>
+                </div>
+                <div class="col">
+                  <h6><span class="light err"></span>Failed <span>1</span></h6>
+                  <div class="bcard fail">
+                    <span class="ty">Social post</span>
+                    <div class="t">Event sourcing, in one diagram</div>
+                    <p class="why">
+                      LinkedIn rejected the image: it's over 5 MB.
+                    </p>
+                    <div style="display: flex; gap: 6px">
+                      <button class="btn sm" type="button">Replace image</button
+                      ><button class="btn sm primary" type="button">
+                        Retry
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================= PHONE ======================= -->
+    <section class="screen" id="phone">
+      <div class="screen-caption">
+        <div>
+          <h2>On a phone</h2>
+          <p class="replaces">
+            Replaces the Browse sheet and the Properties-first editor.
+          </p>
+        </div>
+        <ul>
+          <li>The five sections become a tab bar, with the same lights.</li>
+          <li>Home puts Needs you first instead of 4,000px further down.</li>
+          <li>
+            The editor opens on the writing. Details is a sheet you pull up when
+            you need it.
+          </li>
+          <li>Publish stays in the header, and says what's missing.</li>
+        </ul>
+      </div>
+      <div class="phones">
+        <div>
+          <div class="phone-wrap">
+            <div class="phone">
+              <div class="ptop">
+                <span
+                  class="mark"
+                  style="width: 28px; height: 28px; font-size: 13px"
+                  >A</span
+                ><span class="title">Home</span
+                ><button class="iconbtn" type="button" aria-label="Search">
+                  <svg class="i"><use href="#i-search" /></svg>
+                </button>
+              </div>
+              <div class="pbody">
+                <div
+                  class="date"
+                  style="font-size: 13px; color: var(--ink-subtle)"
+                >
+                  Thursday, 26 November
+                </div>
+                <p
+                  style="font: 440 26px/1.2 var(--display); margin: 6px 0 18px"
+                >
+                  Three things need you, and one draft is close to done.
+                </p>
+                <div class="composer" style="padding: 12px 14px">
+                  <div class="ph" style="font-size: 16px">
+                    Write something down, or ask…
+                  </div>
+                </div>
+                <div style="margin-top: 22px">
+                  <h4 class="sectionh">Needs you <span>3</span></h4>
+                  <div class="need" style="grid-template-columns: 14px 1fr">
+                    <span class="light err"></span>
+                    <div>
+                      <b>LinkedIn didn't take your post</b>
+                      <p>The image is over 5 MB.</p>
+                      <button
+                        class="btn sm primary"
+                        type="button"
+                        style="margin-top: 8px"
+                      >
+                        Retry
+                      </button>
+                    </div>
+                  </div>
+                  <div class="need" style="grid-template-columns: 14px 1fr">
+                    <span class="light brain"></span>
+                    <div>
+                      <b>2 replies in your inbox</b>
+                      <p>Comments on “Resilience Is Not Redundancy”.</p>
+                    </div>
+                  </div>
+                  <div class="need" style="grid-template-columns: 14px 1fr">
+                    <span class="light"></span>
+                    <div><b>Maya's invitation expires tomorrow</b></div>
+                  </div>
+                </div>
+              </div>
+              <nav class="ptab">
+                <a class="on"
+                  ><svg class="i"><use href="#i-home" /></svg>Home</a
+                >
+                <a
+                  ><svg class="i"><use href="#i-library" /></svg>Library</a
+                >
+                <a
+                  ><svg class="i"><use href="#i-publish" /></svg>Publish<span
+                    class="light err"
+                  ></span
+                ></a>
+                <a
+                  ><svg class="i"><use href="#i-chat" /></svg>Chat</a
+                >
+                <a
+                  ><svg class="i"><use href="#i-brain" /></svg>Brain</a
+                >
+              </nav>
+            </div>
+          </div>
+          <p class="phone-label">Home</p>
+        </div>
+        <div>
+          <div class="phone-wrap">
+            <div class="phone">
+              <div class="ptop">
+                <svg class="i"><use href="#i-back" /></svg
+                ><span
+                  class="title"
+                  style="
+                    font-weight: 400;
+                    color: var(--ink-subtle);
+                    font-size: 13.5px;
+                  "
+                  ><span
+                    class="light accent"
+                    style="width: 7px; height: 7px; margin-right: 6px"
+                  ></span
+                  >Draft, saved</span
+                ><button class="btn sm primary" type="button">Publish…</button>
+              </div>
+              <div class="pbody">
+                <div class="ms" style="width: auto">
+                  <h4 style="font-size: 30px; margin-bottom: 16px">
+                    Urban Sensing Networks and the Data Commons
+                  </h4>
+                  <p style="font-size: 17px">
+                    Cities are filling up with sensors: air quality on
+                    lampposts, footfall counters at station exits, noise meters
+                    on school roofs. Almost none of that data is shared with the
+                    people who live next to the sensors.
+                  </p>
+                  <p style="font-size: 17px">
+                    The usual reason given is privacy. The real reason is that
+                    nobody designed for sharing<span class="caret"></span>
+                  </p>
+                </div>
+              </div>
+              <div class="pbar">
+                <button class="btn sm" type="button">
+                  <svg class="i" style="width: 15px">
+                    <use href="#i-panel" /></svg
+                  >Details</button
+                ><button class="btn sm brain" type="button">
+                  <svg class="i" style="width: 15px">
+                    <use href="#i-sparkle" /></svg
+                  >Ask</button
+                ><span
+                  class="muted"
+                  style="margin-left: auto; font: 11.5px var(--mono)"
+                  >1,240 words</span
+                >
+              </div>
+            </div>
+          </div>
+          <p class="phone-label">The editor opens on the writing</p>
+        </div>
+        <div>
+          <div class="phone-wrap">
+            <div class="phone">
+              <div class="ptop">
+                <svg class="i"><use href="#i-back" /></svg
+                ><span
+                  class="title"
+                  style="
+                    font-weight: 400;
+                    color: var(--ink-subtle);
+                    font-size: 13.5px;
+                  "
+                  ><span
+                    class="light accent"
+                    style="width: 7px; height: 7px; margin-right: 6px"
+                  ></span
+                  >Draft, saved</span
+                ><button class="btn sm primary" type="button">Publish…</button>
+              </div>
+              <div class="pbody">
+                <div class="ms" style="width: auto; opacity: 0.35">
+                  <h4 style="font-size: 30px">
+                    Urban Sensing Networks and the Data Commons
+                  </h4>
+                </div>
+              </div>
+              <div class="sheet">
+                <div class="grab"></div>
+                <h4 class="sectionh" style="font-size: 16px">Details</h4>
+                <div class="field">
+                  <label
+                    >Excerpt <span class="req">Needed to publish</span></label
+                  >
+                  <div class="input need">
+                    One or two sentences for lists and link previews.
+                  </div>
+                </div>
+                <button
+                  class="btn sm brain"
+                  type="button"
+                  style="margin-bottom: 16px"
+                >
+                  <svg class="i" style="width: 14px">
+                    <use href="#i-sparkle" /></svg
+                  >Draft from the post
+                </button>
+                <div class="field">
+                  <label
+                    >Cover <span class="req">Needed to publish</span></label
+                  >
+                  <div class="cover-empty" style="height: 60px">
+                    Add a cover image
+                  </div>
+                </div>
+                <div class="field">
+                  <label>Where it goes</label>
+                  <div class="toggle"><span class="sw"></span>Site</div>
+                  <div class="toggle"><span class="sw"></span>LinkedIn</div>
+                </div>
+                <div class="disclose">
+                  <svg class="i" style="width: 15px">
+                    <use href="#i-right" /></svg
+                  >Series and topics
+                </div>
+                <div class="disclose">
+                  <svg class="i" style="width: 15px">
+                    <use href="#i-right" /></svg
+                  >Address
+                </div>
+              </div>
+            </div>
+          </div>
+          <p class="phone-label">Details pulled up</p>
+        </div>
+        <div>
+          <div class="phone-wrap">
+            <div class="phone">
+              <div class="ptop">
+                <span class="title">Posts</span
+                ><button class="iconbtn" type="button" aria-label="Search">
+                  <svg class="i"><use href="#i-search" /></svg></button
+                ><button
+                  class="newbtn"
+                  type="button"
+                  aria-label="New post"
+                  style="width: 34px; height: 34px"
+                >
+                  <svg class="i"><use href="#i-plus" /></svg>
+                </button>
+              </div>
+              <div class="pbody" style="padding-top: 14px">
+                <div class="seg" style="margin-bottom: 8px">
+                  <button type="button" aria-pressed="true">All</button
+                  ><button type="button" aria-pressed="false">Drafts 1</button
+                  ><button type="button" aria-pressed="false">
+                    Published 2
+                  </button>
+                </div>
+                <a
+                  class="lrow"
+                  style="grid-template-columns: 1fr 72px; gap: 12px"
+                >
+                  <div>
+                    <div class="t" style="font-size: 18px">
+                      Urban Sensing Networks and the Data Commons
+                    </div>
+                    <div class="meta">
+                      <span class="chip draft">Draft</span>2 hours ago
+                    </div>
+                  </div>
+                  <span
+                    class="thumb none"
+                    style="width: 72px; height: 54px; font-size: 10px"
+                    >No cover</span
+                  >
+                </a>
+                <a
+                  class="lrow"
+                  style="grid-template-columns: 1fr 72px; gap: 12px"
+                >
+                  <div>
+                    <div class="t" style="font-size: 18px">
+                      Resilience Is Not Redundancy
+                    </div>
+                    <div class="meta">
+                      <span class="chip pub">Published</span>20 Nov
+                    </div>
+                  </div>
+                  <span
+                    class="thumb"
+                    style="width: 72px; height: 54px; color: var(--brain)"
+                    ><svg><use href="#contour" /></svg
+                  ></span>
+                </a>
+                <a
+                  class="lrow"
+                  style="grid-template-columns: 1fr 72px; gap: 12px"
+                >
+                  <div>
+                    <div class="t" style="font-size: 18px">
+                      Event Sourcing for Sustainability Metrics
+                    </div>
+                    <div class="meta">
+                      <span class="chip pub">Published</span>18 Nov
+                    </div>
+                  </div>
+                  <span
+                    class="thumb"
+                    style="width: 72px; height: 54px; color: var(--accent)"
+                    ><svg><use href="#contour" /></svg
+                  ></span>
+                </a>
+              </div>
+              <nav class="ptab">
+                <a
+                  ><svg class="i"><use href="#i-home" /></svg>Home</a
+                >
+                <a class="on"
+                  ><svg class="i"><use href="#i-library" /></svg>Library</a
+                >
+                <a
+                  ><svg class="i"><use href="#i-publish" /></svg>Publish<span
+                    class="light err"
+                  ></span
+                ></a>
+                <a
+                  ><svg class="i"><use href="#i-chat" /></svg>Chat</a
+                >
+                <a
+                  ><svg class="i"><use href="#i-brain" /></svg>Brain</a
+                >
+              </nav>
+            </div>
+          </div>
+          <p class="phone-label">Posts</p>
+        </div>
+      </div>
+    </section>
+    <div style="height: 80px"></div>
+
+    <script>
+      const stages = [...document.querySelectorAll(".stage")];
+      function fit() {
+        for (const stage of stages)
+          stage.style.setProperty("--s", Math.min(1, stage.clientWidth / 1280));
+      }
+      addEventListener("resize", fit);
+      fit();
+      for (const button of document.querySelectorAll("[data-theme-set]")) {
+        button.addEventListener("click", () => {
+          document.documentElement.dataset.theme = button.dataset.themeSet;
+          for (const other of document.querySelectorAll("[data-theme-set]"))
+            other.setAttribute("aria-pressed", String(other === button));
+        });
+      }
+    </script>
+  </body>
+</html>
