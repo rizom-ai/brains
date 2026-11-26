@@ -1,5 +1,24 @@
 # @brains/site-professional
 
+## 0.2.0-alpha.776
+
+### Patch Changes
+
+- Updated dependencies [[`fab1f73`](https://github.com/rizom-ai/brains/commit/fab1f73985b8fc7f63f332f252d233b20c5f4be5)]:
+  - @brains/contracts@0.2.0-alpha.776
+  - @brains/sdk@0.2.0-alpha.776
+  - @brains/blog@0.2.0-alpha.776
+  - @brains/decks@0.2.0-alpha.776
+  - @brains/faq@0.2.0-alpha.776
+  - @rizom/brain-ui@0.2.0-alpha.776
+  - @brains/knowledge-map@0.2.0-alpha.776
+  - @brains/profile@0.2.0-alpha.776
+  - @brains/content-formatters@0.2.0-alpha.776
+  - @brains/site-atlas@0.2.0-alpha.776
+  - @brains/site-composition@0.2.0-alpha.776
+  - @brains/site-info@0.2.0-alpha.776
+  - @brains/utils@0.2.0-alpha.776
+
 ## 0.2.0-alpha.775
 
 ### Patch Changes
