@@ -312,6 +312,10 @@ export class DirectorySync implements IDirectorySync {
 
   /** Write an entity's file, keeping an edit the file holds as a conflict. */
   writeEntityFile(entity: BaseEntity): Promise<void> {
+    // A type kept out of the content repo is never written to it.
+    if (this.operationDeps.keptOutOfRepo(entity.entityType)) {
+      return Promise.resolve();
+    }
     return this.guard.writeEntityFile(entity);
   }
 

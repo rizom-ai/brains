@@ -35,6 +35,15 @@ export class DirectoryOperationDeps {
     this.options = options;
   }
 
+  /** Whether a type's records never leave the database. */
+  keptOutOfRepo(entityType: string): boolean {
+    const { entityService } = this.options;
+    return (
+      entityService.hasEntityType(entityType) &&
+      entityService.getEntityTypeConfig(entityType).contentRepo === false
+    );
+  }
+
   createExportDeps(
     deleteOnFileRemoval: boolean,
     entityTypes?: string[],
@@ -60,6 +69,7 @@ export class DirectoryOperationDeps {
       },
       deleteOnFileRemoval,
       entityTypes,
+      keptOutOfRepo: (entityType) => this.keptOutOfRepo(entityType),
     };
   }
 
@@ -94,6 +104,7 @@ export class DirectoryOperationDeps {
       fileOperations: this.options.fileOperations,
       deleteOnFileRemoval,
       entityTypes,
+      keptOutOfRepo: (entityType) => this.keptOutOfRepo(entityType),
       // The pulled deletion names whichever of its files was removed.
       onEntityDeleted: (entity): void => {
         this.options.fileOperations

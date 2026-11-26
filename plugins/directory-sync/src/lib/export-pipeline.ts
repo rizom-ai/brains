@@ -36,14 +36,19 @@ export interface ExportPipelineDeps {
   };
   deleteOnFileRemoval: boolean;
   entityTypes?: string[] | undefined;
+  /** Whether a type is kept out of the content repo: it has no files. */
+  keptOutOfRepo?: ((entityType: string) => boolean) | undefined;
 }
 
 export async function exportEntities(
   deps: ExportPipelineDeps,
   entityTypes?: string[],
 ): Promise<ExportResult> {
-  const typesToExport =
-    entityTypes ?? deps.entityTypes ?? deps.entityService.getEntityTypes();
+  const typesToExport = (
+    entityTypes ??
+    deps.entityTypes ??
+    deps.entityService.getEntityTypes()
+  ).filter((entityType) => !deps.keptOutOfRepo?.(entityType));
 
   deps.logger.debug("Exporting entities to directory", {
     entityTypes: typesToExport,
@@ -86,6 +91,9 @@ export async function processEntityExport(
   deps: ExportPipelineDeps,
   entity: BaseEntity,
 ): Promise<EntityExportResult> {
+  // A type kept out of the repo has no file to write, and none whose
+  // absence could mean a deletion.
+  if (deps.keptOutOfRepo?.(entity.entityType)) return { success: true };
   try {
     // A refused ID has no exportable file; absence must not delete its row.
     deps.fileOperations.assertEntityPlacement(entity);

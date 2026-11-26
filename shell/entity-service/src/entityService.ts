@@ -224,9 +224,15 @@ export class EntityService implements IEntityService {
       runWrite: <TResult>(write: () => Promise<TResult>): Promise<TResult> =>
         this.projectionStore.runSqliteWrite(write),
     });
+    // A type that declares itself out of the content repo gets no files.
+    const inContentRepo = (entityType: string): boolean =>
+      !options.entityRegistry.hasEntityType(entityType) ||
+      options.entityRegistry.getEntityTypeConfig(entityType).contentRepo !==
+        false;
     this.entityExportStore = new EntityExportStore(
       this.db,
       options.projectionNow ?? Date.now,
+      inContentRepo,
     );
     this.projectionStore = new ProjectionStore(
       this.db,
@@ -274,6 +280,7 @@ export class EntityService implements IEntityService {
           options.entityRegistry.getEntityTypeConfig(entityType)
             .fullTextSearchable !== false,
       },
+      inContentRepo,
     );
 
     let searchDbClient: Client | undefined;

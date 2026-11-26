@@ -144,6 +144,25 @@ describe("EntityService", (): void => {
     ]);
   });
 
+  test("queues no file write for a type kept out of the content repo", async () => {
+    entityRegistry.registerEntityType(
+      "note",
+      noteSchema,
+      new NoteSerializerAdapter(),
+      { contentRepo: false },
+    );
+    const entity = createNote({ id: "database-only", content: "Stays here" });
+
+    await entityService.createEntity({ entity });
+    await entityService.updateEntity({
+      entity: { ...entity, content: "Still here" },
+    });
+    expect(await entityService.listPendingEntityExports()).toEqual([]);
+
+    await entityService.deleteEntity({ entityType: "note", id: entity.id });
+    expect(await entityService.listPendingEntityExports()).toEqual([]);
+  });
+
   test("keeps only the latest revision across update and delete mutations", async () => {
     entityRegistry.registerEntityType(
       "note",

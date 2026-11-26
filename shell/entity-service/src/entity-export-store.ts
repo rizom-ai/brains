@@ -22,16 +22,25 @@ export interface RecordEntityExportInput {
 export class EntityExportStore {
   private readonly db: EntityDB;
   private readonly now: () => number;
+  private readonly inContentRepo: (entityType: string) => boolean;
 
-  constructor(db: EntityDB, now: () => number = Date.now) {
+  constructor(
+    db: EntityDB,
+    now: () => number = Date.now,
+    /** Whether a type's records are written to the content repo as files. */
+    inContentRepo: (entityType: string) => boolean = (): boolean => true,
+  ) {
     this.db = db;
     this.now = now;
+    this.inContentRepo = inContentRepo;
   }
 
+  /** Queue a file write or removal; a type kept out of the repo has none. */
   public async record(
     transaction: EntityExportTransaction,
     input: RecordEntityExportInput,
   ): Promise<void> {
+    if (!this.inContentRepo(input.entityType)) return;
     await this.upsert(transaction, input);
   }
 
