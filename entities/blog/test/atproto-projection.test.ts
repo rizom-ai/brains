@@ -99,6 +99,7 @@ describe("blog ATProto projection", () => {
       pageUrl,
     });
     expect(here["canonicalUrl"]).toBe(pageUrl);
+    expect(here["pageUrl"]).toBe(pageUrl);
     const elsewhere = await projection.buildRecord({
       entity: post("published", {
         canonicalUrl: "https://elsewhere.example/first",
@@ -108,12 +109,15 @@ describe("blog ATProto projection", () => {
       pageUrl,
     });
     expect(elsewhere["canonicalUrl"]).toBe("https://elsewhere.example/first");
+    // Its page here is still named, so another brain can send a reader to it.
+    expect(elsewhere["pageUrl"]).toBe(pageUrl);
     const unplaced = await projection.buildRecord({
       entity: post(),
       context,
       config: {},
     });
     expect(unplaced["canonicalUrl"]).toBeUndefined();
+    expect(unplaced["pageUrl"]).toBeUndefined();
   });
 
   it("includes cover image shape during dry-run without uploading a blob", async () => {

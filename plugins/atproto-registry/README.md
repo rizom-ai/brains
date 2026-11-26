@@ -15,4 +15,4 @@ Tools:
 - `atproto-registry_validate_lexicon`
 - `atproto-registry_check_contracts`
 
-Intended deployment: enabled on the official `rizom.ai` brain/site as the public protocol registry. The canonical catalog includes this member in `core`; instance config controls authority behavior. Publishing instances use `@brains/atproto` and local projections; they do not independently define `ai.rizom.brain.*` lexicons.
+Intended deployment: enabled on the official `rizom.ai` brain/site as the public protocol registry. The canonical catalog offers this member outside every bundle; the authority brain adds it with `add: [atproto-registry]` in `brain.yaml`. Publishing instances use `@brains/atproto` and local projections; they do not independently define `ai.rizom.brain.*` lexicons.

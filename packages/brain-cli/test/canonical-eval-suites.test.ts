@@ -94,20 +94,20 @@ const expectedMembers: Record<SuiteName, string> = {
   personal:
     "a2a admin agents ask-content auth-service chat conflict conversation-memory dashboard directory-sync document email faq image link mcp note notifications profile prompt refined-note studio style-guide topics unified-inbox web-chat webdav",
   professional:
-    "a2a admin agents analytics ask-content atproto atproto-registry auth-service blog chat conflict content-pipeline conversation-memory dashboard decks directory-sync document email faq form image link mcp newsletter note notifications onboarding playbooks portfolio profile prompt refined-note series site-builder site-content site-info social-media stock-photo studio style-guide topics unified-inbox web-chat webdav",
+    "a2a admin agents analytics ask-content atproto auth-service blog chat conflict content-pipeline conversation-memory dashboard decks directory-sync document email faq form image link mcp newsletter note notifications onboarding playbooks portfolio profile prompt references refined-note series site-builder site-content site-info social-media stock-photo studio style-guide topics unified-inbox web-chat webdav",
   providers:
-    "a2a admin agents analytics ask-content atproto atproto-registry auth-service blog chat conflict content-pipeline conversation-memory dashboard decks directory-sync document email faq form image link mcp newsletter note notifications onboarding playbooks portfolio profile prompt refined-note series site-builder site-content site-info social-media stock-photo studio style-guide topics unified-inbox web-chat webdav",
+    "a2a admin agents analytics ask-content atproto auth-service blog chat conflict content-pipeline conversation-memory dashboard decks directory-sync document email faq form image link mcp newsletter note notifications onboarding playbooks portfolio profile prompt references refined-note series site-builder site-content site-info social-media stock-photo studio style-guide topics unified-inbox web-chat webdav",
   network:
-    "a2a admin agents analytics ask-content atproto atproto-registry auth-service blog chat conflict content-pipeline conversation-memory dashboard decks directory-sync document email faq form image link mcp newsletter note notifications onboarding playbooks portfolio profile prompt refined-note series site-builder site-content site-info social-media stock-photo studio style-guide topics unified-inbox web-chat webdav",
+    "a2a admin agents analytics ask-content atproto atproto-registry auth-service blog chat conflict content-pipeline conversation-memory dashboard decks directory-sync document email faq form image link mcp newsletter note notifications onboarding playbooks portfolio profile prompt references refined-note series site-builder site-content site-info social-media stock-photo studio style-guide topics unified-inbox web-chat webdav",
   docs: "a2a admin agents analytics ask-content auth-service blog chat conflict conversation-memory dashboard decks directory-sync docs email faq form guides link mcp note notifications profile prompt refined-note site-builder site-content site-info studio style-guide topics unified-inbox web-chat webdav",
   team: "a2a action-board admin agents analytics ask-content auth-service chat conflict conversation-memory dashboard directory-sync docs document email faq form image link mcp note notifications onboarding playbooks profile prompt refined-note site-builder site-content site-info studio style-guide topics unified-inbox web-chat webdav",
 };
 const expectedCaseCounts: Record<SuiteName, number> = {
   headless: 29,
   personal: 29,
-  professional: 101,
+  professional: 98,
   providers: 2,
-  network: 17,
+  network: 20,
   team: 45,
   docs: 8,
 };

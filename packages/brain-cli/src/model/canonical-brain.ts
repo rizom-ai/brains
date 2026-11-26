@@ -50,6 +50,7 @@ import emailInterface from "@brains/email";
 import emailWorkflowsPackage from "@brains/email-workflows";
 import imagePackage, { imageAltTextPackage } from "@brains/image-plugin";
 import linkPackage from "@brains/link";
+import referencePackage from "@brains/reference";
 import mcpInterface from "@brains/mcp";
 import { selectNewsletterPackages } from "@brains/newsletter";
 import notePackage from "@brains/note";
@@ -250,6 +251,12 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     ),
     packageCapability("link", "@brains/link", linkPackage, {
       pluginId: "link",
+    }),
+    // Pointers to what other brains publish. The type installs as itself
+    // beside its service.
+    packageCapability("references", "@brains/reference", referencePackage, {
+      pluginId: "references",
+      ownedTypePluginId: "reference",
     }),
     packageCapability("wishlist", "@brains/wishlist", wishlistPackage, {
       pluginId: "wishlist",

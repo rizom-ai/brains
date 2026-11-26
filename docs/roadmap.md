@@ -69,7 +69,7 @@ The product is one brain composed from fixed capability bundles:
 - **`chat`** — platform chat, Web Chat, email, notifications, and conversation memory;
 - **`site`** — site-info, site-content, site-builder, and analytics;
 - **`publishing`** — blog/post, series, portfolio, decks, pipeline, social, newsletter, and stock-photo workflows;
-- **`federation`** — outbound AT Protocol publication and registry capabilities; and
+- **`federation`** — AT Protocol publication, and references to what other brains publish; and
 - **`team`** — policy only: shared memory, team instructions, and trusted collaborator permissions.
 
 `headless`, `personal`, `professional`, and `team` recipes expand to explicit `brain.yaml` configuration documented in [brain-model.md](./brain-model.md). The retired Rover/Relay/Ranger packages and runtime presets no longer participate in build, boot, evaluation, initialization, or deployment.

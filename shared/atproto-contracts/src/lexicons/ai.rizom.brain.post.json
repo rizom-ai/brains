@@ -36,6 +36,11 @@
             "type": "string",
             "format": "uri"
           },
+          "pageUrl": {
+            "type": "string",
+            "format": "uri",
+            "description": "The post's page on its author's brain. It differs from canonicalUrl when the post was first published elsewhere."
+          },
           "topics": {
             "type": "array",
             "items": {

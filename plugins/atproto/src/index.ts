@@ -75,10 +75,12 @@ export {
   type PutRecordResult,
   type GetRecordInput,
   type GetRecordResult,
+  type ListRecordsInput,
+  type ListRecordsResult,
   type DeleteRecordInput,
   type UploadBlobInput,
   type UploadBlobResult,
-} from "./pds-client";
+} from "@brains/atproto-client";
 
 /** The brain on the AT Protocol, as a brain composes it. */
 const atprotoPackage: ReturnType<typeof createAtprotoPackage> =

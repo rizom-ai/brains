@@ -33,6 +33,49 @@ function configuredFederationDid(
   return config.identifier?.startsWith("did:") ? config.identifier : undefined;
 }
 
+/** How a brain and its anchor are named, and the site that names them. */
+export interface BrainIdentityDids {
+  readonly siteUrl: string | undefined;
+  readonly siteHostname: string | undefined;
+  /** The repo the brain publishes to, when it is known. */
+  readonly federationDid: string | undefined;
+  readonly brainDid: string | undefined;
+  readonly anchorDid: string | undefined;
+}
+
+/**
+ * The DIDs a brain's card and its records name it and its anchor by: the
+ * configured ones, else the site's `did:web` pair for a brain with a site,
+ * else the account or the repo it publishes to. Undefined where a brain
+ * with no site has none of those.
+ */
+export function resolveBrainIdentityDids(
+  context: Pick<AtprotoContext, "servesHttp" | "siteUrl" | "identity">,
+  config: AtprotoConfig,
+  runtimeRepoDid?: string,
+): BrainIdentityDids {
+  const siteUrl = context.servesHttp
+    ? normalizePublicUrl(
+        context.siteUrl ?? context.identity.getProfile().website,
+      )
+    : undefined;
+  const siteHostname = siteUrl ? new URL(siteUrl).hostname : undefined;
+  const federationDid = configuredFederationDid(config, runtimeRepoDid);
+  return {
+    siteUrl,
+    siteHostname,
+    federationDid,
+    brainDid:
+      config.brainDid ??
+      (siteHostname ? didWebFromHostname(siteHostname) : federationDid),
+    anchorDid:
+      config.anchorDid ??
+      (siteHostname
+        ? anchorDidWebFromHostname(siteHostname)
+        : (config.accountDid ?? federationDid)),
+  };
+}
+
 export async function buildBrainCardRecord(
   context: AtprotoContext,
   config: AtprotoConfig,
@@ -48,25 +91,13 @@ export async function buildBrainCardRecord(
     );
   }
   const appInfo = await context.identity.getAppInfo();
-  const hasWebChannel = context.servesHttp;
-  const siteUrl = hasWebChannel
-    ? normalizePublicUrl(context.siteUrl ?? profile.website)
-    : undefined;
-  const siteHostname = siteUrl ? new URL(siteUrl).hostname : undefined;
-  const federationDid = configuredFederationDid(config, runtimeRepoDid);
-  const brainDid =
-    config.brainDid ??
-    (siteHostname ? didWebFromHostname(siteHostname) : federationDid);
+  const { siteUrl, siteHostname, federationDid, brainDid, anchorDid } =
+    resolveBrainIdentityDids(context, config, runtimeRepoDid);
   if (!brainDid) {
     throw new Error(
       "AT Protocol headless brain card publishing requires a repo DID or explicit brain DID",
     );
   }
-  const anchorDid =
-    config.anchorDid ??
-    (siteHostname
-      ? anchorDidWebFromHostname(siteHostname)
-      : (config.accountDid ?? federationDid));
   if (!anchorDid) {
     throw new Error(
       "AT Protocol headless brain card publishing requires an account, repo, or explicit anchor DID",

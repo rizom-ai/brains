@@ -44,6 +44,16 @@ export interface AtprotoPdsClientLike {
     collection: string;
     rkey: string;
   }): Promise<void>;
+  /** One page of a collection; `cursor` is present while more follow. */
+  listRecords?(input: {
+    repo: string;
+    collection: string;
+    limit?: number;
+    cursor?: string;
+  }): Promise<{
+    records: { uri: string; cid: string; value: Record<string, unknown> }[];
+    cursor?: string;
+  }>;
   uploadBlob?(input: {
     data: Uint8Array;
     mimeType: string;

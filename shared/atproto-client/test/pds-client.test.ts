@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import type { FetchLike } from "@brains/utils/fetch-like";
 import { caughtError } from "@brains/test-utils";
-import { AtprotoPdsClient } from "../src";
+import { AtprotoPdsClient, AtprotoRequestError } from "../src";
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -214,6 +214,106 @@ describe("AtprotoPdsClient", () => {
       "https://pds.example.com/xrpc/com.atproto.repo.getRecord?repo=did%3Aplc%3Arepo&collection=ai.rizom.brain.card&rkey=self",
     );
     expect(calls[0]?.init?.method).toBe("GET");
+  });
+
+  it("fails a refused request with the PDS's status and error code", async () => {
+    const client = new AtprotoPdsClient({
+      pdsEndpoint: "https://pds.example.com",
+      identifier: "brain.example.com",
+      appPassword: "secret",
+      fetch: (): Promise<Response> =>
+        Promise.resolve(
+          jsonResponse(
+            { error: "RecordNotFound", message: "Could not locate record" },
+            400,
+          ),
+        ),
+    });
+
+    const failure = await client
+      .getRecord({ repo: "did:plc:repo", collection: "x.y.z", rkey: "gone" })
+      .then(
+        () => undefined,
+        (error: unknown) => error,
+      );
+
+    expect(failure).toBeInstanceOf(AtprotoRequestError);
+    expect(failure).toMatchObject({
+      message: "Could not locate record",
+      status: 400,
+      code: "RecordNotFound",
+    });
+  });
+
+  it("lists one page of a collection without a session", async () => {
+    const calls: Array<{ url: string; init: RequestInit | undefined }> = [];
+    const fetchMock: FetchLike = (input, init) => {
+      calls.push({ url: String(input), init });
+      return Promise.resolve(
+        jsonResponse({
+          cursor: "next-page",
+          records: [
+            {
+              uri: "at://did:plc:repo/ai.rizom.brain.post/first",
+              cid: "cid-first",
+              value: { title: "First" },
+            },
+          ],
+        }),
+      );
+    };
+    const client = new AtprotoPdsClient({
+      pdsEndpoint: "https://pds.example.com",
+      identifier: "brain.example.com",
+      appPassword: "secret",
+      fetch: fetchMock,
+    });
+
+    const page = await client.listRecords({
+      repo: "did:plc:repo",
+      collection: "ai.rizom.brain.post",
+      limit: 25,
+      cursor: "previous-page",
+    });
+
+    expect(page).toEqual({
+      cursor: "next-page",
+      records: [
+        {
+          uri: "at://did:plc:repo/ai.rizom.brain.post/first",
+          cid: "cid-first",
+          value: { title: "First" },
+        },
+      ],
+    });
+    expect(calls).toHaveLength(1);
+    expect(calls[0]?.url).toBe(
+      "https://pds.example.com/xrpc/com.atproto.repo.listRecords?repo=did%3Aplc%3Arepo&collection=ai.rizom.brain.post&limit=25&cursor=previous-page",
+    );
+    expect(calls[0]?.init?.method).toBe("GET");
+  });
+
+  it("lists a collection's last page without a cursor", async () => {
+    const urls: string[] = [];
+    const client = new AtprotoPdsClient({
+      pdsEndpoint: "https://pds.example.com",
+      identifier: "brain.example.com",
+      appPassword: "secret",
+      fetch: (input): Promise<Response> => {
+        urls.push(String(input));
+        return Promise.resolve(jsonResponse({ records: [] }));
+      },
+    });
+
+    const page = await client.listRecords({
+      repo: "did:plc:repo",
+      collection: "ai.rizom.brain.post",
+    });
+
+    expect(page).toEqual({ records: [] });
+    expect(urls).toEqual([
+      "https://pds.example.com/xrpc/com.atproto.repo.listRecords?repo=did%3Aplc%3Arepo&collection=ai.rizom.brain.post",
+    ]);
   });
 
   it("deletes records with an authenticated session", async () => {

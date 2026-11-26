@@ -71,12 +71,14 @@ type AtprotoPublishOperationSchema = z.ZodEnum<{
   "publish-card": "publish-card";
   "upsert-record": "upsert-record";
   "delete-record": "delete-record";
+  "reconcile-records": "reconcile-records";
 }>;
 
 const atprotoPublishOperationSchema: AtprotoPublishOperationSchema = z.enum([
   "publish-card",
   "upsert-record",
   "delete-record",
+  "reconcile-records",
 ]);
 
 export type AtprotoPublishOperation = z.output<

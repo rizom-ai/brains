@@ -152,6 +152,7 @@ Entity packages live in `entities/`. Most packages define one entity type; a few
 | `entities/image`               | `image`                              | AI image generation                                 |
 | `entities/link`                | `link`                               | URL capture and extraction                          |
 | `entities/note`                | `note`                               | General markdown notes / notes                      |
+| `entities/reference`           | `reference`                          | Pointers to what other brains publish               |
 | `entities/portfolio`           | `project`                            | Case studies and portfolio entries                  |
 | `entities/prompt`              | `prompt`                             | Editable AI prompt entities                         |
 | `entities/series`              | `series`                             | Derived post grouping                               |

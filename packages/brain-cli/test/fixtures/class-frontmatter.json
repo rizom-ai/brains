@@ -2168,6 +2168,70 @@
         }
       },
       "required": ["title", "summary"]
+    },
+    "reference": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["draft", "published"]
+        },
+        "title": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "author": {
+          "type": "string"
+        },
+        "authorSite": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "publishedAt": {
+          "type": "string"
+        },
+        "series": {
+          "type": "string"
+        },
+        "sourceState": {
+          "type": "string",
+          "enum": ["active", "withdrawn"],
+          "studioWidget": "provenance"
+        },
+        "sourceUri": {
+          "type": "string",
+          "studioWidget": "provenance"
+        },
+        "sourceEntityType": {
+          "type": "string",
+          "studioWidget": "provenance"
+        },
+        "sourceEntityId": {
+          "type": "string",
+          "studioWidget": "provenance"
+        },
+        "sourceBrain": {
+          "studioWidget": "provenance",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "title",
+        "author",
+        "authorSite",
+        "url",
+        "publishedAt",
+        "sourceState",
+        "sourceUri",
+        "sourceEntityType",
+        "sourceEntityId"
+      ]
     }
   },
   "obsidian": {

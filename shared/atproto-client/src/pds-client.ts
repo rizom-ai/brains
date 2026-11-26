@@ -63,6 +63,18 @@ export interface GetRecordResult {
   value: Record<string, unknown>;
 }
 
+export interface ListRecordsInput {
+  repo: string;
+  collection: string;
+  limit?: number;
+  cursor?: string;
+}
+
+export interface ListRecordsResult {
+  records: GetRecordResult[];
+  cursor?: string;
+}
+
 export interface DeleteRecordInput {
   repo: string;
   collection: string;
@@ -79,8 +91,26 @@ export interface UploadBlobResult {
 }
 
 const atprotoErrorResponseSchema = z.looseObject({
-  message: z.string(),
+  error: z.string().optional(),
+  message: z.string().optional(),
 });
+
+/**
+ * A request the PDS refused: its HTTP status and, when it gave one, its
+ * error code (`RecordNotFound`), so a caller can tell a record that is gone
+ * from a PDS that is failing.
+ */
+export class AtprotoRequestError extends Error {
+  readonly status: number;
+  readonly code: string | undefined;
+
+  constructor(message: string, status: number, code: string | undefined) {
+    super(message);
+    this.name = "AtprotoRequestError";
+    this.status = status;
+    this.code = code;
+  }
+}
 
 const atprotoSessionSchema = z.looseObject({
   did: z.string(),
@@ -97,6 +127,16 @@ const recordResultSchema = z.looseObject({
 const getRecordResultSchema = recordResultSchema.extend({
   value: z.record(z.string(), z.unknown()),
 });
+
+const listRecordsResultSchema = z
+  .looseObject({
+    records: z.array(getRecordResultSchema),
+    cursor: z.string().optional(),
+  })
+  .transform(({ records, cursor }): ListRecordsResult => ({
+    records,
+    ...(cursor !== undefined && { cursor }),
+  }));
 
 const blobRefSchema = z
   .looseObject({
@@ -150,10 +190,11 @@ function assertResponseOk(response: Response, body: unknown): void {
   if (response.ok) return;
 
   const error = atprotoErrorResponseSchema.safeParse(body);
-  throw new Error(
-    error.success
-      ? error.data.message
-      : `AT Protocol request failed with ${response.status}`,
+  throw new AtprotoRequestError(
+    (error.success ? error.data.message : undefined) ??
+      `AT Protocol request failed with ${response.status}`,
+    response.status,
+    error.success ? error.data.error : undefined,
   );
 }
 
@@ -253,6 +294,22 @@ export class AtprotoPdsClient {
     );
 
     return parseJsonResponse(response, getRecordResultSchema);
+  }
+
+  /** One page of a collection, read without a session as any reader may. */
+  async listRecords(input: ListRecordsInput): Promise<ListRecordsResult> {
+    const params = new URLSearchParams({
+      repo: input.repo,
+      collection: input.collection,
+      ...(input.limit !== undefined && { limit: String(input.limit) }),
+      ...(input.cursor !== undefined && { cursor: input.cursor }),
+    });
+    const response = await this.fetchFn(
+      `${this.pdsEndpoint}/xrpc/com.atproto.repo.listRecords?${params.toString()}`,
+      { method: "GET" },
+    );
+
+    return parseJsonResponse(response, listRecordsResultSchema);
   }
 
   async deleteRecord(input: DeleteRecordInput): Promise<void> {

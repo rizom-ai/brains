@@ -21,7 +21,7 @@ There is one configurable brain. It composes from eight capability bundles plus 
 | `chat`       | Platform chat, web chat, email, notifications, and conversation memory                  |
 | `site`       | Public site information, content, building, and analytics                               |
 | `publishing` | Blog, series, portfolio, decks, pipeline, social, newsletter, and stock-photo workflows |
-| `federation` | AT Protocol publication and registry capabilities                                       |
+| `federation` | AT Protocol publication, and references to what other brains publish                    |
 | `team`       | Shared-memory and trusted-collaboration policy over members selected elsewhere          |
 
 Bundles contribute fixed members and bounded defaults. Instance-level `add`, `remove`, and `plugins` settings remain available for explicit tuning. Site and publishing are independent: external-channel publishing does not require a site.
@@ -113,7 +113,7 @@ Site package, theme, represented identity, and seed content remain instance-owne
 
 ## Federation and agent networking
 
-`federation` owns AT Protocol publication and canonical lexicon registry capabilities. The canonical A2A agent card is built from core identity and public skills; web and federation are publication channels above it.
+`federation` owns AT Protocol publication and references to what other brains publish. The canonical lexicon registry (`atproto-registry`) is outside every bundle: the one brain that is the lexicon authority adds it. The canonical A2A agent card is built from core identity and public skills; web and federation are publication channels above it.
 
 Agent networking supports:
 

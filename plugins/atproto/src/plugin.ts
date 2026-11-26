@@ -13,7 +13,6 @@ import { publishCompletedChannel } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import { type FetchLike } from "@brains/utils/fetch-like";
 import {
-  assertSafePublicHttpsUrl,
   createSafePublicFetch,
   UnsafePublicResourceError,
   type ResolveHostname,
@@ -23,12 +22,17 @@ import {
   type AtprotoConfig,
   type AtprotoConfigInput,
 } from "./config";
-import { AtprotoPdsClient } from "./pds-client";
+import {
+  AtprotoPdsClient,
+  listAllRecords,
+  recordKeyOf,
+} from "@brains/atproto-client";
 import {
   AtprotoIdentityResolver,
   DiscoveryRejectionError,
 } from "./identity-resolver";
 import { PublishingTaskQueue } from "./publishing-tasks";
+import { isCurrentRecord } from "./record-reconcile";
 import type { AtprotoBus, AtprotoContext } from "./atproto-context";
 import { EntityUrlGenerator } from "@brains/site-composition";
 import {
@@ -57,8 +61,9 @@ import {
   type AtprotoBrainCardRecord,
   type AtprotoProjection,
   type AtprotoPdsClientLike,
+  type AtprotoPublishConfig,
 } from "@brains/atproto-contracts";
-import { buildBrainCardRecord } from "./records";
+import { buildBrainCardRecord, resolveBrainIdentityDids } from "./records";
 import {
   JetstreamConsumer,
   type CreateJetstreamSocket,
@@ -88,6 +93,12 @@ export interface AtprotoPluginDeps {
   random?: () => number;
 }
 
+/** A signed-in client and the repo its records are written to. */
+interface RepoSession {
+  readonly client: AtprotoPdsClientLike;
+  readonly repo: string;
+}
+
 function entityTaskKey(payload: EntityTrigger): string {
   return `${payload.entityType}/${payload.entityId}`;
 }
@@ -95,6 +106,7 @@ function entityTaskKey(payload: EntityTrigger): string {
 const BRAIN_CARD_COLLECTION = "ai.rizom.brain.card";
 const BRAIN_CARD_RKEY = "self";
 const LEXICON_SCHEMA_COLLECTION = "com.atproto.lexicon.schema";
+const RECORD_RECONCILE_TASK = "reconcile-records";
 const MAX_DISCOVERY_REPOS = 50;
 // Identity inputs arrive through SYSTEM_CHANNELS.identityChanged, after the
 // shell's identity caches hold them.
@@ -148,6 +160,7 @@ export class AtprotoService {
       identifier: this.config.identifier ?? "",
       appPassword: this.config.appPassword ?? "",
       requestTimeoutMs: this.config.jetstream.requestTimeoutMs,
+      resolveHostname: deps.resolveHostname,
       createPdsClient: deps.createPdsClient,
     });
   }
@@ -165,6 +178,19 @@ export class AtprotoService {
       SYSTEM_CHANNELS.pluginsRegistered,
       () => {
         this.fullBootObserved = true;
+      },
+      { mode: "subscribe" },
+    );
+
+    // Startup content is in place: the entities are the ones the repo should
+    // mirror. Never earlier — a database still importing holds none, and
+    // every record would look like an orphan.
+    bus.listen(
+      SYSTEM_CHANNELS.startupContentSettled,
+      () => {
+        void this.publishingTasks.run(RECORD_RECONCILE_TASK, () =>
+          this.reconcileProjectedRecords(context),
+        );
       },
       { mode: "subscribe" },
     );
@@ -463,21 +489,8 @@ export class AtprotoService {
     const results: DiscoverBrainCardResult[] = [];
     for (const repo of repos) {
       try {
-        const resolved = await this.identity.resolveRepoPdsEndpoint(repo);
-        await assertSafePublicHttpsUrl(
-          resolved.pdsEndpoint,
-          this.deps.resolveHostname,
-        );
-        const client = this.identity.createPublicPdsClient(
-          resolved.pdsEndpoint,
-        );
-        if (!client.getRecord) {
-          throw new DiscoveryRejectionError(
-            "AT Protocol PDS client does not support record reads",
-          );
-        }
-        const record = await client.getRecord({
-          repo: resolved.repoDid,
+        const resolved = await this.identity.repos.open(repo);
+        const record = await resolved.getRecord({
           collection: BRAIN_CARD_COLLECTION,
           rkey: BRAIN_CARD_RKEY,
         });
@@ -607,6 +620,7 @@ export class AtprotoService {
     context: AtprotoContext,
     options: PublishEntityOptions,
     projection: AtprotoProjection<TRecord>,
+    session?: RepoSession,
   ): Promise<PublishEntityResult<TRecord>> {
     const entity = await this.findPublishEntity(context, options);
     const identifier = options.entityId ?? options.slug;
@@ -633,14 +647,13 @@ export class AtprotoService {
     const pageUrl = this.pageUrlOf(context, entity);
 
     if (options.dryRun) {
-      const record = await projection.buildRecord({
-        entity,
+      const record = await this.buildDryRunRecord(
         context,
-        config: this.config,
-        ...(options.topics && { topics: options.topics }),
-        ...(pageUrl && { pageUrl }),
-        dryRun: true,
-      });
+        projection,
+        entity,
+        repo,
+        options.topics,
+      );
       validateAtprotoRecord(projection.lexicon, record);
       return {
         record,
@@ -649,20 +662,11 @@ export class AtprotoService {
       };
     }
 
-    const appPassword = this.resolveAppPassword();
-    if (!this.config.identifier || !appPassword) {
-      throw new Error(
-        "AT Protocol publishing requires identifier and app password configuration",
-      );
-    }
-
-    const client = this.createPdsClient(appPassword);
-    const session = await client.createSession();
-    const targetRepo = repo ?? session.did;
+    const { client, repo: targetRepo } = session ?? (await this.openRepo());
     const record = await projection.buildRecord({
       entity,
       context,
-      config: this.config,
+      config: this.recordIdentityOf(context, targetRepo),
       client,
       ...(options.topics && { topics: options.topics }),
       ...(pageUrl && { pageUrl }),
@@ -753,9 +757,148 @@ export class AtprotoService {
     );
   }
 
+  /**
+   * The brain and anchor a record names: as the brain card names them, so a
+   * brain's records and its card agree without either being configured.
+   */
+  private recordIdentityOf(
+    context: AtprotoContext,
+    repo: string | undefined,
+  ): AtprotoPublishConfig {
+    const { brainDid, anchorDid } = resolveBrainIdentityDids(
+      context,
+      this.config,
+      repo,
+    );
+    return { brainDid, anchorDid };
+  }
+
+  /**
+   * The record an entity projects today, built without writing or
+   * uploading, as it would be written to `repo`.
+   */
+  private buildDryRunRecord<TRecord extends Record<string, unknown>>(
+    context: AtprotoContext,
+    projection: AtprotoProjection<TRecord>,
+    entity: BaseEntity,
+    repo: string | undefined,
+    topics?: string[],
+  ): Promise<TRecord> {
+    const pageUrl = this.pageUrlOf(context, entity);
+    return projection.buildRecord({
+      entity,
+      context,
+      config: this.recordIdentityOf(context, repo),
+      ...(topics && { topics }),
+      ...(pageUrl && { pageUrl }),
+      dryRun: true,
+    });
+  }
+
+  /**
+   * Bring the repo's records in line with the brain's entities, one projected
+   * collection at a time: a record for every public, publishable entity, each
+   * the one its entity builds today, and none for anything else.
+   */
+  private async reconcileProjectedRecords(
+    context: AtprotoContext,
+  ): Promise<void> {
+    // One sign-in for the whole pass: a PDS rations them, and a first pass
+    // may write a record for everything the brain ever published.
+    const session = lazy(() => this.openRepo());
+    for (const projection of this.projections(context).list()) {
+      await this.publishingTasks.runTrigger(
+        context,
+        {
+          operation: "reconcile-records",
+          entityType: projection.entityType,
+          entityId: "*",
+          collection: projection.collection,
+        },
+        async () =>
+          this.reconcileProjectedCollection(
+            context,
+            projection,
+            await session(),
+          ),
+      );
+    }
+  }
+
+  private async reconcileProjectedCollection(
+    context: AtprotoContext,
+    projection: AtprotoProjection,
+    session: RepoSession,
+  ): Promise<void> {
+    const { client, repo } = session;
+    if (!client.listRecords) {
+      throw new Error("AT Protocol PDS client does not support record listing");
+    }
+    const listed = await listAllRecords(client.listRecords.bind(client), {
+      repo,
+      collection: projection.collection,
+    });
+    const stored = new Map(
+      listed.flatMap((record) => {
+        const rkey = recordKeyOf(record.uri);
+        return rkey ? [[rkey, record.value] as const] : [];
+      }),
+    );
+
+    const { entityType } = projection;
+    const projected = new Map(
+      (await context.entityService.listEntities({ entityType }))
+        .filter(
+          (entity) =>
+            entity.visibility === "public" &&
+            isProjectionPublishable(projection, entity),
+        )
+        .map((entity) => [deriveAtprotoRecordKey(entity.id), entity] as const),
+    );
+
+    const outdated = await Promise.all(
+      [...projected].map(async ([rkey, entity]) => {
+        const record = stored.get(rkey);
+        if (!record) return entity.id;
+        // An entity whose record cannot be built is left to its own write,
+        // which reports why.
+        const current = await this.buildDryRunRecord(
+          context,
+          projection,
+          entity,
+          repo,
+        ).then(
+          (built) => isCurrentRecord(record, built),
+          () => false,
+        );
+        return current ? undefined : entity.id;
+      }),
+    );
+    const orphaned = [...stored.keys()].filter((rkey) => !projected.has(rkey));
+
+    // Each is settled as its own change would be, in that entity's turn: it
+    // is read again, then written or deleted by what it is by then. One at a
+    // time, so a first pass does not flood the PDS.
+    const unsettled = [...outdated, ...orphaned].filter(
+      (entityId) => entityId !== undefined,
+    );
+    for (const entityId of unsettled) {
+      await this.publishingTasks.run(
+        entityTaskKey({ entityType, entityId }),
+        () =>
+          this.reconcileProjectedEntity(
+            context,
+            { entityType, entityId },
+            session,
+          ),
+      );
+    }
+  }
+
   private async reconcileProjectedEntity(
     context: AtprotoContext,
     payload: EntityTrigger,
+    session?: RepoSession,
   ): Promise<void> {
     const projection = this.projections(context).get(payload.entityType);
     if (!projection || !this.hasPublishingCredentials()) return;
@@ -793,10 +936,12 @@ export class AtprotoService {
           collection: projection.collection,
         },
         () =>
-          this.publishEntity(context, {
-            entityType: payload.entityType,
-            entityId: payload.entityId,
-          }),
+          this.publishProjectedEntity(
+            context,
+            { entityType: payload.entityType, entityId: payload.entityId },
+            projection,
+            session,
+          ),
       );
       return;
     }
@@ -809,7 +954,7 @@ export class AtprotoService {
         entityId: payload.entityId,
         collection: projection.collection,
       },
-      () => this.deleteProjectedRecord(projection, payload.entityId),
+      () => this.deleteProjectedRecord(projection, payload.entityId, session),
     );
   }
 
@@ -841,17 +986,9 @@ export class AtprotoService {
   private async deleteProjectedRecord(
     projection: AtprotoProjection,
     entityId: string,
+    session?: RepoSession,
   ): Promise<void> {
-    const appPassword = this.resolveAppPassword();
-    if (!this.config.identifier || !appPassword) {
-      throw new Error(
-        "AT Protocol publishing requires identifier and app password configuration",
-      );
-    }
-
-    const client = this.createPdsClient(appPassword);
-    const session = await client.createSession();
-    const targetRepo = this.config.repoDid ?? session.did;
+    const { client, repo: targetRepo } = session ?? (await this.openRepo());
     if (!client.deleteRecord) {
       throw new Error(
         "AT Protocol PDS client does not support record deletion",
@@ -862,6 +999,19 @@ export class AtprotoService {
       collection: projection.collection,
       rkey: deriveAtprotoRecordKey(entityId),
     });
+  }
+
+  /** Sign in to the PDS, for the repo the brain's records are written to. */
+  private async openRepo(): Promise<RepoSession> {
+    const appPassword = this.resolveAppPassword();
+    if (!this.config.identifier || !appPassword) {
+      throw new Error(
+        "AT Protocol publishing requires identifier and app password configuration",
+      );
+    }
+    const client = this.createPdsClient(appPassword);
+    const session = await client.createSession();
+    return { client, repo: this.config.repoDid ?? session.did };
   }
 
   private hasPublishingCredentials(): boolean {
@@ -1036,6 +1186,12 @@ export class AtprotoService {
 function deriveAtprotoRecordKey(entityId: string): string {
   const sanitized = entityId.replace(/[^A-Za-z0-9._~:-]/g, "_").slice(0, 512);
   return sanitized.length > 0 ? sanitized : "self";
+}
+
+/** A value made on first ask and handed to every later one. */
+function lazy<T>(make: () => T): () => T {
+  let made: { readonly value: T } | undefined;
+  return () => (made ??= { value: make() }).value;
 }
 
 function isProjectionPublishable(

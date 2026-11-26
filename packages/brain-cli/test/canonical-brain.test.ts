@@ -17,6 +17,7 @@ const expectedCatalogIds = [
   "note",
   "refined-note",
   "link",
+  "references",
   "wishlist",
   "topics",
   "decks",
