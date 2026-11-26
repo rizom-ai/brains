@@ -42,6 +42,9 @@ export {
   sourceBrainSchema,
 } from "./ask-box";
 export {
+  A2A_CONTACT_APPROVALS_NAMESPACE,
+  a2aContactApprovalSchema,
+  type A2AContactApproval,
   a2aAgentsContract,
   a2aAskContract,
   a2aCallContract,

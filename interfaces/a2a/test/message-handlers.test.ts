@@ -33,6 +33,10 @@ function mockA2AFetch(): ReturnType<typeof mock> {
   });
 }
 
+/** The peers an admin approved contacting; the others are only saved. */
+const approvedPeer = async (domain: string): Promise<boolean> =>
+  domain === "approved.example" || domain === "restricted.example";
+
 describe("A2A call message handlers", () => {
   let harness: ReturnType<typeof createPluginHarness>;
   let fetchFn: ReturnType<typeof mockA2AFetch>;
@@ -62,7 +66,9 @@ describe("A2A call message handlers", () => {
     fetchFn = mockA2AFetch();
     // The handlers get their fetch from the interface's deps, so the fake goes
     // in there rather than over the global.
-    await harness.installPlugin(createA2APlugin({}, { fetch: fetchFn }));
+    await harness.installPlugin(
+      createA2APlugin({}, { fetch: fetchFn, isContactApproved: approvedPeer }),
+    );
   });
 
   afterEach(async () => {
@@ -329,7 +335,12 @@ describe("A2A network ask channel", () => {
         metadata: { name: "Discovered Agent", status: "discovered" },
       },
     ]);
-    await harness.installPlugin(createA2APlugin(config, { fetch: fetchFn }));
+    await harness.installPlugin(
+      createA2APlugin(config, {
+        fetch: fetchFn,
+        isContactApproved: approvedPeer,
+      }),
+    );
     return harness;
   }
 

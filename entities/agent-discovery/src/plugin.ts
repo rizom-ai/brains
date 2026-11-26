@@ -13,6 +13,8 @@ import {
 } from "@brains/sdk/internal/service-runtime";
 import { computeContentHash } from "@brains/utils/hash";
 import { agentEntity } from "./agent-entity";
+import { BoundContactApprovals } from "./lib/contact-approvals";
+import { registerContactApprovalSync } from "./lib/contact-approval-sync";
 import { derivedSkill, skill } from "./skill-entity";
 import { agentContextOf, type AgentNetwork } from "./lib/agent-context";
 import { agentDataSource } from "./datasources/agent-datasource";
@@ -33,7 +35,7 @@ import {
   createAgentScanDirectoriesTool,
   scanAgentDirectories,
 } from "./tools/agent-scan-directories";
-import { createAgentSetTrustLevelTool } from "./tools/agent-set-trust-level";
+import { createAgentSetStandingTool } from "./tools/agent-set-standing";
 import { createNetworkAskTool } from "./tools/network-ask";
 
 const atprotoNotificationCandidateSchema = z
@@ -96,7 +98,10 @@ export interface AgentDiscoveryPackages {
 export function createAgentDiscoveryPackages(
   network: AgentNetwork = {},
 ): AgentDiscoveryPackages {
-  const agent = agentEntity(network.fetch);
+  // One answer to "may this brain contact that peer", bound to the brain's
+  // auth runtime once a package is set up.
+  const approvals = new BoundContactApprovals();
+  const agent = agentEntity(network.fetch, approvals);
 
   const agentDiscovery = defineServicePlugin(
     {
@@ -105,6 +110,7 @@ export function createAgentDiscoveryPackages(
       entities: [agent],
       setup: async (setupContext): Promise<Record<never, never>> => {
         const runtime = serviceRuntime(setupContext);
+        approvals.bind(runtime.classRuntimeState);
         const context = agentContextOf(runtime);
         // Brains no longer copy what other brains publish; delete the pieces
         // a brain kept before, with their files.
@@ -115,6 +121,7 @@ export function createAgentDiscoveryPackages(
         runtime.dataSource(agentDataSource(agent));
         runtime.dataSource(proximityMapDataSource);
         registerAtprotoBrainCardHandlers(runtime, context);
+        registerContactApprovalSync(runtime, context, approvals);
         runtime.recurringCheck({
           id: "agent-card-refresh",
           cadence: "daily",
@@ -138,7 +145,7 @@ export function createAgentDiscoveryPackages(
       instructions: () =>
         [
           getAgentDiscoveryInstructions(),
-          'Agent approval/archive is a status field update on `entityType: "agent"`.',
+          "Agent approval/archive is agent_set_standing with contact approved or archived; an agent's status field shows it and does not decide it.",
         ].join("\n"),
     },
   );
@@ -149,6 +156,7 @@ export function createAgentDiscoveryPackages(
       config: agentToolsConfigSchema,
       setup: (setupContext): Record<never, never> => {
         const runtime = serviceRuntime(setupContext);
+        approvals.bind(runtime.classRuntimeState);
         const context = agentContextOf(runtime);
         const { config } = setupContext;
         const atprotoNotifications = runtime.classRuntimeState.scoped({
@@ -281,9 +289,9 @@ export function createAgentDiscoveryPackages(
     (slotContext) => {
       const context = agentContextOf(serviceRuntime(slotContext));
       return [
-        createAgentConnectTool(context, network.fetch),
+        createAgentConnectTool(context, approvals, network.fetch),
         createAgentScanDirectoriesTool(context, network.fetch),
-        createAgentSetTrustLevelTool(context, network.fetch),
+        createAgentSetStandingTool(context, approvals, network.fetch),
         createNetworkAskTool(context),
       ];
     },

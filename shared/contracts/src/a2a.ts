@@ -123,3 +123,25 @@ export const a2aAgentsContract: BusContract<
   response: a2aAgentsResponseSchema,
   delivery: "request",
 });
+
+/**
+ * The runtime-state namespace that holds which peers this brain may
+ * contact: one record per approved peer, keyed by its domain. It is runtime
+ * state so that nothing written as content can approve a peer; the agent
+ * directory writes it and the A2A client reads it.
+ */
+export const A2A_CONTACT_APPROVALS_NAMESPACE = "a2a.contact-approvals";
+
+type A2AContactApprovalSchema = z.ZodObject<{
+  approvedAt: z.ZodString;
+  approvedBy: z.ZodOptional<z.ZodString>;
+}>;
+
+/** An admin's approval of this brain contacting a peer. */
+export const a2aContactApprovalSchema: A2AContactApprovalSchema = z.object({
+  approvedAt: z.string(),
+  /** The user who approved, when a signed-in user did. */
+  approvedBy: z.string().optional(),
+});
+
+export type A2AContactApproval = z.output<typeof a2aContactApprovalSchema>;

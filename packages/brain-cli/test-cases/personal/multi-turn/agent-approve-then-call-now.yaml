@@ -19,13 +19,11 @@ turns:
   - userMessage: "Approve old-agent.example"
     successCriteria:
       expectedTools:
-        - toolName: system_update
+        - toolName: agent_set_standing
           shouldBeCalled: true
           argsContain:
-            entityType: "agent"
-            id: "old-agent.example"
-          argsAbsent:
-            - confirmed
+            agent: "old-agent.example"
+            contact: "approved"
       responseContains:
         - "Confirmation required"
       responseNotContains:
@@ -38,7 +36,7 @@ turns:
     confirmPendingAction: true
     successCriteria:
       responseContains:
-        - "Completed: Update"
+        - "Completed: Approve contacting old-agent.example"
 
   - userMessage: "Can you talk to old-agent.example now?"
     successCriteria:

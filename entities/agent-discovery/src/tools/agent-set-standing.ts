@@ -4,33 +4,48 @@ import { z } from "@brains/utils/zod";
 import { AGENT_ENTITY_TYPE } from "../lib/constants";
 import type { FetchLike } from "@brains/utils/fetch-like";
 import { extractDomain } from "../lib/extract-domain";
-import { agentEntitySchema } from "../schemas/agent";
+import { agentEntitySchema, type AgentEntity } from "../schemas/agent";
 import {
   ConfirmationArgsStore,
   internalFullScope,
+  type AuthBackend,
   type Tool,
   type ToolResponse,
 } from "@brains/sdk/internal/service-runtime";
 import type { AgentContext } from "../lib/agent-context";
+import { parseAgentEntity, rewriteAgentContent } from "../lib/agent-content";
+import type { ContactApprovals } from "../lib/contact-approvals";
 
 const trustLevelSchema = z.enum(["public", "trusted"]);
 
-const agentSetTrustLevelInputSchema = z.object({
+const contactSchema = z.enum(["approved", "archived"]);
+
+const agentSetStandingInputSchema = z.object({
   agent: z
     .string()
     .min(1)
-    .describe("Saved agent id, domain, or URL whose inbound A2A trust to set."),
-  level: trustLevelSchema.describe(
-    "Inbound A2A trust level. Use trusted to grant trusted inbound access, public to revoke it.",
-  ),
+    .describe("Saved agent id, domain, or URL whose standing to set."),
+  contact: contactSchema
+    .optional()
+    .describe(
+      "Whether this brain may contact the agent. Use approved to approve or restore it, archived to archive it and stop contacting it. Set this or level, not both.",
+    ),
+  level: trustLevelSchema
+    .optional()
+    .describe(
+      "Inbound A2A trust level. Use trusted to grant trusted inbound access, public to revoke it. Set this or contact, not both.",
+    ),
   confirmed: z.boolean().optional(),
   confirmationToken: z.string().optional(),
   keyFingerprint: z.string().optional(),
 });
 
-type AgentSetTrustLevelInput = z.infer<typeof agentSetTrustLevelInputSchema>;
+type AgentSetStandingInput = z.infer<typeof agentSetStandingInputSchema>;
 
-type AgentSetTrustLevelContext = Pick<AgentContext, "entityService" | "auth">;
+type AgentSetStandingContext = Pick<AgentContext, "entityService" | "auth">;
+
+const ONE_CHANGE =
+  "Set either contact (approved or archived) or level (trusted or public), one per call.";
 
 const jwksSchema = z.object({
   keys: z.array(z.unknown()),
@@ -51,16 +66,16 @@ function normalizeAgentLookup(input: string): string {
 }
 
 async function resolveAgentDomain(
-  context: AgentSetTrustLevelContext,
+  context: AgentSetStandingContext,
   agent: string,
-): Promise<{ domain: string } | null> {
+): Promise<{ domain: string; entity: AgentEntity } | null> {
   const id = normalizeAgentLookup(agent);
   const entity = await context.entityService.getEntity(
     {
       entityType: AGENT_ENTITY_TYPE,
       id,
       visibilityScope: internalFullScope(
-        "agent_set_trust_level is admin-only and sets trust for agents saved at any visibility",
+        "agent_set_standing is admin-only and sets trust for agents saved at any visibility",
       ),
     },
     agentEntitySchema,
@@ -69,7 +84,7 @@ async function resolveAgentDomain(
 
   const domain = normalizeAgentLookup(entity.metadata.url);
   if (!domain) return null;
-  return { domain };
+  return { domain, entity };
 }
 
 async function fetchA2AKeyFingerprint(
@@ -96,22 +111,51 @@ async function fetchA2AKeyFingerprint(
   }
 }
 
-export function createAgentSetTrustLevelTool(
-  context: AgentSetTrustLevelContext,
+/** The auth service, which a trust change was admitted with. */
+function trustBackend(backend: AuthBackend | undefined): AuthBackend {
+  if (!backend)
+    throw new Error("Auth service is required to set inbound A2A trust.");
+  return backend;
+}
+
+/** An agent's entry rewritten to show whether the brain may contact it. */
+async function showContact(
+  context: AgentSetStandingContext,
+  entity: AgentEntity,
+  status: "approved" | "archived",
+): Promise<void> {
+  if (entity.metadata.status === status) return;
+  await context.entityService.updateEntity({
+    entity: {
+      ...entity,
+      content: rewriteAgentContent(parseAgentEntity(entity), {
+        status,
+        ...(status === "approved"
+          ? { introducedBy: undefined, hops: undefined }
+          : {}),
+      }),
+      metadata: { ...entity.metadata, status },
+    },
+  });
+}
+
+export function createAgentSetStandingTool(
+  context: AgentSetStandingContext,
+  approvals: ContactApprovals,
   fetchFn: FetchLike = globalThis.fetch,
 ): Tool {
-  const toolName = "agent_set_trust_level";
+  const toolName = "agent_set_standing";
   const confirmationArgsStore = new ConfirmationArgsStore();
 
   return {
     name: toolName,
     description:
-      "Grant or revoke inbound A2A trust for a saved contact; this is the only tool for inbound trust changes. To revoke, call directly with level public—no key fingerprint or preliminary lookup is needed. To grant, use level trusted; the tool resolves and pins the peer key. This does not add or remove directory contacts or change outbound calling. Requires confirmation.",
-    inputSchema: agentSetTrustLevelInputSchema.shape,
+      "Set a saved contact's standing with this brain, one change per call. contact approves, restores or archives it: approved lets this brain contact the agent, archived stops that; this is the only way to approve or archive a contact. level grants or revokes inbound A2A trust: trusted resolves and pins the peer key, public revokes with no key fingerprint or lookup; this is the only tool for inbound trust changes. Neither changes the other, and setting a level does not add or remove directory contacts. Requires confirmation.",
+    inputSchema: agentSetStandingInputSchema.shape,
     visibility: "admin",
     sideEffects: "external",
     handler: async (rawInput, toolContext): Promise<ToolResponse> => {
-      const parsed = agentSetTrustLevelInputSchema.safeParse(rawInput);
+      const parsed = agentSetStandingInputSchema.safeParse(rawInput);
       if (!parsed.success) {
         return {
           success: false,
@@ -119,9 +163,18 @@ export function createAgentSetTrustLevelTool(
         };
       }
 
+      if (
+        (parsed.data.contact === undefined) ===
+        (parsed.data.level === undefined)
+      ) {
+        return { success: false, error: ONE_CHANGE };
+      }
+
+      // Inbound trust is the auth service's; who the brain contacts is not,
+      // so a brain without one can still approve and archive.
       const authService = context.auth.get();
       const actorUserId = authenticatedUserId(toolContext);
-      if (!authService) {
+      if (!authService && parsed.data.level !== undefined) {
         return {
           success: false,
           error: "Auth service is required to set inbound A2A trust.",
@@ -133,7 +186,7 @@ export function createAgentSetTrustLevelTool(
       if (!resolved) {
         return {
           success: false,
-          error: `No saved agent contact found for ${parsed.data.agent}. Connect the agent before setting inbound trust.`,
+          error: `No saved agent contact found for ${parsed.data.agent}. Connect the agent before setting its standing.`,
           code: "agent_not_found",
         };
       }
@@ -159,6 +212,20 @@ export function createAgentSetTrustLevelTool(
           };
         }
 
+        if (input.contact) {
+          const domain = resolved.entity.id;
+          if (input.contact === "approved") {
+            await approvals.approve(domain, actorUserId);
+          } else {
+            await approvals.revoke(domain, actorUserId);
+          }
+          await showContact(context, resolved.entity, input.contact);
+          return {
+            success: true,
+            data: { agent: domain, contact: input.contact },
+          };
+        }
+
         if (input.level === "trusted") {
           if (!input.keyFingerprint) {
             return {
@@ -166,7 +233,7 @@ export function createAgentSetTrustLevelTool(
               error: "Missing key fingerprint for trusted A2A grant.",
             };
           }
-          const grant = await authService.grantA2APeerTrust(
+          const grant = await trustBackend(authService).grantA2APeerTrust(
             {
               domain: resolved.domain,
               keyFingerprint: input.keyFingerprint,
@@ -184,7 +251,7 @@ export function createAgentSetTrustLevelTool(
           };
         }
 
-        await authService.revokeA2APeerTrust(
+        await trustBackend(authService).revokeA2APeerTrust(
           resolved.domain,
           actorUserId ? { actorUserId } : {},
         );
@@ -194,6 +261,29 @@ export function createAgentSetTrustLevelTool(
             agent: resolved.domain,
             level: "public",
           },
+        };
+      }
+
+      if (input.contact) {
+        const domain = resolved.entity.id;
+        const approving = input.contact === "approved";
+        return {
+          needsConfirmation: true,
+          toolName,
+          summary: approving
+            ? `Approve contacting ${domain}?`
+            : `Archive ${domain} and stop contacting it?`,
+          preview: approving
+            ? `This brain will be allowed to contact ${domain}. Its inbound trust is not changed.`
+            : `This brain will stop contacting ${domain}, and its entry will be archived. Its inbound trust is not changed.`,
+          args: confirmationArgsStore.create<AgentSetStandingInput>(
+            (confirmationToken) => ({
+              agent: domain,
+              contact: input.contact,
+              confirmed: true,
+              confirmationToken,
+            }),
+          ),
         };
       }
 
@@ -210,7 +300,7 @@ export function createAgentSetTrustLevelTool(
       }
 
       const confirmationArgs =
-        confirmationArgsStore.create<AgentSetTrustLevelInput>(
+        confirmationArgsStore.create<AgentSetStandingInput>(
           (confirmationToken) => ({
             agent: resolved.domain,
             level: input.level,

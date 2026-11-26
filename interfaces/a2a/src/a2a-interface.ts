@@ -1,4 +1,8 @@
 import {
+  A2A_CONTACT_APPROVALS_NAMESPACE,
+  a2aContactApprovalSchema,
+} from "@brains/contracts";
+import {
   interfaceRuntime,
   withDaemon,
   withTools,
@@ -64,6 +68,11 @@ const A2A_CORS_HEADERS = {
  */
 export interface A2AInterfaceDeps {
   fetch?: FetchFn | undefined;
+  /**
+   * Whether an admin approved contacting a peer, in place of the brain's
+   * auth runtime: a test's own answer.
+   */
+  isContactApproved?: ((domain: string) => Promise<boolean>) | undefined;
 }
 
 /** What a running A2A interface keeps between calls. */
@@ -119,6 +128,15 @@ function createClientDeps(
     streamIdleTimeoutMs: config.streamIdleTimeoutMs,
     maxNetworkAttempts: config.maxNetworkAttempts,
     entityService: runtime.entityReads,
+    isContactApproved:
+      deps.isContactApproved ??
+      ((domain): Promise<boolean> =>
+        runtime.classRuntimeState
+          .scoped({
+            namespace: A2A_CONTACT_APPROVALS_NAMESPACE,
+            schema: a2aContactApprovalSchema,
+          })
+          .has(domain.trim().toLowerCase())),
   };
 }
 

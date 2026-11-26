@@ -1,3 +1,4 @@
+import { authenticatedUserId } from "@brains/contracts";
 import { agentFromMarkdown } from "../lib/agent-content";
 import type { FetchLike } from "@brains/utils/fetch-like";
 import { z } from "@brains/utils/zod";
@@ -17,6 +18,7 @@ import {
 } from "@brains/sdk/internal/service-runtime";
 import { canWriteVisibility } from "@brains/sdk/internal/entity-runtime";
 import type { AgentContext } from "../lib/agent-context";
+import type { ContactApprovals } from "../lib/contact-approvals";
 
 const agentConnectInputSchema = z.object({
   source: z.object({
@@ -122,6 +124,7 @@ async function upsertConnectedAgent(params: {
 
 export function createAgentConnectTool(
   context: AgentConnectContext,
+  approvals: ContactApprovals,
   fetchFn: FetchLike = globalThis.fetch,
 ): Tool {
   const toolName = "agent_connect";
@@ -230,6 +233,11 @@ export function createAgentConnectTool(
         }
 
         const { card } = verified;
+        // Connecting is the admin's approval; the saved entry shows it.
+        await approvals.approve(
+          normalized.domain,
+          authenticatedUserId(toolContext),
+        );
         const { entity, created } = await upsertConnectedAgent({
           context,
           entityId: normalized.domain,

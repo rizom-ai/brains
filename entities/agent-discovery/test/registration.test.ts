@@ -120,7 +120,7 @@ describe("the agents capability's registered surface", () => {
     ).toEqual([
       ["agent_connect", "trusted"],
       ["agent_scan_directories", "trusted"],
-      ["agent_set_trust_level", "admin"],
+      ["agent_set_standing", "admin"],
       ["network_ask", "public"],
     ]);
     expect(capabilities.flatMap(({ resources }) => resources)).toEqual([]);
@@ -131,7 +131,7 @@ describe("the agents capability's registered surface", () => {
     ).toEqual([
       [
         getAgentDiscoveryInstructions(),
-        'Agent approval/archive is a status field update on `entityType: "agent"`.',
+        "Agent approval/archive is agent_set_standing with contact approved or archived; an agent's status field shows it and does not decide it.",
       ].join("\n"),
     ]);
     for (const plugin of plugins) {

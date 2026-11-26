@@ -1,4 +1,4 @@
-id: tool-invocation-agent-set-trust-level
+id: tool-invocation-agent-set-standing
 name: Set Agent Inbound Trust Level
 description: Verifies that inbound A2A trust revocation uses the dedicated trust tool instead of editing agent metadata.
 type: tool_invocation
@@ -16,7 +16,7 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: agent_set_trust_level
+    - toolName: agent_set_standing
       shouldBeCalled: true
       argsContain:
         agent: docs.rizom.example
