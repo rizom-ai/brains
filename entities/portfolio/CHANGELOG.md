@@ -1,5 +1,18 @@
 # @brains/portfolio
 
+## 0.2.0-alpha.775
+
+### Patch Changes
+
+- Updated dependencies [[`8158b6a`](https://github.com/rizom-ai/brains/commit/8158b6a3d2153258161cc3781a5fe31de74e94a2)]:
+  - @brains/contracts@0.2.0-alpha.775
+  - @brains/sdk@0.2.0-alpha.775
+  - @rizom/brain-ui@0.2.0-alpha.775
+  - @brains/atproto-contracts@0.2.0-alpha.775
+  - @brains/content-formatters@0.2.0-alpha.775
+  - @brains/media-page-composer@0.2.0-alpha.775
+  - @brains/utils@0.2.0-alpha.775
+
 ## 0.2.0-alpha.774
 
 ### Patch Changes

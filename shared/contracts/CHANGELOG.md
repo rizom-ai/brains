@@ -1,5 +1,13 @@
 # @brains/contracts
 
+## 0.2.0-alpha.775
+
+### Patch Changes
+
+- [#1051](https://github.com/rizom-ai/brains/pull/1051) [`8158b6a`](https://github.com/rizom-ai/brains/commit/8158b6a3d2153258161cc3781a5fe31de74e94a2) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A brain is an OpenID Connect provider. A sign-in that asks for `openid` gets a signed ID token, carrying the authorization request's `nonce` and, with `profile`, the person's name and `preferred_username`. `/userinfo` returns the same claims for an `openid` access token, and `/.well-known/openid-configuration` describes the provider. A person's `preferred_username` is derived from their display name on first use and never changes afterward. A plugin can register a confidential OAuth client under an id and secret it chooses with `provisionOAuthClient`, and such a client is never pruned.
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.775
+
 ## 0.2.0-alpha.774
 
 ### Patch Changes
