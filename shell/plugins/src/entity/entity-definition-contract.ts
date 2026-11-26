@@ -410,6 +410,11 @@ export interface EntityAtprotoRecordInput<TEntity> {
   /** True when the record is previewed rather than published. */
   readonly dryRun: boolean;
   /**
+   * The entity's stored document, header and all, for a type whose file
+   * states more than its metadata indexes. Read when asked for.
+   */
+  storedDocument(): Promise<string>;
+  /**
    * Definition-typed reads of public entries only: the record is published
    * to a public PDS, so an entry that is not public reads as absent.
    */

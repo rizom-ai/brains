@@ -172,6 +172,38 @@ describe("declared AT Protocol projection", () => {
     }
   });
 
+  it("hands the builder the stored document on request, header and all", async () => {
+    const seen: Parameters<typeof clipDefinition>[0] = {};
+    const harness = await install([cover, clipDefinition(seen)]);
+    try {
+      await harness.getEntityService().createEntity({
+        entity: {
+          id: "tide",
+          entityType: "clip",
+          content: "---\ntitle: Tides\nedition: Second\n---\nThe passage.",
+          metadata: { title: "Tides", status: "published" },
+        },
+      });
+      const entity = await harness.getEntityService().getEntity({
+        entityType: "clip",
+        id: "tide",
+      });
+      if (!entity) throw new Error("The clip was not stored");
+
+      await registered(harness).buildRecord({
+        entity,
+        context: callerContext,
+        config: {},
+        dryRun: true,
+      });
+
+      // What the type's metadata does not index is still in its file.
+      expect(await seen.input?.storedDocument()).toContain("edition: Second");
+    } finally {
+      await harness.reset();
+    }
+  });
+
   it("reads public entries only, not through the caller's context", async () => {
     const harness = await install([cover, clipDefinition({})]);
     try {

@@ -31,6 +31,7 @@ function recordInput(
     entity: deck,
     config: {},
     dryRun: false,
+    storedDocument: async () => "",
     entities: {
       get: async () => null,
       list: async () => [],

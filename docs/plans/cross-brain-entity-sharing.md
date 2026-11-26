@@ -172,5 +172,5 @@ Each slice is end to end and has its tests written before the code. Tests use `c
 
 ## Risks
 
-- **Members without records cannot be featured.** A member whose brain has no ATProto account has nothing to point to; capture says so rather than falling back to scraping. A book's record carries its title only so far.
+- **Members without records cannot be featured.** A member whose brain has no ATProto account has nothing to point to; capture says so rather than falling back to scraping.
 - **Recheck cost grows with the selection.** One `getRecord` per entry and one brain card per author per day stays small at the Foundation's scale; past that, `listRecords` per repo replaces per-entry reads.
