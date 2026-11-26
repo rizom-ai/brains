@@ -40,6 +40,12 @@
       "policy": "sameRange"
     },
     {
+      "label": "Hold the Chat SDK core at the version its adapters use: the root override pins it, since the Matrix adapter's looser range would otherwise lift it past the Discord, Slack and state adapters",
+      "dependencies": ["chat"],
+      "dependencyTypes": ["prod", "overrides"],
+      "policy": "sameRange"
+    },
+    {
       "label": "Sync Zod versions",
       "dependencies": ["zod"],
       "dependencyTypes": ["dev", "prod"],

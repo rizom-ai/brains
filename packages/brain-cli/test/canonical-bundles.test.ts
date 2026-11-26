@@ -299,7 +299,7 @@ function permissionLevel(
 }
 
 describe("canonical bundle taxonomy", () => {
-  test("is the active nine-bundle registry", () => {
+  test("is the active ten-bundle registry", () => {
     expect(canonicalBrain.bundles?.map(({ id }) => id)).toEqual([
       "core",
       "media",
@@ -309,6 +309,7 @@ describe("canonical bundle taxonomy", () => {
       "site",
       "publishing",
       "federation",
+      "matrix",
       "team",
     ]);
     expect(canonicalBrain.bundles).toBe(canonicalBundles);

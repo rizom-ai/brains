@@ -18,6 +18,7 @@ export const SITE_BUNDLE_ID = "site";
 export const PUBLISHING_BUNDLE_ID = "publishing";
 export const FEDERATION_BUNDLE_ID = "federation";
 export const TEAM_BUNDLE_ID = "team";
+export const MATRIX_BUNDLE_ID = "matrix";
 
 export const coreBundle: CapabilityBundleDefinition = defineBundle({
   id: CORE_BUNDLE_ID,
@@ -184,6 +185,22 @@ export const teamBundle: CapabilityBundleDefinition = defineBundle({
   agentInstructions: teamAgentInstructions,
 });
 
+/**
+ * The brain's own Matrix homeserver, fronted at its domain. The chat bundle's
+ * interface talks on it as the brain's bot.
+ */
+export const matrixBundle: CapabilityBundleDefinition = defineBundle({
+  id: MATRIX_BUNDLE_ID,
+  members: ["matrix-server"],
+  http: true,
+  permissions: [
+    {
+      member: "chat",
+      config: { rules: [{ pattern: "matrix:*", level: "public" }] },
+    },
+  ],
+});
+
 export const canonicalBundles: CapabilityBundleDefinition[] = [
   coreBundle,
   mediaBundle,
@@ -193,5 +210,6 @@ export const canonicalBundles: CapabilityBundleDefinition[] = [
   siteBundle,
   publishingBundle,
   federationBundle,
+  matrixBundle,
   teamBundle,
 ];

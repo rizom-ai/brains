@@ -79,6 +79,7 @@
     "@brains/knowledge-map": "workspace:*",
     "@brains/link": "workspace:*",
     "@brains/linkedin-import": "workspace:*",
+    "@brains/matrix-server": "workspace:*",
     "@brains/mcp": "workspace:*",
     "@brains/mcp-service": "workspace:*",
     "@brains/newsletter": "workspace:*",
