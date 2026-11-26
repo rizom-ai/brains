@@ -136,6 +136,7 @@ export class AuthRuntime {
   private readonly logger: Logger | undefined;
   private accountSettingsStore: AuthAccountSettingsStore | undefined;
   private userStore: AuthUserStore | undefined;
+  private identityStore: AuthIdentityStore | undefined;
   private identityReconciliationService:
     IdentityReconciliationService | undefined;
   private passkeySetupCoordinator: PasskeySetupCoordinator | undefined;
@@ -225,6 +226,8 @@ export class AuthRuntime {
           ? { name: user.displayName, preferredUsername: user.username }
           : undefined;
       },
+      onCodeRedeemed: (input): Promise<void> =>
+        this.recordSignInIdentity(input),
       ...(options.clientMetadataDocumentResolver
         ? {
             clientMetadataDocumentResolver:
@@ -350,6 +353,7 @@ export class AuthRuntime {
         : {}),
     });
     this.userStore = new AuthUserStore(this.runtimeDatabase.db);
+    this.identityStore = identityStore;
     this.identityReconciliationService = new IdentityReconciliationService({
       identities: identityStore,
       users: this.userStore,
@@ -478,6 +482,45 @@ export class AuthRuntime {
           delivery,
         ),
     });
+  }
+
+  /**
+   * A sign-in through a client that declares the identity it proves, such as
+   * a homeserver keyed on the person's username, records that identity as a
+   * verified claim on the person. The sign-in succeeds either way: a claim
+   * of a channel this brain does not run is skipped.
+   */
+  private async recordSignInIdentity(input: {
+    clientId: string;
+    subject: string;
+  }): Promise<void> {
+    const claim = await this.clientStore.getIdentityClaim(input.clientId);
+    if (!claim || !this.identityStore) return;
+    if (
+      this.isChannelTypeRegistered &&
+      !this.isChannelTypeRegistered(claim.type)
+    ) {
+      return;
+    }
+    const user = await this.getUserStore().ensureUsername(input.subject);
+    if (!user?.username) return;
+    const subject = `${claim.subjectPrefix}${user.username}${claim.subjectSuffix}`;
+    try {
+      await this.identityStore.attachIdentity({
+        userId: user.id,
+        type: claim.type,
+        subject,
+        label: subject,
+        verifiedAt: Date.now(),
+        source: { kind: "provider", id: input.clientId },
+      });
+    } catch (error) {
+      // Recording is a side effect of the sign-in, which already succeeded.
+      this.logger?.warn("Could not record the identity a sign-in proved", {
+        error,
+        clientId: input.clientId,
+      });
+    }
   }
 
   getUserStore(): AuthUserStore {

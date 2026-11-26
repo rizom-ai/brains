@@ -1,0 +1,80 @@
+diff --git a/dist/index.d.ts b/dist/index.d.ts
+index 0ac94bc51269da01b9237cb342909673b8222b1b..4fdb0f388776e5c0c456a9e96d77ba57e12d0bdf 100644
+--- a/dist/index.d.ts
++++ b/dist/index.d.ts
+@@ -68,6 +68,12 @@ interface MatrixAdapterConfig {
+ }
+ interface MatrixInviteAutoJoinConfig {
+     inviterAllowlist?: string[];
++    /** Decides each invite, in place of the allowlist. */
++    accept?: (invite: {
++        roomID: string;
++        inviter: string | undefined;
++        isDirect: boolean;
++    }) => Promise<boolean>;
+ }
+ interface MatrixThreadID {
+     roomID: string;
+diff --git a/dist/index.js b/dist/index.js
+index 3360d7352fec0df580a474088205519227cc8be0..6fb4fe1d016082cc5d971f699ad6bfac0913c4cd 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -466,6 +466,7 @@ var MatrixAdapter = class {
+   secretsBundleUnavailableLogged = false;
+   liveSyncReady = false;
+   shuttingDown = false;
++  joinedDirectRoomIDs = /* @__PURE__ */ new Set();
+   constructor(config) {
+     this.validateConfig(config);
+     this.baseURL = config.baseURL;
+@@ -479,6 +480,7 @@ var MatrixAdapter = class {
+       config.inviteAutoJoin?.inviterAllowlist
+     );
+     this.inviteAutoJoinEnabled = Boolean(config.inviteAutoJoin);
++    this.inviteAutoJoinAccept = config.inviteAutoJoin?.accept;
+     this.inviteAutoJoinInviterAllowlist = inviteAutoJoinInviterAllowlist.length > 0 ? new Set(inviteAutoJoinInviterAllowlist) : void 0;
+     this.syncOptions = config.sync ?? FAST_SYNC_DEFAULTS;
+     this.createClientFn = config.createClient;
+@@ -591,6 +593,13 @@ var MatrixAdapter = class {
+     const { roomID } = this.decodeThreadId(threadId);
+     return this.encodeThreadId({ roomID });
+   }
++  isDM(threadId) {
++    if (!this.client) {
++      return false;
++    }
++    const { roomID } = this.decodeThreadId(threadId);
++    return this.joinedDirectRoomIDs.has(roomID) || this.directAccountDataContainsRoom(this.loadCachedDirectAccountData(), roomID);
++  }
+   renderFormatted(content) {
+     return stringifyMarkdown(content);
+   }
+@@ -1728,7 +1737,12 @@ var MatrixAdapter = class {
+       return;
+     }
+     const inviter = event.getSender();
+-    if (!this.shouldAcceptInvite(roomID, inviter)) {
++    const accepted = this.inviteAutoJoinAccept ? await this.inviteAutoJoinAccept({
++      roomID,
++      inviter,
++      isDirect: event.getContent()?.is_direct === true
++    }) : this.shouldAcceptInvite(roomID, inviter);
++    if (!accepted) {
+       this.logger.info("Declined Matrix invite due to invite auto-join policy", {
+         roomId: roomID,
+         inviter
+@@ -1737,6 +1751,14 @@ var MatrixAdapter = class {
+     }
+     try {
+       await this.joinRoomWithRetry(roomID);
++      if (inviter && event.getContent()?.is_direct === true) {
++        this.joinedDirectRoomIDs.add(roomID);
++        await this.persistDirectAccountDataRoom(
++          inviter,
++          roomID,
++          this.loadCachedDirectAccountData()
++        );
++      }
+       this.logger.info("Accepted Matrix invite", {
+         roomId: roomID,
+         inviter

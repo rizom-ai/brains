@@ -1,0 +1,30 @@
+# The personal brain with its own Matrix homeserver. Before booting, start
+# the homeserver from packages/brain-cli:
+#   bun ../../plugins/matrix-server/scripts/local-homeserver.ts
+# with the MATRIX_* values below exported in both shells.
+#   MATRIX_SERVER_NAME=localhost
+#   MATRIX_PUBLIC_URL=http://localhost:8080
+#   MATRIX_HOMESERVER_URL=http://127.0.0.1:18008
+#   MATRIX_BASE_URL=http://localhost:8080        # the chat bot goes through the brain
+#   MATRIX_USER_ID=@_brain:localhost
+#   MATRIX_PASSWORD, MATRIX_REGISTRATION_TOKEN, MATRIX_OIDC_CLIENT_SECRET
+brain: brain
+bundleContract: capability-bundles-v1
+anchor: person
+kind: professional
+bundles:
+  - core
+  - media
+  - web
+  - chat
+  - matrix
+
+plugins:
+  directory-sync:
+    seedContentPath: ../../eval-content/recipes/personal
+    autoSync: true
+    initialSync: true
+    git:
+      repo: rizom-ai/canonical-matrix-test-content
+      gitUrl: file:///tmp/canonical-matrix-offline-test-content.git
+      bootstrapFromSeed: true

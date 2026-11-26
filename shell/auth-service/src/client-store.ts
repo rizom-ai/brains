@@ -1,7 +1,11 @@
 import { randomUUID, timingSafeEqual } from "node:crypto";
 import { hashToken } from "./token-hash";
 import { and, eq, lt, notExists, sql } from "drizzle-orm";
-import { provisionOAuthClientInputSchema } from "@brains/contracts";
+import {
+  oauthClientIdentityClaimSchema,
+  provisionOAuthClientInputSchema,
+  type OAuthClientIdentityClaim,
+} from "@brains/contracts";
 import { nowSeconds } from "@brains/utils/date";
 import { z } from "@brains/utils/zod";
 import type { AuthRuntimeDatabase } from "./runtime-db";
@@ -174,7 +178,12 @@ export class RuntimeOAuthClientStore implements OAuthClientPersistence {
       client_secret: parsed.data.clientSecret,
       client_secret_expires_at: 0,
     };
-    const row = clientToRow(client, { method: "provisioned" });
+    const row = clientToRow(client, {
+      method: "provisioned",
+      ...(parsed.data.identityClaim
+        ? { identityClaim: parsed.data.identityClaim }
+        : {}),
+    });
     await this.database.db
       .insert(oauthClients)
       .values(row)
@@ -187,6 +196,14 @@ export class RuntimeOAuthClientStore implements OAuthClientPersistence {
         },
       });
     return client;
+  }
+
+  /** The identity a sign-in through this client proves, if it declares one. */
+  async getIdentityClaim(
+    clientId: string,
+  ): Promise<OAuthClientIdentityClaim | undefined> {
+    return (await this.getPersistedClient(clientId))?.registration
+      .identityClaim;
   }
 
   async upsertClientMetadataDocument(
@@ -361,6 +378,7 @@ function clientToRow(
 interface OAuthClientRegistration {
   method: "dynamic" | "metadata_document" | "provisioned";
   issuer?: string;
+  identityClaim?: OAuthClientIdentityClaim;
 }
 
 interface PersistedOAuthClient {
@@ -371,6 +389,7 @@ interface PersistedOAuthClient {
 const oauthClientRegistrationSchema = z.object({
   method: z.enum(["dynamic", "metadata_document", "provisioned"]),
   issuer: z.string().optional(),
+  identityClaim: oauthClientIdentityClaimSchema.optional(),
 });
 
 function parsePersistedClient(metadataJson: string): PersistedOAuthClient {
@@ -393,6 +412,9 @@ function parsePersistedClient(metadataJson: string): PersistedOAuthClient {
           method: storedRegistration.method,
           ...(storedRegistration.issuer
             ? { issuer: storedRegistration.issuer }
+            : {}),
+          ...(storedRegistration.identityClaim
+            ? { identityClaim: storedRegistration.identityClaim }
             : {}),
         }
       : { method: "dynamic" },

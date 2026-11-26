@@ -68,6 +68,9 @@ export {
   a2aPeerAnswerSchema,
   type A2ADirectoryAgent,
   type A2APeerAnswer,
+  a2aPeerTrustChangedChannel,
+  a2aPeerTrustChangedPayloadSchema,
+  type A2APeerTrustChangedPayload,
 } from "./a2a";
 export {
   agentActionContract,
@@ -187,7 +190,9 @@ export {
   type VerifiedAccessToken,
 } from "./auth-access";
 export {
+  oauthClientIdentityClaimSchema,
   provisionOAuthClientInputSchema,
+  type OAuthClientIdentityClaim,
   type ProvisionOAuthClientInput,
 } from "./oauth-client";
 export {

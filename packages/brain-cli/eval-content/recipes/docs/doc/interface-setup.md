@@ -18,7 +18,7 @@ Interfaces are selected by the active capability bundles, then refined with `add
 | --------- | ---------- | ------------------------------------ | --------------------------------------------------- |
 | MCP       | `mcp`      | `http://localhost:8080/mcp` or stdio | Claude Desktop, Cursor, CLI remote/tooling          |
 | Web chat  | `web-chat` | `http://localhost:8080/ask`          | Guest-facing browser surface; currently fail-closed |
-| Chat      | `chat`     | Discord and/or Slack                 | Community, team, and authenticated chat             |
+| Chat      | `chat`     | Discord, Slack and/or Matrix         | Community, team, and authenticated chat             |
 | A2A       | `a2a`      | `http://localhost:8080/a2a`          | Agent-to-agent communication                        |
 | Chat REPL | command    | `brain chat`                         | Local terminal chat                                 |
 
@@ -272,6 +272,48 @@ POST /api/webhooks/chat/slack
 
 Slack requires the configured app scopes for mentions, channel/DM history, users, file reads, file writes, and messages. Reinstall the app after changing its scopes.
 
+### Matrix adapter
+
+The chat interface talks on Matrix as the brain's bot, through any homeserver. Set the homeserver's client API URL and the bot's account:
+
+```bash
+MATRIX_BASE_URL=https://brain.example.com
+MATRIX_USER_ID=@_brain:brain.example.com
+MATRIX_PASSWORD=...
+```
+
+The bot logs in with its password once and keeps its session and sync position in runtime state, so a restart resumes rather than logging in again. Matrix shows no cards: approvals arrive as text and are answered by typing yes or no. The bot joins a direct invite while `allowDMs` is on, and an invite to a room only from a peer brain's bot whose domain this brain trusts at `trusted`.
+
+The `matrix` channel delivers on its own: invitations and notifications to a `matrix:` recipient open or reuse the bot's direct room with that person. A notification default can name a Matrix user:
+
+```yaml
+plugins:
+  notifications:
+    defaultRecipient:
+      type: matrix
+      address: "@me:brain.example.com"
+```
+
+### The brain's own homeserver
+
+The `matrix` bundle adds the `matrix-server` plugin, which fronts a [Tuwunel](https://github.com/matrix-construct/tuwunel) homeserver at the brain's own domain. The brain forwards `/_matrix` and `/_tuwunel` to it and serves `/.well-known/matrix/server` and `/.well-known/matrix/client`, so federation and clients find the homeserver at the brain's domain. When the brain is ready, the plugin registers the bot with the homeserver's registration token, the only way registration is open, and registers the homeserver as the OAuth client people sign in through.
+
+```bash
+MATRIX_SERVER_NAME=brain.example.com
+MATRIX_HOMESERVER_URL=http://brain-matrix:8008   # where the brain reaches the homeserver
+MATRIX_REGISTRATION_TOKEN=...
+MATRIX_OIDC_CLIENT_SECRET=...                    # at least 32 characters
+# MATRIX_PUBLIC_URL defaults to https://<MATRIX_SERVER_NAME>
+```
+
+People sign in to the homeserver with their brain account: Matrix clients show "your brain" as the sign-in, and the brain's passkey sign-in follows. A person's Matrix id is `@<username>:<server>`, with a username the brain fixes on their first sign-in and keeps through renames, and the brain records that id as a verified claim on the person. People have no Matrix password.
+
+Someone who already has a Matrix id elsewhere is invited by that address. The invitation arrives as a DM over federation, and completing setup records the id as theirs, so no second account is created.
+
+For each peer brain trusted at `trusted`, the plugin keeps a room aliased by the peer's domain, open over federation only to this server and the peer's, and invites the peer's bot. Revoking the trust removes the peer's bot and closes the room to its server, keeping the history. Rooms the brain creates are unencrypted.
+
+The `matrix` test app runs the bundle locally. From `packages/brain-cli`, with the `MATRIX_*` values from `test-apps/matrix/brain.yaml` exported, start the homeserver with `bun ../../plugins/matrix-server/scripts/local-homeserver.ts`, then the app with `sh scripts/start-test-app.sh matrix`.
+
 ### Chat permissions and safety
 
 Permissions remain platform-scoped:
@@ -282,6 +324,8 @@ permissions:
     - pattern: "discord:*"
       level: trusted
     - pattern: "slack:*"
+      level: trusted
+    - pattern: "matrix:*"
       level: trusted
 ```
 

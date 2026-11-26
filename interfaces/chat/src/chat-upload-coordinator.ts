@@ -34,6 +34,7 @@ export class ChatUploadCoordinator {
     this.continuity = {
       discord: this.createContinuity("discord"),
       slack: this.createContinuity("slack"),
+      matrix: this.createContinuity("matrix"),
     };
   }
 

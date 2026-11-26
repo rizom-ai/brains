@@ -217,3 +217,59 @@ describe("createDiscordSubscriptionStateAdapter", () => {
     await state.disconnect();
   });
 });
+
+describe("durable Matrix adapter state", () => {
+  it("keeps the Matrix session and sync keys across a restart, and nothing else", async () => {
+    const runtimeState = createMockShell().getRuntimeState();
+    const first = createChatSubscriptionStateAdapter(
+      runtimeState,
+      ["matrix"],
+      new FakeMemoryStateAdapter(),
+    );
+    await first.set("matrix:session:example:user:@_brain:brain.example.com", {
+      accessToken: "token",
+    });
+    await first.set("dedupe:matrix:$event", true);
+
+    const restarted = createChatSubscriptionStateAdapter(
+      runtimeState,
+      ["matrix"],
+      new FakeMemoryStateAdapter(),
+    );
+
+    expect(
+      await restarted.get<{ accessToken: string }>(
+        "matrix:session:example:user:@_brain:brain.example.com",
+      ),
+    ).toEqual({ accessToken: "token" });
+    expect(await restarted.get("dedupe:matrix:$event")).toBeNull();
+  });
+
+  it("lets a durable Matrix key expire after its time to live", async () => {
+    const runtimeState = createMockShell().getRuntimeState();
+    const state = createChatSubscriptionStateAdapter(
+      runtimeState,
+      ["matrix"],
+      new FakeMemoryStateAdapter(),
+    );
+
+    await state.set("matrix:store:expiring", { value: 1 }, -1);
+
+    expect(await state.get("matrix:store:expiring")).toBeNull();
+  });
+
+  it("stores a durable Matrix key only when it is absent", async () => {
+    const runtimeState = createMockShell().getRuntimeState();
+    const state = createChatSubscriptionStateAdapter(
+      runtimeState,
+      ["matrix"],
+      new FakeMemoryStateAdapter(),
+    );
+
+    expect(await state.setIfNotExists("matrix:device:a", "first")).toBe(true);
+    expect(await state.setIfNotExists("matrix:device:a", "second")).toBe(false);
+    await state.delete("matrix:device:a");
+
+    expect(await state.get("matrix:device:a")).toBeNull();
+  });
+});

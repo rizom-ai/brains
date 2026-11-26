@@ -2,6 +2,7 @@ import { z } from "@brains/utils/zod";
 import { actorRefSchema } from "./actor-ref";
 import { SourceCitationSchema } from "./agent-response";
 import { defineBusContract, type BusContract } from "./bus-contract";
+import { defineChannel, type Channel } from "./channel";
 
 type A2APeerAnswerSchema = z.ZodObject<{
   state: z.ZodString;
@@ -376,3 +377,26 @@ export const a2aSharedEntityListContract: BusContract<
   response: sharedEntityListAskResponseSchema,
   delivery: "request",
 });
+
+export const a2aPeerTrustChangedPayloadSchema: z.ZodObject<{
+  domain: z.ZodString;
+  level: z.ZodEnum<{ trusted: "trusted"; public: "public" }>;
+}> = z.object({
+  domain: z.string().min(1),
+  level: z.enum(["trusted", "public"]),
+});
+
+export type A2APeerTrustChangedPayload = z.output<
+  typeof a2aPeerTrustChangedPayloadSchema
+>;
+
+/**
+ * A peer brain's inbound trust changed: granted at `trusted`, or revoked
+ * back to `public`. Heard by what keeps per-peer state, such as the room a
+ * homeserver keeps for each trusted peer.
+ */
+export const a2aPeerTrustChangedChannel: Channel<
+  A2APeerTrustChangedPayload,
+  unknown,
+  "a2a:peer-trust-changed"
+> = defineChannel("a2a:peer-trust-changed", a2aPeerTrustChangedPayloadSchema);

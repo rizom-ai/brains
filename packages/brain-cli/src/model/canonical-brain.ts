@@ -60,6 +60,9 @@ import { linkedInImportPackage } from "@brains/linkedin-import";
 import { createLinkedInBrokerProvider } from "@brains/linkedin-import/broker-provider";
 import { createOAuthBrokerPackage } from "@brains/oauth-broker";
 import webdavPackage from "@brains/webdav";
+import matrixServerPackage, {
+  matrixServerConfigFromEnv,
+} from "@brains/matrix-server";
 import playbooksPackage from "@brains/playbooks";
 import portfolioPackage from "@brains/portfolio";
 import profilePackage from "@brains/profile";
@@ -536,6 +539,13 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     packageCapability("webdav", "@brains/webdav", webdavPackage, {
       pluginId: "webdav",
     }),
+    packageCapability(
+      "matrix-server",
+      "@brains/matrix-server",
+      matrixServerPackage,
+      { pluginId: "matrix-server" },
+      (env): PluginConfig => matrixServerConfigFromEnv(env),
+    ),
   ],
   interfaces: [
     packageInterface(

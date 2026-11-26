@@ -154,6 +154,7 @@ export {
   type BatchJobStatus,
   type BrainCharacter,
   type ChannelDeliveryInput,
+  type ChannelDeliveryResult,
   type ContentVisibility,
   type DaemonHealth,
   type JobContext,

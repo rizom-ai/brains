@@ -10,9 +10,13 @@ import type { ScopedRuntimeUploadStore } from "@brains/sdk/internal/interface-ru
  */
 export type ChatThread = Thread<unknown>;
 
-export type ChatPlatform = "discord" | "slack";
+export type ChatPlatform = "discord" | "slack" | "matrix";
 
-export const CHAT_PLATFORMS: readonly ChatPlatform[] = ["discord", "slack"];
+export const CHAT_PLATFORMS: readonly ChatPlatform[] = [
+  "discord",
+  "slack",
+  "matrix",
+];
 
 export interface GatewayListenerOptions {
   waitUntil: (task: Promise<unknown>) => void;
@@ -42,6 +46,7 @@ export type ChatUploadStore = Pick<ScopedRuntimeUploadStore, "read" | "save">;
 export interface ChatAdapterMap {
   discord?: DiscordChatAdapter;
   slack?: SlackChatAdapter;
+  matrix?: Adapter;
 }
 
 export interface ChatWebhookMap {

@@ -92,21 +92,41 @@ export function isBotCreatedDiscordThread(
   return rawChannelId !== undefined && rawChannelId !== ids.threadId;
 }
 
+/**
+ * The platform's own channel id for Slack (`C123`) and Matrix
+ * (`!room:server`, URL-encoded in the thread id), the form an operator
+ * writes in allowedChannels and permission rules.
+ */
+function nativeChannelId(threadId: string): string | undefined {
+  const [platform, channel] = threadId.split(":");
+  if (!channel) return undefined;
+  if (platform === "slack") return channel;
+  if (platform === "matrix") return decodeURIComponent(channel);
+  return undefined;
+}
+
 export function isAllowedChannel(
   thread: RoutedThread,
   config: Pick<RoutingPolicyConfig, "allowedChannels">,
 ): boolean {
   if (config.allowedChannels.length === 0 || thread.isDM) return true;
   const ids = getThreadIdParts(thread.id);
-  const slackChannelId =
-    thread.id.split(":")[0] === "slack" ? thread.id.split(":")[1] : undefined;
   return [
     thread.id,
     thread.channelId,
     ids.channelId,
     ids.threadId,
-    slackChannelId,
+    nativeChannelId(thread.id),
   ].some((id) => typeof id === "string" && config.allowedChannels.includes(id));
+}
+
+/**
+ * Whether the platform says the author is a bot. The Chat SDK's `isBot`
+ * may be a string: the Matrix adapter reports `"unknown"` for everyone but
+ * itself, which is a person as far as routing is concerned.
+ */
+export function isKnownBot(author: { isBot: boolean | string }): boolean {
+  return author.isBot === true;
 }
 
 export function shouldRouteChatMessage(
@@ -116,7 +136,7 @@ export function shouldRouteChatMessage(
 ): boolean {
   if (thread.isDM && !config.allowDMs) return false;
   if (message.author.isMe) return false;
-  if (message.author.isBot && !message.isMention) return false;
+  if (isKnownBot(message.author) && !message.isMention) return false;
   return isAllowedChannel(thread, config);
 }
 
@@ -134,11 +154,9 @@ export function getPermissionContext(
   message: Pick<RoutedMessage, "author">,
 ): PermissionLookupContext {
   const ids = getThreadIdParts(thread.id);
-  const slackChannelId =
-    thread.id.split(":")[0] === "slack" ? thread.id.split(":")[1] : undefined;
   return {
-    channelId: ids.channelId ?? slackChannelId ?? thread.channelId,
-    isBot: Boolean(message.author.isBot),
+    channelId: ids.channelId ?? nativeChannelId(thread.id) ?? thread.channelId,
+    isBot: isKnownBot(message.author),
   };
 }
 

@@ -185,3 +185,141 @@ describe("provisioned OAuth clients", () => {
     }
   });
 });
+
+const MATRIX_CLIENT = {
+  ...CLIENT,
+  identityClaim: {
+    type: "matrix",
+    subjectPrefix: "@",
+    subjectSuffix: ":brain.example.com",
+  },
+};
+
+async function pkce(verifier: string): Promise<string> {
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(verifier),
+  );
+  return Buffer.from(digest).toString("base64url");
+}
+
+/** Sign a user in through a provisioned client and redeem the code. */
+async function signInThrough(
+  service: AuthService,
+  client: { clientId: string; clientSecret: string; redirectUris: string[] },
+  userId: string,
+): Promise<Response> {
+  const verifier = `verifier-${crypto.randomUUID()}`;
+  const session = await service.createAuthSession(userId);
+  const params = new URLSearchParams({
+    response_type: "code",
+    client_id: client.clientId,
+    redirect_uri: client.redirectUris[0] ?? "",
+    code_challenge: await pkce(verifier),
+    code_challenge_method: "S256",
+    scope: "openid profile",
+  });
+  const page = await service.handleRequest(
+    new Request(`${ISSUER}/authorize?${params}`, {
+      headers: { cookie: session.cookie },
+    }),
+  );
+  const approvalToken = (await page.text()).match(
+    /name="approval_token" value="([^"]+)"/,
+  )?.[1];
+  params.set("approval_token", approvalToken ?? "");
+  const approval = await service.handleRequest(
+    new Request(`${ISSUER}/authorize`, {
+      method: "POST",
+      headers: {
+        cookie: session.cookie,
+        "content-type": "application/x-www-form-urlencoded",
+      },
+      body: params.toString(),
+    }),
+  );
+  const code = new URL(approval.headers.get("location") ?? "").searchParams.get(
+    "code",
+  );
+  return service.handleRequest(
+    new Request(`${ISSUER}/token`, {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        grant_type: "authorization_code",
+        client_id: client.clientId,
+        client_secret: client.clientSecret,
+        code: code ?? "",
+        redirect_uri: client.redirectUris[0] ?? "",
+        code_verifier: verifier,
+      }).toString(),
+    }),
+  );
+}
+
+describe("a provisioned client's identity claim", () => {
+  it("records the identity a sign-in through the client proves, once and verified", async () => {
+    const service = new AuthService({
+      storageDir: await tempStorageDir(),
+      issuer: ISSUER,
+      isChannelTypeRegistered: (type): boolean => type === "matrix",
+    });
+    await service.provisionOAuthClient(MATRIX_CLIENT);
+    const user = await service.createUser({ displayName: "Ada Lovelace" });
+
+    expect(
+      (await signInThrough(service, MATRIX_CLIENT, user.userId)).status,
+    ).toBe(200);
+    expect(
+      (await signInThrough(service, MATRIX_CLIENT, user.userId)).status,
+    ).toBe(200);
+
+    const claims = (await service.listUserIdentities(user.userId)).filter(
+      (identity) => identity.type === "matrix",
+    );
+    expect(claims).toHaveLength(1);
+    expect(claims[0]).toMatchObject({
+      label: "@ada-lovelace:brain.example.com",
+      evidence: [
+        expect.objectContaining({
+          sourceKind: "provider",
+          sourceId: "matrix-homeserver",
+          assurance: "verified",
+        }),
+      ],
+    });
+  });
+
+  it("records nothing for a client that declares no identity", async () => {
+    const service = new AuthService({
+      storageDir: await tempStorageDir(),
+      issuer: ISSUER,
+      isChannelTypeRegistered: (type): boolean => type === "matrix",
+    });
+    await service.provisionOAuthClient(CLIENT);
+    const user = await service.createUser({ displayName: "Ada Lovelace" });
+
+    await signInThrough(service, CLIENT, user.userId);
+
+    expect(
+      (await service.listUserIdentities(user.userId)).filter(
+        (identity) => identity.type === "matrix",
+      ),
+    ).toEqual([]);
+  });
+
+  it("still signs the person in when the claim's channel is not registered", async () => {
+    const service = new AuthService({
+      storageDir: await tempStorageDir(),
+      issuer: ISSUER,
+      isChannelTypeRegistered: (): boolean => false,
+    });
+    await service.provisionOAuthClient(MATRIX_CLIENT);
+    const user = await service.createUser({ displayName: "Ada Lovelace" });
+
+    const response = await signInThrough(service, MATRIX_CLIENT, user.userId);
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toHaveProperty("id_token");
+  });
+});

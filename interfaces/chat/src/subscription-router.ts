@@ -1,5 +1,6 @@
 import type { Message } from "chat";
 import type { ChatThread } from "./types";
+import { isKnownBot } from "./discord-routing";
 import type {
   ChatThreadSubscriptionState,
   ChatThreadSubscriptionStore,
@@ -104,7 +105,7 @@ export class SubscriptionRouter {
     try {
       const participants = await thread.getParticipants();
       const humanParticipants = participants.filter(
-        (participant) => !participant.isBot && !participant.isMe,
+        (participant) => !isKnownBot(participant) && !participant.isMe,
       );
       return humanParticipants.length > 1;
     } catch (error) {

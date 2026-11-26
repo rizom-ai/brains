@@ -1,4 +1,7 @@
-import { authenticatedUserId } from "@brains/contracts";
+import {
+  a2aPeerTrustChangedChannel,
+  authenticatedUserId,
+} from "@brains/contracts";
 import { keyFingerprint } from "@brains/http-signatures";
 import { z } from "@brains/utils/zod";
 import { AGENT_ENTITY_TYPE } from "../lib/constants";
@@ -42,7 +45,10 @@ const agentSetStandingInputSchema = z.object({
 
 type AgentSetStandingInput = z.infer<typeof agentSetStandingInputSchema>;
 
-type AgentSetStandingContext = Pick<AgentContext, "entityService" | "auth">;
+type AgentSetStandingContext = Pick<
+  AgentContext,
+  "entityService" | "auth" | "messaging"
+>;
 
 const ONE_CHANGE =
   "Set either contact (approved or archived) or level (trusted or public), one per call.";
@@ -251,6 +257,10 @@ export function createAgentSetStandingTool(
             },
             actorUserId ? { actorUserId } : {},
           );
+          await context.messaging.broadcast(a2aPeerTrustChangedChannel, {
+            domain: resolved.domain,
+            level: "trusted",
+          });
           return {
             success: true,
             data: {
@@ -265,6 +275,10 @@ export function createAgentSetStandingTool(
           resolved.domain,
           actorUserId ? { actorUserId } : {},
         );
+        await context.messaging.broadcast(a2aPeerTrustChangedChannel, {
+          domain: resolved.domain,
+          level: "public",
+        });
         return {
           success: true,
           data: {

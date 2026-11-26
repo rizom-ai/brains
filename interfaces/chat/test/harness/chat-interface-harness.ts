@@ -14,6 +14,7 @@ import { z } from "@brains/utils/zod";
 import type {
   ChatConfigInput,
   DiscordChatAdapterConfig,
+  MatrixChatAdapterConfig,
   SlackChatAdapterConfig,
 } from "../../src/config";
 import type { ChatFetch } from "../../src/chat-input-builder";
@@ -110,9 +111,35 @@ type HarnessFetch = (
   init?: RequestInit,
 ) => Promise<Response>;
 
+export interface MockMatrixAdapter {
+  name: "matrix";
+  openDM: Mock<(userId: string) => Promise<string>>;
+}
+
+export interface MatrixAdapterFactoryConfig {
+  baseURL: string;
+  auth: {
+    type: "password";
+    username: string;
+    password: string;
+    userID: string;
+  };
+  userName?: string;
+  inviteAutoJoin?: {
+    inviterAllowlist?: string[];
+    accept?: (invite: {
+      roomID: string;
+      inviter: string | undefined;
+      isDirect: boolean;
+    }) => Promise<boolean>;
+  };
+  matrixSDKLogLevel?: string;
+}
+
 interface HarnessState {
   discordAdapter: MockDiscordAdapter | undefined;
   slackAdapter: MockSlackAdapter | undefined;
+  matrixAdapter: MockMatrixAdapter | undefined;
   resolveIdentityAccess: ResolveIdentityAccessMock | undefined;
   sdkInstances: MockChatSdk[];
   /** What the interface's attachment downloader reaches. Swap it per test. */
@@ -144,6 +171,7 @@ function state(): HarnessState {
 export interface LastAdapterAccess {
   discord: MockDiscordAdapter | undefined;
   slack: MockSlackAdapter | undefined;
+  matrix: MockMatrixAdapter | undefined;
 }
 
 /** The adapters the most recent mount built, scoped to the running test. */
@@ -159,6 +187,12 @@ export const lastAdapter: LastAdapterAccess = {
   },
   set slack(adapter: MockSlackAdapter | undefined) {
     state().slackAdapter = adapter;
+  },
+  get matrix(): MockMatrixAdapter | undefined {
+    return state().matrixAdapter;
+  },
+  set matrix(adapter: MockMatrixAdapter | undefined) {
+    state().matrixAdapter = adapter;
   },
 };
 
@@ -197,6 +231,18 @@ export const createSlackAdapterMock: Mock<
     ),
   };
   return lastAdapter.slack;
+});
+
+export const createMatrixAdapterMock: Mock<
+  (config: MatrixAdapterFactoryConfig) => MockMatrixAdapter
+> = mock((_config: MatrixAdapterFactoryConfig): MockMatrixAdapter => {
+  lastAdapter.matrix = {
+    name: "matrix",
+    openDM: mock((userId: string) =>
+      Promise.resolve(`matrix:${encodeURIComponent(`!dm-${userId}`)}`),
+    ),
+  };
+  return lastAdapter.matrix;
 });
 
 interface MockMemoryState {
@@ -413,6 +459,10 @@ void mock.module("@chat-adapter/discord", () => ({
 
 void mock.module("@chat-adapter/slack", () => ({
   createSlackAdapter: createSlackAdapterMock,
+}));
+
+void mock.module("@beeper/chat-adapter-matrix", () => ({
+  createMatrixAdapter: createMatrixAdapterMock,
 }));
 
 void mock.module("@chat-adapter/state-memory", () => ({
@@ -810,6 +860,18 @@ export const baseSlackConfig: SlackChatAdapterConfig = {
   captureUrls: false,
 };
 
+export const baseMatrixConfig: MatrixChatAdapterConfig = {
+  baseUrl: "https://brain.example.com",
+  userId: "@_brain:brain.example.com",
+  password: "matrix-bot-password",
+  allowedChannels: [],
+  blockedUrlDomains: [],
+  requireMention: true,
+  allowDMs: true,
+  showTypingIndicator: true,
+  captureUrls: false,
+};
+
 export const socketSlackConfig: SlackChatAdapterConfig = {
   ...baseSlackConfig,
   mode: "socket",
@@ -908,12 +970,14 @@ export function setupChatInterfaceTest(): ChatInterfaceTestContext {
     activeState = {
       discordAdapter: undefined,
       slackAdapter: undefined,
+      matrixAdapter: undefined,
       resolveIdentityAccess: undefined,
       sdkInstances: [],
       fetch: (): Promise<Response> => Promise.resolve(new Response("{}")),
     };
     createDiscordAdapterMock.mockClear();
     createSlackAdapterMock.mockClear();
+    createMatrixAdapterMock.mockClear();
     createMemoryStateMock.mockClear();
     context.agentService = createAgentService();
     context.harness = createPluginHarness<ChatInterfaceInstance>();
