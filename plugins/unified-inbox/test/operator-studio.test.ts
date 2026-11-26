@@ -29,14 +29,27 @@ it("does not mistake an unavailable source for an all-clear", async () => {
   expect(result).not.toContain("Nothing needs attention for these filters.");
 });
 
-it("gives an empty collection actionable guidance without a redundant pager", async () => {
+it("says an unfiltered empty inbox is clear, without blaming filters or a redundant pager", async () => {
   const { workspace } = await setup({ empty: true });
   const result = JSON.stringify(await workspace.dataProvider(admin, {}));
   expect(result).toContain('"id":"inbox-empty"');
+  expect(result).toContain("Nothing needs you right now.");
+  expect(result).toContain(
+    "Incoming messages from your sources appear here as they arrive.",
+  );
+  expect(result).not.toContain("these filters");
+  expect(result).not.toContain("Change Source or Urgency");
+  expect(result).not.toContain('"id":"inbox-pagination"');
+});
+it("points a filtered empty inbox at its filters", async () => {
+  const { workspace } = await setup({ empty: true });
+  const result = JSON.stringify(
+    await workspace.dataProvider(admin, { urgency: "high" }),
+  );
+  expect(result).toContain("Nothing needs attention for these filters.");
   expect(result).toContain(
     "Change Source or Urgency to inspect other incoming work.",
   );
-  expect(result).not.toContain('"id":"inbox-pagination"');
 });
 it("keeps selected source content when filtering leaves no matching rows", async () => {
   const { workspace } = await setup();
