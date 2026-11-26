@@ -1,13 +1,14 @@
-# The personal brain with its own Matrix homeserver. Before booting, start
-# the homeserver from packages/brain-cli:
+# The personal brain with its own Matrix homeserver. From packages/brain-cli,
+# export these in both shells, start the homeserver with
 #   bun ../../plugins/matrix-server/scripts/local-homeserver.ts
-# with the MATRIX_* values below exported in both shells.
+# then the app. The brain writes the homeserver's configuration and secrets
+# into MATRIX_DATA_DIR; nothing secret is set here.
 #   MATRIX_SERVER_NAME=localhost
 #   MATRIX_PUBLIC_URL=http://localhost:8080
-#   MATRIX_HOMESERVER_URL=http://127.0.0.1:18008
-#   MATRIX_BASE_URL=http://localhost:8080        # the chat bot goes through the brain
+#   MATRIX_HOMESERVER_URL=http://127.0.0.1:8008
+#   MATRIX_DATA_DIR=<a directory both share>
+#   MATRIX_BASE_URL=http://localhost:8080     # the chat bot goes through the brain
 #   MATRIX_USER_ID=@_brain:localhost
-#   MATRIX_PASSWORD, MATRIX_REGISTRATION_TOKEN, MATRIX_OIDC_CLIENT_SECRET
 brain: brain
 bundleContract: capability-bundles-v1
 anchor: person

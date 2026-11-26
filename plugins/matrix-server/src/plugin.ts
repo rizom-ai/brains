@@ -7,14 +7,22 @@ import {
   serviceRuntime,
   withWebRoutes,
 } from "@brains/sdk/internal/service-runtime";
-import { a2aPeerTrustChangedChannel } from "@brains/contracts";
+import {
+  a2aPeerTrustChangedChannel,
+  matrixBotCredentialsContract,
+} from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { ensureBotAccount, type MatrixFetch } from "./bot-account";
 import {
   HOMESERVER_CLIENT_ID,
   homeserverCallbackUrl,
 } from "./homeserver-config";
-import { PeerRooms } from "./peer-rooms";
+import {
+  ensureHomeserverConfig,
+  readHomeserverSecrets,
+  type HomeserverSecrets,
+} from "./homeserver-secrets";
+import { BRAIN_BOT_LOCALPART, PeerRooms } from "./peer-rooms";
 import { forwardingRoutes, wellKnownRoutes } from "./routes";
 
 /** How long to wait before asking a homeserver that is still starting again. */
@@ -24,10 +32,7 @@ export const matrixServerConfigSchema: z.ZodObject<{
   homeserverUrl: z.ZodURL;
   serverName: z.ZodString;
   publicBaseUrl: z.ZodOptional<z.ZodURL>;
-  botUserId: z.ZodString;
-  botPassword: z.ZodString;
-  registrationToken: z.ZodString;
-  oidcClientSecret: z.ZodString;
+  dataDir: z.ZodString;
 }> = z.strictObject({
   homeserverUrl: z
     .url()
@@ -40,19 +45,12 @@ export const matrixServerConfigSchema: z.ZodObject<{
     .url()
     .optional()
     .describe("The brain's public origin; https://<serverName> by default"),
-  botUserId: z
+  dataDir: z
     .string()
-    .regex(/^@[a-z0-9._=/+-]+:[A-Za-z0-9.-]+(:[0-9]+)?$/)
-    .describe("The bot's full Matrix user id"),
-  botPassword: z.string().min(16).describe("The bot's Matrix password"),
-  registrationToken: z
-    .string()
-    .min(16)
-    .describe("The token that alone opens registration on the homeserver"),
-  oidcClientSecret: z
-    .string()
-    .min(32)
-    .describe("The secret the homeserver signs people in to the brain with"),
+    .min(1)
+    .describe(
+      "The directory the brain shares with the homeserver, where the brain writes its configuration",
+    ),
 });
 
 export type MatrixServerConfig = z.output<typeof matrixServerConfigSchema>;
@@ -79,29 +77,73 @@ export function createMatrixServerPackage(
     config: matrixServerConfigSchema,
     setup: (context): MatrixServerState => {
       const runtime = serviceRuntime(context);
-      // A job worker serves no HTTP and leaves the homeserver alone.
-      if (runtime.executionOnly) return { routes: [] };
-
       const config = context.config;
       const publicBaseUrl = (
         config.publicBaseUrl ?? `https://${config.serverName}`
       ).replace(/\/+$/, "");
+      const botUserId = `@${BRAIN_BOT_LOCALPART}:${config.serverName}`;
+
+      // The main process writes the homeserver's configuration, keeping the
+      // secrets it already holds; a job worker only reads them.
+      const secrets: Promise<HomeserverSecrets | undefined> =
+        runtime.executionOnly
+          ? readHomeserverSecrets(config.dataDir)
+          : ensureHomeserverConfig({
+              dataDir: config.dataDir,
+              serverName: config.serverName,
+              publicBaseUrl,
+            }).then(({ secrets: held, changed }) => {
+              if (changed) {
+                runtime.logger.info(
+                  "Wrote the homeserver configuration; the homeserver reads it when it starts",
+                );
+              }
+              return held;
+            });
+      // Keep a failed read from going unhandled until someone asks.
+      secrets.catch((error: unknown) =>
+        runtime.logger.error("Homeserver configuration unavailable", { error }),
+      );
+      const requireSecrets = async (): Promise<HomeserverSecrets> => {
+        const held = await secrets;
+        if (!held)
+          throw new Error("The homeserver configuration is not written yet");
+        return held;
+      };
+
+      runtime.answer(
+        matrixBotCredentialsContract,
+        async () => ({
+          userId: botUserId,
+          password: (await requireSecrets()).botPassword,
+        }),
+        { everyProcess: true },
+      );
+
+      // A job worker serves no HTTP and leaves the homeserver alone.
+      if (runtime.executionOnly) return { routes: [] };
 
       // A room per trusted peer, opened and closed as trust changes.
-      const peerRooms = new PeerRooms({
-        homeserverUrl: config.homeserverUrl,
-        serverName: config.serverName,
-        botUserId: config.botUserId,
-        botPassword: config.botPassword,
-        ...(deps.fetch ? { fetch: deps.fetch } : {}),
-      });
+      const peerRooms = secrets.then(
+        (held) =>
+          held &&
+          new PeerRooms({
+            homeserverUrl: config.homeserverUrl,
+            serverName: config.serverName,
+            botUserId,
+            botPassword: held.botPassword,
+            ...(deps.fetch ? { fetch: deps.fetch } : {}),
+          }),
+      );
       runtime.listen(
         a2aPeerTrustChangedChannel,
         async ({ payload }) => {
           try {
+            const rooms = await peerRooms;
+            if (!rooms) return;
             await (payload.level === "trusted"
-              ? peerRooms.trusted(payload.domain)
-              : peerRooms.revoked(payload.domain));
+              ? rooms.trusted(payload.domain)
+              : rooms.revoked(payload.domain));
           } catch (error) {
             runtime.logger.warn("Could not update the peer's Matrix room", {
               error,
@@ -114,11 +156,12 @@ export function createMatrixServerPackage(
       );
 
       runtime.ready(async () => {
+        const held = await requireSecrets();
         // Provisioning again on each start keeps the secret in step with
         // the one the homeserver's configuration was written with.
         await runtime.auth()?.provisionOAuthClient({
           clientId: HOMESERVER_CLIENT_ID,
-          clientSecret: config.oidcClientSecret,
+          clientSecret: held.oidcClientSecret,
           clientName: "Matrix homeserver",
           redirectUris: [homeserverCallbackUrl(publicBaseUrl)],
           // A sign-in through the homeserver proves the person's Matrix id,
@@ -134,14 +177,14 @@ export function createMatrixServerPackage(
           try {
             const outcome = await ensureBotAccount({
               homeserverUrl: config.homeserverUrl,
-              userId: config.botUserId,
-              password: config.botPassword,
-              registrationToken: config.registrationToken,
+              userId: botUserId,
+              password: held.botPassword,
+              registrationToken: held.registrationToken,
               ...(deps.fetch ? { fetch: deps.fetch } : {}),
             });
             if (outcome === "registered") {
               runtime.logger.info("Registered the Matrix bot account", {
-                userId: config.botUserId,
+                userId: botUserId,
               });
             }
           } catch (error) {
@@ -160,6 +203,11 @@ export function createMatrixServerPackage(
           ...forwardingRoutes({
             homeserverUrl: config.homeserverUrl,
             ...(deps.fetch ? { fetch: deps.fetch } : {}),
+            onUnreachable: (error, path): void =>
+              runtime.logger.warn("The homeserver did not answer", {
+                error,
+                path,
+              }),
           }),
         ],
       };

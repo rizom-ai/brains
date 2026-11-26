@@ -31,6 +31,8 @@ const HOP_HEADERS = new Set([
 export interface ForwardOptions {
   homeserverUrl: string;
   fetch?: MatrixFetch;
+  /** Told why a request could not reach the homeserver. */
+  onUnreachable?: (error: unknown, path: string) => void;
 }
 
 /**
@@ -67,7 +69,8 @@ export async function forwardToHomeserver(
         [...response.headers].filter(([name]) => !HOP_HEADERS.has(name)),
       ),
     });
-  } catch {
+  } catch (error) {
+    options.onUnreachable?.(error, incoming.pathname);
     // An unreachable homeserver is a gateway failure, in Matrix's error shape.
     return Response.json(
       { errcode: "M_UNKNOWN", error: "The homeserver is not reachable" },

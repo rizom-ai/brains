@@ -23,6 +23,11 @@ interface CreateChatSdkAppOptions {
   discord: DiscordChatAdapterConfig | undefined;
   slack: SlackChatAdapterConfig | undefined;
   matrix: MatrixChatAdapterConfig | undefined;
+  /**
+   * Holds the bot's password, read when the adapter logs in: from config,
+   * or filled in from the brain's own homeserver before the app starts.
+   */
+  matrixCredentials?: { password: string | undefined } | undefined;
   /** Which Matrix invites the bot accepts; direct ones while DMs are allowed, if unset. */
   acceptMatrixInvite?: ((invite: MatrixInvite) => Promise<boolean>) | undefined;
   /** Long-lived adapters are handed to their daemon-owned listener loops. */
@@ -96,7 +101,10 @@ export function createChatSdkApp(options: CreateChatSdkAppOptions): ChatSdkApp {
         auth: {
           type: "password",
           username: matrix.userId.slice(1).split(":")[0] ?? "",
-          password: matrix.password,
+          // Read at login, not here: the password may arrive after setup.
+          get password(): string {
+            return options.matrixCredentials?.password ?? matrix.password ?? "";
+          },
           userID: matrix.userId,
         },
         userName: options.userName,

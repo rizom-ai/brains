@@ -11,19 +11,28 @@ import {
 } from "@brains/plugins/test";
 import {
   a2aPeerTrustChangedChannel,
+  matrixBotCredentialsContract,
   type ProvisionOAuthClientInput,
 } from "@brains/contracts";
+import { mkdtemp } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { createMatrixServerPackage } from "../src";
+import { readHomeserverSecrets } from "../src/homeserver-secrets";
 import packageJson from "../package.json";
 
-const CONFIG = {
-  homeserverUrl: "http://homeserver.internal:8008",
-  serverName: "brain.example.com",
-  botUserId: "@_brain:brain.example.com",
-  botPassword: "bot-password-0123456789",
-  registrationToken: "registration-token-0123456789",
-  oidcClientSecret: "client-secret-0123456789abcdefghijkl",
-};
+/** A config with its own data directory, so no two tests share secrets. */
+async function freshConfig(): Promise<{
+  homeserverUrl: string;
+  serverName: string;
+  dataDir: string;
+}> {
+  return {
+    homeserverUrl: "http://homeserver.internal:8008",
+    serverName: "brain.example.com",
+    dataDir: await mkdtemp(join(tmpdir(), "brains-matrix-server-")),
+  };
+}
 
 type Fetch = (
   input: string | URL | Request,
@@ -36,7 +45,9 @@ async function installed(
   plugins: Plugin[];
   routes: WebRouteDefinition[];
   provisioned: ProvisionOAuthClientInput[];
+  dataDir: string;
 }> {
+  const CONFIG = await freshConfig();
   const shell = createMockShell();
   const provisioned: ProvisionOAuthClientInput[] = [];
   shell.getAuthRegistry().bindBackend(
@@ -61,6 +72,7 @@ async function installed(
     plugins,
     routes: plugins.flatMap((plugin) => plugin.getWebRoutes?.() ?? []),
     provisioned,
+    dataDir: CONFIG.dataDir,
   };
 }
 
@@ -92,7 +104,7 @@ describe("the matrix-server plugin", () => {
 
   it("provisions the homeserver's sign-in client and checks the bot when the brain is ready", async () => {
     const requests: string[] = [];
-    const { plugins, provisioned } = await installed({
+    const { plugins, provisioned, dataDir } = await installed({
       fetch: async (input) => {
         requests.push(new URL(String(input)).pathname);
         return Response.json({ access_token: "t" });
@@ -103,10 +115,12 @@ describe("the matrix-server plugin", () => {
       plugins.map((plugin) => plugin.ready?.() ?? Promise.resolve()),
     );
 
+    const held = await readHomeserverSecrets(dataDir);
+    if (!held) throw new Error("Expected the homeserver configuration");
     expect(provisioned).toEqual([
       {
         clientId: "matrix-homeserver",
-        clientSecret: CONFIG.oidcClientSecret,
+        clientSecret: held.oidcClientSecret,
         clientName: "Matrix homeserver",
         redirectUris: [
           "https://brain.example.com/_matrix/client/unstable/login/sso/callback/matrix-homeserver",
@@ -124,6 +138,7 @@ describe("the matrix-server plugin", () => {
 
 describe("rooms for trusted peers, as the plugin hears them", () => {
   it("opens the peer's room when its trust is granted, and closes it on a revoke", async () => {
+    const CONFIG = await freshConfig();
     const requests: string[] = [];
     const shell = createMockShell();
     shell
@@ -174,5 +189,49 @@ describe("rooms for trusted peers, as the plugin hears them", () => {
       "POST /_matrix/client/v3/rooms/!peer:brain.example.com/kick",
       "PUT /_matrix/client/v3/rooms/!peer:brain.example.com/state/m.room.server_acl/",
     ]);
+  });
+});
+
+describe("the bot's credentials", () => {
+  it("are answered in the main process and in the job worker alike", async () => {
+    const CONFIG = await freshConfig();
+    const main = createMockShell();
+    await registerAll(
+      main,
+      instantiatePluginPackageDefinition(
+        createMatrixServerPackage(),
+        CONFIG,
+        { name: packageJson.name, version: packageJson.version },
+        { pluginId: "matrix-server" },
+      ),
+    );
+    const fromMain = await main.getMessageBus().send({
+      type: matrixBotCredentialsContract.name,
+      payload: {},
+      sender: "chat",
+    });
+    const worker = createMockShell();
+    await registerAll(
+      worker,
+      instantiatePluginPackageDefinition(
+        createMatrixServerPackage(),
+        CONFIG,
+        { name: packageJson.name, version: packageJson.version },
+        { pluginId: "matrix-server" },
+      ),
+      { executionOnly: true },
+    );
+    const fromWorker = await worker.getMessageBus().send({
+      type: matrixBotCredentialsContract.name,
+      payload: {},
+      sender: "chat",
+    });
+
+    const expected = {
+      userId: "@_brain:brain.example.com",
+      password: (await readHomeserverSecrets(CONFIG.dataDir))?.botPassword,
+    };
+    expect(fromMain).toMatchObject({ success: true, data: expected });
+    expect(fromWorker).toMatchObject({ success: true, data: expected });
   });
 });

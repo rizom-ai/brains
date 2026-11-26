@@ -1,4 +1,8 @@
-import { spaceNoticeContract, type AgentResponse } from "@brains/contracts";
+import {
+  matrixBotCredentialsContract,
+  spaceNoticeContract,
+  type AgentResponse,
+} from "@brains/contracts";
 import {
   interfaceRuntime,
   withChannels,
@@ -45,7 +49,11 @@ import { SubscriptionRouter } from "./subscription-router";
 import { ChatInputBuilder, type ChatFetch } from "./chat-input-builder";
 import { postSpaceNotice } from "./space-notice";
 import { ChannelNames } from "./channel-names";
-import { MATRIX_USER_ID_PATTERN, MatrixDelivery } from "./matrix-delivery";
+import {
+  MATRIX_USER_ID_PATTERN,
+  MatrixDelivery,
+  checkMatrixLogin,
+} from "./matrix-delivery";
 import { matrixInviteDecision } from "./matrix-invites";
 import type { ChatIdentityAccess } from "./chat-identity";
 import {
@@ -69,9 +77,27 @@ const MAX_PROMPT_ACTIONS = 1000;
 const CHAT_INTERFACE_ID = "chat";
 
 /** Delivery on the matrix channel, available whenever Matrix is configured. */
+/**
+ * The bot's password from the brain's own homeserver, for a brain whose
+ * config names none: the matrix-server plugin writes it with the
+ * homeserver's configuration and answers in every process.
+ */
+async function homeserverBotPassword(
+  runtime: Pick<InterfaceRuntime, "request">,
+): Promise<string> {
+  const answer = await runtime.request(matrixBotCredentialsContract, {});
+  if (answer.status !== "answered") {
+    throw new Error(
+      "No Matrix password: set adapters.matrix.password, or add the matrix bundle so the brain's homeserver provides it",
+    );
+  }
+  return answer.data.password;
+}
+
 function matrixDelivery(
   config: MatrixChatAdapterConfig,
   fetchFn: ChatFetch | undefined,
+  askPassword: () => Promise<string>,
 ): {
   isAvailable(): Promise<boolean>;
   send(input: ChannelDeliveryInput): Promise<ChannelDeliveryResult>;
@@ -79,7 +105,7 @@ function matrixDelivery(
   const delivery = new MatrixDelivery({
     baseUrl: config.baseUrl,
     userId: config.userId,
-    password: config.password,
+    password: config.password ?? askPassword,
     ...(fetchFn ? { fetch: fetchFn } : {}),
   });
   return {
@@ -116,6 +142,15 @@ interface ChatState {
   readonly gatewayLoop: DiscordGatewayLoop;
   readonly slackSocketLoop: SlackSocketLoop;
   readonly chatApp: ChatSdkAppHost;
+  /** The Matrix bot's password, when it comes from the brain's homeserver. */
+  readonly matrixCredentials: { password: string | undefined };
+  /** Fills in the Matrix bot's password before the app logs in. */
+  readonly prepareMatrix: () => Promise<void>;
+  readonly logger: {
+    warn: (message: string, context?: Record<string, unknown>) => void;
+  };
+  /** The next try at starting while the homeserver is not up yet. */
+  startRetry: ReturnType<typeof setTimeout> | undefined;
   chatAppRunning: boolean;
 }
 
@@ -183,6 +218,9 @@ export function createChatInterface(
         host: runtime,
         logger,
       });
+      const matrixCredentials: { password: string | undefined } = {
+        password: undefined,
+      };
       const state: ChatState = {
         threadRegistry,
         toolStatusMessenger,
@@ -239,6 +277,7 @@ export function createChatInterface(
               discord: config.adapters.discord,
               slack: config.adapters.slack,
               matrix: config.adapters.matrix,
+              matrixCredentials,
               ...(config.adapters.matrix
                 ? {
                     acceptMatrixInvite: matrixInviteDecision({
@@ -252,6 +291,21 @@ export function createChatInterface(
               runtimeState,
             }),
         }),
+        matrixCredentials,
+        prepareMatrix: async (): Promise<void> => {
+          const matrix = config.adapters.matrix;
+          if (!matrix) return;
+          matrixCredentials.password ??=
+            matrix.password ?? (await homeserverBotPassword(runtime));
+          await checkMatrixLogin({
+            baseUrl: matrix.baseUrl,
+            userId: matrix.userId,
+            password: matrixCredentials.password,
+            fetch: deps.fetch,
+          });
+        },
+        logger,
+        startRetry: undefined,
         chatAppRunning: false,
       };
 
@@ -359,49 +413,54 @@ export function createChatInterface(
   });
 
   /** One channel per configured platform, in the worker too. */
-  const withPlatformChannels = withChannels(chat, ({ config }) => [
-    ...(config.adapters.discord
-      ? [
-          {
-            descriptor: {
-              type: "discord",
-              displayName: "Discord",
-              subjectLabel: "Discord user ID",
-              subjectPattern: { source: "^[0-9]{17,20}$" },
-              manualDelivery: true,
+  const withPlatformChannels = withChannels(chat, (context) => {
+    const { config } = context;
+    return [
+      ...(config.adapters.discord
+        ? [
+            {
+              descriptor: {
+                type: "discord",
+                displayName: "Discord",
+                subjectLabel: "Discord user ID",
+                subjectPattern: { source: "^[0-9]{17,20}$" },
+                manualDelivery: true,
+              },
             },
-          },
-        ]
-      : []),
-    ...(config.adapters.slack
-      ? [
-          {
-            descriptor: {
-              type: "slack",
-              displayName: "Slack",
-              subjectLabel: "Slack member ID",
-              subjectPattern: { source: "^[UW][A-Z0-9]+$" },
-              manualDelivery: true,
+          ]
+        : []),
+      ...(config.adapters.slack
+        ? [
+            {
+              descriptor: {
+                type: "slack",
+                displayName: "Slack",
+                subjectLabel: "Slack member ID",
+                subjectPattern: { source: "^[UW][A-Z0-9]+$" },
+                manualDelivery: true,
+              },
             },
-          },
-        ]
-      : []),
-    ...(config.adapters.matrix
-      ? [
-          {
-            descriptor: {
-              type: "matrix",
-              displayName: "Matrix",
-              subjectLabel: "Matrix user ID",
-              subjectPattern: { source: MATRIX_USER_ID_PATTERN.source },
+          ]
+        : []),
+      ...(config.adapters.matrix
+        ? [
+            {
+              descriptor: {
+                type: "matrix",
+                displayName: "Matrix",
+                subjectLabel: "Matrix user ID",
+                subjectPattern: { source: MATRIX_USER_ID_PATTERN.source },
+              },
+              // Straight to the homeserver: the worker delivers too, and no
+              // Matrix sync runs there.
+              delivery: matrixDelivery(config.adapters.matrix, deps.fetch, () =>
+                homeserverBotPassword(interfaceRuntime(context)),
+              ),
             },
-            // Straight to the homeserver: the worker delivers too, and no
-            // Matrix sync runs there.
-            delivery: matrixDelivery(config.adapters.matrix, deps.fetch),
-          },
-        ]
-      : []),
-  ]);
+          ]
+        : []),
+    ];
+  });
 
   /** The Discord and Slack webhooks, delegated to the Chat SDK app. */
   const withWebhooks = withWebRoutes(
@@ -426,12 +485,36 @@ export function createChatInterface(
       return {
         id: CHAT_INTERFACE_ID,
         start: async (): Promise<void> => {
-          await state.chatApp.initialize();
-          state.chatAppRunning = true;
-          if (discordEnabled) state.gatewayLoop.start();
-          if (slackSocketEnabled) state.slackSocketLoop.start();
+          const startApp = async (): Promise<void> => {
+            await state.prepareMatrix();
+            await state.chatApp.initialize();
+            state.chatAppRunning = true;
+            if (discordEnabled) state.gatewayLoop.start();
+            if (slackSocketEnabled) state.slackSocketLoop.start();
+          };
+          if (!config.adapters.matrix) return startApp();
+          // A homeserver started beside the brain may come up after it, as
+          // on a first deploy, so the app keeps trying instead of failing
+          // for good; health reports it stopped until it connects.
+          const attempt = async (delayMs: number): Promise<void> => {
+            try {
+              await startApp();
+            } catch (error) {
+              state.logger.warn("Chat could not start yet; trying again", {
+                error,
+                retryInMs: delayMs,
+              });
+              state.startRetry = setTimeout(
+                () => void attempt(Math.min(delayMs * 2, 30_000)),
+                delayMs,
+              );
+            }
+          };
+          await attempt(config.gatewayRestartDelayMs);
         },
         stop: async (): Promise<void> => {
+          clearTimeout(state.startRetry);
+          state.startRetry = undefined;
           await state.gatewayLoop.stop();
           await state.slackSocketLoop.stop();
           state.threadRegistry.clear();

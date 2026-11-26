@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { matrixBotCredentialsContract } from "@brains/contracts";
 import { chatConfigFromEnv } from "../src/config-from-env";
 import { chatConfigSchema } from "../src/config";
 import { toPlatformPostOutput } from "../src/chat-output";
@@ -19,6 +20,11 @@ import {
 } from "./harness/chat-interface-harness";
 
 const ROOM_ID = "!room:brain.example.com";
+
+/** A homeserver that accepts the bot's login, for daemons that check it first. */
+const loginAccepted = {
+  fetch: async (): Promise<Response> => Response.json({ access_token: "t" }),
+};
 const ROOM_THREAD_ID = `matrix:${encodeURIComponent(ROOM_ID)}`;
 
 describe("Matrix in the chat interface", () => {
@@ -69,7 +75,11 @@ describe("Matrix in the chat interface", () => {
 
   it("starts the Chat SDK app, which starts Matrix sync, when the daemon starts", async () => {
     await suite.harness.installPlugin(
-      createChatPlugin({ adapters: { matrix: baseMatrixConfig } }),
+      createChatPlugin(
+        { adapters: { matrix: baseMatrixConfig } },
+        undefined,
+        loginAccepted,
+      ),
     );
     const daemon = suite.harness
       .getMockShell()
@@ -333,3 +343,133 @@ function createThreadLike(id: string): {
 } {
   return { id, channelId: ROOM_THREAD_ID, isDM: false };
 }
+
+describe("Matrix on the brain's own homeserver", () => {
+  const suite = setupChatInterfaceTest();
+  const { password: _password, ...withoutPassword } = baseMatrixConfig;
+
+  function answerCredentials(): void {
+    suite.harness
+      .getMockShell()
+      .getMessageBus()
+      .subscribe(matrixBotCredentialsContract.name, async () => ({
+        success: true,
+        data: {
+          userId: "@_brain:brain.example.com",
+          password: "from-homeserver",
+        },
+      }));
+  }
+
+  it("logs in with the password the brain's homeserver hands it when none is configured", async () => {
+    answerCredentials();
+    await suite.harness.installPlugin(
+      createChatPlugin(
+        { adapters: { matrix: withoutPassword } },
+        undefined,
+        loginAccepted,
+      ),
+    );
+    const daemon = suite.harness
+      .getMockShell()
+      .getDaemonRegistry()
+      .getByPlugin("chat")[0];
+
+    await daemon?.daemon.start();
+
+    expect(createMatrixAdapterMock.mock.calls[0]?.[0].auth.password).toBe(
+      "from-homeserver",
+    );
+  });
+
+  it("delivers with that password in the worker too", async () => {
+    answerCredentials();
+    const logins: unknown[] = [];
+    const plugin = createChatPlugin(
+      { adapters: { matrix: withoutPassword } },
+      undefined,
+      {
+        fetch: async (input, init) => {
+          const path = new URL(String(input)).pathname;
+          if (path.endsWith("/login")) {
+            logins.push(JSON.parse(String(init?.body)));
+            return Response.json({ access_token: "token" });
+          }
+          if (path.endsWith("/m.direct") && init?.method !== "PUT") {
+            return Response.json({ errcode: "M_NOT_FOUND" }, { status: 404 });
+          }
+          if (path.endsWith("/createRoom")) {
+            return Response.json({ room_id: "!dm:brain.example.com" });
+          }
+          return Response.json({ event_id: "$sent" });
+        },
+      },
+    );
+    await plugin.registerChannelsForExecution(suite.harness.getMockShell(), {
+      executionOnly: true,
+    });
+    const channels = suite.harness.getMockShell().getChannelRegistry();
+    channels.finalize();
+
+    const result = await channels.getDeliveryProvider("matrix")?.send({
+      recipient: "@alice:other.example",
+      subject: "Hi",
+      text: "Hello",
+      idempotencyKey: "d1",
+    });
+
+    expect(result).toEqual({ status: "sent", providerDeliveryId: "$sent" });
+    expect(logins[0]).toMatchObject({ password: "from-homeserver" });
+  });
+});
+
+describe("Matrix while the homeserver is still starting", () => {
+  const suite = setupChatInterfaceTest();
+
+  it("starts the app only once the bot can log in, and keeps trying until then", async () => {
+    let logins = 0;
+    await suite.harness.installPlugin(
+      createChatPlugin(
+        { adapters: { matrix: baseMatrixConfig }, gatewayRestartDelayMs: 1 },
+        undefined,
+        {
+          fetch: async (): Promise<Response> => {
+            logins += 1;
+            return logins < 3
+              ? Response.json(
+                  {
+                    errcode: "M_UNKNOWN",
+                    error: "The homeserver is not reachable",
+                  },
+                  { status: 502 },
+                )
+              : Response.json({ access_token: "t" });
+          },
+        },
+      ),
+    );
+    const chat = MockChatSdk.instances[0];
+    if (!chat) throw new Error("Expected the Chat SDK app");
+    const daemon = suite.harness
+      .getMockShell()
+      .getDaemonRegistry()
+      .getByPlugin("chat")[0];
+
+    await daemon?.daemon.start();
+    expect(chat.initialize).not.toHaveBeenCalled();
+    expect(await daemon?.daemon.healthCheck?.()).toMatchObject({
+      status: "error",
+    });
+    const deadline = Date.now() + 2000;
+    const healthy = async (): Promise<boolean> =>
+      (await daemon?.daemon.healthCheck?.())?.status === "healthy" ||
+      (Date.now() < deadline && (await Bun.sleep(5), healthy()));
+
+    expect(await healthy()).toBe(true);
+    expect(logins).toBe(3);
+    // The Chat SDK keeps its first initialization, failed or not, so it is
+    // asked once, when the login is known to work.
+    expect(chat.initialize).toHaveBeenCalledTimes(1);
+    await daemon?.daemon.stop();
+  });
+});
