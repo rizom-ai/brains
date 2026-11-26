@@ -18,6 +18,10 @@ type NotificationRecipientSchema = z.ZodDiscriminatedUnion<
       { type: z.ZodLiteral<"email">; address: z.ZodEmail },
       z.core.$strict
     >,
+    z.ZodObject<
+      { type: z.ZodLiteral<"matrix">; address: z.ZodString },
+      z.core.$strict
+    >,
   ]
 >;
 
@@ -26,6 +30,11 @@ export const notificationRecipientSchema: NotificationRecipientSchema =
     z.strictObject({
       type: z.literal("email"),
       address: z.email(),
+    }),
+    // A Matrix user id, delivered by DM through the matrix channel.
+    z.strictObject({
+      type: z.literal("matrix"),
+      address: z.string().regex(/^@[a-z0-9._=/+-]+:[A-Za-z0-9.-]+(:[0-9]+)?$/),
     }),
   ]);
 

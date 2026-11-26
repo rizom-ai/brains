@@ -301,3 +301,52 @@ describe("unset recipient env interpolation", () => {
     });
   }
 });
+
+describe("notifications to Matrix", () => {
+  it("delivers to a configured Matrix default recipient through the matrix channel", async () => {
+    const harness = createPluginHarness();
+    const sent: ChannelDeliveryInput[] = [];
+    const registry = harness.getMockShell().getChannelRegistry();
+    registry.registerDescriptor("chat", {
+      type: "matrix",
+      displayName: "Matrix",
+      subjectLabel: "Matrix user ID",
+    });
+    registry.registerDeliveryProvider("chat", {
+      channelType: "matrix",
+      isAvailable: async () => true,
+      send: async (input) => {
+        sent.push(input);
+        return { status: "sent" };
+      },
+    });
+
+    await harness.installPlugin(
+      notificationsPlugin({
+        defaultRecipient: {
+          type: "matrix",
+          address: "@mira:brain.example.com",
+        },
+      }),
+    );
+    await harness.finalizeRegistration();
+
+    const result = await harness.sendMessage(notificationsSendContract.name, {
+      title: "Deploy finished",
+      body: "The brain is up.",
+    });
+
+    expect(result).toEqual({ status: "sent" });
+    expect(sent[0]?.recipient).toBe("@mira:brain.example.com");
+  });
+
+  it("refuses a Matrix recipient that is not a full user id", () => {
+    expect(
+      sendNotificationSchema.safeParse({
+        title: "t",
+        body: "b",
+        recipient: { type: "matrix", address: "mira" },
+      }).success,
+    ).toBe(false);
+  });
+});
