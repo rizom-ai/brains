@@ -145,7 +145,8 @@ This is the heart of cross-brain discovery: **discovery never implies access.**
   record it the same way.
 - **Shared entities travel without a model.** A brain declares the
   `https://rizom.ai/ext/entity-sharing/v1` extension on its Agent Card and
-  serves an entity its owner marked `shared` to a peer it trusts, when a
+  serves an entity its owner marked `shared` to a peer it trusts (content
+  types only: the brain's own system records are never served or listed), when a
   signed `message/send` asks for it by type and id with the
   `X-A2A-Extensions` header. The request is answered before any model sees
   it, and every miss (not trusted, not shared, not published, not there) is

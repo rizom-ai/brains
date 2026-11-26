@@ -15,7 +15,13 @@ import {
   verifyStatement,
 } from "@brains/http-signatures";
 import { computeContentHash } from "@brains/utils/hash";
-import type { Plugin } from "@brains/plugins";
+import {
+  defineEntity,
+  defineEntityPackage,
+  instantiatePluginPackageDefinition,
+  type Plugin,
+} from "@brains/plugins";
+import { z } from "@brains/utils/zod";
 import { createPluginHarness } from "@brains/plugins/test";
 import { createSilentLogger, waitUntil } from "@brains/test-utils";
 import { createA2APlugin, routeOf } from "./a2a-plugin";
@@ -298,6 +304,45 @@ describe("the entity-sharing extension", () => {
 
     expect(response.status).toBe(404);
     expect(await response.json()).toEqual({ error: "Not found" });
+  });
+
+  it("serves and lists what its owner wrote, never the brain's own bookkeeping", async () => {
+    const brain = await serving("trusted");
+    // A system type keeps the brain's own records, stored as shared by
+    // default: nobody marked them for a peer.
+    for (const plugin of instantiatePluginPackageDefinition(
+      defineEntityPackage({
+        id: "ledgers",
+        entities: [
+          defineEntity({
+            type: "ledger",
+            classification: "system",
+            purpose: "What the brain keeps for itself.",
+            metadata: z.object({ title: z.string() }),
+          }),
+        ],
+      }),
+      {},
+      { name: "@fixture/ledgers", version: "0.0.0-test" },
+    )) {
+      await harness.installPlugin(plugin);
+    }
+    harness.addEntities([
+      {
+        id: "sync-ledger",
+        entityType: "ledger",
+        content: "---\ntitle: Sync ledger\n---\nWhat happened to which file.",
+        metadata: { title: "Sync ledger" },
+        visibility: "shared",
+      },
+    ]);
+
+    const listed = await ask(brain, listRequest);
+    expect(JSON.stringify(await listed.json())).not.toContain("sync-ledger");
+
+    const asked = await ask(brain, getRequest("ledger", "sync-ledger"));
+    expect(asked.status).toBe(404);
+    expect(await asked.json()).toEqual({ error: "Not found" });
   });
 
   it("never serves onward a copy it took from another brain", async () => {

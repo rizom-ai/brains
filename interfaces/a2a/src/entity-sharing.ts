@@ -39,6 +39,22 @@ export function entitySharingRequestOf(
     .find((request) => request.success)?.data;
 }
 
+/**
+ * Whether a type holds what an owner can share. A system type holds the
+ * brain's own records, which are stored as shared by default and were
+ * marked for nobody; a copy taken from another brain is its owner's.
+ */
+function isShareable(
+  entityReads: InterfaceRuntime["entityReads"],
+  entityType: string,
+): boolean {
+  return (
+    entityType !== SHARED_COPY_ENTITY_TYPE &&
+    entityReads.hasEntityType(entityType) &&
+    entityReads.getEntityTypeConfig(entityType).classification !== "system"
+  );
+}
+
 /** Sign a statement with this brain's key, naming the key. */
 export type StatementSigner = (
   statement: string,
@@ -47,8 +63,9 @@ export type StatementSigner = (
 /**
  * The shared entity a peer may take, signed, or nothing. Nothing is the one
  * answer for every miss: a caller who is not trusted, a type the brain does
- * not have, an entity that is absent, not published, restricted, or public,
- * a copy this brain took from another, or a brain that cannot sign. Only
+ * not have or keeps for itself, an entity that is absent, not published,
+ * restricted, or public, a copy this brain took from another, or a brain
+ * that cannot sign. Only
  * what an owner marked shared is served, and only its own; public entities
  * are pointed to, never copied.
  */
@@ -62,9 +79,7 @@ export async function readSharedEntity(
   if (!request || !sign || callerPermissionLevel !== "trusted") {
     return undefined;
   }
-  // Another brain's entity is its owner's to share, never this brain's.
-  if (request.entityType === SHARED_COPY_ENTITY_TYPE) return undefined;
-  if (!entityReads.hasEntityType(request.entityType)) return undefined;
+  if (!isShareable(entityReads, request.entityType)) return undefined;
   const entity = await entityReads.getEntity({
     entityType: request.entityType,
     id: request.id,
@@ -100,7 +115,7 @@ export async function listSharedEntities(
   if (callerPermissionLevel !== "trusted") return undefined;
   const types = entityReads
     .getEntityTypes()
-    .filter((entityType) => entityType !== SHARED_COPY_ENTITY_TYPE);
+    .filter((entityType) => isShareable(entityReads, entityType));
   const byType = await Promise.all(
     types.map((entityType) =>
       entityReads.listEntities({

@@ -179,6 +179,7 @@ export interface InterfaceRuntime {
     ICoreEntityService,
     | "hasEntityType"
     | "getEntityTypes"
+    | "getEntityTypeConfig"
     | "listEntities"
     | "getEntity"
     | "openAsset"
@@ -330,6 +331,7 @@ export interface InterfaceRuntimeBinding {
     ICoreEntityService,
     | "hasEntityType"
     | "getEntityTypes"
+    | "getEntityTypeConfig"
     | "listEntities"
     | "getEntity"
     | "openAsset"
@@ -455,6 +457,8 @@ function bindInterfaceRuntime(
     entityReads: Object.freeze({
       hasEntityType: (type: string) => binding.entityReads.hasEntityType(type),
       getEntityTypes: () => binding.entityReads.getEntityTypes(),
+      getEntityTypeConfig: (type: string) =>
+        binding.entityReads.getEntityTypeConfig(type),
       listEntities: binding.entityReads.listEntities.bind(binding.entityReads),
       getEntity: binding.entityReads.getEntity.bind(binding.entityReads),
       // A reference is not access: open only the reference of a record
