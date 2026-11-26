@@ -15,6 +15,8 @@ export interface AuthorizationCodeRecord {
   code_challenge: string;
   code_challenge_method: "S256";
   scope?: string;
+  /** The OpenID Connect nonce from the authorization request. */
+  nonce?: string;
   subject: string;
   created_at: number;
   expires_at: number;
@@ -26,6 +28,7 @@ export interface CreateAuthorizationCodeInput {
   redirectUri: string;
   codeChallenge: string;
   scope?: string;
+  nonce?: string;
   subject: string;
 }
 
@@ -71,6 +74,7 @@ export class RuntimeAuthorizationCodeStore implements AuthorizationCodePersisten
       code_challenge: input.codeChallenge,
       code_challenge_method: "S256",
       ...(input.scope ? { scope: input.scope } : {}),
+      ...(input.nonce ? { nonce: input.nonce } : {}),
       subject: input.subject,
       created_at: issuedAt,
       expires_at: issuedAt + AUTH_CODE_TTL_SECONDS,
@@ -130,6 +134,7 @@ export class RuntimeAuthorizationCodeStore implements AuthorizationCodePersisten
       code_challenge: row.pkceChallenge,
       code_challenge_method: "S256",
       ...(row.scope ? { scope: row.scope } : {}),
+      ...(row.nonce ? { nonce: row.nonce } : {}),
       subject: row.userId,
       created_at: row.createdAt,
       expires_at: row.expiresAt,
@@ -149,6 +154,7 @@ function codeToRow(
     redirectUri: record.redirect_uri,
     pkceChallenge: record.code_challenge,
     scope: record.scope ?? "",
+    nonce: record.nonce ?? null,
     expiresAt: record.expires_at,
     consumedAt: record.consumed_at ?? null,
     createdAt: record.created_at,

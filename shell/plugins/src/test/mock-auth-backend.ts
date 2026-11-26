@@ -48,6 +48,7 @@ export function createMockAuthBackend(
     grantA2APeerTrust: unstubbed("grantA2APeerTrust"),
     revokeA2APeerTrust: unstubbed("revokeA2APeerTrust"),
     getA2ASigningKey: unstubbed("getA2ASigningKey"),
+    provisionOAuthClient: unstubbed("provisionOAuthClient"),
     ...overrides,
   };
 }

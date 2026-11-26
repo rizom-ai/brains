@@ -434,6 +434,36 @@ export const authServicePackage: ServicePackageDefinition<
         handler,
       },
       {
+        path: "/.well-known/openid-configuration",
+        method: "GET",
+        public: true,
+        handler,
+      },
+      {
+        path: "/.well-known/openid-configuration",
+        method: "OPTIONS",
+        public: true,
+        handler,
+      },
+      {
+        path: "/userinfo",
+        method: "GET",
+        public: true,
+        handler,
+      },
+      {
+        path: "/userinfo",
+        method: "POST",
+        public: true,
+        handler,
+      },
+      {
+        path: "/userinfo",
+        method: "OPTIONS",
+        public: true,
+        handler,
+      },
+      {
         path: "/.well-known/jwks.json",
         method: "GET",
         public: true,

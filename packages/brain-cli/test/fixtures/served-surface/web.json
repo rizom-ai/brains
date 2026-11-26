@@ -406,6 +406,7 @@
       "issuer": "http://127.0.0.1:<port>",
       "authorization_endpoint": "http://127.0.0.1:<port>/authorize",
       "token_endpoint": "http://127.0.0.1:<port>/token",
+      "userinfo_endpoint": "http://127.0.0.1:<port>/userinfo",
       "registration_endpoint": "http://127.0.0.1:<port>/register",
       "revocation_endpoint": "http://127.0.0.1:<port>/revoke",
       "jwks_uri": "http://127.0.0.1:<port>/.well-known/jwks.json",
@@ -426,7 +427,17 @@
         "mcp"
       ],
       "subject_types_supported": ["public"],
-      "id_token_signing_alg_values_supported": ["ES256"]
+      "id_token_signing_alg_values_supported": ["ES256"],
+      "claims_supported": [
+        "iss",
+        "sub",
+        "aud",
+        "exp",
+        "iat",
+        "nonce",
+        "name",
+        "preferred_username"
+      ]
     }
   },
   {

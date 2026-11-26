@@ -26,7 +26,7 @@ import {
   InvitationDeliverySupervisor,
 } from "./invitation-delivery-supervisor";
 import { A2AKeyStore, AuthKeyStore } from "./key-store";
-import { OAuthEndpoints } from "./oauth-endpoints";
+import { OAuthEndpoints, type OpenIdProfile } from "./oauth-endpoints";
 import {
   PasskeyService,
   type PasskeyRegistrationUser,
@@ -218,6 +218,13 @@ export class AuthRuntime {
       resolveSession: async (request): Promise<AuthSessionRecord | undefined> =>
         (await this.resolveActiveSession(request))?.session,
       keyStore: this.keyStore,
+      getJwks: (): Promise<JwksResponse> => this.getJwks(),
+      resolveProfile: async (subject): Promise<OpenIdProfile | undefined> => {
+        const user = await this.getUserStore().ensureUsername(subject);
+        return user?.status === "active" && user.username
+          ? { name: user.displayName, preferredUsername: user.username }
+          : undefined;
+      },
       ...(options.clientMetadataDocumentResolver
         ? {
             clientMetadataDocumentResolver:

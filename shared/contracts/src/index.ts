@@ -187,6 +187,10 @@ export {
   type VerifiedAccessToken,
 } from "./auth-access";
 export {
+  provisionOAuthClientInputSchema,
+  type ProvisionOAuthClientInput,
+} from "./oauth-client";
+export {
   AUTH_ADMIN_MUTATION_ACTIONS,
   AUTH_BRAIN_ANCHOR_CONFIG_KINDS,
   AUTH_USER_ROLES,

@@ -22,6 +22,7 @@
 + auth-service|handler|GET|/.well-known/jwks.json|exact|true
 + auth-service|handler|GET|/.well-known/oauth-authorization-server|exact|true
 + auth-service|handler|GET|/.well-known/oauth-protected-resource|exact|true
++ auth-service|handler|GET|/.well-known/openid-configuration|exact|true
 + auth-service|handler|GET|/auth/account|exact|true
 + auth-service|handler|GET|/auth/admin/anchor|exact|true
 + auth-service|handler|GET|/auth/admin/audit|exact|true
@@ -31,12 +32,15 @@
 + auth-service|handler|GET|/login|exact|true
 + auth-service|handler|GET|/logout|exact|true
 + auth-service|handler|GET|/setup|exact|true
++ auth-service|handler|GET|/userinfo|exact|true
 + auth-service|handler|OPTIONS|/.well-known/jwks.json|exact|true
 + auth-service|handler|OPTIONS|/.well-known/oauth-authorization-server|exact|true
 + auth-service|handler|OPTIONS|/.well-known/oauth-protected-resource|exact|true
++ auth-service|handler|OPTIONS|/.well-known/openid-configuration|exact|true
 + auth-service|handler|OPTIONS|/register|exact|true
 + auth-service|handler|OPTIONS|/revoke|exact|true
 + auth-service|handler|OPTIONS|/token|exact|true
++ auth-service|handler|OPTIONS|/userinfo|exact|true
 + auth-service|handler|POST|/auth/account/mutations|exact|true
 + auth-service|handler|POST|/auth/account/passkeys/options|exact|true
 + auth-service|handler|POST|/auth/account/passkeys/verify|exact|true
@@ -48,6 +52,7 @@
 + auth-service|handler|POST|/register|exact|true
 + auth-service|handler|POST|/revoke|exact|true
 + auth-service|handler|POST|/token|exact|true
++ auth-service|handler|POST|/userinfo|exact|true
 + auth-service|handler|POST|/webauthn/auth/options|exact|true
 + auth-service|handler|POST|/webauthn/auth/verify|exact|true
 + auth-service|handler|POST|/webauthn/register/options|exact|true

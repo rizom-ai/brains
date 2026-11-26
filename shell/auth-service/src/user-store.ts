@@ -31,7 +31,7 @@ export async function requireAuthUser(
 }
 
 async function findAuthUser(
-  db: AuthRuntimeDB,
+  db: Pick<AuthRuntimeDB, "select">,
   userId: string,
 ): Promise<AuthUser | undefined> {
   const [user] = await db
@@ -159,6 +159,7 @@ export class AuthUserStore {
         role: "admin",
         status: "active",
         canonicalId: canonicalIdForUserId(id),
+        username: null,
         createdAt: now,
         updatedAt: now,
       } satisfies typeof authUsers.$inferInsert;
@@ -322,6 +323,7 @@ export class AuthUserStore {
         role: input.role ?? "public",
         status: input.status ?? "active",
         canonicalId: input.canonicalId ?? canonicalIdForUserId(id),
+        username: null,
         createdAt: now,
         updatedAt: now,
       } satisfies typeof authUsers.$inferInsert;
@@ -346,6 +348,43 @@ export class AuthUserStore {
 
   getUser(userId: string): Promise<AuthUser | undefined> {
     return findAuthUser(this.db, userId);
+  }
+
+  /**
+   * The user with a username, assigning one on first use. A username is
+   * derived from the display name once and never changes afterward, so a
+   * homeserver that keys accounts on it keeps the same account through a
+   * rename.
+   */
+  async ensureUsername(userId: string): Promise<AuthUser | undefined> {
+    return this.db.transaction(async (tx) => {
+      const user = await findAuthUser(tx, userId);
+      if (!user || user.username) return user;
+
+      const base = usernameBase(user.displayName);
+      const taken = new Set(
+        (
+          await tx
+            .select({ username: authUsers.username })
+            .from(authUsers)
+            .where(sql`${authUsers.username} LIKE ${`${base}%`}`)
+        ).flatMap((row) => (row.username ? [row.username] : [])),
+      );
+      // One more candidate than there are taken names, so one is free.
+      const username = Array.from({ length: taken.size + 1 }, (_, index) =>
+        index === 0 ? base : `${base}-${index + 1}`,
+      ).find((candidate) => !taken.has(candidate));
+      if (!username) throw new Error("No free username");
+
+      const [updated] = await tx
+        .update(authUsers)
+        .set({ username, updatedAt: Date.now() })
+        .where(
+          and(eq(authUsers.id, userId), sql`${authUsers.username} IS NULL`),
+        )
+        .returning();
+      return updated ?? (await findAuthUser(tx, userId));
+    });
   }
 
   async updateDisplayName(
@@ -504,6 +543,25 @@ export class AuthUserStore {
     }
     throw new Error("Cannot remove the last active admin user");
   }
+}
+
+const USERNAME_MAX_LENGTH = 32;
+
+/**
+ * Lowercase ASCII letters, digits and single hyphens. Leaving out `.`, `_`
+ * and the other characters a Matrix localpart allows keeps names such as
+ * `_brain` free for service accounts, which no person can then claim.
+ */
+function usernameBase(displayName: string): string {
+  const slug = displayName
+    .normalize("NFKD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, USERNAME_MAX_LENGTH)
+    .replace(/-+$/g, "");
+  return slug || "user";
 }
 
 function canonicalIdForUserId(userId: string): string {

@@ -21,6 +21,8 @@ import {
 import type { AuthKeyStore } from "./key-store";
 import type { AuthSessionRecord } from "./session-store";
 import { signJwt } from "./jwt";
+import { getBearerToken, verifyAccessToken } from "./token-verifier";
+import type { JwksResponse } from "./types";
 import {
   hasMatchingClientMetadataRedirectUri,
   hasMatchingRedirectUri,
@@ -54,6 +56,7 @@ interface AuthorizationApprovalTokenState {
   codeChallenge: string;
   scope?: string;
   state?: string;
+  nonce?: string;
   expiresAt: number;
 }
 
@@ -67,6 +70,13 @@ export interface OAuthEndpointsOptions {
    * nominal, so nothing could stand in for it without being asserted into one.
    */
   keyStore: Pick<AuthKeyStore, "getPrivateJwk">;
+  /** Verifies the access tokens presented to `/userinfo`. */
+  getJwks: () => Promise<JwksResponse>;
+  /**
+   * The profile of a token subject, or undefined when the subject is not an
+   * active user. Called only for `openid` requests.
+   */
+  resolveProfile: (subject: string) => Promise<OpenIdProfile | undefined>;
   clientMetadataDocumentResolver?: ClientMetadataDocumentResolver;
   clientMaintenanceIntervalMs?: number;
   /** Package-private deterministic clock for maintenance lifecycle tests. */
@@ -74,6 +84,35 @@ export interface OAuthEndpointsOptions {
   onClientMaintenanceError?: (error: unknown) => void;
   /** Attach scheduled maintenance to the owning service's admission scope. */
   runClientMaintenance?: (operation: () => Promise<void>) => Promise<void>;
+}
+
+/** The profile claims an ID token and `/userinfo` carry for one subject. */
+export interface OpenIdProfile {
+  name: string;
+  preferredUsername: string;
+}
+
+function hasScope(scope: string | undefined, name: string): boolean {
+  return scope?.split(/\s+/).includes(name) ?? false;
+}
+
+function profileClaims(
+  profile: OpenIdProfile | undefined,
+  scope: string | undefined,
+): { name?: string; preferred_username?: string } {
+  return profile && hasScope(scope, "profile")
+    ? { name: profile.name, preferred_username: profile.preferredUsername }
+    : {};
+}
+
+function bearerError(
+  status: 401 | 403,
+  error: "invalid_token" | "insufficient_scope",
+  description: string,
+): Response {
+  return jsonResponse({ error, error_description: description }, status, {
+    "WWW-Authenticate": `Bearer error="${error}", error_description="${description}"`,
+  });
 }
 
 function clientRegistrationSource(request: Request): string {
@@ -103,6 +142,10 @@ export class OAuthEndpoints {
     request: Request,
   ) => Promise<AuthSessionRecord | undefined>;
   private readonly keyStore: Pick<AuthKeyStore, "getPrivateJwk">;
+  private readonly getJwks: () => Promise<JwksResponse>;
+  private readonly resolveProfile: (
+    subject: string,
+  ) => Promise<OpenIdProfile | undefined>;
   private readonly clientMetadataDocumentResolver: ClientMetadataDocumentResolver;
   private readonly clientMaintenanceIntervalMs: number;
   private readonly clientMaintenanceClock: Clock.Clock | undefined;
@@ -126,6 +169,8 @@ export class OAuthEndpoints {
     this.refreshTokenStore = options.refreshTokenStore;
     this.resolveSession = options.resolveSession;
     this.keyStore = options.keyStore;
+    this.getJwks = options.getJwks;
+    this.resolveProfile = options.resolveProfile;
     this.clientMetadataDocumentResolver =
       options.clientMetadataDocumentResolver ??
       new ClientMetadataDocumentResolver();
@@ -206,6 +251,7 @@ export class OAuthEndpoints {
       redirectUri: validation.params.redirectUri,
       codeChallenge: validation.params.codeChallenge,
       ...(validation.params.scope ? { scope: validation.params.scope } : {}),
+      ...(validation.params.nonce ? { nonce: validation.params.nonce } : {}),
       subject: session.subject,
     });
 
@@ -233,6 +279,7 @@ export class OAuthEndpoints {
       codeChallenge: params.codeChallenge,
       ...(params.scope ? { scope: params.scope } : {}),
       ...(params.state ? { state: params.state } : {}),
+      ...(params.nonce ? { nonce: params.nonce } : {}),
       expiresAt:
         Math.floor(Date.now() / 1000) +
         AUTHORIZATION_APPROVAL_TOKEN_TTL_SECONDS,
@@ -257,7 +304,8 @@ export class OAuthEndpoints {
       stored.redirectUri === params.redirectUri &&
       stored.codeChallenge === params.codeChallenge &&
       stored.scope === params.scope &&
-      stored.state === params.state
+      stored.state === params.state &&
+      stored.nonce === params.nonce
     );
   }
 
@@ -287,6 +335,7 @@ export class OAuthEndpoints {
     const codeChallengeMethod = params.get("code_challenge_method");
     const requestedScope = params.get("scope") ?? undefined;
     const state = params.get("state") ?? undefined;
+    const nonce = params.get("nonce") ?? undefined;
 
     if (responseType !== "code") {
       return { success: false, error: "Unsupported response_type" };
@@ -333,6 +382,7 @@ export class OAuthEndpoints {
         codeChallenge,
         ...(scope ? { scope } : {}),
         ...(state ? { state } : {}),
+        ...(nonce ? { nonce } : {}),
         clientName: client.client_name ?? client.client_id,
       },
     };
@@ -546,6 +596,7 @@ export class OAuthEndpoints {
         clientId,
         subject: consumed.subject,
         ...(consumed.scope ? { scope: consumed.scope } : {}),
+        ...(consumed.nonce ? { nonce: consumed.nonce } : {}),
       });
     } catch (error) {
       if (error instanceof InvalidGrantError) {
@@ -590,6 +641,7 @@ export class OAuthEndpoints {
     clientId: string;
     subject: string;
     scope?: string;
+    nonce?: string;
     refreshToken?: string;
   }): Promise<Response> {
     const issuedAt = Math.floor(Date.now() / 1000);
@@ -612,12 +664,65 @@ export class OAuthEndpoints {
         })
       ).token;
 
+    const idToken = hasScope(options.scope, "openid")
+      ? await signJwt(await this.keyStore.getPrivateJwk(), {
+          iss: options.issuer,
+          sub: options.subject,
+          aud: options.clientId,
+          iat: issuedAt,
+          exp: issuedAt + expiresIn,
+          ...(options.nonce ? { nonce: options.nonce } : {}),
+          ...profileClaims(
+            await this.resolveProfile(options.subject),
+            options.scope,
+          ),
+        })
+      : undefined;
+
     return jsonResponse({
       access_token: accessToken,
       token_type: "Bearer",
       expires_in: expiresIn,
       ...(options.scope ? { scope: options.scope } : {}),
       refresh_token: refreshToken,
+      ...(idToken ? { id_token: idToken } : {}),
+    });
+  }
+
+  /** OpenID Connect UserInfo: the profile behind an `openid` access token. */
+  async handleUserinfoRequest(
+    request: Request,
+    issuer: string,
+  ): Promise<Response> {
+    const token = getBearerToken(request);
+    if (!token) {
+      return bearerError(401, "invalid_token", "A bearer token is required");
+    }
+
+    let verified;
+    try {
+      verified = await verifyAccessToken(token, await this.getJwks(), {
+        issuer,
+      });
+    } catch {
+      // Any verification failure is the caller's token, not a server fault.
+      return bearerError(401, "invalid_token", "The access token is invalid");
+    }
+    if (!verified.scope.includes("openid")) {
+      return bearerError(
+        403,
+        "insufficient_scope",
+        "The access token was issued without openid",
+      );
+    }
+
+    const profile = await this.resolveProfile(verified.subject);
+    if (!profile) {
+      return bearerError(401, "invalid_token", "The account is not active");
+    }
+    return jsonResponse({
+      sub: verified.subject,
+      ...profileClaims(profile, verified.scope.join(" ")),
     });
   }
 

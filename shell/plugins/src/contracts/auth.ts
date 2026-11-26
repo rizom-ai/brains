@@ -23,6 +23,7 @@ import type {
   CreateInvitationRequest,
   GrantA2APeerTrustInput,
   InviteExternalPeerPersonRequest,
+  ProvisionOAuthClientInput,
   LinkExternalPeerRequest,
   ResolveAuthIdentityInput,
   UnlinkExternalPeerRequest,
@@ -132,6 +133,12 @@ export interface AuthBackend {
     context?: AuthMutationContext,
   ): Promise<void>;
   getA2ASigningKey(): Promise<A2ASigningKey>;
+
+  /**
+   * Register or update a confidential OAuth client under an id and secret the
+   * plugin chose, such as a homeserver that signs people in with the brain.
+   */
+  provisionOAuthClient(input: ProvisionOAuthClientInput): Promise<void>;
 }
 
 /** Access to the brain's auth backend, when the brain runs one. */

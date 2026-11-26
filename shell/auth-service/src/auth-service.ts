@@ -21,7 +21,10 @@ import type {
   VerifiedAccessToken,
 } from "@brains/contracts";
 import type { AuthBackend } from "@brains/plugins";
-import type { A2ASigningKey } from "@brains/contracts";
+import type {
+  A2ASigningKey,
+  ProvisionOAuthClientInput,
+} from "@brains/contracts";
 import type {
   ActorRef,
   RuntimeInterfacePrincipalState,
@@ -389,6 +392,7 @@ export class AuthService implements AuthBackend {
       issuer: normalized,
       authorization_endpoint: absoluteUrl(normalized, "/authorize"),
       token_endpoint: absoluteUrl(normalized, "/token"),
+      userinfo_endpoint: absoluteUrl(normalized, "/userinfo"),
       registration_endpoint: absoluteUrl(normalized, "/register"),
       revocation_endpoint: absoluteUrl(normalized, "/revoke"),
       jwks_uri: absoluteUrl(normalized, "/.well-known/jwks.json"),
@@ -404,6 +408,16 @@ export class AuthService implements AuthBackend {
       scopes_supported: ["openid", "profile", "email", "offline_access", "mcp"],
       subject_types_supported: ["public"],
       id_token_signing_alg_values_supported: ["ES256"],
+      claims_supported: [
+        "iss",
+        "sub",
+        "aud",
+        "exp",
+        "iat",
+        "nonce",
+        "name",
+        "preferred_username",
+      ],
     };
   }
 
@@ -424,6 +438,14 @@ export class AuthService implements AuthBackend {
     return this.operations.run(async () => {
       await this.initialize();
       return this.runtime.clientStore.registerClient(input);
+    });
+  }
+
+  /** Register or update a plugin's confidential client; see the client store. */
+  async provisionOAuthClient(input: ProvisionOAuthClientInput): Promise<void> {
+    await this.operations.run(async () => {
+      await this.initialize();
+      await this.runtime.clientStore.provisionClient(input);
     });
   }
 

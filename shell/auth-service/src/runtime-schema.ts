@@ -158,6 +158,7 @@ type AuthUsersTable = AuthTable<
       ["active", "invited", "suspended"]
     >;
     canonicalId: AuthTextColumn<"auth_users", "canonical_id", false>;
+    username: AuthTextColumn<"auth_users", "username", false>;
     createdAt: AuthIntegerColumn<"auth_users", "created_at", true>;
     updatedAt: AuthIntegerColumn<"auth_users", "updated_at", true>;
   }
@@ -178,6 +179,8 @@ export const authUsers: AuthUsersTable = sqliteTable(
       enum: ["active", "invited", "suspended"],
     }).notNull(),
     canonicalId: text("canonical_id"),
+    /** Assigned once, on first OpenID Connect use, and never changed. */
+    username: text("username"),
     createdAt: integer("created_at").notNull(),
     updatedAt: integer("updated_at").notNull(),
   },
@@ -186,6 +189,7 @@ export const authUsers: AuthUsersTable = sqliteTable(
       table.canonicalId,
     ),
     personIdIdx: uniqueIndex("idx_auth_users_person_id").on(table.personId),
+    usernameIdx: uniqueIndex("idx_auth_users_username").on(table.username),
     roleCheck: check(
       "auth_users_role_check",
       sql`${table.role} IN ('admin', 'trusted', 'public')`,
@@ -766,6 +770,7 @@ type OauthAuthCodesTable = AuthTable<
     redirectUri: AuthTextColumn<"oauth_auth_codes", "redirect_uri", true>;
     pkceChallenge: AuthTextColumn<"oauth_auth_codes", "pkce_challenge", true>;
     scope: AuthTextColumn<"oauth_auth_codes", "scope", true>;
+    nonce: AuthTextColumn<"oauth_auth_codes", "nonce", false>;
     expiresAt: AuthIntegerColumn<"oauth_auth_codes", "expires_at", true>;
     consumedAt: AuthIntegerColumn<"oauth_auth_codes", "consumed_at", false>;
     createdAt: AuthIntegerColumn<"oauth_auth_codes", "created_at", true>;
@@ -785,6 +790,7 @@ export const oauthAuthCodes: OauthAuthCodesTable = sqliteTable(
     redirectUri: text("redirect_uri").notNull(),
     pkceChallenge: text("pkce_challenge").notNull(),
     scope: text("scope").notNull(),
+    nonce: text("nonce"),
     expiresAt: integer("expires_at").notNull(),
     consumedAt: integer("consumed_at"),
     createdAt: integer("created_at").notNull(),

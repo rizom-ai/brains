@@ -65,6 +65,11 @@ describe("the auth service's registered surface", () => {
       ).toEqual([
         "GET /.well-known/oauth-authorization-server",
         "OPTIONS /.well-known/oauth-authorization-server",
+        "GET /.well-known/openid-configuration",
+        "OPTIONS /.well-known/openid-configuration",
+        "GET /userinfo",
+        "POST /userinfo",
+        "OPTIONS /userinfo",
         "GET /.well-known/jwks.json",
         "OPTIONS /.well-known/jwks.json",
         "GET /.well-known/oauth-protected-resource",
