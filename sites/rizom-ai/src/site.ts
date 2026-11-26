@@ -24,6 +24,10 @@ export const rizomAiSite: SitePackage = createRizomSite({
   // room accents key off data-room, set by the layout.
   layout: AiLayout,
   routes: aiRoutes,
+  // The docs plugins' pages bring a footer with a theme toggle for
+  // docs.rizom.ai, whose layout has neither; here the bar has the toggle and
+  // the site footer follows, so the docs' own footer stays hidden.
+  themeOverride: ".docs-handbook footer {\n  display: none;\n}\n",
   organisms: [livingOrganism, brainOrganism, workOrganism, foundationOrganism],
   // rizom.ai is the authority for the ATProto lexicons and serves them.
   staticAssets: rizomAtprotoLexiconStaticAssets,
@@ -54,6 +58,24 @@ export const rizomAiSite: SitePackage = createRizomSite({
     post: { label: "Essay", citable: true, navigation: { show: false } },
     deck: { label: "Talk", citable: true, navigation: { show: false } },
     agent: { label: "Agent", citable: true, navigation: { show: false } },
+    // The documentation: each doc at /docs/<slug>, each guide at
+    // /guides/<slug>, the index at /docs (see ./routes).
+    doc: {
+      label: "Doc",
+      pluralName: "docs",
+      layout: "default",
+      paginate: false,
+      citable: true,
+      navigation: { show: false },
+    },
+    guide: {
+      label: "Guide",
+      pluralName: "guides",
+      layout: "default",
+      paginate: false,
+      citable: true,
+      navigation: { show: false },
+    },
   },
 });
 

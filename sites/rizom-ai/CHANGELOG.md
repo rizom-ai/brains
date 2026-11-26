@@ -1,5 +1,23 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.296
+
+### Patch Changes
+
+- [#1041](https://github.com/rizom-ai/brains/pull/1041) [`9b70264`](https://github.com/rizom-ai/brains/commit/9b7026465521694d1d69a334aed9cd20a271a07f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `@rizom/site-rizom-work` returns as rizom.work's own site, built on `@rizom/site-rizom-ai`. Its home is told in eight chapters beside Rizom Work's drawing: heroics, the science of a team's memory, why now, the offer to hubs and to teams in steps, public bodies, partners and the way in. Both offers end on the contact form with their topic set. Every chapter starts from copy of its own. The three-site footer's work column lists the offer (for hubs, for teams, partners, talk to us), and the Foundation's headings use the shared highlight helper.
+
+## 0.2.0-alpha.295
+
+### Patch Changes
+
+- [#1042](https://github.com/rizom-ai/brains/pull/1042) [`0d7e6c0`](https://github.com/rizom-ai/brains/commit/0d7e6c0f530fed8faf65951156eb89198cb1fa51) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai can carry the documentation that lives on docs.rizom.ai. With the docs and guides plugins on the brain, `/docs` is the docs index (its opening, the guides, then every section's docs) and each doc and guide has its own page at `/docs/<slug>` and `/guides/<slug>`, inside rizom.ai's chrome; a visitor's answer may cite them. The docs' own footer, which carries docs.rizom.ai's theme toggle, stays hidden under rizom.ai's. Without the plugins nothing changes.
+
+## 0.2.0-alpha.294
+
+### Patch Changes
+
+- [#1040](https://github.com/rizom-ai/brains/pull/1040) [`ee3e97f`](https://github.com/rizom-ai/brains/commit/ee3e97f6290f7c1cfc1955a7c640257a2b85472c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The Foundation's column in the three-site footer links "The board"; it named an ANBI page that does not exist yet.
+
 ## 0.2.0-alpha.293
 
 ### Patch Changes

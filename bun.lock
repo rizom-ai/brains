@@ -2763,7 +2763,7 @@
       "name": "@rizom/site-rizom-ai",
       "version": "0.2.0-alpha.293",
       "dependencies": {
-        "@rizom/site": "0.2.0-alpha.245",
+        "@rizom/site": "0.2.0-alpha.247",
         "clsx": "^2.1.0",
         "tailwind-merge": "^3.6.0",
       },
@@ -2792,6 +2792,46 @@
         "react-dom": "^19.2.7",
         "rolldown": "^1.0.0",
         "rolldown-plugin-dts": "^0.27.4",
+        "typescript": "^7.0.2",
+      },
+    },
+    "sites/rizom-foundation": {
+      "name": "@rizom/site-rizom-foundation",
+      "version": "0.2.0-alpha.235",
+      "dependencies": {
+        "@rizom/site": "0.2.0-alpha.247",
+        "@rizom/site-rizom-ai": "0.2.0-alpha.291",
+      },
+      "devDependencies": {
+        "@brains/build-tools": "workspace:*",
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "^1.4.0",
+        "@types/react": "^19.2.17",
+        "@types/react-dom": "^19.0.3",
+        "eslint": "^10.5.0",
+        "react": "^19.2.7",
+        "react-dom": "^19.2.7",
+        "typescript": "^7.0.2",
+      },
+    },
+    "sites/rizom-work": {
+      "name": "@rizom/site-rizom-work",
+      "version": "0.2.0-alpha.235",
+      "dependencies": {
+        "@rizom/site": "0.2.0-alpha.247",
+        "@rizom/site-rizom-ai": "0.2.0-alpha.293",
+      },
+      "devDependencies": {
+        "@brains/build-tools": "workspace:*",
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "^1.4.0",
+        "@types/react": "^19.2.17",
+        "@types/react-dom": "^19.0.3",
+        "eslint": "^10.5.0",
+        "react": "^19.2.7",
+        "react-dom": "^19.2.7",
         "typescript": "^7.0.2",
       },
     },
@@ -3616,6 +3656,10 @@
     "@rizom/site-hub": ["@rizom/site-hub@workspace:sites/hub"],
 
     "@rizom/site-rizom-ai": ["@rizom/site-rizom-ai@workspace:sites/rizom-ai"],
+
+    "@rizom/site-rizom-foundation": ["@rizom/site-rizom-foundation@workspace:sites/rizom-foundation"],
+
+    "@rizom/site-rizom-work": ["@rizom/site-rizom-work@workspace:sites/rizom-work"],
 
     "@rizom/site-smoke-canary": ["@rizom/site-smoke-canary@workspace:sites/smoke-canary"],
 

@@ -13,8 +13,8 @@ const COMMONS =
 
 const RIZOM_LINKS = [
   { label: "rizom.ai", href: "https://rizom.ai" },
-  { label: "Work", href: "https://rizom.ai/work" },
-  { label: "Foundation", href: "https://rizom.ai/foundation" },
+  { label: "Work", href: "https://rizom.work" },
+  { label: "Foundation", href: "https://rizom.foundation" },
 ];
 
 /* The site-info entity always carries a copyright, but the framework fills

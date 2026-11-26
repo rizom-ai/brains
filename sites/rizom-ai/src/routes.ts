@@ -76,6 +76,36 @@ export const aiRoutes: RouteDefinitionInput[] = [
     sections: [{ id: "archive", template: "rizom:writing", dataQuery: {} }],
   },
   {
+    // The documentation, moved from docs.rizom.ai: the docs plugin's opening,
+    // the guides band, then every section's docs. Each doc and guide has its
+    // own page at /docs/<slug> and /guides/<slug> (see entityDisplay in
+    // ./site). Without the docs and guides plugins the sections render
+    // nothing.
+    id: "docs",
+    path: "/docs",
+    title: "Documentation — Rizom",
+    description: "How to run, use and extend a Rizom Brain",
+    layout: "default",
+    navigation: { show: false },
+    sections: [
+      {
+        id: "docs-hero",
+        template: "docs:doc-home-hero",
+        dataQuery: { entityType: "doc", query: { limit: 100 } },
+      },
+      {
+        id: "guides",
+        template: "guides:guide-band",
+        dataQuery: { entityType: "guide", query: { limit: 100 } },
+      },
+      {
+        id: "docs",
+        template: "docs:doc-home-sections",
+        dataQuery: { entityType: "doc", query: { limit: 100 } },
+      },
+    ],
+  },
+  {
     id: "work",
     path: "/work",
     title: "Rizom Work",
