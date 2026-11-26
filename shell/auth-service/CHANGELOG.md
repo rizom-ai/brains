@@ -1,5 +1,16 @@
 # @brains/auth-service
 
+## 0.2.0-alpha.774
+
+### Patch Changes
+
+- Updated dependencies [[`5f4f490`](https://github.com/rizom-ai/brains/commit/5f4f4906df85ca3a208b3b20f820cb23dbe6679d)]:
+  - @brains/plugins@0.2.0-alpha.774
+  - @brains/notifications@0.2.0-alpha.774
+  - @brains/contracts@0.2.0-alpha.774
+  - @brains/db@0.2.0-alpha.774
+  - @brains/utils@0.2.0-alpha.774
+
 ## 0.2.0-alpha.773
 
 ### Patch Changes

@@ -1,5 +1,16 @@
 # @brains/a2a
 
+## 0.2.0-alpha.774
+
+### Patch Changes
+
+- [#1052](https://github.com/rizom-ai/brains/pull/1052) [`5f4f490`](https://github.com/rizom-ai/brains/commit/5f4f4906df85ca3a208b3b20f820cb23dbe6679d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A brain serves and lists only content types to a trusted peer over the entity-sharing extension. Its own system records, such as sync conflicts and grouping definitions, are stored as shared by default and were offered too; they are now answered with the same `404` as any other miss.
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.774
+  - @brains/contracts@0.2.0-alpha.774
+  - @brains/http-signatures@0.2.0-alpha.774
+  - @brains/utils@0.2.0-alpha.774
+
 ## 0.2.0-alpha.773
 
 ### Patch Changes

@@ -1,5 +1,23 @@
 # @brains/core
 
+## 0.2.0-alpha.774
+
+### Patch Changes
+
+- Updated dependencies [[`5f4f490`](https://github.com/rizom-ai/brains/commit/5f4f4906df85ca3a208b3b20f820cb23dbe6679d)]:
+  - @brains/plugins@0.2.0-alpha.774
+  - @brains/image@0.2.0-alpha.774
+  - @brains/http-host@0.2.0-alpha.774
+  - @brains/atproto-contracts@0.2.0-alpha.774
+  - @brains/contracts@0.2.0-alpha.774
+  - @brains/operation-context@0.2.0-alpha.774
+  - @brains/site-composition@0.2.0-alpha.774
+  - @brains/utils@0.2.0-alpha.774
+  - @brains/recurring-checks@0.2.0-alpha.774
+  - @brains/runtime-state@0.2.0-alpha.774
+  - @brains/scheduler@0.2.0-alpha.774
+  - @brains/templates@0.2.0-alpha.774
+
 ## 0.2.0-alpha.773
 
 ### Patch Changes
