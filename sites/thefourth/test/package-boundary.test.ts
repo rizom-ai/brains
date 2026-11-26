@@ -98,7 +98,7 @@ describe("@rizom/site-thefourth package boundary", () => {
           ],
           consumerDir,
         );
-        expect(output.trim()).toBe("home");
+        expect(output.trim()).toBe("home,what,who,how,about,work-with-us");
 
         // The tarball carries the manifest the fast check inspects.
         const installed = JSON.parse(

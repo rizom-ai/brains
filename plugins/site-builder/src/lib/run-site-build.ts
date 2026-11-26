@@ -145,6 +145,7 @@ export async function runSiteBuild(
 
     const imageBuildService = await prepareSiteImages({
       pipelineContext: options.pipelineContext,
+      routes,
       sharedImagesDir: parsedOptions.sharedImagesDir,
       signal: options.signal,
     });

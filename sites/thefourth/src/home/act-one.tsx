@@ -14,7 +14,7 @@ import { linkSchema, TextLink } from "./links";
 /**
  * Act I, the hero: the visitor's work, already good, on the red the keyhole
  * opened into; the act rises over the cover's last stretch. A paper tag on a
- * key says where the key is, and one way leads on: down to the guide.
+ * key says where the key is, and one way leads on: to what The Fourth does.
  * Beside it a paper arch, a mustard sun, the brain's photo cut out as a
  * keyhole and an eye keeping watch.
  */
@@ -104,6 +104,6 @@ export const actOneContent: JsonObject = {
     line: "The key is already in what you know.",
     text: "We find it, shape it into a story, and hand it to the people your audience trusts.",
   },
-  more: { label: "How it works ↓", href: "#guide" },
+  more: { label: "How it works →", href: "/what" },
   photo: "",
 } satisfies z.input<typeof actOneSchema>;
