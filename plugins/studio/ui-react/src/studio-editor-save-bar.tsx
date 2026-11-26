@@ -49,25 +49,30 @@ export function StudioEditorSaveBar(
     >
       <div>
         <span
-          role="status"
-          aria-live="polite"
-          title="Saved means stored in this Brain. File export and Git synchronization are separate."
+          data-studio-save-state=""
+          className={editorClass("", layout.saveState)}
         >
-          {!canEdit && presentation !== "split"
-            ? "Read-only"
-            : editorSaveLabel(
-                saveState,
-                hasUnsavedChanges,
-                mode.kind !== "create"
-                  ? "edit"
-                  : entitySchema.isSingleton
-                    ? "first-save"
-                    : "create",
-              )}
+          <span
+            role="status"
+            aria-live="polite"
+            title="Saved means stored in this Brain. File export and Git synchronization are separate."
+          >
+            {!canEdit && presentation !== "split"
+              ? "Read-only"
+              : editorSaveLabel(
+                  saveState,
+                  hasUnsavedChanges,
+                  mode.kind !== "create"
+                    ? "edit"
+                    : entitySchema.isSingleton
+                      ? "first-save"
+                      : "create",
+                )}
+          </span>
+          {saveBlockReason && (
+            <span id={STUDIO_SAVE_REASON_ID}>{saveBlockReason}</span>
+          )}
         </span>
-        {saveBlockReason && (
-          <span id={STUDIO_SAVE_REASON_ID}>{saveBlockReason}</span>
-        )}
         {props.readError && (
           <StudioStatus tone="error">
             Your draft is unchanged. {props.readError}

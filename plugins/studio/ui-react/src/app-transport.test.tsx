@@ -22,6 +22,7 @@ import {
 import { StudioApiProvider } from "./studio-api-context";
 import { createStudioRouter } from "./studio-router";
 import { studioTypeHierarchy } from "../../src/config";
+import { readStudioStylesheet } from "../../test/ui-asset-fixture";
 
 let restoreGlobals: RestoreGlobals;
 let windowInstance: Window;
@@ -529,6 +530,21 @@ describe("Studio App transport", () => {
     expect(document.body.textContent).toContain(
       "Name the file to create this entry.",
     );
+    // Where the save stands and why it cannot happen read as two phrases,
+    // not one run-together line.
+    const saveState = document.querySelector("[data-studio-save-state]");
+    expect(saveState?.querySelector('[role="status"]')?.textContent).toBe(
+      "Not created yet",
+    );
+    expect(saveState?.querySelector("#studio-save-reason")?.textContent).toBe(
+      "Name the file to create this entry.",
+    );
+    const sheet = document.createElement("style");
+    sheet.textContent = await readStudioStylesheet();
+    document.head.append(sheet);
+    if (!saveState) throw new Error("Missing save state");
+    expect(getComputedStyle(saveState).display).toBe("flex");
+    expect(getComputedStyle(saveState).columnGap).toBe("10px");
     expect(
       [...document.querySelectorAll("button")].some(
         (button) => button.textContent === "Create",

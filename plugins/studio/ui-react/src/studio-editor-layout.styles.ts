@@ -8,6 +8,7 @@ type LayoutStyle =
   | "fields"
   | "manuscript"
   | "pipeline"
+  | "saveState"
   | "compactStatus"
   | "compactValue"
   | "spacer"
@@ -134,6 +135,13 @@ export const editorLayoutStyles: Record<LayoutStyle, stylex.StyleXStyles> =
         default: "var(--console-card)",
         ":is([data-climate=instrument] *)": "var(--console-card-soft)",
       },
+    },
+    saveState: {
+      display: "flex",
+      flexWrap: "wrap",
+      alignItems: "baseline",
+      columnGap: 10,
+      rowGap: 2,
     },
     compactStatus: {
       display: {
