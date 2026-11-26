@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@brains/app-ui-react";
-import type { ReactElement } from "react";
+import { useEffect, type ReactElement } from "react";
 import { STUDIO_ACCOUNT_WORKSPACE_ID } from "../../src/account-workspace";
 import { studioWorkspacePath } from "../../src/studio-paths";
 import type { EntityTypeInfo, StudioWorkspaceInfo } from "./api";
@@ -22,6 +22,7 @@ import {
 } from "./studio-navigation.styles";
 import { studioArea } from "./studio-areas";
 import { TypeSwitcher } from "./studio-type-navigation";
+import { studioDocumentTitle } from "./studio-document-title";
 
 function rootAttribute(name: string, fallback: string): string {
   if (typeof document === "undefined") return fallback;
@@ -56,6 +57,8 @@ export interface StudioChromeNavigation {
 
 export function StudioChrome(props: {
   contextLabel: string;
+  /** The open page's own name, such as an entry's title, ahead of its context. */
+  pageTitle?: string | undefined;
   onContextClick?: (() => void) | undefined;
   navigation?: StudioChromeNavigation | undefined;
 }): ReactElement {
@@ -66,6 +69,13 @@ export function StudioChrome(props: {
     "Your account",
   );
   const role = rootAttribute("data-studio-principal-role", "trusted");
+  const documentTitle = studioDocumentTitle(
+    [props.pageTitle, props.contextLabel],
+    brandName,
+  );
+  useEffect(() => {
+    document.title = documentTitle;
+  }, [documentTitle]);
   const sessionHref = rootAttribute(
     "data-studio-session-href",
     `/logout?return_to=${encodeURIComponent(studioPath)}`,
