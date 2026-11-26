@@ -17,6 +17,7 @@ import {
   DriveMissingError,
   DriveOfflineError,
   DriveUnavailableError,
+  MIN_BRAIN_VERSION,
   SyncEngine,
   mergePartial,
   type FileNote,
@@ -73,7 +74,11 @@ const STATUS_TEXT: Record<SyncReport["status"], string> = {
   unavailable: "Brain: not answering, trying again",
   "signed-out": "Brain: sign in again",
   "no-drive": "Brain: no drive at this address",
+  "old-brain": "Brain: needs a newer brain",
 };
+
+/** What a person is told when their brain is from before the sync endpoints. */
+const TOO_OLD = `Your brain is older than this plugin needs. It needs version ${MIN_BRAIN_VERSION} or later; ask whoever runs your brain to update it. Nothing was changed.`;
 
 /** The Drive section of the brain's Account page, where Connect is confirmed. */
 function connectUrl(origin: string, state: string): string {
@@ -115,8 +120,11 @@ export default class RizomBrainPlugin extends Plugin {
     fullSync: (): void => void this.syncNow(),
   });
   private lastFullSync = 0;
+  private settingTab: RizomBrainSettingTab | undefined;
   /** Writes of the plugin's data file, one after another. */
   private saving: Promise<void> = Promise.resolve();
+  /** The "brain is too old" notice is shown once, not at every sync. */
+  private toldTooOld = false;
   /** The Connect request this vault opened, until the brain answers it. */
   private pendingConnect: PendingConnect | undefined;
   /** Every engine call runs after the one before, across engines too. */
@@ -129,7 +137,8 @@ export default class RizomBrainPlugin extends Plugin {
   override async onload(): Promise<void> {
     this.data = parsePluginData(await this.loadData());
     this.vault = new ObsidianVault(this.app);
-    this.addSettingTab(new RizomBrainSettingTab(this.app, this));
+    this.settingTab = new RizomBrainSettingTab(this.app, this);
+    this.addSettingTab(this.settingTab);
 
     this.statusEl = this.addStatusBarItem();
     this.statusEl.addClass("rizom-brain-status");
@@ -363,6 +372,10 @@ export default class RizomBrainPlugin extends Plugin {
     }
     this.renderStatus();
 
+    if (report.status === "old-brain" && !this.toldTooOld) {
+      this.toldTooOld = true;
+      new Notice(TOO_OLD, 0);
+    }
     if (report.status === "signed-out") {
       new Notice(
         "Your brain did not accept the app password. It may have expired or been revoked: connect again in the Rizom Brain settings. Nothing was changed.",
@@ -437,7 +450,9 @@ export default class RizomBrainPlugin extends Plugin {
     if (!this.connected())
       return "Enter your brain's address and an app password first.";
     try {
-      const { writable } = await this.drive().check();
+      const drive = this.drive();
+      const { writable } = await drive.check();
+      if (!(await drive.supportsSync())) return TOO_OLD;
       return writable
         ? "Connected. This app password can read and save."
         : "Connected, but this app password can only read. Create one that may save changes in your brain's Drive settings.";
@@ -470,6 +485,12 @@ export default class RizomBrainPlugin extends Plugin {
     const state = randomState();
     this.pendingConnect = { state, origin };
     window.open(connectUrl(origin, state));
+    // Before the first Connect there is no password to ask the brain with,
+    // so an older brain cannot be told from here: say what to look for.
+    new Notice(
+      `Your brain's Drive page is opening in the browser. Choose Connect Obsidian there. If the page shows no such card, your brain is older than version ${MIN_BRAIN_VERSION}, which this plugin needs.`,
+      15_000,
+    );
   }
 
   /** The brain handed back a new app password for the Connect this vault opened. */
@@ -487,6 +508,8 @@ export default class RizomBrainPlugin extends Plugin {
     }
     this.pendingConnect = undefined;
     await this.updateSettings(accepted);
+    // The settings are usually open during Connect: show what was saved.
+    this.settingTab?.display();
     new Notice("Connected to your brain.");
     await this.syncNow();
   }
