@@ -67,6 +67,10 @@ export class ConsoleReporter implements IReporter {
     // Average metrics
     console.log(chalk.bold("Average Metrics"));
     console.log(`  Tokens: ${summary.avgMetrics.totalTokens.toFixed(0)}`);
+    if (summary.avgMetrics.referenceTokens !== undefined)
+      console.log(
+        `  Reference tokens: ${summary.avgMetrics.referenceTokens.toFixed(0)}`,
+      );
     console.log(`  Tool Calls: ${summary.avgMetrics.toolCallCount.toFixed(1)}`);
     console.log(`  Duration: ${summary.avgMetrics.durationMs.toFixed(0)}ms`);
 

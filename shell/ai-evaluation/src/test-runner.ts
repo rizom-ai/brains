@@ -23,6 +23,7 @@ import type {
   EvalAttachment,
 } from "./schemas";
 import { MetricCollector } from "./metric-collector";
+import { measureTurn, type TurnMeasure } from "./turn-meter";
 import {
   evaluateCriteria,
   evaluateEfficiency,
@@ -221,45 +222,42 @@ export class TestRunner implements ITestRunner {
       }
 
       collector.startTurn();
-      let response: AgentResponse;
       const pendingApprovalIdsBeforeTurn = pendingApprovalIds;
-      if (turn.confirmPendingAction !== undefined) {
-        const approvalId = this.resolveApprovalId(turn, pendingApprovalIds);
-        if (!approvalId) {
-          const message =
-            `Turn ${i}: cannot resolve approvalId for confirmPendingAction. ` +
-            `Provide turn.approvalId explicitly when 0 or multiple confirmations are pending ` +
-            `(pending=${pendingApprovalIds.length}).`;
-          failures.push({
-            criterion: "confirmPendingAction",
-            expected:
-              "Exactly one pending approval id or an explicit approvalId",
-            actual: pendingApprovalIds,
-            message,
-          });
-          response = {
-            text: message,
-            usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
-            toolResults: [],
-          };
-        } else {
-          response = await this.agentService.confirmPendingAction(
-            conversationId,
-            turn.confirmPendingAction,
-            approvalId,
-            this.buildTurnChatContext(baseContext, turn, attachments),
-          );
-        }
-      } else {
-        response = await this.agentService.chat(
-          turn.userMessage,
-          conversationId,
-          this.buildTurnChatContext(baseContext, turn, attachments),
-        );
+      const turnContext = this.buildTurnChatContext(
+        baseContext,
+        turn,
+        attachments,
+      );
+      const approvalId =
+        turn.confirmPendingAction !== undefined
+          ? this.resolveApprovalId(turn, pendingApprovalIds)
+          : undefined;
+      if (turn.confirmPendingAction !== undefined && !approvalId) {
+        failures.push(unresolvedApprovalFailure(i, pendingApprovalIds));
       }
+      const measured = await measureTurn((): Promise<AgentResponse> =>
+        turn.confirmPendingAction === undefined
+          ? this.agentService.chat(
+              turn.userMessage,
+              conversationId,
+              turnContext,
+            )
+          : approvalId
+            ? this.agentService.confirmPendingAction(
+                conversationId,
+                turn.confirmPendingAction,
+                approvalId,
+                turnContext,
+              )
+            : Promise.resolve(
+                unresolvedApprovalResponse(i, pendingApprovalIds),
+              ),
+      );
+      const response = measured.value;
       pendingApprovalIds = this.extractPendingApprovalIds(response);
       const metrics = collector.endTurn({
         usage: response.usage,
+        referenceTokens: observedReferenceTokens(measured, response),
         toolResults: this.collectToolCallsForMetrics(
           response,
           turn.confirmPendingAction !== undefined
@@ -625,6 +623,56 @@ export class TestRunner implements ITestRunner {
   ): TestRunner {
     return new TestRunner(agentService, llmJudge, runtimeUploads);
   }
+}
+
+function unresolvedApprovalMessage(
+  turnIndex: number,
+  pendingApprovalIds: string[],
+): string {
+  return (
+    `Turn ${turnIndex}: cannot resolve approvalId for confirmPendingAction. ` +
+    `Provide turn.approvalId explicitly when 0 or multiple confirmations are pending ` +
+    `(pending=${pendingApprovalIds.length}).`
+  );
+}
+
+/** A confirming turn with no single pending approval to confirm. */
+function unresolvedApprovalFailure(
+  turnIndex: number,
+  pendingApprovalIds: string[],
+): FailureDetail {
+  return {
+    criterion: "confirmPendingAction",
+    expected: "Exactly one pending approval id or an explicit approvalId",
+    actual: pendingApprovalIds,
+    message: unresolvedApprovalMessage(turnIndex, pendingApprovalIds),
+  };
+}
+
+/** The reply a confirming turn gets when there is nothing to confirm. */
+function unresolvedApprovalResponse(
+  turnIndex: number,
+  pendingApprovalIds: string[],
+): AgentResponse {
+  return {
+    text: unresolvedApprovalMessage(turnIndex, pendingApprovalIds),
+    usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+    toolResults: [],
+  };
+}
+
+/**
+ * A turn's reference count, when its model calls were seen: a turn whose
+ * model usage shows calls the meter never saw ran elsewhere (a remote
+ * brain), and has none.
+ */
+function observedReferenceTokens(
+  measured: TurnMeasure,
+  response: AgentResponse,
+): number | undefined {
+  return measured.calls === 0 && response.usage.totalTokens > 0
+    ? undefined
+    : measured.referenceTokens;
 }
 
 /** The one failure of a turn that ended in an error, a provider decline by name. */

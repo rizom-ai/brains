@@ -25,7 +25,7 @@ interface ResponseForCriteria {
 
 type EfficiencyMetrics = Pick<
   TotalMetrics,
-  "totalTokens" | "toolCallCount" | "durationMs"
+  "totalTokens" | "referenceTokens" | "toolCallCount" | "durationMs"
 >;
 
 type QualityThresholdScores = Pick<
@@ -66,15 +66,15 @@ export function evaluateEfficiency(
 
   if (!efficiency) return failures;
 
-  if (
-    efficiency.maxTokens !== undefined &&
-    metrics.totalTokens > efficiency.maxTokens
-  ) {
+  // A budget holds every model to the same count: the reference tokenizer's,
+  // and the model's own only when the turn's model calls went unseen.
+  const tokens = metrics.referenceTokens ?? metrics.totalTokens;
+  if (efficiency.maxTokens !== undefined && tokens > efficiency.maxTokens) {
     failures.push({
       criterion: "maxTokens",
       expected: efficiency.maxTokens,
-      actual: metrics.totalTokens,
-      message: `Token usage ${metrics.totalTokens} exceeds max ${efficiency.maxTokens}`,
+      actual: tokens,
+      message: `Token usage ${tokens} exceeds max ${efficiency.maxTokens}`,
     });
   }
 

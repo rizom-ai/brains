@@ -25,6 +25,7 @@ export class MetricCollector implements IMetricCollector {
       completionTokens: number;
       totalTokens: number;
     };
+    referenceTokens?: number | undefined;
     toolResults?: Array<{
       toolName: string;
       args?: Record<string, unknown>;
@@ -45,6 +46,9 @@ export class MetricCollector implements IMetricCollector {
       promptTokens: response.usage?.promptTokens ?? 0,
       completionTokens: response.usage?.completionTokens ?? 0,
       totalTokens: response.usage?.totalTokens ?? 0,
+      ...(response.referenceTokens !== undefined && {
+        referenceTokens: response.referenceTokens,
+      }),
       toolCallCount: toolResults.length,
       durationMs,
     };
@@ -74,7 +78,16 @@ export class MetricCollector implements IMetricCollector {
    * Get aggregated metrics across all turns
    */
   getTotalMetrics(): TotalMetrics {
+    const referenceCounts = this.turnMetrics.flatMap((m) =>
+      m.referenceTokens === undefined ? [] : [m.referenceTokens],
+    );
+    // A total of reference counts stands only when every turn was counted.
+    const referenceTokens =
+      referenceCounts.length === this.turnMetrics.length
+        ? referenceCounts.reduce((sum, tokens) => sum + tokens, 0)
+        : undefined;
     return {
+      ...(referenceTokens !== undefined && { referenceTokens }),
       promptTokens: this.turnMetrics.reduce(
         (sum, m) => sum + m.promptTokens,
         0,

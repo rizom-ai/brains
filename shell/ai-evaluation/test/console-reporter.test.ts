@@ -111,6 +111,32 @@ describe("ConsoleReporter", () => {
     expect(output).toContain("FAIL List Tool (tool-invocation-list)");
   });
 
+  it("reports the reference token average that budgets are judged on", async () => {
+    const output = await captureReport(
+      ConsoleReporter.createFresh(),
+      createSummary({
+        avgMetrics: {
+          totalTokens: 1234,
+          referenceTokens: 1100,
+          toolCallCount: 2.3,
+          durationMs: 1200,
+        },
+      }),
+    );
+
+    expect(output).toContain("Tokens: 1234");
+    expect(output).toContain("Reference tokens: 1100");
+  });
+
+  it("omits the reference average when the model calls went unseen", async () => {
+    const output = await captureReport(
+      ConsoleReporter.createFresh(),
+      createSummary(),
+    );
+
+    expect(output).not.toContain("Reference tokens");
+  });
+
   it("reports the counts and pass rate", async () => {
     const output = await captureReport(
       ConsoleReporter.createFresh(),

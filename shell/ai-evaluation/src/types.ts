@@ -146,6 +146,8 @@ export interface IMetricCollector {
       completionTokens: number;
       totalTokens: number;
     };
+    /** The turn's model calls counted by the reference tokenizer, when seen. */
+    referenceTokens?: number | undefined;
     toolResults?: Array<{
       toolName: string;
       args?: Record<string, unknown>;
