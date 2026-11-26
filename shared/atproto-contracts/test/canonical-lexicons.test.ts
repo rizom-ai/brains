@@ -9,15 +9,26 @@ import {
 } from "../src";
 
 const expectedNsids = [
+  "ai.rizom.brain.book",
   "ai.rizom.brain.card",
   "ai.rizom.brain.deck",
+  "ai.rizom.brain.doc",
+  "ai.rizom.brain.guide",
   "ai.rizom.brain.link",
+  "ai.rizom.brain.newsletter",
   "ai.rizom.brain.note",
   "ai.rizom.brain.post",
   "ai.rizom.brain.project",
   "ai.rizom.brain.series",
   "ai.rizom.brain.socialPost",
   "ai.rizom.brain.topic",
+];
+
+const draftNsids = [
+  "ai.rizom.brain.book",
+  "ai.rizom.brain.doc",
+  "ai.rizom.brain.guide",
+  "ai.rizom.brain.newsletter",
 ];
 
 function findDuplicateLexiconFiles(root: string): string[] {
@@ -75,7 +86,10 @@ describe("canonical ATProto lexicons", () => {
     for (const entry of metadata) {
       expect(getCanonicalAtprotoLexicon(entry.id)).toBeDefined();
       expect(getCanonicalAtprotoLexiconMetadata(entry.id)).toEqual(entry);
-      expect(entry.status).toBe("approved");
+      // The newest formats are drafts until the registry's owner approves them.
+      expect(entry.status).toBe(
+        draftNsids.includes(String(entry.id)) ? "draft" : "approved",
+      );
       expect(entry.version).toMatch(/^\d+\.\d+\.\d+$/);
       expect(entry.revision).toBeGreaterThan(0);
       expect(entry.owner).toBe("Rizom");

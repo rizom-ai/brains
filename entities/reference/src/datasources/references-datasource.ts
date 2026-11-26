@@ -18,6 +18,10 @@ const KIND_LABELS: Readonly<Record<string, string>> = {
   note: "Note",
   topic: "Topic",
   "social-post": "Social post",
+  newsletter: "Newsletter",
+  doc: "Doc",
+  guide: "Guide",
+  book: "Book",
 };
 
 function referenceItem(

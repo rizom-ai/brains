@@ -1,9 +1,10 @@
 {
   "name": "@brains/book",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.769",
+  "version": "0.2.0-alpha.771",
   "description": "Book entity type — published books as read-only, citable sections",
   "dependencies": {
+    "@brains/atproto-contracts": "workspace:*",
     "@brains/contracts": "workspace:*",
     "@brains/media-page-composer": "workspace:*",
     "@brains/sdk": "workspace:*",

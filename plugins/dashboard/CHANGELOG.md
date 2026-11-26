@@ -1,5 +1,27 @@
 # @brains/dashboard
 
+## 0.2.0-alpha.771
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.771
+  - @brains/operator-view-react@0.2.0-alpha.771
+  - @brains/console-theme@0.2.0-alpha.771
+  - @brains/contracts@0.2.0-alpha.771
+  - @brains/utils@0.2.0-alpha.771
+
+## 0.2.0-alpha.770
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.770
+  - @brains/operator-view-react@0.2.0-alpha.770
+  - @brains/console-theme@0.2.0-alpha.770
+  - @brains/contracts@0.2.0-alpha.770
+  - @brains/utils@0.2.0-alpha.770
+
 ## 0.2.0-alpha.769
 
 ### Patch Changes

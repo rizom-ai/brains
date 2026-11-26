@@ -3,9 +3,13 @@
 + a2a|handler|GET|/a2a|exact|true
 + a2a|handler|OPTIONS|/a2a|exact|true
 + a2a|handler|POST|/a2a|exact|true
++ atproto-registry|handler|GET|/atproto/lexicons/ai.rizom.brain.book.json|exact|true
 + atproto-registry|handler|GET|/atproto/lexicons/ai.rizom.brain.card.json|exact|true
 + atproto-registry|handler|GET|/atproto/lexicons/ai.rizom.brain.deck.json|exact|true
++ atproto-registry|handler|GET|/atproto/lexicons/ai.rizom.brain.doc.json|exact|true
++ atproto-registry|handler|GET|/atproto/lexicons/ai.rizom.brain.guide.json|exact|true
 + atproto-registry|handler|GET|/atproto/lexicons/ai.rizom.brain.link.json|exact|true
++ atproto-registry|handler|GET|/atproto/lexicons/ai.rizom.brain.newsletter.json|exact|true
 + atproto-registry|handler|GET|/atproto/lexicons/ai.rizom.brain.note.json|exact|true
 + atproto-registry|handler|GET|/atproto/lexicons/ai.rizom.brain.post.json|exact|true
 + atproto-registry|handler|GET|/atproto/lexicons/ai.rizom.brain.project.json|exact|true

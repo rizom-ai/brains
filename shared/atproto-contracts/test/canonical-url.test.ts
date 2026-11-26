@@ -12,6 +12,10 @@ const PROJECTED = [
   "ai.rizom.brain.series",
   "ai.rizom.brain.topic",
   "ai.rizom.brain.socialPost",
+  "ai.rizom.brain.book",
+  "ai.rizom.brain.doc",
+  "ai.rizom.brain.guide",
+  "ai.rizom.brain.newsletter",
 ] as const;
 
 describe("a post's page on its author's brain", () => {

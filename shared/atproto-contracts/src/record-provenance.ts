@@ -9,7 +9,11 @@ import type { CanonicalAtprotoRecordMap } from "./records";
 
 /** The collections whose records end in the shared provenance fields. */
 type AtprotoProvenancedCollection =
+  | "ai.rizom.brain.book"
   | "ai.rizom.brain.deck"
+  | "ai.rizom.brain.doc"
+  | "ai.rizom.brain.guide"
+  | "ai.rizom.brain.newsletter"
   | "ai.rizom.brain.link"
   | "ai.rizom.brain.note"
   | "ai.rizom.brain.project"

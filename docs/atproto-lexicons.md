@@ -27,6 +27,10 @@ https://rizom.ai/atproto/lexicons/ai.rizom.brain.post.json
 | `ai.rizom.brain.series`     | Public series/grouping projection                        |
 | `ai.rizom.brain.project`    | Portfolio/project projection                             |
 | `ai.rizom.brain.topic`      | Public topic projection                                  |
+| `ai.rizom.brain.newsletter` | Newsletter issue projection (draft)                      |
+| `ai.rizom.brain.doc`        | Documentation page projection (draft)                    |
+| `ai.rizom.brain.guide`      | Guide projection (draft)                                 |
+| `ai.rizom.brain.book`       | Book projection: what the book is, not its text (draft)  |
 
 ## Ownership
 

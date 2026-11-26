@@ -1,6 +1,7 @@
 import { withFrontmatterSchema } from "@brains/sdk/internal/entity-runtime";
 import { defineEntity, type EntityDefinition } from "@brains/sdk/entities";
 import { slugify } from "@brains/utils/string-utils";
+import { docAtproto } from "./atproto-projection";
 import { docFromText } from "./lib/create-from-text";
 import { getTemplates } from "./lib/register-templates";
 import { docFrontmatterSchema, docMetadataSchema } from "./schemas/doc";
@@ -54,6 +55,7 @@ export const doc: EntityDefinition<"doc", typeof docMetadataSchema> =
         retiredFields: ["sourcePath"],
       },
       instructions: DOC_INSTRUCTIONS,
+      atproto: docAtproto,
       templates: getTemplates(),
       // The route reads the type it is declared on, once it is defined.
       create: { fromContent: docFromText(() => doc) },

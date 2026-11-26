@@ -28,6 +28,10 @@ export type {
   AtprotoBrainSeriesRecord,
   AtprotoBrainSocialPostRecord,
   AtprotoBrainTopicRecord,
+  AtprotoBrainBookRecord,
+  AtprotoBrainDocRecord,
+  AtprotoBrainGuideRecord,
+  AtprotoBrainNewsletterRecord,
   CanonicalAtprotoRecord,
   CanonicalAtprotoRecordMap,
 } from "./records";

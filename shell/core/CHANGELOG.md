@@ -1,5 +1,41 @@
 # @brains/core
 
+## 0.2.0-alpha.771
+
+### Patch Changes
+
+- Updated dependencies [[`467ecd3`](https://github.com/rizom-ai/brains/commit/467ecd37abf6121b3ef0f2b2095426f9158c2ed7)]:
+  - @brains/atproto-contracts@0.2.0-alpha.771
+  - @brains/plugins@0.2.0-alpha.771
+  - @brains/image@0.2.0-alpha.771
+  - @brains/http-host@0.2.0-alpha.771
+  - @brains/contracts@0.2.0-alpha.771
+  - @brains/operation-context@0.2.0-alpha.771
+  - @brains/site-composition@0.2.0-alpha.771
+  - @brains/utils@0.2.0-alpha.771
+  - @brains/recurring-checks@0.2.0-alpha.771
+  - @brains/runtime-state@0.2.0-alpha.771
+  - @brains/scheduler@0.2.0-alpha.771
+  - @brains/templates@0.2.0-alpha.771
+
+## 0.2.0-alpha.770
+
+### Patch Changes
+
+- Updated dependencies [[`2c7ccfd`](https://github.com/rizom-ai/brains/commit/2c7ccfddef74cab5c2b9ab408c336ea5688f1e7e), [`d0330b2`](https://github.com/rizom-ai/brains/commit/d0330b229ba3f9ca20c81a538d67d0e05550d741)]:
+  - @brains/atproto-contracts@0.2.0-alpha.770
+  - @brains/plugins@0.2.0-alpha.770
+  - @brains/image@0.2.0-alpha.770
+  - @brains/http-host@0.2.0-alpha.770
+  - @brains/contracts@0.2.0-alpha.770
+  - @brains/operation-context@0.2.0-alpha.770
+  - @brains/site-composition@0.2.0-alpha.770
+  - @brains/utils@0.2.0-alpha.770
+  - @brains/recurring-checks@0.2.0-alpha.770
+  - @brains/runtime-state@0.2.0-alpha.770
+  - @brains/scheduler@0.2.0-alpha.770
+  - @brains/templates@0.2.0-alpha.770
+
 ## 0.2.0-alpha.769
 
 ### Patch Changes

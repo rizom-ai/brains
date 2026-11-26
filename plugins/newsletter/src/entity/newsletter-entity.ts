@@ -1,3 +1,4 @@
+import { newsletterAtproto } from "./atproto-projection";
 import {
   withFrontmatterSchema,
   generateMarkdownWithFrontmatter,
@@ -36,6 +37,7 @@ export const newsletterEntity: EntityDefinition<
     type: "newsletter",
     purpose: "An email newsletter issue composed for subscribers.",
     metadata: newsletterMetadataSchema,
+    atproto: newsletterAtproto,
     markdown: {
       decode: ({ content, frontmatter }) => ({
         content,

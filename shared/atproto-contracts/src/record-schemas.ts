@@ -160,6 +160,18 @@ export const canonicalAtprotoRecordSchemas: Record<
   "ai.rizom.brain.card": buildAtprotoRecordSchema(
     canonicalAtprotoLexicons["ai.rizom.brain.card"],
   ),
+  "ai.rizom.brain.book": buildAtprotoRecordSchema(
+    canonicalAtprotoLexicons["ai.rizom.brain.book"],
+  ),
+  "ai.rizom.brain.doc": buildAtprotoRecordSchema(
+    canonicalAtprotoLexicons["ai.rizom.brain.doc"],
+  ),
+  "ai.rizom.brain.guide": buildAtprotoRecordSchema(
+    canonicalAtprotoLexicons["ai.rizom.brain.guide"],
+  ),
+  "ai.rizom.brain.newsletter": buildAtprotoRecordSchema(
+    canonicalAtprotoLexicons["ai.rizom.brain.newsletter"],
+  ),
   "ai.rizom.brain.deck": buildAtprotoRecordSchema(
     canonicalAtprotoLexicons["ai.rizom.brain.deck"],
   ),
