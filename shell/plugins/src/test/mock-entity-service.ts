@@ -86,6 +86,17 @@ export function createMockEntityService(
       request.visibilityScope ?? "public",
     ).includes(entity.visibility);
     if (!visible) return null;
+    // The real publish gate's default lifecycle: published, active, or a
+    // type with no status at all.
+    const status = entity.metadata["status"];
+    if (
+      request.publishedOnly &&
+      status !== undefined &&
+      status !== "published" &&
+      status !== "active"
+    ) {
+      return null;
+    }
     const read = readEntity(entity, request.source);
     if (!read) return null;
     return schema ? schema.parse(read) : read;
@@ -159,7 +170,14 @@ export function createMockEntityService(
         entity.content.toLowerCase().includes(contentContains),
       );
     if (request.options?.publishedOnly) {
-      results = results.filter((e) => e.metadata["status"] === "published");
+      // The publish gate a single read applies: published, active, or a
+      // type with no status at all.
+      results = results.filter((e) => {
+        const status = e.metadata["status"];
+        return (
+          status === undefined || status === "published" || status === "active"
+        );
+      });
     }
     if (request.options?.filter?.metadata) {
       const filterEntries = Object.entries(request.options.filter.metadata);

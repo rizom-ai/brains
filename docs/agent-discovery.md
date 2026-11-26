@@ -119,11 +119,12 @@ This is the heart of cross-brain discovery: **discovery never implies access.**
 
 - **Default on discovery is `discovered`.**
   `build-agent-content.ts`: `const status = options.status ?? "discovered";`
-- **Calls are gated on `approved`.** The `a2a_call` tool refuses any peer that
-  isn't approved (`interfaces/a2a/src/client.ts`):
+- **Calls are gated on an approval kept in runtime state.** The A2A client
+  refuses any saved peer an admin has not approved
+  (`interfaces/a2a/src/client.ts`):
 
   ```ts
-  if (entity.metadata["status"] !== "approved") {
+  if (!(await deps.isContactApproved?.(agentId))) {
     return {
       success: false,
       error: `Agent ${agentId} is discovered but not approved yet. Approve it first.`,
@@ -131,8 +132,43 @@ This is the heart of cross-brain discovery: **discovery never implies access.**
   }
   ```
 
-- **Approval** flips the status (via `system_update` with
-  `fields: { status: "approved" }`), which the adapter syncs to frontmatter.
+  The approval lives in the `a2a.contact-approvals` runtime-state namespace,
+  not in the agent's file. An agent is content: anyone who can write the
+  content repo can edit its `status`, so the status shows the approval and
+  never decides it. An entry edited to `approved` without one is put back to
+  `discovered`.
+
+- **Approval** is `agent_set_standing` with `contact: "approved"` (and
+  `"archived"` to stop contacting a peer), an admin-only tool that confirms
+  first. It records the approval and then writes the status to match.
+  Connecting a new peer with `agent_connect` and the Inbox's connect action
+  record it the same way.
+- **Shared entities travel without a model.** A brain declares the
+  `https://rizom.ai/ext/entity-sharing/v1` extension on its Agent Card and
+  serves an entity its owner marked `shared` to a peer it trusts, when a
+  signed `message/send` asks for it by type and id with the
+  `X-A2A-Extensions` header. The request is answered before any model sees
+  it, and every miss (not trusted, not shared, not published, not there) is
+  the same `404`. What is served is signed: the owner signs the document's
+  hash with its type, id and the time, using the key it publishes for A2A,
+  and the asking brain takes nothing whose hash or signature does not check
+  out against the peer it asked.
+- **A copy is its own type.** An admin works with what a peer shares through
+  one tool, `agent_shared_entities`: `list` names what the peer shares
+  with this brain, `show` returns an entity's text and
+  saves nothing, `take` saves a copy after confirmation, `drop` removes
+  one. A copy is a `shared-copy` entity, never a note or a post of this
+  brain's own, and it is taken only when the document fits this brain's own
+  schema for its type. It is readable by this brain's trusted users and
+  never by the public, cannot be edited, is not written to the content
+  repo, and is never served onward to another brain.
+- **A copy stays current while its owner shares it.** A daily check asks the
+  owner again. New text replaces the copy. When the owner answers that it
+  shares the entity no longer, the text is erased and a stub stays: the
+  title, the source, the dates, and the signed hash. An owner that cannot
+  be reached, or whose answer does not verify, changes nothing. Archiving a
+  peer erases every copy taken from it the same way, and the confirmation
+  says how many.
 - **URL adds are the trusted shortcut.** When a user adds a brain by URL, the
   create interceptor (`agent-create-interceptor.ts`) creates it as `approved`
   immediately, and upgrades an existing `discovered` entry to `approved`. The

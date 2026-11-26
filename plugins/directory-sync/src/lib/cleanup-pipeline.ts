@@ -43,6 +43,8 @@ export interface CleanupPipelineDeps {
   };
   deleteOnFileRemoval: boolean;
   entityTypes?: string[] | undefined;
+  /** Whether a type is kept out of the content repo: it has no files to miss. */
+  keptOutOfRepo?: ((entityType: string) => boolean) | undefined;
   onEntityDeleted?: ((entity: BaseEntity) => void) | undefined;
 }
 
@@ -59,7 +61,9 @@ export async function removeOrphanedEntities(
     return createCleanupResult();
   }
 
-  const typesToCheck = deps.entityTypes ?? deps.entityService.getEntityTypes();
+  const typesToCheck = (
+    deps.entityTypes ?? deps.entityService.getEntityTypes()
+  ).filter((entityType) => !deps.keptOutOfRepo?.(entityType));
 
   const result = createCleanupResult();
 

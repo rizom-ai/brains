@@ -52,6 +52,7 @@ export const entityDefinitionConfigSchema: z.ZodObject<
     storage: z.ZodOptional<z.ZodEnum<{ markdown: "markdown"; yaml: "yaml" }>>;
     defaultSort: z.ZodOptional<z.ZodArray<SortFieldSchema>>;
     markdownImport: z.ZodOptional<z.ZodBoolean>;
+    contentRepo: z.ZodOptional<z.ZodBoolean>;
     retiredFields: FieldNamesSchema;
     translatedFields: FieldNamesSchema;
     actionPolicy: z.ZodOptional<typeof entityActionPolicyRuleSchema>;
@@ -83,6 +84,7 @@ export const entityDefinitionConfigSchema: z.ZodObject<
   storage: z.enum(["markdown", "yaml"]).optional(),
   defaultSort: z.array(sortFieldSchema).max(10).optional(),
   markdownImport: z.boolean().optional(),
+  contentRepo: z.boolean().optional(),
   retiredFields: fieldNamesSchema,
   translatedFields: fieldNamesSchema,
   actionPolicy: entityActionPolicyRuleSchema.optional(),

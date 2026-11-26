@@ -1,3 +1,4 @@
+import { ENTITY_SHARING_EXTENSION_URI } from "@brains/contracts";
 import type { AgentCard, AgentSkill, AgentExtension } from "@a2a-js/sdk";
 import {
   type BrainCharacter,
@@ -84,6 +85,11 @@ export function buildAgentCard(options: AgentCardOptions): AgentCard {
       uri: ANCHOR_EXTENSION_URI,
       description: "Anchor identity for this brain",
       params: anchorParams,
+    },
+    {
+      uri: ENTITY_SHARING_EXTENSION_URI,
+      description:
+        "Serves this brain's shared entities to peers it trusts, one by its type and id",
     },
   ];
 

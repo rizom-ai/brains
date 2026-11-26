@@ -1,4 +1,15 @@
 import {
+  asksForEntitySharing,
+  entitySharingRequestOf,
+  listSharedEntities,
+  readSharedEntity,
+  type StatementSigner,
+} from "./entity-sharing";
+import {
+  A2A_CONTACT_APPROVALS_NAMESPACE,
+  a2aContactApprovalSchema,
+} from "@brains/contracts";
+import {
   interfaceRuntime,
   withDaemon,
   withTools,
@@ -17,6 +28,7 @@ import type { PluginPackageDefinition } from "@brains/sdk";
 import {
   JwksResolver,
   signRequest,
+  signStatement,
   verifyRequest,
 } from "@brains/http-signatures";
 import type { AgentCard } from "@a2a-js/sdk";
@@ -64,6 +76,11 @@ const A2A_CORS_HEADERS = {
  */
 export interface A2AInterfaceDeps {
   fetch?: FetchFn | undefined;
+  /**
+   * Whether an admin approved contacting a peer, in place of the brain's
+   * auth runtime: a test's own answer.
+   */
+  isContactApproved?: ((domain: string) => Promise<boolean>) | undefined;
 }
 
 /** What a running A2A interface keeps between calls. */
@@ -106,6 +123,25 @@ function createRequestSigner(
   };
 }
 
+/** This brain's signature over a statement, when it has a key peers can resolve. */
+function createStatementSigner(
+  runtime: InterfaceRuntime,
+): StatementSigner | undefined {
+  const authService = runtime.auth();
+  if (!authService) return undefined;
+  const issuer = authService.getIssuer();
+  if (isLoopbackIssuer(issuer) || new URL(issuer).protocol !== "https:") {
+    return undefined;
+  }
+  return async (statement) => {
+    const signingKey = await authService.getA2ASigningKey();
+    return {
+      keyId: signingKey.keyId,
+      signature: signStatement(statement, signingKey.privateJwk),
+    };
+  };
+}
+
 function createClientDeps(
   runtime: InterfaceRuntime,
   config: A2AConfig,
@@ -119,6 +155,15 @@ function createClientDeps(
     streamIdleTimeoutMs: config.streamIdleTimeoutMs,
     maxNetworkAttempts: config.maxNetworkAttempts,
     entityService: runtime.entityReads,
+    isContactApproved:
+      deps.isContactApproved ??
+      ((domain): Promise<boolean> =>
+        runtime.classRuntimeState
+          .scoped({
+            namespace: A2A_CONTACT_APPROVALS_NAMESPACE,
+            schema: a2aContactApprovalSchema,
+          })
+          .has(domain.trim().toLowerCase())),
   };
 }
 
@@ -280,6 +325,42 @@ function createApp(
           jsonrpc: "2.0",
           error: { code: -32600, message: "Invalid request" },
           id: null,
+        }),
+      );
+    }
+
+    // An entity-sharing request is answered here, before any model sees
+    // it. Every miss is the same 404, so a peer learns nothing from one.
+    if (asksForEntitySharing(c.req.raw.headers)) {
+      const asked =
+        parsed.data.method === "message/send"
+          ? entitySharingRequestOf(parsed.data.params)
+          : undefined;
+      const shared =
+        asked?.op === "list"
+          ? await listSharedEntities(
+              runtime.entityReads,
+              caller.permissionLevel,
+            )
+          : await readSharedEntity(
+              runtime.entityReads,
+              caller.permissionLevel,
+              asked,
+              createStatementSigner(runtime),
+            );
+      if (!shared) {
+        return withCors(c.json({ error: "Not found" }, 404));
+      }
+      return withCors(
+        c.json({
+          jsonrpc: "2.0",
+          id: parsed.data.id,
+          result: {
+            kind: "message",
+            messageId: crypto.randomUUID(),
+            role: "agent",
+            parts: [{ kind: "data", data: shared }],
+          },
         }),
       );
     }

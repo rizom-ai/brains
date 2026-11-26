@@ -37,6 +37,14 @@ export function getImportPathDecision(
     return { skip: true, countSkipped: true };
   }
 
+  // A type kept out of the content repo has no files: one placed in its
+  // folder is nobody's record.
+  if (
+    deps.entityService.getEntityTypeConfig(entityType).contentRepo === false
+  ) {
+    return { skip: true, countSkipped: true };
+  }
+
   // A YAML file under a markdown type's folder is not an entity's: it is
   // left alone (docs/external-plugin-authoring.md, The stored format).
   if (

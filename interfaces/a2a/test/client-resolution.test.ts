@@ -102,6 +102,21 @@ function createEntityServiceFrom(
   });
 }
 
+/**
+ * A brain's agent directory and the contact approvals an admin gave, here
+ * agreeing with each other: a peer whose entry says approved is approved.
+ */
+function directoryOf(entities: Map<string, BaseEntity>): {
+  entityService: ICoreEntityService;
+  isContactApproved: (domain: string) => Promise<boolean>;
+} {
+  return {
+    entityService: createEntityServiceFrom(entities),
+    isContactApproved: async (domain) =>
+      entities.get(domain)?.metadata["status"] === "approved",
+  };
+}
+
 const toolContext = {
   interfaceType: "mcp" as const,
   actor: { kind: "user" as const, userId: "test" },
@@ -137,7 +152,7 @@ describe("agent_call agent resolution", () => {
     const fetchFn = createMockFetch();
     const tool = createAgentCallTool({
       fetch: fetchFn,
-      entityService: createEntityServiceFrom(entities),
+      ...directoryOf(entities),
     });
 
     const result = await tool.handler(
@@ -168,7 +183,7 @@ describe("agent_call agent resolution", () => {
     const fetchFn = createMockFetch();
     const tool = createAgentCallTool({
       fetch: fetchFn,
-      entityService: createEntityServiceFrom(entities),
+      ...directoryOf(entities),
     });
 
     const result = await tool.handler(
@@ -200,7 +215,7 @@ describe("agent_call agent resolution", () => {
     const fetchFn = createMockFetch();
     const tool = createAgentCallTool({
       fetch: fetchFn,
-      entityService: createEntityServiceFrom(entities),
+      ...directoryOf(entities),
     });
 
     const result = await tool.handler(
@@ -234,7 +249,7 @@ describe("agent_call agent resolution", () => {
     const fetchFn = createMockFetch();
     const tool = createAgentCallTool({
       fetch: fetchFn,
-      entityService: createEntityServiceFrom(entities),
+      ...directoryOf(entities),
     });
 
     const result = await tool.handler(
@@ -247,6 +262,71 @@ describe("agent_call agent resolution", () => {
       "https://yeehaa.io/.well-known/agent-card.json",
     );
     expect(fetchFn.mock.calls[1]?.[0]).toBe("https://yeehaa.io/a2a");
+  });
+
+  it("refuses a peer whose entry says approved when no admin approved it", async () => {
+    // The entry is content: anyone who can write the content repo can
+    // change its status. The approval is not.
+    const entities = new Map();
+    entities.set(
+      "edited.io",
+      createTestEntity<BaseEntity>("agent", {
+        id: "edited.io",
+        content:
+          "---\nname: Edited\nurl: 'https://edited.io/a2a'\nstatus: approved\n---",
+        metadata: {
+          name: "Edited",
+          url: "https://edited.io/a2a",
+          status: "approved",
+        },
+      }),
+    );
+    const fetchFn = createMockFetch();
+    const tool = createAgentCallTool({
+      fetch: fetchFn,
+      entityService: createEntityServiceFrom(entities),
+      isContactApproved: async () => false,
+    });
+
+    const result = await tool.handler(
+      { agent: "edited.io", message: "hello" },
+      toolContext,
+    );
+
+    assertIsError(result);
+    expect(result.code).toBe("agent_not_approved");
+    expect(fetchFn).not.toHaveBeenCalled();
+  });
+
+  it("refuses every saved peer when the brain keeps no approvals", async () => {
+    const entities = new Map();
+    entities.set(
+      "yeehaa.io",
+      createTestEntity<BaseEntity>("agent", {
+        id: "yeehaa.io",
+        content:
+          "---\nname: Yeehaa\nurl: 'https://yeehaa.io/a2a'\nstatus: approved\n---",
+        metadata: {
+          name: "Yeehaa",
+          url: "https://yeehaa.io/a2a",
+          status: "approved",
+        },
+      }),
+    );
+    const fetchFn = createMockFetch();
+    const tool = createAgentCallTool({
+      fetch: fetchFn,
+      entityService: createEntityServiceFrom(entities),
+    });
+
+    const result = await tool.handler(
+      { agent: "yeehaa.io", message: "hello" },
+      toolContext,
+    );
+
+    assertIsError(result);
+    expect(result.code).toBe("agent_not_approved");
+    expect(fetchFn).not.toHaveBeenCalled();
   });
 
   it("should refuse discovered agents until approved", async () => {
@@ -264,7 +344,7 @@ describe("agent_call agent resolution", () => {
     const fetchFn = createMockFetch();
     const tool = createAgentCallTool({
       fetch: fetchFn,
-      entityService: createEntityServiceFrom(entities),
+      ...directoryOf(entities),
     });
 
     const result = await tool.handler(
@@ -293,7 +373,7 @@ describe("agent_call agent resolution", () => {
     const fetchFn = createMockFetch();
     const tool = createAgentCallTool({
       fetch: fetchFn,
-      entityService: createEntityServiceFrom(entities),
+      ...directoryOf(entities),
     });
 
     const result = await tool.handler(
@@ -441,7 +521,7 @@ describe("agent_call agent resolution", () => {
     const fetchFn = createCardFetch("http://localhost:8080/a2a");
     const tool = createAgentCallTool({
       fetch: fetchFn,
-      entityService: createEntityServiceFrom(entities),
+      ...directoryOf(entities),
     });
 
     const result = await tool.handler(
@@ -473,7 +553,7 @@ describe("agent_call agent resolution", () => {
     const fetchFn = createCardFetch("https://attacker.example/a2a");
     const tool = createAgentCallTool({
       fetch: fetchFn,
-      entityService: createEntityServiceFrom(entities),
+      ...directoryOf(entities),
     });
 
     const result = await tool.handler(
@@ -589,6 +669,7 @@ describe("agent_call reads saved agents at the caller's access", () => {
     const tool = createAgentCallTool({
       fetch: createMockFetch(),
       entityService,
+      isContactApproved: async () => true,
     });
 
     const admin = await tool.handler(

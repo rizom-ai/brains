@@ -12,29 +12,29 @@ describe("getAgentDiscoveryInstructions", () => {
       "system_update",
       "agent_connect",
       "agent_call",
-      "agent_set_trust_level",
+      "agent_set_standing",
       "network_ask",
     ]) {
       expect(instructions).toContain(toolName);
     }
     expect(instructions).toContain(
-      "agent_set_trust_level is the only tool for granting or revoking inbound A2A trust",
+      "agent_set_standing with level is the only way to grant or revoke inbound A2A trust",
     );
     expect(instructions).toContain(
-      "approve/archive an existing or discovered agent with system_update",
+      "approve, restore or archive a saved agent with agent_set_standing;",
     );
     expect(instructions).toContain(
-      "call system_update directly when it is callable",
+      "call agent_set_standing directly when it is callable",
     );
-    expect(instructions).toContain("never substitute agent_connect");
+    expect(instructions).toContain("Never substitute agent_connect");
     // A named domain is the contact's id: approving it is one update, with
     // no search, get, or list to find a record the request already names.
     expect(instructions).toContain("An agent's id is its domain");
     expect(instructions).toContain(
-      "on entityType agent with that id and status approved or archived",
+      "with that id as agent and contact approved or archived",
     );
     expect(instructions).toContain(
-      "never substitute agent_connect or run system_search, system_get, or system_list first",
+      "never run system_search, system_get, or system_list first",
     );
     expect(instructions).toContain(
       "agent_connect only to verify and save a new domain/URL",

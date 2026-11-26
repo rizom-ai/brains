@@ -430,6 +430,7 @@ describe("A2A Client", () => {
       const tool = createAgentCallTool({
         fetch: createMockFetch(capturedHeaders),
         entityService: createSavedAgentEntityService(),
+        isContactApproved: async () => true,
       });
 
       await tool.handler(
@@ -452,6 +453,7 @@ describe("A2A Client", () => {
           request.headers["Signature"] = "sig1=:abc:";
         },
         entityService: createSavedAgentEntityService(),
+        isContactApproved: async () => true,
       });
 
       await tool.handler(
@@ -542,6 +544,7 @@ describe("A2A Client", () => {
           { state: "completed", final: true, text: "Final answer" },
         ]),
         entityService: createSavedAgentEntityService(),
+        isContactApproved: async () => true,
       });
 
       const result = await tool.handler(
@@ -575,6 +578,7 @@ describe("A2A Client", () => {
           { state: "completed", final: true, text: "Cited answer" },
         ]),
         entityService: createSavedAgentEntityService(),
+        isContactApproved: async () => true,
       });
 
       const result = await tool.handler(
@@ -592,6 +596,7 @@ describe("A2A Client", () => {
           { state: "completed", final: true, text: "Plain answer" },
         ]),
         entityService: createSavedAgentEntityService(),
+        isContactApproved: async () => true,
       });
 
       const result = await tool.handler(
@@ -609,6 +614,7 @@ describe("A2A Client", () => {
           { state: "failed", final: true, text: "Error: Agent crashed" },
         ]),
         entityService: createSavedAgentEntityService(),
+        isContactApproved: async () => true,
       });
 
       const result = await tool.handler(
@@ -627,6 +633,7 @@ describe("A2A Client", () => {
           // stream closes without final: true
         ]),
         entityService: createSavedAgentEntityService(),
+        isContactApproved: async () => true,
       });
 
       const result = await tool.handler(
@@ -678,6 +685,7 @@ describe("A2A Client", () => {
       const tool = createAgentCallTool({
         fetch: fetchFn,
         entityService: createSavedAgentEntityService(),
+        isContactApproved: async () => true,
         requestTimeoutMs: 25,
       });
       const controller = new AbortController();
@@ -728,6 +736,7 @@ describe("A2A Client", () => {
       const tool = createAgentCallTool({
         fetch: fetchFn,
         entityService: createSavedAgentEntityService(),
+        isContactApproved: async () => true,
         requestTimeoutMs: 5,
         maxNetworkAttempts: 2,
       });
@@ -788,6 +797,7 @@ describe("A2A Client", () => {
       const tool = createAgentCallTool({
         fetch: fetchFn,
         entityService: createSavedAgentEntityService(),
+        isContactApproved: async () => true,
         streamIdleTimeoutMs: 5,
         maxNetworkAttempts: 2,
       });
@@ -854,6 +864,7 @@ describe("A2A Client", () => {
       const tool = createAgentCallTool({
         fetch: fetchFn,
         entityService: createSavedAgentEntityService(),
+        isContactApproved: async () => true,
         streamIdleTimeoutMs: 5,
       });
 
@@ -921,6 +932,7 @@ describe("A2A Client", () => {
       const tool = createAgentCallTool({
         fetch: fetchFn,
         entityService: createSavedAgentEntityService(),
+        isContactApproved: async () => true,
         maxNetworkAttempts: 2,
       });
 
@@ -974,6 +986,7 @@ describe("A2A Client", () => {
       const tool = createAgentCallTool({
         fetch: fetchFn,
         entityService: createSavedAgentEntityService(),
+        isContactApproved: async () => true,
         maxNetworkAttempts: 2,
       });
 
@@ -1036,6 +1049,7 @@ describe("A2A Client", () => {
       const tool = createAgentCallTool({
         fetch: fetchFn,
         entityService: createSavedAgentEntityService(),
+        isContactApproved: async () => true,
         streamIdleTimeoutMs: 50,
       });
 
@@ -1071,6 +1085,7 @@ describe("A2A Client", () => {
       const tool = createAgentCallTool({
         fetch: fetchFn,
         entityService: createSavedAgentEntityService(),
+        isContactApproved: async () => true,
         maxNetworkAttempts: 2,
       });
 

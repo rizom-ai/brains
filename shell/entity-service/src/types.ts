@@ -812,6 +812,13 @@ export interface EntityTypeConfig {
   /** Accepts upload text extraction through system_create extract-markdown. */
   markdownImport?: boolean;
   /**
+   * Whether the type's records are written to the content repo as files
+   * (default: true). False for records that must never leave the database,
+   * such as a copy of another brain's entity: no file is written for one,
+   * no file is read as one, and its having no file is never a deletion.
+   */
+  contentRepo?: boolean;
+  /**
    * Frontmatter keys this type no longer owns. Stored entities may still
    * carry them: they are read past, never written back, and removed from
    * stored content by `rewriteRetiredFields`.

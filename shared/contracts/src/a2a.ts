@@ -123,3 +123,256 @@ export const a2aAgentsContract: BusContract<
   response: a2aAgentsResponseSchema,
   delivery: "request",
 });
+
+/**
+ * The runtime-state namespace that holds which peers this brain may
+ * contact: one record per approved peer, keyed by its domain. It is runtime
+ * state so that nothing written as content can approve a peer; the agent
+ * directory writes it and the A2A client reads it.
+ */
+export const A2A_CONTACT_APPROVALS_NAMESPACE = "a2a.contact-approvals";
+
+type A2AContactApprovalSchema = z.ZodObject<{
+  approvedAt: z.ZodString;
+  approvedBy: z.ZodOptional<z.ZodString>;
+}>;
+
+/** An admin's approval of this brain contacting a peer. */
+export const a2aContactApprovalSchema: A2AContactApprovalSchema = z.object({
+  approvedAt: z.string(),
+  /** The user who approved, when a signed-in user did. */
+  approvedBy: z.string().optional(),
+});
+
+export type A2AContactApproval = z.output<typeof a2aContactApprovalSchema>;
+
+/**
+ * The A2A extension a brain declares on its Agent Card to serve its shared
+ * entities to peers it trusts. A request activates it with the
+ * `X-A2A-Extensions` header and names what it wants in a data part of an
+ * ordinary `message/send`; it is answered before any model sees it.
+ */
+export const ENTITY_SHARING_EXTENSION_URI =
+  "https://rizom.ai/ext/entity-sharing/v1";
+
+type EntitySharingGetSchema = z.ZodObject<{
+  op: z.ZodLiteral<"get">;
+  entityType: z.ZodString;
+  id: z.ZodString;
+}>;
+
+type EntitySharingRequestSchema = z.ZodDiscriminatedUnion<
+  [EntitySharingGetSchema, z.ZodObject<{ op: z.ZodLiteral<"list"> }>]
+>;
+
+/**
+ * What a peer is asked over the entity-sharing extension: one shared
+ * entity by its type and id, or the list of what it shares with the asker.
+ */
+export const entitySharingRequestSchema: EntitySharingRequestSchema =
+  z.discriminatedUnion("op", [
+    z.object({
+      op: z.literal("get"),
+      entityType: z.string().min(1),
+      id: z.string().min(1),
+    }),
+    z.object({ op: z.literal("list") }),
+  ]);
+
+type SharedEntityListingSchema = z.ZodObject<{
+  entities: z.ZodArray<
+    z.ZodObject<{
+      entityType: z.ZodString;
+      id: z.ZodString;
+      title: z.ZodString;
+    }>
+  >;
+}>;
+
+/** What a brain shares with the asker: each entity named, none of its text. */
+export const sharedEntityListingSchema: SharedEntityListingSchema = z.object({
+  entities: z.array(
+    z.object({
+      entityType: z.string().min(1),
+      id: z.string().min(1),
+      title: z.string(),
+    }),
+  ),
+});
+
+export type SharedEntityListing = z.output<typeof sharedEntityListingSchema>;
+
+export type EntitySharingRequest = z.output<typeof entitySharingRequestSchema>;
+
+/**
+ * The type a brain keeps its copies of other brains' entities as. Named
+ * here because both sides of an exchange know it: the brain that takes a
+ * copy stores it as one, and a brain that serves never serves one onward.
+ */
+export const SHARED_COPY_ENTITY_TYPE = "shared-copy";
+
+type SharedEntityAttestationSchema = z.ZodObject<{
+  signedAt: z.ZodString;
+  keyId: z.ZodString;
+  signature: z.ZodString;
+}>;
+
+/**
+ * The owner's signature over what it served: the entity's type, id and
+ * content hash, and the time, signed with the brain key it publishes for
+ * A2A. Anyone holding that key can check a copy against it.
+ */
+export const sharedEntityAttestationSchema: SharedEntityAttestationSchema =
+  z.object({
+    signedAt: z.string().min(1),
+    /** The signing key, as the owner's JWKS names it. */
+    keyId: z.string().min(1),
+    signature: z.string().min(1),
+  });
+
+export type SharedEntityAttestation = z.output<
+  typeof sharedEntityAttestationSchema
+>;
+
+type SharedEntitySchema = z.ZodObject<{
+  entityType: z.ZodString;
+  id: z.ZodString;
+  markdown: z.ZodString;
+  contentHash: z.ZodString;
+  attestation: SharedEntityAttestationSchema;
+}>;
+
+/**
+ * A shared entity as its owner serves it: its stored document, that
+ * document's hash, and the owner's signature over the hash.
+ */
+export const sharedEntitySchema: SharedEntitySchema = z.object({
+  entityType: z.string().min(1),
+  id: z.string().min(1),
+  markdown: z.string(),
+  /** The SHA-256 of `markdown`, in hex. */
+  contentHash: z.string().min(1),
+  attestation: sharedEntityAttestationSchema,
+});
+
+export type SharedEntity = z.output<typeof sharedEntitySchema>;
+
+/** The statement an owner signs for an entity it serves. */
+export function sharedEntityStatement(entity: {
+  entityType: string;
+  id: string;
+  contentHash: string;
+  attestation: { signedAt: string };
+}): string {
+  return [
+    ENTITY_SHARING_EXTENSION_URI,
+    entity.entityType,
+    entity.id,
+    entity.contentHash,
+    entity.attestation.signedAt,
+  ].join("\n");
+}
+
+type SharedEntityAskRequestSchema = z.ZodObject<{
+  agent: z.ZodString;
+  entityType: z.ZodString;
+  id: z.ZodString;
+}>;
+
+const sharedEntityAskRequestSchema: SharedEntityAskRequestSchema = z.object({
+  /** The saved, approved peer to ask, by its id. */
+  agent: z.string().min(1),
+  entityType: z.string().min(1),
+  id: z.string().min(1),
+});
+
+type SharedEntityAskResponseSchema = z.ZodDiscriminatedUnion<
+  [
+    z.ZodObject<{ status: z.ZodLiteral<"found">; entity: SharedEntitySchema }>,
+    z.ZodObject<{ status: z.ZodLiteral<"not-found"> }>,
+    z.ZodObject<{
+      status: z.ZodLiteral<"refused">;
+      code: z.ZodString;
+      error: z.ZodString;
+    }>,
+  ]
+>;
+
+/**
+ * What asking a peer for a shared entity comes to: the entity, the peer's
+ * one answer for anything it will not serve, or why the peer was not asked
+ * or could not be read.
+ */
+export const sharedEntityAskResponseSchema: SharedEntityAskResponseSchema =
+  z.discriminatedUnion("status", [
+    z.object({ status: z.literal("found"), entity: sharedEntitySchema }),
+    z.object({ status: z.literal("not-found") }),
+    z.object({
+      status: z.literal("refused"),
+      code: z.string(),
+      error: z.string(),
+    }),
+  ]);
+
+export type SharedEntityAskResponse = z.output<
+  typeof sharedEntityAskResponseSchema
+>;
+
+/** Ask a saved, approved peer for one of its shared entities. */
+export const a2aSharedEntityContract: BusContract<
+  SharedEntityAskRequestSchema,
+  SharedEntityAskResponseSchema,
+  "request"
+> = defineBusContract({
+  channel: "a2a:shared-entity:get",
+  request: sharedEntityAskRequestSchema,
+  response: sharedEntityAskResponseSchema,
+  delivery: "request",
+});
+
+type SharedEntityListAskRequestSchema = z.ZodObject<{ agent: z.ZodString }>;
+
+type SharedEntityListAskResponseSchema = z.ZodDiscriminatedUnion<
+  [
+    z.ZodObject<{
+      status: z.ZodLiteral<"found">;
+      entities: SharedEntityListingSchema["shape"]["entities"];
+    }>,
+    z.ZodObject<{ status: z.ZodLiteral<"not-found"> }>,
+    z.ZodObject<{
+      status: z.ZodLiteral<"refused">;
+      code: z.ZodString;
+      error: z.ZodString;
+    }>,
+  ]
+>;
+
+export const sharedEntityListAskResponseSchema: SharedEntityListAskResponseSchema =
+  z.discriminatedUnion("status", [
+    z.object({
+      status: z.literal("found"),
+      entities: sharedEntityListingSchema.shape.entities,
+    }),
+    z.object({ status: z.literal("not-found") }),
+    z.object({
+      status: z.literal("refused"),
+      code: z.string(),
+      error: z.string(),
+    }),
+  ]);
+
+export type SharedEntityListAskResponse = z.output<
+  typeof sharedEntityListAskResponseSchema
+>;
+
+/** Ask a saved, approved peer what it shares with this brain. */
+export const a2aSharedEntityListContract: BusContract<
+  SharedEntityListAskRequestSchema,
+  SharedEntityListAskResponseSchema,
+  "request"
+> = defineBusContract({
+  channel: "a2a:shared-entity:list",
+  request: z.object({ agent: z.string().min(1) }),
+  response: sharedEntityListAskResponseSchema,
+  delivery: "request",
+});

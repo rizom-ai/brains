@@ -220,6 +220,9 @@ describe("canonical brain core", () => {
       "agent",
       "skill-entity",
       "skill",
+      // What peers share with this brain is kept as its own type.
+      "shared-copy",
+      "shared-copies",
       "unified-inbox",
       "mcp",
       "a2a",

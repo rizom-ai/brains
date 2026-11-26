@@ -4,7 +4,7 @@ import { ConfirmationArgsStore } from "../src/internal/service-runtime";
 /**
  * The confirmation store a first-party tool holds a pending confirmation's
  * arguments in between its two calls, as agent discovery's agent_connect
- * and agent_set_trust_level held them: a token for the arguments of the
+ * and agent_set_standing held them: a token for the arguments of the
  * first call, accepted once for the same arguments, and forgotten after
  * its time to live or when newer confirmations crowd it out.
  */

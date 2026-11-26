@@ -1,6 +1,6 @@
 id: tool-invocation-agent-remove
 name: Archive Agent from Directory
-description: Tests that the agent uses system_update to archive an agent
+description: Tests that the agent archives a contact through agent_set_standing
 type: tool_invocation
 setup:
   permissionLevel: admin
@@ -15,8 +15,11 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: system_update
+    - toolName: agent_set_standing
       shouldBeCalled: true
+      argsContain:
+        agent: "old-agent.example"
+        contact: "archived"
   responseNotContains:
     - "I cannot"
     - "I don't have access"

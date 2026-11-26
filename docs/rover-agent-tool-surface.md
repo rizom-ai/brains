@@ -33,7 +33,7 @@ The maintenance operation `content-pipeline_ensure-assets` now runs through life
 agent_call
 agent_connect
 agent_scan_directories
-agent_set_trust_level
+agent_set_standing
 auth-service_get_passkey_setup_url
 directory_sync
 playbook_manage
@@ -60,7 +60,7 @@ system_update
 agent_call
 agent_connect
 agent_scan_directories
-agent_set_trust_level
+agent_set_standing
 auth-service_get_passkey_setup_url
 directory_sync
 playbook_manage
@@ -88,7 +88,7 @@ system_update
 agent_call
 agent_connect
 agent_scan_directories
-agent_set_trust_level
+agent_set_standing
 auth-service_get_passkey_setup_url
 directory_sync
 playbook_manage

@@ -590,6 +590,12 @@ export interface A2AClientDeps extends A2ANetworkOptions {
   fetch?: FetchFn;
   /** Signs outbound A2A requests. */
   requestSigner?: A2ARequestSigner;
+  /**
+   * Whether an admin approved this brain contacting the peer. The approval
+   * is runtime state, never the saved agent's own status, which is content.
+   * Without it no saved peer is contacted.
+   */
+  isContactApproved?: (domain: string) => Promise<boolean>;
   /** Entity service for agent directory resolution */
   entityService?: {
     getEntity(request: {
@@ -758,7 +764,7 @@ export async function executeAgentCall(
     };
   }
 
-  if (entity.metadata["status"] !== "approved") {
+  if (!(await deps.isContactApproved?.(agentId))) {
     return {
       success: false,
       error: `Agent ${agentId} is discovered but not approved yet. Approve it first.`,

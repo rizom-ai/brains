@@ -1,4 +1,12 @@
 import {
+  a2aSharedEntityContract,
+  a2aSharedEntityListContract,
+} from "@brains/contracts";
+import {
+  fetchSharedEntity,
+  fetchSharedEntityListing,
+} from "./shared-entity-client";
+import {
   type InterfaceRuntime,
   permissionToVisibilityScope,
 } from "@brains/sdk/internal/interface-runtime";
@@ -111,6 +119,16 @@ export function registerA2ACallMessageHandlers(
       }
       return answer.data;
     },
+  );
+
+  // One shared entity from a saved, approved peer: a signed request with
+  // no model on either side.
+  runtime.answer(a2aSharedEntityContract, ({ request }) =>
+    fetchSharedEntity(request, deps),
+  );
+  // What that peer shares with this brain, so no id has to be guessed.
+  runtime.answer(a2aSharedEntityListContract, ({ request }) =>
+    fetchSharedEntityListing(request, deps),
   );
 
   runtime.answer(

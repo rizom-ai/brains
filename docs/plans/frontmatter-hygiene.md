@@ -64,7 +64,7 @@ Each trim is verified against current readers. "Drop" means: add to `retiredFiel
 ### Agents (`entities/agent-discovery`)
 
 - Drop `cardObservedAt` and `cardLastCheckedAt` (never read).
-- Drop `a2aEndpoint` (always equals `url`; its one reader, `agent-set-trust-level.ts`, already falls back to `url`).
+- Drop `a2aEndpoint` (always equals `url`; its one reader, `agent-set-standing.ts`, already falls back to `url`).
 - Drop `did` (always equals `brainDid`; its one reader, `agent-detail.tsx`, switches to `brainDid`) and `anchorDid` (never read).
 - Move `cardCid`, `cardLastError`, `cardFailureCount`, `cardUnavailableAt` and `cardStaleAfter` to runtime state (`agent-discovery.card-refresh`, keyed by agent id); only `lib/atproto-card-events.ts` reads them. Stored values carry live state (failure counts, stale deadlines), so the move is expand-then-contract: the refresh loop seeds an agent's record from its stored fields the first time it meets it and stops writing them; a later release retires the five fields once every brain has run a refresh pass.
 

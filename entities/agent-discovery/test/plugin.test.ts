@@ -1,3 +1,4 @@
+import { contactApprovalStore } from "../src/lib/contact-approvals";
 import {
   agentDiscoveryPlugins,
   agentToolsPlugins,
@@ -862,7 +863,7 @@ describe("AgentDiscoveryPlugin", () => {
     await harness.reset();
   });
 
-  it("registers agent_set_trust_level as the explicit inbound trust tool", async () => {
+  it("registers agent_set_standing as the explicit inbound trust tool", async () => {
     const harness = createPluginHarness<Plugin>({});
 
     await installAll(harness, agentDiscoveryPlugins());
@@ -870,7 +871,7 @@ describe("AgentDiscoveryPlugin", () => {
 
     const tool = harness
       .getCapabilities()
-      .tools.find((candidate) => candidate.name === "agent_set_trust_level");
+      .tools.find((candidate) => candidate.name === "agent_set_standing");
     expect(tool?.visibility).toBe("admin");
     expect(tool?.sideEffects).toBe("external");
     expect(tool?.description).toContain("inbound A2A trust");
@@ -879,7 +880,7 @@ describe("AgentDiscoveryPlugin", () => {
     await harness.reset();
   });
 
-  it("agent_set_trust_level pins a peer key for inbound trusted access", async () => {
+  it("agent_set_standing pins a peer key for inbound trusted access", async () => {
     const harness = createPluginHarness<Plugin>({});
     const authPlugin = authServicePlugin({
       storageDir: await tempStorageDir(),
@@ -906,12 +907,12 @@ describe("AgentDiscoveryPlugin", () => {
       }),
     });
 
-    const confirmation = await harness.executeTool("agent_set_trust_level", {
+    const confirmation = await harness.executeTool("agent_set_standing", {
       agent: "trust.example",
       level: "trusted",
     });
     expectConfirmation(confirmation);
-    expect(confirmation.toolName).toBe("agent_set_trust_level");
+    expect(confirmation.toolName).toBe("agent_set_standing");
     expect(confirmation.summary).toBe(
       "Grant inbound trusted A2A access to trust.example?",
     );
@@ -925,7 +926,7 @@ describe("AgentDiscoveryPlugin", () => {
       role: "admin",
     });
     const result = await harness.executeTool(
-      "agent_set_trust_level",
+      "agent_set_standing",
       confirmationArgs(confirmation),
       { actor: { kind: "user", userId: owner.userId } },
     );
@@ -958,7 +959,191 @@ describe("AgentDiscoveryPlugin", () => {
     await harness.reset();
   });
 
-  it("agent_set_trust_level revokes inbound trusted access", async () => {
+  async function standingBrain(status: "discovered" | "approved"): Promise<{
+    harness: ReturnType<typeof createPluginHarness<Plugin>>;
+    auth: AuthService;
+    /** Whether runtime state holds an approval for the peer. */
+    approved: () => Promise<boolean>;
+    /** Approve the peer as an admin's tool call would have. */
+    approve: () => Promise<void>;
+    statusOf: () => Promise<unknown>;
+    close: () => Promise<void>;
+  }> {
+    const harness = createPluginHarness<Plugin>({});
+    const authPlugin = authServicePlugin({
+      storageDir: await tempStorageDir(),
+      issuer: "https://local.example",
+    });
+    await harness.installPlugin(authPlugin);
+    await installAll(harness, agentDiscoveryPlugins());
+    await installAll(harness, agentToolsPlugins());
+    await harness.getEntityService().createEntity({
+      entity: createTestAgent({
+        id: "peer.example",
+        name: "Peer",
+        url: "https://peer.example/a2a",
+        status,
+      }),
+    });
+    const auth = harness.getMockShell().getAuthRegistry().get();
+    if (!(auth instanceof AuthService))
+      throw new Error("Expected active auth service");
+    const approvals = contactApprovalStore(
+      harness.getMockShell().getRuntimeState(),
+    );
+    return {
+      harness,
+      auth,
+      approved: () => approvals.has("peer.example"),
+      approve: () =>
+        approvals.set("peer.example", {
+          approvedAt: "2026-11-26T00:00:00.000Z",
+        }),
+      statusOf: async () =>
+        (
+          await harness.getEntityService().getEntity({
+            entityType: "agent",
+            id: "peer.example",
+            visibilityScope: "restricted",
+          })
+        )?.metadata["status"],
+      close: async (): Promise<void> => {
+        await authPlugin.shutdown?.();
+        await harness.reset();
+      },
+    };
+  }
+
+  it("agent_set_standing approves contacting a peer, in runtime state and on its entry", async () => {
+    const brain = await standingBrain("discovered");
+
+    const confirmation = await brain.harness.executeTool("agent_set_standing", {
+      agent: "peer.example",
+      contact: "approved",
+    });
+    expectConfirmation(confirmation);
+    expect(confirmation.summary).toBe("Approve contacting peer.example?");
+    // Asking is not approving.
+    expect(await brain.approved()).toBe(false);
+
+    const result = await brain.harness.executeTool(
+      "agent_set_standing",
+      confirmationArgs(confirmation),
+    );
+
+    expectSuccess(result);
+    expect(result.data).toMatchObject({
+      agent: "peer.example",
+      contact: "approved",
+    });
+    expect(await brain.approved()).toBe(true);
+    expect(await brain.statusOf()).toBe("approved");
+    await brain.close();
+  });
+
+  it("agent_set_standing archives a peer: the approval is revoked and its entry says so", async () => {
+    const brain = await standingBrain("approved");
+    await brain.approve();
+
+    const confirmation = await brain.harness.executeTool("agent_set_standing", {
+      agent: "peer.example",
+      contact: "archived",
+    });
+    expectConfirmation(confirmation);
+    expect(confirmation.summary).toBe(
+      "Archive peer.example and stop contacting it?",
+    );
+    const result = await brain.harness.executeTool(
+      "agent_set_standing",
+      confirmationArgs(confirmation),
+    );
+
+    expectSuccess(result);
+    expect(await brain.approved()).toBe(false);
+    expect(await brain.statusOf()).toBe("archived");
+    await brain.close();
+  });
+
+  it("agent_set_standing leaves inbound trust alone when it sets contact, and the reverse", async () => {
+    const brain = await standingBrain("discovered");
+    await brain.auth.grantA2APeerTrust({
+      domain: "peer.example",
+      keyFingerprint: "fingerprint-1",
+      grantedLevel: "trusted",
+    });
+
+    const approval = await brain.harness.executeTool("agent_set_standing", {
+      agent: "peer.example",
+      contact: "approved",
+    });
+    expectConfirmation(approval);
+    await brain.harness.executeTool(
+      "agent_set_standing",
+      confirmationArgs(approval),
+    );
+    expect(await brain.auth.getA2APeerTrust("peer.example")).toMatchObject({
+      grantedLevel: "trusted",
+    });
+
+    const revocation = await brain.harness.executeTool("agent_set_standing", {
+      agent: "peer.example",
+      level: "public",
+    });
+    expectConfirmation(revocation);
+    await brain.harness.executeTool(
+      "agent_set_standing",
+      confirmationArgs(revocation),
+    );
+    expect(await brain.approved()).toBe(true);
+    await brain.close();
+  });
+
+  it("agent_set_standing approves a peer on a brain with no auth service", async () => {
+    // A headless brain has the agent directory and no auth runtime.
+    const harness = createPluginHarness<Plugin>({});
+    await installAll(harness, agentDiscoveryPlugins());
+    await installAll(harness, agentToolsPlugins());
+    await harness.getEntityService().createEntity({
+      entity: createTestAgent({
+        id: "peer.example",
+        name: "Peer",
+        url: "https://peer.example/a2a",
+        status: "discovered",
+      }),
+    });
+
+    const confirmation = await harness.executeTool("agent_set_standing", {
+      agent: "peer.example",
+      contact: "approved",
+    });
+    expectConfirmation(confirmation);
+    expectSuccess(
+      await harness.executeTool(
+        "agent_set_standing",
+        confirmationArgs(confirmation),
+      ),
+    );
+
+    expect(
+      await contactApprovalStore(harness.getMockShell().getRuntimeState()).has(
+        "peer.example",
+      ),
+    ).toBe(true);
+    await harness.reset();
+  });
+
+  it("agent_set_standing refuses a request that sets neither contact nor trust", async () => {
+    const brain = await standingBrain("discovered");
+
+    const result = await brain.harness.executeTool("agent_set_standing", {
+      agent: "peer.example",
+    });
+
+    expect(result).toMatchObject({ success: false });
+    await brain.close();
+  });
+
+  it("agent_set_standing revokes inbound trusted access", async () => {
     const harness = createPluginHarness<Plugin>({});
     const authPlugin = authServicePlugin({
       storageDir: await tempStorageDir(),
@@ -985,7 +1170,7 @@ describe("AgentDiscoveryPlugin", () => {
       grantedLevel: "trusted",
     });
 
-    const confirmation = await harness.executeTool("agent_set_trust_level", {
+    const confirmation = await harness.executeTool("agent_set_standing", {
       agent: "trust.example",
       level: "public",
     });
@@ -995,7 +1180,7 @@ describe("AgentDiscoveryPlugin", () => {
     );
 
     const result = await harness.executeTool(
-      "agent_set_trust_level",
+      "agent_set_standing",
       confirmationArgs(confirmation),
     );
 
@@ -1010,7 +1195,7 @@ describe("AgentDiscoveryPlugin", () => {
     await harness.reset();
   });
 
-  it("confirms agent_set_trust_level when both calls come over the tool bus, as MCP sends them", async () => {
+  it("confirms agent_set_standing when both calls come over the tool bus, as MCP sends them", async () => {
     const harness = createPluginHarness<Plugin>({});
     const authPlugin = authServicePlugin({
       storageDir: await tempStorageDir(),
@@ -1037,16 +1222,15 @@ describe("AgentDiscoveryPlugin", () => {
       grantedLevel: "trusted",
     });
 
-    const confirmation = await overTheToolBus(
-      harness,
-      "agent_set_trust_level",
-      { agent: "trust-mcp.example", level: "public" },
-    );
+    const confirmation = await overTheToolBus(harness, "agent_set_standing", {
+      agent: "trust-mcp.example",
+      level: "public",
+    });
     expectConfirmation(confirmation);
 
     const result = await overTheToolBus(
       harness,
-      "agent_set_trust_level",
+      "agent_set_standing",
       confirmationArgs(confirmation),
     );
 

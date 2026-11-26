@@ -1,0 +1,31 @@
+id: tool-invocation-agent-shared-entity-list
+name: List What a Peer Shares
+description: Tests that asking what a peer shares with this brain goes to agent_shared_entities with list, not to a conversation with the peer.
+type: tool_invocation
+setup:
+  permissionLevel: admin
+tags:
+  - recipe-professional
+  - agent-discovery
+  - a2a
+  - tool-invocation
+
+turns:
+  - userMessage: "Which entities does docs.rizom.example share with us?"
+
+successCriteria:
+  expectedTools:
+    - toolName: agent_shared_entities
+      shouldBeCalled: true
+      argsContain:
+        agent: docs.rizom.example
+        action: list
+    - toolName: agent_call
+      shouldBeCalled: false
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 45000

@@ -2232,6 +2232,71 @@
         "sourceEntityType",
         "sourceEntityId"
       ]
+    },
+    "shared-copy": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "sourceBrain": {
+          "type": "string",
+          "studioWidget": "provenance"
+        },
+        "sourceEntityType": {
+          "type": "string",
+          "studioWidget": "provenance"
+        },
+        "sourceEntityId": {
+          "type": "string",
+          "studioWidget": "provenance"
+        },
+        "sourceState": {
+          "type": "string",
+          "enum": ["active", "withdrawn"],
+          "studioWidget": "provenance"
+        },
+        "sourceContentHash": {
+          "type": "string",
+          "studioWidget": "provenance"
+        },
+        "receivedAt": {
+          "type": "string",
+          "studioWidget": "provenance"
+        },
+        "sourceSignedAt": {
+          "type": "string",
+          "studioWidget": "provenance"
+        },
+        "sourceKeyId": {
+          "type": "string",
+          "studioWidget": "provenance"
+        },
+        "sourceSignature": {
+          "type": "string",
+          "studioWidget": "provenance"
+        },
+        "withdrawnAt": {
+          "studioWidget": "provenance",
+          "type": "string"
+        },
+        "sourceHeader": {
+          "studioWidget": "provenance",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "sourceBrain",
+        "sourceEntityType",
+        "sourceEntityId",
+        "sourceState",
+        "sourceContentHash",
+        "receivedAt",
+        "sourceSignedAt",
+        "sourceKeyId",
+        "sourceSignature"
+      ]
     }
   },
   "obsidian": {

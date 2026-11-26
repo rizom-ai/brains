@@ -19,6 +19,7 @@ import {
   agentDiscoveryPackage,
   agentToolsPackage,
   derivedSkillPackage,
+  sharedCopiesPackage,
   skillPackage,
 } from "@brains/agent-discovery";
 import analyticsPackage from "@brains/analytics";
@@ -334,6 +335,12 @@ export const canonicalBrain: BrainDefinition = defineBrain({
             {},
             metadata,
             { pluginId: "skill", ownedTypePluginId: "skill-entity" },
+          ),
+          ...instantiatePluginPackageDefinition(
+            sharedCopiesPackage,
+            {},
+            metadata,
+            { pluginId: "shared-copies", ownedTypePluginId: "shared-copy" },
           ),
         ];
       },

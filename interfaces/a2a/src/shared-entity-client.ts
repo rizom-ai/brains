@@ -1,0 +1,234 @@
+import {
+  ENTITY_SHARING_EXTENSION_URI,
+  sharedEntityListingSchema,
+  sharedEntitySchema,
+  sharedEntityStatement,
+  type EntitySharingRequest,
+  type SharedEntityAskResponse,
+  type SharedEntityListAskResponse,
+} from "@brains/contracts";
+import { JwksResolver, verifyStatement } from "@brains/http-signatures";
+import { computeContentHash } from "@brains/utils/hash";
+import {
+  fetchVerifiedAgentCard,
+  permissionToVisibilityScope,
+} from "@brains/sdk/internal/interface-runtime";
+import { getErrorMessage } from "@brains/utils/error";
+import { z } from "@brains/utils/zod";
+import type { A2AClientDeps } from "./client";
+
+const DEFAULT_TIMEOUT_MS = 30_000;
+
+const answerSchema = z.looseObject({
+  result: z.looseObject({
+    parts: z.array(z.looseObject({ kind: z.string(), data: z.unknown() })),
+  }),
+});
+
+function refused(code: string, error: string): Refused {
+  return { status: "refused", code, error };
+}
+
+type Refused = Extract<SharedEntityAskResponse, { status: "refused" }>;
+
+/** A peer's answer to one entity-sharing request: its data parts, read by the caller. */
+type Exchange =
+  | Refused
+  | { status: "not-found" }
+  | {
+      status: "answered";
+      agentId: string;
+      data: unknown[];
+      fetchFn: NonNullable<A2AClientDeps["fetch"]>;
+      timeoutMs: number;
+    };
+
+/**
+ * Send one entity-sharing request to a saved, approved peer. A peer that is
+ * not saved, is archived or is not approved is refused before any network
+ * contact, and so is a brain that cannot sign: a peer serves only callers
+ * it can verify. The peer's 404 is "not found", whatever its reason.
+ */
+async function exchange(
+  agent: string,
+  request: EntitySharingRequest,
+  deps: A2AClientDeps,
+): Promise<Exchange> {
+  const agentId = agent.trim().toLowerCase();
+  const saved = await deps.entityService?.getEntity({
+    entityType: "agent",
+    id: agentId,
+    // An admin's tool asks: a peer saved at any visibility is theirs to name.
+    visibilityScope: permissionToVisibilityScope("admin"),
+  });
+  if (!saved) {
+    return refused("agent_not_saved", `Agent ${agentId} is not saved.`);
+  }
+  if (saved.metadata["status"] === "archived") {
+    return refused("agent_archived", `Agent ${agentId} is archived.`);
+  }
+  if (!(await deps.isContactApproved?.(agentId))) {
+    return refused(
+      "agent_not_approved",
+      `Agent ${agentId} is not approved yet. Approve it first.`,
+    );
+  }
+  const { requestSigner } = deps;
+  if (!requestSigner) {
+    return refused(
+      "unsigned",
+      "This brain cannot sign A2A requests, and a peer shares only with callers it can verify.",
+    );
+  }
+
+  const fetchFn = deps.fetch ?? fetch;
+  const timeoutMs = deps.requestTimeoutMs ?? DEFAULT_TIMEOUT_MS;
+  const verified = await fetchVerifiedAgentCard(agentId, {
+    fetch: fetchFn,
+    timeoutMs,
+  });
+  if (!verified.ok) {
+    return refused("agent_card_unavailable", verified.error);
+  }
+  if (!verified.card.extensions.includes(ENTITY_SHARING_EXTENSION_URI)) {
+    return refused("not_offered", `${agentId} does not offer shared entities.`);
+  }
+
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    "X-A2A-Extensions": ENTITY_SHARING_EXTENSION_URI,
+  };
+  const body = JSON.stringify({
+    jsonrpc: "2.0",
+    id: crypto.randomUUID(),
+    method: "message/send",
+    params: {
+      message: {
+        kind: "message",
+        messageId: crypto.randomUUID(),
+        role: "user",
+        parts: [
+          {
+            kind: "data",
+            data: request,
+          },
+        ],
+      },
+    },
+  });
+  await requestSigner({
+    method: "POST",
+    url: verified.card.url,
+    headers,
+    body,
+  });
+
+  let response: Response;
+  try {
+    response = await fetchFn(verified.card.url, {
+      method: "POST",
+      headers,
+      body,
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+  } catch (error) {
+    return refused(
+      "peer_failed",
+      getErrorMessage(error, `${agentId} did not answer`),
+    );
+  }
+  if (response.status === 404) return { status: "not-found" };
+  if (!response.ok) {
+    return refused(
+      "peer_failed",
+      `${agentId} answered HTTP ${response.status}`,
+    );
+  }
+
+  const answer = answerSchema.safeParse(
+    await response.json().catch(() => null),
+  );
+  return {
+    status: "answered",
+    agentId,
+    data: answer.success
+      ? answer.data.result.parts
+          .filter((part) => part.kind === "data")
+          .map((part) => part.data)
+      : [],
+    fetchFn,
+    timeoutMs,
+  };
+}
+
+/** Ask a saved, approved peer what it shares with this brain. */
+export async function fetchSharedEntityListing(
+  wanted: { agent: string },
+  deps: A2AClientDeps,
+): Promise<SharedEntityListAskResponse> {
+  const answered = await exchange(wanted.agent, { op: "list" }, deps);
+  if (answered.status !== "answered") return answered;
+  const listing = answered.data
+    .map((data) => sharedEntityListingSchema.safeParse(data))
+    .find((parsed) => parsed.success)?.data;
+  return listing
+    ? { status: "found", entities: listing.entities }
+    : refused(
+        "unreadable_answer",
+        `${answered.agentId} did not answer with a list.`,
+      );
+}
+
+/**
+ * Ask a saved, approved peer for one of its shared entities. What comes
+ * back is the peer's own, or it is refused: the hash is of the document
+ * served, and the signature over it is by the peer asked.
+ */
+export async function fetchSharedEntity(
+  wanted: { agent: string; entityType: string; id: string },
+  deps: A2AClientDeps,
+): Promise<SharedEntityAskResponse> {
+  const answered = await exchange(
+    wanted.agent,
+    { op: "get", entityType: wanted.entityType, id: wanted.id },
+    deps,
+  );
+  if (answered.status !== "answered") return answered;
+  const { agentId, fetchFn, timeoutMs } = answered;
+  const entity = answered.data
+    .map((data) => sharedEntitySchema.safeParse(data))
+    .find((parsed) => parsed.success)?.data;
+  if (entity?.entityType !== wanted.entityType || entity.id !== wanted.id) {
+    return refused(
+      "unreadable_answer",
+      `${agentId} did not answer with the entity asked for.`,
+    );
+  }
+  // The copy must be the peer's own, byte for byte: the hash is of the
+  // document served, and the signature over it is by the peer asked.
+  const unverified = refused(
+    "unverified",
+    `${agentId} did not sign what it served, so it was not taken.`,
+  );
+  if (entity.contentHash !== computeContentHash(entity.markdown)) {
+    return unverified;
+  }
+  try {
+    const signer = await verifyStatement(
+      sharedEntityStatement(entity),
+      entity.attestation.signature,
+      entity.attestation.keyId,
+      new JwksResolver({
+        fetch: (url): Promise<Response> =>
+          fetchFn(url, { signal: AbortSignal.timeout(timeoutMs) }),
+      }),
+    );
+    if (signer.domain !== agentId) return unverified;
+  } catch {
+    // Whatever kept the signature from verifying (no key published, a key
+    // that cannot be fetched, a signature that does not match), the answer
+    // is the same: the entity is not taken.
+    return unverified;
+  }
+  return { status: "found", entity };
+}

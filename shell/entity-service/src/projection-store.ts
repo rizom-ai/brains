@@ -114,6 +114,7 @@ export class ProjectionStore {
     mutationAdmission?: EntityMutationAdmission,
     now: () => number = Date.now,
     storagePolicy?: ProjectionEntityStoragePolicy,
+    inContentRepo?: (entityType: string) => boolean,
   ) {
     this.db = db;
     this.transactions = new ProjectionTransactionRunner(db);
@@ -132,7 +133,7 @@ export class ProjectionStore {
       batches: this.batches,
     });
     this.writeIntentApplier = new ProjectionWriteIntentApplier({
-      entityExportStore: new EntityExportStore(db, now),
+      entityExportStore: new EntityExportStore(db, now, inContentRepo),
       ...(mutationAdmission && { mutationAdmission }),
       ...(storagePolicy && { storagePolicy }),
     });

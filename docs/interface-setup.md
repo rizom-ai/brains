@@ -335,7 +335,7 @@ Call an approved contact:
 brain tool agent_call '{"agent":"remote.example.com","message":"What can you help with?"}'
 ```
 
-Inbound trust is separate from outbound contact approval. Grant or revoke it with `agent_set_trust_level`. Trusted calls use RFC 9421 HTTP Message Signatures and peer keys published through `/.well-known/jwks.json`.
+Inbound trust is separate from outbound contact approval, and `agent_set_standing` sets each: `contact` (`approved` or `archived`) for whether this brain may contact the peer, `level` (`trusted` or `public`) for what the peer may read here. Trusted calls use RFC 9421 HTTP Message Signatures and peer keys published through `/.well-known/jwks.json`.
 
 A2A also exposes the approved public directory at `/.well-known/agent-directory.json`. `agent_scan_directories` can walk approved peers' directories one hop and save unapproved second-order sightings for review.
 

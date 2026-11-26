@@ -1,3 +1,4 @@
+import type { ContactApprovals } from "./lib/contact-approvals";
 import type {
   EntityDefinition,
   EntityInboxDeclaration,
@@ -39,53 +40,61 @@ function sightingOf(
  * or dismiss it. The Inbox opens and acts as the operator, at their
  * visibility.
  */
-export const agentSightingsInbox: EntityInboxDeclaration<AgentDefinition> = {
-  sourceId: "agent-sightings",
-  displayName: "Agent sightings",
-  list: async ({ records }) =>
-    (await records.list())
-      .flatMap((record) => {
-        const sighting = sightingOf(record);
-        return sighting ? [sighting] : [];
-      })
-      .sort((a, b) =>
-        b.parsed.frontmatter.discoveredAt.localeCompare(
-          a.parsed.frontmatter.discoveredAt,
-        ),
-      )
-      .slice(0, SIGHTING_LIMIT)
-      .map(({ entity, parsed }) => toInboxItem(entity, parsed)),
-  resolveDetail: async (itemId, { records, signal }) => {
-    signal.throwIfAborted();
-    const sighting = sightingOf(await records.get(itemId));
-    signal.throwIfAborted();
-    if (!sighting) throw new Error("Agent sighting not found");
-    const text = detailText(sighting.entity, sighting.parsed);
-    return {
-      kind: "plain",
-      text: text.slice(0, DETAIL_LIMIT),
-      truncated: text.length > DETAIL_LIMIT,
-    };
-  },
-  act: async (itemId, actionId, { records, edits }) => {
-    if (actionId !== CONNECT_ACTION_ID && actionId !== DISMISS_ACTION_ID) {
-      throw new Error("Invalid agent sighting Inbox action");
-    }
-    const record = await records.get(itemId);
-    const sighting = record ? sightingOf(record) : undefined;
-    if (!record || !sighting) throw new Error("Agent sighting not found");
-    const status = actionId === CONNECT_ACTION_ID ? "approved" : "archived";
-    await edits.update(record, {
-      content: rewriteAgentContent(sighting.parsed, {
-        status,
-        ...(status === "approved"
-          ? { introducedBy: undefined, hops: undefined }
-          : {}),
-      }),
-      metadata: { ...record.metadata, status },
-    });
-  },
-};
+export function agentSightingsInbox(
+  approvals: ContactApprovals,
+): EntityInboxDeclaration<AgentDefinition> {
+  const inbox: EntityInboxDeclaration<AgentDefinition> = {
+    sourceId: "agent-sightings",
+    displayName: "Agent sightings",
+    list: async ({ records }) =>
+      (await records.list())
+        .flatMap((record) => {
+          const sighting = sightingOf(record);
+          return sighting ? [sighting] : [];
+        })
+        .sort((a, b) =>
+          b.parsed.frontmatter.discoveredAt.localeCompare(
+            a.parsed.frontmatter.discoveredAt,
+          ),
+        )
+        .slice(0, SIGHTING_LIMIT)
+        .map(({ entity, parsed }) => toInboxItem(entity, parsed)),
+    resolveDetail: async (itemId, { records, signal }) => {
+      signal.throwIfAborted();
+      const sighting = sightingOf(await records.get(itemId));
+      signal.throwIfAborted();
+      if (!sighting) throw new Error("Agent sighting not found");
+      const text = detailText(sighting.entity, sighting.parsed);
+      return {
+        kind: "plain",
+        text: text.slice(0, DETAIL_LIMIT),
+        truncated: text.length > DETAIL_LIMIT,
+      };
+    },
+    act: async (itemId, actionId, { records, edits }) => {
+      if (actionId !== CONNECT_ACTION_ID && actionId !== DISMISS_ACTION_ID) {
+        throw new Error("Invalid agent sighting Inbox action");
+      }
+      const record = await records.get(itemId);
+      const sighting = record ? sightingOf(record) : undefined;
+      if (!record || !sighting) throw new Error("Agent sighting not found");
+      const status = actionId === CONNECT_ACTION_ID ? "approved" : "archived";
+      // The approval itself is runtime state; the entry below only shows it.
+      if (status === "approved") await approvals.approve(record.id);
+      else await approvals.revoke(record.id);
+      await edits.update(record, {
+        content: rewriteAgentContent(sighting.parsed, {
+          status,
+          ...(status === "approved"
+            ? { introducedBy: undefined, hops: undefined }
+            : {}),
+        }),
+        metadata: { ...record.metadata, status },
+      });
+    },
+  };
+  return inbox;
+}
 
 type ParsedSighting = ParsedAgent;
 

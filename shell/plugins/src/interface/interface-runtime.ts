@@ -177,7 +177,11 @@ export interface InterfaceRuntime {
    */
   readonly entityReads: Pick<
     ICoreEntityService,
-    "hasEntityType" | "listEntities" | "getEntity" | "openAsset"
+    | "hasEntityType"
+    | "getEntityTypes"
+    | "listEntities"
+    | "getEntity"
+    | "openAsset"
   >;
   /**
    * The runtime's shared upload store (`upload`), which create requests,
@@ -324,7 +328,11 @@ export interface InterfaceRuntimeBinding {
   };
   readonly entityReads: Pick<
     ICoreEntityService,
-    "hasEntityType" | "listEntities" | "getEntity" | "openAsset"
+    | "hasEntityType"
+    | "getEntityTypes"
+    | "listEntities"
+    | "getEntity"
+    | "openAsset"
   >;
   /** The interface's id, to name it in a refusal. */
   readonly interfaceId: string;
@@ -446,6 +454,7 @@ function bindInterfaceRuntime(
     }),
     entityReads: Object.freeze({
       hasEntityType: (type: string) => binding.entityReads.hasEntityType(type),
+      getEntityTypes: () => binding.entityReads.getEntityTypes(),
       listEntities: binding.entityReads.listEntities.bind(binding.entityReads),
       getEntity: binding.entityReads.getEntity.bind(binding.entityReads),
       // A reference is not access: open only the reference of a record

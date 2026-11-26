@@ -1,0 +1,34 @@
+id: tool-invocation-agent-shared-entity-show
+name: Show a Peer's Shared Entity
+description: Tests that a request for one specific entity a peer shares goes to agent_shared_entities, not to a conversation with the peer.
+type: tool_invocation
+setup:
+  permissionLevel: admin
+tags:
+  - recipe-professional
+  - agent-discovery
+  - a2a
+  - tool-invocation
+
+turns:
+  - userMessage: "Show me the note with id pricing-2027 that docs.rizom.example shares with us."
+
+successCriteria:
+  expectedTools:
+    - toolName: agent_shared_entities
+      shouldBeCalled: true
+      argsContain:
+        agent: docs.rizom.example
+        action: show
+        entityType: note
+        id: pricing-2027
+    - toolName: agent_call
+      shouldBeCalled: false
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+
+efficiency:
+  maxToolCalls: 3
+  # One sample on 2026-11-26 was 35,727, plus 25%, rounded up to 1,000.
+  maxTokens: 45000

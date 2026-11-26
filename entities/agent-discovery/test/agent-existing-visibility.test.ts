@@ -1,3 +1,4 @@
+import type { ContactApprovals } from "../src/lib/contact-approvals";
 import { afterEach, describe, expect, it } from "bun:test";
 import { atprotoBrainCardDiscoveredPayloadSchema } from "@brains/atproto-contracts";
 import { AuthService } from "@brains/auth-service";
@@ -24,7 +25,7 @@ import { AGENT_ENTITY_TYPE } from "../src/lib/constants";
 import { agentEntitySchema, type AgentEntity } from "../src/schemas/agent";
 import { createAgentConnectTool } from "../src/tools/agent-connect";
 import { scanAgentDirectories } from "../src/tools/agent-scan-directories";
-import { createAgentSetTrustLevelTool } from "../src/tools/agent-set-trust-level";
+import { createAgentSetStandingTool } from "../src/tools/agent-set-standing";
 import { createTestAgent } from "./fixtures/agent";
 
 /**
@@ -144,6 +145,7 @@ async function connect(
 ): Promise<ToolResponse> {
   const tool = createAgentConnectTool(
     { entityService: service, permissions: allowAll },
+    noApprovals,
     fetchFn,
   );
   const toolContext: ToolContext = {
@@ -158,6 +160,14 @@ async function connect(
   expectConfirmation(confirmation);
   return tool.handler(confirmationArgs(confirmation), toolContext);
 }
+
+/** Approvals these tests do not read: every one is taken and none is kept. */
+const noApprovals: ContactApprovals = {
+  isApproved: async () => false,
+  list: async () => [],
+  approve: async () => {},
+  revoke: async () => {},
+};
 
 describe("agent_connect for an agent already saved above public", () => {
   it("refuses a trusted caller an agent saved restricted, changing nothing", async () => {
@@ -418,7 +428,7 @@ describe("an ATProto brain card over an agent that changed meanwhile", () => {
   });
 });
 
-describe("agent_set_trust_level for agents saved above public", () => {
+describe("agent_set_standing for agents saved above public", () => {
   it("lets an admin set inbound trust for an agent saved restricted", async () => {
     const service = await realEntityService();
     await service.createEntity({
@@ -433,10 +443,10 @@ describe("agent_set_trust_level for agents saved above public", () => {
       await auth.close();
       await storage.cleanup();
     });
-    const tool = createAgentSetTrustLevelTool({
-      entityService: service,
-      auth: { get: () => auth },
-    });
+    const tool = createAgentSetStandingTool(
+      { entityService: service, auth: { get: () => auth } },
+      noApprovals,
+    );
     const toolContext: ToolContext = {
       interfaceType: "test",
       actor: { kind: "user", userId: "owner" },

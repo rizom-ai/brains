@@ -98,6 +98,8 @@ export interface ParsedAgentCard {
     tags: string[];
   }>;
   anchor: AnchorExtensionProfile | null;
+  /** The URIs of the extensions the card declares. */
+  extensions: string[];
 }
 
 /**
@@ -137,5 +139,6 @@ export function parseAgentCard(data: unknown): ParsedAgentCard | null {
       tags: s.tags,
     })),
     anchor,
+    extensions: extensions.map((extension) => extension.uri),
   };
 }
