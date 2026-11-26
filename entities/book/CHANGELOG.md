@@ -1,5 +1,19 @@
 # @brains/book
 
+## 0.2.0-alpha.771
+
+### Patch Changes
+
+- [#1046](https://github.com/rizom-ai/brains/pull/1046) [`467ecd3`](https://github.com/rizom-ai/brains/commit/467ecd37abf6121b3ef0f2b2095426f9158c2ed7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Docs, guides, newsletter issues and books publish AT Protocol records, each under its own lexicon: `ai.rizom.brain.doc`, `ai.rizom.brain.guide`, `ai.rizom.brain.newsletter` and `ai.rizom.brain.book`. Docs, guides and sent newsletter issues carry their text; a book's record says what the book is and carries none of its text. The four lexicons enter the registry as drafts. A reference can point to any of the four.
+- Updated dependencies [[`467ecd3`](https://github.com/rizom-ai/brains/commit/467ecd37abf6121b3ef0f2b2095426f9158c2ed7)]:
+  - @brains/atproto-contracts@0.2.0-alpha.771
+  - @brains/sdk@0.2.0-alpha.771
+  - @brains/media-page-composer@0.2.0-alpha.771
+  - @brains/site-atlas@0.2.0-alpha.771
+  - @rizom/brain-ui@0.2.0-alpha.771
+  - @brains/contracts@0.2.0-alpha.771
+  - @brains/utils@0.2.0-alpha.771
+
 ## 0.2.0-alpha.770
 
 ### Patch Changes

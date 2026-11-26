@@ -1,5 +1,14 @@
 # @brains/action-board
 
+## 0.2.0-alpha.771
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.771
+  - @brains/action-items@0.2.0-alpha.771
+  - @brains/utils@0.2.0-alpha.771
+
 ## 0.2.0-alpha.770
 
 ### Patch Changes
