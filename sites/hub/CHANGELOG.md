@@ -1,5 +1,11 @@
 # @rizom/site-hub
 
+## 0.2.0-alpha.14
+
+### Patch Changes
+
+- [#1043](https://github.com/rizom-ai/brains/pull/1043) [`a900363`](https://github.com/rizom-ai/brains/commit/a900363d7cf32791efc94fe36acba535350e8de0) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The hub site's footer links Rizom Work and the Rizom Foundation at their own domains, rizom.work and rizom.foundation, instead of rooms on rizom.ai.
+
 ## 0.2.0-alpha.13
 
 ### Patch Changes

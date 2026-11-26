@@ -112,7 +112,7 @@ export const homeCopy: Record<string, JsonObject> = {
     headline:
       "Infrastructure people depend on should not belong to *whoever happens to sell it.*",
     body: [
-      "The Foundation owns the code, the method and the Rizom name. Rizom B.V. runs hosting and client work under license, cannot take the commons with it, and pays 25% of every engagement back. An independent board majority decides on the license, the name and the company, and the Foundation takes no investors.",
+      "The Foundation owns the code, the method and the Rizom name, and holds them as a commons that cannot be sold. Anyone can read the code, run it for free and leave with their memory. An independent board majority decides on the license and the name, and the Foundation takes no investors.",
     ],
     figures: [
       {
@@ -135,7 +135,7 @@ export const homeCopy: Record<string, JsonObject> = {
   board: {
     cap: "The board",
     headline:
-      "The license, the name and the company *are decided by an independent majority.*",
+      "The license and the name *are decided by an independent majority.*",
     members: [
       { name: "Jan Hein Hoogstad", role: "Chair · founder" },
       { name: "Annebeth Wilton", role: "Secretary · independent" },

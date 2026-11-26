@@ -1,5 +1,11 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.295
+
+### Patch Changes
+
+- [#1042](https://github.com/rizom-ai/brains/pull/1042) [`0d7e6c0`](https://github.com/rizom-ai/brains/commit/0d7e6c0f530fed8faf65951156eb89198cb1fa51) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai can carry the documentation that lives on docs.rizom.ai. With the docs and guides plugins on the brain, `/docs` is the docs index (its opening, the guides, then every section's docs) and each doc and guide has its own page at `/docs/<slug>` and `/guides/<slug>`, inside rizom.ai's chrome; a visitor's answer may cite them. The docs' own footer, which carries docs.rizom.ai's theme toggle, stays hidden under rizom.ai's. Without the plugins nothing changes.
+
 ## 0.2.0-alpha.294
 
 ### Patch Changes

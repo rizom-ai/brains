@@ -109,14 +109,16 @@ describe("@rizom/site-hub", () => {
     expect(html).not.toContain("/notes");
   });
 
-  test("signs off with the commons and the way back to rizom.ai", () => {
+  test("signs off with the commons and the three Rizom sites", () => {
     const html = renderLayout(siteInfo);
     expect(html).toContain(
       "The method, the platform and the Rizom mark are held by the Rizom Foundation as a commons.",
     );
     expect(html).toContain('href="https://rizom.ai"');
-    expect(html).toContain('href="https://rizom.ai/work"');
-    expect(html).toContain('href="https://rizom.ai/foundation"');
+    expect(html).toContain('href="https://rizom.work"');
+    expect(html).toContain('href="https://rizom.foundation"');
+    expect(html).not.toContain("rizom.ai/work");
+    expect(html).not.toContain("rizom.ai/foundation");
     expect(html).toContain("Rizom Hub");
   });
 
