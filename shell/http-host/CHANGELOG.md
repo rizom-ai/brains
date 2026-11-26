@@ -1,5 +1,14 @@
 # @brains/http-host
 
+## 0.2.0-alpha.777
+
+### Patch Changes
+
+- Updated dependencies [[`0a8b563`](https://github.com/rizom-ai/brains/commit/0a8b5632c175ac618101aed5ae9fa727a6408743)]:
+  - @brains/contracts@0.2.0-alpha.777
+  - @brains/plugins@0.2.0-alpha.777
+  - @brains/utils@0.2.0-alpha.777
+
 ## 0.2.0-alpha.776
 
 ### Patch Changes

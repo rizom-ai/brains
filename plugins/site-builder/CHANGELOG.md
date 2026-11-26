@@ -1,5 +1,18 @@
 # @brains/site-builder-plugin
 
+## 0.2.0-alpha.777
+
+### Patch Changes
+
+- Updated dependencies [[`0a8b563`](https://github.com/rizom-ai/brains/commit/0a8b5632c175ac618101aed5ae9fa727a6408743)]:
+  - @brains/contracts@0.2.0-alpha.777
+  - @brains/sdk@0.2.0-alpha.777
+  - @rizom/brain-ui@0.2.0-alpha.777
+  - @brains/site-composition@0.2.0-alpha.777
+  - @brains/site-engine@0.2.0-alpha.777
+  - @brains/image@0.2.0-alpha.777
+  - @brains/utils@0.2.0-alpha.777
+
 ## 0.2.0-alpha.776
 
 ### Patch Changes

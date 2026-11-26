@@ -1,5 +1,13 @@
 # @brains/contracts
 
+## 0.2.0-alpha.777
+
+### Patch Changes
+
+- [#1055](https://github.com/rizom-ai/brains/pull/1055) [`0a8b563`](https://github.com/rizom-ai/brains/commit/0a8b5632c175ac618101aed5ae9fa727a6408743) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The brain provisions its own Matrix homeserver: nobody sets a Matrix secret. `matrix-server` writes the homeserver's configuration and secrets into the directory it shares with the homeserver (`MATRIX_DATA_DIR`), keeps them across restarts, and answers the bot's credentials over `matrix:bot-credentials`, which the chat interface asks for when its config names no password. Chat keeps trying to start until the bot can log in, so a homeserver that comes up after the brain is picked up without a restart. A deploy whose brain.yaml includes the `matrix` bundle runs Tuwunel as a Kamal accessory on `/opt/brain-matrix`, restarts it when the brain writes it a new configuration, and takes an online backup of it before each deploy. The homeserver now listens on port 6167; `MATRIX_REGISTRATION_TOKEN` and `MATRIX_OIDC_CLIENT_SECRET` are gone.
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.777
+
 ## 0.2.0-alpha.776
 
 ### Patch Changes
