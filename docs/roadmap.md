@@ -127,7 +127,7 @@ Discord, Slack, standalone `/ask`, native Studio Chat, and the shared Chat proto
 Plans:
 
 - [public-ask.md](./plans/public-ask.md) — the whole Ask surface: record and display guest usage before any deployment opens production guest access, then take each site through its own content, door and enablement decisions.
-- [studio-ux-overhaul.md](./plans/studio-ux-overhaul.md) — Studio arranged around what operators come to do: five fixed sections (Home, Library, Publish, Chat, Brain) that plugins place pages into, a focused editor where publishing is an action, and the remaining manual accessibility and release-candidate acceptance; defect fixes first.
+- [studio-ux-overhaul.md](./plans/studio-ux-overhaul.md) — Studio arranged around what operators come to do: five fixed sections (Home, Library, Publish, Chat, Brain) that plugins place pages into, a focused editor where publishing is an action, and the remaining manual accessibility and release-candidate acceptance; defect fixes shipped, the writing loop next.
 - [studio-grouping-definitions.md](./plans/studio-grouping-definitions.md) — document-owned groupings with convention-first type exclusions, shipped and deployed to smoke; live smoke acceptance remains.
 - [operator-console-pwa.md](./plans/operator-console-pwa.md) — optional network-first installable shell without an offline-authoring claim.
 - [email-reply-drafts.md](./plans/email-reply-drafts.md) — a reply the brain writes on request is saved into the mailbox's Drafts folder and sent from the mail program; the brain never sends a reply, and the dormant send backend is removed.

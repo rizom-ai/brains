@@ -4,7 +4,7 @@ Last updated: 2026-11-26
 
 ## Status
 
-**Approved; phase 0 next.** The direction, the mockups and the decisions below were agreed on 2026-11-26. This plan comes from a walkthrough of the running `publishing` test app on `0.2.0-alpha.772`: I signed in with a fresh passkey and captured every Studio area at 1440×900 and 390×844, then exercised create, edit, preview, Chat and the ⌘K palette. Where a finding names behavior, I checked it in the browser and traced it to the source.
+**In progress; phase 1 next.** Phase 0 shipped in #1057: it fixed the nine defects the walkthrough found (rows and destinations as links, per-page tab titles, the system color scheme, an activity feed that survives restarts and names entries by title, leftover frontmatter in previews, and three copy faults). The findings below describe Studio before those fixes. The direction, the mockups and the decisions below were agreed on 2026-11-26. This plan comes from a walkthrough of the running `publishing` test app on `0.2.0-alpha.772`: I signed in with a fresh passkey and captured every Studio area at 1440×900 and 390×844, then exercised create, edit, preview, Chat and the ⌘K palette. Where a finding names behavior, I checked it in the browser and traced it to the source.
 
 The [mockups](./studio-ux-overhaul-mockups.html) show Home, writing, creating, asking while writing, a collection, the ⌘K palette, the Publish board and the phone layouts, in light and dark.
 
@@ -256,28 +256,13 @@ The five sections (Home, Library, Publish, Chat, Brain) are fixed by the host. P
 
 Providers still own data, permission narrowing and action execution. The host still owns authentication, transport, navigation, validation, rendering, accessibility, URLs and confirmation.
 
-## Defects to fix regardless of direction
-
-Each of these is wrong today and needs no redesign decision:
-
-1. **Note preview renders leftover frontmatter as a heading.** Unclaimed keys stay in the body as a second `---` block, and Preview renders it as a setext H2 ("slug: typescript-patterns description: … checksum: seed …"). Seen on `note/typescript-patterns`. Fix: Preview strips or tables a leading frontmatter block in the body, and Source marks it as metadata.
-2. **"Not created yetName the file to create this entry."** Two inline spans with no separator (`studio-editor-save-bar.tsx:69`). Fix: layout gap, or one sentence.
-3. **Static document title** (`editor-shell.ts:54`). Fix: a per-route title effect in the router.
-4. **Rows and navigation are buttons, not links** (`studio-library-pane.tsx:396`, `:415`; `studio-groupings.tsx:324`; rail and leaf). Fix: anchors with client interception, keeping the dirty-draft guard.
-5. **Overview activity is process memory** (`overview-workspace.ts:435`). Fix: read from durable job/entity history.
-6. **Mixed ids and titles in the activity feed and palette** (topics, skills). Fix: resolve display titles through the same describer the editor uses.
-7. **Groupings empty-state copy contradicts behavior** (`studio-grouping-definitions-editor.tsx:179`).
-8. **Inbox empty state blames filters that are not set** (`operator-studio.ts:394`, `:421`).
-9. **No OS color-scheme support** (`climate-script.ts`).
-
 ## Phasing
 
 Each phase is one PR that ships something usable end to end, with its tests and the visual/axe matrix updated in the same PR.
 
-0. **Defects.** Items 1–9 above, one commit each on one PR.
 1. **Writing loop.** Focus layout, title-as-heading, inspector, phone body-first, title-only creation with derived address, Draft default, publish-time requirements, footer cleanup. Draft recovery as decided below, including the schema marker for secret fields.
-2. **Lists and links.** One row grammar with schema columns, meaningful dates, excerpts, status chips, density toggle, real links, container members, Images view.
-3. **Navigation.** The five fixed sections in one sidebar, `section` on workspace registrations, Administration's special case removed, empty types under All types, metadata-derived collections, per-route titles (if not already shipped in 0).
+2. **Lists and links.** One row grammar with schema columns, meaningful dates, excerpts, status chips, density toggle, container members, Images view.
+3. **Navigation.** The five fixed sections in one sidebar, `section` on workspace registrations, Administration's special case removed, empty types under All types, metadata-derived collections.
 4. **Home.** Attention items contract, Needs-you / Continue / Recently published, capture composer, durable History page; Inbox and Board placed under Home.
 5. **Publish board.** Lifecycle declarations and the board block, used by content-pipeline and action-board; calendar, queue/schedule actions, Site preview-first, Content sync moved to Brain.
 6. **Chat everywhere and palette actions.** Docked panel with page context, linked mentions, starters, apply-to-document, palette Actions section.
