@@ -38,6 +38,7 @@ import { systemFieldStyles } from "./studio-system-fields.styles";
 import { typographyStyles } from "./studio-typography.styles";
 import { entityTitle } from "./ui-utils";
 import { useInspectorPreference } from "./use-inspector-preference";
+import { HeadingTitle, headingTitleField } from "./heading-title";
 
 export function StudioEditorPane(
   props: StudioAppViewProps & { model: StudioAppModel },
@@ -88,10 +89,37 @@ export function StudioEditorPane(
   const inspecting = presentation === "split";
   const [inspectorHidden, setInspectorHidden] =
     useInspectorPreference(selectedEntityType);
+  // A document's title is its heading, edited in place.
+  const titleField = canEdit
+    ? headingTitleField(entitySchema, presentation)
+    : undefined;
+  const titleValue =
+    typeof editor.draft["title"] === "string" ? editor.draft["title"] : "";
+  const titleEditor = titleField ? (
+    <HeadingTitle
+      descriptor={titleField}
+      value={titleValue}
+      placeholder={`Untitled ${props.model.entryLabel.toLowerCase()}`}
+      issues={fieldIssues}
+      onChange={(value) =>
+        dispatchEditor({
+          type: "fieldChanged",
+          descriptor: titleField,
+          raw: value,
+        })
+      }
+    />
+  ) : undefined;
 
   // An invalid field on a hidden phone pane would fail silently, so the
   // Properties pane opens and the first invalid field takes focus.
   function revealFirstInvalid(event: FormEvent<HTMLFormElement>): void {
+    // The heading's title is always in view: the browser focuses it itself.
+    const firstInvalid = event.currentTarget.querySelector(
+      "input:invalid, select:invalid, textarea:invalid",
+    );
+    if (firstInvalid && !firstInvalid.closest("[data-studio-properties]"))
+      return;
     revealStudioProperties(event.currentTarget);
     const inspectorWasHidden = inspecting && inspectorHidden;
     if (mobilePane === "details" && !inspectorWasHidden) return;
@@ -162,6 +190,7 @@ export function StudioEditorPane(
       <StudioPageHead
         model={editorHead}
         appearance="document"
+        titleEditor={titleEditor}
         navigation={
           !entitySchema.isSingleton ? (
             <Button
@@ -352,6 +381,7 @@ export function StudioEditorPane(
                 }
                 onModeChange={setBodyMode}
                 readOnly={!canEdit}
+                documentTitle={titleField ? titleValue : editorHead.title}
                 {...(mode.kind === "edit" && canAssist
                   ? {
                       assist: {

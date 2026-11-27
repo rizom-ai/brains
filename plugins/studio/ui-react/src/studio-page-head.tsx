@@ -57,6 +57,8 @@ export function studioAccessRequirement(
 export function StudioPageHead(props: {
   readonly model: StudioPageHeadModel;
   readonly action?: ReactNode;
+  /** Edits the title in place of the heading's text, as a document does. */
+  readonly titleEditor?: ReactNode;
   readonly navigation?: ReactNode;
   readonly appearance?: "document";
 }): ReactElement {
@@ -87,7 +89,9 @@ export function StudioPageHead(props: {
           </nav>
         ) : null}
         <div {...stylex.props(s.copy)}>
-          <h1 className={editorClass("", s.title)}>{props.model.title}</h1>
+          <h1 className={editorClass("", s.title)}>
+            {props.titleEditor ?? props.model.title}
+          </h1>
         </div>
         {props.action ? (
           <div className={editorClass("studio-page-head-action", s.action)}>
@@ -118,7 +122,9 @@ export function StudioPageHead(props: {
         )}
       >
         <div {...stylex.props(s.copy)}>
-          <h1 {...stylex.props(s.title)}>{props.model.title}</h1>
+          <h1 {...stylex.props(s.title)}>
+            {props.titleEditor ?? props.model.title}
+          </h1>
           {metadata.length > 0 && (
             <div
               className={editorClass(

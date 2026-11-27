@@ -300,6 +300,8 @@ export function BodyEditor(props: {
   readOnly?: boolean;
   /** Stacked editors own their mode controls at every viewport width. */
   singlePane?: boolean;
+  /** The document's title, which its preview need not repeat. */
+  documentTitle?: string | undefined;
 }): ReactElement {
   const api = useStudioApi();
   const {
@@ -597,7 +599,12 @@ export function BodyEditor(props: {
             role="region"
             aria-label="Rendered document"
           >
-            <StudioMarkdown presentation="document">{value}</StudioMarkdown>
+            <StudioMarkdown
+              presentation="document"
+              documentTitle={props.documentTitle}
+            >
+              {value}
+            </StudioMarkdown>
           </div>
         )}
       </div>

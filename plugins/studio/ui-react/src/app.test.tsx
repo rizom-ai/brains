@@ -1188,7 +1188,8 @@ describe("bodyless entity editor layout", () => {
               canAssist: false,
             },
             "edit",
-            { hasBody },
+            // Beside a body the title is the heading; Summary stays a field.
+            { hasBody, fields: [stringField, textField] },
           );
           const properties = doc.querySelector(
             "[data-studio-editor] [data-studio-properties]",
@@ -1200,7 +1201,7 @@ describe("bodyless entity editor layout", () => {
             !hasBody ? "1 / -1" : width <= 640 ? "1" : "2",
           );
           expect(properties.querySelector("fieldset")?.disabled).toBe(true);
-          expect(properties.querySelector("input")).not.toBeNull();
+          expect(properties.querySelector("input, textarea")).not.toBeNull();
           expect(
             doc.querySelector("[data-studio-editor] section") !== null,
           ).toBe(hasBody);
@@ -1526,6 +1527,34 @@ describe("capability-aware Studio controls", () => {
     expect(edit).not.toContain(">Delete<");
     expect(edit).not.toContain("AI selection rewrite");
     expect(edit).not.toContain("Add to queue");
+  });
+
+  it("edits a document's title as its heading, not as a Properties field", () => {
+    const window = new Window();
+    try {
+      const doc = window.document;
+      doc.body.innerHTML = renderCapabilityView(allowedCapabilities, "edit");
+      const heading = doc.querySelector("[data-studio-page-head] h1");
+      const title = heading?.querySelector('textarea[name="title"]');
+      expect(title?.getAttribute("aria-label")).toBe("Title");
+      expect(title?.textContent).toBe("Post one");
+      expect(
+        doc.querySelector('[data-studio-properties] [name="title"]'),
+      ).toBeNull();
+      // A record that cannot be edited keeps a plain heading.
+      doc.body.innerHTML = renderCapabilityView(
+        { ...allowedCapabilities, canUpdate: false },
+        "edit",
+      );
+      expect(
+        doc.querySelector("[data-studio-page-head] h1 textarea"),
+      ).toBeNull();
+      expect(doc.querySelector("[data-studio-page-head] h1")?.textContent).toBe(
+        "Post one",
+      );
+    } finally {
+      void window.happyDOM.close();
+    }
   });
 
   it("keeps B's single Save action in the document head at every width", () => {

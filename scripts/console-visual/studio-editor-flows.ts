@@ -385,20 +385,23 @@ export async function exerciseStudioInvalid({
     await clickText(page, '[role="menuitem"]', "Preview");
     await waitForSelector(page, '[data-mobile-pane="preview"]');
     await clickSelector(page, studioSaveSelector);
-    await waitForSelector(page, '[data-mobile-pane="details"]');
-    await waitForPage("native validation focuses the revealed property", () =>
+    // The title is the heading, in view on every pane: validation focuses it
+    // where it is instead of switching to Properties.
+    await waitForPage("native validation focuses the heading title", () =>
       evaluatePage(
         page,
         () =>
-          document.activeElement instanceof HTMLInputElement &&
-          !document.activeElement.validity.valid,
+          document.activeElement instanceof HTMLTextAreaElement &&
+          document.activeElement.name === "title" &&
+          !document.activeElement.validity.valid &&
+          document.querySelector('[data-mobile-pane="preview"]') !== null,
       ),
     );
   }
   await blurLabel(page, "Title");
   await waitForPage("invalid title field", () =>
     page.evaluate<boolean>(
-      'document.querySelector("[data-studio-field] input:user-invalid") !== null',
+      'document.querySelector(":is([data-studio-field] input, [name=title]):user-invalid") !== null',
     ),
   );
 }

@@ -84,13 +84,18 @@ export async function mountStudio(
     client,
     close,
     input: async (label, value): Promise<void> => {
-      const input = document.querySelector<HTMLInputElement>(
-        `input[aria-label="${label}"], [role="group"][aria-label="${label}"] input`,
+      // A document's title is a textarea in its heading; fields are inputs.
+      const input = document.querySelector<
+        HTMLInputElement | HTMLTextAreaElement
+      >(
+        `input[aria-label="${label}"], textarea[aria-label="${label}"], [role="group"][aria-label="${label}"] input`,
       );
       if (!input) throw new Error(`Missing input ${label}`);
       await act(async () => {
         Object.getOwnPropertyDescriptor(
-          window.HTMLInputElement.prototype,
+          input instanceof window.HTMLTextAreaElement
+            ? window.HTMLTextAreaElement.prototype
+            : window.HTMLInputElement.prototype,
           "value",
         )?.set?.call(input, value);
         input.dispatchEvent(new Event("input", { bubbles: true }));

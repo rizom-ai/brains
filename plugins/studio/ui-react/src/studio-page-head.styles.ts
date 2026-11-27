@@ -11,6 +11,9 @@ export const headStyles: Record<
   | "hasAction"
   | "copy"
   | "title"
+  | "titleInput"
+  | "titleGrow"
+  | "titleIssue"
   | "metadata"
   | "phoneHidden"
   | "statusDetail"
@@ -66,6 +69,55 @@ export const headStyles: Record<
     alignItems: "baseline",
     gap: 12,
     minWidth: 0,
+  },
+  // The title wraps like a heading: a hidden copy of its text sizes the
+  // field, so a long title grows onto more lines instead of scrolling.
+  titleGrow: {
+    display: "grid",
+    "::after": {
+      content: "attr(data-value) ' '",
+      gridArea: "1 / 1 / 2 / 2",
+      visibility: "hidden",
+      whiteSpace: "pre-wrap",
+      overflowWrap: "anywhere",
+    },
+  },
+  // A document's title edited in place reads as its heading.
+  titleInput: {
+    display: "block",
+    gridArea: "1 / 1 / 2 / 2",
+    width: "100%",
+    minWidth: 0,
+    overflow: "hidden",
+    resize: "none",
+    overflowWrap: "anywhere",
+    margin: 0,
+    padding: 0,
+    borderWidth: 0,
+    borderRadius: 4,
+    backgroundColor: "transparent",
+    color: "inherit",
+    font: "inherit",
+    fontVariationSettings: "inherit",
+    letterSpacing: "inherit",
+    lineHeight: "inherit",
+    "::placeholder": { color: "var(--console-text-muted)" },
+    outline: {
+      default: null,
+      ":focus-visible": "2px solid var(--console-accent)",
+      // An emptied required title reads as invalid, as a field does.
+      ":user-invalid": "2px solid var(--console-err)",
+    },
+    outlineOffset: 4,
+  },
+  titleIssue: {
+    display: "block",
+    marginTop: 6,
+    color: "var(--console-err)",
+    fontFamily: "var(--console-ui)",
+    fontSize: 13,
+    fontWeight: 400,
+    letterSpacing: 0,
   },
   title: {
     minWidth: 0,

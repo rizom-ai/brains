@@ -11,6 +11,7 @@ import { editorClassName as editorClass } from "./studio-editor.styles";
 import { StudioGroupingDefinitionsField } from "./studio-grouping-definitions-field";
 import { StudioStatus } from "./studio-status";
 import { StudioSystemFields } from "./studio-system-fields";
+import { headingTitleField } from "./heading-title";
 
 /** The editor's property fields: system-designed or one row per field. */
 export function StudioEditorFields(
@@ -30,6 +31,7 @@ export function StudioEditorFields(
     fieldIssues,
   } = props.model;
   const documentKey = editorDocumentKey(selectedEntityType, mode);
+  const headingTitle = headingTitleField(entitySchema, presentation);
   const assistAvailable =
     canAssist && entitySchema.hasBody && body.trim().length > 0;
   // A model never sees a closed list, so it could only propose values the
@@ -87,6 +89,8 @@ export function StudioEditorFields(
       ) : (
         entitySchema.fields
           .filter((descriptor) => isFieldVisible(descriptor, draft))
+          // A document's heading edits its title.
+          .filter((descriptor) => descriptor !== headingTitle)
           .map((descriptor) => (
             <div
               key={`${documentKey}:${descriptor.name}`}

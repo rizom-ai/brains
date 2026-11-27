@@ -338,11 +338,35 @@ export function fenceLeadingFrontmatter(markdown: string): string {
   return `${fence}yaml\n${inner}\n${fence}${match[2] ?? ""}${markdown.slice(match[0].length)}`;
 }
 
+const LEADING_HEADING =
+  /^[ \t]*#[ \t]+(.+?)[ \t]*#*[ \t]*(?:\r?\n|$)(?:[ \t]*\r?\n)*/;
+
+/**
+ * The heading above a document already names it, so a body that opens with
+ * that same title as a first-level heading previews without it. Any other
+ * heading, or one further down, stays.
+ */
+export function withoutRepeatedTitle(
+  markdown: string,
+  title: string | undefined,
+): string {
+  const wanted = title?.trim();
+  if (!wanted) return markdown;
+  const block = LEADING_BLOCK.exec(markdown);
+  const header = block && YAML_KEY.test(block[1] ?? "") ? block[0] : "";
+  const rest = markdown.slice(header.length);
+  const heading = LEADING_HEADING.exec(rest);
+  if (!heading || heading[1]?.trim() !== wanted) return markdown;
+  return header + rest.slice(heading[0].length);
+}
+
 /** Native prose slots and Studio-owned controls for complete markdown. */
 export function StudioMarkdown(props: {
   children: string;
   className?: string | undefined;
   presentation?: "document" | "assist" | "chat";
+  /** A document's own title, which its preview need not repeat. */
+  documentTitle?: string | undefined;
 }): ReactElement {
   const components =
     props.presentation === "document"
@@ -361,7 +385,9 @@ export function StudioMarkdown(props: {
       remarkPlugins={previewRemarkPlugins}
     >
       {props.presentation === "document"
-        ? fenceLeadingFrontmatter(props.children)
+        ? fenceLeadingFrontmatter(
+            withoutRepeatedTitle(props.children, props.documentTitle),
+          )
         : props.children}
     </Streamdown>
   );
