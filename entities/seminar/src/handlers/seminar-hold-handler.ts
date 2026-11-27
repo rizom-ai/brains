@@ -12,6 +12,7 @@ import { slugify } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import {
   checkedChallenge,
+  checkedClosing,
   type ChairReading,
   type SeminarChair,
 } from "../lib/chair";
@@ -23,6 +24,7 @@ import {
 import { seminarRecord } from "../lib/seminar-body";
 import {
   CHAIR,
+  type SeminarClosing,
   type SeminarMetadata,
   type SeminarRound,
   type SeminarTurn,
@@ -235,6 +237,37 @@ async function exchange(
   ];
 }
 
+/**
+ * Where they meet: the chair's paragraph over every turn a participant
+ * answered, citing only sources those turns carry. With fewer than two
+ * openings nobody meets; a chair that cannot write it, or cites what no
+ * turn carries, leaves the seminar without one.
+ */
+async function closingOf(
+  deps: SeminarHoldDeps,
+  data: SeminarHoldJobData,
+  turns: readonly SeminarTurn[],
+): Promise<SeminarClosing | undefined> {
+  const spoken = answered(turns).filter(({ speaker }) => speaker !== CHAIR);
+  if (spoken.filter(({ round }) => round === "opening").length < 2)
+    return undefined;
+  const sources = spoken
+    .flatMap((turn) => turn.sources ?? [])
+    .filter(
+      (source, index, all) =>
+        all.findIndex(({ id }) => id === source.id) === index,
+    );
+  return deps.chair
+    .closing({
+      question: data.question,
+      language: data.language,
+      turns: spoken.map((turn) => ({ ...reading(turn), round: turn.round })),
+      sources,
+    })
+    .then((written) => checkedClosing(written, sources))
+    .catch(() => undefined);
+}
+
 /** The first of `slug`, `slug-2`, `slug-3`… that no seminar holds. */
 async function freeId(
   deps: SeminarHoldDeps,
@@ -247,7 +280,8 @@ async function freeId(
 
 /**
  * Hold a seminar: put the question to every approved peer at once and store
- * each opening as the peer gave it, then the exchange that follows. A peer
+ * each opening as the peer gave it, then the exchange that follows and
+ * where they meet. A peer
  * that fails is recorded with its reason and the seminar goes on without
  * him; with no opening at all there is no seminar. It is stored as a draft.
  */
@@ -274,6 +308,7 @@ export async function holdSeminar(
   }
 
   const turns = [...openings, ...(await exchange(deps, data, peers, openings))];
+  const closing = await closingOf(deps, data, turns);
   const id = await freeId(deps, slugify(data.question));
   const seminarId = await deps.create({
     id,
@@ -285,7 +320,7 @@ export async function holdSeminar(
         status: "draft",
         language: data.language,
       },
-      { turns },
+      { turns, ...(closing ? { closing } : {}) },
     ),
   });
   return {

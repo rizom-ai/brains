@@ -99,3 +99,11 @@ Critical history breaks a past in order to live.
 #### To
 
 - karl.example
+
+## Where they meet
+
+Neither lets a community simply choose its memory: for Karl the past weighs on the living, and for Friedrich a people must be able to break it in order to live.
+
+### Sources
+
+- [Der achtzehnte Brumaire des Louis Bonaparte, I](https://karl.example/books/brumaire/i "book-section:brumaire/i")

@@ -95,6 +95,9 @@ function seminarRoom(
         rejoinder: async (): Promise<never> => {
           throw new Error("no exchange in this test");
         },
+        closing: async (): Promise<never> => {
+          throw new Error("no exchange in this test");
+        },
       },
       exists: async (id) => taken.has(id),
       create: async (seminar): Promise<string> => {

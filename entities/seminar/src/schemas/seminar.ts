@@ -65,13 +65,31 @@ export const seminarTurnSchema: SeminarTurnSchema = z
 
 export type SeminarTurn = z.output<typeof seminarTurnSchema>;
 
-type SeminarBodySchema = z.ZodObject<{
-  turns: z.ZodArray<SeminarTurnSchema>;
+type SeminarClosingSchema = z.ZodObject<{
+  text: z.ZodString;
+  sources: z.ZodOptional<z.ZodArray<typeof storedSourceSchema>>;
 }>;
 
-/** A seminar's body: its turns, in the order they were taken. */
+/**
+ * Where they meet: the chair's closing paragraph, and the sources among the
+ * turns' own that it relies on. It cites nothing the turns do not carry.
+ */
+export const seminarClosingSchema: SeminarClosingSchema = z.object({
+  text: z.string().min(1),
+  sources: z.array(storedSourceSchema).min(1).optional(),
+});
+
+export type SeminarClosing = z.output<typeof seminarClosingSchema>;
+
+type SeminarBodySchema = z.ZodObject<{
+  turns: z.ZodArray<SeminarTurnSchema>;
+  closing: z.ZodOptional<SeminarClosingSchema>;
+}>;
+
+/** A seminar's body: its turns, in the order they were taken, then its closing. */
 export const seminarBodySchema: SeminarBodySchema = z.object({
   turns: z.array(seminarTurnSchema).min(1),
+  closing: seminarClosingSchema.optional(),
 });
 
 export type SeminarBody = z.output<typeof seminarBodySchema>;

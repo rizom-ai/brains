@@ -48,6 +48,9 @@ describe("a seminar held from the three brains' recorded openings", () => {
           rejoinder: async (): Promise<never> => {
             throw new Error("no exchange in this test");
           },
+          closing: async (): Promise<never> => {
+            throw new Error("no exchange in this test");
+          },
         },
         exists: async () => false,
         create: async (seminar): Promise<string> => {

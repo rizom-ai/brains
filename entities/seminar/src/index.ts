@@ -20,13 +20,18 @@ export type {
 export {
   chairChallengePrompt,
   chairChallengeSchema,
+  chairClosingPrompt,
+  chairClosingSchema,
   chairRejoinderPrompt,
   checkedChallenge,
+  checkedClosing,
   modelChair,
 } from "./lib/chair";
 export type {
   ChairChallenge,
   ChairChallengeInput,
+  ChairClosing,
+  ChairClosingInput,
   ChairReading,
   ChairRejoinderInput,
   SeminarChair,
@@ -49,6 +54,7 @@ export {
 export {
   CHAIR,
   seminarBodySchema,
+  seminarClosingSchema,
   seminarFrontmatterSchema,
   seminarMetadataSchema,
   seminarRoundSchema,
@@ -58,6 +64,7 @@ export {
 } from "./schemas/seminar";
 export type {
   SeminarBody,
+  SeminarClosing,
   SeminarEntity,
   SeminarFrontmatter,
   SeminarMetadata,

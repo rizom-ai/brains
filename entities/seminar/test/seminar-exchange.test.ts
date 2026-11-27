@@ -97,6 +97,9 @@ function room(
           );
           return REJOINDER_FOLLOW_UP;
         },
+        closing: async (): Promise<never> => {
+          throw new Error("no closing in this test");
+        },
       },
       exists: async () => false,
       create: async (seminar): Promise<string> => {

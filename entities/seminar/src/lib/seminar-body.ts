@@ -11,6 +11,7 @@ import {
   seminarBodySchema,
   seminarFrontmatterSchema,
   type SeminarBody,
+  type SeminarClosing,
   type SeminarFrontmatter,
   type SeminarMetadata,
   type SeminarTurn,
@@ -19,11 +20,21 @@ import {
 /*
  * A seminar's markdown (docs/external-plugin-authoring.md, The stored format):
  * its header is its metadata, and its body states each turn under its own
- * heading. Who spoke and in which round are labeled lines, what they said
- * is the turn's plain text, and its sources are a linked list. The formatter
+ * heading, then where they meet. Who spoke and in which round are labeled
+ * lines, what they said is the turn's plain text, and its sources are a
+ * linked list. The formatter
  * escapes a heading inside an answer, so a peer's own headings never open a
  * section.
  */
+
+const sourcesMapping: FieldMapping = {
+  key: "sources",
+  label: "Sources",
+  type: "custom",
+  formatter: (value: unknown): string =>
+    formatSourceList(z.array(storedSourceSchema).parse(value)),
+  parser: parseSourceList,
+};
 
 const seminarBodyMappings: FieldMapping[] = [
   {
@@ -39,15 +50,14 @@ const seminarBodyMappings: FieldMapping[] = [
       { key: "failed", label: "Failed", type: "string", line: true },
       { key: "text", label: "Text", type: "string" },
       { key: "to", label: "To", type: "array", itemType: "string" },
-      {
-        key: "sources",
-        label: "Sources",
-        type: "custom",
-        formatter: (value: unknown): string =>
-          formatSourceList(z.array(storedSourceSchema).parse(value)),
-        parser: parseSourceList,
-      },
+      sourcesMapping,
     ],
+  },
+  {
+    key: "closing",
+    label: "Where they meet",
+    type: "object",
+    children: [{ key: "text", label: "Text", type: "string" }, sourcesMapping],
   },
 ];
 
@@ -72,10 +82,11 @@ export function readSeminarBody(body: string): SeminarBody {
   return z.decode(seminarBodyCodec, body);
 }
 
-/** A seminar as its readers take it: its fields and its turns. */
+/** A seminar as its readers take it: its fields, its turns and its closing. */
 export interface SeminarParts {
   frontmatter: SeminarFrontmatter;
   turns: SeminarTurn[];
+  closing?: SeminarClosing | undefined;
 }
 
 /**
@@ -87,9 +98,11 @@ export function readSeminar(record: {
   readonly metadata?: Readonly<Record<string, unknown>> | undefined;
 }): SeminarParts {
   const { fields, body } = recordFields(record);
+  const { turns, closing } = readSeminarBody(body);
   return {
     frontmatter: seminarFrontmatterSchema.parse(fields),
-    turns: readSeminarBody(body).turns,
+    turns,
+    ...(closing ? { closing } : {}),
   };
 }
 

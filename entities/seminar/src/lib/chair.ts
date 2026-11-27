@@ -1,11 +1,14 @@
+import type { StoredSource } from "@brains/content-formatters";
 import type { ServiceAI } from "@brains/sdk/internal/service-runtime";
+import type { SeminarClosing, SeminarRound } from "../schemas/seminar";
 import { z } from "@brains/utils/zod";
 
 /*
- * The chair's own turns: the two things the brain that holds a seminar
- * writes itself. It reads the openings and decides who stands and what each
- * of the others is asked, and it hands the challenges to the one who stood.
- * It never quotes for a participant: his own brain finds and quotes.
+ * The chair's own turns: what the brain that holds a seminar writes itself.
+ * It reads the openings and decides who stands and what each of the others
+ * is asked, it hands the challenges to the one who stood, and it closes
+ * with where they meet. It never quotes for a participant: his own brain
+ * finds and quotes.
  */
 
 /** A participant's turn as the chair reads it. */
@@ -73,10 +76,40 @@ export interface ChairRejoinderInput {
   challenges: readonly ChairReading[];
 }
 
+type ChairClosingSchema = z.ZodObject<{
+  text: z.ZodString;
+  cites: z.ZodArray<z.ZodString>;
+}>;
+
+/** The chair's closing, as it writes it: its paragraph and what it relies on. */
+export const chairClosingSchema: ChairClosingSchema = z.object({
+  text: z
+    .string()
+    .min(1)
+    .describe("One paragraph: where the participants meet and where they part"),
+  cites: z
+    .array(z.string())
+    .describe(
+      "The ids of the listed sources the paragraph relies on, and no other",
+    ),
+});
+
+export type ChairClosing = z.output<typeof chairClosingSchema>;
+
+export interface ChairClosingInput {
+  question: string;
+  language: string;
+  /** Every turn a participant answered, in the order they were taken. */
+  turns: ReadonlyArray<ChairReading & { round: SeminarRound }>;
+  /** Every source the turns carry. */
+  sources: readonly StoredSource[];
+}
+
 /** The chair, as a seminar asks it for its turns. */
 export interface SeminarChair {
   challenge(input: ChairChallengeInput): Promise<ChairChallenge>;
   rejoinder(input: ChairRejoinderInput): Promise<string>;
+  closing(input: ChairClosingInput): Promise<ChairClosing>;
 }
 
 function turns(readings: readonly ChairReading[]): string {
@@ -137,6 +170,51 @@ export function chairRejoinderPrompt(
   ].join("\n");
 }
 
+export function chairClosingPrompt(input: ChairClosingInput): string {
+  return [
+    "You chaired a seminar. One question was put to every participant, each answered from his own works, and they answered each other.",
+    "Write one paragraph that says where they meet and where they part.",
+    "Draw only on what they said below. Add no quotation they did not give and name no work they did not name.",
+    "List in `cites` the ids of the sources below that your paragraph relies on, and cite no other.",
+    `Write in ${input.language}.`,
+    "",
+    `The question: ${input.question}`,
+    "",
+    "The turns:",
+    "",
+    input.turns
+      .map(
+        ({ agent, name, round, text }) =>
+          `### ${name}, ${round} (id: ${agent})\n\n${text}`,
+      )
+      .join("\n\n"),
+    "",
+    "The sources the turns carry:",
+    "",
+    input.sources.map(({ id, title }) => `- ${id}: ${title}`).join("\n"),
+  ].join("\n");
+}
+
+/**
+ * The closing as the seminar keeps it: its paragraph, and the sources it
+ * cites, which the turns must carry; one that cites another is refused.
+ */
+export function checkedClosing(
+  closing: ChairClosing,
+  sources: readonly StoredSource[],
+): SeminarClosing {
+  const unknown = closing.cites.find(
+    (id) => !sources.some((source) => source.id === id),
+  );
+  if (unknown !== undefined)
+    throw new Error(`The closing cites a source no turn carries: ${unknown}`);
+  const cited = sources.filter(({ id }) => closing.cites.includes(id));
+  return {
+    text: closing.text.trim(),
+    ...(cited.length > 0 ? { sources: cited } : {}),
+  };
+}
+
 /**
  * The chair's turn must be one the seminar can run: the one who stands gave
  * an opening, and every other participant, and no one else, has one
@@ -188,5 +266,8 @@ export function modelChair(
           chairRejoinderSchema,
         )
       ).object.followUp,
+    closing: async (input) =>
+      (await ai.generateObject(chairClosingPrompt(input), chairClosingSchema))
+        .object,
   };
 }
