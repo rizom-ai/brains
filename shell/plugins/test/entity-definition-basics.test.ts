@@ -121,6 +121,24 @@ describe("declared entity-type config", () => {
     }
   });
 
+  it("names the group a collection's members join it through", async () => {
+    const harness = await installed(
+      defineEntity({
+        type: "series",
+        purpose: "A sequence of posts.",
+        metadata: z.object({}),
+        config: { memberGroup: { label: "Series", multiple: false } },
+      }),
+    );
+    try {
+      expect(
+        harness.getEntityRegistry().getEntityTypeConfig("series").memberGroup,
+      ).toEqual({ label: "Series", multiple: false });
+    } finally {
+      await harness.reset();
+    }
+  });
+
   it("registers no overrides when config is not declared", async () => {
     const harness = await installed(
       defineEntity({
@@ -177,6 +195,8 @@ describe("declared entity-type config", () => {
     { actionPolicy: { approve: "admin" } },
     { retiredFields: [""] },
     { containedIn: "" },
+    { memberGroup: { label: "", multiple: false } },
+    { memberGroup: { label: "Series" } },
     { projectionSourceRole: "central" },
     { defaultSort: [{ field: "rank", direction: "asc", nullsLast: "true" }] },
     { defaultSort: [{ field: "", direction: "desc" }] },

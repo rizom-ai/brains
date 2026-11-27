@@ -856,6 +856,13 @@ export interface EntityTypeConfig {
    */
   containedIn?: string;
   /**
+   * The group this collection type's members join it through, as posts join
+   * a series: a list field on the member named after this type, holding the
+   * collection's title, which people choose. Studio shows it as a built-in
+   * group, with its members and their count.
+   */
+  memberGroup?: { label: string; multiple: boolean };
+  /**
    * The source types this type's generation uses up, as a refined note uses
    * up the notes it is written from: once what it wrote is saved, the
    * sources of these types are deleted, as the requester and under their

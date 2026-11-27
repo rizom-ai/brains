@@ -10,7 +10,10 @@ import {
   groupingDefinitionsFrontmatterSchema,
   type GroupingDefinitionsFrontmatter,
 } from "./grouping-definitions-contract";
-import { GroupingDefinitionSource } from "./grouping-definition-source";
+import {
+  GroupingDefinitionSource,
+  type MemberGroup,
+} from "./grouping-definition-source";
 import {
   isGroupingContributorType,
   type StudioContext,
@@ -38,6 +41,13 @@ export function registerGroupingDefinitions(
       context.entityService
         .getEntityTypes()
         .filter((type) => isGroupingContributorType(context, type)),
+    // Collection types that bring their own group, such as series.
+    getMemberGroups: (): MemberGroup[] =>
+      context.entityService.getEntityTypes().flatMap((type) => {
+        const group =
+          context.entityService.getEntityTypeConfig(type).memberGroup;
+        return group ? [{ entityType: type, ...group }] : [];
+      }),
     // Never resolve image references in literal labels/values. Besides changing
     // policy, those extra entity reads would recursively wait on this refresh.
     read: (): Promise<BaseEntity | null> =>
