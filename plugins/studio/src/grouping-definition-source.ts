@@ -78,6 +78,28 @@ export class GroupingDefinitionSource {
     return this.dependencies.getMemberGroups?.() ?? [];
   }
 
+  /**
+   * What Studio reads: the authored definitions and, beside them, each group
+   * a collection type brings, offered over the types that join it.
+   */
+  public getEffectiveSnapshot(): GroupingDefinitionsSnapshot {
+    const snapshot = this.getSnapshot();
+    const contributors = this.dependencies.getContributorTypes();
+    const builtIn = Object.fromEntries(
+      this.memberGroups().map((group) => [
+        group.entityType,
+        {
+          label: group.label,
+          multiple: group.multiple,
+          excludeTypes: contributors.filter(
+            (type) => !group.types.includes(type),
+          ),
+        },
+      ]),
+    );
+    return { ...snapshot, groupings: { ...builtIn, ...snapshot.groupings } };
+  }
+
   public getSnapshot(): GroupingDefinitionsSnapshot {
     return structuredClone(this.snapshot);
   }

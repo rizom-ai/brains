@@ -364,5 +364,13 @@ describe("groups a collection type brings with it", () => {
         message: "Series is built in; it cannot be defined here.",
       },
     ]);
+    // What Studio reads offers the built-in group beside the authored ones;
+    // the authored snapshot keeps only what the document defines.
+    expect(source.getEffectiveSnapshot().groupings["series"]).toEqual({
+      label: "Series",
+      multiple: false,
+      excludeTypes: ["note", "series"],
+    });
+    expect(source.getSnapshot().groupings["series"]).toBeUndefined();
   });
 });
