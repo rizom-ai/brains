@@ -28,14 +28,21 @@ function extractH1(markdown: string): string | null {
 
 /**
  * A note's title: the one its frontmatter states, else its body's H1, else
- * its first nonblank body line (bounded), else Untitled.
+ * its first nonblank body line (bounded), else Untitled. A heading that only
+ * says "Untitled" counts as none.
  */
 export function noteTitle(stated: string | undefined, body: string): string {
-  const firstLine = body.split(/\r?\n/).find((line) => line.trim());
+  // A heading that only says "Untitled" is a placeholder, not a title.
+  const placeholder = /^#{1,6}\s+untitled\s*$/i;
+  const named = body
+    .split(/\r?\n/)
+    .filter((line) => !placeholder.test(line.trim()))
+    .join("\n");
+  const firstLine = named.split(/\r?\n/).find((line) => line.trim());
   return (
     [
       stated?.trim(),
-      extractH1(body),
+      extractH1(named),
       limitFallbackTitle(firstLine?.trim().replace(/^#{1,6}\s+/, "")),
     ].find((candidate) => (candidate?.length ?? 0) > 0) ?? "Untitled"
   );
