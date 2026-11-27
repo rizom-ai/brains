@@ -11,7 +11,10 @@ export const imagesViewStyles: Record<
   | "pending"
   | "title"
   | "missing"
-  | "details",
+  | "details"
+  | "uploadRow"
+  | "upload"
+  | "file",
   stylex.StyleXStyles
 > = stylex.create({
   page: { minWidth: 0 },
@@ -88,6 +91,41 @@ export const imagesViewStyles: Record<
     marginTop: 2,
     fontSize: 11.5,
     color: "var(--console-warn)",
+  },
+  uploadRow: {
+    display: "flex",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: 14,
+    marginTop: 18,
+  },
+  // A label that looks like a button; the file input inside it is hidden.
+  upload: {
+    position: "relative",
+    display: "inline-flex",
+    alignItems: "center",
+    minHeight: { default: 38, "@media (max-width: 640px)": 44 },
+    paddingInline: 14,
+    borderWidth: 1,
+    borderStyle: "solid",
+    borderColor: "var(--console-rule-strong)",
+    borderRadius: 7,
+    backgroundColor: "var(--console-card)",
+    color: "var(--console-text)",
+    fontSize: 13,
+    fontWeight: 600,
+    cursor: "pointer",
+    outline: {
+      default: null,
+      ":has(:focus-visible)": "2px solid var(--console-accent)",
+    },
+    outlineOffset: 2,
+  },
+  file: {
+    position: "absolute",
+    inset: 0,
+    opacity: 0,
+    cursor: "pointer",
   },
   details: {
     position: { default: "sticky", "@media (max-width: 900px)": "static" },

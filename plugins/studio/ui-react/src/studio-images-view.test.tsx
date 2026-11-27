@@ -116,3 +116,79 @@ it("shows the brain's images and opens one to describe it", async () => {
     () => document.querySelector("[data-studio-image-details]") !== null,
   );
 });
+
+it("uploads an image and opens it to describe", async () => {
+  const requests: string[] = [];
+  let uploaded = false;
+  const api = new StudioApi({
+    basePath: "/studio",
+    fetch: async (input, init): Promise<Response> => {
+      const url = new URL(String(input), "https://studio.test");
+      requests.push(`${init?.method ?? "GET"} ${url.pathname}`);
+      if (url.pathname.endsWith("/upload")) {
+        uploaded = true;
+        return Response.json({ entityId: "harbor" });
+      }
+      if (url.pathname.endsWith("/image-library"))
+        return Response.json({
+          total: uploaded ? 1 : 0,
+          images: uploaded
+            ? [
+                {
+                  id: "harbor",
+                  title: "Harbor",
+                  alt: "",
+                  altSource: "fallback",
+                  updated: "2026-07-04T00:00:00.000Z",
+                },
+              ]
+            : [],
+        });
+      if (url.pathname.endsWith("/image-details"))
+        return Response.json({
+          id: "harbor",
+          title: "Harbor",
+          alt: "",
+          altSource: "fallback",
+          contentHash: "hash",
+        });
+      return new Response(new Uint8Array([1]), {
+        headers: { "Content-Type": "image/png" },
+      });
+    },
+  });
+  await act(async () =>
+    root.render(
+      <QueryClientProvider client={createStudioQueryClient()}>
+        <StudioApiProvider api={api}>
+          <StudioImagesView />
+        </StudioApiProvider>
+      </QueryClientProvider>,
+    ),
+  );
+  await settle(() => document.body.textContent.includes("0 images"));
+  const input = document.querySelector<HTMLInputElement>(
+    'input[type="file"][aria-label="Upload image"]',
+  );
+  if (!input) throw new Error("Missing upload");
+  const file = new windowInstance.File([new Uint8Array([1])], "harbor.png", {
+    type: "image/png",
+  });
+  Object.defineProperty(input, "files", { value: [file] });
+  await act(async () => {
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+  await settle(
+    () => document.querySelector('[data-studio-image="harbor"]') !== null,
+  );
+  expect(requests).toContain("POST /studio/api/upload");
+  // The new image is open, ready to describe.
+  expect(
+    document
+      .querySelector('[data-studio-image="harbor"]')
+      ?.getAttribute("aria-pressed"),
+  ).toBe("true");
+  await settle(
+    () => document.querySelector("[data-studio-image-details]") !== null,
+  );
+});

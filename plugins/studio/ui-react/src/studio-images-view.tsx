@@ -1,6 +1,6 @@
 /** @jsxImportSource react */
 import * as stylex from "@stylexjs/stylex";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState, type ReactElement } from "react";
 import { STUDIO_THUMBNAIL_WIDTH } from "../../src/studio-thumbnail";
 import { useStudioApi } from "./studio-api-context";
@@ -12,6 +12,8 @@ import { headStyles } from "./studio-page-head.styles";
 import { libraryStyles } from "./studio-library.styles";
 import { StudioStatus } from "./studio-status";
 import { errorMessage } from "./ui-utils";
+import { uploadImage } from "./mutations";
+import { invalidateAfterUpload } from "./queries";
 
 const PAGE = { offset: 0, limit: 96 };
 
@@ -26,6 +28,20 @@ export function StudioImagesView(): ReactElement {
     queryFn: () => api.fetchImageLibrary(PAGE),
   });
   const [picked, setPicked] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  // A new image opens at once, so it can be described while it is in mind.
+  const upload = useMutation({
+    mutationFn: (file: File) => uploadImage(api, file),
+    onSuccess: async (result) => {
+      await Promise.all([
+        invalidateAfterUpload(queryClient),
+        queryClient.invalidateQueries({
+          queryKey: ["studio", "image-library"],
+        }),
+      ]);
+      setPicked(result.entityId);
+    },
+  });
   const panel = useRef<HTMLElement>(null);
   // On a phone the details sit under the grid; bring them into view.
   useEffect(() => {
@@ -47,6 +63,32 @@ export function StudioImagesView(): ReactElement {
           totals: [],
         }}
       />
+      <div {...stylex.props(styles.uploadRow)}>
+        <label {...stylex.props(styles.upload)}>
+          Upload image
+          <input
+            type="file"
+            aria-label="Upload image"
+            accept="image/png,image/jpeg,image/gif,image/webp"
+            disabled={upload.isPending}
+            {...stylex.props(styles.file)}
+            onChange={(event) => {
+              const file = event.currentTarget.files?.[0];
+              event.currentTarget.value = "";
+              if (file) upload.mutate(file);
+            }}
+          />
+        </label>
+        <span role="status" aria-live="polite">
+          {upload.isPending ? (
+            <StudioStatus>Uploading…</StudioStatus>
+          ) : upload.error ? (
+            <StudioStatus tone="error">
+              {errorMessage(upload.error)}
+            </StudioStatus>
+          ) : null}
+        </span>
+      </div>
       {library.error ? (
         <StudioStatus tone="error">{errorMessage(library.error)}</StudioStatus>
       ) : null}
