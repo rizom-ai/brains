@@ -1,5 +1,26 @@
 # @brains/studio
 
+## 0.2.0-alpha.778
+
+### Patch Changes
+
+- [#1057](https://github.com/rizom-ai/brains/pull/1057) [`04e551f`](https://github.com/rizom-ai/brains/commit/04e551ff5ecff57754f8aba1dccd26df56db55d4) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Studio fixes from the UX review:
+
+  - Library rows, group members and navigation destinations are links, so they open in a new tab, middle-click and copy like any other link; a plain click still navigates in place.
+  - The browser tab names the open page, such as "Event Sourcing for Sustainability Metrics — Posts — Alex Chen", instead of "Content Studio" everywhere.
+  - Studio follows the system color scheme until a climate is chosen. The Dashboard and the guest Ask page keep their own.
+  - Overview's activity survives a restart and names entries by their title. Topics now name themselves by their header's title everywhere, including ⌘K.
+  - A note body's leftover frontmatter previews as YAML instead of a large heading.
+  - An unfiltered empty Inbox no longer blames its filters, the first Groupings visit no longer asks for types, and the save state and why it cannot save no longer run together.
+
+- Updated dependencies [[`04e551f`](https://github.com/rizom-ai/brains/commit/04e551ff5ecff57754f8aba1dccd26df56db55d4)]:
+  - @brains/console-theme@0.2.0-alpha.778
+  - @brains/sdk@0.2.0-alpha.778
+  - @brains/app-ui-react@0.2.0-alpha.778
+  - @brains/contracts@0.2.0-alpha.778
+  - @brains/operator-view-react@0.2.0-alpha.778
+  - @brains/utils@0.2.0-alpha.778
+
 ## 0.2.0-alpha.777
 
 ### Patch Changes

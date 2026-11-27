@@ -1,7 +1,7 @@
 {
   "name": "@brains/entity-placement",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.777",
+  "version": "0.2.0-alpha.778",
   "dependencies": {
     "@brains/entity-service": "workspace:*",
     "@brains/utils": "workspace:*"

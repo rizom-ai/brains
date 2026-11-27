@@ -1,5 +1,16 @@
 # @brains/forms
 
+## 0.2.0-alpha.778
+
+### Patch Changes
+
+- Updated dependencies [[`04e551f`](https://github.com/rizom-ai/brains/commit/04e551ff5ecff57754f8aba1dccd26df56db55d4)]:
+  - @brains/console-theme@0.2.0-alpha.778
+  - @brains/sdk@0.2.0-alpha.778
+  - @brains/contracts@0.2.0-alpha.778
+  - @brains/site-composition@0.2.0-alpha.778
+  - @brains/utils@0.2.0-alpha.778
+
 ## 0.2.0-alpha.777
 
 ### Patch Changes
