@@ -396,7 +396,16 @@ export async function exerciseStudioInvalid({
 }
 
 /** Exercises explicit recovery before leaving a second upload pending. */
-export async function exerciseStudioUpload(page: Bun.WebView): Promise<void> {
+export async function exerciseStudioUpload({
+  page,
+  viewport,
+}: VisualCase): Promise<void> {
+  // A phone opens on the writing; a cover is added from Properties.
+  if (viewport.width <= 640) {
+    await pointerDownSelector(page, ".studio-mobile-tabs button");
+    await clickText(page, '[role="menuitem"]', "Properties");
+    await waitForSelector(page, '[data-mobile-pane="details"]');
+  }
   for (const name of ["retry-cover.png", "verdigris-board.png"]) {
     const selected = await evaluatePageWith(
       page,

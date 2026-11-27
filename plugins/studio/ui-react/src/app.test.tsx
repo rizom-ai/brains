@@ -2216,13 +2216,18 @@ describe("entityPublicationState", () => {
 });
 
 describe("mobile editor entry", () => {
-  it("opens raw documents on content and respects a chosen pane without storing drafts", () => {
+  it("opens documents on their writing and respects a chosen pane without storing drafts", () => {
     expect(mobileEditorEntry({ format: "raw", hasBody: true }, null)).toBe(
       "preview",
     );
+    // A phone opens an entry on what it says; Properties are one tap away.
     expect(
       mobileEditorEntry({ format: "frontmatter", hasBody: true }, null),
-    ).toBe("details");
+    ).toBe("preview");
+    // A new entry opens where it is written.
+    expect(
+      mobileEditorEntry({ format: "frontmatter", hasBody: true }, null, true),
+    ).toBe("write");
     expect(mobileEditorEntry({ format: "raw", hasBody: true }, "details")).toBe(
       "details",
     );

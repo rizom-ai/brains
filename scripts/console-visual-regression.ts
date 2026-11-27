@@ -130,7 +130,7 @@ async function exerciseSurface(
   if (surface === "studio-editor") await exerciseStudioEditor(visualCase);
   if (surface === "studio-conflict") await exerciseStudioConflict(page);
   if (surface === "studio-invalid") await exerciseStudioInvalid(visualCase);
-  if (surface === "studio-upload") await exerciseStudioUpload(page);
+  if (surface === "studio-upload") await exerciseStudioUpload(visualCase);
   if (
     ["studio-chat", "studio-administration", "studio-account"].includes(surface)
   )

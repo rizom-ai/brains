@@ -147,6 +147,7 @@ export function useEntityOpener(input: EntityOpenerInput): EntityOpener {
         const nextPane = mobileEditorEntry(
           loadedSchema,
           preferredMobilePane.current,
+          createMode && routeEntityId === null,
         );
         setMobilePane(nextPane);
         if (
