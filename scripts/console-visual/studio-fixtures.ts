@@ -100,7 +100,14 @@ export const entities = [
     id: "responsive-console",
     entityType: "posts",
     // Published entity so the library pins both publication chip states.
-    frontmatter: { title: "A console that travels well", published: true },
+    frontmatter: {
+      title: "A console that travels well",
+      summary:
+        "How one layout keeps its bearings from a wide desk to a phone held in one hand.",
+      published: true,
+      publishedAt: "2026-06-30T08:00:00.000Z",
+      coverImageId: "image/verdigris-board",
+    },
     updated: "2026-07-10T10:32:00.000Z",
   },
   {
@@ -112,7 +119,11 @@ export const entities = [
   {
     id: "release-log",
     entityType: "posts",
-    frontmatter: { title: "Alpha release log" },
+    frontmatter: {
+      title: "Alpha release log",
+      summary: "What changed in each alpha, and what it asks of an operator.",
+      coverImageId: "image/verdigris-board",
+    },
     updated: "2026-07-03T08:00:00.000Z",
   },
   {
@@ -511,6 +522,7 @@ export const postsSchema = {
       label: "Summary",
       widget: "text",
       required: false,
+      column: "excerpt",
     },
     {
       name: "series",
@@ -537,12 +549,14 @@ export const postsSchema = {
       label: "Publish date",
       widget: "datetime",
       required: false,
+      column: "date",
     },
     {
       name: "coverImageId",
       label: "Cover image",
       widget: "image",
       required: false,
+      column: "cover",
     },
   ],
 };

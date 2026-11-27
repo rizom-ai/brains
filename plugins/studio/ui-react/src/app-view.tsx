@@ -178,17 +178,20 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
       data-view={
         props.groupingView
           ? "grouping"
-          : activeWorkspaceId
-            ? "workspace"
-            : editing
-              ? "editor"
-              : "listing"
+          : props.imagesView
+            ? "images"
+            : activeWorkspaceId
+              ? "workspace"
+              : editing
+                ? "editor"
+                : "listing"
       }
     >
       <StudioChrome
         pageTitle={editing ? model.editorHead.title : undefined}
         contextLabel={
           props.groupReturnLabel ??
+          (props.images?.active ? "Images" : undefined) ??
           props.groupings?.items.find(
             (grouping) => grouping.key === props.groupings?.active,
           )?.label ??
@@ -196,10 +199,13 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
         }
         navigation={{
           groupings: props.groupings,
+          images: props.images,
           types,
           workspaces,
           activeEntityType:
-            activeWorkspaceId || props.groupings?.active ? null : entityType,
+            activeWorkspaceId || props.groupings?.active || props.images?.active
+              ? null
+              : entityType,
           activeWorkspaceId,
           workspaceBadges,
           selectEntityType,
@@ -220,9 +226,14 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
             renderMode="desktop"
             focus={editing}
             groupings={props.groupings}
+            images={props.images}
             types={types}
             active={
-              activeWorkspaceId || props.groupings?.active ? null : entityType
+              activeWorkspaceId ||
+              props.groupings?.active ||
+              props.images?.active
+                ? null
+                : entityType
             }
             onSelect={selectEntityType}
             workspaces={workspaces}
@@ -232,6 +243,7 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
           />
         </aside>
         {props.groupingView ??
+          props.imagesView ??
           (activeWorkspaceId ? (
             <StudioWorkspacePane {...props} model={model} />
           ) : !editing ? (

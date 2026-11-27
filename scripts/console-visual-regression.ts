@@ -39,6 +39,7 @@ import {
 } from "./console-visual/options";
 import {
   clickSelector,
+  waitForSelector,
   focusSelector,
   evaluatePage,
   navigateToNetworkIdle,
@@ -111,6 +112,12 @@ async function exerciseSurface(
   if (surface.startsWith("studio-chat")) await exerciseStudioChat(visualCase);
   if (plan.isDashboard) await exerciseDashboard(visualCase);
   if (surface === "studio-library") await exerciseStudioLibrary(visualCase);
+  if (surface === "studio-images") {
+    // Open the first image that needs describing, as the capture shows it.
+    await waitForSelector(page, '[data-studio-image="image/sensor-wall"]');
+    await clickSelector(page, '[data-studio-image="image/sensor-wall"]');
+    await waitForSelector(page, "[data-studio-image-details]");
+  }
   if (surface.startsWith("studio-refine"))
     await exerciseStudioRefine(visualCase);
   if (surface === "studio-overview") await waitForText(page, "What happened");

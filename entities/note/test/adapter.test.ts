@@ -127,6 +127,11 @@ Content`;
       ],
       ["---\ntitle: ''\n---\n\nFirst body line", "First body line"],
       ["\n\n## A smaller heading\n\nBody", "A smaller heading"],
+      // A placeholder heading is no title; the prose under it names the note.
+      [
+        "# Untitled\n\nProvenance for every idea.",
+        "Provenance for every idea.",
+      ],
       ["---\ntitle: Untitled\n---\nAuthored title must win", "Untitled"],
       ["---\nstatus: generating\n---\n\n", "Untitled"],
       ["\n \n", "Untitled"],

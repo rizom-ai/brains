@@ -222,6 +222,11 @@ export interface ServiceEntityShapes {
   fileExtension(type: string): ".md" | ".yaml";
   /** Whether the type's records have a body; true when unknown. */
   hasBody(type: string): boolean;
+  /**
+   * Whether the type's records carry a cover image, in `coverImageId`;
+   * false when unknown.
+   */
+  hasCoverImage(type: string): boolean;
   /** Whether a frontmatter write carries into the type's metadata. */
   metadataFromFrontmatter(type: string): boolean;
   /**

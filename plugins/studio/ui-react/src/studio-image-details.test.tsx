@@ -101,3 +101,54 @@ test("edits an image's title and alt text, which then reads as the owner's", asy
     },
   ]);
 });
+
+test("names the entries that use an image, as links to them", async () => {
+  const detailsWith = (usedIn: unknown[]): StudioApi =>
+    new StudioApi({
+      basePath: "/studio",
+      fetch: async (url): Promise<Response> => {
+        const path = new URL(String(url), "https://studio.test").pathname;
+        if (path === "/studio/api/images")
+          return new Response("png", {
+            headers: { "Content-Type": "image/png" },
+          });
+        return Response.json({
+          id: "harbor",
+          title: "Harbor",
+          alt: "",
+          altSource: "fallback",
+          contentHash: "v1",
+          usedIn,
+        });
+      },
+    });
+  await act(async () =>
+    root.render(
+      <StudioApiProvider
+        api={detailsWith([
+          { entityType: "post", id: "harbor-essay", title: "Harbor essay" },
+        ])}
+      >
+        <StudioImageDetails imageId="harbor" />
+      </StudioApiProvider>,
+    ),
+  );
+  await settle(() => document.body.textContent.includes("Used in"));
+  const link = document.querySelector<HTMLAnchorElement>(
+    "[data-studio-image-uses] a",
+  );
+  expect(link?.textContent).toBe("Harbor essay");
+  expect(link?.getAttribute("href")).toBe("/studio/entities/post/harbor-essay");
+
+  await act(async () =>
+    root.render(
+      <StudioApiProvider api={detailsWith([])}>
+        <StudioImageDetails imageId="harbor" />
+      </StudioApiProvider>,
+    ),
+  );
+  await settle(() =>
+    document.body.textContent.includes("Not used in any entry yet."),
+  );
+  expect(document.querySelector("[data-studio-image-uses] a")).toBeNull();
+});

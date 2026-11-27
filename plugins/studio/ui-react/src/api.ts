@@ -108,6 +108,8 @@ export interface FieldDescriptor {
   fields?: FieldDescriptor[];
   /** Holds a credential: kept out of drafts saved in the browser. */
   secret?: true;
+  /** The column of a Library row this field fills. */
+  column?: "date" | "excerpt" | "cover";
 }
 
 export type { StudioMember } from "../../src/editor-contracts";
@@ -333,6 +335,17 @@ export interface ImageDetails {
   alt: string;
   altSource: "fallback" | "generated" | "owner";
   contentHash: string;
+  /** The entries that use the image, as a cover or in their body. */
+  usedIn?: Array<{ entityType: string; id: string; title: string }>;
+}
+
+/** An image as the Images view lists it. */
+export interface ImageLibraryEntry {
+  id: string;
+  title: string;
+  alt: string;
+  altSource: ImageDetails["altSource"];
+  updated: string;
 }
 
 export class StudioApi {
@@ -510,13 +523,32 @@ export class StudioApi {
     );
   }
 
-  /** An image's bytes for preview, read through this scoped client. */
-  async fetchImagePreview(id: string, signal: AbortSignal): Promise<Blob> {
+  /**
+   * An image's bytes for preview, read through this scoped client; with a
+   * width, the thumbnail the server makes at that width.
+   */
+  async fetchImagePreview(
+    id: string,
+    signal: AbortSignal,
+    width?: number,
+  ): Promise<Blob> {
     const response = await this.request(
-      this.path(`images?id=${encodeURIComponent(id)}`),
+      this.path(
+        `images?id=${encodeURIComponent(id)}${width ? `&width=${width}` : ""}`,
+      ),
       { signal },
     );
     return response.blob();
+  }
+
+  /** A page of the brain's images, newest first. */
+  async fetchImageLibrary(page: {
+    offset: number;
+    limit: number;
+  }): Promise<{ total: number; images: ImageLibraryEntry[] }> {
+    return this.requestJson<{ total: number; images: ImageLibraryEntry[] }>(
+      this.path(`image-library?offset=${page.offset}&limit=${page.limit}`),
+    );
   }
 
   /** An image's title and alt text, who wrote the alt text, and its version. */

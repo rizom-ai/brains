@@ -1,5 +1,8 @@
 /** @jsxImportSource react */
-import type { GroupingNavigation } from "./grouping-url-query";
+import type {
+  GroupingNavigation,
+  ImagesNavigation,
+} from "./grouping-url-query";
 import {
   Button,
   DropdownMenu,
@@ -55,6 +58,7 @@ function navigate(href: string): void {
 
 export interface StudioChromeNavigation {
   groupings?: GroupingNavigation | undefined;
+  images?: ImagesNavigation | undefined;
   types: EntityTypeInfo[];
   workspaces: StudioWorkspaceInfo[];
   activeEntityType: string | null;
@@ -172,6 +176,7 @@ export function StudioChrome(props: {
           <TypeSwitcher
             renderMode="mobile"
             groupings={props.navigation.groupings}
+            images={props.navigation.images}
             types={props.navigation.types}
             active={props.navigation.activeEntityType}
             onSelect={props.navigation.selectEntityType}

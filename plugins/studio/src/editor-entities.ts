@@ -17,6 +17,7 @@ import {
 } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { isRawEntityType } from "./config";
+import { STUDIO_THUMBNAIL_WIDTH } from "./studio-thumbnail";
 import {
   studioMutationOptions,
   getTypeCapabilities,
@@ -87,7 +88,40 @@ function readEditorEntity(
   return context.entityService.getEntityRaw({ ...request, source: true });
 }
 
-const imagePreviewQuerySchema = z.object({ id: z.string().min(1) });
+const imagePreviewQuerySchema = z.object({
+  id: z.string().min(1),
+  width: z.literal(String(STUDIO_THUMBNAIL_WIDTH)).optional(),
+});
+
+/**
+ * A thumbnail-sized WebP of a raster image. A format the resizer cannot read,
+ * such as SVG, keeps its original response.
+ */
+async function thumbnailResponse(response: Response): Promise<Response> {
+  if (
+    !/^image\/(png|jpeg|webp|gif|avif)$/i.test(
+      response.headers.get("Content-Type") ?? "",
+    )
+  )
+    return response;
+  const source = new Uint8Array(await response.arrayBuffer());
+  try {
+    const bytes = await new Bun.Image(source)
+      .resize(STUDIO_THUMBNAIL_WIDTH, undefined, { withoutEnlargement: true })
+      .webp({ quality: 80 })
+      .bytes();
+    return new Response(new Uint8Array(bytes), {
+      headers: {
+        "Content-Type": "image/webp",
+        "Content-Length": String(bytes.byteLength),
+        "X-Content-Type-Options": "nosniff",
+      },
+    });
+  } catch {
+    // An image the resizer cannot decode is still shown, at full size.
+    return new Response(source, { headers: response.headers });
+  }
+}
 
 /**
  * Binary images are readable for previews, not editable frontmatter types.
@@ -99,11 +133,20 @@ export async function handleGetImagePreview(
   request: Request,
   access: StudioRequestAccess,
 ): Promise<Response> {
+  const params = new URL(request.url).searchParams;
   const query = imagePreviewQuerySchema.safeParse({
-    id: new URL(request.url).searchParams.get("id"),
+    id: params.get("id"),
+    width: params.get("width") ?? undefined,
   });
   if (!query.success)
-    return jsonResponse({ error: "Image id is required" }, 400);
+    return jsonResponse(
+      {
+        error: params.get("id")
+          ? `Images are served whole or ${STUDIO_THUMBNAIL_WIDTH}px wide`
+          : "Image id is required",
+      },
+      400,
+    );
   const image = context.entityService.getEntityTypes().includes("image")
     ? await context.entityService.getEntityRaw({
         entityType: "image",
@@ -120,9 +163,12 @@ export async function handleGetImagePreview(
       disposition: "inline",
     }));
   if (!response) return jsonResponse({ error: "Image unavailable" }, 404);
+  const served = query.data.width
+    ? await thumbnailResponse(response)
+    : response;
   // Studio API responses are never cached, previews included.
-  response.headers.set("Cache-Control", "no-store");
-  return response;
+  served.headers.set("Cache-Control", "no-store");
+  return served;
 }
 
 const updateEntityPayloadSchema = z.object({

@@ -179,6 +179,18 @@ describe("useStudioRouteEffects", () => {
       );
     },
   );
+  it("opens the Images page with no type or workspace selected", async () => {
+    const harness = await renderEffects({
+      routeTarget: { kind: "images" },
+      activeWorkspaceId: "inbox",
+      entityType: "note",
+    });
+    expect(harness.activeWorkspaceIds.at(-1)).toBeNull();
+    expect(harness.entityTypes.at(-1)).toBeNull();
+    expect(harness.supersedes).toBe(1);
+    expect(harness.loadErrors.at(-1)).toBeNull();
+  });
+
   it("resolves a collection route to its entity type", async () => {
     const harness = await renderEffects({
       routeTarget: { kind: "collection", entityType: "note" },

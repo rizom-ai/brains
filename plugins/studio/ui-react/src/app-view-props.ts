@@ -6,7 +6,10 @@ import type {
 } from "@brains/sdk/internal/service-runtime";
 import type { EntityIdPath } from "@brains/sdk/internal/entity-runtime";
 import type { Dispatch, ReactNode, SetStateAction } from "react";
-import type { GroupingNavigation } from "./grouping-url-query";
+import type {
+  GroupingNavigation,
+  ImagesNavigation,
+} from "./grouping-url-query";
 import type {
   AgentTarget,
   StudioWorkspaceInfo,
@@ -34,6 +37,9 @@ export type MobileEditorPane = "details" | "write" | "preview";
 export interface StudioAppViewProps {
   groupings?: GroupingNavigation | undefined;
   groupingView?: ReactNode;
+  /** The Images page and its place in navigation. */
+  images?: ImagesNavigation | undefined;
+  imagesView?: ReactNode;
   groupReturnLabel?: string | undefined;
   /** Existing values per grouping field, offered while editing membership. */
   groupingSuggestions?: Record<string, readonly string[]> | undefined;

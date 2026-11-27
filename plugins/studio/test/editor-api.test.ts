@@ -120,6 +120,7 @@ class TestAdapter extends BaseEntityAdapter<BaseEntity> {
     frontmatterSchema: z.ZodObject<z.ZodRawShape>;
     isSingleton?: boolean;
     hasBody?: boolean;
+    supportsCoverImage?: boolean;
   }) {
     super({
       entityType: options.entityType,
@@ -130,6 +131,7 @@ class TestAdapter extends BaseEntityAdapter<BaseEntity> {
         isSingleton: options.isSingleton,
       }),
       ...(options.hasBody !== undefined && { hasBody: options.hasBody }),
+      ...(options.supportsCoverImage && { supportsCoverImage: true }),
     });
   }
 
@@ -1252,6 +1254,48 @@ describe("studio editor api", () => {
     expect(
       payload.types.find((t) => t.entityType === "post")?.singularLabel,
     ).toBe("Essay");
+  });
+
+  it("names the cover a type's rows show, as its adapter declares it", async () => {
+    const shell = createEditorTestShell();
+    const essaySchema = z.object({
+      title: z.string(),
+      coverImageId: z.string().optional(),
+    });
+    const registry = shell.getEntityRegistry();
+    registry.registerEntityType(
+      "essay",
+      baseEntitySchema,
+      new TestAdapter({
+        entityType: "essay",
+        frontmatterSchema: essaySchema,
+        supportsCoverImage: true,
+      }),
+    );
+    const known = registry.getEffectiveFrontmatterSchema.bind(registry);
+    registry.getEffectiveFrontmatterSchema = (
+      type: string,
+    ): z.ZodObject<z.ZodRawShape> | undefined =>
+      type === "essay" ? essaySchema : known(type);
+    const cookie = await createSessionCookie(shell);
+    const plugin = await registerPlugin(shell);
+    const fieldsOf = async (type: string): Promise<unknown> =>
+      z
+        .object({ fields: z.array(z.record(z.string(), z.unknown())) })
+        .parse(
+          await (
+            await findRoute(plugin, "/studio/api/schema").handler(
+              apiRequest(`/studio/api/schema?type=${type}`, { cookie }),
+            )
+          ).json(),
+        )
+        .fields.find((field) => field["name"] === "coverImageId");
+
+    expect(await fieldsOf("essay")).toMatchObject({
+      name: "coverImageId",
+      widget: "image",
+      column: "cover",
+    });
   });
 
   it("returns field descriptors for a type", async () => {
@@ -2443,6 +2487,97 @@ describe("studio image previews", () => {
     expect(Buffer.from(await response.arrayBuffer())).toEqual(png);
   });
 
+  it("lists the brain's images, newest first, with their titles and alt text", async () => {
+    const shell = createEditorTestShell();
+    shell.getEntityRegistry().registerEntityType(
+      "image",
+      baseEntitySchema,
+      new TestAdapter({
+        entityType: "image",
+        frontmatterSchema: z.object({}),
+        hasBody: false,
+      }),
+    );
+    const store = async (
+      id: string,
+      updated: string,
+      metadata: Record<string, unknown>,
+    ): Promise<void> => {
+      await shell.getEntityService().createEntity({
+        entity: {
+          id,
+          entityType: "image",
+          content: (await shell.getEntityService().stageAsset(png)).ref,
+          metadata: { mediaType: "image/png", ...metadata },
+          visibility: "public",
+          created: updated,
+          updated,
+        },
+      });
+    };
+    await store("sensor-wall", "2026-07-01T00:00:00.000Z", {
+      title: "Sensor wall",
+      alt: "Rows of sensors on a brick wall",
+      altSource: "owner",
+    });
+    await store("ledger", "2026-07-03T00:00:00.000Z", { title: "Ledger" });
+    const plugin = await registerPlugin(shell);
+    const cookie = await createSessionCookie(shell);
+
+    const response = await findRoute(
+      plugin,
+      "/studio/api/image-library",
+    ).handler(apiRequest("/studio/api/image-library?limit=10", { cookie }));
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      total: 2,
+      images: [
+        {
+          id: "ledger",
+          title: "Ledger",
+          alt: "",
+          altSource: "fallback",
+          updated: "2026-07-03T00:00:00.000Z",
+        },
+        {
+          id: "sensor-wall",
+          title: "Sensor wall",
+          alt: "Rows of sensors on a brick wall",
+          altSource: "owner",
+          updated: "2026-07-01T00:00:00.000Z",
+        },
+      ],
+    });
+  });
+
+  it("serves a row's thumbnail small, never the full image", async () => {
+    const wide = Buffer.from(
+      await new Bun.Image(png).resize(400, 200).png().bytes(),
+    );
+    const { route, cookie } = await previewShell(
+      async (shell) => (await shell.getEntityService().stageAsset(wide)).ref,
+      { mediaType: "image/png", sizeBytes: wide.byteLength },
+    );
+
+    const thumbnail = await route.handler(
+      apiRequest("/studio/api/images?id=cover&width=160", { cookie }),
+    );
+    expect(thumbnail.status).toBe(200);
+    expect(thumbnail.headers.get("Content-Type")).toBe("image/webp");
+    expect(thumbnail.headers.get("Cache-Control")).toBe("no-store");
+    const bytes = new Uint8Array(await thumbnail.arrayBuffer());
+    expect(await new Bun.Image(bytes).metadata()).toMatchObject({
+      width: 160,
+      height: 80,
+    });
+    // Only the thumbnail size is served; any other width is refused.
+    const other = await route.handler(
+      apiRequest("/studio/api/images?id=cover&width=1200", { cookie }),
+    );
+    expect(other.status).toBe(400);
+  });
+
   it("serves a legacy inline image as bytes", async () => {
     const { route, cookie } = await previewShell(
       async () => `data:image/png;base64,${png.toString("base64")}`,
@@ -2597,6 +2732,59 @@ describe("studio image details", () => {
       alt: "Fishing boats moored at dawn",
       altSource: "generated",
     });
+  });
+
+  it("names the entries an image is used in: as a cover or in a body", async () => {
+    const { shell, plugin, cookie } = await detailsShell();
+    const store = async (
+      entityType: string,
+      id: string,
+      content: string,
+    ): Promise<void> => {
+      await shell.getEntityService().createEntity({
+        entity: {
+          id,
+          entityType,
+          content,
+          metadata: {},
+          visibility: "public",
+          created: "2026-07-02T00:00:00.000Z",
+          updated: "2026-07-02T00:00:00.000Z",
+        },
+      });
+    };
+    await store(
+      "post",
+      "harbor-essay",
+      "---\ntitle: Harbor essay\ncoverImageId: harbor\n---\nAt dawn.",
+    );
+    await store(
+      "note",
+      "dawn-notes",
+      "---\ntitle: Dawn notes\n---\n![Boats](entity://image/harbor)",
+    );
+    // Mentioning the word is not using the image.
+    await store(
+      "note",
+      "harbor-word",
+      "---\ntitle: Harbor word\n---\nThe harbor was quiet.",
+    );
+
+    const response = await findRoute(
+      plugin,
+      "/studio/api/image-details",
+    ).handler(apiRequest("/studio/api/image-details?id=harbor", { cookie }));
+    const { usedIn } = z
+      .object({
+        usedIn: z.array(
+          z.object({ entityType: z.string(), id: z.string() }).loose(),
+        ),
+      })
+      .parse(await response.json());
+
+    expect(
+      usedIn.map((entry) => `${entry.entityType}/${entry.id}`).sort(),
+    ).toEqual(["note/dawn-notes", "post/harbor-essay"]);
   });
 
   it("saves a title and alt text as the owner's, keeping the bytes", async () => {

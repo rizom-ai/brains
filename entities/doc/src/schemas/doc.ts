@@ -12,7 +12,11 @@ export const docFrontmatterSchema: z.ZodObject<{
   title: z.string(),
   section: z.string(),
   order: z.number().int(),
-  description: z.string().nullable().default(null),
+  description: z
+    .string()
+    .nullable()
+    .default(null)
+    .meta({ studioColumn: "excerpt" }),
   slug: z.string().nullable().default(null),
 });
 

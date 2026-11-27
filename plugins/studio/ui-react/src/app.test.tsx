@@ -1585,6 +1585,106 @@ describe("capability-aware Studio controls", () => {
     expect(edit).toContain("Add to queue");
   });
 
+  it("lists a system type with the same row as any other", () => {
+    const html = renderCapabilityView(allowedCapabilities, "browse", {
+      entityType: "prompt",
+      frontmatter: { title: "Research synthesis" },
+    });
+    const row = html.slice(html.indexOf("data-studio-record"));
+    expect(row).toMatch(/>01<\/span>/);
+    expect(row).toMatch(/>Edited [^<]+<\/time>/);
+    expect(row).not.toContain("→");
+    expect(row).not.toMatch(/Prompts? ·/);
+  });
+
+  it("dates a row by what it means and states its own status", () => {
+    const fields: FieldDescriptor[] = [
+      stringField,
+      {
+        name: "status",
+        label: "Status",
+        widget: "enum",
+        options: ["draft", "queued", "published"],
+      },
+      {
+        name: "publishedAt",
+        label: "Published At",
+        widget: "datetime",
+        column: "date",
+      },
+    ];
+    const published = renderCapabilityView(allowedCapabilities, "browse", {
+      fields,
+      frontmatter: {
+        title: "Post one",
+        status: "published",
+        publishedAt: "2025-11-20T01:00:00.000Z",
+      },
+    });
+    expect(published).toContain(">Published</span>");
+    expect(published).toContain('dateTime="2025-11-20T01:00:00.000Z"');
+    // The status already says it is published; the date is the day.
+    expect(published).toContain(">Nov 20, 2025</time>");
+    const queued = renderCapabilityView(allowedCapabilities, "browse", {
+      fields,
+      frontmatter: { title: "Post one", status: "queued" },
+    });
+    expect(queued).toContain(">Queued</span>");
+    expect(queued).toContain('dateTime="2026-07-01T00:00:00.000Z"');
+    expect(queued).toMatch(/Edited [^<]+/);
+    const excerpted = renderCapabilityView(allowedCapabilities, "browse", {
+      fields: [
+        ...fields,
+        {
+          name: "excerpt",
+          label: "Excerpt",
+          widget: "text",
+          column: "excerpt",
+        },
+      ],
+      frontmatter: {
+        title: "Post one",
+        status: "draft",
+        excerpt: "Every reading kept, every total traceable.",
+      },
+    });
+    // A type with a cover shows each row's thumbnail; it is decorative.
+    const covered = renderCapabilityView(allowedCapabilities, "browse", {
+      fields: [
+        ...fields,
+        {
+          name: "coverImageId",
+          label: "Cover Image ID",
+          widget: "image",
+          column: "cover",
+        },
+      ],
+      frontmatter: { title: "Post one", coverImageId: "sensor-wall" },
+    });
+    expect(covered).toMatch(/data-studio-row-cover=""[^>]*aria-hidden="true"/);
+    expect(
+      renderCapabilityView(allowedCapabilities, "browse", { fields }),
+    ).not.toContain("data-studio-row-cover");
+    // A page where no entry has a cover keeps no empty thumbnail column.
+    expect(
+      renderCapabilityView(allowedCapabilities, "browse", {
+        fields: [
+          ...fields,
+          {
+            name: "coverImageId",
+            label: "Cover Image ID",
+            widget: "image",
+            column: "cover",
+          },
+        ],
+        frontmatter: { title: "Post one" },
+      }),
+    ).not.toContain("data-studio-row-cover");
+    expect(excerpted).toMatch(
+      /data-studio-row-excerpt[^>]*>Every reading kept, every total traceable\.</,
+    );
+  });
+
   it("retains collection navigation and the open document when a read fails", () => {
     for (const mode of ["browse", "edit"] as const) {
       const html = renderCapabilityView(allowedCapabilities, mode, {

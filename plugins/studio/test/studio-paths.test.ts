@@ -4,6 +4,7 @@ import {
   studioCollectionPath,
   studioCreatePath,
   studioEntityPath,
+  studioImagesPath,
   studioWorkspacePath,
   normalizeStudioBasePath,
   parseStudioPath,
@@ -32,6 +33,15 @@ describe("Studio canonical paths", () => {
     expect(studioChatWorkspacePath("/studio", "conversation/one")).toBe(
       "/chat?session=conversation%2Fone",
     );
+  });
+
+  it("has a page for the brain's images", () => {
+    expect(studioImagesPath("/studio")).toBe("/studio/images");
+    expect(studioImagesPath("/")).toBe("/images");
+    expect(parseStudioPath("/studio/images", "/studio")).toEqual({
+      kind: "images",
+    });
+    expect(parseStudioPath("/images", "/")).toEqual({ kind: "images" });
   });
 
   it("parses home, collection, entity, and workspace targets", () => {

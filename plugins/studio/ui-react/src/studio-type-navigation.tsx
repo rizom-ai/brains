@@ -1,7 +1,10 @@
 /** @jsxImportSource react */
 import { type ReactElement } from "react";
 import type { StudioWorkspaceInfo, EntityTypeInfo } from "./api";
-import type { GroupingNavigation } from "./grouping-url-query";
+import type {
+  GroupingNavigation,
+  ImagesNavigation,
+} from "./grouping-url-query";
 import { SITE_ENTITY_TYPES, SYSTEM_TYPE_GROUPS } from "./studio-areas";
 import { DesktopNavigation } from "./studio-desktop-navigation";
 import { MobileNavigation } from "./studio-mobile-navigation";
@@ -29,6 +32,7 @@ export function studioEditorPresentation(
  */
 export function TypeSwitcher(props: {
   groupings?: GroupingNavigation | undefined;
+  images?: ImagesNavigation | undefined;
   types: EntityTypeInfo[];
   active: string | null;
   onSelect: (entityType: string) => void;
@@ -60,6 +64,7 @@ export function TypeSwitcher(props: {
           active={model.active}
           onSelect={props.onSelect}
           groupings={props.groupings}
+          images={props.images}
           activeWorkspace={props.activeWorkspace}
           workspaceBadges={props.workspaceBadges}
           onSelectWorkspace={props.onSelectWorkspace}
@@ -75,6 +80,7 @@ export function TypeSwitcher(props: {
           active={model.active}
           onSelect={props.onSelect}
           groupings={props.groupings}
+          images={props.images}
           activeWorkspace={props.activeWorkspace}
           workspaceBadges={props.workspaceBadges}
           onSelectWorkspace={props.onSelectWorkspace}

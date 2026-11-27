@@ -4,6 +4,7 @@ import { useDraftRecovery } from "./use-draft-recovery";
 import type { AccountBootstrap } from "./account/account-view";
 import { StudioStatus } from "./studio-status";
 import { StudioGroupingView } from "./studio-groupings";
+import { StudioImagesView } from "./studio-images-view";
 import { useRefineOutcome } from "./studio-refine";
 import {
   groupingQuery,
@@ -38,6 +39,7 @@ import {
 import {
   studioCollectionPath,
   studioGroupingPath,
+  studioImagesPath,
   studioEntityPath,
   studioWorkspacePath,
   parseStudioPath,
@@ -511,6 +513,7 @@ export function App(): ReactElement {
   }
   if (
     !activeGrouping &&
+    routeTarget.kind !== "images" &&
     !activeWorkspaceId &&
     (!entityType || (!schema && !visibleLoadError))
   ) {
@@ -536,6 +539,21 @@ export function App(): ReactElement {
         onSelect: (key) =>
           router.history.push(studioGroupingPath(studioBasePath, key)),
       }}
+      images={{
+        active: routeTarget.kind === "images",
+        onSelect: () => router.history.push(studioImagesPath(studioBasePath)),
+      }}
+      imagesView={
+        routeTarget.kind === "images" ? (
+          <StudioImagesView
+            onOpen={(nextType, id) =>
+              router.history.push(
+                studioEntityPath(studioBasePath, nextType, id),
+              )
+            }
+          />
+        ) : null
+      }
       groupReturnLabel={groupReturn?.label}
       groupingSuggestions={groupingSuggestions}
       groupingView={

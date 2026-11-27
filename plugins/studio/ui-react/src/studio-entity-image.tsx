@@ -12,8 +12,16 @@ import { useStudioApi } from "./studio-api-context";
 export function StudioEntityImage({
   imageId,
   alt,
+  thumbnailWidth,
+  placeholder,
   ...props
-}: Omit<ComponentProps<"img">, "src"> & { imageId: string }): ReactElement {
+}: Omit<ComponentProps<"img">, "src"> & {
+  imageId: string;
+  /** Ask for the server's thumbnail at this width instead of the whole image. */
+  thumbnailWidth?: number;
+  /** Shown while loading or when unavailable, instead of a status in words. */
+  placeholder?: ReactElement;
+}): ReactElement {
   const api = useStudioApi();
   const [loaded, setLoaded] = useState<{
     api: StudioApi;
@@ -24,7 +32,7 @@ export function StudioEntityImage({
     const controller = new AbortController();
     // The preview owns its object URL and releases it when no longer shown.
     let objectUrl: string | undefined;
-    void api.fetchImagePreview(imageId, controller.signal).then(
+    void api.fetchImagePreview(imageId, controller.signal, thumbnailWidth).then(
       (blob): void => {
         if (controller.signal.aborted) return;
         if (blob.type.startsWith("image/")) {
@@ -43,11 +51,12 @@ export function StudioEntityImage({
       controller.abort();
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [api, imageId]);
+  }, [api, imageId, thumbnailWidth]);
   const current =
     loaded?.api === api && loaded.imageId === imageId ? loaded : undefined;
   if (current?.source)
     return <img {...props} alt={alt ?? ""} src={current.source} />;
+  if (placeholder) return placeholder;
   const status = current ? "Image unavailable" : "Loading image";
   return (
     <span role="img" aria-label={alt ? `${alt}: ${status}` : status}>

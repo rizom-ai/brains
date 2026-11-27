@@ -52,7 +52,12 @@ export const guideFrontmatterSchema: z.ZodObject<{
   /** A short line under the persona where a docs section lists the guide:
    *  what the reader brings, where `for` is the guide's own opening. Absent
    *  reads as null; the listing then shows the persona alone. */
-  summary: z.string().min(1).nullable().default(null),
+  summary: z
+    .string()
+    .min(1)
+    .nullable()
+    .default(null)
+    .meta({ studioColumn: "excerpt" }),
   material: z.array(guideMaterialSchema),
 });
 

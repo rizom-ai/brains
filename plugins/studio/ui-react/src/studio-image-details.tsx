@@ -9,6 +9,9 @@ import { StudioStatus } from "./studio-status";
 import { fieldStyles as f } from "./studio-fields.styles";
 import { errorMessage } from "./ui-utils";
 import { imageDetailsStyles as styles } from "./studio-image-details.styles";
+import { studioEntityPath } from "../../src/studio-paths";
+import { getStudioRouterBasePath } from "./studio-router";
+import { isPlainLinkClick } from "./link-click";
 
 const SOURCE_NOTE: Record<ImageDetails["altSource"], string> = {
   fallback:
@@ -21,7 +24,11 @@ const SOURCE_NOTE: Record<ImageDetails["altSource"], string> = {
  * An image a field refers to, opened with its preview, title and alt text.
  * Saving makes the alt text the owner's.
  */
-export function StudioImageDetails(props: { imageId: string }): ReactElement {
+export function StudioImageDetails(props: {
+  imageId: string;
+  /** Open an entry that uses the image in place; links work without it. */
+  onOpen?: (entityType: string, id: string) => void;
+}): ReactElement {
   const api = useStudioApi();
   const [details, setDetails] = useState<ImageDetails | null>(null);
   const [title, setTitle] = useState("");
@@ -131,6 +138,36 @@ export function StudioImageDetails(props: { imageId: string }): ReactElement {
             <StudioStatus tone={status.tone}>{status.text}</StudioStatus>
           )}
         </div>
+        {details?.usedIn && (
+          <section data-studio-image-uses="" {...stylex.props(styles.uses)}>
+            <h3 {...stylex.props(f.label)}>Used in</h3>
+            {details.usedIn.length === 0 ? (
+              <p {...stylex.props(styles.source)}>Not used in any entry yet.</p>
+            ) : (
+              <ul {...stylex.props(styles.useList)}>
+                {details.usedIn.map((use) => (
+                  <li key={`${use.entityType}/${use.id}`}>
+                    <a
+                      href={studioEntityPath(
+                        getStudioRouterBasePath(),
+                        use.entityType,
+                        use.id,
+                      )}
+                      onClick={(event) => {
+                        if (!props.onOpen || !isPlainLinkClick(event)) return;
+                        event.preventDefault();
+                        props.onOpen(use.entityType, use.id);
+                      }}
+                      {...stylex.props(styles.useLink)}
+                    >
+                      {use.title}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        )}
       </div>
     </div>
   );

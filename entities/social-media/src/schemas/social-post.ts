@@ -88,7 +88,7 @@ export const socialPostFrontmatterSchema: SocialPostFrontmatterSchema =
       .string()
       .datetime()
       .optional()
-      .meta({ studioWidget: "provenance" }),
+      .meta({ studioWidget: "provenance", studioColumn: "date" }),
     platformPostId: z.string().optional().meta({
       description: "ID from platform after publishing",
       studioWidget: "provenance",

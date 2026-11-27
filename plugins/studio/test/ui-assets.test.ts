@@ -69,8 +69,15 @@ describe("Studio split UI assets", () => {
     expect(stylesheet).toContain(
       "grid-template-columns:36px minmax(0,1fr) auto",
     );
+    // A phone row gives the title the width; with a cover, a thumbnail too.
+    expect(stylesheet).toMatch(
+      /grid-template-columns:24px minmax\(0,1fr\)[;}]/,
+    );
     expect(stylesheet).toContain(
-      "grid-template-columns:24px minmax(0,1fr) auto",
+      "grid-template-columns:36px 64px minmax(0,1fr) auto",
+    );
+    expect(stylesheet).toContain(
+      "grid-template-columns:24px 48px minmax(0,1fr)",
     );
     expect(stylesheet).toMatch(/@media\s*\(max-width:\s*900px\)/);
     expect(stylesheet).toContain("grid-template-columns:minmax(0,1fr)");

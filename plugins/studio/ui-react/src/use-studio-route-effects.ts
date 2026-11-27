@@ -160,6 +160,13 @@ export function useStudioRouteEffects(input: StudioRouteEffectsInput): void {
       return;
     }
 
+    if (routeTarget.kind === "images") {
+      supersedeOpen();
+      setActiveWorkspaceId(null);
+      setEntityType(null);
+      return;
+    }
+
     if (routeTarget.kind === "grouping") {
       supersedeOpen();
       setActiveWorkspaceId(null);

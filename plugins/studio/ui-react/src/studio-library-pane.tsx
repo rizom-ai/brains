@@ -13,13 +13,19 @@ import {
   editorClassName as editorClass,
   editorStyles,
 } from "./studio-editor.styles";
-import { typeHasPublicationField } from "./entity-fields";
 import { StudioPageHead } from "./studio-page-head";
+import { StudioEntityImage } from "./studio-entity-image";
+import { useDensityPreference } from "./use-density-preference";
+import { STUDIO_THUMBNAIL_WIDTH } from "../../src/studio-thumbnail";
 import {
   entityGenerationState,
-  entityPublicationState,
+  entityRowCover,
+  entityRowDate,
+  entityRowExcerpt,
+  entityRowStatus,
   entityTitle,
-  formatUpdated,
+  optionLabel,
+  rowDateText,
   sentenceLabel,
 } from "./ui-utils";
 import type { EntitySummary } from "./api";
@@ -83,6 +89,18 @@ export function StudioLibraryPane(
     onConfirmed: props.onRefineConfirmed,
   });
   const picking = refine.picked.length > 0;
+  const [density, setDensity] = useDensityPreference();
+  // Only rows with an excerpt or a cover have anything to leave out.
+  const compactable = entitySchema.fields.some(
+    (field) => field.column === "excerpt" || field.column === "cover",
+  );
+  const compact = compactable && density === "compact";
+  // A thumbnail column only where an entry on this page has a cover.
+  const covers =
+    !compact &&
+    (entities ?? []).some((entity) =>
+      entityRowCover(entity, entitySchema.fields),
+    );
   const refineLabel = refineActionLabel(
     refine.picked.length,
     entryLabel,
@@ -185,6 +203,7 @@ export function StudioLibraryPane(
           fields={entitySchema.fields}
           total={entityTotal}
           onChange={props.onCollectionQueryChange}
+          {...(compactable && { density, onDensityChange: setDensity })}
         />
       )}
       {!entityListLoading && (
@@ -230,6 +249,8 @@ export function StudioLibraryPane(
             view={props}
             refine={refine}
             picking={picking}
+            compact={compact}
+            covers={covers}
           />
         ))}
       {!props.readError &&
@@ -324,12 +345,41 @@ function LibraryRow(props: {
   view: StudioAppViewProps & { model: StudioAppModel };
   refine: StudioRefine;
   picking: boolean;
+  /** One line per entry: no excerpt or cover. */
+  compact: boolean;
+  /** Whether rows on this page give a column to covers. */
+  covers: boolean;
 }): ReactElement {
   const { entity, view, refine } = props;
-  const { systemDesign, entitySchema, entryLabel } = view.model;
+  const { systemDesign, entitySchema } = view.model;
   const query = view.collectionQuery;
   const title = entityTitle(entity, entity.path?.at(-1));
   const generation = entityGenerationState(entity);
+  const status = entityRowStatus(entity, entitySchema.fields);
+  const rowDate = entityRowDate(entity, entitySchema.fields);
+  const excerpt = props.compact
+    ? null
+    : entityRowExcerpt(entity, entitySchema.fields);
+  const covered = props.covers;
+  const coverImage = entityRowCover(entity, entitySchema.fields);
+  // The title names the entry, so its thumbnail is decorative.
+  const coverCell = covered && (
+    <span
+      data-studio-row-cover=""
+      aria-hidden="true"
+      {...stylex.props(library.cover)}
+    >
+      {coverImage && (
+        <StudioEntityImage
+          imageId={coverImage}
+          thumbnailWidth={STUDIO_THUMBNAIL_WIDTH}
+          alt=""
+          placeholder={<span {...stylex.props(library.coverPending)} />}
+          {...stylex.props(library.coverImage)}
+        />
+      )}
+    </span>
+  );
   const open = (): void => view.openEntity(entity.id, entity.entityType);
   // A row is a link, so it opens in a new tab or copies like any other; a
   // plain click opens the entry in place.
@@ -344,14 +394,7 @@ function LibraryRow(props: {
     open();
   };
   const titleCell = (
-    <span
-      className={editorClass(
-        "",
-        library.title,
-        systemDesign && systemFieldStyles.collectionTitle,
-      )}
-      title={entity.id}
-    >
+    <span className={editorClass("", library.title)} title={entity.id}>
       {title}
       {(query.q || query.scope === "collection") &&
         entity.path &&
@@ -360,22 +403,20 @@ function LibraryRow(props: {
             {entity.path.slice(0, -1).map(folderLabel).join(" / ")}
           </span>
         )}
-      {systemDesign && (
-        <span {...stylex.props(systemFieldStyles.collectionMeta)}>
-          {entryLabel} ·{" "}
-          <time dateTime={entity.updated} title={entity.updated}>
-            {formatUpdated(entity.updated)}
-          </time>
+      {excerpt && (
+        <span data-studio-row-excerpt="" {...stylex.props(library.excerpt)}>
+          {excerpt}
         </span>
       )}
-      {typeHasPublicationField(entitySchema.fields) && (
+      {status && (
         <span
           className={editorClass(
             "studio-publication-state",
             editorStyles.publication,
+            props.compact && library.inlineStatus,
           )}
         >
-          {entityPublicationState(entity)}
+          {optionLabel(status)}
         </span>
       )}
       {generation && (
@@ -399,6 +440,8 @@ function LibraryRow(props: {
           library.row,
           editorStyles.listingRow,
           refineStyles.row,
+          covered && library.covered,
+          props.compact && library.compact,
           picked && refineStyles.rowPicked,
         )}
       >
@@ -414,13 +457,14 @@ function LibraryRow(props: {
           {...stylex.props(refineStyles.open)}
           onClick={follow}
         >
+          {coverCell}
           {titleCell}
           <time
             className={editorClass("", library.updated, refineStyles.updated)}
-            dateTime={entity.updated}
-            title={entity.updated}
+            dateTime={rowDate.iso}
+            title={rowDate.iso}
           >
-            {formatUpdated(entity.updated)}
+            {rowDateText(rowDate)}
           </time>
         </a>
       </div>
@@ -434,26 +478,22 @@ function LibraryRow(props: {
         library.row,
         library.recordLink,
         editorStyles.listingRow,
-        systemDesign && systemFieldStyles.collectionRow,
+        covered && library.covered,
+        props.compact && library.compact,
       )}
       data-studio-record=""
       onClick={follow}
     >
-      {!systemDesign && (
-        <span className={editorClass("", library.index)}>{props.index}</span>
-      )}
+      <span className={editorClass("", library.index)}>{props.index}</span>
+      {coverCell}
       {titleCell}
-      {systemDesign ? (
-        <span aria-hidden="true">→</span>
-      ) : (
-        <time
-          className={editorClass("", library.updated)}
-          dateTime={entity.updated}
-          title={entity.updated}
-        >
-          {formatUpdated(entity.updated)}
-        </time>
-      )}
+      <time
+        className={editorClass("", library.updated)}
+        dateTime={rowDate.iso}
+        title={rowDate.iso}
+      >
+        {rowDateText(rowDate)}
+      </time>
     </a>
   );
 }

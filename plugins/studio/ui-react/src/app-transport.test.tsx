@@ -652,6 +652,61 @@ describe("Studio App transport", () => {
     expect(history.location.search).toBe("?prefix=%5B%22book-1%22%5D");
   });
 
+  it("opens the brain's images at their own address", async () => {
+    const api = new StudioApi({
+      basePath: "/studio",
+      fetch: async (input): Promise<Response> => {
+        const url = new URL(String(input), "http://brain.test");
+        if (url.pathname.endsWith("/types"))
+          return Response.json({
+            types: [
+              {
+                entityType: "post",
+                label: "Posts",
+                isSingleton: false,
+                hasBody: true,
+                count: 0,
+                hierarchy: studioTypeHierarchy("post"),
+                capabilities: {
+                  canRead: true,
+                  canCreate: false,
+                  canUpdate: false,
+                  canDelete: false,
+                  canAssist: false,
+                  canPublish: false,
+                  canExtract: false,
+                },
+              },
+            ],
+            workspaces: [],
+          });
+        if (url.pathname.endsWith("/image-library"))
+          return Response.json({ total: 0, images: [] });
+        return Response.json({ directorySync: false, git: null });
+      },
+    });
+    const router = createStudioRouter(
+      "/studio",
+      App,
+      createMemoryHistory({ initialEntries: ["/studio/images"] }),
+    );
+    await act(async () =>
+      root.render(
+        <QueryClientProvider client={createStudioQueryClient()}>
+          <StudioApiProvider api={api}>
+            <RouterProvider router={router} />
+          </StudioApiProvider>
+        </QueryClientProvider>,
+      ),
+    );
+    await waitFor(
+      () => document.querySelector("[data-studio-images]") !== null,
+    );
+    expect(document.querySelector("[data-studio-images] h1")?.textContent).toBe(
+      "Images",
+    );
+  });
+
   it("opens an entry ready to write in, with Preview beside it", async () => {
     const entity = {
       id: "field-notes",

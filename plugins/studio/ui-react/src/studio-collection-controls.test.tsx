@@ -155,3 +155,38 @@ it("offers one way back out of a filtered collection", async () => {
   expect(clear).toBeDefined();
   expect(clear?.textContent).toBe("Clear");
 });
+
+it("offers compact rows where rows have more than a title to show", async () => {
+  const chosen: Array<"comfortable" | "compact"> = [];
+  const render = async (density?: "comfortable" | "compact"): Promise<void> =>
+    act(async () =>
+      root.render(
+        createElement(StudioCollectionControls, {
+          query: studioCollectionQuerySchema.parse({}),
+          fields: [],
+          total: 3,
+          onChange: () => {},
+          ...(density && {
+            density,
+            onDensityChange: (next: "comfortable" | "compact") =>
+              chosen.push(next),
+          }),
+        }),
+      ),
+    );
+  await render();
+  expect(document.querySelector('[aria-label="Compact rows"]')).toBeNull();
+  await render("comfortable");
+  const toggle = document.querySelector<HTMLButtonElement>(
+    '[aria-label="Compact rows"]',
+  );
+  expect(toggle?.getAttribute("aria-pressed")).toBe("false");
+  await act(async () => toggle?.click());
+  expect(chosen).toEqual(["compact"]);
+  await render("compact");
+  expect(
+    document
+      .querySelector('[aria-label="Compact rows"]')
+      ?.getAttribute("aria-pressed"),
+  ).toBe("true");
+});
