@@ -20,7 +20,7 @@ import {
 import { verifyCollectionFiltersFit } from "./studio-checks";
 
 /**
- * Desktop collapses the rail, then browses Work without leaving the
+ * Desktop collapses the sidebar, then browses Publish without leaving the
  * document; phone opens the context sheet. Collapsed surfaces capture the
  * folded state.
  */
@@ -37,17 +37,19 @@ export async function exerciseStudioNavigation({
       ),
     );
     const currentPath = await page.evaluate<string>("location.pathname");
-    await clickText(page, ".studio-area-link", "Work");
+    await clickText(page, ".studio-area-link", "Publish");
     if ((await page.evaluate<string>("location.pathname")) !== currentPath) {
-      throw new Error("Browsing Work navigated away from the current document");
+      throw new Error(
+        "Browsing Publish navigated away from the current document",
+      );
     }
     await waitForSelector(
       page,
-      '.studio-leaf-rail[aria-label="Work destinations"]',
+      '.studio-leaf-rail[aria-label="Publish destinations"]',
     );
     await waitForPage("area click expands shell", () =>
       page.evaluate<boolean>(
-        'Math.round(document.querySelector(".rail").getBoundingClientRect().width) === 344',
+        'Math.round(document.querySelector(".rail").getBoundingClientRect().width) === 232',
       ),
     );
     if (surface.endsWith("-collapsed"))

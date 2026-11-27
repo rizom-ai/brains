@@ -49,11 +49,7 @@ export function TypeSwitcher(props: {
     currentArea: model.currentArea,
     destination: model.destination,
     activeWorkspace: props.activeWorkspace,
-    areaWorkspaces: [
-      model.overviewWorkspace,
-      model.chatWorkspace,
-      model.administrationWorkspace,
-    ],
+    areaWorkspaces: [model.overviewWorkspace, model.chatWorkspace],
     onSelectWorkspace: props.onSelectWorkspace,
   });
   return (

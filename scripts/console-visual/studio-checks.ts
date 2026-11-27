@@ -164,9 +164,10 @@ export async function verifyStudioMobileSwitcher(
     return (
       Math.abs(bounds.top - header.getBoundingClientRect().bottom) <= 1 &&
       Math.abs(bounds.bottom - window.innerHeight) <= 1 &&
-      sheet.querySelectorAll("details").length === 3 &&
+      // Home, Library, Publish and Brain fold; Chat is one page.
+      sheet.querySelectorAll("details").length === 4 &&
       !sheet.querySelector(".studio-mobile-navigation-dock") &&
-      ["Overview", "Chat", "Administration"].every((label) =>
+      ["Chat"].every((label) =>
         Array.from(
           sheet.querySelectorAll("section .studio-mobile-navigation-link"),
         ).some((link) => link.getAttribute("aria-label") === label),
@@ -217,7 +218,7 @@ export async function verifyStudioMobileSwitcher(
       'Array.from(document.querySelectorAll("details")).some(group => group.open && group.querySelector("summary")?.textContent.includes("Library"))',
     ),
   );
-  await clickText(page, ".studio-mobile-navigation-group summary", "Work");
+  await clickText(page, ".studio-mobile-navigation-group summary", "Publish");
   await waitForPage("independent Browse groups", () =>
     page.evaluate<boolean>(
       'document.querySelectorAll("details[open]").length >= 2',
@@ -255,6 +256,13 @@ export async function verifyDirectStudioNavigation(
       : surface === "studio-administration"
         ? "Administration"
         : "Account";
+  // Chat is a section; Administration is a page in Brain; Account is in none.
+  const section =
+    surface === "studio-chat"
+      ? "Chat"
+      : surface === "studio-administration"
+        ? "Brain"
+        : null;
   const state = await evaluatePage(page, () => ({
     labels: Array.from(
       document.querySelectorAll(".studio-area-link [data-area-label]"),
@@ -280,11 +288,11 @@ export async function verifyDirectStudioNavigation(
     ),
   }));
   if (
-    state.labels.join("/") !== "Overview/Chat/Library/Work/Admin/System" ||
-    state.current !== (expected === "Account" ? null : expected) ||
+    state.labels.join("/") !== "Home/Library/Publish/Chat/Brain" ||
+    state.current !== section ||
     state.location !== expected ||
-    state.leaf ||
-    (width > 900 && state.width !== 124) ||
+    state.leaf !== (section === "Brain") ||
+    (width > 900 && state.width !== 232) ||
     (width <= 900 && Math.abs(state.mainWidth - state.viewportWidth) > 1)
   )
     throw new Error(`Direct destination layout: ${JSON.stringify(state)}`);
@@ -298,7 +306,7 @@ export async function verifyDirectStudioNavigation(
     await clickSelector(page, ".studio-navigation-collapse");
     await waitForPage("direct expanded width", () =>
       page.evaluate<boolean>(
-        'Math.round(document.querySelector(".rail").getBoundingClientRect().width) === 124',
+        'Math.round(document.querySelector(".rail").getBoundingClientRect().width) === 232',
       ),
     );
   }

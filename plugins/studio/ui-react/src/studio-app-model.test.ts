@@ -740,7 +740,7 @@ describe("deriveEditorHead", () => {
     expect(head).toMatchObject({
       heading: "Profile",
       collectionLabel: "Profile",
-      editorHead: { kicker: "system / singleton", title: "Profile" },
+      editorHead: { kicker: "brain / singleton", title: "Profile" },
     });
   });
 

@@ -147,10 +147,9 @@ describe("compiled editor surface contracts", () => {
     expect(compiledStyles).not.toContain("--studio-chat-columns");
     expect(compiledStyles).not.toContain(".studio-chat-mobile-destinations");
   });
-  it("retains Direction B chrome and all three rail widths", () => {
+  it("retains Direction B chrome and both sidebar widths", () => {
     for (const columns of [
-      "344px minmax(0,1fr)",
-      "124px minmax(0,1fr)",
+      "232px minmax(0,1fr)",
       "68px minmax(0,1fr)",
       "auto minmax(140px,1fr) auto",
     ])
@@ -454,8 +453,8 @@ describe("TypeSwitcher", () => {
     expect(html).toContain("Library");
     expect(html).toContain("Content");
     expect(html).toContain("Posts");
-    expect(html).toContain("System");
-    // The area and its active destination both carry location state.
+    expect(html).toContain("Brain");
+    // The section and its active destination both carry location state.
     expect(html.match(/class="[^"]*active/g)).toHaveLength(2);
   });
 
@@ -532,7 +531,7 @@ describe("TypeSwitcher", () => {
     expect(html).not.toContain("studio-leaf-rail");
   });
 
-  it("keeps Overview a direct destination without a duplicate leaf column", () => {
+  it("opens Home at its page, listing Home's other pages under it", () => {
     const overview: StudioWorkspaceInfo = {
       id: "studio:overview",
       section: "home",
@@ -564,15 +563,15 @@ describe("TypeSwitcher", () => {
       }),
     );
 
-    expect(html).toContain('aria-label="Overview"');
-    expect(html).toContain('data-leaf-open="false"');
-    expect(html).not.toContain('aria-label="Overview destinations"');
-    expect(html).not.toContain("studio-leaf-rail");
+    expect(html).toContain('aria-label="Home"');
+    // Home has no other page here, so nothing is listed under it.
+    expect(html).not.toContain(">Overview<");
     expect(html).not.toContain("00 / operator home");
-    expect(html).not.toContain("Attention, activity and operational health.");
-    expect(html.indexOf("Overview")).toBeLessThan(html.indexOf("Work"));
-    expect(html).toContain('aria-label="Administration"');
-    expect(html).not.toContain('aria-label="Administration destinations"');
+    expect(html.indexOf('aria-label="Home"')).toBeLessThan(
+      html.indexOf('aria-label="Brain"'),
+    );
+    // Administration is a page in Brain, not a section of its own.
+    expect(html).not.toContain('aria-label="Administration"');
   });
 
   it("shows registered workflow destinations and their attention badges", () => {
@@ -605,16 +604,16 @@ describe("TypeSwitcher", () => {
       }),
     );
 
-    expect(withWorkspace).toContain("Work");
-    expect(withWorkspace).toContain("Workspaces");
+    expect(withWorkspace).toContain('aria-label="Publish"');
+    expect(withWorkspace).toContain('aria-label="Publish destinations"');
     expect(withWorkspace).toContain("Publishing");
     expect(withWorkspace).toContain(">2<");
-    expect(withoutWorkspace).not.toContain("Workspaces");
+    expect(withoutWorkspace).not.toContain('aria-label="Publish"');
     expect(withoutWorkspace).not.toContain("Account");
     expect(withoutWorkspace).not.toContain("Publishing");
   });
 
-  it("groups brain machinery under System instead of flooding Content", () => {
+  it("groups brain machinery under Brain instead of flooding Content", () => {
     const machinery: EntityTypeInfo[] = [
       {
         entityType: "prompt",
@@ -669,12 +668,11 @@ describe("TypeSwitcher", () => {
       }),
     );
 
-    expect(html).toContain("System");
-    expect(html).toContain('aria-label="System destinations"');
+    expect(html).toContain('aria-label="Brain destinations"');
     expect(html).not.toContain("03 / machinery");
     for (const label of ["Site Info", "Prompts", "Agents", "Style Guide"]) {
       expect(html.lastIndexOf(label)).toBeGreaterThan(
-        html.indexOf('aria-label="System destinations"'),
+        html.indexOf('aria-label="Brain destinations"'),
       );
     }
   });

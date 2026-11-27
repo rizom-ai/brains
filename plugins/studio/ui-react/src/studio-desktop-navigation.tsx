@@ -31,14 +31,13 @@ import { typographyStyles } from "./studio-typography.styles";
 import type { NavigationTree } from "./use-navigation-tree";
 
 const areaMarks: Record<StudioArea, string> = {
-  overview: "M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z",
-  chat: "M5 4h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-5 3v-3a2 2 0 0 1-2-2V6a2 2 0 0 1 3-2z",
+  home: "M3 11l9-7 9 7 M5 10v10h14V10 M10 20v-6h4v6",
   library:
     "M12 5v16 M12 5C9 3 5 3 2 4v15c3-1 7-1 10 2 3-3 7-3 10-2V4c-3-1-7-1-10 1z",
-  work: "M8 7V4h8v3 M3 7h18v14H3z M3 12l9 3 9-3 M10 14v3h4v-3",
-  administration: "M12 2l9 4v6c0 5-4 8-9 10-5-2-9-5-9-10V6z M8 12l3 3 5-6",
-  system:
-    "M5 3v6m0 4v8 M12 3v11m0 4v3 M19 3v2m0 4v12 M2 9h6v4H2z M9 14h6v4H9z M16 5h6v4h-6z",
+  publish: "M12 3v12 M7 8l5-5 5 5 M4 15v5h16v-5",
+  chat: "M5 4h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-5 3v-3a2 2 0 0 1-2-2V6a2 2 0 0 1 3-2z",
+  brain:
+    "M9 4a3 3 0 0 0-3 3 3 3 0 0 0-2 5 3 3 0 0 0 2 5 3 3 0 0 0 6 1V5a3 3 0 0 0-3-1z M15 4a3 3 0 0 1 3 3 3 3 0 0 1 2 5 3 3 0 0 1-2 5 3 3 0 0 1-6 1",
 };
 
 /** An area's icon, which stands in for its index while the rail is collapsed. */
@@ -105,28 +104,31 @@ function LeafLink(props: {
 }
 
 function LeafGroup(props: {
-  label: string;
+  /** None where the section holds only this list. */
+  label?: string | undefined;
   children: ReactElement[];
 }): ReactElement {
   return (
     <section className={navClass("studio-leaf-group", nav.leafGroup)}>
-      <div
-        className={navClass(
-          "studio-leaf-label",
-          nav.leafLabel,
-          typographyStyles.eyebrow,
-        )}
-      >
-        {props.label}
-      </div>
+      {props.label ? (
+        <div
+          className={navClass(
+            "studio-leaf-label",
+            nav.leafLabel,
+            typographyStyles.eyebrow,
+          )}
+        >
+          {props.label}
+        </div>
+      ) : null}
       <ul className={navClass("", nav.list)}>{props.children}</ul>
     </section>
   );
 }
 
 /**
- * The desktop rail: Studio's areas, and beside them the leaf of whichever
- * area has destinations of its own. It shares its browsing state with the
+ * Studio's sidebar: its five sections, and under the one you are in (or
+ * browsing) the destinations it holds. It shares its browsing state with the
  * phone sheet through the navigation tree.
  */
 export function DesktopNavigation(props: {
@@ -139,15 +141,15 @@ export function DesktopNavigation(props: {
   activeWorkspace?: string | null | undefined;
   workspaceBadges?: Record<string, number> | undefined;
   onSelectWorkspace?: ((workspaceId: string) => void) | undefined;
-  /** An entry is open: fold to the rail unless an area is being browsed. */
+  /** An entry is open: fold to the icons unless a section is being browsed. */
   focus?: boolean | undefined;
 }): ReactElement {
   const preferred = useStudioNavigationCollapsed();
   // Focus is presentation only: the stored preference is left as it is.
   const focused = props.focus === true && !props.tree.browsing;
   const collapsed = preferred || focused;
-  const { areas, primaryTypeGroups, secondaryTypeGroups, operationWorkspaces } =
-    props.model;
+  const model = props.model;
+  const { sections } = model;
   const { activeArea, leafOpen, leafId, selectArea, endBrowsing } = props.tree;
   // With an entry open the fold control starts and ends a browse; elsewhere
   // it is the stored preference.
@@ -159,7 +161,6 @@ export function DesktopNavigation(props: {
     }
     setStudioNavigationCollapsed(!collapsed);
   };
-  const activeAreaLabel = areas.find((area) => area.id === activeArea)?.label;
   const basePath = getStudioRouterBasePath();
 
   const typeGroup = (group: NavigationTypeGroup): ReactElement => (
@@ -190,193 +191,194 @@ export function DesktopNavigation(props: {
       />
     );
   };
+  const workspaceGroup = (
+    label: string | undefined,
+    workspaces: StudioWorkspaceInfo[],
+  ): ReactElement | null =>
+    workspaces.length > 0 ? (
+      <LeafGroup key={label ?? "pages"} label={label}>
+        {workspaces.map(workspaceLink)}
+      </LeafGroup>
+    ) : null;
+
+  /** What a section holds, listed under its heading. */
+  const sectionList = (area: StudioArea): ReactElement | null => {
+    switch (area) {
+      case "home":
+        return workspaceGroup(undefined, model.homeWorkspaces);
+      case "library":
+        return (
+          <>
+            {model.libraryTypeGroups.map(typeGroup)}
+            {(props.groupings?.items.length ?? 0) > 0 ? (
+              <LeafGroup label="Groups">
+                {(props.groupings?.items ?? []).map((grouping) => (
+                  <LeafLink
+                    key={grouping.key}
+                    label={grouping.label}
+                    active={grouping.key === props.groupings?.active}
+                    href={studioGroupingPath(basePath, grouping.key)}
+                    onSelect={() => props.groupings?.onSelect(grouping.key)}
+                  />
+                ))}
+              </LeafGroup>
+            ) : null}
+            {props.images ? (
+              <LeafGroup label="Media">
+                {[
+                  <LeafLink
+                    key="images"
+                    label="Images"
+                    active={props.images.active}
+                    href={studioImagesPath(basePath)}
+                    onSelect={props.images.onSelect}
+                  />,
+                ]}
+              </LeafGroup>
+            ) : null}
+            {workspaceGroup("Pages", model.libraryWorkspaces)}
+          </>
+        );
+      case "publish":
+        return workspaceGroup(undefined, model.publishWorkspaces);
+      case "brain":
+        return (
+          <>
+            {model.brainTypeGroups.map(typeGroup)}
+            {workspaceGroup("Pages", model.brainWorkspaces)}
+          </>
+        );
+      case "chat":
+        return null;
+    }
+  };
 
   return (
     <nav
       className={navClass(
         "types studio-navigation",
         nav.navigation,
-        !leafOpen && nav.navigationDirect,
         collapsed && nav.navigationCollapsed,
       )}
       data-leaf-open={leafOpen}
       data-collapsed={collapsed}
       aria-label="Studio navigation"
     >
-      <section
-        className={navClass("studio-area-rail", nav.areaRail)}
-        aria-label="Studio areas"
+      <div
+        className={navClass(
+          "studio-area-title",
+          nav.areaTitle,
+          typographyStyles.eyebrow,
+          collapsed && nav.collapsedTitle,
+        )}
       >
-        <div
+        <span className={navClass("", collapsed && nav.collapsedLabel)}>
+          Studio
+        </span>
+        <button
+          type="button"
+          className={navClass("studio-navigation-collapse", nav.collapseButton)}
+          aria-label={collapsed ? "Expand navigation" : "Collapse navigation"}
+          title={collapsed ? "Expand navigation" : "Collapse navigation"}
+          aria-expanded={!collapsed}
+          aria-controls={leafOpen && !collapsed ? leafId : undefined}
+          onClick={toggleFold}
+        >
+          {collapsed ? "⇥" : "⇤"}
+        </button>
+      </div>
+      <div className={navClass("studio-leaf-scroll", nav.leafScroll)}>
+        {sections
+          .filter((section) => section.available)
+          .map((section) => {
+            const current = section.id === activeArea;
+            const listed =
+              current &&
+              leafOpen &&
+              !collapsed &&
+              LEAF_AREAS.includes(section.id);
+            return (
+              <section
+                key={section.id}
+                aria-label={section.label}
+                className={navClass("studio-area", nav.section)}
+              >
+                <button
+                  className={navClass(
+                    current ? "studio-area-link active" : "studio-area-link",
+                    nav.areaLink,
+                    current && nav.areaActive,
+                    collapsed && nav.collapsedLink,
+                  )}
+                  type="button"
+                  aria-label={section.label}
+                  title={collapsed ? section.label : undefined}
+                  aria-pressed={current}
+                  aria-description={
+                    (section.badge ?? 0) > 0
+                      ? `${section.badge} need attention`
+                      : undefined
+                  }
+                  aria-controls={listed ? leafId : undefined}
+                  aria-expanded={section.id === "chat" ? undefined : listed}
+                  onClick={() => selectArea(section.id)}
+                >
+                  <b
+                    className={navClass(
+                      "",
+                      nav.ordinal,
+                      current && nav.ordinalActive,
+                    )}
+                  >
+                    <StudioAreaMark area={section.id} />
+                  </b>
+                  <span
+                    data-area-label={section.label}
+                    className={navClass(
+                      "",
+                      nav.areaLabel,
+                      collapsed && nav.collapsedLabel,
+                    )}
+                  >
+                    {section.label}
+                    {(section.badge ?? 0) > 0 ? (
+                      <small className={navClass("", nav.count)}>
+                        {section.badge}
+                      </small>
+                    ) : null}
+                  </span>
+                </button>
+                {listed ? (
+                  <div
+                    id={leafId}
+                    className={navClass("studio-leaf-rail", nav.leaf)}
+                    aria-label={`${section.label} destinations`}
+                    role="group"
+                  >
+                    {sectionList(section.id)}
+                  </div>
+                ) : null}
+              </section>
+            );
+          })}
+      </div>
+      <div className={navClass("", nav.areaFoot)}>
+        <button
+          type="button"
           className={navClass(
-            "studio-area-title",
-            nav.areaTitle,
-            typographyStyles.eyebrow,
-            collapsed && nav.collapsedTitle,
+            "command-chip",
+            nav.areaLink,
+            collapsed && nav.collapsedLink,
           )}
+          aria-label="Commands"
+          title={collapsed ? "Commands" : undefined}
         >
+          <b className={navClass("", nav.ordinal)}>⌘</b>
           <span className={navClass("", collapsed && nav.collapsedLabel)}>
-            Studio
+            Commands
           </span>
-          <button
-            type="button"
-            className={navClass(
-              "studio-navigation-collapse",
-              nav.collapseButton,
-            )}
-            aria-label={collapsed ? "Expand navigation" : "Collapse navigation"}
-            title={collapsed ? "Expand navigation" : "Collapse navigation"}
-            aria-expanded={!collapsed}
-            aria-controls={leafOpen && !collapsed ? leafId : undefined}
-            onClick={toggleFold}
-          >
-            {collapsed ? "⇥" : "⇤"}
-          </button>
-        </div>
-        {areas
-          .filter(
-            (area) =>
-              area.available || !["chat", "administration"].includes(area.id),
-          )
-          .map((area) => (
-            <button
-              className={navClass(
-                area.id === activeArea
-                  ? "studio-area-link active"
-                  : "studio-area-link",
-                nav.areaLink,
-                area.id === activeArea && nav.areaActive,
-                collapsed && nav.collapsedLink,
-              )}
-              type="button"
-              disabled={!area.available}
-              aria-label={area.accessibleLabel ?? area.label}
-              title={
-                collapsed ? (area.accessibleLabel ?? area.label) : undefined
-              }
-              aria-pressed={area.id === activeArea}
-              aria-description={
-                (area.badge ?? 0) > 0
-                  ? `${area.badge} need attention`
-                  : undefined
-              }
-              aria-controls={
-                leafOpen && !collapsed && LEAF_AREAS.includes(area.id)
-                  ? leafId
-                  : undefined
-              }
-              aria-expanded={
-                LEAF_AREAS.includes(area.id)
-                  ? leafOpen && !collapsed && area.id === activeArea
-                  : undefined
-              }
-              key={area.id}
-              onClick={() => selectArea(area.id)}
-            >
-              <b
-                className={navClass(
-                  "",
-                  nav.ordinal,
-                  area.id === activeArea && nav.ordinalActive,
-                )}
-              >
-                {collapsed ? <StudioAreaMark area={area.id} /> : area.index}
-              </b>
-              <span
-                data-area-label={area.label}
-                className={navClass(
-                  "",
-                  nav.areaLabel,
-                  collapsed && nav.collapsedLabel,
-                )}
-              >
-                {area.label}
-                {(area.badge ?? 0) > 0 ? (
-                  <small className={navClass("", nav.count)}>
-                    {area.badge}
-                  </small>
-                ) : null}
-              </span>
-            </button>
-          ))}
-        <div className={navClass("", nav.areaFoot)}>
-          <button
-            type="button"
-            className={navClass(
-              "command-chip",
-              nav.areaLink,
-              collapsed && nav.collapsedLink,
-            )}
-            aria-label="Commands"
-            title={collapsed ? "Commands" : undefined}
-          >
-            <b className={navClass("", nav.ordinal)}>⌘</b>
-            <span className={navClass("", collapsed && nav.collapsedLabel)}>
-              Commands
-            </span>
-          </button>
-        </div>
-      </section>
-      {leafOpen && !collapsed ? (
-        <section
-          id={leafId}
-          className={navClass("studio-leaf-rail", nav.leaf)}
-          aria-label={`${activeAreaLabel ?? "Studio"} destinations`}
-        >
-          <header className={navClass("studio-leaf-head", nav.leafHead)}>
-            <h2
-              className={navClass(
-                "",
-                nav.leafTitle,
-                typographyStyles.secondaryDisplay,
-              )}
-            >
-              {activeAreaLabel}
-            </h2>
-          </header>
-          <div className={navClass("studio-leaf-scroll", nav.leafScroll)}>
-            {activeArea === "library" ? (
-              <>
-                {primaryTypeGroups.map(typeGroup)}
-                {(props.groupings?.items.length ?? 0) > 0 ? (
-                  <LeafGroup label="Groups">
-                    {(props.groupings?.items ?? []).map((grouping) => (
-                      <LeafLink
-                        key={grouping.key}
-                        label={grouping.label}
-                        active={grouping.key === props.groupings?.active}
-                        href={studioGroupingPath(basePath, grouping.key)}
-                        onSelect={() => props.groupings?.onSelect(grouping.key)}
-                      />
-                    ))}
-                  </LeafGroup>
-                ) : null}
-                {props.images ? (
-                  <LeafGroup label="Media">
-                    {[
-                      <LeafLink
-                        key="images"
-                        label="Images"
-                        active={props.images.active}
-                        href={studioImagesPath(basePath)}
-                        onSelect={props.images.onSelect}
-                      />,
-                    ]}
-                  </LeafGroup>
-                ) : null}
-              </>
-            ) : null}
-            {activeArea === "work" && operationWorkspaces.length > 0 ? (
-              <LeafGroup label="Workspaces">
-                {operationWorkspaces.map(workspaceLink)}
-              </LeafGroup>
-            ) : null}
-            {activeArea === "system"
-              ? secondaryTypeGroups.map(typeGroup)
-              : null}
-          </div>
-        </section>
-      ) : null}
+        </button>
+      </div>
     </nav>
   );
 }

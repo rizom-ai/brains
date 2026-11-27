@@ -29,7 +29,10 @@ function type(
   };
 }
 
-function workspace(id: string): StudioWorkspaceInfo {
+function workspace(
+  id: string,
+  section: StudioWorkspaceInfo["section"],
+): StudioWorkspaceInfo {
   return {
     id,
     pluginId: id.split(":")[0] ?? id,
@@ -37,11 +40,7 @@ function workspace(id: string): StudioWorkspaceInfo {
     rendererName: "DeclarativeOperatorWorkspace",
     priority: 1,
     permission: "trusted",
-    section: id.includes("overview")
-      ? "home"
-      : id.includes("chat")
-        ? "chat"
-        : "brain",
+    section,
     entityTypes: [],
   };
 }
@@ -49,7 +48,7 @@ function workspace(id: string): StudioWorkspaceInfo {
 const systemType = SYSTEM_TYPE_GROUPS[0].types[0];
 
 describe("deriveNavigationModel", () => {
-  it("files content types under Library and system types under System", () => {
+  it("files content types under Library and system types under Brain", () => {
     const model = deriveNavigationModel({
       types: [type("post"), type(systemType, "system")],
       active: null,
@@ -57,12 +56,12 @@ describe("deriveNavigationModel", () => {
 
     expect(studioTypeGroup(type("post"))).toBe("Content");
     expect(
-      model.primaryTypeGroups.flatMap((group) =>
+      model.libraryTypeGroups.flatMap((group) =>
         group.types.map((info) => info.entityType),
       ),
     ).toEqual(["post"]);
     expect(
-      model.secondaryTypeGroups.flatMap((group) =>
+      model.brainTypeGroups.flatMap((group) =>
         group.types.map((info) => info.entityType),
       ),
     ).toEqual([systemType]);
@@ -74,7 +73,7 @@ describe("deriveNavigationModel", () => {
       active: "book-section",
     });
     expect(
-      model.primaryTypeGroups.flatMap((group) =>
+      model.libraryTypeGroups.flatMap((group) =>
         group.types.map((info) => info.entityType),
       ),
     ).toEqual(["book"]);
@@ -89,48 +88,107 @@ describe("deriveNavigationModel", () => {
       types: [type("prompt"), type("custom-machine", "system"), type("topic")],
       active: "custom-machine",
     });
-    expect(model.currentArea).toBe("system");
+    expect(model.currentArea).toBe("brain");
     expect(
-      model.primaryTypeGroups.flatMap((group) =>
+      model.libraryTypeGroups.flatMap((group) =>
         group.types.map((info) => info.entityType),
       ),
     ).toEqual(["prompt", "topic"]);
-    expect(model.secondaryTypeGroups).toEqual([
+    expect(model.brainTypeGroups).toEqual([
       { label: "Other", types: [type("custom-machine", "system")] },
     ]);
     expect(studioTypeGroup(type("site-info"))).toBe("Content");
     expect(studioTypeGroup(type("site-info", "system"))).toBe("Site");
   });
 
-  it("makes an area available only when it has somewhere to go", () => {
+  it("places each workspace in the section it names", () => {
     const model = deriveNavigationModel({
       types: [type("post")],
-      workspaces: [workspace("studio:overview")],
+      workspaces: [
+        workspace("studio:overview", "home"),
+        workspace("unified-inbox:inbox", "home"),
+        workspace("content-pipeline:publishing", "publish"),
+        workspace("site-builder:site", "publish"),
+        workspace("linkedin-import:linkedin", "library"),
+        workspace("directory-sync:sync", "brain"),
+        workspace("admin:administration", "brain"),
+        workspace("studio:account", "brain"),
+      ],
       active: "post",
     });
-    const available = Object.fromEntries(
-      model.areas.map((area) => [area.id, area.available]),
-    );
+    const ids = (list: StudioWorkspaceInfo[]): string[] =>
+      list.map((entry) => entry.id);
 
-    expect(available).toEqual({
-      overview: true,
-      chat: false,
+    expect(model.overviewWorkspace?.id).toBe("studio:overview");
+    expect(ids(model.homeWorkspaces)).toEqual(["unified-inbox:inbox"]);
+    expect(ids(model.publishWorkspaces)).toEqual([
+      "content-pipeline:publishing",
+      "site-builder:site",
+    ]);
+    expect(ids(model.libraryWorkspaces)).toEqual(["linkedin-import:linkedin"]);
+    // Account is reached from the account menu, not a section.
+    expect(ids(model.brainWorkspaces)).toEqual([
+      "directory-sync:sync",
+      "admin:administration",
+    ]);
+  });
+
+  it("has five sections, each available only when it has somewhere to go", () => {
+    const model = deriveNavigationModel({
+      types: [type("post")],
+      workspaces: [workspace("studio:overview", "home")],
+      active: "post",
+    });
+    expect(model.sections.map((section) => section.label)).toEqual([
+      "Home",
+      "Library",
+      "Publish",
+      "Chat",
+      "Brain",
+    ]);
+    expect(
+      Object.fromEntries(
+        model.sections.map((section) => [section.id, section.available]),
+      ),
+    ).toEqual({
+      home: true,
       library: true,
-      work: false,
-      administration: false,
-      system: false,
+      publish: false,
+      chat: false,
+      brain: false,
     });
   });
 
-  it("carries a workspace's badge onto its area", () => {
+  it("gives a section the attention its pages ask for", () => {
     const model = deriveNavigationModel({
       types: [],
-      workspaces: [workspace("studio:overview")],
-      workspaceBadges: { "studio:overview": 3 },
+      workspaces: [
+        workspace("studio:overview", "home"),
+        workspace("unified-inbox:inbox", "home"),
+        workspace("content-pipeline:publishing", "publish"),
+      ],
+      workspaceBadges: {
+        "studio:overview": 1,
+        "unified-inbox:inbox": 2,
+        "content-pipeline:publishing": 0,
+      },
       active: null,
     });
+    const badge = (id: string): number | undefined =>
+      model.sections.find((section) => section.id === id)?.badge;
 
-    expect(model.areas.find((area) => area.id === "overview")?.badge).toBe(3);
+    expect(badge("home")).toBe(3);
+    expect(badge("publish")).toBeUndefined();
+  });
+
+  it("is in the section of the open workspace", () => {
+    const model = deriveNavigationModel({
+      types: [type("post")],
+      workspaces: [workspace("content-pipeline:publishing", "publish")],
+      active: "post",
+      activeWorkspace: "content-pipeline:publishing",
+    });
+    expect(model.currentArea).toBe("publish");
   });
 
   it("points at the open grouping before any type or workspace", () => {
