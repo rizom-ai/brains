@@ -31,6 +31,7 @@ describe("Studio Account workspace declaration", () => {
         priority: 0,
         permission: "public",
         entityTypes: [],
+        section: "brain",
       },
     ]);
   });

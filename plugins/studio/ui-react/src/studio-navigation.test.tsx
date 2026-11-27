@@ -73,6 +73,7 @@ const types: EntityTypeInfo[] = [
 const workspaces: StudioWorkspaceInfo[] = [
   {
     id: "studio:overview",
+    section: "home",
     pluginId: "studio",
     label: "Overview",
     rendererName: "DeclarativeOperatorWorkspace",
@@ -82,6 +83,7 @@ const workspaces: StudioWorkspaceInfo[] = [
   },
   {
     id: "web-chat:chat",
+    section: "chat",
     pluginId: "web-chat",
     label: "Chat",
     rendererName: "StudioChatWorkspace",
@@ -91,6 +93,7 @@ const workspaces: StudioWorkspaceInfo[] = [
   },
   {
     id: "admin:administration",
+    section: "brain",
     pluginId: "admin",
     label: "Administration",
     rendererName: "DeclarativeOperatorWorkspace",
@@ -100,6 +103,7 @@ const workspaces: StudioWorkspaceInfo[] = [
   },
   {
     id: "studio:account",
+    section: "brain",
     pluginId: "studio",
     label: "Account",
     rendererName: "StudioAccountWorkspace",
@@ -108,7 +112,18 @@ const workspaces: StudioWorkspaceInfo[] = [
     entityTypes: [],
   },
   {
+    id: "content-pipeline:publishing",
+    section: "publish",
+    pluginId: "content-pipeline",
+    label: "Publishing",
+    rendererName: "DeclarativeOperatorWorkspace",
+    priority: 40,
+    permission: "trusted",
+    entityTypes: [],
+  },
+  {
     id: "inbox:inbox",
+    section: "home",
     pluginId: "inbox",
     label: "Inbox",
     rendererName: "DeclarativeOperatorWorkspace",
@@ -576,40 +591,42 @@ describe("area and leaf navigation", () => {
         ?.getAttribute("aria-expanded"),
     ).toBe("true");
   });
-  it("gives collapsed areas distinct decorative marks without losing names or routing", async () => {
+  it("gives each section a distinct decorative mark without losing names or routing", async () => {
     await render("style-guide");
     await click(".studio-navigation-collapse", "⇤");
-    const areas = [...document.querySelectorAll(".studio-area-link")];
-    expect(areas).toHaveLength(6);
+    const sections = [...document.querySelectorAll(".studio-area-link")];
+    expect(sections).toHaveLength(5);
     const paths = new Set<string>();
-    for (const area of areas) {
-      const mark = area.querySelector("svg");
+    for (const section of sections) {
+      const mark = section.querySelector("svg");
       expect(mark).not.toBeNull();
       expect(mark?.getAttribute("aria-hidden")).toBe("true");
       expect(mark?.getAttribute("viewBox")).toBe("0 0 24 24");
-      expect(area.getAttribute("title")).toBe(area.getAttribute("aria-label"));
+      expect(section.getAttribute("title")).toBe(
+        section.getAttribute("aria-label"),
+      );
       paths.add(mark?.querySelector("path")?.getAttribute("d") ?? "");
     }
-    expect(paths.size).toBe(6);
+    expect(paths.size).toBe(5);
     await click('.studio-area-link[aria-label="Library"]', "");
     expect(leafText()).toContain("Content");
   });
 
-  it("keeps B's numbered area items, singular singleton labels and Commands footer", async () => {
+  it("names five sections, without ordinals, over singular singleton labels and a Commands footer", async () => {
     await render("style-guide");
-    expect(
-      [...document.querySelectorAll(".studio-area-link b")].map(
-        (node) => node.textContent,
-      ),
-    ).toEqual(["00", "01", "02", "03", "04", "05"]);
     expect(
       [...document.querySelectorAll(".studio-area-link span")].map(
         (node) => node.textContent,
       ),
-    ).toEqual(["Overview", "Chat", "Library", "Work", "Admin", "System"]);
-    expect(document.querySelector(".studio-area-rail em")).toBeNull();
+    ).toEqual(["Home", "Library", "Publish", "Chat", "Brain"]);
     expect(
-      document.querySelector(".studio-area-rail .command-chip")?.textContent,
+      [...document.querySelectorAll(".studio-area-link b")].map(
+        (node) => node.textContent,
+      ),
+    ).toEqual(["", "", "", "", ""]);
+    expect(document.querySelector(".studio-navigation em")).toBeNull();
+    expect(
+      document.querySelector(".studio-navigation .command-chip")?.textContent,
     ).toContain("Commands");
     expect(
       document.querySelector('.studio-leaf-link[aria-current="page"]')
@@ -622,18 +639,19 @@ describe("area and leaf navigation", () => {
       leafText()?.indexOf("Network") ?? 0,
     );
   });
-  it("makes every leaf destination a link the browser can open elsewhere", async () => {
+
+  it("makes every listed destination a link the browser can open elsewhere", async () => {
     await render();
-    await click(".studio-area-link", "Work");
-    const inbox = [
+    await click(".studio-area-link", "Publish");
+    const publishing = [
       ...document.querySelectorAll<HTMLAnchorElement>("a.studio-leaf-link"),
-    ].find((link) => link.textContent.includes("Inbox"));
-    expect(inbox?.getAttribute("href")).toBe(
-      "/studio/workspaces/inbox%3Ainbox",
+    ].find((link) => link.textContent.includes("Publishing"));
+    expect(publishing?.getAttribute("href")).toBe(
+      "/studio/workspaces/content-pipeline%3Apublishing",
     );
     // A modified click opens a tab; Studio does not navigate in place.
     await act(async () =>
-      inbox?.dispatchEvent(
+      publishing?.dispatchEvent(
         new MouseEvent("click", { bubbles: true, ctrlKey: true }),
       ),
     );
@@ -646,85 +664,91 @@ describe("area and leaf navigation", () => {
     ).toBe("/studio/entities/note");
   });
 
-  it("browses Work without opening Chat, fetching a destination or replacing the current document", async () => {
+  it("browses Publish without opening Chat, fetching a destination or replacing the current document", async () => {
     await render();
-    await click(".studio-area-link", "Work");
+    await click(".studio-area-link", "Publish");
     expect(selected).toEqual([]);
-    expect(currentArea()).toContain("Work");
+    expect(currentArea()).toContain("Publish");
     expect(leafText()).not.toContain("Chat");
-    expect(leafText()).not.toContain("Administration");
     expect(leafText()).not.toContain("Account");
-    expect(leafText()).toContain("Inbox");
+    expect(leafText()).toContain("Publishing");
     await render(); // A badge/data refresh must not undo intentional browsing.
-    expect(currentArea()).toContain("Work");
-    await click(".studio-leaf-link", "Inbox");
-    expect(selected).toEqual(["inbox:inbox"]);
+    expect(currentArea()).toContain("Publish");
+    await click(".studio-leaf-link", "Publishing");
+    expect(selected).toEqual(["content-pipeline:publishing"]);
   });
 
-  it.each([
-    ["web-chat:chat", "Chat"],
-    ["admin:administration", "Admin"],
-  ])(
-    "opens %s directly without a redundant leaf or losing collapse",
-    async (id, label) => {
-      await render();
-      await click(".studio-navigation-collapse", "⇤");
-      await click(".studio-area-link", label);
-      expect(selected).toEqual([id]);
-      await render(null, id);
-      expect(currentArea()).toContain(label);
-      expect(document.querySelector(".studio-leaf-rail")).toBeNull();
-      expect(
-        document
-          .querySelector(".studio-navigation")
-          ?.getAttribute("data-leaf-open"),
-      ).toBe("false");
-      expect(window.localStorage.getItem("studio.navigation.collapsed")).toBe(
-        "true",
-      );
-      await click(".studio-area-link", "Work");
-      expect(leafText()).toContain("Inbox");
-      expect(window.localStorage.getItem("studio.navigation.collapsed")).toBe(
-        "false",
-      );
-      await click(".studio-area-link", label);
-      expect(document.querySelector(".studio-leaf-rail")).toBeNull();
-      expect(selected).toEqual([id]); // Same-page clicks do not reset session/tab queries.
-    },
-  );
+  it("opens Chat directly, without a list under it or losing collapse", async () => {
+    await render();
+    await click(".studio-navigation-collapse", "⇤");
+    await click(".studio-area-link", "Chat");
+    expect(selected).toEqual(["web-chat:chat"]);
+    await render(null, "web-chat:chat");
+    expect(currentArea()).toContain("Chat");
+    expect(document.querySelector(".studio-leaf-rail")).toBeNull();
+    expect(
+      document
+        .querySelector(".studio-navigation")
+        ?.getAttribute("data-leaf-open"),
+    ).toBe("false");
+    expect(window.localStorage.getItem("studio.navigation.collapsed")).toBe(
+      "true",
+    );
+    await click(".studio-area-link", "Publish");
+    expect(leafText()).toContain("Publishing");
+    expect(window.localStorage.getItem("studio.navigation.collapsed")).toBe(
+      "false",
+    );
+    await click(".studio-area-link", "Chat");
+    expect(document.querySelector(".studio-leaf-rail")).toBeNull();
+    expect(selected).toEqual(["web-chat:chat"]); // Same-page clicks do not reset session/tab queries.
+  });
 
-  it("leaves Account outside all rail areas, but still lets it browse destinations", async () => {
+  it("opens Home at its page and lists Home's pages under it there", async () => {
+    await render();
+    await click(".studio-area-link", "Home");
+    expect(selected).toEqual(["studio:overview"]);
+    await render(null, "studio:overview");
+    expect(currentArea()).toContain("Home");
+    expect(leafText()).toContain("Inbox");
+    expect(leafText()).not.toContain("Overview");
+  });
+
+  it("leaves Account outside every section, but still lets it browse destinations", async () => {
     await render(null, "studio:account");
-    expect(studioArea(null, "studio:account")).toBeNull();
+    expect(
+      studioArea(null, { id: "studio:account", section: "brain" }),
+    ).toBeNull();
     expect(currentArea()).toBeUndefined();
     expect(document.querySelector(".studio-leaf-rail")).toBeNull();
     expect(
       document.querySelector(".studio-navigation")?.textContent,
     ).not.toContain("Account");
-    await click(".studio-area-link", "System");
+    await click(".studio-area-link", "Brain");
     expect(leafText()).toContain("Identity");
+    expect(leafText()).toContain("Administration");
     expect(leafText()).not.toContain("Account");
-    expect(leafText()).not.toContain("Administration");
   });
 
-  it("does not expose Chat or Admin unless the admitted workspace list contains them", async () => {
+  it("does not show Chat or Publish unless the admitted workspace list has them", async () => {
     await render(
       "note",
       null,
       workspaces.filter(
         (workspace) =>
-          !["web-chat:chat", "admin:administration"].includes(workspace.id),
+          !["web-chat:chat", "content-pipeline:publishing"].includes(
+            workspace.id,
+          ),
       ),
     );
-    expect(
-      document.querySelector(".studio-area-rail")?.textContent,
-    ).not.toContain("Chat");
-    expect(
-      document.querySelector(".studio-area-rail")?.textContent,
-    ).not.toContain("Admin");
+    const labels = [...document.querySelectorAll(".studio-area-link")].map(
+      (node) => node.getAttribute("aria-label"),
+    );
+    expect(labels).not.toContain("Chat");
+    expect(labels).not.toContain("Publish");
   });
 
-  it("preserves admitted attention counts on primary destinations, including the collapsed rail", async () => {
+  it("carries admitted attention onto the section, including when folded", async () => {
     await render(
       "note",
       null,
@@ -734,30 +758,30 @@ describe("area and leaf navigation", () => {
           : workspace,
       ),
     );
-    const admin = document.querySelector(
-      '.studio-area-link[aria-label="Administration"]',
+    const brain = document.querySelector(
+      '.studio-area-link[aria-label="Brain"]',
     );
-    expect(admin?.querySelector("small")?.textContent).toBe("2");
-    expect(admin?.getAttribute("aria-description")).toBe("2 need attention");
+    expect(brain?.querySelector("small")?.textContent).toBe("2");
+    expect(brain?.getAttribute("aria-description")).toBe("2 need attention");
     await click(".studio-navigation-collapse", "⇤");
-    expect(admin?.getAttribute("aria-description")).toBe("2 need attention");
+    expect(brain?.getAttribute("aria-description")).toBe("2 need attention");
   });
 
   it("does not change browsing when a guarded direct destination is rejected", async () => {
     await render();
-    await click(".studio-area-link", "System");
-    await click(".studio-area-link", "Admin");
+    await click(".studio-area-link", "Brain");
+    await click(".studio-area-link", "Chat");
     await render();
-    expect(selected).toEqual(["admin:administration"]);
-    expect(currentArea()).toContain("System");
+    expect(selected).toEqual(["web-chat:chat"]);
+    expect(currentArea()).toContain("Brain");
     expect(leafText()).toContain("Identity");
   });
 
-  it("restores the owning area when the route changes, including a return to a previous route", async () => {
+  it("restores the owning section when the route changes, including a return to a previous route", async () => {
     await render();
-    await click(".studio-area-link", "Work");
+    await click(".studio-area-link", "Publish");
     await render("style-guide");
-    expect(currentArea()).toContain("System");
+    expect(currentArea()).toContain("Brain");
     expect(leafText()).toContain("Identity");
     expect(leafText()).toContain("Intelligence");
     expect(leafText()).toContain("Network");
@@ -767,22 +791,16 @@ describe("area and leaf navigation", () => {
 
   it("keeps browsing intact when a destination change is blocked by an unsaved draft", async () => {
     await render();
-    await click(".studio-area-link", "System");
+    await click(".studio-area-link", "Brain");
     await click(".studio-leaf-link", "Style Guide");
     await render(); // The guarded router has not accepted the request.
-    expect(currentArea()).toContain("System");
+    expect(currentArea()).toContain("Brain");
     expect(selected).toEqual(["style-guide"]);
     await click(".studio-area-link", "Library");
     expect(
       document.querySelector('.studio-leaf-link[aria-current="page"]')
         ?.textContent,
     ).toContain("Notes");
-  });
-
-  it("treats Overview as the explicit home destination, not an arbitrary first leaf", async () => {
-    await render();
-    await click(".studio-area-link", "Overview");
-    expect(selected).toEqual(["studio:overview"]);
   });
 });
 
@@ -817,4 +835,69 @@ it("lists the brain's images with the Library", async () => {
     document.querySelector('.studio-leaf-rail a[aria-current="page"]')
       ?.textContent,
   ).toBe("Images");
+});
+
+it("keeps Library's empty types under All types, and remembers the types opened", async () => {
+  const withEmpty: EntityTypeInfo[] = [
+    ...types,
+    {
+      entityType: "newsletter",
+      classification: "content",
+      label: "Newsletters",
+      singularLabel: "Newsletter",
+      isSingleton: false,
+      hasBody: true,
+      count: 0,
+      hierarchy: studioTypeHierarchy("newsletter"),
+      capabilities,
+    },
+  ];
+  await act(async () =>
+    root.render(
+      <TypeSwitcher
+        renderMode="desktop"
+        types={withEmpty}
+        active="note"
+        workspaces={workspaces}
+        workspaceBadges={{}}
+        activeWorkspace={null}
+        onSelect={(id) => selected.push(id)}
+        onSelectWorkspace={(id) => selected.push(id)}
+      />,
+    ),
+  );
+  const allTypes = document.querySelector<HTMLDetailsElement>(
+    ".studio-leaf-rail details",
+  );
+  expect(allTypes?.querySelector("summary")?.textContent).toBe("All types");
+  expect(allTypes?.open).toBe(false);
+  expect(allTypes?.textContent).toContain("Newsletters");
+  expect(
+    [...document.querySelectorAll(".studio-leaf-rail a")]
+      .filter((link) => !allTypes?.contains(link))
+      .map((link) => link.textContent),
+  ).not.toContain("Newsletters");
+  expect(
+    JSON.parse(window.localStorage.getItem("studio.recent-types") ?? "[]"),
+  ).toEqual(["note"]);
+});
+
+it("lists Chat's other pages under Chat while you are in it", async () => {
+  await render(null, "web-chat:chat", [
+    ...workspaces,
+    {
+      id: "web-chat:guest-chat",
+      section: "chat",
+      pluginId: "web-chat",
+      label: "Guest chat",
+      rendererName: "DeclarativeOperatorWorkspace",
+      priority: 80,
+      permission: "admin",
+      entityTypes: [],
+    },
+  ]);
+  expect(
+    document.querySelector('.studio-leaf-rail[aria-label="Chat destinations"]')
+      ?.textContent,
+  ).toContain("Guest chat");
 });

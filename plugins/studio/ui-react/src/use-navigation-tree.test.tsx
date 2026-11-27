@@ -41,6 +41,11 @@ function workspace(id: string): StudioWorkspaceInfo {
     rendererName: "StudioChatWorkspace",
     priority: 1,
     permission: "trusted",
+    section: id.includes("overview")
+      ? "home"
+      : id.includes("chat")
+        ? "chat"
+        : "brain",
     entityTypes: [],
   };
 }
@@ -65,6 +70,7 @@ async function renderTree(
       destination: "note",
       activeWorkspace: null,
       areaWorkspaces: [chat],
+      hasList: (area): boolean => area !== "chat",
       onSelectWorkspace: (id): void => {
         selected.push(id);
       },
@@ -91,17 +97,17 @@ async function renderTree(
 
 describe("useNavigationTree", () => {
   it("shows the area the current destination belongs to", async () => {
-    const harness = await renderTree({ currentArea: "work" });
+    const harness = await renderTree({ currentArea: "publish" });
 
-    expect(harness.tree().activeArea).toBe("work");
+    expect(harness.tree().activeArea).toBe("publish");
   });
 
   it("browses an area without navigating", async () => {
     const harness = await renderTree({ currentArea: "library" });
 
-    await act(async () => harness.tree().selectArea("system"));
+    await act(async () => harness.tree().selectArea("brain"));
 
-    expect(harness.tree().activeArea).toBe("system");
+    expect(harness.tree().activeArea).toBe("brain");
     // Browsing must not navigate: an unsaved draft elsewhere survives it.
     expect(harness.selected).toEqual([]);
   });
@@ -119,8 +125,8 @@ describe("useNavigationTree", () => {
       currentArea: "chat",
       activeWorkspace: "web-chat:chat",
     });
-    await act(async () => harness.tree().selectArea("system"));
-    expect(harness.tree().activeArea).toBe("system");
+    await act(async () => harness.tree().selectArea("brain"));
+    expect(harness.tree().activeArea).toBe("brain");
 
     await act(async () => harness.tree().selectArea("chat"));
 
@@ -132,20 +138,20 @@ describe("useNavigationTree", () => {
     // Including Back and Forward, which change the destination without any
     // click on the navigation.
     const harness = await renderTree({ currentArea: "library" });
-    await act(async () => harness.tree().selectArea("system"));
-    expect(harness.tree().activeArea).toBe("system");
+    await act(async () => harness.tree().selectArea("brain"));
+    expect(harness.tree().activeArea).toBe("brain");
 
-    await harness.render({ currentArea: "work", destination: "task" });
+    await harness.render({ currentArea: "publish", destination: "task" });
 
-    expect(harness.tree().activeArea).toBe("work");
+    expect(harness.tree().activeArea).toBe("publish");
   });
 
-  it("opens a leaf list only for the areas that have one", async () => {
-    for (const area of ["library", "work", "system"] as const) {
+  it("lists destinations only under the sections that hold some", async () => {
+    for (const area of ["home", "library", "publish", "brain"] as const) {
       const harness = await renderTree({ currentArea: area });
       expect(harness.tree().leafOpen).toBe(true);
     }
-    for (const area of ["overview", "chat", "administration"] as const) {
+    for (const area of ["chat"] as const) {
       const harness = await renderTree({ currentArea: area });
       expect(harness.tree().leafOpen).toBe(false);
     }

@@ -68,10 +68,14 @@ export function MobileNavigation(props: MobileNavigationProps): ReactElement {
   const {
     overviewWorkspace,
     chatWorkspace,
-    administrationWorkspace,
-    operationWorkspaces,
-    primaryTypeGroups,
-    secondaryTypeGroups,
+    homeWorkspaces,
+    chatWorkspaces,
+    libraryTypeGroups,
+    emptyLibraryTypes,
+    libraryWorkspaces,
+    publishWorkspaces,
+    brainTypeGroups,
+    brainWorkspaces,
   } = props.model;
   const { leafId, openGroups, toggleGroup } = props.tree;
   const basePath = getStudioRouterBasePath();
@@ -93,30 +97,23 @@ export function MobileNavigation(props: MobileNavigationProps): ReactElement {
       ...(attention > 0 ? { attention } : {}),
     };
   };
+  // The five sections, each with what it holds; an empty one is left out.
   const mobileGroups = [
-    ...(overviewWorkspace
-      ? [
-          {
-            area: "overview",
-            label: "Home",
-            options: [mobileWorkspaceOption(overviewWorkspace)],
-          },
-        ]
-      : []),
-    ...(chatWorkspace
-      ? [
-          {
-            area: "chat",
-            label: "Chat",
-            options: [mobileWorkspaceOption(chatWorkspace)],
-          },
-        ]
-      : []),
+    {
+      area: "home",
+      label: "Home",
+      options: [
+        ...(overviewWorkspace
+          ? [mobileWorkspaceOption(overviewWorkspace)]
+          : []),
+        ...homeWorkspaces.map(mobileWorkspaceOption),
+      ],
+    },
     {
       area: "library",
       label: "Library",
       options: [
-        ...primaryTypeGroups.flatMap((group) =>
+        ...libraryTypeGroups.flatMap((group) =>
           group.types.map(mobileTypeOption),
         ),
         ...(props.groupings?.items ?? []).map((grouping) => ({
@@ -133,39 +130,35 @@ export function MobileNavigation(props: MobileNavigationProps): ReactElement {
               },
             ]
           : []),
+        ...libraryWorkspaces.map(mobileWorkspaceOption),
+        // Types with nothing in them yet come last.
+        ...emptyLibraryTypes.map(mobileTypeOption),
       ],
     },
-    ...(operationWorkspaces.length > 0
-      ? [
-          {
-            area: "work",
-            label: "Work",
-            options: operationWorkspaces.map(mobileWorkspaceOption),
-          },
-        ]
-      : []),
-    ...(administrationWorkspace
-      ? [
-          {
-            area: "administration",
-            label: "Admin",
-            options: [
-              {
-                ...mobileWorkspaceOption(administrationWorkspace),
-                label: "Admin",
-              },
-            ],
-          },
-        ]
-      : []),
     {
-      area: "system",
-      label: "System",
-      options: secondaryTypeGroups.flatMap((group) =>
-        group.types.map(mobileTypeOption),
-      ),
+      area: "publish",
+      label: "Publish",
+      options: publishWorkspaces.map(mobileWorkspaceOption),
     },
-  ];
+    {
+      area: "chat",
+      label: "Chat",
+      options: [
+        ...(chatWorkspace ? [mobileWorkspaceOption(chatWorkspace)] : []),
+        ...chatWorkspaces.map(mobileWorkspaceOption),
+      ],
+    },
+    {
+      area: "brain",
+      label: "Brain",
+      options: [
+        ...brainTypeGroups.flatMap((group) =>
+          group.types.map(mobileTypeOption),
+        ),
+        ...brainWorkspaces.map(mobileWorkspaceOption),
+      ],
+    },
+  ].filter((group) => group.options.length > 0);
   const activeMobileView = props.images?.active
     ? MOBILE_IMAGES_VALUE
     : props.groupings?.active

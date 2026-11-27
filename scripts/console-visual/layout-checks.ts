@@ -499,20 +499,19 @@ async function checkOverviewNavigation(page: Bun.WebView): Promise<void> {
   await evaluatePage(page, () => {
     const navigation =
       document.querySelector<HTMLElement>(".studio-navigation");
+    // Overview is Home's page; Home lists its other pages under it.
     if (
-      navigation?.dataset["leafOpen"] !== "false" ||
-      navigation.querySelector(".studio-leaf-rail")
+      navigation?.dataset["leafOpen"] !== "true" ||
+      !navigation
+        .querySelector('.studio-leaf-rail[aria-label="Home destinations"]')
+        ?.textContent.includes("Inbox")
     )
-      throw new Error(
-        "Overview must remain a direct destination without a leaf column",
-      );
+      throw new Error("Overview must list Home's pages under Home");
     if (
       innerWidth > 900 &&
-      Math.abs(navigation.getBoundingClientRect().width - 124) > 1
+      Math.abs(navigation.getBoundingClientRect().width - 232) > 1
     )
-      throw new Error(
-        "Overview navigation still reserves a duplicate leaf column",
-      );
+      throw new Error("Studio's sidebar is not one 232px column");
   });
 }
 

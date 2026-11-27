@@ -837,6 +837,7 @@ export function createStudioOverviewWorkspace(input: {
     rendererName: DECLARATIVE_STUDIO_WORKSPACE_RENDERER,
     priority: -100,
     permission: "trusted",
+    section: "home",
     entityTypes: [],
     accessHandler: (actor) => admitted(actor.userPermissionLevel, "trusted"),
     dataProvider: async (

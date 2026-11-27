@@ -33,6 +33,17 @@ export const types = [
     count: 7,
     capabilities: editCapabilities,
   },
+  // A type with nothing in it yet waits under All types.
+  {
+    entityType: "newsletters",
+    classification: "content",
+    label: "Newsletters",
+    singularLabel: "Newsletter",
+    isSingleton: false,
+    hasBody: true,
+    count: 0,
+    capabilities: editCapabilities,
+  },
   {
     entityType: "settings",
     classification: "system",
@@ -341,6 +352,7 @@ export function studioWorkspaces(badges: {
   return [
     {
       id: "studio:overview",
+      section: "home",
       pluginId: "studio",
       label: "Overview",
       rendererName: "DeclarativeOperatorWorkspace",
@@ -351,6 +363,7 @@ export function studioWorkspaces(badges: {
     },
     {
       id: "web-chat:chat",
+      section: "chat",
       pluginId: "studio",
       label: "Chat",
       rendererName: "StudioChatWorkspace",
@@ -361,6 +374,7 @@ export function studioWorkspaces(badges: {
     },
     {
       id: "unified-inbox:inbox",
+      section: "home",
       pluginId: "unified-inbox",
       label: "Inbox",
       rendererName: "DeclarativeOperatorWorkspace",
@@ -372,6 +386,7 @@ export function studioWorkspaces(badges: {
     },
     {
       id: "content-pipeline:publishing",
+      section: "publish",
       pluginId: "content-pipeline",
       label: "Publishing",
       rendererName: "DeclarativeOperatorWorkspace",
@@ -382,6 +397,7 @@ export function studioWorkspaces(badges: {
     },
     {
       id: "action-board:board",
+      section: "home",
       pluginId: "action-board",
       label: "Board",
       rendererName: "DeclarativeOperatorWorkspace",
@@ -392,6 +408,7 @@ export function studioWorkspaces(badges: {
     },
     {
       id: "site-builder:site",
+      section: "publish",
       pluginId: "site-builder",
       label: "Site",
       rendererName: "DeclarativeOperatorWorkspace",
@@ -401,6 +418,7 @@ export function studioWorkspaces(badges: {
     },
     {
       id: "directory-sync:sync",
+      section: "brain",
       pluginId: "directory-sync",
       label: "Content sync",
       rendererName: "DeclarativeOperatorWorkspace",
@@ -410,6 +428,7 @@ export function studioWorkspaces(badges: {
     },
     {
       id: "admin:administration",
+      section: "brain",
       pluginId: "admin",
       label: "Administration",
       rendererName: "DeclarativeOperatorWorkspace",
@@ -421,6 +440,7 @@ export function studioWorkspaces(badges: {
     },
     {
       id: "studio:account",
+      section: "brain",
       pluginId: "studio",
       label: "Account",
       rendererName: "StudioAccountWorkspace",

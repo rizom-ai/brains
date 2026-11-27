@@ -611,6 +611,7 @@ export function createDeclarativeStudioWorkspaceRegistration<
     ...(definition.query ? { urlQuery: true } : {}),
     ...(input.aliases ? { aliases: input.aliases } : {}),
     ...(definition.publishesEntityTypes ? { publishesEntityTypes: true } : {}),
+    ...(definition.section ? { section: definition.section } : {}),
     entityTypes: listEntityTypes
       ? (actor): Promise<string[]> =>
           asOperator(actor, () =>

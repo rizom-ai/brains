@@ -5,7 +5,9 @@ import * as stylex from "@stylexjs/stylex";
 type NavigationStyle =
   | "shellCollapsed"
   | "navigationCollapsed"
-  | "navigationDirect"
+  | "section"
+  | "allTypes"
+  | "allTypesSummary"
   | "collapsedLabel"
   | "collapsedLink"
   | "collapsedTitle"
@@ -59,11 +61,7 @@ export const navigationStyles: Record<NavigationStyle, stylex.StyleXStyles> =
   stylex.create({
     shell: {
       gridTemplateColumns: {
-        default: "344px minmax(0, 1fr)",
-        ':has(> aside > [data-leaf-open="false"][data-collapsed="false"])': {
-          default: "124px minmax(0, 1fr)",
-          "@media (max-width: 900px)": "minmax(0, 1fr)",
-        },
+        default: "232px minmax(0, 1fr)",
         // Folded, by preference or while an entry is open.
         ':has(> aside > [data-collapsed="true"])': {
           default: "68px minmax(0, 1fr)",
@@ -76,8 +74,18 @@ export const navigationStyles: Record<NavigationStyle, stylex.StyleXStyles> =
       gridTemplateColumns: "68px minmax(0, 1fr)",
       "@media (max-width: 900px)": { gridTemplateColumns: "minmax(0, 1fr)" },
     },
-    navigationDirect: { gridTemplateColumns: "124px" },
-    navigationCollapsed: { gridTemplateColumns: "68px" },
+    navigationCollapsed: { paddingInline: "10px" },
+    allTypes: { padding: "0 0 6px" },
+    allTypesSummary: {
+      cursor: "pointer",
+      listStylePosition: "inside",
+      fontFamily: "var(--console-ui)",
+      fontSize: "12px",
+      letterSpacing: 0,
+      textTransform: "none",
+    },
+    // A section: its heading, and under it what it holds while open.
+    section: { display: "grid", gap: "2px" },
     collapsedLabel: { display: "none" },
     collapsedLink: {
       gridTemplateColumns: "1fr",
@@ -199,12 +207,19 @@ export const navigationStyles: Record<NavigationStyle, stylex.StyleXStyles> =
       backgroundColor: "var(--console-card-soft)",
       "@media (max-width: 900px)": { display: "none" },
     },
+    // One sidebar: the sections, each with its destinations beneath it.
     navigation: {
-      display: "grid",
-      gridTemplateColumns: "124px minmax(0, 220px)",
+      display: "flex",
+      flexDirection: "column",
+      gap: "4px",
       width: "100%",
       height: "100%",
       minHeight: 0,
+      padding: "14px 10px",
+      borderRightWidth: "1px",
+      borderRightStyle: "solid",
+      borderRightColor: "var(--console-rule-strong)",
+      backgroundColor: "var(--console-card-soft)",
       "@media (max-width: 900px)": { display: "none" },
     },
     areaRail: {
@@ -232,7 +247,7 @@ export const navigationStyles: Record<NavigationStyle, stylex.StyleXStyles> =
       gridTemplateColumns: "22px minmax(0, 1fr)",
       alignItems: "center",
       gap: "6px",
-      minHeight: "42px",
+      minHeight: "38px",
       padding: "0 8px",
       borderWidth: "1px",
       borderStyle: "solid",
@@ -242,7 +257,7 @@ export const navigationStyles: Record<NavigationStyle, stylex.StyleXStyles> =
       color: "var(--console-text-dim)",
       cursor: "pointer",
       fontFamily: "var(--console-ui)",
-      fontSize: "11px",
+      fontSize: "13px",
       textAlign: "left",
       ":hover": {
         borderColor: "var(--console-rule)",
@@ -268,13 +283,15 @@ export const navigationStyles: Record<NavigationStyle, stylex.StyleXStyles> =
     },
     ordinalActive: { color: "var(--console-accent-text)" },
 
+    // The open section's destinations, set in under its heading.
     leaf: {
       display: "grid",
       minWidth: 0,
-      minHeight: 0,
-      gridTemplateRows: "auto minmax(0, 1fr)",
-      backgroundColor:
-        "color-mix(in srgb, var(--console-card-soft) 62%, var(--console-frame))",
+      margin: "2px 0 8px 19px",
+      paddingLeft: "6px",
+      borderLeftWidth: "1px",
+      borderLeftStyle: "solid",
+      borderLeftColor: "var(--console-rule)",
     },
     leafHead: {
       padding: "22px 18px 16px",
@@ -293,14 +310,17 @@ export const navigationStyles: Record<NavigationStyle, stylex.StyleXStyles> =
       lineHeight: 1.45,
     },
     leafScroll: {
+      display: "grid",
+      alignContent: "start",
+      gap: "2px",
+      flex: 1,
       minHeight: 0,
       overflowY: "auto",
       overscrollBehavior: "contain",
-      padding: "10px 0 24px",
     },
-    leafGroup: { padding: "0 0 10px" },
+    leafGroup: { padding: "0 0 6px" },
     leafLabel: {
-      padding: "10px 18px 6px",
+      padding: "8px 10px 4px",
       color: "var(--console-text-muted)",
     },
     list: { listStyle: "none", margin: 0, padding: 0 },
@@ -309,8 +329,8 @@ export const navigationStyles: Record<NavigationStyle, stylex.StyleXStyles> =
       alignItems: "baseline",
       gap: "8px",
       width: "100%",
-      minHeight: "37px",
-      padding: "8px 18px",
+      minHeight: "32px",
+      padding: "6px 10px",
       borderWidth: 0,
       borderLeftWidth: "2px",
       borderStyle: "solid",

@@ -12,6 +12,8 @@ export interface NavigationTreeInput {
   /** Workspaces that are an area in their own right, rather than a leaf. */
   areaWorkspaces: (StudioWorkspaceInfo | undefined)[];
   onSelectWorkspace: ((workspaceId: string) => void) | undefined;
+  /** Whether a section lists destinations under its heading. */
+  hasList: (area: StudioArea) => boolean;
 }
 
 export interface NavigationTree {
@@ -30,15 +32,12 @@ export interface NavigationTree {
   toggleGroup: (area: string, open: boolean) => void;
 }
 
-const AREAS_WITH_LEAVES: StudioArea[] = ["library", "work", "system"];
-
 /**
  * Which part of the Studio the navigation is showing.
  *
  * Browsing is not navigating. Opening an area looks at what is in it without
  * leaving the destination you are on, so an unsaved draft survives a look
- * around. Only an area that *is* a workspace — chat, overview, administration
- * — navigates, because there is nothing to browse under it.
+ * around. Only a section that *is* a page — Home and Chat — navigates.
  *
  * Both the phone sheet and the desktop rail read this, which is why it is a
  * hook rather than state inside either of them.
@@ -61,7 +60,7 @@ export function useNavigationTree(input: NavigationTreeInput): NavigationTree {
 
   const selectArea = (area: StudioArea): void => {
     const destinationWorkspace = areaWorkspaces.find(
-      (workspace) => workspace && studioArea(null, workspace.id) === area,
+      (workspace) => workspace && studioArea(null, workspace) === area,
     );
     if (destinationWorkspace) {
       if (destinationWorkspace.id === activeWorkspace) setBrowsingArea(null);
@@ -83,7 +82,7 @@ export function useNavigationTree(input: NavigationTreeInput): NavigationTree {
 
   return {
     activeArea,
-    leafOpen: activeArea !== null && AREAS_WITH_LEAVES.includes(activeArea),
+    leafOpen: activeArea !== null && input.hasList(activeArea),
     browsing: browsingArea !== null,
     endBrowsing: () => setBrowsingArea(null),
     leafId,

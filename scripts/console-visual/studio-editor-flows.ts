@@ -99,10 +99,10 @@ async function verifyEditorFocus(page: Bun.WebView): Promise<void> {
       )),
   );
   const entryPath = await page.evaluate<string>("location.pathname");
-  await clickText(page, ".studio-area-link", "Work");
-  await waitForPage("browsing opens the navigation", () => railWidth(344));
+  await clickText(page, ".studio-area-link", "Publish");
+  await waitForPage("browsing opens the navigation", () => railWidth(232));
   if ((await page.evaluate<string>("location.pathname")) !== entryPath)
-    throw new Error("Browsing Work left the open entry");
+    throw new Error("Browsing Publish left the open entry");
   await clickSelector(page, ".studio-navigation-collapse");
   await waitForPage("the fold control ends the browse", () => railWidth(68));
 }

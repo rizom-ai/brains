@@ -485,6 +485,60 @@ describe("optional Studio workspaces", () => {
     ).not.toHaveProperty("publishesEntityTypes");
   });
 
+  it("places each workspace in its section, Brain when it names none", async () => {
+    const shell = createMockShell({ domain: "yeehaa.io" });
+    const cookie = await createSessionCookie(shell);
+    const plugin = studioPlugin();
+    await plugin.register(shell);
+    await registerWorkspace(shell, {
+      id: "publishing",
+      pluginId: "content-pipeline",
+      label: "Publishing",
+      rendererName: "DeclarativeOperatorWorkspace",
+      priority: 40,
+      section: "publish",
+      accessHandler: () => true,
+      dataProvider: async () => ({ queue: [] }),
+    });
+    await registerWorkspace(shell, {
+      id: "sync",
+      pluginId: "directory-sync",
+      label: "Content sync",
+      rendererName: "DeclarativeOperatorWorkspace",
+      priority: 50,
+      accessHandler: () => true,
+      dataProvider: async () => ({}),
+    });
+    const rejected = await shell.getMessageBus().send({
+      type: studioWorkspaceRegisterContract.name,
+      payload: {
+        id: "elsewhere",
+        pluginId: "anywhere",
+        label: "Elsewhere",
+        rendererName: "DeclarativeOperatorWorkspace",
+        priority: 50,
+        section: "attic",
+        accessHandler: () => true,
+        dataProvider: async () => ({}),
+      },
+      sender: "anywhere",
+    });
+
+    const response = await findRoute(plugin, "/studio/api/types").handler(
+      request("/studio/api/types", { cookie }),
+    );
+    const descriptors = z
+      .object({ workspaces: z.array(z.record(z.string(), z.unknown())) })
+      .parse(await response.json()).workspaces;
+    const sectionOf = (id: string): unknown =>
+      descriptors.find((descriptor) => descriptor["id"] === id)?.["section"];
+
+    expect(sectionOf("publishing")).toBe("publish");
+    expect(sectionOf("sync")).toBe("brain");
+    // A plugin cannot add a section.
+    expect(rejected).toMatchObject({ success: false });
+  });
+
   it("rejects a publication declaration that is not literally true", async () => {
     const shell = createMockShell({ domain: "yeehaa.io" });
     const plugin = studioPlugin();
@@ -540,6 +594,7 @@ describe("optional Studio workspaces", () => {
         priority: -100,
         permission: "trusted",
         entityTypes: [],
+        section: "home",
         badge: 0,
       },
       {
@@ -550,6 +605,7 @@ describe("optional Studio workspaces", () => {
         priority: 0,
         permission: "public",
         entityTypes: [],
+        section: "brain",
       },
       {
         id: "publishing",
@@ -559,6 +615,7 @@ describe("optional Studio workspaces", () => {
         priority: 40,
         permission: "trusted",
         entityTypes: ["post"],
+        section: "brain",
       },
     ]);
 

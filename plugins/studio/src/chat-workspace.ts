@@ -13,6 +13,7 @@ export interface StudioChatWorkspaceDescriptor {
   readonly urlQuery: true;
   readonly chatApiPath: string;
   readonly entityTypes: readonly [];
+  readonly section: "chat";
 }
 
 const permissionRank: Record<UserPermissionLevel, number> = {
@@ -52,6 +53,7 @@ export function listBuiltInStudioChatWorkspaces(
       urlQuery: true,
       chatApiPath,
       entityTypes: [],
+      section: "chat",
     },
   ];
 }

@@ -366,6 +366,7 @@ describe("Studio active-session gate inversion", () => {
               priority: 0,
               permission: "public",
               entityTypes: [],
+              section: "brain",
             },
           ],
         });

@@ -247,6 +247,7 @@ export const inboxWorkspace: StudioWorkspaceDefinition<
   label: "Inbox",
   priority: 20,
   permission: "admin",
+  section: "home",
   query: declarativeInboxQuerySchema,
   data: declarativeInboxDataSchema,
   actions: [runInboxAction],

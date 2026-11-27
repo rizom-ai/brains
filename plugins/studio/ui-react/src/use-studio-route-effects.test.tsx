@@ -51,6 +51,7 @@ function workspaceInfo(
     rendererName: "DeclarativeOperatorWorkspace",
     priority: 1,
     permission: "trusted",
+    section: "home",
     entityTypes: [],
     ...overrides,
   };

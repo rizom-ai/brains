@@ -62,10 +62,9 @@ describe("Studio split UI assets", () => {
     expect(stylesheet).toContain('[data-editor="codemirror6"] .cm-content');
     expect(stylesheet).not.toContain(".body-source .cm-");
     expect(stylesheet).not.toContain(".body-panes.split");
-    // The area/leaf composition and Browse breakpoint must ship as CSS,
-    // including styles used by lazy native Chat and Account.
-    expect(stylesheet).toContain("grid-template-columns:124px minmax(0,220px)");
-    expect(stylesheet).toContain("grid-template-columns:344px minmax(0,1fr)");
+    // The sidebar and Browse breakpoint must ship as CSS, including styles
+    // used by lazy native Chat and Account.
+    expect(stylesheet).toContain("grid-template-columns:232px minmax(0,1fr)");
     expect(stylesheet).toContain(
       "grid-template-columns:36px minmax(0,1fr) auto",
     );

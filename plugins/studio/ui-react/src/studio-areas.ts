@@ -1,6 +1,5 @@
-import type { EntityTypeInfo } from "./api";
+import type { EntityTypeInfo, StudioWorkspaceInfo } from "./api";
 import { STUDIO_ACCOUNT_WORKSPACE_ID } from "../../src/account-workspace";
-import { STUDIO_CHAT_WORKSPACE_ID } from "../../src/chat-workspace";
 
 const COLLECTION_ENTITY_TYPES = new Set([
   "project",
@@ -47,13 +46,12 @@ export const SYSTEM_TYPE_GROUPS = [
 ] as const;
 
 /**
- * Which part of the Studio a destination belongs to.
+ * Which of Studio's fixed sections a destination belongs to.
  *
  * Kept apart from the navigation that renders it so that the navigation and
  * the hook driving it can both ask, without importing each other.
  */
-export type StudioArea =
-  "overview" | "chat" | "library" | "work" | "administration" | "system";
+export type StudioArea = StudioWorkspaceInfo["section"];
 
 export function studioTypeGroup(
   type: Pick<EntityTypeInfo, "entityType" | "classification">,
@@ -66,14 +64,12 @@ export function studioTypeGroup(
 
 export function studioArea(
   entityType: Pick<EntityTypeInfo, "entityType" | "classification"> | null,
-  workspaceId: string | null,
+  workspace: Pick<StudioWorkspaceInfo, "id" | "section"> | null,
 ): StudioArea | null {
-  // Navigation ownership, not renderer selection. Account has no owning rail area.
-  if (workspaceId === "studio:overview") return "overview";
-  if (workspaceId === STUDIO_CHAT_WORKSPACE_ID) return "chat";
-  if (workspaceId === "admin:administration") return "administration";
-  if (workspaceId === STUDIO_ACCOUNT_WORKSPACE_ID) return null;
-  if (workspaceId) return "work";
-  const group = entityType ? studioTypeGroup(entityType) : null;
-  return group === "Site" || group === "System" ? "system" : "library";
+  // A workspace names its section. Account is reached from the account menu.
+  if (workspace)
+    return workspace.id === STUDIO_ACCOUNT_WORKSPACE_ID
+      ? null
+      : workspace.section;
+  return entityType?.classification === "system" ? "brain" : "library";
 }

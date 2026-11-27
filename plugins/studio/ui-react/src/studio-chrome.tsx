@@ -108,7 +108,9 @@ export function StudioChrome(props: {
         props.navigation.types.find(
           (type) => type.entityType === props.navigation?.activeEntityType,
         ) ?? null,
-        props.navigation.activeWorkspaceId,
+        props.navigation.workspaces.find(
+          (workspace) => workspace.id === props.navigation?.activeWorkspaceId,
+        ) ?? null,
       )
     : null;
   const accountCurrent =

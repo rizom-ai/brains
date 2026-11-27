@@ -1,7 +1,10 @@
 import { describe, expect, it } from "bun:test";
 import { studioTypeGroup, SYSTEM_TYPE_GROUPS } from "./studio-areas";
 import type { EntityTypeInfo, StudioWorkspaceInfo } from "./api";
-import { deriveNavigationModel } from "./studio-navigation-model";
+import {
+  deriveNavigationModel,
+  sectionHasList,
+} from "./studio-navigation-model";
 import { studioTypeHierarchy } from "../../src/config";
 
 function type(
@@ -29,7 +32,10 @@ function type(
   };
 }
 
-function workspace(id: string): StudioWorkspaceInfo {
+function workspace(
+  id: string,
+  section: StudioWorkspaceInfo["section"],
+): StudioWorkspaceInfo {
   return {
     id,
     pluginId: id.split(":")[0] ?? id,
@@ -37,6 +43,7 @@ function workspace(id: string): StudioWorkspaceInfo {
     rendererName: "DeclarativeOperatorWorkspace",
     priority: 1,
     permission: "trusted",
+    section,
     entityTypes: [],
   };
 }
@@ -44,7 +51,7 @@ function workspace(id: string): StudioWorkspaceInfo {
 const systemType = SYSTEM_TYPE_GROUPS[0].types[0];
 
 describe("deriveNavigationModel", () => {
-  it("files content types under Library and system types under System", () => {
+  it("files content types under Library and system types under Brain", () => {
     const model = deriveNavigationModel({
       types: [type("post"), type(systemType, "system")],
       active: null,
@@ -52,12 +59,12 @@ describe("deriveNavigationModel", () => {
 
     expect(studioTypeGroup(type("post"))).toBe("Content");
     expect(
-      model.primaryTypeGroups.flatMap((group) =>
+      model.libraryTypeGroups.flatMap((group) =>
         group.types.map((info) => info.entityType),
       ),
     ).toEqual(["post"]);
     expect(
-      model.secondaryTypeGroups.flatMap((group) =>
+      model.brainTypeGroups.flatMap((group) =>
         group.types.map((info) => info.entityType),
       ),
     ).toEqual([systemType]);
@@ -69,7 +76,7 @@ describe("deriveNavigationModel", () => {
       active: "book-section",
     });
     expect(
-      model.primaryTypeGroups.flatMap((group) =>
+      model.libraryTypeGroups.flatMap((group) =>
         group.types.map((info) => info.entityType),
       ),
     ).toEqual(["book"]);
@@ -84,48 +91,107 @@ describe("deriveNavigationModel", () => {
       types: [type("prompt"), type("custom-machine", "system"), type("topic")],
       active: "custom-machine",
     });
-    expect(model.currentArea).toBe("system");
+    expect(model.currentArea).toBe("brain");
     expect(
-      model.primaryTypeGroups.flatMap((group) =>
+      model.libraryTypeGroups.flatMap((group) =>
         group.types.map((info) => info.entityType),
       ),
     ).toEqual(["prompt", "topic"]);
-    expect(model.secondaryTypeGroups).toEqual([
+    expect(model.brainTypeGroups).toEqual([
       { label: "Other", types: [type("custom-machine", "system")] },
     ]);
     expect(studioTypeGroup(type("site-info"))).toBe("Content");
     expect(studioTypeGroup(type("site-info", "system"))).toBe("Site");
   });
 
-  it("makes an area available only when it has somewhere to go", () => {
+  it("places each workspace in the section it names", () => {
     const model = deriveNavigationModel({
       types: [type("post")],
-      workspaces: [workspace("studio:overview")],
+      workspaces: [
+        workspace("studio:overview", "home"),
+        workspace("unified-inbox:inbox", "home"),
+        workspace("content-pipeline:publishing", "publish"),
+        workspace("site-builder:site", "publish"),
+        workspace("linkedin-import:linkedin", "library"),
+        workspace("directory-sync:sync", "brain"),
+        workspace("admin:administration", "brain"),
+        workspace("studio:account", "brain"),
+      ],
       active: "post",
     });
-    const available = Object.fromEntries(
-      model.areas.map((area) => [area.id, area.available]),
-    );
+    const ids = (list: StudioWorkspaceInfo[]): string[] =>
+      list.map((entry) => entry.id);
 
-    expect(available).toEqual({
-      overview: true,
-      chat: false,
+    expect(model.overviewWorkspace?.id).toBe("studio:overview");
+    expect(ids(model.homeWorkspaces)).toEqual(["unified-inbox:inbox"]);
+    expect(ids(model.publishWorkspaces)).toEqual([
+      "content-pipeline:publishing",
+      "site-builder:site",
+    ]);
+    expect(ids(model.libraryWorkspaces)).toEqual(["linkedin-import:linkedin"]);
+    // Account is reached from the account menu, not a section.
+    expect(ids(model.brainWorkspaces)).toEqual([
+      "directory-sync:sync",
+      "admin:administration",
+    ]);
+  });
+
+  it("has five sections, each available only when it has somewhere to go", () => {
+    const model = deriveNavigationModel({
+      types: [type("post")],
+      workspaces: [workspace("studio:overview", "home")],
+      active: "post",
+    });
+    expect(model.sections.map((section) => section.label)).toEqual([
+      "Home",
+      "Library",
+      "Publish",
+      "Chat",
+      "Brain",
+    ]);
+    expect(
+      Object.fromEntries(
+        model.sections.map((section) => [section.id, section.available]),
+      ),
+    ).toEqual({
+      home: true,
       library: true,
-      work: false,
-      administration: false,
-      system: false,
+      publish: false,
+      chat: false,
+      brain: false,
     });
   });
 
-  it("carries a workspace's badge onto its area", () => {
+  it("gives a section the attention its pages ask for", () => {
     const model = deriveNavigationModel({
       types: [],
-      workspaces: [workspace("studio:overview")],
-      workspaceBadges: { "studio:overview": 3 },
+      workspaces: [
+        workspace("studio:overview", "home"),
+        workspace("unified-inbox:inbox", "home"),
+        workspace("content-pipeline:publishing", "publish"),
+      ],
+      workspaceBadges: {
+        "studio:overview": 1,
+        "unified-inbox:inbox": 2,
+        "content-pipeline:publishing": 0,
+      },
       active: null,
     });
+    const badge = (id: string): number | undefined =>
+      model.sections.find((section) => section.id === id)?.badge;
 
-    expect(model.areas.find((area) => area.id === "overview")?.badge).toBe(3);
+    expect(badge("home")).toBe(3);
+    expect(badge("publish")).toBeUndefined();
+  });
+
+  it("is in the section of the open workspace", () => {
+    const model = deriveNavigationModel({
+      types: [type("post")],
+      workspaces: [workspace("content-pipeline:publishing", "publish")],
+      active: "post",
+      activeWorkspace: "content-pipeline:publishing",
+    });
+    expect(model.currentArea).toBe("publish");
   });
 
   it("points at the open grouping before any type or workspace", () => {
@@ -138,5 +204,79 @@ describe("deriveNavigationModel", () => {
 
     expect(model.currentArea).toBe("library");
     expect(model.destination).toBe("group:clients");
+  });
+});
+
+describe("Library's types", () => {
+  it("keeps empty types under All types, out of the way", () => {
+    const model = deriveNavigationModel({
+      types: [
+        type("post"),
+        { ...type("newsletter"), count: 0 },
+        type("note"),
+        { ...type("faq"), count: 0 },
+      ],
+      active: null,
+    });
+    expect(
+      model.libraryTypeGroups.flatMap((group) =>
+        group.types.map((info) => info.entityType),
+      ),
+    ).toEqual(["post", "note"]);
+    expect(model.emptyLibraryTypes.map((info) => info.entityType)).toEqual([
+      "newsletter",
+      "faq",
+    ]);
+  });
+
+  it("lists an empty type with the others while it is open", () => {
+    const model = deriveNavigationModel({
+      types: [type("post"), { ...type("newsletter"), count: 0 }],
+      active: "newsletter",
+    });
+    expect(
+      model.libraryTypeGroups.flatMap((group) =>
+        group.types.map((info) => info.entityType),
+      ),
+    ).toEqual(["post", "newsletter"]);
+    expect(model.emptyLibraryTypes).toEqual([]);
+  });
+
+  it("puts the types used most recently first", () => {
+    const model = deriveNavigationModel({
+      types: [type("post"), type("note"), type("link")],
+      active: null,
+      recentTypes: ["link", "note"],
+    });
+    expect(
+      model.libraryTypeGroups.flatMap((group) =>
+        group.types.map((info) => info.entityType),
+      ),
+    ).toEqual(["link", "note", "post"]);
+  });
+});
+
+describe("sections with pages of their own", () => {
+  it("lists Chat's other pages under Chat, and nothing when it has none", () => {
+    const withGuests = deriveNavigationModel({
+      types: [],
+      workspaces: [
+        workspace("web-chat:chat", "chat"),
+        workspace("web-chat:guest-chat", "chat"),
+      ],
+      active: null,
+    });
+    expect(withGuests.chatWorkspace?.id).toBe("web-chat:chat");
+    expect(withGuests.chatWorkspaces.map((entry) => entry.id)).toEqual([
+      "web-chat:guest-chat",
+    ]);
+    expect(sectionHasList(withGuests, "chat")).toBe(true);
+    const alone = deriveNavigationModel({
+      types: [],
+      workspaces: [workspace("web-chat:chat", "chat")],
+      active: null,
+    });
+    expect(sectionHasList(alone, "chat")).toBe(false);
+    expect(sectionHasList(alone, "home")).toBe(false);
   });
 });

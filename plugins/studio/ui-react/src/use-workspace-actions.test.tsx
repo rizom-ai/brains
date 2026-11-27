@@ -31,6 +31,7 @@ function publishingWorkspace(
     permission: "trusted",
     entityTypes: ["post"],
     publishesEntityTypes: true,
+    section: "publish",
     ...overrides,
   };
 }

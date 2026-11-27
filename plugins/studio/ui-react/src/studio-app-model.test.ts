@@ -45,6 +45,7 @@ function workspaceInfo(
     rendererName: "DeclarativeOperatorWorkspace",
     priority: 1,
     permission: "trusted",
+    section: "home",
     entityTypes: [],
     ...overrides,
   };
@@ -739,7 +740,7 @@ describe("deriveEditorHead", () => {
     expect(head).toMatchObject({
       heading: "Profile",
       collectionLabel: "Profile",
-      editorHead: { kicker: "system / singleton", title: "Profile" },
+      editorHead: { kicker: "brain / singleton", title: "Profile" },
     });
   });
 
