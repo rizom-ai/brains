@@ -1,5 +1,7 @@
 import {
   StructuredContentFormatter,
+  formatSourceList,
+  parseSourceList,
   type FieldMapping,
 } from "@brains/content-formatters";
 import { recordFields } from "@brains/contracts";
@@ -35,77 +37,9 @@ export function faqMetadata(frontmatter: FaqFrontmatter): FaqMetadata {
   };
 }
 
-/**
- * One source as a list item: its title linked to its address (the brain's
- * reference to it rides as the link title when it has a public address)
- * and the brain it came from.
- */
-const SOURCE_LINE =
-  /^- \[((?:\\.|[^\]\\])+)\]\((<[^>]*>|\S+?)(?: "([^"]+)")?\)(?: — from (?:\[((?:\\.|[^\]\\])+)\]\((\S+?)\)|(.+)))?$/;
-
-const HTTP_URL = /^https?:\/\//;
-
-function escapeLinkText(text: string): string {
-  return text.replace(/[\\[\]]/g, (character) => `\\${character}`);
-}
-
-function unescapeLinkText(text: string): string {
-  return text.replace(/\\([\\[\]])/g, "$1");
-}
-
-function sourceItem(source: FaqSource): string {
-  const title = escapeLinkText(source.title);
-  // A reference with spaces is no bare link target; angle brackets keep it.
-  const reference = /[\s()]/.test(source.id) ? `<${source.id}>` : source.id;
-  const link = source.url
-    ? `[${title}](${source.url} "${source.id}")`
-    : `[${title}](${reference})`;
-  const brain = source.brain
-    ? ` — from ${
-        source.brain.url
-          ? `[${escapeLinkText(source.brain.name)}](${source.brain.url})`
-          : source.brain.name
-      }`
-    : "";
-  return `- ${link}${brain}`;
-}
-
-/**
- * A source read back from its list item. A line that is not one comes back
- * without an id, so the body fails validation instead of losing it.
- */
-function parseSourceItem(line: string): FaqSource {
-  const match = SOURCE_LINE.exec(line);
-  if (!match) return { id: "", title: line };
-  const [
-    ,
-    rawTitle = "",
-    target = "",
-    reference,
-    brainLinked,
-    brainUrl,
-    brainPlain,
-  ] = match;
-  const brainName = brainLinked
-    ? unescapeLinkText(brainLinked)
-    : brainPlain?.trim();
-  const destination = target.replace(/^<(.*)>$/, "$1");
-  return {
-    id: reference ?? destination,
-    title: unescapeLinkText(rawTitle),
-    ...(HTTP_URL.test(destination) ? { url: destination } : {}),
-    ...(brainName
-      ? { brain: { name: brainName, ...(brainUrl ? { url: brainUrl } : {}) } }
-      : {}),
-  };
-}
-
 /** The Sources section's markdown back as sources, one per list item. */
 function parseSources(markdown: string): FaqSource[] {
-  return withoutStoredExcerpts(markdown)
-    .split("\n")
-    .filter((line) => line.trim().length > 0)
-    .map((line) => parseSourceItem(line.trim()));
+  return parseSourceList(withoutStoredExcerpts(markdown));
 }
 
 const faqBodyMappings: FieldMapping[] = [
@@ -115,7 +49,7 @@ const faqBodyMappings: FieldMapping[] = [
     label: "Sources",
     type: "custom",
     formatter: (value: unknown): string =>
-      z.array(faqSourceSchema).parse(value).map(sourceItem).join("\n"),
+      formatSourceList(z.array(faqSourceSchema).parse(value)),
     parser: parseSources,
   },
   {

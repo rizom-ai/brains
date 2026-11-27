@@ -5,7 +5,7 @@ import {
 } from "@brains/contracts";
 import {
   canWriteVisibility,
-  getPublishBoundaryState,
+  requiredUpdateActions,
   type BaseEntity,
 } from "@brains/sdk/internal/entity-runtime";
 import {
@@ -260,18 +260,17 @@ export class ConflictStore {
       visibility: parsed.visibility ?? target.visibility,
     };
 
-    const publishes =
-      getPublishBoundaryState(
-        target.entityType,
-        target.metadata["status"],
-        entity.metadata["status"],
-        reads,
-      ) !== "non-publish";
-    permissions.assertEntityActionAllowed(
+    // Every action the write needs: publishing is not permission to edit.
+    for (const action of requiredUpdateActions(
       target.entityType,
-      publishes ? "publish" : "update",
-      { userPermissionLevel: actor.permissionLevel },
-    );
+      target,
+      entity,
+      reads,
+    )) {
+      permissions.assertEntityActionAllowed(target.entityType, action, {
+        userPermissionLevel: actor.permissionLevel,
+      });
+    }
     if (!canWriteVisibility(actor.permissionLevel, entity.visibility)) {
       throw new Error(
         `Cannot set visibility to "${entity.visibility}" at ${actor.permissionLevel} permission`,

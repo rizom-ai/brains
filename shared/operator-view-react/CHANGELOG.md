@@ -1,5 +1,53 @@
 # @brains/operator-view-react
 
+## 0.2.0-alpha.783
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.783
+  - @brains/app-ui-react@0.2.0-alpha.783
+
+## 0.2.0-alpha.782
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.782
+  - @brains/app-ui-react@0.2.0-alpha.782
+
+## 0.2.0-alpha.781
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.781
+  - @brains/app-ui-react@0.2.0-alpha.781
+
+## 0.2.0-alpha.780
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.780
+  - @brains/app-ui-react@0.2.0-alpha.780
+
+## 0.2.0-alpha.779
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.779
+  - @brains/app-ui-react@0.2.0-alpha.779
+
+## 0.2.0-alpha.778
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.778
+  - @brains/app-ui-react@0.2.0-alpha.778
+
 ## 0.2.0-alpha.777
 
 ### Patch Changes

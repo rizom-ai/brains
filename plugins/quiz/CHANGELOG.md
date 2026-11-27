@@ -1,5 +1,65 @@
 # @brains/quiz
 
+## 0.2.0-alpha.783
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.783
+  - @brains/forms@0.2.0-alpha.783
+  - @brains/content-formatters@0.2.0-alpha.783
+  - @brains/utils@0.2.0-alpha.783
+
+## 0.2.0-alpha.782
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.782
+  - @brains/content-formatters@0.2.0-alpha.782
+  - @brains/forms@0.2.0-alpha.782
+  - @brains/utils@0.2.0-alpha.782
+
+## 0.2.0-alpha.781
+
+### Patch Changes
+
+- Updated dependencies [[`b1b08de`](https://github.com/rizom-ai/brains/commit/b1b08de76f5779cbb32b6f0d0e5e5f20a798f7ab)]:
+  - @brains/content-formatters@0.2.0-alpha.781
+  - @brains/sdk@0.2.0-alpha.781
+  - @brains/forms@0.2.0-alpha.781
+  - @brains/utils@0.2.0-alpha.781
+
+## 0.2.0-alpha.780
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.780
+  - @brains/content-formatters@0.2.0-alpha.780
+  - @brains/forms@0.2.0-alpha.780
+  - @brains/utils@0.2.0-alpha.780
+
+## 0.2.0-alpha.779
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.779
+  - @brains/content-formatters@0.2.0-alpha.779
+  - @brains/forms@0.2.0-alpha.779
+  - @brains/utils@0.2.0-alpha.779
+
+## 0.2.0-alpha.778
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/forms@0.2.0-alpha.778
+  - @brains/sdk@0.2.0-alpha.778
+  - @brains/content-formatters@0.2.0-alpha.778
+  - @brains/utils@0.2.0-alpha.778
+
 ## 0.2.0-alpha.777
 
 ### Patch Changes

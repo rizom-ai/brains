@@ -1,5 +1,84 @@
 # @brains/book
 
+## 0.2.0-alpha.783
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.783
+  - @brains/atproto-contracts@0.2.0-alpha.783
+  - @brains/media-page-composer@0.2.0-alpha.783
+  - @brains/site-atlas@0.2.0-alpha.783
+  - @rizom/brain-ui@0.2.0-alpha.783
+  - @brains/contracts@0.2.0-alpha.783
+  - @brains/utils@0.2.0-alpha.783
+
+## 0.2.0-alpha.782
+
+### Patch Changes
+
+- [#1062](https://github.com/rizom-ai/brains/pull/1062) [`72ad2b1`](https://github.com/rizom-ai/brains/commit/72ad2b10b10d2ea5f2067f988ef5b5f75c4082aa) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A brain can ask all its approved peers. With `askAllApproved: true` under `plugins.agents`, `network_ask` asks every approved peer whatever its skills, the nearest first and three at most, and its description tells the model so; without it a question still goes to the peers whose skills fit it. A book brain answers in the language a question is asked in, or the one it asks for: a question that quotes another language, or names works in it, is not asked in that language.
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.782
+  - @rizom/brain-ui@0.2.0-alpha.782
+  - @brains/atproto-contracts@0.2.0-alpha.782
+  - @brains/contracts@0.2.0-alpha.782
+  - @brains/media-page-composer@0.2.0-alpha.782
+  - @brains/site-atlas@0.2.0-alpha.782
+  - @brains/utils@0.2.0-alpha.782
+
+## 0.2.0-alpha.781
+
+### Patch Changes
+
+- Updated dependencies [[`b1b08de`](https://github.com/rizom-ai/brains/commit/b1b08de76f5779cbb32b6f0d0e5e5f20a798f7ab)]:
+  - @brains/contracts@0.2.0-alpha.781
+  - @brains/sdk@0.2.0-alpha.781
+  - @brains/media-page-composer@0.2.0-alpha.781
+  - @brains/site-atlas@0.2.0-alpha.781
+  - @rizom/brain-ui@0.2.0-alpha.781
+  - @brains/atproto-contracts@0.2.0-alpha.781
+  - @brains/utils@0.2.0-alpha.781
+
+## 0.2.0-alpha.780
+
+### Patch Changes
+
+- Updated dependencies [[`f9aae55`](https://github.com/rizom-ai/brains/commit/f9aae553b12c1de03839ef758e1321cf6b86c5cc)]:
+  - @brains/contracts@0.2.0-alpha.780
+  - @brains/sdk@0.2.0-alpha.780
+  - @rizom/brain-ui@0.2.0-alpha.780
+  - @brains/atproto-contracts@0.2.0-alpha.780
+  - @brains/media-page-composer@0.2.0-alpha.780
+  - @brains/site-atlas@0.2.0-alpha.780
+  - @brains/utils@0.2.0-alpha.780
+
+## 0.2.0-alpha.779
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.779
+  - @rizom/brain-ui@0.2.0-alpha.779
+  - @brains/atproto-contracts@0.2.0-alpha.779
+  - @brains/contracts@0.2.0-alpha.779
+  - @brains/media-page-composer@0.2.0-alpha.779
+  - @brains/site-atlas@0.2.0-alpha.779
+  - @brains/utils@0.2.0-alpha.779
+
+## 0.2.0-alpha.778
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.778
+  - @rizom/brain-ui@0.2.0-alpha.778
+  - @brains/atproto-contracts@0.2.0-alpha.778
+  - @brains/contracts@0.2.0-alpha.778
+  - @brains/media-page-composer@0.2.0-alpha.778
+  - @brains/site-atlas@0.2.0-alpha.778
+  - @brains/utils@0.2.0-alpha.778
+
 ## 0.2.0-alpha.777
 
 ### Patch Changes

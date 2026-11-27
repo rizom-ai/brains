@@ -1,5 +1,86 @@
 # @brains/topics
 
+## 0.2.0-alpha.783
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.783
+  - @brains/atproto-contracts@0.2.0-alpha.783
+  - @rizom/brain-ui@0.2.0-alpha.783
+  - @brains/content-formatters@0.2.0-alpha.783
+  - @brains/contracts@0.2.0-alpha.783
+  - @brains/utils@0.2.0-alpha.783
+
+## 0.2.0-alpha.782
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.782
+  - @rizom/brain-ui@0.2.0-alpha.782
+  - @brains/atproto-contracts@0.2.0-alpha.782
+  - @brains/content-formatters@0.2.0-alpha.782
+  - @brains/contracts@0.2.0-alpha.782
+  - @brains/utils@0.2.0-alpha.782
+
+## 0.2.0-alpha.781
+
+### Patch Changes
+
+- Updated dependencies [[`b1b08de`](https://github.com/rizom-ai/brains/commit/b1b08de76f5779cbb32b6f0d0e5e5f20a798f7ab)]:
+  - @brains/contracts@0.2.0-alpha.781
+  - @brains/content-formatters@0.2.0-alpha.781
+  - @brains/sdk@0.2.0-alpha.781
+  - @rizom/brain-ui@0.2.0-alpha.781
+  - @brains/atproto-contracts@0.2.0-alpha.781
+  - @brains/utils@0.2.0-alpha.781
+
+## 0.2.0-alpha.780
+
+### Patch Changes
+
+- Updated dependencies [[`f9aae55`](https://github.com/rizom-ai/brains/commit/f9aae553b12c1de03839ef758e1321cf6b86c5cc)]:
+  - @brains/contracts@0.2.0-alpha.780
+  - @brains/sdk@0.2.0-alpha.780
+  - @rizom/brain-ui@0.2.0-alpha.780
+  - @brains/atproto-contracts@0.2.0-alpha.780
+  - @brains/content-formatters@0.2.0-alpha.780
+  - @brains/utils@0.2.0-alpha.780
+
+## 0.2.0-alpha.779
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.779
+  - @rizom/brain-ui@0.2.0-alpha.779
+  - @brains/atproto-contracts@0.2.0-alpha.779
+  - @brains/content-formatters@0.2.0-alpha.779
+  - @brains/contracts@0.2.0-alpha.779
+  - @brains/utils@0.2.0-alpha.779
+
+## 0.2.0-alpha.778
+
+### Patch Changes
+
+- [#1057](https://github.com/rizom-ai/brains/pull/1057) [`04e551f`](https://github.com/rizom-ai/brains/commit/04e551ff5ecff57754f8aba1dccd26df56db55d4) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Studio fixes from the UX review:
+
+  - Library rows, group members and navigation destinations are links, so they open in a new tab, middle-click and copy like any other link; a plain click still navigates in place.
+  - The browser tab names the open page, such as "Event Sourcing for Sustainability Metrics — Posts — Alex Chen", instead of "Content Studio" everywhere.
+  - Studio follows the system color scheme until a climate is chosen. The Dashboard and the guest Ask page keep their own.
+  - Overview's activity survives a restart and names entries by their title. Topics now name themselves by their header's title everywhere, including ⌘K.
+  - A note body's leftover frontmatter previews as YAML instead of a large heading.
+  - An unfiltered empty Inbox no longer blames its filters, the first Groupings visit no longer asks for types, and the save state and why it cannot save no longer run together.
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.778
+  - @rizom/brain-ui@0.2.0-alpha.778
+  - @brains/atproto-contracts@0.2.0-alpha.778
+  - @brains/content-formatters@0.2.0-alpha.778
+  - @brains/contracts@0.2.0-alpha.778
+  - @brains/utils@0.2.0-alpha.778
+
 ## 0.2.0-alpha.777
 
 ### Patch Changes

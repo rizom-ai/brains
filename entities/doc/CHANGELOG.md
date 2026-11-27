@@ -1,5 +1,71 @@
 # @brains/doc
 
+## 0.2.0-alpha.783
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.783
+  - @brains/atproto-contracts@0.2.0-alpha.783
+  - @rizom/brain-ui@0.2.0-alpha.783
+  - @brains/docs-chrome@0.2.0-alpha.783
+  - @brains/utils@0.2.0-alpha.783
+
+## 0.2.0-alpha.782
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.782
+  - @rizom/brain-ui@0.2.0-alpha.782
+  - @brains/atproto-contracts@0.2.0-alpha.782
+  - @brains/docs-chrome@0.2.0-alpha.782
+  - @brains/utils@0.2.0-alpha.782
+
+## 0.2.0-alpha.781
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.781
+  - @rizom/brain-ui@0.2.0-alpha.781
+  - @brains/atproto-contracts@0.2.0-alpha.781
+  - @brains/docs-chrome@0.2.0-alpha.781
+  - @brains/utils@0.2.0-alpha.781
+
+## 0.2.0-alpha.780
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.780
+  - @rizom/brain-ui@0.2.0-alpha.780
+  - @brains/atproto-contracts@0.2.0-alpha.780
+  - @brains/docs-chrome@0.2.0-alpha.780
+  - @brains/utils@0.2.0-alpha.780
+
+## 0.2.0-alpha.779
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.779
+  - @rizom/brain-ui@0.2.0-alpha.779
+  - @brains/atproto-contracts@0.2.0-alpha.779
+  - @brains/docs-chrome@0.2.0-alpha.779
+  - @brains/utils@0.2.0-alpha.779
+
+## 0.2.0-alpha.778
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.778
+  - @rizom/brain-ui@0.2.0-alpha.778
+  - @brains/atproto-contracts@0.2.0-alpha.778
+  - @brains/docs-chrome@0.2.0-alpha.778
+  - @brains/utils@0.2.0-alpha.778
+
 ## 0.2.0-alpha.777
 
 ### Patch Changes

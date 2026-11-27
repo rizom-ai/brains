@@ -604,6 +604,7 @@ export {
   generateMarkdownWithFrontmatter,
   preserveSourceFrontmatter,
   getPublishBoundaryState,
+  requiredUpdateActions,
   parseMarkdownWithFrontmatter,
   EntityValidationError,
   SemanticIndexingDisabledError,
@@ -1108,6 +1109,7 @@ export {
   type InterfaceRuntime,
 } from "./interface/interface-runtime";
 export {
+  withAnswers,
   withChannels,
   withDaemon,
   withMessageTransport,

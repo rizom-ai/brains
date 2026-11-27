@@ -1,5 +1,139 @@
 # @brains/plugins
 
+## 0.2.0-alpha.783
+
+### Patch Changes
+
+- [#1063](https://github.com/rizom-ai/brains/pull/1063) [`375b33c`](https://github.com/rizom-ai/brains/commit/375b33c14e11cbef1e3caef02fced51f2fd6039b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Permission to publish is no longer permission to edit. A write that moves a record into one of its publish statuses, or writes a record already in one, needed only the `publish` action, so it could change the record's body or other fields on a type whose `update` was refused. Such a write now needs `update` as well when it changes anything besides the status, on every path: `system_update`, a Studio save, a save on the drive, a conflict resolution and a generation over a published destination. A type nobody may update is published as it stands.
+- Updated dependencies [[`375b33c`](https://github.com/rizom-ai/brains/commit/375b33c14e11cbef1e3caef02fced51f2fd6039b)]:
+  - @brains/entity-service@0.2.0-alpha.783
+  - @brains/content-service@0.2.0-alpha.783
+  - @brains/atproto-contracts@0.2.0-alpha.783
+  - @brains/ai-service@0.2.0-alpha.783
+  - @brains/identity-service@0.2.0-alpha.783
+  - @brains/content-formatters@0.2.0-alpha.783
+  - @brains/contracts@0.2.0-alpha.783
+  - @brains/site-composition@0.2.0-alpha.783
+  - @brains/utils@0.2.0-alpha.783
+  - @brains/conversation-service@0.2.0-alpha.783
+  - @brains/job-queue@0.2.0-alpha.783
+  - @brains/mcp-service@0.2.0-alpha.783
+  - @brains/messaging-service@0.2.0-alpha.783
+  - @brains/recurring-checks@0.2.0-alpha.783
+  - @brains/runtime-state@0.2.0-alpha.783
+  - @brains/templates@0.2.0-alpha.783
+
+## 0.2.0-alpha.782
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.782
+  - @brains/content-formatters@0.2.0-alpha.782
+  - @brains/contracts@0.2.0-alpha.782
+  - @brains/site-composition@0.2.0-alpha.782
+  - @brains/utils@0.2.0-alpha.782
+  - @brains/ai-service@0.2.0-alpha.782
+  - @brains/content-service@0.2.0-alpha.782
+  - @brains/conversation-service@0.2.0-alpha.782
+  - @brains/entity-service@0.2.0-alpha.782
+  - @brains/identity-service@0.2.0-alpha.782
+  - @brains/job-queue@0.2.0-alpha.782
+  - @brains/mcp-service@0.2.0-alpha.782
+  - @brains/messaging-service@0.2.0-alpha.782
+  - @brains/recurring-checks@0.2.0-alpha.782
+  - @brains/runtime-state@0.2.0-alpha.782
+  - @brains/templates@0.2.0-alpha.782
+
+## 0.2.0-alpha.781
+
+### Patch Changes
+
+- [#1060](https://github.com/rizom-ai/brains/pull/1060) [`6a9fe95`](https://github.com/rizom-ai/brains/commit/6a9fe9533aa608c32c586f3eb10d27fc532f58b9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A background job can ask another brain. The worker process runs no interfaces, so a job that asked a peer through an A2A contract was told the brain could not reach other brains: a seminar's turns, and the daily refresh of what peers share with this brain. A first-party interface can now declare the contracts it answers for the brain's own packages (`withAnswers`), which the worker registers alone, as it registers an interface's channels; A2A answers its ask, turn and shared-entity contracts that way.
+- Updated dependencies [[`b1b08de`](https://github.com/rizom-ai/brains/commit/b1b08de76f5779cbb32b6f0d0e5e5f20a798f7ab)]:
+  - @brains/contracts@0.2.0-alpha.781
+  - @brains/content-formatters@0.2.0-alpha.781
+  - @brains/atproto-contracts@0.2.0-alpha.781
+  - @brains/site-composition@0.2.0-alpha.781
+  - @brains/ai-service@0.2.0-alpha.781
+  - @brains/content-service@0.2.0-alpha.781
+  - @brains/conversation-service@0.2.0-alpha.781
+  - @brains/entity-service@0.2.0-alpha.781
+  - @brains/identity-service@0.2.0-alpha.781
+  - @brains/job-queue@0.2.0-alpha.781
+  - @brains/mcp-service@0.2.0-alpha.781
+  - @brains/messaging-service@0.2.0-alpha.781
+  - @brains/templates@0.2.0-alpha.781
+  - @brains/recurring-checks@0.2.0-alpha.781
+  - @brains/utils@0.2.0-alpha.781
+  - @brains/runtime-state@0.2.0-alpha.781
+
+## 0.2.0-alpha.780
+
+### Patch Changes
+
+- Updated dependencies [[`f9aae55`](https://github.com/rizom-ai/brains/commit/f9aae553b12c1de03839ef758e1321cf6b86c5cc)]:
+  - @brains/contracts@0.2.0-alpha.780
+  - @brains/atproto-contracts@0.2.0-alpha.780
+  - @brains/content-formatters@0.2.0-alpha.780
+  - @brains/site-composition@0.2.0-alpha.780
+  - @brains/ai-service@0.2.0-alpha.780
+  - @brains/content-service@0.2.0-alpha.780
+  - @brains/conversation-service@0.2.0-alpha.780
+  - @brains/entity-service@0.2.0-alpha.780
+  - @brains/identity-service@0.2.0-alpha.780
+  - @brains/job-queue@0.2.0-alpha.780
+  - @brains/mcp-service@0.2.0-alpha.780
+  - @brains/messaging-service@0.2.0-alpha.780
+  - @brains/templates@0.2.0-alpha.780
+  - @brains/recurring-checks@0.2.0-alpha.780
+  - @brains/utils@0.2.0-alpha.780
+  - @brains/runtime-state@0.2.0-alpha.780
+
+## 0.2.0-alpha.779
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.779
+  - @brains/content-formatters@0.2.0-alpha.779
+  - @brains/contracts@0.2.0-alpha.779
+  - @brains/site-composition@0.2.0-alpha.779
+  - @brains/utils@0.2.0-alpha.779
+  - @brains/ai-service@0.2.0-alpha.779
+  - @brains/content-service@0.2.0-alpha.779
+  - @brains/conversation-service@0.2.0-alpha.779
+  - @brains/entity-service@0.2.0-alpha.779
+  - @brains/identity-service@0.2.0-alpha.779
+  - @brains/job-queue@0.2.0-alpha.779
+  - @brains/mcp-service@0.2.0-alpha.779
+  - @brains/messaging-service@0.2.0-alpha.779
+  - @brains/recurring-checks@0.2.0-alpha.779
+  - @brains/runtime-state@0.2.0-alpha.779
+  - @brains/templates@0.2.0-alpha.779
+
+## 0.2.0-alpha.778
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.778
+  - @brains/content-formatters@0.2.0-alpha.778
+  - @brains/contracts@0.2.0-alpha.778
+  - @brains/site-composition@0.2.0-alpha.778
+  - @brains/utils@0.2.0-alpha.778
+  - @brains/ai-service@0.2.0-alpha.778
+  - @brains/content-service@0.2.0-alpha.778
+  - @brains/conversation-service@0.2.0-alpha.778
+  - @brains/entity-service@0.2.0-alpha.778
+  - @brains/identity-service@0.2.0-alpha.778
+  - @brains/job-queue@0.2.0-alpha.778
+  - @brains/mcp-service@0.2.0-alpha.778
+  - @brains/messaging-service@0.2.0-alpha.778
+  - @brains/recurring-checks@0.2.0-alpha.778
+  - @brains/runtime-state@0.2.0-alpha.778
+  - @brains/templates@0.2.0-alpha.778
+
 ## 0.2.0-alpha.777
 
 ### Patch Changes

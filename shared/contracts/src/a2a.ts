@@ -46,6 +46,35 @@ export const a2aAskContract: BusContract<
   delivery: "request",
 });
 
+type A2ATurnRequestSchema = z.ZodObject<{
+  agent: z.ZodString;
+  message: z.ZodString;
+}>;
+
+export const a2aTurnRequestSchema: A2ATurnRequestSchema = z.object({
+  agent: z.string().trim().min(1).max(253),
+  message: z.string().trim().min(1).max(32_000),
+});
+
+/**
+ * Put one turn of an exchange to a saved, approved peer, within the turn
+ * budget. Unlike an ask, the message reaches the peer as written and may
+ * carry what other peers answered, so it is longer than a question and says
+ * itself what kind of answer it wants. Like an ask it carries no level, so
+ * only peers saved public are reached, and a peer that does not complete its
+ * answer is a failure with the reason.
+ */
+export const a2aTurnContract: BusContract<
+  A2ATurnRequestSchema,
+  A2APeerAnswerSchema,
+  "request"
+> = defineBusContract({
+  channel: "a2a:turn:request",
+  request: a2aTurnRequestSchema,
+  response: a2aPeerAnswerSchema,
+  delivery: "request",
+});
+
 type A2AAgentsRequestSchema = z.ZodObject<{
   entityType: z.ZodOptional<z.ZodString>;
   entityId: z.ZodOptional<z.ZodString>;

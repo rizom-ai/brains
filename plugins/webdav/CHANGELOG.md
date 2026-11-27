@@ -1,5 +1,72 @@
 # @brains/webdav
 
+## 0.2.0-alpha.783
+
+### Patch Changes
+
+- [#1063](https://github.com/rizom-ai/brains/pull/1063) [`375b33c`](https://github.com/rizom-ai/brains/commit/375b33c14e11cbef1e3caef02fced51f2fd6039b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Permission to publish is no longer permission to edit. A write that moves a record into one of its publish statuses, or writes a record already in one, needed only the `publish` action, so it could change the record's body or other fields on a type whose `update` was refused. Such a write now needs `update` as well when it changes anything besides the status, on every path: `system_update`, a Studio save, a save on the drive, a conflict resolution and a generation over a published destination. A type nobody may update is published as it stands.
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.783
+  - @brains/entity-placement@0.2.0-alpha.783
+  - @brains/image@0.2.0-alpha.783
+  - @brains/contracts@0.2.0-alpha.783
+  - @brains/utils@0.2.0-alpha.783
+
+## 0.2.0-alpha.782
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.782
+  - @brains/contracts@0.2.0-alpha.782
+  - @brains/entity-placement@0.2.0-alpha.782
+  - @brains/image@0.2.0-alpha.782
+  - @brains/utils@0.2.0-alpha.782
+
+## 0.2.0-alpha.781
+
+### Patch Changes
+
+- Updated dependencies [[`b1b08de`](https://github.com/rizom-ai/brains/commit/b1b08de76f5779cbb32b6f0d0e5e5f20a798f7ab)]:
+  - @brains/contracts@0.2.0-alpha.781
+  - @brains/sdk@0.2.0-alpha.781
+  - @brains/image@0.2.0-alpha.781
+  - @brains/entity-placement@0.2.0-alpha.781
+  - @brains/utils@0.2.0-alpha.781
+
+## 0.2.0-alpha.780
+
+### Patch Changes
+
+- Updated dependencies [[`f9aae55`](https://github.com/rizom-ai/brains/commit/f9aae553b12c1de03839ef758e1321cf6b86c5cc)]:
+  - @brains/contracts@0.2.0-alpha.780
+  - @brains/sdk@0.2.0-alpha.780
+  - @brains/entity-placement@0.2.0-alpha.780
+  - @brains/image@0.2.0-alpha.780
+  - @brains/utils@0.2.0-alpha.780
+
+## 0.2.0-alpha.779
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.779
+  - @brains/contracts@0.2.0-alpha.779
+  - @brains/entity-placement@0.2.0-alpha.779
+  - @brains/image@0.2.0-alpha.779
+  - @brains/utils@0.2.0-alpha.779
+
+## 0.2.0-alpha.778
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.778
+  - @brains/contracts@0.2.0-alpha.778
+  - @brains/entity-placement@0.2.0-alpha.778
+  - @brains/image@0.2.0-alpha.778
+  - @brains/utils@0.2.0-alpha.778
+
 ## 0.2.0-alpha.777
 
 ### Patch Changes

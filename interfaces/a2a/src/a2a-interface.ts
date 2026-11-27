@@ -11,6 +11,7 @@ import {
 } from "@brains/contracts";
 import {
   interfaceRuntime,
+  withAnswers,
   withDaemon,
   withTools,
   withWebRoutes,
@@ -466,10 +467,6 @@ export function createA2AInterface(
         ),
       };
 
-      registerA2ACallMessageHandlers(runtime, clientDeps, {
-        networkAskTimeoutMs: config.networkAskTimeoutMs,
-      });
-
       if (servesHttp) {
         runtime.endpoint({ label: "A2A", url: "/a2a", priority: 25 });
         runtime.interaction({
@@ -496,8 +493,25 @@ export function createA2AInterface(
     },
   });
 
+  /**
+   * The a2a contracts other packages ask it, in the worker too: a job that
+   * asks a peer (a seminar's turn, a shared copy's refresh) runs there, and
+   * this is all of the interface the worker runs.
+   */
+  const withOutbound = withAnswers(a2a, (context) => {
+    const runtime = interfaceRuntime(context);
+    registerA2ACallMessageHandlers(
+      runtime,
+      createClientDeps(runtime, context.config, deps),
+      {
+        networkAskTimeoutMs: context.config.networkAskTimeoutMs,
+        turnTimeoutMs: context.config.turnTimeoutMs,
+      },
+    );
+  });
+
   /** The card, directory and JSON-RPC routes, on the shared webserver only. */
-  const withRoutes = withWebRoutes(a2a, (context: A2ASlotContext) => {
+  const withRoutes = withWebRoutes(withOutbound, (context: A2ASlotContext) => {
     const { config, state } = context;
     if (!state.servesHttp) {
       return [];

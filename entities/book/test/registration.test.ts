@@ -99,6 +99,7 @@ describe("the book package's registered surface", () => {
         'When a question concerns the author\'s ideas or texts, search the sections first: system_search with scope { kind: "type", entityType: "book-section" }.',
         "Ground every claim in sections you found, and cite each section by its siglum and its book's title.",
         "Quote the text verbatim, in the language of the text, even when you answer in another language.",
+        "Answer in the language of the question's own sentences, or the language it asks for: a question that quotes another language, or names works in it, is not asked in that language.",
         "When the books hold nothing on the question, say that the books do not address it instead of answering from general knowledge.",
       ].join("\n"),
     ]);

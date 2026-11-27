@@ -1,5 +1,95 @@
 # @brains/site-organization
 
+## 0.2.0-alpha.783
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/agent-discovery@0.2.0-alpha.783
+  - @brains/faq@0.2.0-alpha.783
+  - @brains/sdk@0.2.0-alpha.783
+  - @brains/profile@0.2.0-alpha.783
+  - @brains/site-atlas@0.2.0-alpha.783
+  - @rizom/brain-ui@0.2.0-alpha.783
+  - @brains/contracts@0.2.0-alpha.783
+  - @brains/site-composition@0.2.0-alpha.783
+  - @brains/utils@0.2.0-alpha.783
+
+## 0.2.0-alpha.782
+
+### Patch Changes
+
+- Updated dependencies [[`72ad2b1`](https://github.com/rizom-ai/brains/commit/72ad2b10b10d2ea5f2067f988ef5b5f75c4082aa)]:
+  - @brains/agent-discovery@0.2.0-alpha.782
+  - @brains/faq@0.2.0-alpha.782
+  - @brains/sdk@0.2.0-alpha.782
+  - @rizom/brain-ui@0.2.0-alpha.782
+  - @brains/profile@0.2.0-alpha.782
+  - @brains/contracts@0.2.0-alpha.782
+  - @brains/site-atlas@0.2.0-alpha.782
+  - @brains/site-composition@0.2.0-alpha.782
+  - @brains/utils@0.2.0-alpha.782
+
+## 0.2.0-alpha.781
+
+### Patch Changes
+
+- Updated dependencies [[`b1b08de`](https://github.com/rizom-ai/brains/commit/b1b08de76f5779cbb32b6f0d0e5e5f20a798f7ab)]:
+  - @brains/contracts@0.2.0-alpha.781
+  - @brains/faq@0.2.0-alpha.781
+  - @brains/agent-discovery@0.2.0-alpha.781
+  - @brains/sdk@0.2.0-alpha.781
+  - @brains/profile@0.2.0-alpha.781
+  - @brains/site-atlas@0.2.0-alpha.781
+  - @rizom/brain-ui@0.2.0-alpha.781
+  - @brains/site-composition@0.2.0-alpha.781
+  - @brains/utils@0.2.0-alpha.781
+
+## 0.2.0-alpha.780
+
+### Patch Changes
+
+- Updated dependencies [[`f9aae55`](https://github.com/rizom-ai/brains/commit/f9aae553b12c1de03839ef758e1321cf6b86c5cc)]:
+  - @brains/contracts@0.2.0-alpha.780
+  - @brains/agent-discovery@0.2.0-alpha.780
+  - @brains/faq@0.2.0-alpha.780
+  - @brains/sdk@0.2.0-alpha.780
+  - @rizom/brain-ui@0.2.0-alpha.780
+  - @brains/profile@0.2.0-alpha.780
+  - @brains/site-atlas@0.2.0-alpha.780
+  - @brains/site-composition@0.2.0-alpha.780
+  - @brains/utils@0.2.0-alpha.780
+
+## 0.2.0-alpha.779
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/agent-discovery@0.2.0-alpha.779
+  - @brains/faq@0.2.0-alpha.779
+  - @brains/sdk@0.2.0-alpha.779
+  - @rizom/brain-ui@0.2.0-alpha.779
+  - @brains/profile@0.2.0-alpha.779
+  - @brains/contracts@0.2.0-alpha.779
+  - @brains/site-atlas@0.2.0-alpha.779
+  - @brains/site-composition@0.2.0-alpha.779
+  - @brains/utils@0.2.0-alpha.779
+
+## 0.2.0-alpha.778
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/agent-discovery@0.2.0-alpha.778
+  - @brains/faq@0.2.0-alpha.778
+  - @brains/sdk@0.2.0-alpha.778
+  - @rizom/brain-ui@0.2.0-alpha.778
+  - @brains/profile@0.2.0-alpha.778
+  - @brains/contracts@0.2.0-alpha.778
+  - @brains/site-atlas@0.2.0-alpha.778
+  - @brains/site-composition@0.2.0-alpha.778
+  - @brains/utils@0.2.0-alpha.778
+
 ## 0.2.0-alpha.777
 
 ### Patch Changes

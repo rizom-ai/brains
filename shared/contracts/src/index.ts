@@ -66,6 +66,7 @@ export {
   a2aAskContract,
   a2aCallContract,
   a2aPeerAnswerSchema,
+  a2aTurnContract,
   type A2ADirectoryAgent,
   type A2APeerAnswer,
   a2aPeerTrustChangedChannel,
@@ -542,3 +543,7 @@ export {
   matrixBotCredentialsSchema,
   type MatrixBotCredentials,
 } from "./matrix";
+export {
+  CANONICAL_BUNDLE_IDS,
+  type CanonicalBundleId,
+} from "./capability-bundles";

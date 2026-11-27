@@ -140,6 +140,7 @@ class InterfaceDeclaration<
       });
     }
     const runtime = this.runtimeFor(context, messages);
+    this.registerAnswers(context, messages);
     this.state = this.definition.setup
       ? await this.definition.setup(
           withInterfaceRuntime(
@@ -246,6 +247,22 @@ class InterfaceDeclaration<
         });
       }
     }
+  }
+
+  /**
+   * The contracts its wrapper answers for the brain's own packages: in the
+   * main process with everything else, and alone in the worker.
+   */
+  registerAnswers(
+    context: InterfacePluginContext,
+    messages: InterfaceMessages | undefined,
+  ): void {
+    this.declarations.answers?.run(
+      withInterfaceRuntime(
+        { config: this.config },
+        this.runtimeFor(context, messages),
+      ),
+    );
   }
 
   /** Runs the ready handlers, in the order they were given. */
@@ -437,6 +454,22 @@ class DeclarativeInterfacePlugin<
     return this.getCapabilities();
   }
 
+  /**
+   * Worker registration: the contracts it answers for the brain's own
+   * packages, and nothing else of it, so a background job can ask them.
+   */
+  async registerChannelsForExecution(
+    shell: IShell,
+    registrationContext?: PluginRegistrationContext,
+  ): Promise<void> {
+    const context = createInterfacePluginContext(shell, this.id, {
+      ...registrationContext,
+      executionOnly: true,
+    });
+    this.context = context;
+    this.declaration.registerAnswers(context, undefined);
+  }
+
   protected override async onRegister(
     context: InterfacePluginContext,
   ): Promise<void> {
@@ -607,6 +640,7 @@ class DeclarativeTransportInterfacePlugin<
     });
     this.context = context;
     this.registerChannels(context);
+    this.declaration.registerAnswers(context, this.messages());
   }
 
   protected override async onRegister(

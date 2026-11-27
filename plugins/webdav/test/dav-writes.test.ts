@@ -13,6 +13,10 @@ function library(): FakeBrain {
     }),
     entity("post", "board-only", { visibility: "restricted" }),
     entity("locked", "rules", { content: doc("Rules") }),
+    entity("sealed", "minutes", {
+      content: doc("Minutes", "status: draft\n"),
+      metadata: { title: "Minutes", status: "draft" },
+    }),
     entity("image", "cover", {
       content: `asset://sha256/${"a".repeat(64)}`,
       metadata: { format: "png" },
@@ -248,6 +252,41 @@ describe("WebDAV saves", () => {
         await dav("PUT", "/dav/post/first.md", {
           as: { level: "admin" },
           body: published,
+        })
+      ).status,
+    ).toBe(204);
+  });
+
+  it("publishes a file nobody may update as it stands, and refuses one that also changes it", async () => {
+    const brain = library();
+    const dav = drive(brain);
+    const as = { level: "admin" } as const;
+
+    expect(
+      (
+        await dav("PUT", "/dav/sealed/minutes.md", {
+          as,
+          body: doc("Minutes", "status: published\n").replace(
+            "Body of Minutes",
+            "Other minutes",
+          ),
+        })
+      ).status,
+    ).toBe(403);
+    expect(
+      (
+        await dav("PUT", "/dav/sealed/minutes.md", {
+          as,
+          body: doc("Edited", "status: published\n"),
+        })
+      ).status,
+    ).toBe(403);
+    expect(brain.updates).toEqual([]);
+    expect(
+      (
+        await dav("PUT", "/dav/sealed/minutes.md", {
+          as,
+          body: doc("Minutes", "status: published\n"),
         })
       ).status,
     ).toBe(204);

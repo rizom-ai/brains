@@ -140,6 +140,7 @@ export interface FirstPartyInterfaceDeclarations {
   readonly daemons: readonly FirstPartySlot<FirstPartyDaemon | undefined>[];
   readonly transport?: FirstPartySlot<MessageTransport> | undefined;
   readonly channels?: FirstPartyChannelsSlot | undefined;
+  readonly answers?: FirstPartyAnswersSlot | undefined;
   readonly webRoutes?:
     FirstPartySlot<readonly WebRouteDefinition[]> | undefined;
   readonly tools?: FirstPartySlot<readonly Tool[]> | undefined;
@@ -161,6 +162,11 @@ export interface FirstPartyChannelsSlot {
   run(
     context: FirstPartyChannelsContext<unknown>,
   ): readonly FirstPartyChannel[];
+}
+
+/** An answers slot as the runtime keeps it, its declared config kept by the method. */
+export interface FirstPartyAnswersSlot {
+  run(context: FirstPartyChannelsContext<unknown>): void;
 }
 
 export const noFirstPartyDeclarations: FirstPartyInterfaceDeclarations =
@@ -295,6 +301,31 @@ export function withChannels<TConfigSchema extends InterfaceConfigSchema>(
     }
     const slot: FirstPartyChannelsSlot = { run: channels };
     return { ...declarations, channels: slot };
+  });
+}
+
+/**
+ * The contracts it answers for the brain's own packages, in the worker as in
+ * the main process, so a background job can ask what only the interface can
+ * do, as a job asks another brain through A2A. The slot answers through
+ * `interfaceRuntime(context).answer`, with `everyProcess` for each contract a
+ * job may ask; it is all of the interface the worker runs, so it is given
+ * the config and no state. Declared once.
+ */
+export function withAnswers<TConfigSchema extends InterfaceConfigSchema>(
+  definition: InterfacePackage<TConfigSchema>,
+  answers: (
+    context: FirstPartyChannelsContext<z.output<TConfigSchema>>,
+  ) => void,
+): InterfacePackage<TConfigSchema> {
+  return rebuildWith(definition, "withAnswers", (declarations) => {
+    if (declarations.answers) {
+      throw new Error(
+        `Interface "${definition.id}" declares its answers more than once`,
+      );
+    }
+    const slot: FirstPartyAnswersSlot = { run: answers };
+    return { ...declarations, answers: slot };
   });
 }
 

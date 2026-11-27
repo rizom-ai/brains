@@ -1,5 +1,71 @@
 # @brains/auth-service
 
+## 0.2.0-alpha.783
+
+### Patch Changes
+
+- Updated dependencies [[`375b33c`](https://github.com/rizom-ai/brains/commit/375b33c14e11cbef1e3caef02fced51f2fd6039b)]:
+  - @brains/plugins@0.2.0-alpha.783
+  - @brains/notifications@0.2.0-alpha.783
+  - @brains/contracts@0.2.0-alpha.783
+  - @brains/db@0.2.0-alpha.783
+  - @brains/utils@0.2.0-alpha.783
+
+## 0.2.0-alpha.782
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/notifications@0.2.0-alpha.782
+  - @brains/contracts@0.2.0-alpha.782
+  - @brains/db@0.2.0-alpha.782
+  - @brains/utils@0.2.0-alpha.782
+  - @brains/plugins@0.2.0-alpha.782
+
+## 0.2.0-alpha.781
+
+### Patch Changes
+
+- Updated dependencies [[`6a9fe95`](https://github.com/rizom-ai/brains/commit/6a9fe9533aa608c32c586f3eb10d27fc532f58b9), [`b1b08de`](https://github.com/rizom-ai/brains/commit/b1b08de76f5779cbb32b6f0d0e5e5f20a798f7ab)]:
+  - @brains/plugins@0.2.0-alpha.781
+  - @brains/contracts@0.2.0-alpha.781
+  - @brains/notifications@0.2.0-alpha.781
+  - @brains/db@0.2.0-alpha.781
+  - @brains/utils@0.2.0-alpha.781
+
+## 0.2.0-alpha.780
+
+### Patch Changes
+
+- Updated dependencies [[`f9aae55`](https://github.com/rizom-ai/brains/commit/f9aae553b12c1de03839ef758e1321cf6b86c5cc)]:
+  - @brains/contracts@0.2.0-alpha.780
+  - @brains/notifications@0.2.0-alpha.780
+  - @brains/plugins@0.2.0-alpha.780
+  - @brains/db@0.2.0-alpha.780
+  - @brains/utils@0.2.0-alpha.780
+
+## 0.2.0-alpha.779
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/notifications@0.2.0-alpha.779
+  - @brains/contracts@0.2.0-alpha.779
+  - @brains/db@0.2.0-alpha.779
+  - @brains/utils@0.2.0-alpha.779
+  - @brains/plugins@0.2.0-alpha.779
+
+## 0.2.0-alpha.778
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/notifications@0.2.0-alpha.778
+  - @brains/contracts@0.2.0-alpha.778
+  - @brains/db@0.2.0-alpha.778
+  - @brains/utils@0.2.0-alpha.778
+  - @brains/plugins@0.2.0-alpha.778
+
 ## 0.2.0-alpha.777
 
 ### Patch Changes

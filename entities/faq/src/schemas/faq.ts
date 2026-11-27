@@ -1,6 +1,6 @@
 import { z } from "@brains/utils/zod";
 import { baseEntityParserSchema } from "@brains/sdk/internal/entity-runtime";
-import { sourceBrainSchema } from "@brains/contracts";
+import { storedSourceSchema } from "@brains/content-formatters";
 
 /**
  * FAQ status
@@ -26,29 +26,17 @@ export const faqAlternativeSchema: FaqAlternativeSchema = z.object({
 
 export type FaqAlternative = z.output<typeof faqAlternativeSchema>;
 
-type FaqSourceSchema = z.ZodObject<{
-  id: z.ZodString;
-  title: z.ZodString;
-  url: z.ZodOptional<z.ZodURL>;
-  brain: z.ZodOptional<typeof sourceBrainSchema>;
-}>;
-
 /**
  * A source the answer drew on when it was first given: the piece, its
  * address and, when it came from another brain, that brain. An asked-before answer shows them again without a lookup.
  */
-export const faqSourceSchema: FaqSourceSchema = z.object({
-  id: z.string().min(1),
-  title: z.string().min(1),
-  url: z.url().optional(),
-  brain: sourceBrainSchema.optional(),
-});
+export const faqSourceSchema: typeof storedSourceSchema = storedSourceSchema;
 
 export type FaqSource = z.output<typeof faqSourceSchema>;
 
 type FaqBodySchema = z.ZodObject<{
   answer: z.ZodString;
-  sources: z.ZodOptional<z.ZodArray<FaqSourceSchema>>;
+  sources: z.ZodOptional<z.ZodArray<typeof storedSourceSchema>>;
   alternatives: z.ZodOptional<z.ZodArray<FaqAlternativeSchema>>;
 }>;
 

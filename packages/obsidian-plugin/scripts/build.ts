@@ -16,7 +16,8 @@ const result = await Bun.build({
   naming: "main.js",
   format: "cjs",
   target: "browser",
-  minify: true,
+  // Left readable: Obsidian's reviewers and anyone curious read this file.
+  minify: false,
   external: ["obsidian", "electron", "@codemirror/*", "@lezer/*"],
 });
 if (!result.success) {

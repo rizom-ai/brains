@@ -1,8 +1,9 @@
 import { join } from "node:path";
 
 /**
- * The files at the root of the plugin's public repository, by name: what
- * Obsidian reads a community plugin from. The built plugin itself goes into
+ * The files of the plugin's public repository, by path: what Obsidian reads
+ * a community plugin from, and a copy of the source under `src/` so a
+ * reviewer finds it next to the plugin. The built plugin itself goes into
  * that repository's releases, not its tree.
  */
 export async function publicRepoFiles(
@@ -10,7 +11,13 @@ export async function publicRepoFiles(
 ): Promise<Record<string, string>> {
   const read = (path: string): Promise<string> =>
     Bun.file(join(root, path)).text();
+  const source = await Promise.all(
+    [...new Bun.Glob("src/**/*.ts").scanSync(root)].map(
+      async (path): Promise<[string, string]> => [path, await read(path)],
+    ),
+  );
   return {
+    ...Object.fromEntries(source),
     "README.md": await read("public/README.md"),
     // The repository's license, which is this package's.
     LICENSE: await read("../../LICENSE"),

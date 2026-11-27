@@ -18,7 +18,7 @@ import {
   applyUpdateOperation,
   buildUpdateDiff,
   describeStoredChange,
-  requiredUpdateAction,
+  requiredUpdateActionsOf,
   resolveReplacementContent,
   sourceFieldKeys,
   validateUpdateOperation,
@@ -286,12 +286,16 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
       );
       if (invalid) return invalid;
 
-      const policyError = entityActionRefusal(
-        services,
-        input.entityType,
-        requiredUpdateAction(entity, operation, entityRegistry),
-        context,
-      );
+      // Every action the write needs: publishing is not permission to edit.
+      const policyError = requiredUpdateActionsOf(
+        entity,
+        operation,
+        entityRegistry,
+      )
+        .map((action) =>
+          entityActionRefusal(services, input.entityType, action, context),
+        )
+        .find((refusal) => refusal !== undefined);
       if (policyError) return policyError;
 
       return input.confirmed

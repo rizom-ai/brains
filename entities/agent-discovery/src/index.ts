@@ -28,9 +28,14 @@ export {
 
 /** Composite config for the agent-discovery feature. */
 export const agentDiscoveryCompositeConfigSchema: z.ZodType<
-  { notifyOnNewAgents: boolean; enableSkillDerivation: boolean },
+  {
+    notifyOnNewAgents: boolean;
+    askAllApproved: boolean;
+    enableSkillDerivation: boolean;
+  },
   {
     notifyOnNewAgents?: boolean | undefined;
+    askAllApproved?: boolean | undefined;
     enableSkillDerivation?: boolean | undefined;
   }
 > = agentToolsConfigSchema.extend({

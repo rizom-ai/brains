@@ -24,13 +24,31 @@ describe("what is published as the plugin's repository", () => {
   it("has the files Obsidian reads at its root", async () => {
     const files = await publicRepoFiles(root);
 
-    expect(Object.keys(files).sort()).toEqual([
-      "LICENSE",
-      "README.md",
-      "manifest.json",
-      "versions.json",
-    ]);
+    expect(
+      Object.keys(files)
+        .filter((name) => !name.startsWith("src/"))
+        .sort(),
+    ).toEqual(["LICENSE", "README.md", "manifest.json", "versions.json"]);
     expect(files["LICENSE"]).toContain("GNU AFFERO GENERAL PUBLIC LICENSE");
+  });
+
+  it("carries the plugin's source, so a reviewer finds it where the plugin is", async () => {
+    const files = await publicRepoFiles(root);
+    const source = Object.keys(files).filter((name) => name.startsWith("src/"));
+    const inPackage = [...new Bun.Glob("src/**/*.ts").scanSync(root)];
+
+    expect(source.sort()).toEqual(inPackage.sort());
+    expect(source).toContain("src/obsidian/main.ts");
+    expect(files["src/engine/engine.ts"]).toBe(
+      await Bun.file(join(root, "src/engine/engine.ts")).text(),
+    );
+    expect(files["README.md"]).toContain("`src/`");
+  });
+
+  it("is built readable, not minified", async () => {
+    const build = await Bun.file(join(root, "scripts/build.ts")).text();
+
+    expect(build).toContain("minify: false");
   });
 
   it("has a manifest Obsidian accepts", async () => {

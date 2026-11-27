@@ -53,6 +53,7 @@ const expectedCatalogIds = [
   "docs",
   "guides",
   "book",
+  "seminar",
   "email-workflows",
   "unified-inbox",
   "linkedin-import",

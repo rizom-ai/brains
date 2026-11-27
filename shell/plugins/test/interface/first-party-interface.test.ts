@@ -18,6 +18,7 @@ import {
   instantiatePluginPackageDefinition,
   interfaceRuntime,
   defineRoute,
+  withAnswers,
   withChannels,
   withDaemon,
   withMessageTransport,
@@ -561,6 +562,80 @@ describe("withChannels", () => {
   it("is refused when declared twice", () => {
     expect(() => withChannels(withMailChannel, () => [])).toThrow(
       'Interface "terminal" declares its channels more than once',
+    );
+  });
+});
+
+describe("withAnswers", () => {
+  const echo = defineBusContract({
+    channel: "terminal:echo",
+    request: z.object({ text: z.string() }),
+    response: z.object({ text: z.string() }),
+    delivery: "request",
+  });
+  const setups: string[] = [];
+  const terminal = withAnswers(
+    withDaemon(
+      defineInterface({
+        id: "terminal",
+        config,
+        setup: (): Record<never, never> => {
+          setups.push("setup");
+          return {};
+        },
+      }),
+      () => ({
+        id: "terminal",
+        start: async (): Promise<void> => {},
+        stop: async (): Promise<void> => {},
+      }),
+    ),
+    (context) => {
+      interfaceRuntime(context).answer(
+        echo,
+        ({ request }) => ({
+          text: `${context.config.greeting} ${request.text}`,
+        }),
+        { everyProcess: true },
+      );
+    },
+  );
+  const ask = (shell: ReturnType<typeof createMockShell>): Promise<unknown> =>
+    shell.getMessageBus().send({
+      type: echo.name,
+      payload: { text: "there" },
+      sender: "a-job",
+    });
+
+  it("answers in the main process, beside everything else it registers", async () => {
+    const shell = createMockShell();
+    await instantiate(terminal).register(shell);
+
+    expect(await ask(shell)).toEqual({
+      success: true,
+      data: { text: "hello there" },
+    });
+    expect(shell.getDaemonRegistry().getAll()).toHaveLength(1);
+  });
+
+  it("answers in the worker, where a job asks from, and registers nothing else of it", async () => {
+    setups.length = 0;
+    const shell = createMockShell();
+    const plugin = instantiate(terminal);
+
+    await plugin.registerChannelsForExecution?.(shell, { executionOnly: true });
+
+    expect(await ask(shell)).toEqual({
+      success: true,
+      data: { text: "hello there" },
+    });
+    expect(setups).toEqual([]);
+    expect(shell.getDaemonRegistry().getAll()).toEqual([]);
+  });
+
+  it("is refused when declared twice", () => {
+    expect(() => withAnswers(terminal, () => {})).toThrow(
+      'Interface "terminal" declares its answers more than once',
     );
   });
 });

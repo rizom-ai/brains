@@ -1,4 +1,7 @@
-import { storedContentRestateContract } from "@brains/contracts";
+import {
+  defineBusContract,
+  storedContentRestateContract,
+} from "@brains/contracts";
 import { afterEach, describe, expect, it, spyOn } from "bun:test";
 import { migrateConversations } from "@brains/conversation-service/migrate";
 import { migrateEntities } from "@brains/entity-service/migrate";
@@ -14,12 +17,14 @@ import {
   defineChannel,
   defineInterface,
   defineServicePlugin,
+  interfaceRuntime,
   instantiatePluginPackageDefinition,
   type Plugin,
   type PluginCapabilities,
   serviceRuntime,
   SYSTEM_CHANNELS,
   type ToolResponse,
+  withAnswers,
   withChannels,
   withDaemon,
   withJobHandlers,
@@ -111,39 +116,57 @@ function createInterfacePlugin(onRegister: () => void): Plugin {
   };
 }
 
+/** What the channel interface answers for a job: whether it can be reached. */
+const reachContract = defineBusContract({
+  channel: "channel-interface:reach",
+  request: z.object({}),
+  response: z.object({ reached: z.boolean() }),
+  delivery: "request",
+});
+
 /**
- * A declared interface that owns a channel, and also sets up, serves a tool
- * and runs a daemon: the worker registers only its channel and sender.
+ * A declared interface that owns a channel and answers a contract for jobs,
+ * and also sets up, serves a tool and runs a daemon: the worker registers
+ * only its channel, its sender and its answer.
  */
 function channelInterface(): { plugin: Plugin; setUp: { done: boolean } } {
   const setUp = { done: false };
   const [plugin] = instantiatePluginPackageDefinition(
     withTools(
       withDaemon(
-        withChannels(
-          defineInterface({
-            id: "channel-interface",
-            config: z.object({}),
-            setup: () => {
-              setUp.done = true;
-              return {};
-            },
-          }),
-          () => [
-            {
-              descriptor: {
-                type: "test-channel",
-                displayName: "Test channel",
-                subjectLabel: "Handle",
+        withAnswers(
+          withChannels(
+            defineInterface({
+              id: "channel-interface",
+              config: z.object({}),
+              setup: () => {
+                setUp.done = true;
+                return {};
               },
-              delivery: {
-                isAvailable: async (): Promise<boolean> => true,
-                send: async (): Promise<ChannelDeliveryResult> => ({
-                  status: "sent",
-                }),
+            }),
+            () => [
+              {
+                descriptor: {
+                  type: "test-channel",
+                  displayName: "Test channel",
+                  subjectLabel: "Handle",
+                },
+                delivery: {
+                  isAvailable: async (): Promise<boolean> => true,
+                  send: async (): Promise<ChannelDeliveryResult> => ({
+                    status: "sent",
+                  }),
+                },
               },
-            },
-          ],
+            ],
+          ),
+          (context) => {
+            interfaceRuntime(context).answer(
+              reachContract,
+              () => ({ reached: true }),
+              { everyProcess: true },
+            );
+          },
         ),
         () => ({
           id: "server",
@@ -588,7 +611,7 @@ describe("supervised runtime process roles", () => {
     { name: "worker", processRole: "worker", fullyRegistered: false },
     { name: "combined", processRole: undefined, fullyRegistered: true },
   ] as const)(
-    "registers each interface's channels and senders: $name",
+    "registers each interface's channels, senders and answers: $name",
     async ({ processRole, fullyRegistered }) => {
       const directory = await createTestDirectory();
       cleanups.push(directory.cleanup);
@@ -630,6 +653,14 @@ describe("supervised runtime process roles", () => {
           sensitivity: "normal",
         }),
       ).toEqual({ status: "sent" });
+      // A job asks from the worker, so its answer is registered there too.
+      expect(
+        await messageBus.send({
+          type: reachContract.name,
+          payload: {},
+          sender: "a-job",
+        }),
+      ).toEqual({ success: true, data: { reached: true } });
       expect(channels.setUp.done).toBe(fullyRegistered);
       expect(
         shell

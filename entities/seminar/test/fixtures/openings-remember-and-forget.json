@@ -1,0 +1,124 @@
+{
+  "karl.rizom.ai": {
+    "state": "completed",
+    "response": "I find no passage in these sections that gives a direct rule for what a community should remember or forget. I can offer only a limited inference from what they do say.\n\nHistory is not a store of fixed lessons or purposes: each generation inherits conditions from those before it, carries on activity under altered circumstances, and changes those conditions in turn. I write that history is “die Aufeinanderfolge der einzelnen Generationen,” each of which “die ihr von allen vorhergegangenen übermachten Materiale, Kapitalien, Produkionskräfte exploitiert” (*The German Ideology*, “Über die Produktion des Bewußtseins,” Ideologie, 44).\n\nSo a community should remember the material conditions and inherited relations that shape its life—and how people have acted upon and altered them. It should not mistake those inherited conditions for an eternal order or imagine that earlier generations made them for the sake of ours: “ohne indes sich einzubilden, es sei der Plan oder die Bestimmung der bisherigen Generationen gewesen, ihnen Material zu liefern” (*The German Ideology*, “Kommunismus. – Produktion der Verkehrsform selbst,” Ideologie, 70).\n\nThat is not a doctrine of collective forgetting. These passages say nothing specific about what a community ought to erase from memory; I will not supply an answer they do not contain.",
+    "sources": [
+      {
+        "id": "book-section:die-deutsche-ideologie:00001-i-band-kritik-der-neuesten-deutschen-philosophie-in-ihren-repraesentanten-feuerbach-b-bauer-und-stirner:00002-i-feuerbach-gegensatz-von-materialistischer-und-idealistischer-anschauung:00003-a-die-ideologie-ueberhaupt-namentlich-die-deutsche:00016-2-ueber-die-produktion-des-bewusstseins",
+        "title": "Ideologie, 44",
+        "source": "book-section",
+        "url": "https://karl.rizom.ai/books/die-deutsche-ideologie/16",
+        "entityType": "book-section",
+        "entityId": "die-deutsche-ideologie:00001-i-band-kritik-der-neuesten-deutschen-philosophie-in-ihren-repraesentanten-feuerbach-b-bauer-und-stirner:00002-i-feuerbach-gegensatz-von-materialistischer-und-idealistischer-anschauung:00003-a-die-ideologie-ueberhaupt-namentlich-die-deutsche:00016-2-ueber-die-produktion-des-bewusstseins",
+        "excerpt": "Feuerbach hat allerdings den großen Vorzug vor den „reinen“ Materialisten, daß er einsieht, wie auch der Mensch „sinnlicher Gegenstand“ ist; aber abgesehen davon, daß er ihn nur als „sinnlichen Gegenstand“, nicht als „sinnliche Tätigkeit“ faßt, da er sich auch hierbei in der Theorie hält, die Menschen nicht in ihrem gegebenen gesellschaftlichen Zusammenhange, nicht unter ihren vorliegenden Lebensbedingungen, die sie zu Dem gemacht haben, was sie sind, auffaßt, so kommt er nie zu den wirklich ex…",
+        "provenance": {
+          "toolName": "system_search",
+          "score": 0.5141783863306045
+        }
+      },
+      {
+        "id": "book-section:die-deutsche-ideologie:00001-i-band-kritik-der-neuesten-deutschen-philosophie-in-ihren-repraesentanten-feuerbach-b-bauer-und-stirner:00002-i-feuerbach-gegensatz-von-materialistischer-und-idealistischer-anschauung:00030-c-kommunismus-produktion-der-verkehrsform-selbst",
+        "title": "Ideologie, 70",
+        "source": "book-section",
+        "url": "https://karl.rizom.ai/books/die-deutsche-ideologie/30",
+        "entityType": "book-section",
+        "entityId": "die-deutsche-ideologie:00001-i-band-kritik-der-neuesten-deutschen-philosophie-in-ihren-repraesentanten-feuerbach-b-bauer-und-stirner:00002-i-feuerbach-gegensatz-von-materialistischer-und-idealistischer-anschauung:00030-c-kommunismus-produktion-der-verkehrsform-selbst",
+        "excerpt": "Der Kommunismus unterscheidet sich von allen bisherigen Bewegungen dadurch, daß er die Grundlage aller bisherigen Produktions- und Verkehrsverhältnisse umwälzt und alle naturwüchsigen Voraussetzungen zum ersten Mal mit Bewußtsein als Geschöpfe der bisherigen Menschen behandelt, ihrer Naturwüchsigkeit entkleidet und der Macht der vereinigten Individuen unterwirft. Seine Einrichtung ist daher wesentlich ökonomisch, die materielle Herstellung der Bedingungen dieser Vereinigung; sie macht die vorha…",
+        "provenance": {
+          "toolName": "system_search",
+          "score": 0.499873611330986
+        }
+      }
+    ]
+  },
+  "friedrich.rizom.ai": {
+    "state": "completed",
+    "response": "I would not prescribe one common storehouse of memories for every community. The past should be kept insofar as it serves life—and judged when it becomes a burden.\n\nA community may remember what gives it roots: I call history “dem Bewahrenden und Verehrenden” when it lovingly tends what formed it, and thereby preserves “die Bedingungen, unter denen er entstanden ist, für solche … welche nach ihm entstehen sollen” (*On the Uses and Disadvantages of History for Life*, HL-3). But reverence must not turn age into an unquestionable claim: antiquarian history can “den kräftigen Entschluss zum Neuen” hinder and paralyze those who act (HL-3).\n\nIt should forget what it cannot carry without being crushed by it. “Das Vergangene vergessen werden muss, wenn es nicht zum Todtengräber des Gegenwärtigen werden soll,” I write; health depends on knowing “zur rechten Zeit zu vergessen” as well as remembering (*On the Uses and Disadvantages of History for Life*, HL-1). Forgetting is not simply weakness: it is “eine Thürwärterin” that makes room for “Ruhe” and “Neues” (*On the Genealogy of Morality*, GM-II-1).\n\nYet forgetting must not shield the past from judgment. At times, a community must “eine Vergangenheit zu zerbrechen und aufzulösen, um leben zu können”; the critical use of history serves life by bringing inherited things before judgment (*On the Uses and Disadvantages of History for Life*, HL-3).\n\nSo: remember what nourishes continuity and future life; forget what has become a dead weight; and critically break with what must be overcome. The measure is not memory for its own sake, but whether memory and forgetting leave a people able to live and create (HL-1; HL-3; GM-II-1).",
+    "sources": [
+      {
+        "id": "book-section:unzeitgemaesse-betrachtungen:00033-zweites-stueck-vom-nutzen-und-nachtheil-der-historie-fuer-das-leben:00035-1",
+        "title": "HL-1",
+        "source": "book-section",
+        "url": "https://friedrich.rizom.ai/books/unzeitgemaesse-betrachtungen/35",
+        "entityType": "book-section",
+        "entityId": "unzeitgemaesse-betrachtungen:00033-zweites-stueck-vom-nutzen-und-nachtheil-der-historie-fuer-das-leben:00035-1",
+        "excerpt": "Betrachte die Heerde, die an dir vorüberweidet: sie weiss nicht was Gestern, was Heute ist, springt umher, frisst, ruht, verdaut, springt wieder, und so vom Morgen bis zur Nacht und von Tage zu Tage, kurz angebunden mit ihrer Lust und Unlust, nämlich an den Pflock des Augenblickes und deshalb weder schwermüthig noch überdrüssig. Dies zu sehen geht dem Menschen hart ein, weil er seines Menschenthums sich vor dem Thiere brüstet und doch nach seinem Glücke eifersüchtig hinblickt — denn das will er…",
+        "provenance": {
+          "toolName": "system_search",
+          "score": 0.5273393183946609
+        }
+      },
+      {
+        "id": "book-section:zur-genealogie-der-moral:00027-zweite-abhandlung-schuld-schlechtes-gewissen-und-verwandtes:00027-1",
+        "title": "GM-II-1",
+        "source": "book-section",
+        "url": "https://friedrich.rizom.ai/books/zur-genealogie-der-moral/27",
+        "entityType": "book-section",
+        "entityId": "zur-genealogie-der-moral:00027-zweite-abhandlung-schuld-schlechtes-gewissen-und-verwandtes:00027-1",
+        "excerpt": "Ein Thier heranzüchten, das *versprechen darf* — ist das nicht gerade jene paradoxe Aufgabe selbst, welche sich die Natur in Hinsicht auf den Menschen gestellt hat? ist es nicht das eigentliche Problem *vom* Menschen?… Dass dies Problem bis zu einem hohen Grad gelöst ist, muss Dem um so erstaunlicher erscheinen, der die entgegen wirkende Kraft, die der *Vergesslichkeit*, vollauf zu würdigen weiss. Vergesslichkeit ist keine blosse vis inertiae, wie die Oberflächlichen glauben, sie ist vielmehr e…",
+        "provenance": {
+          "toolName": "system_search",
+          "score": 0.5225111246109009
+        }
+      },
+      {
+        "id": "book-section:unzeitgemaesse-betrachtungen:00033-zweites-stueck-vom-nutzen-und-nachtheil-der-historie-fuer-das-leben:00041-3",
+        "title": "HL-3",
+        "source": "book-section",
+        "url": "https://friedrich.rizom.ai/books/unzeitgemaesse-betrachtungen/41",
+        "entityType": "book-section",
+        "entityId": "unzeitgemaesse-betrachtungen:00033-zweites-stueck-vom-nutzen-und-nachtheil-der-historie-fuer-das-leben:00041-3",
+        "excerpt": "Die Geschichte gehört also zweitens dem Bewahrenden und Verehrenden, dem, der mit Treue und Liebe dorthin zurückblickt, woher er kommt, worin er geworden ist; durch diese Pietät trägt er gleichsam den Dank für sein Dasein ab. Indem er das von Alters her Bestehende mit behutsamer Hand pflegt, will er die Bedingungen, unter denen er entstanden ist, für solche bewahren, welche nach ihm entstehen sollen — und so dient er dem Leben. Der Besitz von Urväter-Hausrath verändert in einer solchen Seele se…",
+        "provenance": {
+          "toolName": "system_search",
+          "score": 0.5196735888719558
+        }
+      },
+      {
+        "id": "book-section:unzeitgemaesse-betrachtungen:00033-zweites-stueck-vom-nutzen-und-nachtheil-der-historie-fuer-das-leben:00042-3",
+        "title": "HL-3",
+        "source": "book-section",
+        "url": "https://friedrich.rizom.ai/books/unzeitgemaesse-betrachtungen/42",
+        "entityType": "book-section",
+        "entityId": "unzeitgemaesse-betrachtungen:00033-zweites-stueck-vom-nutzen-und-nachtheil-der-historie-fuer-das-leben:00042-3",
+        "excerpt": "Aber selbst, wenn jene Entartung nicht eintritt, wenn die antiquarische Historie das Fundament, auf dem sie allein zum Heile des Lebens wurzeln kann, nicht verliert: immer bleiben doch genug Gefahren übrig, falls sie nämlich allzu mächtig wird und die andern Arten, die Vergangenheit zu betrachten, überwuchert. Sie versteht eben allein Leben zu *bewahren*, nicht zu zeugen; deshalb unterschätzt sie immer das Werdende, weil sie für dasselbe keinen errathenden Instinct hat — wie ihn zum Beispiel di…",
+        "provenance": {
+          "toolName": "system_search",
+          "score": 0.5013124585151673
+        }
+      },
+      {
+        "id": "book-section:unzeitgemaesse-betrachtungen:00033-zweites-stueck-vom-nutzen-und-nachtheil-der-historie-fuer-das-leben:00036-1",
+        "title": "HL-1",
+        "source": "book-section",
+        "url": "https://friedrich.rizom.ai/books/unzeitgemaesse-betrachtungen/36",
+        "entityType": "book-section",
+        "entityId": "unzeitgemaesse-betrachtungen:00033-zweites-stueck-vom-nutzen-und-nachtheil-der-historie-fuer-das-leben:00036-1",
+        "excerpt": "Um diesen Grad und durch ihn dann die Grenze zu bestimmen, an der das Vergangene vergessen werden muss, wenn es nicht zum Todtengräber des Gegenwärtigen werden soll, müsste man genau wissen, wie gross die *plastische Kraft* eines Menschen, eines Volkes, einer Cultur ist, ich meine jene Kraft, aus sich heraus eigenartig zu wachsen, Vergangenes und Fremdes umzubilden und einzuverleiben, Wunden auszuheilen, Verlorenes zu ersetzen, zerbrochene Formen aus sich nachzuformen. Es giebt Menschen die die…",
+        "provenance": {
+          "toolName": "system_search",
+          "score": 0.5001094937324524
+        }
+      }
+    ]
+  },
+  "sigmund.rizom.ai": {
+    "state": "completed",
+    "response": "I find no rule in my works prescribing what a community ought to remember or forget. I can offer a caution, not a social programme: forgetting may serve an unacknowledged wish to avoid what is painful, and a people’s traditions may bear the mark of that wish.\n\nI wrote: „Daß man bei der Entstehung der Traditionen und der Sagengeschichte eines Volkes einem solchen Motiv, das dem Nationalgefühl Peinliche aus der Erinnerung auszumerzen, Rechnung tragen muß, wird allgemein zugestanden.“ I add that a closer inquiry might show an analogy between the formation of national traditions and individual childhood memories. (*Zur Psychopathologie des Alltagslebens*, **GW IV, 162**.)\n\nSo I would not advise a community simply to preserve everything or to erase what wounds it. I would ask it to examine what its remembering and forgetting conceal—especially when an account leaves out what is painful or inconvenient. That is an inference from my account of motivated forgetting, not a prescription I set down for communities. (*Zur Psychopathologie des Alltagslebens*, **GW IV, 162**.)",
+    "sources": [
+      {
+        "id": "book-section:zur-psychopathologie-des-alltagslebens:00042-vi-verlesen-und-verschreiben:00060-b-verschreiben",
+        "title": "GW IV, 162",
+        "source": "book-section",
+        "url": "https://sigmund.rizom.ai/books/zur-psychopathologie-des-alltagslebens/60",
+        "entityType": "book-section",
+        "entityId": "zur-psychopathologie-des-alltagslebens:00042-vi-verlesen-und-verschreiben:00060-b-verschreiben",
+        "excerpt": "Man findet also auch bei gesunden, nicht neurotischen Menschen reichlich Anzeichen dafür, daß sich der Erinnerung an peinliche Eindrücke, der Vorstellung peinlicher Gedanken, ein Widerstand entgegensetzt”. Die volle Bedeutung dieser Tatsache läßt sich aber erst ermessen, wenn man in die Psychologie neurotischer Personen eingeht. Man ist genötigt, ein solches elementares Abwehrbestreben gegen Vorstellungen, welche Unlustempfindungen erwecken können, ein Bestreben, das sich nur dem Fluchtreflex b…",
+        "provenance": {
+          "toolName": "system_search",
+          "score": 0.4799161076545715
+        }
+      }
+    ]
+  }
+}

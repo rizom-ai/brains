@@ -70,6 +70,7 @@ import conflictPackage from "@brains/conflict";
 import promptPackage from "@brains/prompt";
 import refinedNotePackage from "@brains/refined-note";
 import onboardingPackage from "@brains/onboarding";
+import seminarPackage from "@brains/seminar";
 import seriesPackage from "@brains/series";
 import siteBuilderPackage from "@brains/site-builder-plugin";
 import siteContentPackage from "@brains/site-content";
@@ -314,7 +315,7 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     [
       "agents",
       (config): Plugin[] => {
-        const { enableSkillDerivation, notifyOnNewAgents } =
+        const { enableSkillDerivation, notifyOnNewAgents, askAllApproved } =
           agentDiscoveryCompositeConfigSchema.parse(config);
         const metadata = {
           name: "@brains/agent-discovery",
@@ -329,7 +330,7 @@ export const canonicalBrain: BrainDefinition = defineBrain({
           ),
           ...instantiatePluginPackageDefinition(
             agentToolsPackage,
-            { notifyOnNewAgents },
+            { notifyOnNewAgents, askAllApproved },
             metadata,
             { pluginId: "agent" },
           ),
@@ -506,6 +507,12 @@ export const canonicalBrain: BrainDefinition = defineBrain({
       // inside itself: book-section installs as itself, book apart.
       pluginId: "book",
       ownedTypePluginId: "book-entity",
+    }),
+    // The service under seminar, so its tool is seminar_hold and its job
+    // seminar:hold; the seminar type installs apart.
+    packageCapability("seminar", "@brains/seminar", seminarPackage, {
+      pluginId: "seminar",
+      ownedTypePluginId: "seminar-entity",
     }),
 
     packageCapability(
