@@ -278,6 +278,9 @@ export function StudioEditorPane(
             <StudioDestination
               kind={hierarchyKind}
               segment={mode.segment ?? ""}
+              followsTitle={
+                titleField !== undefined && mode.segmentFollowsTitle === true
+              }
               onSegmentChange={(segment) =>
                 dispatchEditor({ type: "segmentChanged", segment })
               }

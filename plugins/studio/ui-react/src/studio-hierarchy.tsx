@@ -1,10 +1,12 @@
 /** @jsxImportSource react */
 import {
   useId,
+  useState,
   type MouseEvent,
   type ReactElement,
   type ReactNode,
 } from "react";
+import { Button } from "@brains/app-ui-react";
 import type { EntityIdPath } from "@brains/sdk/internal/entity-runtime";
 import type { StudioCollectionQuery } from "../../src/collection-query";
 import {
@@ -208,6 +210,8 @@ function segmentMessage(message: string): string {
 export function StudioDestination(props: {
   kind?: HierarchyKind;
   segment: string;
+  /** The file is named after the title: one line until it is changed. */
+  followsTitle?: boolean;
   onSegmentChange: (segment: string) => void;
   preview: DestinationPreview | null;
   pending: boolean;
@@ -231,6 +235,32 @@ export function StudioDestination(props: {
   const segmentInvalid =
     issue?.path[0] === "segment" || (!issues?.length && Boolean(props.error));
   const preview = !props.pending && !props.error ? props.preview : null;
+  const [changing, setChanging] = useState(false);
+  if (props.followsTitle && !changing && !segmentInvalid && !error)
+    return (
+      <section
+        aria-label="New entry destination"
+        className={editorClassName("", styles.destination)}
+      >
+        <p className={editorClassName("", styles.saveAs)}>
+          Saves as{" "}
+          <span className={editorClassName("", styles.value)}>
+            {preview
+              ? preview.filePath === null
+                ? emphasizeRange(preview.entityId, preview.entityLeaf)
+                : emphasizeRange(preview.filePath, preview.fileLeaf)
+              : "a file named after its title"}
+          </span>{" "}
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => setChanging(true)}
+          >
+            Change
+          </Button>
+        </p>
+      </section>
+    );
   return (
     <section
       aria-label="New entry destination"

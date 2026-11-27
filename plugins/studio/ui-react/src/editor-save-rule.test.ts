@@ -63,6 +63,23 @@ describe("editorSaveBlockReason", () => {
     ).toBe("Name the file to create this entry.");
   });
 
+  it("asks for a title when the file is named after it", () => {
+    expect(
+      editorSaveBlockReason(
+        creating,
+        model({
+          destinationBlocked: true,
+          presentation: "split",
+          entitySchema: {
+            ...schema,
+            fields: [{ name: "title", label: "Title", widget: "string" }],
+          },
+        }),
+        false,
+      ),
+    ).toBe("Give this entry a title to create it.");
+  });
+
   it("points at invalid fields", () => {
     const state: EditorWorkflowState = {
       ...editing(),

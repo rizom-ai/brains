@@ -6,7 +6,7 @@ import {
   StudioFolderRows,
   StudioDestination,
 } from "./studio-hierarchy";
-import { ApiError } from "./api";
+import { ApiError, type DestinationPreview } from "./api";
 import { studioCollectionQuerySchema } from "../../src/collection-query";
 import {
   editorWorkflowReducer,
@@ -105,6 +105,43 @@ describe("Studio folder presentation", () => {
     expect(rows).toContain("Also sprach Zarathustra");
     expect(rows).not.toContain(">Zara<");
   });
+  test("a file named after its title is one line until you change it", () => {
+    const preview: DestinationPreview = {
+      idPath: ["why-sensor-data"],
+      entityId: "why-sensor-data",
+      entityLeaf: { start: 0, end: 15 },
+      filePath: "post/why-sensor-data.md",
+      fileLeaf: null,
+    };
+    const folded = renderToStaticMarkup(
+      <StudioDestination
+        segment="why-sensor-data"
+        followsTitle
+        onSegmentChange={() => {}}
+        preview={preview}
+        pending={false}
+        error={null}
+      />,
+    );
+    expect(folded).toContain("Saves as");
+    expect(folded).toContain("post/why-sensor-data.md");
+    expect(folded).toContain(">Change<");
+    expect(folded).not.toContain('name="segment"');
+    // A rejected name opens the field so it can be fixed.
+    const rejected = renderToStaticMarkup(
+      <StudioDestination
+        segment="why-sensor-data"
+        followsTitle
+        onSegmentChange={() => {}}
+        preview={null}
+        pending={false}
+        error={null}
+        issues={[{ path: ["segment"], message: "already exists" }]}
+      />,
+    );
+    expect(rejected).toContain('name="segment"');
+  });
+
   test("creation shows server-returned identity and placement, never inventing a file path", () => {
     const html = renderToStaticMarkup(
       <StudioDestination
