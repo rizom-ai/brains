@@ -13,13 +13,15 @@ import {
   editorClassName as editorClass,
   editorStyles,
 } from "./studio-editor.styles";
-import { typeHasPublicationField } from "./entity-fields";
 import { StudioPageHead } from "./studio-page-head";
 import {
   entityGenerationState,
-  entityPublicationState,
+  entityRowDate,
+  entityRowStatus,
   entityTitle,
   formatUpdated,
+  optionLabel,
+  rowDateText,
   sentenceLabel,
 } from "./ui-utils";
 import type { EntitySummary } from "./api";
@@ -330,6 +332,8 @@ function LibraryRow(props: {
   const query = view.collectionQuery;
   const title = entityTitle(entity, entity.path?.at(-1));
   const generation = entityGenerationState(entity);
+  const status = entityRowStatus(entity, entitySchema.fields);
+  const rowDate = entityRowDate(entity, entitySchema.fields);
   const open = (): void => view.openEntity(entity.id, entity.entityType);
   // A row is a link, so it opens in a new tab or copies like any other; a
   // plain click opens the entry in place.
@@ -368,14 +372,14 @@ function LibraryRow(props: {
           </time>
         </span>
       )}
-      {typeHasPublicationField(entitySchema.fields) && (
+      {status && (
         <span
           className={editorClass(
             "studio-publication-state",
             editorStyles.publication,
           )}
         >
-          {entityPublicationState(entity)}
+          {optionLabel(status)}
         </span>
       )}
       {generation && (
@@ -417,10 +421,10 @@ function LibraryRow(props: {
           {titleCell}
           <time
             className={editorClass("", library.updated, refineStyles.updated)}
-            dateTime={entity.updated}
-            title={entity.updated}
+            dateTime={rowDate.iso}
+            title={rowDate.iso}
           >
-            {formatUpdated(entity.updated)}
+            {rowDateText(rowDate)}
           </time>
         </a>
       </div>
@@ -448,10 +452,10 @@ function LibraryRow(props: {
       ) : (
         <time
           className={editorClass("", library.updated)}
-          dateTime={entity.updated}
-          title={entity.updated}
+          dateTime={rowDate.iso}
+          title={rowDate.iso}
         >
-          {formatUpdated(entity.updated)}
+          {rowDateText(rowDate)}
         </time>
       )}
     </a>

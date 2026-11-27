@@ -100,7 +100,11 @@ export const entities = [
     id: "responsive-console",
     entityType: "posts",
     // Published entity so the library pins both publication chip states.
-    frontmatter: { title: "A console that travels well", published: true },
+    frontmatter: {
+      title: "A console that travels well",
+      published: true,
+      publishedAt: "2026-06-30T08:00:00.000Z",
+    },
     updated: "2026-07-10T10:32:00.000Z",
   },
   {
@@ -537,6 +541,7 @@ export const postsSchema = {
       label: "Publish date",
       widget: "datetime",
       required: false,
+      column: "date",
     },
     {
       name: "coverImageId",

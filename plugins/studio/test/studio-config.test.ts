@@ -230,3 +230,21 @@ describe("secret fields", () => {
     );
   });
 });
+
+describe("row columns", () => {
+  it("marks the field a Library row shows in a column", () => {
+    expect(
+      zodFieldToStudioWidget(
+        "publishedAt",
+        z.string().datetime().optional().meta({ studioColumn: "date" }),
+      ),
+    ).toMatchObject({
+      name: "publishedAt",
+      widget: "datetime",
+      column: "date",
+    });
+    expect(
+      zodFieldToStudioWidget("publishedAt", z.string().datetime()),
+    ).not.toHaveProperty("column");
+  });
+});

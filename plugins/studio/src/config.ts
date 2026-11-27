@@ -49,6 +49,21 @@ export interface StudioFieldWidget {
   fields?: StudioFieldWidget[];
   /** Holds a credential: kept out of drafts saved in the browser. */
   secret?: true;
+  /** The column of a Library row this field fills. */
+  column?: StudioRowColumn;
+}
+
+/** What a field can show in a Library row, beside the title and status. */
+export type StudioRowColumn = "date" | "excerpt" | "cover";
+const STUDIO_ROW_COLUMNS: readonly StudioRowColumn[] = [
+  "date",
+  "excerpt",
+  "cover",
+];
+
+function readStudioColumn(fieldSchema: unknown): StudioRowColumn | undefined {
+  const column = readMetadata(fieldSchema)?.["studioColumn"];
+  return STUDIO_ROW_COLUMNS.find((candidate) => candidate === column);
 }
 
 const LONG_TEXT_FIELDS = new Set([
@@ -163,6 +178,7 @@ export function zodFieldToStudioWidget(
   const kind = getKind(inner);
   const effectiveDefault = defaultValue ?? readLiteralValue(inner);
   const condition = readStudioCondition(fieldSchema);
+  const column = readStudioColumn(fieldSchema);
 
   const base: StudioFieldWidget = {
     name,
@@ -175,6 +191,8 @@ export function zodFieldToStudioWidget(
     ...(readMetadata(fieldSchema)?.["studioSecret"] === true && {
       secret: true as const,
     }),
+    // A schema puts a field in a row column with `.meta({ studioColumn })`.
+    ...(column && { column }),
   };
 
   const studioWidget = readStudioWidget(fieldSchema);

@@ -108,6 +108,8 @@ export interface FieldDescriptor {
   fields?: FieldDescriptor[];
   /** Holds a credential: kept out of drafts saved in the browser. */
   secret?: true;
+  /** The column of a Library row this field fills. */
+  column?: "date" | "excerpt" | "cover";
 }
 
 export type { StudioMember } from "../../src/editor-contracts";

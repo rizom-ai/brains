@@ -74,7 +74,7 @@ export const deckFrontmatterSchema: DeckFrontmatterSchema = z.object({
   description: z.string().optional(),
   author: z.string().optional(),
   status: deckStatusSchema,
-  publishedAt: z.string().datetime().optional(),
+  publishedAt: z.string().datetime().optional().meta({ studioColumn: "date" }),
   event: z.string().optional(),
   coverImageId: z.string().optional(), // References an image entity by ID
   ogImageId: z.string().optional(), // References an image entity for social previews

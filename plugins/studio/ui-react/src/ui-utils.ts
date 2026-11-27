@@ -50,11 +50,31 @@ export function formatUpdated(iso: string): string {
   const days = Math.floor(hours / 24);
   if (days === 1) return "yesterday";
   if (days < 14) return `${days} days ago`;
+  return formatDay(iso);
+}
+
+/** A calendar day: "Nov 20, 2025". */
+export function formatDay(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
   return date.toLocaleDateString(undefined, {
     day: "numeric",
     month: "short",
     year: "numeric",
   });
+}
+
+/**
+ * A row's date in words: the day it was published ("Nov 20, 2025"), which its
+ * status already names, or when it was edited ("Edited 2 minutes ago").
+ */
+export function rowDateText(date: {
+  kind: "published" | "edited";
+  iso: string;
+}): string {
+  if (date.kind === "published") return formatDay(date.iso);
+  const edited = formatUpdated(date.iso);
+  return `Edited ${edited.charAt(0).toLowerCase()}${edited.slice(1)}`;
 }
 
 export function entityPublicationState(
@@ -63,6 +83,41 @@ export function entityPublicationState(
   const status = entity.frontmatter["status"];
   if (status === "published") return "published";
   return entity.frontmatter["published"] === true ? "published" : "draft";
+}
+
+/**
+ * The status a Library row states: the entry's own status value, or draft and
+ * published for a type with a published switch. Generating and failed are
+ * left to the row's generation marker.
+ */
+export function entityRowStatus(
+  entity: EntitySummary,
+  fields: readonly FieldDescriptor[],
+): string | null {
+  const status = entity.frontmatter["status"];
+  const statusField = fields.find((field) => field.name === "status");
+  if (
+    typeof status === "string" &&
+    statusField?.options?.includes(status) === true
+  )
+    return status === "generating" || status === "failed" ? null : status;
+  if (fields.some((field) => field.name === "published"))
+    return entity.frontmatter["published"] === true ? "published" : "draft";
+  return null;
+}
+
+/** The date that means something for a row: when it was published, else edited. */
+export function entityRowDate(
+  entity: EntitySummary,
+  fields: readonly FieldDescriptor[],
+): { kind: "published" | "edited"; iso: string } {
+  const dateField = fields.find((field) => field.column === "date");
+  const published = dateField ? entity.frontmatter[dateField.name] : undefined;
+  return entityPublicationState(entity) === "published" &&
+    typeof published === "string" &&
+    !Number.isNaN(Date.parse(published))
+    ? { kind: "published", iso: published }
+    : { kind: "edited", iso: entity.updated };
 }
 
 /**

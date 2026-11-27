@@ -1585,6 +1585,43 @@ describe("capability-aware Studio controls", () => {
     expect(edit).toContain("Add to queue");
   });
 
+  it("dates a row by what it means and states its own status", () => {
+    const fields: FieldDescriptor[] = [
+      stringField,
+      {
+        name: "status",
+        label: "Status",
+        widget: "enum",
+        options: ["draft", "queued", "published"],
+      },
+      {
+        name: "publishedAt",
+        label: "Published At",
+        widget: "datetime",
+        column: "date",
+      },
+    ];
+    const published = renderCapabilityView(allowedCapabilities, "browse", {
+      fields,
+      frontmatter: {
+        title: "Post one",
+        status: "published",
+        publishedAt: "2025-11-20T01:00:00.000Z",
+      },
+    });
+    expect(published).toContain(">Published</span>");
+    expect(published).toContain('dateTime="2025-11-20T01:00:00.000Z"');
+    // The status already says it is published; the date is the day.
+    expect(published).toContain(">Nov 20, 2025</time>");
+    const queued = renderCapabilityView(allowedCapabilities, "browse", {
+      fields,
+      frontmatter: { title: "Post one", status: "queued" },
+    });
+    expect(queued).toContain(">Queued</span>");
+    expect(queued).toContain('dateTime="2026-07-01T00:00:00.000Z"');
+    expect(queued).toMatch(/Edited [^<]+/);
+  });
+
   it("retains collection navigation and the open document when a read fails", () => {
     for (const mode of ["browse", "edit"] as const) {
       const html = renderCapabilityView(allowedCapabilities, mode, {
