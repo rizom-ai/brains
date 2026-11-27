@@ -139,6 +139,23 @@ Agent evals at `6447e82d63`, 2026-11-19, after #978, #980, #982 and #1004, same 
 - The two local headless runs took 9.4 s and 17.3 s per case; another session's evals shared the machine during the slower one.
 - Weights: `qwen3:8b` with `qwen3-vl:8b` is 11.4 GB and `qwen3:14b` with it 15.5 GB, against 41.2 GB for the local configuration's two text models.
 
+Agent evals at `d3c0c92252`, 2026-11-26, same judge, Ollama 0.40.18 (the first release that runs the `inkling2_loop` GGUF off Apple silicon, llama.cpp `b12651`) with Vulkan and a 32,768-token context: headless (37 cases) two runs and personal (31 cases) three runs each, budgets on the models' own token counts:
+
+| Model                                                                                                           | Headless (mean) | Personal (mean) | Avg duration: headless, personal |
+| --------------------------------------------------------------------------------------------------------------- | --------------- | --------------- | -------------------------------- |
+| `inkling-2-mini` (26.4B, 3.4B active, IQ4_NL, 18 GB) deciding and seeing images itself, instruct-2507 answering | 30.5/37 (82%)   | 28.3/31 (91%)   | 17–19 s, 25–37 s                 |
+| the same at `reasoningEffort: medium`                                                                           | 30.5/37 (82%)   | 28.0/31 (90%)   | 19–26 s, 26–48 s                 |
+| `qwen3.6:35b` deciding and seeing images itself, instruct-2507 answering                                        | 32.5/37 (88%)   | 26.3/31 (85%)   | 8–18 s, 17–22 s                  |
+
+- Runs: `inkling-2-mini` 31 and 30, then 28, 28 and 29; at medium effort 30 and 31, then 29, 27 and 28; `qwen3.6:35b` 33 and 32, then 27, 25 and 27. All 49 of Inkling's layers run on the GPU (16.3 GB).
+- 11 of Inkling's 13 headless failures are a token budget alone. On the same prompts with the same tool calls it counts the prompt 10–17% larger (13,880 against 11,878 tokens on the no-repetition case), while its own output is shorter (169 against 389 tokens a case). On criteria alone it passes 36 and 36 of 37, against 34 and 33 for `qwen3.6:35b`.
+- Since #1056 a budget counts every model's calls with one tokenizer; with the budgets restated, `inkling-2-mini` passes headless 36 of 37 and the cloud default 37 of 37. Inkling's one failure is skill derivation's judged accuracy.
+- Medium effort changes neither the result nor the cost: about 99% of a case's tokens are prompt (21–38k, against 160–330 written), so the default `high` stays.
+- `inkling-2-mini` passes every image and upload case. `qwen3.6:35b` saves on a bare label after an image upload 3 of 3, and once each misreads an image's color, drops files from a keep-all save, says "saved as" in a read-only PDF summary and skips an asked-for image save. Its headless failures send a wrong `system_create` `source.kind` in six cases across the two runs.
+- Inkling's own failures: the verbatim update 2 of 3 (a wrong `source.kind`, no confirmation), and the private note save once with a wrong `source.kind` and once with no call.
+- Both models fail the 7 KB exact edit and the 17 KB patch (`mcp-long-note-update`) in every run: the read-back's content hash does not match, and the patch sends `source` (Inkling) or `fields` (Qwen) on an edit.
+- The deploy pins Ollama 0.40.11, which does not run `inkling-2-mini`.
+
 ## Goal
 
 Each brain picks its embedding, text, vision and image models in `brain.yaml`. Cloud providers stay available, and a `local` provider serves open models from a runtime next to the brain.

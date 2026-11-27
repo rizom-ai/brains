@@ -1,5 +1,49 @@
 # @brains/web-chat
 
+## 0.2.0-alpha.788
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.788
+  - @brains/app-ui-react@0.2.0-alpha.788
+  - @brains/console-theme@0.2.0-alpha.788
+  - @brains/contracts@0.2.0-alpha.788
+  - @brains/utils@0.2.0-alpha.788
+
+## 0.2.0-alpha.787
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.787
+  - @brains/app-ui-react@0.2.0-alpha.787
+  - @brains/console-theme@0.2.0-alpha.787
+  - @brains/contracts@0.2.0-alpha.787
+  - @brains/utils@0.2.0-alpha.787
+
+## 0.2.0-alpha.786
+
+### Patch Changes
+
+- [#1066](https://github.com/rizom-ai/brains/pull/1066) [`d7c683c`](https://github.com/rizom-ai/brains/commit/d7c683c94c2b1dce52ff205736602f34ce94e043) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Studio's navigation is one sidebar with five sections: Home, Library, Publish, Chat and Brain.
+
+  - A Studio workspace names its section with `section` (`home`, `library`, `publish`, `chat` or `brain`). It is Brain when none is named, and an unknown section is refused, so plugins place their pages without adding sections:
+    - Inbox and Board are in Home.
+    - Publishing, Site and Traffic are in Publish.
+    - Guest chat is in Chat, listed under it beside Chat itself.
+    - LinkedIn import is in Library.
+    - Content sync and Administration are in Brain.
+  - The section you are in lists its destinations under its heading. Library, Publish and Brain open in place to browse without leaving the page; Home and Chat open their pages. The ordinals and the second column are gone, and Administration is no longer a special case.
+  - Library lists the types that hold something, the ones opened most recently first. Empty types are under All types.
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.786
+  - @brains/app-ui-react@0.2.0-alpha.786
+  - @brains/console-theme@0.2.0-alpha.786
+  - @brains/contracts@0.2.0-alpha.786
+  - @brains/utils@0.2.0-alpha.786
+
 ## 0.2.0-alpha.785
 
 ### Patch Changes

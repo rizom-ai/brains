@@ -2,8 +2,10 @@
   "extends": "@brains/typescript-config/base.json",
   "compilerOptions": {
     "outDir": "./dist",
-    "isolatedDeclarations": true
+    "isolatedDeclarations": true,
+    "jsx": "react-jsx",
+    "jsxImportSource": "react"
   },
-  "include": ["src/**/*.ts", "test/**/*.ts"],
+  "include": ["src/**/*.ts", "src/**/*.tsx", "test/**/*.ts", "test/**/*.tsx"],
   "exclude": ["node_modules", "dist"]
 }

@@ -1,5 +1,32 @@
 # @brains/http-host
 
+## 0.2.0-alpha.788
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.788
+  - @brains/utils@0.2.0-alpha.788
+  - @brains/plugins@0.2.0-alpha.788
+
+## 0.2.0-alpha.787
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.787
+  - @brains/utils@0.2.0-alpha.787
+  - @brains/plugins@0.2.0-alpha.787
+
+## 0.2.0-alpha.786
+
+### Patch Changes
+
+- Updated dependencies [[`d7c683c`](https://github.com/rizom-ai/brains/commit/d7c683c94c2b1dce52ff205736602f34ce94e043)]:
+  - @brains/plugins@0.2.0-alpha.786
+  - @brains/contracts@0.2.0-alpha.786
+  - @brains/utils@0.2.0-alpha.786
+
 ## 0.2.0-alpha.785
 
 ### Patch Changes

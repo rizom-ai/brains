@@ -1,8 +1,10 @@
 import {
   SdkError,
   a2aTurnContract,
+  askBoxAvailabilityState,
   type A2APeerAnswer,
 } from "@brains/contracts";
+import { homepageChatAvailable } from "@brains/site-atlas";
 import {
   defineServicePlugin,
   z,
@@ -25,8 +27,10 @@ import {
   type SeminarRedoDeps,
   type StoredSeminar,
 } from "./handlers/seminar-redo-handler";
+import { seminarAskDataSource } from "./datasources/seminar-ask-datasource";
 import { seminarDataSource } from "./datasources/seminar-datasource";
 import { modelChair } from "./lib/chair";
+import { getTemplates } from "./lib/register-templates";
 import { seminarSchema } from "./schemas/seminar";
 import { seminar } from "./seminar-entity";
 import { getErrorMessage } from "@brains/utils/error";
@@ -34,12 +38,28 @@ import { createSeminarHoldTool } from "./tools/seminar-hold";
 
 export const seminarConfigSchema: z.ZodObject<{
   guidance: z.ZodOptional<z.ZodString>;
+  peers: z.ZodDefault<
+    z.ZodArray<z.ZodObject<{ agent: z.ZodString; name: z.ZodString }>>
+  >;
 }> = z.object({
   /**
    * What the chair knows of its peers that their openings do not say, such
    * as the works a peer's brain does not hold, so it never points him there.
    */
   guidance: z.string().trim().min(1).optional(),
+  /**
+   * The peers as the brain's pages show them: each under the name given
+   * here, in this order. A peer not listed keeps the name it gives itself
+   * and follows the listed ones.
+   */
+  peers: z
+    .array(
+      z.object({
+        agent: z.string().trim().min(1),
+        name: z.string().trim().min(1),
+      }),
+    )
+    .default([]),
 });
 
 export type SeminarConfig = z.output<typeof seminarConfigSchema>;
@@ -121,9 +141,12 @@ function holdDeps(
         entityType: AGENT_ENTITY_TYPE,
         options: { filter: { metadata: { status: "approved" } } },
       });
+      // Under the name this brain shows a peer by, where it gives one: the
+      // chair then writes of Marx, not of the brain named Karl.
       return agents.map((agent) => {
         const { id, metadata } = approvedPeerSchema.parse(agent);
-        return { id, name: metadata.name };
+        const shown = config.peers.find((peer) => peer.agent === id)?.name;
+        return { id, name: shown ?? metadata.name };
       });
     },
     exists: async (id) =>
@@ -154,8 +177,25 @@ export const seminarPackage: ServicePackageDefinition<
       config: seminarConfigSchema,
       entities: [seminar],
       setup: (context): Record<never, never> => {
-        // The pages a site reads seminars on, as seminar:entities.
-        serviceRuntime(context).dataSource(seminarDataSource(seminar));
+        const runtime = serviceRuntime(context);
+        for (const [name, template] of Object.entries(getTemplates())) {
+          runtime.template(name, template);
+        }
+        runtime.dataSource(
+          seminarAskDataSource({
+            // The box is named for whom the site speaks.
+            name: (): string => runtime.identity.getProfile().name,
+            // The record Web Chat shares, read in the build's process.
+            chatAvailable: (build): Promise<boolean> =>
+              homepageChatAvailable(
+                build,
+                build.sharedState(askBoxAvailabilityState),
+              ),
+            peers: context.config.peers,
+          }),
+        );
+        // What those pages read, as seminar:entities.
+        runtime.dataSource(seminarDataSource(seminar, context.config.peers));
         return {};
       },
     }),

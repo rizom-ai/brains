@@ -1,5 +1,50 @@
 # @brains/ai-service
 
+## 0.2.0-alpha.788
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.788
+  - @brains/document@0.2.0-alpha.788
+  - @brains/utils@0.2.0-alpha.788
+  - @brains/conversation-service@0.2.0-alpha.788
+  - @brains/entity-service@0.2.0-alpha.788
+  - @brains/identity-service@0.2.0-alpha.788
+  - @brains/mcp-service@0.2.0-alpha.788
+  - @brains/messaging-service@0.2.0-alpha.788
+  - @brains/templates@0.2.0-alpha.788
+
+## 0.2.0-alpha.787
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.787
+  - @brains/document@0.2.0-alpha.787
+  - @brains/utils@0.2.0-alpha.787
+  - @brains/conversation-service@0.2.0-alpha.787
+  - @brains/entity-service@0.2.0-alpha.787
+  - @brains/identity-service@0.2.0-alpha.787
+  - @brains/mcp-service@0.2.0-alpha.787
+  - @brains/messaging-service@0.2.0-alpha.787
+  - @brains/templates@0.2.0-alpha.787
+
+## 0.2.0-alpha.786
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.786
+  - @brains/document@0.2.0-alpha.786
+  - @brains/utils@0.2.0-alpha.786
+  - @brains/conversation-service@0.2.0-alpha.786
+  - @brains/entity-service@0.2.0-alpha.786
+  - @brains/identity-service@0.2.0-alpha.786
+  - @brains/mcp-service@0.2.0-alpha.786
+  - @brains/messaging-service@0.2.0-alpha.786
+  - @brains/templates@0.2.0-alpha.786
+
 ## 0.2.0-alpha.785
 
 ### Patch Changes

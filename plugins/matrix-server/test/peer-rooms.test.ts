@@ -5,6 +5,13 @@ import { PeerRooms } from "../src/peer-rooms";
 const SERVER = "host.example";
 const PEER = "team.rizom.ai";
 const ALIAS = `#team-rizom-ai:${SERVER}`;
+/** The room the peer keeps for this brain, on the peer's server. */
+const PEER_ROOM_FOR_US = `#host-example:${PEER}`;
+const JOIN_PEER_ROOM = {
+  method: "POST",
+  path: `/join/${PEER_ROOM_FOR_US}`,
+  body: {},
+};
 
 interface Call {
   method: string;
@@ -15,7 +22,7 @@ interface Call {
 const jsonBody = z.record(z.string(), z.unknown());
 
 /** A homeserver that keeps rooms by alias and records each call. */
-function fakeHomeserver(): {
+function fakeHomeserver(options: { joinStatus?: number } = {}): {
   fetch: (
     input: string | URL | Request,
     init?: RequestInit,
@@ -44,6 +51,12 @@ function fakeHomeserver(): {
       return roomId
         ? Response.json({ room_id: roomId })
         : Response.json({ errcode: "M_NOT_FOUND" }, { status: 404 });
+    }
+    if (path.startsWith("/join/") && options.joinStatus) {
+      return Response.json(
+        { errcode: "M_FORBIDDEN" },
+        { status: options.joinStatus },
+      );
     }
     if (path === "/createRoom") {
       const roomId = `!peer${aliases.size + 1}:${SERVER}`;
@@ -95,6 +108,7 @@ describe("rooms for trusted peers", () => {
           ],
         },
       },
+      JOIN_PEER_ROOM,
     ]);
   });
 
@@ -118,8 +132,28 @@ describe("rooms for trusted peers", () => {
         path: `/rooms/!peer1:${SERVER}/invite`,
         body: { user_id: `@_brain:${PEER}` },
       },
+      JOIN_PEER_ROOM,
     ]);
   });
+
+  it("joins the room the peer keeps for this brain, whichever brain granted trust first", async () => {
+    const server = fakeHomeserver();
+
+    await peerRooms(server).trusted(PEER);
+
+    expect(server.calls.at(-1)).toEqual(JOIN_PEER_ROOM);
+  });
+
+  it.each([403, 404])(
+    "still trusts the peer when the peer has no room for this brain yet (%i)",
+    async (joinStatus) => {
+      const server = fakeHomeserver({ joinStatus });
+
+      await peerRooms(server).trusted(PEER);
+
+      expect(server.calls.at(-1)).toEqual(JOIN_PEER_ROOM);
+    },
+  );
 
   it("removes the peer's bot and closes the room to its server on a revoke, keeping the history", async () => {
     const server = fakeHomeserver();

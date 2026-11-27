@@ -1,5 +1,32 @@
 # @rizom/brain
 
+## 0.2.0-alpha.788
+
+### Patch Changes
+
+- [#1068](https://github.com/rizom-ai/brains/pull/1068) [`18e53a6`](https://github.com/rizom-ai/brains/commit/18e53a639047a5ebdbabdc9874c79e9743ba3ff3) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A seminar has its pages. `seminar:seminar-list` lists the seminars a brain has held, newest first, each with its question, the day, who stood and who answered him, and the first sentence of where they meet. `seminar:seminar-detail` sets one seminar to be read top to bottom: the openings side by side, the chair's turn, the challenges, the rejoinder and the closing, with every source a turn returned linked where its text names it. `plugins.seminar.peers` names the brain's peers and orders them, as its pages show them and as the chair writes of them. `seminar:ask` is the Ask page of such a brain: the guest box while asking is open, and whom a question reaches.
+
+## 0.2.0-alpha.787
+
+### Patch Changes
+
+- [#1067](https://github.com/rizom-ai/brains/pull/1067) [`9ce3ffd`](https://github.com/rizom-ai/brains/commit/9ce3ffd923fb508b04866baeec08a6fb3bff16b9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Two brains that trust each other now share rooms in both directions, whichever grants trust first. Trusting a peer also joins the room the peer keeps for this brain, so an invite that arrived before this brain's grant, and was left pending, is taken up.
+
+## 0.2.0-alpha.786
+
+### Minor Changes
+
+- [#1066](https://github.com/rizom-ai/brains/pull/1066) [`d7c683c`](https://github.com/rizom-ai/brains/commit/d7c683c94c2b1dce52ff205736602f34ce94e043) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Studio's navigation is one sidebar with five sections: Home, Library, Publish, Chat and Brain.
+
+  - A Studio workspace names its section with `section` (`home`, `library`, `publish`, `chat` or `brain`). It is Brain when none is named, and an unknown section is refused, so plugins place their pages without adding sections:
+    - Inbox and Board are in Home.
+    - Publishing, Site and Traffic are in Publish.
+    - Guest chat is in Chat, listed under it beside Chat itself.
+    - LinkedIn import is in Library.
+    - Content sync and Administration are in Brain.
+  - The section you are in lists its destinations under its heading. Library, Publish and Brain open in place to browse without leaving the page; Home and Chat open their pages. The ordinals and the second column are gone, and Administration is no longer a special case.
+  - Library lists the types that hold something, the ones opened most recently first. Empty types are under All types.
+
 ## 0.2.0-alpha.785
 
 ### Minor Changes
