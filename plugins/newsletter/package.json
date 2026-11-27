@@ -1,7 +1,7 @@
 {
   "name": "@brains/newsletter",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.780",
+  "version": "0.2.0-alpha.781",
   "description": "Newsletter composite with selectable Buttondown and Resend delivery providers",
   "dependencies": {
     "@brains/atproto-contracts": "workspace:*",

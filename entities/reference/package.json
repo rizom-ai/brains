@@ -1,7 +1,7 @@
 {
   "name": "@brains/reference",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.780",
+  "version": "0.2.0-alpha.781",
   "description": "Pointers to what other brains publish: display fields and provenance, never the body",
   "dependencies": {
     "@brains/atproto-client": "workspace:*",

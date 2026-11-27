@@ -1,5 +1,28 @@
 # @brains/plugins
 
+## 0.2.0-alpha.781
+
+### Patch Changes
+
+- [#1060](https://github.com/rizom-ai/brains/pull/1060) [`6a9fe95`](https://github.com/rizom-ai/brains/commit/6a9fe9533aa608c32c586f3eb10d27fc532f58b9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A background job can ask another brain. The worker process runs no interfaces, so a job that asked a peer through an A2A contract was told the brain could not reach other brains: a seminar's turns, and the daily refresh of what peers share with this brain. A first-party interface can now declare the contracts it answers for the brain's own packages (`withAnswers`), which the worker registers alone, as it registers an interface's channels; A2A answers its ask, turn and shared-entity contracts that way.
+- Updated dependencies [[`b1b08de`](https://github.com/rizom-ai/brains/commit/b1b08de76f5779cbb32b6f0d0e5e5f20a798f7ab)]:
+  - @brains/contracts@0.2.0-alpha.781
+  - @brains/content-formatters@0.2.0-alpha.781
+  - @brains/atproto-contracts@0.2.0-alpha.781
+  - @brains/site-composition@0.2.0-alpha.781
+  - @brains/ai-service@0.2.0-alpha.781
+  - @brains/content-service@0.2.0-alpha.781
+  - @brains/conversation-service@0.2.0-alpha.781
+  - @brains/entity-service@0.2.0-alpha.781
+  - @brains/identity-service@0.2.0-alpha.781
+  - @brains/job-queue@0.2.0-alpha.781
+  - @brains/mcp-service@0.2.0-alpha.781
+  - @brains/messaging-service@0.2.0-alpha.781
+  - @brains/templates@0.2.0-alpha.781
+  - @brains/recurring-checks@0.2.0-alpha.781
+  - @brains/utils@0.2.0-alpha.781
+  - @brains/runtime-state@0.2.0-alpha.781
+
 ## 0.2.0-alpha.780
 
 ### Patch Changes
