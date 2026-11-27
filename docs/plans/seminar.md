@@ -35,7 +35,18 @@ For Rizom it is the smallest working case of a network that grows by connection 
 
 `choosePeers` (`entities/agent-discovery/src/lib/network-ask.ts`) asks the approved peers whose skills share enough words with the question, at most three, and the two nearest when none match. The book brains' skills are titled by theme ("Analyze Political Struggle", "Trace the Genealogy of Values"), so most questions would reach one or two of them, and a seminar that sometimes leaves one author out answers a different question.
 
-A per-brain setting `askAllApproved` on `agent-discovery` makes `network_ask` ask every approved peer, capped at `MAX_ASKED_PEERS`, whatever the match. It is off by default, so no other brain's routing changes. `suspicion` sets it in `users/suspicion.yaml`. It serves live questions in chat and over A2A; sessions ask the peers themselves (below).
+A setting `askAllApproved` on the `agents` capability, beside `notifyOnNewAgents`, makes `network_ask` ask every approved peer, nearest first, capped at `MAX_ASKED_PEERS`, whatever the match. It is off by default, so no other brain's routing changes. The tool's description states the routing in force, so the model is not told "the best matches" on a brain that asks them all. `suspicion` sets it under `plugins.agents` in `users/suspicion.yaml`. It serves live questions in chat and over A2A; sessions ask the peers themselves (below).
+
+### A session turn has its own contract
+
+`a2aAskContract` is shaped for a visitor's question: `networkAskMessage` (`interfaces/a2a/src/message-handlers.ts`) appends "Asked on behalf of a visitor to another brain's site. Answer briefly", the question is capped at 4,000 characters, and the budget is `networkAskTimeoutMs`. A challenge carries an opening and a rejoinder carries two challenges, so sessions use a contract of their own, `a2aTurnContract` in `shared/contracts/src/a2a.ts`, answered by the A2A interface beside the ask handler:
+
+- request: `agent` and `message`, up to 32,000 characters, sent as written
+- response: `a2aPeerAnswerSchema`, as an ask returns
+- saved, approved peers only; one attempt; budget `plugins.a2a.turnTimeoutMs`, default 90 seconds
+- a timeout or refusal is an error with its reason, which the job records on the turn
+
+`network_ask` keeps `a2aAskContract` unchanged. No tool is added: the contract is a bus message between the session job and the A2A interface, and a peer receives an ordinary A2A message.
 
 ### The `seminar` plugin: sessions
 
@@ -44,7 +55,7 @@ A per-brain setting `askAllApproved` on `agent-discovery` makes `network_ask` as
 A session is an exchange, not three answers side by side. Mockup: [seminar-session-mockup.html](../seminar-session-mockup.html), built from the three brains' real replies of 26 November.
 
 1. **Openings** — the question goes to every approved peer at once.
-2. **The seminar's turn** — it reads the openings against its notes and decides who stands and who answers: the author whose opening holds, and the others who must answer him. To each challenger it puts one follow-up that names the claim to answer and a work of his own to answer from, chosen from the works his brain's `coverage` note lists as imported. It never quotes for him; his brain finds and quotes the passage.
+2. **The seminar's turn** — it reads the openings against its notes and decides who stands and who answers: the author whose opening holds, and the others who must answer him. To each challenger it puts one follow-up that names the claim to answer and a work of his own to answer from. It never quotes for him; his brain finds and quotes the passage. A brain that lacks the work says so, and the draft shows it.
 3. **Challenges** — the challengers answer, at once, each given the opening he must answer.
 4. **Rejoinder** — the author who stood is given the challenges and answers both.
 5. **Where they meet** — the seminar's closing paragraph, citing only sources the turns carry.
@@ -53,16 +64,18 @@ On 26 November, asked what a community should remember and forget, Nietzsche alo
 
 A session is `brain-data/seminar-session/<slug>.md`:
 
-- frontmatter: `question`, `asked` (date), `status` (`draft` | `published`), and `turns`, in order — per turn its `round` (`opening` | `challenge` | `rejoinder`), its `speaker` (a peer's `agent` and `brain`, or `seminar`), `answers` (the agents it addresses), and for a peer its `sources` (title, url, excerpt) as the peer returned them, or for a failed peer the reason
-- body: each turn under its heading — a peer's text verbatim, the seminar's follow-ups as written — then `## Where they meet`
+- frontmatter: `question`, `asked` (date), `status` (`draft` | `published`), and `turns`, in order — per turn its `round` (`opening` | `challenge` | `rejoinder`), its `speaker` (a peer's `agent` and `brain`, or `seminar`), `answers` (the agents it addresses), its `text` — a peer's verbatim, the seminar's follow-ups as written — and for a peer its `sources` as `SourceCitationSchema` holds them, or for a failed peer the reason
+- body: `Where they meet`
 
-The owner starts a session in Studio chat with the tool `seminar_session` (anchor only); it runs as a job, a minute or two. Peers are asked through `a2aAskContract`, the path `network_ask` uses, and their replies are written verbatim: no model turn stands between a peer's answer and the page, so a quote or a citation on a session page is exactly what that author's brain said. The session stays `draft` until the owner publishes it in Studio. A session costs about eight model turns: six peer turns and the seminar's two generations.
+A peer's text is a frontmatter value, not a section of the body, so a heading inside an answer cannot split a turn.
 
-Entity type config: `actionPolicy` `never` for update of the peer turns — a session is re-asked, not edited; the seminar's turns and the closing may be regenerated. The seminar site marks `seminar-session` and `note` citable, so a chat answer can cite a session or a note, and through a session the authors' sections it links to.
+The owner starts a session in Studio chat with the tool `seminar_session` (anchor only); it runs as a job, a minute or two. Peers are asked through `a2aTurnContract`, and their replies are written verbatim: no model turn stands between a peer's answer and the page, so a quote or a citation on a session page is exactly what that author's brain said. The session stays `draft` until the owner publishes it in Studio. A session costs about eight model turns: six peer turns and the seminar's two generations.
+
+Entity type config: `actionPolicy` `create: never`, `update: never`, `publish: admin`. A session is written only by its job and never edited. `seminar_session` takes a `question` for a new session, or a `session` and `from` (`seminar-turn` | `closing`) to redo an existing draft from that step; openings are never redone, a new session re-asks them. The seminar site marks `seminar-session` and `note` citable, so a chat answer can cite a session or a note, and through a session the authors' sections it links to.
 
 ### Language is stated, never inferred
 
-Every question the seminar puts to a peer ends with the reader's language: "Answer in English; keep the quotes in German." Its follow-ups are full of German quotes and titles, and a book brain told only to answer "in the reader's language" reads that from the whole message: on 26 November Karl once answered such a follow-up in German, and twice in English when it was sent again; with the line added he answered in English. The book plugin's instructions gain the same rule for every caller: answer in the language of the question's own sentences; quoted German does not make a question German.
+Every message the seminar puts to a peer ends with the same two lines: "Answer from your own works and cite each section you draw on. Answer in English; keep the quotes in German." The turn contract adds nothing after them. Its follow-ups are full of German quotes and titles, and a book brain told only to answer "in the reader's language" reads that from the whole message: on 26 November Karl once answered such a follow-up in German, and twice in English when it was sent again; with the line added he answered in English. The book plugin's instructions gain the same rule for every caller: answer in the language of the question's own sentences; quoted German does not make a question German.
 
 ### The seminar site
 
@@ -71,6 +84,7 @@ Every question the seminar puts to a peer ends with the reader's language: "Answ
 - `/` — the sessions, newest first: the question, the date, and the three names
 - `/sessions/<slug>` — the question, then the exchange read top to bottom: the openings in three columns, Marx, Nietzsche and Freud in a fixed order; the seminar's turn as a marked aside naming whom it asks and what; the challenges in columns, each marked with whom it answers; the rejoinder; then `Where they meet`. Every quote links to the section on its author's brain; an author whose brain did not answer says so. On a phone the columns stack in reading order.
 - `/notes/<slug>` — the seminar's notes, linked from the sessions that draw on them
+- `/ask` — the question box, as on the books site: shown only while guest chat is available on the brain, so it is absent until public Ask opens. A visitor's question gets the live answer, the three authors side by side and where they meet; it is not saved as a session.
 - every page names the three brains and links to their sites
 
 Interface in English; quotes keep the authors' German (`lang="de"`). Theme `@rizom/theme-books`, so a reader who follows a quote into `karl.`, `friedrich.` or `sigmund.rizom.ai` stays in the same paper and ink; it keeps the default theme's token names, so the seminar's templates need no theme of their own.
@@ -79,7 +93,7 @@ Interface in English; quotes keep the authors' German (`lang="de"`). Theme `@riz
 
 - name: Suspicion
 - role: a reading seminar on Marx, Nietzsche and Freud
-- instructions: put every question to the three with `network_ask`; give each author's answer under his name, with his quotes and sources as his brain returned them, never rephrased into one voice; then say in a short paragraph where they meet and where they part, drawing on the seminar's notes and sessions; never add a quote or a citation the peers did not return; say plainly when an author's brain had nothing; answer in the reader's language.
+- instructions: put every question to the three with `network_ask`; give each author's answer under his name, with his quotes and sources as his brain returned them, never rephrased into one voice; then say in a short paragraph where they meet and where they part, drawing on the seminar's notes and sessions; never add a quote or a citation the peers did not return; say plainly when an author's brain had nothing; never point an author to what his brain lacks: Nietzsche's Nachlass notebooks and letters, Marx's New-York Daily Tribune articles, Freud's letters; answer in the reader's language.
 
 ### What the seminar's notes hold
 
@@ -94,51 +108,67 @@ The notes and sessions give the seminar its topics and agent-card skills, so a b
 
 ## Phases
 
-Each phase ships on its own PR, tests first.
+Three PRs in this repository: the seminar plugin (Phases 1–3 as commits on one PR), live questions (Phase 4) and the site (Phase 5). Tests first.
 
-### Phase 1 — every approved peer, and the reader's language
+### Phase 1 — a session of openings
 
-- `askAllApproved` in the `agent-discovery` config schema, default false
-- `choosePeers` takes it: when on, every approved peer, sorted as now, at most `MAX_ASKED_PEERS`
+- `a2aTurnContract` and its handler; tests: the message is sent as written, a message longer than an ask allows is accepted, a timeout is an error with its reason
+- `@brains/seminar`: schema, adapter, entity type config, `seminar` catalog member, a plain session page
+- `seminar_session` and its job: the question to every approved peer, each opening written verbatim with its sources, the session saved as `draft`
+- tests against recorded peer replies: turns kept verbatim, an answer with headings round-trips, every message ends with the two closing lines, a failed peer is recorded and the session goes on without him
+- a `seminar` test app in `packages/brain-cli/test-apps/` with the three live brains saved and approved as its peers; one real session of three openings
+
+### Phase 2 — the exchange
+
+- the seminar's turn, challenges and rejoinder
+- tests, the 26 November session among them: the challengers are given the opening they answer and the rejoinder is given the challenges; a peer failing at any round is recorded and the session goes on without him
+- one real session, the full exchange, on the test app
+
+### Phase 3 — where they meet, redo, publish
+
+- the closing, citing only sources the turns carry
+- redo from `seminar-turn` or `closing`
+- tests: `Where they meet` cites only sources the turns carry; with `update: never` the owner still publishes in Studio and no turn can be edited
+- templates and datasource for the session list and the session page
+
+### Phase 4 — live questions
+
+- `askAllApproved` in the `agents` capability's config schema, default false
+- `choosePeers` takes it: when on, every approved peer, nearest first, at most `MAX_ASKED_PEERS`; the tool's description follows it
 - tests: on, three approved peers and a question matching none of them, all three asked; off, unchanged
 - the book plugin's language rule in `BOOK_INSTRUCTIONS` (`entities/book/src/plugin.ts`)
 
-### Phase 2 — `@brains/seminar`
-
-- schema, adapter, entity type config, `seminar` catalog member
-- `seminar_session` and its job: openings, the seminar's turn, challenges, rejoinder, `Where they meet`; the session written as `draft`
-- tests against recorded peer replies, the 26 November session among them: peer turns kept verbatim with their sources; every message to a peer ends with the reader's language; a follow-up names only works in that author's coverage note; the challengers are given the opening they answer and the rejoinder is given the challenges; a peer failing at any round is recorded and the session goes on without him; `Where they meet` cites only sources the turns carry
-- templates and datasource for the session list and the session page
-
-### Phase 3 — `@rizom/site-seminar`
+### Phase 5 — `@rizom/site-seminar`
 
 - mockup in `docs/`: the session list, and the session page on a phone, next to the session page in [seminar-session-mockup.html](../seminar-session-mockup.html)
-- routes, layout and `entityDisplay`; theme `@rizom/theme-books`
-- release
+- routes including `/ask`, layout and `entityDisplay`; theme `@rizom/theme-books`
+- the package's first publish to npm, then its release after core
 
-### Phase 4 — content
+### Phase 6 — content
 
 - the notes above, staged locally and checked against the three brains: every linked section exists and holds the quoted words
 - anchor profile, brain character, site info
 
-### Phase 5 — fleet
+### Phase 7 — fleet
 
-- `users/suspicion.yaml` (organization kinds, `siteOverride` with `@rizom/site-seminar` and `@rizom/theme-books`, `askAllApproved: true`, Discord off, setup email `yeehaa@rizom.ai`) and its cohort in rizom-ai/rover-pilot; `onboard`, content committed to the content repo
+- the books cohort moves to the release that carries the language rule, with its image locks
+- `users/suspicion.yaml` (organization kinds, `siteOverride` with `@rizom/site-seminar` and `@rizom/theme-books` and their `version` and `themeVersion` pins, `plugins.agents.askAllApproved: true`, `plugins.a2a.turnTimeoutMs`, Discord off, setup email `yeehaa@rizom.ai`) and its cohort in rizom-ai/rover-pilot; `onboard`, content committed to the content repo
 - `agent_connect` to `karl.rizom.ai`, `friedrich.rizom.ai` and `sigmund.rizom.ai`, approved in Studio
 - the first sessions: what a community should remember and forget, what religion is, whether consciousness is master of itself, where morality comes from; read, then published
 
-### Phase 6 — verify
+### Phase 8 — verify
 
 - `https://suspicion.rizom.ai/health/ready` is 200 and its agent card names the seminar and its skills
 - each session page shows the full exchange, every peer turn in the reader's language, and every quote links to a section that holds it
+- `/ask` is absent while public Ask is closed
 - the same four questions in Studio chat: each answer reaches all three, gives each author under his name, and every cited section is among the sources his brain returned
 - from `yeehaa.io`: `agent_call` to `suspicion.rizom.ai`, then `agent_connect` and `network_ask`, timing each
 
 ## Risks
 
-- **Two hops and one budget.** `network_ask` gives each peer one budget, 30 seconds by default (`plugins.a2a.networkAskTimeoutMs`), and a brain's answer takes 15–25 seconds on the fleet. A brain asking `suspicion` that way waits for the seminar's turn and its three peers' turns, which run in parallel, inside that budget, and will often time out. `agent_call` is the path Phase 6 must show working; Phase 6 also times `network_ask` from `yeehaa.io`, and if it times out, `yeehaa.io` raises its own budget. Sessions are not affected: `suspicion` sets its own budget for the peers it asks.
-- **Citations not among the sources.** Karl (Deutsche Ideologie p. 46) and Sigmund (GW II/III, 283) each cited a page their search had not returned on 26 November. A session keeps such a citation verbatim and puts it next to two others, which makes it visible. Sessions are published only after the owner has read them; a citation that fails Phase 6 goes back to the book plugin's instructions.
-- **Editions guessed.** Asked the same question twice, Karl dated his Brumaire once "first German edition, 1852" and once "first German edition, 1869; pp. 6–7", though 1869 is the second edition and his sources carry no pages. The edition is in each book's frontmatter; a book brain that cites one it did not read there is a book plugin fix, found by the same Phase 6 check.
-- **Retrieval misses the obvious work.** Friedrich answered on morality without the Genealogie der Moral; Marx and Freud first answered on memory without the Brumaire and Der Mann Moses. The seminar's follow-up points a brain to its own work, which found both; an opening still shows only what each brain finds, and better retrieval belongs to the book brains.
+- **Two hops and one budget.** `network_ask` gives each peer one budget, 30 seconds by default (`plugins.a2a.networkAskTimeoutMs`), and a brain's answer takes 15–25 seconds on the fleet. A brain asking `suspicion` that way waits for the seminar's turn and its three peers' turns, which run in parallel, inside that budget, and will often time out. `agent_call` is the path Phase 8 must show working; Phase 8 also times `network_ask` from `yeehaa.io`, and if it times out, `yeehaa.io` raises its own budget. Sessions are not affected: a turn has its own budget.
+- **Citations not among the sources.** Karl (Deutsche Ideologie p. 46) and Sigmund (GW II/III, 283) each cited a page their search had not returned on 26 November. A session keeps such a citation verbatim and puts it next to two others, which makes it visible. Sessions are published only after the owner has read them; a citation that fails Phase 8 goes back to the book plugin's instructions.
+- **Editions guessed.** Asked the same question twice, Karl dated his Brumaire once "first German edition, 1852" and once "first German edition, 1869; pp. 6–7", though 1869 is the second edition and his sources carry no pages. The edition is in each book's frontmatter; a book brain that cites one it did not read there is a book plugin fix, found by the same Phase 8 check.
+- **Retrieval misses the obvious work.** Friedrich answered on morality without the Genealogie der Moral; Marx and Freud first answered on memory without the Brumaire and Der Mann Moses. The seminar's follow-up points a brain to its own work, named from the seminar's own knowledge of the author, which found both; where a brain lacks the work it says so and the owner sees it in the draft; an opening still shows only what each brain finds, and better retrieval belongs to the book brains.
 - **The seminar steers.** Choosing who stands and naming the work to answer from shapes the exchange. The page shows every follow-up as the seminar wrote it, so a reader sees the steering; the seminar never supplies an author's words.
 - **Cost.** A session is about eight model turns; a live question is four. Studio and A2A use the owner's provider budget; public Ask waits for its own budget controls.
