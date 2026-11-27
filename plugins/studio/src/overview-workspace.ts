@@ -30,7 +30,6 @@ import type { UserPermissionLevel } from "@brains/sdk/interfaces";
 import type { z } from "@brains/utils/zod";
 import {
   capitalize,
-  displayTitleFrom,
   formatLabel,
   truncateText,
 } from "@brains/utils/string-utils";
@@ -758,6 +757,25 @@ async function storedTitle(
   return entity ? entityDisplayTitle(context, entity) : undefined;
 }
 
+/**
+ * How the feed names an entry: as the editor and the ⌘K palette do, from the
+ * entry the event carries (the prior one for a delete), or by reading it once
+ * when a projection's write announced only its id.
+ */
+export function studioActivityDescriber(
+  context: StudioContext,
+  getEntityDisplay: () =>
+    Partial<Record<string, EntityDisplayLabel>> | undefined = () => undefined,
+): DescribeEntityActivity {
+  return async (entityType, entity, entityId) => ({
+    title: entity
+      ? entityDisplayTitle(context, entity)
+      : await storedTitle(context, entityType, entityId),
+    typeLabel: entityTypeLabels(entityType, getEntityDisplay()?.[entityType])
+      .label,
+  });
+}
+
 export function registerStudioOverviewActivity(
   context: StudioContext,
   listen: ServiceRuntime["listen"],
@@ -765,18 +783,7 @@ export function registerStudioOverviewActivity(
   getEntityDisplay: () =>
     Partial<Record<string, EntityDisplayLabel>> | undefined = () => undefined,
 ): void {
-  const describe: DescribeEntityActivity = async (
-    entityType,
-    entity,
-    entityId,
-  ) => ({
-    title: entity
-      ? displayTitleFrom(entity.metadata)
-      : // A projection's write announces only the id; read the entry once.
-        await storedTitle(context, entityType, entityId),
-    typeLabel: entityTypeLabels(entityType, getEntityDisplay()?.[entityType])
-      .label,
-  });
+  const describe = studioActivityDescriber(context, getEntityDisplay);
   // Observed: the feed shows changes from either process, such as the
   // worker syncing content from git.
   const observed = { mode: "observe" } as const;
