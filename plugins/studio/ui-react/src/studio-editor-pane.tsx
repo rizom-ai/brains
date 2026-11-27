@@ -39,6 +39,7 @@ import { typographyStyles } from "./studio-typography.styles";
 import { entityTitle } from "./ui-utils";
 import { useInspectorPreference } from "./use-inspector-preference";
 import { StudioStatus } from "./studio-status";
+import { StudioShortcuts } from "./studio-shortcuts";
 import { StudioDocumentMenu, StudioSyncDetails } from "./studio-document-menu";
 import { HeadingTitle, headingTitleField } from "./heading-title";
 
@@ -446,6 +447,7 @@ export function StudioEditorPane(
         </StudioEditorContent>
       </StudioCreationLayout>
       <StudioEditorSaveBar {...props} />
+      <StudioShortcuts />
     </form>
   );
 }

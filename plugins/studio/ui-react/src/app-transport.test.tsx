@@ -91,6 +91,8 @@ beforeEach(() => {
     Event: windowInstance.Event,
     CustomEvent: windowInstance.CustomEvent,
     KeyboardEvent: windowInstance.KeyboardEvent,
+    NodeFilter: windowInstance.NodeFilter,
+    HTMLInputElement: windowInstance.HTMLInputElement,
     MutationObserver: windowInstance.MutationObserver,
     ResizeObserver: windowInstance.ResizeObserver,
     requestAnimationFrame:
@@ -721,6 +723,25 @@ describe("Studio App transport", () => {
     expect(
       document.querySelector('[role="tab"][aria-selected="true"]')?.textContent,
     ).toBe("Source");
+    // ? lists the editor's keyboard shortcuts; typed into a field, it is text.
+    const press = async (target: EventTarget): Promise<void> => {
+      await act(async () => {
+        target.dispatchEvent(
+          new KeyboardEvent("keydown", { key: "?", bubbles: true }),
+        );
+      });
+    };
+    const title = document.querySelector('[name="title"]');
+    if (!title) throw new Error("Missing title");
+    await press(title);
+    expect(document.querySelector('[role="dialog"]')).toBeNull();
+    await press(document.body);
+    await waitFor(() => document.querySelector('[role="dialog"]') !== null);
+    const shortcuts = document.querySelector('[role="dialog"]')?.textContent;
+    expect(shortcuts).toContain("Keyboard shortcuts");
+    expect(shortcuts).toContain("Save changes");
+    expect(shortcuts).toContain("Show or hide Details");
+    expect(shortcuts).toContain("Search or do anything");
   });
 
   it("opens an existing singleton regardless of its stored ID depth", async () => {
