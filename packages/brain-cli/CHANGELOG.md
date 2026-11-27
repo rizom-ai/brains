@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.783
+
+### Patch Changes
+
+- [#1063](https://github.com/rizom-ai/brains/pull/1063) [`375b33c`](https://github.com/rizom-ai/brains/commit/375b33c14e11cbef1e3caef02fced51f2fd6039b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Permission to publish is no longer permission to edit. A write that moves a record into one of its publish statuses, or writes a record already in one, needed only the `publish` action, so it could change the record's body or other fields on a type whose `update` was refused. Such a write now needs `update` as well when it changes anything besides the status, on every path: `system_update`, a Studio save, a save on the drive, a conflict resolution and a generation over a published destination. A type nobody may update is published as it stands.
+
 ## 0.2.0-alpha.782
 
 ### Patch Changes

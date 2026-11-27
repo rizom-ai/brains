@@ -1,6 +1,6 @@
 {
   "name": "@rizom/brain",
-  "version": "0.2.0-alpha.782",
+  "version": "0.2.0-alpha.783",
   "description": "Brain runtime + CLI — scaffold, run, and manage AI brain instances",
   "keywords": [
     "brain",
