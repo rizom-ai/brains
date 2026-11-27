@@ -34,6 +34,6 @@ You need a Rizom brain at version 0.2.0-alpha.769 or later with its drive turned
 
 ## Source and license
 
-The source is in the brains repository, under `packages/obsidian-plugin`: https://github.com/rizom-ai/brains. This repository holds the releases and, under `src/`, a copy of the source each release was built from. The released `main.js` is not minified.
+The source is in the brains repository, under `packages/obsidian-plugin`: https://github.com/rizom-ai/brains. This repository holds the releases and, under `src/`, a copy of the source each release was built from. The released `main.js` is not minified, and each release's files carry a GitHub attestation that they were built here: `gh attestation verify main.js --repo rizom-ai/obsidian-rizom-brain`.
 
 Licensed under the AGPL, version 3. See `LICENSE`.
