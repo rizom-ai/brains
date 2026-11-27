@@ -250,7 +250,7 @@ export function StudioDestination(props: {
               ? preview.filePath === null
                 ? emphasizeRange(preview.entityId, preview.entityLeaf)
                 : emphasizeRange(preview.filePath, preview.fileLeaf)
-              : "a file named after its title"}
+              : props.segment || "a file named after its title"}
           </span>{" "}
           <Button
             type="button"

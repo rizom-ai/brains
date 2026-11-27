@@ -157,6 +157,8 @@ describe("Studio folder presentation", () => {
     );
     expect(fieldsRefused).toContain("Saves as");
     expect(fieldsRefused).not.toContain("Invalid option");
+    // Without the server's placement, the name is still known.
+    expect(fieldsRefused).toContain("why-sensor-data");
   });
 
   test("creation shows server-returned identity and placement, never inventing a file path", () => {
