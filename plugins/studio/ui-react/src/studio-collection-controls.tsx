@@ -18,6 +18,7 @@ import { libraryStyles as library } from "./studio-library.styles";
 import { StudioSearchField } from "./studio-search-field";
 import type { HierarchyKind } from "./studio-hierarchy";
 import { optionLabel } from "./ui-utils";
+import type { RowDensity } from "./use-density-preference";
 
 /** Presentation only: Library and Chat retain their own query contracts. */
 export function StudioCollectionBar(props: {
@@ -31,6 +32,8 @@ export function StudioCollectionBar(props: {
   matchingCount?: number;
   onClear: () => void;
   children: ReactNode;
+  /** Controls after the filters, such as how dense the rows are. */
+  trailing?: ReactNode;
 }): ReactElement {
   const filters = useRef<HTMLDetailsElement>(null);
   useEffect(() => {
@@ -91,6 +94,7 @@ export function StudioCollectionBar(props: {
             {props.children}
           </div>
         </details>
+        {props.trailing}
         {props.filtered && (
           <>
             {props.matchingCount !== undefined && (
@@ -170,6 +174,9 @@ export function StudioCollectionControls(props: {
   fields: FieldDescriptor[];
   total: number;
   onChange: (query: StudioCollectionQuery) => void;
+  /** Offered only where rows have an excerpt or cover to leave out. */
+  density?: RowDensity;
+  onDensityChange?: (density: RowDensity) => void;
 }): ReactElement {
   const [search, setSearch] = useState(props.query.q);
   useEffect(() => setSearch(props.query.q), [props.query.q]);
@@ -221,6 +228,28 @@ export function StudioCollectionControls(props: {
         search={search}
         onSearch={setSearch}
         filterLabel="Filter and sort"
+        trailing={
+          props.density &&
+          props.onDensityChange && (
+            <button
+              type="button"
+              aria-label="Compact rows"
+              aria-pressed={props.density === "compact"}
+              className={editorClassName(
+                "",
+                styles.summary,
+                props.density === "compact" && styles.open,
+              )}
+              onClick={() =>
+                props.onDensityChange?.(
+                  props.density === "compact" ? "comfortable" : "compact",
+                )
+              }
+            >
+              Compact
+            </button>
+          )
+        }
         filterCount={filterCount}
         filtered={filtered}
         matchingCount={props.total}

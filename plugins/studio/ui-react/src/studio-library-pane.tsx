@@ -15,6 +15,7 @@ import {
 } from "./studio-editor.styles";
 import { StudioPageHead } from "./studio-page-head";
 import { StudioEntityImage } from "./studio-entity-image";
+import { useDensityPreference } from "./use-density-preference";
 import { STUDIO_THUMBNAIL_WIDTH } from "../../src/studio-thumbnail";
 import {
   entityGenerationState,
@@ -88,6 +89,12 @@ export function StudioLibraryPane(
     onConfirmed: props.onRefineConfirmed,
   });
   const picking = refine.picked.length > 0;
+  const [density, setDensity] = useDensityPreference();
+  // Only rows with an excerpt or a cover have anything to leave out.
+  const compactable = entitySchema.fields.some(
+    (field) => field.column === "excerpt" || field.column === "cover",
+  );
+  const compact = compactable && density === "compact";
   const refineLabel = refineActionLabel(
     refine.picked.length,
     entryLabel,
@@ -190,6 +197,7 @@ export function StudioLibraryPane(
           fields={entitySchema.fields}
           total={entityTotal}
           onChange={props.onCollectionQueryChange}
+          {...(compactable && { density, onDensityChange: setDensity })}
         />
       )}
       {!entityListLoading && (
@@ -235,6 +243,7 @@ export function StudioLibraryPane(
             view={props}
             refine={refine}
             picking={picking}
+            compact={compact}
           />
         ))}
       {!props.readError &&
@@ -329,6 +338,8 @@ function LibraryRow(props: {
   view: StudioAppViewProps & { model: StudioAppModel };
   refine: StudioRefine;
   picking: boolean;
+  /** One line per entry: no excerpt or cover. */
+  compact: boolean;
 }): ReactElement {
   const { entity, view, refine } = props;
   const { systemDesign, entitySchema } = view.model;
@@ -337,8 +348,12 @@ function LibraryRow(props: {
   const generation = entityGenerationState(entity);
   const status = entityRowStatus(entity, entitySchema.fields);
   const rowDate = entityRowDate(entity, entitySchema.fields);
-  const excerpt = entityRowExcerpt(entity, entitySchema.fields);
-  const covered = entitySchema.fields.some((field) => field.column === "cover");
+  const excerpt = props.compact
+    ? null
+    : entityRowExcerpt(entity, entitySchema.fields);
+  const covered =
+    !props.compact &&
+    entitySchema.fields.some((field) => field.column === "cover");
   const coverImage = entityRowCover(entity, entitySchema.fields);
   // The title names the entry, so its thumbnail is decorative.
   const coverCell = covered && (
@@ -391,6 +406,7 @@ function LibraryRow(props: {
           className={editorClass(
             "studio-publication-state",
             editorStyles.publication,
+            props.compact && library.inlineStatus,
           )}
         >
           {optionLabel(status)}
@@ -418,6 +434,7 @@ function LibraryRow(props: {
           editorStyles.listingRow,
           refineStyles.row,
           covered && library.covered,
+          props.compact && library.compact,
           picked && refineStyles.rowPicked,
         )}
       >
@@ -455,6 +472,7 @@ function LibraryRow(props: {
         library.recordLink,
         editorStyles.listingRow,
         covered && library.covered,
+        props.compact && library.compact,
       )}
       data-studio-record=""
       onClick={follow}

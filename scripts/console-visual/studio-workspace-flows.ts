@@ -116,6 +116,21 @@ export async function exerciseStudioLibrary({
     );
     if (details) details.open = false;
   });
+  // Compact rows leave out excerpts and covers, one line per entry.
+  await clickText(page, ".studio-collection-controls button", "Compact");
+  await evaluatePage(page, () => {
+    if (
+      document.querySelector(
+        "[data-studio-row-excerpt], [data-studio-row-cover]",
+      )
+    )
+      throw new Error("Compact rows still show an excerpt or cover");
+  });
+  await settleVisualCapture(page);
+  const compactName = `studio-library-compact-${viewport.width}x${viewport.height}-${climate}`;
+  await auditStudioAccessibility(page, compactName);
+  await recordVisualCapture(`${compactName}.png`, await screenshot(page));
+  await clickText(page, ".studio-collection-controls button", "Compact");
 }
 
 /** Sync diagnostics keep every operation; repository facts stay exact. */

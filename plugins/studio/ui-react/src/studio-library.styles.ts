@@ -12,6 +12,8 @@ export const libraryStyles: Record<
   | "cover"
   | "coverImage"
   | "coverPending"
+  | "compact"
+  | "inlineStatus"
   | "updated"
   | "empty"
   | "pagination"
@@ -122,6 +124,13 @@ export const libraryStyles: Record<
     overflow: "hidden",
     borderRadius: 4,
   },
+  // One line per entry, for scanning a long list.
+  compact: {
+    padding: "8px 4px 7px",
+    "@media (max-width: 640px)": { minHeight: 0, padding: "10px 2px" },
+  },
+  // A compact row states its status beside the title, not under it.
+  inlineStatus: { display: "inline", marginTop: 0, marginLeft: 10 },
   // Where a cover is still arriving; a row without one shows nothing.
   coverPending: {
     display: "block",
