@@ -1,6 +1,6 @@
 {
   "name": "@brains/content-service",
-  "version": "0.2.0-alpha.784",
+  "version": "0.2.0-alpha.785",
   "description": "Content coordination and provider management service for the Brain system",
   "keywords": [
     "content-generation",

@@ -1,5 +1,12 @@
 # @brains/obsidian-plugin
 
+## 0.2.0-alpha.785
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.785
+
 ## 0.2.0-alpha.784
 
 ### Patch Changes

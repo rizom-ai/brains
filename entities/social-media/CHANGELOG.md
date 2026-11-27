@@ -1,5 +1,26 @@
 # @brains/social-media
 
+## 0.2.0-alpha.785
+
+### Patch Changes
+
+- [#1065](https://github.com/rizom-ai/brains/pull/1065) [`cb60a08`](https://github.com/rizom-ai/brains/commit/cb60a08f9fce15bc93c936eec65a5b34fd5f979a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Studio's lists say more about each entry:
+
+  - A row states its entry's own status (Draft, Queued, Published) and its meaningful date. That is the day it was published, or when it was last edited ("Edited 2 days ago"), not the import time.
+  - A row shows its entry's excerpt and, for types with covers, a cover thumbnail. Thumbnails are served at 160px, so a page of rows never loads full images.
+  - A Compact toggle lists one line per entry. The choice is kept in this browser.
+  - Prompts, Skills and Agents use the same row as the Library.
+  - A schema names the fields a row shows with `.meta({ studioColumn: "date" | "excerpt" })`. Covers come from the adapter's cover support, read through the new `hasCoverImage` entity shape.
+  - The Library has an Images page. It is a grid of the brain's images, each marked when it has no alt text. Opening one shows its title and alt text to edit, and the entries that use it. Images can be uploaded there.
+  - A note whose body starts with `# Untitled` is named by the prose under it.
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.785
+  - @rizom/brain-ui@0.2.0-alpha.785
+  - @brains/atproto-contracts@0.2.0-alpha.785
+  - @brains/contracts@0.2.0-alpha.785
+  - @brains/utils@0.2.0-alpha.785
+
 ## 0.2.0-alpha.784
 
 ### Patch Changes

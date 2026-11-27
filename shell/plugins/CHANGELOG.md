@@ -1,5 +1,39 @@
 # @brains/plugins
 
+## 0.2.0-alpha.785
+
+### Minor Changes
+
+- [#1065](https://github.com/rizom-ai/brains/pull/1065) [`cb60a08`](https://github.com/rizom-ai/brains/commit/cb60a08f9fce15bc93c936eec65a5b34fd5f979a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Studio's lists say more about each entry:
+
+  - A row states its entry's own status (Draft, Queued, Published) and its meaningful date. That is the day it was published, or when it was last edited ("Edited 2 days ago"), not the import time.
+  - A row shows its entry's excerpt and, for types with covers, a cover thumbnail. Thumbnails are served at 160px, so a page of rows never loads full images.
+  - A Compact toggle lists one line per entry. The choice is kept in this browser.
+  - Prompts, Skills and Agents use the same row as the Library.
+  - A schema names the fields a row shows with `.meta({ studioColumn: "date" | "excerpt" })`. Covers come from the adapter's cover support, read through the new `hasCoverImage` entity shape.
+  - The Library has an Images page. It is a grid of the brain's images, each marked when it has no alt text. Opening one shows its title and alt text to edit, and the entries that use it. Images can be uploaded there.
+  - A note whose body starts with `# Untitled` is named by the prose under it.
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.785
+  - @brains/content-formatters@0.2.0-alpha.785
+  - @brains/contracts@0.2.0-alpha.785
+  - @brains/site-composition@0.2.0-alpha.785
+  - @brains/utils@0.2.0-alpha.785
+  - @brains/ai-service@0.2.0-alpha.785
+  - @brains/content-service@0.2.0-alpha.785
+  - @brains/conversation-service@0.2.0-alpha.785
+  - @brains/entity-service@0.2.0-alpha.785
+  - @brains/identity-service@0.2.0-alpha.785
+  - @brains/job-queue@0.2.0-alpha.785
+  - @brains/mcp-service@0.2.0-alpha.785
+  - @brains/messaging-service@0.2.0-alpha.785
+  - @brains/recurring-checks@0.2.0-alpha.785
+  - @brains/runtime-state@0.2.0-alpha.785
+  - @brains/templates@0.2.0-alpha.785
+
 ## 0.2.0-alpha.784
 
 ### Patch Changes
