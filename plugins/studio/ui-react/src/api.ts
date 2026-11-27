@@ -106,6 +106,8 @@ export interface FieldDescriptor {
   condition?: { field: string; value: unknown };
   field?: FieldDescriptor;
   fields?: FieldDescriptor[];
+  /** Holds a credential: kept out of drafts saved in the browser. */
+  secret?: true;
 }
 
 export type { StudioMember } from "../../src/editor-contracts";

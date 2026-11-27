@@ -76,6 +76,8 @@ export type EditorWorkflowAction =
   | { type: "fieldChanged"; descriptor: FieldDescriptor; raw: unknown }
   | { type: "fieldAssistApplied"; field: string; suggestion: string | string[] }
   | { type: "bodyChanged"; body: string }
+  /** Unsaved edits kept in this browser, brought back over the open entry. */
+  | { type: "draftRestored"; draft: Record<string, unknown>; body: string }
   | {
       type: "compoundFieldStateChanged";
       field: string;
@@ -237,6 +239,16 @@ export function editorWorkflowReducer(
       return state.mode.kind === "browse"
         ? state
         : { ...state, body: action.body };
+    case "draftRestored":
+      // Fields kept out of the browser, such as credentials, stay as opened.
+      return state.mode.kind === "browse"
+        ? state
+        : {
+            ...state,
+            draft: { ...state.draft, ...action.draft },
+            body: action.body,
+            save: { kind: "idle" },
+          };
     case "compoundFieldStateChanged":
       return state.mode.kind === "browse"
         ? state

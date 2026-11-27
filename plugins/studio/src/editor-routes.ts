@@ -283,6 +283,7 @@ export function createEditorRoutes(
         brandName: profileName || "Brain",
         themeCSS: context.themeCSS,
         principal: {
+          id: resolution.access.principal.userId,
           displayName: resolution.access.principal.displayName,
           role: resolution.access.principal.role,
         },

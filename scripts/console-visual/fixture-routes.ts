@@ -263,7 +263,11 @@ export function createFixtureRoutes(
               sessionHref: "/logout",
               dashboardHref: "/dashboard",
               brandName: "Rover Collective",
-              principal: { displayName: "Mira Reyes", role: "admin" },
+              principal: {
+                id: "usr_mira",
+                displayName: "Mira Reyes",
+                role: "admin",
+              },
               themeCSS: FIXTURE_THEMES[url.searchParams.get("theme") ?? ""],
             }),
             request,

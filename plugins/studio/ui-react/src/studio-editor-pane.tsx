@@ -38,6 +38,7 @@ import { systemFieldStyles } from "./studio-system-fields.styles";
 import { typographyStyles } from "./studio-typography.styles";
 import { entityTitle } from "./ui-utils";
 import { useInspectorPreference } from "./use-inspector-preference";
+import { StudioStatus } from "./studio-status";
 import { StudioDocumentMenu, StudioSyncDetails } from "./studio-document-menu";
 import { HeadingTitle, headingTitleField } from "./heading-title";
 
@@ -252,6 +253,38 @@ export function StudioEditorPane(
           ) : undefined
         }
       />
+      {props.draftRecovery?.offer && (
+        <div data-studio-draft-offer="">
+          <StudioStatus className={editorClass("", headStyles.inset)}>
+            Unsaved changes from{" "}
+            <time
+              dateTime={new Date(
+                props.draftRecovery.offer.savedAt,
+              ).toISOString()}
+            >
+              {new Date(props.draftRecovery.offer.savedAt).toLocaleString(
+                undefined,
+                { dateStyle: "medium", timeStyle: "short" },
+              )}
+            </time>{" "}
+            were kept in this browser.{" "}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={props.draftRecovery.restore}
+            >
+              Restore
+            </Button>{" "}
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={props.draftRecovery.discard}
+            >
+              Discard
+            </Button>
+          </StudioStatus>
+        </div>
+      )}
       <StudioCreationLayout
         active={namedCreate}
         split={presentation === "split"}

@@ -47,6 +47,8 @@ export interface StudioFieldWidget {
   condition?: StudioFieldCondition;
   field?: StudioFieldWidget;
   fields?: StudioFieldWidget[];
+  /** Holds a credential: kept out of drafts saved in the browser. */
+  secret?: true;
 }
 
 const LONG_TEXT_FIELDS = new Set([
@@ -169,6 +171,10 @@ export function zodFieldToStudioWidget(
     ...(!required && { required: false }),
     ...(effectiveDefault !== undefined && { default: effectiveDefault }),
     ...(condition && { condition }),
+    // A schema marks a credential with `.meta({ studioSecret: true })`.
+    ...(readMetadata(fieldSchema)?.["studioSecret"] === true && {
+      secret: true as const,
+    }),
   };
 
   const studioWidget = readStudioWidget(fieldSchema);
