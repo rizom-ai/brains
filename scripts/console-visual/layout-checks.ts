@@ -626,14 +626,9 @@ async function checkStudioEditorLayout(
         if (save) throw Error("Read-only profiles must not offer Save");
       } else if (!save || save.width < 44 || save.height < 44 || save.y > 220)
         throw Error("Phone Save must remain visible in the document head");
-      if (
-        more &&
-        (pipeline.x + pipeline.width - (more.x + more.width) > 24 ||
-          more.width < 44 ||
-          more.height < 44)
-      )
+      if (more && (more.y > 220 || more.width < 44 || more.height < 44))
         throw Error(
-          `Phone document actions must stay at the end of the save bar: ${JSON.stringify({ pipeline, more })}`,
+          `Phone document actions must sit beside Save in the head: ${JSON.stringify({ more, save })}`,
         );
     }
   }

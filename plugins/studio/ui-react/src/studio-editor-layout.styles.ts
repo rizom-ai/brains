@@ -12,11 +12,7 @@ type LayoutStyle =
   | "colophonHidden"
   | "saveState"
   | "compactStatus"
-  | "compactValue"
-  | "spacer"
-  | "desktop"
-  | "more"
-  | "danger";
+  | "compactValue";
 export const editorLayoutStyles: Record<LayoutStyle, stylex.StyleXStyles> =
   stylex.create({
     body: {
@@ -191,34 +187,5 @@ export const editorLayoutStyles: Record<LayoutStyle, stylex.StyleXStyles> =
       color: "var(--console-ok)",
       fontSize: 9,
       textOverflow: "ellipsis",
-    },
-    spacer: { flex: 1, "@media (max-width: 900px)": { display: "none" } },
-    desktop: {
-      display: { default: null, "@media (max-width: 900px)": "none" },
-    },
-    more: {
-      display: { default: "none", "@media (max-width: 900px)": "inline-flex" },
-    },
-    danger: {
-      borderColor: "color-mix(in srgb, var(--console-bg) 30%, transparent)",
-      color: {
-        default: "color-mix(in srgb, var(--console-bg) 75%, transparent)",
-        ":hover": "var(--console-frame)",
-      },
-      backgroundColor: {
-        default: "transparent",
-        ":hover": "color-mix(in srgb, var(--console-err) 25%, transparent)",
-      },
-      outline: {
-        default: null,
-        ":focus-visible": "2px solid var(--console-accent)",
-      },
-      outlineOffset: 2,
-      "@media (max-width: 640px)": {
-        minHeight: "var(--console-touch)",
-        paddingLeft: 10,
-        paddingRight: 10,
-        fontSize: 11,
-      },
     },
   });

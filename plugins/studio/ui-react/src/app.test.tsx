@@ -1578,7 +1578,9 @@ describe("capability-aware Studio controls", () => {
     expect(edit).not.toMatch(
       /<button[^>]*(?:studio-editor-head-save[^>]*disabled|disabled[^>]*studio-editor-head-save)/,
     );
-    expect(edit).toContain(">Delete<");
+    // Deletion is offered beside the save, not in the footer.
+    expect(edit).toContain('aria-label="More document actions"');
+    expect(edit).not.toMatch(/data-studio-save-bar[^]*>Delete</);
     expect(edit).toContain("AI selection rewrite");
     expect(edit).toContain("Add to queue");
   });

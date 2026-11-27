@@ -38,6 +38,7 @@ import { systemFieldStyles } from "./studio-system-fields.styles";
 import { typographyStyles } from "./studio-typography.styles";
 import { entityTitle } from "./ui-utils";
 import { useInspectorPreference } from "./use-inspector-preference";
+import { StudioDocumentMenu, StudioSyncDetails } from "./studio-document-menu";
 import { HeadingTitle, headingTitleField } from "./heading-title";
 
 export function StudioEditorPane(
@@ -240,6 +241,13 @@ export function StudioEditorPane(
                     ? "Create"
                     : "Save changes"}
               </Button>
+              {mode.kind === "edit" &&
+                !entitySchema.isSingleton &&
+                props.model.canDelete && (
+                  <StudioDocumentMenu
+                    onDelete={() => dispatchEditor({ type: "deleteRequested" })}
+                  />
+                )}
             </>
           ) : undefined
         }
@@ -339,6 +347,11 @@ export function StudioEditorPane(
               </div>
             )}
             <StudioEditorFields {...props} />
+            <StudioSyncDetails
+              syncStatus={props.syncStatus}
+              baselineCommit={props.baselineCommit}
+              editor={editor}
+            />
             {publicationWorkspace && mode.kind === "edit" && canPublish && (
               <PublicationActions
                 entityType={selectedEntityType}

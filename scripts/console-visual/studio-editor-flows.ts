@@ -66,25 +66,14 @@ export async function exerciseSystemBodyModes(
 }
 
 /**
- * Opens the delete confirmation. Phone tucks the control behind the •••
- * disclosure; wider widths show it in the pipeline bar.
+ * Opens the delete confirmation from the document's ••• menu, which sits
+ * beside its save at every width.
  */
 export async function exerciseStudioDelete({
   page,
-  viewport,
 }: VisualCase): Promise<void> {
-  if (viewport.width <= 640) {
-    await pointerDownSelector(
-      page,
-      'button[aria-label="More document actions"]',
-    );
-    await clickSelector(page, '[role="menuitem"]');
-  } else {
-    await clickSelector(
-      page,
-      '[data-studio-save-bar] [data-slot="button"][data-variant="danger"]',
-    );
-  }
+  await pointerDownSelector(page, 'button[aria-label="More document actions"]');
+  await clickSelector(page, '[role="menuitem"]');
   await waitForSelector(page, ".delete-modal");
 }
 
