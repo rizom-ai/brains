@@ -161,6 +161,7 @@ describe("the seminar pages' data source", () => {
     });
     // Page data is plain JSON: nothing in it is left undefined.
     expect(JSON.parse(JSON.stringify(page))).toStrictEqual(page);
+    expect(page.seminar.stands).toBeNull();
     expect(page.prevSeminar?.id).toBe("on-memory");
     expect(page.nextSeminar?.id).toBe("what-is-religion");
   });

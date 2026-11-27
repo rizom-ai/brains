@@ -6,13 +6,12 @@ import {
   type EntityOf,
 } from "@brains/sdk/entities";
 import { z } from "@brains/utils/zod";
-import { readSeminar } from "../lib/seminar-body";
+import { readSeminar, type SeminarParts } from "../lib/seminar-body";
 import {
   CHAIR,
   seminarFrontmatterSchema,
   seminarRoundSchema,
   type seminarMetadataSchema,
-  type SeminarTurn,
 } from "../schemas/seminar";
 
 type SeminarDefinition = EntityDefinition<
@@ -74,6 +73,7 @@ type SeminarPageSchema = z.ZodObject<
   {
     id: z.ZodString;
     speakers: z.ZodArray<z.ZodString>;
+    stands: z.ZodNullable<z.ZodString>;
     turns: z.ZodArray<PageTurnSchema>;
     closing: z.ZodNullable<PageClosingSchema>;
   } & (typeof seminarFrontmatterSchema)["shape"]
@@ -88,6 +88,8 @@ export const seminarPageSchema: SeminarPageSchema = z.object({
   ...seminarFrontmatterSchema.shape,
   /** The peers the question was put to, by name, in the order of their openings. */
   speakers: z.array(z.string()),
+  /** The peer whose opening stood, by name; none where no exchange followed. */
+  stands: z.string().nullable(),
   turns: z.array(seminarPageTurnSchema),
   closing: z
     .object({ text: z.string(), sources: z.array(seminarPageSourceSchema) })
@@ -126,41 +128,94 @@ function pageSources(
   }));
 }
 
-function pageTurn(turn: SeminarTurn): SeminarPageTurn {
-  return {
-    round: turn.round,
-    speaker: turn.speaker,
-    name: turn.name,
-    chair: turn.speaker === CHAIR,
-    to: turn.to ?? [],
-    text: turn.text ?? null,
-    failed: turn.failed ?? null,
-    sources: pageSources(turn.sources),
-  };
+/**
+ * A peer as the brain's pages show him: the name he is shown under, and his
+ * place among the others. A seminar stores the name a peer gives itself and
+ * takes its turns by agent id; a page names and orders them as the brain
+ * that holds the seminars says.
+ */
+export interface ShownPeer {
+  readonly agent: string;
+  readonly name: string;
 }
 
-function seminarPage(entity: EntityOf<SeminarDefinition>): SeminarPage {
-  const { frontmatter, turns, closing } = readSeminar(entity);
+const ROUNDS = ["opening", "challenge", "rejoinder"] as const;
+
+/**
+ * A seminar's page: its fields, its peers by the names and in the order the
+ * brain shows them, who stood, every turn round by round (the chair's first,
+ * then the peers' in that order), and where they meet.
+ */
+export function seminarPageOf(
+  id: string,
+  seminar: SeminarParts,
+  peers: readonly ShownPeer[],
+): SeminarPage {
+  const place = (agent: string): number => {
+    const index = peers.findIndex((peer) => peer.agent === agent);
+    return index === -1 ? peers.length : index;
+  };
+  const stored = new Map(
+    seminar.turns.map(({ speaker, name }) => [speaker, name]),
+  );
+  const shown = (agent: string): string =>
+    peers.find((peer) => peer.agent === agent)?.name ??
+    stored.get(agent) ??
+    agent;
+  const ordered = seminar.turns
+    .map((turn, taken) => ({ turn, taken }))
+    .sort(
+      (left, right) =>
+        ROUNDS.indexOf(left.turn.round) - ROUNDS.indexOf(right.turn.round) ||
+        Number(right.turn.speaker === CHAIR) -
+          Number(left.turn.speaker === CHAIR) ||
+        (left.turn.speaker === CHAIR
+          ? 0
+          : place(left.turn.speaker) - place(right.turn.speaker)) ||
+        left.taken - right.taken,
+    )
+    .map(({ turn }) => turn);
+  const peerTurns = ordered.filter(({ speaker }) => speaker !== CHAIR);
+  // The one who stood is the one a challenge answers.
+  const stood = peerTurns.find(({ round }) => round === "challenge")?.to?.[0];
+
   return {
-    id: entity.id,
-    ...frontmatter,
-    speakers: turns
-      .filter(({ round, speaker }) => round === "opening" && speaker !== CHAIR)
-      .map(({ name }) => name),
-    turns: turns.map(pageTurn),
-    closing: closing
-      ? { text: closing.text, sources: pageSources(closing.sources) }
+    id,
+    ...seminar.frontmatter,
+    speakers: peerTurns
+      .filter(({ round }) => round === "opening")
+      .map(({ speaker }) => shown(speaker)),
+    stands: stood === undefined ? null : shown(stood),
+    turns: ordered.map((turn) => ({
+      round: turn.round,
+      speaker: turn.speaker,
+      name: turn.speaker === CHAIR ? turn.name : shown(turn.speaker),
+      chair: turn.speaker === CHAIR,
+      to: (turn.to ?? []).map(shown),
+      text: turn.text ?? null,
+      failed: turn.failed ?? null,
+      sources: pageSources(turn.sources),
+    })),
+    closing: seminar.closing
+      ? {
+          text: seminar.closing.text,
+          sources: pageSources(seminar.closing.sources),
+        }
       : null,
   };
 }
 
 /**
  * The seminars' pages: every seminar, newest asked first, or one by its id
- * with its neighbors, served as seminar:entities.
+ * with its neighbors, served as seminar:entities, its peers shown as the
+ * brain names and orders them.
  */
 export function seminarDataSource(
   seminar: SeminarDefinition,
+  peers: readonly ShownPeer[] = [],
 ): EntityDataSourceDefinition<SeminarDefinition, SeminarPage, SeminarListPage> {
+  const seminarPage = (entity: EntityOf<SeminarDefinition>): SeminarPage =>
+    seminarPageOf(entity.id, readSeminar(entity), peers);
   return defineDataSource({
     id: "entities",
     name: "Seminar DataSource",

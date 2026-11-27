@@ -34,12 +34,28 @@ import { createSeminarHoldTool } from "./tools/seminar-hold";
 
 export const seminarConfigSchema: z.ZodObject<{
   guidance: z.ZodOptional<z.ZodString>;
+  peers: z.ZodDefault<
+    z.ZodArray<z.ZodObject<{ agent: z.ZodString; name: z.ZodString }>>
+  >;
 }> = z.object({
   /**
    * What the chair knows of its peers that their openings do not say, such
    * as the works a peer's brain does not hold, so it never points him there.
    */
   guidance: z.string().trim().min(1).optional(),
+  /**
+   * The peers as the brain's pages show them: each under the name given
+   * here, in this order. A peer not listed keeps the name it gives itself
+   * and follows the listed ones.
+   */
+  peers: z
+    .array(
+      z.object({
+        agent: z.string().trim().min(1),
+        name: z.string().trim().min(1),
+      }),
+    )
+    .default([]),
 });
 
 export type SeminarConfig = z.output<typeof seminarConfigSchema>;
@@ -155,7 +171,9 @@ export const seminarPackage: ServicePackageDefinition<
       entities: [seminar],
       setup: (context): Record<never, never> => {
         // The pages a site reads seminars on, as seminar:entities.
-        serviceRuntime(context).dataSource(seminarDataSource(seminar));
+        serviceRuntime(context).dataSource(
+          seminarDataSource(seminar, context.config.peers),
+        );
         return {};
       },
     }),

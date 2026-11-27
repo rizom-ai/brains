@@ -8,6 +8,7 @@ export {
 export { seminar } from "./seminar-entity";
 export {
   seminarDataSource,
+  seminarPageOf,
   seminarDetailPageSchema,
   seminarListPageSchema,
   seminarPageSchema,
@@ -19,6 +20,7 @@ export type {
   SeminarListPage,
   SeminarPage,
   SeminarPageTurn,
+  ShownPeer,
 } from "./datasources/seminar-datasource";
 export {
   holdSeminar,
