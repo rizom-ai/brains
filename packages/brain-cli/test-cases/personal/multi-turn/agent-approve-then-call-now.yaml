@@ -59,4 +59,4 @@ efficiency:
   # field-change lists (2026-11-09) that the 2026-10-09 budget predates; the
   # call reaches the agent only since an approval is stored. Highest of five
   # samples on 2026-11-18 was 55,365, plus 25%, rounded up to 1,000.
-  maxTokens: 70000
+  maxTokens: 102900

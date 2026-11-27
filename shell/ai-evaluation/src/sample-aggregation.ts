@@ -43,6 +43,14 @@ export function summarizeResults(
     passRate: results.length > 0 ? passedTests / results.length : 0,
     avgMetrics: {
       totalTokens: mean(results, (result) => result.totalMetrics.totalTokens),
+      ...(results.every(
+        (result) => result.totalMetrics.referenceTokens !== undefined,
+      ) && {
+        referenceTokens: mean(
+          results,
+          (result) => result.totalMetrics.referenceTokens ?? 0,
+        ),
+      }),
       toolCallCount: mean(
         results,
         (result) => result.totalMetrics.toolCallCount,

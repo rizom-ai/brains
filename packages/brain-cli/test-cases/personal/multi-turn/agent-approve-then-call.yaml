@@ -48,4 +48,4 @@ efficiency:
   # Two model turns, each carrying the tool surface and typed field-change
   # lists that the earlier 39,000 budget predates. Highest of four samples on
   # 2026-11-26 was 53,860, plus 25%, rounded up to 1,000.
-  maxTokens: 68000
+  maxTokens: 99900

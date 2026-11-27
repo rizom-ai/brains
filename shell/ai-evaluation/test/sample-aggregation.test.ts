@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import {
   mergeSampleSummaries,
   perTestPassRates,
+  summarizeResults,
   testsBelowPassRate,
 } from "../src/sample-aggregation";
 import type { EvaluationResult, EvaluationSummary } from "../src/schemas";
@@ -41,6 +42,31 @@ function sample(results: EvaluationResult[]): EvaluationSummary {
     results,
   };
 }
+
+function withReference(
+  base: EvaluationResult,
+  referenceTokens: number,
+): EvaluationResult {
+  return { ...base, totalMetrics: { ...base.totalMetrics, referenceTokens } };
+}
+
+describe("summarizeResults", () => {
+  it("averages the reference token counts when every result has one", () => {
+    const summary = summarizeResults([
+      withReference(result("a", true), 100),
+      withReference(result("b", true), 300),
+    ]);
+    expect(summary.avgMetrics.referenceTokens).toBe(200);
+  });
+
+  it("has no reference average when a result has no reference count", () => {
+    const summary = summarizeResults([
+      withReference(result("a", true), 100),
+      result("b", true),
+    ]);
+    expect(summary.avgMetrics.referenceTokens).toBeUndefined();
+  });
+});
 
 describe("mergeSampleSummaries", () => {
   it("returns a single sample unchanged", () => {

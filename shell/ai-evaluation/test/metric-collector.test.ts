@@ -25,6 +25,18 @@ describe("MetricCollector", () => {
       expect(metrics.durationMs).toBeGreaterThanOrEqual(0);
     });
 
+    it("keeps a turn's reference token count beside the model's usage", () => {
+      collector.startTurn();
+
+      const metrics = collector.endTurn({
+        usage: { promptTokens: 100, completionTokens: 50, totalTokens: 150 },
+        referenceTokens: 120,
+      });
+
+      expect(metrics.totalTokens).toBe(150);
+      expect(metrics.referenceTokens).toBe(120);
+    });
+
     it("should handle missing usage gracefully", () => {
       collector.startTurn();
 
@@ -108,6 +120,26 @@ describe("MetricCollector", () => {
       expect(total.totalTokens).toBe(450);
       expect(total.toolCallCount).toBe(3);
       expect(total.turnCount).toBe(2);
+    });
+
+    it("adds the turns' reference token counts", () => {
+      collector.startTurn();
+      collector.endTurn({ referenceTokens: 120 });
+      collector.startTurn();
+      collector.endTurn({ referenceTokens: 80 });
+
+      expect(collector.getTotalMetrics().referenceTokens).toBe(200);
+    });
+
+    it("has no reference count when a turn's model calls went unseen", () => {
+      collector.startTurn();
+      collector.endTurn({ referenceTokens: 120 });
+      collector.startTurn();
+      collector.endTurn({
+        usage: { promptTokens: 100, completionTokens: 50, totalTokens: 150 },
+      });
+
+      expect(collector.getTotalMetrics().referenceTokens).toBeUndefined();
     });
   });
 

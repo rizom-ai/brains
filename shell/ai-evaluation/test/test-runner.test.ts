@@ -1,4 +1,6 @@
 import { describe, it, expect, beforeEach, mock, type Mock } from "bun:test";
+import { generateText } from "ai";
+import { MockLanguageModelV3 } from "ai/test";
 
 import { createExternalActorId } from "@brains/contracts";
 import { TestRunner } from "../src/test-runner";
@@ -1618,6 +1620,78 @@ describe("TestRunner", () => {
       expect(
         result.efficiencyFailures?.some((f) => f.criterion === "maxTokens"),
       ).toBe(true);
+    });
+
+    describe("when the turn's model calls are seen", () => {
+      type ModelResponse = Awaited<
+        ReturnType<MockLanguageModelV3["doGenerate"]>
+      >;
+      // The model counts the turn as 1,500 tokens; the reference tokenizer
+      // counts "hello world" twice, 4 tokens.
+      const chattyCountingModel = (): MockLanguageModelV3 =>
+        new MockLanguageModelV3({
+          doGenerate: async (): Promise<ModelResponse> => ({
+            content: [{ type: "text", text: "hello world" }],
+            finishReason: { unified: "stop", raw: "stop" },
+            usage: {
+              inputTokens: {
+                total: 1000,
+                noCache: 1000,
+                cacheRead: 0,
+                cacheWrite: 0,
+              },
+              outputTokens: { total: 500, text: 500, reasoning: 0 },
+            },
+            warnings: [],
+          }),
+        });
+      const budgetCase = (maxTokens: number): AgentTestCase => ({
+        id: "reference-budget",
+        name: "Reference Budget Test",
+        type: "tool_invocation",
+        turns: [{ userMessage: "hello world" }],
+        successCriteria: {},
+        efficiency: { maxTokens },
+      });
+
+      beforeEach(() => {
+        mockAgentService.chat.mockImplementation(async () => {
+          const result = await generateText({
+            model: chattyCountingModel(),
+            prompt: "hello world",
+          });
+          return {
+            text: result.text,
+            toolResults: [],
+            usage: {
+              promptTokens: result.usage.inputTokens ?? 0,
+              completionTokens: result.usage.outputTokens ?? 0,
+              totalTokens: result.usage.totalTokens ?? 0,
+            },
+          };
+        });
+      });
+
+      it("holds the token budget to the reference count, whatever the model counts", async () => {
+        const result = await testRunner.runTest(budgetCase(100));
+
+        expect(result.totalMetrics.totalTokens).toBe(1500);
+        expect(result.totalMetrics.referenceTokens).toBe(4);
+        expect(result.efficiencyPassed).toBe(true);
+      });
+
+      it("fails a turn whose reference count exceeds the budget", async () => {
+        const result = await testRunner.runTest(budgetCase(3));
+
+        expect(result.efficiencyFailures).toEqual([
+          {
+            criterion: "maxTokens",
+            expected: 3,
+            actual: 4,
+            message: "Token usage 4 exceeds max 3",
+          },
+        ]);
+      });
     });
   });
 });

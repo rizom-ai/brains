@@ -47,4 +47,4 @@ permissions:
 
 efficiency:
   maxToolCalls: 5
-  maxTokens: 26000
+  maxTokens: 34300

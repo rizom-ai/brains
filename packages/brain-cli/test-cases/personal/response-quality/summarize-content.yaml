@@ -26,4 +26,4 @@ successCriteria:
 
 efficiency:
   maxToolCalls: 10
-  maxTokens: 79000
+  maxTokens: 113400

@@ -40,17 +40,22 @@ type TurnMetricsSchema = z.ZodObject<{
   promptTokens: z.ZodNumber;
   completionTokens: z.ZodNumber;
   totalTokens: z.ZodNumber;
+  referenceTokens: z.ZodOptional<z.ZodNumber>;
   toolCallCount: z.ZodNumber;
   durationMs: z.ZodNumber;
 }>;
 
 /**
- * Metrics for a single turn
+ * Metrics for a single turn. The token counts are the model's own;
+ * `referenceTokens` counts the same calls with one tokenizer for every
+ * model, and is absent when the turn's model calls were not seen (a
+ * remote brain).
  */
 export const turnMetricsSchema: TurnMetricsSchema = z.object({
   promptTokens: z.number(),
   completionTokens: z.number(),
   totalTokens: z.number(),
+  referenceTokens: z.number().optional(),
   toolCallCount: z.number(),
   durationMs: z.number(),
 });
@@ -122,18 +127,21 @@ type TotalMetricsSchema = z.ZodObject<{
   promptTokens: z.ZodNumber;
   completionTokens: z.ZodNumber;
   totalTokens: z.ZodNumber;
+  referenceTokens: z.ZodOptional<z.ZodNumber>;
   toolCallCount: z.ZodNumber;
   durationMs: z.ZodNumber;
   turnCount: z.ZodNumber;
 }>;
 
 /**
- * Aggregated metrics across all turns
+ * Aggregated metrics across all turns; `referenceTokens` only when every
+ * turn has one.
  */
 export const totalMetricsSchema: TotalMetricsSchema = z.object({
   promptTokens: z.number(),
   completionTokens: z.number(),
   totalTokens: z.number(),
+  referenceTokens: z.number().optional(),
   toolCallCount: z.number(),
   durationMs: z.number(),
   turnCount: z.number(),
@@ -198,6 +206,7 @@ type EvaluationSummarySchema = z.ZodObject<{
   passRate: z.ZodNumber;
   avgMetrics: z.ZodObject<{
     totalTokens: z.ZodNumber;
+    referenceTokens: z.ZodOptional<z.ZodNumber>;
     toolCallCount: z.ZodNumber;
     durationMs: z.ZodNumber;
   }>;
@@ -218,6 +227,8 @@ export const evaluationSummarySchema: EvaluationSummarySchema = z.object({
   // Average metrics
   avgMetrics: z.object({
     totalTokens: z.number(),
+    // Only when every result has a reference count.
+    referenceTokens: z.number().optional(),
     toolCallCount: z.number(),
     durationMs: z.number(),
   }),
