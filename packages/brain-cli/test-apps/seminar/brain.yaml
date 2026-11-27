@@ -26,7 +26,8 @@ permissions:
       level: admin
 
 site:
-  package: "@brains/site-organization"
+  package: "@rizom/site-seminar"
+  theme: "@rizom/theme-books"
 
 plugins:
   mcp:

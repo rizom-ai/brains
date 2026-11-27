@@ -6,8 +6,32 @@ export {
   type SeminarConfig,
 } from "./plugin";
 export { seminar } from "./seminar-entity";
+export { getTemplates } from "./lib/register-templates";
+export {
+  seminarAskDataSource,
+  seminarAskPage,
+  seminarAskPageSchema,
+} from "./datasources/seminar-ask-datasource";
+export type {
+  SeminarAskBuild,
+  SeminarAskPage,
+  SeminarAskSources,
+} from "./datasources/seminar-ask-datasource";
+export {
+  SeminarAskTemplate,
+  type SeminarAskProps,
+} from "./templates/seminar-ask";
+export {
+  SeminarDetailTemplate,
+  type SeminarDetailProps,
+} from "./templates/seminar-detail";
+export {
+  SeminarListTemplate,
+  type SeminarListProps,
+} from "./templates/seminar-list";
 export {
   seminarDataSource,
+  seminarPageOf,
   seminarDetailPageSchema,
   seminarListPageSchema,
   seminarPageSchema,
@@ -19,6 +43,7 @@ export type {
   SeminarListPage,
   SeminarPage,
   SeminarPageTurn,
+  ShownPeer,
 } from "./datasources/seminar-datasource";
 export {
   holdSeminar,
