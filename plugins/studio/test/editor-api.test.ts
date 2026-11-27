@@ -2734,6 +2734,59 @@ describe("studio image details", () => {
     });
   });
 
+  it("names the entries an image is used in: as a cover or in a body", async () => {
+    const { shell, plugin, cookie } = await detailsShell();
+    const store = async (
+      entityType: string,
+      id: string,
+      content: string,
+    ): Promise<void> => {
+      await shell.getEntityService().createEntity({
+        entity: {
+          id,
+          entityType,
+          content,
+          metadata: {},
+          visibility: "public",
+          created: "2026-07-02T00:00:00.000Z",
+          updated: "2026-07-02T00:00:00.000Z",
+        },
+      });
+    };
+    await store(
+      "post",
+      "harbor-essay",
+      "---\ntitle: Harbor essay\ncoverImageId: harbor\n---\nAt dawn.",
+    );
+    await store(
+      "note",
+      "dawn-notes",
+      "---\ntitle: Dawn notes\n---\n![Boats](entity://image/harbor)",
+    );
+    // Mentioning the word is not using the image.
+    await store(
+      "note",
+      "harbor-word",
+      "---\ntitle: Harbor word\n---\nThe harbor was quiet.",
+    );
+
+    const response = await findRoute(
+      plugin,
+      "/studio/api/image-details",
+    ).handler(apiRequest("/studio/api/image-details?id=harbor", { cookie }));
+    const { usedIn } = z
+      .object({
+        usedIn: z.array(
+          z.object({ entityType: z.string(), id: z.string() }).loose(),
+        ),
+      })
+      .parse(await response.json());
+
+    expect(
+      usedIn.map((entry) => `${entry.entityType}/${entry.id}`).sort(),
+    ).toEqual(["note/dawn-notes", "post/harbor-essay"]);
+  });
+
   it("saves a title and alt text as the owner's, keeping the bytes", async () => {
     const { shell, plugin, cookie, ref } = await detailsShell();
     const read = await findRoute(plugin, "/studio/api/image-details").handler(

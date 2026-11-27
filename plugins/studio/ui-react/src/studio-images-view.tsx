@@ -21,7 +21,10 @@ const PAGE = { offset: 0, limit: 96 };
  * The brain's images as a grid. Opening one shows it with its title and alt
  * text, so an image nobody has described can be described here.
  */
-export function StudioImagesView(): ReactElement {
+export function StudioImagesView(props: {
+  /** Open an entry that uses an image, in place. */
+  onOpen?: (entityType: string, id: string) => void;
+}): ReactElement {
   const api = useStudioApi();
   const library = useQuery({
     queryKey: ["studio", "image-library", PAGE.offset, PAGE.limit],
@@ -136,7 +139,10 @@ export function StudioImagesView(): ReactElement {
             aria-label="Image details"
             {...stylex.props(styles.details)}
           >
-            <StudioImageDetails imageId={picked} />
+            <StudioImageDetails
+              imageId={picked}
+              {...(props.onOpen && { onOpen: props.onOpen })}
+            />
           </aside>
         )}
       </div>

@@ -170,6 +170,7 @@ export function createFixtureRoutes(
             alt: "",
             altSource: "fallback",
             contentHash: "fixture",
+            usedIn: [],
           }
         : {
             id,
@@ -177,6 +178,13 @@ export function createFixtureRoutes(
             alt: "A flat verdigris board under even light",
             altSource: "generated",
             contentHash: "fixture",
+            usedIn: [
+              {
+                entityType: "posts",
+                id: "field-notes",
+                title: "Notes from the rhizome",
+              },
+            ],
           },
     );
   };

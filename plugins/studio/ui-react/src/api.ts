@@ -335,6 +335,8 @@ export interface ImageDetails {
   alt: string;
   altSource: "fallback" | "generated" | "owner";
   contentHash: string;
+  /** The entries that use the image, as a cover or in their body. */
+  usedIn?: Array<{ entityType: string; id: string; title: string }>;
 }
 
 /** An image as the Images view lists it. */

@@ -543,7 +543,17 @@ export function App(): ReactElement {
         active: routeTarget.kind === "images",
         onSelect: () => router.history.push(studioImagesPath(studioBasePath)),
       }}
-      imagesView={routeTarget.kind === "images" ? <StudioImagesView /> : null}
+      imagesView={
+        routeTarget.kind === "images" ? (
+          <StudioImagesView
+            onOpen={(nextType, id) =>
+              router.history.push(
+                studioEntityPath(studioBasePath, nextType, id),
+              )
+            }
+          />
+        ) : null
+      }
       groupReturnLabel={groupReturn?.label}
       groupingSuggestions={groupingSuggestions}
       groupingView={
