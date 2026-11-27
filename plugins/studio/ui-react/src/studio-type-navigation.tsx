@@ -1,5 +1,5 @@
 /** @jsxImportSource react */
-import { type ReactElement } from "react";
+import { useEffect, useState, type ReactElement } from "react";
 import type { StudioWorkspaceInfo, EntityTypeInfo } from "./api";
 import type {
   GroupingNavigation,
@@ -10,6 +10,7 @@ import { DesktopNavigation } from "./studio-desktop-navigation";
 import { MobileNavigation } from "./studio-mobile-navigation";
 import { deriveNavigationModel } from "./studio-navigation-model";
 import { useNavigationTree } from "./use-navigation-tree";
+import { noteRecentType, readRecentTypes } from "./recent-types";
 
 export type StudioEditorPresentation = "form" | "document" | "split";
 
@@ -44,7 +45,12 @@ export function TypeSwitcher(props: {
   /** An entry is open: the desktop rail folds unless an area is being browsed. */
   focus?: boolean;
 }): ReactElement {
-  const model = deriveNavigationModel(props);
+  // Read once: a type opened now moves up next visit, not under the pointer.
+  const [recentTypes] = useState(readRecentTypes);
+  useEffect(() => {
+    if (props.active) noteRecentType(props.active);
+  }, [props.active]);
+  const model = deriveNavigationModel({ ...props, recentTypes });
   const tree = useNavigationTree({
     currentArea: model.currentArea,
     destination: model.destination,

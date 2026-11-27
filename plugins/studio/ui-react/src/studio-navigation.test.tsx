@@ -836,3 +836,48 @@ it("lists the brain's images with the Library", async () => {
       ?.textContent,
   ).toBe("Images");
 });
+
+it("keeps Library's empty types under All types, and remembers the types opened", async () => {
+  const withEmpty: EntityTypeInfo[] = [
+    ...types,
+    {
+      entityType: "newsletter",
+      classification: "content",
+      label: "Newsletters",
+      singularLabel: "Newsletter",
+      isSingleton: false,
+      hasBody: true,
+      count: 0,
+      hierarchy: studioTypeHierarchy("newsletter"),
+      capabilities,
+    },
+  ];
+  await act(async () =>
+    root.render(
+      <TypeSwitcher
+        renderMode="desktop"
+        types={withEmpty}
+        active="note"
+        workspaces={workspaces}
+        workspaceBadges={{}}
+        activeWorkspace={null}
+        onSelect={(id) => selected.push(id)}
+        onSelectWorkspace={(id) => selected.push(id)}
+      />,
+    ),
+  );
+  const allTypes = document.querySelector<HTMLDetailsElement>(
+    ".studio-leaf-rail details",
+  );
+  expect(allTypes?.querySelector("summary")?.textContent).toBe("All types");
+  expect(allTypes?.open).toBe(false);
+  expect(allTypes?.textContent).toContain("Newsletters");
+  expect(
+    [...document.querySelectorAll(".studio-leaf-rail a")]
+      .filter((link) => !allTypes?.contains(link))
+      .map((link) => link.textContent),
+  ).not.toContain("Newsletters");
+  expect(
+    JSON.parse(window.localStorage.getItem("studio.recent-types") ?? "[]"),
+  ).toEqual(["note"]);
+});

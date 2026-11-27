@@ -210,6 +210,26 @@ export function DesktopNavigation(props: {
         return (
           <>
             {model.libraryTypeGroups.map(typeGroup)}
+            {model.emptyLibraryTypes.length > 0 ? (
+              <details className={navClass("", nav.allTypes)}>
+                <summary
+                  className={navClass("", nav.leafLabel, nav.allTypesSummary)}
+                >
+                  All types
+                </summary>
+                <ul className={navClass("", nav.list)}>
+                  {model.emptyLibraryTypes.map((info) => (
+                    <LeafLink
+                      key={info.entityType}
+                      label={navigationTypeLabel(info)}
+                      active={false}
+                      href={studioCollectionPath(basePath, info.entityType)}
+                      onSelect={() => props.onSelect(info.entityType)}
+                    />
+                  ))}
+                </ul>
+              </details>
+            ) : null}
             {(props.groupings?.items.length ?? 0) > 0 ? (
               <LeafGroup label="Groups">
                 {(props.groupings?.items ?? []).map((grouping) => (

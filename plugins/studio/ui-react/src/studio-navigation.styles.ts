@@ -6,6 +6,8 @@ type NavigationStyle =
   | "shellCollapsed"
   | "navigationCollapsed"
   | "section"
+  | "allTypes"
+  | "allTypesSummary"
   | "collapsedLabel"
   | "collapsedLink"
   | "collapsedTitle"
@@ -73,6 +75,15 @@ export const navigationStyles: Record<NavigationStyle, stylex.StyleXStyles> =
       "@media (max-width: 900px)": { gridTemplateColumns: "minmax(0, 1fr)" },
     },
     navigationCollapsed: { paddingInline: "10px" },
+    allTypes: { padding: "0 0 6px" },
+    allTypesSummary: {
+      cursor: "pointer",
+      listStylePosition: "inside",
+      fontFamily: "var(--console-ui)",
+      fontSize: "12px",
+      letterSpacing: 0,
+      textTransform: "none",
+    },
     // A section: its heading, and under it what it holds while open.
     section: { display: "grid", gap: "2px" },
     collapsedLabel: { display: "none" },

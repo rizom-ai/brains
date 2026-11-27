@@ -33,6 +33,17 @@ export const types = [
     count: 7,
     capabilities: editCapabilities,
   },
+  // A type with nothing in it yet waits under All types.
+  {
+    entityType: "newsletters",
+    classification: "content",
+    label: "Newsletters",
+    singularLabel: "Newsletter",
+    isSingleton: false,
+    hasBody: true,
+    count: 0,
+    capabilities: editCapabilities,
+  },
   {
     entityType: "settings",
     classification: "system",

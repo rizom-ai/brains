@@ -203,3 +203,52 @@ describe("deriveNavigationModel", () => {
     expect(model.destination).toBe("group:clients");
   });
 });
+
+describe("Library's types", () => {
+  it("keeps empty types under All types, out of the way", () => {
+    const model = deriveNavigationModel({
+      types: [
+        type("post"),
+        { ...type("newsletter"), count: 0 },
+        type("note"),
+        { ...type("faq"), count: 0 },
+      ],
+      active: null,
+    });
+    expect(
+      model.libraryTypeGroups.flatMap((group) =>
+        group.types.map((info) => info.entityType),
+      ),
+    ).toEqual(["post", "note"]);
+    expect(model.emptyLibraryTypes.map((info) => info.entityType)).toEqual([
+      "newsletter",
+      "faq",
+    ]);
+  });
+
+  it("lists an empty type with the others while it is open", () => {
+    const model = deriveNavigationModel({
+      types: [type("post"), { ...type("newsletter"), count: 0 }],
+      active: "newsletter",
+    });
+    expect(
+      model.libraryTypeGroups.flatMap((group) =>
+        group.types.map((info) => info.entityType),
+      ),
+    ).toEqual(["post", "newsletter"]);
+    expect(model.emptyLibraryTypes).toEqual([]);
+  });
+
+  it("puts the types used most recently first", () => {
+    const model = deriveNavigationModel({
+      types: [type("post"), type("note"), type("link")],
+      active: null,
+      recentTypes: ["link", "note"],
+    });
+    expect(
+      model.libraryTypeGroups.flatMap((group) =>
+        group.types.map((info) => info.entityType),
+      ),
+    ).toEqual(["link", "note", "post"]);
+  });
+});

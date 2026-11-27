@@ -70,6 +70,7 @@ export function MobileNavigation(props: MobileNavigationProps): ReactElement {
     chatWorkspace,
     homeWorkspaces,
     libraryTypeGroups,
+    emptyLibraryTypes,
     libraryWorkspaces,
     publishWorkspaces,
     brainTypeGroups,
@@ -129,6 +130,8 @@ export function MobileNavigation(props: MobileNavigationProps): ReactElement {
             ]
           : []),
         ...libraryWorkspaces.map(mobileWorkspaceOption),
+        // Types with nothing in them yet come last.
+        ...emptyLibraryTypes.map(mobileTypeOption),
       ],
     },
     {

@@ -40,6 +40,8 @@ export interface NavigationModelInput {
   groupings?: GroupingNavigation | undefined;
   active: string | null;
   activeWorkspace?: string | null | undefined;
+  /** Types this person opened, most recent first, as this browser recalls. */
+  recentTypes?: readonly string[] | undefined;
 }
 
 /** Everything Studio's navigation shows, as both the sidebar and the phone sheet read it. */
@@ -55,6 +57,8 @@ export interface NavigationModel {
   homeWorkspaces: StudioWorkspaceInfo[];
   /** Content and collections, and pages plugins place in Library. */
   libraryTypeGroups: NavigationTypeGroup[];
+  /** Library types with no entries yet, listed under All types. */
+  emptyLibraryTypes: EntityTypeInfo[];
   libraryWorkspaces: StudioWorkspaceInfo[];
   publishWorkspaces: StudioWorkspaceInfo[];
   /** The brain's own machinery, and pages plugins place in Brain. */
@@ -104,8 +108,30 @@ export function deriveNavigationModel(
       types: types.filter((info) => studioTypeGroup(info) === label),
     }))
     .filter((group) => group.types.length > 0);
-  const libraryTypeGroups = groups.filter(
+  // Library lists the types in use, most recently opened first; a type with
+  // no entries waits under All types unless it is the one open.
+  const recent = input.recentTypes ?? [];
+  const recency = (info: EntityTypeInfo): number => {
+    const at = recent.indexOf(info.entityType);
+    return at < 0 ? recent.length : at;
+  };
+  const inUse = (info: EntityTypeInfo): boolean =>
+    info.count > 0 || info.isSingleton || info.entityType === active;
+  const libraryGroups = groups.filter(
     (group) => group.label === "Content" || group.label === "Collections",
+  );
+  const libraryTypeGroups = libraryGroups
+    .map((group) => ({
+      label: group.label,
+      types: group.types
+        .filter(inUse)
+        .map((info, index) => ({ info, index }))
+        .sort((a, b) => recency(a.info) - recency(b.info) || a.index - b.index)
+        .map(({ info }) => info),
+    }))
+    .filter((group) => group.types.length > 0);
+  const emptyLibraryTypes = libraryGroups.flatMap((group) =>
+    group.types.filter((info) => !inUse(info)),
   );
   const systemTypes = (ids: string[]): EntityTypeInfo[] =>
     ids.flatMap((id) =>
@@ -165,6 +191,7 @@ export function deriveNavigationModel(
         label: "Library",
         available:
           libraryTypeGroups.length > 0 ||
+          emptyLibraryTypes.length > 0 ||
           libraryWorkspaces.length > 0 ||
           (input.groupings?.items.length ?? 0) > 0,
       },
@@ -198,6 +225,7 @@ export function deriveNavigationModel(
     chatWorkspace,
     homeWorkspaces,
     libraryTypeGroups,
+    emptyLibraryTypes,
     libraryWorkspaces,
     publishWorkspaces,
     brainTypeGroups,
