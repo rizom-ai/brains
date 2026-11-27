@@ -12,6 +12,8 @@ export interface NavigationTreeInput {
   /** Workspaces that are an area in their own right, rather than a leaf. */
   areaWorkspaces: (StudioWorkspaceInfo | undefined)[];
   onSelectWorkspace: ((workspaceId: string) => void) | undefined;
+  /** Whether a section lists destinations under its heading. */
+  hasList: (area: StudioArea) => boolean;
 }
 
 export interface NavigationTree {
@@ -29,13 +31,6 @@ export interface NavigationTree {
   openGroups: Record<string, boolean>;
   toggleGroup: (area: string, open: boolean) => void;
 }
-
-const AREAS_WITH_LEAVES: readonly StudioArea[] = [
-  "home",
-  "library",
-  "publish",
-  "brain",
-];
 
 /**
  * Which part of the Studio the navigation is showing.
@@ -87,7 +82,7 @@ export function useNavigationTree(input: NavigationTreeInput): NavigationTree {
 
   return {
     activeArea,
-    leafOpen: activeArea !== null && AREAS_WITH_LEAVES.includes(activeArea),
+    leafOpen: activeArea !== null && input.hasList(activeArea),
     browsing: browsingArea !== null,
     endBrowsing: () => setBrowsingArea(null),
     leafId,

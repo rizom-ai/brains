@@ -70,6 +70,7 @@ async function renderTree(
       destination: "note",
       activeWorkspace: null,
       areaWorkspaces: [chat],
+      hasList: (area): boolean => area !== "chat",
       onSelectWorkspace: (id): void => {
         selected.push(id);
       },

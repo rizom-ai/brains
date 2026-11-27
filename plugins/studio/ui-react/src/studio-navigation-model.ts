@@ -10,6 +10,7 @@ import {
   MOBILE_GROUPING_PREFIX,
   workspaceBadge,
 } from "./studio-navigation-parts";
+import { STUDIO_CHAT_WORKSPACE_ID } from "../../src/chat-workspace";
 
 export interface NavigationTypeGroup {
   label: string;
@@ -25,9 +26,8 @@ export interface NavigationSection {
   badge?: number;
 }
 
-/** Sections whose destinations are listed under them, browsed in place. */
+/** Sections browsed in place: their heading opens the list, not a page. */
 export const LEAF_AREAS: readonly StudioArea[] = [
-  "home",
   "library",
   "publish",
   "brain",
@@ -55,6 +55,8 @@ export interface NavigationModel {
   chatWorkspace: StudioWorkspaceInfo | undefined;
   /** Pages listed under Home, such as Inbox and Board. */
   homeWorkspaces: StudioWorkspaceInfo[];
+  /** Pages listed under Chat, such as Guest chat. */
+  chatWorkspaces: StudioWorkspaceInfo[];
   /** Content and collections, and pages plugins place in Library. */
   libraryTypeGroups: NavigationTypeGroup[];
   /** Library types with no entries yet, listed under All types. */
@@ -82,6 +84,20 @@ function sectionBadge(
   return total > 0 ? total : undefined;
 }
 
+/**
+ * Whether a section lists destinations under its heading: always for the
+ * sections browsed in place, and for Home and Chat when they hold pages
+ * besides their own.
+ */
+export function sectionHasList(
+  model: Pick<NavigationModel, "homeWorkspaces" | "chatWorkspaces">,
+  area: StudioArea,
+): boolean {
+  if (area === "home") return model.homeWorkspaces.length > 0;
+  if (area === "chat") return model.chatWorkspaces.length > 0;
+  return LEAF_AREAS.includes(area);
+}
+
 export function deriveNavigationModel(
   input: NavigationModelInput,
 ): NavigationModel {
@@ -95,7 +111,12 @@ export function deriveNavigationModel(
   const overviewWorkspace = workspaces.find(
     (workspace) => workspace.id === "studio:overview",
   );
-  const chatWorkspace = inSection("chat")[0];
+  const chatWorkspace = workspaces.find(
+    (workspace) => workspace.id === STUDIO_CHAT_WORKSPACE_ID,
+  );
+  const chatWorkspaces = inSection("chat").filter(
+    (workspace) => workspace !== chatWorkspace,
+  );
   const homeWorkspaces = inSection("home").filter(
     (workspace) => workspace !== overviewWorkspace,
   );
@@ -206,8 +227,12 @@ export function deriveNavigationModel(
       sectionBadge(publishWorkspaces, badges),
     ),
     withBadge(
-      { id: "chat", label: "Chat", available: chatWorkspace !== undefined },
-      sectionBadge([chatWorkspace], badges),
+      {
+        id: "chat",
+        label: "Chat",
+        available: chatWorkspace !== undefined || chatWorkspaces.length > 0,
+      },
+      sectionBadge([chatWorkspace, ...chatWorkspaces], badges),
     ),
     withBadge(
       {
@@ -224,6 +249,7 @@ export function deriveNavigationModel(
     overviewWorkspace,
     chatWorkspace,
     homeWorkspaces,
+    chatWorkspaces,
     libraryTypeGroups,
     emptyLibraryTypes,
     libraryWorkspaces,

@@ -69,6 +69,7 @@ export function MobileNavigation(props: MobileNavigationProps): ReactElement {
     overviewWorkspace,
     chatWorkspace,
     homeWorkspaces,
+    chatWorkspaces,
     libraryTypeGroups,
     emptyLibraryTypes,
     libraryWorkspaces,
@@ -142,7 +143,10 @@ export function MobileNavigation(props: MobileNavigationProps): ReactElement {
     {
       area: "chat",
       label: "Chat",
-      options: chatWorkspace ? [mobileWorkspaceOption(chatWorkspace)] : [],
+      options: [
+        ...(chatWorkspace ? [mobileWorkspaceOption(chatWorkspace)] : []),
+        ...chatWorkspaces.map(mobileWorkspaceOption),
+      ],
     },
     {
       area: "brain",

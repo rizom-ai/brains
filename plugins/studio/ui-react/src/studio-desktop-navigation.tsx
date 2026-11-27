@@ -269,7 +269,7 @@ export function DesktopNavigation(props: {
           </>
         );
       case "chat":
-        return null;
+        return workspaceGroup(undefined, model.chatWorkspaces);
     }
   };
 
@@ -312,11 +312,7 @@ export function DesktopNavigation(props: {
           .filter((section) => section.available)
           .map((section) => {
             const current = section.id === activeArea;
-            const listed =
-              current &&
-              leafOpen &&
-              !collapsed &&
-              LEAF_AREAS.includes(section.id);
+            const listed = current && leafOpen && !collapsed;
             return (
               <section
                 key={section.id}
@@ -340,7 +336,9 @@ export function DesktopNavigation(props: {
                       : undefined
                   }
                   aria-controls={listed ? leafId : undefined}
-                  aria-expanded={section.id === "chat" ? undefined : listed}
+                  aria-expanded={
+                    LEAF_AREAS.includes(section.id) ? listed : undefined
+                  }
                   onClick={() => selectArea(section.id)}
                 >
                   <b

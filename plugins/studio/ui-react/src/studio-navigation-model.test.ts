@@ -1,7 +1,10 @@
 import { describe, expect, it } from "bun:test";
 import { studioTypeGroup, SYSTEM_TYPE_GROUPS } from "./studio-areas";
 import type { EntityTypeInfo, StudioWorkspaceInfo } from "./api";
-import { deriveNavigationModel } from "./studio-navigation-model";
+import {
+  deriveNavigationModel,
+  sectionHasList,
+} from "./studio-navigation-model";
 import { studioTypeHierarchy } from "../../src/config";
 
 function type(
@@ -250,5 +253,30 @@ describe("Library's types", () => {
         group.types.map((info) => info.entityType),
       ),
     ).toEqual(["link", "note", "post"]);
+  });
+});
+
+describe("sections with pages of their own", () => {
+  it("lists Chat's other pages under Chat, and nothing when it has none", () => {
+    const withGuests = deriveNavigationModel({
+      types: [],
+      workspaces: [
+        workspace("web-chat:chat", "chat"),
+        workspace("web-chat:guest-chat", "chat"),
+      ],
+      active: null,
+    });
+    expect(withGuests.chatWorkspace?.id).toBe("web-chat:chat");
+    expect(withGuests.chatWorkspaces.map((entry) => entry.id)).toEqual([
+      "web-chat:guest-chat",
+    ]);
+    expect(sectionHasList(withGuests, "chat")).toBe(true);
+    const alone = deriveNavigationModel({
+      types: [],
+      workspaces: [workspace("web-chat:chat", "chat")],
+      active: null,
+    });
+    expect(sectionHasList(alone, "chat")).toBe(false);
+    expect(sectionHasList(alone, "home")).toBe(false);
   });
 });

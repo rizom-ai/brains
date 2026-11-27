@@ -881,3 +881,23 @@ it("keeps Library's empty types under All types, and remembers the types opened"
     JSON.parse(window.localStorage.getItem("studio.recent-types") ?? "[]"),
   ).toEqual(["note"]);
 });
+
+it("lists Chat's other pages under Chat while you are in it", async () => {
+  await render(null, "web-chat:chat", [
+    ...workspaces,
+    {
+      id: "web-chat:guest-chat",
+      section: "chat",
+      pluginId: "web-chat",
+      label: "Guest chat",
+      rendererName: "DeclarativeOperatorWorkspace",
+      priority: 80,
+      permission: "admin",
+      entityTypes: [],
+    },
+  ]);
+  expect(
+    document.querySelector('.studio-leaf-rail[aria-label="Chat destinations"]')
+      ?.textContent,
+  ).toContain("Guest chat");
+});

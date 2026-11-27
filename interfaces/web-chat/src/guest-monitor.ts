@@ -247,6 +247,7 @@ const guestMonitor = defineStudioWorkspace({
   label: "Guest chat",
   priority: 80,
   permission: "admin",
+  section: "chat",
   data: monitorDataSchema,
   actions: [switchOnAction, switchOffAction, saveQuestionAction],
   view: ({ data }) => {
