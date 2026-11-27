@@ -1,5 +1,18 @@
 # @brains/seminar
 
+## 0.2.0-alpha.788
+
+### Patch Changes
+
+- [#1068](https://github.com/rizom-ai/brains/pull/1068) [`18e53a6`](https://github.com/rizom-ai/brains/commit/18e53a639047a5ebdbabdc9874c79e9743ba3ff3) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A seminar has its pages. `seminar:seminar-list` lists the seminars a brain has held, newest first, each with its question, the day, who stood and who answered him, and the first sentence of where they meet. `seminar:seminar-detail` sets one seminar to be read top to bottom: the openings side by side, the chair's turn, the challenges, the rejoinder and the closing, with every source a turn returned linked where its text names it. `plugins.seminar.peers` names the brain's peers and orders them, as its pages show them and as the chair writes of them. `seminar:ask` is the Ask page of such a brain: the guest box while asking is open, and whom a question reaches.
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.788
+  - @rizom/brain-ui@0.2.0-alpha.788
+  - @brains/content-formatters@0.2.0-alpha.788
+  - @brains/contracts@0.2.0-alpha.788
+  - @brains/site-atlas@0.2.0-alpha.788
+  - @brains/utils@0.2.0-alpha.788
+
 ## 0.2.0-alpha.787
 
 ### Patch Changes

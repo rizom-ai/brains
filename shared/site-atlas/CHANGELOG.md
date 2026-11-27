@@ -1,5 +1,17 @@
 # @brains/site-atlas
 
+## 0.2.0-alpha.788
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.788
+  - @rizom/brain-ui@0.2.0-alpha.788
+  - @brains/contracts@0.2.0-alpha.788
+  - @brains/site-composition@0.2.0-alpha.788
+  - @brains/site-engine@0.2.0-alpha.788
+  - @brains/utils@0.2.0-alpha.788
+
 ## 0.2.0-alpha.787
 
 ### Patch Changes
