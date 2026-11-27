@@ -37,6 +37,7 @@ import { headStyles } from "./studio-page-head.styles";
 import { systemFieldStyles } from "./studio-system-fields.styles";
 import { typographyStyles } from "./studio-typography.styles";
 import { entityTitle } from "./ui-utils";
+import { useInspectorPreference } from "./use-inspector-preference";
 
 export function StudioEditorPane(
   props: StudioAppViewProps & { model: StudioAppModel },
@@ -83,18 +84,24 @@ export function StudioEditorPane(
   );
   // A singleton is one settings document, saved rather than created.
   const creating = mode.kind === "create" && !entitySchema.isSingleton;
+  // Beside a document, Properties are an inspector that can be put away.
+  const inspecting = presentation === "split";
+  const [inspectorHidden, setInspectorHidden] =
+    useInspectorPreference(selectedEntityType);
 
   // An invalid field on a hidden phone pane would fail silently, so the
   // Properties pane opens and the first invalid field takes focus.
   function revealFirstInvalid(event: FormEvent<HTMLFormElement>): void {
     revealStudioProperties(event.currentTarget);
-    if (mobilePane === "details") return;
+    const inspectorWasHidden = inspecting && inspectorHidden;
+    if (mobilePane === "details" && !inspectorWasHidden) return;
     event.preventDefault();
     const first = event.currentTarget.querySelector<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
     >("input:invalid, select:invalid, textarea:invalid");
     if (event.target !== first) return;
     setMobilePane("details");
+    if (inspectorWasHidden) setInspectorHidden(false);
     requestAnimationFrame(() => {
       if (first.isConnected) {
         first.focus();
@@ -104,6 +111,17 @@ export function StudioEditorPane(
   }
 
   function saveOnShortcut(event: KeyboardEvent<HTMLFormElement>): void {
+    if (
+      inspecting &&
+      (event.ctrlKey || event.metaKey) &&
+      !event.altKey &&
+      !event.shiftKey &&
+      event.key === "\\"
+    ) {
+      event.preventDefault();
+      setInspectorHidden(!inspectorHidden);
+      return;
+    }
     if (
       !(event.ctrlKey || event.metaKey) ||
       event.altKey ||
@@ -131,6 +149,9 @@ export function StudioEditorPane(
       data-studio-editor=""
       data-editor-presentation={presentation}
       data-mobile-pane={presentation === "split" ? mobilePane : undefined}
+      data-inspector={
+        inspecting ? (inspectorHidden ? "hidden" : "shown") : undefined
+      }
       onInvalidCapture={revealFirstInvalid}
       onSubmit={(event) => {
         event.preventDefault();
@@ -156,25 +177,41 @@ export function StudioEditorPane(
         }
         action={
           canEdit || presentation === "split" ? (
-            <Button
-              type="submit"
-              className="studio-editor-head-save"
-              variant={hasUnsavedChanges ? "default" : "outline"}
-              title={`${creating ? "Create" : "Save changes"} (Ctrl+S or ⌘S)`}
-              aria-keyshortcuts="Control+s Meta+s"
-              disabled={saveBlocked}
-              {...(saveBlockReason && {
-                "aria-describedby": STUDIO_SAVE_REASON_ID,
-              })}
-            >
-              {saveState.kind === "saving"
-                ? creating
-                  ? "Creating…"
-                  : "Saving…"
-                : creating
-                  ? "Create"
-                  : "Save changes"}
-            </Button>
+            <>
+              {inspecting && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="studio-inspector-toggle"
+                  xstyle={layout.inspectorToggle}
+                  aria-pressed={!inspectorHidden}
+                  aria-keyshortcuts="Control+Backslash Meta+Backslash"
+                  title="Details (Ctrl+\\ or ⌘\\)"
+                  onClick={() => setInspectorHidden(!inspectorHidden)}
+                >
+                  Details
+                </Button>
+              )}
+              <Button
+                type="submit"
+                className="studio-editor-head-save"
+                variant={hasUnsavedChanges ? "default" : "outline"}
+                title={`${creating ? "Create" : "Save changes"} (Ctrl+S or ⌘S)`}
+                aria-keyshortcuts="Control+s Meta+s"
+                disabled={saveBlocked}
+                {...(saveBlockReason && {
+                  "aria-describedby": STUDIO_SAVE_REASON_ID,
+                })}
+              >
+                {saveState.kind === "saving"
+                  ? creating
+                    ? "Creating…"
+                    : "Saving…"
+                  : creating
+                    ? "Create"
+                    : "Save changes"}
+              </Button>
+            </>
           ) : undefined
         }
       />
@@ -234,6 +271,7 @@ export function StudioEditorPane(
           <StudioEditorProperties
             key={editorDocumentKey(selectedEntityType, mode)}
             presentation={presentation}
+            hidden={inspecting && inspectorHidden}
             summaryDescription={
               systemDesign
                 ? entitySchema.fields

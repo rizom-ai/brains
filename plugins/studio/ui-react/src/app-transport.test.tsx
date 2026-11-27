@@ -90,6 +90,7 @@ beforeEach(() => {
     localStorage: windowInstance.localStorage,
     Event: windowInstance.Event,
     CustomEvent: windowInstance.CustomEvent,
+    KeyboardEvent: windowInstance.KeyboardEvent,
     MutationObserver: windowInstance.MutationObserver,
     ResizeObserver: windowInstance.ResizeObserver,
     requestAnimationFrame:
@@ -559,6 +560,34 @@ describe("Studio App transport", () => {
     expect(getComputedStyle(shell).gridTemplateColumns).toBe(
       "68px minmax(0,1fr)",
     );
+    // Properties are an inspector beside the document, on its right.
+    const editorForm = document.querySelector<HTMLFormElement>(
+      "form[data-studio-editor]",
+    );
+    const inspector = document.querySelector("aside[data-studio-properties]");
+    if (!editorForm || !inspector) throw new Error("Missing editor parts");
+    expect(getComputedStyle(inspector).gridColumn).toBe("2");
+    // ⌘\ hides it for this type and gives the document the width.
+    const toggleInspector = async (): Promise<void> => {
+      await act(async () => {
+        editorForm.dispatchEvent(
+          new KeyboardEvent("keydown", {
+            key: "\\",
+            metaKey: true,
+            bubbles: true,
+          }),
+        );
+      });
+    };
+    await toggleInspector();
+    expect(editorForm.getAttribute("data-inspector")).toBe("hidden");
+    expect(getComputedStyle(inspector).display).toBe("none");
+    expect(getComputedStyle(editorForm).gridTemplateColumns).toBe(
+      "minmax(0,1fr)",
+    );
+    expect(localStorage.getItem("studio.inspector.section")).toBe("hidden");
+    await toggleInspector();
+    expect(editorForm.getAttribute("data-inspector")).toBe("shown");
     expect(
       [...document.querySelectorAll("button")].some(
         (button) => button.textContent === "Create",

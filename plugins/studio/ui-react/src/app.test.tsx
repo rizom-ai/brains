@@ -1194,8 +1194,10 @@ describe("bodyless entity editor layout", () => {
             "[data-studio-editor] [data-studio-properties]",
           );
           if (!properties) throw new Error("Missing Properties form");
+          // Beside a document Properties are its inspector, on the right; a
+          // phone stacks them; a bodyless record uses the whole width.
           expect(window.getComputedStyle(properties).gridColumn).toBe(
-            hasBody ? "1" : "1 / -1",
+            !hasBody ? "1 / -1" : width <= 640 ? "1" : "2",
           );
           expect(properties.querySelector("fieldset")?.disabled).toBe(true);
           expect(properties.querySelector("input")).not.toBeNull();
@@ -1203,7 +1205,7 @@ describe("bodyless entity editor layout", () => {
             doc.querySelector("[data-studio-editor] section") !== null,
           ).toBe(hasBody);
           if (!hasBody) {
-            expect(window.getComputedStyle(properties).borderRightWidth).toBe(
+            expect(window.getComputedStyle(properties).borderLeftWidth).toBe(
               "0px",
             );
             expect(doc.body.textContent).not.toContain("This type has no body");
