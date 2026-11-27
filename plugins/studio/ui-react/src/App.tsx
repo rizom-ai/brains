@@ -209,8 +209,9 @@ export function App(): ReactElement {
   const [fieldAssistState, setFieldAssistState] = useState<FieldAssistState>({
     kind: "idle",
   });
-  const [bodyMode, setBodyMode] = useState<BodyMode>("preview");
-  // A new entry starts where it is written; existing ones keep the chosen view.
+  // An entry opens ready to write in; Preview is one click away. A new entry
+  // starts in Source even after another was being previewed.
+  const [bodyMode, setBodyMode] = useState<BodyMode>("source");
   const creating = editor.mode.kind === "create";
   useEffect(() => {
     if (creating) setBodyMode("source");

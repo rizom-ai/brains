@@ -43,6 +43,7 @@ export async function mountStudio(
   const restore = installDomGlobals(window, {
     localStorage: window.localStorage,
     Event: window.Event,
+    MouseEvent: window.MouseEvent,
     CustomEvent: window.CustomEvent,
     MutationObserver: window.MutationObserver,
     ResizeObserver: window.ResizeObserver,
@@ -116,6 +117,13 @@ export async function mountStudio(
       );
       if (!button)
         throw new Error(`Missing action ${label}: ${scope.textContent}`);
+      // A tab (Radix) activates on mousedown, as a person's press does.
+      if (button.getAttribute("role") === "tab")
+        await act(async () => {
+          button.dispatchEvent(
+            new MouseEvent("mousedown", { bubbles: true, button: 0 }),
+          );
+        });
       await act(async () => button.click());
     },
   };

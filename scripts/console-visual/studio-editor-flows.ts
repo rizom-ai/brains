@@ -113,6 +113,22 @@ export async function exerciseStudioEditor({
   climate,
 }: VisualCase): Promise<void> {
   if (viewport.width > 900) await verifyEditorFocus(page);
+  // An entry opens in Source; the code and table checks read its Preview.
+  if (viewport.width > 640) {
+    // Radix tabs activate on mousedown, as a person's press does.
+    await evaluatePage(page, () => {
+      Array.from(
+        document.querySelectorAll(
+          '[aria-label="Editor body view"] [role="tab"]',
+        ),
+      )
+        .find((tab) => tab.textContent.trim() === "Preview")
+        ?.dispatchEvent(
+          new MouseEvent("mousedown", { bubbles: true, button: 0 }),
+        );
+    });
+    await waitForSelector(page, "[data-studio-preview]");
+  }
   if (viewport.width <= 640) {
     await pointerDownSelector(page, ".studio-mobile-tabs button");
     await clickText(page, '[role="menuitem"]', "Preview");

@@ -10,8 +10,8 @@
   outline: none;
 }
 [data-editor="codemirror6"] .cm-scroller {
-  font-family: var(--console-mono);
-  font-size: 13px;
+  font-family: var(--console-ui);
+  font-size: 16px;
   line-height: 1.75;
 }
 [data-editor="codemirror6"] .cm-content {

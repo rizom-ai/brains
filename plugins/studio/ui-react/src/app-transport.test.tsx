@@ -649,6 +649,80 @@ describe("Studio App transport", () => {
     expect(history.location.search).toBe("?prefix=%5B%22book-1%22%5D");
   });
 
+  it("opens an entry ready to write in, with Preview beside it", async () => {
+    const entity = {
+      id: "field-notes",
+      entityType: "post",
+      frontmatter: { title: "Field notes" },
+      body: "# Field notes\n\nWritten here.",
+      contentHash: "hash",
+      created: "2026-09-13T00:00:00Z",
+      updated: "2026-09-13T00:00:00Z",
+    };
+    const api = new StudioApi({
+      basePath: "/studio",
+      fetch: async (input): Promise<Response> => {
+        const url = new URL(String(input), "http://brain.test");
+        if (url.pathname.endsWith("/types"))
+          return Response.json({
+            types: [
+              {
+                entityType: "post",
+                label: "Posts",
+                isSingleton: false,
+                hasBody: true,
+                count: 1,
+                hierarchy: studioTypeHierarchy("post"),
+                capabilities: {
+                  canRead: true,
+                  canCreate: true,
+                  canUpdate: true,
+                  canDelete: false,
+                  canAssist: false,
+                  canPublish: false,
+                  canExtract: false,
+                },
+              },
+            ],
+            workspaces: [],
+          });
+        if (url.pathname.endsWith("/schema"))
+          return Response.json({
+            entityType: "post",
+            format: "frontmatter",
+            isSingleton: false,
+            hasBody: true,
+            fields: [{ name: "title", label: "Title", widget: "string" }],
+          });
+        if (url.pathname.endsWith("/entities"))
+          return Response.json({ entity });
+        return Response.json({ directorySync: false, git: null });
+      },
+    });
+    const router = createStudioRouter(
+      "/studio",
+      App,
+      createMemoryHistory({
+        initialEntries: ["/studio/entities/post/field-notes"],
+      }),
+    );
+    await act(async () =>
+      root.render(
+        <QueryClientProvider client={createStudioQueryClient()}>
+          <StudioApiProvider api={api}>
+            <RouterProvider router={router} />
+          </StudioApiProvider>
+        </QueryClientProvider>,
+      ),
+    );
+    await waitFor(
+      () => document.querySelector('[role="tab"][aria-selected]') !== null,
+    );
+    expect(
+      document.querySelector('[role="tab"][aria-selected="true"]')?.textContent,
+    ).toBe("Source");
+  });
+
   it("opens an existing singleton regardless of its stored ID depth", async () => {
     const entity = {
       id: "profile:singleton",

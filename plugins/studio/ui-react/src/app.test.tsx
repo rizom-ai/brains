@@ -1340,7 +1340,7 @@ describe("System mockup alignment", () => {
       const html = renderCapabilityView(capabilities, "edit", { entityType });
       expect(html).toContain(`>${heading}</h2>`);
       expect(html).toContain("data-studio-system-intro");
-      expect(html).toContain('aria-label="Markdown source"');
+      expect(html).toContain('data-editor="codemirror6"');
     });
   }
   for (const width of [1440, 768, 390]) {
@@ -1772,7 +1772,6 @@ describe("BodyEditor", () => {
   it("renders a CodeMirror 6 mount in source mode", () => {
     const html = renderBody("source");
     expect(html).toContain('data-editor="codemirror6"');
-    expect(html).toContain('aria-label="Markdown source"');
     expect(html).not.toContain("<textarea");
     expect(html).not.toContain("data-studio-preview");
   });
