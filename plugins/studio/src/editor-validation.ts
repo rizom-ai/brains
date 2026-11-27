@@ -28,3 +28,38 @@ export function editorValidationResponse(error: unknown): Response | undefined {
     400,
   );
 }
+
+/** Whether a field holds nothing an author entered. */
+function isEmptyValue(value: unknown): boolean {
+  return (
+    value === undefined ||
+    value === null ||
+    (typeof value === "string" && value.trim() === "") ||
+    (Array.isArray(value) && value.length === 0)
+  );
+}
+
+/**
+ * A frontmatter schema's refusal, for the form. A field left empty is named
+ * as required instead of with the validator's type message, which describes
+ * the schema rather than what the author has to do.
+ */
+export function frontmatterIssueResponse(
+  error: z.ZodError,
+  values: Record<string, unknown>,
+): Response {
+  return jsonResponse(
+    {
+      error: "Invalid frontmatter",
+      issues: error.issues.map((issue) => {
+        const field = issue.path[0];
+        return issue.path.length === 1 &&
+          typeof field === "string" &&
+          isEmptyValue(values[field])
+          ? { ...issue, message: "Required." }
+          : issue;
+      }),
+    },
+    400,
+  );
+}

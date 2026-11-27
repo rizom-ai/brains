@@ -44,11 +44,14 @@ export function StudioEditorProperties({
   reveal,
   children,
   summaryDescription,
+  hidden = false,
 }: {
   presentation: StudioEditorPresentation;
   reveal: boolean;
   children: ReactNode;
   summaryDescription?: string | undefined;
+  /** Put away beside the document; phones still show it as a pane. */
+  hidden?: boolean;
 }): ReactElement {
   const ref = useRef<HTMLDetailsElement>(null);
   useLayoutEffect(() => {
@@ -82,6 +85,7 @@ export function StudioEditorProperties({
         layout.colophon,
         presentation === "form" && layout.fullWidthProperties,
         presentation === "form" && content.properties,
+        hidden && layout.colophonHidden,
       )}
     >
       {children}

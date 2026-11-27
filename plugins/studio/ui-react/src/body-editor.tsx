@@ -48,8 +48,36 @@ const BODY_MODE_LABELS: Record<BodyMode, string> = {
 
 const externalDocumentSync = Annotation.define<boolean>();
 
+// Source reads like the document it makes: headings at their size in the
+// display face, emphasis as emphasis, and only code in monospace.
 const studioMarkdownHighlightStyle = HighlightStyle.define([
+  {
+    tag: tags.heading1,
+    fontFamily: "var(--console-display)",
+    fontSize: "1.75em",
+    fontWeight: "600",
+    color: "var(--console-text)",
+  },
+  {
+    tag: tags.heading2,
+    fontFamily: "var(--console-display)",
+    fontSize: "1.4em",
+    fontWeight: "600",
+    color: "var(--console-text)",
+  },
+  {
+    tag: tags.heading3,
+    fontFamily: "var(--console-display)",
+    fontSize: "1.18em",
+    fontWeight: "600",
+    color: "var(--console-text)",
+  },
   { tag: tags.heading, color: "var(--console-text)", fontWeight: "600" },
+  {
+    tag: tags.monospace,
+    fontFamily: "var(--console-mono)",
+    fontSize: "0.86em",
+  },
   { tag: tags.meta, color: "var(--console-text-muted)" },
   { tag: tags.emphasis, fontStyle: "italic" },
   { tag: tags.strong, fontWeight: "600" },
@@ -202,12 +230,9 @@ function CodeMirrorBodySource(props: {
   }, [readOnly]);
 
   return (
-    <div
-      ref={hostRef}
-      {...stylex.props(s.source)}
-      aria-label="Markdown source"
-      data-editor="codemirror6"
-    />
+    // CodeMirror's editable content carries the "Markdown source" name; a
+    // name on this host div, which has no role, is not allowed.
+    <div ref={hostRef} {...stylex.props(s.source)} data-editor="codemirror6" />
   );
 }
 
@@ -300,6 +325,8 @@ export function BodyEditor(props: {
   readOnly?: boolean;
   /** Stacked editors own their mode controls at every viewport width. */
   singlePane?: boolean;
+  /** The document's title, which its preview need not repeat. */
+  documentTitle?: string | undefined;
 }): ReactElement {
   const api = useStudioApi();
   const {
@@ -597,7 +624,12 @@ export function BodyEditor(props: {
             role="region"
             aria-label="Rendered document"
           >
-            <StudioMarkdown presentation="document">{value}</StudioMarkdown>
+            <StudioMarkdown
+              presentation="document"
+              documentTitle={props.documentTitle}
+            >
+              {value}
+            </StudioMarkdown>
           </div>
         )}
       </div>

@@ -134,11 +134,26 @@ export function DesktopNavigation(props: {
   activeWorkspace?: string | null | undefined;
   workspaceBadges?: Record<string, number> | undefined;
   onSelectWorkspace?: ((workspaceId: string) => void) | undefined;
+  /** An entry is open: fold to the rail unless an area is being browsed. */
+  focus?: boolean | undefined;
 }): ReactElement {
-  const collapsed = useStudioNavigationCollapsed();
+  const preferred = useStudioNavigationCollapsed();
+  // Focus is presentation only: the stored preference is left as it is.
+  const focused = props.focus === true && !props.tree.browsing;
+  const collapsed = preferred || focused;
   const { areas, primaryTypeGroups, secondaryTypeGroups, operationWorkspaces } =
     props.model;
-  const { activeArea, leafOpen, leafId, selectArea } = props.tree;
+  const { activeArea, leafOpen, leafId, selectArea, endBrowsing } = props.tree;
+  // With an entry open the fold control starts and ends a browse; elsewhere
+  // it is the stored preference.
+  const toggleFold = (): void => {
+    if (props.focus === true && !preferred) {
+      if (props.tree.browsing) endBrowsing();
+      else if (activeArea) selectArea(activeArea);
+      return;
+    }
+    setStudioNavigationCollapsed(!collapsed);
+  };
   const activeAreaLabel = areas.find((area) => area.id === activeArea)?.label;
   const basePath = getStudioRouterBasePath();
 
@@ -180,6 +195,7 @@ export function DesktopNavigation(props: {
         collapsed && nav.navigationCollapsed,
       )}
       data-leaf-open={leafOpen}
+      data-collapsed={collapsed}
       aria-label="Studio navigation"
     >
       <section
@@ -206,8 +222,8 @@ export function DesktopNavigation(props: {
             aria-label={collapsed ? "Expand navigation" : "Collapse navigation"}
             title={collapsed ? "Expand navigation" : "Collapse navigation"}
             aria-expanded={!collapsed}
-            aria-controls={leafOpen ? leafId : undefined}
-            onClick={() => setStudioNavigationCollapsed(!collapsed)}
+            aria-controls={leafOpen && !collapsed ? leafId : undefined}
+            onClick={toggleFold}
           >
             {collapsed ? "⇥" : "⇤"}
           </button>
@@ -240,7 +256,9 @@ export function DesktopNavigation(props: {
                   : undefined
               }
               aria-controls={
-                leafOpen && LEAF_AREAS.includes(area.id) ? leafId : undefined
+                leafOpen && !collapsed && LEAF_AREAS.includes(area.id)
+                  ? leafId
+                  : undefined
               }
               aria-expanded={
                 LEAF_AREAS.includes(area.id)
@@ -294,14 +312,10 @@ export function DesktopNavigation(props: {
           </button>
         </div>
       </section>
-      {leafOpen ? (
+      {leafOpen && !collapsed ? (
         <section
           id={leafId}
-          className={navClass(
-            "studio-leaf-rail",
-            nav.leaf,
-            collapsed && nav.collapsedLabel,
-          )}
+          className={navClass("studio-leaf-rail", nav.leaf)}
           aria-label={`${activeAreaLabel ?? "Studio"} destinations`}
         >
           <header className={navClass("studio-leaf-head", nav.leafHead)}>

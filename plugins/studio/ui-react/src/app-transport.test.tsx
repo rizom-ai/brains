@@ -90,6 +90,9 @@ beforeEach(() => {
     localStorage: windowInstance.localStorage,
     Event: windowInstance.Event,
     CustomEvent: windowInstance.CustomEvent,
+    KeyboardEvent: windowInstance.KeyboardEvent,
+    NodeFilter: windowInstance.NodeFilter,
+    HTMLInputElement: windowInstance.HTMLInputElement,
     MutationObserver: windowInstance.MutationObserver,
     ResizeObserver: windowInstance.ResizeObserver,
     requestAnimationFrame:
@@ -548,6 +551,46 @@ describe("Studio App transport", () => {
     if (!saveState) throw new Error("Missing save state");
     expect(getComputedStyle(saveState).display).toBe("flex");
     expect(getComputedStyle(saveState).columnGap).toBe("10px");
+    // An open entry has the room: the navigation folds to its rail.
+    const shell = document.querySelector("[data-studio-body]");
+    if (!shell) throw new Error("Missing Studio body");
+    expect(
+      document
+        .querySelector(".studio-navigation")
+        ?.getAttribute("data-collapsed"),
+    ).toBe("true");
+    expect(getComputedStyle(shell).gridTemplateColumns).toBe(
+      "68px minmax(0,1fr)",
+    );
+    // Properties are an inspector beside the document, on its right.
+    const editorForm = document.querySelector<HTMLFormElement>(
+      "form[data-studio-editor]",
+    );
+    const inspector = document.querySelector("aside[data-studio-properties]");
+    if (!editorForm || !inspector) throw new Error("Missing editor parts");
+    expect(getComputedStyle(inspector).gridColumn).toBe("2");
+    // ⌘\ hides it for this type and gives the document the width, wherever
+    // focus is on the page.
+    const toggleInspector = async (): Promise<void> => {
+      await act(async () => {
+        document.body.dispatchEvent(
+          new KeyboardEvent("keydown", {
+            key: "\\",
+            metaKey: true,
+            bubbles: true,
+          }),
+        );
+      });
+    };
+    await toggleInspector();
+    expect(editorForm.getAttribute("data-inspector")).toBe("hidden");
+    expect(getComputedStyle(inspector).display).toBe("none");
+    expect(getComputedStyle(editorForm).gridTemplateColumns).toBe(
+      "minmax(0,1fr)",
+    );
+    expect(localStorage.getItem("studio.inspector.section")).toBe("hidden");
+    await toggleInspector();
+    expect(editorForm.getAttribute("data-inspector")).toBe("shown");
     expect(
       [...document.querySelectorAll("button")].some(
         (button) => button.textContent === "Create",
@@ -607,6 +650,99 @@ describe("Studio App transport", () => {
     );
     expect(document.querySelector('input[name="segment"]')).toBeNull();
     expect(history.location.search).toBe("?prefix=%5B%22book-1%22%5D");
+  });
+
+  it("opens an entry ready to write in, with Preview beside it", async () => {
+    const entity = {
+      id: "field-notes",
+      entityType: "post",
+      frontmatter: { title: "Field notes" },
+      body: "# Field notes\n\nWritten here.",
+      contentHash: "hash",
+      created: "2026-09-13T00:00:00Z",
+      updated: "2026-09-13T00:00:00Z",
+    };
+    const api = new StudioApi({
+      basePath: "/studio",
+      fetch: async (input): Promise<Response> => {
+        const url = new URL(String(input), "http://brain.test");
+        if (url.pathname.endsWith("/types"))
+          return Response.json({
+            types: [
+              {
+                entityType: "post",
+                label: "Posts",
+                isSingleton: false,
+                hasBody: true,
+                count: 1,
+                hierarchy: studioTypeHierarchy("post"),
+                capabilities: {
+                  canRead: true,
+                  canCreate: true,
+                  canUpdate: true,
+                  canDelete: false,
+                  canAssist: false,
+                  canPublish: false,
+                  canExtract: false,
+                },
+              },
+            ],
+            workspaces: [],
+          });
+        if (url.pathname.endsWith("/schema"))
+          return Response.json({
+            entityType: "post",
+            format: "frontmatter",
+            isSingleton: false,
+            hasBody: true,
+            fields: [{ name: "title", label: "Title", widget: "string" }],
+          });
+        if (url.pathname.endsWith("/entities"))
+          return Response.json({ entity });
+        return Response.json({ directorySync: false, git: null });
+      },
+    });
+    const router = createStudioRouter(
+      "/studio",
+      App,
+      createMemoryHistory({
+        initialEntries: ["/studio/entities/post/field-notes"],
+      }),
+    );
+    await act(async () =>
+      root.render(
+        <QueryClientProvider client={createStudioQueryClient()}>
+          <StudioApiProvider api={api}>
+            <RouterProvider router={router} />
+          </StudioApiProvider>
+        </QueryClientProvider>,
+      ),
+    );
+    await waitFor(
+      () => document.querySelector('[role="tab"][aria-selected]') !== null,
+    );
+    expect(
+      document.querySelector('[role="tab"][aria-selected="true"]')?.textContent,
+    ).toBe("Source");
+    // ? lists the editor's keyboard shortcuts; typed into a field, it is text.
+    const press = async (target: EventTarget): Promise<void> => {
+      await act(async () => {
+        target.dispatchEvent(
+          new KeyboardEvent("keydown", { key: "?", bubbles: true }),
+        );
+      });
+    };
+    const title = document.querySelector('[name="title"]');
+    if (!title) throw new Error("Missing title");
+    await press(title);
+    expect(document.querySelector('[role="dialog"]')).toBeNull();
+    await press(document.body);
+    await waitFor(() => document.querySelector('[role="dialog"]') !== null);
+    const shortcuts = document.querySelector('[role="dialog"]')?.textContent;
+    expect(shortcuts).toContain("Keyboard shortcuts");
+    expect(shortcuts).toContain("Save changes");
+    expect(shortcuts).toContain("Show or hide Details");
+    expect(shortcuts).toContain("Search or do anything");
   });
 
   it("opens an existing singleton regardless of its stored ID depth", async () => {

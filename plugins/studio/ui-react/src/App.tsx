@@ -1,5 +1,6 @@
 /** @jsxImportSource react */
 import { parseObsidianConnect } from "./account/obsidian-connect";
+import { useDraftRecovery } from "./use-draft-recovery";
 import type { AccountBootstrap } from "./account/account-view";
 import { StudioStatus } from "./studio-status";
 import { StudioGroupingView } from "./studio-groupings";
@@ -208,8 +209,9 @@ export function App(): ReactElement {
   const [fieldAssistState, setFieldAssistState] = useState<FieldAssistState>({
     kind: "idle",
   });
-  const [bodyMode, setBodyMode] = useState<BodyMode>("preview");
-  // A new entry starts where it is written; existing ones keep the chosen view.
+  // An entry opens ready to write in; Preview is one click away. A new entry
+  // starts in Source even after another was being previewed.
+  const [bodyMode, setBodyMode] = useState<BodyMode>("source");
   const creating = editor.mode.kind === "create";
   useEffect(() => {
     if (creating) setBodyMode("source");
@@ -263,6 +265,18 @@ export function App(): ReactElement {
   });
   // A confirmed refine is followed to its end wherever the person goes.
   const refineOutcome = useRefineOutcome({ entityType, entities });
+  // Unsaved edits are kept in this browser for this person, and offered back.
+  const draftRecovery = useDraftRecovery({
+    principalId:
+      document
+        .querySelector("[data-studio-root]")
+        ?.getAttribute("data-studio-principal-id") ?? null,
+    entityType,
+    editor,
+    hasUnsavedChanges,
+    fields: schema?.fields ?? [],
+    dispatch: dispatchEditor,
+  });
   const activeGrouping =
     routeTarget.kind === "grouping"
       ? groupings.find((grouping) => grouping.key === routeTarget.grouping)
@@ -618,7 +632,12 @@ export function App(): ReactElement {
       save={save}
       remove={remove}
       onNavigationReset={() => navigationBlocker.reset?.()}
-      onNavigationProceed={() => navigationBlocker.proceed?.()}
+      draftRecovery={draftRecovery}
+      onNavigationProceed={() => {
+        // Discarding the edits to leave discards their kept copy too.
+        draftRecovery.forget();
+        navigationBlocker.proceed?.();
+      }}
     />
   );
 }

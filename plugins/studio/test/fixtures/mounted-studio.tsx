@@ -43,6 +43,7 @@ export async function mountStudio(
   const restore = installDomGlobals(window, {
     localStorage: window.localStorage,
     Event: window.Event,
+    MouseEvent: window.MouseEvent,
     CustomEvent: window.CustomEvent,
     MutationObserver: window.MutationObserver,
     ResizeObserver: window.ResizeObserver,
@@ -84,13 +85,18 @@ export async function mountStudio(
     client,
     close,
     input: async (label, value): Promise<void> => {
-      const input = document.querySelector<HTMLInputElement>(
-        `input[aria-label="${label}"], [role="group"][aria-label="${label}"] input`,
+      // A document's title is a textarea in its heading; fields are inputs.
+      const input = document.querySelector<
+        HTMLInputElement | HTMLTextAreaElement
+      >(
+        `input[aria-label="${label}"], textarea[aria-label="${label}"], [role="group"][aria-label="${label}"] input`,
       );
       if (!input) throw new Error(`Missing input ${label}`);
       await act(async () => {
         Object.getOwnPropertyDescriptor(
-          window.HTMLInputElement.prototype,
+          input instanceof window.HTMLTextAreaElement
+            ? window.HTMLTextAreaElement.prototype
+            : window.HTMLInputElement.prototype,
           "value",
         )?.set?.call(input, value);
         input.dispatchEvent(new Event("input", { bubbles: true }));
@@ -111,6 +117,13 @@ export async function mountStudio(
       );
       if (!button)
         throw new Error(`Missing action ${label}: ${scope.textContent}`);
+      // A tab (Radix) activates on mousedown, as a person's press does.
+      if (button.getAttribute("role") === "tab")
+        await act(async () => {
+          button.dispatchEvent(
+            new MouseEvent("mousedown", { bubbles: true, button: 0 }),
+          );
+        });
       await act(async () => button.click());
     },
   };

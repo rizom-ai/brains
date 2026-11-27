@@ -30,12 +30,17 @@ import { TypeSwitcher } from "./studio-type-navigation";
 export type { MobileEditorPane, StudioAppViewProps } from "./app-view-props";
 
 /** Pane preferences are presentation-only and stay in the mounted app. */
+/**
+ * Where a phone opens an entry: on what it says, or where a new one is
+ * written. Properties are one tap away; a bodyless record has only them.
+ */
 export function mobileEditorEntry(
   schema: Pick<TypeSchema, "format" | "hasBody">,
   preferred: MobileEditorPane | null,
+  creating = false,
 ): MobileEditorPane {
   if (!schema.hasBody) return "details";
-  return preferred ?? (schema.format === "raw" ? "preview" : "details");
+  return preferred ?? (creating ? "write" : "preview");
 }
 
 export function StudioAppStatus(props: {
@@ -213,6 +218,7 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
         <aside className={navClass("rail", nav.rail)}>
           <TypeSwitcher
             renderMode="desktop"
+            focus={editing}
             groupings={props.groupings}
             types={types}
             active={

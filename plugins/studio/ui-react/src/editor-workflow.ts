@@ -1,3 +1,4 @@
+import { slugify, truncateSlug } from "@brains/utils/string-utils";
 import type { EntityIdPath } from "@brains/sdk/internal/entity-runtime";
 import type { EntityDetail, FieldDescriptor, ValidationIssue } from "./api";
 import type { EditorDocument } from "./editor-document";
@@ -18,11 +19,18 @@ export type EditorMode =
       kind: "create";
       prefix?: EntityIdPath | null;
       segment?: string;
+      /** The file name is the title's, until one is typed by hand. */
+      segmentFollowsTitle?: boolean;
       /** Automatically opened singleton creation is clean until edited. */
       initial?: { draft: string; body: string };
     };
 
 /** Studio submits segments; only the server encodes stored identity. */
+
+/** A file name made from a title, short enough to read in a path. */
+function segmentFromTitle(title: unknown): string {
+  return truncateSlug(slugify(typeof title === "string" ? title : ""), 80);
+}
 /** Distinguishes one open document from another, for keys that reset per document. */
 export function editorDocumentKey(
   entityType: string,
@@ -68,6 +76,8 @@ export type EditorWorkflowAction =
   | { type: "fieldChanged"; descriptor: FieldDescriptor; raw: unknown }
   | { type: "fieldAssistApplied"; field: string; suggestion: string | string[] }
   | { type: "bodyChanged"; body: string }
+  /** Unsaved edits kept in this browser, brought back over the open entry. */
+  | { type: "draftRestored"; draft: Record<string, unknown>; body: string }
   | {
       type: "compoundFieldStateChanged";
       field: string;
@@ -174,7 +184,8 @@ export function editorWorkflowReducer(
           }),
           ...(action.prefix !== undefined && {
             prefix: action.prefix,
-            segment: "",
+            segment: segmentFromTitle(action.draft["title"]),
+            segmentFollowsTitle: true,
           }),
         },
         draft: action.draft,
@@ -183,22 +194,40 @@ export function editorWorkflowReducer(
         deleteOpen: false,
       };
     case "segmentChanged":
+      // Clearing a typed file name hands it back to the title.
       return state.mode.kind === "create"
         ? {
             ...state,
-            mode: { ...state.mode, segment: action.segment },
+            mode: {
+              ...state.mode,
+              segment:
+                action.segment === ""
+                  ? segmentFromTitle(state.draft["title"])
+                  : action.segment,
+              segmentFollowsTitle: action.segment === "",
+            },
             save: { kind: "idle" },
           }
         : state;
     case "browseRequested":
       return initialEditorWorkflowState;
-    case "fieldChanged":
-      return state.mode.kind === "browse"
-        ? state
-        : {
+    case "fieldChanged": {
+      if (state.mode.kind === "browse") return state;
+      const draft = applyFieldChange(
+        state.draft,
+        action.descriptor,
+        action.raw,
+      );
+      return state.mode.kind === "create" &&
+        state.mode.segmentFollowsTitle === true &&
+        action.descriptor.name === "title"
+        ? {
             ...state,
-            draft: applyFieldChange(state.draft, action.descriptor, action.raw),
-          };
+            draft,
+            mode: { ...state.mode, segment: segmentFromTitle(draft["title"]) },
+          }
+        : { ...state, draft };
+    }
     case "fieldAssistApplied":
       return state.mode.kind === "browse"
         ? state
@@ -210,6 +239,16 @@ export function editorWorkflowReducer(
       return state.mode.kind === "browse"
         ? state
         : { ...state, body: action.body };
+    case "draftRestored":
+      // Fields kept out of the browser, such as credentials, stay as opened.
+      return state.mode.kind === "browse"
+        ? state
+        : {
+            ...state,
+            draft: { ...state.draft, ...action.draft },
+            body: action.body,
+            save: { kind: "idle" },
+          };
     case "compoundFieldStateChanged":
       return state.mode.kind === "browse"
         ? state

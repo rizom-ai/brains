@@ -1,21 +1,9 @@
 /** @jsxImportSource react */
-import {
-  Button,
-  buttonClassName,
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@brains/app-ui-react";
+import { Button } from "@brains/app-ui-react";
 import type { ReactElement } from "react";
 import type { StudioAppViewProps } from "./app-view-props";
 import { createEditorDocument } from "./editor-document";
-import {
-  derivePipeline,
-  editorSaveLabel,
-  PipelineStations,
-  SaveStateNotice,
-} from "./editor-status";
+import { editorSaveLabel, SaveStateNotice } from "./editor-status";
 import type { StudioAppModel } from "./studio-app-model";
 import {
   STUDIO_SAVE_REASON_ID,
@@ -29,14 +17,13 @@ import {
 } from "./studio-editor.styles";
 import { StudioStatus } from "./studio-status";
 
-/** The editor's footer: where the save stands, sync detail and deletion. */
+/** The editor's footer: one line on where the save stands and why. */
 export function StudioEditorSaveBar(
   props: StudioAppViewProps & { model: StudioAppModel },
 ): ReactElement {
   const { editor, syncStatus, hasUnsavedChanges, dispatchEditor } = props;
   const { mode, draft, body, save: saveState } = editor;
-  const { entitySchema, presentation, canEdit, canDelete } = props.model;
-  const requestDelete = (): void => dispatchEditor({ type: "deleteRequested" });
+  const { entitySchema, presentation, canEdit } = props.model;
   const saveBlockReason =
     canEdit || presentation === "split"
       ? editorSaveBlockReason(editor, props.model, hasUnsavedChanges)
@@ -81,19 +68,6 @@ export function StudioEditorSaveBar(
             </Button>
           </StudioStatus>
         )}
-        {syncStatus?.directorySync && (
-          <details>
-            <summary>Sync details</summary>
-            <PipelineStations
-              view={derivePipeline({
-                save: saveState,
-                git: syncStatus.git,
-                baselineCommit: props.baselineCommit,
-              })}
-              gitConfigured={syncStatus.git !== null}
-            />
-          </details>
-        )}
         <SaveStateNotice
           // The strip already narrates a successful save; the text
           // notice stays for conflicts, errors, and no-op saves
@@ -127,39 +101,6 @@ export function StudioEditorSaveBar(
           }
         />
       </div>
-      <span className={editorClass("", layout.spacer)} />
-      {mode.kind === "edit" && !entitySchema.isSingleton && canDelete && (
-        <>
-          <span className={editorClass("", layout.desktop)}>
-            <Button
-              type="button"
-              variant="danger"
-              xstyle={layout.danger}
-              onClick={requestDelete}
-            >
-              Delete
-            </Button>
-          </span>
-          <span className={editorClass("", layout.more)}>
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                className={buttonClassName("ghost", "icon")}
-                aria-label="More document actions"
-              >
-                •••
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  variant="destructive"
-                  onSelect={requestDelete}
-                >
-                  Delete entry
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </span>
-        </>
-      )}
     </footer>
   );
 }

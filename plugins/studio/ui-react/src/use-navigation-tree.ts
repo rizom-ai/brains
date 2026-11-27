@@ -19,9 +19,13 @@ export interface NavigationTree {
   activeArea: StudioArea | null;
   /** Whether this area has a list of destinations under it. */
   leafOpen: boolean;
+  /** Whether an area was opened to browse, rather than shown for where you are. */
+  browsing: boolean;
   /** Stable id tying the area buttons to the leaf list they control. */
   leafId: string;
   selectArea: (area: StudioArea) => void;
+  /** Stop browsing and show the area you are in again. */
+  endBrowsing: () => void;
   openGroups: Record<string, boolean>;
   toggleGroup: (area: string, open: boolean) => void;
 }
@@ -80,6 +84,8 @@ export function useNavigationTree(input: NavigationTreeInput): NavigationTree {
   return {
     activeArea,
     leafOpen: activeArea !== null && AREAS_WITH_LEAVES.includes(activeArea),
+    browsing: browsingArea !== null,
+    endBrowsing: () => setBrowsingArea(null),
     leafId,
     selectArea,
     openGroups,

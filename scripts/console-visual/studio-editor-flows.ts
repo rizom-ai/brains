@@ -66,25 +66,14 @@ export async function exerciseSystemBodyModes(
 }
 
 /**
- * Opens the delete confirmation. Phone tucks the control behind the •••
- * disclosure; wider widths show it in the pipeline bar.
+ * Opens the delete confirmation from the document's ••• menu, which sits
+ * beside its save at every width.
  */
 export async function exerciseStudioDelete({
   page,
-  viewport,
 }: VisualCase): Promise<void> {
-  if (viewport.width <= 640) {
-    await pointerDownSelector(
-      page,
-      'button[aria-label="More document actions"]',
-    );
-    await clickSelector(page, '[role="menuitem"]');
-  } else {
-    await clickSelector(
-      page,
-      '[data-studio-save-bar] [data-slot="button"][data-variant="danger"]',
-    );
-  }
+  await pointerDownSelector(page, 'button[aria-label="More document actions"]');
+  await clickSelector(page, '[role="menuitem"]');
   await waitForSelector(page, ".delete-modal");
 }
 
@@ -92,11 +81,54 @@ export async function exerciseStudioDelete({
  * The editor's manuscript: highlighted, readable code that copies cleanly,
  * keyboard-scrollable overflow, and sync details on every viewport.
  */
+/**
+ * An open entry folds the navigation to its rail. Browsing an area opens it
+ * without leaving the entry, and the fold control ends the browse.
+ */
+async function verifyEditorFocus(page: Bun.WebView): Promise<void> {
+  const railWidth = (width: number): Promise<boolean> =>
+    page.evaluate<boolean>(
+      `Math.round(document.querySelector(".rail").getBoundingClientRect().width) === ${width}`,
+    );
+  await waitForPage(
+    "an open entry folds the navigation",
+    async () =>
+      (await railWidth(68)) &&
+      !(await page.evaluate<boolean>(
+        'Boolean(document.querySelector(".studio-leaf-rail"))',
+      )),
+  );
+  const entryPath = await page.evaluate<string>("location.pathname");
+  await clickText(page, ".studio-area-link", "Work");
+  await waitForPage("browsing opens the navigation", () => railWidth(344));
+  if ((await page.evaluate<string>("location.pathname")) !== entryPath)
+    throw new Error("Browsing Work left the open entry");
+  await clickSelector(page, ".studio-navigation-collapse");
+  await waitForPage("the fold control ends the browse", () => railWidth(68));
+}
+
 export async function exerciseStudioEditor({
   page,
   viewport,
   climate,
 }: VisualCase): Promise<void> {
+  if (viewport.width > 900) await verifyEditorFocus(page);
+  // An entry opens in Source; the code and table checks read its Preview.
+  if (viewport.width > 640) {
+    // Radix tabs activate on mousedown, as a person's press does.
+    await evaluatePage(page, () => {
+      Array.from(
+        document.querySelectorAll(
+          '[aria-label="Editor body view"] [role="tab"]',
+        ),
+      )
+        .find((tab) => tab.textContent.trim() === "Preview")
+        ?.dispatchEvent(
+          new MouseEvent("mousedown", { bubbles: true, button: 0 }),
+        );
+    });
+    await waitForSelector(page, "[data-studio-preview]");
+  }
   if (viewport.width <= 640) {
     await pointerDownSelector(page, ".studio-mobile-tabs button");
     await clickText(page, '[role="menuitem"]', "Preview");
@@ -358,26 +390,38 @@ export async function exerciseStudioInvalid({
     await clickText(page, '[role="menuitem"]', "Preview");
     await waitForSelector(page, '[data-mobile-pane="preview"]');
     await clickSelector(page, studioSaveSelector);
-    await waitForSelector(page, '[data-mobile-pane="details"]');
-    await waitForPage("native validation focuses the revealed property", () =>
+    // The title is the heading, in view on every pane: validation focuses it
+    // where it is instead of switching to Properties.
+    await waitForPage("native validation focuses the heading title", () =>
       evaluatePage(
         page,
         () =>
-          document.activeElement instanceof HTMLInputElement &&
-          !document.activeElement.validity.valid,
+          document.activeElement instanceof HTMLTextAreaElement &&
+          document.activeElement.name === "title" &&
+          !document.activeElement.validity.valid &&
+          document.querySelector('[data-mobile-pane="preview"]') !== null,
       ),
     );
   }
   await blurLabel(page, "Title");
   await waitForPage("invalid title field", () =>
     page.evaluate<boolean>(
-      'document.querySelector("[data-studio-field] input:user-invalid") !== null',
+      'document.querySelector(":is([data-studio-field] input, [name=title]):user-invalid") !== null',
     ),
   );
 }
 
 /** Exercises explicit recovery before leaving a second upload pending. */
-export async function exerciseStudioUpload(page: Bun.WebView): Promise<void> {
+export async function exerciseStudioUpload({
+  page,
+  viewport,
+}: VisualCase): Promise<void> {
+  // A phone opens on the writing; a cover is added from Properties.
+  if (viewport.width <= 640) {
+    await pointerDownSelector(page, ".studio-mobile-tabs button");
+    await clickText(page, '[role="menuitem"]', "Properties");
+    await waitForSelector(page, '[data-mobile-pane="details"]');
+  }
   for (const name of ["retry-cover.png", "verdigris-board.png"]) {
     const selected = await evaluatePageWith(
       page,

@@ -8,13 +8,11 @@ type LayoutStyle =
   | "fields"
   | "manuscript"
   | "pipeline"
+  | "inspectorToggle"
+  | "colophonHidden"
   | "saveState"
   | "compactStatus"
-  | "compactValue"
-  | "spacer"
-  | "desktop"
-  | "more"
-  | "danger";
+  | "compactValue";
 export const editorLayoutStyles: Record<LayoutStyle, stylex.StyleXStyles> =
   stylex.create({
     body: {
@@ -38,15 +36,18 @@ export const editorLayoutStyles: Record<LayoutStyle, stylex.StyleXStyles> =
     },
     editor: {
       display: "grid",
-      gridTemplateColumns: "clamp(320px, 24vw, 360px) minmax(0, 1fr)",
+      // The document first; its inspector beside it, unless put away.
+      gridTemplateColumns: {
+        default: "minmax(0, 1fr) clamp(320px, 24vw, 360px)",
+        "@media (min-width: 641px) and (max-width: 900px)":
+          "minmax(0, 1fr) 320px",
+        "@media (max-width: 640px)": "minmax(0, 1fr)",
+        ":is([data-inspector=hidden])": "minmax(0, 1fr)",
+      },
       gridTemplateRows: "auto minmax(0, 1fr) auto",
       minHeight: 0,
       minWidth: 0,
-      "@media (min-width: 641px) and (max-width: 900px)": {
-        gridTemplateColumns: "320px minmax(0, 1fr)",
-      },
       "@media (max-width: 640px)": {
-        gridTemplateColumns: "minmax(0, 1fr)",
         gridTemplateRows: "auto 44px minmax(0, 1fr) auto",
         overflow: "hidden",
       },
@@ -56,12 +57,24 @@ export const editorLayoutStyles: Record<LayoutStyle, stylex.StyleXStyles> =
       gridRow: "1",
     },
     colophon: {
-      gridColumn: "1",
+      gridColumn: { default: "2", "@media (max-width: 640px)": "1" },
       gridRow: "2",
       minHeight: 0,
       minWidth: 0,
       overflowY: "auto",
-      borderRight: "1px solid var(--console-rule-strong)",
+      borderLeft: "1px solid var(--console-rule-strong)",
+      // On a phone the panes decide whether Properties show.
+      display: {
+        default: null,
+        ":is([data-studio-editor][data-mobile-pane=write] > *)": {
+          default: null,
+          "@media (max-width: 640px)": "none",
+        },
+        ":is([data-studio-editor][data-mobile-pane=preview] > *)": {
+          default: null,
+          "@media (max-width: 640px)": "none",
+        },
+      },
       backgroundColor: "var(--console-card-soft)",
       padding: "26px 26px 60px",
       "@media (min-width: 641px) and (max-width: 900px)": {
@@ -71,23 +84,18 @@ export const editorLayoutStyles: Record<LayoutStyle, stylex.StyleXStyles> =
       "@media (max-width: 640px)": {
         gridRow: "3",
         padding: "18px 18px 88px",
-        borderRightWidth: 0,
-        display: {
-          default: null,
-          ":is([data-studio-editor][data-mobile-pane=write] > *)": "none",
-          ":is([data-studio-editor][data-mobile-pane=preview] > *)": "none",
-        },
+        borderLeftWidth: 0,
       },
     },
     fullWidthProperties: {
       gridColumn: "1 / -1",
-      borderRightWidth: 0,
+      borderLeftWidth: 0,
     },
     fields: { borderWidth: 0, margin: 0, padding: 0, minInlineSize: 0 },
     manuscript: {
       display: "flex",
       flexDirection: "column",
-      gridColumn: "2",
+      gridColumn: "1",
       gridRow: "2",
       minHeight: 0,
       minWidth: 0,
@@ -103,6 +111,14 @@ export const editorLayoutStyles: Record<LayoutStyle, stylex.StyleXStyles> =
           ":is([data-studio-editor][data-mobile-pane=details] > *)": "none",
         },
       },
+    },
+    // An inspector put away beside a document; phones switch panes instead.
+    colophonHidden: {
+      display: { default: "none", "@media (max-width: 640px)": null },
+    },
+    // Phones switch panes instead of putting the inspector away.
+    inspectorToggle: {
+      display: { default: null, "@media (max-width: 640px)": "none" },
     },
     pipeline: {
       gridColumn: "1 / -1",
@@ -171,34 +187,5 @@ export const editorLayoutStyles: Record<LayoutStyle, stylex.StyleXStyles> =
       color: "var(--console-ok)",
       fontSize: 9,
       textOverflow: "ellipsis",
-    },
-    spacer: { flex: 1, "@media (max-width: 900px)": { display: "none" } },
-    desktop: {
-      display: { default: null, "@media (max-width: 900px)": "none" },
-    },
-    more: {
-      display: { default: "none", "@media (max-width: 900px)": "inline-flex" },
-    },
-    danger: {
-      borderColor: "color-mix(in srgb, var(--console-bg) 30%, transparent)",
-      color: {
-        default: "color-mix(in srgb, var(--console-bg) 75%, transparent)",
-        ":hover": "var(--console-frame)",
-      },
-      backgroundColor: {
-        default: "transparent",
-        ":hover": "color-mix(in srgb, var(--console-err) 25%, transparent)",
-      },
-      outline: {
-        default: null,
-        ":focus-visible": "2px solid var(--console-accent)",
-      },
-      outlineOffset: 2,
-      "@media (max-width: 640px)": {
-        minHeight: "var(--console-touch)",
-        paddingLeft: 10,
-        paddingRight: 10,
-        fontSize: 11,
-      },
     },
   });

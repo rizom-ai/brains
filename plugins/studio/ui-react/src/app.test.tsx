@@ -1188,22 +1188,25 @@ describe("bodyless entity editor layout", () => {
               canAssist: false,
             },
             "edit",
-            { hasBody },
+            // Beside a body the title is the heading; Summary stays a field.
+            { hasBody, fields: [stringField, textField] },
           );
           const properties = doc.querySelector(
             "[data-studio-editor] [data-studio-properties]",
           );
           if (!properties) throw new Error("Missing Properties form");
+          // Beside a document Properties are its inspector, on the right; a
+          // phone stacks them; a bodyless record uses the whole width.
           expect(window.getComputedStyle(properties).gridColumn).toBe(
-            hasBody ? "1" : "1 / -1",
+            !hasBody ? "1 / -1" : width <= 640 ? "1" : "2",
           );
           expect(properties.querySelector("fieldset")?.disabled).toBe(true);
-          expect(properties.querySelector("input")).not.toBeNull();
+          expect(properties.querySelector("input, textarea")).not.toBeNull();
           expect(
             doc.querySelector("[data-studio-editor] section") !== null,
           ).toBe(hasBody);
           if (!hasBody) {
-            expect(window.getComputedStyle(properties).borderRightWidth).toBe(
+            expect(window.getComputedStyle(properties).borderLeftWidth).toBe(
               "0px",
             );
             expect(doc.body.textContent).not.toContain("This type has no body");
@@ -1337,7 +1340,7 @@ describe("System mockup alignment", () => {
       const html = renderCapabilityView(capabilities, "edit", { entityType });
       expect(html).toContain(`>${heading}</h2>`);
       expect(html).toContain("data-studio-system-intro");
-      expect(html).toContain('aria-label="Markdown source"');
+      expect(html).toContain('data-editor="codemirror6"');
     });
   }
   for (const width of [1440, 768, 390]) {
@@ -1526,6 +1529,34 @@ describe("capability-aware Studio controls", () => {
     expect(edit).not.toContain("Add to queue");
   });
 
+  it("edits a document's title as its heading, not as a Properties field", () => {
+    const window = new Window();
+    try {
+      const doc = window.document;
+      doc.body.innerHTML = renderCapabilityView(allowedCapabilities, "edit");
+      const heading = doc.querySelector("[data-studio-page-head] h1");
+      const title = heading?.querySelector('textarea[name="title"]');
+      expect(title?.getAttribute("aria-label")).toBe("Title");
+      expect(title?.textContent).toBe("Post one");
+      expect(
+        doc.querySelector('[data-studio-properties] [name="title"]'),
+      ).toBeNull();
+      // A record that cannot be edited keeps a plain heading.
+      doc.body.innerHTML = renderCapabilityView(
+        { ...allowedCapabilities, canUpdate: false },
+        "edit",
+      );
+      expect(
+        doc.querySelector("[data-studio-page-head] h1 textarea"),
+      ).toBeNull();
+      expect(doc.querySelector("[data-studio-page-head] h1")?.textContent).toBe(
+        "Post one",
+      );
+    } finally {
+      void window.happyDOM.close();
+    }
+  });
+
   it("keeps B's single Save action in the document head at every width", () => {
     const edit = renderCapabilityView(allowedCapabilities, "edit");
     expect(edit).toContain("studio-editor-head-save");
@@ -1547,7 +1578,9 @@ describe("capability-aware Studio controls", () => {
     expect(edit).not.toMatch(
       /<button[^>]*(?:studio-editor-head-save[^>]*disabled|disabled[^>]*studio-editor-head-save)/,
     );
-    expect(edit).toContain(">Delete<");
+    // Deletion is offered beside the save, not in the footer.
+    expect(edit).toContain('aria-label="More document actions"');
+    expect(edit).not.toMatch(/data-studio-save-bar[^]*>Delete</);
     expect(edit).toContain("AI selection rewrite");
     expect(edit).toContain("Add to queue");
   });
@@ -1739,7 +1772,6 @@ describe("BodyEditor", () => {
   it("renders a CodeMirror 6 mount in source mode", () => {
     const html = renderBody("source");
     expect(html).toContain('data-editor="codemirror6"');
-    expect(html).toContain('aria-label="Markdown source"');
     expect(html).not.toContain("<textarea");
     expect(html).not.toContain("data-studio-preview");
   });
@@ -2183,13 +2215,18 @@ describe("entityPublicationState", () => {
 });
 
 describe("mobile editor entry", () => {
-  it("opens raw documents on content and respects a chosen pane without storing drafts", () => {
+  it("opens documents on their writing and respects a chosen pane without storing drafts", () => {
     expect(mobileEditorEntry({ format: "raw", hasBody: true }, null)).toBe(
       "preview",
     );
+    // A phone opens an entry on what it says; Properties are one tap away.
     expect(
       mobileEditorEntry({ format: "frontmatter", hasBody: true }, null),
-    ).toBe("details");
+    ).toBe("preview");
+    // A new entry opens where it is written.
+    expect(
+      mobileEditorEntry({ format: "frontmatter", hasBody: true }, null, true),
+    ).toBe("write");
     expect(mobileEditorEntry({ format: "raw", hasBody: true }, "details")).toBe(
       "details",
     );

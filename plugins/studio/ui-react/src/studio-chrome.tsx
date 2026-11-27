@@ -23,6 +23,15 @@ import {
 import { studioArea } from "./studio-areas";
 import { TypeSwitcher } from "./studio-type-navigation";
 import { studioDocumentTitle } from "./studio-document-title";
+import { clearDrafts } from "./draft-store";
+
+function clearBrowserDrafts(principalId: string): void {
+  try {
+    clearDrafts(window.localStorage, principalId);
+  } catch {
+    // Blocked storage keeps no drafts to clear.
+  }
+}
 
 function rootAttribute(name: string, fallback: string): string {
   if (typeof document === "undefined") return fallback;
@@ -76,6 +85,7 @@ export function StudioChrome(props: {
   useEffect(() => {
     document.title = documentTitle;
   }, [documentTitle]);
+  const principalId = rootAttribute("data-studio-principal-id", "");
   const sessionHref = rootAttribute(
     "data-studio-session-href",
     `/logout?return_to=${encodeURIComponent(studioPath)}`,
@@ -272,7 +282,11 @@ export function StudioChrome(props: {
             <DropdownMenuSeparator />
             <DropdownMenuItem
               variant="destructive"
-              onSelect={() => navigate(sessionHref)}
+              onSelect={() => {
+                // Drafts kept in this browser leave with the person.
+                if (principalId) clearBrowserDrafts(principalId);
+                navigate(sessionHref);
+              }}
             >
               Sign out
               <span className={navClass("", chrome.arrow)} aria-hidden="true">

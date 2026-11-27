@@ -279,3 +279,50 @@ describe("editorWorkflowReducer", () => {
     );
   });
 });
+
+describe("a new entry's address follows its title", () => {
+  const title = { name: "title", label: "Title", widget: "string" };
+  const created = (draft: Record<string, unknown> = {}): EditorWorkflowState =>
+    editorWorkflowReducer(initialEditorWorkflowState, {
+      type: "creationStarted",
+      draft,
+      prefix: ["notes"],
+    });
+  const segmentOf = (state: EditorWorkflowState): string | undefined =>
+    state.mode.kind === "create" ? state.mode.segment : undefined;
+  const titled = (
+    state: EditorWorkflowState,
+    raw: string,
+  ): EditorWorkflowState =>
+    editorWorkflowReducer(state, {
+      type: "fieldChanged",
+      descriptor: title,
+      raw,
+    });
+
+  it("names the file after the title as it is typed", () => {
+    expect(segmentOf(titled(created(), "Why Sensor Data Needs a Ledger"))).toBe(
+      "why-sensor-data-needs-a-ledger",
+    );
+  });
+
+  it("starts from a prefilled title", () => {
+    expect(segmentOf(created({ title: "From the Inbox" }))).toBe(
+      "from-the-inbox",
+    );
+  });
+
+  it("keeps a file name typed by hand, and follows again once it is cleared", () => {
+    const named = editorWorkflowReducer(titled(created(), "First title"), {
+      type: "segmentChanged",
+      segment: "my-own-name",
+    });
+    expect(segmentOf(titled(named, "Second title"))).toBe("my-own-name");
+    const cleared = editorWorkflowReducer(titled(named, "Second title"), {
+      type: "segmentChanged",
+      segment: "",
+    });
+    expect(segmentOf(cleared)).toBe("second-title");
+    expect(segmentOf(titled(cleared, "Third title"))).toBe("third-title");
+  });
+});

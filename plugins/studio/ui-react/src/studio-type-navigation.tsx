@@ -37,6 +37,8 @@ export function TypeSwitcher(props: {
   workspaceBadges?: Record<string, number>;
   onSelectWorkspace?: (workspaceId: string) => void;
   renderMode?: "all" | "mobile" | "desktop";
+  /** An entry is open: the desktop rail folds unless an area is being browsed. */
+  focus?: boolean;
 }): ReactElement {
   const model = deriveNavigationModel(props);
   const tree = useNavigationTree({
@@ -69,6 +71,7 @@ export function TypeSwitcher(props: {
         <DesktopNavigation
           model={model}
           tree={tree}
+          focus={props.focus}
           active={model.active}
           onSelect={props.onSelect}
           groupings={props.groupings}

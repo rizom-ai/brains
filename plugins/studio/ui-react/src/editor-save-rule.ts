@@ -4,11 +4,13 @@ import {
   type EditorWorkflowState,
 } from "./editor-workflow";
 import type { StudioAppModel } from "./studio-app-model";
+import { headingTitleField } from "./heading-title";
 
 export type EditorSaveModel = Pick<
   StudioAppModel,
   "canEdit" | "destinationBlocked" | "selectedEntityType" | "entitySchema"
->;
+> &
+  Partial<Pick<StudioAppModel, "presentation" | "fieldIssues">>;
 
 /** The element that says why save refuses; the save button points at it. */
 export const STUDIO_SAVE_REASON_ID = "studio-save-reason";
@@ -20,10 +22,16 @@ export function editorSaveBlockReason(
   hasUnsavedChanges: boolean,
 ): string | undefined {
   if (!isEditorSaveBlocked(editor, model, hasUnsavedChanges)) return undefined;
-  if (hasInvalidEditorFields(editor))
+  const refusedFields = model.fieldIssues?.some(
+    (issue) => issue.path[0] !== "segment" && issue.path[0] !== "prefix",
+  );
+  if (hasInvalidEditorFields(editor) || refusedFields)
     return "Fix the highlighted fields first.";
   if (model.destinationBlocked && editor.mode.kind === "create")
-    return "Name the file to create this entry.";
+    return model.presentation &&
+      headingTitleField(model.entitySchema, model.presentation)
+      ? "Give this entry a title to create it."
+      : "Name the file to create this entry.";
   return undefined;
 }
 

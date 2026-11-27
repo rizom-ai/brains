@@ -216,3 +216,17 @@ describe("entityTypeLabels", () => {
     });
   });
 });
+
+describe("secret fields", () => {
+  it("marks a field that holds a credential, so drafts never keep it", () => {
+    expect(
+      zodFieldToStudioWidget(
+        "token",
+        z.string().optional().meta({ studioSecret: true }),
+      ),
+    ).toMatchObject({ name: "token", secret: true });
+    expect(zodFieldToStudioWidget("title", z.string())).not.toHaveProperty(
+      "secret",
+    );
+  });
+});

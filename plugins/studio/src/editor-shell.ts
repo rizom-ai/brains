@@ -9,6 +9,8 @@ import { operatorApplicationDocumentClasses } from "@brains/operator-view-react"
 import { escapeHtml } from "@brains/utils/string-utils";
 
 export interface EditorShellPrincipal {
+  /** Keeps one person's browser drafts apart from another's. */
+  id: string;
   displayName: string;
   role: "admin" | "trusted" | "public";
 }
@@ -72,7 +74,7 @@ ${CONSOLE_THEME_CSS}
   <body data-console-host="studio" class="${classes.body}">
     <div id="root" class="${classes.mount}" data-studio-root data-studio-base-path="${basePath}" data-studio-session-href="${escapeHtml(options.sessionHref)}" data-studio-dashboard-href="${escapeHtml(options.dashboardHref)}" data-studio-brand-name="${escapeHtml(options.brandName)}"${
       options.principal
-        ? ` data-studio-principal-name="${escapeHtml(options.principal.displayName)}" data-studio-principal-role="${escapeHtml(options.principal.role)}"`
+        ? ` data-studio-principal-id="${escapeHtml(options.principal.id)}" data-studio-principal-name="${escapeHtml(options.principal.displayName)}" data-studio-principal-role="${escapeHtml(options.principal.role)}"`
         : ""
     }${
       options.mcpUrl

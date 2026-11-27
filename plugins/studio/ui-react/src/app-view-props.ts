@@ -1,3 +1,4 @@
+import type { DraftRecovery } from "./use-draft-recovery";
 import type {
   RuntimeStudioWorkspaceData,
   RuntimeOperatorActionControl,
@@ -103,6 +104,8 @@ export interface StudioAppViewProps {
   remove: () => void;
   onNavigationReset: () => void;
   onNavigationProceed: () => void;
+  /** Unsaved edits kept in this browser, offered back when an entry opens. */
+  draftRecovery?: DraftRecovery | undefined;
   /** What Studio says where the last confirmed refine lands. */
   refineNotice?: RefineNotice | null | undefined;
   /** A refine was confirmed in the library: follow it to its end. */

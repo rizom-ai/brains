@@ -11,7 +11,7 @@ const SHELL_OPTIONS: EditorShellOptions = {
   dashboardHref: "/dashboard",
   brandName: "Rover Collective",
   sessionHref: "/logout?return_to=%2Fstudio",
-  principal: { displayName: "Mira Reyes", role: "admin" },
+  principal: { id: "usr_mira", displayName: "Mira Reyes", role: "admin" },
 };
 
 describe("renderEditorShellHtml", () => {
@@ -63,6 +63,8 @@ describe("renderEditorShellHtml", () => {
     expect(html).toContain('data-studio-brand-name="Rover Collective"');
     expect(html).toContain('data-studio-principal-name="Mira Reyes"');
     expect(html).toContain('data-studio-principal-role="admin"');
+    // Drafts kept in this browser are kept per person.
+    expect(html).toContain('data-studio-principal-id="usr_mira"');
     expect(html).toContain(
       'data-studio-session-href="/logout?return_to=%2Fstudio"',
     );

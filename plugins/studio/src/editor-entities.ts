@@ -40,7 +40,10 @@ import {
   containerPage,
   type HierarchyQueryBase,
 } from "./container-hierarchy";
-import { editorValidationResponse } from "./editor-validation";
+import {
+  editorValidationResponse,
+  frontmatterIssueResponse,
+} from "./editor-validation";
 import { titleFolders } from "./folder-titles";
 import { GROUPING_DEFINITIONS_TYPE } from "./grouping-definitions-contract";
 import {
@@ -518,12 +521,8 @@ export async function handleUpdateEntity(
     : // `visibility` is a system field in the editor projection. It is
       // resolved above and must not reach a strict domain schema.
       schema.safeParse(domainFrontmatter);
-  if (!frontmatter.success) {
-    return jsonResponse(
-      { error: "Invalid frontmatter", issues: frontmatter.error.issues },
-      400,
-    );
-  }
+  if (!frontmatter.success)
+    return frontmatterIssueResponse(frontmatter.error, domainFrontmatter);
 
   const source = splitEntityContent(entityType, existing.content, context);
   const body = payload.body ?? source.body;
@@ -770,10 +769,7 @@ function prepareStudioCreation(
     ? z.object({}).safeParse({})
     : schema.safeParse(domainFrontmatter);
   if (!frontmatter.success)
-    return jsonResponse(
-      { error: "Invalid frontmatter", issues: frontmatter.error.issues },
-      400,
-    );
+    return frontmatterIssueResponse(frontmatter.error, domainFrontmatter);
   const content = raw
     ? (payload.body ?? "")
     : generateMarkdownWithFrontmatter(

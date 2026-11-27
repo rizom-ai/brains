@@ -2,7 +2,11 @@
 import { describe, expect, it } from "bun:test";
 import { Window } from "happy-dom";
 import { renderToStaticMarkup } from "react-dom/server";
-import { StudioMarkdown, fenceLeadingFrontmatter } from "./studio-markdown";
+import {
+  StudioMarkdown,
+  fenceLeadingFrontmatter,
+  withoutRepeatedTitle,
+} from "./studio-markdown";
 
 // A note keeps frontmatter keys its type does not name in its body, as
 // written. The preview must not read that block as a heading.
@@ -58,5 +62,24 @@ describe("document preview of a leading frontmatter block", () => {
     expect(fenceLeadingFrontmatter("---\nnote: ```x```\n---\nBody")).toBe(
       "````yaml\nnote: ```x```\n````\nBody",
     );
+  });
+});
+
+describe("document preview of a heading that repeats the title", () => {
+  it("leaves out a first heading that is the title", () => {
+    expect(withoutRepeatedTitle("# Post one\n\nBody", "Post one")).toBe("Body");
+    expect(
+      withoutRepeatedTitle("---\nslug: one\n---\n# Post one\nBody", "Post one"),
+    ).toBe("---\nslug: one\n---\nBody");
+  });
+
+  it("keeps a heading that differs, or is not first", () => {
+    expect(withoutRepeatedTitle("# Another\n\nBody", "Post one")).toBe(
+      "# Another\n\nBody",
+    );
+    expect(withoutRepeatedTitle("Intro\n\n# Post one", "Post one")).toBe(
+      "Intro\n\n# Post one",
+    );
+    expect(withoutRepeatedTitle("# Post one", undefined)).toBe("# Post one");
   });
 });
