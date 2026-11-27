@@ -581,6 +581,36 @@ describe("A2A network ask channel", () => {
       }
     });
 
+    it("is answered in the worker, where a job asks from, with nothing else of the interface", async () => {
+      const fetchFn = citingFetch();
+      const harness = createPluginHarness();
+      harness.addEntities([
+        {
+          id: "approved.example",
+          entityType: "agent",
+          content: "Approved",
+          metadata: { name: "Approved Agent", status: "approved" },
+        },
+      ]);
+      const plugin = createA2APlugin(
+        {},
+        { fetch: fetchFn, isContactApproved: approvedPeer },
+      );
+
+      await plugin.registerChannelsForExecution?.(harness.getMockShell(), {
+        executionOnly: true,
+      });
+
+      expect(await turn(harness, "approved.example", "A turn")).toEqual({
+        success: true,
+        data: { state: "completed", response: "Cited answer", sources },
+      });
+      expect(await ask(harness, "approved.example")).toMatchObject({
+        success: true,
+      });
+      expect(harness.getMockShell().getDaemonRegistry().getAll()).toEqual([]);
+    });
+
     it("refuses peers that are not saved and approved", async () => {
       const fetchFn = citingFetch();
       const harness = await installed(fetchFn);

@@ -1108,6 +1108,7 @@ export {
   type InterfaceRuntime,
 } from "./interface/interface-runtime";
 export {
+  withAnswers,
   withChannels,
   withDaemon,
   withMessageTransport,

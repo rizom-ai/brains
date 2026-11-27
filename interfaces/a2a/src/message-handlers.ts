@@ -118,6 +118,13 @@ async function answerWithinBudget(
 }
 
 /**
+ * What a package asks a peer is answered in the worker too: a background
+ * job asks from there. What a Studio author asks is answered where Studio
+ * is served.
+ */
+const PEER_ASKS = { everyProcess: true } as const;
+
+/**
  * Register the in-process A2A surface used by packages that must not depend
  * on this interface directly. Calls use the exact outbound validation,
  * Agent Card verification, signing, and network path as agent_call, but are
@@ -133,28 +140,38 @@ export function registerA2ACallMessageHandlers(
     turnTimeoutMs: 90_000,
   },
 ): void {
-  runtime.answer(a2aAskContract, ({ request: { agent, question } }) =>
-    answerWithinBudget(
-      deps,
-      agent,
-      networkAskMessage(question),
-      options.networkAskTimeoutMs,
-    ),
+  runtime.answer(
+    a2aAskContract,
+    ({ request: { agent, question } }) =>
+      answerWithinBudget(
+        deps,
+        agent,
+        networkAskMessage(question),
+        options.networkAskTimeoutMs,
+      ),
+    PEER_ASKS,
   );
 
   // A turn of an exchange: the message as its author wrote it.
-  runtime.answer(a2aTurnContract, ({ request: { agent, message } }) =>
-    answerWithinBudget(deps, agent, message, options.turnTimeoutMs),
+  runtime.answer(
+    a2aTurnContract,
+    ({ request: { agent, message } }) =>
+      answerWithinBudget(deps, agent, message, options.turnTimeoutMs),
+    PEER_ASKS,
   );
 
   // One shared entity from a saved, approved peer: a signed request with
   // no model on either side.
-  runtime.answer(a2aSharedEntityContract, ({ request }) =>
-    fetchSharedEntity(request, deps),
+  runtime.answer(
+    a2aSharedEntityContract,
+    ({ request }) => fetchSharedEntity(request, deps),
+    PEER_ASKS,
   );
   // What that peer shares with this brain, so no id has to be guessed.
-  runtime.answer(a2aSharedEntityListContract, ({ request }) =>
-    fetchSharedEntityListing(request, deps),
+  runtime.answer(
+    a2aSharedEntityListContract,
+    ({ request }) => fetchSharedEntityListing(request, deps),
+    PEER_ASKS,
   );
 
   runtime.answer(

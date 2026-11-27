@@ -122,8 +122,10 @@ export interface InterfaceRuntime {
   readonly messages: InterfaceMessages;
   /**
    * Answer a first-party contract under the channel it already has, such as
-   * `email:source-read`, as the class answered it, in the main process.
-   * Released when the interface shuts down.
+   * `email:source-read`, as the class answered it, in the main process,
+   * or in the worker too with `everyProcess`, from an answers slot
+   * (`withAnswers`), which is all of an interface the worker runs. Released
+   * when the interface shuts down.
    */
   answer<const TRequest extends z.ZodType, const TResponse extends z.ZodType>(
     contract: BusContract<TRequest, TResponse>,
@@ -131,6 +133,7 @@ export interface InterfaceRuntime {
       readonly request: z.output<TRequest>;
       readonly sender: string;
     }) => SchemaValue<TResponse> | Promise<SchemaValue<TResponse>>,
+    options?: { readonly everyProcess?: boolean | undefined },
   ): void;
   /**
    * Send a command to every package that hears it, as the interface;
@@ -429,11 +432,12 @@ function bindInterfaceRuntime(
         }),
       );
     },
-    answer(contract, handler): void {
+    answer(contract, handler, options = {}): void {
       binding.onRelease(
         binding.messaging.answer(
           eraseResponseType(contract),
           async (request, { sender }) => handler({ request, sender }),
+          options.everyProcess === true ? { everyProcess: true } : {},
         ),
       );
     },
