@@ -793,6 +793,11 @@ export type DataSourceQuery = EntitySourceQuery;
  * loads to resolve prev/next, so a view that orders its neighbors
  * differently computes that itself.
  */
+/** What a list view may read beyond its page, such as related entries. */
+export interface EntityListContext {
+  readonly entities: EntityReader;
+}
+
 export interface EntityDetailContext<TTransformed> {
   readonly item: TTransformed;
   readonly navigation: EntityNavigation<TTransformed> | null;
@@ -840,7 +845,10 @@ export interface EntityDataSourceInput<
     items: readonly TTransformed[],
     pagination: PaginationInfo | null,
     query: DataSourceQuery,
-  ): TListResult & JsonObjectOutputGuard<TListResult>;
+    context: EntityListContext,
+  ):
+    | (TListResult & JsonObjectOutputGuard<TListResult>)
+    | Promise<TListResult & JsonObjectOutputGuard<TListResult>>;
   detail?(
     context: EntityDetailContext<TTransformed>,
   ): unknown | Promise<unknown>;
@@ -881,7 +889,8 @@ export interface AnyEntityDataSourceDefinition {
     items: readonly unknown[],
     pagination: PaginationInfo | null,
     query: DataSourceQuery,
-  ): object;
+    context: EntityListContext,
+  ): object | Promise<object>;
   detail?(context: EntityDetailContext<unknown>): unknown | Promise<unknown>;
 }
 

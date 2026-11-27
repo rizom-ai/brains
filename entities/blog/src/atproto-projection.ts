@@ -8,13 +8,13 @@ import {
   type EntityDefinition,
   type EntityOf,
 } from "@brains/sdk/entities";
+import { compareBySeriesPosition, getSeriesName } from "@brains/contracts";
 import { entityRuntime } from "@brains/sdk/internal/entity-runtime";
 import type { blogPostMetadataSchema } from "./schemas/blog-post";
 import { atprotoProvenance } from "@brains/atproto-contracts";
 
-type PostRecord = EntityOf<
-  EntityDefinition<"post", typeof blogPostMetadataSchema>
->;
+type PostDefinition = EntityDefinition<"post", typeof blogPostMetadataSchema>;
+type PostRecord = EntityOf<PostDefinition>;
 
 type BlogAtprotoCoverImage = NonNullable<AtprotoBrainPostRecord["coverImage"]>;
 
@@ -69,13 +69,37 @@ async function uploadCoverImage(
   };
 }
 
+/**
+ * The post's place in its series, as its series page numbers it: among the
+ * public posts in the series, by when they were published.
+ */
+async function seriesPlace(
+  input: EntityAtprotoRecordInput<PostRecord>,
+  definition: PostDefinition,
+  seriesName: string,
+): Promise<number | undefined> {
+  // Public posts only: the record reads at the PDS's scope.
+  const posts = await input.entities.list(definition, { limit: 1000 });
+  const place =
+    posts
+      .filter((post) => getSeriesName(post) === seriesName)
+      .sort(compareBySeriesPosition)
+      .findIndex((post) => post.id === input.entity.id) + 1;
+  return place === 0 ? undefined : place;
+}
+
 /** A post as its ai.rizom.brain.post record: its fields and its body. */
 export async function buildBlogAtprotoPostRecord(
   input: EntityAtprotoRecordInput<PostRecord>,
+  definition: PostDefinition,
 ): Promise<AtprotoBrainPostRecord> {
   const { entity, config, topics, pageUrl } = input;
   const { metadata } = entity;
   const coverImage = await uploadCoverImage(input);
+  const seriesName = getSeriesName(entity);
+  const seriesIndex = seriesName
+    ? await seriesPlace(input, definition, seriesName)
+    : undefined;
   // An essay first published elsewhere keeps that address; otherwise its page here.
   const canonicalUrl = metadata.canonicalUrl ?? pageUrl;
   return {
@@ -86,10 +110,8 @@ export async function buildBlogAtprotoPostRecord(
     format: "text/markdown",
     ...(topics && topics.length > 0 && { topics: [...topics] }),
     ...(coverImage && { coverImage }),
-    ...(metadata.seriesName && { series: metadata.seriesName }),
-    ...(metadata.seriesIndex !== undefined && {
-      seriesIndex: metadata.seriesIndex,
-    }),
+    ...(seriesName && { series: seriesName }),
+    ...(seriesIndex !== undefined && { seriesIndex }),
     ...atprotoProvenance({ config, pageUrl: canonicalUrl }, entity),
     ...(pageUrl && { pageUrl }),
     sourceEntityType: "post",
@@ -101,9 +123,15 @@ export async function buildBlogAtprotoPostRecord(
  * Post records go out unvalidated, under the canonical post lexicon, once
  * the post is published.
  */
-export const postAtproto: EntityAtprotoProjection<PostRecord> = {
-  lexicon: canonicalAtprotoLexicons["ai.rizom.brain.post"],
-  validate: false,
-  isPublishable: (entity) => entity.metadata.status === "published",
-  buildRecord: buildBlogAtprotoPostRecord,
-};
+export function postAtproto(
+  definition: () => PostDefinition,
+): EntityAtprotoProjection<PostRecord> {
+  return {
+    lexicon: canonicalAtprotoLexicons["ai.rizom.brain.post"],
+    validate: false,
+    isPublishable: (entity) => entity.metadata.status === "published",
+    // The post definition is read when a record is built, not while the
+    // definition that names this projection is still being made.
+    buildRecord: (input) => buildBlogAtprotoPostRecord(input, definition()),
+  };
+}

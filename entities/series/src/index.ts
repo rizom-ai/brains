@@ -7,7 +7,7 @@ import { series } from "./series";
 
 /**
  * Cross-content series: one entity, a series, derived from every entity
- * carrying a `seriesName`, and rendered by the series templates through the
+ * in a `series` group, and rendered by the series templates through the
  * series data source.
  */
 export const seriesPackage: EntityPackageDefinition<

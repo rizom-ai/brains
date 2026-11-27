@@ -227,6 +227,12 @@ export interface ServiceEntityShapes {
    * false when unknown.
    */
   hasCoverImage(type: string): boolean;
+  /**
+   * Whether the type's own frontmatter declares a field as a list of names,
+   * as a group's member does, rather than having one a group added to it;
+   * false when unknown.
+   */
+  declaresNameList(type: string, field: string): boolean;
   /** Whether a frontmatter write carries into the type's metadata. */
   metadataFromFrontmatter(type: string): boolean;
   /**

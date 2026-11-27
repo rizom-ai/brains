@@ -42,12 +42,20 @@ export function registerGroupingDefinitions(
         .getEntityTypes()
         .filter((type) => isGroupingContributorType(context, type)),
     // Collection types that bring their own group, such as series.
-    getMemberGroups: (): MemberGroup[] =>
-      context.entityService.getEntityTypes().flatMap((type) => {
+    getMemberGroups: (): MemberGroup[] => {
+      const types = context.entityService.getEntityTypes();
+      return types.flatMap((type) => {
         const group =
           context.entityService.getEntityTypeConfig(type).memberGroup;
-        return group ? [{ entityType: type, ...group }] : [];
-      }),
+        if (!group) return [];
+        // A type joins by declaring the group's field, a list of names,
+        // in its own schema.
+        const members = types.filter((member) =>
+          context.shapes.declaresNameList(member, type),
+        );
+        return [{ entityType: type, ...group, types: members }];
+      });
+    },
     // Never resolve image references in literal labels/values. Besides changing
     // policy, those extra entity reads would recursively wait on this refresh.
     read: (): Promise<BaseEntity | null> =>

@@ -58,8 +58,8 @@ status: published
 publishedAt: "2025-01-30T10:00:00.000Z"
 excerpt: Another excerpt
 author: John Doe
-seriesName: Test Series
-seriesIndex: 1
+series:
+  - Test Series
 coverImageId: hero-image
 ---
 
@@ -73,8 +73,7 @@ Content here`);
       publishedAt: "2025-01-30T10:00:00.000Z",
       excerpt: "Another excerpt",
       author: "John Doe",
-      seriesName: "Test Series",
-      seriesIndex: 1,
+      series: ["Test Series"],
       coverImageId: "hero-image",
     });
     expect(result.content).toBe("# Another Blog Post\n\nContent here");
@@ -106,14 +105,13 @@ Content here`);
             authoredSlug: true,
             status: "published",
             publishedAt: "2025-01-30T10:00:00.000Z",
-            seriesName: "My Blog Series",
-            seriesIndex: 1,
+            series: ["My Blog Series"],
             coverImageId: "hero-image",
           },
         }),
       ),
     ).toBe(
-      "---\ntitle: My First Blog Post\nslug: my-first-blog-post\nstatus: published\npublishedAt: '2025-01-30T10:00:00.000Z'\nexcerpt: This is a short excerpt\nauthor: Test Author\ncoverImageId: hero-image\nseriesName: My Blog Series\nseriesIndex: 1\n---\n# My First Blog Post\n\nThis is the content of my blog post.\n",
+      "---\ntitle: My First Blog Post\nslug: my-first-blog-post\nstatus: published\npublishedAt: '2025-01-30T10:00:00.000Z'\nexcerpt: This is a short excerpt\nauthor: Test Author\ncoverImageId: hero-image\nseries:\n  - My Blog Series\n---\n# My First Blog Post\n\nThis is the content of my blog post.\n",
     );
   });
 

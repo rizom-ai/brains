@@ -161,7 +161,7 @@ export const post: EntityDefinition<"post", typeof blogPostMetadataSchema> =
           },
         ],
         feed: postFeed,
-        atproto: postAtproto,
+        atproto: postAtproto(() => post),
         evals: postEvals,
       }),
       (stored) => ({ ...stored, authoredSlug: true }),

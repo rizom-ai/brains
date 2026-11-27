@@ -13,7 +13,7 @@ import {
   seriesMetadataSchema,
   type SeriesFrontmatter,
 } from "../schemas/series";
-import { getSeriesName, compareBySeriesIndex } from "../lib/series-metadata";
+import { compareBySeriesPosition, getSeriesName } from "../lib/series-metadata";
 
 // DynamicRouteGenerator format (entityType + query)
 const dynamicQuerySchema = z.object({
@@ -195,7 +195,8 @@ async function countEntitiesPerSeries(
 }
 
 /**
- * Get all entities belonging to a series, sorted by seriesIndex.
+ * Get all entities belonging to a series, in their place in it: published
+ * ones by when they were published, then drafts by when they were made.
  */
 async function getSeriesMembers(
   seriesName: string,
@@ -205,22 +206,17 @@ async function getSeriesMembers(
     .getEntityTypes()
     .filter((entityType) => entityType !== "series");
   const found = await Promise.all(
-    types.map((entityType) =>
-      reads.listEntities({
-        entityType,
-        options: {
-          filter: { metadata: { seriesName } },
-        },
-      }),
-    ),
+    types.map((entityType) => reads.listEntities({ entityType })),
   );
-  // Sort by seriesIndex; members without an index sort last.
-  return found.flat().sort(compareBySeriesIndex);
+  return found
+    .flat()
+    .filter((entity) => getSeriesName(entity) === seriesName)
+    .sort(compareBySeriesPosition);
 }
 
 /**
  * The series list and detail pages' data. Cross-content: a series counts
- * and lists the entities of every type whose `seriesName` names it, read at
+ * and lists the entities of every type whose `series` group names it, read at
  * the build's scope.
  */
 export const seriesDataSource: DataSourceDefinition = defineDataSource({

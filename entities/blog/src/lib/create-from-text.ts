@@ -29,8 +29,7 @@ const postTextFieldsSchema = z.object({
   excerpt: z.string().trim().min(1).optional(),
   author: z.string().trim().min(1).optional(),
   coverImageId: z.string().min(1).optional(),
-  seriesName: z.string().min(1).optional(),
-  seriesIndex: z.number().optional(),
+  series: z.array(z.string().min(1)).max(1).optional(),
 });
 
 function readPostText(

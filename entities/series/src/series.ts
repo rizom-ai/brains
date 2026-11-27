@@ -38,8 +38,9 @@ function seriesDocument(
 }
 
 /**
- * A series: a named sequence its member entities opt into with their
- * `seriesName`. It is derived rather than authored: the series projection
+ * A series: a named sequence its member entities join through their
+ * `series` group, one series each, in the order they were published. It is
+ * derived rather than authored: the series projection
  * builds one from the members of every other type and describes it. Its
  * frontmatter is its metadata; its body is the description, written in the
  * series body's form under the series' title, as the series adapter wrote it.
@@ -67,7 +68,12 @@ export const series: EntityDefinition<"series", typeof seriesMetadataSchema> =
     }),
     // Supporting weight: a series is an index over other content, so it
     // should not outrank the content it points at.
-    config: { weight: 0.5, projectionSourceRole: "supporting" },
+    config: {
+      weight: 0.5,
+      projectionSourceRole: "supporting",
+      // Members join a series as people choose, through a built-in group.
+      memberGroup: { label: "Series", multiple: false },
+    },
     templates: { ...getTemplates(), description: seriesDescriptionTemplate },
     projectionRules: ({ template }) => [
       createSeriesProjectionRule(template("description")),

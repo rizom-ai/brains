@@ -26,6 +26,8 @@ export interface MemberGroup {
   entityType: string;
   label: string;
   multiple: boolean;
+  /** The types that join it: those declaring its field themselves. */
+  types: readonly string[];
 }
 
 interface DefinitionSourceDependencies {
@@ -240,10 +242,12 @@ function declarations(
   contributorTypes: readonly string[],
   memberGroups: readonly MemberGroup[],
 ): EntityGrouping[] {
-  // A collection type's own group comes first; its members are every other
-  // contributing type, and it is never a member of itself.
+  // A collection type's own group comes first; its members are the
+  // contributing types that declare its field, never the collection itself.
   const builtIn = memberGroups.flatMap((group) => {
-    const types = contributorTypes.filter((type) => type !== group.entityType);
+    const types = contributorTypes.filter(
+      (type) => type !== group.entityType && group.types.includes(type),
+    );
     return types.length
       ? [
           {

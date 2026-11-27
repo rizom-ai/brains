@@ -322,8 +322,14 @@ describe("groups a collection type brings with it", () => {
     });
     const source = new GroupingDefinitionSource({
       getContributorTypes: (): string[] => ["note", "post", "series"],
+      // Only types that declare the series field join a series.
       getMemberGroups: (): MemberGroup[] => [
-        { entityType: "series", label: "Series", multiple: false },
+        {
+          entityType: "series",
+          label: "Series",
+          multiple: false,
+          types: ["post"],
+        },
       ],
       read: async (): Promise<DefinitionRow> => ({
         content,
@@ -341,7 +347,7 @@ describe("groups a collection type brings with it", () => {
         key: "series",
         field: "series",
         label: "Series",
-        types: ["note", "post"],
+        types: ["post"],
         multiple: false,
       },
       {

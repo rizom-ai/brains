@@ -48,7 +48,7 @@ async function brainDirectory(): Promise<string> {
 }
 
 const markdown = (
-  frontmatter: Record<string, string | number>,
+  frontmatter: Record<string, string | number | readonly string[]>,
   body: string,
 ): string =>
   [
@@ -119,8 +119,7 @@ async function seed(shell: Shell): Promise<void> {
           author: "Alex",
           coverImageId: "post-cover",
           ogImageId: "post-og",
-          seriesName: "Imaged Series",
-          seriesIndex: 1,
+          series: ["Imaged Series"],
         },
         "Body ![A figure](entity://image/inline-figure)",
       ),

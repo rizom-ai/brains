@@ -69,6 +69,7 @@ export interface StudioContext {
     | "isSingleton"
     | "hasBody"
     | "hasCoverImage"
+    | "declaresNameList"
     | "metadataFromFrontmatter"
     | "folderTitles"
     | "displayTitle"

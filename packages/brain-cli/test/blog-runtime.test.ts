@@ -78,9 +78,9 @@ async function generate(
 }
 
 const city =
-  "---\ntitle: City Notes\nslug: city-notes\nstatus: published\npublishedAt: 2025-01-01T00:00:00.000Z\nexcerpt: About the city.\nauthor: Alex\ncoverImageId: city-cover\nogImageId: og-city\nseriesName: Cities\nseriesIndex: 2\ncanonicalUrl: https://elsewhere.example/city\n---\n## City\n\nBody\n";
+  "---\ntitle: City Notes\nslug: city-notes\nstatus: published\npublishedAt: 2025-01-01T00:00:00.000Z\nexcerpt: About the city.\nauthor: Alex\ncoverImageId: city-cover\nogImageId: og-city\nseries:\n  - Cities\ncanonicalUrl: https://elsewhere.example/city\n---\n## City\n\nBody\n";
 const storedCity =
-  "---\ntitle: City Notes\nslug: city-notes\nstatus: published\npublishedAt: '2025-01-01T00:00:00.000Z'\nexcerpt: About the city.\nauthor: Alex\ncoverImageId: city-cover\nogImageId: og-city\nseriesName: Cities\nseriesIndex: 2\ncanonicalUrl: 'https://elsewhere.example/city'\n---\n## City\n\nBody\n";
+  "---\ntitle: City Notes\nslug: city-notes\nstatus: published\npublishedAt: '2025-01-01T00:00:00.000Z'\nexcerpt: About the city.\nauthor: Alex\ncoverImageId: city-cover\nogImageId: og-city\nseries:\n  - Cities\ncanonicalUrl: 'https://elsewhere.example/city'\n---\n## City\n\nBody\n";
 const noSlug =
   "---\nexcerpt: Desc\ntitle: No Slug\nstatus: draft\nauthor: Alex\ntags: x\n---\nFree text body\n";
 
@@ -194,25 +194,24 @@ describe("a declared post as a site reads it", () => {
       author: "Alex",
       coverImageId: "city-cover",
       ogImageId: "og-city",
-      seriesName: "Cities",
-      seriesIndex: 2,
+      series: ["Cities"],
       canonicalUrl: "https://elsewhere.example/city",
     });
   });
 });
 
 describe("the blog's data source on the entity store", () => {
-  // As the blog plugin class read them: neighbors newest first, a series by
-  // its order with an unplaced post first, a page counted over every post.
+  // Neighbors newest first; a series in its place, published posts by when
+  // they were published and drafts after; a page counted over every post.
   test("shows a post with its neighbors and series, and pages the list", async () => {
     const opened = await store();
     const posts = [
-      ["two", "published", "2025-03-01T00:00:00.000Z", 2],
-      ["one", "published", "2025-01-01T00:00:00.000Z", 1],
-      ["loose", "draft", undefined, undefined],
-      ["other", "published", "2025-02-01T00:00:00.000Z", undefined],
+      ["two", "published", "2025-03-01T00:00:00.000Z"],
+      ["one", "published", "2025-01-01T00:00:00.000Z"],
+      ["loose", "draft", undefined],
+      ["other", "published", "2025-02-01T00:00:00.000Z"],
     ] as const;
-    for (const [id, status, publishedAt, seriesIndex] of posts) {
+    for (const [id, status, publishedAt] of posts) {
       await imported(
         opened,
         id,
@@ -224,8 +223,7 @@ describe("the blog's data source on the entity store", () => {
           ...(publishedAt ? [`publishedAt: ${publishedAt}`] : []),
           "excerpt: E",
           "author: A",
-          ...(id === "other" ? [] : ["seriesName: Tides"]),
-          ...(seriesIndex ? [`seriesIndex: ${seriesIndex}`] : []),
+          ...(id === "other" ? [] : ["series:", "  - Tides"]),
           "---",
           `${id} body`,
           "",
@@ -256,13 +254,13 @@ describe("the blog's data source on the entity store", () => {
       post: "two",
       prev: null,
       next: "other",
-      series: ["loose", "one", "two"],
+      series: ["one", "two", "loose"],
     });
     expect(await shown("loose")).toEqual({
       post: "loose",
       prev: "one",
       next: null,
-      series: ["loose", "one", "two"],
+      series: ["one", "two", "loose"],
     });
     expect(await shown("other")).toEqual({
       post: "other",
@@ -340,7 +338,7 @@ describe("the declared post generation on the entity store", () => {
       seriesName: "Cities",
     });
     expect((await opened.stored("post", "Given Title"))?.content).toBe(
-      "---\ntitle: Given Title\nslug: given-title\nstatus: draft\nexcerpt: Generated excerpt.\nauthor: Test Owner\nseriesName: Cities\nseriesIndex: 2\n---\nGiven body.\n",
+      "---\ntitle: Given Title\nslug: given-title\nstatus: draft\nexcerpt: Generated excerpt.\nauthor: Test Owner\nseries:\n  - Cities\n---\nGiven body.\n",
     );
   });
 
@@ -380,7 +378,7 @@ describe("the blog's feed on the entity store", () => {
       id: "city-notes",
       created: Date.parse("2025-01-01T08:00:00.000Z"),
       markdown:
-        "---\ntitle: City Notes\nslug: city-notes\nstatus: published\npublishedAt: 2025-01-01T09:00:00.000Z\nexcerpt: About the city & its <streets>.\nauthor: Alex\nseriesName: Cities\nseriesIndex: 1\n---\n## City\n\nThe city ]]> at dusk.\n",
+        "---\ntitle: City Notes\nslug: city-notes\nstatus: published\npublishedAt: 2025-01-01T09:00:00.000Z\nexcerpt: About the city & its <streets>.\nauthor: Alex\nseries:\n  - Cities\n---\n## City\n\nThe city ]]> at dusk.\n",
     },
     {
       id: "harbour",
@@ -398,7 +396,7 @@ describe("the blog's feed on the entity store", () => {
       id: "draft",
       created: Date.parse("2025-04-01T08:00:00.000Z"),
       markdown:
-        "---\ntitle: Draft\nslug: draft\nstatus: draft\nexcerpt: Not yet.\nauthor: Alex\nseriesName: Cities\n---\nDraft body\n",
+        "---\ntitle: Draft\nslug: draft\nstatus: draft\nexcerpt: Not yet.\nauthor: Alex\nseries:\n  - Cities\n---\nDraft body\n",
     },
     {
       id: "queued",

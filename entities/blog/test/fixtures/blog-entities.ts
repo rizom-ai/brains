@@ -76,7 +76,6 @@ function buildPostContent(
   opts: {
     publishedAt?: string;
     seriesName?: string;
-    seriesIndex?: number;
     excerpt?: string;
     author?: string;
   } = {},
@@ -84,7 +83,6 @@ function buildPostContent(
   const {
     publishedAt,
     seriesName,
-    seriesIndex,
     excerpt = `Excerpt for ${title}`,
     author = "Test Author",
   } = opts;
@@ -98,8 +96,7 @@ function buildPostContent(
   if (publishedAt) lines.push(`publishedAt: "${publishedAt}"`);
   lines.push(`excerpt: ${excerpt}`);
   lines.push(`author: ${author}`);
-  if (seriesName) lines.push(`seriesName: ${seriesName}`);
-  if (seriesIndex !== undefined) lines.push(`seriesIndex: ${seriesIndex}`);
+  if (seriesName) lines.push(`series: [${seriesName}]`);
   lines.push("---", "", `# ${title}`, "", `Content for ${title}`);
 
   return lines.join("\n");
@@ -116,8 +113,8 @@ export function createMockPost(
   status: BlogPostStatus = "published",
   opts: {
     publishedAt?: string;
+    /** The one series the post is in, written as its group value. */
     seriesName?: string;
-    seriesIndex?: number;
   } = {},
 ): BlogPost {
   const content = buildPostContent(title, slug, status, opts);
@@ -133,8 +130,7 @@ export function createMockPost(
       excerpt: `Excerpt for ${title}`,
       author: "Test Author",
       ...(opts.publishedAt !== undefined && { publishedAt: opts.publishedAt }),
-      ...(opts.seriesName !== undefined && { seriesName: opts.seriesName }),
-      ...(opts.seriesIndex !== undefined && { seriesIndex: opts.seriesIndex }),
+      ...(opts.seriesName !== undefined && { series: [opts.seriesName] }),
     },
   });
 }

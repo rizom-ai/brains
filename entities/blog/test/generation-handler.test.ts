@@ -86,15 +86,12 @@ describe("the post generation", () => {
           prompt: "Write about TypeScript",
           title: "TypeScript Tips",
           seriesName: "Dev Tips",
-          seriesIndex: 1,
         }),
       ).not.toBeNull();
     });
 
     it("refuses data of the wrong type", () => {
-      expect(
-        handler.validateAndParse(asPackage({ seriesIndex: "one" })),
-      ).toBeNull();
+      expect(handler.validateAndParse(asPackage({ seriesName: 1 }))).toBeNull();
     });
 
     it("keeps the source reference", () => {
@@ -237,14 +234,10 @@ describe("the post generation", () => {
   });
 
   describe("series", () => {
-    it("places a post after the published posts already in its series", async () => {
+    it("puts the post in its series as the one group value, numbering nothing", async () => {
       harness.getMockShell().addEntities([
         createMockPost("one", "One", "one", "published", {
           publishedAt: "2025-01-01T00:00:00.000Z",
-          seriesName: "Dev Tips",
-          seriesIndex: 1,
-        }),
-        createMockPost("draft", "Draft", "draft", "draft", {
           seriesName: "Dev Tips",
         }),
       ]);
@@ -254,21 +247,11 @@ describe("the post generation", () => {
         excerpt: "E.",
         seriesName: "Dev Tips",
       });
-      expect(await stored("Two")).toMatchObject({
-        seriesName: "Dev Tips",
-        seriesIndex: 2,
-      });
-    });
-
-    it("keeps a given series index", async () => {
-      await run({
-        title: "Three",
-        content: "Body.",
-        excerpt: "E.",
-        seriesName: "Dev Tips",
-        seriesIndex: 3,
-      });
-      expect(await stored("Three")).toMatchObject({ seriesIndex: 3 });
+      const two = await stored("Two");
+      expect(two).toMatchObject({ series: ["Dev Tips"] });
+      // Its place is when it is published, worked out where it is shown.
+      expect(two).not.toHaveProperty("seriesIndex");
+      expect(two).not.toHaveProperty("seriesName");
     });
   });
 

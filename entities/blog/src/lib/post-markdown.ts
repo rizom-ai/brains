@@ -33,8 +33,7 @@ export function postFrontmatter(
     author: metadata.author,
     coverImageId: metadata.coverImageId,
     ogImageId: metadata.ogImageId,
-    seriesName: metadata.seriesName,
-    seriesIndex: metadata.seriesIndex,
+    series: metadata.series,
     ogImage: metadata.ogImage,
     canonicalUrl: metadata.canonicalUrl,
   });

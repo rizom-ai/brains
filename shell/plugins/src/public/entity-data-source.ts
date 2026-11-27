@@ -46,6 +46,7 @@ export type {
   EntityDataSourceDefinition,
   EntityDataSourceInput,
   EntityDetailContext,
+  EntityListContext,
 } from "../entity/entity-definition-contract";
 
 export { defineDataSource } from "./define-data-source";
@@ -231,7 +232,9 @@ function createEntityDataSource(
           filterOptions(definition, params),
         );
         return outputSchema.parse(
-          definition.list(list.items, list.pagination, params),
+          await definition.list(list.items, list.pagination, params, {
+            entities: createEntityReader(entityService),
+          }),
         );
       }
 

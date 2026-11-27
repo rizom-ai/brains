@@ -913,7 +913,7 @@ export class EntityMutations {
       entityId: entity.id,
       entity,
       // Prior metadata lets projections (e.g. series) reconcile a moved value
-      // such as a changed `seriesName` without a full resync. Already loaded
+      // such as a changed `series` group without a full resync. Already loaded
       // by prepareUpdate for the no-op check, so this adds no extra read.
       previousMetadata: plan.previousMetadata,
       eventContext: options?.eventContext,
@@ -973,7 +973,7 @@ export class EntityMutations {
     const { entityType, id, options } = request;
 
     // Fetch prior entity so subscribers can gate on its metadata (e.g. the
-    // `seriesName` field that drives the series projection). Without this,
+    // `series` group that drives the series projection). Without this,
     // every delete forces subscribers into a full resync because they can't
     // tell whether the deleted entity was relevant to them.
     // Authorization belongs to the calling capability. This internal mutation
