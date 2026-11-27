@@ -1,5 +1,20 @@
 # @brains/agent-discovery
 
+## 0.2.0-alpha.782
+
+### Patch Changes
+
+- [#1062](https://github.com/rizom-ai/brains/pull/1062) [`72ad2b1`](https://github.com/rizom-ai/brains/commit/72ad2b10b10d2ea5f2067f988ef5b5f75c4082aa) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A brain can ask all its approved peers. With `askAllApproved: true` under `plugins.agents`, `network_ask` asks every approved peer whatever its skills, the nearest first and three at most, and its description tells the model so; without it a question still goes to the peers whose skills fit it. A book brain answers in the language a question is asked in, or the one it asks for: a question that quotes another language, or names works in it, is not asked in that language.
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.782
+  - @rizom/brain-ui@0.2.0-alpha.782
+  - @brains/dashboard@0.2.0-alpha.782
+  - @brains/atproto-contracts@0.2.0-alpha.782
+  - @brains/content-formatters@0.2.0-alpha.782
+  - @brains/contracts@0.2.0-alpha.782
+  - @brains/http-signatures@0.2.0-alpha.782
+  - @brains/utils@0.2.0-alpha.782
+
 ## 0.2.0-alpha.781
 
 ### Patch Changes
