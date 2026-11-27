@@ -1,3 +1,4 @@
+import { CANONICAL_BUNDLE_IDS } from "@brains/contracts";
 import { socialLinkPlatformSchema } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 
@@ -20,26 +21,8 @@ export const agePublicKeySchema: z.ZodString = z
 export const CAPABILITY_BUNDLE_CONTRACT = "capability-bundles-v1" as const;
 
 export const canonicalBundleIdSchema: z.ZodEnum<{
-  core: "core";
-  media: "media";
-  automation: "automation";
-  web: "web";
-  chat: "chat";
-  site: "site";
-  publishing: "publishing";
-  federation: "federation";
-  team: "team";
-}> = z.enum([
-  "core",
-  "media",
-  "automation",
-  "web",
-  "chat",
-  "site",
-  "publishing",
-  "federation",
-  "team",
-]);
+  [Id in (typeof CANONICAL_BUNDLE_IDS)[number]]: Id;
+}> = z.enum(CANONICAL_BUNDLE_IDS);
 export type CanonicalBundleId = z.output<typeof canonicalBundleIdSchema>;
 
 /**

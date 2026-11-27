@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { CANONICAL_BUNDLE_IDS } from "@brains/contracts";
 import {
   resolve,
   resolveBundleSelection,
@@ -440,5 +441,13 @@ describe("canonical bundle taxonomy", () => {
       );
     }
     expect(team.permissions?.entityActions?.["deck"]).toBeUndefined();
+  });
+});
+
+describe("the canonical bundle ids", () => {
+  test("are the shared list the fleet validates cohorts against", () => {
+    expect(canonicalBrain.bundles?.map(({ id }) => id)).toEqual([
+      ...CANONICAL_BUNDLE_IDS,
+    ]);
   });
 });
