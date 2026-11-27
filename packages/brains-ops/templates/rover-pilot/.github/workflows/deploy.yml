@@ -241,7 +241,18 @@ __PREDEPLOY_BACKUP_SKIP_CONDITION__
           PREVIEW_DOMAIN: ${{ steps.user_config.outputs.preview_domain }}
           BRAIN_YAML_PATH: ${{ steps.user_config.outputs.brain_yaml_path }}
           LOCAL_MODELS: ${{ steps.user_config.outputs.local_models }}
+          MATRIX_ENABLED: ${{ steps.user_config.outputs.matrix_enabled }}
         run: kamal setup --skip-push -c deploy/kamal/deploy.yml
+
+      - name: Restart the homeserver on a new configuration
+        if: steps.user_config.outputs.matrix_enabled == 'true'
+        env:
+          SERVER_IP: ${{ steps.provision.outputs.server_ip }}
+          SERVICE_NAME: rover
+          MATRIX_ENABLED: ${{ steps.user_config.outputs.matrix_enabled }}
+        run: |
+          SSH_USER="$(ruby -e 'require "yaml"; config = YAML.load_file("deploy/kamal/deploy.yml") || {}; puts(config.dig("ssh", "user") || "root")')" \
+            bun deploy/scripts/reload-homeserver.ts
 
       - name: Install container health watchdog
         env:

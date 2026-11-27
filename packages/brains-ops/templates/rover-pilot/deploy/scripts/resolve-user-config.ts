@@ -39,6 +39,13 @@ const localModels = [
   ),
 ].join(",");
 
+// The brain's own Matrix homeserver runs beside it with the matrix bundle.
+const bundlesBlock =
+  brainYaml.match(/^bundles:\s*\n((?:\s+-\s*.+\n?)+)/m)?.[1] ?? "";
+const matrixEnabled = [...bundlesBlock.matchAll(/-\s*['"]?([\w-]+)/g)].some(
+  (match) => match[1] === "matrix",
+);
+
 const registry = await loadPilotRegistry(process.cwd());
 const user = registry.users.find((entry) => entry.handle === handle);
 if (!user) {
@@ -84,6 +91,7 @@ const outputs: Record<string, string> = {
   image_tag: imageTag,
   registry_username: repositoryOwner,
   local_models: localModels,
+  matrix_enabled: String(matrixEnabled),
 };
 
 const required = ["brain_version", "registry_username"];

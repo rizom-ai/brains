@@ -553,6 +553,17 @@ describe("initPilotRepo", () => {
     expect(deployWorkflow).toContain(
       "LOCAL_MODELS: ${{ steps.user_config.outputs.local_models }}",
     );
+    expect(deployWorkflow).toContain(
+      "MATRIX_ENABLED: ${{ steps.user_config.outputs.matrix_enabled }}",
+    );
+    const reloadIndex = deployWorkflow.indexOf(
+      "bun deploy/scripts/reload-homeserver.ts",
+    );
+    expect(reloadIndex).toBeGreaterThan(
+      deployWorkflow.indexOf(
+        "kamal setup --skip-push -c deploy/kamal/deploy.yml",
+      ),
+    );
     const pullIndex = deployWorkflow.indexOf(
       "bun deploy/scripts/pull-local-models.ts",
     );
