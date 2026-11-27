@@ -121,21 +121,23 @@ export class GenerationAuthorizer {
         destination.metadata["status"],
         registry,
       ) !== "non-publish";
-    const action = updating ? (published ? "publish" : "update") : "create";
+    // A generation writes the destination's content, so over a published
+    // destination it is an edit as well as a publish: permission to publish
+    // is not permission to edit.
+    const actions = [
+      updating ? ("update" as const) : ("create" as const),
+      ...(published ? (["publish"] as const) : []),
+    ];
     if (
       !canWriteVisibility(access.permissionLevel, destination.visibility) ||
-      !this.permissions.canPerformEntityAction(
-        access.permissionLevel,
-        destination.entityType,
-        action,
-      ) ||
-      (!updating &&
-        published &&
-        !this.permissions.canPerformEntityAction(
-          access.permissionLevel,
-          destination.entityType,
-          "publish",
-        ))
+      actions.some(
+        (action) =>
+          !this.permissions.canPerformEntityAction(
+            access.permissionLevel,
+            destination.entityType,
+            action,
+          ),
+      )
     ) {
       throw new GenerationAuthorizationError();
     }

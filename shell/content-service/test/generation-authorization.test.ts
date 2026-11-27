@@ -346,6 +346,40 @@ describe("generation policy boundaries", () => {
     ).toThrow(GenerationAuthorizationError);
   });
 
+  test("a generation over a published destination is an edit as well as a publish", () => {
+    const { entities } = fixture();
+    spyOn(entities, "getEntityTypeConfig").mockReturnValue({
+      publish: { publishStatuses: ["published"] },
+    });
+    // A type its owner publishes and nobody edits.
+    const permissions = new PermissionService({
+      entityActions: {
+        "book-section": { update: "never", publish: "admin" },
+      },
+    });
+    const authorizer = new GenerationAuthorizer(
+      permissions,
+      new CallerAuthorizer(permissions, async () => null),
+    );
+    const admin = {
+      permissionLevel: "admin",
+      visibilityScope: "restricted",
+    } as const;
+
+    expect(() =>
+      authorizer.assertWrite(
+        admin,
+        {
+          entityType: "book-section",
+          visibility: "public",
+          metadata: { status: "published" },
+        },
+        true,
+        entities,
+      ),
+    ).toThrow(GenerationAuthorizationError);
+  });
+
   test.each(["public", null] as const)(
     "revocation (%s) before execution prevents output reads and AI",
     async (level) => {

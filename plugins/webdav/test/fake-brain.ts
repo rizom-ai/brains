@@ -109,7 +109,8 @@ function frontmatter(markdown: string): Record<string, string> {
  * frontmatter says `title: INVALID` fails validation, `title: UNPARSEABLE`
  * cannot be parsed at all, one with
  * `title: NORMALIZE` is stored in another form than it was sent, and types
- * named `locked` refuse updates; `post` has a published status.
+ * named `locked` refuse updates; `post` has a published status, and so
+ * has `sealed`, which an admin publishes and nobody updates.
  */
 export function fakeBrain(
   entities: BaseEntity[],
@@ -165,7 +166,7 @@ export function fakeBrain(
       reader: {
         ...fakeReader({ entities, assets, ...(types ? { types } : {}) }),
         getEntityTypeConfig: (type) =>
-          type === "post"
+          type === "post" || type === "sealed"
             ? { publish: { publishStatuses: ["published"] } }
             : {},
       },
@@ -214,6 +215,9 @@ export function fakeBrain(
           assertEntityActionAllowed: (entityType, action, context) => {
             if (entityType === "locked" || entityType === "conflict") {
               throw new Error(`To ${action} \`locked\` is not allowed.`);
+            }
+            if (entityType === "sealed" && action === "update") {
+              throw new Error("To update `sealed` is not allowed.");
             }
             if (
               action === "publish" &&

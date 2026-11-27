@@ -4,7 +4,7 @@ import {
   canWriteVisibility,
   generateMarkdownWithFrontmatter,
   preserveSourceFrontmatter,
-  getPublishBoundaryState,
+  requiredUpdateActions,
   entityIdPathSchema,
   type BaseEntity,
   type EntityIdPath,
@@ -560,20 +560,12 @@ export async function handleUpdateEntity(
     visibility: visibility.visibility,
   };
 
-  const publishBoundary = getPublishBoundaryState(
-    entityType,
-    existing.metadata["status"],
-    entity.metadata["status"],
-    context.entityService,
-  );
-  const requiredAction =
-    publishBoundary === "non-publish" ? "update" : "publish";
-  const actionDenied = requireEntityAction(
-    context,
-    entityType,
-    requiredAction,
-    access,
-  );
+  // Every action the save needs: publishing is not permission to edit.
+  const deniedAction = (): Response | null =>
+    requiredUpdateActions(entityType, existing, entity, context.entityService)
+      .map((action) => requireEntityAction(context, entityType, action, access))
+      .find((denied) => denied !== null) ?? null;
+  const actionDenied = deniedAction();
   if (actionDenied) {
     await recordStudioMutationAudit(
       recordAuditEvent,
@@ -625,12 +617,7 @@ export async function handleUpdateEntity(
     });
   }
 
-  const persistenceDenied = requireEntityAction(
-    context,
-    entityType,
-    requiredAction,
-    access,
-  );
+  const persistenceDenied = deniedAction();
   if (persistenceDenied) {
     await recordStudioMutationAudit(
       recordAuditEvent,

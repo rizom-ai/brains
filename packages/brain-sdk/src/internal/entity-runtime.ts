@@ -79,6 +79,7 @@ export {
   entityTypeClassificationSchema,
   findEntityByIdentifier,
   getPublishBoundaryState,
+  requiredUpdateActions,
   isEntityValidationError,
   preserveSourceFrontmatter,
   EntityWriteConflictError,

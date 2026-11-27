@@ -604,6 +604,7 @@ export {
   generateMarkdownWithFrontmatter,
   preserveSourceFrontmatter,
   getPublishBoundaryState,
+  requiredUpdateActions,
   parseMarkdownWithFrontmatter,
   EntityValidationError,
   SemanticIndexingDisabledError,

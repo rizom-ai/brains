@@ -441,6 +441,72 @@ describe("Studio entity mutation policy", () => {
     expect(adminPublish.status).toBe(200);
   });
 
+  describe("a save that publishes", () => {
+    /** An admin's save of the shared draft, and the actions it was checked for. */
+    async function publishing(
+      payload: Record<string, unknown>,
+      refuseUpdate = false,
+    ): Promise<{ status: number; checked: string[] }> {
+      const fixture = await createMutationFixture("admin");
+      const assertAllowed =
+        fixture.permissionService.assertEntityActionAllowed.bind(
+          fixture.permissionService,
+        );
+      const checked: string[] = [];
+      fixture.permissionService.assertEntityActionAllowed = (
+        entityType,
+        action,
+        userLevel,
+      ): void => {
+        checked.push(action);
+        // A type its owner publishes and nobody edits.
+        if (refuseUpdate && action === "update")
+          throw new Error("Updating `post` is not allowed");
+        assertAllowed(entityType, action, userLevel);
+      };
+      const response = await findRoute(fixture.routes, "PUT").handler(
+        mutationRequest("/studio/api/entities", "PUT", payload),
+      );
+      return { status: response.status, checked: [...new Set(checked)] };
+    }
+
+    /** The shared draft as stored, with its status alone set to published. */
+    const asItStands = {
+      entityType: "post",
+      id: "shared-draft",
+      frontmatter: {
+        title: "shared-draft",
+        status: "published",
+        visibility: "shared",
+      },
+      body: "shared-draft body",
+      baseContentHash: "shared-draft-hash",
+    };
+
+    it("needs publish alone when it changes nothing else", async () => {
+      expect(await publishing(asItStands, true)).toEqual({
+        status: 200,
+        checked: ["publish"],
+      });
+    });
+
+    it("needs update as well when it changes the body or another field", async () => {
+      for (const payload of [
+        { ...asItStands, body: "Another body" },
+        {
+          ...asItStands,
+          frontmatter: { ...asItStands.frontmatter, title: "Edited" },
+        },
+      ]) {
+        expect(await publishing(payload)).toEqual({
+          status: 200,
+          checked: ["publish", "update"],
+        });
+        expect((await publishing(payload, true)).status).toBe(403);
+      }
+    });
+  });
+
   it("rechecks action policy immediately before persistence", async () => {
     const fixture = await createMutationFixture("trusted");
     const assertAllowed =

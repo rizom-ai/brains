@@ -271,7 +271,12 @@ export { scopeEntityReads } from "./scoped-entity-reads";
 export type { EntityReadScope } from "./scoped-entity-reads";
 export { scopedDerivedId } from "./scoped-derived-id";
 export {
+  changesBesideStatus,
   getPublishBoundaryState,
+  requiredUpdateActions,
+  updateActionsAt,
+  type EntityWriteAction,
+  type WrittenEntityState,
   type PublishBoundaryState,
 } from "./publish-policy";
 
