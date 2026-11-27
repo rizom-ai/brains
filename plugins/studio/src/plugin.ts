@@ -43,6 +43,7 @@ import {
 import {
   STUDIO_OVERVIEW_WORKSPACE_ID,
   StudioOverviewRegistry,
+  overviewActivitySchema,
   createStudioOverviewWorkspace,
   registerStudioOverviewActivity,
 } from "./overview-workspace";
@@ -147,7 +148,16 @@ const studioService = defineServicePlugin({
     const entityDisplay = (): StudioEntityDisplayMap | undefined =>
       slot.config.entityDisplay ?? parseEntityDisplay(context.entityDisplay);
     const workspaceRegistry = new StudioWorkspaceRegistry();
-    const overviewRegistry = new StudioOverviewRegistry();
+    // The feed outlives a restart: kept in runtime state, a day at a time.
+    const overviewRegistry = new StudioOverviewRegistry({
+      store: slot.runtimeState({
+        namespace: "overview.activity",
+        schema: overviewActivitySchema,
+      }),
+      onStoreError: (error): void =>
+        runtime.logger.warn("Overview activity could not be kept", { error }),
+    });
+    void overviewRegistry.restore();
     let definitionSource: GroupingDefinitionSource | undefined;
 
     // Once every plugin has registered, as the class's

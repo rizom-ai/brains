@@ -1,5 +1,6 @@
 import { defineEntity, z, type EntityDefinition } from "@brains/sdk/entities";
 import {
+  parseMarkdownWithFrontmatter,
   storedDocumentCodec,
   withFrontmatterSchema,
 } from "@brains/sdk/internal/entity-runtime";
@@ -31,6 +32,21 @@ const storedTopic = storedDocumentCodec<
   },
 });
 
+/** The title a topic's header states, or none. */
+function headerTitle(content: string): string | undefined {
+  try {
+    const title = parseMarkdownWithFrontmatter(
+      content,
+      topicFrontmatterSchema.partial(),
+    ).metadata.title?.trim();
+    return title === "" ? undefined : title;
+  } catch {
+    // A label is informational: a header that cannot be read leaves the
+    // caller its own fallback, the id, rather than failing what it lists.
+    return undefined;
+  }
+}
+
 /**
  * A topic: a recurring theme derived from the brain's content. Read as its
  * stored document, as the topics class read it: its title is the header
@@ -47,6 +63,8 @@ export const topic: EntityDefinition<"topic", typeof topicMetadata> =
       classification: "content",
       metadata: topicMetadata,
       markdown: storedTopic,
+      // Its metadata indexes nothing, so it names itself by its header.
+      displayTitle: ({ content }) => headerTitle(content),
       config: {
         weight: 0.5,
         projectionSource: false,

@@ -181,6 +181,7 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
       }
     >
       <StudioChrome
+        pageTitle={editing ? model.editorHead.title : undefined}
         contextLabel={
           props.groupReturnLabel ??
           props.groupings?.items.find(

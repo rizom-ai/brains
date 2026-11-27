@@ -7,6 +7,7 @@ import {
 } from "./studio-navigation.styles";
 import { typographyStyles } from "./studio-typography.styles";
 import { StudioSearchField } from "./studio-search-field";
+import { isPlainLinkClick } from "./link-click";
 
 const DIRECT_MOBILE_AREAS = ["overview", "chat", "administration"];
 
@@ -27,6 +28,8 @@ export function navigationTypeLabel(info: EntityTypeInfo): string {
 
 export interface MobileNavigationOption {
   value: string;
+  /** Where the destination lives, so it opens in a new tab like any link. */
+  href: string;
   label: string;
   /** How many items the destination holds. */
   tally?: number;
@@ -137,8 +140,9 @@ export function StudioBrowseDestinations(props: {
     entry: MobileNavigationOption,
     flush = false,
   ): ReactElement => (
-    <button
+    <a
       key={entry.value}
+      href={entry.href}
       className={navClass(
         entry.value === props.activeValue
           ? "studio-mobile-navigation-link active"
@@ -147,10 +151,13 @@ export function StudioBrowseDestinations(props: {
         flush && nav.mobileDirectLink,
         entry.value === props.activeValue && nav.mobileActive,
       )}
-      type="button"
       aria-label={entry.accessibleLabel}
       aria-current={entry.value === props.activeValue ? "page" : undefined}
-      onClick={() => props.onSelect(entry.value)}
+      onClick={(event) => {
+        if (!isPlainLinkClick(event)) return;
+        event.preventDefault();
+        props.onSelect(entry.value);
+      }}
     >
       {entry.label}
       {entry.attention === undefined ? null : (
@@ -166,7 +173,7 @@ export function StudioBrowseDestinations(props: {
           {entry.tally}
         </span>
       )}
-    </button>
+    </a>
   );
   return (
     <>

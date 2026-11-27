@@ -254,6 +254,14 @@ export const inboxWorkspace: StudioWorkspaceDefinition<
   view: ({ data }) => {
     const { query, snapshot } = data;
     const online = snapshot.sources.filter((source) => source.available).length;
+    // An empty inbox blames the filters only when some are set.
+    const filtered =
+      query.sourceId !== undefined ||
+      query.urgency !== undefined ||
+      Object.keys(query.facets ?? {}).length > 0;
+    const emptyTitle = filtered
+      ? "Nothing needs attention for these filters."
+      : "Nothing needs you right now.";
     const selectedSource = snapshot.sources.find(
       (source) => source.source.sourceId === query.sourceId,
     );
@@ -391,8 +399,10 @@ export const inboxWorkspace: StudioWorkspaceDefinition<
                     text: "No matching items from available sources. Unavailable sources are not an all-clear.",
                   }
                 : {
-                    title: "Nothing needs attention for these filters.",
-                    text: "Change Source or Urgency to inspect other incoming work.",
+                    title: emptyTitle,
+                    text: filtered
+                      ? "Change Source or Urgency to inspect other incoming work."
+                      : "Incoming messages from your sources appear here as they arrive.",
                   }),
             },
           ]
@@ -418,7 +428,7 @@ export const inboxWorkspace: StudioWorkspaceDefinition<
                 empty:
                   snapshot.errors.length > 0
                     ? "No matching items from available sources. Unavailable sources are not an all-clear."
-                    : "Nothing needs attention for these filters.",
+                    : emptyTitle,
                 // A row carries what you scan and the verbs that clear it. Follow-ups
                 // — go elsewhere and do something — are decisions made after reading,
                 // so they live in the pane where the reading happens.

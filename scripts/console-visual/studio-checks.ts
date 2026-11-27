@@ -167,13 +167,13 @@ export async function verifyStudioMobileSwitcher(
       sheet.querySelectorAll("details").length === 3 &&
       !sheet.querySelector(".studio-mobile-navigation-dock") &&
       ["Overview", "Chat", "Administration"].every((label) =>
-        Array.from(sheet.querySelectorAll("section button")).some(
-          (button) => button.getAttribute("aria-label") === label,
-        ),
+        Array.from(
+          sheet.querySelectorAll("section .studio-mobile-navigation-link"),
+        ).some((link) => link.getAttribute("aria-label") === label),
       ) &&
-      !Array.from(sheet.querySelectorAll("button")).some(
-        (button) => button.textContent.trim() === "Account",
-      )
+      !Array.from(
+        sheet.querySelectorAll("button, .studio-mobile-navigation-link"),
+      ).some((control) => control.textContent.trim() === "Account")
     );
   });
   if (!browseLayout)

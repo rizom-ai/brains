@@ -7,6 +7,10 @@
  * script may run from <head>), but the strip's #climateToggle only exists
  * once the body is parsed or the client mounts. Delegate clicks and sync
  * newly mounted controls so client-rendered shells and remounts work too.
+ *
+ * A surface whose root carries data-climate-follow-system uses the system
+ * color scheme until a climate is chosen, and follows it when it changes.
+ * Other surfaces keep the climate their server rendered.
  */
 export const CONSOLE_CLIMATE_SCRIPT = `(function () {
   var root = document.documentElement;
@@ -14,13 +18,27 @@ export const CONSOLE_CLIMATE_SCRIPT = `(function () {
     root.setAttribute("data-climate", climate);
     root.setAttribute("data-theme", climate === "paper" ? "light" : "dark");
   }
-  var stored = null;
-  try { stored = localStorage.getItem("console.climate"); } catch (e) { /* storage unavailable */ }
-  var climate = stored === "paper" || stored === "instrument"
-    ? stored
-    : root.getAttribute("data-climate");
+  function chosen() {
+    var stored = null;
+    try { stored = localStorage.getItem("console.climate"); } catch (e) { /* storage unavailable */ }
+    return stored === "paper" || stored === "instrument" ? stored : null;
+  }
+  var system = root.hasAttribute("data-climate-follow-system") && window.matchMedia
+    ? window.matchMedia("(prefers-color-scheme: dark)")
+    : null;
+  function systemClimate() {
+    return system.matches ? "instrument" : "paper";
+  }
+  var climate = chosen() || (system ? systemClimate() : root.getAttribute("data-climate"));
   if (climate === "paper" || climate === "instrument") {
     applyClimate(climate);
+  }
+  if (system) {
+    system.addEventListener("change", function () {
+      if (chosen()) return;
+      applyClimate(systemClimate());
+      sync();
+    });
   }
   function sync() {
     var btn = document.getElementById("climateToggle");

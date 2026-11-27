@@ -590,7 +590,7 @@
     "status": 200,
     "headers": {
       "cache-control": "private, no-store",
-      "content-length": "35067",
+      "content-length": "35543",
       "content-type": "text/html; charset=utf-8",
       "date": "<date>"
     }
@@ -600,7 +600,7 @@
     "status": 200,
     "headers": {
       "cache-control": "private, no-store",
-      "content-length": "35077",
+      "content-length": "35553",
       "content-type": "text/html; charset=utf-8",
       "date": "<date>"
     }

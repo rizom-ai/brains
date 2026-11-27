@@ -29,6 +29,12 @@ describe("renderEditorShellHtml", () => {
     expect(html).toContain('localStorage.getItem("console.climate")');
   });
 
+  it("follows the system color scheme until a climate is chosen", () => {
+    const html = renderEditorShellHtml(SHELL_OPTIONS);
+
+    expect(html).toMatch(/<html [^>]*data-climate-follow-system[ >]/);
+  });
+
   it("defines no local palette", () => {
     const html = renderEditorShellHtml(SHELL_OPTIONS);
 

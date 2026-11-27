@@ -26,6 +26,11 @@ import {
 } from "./studio-navigation-parts";
 import type { NavigationTree } from "./use-navigation-tree";
 import type { NavigationModel } from "./studio-navigation-model";
+import {
+  studioCollectionPath,
+  studioGroupingPath,
+} from "../../src/studio-paths";
+import { getStudioRouterBasePath, studioWorkspaceHref } from "./studio-router";
 
 export interface MobileNavigationProps {
   types: EntityTypeInfo[];
@@ -62,8 +67,10 @@ export function MobileNavigation(props: MobileNavigationProps): ReactElement {
     secondaryTypeGroups,
   } = props.model;
   const { leafId, openGroups, toggleGroup } = props.tree;
+  const basePath = getStudioRouterBasePath();
   const mobileTypeOption = (info: EntityTypeInfo): MobileNavigationOption => ({
     value: `${MOBILE_TYPE_PREFIX}${info.entityType}`,
+    href: studioCollectionPath(basePath, info.entityType),
     label: navigationTypeLabel(info),
     ...(info.isSingleton ? {} : { tally: info.count }),
   });
@@ -73,6 +80,7 @@ export function MobileNavigation(props: MobileNavigationProps): ReactElement {
     const attention = workspaceBadge(workspace, props.workspaceBadges);
     return {
       value: `${MOBILE_WORKSPACE_PREFIX}${workspace.id}`,
+      href: studioWorkspaceHref(basePath, workspace.id),
       label: workspace.label,
       accessibleLabel: workspace.label,
       ...(attention > 0 ? { attention } : {}),
@@ -106,6 +114,7 @@ export function MobileNavigation(props: MobileNavigationProps): ReactElement {
         ),
         ...(props.groupings?.items ?? []).map((grouping) => ({
           value: `${MOBILE_GROUPING_PREFIX}${grouping.key}`,
+          href: studioGroupingPath(basePath, grouping.key),
           label: grouping.label,
         })),
       ],

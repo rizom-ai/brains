@@ -22,6 +22,7 @@ import {
 import { StudioApiProvider } from "./studio-api-context";
 import { createStudioRouter } from "./studio-router";
 import { studioTypeHierarchy } from "../../src/config";
+import { readStudioStylesheet } from "../../test/ui-asset-fixture";
 
 let restoreGlobals: RestoreGlobals;
 let windowInstance: Window;
@@ -494,6 +495,8 @@ describe("Studio App transport", () => {
       () => document.querySelector('[aria-label="Folder trail"]') !== null,
     );
     expect(document.querySelector("h1")?.textContent).toBe("Book sections");
+    // The browser tab names the page, so tabs and history entries differ.
+    expect(document.title).toBe("Book sections — Brain");
     expect(history.location.search).toContain("prefix=%5B%22book-1%22%5D");
     await act(async () => history.back());
     await waitFor(
@@ -529,6 +532,22 @@ describe("Studio App transport", () => {
     expect(document.body.textContent).toContain(
       "Name the file to create this entry.",
     );
+    expect(document.title).toBe("New book section — Book sections — Brain");
+    // Where the save stands and why it cannot happen read as two phrases,
+    // not one run-together line.
+    const saveState = document.querySelector("[data-studio-save-state]");
+    expect(saveState?.querySelector('[role="status"]')?.textContent).toBe(
+      "Not created yet",
+    );
+    expect(saveState?.querySelector("#studio-save-reason")?.textContent).toBe(
+      "Name the file to create this entry.",
+    );
+    const sheet = document.createElement("style");
+    sheet.textContent = await readStudioStylesheet();
+    document.head.append(sheet);
+    if (!saveState) throw new Error("Missing save state");
+    expect(getComputedStyle(saveState).display).toBe("flex");
+    expect(getComputedStyle(saveState).columnGap).toBe("10px");
     expect(
       [...document.querySelectorAll("button")].some(
         (button) => button.textContent === "Create",
@@ -1162,11 +1181,13 @@ describe("Studio App transport", () => {
       `/studio/api/hierarchy?type=post&offset=25&limit=25&${filters}`,
     );
     expect(document.body.textContent).toContain("26–26 of 76");
-    await act(async () =>
-      document
-        .querySelector<HTMLButtonElement>("[data-studio-record]")
-        ?.click(),
+    // A row is a link to its entry, so it opens in a new tab or copies like
+    // any other; a plain click still opens it in place.
+    const row = document.querySelector<HTMLAnchorElement>(
+      "a[data-studio-record]",
     );
+    expect(row?.getAttribute("href")).toMatch(/^\/studio\/entities\/post\/./);
+    await act(async () => row?.click());
     await waitFor(
       () =>
         document.querySelector(

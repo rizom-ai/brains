@@ -8,6 +8,7 @@ import {
 import { createMockShell } from "@brains/plugins/test";
 import { z } from "@brains/utils/zod";
 import { entityDisplayTitle } from "../src/editor-entities";
+import { studioActivityDescriber } from "../src/overview-workspace";
 import { createEditorRoutes } from "../src/editor-routes";
 import { StudioWorkspaceRegistry } from "../src/workspace-registry";
 import type { StudioContext } from "../src/studio-context";
@@ -102,5 +103,23 @@ describe("how Studio presents an entity", () => {
         updated: "2026-10-21T00:00:00.000Z",
       }),
     ).toBe("Rent tables");
+  });
+
+  it("names an activity entry the way the palette and editor do", async () => {
+    const { context } = await studio();
+    const describe = studioActivityDescriber(context, () => undefined);
+    const card = {
+      id: "order-name-badges-k3f9a2",
+      entityType: "card",
+      content: "# Rent tables\n\nFor the spring gathering.\n",
+      contentHash: "hash",
+      metadata: {},
+      visibility: "shared" as const,
+      created: "2026-10-21T00:00:00.000Z",
+      updated: "2026-10-21T00:00:00.000Z",
+    };
+    // The event carries the entry (the prior one for a delete) without a
+    // title in its metadata; the feed still names it, not by its id.
+    expect((await describe("card", card, card.id)).title).toBe("Rent tables");
   });
 });

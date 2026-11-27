@@ -131,6 +131,115 @@ describe("console climate behavior", () => {
     );
   });
 
+  describe("a surface that follows the system color scheme", () => {
+    // The operating system's scheme, as matchMedia reports it, and whoever
+    // listens for it to change.
+    function systemScheme(initiallyDark: boolean): {
+      change(dark: boolean): void;
+    } {
+      const query = {
+        matches: initiallyDark,
+        listeners: new Array<(event: { matches: boolean }) => void>(),
+        addEventListener(
+          _type: string,
+          listener: (event: { matches: boolean }) => void,
+        ): void {
+          query.listeners.push(listener);
+        },
+      };
+      Object.defineProperty(window, "matchMedia", {
+        configurable: true,
+        value: (media: string) => {
+          if (media !== "(prefers-color-scheme: dark)")
+            throw new Error(`Unexpected media query ${media}`);
+          return query;
+        },
+      });
+      return {
+        change(dark): void {
+          query.matches = dark;
+          query.listeners.forEach((listener) => listener({ matches: dark }));
+        },
+      };
+    }
+
+    beforeEach(() => {
+      window.document.documentElement.setAttribute("data-climate", "paper");
+      window.document.documentElement.setAttribute(
+        "data-climate-follow-system",
+        "",
+      );
+    });
+
+    it("uses a dark system scheme when no climate was chosen", () => {
+      systemScheme(true);
+      runClimateScript();
+      expect(window.document.documentElement.getAttribute("data-climate")).toBe(
+        "instrument",
+      );
+      expect(window.document.documentElement.getAttribute("data-theme")).toBe(
+        "dark",
+      );
+    });
+
+    it("follows the system scheme when it changes", () => {
+      const system = systemScheme(false);
+      runClimateScript();
+      expect(window.document.documentElement.getAttribute("data-theme")).toBe(
+        "light",
+      );
+      system.change(true);
+      expect(window.document.documentElement.getAttribute("data-theme")).toBe(
+        "dark",
+      );
+      expect(
+        window.document
+          .getElementById("climateToggle")
+          ?.getAttribute("aria-label"),
+      ).toBe("Switch to paper climate");
+    });
+
+    it("keeps a chosen climate over the system scheme", () => {
+      window.localStorage.setItem("console.climate", "paper");
+      const system = systemScheme(true);
+      runClimateScript();
+      system.change(true);
+      expect(window.document.documentElement.getAttribute("data-climate")).toBe(
+        "paper",
+      );
+    });
+
+    it("stops following the system once a climate is chosen", () => {
+      const system = systemScheme(false);
+      runClimateScript();
+      window.document
+        .getElementById("climateToggle")
+        ?.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+      expect(window.document.documentElement.getAttribute("data-theme")).toBe(
+        "dark",
+      );
+      system.change(false);
+      expect(window.document.documentElement.getAttribute("data-theme")).toBe(
+        "dark",
+      );
+    });
+  });
+
+  it("keeps the server's climate on a surface that does not follow the system", () => {
+    window.document.documentElement.setAttribute("data-climate", "paper");
+    Object.defineProperty(window, "matchMedia", {
+      configurable: true,
+      value: (): { matches: boolean; addEventListener(): void } => ({
+        matches: true,
+        addEventListener: (): void => {},
+      }),
+    });
+    runClimateScript();
+    expect(window.document.documentElement.getAttribute("data-climate")).toBe(
+      "paper",
+    );
+  });
+
   it("updates the climate, theme mode, and stored preference together", () => {
     runClimateScript();
 

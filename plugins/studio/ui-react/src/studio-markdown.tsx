@@ -316,6 +316,28 @@ const assistComponents: Components = {
 const CHAT_STRUCTURE_PATTERN =
   /(^|\n)[ \t]{0,3}(?:`{3,}|~{3,})|!\[[^\]]*\]\(|^\s*\|.+\|\s*$|^[ \t]*\|?[ \t]*:?-+:?[ \t]*\|[ \t]*:?-+:?/m;
 
+const LEADING_BLOCK = /^---[ \t]*\r?\n([\s\S]*?)\r?\n---[ \t]*(\r?\n|$)/;
+const YAML_KEY = /^[A-Za-z_][\w.-]*[ \t]*:/;
+
+/**
+ * A body can begin with a frontmatter block kept as written (keys its type
+ * does not name). Markdown would read it as a rule and a setext heading, so
+ * the document preview shows it as a literal YAML code block instead. Only a
+ * block at the very start whose first line is a YAML key qualifies; stored
+ * text and the source view are unchanged.
+ */
+export function fenceLeadingFrontmatter(markdown: string): string {
+  const match = LEADING_BLOCK.exec(markdown);
+  const inner = match?.[1];
+  if (!match || inner === undefined || !YAML_KEY.test(inner)) return markdown;
+  const longestRun = Math.max(
+    2,
+    ...(inner.match(/`+/g) ?? []).map((run) => run.length),
+  );
+  const fence = "`".repeat(longestRun + 1);
+  return `${fence}yaml\n${inner}\n${fence}${match[2] ?? ""}${markdown.slice(match[0].length)}`;
+}
+
 /** Native prose slots and Studio-owned controls for complete markdown. */
 export function StudioMarkdown(props: {
   children: string;
@@ -338,7 +360,9 @@ export function StudioMarkdown(props: {
       linkSafety={{ enabled: false }}
       remarkPlugins={previewRemarkPlugins}
     >
-      {props.children}
+      {props.presentation === "document"
+        ? fenceLeadingFrontmatter(props.children)
+        : props.children}
     </Streamdown>
   );
 }
