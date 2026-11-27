@@ -36,7 +36,9 @@ import {
   STUDIO_OVERVIEW_WORKSPACE_ID,
   StudioOverviewRegistry,
   createStudioOverviewWorkspace,
+  overviewActivitySchema,
   overviewStatusFacts,
+  type OverviewActivity,
 } from "../src/overview-workspace";
 
 /** The routing the job queue gives every job it reports on. */
@@ -327,6 +329,115 @@ describe("Overview composition", () => {
     const titles = registry.listActivity().map((item) => item.title);
     expect(titles).toHaveLength(30);
     expect(titles).not.toContain("yesterday");
+  });
+
+  describe("activity kept between runs", () => {
+    /** A runtime-state store as the shell keeps one, in memory. */
+    function memoryStore(): {
+      records: Map<string, OverviewActivity>;
+      set(key: string, value: OverviewActivity): Promise<void>;
+      delete(key: string): Promise<boolean>;
+      list(options?: {
+        readonly afterKey?: string | undefined;
+        readonly limit?: number | undefined;
+      }): Promise<{ key: string; value: OverviewActivity }[]>;
+    } {
+      const records = new Map<string, OverviewActivity>();
+      return {
+        records,
+        async set(key, value): Promise<void> {
+          records.set(key, overviewActivitySchema.parse(value));
+        },
+        async delete(key): Promise<boolean> {
+          return records.delete(key);
+        },
+        async list(
+          options,
+        ): Promise<{ key: string; value: OverviewActivity }[]> {
+          return [...records.entries()]
+            .sort(([left], [right]) => (left < right ? -1 : 1))
+            .filter(([key]) => !options?.afterKey || key > options.afterKey)
+            .slice(0, options?.limit ?? 1000)
+            .map(([key, value]) => ({ key, value }));
+        },
+      };
+    }
+
+    it("shows the day's activity again after a restart", async () => {
+      let at = Date.parse("2026-07-10T12:00:00.000Z");
+      const now = (): number => at;
+      const store = memoryStore();
+      const before = new StudioOverviewRegistry({ now, store });
+      await before.recordEntity("created", {
+        entityType: "note",
+        entityId: "kept-note",
+      });
+      at += 60_000;
+      before.recordJob({
+        id: "sync-1",
+        type: "job",
+        status: "completed",
+        jobDetails: { jobType: "directory-sync", priority: 0, retryCount: 0 },
+        metadata: JOB_METADATA,
+      });
+      await before.settled();
+
+      const after = new StudioOverviewRegistry({ now, store });
+      await after.restore();
+      expect(after.listActivity().map((item) => item.title)).toEqual(
+        before.listActivity().map((item) => item.title),
+      );
+      expect(after.listActivity()).toHaveLength(2);
+    });
+
+    it("forgets activity older than a day, in the store too", async () => {
+      let now = Date.parse("2026-07-10T12:00:00.000Z");
+      const store = memoryStore();
+      const before = new StudioOverviewRegistry({
+        now: (): number => now,
+        store,
+      });
+      await before.recordEntity("updated", {
+        entityType: "note",
+        entityId: "old-note",
+      });
+      now += 25 * 60 * 60 * 1000;
+
+      const after = new StudioOverviewRegistry({
+        now: (): number => now,
+        store,
+      });
+      await after.restore();
+      expect(after.listActivity()).toHaveLength(0);
+      expect(store.records.size).toBe(0);
+    });
+
+    it("never fails the event it observes when the store does", async () => {
+      const failures: unknown[] = [];
+      const registry = new StudioOverviewRegistry({
+        store: {
+          set: (): Promise<void> =>
+            Promise.reject(new Error("database locked")),
+          delete: (): Promise<boolean> =>
+            Promise.reject(new Error("database locked")),
+          list: (): Promise<never[]> =>
+            Promise.reject(new Error("database locked")),
+        },
+        onStoreError: (error): void => {
+          failures.push(error);
+        },
+      });
+      await registry.recordEntity("updated", {
+        entityType: "note",
+        entityId: "still-shown",
+      });
+      await registry.restore();
+      await registry.settled();
+      expect(registry.listActivity().map((item) => item.title)).toEqual([
+        "still-shown",
+      ]);
+      expect(failures.length).toBeGreaterThan(0);
+    });
   });
 
   it("shows each source's own figures on its collapsed row", async () => {

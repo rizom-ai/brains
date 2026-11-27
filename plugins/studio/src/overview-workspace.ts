@@ -27,7 +27,7 @@ import {
   type JobProgressEvent,
 } from "@brains/sdk/internal/interface-runtime";
 import type { UserPermissionLevel } from "@brains/sdk/interfaces";
-import type { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod";
 import {
   capitalize,
   formatLabel,
@@ -70,16 +70,58 @@ const describeByType: DescribeEntityActivity = (entityType) => ({
   typeLabel: entityTypeLabels(entityType).label,
 });
 
-interface OverviewActivity {
-  readonly id: string;
+/** One line of the feed, as it is shown and as it is kept between runs. */
+export const overviewActivitySchema: z.ZodObject<{
+  id: z.ZodString;
+  at: z.ZodISODateTime;
+  title: z.ZodString;
+  description: z.ZodOptional<z.ZodString>;
+  metadata: z.ZodArray<z.ZodString>;
+  tone: z.ZodEnum<{
+    good: "good";
+    warn: "warn";
+    neutral: "neutral";
+    error: "error";
+  }>;
+  link: z.ZodOptional<
+    z.ZodObject<{
+      kind: z.ZodLiteral<"entity">;
+      entityType: z.ZodString;
+      id: z.ZodString;
+    }>
+  >;
+}> = z.object({
+  id: z.string().min(1),
   /** When the event happened, as an ISO timestamp. */
-  readonly at: string;
-  readonly title: string;
-  readonly description?: string | undefined;
-  readonly metadata: readonly string[];
-  readonly tone: "good" | "warn" | "neutral" | "error";
-  readonly link?: RuntimeOperatorLinkTarget | undefined;
+  at: z.iso.datetime(),
+  title: z.string(),
+  description: z.string().optional(),
+  metadata: z.array(z.string()),
+  tone: z.enum(["good", "warn", "neutral", "error"]),
+  link: z
+    .object({
+      kind: z.literal("entity"),
+      entityType: z.string(),
+      id: z.string(),
+    })
+    .optional(),
+});
+
+export type OverviewActivity = z.output<typeof overviewActivitySchema>;
+
+/** Where the feed is kept between runs: a runtime-state store of its lines. */
+export interface OverviewActivityStore {
+  set(key: string, value: OverviewActivity): Promise<void>;
+  delete(key: string): Promise<boolean>;
+  list(options?: {
+    readonly afterKey?: string | undefined;
+    readonly limit?: number | undefined;
+  }): Promise<
+    ReadonlyArray<{ readonly key: string; readonly value: OverviewActivity }>
+  >;
 }
+
+const STORE_PAGE = 1000;
 
 interface LoadedContribution {
   readonly contribution: StoredContribution;
@@ -433,9 +475,79 @@ export class StudioOverviewRegistry {
   private readonly contributions = new Map<string, StoredContribution>();
   private activity: OverviewActivity[] = [];
   private readonly now: () => number;
+  private readonly store: OverviewActivityStore | undefined;
+  private readonly onStoreError: (error: unknown) => void;
+  private pending: Promise<unknown> = Promise.resolve();
 
-  constructor(options: { now?: () => number } = {}) {
+  constructor(
+    options: {
+      now?: () => number;
+      /** Keeps the feed between runs; without one it lasts as long as the process. */
+      store?: OverviewActivityStore | undefined;
+      onStoreError?: ((error: unknown) => void) | undefined;
+    } = {},
+  ) {
     this.now = options.now ?? Date.now;
+    this.store = options.store;
+    this.onStoreError = options.onStoreError ?? ((): void => {});
+  }
+
+  /**
+   * Bring back the day's feed from the store, merged under anything recorded
+   * since this run began, and forget what is older than a day.
+   */
+  async restore(): Promise<void> {
+    const store = this.store;
+    if (!store) return;
+    const since = this.now() - ACTIVITY_WINDOW_MS;
+    const readAll = async (
+      afterKey: string | undefined,
+    ): Promise<ReadonlyArray<{ key: string; value: OverviewActivity }>> => {
+      const page = await store.list({ afterKey, limit: STORE_PAGE });
+      const last = page.at(-1);
+      return page.length < STORE_PAGE || !last
+        ? page
+        : [...page, ...(await readAll(last.key))];
+    };
+    const stored = await readAll(undefined).catch((error: unknown) => {
+      // The feed is informational: an unreadable store starts it empty.
+      this.onStoreError(error);
+      return [];
+    });
+    const stale = stored.filter(({ value }) => Date.parse(value.at) < since);
+    stale.forEach(({ key }) => this.forget(key));
+    const current = new Set(this.activity.map((item) => item.id));
+    this.keep(
+      [
+        ...this.activity,
+        ...stored
+          .map(({ value }) => value)
+          .filter(
+            (item) => Date.parse(item.at) >= since && !current.has(item.id),
+          ),
+      ].sort((left, right) => Date.parse(right.at) - Date.parse(left.at)),
+    );
+  }
+
+  /** Resolves once every write to the store so far has settled. */
+  async settled(): Promise<void> {
+    await this.pending;
+  }
+
+  private persist(item: OverviewActivity): void {
+    if (!this.store) return;
+    this.track(this.store.set(item.id, item));
+  }
+
+  private forget(key: string): void {
+    if (!this.store) return;
+    this.track(this.store.delete(key));
+  }
+
+  private track(write: Promise<unknown>): void {
+    // A feed write never fails the event it records; the failure is reported.
+    const settled = write.catch((error: unknown) => this.onStoreError(error));
+    this.pending = Promise.all([this.pending, settled]);
   }
 
   register(input: StudioOverviewContributionRegistration): void {
@@ -495,6 +607,7 @@ export class StudioOverviewRegistry {
       },
     };
     this.keep([next, ...this.activity]);
+    this.persist(next);
   }
 
   recordJob(event: JobProgressEvent): void {
@@ -520,14 +633,20 @@ export class StudioOverviewRegistry {
             : "warn",
     };
     this.keep([next, ...this.activity.filter((item) => item.id !== next.id)]);
+    this.persist(next);
   }
 
   /** A day of events, newest first, bounded so a burst cannot grow it unchecked. */
   private keep(activity: readonly OverviewActivity[]): void {
     const since = this.now() - ACTIVITY_WINDOW_MS;
-    this.activity = activity
+    const kept = activity
       .filter((item) => Date.parse(item.at) >= since)
       .slice(0, MAX_ACTIVITY);
+    const keptIds = new Set(kept.map((item) => item.id));
+    this.activity
+      .filter((item) => !keptIds.has(item.id))
+      .forEach((item) => this.forget(item.id));
+    this.activity = kept;
   }
 
   listActivity(): readonly OverviewActivity[] {
