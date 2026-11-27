@@ -11,11 +11,25 @@ export {
   seminarHoldJob,
   seminarHoldJobSchema,
 } from "./handlers/seminar-hold-handler";
+export {
+  redoSeminar,
+  seminarRedoFromSchema,
+  seminarRedoJob,
+  seminarRedoJobSchema,
+} from "./handlers/seminar-redo-handler";
+export type {
+  SeminarRedoDeps,
+  SeminarRedoFrom,
+  SeminarRedoJobData,
+  SeminarRedoResult,
+  StoredSeminar,
+} from "./handlers/seminar-redo-handler";
 export type {
   SeminarHoldDeps,
   SeminarHoldJobData,
   SeminarHoldResult,
   SeminarPeer,
+  SeminarTurnDeps,
 } from "./handlers/seminar-hold-handler";
 export {
   chairChallengePrompt,

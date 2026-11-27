@@ -55,13 +55,22 @@ export interface SeminarHoldResult {
   failed: string[];
 }
 
-export interface SeminarHoldDeps {
-  /** The approved peers of the directory. */
-  peers(): Promise<SeminarPeer[]>;
+/** What taking a turn needs: a peer to ask, and the chair. */
+export interface SeminarTurnDeps {
   /** One peer's completed answer to a turn; a failure throws its reason. */
   askTurn(agent: string, message: string): Promise<A2APeerAnswer>;
   /** The chair's own turns, written by this brain. */
   chair: SeminarChair;
+  /**
+   * Why a step of the chair's failed, for the job's log: the seminar itself
+   * says only that it did.
+   */
+  warn?(message: string, error: unknown): void;
+}
+
+export interface SeminarHoldDeps extends SeminarTurnDeps {
+  /** The approved peers of the directory. */
+  peers(): Promise<SeminarPeer[]>;
   /** Whether a seminar is stored under `id`. */
   exists(id: string): Promise<boolean>;
   /** Store a new seminar; its id. */
@@ -87,7 +96,7 @@ function turnSource(source: SourceCitation): StoredSource {
 
 /** One peer's turn, verbatim with its sources, or why there is none. */
 async function peerTurn(
-  deps: SeminarHoldDeps,
+  deps: SeminarTurnDeps,
   peer: SeminarPeer,
   round: SeminarRound,
   message: string,
@@ -125,7 +134,10 @@ function chairTurn(
 const CHAIR_NAME = "Chair";
 
 /** What a failed chair's turn says; its diagnostic stays in the job's log. */
-const CHAIR_FAILED = "The chair could not take its turn";
+export const CHAIR_FAILED = "The chair could not take its turn";
+
+/** What a redo of the closing says when the chair writes none. */
+export const CLOSING_FAILED = "The chair could not write the closing";
 
 /** An answered turn as the chair and the later messages read it. */
 function reading(turn: SeminarTurn & { text: string }): ChairReading {
@@ -148,8 +160,8 @@ function answered(
  * rejoinder, and with no challenge there is none. A chair that cannot take
  * its turn ends the exchange where it stands, recorded.
  */
-async function exchange(
-  deps: SeminarHoldDeps,
+export async function exchange(
+  deps: SeminarTurnDeps,
   data: SeminarHoldJobData,
   peers: readonly SeminarPeer[],
   openings: readonly SeminarTurn[],
@@ -176,7 +188,10 @@ async function exchange(
       openings: read,
     })
     .then((taken) => checkedChallenge(taken, read))
-    .catch(() => undefined);
+    .catch((error: unknown) => {
+      deps.warn?.(CHAIR_FAILED, error);
+      return undefined;
+    });
   if (!challenge) return [failedChair("challenge")];
 
   const stands = read.find(({ agent }) => agent === challenge.stands);
@@ -215,7 +230,10 @@ async function exchange(
       stands,
       challenges: made,
     })
-    .catch(() => undefined);
+    .catch((error: unknown) => {
+      deps.warn?.(CHAIR_FAILED, error);
+      return undefined;
+    });
   if (followUp === undefined) return [...exchanged, failedChair("rejoinder")];
   const to = made.map(({ agent }) => agent);
   return [
@@ -243,8 +261,8 @@ async function exchange(
  * openings nobody meets; a chair that cannot write it, or cites what no
  * turn carries, leaves the seminar without one.
  */
-async function closingOf(
-  deps: SeminarHoldDeps,
+export async function closingOf(
+  deps: SeminarTurnDeps,
   data: SeminarHoldJobData,
   turns: readonly SeminarTurn[],
 ): Promise<SeminarClosing | undefined> {
@@ -265,7 +283,10 @@ async function closingOf(
       sources,
     })
     .then((written) => checkedClosing(written, sources))
-    .catch(() => undefined);
+    .catch((error: unknown) => {
+      deps.warn?.(CLOSING_FAILED, error);
+      return undefined;
+    });
 }
 
 /** The first of `slug`, `slug-2`, `slug-3`… that no seminar holds. */

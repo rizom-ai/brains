@@ -68,7 +68,7 @@ describe("the seminar package's registered surface", () => {
         name: "seminar_hold",
         visibility: "admin",
         sideEffects: "external",
-        input: ["language", "question"],
+        input: ["from", "language", "question", "seminar"],
       },
     ]);
   });
@@ -101,5 +101,54 @@ describe("the seminar package's registered surface", () => {
       maxRetries: 0,
     });
     expect(shell.getJobQueueService().getHandler("seminar:hold")).toBeDefined();
+  });
+
+  it("queues a redo of a draft from the step named, once", async () => {
+    const { shell, capabilities } = await installed();
+    const [tool] = capabilities.flatMap(({ tools }) => tools);
+    if (!tool) throw new Error("no tool");
+
+    const result = await tool.handler(
+      { seminar: "what-is-religion", from: "closing" },
+      owner,
+    );
+
+    expect(result).toEqual({
+      success: true,
+      data: { jobId: "job-1", status: "redoing" },
+    });
+    const job = await shell.getJobQueueService().getStatus("job-1");
+    expect({
+      type: job?.type,
+      data: JSON.parse(job?.data ?? "null"),
+      maxRetries: job?.maxRetries,
+    }).toEqual({
+      type: "seminar:redo",
+      data: { seminar: "what-is-religion", from: "closing" },
+      maxRetries: 0,
+    });
+    expect(shell.getJobQueueService().getHandler("seminar:redo")).toBeDefined();
+  });
+
+  it("refuses a call that names neither a question nor a seminar to redo, or both", async () => {
+    const { shell, capabilities } = await installed();
+    const [tool] = capabilities.flatMap(({ tools }) => tools);
+    if (!tool) throw new Error("no tool");
+
+    for (const input of [
+      {},
+      {
+        question: "What is religion?",
+        seminar: "what-is-religion",
+        from: "closing",
+      },
+      { seminar: "what-is-religion" },
+      { question: "What is religion?", from: "closing" },
+    ]) {
+      expect(await tool.handler(input, owner)).toMatchObject({
+        success: false,
+      });
+    }
+    expect(await shell.getJobQueueService().getStatus("job-1")).toBeNull();
   });
 });

@@ -39,11 +39,13 @@ const SOURCES: Record<string, A2APeerAnswer["sources"]> = {
 
 const CLOSING: ChairClosing = {
   text: "Both hold that religion answers a need it did not create; they part on whose need it is.",
-  cites: ["book-section:einleitung/1"],
+  // The second source the turns carry: Karl's.
+  cites: [2],
 };
 
 interface Held {
   closings: ChairClosingInput[];
+  warned: Array<[string, string]>;
   stored: Array<{ content: string; metadata: Record<string, unknown> }>;
 }
 
@@ -53,6 +55,7 @@ async function held(
   peers = ["friedrich.example", "karl.example"],
 ): Promise<Held> {
   const closings: ChairClosingInput[] = [];
+  const warned: Held["warned"] = [];
   const stored: Held["stored"] = [];
   const deps: SeminarHoldDeps = {
     peers: async () =>
@@ -83,9 +86,12 @@ async function held(
       return seminar.id;
     },
     today: () => "2026-11-27",
+    warn: (message, error): void => {
+      warned.push([message, error instanceof Error ? error.message : ""]);
+    },
   };
   await holdSeminar(deps, { question: QUESTION, language: "English" });
-  return { closings, stored };
+  return { closings, warned, stored };
 }
 
 describe("where they meet", () => {
@@ -130,7 +136,7 @@ describe("where they meet", () => {
   it("keeps the seminar without a closing when the chair cites what no turn carries", async () => {
     const { stored } = await held(async () => ({
       ...CLOSING,
-      cites: ["book-section:somewhere/else"],
+      cites: [3],
     }));
     const [seminar] = stored;
     if (!seminar) throw new Error("no seminar written");
@@ -140,14 +146,18 @@ describe("where they meet", () => {
     expect(read.turns.at(-1)?.round).toBe("rejoinder");
   });
 
-  it("keeps the seminar without a closing when the chair cannot write one", async () => {
-    const { stored } = await held(async () => {
+  it("keeps the seminar without a closing when the chair cannot write one, and says why in the log", async () => {
+    const { stored, warned } = await held(async () => {
       throw new Error("model unavailable");
     });
     const [seminar] = stored;
     if (!seminar) throw new Error("no seminar written");
 
     expect(readSeminar(seminar).closing).toBeUndefined();
+    expect(warned).toEqual([
+      ["The chair could not write the closing", "model unavailable"],
+    ]);
+    expect(seminar.content).not.toContain("model unavailable");
   });
 
   it("writes no closing over a single opening", async () => {
@@ -173,9 +183,7 @@ describe("the chair's closing, checked", () => {
   ];
 
   it("keeps the sources it cites, in the turns' order", () => {
-    expect(
-      checkedClosing({ text: "T", cites: ["b", "a", "a"] }, sources),
-    ).toEqual({
+    expect(checkedClosing({ text: "T", cites: [2, 1, 1] }, sources)).toEqual({
       text: "T",
       sources,
     });
@@ -188,9 +196,11 @@ describe("the chair's closing, checked", () => {
   });
 
   it("refuses a source no turn carries", () => {
-    expect(() => checkedClosing({ text: "T", cites: ["c"] }, sources)).toThrow(
-      "cites a source no turn carries: c",
-    );
+    for (const number of [0, 3]) {
+      expect(() =>
+        checkedClosing({ text: "T", cites: [number] }, sources),
+      ).toThrow(`cites a source no turn carries: ${number}`);
+    }
   });
 
   it("tells the chair to draw only on the turns and lists the sources it may cite", () => {
@@ -208,7 +218,7 @@ describe("the chair's closing, checked", () => {
       sources,
     });
     expect(prompt).toContain("### Karl, opening (id: karl.example)\n\nOpium.");
-    expect(prompt).toContain("- a: A\n- b: B");
+    expect(prompt).toContain("1. A\n2. B");
     expect(prompt).toContain("Write in Dutch");
     expect(prompt).toContain("cite no other");
   });

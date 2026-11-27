@@ -78,7 +78,7 @@ export interface ChairRejoinderInput {
 
 type ChairClosingSchema = z.ZodObject<{
   text: z.ZodString;
-  cites: z.ZodArray<z.ZodString>;
+  cites: z.ZodArray<z.ZodNumber>;
 }>;
 
 /** The chair's closing, as it writes it: its paragraph and what it relies on. */
@@ -88,9 +88,9 @@ export const chairClosingSchema: ChairClosingSchema = z.object({
     .min(1)
     .describe("One paragraph: where the participants meet and where they part"),
   cites: z
-    .array(z.string())
+    .array(z.number().int())
     .describe(
-      "The ids of the listed sources the paragraph relies on, and no other",
+      "The numbers of the listed sources the paragraph relies on, and no other",
     ),
 });
 
@@ -175,7 +175,7 @@ export function chairClosingPrompt(input: ChairClosingInput): string {
     "You chaired a seminar. One question was put to every participant, each answered from his own works, and they answered each other.",
     "Write one paragraph that says where they meet and where they part.",
     "Draw only on what they said below. Add no quotation they did not give and name no work they did not name.",
-    "List in `cites` the ids of the sources below that your paragraph relies on, and cite no other.",
+    "List in `cites` the numbers of the sources below that your paragraph relies on, and cite no other.",
     `Write in ${input.language}.`,
     "",
     `The question: ${input.question}`,
@@ -191,24 +191,31 @@ export function chairClosingPrompt(input: ChairClosingInput): string {
     "",
     "The sources the turns carry:",
     "",
-    input.sources.map(({ id, title }) => `- ${id}: ${title}`).join("\n"),
+    // By number: a source's own reference is long, and a model that copies
+    // it nearly right has cited nothing.
+    input.sources
+      .map(({ title }, index) => `${index + 1}. ${title}`)
+      .join("\n"),
   ].join("\n");
 }
 
 /**
  * The closing as the seminar keeps it: its paragraph, and the sources it
- * cites, which the turns must carry; one that cites another is refused.
+ * cites by their number in the turns' list; one that cites a number the
+ * list does not have is refused.
  */
 export function checkedClosing(
   closing: ChairClosing,
   sources: readonly StoredSource[],
 ): SeminarClosing {
   const unknown = closing.cites.find(
-    (id) => !sources.some((source) => source.id === id),
+    (number) => number < 1 || number > sources.length,
   );
   if (unknown !== undefined)
     throw new Error(`The closing cites a source no turn carries: ${unknown}`);
-  const cited = sources.filter(({ id }) => closing.cites.includes(id));
+  const cited = sources.filter((_source, index) =>
+    closing.cites.includes(index + 1),
+  );
   return {
     text: closing.text.trim(),
     ...(cited.length > 0 ? { sources: cited } : {}),

@@ -18,9 +18,17 @@ import {
   seminarHoldJob,
   type SeminarHoldDeps,
   type SeminarPeer,
+  type SeminarTurnDeps,
 } from "./handlers/seminar-hold-handler";
+import {
+  seminarRedoJob,
+  type SeminarRedoDeps,
+  type StoredSeminar,
+} from "./handlers/seminar-redo-handler";
 import { modelChair } from "./lib/chair";
+import { seminarSchema } from "./schemas/seminar";
 import { seminar } from "./seminar-entity";
+import { getErrorMessage } from "@brains/utils/error";
 import { createSeminarHoldTool } from "./tools/seminar-hold";
 
 export const seminarConfigSchema: z.ZodObject<{
@@ -42,23 +50,15 @@ const approvedPeerSchema = z.object({
   metadata: z.object({ name: z.string().min(1) }),
 });
 
-/** What holding a seminar needs, over the package's runtime. */
-function holdDeps(
+/** What taking a turn needs, over the package's runtime. */
+function turnDeps(
   runtime: ServiceRuntime,
   config: SeminarConfig,
-): SeminarHoldDeps {
+): SeminarTurnDeps {
   return {
     chair: modelChair(runtime.ai, config.guidance),
-    peers: async (): Promise<SeminarPeer[]> => {
-      if (!runtime.entityReads.hasEntityType(AGENT_ENTITY_TYPE)) return [];
-      const agents = await runtime.entityReads.listEntities({
-        entityType: AGENT_ENTITY_TYPE,
-        options: { filter: { metadata: { status: "approved" } } },
-      });
-      return agents.map((agent) => {
-        const { id, metadata } = approvedPeerSchema.parse(agent);
-        return { id, name: metadata.name };
-      });
+    warn: (message, error): void => {
+      runtime.logger.warn(message, { error: getErrorMessage(error) });
     },
     // A turn goes out through the A2A interface, which owns the contract:
     // saved, approved peers only, one attempt, within the turn budget.
@@ -77,6 +77,54 @@ function holdDeps(
         publicMessage: "This brain cannot reach other brains",
       });
     },
+  };
+}
+
+/** What redoing a seminar needs: the stored draft, read and written as the package. */
+function redoDeps(
+  runtime: ServiceRuntime,
+  config: SeminarConfig,
+): SeminarRedoDeps {
+  const stored = (
+    id: string,
+  ): ReturnType<ServiceRuntime["entityReads"]["getEntity"]> =>
+    runtime.entityReads.getEntity({ entityType: seminar.type, id });
+  return {
+    ...turnDeps(runtime, config),
+    load: async (id): Promise<StoredSeminar | null> => {
+      const entity = await stored(id);
+      if (!entity) return null;
+      const { content, metadata } = seminarSchema.parse(entity);
+      return { id: entity.id, entityType: seminar.type, content, metadata };
+    },
+    save: async ({ id, content, metadata }): Promise<void> => {
+      const entity = await stored(id);
+      if (!entity) throw new Error(`No seminar ${id}`);
+      await runtime.entityWrites.updateEntity({
+        entity: { ...entity, content, metadata },
+      });
+    },
+  };
+}
+
+/** What holding a seminar needs, over the package's runtime. */
+function holdDeps(
+  runtime: ServiceRuntime,
+  config: SeminarConfig,
+): SeminarHoldDeps {
+  return {
+    ...turnDeps(runtime, config),
+    peers: async (): Promise<SeminarPeer[]> => {
+      if (!runtime.entityReads.hasEntityType(AGENT_ENTITY_TYPE)) return [];
+      const agents = await runtime.entityReads.listEntities({
+        entityType: AGENT_ENTITY_TYPE,
+        options: { filter: { metadata: { status: "approved" } } },
+      });
+      return agents.map((agent) => {
+        const { id, metadata } = approvedPeerSchema.parse(agent);
+        return { id, name: metadata.name };
+      });
+    },
     exists: async (id) =>
       (await runtime.entityReads.getEntity({
         entityType: seminar.type,
@@ -92,7 +140,8 @@ function holdDeps(
  * Seminars: the owner puts one question to every approved peer; the chair
  * reads their openings and decides who stands, the others answer him and he
  * answers them. Every peer's turn is kept verbatim, with its sources, as a
- * draft the owner reads and publishes. Installed under seminar, so its tool is
+ * draft the owner reads and publishes; a draft is redone from the chair's
+ * turn or from its closing. Installed under seminar, so its tool is
  * seminar_hold and its job seminar:hold; its type installs apart.
  */
 export const seminarPackage: ServicePackageDefinition<
@@ -107,6 +156,7 @@ export const seminarPackage: ServicePackageDefinition<
     }),
     (context) => [
       seminarHoldJob(holdDeps(serviceRuntime(context), context.config)),
+      seminarRedoJob(redoDeps(serviceRuntime(context), context.config)),
     ],
   ),
   (context) => [
