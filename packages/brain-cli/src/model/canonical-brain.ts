@@ -315,7 +315,7 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     [
       "agents",
       (config): Plugin[] => {
-        const { enableSkillDerivation, notifyOnNewAgents } =
+        const { enableSkillDerivation, notifyOnNewAgents, askAllApproved } =
           agentDiscoveryCompositeConfigSchema.parse(config);
         const metadata = {
           name: "@brains/agent-discovery",
@@ -330,7 +330,7 @@ export const canonicalBrain: BrainDefinition = defineBrain({
           ),
           ...instantiatePluginPackageDefinition(
             agentToolsPackage,
-            { notifyOnNewAgents },
+            { notifyOnNewAgents, askAllApproved },
             metadata,
             { pluginId: "agent" },
           ),
