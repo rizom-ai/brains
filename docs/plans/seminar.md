@@ -2,7 +2,7 @@
 
 ## Status
 
-Not started. The three book brains it reads with are live on `0.2.0-alpha.765` (see [books.md](./books.md)): `friedrich.rizom.ai` (26 books, 3,705 sections), `karl.rizom.ai` (117 books, 5,576 sections) and `sigmund.rizom.ai` (207 books, 3,249 sections), each answering as its author, in the first person, citing book and siglum or page. No brain has them as approved peers yet, so a question asked of the network does not reach them: on 26 November `network_ask` from `yeehaa.io` on resentment went to two other brains and neither held anything on it.
+In progress. The seminar plugin is on main (#1060): on a local test app with the three book brains as approved peers, a seminar of ten turns is held in about 40 seconds, redone from its closing in 8, and published. Live questions, the site, the content and the fleet brain remain. The three book brains it reads with are live on `0.2.0-alpha.765` (see [books.md](./books.md)): `friedrich.rizom.ai` (26 books, 3,705 sections), `karl.rizom.ai` (117 books, 5,576 sections) and `sigmund.rizom.ai` (207 books, 3,249 sections), each answering as its author, in the first person, citing book and siglum or page. No brain has them as approved peers yet, so a question asked of the network does not reach them: on 26 November `network_ask` from `yeehaa.io` on resentment went to two other brains and neither held anything on it.
 
 ## Goal
 
@@ -55,27 +55,31 @@ A setting `askAllApproved` on the `agents` capability, beside `notifyOnNewAgents
 A seminar is an exchange, not three answers side by side. Mockup: [seminar-mockup.html](../seminar-mockup.html), built from the three brains' real replies of 26 November.
 
 1. **Openings** — the question goes to every approved peer at once.
-2. **The chair's turn** — it reads the openings against its notes and decides who stands and who answers: the author whose opening holds, and the others who must answer him. To each challenger it puts one follow-up that names the claim to answer and a work of his own to answer from. It never quotes for him; his brain finds and quotes the passage. A brain that lacks the work says so, and the draft shows it.
+2. **The chair's turn** — it reads the openings and decides who stands and who answers: the author whose opening holds, and the others who must answer him. To each challenger it puts one follow-up that names the claim to answer and a work of his own to answer from. It never quotes for him; his brain finds and quotes the passage. A brain that lacks the work says so, and the draft shows it.
 3. **Challenges** — the challengers answer, at once, each given the opening he must answer.
-4. **Rejoinder** — the author who stood is given the challenges and answers both.
+4. **Rejoinder** — the chair puts one follow-up to the author who stood, saying what each challenger answered and naming a work of his own; he is given his opening, the challenges and that follow-up, and answers both.
 5. **Where they meet** — the chair's closing paragraph, citing only sources the turns carry.
 
 On 26 November, asked what a community should remember and forget, Nietzsche alone answered the question; pointed to the Achtzehnte Brumaire and Der Mann Moses, Marx and Freud answered him from them, and Nietzsche answered both from the three kinds of history.
 
 A seminar is `brain-data/seminar/<slug>.md`:
 
-- frontmatter: `question`, `asked` (date), `status` (`draft` | `published`), and `turns`, in order — per turn its `round` (`opening` | `challenge` | `rejoinder`), its `speaker` (a peer's `agent` and `brain`, or `chair`), `answers` (the agents it addresses), its `text` — a peer's verbatim, the chair's follow-ups as written — and for a peer its `sources` as `SourceCitationSchema` holds them, or for a failed peer the reason
-- body: `Where they meet`
+- header: `question`, `asked` (date), `status` (`draft` | `published`) and `language`. A header is flat (docs/external-plugin-authoring.md, The stored format), so the turns cannot live in it.
+- body: `## Turns`, one section per turn in order — its `round` (`opening` | `challenge` | `rejoinder`), its `speaker` (a peer's agent id, or `chair`) and name as labeled lines, then its text (a peer's verbatim, the chair's as written) or for a failed peer the reason, whom it addresses, and its sources as a linked list of title, address and reference — then `## Where they meet` with the sources it relies on
 
-A peer's text is a frontmatter value, not a section of the body, so a heading inside an answer cannot split a turn.
+The structured formatter escapes a heading inside an answer, so a peer's own headings never open a section. What a source quoted is not kept; the quote is in the turn's text.
 
-The owner starts a seminar in Studio chat with the tool `seminar_hold` (anchor only); it runs as a job, a minute or two. Peers are asked through `a2aTurnContract`, and their replies are written verbatim: no model turn stands between a peer's answer and the page, so a quote or a citation on a seminar page is exactly what that author's brain said. The seminar stays `draft` until the owner publishes it in Studio. A seminar costs about eight model turns: six peer turns and the chair's two generations.
+The owner starts a seminar in Studio chat with the tool `seminar_hold` (anchor only); it runs as a job, a minute or two. Peers are asked through `a2aTurnContract`, and their replies are written verbatim: no model turn stands between a peer's answer and the page, so a quote or a citation on a seminar page is exactly what that author's brain said. The seminar stays `draft` until the owner publishes it in Studio. A seminar costs about nine model turns: six peer turns and the chair's three generations (its turn after the openings, its follow-up to the one who stood, and the closing). The job never retries: a second attempt would put every turn to the peers again.
 
-Entity type config: `actionPolicy` `create: never`, `update: never`, `publish: admin`. A seminar is written only by its job and never edited. `seminar_hold` takes a `question` for a new seminar, or a `seminar` and `from` (`chair-turn` | `closing`) to redo an existing draft from that step; openings are never redone, a new seminar re-asks them. The seminar site marks `seminar` and `note` citable, so a chat answer can cite a seminar or a note, and through a seminar the authors' sections it links to.
+Entity type config: `actionPolicy` `create: never`, `update: never`, `publish: admin`. A seminar is written only by its job and never edited. `seminar_hold` takes a `question` for a new seminar, or a `seminar` and `from` (`chair-turn` | `closing`) to redo an existing draft from that step; openings are never redone, a new seminar re-asks them. A redo whose step fails changes nothing, and a published seminar is not redone. `plugins.seminar.guidance` tells the chair what its peers' openings do not: the works a peer's brain does not hold, so it never points him there. The seminar site marks `seminar` and `note` citable, so a chat answer can cite a seminar or a note, and through a seminar the authors' sections it links to.
+
+### A job can ask another brain
+
+The worker process runs no interfaces, and A2A is one, so the seminar job's turns were answered "This brain cannot reach other brains". An interface now declares the contracts it answers for the brain's own packages (`withAnswers`), and the worker registers those alone, as it registers an interface's channels. A2A answers its ask, turn and shared-entity contracts that way, which also reaches the daily refresh of shared copies, a worker job that asks peers.
 
 ### Language is stated, never inferred
 
-Every message the chair puts to a peer ends with the same two lines: "Answer from your own works and cite each section you draw on. Answer in English; keep the quotes in German." The turn contract adds nothing after them. Its follow-ups are full of German quotes and titles, and a book brain told only to answer "in the reader's language" reads that from the whole message: on 26 November Karl once answered such a follow-up in German, and twice in English when it was sent again; with the line added he answered in English. The book plugin's instructions gain the same rule for every caller: answer in the language of the question's own sentences; quoted German does not make a question German.
+Every message the chair puts to a peer ends with the same two lines: "Answer from your own works and cite each section you draw on. Answer in English; keep quotes in the language of their text." The turn contract adds nothing after them. Its follow-ups are full of German quotes and titles, and a book brain told only to answer "in the reader's language" reads that from the whole message: on 26 November Karl once answered such a follow-up in German, and twice in English when it was sent again; with the line added he answered in English. The book plugin's instructions gain the same rule for every caller: answer in the language of the question's own sentences; quoted German does not make a question German.
 
 ### The seminar site
 
@@ -93,7 +97,8 @@ Interface in English; quotes keep the authors' German (`lang="de"`). Theme `@riz
 
 - name: Suspicion
 - role: chair of a reading group on Marx, Nietzsche and Freud
-- instructions: put every question to the three with `network_ask`; give each author's answer under his name, with his quotes and sources as his brain returned them, never rephrased into one voice; then say in a short paragraph where they meet and where they part, drawing on its notes and seminars; never add a quote or a citation the peers did not return; say plainly when an author's brain had nothing; never point an author to what his brain lacks: Nietzsche's Nachlass notebooks and letters, Marx's New-York Daily Tribune articles, Freud's letters; answer in the reader's language.
+- instructions: put every question to the three with `network_ask`; give each author's answer under his name, with his quotes and sources as his brain returned them, never rephrased into one voice; then say in a short paragraph where they meet and where they part, drawing on its notes and seminars; never add a quote or a citation the peers did not return; say plainly when an author's brain had nothing; answer in the reader's language.
+- guidance for the chair (`plugins.seminar.guidance`): never point an author to what his brain lacks: Nietzsche's Nachlass notebooks and letters, Marx's New-York Daily Tribune articles, Freud's letters.
 
 ### What the notes hold
 
@@ -108,28 +113,11 @@ The notes and seminars give `suspicion` its topics and agent-card skills, so a b
 
 ## Phases
 
-Three PRs in this repository: the seminar plugin (Phases 1–3 as commits on one PR), live questions (Phase 4) and the site (Phase 5). Tests first.
+Three PRs in this repository: the seminar plugin (Phases 1–3, merged as #1060), live questions (Phase 4) and the site (Phase 5). Tests first.
 
-### Phase 1 — a seminar of openings
+### Phases 1–3 — the seminar plugin (done)
 
-- `a2aTurnContract` and its handler; tests: the message is sent as written, a message longer than an ask allows is accepted, a timeout is an error with its reason
-- `@brains/seminar`: schema, adapter, entity type config, `seminar` catalog member, a plain seminar page
-- `seminar_hold` and its job: the question to every approved peer, each opening written verbatim with its sources, the seminar saved as `draft`
-- tests against recorded peer replies: turns kept verbatim, an answer with headings round-trips, every message ends with the two closing lines, a failed peer is recorded and the seminar goes on without him
-- a `seminar` test app in `packages/brain-cli/test-apps/` with the three live brains saved and approved as its peers; one real seminar of three openings
-
-### Phase 2 — the exchange
-
-- the chair's turn, challenges and rejoinder
-- tests, the 26 November seminar among them: the challengers are given the opening they answer and the rejoinder is given the challenges; a peer failing at any round is recorded and the seminar goes on without him
-- one real seminar, the full exchange, on the test app
-
-### Phase 3 — where they meet, redo, publish
-
-- the closing, citing only sources the turns carry
-- redo from `chair-turn` or `closing`
-- tests: `Where they meet` cites only sources the turns carry; with `update: never` the owner still publishes in Studio and no turn can be edited
-- templates and datasource for the seminar list and the seminar page
+The turn contract, `@brains/seminar` with `seminar_hold`, the exchange, the closing, redo, publishing with `update: never`, the `seminar:entities` data source, the `seminar` test app and the worker's reach to A2A. Held live against the three book brains. One thing is left open: a save in Studio that publishes can change other fields in the same write, since such a write needs only `publish`.
 
 ### Phase 4 — live questions
 
@@ -141,6 +129,7 @@ Three PRs in this repository: the seminar plugin (Phases 1–3 as commits on one
 ### Phase 5 — `@rizom/site-seminar`
 
 - mockup in `docs/`: the seminar list, and the seminar page on a phone, next to the seminar page in [seminar-mockup.html](../seminar-mockup.html)
+- the templates for the seminar list and the seminar page, over `seminar:entities`
 - routes including `/ask`, layout and `entityDisplay`; theme `@rizom/theme-books`
 - the package's first publish to npm, then its release after core
 
@@ -148,11 +137,12 @@ Three PRs in this repository: the seminar plugin (Phases 1–3 as commits on one
 
 - the notes above, staged locally and checked against the three brains: every linked section exists and holds the quoted words
 - anchor profile, brain character, site info
+- the chair reads the notes that bear on the question before it decides who stands
 
 ### Phase 7 — fleet
 
 - the books cohort moves to the release that carries the language rule, with its image locks
-- `users/suspicion.yaml` (organization kinds, `siteOverride` with `@rizom/site-seminar` and `@rizom/theme-books` and their `version` and `themeVersion` pins, `plugins.agents.askAllApproved: true`, `plugins.a2a.turnTimeoutMs`, Discord off, setup email `yeehaa@rizom.ai`) and its cohort in rizom-ai/rover-pilot; `onboard`, content committed to the content repo
+- `users/suspicion.yaml` (organization kinds, `siteOverride` with `@rizom/site-seminar` and `@rizom/theme-books` and their `version` and `themeVersion` pins, `plugins.agents.askAllApproved: true`, `plugins.seminar.guidance`, `plugins.a2a.turnTimeoutMs`, Discord off, setup email `yeehaa@rizom.ai`) and its cohort in rizom-ai/rover-pilot; `onboard`, content committed to the content repo
 - `agent_connect` to `karl.rizom.ai`, `friedrich.rizom.ai` and `sigmund.rizom.ai`, approved in Studio
 - the first seminars: what a community should remember and forget, what religion is, whether consciousness is master of itself, where morality comes from; read, then published
 
@@ -171,4 +161,4 @@ Three PRs in this repository: the seminar plugin (Phases 1–3 as commits on one
 - **Editions guessed.** Asked the same question twice, Karl dated his Brumaire once "first German edition, 1852" and once "first German edition, 1869; pp. 6–7", though 1869 is the second edition and his sources carry no pages. The edition is in each book's frontmatter; a book brain that cites one it did not read there is a book plugin fix, found by the same Phase 8 check.
 - **Retrieval misses the obvious work.** Friedrich answered on morality without the Genealogie der Moral; Marx and Freud first answered on memory without the Brumaire and Der Mann Moses. The chair's follow-up points a brain to its own work, named from the chair's own knowledge of the author, which found both; where a brain lacks the work it says so and the owner sees it in the draft; an opening still shows only what each brain finds, and better retrieval belongs to the book brains.
 - **The chair steers.** Choosing who stands and naming the work to answer from shapes the exchange. The page shows every follow-up as the chair wrote it, so a reader sees the steering; the chair never supplies an author's words.
-- **Cost.** A seminar is about eight model turns; a live question is four. Studio and A2A use the owner's provider budget; public Ask waits for its own budget controls.
+- **Cost.** A seminar is about nine model turns; a live question is four. Studio and A2A use the owner's provider budget; public Ask waits for its own budget controls.
