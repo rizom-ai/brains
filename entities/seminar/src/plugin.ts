@@ -25,6 +25,7 @@ import {
   type SeminarRedoDeps,
   type StoredSeminar,
 } from "./handlers/seminar-redo-handler";
+import { seminarDataSource } from "./datasources/seminar-datasource";
 import { modelChair } from "./lib/chair";
 import { seminarSchema } from "./schemas/seminar";
 import { seminar } from "./seminar-entity";
@@ -152,7 +153,11 @@ export const seminarPackage: ServicePackageDefinition<
       id: "seminars",
       config: seminarConfigSchema,
       entities: [seminar],
-      setup: (): Record<never, never> => ({}),
+      setup: (context): Record<never, never> => {
+        // The pages a site reads seminars on, as seminar:entities.
+        serviceRuntime(context).dataSource(seminarDataSource(seminar));
+        return {};
+      },
     }),
     (context) => [
       seminarHoldJob(holdDeps(serviceRuntime(context), context.config)),

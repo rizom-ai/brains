@@ -7,6 +7,20 @@ export {
 } from "./plugin";
 export { seminar } from "./seminar-entity";
 export {
+  seminarDataSource,
+  seminarDetailPageSchema,
+  seminarListPageSchema,
+  seminarPageSchema,
+  seminarPageSourceSchema,
+  seminarPageTurnSchema,
+} from "./datasources/seminar-datasource";
+export type {
+  SeminarDetailPage,
+  SeminarListPage,
+  SeminarPage,
+  SeminarPageTurn,
+} from "./datasources/seminar-datasource";
+export {
   holdSeminar,
   seminarHoldJob,
   seminarHoldJobSchema,
