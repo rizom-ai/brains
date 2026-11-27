@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress. The seminar plugin is on main (#1060): on a local test app with the three book brains as approved peers, a seminar of ten turns is held in about 40 seconds, redone from its closing in 8, and published. Live questions, the site, the content and the fleet brain remain. The three book brains it reads with are live on `0.2.0-alpha.765` (see [books.md](./books.md)): `friedrich.rizom.ai` (26 books, 3,705 sections), `karl.rizom.ai` (117 books, 5,576 sections) and `sigmund.rizom.ai` (207 books, 3,249 sections), each answering as its author, in the first person, citing book and siglum or page. No brain has them as approved peers yet, so a question asked of the network does not reach them: on 26 November `network_ask` from `yeehaa.io` on resentment went to two other brains and neither held anything on it.
+In progress. The seminar plugin is on main (#1060): on a local test app with the three book brains as approved peers, a seminar of ten turns is held in about 40 seconds, redone from its closing in 8, and published. Live questions reach every approved peer (#1062). The site, the content and the fleet brain remain. The three book brains it reads with are live on `0.2.0-alpha.765` (see [books.md](./books.md)): `friedrich.rizom.ai` (26 books, 3,705 sections), `karl.rizom.ai` (117 books, 5,576 sections) and `sigmund.rizom.ai` (207 books, 3,249 sections), each answering as its author, in the first person, citing book and siglum or page. No brain has them as approved peers yet, so a question asked of the network does not reach them: on 26 November `network_ask` from `yeehaa.io` on resentment went to two other brains and neither held anything on it.
 
 ## Goal
 
@@ -113,13 +113,13 @@ The notes and seminars give `suspicion` its topics and agent-card skills, so a b
 
 ## Phases
 
-Three PRs in this repository: the seminar plugin (Phases 1–3, merged as #1060), live questions (Phase 4) and the site (Phase 5). Tests first.
+Three PRs in this repository: the seminar plugin (Phases 1–3, merged as #1060), live questions (Phase 4, merged as #1062) and the site (Phase 5). Tests first.
 
 ### Phases 1–3 — the seminar plugin (done)
 
-The turn contract, `@brains/seminar` with `seminar_hold`, the exchange, the closing, redo, publishing with `update: never`, the `seminar:entities` data source, the `seminar` test app and the worker's reach to A2A. Held live against the three book brains. One thing is left open: a save in Studio that publishes can change other fields in the same write, since such a write needs only `publish`.
+The turn contract, `@brains/seminar` with `seminar_hold`, the exchange, the closing, redo, publishing with `update: never`, the `seminar:entities` data source, the `seminar` test app and the worker's reach to A2A. Held live against the three book brains. A write that publishes a record and changes anything besides its status needs `update` as well (#1063), so a seminar is published as it stands on every path.
 
-### Phase 4 — live questions
+### Phase 4 — live questions (done)
 
 - `askAllApproved` in the `agents` capability's config schema, default false
 - `choosePeers` takes it: when on, every approved peer, nearest first, at most `MAX_ASKED_PEERS`; the tool's description follows it
@@ -128,7 +128,8 @@ The turn contract, `@brains/seminar` with `seminar_hold`, the exchange, the clos
 
 ### Phase 5 — `@rizom/site-seminar`
 
-- mockup in `docs/`: the seminar list, and the seminar page on a phone, next to the seminar page in [seminar-mockup.html](../seminar-mockup.html)
+- mockups in `docs/`: the seminar page ([seminar-mockup.html](../seminar-mockup.html)), the home page with the seminar list ([seminar-list-mockup.html](../seminar-list-mockup.html)) and both on a phone ([seminar-phone-mockup.html](../seminar-phone-mockup.html))
+- a seminar stores its speakers under the names the three brains give themselves (Karl, Friedrich, Sigmund), and the mockups show Marx, Nietzsche and Freud: the site is told which name each peer is shown under
 - the templates for the seminar list and the seminar page, over `seminar:entities`
 - routes including `/ask`, layout and `entityDisplay`; theme `@rizom/theme-books`
 - the package's first publish to npm, then its release after core

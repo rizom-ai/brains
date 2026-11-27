@@ -67,6 +67,10 @@
     font-family: var(--type); font-size: 12px; color: rgba(243,238,228,.78); line-height: 1.6;
   }
   .notes li { margin-bottom: 4px; }
+  /* Shown bare inside the phone mockup's frames. */
+  html.bare { background: var(--paper); }
+  html.bare .sheet-head, html.bare .notes { display: none; }
+  html.bare .frame { margin: 0; box-shadow: none; }
 
   /* ── Site bar ──────────────────────────────────── */
   .bar { display: flex; align-items: baseline; justify-content: space-between; padding: 26px 48px 0; gap: 24px; flex-wrap: wrap; }
@@ -254,8 +258,12 @@
 <ul class="notes">
   <li>Format shown: openings from all three at once; the chair reads them against its notes, decides who stands and who answers, and points each challenger to a work of his own; then the rejoinder; then where they meet.</li>
   <li>Marx's reply came back in German although he was asked in English; sent again, twice, it came back in English. The page keeps answers verbatim, so the fix is upstream: the chair ends every question with the reader's language, and the book plugin's instructions say quoted German does not make a question German.</li>
-  <li>On a phone (under 860px) the columns stack in reading order.</li>
+  <li>On a phone (under 860px) the columns stack in reading order: see <a href="./seminar-phone-mockup.html" style="color:inherit">the phone mockup</a>. The seminars are listed on <a href="./seminar-list-mockup.html" style="color:inherit">the home page mockup</a>.</li>
 </ul>
+
+<script>
+  if (location.hash === "#bare") document.documentElement.classList.add("bare");
+</script>
 
 </body>
 </html>

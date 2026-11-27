@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Seminar List Mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..900;1,6..96,400..900&family=Literata:ital,opsz,wght@0,7..72,300..700;1,7..72,300..700&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --paper: #f3eee4;
+    --paper-deep: #e9e2d4;
+    --ink: #1c1a16;
+    --ink-70: rgba(28,26,22,.72);
+    --ink-50: rgba(28,26,22,.52);
+    --rule: rgba(28,26,22,.16);
+    --rule-soft: rgba(28,26,22,.08);
+    --pencil: #b3261e;
+    --pencil-soft: rgba(179,38,30,.10);
+    --display: "Bodoni Moda", serif;
+    --read: "Literata", serif;
+    --type: "Courier Prime", monospace;
+    --grain-opacity: .35;
+  }
+  html[data-theme="dark"] {
+    --paper: #15140f;
+    --paper-deep: #1d1b15;
+    --ink: #ece4d3;
+    --ink-70: rgba(236,228,211,.74);
+    --ink-50: rgba(236,228,211,.52);
+    --rule: rgba(236,228,211,.16);
+    --rule-soft: rgba(236,228,211,.07);
+    --pencil: #e2614f;
+    --pencil-soft: rgba(226,97,79,.12);
+    --grain-opacity: .18;
+  }
+  * { box-sizing: border-box; }
+  html { background: #8d8676; }
+  html[data-theme="dark"] { background: #07070a; }
+  body { margin: 0; font-family: var(--read); color: var(--ink); -webkit-font-smoothing: antialiased; }
+
+  /* ── Mockup chrome ─────────────────────────────── */
+  .sheet-head {
+    max-width: 1320px; margin: 0 auto; padding: 48px 24px 8px; color: #f3eee4;
+    display: flex; justify-content: space-between; align-items: end; gap: 24px; flex-wrap: wrap;
+  }
+  .sheet-head h1 { font-family: var(--display); font-weight: 500; font-size: 30px; margin: 0; letter-spacing: -.01em; }
+  .sheet-head p { font-family: var(--type); font-size: 13px; margin: 6px 0 0; opacity: .8; max-width: 780px; line-height: 1.5; }
+  .toggle {
+    font-family: var(--type); font-size: 13px; background: none; color: #f3eee4;
+    border: 1px solid rgba(243,238,228,.5); padding: 8px 14px; cursor: pointer;
+  }
+  .frame {
+    max-width: 1320px; margin: 32px auto 0; position: relative; overflow: hidden;
+    background: var(--paper); box-shadow: 0 40px 80px -40px rgba(0,0,0,.55);
+  }
+  .frame::before {
+    content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 0; opacity: var(--grain-opacity);
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.35 0 0 0 0 0.3 0 0 0 0 0.22 0 0 0 .55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    mix-blend-mode: multiply;
+  }
+  html[data-theme="dark"] .frame::before { mix-blend-mode: screen; }
+  .frame > * { position: relative; z-index: 1; }
+  .notes {
+    max-width: 1320px; margin: 14px auto 64px; padding: 0 24px;
+    font-family: var(--type); font-size: 12px; color: rgba(243,238,228,.78); line-height: 1.6;
+  }
+  .notes li { margin-bottom: 4px; }
+  /* Shown bare inside the phone mockup's frames. */
+  html.bare { background: var(--paper); }
+  html.bare .sheet-head, html.bare .notes { display: none; }
+  html.bare .frame { margin: 0; box-shadow: none; }
+
+  /* ── Site bar ──────────────────────────────────── */
+  .bar { display: flex; align-items: baseline; justify-content: space-between; padding: 26px 48px 0; gap: 24px; flex-wrap: wrap; }
+  .mark { font-family: var(--display); font-style: italic; font-size: 30px; font-weight: 500; letter-spacing: -.01em; }
+  .mark small { font-family: var(--type); font-style: normal; font-size: 11px; color: var(--ink-50); margin-left: 10px; letter-spacing: .06em; }
+  .nav { display: flex; gap: 28px; font-family: var(--type); font-size: 13px; color: var(--ink-70); }
+  .nav a { color: inherit; text-decoration: none; padding-bottom: 3px; }
+  .nav a.on { color: var(--ink); border-bottom: 1.5px solid var(--pencil); }
+
+  /* ── The opening statement ─────────────────────── */
+  .open { padding: 88px 48px 72px; border-bottom: 1px solid var(--rule); display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 56px; align-items: end; }
+  .claim {
+    font-family: var(--display); font-weight: 400; font-size: clamp(44px, 7.4vw, 108px); line-height: .94;
+    letter-spacing: -.03em; margin: 0;
+  }
+  .claim em { font-style: italic; color: var(--pencil); }
+  .how { font-size: 17px; line-height: 1.62; color: var(--ink-70); margin: 0; max-width: 420px; }
+  .how b { font-weight: 600; color: var(--ink); }
+  .three { display: flex; gap: 22px; margin-top: 22px; font-family: var(--type); font-size: 12.5px; flex-wrap: wrap; }
+  .three a { color: var(--ink-70); text-decoration: none; border-bottom: 1px solid var(--rule); }
+
+  /* ── The seminars ──────────────────────────────── */
+  .held { padding: 0 48px; }
+  .held-head { font-family: var(--type); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-50); padding: 28px 0 0; }
+  .seminar {
+    display: grid; grid-template-columns: 96px minmax(0, 1fr) 260px; gap: 32px; align-items: start;
+    padding: 44px 0 46px; border-bottom: 1px solid var(--rule); text-decoration: none; color: inherit;
+  }
+  .seminar:last-child { border-bottom: 0; }
+  .no { font-family: var(--display); font-style: italic; font-size: 64px; line-height: .9; color: var(--pencil); }
+  .seminar h2 {
+    font-family: var(--display); font-weight: 400; font-size: clamp(30px, 3.9vw, 54px); line-height: 1.04;
+    letter-spacing: -.02em; margin: 0; transition: color .2s;
+  }
+  .seminar:hover h2 { color: var(--pencil); }
+  .meets { font-size: 17px; line-height: 1.6; margin: 18px 0 0; max-width: 640px; color: var(--ink-70); }
+  .meets::before { content: "Where they meet — "; font-family: var(--type); font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-50); }
+  .facts { font-family: var(--type); font-size: 12.5px; line-height: 1.75; color: var(--ink-70); padding-top: 10px; }
+  .facts .when { color: var(--ink-50); letter-spacing: .04em; }
+  .facts .stands { color: var(--pencil); }
+  .facts .silent { color: var(--ink-50); font-style: italic; }
+
+  .foot {
+    padding: 22px 48px 30px; border-top: 1px solid var(--rule); font-family: var(--type); font-size: 12px; color: var(--ink-50);
+    display: flex; justify-content: space-between; gap: 18px; flex-wrap: wrap;
+  }
+  .foot a { color: var(--ink-70); }
+
+  @media (max-width: 860px) {
+    .bar, .held, .foot { padding-left: 20px; padding-right: 20px; }
+    .open { padding: 52px 20px 44px; grid-template-columns: 1fr; gap: 26px; }
+    .seminar { grid-template-columns: 1fr; gap: 10px; padding: 32px 0 34px; }
+    .no { font-size: 44px; }
+    .facts { padding-top: 6px; }
+    .nav { gap: 18px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="sheet-head">
+  <div>
+    <h1>Suspicion — the seminars</h1>
+    <p>A mockup of the home page of suspicion.rizom.ai: the seminars, newest first. The two of 27 November are the seminars the test brain held with karl., friedrich. and sigmund.rizom.ai; their lines are the chair's own words. The one of 26 November is the seminar of <a href="./seminar-mockup.html" style="color:inherit">the seminar page mockup</a>.</p>
+  </div>
+  <button class="toggle" type="button" onclick="document.documentElement.dataset.theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'">light / dark</button>
+</header>
+
+<main class="frame">
+  <nav class="bar">
+    <div class="mark">Suspicion<small>MARX · NIETZSCHE · FREUD</small></div>
+    <div class="nav"><a class="on" href="#">Seminars</a><a href="#">Notes</a><a href="#">The three</a></div>
+  </nav>
+
+  <section class="open">
+    <h1 class="claim">One question.<br />Three who <em>distrust</em> the answer.</h1>
+    <div>
+      <p class="how">Each seminar puts one question to <b>Marx</b>, <b>Nietzsche</b> and <b>Freud</b> at once. One of them stands; the other two answer him from their own books; he answers both. Every word of theirs is their own brain quoting its own texts.</p>
+      <div class="three">
+        <a href="https://karl.rizom.ai">karl.rizom.ai</a>
+        <a href="https://friedrich.rizom.ai">friedrich.rizom.ai</a>
+        <a href="https://sigmund.rizom.ai">sigmund.rizom.ai</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="held">
+    <div class="held-head">Seminars held</div>
+
+    <a class="seminar" href="./seminar-mockup.html">
+      <div class="no">iii</div>
+      <div>
+        <h2>Is consciousness master of itself?</h2>
+        <p class="meets">They meet in rejecting the idea that consciousness is sovereign or fully in command of the self.</p>
+      </div>
+      <div class="facts">
+        <div class="when">27 NOVEMBER 2026</div>
+        <div class="stands">Nietzsche stands</div>
+        <div>Marx and Freud answer him</div>
+      </div>
+    </a>
+
+    <a class="seminar" href="./seminar-mockup.html">
+      <div class="no">ii</div>
+      <div>
+        <h2>What is religion?</h2>
+        <p class="meets">Marx answered the question as asked, characterizing religion as a human and social product that reflects and consoles a distorted social world.</p>
+      </div>
+      <div class="facts">
+        <div class="when">27 NOVEMBER 2026</div>
+        <div class="stands">Marx stands</div>
+        <div>Nietzsche and Freud answer him</div>
+      </div>
+    </a>
+
+    <a class="seminar" href="./seminar-mockup.html">
+      <div class="no">i</div>
+      <div>
+        <h2>What should a community remember of its past, and what should it forget?</h2>
+        <p class="meets">None of the three lets a community simply choose its memory.</p>
+      </div>
+      <div class="facts">
+        <div class="when">26 NOVEMBER 2026</div>
+        <div class="stands">Nietzsche stands</div>
+        <div>Marx and Freud answer him</div>
+      </div>
+    </a>
+  </section>
+
+  <footer class="foot">
+    <span>The seminars are held by this brain's owner. Each is read before it is published, and none is edited.</span>
+    <span><a href="https://karl.rizom.ai">karl.rizom.ai</a> · <a href="https://friedrich.rizom.ai">friedrich.rizom.ai</a> · <a href="https://sigmund.rizom.ai">sigmund.rizom.ai</a></span>
+  </footer>
+</main>
+
+<ul class="notes">
+  <li>The line under each question is the first sentence of the seminar's "Where they meet". The seminar of "What is religion?" was held before closings were built, so its line here is the chair's reading of the openings instead.</li>
+  <li>The seminars are numbered in the order they were held, the newest on top.</li>
+  <li>An author whose brain did not answer is named under the other two as silent, in muted italic.</li>
+  <li>The stored seminars name their speakers Karl, Friedrich and Sigmund, as the three brains name themselves; this page and the seminar page show Marx, Nietzsche and Freud. The site needs to be told which is wanted.</li>
+  <li>No question box: the Ask page appears in the navigation only once public Ask is open.</li>
+  <li>On a phone see <a href="./seminar-phone-mockup.html" style="color:inherit">the phone mockup</a>.</li>
+</ul>
+
+<script>
+  if (location.hash === "#bare") document.documentElement.classList.add("bare");
+</script>
+</body>
+</html>
