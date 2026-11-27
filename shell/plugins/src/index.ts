@@ -1171,6 +1171,8 @@ export {
   type StudioWorkspaceRegistrationResult,
   type StudioWorkspaceRendererName,
   type StudioWorkspaceUnregistration,
+  STUDIO_SECTIONS,
+  type StudioSection,
 } from "./types/studio-workspace";
 export {
   dashboardDigestLineSchema,

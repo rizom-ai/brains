@@ -3,6 +3,10 @@ import type { z } from "@brains/utils/zod";
 import { freeze } from "@brains/utils/freeze";
 import type { AnyEntityDefinition } from "../entity/entity-definition-contract";
 import { assertIdentifier } from "../package-definition";
+import {
+  STUDIO_SECTIONS,
+  type StudioSection,
+} from "../contracts/studio-workspace-contracts";
 import type { AnyAccountSettingsDefinition } from "./account-settings-definition-contract";
 import {
   assertOptionalText,
@@ -183,6 +187,11 @@ export interface StudioWorkspaceDefinition<
    * editor sends its publication actions here instead of guessing a host.
    */
   readonly publishesEntityTypes?: true | undefined;
+  /**
+   * The Studio section the workspace belongs to; Brain when none is named.
+   * Studio fixes the sections, so a plugin places its page in one of them.
+   */
+  readonly section?: StudioSection | undefined;
   /**
    * The workspace's URL state, read through `query.get(schema)`; a route
    * that returns the browser here answers with this schema's input.
@@ -418,6 +427,14 @@ export function defineStudioWorkspace<
   }
   if (definition.publishesEntityTypes) {
     assertPublicationWorkspace(definition, actionNames);
+  }
+  if (
+    definition.section !== undefined &&
+    !STUDIO_SECTIONS.includes(definition.section)
+  ) {
+    throw new Error(
+      `Studio workspace "${definition.id}" names an unknown section "${String(definition.section)}"`,
+    );
   }
 
   const workspace: StudioWorkspaceDefinition<

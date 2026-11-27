@@ -41,6 +41,11 @@ function workspace(id: string): StudioWorkspaceInfo {
     rendererName: "StudioChatWorkspace",
     priority: 1,
     permission: "trusted",
+    section: id.includes("overview")
+      ? "home"
+      : id.includes("chat")
+        ? "chat"
+        : "brain",
     entityTypes: [],
   };
 }

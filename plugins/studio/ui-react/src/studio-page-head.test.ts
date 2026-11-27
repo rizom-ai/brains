@@ -12,6 +12,7 @@ import {
 
 const workspace: StudioWorkspaceInfo = {
   id: "admin:administration",
+  section: "brain",
   pluginId: "admin",
   label: "Administration",
   rendererName: "DeclarativeOperatorWorkspace",

@@ -9,8 +9,10 @@ import type { UserPermissionLevel } from "@brains/sdk/interfaces";
 
 export interface StoredStudioWorkspace extends Omit<
   StudioWorkspaceDescriptor,
-  "entityTypes"
+  "entityTypes" | "section"
 > {
+  /** The section the registration named; descriptors default it to Brain. */
+  section?: StudioWorkspaceDescriptor["section"];
   permission: UserPermissionLevel;
   entityTypes: NonNullable<StudioWorkspaceRegistration["entityTypes"]>;
   accessHandler: StudioWorkspaceRegistration["accessHandler"];
@@ -91,6 +93,7 @@ export class StudioWorkspaceRegistry {
       ...(parsed.aliases ? { aliases: parsed.aliases } : {}),
       entityTypes,
       ...(parsed.publishesEntityTypes ? { publishesEntityTypes: true } : {}),
+      ...(parsed.section ? { section: parsed.section } : {}),
       accessHandler: async (actor): Promise<boolean> =>
         meetsFloor(actor, parsed.permission)
           ? parsed.accessHandler(actor)
@@ -186,6 +189,8 @@ export class StudioWorkspaceRegistry {
             ...(workspace.publishesEntityTypes
               ? { publishesEntityTypes: true }
               : {}),
+            // A workspace that names no section belongs to Brain.
+            section: workspace.section ?? "brain",
             ...(badge !== undefined ? { badge } : {}),
           };
           return descriptor;

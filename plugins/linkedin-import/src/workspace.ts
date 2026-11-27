@@ -159,6 +159,7 @@ const linkedInWorkspace = defineStudioWorkspace({
     "Fill your profile from LinkedIn without touching what you wrote.",
   priority: 70,
   permission: "admin",
+  section: "library",
   query: querySchema,
   data: workspaceDataSchema,
   actions: [importProfile, disconnect, inspectShapes],

@@ -61,6 +61,20 @@ const studioWorkspaceAliasSchema: StudioWorkspaceAliasSchema = z
   })
   .strict();
 
+/**
+ * Studio's fixed sections. A workspace names the one it belongs to; plugins
+ * cannot add sections, so navigation keeps its shape however many install.
+ */
+export const STUDIO_SECTIONS = [
+  "home",
+  "library",
+  "publish",
+  "chat",
+  "brain",
+] as const;
+
+export type StudioSection = (typeof STUDIO_SECTIONS)[number];
+
 /** One retired workspace id and the stable query state of its replacement. */
 export type StudioWorkspaceAlias = z.output<typeof studioWorkspaceAliasSchema>;
 
@@ -87,6 +101,7 @@ type StudioWorkspaceRegistrationSchema = z.ZodObject<{
     >
   >;
   publishesEntityTypes: z.ZodOptional<z.ZodLiteral<true>>;
+  section: z.ZodOptional<z.ZodEnum<{ [K in StudioSection]: K }>>;
   accessHandler: z.ZodCustom<
     StudioWorkspaceAccessHandler,
     StudioWorkspaceAccessHandler
@@ -133,6 +148,7 @@ export const studioWorkspaceRegistrationSchema: StudioWorkspaceRegistrationSchem
       ])
       .default([]),
     publishesEntityTypes: z.literal(true).optional(),
+    section: z.enum(STUDIO_SECTIONS).optional(),
     accessHandler: z.custom<StudioWorkspaceAccessHandler>(
       (value) => typeof value === "function",
       { message: "Expected Studio workspace access handler function" },

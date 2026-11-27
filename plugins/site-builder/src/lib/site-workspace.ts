@@ -258,6 +258,7 @@ const siteWorkspace = defineStudioWorkspace({
   id: "site",
   label: "Site",
   permission: "trusted",
+  section: "publish",
   data: siteWorkspaceDataSchema,
   actions: [buildPreviewAction, buildProductionAction],
   refresh: ({ data }) =>

@@ -1,11 +1,14 @@
 import type { UserPermissionLevel } from "@brains/templates";
 import type {
   DECLARATIVE_STUDIO_WORKSPACE_RENDERER,
+  StudioSection,
   StudioWorkspaceAlias,
 } from "../contracts/studio-workspace-contracts";
 
 export {
   DECLARATIVE_STUDIO_WORKSPACE_RENDERER,
+  STUDIO_SECTIONS,
+  type StudioSection,
   type StudioWorkspaceActor,
   type StudioWorkspaceAlias,
   type StudioWorkspaceRegistration,
@@ -43,5 +46,7 @@ export interface StudioWorkspaceDescriptor {
   entityTypes: string[];
   /** Studio sends publication actions for the covered entity types here. */
   publishesEntityTypes?: true | undefined;
+  /** The Studio section the workspace belongs to. */
+  section: StudioSection;
   badge?: number | undefined;
 }

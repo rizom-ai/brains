@@ -183,6 +183,7 @@ export async function registerAdministrationWorkspace(
     rendererName: DECLARATIVE_STUDIO_WORKSPACE_RENDERER,
     priority: 10,
     permission: "admin",
+    section: "brain",
     urlQuery: true,
     aliases: [
       { id: "admin:people", query: { tab: "people" } },

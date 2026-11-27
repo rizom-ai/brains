@@ -16,6 +16,7 @@ interface StudioAccountWorkspaceDefinition {
 }
 
 export interface StudioAccountWorkspaceDescriptor {
+  readonly section: "brain";
   readonly id: typeof STUDIO_ACCOUNT_WORKSPACE_ID;
   readonly pluginId: "studio";
   readonly label: string;
@@ -63,6 +64,8 @@ export function listBuiltInStudioWorkspaces(
       priority: STUDIO_ACCOUNT_WORKSPACE.priority,
       permission: STUDIO_ACCOUNT_WORKSPACE.permission,
       entityTypes: STUDIO_ACCOUNT_WORKSPACE.entityTypes,
+      // Reached from the account menu, not from a section's list.
+      section: "brain",
     },
   ];
 }

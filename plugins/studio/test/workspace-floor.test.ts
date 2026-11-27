@@ -131,6 +131,7 @@ describe("Studio workspace permission floors", () => {
         priority: 10,
         permission: "public",
         entityTypes: [],
+        section: "brain",
         badge: 1,
       },
     ]);

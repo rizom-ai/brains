@@ -392,6 +392,7 @@ const boardWorkspace = defineStudioWorkspace({
   description: "The team's action items, by where they stand.",
   priority: 15,
   permission: "trusted",
+  section: "home",
   entityCatalog: boardSources,
   query: boardQuerySchema,
   data: dataSchema,

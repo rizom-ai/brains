@@ -150,6 +150,7 @@ const directorySyncWorkspace = defineStudioWorkspace({
   id: "sync",
   label: "Content sync",
   permission: "admin",
+  section: "brain",
   data: directorySyncWorkspaceSnapshotSchema,
   actions: [syncNowAction],
   refresh: ({ data }) => (data.activeRun ? 1_000 : undefined),

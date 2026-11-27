@@ -1957,6 +1957,7 @@ describe("publication workspace registration", () => {
     id: "publishing",
     label: "Publishing",
     permission: "trusted",
+    section: "publish",
     publishesEntityTypes: true,
     entityCatalog: defineEntityCatalog({
       id: "publishable",
@@ -2021,6 +2022,9 @@ describe("publication workspace registration", () => {
     };
     expect(byLocalId("publishing").publishesEntityTypes).toBe(true);
     expect(byLocalId("library")).not.toHaveProperty("publishesEntityTypes");
+    // A workspace names the Studio section it belongs to.
+    expect(byLocalId("publishing").section).toBe("publish");
+    expect(byLocalId("library")).not.toHaveProperty("section");
     await plugin.shutdown?.();
   });
 });

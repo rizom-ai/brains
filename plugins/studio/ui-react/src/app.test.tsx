@@ -475,6 +475,7 @@ describe("TypeSwitcher", () => {
   it("renders a grouped phone context picker with the current view selected", () => {
     const administration: StudioWorkspaceInfo = {
       id: "admin:administration",
+      section: "brain",
       pluginId: "admin",
       label: "Administration",
       rendererName: "DeclarativeOperatorWorkspace",
@@ -505,6 +506,7 @@ describe("TypeSwitcher", () => {
   it("keeps Account out of the rail even while its workspace is active", () => {
     const accountWorkspace: StudioWorkspaceInfo = {
       id: "studio:account",
+      section: "brain",
       pluginId: "studio",
       label: "Account",
       rendererName: "StudioAccountWorkspace",
@@ -533,6 +535,7 @@ describe("TypeSwitcher", () => {
   it("keeps Overview a direct destination without a duplicate leaf column", () => {
     const overview: StudioWorkspaceInfo = {
       id: "studio:overview",
+      section: "home",
       pluginId: "studio",
       label: "Overview",
       rendererName: "DeclarativeOperatorWorkspace",
@@ -542,6 +545,7 @@ describe("TypeSwitcher", () => {
     };
     const administration: StudioWorkspaceInfo = {
       id: "admin:administration",
+      section: "brain",
       pluginId: "admin",
       label: "Administration",
       rendererName: "DeclarativeOperatorWorkspace",
@@ -574,6 +578,7 @@ describe("TypeSwitcher", () => {
   it("shows registered workflow destinations and their attention badges", () => {
     const workspace: StudioWorkspaceInfo = {
       id: "publishing",
+      section: "publish",
       pluginId: "content-pipeline",
       label: "Publishing",
       rendererName: "DeclarativeOperatorWorkspace",
@@ -733,6 +738,7 @@ function renderCapabilityView(
     workspaces: [
       {
         id: "publishing",
+        section: "publish",
         pluginId: "content-pipeline",
         label: "Publishing",
         rendererName: "DeclarativeOperatorWorkspace",

@@ -73,6 +73,7 @@ const types: EntityTypeInfo[] = [
 const workspaces: StudioWorkspaceInfo[] = [
   {
     id: "studio:overview",
+    section: "home",
     pluginId: "studio",
     label: "Overview",
     rendererName: "DeclarativeOperatorWorkspace",
@@ -82,6 +83,7 @@ const workspaces: StudioWorkspaceInfo[] = [
   },
   {
     id: "web-chat:chat",
+    section: "chat",
     pluginId: "web-chat",
     label: "Chat",
     rendererName: "StudioChatWorkspace",
@@ -91,6 +93,7 @@ const workspaces: StudioWorkspaceInfo[] = [
   },
   {
     id: "admin:administration",
+    section: "brain",
     pluginId: "admin",
     label: "Administration",
     rendererName: "DeclarativeOperatorWorkspace",
@@ -100,6 +103,7 @@ const workspaces: StudioWorkspaceInfo[] = [
   },
   {
     id: "studio:account",
+    section: "brain",
     pluginId: "studio",
     label: "Account",
     rendererName: "StudioAccountWorkspace",
@@ -109,6 +113,7 @@ const workspaces: StudioWorkspaceInfo[] = [
   },
   {
     id: "inbox:inbox",
+    section: "home",
     pluginId: "inbox",
     label: "Inbox",
     rendererName: "DeclarativeOperatorWorkspace",

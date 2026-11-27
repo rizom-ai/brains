@@ -115,6 +115,7 @@ const trafficWorkspace = defineStudioWorkspace({
   description: "What readers read, from the brain's daily traffic snapshots.",
   priority: 60,
   permission: "admin",
+  section: "publish",
   entityCatalog: publishedWork,
   query: querySchema,
   data: dataSchema,
