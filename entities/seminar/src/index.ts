@@ -8,6 +8,20 @@ export {
 export { seminar } from "./seminar-entity";
 export { getTemplates } from "./lib/register-templates";
 export {
+  seminarAskDataSource,
+  seminarAskPage,
+  seminarAskPageSchema,
+} from "./datasources/seminar-ask-datasource";
+export type {
+  SeminarAskBuild,
+  SeminarAskPage,
+  SeminarAskSources,
+} from "./datasources/seminar-ask-datasource";
+export {
+  SeminarAskTemplate,
+  type SeminarAskProps,
+} from "./templates/seminar-ask";
+export {
   SeminarDetailTemplate,
   type SeminarDetailProps,
 } from "./templates/seminar-detail";

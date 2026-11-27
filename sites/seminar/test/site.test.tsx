@@ -32,7 +32,7 @@ function page(path: string): string {
 
 describe("@rizom/site-seminar", () => {
   test("opens on the seminars", () => {
-    expect(site.routes.map((route) => route.id)).toEqual(["home"]);
+    expect(site.routes.map((route) => route.id)).toEqual(["home", "ask"]);
     expect(site.routes[0]).toMatchObject({
       path: "/",
       navigation: { show: true, label: "Seminars" },
@@ -43,6 +43,15 @@ describe("@rizom/site-seminar", () => {
           dataQuery: { entityType: "seminar", query: {} },
         },
       ],
+    });
+  });
+
+  test("asks the brain on its own page, in the menu after the notes", () => {
+    const ask = site.routes.find((route) => route.id === "ask");
+    expect(ask).toMatchObject({
+      path: "/ask",
+      navigation: { show: true, label: "Ask", priority: 30 },
+      sections: [{ id: "ask", template: "seminar:ask", dataQuery: {} }],
     });
   });
 

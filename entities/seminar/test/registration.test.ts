@@ -55,6 +55,7 @@ describe("the seminar package's registered surface", () => {
   it("registers the pages a site reads seminars on, and what they read", async () => {
     const { shell } = await installed();
     expect([...shell.getTemplates().keys()].sort()).toEqual([
+      "seminar:ask",
       "seminar:seminar-detail",
       "seminar:seminar-list",
     ]);
@@ -63,7 +64,7 @@ describe("the seminar package's registered surface", () => {
         .getDataSourceRegistry()
         .list()
         .map(({ id }) => id),
-    ).toEqual(["seminar:entities"]);
+    ).toEqual(["seminar:ask", "seminar:entities"]);
   });
 
   it("offers the owner alone one tool, which holds a seminar", async () => {

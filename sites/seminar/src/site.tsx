@@ -27,6 +27,15 @@ const routes: RouteDefinitionInput[] = [
       },
     ],
   },
+  {
+    id: "ask",
+    path: "/ask",
+    title: "Ask",
+    description: "One question, put to all at once",
+    layout: "default",
+    navigation: { show: true, label: "Ask", slot: "primary", priority: 30 },
+    sections: [{ id: "ask", template: "seminar:ask", dataQuery: {} }],
+  },
 ];
 
 /** A menu entry is current on its own page and, below the root, its subpages. */

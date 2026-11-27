@@ -98,7 +98,7 @@ describe("@rizom/site-seminar package boundary", () => {
           ],
           consumerDir,
         );
-        expect(output.trim()).toBe("home");
+        expect(output.trim()).toBe("home,ask");
 
         // The tarball carries the manifest the fast check inspects.
         const installed = JSON.parse(

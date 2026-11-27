@@ -1,8 +1,10 @@
 import {
   SdkError,
   a2aTurnContract,
+  askBoxAvailabilityState,
   type A2APeerAnswer,
 } from "@brains/contracts";
+import { homepageChatAvailable } from "@brains/site-atlas";
 import {
   defineServicePlugin,
   z,
@@ -25,6 +27,7 @@ import {
   type SeminarRedoDeps,
   type StoredSeminar,
 } from "./handlers/seminar-redo-handler";
+import { seminarAskDataSource } from "./datasources/seminar-ask-datasource";
 import { seminarDataSource } from "./datasources/seminar-datasource";
 import { modelChair } from "./lib/chair";
 import { getTemplates } from "./lib/register-templates";
@@ -178,6 +181,19 @@ export const seminarPackage: ServicePackageDefinition<
         for (const [name, template] of Object.entries(getTemplates())) {
           runtime.template(name, template);
         }
+        runtime.dataSource(
+          seminarAskDataSource({
+            // The box is named for whom the site speaks.
+            name: (): string => runtime.identity.getProfile().name,
+            // The record Web Chat shares, read in the build's process.
+            chatAvailable: (build): Promise<boolean> =>
+              homepageChatAvailable(
+                build,
+                build.sharedState(askBoxAvailabilityState),
+              ),
+            peers: context.config.peers,
+          }),
+        );
         // What those pages read, as seminar:entities.
         runtime.dataSource(seminarDataSource(seminar, context.config.peers));
         return {};
