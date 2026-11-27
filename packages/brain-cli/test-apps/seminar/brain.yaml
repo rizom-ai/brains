@@ -1,0 +1,45 @@
+brain: brain
+bundleContract: capability-bundles-v1
+anchor: organization
+kind: organization
+# A brain that holds seminars with its approved peers. No peer is named here:
+# connect and approve them on the running app (agent_connect, then
+# agent_set_standing), and hold a seminar with seminar_hold.
+# Embeds with EmbeddingGemma 2 from a local Ollama:
+#   ollama pull embeddinggemma-2:270m && ollama serve
+embeddingModel: local:embeddinggemma-2:270m
+modelRuntime:
+  url: http://localhost:11434
+bundles:
+  - core
+  - web
+  - chat
+  - site
+
+add:
+  - seminar
+
+# Local test app: Admin tools available over MCP http transport.
+permissions:
+  rules:
+    - pattern: "mcp:http"
+      level: admin
+
+site:
+  package: "@brains/site-organization"
+
+plugins:
+  mcp:
+    mode: debug
+  directory-sync:
+    seedContentPath: ../../eval-content/core
+    autoSync: true
+    initialSync: true
+    git:
+      repo: rizom-ai/canonical-seminar-test-content
+      gitUrl: file:///tmp/canonical-seminar-offline-test-content.git
+      bootstrapFromSeed: true
+  onboarding:
+    enabled: false
+  site-builder:
+    autoRebuild: false

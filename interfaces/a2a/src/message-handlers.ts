@@ -16,6 +16,7 @@ import {
   a2aAskContract,
   a2aCallContract,
   a2aPeerAnswerSchema,
+  a2aTurnContract,
   clipPublicMessage,
   type A2ADirectoryAgent,
   type A2APeerAnswer,
@@ -59,7 +60,69 @@ export function networkAskMessage(question: string): string {
 export interface A2AMessageHandlerOptions {
   /** The whole budget for one peer: Agent Card fetch and answer, one attempt. */
   networkAskTimeoutMs: number;
+  /** The same for one peer's turn in an exchange. */
+  turnTimeoutMs: number;
 }
+
+/**
+ * One saved, approved peer's completed answer to `message`, in one attempt
+ * within `budgetMs`: running out of it, a refusal and an answer the peer did
+ * not complete are each a failure with the reason.
+ */
+async function answerWithinBudget(
+  deps: A2AClientDeps,
+  agent: string,
+  message: string,
+  budgetMs: number,
+): Promise<A2APeerAnswer> {
+  const budget = AbortSignal.timeout(budgetMs);
+  const timedOut = (cause?: unknown): SdkError =>
+    new SdkError("deadline_exceeded", {
+      publicMessage: `${agent} did not answer within ${budgetMs} ms`,
+      cause,
+    });
+  let result: Awaited<ReturnType<typeof executeAgentCall>>;
+  try {
+    result = await executeAgentCall(
+      { agent, message },
+      { ...deps, maxNetworkAttempts: 1 },
+      { requireSaved: true, signal: budget },
+    );
+  } catch (error) {
+    if (budget.aborted) throw timedOut(error);
+    throw new SdkError("handler_failed", {
+      message: getErrorMessage(error, `${agent} did not answer`),
+      publicMessage: `${agent} did not answer`,
+      cause: error,
+    });
+  }
+  if (budget.aborted) throw timedOut();
+  if (!("success" in result) || result.success !== true) {
+    throw callRefusal(result, `${agent} did not answer`);
+  }
+  const answer = a2aPeerAnswerSchema.safeParse(result.data);
+  if (!answer.success) {
+    throw new SdkError("handler_failed", {
+      publicMessage: `${agent} gave no readable answer`,
+    });
+  }
+  if (answer.data.state !== "completed") {
+    // The peer's own words, written for whoever asked.
+    throw new SdkError("handler_failed", {
+      publicMessage: clipPublicMessage(
+        `${agent} did not answer: ${answer.data.response}`,
+      ),
+    });
+  }
+  return answer.data;
+}
+
+/**
+ * What a package asks a peer is answered in the worker too: a background
+ * job asks from there. What a Studio author asks is answered where Studio
+ * is served.
+ */
+const PEER_ASKS = { everyProcess: true } as const;
 
 /**
  * Register the in-process A2A surface used by packages that must not depend
@@ -72,63 +135,43 @@ export interface A2AMessageHandlerOptions {
 export function registerA2ACallMessageHandlers(
   runtime: Pick<InterfaceRuntime, "answer" | "entityReads">,
   deps: A2AClientDeps,
-  options: A2AMessageHandlerOptions = { networkAskTimeoutMs: 30_000 },
+  options: A2AMessageHandlerOptions = {
+    networkAskTimeoutMs: 30_000,
+    turnTimeoutMs: 90_000,
+  },
 ): void {
   runtime.answer(
     a2aAskContract,
-    async ({ request: { agent, question } }): Promise<A2APeerAnswer> => {
-      const budgetMs = options.networkAskTimeoutMs;
-      const budget = AbortSignal.timeout(budgetMs);
-      const timedOut = (cause?: unknown): SdkError =>
-        new SdkError("deadline_exceeded", {
-          publicMessage: `${agent} did not answer within ${budgetMs} ms`,
-          cause,
-        });
-      let result: Awaited<ReturnType<typeof executeAgentCall>>;
-      try {
-        result = await executeAgentCall(
-          { agent, message: networkAskMessage(question) },
-          { ...deps, maxNetworkAttempts: 1 },
-          { requireSaved: true, signal: budget },
-        );
-      } catch (error) {
-        if (budget.aborted) throw timedOut(error);
-        throw new SdkError("handler_failed", {
-          message: getErrorMessage(error, `${agent} did not answer`),
-          publicMessage: `${agent} did not answer`,
-          cause: error,
-        });
-      }
-      if (budget.aborted) throw timedOut();
-      if (!("success" in result) || result.success !== true) {
-        throw callRefusal(result, `${agent} did not answer`);
-      }
-      const answer = a2aPeerAnswerSchema.safeParse(result.data);
-      if (!answer.success) {
-        throw new SdkError("handler_failed", {
-          publicMessage: `${agent} gave no readable answer`,
-        });
-      }
-      if (answer.data.state !== "completed") {
-        // The peer's own words, written for whoever asked.
-        throw new SdkError("handler_failed", {
-          publicMessage: clipPublicMessage(
-            `${agent} did not answer: ${answer.data.response}`,
-          ),
-        });
-      }
-      return answer.data;
-    },
+    ({ request: { agent, question } }) =>
+      answerWithinBudget(
+        deps,
+        agent,
+        networkAskMessage(question),
+        options.networkAskTimeoutMs,
+      ),
+    PEER_ASKS,
+  );
+
+  // A turn of an exchange: the message as its author wrote it.
+  runtime.answer(
+    a2aTurnContract,
+    ({ request: { agent, message } }) =>
+      answerWithinBudget(deps, agent, message, options.turnTimeoutMs),
+    PEER_ASKS,
   );
 
   // One shared entity from a saved, approved peer: a signed request with
   // no model on either side.
-  runtime.answer(a2aSharedEntityContract, ({ request }) =>
-    fetchSharedEntity(request, deps),
+  runtime.answer(
+    a2aSharedEntityContract,
+    ({ request }) => fetchSharedEntity(request, deps),
+    PEER_ASKS,
   );
   // What that peer shares with this brain, so no id has to be guessed.
-  runtime.answer(a2aSharedEntityListContract, ({ request }) =>
-    fetchSharedEntityListing(request, deps),
+  runtime.answer(
+    a2aSharedEntityListContract,
+    ({ request }) => fetchSharedEntityListing(request, deps),
+    PEER_ASKS,
   );
 
   runtime.answer(

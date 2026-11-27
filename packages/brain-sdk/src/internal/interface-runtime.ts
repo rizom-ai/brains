@@ -6,6 +6,8 @@
  * its class registered it (`withDaemon`), a message transport the
  * runtime's message coordination sends through (`withMessageTransport`) and
  * the channels its class registered in every process (`withChannels`),
+ * the contracts it answers for the brain's own packages in every process
+ * (`withAnswers`),
  * the HTTP routes it served as written (`withWebRoutes`), the tools it
  * registered under their names (`withTools`) and the protocol-only
  * registration it built of itself (`withProtocolPlugin`).
@@ -20,6 +22,7 @@
 
 export {
   interfaceRuntime,
+  withAnswers,
   withChannels,
   withDaemon,
   withMessageTransport,
