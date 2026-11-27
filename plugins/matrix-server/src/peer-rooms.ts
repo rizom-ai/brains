@@ -20,6 +20,10 @@ const roomIdSchema = z.object({ room_id: z.string().min(1) });
  * is trusted, open over federation only to this server and the peer's, with
  * the peer's bot invited; on a revoke the peer's bot is removed and the room
  * closed to its server, and the history stays.
+ *
+ * Trusting a peer also joins the room the peer keeps for this brain. The bot
+ * accepts a peer's invite only while it trusts that peer, so an invite that
+ * arrived before this brain's grant stays pending until this join.
  */
 export class PeerRooms {
   private readonly base: string;
@@ -34,6 +38,11 @@ export class PeerRooms {
   }
 
   async trusted(domain: string): Promise<void> {
+    await this.keepRoomFor(domain);
+    await this.joinRoomKeptBy(domain);
+  }
+
+  private async keepRoomFor(domain: string): Promise<void> {
     const existing = await this.roomFor(domain);
     const acl = this.serverAcl([this.options.serverName, domain]);
     const peerBot = peerBotId(domain);
@@ -60,6 +69,21 @@ export class PeerRooms {
       {
         user_id: peerBot,
       },
+    );
+  }
+
+  /**
+   * Joins the peer's room for this brain. The peer has none yet (404), or
+   * has not invited this bot (403), until it trusts this brain; its invite
+   * then arrives and is accepted, so neither is an error here.
+   */
+  private async joinRoomKeptBy(domain: string): Promise<void> {
+    const alias = `#${aliasLocalpart(this.options.serverName)}:${domain}`;
+    await this.request(
+      "POST",
+      `/join/${encodeURIComponent(alias)}`,
+      {},
+      [403, 404],
     );
   }
 
