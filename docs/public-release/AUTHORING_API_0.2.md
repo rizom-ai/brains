@@ -262,7 +262,7 @@ A record read through an `EntityReader`, or handed to any declared slot, is an `
 - `retiredFields` and `translatedFields` name frontmatter keys the type no longer owns: retired keys are read past and removed on start, translated keys are still read and moved to their new field.
 - `containedIn` names the type whose records contain this one, as a book contains its sections.
 - `actionPolicy` is the type's minimum action policy. It tightens a brain's wildcard defaults; a brain's explicit rule for the type still overrides it.
-- `publish.publishStatuses` lists the statuses that require the `publish` action when entered or changed. It does not change which records count as published for published-only reads.
+- `publish.publishStatuses` lists the statuses that require the `publish` action when entered or changed. A write that enters one, or writes a record already in one, also requires the `update` action when it changes anything besides the status: permission to publish is not permission to edit, so a type nobody may update is published as it stands. It does not change which records count as published for published-only reads.
 
 `classification` stays top-level and is refused inside `config`.
 

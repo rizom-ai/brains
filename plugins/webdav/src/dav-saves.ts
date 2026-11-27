@@ -9,6 +9,7 @@ import type {
 import {
   canWriteVisibility,
   getPublishBoundaryState,
+  requiredUpdateActions,
   isEntityValidationError,
   type BaseEntity,
 } from "@brains/sdk/internal/entity-runtime";
@@ -225,16 +226,14 @@ async function updateEntityFile(
     visibility: document.parsed.visibility ?? existing.visibility,
   };
 
-  const crossesIntoPublished =
-    getPublishBoundaryState(
-      existing.entityType,
-      existing.metadata["status"],
-      entity.metadata["status"],
-      deps.reader,
-    ) !== "non-publish";
-  const refused = await refusal(deps, request.grant, "update", entity, [
-    crossesIntoPublished ? "publish" : "update",
-  ]);
+  // Every action the save needs: publishing is not permission to edit.
+  const refused = await refusal(
+    deps,
+    request.grant,
+    "update",
+    entity,
+    requiredUpdateActions(existing.entityType, existing, entity, deps.reader),
+  );
   if (refused) return refused;
 
   if (loses) {

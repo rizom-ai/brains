@@ -9,7 +9,10 @@ import {
 import {
   contentVisibilitySchema,
   extractVisibilityFromMarkdown,
+  changesBesideStatus,
   getPublishBoundaryState,
+  updateActionsAt,
+  type EntityWriteAction,
 } from "@brains/entity-service";
 import type { BaseEntity } from "@brains/entity-service";
 import { setCoverImageId, setOgImageId } from "@brains/image";
@@ -638,19 +641,53 @@ export function validateUpdateOperation(
   );
 }
 
-/** Crossing the publish boundary needs publish permission; anything else is an update. */
-export function requiredUpdateAction(
+/** Whether the operation changes anything of the entity besides its status. */
+function changesBesideStatusOf(
+  entity: BaseEntity,
+  operation: UpdateOperation,
+): boolean {
+  if (operation.kind === "fields") {
+    return Object.entries(operation.fields).some(
+      ([field, value]) =>
+        field !== "status" && !isDeepStrictEqual(entity.metadata[field], value),
+    );
+  }
+  // A replacement that states no header keeps the stored one, and a stored
+  // document without a header states its fields as its metadata.
+  const storedHeader = FRONTMATTER_BLOCK.exec(entity.content)?.[0];
+  const stored =
+    storedHeader === undefined
+      ? generateMarkdown(entity.metadata, entity.content)
+      : entity.content;
+  const replacement = FRONTMATTER_BLOCK.test(operation.content)
+    ? operation.content
+    : `${FRONTMATTER_BLOCK.exec(stored)?.[0] ?? ""}${operation.content}`;
+  return changesBesideStatus(
+    { content: stored, metadata: {} },
+    { content: replacement, metadata: {} },
+  );
+}
+
+/**
+ * What the operation needs permission for: an update, or, where it publishes
+ * the entity or writes it while published, a publish, and an update as well
+ * when it changes anything besides the status. Permission to publish is not
+ * permission to edit.
+ */
+export function requiredUpdateActionsOf(
   entity: BaseEntity,
   operation: UpdateOperation,
   entityRegistry: SystemServices["entityRegistry"],
-): "update" | "publish" {
+): EntityWriteAction[] {
   const boundary = getPublishBoundaryState(
     entity.entityType,
     entity.metadata["status"],
     getUpdatedStatus(entity, operation, entityRegistry),
     entityRegistry,
   );
-  return boundary === "non-publish" ? "update" : "publish";
+  return updateActionsAt(boundary, () =>
+    changesBesideStatusOf(entity, operation),
+  );
 }
 
 /** The entity as it will be stored once the operation is applied. */

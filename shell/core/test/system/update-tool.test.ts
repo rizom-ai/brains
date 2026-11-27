@@ -1661,6 +1661,62 @@ describe("system_update tool", () => {
     });
   });
 
+  describe("a type nobody may update and an admin may publish", () => {
+    const refused = {
+      success: false,
+      error: "Updating `social-post` is not allowed through system tools.",
+    };
+    const published = (operation: Record<string, unknown>): Promise<unknown> =>
+      exec(
+        { entityType: "social-post", id: "linkedin-update", operation },
+        "admin",
+      );
+
+    beforeEach(() => {
+      services.permissionService = new PermissionService({
+        entityActions: {
+          "social-post": { update: "never", publish: "admin" },
+        },
+      });
+    });
+
+    it("is published as it stands, by its status alone", async () => {
+      expect(await published({ fields: { status: "queued" } })).toMatchObject({
+        needsConfirmation: true,
+      });
+      expect(
+        await published({
+          content:
+            "---\ntitle: LinkedIn Update\nstatus: queued\n---\n\nPost body.",
+        }),
+      ).toMatchObject({ needsConfirmation: true });
+    });
+
+    it("refuses a write that publishes it and changes its body", async () => {
+      expect(
+        await published({
+          content:
+            "---\ntitle: LinkedIn Update\nstatus: queued\n---\n\nAnother body.",
+        }),
+      ).toEqual(refused);
+    });
+
+    it("refuses a write that publishes it and changes another field", async () => {
+      expect(
+        await published({ fields: { status: "queued", title: "Edited" } }),
+      ).toEqual(refused);
+      expect(
+        await published({
+          content: "---\ntitle: Edited\nstatus: queued\n---\n\nPost body.",
+        }),
+      ).toEqual(refused);
+    });
+
+    it("refuses an edit that leaves it a draft", async () => {
+      expect(await published({ fields: { title: "Edited" } })).toEqual(refused);
+    });
+  });
+
   it("rejects trusted deletes when entity action policy requires Admin", async () => {
     services.permissionService = new PermissionService({
       entityActions: {
