@@ -108,7 +108,9 @@ export const headStyles: Record<
       // An emptied required title reads as invalid, as a field does.
       ":user-invalid": "2px solid var(--console-err)",
     },
-    outlineOffset: 4,
+    // Outside, as on a link: the title has no padding to keep an inset ring off
+    // its glyphs.
+    outlineOffset: 2,
   },
   titleIssue: {
     display: "block",
