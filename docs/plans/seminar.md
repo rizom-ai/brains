@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress. The seminar plugin is on main (#1060): on a local test app with the three book brains as approved peers, a seminar of ten turns is held in about 40 seconds, redone from its closing in 8, and published. Live questions reach every approved peer (#1062). The site, the content and the fleet brain remain. The three book brains it reads with are live on `0.2.0-alpha.765` (see [books.md](./books.md)): `friedrich.rizom.ai` (26 books, 3,705 sections), `karl.rizom.ai` (117 books, 5,576 sections) and `sigmund.rizom.ai` (207 books, 3,249 sections), each answering as its author, in the first person, citing book and siglum or page. No brain has them as approved peers yet, so a question asked of the network does not reach them: on 26 November `network_ask` from `yeehaa.io` on resentment went to two other brains and neither held anything on it.
+In progress. The seminar plugin is on main (#1060): on a local test app with the three book brains as approved peers, a seminar of ten turns is held in about 40 seconds, redone from its closing in 8, and published. Live questions reach every approved peer (#1062). The site is on main (#1068) and awaits its first publish to npm. The content and the fleet brain remain. The three book brains it reads with are live on `0.2.0-alpha.765` (see [books.md](./books.md)): `friedrich.rizom.ai` (26 books, 3,705 sections), `karl.rizom.ai` (117 books, 5,576 sections) and `sigmund.rizom.ai` (207 books, 3,249 sections), each answering as its author, in the first person, citing book and siglum or page. No brain has them as approved peers yet, so a question asked of the network does not reach them: on 26 November `network_ask` from `yeehaa.io` on resentment went to two other brains and neither held anything on it.
 
 ## Goal
 
@@ -88,7 +88,7 @@ Every message the chair puts to a peer ends with the same two lines: "Answer fro
 - `/` — the seminars, newest first: the question, the date, and the three names
 - `/seminars/<slug>` — the question, then the exchange read top to bottom: the openings in three columns, Marx, Nietzsche and Freud in a fixed order; the chair's turn as a marked aside naming whom it asks and what; the challenges in columns, each marked with whom it answers; the rejoinder; then `Where they meet`. Every quote links to the section on its author's brain; an author whose brain did not answer says so. On a phone the columns stack in reading order.
 - `/notes/<slug>` — the brain's notes, linked from the seminars that draw on them
-- `/ask` — the question box, as on the books site: shown only while guest chat is available on the brain, so it is absent until public Ask opens. A visitor's question gets the live answer, the three authors side by side and where they meet; it is not saved as a seminar.
+- `/ask` — the question box, as on the books site: the page and its menu link are always there, and it says asking is not open yet until guest chat is available on the brain. A visitor's question gets the live answer, the three authors side by side and where they meet; it is not saved as a seminar.
 - every page names the three brains and links to their sites
 
 Interface in English; quotes keep the authors' German (`lang="de"`). Theme `@rizom/theme-books`, so a reader who follows a quote into `karl.`, `friedrich.` or `sigmund.rizom.ai` stays in the same paper and ink; it keeps the default theme's token names, so the seminar's templates need no theme of their own.
@@ -113,7 +113,7 @@ The notes and seminars give `suspicion` its topics and agent-card skills, so a b
 
 ## Phases
 
-Three PRs in this repository: the seminar plugin (Phases 1–3, merged as #1060), live questions (Phase 4, merged as #1062) and the site (Phase 5). Tests first.
+Three PRs in this repository: the seminar plugin (Phases 1–3, merged as #1060), live questions (Phase 4, merged as #1062) and the site (Phase 5, merged as #1068). Tests first.
 
 ### Phases 1–3 — the seminar plugin (done)
 
@@ -126,13 +126,14 @@ The turn contract, `@brains/seminar` with `seminar_hold`, the exchange, the clos
 - tests: on, three approved peers and a question matching none of them, all three asked; off, unchanged
 - the book plugin's language rule in `BOOK_INSTRUCTIONS` (`entities/book/src/plugin.ts`)
 
-### Phase 5 — `@rizom/site-seminar`
+### Phase 5 — `@rizom/site-seminar` (built)
 
-- mockups in `docs/`: the seminar page ([seminar-mockup.html](../seminar-mockup.html)), the home page with the seminar list ([seminar-list-mockup.html](../seminar-list-mockup.html)) and both on a phone ([seminar-phone-mockup.html](../seminar-phone-mockup.html))
-- a seminar stores its speakers under the names the three brains give themselves (Karl, Friedrich, Sigmund), and the mockups show Marx, Nietzsche and Freud: the site is told which name each peer is shown under
-- the templates for the seminar list and the seminar page, over `seminar:entities`
-- routes including `/ask`, layout and `entityDisplay`; theme `@rizom/theme-books`
-- the package's first publish to npm, then its release after core
+The site package, the two page templates and the Ask page are on main. Mockups: the seminar page ([seminar-mockup.html](../seminar-mockup.html)), the home page ([seminar-list-mockup.html](../seminar-list-mockup.html)) and both on a phone ([seminar-phone-mockup.html](../seminar-phone-mockup.html)).
+
+- `plugins.seminar.peers` gives each peer the name the brain shows him under and his place among the others; a seminar is stored, and the chair writes, under those names
+- the home page's claim is the anchor profile's description, its stressed word between asterisks
+- `/ask` is always in the menu and says asking is not open yet until Web Chat serves the guest box, as on the books site
+- left: the package's first publish to npm, then its release after core
 
 ### Phase 6 — content
 
@@ -143,7 +144,7 @@ The turn contract, `@brains/seminar` with `seminar_hold`, the exchange, the clos
 ### Phase 7 — fleet
 
 - the books cohort moves to the release that carries the language rule, with its image locks
-- `users/suspicion.yaml` (organization kinds, `siteOverride` with `@rizom/site-seminar` and `@rizom/theme-books` and their `version` and `themeVersion` pins, `plugins.agents.askAllApproved: true`, `plugins.seminar.guidance`, `plugins.a2a.turnTimeoutMs`, Discord off, setup email `yeehaa@rizom.ai`) and its cohort in rizom-ai/rover-pilot; `onboard`, content committed to the content repo
+- `users/suspicion.yaml` (organization kinds, `siteOverride` with `@rizom/site-seminar` and `@rizom/theme-books` and their `version` and `themeVersion` pins, `plugins.agents.askAllApproved: true`, `plugins.seminar.guidance`, `plugins.seminar.peers`, `plugins.a2a.turnTimeoutMs`, Discord off, setup email `yeehaa@rizom.ai`) and its cohort in rizom-ai/rover-pilot; `onboard`, content committed to the content repo
 - `agent_connect` to `karl.rizom.ai`, `friedrich.rizom.ai` and `sigmund.rizom.ai`, approved in Studio
 - the first seminars: what a community should remember and forget, what religion is, whether consciousness is master of itself, where morality comes from; read, then published
 
@@ -151,7 +152,7 @@ The turn contract, `@brains/seminar` with `seminar_hold`, the exchange, the clos
 
 - `https://suspicion.rizom.ai/health/ready` is 200 and its agent card names Suspicion and its skills
 - each seminar page shows the full exchange, every peer turn in the reader's language, and every quote links to a section that holds it
-- `/ask` is absent while public Ask is closed
+- `/ask` says asking is not open yet while public Ask is closed
 - the same four questions in Studio chat: each answer reaches all three, gives each author under his name, and every cited section is among the sources his brain returned
 - from `yeehaa.io`: `agent_call` to `suspicion.rizom.ai`, then `agent_connect` and `network_ask`, timing each
 
