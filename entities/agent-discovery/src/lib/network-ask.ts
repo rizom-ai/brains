@@ -101,15 +101,30 @@ function byDistanceThenId(left: PeerCandidate, right: PeerCandidate): number {
   return l === r ? left.id.localeCompare(right.id) : l - r;
 }
 
+/** How a brain routes a question it asks the network. */
+export interface PeerRouting {
+  /**
+   * Ask every approved peer, whatever its skills: for a brain whose peers
+   * all belong in every answer, where leaving one out answers another
+   * question.
+   */
+  readonly askAllApproved?: boolean | undefined;
+}
+
 /**
  * The peers a question goes to: approved only, the best skill matches (at
  * most three, each above a minimum), or the two nearest when nothing matches.
+ * A brain that asks all its approved peers asks them whatever they match,
+ * the nearest first and three at most.
  */
 export function choosePeers(
   question: string,
   peers: PeerCandidate[],
+  routing: PeerRouting = {},
 ): PeerCandidate[] {
   const approved = peers.filter((peer) => peer.status === "approved");
+  if (routing.askAllApproved === true)
+    return [...approved].sort(byDistanceThenId).slice(0, MAX_ASKED_PEERS);
   const asked = words(question);
   const matched = approved
     .map((peer) => ({ peer, score: matchScore(asked, peer) }))

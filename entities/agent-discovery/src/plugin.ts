@@ -68,12 +68,19 @@ const atprotoConflictNotificationSchema = z
 
 export const agentToolsConfigSchema: z.ZodObject<{
   notifyOnNewAgents: z.ZodDefault<z.ZodBoolean>;
+  askAllApproved: z.ZodDefault<z.ZodBoolean>;
 }> = z
   .object({
     notifyOnNewAgents: z
       .boolean()
       .default(false)
       .describe("Notify when directory scans discover new agents"),
+    askAllApproved: z
+      .boolean()
+      .default(false)
+      .describe(
+        "Ask every approved peer when the network is asked, whatever its skills",
+      ),
   })
   .strict();
 
@@ -310,7 +317,9 @@ export function createAgentDiscoveryPackages(
           deserializeEntity: (markdown, entityType) =>
             runtime.entityReads.deserializeEntity(markdown, entityType),
         }),
-        createNetworkAskTool(context),
+        createNetworkAskTool(context, {
+          askAllApproved: slotContext.config.askAllApproved,
+        }),
       ];
     },
   );

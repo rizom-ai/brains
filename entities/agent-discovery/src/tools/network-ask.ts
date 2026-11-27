@@ -5,6 +5,7 @@ import { z } from "@brains/utils/zod";
 import { AGENT_ENTITY_TYPE } from "../lib/constants";
 import {
   choosePeers,
+  type PeerRouting,
   collectNetworkAnswers,
   type PeerCandidate,
   type PeerReply,
@@ -116,15 +117,23 @@ async function askPeer(
 
 /**
  * Ask the network: the approved peers whose skills fit the question (three
- * at most, or the two nearest), in parallel, each within the A2A ask budget.
+ * at most, or the two nearest), or every approved peer on a brain set to ask
+ * them all, in parallel, each within the A2A ask budget.
  * Public and side-effect free, so a visitor's turn may use it. Offered only
  * while an approved peer exists: with none, it could only report silence.
  */
-export function createNetworkAskTool(context: NetworkAskContext): Tool {
+export function createNetworkAskTool(
+  context: NetworkAskContext,
+  routing: PeerRouting = {},
+): Tool {
+  // The model is told the routing in force, not one this brain does not use.
+  const picks =
+    routing.askAllApproved === true
+      ? "Asks every approved peer (at most three, the nearest first)"
+      : "Picks the approved peers whose skills fit it best (at most three, or the two nearest when none fit)";
   return {
     name: "network_ask",
-    description:
-      "Ask the connected brains a question. Picks the approved peers whose skills fit it best (at most three, or the two nearest when none fit), asks them in parallel (each peer answers with its own model turn, so expect to wait up to half a minute), and returns every answer with its sources attributed to the brain that gave it, plus who did not answer. Search this brain first; use it when that search holds little on the question or the user asks what the network thinks; pass the question as asked.",
+    description: `Ask the connected brains a question. ${picks}, asks them in parallel (each peer answers with its own model turn, so expect to wait up to half a minute), and returns every answer with its sources attributed to the brain that gave it, plus who did not answer. Search this brain first; use it when that search holds little on the question or the user asks what the network thinks; pass the question as asked.`,
     inputSchema: networkAskInputSchema.shape,
     visibility: "public",
     sideEffects: "none",
@@ -138,7 +147,7 @@ export function createNetworkAskTool(context: NetworkAskContext): Tool {
         };
       }
       const { question } = parsed.data;
-      const peers = choosePeers(question, await listPeers(context));
+      const peers = choosePeers(question, await listPeers(context), routing);
       const replies = await Promise.all(
         peers.map(async (peer) => ({
           peer,

@@ -19,4 +19,18 @@ describe("the book package's instructions", () => {
     expect(instructions).toContain("verbatim, in the language of the text");
     expect(instructions).toContain("say that the books do not address it");
   });
+
+  it("answers in the language the question is asked in, whatever language it quotes", async () => {
+    const shell = createMockShell();
+    const registered = await Promise.all(
+      createBookPlugins().map((plugin) => plugin.register(shell)),
+    );
+    const instructions = registered
+      .map((capabilities) => capabilities.instructions ?? "")
+      .join("\n");
+
+    expect(instructions).toContain(
+      "Answer in the language of the question's own sentences, or the language it asks for: a question that quotes another language, or names works in it, is not asked in that language.",
+    );
+  });
 });

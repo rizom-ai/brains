@@ -106,15 +106,55 @@ describe("choosePeers", () => {
     ]);
     expect(chosen).toEqual([]);
   });
+
+  describe("on a brain that asks all its approved peers", () => {
+    const all = { askAllApproved: true };
+
+    it("asks every approved peer, whatever its skills, nearest first", () => {
+      const chosen = choosePeers(
+        "What is the weather on Mars?",
+        [{ ...coder, distance: 0.6 }, cook, { ...gardener, distance: 0.2 }],
+        all,
+      );
+      // A peer with no place yet is asked too, after those that have one.
+      expect(chosen.map((p) => p.id)).toEqual([
+        "jo.example",
+        "kai.example",
+        "sam.example",
+      ]);
+    });
+
+    it("still asks three at most, and never a peer that is not approved", () => {
+      const chosen = choosePeers(
+        "Who can plan a garden?",
+        [
+          { ...gardener, distance: 0.4 },
+          { ...botanist, distance: 0.1 },
+          { ...cook, distance: 0.3 },
+          { ...coder, distance: 0.2 },
+          { ...peer("old.example", gardener.skills), status: "archived" },
+          { ...peer("new.example", gardener.skills), status: "discovered" },
+        ],
+        all,
+      );
+      expect(chosen.map((p) => p.id)).toEqual([
+        "ivy.example",
+        "kai.example",
+        "sam.example",
+      ]);
+    });
+  });
 });
 
 describe("network_ask", () => {
   type Harness = ReturnType<typeof createPluginHarness<Plugin>>;
 
-  async function setup(): Promise<Harness> {
+  async function setup(
+    config: { askAllApproved?: boolean } = {},
+  ): Promise<Harness> {
     const harness = createPluginHarness<Plugin>({ domain: "self.brain" });
     await installAll(harness, agentDiscoveryPlugins());
-    await installAll(harness, agentToolsPlugins());
+    await installAll(harness, agentToolsPlugins({}, config));
     const entityService = harness.getEntityService();
     for (const agent of [
       createTestAgent({
@@ -387,6 +427,38 @@ describe("network_ask", () => {
       "network unavailable",
       "network unavailable",
     ]);
+  });
+
+  it("asks every approved peer on a brain set to, and says so to the model", async () => {
+    const harness = await setup({ askAllApproved: true });
+    const asked: string[] = [];
+    harness.subscribe<{ agent: string }, unknown>(
+      a2aAskContract.name,
+      async (message) => {
+        asked.push(message.payload.agent);
+        return { success: false, error: "unexpected" };
+      },
+    );
+    const tool = networkAsk(harness);
+
+    const result = await tool.handler(
+      { question: "What is the weather on Mars?" },
+      guestContext,
+    );
+
+    expectSuccess(result);
+    expect(asked.sort()).toEqual(["ivy.example", "jo.example", "kai.example"]);
+    expect(tool.description).toContain(
+      "Asks every approved peer (at most three, the nearest first)",
+    );
+    expect(tool.description).not.toContain("whose skills fit it best");
+  });
+
+  it("tells the model it picks by skill on a brain that does", async () => {
+    const tool = networkAsk(await setup());
+    expect(tool.description).toContain(
+      "Picks the approved peers whose skills fit it best (at most three, or the two nearest when none fit)",
+    );
   });
 
   it("asks nobody when no peer fits the question", async () => {
