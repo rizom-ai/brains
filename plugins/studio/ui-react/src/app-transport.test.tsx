@@ -1181,11 +1181,13 @@ describe("Studio App transport", () => {
       `/studio/api/hierarchy?type=post&offset=25&limit=25&${filters}`,
     );
     expect(document.body.textContent).toContain("26–26 of 76");
-    await act(async () =>
-      document
-        .querySelector<HTMLButtonElement>("[data-studio-record]")
-        ?.click(),
+    // A row is a link to its entry, so it opens in a new tab or copies like
+    // any other; a plain click still opens it in place.
+    const row = document.querySelector<HTMLAnchorElement>(
+      "a[data-studio-record]",
     );
+    expect(row?.getAttribute("href")).toMatch(/^\/studio\/entities\/post\/./);
+    await act(async () => row?.click());
     await waitFor(
       () =>
         document.querySelector(

@@ -1,5 +1,11 @@
 /** @jsxImportSource react */
 import type { ReactElement } from "react";
+import {
+  studioCollectionPath,
+  studioGroupingPath,
+} from "../../src/studio-paths";
+import { isPlainLinkClick } from "./link-click";
+import { getStudioRouterBasePath, studioWorkspaceHref } from "./studio-router";
 import type { EntityTypeInfo, StudioWorkspaceInfo } from "./api";
 import type { GroupingNavigation } from "./grouping-url-query";
 import type { StudioArea } from "./studio-areas";
@@ -55,6 +61,8 @@ function StudioAreaMark({ area }: { area: StudioArea }): ReactElement {
 function LeafLink(props: {
   label: string;
   active: boolean;
+  /** Where the destination lives, so it opens in a new tab like any link. */
+  href: string;
   onSelect: () => void;
   count?: number | undefined;
   /** The count asks for attention rather than totalling entries. */
@@ -62,15 +70,19 @@ function LeafLink(props: {
 }): ReactElement {
   return (
     <li>
-      <button
-        type="button"
+      <a
+        href={props.href}
         className={navClass(
           props.active ? "studio-leaf-link active" : "studio-leaf-link",
           nav.leafLink,
           props.active && nav.leafActive,
         )}
         aria-current={props.active ? "page" : undefined}
-        onClick={props.onSelect}
+        onClick={(event) => {
+          if (!isPlainLinkClick(event)) return;
+          event.preventDefault();
+          props.onSelect();
+        }}
       >
         {props.label}
         {props.count !== undefined && (
@@ -83,7 +95,7 @@ function LeafLink(props: {
             {props.count}
           </span>
         )}
-      </button>
+      </a>
     </li>
   );
 }
@@ -128,6 +140,7 @@ export function DesktopNavigation(props: {
     props.model;
   const { activeArea, leafOpen, leafId, selectArea } = props.tree;
   const activeAreaLabel = areas.find((area) => area.id === activeArea)?.label;
+  const basePath = getStudioRouterBasePath();
 
   const typeGroup = (group: NavigationTypeGroup): ReactElement => (
     <LeafGroup key={group.label} label={group.label}>
@@ -136,6 +149,7 @@ export function DesktopNavigation(props: {
           key={info.entityType}
           label={navigationTypeLabel(info)}
           active={info.entityType === props.active}
+          href={studioCollectionPath(basePath, info.entityType)}
           onSelect={() => props.onSelect(info.entityType)}
           count={info.isSingleton ? undefined : info.count}
         />
@@ -149,6 +163,7 @@ export function DesktopNavigation(props: {
         key={workspace.id}
         label={workspace.label}
         active={workspace.id === props.activeWorkspace}
+        href={studioWorkspaceHref(basePath, workspace.id)}
         onSelect={() => props.onSelectWorkspace?.(workspace.id)}
         count={badge > 0 ? badge : undefined}
         attention
@@ -311,6 +326,7 @@ export function DesktopNavigation(props: {
                         key={grouping.key}
                         label={grouping.label}
                         active={grouping.key === props.groupings?.active}
+                        href={studioGroupingPath(basePath, grouping.key)}
                         onSelect={() => props.groupings?.onSelect(grouping.key)}
                       />
                     ))}

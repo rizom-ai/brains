@@ -13,7 +13,11 @@ import {
   studioWorkspacePath,
 } from "../../src/studio-paths";
 import { STUDIO_ACCOUNT_WORKSPACE_ID } from "../../src/account-workspace";
-import { STUDIO_CHAT_ROUTE_PATH } from "../../src/chat-workspace";
+import {
+  STUDIO_CHAT_ROUTE_PATH,
+  STUDIO_CHAT_WORKSPACE_ID,
+  studioChatWorkspacePath,
+} from "../../src/chat-workspace";
 import { STUDIO_OVERVIEW_WORKSPACE_ID } from "../../src/overview-constants";
 import type { StudioWorkspaceInfo } from "./api";
 
@@ -21,6 +25,16 @@ let studioRouterBasePath = "/studio";
 
 export function getStudioRouterBasePath(): string {
   return studioRouterBasePath;
+}
+
+/** Where a workspace lives: Chat at its own door, every other at its path. */
+export function studioWorkspaceHref(
+  basePath: string,
+  workspaceId: string,
+): string {
+  return workspaceId === STUDIO_CHAT_WORKSPACE_ID
+    ? studioChatWorkspacePath(basePath)
+    : studioWorkspacePath(basePath, workspaceId);
 }
 
 export function resolveStudioWorkspaceAlias(

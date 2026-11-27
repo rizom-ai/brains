@@ -13,6 +13,7 @@ import {
   createStudioRouter,
   resolveStudioHomePath,
   resolveStudioWorkspaceAlias,
+  studioWorkspaceHref,
 } from "./studio-router";
 
 describe("Studio browser router", () => {
@@ -80,5 +81,14 @@ describe("Studio browser router", () => {
     expect(history.location.pathname).toBe("/studio/entities/post");
     history.forward();
     expect(history.location.pathname).toBe("/studio/entities/post/field-notes");
+  });
+});
+
+describe("studioWorkspaceHref", () => {
+  it("links Chat at its own door and every other workspace by its path", () => {
+    expect(studioWorkspaceHref("/studio", "web-chat:chat")).toBe("/chat");
+    expect(studioWorkspaceHref("/studio", "unified-inbox:inbox")).toBe(
+      "/studio/workspaces/unified-inbox%3Ainbox",
+    );
   });
 });

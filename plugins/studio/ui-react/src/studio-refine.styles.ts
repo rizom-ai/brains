@@ -94,6 +94,7 @@ export const refineStyles: Record<
     fontFamily: "inherit",
     fontSize: "inherit",
     textAlign: "left",
+    textDecoration: "none",
     cursor: "pointer",
   },
   updated: {

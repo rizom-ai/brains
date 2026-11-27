@@ -58,6 +58,8 @@ export const libraryStyles: Record<
       ":hover": "var(--console-card)",
     },
     textAlign: "left",
+    textDecoration: "none",
+    color: "inherit",
     cursor: "pointer",
     transitionProperty: {
       default: "background-color",

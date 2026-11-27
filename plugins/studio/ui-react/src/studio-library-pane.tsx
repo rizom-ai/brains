@@ -2,7 +2,10 @@
 import * as stylex from "@stylexjs/stylex";
 import { systemFieldStyles } from "./studio-system-fields.styles";
 import { Button } from "@brains/app-ui-react";
-import type { ReactElement } from "react";
+import type { MouseEvent, ReactElement } from "react";
+import { studioEntityPath } from "../../src/studio-paths";
+import { isPlainLinkClick } from "./link-click";
+import { getStudioRouterBasePath } from "./studio-router";
 import { headStyles } from "./studio-page-head.styles";
 import { libraryStyles as library } from "./studio-library.styles";
 import { StudioStatus } from "./studio-status";
@@ -328,6 +331,18 @@ function LibraryRow(props: {
   const title = entityTitle(entity, entity.path?.at(-1));
   const generation = entityGenerationState(entity);
   const open = (): void => view.openEntity(entity.id, entity.entityType);
+  // A row is a link, so it opens in a new tab or copies like any other; a
+  // plain click opens the entry in place.
+  const href = studioEntityPath(
+    getStudioRouterBasePath(),
+    entity.entityType,
+    entity.id,
+  );
+  const follow = (event: MouseEvent<HTMLAnchorElement>): void => {
+    if (!isPlainLinkClick(event)) return;
+    event.preventDefault();
+    open();
+  };
   const titleCell = (
     <span
       className={editorClass(
@@ -393,11 +408,11 @@ function LibraryRow(props: {
           picked={picked}
           onToggle={() => refine.toggle(entity.id)}
         />
-        <button
-          type="button"
+        <a
+          href={href}
           data-studio-record=""
           {...stylex.props(refineStyles.open)}
-          onClick={open}
+          onClick={follow}
         >
           {titleCell}
           <time
@@ -407,13 +422,13 @@ function LibraryRow(props: {
           >
             {formatUpdated(entity.updated)}
           </time>
-        </button>
+        </a>
       </div>
     );
   }
   return (
-    <button
-      type="button"
+    <a
+      href={href}
       className={editorClass(
         "",
         library.row,
@@ -421,7 +436,7 @@ function LibraryRow(props: {
         systemDesign && systemFieldStyles.collectionRow,
       )}
       data-studio-record=""
-      onClick={open}
+      onClick={follow}
     >
       {!systemDesign && (
         <span className={editorClass("", library.index)}>{props.index}</span>
@@ -438,6 +453,6 @@ function LibraryRow(props: {
           {formatUpdated(entity.updated)}
         </time>
       )}
-    </button>
+    </a>
   );
 }

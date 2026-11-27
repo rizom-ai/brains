@@ -11,6 +11,9 @@ import {
   type StudioGroupingQuery,
 } from "../../src/grouping-query";
 import type { EntityTypeInfo, GroupingPage } from "./api";
+import { studioEntityPath } from "../../src/studio-paths";
+import { isPlainLinkClick } from "./link-click";
+import { getStudioRouterBasePath } from "./studio-router";
 import { useStudioApi } from "./studio-api-context";
 import {
   groupingQueryOptions,
@@ -292,13 +295,7 @@ export function StudioGroupingContent(
                   groupingStyles.valueLink,
                 )}
                 onClick={(event) => {
-                  if (
-                    event.metaKey ||
-                    event.ctrlKey ||
-                    event.shiftKey ||
-                    event.altKey
-                  )
-                    return;
+                  if (!isPlainLinkClick(event)) return;
                   event.preventDefault();
                   props.onChange(
                     studioGroupingQuerySchema.parse({ value: entry.value }),
@@ -321,16 +318,24 @@ export function StudioGroupingContent(
             ))}
           {page?.kind === "members" &&
             page.entities.map((entity, index) => (
-              <button
-                type="button"
+              <a
                 key={JSON.stringify([entity.entityType, entity.id])}
+                href={studioEntityPath(
+                  getStudioRouterBasePath(),
+                  entity.entityType,
+                  entity.id,
+                )}
                 data-studio-record=""
                 className={editorClassName(
                   "",
                   libraryStyles.row,
                   editorStyles.listingRow,
                 )}
-                onClick={() => props.onOpen(entity.entityType, entity.id)}
+                onClick={(event) => {
+                  if (!isPlainLinkClick(event)) return;
+                  event.preventDefault();
+                  props.onOpen(entity.entityType, entity.id);
+                }}
               >
                 <span className={editorClassName("", libraryStyles.index)}>
                   {String(query.offset + index + 1).padStart(2, "0")}
@@ -352,7 +357,7 @@ export function StudioGroupingContent(
                 >
                   {formatUpdated(entity.updated)}
                 </time>
-              </button>
+              </a>
             ))}
           {page && total === 0 && (
             <StudioStatus className={editorClassName("", libraryStyles.empty)}>

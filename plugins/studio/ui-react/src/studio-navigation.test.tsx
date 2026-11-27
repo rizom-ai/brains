@@ -122,6 +122,7 @@ beforeEach(() => {
   browser = new Window({ url: "http://brain.test/studio/entities/note" });
   restoreGlobals = installDomGlobals(browser, {
     HTMLInputElement: browser.HTMLInputElement,
+    MouseEvent: browser.MouseEvent,
     Event: browser.Event,
     CustomEvent: browser.CustomEvent,
     // Radix needs these to mount a dialog.
@@ -217,6 +218,7 @@ function browseGroups(): {
   options: {
     value: string;
     label: string;
+    href: string;
     tally?: number;
     attention?: number;
     accessibleLabel?: string;
@@ -229,6 +231,7 @@ function browseGroups(): {
       options: [
         {
           value: "workspace:studio:overview",
+          href: "/studio/workspaces/studio%3Aoverview",
           label: "Overview",
           accessibleLabel: "Overview",
           attention: 2,
@@ -241,6 +244,7 @@ function browseGroups(): {
       options: [
         {
           value: "workspace:web-chat:chat",
+          href: "/chat",
           label: "Chat",
           accessibleLabel: "Chat",
         },
@@ -249,7 +253,14 @@ function browseGroups(): {
     {
       area: "library",
       label: "Library",
-      options: [{ value: "type:note", label: "Notes", tally: 12 }],
+      options: [
+        {
+          value: "type:note",
+          href: "/studio/entities/note",
+          label: "Notes",
+          tally: 12,
+        },
+      ],
     },
     {
       area: "work",
@@ -257,6 +268,7 @@ function browseGroups(): {
       options: [
         {
           value: "workspace:unified-inbox:inbox",
+          href: "/studio/workspaces/unified-inbox%3Ainbox",
           label: "Inbox",
           attention: 3,
         },
@@ -268,6 +280,7 @@ function browseGroups(): {
       options: [
         {
           value: "workspace:admin:administration",
+          href: "/studio/workspaces/admin%3Aadministration",
           label: "Administration",
           accessibleLabel: "Administration",
           attention: 1,
@@ -278,8 +291,18 @@ function browseGroups(): {
       area: "system",
       label: "System",
       options: [
-        { value: "type:prompt", label: "Prompts", tally: 18 },
-        { value: "type:agent", label: "Agents", tally: 15 },
+        {
+          value: "type:prompt",
+          href: "/studio/entities/prompt",
+          label: "Prompts",
+          tally: 18,
+        },
+        {
+          value: "type:agent",
+          href: "/studio/entities/agent",
+          label: "Agents",
+          tally: 15,
+        },
       ],
     },
   ];
@@ -320,6 +343,26 @@ const browseLinks = (): string[] =>
   );
 
 describe("phone Browse destinations", () => {
+  it("makes every destination a link the browser can open elsewhere", async () => {
+    await renderBrowse();
+    const links = [
+      ...document.querySelectorAll<HTMLAnchorElement>(
+        "a.studio-mobile-navigation-link",
+      ),
+    ];
+    expect(links.map((link) => link.getAttribute("href"))).toContain("/chat");
+    const notes = links.find((link) => link.textContent.includes("Notes"));
+    expect(notes?.getAttribute("href")).toBe("/studio/entities/note");
+    await act(async () =>
+      notes?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, metaKey: true }),
+      ),
+    );
+    expect(selected).toEqual([]);
+    await act(async () => notes?.click());
+    expect(selected).toEqual(["type:note"]);
+  });
+
   it("puts every single destination above the toggles", async () => {
     await renderBrowse();
     const blocks = [...document.querySelectorAll("section, details")].map(
@@ -338,12 +381,16 @@ describe("phone Browse destinations", () => {
 
   it("marks a single destination by treatment as well as position", async () => {
     await renderBrowse();
-    const admin = [...document.querySelectorAll("button")].find(
-      (button) => button.getAttribute("aria-label") === "Administration",
-    );
-    const child = [...document.querySelectorAll("button")].find((button) =>
-      button.textContent.includes("Inbox"),
-    );
+    const admin = [
+      ...document.querySelectorAll<HTMLAnchorElement>(
+        ".studio-mobile-navigation-link",
+      ),
+    ].find((button) => button.getAttribute("aria-label") === "Administration");
+    const child = [
+      ...document.querySelectorAll<HTMLAnchorElement>(
+        ".studio-mobile-navigation-link",
+      ),
+    ].find((button) => button.textContent.includes("Inbox"));
     // Group children indent; a direct destination sits flush, so Admin cannot
     // read as the last row of the Work group above it.
     expect(admin?.closest("details")).toBeNull();
@@ -369,12 +416,16 @@ describe("phone Browse destinations", () => {
 
   it("separates an attention count from an item tally", async () => {
     await renderBrowse();
-    const overview = [...document.querySelectorAll("button")].find(
-      (button) => button.getAttribute("aria-label") === "Overview",
-    );
-    const notes = [...document.querySelectorAll("button")].find((button) =>
-      button.textContent.includes("Notes"),
-    );
+    const overview = [
+      ...document.querySelectorAll<HTMLAnchorElement>(
+        ".studio-mobile-navigation-link",
+      ),
+    ].find((button) => button.getAttribute("aria-label") === "Overview");
+    const notes = [
+      ...document.querySelectorAll<HTMLAnchorElement>(
+        ".studio-mobile-navigation-link",
+      ),
+    ].find((button) => button.textContent.includes("Notes"));
     expect(
       overview?.querySelector("[data-studio-attention]")?.textContent,
     ).toBe("2");
@@ -401,18 +452,22 @@ describe("phone Browse destinations", () => {
   it("keeps Account out of Browse and spends no display line naming the sheet", async () => {
     await renderBrowse();
     expect(
-      [...document.querySelectorAll("button")].some(
-        (button) => button.textContent.trim() === "Account",
-      ),
+      [
+        ...document.querySelectorAll<HTMLAnchorElement>(
+          ".studio-mobile-navigation-link",
+        ),
+      ].some((button) => button.textContent.trim() === "Account"),
     ).toBe(false);
     expect(document.querySelector("header h2")).toBeNull();
   });
 
   it("reports the chosen destination without closing anything itself", async () => {
     await renderBrowse();
-    const notes = [...document.querySelectorAll("button")].find((button) =>
-      button.textContent.includes("Notes"),
-    );
+    const notes = [
+      ...document.querySelectorAll<HTMLAnchorElement>(
+        ".studio-mobile-navigation-link",
+      ),
+    ].find((button) => button.textContent.includes("Notes"));
     await act(async () => notes?.click());
     expect(selected).toEqual(["type:note"]);
   });
@@ -519,6 +574,30 @@ describe("area and leaf navigation", () => {
       leafText()?.indexOf("Network") ?? 0,
     );
   });
+  it("makes every leaf destination a link the browser can open elsewhere", async () => {
+    await render();
+    await click(".studio-area-link", "Work");
+    const inbox = [
+      ...document.querySelectorAll<HTMLAnchorElement>("a.studio-leaf-link"),
+    ].find((link) => link.textContent.includes("Inbox"));
+    expect(inbox?.getAttribute("href")).toBe(
+      "/studio/workspaces/inbox%3Ainbox",
+    );
+    // A modified click opens a tab; Studio does not navigate in place.
+    await act(async () =>
+      inbox?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, ctrlKey: true }),
+      ),
+    );
+    expect(selected).toEqual([]);
+    await click(".studio-area-link", "Library");
+    expect(
+      [...document.querySelectorAll<HTMLAnchorElement>("a.studio-leaf-link")]
+        .find((link) => link.textContent.includes("Notes"))
+        ?.getAttribute("href"),
+    ).toBe("/studio/entities/note");
+  });
+
   it("browses Work without opening Chat, fetching a destination or replacing the current document", async () => {
     await render();
     await click(".studio-area-link", "Work");

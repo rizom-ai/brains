@@ -14,6 +14,7 @@ import {
   type ValidationIssue,
 } from "./api";
 import { collectionSearch } from "./collection-url-query";
+import { isPlainLinkClick } from "./link-click";
 import { editorClassName } from "./studio-editor.styles";
 import { libraryStyles } from "./studio-library.styles";
 import { hierarchyStyles as styles } from "./studio-hierarchy.styles";
@@ -47,14 +48,7 @@ function navigateFolder(
   props: FolderNavigationProps,
   prefix: EntityIdPath | null,
 ): void {
-  if (
-    event.button !== 0 ||
-    event.metaKey ||
-    event.ctrlKey ||
-    event.shiftKey ||
-    event.altKey
-  )
-    return;
+  if (!isPlainLinkClick(event)) return;
   event.preventDefault();
   props.onNavigate(prefix);
 }
