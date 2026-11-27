@@ -40,14 +40,15 @@ export interface EditorShellOptions {
  *
  * Hosts the Bun-bundled React app as the sole authenticated shell. Palette
  * and type ramp come from the shared @brains/console-theme sheet — Studio
- * defaults to the paper climate; the stored preference wins. The hydrated
- * app owns its compact context and identity chrome.
+ * follows the system color scheme, with paper when the system cannot say;
+ * a chosen climate wins. The hydrated app owns its compact context and
+ * identity chrome.
  */
 export function renderEditorShellHtml(options: EditorShellOptions): string {
   const basePath = escapeHtml(options.basePath);
   const classes = operatorApplicationDocumentClasses();
   return `<!doctype html>
-<html lang="en" data-climate="paper" data-theme="light">
+<html lang="en" data-climate="paper" data-theme="light" data-climate-follow-system>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
