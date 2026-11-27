@@ -15,9 +15,6 @@ type SystemFieldStyle =
   | "value"
   | "list"
   | "collectionIntro"
-  | "collectionRow"
-  | "collectionTitle"
-  | "collectionMeta"
   | "onlyField"
   | "link";
 export const systemFieldStyles: Record<SystemFieldStyle, stylex.StyleXStyles> =
@@ -29,28 +26,6 @@ export const systemFieldStyles: Record<SystemFieldStyle, stylex.StyleXStyles> =
       fontSize: 14,
       lineHeight: 1.65,
       maxWidth: "75ch",
-    },
-    collectionRow: {
-      gridTemplateColumns: "minmax(0, 1fr) auto",
-      alignItems: "center",
-      paddingBlock: 22,
-      "@media (max-width: 640px)": {
-        gridTemplateColumns: "minmax(0, 1fr) auto",
-        paddingBlock: 20,
-      },
-    },
-    collectionTitle: {
-      fontSize: 23,
-      fontWeight: 500,
-      "@media (max-width: 640px)": { fontSize: 21 },
-    },
-    collectionMeta: {
-      display: "block",
-      fontFamily: "var(--console-ui)",
-      fontSize: 12,
-      fontWeight: 400,
-      color: "var(--console-text-dim)",
-      marginTop: 7,
     },
     grid: {
       display: "grid",

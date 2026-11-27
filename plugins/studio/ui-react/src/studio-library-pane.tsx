@@ -23,7 +23,6 @@ import {
   entityRowExcerpt,
   entityRowStatus,
   entityTitle,
-  formatUpdated,
   optionLabel,
   rowDateText,
   sentenceLabel,
@@ -332,7 +331,7 @@ function LibraryRow(props: {
   picking: boolean;
 }): ReactElement {
   const { entity, view, refine } = props;
-  const { systemDesign, entitySchema, entryLabel } = view.model;
+  const { systemDesign, entitySchema } = view.model;
   const query = view.collectionQuery;
   const title = entityTitle(entity, entity.path?.at(-1));
   const generation = entityGenerationState(entity);
@@ -373,14 +372,7 @@ function LibraryRow(props: {
     open();
   };
   const titleCell = (
-    <span
-      className={editorClass(
-        "",
-        library.title,
-        systemDesign && systemFieldStyles.collectionTitle,
-      )}
-      title={entity.id}
-    >
+    <span className={editorClass("", library.title)} title={entity.id}>
       {title}
       {(query.q || query.scope === "collection") &&
         entity.path &&
@@ -389,14 +381,6 @@ function LibraryRow(props: {
             {entity.path.slice(0, -1).map(folderLabel).join(" / ")}
           </span>
         )}
-      {systemDesign && (
-        <span {...stylex.props(systemFieldStyles.collectionMeta)}>
-          {entryLabel} ·{" "}
-          <time dateTime={entity.updated} title={entity.updated}>
-            {formatUpdated(entity.updated)}
-          </time>
-        </span>
-      )}
       {excerpt && (
         <span data-studio-row-excerpt="" {...stylex.props(library.excerpt)}>
           {excerpt}
@@ -471,27 +455,20 @@ function LibraryRow(props: {
         library.recordLink,
         editorStyles.listingRow,
         covered && library.covered,
-        systemDesign && systemFieldStyles.collectionRow,
       )}
       data-studio-record=""
       onClick={follow}
     >
-      {!systemDesign && (
-        <span className={editorClass("", library.index)}>{props.index}</span>
-      )}
+      <span className={editorClass("", library.index)}>{props.index}</span>
       {coverCell}
       {titleCell}
-      {systemDesign ? (
-        <span aria-hidden="true">→</span>
-      ) : (
-        <time
-          className={editorClass("", library.updated)}
-          dateTime={rowDate.iso}
-          title={rowDate.iso}
-        >
-          {rowDateText(rowDate)}
-        </time>
-      )}
+      <time
+        className={editorClass("", library.updated)}
+        dateTime={rowDate.iso}
+        title={rowDate.iso}
+      >
+        {rowDateText(rowDate)}
+      </time>
     </a>
   );
 }

@@ -1585,6 +1585,18 @@ describe("capability-aware Studio controls", () => {
     expect(edit).toContain("Add to queue");
   });
 
+  it("lists a system type with the same row as any other", () => {
+    const html = renderCapabilityView(allowedCapabilities, "browse", {
+      entityType: "prompt",
+      frontmatter: { title: "Research synthesis" },
+    });
+    const row = html.slice(html.indexOf("data-studio-record"));
+    expect(row).toMatch(/>01<\/span>/);
+    expect(row).toMatch(/>Edited [^<]+<\/time>/);
+    expect(row).not.toContain("→");
+    expect(row).not.toMatch(/Prompts? ·/);
+  });
+
   it("dates a row by what it means and states its own status", () => {
     const fields: FieldDescriptor[] = [
       stringField,
