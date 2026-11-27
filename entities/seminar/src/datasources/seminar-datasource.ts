@@ -72,7 +72,9 @@ type PageClosingSchema = z.ZodObject<{
 type SeminarPageSchema = z.ZodObject<
   {
     id: z.ZodString;
-    speakers: z.ZodArray<z.ZodString>;
+    speakers: z.ZodArray<
+      z.ZodObject<{ agent: z.ZodString; name: z.ZodString }>
+    >;
     stands: z.ZodNullable<z.ZodString>;
     turns: z.ZodArray<PageTurnSchema>;
     closing: z.ZodNullable<PageClosingSchema>;
@@ -86,8 +88,8 @@ type SeminarPageSchema = z.ZodObject<
 export const seminarPageSchema: SeminarPageSchema = z.object({
   id: z.string(),
   ...seminarFrontmatterSchema.shape,
-  /** The peers the question was put to, by name, in the order of their openings. */
-  speakers: z.array(z.string()),
+  /** The peers the question was put to, as the brain names and orders them. */
+  speakers: z.array(z.object({ agent: z.string(), name: z.string() })),
   /** The peer whose opening stood, by name; none where no exchange followed. */
   stands: z.string().nullable(),
   turns: z.array(seminarPageTurnSchema),
@@ -184,7 +186,7 @@ export function seminarPageOf(
     ...seminar.frontmatter,
     speakers: peerTurns
       .filter(({ round }) => round === "opening")
-      .map(({ speaker }) => shown(speaker)),
+      .map(({ speaker }) => ({ agent: speaker, name: shown(speaker) })),
     stands: stood === undefined ? null : shown(stood),
     turns: ordered.map((turn) => ({
       round: turn.round,

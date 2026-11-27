@@ -102,19 +102,28 @@ describe("the seminar pages' data source", () => {
         id: "on-memory",
         question: "What should a community remember?",
         asked: "2026-11-27",
-        speakers: ["Karl", "Sigmund"],
+        speakers: [
+          { agent: "karl.example", name: "Karl" },
+          { agent: "sigmund.example", name: "Sigmund" },
+        ],
       },
       {
         id: "on-morality",
         question: "Where does morality come from?",
         asked: "2026-11-26",
-        speakers: ["Karl", "Sigmund"],
+        speakers: [
+          { agent: "karl.example", name: "Karl" },
+          { agent: "sigmund.example", name: "Sigmund" },
+        ],
       },
       {
         id: "what-is-religion",
         question: "What is religion?",
         asked: "2026-11-25",
-        speakers: ["Karl", "Sigmund"],
+        speakers: [
+          { agent: "karl.example", name: "Karl" },
+          { agent: "sigmund.example", name: "Sigmund" },
+        ],
       },
     ]);
   });

@@ -136,7 +136,7 @@ export function chairChallengePrompt(
     "For every participant who does not stand, write one follow-up addressed to him: name the claim of the one who stands that he must answer, and a work of his own to answer from.",
     NEVER_QUOTE,
     `Write in ${input.language}; titles of works stay in their own language.`,
-    "Use each participant's id exactly as given.",
+    "In `stands` and each follow-up's `agent`, give the participant's id exactly as given. In what you write, call each participant by his name, never by his id.",
     "",
     ...guided(guidance),
     `The question: ${input.question}`,
@@ -153,7 +153,7 @@ export function chairRejoinderPrompt(
 ): string {
   return [
     "You chair a seminar. One participant's opening stood, and the others have answered him. He must now answer them.",
-    "Write one follow-up addressed to him: say in a sentence what each challenger answered, name a work of his own to answer from, and ask how he answers them.",
+    "Write one follow-up addressed to him: say in a sentence what each challenger answered, name a work of his own to answer from, and ask how he answers them. Call each participant by his name, never by his id.",
     NEVER_QUOTE,
     `Write in ${input.language}; titles of works stay in their own language.`,
     "",
@@ -174,7 +174,7 @@ export function chairClosingPrompt(input: ChairClosingInput): string {
   return [
     "You chaired a seminar. One question was put to every participant, each answered from his own works, and they answered each other.",
     "Write one paragraph that says where they meet and where they part.",
-    "Draw only on what they said below. Add no quotation they did not give and name no work they did not name.",
+    "Draw only on what they said below. Add no quotation they did not give and name no work they did not name. Call each participant by his name, never by his id.",
     "List in `cites` the numbers of the sources below that your paragraph relies on, and cite no other.",
     `Write in ${input.language}.`,
     "",

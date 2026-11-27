@@ -68,7 +68,11 @@ describe("a seminar as its page reads it", () => {
       peers,
     );
 
-    expect(page.speakers).toEqual(["Marx", "Nietzsche", "Freud"]);
+    expect(page.speakers).toEqual([
+      { agent: "karl.example", name: "Marx" },
+      { agent: "friedrich.example", name: "Nietzsche" },
+      { agent: "sigmund.example", name: "Freud" },
+    ]);
     expect(
       page.turns
         .filter(({ round, chair }) => round === "opening" && !chair)
@@ -97,7 +101,11 @@ describe("a seminar as its page reads it", () => {
   it("keeps the stored names and order on a brain that names no peers", () => {
     const page = seminarPageOf("what-is-religion", { frontmatter, turns }, []);
 
-    expect(page.speakers).toEqual(["Friedrich", "Karl", "Sigmund"]);
+    expect(page.speakers.map(({ name }) => name)).toEqual([
+      "Friedrich",
+      "Karl",
+      "Sigmund",
+    ]);
     expect(page.stands).toBe("Karl");
   });
 

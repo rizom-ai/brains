@@ -27,6 +27,7 @@ import {
 } from "./handlers/seminar-redo-handler";
 import { seminarDataSource } from "./datasources/seminar-datasource";
 import { modelChair } from "./lib/chair";
+import { getTemplates } from "./lib/register-templates";
 import { seminarSchema } from "./schemas/seminar";
 import { seminar } from "./seminar-entity";
 import { getErrorMessage } from "@brains/utils/error";
@@ -137,9 +138,12 @@ function holdDeps(
         entityType: AGENT_ENTITY_TYPE,
         options: { filter: { metadata: { status: "approved" } } },
       });
+      // Under the name this brain shows a peer by, where it gives one: the
+      // chair then writes of Marx, not of the brain named Karl.
       return agents.map((agent) => {
         const { id, metadata } = approvedPeerSchema.parse(agent);
-        return { id, name: metadata.name };
+        const shown = config.peers.find((peer) => peer.agent === id)?.name;
+        return { id, name: shown ?? metadata.name };
       });
     },
     exists: async (id) =>
@@ -170,10 +174,12 @@ export const seminarPackage: ServicePackageDefinition<
       config: seminarConfigSchema,
       entities: [seminar],
       setup: (context): Record<never, never> => {
-        // The pages a site reads seminars on, as seminar:entities.
-        serviceRuntime(context).dataSource(
-          seminarDataSource(seminar, context.config.peers),
-        );
+        const runtime = serviceRuntime(context);
+        for (const [name, template] of Object.entries(getTemplates())) {
+          runtime.template(name, template);
+        }
+        // What those pages read, as seminar:entities.
+        runtime.dataSource(seminarDataSource(seminar, context.config.peers));
         return {};
       },
     }),

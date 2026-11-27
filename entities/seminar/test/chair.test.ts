@@ -30,6 +30,9 @@ describe("the chair's prompts", () => {
     expect(prompt).toContain(GUIDANCE);
     expect(prompt).toContain("Write in Dutch");
     expect(prompt).toContain("Never quote a participant's works for him");
+    expect(prompt).toContain(
+      "call each participant by his name, never by his id",
+    );
   });
 
   it("says nothing of the participants when the brain states nothing", () => {

@@ -52,6 +52,20 @@ describe("the seminar package's registered surface", () => {
     });
   });
 
+  it("registers the pages a site reads seminars on, and what they read", async () => {
+    const { shell } = await installed();
+    expect([...shell.getTemplates().keys()].sort()).toEqual([
+      "seminar:seminar-detail",
+      "seminar:seminar-list",
+    ]);
+    expect(
+      shell
+        .getDataSourceRegistry()
+        .list()
+        .map(({ id }) => id),
+    ).toEqual(["seminar:entities"]);
+  });
+
   it("offers the owner alone one tool, which holds a seminar", async () => {
     const { capabilities } = await installed();
     expect(

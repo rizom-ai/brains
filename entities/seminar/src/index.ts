@@ -6,6 +6,15 @@ export {
   type SeminarConfig,
 } from "./plugin";
 export { seminar } from "./seminar-entity";
+export { getTemplates } from "./lib/register-templates";
+export {
+  SeminarDetailTemplate,
+  type SeminarDetailProps,
+} from "./templates/seminar-detail";
+export {
+  SeminarListTemplate,
+  type SeminarListProps,
+} from "./templates/seminar-list";
 export {
   seminarDataSource,
   seminarPageOf,

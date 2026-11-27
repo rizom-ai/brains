@@ -7,7 +7,9 @@
     "@brains/content-formatters": "workspace:*",
     "@brains/contracts": "workspace:*",
     "@brains/sdk": "workspace:*",
-    "@brains/utils": "workspace:*"
+    "@brains/utils": "workspace:*",
+    "@rizom/brain-ui": "workspace:*",
+    "react": "^19.2.7"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
@@ -15,8 +17,11 @@
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.4.0",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.0.3",
     "bun-types": "^1.4.0",
     "eslint": "^10.5.0",
+    "react-dom": "^19.2.7",
     "typescript": "^7.0.2"
   },
   "exports": {
