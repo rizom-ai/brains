@@ -213,6 +213,7 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
         <aside className={navClass("rail", nav.rail)}>
           <TypeSwitcher
             renderMode="desktop"
+            focus={editing}
             groupings={props.groupings}
             types={types}
             active={

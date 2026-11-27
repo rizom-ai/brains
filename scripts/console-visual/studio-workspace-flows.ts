@@ -33,7 +33,7 @@ export async function exerciseStudioNavigation({
     await clickSelector(page, ".studio-navigation-collapse");
     await waitForPage("collapsed shell width", () =>
       page.evaluate<boolean>(
-        'Math.round(document.querySelector(".rail").getBoundingClientRect().width) === 68 && getComputedStyle(document.querySelector(".studio-leaf-rail")).display === "none"',
+        'Math.round(document.querySelector(".rail").getBoundingClientRect().width) === 68 && !document.querySelector(".studio-leaf-rail")',
       ),
     );
     const currentPath = await page.evaluate<string>("location.pathname");

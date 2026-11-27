@@ -147,11 +147,13 @@ async function render(
   active: string | null = "note",
   activeWorkspace: string | null = null,
   availableWorkspaces = workspaces,
+  focus = false,
 ): Promise<void> {
   await act(async () =>
     root.render(
       <TypeSwitcher
         renderMode="desktop"
+        focus={focus}
         types={types}
         active={active}
         workspaces={availableWorkspaces}
@@ -474,6 +476,52 @@ describe("phone Browse destinations", () => {
 });
 
 describe("area and leaf navigation", () => {
+  it("folds to its rail while an entry is open, without changing the preference", async () => {
+    await render("note", null, workspaces, true);
+    const navigation = (): Element | null =>
+      document.querySelector(".studio-navigation");
+    expect(navigation()?.getAttribute("data-collapsed")).toBe("true");
+    expect(leafText() ?? "").not.toContain("Notes");
+    // Browsing an area opens the navigation over the entry, in place.
+    await click(".studio-area-link", "Library");
+    expect(navigation()?.getAttribute("data-collapsed")).toBe("false");
+    expect(leafText()).toContain("Notes");
+    expect(selected).toEqual([]);
+    expect(
+      browser.localStorage.getItem("studio.navigation.collapsed"),
+    ).not.toBe("true");
+    // The fold control ends the browse; it does not store a preference.
+    await act(async () =>
+      document
+        .querySelector<HTMLButtonElement>(".studio-navigation-collapse")
+        ?.click(),
+    );
+    expect(navigation()?.getAttribute("data-collapsed")).toBe("true");
+    expect(
+      browser.localStorage.getItem("studio.navigation.collapsed"),
+    ).not.toBe("true");
+    // …and it opens the navigation again from the rail.
+    await act(async () =>
+      document
+        .querySelector<HTMLButtonElement>(".studio-navigation-collapse")
+        ?.click(),
+    );
+    expect(navigation()?.getAttribute("data-collapsed")).toBe("false");
+    // Opening another entry returns to the rail.
+    await render("prompt", null, workspaces, true);
+    expect(navigation()?.getAttribute("data-collapsed")).toBe("true");
+  });
+
+  it("keeps the leaf beside a collection, which is not an entry", async () => {
+    await render("note");
+    expect(
+      document
+        .querySelector(".studio-navigation")
+        ?.getAttribute("data-collapsed"),
+    ).toBe("false");
+    expect(leafText()).toContain("Notes");
+  });
+
   it("collapses only on request and preserves that choice through destinations and remounts", async () => {
     await render();
     await click(".studio-navigation-collapse", "⇤");

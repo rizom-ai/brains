@@ -92,11 +92,38 @@ export async function exerciseStudioDelete({
  * The editor's manuscript: highlighted, readable code that copies cleanly,
  * keyboard-scrollable overflow, and sync details on every viewport.
  */
+/**
+ * An open entry folds the navigation to its rail. Browsing an area opens it
+ * without leaving the entry, and the fold control ends the browse.
+ */
+async function verifyEditorFocus(page: Bun.WebView): Promise<void> {
+  const railWidth = (width: number): Promise<boolean> =>
+    page.evaluate<boolean>(
+      `Math.round(document.querySelector(".rail").getBoundingClientRect().width) === ${width}`,
+    );
+  await waitForPage(
+    "an open entry folds the navigation",
+    async () =>
+      (await railWidth(68)) &&
+      !(await page.evaluate<boolean>(
+        'Boolean(document.querySelector(".studio-leaf-rail"))',
+      )),
+  );
+  const entryPath = await page.evaluate<string>("location.pathname");
+  await clickText(page, ".studio-area-link", "Work");
+  await waitForPage("browsing opens the navigation", () => railWidth(344));
+  if ((await page.evaluate<string>("location.pathname")) !== entryPath)
+    throw new Error("Browsing Work left the open entry");
+  await clickSelector(page, ".studio-navigation-collapse");
+  await waitForPage("the fold control ends the browse", () => railWidth(68));
+}
+
 export async function exerciseStudioEditor({
   page,
   viewport,
   climate,
 }: VisualCase): Promise<void> {
+  if (viewport.width > 900) await verifyEditorFocus(page);
   if (viewport.width <= 640) {
     await pointerDownSelector(page, ".studio-mobile-tabs button");
     await clickText(page, '[role="menuitem"]', "Preview");

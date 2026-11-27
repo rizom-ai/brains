@@ -60,8 +60,13 @@ export const navigationStyles: Record<NavigationStyle, stylex.StyleXStyles> =
     shell: {
       gridTemplateColumns: {
         default: "344px minmax(0, 1fr)",
-        ':has(> aside > [data-leaf-open="false"])': {
+        ':has(> aside > [data-leaf-open="false"][data-collapsed="false"])': {
           default: "124px minmax(0, 1fr)",
+          "@media (max-width: 900px)": "minmax(0, 1fr)",
+        },
+        // Folded, by preference or while an entry is open.
+        ':has(> aside > [data-collapsed="true"])': {
+          default: "68px minmax(0, 1fr)",
           "@media (max-width: 900px)": "minmax(0, 1fr)",
         },
       },

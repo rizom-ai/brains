@@ -548,6 +548,17 @@ describe("Studio App transport", () => {
     if (!saveState) throw new Error("Missing save state");
     expect(getComputedStyle(saveState).display).toBe("flex");
     expect(getComputedStyle(saveState).columnGap).toBe("10px");
+    // An open entry has the room: the navigation folds to its rail.
+    const shell = document.querySelector("[data-studio-body]");
+    if (!shell) throw new Error("Missing Studio body");
+    expect(
+      document
+        .querySelector(".studio-navigation")
+        ?.getAttribute("data-collapsed"),
+    ).toBe("true");
+    expect(getComputedStyle(shell).gridTemplateColumns).toBe(
+      "68px minmax(0,1fr)",
+    );
     expect(
       [...document.querySelectorAll("button")].some(
         (button) => button.textContent === "Create",
