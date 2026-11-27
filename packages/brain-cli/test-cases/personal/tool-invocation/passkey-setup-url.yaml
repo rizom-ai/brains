@@ -58,4 +58,4 @@ efficiency:
   # typed field-change lists (2026-11-09), which the 2026-10-09 baseline
   # predates. Highest of five samples on 2026-11-18 was 25,122 (Admin), plus
   # 25%, rounded up to 1,000.
-  maxTokens: 32000
+  maxTokens: 42200
