@@ -106,6 +106,16 @@ export function entityRowStatus(
   return null;
 }
 
+/** The image a row shows as its cover, from the field its type names for it. */
+export function entityRowCover(
+  entity: EntitySummary,
+  fields: readonly FieldDescriptor[],
+): string | null {
+  const field = fields.find((candidate) => candidate.column === "cover");
+  const value = field ? entity.frontmatter[field.name] : undefined;
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
 /** What the entry is about, from the field its type shows as a row's excerpt. */
 export function entityRowExcerpt(
   entity: EntitySummary,

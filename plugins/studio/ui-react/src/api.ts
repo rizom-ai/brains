@@ -512,10 +512,19 @@ export class StudioApi {
     );
   }
 
-  /** An image's bytes for preview, read through this scoped client. */
-  async fetchImagePreview(id: string, signal: AbortSignal): Promise<Blob> {
+  /**
+   * An image's bytes for preview, read through this scoped client; with a
+   * width, the thumbnail the server makes at that width.
+   */
+  async fetchImagePreview(
+    id: string,
+    signal: AbortSignal,
+    width?: number,
+  ): Promise<Blob> {
     const response = await this.request(
-      this.path(`images?id=${encodeURIComponent(id)}`),
+      this.path(
+        `images?id=${encodeURIComponent(id)}${width ? `&width=${width}` : ""}`,
+      ),
       { signal },
     );
     return response.blob();

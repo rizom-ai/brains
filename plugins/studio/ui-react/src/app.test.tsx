@@ -1636,6 +1636,23 @@ describe("capability-aware Studio controls", () => {
         excerpt: "Every reading kept, every total traceable.",
       },
     });
+    // A type with a cover shows each row's thumbnail; it is decorative.
+    const covered = renderCapabilityView(allowedCapabilities, "browse", {
+      fields: [
+        ...fields,
+        {
+          name: "coverImageId",
+          label: "Cover Image ID",
+          widget: "image",
+          column: "cover",
+        },
+      ],
+      frontmatter: { title: "Post one", coverImageId: "sensor-wall" },
+    });
+    expect(covered).toMatch(/data-studio-row-cover=""[^>]*aria-hidden="true"/);
+    expect(
+      renderCapabilityView(allowedCapabilities, "browse", { fields }),
+    ).not.toContain("data-studio-row-cover");
     expect(excerpted).toMatch(
       /data-studio-row-excerpt[^>]*>Every reading kept, every total traceable\.</,
     );

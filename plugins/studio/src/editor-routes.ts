@@ -885,13 +885,20 @@ async function handleGetSchema(
       )
       .map(([key, definition]) => [key, definition.label]),
   );
+  // A type with covers keeps its cover in coverImageId; its rows show it.
+  const covered = context.shapes.hasCoverImage(entityType);
   const domainFields = raw
     ? []
     : Object.keys(schema.shape).flatMap((name) => {
         const field = zodFieldToStudioWidget(name, schema.shape[name]);
         if (field.widget === "hidden") return [];
         const label = labels.get(name);
-        return [label === undefined ? field : { ...field, label }];
+        const named = label === undefined ? field : { ...field, label };
+        return [
+          covered && name === "coverImageId"
+            ? { ...named, column: "cover" as const }
+            : named,
+        ];
       });
   const visibilityField = {
     name: "visibility",

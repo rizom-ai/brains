@@ -106,6 +106,7 @@ export const entities = [
         "How one layout keeps its bearings from a wide desk to a phone held in one hand.",
       published: true,
       publishedAt: "2026-06-30T08:00:00.000Z",
+      coverImageId: "image/verdigris-board",
     },
     updated: "2026-07-10T10:32:00.000Z",
   },
@@ -121,6 +122,7 @@ export const entities = [
     frontmatter: {
       title: "Alpha release log",
       summary: "What changed in each alpha, and what it asks of an operator.",
+      coverImageId: "image/verdigris-board",
     },
     updated: "2026-07-03T08:00:00.000Z",
   },
@@ -554,6 +556,7 @@ export const postsSchema = {
       label: "Cover image",
       widget: "image",
       required: false,
+      column: "cover",
     },
   ],
 };

@@ -99,8 +99,9 @@ export const refineStyles: Record<
     cursor: "pointer",
   },
   updated: {
-    gridColumn: { default: null, "@media (max-width: 640px)": "2" },
-    gridRow: { default: null, "@media (max-width: 640px)": "1" },
+    gridColumn: { default: null, "@media (max-width: 640px)": "-2 / -1" },
+    gridRow: { default: null, "@media (max-width: 640px)": "2" },
+    justifySelf: { default: null, "@media (max-width: 640px)": "start" },
   },
   notice: { margin: "14px 0 4px" },
   picked: {

@@ -68,6 +68,7 @@ export interface StudioContext {
     ServiceEntityShapes,
     | "isSingleton"
     | "hasBody"
+    | "hasCoverImage"
     | "metadataFromFrontmatter"
     | "folderTitles"
     | "displayTitle"

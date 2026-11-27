@@ -2476,6 +2476,8 @@ function entityShapesOf(context: ServicePluginContext): ServiceEntityShapes {
         : ".md",
     hasBody: (type: string) =>
       context.entities.getAdapter(type)?.hasBody !== false,
+    hasCoverImage: (type: string) =>
+      context.entities.getAdapter(type)?.supportsCoverImage === true,
     metadataFromFrontmatter: (type: string) =>
       context.entities.getAdapter(type)?.metadataFromFrontmatter === true,
     folderTitles: (type: string) => {

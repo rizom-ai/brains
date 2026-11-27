@@ -14,8 +14,11 @@ import {
   editorStyles,
 } from "./studio-editor.styles";
 import { StudioPageHead } from "./studio-page-head";
+import { StudioEntityImage } from "./studio-entity-image";
+import { STUDIO_THUMBNAIL_WIDTH } from "../../src/studio-thumbnail";
 import {
   entityGenerationState,
+  entityRowCover,
   entityRowDate,
   entityRowExcerpt,
   entityRowStatus,
@@ -336,6 +339,26 @@ function LibraryRow(props: {
   const status = entityRowStatus(entity, entitySchema.fields);
   const rowDate = entityRowDate(entity, entitySchema.fields);
   const excerpt = entityRowExcerpt(entity, entitySchema.fields);
+  const covered = entitySchema.fields.some((field) => field.column === "cover");
+  const coverImage = entityRowCover(entity, entitySchema.fields);
+  // The title names the entry, so its thumbnail is decorative.
+  const coverCell = covered && (
+    <span
+      data-studio-row-cover=""
+      aria-hidden="true"
+      {...stylex.props(library.cover)}
+    >
+      {coverImage && (
+        <StudioEntityImage
+          imageId={coverImage}
+          thumbnailWidth={STUDIO_THUMBNAIL_WIDTH}
+          alt=""
+          placeholder={<span {...stylex.props(library.coverPending)} />}
+          {...stylex.props(library.coverImage)}
+        />
+      )}
+    </span>
+  );
   const open = (): void => view.openEntity(entity.id, entity.entityType);
   // A row is a link, so it opens in a new tab or copies like any other; a
   // plain click opens the entry in place.
@@ -410,6 +433,7 @@ function LibraryRow(props: {
           library.row,
           editorStyles.listingRow,
           refineStyles.row,
+          covered && library.covered,
           picked && refineStyles.rowPicked,
         )}
       >
@@ -425,6 +449,7 @@ function LibraryRow(props: {
           {...stylex.props(refineStyles.open)}
           onClick={follow}
         >
+          {coverCell}
           {titleCell}
           <time
             className={editorClass("", library.updated, refineStyles.updated)}
@@ -445,6 +470,7 @@ function LibraryRow(props: {
         library.row,
         library.recordLink,
         editorStyles.listingRow,
+        covered && library.covered,
         systemDesign && systemFieldStyles.collectionRow,
       )}
       data-studio-record=""
@@ -453,6 +479,7 @@ function LibraryRow(props: {
       {!systemDesign && (
         <span className={editorClass("", library.index)}>{props.index}</span>
       )}
+      {coverCell}
       {titleCell}
       {systemDesign ? (
         <span aria-hidden="true">→</span>

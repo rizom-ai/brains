@@ -6,6 +6,7 @@ import { Window } from "happy-dom";
 import { installDomGlobals, type RestoreGlobals } from "@brains/test-utils";
 import { StudioApi } from "./api";
 import { StudioApiProvider } from "./studio-api-context";
+import { StudioEntityImage } from "./studio-entity-image";
 import { StudioMarkdown } from "./studio-markdown";
 
 let window: Window;
@@ -172,4 +173,35 @@ test("a preview's object URL is released when it is no longer shown", async () =
 
   expect(revoke).toHaveBeenCalledWith(shown);
   revoke.mockRestore();
+});
+
+test("a thumbnail asks for its small size and stays quiet until it arrives", async () => {
+  const calls: string[] = [];
+  let finish: ((response: Response) => void) | undefined;
+  const api = new StudioApi({
+    basePath: "/studio",
+    fetch: (url): Promise<Response> => {
+      calls.push(String(url));
+      return new Promise((resolve) => {
+        finish = resolve;
+      });
+    },
+  });
+  await act(async () =>
+    root.render(
+      <StudioApiProvider api={api}>
+        <StudioEntityImage
+          imageId="cover"
+          thumbnailWidth={160}
+          placeholder={<span data-thumbnail-placeholder="" />}
+        />
+      </StudioApiProvider>,
+    ),
+  );
+  const url = new URL(calls[0] ?? "", "https://studio.test");
+  expect(url.searchParams.get("width")).toBe("160");
+  expect(document.querySelector("[data-thumbnail-placeholder]")).not.toBeNull();
+  expect(document.body.textContent).not.toContain("Loading image");
+  await act(async () => finish?.(imageResponse()));
+  await settle(() => previewSource()?.startsWith("blob:") === true);
 });

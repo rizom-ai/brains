@@ -120,6 +120,7 @@ class TestAdapter extends BaseEntityAdapter<BaseEntity> {
     frontmatterSchema: z.ZodObject<z.ZodRawShape>;
     isSingleton?: boolean;
     hasBody?: boolean;
+    supportsCoverImage?: boolean;
   }) {
     super({
       entityType: options.entityType,
@@ -130,6 +131,7 @@ class TestAdapter extends BaseEntityAdapter<BaseEntity> {
         isSingleton: options.isSingleton,
       }),
       ...(options.hasBody !== undefined && { hasBody: options.hasBody }),
+      ...(options.supportsCoverImage && { supportsCoverImage: true }),
     });
   }
 
@@ -1252,6 +1254,48 @@ describe("studio editor api", () => {
     expect(
       payload.types.find((t) => t.entityType === "post")?.singularLabel,
     ).toBe("Essay");
+  });
+
+  it("names the cover a type's rows show, as its adapter declares it", async () => {
+    const shell = createEditorTestShell();
+    const essaySchema = z.object({
+      title: z.string(),
+      coverImageId: z.string().optional(),
+    });
+    const registry = shell.getEntityRegistry();
+    registry.registerEntityType(
+      "essay",
+      baseEntitySchema,
+      new TestAdapter({
+        entityType: "essay",
+        frontmatterSchema: essaySchema,
+        supportsCoverImage: true,
+      }),
+    );
+    const known = registry.getEffectiveFrontmatterSchema.bind(registry);
+    registry.getEffectiveFrontmatterSchema = (
+      type: string,
+    ): z.ZodObject<z.ZodRawShape> | undefined =>
+      type === "essay" ? essaySchema : known(type);
+    const cookie = await createSessionCookie(shell);
+    const plugin = await registerPlugin(shell);
+    const fieldsOf = async (type: string): Promise<unknown> =>
+      z
+        .object({ fields: z.array(z.record(z.string(), z.unknown())) })
+        .parse(
+          await (
+            await findRoute(plugin, "/studio/api/schema").handler(
+              apiRequest(`/studio/api/schema?type=${type}`, { cookie }),
+            )
+          ).json(),
+        )
+        .fields.find((field) => field["name"] === "coverImageId");
+
+    expect(await fieldsOf("essay")).toMatchObject({
+      name: "coverImageId",
+      widget: "image",
+      column: "cover",
+    });
   });
 
   it("returns field descriptors for a type", async () => {
@@ -2441,6 +2485,33 @@ describe("studio image previews", () => {
     expect(response.headers.get("Content-Type")).toBe("image/png");
     expect(response.headers.get("Cache-Control")).toBe("no-store");
     expect(Buffer.from(await response.arrayBuffer())).toEqual(png);
+  });
+
+  it("serves a row's thumbnail small, never the full image", async () => {
+    const wide = Buffer.from(
+      await new Bun.Image(png).resize(400, 200).png().bytes(),
+    );
+    const { route, cookie } = await previewShell(
+      async (shell) => (await shell.getEntityService().stageAsset(wide)).ref,
+      { mediaType: "image/png", sizeBytes: wide.byteLength },
+    );
+
+    const thumbnail = await route.handler(
+      apiRequest("/studio/api/images?id=cover&width=160", { cookie }),
+    );
+    expect(thumbnail.status).toBe(200);
+    expect(thumbnail.headers.get("Content-Type")).toBe("image/webp");
+    expect(thumbnail.headers.get("Cache-Control")).toBe("no-store");
+    const bytes = new Uint8Array(await thumbnail.arrayBuffer());
+    expect(await new Bun.Image(bytes).metadata()).toMatchObject({
+      width: 160,
+      height: 80,
+    });
+    // Only the thumbnail size is served; any other width is refused.
+    const other = await route.handler(
+      apiRequest("/studio/api/images?id=cover&width=1200", { cookie }),
+    );
+    expect(other.status).toBe(400);
   });
 
   it("serves a legacy inline image as bytes", async () => {

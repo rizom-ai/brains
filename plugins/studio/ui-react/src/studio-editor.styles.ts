@@ -22,8 +22,9 @@ export const editorStyles: Record<EditorStyle, stylex.StyleXStyles> =
     },
     listingRow: {
       gridTemplateColumns: "36px minmax(0, 1fr) auto",
+      // A phone gives the title the width; the date goes under it.
       "@media (max-width: 640px)": {
-        gridTemplateColumns: "24px minmax(0, 1fr) auto",
+        gridTemplateColumns: "24px minmax(0, 1fr)",
       },
     },
     publication: {

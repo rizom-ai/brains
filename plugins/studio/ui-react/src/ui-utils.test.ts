@@ -2,6 +2,7 @@ import { describe, expect, it, test } from "bun:test";
 import type { EntitySummary, FieldDescriptor } from "./api";
 import {
   entityRowDate,
+  entityRowCover,
   entityRowExcerpt,
   entityRowStatus,
   optionLabel,
@@ -55,6 +56,24 @@ describe("a Library row's status and date", () => {
       ]),
     ).toBe("published");
     expect(entityRowStatus(entry({}), [])).toBeNull();
+  });
+
+  it("finds the cover image a type names for its rows", () => {
+    const withCover: FieldDescriptor[] = [
+      {
+        name: "coverImageId",
+        label: "Cover",
+        widget: "image",
+        column: "cover",
+      },
+    ];
+    expect(
+      entityRowCover(entry({ coverImageId: "sensor-wall" }), withCover),
+    ).toBe("sensor-wall");
+    expect(entityRowCover(entry({}), withCover)).toBeNull();
+    expect(
+      entityRowCover(entry({ coverImageId: "sensor-wall" }), fields),
+    ).toBeNull();
   });
 
   it("shows the field a type names as its excerpt, when it says something", () => {

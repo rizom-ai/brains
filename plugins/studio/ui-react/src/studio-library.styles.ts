@@ -8,6 +8,10 @@ export const libraryStyles: Record<
   | "index"
   | "title"
   | "excerpt"
+  | "covered"
+  | "cover"
+  | "coverImage"
+  | "coverPending"
   | "updated"
   | "empty"
   | "pagination"
@@ -100,6 +104,37 @@ export const libraryStyles: Record<
     },
     "@media (max-width: 640px)": { fontSize: 17, lineHeight: 1.2 },
   },
+  // A type with covers gives every row a thumbnail column, so titles align
+  // whether or not an entry has a cover.
+  // Shaped as the listing row's columns are, so it overrides them at
+  // every width.
+  covered: {
+    gridTemplateColumns: "36px 64px minmax(0, 1fr) auto",
+    "@media (max-width: 640px)": {
+      gridTemplateColumns: "24px 48px minmax(0, 1fr)",
+    },
+  },
+  cover: {
+    display: "block",
+    alignSelf: "start",
+    width: "100%",
+    aspectRatio: "4 / 3",
+    overflow: "hidden",
+    borderRadius: 4,
+  },
+  // Where a cover is still arriving; a row without one shows nothing.
+  coverPending: {
+    display: "block",
+    width: "100%",
+    height: "100%",
+    backgroundColor: "var(--console-card)",
+  },
+  coverImage: {
+    display: "block",
+    width: "100%",
+    height: "100%",
+    objectFit: "cover",
+  },
   // What the entry is about, under its title: two lines at most.
   excerpt: {
     display: "-webkit-box",
@@ -121,8 +156,10 @@ export const libraryStyles: Record<
     fontSize: 12.5,
     letterSpacing: 0,
     "@media (max-width: 640px)": {
-      gridColumn: "3",
-      gridRow: "1",
+      // Under the title, in the last column, with or without a thumbnail.
+      gridColumn: "-2 / -1",
+      gridRow: "2",
+      justifySelf: "start",
       alignSelf: "baseline",
       fontFamily: "var(--console-mono)",
       fontSize: 9,
