@@ -1,5 +1,9 @@
 # @rizom/brain
 
+## 0.2.0-alpha.779
+
+No changes in this release.
+
 ## 0.2.0-alpha.778
 
 ### Patch Changes

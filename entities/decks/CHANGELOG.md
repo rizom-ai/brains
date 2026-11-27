@@ -1,5 +1,20 @@
 # @brains/decks
 
+## 0.2.0-alpha.779
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.779
+  - @rizom/brain-ui@0.2.0-alpha.779
+  - @brains/atproto-contracts@0.2.0-alpha.779
+  - @brains/content-formatters@0.2.0-alpha.779
+  - @brains/contracts@0.2.0-alpha.779
+  - @brains/image@0.2.0-alpha.779
+  - @brains/media-page-composer@0.2.0-alpha.779
+  - @brains/site-composition@0.2.0-alpha.779
+  - @brains/utils@0.2.0-alpha.779
+
 ## 0.2.0-alpha.778
 
 ### Patch Changes

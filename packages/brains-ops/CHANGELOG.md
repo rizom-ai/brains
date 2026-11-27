@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.779
+
+### Patch Changes
+
+- [#1059](https://github.com/rizom-ai/brains/pull/1059) [`5f2fa43`](https://github.com/rizom-ai/brains/commit/5f2fa435c684147d32220794384f721868a21892) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A fleet brain whose bundles include `matrix` runs its own Matrix homeserver: `resolve-user-config` outputs `matrix_enabled`, the deploy passes it to Kamal so the homeserver accessory and its settings render, and after `kamal setup` the deploy restarts the homeserver when the brain has written it a new configuration.
+
 ## 0.2.0-alpha.778
 
 No changes in this release.
