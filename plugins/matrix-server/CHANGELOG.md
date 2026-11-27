@@ -1,5 +1,15 @@
 # @brains/matrix-server
 
+## 0.2.0-alpha.787
+
+### Patch Changes
+
+- [#1067](https://github.com/rizom-ai/brains/pull/1067) [`9ce3ffd`](https://github.com/rizom-ai/brains/commit/9ce3ffd923fb508b04866baeec08a6fb3bff16b9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Two brains that trust each other now share rooms in both directions, whichever grants trust first. Trusting a peer also joins the room the peer keeps for this brain, so an invite that arrived before this brain's grant, and was left pending, is taken up.
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.787
+  - @brains/contracts@0.2.0-alpha.787
+  - @brains/utils@0.2.0-alpha.787
+
 ## 0.2.0-alpha.786
 
 ### Patch Changes

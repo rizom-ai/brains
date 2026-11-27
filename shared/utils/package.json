@@ -1,7 +1,7 @@
 {
   "name": "@brains/utils",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.786",
+  "version": "0.2.0-alpha.787",
   "dependencies": {
     "@effect/platform-bun": "4.0.1",
     "effect": "4.0.1",
