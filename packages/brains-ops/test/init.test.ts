@@ -219,6 +219,9 @@ describe("initPilotRepo", () => {
       existsSync(join(repo, "deploy", "scripts", "resolve-user-config.ts")),
     ).toBe(true);
     expect(
+      existsSync(join(repo, "deploy", "scripts", "reload-homeserver.ts")),
+    ).toBe(true);
+    expect(
       existsSync(join(repo, "deploy", "scripts", "resolve-deploy-handles.ts")),
     ).toBe(true);
     expect(

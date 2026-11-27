@@ -42,6 +42,7 @@ const starterFilePaths = [
   "deploy/scripts/install-health-watchdog.ts",
   "deploy/scripts/provision-server.ts",
   "deploy/scripts/pull-local-models.ts",
+  "deploy/scripts/reload-homeserver.ts",
   "deploy/scripts/update-dns.ts",
   "deploy/scripts/write-ssh-key.ts",
   "deploy/scripts/decrypt-user-secrets.ts",
@@ -218,6 +219,9 @@ const stalenessChecks: Partial<Record<StarterFilePath, StalenessCheck>> = {
   ),
   "deploy/scripts/sync-content-repo.ts":
     hasOpsScriptFingerprint("GIT_SYNC_TOKEN"),
+  "deploy/scripts/reload-homeserver.ts": hasOpsScriptFingerprint(
+    "export async function reloadHomeserver",
+  ),
   // Tooling workflows must track the template. directory-sync-stress.yml and
   // health-watchdog-smoke.yml are deliberately absent: operators tune them
   // in-repo, and a reconcile must not revert that.

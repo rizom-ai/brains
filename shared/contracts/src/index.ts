@@ -542,3 +542,7 @@ export {
   matrixBotCredentialsSchema,
   type MatrixBotCredentials,
 } from "./matrix";
+export {
+  CANONICAL_BUNDLE_IDS,
+  type CanonicalBundleId,
+} from "./capability-bundles";
