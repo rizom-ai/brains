@@ -7,6 +7,12 @@ export interface GroupingNavigation {
   active: string | null;
   onSelect: (key: string) => void;
 }
+
+/** The Images page, listed with the Library. */
+export interface ImagesNavigation {
+  active: boolean;
+  onSelect: () => void;
+}
 import {
   studioGroupingQuerySchema,
   type StudioGroupingQuery,

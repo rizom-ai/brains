@@ -2487,6 +2487,70 @@ describe("studio image previews", () => {
     expect(Buffer.from(await response.arrayBuffer())).toEqual(png);
   });
 
+  it("lists the brain's images, newest first, with their titles and alt text", async () => {
+    const shell = createEditorTestShell();
+    shell.getEntityRegistry().registerEntityType(
+      "image",
+      baseEntitySchema,
+      new TestAdapter({
+        entityType: "image",
+        frontmatterSchema: z.object({}),
+        hasBody: false,
+      }),
+    );
+    const store = async (
+      id: string,
+      updated: string,
+      metadata: Record<string, unknown>,
+    ): Promise<void> => {
+      await shell.getEntityService().createEntity({
+        entity: {
+          id,
+          entityType: "image",
+          content: (await shell.getEntityService().stageAsset(png)).ref,
+          metadata: { mediaType: "image/png", ...metadata },
+          visibility: "public",
+          created: updated,
+          updated,
+        },
+      });
+    };
+    await store("sensor-wall", "2026-07-01T00:00:00.000Z", {
+      title: "Sensor wall",
+      alt: "Rows of sensors on a brick wall",
+      altSource: "owner",
+    });
+    await store("ledger", "2026-07-03T00:00:00.000Z", { title: "Ledger" });
+    const plugin = await registerPlugin(shell);
+    const cookie = await createSessionCookie(shell);
+
+    const response = await findRoute(
+      plugin,
+      "/studio/api/image-library",
+    ).handler(apiRequest("/studio/api/image-library?limit=10", { cookie }));
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      total: 2,
+      images: [
+        {
+          id: "ledger",
+          title: "Ledger",
+          alt: "",
+          altSource: "fallback",
+          updated: "2026-07-03T00:00:00.000Z",
+        },
+        {
+          id: "sensor-wall",
+          title: "Sensor wall",
+          alt: "Rows of sensors on a brick wall",
+          altSource: "owner",
+          updated: "2026-07-01T00:00:00.000Z",
+        },
+      ],
+    });
+  });
+
   it("serves a row's thumbnail small, never the full image", async () => {
     const wide = Buffer.from(
       await new Bun.Image(png).resize(400, 200).png().bytes(),

@@ -785,3 +785,36 @@ describe("area and leaf navigation", () => {
     expect(selected).toEqual(["studio:overview"]);
   });
 });
+
+it("lists the brain's images with the Library", async () => {
+  const opened: string[] = [];
+  const renderImages = async (active: boolean): Promise<void> =>
+    act(async () =>
+      root.render(
+        <TypeSwitcher
+          renderMode="desktop"
+          types={types}
+          active={active ? null : "note"}
+          workspaces={workspaces}
+          workspaceBadges={{}}
+          activeWorkspace={null}
+          images={{ active, onSelect: () => opened.push("images") }}
+          onSelect={(id) => selected.push(id)}
+          onSelectWorkspace={(id) => selected.push(id)}
+        />,
+      ),
+    );
+  await renderImages(false);
+  const link = [
+    ...document.querySelectorAll<HTMLAnchorElement>(".studio-leaf-rail a"),
+  ].find((node) => node.textContent === "Images");
+  expect(link?.getAttribute("href")).toBe("/studio/images");
+  expect(leafText()).toContain("Media");
+  await act(async () => link?.click());
+  expect(opened).toEqual(["images"]);
+  await renderImages(true);
+  expect(
+    document.querySelector('.studio-leaf-rail a[aria-current="page"]')
+      ?.textContent,
+  ).toBe("Images");
+});

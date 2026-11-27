@@ -12,6 +12,7 @@ export function consoleSurfaces(): string[] {
     "studio-refine-confirm",
     "studio-navigation",
     "studio-navigation-collapsed",
+    "studio-images",
     "studio-overview",
     "studio-chat",
     "studio-chat-sessions",
@@ -150,11 +151,13 @@ export function planSurface(
         ? workspaceRoute("admin:administration")
         : surface.startsWith("studio-system")
           ? `/studio/entities/${systemType}${systemCollection ? "" : `/${systemType}`}`
-          : WORKSPACE_SURFACES[surface] !== undefined
-            ? workspaceRoute(WORKSPACE_SURFACES[surface])
-            : isStudioEditor
-              ? "/studio/entities/posts/field-notes"
-              : "/studio/entities/posts";
+          : surface === "studio-images"
+            ? "/studio/images"
+            : WORKSPACE_SURFACES[surface] !== undefined
+              ? workspaceRoute(WORKSPACE_SURFACES[surface])
+              : isStudioEditor
+                ? "/studio/entities/posts/field-notes"
+                : "/studio/entities/posts";
   const workspaceQuery =
     surface === "studio-board-open"
       ? "&card=partner-update"

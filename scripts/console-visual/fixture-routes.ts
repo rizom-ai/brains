@@ -120,6 +120,34 @@ export function createFixtureRoutes(
   // The image a cover field refers to: the verdigris board, described by the
   // brain's vision model, for the editor's image details.
   const studioImage: FixtureRoute = (request, url) => {
+    // The brain's images: one described by its owner, two not yet.
+    if (url.pathname === "/studio/api/image-library")
+      return json({
+        total: 3,
+        images: [
+          {
+            id: "image/verdigris-board",
+            title: "Verdigris board",
+            alt: "A flat verdigris board under even light",
+            altSource: "owner",
+            updated: "2026-07-14T09:00:00.000Z",
+          },
+          {
+            id: "image/sensor-wall",
+            title: "Sensor wall",
+            alt: "",
+            altSource: "fallback",
+            updated: "2026-07-12T09:00:00.000Z",
+          },
+          {
+            id: "image/ledger-page",
+            title: "Ledger page",
+            alt: "",
+            altSource: "fallback",
+            updated: "2026-07-10T09:00:00.000Z",
+          },
+        ],
+      });
     if (url.pathname === "/studio/api/images")
       return new Response(context.fixtureImage, {
         headers: { "content-type": "image/png" },
@@ -127,13 +155,30 @@ export function createFixtureRoutes(
     if (url.pathname !== "/studio/api/image-details") return undefined;
     if (request.method === "PUT")
       return json({ entityId: "image/verdigris-board", skipped: false });
-    return json({
-      id: url.searchParams.get("id") ?? "image/verdigris-board",
-      title: "Verdigris board",
-      alt: "A flat verdigris board under even light",
-      altSource: "generated",
-      contentHash: "fixture",
-    });
+    // The images the Images view lists keep their own titles; any other id is
+    // the board a cover field refers to.
+    const id = url.searchParams.get("id") ?? "image/verdigris-board";
+    const undescribed: Record<string, string> = {
+      "image/sensor-wall": "Sensor wall",
+      "image/ledger-page": "Ledger page",
+    };
+    return json(
+      undescribed[id]
+        ? {
+            id,
+            title: undescribed[id],
+            alt: "",
+            altSource: "fallback",
+            contentHash: "fixture",
+          }
+        : {
+            id,
+            title: "Verdigris board",
+            alt: "A flat verdigris board under even light",
+            altSource: "generated",
+            contentHash: "fixture",
+          },
+    );
   };
 
   const dashboard: FixtureRoute = (request, url) =>
@@ -252,6 +297,7 @@ export function createFixtureRoutes(
   const studioShell: FixtureRoute = (request, url) =>
     url.pathname === "/chat" ||
     url.pathname === "/studio" ||
+    url.pathname === "/studio/images" ||
     url.pathname.startsWith("/studio/entities/") ||
     url.pathname.startsWith("/studio/workspaces/")
       ? new Response(

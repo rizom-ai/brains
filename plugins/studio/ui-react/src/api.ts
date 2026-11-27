@@ -337,6 +337,15 @@ export interface ImageDetails {
   contentHash: string;
 }
 
+/** An image as the Images view lists it. */
+export interface ImageLibraryEntry {
+  id: string;
+  title: string;
+  alt: string;
+  altSource: ImageDetails["altSource"];
+  updated: string;
+}
+
 export class StudioApi {
   private readonly basePath: string;
   /**
@@ -528,6 +537,16 @@ export class StudioApi {
       { signal },
     );
     return response.blob();
+  }
+
+  /** A page of the brain's images, newest first. */
+  async fetchImageLibrary(page: {
+    offset: number;
+    limit: number;
+  }): Promise<{ total: number; images: ImageLibraryEntry[] }> {
+    return this.requestJson<{ total: number; images: ImageLibraryEntry[] }>(
+      this.path(`image-library?offset=${page.offset}&limit=${page.limit}`),
+    );
   }
 
   /** An image's title and alt text, who wrote the alt text, and its version. */

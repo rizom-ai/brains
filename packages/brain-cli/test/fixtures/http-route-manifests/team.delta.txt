@@ -60,6 +60,7 @@
 + studio|handler|GET|/studio/api/groups/usage|exact|true
 + studio|handler|GET|/studio/api/hierarchy|exact|true
 + studio|handler|GET|/studio/api/image-details|exact|true
++ studio|handler|GET|/studio/api/image-library|exact|true
 + studio|handler|GET|/studio/api/images|exact|true
 + studio|handler|GET|/studio/api/members|exact|true
 + studio|handler|GET|/studio/api/schema|exact|true
@@ -69,6 +70,7 @@
 + studio|handler|GET|/studio/assets|prefix|true
 + studio|handler|GET|/studio/entities|prefix|true
 + studio|handler|GET|/studio/groups|prefix|true
++ studio|handler|GET|/studio/images|exact|true
 + studio|handler|GET|/studio/workspaces|prefix|true
 + studio|handler|GET|/studio|exact|true
 + studio|handler|POST|/studio/api/ask-agent|exact|true

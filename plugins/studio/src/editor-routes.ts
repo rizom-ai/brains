@@ -54,6 +54,7 @@ import { handleResolveConflict } from "./editor-conflicts";
 import { handleUpload } from "./editor-upload";
 import {
   handleGetImageDetails,
+  handleListImages,
   handleUpdateImageDetails,
 } from "./editor-image-details";
 import {
@@ -329,6 +330,12 @@ export function createEditorRoutes(
       handler: serveShell,
     },
     {
+      path: `${normalizedBase}/images`,
+      method: "GET",
+      public: true,
+      handler: serveShell,
+    },
+    {
       path: `${normalizedBase}/workspaces`,
       match: "prefix",
       method: "GET",
@@ -420,6 +427,16 @@ export function createEditorRoutes(
         const access = await requireTrustedAccess(request);
         if (access instanceof Response) return access;
         return handleGetImageDetails(getContext(), request, access);
+      },
+    },
+    {
+      path: apiPath("image-library"),
+      method: "GET",
+      public: true,
+      handler: async (request): Promise<Response> => {
+        const access = await requireTrustedAccess(request);
+        if (access instanceof Response) return access;
+        return handleListImages(getContext(), request, access);
       },
     },
     {

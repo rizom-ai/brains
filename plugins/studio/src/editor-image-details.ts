@@ -136,3 +136,57 @@ export async function handleUpdateImageDetails(
   );
   return jsonResponse({ entityId: result.entityId, skipped: result.skipped });
 }
+
+const libraryQuerySchema = z.object({
+  offset: z.coerce.number().int().min(0).default(0),
+  limit: z.coerce.number().int().min(1).max(100).default(48),
+});
+
+/**
+ * The brain's images, newest first, as the Images view shows them: each one's
+ * title and alt text and who wrote it. The bytes are never loaded here.
+ */
+export async function handleListImages(
+  context: StudioContext,
+  request: Request,
+  access: StudioRequestAccess,
+): Promise<Response> {
+  const params = new URL(request.url).searchParams;
+  const query = libraryQuerySchema.safeParse({
+    offset: params.get("offset") ?? undefined,
+    limit: params.get("limit") ?? undefined,
+  });
+  if (!query.success) return jsonResponse({ error: "Invalid image page" }, 400);
+  if (!context.entityService.getEntityTypes().includes("image"))
+    return jsonResponse({ total: 0, images: [] });
+  const filter = { visibilityScope: access.visibilityScope };
+  const [images, total] = await Promise.all([
+    context.entityService.listEntities({
+      entityType: "image",
+      options: {
+        source: true,
+        offset: query.data.offset,
+        limit: query.data.limit,
+        sortFields: [{ field: "updated", direction: "desc" }],
+        filter,
+      },
+    }),
+    context.entityService.countEntities({
+      entityType: "image",
+      options: { filter },
+    }),
+  ]);
+  return jsonResponse({
+    total,
+    images: images.map((image) => {
+      const metadata = storedMetadataSchema.parse(image.metadata);
+      return {
+        id: image.id,
+        title: metadata.title ?? "",
+        alt: metadata.alt ?? "",
+        altSource: metadata.altSource ?? "fallback",
+        updated: image.updated,
+      };
+    }),
+  });
+}

@@ -123,9 +123,14 @@ export function createStudioRouter(
             getParentRoute: () => rootRoute,
             path: "groups/$grouping",
           });
+          const imagesRoute = createRoute({
+            getParentRoute: () => rootRoute,
+            path: "images",
+          });
           return rootRoute.addChildren([
             indexRoute,
             groupingRoute,
+            imagesRoute,
             collectionRoute,
             entityRoute,
             workspaceRoute,
@@ -157,10 +162,15 @@ export function createStudioRouter(
             getParentRoute: () => studioRoute,
             path: "groups/$grouping",
           });
+          const imagesRoute = createRoute({
+            getParentRoute: () => studioRoute,
+            path: "images",
+          });
           return rootRoute.addChildren([
             studioRoute.addChildren([
               indexRoute,
               groupingRoute,
+              imagesRoute,
               collectionRoute,
               entityRoute,
               workspaceRoute,

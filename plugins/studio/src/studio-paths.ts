@@ -1,6 +1,7 @@
 export type StudioPathTarget =
   | { kind: "home" }
   | { kind: "grouping"; grouping: string }
+  | { kind: "images" }
   | { kind: "collection"; entityType: string }
   | { kind: "entity"; entityType: string; id: string }
   | { kind: "workspace"; workspaceId: string }
@@ -26,6 +27,11 @@ export function studioGroupingPath(
   grouping: string,
 ): string {
   return `${normalizeStudioBasePath(routePath)}/groups/${encodeURIComponent(grouping)}`;
+}
+
+/** The page that shows the brain's images. */
+export function studioImagesPath(routePath: string): string {
+  return `${normalizeStudioBasePath(routePath)}/images`;
 }
 
 export function studioEntityPath(
@@ -71,6 +77,7 @@ export function parseStudioPath(
   const relative = pathname.slice(prefix.length);
 
   try {
+    if (relative === "/images") return { kind: "images" };
     const groupingMatch = /^\/groups\/([^/]+)$/.exec(relative);
     if (groupingMatch?.[1])
       return {

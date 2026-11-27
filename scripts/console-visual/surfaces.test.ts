@@ -40,6 +40,7 @@ describe("planSurface", () => {
     ["studio-library", "/studio/entities/posts"],
     ["studio-refine", "/studio/entities/posts"],
     ["studio-refine-confirm", "/studio/entities/posts"],
+    ["studio-images", "/studio/images"],
     ["studio-editor", "/studio/entities/posts/field-notes"],
     ["studio-upload", "/studio/entities/posts/field-notes"],
     ["studio-overview", "/studio/workspaces/studio%3Aoverview"],

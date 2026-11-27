@@ -3,11 +3,15 @@ import type { ReactElement } from "react";
 import {
   studioCollectionPath,
   studioGroupingPath,
+  studioImagesPath,
 } from "../../src/studio-paths";
 import { isPlainLinkClick } from "./link-click";
 import { getStudioRouterBasePath, studioWorkspaceHref } from "./studio-router";
 import type { EntityTypeInfo, StudioWorkspaceInfo } from "./api";
-import type { GroupingNavigation } from "./grouping-url-query";
+import type {
+  GroupingNavigation,
+  ImagesNavigation,
+} from "./grouping-url-query";
 import type { StudioArea } from "./studio-areas";
 import {
   LEAF_AREAS,
@@ -131,6 +135,7 @@ export function DesktopNavigation(props: {
   active: string | null;
   onSelect: (entityType: string) => void;
   groupings?: GroupingNavigation | undefined;
+  images?: ImagesNavigation | undefined;
   activeWorkspace?: string | null | undefined;
   workspaceBadges?: Record<string, number> | undefined;
   onSelectWorkspace?: ((workspaceId: string) => void) | undefined;
@@ -344,6 +349,19 @@ export function DesktopNavigation(props: {
                         onSelect={() => props.groupings?.onSelect(grouping.key)}
                       />
                     ))}
+                  </LeafGroup>
+                ) : null}
+                {props.images ? (
+                  <LeafGroup label="Media">
+                    {[
+                      <LeafLink
+                        key="images"
+                        label="Images"
+                        active={props.images.active}
+                        href={studioImagesPath(basePath)}
+                        onSelect={props.images.onSelect}
+                      />,
+                    ]}
                   </LeafGroup>
                 ) : null}
               </>
