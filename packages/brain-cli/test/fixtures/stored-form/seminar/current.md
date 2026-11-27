@@ -39,3 +39,63 @@ Zu allem Handeln gehört Vergessen.
 - **Speaker:** sigmund.example
 - **Name:** Sigmund
 - **Failed:** sigmund.example did not answer within 90000 ms
+
+### Turn 4
+
+- **Round:** challenge
+- **Speaker:** chair
+- **Name:** Chair
+
+Only Friedrich answered the question as asked, so he stands and Karl answers him.
+
+#### To
+
+- karl.example
+
+### Turn 5
+
+- **Round:** challenge
+- **Speaker:** chair
+- **Name:** Chair
+
+Friedrich says a people must know when to forget. How does your Achtzehnte Brumaire answer him?
+
+#### To
+
+- karl.example
+
+### Turn 6
+
+- **Round:** challenge
+- **Speaker:** karl.example
+- **Name:** Karl
+
+The revolution of the nineteenth century must let the dead bury their dead.
+
+#### To
+
+- friedrich.example
+
+### Turn 7
+
+- **Round:** rejoinder
+- **Speaker:** chair
+- **Name:** Chair
+
+Karl says the dead must be buried. How do you answer him?
+
+#### To
+
+- friedrich.example
+
+### Turn 8
+
+- **Round:** rejoinder
+- **Speaker:** friedrich.example
+- **Name:** Friedrich
+
+Critical history breaks a past in order to live.
+
+#### To
+
+- karl.example

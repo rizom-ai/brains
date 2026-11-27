@@ -19,10 +19,21 @@ import {
   type SeminarHoldDeps,
   type SeminarPeer,
 } from "./handlers/seminar-hold-handler";
+import { modelChair } from "./lib/chair";
 import { seminar } from "./seminar-entity";
 import { createSeminarHoldTool } from "./tools/seminar-hold";
 
-const seminarConfigSchema: z.ZodObject<Record<string, never>> = z.object({});
+export const seminarConfigSchema: z.ZodObject<{
+  guidance: z.ZodOptional<z.ZodString>;
+}> = z.object({
+  /**
+   * What the chair knows of its peers that their openings do not say, such
+   * as the works a peer's brain does not hold, so it never points him there.
+   */
+  guidance: z.string().trim().min(1).optional(),
+});
+
+export type SeminarConfig = z.output<typeof seminarConfigSchema>;
 
 const AGENT_ENTITY_TYPE = "agent";
 
@@ -32,8 +43,12 @@ const approvedPeerSchema = z.object({
 });
 
 /** What holding a seminar needs, over the package's runtime. */
-function holdDeps(runtime: ServiceRuntime): SeminarHoldDeps {
+function holdDeps(
+  runtime: ServiceRuntime,
+  config: SeminarConfig,
+): SeminarHoldDeps {
   return {
+    chair: modelChair(runtime.ai, config.guidance),
     peers: async (): Promise<SeminarPeer[]> => {
       if (!runtime.entityReads.hasEntityType(AGENT_ENTITY_TYPE)) return [];
       const agents = await runtime.entityReads.listEntities({
@@ -74,9 +89,10 @@ function holdDeps(runtime: ServiceRuntime): SeminarHoldDeps {
 }
 
 /**
- * Seminars: the owner puts one question to every approved peer, and each
- * peer's answer is kept verbatim, with its sources, as a draft the owner
- * reads and publishes. Installed under seminar, so its tool is
+ * Seminars: the owner puts one question to every approved peer; the chair
+ * reads their openings and decides who stands, the others answer him and he
+ * answers them. Every peer's turn is kept verbatim, with its sources, as a
+ * draft the owner reads and publishes. Installed under seminar, so its tool is
  * seminar_hold and its job seminar:hold; its type installs apart.
  */
 export const seminarPackage: ServicePackageDefinition<
@@ -89,7 +105,9 @@ export const seminarPackage: ServicePackageDefinition<
       entities: [seminar],
       setup: (): Record<never, never> => ({}),
     }),
-    (context) => [seminarHoldJob(holdDeps(serviceRuntime(context)))],
+    (context) => [
+      seminarHoldJob(holdDeps(serviceRuntime(context), context.config)),
+    ],
   ),
   (context) => [
     createSeminarHoldTool("seminar", { jobs: serviceRuntime(context).jobs }),

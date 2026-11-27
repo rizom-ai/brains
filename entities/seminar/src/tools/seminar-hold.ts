@@ -35,7 +35,7 @@ export function createSeminarHoldTool(
   return createTool(
     pluginId,
     "hold",
-    "Hold a seminar: put one question to every approved peer at once and keep each peer's answer verbatim, with its sources, as a draft seminar the owner reads and publishes. Runs as a job that takes a minute or two; returns the job to watch. Each peer answers with its own model turn.",
+    "Hold a seminar: put one question to every approved peer at once, let the chair decide whose opening stands, have the others answer him and him answer them, and keep every peer's turn verbatim, with its sources, as a draft seminar the owner reads and publishes. Runs as a job that takes a minute or two; returns the job to watch. Each peer's turn is its own model turn.",
     seminarHoldInputSchema,
     async ({ question, language }) => {
       const jobId = await deps.jobs.enqueue({

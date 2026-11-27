@@ -14,10 +14,19 @@ export const seminarStatusSchema: z.ZodEnum<{
 
 export type SeminarStatus = z.output<typeof seminarStatusSchema>;
 
-/** The rounds of a seminar; an opening answers the question itself. */
-export const seminarRoundSchema: z.ZodEnum<{ opening: "opening" }> = z.enum([
-  "opening",
-]);
+/**
+ * The rounds of a seminar: an opening answers the question itself, a
+ * challenge answers the opening that stands, and the rejoinder answers the
+ * challenges.
+ */
+export const seminarRoundSchema: z.ZodEnum<{
+  opening: "opening";
+  challenge: "challenge";
+  rejoinder: "rejoinder";
+}> = z.enum(["opening", "challenge", "rejoinder"]);
+
+/** The chair as a turn's speaker: the brain that holds the seminar. */
+export const CHAIR = "chair";
 
 export type SeminarRound = z.output<typeof seminarRoundSchema>;
 
@@ -25,23 +34,27 @@ type SeminarTurnSchema = z.ZodObject<{
   round: typeof seminarRoundSchema;
   speaker: z.ZodString;
   name: z.ZodString;
+  to: z.ZodOptional<z.ZodArray<z.ZodString>>;
   text: z.ZodOptional<z.ZodString>;
   sources: z.ZodOptional<z.ZodArray<typeof storedSourceSchema>>;
   failed: z.ZodOptional<z.ZodString>;
 }>;
 
 /**
- * One turn of a seminar: who spoke, in which round, and either what they
- * said, verbatim, with the sources they returned, or why they did not
- * answer. A turn with neither is no turn.
+ * One turn of a seminar: who spoke, in which round and to whom, and either
+ * what they said, verbatim, with the sources they returned, or why they did
+ * not answer. A turn with neither is no turn. The chair speaks too: what it
+ * read in the openings, and each follow-up as it put it.
  */
 export const seminarTurnSchema: SeminarTurnSchema = z
   .object({
     round: seminarRoundSchema,
-    /** The peer's agent id: its domain. */
+    /** The peer's agent id, its domain; or the chair. */
     speaker: z.string().min(1),
     /** The peer's name, as the directory holds it. */
     name: z.string().min(1),
+    /** Whom the turn addresses: the peers it answers, or is put to. */
+    to: z.array(z.string().min(1)).min(1).optional(),
     text: z.string().min(1).optional(),
     sources: z.array(storedSourceSchema).min(1).optional(),
     failed: z.string().min(1).optional(),

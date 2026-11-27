@@ -10,9 +10,23 @@ import {
 } from "@brains/sdk/internal/service-runtime";
 import { slugify } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
-import { openingMessage } from "../lib/messages";
+import {
+  checkedChallenge,
+  type ChairReading,
+  type SeminarChair,
+} from "../lib/chair";
+import {
+  challengeMessage,
+  openingMessage,
+  rejoinderMessage,
+} from "../lib/messages";
 import { seminarRecord } from "../lib/seminar-body";
-import type { SeminarMetadata, SeminarTurn } from "../schemas/seminar";
+import {
+  CHAIR,
+  type SeminarMetadata,
+  type SeminarRound,
+  type SeminarTurn,
+} from "../schemas/seminar";
 
 export const seminarHoldJobSchema: z.ZodObject<{
   question: z.ZodString;
@@ -35,7 +49,7 @@ export interface SeminarHoldResult {
   seminarId: string;
   /** The peers whose openings the seminar keeps. */
   answered: string[];
-  /** The peers recorded as not answering. */
+  /** The peers recorded as giving no opening. */
   failed: string[];
 }
 
@@ -44,6 +58,8 @@ export interface SeminarHoldDeps {
   peers(): Promise<SeminarPeer[]>;
   /** One peer's completed answer to a turn; a failure throws its reason. */
   askTurn(agent: string, message: string): Promise<A2APeerAnswer>;
+  /** The chair's own turns, written by this brain. */
+  chair: SeminarChair;
   /** Whether a seminar is stored under `id`. */
   exists(id: string): Promise<boolean>;
   /** Store a new seminar; its id. */
@@ -67,13 +83,20 @@ function turnSource(source: SourceCitation): StoredSource {
   };
 }
 
-/** One peer's opening, verbatim with its sources, or why there is none. */
-async function opening(
+/** One peer's turn, verbatim with its sources, or why there is none. */
+async function peerTurn(
   deps: SeminarHoldDeps,
   peer: SeminarPeer,
+  round: SeminarRound,
   message: string,
+  to?: string[],
 ): Promise<SeminarTurn> {
-  const turn = { round: "opening", speaker: peer.id, name: peer.name } as const;
+  const turn = {
+    round,
+    speaker: peer.id,
+    name: peer.name,
+    ...(to && to.length > 0 ? { to } : {}),
+  };
   try {
     const answer = await deps.askTurn(peer.id, message);
     const sources = answer.sources.map(turnSource);
@@ -88,6 +111,130 @@ async function opening(
   }
 }
 
+/** A turn the chair took: what it wrote, and whom it addressed. */
+function chairTurn(
+  round: SeminarRound,
+  to: string[],
+  text: string,
+): SeminarTurn {
+  return { round, speaker: CHAIR, name: CHAIR_NAME, to, text };
+}
+
+const CHAIR_NAME = "Chair";
+
+/** What a failed chair's turn says; its diagnostic stays in the job's log. */
+const CHAIR_FAILED = "The chair could not take its turn";
+
+/** An answered turn as the chair and the later messages read it. */
+function reading(turn: SeminarTurn & { text: string }): ChairReading {
+  return { agent: turn.speaker, name: turn.name, text: turn.text };
+}
+
+function answered(
+  turns: readonly SeminarTurn[],
+): Array<SeminarTurn & { text: string }> {
+  return turns.flatMap((turn) =>
+    turn.text === undefined ? [] : [{ ...turn, text: turn.text }],
+  );
+}
+
+/**
+ * The exchange that follows the openings. The chair reads them and decides
+ * who stands; every other participant is given that opening and his own
+ * follow-up, at once; the one who stood is given their challenges and
+ * answers them. A challenger who fails is recorded and left out of the
+ * rejoinder, and with no challenge there is none. A chair that cannot take
+ * its turn ends the exchange where it stands, recorded.
+ */
+async function exchange(
+  deps: SeminarHoldDeps,
+  data: SeminarHoldJobData,
+  peers: readonly SeminarPeer[],
+  openings: readonly SeminarTurn[],
+): Promise<SeminarTurn[]> {
+  const participants = answered(openings);
+  if (participants.length < 2) return [];
+  const peerOf = (agent: string): SeminarPeer => {
+    const peer = peers.find((candidate) => candidate.id === agent);
+    if (!peer) throw new Error(`No peer ${agent}`);
+    return peer;
+  };
+  const failedChair = (round: SeminarRound): SeminarTurn => ({
+    round,
+    speaker: CHAIR,
+    name: CHAIR_NAME,
+    failed: CHAIR_FAILED,
+  });
+
+  const read = participants.map(reading);
+  const challenge = await deps.chair
+    .challenge({
+      question: data.question,
+      language: data.language,
+      openings: read,
+    })
+    .then((taken) => checkedChallenge(taken, read))
+    .catch(() => undefined);
+  if (!challenge) return [failedChair("challenge")];
+
+  const stands = read.find(({ agent }) => agent === challenge.stands);
+  if (!stands) return [failedChair("challenge")];
+  const challengers = challenge.followUps.map(({ agent }) => agent);
+  const chairTurns = [
+    chairTurn("challenge", challengers, challenge.reading),
+    ...challenge.followUps.map(({ agent, followUp }) =>
+      chairTurn("challenge", [agent], followUp),
+    ),
+  ];
+  const challenges = await Promise.all(
+    challenge.followUps.map(({ agent, followUp }) =>
+      peerTurn(
+        deps,
+        peerOf(agent),
+        "challenge",
+        challengeMessage({
+          question: data.question,
+          stands,
+          followUp,
+          language: data.language,
+        }),
+        [stands.agent],
+      ),
+    ),
+  );
+  const exchanged = [...chairTurns, ...challenges];
+
+  const made = answered(challenges).map(reading);
+  if (made.length === 0) return exchanged;
+  const followUp = await deps.chair
+    .rejoinder({
+      question: data.question,
+      language: data.language,
+      stands,
+      challenges: made,
+    })
+    .catch(() => undefined);
+  if (followUp === undefined) return [...exchanged, failedChair("rejoinder")];
+  const to = made.map(({ agent }) => agent);
+  return [
+    ...exchanged,
+    chairTurn("rejoinder", [stands.agent], followUp),
+    await peerTurn(
+      deps,
+      peerOf(stands.agent),
+      "rejoinder",
+      rejoinderMessage({
+        question: data.question,
+        opening: stands.text,
+        challenges: made,
+        followUp,
+        language: data.language,
+      }),
+      to,
+    ),
+  ];
+}
+
 /** The first of `slug`, `slug-2`, `slug-3`… that no seminar holds. */
 async function freeId(
   deps: SeminarHoldDeps,
@@ -99,10 +246,10 @@ async function freeId(
 }
 
 /**
- * Hold a seminar of openings: put the question to every approved peer at
- * once, and store each opening as the peer gave it. A peer that fails is
- * recorded with its reason and the seminar goes on without him; with no
- * opening at all there is no seminar. It is stored as a draft.
+ * Hold a seminar: put the question to every approved peer at once and store
+ * each opening as the peer gave it, then the exchange that follows. A peer
+ * that fails is recorded with its reason and the seminar goes on without
+ * him; with no opening at all there is no seminar. It is stored as a draft.
  */
 export async function holdSeminar(
   deps: SeminarHoldDeps,
@@ -115,17 +262,18 @@ export async function holdSeminar(
     throw new Error("A seminar needs peers, and no approved peer is saved");
 
   const message = openingMessage(data.question, data.language);
-  const turns = await Promise.all(
-    peers.map((peer) => opening(deps, peer, message)),
+  const openings = await Promise.all(
+    peers.map((peer) => peerTurn(deps, peer, "opening", message)),
   );
-  const answered = turns.filter((turn) => turn.text !== undefined);
-  const failed = turns.filter((turn) => turn.failed !== undefined);
-  if (answered.length === 0) {
+  const opened = openings.filter((turn) => turn.text !== undefined);
+  const failed = openings.filter((turn) => turn.failed !== undefined);
+  if (opened.length === 0) {
     throw new Error(
       `No peer answered: ${failed.map((turn) => turn.failed).join("; ")}`,
     );
   }
 
+  const turns = [...openings, ...(await exchange(deps, data, peers, openings))];
   const id = await freeId(deps, slugify(data.question));
   const seminarId = await deps.create({
     id,
@@ -142,7 +290,7 @@ export async function holdSeminar(
   });
   return {
     seminarId,
-    answered: answered.map((turn) => turn.speaker),
+    answered: opened.map((turn) => turn.speaker),
     failed: failed.map((turn) => turn.speaker),
   };
 }

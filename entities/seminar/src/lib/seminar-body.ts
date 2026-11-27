@@ -38,6 +38,7 @@ const seminarBodyMappings: FieldMapping[] = [
       { key: "name", label: "Name", type: "string", line: true },
       { key: "failed", label: "Failed", type: "string", line: true },
       { key: "text", label: "Text", type: "string" },
+      { key: "to", label: "To", type: "array", itemType: "string" },
       {
         key: "sources",
         label: "Sources",

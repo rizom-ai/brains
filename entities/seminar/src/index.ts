@@ -1,6 +1,10 @@
 import { seminarPackage } from "./plugin";
 
-export { seminarPackage } from "./plugin";
+export {
+  seminarConfigSchema,
+  seminarPackage,
+  type SeminarConfig,
+} from "./plugin";
 export { seminar } from "./seminar-entity";
 export {
   holdSeminar,
@@ -13,7 +17,27 @@ export type {
   SeminarHoldResult,
   SeminarPeer,
 } from "./handlers/seminar-hold-handler";
-export { closingLines, openingMessage } from "./lib/messages";
+export {
+  chairChallengePrompt,
+  chairChallengeSchema,
+  chairRejoinderPrompt,
+  checkedChallenge,
+  modelChair,
+} from "./lib/chair";
+export type {
+  ChairChallenge,
+  ChairChallengeInput,
+  ChairReading,
+  ChairRejoinderInput,
+  SeminarChair,
+} from "./lib/chair";
+export {
+  challengeMessage,
+  closingLines,
+  openingMessage,
+  rejoinderMessage,
+  type QuotedTurn,
+} from "./lib/messages";
 export {
   readSeminar,
   readSeminarBody,
@@ -23,6 +47,7 @@ export {
   type SeminarParts,
 } from "./lib/seminar-body";
 export {
+  CHAIR,
   seminarBodySchema,
   seminarFrontmatterSchema,
   seminarMetadataSchema,

@@ -41,6 +41,14 @@ describe("a seminar held from the three brains' recorded openings", () => {
           if (!answer) throw new Error(`no recorded opening for ${agent}`);
           return answer;
         },
+        chair: {
+          challenge: async (): Promise<never> => {
+            throw new Error("no exchange in this test");
+          },
+          rejoinder: async (): Promise<never> => {
+            throw new Error("no exchange in this test");
+          },
+        },
         exists: async () => false,
         create: async (seminar): Promise<string> => {
           stored.push(seminar);
@@ -57,7 +65,9 @@ describe("a seminar held from the three brains' recorded openings", () => {
 
     const [seminar] = stored;
     if (!seminar) throw new Error("no seminar written");
-    const turns = readSeminar(seminar).turns;
+    const turns = readSeminar(seminar).turns.filter(
+      ({ round }) => round === "opening",
+    );
     expect(turns.map((turn) => turn.speaker)).toEqual([
       "friedrich.rizom.ai",
       "karl.rizom.ai",

@@ -6,6 +6,15 @@ import {
   type SeminarPeer,
 } from "../src/handlers/seminar-hold-handler";
 import { readSeminar } from "../src/lib/seminar-body";
+import type { SeminarTurn } from "../src/schemas/seminar";
+
+/** The openings a stored seminar holds. */
+function openingsOf(seminar: {
+  content: string;
+  metadata: Record<string, unknown>;
+}): SeminarTurn[] {
+  return readSeminar(seminar).turns.filter(({ round }) => round === "opening");
+}
 import { closingLines } from "../src/lib/messages";
 
 const QUESTION = "What should a community remember, and what should it forget?";
@@ -79,6 +88,14 @@ function seminarRoom(
         if (!reply) throw new Error(`no recorded reply for ${agent}`);
         return reply;
       },
+      chair: {
+        challenge: async (): Promise<never> => {
+          throw new Error("no exchange in this test");
+        },
+        rejoinder: async (): Promise<never> => {
+          throw new Error("no exchange in this test");
+        },
+      },
       exists: async (id) => taken.has(id),
       create: async (seminar): Promise<string> => {
         created.push(seminar);
@@ -121,7 +138,7 @@ describe("holding a seminar of openings", () => {
       language: "English",
     });
     // The peers in a stable order, whatever order the directory lists them in.
-    expect(readSeminar(seminar).turns).toEqual([
+    expect(openingsOf(seminar)).toEqual([
       {
         round: "opening",
         speaker: "friedrich.example",
@@ -187,7 +204,7 @@ describe("holding a seminar of openings", () => {
     expect(result.failed).toEqual(["sigmund.example"]);
     const [seminar] = room.created;
     if (!seminar) throw new Error("no seminar written");
-    expect(readSeminar(seminar).turns.at(-1)).toEqual({
+    expect(openingsOf(seminar).at(-1)).toEqual({
       round: "opening",
       speaker: "sigmund.example",
       name: "Sigmund",
