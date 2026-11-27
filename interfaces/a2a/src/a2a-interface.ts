@@ -468,6 +468,7 @@ export function createA2AInterface(
 
       registerA2ACallMessageHandlers(runtime, clientDeps, {
         networkAskTimeoutMs: config.networkAskTimeoutMs,
+        turnTimeoutMs: config.turnTimeoutMs,
       });
 
       if (servesHttp) {

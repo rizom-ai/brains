@@ -2,11 +2,13 @@ import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
 import { createA2APlugin } from "./a2a-plugin";
 import type { A2AConfigInput } from "../src/config";
+import { z } from "@brains/utils/zod";
 import {
   SDK_ERROR_MESSAGE_MAX_LENGTH,
   a2aAgentsContract,
   a2aAskContract,
   a2aCallContract,
+  a2aTurnContract,
 } from "@brains/contracts";
 
 function mockA2AFetch(): ReturnType<typeof mock> {
@@ -490,5 +492,109 @@ describe("A2A network ask channel", () => {
     } finally {
       await harness.getMockShell().getDaemonRegistry().stopPlugin("a2a");
     }
+  });
+
+  describe("a turn in an exchange", () => {
+    const turn = (
+      harness: ReturnType<typeof createPluginHarness>,
+      agent: string,
+      message: string,
+    ): ReturnType<Bus["send"]> =>
+      harness.getMockShell().getMessageBus().send({
+        type: a2aTurnContract.name,
+        payload: { agent, message },
+        sender: "seminar",
+      });
+
+    const sentText = (fetchFn: ReturnType<typeof mock>): string => {
+      const sent = fetchFn.mock.calls.find(
+        (call) => call[1] !== undefined && call[1].method === "POST",
+      );
+      const body: unknown = JSON.parse(String(sent?.[1]?.body));
+      return z
+        .object({
+          params: z.object({
+            message: z.object({
+              parts: z.array(z.object({ text: z.string() })),
+            }),
+          }),
+        })
+        .parse(body)
+        .params.message.parts.map((part) => part.text)
+        .join("");
+    };
+
+    it("sends the message as written and returns the answer with its sources", async () => {
+      const fetchFn = citingFetch();
+      const harness = await installed(fetchFn);
+      const message =
+        "Nietzsche holds that forgetting is a power.\n\nAnswer in English; keep the quotes in German.";
+      try {
+        expect(await turn(harness, "approved.example", message)).toEqual({
+          success: true,
+          data: { state: "completed", response: "Cited answer", sources },
+        });
+        expect(sentText(fetchFn)).toBe(message);
+      } finally {
+        await harness.getMockShell().getDaemonRegistry().stopPlugin("a2a");
+      }
+    });
+
+    it("carries a message longer than a question may be", async () => {
+      const fetchFn = citingFetch();
+      const harness = await installed(fetchFn);
+      const message = "An opening to answer. ".repeat(400);
+      try {
+        expect(
+          await harness
+            .getMockShell()
+            .getMessageBus()
+            .send({
+              type: a2aAskContract.name,
+              payload: { agent: "approved.example", question: message },
+              sender: "agent",
+            }),
+        ).toMatchObject({ success: false });
+        expect(await turn(harness, "approved.example", message)).toEqual({
+          success: true,
+          data: { state: "completed", response: "Cited answer", sources },
+        });
+        expect(sentText(fetchFn)).toBe(message.trim());
+      } finally {
+        await harness.getMockShell().getDaemonRegistry().stopPlugin("a2a");
+      }
+    });
+
+    it("gives up within the turn budget, not the ask budget", async () => {
+      const harness = await installed(hangingFetch(), {
+        networkAskTimeoutMs: 60_000,
+        turnTimeoutMs: 20,
+      });
+      try {
+        expect(await turn(harness, "approved.example", "A turn")).toEqual({
+          success: false,
+          error: "approved.example did not answer within 20 ms",
+          code: "deadline_exceeded",
+        });
+      } finally {
+        await harness.getMockShell().getDaemonRegistry().stopPlugin("a2a");
+      }
+    });
+
+    it("refuses peers that are not saved and approved", async () => {
+      const fetchFn = citingFetch();
+      const harness = await installed(fetchFn);
+      try {
+        for (const agent of ["discovered.example", "unknown.example"]) {
+          expect(await turn(harness, agent, "A turn")).toMatchObject({
+            success: false,
+            code: "permission_denied",
+          });
+        }
+        expect(fetchFn).not.toHaveBeenCalled();
+      } finally {
+        await harness.getMockShell().getDaemonRegistry().stopPlugin("a2a");
+      }
+    });
   });
 });

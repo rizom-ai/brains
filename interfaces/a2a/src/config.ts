@@ -9,6 +9,7 @@ type A2AConfigSchema = z.ZodObject<
     streamIdleTimeoutMs: z.ZodDefault<z.ZodNumber>;
     maxNetworkAttempts: z.ZodDefault<z.ZodNumber>;
     networkAskTimeoutMs: z.ZodDefault<z.ZodNumber>;
+    turnTimeoutMs: z.ZodDefault<z.ZodNumber>;
     publicAsks: z.ZodPrefault<typeof publicAsksConfigSchema>;
     trustedTokens: z.ZodOptional<z.ZodNever>;
     outboundTokens: z.ZodOptional<z.ZodNever>;
@@ -51,6 +52,13 @@ export const a2aConfigSchema: A2AConfigSchema = z
      * takes 15–25 s on the fleet, so a short budget asks nobody in effect.
      */
     networkAskTimeoutMs: z.number().positive().default(30_000),
+
+    /**
+     * The whole budget for one peer's turn in an exchange: Agent Card fetch
+     * and answer. A turn answers what other peers said, at length, so it gets
+     * more than an ask.
+     */
+    turnTimeoutMs: z.number().positive().default(90_000),
 
     /** How much this brain answers public A2A callers per day, and whether at all. */
     publicAsks: publicAsksConfigSchema.prefault({}),
