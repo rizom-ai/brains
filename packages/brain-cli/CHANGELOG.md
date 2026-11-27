@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.780
+
+### Patch Changes
+
+- [#1061](https://github.com/rizom-ai/brains/pull/1061) [`f9aae55`](https://github.com/rizom-ai/brains/commit/f9aae553b12c1de03839ef758e1321cf6b86c5cc) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A fleet cohort can name the `matrix` bundle. The canonical bundle ids now live in one list in `@brains/contracts`, which the brain's model is pinned to by a test and the fleet's cohort schema reads, so a new bundle is named in one place. `brains-ops init` scaffolds `deploy/scripts/reload-homeserver.ts`.
+
 ## 0.2.0-alpha.779
 
 No changes in this release.

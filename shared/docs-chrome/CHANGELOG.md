@@ -1,5 +1,13 @@
 # @brains/docs-chrome
 
+## 0.2.0-alpha.780
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/brain-ui@0.2.0-alpha.780
+  - @brains/utils@0.2.0-alpha.780
+
 ## 0.2.0-alpha.779
 
 ### Patch Changes
