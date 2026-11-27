@@ -7,6 +7,7 @@ export const libraryStyles: Record<
   | "row"
   | "index"
   | "title"
+  | "excerpt"
   | "updated"
   | "empty"
   | "pagination"
@@ -98,6 +99,20 @@ export const libraryStyles: Record<
       ":is([data-studio-record]:hover *)": "var(--console-accent-dim)",
     },
     "@media (max-width: 640px)": { fontSize: 17, lineHeight: 1.2 },
+  },
+  // What the entry is about, under its title: two lines at most.
+  excerpt: {
+    display: "-webkit-box",
+    WebkitLineClamp: 2,
+    WebkitBoxOrient: "vertical",
+    overflow: "hidden",
+    marginTop: 4,
+    fontFamily: "var(--console-ui)",
+    fontSize: 13.5,
+    fontWeight: 400,
+    lineHeight: 1.45,
+    letterSpacing: 0,
+    color: "var(--console-text-muted)",
   },
   updated: {
     justifySelf: "auto",

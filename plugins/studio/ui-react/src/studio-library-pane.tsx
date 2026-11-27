@@ -17,6 +17,7 @@ import { StudioPageHead } from "./studio-page-head";
 import {
   entityGenerationState,
   entityRowDate,
+  entityRowExcerpt,
   entityRowStatus,
   entityTitle,
   formatUpdated,
@@ -334,6 +335,7 @@ function LibraryRow(props: {
   const generation = entityGenerationState(entity);
   const status = entityRowStatus(entity, entitySchema.fields);
   const rowDate = entityRowDate(entity, entitySchema.fields);
+  const excerpt = entityRowExcerpt(entity, entitySchema.fields);
   const open = (): void => view.openEntity(entity.id, entity.entityType);
   // A row is a link, so it opens in a new tab or copies like any other; a
   // plain click opens the entry in place.
@@ -370,6 +372,11 @@ function LibraryRow(props: {
           <time dateTime={entity.updated} title={entity.updated}>
             {formatUpdated(entity.updated)}
           </time>
+        </span>
+      )}
+      {excerpt && (
+        <span data-studio-row-excerpt="" {...stylex.props(library.excerpt)}>
+          {excerpt}
         </span>
       )}
       {status && (

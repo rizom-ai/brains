@@ -106,6 +106,16 @@ export function entityRowStatus(
   return null;
 }
 
+/** What the entry is about, from the field its type shows as a row's excerpt. */
+export function entityRowExcerpt(
+  entity: EntitySummary,
+  fields: readonly FieldDescriptor[],
+): string | null {
+  const field = fields.find((candidate) => candidate.column === "excerpt");
+  const value = field ? entity.frontmatter[field.name] : undefined;
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
 /** The date that means something for a row: when it was published, else edited. */
 export function entityRowDate(
   entity: EntitySummary,

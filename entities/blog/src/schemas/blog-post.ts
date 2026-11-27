@@ -38,7 +38,7 @@ export const blogPostFrontmatterSchema: BlogPostFrontmatterSchema = z.object({
   slug: z.string().optional(), // Auto-generated from title if not provided
   status: blogPostStatusSchema,
   publishedAt: z.string().datetime().optional().meta({ studioColumn: "date" }),
-  excerpt: z.string(),
+  excerpt: z.string().meta({ studioColumn: "excerpt" }),
   author: z.string(),
   coverImageId: z.string().optional(), // References an image entity by ID
   ogImageId: z.string().optional(), // References an image entity for social/OG metadata

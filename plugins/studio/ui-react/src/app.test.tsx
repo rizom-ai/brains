@@ -1620,6 +1620,25 @@ describe("capability-aware Studio controls", () => {
     expect(queued).toContain(">Queued</span>");
     expect(queued).toContain('dateTime="2026-07-01T00:00:00.000Z"');
     expect(queued).toMatch(/Edited [^<]+/);
+    const excerpted = renderCapabilityView(allowedCapabilities, "browse", {
+      fields: [
+        ...fields,
+        {
+          name: "excerpt",
+          label: "Excerpt",
+          widget: "text",
+          column: "excerpt",
+        },
+      ],
+      frontmatter: {
+        title: "Post one",
+        status: "draft",
+        excerpt: "Every reading kept, every total traceable.",
+      },
+    });
+    expect(excerpted).toMatch(
+      /data-studio-row-excerpt[^>]*>Every reading kept, every total traceable\.</,
+    );
   });
 
   it("retains collection navigation and the open document when a read fails", () => {

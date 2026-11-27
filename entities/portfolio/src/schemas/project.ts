@@ -34,7 +34,7 @@ export const projectFrontmatterSchema: ProjectFrontmatterSchema = z.object({
   slug: z.string().optional(), // Auto-generated from title if not provided
   status: projectStatusSchema,
   publishedAt: z.string().datetime().optional().meta({ studioColumn: "date" }),
-  description: z.string(), // 1-2 sentence summary for cards
+  description: z.string().meta({ studioColumn: "excerpt" }), // 1-2 sentence summary for cards
   year: z.number(), // Year project began, used for ordering
   coverImageId: z.string().optional(), // References an image entity by ID
   ogImageId: z.string().optional(), // References an image entity for social previews

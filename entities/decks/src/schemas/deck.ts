@@ -71,7 +71,7 @@ export const deckCreateFieldsSchema: z.ZodObject<{
 export const deckFrontmatterSchema: DeckFrontmatterSchema = z.object({
   title: z.string(),
   slug: z.string().optional(), // Auto-generated from title if not provided
-  description: z.string().optional(),
+  description: z.string().optional().meta({ studioColumn: "excerpt" }),
   author: z.string().optional(),
   status: deckStatusSchema,
   publishedAt: z.string().datetime().optional().meta({ studioColumn: "date" }),

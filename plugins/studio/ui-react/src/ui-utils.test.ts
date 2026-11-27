@@ -2,6 +2,7 @@ import { describe, expect, it, test } from "bun:test";
 import type { EntitySummary, FieldDescriptor } from "./api";
 import {
   entityRowDate,
+  entityRowExcerpt,
   entityRowStatus,
   optionLabel,
   sentenceLabel,
@@ -54,6 +55,20 @@ describe("a Library row's status and date", () => {
       ]),
     ).toBe("published");
     expect(entityRowStatus(entry({}), [])).toBeNull();
+  });
+
+  it("shows the field a type names as its excerpt, when it says something", () => {
+    const withExcerpt: FieldDescriptor[] = [
+      { name: "excerpt", label: "Excerpt", widget: "text", column: "excerpt" },
+    ];
+    expect(
+      entityRowExcerpt(
+        entry({ excerpt: "  Every reading kept.\n" }),
+        withExcerpt,
+      ),
+    ).toBe("Every reading kept.");
+    expect(entityRowExcerpt(entry({ excerpt: " " }), withExcerpt)).toBeNull();
+    expect(entityRowExcerpt(entry({ excerpt: "Kept" }), fields)).toBeNull();
   });
 
   it("dates a published entry by its publication, anything else by its last edit", () => {

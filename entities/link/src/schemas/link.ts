@@ -49,7 +49,7 @@ export const linkFrontmatterSchema: LinkFrontmatterSchema = z.object({
   status: linkStatusSchema,
   title: z.string(),
   url: z.string().url(),
-  description: z.string().optional(),
+  description: z.string().optional().meta({ studioColumn: "excerpt" }),
   capturedAt: z.string().datetime().meta({ studioWidget: "provenance" }),
   source: linkSourceSchema.meta({ studioWidget: "provenance" }),
 });
