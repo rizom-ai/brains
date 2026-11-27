@@ -95,6 +95,12 @@ export function StudioLibraryPane(
     (field) => field.column === "excerpt" || field.column === "cover",
   );
   const compact = compactable && density === "compact";
+  // A thumbnail column only where an entry on this page has a cover.
+  const covers =
+    !compact &&
+    (entities ?? []).some((entity) =>
+      entityRowCover(entity, entitySchema.fields),
+    );
   const refineLabel = refineActionLabel(
     refine.picked.length,
     entryLabel,
@@ -244,6 +250,7 @@ export function StudioLibraryPane(
             refine={refine}
             picking={picking}
             compact={compact}
+            covers={covers}
           />
         ))}
       {!props.readError &&
@@ -340,6 +347,8 @@ function LibraryRow(props: {
   picking: boolean;
   /** One line per entry: no excerpt or cover. */
   compact: boolean;
+  /** Whether rows on this page give a column to covers. */
+  covers: boolean;
 }): ReactElement {
   const { entity, view, refine } = props;
   const { systemDesign, entitySchema } = view.model;
@@ -351,9 +360,7 @@ function LibraryRow(props: {
   const excerpt = props.compact
     ? null
     : entityRowExcerpt(entity, entitySchema.fields);
-  const covered =
-    !props.compact &&
-    entitySchema.fields.some((field) => field.column === "cover");
+  const covered = props.covers;
   const coverImage = entityRowCover(entity, entitySchema.fields);
   // The title names the entry, so its thumbnail is decorative.
   const coverCell = covered && (

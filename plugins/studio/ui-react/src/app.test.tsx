@@ -1665,6 +1665,21 @@ describe("capability-aware Studio controls", () => {
     expect(
       renderCapabilityView(allowedCapabilities, "browse", { fields }),
     ).not.toContain("data-studio-row-cover");
+    // A page where no entry has a cover keeps no empty thumbnail column.
+    expect(
+      renderCapabilityView(allowedCapabilities, "browse", {
+        fields: [
+          ...fields,
+          {
+            name: "coverImageId",
+            label: "Cover Image ID",
+            widget: "image",
+            column: "cover",
+          },
+        ],
+        frontmatter: { title: "Post one" },
+      }),
+    ).not.toContain("data-studio-row-cover");
     expect(excerpted).toMatch(
       /data-studio-row-excerpt[^>]*>Every reading kept, every total traceable\.</,
     );
