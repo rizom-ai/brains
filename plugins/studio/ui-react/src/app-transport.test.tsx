@@ -569,10 +569,11 @@ describe("Studio App transport", () => {
     const inspector = document.querySelector("aside[data-studio-properties]");
     if (!editorForm || !inspector) throw new Error("Missing editor parts");
     expect(getComputedStyle(inspector).gridColumn).toBe("2");
-    // ⌘\ hides it for this type and gives the document the width.
+    // ⌘\ hides it for this type and gives the document the width, wherever
+    // focus is on the page.
     const toggleInspector = async (): Promise<void> => {
       await act(async () => {
-        editorForm.dispatchEvent(
+        document.body.dispatchEvent(
           new KeyboardEvent("keydown", {
             key: "\\",
             metaKey: true,

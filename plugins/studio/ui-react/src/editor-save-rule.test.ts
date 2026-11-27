@@ -80,6 +80,24 @@ describe("editorSaveBlockReason", () => {
     ).toBe("Give this entry a title to create it.");
   });
 
+  it("points at the fields the destination check refused", () => {
+    expect(
+      editorSaveBlockReason(
+        creating,
+        model({
+          destinationBlocked: true,
+          fieldIssues: [{ path: ["status"], message: "Invalid option" }],
+          presentation: "split",
+          entitySchema: {
+            ...schema,
+            fields: [{ name: "title", label: "Title", widget: "string" }],
+          },
+        }),
+        false,
+      ),
+    ).toBe("Fix the highlighted fields first.");
+  });
+
   it("points at invalid fields", () => {
     const state: EditorWorkflowState = {
       ...editing(),

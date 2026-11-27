@@ -140,6 +140,23 @@ describe("Studio folder presentation", () => {
       />,
     );
     expect(rejected).toContain('name="segment"');
+    // Issues with other fields belong to those fields, not to the file name.
+    const fieldsRefused = renderToStaticMarkup(
+      <StudioDestination
+        segment="why-sensor-data"
+        followsTitle
+        onSegmentChange={() => {}}
+        preview={null}
+        pending={false}
+        error={
+          new ApiError(400, "Invalid frontmatter", [
+            { path: ["status"], message: "Invalid option" },
+          ])
+        }
+      />,
+    );
+    expect(fieldsRefused).toContain("Saves as");
+    expect(fieldsRefused).not.toContain("Invalid option");
   });
 
   test("creation shows server-returned identity and placement, never inventing a file path", () => {
@@ -215,7 +232,8 @@ describe("Studio folder presentation", () => {
       />,
     );
     expect(html).toContain('aria-invalid="false"');
-    expect(html).toContain("Title is required");
+    // The Title field states it; the file name does not repeat it.
+    expect(html).not.toContain("Title is required");
   });
 
   test("creation fixes its parent prefix and only edits the leaf segment", () => {

@@ -224,13 +224,14 @@ export function StudioDestination(props: {
   const issue = issues?.find(
     (item) => item.path[0] === "segment" || item.path[0] === "prefix",
   );
+  // Issues with other fields are shown on those fields.
   const error =
     issue?.path[0] === "prefix"
       ? `Cannot create in this ${props.kind ?? "folder"}: ${issue.message}`
       : issue
         ? segmentMessage(issue.message)
         : issues?.length
-          ? issues.map((item) => segmentMessage(item.message)).join(" ")
+          ? undefined
           : props.error?.message;
   const segmentInvalid =
     issue?.path[0] === "segment" || (!issues?.length && Boolean(props.error));

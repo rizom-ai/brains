@@ -23,6 +23,7 @@ import { uploadImage, type UploadImageResult } from "./mutations";
 import { invalidateAfterUpload } from "./queries";
 import { useStudioApi } from "./studio-api-context";
 import { StudioImageDetails } from "./studio-image-details";
+import { useFieldIssueOrigin } from "./field-issue-source";
 
 /** Host presentation only: never changes adapter body support or permissions. */
 /**
@@ -406,6 +407,7 @@ export function Field(props: {
   issues?: ValidationIssue[] | undefined;
 }): ReactElement {
   const errorId = useId();
+  const issueOrigin = useFieldIssueOrigin();
   const group = useRef<HTMLDivElement>(null);
   const issues =
     props.issues?.filter((issue) => issue.path[0] === props.descriptor.name) ??
@@ -450,7 +452,7 @@ export function Field(props: {
       {issues.length > 0 && (
         <div id={errorId}>
           <StudioStatus tone="error">
-            Last save:{" "}
+            {issueOrigin === "save" && "Last save: "}
             {issues
               .map(
                 (issue) =>
