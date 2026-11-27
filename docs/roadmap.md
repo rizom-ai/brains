@@ -131,7 +131,6 @@ Plans:
 - [studio-grouping-definitions.md](./plans/studio-grouping-definitions.md) — document-owned groupings with convention-first type exclusions, shipped and deployed to smoke; live smoke acceptance remains.
 - [operator-console-pwa.md](./plans/operator-console-pwa.md) — optional network-first installable shell without an offline-authoring claim.
 - [email-reply-drafts.md](./plans/email-reply-drafts.md) — a reply the brain writes on request is saved into the mailbox's Drafts folder and sent from the mail program; the brain never sends a reply, and the dormant send backend is removed.
-- [obsidian-plugin.md](./plans/obsidian-plugin.md) — an Obsidian plugin that keeps a vault on the person's own disk in step with a brain through the WebDAV drive: notes and images both ways, renames as renames, colliding edits in the Inbox; fast from anywhere and usable without a terminal.
 - [whatsapp-interface.md](./plans/whatsapp-interface.md) — WhatsApp direct messages and groups through our own Baileys adapter in `@brains/chat`: unofficial, on a dedicated number.
 - [matrix-messaging.md](./plans/matrix-messaging.md) — the brain's own Matrix homeserver at its domain, which the brain provisions and the deploy runs beside it; a configuration-free default recipient and the first real deploy remain.
 - [brain-web-chat-sdk-adapter.md](./plans/brain-web-chat-sdk-adapter.md) — parked strategy for deeper Chat SDK semantic alignment.
