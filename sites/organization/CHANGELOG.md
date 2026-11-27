@@ -1,5 +1,20 @@
 # @brains/site-organization
 
+## 0.2.0-alpha.785
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/agent-discovery@0.2.0-alpha.785
+  - @brains/faq@0.2.0-alpha.785
+  - @brains/sdk@0.2.0-alpha.785
+  - @brains/profile@0.2.0-alpha.785
+  - @brains/site-atlas@0.2.0-alpha.785
+  - @rizom/brain-ui@0.2.0-alpha.785
+  - @brains/contracts@0.2.0-alpha.785
+  - @brains/site-composition@0.2.0-alpha.785
+  - @brains/utils@0.2.0-alpha.785
+
 ## 0.2.0-alpha.784
 
 ### Patch Changes
