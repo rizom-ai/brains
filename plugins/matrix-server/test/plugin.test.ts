@@ -185,6 +185,7 @@ describe("rooms for trusted peers, as the plugin hears them", () => {
     expect(requests.filter((request) => !request.endsWith("/login"))).toEqual([
       "GET /_matrix/client/v3/directory/room/#team-rizom-ai:brain.example.com",
       "POST /_matrix/client/v3/createRoom",
+      "POST /_matrix/client/v3/join/#brain-example-com:team.rizom.ai",
       "GET /_matrix/client/v3/directory/room/#team-rizom-ai:brain.example.com",
       "POST /_matrix/client/v3/rooms/!peer:brain.example.com/kick",
       "PUT /_matrix/client/v3/rooms/!peer:brain.example.com/state/m.room.server_acl/",
