@@ -432,6 +432,7 @@ function LibraryRow(props: {
       className={editorClass(
         "",
         library.row,
+        library.recordLink,
         editorStyles.listingRow,
         systemDesign && systemFieldStyles.collectionRow,
       )}

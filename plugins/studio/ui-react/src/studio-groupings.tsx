@@ -329,6 +329,7 @@ export function StudioGroupingContent(
                 className={editorClassName(
                   "",
                   libraryStyles.row,
+                  libraryStyles.recordLink,
                   editorStyles.listingRow,
                 )}
                 onClick={(event) => {

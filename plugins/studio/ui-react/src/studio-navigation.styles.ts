@@ -314,6 +314,7 @@ export const navigationStyles: Record<NavigationStyle, stylex.StyleXStyles> =
       color: "var(--console-text-dim)",
       fontFamily: "var(--console-ui)",
       fontSize: "12px",
+      lineHeight: "normal",
       textAlign: "left",
       textDecoration: "none",
       cursor: "pointer",
@@ -445,7 +446,9 @@ export const navigationStyles: Record<NavigationStyle, stylex.StyleXStyles> =
       cursor: "pointer",
       fontFamily: "var(--console-ui)",
       fontSize: "16px",
+      lineHeight: "normal",
       textAlign: "left",
+      textDecoration: "none",
       ":hover": {
         backgroundColor: "var(--console-accent-soft)",
         color: "var(--console-text)",

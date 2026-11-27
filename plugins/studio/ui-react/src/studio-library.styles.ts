@@ -11,9 +11,16 @@ export const libraryStyles: Record<
   | "empty"
   | "pagination"
   | "pager"
-  | "range",
+  | "range"
+  | "recordLink",
   stylex.StyleXStyles
 > = stylex.create({
+  // An entry row that is a link keeps the measure it had as a button.
+  recordLink: {
+    color: "inherit",
+    textDecoration: "none",
+    lineHeight: "normal",
+  },
   readable: {
     color: "var(--console-text)",
     "--console-text-muted":
@@ -58,8 +65,6 @@ export const libraryStyles: Record<
       ":hover": "var(--console-card)",
     },
     textAlign: "left",
-    textDecoration: "none",
-    color: "inherit",
     cursor: "pointer",
     transitionProperty: {
       default: "background-color",

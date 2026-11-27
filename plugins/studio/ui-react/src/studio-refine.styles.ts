@@ -95,6 +95,7 @@ export const refineStyles: Record<
     fontSize: "inherit",
     textAlign: "left",
     textDecoration: "none",
+    lineHeight: "normal",
     cursor: "pointer",
   },
   updated: {
