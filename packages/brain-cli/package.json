@@ -98,6 +98,7 @@
     "@brains/reference": "workspace:*",
     "@brains/refined-note": "workspace:*",
     "@brains/sdk": "workspace:*",
+    "@brains/seminar": "workspace:*",
     "@brains/series": "workspace:*",
     "@brains/site-builder-plugin": "workspace:*",
     "@brains/site-composition": "workspace:*",
