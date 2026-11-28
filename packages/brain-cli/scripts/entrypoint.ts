@@ -147,7 +147,7 @@ setBootFn(async (cwd, definition, flags): Promise<BootedBrain | void> => {
 
 // ─── Run CLI ──────────────────────────────────────────────────────
 
-import { parseArgs } from "../src/parse-args";
+import { parseCommandLine } from "../src/parse-args";
 import { runCommand } from "../src/run-command";
 import { reexecLocalBrain } from "../src/lib/local-reexec";
 import { getInvocationCwd } from "../src/lib/invocation-cwd";
@@ -163,6 +163,10 @@ const cwd = getInvocationCwd();
 const handedOff = await reexecLocalBrain({ cwd, args: process.argv.slice(2) });
 if (handedOff !== undefined) process.exit(handedOff);
 
-const parsed = parseArgs(process.argv.slice(2));
-const status = printCommandResult(await runCommand(parsed, cwd));
+const commandLine = parseCommandLine(process.argv.slice(2));
+const status = printCommandResult(
+  "failure" in commandLine
+    ? commandLine.failure
+    : await runCommand(commandLine.parsed, cwd),
+);
 if (status !== 0) process.exit(status);

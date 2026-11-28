@@ -583,6 +583,48 @@ export const commands: readonly CommandDefinition<string, CommandResult>[] = [
 
 const registry = createCommandRegistry(commands);
 
+/** Commands whose flags belong to the program they hand their argv to. */
+const passThroughCommands: ReadonlySet<string> = new Set([evalCommand.name]);
+
+/**
+ * Flags a command accepts without showing them: the supervisor starts its
+ * children as `start --child=<role>` (see `parseBrainChildRole`).
+ */
+const internalFlags: Readonly<Record<string, readonly string[]>> = {
+  [startCommand.name]: ["child"],
+};
+
+/** The flags `brain <command>` accepts, by long name. */
+export interface CommandFlagScope {
+  /** The command as registered, e.g. `cert:bootstrap` for `cert bootstrap`. */
+  name: string;
+  /** The global flags and the command's own, as its help shows them. */
+  flags: readonly string[];
+  /** Flags accepted but never shown or suggested. */
+  internal: readonly string[];
+}
+
+/**
+ * Which flags `brain <command> [args]` accepts, derived from the command
+ * definitions. A brain command (not built in) accepts only the global flags.
+ * Undefined for a command that passes its flags on unchecked.
+ */
+export function commandFlagScope(
+  command: string,
+  args: string[],
+): CommandFlagScope | undefined {
+  const { name } = resolveSubcommand(registry, command, args);
+  if (passThroughCommands.has(name)) return undefined;
+  return {
+    name,
+    flags: [
+      ...Object.keys(globalFlags),
+      ...Object.keys(registry.get(name)?.flags ?? {}),
+    ],
+    internal: internalFlags[name] ?? [],
+  };
+}
+
 /**
  * Execute a parsed CLI command.
  *
@@ -604,7 +646,7 @@ export async function runCommand(
     if (remote) {
       return {
         success: false,
-        message: `\`brain ${resolved.name}\` runs in this process and does not support --remote. Remote mode calls the brain's own commands, e.g. \`brain build-site preview --remote ${remote}\`.`,
+        message: `\`brain ${resolved.name}\` runs in this process and does not support --remote. Remote mode calls the brain's own commands, e.g. \`brain status --remote ${remote}\`.`,
       };
     }
     return command.run({ args: resolved.args, flags: parsed.flags }, dir);

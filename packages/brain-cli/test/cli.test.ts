@@ -728,4 +728,18 @@ describe("--remote on built-in commands", () => {
     expect(result.message).toContain("brain tool");
     expect(existsSync(join(testDir, "data"))).toBe(false);
   });
+
+  // Remote mode finds a tool by its name's last segment, so the example must
+  // be a command whose name is the same locally and remotely: `build` is
+  // `site-builder_build-site` remotely, `status` is `system_status`.
+  it("points to a brain command that reaches the remote brain", async () => {
+    const result = await runCommand(
+      { command: "start", args: [], flags: { remote: "rover.rizom.ai" } },
+      testDir,
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain("`brain status --remote rover.rizom.ai`");
+    expect(result.message).not.toContain("build-site");
+  });
 });
