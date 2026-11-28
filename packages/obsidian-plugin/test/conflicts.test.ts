@@ -135,6 +135,37 @@ describe("keeping the brain's version", () => {
   });
 });
 
+describe("a brain that cannot settle conflicts for now", () => {
+  it("still syncs, and is told again later", async () => {
+    synced = await withConflict();
+    const reachable = synced.brain.fetch;
+    synced.brain.fetch = async (request): Promise<HttpResponse> =>
+      request.url.includes("/.brain/conflicts/")
+        ? { status: 503, headers: {}, body: new Uint8Array() }
+        : reachable(request);
+
+    const settled = await synced.engine.settleConflict(COPY, "mine");
+
+    // The choice is made, and the note went up as any edit does.
+    expect(settled.status).toBe("synced");
+    expect(settled.uploaded).toEqual(["tea.md"]);
+    expect(await stored(synced, "tea")).toBe(MINE);
+    expect((await synced.store.load()).settled).toHaveLength(1);
+
+    // Every sync goes on as before while the brain cannot be told.
+    synced.vault.setText("tea.md", "# Tea\n\nLater.\n");
+    const next = await synced.engine.sync();
+    expect(next.status).toBe("synced");
+    expect(next.uploaded).toEqual(["tea.md"]);
+    expect((await synced.store.load()).settled).toHaveLength(1);
+
+    synced.brain.fetch = reachable;
+    await synced.engine.sync();
+    expect((await synced.store.load()).settled).toEqual([]);
+    expect(await synced.brain.conflicts()).toEqual([]);
+  });
+});
+
 describe("keeping the person's version", () => {
   it("puts it in the note and in the brain, and clears the copy and the Inbox entry", async () => {
     synced = await withConflict();

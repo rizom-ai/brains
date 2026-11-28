@@ -395,12 +395,18 @@ export class SyncEngine {
   /**
    * Dismiss the Inbox entries of conflicts settled here. Whatever the brain
    * answers, it is told once: a brain that cannot be told, or refuses,
-   * keeps its entry for the Inbox. One that cannot be reached is told at
-   * the next sync.
+   * keeps its entry for the Inbox. One that cannot be reached, or cannot
+   * settle anything for now, is told at a later sync, and the sync it could
+   * not answer goes on.
    */
   private async tellSettled(state: SyncState): Promise<void> {
     for (const conflictId of [...state.settled]) {
-      await this.drive.settleConflict(conflictId);
+      try {
+        await this.drive.settleConflict(conflictId);
+      } catch (error) {
+        if (error instanceof DriveUnavailableError) return;
+        throw error;
+      }
       state.settled = state.settled.filter((id) => id !== conflictId);
     }
   }
