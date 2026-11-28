@@ -35,6 +35,7 @@ import {
   NOTE_ENTITY_TYPE,
   chairNoteOf,
 } from "./lib/chair-notes";
+import { SEMINAR_INSTRUCTIONS } from "./lib/instructions";
 import { getTemplates } from "./lib/register-templates";
 import { seminarSchema } from "./schemas/seminar";
 import { seminar } from "./seminar-entity";
@@ -187,33 +188,38 @@ export const seminarPackage: ServicePackageDefinition<
   typeof seminarConfigSchema
 > = withTools(
   withJobHandlers(
-    defineServicePlugin({
-      id: "seminars",
-      config: seminarConfigSchema,
-      entities: [seminar],
-      setup: (context): Record<never, never> => {
-        const runtime = serviceRuntime(context);
-        for (const [name, template] of Object.entries(getTemplates())) {
-          runtime.template(name, template);
-        }
-        runtime.dataSource(
-          seminarAskDataSource({
-            // The box is named for whom the site speaks.
-            name: (): string => runtime.identity.getProfile().name,
-            // The record Web Chat shares, read in the build's process.
-            chatAvailable: (build): Promise<boolean> =>
-              homepageChatAvailable(
-                build,
-                build.sharedState(askBoxAvailabilityState),
-              ),
-            peers: context.config.peers,
-          }),
-        );
-        // What those pages read, as seminar:entities.
-        runtime.dataSource(seminarDataSource(seminar, context.config.peers));
-        return {};
+    defineServicePlugin(
+      {
+        id: "seminars",
+        config: seminarConfigSchema,
+        entities: [seminar],
+        setup: (context): Record<never, never> => {
+          const runtime = serviceRuntime(context);
+          for (const [name, template] of Object.entries(getTemplates())) {
+            runtime.template(name, template);
+          }
+          runtime.dataSource(
+            seminarAskDataSource({
+              // The box is named for whom the site speaks.
+              name: (): string => runtime.identity.getProfile().name,
+              // The record Web Chat shares, read in the build's process.
+              chatAvailable: (build): Promise<boolean> =>
+                homepageChatAvailable(
+                  build,
+                  build.sharedState(askBoxAvailabilityState),
+                ),
+              peers: context.config.peers,
+            }),
+          );
+          // What those pages read, as seminar:entities.
+          runtime.dataSource(seminarDataSource(seminar, context.config.peers));
+          return {};
+        },
       },
-    }),
+      {
+        instructions: (): string => SEMINAR_INSTRUCTIONS,
+      },
+    ),
     (context) => [
       seminarHoldJob(holdDeps(serviceRuntime(context), context.config)),
       seminarRedoJob(redoDeps(serviceRuntime(context), context.config)),
