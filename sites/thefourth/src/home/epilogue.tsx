@@ -6,6 +6,7 @@ import {
   type SectionDefinition,
 } from "@rizom/site";
 import { ActHeading } from "./act-heading";
+import { spaceAfter } from "../words";
 import { linkSchema, TextLink } from "./links";
 
 /**
@@ -45,7 +46,9 @@ function EpilogueSection({
               light="mint"
             />
             <p className="tf-epilogue__headline tf-reveal">
-              {headline} <em>{emphasis}</em>
+              {headline}
+              {spaceAfter(headline)}
+              <em>{emphasis}</em>
             </p>
           </div>
           <div className="tf-epilogue__aside">

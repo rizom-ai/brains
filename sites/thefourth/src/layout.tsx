@@ -7,7 +7,7 @@ import {
   type SiteLayoutProps,
 } from "@rizom/site";
 import { Logo } from "./logo";
-import { menuWords, PAGES } from "./navigation";
+import { menuWords, pageGloss, PAGES } from "./navigation";
 import { parsePhoto } from "./portrait";
 
 /** The brain's profiles elsewhere: every social link but the email. */
@@ -65,7 +65,10 @@ const LEGAL_PLACEHOLDER_HREF = "#";
 /** Where the credit goes: the network the brain runs on. */
 const RIZOM_HREF = "https://rizom.ai";
 
-/** EN / 中文: the languages this page exists in, the one being read marked. */
+/**
+ * EN / 中文: the languages this page exists in, the one being read first and
+ * marked.
+ */
 function LanguageSwitch({
   language,
   alternates,
@@ -75,14 +78,19 @@ function LanguageSwitch({
   alternates: SiteAlternate[];
   variant?: "pill" | "menu";
 }): JSX.Element {
+  const reading = (alternate: SiteAlternate): boolean =>
+    alternate.language.toLowerCase() === language.toLowerCase();
+  const ordered = [
+    ...alternates.filter(reading),
+    ...alternates.filter((alternate) => !reading(alternate)),
+  ];
   return (
     <nav
       className={variant ? `tf-lang tf-lang--${variant}` : "tf-lang"}
-      aria-label="Language"
+      aria-label={menuWords(language).language}
     >
-      {alternates.map((alternate, index) => {
-        const current =
-          alternate.language.toLowerCase() === language.toLowerCase();
+      {ordered.map((alternate, index) => {
+        const current = reading(alternate);
         return (
           <span key={alternate.language}>
             {index > 0 && <span className="tf-lang__sep"> / </span>}
@@ -145,7 +153,11 @@ export function TheFourthLayout({
   const lines = FOOTER_LINES[language.toLowerCase()] ?? DEFAULT_FOOTER_LINES;
   const words = menuWords(language);
   const photo = parsePhoto(siteInfo.photo ?? "");
-  const pages = PAGES.map((page) => ({ ...page, href: pathIn(page.path) }));
+  const pages = PAGES.map((page) => ({
+    ...page,
+    href: pathIn(page.path),
+    gloss: pageGloss(language, page.id),
+  }));
   const talk = siteInfo.cta;
   const switchable = alternates.length > 1;
   return (
@@ -158,11 +170,11 @@ export function TheFourthLayout({
         <a
           className="tf-mark"
           href={home}
-          aria-label={`${siteInfo.title} home`}
+          aria-label={`${siteInfo.title} ${words.homeLabel}`}
         >
           <Logo />
         </a>
-        <nav className="tf-nav" aria-label="Main">
+        <nav className="tf-nav" aria-label={words.main}>
           {pages.map((page) => (
             <a
               key={page.id}
@@ -171,6 +183,7 @@ export function TheFourthLayout({
               {...current(page.href)}
             >
               {page.label}
+              {page.gloss && <span className="tf-nl__gloss">{page.gloss}</span>}
             </a>
           ))}
         </nav>
@@ -211,6 +224,9 @@ export function TheFourthLayout({
                   {...current(page.href)}
                 >
                   {page.label}
+                  {page.gloss && (
+                    <span className="tf-mlink__gloss">{page.gloss}</span>
+                  )}
                 </a>
               ))}
               {talk && (
@@ -237,7 +253,7 @@ export function TheFourthLayout({
               <Wordmark title={siteInfo.title} />
               <span className="tf-foot__trade">{lines.trade}</span>
             </div>
-            <nav className="tf-foot__nav" aria-label="Footer">
+            <nav className="tf-foot__nav" aria-label={words.footer}>
               {pages.map((page) => (
                 <a key={page.id} className="tf-flink" href={page.href}>
                   {page.label}

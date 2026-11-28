@@ -6,6 +6,7 @@ import {
   type SectionDefinition,
 } from "@rizom/site";
 import { KEY_SHAPES, KeyDrawing, type KeyShape } from "./keys";
+import { spaceAfter } from "../words";
 
 /**
  * The cover: a paper stage between two curtains under a scalloped valance.
@@ -176,7 +177,7 @@ function CoverSection({
   audience,
 }: z.infer<typeof coverSchema>): JSX.Element {
   const spoken = lines.map((line) => line.replace(KEY_MARK, KEYHOLE_LETTER));
-  const label = `${spoken.join(" ")} ${lead} ${audience}`;
+  const label = [...spoken, lead, audience].filter(Boolean).join(" ");
   return (
     <section className="tf-cover" aria-label={label}>
       <div className="tf-stage">
@@ -189,11 +190,17 @@ function CoverSection({
             </h1>
             <p className="tf-cover__audience tf-fadeout" aria-hidden="true">
               <span className="tf-paren">(</span>
-              <span className="tf-cover__lead">{lead}</span> <em>{audience}</em>
+              <span className="tf-cover__lead">{lead}</span>
+              {spaceAfter(lead)}
+              <em>{audience}</em>
               <span className="tf-paren">)</span>
             </p>
           </div>
           <p className="tf-cover__cue tf-fadeout" aria-hidden="true">
+            <span className="tf-bob">↓</span>
+          </p>
+          {/* A second cue over the red, drawn on Chinese pages only. */}
+          <p className="tf-cover__cue2" aria-hidden="true">
             <span className="tf-bob">↓</span>
           </p>
           <div

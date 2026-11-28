@@ -32,6 +32,13 @@ describe("Act IV, the fourth act", () => {
     ]);
   });
 
+  test("lays its cards on its own grid, not the inner pages' flex stack", () => {
+    expect(renderActFour()).toContain('<div class="tf-cards">');
+    expect(site.themeOverride ?? "").toMatch(
+      /\.tf-cards > \* \{ grid-column: 1 \/ -1 !important;/,
+    );
+  });
+
   test("tells the museum's numbers on the feature card", () => {
     const html = renderActFour();
     expect(html).toContain("And then, finally, the right people got it.");

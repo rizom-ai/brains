@@ -6,6 +6,7 @@ import {
   type SectionDefinition,
 } from "@rizom/site";
 import { ActHeading } from "./act-heading";
+import { spaceAfter } from "../words";
 import { ButtonLink } from "./links";
 
 /**
@@ -40,7 +41,7 @@ type Signs = z.infer<typeof crossroadsSchema>["signs"];
 
 const PAPER = "var(--palette-paper)";
 const INK = "var(--palette-ink)";
-const SIGN_FONT = "Inter Tight, Arial, sans-serif";
+const SIGN_FONT = "Inter Tight, Noto Sans TC, Arial, sans-serif";
 
 /** One sign on the pole, swaying about where it hangs. */
 function Sign({
@@ -281,7 +282,9 @@ function CrossroadsSection({
             light="mustard"
           />
           <h2 className="tf-crossroads__headline tf-reveal">
-            {headline} <em>{emphasis}</em>
+            {headline}
+            {spaceAfter(headline)}
+            <em>{emphasis}</em>
           </h2>
           {test.href && (
             <>

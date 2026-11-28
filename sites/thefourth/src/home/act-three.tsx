@@ -7,12 +7,15 @@ import {
 } from "@rizom/site";
 import { ActHeading } from "./act-heading";
 import { Eye } from "./eye";
+import { ButtonLink, linkSchema } from "./links";
 
 /**
  * Act III, enter the guide: The Fourth's three ways in, each a giant word on
  * a mint disc with its mark (an eye, a talking screen, a handset on its
  * cord), alternating sides, then the worlds it works in, each leading to its
- * part of the Who page. Each way names its program in bold.
+ * part of the Who page. Each way names its program in bold. In Chinese the
+ * act opens on its claim beside a card holding a note and the worlds, with a
+ * button to the How page, and each way's word carries its Chinese gloss.
  */
 const guideSpellSchema = z.object({
   word: z.string(),
@@ -20,6 +23,8 @@ const guideSpellSchema = z.object({
   text: z.string(),
   mark: z.enum(["eye", "screen", "handset"]),
   program: z.string(),
+  /** Chinese only: the word in Chinese, beside the English. */
+  gloss: z.string().default(""),
 });
 
 const sectorSchema = z.object({
@@ -36,7 +41,12 @@ const actThreeSchema = z.object({
   spells: z.array(guideSpellSchema),
   sectorsPrompt: z.string(),
   sectors: z.array(sectorSchema),
+  /** Chinese only: the card's note and the button beside the claim. */
+  note: z.string().default(""),
+  more: linkSchema.default({ label: "", href: "" }),
 });
+
+type ActThree = z.infer<typeof actThreeSchema>;
 
 type Mark = z.infer<typeof guideSpellSchema>["mark"];
 
@@ -134,6 +144,87 @@ const MARKS: Record<Mark, () => JSX.Element> = {
   handset: Handset,
 };
 
+function GuideSpells({ spells }: { spells: ActThree["spells"] }): JSX.Element {
+  return (
+    <>
+      {spells.map((spell, index) => {
+        const MarkDrawing = MARKS[spell.mark];
+        return (
+          <div
+            key={spell.word}
+            className={
+              index % 2 === 1
+                ? "tf-guide-spell tf-guide-spell--mirrored"
+                : "tf-guide-spell"
+            }
+          >
+            <div className="tf-guide-spell__disc tf-l1" aria-hidden="true" />
+            <span className="tf-guide-spell__word">
+              {spell.word}
+              {spell.gloss && (
+                <>
+                  {" "}
+                  <span className="tf-guide-spell__gloss">{spell.gloss}</span>
+                </>
+              )}
+            </span>
+            <div
+              className={`tf-guide-spell__mark tf-mark--${spell.mark} tf-l3`}
+              aria-hidden="true"
+            >
+              <div
+                className={spell.mark === "handset" ? "tf-swing" : undefined}
+              >
+                <MarkDrawing />
+              </div>
+            </div>
+            <div className="tf-guide-spell__text">
+              <span className="tf-eyebrow">{spell.name}</span>
+              <span>{spell.text}</span>
+              <strong className="tf-guide-spell__program">
+                {spell.program}
+              </strong>
+            </div>
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
+function SectorChips({
+  sectors,
+}: {
+  sectors: ActThree["sectors"];
+}): JSX.Element {
+  return (
+    <ul className="tf-sectors__list">
+      {sectors.map((sector) => {
+        const words = (
+          <>
+            <span
+              className={`tf-chip__dot tf-chip__dot--${sector.light}`}
+              aria-hidden="true"
+            />
+            {sector.label}
+          </>
+        );
+        return (
+          <li key={sector.label}>
+            {sector.href ? (
+              <a className="tf-chip" href={sector.href}>
+                {words}
+              </a>
+            ) : (
+              <span className="tf-chip">{words}</span>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 function ActThreeSection({
   act,
   label,
@@ -142,7 +233,7 @@ function ActThreeSection({
   spells,
   sectorsPrompt,
   sectors,
-}: z.infer<typeof actThreeSchema>): JSX.Element {
+}: ActThree): JSX.Element {
   return (
     <section id="guide" className="tf-act tf-act--three">
       <div className="tf-wrap tf-act-three">
@@ -150,66 +241,48 @@ function ActThreeSection({
           <ActHeading act={act} label={label} opening={opening} light="mint" />
           <p className="tf-act-three__intro tf-reveal">{intro}</p>
         </div>
-        {spells.map((spell, index) => {
-          const MarkDrawing = MARKS[spell.mark];
-          return (
-            <div
-              key={spell.word}
-              className={
-                index % 2 === 1
-                  ? "tf-guide-spell tf-guide-spell--mirrored"
-                  : "tf-guide-spell"
-              }
-            >
-              <div className="tf-guide-spell__disc tf-l1" aria-hidden="true" />
-              <span className="tf-guide-spell__word">{spell.word}</span>
-              <div
-                className={`tf-guide-spell__mark tf-mark--${spell.mark} tf-l3`}
-                aria-hidden="true"
-              >
-                <div
-                  className={spell.mark === "handset" ? "tf-swing" : undefined}
-                >
-                  <MarkDrawing />
-                </div>
-              </div>
-              <div className="tf-guide-spell__text">
-                <span className="tf-eyebrow">{spell.name}</span>
-                <span>{spell.text}</span>
-                <strong className="tf-guide-spell__program">
-                  {spell.program}
-                </strong>
-              </div>
-            </div>
-          );
-        })}
+        <GuideSpells spells={spells} />
         <div className="tf-sectors tf-reveal">
           <span className="tf-story">{sectorsPrompt}</span>
-          <ul className="tf-sectors__list">
-            {sectors.map((sector) => {
-              const words = (
-                <>
-                  <span
-                    className={`tf-chip__dot tf-chip__dot--${sector.light}`}
-                    aria-hidden="true"
-                  />
-                  {sector.label}
-                </>
-              );
-              return (
-                <li key={sector.label}>
-                  {sector.href ? (
-                    <a className="tf-chip" href={sector.href}>
-                      {words}
-                    </a>
-                  ) : (
-                    <span className="tf-chip">{words}</span>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
+          <SectorChips sectors={sectors} />
         </div>
+      </div>
+    </section>
+  );
+}
+
+/** Act III in Chinese: the claim beside a card of the note and the worlds. */
+function ActThreeChinese({
+  act,
+  label,
+  opening,
+  intro,
+  spells,
+  sectorsPrompt,
+  sectors,
+  note,
+  more,
+}: ActThree): JSX.Element {
+  return (
+    <section id="guide" className="tf-act tf-act--three">
+      <div className="tf-wrap tf-act-three">
+        <ActHeading act={act} label={label} opening={opening} light="mint" />
+        <div className="tf-act-three__lead">
+          <div className="tf-act-three__claim tf-reveal">
+            <h2 className="tf-act-three__headline">{intro}</h2>
+            {more.href && (
+              <div>
+                <ButtonLink link={more} tone="ink" />
+              </div>
+            )}
+          </div>
+          <div className="tf-act-three__card tf-reveal">
+            {note && <p className="tf-act-three__note">{note}</p>}
+            <span className="tf-act-three__prompt">{sectorsPrompt}</span>
+            <SectorChips sectors={sectors} />
+          </div>
+        </div>
+        <GuideSpells spells={spells} />
       </div>
     </section>
   );
@@ -219,9 +292,10 @@ export const actThree: SectionDefinition = defineSection(
   actThreeSchema,
   ActThreeSection,
   {
+    components: { "zh-TW": ActThreeChinese },
     title: "Act III — Enter the guide",
     description:
-      "The guide's three ways in (word, name, text, mark: eye, screen or handset, and the program it names) and the worlds The Fourth works in, each with its light and, optionally, where it leads.",
+      "The guide's three ways in (word, name, text, mark: eye, screen or handset, and the program it names) and the worlds The Fourth works in, each with its light and, optionally, where it leads. Chinese pages also gloss each word, and add a note and a button beside the claim.",
   },
 );
 

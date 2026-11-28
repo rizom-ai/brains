@@ -10,6 +10,7 @@ import { cover, coverContent } from "./home/cover";
 import { spellScript } from "./home/spell-script";
 import { formsCSS } from "./forms";
 import { chineseCSS, chineseFontScript } from "./languages";
+import { homeChineseCSS } from "./home/chinese-css";
 import { TheFourthLayout } from "./layout";
 import { keyholeScript, motionCSS, sparkScript } from "./motion";
 import {
@@ -142,7 +143,8 @@ export const theFourthSite: SiteDefinition = defineSite({
     motionCSS +
     pagesCSS +
     formsCSS +
-    chineseCSS,
+    chineseCSS +
+    homeChineseCSS,
   headScripts: [
     chineseFontScript,
     spellScript,
