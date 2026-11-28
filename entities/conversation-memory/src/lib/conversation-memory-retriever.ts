@@ -7,14 +7,20 @@ import { actorRefKey, type ActorRef } from "@brains/contracts";
 import type { ContentVisibility } from "@brains/sdk/internal/service-runtime";
 import {
   decisionSchema,
+  insightSchema,
   type DecisionEntity,
+  type InsightEntity,
 } from "../schemas/conversation-memory";
 import { summarySchema, type SummaryEntity } from "../schemas/summary";
 import { compareIds } from "@brains/utils/sort";
 import { z } from "@brains/utils/zod";
 import { parseSummaryBody } from "./summary-body";
 import type { MemoryContext } from "./memory-context";
-import { DECISION_ENTITY_TYPE, SUMMARY_ENTITY_TYPE } from "./constants";
+import {
+  DECISION_ENTITY_TYPE,
+  INSIGHT_ENTITY_TYPE,
+  SUMMARY_ENTITY_TYPE,
+} from "./constants";
 import { buildFallbackExcerpt } from "./excerpt";
 
 /** The space a conversation or a memory belongs to, for same-space recall. */
@@ -30,6 +36,7 @@ const CANDIDATE_MULTIPLIER = 4;
 const MEMORY_ENTITY_TYPES = [
   SUMMARY_ENTITY_TYPE,
   DECISION_ENTITY_TYPE,
+  INSIGHT_ENTITY_TYPE,
   ACTION_ITEM_ENTITY_TYPE,
 ];
 const MAX_AGENT_CONTEXT_CONTENT_LENGTH = 1600;
@@ -38,9 +45,14 @@ const MAX_SUMMARY_CONTEXT_KEY_POINTS = 5;
 
 export const conversationMemorySearchEntitySchema: ReturnType<
   typeof z.union<
-    [typeof summarySchema, typeof decisionSchema, typeof actionItemSchema]
+    [
+      typeof summarySchema,
+      typeof decisionSchema,
+      typeof insightSchema,
+      typeof actionItemSchema,
+    ]
   >
-> = z.union([summarySchema, decisionSchema, actionItemSchema]);
+> = z.union([summarySchema, decisionSchema, insightSchema, actionItemSchema]);
 type ConversationMemorySearchEntity = z.output<
   typeof conversationMemorySearchEntitySchema
 >;
@@ -60,7 +72,7 @@ export interface RetrieveConversationMemoryInput {
 
 export interface RetrievedConversationMemory {
   id: string;
-  entityType: "summary" | "decision" | "action-item";
+  entityType: "summary" | "decision" | "insight" | "action-item";
   conversationId: string;
   spaceId: string;
   channelId: string;
@@ -254,14 +266,20 @@ export class ConversationMemoryRetriever {
 
   /** Every actor id a memory names, aliases included. */
   private identityKeys(entity: ConversationMemorySearchEntity): string[] {
-    if (this.isSummaryEntity(entity) || this.isDecisionEntity(entity)) {
+    if (
+      this.isSummaryEntity(entity) ||
+      this.isDecisionEntity(entity) ||
+      this.isInsightEntity(entity)
+    ) {
       const references: Array<{
         identity?: ActorRef | undefined;
         identityAliases?: ActorRef[] | undefined;
       }> = this.isSummaryEntity(entity)
         ? (entity.metadata.participants ?? [])
         : [
-            ...(entity.metadata.decidedBy ?? []),
+            ...(this.isDecisionEntity(entity)
+              ? (entity.metadata.decidedBy ?? [])
+              : (entity.metadata.statedBy ?? [])),
             ...(entity.metadata.mentionedBy ?? []),
           ];
       return references
@@ -327,6 +345,12 @@ export class ConversationMemoryRetriever {
     entity: ConversationMemorySearchEntity,
   ): entity is DecisionEntity {
     return entity.entityType === DECISION_ENTITY_TYPE;
+  }
+
+  private isInsightEntity(
+    entity: ConversationMemorySearchEntity,
+  ): entity is InsightEntity {
+    return entity.entityType === INSIGHT_ENTITY_TYPE;
   }
 
   private getEntitySpaceId(entity: ConversationMemorySearchEntity): string {

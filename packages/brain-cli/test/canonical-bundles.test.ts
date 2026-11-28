@@ -260,6 +260,7 @@ const teamPermissions: ResolvedBundlePermissionContribution[] = [
     config: {
       entityActions: {
         decision: trustedContentEntityActions,
+        insight: trustedContentEntityActions,
         "action-item": trustedContentEntityActions,
       },
     },
@@ -434,6 +435,7 @@ describe("canonical bundle taxonomy", () => {
       "image",
       "doc",
       "decision",
+      "insight",
       "action-item",
     ]) {
       expect(team.permissions?.entityActions?.[entityType]).toEqual(

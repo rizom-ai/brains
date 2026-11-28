@@ -1,7 +1,10 @@
 import { describe, expect, it } from "bun:test";
 import { decision } from "../src/memory-entities";
 import { typeAdapter } from "./conversation-memory-plugins";
-import { decisionMetadataSchema } from "../src/schemas/conversation-memory";
+import {
+  decisionMetadataSchema,
+  insightMetadataSchema,
+} from "../src/schemas/conversation-memory";
 import { summaryMetadataSchema } from "../src/schemas/summary";
 
 function widgets(
@@ -32,6 +35,20 @@ describe("conversation memory in Studio", () => {
       // A reference by id, unreadable: the decision that replaced this one.
       supersededBy: "hidden",
       decidedBy: "people",
+      mentionedBy: "people",
+    });
+  });
+
+  it("shows an insight's origin and people as it shows a decision's", () => {
+    expect(widgets(insightMetadataSchema.shape)).toEqual({
+      conversationId: "hidden",
+      channelId: "hidden",
+      channelName: "provenance",
+      interfaceType: "provenance",
+      timeRange: "provenance",
+      status: undefined,
+      supersededBy: "hidden",
+      statedBy: "people",
       mentionedBy: "people",
     });
   });

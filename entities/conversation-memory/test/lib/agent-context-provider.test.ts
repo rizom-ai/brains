@@ -47,7 +47,7 @@ describe("buildConversationMemoryAgentContext", () => {
       {
         query: "What memory is relevant?",
         options: {
-          types: ["summary", "decision", "action-item"],
+          types: ["summary", "decision", "insight", "action-item"],
           limit: 20,
           visibilityScope: "shared",
         },

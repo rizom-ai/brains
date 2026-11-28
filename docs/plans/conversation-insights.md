@@ -63,7 +63,7 @@ A notice item's kind gains `insight`; its line reads "Insight: …". Undo on an 
 
 ### Readers
 
-The retriever and the agent-context provider add `insight` to the types they return. The recent-memory widget lists recent decisions and insights where it listed summaries.
+The retriever and the agent-context provider add `insight` to the types they return. The dashboard gets a "Recent insights" widget, the decisions widget's list over insights. The recent-memory widget keeps listing stored summaries.
 
 ### Summaries
 
@@ -81,7 +81,7 @@ The pickup's failure handling applies unchanged: a failed extraction or write le
 
 Each phase is one capability with its tests and evals, on one pull request.
 
-1. **The type.** The shared source fields, `insight`, its codec, create route and registration, the readers and the recent-memory widget.
+1. **The type.** The shared source fields, `insight`, its codec, create route and registration, the readers and its widget; its golden file in the stored-form contract and its place in the team bundle's permissions.
 2. **Capture.** `captureInsights`, the `insight` kind in the extractor, the writer, notice and Undo. The decision evals rerun against the extended prompt.
 3. **Trial.** Insight capture on for the team brain for two weeks, then a review of what it captured.
 

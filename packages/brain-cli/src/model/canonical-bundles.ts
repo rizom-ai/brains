@@ -172,6 +172,7 @@ export const teamBundle: CapabilityBundleDefinition = defineBundle({
       config: {
         entityActions: {
           decision: trustedContentEntityActions,
+          insight: trustedContentEntityActions,
           "action-item": trustedContentEntityActions,
         },
       },

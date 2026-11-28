@@ -11,6 +11,7 @@ import { ConversationMemoryRetriever } from "../../src/lib/conversation-memory-r
 import {
   decisionSchema,
   type DecisionEntity,
+  type InsightEntity,
 } from "../../src/schemas/conversation-memory";
 import { summarySchema, type SummaryEntity } from "../../src/schemas/summary";
 import { summaryConfigSchema } from "../../src/schemas/summary-config";
@@ -122,7 +123,8 @@ function createConversation(channelId: string): Conversation {
   };
 }
 
-type TestMemoryEntity = SummaryEntity | DecisionEntity | ActionItemEntity;
+type TestMemoryEntity =
+  SummaryEntity | DecisionEntity | InsightEntity | ActionItemEntity;
 
 function asSearchResults(
   items: Array<{ entity: TestMemoryEntity; score: number; excerpt: string }>,
@@ -237,6 +239,45 @@ describe("ConversationMemoryRetriever", () => {
         entityType: "action-item",
         status: "open",
         excerpt: "Create action-item entities.",
+      }),
+    ]);
+  });
+
+  it("retrieves insights as first-class memory, by who stated them", async () => {
+    const context = createMockEntityPluginContext();
+    const { decidedBy: _none, ...source } = createDecision({
+      id: "insight-1",
+      channelId: "team",
+    }).metadata;
+    const insight: InsightEntity = {
+      ...createDecision({ id: "insight-1", channelId: "team" }),
+      entityType: "insight",
+      metadata: {
+        ...source,
+        statedBy: [
+          { identity: { kind: "user", userId: "usr_jo" }, displayName: "Jo" },
+        ],
+      },
+    };
+    spyOn(context.entityService, "search").mockResolvedValue(
+      asSearchResults([
+        { entity: insight, score: 0.9, excerpt: "Freelancers abandon it." },
+      ]),
+    );
+
+    const result = await new ConversationMemoryRetriever(context).retrieve({
+      query: "form",
+      interfaceType: "mcp",
+      channelId: "team",
+      identity: { kind: "user", userId: "usr_jo" },
+    });
+
+    expect(result.results).toEqual([
+      expect.objectContaining({
+        id: "insight-1",
+        entityType: "insight",
+        status: "active",
+        excerpt: "Freelancers abandon it.",
       }),
     ]);
   });

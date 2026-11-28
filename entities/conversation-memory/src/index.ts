@@ -5,7 +5,7 @@
  */
 export { conversationMemoryPackage, default } from "./plugin";
 export { summary } from "./summary-entity";
-export { actionItem, decision } from "./memory-entities";
+export { actionItem, decision, insight } from "./memory-entities";
 export {
   buildConversationMemoryAgentContext,
   registerConversationMemoryAgentContext,
@@ -39,11 +39,15 @@ export { summaryConfigSchema } from "./schemas/summary-config";
 export {
   decisionMetadataSchema,
   decisionSchema,
+  insightMetadataSchema,
+  insightSchema,
 } from "./schemas/conversation-memory";
 export type {
   ConversationMemoryEntity,
   DecisionEntity,
   DecisionMetadata,
+  InsightEntity,
+  InsightMetadata,
 } from "./schemas/conversation-memory";
 
 export type {
