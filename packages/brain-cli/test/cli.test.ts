@@ -700,6 +700,28 @@ describe("help output", () => {
 
     expect(written.join("\n")).toContain("Brain commands: unavailable");
   });
+
+  it("lists --preview under brain command options, not the global ones", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "brain-help-"));
+    const written: string[] = [];
+    const original = console.log;
+    console.log = (...args: unknown[]): void => {
+      written.push(args.map(String).join(" "));
+    };
+
+    try {
+      await runCommand({ command: "help", args: [], flags: {} }, dir);
+    } finally {
+      console.log = original;
+      rmSync(dir, { recursive: true, force: true });
+    }
+
+    const help = written.join("\n");
+    const options = help.slice(help.indexOf("\nOptions:"));
+    const globalOptions = options.slice(0, options.indexOf("\n\n", 1));
+    expect(globalOptions).not.toContain("--preview");
+    expect(help).toMatch(/Brain command options:\n.*--preview/);
+  });
 });
 
 describe("--remote on built-in commands", () => {
@@ -727,5 +749,19 @@ describe("--remote on built-in commands", () => {
     expect(result.message).toContain("--remote");
     expect(result.message).toContain("brain tool");
     expect(existsSync(join(testDir, "data"))).toBe(false);
+  });
+
+  // Remote mode finds a tool by its name's last segment, so the example must
+  // be a command whose name is the same locally and remotely: `build` is
+  // `site-builder_build-site` remotely, `status` is `system_status`.
+  it("points to a brain command that reaches the remote brain", async () => {
+    const result = await runCommand(
+      { command: "start", args: [], flags: { remote: "rover.rizom.ai" } },
+      testDir,
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain("`brain status --remote rover.rizom.ai`");
+    expect(result.message).not.toContain("build-site");
   });
 });

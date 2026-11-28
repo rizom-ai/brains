@@ -10,6 +10,7 @@ import {
   capitalize,
   escapeXml,
   escapeRegExp,
+  closestName,
   pluralizeLabel,
   toDisplayName,
   normalizeTag,
@@ -364,5 +365,23 @@ describe("string-utils", () => {
     it("leaves text without special characters unchanged", () => {
       expect(escapeRegExp("plain-text_1")).toBe("plain-text_1");
     });
+  });
+});
+
+describe("closestName", () => {
+  it("finds the nearest name within the distance", () => {
+    expect(closestName("dry-rn", ["dry-run", "all", "only"])).toBe("dry-run");
+    expect(closestName("enviroment", ["environment", "full"])).toBe(
+      "environment",
+    );
+  });
+
+  it("prefers the nearer of two names", () => {
+    expect(closestName("tokn", ["token", "tool"])).toBe("token");
+  });
+
+  it("finds nothing farther than the distance", () => {
+    expect(closestName("cli", ["startup-check", "child"])).toBeUndefined();
+    expect(closestName("abc", ["abcdef"], 2)).toBeUndefined();
   });
 });
