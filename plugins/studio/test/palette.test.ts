@@ -194,3 +194,55 @@ describe("the palette route", () => {
     expect(searched).toEqual([]);
   });
 });
+
+describe("workspace actions in the palette", () => {
+  const actions = [
+    {
+      workspaceId: "site-builder:site",
+      workspaceLabel: "Site",
+      name: "build-preview",
+      label: "Build preview",
+    },
+  ];
+
+  test("come first, run their action, then open their page", () => {
+    expect(
+      paletteGroups({
+        query: "",
+        destinations: [],
+        entries: [],
+        actions,
+        routePath: "/studio",
+      }).groups,
+    ).toEqual([
+      {
+        id: "actions",
+        label: "Actions",
+        items: [
+          {
+            id: "site-builder:site:build-preview",
+            title: "Build preview",
+            sub: "Site",
+            href: "/studio/workspaces/site-builder%3Asite",
+            run: {
+              workspaceId: "site-builder:site",
+              actionId: "build-preview",
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
+  test("match by their label or their page", () => {
+    const titles = (query: string): string[] =>
+      paletteGroups({
+        query,
+        destinations: [],
+        entries: [],
+        actions,
+      }).groups.flatMap((group) => group.items.map((item) => item.title));
+    expect(titles("site")).toEqual(["Build preview"]);
+    expect(titles("sync")).toEqual([]);
+  });
+});

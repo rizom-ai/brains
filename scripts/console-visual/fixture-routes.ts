@@ -612,11 +612,27 @@ export function createFixtureRoutes(
   const consoleJump: FixtureRoute = (_request, url) =>
     url.pathname === "/api/console/jump" ? json({ groups: [] }) : undefined;
 
-  // ⌘K in Studio: the pages a trusted member may open before anything is typed.
+  // ⌘K in Studio: what a trusted member may run and open before anything is typed.
   const studioPalette: FixtureRoute = (_request, url) =>
     url.pathname === "/studio/api/palette"
       ? json({
           groups: [
+            {
+              id: "actions",
+              label: "Actions",
+              items: [
+                {
+                  id: "site-builder:site:build-preview",
+                  title: "Build preview",
+                  sub: "Site",
+                  href: "/studio/workspaces/site-builder%3Asite",
+                  run: {
+                    workspaceId: "site-builder:site",
+                    actionId: "build-preview",
+                  },
+                },
+              ],
+            },
             {
               id: "pages",
               label: "Pages",

@@ -126,3 +126,53 @@ describe("moving through the palette", () => {
     expect(stepActive(0, 1, 0)).toBe(-1);
   });
 });
+
+describe("actions a page offers", () => {
+  it("join the palette's own actions, and run before their page opens", () => {
+    const sections = paletteSections({
+      query: "build",
+      types: [],
+      hasChat: false,
+      openEntry: null,
+      remote: {
+        groups: [
+          {
+            id: "actions",
+            label: "Actions",
+            items: [
+              {
+                id: "site-builder:site:build-preview",
+                title: "Build preview",
+                sub: "Site",
+                href: "/studio/workspaces/site-builder%3Asite",
+                run: {
+                  workspaceId: "site-builder:site",
+                  actionId: "build-preview",
+                },
+              },
+            ],
+          },
+        ],
+      },
+    });
+    expect(sections).toEqual([
+      {
+        id: "actions",
+        label: "Actions",
+        items: [
+          {
+            id: "actions:site-builder:site:build-preview",
+            title: "Build preview",
+            sub: "Site",
+            command: {
+              kind: "run",
+              workspaceId: "site-builder:site",
+              actionId: "build-preview",
+              href: "/studio/workspaces/site-builder%3Asite",
+            },
+          },
+        ],
+      },
+    ]);
+  });
+});

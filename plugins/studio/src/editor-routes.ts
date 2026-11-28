@@ -402,7 +402,12 @@ export function createEditorRoutes(
           visibilityScope: access.visibilityScope,
           entityDisplay,
         });
-        return jsonResponse(paletteGroups({ query, destinations, entries }));
+        const actions = await workspaceRegistry.listPaletteActions(
+          toStudioWorkspaceActor(access),
+        );
+        return jsonResponse(
+          paletteGroups({ query, destinations, entries, actions, routePath }),
+        );
       },
     },
     {

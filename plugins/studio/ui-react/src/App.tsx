@@ -478,8 +478,15 @@ export function App(): ReactElement {
   }
   // ⌘K: what is open, what can be done, and where to go, on every page.
   const openType = types.find((type) => type.entityType === entityType);
-  const runPaletteCommand = (command: PaletteCommand): void => {
-    if (command.kind === "ask-entry") setAskOpen(true);
+  const runPaletteCommand = async (command: PaletteCommand): Promise<void> => {
+    if (command.kind === "run") {
+      // The page's own action, then its page, where its result shows.
+      await api.runWorkspaceAction(command.workspaceId, {
+        actionId: command.actionId,
+        input: {},
+      });
+      router.history.push(command.href);
+    } else if (command.kind === "ask-entry") setAskOpen(true);
     else if (command.kind === "ask-brain") {
       // The question waits in a new conversation's composer, as Home's does.
       chatDraftStore.update(studioChatDraftKey(askChatPath, null), {

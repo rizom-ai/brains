@@ -6,7 +6,9 @@ export type PaletteCommand =
   | { kind: "ask-brain"; question: string }
   | { kind: "create"; entityType: string }
   | { kind: "climate" }
-  | { kind: "open"; href: string };
+  | { kind: "open"; href: string }
+  /** A page's action, run with no input; then its page opens. */
+  | { kind: "run"; workspaceId: string; actionId: string; href: string };
 
 export interface PaletteItem {
   id: string;
@@ -96,14 +98,21 @@ export function paletteSections(input: {
     (group) => ({
       id: group.id,
       label: group.label,
-      items: group.items.map((item) => ({
+      items: group.items.map((item): PaletteItem => ({
         id: `${group.id}:${item.id}`,
         title: item.title,
         sub: item.sub,
-        command: { kind: "open" as const, href: item.href },
+        command: item.run
+          ? { kind: "run", ...item.run, href: item.href }
+          : { kind: "open", href: item.href },
       })),
     }),
   );
+  // What the pages offer joins the palette's own actions, after them.
+  const pageActions = remote
+    .filter((section) => section.id === "actions")
+    .flatMap((section) => section.items);
+  const allActions = [...actions, ...pageActions];
   return [
     ...(forOpen.length > 0 && input.openEntry
       ? [
@@ -114,10 +123,10 @@ export function paletteSections(input: {
           },
         ]
       : []),
-    ...(actions.length > 0
-      ? [{ id: "actions", label: "Actions", items: actions }]
+    ...(allActions.length > 0
+      ? [{ id: "actions", label: "Actions", items: allActions }]
       : []),
-    ...remote,
+    ...remote.filter((section) => section.id !== "actions"),
   ].filter((section) => section.items.length > 0);
 }
 
