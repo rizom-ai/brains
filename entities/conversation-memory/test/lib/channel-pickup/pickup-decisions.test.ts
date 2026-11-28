@@ -158,6 +158,58 @@ describe("picking up a channel's decisions", () => {
     });
   });
 
+  it("records a notice for the decision and what it wrote, for Undo", async () => {
+    found = [decided(3, "Drop the company field")];
+
+    await pickUpChannel(deps, CONVERSATION, "job-1");
+
+    const [stored] = await decisions();
+    expect(await deps.bookmarks.get(CONVERSATION)).toEqual({
+      processedThrough: 3,
+      notices: [
+        {
+          key: "1-3",
+          cards: [
+            {
+              id: "discord-1466-decision-3-1",
+              kind: "decision",
+              title: "Drop the company field",
+              sourceMessageId: "discord-3",
+            },
+          ],
+        },
+      ],
+      own: { "discord-1466-decision-3-1": stored?.contentHash ?? "" },
+    });
+  });
+
+  it("announces a decision a crashed run wrote and never announced", async () => {
+    found = [decided(3, "Drop the company field")];
+    await pickUpChannel(deps, CONVERSATION, "job-1");
+    // The run wrote its decision and died before it moved the bookmark.
+    await deps.bookmarks.set(CONVERSATION, { processedThrough: 0 });
+
+    await pickUpChannel(deps, CONVERSATION, "job-2");
+
+    // The decisions of the range being processed are not "already recorded".
+    const [input] = extract.mock.calls[1] ?? [];
+    expect(input.decisions).toEqual([]);
+    expect(await decisions()).toHaveLength(1);
+    expect((await deps.bookmarks.get(CONVERSATION))?.notices).toEqual([
+      {
+        key: "1-3",
+        cards: [
+          {
+            id: "discord-1466-decision-3-1",
+            kind: "decision",
+            title: "Drop the company field",
+            sourceMessageId: "discord-3",
+          },
+        ],
+      },
+    ]);
+  });
+
   it("shows the extractor the new messages, their context and the channel's active decisions", async () => {
     await deps.bookmarks.set(CONVERSATION, { processedThrough: 2 });
     await harness.getEntityService().createEntity({

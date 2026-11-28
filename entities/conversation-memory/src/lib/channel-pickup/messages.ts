@@ -64,6 +64,26 @@ export function labelOf(message: Message): string {
   );
 }
 
+/** The chat app's own id of a stored message, to pin it there. */
+export function chatMessageIdOf(message: Message): string | undefined {
+  const parsed = conversationMessageMetadataSchema.safeParse(message.metadata);
+  return parsed.success ? parsed.data.source?.messageId : undefined;
+}
+
+/**
+ * The message position in the id of something the pickup made, when the id
+ * opens with the prefix its kind gives a conversation: "<prefix>12-1" is
+ * from message 12.
+ */
+export function sourcePositionOf(
+  id: string,
+  prefix: string,
+): number | undefined {
+  if (!id.startsWith(prefix)) return undefined;
+  const position = Number(id.slice(prefix.length).split("-")[0]);
+  return Number.isInteger(position) ? position : undefined;
+}
+
 /** A title as a key, so the same thing worded the same way is found twice. */
 export function titleKey(title: string): string {
   return title

@@ -12,7 +12,11 @@ import {
   type FoundDecision,
   type OwnDecision,
 } from "./decision-extractor";
-import type { PositionedMessage } from "./messages";
+import {
+  chatMessageIdOf,
+  sourcePositionOf,
+  type PositionedMessage,
+} from "./messages";
 
 /** The conversation a batch of messages belongs to, as its memories record it. */
 export interface ChannelOrigin {
@@ -43,6 +47,16 @@ export interface DecisionPickupDeps {
   visibility: ContentVisibility;
 }
 
+/** A decision a batch's messages settle, as its notice announces it. */
+export interface PickedUpDecision {
+  id: string;
+  title: string;
+  /** The chat message it was found in, to pin. */
+  sourceMessageId: string | undefined;
+  /** The hash of what this run wrote; none for one an earlier run wrote. */
+  hash: string | undefined;
+}
+
 /** How many of its most recent active decisions the model sees. */
 const OWN_DECISIONS_LIMIT = 30;
 
@@ -67,11 +81,14 @@ function headingAndText(content: string): { title: string; text: string } {
 
 /**
  * The conversation's active decisions, newest first, picked up or recorded
- * by hand: what the new messages must not record a second time.
+ * by hand: what the new messages must not record a second time. One picked
+ * up from the range being processed is left out: a run that died after
+ * writing it left it unannounced, and it is announced only when found again.
  */
 async function activeDecisions(
   deps: DecisionPickupDeps,
   conversationId: string,
+  from: number,
 ): Promise<OwnDecision[]> {
   const entities = await deps.entityService.listEntities(
     {
@@ -87,10 +104,13 @@ async function activeDecisions(
     },
     decisionSchema,
   );
-  return entities.map((entity) => ({
-    id: entity.id,
-    ...headingAndText(entity.content),
-  }));
+  const prefix = `${flatId(conversationId, "decision")}-`;
+  return entities
+    .filter((entity) => (sourcePositionOf(entity.id, prefix) ?? 0) < from)
+    .map((entity) => ({
+      id: entity.id,
+      ...headingAndText(entity.content),
+    }));
 }
 
 /** A found decision under the id its message gives it: one, two… per message. */
@@ -118,28 +138,46 @@ function named(
 /**
  * Turn a batch's new messages into decisions, each written once under an id
  * its source message gives it, so a rerun of the range writes nothing twice.
- * Returns the ids it created.
+ * Returns every decision the messages settle, for the batch's notice; the
+ * ones this run wrote carry the hash of what it wrote.
  */
 export async function pickUpDecisions(
   deps: DecisionPickupDeps,
   batch: ChannelBatch,
-): Promise<string[]> {
+): Promise<PickedUpDecision[]> {
   const { origin } = batch;
+  const from = Math.min(...batch.fresh.map(({ position }) => position));
   const { decisions } = await deps.extractor.extract({
     context: batch.context,
     fresh: batch.fresh,
-    decisions: await activeDecisions(deps, origin.conversationId),
+    decisions: await activeDecisions(deps, origin.conversationId, from),
   });
+  const stored = (
+    id: string,
+  ): ReturnType<typeof deps.entityService.getEntity> =>
+    deps.entityService.getEntity({
+      entityType: DECISION_ENTITY_TYPE,
+      id,
+      visibilityScope: internalFullScope("decision id collision check"),
+    });
   return named(origin.conversationId, decisions)
     .filter(({ id }) => !batch.rejected.has(id))
-    .reduce<Promise<string[]>>(async (createdSoFar, { decision, id }) => {
-      const created = await createdSoFar;
-      const exists = await deps.entityService.getEntity({
-        entityType: DECISION_ENTITY_TYPE,
-        id,
-        visibilityScope: internalFullScope("decision id collision check"),
-      });
-      if (exists) return created;
+    .reduce<Promise<PickedUpDecision[]>>(async (soFar, { decision, id }) => {
+      const created = await soFar;
+      const sourceMessageId = chatMessageIdOf(decision.source);
+      const exists = await stored(id);
+      if (exists) {
+        // Announced under the title it was stored with.
+        return [
+          ...created,
+          {
+            id,
+            title: headingAndText(exists.content).title || decision.title,
+            sourceMessageId,
+            hash: undefined,
+          },
+        ];
+      }
       const speaker = personOf(decision.source);
       const deciders = new Set(
         decision.decidedBy.map((person) => JSON.stringify(person.identity)),
@@ -172,6 +210,14 @@ export async function pickUpDecisions(
           eventContext: { actor: speaker?.identity ?? UNKNOWN_SPEAKER },
         },
       });
-      return [...created, id];
+      return [
+        ...created,
+        {
+          id,
+          title: decision.title,
+          sourceMessageId,
+          hash: (await stored(id))?.contentHash,
+        },
+      ];
     }, Promise.resolve([]));
 }

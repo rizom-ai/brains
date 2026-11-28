@@ -94,7 +94,7 @@ Every item cites a message from the new range; a `supersede` names an item the m
 
 ### Notice and Undo
 
-A notice item gains a kind (`action-item` when a stored notice has none). Lines, titles and Undo labels are written per kind; the ten-item limit, the pinned source messages and the posting flow are unchanged. Undo on a decision or insight deletes it through its writer unless a person has edited it, and adds its id to `rejected`.
+A notice item gains a kind (a card when a stored notice has none). A decision's line reads "Decision: …"; a notice of decisions alone is titled "Decision recorded" or "Decisions recorded", and one that also lists cards "Picked up from this channel". The ten-item limit, the pinned source messages and the posting flow are unchanged. Undo on a decision or insight deletes it only while its content still has the hash the pickup recorded, and adds its id to `rejected`; one edited since, or with no record, is kept and the notice says so.
 
 ### Readers
 
@@ -112,7 +112,7 @@ Nothing writes a summary. The type stays registered and its stored entities stay
 
 - **An extraction or a write fails:** the job fails and retries; the bookmark has not moved and every write is idempotent.
 - **The decision and insight extraction keeps failing:** the batch's cards are written but not announced, since one bookmark covers the range. The job's failure is visible in the job queue; the fix is to the extractor, not a second bookmark.
-- **Crash after writes, before the bookmark moves:** the claim expires and the next run writes the same entities and notice.
+- **Crash after writes, before the bookmark moves:** the claim expires and the next run processes the range again. What the dead run wrote from that range is left out of what the extractors are shown as already there, so they find it again; it is not written twice, and it is announced.
 - **A person edits an item between the pickup's read and its write:** the writer writes conditionally on the version read, and the edit wins.
 - **Undo on an item a person has edited:** it stays, and the notice says it was kept.
 

@@ -21,6 +21,7 @@ import {
 import type { MemoryEntityService } from "../memory-context";
 import { z } from "@brains/utils/zod";
 import type { ChannelDecisionExtractor } from "./decision-extractor";
+import { chatMessageIdOf, sourcePositionOf } from "./messages";
 import { pickUpDecisions } from "./decisions";
 import type {
   BrainMember,
@@ -35,6 +36,7 @@ type ChannelNoticeSchema = z.ZodObject<{
   cards: z.ZodArray<
     z.ZodObject<{
       id: z.ZodString;
+      kind: z.ZodOptional<z.ZodEnum<{ decision: "decision" }>>;
       title: z.ZodString;
       owner: z.ZodOptional<z.ZodString>;
       dueDate: z.ZodOptional<z.ZodString>;
@@ -61,6 +63,8 @@ const channelNoticeSchema: ChannelNoticeSchema = z.object({
   cards: z.array(
     z.object({
       id: z.string().min(1),
+      /** What the line announces; a card when it says nothing. */
+      kind: z.enum(["decision"]).optional(),
       title: z.string().min(1),
       owner: z.string().min(1).optional(),
       /** When the card is due, as YYYY-MM-DD. */
@@ -97,6 +101,7 @@ type ChannelBookmarkSchema = z.ZodObject<{
   >;
   notices: z.ZodOptional<z.ZodArray<ChannelNoticeSchema>>;
   rejected: z.ZodOptional<z.ZodArray<z.ZodString>>;
+  own: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
 }>;
 
 const channelBookmarkSchema: ChannelBookmarkSchema = z.object({
@@ -114,6 +119,14 @@ const channelBookmarkSchema: ChannelBookmarkSchema = z.object({
   notices: z.array(channelNoticeSchema).optional(),
   /** Cards someone took back with Undo; the pickup never writes them again. */
   rejected: z.array(z.string().min(1)).optional(),
+  /**
+   * The decisions the pickup wrote, by id: the hash of what it wrote. A
+   * decision whose content still has that hash is the pickup's own; one
+   * edited since, or not listed here, belongs to whoever edited it. Kept
+   * here, not in the decision: its file states nothing a person does not
+   * read.
+   */
+  own: z.record(z.string(), z.string()).optional(),
 });
 
 export type ChannelBookmark = z.output<typeof channelBookmarkSchema>;
@@ -208,6 +221,8 @@ const DEFAULT_CONTEXT_SIZE = 10;
 const OWN_CARDS_LIMIT = 30;
 /** How many taken-back cards a conversation remembers. */
 export const REJECTED_KEPT = 500;
+/** How many of its most recent decisions a conversation's pickup can still call its own. */
+export const OWN_KEPT = 200;
 
 /** A system actor, for a message whose speaker was not recorded. */
 const UNKNOWN_SPEAKER = {
@@ -250,10 +265,7 @@ function channelNameOf(
 function sourceMessageIdOf(item: {
   source: FoundActionItem["source"];
 }): string | undefined {
-  const parsed = conversationMessageMetadataSchema.safeParse(
-    item.source.metadata,
-  );
-  return parsed.success ? parsed.data.source?.messageId : undefined;
+  return chatMessageIdOf(item.source);
 }
 
 function speakerOf(item: FoundActionItem): {
@@ -276,12 +288,16 @@ type OwnCardWithAssignee = OwnCard & {
 };
 
 /**
- * The open cards this conversation's pickup made that the board has not
- * touched, newest first: the ones later messages may still change.
+ * The open cards this conversation's pickup made, from messages before
+ * `from`, that the board has not touched, newest first: the ones later
+ * messages may still change. A card from the range being processed is left
+ * out: a run that died after writing it left it unannounced, and it is
+ * announced only when its task is found again.
  */
 async function ownCards(
   deps: ChannelPickupDeps,
   conversationId: string,
+  from: number,
 ): Promise<OwnCardWithAssignee[]> {
   const prefix = `${flatId(conversationId, "message")}-`;
   const entities = await deps.entityService.listEntities(
@@ -299,7 +315,10 @@ async function ownCards(
     actionItemSchema,
   );
   return entities
-    .filter((entity) => entity.id.startsWith(prefix) && !isBoardOwned(entity))
+    .filter((entity) => {
+      const position = sourcePositionOf(entity.id, prefix);
+      return position !== undefined && position < from && !isBoardOwned(entity);
+    })
     .map((entity) => {
       const assignee = entity.metadata.assignedTo?.[0];
       return {
@@ -370,7 +389,7 @@ export async function pickUpChannel(
   }));
   const context = positioned.filter(({ position }) => position < from);
   const fresh = positioned.filter(({ position }) => position >= from);
-  const own = await ownCards(deps, conversationId);
+  const own = await ownCards(deps, conversationId, from);
   const { items, updates, withdrawals } = await deps.extractor.extract({
     context,
     fresh,
@@ -514,6 +533,17 @@ export async function pickUpChannel(
         },
       )
     : undefined;
+  const decisionCards = (decided ?? []).map(
+    ({ id, title, sourceMessageId }): NoticeCard => ({
+      id,
+      kind: "decision",
+      title,
+      ...(sourceMessageId ? { sourceMessageId } : {}),
+    }),
+  );
+  const written = Object.fromEntries(
+    (decided ?? []).flatMap(({ id, hash }) => (hash ? [[id, hash]] : [])),
+  );
 
   // Finish only while the claim is still this run's; announce everything
   // the batch did that no earlier notice lists, so a crashed run's is too.
@@ -534,8 +564,14 @@ export async function pickUpChannel(
         ...(sourceMessageId ? { sourceMessageId } : {}),
       };
     });
-    const fresh = [...added, ...revisedCards, ...withdrawnCards].filter(
-      (card) => !announced.has(announcement(card)),
+    const fresh = [
+      ...added,
+      ...revisedCards,
+      ...withdrawnCards,
+      ...decisionCards,
+    ].filter((card) => !announced.has(announcement(card)));
+    const own = Object.fromEntries(
+      Object.entries({ ...latest.own, ...written }).slice(-OWN_KEPT),
     );
     const taken = withdrawnCards.map((card) => card.id);
     // A notice holds what one chat message can show; a larger batch is
@@ -553,6 +589,7 @@ export async function pickUpChannel(
     return {
       processedThrough: count,
       notices: keptNotices([...notices, ...batch]),
+      ...(Object.keys(own).length > 0 ? { own } : {}),
       ...(latest.rejected || taken.length > 0
         ? {
             rejected: [
@@ -567,6 +604,8 @@ export async function pickUpChannel(
     status: "processed",
     through: count,
     created: results,
-    ...(decided && { decisions: decided }),
+    ...(decided && {
+      decisions: decided.flatMap(({ id, hash }) => (hash ? [id] : [])),
+    }),
   };
 }

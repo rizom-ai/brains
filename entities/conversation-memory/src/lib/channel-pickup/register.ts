@@ -14,6 +14,7 @@ import {
 } from "@brains/contracts";
 import { ACTION_ITEM_ENTITY_TYPE } from "@brains/action-items";
 import { z } from "@brains/utils/zod";
+import { DECISION_ENTITY_TYPE } from "../constants";
 import type { MemoryContext } from "../memory-context";
 import { ChannelDecisionExtractor } from "./decision-extractor";
 import {
@@ -194,9 +195,10 @@ export function registerChannelActionItems(
   const notices: ChannelNoticeDeps = {
     conversations: context.conversations,
     bookmarks,
-    cardExists: async (id): Promise<boolean> =>
+    cardExists: async (id, kind): Promise<boolean> =>
       (await context.entityService.getEntity({
-        entityType: ACTION_ITEM_ENTITY_TYPE,
+        entityType:
+          kind === "decision" ? DECISION_ENTITY_TYPE : ACTION_ITEM_ENTITY_TYPE,
         id,
         visibilityScope: internalFullScope(
           "card existence check for channel notices",

@@ -464,7 +464,7 @@ describe("picking up a channel's action items", () => {
   });
 
   it("still announces cards a crashed run wrote but never recorded", async () => {
-    const { context, deps, found } = brain();
+    const { context, deps, extract, found } = brain();
     found([item(2, jo, "Send INC the proposal")]);
     await pickUpChannel(deps, CONVERSATION, "job-1");
     // The crash: the card exists, but its notice never reached the bookmark.
@@ -472,6 +472,11 @@ describe("picking up a channel's action items", () => {
 
     await pickUpChannel(deps, CONVERSATION, "job-2");
 
+    // A card of the range being processed is not one "the channel already
+    // has": shown as one, the extractor would not find its task again and
+    // the card would never be announced.
+    const [input] = extract.mock.calls[1] ?? [];
+    expect(input.cards).toEqual([]);
     expect(await cards(context)).toHaveLength(1);
     expect((await bookmark(deps))?.notices).toEqual([
       {
