@@ -13,6 +13,17 @@ import {
   type SeminarAskPage,
 } from "../datasources/seminar-ask-datasource";
 import {
+  noteDetailPageSchema,
+  noteListPageSchema,
+  type NoteDetailPage,
+  type NoteListPage,
+} from "../datasources/seminar-notes-datasource";
+import {
+  NoteDetailTemplate,
+  type NoteDetailProps,
+} from "../templates/note-detail";
+import { NoteListTemplate, type NoteListProps } from "../templates/note-list";
+import {
   SeminarAskTemplate,
   type SeminarAskProps,
 } from "../templates/seminar-ask";
@@ -44,6 +55,24 @@ export function getTemplates(): Record<string, Template> {
       dataSourceId: "seminar:entities",
       requiredPermission: "public",
       layout: { component: SeminarDetailTemplate },
+    }),
+    // The note type has no pages of its own; these names give it some on a
+    // brain that holds seminars.
+    "note-list": createTemplate<NoteListPage, NoteListProps>({
+      name: "note-list",
+      description: "The brain's own notes, by title",
+      schema: noteListPageSchema,
+      dataSourceId: "seminar:notes",
+      requiredPermission: "public",
+      layout: { component: NoteListTemplate },
+    }),
+    "note-detail": createTemplate<NoteDetailPage, NoteDetailProps>({
+      name: "note-detail",
+      description: "One of the brain's own notes, as written",
+      schema: noteDetailPageSchema,
+      dataSourceId: "seminar:notes",
+      requiredPermission: "public",
+      layout: { component: NoteDetailTemplate },
     }),
     ask: createTemplate<SeminarAskPage, SeminarAskProps>({
       name: "ask",
