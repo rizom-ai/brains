@@ -27,7 +27,12 @@ import {
 } from "../engine";
 import { acceptConnect, originOf, type PendingConnect } from "./connect";
 import { getErrorMessage } from "@brains/utils/error";
-import { DeletesModal, FilesModal, FirstSyncModal } from "./modals";
+import {
+  ConflictModal,
+  DeletesModal,
+  FilesModal,
+  FirstSyncModal,
+} from "./modals";
 import { BUSY_MS, ObsidianVault } from "./obsidian-vault";
 import { fullSyncDue } from "./schedule";
 import {
@@ -103,6 +108,8 @@ export default class RizomBrainPlugin extends Plugin {
   private statusEl: HTMLElement | undefined;
   private issues: FileNote[] = [];
   private localOnly: FileNote[] = [];
+  /** How many conflicts wait for the person to choose a version. */
+  private conflicts = 0;
   private status: SyncReport["status"] | "not-connected" = "not-connected";
   private saveTimers = new Map<string, number>();
   private interval: number | undefined;
@@ -136,7 +143,7 @@ export default class RizomBrainPlugin extends Plugin {
   /** Which brain and app password the engine was made for. */
   private engineFor = "";
   /** One dialog of each kind at a time. */
-  private asking = { firstSync: false, deletes: false };
+  private asking = { firstSync: false, deletes: false, conflicts: false };
 
   override async onload(): Promise<void> {
     const stored: unknown = await this.loadData();
@@ -150,7 +157,9 @@ export default class RizomBrainPlugin extends Plugin {
 
     this.statusEl = this.addStatusBarItem();
     this.statusEl.addClass("rizom-brain-status");
-    this.statusEl.onClickEvent(() => this.showFiles());
+    this.statusEl.onClickEvent(() =>
+      this.conflicts > 0 ? void this.showConflicts() : this.showFiles(),
+    );
     this.renderStatus();
 
     this.addCommand({
@@ -162,6 +171,11 @@ export default class RizomBrainPlugin extends Plugin {
       id: "show-unsynced-files",
       name: "Show files that are not synced",
       callback: () => this.showFiles(),
+    });
+    this.addCommand({
+      id: "settle-conflicts",
+      name: "Compare and settle conflicts",
+      callback: () => void this.showConflicts(),
     });
     this.addCommand({
       id: "connect",
@@ -371,15 +385,23 @@ export default class RizomBrainPlugin extends Plugin {
   /** Show what a sync did, and ask what it could not decide alone. */
   private show(report: SyncReport): void {
     this.status = report.status;
+    // A file that went up or came down needs no attention any more.
+    const inStep = [...report.uploaded, ...report.downloaded];
     if (report.status === "synced" || report.localOnly.length > 0) {
       this.localOnly = mergePartial(
         this.localOnly,
         report.localOnly,
         report.scope,
+        inStep,
       );
     }
     if (report.status === "synced") {
-      this.issues = mergePartial(this.issues, report.issues, report.scope);
+      this.issues = mergePartial(
+        this.issues,
+        report.issues,
+        report.scope,
+        inStep,
+      );
     }
     this.renderStatus();
 
@@ -395,10 +417,16 @@ export default class RizomBrainPlugin extends Plugin {
     }
     for (const notice of report.notices) {
       if (notice.kind === "conflict") {
+        // Stays until it is clicked, and then shows both versions.
         new Notice(
-          `${notice.path} was also changed in your brain. Your brain's version is here now; yours is in ${notice.copy}${notice.inInbox ? " and in your brain's Inbox" : ""}.`,
+          `${notice.path} was also changed in your brain. Your brain's version is here now; yours is kept in ${notice.copy}${notice.inInbox ? " and in your brain's Inbox" : ""}. Click to compare and choose.`,
           0,
-        );
+        ).messageEl.addEventListener("click", () => void this.showConflicts());
+      } else if (notice.kind === "conflict-changed") {
+        new Notice(
+          `${notice.path} changed after its two versions were shown, so nothing was replaced. Click to compare them again.`,
+          0,
+        ).messageEl.addEventListener("click", () => void this.showConflicts());
       } else {
         new Notice(
           `${notice.from} could not be renamed to ${notice.to}: ${notice.reason} It was renamed back.`,
@@ -406,6 +434,7 @@ export default class RizomBrainPlugin extends Plugin {
         );
       }
     }
+    void this.countConflicts();
     const engine = this.getEngine();
     if (report.firstSync && engine && !this.asking.firstSync) {
       this.asking.firstSync = true;
@@ -438,18 +467,56 @@ export default class RizomBrainPlugin extends Plugin {
   private renderStatus(override?: string): void {
     if (!this.statusEl) return;
     const attention = this.issues.length;
+    const conflicts = this.conflicts;
     const text =
       override ??
       (this.status === "not-connected"
         ? "Brain: not connected"
-        : this.status === "synced" && attention > 0
-          ? `Brain: ${attention} file${attention === 1 ? "" : "s"} need attention`
-          : STATUS_TEXT[this.status]);
+        : this.status === "synced" && conflicts > 0
+          ? `Brain: ${conflicts} conflict${conflicts === 1 ? "" : "s"} to settle`
+          : this.status === "synced" && attention > 0
+            ? `Brain: ${attention} file${attention === 1 ? "" : "s"} need attention`
+            : STATUS_TEXT[this.status]);
     this.statusEl.setText(text);
     this.statusEl.setAttr(
       "aria-label",
-      "Show files that are not synced with your brain",
+      conflicts > 0
+        ? "Compare and settle conflicts"
+        : "Show files that are not synced with your brain",
     );
+  }
+
+  /** Count the conflicts that wait, for the status bar. */
+  private async countConflicts(): Promise<void> {
+    const engine = this.getEngine();
+    if (!engine) return;
+    const open = await this.serially(() => engine.openConflicts());
+    this.conflicts = open.length;
+    this.renderStatus();
+  }
+
+  /** Show the conflicts that wait, for the person to choose a version of each. */
+  async showConflicts(): Promise<void> {
+    const engine = this.getEngine();
+    if (!engine || this.asking.conflicts) return;
+    const open = await this.serially(() => engine.openConflicts());
+    this.conflicts = open.length;
+    this.renderStatus();
+    if (open.length === 0) {
+      new Notice("There are no conflicts to settle.");
+      return;
+    }
+    this.asking.conflicts = true;
+    new ConflictModal(
+      this.app,
+      open,
+      (conflict, keep) => {
+        void this.run(() => engine.settleConflict(conflict, keep));
+      },
+      () => {
+        this.asking.conflicts = false;
+      },
+    ).open();
   }
 
   showFiles(): void {

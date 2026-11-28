@@ -128,16 +128,18 @@ export function typeOfPath(path: string): string {
 /**
  * The files that need attention after a sync. A full sync's list stands as
  * it is. A partial one replaces what was known of the types it compared,
- * and what was known of every other type stays.
+ * and what was known of every other type stays, except of the files it
+ * brought in step.
  */
 export function mergePartial(
   known: readonly FileNote[],
   fresh: readonly FileNote[],
   scope: readonly string[] | undefined,
+  inStep: readonly string[] = [],
 ): FileNote[] {
   if (scope === undefined) return [...fresh];
   const compared = new Set(scope);
-  const reported = new Set(fresh.map((note) => note.path));
+  const reported = new Set([...fresh.map((note) => note.path), ...inStep]);
   return [
     ...known.filter(
       (note) =>

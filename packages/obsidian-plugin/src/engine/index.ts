@@ -28,6 +28,7 @@ export {
   type FileNote,
   type FirstSyncPlan,
   type Notice,
+  type OpenConflict,
   type SyncReport,
   type SyncStatus,
 } from "./engine";
