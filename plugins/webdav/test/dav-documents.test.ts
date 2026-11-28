@@ -118,6 +118,41 @@ describe("WebDAV document files", () => {
     expect(brain.discarded).toEqual([]);
   });
 
+  it("is a whole document once a file is put where a failed one's was", async () => {
+    const brain = fakeBrain(
+      [
+        entity("document", "carousel", {
+          content: OLD_REF,
+          metadata: {
+            mimeType: "application/pdf",
+            filename: "carousel.pdf",
+            status: "failed",
+            processingJobId: "job-1",
+            processingError: "The render timed out",
+            dedupKey: "carousel:post:first",
+          },
+        }),
+      ],
+      ["document"],
+      { [OLD_REF]: OLD },
+    );
+    const dav = drive(brain);
+
+    const response = await dav("PUT", "/dav/document/carousel.pdf", {
+      body: PDF,
+    });
+
+    expect(response.status).toBe(204);
+    // It has its bytes: it is no longer waiting for them, or failed.
+    expect(brain.entities[0]?.metadata).toEqual({
+      mimeType: "application/pdf",
+      filename: "carousel.pdf",
+      dedupKey: "carousel:post:first",
+      pageCount: 2,
+      sizeBytes: PDF.byteLength,
+    });
+  });
+
   it("replaces only the version a save names", async () => {
     const brain = library();
     const dav = drive(brain);

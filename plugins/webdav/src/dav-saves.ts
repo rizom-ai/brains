@@ -494,7 +494,14 @@ const DOCUMENT_FILES: BytesFiles = {
       };
     }
     // The pages of the bytes before are not these bytes'; zero is "unknown".
-    const { pageCount: _before, ...kept } = existing ?? {};
+    // And it has its bytes now: it is not waiting for them, nor failed.
+    const {
+      pageCount: _pages,
+      status: _status,
+      processingJobId: _job,
+      processingError: _error,
+      ...kept
+    } = existing ?? {};
     const pageCount = countPdfPages(bytes);
     return {
       metadata: {
