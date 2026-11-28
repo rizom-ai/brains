@@ -689,6 +689,7 @@ function renderCapabilityView(
     fields?: FieldDescriptor[];
     frontmatter?: Record<string, unknown>;
     groupings?: StudioAppViewProps["groupings"];
+    askOpen?: boolean;
   } = {},
 ): string {
   const entityType = page.entityType ?? "post";
@@ -775,7 +776,7 @@ function renderCapabilityView(
     ask: {
       chatApiPath: "/api/chat",
       draftStore: new StudioChatDraftStore(),
-      open: false,
+      open: page.askOpen ?? false,
       setOpen: () => {},
       selection: null,
       setSelection: () => {},
@@ -1572,6 +1573,17 @@ describe("capability-aware Studio controls", () => {
     );
     expect(edit).toContain('aria-label="Editor view"');
     expect(edit).not.toContain('class="studio-mobile-mode"');
+  });
+
+  it("puts Details away while Ask is open beside the entry", () => {
+    const closed = renderCapabilityView(allowedCapabilities, "edit");
+    const asking = renderCapabilityView(allowedCapabilities, "edit", {
+      askOpen: true,
+    });
+
+    expect(closed).toContain('data-inspector="shown"');
+    expect(asking).toContain('data-inspector="hidden"');
+    expect(asking).toMatch(/studio-inspector-toggle"[^>]*aria-pressed="false"/);
   });
 
   it("renders controls granted by the active type capabilities", () => {

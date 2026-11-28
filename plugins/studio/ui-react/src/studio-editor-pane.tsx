@@ -92,8 +92,16 @@ export function StudioEditorPane(
   const creating = mode.kind === "create" && !entitySchema.isSingleton;
   // Beside a document, Properties are an inspector that can be put away.
   const inspecting = presentation === "split";
-  const [inspectorHidden, setInspectorHidden] =
+  const [inspectorPutAway, setInspectorPutAway] =
     useInspectorPreference(selectedEntityType);
+  // One side panel at a time: Ask open beside the entry puts Details away,
+  // without changing whether Details comes back when Ask closes.
+  const asking = props.ask?.open === true && mode.kind === "edit" && canAssist;
+  const inspectorHidden = inspectorPutAway || asking;
+  const setInspectorHidden = (hidden: boolean): void => {
+    if (!hidden && asking) props.ask?.setOpen(false);
+    setInspectorPutAway(hidden);
+  };
   // A document's title is its heading, edited in place.
   const titleField = canEdit
     ? headingTitleField(entitySchema, presentation)
