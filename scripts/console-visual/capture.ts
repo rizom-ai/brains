@@ -2,6 +2,7 @@ import { writeFile } from "node:fs/promises";
 import path from "node:path";
 import { getErrorMessage } from "@brains/utils/error";
 import { runAxeAudit } from "../accessibility/axe-audit";
+import { chromeProfile } from "../accessibility/browser";
 import {
   ARTIFACT_DIR,
   AUDIT_ACCESSIBILITY,
@@ -41,6 +42,7 @@ export async function openCapturePage(
     width: viewport.width,
     height: viewport.height,
     backend,
+    dataStore: chromeProfile(),
   });
   await page.navigate("about:blank");
   // Each capture starts from a fresh fixture preference. The browser backend
