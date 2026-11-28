@@ -1,25 +1,21 @@
 import type { ActionItemAssigneeMember } from "@brains/action-items";
-import {
-  conversationMessageMetadataSchema,
-  type ConversationMessageActor,
-  type Message,
-} from "@brains/sdk/internal/service-runtime";
+import type { Message } from "@brains/sdk/internal/service-runtime";
 import type { MemoryContext } from "../memory-context";
 import type { Logger } from "@brains/utils/logger";
 import { getErrorMessage } from "@brains/utils/error";
 import { CHANNEL_ACTION_ITEMS_TEMPLATE_NAME } from "../constants";
+import {
+  actorOf,
+  formatLines,
+  labelOf,
+  singleDay,
+  speakerKey,
+  titleKey,
+  type PositionedMessage,
+} from "./messages";
 import { channelActionItemExtractionSchema } from "./schema";
 
-/** A message with its 1-based position in its conversation. */
-export interface PositionedMessage {
-  position: number;
-  message: Message;
-  /**
-   * Part of a conversation with the brain: a request to it or its answer.
-   * The brain acts on those itself, so nothing is picked up from them.
-   */
-  withBrain?: boolean | undefined;
-}
+export type { PositionedMessage } from "./messages";
 
 /** A member of the brain, by account id and name. */
 export interface BrainMember {
@@ -108,51 +104,10 @@ function isoDate(value: string | undefined): string | undefined {
     : value;
 }
 
-/** A message's day as the model reads it: weekday and date, e.g. "Fri 2026-10-23". */
-function dayOf(timestamp: string): string | undefined {
-  const date = new Date(timestamp);
-  if (Number.isNaN(date.getTime())) return undefined;
-  const weekday = date.toLocaleDateString("en-US", {
-    weekday: "short",
-    timeZone: "UTC",
-  });
-  return `${weekday} ${date.toISOString().slice(0, 10)}`;
-}
-
-/** The one day all the messages were written on, if there is one. */
-function singleDay(messages: PositionedMessage[]): string | undefined {
-  const days = new Set(messages.map(({ message }) => dayOf(message.timestamp)));
-  const [day] = days;
-  return days.size === 1 ? day : undefined;
-}
-
 interface Participant {
   ref: string;
   label: string;
   owner: FoundOwner;
-}
-
-function actorOf(message: Message): ConversationMessageActor | undefined {
-  const parsed = conversationMessageMetadataSchema.safeParse(message.metadata);
-  return parsed.success ? parsed.data.actor : undefined;
-}
-
-function speakerKey(message: Message): string {
-  const actor = actorOf(message);
-  if (!actor) return `role:${message.role}`;
-  const { identity } = actor;
-  if (identity.kind === "user") return `user:${identity.userId}`;
-  if (identity.kind === "external") return identity.externalActorId;
-  return JSON.stringify(identity);
-}
-
-function labelOf(message: Message): string {
-  const actor = actorOf(message);
-  return (
-    [actor?.displayName, actor?.username]
-      .map((value) => value?.trim())
-      .find((value): value is string => !!value) ?? message.role
-  );
 }
 
 function memberOwner(member: BrainMember): FoundOwner {
@@ -193,29 +148,6 @@ function participantsOf(
     }
     return participants;
   }, new Map<string, Participant>());
-}
-
-/** A title as a key, so the same task worded the same way is found twice. */
-function titleKey(title: string): string {
-  return title
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}]+/gu, " ")
-    .trim();
-}
-
-function formatLines(
-  messages: PositionedMessage[],
-  participants: Map<string, Participant>,
-  datedLines: boolean,
-): string {
-  if (messages.length === 0) return "(none)";
-  return messages
-    .map(({ position, message, withBrain }) => {
-      const participant = participants.get(speakerKey(message));
-      const day = datedLines ? dayOf(message.timestamp) : undefined;
-      return `${position}. ${day ? `[${day}] ` : ""}${participant?.label ?? message.role} (${participant?.ref ?? "?"})${withBrain ? " [with the brain]" : ""}: ${message.content}`;
-    })
-    .join("\n");
 }
 
 function formatCards(cards: OwnCard[]): string {

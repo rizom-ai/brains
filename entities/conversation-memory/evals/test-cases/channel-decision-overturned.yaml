@@ -1,0 +1,43 @@
+id: channel-decisions-overturned
+name: Records the decision that overturns a recorded one
+description: >-
+  The channel recorded dropping the company field. New messages come back on
+  that: the field stays. The pickup finds one decision and names the recorded
+  one it replaces.
+type: plugin
+tags:
+  - conversation-memory
+  - channel-decisions
+plugin: conversation-memory
+handler: extractChannelDecisions
+
+input:
+  processedThrough: 2
+  decisions:
+    - title: Drop the company field
+      text: The sign-up form no longer asks for a company name.
+  messages:
+    - speaker: Niels
+      userId: usr_niels
+      content: Shall we just drop the company field from the sign-up form?
+    - speaker: Jo
+      userId: usr_jo
+      content: Yes, let's drop it.
+    - speaker: Niels
+      userId: usr_niels
+      content: Finance says we need the company name for invoicing after all.
+    - speaker: Jo
+      userId: usr_jo
+      content: OK, then we keep the company field on the form.
+    - speaker: Niels
+      userId: usr_niels
+      content: Agreed.
+
+expectedOutput:
+  validateEach:
+    - path: count
+      equals: 1
+    - path: decisions[0].replaces
+      equals: decision-1
+    - path: decisions[0].title
+      matches: "([Kk]eep|[Cc]ompany)"

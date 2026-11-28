@@ -5,7 +5,7 @@ import { createSilentLogger } from "@brains/test-utils";
 import {
   ChannelActionItemExtractor,
   type PositionedMessage,
-} from "../../../src/lib/channel-action-items/extractor";
+} from "../../../src/lib/channel-pickup/extractor";
 
 function said(
   position: number,

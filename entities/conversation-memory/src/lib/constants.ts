@@ -7,3 +7,5 @@ export const DECISION_ENTITY_TYPE = "decision";
 export const SUMMARY_DATASOURCE_ID = "conversation-memory:entities";
 export const CHANNEL_ACTION_ITEMS_TEMPLATE_NAME =
   "conversation-memory:channel-action-items";
+export const CHANNEL_DECISIONS_TEMPLATE_NAME =
+  "conversation-memory:channel-decisions";

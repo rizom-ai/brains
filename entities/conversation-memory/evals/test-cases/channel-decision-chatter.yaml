@@ -1,0 +1,31 @@
+id: channel-decisions-chatter
+name: Finds no decisions in channel chatter
+description: >-
+  A question, a report of finished work, thanks and an opinion settle
+  nothing; the pickup returns no decision.
+type: plugin
+tags:
+  - conversation-memory
+  - channel-decisions
+  - hallucination
+plugin: conversation-memory
+handler: extractChannelDecisions
+
+input:
+  messages:
+    - speaker: Jo
+      userId: usr_jo
+      content: How did the board meeting go yesterday?
+    - speaker: Niels
+      userId: usr_niels
+      content: Pretty well, I think the deck landed. I already sent everyone the notes this morning.
+    - speaker: Jo
+      userId: usr_jo
+      content: Nice, thanks for doing that!
+    - speaker: Natalie
+      content: I like the new logo by the way.
+
+expectedOutput:
+  validateEach:
+    - path: count
+      equals: 0

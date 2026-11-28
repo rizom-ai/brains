@@ -7,12 +7,13 @@ import { z } from "@brains/utils/zod";
 import { summaryTimeRangeSchema } from "./summary";
 
 type DecisionMetadataSchema = z.ZodObject<{
-  conversationId: z.ZodString;
-  channelId: z.ZodString;
+  conversationId: z.ZodOptional<z.ZodString>;
+  channelId: z.ZodOptional<z.ZodString>;
   channelName: z.ZodOptional<z.ZodString>;
-  interfaceType: z.ZodString;
-  timeRange: typeof summaryTimeRangeSchema;
+  interfaceType: z.ZodOptional<z.ZodString>;
+  timeRange: z.ZodOptional<typeof summaryTimeRangeSchema>;
   status: z.ZodEnum<{ active: "active"; superseded: "superseded" }>;
+  supersededBy: z.ZodOptional<z.ZodString>;
   decidedBy: z.ZodOptional<z.ZodArray<typeof memoryActorReferenceSchema>>;
   mentionedBy: z.ZodOptional<z.ZodArray<typeof memoryActorReferenceSchema>>;
 }>;
@@ -25,15 +26,24 @@ export const DECISION_RETIRED_FIELDS: readonly string[] = [
   "projectionVersion",
 ];
 
-/** Studio shows where a decision came from as facts, and its people by name. */
+/**
+ * Studio shows where a decision came from as facts, and its people by name.
+ * Only a decision picked up from a conversation states that conversation and
+ * the span of its messages; one recorded by hand states the channel it was
+ * said in, or nothing when it was not said in one.
+ */
 export const decisionMetadataSchema: DecisionMetadataSchema = z.object({
   // Routing ids, unreadable chat-app ids: never shown; channelName is.
-  conversationId: z.string().meta({ studioWidget: "hidden" }),
-  channelId: z.string().meta({ studioWidget: "hidden" }),
+  conversationId: z.string().optional().meta({ studioWidget: "hidden" }),
+  channelId: z.string().optional().meta({ studioWidget: "hidden" }),
   channelName: z.string().optional().meta({ studioWidget: "provenance" }),
-  interfaceType: z.string().meta({ studioWidget: "provenance" }),
-  timeRange: summaryTimeRangeSchema.meta({ studioWidget: "provenance" }),
+  interfaceType: z.string().optional().meta({ studioWidget: "provenance" }),
+  timeRange: summaryTimeRangeSchema
+    .optional()
+    .meta({ studioWidget: "provenance" }),
   status: z.enum(["active", "superseded"]),
+  // The id of the decision that replaced a superseded one, when one did.
+  supersededBy: z.string().optional().meta({ studioWidget: "hidden" }),
   decidedBy: z
     .array(memoryActorReferenceSchema)
     .optional()
@@ -45,12 +55,13 @@ export const decisionMetadataSchema: DecisionMetadataSchema = z.object({
 });
 
 const decisionEntityMetadataParserSchema: DecisionMetadataSchema = z.object({
-  conversationId: z.string(),
-  channelId: z.string(),
+  conversationId: z.string().optional(),
+  channelId: z.string().optional(),
   channelName: z.string().optional(),
-  interfaceType: z.string(),
-  timeRange: summaryTimeRangeSchema,
+  interfaceType: z.string().optional(),
+  timeRange: summaryTimeRangeSchema.optional(),
   status: z.enum(["active", "superseded"]),
+  supersededBy: z.string().optional(),
   decidedBy: z.array(memoryActorReferenceSchema).optional(),
   mentionedBy: z.array(memoryActorReferenceSchema).optional(),
 });

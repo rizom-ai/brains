@@ -3,7 +3,7 @@ import { CHANNEL_ACTION_ITEMS_TEMPLATE_NAME } from "../lib/constants";
 import {
   channelActionItemExtractionSchema,
   type ChannelActionItemExtraction,
-} from "../lib/channel-action-items/schema";
+} from "../lib/channel-pickup/schema";
 
 export const channelActionItemsTemplate: ReturnType<
   typeof createTemplate<ChannelActionItemExtraction>

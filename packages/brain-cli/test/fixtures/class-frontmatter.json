@@ -1886,6 +1886,10 @@
           "type": "string",
           "enum": ["active", "superseded"]
         },
+        "supersededBy": {
+          "studioWidget": "hidden",
+          "type": "string"
+        },
         "startedAt": {
           "studioWidget": "provenance",
           "type": "string",
@@ -1927,7 +1931,7 @@
           }
         }
       },
-      "required": ["conversationId", "channelId", "interfaceType", "status"]
+      "required": ["status"]
     },
     "action-item": {
       "type": "object",

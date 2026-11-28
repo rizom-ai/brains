@@ -20,6 +20,9 @@ import {
 } from "@brains/sdk/internal/service-runtime";
 import type { MemoryEntityService } from "../memory-context";
 import { z } from "@brains/utils/zod";
+import type { ChannelDecisionExtractor } from "./decision-extractor";
+import { chatMessageIdOf, sourcePositionOf } from "./messages";
+import { pickUpDecisions } from "./decisions";
 import type {
   BrainMember,
   ChannelActionItemExtractor,
@@ -33,12 +36,17 @@ type ChannelNoticeSchema = z.ZodObject<{
   cards: z.ZodArray<
     z.ZodObject<{
       id: z.ZodString;
+      kind: z.ZodOptional<z.ZodEnum<{ decision: "decision" }>>;
       title: z.ZodString;
       owner: z.ZodOptional<z.ZodString>;
       dueDate: z.ZodOptional<z.ZodString>;
       sourceMessageId: z.ZodOptional<z.ZodString>;
       change: z.ZodOptional<
-        z.ZodEnum<{ updated: "updated"; withdrawn: "withdrawn" }>
+        z.ZodEnum<{
+          updated: "updated";
+          withdrawn: "withdrawn";
+          superseded: "superseded";
+        }>
       >;
       undo: z.ZodOptional<
         z.ZodObject<{
@@ -59,6 +67,8 @@ const channelNoticeSchema: ChannelNoticeSchema = z.object({
   cards: z.array(
     z.object({
       id: z.string().min(1),
+      /** What the line announces; a card when it says nothing. */
+      kind: z.enum(["decision"]).optional(),
       title: z.string().min(1),
       owner: z.string().min(1).optional(),
       /** When the card is due, as YYYY-MM-DD. */
@@ -66,7 +76,7 @@ const channelNoticeSchema: ChannelNoticeSchema = z.object({
       /** The chat message the card was found in, to pin. */
       sourceMessageId: z.string().min(1).optional(),
       /** What the batch did to an own card; absent for a card it added. */
-      change: z.enum(["updated", "withdrawn"]).optional(),
+      change: z.enum(["updated", "withdrawn", "superseded"]).optional(),
       /** What someone's Undo did: removed it, or kept it as the board changed it. */
       undo: z
         .object({
@@ -95,6 +105,7 @@ type ChannelBookmarkSchema = z.ZodObject<{
   >;
   notices: z.ZodOptional<z.ZodArray<ChannelNoticeSchema>>;
   rejected: z.ZodOptional<z.ZodArray<z.ZodString>>;
+  own: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
 }>;
 
 const channelBookmarkSchema: ChannelBookmarkSchema = z.object({
@@ -112,6 +123,14 @@ const channelBookmarkSchema: ChannelBookmarkSchema = z.object({
   notices: z.array(channelNoticeSchema).optional(),
   /** Cards someone took back with Undo; the pickup never writes them again. */
   rejected: z.array(z.string().min(1)).optional(),
+  /**
+   * The decisions the pickup wrote, by id: the hash of what it wrote. A
+   * decision whose content still has that hash is the pickup's own; one
+   * edited since, or not listed here, belongs to whoever edited it. Kept
+   * here, not in the decision: its file states nothing a person does not
+   * read.
+   */
+  own: z.record(z.string(), z.string()).optional(),
 });
 
 export type ChannelBookmark = z.output<typeof channelBookmarkSchema>;
@@ -166,6 +185,8 @@ export interface ChannelPickupDeps {
   >;
   bookmarks: ClassRuntimeStateStore<ChannelBookmark>;
   extractor: Pick<ChannelActionItemExtractor, "extract">;
+  /** Finds the decisions the messages settle; none are picked up without it. */
+  decisions?: Pick<ChannelDecisionExtractor, "extract"> | undefined;
   entityService: Pick<
     MemoryEntityService,
     | "createEntity"
@@ -186,7 +207,14 @@ export interface ChannelPickupDeps {
 }
 
 export type ChannelPickupResult =
-  | { status: "processed"; through: number; created: string[] }
+  | {
+      status: "processed";
+      through: number;
+      /** The cards it added. */
+      created: string[];
+      /** The decisions it recorded, when it picks decisions up. */
+      decisions?: string[];
+    }
   | { status: "up-to-date" }
   | { status: "claimed-elsewhere" }
   | { status: "no-conversation" };
@@ -197,6 +225,8 @@ const DEFAULT_CONTEXT_SIZE = 10;
 const OWN_CARDS_LIMIT = 30;
 /** How many taken-back cards a conversation remembers. */
 export const REJECTED_KEPT = 500;
+/** How many of its most recent decisions a conversation's pickup can still call its own. */
+export const OWN_KEPT = 200;
 
 /** A system actor, for a message whose speaker was not recorded. */
 const UNKNOWN_SPEAKER = {
@@ -239,10 +269,7 @@ function channelNameOf(
 function sourceMessageIdOf(item: {
   source: FoundActionItem["source"];
 }): string | undefined {
-  const parsed = conversationMessageMetadataSchema.safeParse(
-    item.source.metadata,
-  );
-  return parsed.success ? parsed.data.source?.messageId : undefined;
+  return chatMessageIdOf(item.source);
 }
 
 function speakerOf(item: FoundActionItem): {
@@ -265,12 +292,16 @@ type OwnCardWithAssignee = OwnCard & {
 };
 
 /**
- * The open cards this conversation's pickup made that the board has not
- * touched, newest first: the ones later messages may still change.
+ * The open cards this conversation's pickup made, from messages before
+ * `from`, that the board has not touched, newest first: the ones later
+ * messages may still change. A card from the range being processed is left
+ * out: a run that died after writing it left it unannounced, and it is
+ * announced only when its task is found again.
  */
 async function ownCards(
   deps: ChannelPickupDeps,
   conversationId: string,
+  from: number,
 ): Promise<OwnCardWithAssignee[]> {
   const prefix = `${flatId(conversationId, "message")}-`;
   const entities = await deps.entityService.listEntities(
@@ -288,7 +319,10 @@ async function ownCards(
     actionItemSchema,
   );
   return entities
-    .filter((entity) => entity.id.startsWith(prefix) && !isBoardOwned(entity))
+    .filter((entity) => {
+      const position = sourcePositionOf(entity.id, prefix);
+      return position !== undefined && position < from && !isBoardOwned(entity);
+    })
     .map((entity) => {
       const assignee = entity.metadata.assignedTo?.[0];
       return {
@@ -312,11 +346,12 @@ function announcement(card: NoticeCard): string {
 }
 
 /**
- * Turn a space conversation's unprocessed messages into cards. The bookmark
- * alone decides what is processed: a run claims the range, writes its cards
- * (idempotently, by source message), and only then moves the bookmark.
+ * Turn a space conversation's unprocessed messages into cards and decisions.
+ * The bookmark alone decides what is processed: a run claims the range,
+ * writes what it found (idempotently, by source message), and only then
+ * moves the bookmark.
  */
-export async function pickUpChannelActionItems(
+export async function pickUpChannel(
   deps: ChannelPickupDeps,
   conversationId: string,
   jobId: string,
@@ -356,10 +391,12 @@ export async function pickUpChannelActionItems(
     message,
     withBrain: isWithBrain(message),
   }));
-  const own = await ownCards(deps, conversationId);
+  const context = positioned.filter(({ position }) => position < from);
+  const fresh = positioned.filter(({ position }) => position >= from);
+  const own = await ownCards(deps, conversationId, from);
   const { items, updates, withdrawals } = await deps.extractor.extract({
-    context: positioned.filter(({ position }) => position < from),
-    fresh: positioned.filter(({ position }) => position >= from),
+    context,
+    fresh,
     members: await deps.members(),
     cards: own,
   });
@@ -480,6 +517,53 @@ export async function pickUpChannelActionItems(
     Promise.resolve([]),
   );
 
+  const decided = deps.decisions
+    ? await pickUpDecisions(
+        {
+          extractor: deps.decisions,
+          entityService: deps.entityService,
+          visibility: deps.visibility,
+        },
+        {
+          origin: {
+            conversationId,
+            interfaceType: conversation.interfaceType,
+            channelId: conversation.channelId,
+            ...(channelName ? { channelName } : {}),
+          },
+          context,
+          fresh,
+          rejected,
+          own: current.own ?? {},
+        },
+      )
+    : undefined;
+  const decisionCards = [
+    ...(decided?.decisions ?? []).map(
+      ({ id, title, sourceMessageId }): NoticeCard => ({
+        id,
+        kind: "decision",
+        title,
+        ...(sourceMessageId ? { sourceMessageId } : {}),
+      }),
+    ),
+    ...(decided?.superseded ?? []).map(
+      ({ id, title, sourceMessageId }): NoticeCard => ({
+        id,
+        kind: "decision",
+        title,
+        ...(sourceMessageId ? { sourceMessageId } : {}),
+        change: "superseded",
+      }),
+    ),
+  ];
+  // What the pickup wrote or rewrote, by the hash it now has.
+  const written = Object.fromEntries(
+    [...(decided?.decisions ?? []), ...(decided?.superseded ?? [])].flatMap(
+      ({ id, hash }) => (hash ? [[id, hash]] : []),
+    ),
+  );
+
   // Finish only while the claim is still this run's; announce everything
   // the batch did that no earlier notice lists, so a crashed run's is too.
   await updateBookmark(deps.bookmarks, conversationId, (latest) => {
@@ -499,8 +583,14 @@ export async function pickUpChannelActionItems(
         ...(sourceMessageId ? { sourceMessageId } : {}),
       };
     });
-    const fresh = [...added, ...revisedCards, ...withdrawnCards].filter(
-      (card) => !announced.has(announcement(card)),
+    const fresh = [
+      ...added,
+      ...revisedCards,
+      ...withdrawnCards,
+      ...decisionCards,
+    ].filter((card) => !announced.has(announcement(card)));
+    const own = Object.fromEntries(
+      Object.entries({ ...latest.own, ...written }).slice(-OWN_KEPT),
     );
     const taken = withdrawnCards.map((card) => card.id);
     // A notice holds what one chat message can show; a larger batch is
@@ -518,6 +608,7 @@ export async function pickUpChannelActionItems(
     return {
       processedThrough: count,
       notices: keptNotices([...notices, ...batch]),
+      ...(Object.keys(own).length > 0 ? { own } : {}),
       ...(latest.rejected || taken.length > 0
         ? {
             rejected: [
@@ -528,5 +619,14 @@ export async function pickUpChannelActionItems(
         : {}),
     };
   });
-  return { status: "processed", through: count, created: results };
+  return {
+    status: "processed",
+    through: count,
+    created: results,
+    ...(decided && {
+      decisions: decided.decisions.flatMap(({ id, hash }) =>
+        hash ? [id] : [],
+      ),
+    }),
+  };
 }

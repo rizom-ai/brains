@@ -1,4 +1,4 @@
-import { channelLabel } from "@brains/action-items";
+import { channelLabel, formatShortDate } from "@brains/action-items";
 import { defineDashboardWidget } from "@brains/sdk/services";
 import type {
   ContentVisibility,
@@ -67,6 +67,20 @@ function statusOrder(status: DecisionEntity["metadata"]["status"]): number {
   return status === "active" ? 0 : 1;
 }
 
+/** When a decision was made: the end of its messages, or when it was recorded by hand. */
+function decidedAt(entity: DecisionEntity): string {
+  return entity.metadata.timeRange?.end ?? entity.created;
+}
+
+/** Where and when: the channel when it came from one, and the day or days. */
+function decisionMeta(entity: DecisionEntity): string[] {
+  const { channelId, channelName, timeRange } = entity.metadata;
+  return [
+    ...(channelId ? [channelLabel(channelName, channelId)] : []),
+    timeRange ? formatTimeRange(timeRange) : formatShortDate(entity.created),
+  ];
+}
+
 export async function buildDecisionsWidgetData(
   context: {
     readonly entityService: Pick<MemoryEntityService, "listEntities">;
@@ -85,15 +99,12 @@ export async function buildDecisionsWidgetData(
     const statusDiff =
       statusOrder(a.metadata.status) - statusOrder(b.metadata.status);
     if (statusDiff !== 0) return statusDiff;
-    return b.metadata.timeRange.end.localeCompare(a.metadata.timeRange.end);
+    return decidedAt(b).localeCompare(decidedAt(a));
   });
 
   return {
     items: sorted.slice(0, MAX_ITEMS).map((entity) => ({
-      ...listItemOf(entity, [
-        channelLabel(entity.metadata.channelName, entity.metadata.channelId),
-        formatTimeRange(entity.metadata.timeRange),
-      ]),
+      ...listItemOf(entity, decisionMeta(entity)),
       status: entity.metadata.status,
     })),
   };

@@ -110,7 +110,8 @@ export class ConversationMemoryRetriever {
     );
 
     const scopedCandidates = candidates
-      // Action items tracked from the Inbox have no conversation to recall.
+      // An action item tracked from the Inbox and a decision recorded
+      // outside a conversation have no conversation to recall.
       .filter(
         (candidate) => this.conversationOf(candidate.entity) !== undefined,
       )
@@ -332,7 +333,10 @@ export class ConversationMemoryRetriever {
     return this.conversationOf(entity)?.spaceId ?? "";
   }
 
-  /** The conversation a memory belongs to; none for an Inbox-tracked action item. */
+  /**
+   * The conversation a memory belongs to; none for an Inbox-tracked action
+   * item or a decision recorded outside a conversation.
+   */
   private conversationOf(entity: ConversationMemorySearchEntity):
     | {
         conversationId: string;
@@ -354,18 +358,21 @@ export class ConversationMemoryRetriever {
       };
     }
     const metadata = entity.metadata;
+    // A summary is its conversation: its id is the conversation id.
+    const conversationId = this.isSummaryEntity(entity)
+      ? entity.id
+      : entity.metadata.conversationId;
+    const { channelId, interfaceType } = metadata;
+    if (!conversationId || !channelId || !interfaceType) return undefined;
     return {
-      // A summary is its conversation: its id is the conversation id.
-      conversationId: this.isSummaryEntity(entity)
-        ? entity.id
-        : entity.metadata.conversationId,
+      conversationId,
       spaceId:
         "spaceId" in metadata && typeof metadata.spaceId === "string"
           ? metadata.spaceId
-          : getConversationSpaceId(metadata),
-      channelId: metadata.channelId,
+          : getConversationSpaceId({ interfaceType, channelId }),
+      channelId,
       ...(metadata.channelName ? { channelName: metadata.channelName } : {}),
-      interfaceType: metadata.interfaceType,
+      interfaceType,
     };
   }
 }

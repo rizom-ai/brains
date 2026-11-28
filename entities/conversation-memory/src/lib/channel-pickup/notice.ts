@@ -22,8 +22,11 @@ const LABEL_LIMIT = 80;
 export interface ChannelNoticeDeps {
   conversations: Pick<ServiceConversations, "get" | "list">;
   bookmarks: ClassRuntimeStateStore<ChannelBookmark>;
-  /** Whether a card is still on the board; one deleted since is not announced. */
-  cardExists: (id: string) => Promise<boolean>;
+  /**
+   * Whether what a line announces is still there, a card on the board or a
+   * recorded decision; one deleted since is not announced.
+   */
+  cardExists: (id: string, kind?: NoticeCard["kind"]) => Promise<boolean>;
   /** Post a space notice; the posted message's id, or undefined when it failed. */
   post: (request: SpaceNoticeRequest) => Promise<string | undefined>;
   now?: () => Date;
@@ -38,7 +41,32 @@ function undoLabel(title: string): string {
 
 type NoticeCard = ChannelNotice["cards"][number];
 
+function decisionLine(card: NoticeCard): string {
+  if (card.undo?.outcome === "removed") {
+    return `~~${card.title}~~ · removed by ${card.undo.by}`;
+  }
+  if (card.change === "superseded") return `Superseded: ~~${card.title}~~`;
+  const named = `Decision: ${card.title}`;
+  return card.undo?.outcome === "kept"
+    ? `${named} · kept: edited since`
+    : named;
+}
+
+/** What a notice is headed with: by what it holds, cards, decisions or both. */
+function noticeTitle(cards: NoticeCard[]): string {
+  const decisions = cards.filter((card) => card.kind === "decision").length;
+  if (decisions === 0) {
+    return cards.every((card) => !card.change)
+      ? "Added to the board"
+      : "Board updated";
+  }
+  if (decisions < cards.length) return "Picked up from this channel";
+  if (cards.some((card) => card.change)) return "Decisions updated";
+  return decisions === 1 ? "Decision recorded" : "Decisions recorded";
+}
+
 function cardLine(card: NoticeCard): string {
+  if (card.kind === "decision") return decisionLine(card);
   const named = [
     card.title,
     card.owner,
@@ -64,15 +92,14 @@ function cardLine(card: NoticeCard): string {
  */
 export function noticeContent(notice: ChannelNotice): SpaceNoticeContent {
   return {
-    title: notice.cards.every((card) => !card.change)
-      ? "Added to the board"
-      : "Board updated",
+    title: noticeTitle(notice.cards),
     lines: notice.cards.map(cardLine),
     actions: notice.cards
       .filter(
         (card) =>
           !card.undo &&
           card.change !== "withdrawn" &&
+          card.change !== "superseded" &&
           card.id.length <= SPACE_NOTICE_VALUE_LIMIT,
       )
       .map((card) => ({ label: undoLabel(card.title), value: card.id })),
@@ -142,7 +169,8 @@ async function postNotice(
   const present = await Promise.all(
     pending.cards.map(
       async (card) =>
-        card.change === "withdrawn" || (await deps.cardExists(card.id)),
+        card.change === "withdrawn" ||
+        (await deps.cardExists(card.id, card.kind)),
     ),
   );
   const notice = {

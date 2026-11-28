@@ -281,6 +281,30 @@ describe("ConversationMemoryRetriever", () => {
     expect(result.results.map((memory) => memory.id)).toEqual(["action-1"]);
   });
 
+  it("leaves a decision recorded outside a conversation out of conversation memory", async () => {
+    const context = createMockEntityPluginContext();
+    const pickedUp = createDecision({ id: "decision-1", channelId: "team" });
+    const byHand: DecisionEntity = {
+      ...createDecision({ id: "by-hand", channelId: "team" }),
+      metadata: { status: "active" },
+    };
+    spyOn(context.entityService, "search").mockResolvedValue(
+      asSearchResults([
+        { entity: byHand, score: 0.95, excerpt: "Recorded in Studio." },
+        { entity: pickedUp, score: 0.8, excerpt: "Picked up in the channel." },
+      ]),
+    );
+
+    const result = await new ConversationMemoryRetriever(context).retrieve({
+      query: "decision",
+      interfaceType: "mcp",
+      channelId: "team",
+      includeOtherSpaces: true,
+    });
+
+    expect(result.results.map((memory) => memory.id)).toEqual(["decision-1"]);
+  });
+
   it("derives retrieval space from conversation id", async () => {
     const context = createMockEntityPluginContext();
     spyOn(context.conversations, "get").mockResolvedValue(

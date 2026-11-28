@@ -13,11 +13,11 @@ import {
 import {
   channelBookmarks,
   type ChannelNotice,
-} from "../../../src/lib/channel-action-items/pickup";
+} from "../../../src/lib/channel-pickup/pickup";
 import {
   undoNoticeCard,
   type ChannelUndoDeps,
-} from "../../../src/lib/channel-action-items/undo";
+} from "../../../src/lib/channel-pickup/undo";
 
 const ROOM = "discord-discord:guild-1:1466";
 

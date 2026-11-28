@@ -29,6 +29,8 @@ describe("conversation memory in Studio", () => {
       interfaceType: "provenance",
       timeRange: "provenance",
       status: undefined,
+      // A reference by id, unreadable: the decision that replaced this one.
+      supersededBy: "hidden",
       decidedBy: "people",
       mentionedBy: "people",
     });

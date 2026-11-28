@@ -15,7 +15,7 @@ import {
  * A first-party create route knows who asked, as the link plugin class's
  * interceptor read its execution context to name where a link came from
  * and whom its capture job reports to: the interface, the signed-in user,
- * and the channel, when there is one. Its check knows too.
+ * and the channel and conversation, when there is one. Its check knows too.
  */
 
 const seen: Array<{ where: string; caller: EntityCreateCaller }> = [];
@@ -62,12 +62,13 @@ async function ask(caller: CreateExecutionContext): Promise<void> {
 }
 
 describe("a create route's caller", () => {
-  it("is the interface, the signed-in user and the channel", async () => {
+  it("is the interface, the signed-in user, the channel and the conversation", async () => {
     seen.length = 0;
     await ask({
       interfaceType: "matrix",
       actor: { kind: "user", userId: "usr_1" },
       userPermissionLevel: "admin",
+      conversationId: "matrix-room-server",
       channelId: "!room:server",
       channelName: "#engineering",
     });
@@ -75,6 +76,7 @@ describe("a create route's caller", () => {
       interfaceType: "matrix",
       actor: { kind: "user", userId: "usr_1" },
       userId: "usr_1",
+      conversationId: "matrix-room-server",
       channelId: "!room:server",
       channelName: "#engineering",
     };
@@ -84,7 +86,7 @@ describe("a create route's caller", () => {
     ]);
   });
 
-  it("names no user or channel when there is none", async () => {
+  it("names no user, channel or conversation when there is none", async () => {
     seen.length = 0;
     await ask({
       interfaceType: "mcp",

@@ -1,0 +1,32 @@
+id: channel-decisions-other-language
+name: Records a decision in the language it was made in
+description: >-
+  The team speaks Dutch and decides to send the newsletter every two weeks.
+  The decision is recorded in Dutch.
+type: plugin
+tags:
+  - conversation-memory
+  - channel-decisions
+plugin: conversation-memory
+handler: extractChannelDecisions
+
+input:
+  messages:
+    - speaker: Jo
+      userId: usr_jo
+      content: De wekelijkse nieuwsbrief kost me elke week een hele dag.
+    - speaker: Niels
+      userId: usr_niels
+      content: Dan versturen we de nieuwsbrief vanaf december om de twee weken.
+    - speaker: Jo
+      userId: usr_jo
+      content: Prima, afgesproken.
+
+expectedOutput:
+  validateEach:
+    - path: count
+      equals: 1
+    - path: decisions[0].title
+      matches: "[Nn]ieuwsbrief"
+    - path: decisions[0].text
+      matches: "(twee weken|tweewekelijks)"

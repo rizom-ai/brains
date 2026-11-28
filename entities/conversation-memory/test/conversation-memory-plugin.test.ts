@@ -6,8 +6,8 @@ import {
 } from "@brains/contracts";
 import { createActionItem } from "@brains/action-items";
 import { SYSTEM_CHANNELS } from "@brains/plugins";
-import { channelBookmarks } from "../src/lib/channel-action-items/pickup";
-import { channelPickupJob } from "../src/lib/channel-action-items/trigger";
+import { channelBookmarks } from "../src/lib/channel-pickup/pickup";
+import { channelPickupJob } from "../src/lib/channel-pickup/trigger";
 import {
   createPluginHarness,
   type PluginTestHarness,
@@ -205,6 +205,65 @@ describe("the conversation-memory package", () => {
       expect(await notices()).toEqual([
         { ...pending, postedMessageId: "notice-1" },
       ]);
+    });
+
+    it("posts a notice of a decision that is still recorded, and none of one deleted since", async () => {
+      const posted = await brainWithPendingNotice();
+      await harness.getEntityService().createEntity({
+        entity: {
+          id: "decision-kept",
+          entityType: "decision",
+          visibility: "shared",
+          content: "# Drop the company field\n\nThe form no longer asks.",
+          metadata: {
+            conversationId: ROOM,
+            channelId: "discord:guild-1:1466",
+            interfaceType: "discord",
+            status: "active",
+          },
+        },
+      });
+      await channelBookmarks(harness.getMockShell().getRuntimeState()).set(
+        ROOM,
+        {
+          processedThrough: 5,
+          notices: [
+            {
+              key: "1-5",
+              cards: [
+                {
+                  id: "decision-kept",
+                  kind: "decision",
+                  title: "Drop the company field",
+                },
+                {
+                  id: "decision-deleted",
+                  kind: "decision",
+                  title: "Keep the email field",
+                },
+              ],
+            },
+          ],
+        },
+      );
+
+      await harness.sendMessage(
+        SYSTEM_CHANNELS.startupContentSettled,
+        {},
+        "shell",
+        true,
+      );
+
+      expect(posted).toHaveBeenCalledTimes(1);
+      expect(posted.mock.calls[0]?.[0]).toMatchObject({
+        payload: {
+          title: "Decision recorded",
+          lines: ["Decision: Drop the company field"],
+          actions: [
+            { label: "Undo: Drop the company field", value: "decision-kept" },
+          ],
+        },
+      });
     });
 
     it("answers an Undo on a notice it posted with the notice as it now reads", async () => {

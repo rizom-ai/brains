@@ -1,0 +1,36 @@
+id: channel-decisions-declared
+name: Picks up a decision someone declares in a team channel
+description: >-
+  Niels declares for the team that the newsletter moves to every two weeks.
+  The pickup finds one decision, decided by Niels, citing his message.
+type: plugin
+tags:
+  - conversation-memory
+  - channel-decisions
+plugin: conversation-memory
+handler: extractChannelDecisions
+
+input:
+  messages:
+    - speaker: Jo
+      userId: usr_jo
+      content: The weekly newsletter is eating a full day of my week.
+    - speaker: Niels
+      userId: usr_niels
+      content: Then we're moving the newsletter to every two weeks, starting in December.
+    - speaker: Natalie
+      content: Makes sense to me.
+
+expectedOutput:
+  validateEach:
+    - path: count
+      equals: 1
+    - path: decisions[0].message
+      equals: 2
+    - path: decisions[0].title
+      matches: "[Nn]ewsletter"
+    - path: decisions[0].decidedBy
+      matches: Niels
+    # In the messages' language, whatever the speakers' names suggest.
+    - path: decisions[0].text
+      matches: "(two[- ]week|biweekly|every other week|fortnight)"

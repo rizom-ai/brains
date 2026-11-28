@@ -87,7 +87,7 @@ const RETIRED = [
  * the package through what it registers.
  */
 describe("the conversation-memory package's registered surface", () => {
-  it("is the conversation-memory service beside its types, with no tools, resources, instructions or routes", async () => {
+  it("is the conversation-memory service beside its types, with no tools, resources or routes, and the decision's instructions", async () => {
     const { plugins, capabilities } = await installed();
     expect(
       plugins.map(({ id, type, packageName, dependencies }) => [
@@ -107,11 +107,12 @@ describe("the conversation-memory package's registered surface", () => {
     ]);
     expect(capabilities.flatMap(({ tools }) => tools)).toEqual([]);
     expect(capabilities.flatMap(({ resources }) => resources)).toEqual([]);
+    // Only a decision is recorded by hand, so only it tells the agent how.
     expect(
       capabilities.flatMap(({ instructions }) =>
         instructions === undefined ? [] : [instructions],
       ),
-    ).toEqual([]);
+    ).toEqual([expect.stringContaining("a decision is never public")]);
     for (const plugin of plugins) {
       expect(plugin.getWebRoutes?.() ?? []).toEqual([]);
       expect(plugin.getApiRoutes?.() ?? []).toEqual([]);
@@ -164,6 +165,7 @@ describe("the conversation-memory package's registered surface", () => {
       const { shell } = await installed({ executionOnly });
       expect([...shell.getTemplates().keys()].sort()).toEqual([
         "conversation-memory:channel-action-items",
+        "conversation-memory:channel-decisions",
         "conversation-memory:summary-detail",
         "conversation-memory:summary-list",
       ]);
@@ -183,6 +185,7 @@ describe("the conversation-memory package's registered surface", () => {
     const main = await installed();
     expect(main.evals).toEqual([
       "conversation-memory:extractChannelActionItems",
+      "conversation-memory:extractChannelDecisions",
       "conversation-memory:retrieveMemory",
       "conversation-memory:buildAgentContext",
     ]);

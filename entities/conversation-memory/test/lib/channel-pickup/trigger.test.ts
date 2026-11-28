@@ -6,14 +6,14 @@ import type {
   Message,
 } from "@brains/plugins";
 import { createMockShell } from "@brains/plugins/test";
-import { channelBookmarks } from "../../../src/lib/channel-action-items/pickup";
+import { channelBookmarks } from "../../../src/lib/channel-pickup/pickup";
 import {
   catchUpChannels,
   channelPickupJob,
   finishedPickupOf,
   wakeUpChannel,
   type ChannelTriggerDeps,
-} from "../../../src/lib/channel-action-items/trigger";
+} from "../../../src/lib/channel-pickup/trigger";
 
 function conversation(
   id: string,

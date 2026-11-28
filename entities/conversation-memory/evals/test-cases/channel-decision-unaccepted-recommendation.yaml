@@ -1,0 +1,28 @@
+id: channel-decisions-unaccepted-recommendation
+name: Finds no decision in a recommendation nobody accepts
+description: >-
+  Natalie recommends a new mail provider and the others only react. Nothing
+  is settled, so the pickup returns no decision.
+type: plugin
+tags:
+  - conversation-memory
+  - channel-decisions
+  - hallucination
+plugin: conversation-memory
+handler: extractChannelDecisions
+
+input:
+  messages:
+    - speaker: Natalie
+      content: I think we should switch the newsletter to Buttondown. It's cheaper and the editor is nicer.
+    - speaker: Jo
+      userId: usr_jo
+      content: Hm, interesting. I've never used it.
+    - speaker: Niels
+      userId: usr_niels
+      content: Let's look at it some time.
+
+expectedOutput:
+  validateEach:
+    - path: count
+      equals: 0
