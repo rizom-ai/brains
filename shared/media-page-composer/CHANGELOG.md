@@ -1,5 +1,17 @@
 # @brains/media-page-composer
 
+## 0.2.0-alpha.793
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.793
+  - @rizom/brain-ui@0.2.0-alpha.793
+  - @brains/contracts@0.2.0-alpha.793
+  - @brains/media-renderer@0.2.0-alpha.793
+  - @brains/site-engine@0.2.0-alpha.793
+  - @brains/utils@0.2.0-alpha.793
+
 ## 0.2.0-alpha.792
 
 ### Patch Changes

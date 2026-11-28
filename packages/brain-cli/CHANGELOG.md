@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.793
+
+### Patch Changes
+
+- [#1074](https://github.com/rizom-ai/brains/pull/1074) [`5d5e590`](https://github.com/rizom-ai/brains/commit/5d5e5900e3b912b63fa3419c9da25b1d86529cff) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The chair of a seminar reads the brain's own notes on the question before it decides who stands. It is given the public notes nearest the question, at most three, as its own background: it judges the openings and writes its follow-ups with them, and puts none of their passages to a participant as his. A seminar is held without them when the notes cannot be read.
+
 ## 0.2.0-alpha.792
 
 ### Patch Changes
