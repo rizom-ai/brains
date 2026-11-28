@@ -1,5 +1,13 @@
 # @brains/atproto-client
 
+## 0.2.0-alpha.805
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.805
+  - @brains/utils@0.2.0-alpha.805
+
 ## 0.2.0-alpha.804
 
 ### Patch Changes

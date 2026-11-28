@@ -1,5 +1,20 @@
 # @rizom/brain
 
+## 0.2.0-alpha.805
+
+### Minor Changes
+
+- [#1092](https://github.com/rizom-ai/brains/pull/1092) [`070c8f6`](https://github.com/rizom-ai/brains/commit/070c8f6843cfd68eb75fd2a9dbbe7ebf8e2284dd) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The drive takes PDFs.
+
+  - A PDF saved to `document/<id>.pdf` on the drive is stored as a document, the way an image saved to `image/` is stored as an image: only in that folder, only when the bytes are a PDF, under the action policy, and over the version the save was based on. A new one records its file name and page count; replacing one keeps what described it.
+  - The Rizom Brain plugin for Obsidian syncs the `document` folder both ways with it.
+
+- [#1091](https://github.com/rizom-ai/brains/pull/1091) [`7bbb709`](https://github.com/rizom-ai/brains/commit/7bbb7098ebba7af06fd004e70001ee6754d70cd3) Thanks [@yeehaa123](https://github.com/yeehaa123)! - ⌘K lives in Studio and answers trusted members, not only admins.
+
+  - The palette opens with ⌘K or the chrome's search chip. It leads with what is open (Ask about this entry, ⌘J), then what can be done (start a new entry of a type you may create, ask your brain what you typed, switch light and dark), then the pages and entries you may open.
+  - Studio answers the pages and entries itself, for any trusted member or admin, reading entries at the caller's visibility. It no longer depends on the dashboard plugin or its admin-only jump route.
+  - The dashboard keeps its own palette.
+
 ## 0.2.0-alpha.804
 
 ### Minor Changes

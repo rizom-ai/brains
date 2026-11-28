@@ -1,5 +1,9 @@
 # @brains/theme-base
 
+## 0.2.0-alpha.805
+
+No changes in this release.
+
 ## 0.2.0-alpha.804
 
 No changes in this release.
