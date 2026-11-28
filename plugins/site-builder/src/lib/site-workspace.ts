@@ -98,6 +98,8 @@ const buildPreviewAction = defineWorkspaceAction({
   name: "build-preview",
   label: "Build preview",
   permission: "trusted",
+  // Offered in ⌘K, from any page.
+  palette: true,
   input: z.object({}),
   output: actionOutputSchema,
 });

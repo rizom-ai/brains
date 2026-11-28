@@ -4,7 +4,8 @@ import { tmpdir } from "os";
 import { join } from "path";
 import { createTool } from "@brains/mcp-service";
 import { z } from "@brains/utils/zod";
-import { commands } from "../src/run-command";
+import { commands, runCommand } from "../src/run-command";
+import { parseArgs } from "../src/parse-args";
 import { operate, operateRawTool } from "../src/commands/operate";
 import { resolveRunnerType } from "../src/commands/start";
 import { resetBootFn, setBootFn, type BootedBrain } from "../src/lib/boot";
@@ -50,9 +51,9 @@ describe("operate with the builtin canonical definition", () => {
     expect(resolveRunnerType(testDir)).toBeUndefined();
   });
 
-  it("invokes CLI tools on the shell returned by the booted app", async () => {
+  /** Boot a fake brain whose only CLI tool is `build`; returns its last input. */
+  function bootWithBuildTool(): { environment: () => string | undefined } {
     setCanonicalDefinition(definition);
-
     let requestedEnvironment: string | undefined;
     const buildTool = createTool(
       "site-builder",
@@ -67,22 +68,104 @@ describe("operate with the builtin canonical definition", () => {
       },
       { cli: { name: "build" } },
     );
-
-    const bootedBrain: BootedBrain = {
+    setBootFn(async (): Promise<BootedBrain> => ({
       getShell: () => ({
         getMCPService: () => ({
           getCliTools: () => [{ pluginId: "site-builder", tool: buildTool }],
           listTools: () => [{ pluginId: "site-builder", tool: buildTool }],
         }),
       }),
-    };
+    }));
+    return { environment: () => requestedEnvironment };
+  }
 
-    setBootFn(async (): Promise<BootedBrain> => bootedBrain);
+  it("builds the preview for `brain build --preview`, as for `brain build preview`", async () => {
+    const build = bootWithBuildTool();
+
+    const result = await runCommand(parseArgs(["build", "--preview"]), testDir);
+
+    expect(result.success).toBe(true);
+    expect(build.environment()).toBe("preview");
+  });
+
+  it("rejects --preview for a brain command without an environment", async () => {
+    setCanonicalDefinition(definition);
+    let called = false;
+    const statusTool = createTool(
+      "system",
+      "status",
+      "Status",
+      z.object({}),
+      async () => {
+        called = true;
+        return { success: true, data: {} };
+      },
+      { cli: { name: "status" } },
+    );
+    setBootFn(async (): Promise<BootedBrain> => ({
+      getShell: () => ({
+        getMCPService: () => ({
+          getCliTools: () => [{ pluginId: "system", tool: statusTool }],
+          listTools: () => [{ pluginId: "system", tool: statusTool }],
+        }),
+      }),
+    }));
+
+    const result = await runCommand(
+      parseArgs(["status", "--preview"]),
+      testDir,
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain(
+      "Unknown flag --preview for `brain status`",
+    );
+    expect(called).toBe(false);
+  });
+
+  it("sets an input field from the flag that names it", async () => {
+    const build = bootWithBuildTool();
+
+    const result = await runCommand(
+      parseArgs(["build", "--environment", "preview"]),
+      testDir,
+    );
+
+    expect(result.success).toBe(true);
+    expect(build.environment()).toBe("preview");
+  });
+
+  it("rejects a flag that names no input field, suggesting the closest", async () => {
+    const build = bootWithBuildTool();
+
+    const result = await runCommand(
+      parseArgs(["build", "--enviroment", "preview"]),
+      testDir,
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain(
+      "Unknown flag --enviroment for `brain build`. Did you mean --environment?",
+    );
+    expect(build.environment()).toBeUndefined();
+  });
+
+  it("leaves the environment to the tool without --preview", async () => {
+    const build = bootWithBuildTool();
+
+    const result = await runCommand(parseArgs(["build"]), testDir);
+
+    expect(result.success).toBe(true);
+    expect(build.environment()).toBeUndefined();
+  });
+
+  it("invokes CLI tools on the shell returned by the booted app", async () => {
+    const build = bootWithBuildTool();
 
     const result = await operate(testDir, "build", ["preview"], {});
 
     expect(result.success).toBe(true);
-    expect(requestedEnvironment).toBe("preview");
+    expect(build.environment()).toBe("preview");
   });
 
   it("replays generated confirmation args for bundled raw tools", async () => {

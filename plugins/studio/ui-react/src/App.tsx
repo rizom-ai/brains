@@ -42,6 +42,7 @@ import {
   studioImagesPath,
   studioEntityPath,
   studioWorkspacePath,
+  studioCreatePath,
   parseStudioPath,
 } from "../../src/studio-paths";
 import type { StudioCollectionQuery } from "../../src/collection-query";
@@ -64,6 +65,8 @@ import type { BodyMode } from "./body-editor";
 import { getStudioRouterBasePath } from "./studio-router";
 import { type FieldAssistState } from "./entity-fields";
 import type { AskSelection } from "./ask-panel-model";
+import { StudioPalette } from "./studio-palette";
+import type { PaletteCommand } from "./palette-model";
 import {
   editorWorkflowReducer,
   hasUnsavedEditorChanges,
@@ -473,34 +476,80 @@ export function App(): ReactElement {
   if (!types) {
     return <StudioAppStatus message="Loading…" />;
   }
+  // ⌘K: what is open, what can be done, and where to go, on every page.
+  const openType = types.find((type) => type.entityType === entityType);
+  const runPaletteCommand = async (command: PaletteCommand): Promise<void> => {
+    if (command.kind === "run") {
+      // The page's own action, then its page, where its result shows.
+      await api.runWorkspaceAction(command.workspaceId, {
+        actionId: command.actionId,
+        input: {},
+      });
+      router.history.push(command.href);
+    } else if (command.kind === "ask-entry") setAskOpen(true);
+    else if (command.kind === "ask-brain") {
+      // The question waits in a new conversation's composer, as Home's does.
+      chatDraftStore.update(studioChatDraftKey(askChatPath, null), {
+        text: command.question,
+      });
+      router.history.push(STUDIO_CHAT_ROUTE_PATH);
+    } else if (command.kind === "create")
+      router.history.push(studioCreatePath(studioBasePath, command.entityType));
+    else if (command.kind === "climate")
+      document.getElementById("climateToggle")?.click();
+    else if (command.href.startsWith("/")) router.history.push(command.href);
+    else window.location.assign(command.href);
+  };
+  const palette = (
+    <StudioPalette
+      types={types.map((type) => ({
+        entityType: type.entityType,
+        singularLabel: type.singularLabel,
+        classification: type.classification,
+        isSingleton: type.isSingleton,
+        canCreate: type.capabilities.canCreate,
+      }))}
+      hasChat={askChatPath !== undefined}
+      openEntry={
+        mode.kind === "edit" && openType?.capabilities.canAssist
+          ? { typeLabel: openType.singularLabel.toLowerCase() }
+          : null
+      }
+      onCommand={runPaletteCommand}
+    />
+  );
   if (activeAccount && activeWorkspace) {
     const accountPath = studioWorkspacePath(
       studioBasePath,
       STUDIO_ACCOUNT_WORKSPACE_ID,
     );
     return (
-      <StudioAccountWorkspaceView
-        types={types}
-        workspaces={workspaces}
-        workspaceId={activeWorkspace.id}
-        selectEntityType={selectEntityType}
-        selectWorkspace={selectWorkspace}
-      >
-        <Suspense fallback={<StudioStatus>Opening Account…</StudioStatus>}>
-          <LazyAccountApp
-            bootstrap={accountBootstrap(
-              accountPath,
-              studioBasePath,
-              routeSearch,
-            )}
-          />
-        </Suspense>
-      </StudioAccountWorkspaceView>
+      <>
+        {palette}
+        <StudioAccountWorkspaceView
+          types={types}
+          workspaces={workspaces}
+          workspaceId={activeWorkspace.id}
+          selectEntityType={selectEntityType}
+          selectWorkspace={selectWorkspace}
+        >
+          <Suspense fallback={<StudioStatus>Opening Account…</StudioStatus>}>
+            <LazyAccountApp
+              bootstrap={accountBootstrap(
+                accountPath,
+                studioBasePath,
+                routeSearch,
+              )}
+            />
+          </Suspense>
+        </StudioAccountWorkspaceView>
+      </>
     );
   }
   if (activeChat && activeWorkspace) {
     return (
       <>
+        {palette}
         <Suspense fallback={<StudioAppStatus message="Opening Chat…" />}>
           <LazyStudioChatWorkspace
             apiPath={activeWorkspace.chatApiPath}
@@ -571,158 +620,161 @@ export function App(): ReactElement {
   }
 
   return (
-    <StudioAppView
-      groupings={{
-        items: groupings,
-        active: activeGrouping?.key ?? groupReturn?.grouping ?? null,
-        onSelect: (key) =>
-          router.history.push(studioGroupingPath(studioBasePath, key)),
-      }}
-      images={{
-        active: routeTarget.kind === "images",
-        onSelect: () => router.history.push(studioImagesPath(studioBasePath)),
-      }}
-      imagesView={
-        routeTarget.kind === "images" ? (
-          <StudioImagesView
-            onOpen={(nextType, id) =>
-              router.history.push(
-                studioEntityPath(studioBasePath, nextType, id),
-              )
-            }
-          />
-        ) : null
-      }
-      homeView={
-        activeWorkspaceId === STUDIO_OVERVIEW_WORKSPACE_ID ? (
-          <StudioHomeView
-            chatApiPath={chatWorkspace?.chatApiPath}
-            onNavigate={(href) => router.history.push(href)}
-            onAsk={(text) => {
-              // The question waits in a new conversation's composer.
-              chatDraftStore.update(
-                studioChatDraftKey(chatWorkspace?.chatApiPath, null),
-                { text },
-              );
-              router.history.push(STUDIO_CHAT_ROUTE_PATH);
-            }}
-          />
-        ) : null
-      }
-      groupReturnLabel={groupReturn?.label}
-      groupingSuggestions={groupingSuggestions}
-      groupingView={
-        activeGrouping ? (
-          <StudioGroupingView
-            basePath={studioBasePath}
-            grouping={activeGrouping}
-            types={types}
-            query={groupQuery}
-            onChange={(next, options) => {
-              const href = `${studioGroupingPath(studioBasePath, activeGrouping.key)}${groupingSearch(next)}`;
-              const stepped =
-                next.value !== groupQuery.value ||
-                next.offset !== groupQuery.offset;
-              router.history[
-                stepped && options?.replace !== true ? "push" : "replace"
-              ](href);
-            }}
-            onOpen={(nextType, id) => {
-              const pathname = studioEntityPath(studioBasePath, nextType, id);
-              pendingOpenState.current = { pathname, save: { kind: "idle" } };
-              router.history.push(pathname, {
-                studioGroupingPath: `${studioGroupingPath(studioBasePath, activeGrouping.key)}${groupingSearch(groupQuery)}`,
-              });
-            }}
-          />
-        ) : null
-      }
-      activeWorkspaceId={activeWorkspaceId}
-      types={types}
-      workspaces={workspaces}
-      workspaceError={workspaceError}
-      readError={visibleLoadError}
-      onRetryRead={retryRead}
-      declarativeWorkspaceData={declarativeWorkspaceData}
-      workspaceQuery={workspaceRequestQuery}
-      entityType={entityType}
-      entities={entities}
-      refineNotice={refineOutcome.notice}
-      onRefineConfirmed={refineOutcome.confirmed}
-      folders={entityListQuery.data?.folders ?? []}
-      collectionTrail={entityListQuery.data?.trail}
-      collectionPath={
-        collectionType
-          ? studioCollectionPath(studioBasePath, collectionType)
-          : studioBasePath
-      }
-      selectFolder={selectFolder}
-      creationDestination={{
-        data: destinationQuery.data ?? null,
-        pending: destinationQuery.isPending,
-        error: destinationQuery.error,
-      }}
-      entityOffset={entityListOffset}
-      entityLimit={entityCollectionQuery.limit}
-      entityTotal={entityListTotal ?? 0}
-      collectionQuery={entityCollectionQuery}
-      onCollectionQueryChange={(query: StudioCollectionQuery): void => {
-        if (!collectionType) return;
-        router.history.push(
-          `${studioCollectionPath(studioBasePath, collectionType)}${collectionSearch({ ...query, offset: 0 })}`,
-        );
-        window.scrollTo({ top: 0, left: 0 });
-      }}
-      entityListLoading={entityListQuery.isPending}
-      schema={schema}
-      editor={editor}
-      fieldAssistState={fieldAssistState}
-      bodyMode={bodyMode}
-      mobilePane={mobilePane}
-      syncStatus={syncStatus}
-      baselineCommit={baselineCommit}
-      agentTargets={agentTargets}
-      ask={
-        askChatPath
-          ? {
-              chatApiPath: askChatPath,
-              draftStore: chatDraftStore,
-              open: askOpen,
-              setOpen: setAskOpen,
-              selection: askSelection,
-              setSelection: setAskSelection,
-            }
-          : undefined
-      }
-      deleting={deleting}
-      hasUnsavedChanges={hasUnsavedChanges}
-      navigationBlocked={navigationBlocker.status === "blocked"}
-      dispatchEditor={dispatchEditor}
-      setFieldAssistState={setFieldAssistState}
-      setBodyMode={setBodyMode}
-      setMobilePane={selectMobilePane}
-      backToList={backToList}
-      selectEntityType={selectEntityType}
-      selectWorkspace={selectWorkspace}
-      changeEntityPage={changeEntityPage}
-      openWorkspaceEntity={openWorkspaceEntity}
-      openWorkspaceLaunch={openWorkspaceLaunch}
-      performPublishingAction={performPublishingAction}
-      performDeclarativeAction={performDeclarativeAction}
-      onWorkspaceQueryChange={changeWorkspaceQuery}
-      startCreate={startCreate}
-      openEntity={(id, type) => openEntity(id, undefined, type)}
-      runFieldAssist={runFieldAssist}
-      applyFieldAssist={applyFieldAssist}
-      save={save}
-      remove={remove}
-      onNavigationReset={() => navigationBlocker.reset?.()}
-      draftRecovery={draftRecovery}
-      onNavigationProceed={() => {
-        // Discarding the edits to leave discards their kept copy too.
-        draftRecovery.forget();
-        navigationBlocker.proceed?.();
-      }}
-    />
+    <>
+      {palette}
+      <StudioAppView
+        groupings={{
+          items: groupings,
+          active: activeGrouping?.key ?? groupReturn?.grouping ?? null,
+          onSelect: (key) =>
+            router.history.push(studioGroupingPath(studioBasePath, key)),
+        }}
+        images={{
+          active: routeTarget.kind === "images",
+          onSelect: () => router.history.push(studioImagesPath(studioBasePath)),
+        }}
+        imagesView={
+          routeTarget.kind === "images" ? (
+            <StudioImagesView
+              onOpen={(nextType, id) =>
+                router.history.push(
+                  studioEntityPath(studioBasePath, nextType, id),
+                )
+              }
+            />
+          ) : null
+        }
+        homeView={
+          activeWorkspaceId === STUDIO_OVERVIEW_WORKSPACE_ID ? (
+            <StudioHomeView
+              chatApiPath={chatWorkspace?.chatApiPath}
+              onNavigate={(href) => router.history.push(href)}
+              onAsk={(text) => {
+                // The question waits in a new conversation's composer.
+                chatDraftStore.update(
+                  studioChatDraftKey(chatWorkspace?.chatApiPath, null),
+                  { text },
+                );
+                router.history.push(STUDIO_CHAT_ROUTE_PATH);
+              }}
+            />
+          ) : null
+        }
+        groupReturnLabel={groupReturn?.label}
+        groupingSuggestions={groupingSuggestions}
+        groupingView={
+          activeGrouping ? (
+            <StudioGroupingView
+              basePath={studioBasePath}
+              grouping={activeGrouping}
+              types={types}
+              query={groupQuery}
+              onChange={(next, options) => {
+                const href = `${studioGroupingPath(studioBasePath, activeGrouping.key)}${groupingSearch(next)}`;
+                const stepped =
+                  next.value !== groupQuery.value ||
+                  next.offset !== groupQuery.offset;
+                router.history[
+                  stepped && options?.replace !== true ? "push" : "replace"
+                ](href);
+              }}
+              onOpen={(nextType, id) => {
+                const pathname = studioEntityPath(studioBasePath, nextType, id);
+                pendingOpenState.current = { pathname, save: { kind: "idle" } };
+                router.history.push(pathname, {
+                  studioGroupingPath: `${studioGroupingPath(studioBasePath, activeGrouping.key)}${groupingSearch(groupQuery)}`,
+                });
+              }}
+            />
+          ) : null
+        }
+        activeWorkspaceId={activeWorkspaceId}
+        types={types}
+        workspaces={workspaces}
+        workspaceError={workspaceError}
+        readError={visibleLoadError}
+        onRetryRead={retryRead}
+        declarativeWorkspaceData={declarativeWorkspaceData}
+        workspaceQuery={workspaceRequestQuery}
+        entityType={entityType}
+        entities={entities}
+        refineNotice={refineOutcome.notice}
+        onRefineConfirmed={refineOutcome.confirmed}
+        folders={entityListQuery.data?.folders ?? []}
+        collectionTrail={entityListQuery.data?.trail}
+        collectionPath={
+          collectionType
+            ? studioCollectionPath(studioBasePath, collectionType)
+            : studioBasePath
+        }
+        selectFolder={selectFolder}
+        creationDestination={{
+          data: destinationQuery.data ?? null,
+          pending: destinationQuery.isPending,
+          error: destinationQuery.error,
+        }}
+        entityOffset={entityListOffset}
+        entityLimit={entityCollectionQuery.limit}
+        entityTotal={entityListTotal ?? 0}
+        collectionQuery={entityCollectionQuery}
+        onCollectionQueryChange={(query: StudioCollectionQuery): void => {
+          if (!collectionType) return;
+          router.history.push(
+            `${studioCollectionPath(studioBasePath, collectionType)}${collectionSearch({ ...query, offset: 0 })}`,
+          );
+          window.scrollTo({ top: 0, left: 0 });
+        }}
+        entityListLoading={entityListQuery.isPending}
+        schema={schema}
+        editor={editor}
+        fieldAssistState={fieldAssistState}
+        bodyMode={bodyMode}
+        mobilePane={mobilePane}
+        syncStatus={syncStatus}
+        baselineCommit={baselineCommit}
+        agentTargets={agentTargets}
+        ask={
+          askChatPath
+            ? {
+                chatApiPath: askChatPath,
+                draftStore: chatDraftStore,
+                open: askOpen,
+                setOpen: setAskOpen,
+                selection: askSelection,
+                setSelection: setAskSelection,
+              }
+            : undefined
+        }
+        deleting={deleting}
+        hasUnsavedChanges={hasUnsavedChanges}
+        navigationBlocked={navigationBlocker.status === "blocked"}
+        dispatchEditor={dispatchEditor}
+        setFieldAssistState={setFieldAssistState}
+        setBodyMode={setBodyMode}
+        setMobilePane={selectMobilePane}
+        backToList={backToList}
+        selectEntityType={selectEntityType}
+        selectWorkspace={selectWorkspace}
+        changeEntityPage={changeEntityPage}
+        openWorkspaceEntity={openWorkspaceEntity}
+        openWorkspaceLaunch={openWorkspaceLaunch}
+        performPublishingAction={performPublishingAction}
+        performDeclarativeAction={performDeclarativeAction}
+        onWorkspaceQueryChange={changeWorkspaceQuery}
+        startCreate={startCreate}
+        openEntity={(id, type) => openEntity(id, undefined, type)}
+        runFieldAssist={runFieldAssist}
+        applyFieldAssist={applyFieldAssist}
+        save={save}
+        remove={remove}
+        onNavigationReset={() => navigationBlocker.reset?.()}
+        draftRecovery={draftRecovery}
+        onNavigationProceed={() => {
+          // Discarding the edits to leave discards their kept copy too.
+          draftRecovery.forget();
+          navigationBlocker.proceed?.();
+        }}
+      />
+    </>
   );
 }

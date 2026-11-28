@@ -1,5 +1,66 @@
 # @brains/seminar
 
+## 0.2.0-alpha.806
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.806
+  - @brains/site-atlas@0.2.0-alpha.806
+  - @rizom/brain-ui@0.2.0-alpha.806
+  - @brains/content-formatters@0.2.0-alpha.806
+  - @brains/contracts@0.2.0-alpha.806
+  - @brains/utils@0.2.0-alpha.806
+
+## 0.2.0-alpha.805
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.805
+  - @rizom/brain-ui@0.2.0-alpha.805
+  - @brains/content-formatters@0.2.0-alpha.805
+  - @brains/contracts@0.2.0-alpha.805
+  - @brains/site-atlas@0.2.0-alpha.805
+  - @brains/utils@0.2.0-alpha.805
+
+## 0.2.0-alpha.804
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.804
+  - @rizom/brain-ui@0.2.0-alpha.804
+  - @brains/content-formatters@0.2.0-alpha.804
+  - @brains/contracts@0.2.0-alpha.804
+  - @brains/site-atlas@0.2.0-alpha.804
+  - @brains/utils@0.2.0-alpha.804
+
+## 0.2.0-alpha.803
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.803
+  - @rizom/brain-ui@0.2.0-alpha.803
+  - @brains/content-formatters@0.2.0-alpha.803
+  - @brains/contracts@0.2.0-alpha.803
+  - @brains/site-atlas@0.2.0-alpha.803
+  - @brains/utils@0.2.0-alpha.803
+
+## 0.2.0-alpha.802
+
+### Patch Changes
+
+- [#1088](https://github.com/rizom-ai/brains/pull/1088) [`49c9689`](https://github.com/rizom-ai/brains/commit/49c9689db3ade60a14c1a37e17a6ef2ce23768ec) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A brain that holds seminars shows its notes on its site. The note type has no pages of its own, so the seminar capability brings them: `/notes` lists every public note by title under its opening sentence, and `/notes/<id>` shows a note as written, its quotes and links kept. Brains without the seminar capability are unchanged.
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.802
+  - @rizom/brain-ui@0.2.0-alpha.802
+  - @brains/content-formatters@0.2.0-alpha.802
+  - @brains/contracts@0.2.0-alpha.802
+  - @brains/site-atlas@0.2.0-alpha.802
+  - @brains/utils@0.2.0-alpha.802
+
 ## 0.2.0-alpha.801
 
 ### Patch Changes

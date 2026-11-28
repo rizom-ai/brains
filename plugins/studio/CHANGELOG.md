@@ -1,5 +1,81 @@
 # @brains/studio
 
+## 0.2.0-alpha.806
+
+### Minor Changes
+
+- [#1093](https://github.com/rizom-ai/brains/pull/1093) [`53ff509`](https://github.com/rizom-ai/brains/commit/53ff5094be9e95fbfa5ff39d1e0b153dac72b736) Thanks [@yeehaa123](https://github.com/yeehaa123)! - ⌘K runs the actions a page offers, from any page.
+
+  - A workspace action can be offered in Studio's palette with `palette: true`, when it needs no input and asks for no confirmation. Studio lists it for whoever the workspace admits at the action's permission.
+  - Site's Build preview (trusted) and Content sync's Sync now (admin) are offered. Choosing one runs it and opens its page; if it fails, the palette stays open and says why.
+
+### Patch Changes
+
+- [#1094](https://github.com/rizom-ai/brains/pull/1094) [`5b50c1c`](https://github.com/rizom-ai/brains/commit/5b50c1cbfc2c686db2eb85db628a694f3c9d8247) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The page a palette action belongs to ("Site") reads at full contrast in both themes.
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.806
+  - @brains/operator-view-react@0.2.0-alpha.806
+  - @brains/app-ui-react@0.2.0-alpha.806
+  - @brains/console-theme@0.2.0-alpha.806
+  - @brains/contracts@0.2.0-alpha.806
+  - @brains/utils@0.2.0-alpha.806
+
+## 0.2.0-alpha.805
+
+### Minor Changes
+
+- [#1091](https://github.com/rizom-ai/brains/pull/1091) [`7bbb709`](https://github.com/rizom-ai/brains/commit/7bbb7098ebba7af06fd004e70001ee6754d70cd3) Thanks [@yeehaa123](https://github.com/yeehaa123)! - ⌘K lives in Studio and answers trusted members, not only admins.
+
+  - The palette opens with ⌘K or the chrome's search chip. It leads with what is open (Ask about this entry, ⌘J), then what can be done (start a new entry of a type you may create, ask your brain what you typed, switch light and dark), then the pages and entries you may open.
+  - Studio answers the pages and entries itself, for any trusted member or admin, reading entries at the caller's visibility. It no longer depends on the dashboard plugin or its admin-only jump route.
+  - The dashboard keeps its own palette.
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.805
+  - @brains/app-ui-react@0.2.0-alpha.805
+  - @brains/console-theme@0.2.0-alpha.805
+  - @brains/contracts@0.2.0-alpha.805
+  - @brains/operator-view-react@0.2.0-alpha.805
+  - @brains/utils@0.2.0-alpha.805
+
+## 0.2.0-alpha.804
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.804
+  - @brains/app-ui-react@0.2.0-alpha.804
+  - @brains/console-theme@0.2.0-alpha.804
+  - @brains/contracts@0.2.0-alpha.804
+  - @brains/operator-view-react@0.2.0-alpha.804
+  - @brains/utils@0.2.0-alpha.804
+
+## 0.2.0-alpha.803
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.803
+  - @brains/app-ui-react@0.2.0-alpha.803
+  - @brains/console-theme@0.2.0-alpha.803
+  - @brains/contracts@0.2.0-alpha.803
+  - @brains/operator-view-react@0.2.0-alpha.803
+  - @brains/utils@0.2.0-alpha.803
+
+## 0.2.0-alpha.802
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.802
+  - @brains/app-ui-react@0.2.0-alpha.802
+  - @brains/console-theme@0.2.0-alpha.802
+  - @brains/contracts@0.2.0-alpha.802
+  - @brains/operator-view-react@0.2.0-alpha.802
+  - @brains/utils@0.2.0-alpha.802
+
 ## 0.2.0-alpha.801
 
 ### Minor Changes

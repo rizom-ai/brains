@@ -1,6 +1,6 @@
 {
   "name": "@rizom/site-seminar",
-  "version": "0.2.0-alpha.1",
+  "version": "0.2.0-alpha.2",
   "description": "Site for a brain that holds seminars — every seminar as one page, read top to bottom",
   "type": "module",
   "exports": {

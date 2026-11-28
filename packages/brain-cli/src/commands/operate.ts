@@ -133,8 +133,19 @@ async function operateBuiltin(
       };
     }
 
-    const { mapArgsToInput } = await import("@brains/mcp-service");
-    const toolInput = mapArgsToInput(match.tool.inputSchema, args, flags);
+    const { cliToolFields, mapArgsToInput, resolveCliToolFlags } =
+      await import("@brains/mcp-service");
+    const resolved = resolveCliToolFlags(
+      commandName,
+      cliToolFields(match.tool.inputSchema),
+      flags,
+    );
+    if ("error" in resolved) return { success: false, message: resolved.error };
+    const toolInput = mapArgsToInput(
+      match.tool.inputSchema,
+      args,
+      resolved.flags,
+    );
 
     const result = await match.tool.handler(
       toolInput,

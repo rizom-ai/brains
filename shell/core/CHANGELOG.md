@@ -1,5 +1,95 @@
 # @brains/core
 
+## 0.2.0-alpha.806
+
+### Patch Changes
+
+- Updated dependencies [[`53ff509`](https://github.com/rizom-ai/brains/commit/53ff5094be9e95fbfa5ff39d1e0b153dac72b736)]:
+  - @brains/plugins@0.2.0-alpha.806
+  - @brains/image@0.2.0-alpha.806
+  - @brains/http-host@0.2.0-alpha.806
+  - @brains/atproto-contracts@0.2.0-alpha.806
+  - @brains/contracts@0.2.0-alpha.806
+  - @brains/operation-context@0.2.0-alpha.806
+  - @brains/site-composition@0.2.0-alpha.806
+  - @brains/utils@0.2.0-alpha.806
+  - @brains/recurring-checks@0.2.0-alpha.806
+  - @brains/runtime-state@0.2.0-alpha.806
+  - @brains/scheduler@0.2.0-alpha.806
+  - @brains/templates@0.2.0-alpha.806
+
+## 0.2.0-alpha.805
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.805
+  - @brains/contracts@0.2.0-alpha.805
+  - @brains/image@0.2.0-alpha.805
+  - @brains/operation-context@0.2.0-alpha.805
+  - @brains/site-composition@0.2.0-alpha.805
+  - @brains/utils@0.2.0-alpha.805
+  - @brains/http-host@0.2.0-alpha.805
+  - @brains/plugins@0.2.0-alpha.805
+  - @brains/recurring-checks@0.2.0-alpha.805
+  - @brains/runtime-state@0.2.0-alpha.805
+  - @brains/scheduler@0.2.0-alpha.805
+  - @brains/templates@0.2.0-alpha.805
+
+## 0.2.0-alpha.804
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.804
+  - @brains/contracts@0.2.0-alpha.804
+  - @brains/image@0.2.0-alpha.804
+  - @brains/operation-context@0.2.0-alpha.804
+  - @brains/site-composition@0.2.0-alpha.804
+  - @brains/utils@0.2.0-alpha.804
+  - @brains/http-host@0.2.0-alpha.804
+  - @brains/plugins@0.2.0-alpha.804
+  - @brains/recurring-checks@0.2.0-alpha.804
+  - @brains/runtime-state@0.2.0-alpha.804
+  - @brains/scheduler@0.2.0-alpha.804
+  - @brains/templates@0.2.0-alpha.804
+
+## 0.2.0-alpha.803
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.803
+  - @brains/contracts@0.2.0-alpha.803
+  - @brains/image@0.2.0-alpha.803
+  - @brains/operation-context@0.2.0-alpha.803
+  - @brains/site-composition@0.2.0-alpha.803
+  - @brains/utils@0.2.0-alpha.803
+  - @brains/http-host@0.2.0-alpha.803
+  - @brains/plugins@0.2.0-alpha.803
+  - @brains/recurring-checks@0.2.0-alpha.803
+  - @brains/runtime-state@0.2.0-alpha.803
+  - @brains/scheduler@0.2.0-alpha.803
+  - @brains/templates@0.2.0-alpha.803
+
+## 0.2.0-alpha.802
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.802
+  - @brains/contracts@0.2.0-alpha.802
+  - @brains/image@0.2.0-alpha.802
+  - @brains/operation-context@0.2.0-alpha.802
+  - @brains/site-composition@0.2.0-alpha.802
+  - @brains/utils@0.2.0-alpha.802
+  - @brains/http-host@0.2.0-alpha.802
+  - @brains/plugins@0.2.0-alpha.802
+  - @brains/recurring-checks@0.2.0-alpha.802
+  - @brains/runtime-state@0.2.0-alpha.802
+  - @brains/scheduler@0.2.0-alpha.802
+  - @brains/templates@0.2.0-alpha.802
+
 ## 0.2.0-alpha.801
 
 ### Patch Changes

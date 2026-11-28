@@ -1,6 +1,7 @@
 import {
   CONFLICT_ENTITY_TYPE,
   recordConflictContract,
+  resolveConflictContract,
 } from "@brains/contracts";
 import { runtimeStateMountBases } from "./dav-mounts";
 import { runtimeStateKeptStore } from "./dav-kept";
@@ -143,6 +144,17 @@ const service = defineServicePlugin({
           );
           return answer.status === "answered"
             ? answer.data.conflictId
+            : undefined;
+        },
+        // Unanswered when no conflict service runs here.
+        resolveConflict: async (request) => {
+          const answer = await runtime.messaging.request(
+            resolveConflictContract,
+            request,
+          );
+          if (answer.status === "answered") return { resolved: true };
+          return answer.status === "failed"
+            ? { message: answer.error.message }
             : undefined;
         },
         // A resolved conflict, applied or dismissed, is deleted. Asked at

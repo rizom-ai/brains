@@ -89,6 +89,10 @@ function apiRouteRequests(): RouteRequest[] {
       request: (cookie) => request("/studio/api/types", { cookie }),
     },
     {
+      routePath: "/studio/api/palette",
+      request: (cookie) => request("/studio/api/palette?q=", { cookie }),
+    },
+    {
       routePath: "/studio/api/workspace",
       request: (cookie) => request("/studio/api/workspace", { cookie }),
     },

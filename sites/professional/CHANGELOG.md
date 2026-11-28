@@ -1,5 +1,100 @@
 # @brains/site-professional
 
+## 0.2.0-alpha.806
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.806
+  - @brains/decks@0.2.0-alpha.806
+  - @brains/faq@0.2.0-alpha.806
+  - @brains/sdk@0.2.0-alpha.806
+  - @brains/knowledge-map@0.2.0-alpha.806
+  - @brains/profile@0.2.0-alpha.806
+  - @brains/site-info@0.2.0-alpha.806
+  - @brains/site-atlas@0.2.0-alpha.806
+  - @rizom/brain-ui@0.2.0-alpha.806
+  - @brains/content-formatters@0.2.0-alpha.806
+  - @brains/contracts@0.2.0-alpha.806
+  - @brains/site-composition@0.2.0-alpha.806
+  - @brains/utils@0.2.0-alpha.806
+
+## 0.2.0-alpha.805
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.805
+  - @brains/decks@0.2.0-alpha.805
+  - @brains/faq@0.2.0-alpha.805
+  - @brains/sdk@0.2.0-alpha.805
+  - @rizom/brain-ui@0.2.0-alpha.805
+  - @brains/knowledge-map@0.2.0-alpha.805
+  - @brains/profile@0.2.0-alpha.805
+  - @brains/site-info@0.2.0-alpha.805
+  - @brains/content-formatters@0.2.0-alpha.805
+  - @brains/contracts@0.2.0-alpha.805
+  - @brains/site-atlas@0.2.0-alpha.805
+  - @brains/site-composition@0.2.0-alpha.805
+  - @brains/utils@0.2.0-alpha.805
+
+## 0.2.0-alpha.804
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.804
+  - @brains/decks@0.2.0-alpha.804
+  - @brains/faq@0.2.0-alpha.804
+  - @brains/sdk@0.2.0-alpha.804
+  - @rizom/brain-ui@0.2.0-alpha.804
+  - @brains/knowledge-map@0.2.0-alpha.804
+  - @brains/profile@0.2.0-alpha.804
+  - @brains/site-info@0.2.0-alpha.804
+  - @brains/content-formatters@0.2.0-alpha.804
+  - @brains/contracts@0.2.0-alpha.804
+  - @brains/site-atlas@0.2.0-alpha.804
+  - @brains/site-composition@0.2.0-alpha.804
+  - @brains/utils@0.2.0-alpha.804
+
+## 0.2.0-alpha.803
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.803
+  - @brains/decks@0.2.0-alpha.803
+  - @brains/faq@0.2.0-alpha.803
+  - @brains/sdk@0.2.0-alpha.803
+  - @rizom/brain-ui@0.2.0-alpha.803
+  - @brains/knowledge-map@0.2.0-alpha.803
+  - @brains/profile@0.2.0-alpha.803
+  - @brains/site-info@0.2.0-alpha.803
+  - @brains/content-formatters@0.2.0-alpha.803
+  - @brains/contracts@0.2.0-alpha.803
+  - @brains/site-atlas@0.2.0-alpha.803
+  - @brains/site-composition@0.2.0-alpha.803
+  - @brains/utils@0.2.0-alpha.803
+
+## 0.2.0-alpha.802
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.802
+  - @brains/decks@0.2.0-alpha.802
+  - @brains/faq@0.2.0-alpha.802
+  - @brains/sdk@0.2.0-alpha.802
+  - @rizom/brain-ui@0.2.0-alpha.802
+  - @brains/knowledge-map@0.2.0-alpha.802
+  - @brains/profile@0.2.0-alpha.802
+  - @brains/site-info@0.2.0-alpha.802
+  - @brains/content-formatters@0.2.0-alpha.802
+  - @brains/contracts@0.2.0-alpha.802
+  - @brains/site-atlas@0.2.0-alpha.802
+  - @brains/site-composition@0.2.0-alpha.802
+  - @brains/utils@0.2.0-alpha.802
+
 ## 0.2.0-alpha.801
 
 ### Patch Changes

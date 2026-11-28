@@ -1,5 +1,77 @@
 # @brains/site-builder-plugin
 
+## 0.2.0-alpha.806
+
+### Minor Changes
+
+- [#1093](https://github.com/rizom-ai/brains/pull/1093) [`53ff509`](https://github.com/rizom-ai/brains/commit/53ff5094be9e95fbfa5ff39d1e0b153dac72b736) Thanks [@yeehaa123](https://github.com/yeehaa123)! - ⌘K runs the actions a page offers, from any page.
+
+  - A workspace action can be offered in Studio's palette with `palette: true`, when it needs no input and asks for no confirmation. Studio lists it for whoever the workspace admits at the action's permission.
+  - Site's Build preview (trusted) and Content sync's Sync now (admin) are offered. Choosing one runs it and opens its page; if it fails, the palette stays open and says why.
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.806
+  - @brains/image@0.2.0-alpha.806
+  - @rizom/brain-ui@0.2.0-alpha.806
+  - @brains/contracts@0.2.0-alpha.806
+  - @brains/site-composition@0.2.0-alpha.806
+  - @brains/site-engine@0.2.0-alpha.806
+  - @brains/utils@0.2.0-alpha.806
+
+## 0.2.0-alpha.805
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.805
+  - @rizom/brain-ui@0.2.0-alpha.805
+  - @brains/contracts@0.2.0-alpha.805
+  - @brains/image@0.2.0-alpha.805
+  - @brains/site-composition@0.2.0-alpha.805
+  - @brains/site-engine@0.2.0-alpha.805
+  - @brains/utils@0.2.0-alpha.805
+
+## 0.2.0-alpha.804
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.804
+  - @rizom/brain-ui@0.2.0-alpha.804
+  - @brains/contracts@0.2.0-alpha.804
+  - @brains/image@0.2.0-alpha.804
+  - @brains/site-composition@0.2.0-alpha.804
+  - @brains/site-engine@0.2.0-alpha.804
+  - @brains/utils@0.2.0-alpha.804
+
+## 0.2.0-alpha.803
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.803
+  - @rizom/brain-ui@0.2.0-alpha.803
+  - @brains/contracts@0.2.0-alpha.803
+  - @brains/image@0.2.0-alpha.803
+  - @brains/site-composition@0.2.0-alpha.803
+  - @brains/site-engine@0.2.0-alpha.803
+  - @brains/utils@0.2.0-alpha.803
+
+## 0.2.0-alpha.802
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.802
+  - @rizom/brain-ui@0.2.0-alpha.802
+  - @brains/contracts@0.2.0-alpha.802
+  - @brains/image@0.2.0-alpha.802
+  - @brains/site-composition@0.2.0-alpha.802
+  - @brains/site-engine@0.2.0-alpha.802
+  - @brains/utils@0.2.0-alpha.802
+
 ## 0.2.0-alpha.801
 
 ### Patch Changes

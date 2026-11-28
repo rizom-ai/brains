@@ -13,6 +13,7 @@ export const settingsSchema: SettingsSchema = z.object({
   /** The brain's address, as the person typed it. */
   address: z.string().default(""),
   username: z.string().default(""),
+  /** The app password. Kept in Obsidian's secret store, never in the data file. */
   password: z.string().default(""),
   /** Upload a note a few seconds after it was saved. */
   syncOnSave: z.boolean().default(true),
@@ -26,6 +27,57 @@ export interface PluginData {
   settings: RizomBrainSettings;
   /** Each brain's sync state, by its drive address. */
   states: Record<string, SyncState>;
+}
+
+/** What the plugin's data file holds: everything but the app password. */
+export interface StoredPluginData {
+  settings: Omit<RizomBrainSettings, "password">;
+  states: Record<string, SyncState>;
+}
+
+/** The name the app password has in Obsidian's secret store. */
+export const PASSWORD_SECRET = "rizom-brain-app-password";
+
+/** Obsidian's secret store (`app.secretStorage`), as far as it is used. */
+export interface SecretStore {
+  getSecret(id: string): string | null;
+  setSecret(id: string, secret: string): void;
+}
+
+/** Put the app password in the secret store, when it is not there already. */
+export function keepPassword(secrets: SecretStore, password: string): void {
+  if ((secrets.getSecret(PASSWORD_SECRET) ?? "") !== password) {
+    secrets.setSecret(PASSWORD_SECRET, password);
+  }
+}
+
+/** Whether a data file still holds a password, as versions before 0.1.4 wrote. */
+export function storesPassword(value: unknown): boolean {
+  const stored = z
+    .object({ settings: z.object({ password: z.string().min(1) }) })
+    .safeParse(value);
+  return stored.success;
+}
+
+/** What goes into the data file: the app password is left out. */
+export function storedPluginData(data: PluginData): StoredPluginData {
+  const { password: _kept, ...settings } = data.settings;
+  return { settings, states: data.states };
+}
+
+/**
+ * The plugin's data: the data file, with the app password from the secret
+ * store. A password an older version left in the data file is moved there.
+ */
+export function loadPluginData(
+  value: unknown,
+  secrets: SecretStore,
+): PluginData {
+  const data = parsePluginData(value);
+  const kept = secrets.getSecret(PASSWORD_SECRET) ?? "";
+  const password = kept !== "" ? kept : data.settings.password;
+  keepPassword(secrets, password);
+  return { ...data, settings: { ...data.settings, password } };
 }
 
 /** A brain's drive address, however it was typed; "" when it is not one. */

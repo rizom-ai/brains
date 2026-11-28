@@ -1,5 +1,8 @@
 import { memoryKeptStore } from "../src/dav-kept";
-import type { RecordConflictRequest } from "@brains/contracts";
+import type {
+  RecordConflictRequest,
+  ResolveConflictRequest,
+} from "@brains/contracts";
 import { memoryMountBases } from "../src/dav-mounts";
 import type { AppendAuthAuditEventInput } from "@brains/contracts";
 import {
@@ -62,11 +65,16 @@ export interface FakeBrain {
     | "kept"
     | "recordConflict"
     | "conflictPending"
+    | "resolveConflict"
     | "shapes"
     | "changes"
   >;
   /** Losing saves the drive handed over to be kept. */
   conflicts: RecordConflictRequest[];
+  /** What the drive asked the conflict service to settle. */
+  settled: ResolveConflictRequest[];
+  /** Why the conflict service refuses to settle, when it does. */
+  settleRefusal: string | undefined;
   /** Settle every conflict kept so far, as the Inbox does. */
   resolveConflicts(): void;
   /** Whether anything holds a conflict; a brain without it refuses. */
@@ -136,6 +144,8 @@ export function fakeBrain(
     audit: [],
     beforeNextUpdate: undefined,
     conflicts: [],
+    settled: [],
+    settleRefusal: undefined,
     conflictsAvailable: true,
     resolveConflicts: (): void => {
       brain.conflicts.forEach((_, index) =>
@@ -154,6 +164,15 @@ export function fakeBrain(
       },
       conflictPending: async (conflictId): Promise<boolean> =>
         !resolved.has(conflictId),
+      resolveConflict: async (request) => {
+        if (!brain.conflictsAvailable) return undefined;
+        brain.settled.push(request);
+        if (brain.settleRefusal !== undefined) {
+          return { message: brain.settleRefusal };
+        }
+        resolved.add(request.conflictId);
+        return { resolved: true };
+      },
       // Every type the brain registers, each with a title.
       shapes: {
         types: (): string[] =>

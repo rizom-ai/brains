@@ -1,13 +1,14 @@
 {
   "name": "@brains/obsidian-plugin",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.801",
+  "version": "0.2.0-alpha.806",
   "dependencies": {
     "@brains/utils": "workspace:*"
   },
   "devDependencies": {
     "@brains/conflict": "workspace:*",
     "@brains/contracts": "workspace:*",
+    "@brains/document-plugin": "workspace:*",
     "@brains/entity-service": "workspace:*",
     "@brains/image": "workspace:*",
     "@brains/image-plugin": "workspace:*",

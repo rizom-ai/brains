@@ -1,7 +1,7 @@
 {
   "name": "@brains/matrix-server",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.801",
+  "version": "0.2.0-alpha.806",
   "description": "A Matrix homeserver at the brain's domain: forwarding, discovery, the bot account and sign-in with the brain",
   "dependencies": {
     "@brains/contracts": "workspace:*",
