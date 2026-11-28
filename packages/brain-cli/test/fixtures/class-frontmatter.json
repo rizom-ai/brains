@@ -1927,7 +1927,7 @@
           }
         }
       },
-      "required": ["conversationId", "channelId", "interfaceType", "status"]
+      "required": ["status"]
     },
     "action-item": {
       "type": "object",

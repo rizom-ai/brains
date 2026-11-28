@@ -96,6 +96,7 @@ function createCaller(
     actor: executionContext.actor,
     ...definedFields({
       userId,
+      conversationId: executionContext.conversationId,
       channelId: executionContext.channelId,
       channelName: executionContext.channelName,
     }),

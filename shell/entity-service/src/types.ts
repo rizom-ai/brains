@@ -397,6 +397,8 @@ export interface CreateExecutionContext {
   actor: ActorRef;
   /** The caller's permission level; absent reads as public, failing closed. */
   userPermissionLevel?: "admin" | "trusted" | "public";
+  /** The conversation the create was asked for in, when it was asked in one. */
+  conversationId?: string;
   channelId?: string;
   channelName?: string;
 }

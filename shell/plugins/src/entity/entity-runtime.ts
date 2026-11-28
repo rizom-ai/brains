@@ -428,6 +428,8 @@ export interface EntityCreateCaller {
   readonly actor: ActorRef;
   /** The signed-in user, when the actor is one. */
   readonly userId?: string | undefined;
+  /** The conversation the create was asked for in, when it was asked in one. */
+  readonly conversationId?: string | undefined;
   readonly channelId?: string | undefined;
   readonly channelName?: string | undefined;
 }

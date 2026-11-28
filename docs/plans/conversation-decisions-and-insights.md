@@ -26,8 +26,8 @@ In a chat space the brain is configured for (`spaces`):
 - A decision or insight belongs to people once a person has edited it: the pickup never changes it again. One the pickup made and nobody touched may still be superseded by later messages ("we're keeping the field after all", "turns out it was the mail server").
 - A superseded decision or insight stays, marked `superseded`, and links what replaced it when something did.
 - Undo deletes it and is remembered: the pickup never recreates it. One a person has edited is kept, and the notice says so.
-- Both carry the brain's memory visibility, never `public`.
-- A decision or insight recorded by hand ("note that we decided to drop the company field") is stored as a valid entity. Said in a chat, it takes that conversation as its source; made in Studio, it has none.
+- What the pickup makes carries the brain's memory visibility. Neither kind is ever `public`.
+- A decision or insight recorded by hand ("note that we decided to drop the company field") is stored as a valid entity at the visibility the request states, `shared` or `restricted`; a request that states none, or `public`, is refused. Said in a chat, it takes that conversation as its source; made outside one, it has none. It names no decider: whoever records a decision need not have made it.
 - The brain draws on decisions and insights from the same space when it answers there, as it does today for stored memory.
 
 ## Current state
@@ -48,12 +48,12 @@ The fields a memory records about its source are defined once and used by both t
 
 - `conversationId`, `channelId`, `channelName`, `interfaceType`: all optional, present together when the memory came from a conversation;
 - `timeRange`: optional, the span of the messages behind it;
-- `status`: `active` or `superseded`, default `active`;
+- `status`: `active` or `superseded`;
 - `supersededBy`: optional, the id of the decision or insight that replaced it.
 
 A decision adds `decidedBy` and `mentionedBy`, as today. An insight adds `statedBy` and `mentionedBy`. The body of each is a heading and its text.
 
-`decision` keeps its field names, so stored decisions read unchanged; the conversation fields and `timeRange` become optional and `status` gains its default. `insight` is a new entity type in `entities/conversation-memory`, defined with the same `memoryCodec` and registered as projection source material, as `decision` is.
+`decision` keeps its field names, so stored decisions read unchanged; the conversation fields and `timeRange` become optional. `insight` is a new entity type in `entities/conversation-memory`, defined with the same `memoryCodec` and registered as projection source material, as `decision` is.
 
 ### One pickup, three kinds
 
@@ -86,7 +86,8 @@ Every item cites a message from the new range; a `supersede` names an item the m
 
 - An id derives from the conversation and source message: `flatId(conversation id, "decision", position, n)` and the same with `"insight"`, so a rerun writes the same entity.
 - The pickup's own items are the conversation's active decisions and insights carrying those id prefixes whose content still matches what the pickup last wrote, the 30 most recent of each. The pickup records the hash of what it wrote per id in the bookmark, not in the entity: the file carries nothing a person does not read. If the bookmark is lost, no item counts as the pickup's own and none is rewritten.
-- A writer shared by the pickup and by hand-made records sets `status`, the source fields when a conversation is known, the people, and the brain's memory visibility. `system_create` for either type goes through it and fills the source from the calling conversation.
+- A hand-made record arrives through `system_create` and the type's create route, which sets `status` and takes the source from the caller. A create route cannot set visibility and an unstated one is `public`, so the route refuses both. The caller of a create route carries its conversation id for this.
+- The pickup writes through the entity service with the brain's memory visibility, as it does cards.
 
 ### Notice and Undo
 
@@ -94,7 +95,7 @@ A notice item gains a kind (`action-item` when a stored notice has none). Lines,
 
 ### Readers
 
-The retriever and the agent-context provider add `insight` to the types they return. A memory without conversation fields has no space and is found by ordinary search, not by same-space retrieval. The recent-memory widget lists recent decisions and insights where it listed summaries. The decisions widget is unchanged.
+The retriever and the agent-context provider add `insight` to the types they return. A memory without conversation fields has no space: the retriever leaves it out, as it does an action item tracked from the Inbox, and ordinary search finds it. The recent-memory widget lists recent decisions and insights where it listed summaries. The decisions widget is unchanged.
 
 ### Summaries
 
@@ -118,7 +119,7 @@ Each phase is one capability with its tests and evals. Decisions land as one pul
 
 Decisions:
 
-1. **Schema and hand-made records.** The shared source fields; `decision` with optional conversation fields; the shared writer behind `system_create`. Tests pin a decision recorded in a chat (source, people, visibility, `status`) and one made without a conversation; stored decisions read unchanged.
+1. **Schema and hand-made records.** `decision` with optional conversation fields and its create route. Tests pin a decision recorded in a chat (source, visibility, `status`), one made without a conversation and the refused visibilities; stored decisions read unchanged. The source fields are defined once when `insight` becomes their second user.
 2. **Pickup.** The shared `channel-pickup/` core with the action-item applier moved onto it, behavior unchanged, and the decision applier with `add`. Tests for rerun idempotence, start at the existing bookmark, and rejected ids; evals below.
 3. **Notice and Undo.** Kinds in the notice; Undo for a decision, kept when a person edited it.
 4. **Supersede.** Own-item tracking in the bookmark, `supersede` in the extractor, `supersededBy`. Tests that an edited decision is never changed; evals for a reversal.

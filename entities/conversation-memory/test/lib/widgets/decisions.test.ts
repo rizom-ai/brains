@@ -76,6 +76,31 @@ describe("buildDecisionsWidgetData", () => {
     expect(first?.meta).toEqual(["#design", "May 9"]);
   });
 
+  it("lists a decision recorded by hand by the day it was recorded", async () => {
+    const byHand = createTestEntity<DecisionEntity>("decision", {
+      id: "by-hand",
+      content: "# Recorded by hand\n\nWe chose option B.\n",
+      created: "2026-05-12T09:00:00.000Z",
+      metadata: { status: "active" },
+    });
+    const items: DecisionEntity[] = [
+      createDecision({
+        id: "picked-up",
+        title: "Picked up",
+        start: "2026-05-09T00:00:00.000Z",
+        end: "2026-05-09T01:00:00.000Z",
+      }),
+      byHand,
+    ];
+    const context = createMockEntityPluginContext({
+      listEntitiesImpl: async () => items,
+    });
+
+    const data = await buildDecisionsWidgetData(context, "restricted");
+    expect(data.items.map((item) => item.id)).toEqual(["by-hand", "picked-up"]);
+    expect(data.items[0]?.meta).toEqual(["May 12"]);
+  });
+
   it("keeps the listed order for decisions that end at the same moment", async () => {
     const items = ["decision-c", "decision-a", "decision-b"].map((id) =>
       createDecision({ id, title: id }),

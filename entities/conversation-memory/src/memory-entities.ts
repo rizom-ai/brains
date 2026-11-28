@@ -21,6 +21,7 @@ import {
   decisionMetadataSchema,
 } from "./schemas/conversation-memory";
 import { DECISION_ENTITY_TYPE } from "./lib/constants";
+import { decisionCreateRoutes } from "./lib/decision-create";
 import { memoryCodec } from "./lib/memory-codec";
 
 /** An entry is named by its body heading; its id is a reference. */
@@ -29,9 +30,12 @@ function bodyHeading(content: string): string | undefined {
   return heading !== undefined && heading.length > 0 ? heading : undefined;
 }
 
+const DECISION_INSTRUCTIONS =
+  "Record a decision when someone asks to note what was decided: its title is the decision in a few words, its content what was decided. State its visibility as shared for a team's decision or restricted for a private one; a decision is never public.";
+
 /**
- * A decision recorded from a conversation: a heading and its text, its
- * frontmatter its metadata. A write keeps the header in the order of the
+ * A decision picked up from a conversation or recorded by hand: a heading
+ * and its text, its frontmatter its metadata. A write keeps the header in the order of the
  * document it replaces, as the decision adapter wrote documents as given.
  * Its next form states the time range as startedAt and endedAt and its
  * people as actor refs, each person whole in the body's People section;
@@ -42,7 +46,9 @@ export const decision: EntityDefinition<
   typeof decisionMetadataSchema
 > = defineEntity({
   type: DECISION_ENTITY_TYPE,
-  purpose: "A decision recorded from a conversation.",
+  purpose: "A decision a conversation settled, or one recorded by hand.",
+  instructions: DECISION_INSTRUCTIONS,
+  create: decisionCreateRoutes,
   metadata: decisionMetadataSchema,
   markdown: memoryCodec({
     schema: decisionMetadataSchema,
