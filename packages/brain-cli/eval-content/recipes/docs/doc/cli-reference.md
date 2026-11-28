@@ -327,7 +327,7 @@ brain status
 
 These are resolved from the running brain's tool registry. Available commands depend on selected bundles, additions/removals, and enabled plugins.
 
-Arguments fill the tool's input fields in order. A brain-specific command also takes:
+Arguments fill the tool's input fields in order, and a flag sets a field by name: `brain build --environment preview` is `brain build preview`. A switch field takes the flag alone, such as `brain sync --full`. A flag that names none of the tool's fields is refused once the brain has found the tool, with the nearest field suggested. A brain-specific command also takes:
 
 | Flag        | Description                                                                                                                                                                                            |
 | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |

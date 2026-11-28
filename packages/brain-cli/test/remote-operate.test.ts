@@ -149,6 +149,35 @@ describe("operateRemote", () => {
     });
   });
 
+  it("sets a remote input field from the flag that names it", async () => {
+    const result = await operateRemote(
+      "https://rover.rizom.ai/mcp",
+      "build-site",
+      [],
+      { environment: "preview" },
+      undefined,
+      remote.factory,
+    );
+    expect(result.success).toBe(true);
+    expect(remote.callTool).toHaveBeenCalledWith("site-builder_build-site", {
+      environment: "preview",
+    });
+  });
+
+  it("rejects a flag that names no remote input field", async () => {
+    const result = await operateRemote(
+      "https://rover.rizom.ai/mcp",
+      "build-site",
+      [],
+      { enviroment: "preview" },
+      undefined,
+      remote.factory,
+    );
+    expect(result.success).toBe(false);
+    expect(result.message).toContain("Did you mean --environment?");
+    expect(remote.callTool).not.toHaveBeenCalled();
+  });
+
   it("rejects --preview for a tool without an environment", async () => {
     const result = await operateRemote(
       "https://rover.rizom.ai/mcp",

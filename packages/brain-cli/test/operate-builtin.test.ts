@@ -123,6 +123,33 @@ describe("operate with the builtin canonical definition", () => {
     expect(called).toBe(false);
   });
 
+  it("sets an input field from the flag that names it", async () => {
+    const build = bootWithBuildTool();
+
+    const result = await runCommand(
+      parseArgs(["build", "--environment", "preview"]),
+      testDir,
+    );
+
+    expect(result.success).toBe(true);
+    expect(build.environment()).toBe("preview");
+  });
+
+  it("rejects a flag that names no input field, suggesting the closest", async () => {
+    const build = bootWithBuildTool();
+
+    const result = await runCommand(
+      parseArgs(["build", "--enviroment", "preview"]),
+      testDir,
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain(
+      "Unknown flag --enviroment for `brain build`. Did you mean --environment?",
+    );
+    expect(build.environment()).toBeUndefined();
+  });
+
   it("leaves the environment to the tool without --preview", async () => {
     const build = bootWithBuildTool();
 

@@ -52,11 +52,48 @@ describe("unknown flags", () => {
     expect(usageError(["start", "-x"])).toContain("-x for `brain start`");
   });
 
-  it("rejects flags a brain command cannot receive", () => {
-    const message = usageError(["sync", "--full"]);
+  // Which input fields a brain command has is known once its tool is found;
+  // the operate tests cover the check there.
+  it("hands a brain command's other flags on as input fields", () => {
+    expect(
+      parseArgs([
+        "build-site",
+        "--environment",
+        "preview",
+        "--remote",
+        "http://127.0.0.1:8085",
+        "--token",
+        "t",
+      ]),
+    ).toEqual({
+      command: "build-site",
+      args: [],
+      flags: {
+        environment: "preview",
+        remote: "http://127.0.0.1:8085",
+        token: "t",
+      },
+    });
+    expect(parseArgs(["build", "--environment=preview"]).flags).toEqual({
+      environment: "preview",
+    });
+    expect(parseArgs(["sync", "--full"]).flags).toEqual({ full: true });
+    expect(parseArgs(["search", "--limit", "5", "topics"])).toMatchObject({
+      args: ["topics"],
+      flags: { limit: "5" },
+    });
+  });
 
-    expect(message).toContain("--full");
-    expect(message).toContain("`brain sync`");
+  it("finds the brain command after an input-field flag", () => {
+    expect(parseArgs(["--environment", "preview", "build"])).toMatchObject({
+      command: "build",
+      args: [],
+      flags: { environment: "preview" },
+    });
+  });
+
+  it("rejects an unknown short flag on a brain command", () => {
+    expect(usageError(["sync", "-f"])).toContain("-f for `brain sync`");
   });
 
   it("reaches the entrypoint as a failed result, not a crash", () => {
@@ -70,12 +107,15 @@ describe("unknown flags", () => {
     });
   });
 
-  // No brain command takes an output directory: the site builder writes
-  // where its plugin config says.
-  it("rejects the removed --outputDir", () => {
-    expect(usageError(["build", "--outputDir", "dist"])).toContain(
-      "Unknown flag --outputDir for `brain build`.",
+  // It is no CLI flag any more: a built-in refuses it, and for a brain command
+  // it names an input field, which the build tool does not have.
+  it("treats the removed --outputDir as any other flag", () => {
+    expect(usageError(["start", "--outputDir", "dist"])).toContain(
+      "Unknown flag --outputDir for `brain start`.",
     );
+    expect(parseArgs(["build", "--outputDir", "dist"]).flags).toEqual({
+      outputDir: "dist",
+    });
   });
 
   it("shows help even next to an unknown flag", () => {

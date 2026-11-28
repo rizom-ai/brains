@@ -10,6 +10,7 @@ import {
   renderCommandList,
   renderFlagList,
   resolveSubcommand,
+  type CliFlags,
   type CommandDefinition,
   type FlagDefinition,
   type FlagDefinitions,
@@ -600,6 +601,11 @@ const internalFlags: Readonly<Record<string, readonly string[]>> = {
 export interface CommandFlagScope {
   /** The command as registered, e.g. `cert:bootstrap` for `cert bootstrap`. */
   name: string;
+  /**
+   * A built-in command. A brain command also takes a flag for each input
+   * field of its tool, checked once the tool is found.
+   */
+  builtIn: boolean;
   /** The global flags and the command's own, as its help shows them. */
   flags: readonly string[];
   /** Flags accepted but never shown or suggested. */
@@ -608,8 +614,8 @@ export interface CommandFlagScope {
 
 /**
  * Which flags `brain <command> [args]` accepts, derived from the command
- * definitions. A brain command (not built in) accepts the global flags and
- * `brainCommandFlags`.
+ * definitions. A brain command (not built in) accepts the global flags,
+ * `brainCommandFlags`, and its tool's input fields.
  * Undefined for a command that passes its flags on unchecked.
  */
 export function commandFlagScope(
@@ -621,6 +627,7 @@ export function commandFlagScope(
   const builtIn = registry.get(name);
   return {
     name,
+    builtIn: builtIn !== undefined,
     flags: [
       ...Object.keys(globalFlags),
       ...Object.keys(builtIn ? (builtIn.flags ?? {}) : brainCommandFlags),
@@ -660,11 +667,27 @@ export async function runCommand(
   if (remote) {
     const url = resolveRemoteUrl(remote);
     const token = resolveToken(getStringFlag(parsed.flags, "token"));
-    return operateRemote(url, parsed.command, parsed.args, parsed.flags, token);
+    return operateRemote(
+      url,
+      parsed.command,
+      parsed.args,
+      toolFlags(parsed.flags),
+      token,
+    );
   }
 
   // Local mode — boot brain, invoke tool
-  return operate(dir, parsed.command, parsed.args, parsed.flags);
+  return operate(dir, parsed.command, parsed.args, toolFlags(parsed.flags));
+}
+
+/**
+ * The flags a brain command hands its tool: all but the CLI's own global
+ * ones, which steer the CLI and name no input field.
+ */
+function toolFlags(flags: CliFlags): CliFlags {
+  return Object.fromEntries(
+    Object.entries(flags).filter(([name]) => !(name in globalFlags)),
+  );
 }
 
 function providerKeyFlag(provider: KeyProviderId): string {

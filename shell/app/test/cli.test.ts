@@ -321,6 +321,61 @@ describe("handleCLI", () => {
     expect(handler).not.toHaveBeenCalled();
   });
 
+  /** Run `--cli-command build` against a build tool with an environment. */
+  async function runBuild(cliFlags: Record<string, unknown>): Promise<{
+    code: number | null;
+    errored: string;
+    input: unknown;
+  }> {
+    const handler = mock(
+      async (_input: unknown, _context: unknown): Promise<ToolResponse> => ({
+        success: true,
+        message: "built",
+      }),
+    );
+    const app = App.create(
+      testConfig,
+      createMockShell([
+        {
+          name: "site-builder_build-site",
+          handler,
+          cli: { name: "build" },
+          inputSchema: {
+            environment: z.enum(["preview", "production"]).optional(),
+          },
+        },
+      ]),
+    );
+    spyOn(app, "initialize").mockResolvedValue(undefined);
+    const io = fakeIo(
+      ["--cli-command", "build", "--cli-flags", JSON.stringify(cliFlags)],
+      { create: mock(() => app) },
+    );
+    const code = await exitCodeOf(handleCLI(testConfig, undefined, io));
+    return {
+      code,
+      errored: io.errored.join("\n"),
+      input: handler.mock.calls[0]?.[0],
+    };
+  }
+
+  it("sets a --cli-command input field from the flag that names it", async () => {
+    const result = await runBuild({ environment: "preview" });
+
+    expect(result.code).toBe(0);
+    expect(result.input).toEqual({ environment: "preview" });
+  });
+
+  it("rejects a --cli-command flag that names no input field", async () => {
+    const result = await runBuild({ enviroment: "preview" });
+
+    expect(result.code).toBe(1);
+    expect(result.errored).toContain(
+      "Unknown flag --enviroment for `brain build`. Did you mean --environment?",
+    );
+    expect(result.input).toBeUndefined();
+  });
+
   it("rejects --tool-input that is not JSON with exit 1", async () => {
     const create = mock(() => {
       throw new Error("must not boot when the input is unusable");

@@ -133,11 +133,11 @@ async function operateBuiltin(
       };
     }
 
-    const { mapArgsToInput, resolvePreviewFlag } =
+    const { cliToolFields, mapArgsToInput, resolveCliToolFlags } =
       await import("@brains/mcp-service");
-    const resolved = resolvePreviewFlag(
+    const resolved = resolveCliToolFlags(
       commandName,
-      Object.keys(match.tool.inputSchema),
+      cliToolFields(match.tool.inputSchema),
       flags,
     );
     if ("error" in resolved) return { success: false, message: resolved.error };
