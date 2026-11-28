@@ -13,6 +13,7 @@ export {
   type HttpFetch,
   type HttpRequest,
   type HttpResponse,
+  type RelatedEntry,
 } from "./drive-client";
 export {
   ChangeFollower,
@@ -30,6 +31,8 @@ export {
   type FirstSyncPlan,
   type Notice,
   type OpenConflict,
+  type RelatedAnswer,
+  type RelatedNote,
   type SyncReport,
   type SyncStatus,
 } from "./engine";

@@ -77,6 +77,13 @@ export interface FakeBrain {
   settleRefusal: string | undefined;
   /** Settle every conflict kept so far, as the Inbox does. */
   resolveConflicts(): void;
+  /** What the store answers as nearest to any entity, and what it was asked. */
+  nearest: {
+    answer: Array<{ entityType: string; entityId: string; distance: number }>;
+    asked: Array<Parameters<DavRoutesOptions["reader"]["nearestToEntity"]>[0]>;
+    /** A brain that keeps no index of meaning refuses to tell. */
+    unindexed?: boolean;
+  };
   /** Whether anything holds a conflict; a brain without it refuses. */
   conflictsAvailable: boolean;
   entities: BaseEntity[];
@@ -126,6 +133,7 @@ export function fakeBrain(
   types?: string[],
   assets: Record<string, Uint8Array> = {},
 ): FakeBrain {
+  const nearest: FakeBrain["nearest"] = { answer: [], asked: [] };
   const staged = new Map<string, Uint8Array>();
   const resolved = new Set<string>();
   /** Staged bytes are published with the entity that references them. */
@@ -143,6 +151,7 @@ export function fakeBrain(
     discarded: [],
     audit: [],
     beforeNextUpdate: undefined,
+    nearest,
     conflicts: [],
     settled: [],
     settleRefusal: undefined,
@@ -183,7 +192,12 @@ export function fakeBrain(
         fileExtension: (): ".md" => ".md",
       },
       reader: {
-        ...fakeReader({ entities, assets, ...(types ? { types } : {}) }),
+        ...fakeReader({
+          entities,
+          assets,
+          nearest,
+          ...(types ? { types } : {}),
+        }),
         getEntityTypeConfig: (type) =>
           type === "post" || type === "sealed"
             ? { publish: { publishStatuses: ["published"] } }
