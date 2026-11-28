@@ -56,6 +56,27 @@ describe("linked mentions", () => {
   });
 });
 
+// A source another brain gave lives on that brain, not in this Studio.
+describe("sources from other brains", () => {
+  const peer = {
+    id: "post:commons",
+    title: "Data Commons Basics",
+    source: "post",
+    entityType: "post",
+    entityId: "commons",
+    url: "https://peer.test/posts/commons",
+    brain: { name: "Peer Brain", url: "https://peer.test" },
+  };
+
+  it("opens on that brain, and is never linked into this Studio", () => {
+    expect(sourceHref(peer, "/studio")).toBe("https://peer.test/posts/commons");
+    expect(sourceHref({ ...peer, url: undefined }, "/studio")).toBeUndefined();
+    expect(linkCitedTitles("See Data Commons Basics.", [peer], "/studio")).toBe(
+      "See Data Commons Basics.",
+    );
+  });
+});
+
 // A new conversation offers what this brain can do, not a blank page.
 describe("starters", () => {
   it("offers what the installed pages and types make possible", () => {

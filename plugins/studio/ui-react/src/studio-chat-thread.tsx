@@ -182,7 +182,7 @@ function MessageCard(props: {
               <li key={source.id}>
                 {href ? <SourceLink href={href}>{label}</SourceLink> : label}{" "}
                 <span className={chatClass("", chatLayout.sourceType)}>
-                  {source.entityType ?? source.source}
+                  {source.brain?.name ?? source.entityType ?? source.source}
                 </span>
               </li>
             );
