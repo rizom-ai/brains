@@ -24,7 +24,7 @@ function thread(overrides: Partial<RoutedThread> = {}): RoutedThread {
 function message(overrides: Partial<RoutedMessage> = {}): RoutedMessage {
   return {
     raw: {},
-    author: { isMe: false, isBot: false },
+    author: { userId: "user-1", isMe: false, isBot: false },
     ...overrides,
   };
 }
@@ -151,21 +151,24 @@ describe("shouldRouteChatMessage", () => {
     expect(
       shouldRouteChatMessage(
         thread(),
-        message({ author: { isMe: true, isBot: true } }),
+        message({ author: { userId: "user-1", isMe: true, isBot: true } }),
         config,
       ),
     ).toBe(false);
     expect(
       shouldRouteChatMessage(
         thread(),
-        message({ author: { isMe: false, isBot: true } }),
+        message({ author: { userId: "user-1", isMe: false, isBot: true } }),
         config,
       ),
     ).toBe(false);
     expect(
       shouldRouteChatMessage(
         thread(),
-        message({ author: { isMe: false, isBot: true }, isMention: true }),
+        message({
+          author: { userId: "user-1", isMe: false, isBot: true },
+          isMention: true,
+        }),
         config,
       ),
     ).toBe(true);
@@ -207,7 +210,7 @@ describe("getPermissionContext", () => {
     expect(
       getPermissionContext(
         thread(),
-        message({ author: { isMe: false, isBot: true } }),
+        message({ author: { userId: "user-1", isMe: false, isBot: true } }),
       ),
     ).toEqual({ channelId: "channel-1", isBot: true });
     expect(getPermissionContext(thread({ id: "plain-id" }), message())).toEqual(

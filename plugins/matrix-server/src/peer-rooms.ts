@@ -1,8 +1,6 @@
+import { BRAIN_BOT_LOCALPART } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import type { MatrixFetch } from "./bot-account";
-
-/** The localpart every brain's bot uses, so a peer's bot is `@_brain:<peer>`. */
-export const BRAIN_BOT_LOCALPART = "_brain";
 
 export interface PeerRoomsOptions {
   homeserverUrl: string;

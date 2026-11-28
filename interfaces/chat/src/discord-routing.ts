@@ -9,6 +9,7 @@
  */
 
 import type { PermissionLookupContext } from "@brains/sdk/internal/interface-runtime";
+import { isBrainBotUserId } from "@brains/contracts";
 import { isPlainRecord } from "@brains/utils/predicates";
 import type {
   DiscordChatAdapterConfig,
@@ -26,7 +27,7 @@ export interface RoutedThread {
 export interface RoutedMessage {
   raw: unknown;
   /** `isBot` mirrors the Chat SDK's `Author`, which allows a string. */
-  author: { isMe: boolean; isBot: boolean | string };
+  author: { userId: string; isMe: boolean; isBot: boolean | string };
   isMention?: boolean | undefined;
 }
 
@@ -121,12 +122,17 @@ export function isAllowedChannel(
 }
 
 /**
- * Whether the platform says the author is a bot. The Chat SDK's `isBot`
- * may be a string: the Matrix adapter reports `"unknown"` for everyone but
- * itself, which is a person as far as routing is concerned.
+ * Whether the author is a bot. The Chat SDK's `isBot` may be a string: the
+ * Matrix adapter reports `"unknown"` for everyone but itself, which is a
+ * person as far as routing is concerned, except a brain's bot, `@_brain` on
+ * any server. Two brains in a shared room then answer each other only when
+ * mentioned, so neither can keep the other talking.
  */
-export function isKnownBot(author: { isBot: boolean | string }): boolean {
-  return author.isBot === true;
+export function isKnownBot(author: {
+  userId: string;
+  isBot: boolean | string;
+}): boolean {
+  return author.isBot === true || isBrainBotUserId(author.userId);
 }
 
 export function shouldRouteChatMessage(

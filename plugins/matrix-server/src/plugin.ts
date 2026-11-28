@@ -9,6 +9,7 @@ import {
 } from "@brains/sdk/internal/service-runtime";
 import {
   a2aPeerTrustChangedChannel,
+  BRAIN_BOT_LOCALPART,
   matrixBotCredentialsContract,
 } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
@@ -22,7 +23,7 @@ import {
   readHomeserverSecrets,
   type HomeserverSecrets,
 } from "./homeserver-secrets";
-import { BRAIN_BOT_LOCALPART, PeerRooms } from "./peer-rooms";
+import { PeerRooms } from "./peer-rooms";
 import { forwardingRoutes, wellKnownRoutes } from "./routes";
 
 /** How long to wait before asking a homeserver that is still starting again. */

@@ -539,6 +539,8 @@ export {
   type ReasoningEffort,
 } from "./reasoning-effort";
 export {
+  BRAIN_BOT_LOCALPART,
+  isBrainBotUserId,
   matrixBotCredentialsContract,
   matrixBotCredentialsSchema,
   type MatrixBotCredentials,

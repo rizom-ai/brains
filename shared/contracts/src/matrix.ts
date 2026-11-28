@@ -32,3 +32,12 @@ export const matrixBotCredentialsContract: BusContract<
   response: matrixBotCredentialsSchema,
   delivery: "request",
 });
+
+/** The localpart every brain's bot uses, so a peer's bot is `@_brain:<peer>`. */
+export const BRAIN_BOT_LOCALPART = "_brain";
+
+/** Whether a Matrix user id belongs to a brain's bot, on any server. */
+export function isBrainBotUserId(userId: string): boolean {
+  const prefix = `@${BRAIN_BOT_LOCALPART}:`;
+  return userId.startsWith(prefix) && userId.length > prefix.length;
+}
