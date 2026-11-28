@@ -110,9 +110,7 @@ function NeedsYou(props: {
                 <span className={cx(styles.attentionAction)}>
                   <Button
                     type="button"
-                    variant={
-                      item.severity === "error" ? "primary" : "secondary"
-                    }
+                    variant="secondary"
                     size="sm"
                     onClick={() => {
                       if (item.action) props.onNavigate(item.action.href);
