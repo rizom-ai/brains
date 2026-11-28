@@ -1,5 +1,17 @@
 # @brains/seminar
 
+## 0.2.0-alpha.794
+
+### Patch Changes
+
+- Updated dependencies [[`6cf28c6`](https://github.com/rizom-ai/brains/commit/6cf28c6fe5e38b4569b4ff0dc9b328cff20c0205)]:
+  - @brains/contracts@0.2.0-alpha.794
+  - @brains/sdk@0.2.0-alpha.794
+  - @rizom/brain-ui@0.2.0-alpha.794
+  - @brains/content-formatters@0.2.0-alpha.794
+  - @brains/site-atlas@0.2.0-alpha.794
+  - @brains/utils@0.2.0-alpha.794
+
 ## 0.2.0-alpha.793
 
 ### Patch Changes
