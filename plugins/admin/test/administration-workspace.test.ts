@@ -194,6 +194,22 @@ describe("Admin-owned Studio Administration workspace", () => {
     expect(people).not.toHaveProperty("view.status");
     expect(rosterLoads).toBeGreaterThan(0);
     expect(await workspace.badgeProvider?.(actor)).toBe(2);
+    // Home lists each kind of waiting account with the tab that clears it.
+    expect(await workspace.attentionProvider?.(actor)).toEqual([
+      {
+        id: "invitations",
+        title: "1 invitation waiting",
+        detail: "Not yet accepted.",
+        severity: "info",
+        action: { label: "Review invitations", query: { tab: "invitations" } },
+      },
+      {
+        id: "suspended",
+        title: "1 person suspended",
+        severity: "info",
+        action: { label: "Review people", query: { tab: "people" } },
+      },
+    ]);
 
     const peopleTab = peopleTabBlocks(people);
     expect(blockIds(peopleTab)).toEqual([

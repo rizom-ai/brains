@@ -3,9 +3,11 @@ import { z } from "@brains/utils/zod";
 import type { BasePluginContext } from "../base/context";
 import {
   DECLARATIVE_STUDIO_WORKSPACE_RENDERER,
+  type StudioAttentionItem,
   type StudioWorkspaceActor,
   type StudioWorkspaceRegistration,
 } from "../types/studio-workspace";
+import { studioAttentionItemSchema } from "../contracts/studio-workspace-contracts";
 import type {
   AnyAccountSettingsDefinition,
   ServiceAccountSettings,
@@ -57,6 +59,9 @@ import {
   type BoundWorkspaceAction,
   type WorkspaceActionLaunch,
 } from "./workspace-action-definition-contract";
+
+/** The most items one workspace lists under Home's "Needs you". */
+const MAX_ATTENTION_ITEMS = 10;
 
 const actionRequestSchema = z
   .object({
@@ -653,6 +658,16 @@ export function createDeclarativeStudioWorkspaceRegistration<
             ),
         }
       : {}),
+    ...(definition.attention
+      ? {
+          attentionProvider: (
+            actor: StudioWorkspaceActor,
+          ): Promise<readonly StudioAttentionItem[]> =>
+            asOperator(actor, () =>
+              reported(undefined, () => listAttention(actor)),
+            ),
+        }
+      : {}),
   };
 
   async function loadWorkspace(
@@ -762,16 +777,45 @@ export function createDeclarativeStudioWorkspaceRegistration<
     return executeAction(request, runtimeContext, combinedSignal);
   }
 
-  async function countBadge(actor: StudioWorkspaceActor): Promise<number> {
-    const signal = input.runtimeSignal;
-    if (!(await admitted(actor, signal))) return 0;
+  /** The workspace's data as its badge and attention read it. */
+  async function loadedData(
+    actor: StudioWorkspaceActor,
+    signal: AbortSignal,
+  ): Promise<z.output<typeof definition.data>> {
     const context = await contextFor(actor, signal, undefined);
     const raw = await Promise.resolve(executor.load(context)).catch(
       (error: unknown): never => {
         throw callbackFailure(identity, "data loader failed", error);
       },
     );
-    const data = parseOperatorData(definition.data, raw, identity);
+    return parseOperatorData(definition.data, raw, identity);
+  }
+
+  async function listAttention(
+    actor: StudioWorkspaceActor,
+  ): Promise<readonly StudioAttentionItem[]> {
+    const signal = input.runtimeSignal;
+    if (!definition.attention || !(await admitted(actor, signal))) return [];
+    const data = await loadedData(actor, signal);
+    const items = z
+      .array(studioAttentionItemSchema)
+      .max(MAX_ATTENTION_ITEMS)
+      .safeParse(definition.attention({ data }));
+    if (!items.success) {
+      throw runtimeError(
+        identity,
+        `returned invalid attention; use at most ${MAX_ATTENTION_ITEMS} items with a title and a verb`,
+        undefined,
+        { code: "invalid_response" },
+      );
+    }
+    return items.data;
+  }
+
+  async function countBadge(actor: StudioWorkspaceActor): Promise<number> {
+    const signal = input.runtimeSignal;
+    if (!(await admitted(actor, signal))) return 0;
+    const data = await loadedData(actor, signal);
     const badge = definition.badge?.({ data }) ?? 0;
     if (!Number.isInteger(badge) || badge < 0 || badge > 999_999) {
       throw runtimeError(

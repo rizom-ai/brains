@@ -1176,7 +1176,7 @@ describe("studio editor api", () => {
     const admin = await ask("admin");
     expect(admin).toContainEqual(
       expect.objectContaining({
-        title: "Overview",
+        title: "Home",
         href: "/studio/workspaces/studio%3Aoverview",
         primary: true,
       }),
@@ -1197,7 +1197,7 @@ describe("studio editor api", () => {
 
     const visitor = JSON.stringify(await ask("public"));
     expect(visitor).toContain("Account");
-    expect(visitor).not.toContain("Overview");
+    expect(visitor).not.toContain("studio:overview");
     expect(visitor).not.toContain("Posts");
   });
 

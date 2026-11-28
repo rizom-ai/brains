@@ -124,12 +124,15 @@ export {
 } from "@brains/plugins";
 export {
   assertStudioWorkspaceAdmin,
+  studioAttentionItemSchema,
   studioWorkspaceRegisterContract,
   studioWorkspaceRegistrationSchema,
   studioWorkspaceUnregisterContract,
   studioOverviewContributionRegisterContract,
   studioOverviewContributionSchema,
   studioOverviewContributionUnregisterContract,
+  type StudioAttentionItem,
+  type StudioWorkspaceAttentionProvider,
   type StudioWorkspaceDescriptor,
   type StudioWorkspaceRegistration,
   type StudioOverviewContributionRegistration,

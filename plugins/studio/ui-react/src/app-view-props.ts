@@ -40,6 +40,8 @@ export interface StudioAppViewProps {
   /** The Images page and its place in navigation. */
   images?: ImagesNavigation | undefined;
   imagesView?: ReactNode;
+  /** Home, drawn by the host in place of a workspace's declarative view. */
+  homeView?: ReactNode;
   groupReturnLabel?: string | undefined;
   /** Existing values per grouping field, offered while editing membership. */
   groupingSuggestions?: Record<string, readonly string[]> | undefined;

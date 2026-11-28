@@ -252,6 +252,22 @@ export const inboxWorkspace: StudioWorkspaceDefinition<
   data: declarativeInboxDataSchema,
   actions: [runInboxAction],
   badge: ({ data }) => data.snapshot.summary.open,
+  // Home lists the inbox while something is open in it, urgent first.
+  attention: ({ data }) => {
+    const { open, high } = data.snapshot.summary;
+    if (open === 0) return [];
+    return [
+      {
+        id: "open",
+        title: `${open} ${open === 1 ? "item" : "items"} in your inbox`,
+        ...(high > 0
+          ? { detail: `${high} ${high === 1 ? "is" : "are"} marked urgent.` }
+          : {}),
+        severity: high > 0 ? "warn" : "info",
+        action: { label: "Open inbox" },
+      },
+    ];
+  },
   view: ({ data }) => {
     const { query, snapshot } = data;
     const online = snapshot.sources.filter((source) => source.available).length;

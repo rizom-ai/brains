@@ -62,6 +62,7 @@
 + studio|handler|GET|/studio/api/groups/members|exact|true
 + studio|handler|GET|/studio/api/groups/usage|exact|true
 + studio|handler|GET|/studio/api/hierarchy|exact|true
++ studio|handler|GET|/studio/api/home|exact|true
 + studio|handler|GET|/studio/api/image-details|exact|true
 + studio|handler|GET|/studio/api/image-library|exact|true
 + studio|handler|GET|/studio/api/images|exact|true

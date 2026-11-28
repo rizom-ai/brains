@@ -49,7 +49,11 @@ import { STUDIO_ACCOUNT_WORKSPACE_ID } from "../../src/account-workspace";
 import {
   STUDIO_CHAT_ROUTE_PATH,
   STUDIO_CHAT_WORKSPACE_ID,
+  STUDIO_CHAT_WORKSPACE_RENDERER,
 } from "../../src/chat-workspace";
+import { STUDIO_OVERVIEW_WORKSPACE_ID } from "../../src/overview-constants";
+import { StudioHomeView } from "./studio-home";
+import { studioChatDraftKey } from "./studio-chat-draft-key";
 import {
   StudioAccountWorkspaceView,
   StudioAppStatus,
@@ -265,6 +269,10 @@ export function App(): ReactElement {
     workspaceQueries,
     editor,
   });
+  // Home asks Chat through the brain's chat workspace, when it has one.
+  const chatWorkspace = workspaces.find(
+    (workspace) => workspace.rendererName === STUDIO_CHAT_WORKSPACE_RENDERER,
+  );
   // A confirmed refine is followed to its end wherever the person goes.
   const refineOutcome = useRefineOutcome({ entityType, entities });
   // Unsaved edits are kept in this browser for this person, and offered back.
@@ -506,7 +514,10 @@ export function App(): ReactElement {
   }
   if (
     activeWorkspaceId
-      ? !workspaceData && !workspaceError
+      ? // Home loads its own data; a workspace waits for its view.
+        activeWorkspaceId !== STUDIO_OVERVIEW_WORKSPACE_ID &&
+        !workspaceData &&
+        !workspaceError
       : entityType && !schema && !visibleLoadError
   ) {
     return <StudioAppStatus message="Loading…" />;
@@ -551,6 +562,22 @@ export function App(): ReactElement {
                 studioEntityPath(studioBasePath, nextType, id),
               )
             }
+          />
+        ) : null
+      }
+      homeView={
+        activeWorkspaceId === STUDIO_OVERVIEW_WORKSPACE_ID ? (
+          <StudioHomeView
+            chatApiPath={chatWorkspace?.chatApiPath}
+            onNavigate={(href) => router.history.push(href)}
+            onAsk={(text) => {
+              // The question waits in a new conversation's composer.
+              chatDraftStore.update(
+                studioChatDraftKey(chatWorkspace?.chatApiPath, null),
+                { text },
+              );
+              router.history.push(STUDIO_CHAT_ROUTE_PATH);
+            }}
           />
         ) : null
       }

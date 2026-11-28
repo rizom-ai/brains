@@ -99,6 +99,7 @@ describe("the Studio package's registered surface", () => {
       "GET /studio/api/workspace exact",
       "POST /studio/api/workspace exact",
       "GET /studio/api/members exact",
+      "GET /studio/api/home exact",
       "GET /studio/api/schema exact",
       "GET /studio/api/images exact",
       "GET /studio/api/image-details exact",

@@ -244,6 +244,7 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
         </aside>
         {props.groupingView ??
           props.imagesView ??
+          props.homeView ??
           (activeWorkspaceId ? (
             <StudioWorkspacePane {...props} model={model} />
           ) : !editing ? (

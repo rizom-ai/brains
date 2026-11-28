@@ -393,7 +393,7 @@ export function createFixtureRoutes(
       : undefined;
 
   const workspaceData = new Map<string, (url: URL) => Promise<unknown>>([
-    ["studio:overview", (): Promise<unknown> => context.workViews.overview()],
+    ["studio:history", (): Promise<unknown> => context.workViews.history()],
     [
       "unified-inbox:inbox",
       (url): Promise<unknown> => context.workViews.inbox(workspaceQuery(url)),
@@ -577,6 +577,11 @@ export function createFixtureRoutes(
       ? json(seriesMembers)
       : undefined;
 
+  const home: FixtureRoute = async (_request, url) =>
+    url.pathname === "/studio/api/home"
+      ? json(await context.workViews.home())
+      : undefined;
+
   const syncStatus: FixtureRoute = (_request, url) =>
     url.pathname === "/studio/api/sync-status"
       ? json({
@@ -618,6 +623,7 @@ export function createFixtureRoutes(
     upload,
     listEntities,
     collectionMembers,
+    home,
     syncStatus,
     consoleJump,
   ];

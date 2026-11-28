@@ -7,12 +7,9 @@ import {
   studioOverviewContributionSchema,
   type DashboardDigestLine,
   type EntityChangePayload,
-  type RuntimeDashboardOperatorView,
   type RuntimeDashboardWidgetData,
-  type RuntimeOperatorLinkTarget,
   type RuntimeStudioOperatorCardBlock,
   type RuntimeStudioOperatorPanelBlock,
-  type RuntimeStudioOperatorView,
   type RuntimeStudioOperatorViewFact,
   type RuntimeStudioWorkspaceData,
   type StudioOverviewContributionRegistration,
@@ -28,20 +25,19 @@ import {
 } from "@brains/sdk/internal/interface-runtime";
 import type { UserPermissionLevel } from "@brains/sdk/interfaces";
 import { z } from "@brains/utils/zod";
-import {
-  capitalize,
-  formatLabel,
-  truncateText,
-} from "@brains/utils/string-utils";
+import { capitalize, truncateText } from "@brains/utils/string-utils";
 import { entityDisplayTitle } from "./editor-entities";
 import { entityTypeLabels, type EntityDisplayLabel } from "./config";
 import {
+  STUDIO_HISTORY_WORKSPACE_ID,
   STUDIO_OVERVIEW_REFRESH_MS,
   STUDIO_OVERVIEW_WORKSPACE_ID,
 } from "./overview-constants";
 import type { StudioContext } from "./studio-context";
+import type { StudioWorkspaceRegistry } from "./workspace-registry";
 
 export {
+  STUDIO_HISTORY_WORKSPACE_ID,
   STUDIO_OVERVIEW_REFRESH_MS,
   STUDIO_OVERVIEW_WORKSPACE_ID,
 } from "./overview-constants";
@@ -51,7 +47,9 @@ type RuntimeStudioOperatorListItem = Extract<
   { type: "list" }
 >["items"][number];
 
-type StoredContribution = z.output<typeof studioOverviewContributionSchema>;
+export type StoredContribution = z.output<
+  typeof studioOverviewContributionSchema
+>;
 
 /** How the activity feed names an entry and its type. */
 export type DescribeEntityActivity = (
@@ -123,7 +121,7 @@ export interface OverviewActivityStore {
 
 const STORE_PAGE = 1000;
 
-interface LoadedContribution {
+export interface LoadedContribution {
   readonly contribution: StoredContribution;
   readonly data?: RuntimeDashboardWidgetData | undefined;
   readonly digest: readonly DashboardDigestLine[];
@@ -156,11 +154,11 @@ function boundedId(prefix: string, value: string): string {
   return `${prefix}-${normalized.slice(0, stemLength)}-${suffix}`;
 }
 
-const ACTIVITY_WINDOW_MS = 24 * 60 * 60 * 1000;
+const ACTIVITY_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 const JOB_ACTIVITY = "Job activity";
 /** A job message's length in the feed, ellipsis included. */
 const JOB_MESSAGE_LIMIT = 497;
-const MAX_ACTIVITY = 200;
+const MAX_ACTIVITY = 500;
 
 /** "site:build" reads as "Site build". */
 function jobName(jobType: string): string {
@@ -169,17 +167,6 @@ function jobName(jobType: string): string {
     .filter(Boolean)
     .join(" ");
   return capitalize(words);
-}
-
-function directLaunchTarget(
-  view: RuntimeDashboardOperatorView,
-): { label: string; target: RuntimeOperatorLinkTarget } | undefined {
-  for (const block of view.blocks) {
-    if (block.type !== "links") continue;
-    const target = block.items.find((item) => item.target.kind === "launch");
-    if (target) return target;
-  }
-  return undefined;
 }
 
 function derivedDigest(
@@ -208,139 +195,77 @@ function derivedDigest(
   };
 }
 
-function attentionItem(
-  loaded: LoadedContribution,
-): RuntimeStudioOperatorListItem | undefined {
-  if (loaded.attention === 0 && !loaded.failed) return undefined;
-  const warning = loaded.digest
-    .filter((line) => line.tone === "warn")
-    .map((line) => `${line.label}: ${line.value}`)
-    .join(" · ");
-  const link = loaded.data ? directLaunchTarget(loaded.data.view) : undefined;
-  return {
-    id: boundedId(
-      "attention",
-      `${loaded.contribution.pluginId}-${loaded.contribution.id}`,
-    ),
-    title: loaded.contribution.title,
-    description:
-      warning ||
-      (loaded.failed
-        ? "This source is temporarily unavailable."
-        : `${loaded.attention} ${loaded.attention === 1 ? "item needs" : "items need"} attention.`),
-    metadata: [
-      formatLabel(loaded.contribution.group),
-      loaded.failed
-        ? "source unavailable"
-        : `${loaded.attention} ${loaded.attention === 1 ? "item" : "items"}`,
-    ],
-    tone: loaded.failed ? "error" : "warn",
-    ...(link ? { links: [link] } : {}),
-  };
-}
-
-function sourcePanelBlocks(
-  data: RuntimeDashboardWidgetData | undefined,
-): readonly RuntimeStudioOperatorPanelBlock[] {
-  if (!data) {
-    return [
-      {
-        type: "notice",
-        tone: "error",
-        text: "This operational source is temporarily unavailable.",
-      },
-    ];
-  }
-  return data.view.blocks.flatMap((block) =>
-    block.type === "tabs"
-      ? (block.tabs.find((tab) => tab.id === block.defaultTab)?.blocks ?? [])
-      : [block],
+/** A run of the same change within one hour reads as one line. */
+function sameRun(head: OverviewActivity, item: OverviewActivity): boolean {
+  return (
+    head.link !== undefined &&
+    item.link !== undefined &&
+    head.metadata[0] === item.metadata[0] &&
+    head.at.slice(0, 13) === item.at.slice(0, 13)
   );
 }
 
-type SourceFigure = NonNullable<
-  RuntimeStudioOperatorCardBlock["summary"]
->[number];
-
-const MAX_SOURCE_FIGURES = 3;
-/** Longer digest values are sentences, which do not read as a figure. */
-const MAX_FIGURE_LENGTH = 12;
-
-/**
- * A closed source shows its own stats, or failing those its short digest
- * values, so the ledger answers "how much" without opening anything.
- */
-function sourceFigures(
-  loaded: LoadedContribution,
-  panels: readonly RuntimeStudioOperatorPanelBlock[],
-): readonly SourceFigure[] {
-  const stats = panels.find((panel) => panel.type === "stats");
-  if (stats) {
-    return stats.items
-      .slice(0, MAX_SOURCE_FIGURES)
-      .map(({ label, value, tone }) => ({
-        label,
-        value,
-        ...(tone ? { tone } : {}),
-      }));
-  }
-  return loaded.digest
-    .filter((line) => line.value.length <= MAX_FIGURE_LENGTH)
-    .slice(0, MAX_SOURCE_FIGURES)
-    .map(({ label, value, tone }) => ({
-      label,
-      value,
-      ...(tone === "good" || tone === "warn" ? { tone } : {}),
-    }));
-}
-
-function sourceCard(
-  loaded: LoadedContribution,
-): RuntimeStudioOperatorCardBlock {
-  const panels = sourcePanelBlocks(loaded.data);
-  const figures = loaded.data ? sourceFigures(loaded, panels) : [];
+function historyItem(item: OverviewActivity): RuntimeStudioOperatorListItem {
   return {
-    type: "card",
-    id: boundedId(
-      "source",
-      `${loaded.contribution.pluginId}-${loaded.contribution.id}`,
+    id: item.id,
+    title: item.title,
+    ...(item.description ? { description: item.description } : {}),
+    at: item.at,
+    // The log shows the time itself; a job needs no "job" label.
+    metadata: item.metadata.filter(
+      (value) => value !== item.at && value !== JOB_ACTIVITY,
     ),
-    label: loaded.contribution.title,
-    presentation: "disclosure",
-    ...(figures.length > 0 ? { summary: figures } : {}),
-    tone: loaded.failed ? "error" : "neutral",
-    blocks: panels,
+    tone: item.tone,
+    ...(item.link ? { link: item.link } : {}),
   };
 }
 
-function activityCard(
+/**
+ * What happened, newest first: repeated saves of one entry read once, and a
+ * batch of the same change reads as one line naming the first and the count.
+ */
+export function historyItems(
+  activity: readonly OverviewActivity[],
+): RuntimeStudioOperatorListItem[] {
+  const runs = activity.reduce<OverviewActivity[][]>((groups, item) => {
+    const run = groups.at(-1);
+    const head = run?.[0];
+    return run && head && sameRun(head, item)
+      ? [...groups.slice(0, -1), [...run, item]]
+      : [...groups, [item]];
+  }, []);
+  return runs.flatMap((run) => {
+    const [head] = run;
+    if (!head) return [];
+    const titles = [...new Set(run.map((item) => item.title))];
+    if (titles.length === 1) return [historyItem(head)];
+    const shown = titles.slice(0, 6).join(", ");
+    const { link: _link, ...line } = historyItem(head);
+    return [
+      {
+        ...line,
+        id: boundedId("run", head.id),
+        title: `${titles[0]} and ${titles.length - 1} more`,
+        description: titles.length > 6 ? `${shown}, …` : shown,
+      },
+    ];
+  });
+}
+
+function historyCard(
   activity: readonly OverviewActivity[],
 ): RuntimeStudioOperatorCardBlock {
   return {
     type: "card",
-    id: "overview-activity",
+    id: "history-activity",
     label: "What happened",
     blocks: [
       {
         type: "list",
-        id: "overview-activity-list",
+        id: "history-activity-list",
         presentation: "log",
-        empty: "Nothing happened in the last 24 hours.",
-        // Failures are listed in Needs you; repeating them here adds nothing.
-        items: activity
-          .filter((item) => item.tone !== "error")
-          .map((item) => ({
-            id: item.id,
-            title: item.title,
-            ...(item.description ? { description: item.description } : {}),
-            at: item.at,
-            // The log shows the time itself; a job needs no "job" label.
-            metadata: item.metadata.filter(
-              (value) => value !== item.at && value !== JOB_ACTIVITY,
-            ),
-            tone: item.tone,
-            ...(item.link ? { link: item.link } : {}),
-          })),
+        empty: "Nothing has happened in the last week.",
+        items: historyItems(activity),
       },
     ],
   };
@@ -359,7 +284,7 @@ export interface BrainFacts {
   readonly entityTypes: number;
 }
 
-async function brainFacts(
+export async function brainFacts(
   context: StudioContext,
   actor: StudioWorkspaceActor,
 ): Promise<BrainFacts> {
@@ -408,12 +333,6 @@ async function brainFacts(
   };
 }
 
-/** The runtime's state in the words the status line uses. */
-function runtimeState(facts: BrainFacts): string {
-  if (facts.degraded) return "Degraded";
-  return facts.runtime === "operational" ? "Running" : "Unavailable";
-}
-
 /** The status line under the title: health first, then the job queue. */
 export function overviewStatusFacts(
   facts: BrainFacts,
@@ -441,34 +360,6 @@ export function overviewStatusFacts(
         ]
       : []),
   ];
-}
-
-function brainCard(facts: BrainFacts): RuntimeStudioOperatorCardBlock {
-  return {
-    type: "card",
-    id: "overview-brain",
-    label: "Brain",
-    tone: facts.degraded || facts.failedJobs > 0 ? "warn" : "neutral",
-    blocks: [
-      {
-        type: "key-values",
-        items: [
-          { label: "Runtime", value: runtimeState(facts) },
-          {
-            label: "Jobs",
-            value:
-              facts.activeJobs === 0 ? "idle" : `${facts.activeJobs} active`,
-          },
-          { label: "Failed jobs", value: facts.failedJobs },
-          { label: "Version", value: facts.version },
-          { label: "Interactions", value: facts.interactions },
-          { label: "Channels", value: facts.channels },
-          { label: "Inbox sources", value: facts.inboxSources },
-          { label: "Entity types", value: facts.entityTypes },
-        ],
-      },
-    ],
-  };
 }
 
 export class StudioOverviewRegistry {
@@ -708,157 +599,85 @@ export class StudioOverviewRegistry {
   }
 }
 
-const severity: Record<
-  NonNullable<RuntimeStudioOperatorListItem["tone"]>,
-  number
-> = { error: 0, warn: 1, neutral: 2, good: 3 };
+/** Home and History share the overview's sources and its workspace registry. */
+interface HomeSourcesInput {
+  context: StudioContext;
+  registry: StudioOverviewRegistry;
+  /** The workspaces that say what needs the person; none in some tests. */
+  workspaces?: StudioWorkspaceRegistry | undefined;
+}
 
-/** The row in Needs you that lists a failed event. */
-function failureRowId(item: OverviewActivity): string {
-  return boundedId("attention", item.id);
+/** How many things Home lists under "Needs you": the count beside Home. */
+async function homeAttentionCount(
+  input: HomeSourcesInput,
+  actor: StudioWorkspaceActor,
+): Promise<number> {
+  const [workspaceAttention, loaded] = await Promise.all([
+    input.workspaces?.listAttention(actor) ?? [],
+    input.registry.load(actor),
+  ]);
+  const own = input.workspaces?.pluginsWithAttention() ?? new Set<string>();
+  return (
+    workspaceAttention.reduce((total, entry) => total + entry.items.length, 0) +
+    loaded.filter(
+      (source) =>
+        !own.has(source.contribution.pluginId) &&
+        (source.attention > 0 || source.failed),
+    ).length +
+    input.registry.listActivity().filter((item) => item.tone === "error").length
+  );
 }
 
 /**
- * The day at a glance: every event of the activity window as a light, each
- * pointing at the row that describes it.
+ * Home, the page Studio opens on. Studio draws it from its own route; the
+ * workspace places it in Home and counts what needs the person.
  */
-function dayTimeline(
-  activity: readonly OverviewActivity[],
-  now: number,
-): RuntimeStudioOperatorPanelBlock {
-  return {
-    type: "timeline",
-    id: "overview-day",
-    label: "Last 24 hours",
-    start: new Date(now - ACTIVITY_WINDOW_MS).toISOString(),
-    end: new Date(now).toISOString(),
-    legend: [
-      { label: "Done", tone: "good" },
-      { label: "Changed", tone: "neutral" },
-      { label: "Running or removed", tone: "warn" },
-      { label: "Failed", tone: "error" },
-    ],
-    items: [...activity].reverse().map((item) => ({
-      id: boundedId("light", item.id),
-      at: item.at,
-      // Entity events name the change; job titles already say what happened.
-      title:
-        item.link?.kind === "entity"
-          ? `${item.metadata[0]}: ${item.title}`
-          : item.title,
-      tone: item.tone,
-      target: item.tone === "error" ? failureRowId(item) : item.id,
-    })),
-  };
-}
-
-function overviewView(
-  loaded: readonly LoadedContribution[],
-  activity: readonly OverviewActivity[],
-  facts: BrainFacts,
-  now: number,
-): RuntimeStudioOperatorView {
-  const failedActivity = activity.filter((item) => item.tone === "error");
-  const attention =
-    loaded.reduce((total, source) => total + source.attention, 0) +
-    failedActivity.length;
-  const failedAttentionItems: RuntimeStudioOperatorListItem[] =
-    failedActivity.map((item) => ({
-      id: failureRowId(item),
-      title: item.title,
-      ...(item.description ? { description: item.description } : {}),
-      metadata: item.metadata,
-      tone: "error",
-      ...(item.link ? { link: item.link } : {}),
-    }));
-  // Failures first, then what waits on the operator; the sort is stable, so
-  // sources keep their priority order within a tone.
-  const attentionItems = [
-    ...loaded.flatMap((source) => {
-      const item = attentionItem(source);
-      return item ? [item] : [];
-    }),
-    ...failedAttentionItems,
-  ].sort(
-    (left, right) =>
-      severity[left.tone ?? "neutral"] - severity[right.tone ?? "neutral"],
-  );
-  const attentionCard: RuntimeStudioOperatorCardBlock = {
-    type: "card",
-    id: "overview-attention",
-    label: "Needs you",
-    metadata: attention > 0 ? [`${attention} need attention`] : [],
-    blocks: [
-      {
-        type: "list",
-        id: "overview-attention-list",
-        presentation: "attention",
-        empty: "Nothing needs your attention.",
-        items: attentionItems,
-      },
-    ],
-  };
-  // Sources read as one ledger beside the work; sidebar ones close it.
-  const sources = [
-    ...loaded.filter((source) => source.contribution.section !== "sidebar"),
-    ...loaded.filter((source) => source.contribution.section === "sidebar"),
-  ].map(sourceCard);
-  const view: RuntimeStudioOperatorView = {
-    kicker: "Operator home",
-    title: "Overview",
-    facts: overviewStatusFacts(facts),
-    blocks: [
-      dayTimeline(activity, now),
-      {
-        type: "columns",
-        id: "overview-columns",
-        primary: [
-          ...(attention === 0 ? [] : [attentionCard]),
-          activityCard(activity),
-        ],
-        aside: [...sources, brainCard(facts)],
-      },
-    ],
-  };
-  return view;
-}
-
-export function createStudioOverviewWorkspace(input: {
-  context: StudioContext;
-  registry: StudioOverviewRegistry;
-  /** The clock the timeline window ends at; tests and fixtures pin it. */
-  now?: () => number;
-}): StudioWorkspaceRegistration {
-  const now = input.now ?? Date.now;
+export function createStudioHomeWorkspace(
+  input: HomeSourcesInput,
+): StudioWorkspaceRegistration {
   return {
     id: STUDIO_OVERVIEW_WORKSPACE_ID,
     pluginId: "studio",
-    label: "Overview",
+    label: "Home",
     rendererName: DECLARATIVE_STUDIO_WORKSPACE_RENDERER,
     priority: -100,
     permission: "trusted",
     section: "home",
     entityTypes: [],
     accessHandler: (actor) => admitted(actor.userPermissionLevel, "trusted"),
-    dataProvider: async (
-      actor,
-      _query,
-      signal,
-    ): Promise<RuntimeStudioWorkspaceData> => {
-      const loaded = await input.registry.load(actor, signal);
+    dataProvider: async (): Promise<RuntimeStudioWorkspaceData> => ({
+      view: { title: "Home", blocks: [] },
+    }),
+    badgeProvider: (actor) => homeAttentionCount(input, actor),
+  };
+}
+
+/** History, under Brain: everything that happened in the last week. */
+export function createStudioHistoryWorkspace(
+  input: HomeSourcesInput,
+): StudioWorkspaceRegistration {
+  return {
+    id: STUDIO_HISTORY_WORKSPACE_ID,
+    pluginId: "studio",
+    label: "History",
+    rendererName: DECLARATIVE_STUDIO_WORKSPACE_RENDERER,
+    // Last among the brain's pages: it is read after the rest.
+    priority: 1000,
+    permission: "trusted",
+    section: "brain",
+    entityTypes: [],
+    accessHandler: (actor) => admitted(actor.userPermissionLevel, "trusted"),
+    dataProvider: async (actor): Promise<RuntimeStudioWorkspaceData> => {
       const facts = await brainFacts(input.context, actor);
       return {
-        view: overviewView(loaded, input.registry.listActivity(), facts, now()),
+        view: {
+          title: "History",
+          facts: overviewStatusFacts(facts),
+          blocks: [historyCard(input.registry.listActivity())],
+        },
         refreshAfterMs: STUDIO_OVERVIEW_REFRESH_MS,
       };
     },
-    badgeProvider: async (actor) =>
-      (await input.registry.load(actor)).reduce(
-        (total, source) => total + source.attention,
-        input.registry
-          .listActivity()
-          .filter((activity) => activity.tone === "error").length,
-      ),
   };
 }
 

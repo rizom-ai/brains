@@ -23,7 +23,7 @@ describe("accountFixture", () => {
 });
 
 describe("studioWorkspaces", () => {
-  it("carries the Overview and Administration badges their providers report", () => {
+  it("carries the Home and Administration badges their providers report", () => {
     const workspaces = studioWorkspaces({ overview: 4, administration: 2 });
     const badge = (id: string): unknown =>
       workspaces.find((workspace) => workspace["id"] === id)?.["badge"];
@@ -40,6 +40,7 @@ describe("studioWorkspaces", () => {
       "directory-sync:sync",
       "admin:administration",
       "studio:account",
+      "studio:history",
     ]);
   });
 });

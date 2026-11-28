@@ -16,6 +16,7 @@ export function consoleSurfaces(): string[] {
     "studio-series",
     "studio-series-open",
     "studio-overview",
+    "studio-history",
     "studio-chat",
     "studio-chat-sessions",
     "studio-chat-context",
@@ -80,6 +81,7 @@ export function isStudioAppShellSurface(surface: string): boolean {
 const WORKSPACE_SURFACES: Partial<Record<string, string>> = {
   "studio-account": "studio:account",
   "studio-overview": "studio:overview",
+  "studio-history": "studio:history",
   "studio-inbox": "unified-inbox:inbox",
   "studio-content-sync": "directory-sync:sync",
   "studio-site": "site-builder:site",
