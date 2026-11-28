@@ -1,5 +1,19 @@
 # @brains/conversation-memory
 
+## 0.2.0-alpha.802
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.802
+  - @rizom/brain-ui@0.2.0-alpha.802
+  - @brains/dashboard@0.2.0-alpha.802
+  - @brains/action-items@0.2.0-alpha.802
+  - @brains/content-formatters@0.2.0-alpha.802
+  - @brains/contracts@0.2.0-alpha.802
+  - @brains/utils@0.2.0-alpha.802
+  - @brains/conversation-service@0.2.0-alpha.802
+
 ## 0.2.0-alpha.801
 
 ### Patch Changes

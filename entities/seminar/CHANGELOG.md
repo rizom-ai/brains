@@ -1,5 +1,18 @@
 # @brains/seminar
 
+## 0.2.0-alpha.802
+
+### Patch Changes
+
+- [#1088](https://github.com/rizom-ai/brains/pull/1088) [`49c9689`](https://github.com/rizom-ai/brains/commit/49c9689db3ade60a14c1a37e17a6ef2ce23768ec) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A brain that holds seminars shows its notes on its site. The note type has no pages of its own, so the seminar capability brings them: `/notes` lists every public note by title under its opening sentence, and `/notes/<id>` shows a note as written, its quotes and links kept. Brains without the seminar capability are unchanged.
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.802
+  - @rizom/brain-ui@0.2.0-alpha.802
+  - @brains/content-formatters@0.2.0-alpha.802
+  - @brains/contracts@0.2.0-alpha.802
+  - @brains/site-atlas@0.2.0-alpha.802
+  - @brains/utils@0.2.0-alpha.802
+
 ## 0.2.0-alpha.801
 
 ### Patch Changes

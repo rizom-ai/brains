@@ -1,5 +1,13 @@
 # @brains/wishlist
 
+## 0.2.0-alpha.802
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.802
+  - @brains/utils@0.2.0-alpha.802
+
 ## 0.2.0-alpha.801
 
 ### Patch Changes

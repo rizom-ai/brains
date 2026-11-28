@@ -1,7 +1,7 @@
 {
   "name": "@brains/atproto-client",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.801",
+  "version": "0.2.0-alpha.802",
   "description": "AT Protocol PDS client and the read path for another brain's public repo",
   "dependencies": {
     "@brains/atproto-contracts": "workspace:*",
