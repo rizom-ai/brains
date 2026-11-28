@@ -289,6 +289,8 @@ renders its shelf section with these components.
 | `themeOverride` | Site-specific additive CSS applied over the selected independent theme |
 | `headScripts`   | Explicit trusted head markup such as JSON-LD                           |
 | `staticAssets`  | Text assets emitted at exact output paths                              |
+| `languages`     | Language tags the site is built in; the first keeps the route paths    |
+| `dataSources`   | Fetching sources from `defineDataSource` that sections name to draw on |
 
 `defineSite()` never accepts an embedded `plugin`. Compose backend behavior as
 a separate default package definition through `use()` in the Brain package.

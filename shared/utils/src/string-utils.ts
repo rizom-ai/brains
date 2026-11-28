@@ -382,3 +382,42 @@ export function formatByteSize(bytes: number): string {
     bytes < 1_000_000 ? [bytes / 1_000, "KB"] : [bytes / 1_000_000, "MB"];
   return `${Number(size.toFixed(1))} ${unit}`;
 }
+
+/** Levenshtein distance: single-character inserts, deletes and swaps. */
+function editDistance(a: string, b: string): number {
+  const firstRow = Array.from({ length: b.length + 1 }, (_, j) => j);
+  const lastRow = [...a].reduce(
+    (previous, charA, i) =>
+      [...b].reduce<number[]>(
+        (row, charB, j) => [
+          ...row,
+          Math.min(
+            (previous[j + 1] ?? 0) + 1,
+            (row[j] ?? 0) + 1,
+            (previous[j] ?? 0) + (charA === charB ? 0 : 1),
+          ),
+        ],
+        [i + 1],
+      ),
+    firstRow,
+  );
+  return lastRow[b.length] ?? 0;
+}
+
+/**
+ * The candidate nearest to a mistyped name, within `maxDistance` edits; the
+ * earlier candidate on a tie. Undefined when none is that near.
+ */
+export function closestName(
+  name: string,
+  candidates: readonly string[],
+  maxDistance = 2,
+): string | undefined {
+  return candidates
+    .map((candidate) => ({
+      candidate,
+      distance: editDistance(name, candidate),
+    }))
+    .filter(({ distance }) => distance <= maxDistance)
+    .sort((a, b) => a.distance - b.distance)[0]?.candidate;
+}

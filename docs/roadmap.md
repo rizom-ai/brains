@@ -15,7 +15,7 @@ Public Ask is a separate product rollout, not a stable-release gate. Its guest r
 What exists today:
 
 - one Bun-based CLI and runtime published through `@rizom/brain`;
-- one canonical brain definition with eight capability bundles plus policy-only `team`;
+- one canonical brain definition with nine capability bundles plus policy-only `team`;
 - markdown-backed entities with typed frontmatter and directory synchronization;
 - MCP-native tools/resources, signed A2A, agent discovery, Discord/Slack, Web Chat, email, and a chat REPL;
 - built-in HTTP hosting, passkey/OAuth authentication, multi-user roles, People/Admin surfaces, and connected delivery channels;
@@ -132,7 +132,7 @@ Plans:
 - [operator-console-pwa.md](./plans/operator-console-pwa.md) — optional network-first installable shell without an offline-authoring claim.
 - [email-reply-drafts.md](./plans/email-reply-drafts.md) — a reply the brain writes on request is saved into the mailbox's Drafts folder and sent from the mail program; the brain never sends a reply, and the dormant send backend is removed.
 - [whatsapp-interface.md](./plans/whatsapp-interface.md) — WhatsApp direct messages and groups through our own Baileys adapter in `@brains/chat`: unofficial, on a dedicated number.
-- [matrix-messaging.md](./plans/matrix-messaging.md) — the brain's own Matrix homeserver at its domain, which the brain provisions and the deploy runs beside it; a configuration-free default recipient and the first real deploy remain.
+- [matrix-messaging.md](./plans/matrix-messaging.md) — the brain's own Matrix homeserver at its domain, live on smoke and rizom-team; a passkey sign-in on a deployed brain remains.
 - [brain-web-chat-sdk-adapter.md](./plans/brain-web-chat-sdk-adapter.md) — parked strategy for deeper Chat SDK semantic alignment.
 - [chat-interface-forms-modals.md](./plans/chat-interface-forms-modals.md) — parked transport-neutral structured forms.
 - [message-feedback.md](./plans/message-feedback.md) — parked transport-neutral response feedback pending a real sink.

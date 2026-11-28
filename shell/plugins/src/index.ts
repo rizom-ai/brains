@@ -1166,6 +1166,7 @@ export {
   DECLARATIVE_STUDIO_WORKSPACE_RENDERER,
   assertStudioWorkspaceAdmin,
   type StudioAttentionItem,
+  type StudioPaletteAction,
   type StudioWorkspaceActor,
   type StudioWorkspaceAttentionProvider,
   type StudioWorkspaceAlias,
@@ -1189,6 +1190,7 @@ export {
 } from "./contracts/studio-overview-contracts";
 export {
   studioAttentionItemSchema,
+  studioPaletteActionSchema,
   studioWorkspaceRegistrationSchema,
   studioWorkspaceRegisterContract,
   studioWorkspaceUnregisterContract,

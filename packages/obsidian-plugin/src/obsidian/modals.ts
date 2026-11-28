@@ -1,5 +1,11 @@
 import { Modal, Setting, type App } from "obsidian";
-import type { DeleteDecision, FileNote, FirstSyncPlan } from "../engine";
+import type {
+  DeleteDecision,
+  FileNote,
+  FirstSyncPlan,
+  OpenConflict,
+} from "../engine";
+import { compareVersions, type ComparedLine } from "./compare";
 
 function list(container: HTMLElement, title: string, items: string[]): void {
   if (items.length === 0) return;
@@ -189,5 +195,120 @@ export class FilesModal extends Modal {
 
   override onClose(): void {
     this.contentEl.empty();
+  }
+}
+
+/** A no-break space: what an empty line holds, so it keeps its height. */
+const BLANK = String.fromCodePoint(0xa0);
+
+/**
+ * Conflicts waiting for the person, one at a time: the brain's version and
+ * theirs side by side, and a button for each. Closing decides nothing.
+ */
+export class ConflictModal extends Modal {
+  private waiting: OpenConflict[];
+  private readonly total: number;
+  private readonly onChoose: (
+    conflict: OpenConflict,
+    keep: "brain" | "mine",
+  ) => void;
+  private readonly onClosed: () => void;
+
+  constructor(
+    app: App,
+    conflicts: OpenConflict[],
+    onChoose: (conflict: OpenConflict, keep: "brain" | "mine") => void,
+    onClosed: () => void,
+  ) {
+    super(app);
+    this.waiting = conflicts;
+    this.total = conflicts.length;
+    this.onChoose = onChoose;
+    this.onClosed = onClosed;
+  }
+
+  override onOpen(): void {
+    this.modalEl.addClass("rizom-brain-conflict-modal");
+    this.render();
+  }
+
+  private render(): void {
+    const { contentEl } = this;
+    contentEl.empty();
+    const [conflict] = this.waiting;
+    if (!conflict) {
+      this.close();
+      return;
+    }
+    this.setTitle(`${conflict.path} was changed in both places`);
+    const position = this.total - this.waiting.length + 1;
+    contentEl.createEl("p", {
+      text:
+        (this.total > 1 ? `Conflict ${position} of ${this.total}. ` : "") +
+        "Your brain's version is in the note now. Yours is kept until you choose.",
+      cls: "rizom-brain-reason",
+    });
+
+    if (conflict.flavor === "text" && conflict.yours !== undefined) {
+      const compared = compareVersions(conflict.brains ?? "", conflict.yours);
+      const versions = contentEl.createDiv({ cls: "rizom-brain-compare" });
+      this.version(
+        versions,
+        "In your brain",
+        conflict.brains === undefined
+          ? "This note is no longer in the vault."
+          : conflict.path,
+        compared.brains,
+      );
+      this.version(versions, "Yours", conflict.copy, compared.yours);
+    } else {
+      contentEl.createEl("p", {
+        text: `This is not a text file, so it cannot be shown here. Your brain's version is ${conflict.path}; yours is ${conflict.copy}. Open both to compare.`,
+      });
+    }
+
+    const choose = (keep: "brain" | "mine"): void => {
+      this.waiting = this.waiting.slice(1);
+      this.onChoose(conflict, keep);
+      this.render();
+    };
+    new Setting(contentEl)
+      .addButton((button) =>
+        button.setButtonText("Decide later").onClick(() => this.close()),
+      )
+      .addButton((button) =>
+        button
+          .setButtonText("Keep your brain's version")
+          .onClick(() => choose("brain")),
+      )
+      .addButton((button) =>
+        button
+          .setButtonText("Keep your version")
+          .setCta()
+          .onClick(() => choose("mine")),
+      );
+  }
+
+  private version(
+    container: HTMLElement,
+    title: string,
+    where: string,
+    lines: ComparedLine[],
+  ): void {
+    const column = container.createDiv({ cls: "rizom-brain-version" });
+    column.createEl("h4", { text: title });
+    column.createDiv({ text: where, cls: "rizom-brain-reason" });
+    const text = column.createDiv({ cls: "rizom-brain-version-text" });
+    for (const line of lines) {
+      text.createDiv({
+        text: line.text === "" ? BLANK : line.text,
+        ...(line.differs && { cls: "rizom-brain-differs" }),
+      });
+    }
+  }
+
+  override onClose(): void {
+    this.contentEl.empty();
+    this.onClosed();
   }
 }

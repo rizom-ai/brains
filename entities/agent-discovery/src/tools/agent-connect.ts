@@ -1,5 +1,9 @@
 import { authenticatedUserId } from "@brains/contracts";
-import { agentFromMarkdown } from "../lib/agent-content";
+import {
+  agentFromMarkdown,
+  parseAgentEntity,
+  rewriteAgentContent,
+} from "../lib/agent-content";
 import type { FetchLike } from "@brains/utils/fetch-like";
 import { z } from "@brains/utils/zod";
 import { AGENT_ENTITY_TYPE } from "../lib/constants";
@@ -98,10 +102,23 @@ async function upsertConnectedAgent(params: {
   };
 
   if (existing) {
+    // The card refreshes what the peer says of itself; the name the owner
+    // shows it under and the owner's notes are no part of the card.
+    const kept = parseAgentEntity(existing);
+    const content = rewriteAgentContent(
+      parseAgentEntity({ content: built.content }),
+      {
+        shownAs: kept.frontmatter.shownAs,
+        notes: kept.body.notes,
+      },
+    );
     const updated: AgentEntity = {
       ...existing,
-      content: built.content,
-      metadata,
+      content,
+      metadata: {
+        ...metadata,
+        ...(kept.frontmatter.shownAs && { shownAs: kept.frontmatter.shownAs }),
+      },
       updated: now,
     };
     await context.entityService.updateEntity({ entity: updated });

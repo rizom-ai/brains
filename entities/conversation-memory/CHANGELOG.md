@@ -1,5 +1,117 @@
 # @brains/conversation-memory
 
+## 0.2.0-alpha.806
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.806
+  - @brains/dashboard@0.2.0-alpha.806
+  - @brains/action-items@0.2.0-alpha.806
+  - @rizom/brain-ui@0.2.0-alpha.806
+  - @brains/content-formatters@0.2.0-alpha.806
+  - @brains/contracts@0.2.0-alpha.806
+  - @brains/utils@0.2.0-alpha.806
+  - @brains/conversation-service@0.2.0-alpha.806
+
+## 0.2.0-alpha.805
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.805
+  - @rizom/brain-ui@0.2.0-alpha.805
+  - @brains/dashboard@0.2.0-alpha.805
+  - @brains/action-items@0.2.0-alpha.805
+  - @brains/content-formatters@0.2.0-alpha.805
+  - @brains/contracts@0.2.0-alpha.805
+  - @brains/utils@0.2.0-alpha.805
+  - @brains/conversation-service@0.2.0-alpha.805
+
+## 0.2.0-alpha.804
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.804
+  - @rizom/brain-ui@0.2.0-alpha.804
+  - @brains/dashboard@0.2.0-alpha.804
+  - @brains/action-items@0.2.0-alpha.804
+  - @brains/content-formatters@0.2.0-alpha.804
+  - @brains/contracts@0.2.0-alpha.804
+  - @brains/utils@0.2.0-alpha.804
+  - @brains/conversation-service@0.2.0-alpha.804
+
+## 0.2.0-alpha.803
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.803
+  - @rizom/brain-ui@0.2.0-alpha.803
+  - @brains/dashboard@0.2.0-alpha.803
+  - @brains/action-items@0.2.0-alpha.803
+  - @brains/content-formatters@0.2.0-alpha.803
+  - @brains/contracts@0.2.0-alpha.803
+  - @brains/utils@0.2.0-alpha.803
+  - @brains/conversation-service@0.2.0-alpha.803
+
+## 0.2.0-alpha.802
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.802
+  - @rizom/brain-ui@0.2.0-alpha.802
+  - @brains/dashboard@0.2.0-alpha.802
+  - @brains/action-items@0.2.0-alpha.802
+  - @brains/content-formatters@0.2.0-alpha.802
+  - @brains/contracts@0.2.0-alpha.802
+  - @brains/utils@0.2.0-alpha.802
+  - @brains/conversation-service@0.2.0-alpha.802
+
+## 0.2.0-alpha.801
+
+### Patch Changes
+
+- Updated dependencies [[`5e2c373`](https://github.com/rizom-ai/brains/commit/5e2c3736ff82b900ecfb6f689fe067b94cb4766c)]:
+  - @brains/contracts@0.2.0-alpha.801
+  - @brains/sdk@0.2.0-alpha.801
+  - @rizom/brain-ui@0.2.0-alpha.801
+  - @brains/dashboard@0.2.0-alpha.801
+  - @brains/action-items@0.2.0-alpha.801
+  - @brains/content-formatters@0.2.0-alpha.801
+  - @brains/conversation-service@0.2.0-alpha.801
+  - @brains/utils@0.2.0-alpha.801
+
+## 0.2.0-alpha.800
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.800
+  - @rizom/brain-ui@0.2.0-alpha.800
+  - @brains/dashboard@0.2.0-alpha.800
+  - @brains/action-items@0.2.0-alpha.800
+  - @brains/content-formatters@0.2.0-alpha.800
+  - @brains/contracts@0.2.0-alpha.800
+  - @brains/utils@0.2.0-alpha.800
+  - @brains/conversation-service@0.2.0-alpha.800
+
+## 0.2.0-alpha.799
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.799
+  - @rizom/brain-ui@0.2.0-alpha.799
+  - @brains/dashboard@0.2.0-alpha.799
+  - @brains/action-items@0.2.0-alpha.799
+  - @brains/content-formatters@0.2.0-alpha.799
+  - @brains/contracts@0.2.0-alpha.799
+  - @brains/utils@0.2.0-alpha.799
+  - @brains/conversation-service@0.2.0-alpha.799
+
 ## 0.2.0-alpha.798
 
 ### Patch Changes

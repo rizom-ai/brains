@@ -178,6 +178,24 @@ describe("what a partial sync says of the files that need attention", () => {
     ).toEqual([note("post/a.md"), note("coffee.md")]);
   });
 
+  it("keeps what was known when one file was synced, except of that file", () => {
+    const known = [note("tea.md"), note("coffee.md"), note("post/a.md")];
+
+    // A saved file that now went up needs no attention any more.
+    expect(mergePartial(known, [], [], ["tea.md"])).toEqual([
+      note("coffee.md"),
+      note("post/a.md"),
+    ]);
+    // One that was refused again is listed once, with the new reason.
+    expect(
+      mergePartial(known, [{ path: "tea.md", reason: "again" }], [], []),
+    ).toEqual([
+      note("coffee.md"),
+      note("post/a.md"),
+      { path: "tea.md", reason: "again" },
+    ]);
+  });
+
   it("takes a full sync's list as it is", () => {
     expect(mergePartial([note("tea.md")], [note("b.md")], undefined)).toEqual([
       note("b.md"),

@@ -1,5 +1,9 @@
 import type { AuthPrincipal } from "@brains/contracts";
-import { agentActionContract, createExternalActorId } from "@brains/contracts";
+import {
+  agentActionContract,
+  createExternalActorId,
+  studioEntryContextContract,
+} from "@brains/contracts";
 import { coerceConversationMetadata } from "@brains/plugins";
 import { readChatProtocolEvents } from "@brains/contracts/chat";
 import { describe, expect, it, beforeEach, afterEach, spyOn } from "bun:test";
@@ -484,6 +488,86 @@ describe("WebChatPlugin", () => {
       filename: "inbox-source.txt",
       content: expect.stringContaining("Durable context detail"),
     });
+  });
+
+  // Chat beside an open entry reads it through Studio on every turn.
+  async function entryTurn(entry: unknown): Promise<{
+    response: Response;
+    agent: ReturnType<typeof createSpyAgentService>;
+    asked: unknown[];
+  }> {
+    const agent = createSpyAgentService();
+    harness.setAgentService(agent);
+    harness.getMockShell().setConversationService(
+      makeFixedConversationService({
+        conversations: [
+          makeConversation("entry-context", "web-chat", {
+            metadata: JSON.stringify({
+              contextHandoff: {
+                version: 1,
+                sourceId: "studio-entry",
+                itemId: "post:commons",
+                titleSeed: "The Commons",
+              },
+            }),
+          }),
+        ],
+        messagesByConversation: { "entry-context": [] },
+      }),
+    );
+    const plugin = adminPlugin();
+    await harness.installPlugin(plugin);
+    const asked: unknown[] = [];
+    harness.subscribe(studioEntryContextContract.name, async (message) => {
+      asked.push(message.payload);
+      return { success: true, data: entry };
+    });
+    await harness.finalizeRegistration();
+    const response = await requireRoute(plugin, "/api/chat", "POST").handler(
+      new Request("http://brain/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: "entry-context",
+          messages: [
+            {
+              role: "user",
+              parts: [{ type: "text", text: "Draft an excerpt." }],
+            },
+          ],
+        }),
+      }),
+    );
+    return { response, agent, asked };
+  }
+
+  it("gives a turn about an open entry that entry, read as the asker may", async () => {
+    const { response, agent, asked } = await entryTurn({
+      title: "The Commons",
+      typeLabel: "post",
+      markdown: "---\ntitle: The Commons\n---\nA commons starts here.",
+      fields: [{ name: "excerpt", label: "Excerpt" }],
+    });
+
+    expect(response.status).toBe(200);
+    expect(asked).toEqual([
+      {
+        entityType: "post",
+        entityId: "commons",
+        visibilityScope: "restricted",
+      },
+    ]);
+    expect(agent.chatCalls[0]?.context?.attachments?.[0]).toMatchObject({
+      filename: "open-entry.md",
+      content: expect.stringContaining("A commons starts here."),
+    });
+  });
+
+  it("refuses a turn about an entry the asker cannot read", async () => {
+    const { response, agent } = await entryTurn(null);
+
+    expect(response.status).toBe(409);
+    expect(agent.chatCalls).toHaveLength(0);
   });
 
   it("fails closed when stored Inbox context cannot be resolved", async () => {

@@ -139,6 +139,7 @@ const layoutCSS = `
 .seminar-site .seminar-voice a { font-family: var(--font-mono); font-size: 0.75rem; color: var(--color-accent); text-decoration: none; border-bottom: 1px solid var(--color-accent-soft); white-space: nowrap; }
 .seminar-site .seminar-voice a:hover { border-bottom-color: var(--color-accent); }
 .seminar-site .seminar-voice blockquote { margin: 0.9rem 0 0; padding: 0 0 0 1rem; border-left: 2px solid var(--color-rule-strong); font-style: italic; }
+.seminar-site .seminar-voice blockquote p::before, .seminar-site .seminar-voice blockquote p::after { content: none; }
 .seminar-site .seminar-voice h1, .seminar-site .seminar-voice h2, .seminar-site .seminar-voice h3, .seminar-site .seminar-voice h4 { border: 0; padding: 0; font-family: var(--font-mono); font-size: var(--text-label-sm); font-weight: 400; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-text-muted); margin: 1.2rem 0 0; }
 .seminar-site .seminar-voice ul, .seminar-site .seminar-voice ol { margin: 0.9rem 0 0; padding-left: 1.2rem; }
 `;

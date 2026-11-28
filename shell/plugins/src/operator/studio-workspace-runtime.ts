@@ -4,6 +4,7 @@ import type { BasePluginContext } from "../base/context";
 import {
   DECLARATIVE_STUDIO_WORKSPACE_RENDERER,
   type StudioAttentionItem,
+  type StudioPaletteAction,
   type StudioWorkspaceActor,
   type StudioWorkspaceRegistration,
 } from "../types/studio-workspace";
@@ -617,6 +618,7 @@ export function createDeclarativeStudioWorkspaceRegistration<
     ...(input.aliases ? { aliases: input.aliases } : {}),
     ...(definition.publishesEntityTypes ? { publishesEntityTypes: true } : {}),
     ...(definition.section ? { section: definition.section } : {}),
+    ...paletteActionsOf(definition.actions),
     entityTypes: listEntityTypes
       ? (actor): Promise<string[]> =>
           asOperator(actor, () =>
@@ -947,4 +949,18 @@ export function firstPartyStudioOf(
     unregister: (workspaceId): Promise<boolean> =>
       context.studio.unregisterWorkspace(workspaceId),
   });
+}
+
+/** The actions a workspace offers in Studio's ⌘K palette, as Studio lists them. */
+function paletteActionsOf(actions: readonly AnyWorkspaceActionDefinition[]): {
+  paletteActions?: StudioPaletteAction[];
+} {
+  const offered = actions
+    .filter((action) => action.palette === true)
+    .map((action) => ({
+      name: action.name,
+      label: action.label,
+      ...(action.permission ? { permission: action.permission } : {}),
+    }));
+  return offered.length > 0 ? { paletteActions: offered } : {};
 }

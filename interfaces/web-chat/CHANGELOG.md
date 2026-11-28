@@ -1,5 +1,103 @@
 # @brains/web-chat
 
+## 0.2.0-alpha.806
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.806
+  - @brains/app-ui-react@0.2.0-alpha.806
+  - @brains/console-theme@0.2.0-alpha.806
+  - @brains/contracts@0.2.0-alpha.806
+  - @brains/utils@0.2.0-alpha.806
+
+## 0.2.0-alpha.805
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.805
+  - @brains/app-ui-react@0.2.0-alpha.805
+  - @brains/console-theme@0.2.0-alpha.805
+  - @brains/contracts@0.2.0-alpha.805
+  - @brains/utils@0.2.0-alpha.805
+
+## 0.2.0-alpha.804
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.804
+  - @brains/app-ui-react@0.2.0-alpha.804
+  - @brains/console-theme@0.2.0-alpha.804
+  - @brains/contracts@0.2.0-alpha.804
+  - @brains/utils@0.2.0-alpha.804
+
+## 0.2.0-alpha.803
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.803
+  - @brains/app-ui-react@0.2.0-alpha.803
+  - @brains/console-theme@0.2.0-alpha.803
+  - @brains/contracts@0.2.0-alpha.803
+  - @brains/utils@0.2.0-alpha.803
+
+## 0.2.0-alpha.802
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.802
+  - @brains/app-ui-react@0.2.0-alpha.802
+  - @brains/console-theme@0.2.0-alpha.802
+  - @brains/contracts@0.2.0-alpha.802
+  - @brains/utils@0.2.0-alpha.802
+
+## 0.2.0-alpha.801
+
+### Minor Changes
+
+- [#1083](https://github.com/rizom-ai/brains/pull/1083) [`5e2c373`](https://github.com/rizom-ai/brains/commit/5e2c3736ff82b900ecfb6f689fe067b94cb4766c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Ask beside the editor, and the selection bar folds into it.
+
+  - Ask (⌘J, or the Ask button in the editor's head; on a phone, in the bar below the writing) opens Chat beside the open entry, already about it. The conversation is the entry's own: one per person and entry, and full-page Chat shows it too.
+  - Selecting a passage makes Ask about the selection. Review, Fact-check, Related and Rewrite are starters, as the rewrite bar's presets were, and the bar above the body is gone.
+  - Who to ask is picked in the panel: your brain, or a brain you are connected to, which answers from what it has published.
+  - An answer can propose text for one of the entry's fields, the body or the selection. A proposal is a card with Apply or Replace selection; it puts the text in the draft, and nothing is stored until you save.
+  - Web Chat takes an open entry as a conversation's context, read through Studio as the asker may read it, and tells the model how to propose a field's text.
+
+### Patch Changes
+
+- Updated dependencies [[`5e2c373`](https://github.com/rizom-ai/brains/commit/5e2c3736ff82b900ecfb6f689fe067b94cb4766c)]:
+  - @brains/contracts@0.2.0-alpha.801
+  - @brains/sdk@0.2.0-alpha.801
+  - @brains/app-ui-react@0.2.0-alpha.801
+  - @brains/console-theme@0.2.0-alpha.801
+  - @brains/utils@0.2.0-alpha.801
+
+## 0.2.0-alpha.800
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.800
+  - @brains/app-ui-react@0.2.0-alpha.800
+  - @brains/console-theme@0.2.0-alpha.800
+  - @brains/contracts@0.2.0-alpha.800
+  - @brains/utils@0.2.0-alpha.800
+
+## 0.2.0-alpha.799
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.799
+  - @brains/app-ui-react@0.2.0-alpha.799
+  - @brains/console-theme@0.2.0-alpha.799
+  - @brains/contracts@0.2.0-alpha.799
+  - @brains/utils@0.2.0-alpha.799
+
 ## 0.2.0-alpha.798
 
 ### Patch Changes

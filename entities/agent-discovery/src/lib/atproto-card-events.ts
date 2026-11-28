@@ -268,6 +268,10 @@ export async function upsertAgentFromCard(
         organization: savedParsed.frontmatter.organization,
       }),
       brainName: record.brain.name,
+      // The owner's own name for the agent is no part of its card.
+      ...(savedParsed?.frontmatter.shownAs && {
+        shownAs: savedParsed.frontmatter.shownAs,
+      }),
       url,
       ...(brainDid && { brainDid }),
       repoDid: input.repoDid,

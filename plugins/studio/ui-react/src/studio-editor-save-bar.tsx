@@ -1,4 +1,5 @@
 /** @jsxImportSource react */
+import { StudioAskToggle } from "./studio-ask-toggle";
 import { Button } from "@brains/app-ui-react";
 import type { ReactElement } from "react";
 import type { StudioAppViewProps } from "./app-view-props";
@@ -101,6 +102,9 @@ export function StudioEditorSaveBar(
           }
         />
       </div>
+      {props.ask && mode.kind === "edit" && props.model.canAssist && (
+        <StudioAskToggle ask={props.ask} placement="bar" />
+      )}
     </footer>
   );
 }

@@ -18,14 +18,8 @@ import {
   type StudioAppViewProps,
 } from "./app-view";
 import { StudioChrome } from "./studio-chrome";
-import {
-  AgentAnswerPanel,
-  AGENT_INSTRUCTION_PRESETS,
-  applySuggestionToSelection,
-  BodyEditor,
-  createBodyEditorState,
-  MODEL_ASSIST_TARGET,
-} from "./body-editor";
+import { BodyEditor, createBodyEditorState } from "./body-editor";
+import { StudioChatDraftStore } from "./studio-chat-drafts";
 import {
   applyFieldAssistSuggestion,
   Field,
@@ -51,7 +45,6 @@ import {
 import { applyFieldChange, type SaveState } from "./editor-workflow";
 import { createStudioQueryClient } from "./query-client";
 import type {
-  AgentTarget,
   StudioWorkspaceInfo,
   EntityDetail,
   EntityTypeInfo,
@@ -779,6 +772,14 @@ function renderCapabilityView(
     syncStatus: null,
     baselineCommit: null,
     agentTargets: [],
+    ask: {
+      chatApiPath: "/api/chat",
+      draftStore: new StudioChatDraftStore(),
+      open: false,
+      setOpen: () => {},
+      selection: null,
+      setSelection: () => {},
+    },
     deleting: false,
     hasUnsavedChanges: page.dirty ?? false,
     navigationBlocked: false,
@@ -1529,7 +1530,7 @@ describe("capability-aware Studio controls", () => {
     );
     expect(edit).not.toContain("studio-editor-phone-save");
     expect(edit).not.toContain(">Delete<");
-    expect(edit).not.toContain("AI selection rewrite");
+    expect(edit).not.toContain("data-studio-ask-toggle");
     expect(edit).not.toContain("Add to queue");
   });
 
@@ -1585,7 +1586,8 @@ describe("capability-aware Studio controls", () => {
     // Deletion is offered beside the save, not in the footer.
     expect(edit).toContain('aria-label="More document actions"');
     expect(edit).not.toMatch(/data-studio-save-bar[^]*>Delete</);
-    expect(edit).toContain("AI selection rewrite");
+    expect(edit).toContain("data-studio-ask-toggle");
+    expect(edit).not.toContain("AI selection rewrite");
     expect(edit).toContain("Add to queue");
   });
 
@@ -1954,106 +1956,18 @@ describe("BodyEditor", () => {
     expect(state.doc.toString()).toBe("λ paste\n\none\ntwo  \n");
   });
 
-  it("renders the assist controls when assist context is provided", () => {
+  it("has no rewrite bar: a selection is asked about in Ask", () => {
     const html = renderToStaticMarkup(
       createElement(BodyEditor, {
         value: "Original body",
         mode: "source",
         onChange: () => {},
         onModeChange: () => {},
-        assist: { entityType: "post", entityId: "post-1" },
+        onSelectionChange: () => {},
       }),
     );
-    expect(html).toContain("Rewrite selection");
-    expect(html).toContain("AI selection rewrite");
-    expect(html).not.toContain('aria-label="Assist target"');
-  });
-
-  it("defaults the target dropdown to model and lists approved agents", () => {
-    const agents: AgentTarget[] = [
-      { id: "docs.example", label: "Docs" },
-      { id: "review.example", label: "Reviewer" },
-    ];
-    const html = renderToStaticMarkup(
-      createElement(BodyEditor, {
-        value: "Original body",
-        mode: "source",
-        onChange: () => {},
-        onModeChange: () => {},
-        assist: {
-          entityType: "post",
-          entityId: "post-1",
-          agents,
-        },
-      }),
-    );
-
-    expect(MODEL_ASSIST_TARGET).toBe("model");
-    expect(html).toContain('aria-label="Assist target"');
-    expect(html).toContain('<option value="model" selected="">Model</option>');
-    expect(html).toContain('value="docs.example"');
-    expect(html).toContain("Docs — docs.example");
-    expect(AGENT_INSTRUCTION_PRESETS.map((preset) => preset.label)).toEqual([
-      "Review",
-      "Fact-check",
-      "Related",
-      "Rewrite",
-    ]);
-  });
-});
-
-describe("AgentAnswerPanel", () => {
-  const renderAnswer = (onReplace?: () => void): string =>
-    renderToStaticMarkup(
-      createElement(AgentAnswerPanel, {
-        agentId: "docs.example",
-        response: "**Accurate**, with one caveat.",
-        onReplace,
-        onDismiss: () => {},
-      }),
-    );
-
-  it("keeps ordinary answers dismiss-only", () => {
-    const html = renderAnswer();
-
-    expect(html).toContain("Answer from");
-    expect(html).toContain("docs.example");
-    expect(html).toContain('data-streamdown="strong"');
-    expect(html).toContain("Accurate");
-    expect(html).toContain("Dismiss");
-    expect(html).not.toContain("Replace selection");
-    expect(html).not.toContain(">Accept<");
-  });
-
-  it("offers replacement when the ask used rewrite mode", () => {
-    const html = renderAnswer(() => {});
-
-    expect(html).toContain("Replace selection");
-    expect(html).toContain("Dismiss");
-  });
-});
-
-describe("applySuggestionToSelection", () => {
-  it("replaces only the selected range", () => {
-    expect(
-      applySuggestionToSelection(
-        "Alpha beta gamma",
-        { from: 6, to: 10 },
-        "BETA",
-      ),
-    ).toBe("Alpha BETA gamma");
-  });
-
-  it("supports multiline markdown suggestions", () => {
-    expect(
-      applySuggestionToSelection("A\nold\nZ", { from: 2, to: 5 }, "new\ntext"),
-    ).toBe("A\nnew\ntext\nZ");
-  });
-
-  it("rejects stale or invalid ranges", () => {
-    expect(() =>
-      applySuggestionToSelection("short", { from: 2, to: 99 }, "x"),
-    ).toThrow(RangeError);
+    expect(html).not.toContain("AI selection rewrite");
+    expect(html).not.toContain("Rewrite selection");
   });
 });
 

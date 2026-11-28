@@ -1,5 +1,7 @@
 import { definedFields } from "@brains/utils/strip-undefined";
 import { handleRefine, refineTargetOf } from "./editor-refine";
+import { paletteEntries, paletteGroups } from "./palette";
+import { studioJumpDestinations } from "./jump-destinations";
 import {
   issuerFromRequest,
   requireSameOriginJson,
@@ -369,6 +371,42 @@ export function createEditorRoutes(
           workspaceRegistry,
           access,
           options.getGroupingDefinitions,
+        );
+      },
+    },
+    {
+      // ⌘K: the pages and entries a trusted member or an admin may open.
+      path: apiPath("palette"),
+      method: "GET",
+      public: true,
+      handler: async (request): Promise<Response> => {
+        const access = await requireTrustedAccess(request);
+        if (access instanceof Response) return access;
+        const context = getContext();
+        const entityDisplay = getEntityDisplay();
+        const query = (new URL(request.url).searchParams.get("q") ?? "")
+          .trim()
+          .slice(0, 200);
+        const destinations = studioJumpDestinations({
+          context,
+          routePath,
+          permissionLevel: access.permissionLevel,
+          workspaceRegistry,
+          hasChat: resolveStudioChatApiPath(context) !== undefined,
+          entityDisplay,
+        });
+        const entries = await paletteEntries({
+          context,
+          routePath,
+          query,
+          visibilityScope: access.visibilityScope,
+          entityDisplay,
+        });
+        const actions = await workspaceRegistry.listPaletteActions(
+          toStudioWorkspaceActor(access),
+        );
+        return jsonResponse(
+          paletteGroups({ query, destinations, entries, actions, routePath }),
         );
       },
     },

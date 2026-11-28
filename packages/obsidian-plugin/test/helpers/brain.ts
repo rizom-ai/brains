@@ -10,6 +10,7 @@ import {
 } from "@brains/entity-service";
 import { migrateEntities } from "@brains/entity-service/migrate";
 import { createRefusingEmbeddingService } from "@brains/entity-service/test";
+import documentPackage from "@brains/document-plugin";
 import imagePackage from "@brains/image-plugin";
 import notePackage from "@brains/note";
 import {
@@ -129,6 +130,12 @@ export async function openBrain(): Promise<TestBrain> {
       imagePackage,
       "@brains/image-plugin",
       "image",
+      isDeclaredEntityType,
+    ),
+    ...plugins(
+      documentPackage,
+      "@brains/document-plugin",
+      "document",
       isDeclaredEntityType,
     ),
     ...plugins(conflictPackage, "@brains/conflict", "conflicts"),

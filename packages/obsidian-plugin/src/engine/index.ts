@@ -28,6 +28,7 @@ export {
   type FileNote,
   type FirstSyncPlan,
   type Notice,
+  type OpenConflict,
   type SyncReport,
   type SyncStatus,
 } from "./engine";
@@ -37,6 +38,7 @@ export {
   IMAGE_FOLDER,
   conflictCopyPath,
   placementOf,
+  type FileFlavor,
 } from "./paths";
 export {
   emptyState,

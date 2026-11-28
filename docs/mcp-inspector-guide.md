@@ -49,14 +49,15 @@ If `chat` returns `needsConfirmation`, call `confirm` with the returned `approva
 
 ## Debug mode
 
-For local/operator inspection, configure MCP with `mode: debug` to advertise raw tools. Debug mode requires `admin` permissions and is refused for unauthenticated HTTP.
+For local/operator inspection, configure MCP with `mode: debug` to advertise raw tools. Keep the default HTTP transport so Inspector can connect as above:
 
 ```yaml
 plugins:
   mcp:
-    transport: stdio
-    mode: debug
+    mode: debug # transport stays http, the default
 ```
+
+Debug mode requires `admin` permissions. Over HTTP, the MCP interface refuses it unless OAuth (`auth-service`) or a static token is configured. Sign in through the OAuth flow as an Admin: each caller sees only the raw tools their own permission level allows, so a non-Admin account sees few or none. With the static token, the caller is Admin.
 
 Use `debug` only when you intentionally want to bypass the agent-gated command path for inspection or development.
 

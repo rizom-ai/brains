@@ -1,4 +1,5 @@
 /** @jsxImportSource react */
+import { Button } from "@brains/app-ui-react";
 import { StudioChatAttachment } from "./studio-chat-attachment";
 import { chatClass, chatLayout } from "./studio-chat-layout.styles";
 import {
@@ -11,6 +12,11 @@ import { type StudioChatApproval } from "./chat-workspace-model";
 import { StudioMarkdown, useStudioLinkNavigation } from "./studio-markdown";
 import { getStudioRouterBasePath } from "./studio-router";
 import { isPlainLinkClick } from "./link-click";
+import {
+  splitProposals,
+  type Proposal,
+  type ProposalField,
+} from "./chat-proposals";
 import { linkCitedTitles, sourceHref, type CitedSource } from "./chat-mentions";
 import type { ChatSuggestedAction } from "./studio-chat-contracts";
 
@@ -53,6 +59,13 @@ export function ChatEmptyState(props: {
   );
 }
 
+/** What a turn beside an open entry does with the text an answer proposes. */
+export interface ChatTurnProposals {
+  fields: readonly ProposalField[];
+  onApply: (proposal: Proposal) => void;
+  onTryAnother: (proposal: Proposal) => void;
+}
+
 export function ChatTurn(props: {
   disabled: boolean;
   message: ChatHistoryMessage;
@@ -62,7 +75,18 @@ export function ChatTurn(props: {
     approval: StudioChatApproval,
     approved: boolean,
   ) => Promise<void>;
+  /** Who answered, where it is not this brain's Chat ("City Pulse"). */
+  speaker?: string | undefined;
+  /**
+   * Beside an open entry, text an answer proposes for one of its fields is a
+   * card that applies it to the draft, instead of a code block.
+   */
+  proposals?: ChatTurnProposals | undefined;
 }): ReactElement {
+  const split =
+    props.proposals && props.message.role === "assistant"
+      ? splitProposals(props.message.content, props.proposals.fields)
+      : { prose: props.message.content, proposals: [] };
   return (
     <article
       className={chatClass(
@@ -73,7 +97,7 @@ export function ChatTurn(props: {
       data-role={props.message.role}
     >
       <span className={chatClass("studio-chat-turn-label", chatLayout.speaker)}>
-        {props.message.role === "user" ? "You" : "Brain"}
+        {props.message.role === "user" ? "You" : (props.speaker ?? "Brain")}
       </span>
       <div
         className={chatClass(
@@ -82,14 +106,51 @@ export function ChatTurn(props: {
           props.message.role === "user" && chatLayout.userBody,
         )}
       >
-        {props.message.content ? (
+        {split.proposals.map((proposal) => (
+          <section
+            key={proposal.field}
+            className={chatClass("studio-chat-proposal", chatLayout.card)}
+            aria-label={`Proposed ${proposal.label.toLowerCase()}`}
+            data-studio-chat-proposal={proposal.field}
+          >
+            <p className={chatClass("", chatLayout.kicker)}>{proposal.label}</p>
+            <blockquote className={chatClass("", chatLayout.cardText)}>
+              {proposal.text}
+            </blockquote>
+            <div
+              className={chatClass("studio-chat-actions", chatLayout.actions)}
+            >
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                disabled={props.disabled}
+                onClick={() => props.proposals?.onApply(proposal)}
+              >
+                {proposal.field === "selection"
+                  ? "Replace selection"
+                  : `Apply to ${proposal.label.toLowerCase()}`}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                disabled={props.disabled}
+                onClick={() => props.proposals?.onTryAnother(proposal)}
+              >
+                Try another
+              </Button>
+            </div>
+          </section>
+        ))}
+        {split.prose ? (
           props.message.role === "assistant" ? (
             <StudioMarkdown
               className={chatClass("studio-chat-prose", chatLayout.cards)}
               presentation="chat"
             >
               {linkCitedTitles(
-                props.message.content,
+                split.prose,
                 citedSources(props.message.cards),
                 getStudioRouterBasePath(),
               )}

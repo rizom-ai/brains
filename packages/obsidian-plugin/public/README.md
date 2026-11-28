@@ -7,9 +7,10 @@ You need a Rizom brain at version 0.2.0-alpha.769 or later with its drive turned
 ## What it does
 
 - Notes and images go both ways between the vault and your brain. A change made in your brain reaches the vault in about a second.
+- PDFs go both ways too, in the `document` folder. Sending one to your brain needs a brain recent enough to take PDFs; an older one says so, and the PDF stays in the vault.
 - Your vault mirrors your brain: notes at the top, other entries in a folder per type. A file your brain has no place for stays in the vault only, and is listed with the reason.
 - Renaming a note here renames it in your brain. A rename your brain cannot take is undone, with a notice.
-- When a note was changed here and in your brain, your brain's version goes into the vault. Yours is copied to `Conflicts/` and kept in your brain's Inbox. Nothing is lost.
+- When a note was changed here and in your brain, your brain's version goes into the vault. Yours is copied to `Conflicts/` and kept in your brain's Inbox. Nothing is lost. A notice, the status bar and the command "Compare and settle conflicts" show both versions side by side; choosing one clears the copy, and the Inbox entry too when your brain is recent enough to be told.
 - A note deleted here is deleted in your brain. Files that went missing some other way, and more than five deletes at once, wait for your yes.
 - The first sync shows what it will download, upload and replace, and starts only when you say so.
 - Your brain's templates, field definitions and table views are written to `_obsidian/`.
@@ -24,12 +25,12 @@ You need a Rizom brain at version 0.2.0-alpha.769 or later with its drive turned
 
 - **Network.** The plugin talks only to your brain's address, the one you enter. It sends and fetches your notes and images there, and nothing anywhere else. No telemetry, no analytics, no ads.
 - **Account.** It needs an account on your brain, and signs in with an app password made for it.
-- **Stored on your device.** The app password and the record of what was synced are kept in the plugin's `data.json` in this vault's configuration folder, unencrypted, like any plugin's settings. Anyone who can read your vault folder can read it. Revoke the app password in your brain if a device is lost.
+- **Stored on your device.** The app password is kept in Obsidian's secret storage on this device, outside the vault folder, so it is not copied along when the vault is synced, backed up or shared. Obsidian encrypts it with your system's keychain where there is one, and tells you when it cannot. Other plugins you install can read Obsidian's secret storage. The record of what was synced is kept in the plugin's `data.json` in this vault's configuration folder. Revoke the app password in your brain if a device is lost.
 - **Changes outside your notes.** It writes `_obsidian/` and `Conflicts/` in the vault. Once, if you have not chosen a template folder, it points Obsidian's Templates at `_obsidian/templates`.
 
 ## Not yet
 
-- Notes in folders of your own, PDFs and canvases are not synced. They stay in the vault.
+- Notes in folders of your own and canvases are not synced. They stay in the vault.
 - Obsidian's own settings are not synced between devices.
 
 ## Source and license

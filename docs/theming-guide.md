@@ -63,10 +63,11 @@ Our theming system uses a **2-tier hierarchy** that provides both flexibility an
 Tokens live inside CSS cascade layers. `theme-base` declares the layer order
 (`@layer theme-base, theme-override;`), themes wrap their tokens in
 `@layer theme { :root {...} }`, and theme-specific utility overrides go in
-`@layer theme-override`. **Dark mode is the default**: `:root` holds the
-dark-mode values, and `[data-theme="light"]`/`[data-theme="dark"]` selectors
-adjust from there. The example below uses the real `theme-default` palette
-(warm paper/ink/amber):
+`@layer theme-override`. `:root` holds the light-mode values and
+`[data-theme="dark"]` overrides them. **Pages open in dark mode**: the site
+HTML generator sets `data-theme="dark"` on `<html>` unless the site sets a
+`themeMode` or the visitor has stored a preference. The example below uses the
+real `theme-default` palette (warm paper/ink/amber):
 
 ```css
 @layer theme {
@@ -81,7 +82,7 @@ adjust from there. The example below uses the real `theme-default` palette
 
   /* ===== TIER 2: SEMANTIC (Changes at runtime) ===== */
   :root {
-    /* Dark mode is the default; these are the dark-mode values */
+    /* Light-mode values */
     --color-brand: var(--palette-amber);
     --color-accent: var(--palette-amber);
     --color-bg: var(--palette-paper);
@@ -179,7 +180,7 @@ in `@layer theme-base` (in `theme-base.css`); theme-specific overrides live in
 ### Step 2: Add Semantic Token
 
 ```css
-/* Add semantic tokens; :root is the default (dark), then adjust per mode */
+/* Add semantic tokens; :root holds light-mode values, dark overrides them */
 @layer theme {
   :root {
     --color-success: var(--palette-success-green);
@@ -262,19 +263,19 @@ shared/theme-mytheme/
 
   /* ===== TIER 2: SEMANTIC TOKENS ===== */
   :root {
-    /* Dark mode is the default; :root holds the dark-mode values */
+    /* Light-mode values */
     --color-brand: var(--palette-primary);
     --color-accent: var(--palette-secondary);
-    --color-bg: var(--palette-dark);
-    --color-text: var(--palette-light);
+    --color-bg: var(--palette-light);
+    --color-text: var(--palette-dark);
 
     /* More semantic tokens... */
   }
 
-  [data-theme="light"] {
-    /* Light mode overrides */
-    --color-bg: var(--palette-light);
-    --color-text: var(--palette-dark);
+  [data-theme="dark"] {
+    /* Dark mode overrides */
+    --color-bg: var(--palette-dark);
+    --color-text: var(--palette-light);
   }
 }
 
@@ -298,7 +299,7 @@ shared/theme-mytheme/
 
 **3. Reference from `brain.yaml`**:
 
-Themes are resolved by brain instances, not embedded in site packages. A site definition is structural-only: layouts, routes, sections, initial content, entity display, head scripts, and static assets. Theme packages live under `shared/theme-*` and export raw CSS; the resolver loads `site.package` and `site.theme` independently, then composes the chosen theme exactly once before handing it to site-builder.
+Themes are resolved by brain instances, not embedded in site packages. A site definition is structural-only: layouts, routes, sections, initial content, entity display, head scripts, and static assets. Theme packages live under `shared/theme-*` and export raw CSS; the resolver loads `site.package` and `site.theme` independently, then prepends the shared base to the chosen theme exactly once before handing it to site-builder.
 
 **4. Pick the site package and theme in `brain.yaml`**:
 
@@ -319,7 +320,7 @@ A shared site package can still choose a shared theme alongside its site package
 ```yaml
 site:
   package: "@rizom/site-rizom-ai"
-  theme: "@brains/theme-rizom"
+  theme: "@rizom/theme-rizom-ai"
 ```
 
 ---
@@ -338,15 +339,15 @@ site:
 **✅ DO**:
 
 ```css
-/* Semantic tokens that swap at runtime. Dark is the default, so :root
-   holds the dark value and [data-theme="light"] overrides it. */
+/* Semantic tokens that swap at runtime: :root holds the light value and
+   [data-theme="dark"] overrides it. */
 @layer theme {
   :root {
-    --color-text: var(--palette-gray-100);
+    --color-text: var(--palette-gray-900);
   }
 
-  [data-theme="light"] {
-    --color-text: var(--palette-gray-900);
+  [data-theme="dark"] {
+    --color-text: var(--palette-gray-100);
   }
 }
 ```
@@ -409,16 +410,16 @@ bundles:
   - web
   - site
 site:
-  theme: "@brains/theme-rizom"
+  theme: "@rizom/theme-rizom-ai"
 ```
 
-The brain resolver loads `site.package` and `site.theme` independently. App-specific composition belongs in the standalone app repo's local `src/site.tsx`; when `site.package` is explicit, the local file layers over that structural base instead of replacing its plugin, templates, or datasources. The consolidated `sites/rizom-ai` package and `shared/theme-rizom` stay single-sourced in this repo. The resolver validates the theme package, composes it once with `composeTheme(...)`, and injects the resulting CSS into site-builder.
+The brain resolver loads `site.package` and `site.theme` independently. App-specific composition belongs in the standalone app repo's local `src/site.tsx`; when `site.package` is explicit, the local file layers over that structural base instead of replacing its layouts, templates, or datasources. The consolidated `sites/rizom-ai` package and `shared/theme-rizom-ai` stay single-sourced in this repo. The resolver validates the theme package, joins it with any site and instance theme overrides, prepends the shared base once with `withThemeBase(...)` (`shell/app/src/resolver/site.ts`), and injects the resulting CSS into site-builder.
 
 ### Site Builder Integration
 
-The site builder composes CSS in the correct order via `composeTheme()`
-(`shared/theme-base/src/index.ts`), which prepends the shared base before the
-chosen theme:
+The brain resolver hands site-builder CSS in the correct order. It calls
+`withThemeBase()` (`shared/theme-base/src/index.ts`), which prepends the
+shared base before the chosen theme:
 
 1. **theme-base.css** - shared `@theme inline` exposure, `@layer theme-base` utilities, status colors, layer-order declaration
 2. **theme CSS** - your chosen theme's `@layer theme` tokens and `@layer theme-override` styles

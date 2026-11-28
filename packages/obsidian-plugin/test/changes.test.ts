@@ -110,7 +110,8 @@ describe("following a change the brain told of", () => {
   it("asks the brain nothing about a type the vault does not hold", async () => {
     synced = await withTeaAndCup();
 
-    const report = await synced.engine.syncTypes(["conflict", "document"]);
+    // The brain's own record of lost edits, and a type this brain has not.
+    const report = await synced.engine.syncTypes(["conflict", "wishlist"]);
 
     expect(synced.brain.requests).toEqual([]);
     expect(report.scope).toEqual([]);

@@ -29,6 +29,11 @@ import {
   describeImage,
   isLegacyPendingImageBytes,
 } from "@brains/image";
+import {
+  countPdfPages,
+  isLegacyPendingDocumentBytes,
+  isPdfBytes,
+} from "@brains/document";
 import { getErrorMessage } from "@brains/utils/error";
 import { posix } from "path";
 import {
@@ -109,6 +114,8 @@ interface Located {
 }
 
 const IMAGE_TYPE = "image";
+const DOCUMENT_TYPE = "document";
+const PDF_EXTENSION = ".pdf";
 /** Notes sit at the drive's root, each file named by its id. */
 const NOTE_TYPE = "note";
 const INTERFACE_TYPE = "webdav";
@@ -128,7 +135,10 @@ export async function saveEntityFile(
     .extname(sent.segments[sent.segments.length - 1] ?? "")
     .toLowerCase();
   if (IMAGE_EXTENSIONS.includes(extension)) {
-    return saveImageFile(deps, sent, extension);
+    return saveBytesFile(deps, sent, extension, IMAGE_FILES);
+  }
+  if (extension === PDF_EXTENSION) {
+    return saveBytesFile(deps, sent, extension, DOCUMENT_FILES);
   }
   const request = extension === ".yaml" ? asStoredDocument(deps, sent) : sent;
   if (request === undefined) {
@@ -138,7 +148,7 @@ export async function saveEntityFile(
   }
   if (extension !== ".md" && extension !== ".yaml") {
     return (await parentExists(deps, request))
-      ? forbidden("The drive cannot take documents")
+      ? forbidden("The drive stores notes, entries, images and PDFs")
       : noFolder();
   }
   if (request.bytes.byteLength > deps.writes.maxFileBytes) return tooLarge();
@@ -153,7 +163,7 @@ export async function saveEntityFile(
     return forbidden(
       entityType === IMAGE_TYPE
         ? "An image is stored as its image file"
-        : "The drive cannot take documents",
+        : "A document is stored as its PDF file",
     );
   }
   return located
@@ -405,16 +415,115 @@ async function createEntityFile(
   };
 }
 
+/** What the bytes of a file are, as the entity that holds them records it. */
+type Described =
+  { metadata: Record<string, unknown> } | { status: 422; message: string };
+
+/** A kind of file the brain stores by its bytes: images, and PDFs. */
+interface BytesFiles {
+  entityType: string;
+  /** What a person calls one, in a refusal. */
+  noun: string;
+  /** Said when a file of this kind is saved outside its type's folder. */
+  wrongFolder: string;
+  /**
+   * What the entity records of these bytes besides their size, over what it
+   * recorded before; a refusal when they are not a file of this kind.
+   */
+  describe(file: {
+    bytes: Uint8Array;
+    digest: string;
+    extension: string;
+    name: string;
+    existing: Record<string, unknown> | undefined;
+  }): Promise<Described>;
+}
+
+const IMAGE_FILES: BytesFiles = {
+  entityType: IMAGE_TYPE,
+  noun: "image",
+  wrongFolder: "An image can only be stored in the image folder",
+  describe: async ({ bytes, digest, extension, existing }) => {
+    const described = await describeImage(bytesImageReader(bytes));
+    if (!described) {
+      return {
+        status: 422,
+        message: "The file is not a PNG, JPEG, GIF or WebP image",
+      };
+    }
+    // The extension is part of the entity's place: bytes of another format
+    // would be stored under another name than the one just written.
+    const stored = getExtensionForFormat(described.format);
+    if (stored !== extension) {
+      return {
+        status: 422,
+        message: `These bytes are stored as ${stored}; save the image under that extension`,
+      };
+    }
+    // A copy of a file an earlier export mirrored for an image still awaiting
+    // its bytes holds the placeholder it once carried, never its bytes.
+    const status = existing?.["status"];
+    if (
+      typeof status === "string" &&
+      isLegacyPendingImageBytes(digest, status)
+    ) {
+      return {
+        status: 422,
+        message:
+          "These bytes are the old pending placeholder, not this image's bytes",
+      };
+    }
+    return { metadata: { ...existing, ...described } };
+  },
+};
+
+const DOCUMENT_FILES: BytesFiles = {
+  entityType: DOCUMENT_TYPE,
+  noun: "document",
+  wrongFolder: "A PDF can only be stored in the document folder",
+  describe: async ({ bytes, digest, name, existing }) => {
+    if (!isPdfBytes(bytes)) {
+      return { status: 422, message: "The file is not a PDF" };
+    }
+    // What pending documents once carried in place of their bytes.
+    if (isLegacyPendingDocumentBytes(digest)) {
+      return {
+        status: 422,
+        message:
+          "These bytes are the old pending placeholder, not a document's bytes",
+      };
+    }
+    // The pages of the bytes before are not these bytes'; zero is "unknown".
+    // And it has its bytes now: it is not waiting for them, nor failed.
+    const {
+      pageCount: _pages,
+      status: _status,
+      processingJobId: _job,
+      processingError: _error,
+      ...kept
+    } = existing ?? {};
+    const pageCount = countPdfPages(bytes);
+    return {
+      metadata: {
+        // A new one is a file a person put there, as an upload is.
+        ...(existing ? kept : { filename: name, attachmentType: "uploaded" }),
+        mimeType: "application/pdf",
+        ...(pageCount > 0 && { pageCount }),
+      },
+    };
+  },
+};
+
 /**
- * Save an image file as the image entity its name is, the way a file dropped
- * into `brain-data/image/` is imported: the bytes say what the image is, they
- * are staged as an asset, and the entity that references them is written in
- * the same step. Nothing is staged until the save is known to be allowed.
+ * Save a file the brain stores by its bytes as the entity its path names:
+ * its type's folder only, the bytes checked for what they are, the action
+ * policy asked before any are stored, and over the version it was based on.
  */
-async function saveImageFile(
+async function saveBytesFile(
   deps: WriteDeps,
   request: SaveRequest,
   extension: string,
+  files: BytesFiles,
 ): Promise<WriteOutcome> {
   const { writes, tree } = deps;
   const { segments, bytes, grant } = request;
@@ -423,64 +532,40 @@ async function saveImageFile(
   const placement = located
     ? { entityType: located.entity.entityType, id: located.entity.id }
     : tree.placementAt(segments, extension);
-  if (placement?.entityType !== IMAGE_TYPE) {
-    return forbidden("An image can only be stored in the image folder");
+  if (placement?.entityType !== files.entityType) {
+    return forbidden(files.wrongFolder);
   }
   if (bytes.byteLength > writes.maxAssetBytes) return tooLarge();
   if (located && request.onlyIfAbsent) return taken();
   if (located && !matches(request.ifMatch, located.file.etag)) return stale();
 
-  const described = await describeImage(bytesImageReader(bytes));
-  if (!described) {
-    return {
-      status: 422,
-      message: "The file is not a PNG, JPEG, GIF or WebP image",
-    };
-  }
-  // The extension is part of the entity's place: bytes of another format
-  // would be stored under another name than the one just written.
-  const stored = getExtensionForFormat(described.format);
-  if (stored !== extension) {
-    return {
-      status: 422,
-      message: `These bytes are stored as ${stored}; save the image under that extension`,
-    };
-  }
-  // A copy of a file an earlier export mirrored for an image still awaiting
-  // its bytes holds the placeholder it once carried, never its bytes.
-  const status = located?.entity.metadata["status"];
-  if (
-    typeof status === "string" &&
-    isLegacyPendingImageBytes(
-      createHash("sha256").update(bytes).digest("hex"),
-      status,
-    )
-  ) {
-    return {
-      status: 422,
-      message:
-        "These bytes are the old pending placeholder, not this image's bytes",
-    };
-  }
+  const described = await files.describe({
+    bytes,
+    digest: createHash("sha256").update(bytes).digest("hex"),
+    extension,
+    name: segments[segments.length - 1] ?? "",
+    existing: located?.entity.metadata,
+  });
+  if ("status" in described) return described;
 
   const operation = located ? "update" : "create";
   const target = {
     id: placement.id,
-    entityType: IMAGE_TYPE,
+    entityType: files.entityType,
     visibility: located?.entity.visibility ?? ("public" as const),
   };
   const refused = await refusal(deps, grant, operation, target, [operation]);
   if (refused) return refused;
 
-  // A save that names no version is based on the image this mount last
-  // held. Over a newer one it is refused: the image stays with the person
+  // A save that names no version is based on the file this mount last
+  // held. Over a newer one it is refused: the file stays with the person
   // who sent it, and nothing is kept for the Inbox.
   if (located && request.ifMatch === null) {
     const base = await deps.mount.base();
     if (base !== undefined && base.hash !== located.entity.contentHash) {
       return {
         status: 409,
-        message: "The image changed since this drive last read it",
+        message: `The ${files.noun} changed since this drive last read it`,
       };
     }
   }
@@ -491,11 +576,7 @@ async function saveImageFile(
   });
   const fields = {
     content: stagedAsset.ref,
-    metadata: {
-      ...located?.entity.metadata,
-      ...described,
-      sizeBytes: stagedAsset.sizeBytes,
-    },
+    metadata: { ...described.metadata, sizeBytes: stagedAsset.sizeBytes },
   };
   const options = { eventContext: eventContext(grant) };
   const result = await attemptAsync(

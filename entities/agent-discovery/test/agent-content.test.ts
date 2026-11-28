@@ -579,3 +579,35 @@ Test agent.
     });
   });
 });
+
+describe("the name an owner shows an agent under", () => {
+  const input = {
+    name: "Karl",
+    kind: "person" as const,
+    brainName: "Karl",
+    shownAs: "Marx",
+    url: "https://karl.example/a2a",
+    status: "approved" as const,
+    discoveredAt: "2026-03-31T00:00:00.000Z",
+    about: "",
+    skills: [],
+    notes: "",
+  };
+
+  it("is kept in the agent's header and indexed in its metadata", () => {
+    const content = createAgentContent(input);
+    const parsed = agentFromMarkdown(content);
+
+    expect(content).toContain("shownAs: Marx");
+    expect(parsed.metadata.shownAs).toBe("Marx");
+    expect(parsed.metadata.name).toBe("Karl");
+  });
+
+  it("is absent from an agent the owner gave none", () => {
+    const { shownAs: _shownAs, ...plain } = input;
+    const content = createAgentContent(plain);
+
+    expect(content).not.toContain("shownAs");
+    expect(agentFromMarkdown(content).metadata.shownAs).toBeUndefined();
+  });
+});

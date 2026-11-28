@@ -18,6 +18,7 @@ import { dashboardFixtureInput } from "./dashboard-fixture";
 import { dashboardWidgetRendering } from "./dashboard-widgets";
 import {
   accountFixture,
+  askMessages,
   cardMessages,
   entities,
   entity,
@@ -290,6 +291,12 @@ export function createFixtureRoutes(
         })
       : undefined;
 
+  // Ask beside an entry opens the entry's own conversation.
+  const chatContextSessions: FixtureRoute = (request, url) =>
+    url.pathname === "/api/chat/context-sessions" && request.method === "POST"
+      ? json({ conversationId: "web-context-ask" })
+      : undefined;
+
   const chatMessages: FixtureRoute = (_request, url) => {
     if (url.pathname !== "/api/chat/messages") return undefined;
     const id = url.searchParams.get("id");
@@ -297,11 +304,13 @@ export function createFixtureRoutes(
       messages:
         studyState === "empty"
           ? []
-          : id === "cards"
-            ? cardMessages
-            : id === "empty"
-              ? []
-              : messages,
+          : id === "web-context-ask"
+            ? askMessages
+            : id === "cards"
+              ? cardMessages
+              : id === "empty"
+                ? []
+                : messages,
     });
   };
 
@@ -603,6 +612,48 @@ export function createFixtureRoutes(
   const consoleJump: FixtureRoute = (_request, url) =>
     url.pathname === "/api/console/jump" ? json({ groups: [] }) : undefined;
 
+  // ⌘K in Studio: what a trusted member may run and open before anything is typed.
+  const studioPalette: FixtureRoute = (_request, url) =>
+    url.pathname === "/studio/api/palette"
+      ? json({
+          groups: [
+            {
+              id: "actions",
+              label: "Actions",
+              items: [
+                {
+                  id: "site-builder:site:build-preview",
+                  title: "Build preview",
+                  sub: "Site",
+                  href: "/studio/workspaces/site-builder%3Asite",
+                  run: {
+                    workspaceId: "site-builder:site",
+                    actionId: "build-preview",
+                  },
+                },
+              ],
+            },
+            {
+              id: "pages",
+              label: "Pages",
+              items: [
+                {
+                  id: "workspace:studio:overview",
+                  title: "Home",
+                  href: "/studio/workspaces/studio%3Aoverview",
+                },
+                {
+                  id: "workspace:content-pipeline:publishing",
+                  title: "Publish",
+                  href: "/studio/workspaces/content-pipeline%3Apublishing",
+                },
+                { id: "chat", title: "Chat", href: "/chat" },
+              ],
+            },
+          ],
+        })
+      : undefined;
+
   const routes: readonly FixtureRoute[] = [
     fixtureImage,
     dashboard,
@@ -610,6 +661,7 @@ export function createFixtureRoutes(
     chatSessions,
     busyChatStream,
     chatUploads,
+    chatContextSessions,
     chatMessages,
     studioShell,
     studioAsset,
@@ -626,6 +678,7 @@ export function createFixtureRoutes(
     home,
     syncStatus,
     consoleJump,
+    studioPalette,
   ];
 
   return {

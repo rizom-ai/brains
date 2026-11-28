@@ -56,6 +56,8 @@ describe("the seminar package's registered surface", () => {
     const { shell } = await installed();
     expect([...shell.getTemplates().keys()].sort()).toEqual([
       "seminar:ask",
+      "seminar:note-detail",
+      "seminar:note-list",
       "seminar:seminar-detail",
       "seminar:seminar-list",
     ]);
@@ -64,7 +66,7 @@ describe("the seminar package's registered surface", () => {
         .getDataSourceRegistry()
         .list()
         .map(({ id }) => id),
-    ).toEqual(["seminar:ask", "seminar:entities"]);
+    ).toEqual(["seminar:ask", "seminar:entities", "seminar:notes"]);
   });
 
   it("offers the owner alone one tool, which holds a seminar", async () => {

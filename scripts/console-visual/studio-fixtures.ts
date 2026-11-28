@@ -310,6 +310,21 @@ export const messages = [
 // specify: user upload chip, retrieved-source citations, suggested actions,
 // and an exported attachment card. Cards render as <details>; the capture
 // opens them. Short enough that the whole exchange fits at 1440×1000.
+/** The field notes' own conversation in Ask: a proposal, then the answer. */
+export const askMessages = [
+  {
+    id: "ask-1",
+    role: "user",
+    content: "Draft a summary, and tell me whether the opening holds.",
+  },
+  {
+    id: "ask-2",
+    role: "assistant",
+    content:
+      "```proposal summary\nA calm console keeps dense systems legible while the viewport changes around it.\n```\n\nThe opening holds, but it claims calm without showing it. The paged list under Responsive field rules would carry the point.",
+  },
+];
+
 export const cardMessages = [
   {
     id: "m5",

@@ -58,26 +58,36 @@ All entity CRUD goes through shared system tools. Entity plugins intentionally d
 
 Common tools:
 
-| Tool               | Purpose                                                                                                                                                                  |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `system_create`    | Create an entity from existing material. Use `source.kind` (`text`, `url`, `upload`, or `prior-response`) to select the concrete source, and `visibility` to set access. |
-| `system_update`    | Update fields, apply exact text edits, or replace full content. Requires confirmation for writes.                                                                        |
-| `system_delete`    | Delete an entity. Requires confirmation.                                                                                                                                 |
-| `system_get`       | Fetch one entity by id, slug, or title.                                                                                                                                  |
-| `system_list`      | List entities by type, optionally filtered by status.                                                                                                                    |
-| `system_search`    | Search across entities, optionally filtered by type.                                                                                                                     |
-| `system_analytics` | Return aggregate metrics and reports registered by the runtime or plugins.                                                                                               |
+| Tool               | Purpose                                                                                                                                  |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `system_create`    | Create an entity from existing material. `source.kind` selects the source, and `visibility` sets access (see [Visibility](#visibility)). |
+| `system_update`    | Update fields, apply exact text edits, or replace full content. Requires confirmation for writes.                                        |
+| `system_delete`    | Delete an entity. Requires confirmation.                                                                                                 |
+| `system_get`       | Fetch one entity by id, slug, or title.                                                                                                  |
+| `system_list`      | List entities by type, optionally filtered by status.                                                                                    |
+| `system_search`    | Search entities. `scope` is required: `{"kind":"all"}` for every type, or `{"kind":"type","entityType":"post"}` for one type.            |
+| `system_analytics` | Return aggregate metrics and reports registered by the runtime or plugins.                                                               |
+
+`system_create` takes one `source`, chosen by `kind`:
+
+| `source.kind`    | What it saves                                                                                                                |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `text`           | Literal content given in the call.                                                                                           |
+| `user-message`   | Text the user already pasted in this conversation, read from the stored message between exact boundaries.                    |
+| `url`            | A URL or domain, for URL-backed types such as links and agents.                                                              |
+| `upload`         | One file attached in chat, by upload `id`, with `transform: "extract-markdown"` (import its text) or `"preserve"` (keep it). |
+| `uploads`        | Two to twenty attached files from one request, under one confirmation (see [Chat uploads](#chat-uploads)).                   |
+| `prior-response` | An earlier assistant answer in this conversation.                                                                            |
+| `entity`         | An existing entity's text, without its frontmatter, as a new entity of another type ("turn my note X into a post").          |
 
 Examples:
 
 ```bash
 brain tool system_create '{"entityType":"note","title":"Idea","source":{"kind":"text","content":"# Idea\n\nA short note."}}'
 brain tool system_create '{"entityType":"note","visibility":"restricted","source":{"kind":"text","content":"Private operating note."}}'
-brain tool system_search '{"query":"recent published posts","entityType":"post"}'
+brain tool system_search '{"query":"recent published posts","scope":{"kind":"type","entityType":"post"}}'
 brain tool system_list '{"entityType":"post","status":"draft"}'
 ```
-
-For creation, omit `visibility` for public content, use `shared` for content readable by Trusted and Admin callers, and use `restricted` for Admin-only content. Visibility is a sibling of `source`; do not add policy frontmatter to exact source text merely to select access.
 
 `system_update` takes exactly one typed `operation`: `fields`, `edits`, `content`, or `source`. Use the `fields` operation for frontmatter/metadata changes:
 
@@ -105,6 +115,39 @@ Use the `content` operation only for intentional whole-document replacement; tex
 
 The initial call proposes changes without writing them. Approve through the confirmation flow; stale or altered approvals are rejected. Basic MCP clients continue to use agent-backed `chat` and `confirm`, not direct mutation tools.
 
+### Create from your own text
+
+When you paste your own text and ask for a post, project, deck, or doc, the text is kept as written and the brain adds only what the type needs around it. If something is missing, the brain asks before the single approval, and the text you pasted is held while you answer:
+
+- a post asks for a title when the text has none, and its generation adds the excerpt, author, and status;
+- a project asks which year it began when the text does not say, and for a one-sentence summary;
+- a doc asks which section it goes in, unless the docs have only one section;
+- a deck asks where the slides break when the text has no `---` separators and cannot be split at its headings.
+
+Facts you state outside the text go in `fields`, for example `{"status":"published","publishedAt":"2025-03-12","canonicalUrl":"https://example.com/essay"}` for an essay first published elsewhere.
+
+### Chat uploads
+
+Files attached in Studio Chat or a chat platform can be saved as content. Only Trusted and Admin users' attachments reach the brain; public users can chat, but their files are not downloaded.
+
+What each file becomes depends on its type and on whether you ask to import its text or keep the file itself:
+
+| File                         | Imported as text (`extract-markdown`)                          | Kept as a file (`preserve`) |
+| ---------------------------- | -------------------------------------------------------------- | --------------------------- |
+| Markdown, plain text         | A note, or a post or other type you name, from the file's text | Not available               |
+| PDF                          | A note holding the extracted text, up to 5 MB and 50 pages     | A `document` entity         |
+| Image (PNG, JPEG, WebP, GIF) | Not available                                                  | An `image` entity           |
+
+A note imported from a file takes its title from the file's first level-1 `#` heading, or from the file name when there is none. A title you state wins over both. Extracted PDF text is flat paragraphs, one per page, with no headings or lists.
+
+An essay can be kept as a post with its original publication facts: name the date and address it was first published at, and they are saved as the post's `publishedAt` and `canonicalUrl`.
+
+Several files attached to one request are saved together. The brain makes one `system_create` call with `source.kind: "uploads"` listing every file (2 to 20), each with its own transform, title, and fields. The confirmation lists every file and what it becomes, and nothing is saved until you approve. Two files that would land on the same entity are refused before the confirmation; a file that fails to save does not stop the others.
+
+When processing a saved file fails, its entry is left with `status: failed`. An Admin who retries it under the same title replaces the failed entry, keeping its id, instead of being refused as a duplicate; the confirmation says which failed entry it replaces.
+
+AI tools connected over MCP, such as Claude Desktop, send text only: the MCP `chat` tool takes a message and no attachments. To save a file from there, paste its text, or attach the file in Studio Chat.
+
 ### Studio
 
 When the `studio` plugin is active and the brain serves HTTP, the web surface exposes a Studio for editing configured entity types. Start the brain and open the local web host:
@@ -114,7 +157,7 @@ brain start
 # open http://localhost:8080/studio
 ```
 
-The Studio is most useful for frontmatter-driven content such as posts, decks, projects, site-info, site-content, and newsletters. Exact Studio collections depend on selected bundles, additions/removals, and active entity plugins.
+The Studio is most useful for frontmatter-driven content such as posts, decks, projects, site-info, site-content, and newsletters. Exact Studio collections depend on selected bundles, additions/removals, and active entity plugins. See [Studio](./studio.md) for a tour.
 
 ### Direct markdown edits
 
@@ -123,7 +166,7 @@ When `directory-sync` is active, files in `brain-data/` are imported into the en
 Typical workflow:
 
 1. edit markdown under `brain-data/`
-2. keep the brain running so file watching can import changes, or trigger a sync command/tool when available
+2. keep the brain running so file watching can import changes, or run `brain sync` (the `directory_sync` tool)
 3. commit content changes if `brain-data/` is backed by git
 
 If `directory-sync.git` is configured, the content directory can sync with a remote content repository:
@@ -140,6 +183,8 @@ For the git-command-oriented lifecycle and conflict policy, see [Directory Sync 
 
 `directory-sync` also handles recipe-owned seed content on first run. Seed content is copied only when the target `brain-data/` directory is effectively empty. For local `file://` git remotes, `git.bootstrapFromSeed` defaults to `true` and can create/seed a missing or empty bare remote from `seedContentPath`.
 
+The same files can also be edited through the brain's drive (WebDAV) and Obsidian; see [Drive and Obsidian](./drive-and-obsidian.md).
+
 ### Generation jobs
 
 Some entity types own generation or capture workflows:
@@ -150,6 +195,33 @@ Some entity types own generation or capture workflows:
 - topics, skills, and SWOT entries are usually derived from existing content
 
 Create and generate requests use the standard confirmation flow before anything is persisted or queued. After confirmation, a generation call may return `{ status: "generating", jobId }` instead of an immediate entity. Check job status through runtime tools or wait for progress in MCP/chat clients.
+
+## Visibility
+
+Every entity has one of three visibilities. As the owner, choose by who should read it:
+
+| Visibility   | Who can read it                                                                                                                                              |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `public`     | Everyone, including site visitors, guest chat, and public A2A callers. The default when `visibility` is omitted. Only public content is built into the site. |
+| `shared`     | Trusted and Admin callers. Peer brains you trust at `trusted` can also ask for a shared entity and take a signed copy of it.                                 |
+| `restricted` | Admin callers only.                                                                                                                                          |
+
+A caller can only write at a visibility they can read, so a Trusted caller cannot create `restricted` content. Visibility is a sibling of `source`; do not add policy frontmatter to exact source text merely to select access. If both are given and they disagree, the create is refused.
+
+Marking an entity `shared` is also how you share it with other brains. A trusted peer asks for it by type and id; your brain answers without a model and signs what it serves. The peer keeps it as a read-only `shared-copy` entity, refreshed daily while you keep sharing it and erased to a stub when you stop. See [Agent Discovery](./agent-discovery.md) for the details.
+
+## Edit conflicts
+
+An entry can be changed in several places at once: Studio, the drive, a file in `brain-data/`, and the content repository. When an edit was made over a version that is no longer the current one, the brain does not save it over the newer version and does not drop it. It keeps the losing edit as a conflict in the Inbox:
+
+| Where the edit came from | What happens                                                                                                   |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| Studio                   | The save is refused with "This entry changed since it was opened"; your version is kept as a conflict.         |
+| Drive (WebDAV)           | The save is accepted by the drive, but kept as a conflict instead of replacing the current version.            |
+| File in `brain-data/`    | The file's edit is kept as a conflict, and the file is rewritten with the brain's version.                     |
+| Git pull                 | When both sides changed the same lines, the brain's version stays and the remote's text is kept as a conflict. |
+
+Each conflict in the Inbox names the entry and where the edit came from, and shows how it differs from the current version. **Apply this version** replaces the current version with the edit, after a confirmation; **Keep current** dismisses it. The person who made the edit, or an Admin, can resolve it, from the Inbox or from the entry in Studio. An image that changed in both places is not kept as a conflict: the brain's newer image stays, and the file takes it.
 
 ## Publishing workflow
 
@@ -243,6 +315,9 @@ Before publishing or deploying content:
 
 - [Entity Types Reference](./entity-types-reference.md)
 - [Directory Sync Git Overview](./directory-sync-git.md)
+- [Studio](./studio.md)
+- [Drive and Obsidian](./drive-and-obsidian.md)
+- [Agent Discovery](./agent-discovery.md)
 - [Extensible Entity Model](./entity-model.md)
 - [brain.yaml Reference](../packages/brain-cli/docs/brain-yaml-reference.md)
 - [CLI Reference](../packages/brain-cli/docs/cli-reference.md)

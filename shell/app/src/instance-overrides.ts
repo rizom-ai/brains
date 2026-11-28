@@ -235,14 +235,11 @@ const instanceOverridesSchema: InstanceOverridesSchema = z.strictObject({
   spaces: z.array(z.string()).optional(),
 
   /**
-   * Per-plugin config overrides and external plugin declarations, keyed by plugin ID.
-   *
-   * Existing built-in override shape remains:
+   * Per-plugin config overrides, keyed by plugin ID:
    *   plugins.directory-sync.git.repo: ...
    *
-   * External packages reserve `package` and optional nested `config`:
-   *   plugins.calendar.package: "@rizom/brain-plugin-calendar"
-   *   plugins.calendar.config.apiKey: "${CALENDAR_API_KEY}"
+   * A `package` key is rejected: external plugins are no longer declared
+   * here but composed with use() in defineBrain().
    */
   plugins: z.record(z.string(), pluginOverrideEntrySchema).optional(),
 

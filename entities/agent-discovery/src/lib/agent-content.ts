@@ -38,6 +38,8 @@ export interface CreateAgentContentInput {
   kind: AnchorProfileKind;
   organization?: string | undefined;
   brainName: string;
+  /** The name the owner shows the agent under. */
+  shownAs?: string | undefined;
   url: string;
   repoDid?: string | undefined;
   brainDid?: string | undefined;
@@ -76,6 +78,7 @@ function bodyOf(markdown: string): string {
 export function agentMetadataOf(frontmatter: AgentFrontmatter): AgentMetadata {
   return {
     name: frontmatter.name,
+    ...(frontmatter.shownAs && { shownAs: frontmatter.shownAs }),
     url: frontmatter.url,
     status: frontmatter.status,
     discoveredAt: frontmatter.discoveredAt,
@@ -125,6 +128,7 @@ export function createAgentContent(input: CreateAgentContentInput): string {
     kind: input.kind,
     ...(input.organization && { organization: input.organization }),
     brainName: input.brainName,
+    ...(input.shownAs && { shownAs: input.shownAs }),
     url: input.url,
     ...(input.repoDid && { repoDid: input.repoDid }),
     ...(input.brainDid && { brainDid: input.brainDid }),

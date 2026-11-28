@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@brains/app-ui-react";
 import { useEffect, type ReactElement } from "react";
+import { openStudioPalette } from "./palette-events";
 import { STUDIO_ACCOUNT_WORKSPACE_ID } from "../../src/account-workspace";
 import { studioWorkspacePath } from "../../src/studio-paths";
 import type { EntityTypeInfo, StudioWorkspaceInfo } from "./api";
@@ -215,6 +216,8 @@ export function StudioChrome(props: {
           )}
           type="button"
           aria-label="Search or run a command"
+          aria-keyshortcuts="Control+k Meta+k"
+          onClick={openStudioPalette}
         >
           <span className="command-chip-hint">Search or run a command…</span>
           <kbd className={navClass("", chrome.key)}>⌘K</kbd>
