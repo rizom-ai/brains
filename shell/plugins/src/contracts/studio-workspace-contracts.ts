@@ -116,6 +116,30 @@ export type StudioSection = (typeof STUDIO_SECTIONS)[number];
 /** One retired workspace id and the stable query state of its replacement. */
 export type StudioWorkspaceAlias = z.output<typeof studioWorkspaceAliasSchema>;
 
+type StudioPaletteActionSchema = z.ZodObject<
+  {
+    name: z.ZodString;
+    label: z.ZodString;
+    permission: z.ZodOptional<
+      z.ZodEnum<{ public: "public"; trusted: "trusted"; admin: "admin" }>
+    >;
+  },
+  z.core.$strict
+>;
+
+/**
+ * An action a workspace offers in Studio's ⌘K palette: run by name with no
+ * input, from any page, by whoever its permission and the workspace admit.
+ */
+export const studioPaletteActionSchema: StudioPaletteActionSchema =
+  z.strictObject({
+    name: z.string().trim().min(1).max(100),
+    label: z.string().trim().min(1).max(100),
+    permission: z.enum(["public", "trusted", "admin"]).optional(),
+  });
+
+export type StudioPaletteAction = z.output<typeof studioPaletteActionSchema>;
+
 type StudioWorkspaceRegistrationSchema = z.ZodObject<{
   id: z.ZodString;
   pluginId: z.ZodString;
@@ -159,6 +183,9 @@ type StudioWorkspaceRegistrationSchema = z.ZodObject<{
       StudioWorkspaceAttentionProvider,
       StudioWorkspaceAttentionProvider
     >
+  >;
+  paletteActions: z.ZodOptional<
+    z.ZodReadonly<z.ZodArray<StudioPaletteActionSchema>>
   >;
 }>;
 
@@ -218,6 +245,11 @@ export const studioWorkspaceRegistrationSchema: StudioWorkspaceRegistrationSchem
         (value) => typeof value === "function",
         { message: "Expected Studio workspace attention provider function" },
       )
+      .optional(),
+    paletteActions: z
+      .array(studioPaletteActionSchema)
+      .max(20)
+      .readonly()
       .optional(),
   });
 

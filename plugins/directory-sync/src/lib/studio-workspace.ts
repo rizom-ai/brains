@@ -110,6 +110,8 @@ const syncNowAction = defineWorkspaceAction({
   name: "sync-now",
   label: "Sync now",
   permission: "admin",
+  // Offered in ⌘K, from any page.
+  palette: true,
   input: z.object({}),
   output: z.object({
     accepted: z.boolean(),

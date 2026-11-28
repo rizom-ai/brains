@@ -18,6 +18,7 @@ import {
   type PaletteType,
 } from "./palette-model";
 import { useStudioApi } from "./studio-api-context";
+import { errorMessage } from "./ui-utils";
 import { OPEN_STUDIO_PALETTE_EVENT } from "./palette-events";
 import { paletteStyles as s } from "./studio-palette.styles";
 
@@ -33,7 +34,8 @@ export function StudioPalette(props: {
   types: readonly PaletteType[];
   hasChat: boolean;
   openEntry: { typeLabel: string } | null;
-  onCommand: (command: PaletteCommand) => void;
+  /** Does what was chosen; a page's action may fail, which the palette says. */
+  onCommand: (command: PaletteCommand) => void | Promise<void>;
 }): ReactElement {
   const api = useStudioApi();
   const listId = useId();
@@ -41,6 +43,8 @@ export function StudioPalette(props: {
   const [query, setQuery] = useState("");
   const [remote, setRemote] = useState<StudioPaletteResult | null>(null);
   const [active, setActive] = useState(0);
+  const [running, setRunning] = useState<string | null>(null);
+  const [failure, setFailure] = useState<string | null>(null);
 
   // ⌘K anywhere, and the chrome's chip, open it.
   useEffect(() => {
@@ -101,10 +105,22 @@ export function StudioPalette(props: {
     setOpen(false);
     setQuery("");
     setActive(0);
+    setFailure(null);
   };
   const choose = (command: PaletteCommand): void => {
-    close();
-    props.onCommand(command);
+    if (command.kind !== "run") {
+      close();
+      void props.onCommand(command);
+      return;
+    }
+    if (running) return;
+    // A page's action runs before the palette closes, so a failure is said here.
+    setRunning(command.actionId);
+    setFailure(null);
+    Promise.resolve(props.onCommand(command))
+      .then(close)
+      .catch((error: unknown) => setFailure(errorMessage(error)))
+      .finally(() => setRunning(null));
   };
   const keydown = (event: KeyboardEvent<HTMLInputElement>): void => {
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
@@ -160,6 +176,11 @@ export function StudioPalette(props: {
             onKeyDown={keydown}
           />
         </div>
+        {(running ?? failure) && (
+          <p {...stylex.props(s.empty)} role="status">
+            {running ? "Running…" : failure}
+          </p>
+        )}
         <div {...stylex.props(s.list)} id={listId} role="listbox">
           {items.length === 0 ? (
             <p {...stylex.props(s.empty)}>Nothing matches “{query.trim()}”.</p>

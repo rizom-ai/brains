@@ -3,7 +3,8 @@ import { entityTypeLabels, type EntityDisplayLabel } from "./config";
 import type { StudioPalette, StudioPaletteItem } from "./palette-contract";
 import type { StudioContext } from "./studio-context";
 import type { StudioRequestAccess } from "./editor-contracts";
-import { studioEntityPath } from "./studio-paths";
+import { studioEntityPath, studioWorkspacePath } from "./studio-paths";
+import type { StudioPaletteWorkspaceAction } from "./workspace-registry";
 
 /** The fewest letters worth a search; one matches almost everything. */
 const MIN_SEARCH = 2;
@@ -39,8 +40,25 @@ export function paletteGroups(input: {
   query: string;
   destinations: readonly ConsoleJumpDestination[];
   entries: readonly StudioPaletteItem[];
+  actions?: readonly StudioPaletteWorkspaceAction[] | undefined;
+  routePath?: string | undefined;
 }): StudioPalette {
   const query = input.query.trim();
+  const needle = query.toLowerCase();
+  const actions = (input.actions ?? [])
+    .filter(
+      (action) =>
+        !needle ||
+        action.label.toLowerCase().includes(needle) ||
+        action.workspaceLabel.toLowerCase().includes(needle),
+    )
+    .map((action) => ({
+      id: `${action.workspaceId}:${action.name}`,
+      title: action.label,
+      sub: action.workspaceLabel,
+      href: studioWorkspacePath(input.routePath ?? "", action.workspaceId),
+      run: { workspaceId: action.workspaceId, actionId: action.name },
+    }));
   const pages = input.destinations
     .filter((destination) =>
       query ? matches(destination, query) : destination.primary === true,
@@ -49,6 +67,9 @@ export function paletteGroups(input: {
     .map(pageItem);
   return {
     groups: [
+      ...(actions.length > 0
+        ? [{ id: "actions" as const, label: "Actions", items: actions }]
+        : []),
       ...(pages.length > 0
         ? [{ id: "pages" as const, label: "Pages", items: pages }]
         : []),
