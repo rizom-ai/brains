@@ -1,5 +1,25 @@
 # @brains/webdav
 
+## 0.2.0-alpha.809
+
+### Minor Changes
+
+- [#1102](https://github.com/rizom-ai/brains/pull/1102) [`560f1c2`](https://github.com/rizom-ai/brains/commit/560f1c27e5f55856e8691a16899ec8c125b5a582) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A sync client can ask the drive which entries are nearest to one.
+
+  - `GET /dav/.brain/related?path=<file>&limit=<n>`, for sync clients (`X-Brain-Sync: 1`): the entries with text nearest the entry at that path, closest first, as the asker may see them, each as its file on the drive with its title, type and distance. At most twenty-five, ten when not said.
+  - A path that names no entry the asker may see has none. A brain that keeps no index of meaning answers `indexed: false`.
+  - The Rizom Brain plugin for Obsidian shows them in a side panel beside the open note.
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.809
+  - @brains/contracts@0.2.0-alpha.809
+  - @brains/document@0.2.0-alpha.809
+  - @brains/entity-placement@0.2.0-alpha.809
+  - @brains/image@0.2.0-alpha.809
+  - @brains/utils@0.2.0-alpha.809
+
 ## 0.2.0-alpha.808
 
 ### Patch Changes

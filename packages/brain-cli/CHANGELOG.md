@@ -1,5 +1,21 @@
 # @rizom/brain
 
+## 0.2.0-alpha.809
+
+### Minor Changes
+
+- [#1102](https://github.com/rizom-ai/brains/pull/1102) [`560f1c2`](https://github.com/rizom-ai/brains/commit/560f1c27e5f55856e8691a16899ec8c125b5a582) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A sync client can ask the drive which entries are nearest to one.
+
+  - `GET /dav/.brain/related?path=<file>&limit=<n>`, for sync clients (`X-Brain-Sync: 1`): the entries with text nearest the entry at that path, closest first, as the asker may see them, each as its file on the drive with its title, type and distance. At most twenty-five, ten when not said.
+  - A path that names no entry the asker may see has none. A brain that keeps no index of meaning answers `indexed: false`.
+  - The Rizom Brain plugin for Obsidian shows them in a side panel beside the open note.
+
+### Patch Changes
+
+- [#1100](https://github.com/rizom-ai/brains/pull/1100) [`48670e2`](https://github.com/rizom-ai/brains/commit/48670e28fe180895962135ceef9e4ec3734b70ba) Thanks [@yeehaa123](https://github.com/yeehaa123)! - One side panel at a time beside an entry: opening Ask puts Details away, and showing Details closes Ask. Details comes back when Ask closes, as it was.
+
+- [#1099](https://github.com/rizom-ai/brains/pull/1099) [`0c00e47`](https://github.com/rizom-ai/brains/commit/0c00e470630730f238b789f78eb0caf78f84420c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A site whose sections bring their own drawing per language loads: the brain no longer refuses its definition for carrying those drawings.
+
 ## 0.2.0-alpha.808
 
 ### Patch Changes

@@ -1,5 +1,15 @@
 # @brains/style-guide
 
+## 0.2.0-alpha.809
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.809
+  - @brains/content-formatters@0.2.0-alpha.809
+  - @brains/contracts@0.2.0-alpha.809
+  - @brains/utils@0.2.0-alpha.809
+
 ## 0.2.0-alpha.808
 
 ### Patch Changes

@@ -1,5 +1,18 @@
 # @brains/studio
 
+## 0.2.0-alpha.809
+
+### Patch Changes
+
+- [#1100](https://github.com/rizom-ai/brains/pull/1100) [`48670e2`](https://github.com/rizom-ai/brains/commit/48670e28fe180895962135ceef9e4ec3734b70ba) Thanks [@yeehaa123](https://github.com/yeehaa123)! - One side panel at a time beside an entry: opening Ask puts Details away, and showing Details closes Ask. Details comes back when Ask closes, as it was.
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.809
+  - @brains/app-ui-react@0.2.0-alpha.809
+  - @brains/console-theme@0.2.0-alpha.809
+  - @brains/contracts@0.2.0-alpha.809
+  - @brains/operator-view-react@0.2.0-alpha.809
+  - @brains/utils@0.2.0-alpha.809
+
 ## 0.2.0-alpha.808
 
 ### Patch Changes
