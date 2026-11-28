@@ -404,6 +404,7 @@ export function renderAuthorizePage(
     approval_token: approvalToken,
     ...(params.scope ? { scope: params.scope } : {}),
     ...(params.state ? { state: params.state } : {}),
+    ...(params.nonce ? { nonce: params.nonce } : {}),
   };
 
   return `<!doctype html>

@@ -311,6 +311,70 @@ describe("authorize request validation", () => {
     expect(response.status).toBe(400);
     expect(await response.text()).toBe("Invalid authorization approval token");
   });
+
+  it("carries an OIDC nonce through the page's own approval form", async () => {
+    const service = await makeService();
+    const client = await registerTestClient(service);
+    const session = await service.createAuthSession();
+    const verifier = "nonce-verifier";
+    const params = authorizeParams(client, await pkceChallenge(verifier), {
+      scope: "openid profile",
+      state: "state-1",
+      nonce: "nonce-1",
+    });
+
+    const page = await (
+      await service.handleRequest(
+        new Request(`${ISSUER}/authorize?${params}`, {
+          headers: { cookie: session.cookie },
+        }),
+      )
+    ).text();
+    // A browser submits exactly the form's hidden fields.
+    const form = new URLSearchParams(
+      Array.from(
+        page.matchAll(/<input type="hidden" name="([^"]+)" value="([^"]*)"/g),
+        (match): [string, string] => [match[1] ?? "", match[2] ?? ""],
+      ),
+    );
+    const approval = await service.handleRequest(
+      new Request(`${ISSUER}/authorize`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/x-www-form-urlencoded",
+          cookie: session.cookie,
+        },
+        body: form.toString(),
+      }),
+    );
+    expect(approval.status).toBe(302);
+    const redirect = new URL(approval.headers.get("location") ?? "");
+
+    const token = z.object({ id_token: z.string() }).parse(
+      await (
+        await service.handleRequest(
+          tokenRequest({
+            grant_type: "authorization_code",
+            client_id: client.client_id,
+            redirect_uri: REDIRECT_URI,
+            code: redirect.searchParams.get("code") ?? "",
+            code_verifier: verifier,
+          }),
+        )
+      ).json(),
+    );
+    const claims = z
+      .object({ nonce: z.string() })
+      .parse(
+        JSON.parse(
+          Buffer.from(
+            token.id_token.split(".")[1] ?? "",
+            "base64url",
+          ).toString(),
+        ),
+      );
+    expect(claims.nonce).toBe("nonce-1");
+  });
 });
 
 describe("token endpoint", () => {
