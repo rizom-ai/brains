@@ -1,28 +1,19 @@
-import { createSiteLayout, type Room, type SiteLayout } from "./site-layout";
+import { createSiteLayout, type SiteLayout } from "./site-layout";
 import { brainOrganism } from "./story/brain-organism";
 import { livingOrganism } from "./story/living-organism";
-import { workOrganism } from "./story/work-organism";
 
 /**
  * rizom.ai's chrome (see ./site-layout): the rooms and the archive in the
  * bar, each room in its own light, and the footer's three columns.
  */
 
-// The active room drives the accent (data-room). Home and the archive wear
-// brass, the theme's default.
-function activeRoom(path: string): Room {
-  if (path === "/work" || path.startsWith("/work/")) return "work";
-  return "brain";
-}
-
 export const AiLayout: SiteLayout = createSiteLayout({
-  room: activeRoom,
-  // The rooms keep their own light: brass for the platform, ruby for the
-  // practice, moss for the research. Writing is the archive.
+  // Every page wears the platform's brass. Rizom Work and the Foundation
+  // speak on their own sites; their links keep their light.
+  room: "brain",
   barLinks: [
     { label: "Brain", href: "/brain", room: "brain" },
-    { label: "Work", href: "/work", room: "work" },
-    // The Foundation speaks on its own site.
+    { label: "Work", href: "https://rizom.work", room: "work" },
     {
       label: "Foundation",
       href: "https://rizom.foundation",
@@ -31,7 +22,7 @@ export const AiLayout: SiteLayout = createSiteLayout({
     { label: "Writing", href: "/writing" },
     { label: "Ask", href: "/ask" },
   ],
-  cta: { label: "Book an audit", href: "/work#audit" },
+  cta: { label: "Get started", href: "/brain#quickstart" },
   footerColumns: [
     {
       heading: "The brain",
@@ -44,8 +35,9 @@ export const AiLayout: SiteLayout = createSiteLayout({
     {
       heading: "The practice",
       links: [
-        { label: "The Knowledge Audit", href: "/work#audit" },
-        { label: "Contact", href: "/contact" },
+        { label: "For hubs", href: "https://rizom.work/#hubs" },
+        { label: "For teams", href: "https://rizom.work/#teams" },
+        { label: "Talk to us", href: "https://rizom.work/contact" },
       ],
     },
     {
@@ -66,7 +58,6 @@ export const AiLayout: SiteLayout = createSiteLayout({
   figures: {
     "/": { className: "living-org", organism: livingOrganism },
     "/brain": { className: "brain-org", organism: brainOrganism },
-    "/work": { className: "work-org", organism: workOrganism },
     "/ask": null,
   },
 });

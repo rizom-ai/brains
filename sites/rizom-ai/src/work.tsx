@@ -6,13 +6,10 @@ import { ctaSchema } from "./shared";
 import { emphasize } from "./story/emphasis";
 
 /**
- * The /work room, told as a story: the knowledge problem AI makes visible,
- * why coordination is the bottleneck, the Knowledge Audit, the teams this
- * sounds like, what teams tell us, who we are and the question to end on,
- * each a chapter beside the drawing the layout supplies (see
- * ./story/work-organism). Each section is authored from one zod schema; copy
- * is content-driven, stored as markdown in site-content/work/<section>.md,
- * and the section ids stay stable.
+ * The sections of rizom.ai's former /work room. Rizom Work now speaks on
+ * rizom.work (@rizom/site-rizom-work) and rizom.ai no longer routes here; the
+ * templates stay registered while the room's copy,
+ * site-content/work/<section>.md, is still in the content repo.
  */
 
 /* ============ the opening ============ */

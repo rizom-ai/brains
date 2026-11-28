@@ -4,12 +4,11 @@ import * as pkg from "../src";
 import { rizomAiSite } from "../src/site";
 import { brainOrganism } from "../src/story/brain-organism";
 import { livingOrganism } from "../src/story/living-organism";
-import { workOrganism } from "../src/story/work-organism";
 
 describe("rizom.ai's static files", () => {
-  test("the story stylesheet carries its three drawings", () => {
+  test("the story stylesheet carries its two drawings", () => {
     const css = rizomAiSite.staticAssets?.["/styles/story.css"] ?? "";
-    for (const drawing of [livingOrganism, brainOrganism, workOrganism]) {
+    for (const drawing of [livingOrganism, brainOrganism]) {
       expect(css).toContain(drawing.css());
     }
   });
