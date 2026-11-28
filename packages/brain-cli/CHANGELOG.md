@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.799
+
+### Patch Changes
+
+- [#1080](https://github.com/rizom-ai/brains/pull/1080) [`9eefbe6`](https://github.com/rizom-ai/brains/commit/9eefbe6f5cda5493d8eb00f8967630b6ff6554a7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A brain that holds seminars answers a live question as a seminar would. Its instructions tell it to put a question about its peers' ideas or texts to them, to give each peer's answer under his name without merging them into one voice, to add no quotation or citation a peer did not give, to say so when a peer had nothing, and to close with where they meet and where they part. The rules come with the seminar capability, so no brain has to carry them in its character.
+
 ## 0.2.0-alpha.798
 
 ### Patch Changes
