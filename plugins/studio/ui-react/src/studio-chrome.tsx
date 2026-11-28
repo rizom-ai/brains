@@ -67,6 +67,8 @@ export interface StudioChromeNavigation {
   workspaceBadges: Record<string, number>;
   selectEntityType: (entityType: string) => void;
   selectWorkspace: (workspaceId: string) => void;
+  /** An entry is open: it has its own bar and way back, so no tab bar. */
+  editing?: boolean | undefined;
 }
 
 export function StudioChrome(props: {
@@ -152,6 +154,8 @@ export function StudioChrome(props: {
           typographyStyles.eyebrow,
         )}
         href={studioPath}
+        // On a phone only the mark shows, so the link names itself.
+        aria-label={`${brandName} Studio`}
       >
         <span
           className={navClass("studio-chrome-mark", chrome.mark)}
@@ -159,14 +163,22 @@ export function StudioChrome(props: {
         >
           {brandName.slice(0, 1).toUpperCase()}
         </span>
-        <span className="studio-chrome-brain">{brandName}</span>
+        <span className={navClass("studio-chrome-brain", chrome.phoneHidden)}>
+          {brandName}
+        </span>
         <span
-          className={navClass("studio-chrome-slash", chrome.slash)}
+          className={navClass(
+            "studio-chrome-slash",
+            chrome.slash,
+            chrome.phoneHidden,
+          )}
           aria-hidden="true"
         >
           /
         </span>
-        <strong className={navClass("", chrome.studio)}>Studio</strong>
+        <strong className={navClass("", chrome.studio, chrome.phoneHidden)}>
+          Studio
+        </strong>
       </a>
 
       {props.navigation ? (
@@ -187,6 +199,7 @@ export function StudioChrome(props: {
             activeWorkspace={props.navigation.activeWorkspaceId}
             workspaceBadges={props.navigation.workspaceBadges}
             onSelectWorkspace={props.navigation.selectWorkspace}
+            focus={props.navigation.editing === true}
           />
         </div>
       ) : null}

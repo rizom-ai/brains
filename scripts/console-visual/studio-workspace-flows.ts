@@ -55,14 +55,9 @@ export async function exerciseStudioNavigation({
     if (surface.endsWith("-collapsed"))
       await clickSelector(page, ".studio-navigation-collapse");
   } else {
-    await clickSelector(page, ".studio-mobile-switcher");
-    await waitForSelector(page, ".studio-mobile-navigation-sheet");
-    if (surface.endsWith("-collapsed"))
-      await clickText(
-        page,
-        ".studio-mobile-navigation-group summary",
-        "Library",
-      );
+    // The page is in Library, so its tab opens Library's pages.
+    await clickSelector(page, '[data-studio-tab="library"]');
+    await waitForSelector(page, ".studio-tab-sheet");
   }
 }
 

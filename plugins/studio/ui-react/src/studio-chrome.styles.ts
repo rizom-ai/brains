@@ -4,6 +4,7 @@ type ChromeStyle =
   | "header"
   | "skip"
   | "brand"
+  | "phoneHidden"
   | "studio"
   | "mark"
   | "slash"
@@ -67,7 +68,10 @@ export const chromeStyles: Record<ChromeStyle, stylex.StyleXStyles> =
       color: "var(--console-text)",
       textDecoration: "none",
       whiteSpace: "nowrap",
-      "@media (max-width: 900px)": { display: "none" },
+    },
+    // On a phone the tab bar carries the sections; the header keeps the mark.
+    phoneHidden: {
+      display: { default: null, "@media (max-width: 900px)": "none" },
     },
     studio: { font: "inherit" },
     mark: {
@@ -92,13 +96,12 @@ export const chromeStyles: Record<ChromeStyle, stylex.StyleXStyles> =
       alignItems: "baseline",
       gap: "9px",
       paddingLeft: "28px",
-      borderLeftWidth: "1px",
+      borderLeftWidth: { default: "1px", "@media (max-width: 900px)": 0 },
       borderLeftStyle: "solid",
       borderLeftColor: "var(--console-rule-strong)",
       "@media (max-width: 900px)": {
         justifyContent: "center",
         padding: 0,
-        borderWidth: 0,
       },
     },
     locationText: {

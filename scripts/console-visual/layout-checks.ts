@@ -210,7 +210,7 @@ async function checkPhonePageHead(
       [
         ".console-strip",
         ".rail",
-        ".studio-mobile-switcher",
+        "[data-studio-tab-bar]",
         "[data-studio-body]",
         ".studio-workspace-frame",
         "[data-studio-library]",
@@ -249,48 +249,26 @@ async function checkPhoneContextPicker(
   page: Bun.WebView,
   hasOpenActionSheet: boolean,
 ): Promise<void> {
-  const switcherState = await evaluatePage(page, () => {
-    const rail = document.querySelector(".rail");
-    if (!(rail instanceof HTMLElement)) return undefined;
-    if (getComputedStyle(rail).display === "none") {
-      return { visible: false, overflow: false, focusReached: true };
-    }
-    const switcher = rail.querySelector(".studio-mobile-switcher");
-    const desktopTypes = rail.querySelector(".types");
-    if (!(switcher instanceof HTMLButtonElement)) {
-      return { visible: true, overflow: false, focusReached: false };
-    }
-    switcher.focus();
-    const focusReached = document.activeElement === switcher;
-    switcher.blur();
-    const railBounds = rail.getBoundingClientRect();
-    const switcherBounds = switcher.getBoundingClientRect();
-    return {
-      visible: getComputedStyle(switcher).display !== "none",
-      overflow: rail.scrollWidth > rail.clientWidth + 1,
-      focusReached,
-      desktopTypesHidden:
-        desktopTypes instanceof HTMLElement &&
-        getComputedStyle(desktopTypes).display === "none",
-      height: railBounds.height,
-      triggerWidth: switcherBounds.width,
-      availableWidth: railBounds.width - 24,
-    };
+  // The phone's sections: a tab bar that fits the screen and takes focus.
+  const tabBar = await evaluatePage(page, () => {
+    const bar = document.querySelector("[data-studio-tab-bar]");
+    if (
+      !(bar instanceof HTMLElement) ||
+      getComputedStyle(bar).display === "none"
+    )
+      return undefined;
+    const first = bar.querySelector("[data-studio-tab]");
+    if (!(first instanceof HTMLElement))
+      return { overflow: false, focusReached: false };
+    first.focus();
+    const focusReached = document.activeElement === first;
+    first.blur();
+    return { overflow: bar.scrollWidth > bar.clientWidth + 1, focusReached };
   });
-  if (
-    switcherState?.visible &&
-    (switcherState.overflow ||
-      switcherState.desktopTypesHidden !== true ||
-      switcherState.height > 56 ||
-      Math.abs(switcherState.triggerWidth - switcherState.availableWidth) > 1)
-  ) {
-    throw new Error(
-      `Studio phone context picker exceeded its chrome budget: ${JSON.stringify(switcherState)}`,
-    );
-  }
-  if (!hasOpenActionSheet && switcherState?.focusReached === false) {
-    throw new Error(`Studio phone context picker was not keyboard reachable`);
-  }
+  if (tabBar?.overflow)
+    throw new Error("Studio phone tab bar overflows the screen");
+  if (!hasOpenActionSheet && tabBar?.focusReached === false)
+    throw new Error("Studio phone tab bar was not keyboard reachable");
 }
 
 // Page checks: serialized into the page, so each is self-contained.
@@ -359,7 +337,7 @@ function studioTypeRoles(): void {
     },
     {
       selector:
-        '.studio-chrome-brand, .studio-area-title, .studio-leaf-label, .studio-mobile-switcher, [data-studio-editor] aside > div > h2, button[aria-label="Editor view"], [aria-label="Publication actions"] header, [aria-label="Publication actions"] b, [data-studio-shell] th',
+        '.studio-chrome-brand, .studio-area-title, .studio-leaf-label, [data-studio-editor] aside > div > h2, button[aria-label="Editor view"], [aria-label="Publication actions"] header, [aria-label="Publication actions"] b, [data-studio-shell] th',
       size: "10px",
       weight: "600",
       tracking: 1.2,
