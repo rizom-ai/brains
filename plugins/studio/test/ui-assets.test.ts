@@ -132,7 +132,9 @@ describe("Studio split UI assets", () => {
     expect(entrySource).toContain(chatEntry[0]);
     expect(entrySource).not.toContain("/api/chat");
     expect(chatClientSource).toContain("/api/chat");
-    expect(chatSource).toContain(
+    // The thread is shared with Ask beside the editor, so it may sit in a
+    // chunk the Chat page imports.
+    expect(chatClientSource).toContain(
       "No messages yet. Your draft stays in the composer until you send it.",
     );
     expect(chatSource).not.toContain("Working room");

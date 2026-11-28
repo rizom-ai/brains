@@ -1,6 +1,14 @@
 /** @jsxImportSource react */
+import * as stylex from "@stylexjs/stylex";
+import { askStyles } from "./studio-ask-panel.styles";
+import {
+  askFields,
+  replaceSelection,
+  type AskSelection,
+} from "./ask-panel-model";
+import type { Proposal } from "./chat-proposals";
 import { Button, ConfirmDialog } from "@brains/app-ui-react";
-import type { ReactElement, ReactNode } from "react";
+import { lazy, Suspense, type ReactElement, type ReactNode } from "react";
 import { typographyStyles } from "./studio-typography.styles";
 import { libraryStyles as library } from "./studio-library.styles";
 import { StudioStatus } from "./studio-status";
@@ -166,6 +174,7 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
   } = props;
   const { mode, deleteOpen } = editor;
   const model = deriveStudioAppModel(props);
+  const askPanel = askPanelFor(props, model);
   const { editing, canDelete, collectionLabel, workspaceBadges } = model;
   return (
     <div
@@ -249,6 +258,13 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
             <StudioWorkspacePane {...props} model={model} />
           ) : !editing ? (
             <StudioLibraryPane {...props} model={model} />
+          ) : askPanel ? (
+            <div {...stylex.props(askStyles.row)}>
+              <div {...stylex.props(askStyles.grow)}>
+                <StudioEditorPane {...props} model={model} />
+              </div>
+              {askPanel}
+            </div>
           ) : (
             <StudioEditorPane {...props} model={model} />
           ))}
@@ -279,5 +295,72 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
         </ConfirmDialog>
       )}
     </div>
+  );
+}
+
+/**
+ * Ask beside the open entry, when it is open and the entry can be assisted.
+ * A proposal goes into the draft through the editor's own changes, so it is
+ * saved, discarded or kept for recovery like any other edit.
+ */
+// Ask loads with its first opening, so editing never waits on Chat.
+const LazyAskPanel = lazy(async () => {
+  const module = await import("./studio-ask-panel");
+  return { default: module.StudioAskPanel };
+});
+
+function askPanelFor(
+  props: StudioAppViewProps,
+  model: ReturnType<typeof deriveStudioAppModel>,
+): ReactElement | null {
+  const { ask, editor, dispatchEditor } = props;
+  const { mode, body } = editor;
+  if (!ask?.open || mode.kind !== "edit" || !model.canAssist) return null;
+  const descriptors = model.entitySchema.fields;
+  const apply = (
+    proposal: Proposal,
+    selection: AskSelection | null,
+  ): string | null => {
+    if (proposal.field === "selection") {
+      const replaced = selection
+        ? replaceSelection(body, selection, proposal.text)
+        : null;
+      if (replaced === null)
+        return "The selected passage has changed. Select it again and ask once more.";
+      dispatchEditor({ type: "bodyChanged", body: replaced });
+      return null;
+    }
+    if (proposal.field === "body") {
+      dispatchEditor({ type: "bodyChanged", body: proposal.text });
+      return null;
+    }
+    const descriptor = descriptors.find(
+      (field) => field.name === proposal.field,
+    );
+    if (!descriptor)
+      return `This entry has no ${proposal.label.toLowerCase()}.`;
+    dispatchEditor({ type: "fieldChanged", descriptor, raw: proposal.text });
+    return null;
+  };
+  return (
+    <Suspense fallback={null}>
+      <LazyAskPanel
+        key={`${model.selectedEntityType}:${mode.entity.id}`}
+        chatApiPath={ask.chatApiPath}
+        draftStore={ask.draftStore}
+        entityType={model.selectedEntityType}
+        entityId={mode.entity.id}
+        title={model.editorHead.title}
+        typeLabel={model.entryLabel.toLowerCase()}
+        savedBody={mode.entity.body}
+        unsaved={props.hasUnsavedChanges}
+        selection={ask.selection}
+        onClearSelection={() => ask.setSelection(null)}
+        fields={askFields(descriptors)}
+        agents={props.agentTargets}
+        onApply={apply}
+        onClose={() => ask.setOpen(false)}
+      />
+    </Suspense>
   );
 }

@@ -28,6 +28,10 @@ export function Composer(props: {
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onStop?: (() => void) | undefined;
   onJumpToLatest?: (() => void) | undefined;
+  /** What the composer invites, where it is not a plain conversation. */
+  placeholder?: string | undefined;
+  /** Whether files can be attached; Ask attaches only the selection. */
+  allowFiles?: boolean | undefined;
 }): ReactElement {
   const keyDown = (event: KeyboardEvent<HTMLTextAreaElement>): void => {
     if (
@@ -149,7 +153,7 @@ export function Composer(props: {
           className={chatClass("studio-chat-message", chatLayout.input)}
           aria-label="Message"
           aria-describedby="studio-chat-composer-hint"
-          placeholder="Message…"
+          placeholder={props.placeholder ?? "Message…"}
           value={props.draft}
           disabled={props.locked}
           onChange={(event) => props.onDraft(event.target.value)}
@@ -161,27 +165,29 @@ export function Composer(props: {
             chatLayout.composerBar,
           )}
         >
-          <label
-            className={chatClass(
-              "studio-chat-composer-action",
-              chatLayout.attachButton,
-            )}
-            title={CHAT_UPLOAD_GUIDANCE}
-          >
-            <span aria-hidden="true">+</span>
-            <input
+          {props.allowFiles !== false && (
+            <label
               className={chatClass(
-                "studio-chat-upload-input",
-                chatLayout.uploadInput,
+                "studio-chat-composer-action",
+                chatLayout.attachButton,
               )}
-              aria-label="Attach files"
-              type="file"
-              accept={messageUploadAccept}
-              multiple
-              disabled={props.locked || props.sending || props.uploading}
-              onChange={(event) => void props.onFiles(event)}
-            />
-          </label>
+              title={CHAT_UPLOAD_GUIDANCE}
+            >
+              <span aria-hidden="true">+</span>
+              <input
+                className={chatClass(
+                  "studio-chat-upload-input",
+                  chatLayout.uploadInput,
+                )}
+                aria-label="Attach files"
+                type="file"
+                accept={messageUploadAccept}
+                multiple
+                disabled={props.locked || props.sending || props.uploading}
+                onChange={(event) => void props.onFiles(event)}
+              />
+            </label>
+          )}
           {props.uploadAttempts.length > 0 && (
             <span className={chatClass("", chatLayout.kicker)}>
               Resolve uploads before sending

@@ -686,19 +686,6 @@ export class StudioApi {
     );
   }
 
-  async requestAssist(input: {
-    entityType: string;
-    id: string;
-    instruction: string;
-    selection: string;
-  }): Promise<{ suggestion: string }> {
-    return this.requestJson<{ suggestion: string }>(this.path("assist"), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(input),
-    });
-  }
-
   async requestFieldAssist(input: {
     variant: "summarize" | "tag-suggest";
     entityType: string;
