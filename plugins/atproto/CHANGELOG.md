@@ -1,5 +1,17 @@
 # @brains/atproto
 
+## 0.2.0-alpha.796
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.796
+  - @brains/atproto-contracts@0.2.0-alpha.796
+  - @brains/atproto-client@0.2.0-alpha.796
+  - @brains/contracts@0.2.0-alpha.796
+  - @brains/site-composition@0.2.0-alpha.796
+  - @brains/utils@0.2.0-alpha.796
+
 ## 0.2.0-alpha.795
 
 ### Patch Changes
