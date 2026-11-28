@@ -24,7 +24,7 @@ You need a Rizom brain at version 0.2.0-alpha.769 or later with its drive turned
 
 - **Network.** The plugin talks only to your brain's address, the one you enter. It sends and fetches your notes and images there, and nothing anywhere else. No telemetry, no analytics, no ads.
 - **Account.** It needs an account on your brain, and signs in with an app password made for it.
-- **Stored on your device.** The app password and the record of what was synced are kept in the plugin's `data.json` in this vault's configuration folder, unencrypted, like any plugin's settings. Anyone who can read your vault folder can read it. Revoke the app password in your brain if a device is lost.
+- **Stored on your device.** The app password is kept in Obsidian's secret storage on this device, outside the vault folder, so it is not copied along when the vault is synced, backed up or shared. Obsidian encrypts it with your system's keychain where there is one, and tells you when it cannot. Other plugins you install can read Obsidian's secret storage. The record of what was synced is kept in the plugin's `data.json` in this vault's configuration folder. Revoke the app password in your brain if a device is lost.
 - **Changes outside your notes.** It writes `_obsidian/` and `Conflicts/` in the vault. Once, if you have not chosen a template folder, it points Obsidian's Templates at `_obsidian/templates`.
 
 ## Not yet

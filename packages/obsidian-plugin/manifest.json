@@ -1,8 +1,8 @@
 {
   "id": "rizom-brain",
   "name": "Rizom Brain",
-  "version": "0.1.3",
-  "minAppVersion": "1.7.2",
+  "version": "0.1.4",
+  "minAppVersion": "1.11.4",
   "description": "Keep this vault in step with your Rizom brain: notes and images both ways, renames as renames, and edits made in both places never lost.",
   "author": "Rizom",
   "authorUrl": "https://rizom.ai",
