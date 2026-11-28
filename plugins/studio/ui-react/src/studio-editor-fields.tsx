@@ -97,7 +97,12 @@ export function StudioEditorFields(
               data-studio-field-assist=""
             >
               <Field
-                readOnly={!canEdit}
+                readOnly={
+                  !canEdit ||
+                  // Publishing moves the status; the field only shows it.
+                  (descriptor.name === "status" &&
+                    props.model.publicationWorkspace !== undefined)
+                }
                 vocabulary={groupingVocabularies[descriptor.name]}
                 literalList={groupingFields.includes(descriptor.name)}
                 suggestions={props.groupingSuggestions?.[descriptor.name]}

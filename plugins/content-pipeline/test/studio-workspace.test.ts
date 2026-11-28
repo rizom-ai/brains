@@ -64,7 +64,7 @@ const preparedConfirmationSchema = z.object({
 const successResultSchema = z.object({ success: z.literal(true) });
 
 describe("content-pipeline Studio workspace registration", () => {
-  it("shows one rest notice without an empty queue tab", async () => {
+  it("shows the board's four columns, each saying it is empty, at rest", async () => {
     const shell = createMockShell();
     const context = createServicePluginContext(shell, "content-pipeline");
     context.entities.register(
@@ -105,13 +105,107 @@ describe("content-pipeline Studio workspace registration", () => {
     );
     if (!registration) throw Error("Workspace was not registered");
     const result = JSON.stringify(await registration.dataProvider(adminActor));
-    expect(result).toContain('"id":"publishing-at-rest"');
-    expect(result).not.toContain('"id":"publishing-queue"');
+    expect(result).toContain('"id":"publishing-board"');
+    for (const empty of [
+      "No drafts.",
+      "Nothing is queued.",
+      "Nothing published yet.",
+      "Nothing failed.",
+    ])
+      expect(result).toContain(empty);
     expect(result).toContain(
       '"status":{"label":"0 published","tone":"neutral"}',
     );
     expect(result).not.toContain('"id":"publishing-summary"');
   });
+  it("keeps a draft on Drafts until it has what its type needs", async () => {
+    const shell = createMockShell();
+    const context = createServicePluginContext(shell, "content-pipeline");
+    context.entities.register(
+      "social-post",
+      baseEntitySchema,
+      new FixtureAdapter(),
+      {
+        publish: {
+          publishStatuses: ["queued", "published"],
+          requiredFields: ["excerpt"],
+        },
+      },
+    );
+    await context.entityService.createEntity({
+      entity: {
+        id: "unready",
+        entityType: "social-post",
+        content: "Unready",
+        visibility: "public",
+        metadata: { status: "draft", title: "Unready" },
+      },
+    });
+    const providers = ProviderRegistry.createFresh();
+    providers.register("social-post", {
+      name: "linkedin",
+      publish: async () => ({ id: "remote" }),
+    });
+    const queue = QueueManager.createFresh();
+    let registration: StudioWorkspaceRegistration | undefined;
+    context.messaging.subscribe<
+      StudioWorkspaceRegistration,
+      { workspaceUrl: string }
+    >("studio:register-workspace", async (message) => {
+      registration = message.payload;
+      return {
+        success: true,
+        data: { workspaceUrl: "/studio/workspaces/publishing" },
+      };
+    });
+    await registerStudioWorkspace(
+      (await pipelineRuntime(shell)).studio,
+      context,
+      {
+        providerRegistry: providers,
+        queueManager: queue,
+        publicationQueueService: new PublicationQueueService(context, queue),
+        retryTracker: RetryTracker.createFresh(),
+        publishExecutor: new PublishExecutor({
+          context,
+          providerRegistry: providers,
+        }),
+      },
+    );
+    if (!registration) throw Error("Workspace was not registered");
+    const workspace = await registration.dataProvider(adminActor);
+    expect(workspace).toMatchObject({
+      view: {
+        blocks: [
+          {
+            id: "publishing-board",
+            cells: [
+              {
+                id: "drafts",
+                items: [
+                  {
+                    title: "Unready",
+                    description: "Needs excerpt",
+                    actions: [
+                      {
+                        actionId: "queue",
+                        dropTarget: "queued",
+                        disabled: true,
+                      },
+                    ],
+                  },
+                ],
+              },
+              { id: "queued" },
+              { id: "published" },
+              { id: "failed" },
+            ],
+          },
+        ],
+      },
+    });
+  });
+
   it("is a no-op when the Studio is absent", async () => {
     const shell = createMockShell();
     const context = createServicePluginContext(shell, "content-pipeline");
@@ -231,48 +325,47 @@ describe("content-pipeline Studio workspace registration", () => {
         status: { label: "0 published", tone: "neutral" },
         blocks: [
           {
-            id: "publishing-attention",
-            presentation: "disclosure",
-            disclosureLabel: "Review failure",
-            tone: "warn",
-            metadata: ["Failed post · Retries: 0"],
-            blocks: [
+            type: "matrix",
+            id: "publishing-board",
+            cells: [
+              { id: "drafts", items: [] },
               {
+                id: "queued",
                 items: [
                   {
-                    description:
-                      "Provider refused delivery.\nRequest: delivery-123",
+                    title: "Queued post",
+                    metadata: ["Social post", "linkedin", "Position 1"],
+                    actionsLabel: "Queue options",
                     actions: [
+                      { label: "Move up", disabled: true },
+                      { label: "Move down", disabled: true },
                       {
-                        actionId: "retry",
-                        input: {
-                          entityType: "social-post",
-                          entityId: "failed-post",
-                        },
+                        actionId: "remove",
+                        label: "Back to drafts",
+                        dropTarget: "drafts",
                       },
                     ],
                   },
                 ],
               },
-            ],
-          },
-          {
-            type: "tabs",
-            tabs: [
+              { id: "published", items: [] },
               {
-                id: "queued",
-                blocks: [
+                id: "failed",
+                tone: "error",
+                items: [
                   {
-                    items: [
+                    title: "Failed post",
+                    description:
+                      "Provider refused delivery.\nRequest: delivery-123",
+                    metadata: ["Social post", "Retries: 0"],
+                    actions: [
                       {
-                        description: "linkedin",
-                        actionsLabel: "Queue options",
-                        metadata: ["Position 1", "Next dispatch"],
-                        actions: [
-                          { label: "Move up", disabled: true },
-                          { label: "Move down", disabled: true },
-                          { actionId: "remove" },
-                        ],
+                        actionId: "retry",
+                        dropTarget: "queued",
+                        input: {
+                          entityType: "social-post",
+                          entityId: "failed-post",
+                        },
                       },
                     ],
                   },

@@ -329,8 +329,18 @@ describe("SiteBuilderTestPlugin", () => {
       view: {
         title: "Site",
         blocks: [
+          // The site at a glance leads; build details wait below it.
+          {
+            id: "site-summary",
+            label: "Your site",
+            blocks: [
+              { type: "notice", id: "site-summary-text" },
+              { type: "actions", id: "site-summary-actions" },
+            ],
+          },
           {
             type: "tabs",
+            label: "Technical",
             tabs: ["preview", "production"].map((id) => ({
               id,
               blocks: [
@@ -388,15 +398,14 @@ describe("SiteBuilderTestPlugin", () => {
     expect(previewWorkspace).toMatchObject({
       view: {
         blocks: [
+          { id: "site-summary" },
+          { type: "progress", id: "preview-build" },
           {
             type: "tabs",
             tabs: [
               {
                 id: "preview",
-                blocks: [
-                  { type: "progress", id: "preview-build" },
-                  { type: "columns", id: "site-body" },
-                ],
+                blocks: [{ type: "columns", id: "site-body" }],
               },
               { id: "production" },
             ],

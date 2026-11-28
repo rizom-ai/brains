@@ -3,7 +3,11 @@ import {
   internalFullScope,
   type ClassRuntimeStateStore,
 } from "@brains/sdk/internal/service-runtime";
-import { actorRefSchema } from "@brains/contracts";
+import { actorRefSchema, SdkError } from "@brains/contracts";
+import {
+  missingPublishFields,
+  publishRequirementMessage,
+} from "./publish-requirements";
 import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
 import { updateFrontmatterField } from "@brains/utils/markdown";
 import { FRONTMATTER_BLOCK } from "@brains/utils/markdown-frontmatter";
@@ -103,6 +107,15 @@ export class PublicationQueueService {
   ): Promise<{ position: number }> {
     return this.runExclusive(async () => {
       const entity = await this.requireEntity(entityType, entityId);
+      const missing = missingPublishFields(
+        this.context.entityService.getEntityTypeConfig(entityType).publish
+          ?.requiredFields,
+        entity,
+      );
+      if (missing.length > 0)
+        throw new SdkError("invalid_input", {
+          publicMessage: publishRequirementMessage(missing),
+        });
       await this.persistStatus(entity, "queued");
       const result = await this.queueManager.add(
         entityType,

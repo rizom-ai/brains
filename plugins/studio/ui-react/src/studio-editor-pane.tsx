@@ -409,6 +409,16 @@ export function StudioEditorPane(
                   entityType={selectedEntityType}
                   entityId={mode.entity.id}
                   title={entityTitle(mode.entity)}
+                  missing={(
+                    props.model.activeType?.publishRequires ?? []
+                  ).filter((field) => {
+                    const value = mode.entity.frontmatter[field];
+                    return (
+                      value === undefined ||
+                      value === null ||
+                      (typeof value === "string" && value.trim() === "")
+                    );
+                  })}
                   status={
                     typeof mode.entity.frontmatter["status"] === "string"
                       ? mode.entity.frontmatter["status"]

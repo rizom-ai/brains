@@ -5,6 +5,7 @@ import type { ProviderRegistry } from "./provider-registry";
 import type { QueueManager } from "./queue-manager";
 import type { RetryTracker } from "./retry-tracker";
 import type { PipelineContext } from "./lib/pipeline-context";
+import { missingPublishFields } from "./publish-requirements";
 
 const publicationStatusSchema = z.enum([
   "draft",
@@ -72,6 +73,44 @@ export type PublicationFailureItem = z.output<
   typeof publicationFailureItemSchema
 >;
 
+type PublicationDraftItemSchema = z.ZodObject<{
+  entityId: z.ZodString;
+  entityType: z.ZodString;
+  title: z.ZodString;
+  updated: z.ZodString;
+  missing: z.ZodArray<z.ZodString>;
+}>;
+
+/** A draft as the board shows it: what it still needs before it can go out. */
+export const publicationDraftItemSchema: PublicationDraftItemSchema = z.object({
+  entityId: z.string(),
+  entityType: z.string(),
+  title: z.string(),
+  updated: z.string(),
+  missing: z.array(z.string()),
+});
+
+type PublishedItemSchema = z.ZodObject<{
+  entityId: z.ZodString;
+  entityType: z.ZodString;
+  title: z.ZodString;
+  publishedAt: z.ZodOptional<z.ZodString>;
+  destination: z.ZodString;
+}>;
+
+/** What went out, and where. */
+export const publishedItemSchema: PublishedItemSchema = z.object({
+  entityId: z.string(),
+  entityType: z.string(),
+  title: z.string(),
+  publishedAt: z.string().optional(),
+  destination: z.string(),
+});
+
+/** How many drafts and published entries the board lists. */
+const DRAFT_LIMIT = 20;
+const PUBLISHED_LIMIT = 10;
+
 type PublicationPipelineSnapshotSchema = z.ZodObject<{
   summary: z.ZodObject<{
     draft: z.ZodNumber;
@@ -81,9 +120,11 @@ type PublicationPipelineSnapshotSchema = z.ZodObject<{
     published: z.ZodNumber;
     needsOperator: z.ZodNumber;
   }>;
+  drafts: z.ZodArray<PublicationDraftItemSchema>;
   queue: z.ZodArray<PublicationQueueItemSchema>;
   generating: z.ZodArray<PublicationJobItemSchema>;
   failures: z.ZodArray<PublicationFailureItemSchema>;
+  published: z.ZodArray<PublishedItemSchema>;
   publishableEntityTypes: z.ZodArray<z.ZodString>;
 }>;
 
@@ -97,9 +138,11 @@ export const publicationPipelineSnapshotSchema: PublicationPipelineSnapshotSchem
       published: z.number().int().nonnegative(),
       needsOperator: z.number().int().nonnegative(),
     }),
+    drafts: z.array(publicationDraftItemSchema),
     queue: z.array(publicationQueueItemSchema),
     generating: z.array(publicationJobItemSchema),
     failures: z.array(publicationFailureItemSchema),
+    published: z.array(publishedItemSchema),
     publishableEntityTypes: z.array(z.string()),
   });
 
@@ -114,6 +157,9 @@ interface PublicationEntityItem {
   entityType: string;
   title: string;
   status: PublicationStatus;
+  updated: string;
+  publishedAt?: string;
+  missing: string[];
   scheduledFor?: string;
   error?: string;
 }
@@ -151,6 +197,9 @@ export async function getPublicationPipelineSnapshot(
   };
 
   for (const entityType of publishableEntityTypes) {
+    const requiredFields =
+      context.entityService.getEntityTypeConfig(entityType).publish
+        ?.requiredFields;
     const entities = await context.entityService.listEntities({
       entityType,
       ...(options.visibilityScope
@@ -166,11 +215,15 @@ export async function getPublicationPipelineSnapshot(
       summary[parsedStatus.data] += 1;
       const scheduledFor = entity.metadata["scheduledFor"];
       const error = entity.metadata["error"];
+      const publishedAt = entity.metadata["publishedAt"];
       entitiesByKey.set(entityKey(entityType, entity.id), {
         entityId: entity.id,
         entityType,
         title: getEntityTitle(entity.id, entity.metadata),
         status: parsedStatus.data,
+        updated: entity.updated,
+        missing: missingPublishFields(requiredFields, entity),
+        ...(typeof publishedAt === "string" ? { publishedAt } : {}),
         ...(typeof scheduledFor === "string" ? { scheduledFor } : {}),
         ...(typeof error === "string" ? { error } : {}),
       });
@@ -233,11 +286,41 @@ export async function getPublicationPipelineSnapshot(
 
   summary.needsOperator = summary.draft + summary.failed;
 
+  const entries = Array.from(entitiesByKey.values());
+  const drafts = entries
+    .filter((entity) => entity.status === "draft")
+    .sort((left, right) => right.updated.localeCompare(left.updated))
+    .slice(0, DRAFT_LIMIT)
+    .map(({ entityId, entityType, title, updated, missing }) => ({
+      entityId,
+      entityType,
+      title,
+      updated,
+      missing,
+    }));
+  const published = entries
+    .filter((entity) => entity.status === "published")
+    .sort((left, right) =>
+      (right.publishedAt ?? right.updated).localeCompare(
+        left.publishedAt ?? left.updated,
+      ),
+    )
+    .slice(0, PUBLISHED_LIMIT)
+    .map(({ entityId, entityType, title, publishedAt }) => ({
+      entityId,
+      entityType,
+      title,
+      ...(publishedAt ? { publishedAt } : {}),
+      destination: providerRegistry.get(entityType).name,
+    }));
+
   return publicationPipelineSnapshotSchema.parse({
     summary,
+    drafts,
     queue,
     generating,
     failures,
+    published,
     publishableEntityTypes,
   });
 }

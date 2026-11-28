@@ -3,7 +3,6 @@ import {
   defineEntityCatalog,
   defineWorkspaceAction,
   type OperatorCaller,
-  type OperatorRegionBlock,
   type OperatorViewBlock,
 } from "@brains/sdk/services";
 import { permissionToVisibilityScope } from "@brains/sdk/internal/interface-runtime";
@@ -355,192 +354,174 @@ const publishingWorkspace = defineStudioWorkspace({
     publishAction,
   ],
   view: ({ data }) => {
-    type PublishingBlock = OperatorViewBlock<
+    type PublishingAction =
       | typeof queueAction
       | typeof removeAction
       | typeof retryAction
       | typeof reorderAction
-      | typeof publishAction
-    >;
-    type PublishingRegion = OperatorRegionBlock<
-      | typeof queueAction
-      | typeof removeAction
-      | typeof retryAction
-      | typeof reorderAction
-      | typeof publishAction
-    >;
-    const atRest =
-      data.queue.length === 0 &&
-      data.generating.length === 0 &&
-      data.failures.length === 0;
-    // One rest state reads as a desk with nothing on it; three separate empty
-    // collections read as three broken panels.
-    const work: PublishingRegion[] = atRest
-      ? [
-          {
-            type: "notice",
-            id: "publishing-at-rest",
-            title: "Nothing is in flight",
-            text: "Queue a draft to start a publication run.",
-          },
-        ]
-      : [
-          {
-            type: "list",
-            id: "dispatch-queue",
-            empty: "Nothing is queued for publication.",
-            items: data.queue.map((item) => {
-              const destinationCount = data.queue.filter(
-                (candidate) => candidate.entityType === item.entityType,
-              ).length;
-              return {
-                id: `queue-${item.entityType}-${item.position}`,
-                title: item.title,
-                description: item.destination,
-                metadata: [
-                  `Position ${item.position}`,
-                  item.scheduledFor
-                    ? `Scheduled: ${item.scheduledFor}`
-                    : "Next dispatch",
-                ],
-                link: targetLink(item.entityType, item.entityId),
-                actionsLabel: "Queue options",
-                actions: [
-                  {
-                    action: reorderAction,
-                    label: "Move up",
-                    input: {
-                      entityType: item.entityType,
-                      entityId: item.entityId,
-                      position: Math.max(1, item.position - 1),
-                    },
-                    disabled: item.position <= 1,
-                  },
-                  {
-                    action: reorderAction,
-                    label: "Move down",
-                    input: {
-                      entityType: item.entityType,
-                      entityId: item.entityId,
-                      position: item.position + 1,
-                    },
-                    disabled: item.position >= destinationCount,
-                  },
-                  {
-                    action: removeAction,
-                    input: {
-                      entityType: item.entityType,
-                      entityId: item.entityId,
-                    },
-                  },
-                ],
-              };
-            }),
-          },
-          {
-            type: "list",
-            id: "generating",
-            empty: "No publication assets are being generated.",
-            items: data.generating.map((job, index) => {
-              const [entityType, ...entityId] = job.target.split("/");
-              return {
-                id: `generating-${index + 1}`,
-                title: job.label,
-                metadata: [job.target, job.status],
-                ...(entityType && entityId.length > 0
-                  ? { link: targetLink(entityType, entityId.join("/")) }
-                  : {}),
-              };
-            }),
-          },
-          {
-            type: "list",
-            id: "publication-failures",
-            empty: "No failed publications.",
-            items: data.failures.map((failure, index) => ({
-              id: `failure-${index + 1}`,
-              title: failure.title,
-              description: failure.error,
-              metadata: [`Retries: ${failure.retryCount}`],
-              tone: "error",
-              link: targetLink(failure.entityType, failure.entityId),
+      | typeof publishAction;
+    type PublishingBlock = OperatorViewBlock<PublishingAction>;
+    const target = (item: {
+      entityType: string;
+      entityId: string;
+    }): { entityType: string; entityId: string } => ({
+      entityType: item.entityType,
+      entityId: item.entityId,
+    });
+    // One board from draft to out the door: a card moves on by its button,
+    // or by dragging it to the column its move leads to.
+    const board: PublishingBlock = {
+      type: "matrix",
+      id: "publishing-board",
+      columns: 4,
+      cells: [
+        {
+          id: "drafts",
+          label: "Drafts",
+          empty: "No drafts.",
+          items: data.drafts.map((draft) => ({
+            id: `draft-${draft.entityType}-${draft.entityId}`,
+            title: draft.title,
+            ...(draft.missing.length > 0
+              ? { description: `Needs ${joinedWords(draft.missing)}` }
+              : {}),
+            metadata: [typeLabel(draft.entityType)],
+            link: targetLink(draft.entityType, draft.entityId),
+            actions: [
+              {
+                action: queueAction,
+                label: "Queue",
+                input: target(draft),
+                dropTarget: "queued",
+                disabled: draft.missing.length > 0,
+              },
+            ],
+          })),
+        },
+        {
+          id: "queued",
+          label: "Queued",
+          empty: "Nothing is queued.",
+          items: data.queue.map((item) => {
+            const destinationCount = data.queue.filter(
+              (candidate) => candidate.entityType === item.entityType,
+            ).length;
+            return {
+              id: `queue-${item.entityType}-${item.position}`,
+              title: item.title,
+              metadata: [
+                typeLabel(item.entityType),
+                item.destination,
+                item.scheduledFor
+                  ? `Scheduled: ${item.scheduledFor}`
+                  : `Position ${item.position}`,
+              ],
+              link: targetLink(item.entityType, item.entityId),
+              actionsLabel: "Queue options",
               actions: [
                 {
-                  action: retryAction,
+                  action: reorderAction,
+                  label: "Move up",
                   input: {
-                    entityType: failure.entityType,
-                    entityId: failure.entityId,
+                    ...target(item),
+                    position: Math.max(1, item.position - 1),
                   },
+                  disabled: item.position <= 1,
+                },
+                {
+                  action: reorderAction,
+                  label: "Move down",
+                  input: { ...target(item), position: item.position + 1 },
+                  disabled: item.position >= destinationCount,
+                },
+                {
+                  action: removeAction,
+                  label: "Back to drafts",
+                  input: target(item),
+                  dropTarget: "drafts",
                 },
               ],
-            })),
-          },
-        ];
-    const failures = work.filter(
-      (block): block is Extract<PublishingRegion, { type: "list" }> =>
-        block.type === "list" &&
-        block.id === "publication-failures" &&
-        block.items.length > 0,
-    );
-    const blocks: PublishingBlock[] = [
-      ...failures.map((block): PublishingBlock => ({
-        type: "card",
-        id: "publishing-attention",
-        presentation: "disclosure",
-        disclosureLabel: "Review failure",
-        tone: "warn",
-        metadata:
-          data.failures.length === 1
-            ? data.failures.map(
-                (failure) =>
-                  `${failure.title} · Retries: ${failure.retryCount}`,
-              )
-            : [],
-        label:
-          data.failures.length === 1
-            ? "One delivery needs attention"
-            : `${data.failures.length} deliveries need attention`,
-        blocks: [block],
-      })),
-      ...(atRest
-        ? work
-        : [
+            };
+          }),
+        },
+        {
+          id: "published",
+          label: "Published",
+          empty: "Nothing published yet.",
+          items: data.published.map((entry) => ({
+            id: `published-${entry.entityType}-${entry.entityId}`,
+            title: entry.title,
+            metadata: [
+              typeLabel(entry.entityType),
+              entry.destination,
+              ...(entry.publishedAt ? [shortDate(entry.publishedAt)] : []),
+            ],
+            link: targetLink(entry.entityType, entry.entityId),
+          })),
+        },
+        {
+          id: "failed",
+          label: "Failed",
+          tone: data.failures.length > 0 ? "error" : undefined,
+          empty: "Nothing failed.",
+          items: data.failures.map((failure) => ({
+            id: `failure-${failure.entityType}-${failure.entityId}`,
+            title: failure.title,
+            description: failure.error,
+            metadata: [
+              typeLabel(failure.entityType),
+              `Retries: ${failure.retryCount}`,
+            ],
+            tone: "error",
+            link: targetLink(failure.entityType, failure.entityId),
+            actions: [
+              {
+                action: retryAction,
+                input: target(failure),
+                dropTarget: "queued",
+              },
+            ],
+          })),
+        },
+      ],
+    };
+    const preparing: PublishingBlock[] =
+      data.generating.length > 0
+        ? [
             {
-              type: "tabs" as const,
-              id: "publishing-queue",
-              label: "Publishing queue",
-              defaultTab: "queued",
-              tabs: [
+              type: "card",
+              id: "publishing-preparing",
+              presentation: "disclosure",
+              label:
+                data.generating.length === 1
+                  ? "One entry is being prepared"
+                  : `${data.generating.length} entries are being prepared`,
+              blocks: [
                 {
-                  id: "queued",
-                  label: "Queued",
-                  count: data.queue.length,
-                  blocks: work.filter(
-                    (block) =>
-                      block.type !== "list" || block.id === "dispatch-queue",
-                  ),
+                  type: "list",
+                  id: "generating",
+                  empty: "Nothing is being prepared.",
+                  items: data.generating.map((job, index) => {
+                    const [entityType, ...entityId] = job.target.split("/");
+                    return {
+                      id: `generating-${index + 1}`,
+                      title: job.label,
+                      metadata: [job.target, job.status],
+                      ...(entityType && entityId.length > 0
+                        ? { link: targetLink(entityType, entityId.join("/")) }
+                        : {}),
+                    };
+                  }),
                 },
-                ...(data.generating.length > 0
-                  ? [
-                      {
-                        id: "generating",
-                        label: "Generating",
-                        count: data.generating.length,
-                        blocks: work.filter(
-                          (block) => block.id === "generating",
-                        ),
-                      },
-                    ]
-                  : []),
               ],
             },
-          ]),
-    ];
+          ]
+        : [];
     return {
       kicker: "Publication operations",
       title: "Publishing",
       status: { label: `${data.summary.published} published`, tone: "neutral" },
-      blocks,
+      blocks: [...preparing, board],
     };
   },
 });
@@ -638,4 +619,29 @@ async function toAbsoluteQueuePosition(
   }
   const clamped = Math.min(Math.max(viewPosition, 1), viewEntries.length);
   return viewEntries[clamped - 1]?.position ?? viewPosition;
+}
+
+/** "social-post" reads as "Social post". */
+function typeLabel(entityType: string): string {
+  const words = entityType.replace(/[-_]+/g, " ").trim();
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
+/** "excerpt and author" */
+function joinedWords(words: readonly string[]): string {
+  return words.length <= 1
+    ? words.join("")
+    : `${words.slice(0, -1).join(", ")} and ${words.at(-1) ?? ""}`;
+}
+
+/** "10 Jul": when it went out, read the same everywhere. */
+function shortDate(iso: string): string {
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime())
+    ? iso
+    : date.toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "short",
+        timeZone: "UTC",
+      });
 }

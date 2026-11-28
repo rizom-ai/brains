@@ -281,42 +281,35 @@ export async function exerciseStudioPublishing(
         "Published totals belong in the page head, not a separate body panel",
       );
   });
+  // One board from draft to out the door; a failure waits in its column
+  // with its reason and the verb that sends it back to the queue.
   await evaluatePage(page, () => {
-    const attention = document.querySelector('section[data-tone="warn"]');
-    if (
-      !attention ||
-      document.querySelector('[role="dialog"]') ||
-      !attention.querySelector("header")?.textContent.includes("Retries: 1") ||
-      !attention
-        .querySelector("h2")
-        ?.textContent.includes("One delivery needs attention")
-    )
-      throw new Error(
-        "Publishing attention is missing or exposes its controls at rest",
-      );
-  });
-  await clickText(page, "button", "Review failure");
-  await waitForSelector(page, '[role="dialog"]');
-  await evaluatePage(page, () => {
-    const attention = document.querySelector('[role="dialog"]');
-    const retry = [...(attention?.querySelectorAll("button") ?? [])].find(
-      (button) => button.textContent.includes("Retry publication"),
+    const cells = [...document.querySelectorAll("[data-matrix-cell]")];
+    if (cells.length !== 4)
+      throw new Error(`The board shows ${cells.length} columns, not 4`);
+    const failed = cells.find((cell) => cell.textContent.includes("Failed"));
+    const retry = [...(failed?.querySelectorAll("button") ?? [])].find(
+      (button) => button.textContent.includes("Retry"),
     );
     if (
-      !attention?.textContent.includes(
+      !failed?.textContent.includes(
         "Provider rejected the last delivery attempt.",
       ) ||
+      !failed.textContent.includes("Retries: 1") ||
       !retry ||
       retry.disabled
     )
-      throw new Error(
-        "Publication review lost diagnostics or its retry action",
-      );
+      throw new Error("The Failed column lost its reason or its retry");
+    const drafts = cells.find((cell) => cell.textContent.includes("Drafts"));
+    const unready = [...(drafts?.querySelectorAll("li") ?? [])].find((item) =>
+      item.textContent.includes("Urban sensing"),
+    );
+    const queue = [...(unready?.querySelectorAll("button") ?? [])].find(
+      (button) => button.textContent.includes("Queue"),
+    );
+    if (!unready?.textContent.includes("Needs excerpt") || !queue?.disabled)
+      throw new Error("A draft missing its excerpt must not be queueable");
   });
-  await clickSelector(page, '[role="dialog"] [aria-label="Close"]');
-  await waitForPage("failure review closed", () =>
-    evaluatePage(page, () => !document.querySelector('[role="dialog"]')),
-  );
   await clickText(page, "button", "Queue options");
   await waitForSelector(page, '[role="dialog"]');
   await evaluatePage(page, () => {
@@ -333,7 +326,7 @@ export async function exerciseStudioPublishing(
     if (
       !buttons.some(
         (button) =>
-          button.textContent.includes("Remove from queue") && !button.disabled,
+          button.textContent.includes("Back to drafts") && !button.disabled,
       )
     )
       throw new Error("Queue options lost removal");
@@ -342,9 +335,7 @@ export async function exerciseStudioPublishing(
   await waitForPage("queue options closed", () =>
     evaluatePage(page, () => !document.querySelector('[role="dialog"]')),
   );
-  await activateWorkspaceTab(page, "Generating (1)");
-  await waitForText(page, "og-image");
-  await activateWorkspaceTab(page, "Queued (3)");
+  await waitForText(page, "One entry is being prepared");
   await waitForText(page, "Quiet infrastructure");
 }
 

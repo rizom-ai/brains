@@ -237,6 +237,105 @@ function environmentCard(
   };
 }
 
+type SiteEnvironment = SiteWorkspaceSnapshot["environments"][number];
+
+function publishedAt(
+  environment: SiteEnvironment | undefined,
+): number | undefined {
+  return environment?.publication.state === "published"
+    ? Date.parse(environment.publication.publishedAt)
+    : undefined;
+}
+
+/** How the preview stands against the live site, in one sentence. */
+function siteSummaryText(environments: readonly SiteEnvironment[]): string {
+  const preview = environments.find((item) => item.environment === "preview");
+  const production = environments.find(
+    (item) => item.environment === "production",
+  );
+  const previewAt = publishedAt(preview);
+  const liveAt = publishedAt(production);
+  if (production && liveAt === undefined) return "Your site is not live yet.";
+  if (previewAt !== undefined && liveAt !== undefined && previewAt > liveAt)
+    return "The preview has changes your live site does not have yet.";
+  if (previewAt === undefined && preview)
+    return "Build a preview to see your site before it goes live.";
+  return "Your live site matches the preview.";
+}
+
+/**
+ * The site at a glance: how the preview stands against the live site, the
+ * two ways to look at it, and the two things to do. Build details wait under
+ * Technical.
+ */
+function siteSummaryCard(data: SiteWorkspaceSnapshot): SiteCardBlock {
+  const active = data.environments.some((environment) => environment.active);
+  const hasPreview = data.environments.some(
+    (environment) => environment.environment === "preview",
+  );
+  const hasProduction = data.environments.some(
+    (environment) => environment.environment === "production",
+  );
+  return {
+    type: "card",
+    id: "site-summary",
+    label: "Your site",
+    presentation: "section",
+    blocks: [
+      {
+        type: "notice",
+        id: "site-summary-text",
+        text: siteSummaryText(data.environments),
+      },
+      ...(data.site.previewUrl || data.site.liveUrl
+        ? [
+            {
+              type: "links" as const,
+              id: "site-summary-open",
+              items: [
+                ...(data.site.previewUrl
+                  ? [
+                      {
+                        label: "Open preview",
+                        target: { external: data.site.previewUrl },
+                      },
+                    ]
+                  : []),
+                ...(data.site.liveUrl
+                  ? [
+                      {
+                        label: "Open live site",
+                        target: { external: data.site.liveUrl },
+                      },
+                    ]
+                  : []),
+              ],
+            },
+          ]
+        : []),
+      {
+        type: "actions",
+        id: "site-summary-actions",
+        items: [
+          ...(hasPreview
+            ? [{ action: buildPreviewAction, input: {}, disabled: active }]
+            : []),
+          ...(hasProduction
+            ? [
+                {
+                  action: buildProductionAction,
+                  label: "Publish site",
+                  input: {},
+                  disabled: active,
+                },
+              ]
+            : []),
+        ],
+      },
+    ],
+  };
+}
+
 function renderDetailsCard(
   environment: SiteWorkspaceSnapshot["environments"][number],
 ): SiteCardBlock {
@@ -325,18 +424,22 @@ const siteWorkspace = defineStudioWorkspace({
     return {
       title: "Site",
       blocks: [
+        siteSummaryCard(data),
+        ...data.environments.flatMap((environment) => [
+          ...buildFailureNotice(environment),
+          ...(environment.active ? [activeBuildProgress(environment)] : []),
+        ]),
         {
           type: "tabs",
           id: "site-environments",
-          label: "Environment",
+          // Build details, routes and automation, behind the summary.
+          label: "Technical",
           defaultTab: "preview",
           tabs: data.environments.map((environment) => ({
             id: environment.environment,
             label:
               environment.environment === "preview" ? "Preview" : "Production",
             blocks: [
-              ...buildFailureNotice(environment),
-              ...(environment.active ? [activeBuildProgress(environment)] : []),
               {
                 type: "columns",
                 id: "site-body",

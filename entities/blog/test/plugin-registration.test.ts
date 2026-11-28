@@ -58,13 +58,14 @@ describe("the blog in the publish pipeline and the site build", () => {
       ).toEqual(["ogDescription", "twitterCard", "atprotoUri"]);
     });
 
-    it("declares post publish statuses", async () => {
+    it("declares post publish statuses and what a post needs to publish", async () => {
       await harness.installPlugin(blogPlugin());
 
       expect(
         harness.getEntityRegistry().getEntityTypeConfig("post").publish,
       ).toEqual({
         publishStatuses: ["queued", "published"],
+        requiredFields: ["excerpt", "author"],
       });
     });
   });

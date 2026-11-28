@@ -884,6 +884,11 @@ export interface EntityTypeConfig {
    *  `publish` entity action when entered or modified. */
   publish?: {
     publishStatuses: string[];
+    /**
+     * Fields an entry must fill before it is queued or published. A draft
+     * may leave them empty; the publishing plugin refuses until it does not.
+     */
+    requiredFields?: string[] | undefined;
   };
 }
 

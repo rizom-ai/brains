@@ -224,10 +224,19 @@ export async function createDeliveryViewFixtures(
     ["post", "Newsletter"],
     ["note", "Site"],
   ] as const) {
+    // A post needs its excerpt to go out; a note needs nothing.
     context.entities.register(
       entityType,
       baseEntitySchema,
       new FixtureAdapter(entityType),
+      entityType === "post"
+        ? {
+            publish: {
+              publishStatuses: ["queued", "published"],
+              requiredFields: ["excerpt"],
+            },
+          }
+        : {},
     );
     providers.register(entityType, {
       name,
@@ -235,6 +244,19 @@ export async function createDeliveryViewFixtures(
     });
   }
   const records = [
+    {
+      entityType: "post",
+      id: "urban-sensing",
+      title: "Urban sensing and the data commons",
+      status: "draft",
+    },
+    {
+      entityType: "post",
+      id: "event-sourcing",
+      title: "Event sourcing, in one diagram",
+      status: "draft",
+      excerpt: "One picture of how the ledger keeps every reading.",
+    },
     {
       entityType: "post",
       id: "quiet-infrastructure",
@@ -266,6 +288,10 @@ export async function createDeliveryViewFixtures(
       id: `published-${index}`,
       title: `Published note ${index}`,
       status: "published",
+      excerpt: "Published.",
+      publishedAt: new Date(
+        Date.UTC(2026, 6, 10 - index, 9, 0, 0),
+      ).toISOString(),
     })),
   ];
   const queue = QueueManager.createFresh();

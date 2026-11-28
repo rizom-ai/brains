@@ -44,6 +44,8 @@ export interface StudioEntityTypeInfo {
   count: number;
   capabilities: StudioTypeCapabilities;
   hierarchy: StudioTypeHierarchy;
+  /** Fields an entry must fill before it can be queued or published. */
+  publishRequires?: string[] | undefined;
   /** Whether its entries collect others, such as a series or a topic; Studio lists their members. */
   collection?: boolean;
   /** The type this one lives in; Studio shows it inside that type, not on its own. */
