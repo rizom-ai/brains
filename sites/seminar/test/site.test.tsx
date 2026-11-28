@@ -107,6 +107,10 @@ describe("@rizom/site-seminar", () => {
 
   test("draws its frame from the theme's tokens alone", () => {
     expect(site.themeOverride).toContain("var(--color-accent)");
+    // A quote is shown as written: the prose style adds no marks of its own.
+    expect(site.themeOverride).toContain(
+      ".seminar-voice blockquote p::before, .seminar-site .seminar-voice blockquote p::after { content: none; }",
+    );
     expect(site.themeOverride).not.toMatch(/#[0-9a-f]{3,6}\b/i);
   });
 });
