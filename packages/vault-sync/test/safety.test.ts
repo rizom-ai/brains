@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, spyOn } from "bun:test";
-import type { HttpRequest, HttpResponse } from "../src/engine";
-import { connect, fresh, stored, type Synced } from "./helpers/setup";
+import type { HttpRequest, HttpResponse } from "../src";
+import { connect, fresh, stored, type Synced } from "../src/test";
 
 let synced: Synced | undefined;
 afterEach(async () => synced?.brain.close());

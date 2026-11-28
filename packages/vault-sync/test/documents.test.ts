@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { placementOf } from "../src/engine";
-import { connect, fresh, type Synced } from "./helpers/setup";
+import { placementOf } from "../src";
+import { connect, fresh, type Synced } from "../src/test";
 
 let synced: Synced | undefined;
 afterEach(async () => synced?.brain.close());

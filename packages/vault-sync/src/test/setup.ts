@@ -3,8 +3,9 @@ import {
   MemoryVault,
   SyncEngine,
   memoryStateStore,
+  type GeneratedFiles,
   type SyncReport,
-} from "../../src/engine";
+} from "..";
 import {
   openBrain,
   PASSWORD,
@@ -25,6 +26,7 @@ export interface Synced {
 function engineFor(
   brain: TestBrain,
   password = PASSWORD,
+  generated?: GeneratedFiles,
 ): Omit<Synced, "brain" | "device"> {
   const vault = new MemoryVault();
   const store = memoryStateStore();
@@ -37,6 +39,7 @@ function engineFor(
     vault,
     drive,
     store,
+    ...(generated ? { generated } : {}),
     now: (): Date => new Date(2026, 10, 22, 9, 30, 15),
   });
   return { vault, store, engine };
@@ -44,13 +47,21 @@ function engineFor(
 
 /** A brain and a vault the plugin has not synced yet. */
 export async function fresh(
-  options: { readOnly?: boolean } = {},
+  options: {
+    readOnly?: boolean;
+    /** The editor's files for the brain's types, as the editor passes them. */
+    generated?: GeneratedFiles;
+  } = {},
 ): Promise<Synced> {
   const brain = await openBrain();
+  const password = options.readOnly ? READ_ONLY_PASSWORD : PASSWORD;
   const synced: Synced = {
     brain,
-    ...engineFor(brain, options.readOnly ? READ_ONLY_PASSWORD : PASSWORD),
-    device: () => ({ ...synced, ...engineFor(brain) }),
+    ...engineFor(brain, password, options.generated),
+    device: () => ({
+      ...synced,
+      ...engineFor(brain, PASSWORD, options.generated),
+    }),
   };
   return synced;
 }

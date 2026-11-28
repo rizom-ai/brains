@@ -4,7 +4,7 @@ import type {
   FileNote,
   FirstSyncPlan,
   OpenConflict,
-} from "../engine";
+} from "@brains/vault-sync";
 import { compareVersions, type ComparedLine } from "./compare";
 
 function list(container: HTMLElement, title: string, items: string[]): void {

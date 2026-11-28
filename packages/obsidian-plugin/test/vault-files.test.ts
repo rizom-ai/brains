@@ -1,9 +1,29 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import type { HttpResponse } from "../src/engine";
-import { connect, fresh, stored, type Synced } from "./helpers/setup";
+import type { HttpResponse } from "@brains/vault-sync";
+import { connect, fresh, stored, type Synced } from "@brains/vault-sync/test";
+import {
+  obsidianFiles,
+  type TemplatesSetting,
+} from "../src/vault-files/vault-files";
 
 let synced: Synced | undefined;
 afterEach(async () => synced?.brain.close());
+
+/** Obsidian's Templates setting, as the person or the plugin left it. */
+let templates: TemplatesSetting & { folder: string | undefined };
+
+/** A brain and a vault the plugin writes `_obsidian/` into. */
+function withObsidianFiles(): Promise<Synced> {
+  templates = {
+    folder: undefined,
+    getTemplateFolder: async (): Promise<string | undefined> =>
+      templates.folder,
+    setTemplateFolder: async (folder): Promise<void> => {
+      templates.folder = folder;
+    },
+  };
+  return fresh({ generated: obsidianFiles(templates) });
+}
 
 /**
  * What the brain-side obsidian-vault plugin wrote into brain-data, the
@@ -13,7 +33,7 @@ afterEach(async () => synced?.brain.close());
  */
 describe("templates, fileClasses and bases", () => {
   it("are written into the vault on the first sync, and never synced as files", async () => {
-    synced = await fresh();
+    synced = await withObsidianFiles();
     await synced.brain.write("note", "tea", "# Tea\n");
 
     const report = await connect(synced);
@@ -25,11 +45,11 @@ describe("templates, fileClasses and bases", () => {
     expect(synced.vault.text("_obsidian/templates/note.md")).toContain("---");
     expect(report.localOnly).toEqual([]);
     expect(report.uploaded).toEqual([]);
-    expect(synced.vault.templateFolder).toBe("_obsidian/templates");
+    expect(templates.folder).toBe("_obsidian/templates");
   });
 
   it("are not offered in the first sync's plan", async () => {
-    synced = await fresh();
+    synced = await withObsidianFiles();
     const report = await synced.engine.sync();
 
     expect(
@@ -41,7 +61,7 @@ describe("templates, fileClasses and bases", () => {
   });
 
   it("keep the brain's templates and fileClasses, and the person's bases", async () => {
-    synced = await fresh();
+    synced = await withObsidianFiles();
     await connect(synced);
     const template = synced.vault.text("_obsidian/templates/note.md");
     synced.vault.setText("_obsidian/templates/note.md", "edited here\n");
@@ -58,7 +78,7 @@ describe("templates, fileClasses and bases", () => {
   });
 
   it("writes a deleted base again, and nothing on a sync with nothing to write", async () => {
-    synced = await fresh();
+    synced = await withObsidianFiles();
     await connect(synced);
     await synced.vault.trash("_obsidian/bases/Notes.base");
 
@@ -73,7 +93,7 @@ describe("templates, fileClasses and bases", () => {
   });
 
   it("are not written for the brain's own types the vault does not sync", async () => {
-    synced = await fresh();
+    synced = await withObsidianFiles();
     await connect(synced);
 
     const files = await synced.vault.listFiles();
@@ -82,7 +102,7 @@ describe("templates, fileClasses and bases", () => {
   });
 
   it("still syncs notes when the brain's description cannot be read, and says so", async () => {
-    synced = await fresh();
+    synced = await withObsidianFiles();
     await synced.brain.write("note", "tea", "# Tea\n");
     await connect(synced);
     const reachable = synced.brain.fetch;
@@ -104,7 +124,7 @@ describe("templates, fileClasses and bases", () => {
   });
 
   it("still syncs notes when a template cannot be written, and lists why", async () => {
-    synced = await fresh();
+    synced = await withObsidianFiles();
     await connect(synced);
     const vault = synced.vault;
     const write = vault.write.bind(vault);
@@ -126,7 +146,7 @@ describe("templates, fileClasses and bases", () => {
   });
 
   it("updates a base the person never changed, and leaves one they did", async () => {
-    synced = await fresh();
+    synced = await withObsidianFiles();
     await connect(synced);
     // As an earlier version of the plugin wrote them.
     const stale = "filters:\n  and:\n    - old\n";
@@ -153,7 +173,7 @@ describe("templates, fileClasses and bases", () => {
   });
 
   it("removes the files of a type the brain no longer has", async () => {
-    synced = await fresh();
+    synced = await withObsidianFiles();
     await connect(synced);
     synced.vault.setText("_obsidian/templates/gone.md", "old template\n");
     synced.store.current.generated["_obsidian/templates/gone.md"] = "recorded";
@@ -169,22 +189,22 @@ describe("templates, fileClasses and bases", () => {
   });
 
   it("sets the template folder once, and not again after the person clears it", async () => {
-    synced = await fresh();
+    synced = await withObsidianFiles();
     await connect(synced);
-    expect(synced.vault.templateFolder).toBe("_obsidian/templates");
-    synced.vault.templateFolder = undefined;
+    expect(templates.folder).toBe("_obsidian/templates");
+    templates.folder = undefined;
 
     await synced.engine.sync();
 
-    expect(synced.vault.templateFolder).toBeUndefined();
+    expect(templates.folder).toBeUndefined();
   });
 
   it("leaves the person's own template folder setting as it is", async () => {
-    synced = await fresh();
-    synced.vault.templateFolder = "My templates";
+    synced = await withObsidianFiles();
+    templates.folder = "My templates";
 
     await connect(synced);
 
-    expect(synced.vault.templateFolder).toBe("My templates");
+    expect(templates.folder).toBe("My templates");
   });
 });

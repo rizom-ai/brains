@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import type { HttpResponse } from "../src/engine";
-import type { OpenConflict, SyncReport } from "../src/engine";
-import { connect, fresh, stored, type Synced } from "./helpers/setup";
+import type { HttpResponse } from "../src";
+import type { OpenConflict, SyncReport } from "../src";
+import { connect, fresh, stored, type Synced } from "../src/test";
 
 let synced: Synced | undefined;
 afterEach(async () => synced?.brain.close());

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { connect, fresh, stored, type Synced } from "./helpers/setup";
+import { connect, fresh, stored, type Synced } from "../src/test";
 
 let synced: Synced | undefined;
 afterEach(async () => synced?.brain.close());

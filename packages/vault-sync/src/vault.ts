@@ -1,9 +1,10 @@
 /**
  * The vault as the sync engine sees it: files by path, `/`-separated, with
- * no leading slash. Obsidian's vault is one; the tests hold one in memory.
+ * no leading slash. An Obsidian vault is one, and a folder on disk; the tests
+ * hold one in memory.
  */
 export interface SyncVault {
-  /** Every file in the vault. Obsidian's own folder is not among them. */
+  /** Every file in the vault. The editor's own settings folder is not among them. */
   listFiles(): Promise<string[]>;
   /** A file's size and modification time, or nothing when it is not there. */
   stat(path: string): Promise<{ size: number; mtime: number } | undefined>;
@@ -22,9 +23,6 @@ export interface SyncVault {
   /** Move a file, making its folders, and update links to it. */
   rename(from: string, to: string): Promise<void>;
   exists(path: string): Promise<boolean>;
-  /** The folder Obsidian's Templates takes templates from, when one is set. */
-  getTemplateFolder(): Promise<string | undefined>;
-  setTemplateFolder(folder: string): Promise<void>;
 }
 
 /** A vault held in memory, for the tests and for planning. */
@@ -32,8 +30,6 @@ export class MemoryVault implements SyncVault {
   readonly files: Map<string, { bytes: Uint8Array; mtime: number }> = new Map();
   readonly trashed: string[] = [];
   readonly busy: Set<string> = new Set();
-  /** Obsidian's Templates setting, as the person or the plugin left it. */
-  templateFolder: string | undefined;
   private clock = 1;
 
   async listFiles(): Promise<string[]> {
@@ -100,13 +96,5 @@ export class MemoryVault implements SyncVault {
 
   async exists(path: string): Promise<boolean> {
     return this.files.has(path);
-  }
-
-  async getTemplateFolder(): Promise<string | undefined> {
-    return this.templateFolder;
-  }
-
-  async setTemplateFolder(folder: string): Promise<void> {
-    this.templateFolder = folder;
   }
 }

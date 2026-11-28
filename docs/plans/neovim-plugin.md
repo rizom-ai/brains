@@ -22,7 +22,7 @@ A folder on disk that stays in step with the brain, the way an Obsidian vault do
 
 ## Non-goals
 
-- No second sync engine. Neovim and `brain sync` use the Obsidian plugin's engine, moved into a shared package.
+- No second sync engine. Neovim and `brain sync` use the Obsidian plugin's engine, moved into a package of its own.
 - No `_obsidian/` files outside Obsidian.
 - No sync of files outside the brain's structure. As in Obsidian, notes sit at the root, every other type in its own folder, and anything else stays local.
 - No Lua sync logic. The Neovim plugin talks to `brain sync`; it does not reach the drive itself.
@@ -33,7 +33,7 @@ A folder on disk that stays in step with the brain, the way an Obsidian vault do
 ### Packages
 
 ```
-shared/vault-sync           @brains/vault-sync: engine, drive client, change feed,
+packages/vault-sync         @brains/vault-sync: engine, drive client, change feed,
                             state, placement, images, MemoryVault
   ├─ packages/obsidian-plugin   Obsidian vault, settings, dialogs; adds _obsidian/ files
   └─ packages/brain-cli         `brain sync <folder>`: a vault on disk, a folder watcher
@@ -42,7 +42,7 @@ shared/vault-sync           @brains/vault-sync: engine, drive client, change fee
 
 ### Generated files
 
-The engine takes an optional `generated` hook: a folder that is never synced, the files to write there for the brain's types (each kept as the brain writes it or the person's once changed), and a step that runs after they are written, told whether it was the first time. The Obsidian plugin passes the `_obsidian/` files and, on the first write, points Templates at `_obsidian/templates` when no folder is chosen. `SyncVault` loses its template-folder methods. The stored state keeps `generated`; `templateFolderSet` goes, because "first time" is told by `generated` being empty. A vault that already has the files never sees a first time again, so nothing changes for people using the plugin now.
+The engine takes an optional `generated` hook: a folder that is never synced, the files to write there for the brain's types (each kept as the brain writes it or the person's once changed), and a step that runs after they are written, told whether it was the first time. The Obsidian plugin passes the `_obsidian/` files and, on the first write, points Templates at `_obsidian/templates` when no folder is chosen. `SyncVault` loses its template-folder methods. The stored state keeps `generated`. `templateFolderSet` becomes `generatedSetUp`, set only once the step succeeded, so a step that fails is tried again. In state saved before it existed, the files being recorded says the step ran, as it always did with them, so nothing changes for people using the plugin now.
 
 ### `brain sync`
 
@@ -96,7 +96,7 @@ Studio's Connect card hands the app password back through an `obsidian://` link.
 
 Each phase is one PR.
 
-1. **Extract the engine.** `shared/vault-sync` holds the engine and its tests. The `_obsidian/` files become the `generated` hook; `SyncVault` loses its template-folder methods. The Obsidian plugin behaves as before and its build still bundles the engine.
+1. **Extract the engine.** `packages/vault-sync` holds the engine and its tests. The `_obsidian/` files become the `generated` hook; `SyncVault` loses its template-folder methods. The Obsidian plugin behaves as before and its build still bundles the engine.
 2. **`brain sync --once`.** A vault on disk, credentials from the environment or the credentials file, the first-sync plan on the terminal with `--yes` to apply, one full sync, then exit with a status. Tests run the engine against a temporary folder and an in-process drive.
 3. **`brain sync` keeps running.** Change feed, folder watcher for saves and deletes, 30-minute full compare, clean stop on a signal.
 4. **Renames from the watcher.** Gone-and-appeared with the same hash becomes `noteRenamed`.

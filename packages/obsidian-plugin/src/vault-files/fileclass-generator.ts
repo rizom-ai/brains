@@ -1,5 +1,5 @@
 import { toYaml } from "@brains/utils/yaml";
-import type { FieldInfo } from "./shapes";
+import type { FieldInfo } from "@brains/vault-sync";
 
 const typeMap: Record<FieldInfo["type"], string> = {
   string: "Input",

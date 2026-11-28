@@ -48,4 +48,11 @@ export {
   type SyncState,
 } from "./state";
 export { MemoryVault, type SyncVault } from "./vault";
-export { vaultFiles, type VaultFile } from "../vault-files/vault-files";
+export type { GeneratedFile, GeneratedFiles } from "./generated";
+export {
+  fieldInfoSchema,
+  vaultShapeSchema,
+  vaultShapesSchema,
+  type FieldInfo,
+  type VaultShape,
+} from "./shapes";

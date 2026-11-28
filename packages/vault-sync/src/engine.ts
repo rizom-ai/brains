@@ -9,15 +9,15 @@ import {
 import { getErrorMessage } from "@brains/utils/error";
 import { bytesOf, sameBytes, sha256Hex, textOf } from "./hash";
 import { imagesDown, imagesUp } from "./images";
-import { TEMPLATES_FOLDER, vaultFiles } from "../vault-files/vault-files";
+import type { GeneratedFiles } from "./generated";
 import {
   IMAGE_FOLDER,
-  OBSIDIAN_FILES_FOLDER,
   conflictCopyPath,
   extensionOf,
   isSyncedType,
   placementOf,
   type FileFlavor,
+  type Placement,
 } from "./paths";
 import type { StateStore, SyncState } from "./state";
 import type { SyncVault } from "./vault";
@@ -149,6 +149,8 @@ export interface SyncEngineOptions {
   vault: SyncVault;
   drive: DriveClient;
   store: StateStore;
+  /** Files the editor wants for the brain's types; none when not given. */
+  generated?: GeneratedFiles;
   now?: () => Date;
 }
 
@@ -163,6 +165,7 @@ export class SyncEngine {
   private readonly vault: SyncVault;
   private readonly drive: DriveClient;
   private readonly store: StateStore;
+  private readonly generated: GeneratedFiles | undefined;
   private readonly now: () => Date;
   /** Every operation runs after the one before: a sync never runs twice at once. */
   private queue: Promise<unknown> = Promise.resolve();
@@ -172,7 +175,17 @@ export class SyncEngine {
     this.vault = options.vault;
     this.drive = options.drive;
     this.store = options.store;
+    this.generated = options.generated;
     this.now = options.now ?? ((): Date => new Date());
+  }
+
+  /** Where a path belongs, with the generated files' folder kept to the vault. */
+  private place(path: string, types: ReadonlySet<string>): Placement {
+    return placementOf(
+      path,
+      types,
+      this.generated ? [this.generated.folder] : [],
+    );
   }
 
   private exclusive<T>(work: () => Promise<T>): Promise<T> {
@@ -298,7 +311,7 @@ export class SyncEngine {
 
   /** Upload one file when it differs from the version last agreed on. */
   private async uploadChanged(context: Context, path: string): Promise<void> {
-    const placement = placementOf(path, context.types);
+    const placement = this.place(path, context.types);
     if (placement.kind !== "synced") return;
     const stat = await this.vault.stat(path);
     if (!stat) return;
@@ -551,7 +564,7 @@ export class SyncEngine {
           } else {
             // Kept: the file is the vault's again, and goes back to the brain.
             delete context.state.paths[path];
-            const placement = placementOf(path, context.types);
+            const placement = this.place(path, context.types);
             const stat = await this.vault.stat(path);
             if (placement.kind === "synced" && stat) {
               const bytes = await this.vault.read(path);
@@ -614,18 +627,20 @@ export class SyncEngine {
   }
 
   /**
-   * The templates, fileClasses and bases for the brain's types. The brain's
-   * templates and fileClasses are kept as it writes them; a base is written
-   * only where missing, and is the person's from then on. A file being typed
-   * in is left for the next sync. Obsidian's Templates is pointed at them
-   * when the person has not chosen a folder.
+   * The editor's files for the brain's types. The brain's are kept as it
+   * writes them; a person's is written only where missing, and is theirs
+   * from then on. A file being typed in is left for the next sync.
    */
   private async writeVaultFiles(context: Context): Promise<void> {
     const { state } = context;
+    const generated = this.generated;
+    if (generated === undefined) return;
     try {
       const shapes = await this.drive.vaultShapes();
       if (shapes === undefined) return;
-      const files = vaultFiles(
+      // Kept before anything is written, so a step that fails is tried again.
+      state.generatedSetUp ??= Object.keys(state.generated).length > 0;
+      const files = generated.files(
         shapes.filter((shape) => isSyncedType(shape.entityType)),
       );
       for (const file of files) {
@@ -638,8 +653,8 @@ export class SyncEngine {
             state.generated[file.path] = hash;
             continue;
           }
-          // A base is the person's once they change it. One still as the
-          // plugin wrote it follows the brain, so it gains new types.
+          // A person's file is theirs once they change it. One still as the
+          // engine wrote it follows the brain, so it gains new types.
           if (
             file.owner === "person" &&
             state.generated[file.path] !== current
@@ -651,15 +666,13 @@ export class SyncEngine {
         state.generated[file.path] = hash;
       }
       await this.removeRetiredVaultFiles(
+        generated,
         state,
         new Set(files.map((file) => file.path)),
       );
-      // Once: a person who clears the folder afterwards keeps it cleared.
-      if (!state.templateFolderSet) {
-        if ((await this.vault.getTemplateFolder()) === undefined) {
-          await this.vault.setTemplateFolder(TEMPLATES_FOLDER);
-        }
-        state.templateFolderSet = true;
+      if (Object.keys(state.generated).length > 0) {
+        await generated.written?.(!state.generatedSetUp);
+        state.generatedSetUp = true;
       }
     } catch (error) {
       if (
@@ -669,29 +682,31 @@ export class SyncEngine {
       ) {
         throw error;
       }
-      // Templates and tables are a convenience: notes sync without them.
+      // These files are a convenience: notes sync without them.
       context.report.issues.push({
-        path: OBSIDIAN_FILES_FOLDER,
-        reason: `The brain's templates and tables could not be written: ${getErrorMessage(error)}`,
+        path: generated.folder,
+        reason: `The files for the brain's types could not be written: ${getErrorMessage(error)}`,
       });
     }
   }
 
   /**
-   * Files the plugin wrote for a type the brain no longer has: its template
-   * and fileClass go, and its base goes when the person never changed it.
+   * Files the engine wrote for a type the brain no longer has: the brain's
+   * go, and a person's goes when they never changed it.
    */
   private async removeRetiredVaultFiles(
+    generated: GeneratedFiles,
     state: SyncState,
     wanted: ReadonlySet<string>,
   ): Promise<void> {
-    const bases = `${OBSIDIAN_FILES_FOLDER}/bases/`;
     for (const [path, written] of Object.entries(state.generated)) {
       if (wanted.has(path)) continue;
       if (await this.vault.exists(path)) {
         const untouched =
           (await sha256Hex(await this.vault.read(path))) === written;
-        if (!path.startsWith(bases) || untouched) await this.vault.trash(path);
+        if (generated.ownerOf(path) === "brain" || untouched) {
+          await this.vault.trash(path);
+        }
       }
       delete state.generated[path];
     }
@@ -710,7 +725,7 @@ export class SyncEngine {
     const types = new Set(typeFolders);
     const files = new Map<string, string>();
     const take = (path: string, etag: string | undefined): void => {
-      if (etag !== undefined && placementOf(path, types).kind === "synced") {
+      if (etag !== undefined && this.place(path, types).kind === "synced") {
         files.set(path, etag);
       }
     };
@@ -759,7 +774,7 @@ export class SyncEngine {
   private async scanLocal(context: Context): Promise<Map<string, LocalFile>> {
     const local = new Map<string, LocalFile>();
     for (const path of await this.vault.listFiles()) {
-      const placement = placementOf(path, context.types);
+      const placement = this.place(path, context.types);
       if (placement.kind === "ignored") continue;
       if (placement.kind === "local") {
         context.report.localOnly.push({ path, reason: placement.reason });
@@ -1263,8 +1278,8 @@ export class SyncEngine {
     for (const rename of [...state.renames]) {
       const known = state.paths[rename.from];
       if (known) {
-        const from = placementOf(rename.from, context.types);
-        const to = placementOf(rename.to, context.types);
+        const from = this.place(rename.from, context.types);
+        const to = this.place(rename.to, context.types);
         if (
           to.kind !== "synced" ||
           from.kind !== "synced" ||
