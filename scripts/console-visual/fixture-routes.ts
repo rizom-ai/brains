@@ -21,6 +21,9 @@ import {
   cardMessages,
   entities,
   entity,
+  seriesEntities,
+  seriesEntity,
+  seriesMembers,
   messages,
   postsSchema,
   sessions,
@@ -534,6 +537,19 @@ export function createFixtureRoutes(
               total: 1,
             },
       );
+    if (url.searchParams.get("type") === "series")
+      return json(
+        url.searchParams.has("id") && !hierarchyRequest
+          ? { entity: seriesEntity }
+          : {
+              ...(hierarchyRequest ? { prefix: null, folders: [] } : {}),
+              entities: seriesEntities.map((item) => ({
+                ...item,
+                path: [item.id],
+              })),
+              total: seriesEntities.length,
+            },
+      );
     if (!hierarchyRequest && url.searchParams.has("id"))
       return json({ entity });
     const offset = Number(url.searchParams.get("offset") ?? 0);
@@ -555,6 +571,11 @@ export function createFixtureRoutes(
       total: filtered.length,
     });
   };
+
+  const collectionMembers: FixtureRoute = (_request, url) =>
+    url.pathname === "/studio/api/collection-members"
+      ? json(seriesMembers)
+      : undefined;
 
   const syncStatus: FixtureRoute = (_request, url) =>
     url.pathname === "/studio/api/sync-status"
@@ -596,6 +617,7 @@ export function createFixtureRoutes(
     saveEntity,
     upload,
     listEntities,
+    collectionMembers,
     syncStatus,
     consoleJump,
   ];

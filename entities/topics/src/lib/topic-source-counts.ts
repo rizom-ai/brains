@@ -22,18 +22,25 @@ export interface TopicSourceCounts {
   unattributed: number;
 }
 
+export interface TopicSources {
+  /** The keys of the sources supporting each topic slug, in source order. */
+  bySlug: Map<string, string[]>;
+  /** Sources with no fresh vote: not yet read under their content and the current prompt. */
+  unattributed: number;
+}
+
 /**
- * How many sources support each topic, read as extraction reads them: a
- * source counts once for each topic its fresh vote supports at or above the
+ * Which sources support each topic, read as extraction reads them: a
+ * source supports each topic its fresh vote supports at or above the
  * minimum relevance, after merged slugs are folded in.
  */
-export function countTopicSources({
+export function topicSourcesBySlug({
   sources,
   votes,
   aliases,
   promptVersion,
   config,
-}: TopicSourceCountInput): TopicSourceCounts {
+}: TopicSourceCountInput): TopicSources {
   const ledger = {
     votes,
     failures: new Map(),
@@ -44,21 +51,39 @@ export function countTopicSources({
     const vote = votes.get(source.key);
     if (!vote || !isVoteFresh(ledger, source)) return null;
     // One source's tally holds each slug it supports once, aliases folded.
-    return [
-      ...foldTopicAliases(
-        tallyTopicVotes([{ vote, weight: 1, canMint: false }], config),
-        aliases,
-      ).keys(),
-    ];
+    return {
+      key: source.key,
+      slugs: [
+        ...foldTopicAliases(
+          tallyTopicVotes([{ vote, weight: 1, canMint: false }], config),
+          aliases,
+        ).keys(),
+      ],
+    };
   });
   const bySlug = supported
-    .flatMap((slugs) => slugs ?? [])
+    .flatMap((source) =>
+      source ? source.slugs.map((slug) => ({ slug, key: source.key })) : [],
+    )
     .reduce(
-      (counts, slug) => counts.set(slug, (counts.get(slug) ?? 0) + 1),
-      new Map<string, number>(),
+      (keys, { slug, key }) => keys.set(slug, [...(keys.get(slug) ?? []), key]),
+      new Map<string, string[]>(),
     );
   return {
     bySlug,
-    unattributed: supported.filter((slugs) => slugs === null).length,
+    unattributed: supported.filter((source) => source === null).length,
+  };
+}
+
+/** How many sources support each topic, as {@link topicSourcesBySlug} reads them. */
+export function countTopicSources(
+  input: TopicSourceCountInput,
+): TopicSourceCounts {
+  const sources = topicSourcesBySlug(input);
+  return {
+    bySlug: new Map(
+      [...sources.bySlug].map(([slug, keys]) => [slug, keys.length]),
+    ),
+    unattributed: sources.unattributed,
   };
 }

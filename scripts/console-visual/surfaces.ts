@@ -13,6 +13,8 @@ export function consoleSurfaces(): string[] {
     "studio-navigation",
     "studio-navigation-collapsed",
     "studio-images",
+    "studio-series",
+    "studio-series-open",
     "studio-overview",
     "studio-chat",
     "studio-chat-sessions",
@@ -65,6 +67,7 @@ export function isStudioSecondarySurface(surface: string): boolean {
 export function isStudioAppShellSurface(surface: string): boolean {
   return (
     surface === "studio-editor" ||
+    surface === "studio-series-open" ||
     (surface.startsWith("studio-system") && !surface.endsWith("-collection")) ||
     surface === "studio-delete" ||
     surface === "studio-conflict" ||
@@ -141,6 +144,7 @@ export function planSurface(
   const isDashboard = surface.startsWith("dashboard");
   const isStudioEditor =
     surface === "studio-editor" ||
+    surface === "studio-series-open" ||
     (reviewingSystem && !systemCollection) ||
     isStudioSecondary;
   const route = isDashboard
@@ -153,11 +157,13 @@ export function planSurface(
           ? `/studio/entities/${systemType}${systemCollection ? "" : `/${systemType}`}`
           : surface === "studio-images"
             ? "/studio/images"
-            : WORKSPACE_SURFACES[surface] !== undefined
-              ? workspaceRoute(WORKSPACE_SURFACES[surface])
-              : isStudioEditor
-                ? "/studio/entities/posts/field-notes"
-                : "/studio/entities/posts";
+            : surface.startsWith("studio-series")
+              ? `/studio/entities/series${surface === "studio-series-open" ? "/trust-and-identity" : ""}`
+              : WORKSPACE_SURFACES[surface] !== undefined
+                ? workspaceRoute(WORKSPACE_SURFACES[surface])
+                : isStudioEditor
+                  ? "/studio/entities/posts/field-notes"
+                  : "/studio/entities/posts";
   const workspaceQuery =
     surface === "studio-board-open"
       ? "&card=partner-update"

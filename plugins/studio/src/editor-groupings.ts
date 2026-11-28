@@ -6,6 +6,7 @@ import {
   groupingSortSchema,
   groupingValueSchema,
 } from "@brains/sdk/internal/entity-runtime";
+import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
 import { z } from "@brains/utils/zod";
 import { getTypeCapabilities } from "./editor-access";
 import type {
@@ -78,24 +79,12 @@ export async function handleGroupingRead(
   if (!query.success || (mode === "members" && query.data.value === undefined))
     return jsonResponse({ error: "Invalid grouping query" }, 400);
   await context.entities.ensureGroupingsCurrent();
-  const definitions = getDefinitions?.().groupings ?? {};
-  const grouping = Object.hasOwn(definitions, query.data.grouping)
-    ? definitions[query.data.grouping]
-    : undefined;
-  if (!grouping) return jsonResponse({ error: "Unknown grouping" }, 404);
-  const admitted = new Set<string>();
-  for (const type of context.entityService.getEntityTypes()) {
-    if (
-      isGroupingContributorType(context, type) &&
-      !grouping.excludeTypes?.includes(type) &&
-      (await getTypeCapabilities(context, type, access))
-    )
-      admitted.add(type);
-  }
-  const descriptor = studioGroupDescriptors(
-    { [query.data.grouping]: grouping },
-    admitted,
-  )[0];
+  const descriptor = await admittedGroupDescriptor(
+    context,
+    access,
+    query.data.grouping,
+    getDefinitions,
+  );
   if (!descriptor) return jsonResponse({ error: "Unknown grouping" }, 404);
   if (!(await context.entityService.ensureGroupingsReady())) {
     const response = jsonResponse(
@@ -142,17 +131,60 @@ export async function handleGroupingRead(
   return jsonResponse({
     grouping: descriptor,
     total: page.total,
-    entities: page.entities.map((entity) => ({
-      id: entity.id,
-      entityType: entity.entityType,
-      path: decodeEntityIdPath(entity.id),
-      frontmatter: {
-        ...splitEntityContent(entity.entityType, entity.content, context)
-          .frontmatter,
-        visibility: entity.visibility,
-      },
-      displayTitle: entityDisplayTitle(context, entity),
-      updated: entity.updated,
-    })),
+    entities: page.entities.map((entity) => groupMemberRow(context, entity)),
   });
+}
+
+/** One member as a group page and a collection list it. */
+export function groupMemberRow(
+  context: StudioContext,
+  entity: BaseEntity,
+): {
+  id: string;
+  entityType: string;
+  path: ReturnType<typeof decodeEntityIdPath>;
+  frontmatter: Record<string, unknown>;
+  displayTitle: ReturnType<typeof entityDisplayTitle>;
+  updated: string;
+} {
+  return {
+    id: entity.id,
+    entityType: entity.entityType,
+    path: decodeEntityIdPath(entity.id),
+    frontmatter: {
+      ...splitEntityContent(entity.entityType, entity.content, context)
+        .frontmatter,
+      visibility: entity.visibility,
+    },
+    displayTitle: entityDisplayTitle(context, entity),
+    updated: entity.updated,
+  };
+}
+
+/**
+ * A grouping as this caller may read it: only the contributing types they
+ * can read, so a descriptor never discloses the others. None when the
+ * grouping is unknown or none of its types is readable.
+ */
+export async function admittedGroupDescriptor(
+  context: StudioContext,
+  access: StudioRequestAccess,
+  key: string,
+  getDefinitions: EditorRouteOptions["getGroupingDefinitions"],
+): Promise<StudioGrouping | undefined> {
+  const definitions = getDefinitions?.().groupings ?? {};
+  const grouping = Object.hasOwn(definitions, key)
+    ? definitions[key]
+    : undefined;
+  if (!grouping) return undefined;
+  const admitted = new Set<string>();
+  for (const type of context.entityService.getEntityTypes()) {
+    if (
+      isGroupingContributorType(context, type) &&
+      !grouping.excludeTypes?.includes(type) &&
+      (await getTypeCapabilities(context, type, access))
+    )
+      admitted.add(type);
+  }
+  return studioGroupDescriptors({ [key]: grouping }, admitted)[0];
 }

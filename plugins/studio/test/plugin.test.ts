@@ -89,6 +89,7 @@ describe("studio plugin", () => {
       "GET /studio/api/groups/catalog exact",
       "GET /studio/api/groups/members exact",
       "GET /studio/api/groups/usage exact",
+      "GET /studio/api/collection-members exact",
       "GET /studio/api/hierarchy exact",
       "GET /studio/api/entities exact",
       "PUT /studio/api/entities exact",

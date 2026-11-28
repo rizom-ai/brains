@@ -13,7 +13,8 @@ import {
 import { STUDIO_CHAT_WORKSPACE_ID } from "../../src/chat-workspace";
 
 export interface NavigationTypeGroup {
-  label: string;
+  /** None where the section holds only this list. */
+  label?: string | undefined;
   types: EntityTypeInfo[];
 }
 
@@ -57,8 +58,8 @@ export interface NavigationModel {
   homeWorkspaces: StudioWorkspaceInfo[];
   /** Pages listed under Chat, such as Guest chat. */
   chatWorkspaces: StudioWorkspaceInfo[];
-  /** Content and collections, and pages plugins place in Library. */
-  libraryTypeGroups: NavigationTypeGroup[];
+  /** The content types in use, collections among them, most recently opened first. */
+  libraryTypes: EntityTypeInfo[];
   /** Library types with no entries yet, listed under All types. */
   emptyLibraryTypes: EntityTypeInfo[];
   libraryWorkspaces: StudioWorkspaceInfo[];
@@ -123,7 +124,7 @@ export function deriveNavigationModel(
   const libraryWorkspaces = inSection("library");
   const publishWorkspaces = inSection("publish");
   const brainWorkspaces = inSection("brain");
-  const groups = (["Content", "Collections", "Site", "System"] as const)
+  const groups = (["Content", "Site", "System"] as const)
     .map((label) => ({
       label,
       types: types.filter((info) => studioTypeGroup(info) === label),
@@ -138,22 +139,17 @@ export function deriveNavigationModel(
   };
   const inUse = (info: EntityTypeInfo): boolean =>
     info.count > 0 || info.isSingleton || info.entityType === active;
-  const libraryGroups = groups.filter(
-    (group) => group.label === "Content" || group.label === "Collections",
+  // One list, as the types are used: a collection such as a topic or a
+  // series sits among the types it collects from.
+  const contentTypes = types.filter(
+    (info) => studioTypeGroup(info) === "Content",
   );
-  const libraryTypeGroups = libraryGroups
-    .map((group) => ({
-      label: group.label,
-      types: group.types
-        .filter(inUse)
-        .map((info, index) => ({ info, index }))
-        .sort((a, b) => recency(a.info) - recency(b.info) || a.index - b.index)
-        .map(({ info }) => info),
-    }))
-    .filter((group) => group.types.length > 0);
-  const emptyLibraryTypes = libraryGroups.flatMap((group) =>
-    group.types.filter((info) => !inUse(info)),
-  );
+  const libraryTypes = contentTypes
+    .filter(inUse)
+    .map((info, index) => ({ info, index }))
+    .sort((a, b) => recency(a.info) - recency(b.info) || a.index - b.index)
+    .map(({ info }) => info);
+  const emptyLibraryTypes = contentTypes.filter((info) => !inUse(info));
   const systemTypes = (ids: string[]): EntityTypeInfo[] =>
     ids.flatMap((id) =>
       types.filter(
@@ -211,7 +207,7 @@ export function deriveNavigationModel(
         id: "library",
         label: "Library",
         available:
-          libraryTypeGroups.length > 0 ||
+          libraryTypes.length > 0 ||
           emptyLibraryTypes.length > 0 ||
           libraryWorkspaces.length > 0 ||
           (input.groupings?.items.length ?? 0) > 0,
@@ -250,7 +246,7 @@ export function deriveNavigationModel(
     chatWorkspace,
     homeWorkspaces,
     chatWorkspaces,
-    libraryTypeGroups,
+    libraryTypes,
     emptyLibraryTypes,
     libraryWorkspaces,
     publishWorkspaces,

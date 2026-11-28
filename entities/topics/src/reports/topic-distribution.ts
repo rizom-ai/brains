@@ -3,16 +3,15 @@ import {
   defineAnalyticsReport,
   type AnalyticsReportContext,
   type AnalyticsReportDefinition,
-  type ContentVisibility,
 } from "@brains/sdk/internal/service-runtime";
 import { generateIdFromText } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import { topicEntitySchema } from "../schemas/topic";
 import { TOPIC_ENTITY_TYPE } from "../lib/constants";
 import { getTopicTitle } from "../lib/topic-presenter";
-import { sourceKey, type SourceRef } from "../lib/topic-extraction-decisions";
+import type { SourceRef } from "../lib/topic-extraction-decisions";
 import type { TopicSourceCounts } from "../lib/topic-source-counts";
-import { readTopicSourcePages } from "../lib/topic-source-pages";
+import { readVisibleSources } from "../lib/topic-visible-sources";
 
 type AnalyticsEntityService = AnalyticsReportContext["entityService"];
 type CountedSource = Pick<SourceRef, "key" | "contentHash">;
@@ -39,55 +38,6 @@ export interface TopicDistributionOptions {
   countSources: (
     sources: readonly CountedSource[],
   ) => Promise<TopicSourceCounts>;
-}
-
-/** What search can return: a public reader gets no drafts. */
-function sourceScope(visibilityScope: ContentVisibility): {
-  filter: { visibilityScope: ContentVisibility };
-  publishedOnly?: true;
-} {
-  return {
-    filter: { visibilityScope },
-    ...(visibilityScope === "public" && { publishedOnly: true }),
-  };
-}
-
-function sourceTypes(
-  entityService: AnalyticsEntityService,
-  options: TopicDistributionOptions,
-): string[] {
-  return entityService
-    .getEntityTypes()
-    .filter((type) => options.isSourceType(type, entityService));
-}
-
-/** A source visible to the caller, and whether extraction reads it. */
-interface ScannedSource extends CountedSource {
-  eligible: boolean;
-}
-
-async function readSources(
-  entityService: AnalyticsEntityService,
-  options: TopicDistributionOptions,
-  visibilityScope: ContentVisibility,
-): Promise<ScannedSource[]> {
-  return (
-    await Promise.all(
-      sourceTypes(entityService, options).map((entityType) =>
-        readTopicSourcePages(
-          entityService,
-          { entityType, ...sourceScope(visibilityScope) },
-          (source) => [
-            {
-              key: sourceKey(source),
-              contentHash: source.contentHash,
-              eligible: options.isEligibleSource(source),
-            },
-          ],
-        ),
-      ),
-    )
-  ).flat();
 }
 
 function entityCount(count: number): string {
@@ -123,9 +73,12 @@ export function createTopicDistributionReport(
         },
         topicEntitySchema,
       );
-      const visible = await readSources(
+      const visible = await readVisibleSources(
         entityService,
-        options,
+        {
+          isSourceType: (type) => options.isSourceType(type, entityService),
+          isEligibleSource: options.isEligibleSource,
+        },
         visibilityScope,
       );
       const sources = visible.flatMap(({ key, contentHash, eligible }) =>

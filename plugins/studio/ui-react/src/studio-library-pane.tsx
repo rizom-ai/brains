@@ -427,6 +427,14 @@ function LibraryRow(props: {
           {generation}
         </span>
       )}
+      {entity.members && (
+        <span
+          data-studio-row-members=""
+          className={editorClass("", library.members)}
+        >
+          {entity.members.label}
+        </span>
+      )}
     </span>
   );
   if (refine.available && !systemDesign) {

@@ -1,4 +1,6 @@
 import {
+  collectionMembersContract,
+  collectionTypesContract,
   topicSourceTypesContract,
   topicTitlesContract,
 } from "@brains/contracts";
@@ -50,7 +52,12 @@ import {
   topicExtractionStores,
   topicVotePromptVersion,
 } from "./lib/topic-extraction-run";
-import { countTopicSources } from "./lib/topic-source-counts";
+import {
+  countTopicSources,
+  topicSourcesBySlug,
+} from "./lib/topic-source-counts";
+import { answerTopicMembers } from "./lib/topic-members";
+import { readVisibleSources } from "./lib/topic-visible-sources";
 import { topicsContextOf, type TopicsContext } from "./lib/topics-context";
 import { TOPIC_ENTITY_TYPE } from "./lib/constants";
 
@@ -209,6 +216,58 @@ export const topicsPackage: ServicePackageDefinition<
         { everyProcess: true },
       );
       const extractionStores = topicExtractionStores(context);
+      // Which entries belong to a topic, for Studio: the visible sources
+      // whose current votes support it, counted as the distribution counts.
+      if (!runtime.executionOnly) {
+        runtime.answer(collectionTypesContract, async () => ({
+          types: [TOPIC_ENTITY_TYPE],
+        }));
+        runtime.answer(collectionMembersContract, ({ request }) =>
+          answerTopicMembers(request, {
+            listTopics: async (visibilityScope) =>
+              (
+                await context.entityService.listEntities({
+                  entityType: TOPIC_ENTITY_TYPE,
+                  options: { filter: { visibilityScope } },
+                })
+              ).map((stored) => ({
+                id: stored.id,
+                title: getTopicTitle(stored),
+              })),
+            readSources: async (visibilityScope) =>
+              (
+                await readVisibleSources(
+                  context.entityService,
+                  {
+                    isSourceType: (type) =>
+                      isTopicSourceType(
+                        type,
+                        config,
+                        context.entityService.getEntityTypeConfig(type),
+                      ),
+                    isEligibleSource: (entity: BaseEntity) =>
+                      isTopicSourceEligible(entity, config),
+                  },
+                  visibilityScope,
+                )
+              ).filter((source) => source.eligible),
+            sourcesBySlug: async (sources) => {
+              const [votes, aliases, promptVersion] = await Promise.all([
+                storeEntries(extractionStores.votes),
+                storeEntries(extractionStores.aliases),
+                topicVotePromptVersion(context),
+              ]);
+              return topicSourcesBySlug({
+                sources,
+                votes,
+                aliases,
+                promptVersion,
+                config,
+              }).bySlug;
+            },
+          }),
+        );
+      }
       runtime.analyticsReport(
         createTopicDistributionReport({
           isSourceType: (type, entityService) =>

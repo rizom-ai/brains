@@ -1,14 +1,6 @@
 import type { EntityTypeInfo, StudioWorkspaceInfo } from "./api";
 import { STUDIO_ACCOUNT_WORKSPACE_ID } from "../../src/account-workspace";
 
-const COLLECTION_ENTITY_TYPES = new Set([
-  "project",
-  "projects",
-  "series",
-  "topic",
-  "topics",
-]);
-
 export const SITE_ENTITY_TYPES: Set<string> = new Set([
   "profile",
   "settings",
@@ -55,10 +47,9 @@ export type StudioArea = StudioWorkspaceInfo["section"];
 
 export function studioTypeGroup(
   type: Pick<EntityTypeInfo, "entityType" | "classification">,
-): "Content" | "Collections" | "Site" | "System" {
+): "Content" | "Site" | "System" {
   if (type.classification === "system")
     return SITE_ENTITY_TYPES.has(type.entityType) ? "Site" : "System";
-  if (COLLECTION_ENTITY_TYPES.has(type.entityType)) return "Collections";
   return "Content";
 }
 

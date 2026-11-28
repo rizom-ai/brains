@@ -1231,6 +1231,7 @@ describe("studio editor api", () => {
         canPublish: true,
         canAssist: true,
       },
+      collection: false,
       hierarchy: { kind: "folder", nested: true },
     });
   });

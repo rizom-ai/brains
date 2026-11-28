@@ -453,6 +453,10 @@ export {
 } from "./notification";
 export { topicTitlesContract, topicTitlesResponseSchema } from "./topic-titles";
 export {
+  collectionMembersContract,
+  collectionTypesContract,
+} from "./collection-members";
+export {
   topicSourceTypesContract,
   type TopicSourceTypesResponse,
 } from "./topic-source-types";

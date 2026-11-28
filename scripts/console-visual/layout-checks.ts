@@ -459,8 +459,14 @@ function wordsStayWhole(): void {
           .filter((rect) => rect.width > 0)
           .map((rect) => Math.round(rect.top)),
       );
-      if (tops.size > 1)
-        throw new Error(`The word "${match[0]}" breaks across lines`);
+      if (tops.size > 1) {
+        // Name the squeezed element, so the failure points at its column.
+        const parent = node.parentElement;
+        const where = parent
+          ? ` in <${parent.tagName.toLowerCase()} class="${parent.className}"> ${Math.round(parent.getBoundingClientRect().width)}px wide`
+          : "";
+        throw new Error(`The word "${match[0]}" breaks across lines${where}`);
+      }
     }
   }
 }

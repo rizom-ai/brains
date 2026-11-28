@@ -8,6 +8,7 @@ export const libraryStyles: Record<
   | "index"
   | "title"
   | "excerpt"
+  | "members"
   | "covered"
   | "cover"
   | "coverImage"
@@ -131,6 +132,16 @@ export const libraryStyles: Record<
   },
   // A compact row states its status beside the title, not under it.
   inlineStatus: { display: "inline", marginTop: 0, marginLeft: 10 },
+  // How many entries a collection holds, in words as written: "3 field notes".
+  members: {
+    display: "block",
+    marginTop: 4,
+    fontFamily: "var(--console-ui)",
+    fontSize: 11,
+    fontWeight: 400,
+    color: "var(--console-text-muted)",
+    letterSpacing: 0,
+  },
   // Where a cover is still arriving; a row without one shows nothing.
   coverPending: {
     display: "block",
