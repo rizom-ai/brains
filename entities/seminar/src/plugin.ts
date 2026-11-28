@@ -29,6 +29,7 @@ import {
 } from "./handlers/seminar-redo-handler";
 import { seminarAskDataSource } from "./datasources/seminar-ask-datasource";
 import { seminarDataSource } from "./datasources/seminar-datasource";
+import { seminarNotesDataSource } from "./datasources/seminar-notes-datasource";
 import { modelChair, type ChairNote } from "./lib/chair";
 import {
   CHAIR_NOTE_LIMIT,
@@ -201,6 +202,8 @@ export const seminarPackage: ServicePackageDefinition<
           );
           // What those pages read, as seminar:entities.
           runtime.dataSource(seminarDataSource(seminar, context.config.peers));
+          // The brain's notes beside its seminars, as seminar:notes.
+          runtime.dataSource(seminarNotesDataSource());
           return {};
         },
       },

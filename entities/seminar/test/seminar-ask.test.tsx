@@ -34,7 +34,7 @@ describe("the Ask page's data", () => {
         .list()
         .map(({ id }) => id)
         .sort(),
-    ).toEqual(["seminar:ask", "seminar:entities"]);
+    ).toEqual(["seminar:ask", "seminar:entities", "seminar:notes"]);
   });
 });
 
