@@ -1,0 +1,41 @@
+id: channel-insights-overturned
+name: Records the finding that overturns a recorded insight
+description: >-
+  The channel recorded that freelancers leave at the company field. New
+  messages find the real cause: confirmation mails bounced. The pickup
+  records one insight and names the recorded one it replaces.
+type: plugin
+tags:
+  - conversation-memory
+  - channel-insights
+plugin: conversation-memory
+handler: extractChannelDecisions
+
+input:
+  insights: true
+  processedThrough: 2
+  recordedInsights:
+    - title: Freelancers leave the sign-up form at the company field
+      text: Sign-ups dropped because the form asks for a company name freelancers do not have.
+  messages:
+    - speaker: Niels
+      userId: usr_niels
+      content: Almost all abandoned forms stop at the company name field, and they're freelancers.
+    - speaker: Jo
+      userId: usr_jo
+      content: So that's what is costing us sign-ups.
+    - speaker: Niels
+      userId: usr_niels
+      content: I was wrong about the company field. I checked the mail logs. The confirmation mails bounced all week, so people who did sign up never got in.
+    - speaker: Jo
+      userId: usr_jo
+      content: So it was the mail server, not the form. Good to know.
+
+expectedOutput:
+  validateEach:
+    - path: insightCount
+      equals: 1
+    - path: insights[0].replaces
+      equals: insight-1
+    - path: insights[0].title
+      matches: "([Mm]ail|[Bb]ounc)"

@@ -52,6 +52,7 @@ const PENDING = new Set([
   "form",
   "grouping-definitions",
   "guide",
+  "insight",
   "link",
   "mail-item",
   "newsletter",

@@ -1933,6 +1933,76 @@
       },
       "required": ["status"]
     },
+    "insight": {
+      "type": "object",
+      "properties": {
+        "conversationId": {
+          "type": "string",
+          "studioWidget": "hidden"
+        },
+        "channelId": {
+          "type": "string",
+          "studioWidget": "hidden"
+        },
+        "channelName": {
+          "studioWidget": "provenance",
+          "type": "string"
+        },
+        "interfaceType": {
+          "type": "string",
+          "studioWidget": "provenance"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["active", "superseded"]
+        },
+        "supersededBy": {
+          "studioWidget": "hidden",
+          "type": "string"
+        },
+        "startedAt": {
+          "studioWidget": "provenance",
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+        },
+        "endedAt": {
+          "studioWidget": "provenance",
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+        },
+        "statedBy": {
+          "studioWidget": "people",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "statedByAliases": {
+          "studioWidget": "hidden",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "mentionedBy": {
+          "studioWidget": "people",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "mentionedByAliases": {
+          "studioWidget": "hidden",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": ["status"]
+    },
     "action-item": {
       "type": "object",
       "properties": {

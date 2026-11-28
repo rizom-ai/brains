@@ -19,9 +19,10 @@ import {
 import {
   DECISION_RETIRED_FIELDS,
   decisionMetadataSchema,
+  insightMetadataSchema,
 } from "./schemas/conversation-memory";
-import { DECISION_ENTITY_TYPE } from "./lib/constants";
-import { decisionCreateRoutes } from "./lib/decision-create";
+import { DECISION_ENTITY_TYPE, INSIGHT_ENTITY_TYPE } from "./lib/constants";
+import { decisionCreateRoutes, insightCreateRoutes } from "./lib/memory-create";
 import { memoryCodec } from "./lib/memory-codec";
 
 /** An entry is named by its body heading; its id is a reference. */
@@ -60,6 +61,35 @@ export const decision: EntityDefinition<
   }),
   displayTitle: ({ content }) => bodyHeading(content),
   config: { retiredFields: [...DECISION_RETIRED_FIELDS] },
+});
+
+const INSIGHT_INSTRUCTIONS =
+  "Record an insight when someone asks to note what was learned or concluded: its title is the finding in a few words, its content what was found and why it holds. State its visibility as shared for a team's insight or restricted for a private one; an insight is never public. Work to be done is an action item and a choice the group settled is a decision, not an insight.";
+
+/**
+ * An insight picked up from a conversation or recorded by hand: what the
+ * conversation learned or concluded, a heading and its text, its
+ * frontmatter its metadata, with its people whole in the body's People
+ * section, as a decision's are.
+ */
+export const insight: EntityDefinition<
+  typeof INSIGHT_ENTITY_TYPE,
+  typeof insightMetadataSchema
+> = defineEntity({
+  type: INSIGHT_ENTITY_TYPE,
+  purpose: "What a conversation learned or concluded, or one recorded by hand.",
+  instructions: INSIGHT_INSTRUCTIONS,
+  create: insightCreateRoutes,
+  metadata: insightMetadataSchema,
+  markdown: memoryCodec({
+    schema: insightMetadataSchema,
+    people: [
+      { key: "statedBy", label: "Stated by" },
+      { key: "mentionedBy", label: "Mentioned by" },
+    ],
+    body: (content) => content,
+  }),
+  displayTitle: ({ content }) => bodyHeading(content),
 });
 
 /** Every header field is read as stored; metadata parses its own. */

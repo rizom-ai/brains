@@ -99,6 +99,8 @@ function typeConfig(entityType: string): EntityTypeConfig {
       retiredFields: ["conversationId", "entryCount", "projectionVersion"],
     };
   if (entityType === "decision") return { retiredFields: RETIRED };
+  // New with the next stored form: it has no earlier fields to retire.
+  if (entityType === "insight") return {};
   return {
     retiredFields: RETIRED,
     translatedFields: ["timeRange"],

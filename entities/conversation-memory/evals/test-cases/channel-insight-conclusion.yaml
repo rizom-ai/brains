@@ -1,0 +1,35 @@
+id: channel-insights-conclusion
+name: Picks up what a team channel finds out
+description: >-
+  Over a few messages the team finds out why sign-ups dropped. The pickup
+  records one insight, stated by Niels, and no decision.
+type: plugin
+tags:
+  - conversation-memory
+  - channel-insights
+plugin: conversation-memory
+handler: extractChannelDecisions
+
+input:
+  insights: true
+  messages:
+    - speaker: Jo
+      userId: usr_jo
+      content: Sign-ups dropped again last week and I can't see why.
+    - speaker: Niels
+      userId: usr_niels
+      content: I went through the abandoned forms. Almost all of them stop at the company name field, and they're freelancers.
+    - speaker: Jo
+      userId: usr_jo
+      content: That makes sense, a freelancer has no company name to fill in. So that's what is costing us sign-ups.
+
+expectedOutput:
+  validateEach:
+    - path: insightCount
+      equals: 1
+    - path: count
+      equals: 0
+    - path: insights[0].title
+      matches: "([Ff]reelancer|[Cc]ompany|[Ss]ign-?ups?)"
+    - path: insights[0].statedBy
+      matches: "(Niels|Jo)"

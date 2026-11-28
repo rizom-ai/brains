@@ -102,17 +102,21 @@ describe("the conversation-memory package's registered surface", () => {
       // the service.
       ["summary", "entity", "@brains/conversation-memory", []],
       ["decision", "entity", "@brains/conversation-memory", []],
+      ["insight", "entity", "@brains/conversation-memory", []],
       ["action-item", "entity", "@brains/conversation-memory", []],
       ["conversation-memory", "service", "@brains/conversation-memory", []],
     ]);
     expect(capabilities.flatMap(({ tools }) => tools)).toEqual([]);
     expect(capabilities.flatMap(({ resources }) => resources)).toEqual([]);
-    // Only a decision is recorded by hand, so only it tells the agent how.
+    // A decision and an insight are recorded by hand, so they tell the agent how.
     expect(
       capabilities.flatMap(({ instructions }) =>
         instructions === undefined ? [] : [instructions],
       ),
-    ).toEqual([expect.stringContaining("a decision is never public")]);
+    ).toEqual([
+      expect.stringContaining("a decision is never public"),
+      expect.stringContaining("an insight is never public"),
+    ]);
     for (const plugin of plugins) {
       expect(plugin.getWebRoutes?.() ?? []).toEqual([]);
       expect(plugin.getApiRoutes?.() ?? []).toEqual([]);
@@ -143,6 +147,7 @@ describe("the conversation-memory package's registered surface", () => {
     expect(registry.getAllEntityTypes()).toEqual([
       "summary",
       "decision",
+      "insight",
       "action-item",
     ]);
     expect(registry.getEntityTypeConfig("summary")).toMatchObject({
@@ -192,6 +197,7 @@ describe("the conversation-memory package's registered surface", () => {
     expect(main.widgets).toEqual([
       "conversation-memory:action-items",
       "conversation-memory:decisions",
+      "conversation-memory:insights",
       "conversation-memory:recent",
     ]);
     const worker = await installed({ executionOnly: true });

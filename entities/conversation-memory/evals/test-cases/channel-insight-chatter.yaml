@@ -1,0 +1,34 @@
+id: channel-insights-chatter
+name: Finds no insight in chatter, opinions and open questions
+description: >-
+  A question nobody answers, an opinion, a guess and a report of finished
+  work teach the team nothing it can rely on; the pickup records nothing.
+type: plugin
+tags:
+  - conversation-memory
+  - channel-insights
+  - hallucination
+plugin: conversation-memory
+handler: extractChannelDecisions
+
+input:
+  insights: true
+  messages:
+    - speaker: Jo
+      userId: usr_jo
+      content: Does anyone know why sign-ups dropped last week?
+    - speaker: Niels
+      userId: usr_niels
+      content: No idea. Maybe the holidays? Just a guess.
+    - speaker: Natalie
+      content: I like the new logo by the way. And I sent everyone the board notes this morning.
+    - speaker: Jo
+      userId: usr_jo
+      content: Thanks!
+
+expectedOutput:
+  validateEach:
+    - path: insightCount
+      equals: 0
+    - path: count
+      equals: 0

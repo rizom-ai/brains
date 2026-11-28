@@ -24,7 +24,7 @@ export interface ChannelNoticeDeps {
   bookmarks: ClassRuntimeStateStore<ChannelBookmark>;
   /**
    * Whether what a line announces is still there, a card on the board or a
-   * recorded decision; one deleted since is not announced.
+   * recorded decision or insight; one deleted since is not announced.
    */
   cardExists: (id: string, kind?: NoticeCard["kind"]) => Promise<boolean>;
   /** Post a space notice; the posted message's id, or undefined when it failed. */
@@ -41,32 +41,51 @@ function undoLabel(title: string): string {
 
 type NoticeCard = ChannelNotice["cards"][number];
 
-function decisionLine(card: NoticeCard): string {
+/** How a kind of claim is named on a notice. */
+function claimNoun(kind: NonNullable<NoticeCard["kind"]>): string {
+  return kind === "insight" ? "Insight" : "Decision";
+}
+
+function claimLine(
+  card: NoticeCard,
+  kind: NonNullable<NoticeCard["kind"]>,
+): string {
   if (card.undo?.outcome === "removed") {
     return `~~${card.title}~~ · removed by ${card.undo.by}`;
   }
   if (card.change === "superseded") return `Superseded: ~~${card.title}~~`;
-  const named = `Decision: ${card.title}`;
+  const named = `${claimNoun(kind)}: ${card.title}`;
   return card.undo?.outcome === "kept"
     ? `${named} · kept: edited since`
     : named;
 }
 
-/** What a notice is headed with: by what it holds, cards, decisions or both. */
+/**
+ * What a notice is headed with: by what it holds. Cards alone say what
+ * happened on the board, decisions or insights alone say what was recorded,
+ * and a notice that mixes kinds says only where it came from.
+ */
 function noticeTitle(cards: NoticeCard[]): string {
-  const decisions = cards.filter((card) => card.kind === "decision").length;
-  if (decisions === 0) {
+  const kinds = new Set(
+    cards.flatMap((card) => (card.kind ? [card.kind] : [])),
+  );
+  const claims = cards.filter((card) => card.kind).length;
+  if (claims === 0) {
     return cards.every((card) => !card.change)
       ? "Added to the board"
       : "Board updated";
   }
-  if (decisions < cards.length) return "Picked up from this channel";
-  if (cards.some((card) => card.change)) return "Decisions updated";
-  return decisions === 1 ? "Decision recorded" : "Decisions recorded";
+  const [kind] = kinds;
+  if (claims < cards.length || kinds.size > 1 || !kind) {
+    return "Picked up from this channel";
+  }
+  const noun = claimNoun(kind);
+  if (cards.some((card) => card.change)) return `${noun}s updated`;
+  return claims === 1 ? `${noun} recorded` : `${noun}s recorded`;
 }
 
 function cardLine(card: NoticeCard): string {
-  if (card.kind === "decision") return decisionLine(card);
+  if (card.kind) return claimLine(card, card.kind);
   const named = [
     card.title,
     card.owner,

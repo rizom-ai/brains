@@ -31,7 +31,7 @@ import { buildFallbackExcerpt } from "./excerpt";
 
 const seededMemorySchema = z.object({
   id: z.string(),
-  entityType: z.enum(["summary", "decision", "action-item"]),
+  entityType: z.enum(["summary", "decision", "insight", "action-item"]),
   content: z.string(),
   excerpt: z.string().optional(),
   score: z.number().optional(),

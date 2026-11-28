@@ -2,22 +2,31 @@ import { z } from "@brains/utils/zod";
 
 /**
  * What a candidate turned out to be. The model is asked to judge every
- * statement that might be a decision, and only `decision` is recorded: asked
- * for decisions alone, it returns the others anyway and says in their text
- * that they are not decisions.
+ * statement that might be a decision or an insight, and only those two are
+ * recorded: asked for decisions alone, it returns the others anyway and says
+ * in their text that they are not decisions.
  */
-export const decisionCandidateKindSchema: z.ZodEnum<{
+export const claimCandidateKindSchema: z.ZodEnum<{
   decision: "decision";
+  insight: "insight";
+  guess: "guess";
   "action-item": "action-item";
   undecided: "undecided";
   recorded: "recorded";
-}> = z.enum(["decision", "action-item", "undecided", "recorded"]);
+}> = z.enum([
+  "decision",
+  "insight",
+  "guess",
+  "action-item",
+  "undecided",
+  "recorded",
+]);
 
-type ChannelDecisionExtractionSchema = z.ZodObject<{
+type ChannelClaimExtractionSchema = z.ZodObject<{
   language: z.ZodString;
   candidates: z.ZodArray<
     z.ZodObject<{
-      kind: typeof decisionCandidateKindSchema;
+      kind: typeof claimCandidateKindSchema;
       title: z.ZodString;
       text: z.ZodString;
       message: z.ZodNumber;
@@ -28,7 +37,7 @@ type ChannelDecisionExtractionSchema = z.ZodObject<{
 }>;
 
 /** What the model returns: every field required, as models fill them all. */
-export const channelDecisionExtractionSchema: ChannelDecisionExtractionSchema =
+export const channelClaimExtractionSchema: ChannelClaimExtractionSchema =
   z.object({
     /**
      * The language the new messages are written in. Asked for first, so the
@@ -38,7 +47,7 @@ export const channelDecisionExtractionSchema: ChannelDecisionExtractionSchema =
     language: z.string(),
     candidates: z.array(
       z.object({
-        kind: decisionCandidateKindSchema,
+        kind: claimCandidateKindSchema,
         title: z.string().min(1).max(200),
         text: z.string(),
         message: z.number().int(),
@@ -50,6 +59,6 @@ export const channelDecisionExtractionSchema: ChannelDecisionExtractionSchema =
     ),
   });
 
-export type ChannelDecisionExtraction = z.output<
-  typeof channelDecisionExtractionSchema
+export type ChannelClaimExtraction = z.output<
+  typeof channelClaimExtractionSchema
 >;

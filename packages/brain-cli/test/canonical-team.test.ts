@@ -34,6 +34,7 @@ const trustedEntityTypes = [
   "image",
   "doc",
   "decision",
+  "insight",
   "action-item",
 ];
 

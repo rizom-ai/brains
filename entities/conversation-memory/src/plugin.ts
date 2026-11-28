@@ -9,7 +9,7 @@ import {
 } from "@brains/sdk/internal/service-runtime";
 import { summaryConfigSchema } from "./schemas/summary-config";
 import { summary } from "./summary-entity";
-import { actionItem, decision } from "./memory-entities";
+import { actionItem, decision, insight } from "./memory-entities";
 import { summaryListTemplate } from "./templates/summary-list";
 import { summaryDetailTemplate } from "./templates/summary-detail";
 import { channelActionItemsTemplate } from "./templates/channel-action-items";
@@ -17,6 +17,7 @@ import { channelDecisionsTemplate } from "./templates/channel-decisions";
 import { summaryDataSource } from "./datasources/summary-datasource";
 import { registerActionItemsWidget } from "./lib/widgets/action-items";
 import { registerDecisionsWidget } from "./lib/widgets/decisions";
+import { registerInsightsWidget } from "./lib/widgets/insights";
 import { registerRecentConversationMemoryWidget } from "./lib/widgets/recent-memory-register";
 import { registerConversationMemoryAgentContext } from "./lib/agent-context-provider";
 import { registerMemoryEvalHandlers } from "./lib/eval-handlers";
@@ -43,7 +44,7 @@ export const conversationMemoryPackage: ServicePackageDefinition<
   defineServicePlugin({
     id: SUMMARY_PLUGIN_ID,
     config: summaryConfigSchema,
-    entities: [summary, decision, actionItem],
+    entities: [summary, decision, insight, actionItem],
     setup: (setupContext): Record<never, never> => {
       const runtime = serviceRuntime(setupContext);
       const context = memoryContextOf(runtime);
@@ -71,10 +72,12 @@ export const conversationMemoryPackage: ServicePackageDefinition<
 
       registerChannelActionItems(runtime, context, {
         visibility: setupContext.config.memoryVisibility,
+        captureInsights: setupContext.config.captureInsights,
       });
 
       registerActionItemsWidget(runtime, context);
       registerDecisionsWidget(runtime, context);
+      registerInsightsWidget(runtime, context);
       registerRecentConversationMemoryWidget(runtime, context);
 
       registerConversationMemoryAgentContext(runtime, context);
@@ -86,11 +89,10 @@ export const conversationMemoryPackage: ServicePackageDefinition<
   (slotContext) => {
     const runtime = serviceRuntime(slotContext);
     return [
-      channelPickupJobHandler(
-        runtime,
-        memoryContextOf(runtime),
-        slotContext.config.memoryVisibility,
-      ),
+      channelPickupJobHandler(runtime, memoryContextOf(runtime), {
+        visibility: slotContext.config.memoryVisibility,
+        captureInsights: slotContext.config.captureInsights,
+      }),
     ];
   },
 );

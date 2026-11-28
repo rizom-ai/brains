@@ -8,10 +8,14 @@ import type {
   ContentVisibility,
 } from "@brains/sdk/internal/service-runtime";
 import { noticeContent, withNotice } from "./notice";
-import { decisionSchema } from "../../schemas/conversation-memory";
-import { DECISION_ENTITY_TYPE } from "../constants";
+import {
+  decisionSchema,
+  insightSchema,
+} from "../../schemas/conversation-memory";
+import { DECISION_ENTITY_TYPE, INSIGHT_ENTITY_TYPE } from "../constants";
+import type { ClaimKind } from "./claim-extractor";
 import type { MemoryEntityService } from "../memory-context";
-import { rewriteOwnDecision } from "./own-decisions";
+import { claimEntityType, rewriteOwnClaim } from "./own-claims";
 import { updateBookmark, type ChannelBookmark } from "./pickup";
 
 export interface ChannelUndoDeps {
@@ -26,58 +30,63 @@ export interface ChannelUndoDeps {
 const REJECTED_KEPT = 500;
 
 /**
- * Take back a decision the pickup wrote. The delete holds only while the
- * decision still reads as the pickup wrote it, by the hash the bookmark
+ * Take back a decision or an insight the pickup wrote. The delete holds only
+ * while it still reads as the pickup wrote it, by the hash the bookmark
  * recorded; one edited since, or with no record, is kept.
  */
-async function takeBackDecision(
+async function takeBackClaim(
   deps: ChannelUndoDeps,
   written: string | undefined,
-  id: string,
+  claim: { kind: ClaimKind; id: string },
 ): Promise<"removed" | "kept"> {
   if (!written) return "kept";
   const deleted = await deps.entityService.deleteEntity({
-    entityType: DECISION_ENTITY_TYPE,
-    id,
+    entityType: claimEntityType(claim.kind),
+    id: claim.id,
     options: { expectedContentHash: written },
   });
   return deleted ? "removed" : "kept";
 }
 
 /**
- * Bring back the decisions a taken-back decision had superseded: each the
- * pickup wrote and nobody has edited is active again and names no
- * replacement. Returns their new hashes, by id.
+ * Bring back what a taken-back claim had superseded, decisions and insights
+ * alike: each the pickup wrote and nobody has edited is active again and
+ * names no replacement. Returns their new hashes, by id.
  */
 async function restoreSuperseded(
   deps: ChannelUndoDeps,
   own: Readonly<Record<string, string>>,
   takenBack: string,
 ): Promise<Record<string, string>> {
-  const replaced = await deps.entityService.listEntities(
-    {
-      entityType: DECISION_ENTITY_TYPE,
-      options: {
-        filter: {
-          metadata: { supersededBy: takenBack },
-          visibilityScope: deps.visibility,
-        },
-      },
+  const options = {
+    filter: {
+      metadata: { supersededBy: takenBack },
+      visibilityScope: deps.visibility,
     },
-    decisionSchema,
-  );
+  };
+  const [decisions, insights] = await Promise.all([
+    deps.entityService.listEntities(
+      { entityType: DECISION_ENTITY_TYPE, options },
+      decisionSchema,
+    ),
+    deps.entityService.listEntities(
+      { entityType: INSIGHT_ENTITY_TYPE, options },
+      insightSchema,
+    ),
+  ]);
+  const replaced = [
+    ...decisions.map(({ id }) => ({ kind: "decision" as const, id })),
+    ...insights.map(({ id }) => ({ kind: "insight" as const, id })),
+  ];
   const restored = await Promise.all(
-    replaced.map(async ({ id }) => {
-      const rewritten = await rewriteOwnDecision(
+    replaced.map(async (claim) => {
+      const rewritten = await rewriteOwnClaim(
         deps.entityService,
-        own[id],
-        id,
-        ({ supersededBy: _replacement, ...metadata }) => ({
-          ...metadata,
-          status: "active",
-        }),
+        own[claim.id],
+        claim,
+        { status: "active" },
       );
-      return rewritten ? [[id, rewritten.hash] as const] : [];
+      return rewritten ? [[claim.id, rewritten.hash] as const] : [];
     }),
   );
   return Object.fromEntries(restored.flat());
@@ -101,22 +110,24 @@ export async function undoNoticeCard(
   const card = notice.cards.find((candidate) => candidate.id === action.value);
   if (!card || card.undo) return noticeContent(notice);
 
-  const outcome =
-    card.kind === "decision"
-      ? await takeBackDecision(deps, bookmark?.own?.[card.id], card.id)
-      : (
-            await withdrawActionItem(
-              {
-                entityService: deps.entityService,
-                visibilityScope: deps.visibility,
-              },
-              card.id,
-            )
-          ).status === "kept"
-        ? "kept"
-        : "removed";
+  const outcome = card.kind
+    ? await takeBackClaim(deps, bookmark?.own?.[card.id], {
+        kind: card.kind,
+        id: card.id,
+      })
+    : (
+          await withdrawActionItem(
+            {
+              entityService: deps.entityService,
+              visibilityScope: deps.visibility,
+            },
+            card.id,
+          )
+        ).status === "kept"
+      ? "kept"
+      : "removed";
   const restored =
-    card.kind === "decision" && outcome === "removed"
+    card.kind && outcome === "removed"
       ? await restoreSuperseded(deps, bookmark?.own ?? {}, card.id)
       : {};
   await updateBookmark(deps.bookmarks, action.conversationId, (latest) => {

@@ -27,10 +27,17 @@ export const summaryMemoryVisibilitySchema: z.ZodPipe<
 
 export const summaryConfigSchema: z.ZodObject<{
   memoryVisibility: typeof summaryMemoryVisibilitySchema;
+  captureInsights: z.ZodDefault<z.ZodBoolean>;
 }> = z.object({
   memoryVisibility: summaryMemoryVisibilitySchema.describe(
-    "Visibility applied to the memory the plugin writes: action items found in channels",
+    "Visibility applied to the memory the plugin writes: action items, decisions and insights found in channels",
   ),
+  captureInsights: z
+    .boolean()
+    .default(false)
+    .describe(
+      "Whether insights are picked up from channels beside action items and decisions",
+    ),
 });
 
 export type SummaryConfig = z.output<typeof summaryConfigSchema>;

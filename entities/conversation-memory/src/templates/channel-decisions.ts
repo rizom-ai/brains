@@ -1,16 +1,16 @@
 import { createTemplate } from "@brains/sdk/internal/presentation";
 import { CHANNEL_DECISIONS_TEMPLATE_NAME } from "../lib/constants";
 import {
-  channelDecisionExtractionSchema,
-  type ChannelDecisionExtraction,
-} from "../lib/channel-pickup/decision-schema";
+  channelClaimExtractionSchema,
+  type ChannelClaimExtraction,
+} from "../lib/channel-pickup/claim-schema";
 
 export const channelDecisionsTemplate: ReturnType<
-  typeof createTemplate<ChannelDecisionExtraction>
-> = createTemplate<ChannelDecisionExtraction>({
+  typeof createTemplate<ChannelClaimExtraction>
+> = createTemplate<ChannelClaimExtraction>({
   name: CHANNEL_DECISIONS_TEMPLATE_NAME,
   description: "Find the decisions a team channel's new messages settle",
-  schema: channelDecisionExtractionSchema,
+  schema: channelClaimExtractionSchema,
   dataSourceId: "shell:ai-content",
   useKnowledgeContext: false,
   requiredPermission: "public",
