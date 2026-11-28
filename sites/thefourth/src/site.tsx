@@ -25,15 +25,17 @@ import { intro, nextStep } from "./pages/common";
 import {
   benefits,
   howCase,
+  howIntro,
   howRoute,
   method,
   pattern,
   story,
 } from "./pages/how";
+import { pagesChineseCSS } from "./pages/chinese-css";
 import { pagesCSS } from "./pages/pages-css";
 import { brandTest, contact, paths, steps, talkRoute } from "./pages/talk";
-import { loop, note, services, whatRoute } from "./pages/what";
-import { whoRoute, worlds } from "./pages/who";
+import { loop, note, services, whatIntro, whatRoute } from "./pages/what";
+import { whoIntro, whoRoute, world } from "./pages/who";
 import { siteCSS } from "./styles";
 
 /**
@@ -57,11 +59,17 @@ const pageSections = sectionGroup("page", {
   "next-step": nextStep,
 });
 
-const whatSections = sectionGroup("what", { services, loop, note });
+const whatSections = sectionGroup("what", {
+  intro: whatIntro,
+  services,
+  loop,
+  note,
+});
 
-const whoSections = sectionGroup("who", { worlds });
+const whoSections = sectionGroup("who", { intro: whoIntro, world });
 
 const howSections = sectionGroup("how", {
+  intro: howIntro,
   case: howCase,
   story,
   pattern,
@@ -95,6 +103,13 @@ export const theFourthSite: SiteDefinition = defineSite({
       title: "The Fourth",
       description:
         "A brand consultancy in Taipei, for products, research and impact that are hard to explain and worth understanding.",
+      translations: {
+        "zh-TW": {
+          title: "The Fourth",
+          description:
+            "台北的品牌顧問，為難以說明、卻值得被理解的產品、研究與影響力說故事。",
+        },
+      },
       layout: "default",
       navigation: { show: false },
       sections: [
@@ -144,7 +159,8 @@ export const theFourthSite: SiteDefinition = defineSite({
     pagesCSS +
     formsCSS +
     chineseCSS +
-    homeChineseCSS,
+    homeChineseCSS +
+    pagesChineseCSS,
   headScripts: [
     chineseFontScript,
     spellScript,

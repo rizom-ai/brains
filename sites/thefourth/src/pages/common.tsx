@@ -223,10 +223,22 @@ const introSchema = z.object({
   light: lightSchema,
   eyebrow: z.string(),
   headline: z.string(),
-  lede: z.string(),
+  lede: z.string().default(""),
   chipsLabel: z.string().default(""),
   chips: z.array(chipSchema).default([]),
+  /** Chinese only: the headline's second, serif line. */
+  headlineTail: z.string().default(""),
+  /**
+   * Chinese only: the bar that stays at the top as the page scrolls, its
+   * label, its name for screen readers and its button; its links are the
+   * chips.
+   */
+  pageNavLabel: z.string().default(""),
+  pageNavName: z.string().default(""),
+  pageNavAction: linkSchema.default({ label: "", href: "" }),
 });
+
+type Intro = z.infer<typeof introSchema>;
 
 function IntroSection({
   light,
@@ -235,7 +247,7 @@ function IntroSection({
   lede,
   chipsLabel,
   chips,
-}: z.infer<typeof introSchema>): JSX.Element {
+}: Intro): JSX.Element {
   return (
     <section className="tf-intro">
       <PageWrap className="tf-intro__inner">
@@ -244,9 +256,11 @@ function IntroSection({
           <span>{eyebrow}</span>
         </p>
         <h1 className="tf-intro__headline">{headline}</h1>
-        <p className="tf-intro__lede">
-          <Emphasized text={lede} />
-        </p>
+        {lede && (
+          <p className="tf-intro__lede">
+            <Emphasized text={lede} />
+          </p>
+        )}
         {chips.length > 0 && (
           <ChipRow chips={chips} label={chipsLabel || eyebrow} />
         )}
@@ -255,15 +269,186 @@ function IntroSection({
   );
 }
 
+const INTRO_DESCRIPTION =
+  "How an inner page opens: its light (red, mint, mustard or ink), the page's name, the headline, the lede (words between asterisks in italics) and, optionally, chips leading into the page (each a label, a link and a light) under a name for screen readers. In Chinese the headline has a second line (headline tail; words between asterisks marked), and the page can keep a bar at the top (its label, name and button), whose links are the chips.";
+
 export const intro: SectionDefinition = defineSection(
   introSchema,
   IntroSection,
   {
     title: "Page intro",
-    description:
-      "How an inner page opens: its light (red, mint, mustard or ink), the page's name, the headline, the lede (words between asterisks in italics) and, optionally, chips leading into the page (each a label, a link and a light) under a name for screen readers.",
+    description: INTRO_DESCRIPTION,
   },
 );
+
+/** The colors a Chinese intro's stage is lit in. */
+export type IntroBand = "red" | "mint" | "mustard";
+
+/** How a Chinese intro marks its word: a marker stroke, or a white pill. */
+export type IntroMark = "marker-mustard" | "marker-white" | "pill";
+
+/** What a page brings to its Chinese intro's stage. */
+export interface IntroStage {
+  band: IntroBand;
+  mark: IntroMark;
+  /** The drawing on the right of the stage, hidden on small screens. */
+  art: ReactNode;
+  /** A small drawing set just before the marked word. */
+  glyph?: ReactNode;
+  /** Whether the chips also show on the stage, not only in the page's bar. */
+  heroChips?: boolean;
+}
+
+/** Words between asterisks marked as the page draws them, a glyph before. */
+function Marked({
+  text,
+  glyph,
+}: {
+  text: string;
+  glyph?: ReactNode;
+}): JSX.Element {
+  return (
+    <>
+      {text.split(/\*([^*]+)\*/).map((part, index) =>
+        index % 2 === 1 ? (
+          <span key={index}>
+            {glyph}
+            <span className="tf-intro__mark">{part}</span>
+          </span>
+        ) : (
+          part
+        ),
+      )}
+    </>
+  );
+}
+
+const VALANCE_SCALLOPS = Array.from({ length: 8 }, (_, index) => index * 180);
+
+/** The stage's paper edge, torn, where the page goes on. */
+const TORN_EDGE_POINTS =
+  "0,24 0,14 60,6 120,12 180,4 240,10 300,6 360,13 420,5 480,11 540,7 600,14 660,6 720,10 780,4 840,12 900,7 960,13 1020,5 1080,11 1140,6 1200,12 1260,5 1320,10 1380,6 1440,12 1440,24";
+
+/** The stage itself: a scalloped valance, curtains either side, a torn edge. */
+function Stage(): JSX.Element {
+  return (
+    <>
+      <div className="tf-intro__valance" aria-hidden="true">
+        <svg viewBox="0 0 1440 120" preserveAspectRatio="none">
+          <rect x="0" y="0" width="1440" height="34" />
+          {VALANCE_SCALLOPS.map((x) => (
+            <path key={x} d={`M${x} 30 Q ${x + 90} 120 ${x + 180} 30 Z`} />
+          ))}
+        </svg>
+      </div>
+      <div
+        className="tf-intro__curtain tf-intro__curtain--left"
+        aria-hidden="true"
+      />
+      <div
+        className="tf-intro__curtain tf-intro__curtain--right"
+        aria-hidden="true"
+      />
+    </>
+  );
+}
+
+/**
+ * An inner page's intro as Sam drew it in Chinese: on a lit stage, the
+ * page's name on a paper pill, the headline in two lines with its marked
+ * word, the page's drawing beside it; then the page's own bar, which stays
+ * at the top as the page scrolls. The bar follows the section, not inside
+ * it, so it sticks for the whole page.
+ */
+function StagedIntro({
+  stage,
+  intro,
+}: {
+  stage: IntroStage;
+  intro: Intro;
+}): JSX.Element {
+  const { eyebrow, headline, headlineTail, lede, chips, chipsLabel } = intro;
+  const { pageNavLabel, pageNavName, pageNavAction } = intro;
+  return (
+    <>
+      <section
+        className={`tf-intro tf-intro--stage tf-intro--${stage.band} tf-intro--mark-${stage.mark}`}
+      >
+        <Stage />
+        <PageWrap className="tf-intro__inner">
+          <p className="tf-intro__eyebrow">
+            <Dot light="ink" />
+            <span>{eyebrow}</span>
+          </p>
+          <h1 className="tf-intro__headline">
+            <span className="tf-intro__line">
+              <Marked text={headline} glyph={stage.glyph} />
+            </span>
+            {headlineTail && (
+              <span className="tf-intro__tail">
+                <Marked text={headlineTail} glyph={stage.glyph} />
+              </span>
+            )}
+          </h1>
+          {lede && (
+            <p className="tf-intro__lede">
+              <Emphasized text={lede} />
+            </p>
+          )}
+          {stage.heroChips !== false && chips.length > 0 && (
+            <ChipRow chips={chips} label={chipsLabel || eyebrow} />
+          )}
+        </PageWrap>
+        <div className="tf-intro__art tf-hide-sm" aria-hidden="true">
+          {stage.art}
+        </div>
+        <svg
+          className="tf-intro__edge"
+          aria-hidden="true"
+          viewBox="0 0 1440 24"
+          preserveAspectRatio="none"
+        >
+          <polygon points={TORN_EDGE_POINTS} />
+        </svg>
+      </section>
+      {pageNavLabel && (
+        <nav className="tf-subnav" aria-label={pageNavName || pageNavLabel}>
+          <div className="tf-subnav__inner">
+            <span className="tf-subnav__label">{pageNavLabel}</span>
+            {chips.map((chip) => (
+              <a key={chip.href} className="tf-subnav__link" href={chip.href}>
+                {chip.label}
+              </a>
+            ))}
+            {pageNavAction.href && (
+              <a
+                className="tf-btn tf-btn--ink tf-subnav__cta"
+                href={pageNavAction.href}
+              >
+                {pageNavAction.label}
+              </a>
+            )}
+          </div>
+        </nav>
+      )}
+    </>
+  );
+}
+
+/**
+ * A page's own intro: in English the shared intro, in Chinese the intro on
+ * the page's lit stage.
+ */
+export function stagedIntro(stage: IntroStage): SectionDefinition {
+  function ChineseIntro(intro: Intro): JSX.Element {
+    return <StagedIntro stage={stage} intro={intro} />;
+  }
+  return defineSection(introSchema, IntroSection, {
+    title: "Page intro",
+    description: INTRO_DESCRIPTION,
+    components: { "zh-TW": ChineseIntro },
+  });
+}
 
 /**
  * The dark band near a page's end: the next step in italics, the question,
@@ -305,12 +490,18 @@ export const nextStep: SectionDefinition = defineSection(
 );
 
 /**
- * An inner page's route: its head, and each section's template with the
- * design's copy as the fallback until the brain saves its own at
- * site-content/<page>/<section>.md.
+ * An inner page's route: its head (and its head in other languages), and
+ * each section's template with the design's copy as the fallback until the
+ * brain saves its own at site-content/<page>/<section>.md.
  */
 export function pageRoute(
-  page: { id: string; path: string; title: string; description: string },
+  page: {
+    id: string;
+    path: string;
+    title: string;
+    description: string;
+    translations?: RouteDefinitionInput["translations"];
+  },
   sections: Array<{ id: string; template: string; content: JsonObject }>,
 ): RouteDefinitionInput {
   return {
