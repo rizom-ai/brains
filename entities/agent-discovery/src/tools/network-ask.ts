@@ -74,7 +74,8 @@ async function listPeers(context: NetworkAskContext): Promise<PeerCandidate[]> {
     const distance = distances.get(agent.id);
     return {
       id: agent.id,
-      name: frontmatter.name,
+      // An answer is attributed to the name the owner shows its peer under.
+      name: frontmatter.shownAs ?? frontmatter.name,
       url: frontmatter.url,
       status: frontmatter.status,
       about: body.about,

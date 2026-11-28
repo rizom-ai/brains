@@ -36,6 +36,7 @@ import {
   chairNoteOf,
 } from "./lib/chair-notes";
 import { SEMINAR_INSTRUCTIONS } from "./lib/instructions";
+import { inOrder, peerOf } from "./lib/peers";
 import { getTemplates } from "./lib/register-templates";
 import { seminarSchema } from "./schemas/seminar";
 import { seminar } from "./seminar-entity";
@@ -44,9 +45,7 @@ import { createSeminarHoldTool } from "./tools/seminar-hold";
 
 export const seminarConfigSchema: z.ZodObject<{
   guidance: z.ZodOptional<z.ZodString>;
-  peers: z.ZodDefault<
-    z.ZodArray<z.ZodObject<{ agent: z.ZodString; name: z.ZodString }>>
-  >;
+  peers: z.ZodDefault<z.ZodArray<z.ZodString>>;
 }> = z.object({
   /**
    * What the chair knows of its peers that their openings do not say, such
@@ -54,28 +53,26 @@ export const seminarConfigSchema: z.ZodObject<{
    */
   guidance: z.string().trim().min(1).optional(),
   /**
-   * The peers as the brain's pages show them: each under the name given
-   * here, in this order. A peer not listed keeps the name it gives itself
-   * and follows the listed ones.
+   * The order the brain's pages show its peers in, by agent id; a peer not
+   * listed follows the listed ones. The name a peer is shown under is the
+   * directory's: the agent's `shownAs`, or the name it gives itself.
    */
-  peers: z
-    .array(
-      z.object({
-        agent: z.string().trim().min(1),
-        name: z.string().trim().min(1),
-      }),
-    )
-    .default([]),
+  peers: z.array(z.string().trim().min(1)).default([]),
 });
 
 export type SeminarConfig = z.output<typeof seminarConfigSchema>;
 
 const AGENT_ENTITY_TYPE = "agent";
 
-const approvedPeerSchema = z.object({
-  id: z.string().min(1),
-  metadata: z.object({ name: z.string().min(1) }),
-});
+/** The approved peers of the directory, as a seminar names them. */
+async function approvedPeers(runtime: ServiceRuntime): Promise<SeminarPeer[]> {
+  if (!runtime.entityReads.hasEntityType(AGENT_ENTITY_TYPE)) return [];
+  const agents = await runtime.entityReads.listEntities({
+    entityType: AGENT_ENTITY_TYPE,
+    options: { filter: { metadata: { status: "approved" } } },
+  });
+  return agents.map(peerOf);
+}
 
 /** What taking a turn needs, over the package's runtime. */
 function turnDeps(
@@ -151,20 +148,7 @@ function holdDeps(
 ): SeminarHoldDeps {
   return {
     ...turnDeps(runtime, config),
-    peers: async (): Promise<SeminarPeer[]> => {
-      if (!runtime.entityReads.hasEntityType(AGENT_ENTITY_TYPE)) return [];
-      const agents = await runtime.entityReads.listEntities({
-        entityType: AGENT_ENTITY_TYPE,
-        options: { filter: { metadata: { status: "approved" } } },
-      });
-      // Under the name this brain shows a peer by, where it gives one: the
-      // chair then writes of Marx, not of the brain named Karl.
-      return agents.map((agent) => {
-        const { id, metadata } = approvedPeerSchema.parse(agent);
-        const shown = config.peers.find((peer) => peer.agent === id)?.name;
-        return { id, name: shown ?? metadata.name };
-      });
-    },
+    peers: () => approvedPeers(runtime),
     exists: async (id) =>
       (await runtime.entityReads.getEntity({
         entityType: seminar.type,
@@ -208,7 +192,11 @@ export const seminarPackage: ServicePackageDefinition<
                   build,
                   build.sharedState(askBoxAvailabilityState),
                 ),
-              peers: context.config.peers,
+              // The approved peers by their shown names, in the brain's order.
+              peers: async (): Promise<string[]> =>
+                inOrder(await approvedPeers(runtime), context.config.peers).map(
+                  ({ name }) => name,
+                ),
             }),
           );
           // What those pages read, as seminar:entities.

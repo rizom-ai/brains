@@ -355,6 +355,52 @@ describe("network_ask", () => {
     });
   });
 
+  it("attributes an answer to the name the owner shows its peer under", async () => {
+    const harness = await setup({ askAllApproved: true });
+    const entityService = harness.getEntityService();
+    await entityService.updateEntity({
+      entity: createTestAgent({
+        id: "jo.example",
+        name: "Jo",
+        shownAs: "The Gardener",
+        url: "https://jo.example/a2a",
+        status: "approved",
+        skills: gardener.skills,
+      }),
+    });
+    harness.subscribe<{ agent: string }, unknown>(
+      a2aAskContract.name,
+      async (message) => ({
+        success: true,
+        data: {
+          state: "completed",
+          response: `${message.payload.agent} answers.`,
+          sources: [],
+        },
+      }),
+    );
+
+    const result = await networkAsk(harness).handler(
+      { question: "How do I plan a garden?" },
+      guestContext,
+    );
+    expectSuccess(result);
+    const data = networkAskResultSchema.parse(result.data);
+
+    expect(
+      data.answers
+        .map(({ agent, brain }) => [agent, brain.name])
+        .sort(([left = ""], [right = ""]) => left.localeCompare(right)),
+    ).toEqual([
+      ["ivy.example", "Ivy"],
+      ["jo.example", "The Gardener"],
+      ["kai.example", "Kai"],
+    ]);
+    expect(
+      data.sources.find(({ id }) => id === "agent:jo.example")?.title,
+    ).toBe("The Gardener");
+  });
+
   it("names the peers that refused or timed out and keeps the rest", async () => {
     const harness = await setup();
     harness.subscribe<{ agent: string; question: string }, unknown>(
