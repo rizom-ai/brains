@@ -3,22 +3,48 @@ import {
   generatePipelineBase,
   generateSettingsBase,
 } from "./base-generator";
+import type {
+  FieldInfo,
+  GeneratedFile,
+  GeneratedFiles,
+  VaultShape,
+} from "@brains/vault-sync";
 import { generateFileClass } from "./fileclass-generator";
-import type { FieldInfo, VaultShape } from "./shapes";
 import { generateTemplate } from "./template-generator";
 
-import { OBSIDIAN_FILES_FOLDER } from "../engine/paths";
+/** Where the plugin writes the brain's templates, fileClasses and bases. */
+export const OBSIDIAN_FILES_FOLDER = "_obsidian";
 
 export const TEMPLATES_FOLDER: string = `${OBSIDIAN_FILES_FOLDER}/templates`;
 
-export interface VaultFile {
-  path: string;
-  content: string;
-  /**
-   * The brain's file is kept as the brain writes it; the person's is written
-   * once, when missing, and is theirs to change from then on.
-   */
-  owner: "brain" | "person";
+const BASES_FOLDER = `${OBSIDIAN_FILES_FOLDER}/bases`;
+
+export type VaultFile = GeneratedFile;
+
+/** Obsidian's Templates setting: the folder it takes templates from. */
+export interface TemplatesSetting {
+  getTemplateFolder(): Promise<string | undefined>;
+  setTemplateFolder(folder: string): Promise<void>;
+}
+
+/**
+ * The templates, fileClasses and bases, as the sync engine writes them. The
+ * bases are the person's once changed. The first time, Obsidian's Templates
+ * is pointed at the templates when the person has not chosen a folder; a
+ * person who clears it afterwards keeps it cleared.
+ */
+export function obsidianFiles(templates: TemplatesSetting): GeneratedFiles {
+  return {
+    folder: OBSIDIAN_FILES_FOLDER,
+    files: vaultFiles,
+    ownerOf: (path) =>
+      path.startsWith(`${BASES_FOLDER}/`) ? "person" : "brain",
+    written: async (first): Promise<void> => {
+      if (first && (await templates.getTemplateFolder()) === undefined) {
+        await templates.setTemplateFolder(TEMPLATES_FOLDER);
+      }
+    },
+  };
 }
 
 /**
@@ -49,7 +75,7 @@ export function vaultFiles(shapes: readonly VaultShape[]): VaultFile[] {
     });
     const base = generateBase(entityType, fields);
     files.push({
-      path: `${OBSIDIAN_FILES_FOLDER}/bases/${base.filename}`,
+      path: `${BASES_FOLDER}/${base.filename}`,
       content: base.content,
       owner: "person",
     });
@@ -58,7 +84,7 @@ export function vaultFiles(shapes: readonly VaultShape[]): VaultFile[] {
   const settings = generateSettingsBase(singletons);
   if (settings !== null) {
     files.push({
-      path: `${OBSIDIAN_FILES_FOLDER}/bases/Settings.base`,
+      path: `${BASES_FOLDER}/Settings.base`,
       content: settings,
       owner: "person",
     });
@@ -66,7 +92,7 @@ export function vaultFiles(shapes: readonly VaultShape[]): VaultFile[] {
   const pipeline = generatePipelineBase(withStatus);
   if (pipeline !== null) {
     files.push({
-      path: `${OBSIDIAN_FILES_FOLDER}/bases/Pipeline.base`,
+      path: `${BASES_FOLDER}/Pipeline.base`,
       content: pipeline,
       owner: "person",
     });

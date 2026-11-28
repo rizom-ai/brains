@@ -1,5 +1,5 @@
 import { ItemView, type TFile, type WorkspaceLeaf } from "obsidian";
-import type { RelatedAnswer, RelatedNote } from "../engine";
+import type { RelatedAnswer, RelatedNote } from "@brains/vault-sync";
 
 export const RELATED_VIEW = "rizom-brain-related";
 

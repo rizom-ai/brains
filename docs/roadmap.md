@@ -134,7 +134,7 @@ Plans:
 - [obsidian-brain-features.md](./plans/obsidian-brain-features.md) — the brain inside Obsidian: file marks, related notes, quick capture, publish and Ask, through calls on the drive beside the sync the plugin already does.
 - [whatsapp-interface.md](./plans/whatsapp-interface.md) — WhatsApp direct messages and groups through our own Baileys adapter in `@brains/chat`: unofficial, on a dedicated number.
 - [matrix-messaging.md](./plans/matrix-messaging.md) — the brain's own Matrix homeserver at its domain, live on smoke and rizom-team; a passkey sign-in on a deployed brain remains.
-- [neovim-plugin.md](./plans/neovim-plugin.md) — the Obsidian plugin's sync engine moved into a shared package, a `brain sync <folder>` command that keeps a folder in step with the brain, and a Rizom Brain plugin for Neovim on top of it.
+- [neovim-plugin.md](./plans/neovim-plugin.md) — the Obsidian plugin's sync engine moved into a package of its own, a `brain sync <folder>` command that keeps a folder in step with the brain, and a Rizom Brain plugin for Neovim on top of it.
 - [brain-web-chat-sdk-adapter.md](./plans/brain-web-chat-sdk-adapter.md) — parked strategy for deeper Chat SDK semantic alignment.
 - [chat-interface-forms-modals.md](./plans/chat-interface-forms-modals.md) — parked transport-neutral structured forms.
 - [message-feedback.md](./plans/message-feedback.md) — parked transport-neutral response feedback pending a real sink.

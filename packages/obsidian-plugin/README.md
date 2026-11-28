@@ -31,7 +31,7 @@ Until it is in Obsidian's community directory: download the `rizom-brain` artifa
 
 ## Publishing
 
-Obsidian reads a community plugin from its own public repository, `rizom-ai/obsidian-rizom-brain`. `public/README.md`, `manifest.json`, `versions.json` and the license are that repository's root (`bun scripts/public-repo.ts` assembles them), and the built plugin goes into a release there, tagged with the manifest's version. That repository's "Release" workflow does both when started by hand: it checks this repository out, runs this package's tests, builds, and publishes with its own permissions, so no token is kept anywhere. It has a dry run that lists what it would publish. The plugin has its own version line (Obsidian takes only `x.y.z`), apart from this repository's shared version; the public README says which brain version it needs. To release, raise `version` in `manifest.json` (and add it to `versions.json` when `minAppVersion` changes), merge, and start that workflow.
+Obsidian reads a community plugin from its own public repository, `rizom-ai/obsidian-rizom-brain`. `public/README.md`, `manifest.json`, `versions.json` and the license are that repository's root (`bun scripts/public-repo.ts` assembles them), and the built plugin goes into a release there, tagged with the manifest's version. That repository's "Release" workflow does both when started by hand: it checks this repository out, runs this package's tests and the sync engine's (`packages/vault-sync`), builds, and publishes with its own permissions, so no token is kept anywhere. It has a dry run that lists what it would publish. The plugin has its own version line (Obsidian takes only `x.y.z`), apart from this repository's shared version; the public README says which brain version it needs. To release, raise `version` in `manifest.json` (and add it to `versions.json` when `minAppVersion` changes), merge, and start that workflow.
 
 ## Connect
 
@@ -39,6 +39,7 @@ In the plugin's settings, enter the brain's address and choose **Connect**. The 
 
 ## Code
 
-- `src/engine/`: the sync engine, with no Obsidian imports. It takes a vault (`SyncVault`) and a drive client.
-- `src/obsidian/`: the plugin around it: settings, status bar, commands, dialogs and vault events.
-- `test/`: the engine against a real brain in process: the note, image and conflict packages and the drive, over an entity store on disk.
+- The sync engine is its own package, `packages/vault-sync` (`@brains/vault-sync`), shared with other editors. The build bundles it.
+- `src/obsidian/`: the plugin around the engine: settings, status bar, commands, dialogs and vault events.
+- `src/vault-files/`: the `_obsidian/` templates, fileClasses and bases, passed to the engine as its generated files.
+- `test/`: the plugin's own logic, and `_obsidian/` against a real brain in process (`@brains/vault-sync/test`).

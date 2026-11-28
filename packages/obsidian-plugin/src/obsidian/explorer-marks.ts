@@ -1,4 +1,4 @@
-import type { FileMark } from "../engine";
+import type { FileMark } from "@brains/vault-sync";
 
 /** What the file list shows beside a name; a file in step shows nothing. */
 export type ExplorerMark = Exclude<FileMark, "synced"> | "refused";

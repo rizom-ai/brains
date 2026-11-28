@@ -1,8 +1,26 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { connect, fresh, type Synced } from "./helpers/setup";
+import {
+  connect,
+  fresh as freshVault,
+  type Synced,
+} from "@brains/vault-sync/test";
+import { obsidianFiles } from "../src/vault-files/vault-files";
 
 let synced: Synced | undefined;
 afterEach(async () => synced?.brain.close());
+
+/** A brain and a vault, with the `_obsidian/` files the plugin passes. */
+function fresh(): Promise<Synced> {
+  let folder: string | undefined;
+  return freshVault({
+    generated: obsidianFiles({
+      getTemplateFolder: async (): Promise<string | undefined> => folder,
+      setTemplateFolder: async (next): Promise<void> => {
+        folder = next;
+      },
+    }),
+  });
+}
 
 async function withTea(): Promise<Synced> {
   const made = await fresh();

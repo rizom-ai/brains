@@ -10,11 +10,8 @@ export const IMAGE_EXTENSIONS: readonly string[] = [
 /** The text file types the brain stores. */
 const TEXT_EXTENSIONS: readonly string[] = [".md", ".yaml"];
 
-/** Where the plugin puts a version that lost; never synced. */
+/** Where the engine puts a version that lost; never synced. */
 export const CONFLICTS_FOLDER = "Conflicts";
-
-/** Where the plugin writes the brain's templates, fileClasses and bases. */
-export const OBSIDIAN_FILES_FOLDER = "_obsidian";
 
 /** The folder of image entities. */
 export const IMAGE_FOLDER = "image";
@@ -44,7 +41,7 @@ export type FileFlavor = "text" | "image" | "file";
 export type Placement =
   /** A file the vault and the brain keep in step. */
   | { kind: "synced"; flavor: FileFlavor }
-  /** The vault's own or the plugin's own: never synced, never listed. */
+  /** The vault's own or the engine's own: never synced, never listed. */
   | { kind: "ignored" }
   /** A file the brain has no place for, and why. */
   | { kind: "local"; reason: string };
@@ -63,15 +60,17 @@ export function extensionOf(path: string): string {
 export function placementOf(
   path: string,
   typeFolders: ReadonlySet<string>,
+  /** Folders at the top of the vault an editor keeps its own files in. */
+  ownFolders: readonly string[] = [],
 ): Placement {
   const segments = path.split("/");
   const [first] = segments;
   if (first === undefined || segments.some((name) => name.startsWith("."))) {
     return { kind: "ignored" };
   }
-  // The plugin's own: copies of versions that lost, and the templates,
-  // fileClasses and bases it writes from the brain's types.
-  if (first === CONFLICTS_FOLDER || first === OBSIDIAN_FILES_FOLDER) {
+  // The engine's own copies of versions that lost, and the editor's own
+  // files for the brain's types.
+  if (first === CONFLICTS_FOLDER || ownFolders.includes(first)) {
     return { kind: "ignored" };
   }
   const extension = extensionOf(path);

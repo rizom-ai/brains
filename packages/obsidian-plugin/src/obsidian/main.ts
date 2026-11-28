@@ -24,7 +24,7 @@ import {
   type HttpFetch,
   type SyncReport,
   type SyncState,
-} from "../engine";
+} from "@brains/vault-sync";
 import { acceptConnect, originOf, type PendingConnect } from "./connect";
 import { getErrorMessage } from "@brains/utils/error";
 import { explorerMarks } from "./explorer-marks";
@@ -38,6 +38,7 @@ import {
 } from "./modals";
 import { BUSY_MS, ObsidianVault } from "./obsidian-vault";
 import { fullSyncDue } from "./schedule";
+import { obsidianFiles } from "../vault-files/vault-files";
 import {
   addressKey,
   keepPassword,
@@ -296,6 +297,7 @@ export default class RizomBrainPlugin extends Plugin {
       this.engine = new SyncEngine({
         vault: this.vault,
         drive: this.drive(),
+        generated: obsidianFiles(this.vault),
         // The state of the brain this engine syncs with, and no other.
         store: {
           load: async (): Promise<SyncState> => stateFor(this.data, key),

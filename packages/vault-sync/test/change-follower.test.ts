@@ -4,7 +4,7 @@ import {
   mergePartial,
   type WatchState,
   type Watching,
-} from "../src/engine";
+} from "../src";
 
 interface FakeWatcher {
   key: string;

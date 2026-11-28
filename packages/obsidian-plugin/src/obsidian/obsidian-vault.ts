@@ -1,6 +1,7 @@
 import { TFile, TFolder, normalizePath, type App } from "obsidian";
 import { z } from "@brains/utils/zod";
-import { jsonOf, type SyncVault } from "../engine";
+import { jsonOf, type SyncVault } from "@brains/vault-sync";
+import type { TemplatesSetting } from "../vault-files/vault-files";
 
 /** The settings Obsidian's Templates core plugin keeps; others are left. */
 const templatesConfigSchema = z.looseObject({ folder: z.string().optional() });
@@ -21,7 +22,7 @@ function arrayBuffer(bytes: Uint8Array): ArrayBuffer {
  * are remembered for a moment, so the vault events they cause are not taken
  * for the person's edits, deletes or renames.
  */
-export class ObsidianVault implements SyncVault {
+export class ObsidianVault implements SyncVault, TemplatesSetting {
   private readonly app: App;
   private readonly lastEdit = new Map<string, number>();
   private readonly ownEvents = new Map<string, number>();

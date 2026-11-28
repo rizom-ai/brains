@@ -5,7 +5,7 @@ import {
   generatePipelineBase,
   generateSettingsBase,
 } from "../src/vault-files/base-generator";
-import type { FieldInfo } from "../src/vault-files/shapes";
+import type { FieldInfo } from "@brains/vault-sync";
 import { fromYaml, parseYamlDocument } from "@brains/utils/yaml";
 import { z } from "@brains/utils/zod";
 

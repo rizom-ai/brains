@@ -1,6 +1,6 @@
 import { toDisplayName } from "@brains/utils/string-utils";
 import { toYaml } from "@brains/utils/yaml";
-import type { FieldInfo } from "./shapes";
+import type { FieldInfo } from "@brains/vault-sync";
 
 const EXCLUDED_COLUMNS = new Set(["entityType"]);
 

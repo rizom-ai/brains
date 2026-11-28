@@ -7,11 +7,13 @@ on:
     branches: ["main"]
     paths:
       - "packages/obsidian-plugin/**"
+      - "packages/vault-sync/**"
       - ".github/workflows/obsidian-plugin.yml"
   pull_request:
     types: [opened, synchronize]
     paths:
       - "packages/obsidian-plugin/**"
+      - "packages/vault-sync/**"
       - ".github/workflows/obsidian-plugin.yml"
   workflow_dispatch:
 

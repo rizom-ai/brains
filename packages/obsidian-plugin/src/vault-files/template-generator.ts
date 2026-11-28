@@ -1,4 +1,4 @@
-import type { FieldInfo } from "./shapes";
+import type { FieldInfo } from "@brains/vault-sync";
 
 /** States the brain sets while it writes an entry, and no person does. */
 const BRAIN_SET_STATES: ReadonlySet<string> = new Set(["generating", "failed"]);

@@ -27,7 +27,7 @@ import {
 } from "@brains/plugins/test";
 import { createSilentLogger } from "@brains/test-utils";
 import webdavPackage from "@brains/webdav";
-import type { HttpFetch } from "../../src/engine";
+import type { HttpFetch } from "..";
 
 /** The app passwords the test brain knows. */
 export const PASSWORD = "write-password";

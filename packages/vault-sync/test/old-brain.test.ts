@@ -1,13 +1,7 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import {
-  DriveClient,
-  MIN_BRAIN_VERSION,
-  type HttpResponse,
-} from "../src/engine";
-import { PASSWORD, USERNAME } from "./helpers/brain";
-import { connect, fresh, stored, type Synced } from "./helpers/setup";
-import { publicRepoFiles } from "../scripts/public-repo";
-import { join } from "node:path";
+import { DriveClient, type HttpResponse } from "../src";
+import { PASSWORD, USERNAME } from "../src/test";
+import { connect, fresh, stored, type Synced } from "../src/test";
 
 let synced: Synced | undefined;
 afterEach(async () => synced?.brain.close());
@@ -78,13 +72,5 @@ describe("a brain older than the plugin needs", () => {
     expect(await drive.supportsSync()).toBe(true);
     asOldBrain(made);
     expect(await drive.supportsSync()).toBe(false);
-  });
-
-  it("is named by the same version the README states", async () => {
-    const readme =
-      (await publicRepoFiles(join(import.meta.dir, "..")))["README.md"] ?? "";
-
-    expect(MIN_BRAIN_VERSION).toMatch(/^\d+\.\d+\.\d+(-alpha\.\d+)?$/);
-    expect(readme).toContain(`version ${MIN_BRAIN_VERSION} or later`);
   });
 });

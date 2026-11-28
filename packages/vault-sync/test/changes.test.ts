@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { ChangeWatcher, DriveClient, type HttpResponse } from "../src/engine";
-import { PASSWORD, USERNAME } from "./helpers/brain";
-import { connect, fresh, stored, type Synced } from "./helpers/setup";
+import { ChangeWatcher, DriveClient, type HttpResponse } from "../src";
+import { PASSWORD, USERNAME } from "../src/test";
+import { connect, fresh, stored, type Synced } from "../src/test";
 
 let synced: Synced | undefined;
 let watcher: ChangeWatcher | undefined;

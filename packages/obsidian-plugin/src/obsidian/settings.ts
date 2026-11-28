@@ -1,5 +1,10 @@
 import { z } from "@brains/utils/zod";
-import { driveUrl, emptyState, parseState, type SyncState } from "../engine";
+import {
+  driveUrl,
+  emptyState,
+  parseState,
+  type SyncState,
+} from "@brains/vault-sync";
 
 type SettingsSchema = z.ZodObject<{
   address: z.ZodDefault<z.ZodString>;

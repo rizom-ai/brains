@@ -44,7 +44,7 @@ type SyncStateSchema = z.ZodObject<{
   >;
   deletes: z.ZodDefault<z.ZodArray<z.ZodString>>;
   generated: z.ZodDefault<z.ZodRecord<z.ZodString, z.ZodString>>;
-  templateFolderSet: z.ZodDefault<z.ZodBoolean>;
+  generatedSetUp: z.ZodOptional<z.ZodBoolean>;
   conflicts: z.ZodDefault<z.ZodArray<OpenConflictSchema>>;
   settled: z.ZodDefault<z.ZodArray<z.ZodString>>;
 }>;
@@ -61,10 +61,14 @@ export const syncStateSchema: SyncStateSchema = z.object({
   renames: z.array(z.object({ from: z.string(), to: z.string() })).default([]),
   /** Files the person deleted in the vault, waiting to be deleted in the brain. */
   deletes: z.array(z.string()).default([]),
-  /** The templates, fileClasses and bases the plugin wrote, by path, each with the hash of what it wrote. */
+  /** The files the engine wrote for the brain's types, by path, each with the hash of what it wrote. */
   generated: z.record(z.string(), z.string()).default({}),
-  /** Whether Obsidian's Templates was pointed at the brain's templates; done once. */
-  templateFolderSet: z.boolean().default(false),
+  /**
+   * Whether the editor's first-time step after writing those files ran.
+   * Unknown in state saved before it was kept: there, the files being in
+   * the state says it ran, as it always did with them.
+   */
+  generatedSetUp: z.boolean().optional(),
   /** Conflicts the person has not chosen a version for yet. */
   conflicts: z.array(openConflictSchema).default([]),
   /** Inbox entries of conflicts the person settled here, still to be dismissed in the brain. */
@@ -83,7 +87,7 @@ export function emptyState(address = ""): SyncState {
     renames: [],
     deletes: [],
     generated: {},
-    templateFolderSet: false,
+    generatedSetUp: false,
     conflicts: [],
     settled: [],
   };
@@ -95,7 +99,7 @@ export function parseState(value: unknown): SyncState {
   return parsed.success ? parsed.data : emptyState();
 }
 
-/** Where the plugin keeps its state between runs. */
+/** Where the editor keeps the engine's state between runs. */
 export interface StateStore {
   load(): Promise<SyncState>;
   save(state: SyncState): Promise<void>;

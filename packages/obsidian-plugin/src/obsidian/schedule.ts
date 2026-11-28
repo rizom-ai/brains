@@ -1,4 +1,4 @@
-import type { WatchState } from "../engine";
+import type { WatchState } from "@brains/vault-sync";
 
 /** How often everything is compared while the brain cannot tell of changes itself. */
 export const UNWATCHED_MINUTES = 5;

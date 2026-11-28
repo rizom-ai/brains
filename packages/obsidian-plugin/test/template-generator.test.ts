@@ -1,6 +1,6 @@
 import { describe, it, expect } from "bun:test";
 import { generateTemplate } from "../src/vault-files/template-generator";
-import type { FieldInfo } from "../src/vault-files/shapes";
+import type { FieldInfo } from "@brains/vault-sync";
 
 describe("generateTemplate", () => {
   it("should generate frontmatter with title using Obsidian variable", () => {

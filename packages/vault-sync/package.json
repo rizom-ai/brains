@@ -1,0 +1,37 @@
+{
+  "name": "@brains/vault-sync",
+  "license": "AGPL-3.0-only",
+  "version": "0.2.0-alpha.808",
+  "dependencies": {
+    "@brains/utils": "workspace:*"
+  },
+  "devDependencies": {
+    "@brains/conflict": "workspace:*",
+    "@brains/contracts": "workspace:*",
+    "@brains/document-plugin": "workspace:*",
+    "@brains/entity-service": "workspace:*",
+    "@brains/image": "workspace:*",
+    "@brains/image-plugin": "workspace:*",
+    "@brains/note": "workspace:*",
+    "@brains/plugins": "workspace:*",
+    "@brains/test-utils": "workspace:*",
+    "@brains/typescript-config": "workspace:*",
+    "@brains/webdav": "workspace:*",
+    "@types/node": "^24.13.3",
+    "bun-types": "^1.4.0",
+    "typescript": "^7.0.2"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./test": "./src/test/index.ts"
+  },
+  "private": true,
+  "scripts": {
+    "clean": "rm -rf dist",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --max-warnings 0 --fix",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "type": "module"
+}

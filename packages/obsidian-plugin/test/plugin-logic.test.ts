@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { emptyState } from "../src/engine";
+import { emptyState } from "@brains/vault-sync";
 import { acceptConnect } from "../src/obsidian/connect";
 import { fullSyncDue } from "../src/obsidian/schedule";
 import {

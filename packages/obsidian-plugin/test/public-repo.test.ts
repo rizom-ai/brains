@@ -1,9 +1,11 @@
 import { describe, expect, it } from "bun:test";
 import { join } from "node:path";
 import { z } from "@brains/utils/zod";
+import { MIN_BRAIN_VERSION } from "@brains/vault-sync";
 import { publicRepoFiles } from "../scripts/public-repo";
 
 const root = join(import.meta.dir, "..");
+const engineRoot = join(root, "..", "vault-sync");
 const manifestSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -36,13 +38,21 @@ describe("what is published as the plugin's repository", () => {
     const files = await publicRepoFiles(root);
     const source = Object.keys(files).filter((name) => name.startsWith("src/"));
     const inPackage = [...new Bun.Glob("src/**/*.ts").scanSync(root)];
+    // The sync engine, from its own package, without its test brain.
+    const engine = [...new Bun.Glob("src/*.ts").scanSync(engineRoot)].map(
+      (path) => `src/vault-sync/${path.slice("src/".length)}`,
+    );
 
-    expect(source.sort()).toEqual(inPackage.sort());
+    expect(source.sort()).toEqual([...inPackage, ...engine].sort());
     expect(source).toContain("src/obsidian/main.ts");
-    expect(files["src/engine/engine.ts"]).toBe(
-      await Bun.file(join(root, "src/engine/engine.ts")).text(),
+    expect(files["src/vault-sync/engine.ts"]).toBe(
+      await Bun.file(join(engineRoot, "src/engine.ts")).text(),
+    );
+    expect(source.some((name) => name.startsWith("src/vault-sync/test/"))).toBe(
+      false,
     );
     expect(files["README.md"]).toContain("`src/`");
+    expect(files["README.md"]).toContain("`packages/vault-sync`");
   });
 
   it("is built readable, not minified", async () => {
@@ -91,5 +101,12 @@ describe("what is published as the plugin's repository", () => {
     expect(readme).toContain("data.json");
     expect(readme).toContain("No telemetry");
     expect(readme).toContain("AGPL");
+  });
+
+  it("names the brain version the plugin needs", async () => {
+    const readme = (await publicRepoFiles(root))["README.md"] ?? "";
+
+    expect(MIN_BRAIN_VERSION).toMatch(/^\d+\.\d+\.\d+(-alpha\.\d+)?$/);
+    expect(readme).toContain(`version ${MIN_BRAIN_VERSION} or later`);
   });
 });

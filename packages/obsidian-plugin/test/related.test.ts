@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import type { HttpResponse } from "../src/engine";
-import { connect, fresh, type Synced } from "./helpers/setup";
+import type { HttpResponse } from "@brains/vault-sync";
+import { connect, fresh, type Synced } from "@brains/vault-sync/test";
 
 let synced: Synced | undefined;
 afterEach(async () => synced?.brain.close());

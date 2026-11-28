@@ -1,6 +1,6 @@
 /**
  * SHA-256 of bytes, as lowercase hex, with the Web Crypto API: it is in
- * Obsidian's desktop and mobile apps, and in Bun for the tests.
+ * Obsidian's desktop and mobile apps, in Bun and in Node.
  */
 export async function sha256Hex(bytes: Uint8Array): Promise<string> {
   const copy = new Uint8Array(bytes.byteLength);

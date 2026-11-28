@@ -1,6 +1,6 @@
 import { describe, it, expect } from "bun:test";
 import { generateFileClass } from "../src/vault-files/fileclass-generator";
-import type { FieldInfo } from "../src/vault-files/shapes";
+import type { FieldInfo } from "@brains/vault-sync";
 
 describe("generateFileClass", () => {
   it("should generate Select field with options for enum", () => {

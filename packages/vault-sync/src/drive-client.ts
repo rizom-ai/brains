@@ -1,11 +1,11 @@
 import { z } from "@brains/utils/zod";
 import { bytesOf, textOf } from "./hash";
-import { vaultShapesSchema, type VaultShape } from "../vault-files/shapes";
+import { vaultShapesSchema, type VaultShape } from "./shapes";
 
 /** The first brain release with the drive's sync endpoints. */
 export const MIN_BRAIN_VERSION = "0.2.0-alpha.769";
 
-/** One HTTP exchange, as Obsidian's `requestUrl` and a test both make it. */
+/** One HTTP exchange, as Obsidian's `requestUrl`, `fetch` and a test all make it. */
 export interface HttpRequest {
   url: string;
   method: string;
