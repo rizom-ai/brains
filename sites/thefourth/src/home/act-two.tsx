@@ -14,7 +14,9 @@ import { ButtonLink, linkSchema } from "./links";
  * it" scatters its words, strikes out the jargon and opens a keyhole onto
  * the translation, lit in the spell's color; from there the visitor can
  * unlock their own by email or try another. The page renders the first spell; the spell script (see
- * ./spell-script) does the breaking.
+ * ./spell-script) does the breaking. In Chinese the old copy sits on a card
+ * beside the good copy, locked behind a keyhole with a prompt and a hint, and
+ * the translation opens under the old sentence, struck out.
  */
 const spellSchema = z.object({
   before: z.string(),
@@ -40,6 +42,12 @@ const actTwoSchema = z.object({
   action: linkSchema,
   againLabel: z.string(),
   spells: z.array(spellSchema).min(1),
+  /** Chinese only: the pills naming the old copy and the good copy. */
+  beforeLabel: z.string().default(""),
+  afterLabel: z.string().default(""),
+  /** Chinese only: the locked panel's prompt (its lines kept) and hint. */
+  unlockPrompt: z.string().default(""),
+  unlockHint: z.string().default(""),
 });
 
 type Spell = z.infer<typeof spellSchema>;
@@ -95,7 +103,7 @@ function ActTwoSection({
   action,
   againLabel,
   spells,
-}: z.infer<typeof actTwoSchema>): JSX.Element {
+}: ActTwo): JSX.Element {
   const first = spells[0];
   // The schema holds at least one spell; this only satisfies the index type.
   if (!first) return <section className="tf-act tf-act--two" />;
@@ -105,24 +113,14 @@ function ActTwoSection({
         <ActHeading act={act} label={label} opening={opening} light="mustard" />
       </div>
       <div className="tf-spell" data-tf-spell="">
-        <script
-          type="application/json"
-          data-tf-spells=""
-          dangerouslySetInnerHTML={{ __html: scriptJson(spells) }}
-        />
+        <SpellData spells={spells} />
         <div className="tf-wrap tf-spell__stage">
           <Words spell={first} />
           <div className="tf-spell__actions">
-            <button
-              type="button"
+            <UnlockButton
+              label={unlockLabel}
               className="tf-btn tf-btn--ink tf-btn--large"
-              data-tf-break=""
-            >
-              <span className="tf-btn__key" aria-hidden="true">
-                <KeyDrawing shape={KEY_SHAPES.ring} />
-              </span>
-              {unlockLabel}
-            </button>
+            />
             <span className="tf-story tf-aside">{aside}</span>
           </div>
         </div>
@@ -156,13 +154,135 @@ function ActTwoSection({
   );
 }
 
+type ActTwo = z.infer<typeof actTwoSchema>;
+
+function SpellData({ spells }: { spells: Spell[] }): JSX.Element {
+  return (
+    <script
+      type="application/json"
+      data-tf-spells=""
+      dangerouslySetInnerHTML={{ __html: scriptJson(spells) }}
+    />
+  );
+}
+
+function UnlockButton({
+  label,
+  className,
+}: {
+  label: string;
+  className: string;
+}): JSX.Element {
+  return (
+    <button type="button" className={className} data-tf-break="">
+      <span className="tf-btn__key" aria-hidden="true">
+        <KeyDrawing shape={KEY_SHAPES.ring} />
+      </span>
+      {label}
+    </button>
+  );
+}
+
+/** Act II in Chinese: the old copy on a card, the good copy locked beside it. */
+function ActTwoChinese({
+  act,
+  label,
+  opening,
+  unlockLabel,
+  aside,
+  translationLead,
+  action,
+  againLabel,
+  spells,
+  beforeLabel,
+  afterLabel,
+  unlockPrompt,
+  unlockHint,
+}: ActTwo): JSX.Element {
+  const first = spells[0];
+  if (!first) return <section className="tf-act tf-act--two" />;
+  const counter = `${first.sector} · ${spellCounter(0, spells.length)}`;
+  return (
+    <section className="tf-act tf-act--two">
+      <div className="tf-wrap tf-act-two__top">
+        <ActHeading act={act} label={label} opening={opening} light="mustard" />
+      </div>
+      <div className="tf-spell" data-tf-spell="">
+        <SpellData spells={spells} />
+        <div className="tf-wrap tf-spell__stage">
+          <div className="tf-spell__old">
+            <div className="tf-spell__meta">
+              <span className="tf-pill tf-pill--old">{beforeLabel}</span>
+              <span className="tf-spell__note">
+                <span data-tf-counter="">{counter}</span>
+                {"\u3000"}
+                {aside}
+              </span>
+            </div>
+            <Words spell={first} />
+          </div>
+          <div className="tf-spell__new">
+            <span className="tf-pill tf-pill--new">{afterLabel}</span>
+            <span className="tf-spell__lock" aria-hidden="true" />
+            <p className="tf-spell__prompt">{unlockPrompt}</p>
+            <div className="tf-spell__actions">
+              <UnlockButton
+                label={unlockLabel}
+                className="tf-btn tf-btn--ink tf-btn--large tf-btn--unlock"
+              />
+              <span className="tf-spell__hint">{unlockHint}</span>
+            </div>
+          </div>
+        </div>
+        <div className="tf-spell__after" data-light={first.light}>
+          <div className="tf-spell__key" />
+          <div className="tf-wrap tf-spell__translation">
+            <div className="tf-spell__lead tf-land">
+              <span className="tf-spell__was">
+                <strong>{`${beforeLabel}：`}</strong>
+                <span className="tf-spell__struck" data-tf-before="">
+                  {first.before}
+                </span>
+              </span>
+              <div className="tf-spell__meta">
+                <span className="tf-pill tf-pill--new">{afterLabel}</span>
+                <span className="tf-spell__lead-text">{translationLead}</span>
+              </div>
+            </div>
+            <p className="tf-spell__main tf-land" data-tf-main="">
+              {first.main}
+            </p>
+            <p className="tf-story tf-spell__sub tf-land" data-tf-sub="">
+              {first.sub}
+            </p>
+            <div className="tf-spell__again tf-land">
+              <ButtonLink link={action} tone="ink" />
+              <button
+                type="button"
+                className="tf-btn tf-btn--card"
+                data-tf-next=""
+              >
+                {againLabel}
+              </button>
+              <span className="tf-eyebrow" data-tf-counter="">
+                {counter}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export const actTwo: SectionDefinition = defineSection(
   actTwoSchema,
   ActTwoSection,
   {
+    components: { "zh-TW": ActTwoChinese },
     title: "Act II — The curse of jargon",
     description:
-      "The jargon translator: the act's words, the button labels, the action after the translation and the spells, each a jargon sentence (with its words listed for a language written without spaces), the words to strike, the translation, its sector and its light (red, mint or mustard).",
+      "The jargon translator: the act's words, the button labels, the action after the translation and the spells, each a jargon sentence (with its words listed for a language written without spaces), the words to strike, the translation, its sector and its light (red, mint or mustard). Chinese pages also name the old and the good copy (before and after labels) and give the locked panel a prompt and a hint.",
   },
 );
 

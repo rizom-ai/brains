@@ -149,7 +149,7 @@ export const actFourCSS: string = `
 .tf-card__quote { margin: 14px 0 0; font-family: var(--font-story); font-style: italic; font-weight: 500; letter-spacing: var(--tracking-story); font-size: 20px; line-height: 1.35; }
 .tf-card .tf-card__by { margin: 14px 0 0; font-size: 11px; }
 @media (max-width: 860px) {
-  .tf-stack > * { grid-column: 1 / -1 !important; grid-row: auto !important; margin-top: 0 !important; }
+  .tf-cards > * { grid-column: 1 / -1 !important; grid-row: auto !important; margin-top: 0 !important; }
 }
 `;
 

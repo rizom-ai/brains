@@ -113,9 +113,11 @@ describe("the paper frame around every page", () => {
     });
     const nav = between(html, '<nav class="tf-nav"', "</nav>");
     expect(nav).toContain(
-      '<a class="tf-nl" href="/zh-tw/what" aria-current="page">What</a>',
+      '<a class="tf-nl" href="/zh-tw/what" aria-current="page">What<span class="tf-nl__gloss">服務項目</span></a>',
     );
-    expect(nav).toContain('<a class="tf-nl" href="/zh-tw/about">About</a>');
+    expect(nav).toContain(
+      '<a class="tf-nl" href="/zh-tw/about">About<span class="tf-nl__gloss">關於我們</span></a>',
+    );
     expect(html).toContain('<a class="tf-mlink" href="/zh-tw">首頁</a>');
     expect(html).toMatch(
       /<summary class="tf-menu__button"[^>]*>.*選單<\/summary>/,

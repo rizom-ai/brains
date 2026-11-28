@@ -5,7 +5,9 @@
  * sentence. The scatter is seeded by word and spell, as in the design, so it
  * lands the same way every time, and narrows with the viewport so the words
  * stay on a phone's screen. A spell in a language written without spaces
- * scatters the words it lists. Reduced motion skips the flight.
+ * scatters the words it lists; every counter on the page and the struck
+ * sentence a Chinese page shows over the translation follow the spell.
+ * Reduced motion skips the flight.
  * Without the script the jargon sentence stands alone, buttons hidden.
  */
 export const spellScript: string = `<script>
@@ -19,7 +21,8 @@ export const spellScript: string = `<script>
     var after = root.querySelector(".tf-spell__after");
     var main = root.querySelector("[data-tf-main]");
     var sub = root.querySelector("[data-tf-sub]");
-    var counter = root.querySelector("[data-tf-counter]");
+    var counters = root.querySelectorAll("[data-tf-counter]");
+    var before = root.querySelector("[data-tf-before]");
     var still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     var index = 0;
     var timer = null;
@@ -42,7 +45,10 @@ export const spellScript: string = `<script>
       after.setAttribute("data-light", spell.light);
       main.textContent = spell.main;
       sub.textContent = spell.sub;
-      counter.textContent = spell.sector + " · " + pad(index + 1) + "/" + pad(spells.length);
+      Array.prototype.forEach.call(counters, function (counter) {
+        counter.textContent = spell.sector + " · " + pad(index + 1) + "/" + pad(spells.length);
+      });
+      if (before) before.textContent = spell.before;
       root.classList.remove("tf-spell--broken", "tf-spell--after");
     }
     function scatter() {

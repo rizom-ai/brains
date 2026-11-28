@@ -3,6 +3,7 @@ import { describe, expect, test } from "bun:test";
 import type { JSX } from "react";
 import {
   defineSection,
+  defineSite,
   sectionGroup,
   z,
   type ComponentType,
@@ -107,6 +108,29 @@ describe("defineSection components per language", () => {
     });
 
     expect(section.components?.["zh-TW"]).toBe(HeroZh);
+  });
+
+  test("is accepted by a site, its drawings intact", () => {
+    function HeroZh({ headline }: z.infer<typeof heroSchema>): JSX.Element {
+      return <h1 lang="zh-TW">{headline}</h1>;
+    }
+    const site = defineSite({
+      layouts: { default: ({ sections }): JSX.Element => <>{sections}</> },
+      routes: [],
+      entityDisplay: {},
+      sections: [
+        sectionGroup("home", {
+          hero: defineSection(heroSchema, Hero, {
+            title: "Hero",
+            description: "The hero section",
+            components: { "zh-TW": HeroZh },
+          }),
+        }),
+      ],
+    });
+
+    const group = [site.sections ?? []].flat()[0];
+    expect(group?.sections["hero"]?.components?.["zh-TW"]).toBe(HeroZh);
   });
 
   test("rejects a drawing keyed by something that is not a language tag", () => {

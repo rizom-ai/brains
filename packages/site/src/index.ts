@@ -619,6 +619,12 @@ const sectionDefinitionSchema: Strict<{
   >;
   fullscreen: z.ZodOptional<z.ZodBoolean>;
   dataSource: z.ZodOptional<z.ZodString>;
+  components: z.ZodOptional<
+    z.ZodRecord<
+      typeof languageTagSchema,
+      z.ZodCustom<ComponentType<unknown>, ComponentType<unknown>>
+    >
+  >;
 }> = z.strictObject({
   // defineSection has already proved JSON output via JsonObjectOutputGuard;
   // this runtime check confirms it is a zod schema, and the declared type
@@ -636,6 +642,16 @@ const sectionDefinitionSchema: Strict<{
   requiredPermission: z.enum(["admin", "trusted", "public"]).optional(),
   fullscreen: z.boolean().optional(),
   dataSource: z.string().min(1).optional(),
+  // The section's drawings in other languages, as defineSection keeps them.
+  components: z
+    .record(
+      languageTagSchema,
+      z.custom<ComponentType<unknown>>(
+        (value) => typeof value === "function",
+        "Expected a React component",
+      ),
+    )
+    .optional(),
 });
 
 const siteDataSourceSchema: z.ZodCustom<SiteDataSource, SiteDataSource> =
