@@ -25,6 +25,7 @@ export {
   DELETE_LIMIT,
   SyncEngine,
   type DeleteDecision,
+  type FileMark,
   type FileNote,
   type FirstSyncPlan,
   type Notice,

@@ -724,6 +724,13 @@ export const aboutRoute: RouteDefinitionInput = pageRoute(
     title: "About — The Fourth",
     description:
       "Breaking the fourth wall: The Fourth's mission, and Sam and Becca, the guides behind it.",
+    translations: {
+      "zh-TW": {
+        title: "關於我們 — The Fourth",
+        description:
+          "打破第四道牆：The Fourth 的使命，以及背後的兩位引路人 Sam 與 Becca。",
+      },
+    },
   },
   [
     { id: "hero", template: "about:hero", content: aboutContent.hero },

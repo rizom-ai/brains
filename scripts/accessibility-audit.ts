@@ -15,9 +15,7 @@
  * Exits non-zero when any page has a critical or serious violation. Findings
  * and decisions are recorded in `docs/accessibility-audit.md`.
  */
-import { mkdtemp, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import path from "node:path";
+import { writeFile } from "node:fs/promises";
 import { parseArgs } from "node:util";
 import { z } from "@brains/utils/zod";
 import {
@@ -27,7 +25,11 @@ import {
   type AxeAudit,
   type ImpactCounts,
 } from "./accessibility/axe-audit";
-import { chromeBackend, waitForQuietDom } from "./accessibility/browser";
+import {
+  chromeBackend,
+  chromeProfile,
+  waitForQuietDom,
+} from "./accessibility/browser";
 import { clickSelector, waitForPage } from "./console-visual/page";
 
 const { values, positionals: urls } = parseArgs({
@@ -57,13 +59,13 @@ const viewports = values.viewports.split(",").map((size) => {
 });
 
 /** One profile for the run, so a sign-in reaches every view. */
-const profile = await mkdtemp(path.join(tmpdir(), "a11y-audit-"));
+const profile = chromeProfile();
 
 function openView(viewport: { width: number; height: number }): Bun.WebView {
   return new Bun.WebView({
     ...viewport,
     backend: chromeBackend(executablePath ?? ""),
-    dataStore: { directory: profile },
+    dataStore: profile,
   });
 }
 

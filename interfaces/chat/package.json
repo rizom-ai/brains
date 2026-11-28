@@ -1,7 +1,7 @@
 {
   "name": "@brains/chat",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.807",
+  "version": "0.2.0-alpha.808",
   "description": "Multi-platform Chat SDK interface for Brains",
   "dependencies": {
     "@beeper/chat-adapter-matrix": "^0.2.0",

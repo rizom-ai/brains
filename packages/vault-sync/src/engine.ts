@@ -56,6 +56,12 @@ export type Notice =
   /** A rename the brain refused was undone in the vault. */
   | { kind: "rename-undone"; from: string; to: string; reason: string };
 
+/**
+ * What a file in the vault is to the brain: in step with it, waiting to go
+ * up, kept in the vault only, or with another version waiting to be compared.
+ */
+export type FileMark = "synced" | "waiting" | "local" | "conflict";
+
 /** A conflict the person has not chosen a version for yet. */
 export interface OpenConflict {
   /** The file both sides changed. */
@@ -327,6 +333,38 @@ export class SyncEngine {
       { ...file, hash },
       known ? { ifMatch: known.etag } : { ifAbsent: true },
     );
+  }
+
+  /**
+   * The mark of every file the brain has a say about, by path. Told from
+   * what was recorded at the last sync and each file's size and time: no
+   * file is read, so this is cheap enough to ask after every change.
+   */
+  fileMarks(): Promise<Record<string, FileMark>> {
+    return this.exclusive(async () => {
+      const state = await this.store.load();
+      const types = new Set(state.typeFolders);
+      const conflicted = new Set(state.conflicts.map((one) => one.path));
+      const marked = await Promise.all(
+        (await this.vault.listFiles()).map(
+          async (path): Promise<[string, FileMark] | undefined> => {
+            const placement = this.place(path, types);
+            if (placement.kind === "ignored") return undefined;
+            if (placement.kind === "local") return [path, "local"];
+            if (conflicted.has(path)) return [path, "conflict"];
+            const known = state.paths[path];
+            const stat = known && (await this.vault.stat(path));
+            return [
+              path,
+              stat && known.size === stat.size && known.mtime === stat.mtime
+                ? "synced"
+                : "waiting",
+            ];
+          },
+        ),
+      );
+      return Object.fromEntries(marked.filter((mark) => mark !== undefined));
+    });
   }
 
   /**

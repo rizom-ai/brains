@@ -4,7 +4,7 @@ import path from "node:path";
 import { FIXTURE_THEMES } from "../console-visual/fixture-themes";
 import type { FixtureServer } from "../console-visual/fixture-server";
 import { runAxeAudit } from "./axe-audit";
-import { chromeBackend, waitForQuietDom } from "./browser";
+import { chromeBackend, chromeProfile, waitForQuietDom } from "./browser";
 
 const CHROMIUM_PATH = process.env["CONSOLE_CHROMIUM_PATH"];
 // The fixture serves Studio's built UI; CI builds it before this test runs.
@@ -55,6 +55,7 @@ describe.skipIf(!CHROMIUM_PATH || !STUDIO_BUILT)(
           width: 1280,
           height: 800,
           backend: chromeBackend(CHROMIUM_PATH ?? ""),
+          dataStore: chromeProfile(),
         });
         await page.navigate("about:blank");
         await page.cdp("Page.addScriptToEvaluateOnNewDocument", {

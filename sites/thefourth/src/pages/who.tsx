@@ -1,4 +1,4 @@
-import type { JSX } from "react";
+import type { CSSProperties, JSX } from "react";
 import {
   defineSection,
   z,
@@ -16,13 +16,16 @@ import {
   lightSchema,
   PageWrap,
   pageRoute,
+  stagedIntro,
 } from "./common";
 
 /**
  * Who The Fourth works with: one part per world, each anchored for the
  * homepage's chips. A world names the problem in one line, then what its
  * people say, how The Fourth helps and the services it uses, sometimes one
- * phrase before and after translation, and the cases that show it.
+ * phrase before and after translation, and the cases that show it. Each
+ * world is a section of its own, so its copy stays within markdown's six
+ * heading levels (a world's cases' figures sit five deep).
  */
 const worldSchema = z.object({
   id: z.string(),
@@ -38,18 +41,17 @@ const worldSchema = z.object({
   cases: z.array(caseSchema).default([]),
 });
 
-const worldsSchema = z.object({
-  labels: z.object({
-    hear: z.string(),
-    help: z.string(),
-    services: z.string(),
-    before: z.string(),
-    after: z.string(),
-  }),
-  worlds: z.array(worldSchema),
+const labelsSchema = z.object({
+  hear: z.string(),
+  help: z.string(),
+  services: z.string(),
+  before: z.string(),
+  after: z.string(),
 });
 
-type Labels = z.infer<typeof worldsSchema>["labels"];
+const worldSectionSchema = worldSchema.extend({ labels: labelsSchema });
+
+type Labels = z.infer<typeof labelsSchema>;
 
 function World({
   world,
@@ -110,28 +112,144 @@ function World({
   );
 }
 
-function WorldsSection({
+function WorldSection({
   labels,
-  worlds,
-}: z.infer<typeof worldsSchema>): JSX.Element {
+  ...world
+}: z.infer<typeof worldSectionSchema>): JSX.Element {
+  return <World world={world} labels={labels} />;
+}
+
+export const world: SectionDefinition = defineSection(
+  worldSectionSchema,
+  WorldSection,
+  {
+    title: "Who — a world",
+    description:
+      "A world The Fourth works in: its anchor id, label and light, the headline, what its people say, how The Fourth helps, the services it uses (label and link), an optional phrase before and after translation, its cases (context, story, figures and a quote), and the labels over its parts.",
+  },
+);
+
+/** The emoji a muddled message spills, where and how big, as Sam drew them. */
+const SPILLS: Array<{
+  emoji: string;
+  left: number;
+  top: number;
+  size: number;
+  font: number;
+  turn: number;
+  delay: number;
+}> = [
+  { emoji: "🤯", left: -6, top: 30, size: 48, font: 26, turn: -8, delay: 0 },
+  { emoji: "❓", left: 30, top: -24, size: 40, font: 22, turn: 10, delay: 0.5 },
+  { emoji: "📊", left: -48, top: 92, size: 44, font: 24, turn: -4, delay: 0.9 },
+  { emoji: "😵", left: -2, top: 150, size: 44, font: 24, turn: 6, delay: 1.3 },
+  { emoji: "💡", left: -58, top: 2, size: 40, font: 22, turn: 8, delay: 0.7 },
+  {
+    emoji: "😴",
+    left: -64,
+    top: 160,
+    size: 38,
+    font: 21,
+    turn: -6,
+    delay: 1.1,
+  },
+];
+
+type SpillPlacement = CSSProperties & { "--r": string };
+
+function spillPlacement(spill: (typeof SPILLS)[number]): SpillPlacement {
+  return {
+    left: spill.left,
+    top: spill.top,
+    width: spill.size,
+    height: spill.size,
+    fontSize: spill.font,
+    animationDelay: `${spill.delay}s`,
+    "--r": `${spill.turn}deg`,
+  };
+}
+
+/** Bobby: a mint figure shouting jargon through a red megaphone. */
+function Bobby(): JSX.Element {
   return (
-    <>
-      {worlds.map((world) => (
-        <World key={world.id} world={world} labels={labels} />
+    <div className="tf-bobby">
+      <svg viewBox="0 0 380 230">
+        <g
+          fill="none"
+          stroke="var(--palette-mint)"
+          strokeWidth="11"
+          strokeLinecap="round"
+        >
+          <path d="M230 192 L 222 224" />
+          <path d="M270 192 Q 282 214 304 214" />
+          <path d="M292 148 Q 326 140 350 128" />
+          <path d="M208 150 Q 182 160 156 154" />
+        </g>
+        <circle cx="352" cy="127" r="10" fill="var(--palette-mint)" />
+        <circle cx="250" cy="80" r="56" fill="var(--palette-mint)" />
+        <polygon
+          points="220,108 280,108 304,198 196,198"
+          fill="var(--palette-mint)"
+        />
+        <circle cx="232" cy="78" r="13" fill="var(--palette-ink)" />
+        <circle cx="268" cy="78" r="13" fill="var(--palette-ink)" />
+        <circle cx="236" cy="73" r="4.5" fill="var(--palette-card)" />
+        <circle cx="272" cy="73" r="4.5" fill="var(--palette-card)" />
+        <path
+          d="M242 100 Q 250 112 258 100"
+          stroke="var(--palette-ink)"
+          strokeWidth="4"
+          strokeLinecap="round"
+          fill="none"
+        />
+        <rect
+          x="140"
+          y="150"
+          width="13"
+          height="32"
+          rx="5"
+          fill="var(--palette-red-dark)"
+        />
+        <polygon
+          points="166,128 166,154 104,180 104,100"
+          fill="var(--palette-red)"
+        />
+        <ellipse
+          cx="104"
+          cy="140"
+          rx="12"
+          ry="40"
+          fill="var(--palette-red-dark)"
+        />
+        <ellipse cx="102" cy="140" rx="6" ry="26" fill="var(--tf-zh-strike)" />
+        <circle cx="158" cy="152" r="11" fill="var(--palette-mint)" />
+        <path
+          d="M80 98 L 66 86 M74 140 L 56 140 M80 182 L 66 194"
+          stroke="var(--palette-ink)"
+          strokeWidth="5"
+          strokeLinecap="round"
+          fill="none"
+        />
+      </svg>
+      {SPILLS.map((spill) => (
+        <span
+          key={spill.emoji}
+          className="tf-spill"
+          style={spillPlacement(spill)}
+        >
+          {spill.emoji}
+        </span>
       ))}
-    </>
+    </div>
   );
 }
 
-export const worlds: SectionDefinition = defineSection(
-  worldsSchema,
-  WorldsSection,
-  {
-    title: "Who — the worlds",
-    description:
-      "The worlds The Fourth works in, each with an anchor id, its label and light, the headline, what its people say, how The Fourth helps, the services it uses (label and link), an optional phrase before and after translation, and its cases (context, story, figures and a quote).",
-  },
-);
+/** The Who page's intro: in Chinese on a mustard stage, Bobby shouting. */
+export const whoIntro: SectionDefinition = stagedIntro({
+  band: "mustard",
+  mark: "pill",
+  art: <Bobby />,
+});
 
 const DIAGNOSIS = { label: "Diagnosis", href: "/what#see" };
 const STRATEGY = { label: "Communication strategy", href: "/what#strategy" };
@@ -341,10 +459,21 @@ export const whoRoute: RouteDefinitionInput = pageRoute(
     title: "Who we work with — The Fourth",
     description:
       "Sustainability, health, tech and art: the worlds The Fourth works in, what we hear there, how we help and what happened when we did.",
+    translations: {
+      "zh-TW": {
+        title: "合作對象 — The Fourth",
+        description:
+          "永續、健康、科技與藝術：The Fourth 合作的領域，我們在那裡聽見什麼、怎麼幫忙，以及合作之後發生了什麼。",
+      },
+    },
   },
   [
-    { id: "intro", template: "page:intro", content: whoContent.intro },
-    { id: "worlds", template: "who:worlds", content: whoContent.worlds },
+    { id: "intro", template: "who:intro", content: whoContent.intro },
+    ...whoContent.worlds.worlds.map((entry) => ({
+      id: entry.id,
+      template: "who:world",
+      content: { ...entry, labels: whoContent.worlds.labels },
+    })),
     {
       id: "next-step",
       template: "page:next-step",

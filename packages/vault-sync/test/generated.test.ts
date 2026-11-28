@@ -57,6 +57,14 @@ describe("an editor's files for the brain's types", () => {
 
     expect(generated.firsts).toEqual([true, false]);
   });
+
+  it("have no mark in the file list", async () => {
+    synced = await fresh({ generated: editorFiles() });
+    await synced.brain.write("note", "tea", "# Tea\n");
+    await connect(synced);
+
+    expect(await synced.engine.fileMarks()).toEqual({ "tea.md": "synced" });
+  });
 });
 
 describe("an editor's first-time step after writing its files", () => {

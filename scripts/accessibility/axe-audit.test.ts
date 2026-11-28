@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { countByImpact, runAxeAudit } from "./axe-audit";
-import { chromeBackend } from "./browser";
+import { chromeBackend, chromeProfile } from "./browser";
 
 const CHROMIUM_PATH = process.env["CONSOLE_CHROMIUM_PATH"];
 
@@ -48,6 +48,7 @@ describe.skipIf(!CHROMIUM_PATH)("runAxeAudit", () => {
       width: 1280,
       height: 800,
       backend: chromeBackend(CHROMIUM_PATH ?? ""),
+      dataStore: chromeProfile(),
     });
   });
 
