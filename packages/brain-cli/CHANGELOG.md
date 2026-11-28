@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.790
+
+### Patch Changes
+
+- [#1071](https://github.com/rizom-ai/brains/pull/1071) [`cb6b480`](https://github.com/rizom-ai/brains/commit/cb6b48053df482998b19859cf60c0c406bbf668b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The model runtime a brain with `local:` models deploys beside it is Ollama 0.40.18 (was 0.40.11), the first release that runs Inkling 2 Mini (`local:inkling-2-mini`) on Linux. The models a brain already names keep working on it.
+
 ## 0.2.0-alpha.789
 
 ### Minor Changes
