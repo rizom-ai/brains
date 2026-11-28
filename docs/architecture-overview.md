@@ -18,7 +18,7 @@ canonical definition + explicit brain.yaml bundles = running brain
 1. **MCP-first** — every brain is an MCP server and exposes tools, resources, prompts, and resource templates through the same core transport model.
 2. **Entity-driven** — durable content lives as typed entities stored as markdown with frontmatter.
 3. **Schema-first** — Zod schemas define config, entities, tool inputs, and API contracts.
-4. **Plugin-based** — almost all product behavior is composed from EntityPlugins, ServicePlugins, and InterfacePlugins.
+4. **Plugin-based** — almost all product behavior is composed from entity packages, service plugins, and interfaces, each a declarative `define*` definition.
 5. **Definition / instance separation** — the reusable definition owns catalog policy; lightweight instances own explicit selection and deployment settings in `brain.yaml`.
 6. **Public API first** — external code should use the published `@rizom/brain/*` authoring APIs. Internal packages may use workspace packages, but should still avoid reaching into shell internals unless there is no supported boundary yet.
 
@@ -73,7 +73,7 @@ Conversation actor registries close terminally: queued operations receive the li
 
 ### Layer adoption
 
-Effect `Layer` is adopted only for complete vertical slices. Shell services carry no process-global state to wrap: `getInstance`/`resetInstance` are gone from every shell-owned service, and a repo-wide source grep in `service-ownership.test.ts` keeps them gone. Only three deliberate ambient registries keep a singleton accessor — `Logger`, `AtprotoProjectionRegistry`, and `EvalHandlerRegistry` — and they are allow-listed there by name. Entity URLs and citability are a plain value built from the one entity display the shell resolves.
+Effect `Layer` is adopted only for complete vertical slices. Shell services carry no process-global state to wrap: `getInstance`/`resetInstance` are gone from every shell-owned service, and a repo-wide source grep in `service-ownership.test.ts` keeps them gone. Only two deliberate ambient registries keep a singleton accessor — `Logger` and `EvalHandlerRegistry` — and they are allow-listed there by file. Entity URLs and citability are a plain value built from the one entity display the shell resolves.
 
 The first layer-owned slice is the job-service stack. The private `@brains/job-queue/effect` subpath owns its `Context.Tag` contracts and scoped queue/runtime layers; core composes those layers across the package boundary instead of rebuilding job-queue lifecycle ownership locally. Separate runtime and database scopes preserve shutdown order: workers and cleanup fibers stop before plugin teardown, while the queue database remains available until dependent shell resources have closed. Existing Promise interfaces and dependency-injected test implementations remain unchanged, and Effect types do not cross the public authoring boundary.
 
@@ -106,10 +106,9 @@ shell/          Core runtime, services, plugin framework
 shared/         Reusable utilities, themes, UI components, test helpers
 entities/       Entity packages for content types
 plugins/        Services for tools and integrations
-sites/          Structural site packages (routes, plugins, inherited composition)
+sites/          Structural site packages (layouts, routes, templates, inherited composition)
 interfaces/     Interfaces for transports and daemons
-brains/         Brain model packages
-packages/       Standalone distributable packages (for example @rizom/brain)
+packages/       Standalone distributable packages (for example @rizom/brain, which holds the brain model)
 ```
 
 A running brain is driven by an _instance directory_ centered on `brain.yaml` plus optional deploy/config files. The monorepo does not currently ship such instance directories; user instances are scaffolded outside the monorepo with `brain init`. Those generated instances also include support files such as `.env.example`, `.gitignore`, `tsconfig.json`, `package.json`, `src/site.tsx`, and `src/theme.css` depending on model and options.
@@ -134,7 +133,7 @@ A running brain is driven by an _instance directory_ centered on `brain.yaml` pl
 | `shell/runtime-state`                                   | Runtime state store service (`RuntimeStateService`/`RuntimeStateStore`)  |
 | `shell/scheduler`                                       | Shared scheduler contracts and deterministic test backend                |
 | `shell/recurring-checks`                                | Recurring cadence, dedupe, Inbox alerts, and channel delivery retries    |
-| `shell/plugins`                                         | Base plugin classes, contexts, harnesses, and app-scoped registries      |
+| `shell/plugins`                                         | `define*` plugin definitions, contexts, test harness, and registries     |
 | `shell/templates`                                       | Template registry and resolution                                         |
 | `shell/ai-evaluation`                                   | Eval runner, test cases, judges, reporting                               |
 | [`shell/auth-service`](../shell/auth-service/README.md) | Private auth DB, OAuth/WebAuthn, users, identity, invitations, and audit |
@@ -143,81 +142,94 @@ A running brain is driven by an _instance directory_ centered on `brain.yaml` pl
 
 Entity packages live in `entities/`. Most packages define one entity type; a few define more than one. Tightly coupled 1:1 entity + service capabilities may instead be compound packages under `plugins/`.
 
-| Package                        | Entity type(s)                       | Notes                                               |
-| ------------------------------ | ------------------------------------ | --------------------------------------------------- |
-| `entities/blog`                | `post`                               | Essays, long-form publishing                        |
-| `entities/decks`               | `deck`                               | Presentation/deck content                           |
-| `entities/doc`                 | `doc`                                | Generic docs entity backing `/docs`                 |
-| `entities/document`            | `document`                           | Generated PDFs and publishable document attachments |
-| `entities/image`               | `image`                              | AI image generation                                 |
-| `entities/link`                | `link`                               | URL capture and extraction                          |
-| `entities/note`                | `note`                               | General markdown notes / notes                      |
-| `entities/reference`           | `reference`                          | Pointers to what other brains publish               |
-| `entities/portfolio`           | `project`                            | Case studies and portfolio entries                  |
-| `entities/prompt`              | `prompt`                             | Editable AI prompt entities                         |
-| `entities/series`              | `series`                             | Derived post grouping                               |
-| `entities/social-media`        | `social-post`                        | Social publishing content                           |
-| `entities/conversation-memory` | `summary`, `decision`, `action-item` | Conversation memory                                 |
-| `entities/faq`                 | `faq`                                | Chat Q&A captured as draft FAQs                     |
-| `entities/topics`              | `topic`                              | Derived topic/tag entities                          |
-| `entities/wishlist`            | `wish`                               | Unfulfilled requests / backlog                      |
-| `entities/form`                | `form`                               | Site forms defined in content                       |
-| `entities/agent-discovery`     | `agent`, `skill`                     | Agent directory + discoverable skills               |
-| `entities/assessment`          | `swot`                               | Derived assessment outputs                          |
+| Package                        | Entity type(s)                       | Notes                                                         |
+| ------------------------------ | ------------------------------------ | ------------------------------------------------------------- |
+| `entities/ask-content`         | `ask-content`                        | Singleton presentation for public Ask surfaces                |
+| `entities/blog`                | `post`                               | Essays, long-form publishing                                  |
+| `entities/book`                | `book`, `book-section`               | Published books as read-only, citable sections                |
+| `entities/conflict`            | `conflict`                           | An edit made over a newer version, until applied or dismissed |
+| `entities/decks`               | `deck`                               | Presentation/deck content                                     |
+| `entities/doc`                 | `doc`                                | Generic docs entity backing `/docs`                           |
+| `entities/document`            | `document`                           | Generated PDFs and publishable document attachments           |
+| `entities/guide`               | `guide`                              | Moving-in walkthroughs for kinds of brain users               |
+| `entities/image`               | `image`                              | AI image generation                                           |
+| `entities/link`                | `link`                               | URL capture and extraction                                    |
+| `entities/note`                | `note`                               | General markdown notes                                        |
+| `entities/refined-note`        | `refined-note`                       | Worked-out notes written from plain notes, which they replace |
+| `entities/seminar`             | `seminar`                            | One question put to approved peers, kept as their exchange    |
+| `entities/style-guide`         | `style-guide`                        | Singleton style guide for content and images                  |
+| `entities/reference`           | `reference`                          | Pointers to what other brains publish                         |
+| `entities/portfolio`           | `project`                            | Case studies and portfolio entries                            |
+| `entities/prompt`              | `prompt`                             | Editable AI prompt entities                                   |
+| `entities/series`              | `series`                             | Derived post grouping                                         |
+| `entities/social-media`        | `social-post`                        | Social publishing content                                     |
+| `entities/conversation-memory` | `summary`, `decision`, `action-item` | Conversation memory                                           |
+| `entities/faq`                 | `faq`                                | Chat Q&A captured as draft FAQs                               |
+| `entities/topics`              | `topic`                              | Derived topic/tag entities                                    |
+| `entities/wishlist`            | `wish`                               | Unfulfilled requests / backlog                                |
+| `entities/form`                | `form`                               | Site forms defined in content                                 |
+| `entities/agent-discovery`     | `agent`, `skill`                     | Agent directory + discoverable skills                         |
+| `entities/assessment`          | `swot`                               | Derived assessment outputs                                    |
 
 ### Service plugins
 
 Service plugins live in `plugins/` and provide tools, handlers, routes, orchestration, or external integrations.
 
-| Package                    | Purpose                                                                                               |
-| -------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `plugins/analytics`        | Analytics integration and reports                                                                     |
-| `plugins/atproto`          | AT Protocol identity, publishing, discovery, feeds                                                    |
-| `plugins/atproto-registry` | Canonical Rizom AT Protocol lexicon registry                                                          |
-| `plugins/content-pipeline` | Publishing queue, scheduling, retries                                                                 |
-| `plugins/contact`          | The contact form on the forms engine, its restricted `contact-request` records and Inbox source       |
-| `plugins/dashboard`        | Dashboard widgets and UI slots                                                                        |
-| `plugins/directory-sync`   | File sync + git operations                                                                            |
-| `plugins/email-workflows`  | Restricted mail triage, Inbox detail, and a dormant tested reply backend                              |
-| `plugins/linkedin-import`  | Anchor-only Studio import of the owner's LinkedIn profile into `anchor-profile`, through `profile`    |
-| `plugins/newsletter`       | Compound newsletter entity with selectable Buttondown or Resend delivery                              |
-| `plugins/notifications`    | Notification routing for transactional and administrative messages                                    |
-| `plugins/oauth-broker`     | Managed OAuth broker: one central callback per provider, one-time grants for instance brains          |
-| `plugins/knowledge-map`    | The corpus in semantic space with topic territories: a site section and a Dashboard widget            |
-| `packages/obsidian-plugin` | Rizom Brain: an Obsidian vault in step with a brain, with templates, fileClasses and bases            |
-| `plugins/quiz`             | Quizzes defined in content on the forms engine, each one taken a restricted `quiz-result`             |
-| `plugins/site-builder`     | Static site build orchestration                                                                       |
-| `plugins/site-content`     | Site route/section discovery over the shell's generic content generation                              |
-| `plugins/site-info`        | The `site-info` singleton and the site metadata it answers for                                        |
-| `plugins/stock-photo`      | Stock-photo search and selection                                                                      |
-| `plugins/unified-inbox`    | Live inbox projection, source facets, resolved launches, registered Studio triage, summary, digest    |
-| `plugins/studio`           | Browser authoring routes + Studio config                                                              |
-| `plugins/webdav`           | The brain as a network drive: entities as files over WebDAV on `/dav`, signed in with an app password |
+| Package                    | Purpose                                                                                                   |
+| -------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `plugins/action-board`     | The team's Board over action items, blocked items in the Inbox, and moves from chat                       |
+| `plugins/admin`            | Headless source owner for Admin-gated Studio workspaces                                                   |
+| `plugins/analytics`        | Analytics integration and reports                                                                         |
+| `plugins/atproto`          | AT Protocol identity, publishing, discovery, feeds                                                        |
+| `plugins/atproto-registry` | Canonical Rizom AT Protocol lexicon registry                                                              |
+| `plugins/content-pipeline` | Publishing queue, scheduling, retries                                                                     |
+| `plugins/contact`          | The contact form on the forms engine, its restricted `contact-request` records and Inbox source           |
+| `plugins/dashboard`        | Dashboard widgets and UI slots                                                                            |
+| `plugins/directory-sync`   | File sync + git operations                                                                                |
+| `plugins/email-workflows`  | Restricted mail triage, Inbox detail, and a dormant tested reply backend                                  |
+| `plugins/linkedin-import`  | Anchor-only Studio import of the owner's LinkedIn profile into `anchor-profile`, through `profile`        |
+| `plugins/matrix-server`    | A Matrix homeserver at the brain's domain: forwarding, discovery, the bot account, sign-in with the brain |
+| `plugins/newsletter`       | Compound newsletter entity with selectable Buttondown or Resend delivery                                  |
+| `plugins/notifications`    | Notification routing for transactional and administrative messages                                        |
+| `plugins/oauth-broker`     | Managed OAuth broker: one central callback per provider, one-time grants for instance brains              |
+| `plugins/knowledge-map`    | The corpus in semantic space with topic territories: a site section and a Dashboard widget                |
+| `plugins/onboarding`       | Canonical onboarding playbook bundle and its activation                                                   |
+| `plugins/playbooks`        | Runtime orchestration for chat-native playbook runs                                                       |
+| `plugins/profile`          | Anchor-profile extensions and the context-generated starter identity                                      |
+| `plugins/quiz`             | Quizzes defined in content on the forms engine, each one taken a restricted `quiz-result`                 |
+| `plugins/site-builder`     | Static site build orchestration                                                                           |
+| `plugins/site-content`     | Site route/section discovery over the shell's generic content generation                                  |
+| `plugins/site-info`        | The `site-info` singleton and the site metadata it answers for                                            |
+| `plugins/stock-photo`      | Stock-photo search and selection                                                                          |
+| `plugins/unified-inbox`    | Live inbox projection, source facets, resolved launches, registered Studio triage, summary, digest        |
+| `plugins/studio`           | Browser authoring routes + Studio config                                                                  |
+| `plugins/webdav`           | The brain as a network drive: entities as files over WebDAV on `/dav`, signed in with an app password     |
 
 ### Interface plugins
 
 Interface packages live in `interfaces/`. Conversational transports are message interfaces (`defineMessageInterface`, or a first-party interface with a message transport or channels), for which the runtime coordinates job progress, tool statuses and the completions held back while input is answered.
 
-| Package                | Purpose                                                                                           |
-| ---------------------- | ------------------------------------------------------------------------------------------------- |
-| `interfaces/a2a`       | Agent-to-agent protocol, Agent Card, async tasks                                                  |
-| `interfaces/chat-repl` | Local chat REPL / development chat interface                                                      |
-| `interfaces/chat`      | Discord + Slack bot interface via the Chat SDK                                                    |
-| `interfaces/email`     | Email interface with configurable Resend delivery, threaded replies, and IMAP intake/source reads |
-| `interfaces/mcp`       | MCP transport over stdio and HTTP                                                                 |
-| `interfaces/web-chat`  | Guest-facing in-browser chat surface (default route `/ask`); shared Chat APIs                     |
+| Package                | Purpose                                                                                       |
+| ---------------------- | --------------------------------------------------------------------------------------------- |
+| `interfaces/a2a`       | Agent-to-agent protocol, Agent Card, async tasks                                              |
+| `interfaces/chat-repl` | Local chat REPL / development chat interface                                                  |
+| `interfaces/chat`      | Discord, Slack, and Matrix bot interface via the Chat SDK                                     |
+| `interfaces/email`     | Email interface: Resend delivery with threading headers, IMAP intake/source reads; no replies |
+| `interfaces/mcp`       | MCP transport over stdio and HTTP                                                             |
+| `interfaces/web-chat`  | Guest-facing in-browser chat surface (default route `/ask`); shared Chat APIs                 |
 
 ### Sites, themes, and the canonical definition
 
-| Area                      | Current packages                                                                                     |
-| ------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `sites/`                  | `default`, `personal`, `professional`, `rizom` and app-specific compositions                         |
-| `shared/theme-*`          | `default`, `rizom`, `signal`, and related theme packages                                             |
-| `shared/forms`            | The forms engine: definitions, admission, intake, delivery and rendering for site forms              |
-| `shared/entity-placement` | Which file path an entity has and which entity a path names, for directory-sync and the WebDAV drive |
-| `packages/brain-cli`      | canonical catalog/bundles, recipes, runtime assets, and the published `@rizom/brain` CLI             |
-| `packages/brain-sdk`      | `@brains/sdk`, the authoring surface the `@rizom/brain` entries re-export                            |
-| `packages/brains-ops`     | published `@rizom/ops` fleet tooling                                                                 |
+| Area                       | Current packages                                                                                                                                                                        |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sites/`                   | `default`, `personal`, `professional`, `organization`, `books`, `docs`, `hub`, `seminar`, `rizom-ai`, `rizom-foundation`, `rizom-work`, `thefourth`; `smoke-canary` is a retired marker |
+| `shared/theme-*`           | `base` (the shared layer under every theme), `default`, `books`, `rizom`, `rizom-ai`, `thefourth`                                                                                       |
+| `shared/forms`             | The forms engine: definitions, admission, intake, delivery and rendering for site forms                                                                                                 |
+| `shared/entity-placement`  | Which file path an entity has and which entity a path names, for directory-sync and the WebDAV drive                                                                                    |
+| `packages/brain-cli`       | canonical catalog/bundles, recipes, runtime assets, and the published `@rizom/brain` CLI                                                                                                |
+| `packages/brain-sdk`       | `@brains/sdk`, the authoring surface the `@rizom/brain` entries re-export                                                                                                               |
+| `packages/brains-ops`      | published `@rizom/ops` fleet tooling                                                                                                                                                    |
+| `packages/obsidian-plugin` | Rizom Brain: an Obsidian vault in step with a brain, with templates, fileClasses and bases                                                                                              |
 
 ## Plugin model
 
@@ -324,8 +336,9 @@ Services provide the system's operational surface area:
 Interfaces are how users or other agents interact with a brain:
 
 - MCP clients connect through `interfaces/mcp`
-- chat users connect through `interfaces/chat` (Discord, Slack) or `interfaces/chat-repl`
-- browsers connect through the runtime's HTTP host (`shell/http-host`) for public pages, dashboard/Studio routes, and browser-facing APIs
+- chat users connect through `interfaces/chat` (Discord, Slack, Matrix) or `interfaces/chat-repl`
+- email correspondents connect through `interfaces/email`
+- browsers connect through the runtime's HTTP host (`shell/http-host`) for public pages, dashboard/Studio routes, guest chat (`interfaces/web-chat`), and browser-facing APIs
 - peer agents connect through `interfaces/a2a`
 
 ## Operator browser state
@@ -352,7 +365,7 @@ A typical boot sequence looks like this:
 5. Entity types, tools, resources, prompts, datasources, daemons, and projection declarations are registered
 6. Profile/channel composition and the complete projection graph are finalized
 7. Interfaces start their long-lived processes
-8. The brain begins serving MCP, web, Discord, A2A, or local chat traffic
+8. The brain begins serving MCP, web, chat, email, A2A, or local REPL traffic
 
 ## Entity model
 
@@ -363,6 +376,7 @@ All durable content follows the same base pattern:
   id: string;
   entityType: string;
   content: string; // markdown, usually with YAML frontmatter
+  visibility: "public" | "shared" | "restricted"; // defaults to public
   metadata: object; // query-friendly subset of structured data
   contentHash: string;
   created: string; // ISO timestamp
@@ -398,7 +412,7 @@ Practical rule of thumb: external plugins should import from the public `@rizom/
 The project relies on:
 
 - **Unit tests** with Bun
-- **Plugin harnesses** for EntityPlugins, ServicePlugins, and InterfacePlugins
+- **`PluginTestHarness`** (`createPluginHarness`) for entity packages, service plugins, and interfaces
 - **Mock helpers** from `@brains/test-utils`
 - **Eval suites** for end-to-end agent behavior and multi-model comparisons
 - **Type checking + linting** across the full monorepo via Turborepo

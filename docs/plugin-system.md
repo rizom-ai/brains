@@ -31,10 +31,13 @@ The stable entries are:
 - `@rizom/brain` — root composition with `defineBrain()`, `defineBundle()`, and `use()`;
 - `@rizom/brain/entities` — entity and projection definitions;
 - `@rizom/brain/services` — service, tool, and job definitions;
-- `@rizom/brain/interfaces` — route, daemon, and message-interface definitions; and
-- `@rizom/site` — site and schema-first section definitions.
+- `@rizom/brain/interfaces` — route, daemon, and message-interface definitions;
+- `@rizom/brain/testing` — running a package's own tests on the runtime;
+- `@rizom/brain/chat` — the Chat API client and its request and response schemas, for code that talks to a running brain's chat;
+- `@rizom/site` — site and schema-first section definitions; and
+- `@rizom/brain-ui` — the components a site section or plugin view renders entities with.
 
-`@rizom/brain/testing` runs a package's own tests on the runtime. There is no class-first fallback authoring API.
+The [export ledger](../packages/brain-cli/test/fixtures/public-authoring/export-ledger.json) classifies every symbol each entry exports. There is no class-first fallback authoring API.
 
 ## Configuration and package identity
 
@@ -84,7 +87,7 @@ Registration failure rolls back capabilities acquired by that definition. Author
 
 When a declarative brain composes a generic interface, the runtime supplies the shared HTTP host automatically and activates it with the selected bundle. The interface author declares only routes and protocol security. Message listeners and all generic-interface daemons remain web-process resources and are excluded from workers.
 
-Internal runtime classes may remain under `@brains/plugins`, but they are implementation details used by built-in workspaces. They are not exported as stable external authoring contracts.
+The runtime's adapter classes are private to `@brains/plugins`. They are not exported, and no package, built-in or external, extends them.
 
 ## Removed alpha contracts
 
@@ -101,7 +104,7 @@ The loader rejects legacy package declarations with migration guidance before im
 
 ## Internal plugin development
 
-Built-in workspace packages may use internal runtime classes according to their local `AGENTS.md` rules:
+Built-in workspace packages use the same `define*` families, imported through `@brains/sdk` and its `@brains/sdk/internal/*` entries rather than `@brains/plugins`, under their local `AGENTS.md` rules:
 
 - entity package rules: [`entities/AGENTS.md`](../entities/AGENTS.md);
 - service package rules: [`plugins/AGENTS.md`](../plugins/AGENTS.md); and

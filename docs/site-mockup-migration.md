@@ -31,7 +31,7 @@ A useful prompt is:
 | Site title and metadata                      | `brain-data/site-info/site-info.md`            |
 | Posts, projects, decks, or other collections | Typed entities in `brain-data/`                |
 | CSS variables and global visual rules        | `src/theme.css` or a reusable theme package    |
-| Fixed package-owned scripts and assets       | `staticAssets` and section `runtimeScripts`    |
+| Fixed package-owned scripts and assets       | `staticAssets` and `headScripts`               |
 | Content images                               | Image entities under `brain-data/image/`       |
 | External APIs or background behavior         | An existing capability or a service plugin     |
 
@@ -65,9 +65,9 @@ For a one-off customization, keep the structure in the instance:
 - `src/site.tsx` for layout, routes, and entity display metadata;
 - `src/theme.css` for local visual overrides.
 
-A local `src/site.tsx` is discovered when `brain.yaml` does not set `site.package`. A local theme remains an additive layer over the selected base theme.
+A local `src/site.tsx` is always picked up. When `brain.yaml` also sets `site.package`, that package is the structural base and the local file layers over it. A local theme remains an additive layer over the selected base theme.
 
-For a reusable or substantially custom site, create a site package using `@rizom/site` and React. Export a `SiteDefinition`, install the package in the Brain instance, and select it with `site.package` in `brain.yaml`. Keep these package versions aligned with `@rizom/brain`. Use a separate theme package when the visual system should also be reusable.
+For a reusable or substantially custom site, create a site package using `@rizom/site` and React. Export a `SiteDefinition`, install the package in the Brain instance, and select it with `site.package` in `brain.yaml`. Site and theme packages version independently of `@rizom/brain`; only `@rizom/brain-ui` tracks Brain's version, so keep that one aligned. Use a separate theme package when the visual system should also be reusable.
 
 ### 4. Port presentation from the outside in
 
@@ -100,7 +100,7 @@ Create a new entity plugin only when the site introduces a genuinely new durable
 Prefer existing Brain templates, data sources, and service plugins for live data. Keep browser behavior small and progressively enhanced because the public site is statically rendered. If the mockup relied on a framework API route, classify it explicitly as one of:
 
 - build-time data that should become an entity or data query;
-- browser-only enhancement that can become a runtime script;
+- browser-only enhancement that can become a head script or a static-asset script;
 - operational behavior that belongs in a service plugin.
 
 ### 7. Verify preview before production

@@ -20,12 +20,33 @@ docs:
     description: Create, edit, sync and publish markdown content
     source: docs/content-management.md
 
+  - id: studio
+    title: Studio
+    section: Use a brain
+    order: 22
+    description: The signed-in workspace for content, publishing, chat, the Inbox and settings, plus guest Ask and the public dashboard
+    source: docs/studio.md
+
+  - id: drive-and-obsidian
+    title: The Drive and Obsidian
+    section: Use a brain
+    order: 24
+    description: Mount the brain as a network drive and keep an Obsidian vault in step with it
+    source: docs/drive-and-obsidian.md
+
   - id: entity-types-reference
     title: Entity Types Reference
     section: Use a brain
     order: 30
     description: The built-in content types and their fields
     source: docs/entity-types-reference.md
+
+  - id: seminars
+    title: Seminars
+    section: Use a brain
+    order: 40
+    description: Hold a structured discussion between peer brains and publish it
+    source: docs/seminars.md
 
   # Run a brain: install, configure, deploy and connect it.
   - id: getting-started
@@ -60,8 +81,15 @@ docs:
     title: Interface Setup
     section: Run a brain
     order: 140
-    description: Connect MCP, web chat, Discord, Slack, A2A and local chat
+    description: Connect MCP, guest web chat, Discord, Slack and Matrix, email, A2A and the local chat REPL
     source: docs/interface-setup.md
+
+  - id: publishing-integrations
+    title: Publishing Integrations and Site Add-ons
+    section: Run a brain
+    order: 145
+    description: LinkedIn, newsletters, AT Protocol, analytics and stock photos, plus contact forms, quizzes and other forms
+    source: docs/publishing-integrations.md
 
   - id: directory-sync-git
     title: Directory Sync Git Overview
@@ -107,10 +135,10 @@ docs:
     source: docs/plugin-system.md
 
   - id: plugin-quick-reference
-    title: Plugin Quick Reference
+    title: Package Authoring Quick Reference
     section: Extend a brain
     order: 240
-    description: A checklist for choosing a declarative extension family
+    description: A checklist for choosing a definition family, with import, config, template and lifecycle rules
     source: docs/plugin-quick-reference.md
 
   - id: package-quickstart
@@ -121,10 +149,10 @@ docs:
     source: docs/package-quickstart.md
 
   - id: external-plugin-authoring
-    title: External Plugin Authoring
+    title: External Package Authoring
     section: Extend a brain
     order: 250
-    description: Package and load your own plugins
+    description: Package, test and load your own plugin packages
     source: docs/external-plugin-authoring.md
 
   - id: external-site-authoring

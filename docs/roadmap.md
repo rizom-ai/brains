@@ -15,7 +15,7 @@ Public Ask is a separate product rollout, not a stable-release gate. Its guest r
 What exists today:
 
 - one Bun-based CLI and runtime published through `@rizom/brain`;
-- one canonical brain definition with eight capability bundles plus policy-only `team`;
+- one canonical brain definition with nine capability bundles plus policy-only `team`;
 - markdown-backed entities with typed frontmatter and directory synchronization;
 - MCP-native tools/resources, signed A2A, agent discovery, Discord/Slack, Web Chat, email, and a chat REPL;
 - built-in HTTP hosting, passkey/OAuth authentication, multi-user roles, People/Admin surfaces, and connected delivery channels;

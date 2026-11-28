@@ -108,9 +108,11 @@ https://{domain}/.well-known/agent-card.json
 
 Schema and parser live in `shell/plugins/src/a2a/agent-card-schema.ts`
 (`name`, `url`, `description`, `skills[]`, `capabilities.extensions[]`).
-Fetching/parsing is `fetchAgentCard(domain, fetchFn)`
-(`entities/agent-discovery/src/lib/fetch-agent-card.ts`), which derives the
-well-known URL and runs `parseAgentCard()`. An optional anchor-profile extension
+Fetching is `fetchVerifiedAgentCard(host, { fetch })`
+(`shell/plugins/src/a2a/fetch-verified-agent-card.ts`). It fetches
+`https://<host>/.well-known/agent-card.json`, runs `parseAgentCard()`, and
+accepts the card only when its endpoint is HTTPS on the same host, so neither a
+call nor a saved contact can be redirected elsewhere. An optional anchor-profile extension
 (`https://rizom.ai/ext/anchor-profile/v1`) carries operator identity.
 
 ### The discovered → approved → callable lifecycle
@@ -170,25 +172,32 @@ This is the heart of cross-brain discovery: **discovery never implies access.**
   be reached, or whose answer does not verify, changes nothing. Archiving a
   peer erases every copy taken from it the same way, and the confirmation
   says how many.
-- **URL adds are the trusted shortcut.** When a user adds a brain by URL, the
-  create interceptor (`agent-create-interceptor.ts`) creates it as `approved`
-  immediately, and upgrades an existing `discovered` entry to `approved`. The
-  reasoning: if you already know the URL, you've made the trust decision.
+- **Adding by URL is not approving.** `system_create` for an `agent` with a
+  URL runs `agent:generation` (`entities/agent-discovery/src/lib/agent-generation.ts`),
+  which fetches and verifies the card and saves the agent as `discovered`
+  unless the job is given another status. A status alone approves nobody: only
+  `agent_connect`, the Inbox's connect action, or `agent_set_standing`
+  records the approval in runtime state, and only then can the peer be called.
 
-So the gate is held in exactly one place — the `a2a_call` tool — and every
-discovery path feeds the same `status` field that gate reads.
+So the gate is held in exactly one place — the `agent_call` tool, through
+`isContactApproved`, which reads the `a2a.contact-approvals` runtime state —
+and every discovery path only adds or enriches entries for it to check. The
+agent's `status` mirrors that approval for people reading the directory.
 
 ### ATProto card discovery (the shipped network slice)
 
-A brain publishes a signed `ai.rizom.brain.card` record to its PDS
-(`buildBrainCardRecord` in `plugins/atproto/src/records.ts`, published via the
-`atproto_publish_card` tool to record key `self`). It carries brain identity
+A brain publishes a signed `ai.rizom.brain.card` record to its PDS under
+record key `self` (`buildBrainCardRecord` in `plugins/atproto/src/records.ts`).
+There is no tool for it: the `atproto` plugin queues a `publish-card` operation
+once the brain is ready, and again whenever a `skill` entity or the brain's
+identity changes (`plugins/atproto/src/plugin.ts`). It carries brain identity
 (DID, name, role, purpose), a minimal anchor snapshot, public skills, and the
 site URL.
 
-The default discovery path remains seeded:
+Discovery is seeded:
 `discoverBrainCards()` (`plugins/atproto/src/plugin.ts`) takes supplied repo
-DIDs/handles, resolves each PDS, fetches the card through
+DIDs/handles (from the Jetstream consumer, or
+`plugins/atproto/scripts/smoke-discovery.ts`; no tool exposes it), resolves each PDS, fetches the card through
 `com.atproto.repo.getRecord`, validates it against the lexicon, and emits an
 `ATPROTO_BRAIN_CARD_DISCOVERED` event. The agent-directory side
 (`atproto-card-events.ts`) upserts an `agent` entity from that event —
@@ -209,6 +218,16 @@ without making discovery itself an approval.
 The `agents` capability lives in the posture-independent `core` bundle. Web and
 federation bundles provide publication/discovery channels; they do not own the
 agent entity or approval lifecycle.
+
+### Seminars
+
+A brain with the `seminar` capability holds seminars between its approved
+peers. `seminar_hold` puts one question to every approved peer at once, has
+them answer each other, and keeps each peer's turn verbatim, with its sources,
+as a draft `seminar` entity the owner reads and publishes. Each turn goes out
+through the A2A interface, so the same approval gate applies: only approved
+contacts take part. See
+[Seminars](./seminars.md).
 
 ---
 

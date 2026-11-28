@@ -254,7 +254,7 @@ until the repository owns a corresponding format.
   - **Services** — integrations (tools, job handlers, API routes, daemons)
   - **Interfaces** — transports (MCP, Discord, A2A, CLI)
 - **Composite plugins** — factories may return `Plugin | Plugin[]`, letting one capability id register multiple sub-plugins (e.g. `@brains/newsletter` bundles entity + service)
-- The **canonical definition** declares `[id, factory, config]` catalog tuples; eight ordered capability bundles plus policy-only `team` compose active members per instance
+- The **canonical definition** declares `[id, factory, config]` catalog tuples; nine ordered capability bundles plus policy-only `team` compose active members per instance
 
 ### Data Management
 

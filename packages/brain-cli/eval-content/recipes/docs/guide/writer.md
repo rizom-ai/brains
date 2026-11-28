@@ -42,27 +42,27 @@ You have years of essays and a folder of drafts. Some of it is published on plat
 
 In Google Docs, choose **File → Download → Markdown** for each draft you want to keep.
 
-Upload the files in chat and ask the brain to keep them as notes. It lists every file with the title it will get and asks you once to confirm before it saves them. With your brain connected under **AI tools**, you can do the same from Claude or ChatGPT.
+Upload the files in the brain's own chat, in Studio or on Discord, Slack or Matrix, and ask the brain to keep them as notes. It lists every file with the title it will get and asks you once to confirm before it saves them. From Claude or ChatGPT, connected under **AI tools** in your Studio account, paste a draft's text into the conversation instead: they pass the brain text, not files.
 
-They arrive as **notes**, titled from their first heading, or from the file name when there is none. Unfinished, half-titled, contradictory: bring it anyway. Notes are what the brain reads from when it writes and answers.
+They arrive as **notes**, titled from their first top-level `#` heading, or from the file name when there is none. Unfinished, half-titled, contradictory: bring it anyway. Notes are what the brain reads from when it writes and answers.
 
-Exact steps: [Interface setup](/docs/interface-setup), [Content management](/docs/content-management).
+Exact steps: [Content management](/docs/content-management), [Interface setup](/docs/interface-setup).
 
 ## Bring what you published
 
-Save each published essay as a Markdown file and upload them in chat, several in one message if you like. Tell the brain when and where each first appeared. It lists every essay with its title and asks you once to confirm.
+Save each published essay as a Markdown file and upload them in the brain's chat, several in one message if you like. Tell the brain when and where each first appeared. It lists every essay with its title and asks you once to confirm.
 
 Each becomes a **published post** with its original date. The original address stays the canonical one, so search engines keep crediting the first publication.
 
-Exact steps: [Entity types](/docs/entity-types-reference).
+Exact steps: [Content management](/docs/content-management), [Entity types](/docs/entity-types-reference).
 
 ## Say how you sound
 
-The **style guide** is a short note in your own words about how you write. It governs everything the brain drafts for you: posts, excerpts, newsletter introductions, LinkedIn drafts.
+The **style guide** says how you write: a summary of your voice, its traits, words to prefer and avoid, and guidance in your own words. It governs everything the brain drafts for you: posts, excerpts, newsletter introductions, LinkedIn drafts. Edit it in Studio under **Brain → Identity → Style Guide**, or ask the brain in chat to update it.
 
-Write it the way you would brief an editor. Point it at two or three essays you are proud of, so it has examples as well as rules.
+Write it the way you would brief an editor. The brain drafts from the style guide's own text and does not open essays it names, so paste a passage or two from essays you are proud of into it to give it examples as well as rules.
 
-Exact steps: [Customization guide](/docs/customization-guide).
+Exact steps: [Studio](/docs/studio#brain), [Entity types](/docs/entity-types-reference).
 
 ## Turn a draft into a post
 
@@ -70,7 +70,7 @@ Ask for it by name: _"Turn my note On slowness into a draft post."_ The brain ke
 
 Open it in Studio, edit until it is yours, and move it to the queue when it is ready.
 
-Exact steps: [Content management](/docs/content-management).
+Exact steps: [Content management](/docs/content-management), [Studio](/docs/studio#publish).
 
 ## Publish
 

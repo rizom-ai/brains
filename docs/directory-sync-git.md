@@ -23,22 +23,40 @@ On startup, directory-sync ensures the sync directory exists:
 mkdir -p brain-data
 ```
 
-If a git remote is configured and has history, startup is equivalent to:
+With a git remote configured and no checkout yet, directory-sync first asks the remote for its branches:
 
 ```bash
-git clone <remote> brain-data
+git ls-remote --heads <remote>
 ```
 
-If the remote is empty or cloning fails, it initializes locally instead:
+If the remote has history, the checkout is built in place rather than cloned, because a deployed data directory is a mount point that can be written into but not replaced:
 
 ```bash
 cd brain-data
-git init -b main
+git init --initial-branch=main
 git remote add origin <remote>
-git config user.name "Brain"
-git config user.email "brain@localhost"
+git fetch --no-tags origin main
+git checkout -f -B main --track origin/main
+git clean -fd
+```
+
+The remote's content replaces whatever the directory held before. If the fetch fails, startup fails with it; the next start builds the checkout again, since an unfinished checkout is marked as such. Only when `ls-remote` fails or the remote has no branches does directory-sync initialize locally instead:
+
+```bash
+cd brain-data
+git init --initial-branch=main
+git remote add origin <remote>
+```
+
+Either way, the checkout is then configured:
+
+```bash
+git config user.name "Brain"            # git.authorName
+git config user.email "brain@localhost" # git.authorEmail
 git config pull.rebase false
 ```
+
+The remote URL is stored without credentials; the token is supplied to each git command and never written to `.git/config`. Git hooks and automatic maintenance never run in the checkout.
 
 If seed content is enabled and the sync directory is effectively empty, seed files are copied into the directory before import.
 
@@ -95,6 +113,8 @@ Auto-commit is debounced, so a burst of entity changes can be batched into one t
 
 ## File changes
 
+While `autoSync` is on (the default), directory-sync watches the sync directory live. It polls every `watchInterval` (1000 ms by default) and waits for a file to stop changing for two seconds before reading it, so a save in an editor is imported once, complete.
+
 When a watched file changes on disk, directory-sync imports that file into the Brain database:
 
 ```text
@@ -109,11 +129,25 @@ git commit -m "Auto-sync: <timestamp>"
 git push origin main
 ```
 
-When a watched file is removed and `deleteOnFileRemoval` is enabled, directory-sync deletes the matching Brain entity. That deletion is then committed and pushed.
+If the entity also changed in the brain since the file and the entity last agreed, for example through a Studio save, the file's edit is not imported over it. It is kept as a conflict in the Inbox, and the file is rewritten with the brain's version.
+
+When a watched file is removed and `deleteOnFileRemoval` is enabled (the default), directory-sync deletes the matching Brain entity. That deletion is then committed and pushed. An entity that changed in the brain since the file last matched it is not deleted; its file is written back instead.
 
 ## Manual sync tool
 
-Running the `sync` tool with git configured is roughly:
+The `directory_sync` tool (`brain sync` on the command line, Admin only) takes an `action`:
+
+- `sync` (the default) queues a git pull and a scan of the sync directory;
+- `status` reports the sync path, the last sync, whether the directory is watched, and the git state;
+- `history`, with git configured, reads the git history of one entity, by `entityType` and `id`, optionally at a revision `sha`.
+
+With git configured, a sync normally imports only the files changed since the last sync; `full: true` rescans every file, for files an earlier sync skipped:
+
+```bash
+brain tool directory_sync '{"action":"sync","full":true}'
+```
+
+Running `sync` with git configured is roughly:
 
 ```bash
 cd brain-data
@@ -140,11 +174,26 @@ git fetch origin main
 git merge --no-edit refs/remotes/origin/main
 ```
 
-If files changed, it queues imports through the job system. Resulting entity changes are committed and pushed by auto-commit.
+If files changed, it queues imports through the job system. Resulting entity changes are committed and pushed by auto-commit. `syncInterval` sets the period in minutes (default 2).
+
+## Full rescans and newly enabled entity types
+
+With git configured, a sync imports only what changed since its checkpoint, and the checkpoint records which entity types the last scan covered. When that set changes, for example after you enable a plugin that adds an entity type, the next sync rescans every file instead of only what changed since the checkpoint. Files under `brain-data/<new-type>/` that earlier syncs skipped are imported by that sync, usually the startup sync after the change, with no manual rescan.
+
+The same full rescan follows a failed startup sync or import, and an import job that a worker refused because it does not know one of the job's entity types (during a rolling deploy, the previous container's worker may share the job queue). Such a job fails and retries on the current worker rather than completing with files skipped.
 
 ## Conflict resolution
 
-Conflict handling is git-level. Directory-sync does not do a semantic, entity-aware merge.
+Directory-sync does not do a semantic, entity-aware merge. It keeps track of the version each file and its entity last agreed on, and an edit made over an older version never silently replaces a newer one. The losing edit is kept as a conflict in the Inbox, where the person who made it or an Admin can apply it over the current version or dismiss it.
+
+Edits arrive by four ways, and each can lose this way:
+
+- **Studio**: a save over an entry that changed since it was opened is refused, and the edit is kept as a conflict;
+- **the drive (WebDAV)**: a save from an older copy is answered as saved, and kept as a conflict instead of replacing the current version;
+- **a file in `brain-data/`**: see [File changes](#file-changes);
+- **a git pull**: see below.
+
+An image that changed in both places is not kept as a conflict: the brain's newer image stays. See [Content Management](./content-management.md#edit-conflicts) and [Drive and Obsidian](./drive-and-obsidian.md) for the owner's view.
 
 ### Pull conflicts: the brain's version stays
 
