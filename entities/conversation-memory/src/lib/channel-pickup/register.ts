@@ -15,6 +15,7 @@ import {
 import { ACTION_ITEM_ENTITY_TYPE } from "@brains/action-items";
 import { z } from "@brains/utils/zod";
 import type { MemoryContext } from "../memory-context";
+import { ChannelDecisionExtractor } from "./decision-extractor";
 import {
   ChannelActionItemExtractor,
   type BrainMember,
@@ -27,7 +28,7 @@ import {
 } from "./notice";
 import {
   channelBookmarks,
-  pickUpChannelActionItems,
+  pickUpChannel,
   type ChannelPickupResult,
 } from "./pickup";
 import {
@@ -55,6 +56,27 @@ type ChannelRuntime = Pick<
   | "recurringCheck"
 >;
 
+const evalChannelMessagesSchema = z.array(
+  z.object({
+    speaker: z.string().min(1),
+    /** The speaker's brain account, when they have one. */
+    userId: z.string().min(1).optional(),
+    content: z.string(),
+    /** Part of a conversation with the brain, e.g. an @mention. */
+    withBrain: z.boolean().default(false),
+  }),
+);
+
+const evalChannelDecisionsInputSchema = z.object({
+  /** How many leading messages an earlier run already processed. */
+  processedThrough: z.number().int().min(0).default(0),
+  /** Decisions earlier messages settled. */
+  decisions: z
+    .array(z.object({ title: z.string().min(1), text: z.string().min(1) }))
+    .default([]),
+  messages: evalChannelMessagesSchema,
+});
+
 const evalChannelInputSchema = z.object({
   /** How many leading messages an earlier run already processed. */
   processedThrough: z.number().int().min(0).default(0),
@@ -71,16 +93,7 @@ const evalChannelInputSchema = z.object({
     .default([]),
   /** The brain's members by name; their account ids are derived from it. */
   members: z.array(z.string().min(1)).default([]),
-  messages: z.array(
-    z.object({
-      speaker: z.string().min(1),
-      /** The speaker's brain account, when they have one. */
-      userId: z.string().min(1).optional(),
-      content: z.string(),
-      /** Part of a conversation with the brain, e.g. an @mention. */
-      withBrain: z.boolean().default(false),
-    }),
-  ),
+  messages: evalChannelMessagesSchema,
 });
 
 /** An eval member's account id, as a speaker's `userId` names it. */
@@ -90,9 +103,9 @@ function evalMemberId(name: string): string {
 
 /** Channel messages as stored: positioned, each with its speaker. */
 function evalChannelMessages(
-  input: z.output<typeof evalChannelInputSchema>,
+  messages: z.output<typeof evalChannelMessagesSchema>,
 ): PositionedMessage[] {
-  return input.messages.map((entry, index) => ({
+  return messages.map((entry, index) => ({
     position: index + 1,
     withBrain: entry.withBrain,
     message: {
@@ -135,6 +148,10 @@ export function channelPickupJobHandler(
       context,
       context.logger.child("ChannelActionItemExtractor"),
     ),
+    decisions: new ChannelDecisionExtractor(
+      context,
+      context.logger.child("ChannelDecisionExtractor"),
+    ),
     entityService: context.entityService,
     visibility,
   };
@@ -142,7 +159,7 @@ export function channelPickupJobHandler(
     type: CHANNEL_ACTION_ITEMS_JOB_TYPE,
     input: channelPickupJobDataSchema,
     process: ({ input, jobId }): Promise<ChannelPickupResult> =>
-      pickUpChannelActionItems(deps, input.conversationId, jobId),
+      pickUpChannel(deps, input.conversationId, jobId),
   });
 }
 
@@ -216,7 +233,7 @@ export function registerChannelActionItems(
   });
   runtime.evalHandler("extractChannelActionItems", async (input: unknown) => {
     const parsed = evalChannelInputSchema.parse(input);
-    const positioned = evalChannelMessages(parsed);
+    const positioned = evalChannelMessages(parsed.messages);
     const { items, updates, withdrawals } =
       await new ChannelActionItemExtractor(
         context,
@@ -254,6 +271,35 @@ export function registerChannelActionItems(
       withdrawals: withdrawals.map((withdrawal) => ({
         card: withdrawal.cardId,
         message: withdrawal.sourcePosition,
+      })),
+    };
+  });
+  runtime.evalHandler("extractChannelDecisions", async (input: unknown) => {
+    const parsed = evalChannelDecisionsInputSchema.parse(input);
+    const positioned = evalChannelMessages(parsed.messages);
+    const { decisions } = await new ChannelDecisionExtractor(
+      context,
+      context.logger.child("ChannelDecisionExtractor"),
+    ).extract({
+      context: positioned.slice(0, parsed.processedThrough),
+      fresh: positioned.slice(parsed.processedThrough),
+      decisions: parsed.decisions.map((decision, index) => ({
+        ...decision,
+        id: `decision-${index + 1}`,
+      })),
+    });
+    return {
+      count: decisions.length,
+      decisions: decisions.map((decision) => ({
+        title: decision.title,
+        text: decision.text,
+        message: decision.sourcePosition,
+        // Names in order, as one line an eval can match.
+        decidedBy:
+          decision.decidedBy
+            .map((person) => person.displayName ?? "")
+            .sort()
+            .join(", ") || "nobody",
       })),
     };
   });

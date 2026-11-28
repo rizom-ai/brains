@@ -165,6 +165,7 @@ describe("the conversation-memory package's registered surface", () => {
       const { shell } = await installed({ executionOnly });
       expect([...shell.getTemplates().keys()].sort()).toEqual([
         "conversation-memory:channel-action-items",
+        "conversation-memory:channel-decisions",
         "conversation-memory:summary-detail",
         "conversation-memory:summary-list",
       ]);
@@ -184,6 +185,7 @@ describe("the conversation-memory package's registered surface", () => {
     const main = await installed();
     expect(main.evals).toEqual([
       "conversation-memory:extractChannelActionItems",
+      "conversation-memory:extractChannelDecisions",
       "conversation-memory:retrieveMemory",
       "conversation-memory:buildAgentContext",
     ]);

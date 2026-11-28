@@ -10,7 +10,7 @@ The package owns three conversation-derived entity types:
 - `decision` — first-class decisions with provenance and status
 - `action-item` — first-class follow-up work with provenance and lifecycle status
 
-Automatic conversation-to-entity projection is disabled. Conversation messages live outside the entity database, and no second projection ingress or cross-database bridge is provided. Existing memory entities remain available to retrieval, agent context, dashboards, templates, datasources, and evaluation utilities.
+In a chat space the brain is configured for, the channel pickup turns new messages into action items and decisions: a job per conversation, woken by each stored message, reads the messages past a bookmark in runtime state and writes what it finds under ids derived from the source message. A decision can also be recorded by hand through `system_create`, at `shared` or `restricted` visibility. Nothing writes summaries; stored ones remain available to retrieval, agent context, dashboards, templates and datasources.
 
 ## Summary schema
 

@@ -75,10 +75,13 @@ Decisions and insights begin at each conversation's existing bookmark. A brain t
 
 One extractor finds decisions and insights in a single call, because the two are told apart most reliably side by side: a statement becomes one or the other, never both. Action items keep their own extractor and prompt, whose thirteen eval cases stay as they are.
 
-Input: the context window, the new messages with position and speaker, and the conversation's own active decisions and insights. Output, per item:
+Input: the context window, the new messages with position and speaker, and the conversation's own active decisions and insights. Output:
 
-- `add`: kind, title, text, source message position, and who decided or stated it (a speaker from the messages);
+- the language the new messages are written in, asked for first: left to itself the model guesses a language from the speakers' names;
+- candidates: every statement that might be a decision, each with a kind (`decision`, `action-item`, `undecided`, `recorded`, and `insight` once insights are captured), a title, text, source message position, and who decided or stated it (a speaker from the messages);
 - `supersede`: one of the shown items, the message that overturns it, and optionally the new item that replaces it.
+
+The model judges every candidate and only a `decision` or `insight` is recorded. Asked for decisions alone, a small model returns the rest anyway and says in their text that they are not decisions.
 
 Every item cites a message from the new range; a `supersede` names an item the model was shown. Anything else is dropped. Messages that are part of a conversation with the brain are context only, as for cards. When insight capture is off the prompt does not ask for insights.
 
@@ -108,7 +111,7 @@ Nothing writes a summary. The type stays registered and its stored entities stay
 ## Failure handling
 
 - **An extraction or a write fails:** the job fails and retries; the bookmark has not moved and every write is idempotent.
-- **The decision and insight extraction keeps failing:** the batch's cards are not announced either, since one bookmark covers the range. The job's failure is visible in the job queue; the fix is to the extractor, not a second bookmark.
+- **The decision and insight extraction keeps failing:** the batch's cards are written but not announced, since one bookmark covers the range. The job's failure is visible in the job queue; the fix is to the extractor, not a second bookmark.
 - **Crash after writes, before the bookmark moves:** the claim expires and the next run writes the same entities and notice.
 - **A person edits an item between the pickup's read and its write:** the writer writes conditionally on the version read, and the edit wins.
 - **Undo on an item a person has edited:** it stays, and the notice says it was kept.

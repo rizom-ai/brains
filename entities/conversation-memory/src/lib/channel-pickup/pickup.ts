@@ -20,6 +20,8 @@ import {
 } from "@brains/sdk/internal/service-runtime";
 import type { MemoryEntityService } from "../memory-context";
 import { z } from "@brains/utils/zod";
+import type { ChannelDecisionExtractor } from "./decision-extractor";
+import { pickUpDecisions } from "./decisions";
 import type {
   BrainMember,
   ChannelActionItemExtractor,
@@ -166,6 +168,8 @@ export interface ChannelPickupDeps {
   >;
   bookmarks: ClassRuntimeStateStore<ChannelBookmark>;
   extractor: Pick<ChannelActionItemExtractor, "extract">;
+  /** Finds the decisions the messages settle; none are picked up without it. */
+  decisions?: Pick<ChannelDecisionExtractor, "extract"> | undefined;
   entityService: Pick<
     MemoryEntityService,
     | "createEntity"
@@ -186,7 +190,14 @@ export interface ChannelPickupDeps {
 }
 
 export type ChannelPickupResult =
-  | { status: "processed"; through: number; created: string[] }
+  | {
+      status: "processed";
+      through: number;
+      /** The cards it added. */
+      created: string[];
+      /** The decisions it recorded, when it picks decisions up. */
+      decisions?: string[];
+    }
   | { status: "up-to-date" }
   | { status: "claimed-elsewhere" }
   | { status: "no-conversation" };
@@ -312,11 +323,12 @@ function announcement(card: NoticeCard): string {
 }
 
 /**
- * Turn a space conversation's unprocessed messages into cards. The bookmark
- * alone decides what is processed: a run claims the range, writes its cards
- * (idempotently, by source message), and only then moves the bookmark.
+ * Turn a space conversation's unprocessed messages into cards and decisions.
+ * The bookmark alone decides what is processed: a run claims the range,
+ * writes what it found (idempotently, by source message), and only then
+ * moves the bookmark.
  */
-export async function pickUpChannelActionItems(
+export async function pickUpChannel(
   deps: ChannelPickupDeps,
   conversationId: string,
   jobId: string,
@@ -356,10 +368,12 @@ export async function pickUpChannelActionItems(
     message,
     withBrain: isWithBrain(message),
   }));
+  const context = positioned.filter(({ position }) => position < from);
+  const fresh = positioned.filter(({ position }) => position >= from);
   const own = await ownCards(deps, conversationId);
   const { items, updates, withdrawals } = await deps.extractor.extract({
-    context: positioned.filter(({ position }) => position < from),
-    fresh: positioned.filter(({ position }) => position >= from),
+    context,
+    fresh,
     members: await deps.members(),
     cards: own,
   });
@@ -480,6 +494,27 @@ export async function pickUpChannelActionItems(
     Promise.resolve([]),
   );
 
+  const decided = deps.decisions
+    ? await pickUpDecisions(
+        {
+          extractor: deps.decisions,
+          entityService: deps.entityService,
+          visibility: deps.visibility,
+        },
+        {
+          origin: {
+            conversationId,
+            interfaceType: conversation.interfaceType,
+            channelId: conversation.channelId,
+            ...(channelName ? { channelName } : {}),
+          },
+          context,
+          fresh,
+          rejected,
+        },
+      )
+    : undefined;
+
   // Finish only while the claim is still this run's; announce everything
   // the batch did that no earlier notice lists, so a crashed run's is too.
   await updateBookmark(deps.bookmarks, conversationId, (latest) => {
@@ -528,5 +563,10 @@ export async function pickUpChannelActionItems(
         : {}),
     };
   });
-  return { status: "processed", through: count, created: results };
+  return {
+    status: "processed",
+    through: count,
+    created: results,
+    ...(decided && { decisions: decided }),
+  };
 }

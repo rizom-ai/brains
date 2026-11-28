@@ -1,0 +1,28 @@
+id: channel-decisions-not-a-task
+name: Leaves work someone takes on to the action items
+description: >-
+  Niels assigns the rewrite to Alice and Jo takes on a fix with a date. Both
+  are action items, not decisions, so the pickup returns no decision.
+type: plugin
+tags:
+  - conversation-memory
+  - channel-decisions
+plugin: conversation-memory
+handler: extractChannelDecisions
+
+input:
+  messages:
+    - speaker: Niels
+      userId: usr_niels
+      content: Alice owns the adapter rewrite from now on.
+    - speaker: Alice
+      userId: usr_alice
+      content: Fine by me, I'll start Monday.
+    - speaker: Jo
+      userId: usr_jo
+      content: And I'll fix the sign-up form by Friday.
+
+expectedOutput:
+  validateEach:
+    - path: count
+      equals: 0

@@ -1,0 +1,29 @@
+id: channel-decisions-with-brain-request
+name: Leaves a decision told to the brain to the brain
+description: >-
+  Yeehaa asks the brain directly to note a decision, and the brain answers.
+  The brain records it itself, so the pickup finds nothing.
+type: plugin
+tags:
+  - conversation-memory
+  - channel-decisions
+plugin: conversation-memory
+handler: extractChannelDecisions
+
+input:
+  messages:
+    - speaker: yeehaa
+      userId: usr_jan_hein
+      content: "@brain note that we decided to drop the company field from the sign-up form"
+      withBrain: true
+    - speaker: brain
+      content: I recorded the decision "Drop the company field".
+      withBrain: true
+    - speaker: Niels
+      userId: usr_niels
+      content: Thanks.
+
+expectedOutput:
+  validateEach:
+    - path: count
+      equals: 0

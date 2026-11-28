@@ -13,6 +13,7 @@ import { actionItem, decision } from "./memory-entities";
 import { summaryListTemplate } from "./templates/summary-list";
 import { summaryDetailTemplate } from "./templates/summary-detail";
 import { channelActionItemsTemplate } from "./templates/channel-action-items";
+import { channelDecisionsTemplate } from "./templates/channel-decisions";
 import { summaryDataSource } from "./datasources/summary-datasource";
 import { registerActionItemsWidget } from "./lib/widgets/action-items";
 import { registerDecisionsWidget } from "./lib/widgets/decisions";
@@ -50,6 +51,7 @@ export const conversationMemoryPackage: ServicePackageDefinition<
         "summary-list": summaryListTemplate,
         "summary-detail": summaryDetailTemplate,
         "channel-action-items": channelActionItemsTemplate,
+        "channel-decisions": channelDecisionsTemplate,
       })) {
         runtime.template(name, template);
       }

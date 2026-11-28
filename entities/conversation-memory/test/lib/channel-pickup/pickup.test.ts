@@ -19,7 +19,7 @@ import type {
 } from "../../../src/lib/channel-pickup/extractor";
 import {
   channelBookmarks,
-  pickUpChannelActionItems,
+  pickUpChannel,
   type ChannelBookmark,
   type ChannelPickupDeps,
 } from "../../../src/lib/channel-pickup/pickup";
@@ -195,7 +195,7 @@ describe("picking up a channel's action items", () => {
     const { context, deps, found } = brain();
     found([item(2, jo, "Send INC the proposal")]);
 
-    const result = await pickUpChannelActionItems(deps, CONVERSATION, "job-1");
+    const result = await pickUpChannel(deps, CONVERSATION, "job-1");
 
     expect(result).toEqual({
       status: "processed",
@@ -246,7 +246,7 @@ describe("picking up a channel's action items", () => {
     });
     found([item(2, jo, "Send INC the proposal")]);
 
-    const result = await pickUpChannelActionItems(deps, CONVERSATION, "job-1");
+    const result = await pickUpChannel(deps, CONVERSATION, "job-1");
 
     expect(result).toEqual({ status: "processed", through: 5, created: [] });
     expect(await cards(context)).toEqual([]);
@@ -256,7 +256,7 @@ describe("picking up a channel's action items", () => {
   it("records no notice when the messages hold no action items", async () => {
     const { deps } = brain();
 
-    await pickUpChannelActionItems(deps, CONVERSATION, "job-1");
+    await pickUpChannel(deps, CONVERSATION, "job-1");
 
     expect(await bookmark(deps)).toEqual({ processedThrough: 5, notices: [] });
   });
@@ -269,7 +269,7 @@ describe("picking up a channel's action items", () => {
       ),
     );
 
-    await pickUpChannelActionItems(deps, CONVERSATION, "job-1");
+    await pickUpChannel(deps, CONVERSATION, "job-1");
 
     const notices = (await bookmark(deps))?.notices ?? [];
     expect(notices.map((notice) => [notice.key, notice.cards.length])).toEqual([
@@ -290,7 +290,7 @@ describe("picking up a channel's action items", () => {
     });
     found([item(4, natalie, "Book the venue")]);
 
-    await pickUpChannelActionItems(deps, CONVERSATION, "job-1");
+    await pickUpChannel(deps, CONVERSATION, "job-1");
 
     expect(
       (await bookmark(deps))?.notices?.map((notice) => notice.key),
@@ -301,7 +301,7 @@ describe("picking up a channel's action items", () => {
     const { context, deps, found } = brain();
     found([item(4, natalie, "Book the venue")]);
 
-    await pickUpChannelActionItems(deps, CONVERSATION, "job-1");
+    await pickUpChannel(deps, CONVERSATION, "job-1");
 
     const [card] = await cards(context);
     expect(card?.metadata.assignedTo).toBeUndefined();
@@ -314,7 +314,7 @@ describe("picking up a channel's action items", () => {
     const { deps, extract } = brain();
     await deps.bookmarks.set(CONVERSATION, { processedThrough: 3 });
 
-    await pickUpChannelActionItems(deps, CONVERSATION, "job-1");
+    await pickUpChannel(deps, CONVERSATION, "job-1");
 
     const [input] = extract.mock.calls[0] ?? [];
     expect(input).toEqual({
@@ -344,7 +344,7 @@ describe("picking up a channel's action items", () => {
     const { deps, extract } = brain([...channel.slice(0, 3), request, answer]);
     await deps.bookmarks.set(CONVERSATION, { processedThrough: 3 });
 
-    await pickUpChannelActionItems(deps, CONVERSATION, "job-1");
+    await pickUpChannel(deps, CONVERSATION, "job-1");
 
     const [input] = extract.mock.calls[0] ?? [];
     expect(input.fresh).toEqual([
@@ -369,7 +369,7 @@ describe("picking up a channel's action items", () => {
     });
     found([item(2, jo, "Send INC the proposal")]);
 
-    await pickUpChannelActionItems(deps, CONVERSATION, "job-1");
+    await pickUpChannel(deps, CONVERSATION, "job-1");
 
     const [card] = await cards(context);
     expect(card?.metadata.channelName).toBe("executive-room");
@@ -379,7 +379,7 @@ describe("picking up a channel's action items", () => {
     const { context, deps, found } = brain();
     found([{ ...item(2, jo, "Send INC the proposal"), dueDate: "2026-10-28" }]);
 
-    await pickUpChannelActionItems(deps, CONVERSATION, "job-1");
+    await pickUpChannel(deps, CONVERSATION, "job-1");
 
     const [card] = await cards(context);
     expect(card?.metadata.dueDate).toBe("2026-10-28");
@@ -400,7 +400,7 @@ describe("picking up a channel's action items", () => {
       },
     ]);
 
-    await pickUpChannelActionItems(deps, CONVERSATION, "job-1");
+    await pickUpChannel(deps, CONVERSATION, "job-1");
 
     const [card] = await cards(context);
     expect(card?.metadata.assignedTo).toEqual([
@@ -413,11 +413,9 @@ describe("picking up a channel's action items", () => {
     const { deps, extract } = brain();
     await deps.bookmarks.set(CONVERSATION, { processedThrough: 5 });
 
-    expect(await pickUpChannelActionItems(deps, CONVERSATION, "job-1")).toEqual(
-      {
-        status: "up-to-date",
-      },
-    );
+    expect(await pickUpChannel(deps, CONVERSATION, "job-1")).toEqual({
+      status: "up-to-date",
+    });
     expect(extract).not.toHaveBeenCalled();
   });
 
@@ -429,11 +427,9 @@ describe("picking up a channel's action items", () => {
     };
     await deps.bookmarks.set(CONVERSATION, held);
 
-    expect(await pickUpChannelActionItems(deps, CONVERSATION, "job-1")).toEqual(
-      {
-        status: "claimed-elsewhere",
-      },
-    );
+    expect(await pickUpChannel(deps, CONVERSATION, "job-1")).toEqual({
+      status: "claimed-elsewhere",
+    });
     expect(extract).not.toHaveBeenCalled();
     expect(await bookmark(deps)).toEqual(held);
   });
@@ -445,7 +441,7 @@ describe("picking up a channel's action items", () => {
       claim: { through: 5, jobId: "job-0", at: "2026-10-23T09:00:00.000Z" },
     });
 
-    const result = await pickUpChannelActionItems(deps, CONVERSATION, "job-1");
+    const result = await pickUpChannel(deps, CONVERSATION, "job-1");
 
     expect(result).toMatchObject({ status: "processed", through: 5 });
     expect(extract).toHaveBeenCalledTimes(1);
@@ -455,11 +451,11 @@ describe("picking up a channel's action items", () => {
   it("adds no second card when a run repeats the same messages", async () => {
     const { context, deps, found } = brain();
     found([item(2, jo, "Send INC the proposal")]);
-    await pickUpChannelActionItems(deps, CONVERSATION, "job-1");
+    await pickUpChannel(deps, CONVERSATION, "job-1");
     // A crash before the bookmark moved: the same messages come again.
     await deps.bookmarks.set(CONVERSATION, { processedThrough: 0 });
 
-    const result = await pickUpChannelActionItems(deps, CONVERSATION, "job-2");
+    const result = await pickUpChannel(deps, CONVERSATION, "job-2");
 
     expect(result).toEqual({ status: "processed", through: 5, created: [] });
     expect(await cards(context)).toHaveLength(1);
@@ -470,11 +466,11 @@ describe("picking up a channel's action items", () => {
   it("still announces cards a crashed run wrote but never recorded", async () => {
     const { context, deps, found } = brain();
     found([item(2, jo, "Send INC the proposal")]);
-    await pickUpChannelActionItems(deps, CONVERSATION, "job-1");
+    await pickUpChannel(deps, CONVERSATION, "job-1");
     // The crash: the card exists, but its notice never reached the bookmark.
     await deps.bookmarks.set(CONVERSATION, { processedThrough: 0 });
 
-    await pickUpChannelActionItems(deps, CONVERSATION, "job-2");
+    await pickUpChannel(deps, CONVERSATION, "job-2");
 
     expect(await cards(context)).toHaveLength(1);
     expect((await bookmark(deps))?.notices).toEqual([
@@ -507,7 +503,7 @@ describe("revising the channel's own cards", () => {
     const messages = [...channel];
     const pickup = brain(messages);
     pickup.found([item(2, jo, "Send INC the proposal")]);
-    await pickUpChannelActionItems(pickup.deps, CONVERSATION, "job-1");
+    await pickUpChannel(pickup.deps, CONVERSATION, "job-1");
     pickup.found([]);
     messages.push(message(6, niels, "Change of plan: I'll send it Monday."));
     return { ...pickup, messages };
@@ -516,7 +512,7 @@ describe("revising the channel's own cards", () => {
   it("shows the model the open cards it made", async () => {
     const { deps, extract } = await withCard();
 
-    await pickUpChannelActionItems(deps, CONVERSATION, "job-2");
+    await pickUpChannel(deps, CONVERSATION, "job-2");
 
     const [input] = extract.mock.calls[1] ?? [];
     expect(input.cards).toEqual([
@@ -550,7 +546,7 @@ describe("revising the channel's own cards", () => {
       withdrawals: [],
     });
 
-    await pickUpChannelActionItems(deps, CONVERSATION, "job-2");
+    await pickUpChannel(deps, CONVERSATION, "job-2");
 
     const [card] = await cards(context);
     expect(card?.metadata.assignedTo).toEqual([
@@ -590,7 +586,7 @@ describe("revising the channel's own cards", () => {
       withdrawals: [],
     });
 
-    await pickUpChannelActionItems(deps, CONVERSATION, "job-2");
+    await pickUpChannel(deps, CONVERSATION, "job-2");
 
     const [card] = await cards(context);
     expect(card?.metadata.dueDate).toBe("2026-11-02");
@@ -608,7 +604,7 @@ describe("revising the channel's own cards", () => {
       ],
     });
 
-    await pickUpChannelActionItems(deps, CONVERSATION, "job-2");
+    await pickUpChannel(deps, CONVERSATION, "job-2");
 
     expect(await cards(context)).toEqual([]);
     const after = await bookmark(deps);
@@ -630,7 +626,7 @@ describe("revising the channel's own cards", () => {
       { id: CARD, from: "open", to: "doing" },
     );
 
-    await pickUpChannelActionItems(deps, CONVERSATION, "job-2");
+    await pickUpChannel(deps, CONVERSATION, "job-2");
 
     const [input] = extract.mock.calls[1] ?? [];
     expect(input.cards).toEqual([]);

@@ -1,0 +1,34 @@
+id: channel-decisions-accepted-proposal
+name: Picks up a proposal once someone accepts it
+description: >-
+  Niels proposes dropping the company field and Jo accepts. The pickup finds
+  one decision, citing the acceptance, decided by both.
+type: plugin
+tags:
+  - conversation-memory
+  - channel-decisions
+plugin: conversation-memory
+handler: extractChannelDecisions
+
+input:
+  messages:
+    - speaker: Jo
+      userId: usr_jo
+      content: Sign-ups dropped again last week. Freelancers bail when the form asks for a company name.
+    - speaker: Niels
+      userId: usr_niels
+      content: Shall we just drop the company field from the sign-up form?
+    - speaker: Jo
+      userId: usr_jo
+      content: Yes, let's drop it.
+
+expectedOutput:
+  validateEach:
+    - path: count
+      equals: 1
+    - path: decisions[0].message
+      equals: 3
+    - path: decisions[0].title
+      matches: "[Cc]ompany"
+    - path: decisions[0].decidedBy
+      matches: Jo
