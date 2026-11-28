@@ -94,3 +94,35 @@ describe("studioApiPath", () => {
     expect(studioApiPath("types", "/studio")).toBe("/studio/api/types");
   });
 });
+
+describe("collection members transport", () => {
+  it("asks for one collection's members by type and id", async () => {
+    const page = {
+      count: 1,
+      label: "1 post",
+      total: 1,
+      entities: [
+        {
+          id: "harbor",
+          entityType: "post",
+          frontmatter: { title: "Harbor" },
+          displayTitle: "Harbor",
+          updated: "2026-11-02T00:00:00.000Z",
+        },
+      ],
+    };
+    const api = new StudioApi({
+      basePath: "/studio",
+      fetch: async (input): Promise<Response> => {
+        const url = new URL(String(input), "https://studio.test");
+        expect(url.pathname).toBe("/studio/api/collection-members");
+        expect(url.searchParams.get("type")).toBe("series");
+        expect(url.searchParams.get("id")).toBe("cities/old town");
+        return Response.json(page);
+      },
+    });
+    expect(
+      await api.fetchCollectionMembers("series", "cities/old town"),
+    ).toEqual(page);
+  });
+});

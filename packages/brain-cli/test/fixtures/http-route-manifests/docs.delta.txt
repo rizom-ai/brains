@@ -54,6 +54,7 @@
 + studio|handler|DELETE|/studio/api/entities|exact|true
 + studio|handler|GET|/chat|exact|true
 + studio|handler|GET|/studio/api/agents|exact|true
++ studio|handler|GET|/studio/api/collection-members|exact|true
 + studio|handler|GET|/studio/api/entities|exact|true
 + studio|handler|GET|/studio/api/groups/catalog|exact|true
 + studio|handler|GET|/studio/api/groups/members|exact|true

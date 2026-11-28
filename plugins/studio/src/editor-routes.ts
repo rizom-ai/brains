@@ -38,6 +38,11 @@ import {
 } from "./chat-workspace";
 import type { StudioWorkspaceRegistry } from "./workspace-registry";
 import { jsonResponse } from "./editor-response";
+import {
+  collectionMembersPage,
+  collectionMemberCounts,
+  collectionTypes,
+} from "./collections";
 import { handleGroupingRead, studioGroupDescriptors } from "./editor-groupings";
 import { GROUPING_DEFINITIONS_TYPE } from "./grouping-definitions-contract";
 import { isGroupingContributorType } from "./studio-context";
@@ -487,13 +492,62 @@ export function createEditorRoutes(
       }),
     ),
     {
+      path: apiPath("collection-members"),
+      method: "GET",
+      public: true,
+      handler: async (request): Promise<Response> => {
+        const access = await requireTrustedAccess(request);
+        if (access instanceof Response) return access;
+        const params = new URL(request.url).searchParams;
+        const entityType = params.get("type");
+        const id = params.get("id");
+        if (!entityType || !id)
+          return jsonResponse({ error: "type and id are required" }, 400);
+        const context = getContext();
+        if (!(await getTypeCapabilities(context, entityType, access)))
+          return jsonResponse(
+            { error: `Unknown entity type: ${entityType}` },
+            404,
+          );
+        const page = await collectionMembersPage(
+          {
+            context,
+            access,
+            entityDisplay: getEntityDisplay(),
+            getDefinitions: options.getGroupingDefinitions,
+          },
+          entityType,
+          id,
+        );
+        return page
+          ? jsonResponse(page)
+          : jsonResponse({ error: "Not a collection" }, 404);
+      },
+    },
+    {
       path: apiPath("hierarchy"),
       method: "GET",
       public: true,
       handler: async (request): Promise<Response> => {
         const access = await requireTrustedAccess(request);
         if (access instanceof Response) return access;
-        return handleGetEntityHierarchy(getContext(), request, access);
+        const context = getContext();
+        return handleGetEntityHierarchy(
+          context,
+          request,
+          access,
+          (type, entities) =>
+            collectionMemberCounts(
+              {
+                context,
+                access,
+                entityDisplay: getEntityDisplay(),
+                getDefinitions: options.getGroupingDefinitions,
+              },
+              type,
+              entities,
+            ),
+        );
       },
     },
     {
@@ -503,7 +557,19 @@ export function createEditorRoutes(
       handler: async (request): Promise<Response> => {
         const access = await requireTrustedAccess(request);
         if (access instanceof Response) return access;
-        return handleGetEntities(getContext(), request, access);
+        const context = getContext();
+        return handleGetEntities(context, request, access, (type, entities) =>
+          collectionMemberCounts(
+            {
+              context,
+              access,
+              entityDisplay: getEntityDisplay(),
+              getDefinitions: options.getGroupingDefinitions,
+            },
+            type,
+            entities,
+          ),
+        );
       },
     },
     {
@@ -689,6 +755,7 @@ async function handleListTypes(
       ),
     );
     const registered = context.entityService.getEntityTypes();
+    const collections = await collectionTypes(context);
     const containers = new Set(
       registered.flatMap((type) => {
         const container =
@@ -721,6 +788,7 @@ async function handleListTypes(
         hasBody: context.shapes.hasBody(entityType),
         count,
         capabilities,
+        collection: collections.has(entityType),
         // A container's ids are flat; its folders hold its contents.
         hierarchy: containers.has(entityType)
           ? { ...studioTypeHierarchy(entityType), nested: false }

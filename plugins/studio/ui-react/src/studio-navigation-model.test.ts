@@ -58,11 +58,7 @@ describe("deriveNavigationModel", () => {
     });
 
     expect(studioTypeGroup(type("post"))).toBe("Content");
-    expect(
-      model.libraryTypeGroups.flatMap((group) =>
-        group.types.map((info) => info.entityType),
-      ),
-    ).toEqual(["post"]);
+    expect(model.libraryTypes.map((info) => info.entityType)).toEqual(["post"]);
     expect(
       model.brainTypeGroups.flatMap((group) =>
         group.types.map((info) => info.entityType),
@@ -75,11 +71,7 @@ describe("deriveNavigationModel", () => {
       types: [type("book"), { ...type("book-section"), containedIn: "book" }],
       active: "book-section",
     });
-    expect(
-      model.libraryTypeGroups.flatMap((group) =>
-        group.types.map((info) => info.entityType),
-      ),
-    ).toEqual(["book"]);
+    expect(model.libraryTypes.map((info) => info.entityType)).toEqual(["book"]);
     expect(model.types.map((info) => info.entityType)).toEqual(["book"]);
     expect(model.active).toBe("book");
     expect(model.destination).toBe("book");
@@ -92,16 +84,33 @@ describe("deriveNavigationModel", () => {
       active: "custom-machine",
     });
     expect(model.currentArea).toBe("brain");
-    expect(
-      model.libraryTypeGroups.flatMap((group) =>
-        group.types.map((info) => info.entityType),
-      ),
-    ).toEqual(["prompt", "topic"]);
+    expect(model.libraryTypes.map((info) => info.entityType)).toEqual([
+      "prompt",
+      "topic",
+    ]);
     expect(model.brainTypeGroups).toEqual([
       { label: "Other", types: [type("custom-machine", "system")] },
     ]);
     expect(studioTypeGroup(type("site-info"))).toBe("Content");
     expect(studioTypeGroup(type("site-info", "system"))).toBe("Site");
+  });
+
+  it("lists Library's types in one list, collections among them, by recent use", () => {
+    const model = deriveNavigationModel({
+      types: [
+        type("post"),
+        { ...type("topic"), collection: true },
+        type("project"),
+      ],
+      active: "post",
+      recentTypes: ["project", "topic"],
+    });
+    expect(model.libraryTypes.map((info) => info.entityType)).toEqual([
+      "project",
+      "topic",
+      "post",
+    ]);
+    expect(studioTypeGroup(type("series"))).toBe("Content");
   });
 
   it("places each workspace in the section it names", () => {
@@ -218,11 +227,10 @@ describe("Library's types", () => {
       ],
       active: null,
     });
-    expect(
-      model.libraryTypeGroups.flatMap((group) =>
-        group.types.map((info) => info.entityType),
-      ),
-    ).toEqual(["post", "note"]);
+    expect(model.libraryTypes.map((info) => info.entityType)).toEqual([
+      "post",
+      "note",
+    ]);
     expect(model.emptyLibraryTypes.map((info) => info.entityType)).toEqual([
       "newsletter",
       "faq",
@@ -234,11 +242,10 @@ describe("Library's types", () => {
       types: [type("post"), { ...type("newsletter"), count: 0 }],
       active: "newsletter",
     });
-    expect(
-      model.libraryTypeGroups.flatMap((group) =>
-        group.types.map((info) => info.entityType),
-      ),
-    ).toEqual(["post", "newsletter"]);
+    expect(model.libraryTypes.map((info) => info.entityType)).toEqual([
+      "post",
+      "newsletter",
+    ]);
     expect(model.emptyLibraryTypes).toEqual([]);
   });
 
@@ -248,11 +255,11 @@ describe("Library's types", () => {
       active: null,
       recentTypes: ["link", "note"],
     });
-    expect(
-      model.libraryTypeGroups.flatMap((group) =>
-        group.types.map((info) => info.entityType),
-      ),
-    ).toEqual(["link", "note", "post"]);
+    expect(model.libraryTypes.map((info) => info.entityType)).toEqual([
+      "link",
+      "note",
+      "post",
+    ]);
   });
 });
 

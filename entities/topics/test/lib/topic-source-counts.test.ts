@@ -1,5 +1,8 @@
 import { describe, expect, it } from "bun:test";
-import { countTopicSources } from "../../src/lib/topic-source-counts";
+import {
+  countTopicSources,
+  topicSourcesBySlug,
+} from "../../src/lib/topic-source-counts";
 import { topicsPluginConfigSchema } from "../../src/schemas/config";
 import type { TopicVote } from "../../src/schemas/votes";
 
@@ -156,5 +159,29 @@ describe("countTopicSources", () => {
         [["note:a", supporting("a1")]],
       ),
     ).toEqual({ bySlug: {}, unattributed: 0 });
+  });
+});
+
+describe("topicSourcesBySlug", () => {
+  it("names the sources counted for each topic, merged topics folded in", () => {
+    const sources = topicSourcesBySlug({
+      sources: [
+        { key: "post:a", contentHash: "a1" },
+        { key: "note:b", contentHash: "b1" },
+        { key: "note:stale", contentHash: "new" },
+      ],
+      votes: new Map([
+        ["post:a", supporting("a1", ["Ethics", 0.9])],
+        ["note:b", supporting("b1", ["Morals", 0.8])],
+        ["note:stale", supporting("old", ["Ethics", 0.9])],
+      ]),
+      aliases: new Map([["morals", "ethics"]]),
+      promptVersion: PROMPT,
+      config,
+    });
+    expect(Object.fromEntries(sources.bySlug)).toEqual({
+      ethics: ["post:a", "note:b"],
+    });
+    expect(sources.unattributed).toBe(1);
   });
 });

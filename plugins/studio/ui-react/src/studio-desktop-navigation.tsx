@@ -209,7 +209,9 @@ export function DesktopNavigation(props: {
       case "library":
         return (
           <>
-            {model.libraryTypeGroups.map(typeGroup)}
+            {model.libraryTypes.length > 0
+              ? typeGroup({ types: model.libraryTypes })
+              : null}
             {model.emptyLibraryTypes.length > 0 ? (
               <details className={navClass("", nav.allTypes)}>
                 <summary

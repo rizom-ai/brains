@@ -136,6 +136,8 @@ export interface EntitySummary {
   frontmatter: Record<string, unknown>;
   updated: string;
   path?: EntityIdPath;
+  /** How many entries a collection holds, such as a series' posts. */
+  members?: { count: number; label: string } | undefined;
 }
 
 /** The entries picked to refine, a direction, and the approval when confirming. */
@@ -182,6 +184,15 @@ export interface EntityPage {
   total: number;
   /** Titles for the prefix's segments, where a segment names a container. */
   trail?: Array<string | null>;
+}
+
+/** The entries one collection holds, most recently updated first. */
+export interface CollectionMembersPage {
+  count: number;
+  /** "12 posts", or "No posts" when it holds none yet. */
+  label: string;
+  total: number;
+  entities: EntitySummary[];
 }
 
 export interface EntityDetail extends EntitySummary {
@@ -582,6 +593,18 @@ export class StudioApi {
       ),
     );
     return entity;
+  }
+
+  /** The entries an opened collection holds, such as a series' posts. */
+  async fetchCollectionMembers(
+    entityType: string,
+    id: string,
+  ): Promise<CollectionMembersPage> {
+    return this.requestJson<CollectionMembersPage>(
+      this.path(
+        `collection-members?type=${encodeURIComponent(entityType)}&id=${encodeURIComponent(id)}`,
+      ),
+    );
   }
 
   /**

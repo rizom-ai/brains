@@ -70,7 +70,7 @@ export function MobileNavigation(props: MobileNavigationProps): ReactElement {
     chatWorkspace,
     homeWorkspaces,
     chatWorkspaces,
-    libraryTypeGroups,
+    libraryTypes,
     emptyLibraryTypes,
     libraryWorkspaces,
     publishWorkspaces,
@@ -113,9 +113,7 @@ export function MobileNavigation(props: MobileNavigationProps): ReactElement {
       area: "library",
       label: "Library",
       options: [
-        ...libraryTypeGroups.flatMap((group) =>
-          group.types.map(mobileTypeOption),
-        ),
+        ...libraryTypes.map(mobileTypeOption),
         ...(props.groupings?.items ?? []).map((grouping) => ({
           value: `${MOBILE_GROUPING_PREFIX}${grouping.key}`,
           href: studioGroupingPath(basePath, grouping.key),

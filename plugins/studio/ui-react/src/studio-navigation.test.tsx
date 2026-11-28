@@ -609,7 +609,10 @@ describe("area and leaf navigation", () => {
     }
     expect(paths.size).toBe(5);
     await click('.studio-area-link[aria-label="Library"]', "");
-    expect(leafText()).toContain("Content");
+    // Library lists its types as one list, without headings over them.
+    expect(leafText()).toContain("Notes");
+    expect(leafText()).not.toContain("Content");
+    expect(leafText()).not.toContain("Collections");
   });
 
   it("names five sections, without ordinals, over singular singleton labels and a Commands footer", async () => {

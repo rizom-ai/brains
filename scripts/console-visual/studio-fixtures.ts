@@ -33,6 +33,18 @@ export const types = [
     count: 7,
     capabilities: editCapabilities,
   },
+  // A collection: each series counts the field notes it holds.
+  {
+    entityType: "series",
+    classification: "content",
+    label: "Series",
+    singularLabel: "Series",
+    isSingleton: false,
+    hasBody: true,
+    count: 2,
+    capabilities: editCapabilities,
+    collection: true,
+  },
   // A type with nothing in it yet waits under All types.
   {
     entityType: "newsletters",
@@ -152,6 +164,35 @@ entities.push(
     updated: "2026-06-01T12:00:00.000Z",
   })),
 );
+export const seriesEntities = [
+  {
+    id: "trust-and-identity",
+    entityType: "series",
+    frontmatter: { title: "Trust & Identity" },
+    updated: "2026-07-09T09:00:00.000Z",
+    members: { count: 3, label: "3 field notes" },
+  },
+  {
+    id: "working-in-public",
+    entityType: "series",
+    frontmatter: { title: "Working in public" },
+    updated: "2026-06-20T09:00:00.000Z",
+    members: { count: 1, label: "1 field note" },
+  },
+];
+export const seriesEntity = {
+  ...seriesEntities[0],
+  body: "Essays on how a brain earns trust, and how it says who it is.",
+  contentHash: "fixture-series-hash",
+  created: "2026-06-01T09:00:00.000Z",
+};
+// An opened series lists the field notes it holds, most recent first.
+export const seriesMembers = {
+  count: 3,
+  label: "3 field notes",
+  total: 3,
+  entities: entities.slice(0, 3).map((item) => ({ ...item, path: [item.id] })),
+};
 export const entity = {
   ...entities[1],
   // The full colophon the mockups author: slug, select, tags, toggle,

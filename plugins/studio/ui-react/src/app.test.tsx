@@ -451,7 +451,7 @@ describe("TypeSwitcher", () => {
       }),
     );
     expect(html).toContain("Library");
-    expect(html).toContain("Content");
+    expect(html).not.toContain("Content");
     expect(html).toContain("Posts");
     expect(html).toContain("Brain");
     // The section and its active destination both carry location state.
@@ -1686,6 +1686,17 @@ describe("capability-aware Studio controls", () => {
     ).not.toContain("data-studio-row-cover");
     expect(excerpted).toMatch(
       /data-studio-row-excerpt[^>]*>Every reading kept, every total traceable\.</,
+    );
+  });
+
+  it("shows how many entries a collection holds on its row", () => {
+    expect(
+      renderCapabilityView(allowedCapabilities, "browse", {
+        entity: { members: { count: 3, label: "3 posts" } },
+      }),
+    ).toMatch(/data-studio-row-members=""[^>]*>3 posts</);
+    expect(renderCapabilityView(allowedCapabilities, "browse")).not.toContain(
+      "data-studio-row-members",
     );
   });
 

@@ -76,7 +76,7 @@ export interface StudioContext {
   >;
   readonly permissions: ServicePermissions;
   readonly ai: Pick<ServiceAI, "generateObject">;
-  readonly messaging: Pick<ServiceClassMessaging, "request">;
+  readonly messaging: Pick<ServiceClassMessaging, "request" | "gather">;
   readonly identity: Pick<ServiceIdentity, "getProfile" | "getAppInfo">;
   readonly inbox: ServiceRuntime["inbox"];
   readonly themeCSS: string;

@@ -41,6 +41,8 @@ describe("planSurface", () => {
     ["studio-refine", "/studio/entities/posts"],
     ["studio-refine-confirm", "/studio/entities/posts"],
     ["studio-images", "/studio/images"],
+    ["studio-series", "/studio/entities/series"],
+    ["studio-series-open", "/studio/entities/series/trust-and-identity"],
     ["studio-editor", "/studio/entities/posts/field-notes"],
     ["studio-upload", "/studio/entities/posts/field-notes"],
     ["studio-overview", "/studio/workspaces/studio%3Aoverview"],
@@ -140,10 +142,11 @@ describe("planSurface", () => {
 });
 
 describe("isStudioAppShellSurface", () => {
-  it("holds the editor, System documents, and secondary states as app shells", () => {
+  it("holds the editors, System documents, and secondary states as app shells", () => {
     expect(
       consoleSurfaces().filter((surface) => isStudioAppShellSurface(surface)),
     ).toEqual([
+      "studio-series-open",
       "studio-editor",
       "studio-system",
       ...[...systemFixtures.keys()]

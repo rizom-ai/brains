@@ -291,10 +291,17 @@ const deleteEntityPayloadSchema = z.object({
   confirmed: z.literal(true),
 });
 
+/** Each listed collection's member count, for a type that collects entries. */
+type MemberCounts = (
+  entityType: string,
+  entities: BaseEntity[],
+) => Promise<ReadonlyMap<string, { count: number; label: string }> | null>;
+
 export async function handleGetEntities(
   context: StudioContext,
   request: Request,
   access: StudioRequestAccess,
+  memberCounts?: MemberCounts,
 ): Promise<Response> {
   const params = new URL(request.url).searchParams;
   const entityType = params.get("type");
@@ -371,9 +378,11 @@ export async function handleGetEntities(
     }),
     context.entityService.countEntities({ entityType, options: { filter } }),
   ]);
+  const counts = (await memberCounts?.(entityType, entities)) ?? null;
   return jsonResponse({
     total,
     entities: entities.map((entity) => {
+      const members = counts?.get(entity.id);
       const { frontmatter } = splitEntityContent(
         entityType,
         entity.content,
@@ -385,6 +394,7 @@ export async function handleGetEntities(
         frontmatter: { ...frontmatter, visibility: entity.visibility },
         displayTitle: entityDisplayTitle(context, entity),
         updated: entity.updated,
+        ...(members && { members }),
       };
     }),
   });
@@ -394,6 +404,7 @@ export async function handleGetEntityHierarchy(
   context: StudioContext,
   request: Request,
   access: StudioRequestAccess,
+  memberCounts?: MemberCounts,
 ): Promise<Response> {
   const params = new URL(request.url).searchParams;
   const entityType = params.get("type");
@@ -427,24 +438,41 @@ export async function handleGetEntityHierarchy(
   const searching = scope === "collection" || Boolean(q);
   // An entry's own type decides how it reads: a container's collection holds
   // its contents too.
-  const summaryOf = ({
-    entity,
-    path,
-  }: {
-    entity: BaseEntity;
-    path: EntityIdPath;
-  }): Record<string, unknown> => ({
-    id: entity.id,
-    entityType: entity.entityType,
-    path,
-    frontmatter: {
-      ...splitEntityContent(entity.entityType, entity.content, context)
-        .frontmatter,
-      visibility: entity.visibility,
-    },
-    displayTitle: entityDisplayTitle(context, entity),
-    updated: entity.updated,
-  });
+  const summaryOf =
+    (counts: ReadonlyMap<string, { count: number; label: string }> | null) =>
+    ({
+      entity,
+      path,
+    }: {
+      entity: BaseEntity;
+      path: EntityIdPath;
+    }): Record<string, unknown> => {
+      const members =
+        entity.entityType === entityType ? counts?.get(entity.id) : undefined;
+      return {
+        id: entity.id,
+        entityType: entity.entityType,
+        path,
+        frontmatter: {
+          ...splitEntityContent(entity.entityType, entity.content, context)
+            .frontmatter,
+          visibility: entity.visibility,
+        },
+        displayTitle: entityDisplayTitle(context, entity),
+        updated: entity.updated,
+        ...(members && { members }),
+      };
+    };
+  // A collection's rows say how many entries each holds.
+  const countsOf = async (
+    entities: Array<{ entity: BaseEntity }>,
+  ): Promise<ReadonlyMap<string, { count: number; label: string }> | null> =>
+    (await memberCounts?.(
+      entityType,
+      entities
+        .map(({ entity }) => entity)
+        .filter((entity) => entity.entityType === entityType),
+    )) ?? null;
   try {
     const contained = await containedTypeOf(context, entityType, access);
     if (contained !== undefined) {
@@ -473,7 +501,7 @@ export async function handleGetEntityHierarchy(
         prefix: page.prefix,
         folders: titled.folders,
         total: page.total,
-        entities: page.entities.map(summaryOf),
+        entities: page.entities.map(summaryOf(await countsOf(page.entities))),
         ...(trail.some((title) => title !== null) && { trail }),
       });
     }
@@ -496,7 +524,7 @@ export async function handleGetEntityHierarchy(
       prefix: page.prefix,
       folders: titled.folders,
       total: page.totalEntities,
-      entities: page.entities.map(summaryOf),
+      entities: page.entities.map(summaryOf(await countsOf(page.entities))),
       ...(titled.trail.some((title) => title !== null) && {
         trail: titled.trail,
       }),

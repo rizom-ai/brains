@@ -33,6 +33,7 @@ import {
 } from "./studio-hierarchy";
 import { hierarchyStyles as hierarchy } from "./studio-hierarchy.styles";
 import { StudioPageHead } from "./studio-page-head";
+import { StudioCollectionMembers } from "./studio-collection-members";
 import { headStyles } from "./studio-page-head.styles";
 import { systemFieldStyles } from "./studio-system-fields.styles";
 import { typographyStyles } from "./studio-typography.styles";
@@ -456,6 +457,14 @@ export function StudioEditorPane(
                       }
                     : {})}
                 />
+                {/* A collection lists what it holds below its document. */}
+                {mode.kind === "edit" && props.model.activeType?.collection && (
+                  <StudioCollectionMembers
+                    entityType={selectedEntityType}
+                    entityId={mode.entity.id}
+                    onOpen={props.openEntity}
+                  />
+                )}
               </section>
             )}
           </StudioEditorContent>
