@@ -1,5 +1,23 @@
 # @brains/webdav
 
+## 0.2.0-alpha.804
+
+### Minor Changes
+
+- [#1090](https://github.com/rizom-ai/brains/pull/1090) [`8ccdfbe`](https://github.com/rizom-ai/brains/commit/8ccdfbea7d7fd7384d1757fc50c35190312ba4da) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A sync client can tell the drive a conflict is settled.
+
+  - `DELETE /dav/.brain/conflicts/<id>`, for sync clients (`X-Brain-Sync: 1`) with an app password that may save: the conflict is dismissed as that person, by the conflict service's own rules. The answer is the same whether the conflict was theirs, another person's, already settled or never there.
+  - The Rizom Brain plugin for Obsidian uses it: when a conflict is settled in Obsidian, its Inbox entry goes too.
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.804
+  - @brains/contracts@0.2.0-alpha.804
+  - @brains/entity-placement@0.2.0-alpha.804
+  - @brains/image@0.2.0-alpha.804
+  - @brains/utils@0.2.0-alpha.804
+
 ## 0.2.0-alpha.803
 
 ### Patch Changes
