@@ -120,6 +120,7 @@ describe("WebDAV routes", () => {
       "GET",
       "HEAD",
       "PROPFIND",
+      "POST",
       "PUT",
       "DELETE",
       "MOVE",

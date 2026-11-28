@@ -80,6 +80,17 @@ export type RelatedAnswer =
   | { status: "no-index" }
   | { status: "offline" | "unavailable" | "signed-out" };
 
+/** What came of asking the brain to publish a file's entry. */
+export type PublishAnswer =
+  | { status: "published"; url?: string }
+  /** The brain's own sentence on why not. */
+  | { status: "refused"; reason: string }
+  /** The file is the vault's only, or has not gone up yet. */
+  | { status: "not-in-brain" }
+  /** The brain is from before it could be asked. */
+  | { status: "old-brain" }
+  | { status: "offline" | "unavailable" | "signed-out" };
+
 /** How many related entries are asked for when the asker does not say. */
 const RELATED_LIMIT = 10;
 
@@ -379,6 +390,38 @@ export class SyncEngine {
       }
       throw error;
     }
+  }
+
+  /**
+   * Publish the entry a file is, now. What the person changed in the file
+   * goes up first, so the brain publishes the text they see; the brain then
+   * decides whether it may be published, and its reason is passed on.
+   */
+  publish(path: string): Promise<PublishAnswer> {
+    return this.exclusive(async () => {
+      let answer: PublishAnswer = { status: "not-in-brain" };
+      const report = await this.guarded(async (context) => {
+        if (!context.state.initialized) return;
+        await this.replayRenames(context);
+        await this.uploadChanged(context, path);
+        // Asked only for a file the brain holds, as the version here.
+        if (!context.state.paths[path]) return;
+        const outcome = await this.drive.publish(path);
+        answer =
+          outcome.status === "unsupported" ? { status: "old-brain" } : outcome;
+      });
+      if (
+        report.status === "offline" ||
+        report.status === "unavailable" ||
+        report.status === "signed-out"
+      ) {
+        return { status: report.status };
+      }
+      if (report.status === "old-brain" || report.status === "no-drive") {
+        return { status: "old-brain" };
+      }
+      return answer;
+    });
   }
 
   /**

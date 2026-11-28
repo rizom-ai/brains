@@ -1,7 +1,10 @@
 import type {
+  PublishRequest,
+  PublishRequestResponse,
   RecordConflictRequest,
   ResolveConflictRequest,
 } from "@brains/contracts";
+import { z } from "@brains/utils/zod";
 import { memoryMountBases, type MountBases } from "./dav-mounts";
 import type { KeptStore } from "./dav-kept";
 import type { MountView } from "./dav-saves";
@@ -71,6 +74,13 @@ export interface DavRoutesOptions {
   resolveConflict?: (
     request: ResolveConflictRequest,
   ) => Promise<{ resolved: true } | { message: string } | undefined>;
+  /**
+   * Publish an entry now as a person, answering why not when the pipeline
+   * refuses; nothing publishes when not given, or when it answers undefined.
+   */
+  publish?: (
+    request: PublishRequest,
+  ) => Promise<PublishRequestResponse | { message: string } | undefined>;
   /** The brain's types, as a sync client writes templates, fileClasses and bases from them. */
   shapes?: VaultShapeSource;
   /** Which types changed, for sync clients that wait to be told. */
@@ -89,6 +99,16 @@ const DEFAULT_CHANGES_WAIT = 25;
  */
 const CONFLICTS_PATH = [".brain", "conflicts"];
 
+/**
+ * Where a sync client's person publishes the entry a file is: a POST naming
+ * the file. The only thing a POST does on the drive.
+ */
+const PUBLISH_PATH = [".brain", "publish"];
+const publishBodySchema: z.ZodObject<{ path: z.ZodString }> = z.object({
+  /** The file, as a path below the drive's root. */
+  path: z.string().min(1),
+});
+
 /** Where a sync client asks which entries are nearest to one. */
 const RELATED_PATH = [".brain", "related"];
 const DEFAULT_RELATED = 10;
@@ -99,6 +119,7 @@ const VAULT_SHAPES_PATH = [".brain", "vault-shapes.json"];
 
 const READ_METHODS = ["OPTIONS", "GET", "HEAD", "PROPFIND"] as const;
 const WRITE_METHODS = [
+  "POST",
   "PUT",
   "DELETE",
   "MOVE",
@@ -110,7 +131,8 @@ const WRITE_METHODS = [
 ] as const;
 const METHODS = [...READ_METHODS, ...WRITE_METHODS] as const;
 type DavMethod = (typeof METHODS)[number];
-const ALLOW = METHODS.join(", ");
+/** What a WebDAV client is told it may do: the POST is not WebDAV's. */
+const ALLOW = METHODS.filter((method) => method !== "POST").join(", ");
 const XML_TYPE = 'application/xml; charset="utf-8"';
 
 /**
@@ -179,6 +201,7 @@ export function createDavRoutes(
     GET: (davServer, dav) => read(davServer, dav, true),
     HEAD: (davServer, dav) => read(davServer, dav, false),
     PROPFIND: propfind,
+    POST: post,
     PUT: put,
     DELETE: remove,
     MOVE: move,
@@ -706,6 +729,55 @@ async function holdSave(
     bytes,
     storedHash: stored.entity.contentHash,
     conflictId: outcome.conflictId,
+  });
+}
+
+/** What the body of a request says, when it is JSON. */
+async function jsonBody(request: Request): Promise<unknown> {
+  try {
+    return JSON.parse(await request.text());
+  } catch {
+    // Not JSON: the caller's schema refuses undefined.
+    return undefined;
+  }
+}
+
+/**
+ * Publish the entry a file is, for a sync client whose person chose to. The
+ * publishing pipeline decides whether it may be published and by them; its
+ * reason, when it refuses, is the person's to read.
+ */
+async function post(server: DavServer, dav: DavRequest): Promise<Response> {
+  if (!dav.sync || dav.path?.segments.join("/") !== PUBLISH_PATH.join("/")) {
+    return new Response("The drive takes no POST here", {
+      status: 405,
+      headers: { Allow: "OPTIONS, PROPFIND" },
+    });
+  }
+  const body = publishBodySchema.safeParse(await jsonBody(dav.request));
+  if (!body.success) {
+    return new Response('Name the file: { "path": "…" }', { status: 400 });
+  }
+  const located = await dav.tree.entityAt(body.data.path.split("/"));
+  // Refused, not "not found": a brain from before this call answers that.
+  if (!located) {
+    return new Response("There is no entry at this path.", { status: 409 });
+  }
+  const answer = await server.options.publish?.({
+    entityType: located.entity.entityType,
+    id: located.entity.id,
+    userId: dav.grant.principal.userId,
+    permissionLevel: dav.grant.principal.permissionLevel,
+  });
+  if (!answer) {
+    return new Response("Nothing publishes here right now.", { status: 503 });
+  }
+  if ("message" in answer) {
+    return new Response(answer.message, { status: 409 });
+  }
+  return new Response(JSON.stringify(answer), {
+    status: 200,
+    headers: { "Content-Type": "application/json; charset=utf-8" },
   });
 }
 

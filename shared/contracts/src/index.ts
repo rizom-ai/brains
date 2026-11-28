@@ -410,6 +410,13 @@ export {
   type PublishExecutionMode,
 } from "./publish-register";
 export {
+  publishRequestContract,
+  publishRequestSchema,
+  publishRequestResponseSchema,
+  type PublishRequest,
+  type PublishRequestResponse,
+} from "./publish-request";
+export {
   generateExecuteContract,
   generateReportFailureContract,
   generateReportSuccessContract,

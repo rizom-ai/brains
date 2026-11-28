@@ -1,5 +1,6 @@
 import {
   CONFLICT_ENTITY_TYPE,
+  publishRequestContract,
   recordConflictContract,
   resolveConflictContract,
 } from "@brains/contracts";
@@ -144,6 +145,17 @@ const service = defineServicePlugin({
           );
           return answer.status === "answered"
             ? answer.data.conflictId
+            : undefined;
+        },
+        // Unanswered when no publishing pipeline runs here.
+        publish: async (request) => {
+          const answer = await runtime.messaging.request(
+            publishRequestContract,
+            request,
+          );
+          if (answer.status === "answered") return answer.data;
+          return answer.status === "failed"
+            ? { message: answer.error.message }
             : undefined;
         },
         // Unanswered when no conflict service runs here.

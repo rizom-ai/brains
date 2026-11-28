@@ -31,6 +31,7 @@ export {
   type FirstSyncPlan,
   type Notice,
   type OpenConflict,
+  type PublishAnswer,
   type RelatedAnswer,
   type RelatedNote,
   type SyncReport,
