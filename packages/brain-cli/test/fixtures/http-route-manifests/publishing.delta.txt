@@ -67,6 +67,7 @@
 + studio|handler|GET|/studio/api/image-library|exact|true
 + studio|handler|GET|/studio/api/images|exact|true
 + studio|handler|GET|/studio/api/members|exact|true
++ studio|handler|GET|/studio/api/palette|exact|true
 + studio|handler|GET|/studio/api/schema|exact|true
 + studio|handler|GET|/studio/api/sync-status|exact|true
 + studio|handler|GET|/studio/api/types|exact|true

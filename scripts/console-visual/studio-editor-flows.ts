@@ -600,3 +600,17 @@ export async function exerciseStudioAsk({
   await waitForSelector(page, '[data-studio-chat-proposal="summary"]');
   await waitForText(page, "Apply to summary");
 }
+
+/**
+ * ⌘K opens from the chrome's chip over the open entry: asking about it
+ * first, then what can be done, then the pages Studio offers.
+ */
+export async function exerciseStudioPalette({
+  page,
+}: VisualCase): Promise<void> {
+  await waitForSelector(page, "[data-studio-editor]");
+  await clickSelector(page, ".studio-chrome-command");
+  await waitForSelector(page, "[data-studio-palette]");
+  await waitForSelector(page, '[data-palette-item="ask-entry"]');
+  await waitForText(page, "Home");
+}

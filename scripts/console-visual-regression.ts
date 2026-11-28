@@ -69,6 +69,7 @@ import {
   exerciseStudioDelete,
   exerciseStudioEditor,
   exerciseStudioAsk,
+  exerciseStudioPalette,
   exerciseStudioInvalid,
   exerciseStudioUpload,
   exerciseSystemBodyModes,
@@ -138,6 +139,7 @@ async function exerciseSurface(
   if (surface === "studio-delete") await exerciseStudioDelete(visualCase);
   if (surface === "studio-editor") await exerciseStudioEditor(visualCase);
   if (surface === "studio-ask") await exerciseStudioAsk(visualCase);
+  if (surface === "studio-palette") await exerciseStudioPalette(visualCase);
   if (surface === "studio-conflict") await exerciseStudioConflict(page);
   if (surface === "studio-invalid") await exerciseStudioInvalid(visualCase);
   if (surface === "studio-upload") await exerciseStudioUpload(visualCase);

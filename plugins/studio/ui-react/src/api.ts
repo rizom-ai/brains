@@ -1,4 +1,8 @@
 import type { StudioMember } from "../../src/editor-contracts";
+import {
+  studioPaletteSchema,
+  type StudioPalette,
+} from "../../src/palette-contract";
 import type {
   RuntimeStudioWorkspaceData,
   StudioWorkspaceDescriptor,
@@ -733,6 +737,15 @@ export class StudioApi {
       this.path("members"),
     );
     return members;
+  }
+
+  /** ⌘K: the pages and entries this caller may open for a query. */
+  async fetchPalette(query: string): Promise<StudioPalette> {
+    return studioPaletteSchema.parse(
+      await this.requestJson<unknown>(
+        this.path(`palette?q=${encodeURIComponent(query.trim())}`),
+      ),
+    );
   }
 
   async fetchSyncStatus(): Promise<SyncStatus> {

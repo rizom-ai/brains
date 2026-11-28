@@ -21,6 +21,7 @@ export interface StudioEntityService
     Pick<
       ServiceEntityReads,
       | "getEntityTypes"
+      | "search"
       | "getEntityTypeConfig"
       | "getEntity"
       | "getEntityRaw"
@@ -97,6 +98,8 @@ export function studioContextOf(runtime: ServiceRuntime): StudioContext {
   return Object.freeze({
     entityService: Object.freeze({
       getEntityTypes: () => entityReads.getEntityTypes(),
+      // The palette finds entries at the caller's scope.
+      search: (request) => entityReads.search(request),
       getEntityTypeConfig: (type) => entityReads.getEntityTypeConfig(type),
       getEntity: (request) => entityReads.getEntity(request),
       getEntityRaw: (request) => entityReads.getEntityRaw(request),

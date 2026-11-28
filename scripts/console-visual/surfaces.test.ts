@@ -45,6 +45,7 @@ describe("planSurface", () => {
     ["studio-series-open", "/studio/entities/series/trust-and-identity"],
     ["studio-editor", "/studio/entities/posts/field-notes"],
     ["studio-ask", "/studio/entities/posts/field-notes"],
+    ["studio-palette", "/studio/entities/posts/field-notes"],
     ["studio-upload", "/studio/entities/posts/field-notes"],
     ["studio-overview", "/studio/workspaces/studio%3Aoverview"],
     ["studio-account", "/studio/workspaces/studio%3Aaccount"],
@@ -150,6 +151,7 @@ describe("isStudioAppShellSurface", () => {
       "studio-series-open",
       "studio-editor",
       "studio-ask",
+      "studio-palette",
       "studio-system",
       ...[...systemFixtures.keys()]
         .filter((key) => key !== "style-guide")
