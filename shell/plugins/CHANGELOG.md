@@ -1,5 +1,34 @@
 # @brains/plugins
 
+## 0.2.0-alpha.806
+
+### Minor Changes
+
+- [#1093](https://github.com/rizom-ai/brains/pull/1093) [`53ff509`](https://github.com/rizom-ai/brains/commit/53ff5094be9e95fbfa5ff39d1e0b153dac72b736) Thanks [@yeehaa123](https://github.com/yeehaa123)! - ⌘K runs the actions a page offers, from any page.
+
+  - A workspace action can be offered in Studio's palette with `palette: true`, when it needs no input and asks for no confirmation. Studio lists it for whoever the workspace admits at the action's permission.
+  - Site's Build preview (trusted) and Content sync's Sync now (admin) are offered. Choosing one runs it and opens its page; if it fails, the palette stays open and says why.
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.806
+  - @brains/content-formatters@0.2.0-alpha.806
+  - @brains/contracts@0.2.0-alpha.806
+  - @brains/site-composition@0.2.0-alpha.806
+  - @brains/utils@0.2.0-alpha.806
+  - @brains/ai-service@0.2.0-alpha.806
+  - @brains/content-service@0.2.0-alpha.806
+  - @brains/conversation-service@0.2.0-alpha.806
+  - @brains/entity-service@0.2.0-alpha.806
+  - @brains/identity-service@0.2.0-alpha.806
+  - @brains/job-queue@0.2.0-alpha.806
+  - @brains/mcp-service@0.2.0-alpha.806
+  - @brains/messaging-service@0.2.0-alpha.806
+  - @brains/recurring-checks@0.2.0-alpha.806
+  - @brains/runtime-state@0.2.0-alpha.806
+  - @brains/templates@0.2.0-alpha.806
+
 ## 0.2.0-alpha.805
 
 ### Patch Changes

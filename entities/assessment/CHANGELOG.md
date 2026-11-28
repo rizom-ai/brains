@@ -1,5 +1,14 @@
 # @brains/assessment
 
+## 0.2.0-alpha.806
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.806
+  - @brains/content-formatters@0.2.0-alpha.806
+  - @brains/utils@0.2.0-alpha.806
+
 ## 0.2.0-alpha.805
 
 ### Patch Changes
