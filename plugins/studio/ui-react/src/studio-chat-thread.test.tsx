@@ -106,3 +106,42 @@ describe("a new conversation", () => {
     expect(html).toContain(">What did I publish last month?</button>");
   });
 });
+
+describe("a source from another brain", () => {
+  test("names that brain and opens on it", () => {
+    const html = renderToStaticMarkup(
+      <ChatTurn
+        disabled={false}
+        client={createChatClient()}
+        onAction={async () => {}}
+        onApproval={async () => {}}
+        message={{
+          id: "m2",
+          role: "assistant",
+          content: "Peer Brain says so.",
+          timestamp: "2026-11-28T00:00:00.000Z",
+          cards: [
+            {
+              kind: "sources",
+              id: "sources:network",
+              sources: [
+                {
+                  id: "post:commons",
+                  title: "Data Commons Basics",
+                  source: "post",
+                  entityType: "post",
+                  entityId: "commons",
+                  url: "https://peer.test/posts/commons",
+                  brain: { name: "Peer Brain", url: "https://peer.test" },
+                },
+              ],
+            },
+          ],
+        }}
+      />,
+    );
+    expect(html).toContain('href="https://peer.test/posts/commons"');
+    expect(html).not.toContain("/entities/post/commons");
+    expect(html).toContain("Peer Brain</span>");
+  });
+});

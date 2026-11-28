@@ -8,6 +8,14 @@ export interface CitedSource {
   url?: string | undefined;
   entityType?: string | undefined;
   entityId?: string | undefined;
+  /** Set when another brain gave the source; it lives on that brain. */
+  brain?: { name: string; url?: string | undefined } | undefined;
+}
+
+/** A source this brain holds as an entry, which Studio can open. */
+function ownEntry(source: CitedSource): { type: string; id: string } | null {
+  if (source.brain || !source.entityType || !source.entityId) return null;
+  return { type: source.entityType, id: source.entityId };
 }
 
 /** Shorter titles match ordinary words too often to be linked. */
@@ -18,8 +26,8 @@ export function sourceHref(
   source: CitedSource,
   basePath: string,
 ): string | undefined {
-  if (source.entityType && source.entityId)
-    return studioEntityPath(basePath, source.entityType, source.entityId);
+  const entry = ownEntry(source);
+  if (entry) return studioEntityPath(basePath, entry.type, entry.id);
   return source.url;
 }
 
@@ -45,10 +53,11 @@ export function linkCitedTitles(
   return sources.reduce((text, source) => {
     const title = source.title?.trim();
     if (!title || title.length < MIN_TITLE_LENGTH) return text;
-    if (!source.entityType || !source.entityId) return text;
+    const entry = ownEntry(source);
+    if (!entry) return text;
     const at = text.indexOf(title);
     if (at < 0 || insideMarkup(text, at)) return text;
-    const href = studioEntityPath(basePath, source.entityType, source.entityId);
+    const href = studioEntityPath(basePath, entry.type, entry.id);
     return `${text.slice(0, at)}[${title}](${href})${text.slice(at + title.length)}`;
   }, content);
 }
