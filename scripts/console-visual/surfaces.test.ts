@@ -142,10 +142,11 @@ describe("planSurface", () => {
 });
 
 describe("isStudioAppShellSurface", () => {
-  it("holds the editor, System documents, and secondary states as app shells", () => {
+  it("holds the editors, System documents, and secondary states as app shells", () => {
     expect(
       consoleSurfaces().filter((surface) => isStudioAppShellSurface(surface)),
     ).toEqual([
+      "studio-series-open",
       "studio-editor",
       "studio-system",
       ...[...systemFixtures.keys()]
