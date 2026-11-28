@@ -34,6 +34,7 @@ export function consoleSurfaces(): string[] {
     "studio-administration-audit",
     "studio-account",
     "studio-editor",
+    "studio-ask",
     "studio-system",
     "studio-system-prompt-collection",
     "studio-system-agent-collection",
@@ -68,6 +69,7 @@ export function isStudioSecondarySurface(surface: string): boolean {
 export function isStudioAppShellSurface(surface: string): boolean {
   return (
     surface === "studio-editor" ||
+    surface === "studio-ask" ||
     surface === "studio-series-open" ||
     (surface.startsWith("studio-system") && !surface.endsWith("-collection")) ||
     surface === "studio-delete" ||
@@ -146,6 +148,7 @@ export function planSurface(
   const isDashboard = surface.startsWith("dashboard");
   const isStudioEditor =
     surface === "studio-editor" ||
+    surface === "studio-ask" ||
     surface === "studio-series-open" ||
     (reviewingSystem && !systemCollection) ||
     isStudioSecondary;

@@ -18,6 +18,7 @@ import { dashboardFixtureInput } from "./dashboard-fixture";
 import { dashboardWidgetRendering } from "./dashboard-widgets";
 import {
   accountFixture,
+  askMessages,
   cardMessages,
   entities,
   entity,
@@ -290,6 +291,12 @@ export function createFixtureRoutes(
         })
       : undefined;
 
+  // Ask beside an entry opens the entry's own conversation.
+  const chatContextSessions: FixtureRoute = (request, url) =>
+    url.pathname === "/api/chat/context-sessions" && request.method === "POST"
+      ? json({ conversationId: "web-context-ask" })
+      : undefined;
+
   const chatMessages: FixtureRoute = (_request, url) => {
     if (url.pathname !== "/api/chat/messages") return undefined;
     const id = url.searchParams.get("id");
@@ -297,11 +304,13 @@ export function createFixtureRoutes(
       messages:
         studyState === "empty"
           ? []
-          : id === "cards"
-            ? cardMessages
-            : id === "empty"
-              ? []
-              : messages,
+          : id === "web-context-ask"
+            ? askMessages
+            : id === "cards"
+              ? cardMessages
+              : id === "empty"
+                ? []
+                : messages,
     });
   };
 
@@ -610,6 +619,7 @@ export function createFixtureRoutes(
     chatSessions,
     busyChatStream,
     chatUploads,
+    chatContextSessions,
     chatMessages,
     studioShell,
     studioAsset,

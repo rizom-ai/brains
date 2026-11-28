@@ -6,19 +6,6 @@ type BodyStyle =
   | "modes"
   | "inlineModes"
   | "metadata"
-  | "assist"
-  | "input"
-  | "select"
-  | "run"
-  | "presets"
-  | "preset"
-  | "assistMeta"
-  | "suggestion"
-  | "answer"
-  | "copy"
-  | "answerTitle"
-  | "spacer"
-  | "status"
   | "panes"
   | "split"
   | "source"
@@ -47,91 +34,6 @@ export const bodyStyles: Record<BodyStyle, stylex.StyleXStyles> = stylex.create(
       fontSize: { default: 11, "@media (max-width: 640px)": 9 },
       color: "var(--console-text-muted)",
       letterSpacing: 0,
-    },
-    assist: {
-      display: {
-        default: "flex",
-        ":is([data-has-selection='false'])": "none",
-        "@media (max-width: 640px)": {
-          default: "grid",
-          ":is([data-has-selection='false'])": "none",
-        },
-      },
-      alignItems: "center",
-      gap: 10,
-      padding: "10px 26px",
-      borderBottom: "1px solid var(--console-rule-strong)",
-      backgroundColor: "var(--console-rule)",
-      minHeight: 0,
-      "@media (max-width: 640px)": {
-        gridTemplateColumns: "minmax(0, 1fr) auto",
-        gap: 8,
-        padding: "9px 12px",
-      },
-    },
-    input: {
-      flex: 1,
-      minWidth: 180,
-      "@media (max-width: 640px)": { minWidth: 0, fontSize: 16 },
-    },
-    select: {
-      maxWidth: 220,
-      "@media (max-width: 640px)": {
-        gridColumn: "1 / -1",
-        width: "100%",
-        maxWidth: "none",
-      },
-    },
-    run: { padding: "8px 14px", whiteSpace: "nowrap" },
-    presets: {
-      display: "inline-flex",
-      gap: 4,
-      "@media (max-width: 640px)": { gridColumn: "1 / -1", overflowX: "auto" },
-    },
-    preset: {
-      whiteSpace: { default: null, "@media (max-width: 640px)": "nowrap" },
-    },
-    assistMeta: {
-      fontFamily: "var(--console-mono)",
-      fontSize: 11,
-      color: "var(--console-text-muted)",
-      whiteSpace: "nowrap",
-      "@media (max-width: 640px)": { display: "none" },
-    },
-    suggestion: {
-      display: "flex",
-      alignItems: "center",
-      gap: 12,
-      padding: "12px 26px",
-      borderBottom: "1px solid var(--console-rule-strong)",
-      backgroundColor: "var(--console-ok-soft)",
-      "@media (max-width: 640px)": {
-        alignItems: "stretch",
-        flexWrap: "wrap",
-        padding: "10px 12px",
-      },
-    },
-    answer: { backgroundColor: "var(--console-accent-soft)" },
-    copy: {
-      maxHeight: 150,
-      overflow: "auto",
-      fontSize: 13,
-      color: "var(--console-text)",
-      overflowWrap: "anywhere",
-      "@media (max-width: 640px)": { width: "100%", maxHeight: 110 },
-    },
-    answerTitle: {
-      display: "block",
-      marginBottom: 6,
-      fontFamily: "var(--console-mono)",
-      fontSize: 10,
-      letterSpacing: ".04em",
-      color: "var(--console-accent-dim)",
-    },
-    spacer: { flex: 1 },
-    status: {
-      padding: "8px 26px",
-      borderBottom: "1px solid var(--console-rule-strong)",
     },
     panes: {
       display: "grid",

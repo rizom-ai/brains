@@ -20,6 +20,10 @@
     "./chat": {
       "types": "./src/chat.ts",
       "default": "./src/chat.ts"
+    },
+    "./studio-entry-context": {
+      "types": "./src/studio-entry-context.ts",
+      "default": "./src/studio-entry-context.ts"
     }
   },
   "main": "./src/index.ts",

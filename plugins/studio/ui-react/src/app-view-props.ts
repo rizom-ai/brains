@@ -1,4 +1,6 @@
 import type { DraftRecovery } from "./use-draft-recovery";
+import type { AskSelection } from "./ask-panel-model";
+import type { StudioChatDraftStore } from "./studio-chat-drafts";
 import type {
   RuntimeStudioWorkspaceData,
   RuntimeOperatorActionControl,
@@ -118,4 +120,17 @@ export interface StudioAppViewProps {
   refineNotice?: RefineNotice | null | undefined;
   /** A refine was confirmed in the library: follow it to its end. */
   onRefineConfirmed?: ((outcome: RefineOutcome) => void) | undefined;
+  /** Ask beside the open entry, where the brain has Chat. */
+  ask?: StudioAskState | undefined;
+}
+
+/** Whether Ask is open beside the editor, and what it is about. */
+export interface StudioAskState {
+  chatApiPath: string;
+  draftStore: StudioChatDraftStore;
+  open: boolean;
+  setOpen: (open: boolean) => void;
+  /** The passage selected in the body, which Ask is then about. */
+  selection: AskSelection | null;
+  setSelection: (selection: AskSelection | null) => void;
 }

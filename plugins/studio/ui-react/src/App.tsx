@@ -63,6 +63,7 @@ import {
 import type { BodyMode } from "./body-editor";
 import { getStudioRouterBasePath } from "./studio-router";
 import { type FieldAssistState } from "./entity-fields";
+import type { AskSelection } from "./ask-panel-model";
 import {
   editorWorkflowReducer,
   hasUnsavedEditorChanges,
@@ -273,6 +274,33 @@ export function App(): ReactElement {
   const chatWorkspace = workspaces.find(
     (workspace) => workspace.rendererName === STUDIO_CHAT_WORKSPACE_RENDERER,
   );
+  // Ask beside the open entry: whether it is open, and the passage it is about.
+  const [askOpen, setAskOpen] = useState(false);
+  const [askSelection, setAskSelection] = useState<AskSelection | null>(null);
+  const openEntryKey =
+    editor.mode.kind === "edit"
+      ? `${editor.mode.entity.entityType}:${editor.mode.entity.id}`
+      : null;
+  useEffect(() => {
+    setAskSelection(null);
+  }, [openEntryKey]);
+  const askChatPath = chatWorkspace?.chatApiPath;
+  useEffect(() => {
+    if (!askChatPath || openEntryKey === null) return;
+    const toggle = (event: KeyboardEvent): void => {
+      if (
+        event.key.toLowerCase() !== "j" ||
+        !(event.metaKey || event.ctrlKey) ||
+        event.altKey ||
+        event.shiftKey
+      )
+        return;
+      event.preventDefault();
+      setAskOpen((open) => !open);
+    };
+    window.addEventListener("keydown", toggle);
+    return (): void => window.removeEventListener("keydown", toggle);
+  }, [askChatPath, openEntryKey]);
   // A confirmed refine is followed to its end wherever the person goes.
   const refineOutcome = useRefineOutcome({ entityType, entities });
   // Unsaved edits are kept in this browser for this person, and offered back.
@@ -654,6 +682,18 @@ export function App(): ReactElement {
       syncStatus={syncStatus}
       baselineCommit={baselineCommit}
       agentTargets={agentTargets}
+      ask={
+        askChatPath
+          ? {
+              chatApiPath: askChatPath,
+              draftStore: chatDraftStore,
+              open: askOpen,
+              setOpen: setAskOpen,
+              selection: askSelection,
+              setSelection: setAskSelection,
+            }
+          : undefined
+      }
       deleting={deleting}
       hasUnsavedChanges={hasUnsavedChanges}
       navigationBlocked={navigationBlocker.status === "blocked"}

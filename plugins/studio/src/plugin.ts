@@ -3,7 +3,9 @@ import {
   STUDIO_INTERACTION_ID,
   SdkError,
   consoleJumpDestinationsContract,
+  studioEntryContextContract,
 } from "@brains/contracts";
+import { studioEntryContext } from "./entry-context";
 import type { UserPermissionLevel } from "@brains/sdk/interfaces";
 import {
   studioOverviewContributionRegisterContract,
@@ -266,6 +268,14 @@ const studioService = defineServicePlugin({
           hasChat: resolveStudioChatApiPath(context) !== undefined,
           entityDisplay: entityDisplay(),
         }),
+    );
+    // Chat beside an open entry reads it here, as the asker may.
+    runtime.answer(studioEntryContextContract, async ({ request }) =>
+      studioEntryContext(
+        context,
+        request,
+        entityDisplay()?.[request.entityType]?.label,
+      ),
     );
     runtime.answer(
       studioOverviewContributionRegisterContract,

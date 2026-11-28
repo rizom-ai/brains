@@ -22,6 +22,7 @@ import { StudioEditorFields } from "./studio-editor-fields";
 import { editorLayoutStyles as layout } from "./studio-editor-layout.styles";
 import { StudioEditorPaneMenu } from "./studio-editor-pane-menu";
 import { StudioEditorSaveBar } from "./studio-editor-save-bar";
+import { StudioAskToggle } from "./studio-ask-toggle";
 import {
   editorClassName as editorClass,
   editorStyles,
@@ -52,7 +53,6 @@ export function StudioEditorPane(
     editor,
     bodyMode,
     mobilePane,
-    agentTargets,
     hasUnsavedChanges,
     dispatchEditor,
     setBodyMode,
@@ -221,6 +221,9 @@ export function StudioEditorPane(
           action={
             canEdit || presentation === "split" ? (
               <>
+                {props.ask && mode.kind === "edit" && canAssist && (
+                  <StudioAskToggle ask={props.ask} placement="head" />
+                )}
                 {inspecting && (
                   <Button
                     type="button"
@@ -457,15 +460,7 @@ export function StudioEditorPane(
                   onModeChange={setBodyMode}
                   readOnly={!canEdit}
                   documentTitle={titleField ? titleValue : editorHead.title}
-                  {...(mode.kind === "edit" && canAssist
-                    ? {
-                        assist: {
-                          entityType: selectedEntityType,
-                          entityId: mode.entity.id,
-                          agents: agentTargets,
-                        },
-                      }
-                    : {})}
+                  onSelectionChange={props.ask?.setSelection}
                 />
                 {/* A collection lists what it holds below its document. */}
                 {mode.kind === "edit" && props.model.activeType?.collection && (

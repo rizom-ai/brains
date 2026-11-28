@@ -582,3 +582,21 @@ export async function verifySystemSavePayload(
     "✓ System nested validation, draft handoff and unchanged body payload",
   );
 }
+
+/**
+ * Ask opens beside the entry from its head, or on a phone from the bar below
+ * the writing, on the entry's own conversation, where a proposal is a card.
+ */
+export async function exerciseStudioAsk({
+  page,
+  viewport,
+}: VisualCase): Promise<void> {
+  await waitForSelector(page, "[data-studio-editor]");
+  await clickSelector(
+    page,
+    `[data-studio-ask-toggle="${viewport.width <= 640 ? "bar" : "head"}"]`,
+  );
+  await waitForSelector(page, "[data-studio-ask-panel]");
+  await waitForSelector(page, '[data-studio-chat-proposal="summary"]');
+  await waitForText(page, "Apply to summary");
+}
