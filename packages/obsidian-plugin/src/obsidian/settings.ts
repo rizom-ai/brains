@@ -7,6 +7,7 @@ type SettingsSchema = z.ZodObject<{
   password: z.ZodDefault<z.ZodString>;
   syncOnSave: z.ZodDefault<z.ZodBoolean>;
   intervalMinutes: z.ZodDefault<z.ZodNumber>;
+  showMarks: z.ZodDefault<z.ZodBoolean>;
 }>;
 
 export const settingsSchema: SettingsSchema = z.object({
@@ -19,6 +20,8 @@ export const settingsSchema: SettingsSchema = z.object({
   syncOnSave: z.boolean().default(true),
   /** How often everything is compared; changes arrive as they happen in between. */
   intervalMinutes: z.number().int().min(1).max(60).default(30),
+  /** Mark the files in the file list that are not in step with the brain. */
+  showMarks: z.boolean().default(true),
 });
 
 export type RizomBrainSettings = z.output<SettingsSchema>;

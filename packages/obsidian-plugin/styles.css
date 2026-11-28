@@ -45,3 +45,27 @@
 .rizom-brain-differs {
   background-color: rgba(var(--color-yellow-rgb, 224, 172, 0), 0.3);
 }
+
+/* Marks beside names in the file list: a dot for what is not in step. */
+[data-rizom-brain-mark]::after {
+  content: "";
+  flex: none;
+  width: 6px;
+  height: 6px;
+  margin-inline-start: var(--size-4-1);
+  border-radius: 50%;
+  align-self: center;
+}
+
+[data-rizom-brain-mark="waiting"]::after {
+  background-color: var(--interactive-accent);
+}
+
+[data-rizom-brain-mark="local"]::after {
+  background-color: var(--text-faint);
+}
+
+[data-rizom-brain-mark="conflict"]::after,
+[data-rizom-brain-mark="refused"]::after {
+  background-color: var(--text-error);
+}

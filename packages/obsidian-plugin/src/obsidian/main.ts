@@ -27,6 +27,8 @@ import {
 } from "../engine";
 import { acceptConnect, originOf, type PendingConnect } from "./connect";
 import { getErrorMessage } from "@brains/utils/error";
+import { explorerMarks } from "./explorer-marks";
+import { FileListMarks } from "./file-list-marks";
 import {
   ConflictModal,
   DeletesModal,
@@ -108,6 +110,8 @@ export default class RizomBrainPlugin extends Plugin {
   private statusEl: HTMLElement | undefined;
   private issues: FileNote[] = [];
   private localOnly: FileNote[] = [];
+  private fileListMarks: FileListMarks | undefined;
+  private marksTimer: number | undefined;
   /** How many conflicts wait for the person to choose a version. */
   private conflicts = 0;
   private status: SyncReport["status"] | "not-connected" = "not-connected";
@@ -189,6 +193,11 @@ export default class RizomBrainPlugin extends Plugin {
     );
 
     this.app.workspace.onLayoutReady(() => {
+      this.fileListMarks = new FileListMarks(this.app);
+      // A file list opened later gets its marks too.
+      this.registerEvent(
+        this.app.workspace.on("layout-change", () => this.markFilesSoon()),
+      );
       this.registerVaultEvents();
       this.restartInterval();
       void this.syncNow();
@@ -197,6 +206,8 @@ export default class RizomBrainPlugin extends Plugin {
 
   override onunload(): void {
     for (const timer of this.saveTimers.values()) window.clearTimeout(timer);
+    if (this.marksTimer !== undefined) window.clearTimeout(this.marksTimer);
+    this.fileListMarks?.clear();
     this.follower.stop();
   }
 
@@ -224,6 +235,11 @@ export default class RizomBrainPlugin extends Plugin {
     // Nothing is asked while the settings are typed: a watcher on a brain
     // they no longer name stops, and the next sync starts the right one.
     this.follower.settingsChanged(this.watchKey());
+  }
+
+  /** The marks were turned on or off in the settings. */
+  settingsMarksChanged(): void {
+    this.markFilesSoon();
   }
 
   /** The settings were closed: sync with what they now say. */
@@ -280,9 +296,40 @@ export default class RizomBrainPlugin extends Plugin {
     return this.engine;
   }
 
+  /** Mark the file list again, a moment after the last of a run of changes. */
+  private markFilesSoon(): void {
+    if (this.marksTimer !== undefined) window.clearTimeout(this.marksTimer);
+    this.marksTimer = window.setTimeout(() => {
+      this.marksTimer = undefined;
+      void this.markFiles();
+    }, 400);
+  }
+
+  /** Show beside each file's name what it is to the brain. */
+  private async markFiles(): Promise<void> {
+    const engine = this.getEngine();
+    if (!engine || !this.config.showMarks) {
+      this.fileListMarks?.clear();
+      return;
+    }
+    const marks = await this.serially(() => engine.fileMarks());
+    this.fileListMarks?.show(
+      explorerMarks(
+        marks,
+        this.issues.map((issue) => issue.path),
+      ),
+    );
+  }
+
   private registerVaultEvents(): void {
     const vault = this.vault;
     if (!vault) return;
+    // Whatever changed, by whom: the marks follow.
+    const changed = (): void => this.markFilesSoon();
+    this.registerEvent(this.app.vault.on("create", changed));
+    this.registerEvent(this.app.vault.on("modify", changed));
+    this.registerEvent(this.app.vault.on("delete", changed));
+    this.registerEvent(this.app.vault.on("rename", changed));
     this.registerEvent(
       this.app.vault.on("modify", (file) => {
         if (!(file instanceof TFile) || vault.isOwnEvent(file.path)) return;
@@ -435,6 +482,7 @@ export default class RizomBrainPlugin extends Plugin {
       }
     }
     void this.countConflicts();
+    this.markFilesSoon();
     const engine = this.getEngine();
     if (report.firstSync && engine && !this.asking.firstSync) {
       this.asking.firstSync = true;
@@ -672,6 +720,19 @@ class RizomBrainSettingTab extends PluginSettingTab {
           .onChange(
             (value) => void plugin.updateSettings({ syncOnSave: value }),
           ),
+      );
+
+    new Setting(containerEl)
+      .setName("Marks in the file list")
+      .setDesc(
+        "A dot beside a file that is not in step with your brain: colored while it waits to sync, gray when it stays in this vault only, red when it is in conflict or your brain refused it.",
+      )
+      .addToggle((toggle) =>
+        toggle.setValue(plugin.config.showMarks).onChange((value) => {
+          void plugin
+            .updateSettings({ showMarks: value })
+            .then(() => plugin.settingsMarksChanged());
+        }),
       );
 
     new Setting(containerEl)
