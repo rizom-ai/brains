@@ -32,7 +32,11 @@ import { BUSY_MS, ObsidianVault } from "./obsidian-vault";
 import { fullSyncDue } from "./schedule";
 import {
   addressKey,
+  keepPassword,
+  loadPluginData,
   parsePluginData,
+  storedPluginData,
+  storesPassword,
   stateFor,
   withState,
   type RizomBrainSettings,
@@ -135,7 +139,11 @@ export default class RizomBrainPlugin extends Plugin {
   private asking = { firstSync: false, deletes: false };
 
   override async onload(): Promise<void> {
-    this.data = parsePluginData(await this.loadData());
+    const stored: unknown = await this.loadData();
+    this.data = loadPluginData(stored, this.app.secretStorage);
+    // A password an older version left in the data file is taken out of it.
+    if (storesPassword(stored))
+      await this.saveData(storedPluginData(this.data));
     this.vault = new ObsidianVault(this.app);
     this.settingTab = new RizomBrainSettingTab(this.app, this);
     this.addSettingTab(this.settingTab);
@@ -197,7 +205,8 @@ export default class RizomBrainPlugin extends Plugin {
    */
   async updateSettings(change: Partial<RizomBrainSettings>): Promise<void> {
     this.data.settings = { ...this.data.settings, ...change };
-    await this.saveData(this.data);
+    keepPassword(this.app.secretStorage, this.data.settings.password);
+    await this.saveData(storedPluginData(this.data));
     // Nothing is asked while the settings are typed: a watcher on a brain
     // they no longer name stops, and the next sync starts the right one.
     this.follower.settingsChanged(this.watchKey());
@@ -245,7 +254,9 @@ export default class RizomBrainPlugin extends Plugin {
           // each record themselves, and the last write holds them all.
           save: (state): Promise<void> => {
             this.data = withState(this.data, key, state);
-            const saved = this.saving.then(() => this.saveData(this.data));
+            const saved = this.saving.then(() =>
+              this.saveData(storedPluginData(this.data)),
+            );
             this.saving = saved.catch(() => undefined);
             return saved;
           },
