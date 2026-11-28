@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress. The seminar plugin is on main (#1060): on a local test app with the three book brains as approved peers, a seminar of ten turns is held in about 40 seconds, redone from its closing in 8, and published. Live questions reach every approved peer (#1062). The site is on main (#1068) and on npm as `@rizom/site-seminar@0.2.0-alpha.1`. The chair reads the brain's notes on the question (#1074). The notes are drafted and the fleet brain is prepared (rizom-ai/rover-pilot#366); onboarding it, loading its content and the first seminars remain. The three book brains it reads with are live on `0.2.0-alpha.765` (see [books.md](./books.md)): `friedrich.rizom.ai` (26 books, 3,705 sections), `karl.rizom.ai` (117 books, 5,576 sections) and `sigmund.rizom.ai` (207 books, 3,249 sections), each answering as its author, in the first person, citing book and siglum or page. No brain has them as approved peers yet, so a question asked of the network does not reach them: on 26 November `network_ask` from `yeehaa.io` on resentment went to two other brains and neither held anything on it.
+In progress. The seminar plugin is on main (#1060): on a local test app with the three book brains as approved peers, a seminar of ten turns is held in about 40 seconds, redone from its closing in 8, and published. Live questions reach every approved peer (#1062). The site is on main (#1068) and on npm as `@rizom/site-seminar@0.2.0-alpha.1`. The chair reads the brain's notes on the question (#1074), the plugin carries the rules for live questions (#1080), and a peer's shown name lives in the directory (#1081). The notes are drafted and the fleet brain is prepared (rizom-ai/rover-pilot#366); onboarding it, loading its content and the first seminars remain. The three book brains it reads with are live on `0.2.0-alpha.765` (see [books.md](./books.md)): `friedrich.rizom.ai` (26 books, 3,705 sections), `karl.rizom.ai` (117 books, 5,576 sections) and `sigmund.rizom.ai` (207 books, 3,249 sections), each answering as its author, in the first person, citing book and siglum or page. No brain has them as approved peers yet, so a question asked of the network does not reach them: on 26 November `network_ask` from `yeehaa.io` on resentment went to two other brains and neither held anything on it.
 
 ## Goal
 
@@ -97,8 +97,10 @@ Interface in English; quotes keep the authors' German (`lang="de"`). Theme `@riz
 
 - name: Suspicion
 - role: chair of a reading group on Marx, Nietzsche and Freud
-- instructions: put every question to the three with `network_ask`; give each author's answer under his name, with his quotes and sources as his brain returned them, never rephrased into one voice; then say in a short paragraph where they meet and where they part, drawing on its notes and seminars; never add a quote or a citation the peers did not return; say plainly when an author's brain had nothing; answer in the reader's language.
-- guidance for the chair (`plugins.seminar.guidance`): never point an author to what his brain lacks: Nietzsche's Nachlass notebooks and letters, Marx's New-York Daily Tribune articles, Freud's letters.
+- purpose: reads Marx, Nietzsche and Freud against one another: puts one question to all three and shows where they meet and where they part
+- values: fidelity, plurality, suspicion, candor
+- the rules for a live question ship with the seminar plugin (#1080), not in the character: put the question to the peers with `network_ask`; each answer under its author's name, never merged into one voice; no quote or citation a peer did not give; say so when a peer had nothing; close with where they meet and where they part
+- guidance for the chair (`plugins.seminar.guidance`): never point an author to what his brain lacks: Nietzsche's Nachlass notebooks and letters, Marx's New-York Daily Tribune articles outside 1852 to 1854 and 1859 to 1860, Freud's correspondence.
 
 ### What the notes hold
 
@@ -130,7 +132,7 @@ The turn contract, `@brains/seminar` with `seminar_hold`, the exchange, the clos
 
 The site package, the two page templates and the Ask page are on main. Mockups: the seminar page ([seminar-mockup.html](../seminar-mockup.html)), the home page ([seminar-list-mockup.html](../seminar-list-mockup.html)) and both on a phone ([seminar-phone-mockup.html](../seminar-phone-mockup.html)).
 
-- `plugins.seminar.peers` gives each peer the name the brain shows him under and his place among the others; a seminar is stored, and the chair writes, under those names
+- a peer's shown name is set on his entry in the directory (`shownAs` on the agent, #1081): chat, seminars and pages read it there; `plugins.seminar.peers` lists agent ids and gives the order of their columns
 - the home page's claim is the anchor profile's description, its stressed word between asterisks
 - `/ask` is always in the menu and says asking is not open yet until Web Chat serves the guest box, as on the books site
 - published as `@rizom/site-seminar@0.2.0-alpha.1`
@@ -144,8 +146,8 @@ The site package, the two page templates and the Ask page are on main. Mockups: 
 ### Phase 7 — fleet
 
 - done: the books cohort is on `0.2.0-alpha.791`, which carries the language rule
-- `users/suspicion.yaml` (organization kinds, `siteOverride` with `@rizom/site-seminar` and `@rizom/theme-books` and their `version` and `themeVersion` pins, `plugins.agents.askAllApproved: true`, `plugins.seminar.guidance`, `plugins.seminar.peers`, `plugins.a2a.turnTimeoutMs`, Discord off, setup email `yeehaa@rizom.ai`) and its cohort in rizom-ai/rover-pilot; `onboard`, content committed to the content repo
-- `agent_connect` to `karl.rizom.ai`, `friedrich.rizom.ai` and `sigmund.rizom.ai`, approved in Studio
+- `users/suspicion.yaml` (organization kinds, `siteOverride` with `@rizom/site-seminar` and `@rizom/theme-books` and their `version` and `themeVersion` pins, `plugins.agents.askAllApproved: true`, `plugins.seminar.guidance`, `plugins.seminar.peers` (the order), `plugins.a2a.turnTimeoutMs`, Discord off, setup email `yeehaa@rizom.ai`) and its cohort in rizom-ai/rover-pilot; `onboard`, content committed to the content repo
+- `agent_connect` to `karl.rizom.ai`, `friedrich.rizom.ai` and `sigmund.rizom.ai`, approved in Studio, each given his shown name: Marx, Nietzsche, Freud
 - the first seminars: what a community should remember and forget, what religion is, whether consciousness is master of itself, where morality comes from; read, then published
 
 ### Phase 8 — verify
