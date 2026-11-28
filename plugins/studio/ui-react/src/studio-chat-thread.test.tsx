@@ -2,10 +2,10 @@
 import { describe, expect, test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createChatClient } from "@brains/contracts/chat";
-import { ChatTurn } from "./studio-chat-thread";
+import { ChatEmptyState, ChatTurn } from "./studio-chat-thread";
 
 describe("a turn's sources", () => {
-  test("name and link each source, without its raw record or excerpt", () => {
+  test("name each source and link it to its entry, without its raw record or excerpt", () => {
     const html = renderToStaticMarkup(
       <ChatTurn
         disabled={false}
@@ -40,9 +40,9 @@ describe("a turn's sources", () => {
       />,
     );
 
-    expect(html).toContain(
-      'href="https://friedrich.rizom.ai/books/ecce-homo/8"',
-    );
+    // A cited entry opens in Studio, not on the public site.
+    expect(html).toMatch(/href="[^"]*\/entities\/book-section\/[^"]+"/);
+    expect(html).not.toContain("friedrich.rizom.ai");
     expect(html).toContain(">EH-Weise-3</a>");
     expect(html).toContain("book-section");
     expect(html).not.toContain("Source details");
@@ -91,5 +91,18 @@ describe("an approval card", () => {
     expect(renderApproval("output-available")).toContain(
       "Saved 2 uploaded files",
     );
+  });
+});
+
+describe("a new conversation", () => {
+  test("offers ways to start that fill the composer", () => {
+    const html = renderToStaticMarkup(
+      <ChatEmptyState
+        starters={["What did I publish last month?"]}
+        onStart={() => {}}
+      />,
+    );
+    expect(html).toContain("data-studio-chat-starters");
+    expect(html).toContain(">What did I publish last month?</button>");
   });
 });

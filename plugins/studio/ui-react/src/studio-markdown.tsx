@@ -2,12 +2,15 @@
 import * as stylex from "@stylexjs/stylex";
 import {
   cloneElement,
+  createContext,
   isValidElement,
+  useContext,
   useId,
   useMemo,
   useState,
   type MouseEvent,
   type ComponentProps,
+  type Context,
   type ReactElement,
   type ReactNode,
 } from "react";
@@ -24,6 +27,7 @@ import { editorClassName as classes } from "./studio-editor.styles";
 import { markdownStyles as s } from "./studio-markdown.styles";
 import { typographyStyles } from "./studio-typography.styles";
 import { codeTokens } from "./code-tokens";
+import { isPlainLinkClick } from "./link-click";
 
 type MarkdownElementProps<Tag extends keyof React.JSX.IntrinsicElements> =
   ComponentProps<Tag> & { node?: unknown };
@@ -177,6 +181,20 @@ function MarkdownImage({
 
 const EXTERNAL_LINK = /^https?:\/\//i;
 
+/**
+ * How a Studio link opens in place where the page provides it, as Chat does;
+ * without it a link is an ordinary link.
+ */
+const StudioLinkNavigation: Context<((href: string) => void) | null> =
+  createContext<((href: string) => void) | null>(null);
+
+export const StudioLinkNavigationProvider: typeof StudioLinkNavigation.Provider =
+  StudioLinkNavigation.Provider;
+
+export function useStudioLinkNavigation(): ((href: string) => void) | null {
+  return useContext(StudioLinkNavigation);
+}
+
 /** A native link; leaving Studio for another site asks first. */
 function MarkdownLink({
   node: _node,
@@ -188,7 +206,20 @@ function MarkdownLink({
   const [pending, setPending] = useState<string | null>(null);
   const titleId = useId();
   const external = typeof href === "string" && EXTERNAL_LINK.test(href);
+  const navigate = useStudioLinkNavigation();
   const confirmFirst = (event: MouseEvent<HTMLAnchorElement>): void => {
+    // A Studio path opens in place where the page offers to.
+    if (
+      !external &&
+      navigate &&
+      typeof href === "string" &&
+      href.startsWith("/") &&
+      isPlainLinkClick(event)
+    ) {
+      event.preventDefault();
+      navigate(href);
+      return;
+    }
     if (!external || event.button !== 0) return;
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)
       return;
