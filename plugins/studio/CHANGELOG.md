@@ -1,5 +1,24 @@
 # @brains/studio
 
+## 0.2.0-alpha.797
+
+### Minor Changes
+
+- [#1078](https://github.com/rizom-ai/brains/pull/1078) [`ffbdddc`](https://github.com/rizom-ai/brains/commit/ffbdddcfbbf7ac874cf8bfb4afeb9bd22a996d5a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Chat links what it names, and a new conversation offers ways to start.
+
+  - An answer that names an entry it drew on links that name to the entry in Studio, and its sources are chips that open each entry in place. A source that is not an entry opens where it lives, in a new tab.
+  - A new conversation offers up to four ways to start, from what the brain has: its inbox, its publishing, its posts and notes. Choosing one fills the composer; nothing is sent until you send it.
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.797
+  - @brains/app-ui-react@0.2.0-alpha.797
+  - @brains/console-theme@0.2.0-alpha.797
+  - @brains/contracts@0.2.0-alpha.797
+  - @brains/operator-view-react@0.2.0-alpha.797
+  - @brains/utils@0.2.0-alpha.797
+
 ## 0.2.0-alpha.796
 
 ### Minor Changes
