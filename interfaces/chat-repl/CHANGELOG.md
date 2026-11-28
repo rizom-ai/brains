@@ -1,5 +1,14 @@
 # @brains/chat-repl
 
+## 0.2.0-alpha.791
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.791
+  - @brains/contracts@0.2.0-alpha.791
+  - @brains/utils@0.2.0-alpha.791
+
 ## 0.2.0-alpha.790
 
 ### Patch Changes

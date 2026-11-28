@@ -1,5 +1,18 @@
 # @brains/site-builder-plugin
 
+## 0.2.0-alpha.791
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.791
+  - @rizom/brain-ui@0.2.0-alpha.791
+  - @brains/contracts@0.2.0-alpha.791
+  - @brains/image@0.2.0-alpha.791
+  - @brains/site-composition@0.2.0-alpha.791
+  - @brains/site-engine@0.2.0-alpha.791
+  - @brains/utils@0.2.0-alpha.791
+
 ## 0.2.0-alpha.790
 
 ### Patch Changes

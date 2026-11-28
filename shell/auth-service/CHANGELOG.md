@@ -1,5 +1,17 @@
 # @brains/auth-service
 
+## 0.2.0-alpha.791
+
+### Patch Changes
+
+- [#1072](https://github.com/rizom-ai/brains/pull/1072) [`6307fc5`](https://github.com/rizom-ai/brains/commit/6307fc553464f6ac37d4fff71c83e68a8b926dc4) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Signing in to Matrix with your brain now completes. Approving the sign-in kept the request's OIDC nonce out of the approval form, so the brain rejected its own approval with "Invalid authorization approval token". The approval form now carries the nonce, and the ID token the homeserver receives includes it.
+- Updated dependencies []:
+  - @brains/notifications@0.2.0-alpha.791
+  - @brains/contracts@0.2.0-alpha.791
+  - @brains/db@0.2.0-alpha.791
+  - @brains/utils@0.2.0-alpha.791
+  - @brains/plugins@0.2.0-alpha.791
+
 ## 0.2.0-alpha.790
 
 ### Patch Changes

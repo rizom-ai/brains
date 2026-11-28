@@ -1,5 +1,18 @@
 # @brains/book
 
+## 0.2.0-alpha.791
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.791
+  - @rizom/brain-ui@0.2.0-alpha.791
+  - @brains/atproto-contracts@0.2.0-alpha.791
+  - @brains/contracts@0.2.0-alpha.791
+  - @brains/media-page-composer@0.2.0-alpha.791
+  - @brains/site-atlas@0.2.0-alpha.791
+  - @brains/utils@0.2.0-alpha.791
+
 ## 0.2.0-alpha.790
 
 ### Patch Changes
