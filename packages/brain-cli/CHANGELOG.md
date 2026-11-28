@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.798
+
+### Patch Changes
+
+- [#1079](https://github.com/rizom-ai/brains/pull/1079) [`4c69639`](https://github.com/rizom-ai/brains/commit/4c6963952a1f77602a93f2a47b425b3caa80cf96) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A source another brain gave in Chat opens on that brain and names it, instead of linking to an entry this Studio does not have. Its title in the answer stays plain text.
+
 ## 0.2.0-alpha.797
 
 ### Minor Changes
