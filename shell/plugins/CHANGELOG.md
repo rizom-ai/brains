@@ -1,5 +1,36 @@
 # @brains/plugins
 
+## 0.2.0-alpha.789
+
+### Minor Changes
+
+- [#1070](https://github.com/rizom-ai/brains/pull/1070) [`a5be1aa`](https://github.com/rizom-ai/brains/commit/a5be1aa11f9f800c98551ee091ac3ef6fb397158) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A post joins a series through the Series group.
+
+  - A post holds `series`, a list of one series name, in place of `seriesName` and `seriesIndex`. Content with the old fields must be converted: `seriesName: X` becomes `series: [X]`, and `seriesIndex` is removed. The old fields are no longer read.
+  - A post's place in its series is worked out, not stored: published posts in order of publication, then drafts in the order they were made. The series page, "Part X of N", the blog lists and the Bluesky record all use this order.
+  - A collection type can bring its own group with `memberGroup`. The series type brings Series, offered over the types that declare `series` as a list of names, so Studio lists each series with its member count, and choosing a post's series is the same as choosing any group.
+  - A type's `list` view can read other entries, so a listed post knows its place in its series.
+
+### Patch Changes
+
+- Updated dependencies [[`a5be1aa`](https://github.com/rizom-ai/brains/commit/a5be1aa11f9f800c98551ee091ac3ef6fb397158)]:
+  - @brains/entity-service@0.2.0-alpha.789
+  - @brains/contracts@0.2.0-alpha.789
+  - @brains/atproto-contracts@0.2.0-alpha.789
+  - @brains/ai-service@0.2.0-alpha.789
+  - @brains/content-service@0.2.0-alpha.789
+  - @brains/identity-service@0.2.0-alpha.789
+  - @brains/content-formatters@0.2.0-alpha.789
+  - @brains/site-composition@0.2.0-alpha.789
+  - @brains/conversation-service@0.2.0-alpha.789
+  - @brains/job-queue@0.2.0-alpha.789
+  - @brains/mcp-service@0.2.0-alpha.789
+  - @brains/messaging-service@0.2.0-alpha.789
+  - @brains/templates@0.2.0-alpha.789
+  - @brains/recurring-checks@0.2.0-alpha.789
+  - @brains/utils@0.2.0-alpha.789
+  - @brains/runtime-state@0.2.0-alpha.789
+
 ## 0.2.0-alpha.788
 
 ### Patch Changes
