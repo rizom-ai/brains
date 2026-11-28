@@ -319,8 +319,22 @@ async function runCliCommand(io: CliIo, config: AppConfig): Promise<void> {
     io.exit(1);
   }
 
-  const { mapArgsToInput } = await import("@brains/mcp-service");
-  const toolInput = mapArgsToInput(match.tool.inputSchema, cliArgs, cliFlags);
+  const { mapArgsToInput, resolvePreviewFlag } =
+    await import("@brains/mcp-service");
+  const resolved = resolvePreviewFlag(
+    commandName,
+    Object.keys(match.tool.inputSchema),
+    cliFlags,
+  );
+  if ("error" in resolved) {
+    io.error(`❌ ${resolved.error}`);
+    io.exit(1);
+  }
+  const toolInput = mapArgsToInput(
+    match.tool.inputSchema,
+    cliArgs,
+    resolved.flags,
+  );
   await invokeCliTool(
     io,
     match.tool.handler,

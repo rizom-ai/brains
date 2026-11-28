@@ -319,6 +319,14 @@ brain status
 
 These are resolved from the running brain's tool registry. Available commands depend on selected bundles, additions/removals, and enabled plugins.
 
+Arguments fill the tool's input fields in order. A brain-specific command also takes:
+
+| Flag        | Description                                                                                                                                                                                            |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `--preview` | For a command whose tool has an `environment` input, use the preview one: `brain build --preview` builds the preview site, as `brain build preview` does. Any other brain-specific command refuses it. |
+
+Built-in commands refuse `--preview`.
+
 ## Remote mode
 
 Use `--remote` to run brain-specific commands against a deployed brain over MCP HTTP instead of booting a local instance.
@@ -338,10 +346,9 @@ Remote mode applies only to brain-specific commands. Built-in commands such as `
 
 ## Global options
 
-| Flag              | Description                                                                                                                                           |
-| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--help`, `-h`    | Show help                                                                                                                                             |
-| `--version`, `-v` | Show version                                                                                                                                          |
-| `--remote <url>`  | Run a brain-specific command against a deployed brain (see above)                                                                                     |
-| `--token <token>` | Auth token for `--remote`                                                                                                                             |
-| `--preview`       | For a brain-specific command with an environment, use the preview one: `brain build --preview` builds the preview site, as `brain build preview` does |
+| Flag              | Description                                                       |
+| ----------------- | ----------------------------------------------------------------- |
+| `--help`, `-h`    | Show help                                                         |
+| `--version`, `-v` | Show version                                                      |
+| `--remote <url>`  | Run a brain-specific command against a deployed brain (see above) |
+| `--token <token>` | Auth token for `--remote`                                         |

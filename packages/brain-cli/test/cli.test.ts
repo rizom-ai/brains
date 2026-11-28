@@ -700,6 +700,28 @@ describe("help output", () => {
 
     expect(written.join("\n")).toContain("Brain commands: unavailable");
   });
+
+  it("lists --preview under brain command options, not the global ones", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "brain-help-"));
+    const written: string[] = [];
+    const original = console.log;
+    console.log = (...args: unknown[]): void => {
+      written.push(args.map(String).join(" "));
+    };
+
+    try {
+      await runCommand({ command: "help", args: [], flags: {} }, dir);
+    } finally {
+      console.log = original;
+      rmSync(dir, { recursive: true, force: true });
+    }
+
+    const help = written.join("\n");
+    const options = help.slice(help.indexOf("\nOptions:"));
+    const globalOptions = options.slice(0, options.indexOf("\n\n", 1));
+    expect(globalOptions).not.toContain("--preview");
+    expect(help).toMatch(/Brain command options:\n.*--preview/);
+  });
 });
 
 describe("--remote on built-in commands", () => {

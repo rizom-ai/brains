@@ -7,6 +7,7 @@ import {
 } from "@brains/deploy-support/cli-kit";
 
 import {
+  brainCommandFlags,
   commandFlagScope,
   commands,
   globalFlags,
@@ -15,6 +16,9 @@ import {
 import type { CommandResult } from "./lib/command-result";
 
 export type ParsedArgs = ParsedCliArgs;
+
+/** Every flag the parser knows; `commandFlagScope` says which a command takes. */
+const parsedFlags = { ...globalFlags, ...brainCommandFlags };
 
 /** How far a typo may be from a flag for the flag to be suggested. */
 const SUGGESTION_DISTANCE = 2;
@@ -30,7 +34,11 @@ const SUGGESTION_DISTANCE = 2;
  * leaves its flags to the eval runner.
  */
 export function parseArgs(argv: string[]): ParsedArgs {
-  const parsed = parseCliArgs(argv, { commands, globalFlags, strict: false });
+  const parsed = parseCliArgs(argv, {
+    commands,
+    globalFlags: parsedFlags,
+    strict: false,
+  });
   if (parsed.flags["help"] === true || parsed.flags["version"] === true) {
     return parsed;
   }
@@ -55,7 +63,7 @@ interface OptionToken {
 function optionTokens(argv: string[]): OptionToken[] {
   const { tokens } = parseNodeArgs({
     args: argv,
-    options: buildParseArgsOptions(commands, globalFlags),
+    options: buildParseArgsOptions(commands, parsedFlags),
     allowPositionals: true,
     strict: false,
     tokens: true,

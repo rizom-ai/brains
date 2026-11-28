@@ -134,7 +134,15 @@ export async function operateRemote(
       };
     }
 
-    const input = mapArgsFromJsonSchema(tool.inputSchema, args, flags);
+    // Imported here, like the MCP client, to keep it off every other command.
+    const { resolvePreviewFlag } = await import("@brains/mcp-service");
+    const resolved = resolvePreviewFlag(
+      commandName,
+      Object.keys(tool.inputSchema.properties ?? {}),
+      flags,
+    );
+    if ("error" in resolved) return { success: false, message: resolved.error };
+    const input = mapArgsFromJsonSchema(tool.inputSchema, args, resolved.flags);
     const result = await client.callTool(tool.name, input);
 
     console.log(result);

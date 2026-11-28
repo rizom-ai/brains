@@ -133,3 +133,30 @@ export function mapArgsToInput(
 
   return result;
 }
+
+/** The tool input field the CLI's `--preview` flag selects the preview of. */
+const PREVIEW_FIELD = "environment";
+
+/**
+ * Resolve the CLI's `--preview` flag against a tool's input fields before
+ * `mapArgsToInput` matches flags to fields by name. `--preview` names no
+ * field: it asks for the preview of the tool's `environment`, as
+ * `brain build preview` does. A tool without one has nothing for it to do,
+ * so the flag is refused like any flag a command does not take.
+ */
+export function resolvePreviewFlag(
+  command: string,
+  fieldNames: readonly string[],
+  flags: Record<string, unknown>,
+): { flags: Record<string, unknown> } | { error: string } {
+  if (flags["preview"] !== true) return { flags };
+  if (!fieldNames.includes(PREVIEW_FIELD)) {
+    return {
+      error: `Unknown flag --preview for \`brain ${command}\`: it has no environment to preview. Run \`brain ${command} --help\` for the flags it accepts.`,
+    };
+  }
+  const rest = Object.fromEntries(
+    Object.entries(flags).filter(([name]) => name !== "preview"),
+  );
+  return { flags: { ...rest, [PREVIEW_FIELD]: "preview" } };
+}

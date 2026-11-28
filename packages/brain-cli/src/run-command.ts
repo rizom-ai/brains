@@ -10,7 +10,6 @@ import {
   renderCommandList,
   renderFlagList,
   resolveSubcommand,
-  type CliFlags,
   type CommandDefinition,
   type FlagDefinition,
   type FlagDefinitions,
@@ -549,10 +548,17 @@ export const globalFlags: FlagDefinitions = {
     placeholder: "<token>",
     description: "Auth token (or set BRAIN_REMOTE_TOKEN)",
   },
+};
+
+/**
+ * Flags only brain commands (not built in) take. Whether one has an effect
+ * depends on the command's tool, so it is checked once the tool is found.
+ */
+export const brainCommandFlags: FlagDefinitions = {
   preview: {
     type: "boolean",
     description:
-      "Use the preview environment (e.g. `brain build --preview`, as `brain build preview`)",
+      "Use the preview environment of a command that has one (e.g. `brain build --preview`, as `brain build preview`)",
   },
 };
 
@@ -602,7 +608,8 @@ export interface CommandFlagScope {
 
 /**
  * Which flags `brain <command> [args]` accepts, derived from the command
- * definitions. A brain command (not built in) accepts only the global flags.
+ * definitions. A brain command (not built in) accepts the global flags and
+ * `brainCommandFlags`.
  * Undefined for a command that passes its flags on unchecked.
  */
 export function commandFlagScope(
@@ -611,11 +618,12 @@ export function commandFlagScope(
 ): CommandFlagScope | undefined {
   const { name } = resolveSubcommand(registry, command, args);
   if (passThroughCommands.has(name)) return undefined;
+  const builtIn = registry.get(name);
   return {
     name,
     flags: [
       ...Object.keys(globalFlags),
-      ...Object.keys(registry.get(name)?.flags ?? {}),
+      ...Object.keys(builtIn ? (builtIn.flags ?? {}) : brainCommandFlags),
     ],
     internal: internalFlags[name] ?? [],
   };
@@ -652,32 +660,11 @@ export async function runCommand(
   if (remote) {
     const url = resolveRemoteUrl(remote);
     const token = resolveToken(getStringFlag(parsed.flags, "token"));
-    return operateRemote(
-      url,
-      parsed.command,
-      parsed.args,
-      brainCommandFlags(parsed.flags),
-      token,
-    );
+    return operateRemote(url, parsed.command, parsed.args, parsed.flags, token);
   }
 
   // Local mode — boot brain, invoke tool
-  return operate(
-    dir,
-    parsed.command,
-    parsed.args,
-    brainCommandFlags(parsed.flags),
-  );
-}
-
-/**
- * The flags a brain command's tool input is matched against, by field name.
- * `--preview` names no field: it asks for the `environment` field's preview,
- * as the positional `brain build preview` does.
- */
-function brainCommandFlags(flags: CliFlags): CliFlags {
-  const { preview, ...rest } = flags;
-  return preview === true ? { ...rest, environment: "preview" } : rest;
+  return operate(dir, parsed.command, parsed.args, parsed.flags);
 }
 
 function providerKeyFlag(provider: KeyProviderId): string {
@@ -746,6 +733,11 @@ async function runHelp(cwd?: string): Promise<CommandResult> {
   }
 
   lines.push("", "Options:", ...renderFlagList(globalFlags));
+  lines.push(
+    "",
+    "Brain command options:",
+    ...renderFlagList(brainCommandFlags),
+  );
   lines.push(...renderCommandFlagSections(commands));
 
   console.log(lines.join("\n"));

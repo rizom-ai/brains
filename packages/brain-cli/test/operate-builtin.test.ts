@@ -88,6 +88,41 @@ describe("operate with the builtin canonical definition", () => {
     expect(build.environment()).toBe("preview");
   });
 
+  it("rejects --preview for a brain command without an environment", async () => {
+    setCanonicalDefinition(definition);
+    let called = false;
+    const statusTool = createTool(
+      "system",
+      "status",
+      "Status",
+      z.object({}),
+      async () => {
+        called = true;
+        return { success: true, data: {} };
+      },
+      { cli: { name: "status" } },
+    );
+    setBootFn(async (): Promise<BootedBrain> => ({
+      getShell: () => ({
+        getMCPService: () => ({
+          getCliTools: () => [{ pluginId: "system", tool: statusTool }],
+          listTools: () => [{ pluginId: "system", tool: statusTool }],
+        }),
+      }),
+    }));
+
+    const result = await runCommand(
+      parseArgs(["status", "--preview"]),
+      testDir,
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain(
+      "Unknown flag --preview for `brain status`",
+    );
+    expect(called).toBe(false);
+  });
+
   it("leaves the environment to the tool without --preview", async () => {
     const build = bootWithBuildTool();
 

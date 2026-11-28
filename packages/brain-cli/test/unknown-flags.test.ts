@@ -114,7 +114,31 @@ describe("global flags", () => {
     for (const name of Object.keys(globalFlags)) {
       expect(() => parseArgs(["build", ...values(name)])).not.toThrow();
     }
+    expect(
+      parseArgs(["status", "--remote", "rover.rizom.ai", "--token", "t"]).flags,
+    ).toMatchObject({ remote: "rover.rizom.ai", token: "t" });
+  });
+});
+
+// Whether a brain command has an environment is known only once its tool is
+// found; the operate tests cover that half.
+describe("--preview", () => {
+  it("is a brain-command flag, not a global one", () => {
+    expect(Object.keys(globalFlags)).not.toContain("preview");
     expect(parseArgs(["build", "--preview"]).flags["preview"]).toBe(true);
+  });
+
+  it("is rejected by every built-in command", () => {
+    for (const command of commands.filter(({ name }) => name !== "eval")) {
+      expect(usageError([command.name, "--preview"])).toContain(
+        `Unknown flag --preview for \`brain ${command.name}\`.`,
+      );
+    }
+  });
+});
+
+describe("brain command flags", () => {
+  it("keep remote and token", () => {
     expect(
       parseArgs(["status", "--remote", "rover.rizom.ai", "--token", "t"]).flags,
     ).toMatchObject({ remote: "rover.rizom.ai", token: "t" });
@@ -181,7 +205,7 @@ describe("cli-reference.md", () => {
     for (const section of sections) {
       // A section without a command documents flags of brain commands.
       const targets =
-        section.commands.length > 0 ? section.commands : [["status"]];
+        section.commands.length > 0 ? section.commands : [["build"]];
       const body = section.lines.join("\n").replace(/`brain [^`]*`/g, "");
       for (const match of body.matchAll(/`(--?[a-zA-Z][^`]*)`/g)) {
         const flag = shellWords(match[1] ?? "");
