@@ -95,7 +95,10 @@ export const post: EntityDefinition<"post", typeof blogPostMetadataSchema> =
           weight: 2.0,
           defaultSort: [{ field: "publishedAt", direction: "desc" }],
           projectionSourceRole: "primary",
-          publish: { publishStatuses: ["queued", "published"] },
+          publish: {
+            publishStatuses: ["queued", "published"],
+            requiredFields: ["excerpt", "author"],
+          },
           // Read by nothing: not the head, the site, nor ATProto.
           retiredFields: ["ogDescription", "twitterCard", "atprotoUri"],
         },

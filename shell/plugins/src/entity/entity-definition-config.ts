@@ -77,7 +77,13 @@ export const entityDefinitionConfigSchema: z.ZodObject<
     consumesSources: FieldNamesSchema;
     requiresGroupingMembership: z.ZodOptional<z.ZodBoolean>;
     publish: z.ZodOptional<
-      z.ZodObject<{ publishStatuses: z.ZodArray<z.ZodString> }, z.core.$strict>
+      z.ZodObject<
+        {
+          publishStatuses: z.ZodArray<z.ZodString>;
+          requiredFields: z.ZodOptional<z.ZodArray<z.ZodString>>;
+        },
+        z.core.$strict
+      >
     >;
   },
   z.core.$strict
@@ -112,7 +118,10 @@ export const entityDefinitionConfigSchema: z.ZodObject<
   consumesSources: fieldNamesSchema,
   requiresGroupingMembership: z.boolean().optional(),
   publish: z
-    .strictObject({ publishStatuses: z.array(z.string().min(1)) })
+    .strictObject({
+      publishStatuses: z.array(z.string().min(1)),
+      requiredFields: z.array(z.string().min(1)).optional(),
+    })
     .optional(),
 } satisfies Record<DeclarableEntityTypeConfigKey, z.ZodType>);
 

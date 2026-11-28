@@ -801,6 +801,11 @@ async function handleListTypes(
         count,
         capabilities,
         collection: collections.has(entityType),
+        ...definedFields({
+          publishRequires:
+            context.entityService.getEntityTypeConfig(entityType).publish
+              ?.requiredFields,
+        }),
         // A container's ids are flat; its folders hold its contents.
         hierarchy: containers.has(entityType)
           ? { ...studioTypeHierarchy(entityType), nested: false }
@@ -997,6 +1002,21 @@ async function handleGetSchema(
             : named,
         ];
       });
+  // A publishable type starts as a draft, and what it needs to publish waits
+  // until then: the publishing plugin refuses to queue it while it is empty.
+  const publish = context.entityService.getEntityTypeConfig(entityType).publish;
+  const neededToPublish = new Set(publish?.requiredFields ?? []);
+  const draftedFields = publish
+    ? domainFields.map((field) =>
+        field.name === "status" &&
+        field.default === undefined &&
+        field.options?.includes("draft")
+          ? { ...field, default: "draft" }
+          : neededToPublish.has(field.name)
+            ? { ...field, required: false, default: field.default ?? "" }
+            : field,
+      )
+    : domainFields;
   const visibilityField = {
     name: "visibility",
     label: "Visibility",
@@ -1012,8 +1032,8 @@ async function handleGetSchema(
   // that silently refuses saves nobody can explain.
   const fields =
     entityType === GROUPING_DEFINITIONS_TYPE
-      ? domainFields
-      : [...domainFields, visibilityField];
+      ? draftedFields
+      : [...draftedFields, visibilityField];
 
   const contributorTypes: Array<{ entityType: string; label: string }> = [];
   // Preserve authored exclusions, but never render registered system types as

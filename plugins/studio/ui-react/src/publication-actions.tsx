@@ -56,6 +56,8 @@ export function PublicationActions(props: {
   title: string;
   status: string;
   unsaved: boolean;
+  /** Fields its type needs to publish that the saved entry leaves empty. */
+  missing?: readonly string[] | undefined;
   onAction: (action: PublishingAction) => Promise<PublishingActionResult>;
 }): ReactElement {
   const [busy, setBusy] = useState<string | null>(null);
@@ -69,6 +71,9 @@ export function PublicationActions(props: {
     entityId: props.entityId,
   };
   const disabled = props.unsaved || busy !== null;
+  // A draft waits for what its type needs before it can go out.
+  const missing = props.status === "draft" ? (props.missing ?? []) : [];
+  const unready = missing.length > 0;
 
   const execute = useCallback(
     async (action: PublishingAction, key: string): Promise<void> => {
@@ -139,13 +144,18 @@ export function PublicationActions(props: {
           Save changes before changing publication state.
         </p>
       )}
+      {unready && (
+        <p {...stylex.props(s.copy, toneText("warn"))}>
+          {publishRequirementText(missing)}
+        </p>
+      )}
       {props.status !== "published" && (
         <div {...stylex.props(s.actions)}>
           <Button
             type="button"
             variant="ghost"
             xstyle={s.button}
-            disabled={disabled}
+            disabled={disabled || unready}
             onClick={() => void execute(lifecycleAction, "lifecycle")}
           >
             {busy === "lifecycle" ? "Working…" : lifecycleLabel}
@@ -153,7 +163,7 @@ export function PublicationActions(props: {
           <Button
             type="button"
             xstyle={[s.button, s.publish]}
-            disabled={disabled}
+            disabled={disabled || unready}
             onClick={() =>
               void execute({ type: "publish", ...target }, "publish")
             }
@@ -186,4 +196,13 @@ export function PublicationActions(props: {
       )}
     </section>
   );
+}
+
+/** "Add excerpt and author before publishing." */
+export function publishRequirementText(missing: readonly string[]): string {
+  const names =
+    missing.length <= 1
+      ? missing.join("")
+      : `${missing.slice(0, -1).join(", ")} and ${missing.at(-1) ?? ""}`;
+  return `Add ${names} before publishing.`;
 }

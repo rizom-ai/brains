@@ -9,6 +9,10 @@ import {
 } from "./schemas/publishable";
 import { preparePublishContent } from "./tools/publish-content";
 import { markEntityPublished } from "./publish-state-updater";
+import {
+  missingPublishFields,
+  publishRequirementMessage,
+} from "./publish-requirements";
 import type { PipelineContext } from "./lib/pipeline-context";
 
 export interface PublishEntityInput {
@@ -90,6 +94,14 @@ export class PublishExecutor implements PublishEntityExecutor {
     if (entity.metadata.status === "published") {
       return { error: "Entity is already published" };
     }
+
+    const missing = missingPublishFields(
+      this.deps.context.entityService.getEntityTypeConfig(entityType).publish
+        ?.requiredFields,
+      entity,
+    );
+    if (missing.length > 0)
+      return { error: publishRequirementMessage(missing) };
 
     if (!this.deps.providerRegistry.has(entityType)) {
       return {

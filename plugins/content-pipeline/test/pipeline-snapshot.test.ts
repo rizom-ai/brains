@@ -447,10 +447,89 @@ describe("publication pipeline snapshot", () => {
         published: 0,
         needsOperator: 0,
       },
+      drafts: [],
       queue: [],
       generating: [],
       failures: [],
+      published: [],
       publishableEntityTypes: [],
     });
+  });
+});
+
+// The board lists the drafts waiting to go out and what went out, not only
+// how many there are.
+describe("the board's drafts and publications", () => {
+  it("lists drafts with what they need, and publications with where they went", async () => {
+    const shell = createMockShell();
+    const context = createServicePluginContext(shell, "content-pipeline");
+    context.entities.register(
+      "post",
+      baseEntitySchema,
+      new FixtureAdapter("post"),
+      {
+        publish: {
+          publishStatuses: ["queued", "published"],
+          requiredFields: ["excerpt"],
+        },
+      },
+    );
+    await addEntity(context, {
+      entityType: "post",
+      id: "older-draft",
+      status: "draft",
+      title: "Older draft",
+      updated: "2026-11-01T00:00:00.000Z",
+    });
+    await addEntity(context, {
+      entityType: "post",
+      id: "newer-draft",
+      status: "draft",
+      title: "Newer draft",
+      updated: "2026-11-20T00:00:00.000Z",
+    });
+    await addEntity(context, {
+      entityType: "post",
+      id: "out",
+      status: "published",
+      title: "Out",
+    });
+    const providers = ProviderRegistry.createFresh();
+    providers.register("post", {
+      name: "site",
+      publish: async () => ({ id: "out" }),
+    });
+
+    const snapshot = await getPublicationPipelineSnapshot(
+      context,
+      providers,
+      QueueManager.createFresh(),
+      RetryTracker.createFresh(),
+    );
+
+    expect(snapshot.drafts).toEqual([
+      {
+        entityId: "newer-draft",
+        entityType: "post",
+        title: "Newer draft",
+        updated: "2026-11-20T00:00:00.000Z",
+        missing: ["excerpt"],
+      },
+      {
+        entityId: "older-draft",
+        entityType: "post",
+        title: "Older draft",
+        updated: "2026-11-01T00:00:00.000Z",
+        missing: ["excerpt"],
+      },
+    ]);
+    expect(snapshot.published).toEqual([
+      {
+        entityId: "out",
+        entityType: "post",
+        title: "Out",
+        destination: "site",
+      },
+    ]);
   });
 });

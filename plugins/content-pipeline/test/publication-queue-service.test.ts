@@ -299,3 +299,62 @@ describe("PublicationQueueService", () => {
     ]);
   });
 });
+
+// What a type needs before it can be published is checked when it is
+// queued, not when it is written: a draft may leave it empty.
+describe("publish requirements", () => {
+  it("refuses to queue an entry missing what its type needs to publish", async () => {
+    const context = createServicePluginContext(
+      createMockShell(),
+      "content-pipeline",
+    );
+    context.entities.register(
+      "post",
+      baseEntitySchema,
+      createTestEntityAdapter("post"),
+      {
+        publish: {
+          publishStatuses: ["queued", "published"],
+          requiredFields: ["excerpt", "author"],
+        },
+      },
+    );
+    await context.entityService.createEntity({
+      entity: {
+        id: "unready",
+        entityType: "post",
+        content: "---\ntitle: Unready\nstatus: draft\n---\n\nBody",
+        metadata: {
+          title: "Unready",
+          status: "draft",
+          excerpt: "",
+          author: "",
+        },
+      },
+    });
+    const service = new PublicationQueueService(
+      context,
+      QueueManager.createFresh(),
+    );
+    expect(service.enqueue("post", "unready")).rejects.toThrow(
+      "Add excerpt and author before publishing.",
+    );
+    const unready = await context.entityService.getEntity({
+      entityType: "post",
+      id: "unready",
+    });
+    if (!unready) throw new Error("The draft was not written");
+    await context.entityService.updateEntity({
+      entity: {
+        ...unready,
+        metadata: {
+          title: "Unready",
+          status: "draft",
+          excerpt: "Ready now.",
+          author: "Alex",
+        },
+      },
+    });
+    expect((await service.enqueue("post", "unready")).position).toBe(1);
+  });
+});

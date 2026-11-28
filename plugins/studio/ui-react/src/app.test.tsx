@@ -1785,6 +1785,22 @@ describe("PublicationActions", () => {
     expect(renderActions("published")).not.toContain("Publish now");
   });
 
+  it("names what a draft still needs before it can be queued or published", () => {
+    const html = renderToStaticMarkup(
+      createElement(PublicationActions, {
+        entityType: "post",
+        entityId: "field-notes",
+        title: "Field notes",
+        status: "draft",
+        unsaved: false,
+        missing: ["excerpt", "author"],
+        onAction: successfulPublishingAction,
+      }),
+    );
+    expect(html).toContain("Add excerpt and author before publishing.");
+    expect(html.match(/<button[^>]*disabled/g)).toHaveLength(2);
+  });
+
   it("keeps publication separate from unsaved editor state", () => {
     const html = renderActions("draft", true);
     expect(html).toContain("Save changes before changing publication state");
