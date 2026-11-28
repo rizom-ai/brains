@@ -70,6 +70,14 @@ describe("unknown flags", () => {
     });
   });
 
+  // No brain command takes an output directory: the site builder writes
+  // where its plugin config says.
+  it("rejects the removed --outputDir", () => {
+    expect(usageError(["build", "--outputDir", "dist"])).toContain(
+      "Unknown flag --outputDir for `brain build`.",
+    );
+  });
+
   it("shows help even next to an unknown flag", () => {
     expect(parseArgs(["start", "--cli", "--help"]).command).toBe("help");
   });

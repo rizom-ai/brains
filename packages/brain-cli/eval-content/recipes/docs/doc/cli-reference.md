@@ -346,11 +346,10 @@ Remote mode applies only to brain-specific commands. Built-in commands such as `
 
 ## Global options
 
-| Flag                | Description                                                                    |
-| ------------------- | ------------------------------------------------------------------------------ |
-| `--help`, `-h`      | Show help                                                                      |
-| `--version`, `-v`   | Show version                                                                   |
-| `--remote <url>`    | Run a brain-specific command against a deployed brain (see above)              |
-| `--token <token>`   | Auth token for `--remote`                                                      |
-| `--preview`         | Passed through to brain-specific commands, for example `brain build --preview` |
-| `--outputDir <dir>` | Passed through to brain-specific commands that write output                    |
+| Flag              | Description                                                                                                                                           |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--help`, `-h`    | Show help                                                                                                                                             |
+| `--version`, `-v` | Show version                                                                                                                                          |
+| `--remote <url>`  | Run a brain-specific command against a deployed brain (see above)                                                                                     |
+| `--token <token>` | Auth token for `--remote`                                                                                                                             |
+| `--preview`       | For a brain-specific command with an environment, use the preview one: `brain build --preview` builds the preview site, as `brain build preview` does |

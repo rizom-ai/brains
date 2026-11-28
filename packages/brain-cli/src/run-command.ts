@@ -10,6 +10,7 @@ import {
   renderCommandList,
   renderFlagList,
   resolveSubcommand,
+  type CliFlags,
   type CommandDefinition,
   type FlagDefinition,
   type FlagDefinitions,
@@ -551,12 +552,7 @@ export const globalFlags: FlagDefinitions = {
   preview: {
     type: "boolean",
     description:
-      "Passed through to brain commands (e.g. `brain build --preview`)",
-  },
-  outputDir: {
-    type: "string",
-    placeholder: "<dir>",
-    description: "Passed through to brain commands that write output",
+      "Use the preview environment (e.g. `brain build --preview`, as `brain build preview`)",
   },
 };
 
@@ -656,11 +652,32 @@ export async function runCommand(
   if (remote) {
     const url = resolveRemoteUrl(remote);
     const token = resolveToken(getStringFlag(parsed.flags, "token"));
-    return operateRemote(url, parsed.command, parsed.args, parsed.flags, token);
+    return operateRemote(
+      url,
+      parsed.command,
+      parsed.args,
+      brainCommandFlags(parsed.flags),
+      token,
+    );
   }
 
   // Local mode — boot brain, invoke tool
-  return operate(dir, parsed.command, parsed.args, parsed.flags);
+  return operate(
+    dir,
+    parsed.command,
+    parsed.args,
+    brainCommandFlags(parsed.flags),
+  );
+}
+
+/**
+ * The flags a brain command's tool input is matched against, by field name.
+ * `--preview` names no field: it asks for the `environment` field's preview,
+ * as the positional `brain build preview` does.
+ */
+function brainCommandFlags(flags: CliFlags): CliFlags {
+  const { preview, ...rest } = flags;
+  return preview === true ? { ...rest, environment: "preview" } : rest;
 }
 
 function providerKeyFlag(provider: KeyProviderId): string {
