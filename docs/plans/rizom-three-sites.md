@@ -4,16 +4,19 @@ Last updated: 2026-11-25
 
 ## Status
 
-**The code for all three sites is written. Nothing is deployed.** Merged:
+**rizom.foundation is live (2026-11-28). The code for all three sites is written.** Merged:
 
 - the story pages fit a phone and the reading thread stays out of the footer on `rizom.ai` ([#1038](https://github.com/rizom-ai/brains/pull/1038));
 - `@rizom/site-rizom-ai` exports the story page, the drawing builder and the shared chrome ([#1039](https://github.com/rizom-ai/brains/pull/1039));
 - `@rizom/site-rizom-foundation`, checked on a running app against the mockups ([#1040](https://github.com/rizom-ai/brains/pull/1040)), with the Foundation's drawing redrawn as the commons and the B.V. left out of its home ([#1045](https://github.com/rizom-ai/brains/pull/1045)); on npm as `0.2.0-alpha.238`;
 - `rizom.ai` can carry the documentation at `/docs`, `/docs/<slug>` and `/guides/<slug>` once its brain has the `docs` and `guides` plugins ([#1042](https://github.com/rizom-ai/brains/pull/1042));
 - `@rizom/site-rizom-work`, checked the same way ([#1041](https://github.com/rizom-ai/brains/pull/1041)); on npm as `0.2.0-alpha.236`;
-- the hub site links `rizom.work` and `rizom.foundation` ([#1043](https://github.com/rizom-ai/brains/pull/1043)).
+- the hub site links `rizom.work` and `rizom.foundation` ([#1043](https://github.com/rizom-ai/brains/pull/1043));
+- `rizom.ai`'s bar and footer link `rizom.foundation`, and it has no `/foundation` page of its own ([#1095](https://github.com/rizom-ai/brains/pull/1095)); not yet deployed to rizom.ai.
 
-Still to do, all of it needing decisions, accounts or a deploy: the ANBI page, the two content repos, the rover-pilot users, certificates, the redirects, the newsletter and the Foundation's ATProto account (Phases 1 and 2); `rizom.ai`'s new home, its bar and footer, the docs plugins on its brain, the docs sync and retiring docs.rizom.ai (Phase 3); and in `rizom-content`, the science sentence and the brand book's "one brain, one site".
+Deployed: the `rizom-foundation` brain at `rizom.foundation` (rover-pilot #368), with content in the private `rizom-ai/rizom-foundation-content`. The zone's old redirect is removed, and `rizom.ai/foundation*` redirects to `rizom.foundation` at Cloudflare.
+
+Still to do, all of it needing decisions, accounts or a deploy: the ANBI page, the newsletter and the Foundation's ATProto account (Phase 1); rizom.work's content repo, rover-pilot user, certificate and redirects (Phase 2); deploying #1095 to rizom.ai; `rizom.ai`'s new home, its bar and footer, the docs plugins on its brain, the docs sync and retiring docs.rizom.ai (Phase 3); and in `rizom-content`, the science sentence and the brand book's "one brain, one site".
 
 The static mockups are the visual and content contract for this plan:
 
