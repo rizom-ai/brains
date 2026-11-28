@@ -118,6 +118,7 @@ function setUpContentPipeline(
   };
 
   subscribeToMessages(runtime, context, {
+    publishExecutor,
     publicationQueueService,
     providerRegistry,
     publishAssetRegistry,

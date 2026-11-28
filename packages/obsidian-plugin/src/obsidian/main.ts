@@ -33,6 +33,7 @@ import { FileListMarks } from "./file-list-marks";
 import { RELATED_VIEW, RelatedView } from "./related-view";
 import {
   CaptureModal,
+  ConfirmModal,
   ConflictModal,
   DeletesModal,
   FilesModal,
@@ -215,6 +216,17 @@ export default class RizomBrainPlugin extends Plugin {
     this.addRibbonIcon("send", "Send a thought to your brain", () =>
       this.capture(""),
     );
+    this.addCommand({
+      id: "publish",
+      name: "Publish this entry",
+      // For an entry in a type's folder: a post, a deck, a project.
+      checkCallback: (checking) => {
+        const file = this.app.workspace.getActiveFile();
+        if (file?.extension !== "md" || !file.path.includes("/")) return false;
+        if (!checking) this.askToPublish(file);
+        return true;
+      },
+    });
     this.addCommand({
       id: "settle-conflicts",
       name: "Compare and settle conflicts",
@@ -599,6 +611,66 @@ export default class RizomBrainPlugin extends Plugin {
           new Notice(`The note could not be made: ${getErrorMessage(error)}`),
       );
     }).open();
+  }
+
+  /** Publishing is public: ask once before the brain is asked. */
+  private askToPublish(file: TFile): void {
+    new ConfirmModal(
+      this.app,
+      {
+        question: `Publish ${file.basename}?`,
+        detail:
+          "Your brain publishes it now, where entries of its kind are published. What you changed here is sent first.",
+        yes: "Publish",
+      },
+      () => void this.publish(file),
+    ).open();
+  }
+
+  /** Ask the brain to publish the entry a file is, and say how it went. */
+  private async publish(file: TFile): Promise<void> {
+    const engine = this.getEngine();
+    if (!engine) {
+      new Notice("Connect to your brain in the Rizom Brain settings first.");
+      return;
+    }
+    const working = new Notice(`Publishing ${file.basename}…`, 0);
+    try {
+      const answer = await this.serially(() => engine.publish(file.path));
+      const said: Record<
+        Exclude<typeof answer.status, "published" | "refused">,
+        string
+      > = {
+        "not-in-brain":
+          "This file is not in your brain, so it cannot be published.",
+        "old-brain":
+          "Your brain is from before it could publish from here. Update it to use this.",
+        offline: "Your brain cannot be reached. Nothing was published.",
+        unavailable:
+          "Your brain cannot publish right now. Nothing was published.",
+        "signed-out":
+          "Your brain did not accept the app password. Connect again in the Rizom Brain settings.",
+      };
+      if (answer.status === "published") {
+        new Notice(
+          `Published ${file.basename}.${answer.url === undefined ? "" : ` It is at ${answer.url}.`}`,
+          10_000,
+        );
+        // The brain marked it published: bring that into the file.
+        void this.syncNow();
+      } else if (answer.status === "refused") {
+        new Notice(
+          `Your brain did not publish ${file.basename}: ${answer.reason}`,
+          0,
+        );
+      } else {
+        new Notice(said[answer.status], 10_000);
+      }
+    } catch (error) {
+      new Notice(`Publishing failed: ${getErrorMessage(error)}`, 10_000);
+    } finally {
+      working.hide();
+    }
   }
 
   /** Open the panel of related entries in the right sidebar. */

@@ -14,6 +14,7 @@ You need a Rizom brain at version 0.2.0-alpha.769 or later with its drive turned
 - A dot beside a file in the file list says it is not in step: colored while it waits to sync, gray when it stays in this vault only, red when it is in conflict or your brain refused it. A file in step has no dot. The dots can be turned off in the settings.
 - The command "Show what your brain relates to this note" opens a side panel listing the entries your brain holds nearest to the open note, linked or not. It needs a brain recent enough to tell, and one that indexes by meaning.
 - "Send a thought to your brain" (a command and a button in the ribbon) and "Send the selection to your brain" make a note of a piece of text at the top of the vault, titled by its first line, and it goes up like any note.
+- "Publish this entry" on a post, deck or project asks your brain to publish it now, after one confirmation. Your brain decides whether it is ready and whether you may; its reason is shown when it says no. It needs a brain recent enough to be asked.
 - A note deleted here is deleted in your brain. Files that went missing some other way, and more than five deletes at once, wait for your yes.
 - The first sync shows what it will download, upload and replace, and starts only when you say so.
 - Your brain's templates, field definitions and table views are written to `_obsidian/`.

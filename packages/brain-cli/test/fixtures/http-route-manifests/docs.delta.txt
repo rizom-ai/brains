@@ -116,6 +116,7 @@
 + webdav|handler|MKCOL|/dav|prefix|true
 + webdav|handler|MOVE|/dav|prefix|true
 + webdav|handler|OPTIONS|/dav|prefix|true
++ webdav|handler|POST|/dav|prefix|true
 + webdav|handler|PROPFIND|/dav|prefix|true
 + webdav|handler|PROPPATCH|/dav|prefix|true
 + webdav|handler|PUT|/dav|prefix|true

@@ -73,6 +73,25 @@ const relatedAnswerSchema: z.ZodObject<{
   indexed: z.boolean().default(true),
 });
 
+const publishedSchema: z.ZodObject<{
+  published: z.ZodLiteral<true>;
+  url: z.ZodOptional<z.ZodString>;
+}> = z.object({
+  published: z.literal(true),
+  /** Where it is published, when the brain says. */
+  url: z.string().optional(),
+});
+
+/** What the brain answered to "publish this". */
+export type PublishOutcome =
+  | { status: "published"; url?: string }
+  /** The brain's own sentence on why not. */
+  | { status: "refused"; reason: string }
+  /** A brain from before it could be asked. */
+  | { status: "unsupported" }
+  /** Nothing that could be read as an answer. */
+  | { status: "unavailable" };
+
 /** The app password is wrong, revoked or expired. */
 export class DriveAuthError extends Error {
   constructor() {
@@ -335,6 +354,29 @@ export class DriveClient {
     const parsed = relatedAnswerSchema.safeParse(jsonOf(textOf(response.body)));
     if (!parsed.success) return undefined;
     return parsed.data.indexed ? parsed.data.related : "unindexed";
+  }
+
+  /** Ask the brain to publish the entry a file is, now. */
+  async publish(path: string): Promise<PublishOutcome> {
+    const response = await this.send(
+      "POST",
+      ".brain/publish",
+      { "Content-Type": "application/json" },
+      bytesOf(JSON.stringify({ path })),
+    );
+    if (response.status === 404 || response.status === 405) {
+      return { status: "unsupported" };
+    }
+    if (response.status === 200) {
+      const parsed = publishedSchema.safeParse(jsonOf(textOf(response.body)));
+      if (!parsed.success) return { status: "unavailable" };
+      const { url } = parsed.data;
+      return { status: "published", ...(url !== undefined && { url }) };
+    }
+    const reason = textOf(response.body).trim();
+    return response.status < 500 && reason !== ""
+      ? { status: "refused", reason }
+      : { status: "unavailable" };
   }
 
   /**

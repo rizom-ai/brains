@@ -90,6 +90,7 @@ describe("the WebDAV plugin's registered surface", () => {
         "GET",
         "HEAD",
         "PROPFIND",
+        "POST",
         "PUT",
         "DELETE",
         "MOVE",

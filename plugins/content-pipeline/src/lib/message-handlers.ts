@@ -5,12 +5,17 @@ import {
   publishCompletedChannel,
   publishFailedChannel,
   publishRegisterContract,
+  publishRequestContract,
+  SdkError,
+  type PublishRequest,
+  type PublishRequestResponse,
   type GenerateReportFailurePayload,
   type GenerateReportSuccessPayload,
   type PublishAssetDefinition,
 } from "@brains/contracts";
 import type { z } from "@brains/utils/zod";
 import { getErrorMessage } from "@brains/utils/error";
+import { truncateText } from "@brains/utils/string-utils";
 import {
   entityCreatedChannel,
   entityUpdatedChannel,
@@ -20,6 +25,7 @@ import {
 import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
 import type { Logger } from "@brains/utils/logger";
 import type { PublicationQueueService } from "../publication-queue-service";
+import type { PublishEntityExecutor } from "../publish-executor";
 import {
   publishableMetadataSchema,
   type PublishableMetadata,
@@ -33,6 +39,7 @@ import type { PipelineContext } from "./pipeline-context";
 export type PipelineBus = Pick<ServiceRuntime, "answer" | "listen">;
 
 export interface MessageHandlerDeps {
+  publishExecutor: PublishEntityExecutor;
   publicationQueueService: PublicationQueueService;
   providerRegistry: ProviderRegistry;
   publishAssetRegistry: PublishAssetRegistry;
@@ -48,18 +55,62 @@ export function subscribeToMessages(
   context: PipelineContext,
   deps: MessageHandlerDeps,
 ): void {
-  subscribeToPublishMessages(bus, deps);
+  subscribeToPublishMessages(bus, context, deps);
   subscribeToGenerationMessages(bus, deps);
   subscribeToPublishAssetMessages(bus, deps);
   subscribeToEntityChangeMessages(bus, context, deps);
 }
 
+/**
+ * Publish an entry now for a person who chose to, somewhere that asked them
+ * itself. What may be published and by whom is decided here, as for the
+ * publish action; why not, when not, is the person's to read.
+ */
+async function handlePublishRequest(
+  context: PipelineContext,
+  deps: MessageHandlerDeps,
+  request: PublishRequest,
+): Promise<PublishRequestResponse> {
+  const refused = (reason: string, cause?: unknown): SdkError =>
+    new SdkError("conflict", {
+      publicMessage: truncateText(reason, 300),
+      cause,
+    });
+  try {
+    context.permissions.assertEntityActionAllowed(
+      request.entityType,
+      "publish",
+      { userPermissionLevel: request.permissionLevel },
+    );
+  } catch (error) {
+    throw new SdkError("permission_denied", {
+      publicMessage: truncateText(
+        getErrorMessage(error, "You may not publish this"),
+        300,
+      ),
+      cause: error,
+    });
+  }
+  const outcome = await deps.publishExecutor
+    .publish({ entityType: request.entityType, id: request.id })
+    .catch((error: unknown) => {
+      throw refused(getErrorMessage(error, "It could not be published"), error);
+    });
+  if ("error" in outcome) throw refused(outcome.error);
+  const { url } = outcome.result;
+  return { published: true, ...(url !== undefined && { url }) };
+}
+
 function subscribeToPublishMessages(
   bus: PipelineBus,
+  context: PipelineContext,
   deps: MessageHandlerDeps,
 ): void {
   bus.answer(publishRegisterContract, async ({ request }) =>
     handleRegister(deps, request),
+  );
+  bus.answer(publishRequestContract, async ({ request }) =>
+    handlePublishRequest(context, deps, request),
   );
 
   bus.listen(

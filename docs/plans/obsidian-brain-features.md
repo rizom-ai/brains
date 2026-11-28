@@ -22,7 +22,7 @@ Five things, each usable on its own:
 1. **File marks.** Each file in Obsidian's file list shows whether it is in step, waiting, kept local, or in conflict.
 2. **Related notes.** A side panel lists the brain's entries nearest to the open note, linked or not. Choosing one opens its file.
 3. **Quick capture.** A command sends a selection or a line of text to the brain as a note; a link is captured as a link entry the brain fetches and describes.
-4. **Publish.** A command publishes or unpublishes the open post, deck or project, the way Studio's publish does, and its state shows in the file's mark.
+4. **Publish.** A command publishes the open post, deck or project, after one confirmation, with what the publish action of `publishing_manage` does once confirmed.
 5. **Ask your brain.** A side panel takes a question and shows the brain's answer with its sources; a source opens its file in the vault. A question can be about the open note.
 
 ## Non-goals
@@ -42,11 +42,11 @@ The plugin's calls stay on the drive, under `/dav/.brain/`, authenticated by the
 
 This widens what an app password can do: it could already read and write every file its person may; it can now also ask the agent, which reads the same entries. It cannot make the agent act.
 
-| Call                                                   | What it does                               | Brain side                                                                                                                                               |
-| ------------------------------------------------------ | ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET .brain/related?path=…&limit=…`                    | the entries nearest to the entry at a path | `entityReads.nearestToEntity`, scoped; each result as its drive path and title                                                                           |
-| `POST .brain/publish` `{ path, action }`               | publish or unpublish an entry              | a new contract `publish:request` in `@brains/contracts`, answered by `plugins/content-pipeline` with the checks and announcements of `publishing_manage` |
-| `POST .brain/ask` `{ question, path?, conversation? }` | one turn, answered with text and sources   | a new contract `agent:ask` in `@brains/contracts`, answered by `interfaces/web-chat`, which runs `agent.chat` as that person, read-only                  |
+| Call                                                   | What it does                               | Brain side                                                                                                                                       |
+| ------------------------------------------------------ | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `GET .brain/related?path=…&limit=…`                    | the entries nearest to the entry at a path | `entityReads.nearestToEntity`, scoped; each result as its drive path and title                                                                   |
+| `POST .brain/publish` `{ path }`                       | publish an entry now                       | a new contract `publish:request` in `@brains/contracts`, answered by `plugins/content-pipeline` with the checks of `publishing_manage`'s publish |
+| `POST .brain/ask` `{ question, path?, conversation? }` | one turn, answered with text and sources   | a new contract `agent:ask` in `@brains/contracts`, answered by `interfaces/web-chat`, which runs `agent.chat` as that person, read-only          |
 
 A brain without a call answers 404 or 405. The plugin then shows that feature as needing a newer brain, once, and leaves the rest working; a feature is never half-shown.
 
@@ -65,7 +65,7 @@ A view in the right sidebar. When the open file is a synced entry, the plugin as
 
 ### Publish
 
-The command "Publish" on a post, deck or project calls `.brain/publish`; "Unpublish" calls it with the other action. The brain runs what `publishing_manage`'s publish runs: the entry must be public and complete, the person must hold the publish permission, the provider publishes, the entry is marked, and `publish:completed` is announced, so a newsletter or an external provider follows as from Studio. The refusal, when there is one, is the brain's sentence, shown as a notice. The changed file comes back through the change feed.
+The command "Publish this entry" on a post, deck or project asks once, sends what changed in the file, and calls `.brain/publish`. The brain runs what `publishing_manage`'s publish runs once confirmed: the person must hold the publish permission, the entry must be public, complete and not yet published, and its provider publishes it. The refusal, when there is one, is the brain's sentence, shown as a notice. The changed file comes back with the sync that follows. There is no unpublish: the brain has no such action, and setting `status:` back by hand works as it does today.
 
 Editing `status:` by hand keeps working as it does today.
 
@@ -86,7 +86,7 @@ Each phase ships on its own, tests first, as one pull request with a plugin rele
 1. **File marks.** Plugin only.
 2. **Related notes.** The drive's `related` call; the panel.
 3. **Quick capture.** Text capture, plugin only. Link capture moves to phase 5.
-4. **Publish.** The `publish:request` contract answered by content-pipeline; the drive's `publish` call; the commands and the mark.
+4. **Publish.** The `publish:request` contract answered by content-pipeline; the drive's `publish` call; the command.
 5. **Ask.** The `agent:ask` contract answered by Web Chat; the drive's `ask` call; the panel; link capture through it.
 
 ## Open points

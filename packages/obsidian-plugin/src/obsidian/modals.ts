@@ -377,3 +377,45 @@ export class CaptureModal extends Modal {
     this.contentEl.empty();
   }
 }
+
+/** One question with one way to say yes; closing says no. */
+export class ConfirmModal extends Modal {
+  private readonly question: string;
+  private readonly detail: string;
+  private readonly yes: string;
+  private readonly onYes: () => void;
+
+  constructor(
+    app: App,
+    ask: { question: string; detail: string; yes: string },
+    onYes: () => void,
+  ) {
+    super(app);
+    this.question = ask.question;
+    this.detail = ask.detail;
+    this.yes = ask.yes;
+    this.onYes = onYes;
+  }
+
+  override onOpen(): void {
+    this.setTitle(this.question);
+    this.contentEl.createEl("p", { text: this.detail });
+    new Setting(this.contentEl)
+      .addButton((button) =>
+        button.setButtonText("Cancel").onClick(() => this.close()),
+      )
+      .addButton((button) =>
+        button
+          .setButtonText(this.yes)
+          .setCta()
+          .onClick(() => {
+            this.close();
+            this.onYes();
+          }),
+      );
+  }
+
+  override onClose(): void {
+    this.contentEl.empty();
+  }
+}

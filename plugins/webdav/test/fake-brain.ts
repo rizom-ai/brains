@@ -1,5 +1,6 @@
 import { memoryKeptStore } from "../src/dav-kept";
 import type {
+  PublishRequest,
   RecordConflictRequest,
   ResolveConflictRequest,
 } from "@brains/contracts";
@@ -66,11 +67,18 @@ export interface FakeBrain {
     | "recordConflict"
     | "conflictPending"
     | "resolveConflict"
+    | "publish"
     | "shapes"
     | "changes"
   >;
   /** Losing saves the drive handed over to be kept. */
   conflicts: RecordConflictRequest[];
+  /** What the drive asked the publishing pipeline to publish. */
+  publishAsked: PublishRequest[];
+  /** Why the pipeline refuses to publish, when it does. */
+  publishRefusal: string | undefined;
+  /** Whether a publishing pipeline runs on this brain. */
+  publishingAvailable: boolean;
   /** What the drive asked the conflict service to settle. */
   settled: ResolveConflictRequest[];
   /** Why the conflict service refuses to settle, when it does. */
@@ -152,6 +160,9 @@ export function fakeBrain(
     audit: [],
     beforeNextUpdate: undefined,
     nearest,
+    publishAsked: [],
+    publishRefusal: undefined,
+    publishingAvailable: true,
     conflicts: [],
     settled: [],
     settleRefusal: undefined,
@@ -173,6 +184,13 @@ export function fakeBrain(
       },
       conflictPending: async (conflictId): Promise<boolean> =>
         !resolved.has(conflictId),
+      publish: async (request) => {
+        if (!brain.publishingAvailable) return undefined;
+        brain.publishAsked.push(request);
+        return brain.publishRefusal === undefined
+          ? { published: true, url: `https://example.com/${request.id}` }
+          : { message: brain.publishRefusal };
+      },
       resolveConflict: async (request) => {
         if (!brain.conflictsAvailable) return undefined;
         brain.settled.push(request);
