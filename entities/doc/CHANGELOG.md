@@ -1,5 +1,16 @@
 # @brains/doc
 
+## 0.2.0-alpha.804
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.804
+  - @rizom/brain-ui@0.2.0-alpha.804
+  - @brains/atproto-contracts@0.2.0-alpha.804
+  - @brains/docs-chrome@0.2.0-alpha.804
+  - @brains/utils@0.2.0-alpha.804
+
 ## 0.2.0-alpha.803
 
 ### Patch Changes

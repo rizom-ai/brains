@@ -1,5 +1,17 @@
 # @brains/site-engine
 
+## 0.2.0-alpha.804
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @rizom/brain-ui@0.2.0-alpha.804
+  - @brains/contracts@0.2.0-alpha.804
+  - @brains/image@0.2.0-alpha.804
+  - @brains/site-composition@0.2.0-alpha.804
+  - @brains/utils@0.2.0-alpha.804
+  - @brains/entity-service@0.2.0-alpha.804
+
 ## 0.2.0-alpha.803
 
 ### Patch Changes
