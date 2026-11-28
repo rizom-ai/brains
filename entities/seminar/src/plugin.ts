@@ -29,7 +29,12 @@ import {
 } from "./handlers/seminar-redo-handler";
 import { seminarAskDataSource } from "./datasources/seminar-ask-datasource";
 import { seminarDataSource } from "./datasources/seminar-datasource";
-import { modelChair } from "./lib/chair";
+import { modelChair, type ChairNote } from "./lib/chair";
+import {
+  CHAIR_NOTE_LIMIT,
+  NOTE_ENTITY_TYPE,
+  chairNoteOf,
+} from "./lib/chair-notes";
 import { getTemplates } from "./lib/register-templates";
 import { seminarSchema } from "./schemas/seminar";
 import { seminar } from "./seminar-entity";
@@ -80,6 +85,16 @@ function turnDeps(
     chair: modelChair(runtime.ai, config.guidance),
     warn: (message, error): void => {
       runtime.logger.warn(message, { error: getErrorMessage(error) });
+    },
+    // The public notes nearest the question: a seminar is published, so its
+    // chair draws on nothing the brain keeps to itself.
+    notes: async (question): Promise<ChairNote[]> => {
+      if (!runtime.entityReads.hasEntityType(NOTE_ENTITY_TYPE)) return [];
+      const found = await runtime.entityReads.search({
+        query: question,
+        options: { types: [NOTE_ENTITY_TYPE], limit: CHAIR_NOTE_LIMIT },
+      });
+      return found.map(({ entity }) => chairNoteOf(entity));
     },
     // A turn goes out through the A2A interface, which owns the contract:
     // saved, approved peers only, one attempt, within the turn budget.

@@ -49,17 +49,21 @@ interface Room {
   asked: Array<{ agent: string; message: string }>;
   chaired: string[];
   stored: Array<{ content: string; metadata: Record<string, unknown> }>;
+  /** The titles of the notes the chair was given. */
+  read: string[];
 }
 
 function room(
   options: {
     answer?: (agent: string, message: string) => A2APeerAnswer;
     challenge?: () => Promise<ChairChallenge>;
+    notes?: SeminarHoldDeps["notes"];
   } = {},
 ): Room {
   const asked: Room["asked"] = [];
   const chaired: string[] = [];
   const stored: Room["stored"] = [];
+  const read: string[] = [];
   const reply = (response: string): A2APeerAnswer => ({
     state: "completed",
     response,
@@ -69,6 +73,7 @@ function room(
     asked,
     chaired,
     stored,
+    read,
     deps: {
       peers: async (): Promise<SeminarPeer[]> => peers,
       askTurn: async (agent, message): Promise<A2APeerAnswer> => {
@@ -84,6 +89,7 @@ function room(
           chaired.push(
             `challenge:${input.openings.map(({ agent }) => agent).join(",")}`,
           );
+          read.push(...(input.notes ?? []).map(({ title }) => title));
           return (
             options.challenge ??
             (async (): Promise<ChairChallenge> => challenge)
@@ -101,6 +107,7 @@ function room(
           throw new Error("no closing in this test");
         },
       },
+      ...(options.notes ? { notes: options.notes } : {}),
       exists: async () => false,
       create: async (seminar): Promise<string> => {
         stored.push(seminar);
@@ -143,6 +150,30 @@ describe("a seminar as an exchange", () => {
       "challenge:friedrich.example,karl.example,sigmund.example",
       "rejoinder:friedrich.example<-karl.example,sigmund.example",
     ]);
+  });
+
+  it("gives the chair the brain's notes on the question before it decides who stands", async () => {
+    const asked: string[] = [];
+    const { read } = await held({
+      notes: async (question) => {
+        asked.push(question);
+        return [{ title: "Religion", text: "An answer to something else." }];
+      },
+    });
+
+    expect(asked).toEqual([QUESTION]);
+    expect(read).toEqual(["Religion"]);
+  });
+
+  it("holds the exchange without notes when the brain's notes cannot be read", async () => {
+    const { turns, read } = await held({
+      notes: async () => {
+        throw new Error("search is down");
+      },
+    });
+
+    expect(read).toEqual([]);
+    expect(turns).toHaveLength(10);
   });
 
   it("keeps the chair's reading and every follow-up as the chair wrote them", async () => {

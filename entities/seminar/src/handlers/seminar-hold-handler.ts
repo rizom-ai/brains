@@ -13,6 +13,7 @@ import { z } from "@brains/utils/zod";
 import {
   checkedChallenge,
   checkedClosing,
+  type ChairNote,
   type ChairReading,
   type SeminarChair,
 } from "../lib/chair";
@@ -61,6 +62,8 @@ export interface SeminarTurnDeps {
   askTurn(agent: string, message: string): Promise<A2APeerAnswer>;
   /** The chair's own turns, written by this brain. */
   chair: SeminarChair;
+  /** The brain's own notes that bear on a question, nearest first. */
+  notes?(question: string): Promise<ChairNote[]>;
   /**
    * Why a step of the chair's failed, for the job's log: the seminar itself
    * says only that it did.
@@ -136,6 +139,9 @@ const CHAIR_NAME = "Chair";
 /** What a failed chair's turn says; its diagnostic stays in the job's log. */
 export const CHAIR_FAILED = "The chair could not take its turn";
 
+/** What the job's log says when the brain's notes could not be read. */
+export const NOTES_UNREAD = "The chair could not read the brain's notes";
+
 /** What a redo of the closing says when the chair writes none. */
 export const CLOSING_FAILED = "The chair could not write the closing";
 
@@ -181,11 +187,20 @@ export async function exchange(
   });
 
   const read = participants.map(reading);
+  // The notes are background: a seminar is held without them when they
+  // cannot be read.
+  const notes = await (
+    deps.notes?.(data.question) ?? Promise.resolve([])
+  ).catch((error: unknown) => {
+    deps.warn?.(NOTES_UNREAD, error);
+    return [];
+  });
   const challenge = await deps.chair
     .challenge({
       question: data.question,
       language: data.language,
       openings: read,
+      notes,
     })
     .then((taken) => checkedChallenge(taken, read))
     .catch((error: unknown) => {
