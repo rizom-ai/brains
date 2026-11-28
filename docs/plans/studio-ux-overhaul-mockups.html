@@ -1101,6 +1101,94 @@
         gap: 8px;
       }
 
+      /* asking about a selection */
+      .sel {
+        background: var(--brain-soft);
+        box-shadow: 0 0 0 2px var(--brain-soft);
+        border-radius: 3px;
+      }
+      .ctx .clear {
+        margin-left: 2px;
+        opacity: 0.7;
+      }
+      .who-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 18px;
+        border-bottom: 1px solid var(--rule);
+        font-size: 12px;
+        color: var(--ink-subtle);
+      }
+      .who-pick {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border: 1px solid var(--rule);
+        border-radius: 999px;
+        padding: 3px 10px;
+        background: var(--paper);
+        color: var(--ink);
+        font-size: 12.5px;
+      }
+      .who-pick .caret {
+        opacity: 0.6;
+      }
+      #ask-selection .dock {
+        position: relative;
+      }
+      .menu-pop {
+        position: absolute;
+        top: 100px;
+        left: 70px;
+        z-index: 2;
+        width: 240px;
+        border: 1px solid var(--rule);
+        border-radius: 12px;
+        background: var(--paper);
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+        padding: 6px;
+        font-size: 13px;
+      }
+      .menu-pop div {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 10px;
+        border-radius: 8px;
+      }
+      .menu-pop div.on {
+        background: var(--paper-muted);
+      }
+      .menu-pop small {
+        margin-left: auto;
+        color: var(--ink-subtle);
+        font-size: 11.5px;
+      }
+      .quote-sel {
+        font: 400 14px/1.5 var(--display);
+        color: var(--ink-subtle);
+        border-left: 2px solid var(--brain-soft);
+        padding-left: 10px;
+        margin: 0 0 6px;
+      }
+      .msg-peer .who {
+        color: var(--ink);
+      }
+      .starters {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        margin: 0 14px 8px;
+      }
+      .starters span {
+        font-size: 12.5px;
+        border: 1px solid var(--rule);
+        border-radius: 999px;
+        padding: 3px 10px;
+        background: var(--paper);
+      }
+
       /* ---------- list ---------- */
       .listhead {
         display: flex;
@@ -1776,6 +1864,7 @@
         <a href="#write">Writing</a>
         <a href="#create">New post</a>
         <a href="#ask">Asking while writing</a>
+        <a href="#ask-selection">Asking about a selection</a>
         <a href="#list">Posts</a>
         <a href="#palette">⌘K</a>
         <a href="#publish">Publish</a>
@@ -2745,6 +2834,250 @@
                 </div>
                 <div class="dock-compose">
                   Ask about this post…<button
+                    class="iconbtn"
+                    type="button"
+                    style="
+                      margin-left: auto;
+                      background: var(--brain);
+                      color: var(--on-accent);
+                      width: 28px;
+                      height: 28px;
+                    "
+                    aria-label="Send"
+                  >
+                    <svg class="i" style="width: 15px">
+                      <use href="#i-send" />
+                    </svg>
+                  </button>
+                </div>
+              </aside>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= ASK ABOUT A SELECTION ================= -->
+    <section class="screen" id="ask-selection">
+      <div class="screen-caption">
+        <div>
+          <h2>Asking about a selection</h2>
+          <p class="replaces">
+            Replaces the rewrite bar above the body, and its Model / brain
+            picker.
+          </p>
+        </div>
+        <ul>
+          <li>
+            Select text and press Ask (⌘J): the panel is about the selection.
+            Clearing it goes back to the whole post.
+          </li>
+          <li>
+            Who to ask sits in the panel: your brain, or a brain you are
+            connected to. A connected brain answers from what it has published.
+          </li>
+          <li>
+            Review, Fact-check, Related and Rewrite are starters, as the bar's
+            presets were.
+          </li>
+          <li>
+            A rewrite comes back as a proposal: Replace selection puts it in the
+            draft, and nothing is saved until you save.
+          </li>
+        </ul>
+      </div>
+      <div class="stage">
+        <div class="app">
+          <nav class="rail" aria-label="Studio">
+            <span class="mark">A</span>
+            <a
+              ><svg class="i"><use href="#i-home" /></svg
+              ><span class="light accent"></span
+            ></a>
+            <a class="on"
+              ><svg class="i"><use href="#i-library" /></svg
+            ></a>
+            <a
+              ><svg class="i"><use href="#i-publish" /></svg
+              ><span class="light err"></span
+            ></a>
+            <a
+              ><svg class="i"><use href="#i-chat" /></svg
+            ></a>
+            <a
+              ><svg class="i"><use href="#i-brain" /></svg
+            ></a>
+          </nav>
+          <div class="ed">
+            <div class="edbar">
+              <span class="back"
+                ><svg class="i"><use href="#i-back" /></svg>Posts</span
+              >
+              <div class="lights" aria-label="Publishing path">
+                <span class="step now"
+                  ><span class="light accent"></span>Draft</span
+                ><span class="wire"></span>
+                <span class="step"
+                  ><span class="light hollow"></span>Queued</span
+                ><span class="wire"></span>
+                <span class="step"
+                  ><span class="light hollow"></span>Published</span
+                >
+              </div>
+              <span class="saved">Unsaved changes</span>
+              <button
+                class="btn brain sm"
+                type="button"
+                aria-pressed="true"
+                style="box-shadow: inset 0 0 0 1px var(--brain)"
+              >
+                <svg class="i" style="width: 15px">
+                  <use href="#i-sparkle" /></svg
+                >Ask
+              </button>
+              <button class="iconbtn" type="button" aria-label="Details">
+                <svg class="i"><use href="#i-panel" /></svg>
+              </button>
+              <button class="btn primary" type="button">Save</button>
+            </div>
+            <div class="edbody">
+              <div class="manuscript" style="padding-left: 20px">
+                <div class="ms" style="width: 600px">
+                  <div class="kind">
+                    <svg class="i" style="width: 15px">
+                      <use href="#i-post" /></svg
+                    >Post in Urban systems
+                  </div>
+                  <h4>Urban Sensing Networks and the Data Commons</h4>
+                  <p>
+                    Cities are filling up with sensors: air quality on
+                    lampposts, footfall counters at station exits, noise meters
+                    on school roofs. Almost none of that data is shared with the
+                    people who live next to the sensors.
+                  </p>
+                  <p>
+                    <span class="sel"
+                      >The usual reason given is privacy. The real reason is
+                      that nobody designed for sharing, so the default became
+                      hoarding.</span
+                    >
+                  </p>
+                  <h5>What a commons needs</h5>
+                  <p>
+                    A data commons is not an open-data portal. It needs three
+                    things a portal doesn't have: a verifiable record of where
+                    each reading came from, rules the community can change, and
+                    someone accountable for upkeep.
+                  </p>
+                </div>
+                <div class="fade"></div>
+              </div>
+              <aside class="dock" aria-label="Ask">
+                <div class="dock-head">
+                  <b>Ask</b
+                  ><span class="ctx"
+                    >About the selection<span
+                      class="clear"
+                      aria-label="Ask about the whole post"
+                      >×</span
+                    ></span
+                  >
+                  <button
+                    class="iconbtn"
+                    type="button"
+                    style="margin-left: auto"
+                    aria-label="Close"
+                  >
+                    <svg class="i"><use href="#i-x" /></svg>
+                  </button>
+                </div>
+                <div class="who-row">
+                  Asking
+                  <span class="who-pick"
+                    ><span
+                      class="light"
+                      style="width: 7px; height: 7px; background: var(--ink)"
+                    ></span
+                    >City Pulse<span class="caret">▾</span></span
+                  >
+                </div>
+                <div class="menu-pop" role="listbox" aria-label="Who to ask">
+                  <div>
+                    <span
+                      class="light brain"
+                      style="width: 7px; height: 7px"
+                    ></span
+                    >Your brain<small>rewrites and answers</small>
+                  </div>
+                  <div class="on">
+                    <span
+                      class="light"
+                      style="width: 7px; height: 7px; background: var(--ink)"
+                    ></span
+                    >City Pulse<small>connected</small>
+                  </div>
+                  <div>
+                    <span
+                      class="light"
+                      style="width: 7px; height: 7px; background: var(--ink)"
+                    ></span
+                    >Commons Lab<small>connected</small>
+                  </div>
+                </div>
+                <div class="thread">
+                  <div class="msg-you">Make the claim sharper.</div>
+                  <div class="msg-brain">
+                    <div class="who">
+                      <span
+                        class="light brain"
+                        style="width: 7px; height: 7px"
+                      ></span
+                      >Your brain
+                    </div>
+                    <div class="proposal">
+                      <small>Selection</small>
+                      <q
+                        >Privacy is the reason given. The reason that holds is
+                        simpler: nobody designed for sharing, so hoarding became
+                        the default.</q
+                      >
+                      <div class="row">
+                        <button class="btn sm primary" type="button">
+                          Replace selection</button
+                        ><button class="btn sm quiet" type="button">
+                          Try another
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="msg-you">Fact-check this selection.</div>
+                  <div class="msg-brain msg-peer">
+                    <div class="who">
+                      <span
+                        class="light"
+                        style="width: 7px; height: 7px; background: var(--ink)"
+                      ></span
+                      >City Pulse
+                    </div>
+                    <p>
+                      Partly: in the cities City Pulse works with, contracts
+                      blocked sharing more often than privacy review did.
+                    </p>
+                    <div class="sources">
+                      <span class="chip"
+                        ><svg class="i" style="width: 13px">
+                          <use href="#i-note" /></svg
+                        >Sensor contracts, 2025 · City Pulse</span
+                      >
+                    </div>
+                  </div>
+                </div>
+                <div class="starters" aria-label="Starters">
+                  <span>Review</span><span>Fact-check</span><span>Related</span
+                  ><span>Rewrite</span>
+                </div>
+                <div class="dock-compose">
+                  Ask City Pulse about the selection…<button
                     class="iconbtn"
                     type="button"
                     style="

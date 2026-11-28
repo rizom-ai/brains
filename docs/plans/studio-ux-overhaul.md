@@ -177,7 +177,8 @@ The operator jobs Studio should be organized around are:
 - Add a **docked Chat panel** that can be opened from any page (⌘J) and carries the current context ("About: Event Sourcing for Sustainability Metrics"). The full-page Chat stays for long sessions.
 - Turn entity mentions in answers into links that open the entry, and show sources inline as chips.
 - Fill the empty state with starter actions drawn from installed capabilities (summarize this week's inbox, draft a post from my notes on X, what did I publish last month).
-- Offer "Apply to document" when an answer proposes text for the open entry, going through the existing approval flow.
+- Offer "Apply to field" when an answer proposes text for the open entry. It puts the text in the open draft, and nothing is stored until the entry is saved.
+- Fold the editor's selection bar into the panel (mockup: "Asking about a selection"). A selection becomes what the panel is about, who to ask (this brain or a connected brain) is picked in the panel, the bar's presets become starters, and a rewrite comes back as a proposal with Replace selection. The bar above the body goes.
 
 ### 8. The palette and language
 
