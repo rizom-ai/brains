@@ -59,7 +59,7 @@ import {
   verifyDisabledPrimaries,
   verifyRecordTypography,
   verifyStudioKeyboardAccess,
-  verifyStudioMobileSwitcher,
+  verifyStudioTabBar,
   verifyStudioProfileNavigation,
 } from "./console-visual/studio-checks";
 import {
@@ -110,7 +110,7 @@ async function exerciseSurface(
     viewport.width <= 640 &&
     climate === "instrument"
   )
-    await verifyStudioMobileSwitcher(page);
+    await verifyStudioTabBar(page);
   if (surface.startsWith("studio-chat")) await exerciseStudioChat(visualCase);
   if (plan.isDashboard) await exerciseDashboard(visualCase);
   if (surface === "studio-library") await exerciseStudioLibrary(visualCase);

@@ -145,100 +145,55 @@ export async function verifyRecordTypography(page: Bun.WebView): Promise<void> {
     throw new Error(`Record hierarchy mismatch: ${failures.join("; ")}`);
 }
 
-export async function verifyStudioMobileSwitcher(
-  page: Bun.WebView,
-): Promise<void> {
+/**
+ * On a phone the sections are a tab bar along the bottom: it sits on the
+ * screen's edge, the page above keeps clear of it, a tab opens its section,
+ * and the tab of the section you are in opens that section's other pages.
+ */
+export async function verifyStudioTabBar(page: Bun.WebView): Promise<void> {
   const originalPath = await page.evaluate<string>("location.pathname");
-  await clickSelector(page, ".studio-mobile-switcher");
-  await waitForSelector(page, ".studio-mobile-navigation-sheet");
-  const expanded = await page.evaluate<boolean>(
-    'document.querySelector(".studio-mobile-switcher")?.getAttribute("aria-expanded") === "true"',
-  );
-  if (!expanded) throw new Error("Studio phone context picker did not open");
-  const browseLayout = await evaluatePage(page, () => {
-    const sheet = document.querySelector(".studio-mobile-navigation-sheet");
-    const header = document.querySelector(".studio-chrome");
-    if (!(sheet instanceof HTMLElement) || !(header instanceof HTMLElement))
-      return false;
-    const bounds = sheet.getBoundingClientRect();
-    return (
-      Math.abs(bounds.top - header.getBoundingClientRect().bottom) <= 1 &&
-      Math.abs(bounds.bottom - window.innerHeight) <= 1 &&
-      // Home, Library, Publish and Brain fold; Chat is one page.
-      sheet.querySelectorAll("details").length === 4 &&
-      !sheet.querySelector(".studio-mobile-navigation-dock") &&
-      ["Chat"].every((label) =>
-        Array.from(
-          sheet.querySelectorAll("section .studio-mobile-navigation-link"),
-        ).some((link) => link.getAttribute("aria-label") === label),
-      ) &&
-      !Array.from(
-        sheet.querySelectorAll("button, .studio-mobile-navigation-link"),
-      ).some((control) => control.textContent.trim() === "Account")
-    );
+  await waitForSelector(page, "[data-studio-tab-bar]");
+  const layout = await evaluatePage(page, () => {
+    const bar = document.querySelector("[data-studio-tab-bar]");
+    const frame = document.querySelector("[data-studio-shell]");
+    if (!(bar instanceof HTMLElement) || !(frame instanceof HTMLElement))
+      return "bar or frame missing";
+    const bounds = bar.getBoundingClientRect();
+    if (Math.abs(bounds.bottom - window.innerHeight) > 1)
+      return `bar ends at ${bounds.bottom}, not the screen's edge`;
+    if (parseFloat(getComputedStyle(frame).paddingBottom) < bounds.height - 1)
+      return "the page runs under the bar";
+    const tabs = Array.from(bar.querySelectorAll("[data-studio-tab]"));
+    if (tabs.length < 2 || tabs.length > 5) return `${tabs.length} tabs`;
+    if (tabs.some((tab) => tab.getBoundingClientRect().height < 44))
+      return "a tab is below the touch size";
+    const current = bar.querySelector('[aria-current="page"]');
+    return current?.getAttribute("data-studio-tab") === "home"
+      ? null
+      : "Home is not the current tab on Home";
   });
-  if (!browseLayout)
-    throw new Error(
-      "Browse no longer matches the approved direct destinations and independently collapsible groups",
-    );
-  await fillLabel(page, "Filter destinations", "agen");
-  await waitForPage("Browse filter narrows every group", () =>
-    evaluatePage(page, () => {
-      const links = Array.from(
-        document.querySelectorAll(".studio-mobile-navigation-link"),
-      );
-      return (
-        links.length === 1 && links[0]?.textContent.includes("Agents") === true
-      );
-    }),
-  );
-  await fillLabel(page, "Filter destinations", "");
-  await waitForPage("Browse filter clears", () =>
-    evaluatePage(
-      page,
-      () =>
-        document.querySelectorAll(".studio-mobile-navigation-link").length > 1,
+  if (layout) throw new Error(`Studio tab bar: ${layout}`);
+
+  await clickSelector(page, '[data-studio-tab="library"]');
+  await waitForPage("the Library tab opens its first page", () =>
+    page.evaluate<boolean>(
+      'location.pathname.startsWith("/studio/entities/") && document.querySelector(\'[data-studio-tab="library"]\')?.getAttribute("aria-current") === "page"',
     ),
   );
+  await clickSelector(page, '[data-studio-tab="library"]');
+  await waitForSelector(page, ".studio-tab-sheet");
+  const options = await page.evaluate<number>(
+    'document.querySelectorAll(".studio-tab-sheet [data-studio-tab-option]").length',
+  );
+  if (options < 2) throw new Error("The Library sheet does not list its pages");
   await pressKey(page, ESCAPE_KEY);
-  await waitForPage("Browse focus restoration", () =>
+  await waitForPage("the sheet returns focus to its tab", () =>
     page.evaluate<boolean>(
-      'document.activeElement?.classList.contains("studio-mobile-switcher") === true',
+      'document.activeElement?.getAttribute("data-studio-tab") === "library"',
     ),
-  );
-  await clickSelector(page, ".studio-mobile-switcher");
-  await waitForSelector(page, ".studio-mobile-navigation-sheet");
-  const libraryOpen = await page.evaluate<boolean>(
-    'Array.from(document.querySelectorAll(".studio-mobile-navigation-group")).some(group => group.open && group.querySelector("summary")?.textContent.includes("Library"))',
-  );
-  if (!libraryOpen)
-    await clickText(page, ".studio-mobile-navigation-group summary", "Library");
-  await waitForPage("Library group rests open", () =>
-    page.evaluate<boolean>(
-      'Array.from(document.querySelectorAll("details")).some(group => group.open && group.querySelector("summary")?.textContent.includes("Library"))',
-    ),
-  );
-  await clickText(page, ".studio-mobile-navigation-group summary", "Publish");
-  await waitForPage("independent Browse groups", () =>
-    page.evaluate<boolean>(
-      'document.querySelectorAll("details[open]").length >= 2',
-    ),
-  );
-  await clickText(page, ".studio-mobile-navigation-group summary", "Library");
-  await waitForPage("explicit group folding", () =>
-    page.evaluate<boolean>(
-      'Array.from(document.querySelectorAll("details")).some(group => !group.open && group.querySelector("summary")?.textContent.includes("Library"))',
-    ),
-  );
-  await clickText(page, ".studio-mobile-navigation-group summary", "Library");
-  if ((await page.evaluate<string>("location.pathname")) !== originalPath)
-    throw new Error("Browse groups changed the working destination");
-  await clickText(page, ".studio-mobile-navigation-link", "Field notes");
-  await waitForPage("Studio phone context navigation", () =>
-    page.evaluate<boolean>('location.pathname === "/studio/entities/posts"'),
   );
   await evaluatePage(page, () => history.back());
-  await waitForPage("Studio phone context return", () =>
+  await waitForPage("Studio phone navigation return", () =>
     page.evaluate<boolean>(
       `location.pathname === ${JSON.stringify(originalPath)}`,
     ),

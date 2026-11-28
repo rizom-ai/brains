@@ -367,10 +367,9 @@ export const navigationStyles: Record<NavigationStyle, stylex.StyleXStyles> =
     },
     singleton: { color: "var(--console-text-muted)", letterSpacing: "0" },
 
+    // The tab bar is fixed to the screen, so its host takes no header cell.
     mobileHost: {
-      display: "none",
-      minWidth: 0,
-      "@media (max-width: 900px)": { display: "block" },
+      display: { default: "none", "@media (max-width: 900px)": "contents" },
     },
     // A grid, like the area list, so the Commands control spans the rail and
     // its glyph centers with the area marks when collapsed.

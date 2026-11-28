@@ -1,4 +1,5 @@
 /** @jsxImportSource react */
+import { tabBarStyles } from "./studio-tab-bar.styles";
 import { libraryStyles as library } from "./studio-library.styles";
 import { Button, useAppFetch, useFollowTail } from "@brains/app-ui-react";
 import { chatClass, chatLayout } from "./studio-chat-layout.styles";
@@ -237,7 +238,12 @@ export function StudioChatWorkspace(
   return (
     <StudioLinkNavigationProvider value={(href) => props.navigate(href)}>
       <div
-        className={chatClass("studio", library.frame, chatLayout.root)}
+        className={chatClass(
+          "studio",
+          library.frame,
+          chatLayout.root,
+          tabBarStyles.space,
+        )}
         data-view="chat"
         data-studio-shell=""
       >

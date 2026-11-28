@@ -1,4 +1,5 @@
 /** @jsxImportSource react */
+import { tabBarStyles } from "./studio-tab-bar.styles";
 import * as stylex from "@stylexjs/stylex";
 import { askStyles } from "./studio-ask-panel.styles";
 import {
@@ -64,6 +65,7 @@ export function StudioAppStatus(props: {
         "studio",
         library.frame,
         typographyStyles.operatorRoles,
+        tabBarStyles.space,
       )}
       data-studio-shell=""
     >
@@ -108,6 +110,7 @@ export function StudioAccountWorkspaceView(props: {
         "studio",
         library.frame,
         typographyStyles.operatorRoles,
+        tabBarStyles.space,
       )}
       data-view="account"
       data-studio-shell=""
@@ -182,6 +185,7 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
         "studio",
         library.frame,
         typographyStyles.operatorRoles,
+        tabBarStyles.space,
       )}
       data-studio-shell=""
       data-view={
@@ -219,6 +223,7 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
           workspaceBadges,
           selectEntityType,
           selectWorkspace,
+          editing,
         }}
       />
       <div

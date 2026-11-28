@@ -1,27 +1,16 @@
 /** @jsxImportSource react */
-import { useState, type ReactElement } from "react";
-import {
-  Dialog,
-  DialogClose,
-  DialogPortal,
-  DialogTrigger,
-} from "@brains/app-ui-react";
-import { Dialog as DialogPrimitive, VisuallyHidden } from "radix-ui";
+import type { ReactElement } from "react";
 import type { EntityTypeInfo, StudioWorkspaceInfo } from "./api";
 import type {
   GroupingNavigation,
   ImagesNavigation,
 } from "./grouping-url-query";
-import {
-  navigationClassName as navClass,
-  navigationStyles as nav,
-} from "./studio-navigation.styles";
-import { typographyStyles } from "./studio-typography.styles";
+import { phoneTabs, type PhoneTabGroup } from "./phone-tabs";
+import { StudioTabBar } from "./studio-tab-bar";
 import {
   MOBILE_GROUPING_PREFIX,
   MOBILE_TYPE_PREFIX,
   MOBILE_WORKSPACE_PREFIX,
-  StudioBrowseDestinations,
   navigationTypeLabel,
   studioMobileSelection,
   workspaceBadge,
@@ -51,18 +40,14 @@ export interface MobileNavigationProps {
   model: NavigationModel;
   /** Shared with the desktop rail: one browsing state, two views of it. */
   tree: NavigationTree;
+  /** An entry is open, with its own bar and way back: no tab bar. */
+  hidden?: boolean | undefined;
 }
 
 /**
- * The phone navigation: a browse sheet over the destinations the desktop rail
- * shows in place.
- *
- * It takes the navigation tree rather than building one. The sheet and the
- * rail are two views of the same browsing state, so opening a group in one
- * must not leave the other showing something else.
- *
- * Its own state — the sheet being open, and the filter typed into it — is
- * genuinely the sheet's, and is no longer computed when only the rail renders.
+ * The phone navigation: the five sections as a tab bar along the bottom, as
+ * in the phone mockup, over the destinations the desktop rail shows in place.
+ * The tree stays shared with the rail, one browsing state for both views.
  */
 export function MobileNavigation(props: MobileNavigationProps): ReactElement {
   const {
@@ -77,7 +62,6 @@ export function MobileNavigation(props: MobileNavigationProps): ReactElement {
     brainTypeGroups,
     brainWorkspaces,
   } = props.model;
-  const { leafId, openGroups, toggleGroup } = props.tree;
   const basePath = getStudioRouterBasePath();
   const mobileTypeOption = (info: EntityTypeInfo): MobileNavigationOption => ({
     value: `${MOBILE_TYPE_PREFIX}${info.entityType}`,
@@ -98,9 +82,9 @@ export function MobileNavigation(props: MobileNavigationProps): ReactElement {
     };
   };
   // The five sections, each with what it holds; an empty one is left out.
-  const mobileGroups = [
+  const mobileGroups: PhoneTabGroup[] = [
     {
-      area: "home",
+      area: "home" as const,
       label: "Home",
       options: [
         ...(overviewWorkspace
@@ -110,7 +94,7 @@ export function MobileNavigation(props: MobileNavigationProps): ReactElement {
       ],
     },
     {
-      area: "library",
+      area: "library" as const,
       label: "Library",
       options: [
         ...libraryTypes.map(mobileTypeOption),
@@ -134,12 +118,12 @@ export function MobileNavigation(props: MobileNavigationProps): ReactElement {
       ],
     },
     {
-      area: "publish",
+      area: "publish" as const,
       label: "Publish",
       options: publishWorkspaces.map(mobileWorkspaceOption),
     },
     {
-      area: "chat",
+      area: "chat" as const,
       label: "Chat",
       options: [
         ...(chatWorkspace ? [mobileWorkspaceOption(chatWorkspace)] : []),
@@ -147,7 +131,7 @@ export function MobileNavigation(props: MobileNavigationProps): ReactElement {
       ],
     },
     {
-      area: "brain",
+      area: "brain" as const,
       label: "Brain",
       options: [
         ...brainTypeGroups.flatMap((group) =>
@@ -166,8 +150,6 @@ export function MobileNavigation(props: MobileNavigationProps): ReactElement {
         : props.activeWorkspace
           ? `${MOBILE_WORKSPACE_PREFIX}${props.activeWorkspace}`
           : "";
-  const [mobileFilter, setMobileFilter] = useState("");
-  const [browseOpen, setBrowseOpen] = useState(false);
   const selectMobileView = (value: string): void => {
     if (value === MOBILE_IMAGES_VALUE) {
       props.images?.onSelect();
@@ -189,71 +171,12 @@ export function MobileNavigation(props: MobileNavigationProps): ReactElement {
       props.onSelectWorkspace?.(selection.id);
     }
   };
+  if (props.hidden) return <></>;
   return (
-    <Dialog
-      open={browseOpen}
-      onOpenChange={(open) => {
-        setBrowseOpen(open);
-        if (open) setMobileFilter("");
-      }}
-    >
-      <DialogTrigger asChild>
-        <button
-          type="button"
-          className={navClass(
-            "studio-mobile-switcher",
-            nav.browse,
-            typographyStyles.eyebrow,
-          )}
-          aria-label="Browse Studio"
-        >
-          <span aria-hidden="true">≡</span>
-          Browse
-        </button>
-      </DialogTrigger>
-      <DialogPortal>
-        <DialogPrimitive.Overlay className={navClass("", nav.sheetOverlay)} />
-        <DialogPrimitive.Content
-          className={navClass("studio-mobile-navigation-sheet", nav.sheet)}
-          aria-describedby={undefined}
-          // Browse opens to be read. Focusing the filter would raise the
-          // phone keyboard over the destinations every time.
-          onOpenAutoFocus={(event) => {
-            event.preventDefault();
-            if (event.currentTarget instanceof HTMLElement)
-              event.currentTarget.focus();
-          }}
-        >
-          <div
-            className={navClass("studio-mobile-navigation-list", nav.sheetList)}
-          >
-            <VisuallyHidden.Root>
-              <DialogPrimitive.Title>Browse Studio</DialogPrimitive.Title>
-            </VisuallyHidden.Root>
-            <StudioBrowseDestinations
-              groups={mobileGroups}
-              filter={mobileFilter}
-              activeValue={activeMobileView}
-              groupId={(area) => `${leafId}-${area}`}
-              isGroupOpen={(area) => openGroups[area] !== false}
-              onFilterChange={setMobileFilter}
-              onToggleGroup={toggleGroup}
-              onSelect={(value) => {
-                selectMobileView(value);
-                setBrowseOpen(false);
-              }}
-              trailing={
-                <DialogClose
-                  className={navClass("", nav.sheetClose)}
-                  aria-label="Close browse"
-                >
-                  ✕
-                </DialogClose>
-              }
-            />
-          </div>
-        </DialogPrimitive.Content>
-      </DialogPortal>
-    </Dialog>
+    <StudioTabBar
+      tabs={phoneTabs(mobileGroups, activeMobileView)}
+      activeValue={activeMobileView}
+      onSelect={selectMobileView}
+    />
   );
 }

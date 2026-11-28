@@ -464,7 +464,7 @@ describe("TypeSwitcher", () => {
     expect(studioMobileSelection("https://example.com")).toBeNull();
   });
 
-  it("renders a grouped phone context picker with the current view selected", () => {
+  it("puts the sections in a phone tab bar, marking and lighting the current one", () => {
     const administration: StudioWorkspaceInfo = {
       id: "admin:administration",
       section: "brain",
@@ -487,11 +487,11 @@ describe("TypeSwitcher", () => {
       }),
     );
 
-    expect(html).toMatch(/class="studio-mobile-switcher x[^"]+"/);
-    expect(html).toContain('aria-label="Browse Studio"');
-    expect(html).toContain('aria-haspopup="dialog"');
-    expect(html).toContain("Administration");
-    expect(html).not.toContain("Administration · 2");
+    expect(html).toContain('aria-label="Studio sections"');
+    expect(html).not.toContain('aria-label="Browse Studio"');
+    // Brain holds the open page, lit by what needs the person in it.
+    expect(html).toMatch(/aria-current="page"[^>]*data-studio-tab="brain"/);
+    expect(html).toContain('aria-label="Brain, 2 need you"');
     expect(html).not.toContain('<select aria-hidden="true"');
   });
 

@@ -74,6 +74,7 @@ export function TypeSwitcher(props: {
           activeWorkspace={props.activeWorkspace}
           workspaceBadges={props.workspaceBadges}
           onSelectWorkspace={props.onSelectWorkspace}
+          hidden={props.focus === true}
           model={model}
           tree={tree}
         />

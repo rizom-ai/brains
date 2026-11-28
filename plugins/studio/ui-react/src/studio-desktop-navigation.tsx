@@ -41,7 +41,7 @@ const areaMarks: Record<StudioArea, string> = {
 };
 
 /** An area's icon, which stands in for its index while the rail is collapsed. */
-function StudioAreaMark({ area }: { area: StudioArea }): ReactElement {
+export function StudioAreaMark({ area }: { area: StudioArea }): ReactElement {
   return (
     <svg
       aria-hidden="true"
