@@ -327,7 +327,7 @@ MATRIX_PASSWORD=...
 
 With the brain's own homeserver (below), leave `MATRIX_PASSWORD` out: the brain provides it. The bot logs in with its password once and keeps its session and sync position in runtime state, so a restart resumes rather than logging in again. Matrix shows no cards: approvals arrive as text and are answered by typing yes or no. The bot joins a direct invite while `allowDMs` is on, and an invite to a room only from a peer brain's bot whose domain this brain trusts at `trusted`.
 
-The `matrix` channel delivers on its own: invitations and notifications to a `matrix:` recipient open or reuse the bot's direct room with that person. A notification default can name a Matrix user:
+The `matrix` channel delivers on its own: invitations and notifications to a `matrix:` recipient open or reuse the bot's direct room with that person. A brain has one notification default, which `brain init` sets to the setup email; naming a Matrix user there sends notifications to Matrix instead:
 
 ```yaml
 plugins:
