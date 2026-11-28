@@ -5,6 +5,7 @@ import type {
   FirstSyncPlan,
   OpenConflict,
 } from "../engine";
+import { titleOf } from "./capture";
 import { compareVersions, type ComparedLine } from "./compare";
 
 function list(container: HTMLElement, title: string, items: string[]): void {
@@ -310,5 +311,69 @@ export class ConflictModal extends Modal {
   override onClose(): void {
     this.contentEl.empty();
     this.onClosed();
+  }
+}
+
+/**
+ * Quick capture: a text and the title its note gets. The title follows the
+ * text's first line until the person writes one of their own.
+ */
+export class CaptureModal extends Modal {
+  private text: string;
+  private title = "";
+  private titled = false;
+  private readonly onSend: (text: string, title: string) => void;
+
+  constructor(
+    app: App,
+    text: string,
+    onSend: (text: string, title: string) => void,
+  ) {
+    super(app);
+    this.text = text;
+    this.onSend = onSend;
+  }
+
+  override onOpen(): void {
+    const { contentEl } = this;
+    this.setTitle("Send to your brain");
+    this.title = titleOf(this.text);
+
+    const area = contentEl.createEl("textarea", {
+      cls: "rizom-brain-capture-text",
+      attr: { rows: "8", placeholder: "A thought, a quote, a list…" },
+    });
+    area.value = this.text;
+
+    const title = new Setting(contentEl)
+      .setName("Title")
+      .setDesc("The note's name in your brain.");
+    title.addText((input) => {
+      input.setValue(this.title).onChange((value) => {
+        this.title = value;
+        this.titled = true;
+      });
+      area.addEventListener("input", () => {
+        this.text = area.value;
+        if (this.titled) return;
+        this.title = titleOf(this.text);
+        input.setValue(this.title);
+      });
+    });
+
+    new Setting(contentEl).addButton((button) =>
+      button
+        .setButtonText("Send")
+        .setCta()
+        .onClick(() => {
+          this.close();
+          this.onSend(this.text, this.title);
+        }),
+    );
+    area.focus();
+  }
+
+  override onClose(): void {
+    this.contentEl.empty();
   }
 }
