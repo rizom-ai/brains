@@ -1,5 +1,14 @@
 # @brains/book-import
 
+## 0.2.0-alpha.808
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/book@0.2.0-alpha.808
+  - @brains/utils@0.2.0-alpha.808
+  - @brains/plugins@0.2.0-alpha.808
+
 ## 0.2.0-alpha.807
 
 ### Patch Changes

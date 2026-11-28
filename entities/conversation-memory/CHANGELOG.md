@@ -1,5 +1,23 @@
 # @brains/conversation-memory
 
+## 0.2.0-alpha.808
+
+### Patch Changes
+
+- [#1089](https://github.com/rizom-ai/brains/pull/1089) [`5bab74a`](https://github.com/rizom-ai/brains/commit/5bab74a90547a12f8c6b4b73f52a1a398784ec2c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A new entity type, the insight: what a conversation learned or concluded, stored like a decision with the conversation it came from, who stated it and whether it still holds. An insight can be recorded by hand at `shared` or `restricted` visibility, the brain draws on insights from the same space when it answers there, and the dashboard lists recent ones. In the team bundle, trusted users may act on insights as they may on decisions.
+
+  With `captureInsights` set in the conversation-memory configuration, the brain also picks insights up from its configured chat spaces as people talk, announces them beside the batch's cards and decisions with an Undo, and supersedes one it wrote when a later finding overturns it. The setting is off by default.
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.808
+  - @rizom/brain-ui@0.2.0-alpha.808
+  - @brains/dashboard@0.2.0-alpha.808
+  - @brains/action-items@0.2.0-alpha.808
+  - @brains/content-formatters@0.2.0-alpha.808
+  - @brains/contracts@0.2.0-alpha.808
+  - @brains/utils@0.2.0-alpha.808
+  - @brains/conversation-service@0.2.0-alpha.808
+
 ## 0.2.0-alpha.807
 
 ### Patch Changes
