@@ -52,10 +52,10 @@ export interface ScaffoldOptions {
   backend?: string | undefined;
   deploy?: boolean | undefined;
   /**
-   * Regenerate derived deploy artifacts from the current instance sources
-   * (for example `.env.schema` → deploy workflow) without rewriting
-   * canonical instance config like `brain.yaml`, `.env.schema`, or
-   * `config/deploy.yml`.
+   * With `deploy`, rewrite every generated deploy file — including
+   * `config/deploy.yml` — from the current templates and `.env.schema`,
+   * instead of only creating missing ones. `brain.yaml`, `.env.schema`, and
+   * the other instance files are kept.
    */
   regen?: boolean | undefined;
   /**
