@@ -71,7 +71,7 @@ describe("a conflict waiting for the person", () => {
     expect((await synced.engine.openConflicts())[1]).toMatchObject({
       path: "image/cup.png",
       copy: "Conflicts/cup 1.png",
-      flavor: "image",
+      flavor: "file",
     });
   });
 

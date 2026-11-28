@@ -7,6 +7,7 @@ You need a Rizom brain at version 0.2.0-alpha.769 or later with its drive turned
 ## What it does
 
 - Notes and images go both ways between the vault and your brain. A change made in your brain reaches the vault in about a second.
+- PDFs go both ways too, in the `document` folder. Sending one to your brain needs a brain recent enough to take PDFs; an older one says so, and the PDF stays in the vault.
 - Your vault mirrors your brain: notes at the top, other entries in a folder per type. A file your brain has no place for stays in the vault only, and is listed with the reason.
 - Renaming a note here renames it in your brain. A rename your brain cannot take is undone, with a notice.
 - When a note was changed here and in your brain, your brain's version goes into the vault. Yours is copied to `Conflicts/` and kept in your brain's Inbox. Nothing is lost. A notice, the status bar and the command "Compare and settle conflicts" show both versions side by side; choosing one clears the copy, and the Inbox entry too when your brain is recent enough to be told.
@@ -29,7 +30,7 @@ You need a Rizom brain at version 0.2.0-alpha.769 or later with its drive turned
 
 ## Not yet
 
-- Notes in folders of your own, PDFs and canvases are not synced. They stay in the vault.
+- Notes in folders of your own and canvases are not synced. They stay in the vault.
 - Obsidian's own settings are not synced between devices.
 
 ## Source and license

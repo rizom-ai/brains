@@ -8,6 +8,7 @@
   "devDependencies": {
     "@brains/conflict": "workspace:*",
     "@brains/contracts": "workspace:*",
+    "@brains/document-plugin": "workspace:*",
     "@brains/entity-service": "workspace:*",
     "@brains/image": "workspace:*",
     "@brains/image-plugin": "workspace:*",

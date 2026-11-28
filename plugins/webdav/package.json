@@ -5,6 +5,7 @@
   "description": "Mount a brain as a network drive: its entities as files over WebDAV",
   "dependencies": {
     "@brains/contracts": "workspace:*",
+    "@brains/document": "workspace:*",
     "@brains/entity-placement": "workspace:*",
     "@brains/image": "workspace:*",
     "@brains/sdk": "workspace:*",
