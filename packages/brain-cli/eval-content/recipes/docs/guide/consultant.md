@@ -46,11 +46,11 @@ Your expertise is locked in client work, slide decks and a LinkedIn summary. You
 
 ## Say who you are
 
-Your profile holds your tagline, a short introduction, your story, who you work for, your expertise and what you are focused on now. Fill it in Studio under **System → Anchor Profile**, or paste your bio in chat and ask the brain to fill in your profile from it, naming the parts you want: tagline, introduction, expertise, current focus. It shows you the change and asks you to confirm.
+Your profile holds your tagline, a short introduction, your story, who you work for, your expertise and what you are focused on now. Fill it in Studio under **Brain → Identity → Anchor Profile**, or paste your bio in chat and ask the brain to fill in your profile from it, naming the parts you want: tagline, introduction, expertise, current focus. It shows you the change and asks you to confirm.
 
 The site, the brain's answers and its agent card all start from this profile, so it is worth getting right first.
 
-Exact steps: [Customization guide](/docs/customization-guide).
+Exact steps: [Studio](/docs/studio#brain), [Entity types](/docs/entity-types-reference).
 
 ## Bring your past work
 
@@ -64,9 +64,9 @@ Exact steps: [Entity types](/docs/entity-types-reference).
 
 A **deck** is Markdown slides with a line of three dashes between them. Paste a talk outline in chat and ask the brain to keep it as a deck. It keeps your text, starts a new slide at each heading and saves the deck as a draft with a short description. When the outline has no headings or dashes, it asks where the slides break.
 
-You can also create a deck in Studio under **Library → Decks** and edit it there like any other text. A deck publishes to your site.
+You can also create a deck in Studio under **Library → Decks**, listed under **All types** until you have one, and edit it there like any other text. A deck publishes to your site.
 
-Exact steps: [Entity types](/docs/entity-types-reference).
+Exact steps: [Studio](/docs/studio#library), [Entity types](/docs/entity-types-reference).
 
 ## Publish what you know
 

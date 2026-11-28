@@ -23,6 +23,15 @@ export interface StoredStudioWorkspace extends Omit<
   actionHandler?: StudioWorkspaceRegistration["actionHandler"];
   badgeProvider?: StudioWorkspaceRegistration["badgeProvider"];
   attentionProvider?: StudioWorkspaceRegistration["attentionProvider"];
+  paletteActions?: StudioWorkspaceRegistration["paletteActions"];
+}
+
+/** An action a caller may run from ⌘K, with the page that offers it. */
+export interface StudioPaletteWorkspaceAction {
+  workspaceId: string;
+  workspaceLabel: string;
+  name: string;
+  label: string;
 }
 
 /** What one workspace says needs the person, for Home's "Needs you". */
@@ -107,6 +116,9 @@ export class StudioWorkspaceRegistry {
       entityTypes,
       ...(parsed.publishesEntityTypes ? { publishesEntityTypes: true } : {}),
       ...(parsed.section ? { section: parsed.section } : {}),
+      ...(parsed.paletteActions
+        ? { paletteActions: parsed.paletteActions }
+        : {}),
       accessHandler: async (actor): Promise<boolean> =>
         meetsFloor(actor, parsed.permission)
           ? parsed.accessHandler(actor)
@@ -202,6 +214,34 @@ export class StudioWorkspaceRegistry {
   }
 
   /** What needs the person, from every workspace they may open, by priority. */
+  /**
+   * The actions a caller may run from ⌘K: offered by a workspace that admits
+   * them, at a permission they hold. The action handler checks again when one
+   * runs.
+   */
+  async listPaletteActions(
+    actor: StudioWorkspaceActor,
+  ): Promise<StudioPaletteWorkspaceAction[]> {
+    const sorted = Array.from(this.workspaces.values())
+      .filter((workspace) => (workspace.paletteActions?.length ?? 0) > 0)
+      .sort((a, b) => a.priority - b.priority || a.id.localeCompare(b.id));
+    const admitted = await Promise.all(
+      sorted.map(async (workspace) =>
+        (await workspace.accessHandler(actor)) ? workspace : undefined,
+      ),
+    );
+    return admitted.flatMap((workspace) =>
+      (workspace?.paletteActions ?? [])
+        .filter((action) => meetsFloor(actor, action.permission ?? "trusted"))
+        .map((action) => ({
+          workspaceId: workspace?.id ?? "",
+          workspaceLabel: workspace?.label ?? "",
+          name: action.name,
+          label: action.label,
+        })),
+    );
+  }
+
   async listAttention(
     actor: StudioWorkspaceActor,
   ): Promise<StudioWorkspaceAttention[]> {

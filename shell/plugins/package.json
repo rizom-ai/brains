@@ -1,7 +1,7 @@
 {
   "name": "@brains/plugins",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.798",
+  "version": "0.2.0-alpha.806",
   "description": "Core plugin system implementation for Brains",
   "dependencies": {
     "@brains/ai-service": "workspace:*",

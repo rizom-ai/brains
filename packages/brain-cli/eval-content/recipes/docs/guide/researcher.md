@@ -42,17 +42,17 @@ Years of notes, papers and saved links you want to connect and question. Most of
 
 Export your notes as Markdown. Obsidian notes already are; most notes apps have a Markdown export.
 
-Upload the files in chat and ask the brain to keep them as notes. It lists every file with the title it will get, from its first heading or else its file name, and asks you once to confirm before it saves them.
+Upload the files in the brain's own chat, in Studio or on Discord, Slack or Matrix, and ask the brain to keep them as notes. It lists every file with the title it will get, from its first top-level `#` heading or else its file name, and asks you once to confirm before it saves them. Claude and ChatGPT pass the brain text, not files, so from there you paste a note's text instead.
 
-Exact steps: [Interface setup](/docs/interface-setup), [Content management](/docs/content-management).
+Exact steps: [Content management](/docs/content-management), [Interface setup](/docs/interface-setup).
 
 ## Bring your papers
 
-Upload a PDF in chat and ask the brain to keep it as a note. Its text is extracted into the note, so the brain can search and answer from it. PDFs up to 5 MB and 50 pages work; headings and tables come through as plain text.
+Upload a PDF in the brain's chat and ask the brain to keep it as a note. Its text is extracted into the note, so the brain can search and answer from it. PDFs up to 5 MB and 50 pages work; headings and tables come through as plain text.
 
 A PDF you save as a document instead is kept as the original file, without its text, so the brain does not answer from it.
 
-Exact steps: [Entity types](/docs/entity-types-reference).
+Exact steps: [Content management](/docs/content-management), [Entity types](/docs/entity-types-reference).
 
 ## Save what you read
 
@@ -70,11 +70,11 @@ Exact steps: [Interface setup](/docs/interface-setup).
 
 ## See the shape of it
 
-The brain extracts topics from your notes as they come in. The dashboard at your brain's address shows them on its **Knowledge** tab: a map of your topics, with the largest clusters listed, so you can see what your material clusters around and where it is thin.
+The brain extracts topics from your notes as they come in. The public dashboard at your brain's address shows them on its **Knowledge** tab: a map of your topics, with the largest clusters listed, so you can see what your material clusters around and where it is thin. Signed in, the address opens Studio; choose **View public dashboard** from the account menu to see the dashboard.
 
 Topics come from public notes, which is how notes start, and from links once you set them to published in Studio. The dashboard shows only public material, and anyone with the address can open it.
 
-Exact steps: [Feature overview](/docs/feature-overview).
+Exact steps: [Public dashboard](/docs/studio#the-public-dashboard), [Entity types](/docs/entity-types-reference).
 
 ## A week later
 

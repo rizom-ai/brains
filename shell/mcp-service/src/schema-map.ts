@@ -1,4 +1,5 @@
 import { z } from "@brains/utils/zod";
+import { closestName } from "@brains/utils/string-utils";
 import type { ToolInputSchema } from "./types";
 
 type ToolSchemaField = ToolInputSchema[string];
@@ -132,4 +133,107 @@ export function mapArgsToInput(
   }
 
   return result;
+}
+
+/** An input field as `brain <command> --<field>` sets it. */
+export interface CliToolField {
+  name: string;
+  /** A switch: `--<field>` alone sets it, and it takes no value. */
+  boolean: boolean;
+}
+
+/** The fields of a tool input schema that CLI flags can set. */
+export function cliToolFields(inputSchema: ToolInputSchema): CliToolField[] {
+  return Object.entries(inputSchema).map(([name, schema]) => ({
+    name,
+    boolean: getTypeName(unwrapType(schema)) === "boolean",
+  }));
+}
+
+/** The input field the CLI's `--preview` flag selects the preview of. */
+const PREVIEW_FIELD = "environment";
+
+function unknownFlag(
+  command: string,
+  flag: string,
+  detail: string,
+): { error: string } {
+  return {
+    error: `Unknown flag --${flag} for \`brain ${command}\`${detail} Run \`brain ${command} --help\` for the flags it accepts.`,
+  };
+}
+
+/** Why a flag cannot set the field it names, if it cannot. */
+function flagProblem(
+  command: string,
+  fields: ReadonlyMap<string, CliToolField>,
+  name: string,
+  value: unknown,
+): { error: string } | undefined {
+  const field = fields.get(name);
+  if (!field) {
+    const suggestion = closestName(name, [...fields.keys()]);
+    return unknownFlag(
+      command,
+      name,
+      suggestion ? `. Did you mean --${suggestion}?` : ".",
+    );
+  }
+  if (
+    field.boolean &&
+    typeof value === "string" &&
+    !/^(true|false)$/.test(value)
+  ) {
+    return {
+      error: `--${name} is a switch and takes no value, but got "${value}". Put it after \`brain ${command}\`'s arguments, or write --${name}=true.`,
+    };
+  }
+  if (!field.boolean && value === true) {
+    return {
+      error: `--${name} needs a value: \`brain ${command} --${name} <value>\`.`,
+    };
+  }
+  return undefined;
+}
+
+/**
+ * Check a brain command's flags against its tool's input fields, before
+ * `mapArgsToInput` sets each field from the flag of the same name.
+ *
+ * - `--<field> <value>` sets a field; a switch takes `--<field>` alone.
+ * - `--preview` names no field (unless the tool has one by that name): it
+ *   asks for the preview of the tool's `environment`, as `brain build
+ *   preview` does, and is refused by a tool without one.
+ * - Any other flag is refused, suggesting the nearest field.
+ */
+export function resolveCliToolFlags(
+  command: string,
+  fields: readonly CliToolField[],
+  flags: Record<string, unknown>,
+): { flags: Record<string, unknown> } | { error: string } {
+  const byName = new Map(fields.map((field) => [field.name, field]));
+  const previewAsEnvironment =
+    flags["preview"] === true && !byName.has("preview");
+  if (previewAsEnvironment && !byName.has(PREVIEW_FIELD)) {
+    return unknownFlag(
+      command,
+      "preview",
+      ": it has no environment to preview.",
+    );
+  }
+
+  const entries = Object.entries(flags).filter(
+    ([name]) => !(previewAsEnvironment && name === "preview"),
+  );
+  const problem = entries
+    .map(([name, value]) => flagProblem(command, byName, name, value))
+    .find((found) => found !== undefined);
+  if (problem) return problem;
+
+  const resolved = Object.fromEntries(entries);
+  return {
+    flags: previewAsEnvironment
+      ? { ...resolved, [PREVIEW_FIELD]: "preview" }
+      : resolved,
+  };
 }

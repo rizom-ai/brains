@@ -1,15 +1,15 @@
 # Extensible Entity Model
 
-The entity model is a core part of the Brain architecture. It provides a unified, functional approach to data modeling using **Zod schemas + TypeScript interfaces** with factory functions for entity creation.
+The entity model is a core part of the Brain architecture. It provides a unified, declarative approach to data modeling: each entity type is a **`defineEntity` declaration** with a **Zod metadata schema**, and the runtime builds its storage, validation, and markdown handling from it.
 
 ## Core Design Principles
 
-### Functional Approach for Entities
+### Declarative Approach for Entities
 
 - **Zod schemas** for validation and type inference
-- **TypeScript interfaces** for type definitions
-- **Factory functions** for entity creation (no classes for entities)
-- **Adapter classes** for serialization (classes are used for adapters)
+- **`defineEntity` declarations** for entity types (no classes for entities)
+- **Markdown codecs** on a declaration when a type's file differs from its metadata
+- **Adapters** for serialization: the runtime builds one from each declaration; a few shell-owned types (`brain-character`, `anchor-profile`) use adapter classes
 
 ### Hybrid Storage Model
 
@@ -18,6 +18,7 @@ The entity model is a core part of the Brain architecture. It provides a unified
 - Per-type fields (including `title` and `tags`) live inside the `metadata` JSON, not as top-level columns
 - Adapters handle bidirectional conversion between entities and markdown
 - Embeddings stored separately in a vector column
+- Binary types (`image`, `document`) store an `asset://sha256/<digest>` reference in `content`; the bytes live in content-addressed asset tables
 - Single source of truth: database columns for core fields, markdown content for entity-specific fields
 
 ## Core Concepts
@@ -42,6 +43,8 @@ export const baseEntitySchema = z.object({
 export type BaseEntity = z.infer<typeof baseEntitySchema>;
 ```
 
+`visibility` decides who can read an entity: `public` entities are open to anyone, `shared` entities to trusted people and admins, and `restricted` entities to admins only. Search, derivation, and site builds respect it.
+
 There is no top-level `title` or `tags` field. Per-type fields such as `title` and `tags` are stored inside the `metadata` JSON, where each entity type defines its own metadata shape.
 
 ### Current Implementation Status
@@ -50,8 +53,8 @@ The shell package already includes:
 
 - **EntityRegistry**: Manages entity types and adapters
 - **EntityService**: Provides CRUD operations and search
-- **EntityAdapter interface**: Handles entity ↔ markdown conversion (requires `toMarkdown`, `fromMarkdown`, `extractMetadata`, `parseFrontMatter`, `generateFrontMatter`, and `getBodyTemplate`)
-- **Database schema**: Tables for entities and embeddings
+- **EntityAdapter interface**: Handles entity ↔ markdown conversion (requires `entityType`, `purpose`, `schema`, `toMarkdown`, `fromMarkdown`, `extractMetadata`, `parseFrontMatter`, `generateFrontMatter`, and `getBodyTemplate`)
+- **Database schema**: Tables for entities, assets, and embeddings
 
 Entities themselves are pure data objects. All serialization logic lives on the adapter — there is no `toMarkdown()` method on the entity.
 
@@ -66,61 +69,46 @@ Entities are **NOT** defined in the shell package. Instead:
    - EntityAdapter interface
 
 2. **Plugins define their entities**:
-   - Link Plugin → LinkEntity (web content capture)
-   - Summary Plugin → SummaryEntity (AI-generated summaries)
-   - Topics Plugin → TopicEntity (extracted topics)
+   - `@brains/link` → `link` (web content capture)
+   - `@brains/conversation-memory` → `summary`, `decision`, `action-item` (conversation memory)
+   - `@brains/topics` → `topic` (extracted topics)
 
-Each plugin is responsible for:
+Each entity package is responsible for:
 
-- Defining its entity schema
-- Creating factory functions
-- Implementing entity adapters
-- Registering with the shell's EntityRegistry
+- Declaring each type with `defineEntity`: its purpose, its metadata schema, and its behavior
+- Giving a type a markdown codec when its file differs from its metadata
+- Exporting its types in an entity package, which registers them with the shell's EntityRegistry when installed
 
 ### Entity Creation in Plugins
 
-Each plugin defines its own entities:
+Each plugin declares its own entities:
 
 ```typescript
-// entities/link/src/schemas/link.ts
-import { nanoid } from "nanoid";
-import { z } from "@brains/utils/zod";
-import { baseEntitySchema } from "@brains/plugins";
+// entities/link/src/link.ts (simplified)
+import { defineEntity, z, type EntityOf } from "@brains/sdk/entities";
 
-// 1. Define entity-specific schema
-export const linkEntitySchema = baseEntitySchema.extend({
-  entityType: z.literal("link"),
+// 1. Define the type's metadata schema
+export const linkMetadataSchema = z.object({
+  status: z.enum(["pending", "draft", "published"]),
+  title: z.string(),
   url: z.string().url(),
   description: z.string().optional(),
-  summary: z.string().optional(),
-  author: z.string().optional(),
-  publishDate: z.string().optional(),
-  images: z.array(z.string()).default([]),
-  metadata: z.record(z.unknown()).default({}),
+  capturedAt: z.string().datetime(),
+  source: z.object({ ref: z.string(), label: z.string() }),
 });
 
-// 2. Infer the type (pure data, no methods)
-export type LinkEntity = z.infer<typeof linkEntitySchema>;
+// 2. Declare the type
+export const link = defineEntity({
+  type: "link",
+  purpose: "A saved external URL or web resource captured for later reference.",
+  metadata: linkMetadataSchema,
+});
 
-// 3. Create factory function
-export function createLinkEntity(
-  input: Omit<
-    z.input<typeof linkEntitySchema>,
-    "id" | "created" | "updated" | "entityType"
-  > & {
-    id?: string;
-  },
-): LinkEntity {
-  const now = new Date().toISOString();
-  return linkEntitySchema.parse({
-    id: input.id ?? nanoid(12),
-    created: now,
-    updated: now,
-    entityType: "link",
-    ...input,
-  });
-}
+// 3. Infer the entity: the runtime adds id, content, visibility, and timestamps
+export type LinkEntity = EntityOf<typeof link>;
 ```
+
+Entities are created through the entity service, system tools, or a declared create route, never by a factory in the package. The real `link` declaration adds a markdown codec, templates, create routes, and an ATProto projection.
 
 **Important**: Entities are pure data objects. All serialization logic belongs in the adapter.
 
@@ -135,7 +123,7 @@ Each entity type requires an adapter for markdown serialization. Adapters work w
 3. **Core fields** (`id`, `entityType`, `content`, `created`, `updated`, `visibility`, `contentHash`) come from the database
 4. **Entity-specific fields** (including `title`/`tags` in `metadata`) come from markdown/frontmatter
 
-The adapter interface requires `toMarkdown`, `fromMarkdown`, `extractMetadata`, `parseFrontMatter`, `generateFrontMatter`, and `getBodyTemplate`. Note that `parseFrontMatter` takes the markdown plus a Zod schema to validate the frontmatter against. Several capability flags are optional.
+The adapter interface requires `entityType`, `purpose`, `schema`, `toMarkdown`, `fromMarkdown`, `extractMetadata`, `parseFrontMatter`, `generateFrontMatter`, and `getBodyTemplate`. `purpose` is one sentence saying what the type is; the model reads it to choose an `entityType`. `parseFrontMatter` takes the markdown plus a schema to validate the frontmatter against. Several capability flags are optional.
 
 ```typescript
 export interface EntityAdapter<
@@ -143,7 +131,11 @@ export interface EntityAdapter<
   TMetadata = Record<string, unknown>,
 > {
   entityType: string;
-  schema: z.ZodType<TEntity, z.ZodTypeDef, unknown>;
+
+  // One declarative sentence describing what this entity type is
+  purpose: string;
+
+  schema: EntitySchema<TEntity>;
 
   // Convert entity to markdown content (may include frontmatter)
   toMarkdown(entity: TEntity): string;
@@ -155,10 +147,13 @@ export interface EntityAdapter<
   // Extract typed metadata from the entity for search/filtering
   extractMetadata(entity: TEntity): TMetadata;
 
-  // Parse + validate frontmatter against a provided Zod schema
+  // The label lists and search results show, when metadata has no title
+  displayTitle?(entity: TEntity): string | undefined;
+
+  // Parse + validate frontmatter against a provided schema
   parseFrontMatter<TFrontmatter>(
     markdown: string,
-    schema: z.ZodSchema<TFrontmatter>,
+    schema: { parse(data: unknown): TFrontmatter },
   ): TFrontmatter;
 
   // Generate frontmatter for markdown
@@ -173,129 +168,72 @@ export interface EntityAdapter<
   hasBody?: boolean;
   supportsCoverImage?: boolean;
 }
-
-// Example implementation for LinkEntity (content-heavy entity)
-class LinkAdapter implements EntityAdapter<LinkEntity> {
-  entityType = "link";
-  schema = linkEntitySchema;
-
-  toMarkdown(entity: LinkEntity): string {
-    // Store URL and metadata in frontmatter
-    const frontmatter = matter.stringify("", {
-      url: entity.url,
-      description: entity.description,
-      summary: entity.summary,
-      author: entity.author,
-      publishDate: entity.publishDate,
-      images: entity.images,
-      metadata: entity.metadata,
-    });
-
-    // Main content is the body
-    return `${frontmatter}${entity.content}`;
-  }
-
-  fromMarkdown(markdown: string): Partial<LinkEntity> {
-    const { data, content } = matter(markdown);
-
-    // Return only entity-specific fields
-    // Core fields (id, title, created, etc.) will come from database
-    return {
-      content: content.trim(),
-      url: data.url as string,
-      description: data.description as string | undefined,
-      summary: data.summary as string | undefined,
-      author: data.author as string | undefined,
-      publishDate: data.publishDate as string | undefined,
-      images: (data.images as string[]) || [],
-      metadata: (data.metadata as Record<string, unknown>) || {},
-    };
-  }
-
-  generateFrontMatter(entity: LinkEntity): string {
-    const metadata: Record<string, unknown> = {
-      url: entity.url,
-    };
-    if (entity.description) metadata.description = entity.description;
-    if (entity.summary) metadata.summary = entity.summary;
-    if (entity.author) metadata.author = entity.author;
-    if (entity.publishDate) metadata.publishDate = entity.publishDate;
-    if (entity.images?.length) metadata.images = entity.images;
-    if (entity.metadata && Object.keys(entity.metadata).length > 0) {
-      metadata.metadata = entity.metadata;
-    }
-
-    return matter.stringify("", metadata);
-  }
-}
-
-// Example implementation for SummaryEntity (metadata-heavy entity)
-class SummaryAdapter implements EntityAdapter<SummaryEntity, SummaryMetadata> {
-  entityType = "summary";
-  schema = summarySchema;
-
-  toMarkdown(entity: SummaryEntity): string {
-    // Conversation context lives in typed metadata frontmatter
-    const frontmatter = matter.stringify("", { ...entity.metadata });
-
-    // Content is the rendered summary entries
-    return `${frontmatter}${entity.content}`;
-  }
-
-  fromMarkdown(markdown: string): Partial<SummaryEntity> {
-    const { data, content } = matter(markdown);
-
-    return {
-      content: content.trim(),
-      metadata: summaryMetadataSchema.parse(data),
-    };
-  }
-
-  extractMetadata(entity: SummaryEntity): SummaryMetadata {
-    return entity.metadata;
-  }
-
-  generateFrontMatter(entity: SummaryEntity): string {
-    return matter.stringify("", { ...entity.metadata });
-  }
-
-  parseFrontMatter<TFrontmatter>(
-    markdown: string,
-    schema: z.ZodSchema<TFrontmatter>,
-  ): TFrontmatter {
-    const { data } = matter(markdown);
-    return schema.parse(data);
-  }
-
-  getBodyTemplate(): string {
-    return "";
-  }
-}
 ```
+
+A declared type does not implement this interface by hand. By default its frontmatter is its metadata and its body is its content. When the file should differ, the declaration gives a `markdown` codec: `decode` reads a stored document's body and frontmatter into content and metadata, and `encode` writes them back. The stored header is flat, so the `link` codec writes the nested `source` as two flat keys and reads either form:
+
+```typescript
+export const link = defineEntity({
+  type: "link",
+  purpose: "A saved external URL or web resource captured for later reference.",
+  metadata: linkMetadataSchema,
+  markdown: {
+    // A file in either form: flat source keys, or a nested source
+    decode: ({ content, frontmatter }) => {
+      const { sourceRef, sourceLabel, ...rest } = frontmatter;
+      return {
+        content,
+        metadata: {
+          ...rest,
+          source: rest["source"] ?? { ref: sourceRef, label: sourceLabel },
+        },
+      };
+    },
+    // Only the flat form is written
+    encode: ({ content, metadata }) => {
+      const { source, ...rest } = metadata;
+      return {
+        content,
+        frontmatter: {
+          ...rest,
+          sourceRef: source.ref,
+          sourceLabel: source.label,
+        },
+      };
+    },
+  },
+});
+```
+
+See [The stored format](./external-plugin-authoring.md#the-stored-format) for the rules a stored file follows.
 
 ## Entity Registry
 
 The registry manages entity types and their schemas:
 
 ```typescript
-export class EntityRegistry {
-  // Register entity type with schema and adapter
-  registerEntityType<T extends BaseEntity>(
+export interface EntityRegistry {
+  // Register entity type with schema, adapter, and type config
+  registerEntityType(
     type: string,
-    schema: z.ZodType<T>,
-    adapter: EntityAdapter<T>,
+    schema: UnknownEntitySchema,
+    adapter: EntityAdapter<TEntity, TMetadata>,
+    config?: EntityTypeConfig,
   ): void;
 
+  // Look up a registered type
+  hasEntityType(type: string): boolean;
+  getAllEntityTypes(): string[];
+  getSchema(type: string): UnknownEntitySchema;
+  getAdapter(type: string): EntityAdapter<BaseEntity>;
+  getEntityTypeConfig(type: string): EntityTypeConfig;
+
   // Validate entity against registered schema
-  validateEntity<T extends BaseEntity>(type: string, entity: unknown): T;
-
-  // Convert entity to markdown using registered adapter
-  entityToMarkdown<T extends BaseEntity>(entity: T): string;
-
-  // Convert markdown to entity using registered adapter
-  markdownToEntity<T extends BaseEntity>(type: string, markdown: string): T;
+  validateEntity(type: string, entity: unknown): BaseEntity;
 }
 ```
+
+Conversion between entities and markdown goes through the adapter `getAdapter` returns. The registry also holds create routes, persist validators, frontmatter extensions, and groupings.
 
 ## Common Entity Types
 
@@ -305,7 +243,7 @@ These entity types are part of the core system and managed by shell services:
 
 #### BrainCharacterEntity
 
-Brain identity and AI personality configuration. The entity itself is a singleton; the character data (`name`, `role`, `purpose`, `values`) is parsed from the markdown content body rather than stored as top-level fields:
+Brain identity and AI personality configuration. The entity itself is a singleton; the character data (`name`, `role`, `purpose`, `values`) is parsed from the markdown content rather than stored as top-level fields:
 
 ```typescript
 const brainCharacterBodySchema = z.object({
@@ -324,31 +262,43 @@ type BrainCharacterEntity = z.infer<typeof brainCharacterSchema>;
 type BrainCharacter = z.infer<typeof brainCharacterBodySchema>;
 ```
 
+The file states `name` and `role` in the header and `purpose` and `values` as body sections.
+
 Managed by: `shell/identity-service`
 
 #### AnchorProfileEntity
 
-Public identity of the person, team, or organization behind the brain. The profile data is parsed from the markdown content body:
+Public identity of the person, team, or organization behind the brain. The profile data is parsed from the markdown content:
 
 ```typescript
 const anchorProfileBodySchema = z.object({
-  name: z.string().describe("Name (person or organization)"),
-  kind: z
-    .enum(["person", "team", "organization"])
-    .describe("Type of anchor: person, team, or organization"),
+  name: z.string().describe("Name of the anchor"),
   organization: z
     .string()
     .optional()
     .describe("Organization the anchor belongs to"),
   description: z.string().optional().describe("Short description or biography"),
   avatar: z.string().optional().describe("URL or asset path to avatar/logo"),
+  photo: z
+    .string()
+    .optional()
+    .describe(
+      "A photo of the people behind the anchor, as ![alt](entity://image/<id>)",
+    ),
   website: z.string().optional().describe("Primary website URL"),
   email: z.string().optional().describe("Contact email"),
   socialLinks: z
     .array(
       z.object({
         platform: z
-          .enum(["github", "instagram", "linkedin", "email", "website"])
+          .enum([
+            "github",
+            "instagram",
+            "linkedin",
+            "podcast",
+            "email",
+            "website",
+          ])
           .describe("Social media platform"),
         url: z.string().describe("Profile or contact URL"),
         label: z.string().optional().describe("Optional display label"),
@@ -367,35 +317,52 @@ type AnchorProfileEntity = z.infer<typeof anchorProfileSchema>;
 type AnchorProfile = z.infer<typeof anchorProfileBodySchema>;
 ```
 
+Whether the anchor is a person, team, or organization is set by `anchor` in `brain.yaml`, not in the profile. The file states the short facts in the header; the description, links, and the kind-aware prose fields are body sections, and the long-form story closes the body under `## Story`.
+
 Managed by: `shell/identity-service`, with kind-aware professional, team, and organization profile extensions and persistence validation owned by `@brains/profile`.
 
 #### StyleGuideEntity
 
-Singleton messaging, voice, and visual guidance for generation:
+Singleton messaging, voice, and visual guidance for generation. The header holds the guide's name; messaging, voice, and visual guidance are body sections above the free-form guidance:
 
-```yaml
+```markdown
 ---
 name: Default style guide
-messaging:
-  audiences: []
-  positioning: Practical guidance grounded in real work
-voice:
-  summary: Clear and direct
-  traits: [grounded]
-  principles: []
-  preferredTerms: []
-  avoid: []
-visual:
-  artDirection: Geometric editorial collage
-  palette: ["#3921D7", "#E7640A"]
-  composition: Layered and interconnected
-  mood: Playful and rigorous
-  preferred: []
-  avoid: [photorealism]
 ---
+
+## Messaging
+
+- **Positioning:** Practical guidance grounded in real work
+
+## Voice
+
+- **Summary:** Clear and direct
+
+### Traits
+
+- grounded
+
+## Visual
+
+- **Art direction:** Geometric editorial collage
+- **Composition:** Layered and interconnected
+- **Mood:** Playful and rigorous
+
+### Palette
+
+- #3921D7
+- #E7640A
+
+### Avoid
+
+- photorealism
+
+## Guidance
+
+Rationale, examples, and exceptions.
 ```
 
-The markdown body holds rationale, examples, and exceptions. Generation separately selects represented identity (`brain | anchor | none`) and style facets (`voice | visual | both | none`).
+In metadata the guidance keeps its structured shape: `name`, `messaging` (`audiences`, `positioning`), `voice` (`summary`, `traits`, `principles`, `preferredTerms`, `avoid`), and `visual` (`artDirection`, `palette`, `composition`, `mood`, `preferred`, `avoid`). Generation separately selects represented identity (`brain | anchor | none`) and style facets (`voice | visual | both | none`).
 
 Managed by: `@brains/style-guide`
 
@@ -411,8 +378,11 @@ const siteInfoBodySchema = z.object({
     .string()
     .optional()
     .describe("Optional site description override"),
-  url: z.string().optional().describe("The site's canonical URL"),
   copyright: z.string().optional().describe("Copyright notice text"),
+  logo: z
+    .boolean()
+    .optional()
+    .describe("Whether to display logo instead of title text in header"),
   themeMode: z
     .enum(["light", "dark"])
     .optional()
@@ -420,21 +390,26 @@ const siteInfoBodySchema = z.object({
   cta: z
     .object({
       heading: z.string().describe("Main CTA heading text"),
+      subtitle: z.string().optional().describe("A line under the CTA heading"),
       buttonText: z.string().describe("Call-to-action button text"),
       buttonLink: z.string().describe("URL or anchor for the CTA button"),
     })
     .optional()
     .describe("Call-to-action configuration"),
+  sections: z
+    .record(z.string(), z.object({ blurb: z.string().optional() }))
+    .optional()
+    .describe("Per-section blurbs, keyed by section id"),
+  translations: z
+    .record(languageTagSchema, siteMetadataTranslationSchema)
+    .optional()
+    .describe("Title, description, copyright, and CTA per language tag"),
 });
 
-const siteInfoSchema = baseEntitySchema.extend({
-  id: z.literal("site-info"),
-  entityType: z.literal("site-info"),
-});
-
-type SiteInfoEntity = z.infer<typeof siteInfoSchema>;
 type SiteInfoBody = z.infer<typeof siteInfoBodySchema>;
 ```
+
+`site-info` is a singleton declared with `defineEntity`, whose metadata is this schema. The site's canonical URL comes from the brain's configuration, not from site-info. The file states the CTA as flat `ctaHeading`, `ctaButtonText`, and `ctaButtonLink` header keys, and the CTA subtitle, section blurbs, and translations as body sections.
 
 Managed by: `@brains/site-info`; consumed by `@brains/site-builder-plugin`.
 
@@ -453,21 +428,25 @@ These entity types are defined by plugins for specific features:
 
 #### LinkEntity
 
-Web content capture with AI extraction:
+Web content capture with AI extraction. The body is the extracted summary; the metadata is the link's frontmatter:
 
 ```typescript
-const linkEntitySchema = baseEntitySchema.extend({
-  entityType: z.literal("link"),
+const linkMetadataSchema = z.object({
+  status: z.enum(["pending", "draft", "published"]),
+  title: z.string(),
   url: z.string().url(),
   description: z.string().optional(),
-  summary: z.string().optional(),
-  author: z.string().optional(),
-  publishDate: z.string().optional(),
-  images: z.array(z.string()).default([]),
-  metadata: z.record(z.unknown()).default({}),
+  capturedAt: z.string().datetime(),
+  source: z.object({ ref: z.string(), label: z.string() }),
 });
 
-type LinkEntity = z.infer<typeof linkEntitySchema>;
+const link = defineEntity({
+  type: "link",
+  purpose: "A saved external URL or web resource captured for later reference.",
+  metadata: linkMetadataSchema,
+});
+
+type LinkEntity = EntityOf<typeof link>;
 ```
 
 ### SummaryEntity
@@ -476,25 +455,26 @@ Narrative conversation summaries. All conversation context lives in a typed `met
 
 ```typescript
 const summaryMetadataSchema = z.object({
-  conversationId: z.string(),
   channelId: z.string(),
   channelName: z.string().optional(),
   interfaceType: z.string(),
   timeRange: summaryTimeRangeSchema.optional(),
   messageCount: z.number().int().min(0),
-  entryCount: z.number().int().min(0),
   participants: z.array(summaryParticipantSchema).optional(),
   sourceHash: z.string(),
-  projectionVersion: z.number().int().min(1),
 });
 
-const summarySchema = baseEntitySchema.extend({
-  entityType: z.literal("summary"),
+const summary = defineEntity({
+  type: "summary",
+  purpose:
+    "A read-only, system-maintained summary derived from stored conversation messages.",
   metadata: summaryMetadataSchema,
 });
 
-type SummaryEntity = z.infer<typeof summarySchema>;
+type SummaryEntity = EntityOf<typeof summary>;
 ```
+
+Older summaries may still carry `conversationId`, `entryCount`, and `projectionVersion`; those fields are retired.
 
 ### TopicEntity
 
@@ -545,17 +525,29 @@ CREATE VIRTUAL TABLE entity_fts USING fts5(
   content
 );
 
+-- embeddings.db: the embedding model the vectors came from
+CREATE TABLE embedding_meta (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  model TEXT NOT NULL,
+  dimensions INTEGER NOT NULL,
+  prompt_revision INTEGER NOT NULL
+);
+
 -- embeddings.db: separate database for vector storage
 CREATE TABLE embeddings (
   entity_id TEXT NOT NULL,
   entity_type TEXT NOT NULL,
-  embedding F32_BLOB(1536) NOT NULL,  -- OpenAI text-embedding-3-small
+  embedding F32_BLOB(<dimensions>) NOT NULL,  -- size from embedding_meta
   content_hash TEXT NOT NULL,
   PRIMARY KEY(entity_id, entity_type)
 );
 ```
 
+The vector size comes from the embedding provider and is recorded in `embedding_meta`. A database written before the table existed is read as the legacy `openai:text-embedding-3-small` model at 1536 dimensions. When the model, dimensions, or prompt revision change, the brain drops the embeddings table and re-embeds every entity.
+
 Search queries ATTACH the embedding DB and join across for hybrid vector + keyword scoring.
+
+Binary content lives in `brain.db` beside the entities: `asset_uploads` and `asset_chunks` stage bytes in 1 MiB chunks, and `assets` publishes each one under its SHA-256 digest. An image or document entity's `content` is the `asset://sha256/<digest>` reference.
 
 ```sql
 -- Entity relationships table (planned)
@@ -684,30 +676,30 @@ export default defineEntityPackage({ id: "faq", entities: [faq] });
 
 ### Schema Design
 
-1. **Extend baseEntitySchema**: Always start with the base schema
-2. **Use literal types**: `z.literal("note")` for entityType discrimination
+1. **Declare metadata, not the entity**: `defineEntity` adds the base fields; the schema describes only `metadata`
+2. **Keep the header flat**: metadata the file states in its header is scalars or lists of scalars; structured fields go in body sections through a codec
 3. **Provide defaults**: Use `.default()` for optional fields
 4. **Keep schemas simple**: Complex validation in business logic, not schemas
 
-### Factory Functions
+### Entity Definitions
 
-1. **Handle ID generation**: Create ID if not provided
-2. **Set timestamps**: Always set created/updated timestamps
-3. **Validate input**: Use Zod parsing for type safety
-4. **Implement toMarkdown**: Provide meaningful markdown representation
+1. **Write one purpose sentence**: the model reads it to choose an `entityType`
+2. **Let the runtime create entities**: ids, timestamps, and validation come from the entity service
+3. **Declare behavior on the definition**: templates, create routes, generation, and jobs belong on the declaration
+4. **Export the definition**: other packages read and write the type through it
 
-### Adapters
+### Codecs
 
-1. **Handle missing data**: Provide sensible defaults in fromMarkdown
-2. **Preserve metadata**: Round-trip all entity properties through frontmatter
-3. **Error handling**: Gracefully handle malformed markdown
-4. **Keep stateless**: No instance state in adapter classes
+1. **Handle missing data**: Provide sensible defaults in `decode`
+2. **Preserve metadata**: Round-trip all entity properties through the stored document
+3. **Read old forms**: `decode` accepts the previous form of a renamed or moved field; `encode` writes only the current one
+4. **Keep stateless**: No instance state in codecs or adapters
 
 ### Testing
 
 1. **Test schemas**: Validate schema parsing and error handling
-2. **Test factories**: Ensure proper entity creation
-3. **Test adapters**: Verify markdown round-trip consistency
+2. **Test definitions**: Ensure entities persist and read back as declared
+3. **Test codecs**: Verify markdown round-trip consistency
 4. **Mock dependencies**: Use dependency injection for testability
 
-This functional approach provides type safety, validation, and flexibility while avoiding the complexity of class hierarchies.
+This declarative approach provides type safety, validation, and flexibility while avoiding the complexity of class hierarchies.

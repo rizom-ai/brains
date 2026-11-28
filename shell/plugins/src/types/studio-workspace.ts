@@ -9,6 +9,7 @@ export {
   DECLARATIVE_STUDIO_WORKSPACE_RENDERER,
   STUDIO_SECTIONS,
   type StudioAttentionItem,
+  type StudioPaletteAction,
   type StudioSection,
   type StudioWorkspaceActor,
   type StudioWorkspaceAttentionProvider,

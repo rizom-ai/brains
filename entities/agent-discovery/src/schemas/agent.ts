@@ -45,6 +45,7 @@ export type AgentFrontmatterSchema = z.ZodObject<{
   kind: AgentKindSchema;
   organization: z.ZodOptional<z.ZodString>;
   brainName: z.ZodString;
+  shownAs: z.ZodOptional<z.ZodString>;
   url: z.ZodString;
   repoDid: z.ZodOptional<z.ZodString>;
   brainDid: z.ZodOptional<z.ZodString>;
@@ -73,6 +74,15 @@ export const agentFrontmatterSchema: AgentFrontmatterSchema = z.object({
 
   // Brain (what)
   brainName: z.string().describe("Name of the brain instance"),
+
+  // The owner's own
+  shownAs: z
+    .string()
+    .min(1)
+    .optional()
+    .describe(
+      "The name this brain shows the agent under, in place of its own name",
+    ),
   url: z.string().url().describe("Brain endpoint URL"),
   repoDid: z
     .string()
@@ -132,6 +142,7 @@ export type AgentFrontmatter = z.infer<typeof agentFrontmatterSchema>;
 
 export type AgentMetadataSchema = z.ZodObject<{
   name: z.ZodString;
+  shownAs: z.ZodOptional<z.ZodString>;
   url: z.ZodString;
   status: AgentStatusSchema;
   discoveredAt: z.ZodOptional<z.ZodString>;
@@ -151,6 +162,7 @@ export type AgentMetadataSchema = z.ZodObject<{
  */
 export const agentMetadataSchema: AgentMetadataSchema = z.object({
   name: z.string(),
+  shownAs: z.string().min(1).optional(),
   url: z.string().url(),
   status: agentStatusSchema,
   discoveredAt: z.string().datetime().optional(),

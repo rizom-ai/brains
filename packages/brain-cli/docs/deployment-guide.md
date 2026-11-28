@@ -50,6 +50,7 @@ cd mybrain
 # Put local secrets in .env.local, including:
 # OPENAI_API_KEY=... (and the keys of any other provider your models use)
 # GIT_SYNC_TOKEN=...
+# SETUP_EMAIL_TO=... SETUP_EMAIL_API_KEY=... SETUP_EMAIL_FROM=...
 # HCLOUD_TOKEN=...
 # HCLOUD_SSH_KEY_NAME=...
 # HCLOUD_SERVER_TYPE=...
@@ -89,8 +90,12 @@ brain init . --deploy --regen
 ```text
 mybrain/
   brain.yaml                          # Brain configuration
+  seed-content/                       # First-boot markdown
+  src/site.tsx, src/theme.css         # Site recipes only: local site and theme
   config/deploy.yml                   # Kamal deployment config
   deploy/Dockerfile                   # Repo-local runtime image build
+  deploy/scripts/*.ts                 # Provisioning, DNS, backup, model, homeserver, watchdog helpers
+  scripts/extract-brain-config.rb     # Reads brain.yaml into the deploy job's environment
   .env.example                        # Secret template
   .env.schema                         # Deploy/runtime secret contract
   .kamal/hooks/pre-deploy             # Uploads brain.yaml to server
@@ -98,11 +103,13 @@ mybrain/
   .github/workflows/deploy.yml        # Provision + DNS + Kamal deploy
 ```
 
+`scripts/extract-brain-config.rb` reads `brain` and `domain` from `brain.yaml` and fails when either is missing, so keep the `brain: brain` line `brain init` writes. It also derives the preview domain (`preview.<domain>`), a `www.` domain for a two-label domain such as `example.com`, the `local:` models to pull, and whether the `matrix` bundle is selected.
+
 The Origin CA certificate files (`origin.pem`, `origin.key`) are temporary artifacts created by `brain cert:bootstrap`. Keep them out of git. In GitHub Secrets mode, `brain cert:bootstrap --push-to gh` stores the resulting `CERTIFICATE_PEM` and `PRIVATE_KEY_PEM` in GitHub Actions secrets. In Bitwarden mode, push file-backed PEM values with `CERTIFICATE_PEM_FILE=origin.pem` and `PRIVATE_KEY_PEM_FILE=origin.key` so Bitwarden becomes the source of truth.
 
 ## config/deploy.yml
 
-The scaffolded file is generic and repo-owned. It does not hardcode the monorepo image namespace.
+The scaffolded file is generic and repo-owned. It does not hardcode the monorepo image namespace. Every instance-specific value comes from the environment the deploy job extracts from `brain.yaml`. The lines in `# <% … %>` comments are ERB conditions: the `www` host, the `models` accessory for `local:` models, and the Matrix homeserver are rendered only when the brain needs them.
 
 ```yaml
 service: brain
@@ -119,10 +126,17 @@ proxy:
     private_key_pem: PRIVATE_KEY_PEM
   hosts:
     - <%= ENV['BRAIN_DOMAIN'] %>
+    # <% if ENV['WWW_DOMAIN'] && !ENV['WWW_DOMAIN'].empty? %>
+    - <%= ENV['WWW_DOMAIN'] %>
+    # <% end %>
     - <%= ENV['PREVIEW_DOMAIN'] %>
   app_port: 8080
   healthcheck:
     path: /health/ready
+  # <% if ENV['MATRIX_ENABLED'] == 'true' %>
+  # A Matrix client holds /sync open for 30 seconds before its headers.
+  response_timeout: 120
+  # <% end %>
 
 registry:
   server: ghcr.io
@@ -130,15 +144,66 @@ registry:
   password:
     - KAMAL_REGISTRY_PASSWORD
 
+builder:
+  arch: amd64
+
 env:
   clear:
     NODE_ENV: production
+    # <% if ENV['LOCAL_MODELS'] && !ENV['LOCAL_MODELS'].empty? %>
+    MODEL_RUNTIME_URL: http://brain-models:11434
+    # <% end %>
+    # <% if ENV['MATRIX_ENABLED'] == 'true' %>
+    # The brain's own homeserver: the brain writes its configuration and
+    # secrets into the shared directory, so none is set here.
+    MATRIX_HOMESERVER_URL: http://brain-matrix:6167
+    MATRIX_BASE_URL: http://brain-matrix:6167
+    MATRIX_SERVER_NAME: <%= ENV['BRAIN_DOMAIN'] %>
+    MATRIX_USER_ID: "@_brain:<%= ENV['BRAIN_DOMAIN'] %>"
+    MATRIX_DATA_DIR: /app/matrix
+    # <% end %>
   secret:
     - OPENAI_API_KEY
     - ANTHROPIC_API_KEY
     - GOOGLE_GENERATIVE_AI_API_KEY
     - GIT_SYNC_TOKEN
     - DISCORD_BOT_TOKEN
+    - DISCORD_PUBLIC_KEY
+    - DISCORD_APPLICATION_ID
+    - ATPROTO_APP_PASSWORD
+    - SETUP_EMAIL_TO
+    - SETUP_EMAIL_API_KEY
+    - SETUP_EMAIL_FROM
+
+# <% if (ENV['LOCAL_MODELS'] && !ENV['LOCAL_MODELS'].empty?) || ENV['MATRIX_ENABLED'] == 'true' %>
+accessories:
+  # <% end %>
+  # <% if ENV['LOCAL_MODELS'] && !ENV['LOCAL_MODELS'].empty? %>
+  models:
+    image: ollama/ollama:0.40.18
+    host: <%= ENV['SERVER_IP'] %>
+    env:
+      clear:
+        # Agent prompts run to ~28k tokens; the default context cuts them.
+        OLLAMA_CONTEXT_LENGTH: "32768"
+    volumes:
+      - /opt/brain-models:/root/.ollama
+    options:
+      health-cmd: ollama list
+      health-interval: 30s
+  # <% end %>
+  # <% if ENV['MATRIX_ENABLED'] == 'true' %>
+  matrix:
+    image: ghcr.io/matrix-construct/tuwunel:v2.0.0
+    host: <%= ENV['SERVER_IP'] %>
+    env:
+      clear:
+        TUWUNEL_CONFIG: /data/tuwunel.toml
+    # Until the brain has written its configuration on the first deploy,
+    # the homeserver exits and Kamal's restart policy starts it again.
+    volumes:
+      - /opt/brain-matrix:/data
+# <% end %>
 
 volumes:
   - /opt/brain-data:/app/brain-data
@@ -147,9 +212,12 @@ volumes:
   - /opt/brain-config:/config
   - /opt/brain-dist:/app/dist
   - /opt/brain.yaml:/app/brain.yaml
+  - /opt/brain-matrix:/app/matrix
 ```
 
 Keep the `proxy.hosts` entries as bare hostnames. Do not append `:80` or `:81`.
+
+Only the variables under `env.secret` reach the container; the deploy job writes exactly those (plus the registry password and TLS PEMs) into `.kamal/secrets`. To switch on another integration in a deployed brain, such as LinkedIn publishing or Cloudflare analytics, add its variables to `env.secret`, reference them in `brain.yaml`, and push them with `brain secrets:push`. The [brain.yaml Reference](./brain-yaml-reference.md#integrations) lists every integration and its variables. `brain init . --deploy --regen` rewrites `config/deploy.yml` from the template, so add such entries again after a regen.
 
 `/app/data` is runtime app state. The built-in OAuth/passkey provider stores its default auth state under `/app/data/auth`; keep this volume persistent across redeploys. Do not put auth state under `/app/brain-data`, because `brain-data` is durable content that may be synced/exported separately.
 
@@ -159,24 +227,30 @@ The deploy CLI reads from `.env`, `.env.local`, and `process.env`.
 
 Recommended local values:
 
-| Variable                       | Purpose                                                                   |
-| ------------------------------ | ------------------------------------------------------------------------- |
-| `OPENAI_API_KEY`               | runtime, for OpenAI models (the default chat, image and embedding models) |
-| `ANTHROPIC_API_KEY`            | runtime, for Claude models                                                |
-| `GOOGLE_GENERATIVE_AI_API_KEY` | runtime, for Gemini models                                                |
-| `GIT_SYNC_TOKEN`               | git-backed content sync                                                   |
-| `MCP_AUTH_TOKEN`               | local development only; a production brain refuses it                     |
-| `DISCORD_BOT_TOKEN`            | optional Discord bot                                                      |
-| `KAMAL_REGISTRY_PASSWORD`      | GHCR pull token for the server                                            |
-| `HCLOUD_TOKEN`                 | Hetzner provisioning                                                      |
-| `HCLOUD_SSH_KEY_NAME`          | Hetzner SSH key registration name                                         |
-| `HCLOUD_SERVER_TYPE`           | Hetzner server type                                                       |
-| `HCLOUD_LOCATION`              | Hetzner location                                                          |
-| `KAMAL_SSH_PRIVATE_KEY_FILE`   | preferred local source for the deploy SSH key                             |
-| `CF_API_TOKEN`                 | Cloudflare DNS + cert bootstrap                                           |
-| `CF_ZONE_ID`                   | Cloudflare zone ID                                                        |
+| Variable                       | Purpose                                                                      |
+| ------------------------------ | ---------------------------------------------------------------------------- |
+| `OPENAI_API_KEY`               | runtime, for OpenAI models (the default chat, image and embedding models)    |
+| `ANTHROPIC_API_KEY`            | runtime, for Claude models                                                   |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | runtime, for Gemini models                                                   |
+| `GIT_SYNC_TOKEN`               | git-backed content sync                                                      |
+| `MCP_AUTH_TOKEN`               | local development only; a production brain refuses it                        |
+| `DISCORD_BOT_TOKEN`            | optional Discord bot, with `DISCORD_PUBLIC_KEY` and `DISCORD_APPLICATION_ID` |
+| `ATPROTO_APP_PASSWORD`         | optional AT Protocol publishing and discovery                                |
+| `SETUP_EMAIL_TO`               | address the first setup link is emailed to                                   |
+| `SETUP_EMAIL_API_KEY`          | Resend API key for setup links, invitations, and email notifications         |
+| `SETUP_EMAIL_FROM`             | verified Resend sender                                                       |
+| `KAMAL_REGISTRY_PASSWORD`      | GHCR pull token for the server                                               |
+| `HCLOUD_TOKEN`                 | Hetzner provisioning                                                         |
+| `HCLOUD_SSH_KEY_NAME`          | Hetzner SSH key registration name                                            |
+| `HCLOUD_SERVER_TYPE`           | Hetzner server type                                                          |
+| `HCLOUD_LOCATION`              | Hetzner location                                                             |
+| `KAMAL_SSH_PRIVATE_KEY_FILE`   | preferred local source for the deploy SSH key                                |
+| `CF_API_TOKEN`                 | Cloudflare DNS + cert bootstrap                                              |
+| `CF_ZONE_ID`                   | Cloudflare zone ID                                                           |
 
 GitHub stores the pushed runtime/deploy values as normal secrets in the default GitHub Secrets mode, including `KAMAL_SSH_PRIVATE_KEY`, `CERTIFICATE_PEM`, and `PRIVATE_KEY_PEM`. In Bitwarden mode, GitHub should keep only `BWS_ACCESS_TOKEN`; Bitwarden stores the app/runtime/deploy secret values.
+
+The generated `.env.schema` marks `GIT_SYNC_TOKEN` and the three `SETUP_EMAIL_*` values as required, so the deploy's Varlock validation needs them set. Other integrations are optional; see the [brain.yaml Reference](./brain-yaml-reference.md#integrations).
 
 `MCP_AUTH_TOKEN` is a static MCP token for local development only; a production brain refuses it at boot. Leave it unset for deployed brains: the brain's OAuth/passkey provider handles MCP authorization when `auth-service` is enabled.
 
@@ -244,7 +318,7 @@ The generated workflow uses `bunx varlock@1.1.0`, not `npx -y varlock`, because 
 1. Put the zone on Cloudflare and complete nameserver activation.
 2. Set `domain:` in `brain.yaml`.
 3. Run `brain cert:bootstrap --push-to gh`.
-4. Let the deploy workflow create/update the primary and preview DNS records.
+4. Let the deploy workflow create/update the DNS records: the primary domain, `preview.<domain>`, and, for a two-label domain such as `example.com`, `www.<domain>`.
 
 The workflow updates DNS before Kamal deploys, because `kamal-proxy` healthchecks need the hostnames to resolve during rollout.
 
@@ -273,8 +347,11 @@ The workflow updates DNS before Kamal deploys, because `kamal-proxy` healthcheck
 - updates Cloudflare DNS
 - validates the SSH key and waits for SSH readiness
 - creates and verifies a rollback snapshot immediately before stale-lock handling and `kamal setup --skip-push`; failures stop deployment before replacement
+- pulls the `local:` models `brain.yaml` names into `/opt/brain-models`, when there are any
 - deploys `VERSION: ${{ github.event.workflow_run.head_sha || github.sha }}`
-- finishes with `Verify origin TLS`
+- restarts the Matrix homeserver when the brain wrote it a new configuration, with the `matrix` bundle
+- installs the container health watchdog
+- finishes with `Verify origin TLS` for every served hostname
 - dumps remote proxy diagnostics on failure
 
 ### Pre-deploy rollback snapshot
@@ -290,6 +367,16 @@ gh workflow run Deploy --ref main -f skip_predeploy_backup=true
 ```
 
 The input is off by default and exists only on a dispatched run.
+
+## Rolling deploys and background jobs
+
+Kamal replaces a container without downtime: the new container starts, passes `/health/ready`, takes the traffic, and the old one is stopped. For that window both run against the same runtime volume, including the job queue database. The queue keeps them from working against each other:
+
+- jobs are gated by brain version: a worker never claims a job that a newer brain queued, and an older worker stops claiming anything once a newer brain's worker is live;
+- each worker process has its own session; when two processes of the same version overlap, the newer one takes new work while the older one only finishes the jobs it already holds;
+- a job whose worker crashed is claimed again once its lease expires, since a live worker keeps renewing the leases of the jobs it runs; a job reclaimed past its retries is marked failed.
+
+So in-flight work finishes on the code that started it, and new work moves to the new version as soon as it is live. The predeploy snapshot runs before the new container starts and requires an idle queue: with jobs pending or running, it fails the deploy, to be rerun once the queue drains (see above).
 
 ## Common operations
 

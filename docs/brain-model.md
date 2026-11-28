@@ -2,28 +2,33 @@
 
 ## Overview
 
-The repository ships one canonical brain definition through `@rizom/brain/model`. The definition owns an ordered capability catalog, eight capability bundles, and the policy-only `team` bundle. Instances own identity, bundle selection, member additions/removals, content, site/theme choices, permissions, and integration config.
+The repository ships one canonical brain definition through `@rizom/brain/model`. The definition owns an ordered capability catalog, nine capability bundles, and the policy-only `team` bundle. Instances own identity, bundle selection, member additions/removals, content, site/theme choices, permissions, and integration config.
 
 Recipes are scaffold-time conveniences. They expand to explicit `brain.yaml` and are not interpreted at runtime.
 
 ## Instance directory
 
+`brain init` writes:
+
 ```text
 my-brain/
 ├── brain.yaml
 ├── seed-content/
-├── brain-data/
-├── src/
-│   ├── site.ts
-│   ├── site-content.ts
+├── src/              # site recipes (professional, team) only
+│   ├── site.tsx
 │   └── theme.css
-├── .env
+├── .env              # only when a provider key is given
+├── .env.example
 ├── .env.schema
+├── .gitignore
+├── README.md
 ├── package.json
 └── tsconfig.json
 ```
 
-`brain-data/` is durable markdown. Runtime databases and auth state live outside it.
+`--deploy` adds the deployment files listed in the [CLI Reference](../packages/brain-cli/docs/cli-reference.md#brain-init-directory).
+
+On first start the brain creates `brain-data/`, its durable markdown, and seeds it from `seed-content/` where `plugins.directory-sync.seedContentPath` points there, as every recipe but `headless` sets. Runtime databases and auth state live outside it, under `data/`. An optional `src/site-content.ts` supplies site content definitions when `brain.yaml` sets none.
 
 ## brain.yaml
 
@@ -61,7 +66,7 @@ plugins:
       authToken: ${GIT_SYNC_TOKEN}
 ```
 
-The canonical definition requires explicit `bundles`. `brain: brain` may be omitted because it is the only built-in definition. Scoped external definition packages remain an advanced authoring surface.
+The canonical definition requires explicit `bundles`. The runtime accepts a file without `brain: brain`, because it is the only built-in definition, but the generated Kamal deploy reads `brain` from `brain.yaml` and fails without it. Scoped external definition packages remain an advanced authoring surface.
 
 The `model` field, when present, selects an AI text model; it does not select a brain product.
 
@@ -71,31 +76,35 @@ See [brain.yaml Reference](../packages/brain-cli/docs/brain-yaml-reference.md).
 
 A definition contains:
 
-- ordered capability and interface tuples;
+- an ordered plugin catalog;
 - ordered bundle definitions;
 - definition-owned default config and permission policy;
 - optional identity/site defaults for externally authored definitions;
 - eval exclusions and instructions.
 
+The public `@rizom/brain` shape lists configured packages, each returned by `use()`, and bundles that name those same values:
+
 ```ts
-import { defineBrain, defineBundle } from "@rizom/brain";
+import note from "@example/note";
+import link from "@example/link";
+import { defineBrain, defineBundle, use } from "@rizom/brain";
+
+const configuredNote = use(note);
+const configuredLink = use(link, { captureUrls: true });
 
 const core = defineBundle({
   id: "core",
-  members: ["note", "link", "mcp"],
+  members: [configuredNote, configuredLink],
 });
 
 export default defineBrain({
   name: "example",
-  version: "1.0.0",
-  capabilities: [
-    ["note", notePlugin, {}],
-    ["link", linkPlugin, {}],
-  ],
-  interfaces: [["mcp", MCPInterface, mapMcpEnv]],
+  plugins: [configuredNote, configuredLink],
   bundles: [core],
 });
 ```
+
+The canonical definition itself is built with the internal `@brains/app` form, which lists capability and interface tuples by catalog ID (`["note", notePlugin, config]`); that form is not part of the public API.
 
 Definition authors may use arbitrary ordered bundles over their own catalog. Canonical instances may select only the fixed built-in bundle IDs; YAML cannot inject policy bundles.
 
@@ -103,17 +112,18 @@ Definition authors may use arbitrary ordered bundles over their own catalog. Can
 
 ## Fixed bundles
 
-- `core` — identity, markdown knowledge, Inbox, MCP stdio, A2A, and agent discovery;
+- `core` — identity, markdown knowledge, conflicts, Inbox, MCP stdio, A2A, and agent discovery;
 - `media` — documents and images;
 - `automation` — playbooks and onboarding;
-- `web` — HTTP, auth, account/admin, Dashboard, Studio, and the WebDAV drive;
-- `chat` — platform chat, web chat, email, notifications, and conversation memory;
-- `site` — site information, content, building, and analytics;
+- `web` — auth, Admin, Dashboard, Studio, and the WebDAV drive, served over HTTP;
+- `chat` — platform chat, web chat and public Ask, email, notifications, conversation memory, and FAQ capture;
+- `site` — site information, content, building, forms, and analytics;
 - `publishing` — long-form content and distribution workflows;
 - `federation` — AT Protocol publication, and references to what other brains publish;
+- `matrix` — the brain's own Matrix homeserver at its domain, served over HTTP;
 - `team` — policy-only shared-memory defaults and trusted collaborative writes.
 
-Site and publishing remain independent. Optional capabilities are selected explicitly with `add`.
+Site and publishing remain independent. Optional capabilities outside every bundle are selected explicitly with `add`; the [brain.yaml Reference](../packages/brain-cli/docs/brain-yaml-reference.md#add--remove) lists them.
 
 ## Deterministic resolution
 
@@ -134,7 +144,7 @@ YAML bundle order does not change composition order. Arrays are replaced unless 
 
 ## Config callbacks
 
-Capability callbacks receive environment and active bundle IDs:
+In the internal tuple form, capability config callbacks receive the environment and the active bundle IDs:
 
 ```ts
 [
@@ -188,7 +198,7 @@ Review the generated YAML. Runtime behavior depends on that explicit YAML, not t
 
 ## External definitions
 
-An explicitly scoped external package may default-export a `BrainDefinition`. This is an advanced API; it does not create aliases for retired built-in definitions and cannot make the canonical runtime interpret legacy capability IDs.
+An explicitly scoped external package may default-export a `BrainDefinition` built with `defineBrain()`; an instance selects it with `brain: "@scope/package"`. This is how external plugins reach a brain: `brain.yaml` cannot load a plugin package itself. See [External Package Authoring](./external-plugin-authoring.md). This is an advanced API; it does not create aliases for retired built-in definitions and cannot make the canonical runtime interpret legacy capability IDs.
 
 ## Legacy migration
 

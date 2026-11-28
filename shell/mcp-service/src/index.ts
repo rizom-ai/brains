@@ -36,7 +36,12 @@ export {
   type ToolResult,
   type ToolErrorResult,
 } from "./tool-helpers";
-export { mapArgsToInput } from "./schema-map";
+export {
+  cliToolFields,
+  mapArgsToInput,
+  resolveCliToolFlags,
+  type CliToolField,
+} from "./schema-map";
 export {
   ConfirmationArgsStore,
   type ConfirmationArgsValidationResult,

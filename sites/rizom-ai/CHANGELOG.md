@@ -1,5 +1,11 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.297
+
+### Patch Changes
+
+- [#1095](https://github.com/rizom-ai/brains/pull/1095) [`79aa6ec`](https://github.com/rizom-ai/brains/commit/79aa6ec953442f375ac390cac2f5f93cb282d5b4) Thanks [@yeehaa123](https://github.com/yeehaa123)! - rizom.ai sends its readers to rizom.foundation: the bar's Foundation link and the footer's Foundation column (Common Sense, Events, Support) point there, and rizom.ai no longer has a /foundation page or its drawing. The room's section templates stay registered while its copy is still in the content repo.
+
 ## 0.2.0-alpha.296
 
 ### Patch Changes

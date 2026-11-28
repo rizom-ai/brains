@@ -1,5 +1,93 @@
 # @brains/auth-service
 
+## 0.2.0-alpha.806
+
+### Patch Changes
+
+- Updated dependencies [[`53ff509`](https://github.com/rizom-ai/brains/commit/53ff5094be9e95fbfa5ff39d1e0b153dac72b736)]:
+  - @brains/plugins@0.2.0-alpha.806
+  - @brains/notifications@0.2.0-alpha.806
+  - @brains/contracts@0.2.0-alpha.806
+  - @brains/db@0.2.0-alpha.806
+  - @brains/utils@0.2.0-alpha.806
+
+## 0.2.0-alpha.805
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/notifications@0.2.0-alpha.805
+  - @brains/contracts@0.2.0-alpha.805
+  - @brains/db@0.2.0-alpha.805
+  - @brains/utils@0.2.0-alpha.805
+  - @brains/plugins@0.2.0-alpha.805
+
+## 0.2.0-alpha.804
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/notifications@0.2.0-alpha.804
+  - @brains/contracts@0.2.0-alpha.804
+  - @brains/db@0.2.0-alpha.804
+  - @brains/utils@0.2.0-alpha.804
+  - @brains/plugins@0.2.0-alpha.804
+
+## 0.2.0-alpha.803
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/notifications@0.2.0-alpha.803
+  - @brains/contracts@0.2.0-alpha.803
+  - @brains/db@0.2.0-alpha.803
+  - @brains/utils@0.2.0-alpha.803
+  - @brains/plugins@0.2.0-alpha.803
+
+## 0.2.0-alpha.802
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/notifications@0.2.0-alpha.802
+  - @brains/contracts@0.2.0-alpha.802
+  - @brains/db@0.2.0-alpha.802
+  - @brains/utils@0.2.0-alpha.802
+  - @brains/plugins@0.2.0-alpha.802
+
+## 0.2.0-alpha.801
+
+### Patch Changes
+
+- Updated dependencies [[`5e2c373`](https://github.com/rizom-ai/brains/commit/5e2c3736ff82b900ecfb6f689fe067b94cb4766c)]:
+  - @brains/contracts@0.2.0-alpha.801
+  - @brains/notifications@0.2.0-alpha.801
+  - @brains/plugins@0.2.0-alpha.801
+  - @brains/db@0.2.0-alpha.801
+  - @brains/utils@0.2.0-alpha.801
+
+## 0.2.0-alpha.800
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/notifications@0.2.0-alpha.800
+  - @brains/contracts@0.2.0-alpha.800
+  - @brains/db@0.2.0-alpha.800
+  - @brains/utils@0.2.0-alpha.800
+  - @brains/plugins@0.2.0-alpha.800
+
+## 0.2.0-alpha.799
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/notifications@0.2.0-alpha.799
+  - @brains/contracts@0.2.0-alpha.799
+  - @brains/db@0.2.0-alpha.799
+  - @brains/utils@0.2.0-alpha.799
+  - @brains/plugins@0.2.0-alpha.799
+
 ## 0.2.0-alpha.798
 
 ### Patch Changes

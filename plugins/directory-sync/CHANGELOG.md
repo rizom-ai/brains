@@ -1,5 +1,116 @@
 # @brains/directory-sync
 
+## 0.2.0-alpha.806
+
+### Minor Changes
+
+- [#1093](https://github.com/rizom-ai/brains/pull/1093) [`53ff509`](https://github.com/rizom-ai/brains/commit/53ff5094be9e95fbfa5ff39d1e0b153dac72b736) Thanks [@yeehaa123](https://github.com/yeehaa123)! - ⌘K runs the actions a page offers, from any page.
+
+  - A workspace action can be offered in Studio's palette with `palette: true`, when it needs no input and asks for no confirmation. Studio lists it for whoever the workspace admits at the action's permission.
+  - Site's Build preview (trusted) and Content sync's Sync now (admin) are offered. Choosing one runs it and opens its page; if it fails, the palette stays open and says why.
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.806
+  - @brains/image@0.2.0-alpha.806
+  - @brains/content-formatters@0.2.0-alpha.806
+  - @brains/contracts@0.2.0-alpha.806
+  - @brains/document@0.2.0-alpha.806
+  - @brains/entity-placement@0.2.0-alpha.806
+  - @brains/utils@0.2.0-alpha.806
+
+## 0.2.0-alpha.805
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.805
+  - @brains/content-formatters@0.2.0-alpha.805
+  - @brains/contracts@0.2.0-alpha.805
+  - @brains/document@0.2.0-alpha.805
+  - @brains/entity-placement@0.2.0-alpha.805
+  - @brains/image@0.2.0-alpha.805
+  - @brains/utils@0.2.0-alpha.805
+
+## 0.2.0-alpha.804
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.804
+  - @brains/content-formatters@0.2.0-alpha.804
+  - @brains/contracts@0.2.0-alpha.804
+  - @brains/document@0.2.0-alpha.804
+  - @brains/entity-placement@0.2.0-alpha.804
+  - @brains/image@0.2.0-alpha.804
+  - @brains/utils@0.2.0-alpha.804
+
+## 0.2.0-alpha.803
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.803
+  - @brains/content-formatters@0.2.0-alpha.803
+  - @brains/contracts@0.2.0-alpha.803
+  - @brains/document@0.2.0-alpha.803
+  - @brains/entity-placement@0.2.0-alpha.803
+  - @brains/image@0.2.0-alpha.803
+  - @brains/utils@0.2.0-alpha.803
+
+## 0.2.0-alpha.802
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.802
+  - @brains/content-formatters@0.2.0-alpha.802
+  - @brains/contracts@0.2.0-alpha.802
+  - @brains/document@0.2.0-alpha.802
+  - @brains/entity-placement@0.2.0-alpha.802
+  - @brains/image@0.2.0-alpha.802
+  - @brains/utils@0.2.0-alpha.802
+
+## 0.2.0-alpha.801
+
+### Patch Changes
+
+- Updated dependencies [[`5e2c373`](https://github.com/rizom-ai/brains/commit/5e2c3736ff82b900ecfb6f689fe067b94cb4766c)]:
+  - @brains/contracts@0.2.0-alpha.801
+  - @brains/sdk@0.2.0-alpha.801
+  - @brains/content-formatters@0.2.0-alpha.801
+  - @brains/document@0.2.0-alpha.801
+  - @brains/entity-placement@0.2.0-alpha.801
+  - @brains/image@0.2.0-alpha.801
+  - @brains/utils@0.2.0-alpha.801
+
+## 0.2.0-alpha.800
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.800
+  - @brains/content-formatters@0.2.0-alpha.800
+  - @brains/contracts@0.2.0-alpha.800
+  - @brains/document@0.2.0-alpha.800
+  - @brains/entity-placement@0.2.0-alpha.800
+  - @brains/image@0.2.0-alpha.800
+  - @brains/utils@0.2.0-alpha.800
+
+## 0.2.0-alpha.799
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/sdk@0.2.0-alpha.799
+  - @brains/content-formatters@0.2.0-alpha.799
+  - @brains/contracts@0.2.0-alpha.799
+  - @brains/document@0.2.0-alpha.799
+  - @brains/entity-placement@0.2.0-alpha.799
+  - @brains/image@0.2.0-alpha.799
+  - @brains/utils@0.2.0-alpha.799
+
 ## 0.2.0-alpha.798
 
 ### Patch Changes

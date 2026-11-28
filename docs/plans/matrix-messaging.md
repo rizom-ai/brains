@@ -11,19 +11,13 @@ In progress. The brain side is built:
 
 - The brain provisions its homeserver itself: it writes the homeserver's configuration and secrets into the directory they share, and the chat interface asks `matrix-server` for the bot's password over `matrix:bot-credentials`. The deploy runs Tuwunel as a Kamal accessory when brain.yaml's bundles include `matrix`, restarts it when the brain writes it a new configuration, and takes an online backup of it before each deploy.
 
-All of this was verified against Tuwunel 2.0.0 locally, the first boot from an empty directory included. What remains is a default recipient chosen without configuration, and the checks a local machine cannot make.
+All of this was verified against Tuwunel 2.0.0 locally, the first boot from an empty directory included. It is live on smoke and rizom-team: the first deploy, federation between the two and their shared rooms (#1067), a peer brain's bot answered only when it mentions this brain (#1073), and passkey sign-in, fixed in #1072 and run end to end on the `matrix` test app. What remains is a passkey sign-in on a deployed brain.
 
 ## Remaining work
 
-### A default recipient without configuration
+### A passkey sign-in on a deployed brain
 
-Notifications accept a `matrix` recipient, and an operator can set `defaultRecipient` to their Matrix id. Defaulting to the Anchor's Matrix id without configuration would mean a plugin reading a person's identity claim or username from auth, which the identity rules keep private. It waits for that decision.
-
-### Checks a local machine cannot make
-
-- **The first real deploy.** The accessory, the shared directory, the reload step and the homeserver backup are tested against rendered templates and against Tuwunel in Docker, not on a server. The homeserver signs people in through `https://<domain>`, so it must reach the server's own public address from its container.
-- **Federation between two brains.** The peer room's lifecycle is covered against a fake homeserver. Two deployed brains trusting each other and talking in the host's room is the live check, since federation needs real domains with valid certificates.
-- **Sign-in with a passkey.** The homeserver's sign-in redirect reaches the brain's `/authorize`, which knows the client. Completing it needs a person's passkey in a browser.
+Sign-in was run locally with a virtual passkey, through the brain's approval and the homeserver's own Continue step to a login token. On smoke or rizom-team it needs a person's passkey: sign in once with a Matrix client at the brain's domain.
 
 ## Risks
 

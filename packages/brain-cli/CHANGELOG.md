@@ -1,5 +1,85 @@
 # @rizom/brain
 
+## 0.2.0-alpha.806
+
+### Minor Changes
+
+- [#1093](https://github.com/rizom-ai/brains/pull/1093) [`53ff509`](https://github.com/rizom-ai/brains/commit/53ff5094be9e95fbfa5ff39d1e0b153dac72b736) Thanks [@yeehaa123](https://github.com/yeehaa123)! - ⌘K runs the actions a page offers, from any page.
+
+  - A workspace action can be offered in Studio's palette with `palette: true`, when it needs no input and asks for no confirmation. Studio lists it for whoever the workspace admits at the action's permission.
+  - Site's Build preview (trusted) and Content sync's Sync now (admin) are offered. Choosing one runs it and opens its page; if it fails, the palette stays open and says why.
+
+### Patch Changes
+
+- [#1094](https://github.com/rizom-ai/brains/pull/1094) [`5b50c1c`](https://github.com/rizom-ai/brains/commit/5b50c1cbfc2c686db2eb85db628a694f3c9d8247) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The page a palette action belongs to ("Site") reads at full contrast in both themes.
+
+## 0.2.0-alpha.805
+
+### Minor Changes
+
+- [#1092](https://github.com/rizom-ai/brains/pull/1092) [`070c8f6`](https://github.com/rizom-ai/brains/commit/070c8f6843cfd68eb75fd2a9dbbe7ebf8e2284dd) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The drive takes PDFs.
+
+  - A PDF saved to `document/<id>.pdf` on the drive is stored as a document, the way an image saved to `image/` is stored as an image: only in that folder, only when the bytes are a PDF, under the action policy, and over the version the save was based on. A new one records its file name and page count; replacing one keeps what described it.
+  - The Rizom Brain plugin for Obsidian syncs the `document` folder both ways with it.
+
+- [#1091](https://github.com/rizom-ai/brains/pull/1091) [`7bbb709`](https://github.com/rizom-ai/brains/commit/7bbb7098ebba7af06fd004e70001ee6754d70cd3) Thanks [@yeehaa123](https://github.com/yeehaa123)! - ⌘K lives in Studio and answers trusted members, not only admins.
+
+  - The palette opens with ⌘K or the chrome's search chip. It leads with what is open (Ask about this entry, ⌘J), then what can be done (start a new entry of a type you may create, ask your brain what you typed, switch light and dark), then the pages and entries you may open.
+  - Studio answers the pages and entries itself, for any trusted member or admin, reading entries at the caller's visibility. It no longer depends on the dashboard plugin or its admin-only jump route.
+  - The dashboard keeps its own palette.
+
+## 0.2.0-alpha.804
+
+### Minor Changes
+
+- [#1090](https://github.com/rizom-ai/brains/pull/1090) [`8ccdfbe`](https://github.com/rizom-ai/brains/commit/8ccdfbea7d7fd7384d1757fc50c35190312ba4da) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A sync client can tell the drive a conflict is settled.
+
+  - `DELETE /dav/.brain/conflicts/<id>`, for sync clients (`X-Brain-Sync: 1`) with an app password that may save: the conflict is dismissed as that person, by the conflict service's own rules. The answer is the same whether the conflict was theirs, another person's, already settled or never there.
+  - The Rizom Brain plugin for Obsidian uses it: when a conflict is settled in Obsidian, its Inbox entry goes too.
+
+## 0.2.0-alpha.803
+
+### Patch Changes
+
+- [#1085](https://github.com/rizom-ai/brains/pull/1085) [`302efdc`](https://github.com/rizom-ai/brains/commit/302efdcf06093fb2d1b1d543ad279990da6c0b6f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The `brain` CLI rejects flags a command does not take, instead of dropping them.
+
+  - An unknown or removed flag, such as `brain start --cli`, stops with an error that names the flag and the command, suggests the closest flag when one is near, and points to `brain <command> --help`.
+  - Each command takes the global flags (`--remote`, `--token`, `--help`, `--version`) and its own. `brain eval` still passes its flags to the eval runner.
+  - A brain-specific command also takes a flag for each input field of its tool, such as `brain build --environment preview`; a switch field takes the flag alone. Before, such a flag was dropped and its value read as the next argument. Once the brain has found the tool, a flag that names none of its fields is refused, with the nearest field suggested.
+  - `--preview` is a flag of brain-specific commands whose tool has an `environment` input: `brain build --preview` builds the preview site, as `brain build preview` does. Before, it reached no tool input and did nothing. Built-in commands, and brain-specific commands without an environment, now refuse it.
+  - `--outputDir` is gone: no brain command took it. The site builder writes where its plugin config says.
+  - The `--remote` refusal on built-in commands gives `brain status --remote <url>` as its example, a command with the same name locally and remotely.
+
+## 0.2.0-alpha.802
+
+### Patch Changes
+
+- [#1088](https://github.com/rizom-ai/brains/pull/1088) [`49c9689`](https://github.com/rizom-ai/brains/commit/49c9689db3ade60a14c1a37e17a6ef2ce23768ec) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A brain that holds seminars shows its notes on its site. The note type has no pages of its own, so the seminar capability brings them: `/notes` lists every public note by title under its opening sentence, and `/notes/<id>` shows a note as written, its quotes and links kept. Brains without the seminar capability are unchanged.
+
+## 0.2.0-alpha.801
+
+### Minor Changes
+
+- [#1083](https://github.com/rizom-ai/brains/pull/1083) [`5e2c373`](https://github.com/rizom-ai/brains/commit/5e2c3736ff82b900ecfb6f689fe067b94cb4766c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Ask beside the editor, and the selection bar folds into it.
+
+  - Ask (⌘J, or the Ask button in the editor's head; on a phone, in the bar below the writing) opens Chat beside the open entry, already about it. The conversation is the entry's own: one per person and entry, and full-page Chat shows it too.
+  - Selecting a passage makes Ask about the selection. Review, Fact-check, Related and Rewrite are starters, as the rewrite bar's presets were, and the bar above the body is gone.
+  - Who to ask is picked in the panel: your brain, or a brain you are connected to, which answers from what it has published.
+  - An answer can propose text for one of the entry's fields, the body or the selection. A proposal is a card with Apply or Replace selection; it puts the text in the draft, and nothing is stored until you save.
+  - Web Chat takes an open entry as a conversation's context, read through Studio as the asker may read it, and tells the model how to propose a field's text.
+
+## 0.2.0-alpha.800
+
+### Patch Changes
+
+- [#1081](https://github.com/rizom-ai/brains/pull/1081) [`4d0bbff`](https://github.com/rizom-ai/brains/commit/4d0bbffe63ac05f5dcc25d2b9fbb5c0c59e9e2bb) Thanks [@yeehaa123](https://github.com/yeehaa123)! - An owner can show a peer under a name of their own. An agent in the directory takes an optional `shownAs`; where it is set, `network_ask` attributes the peer's answer and sources to that name, and a seminar is held and stored under it, so a brain that reads with Karl's brain can call him Marx in chat, in its seminars and on its pages alike. A card refresh and a reconnect keep the name, and a reconnect now keeps the owner's notes too. `plugins.seminar.peers` no longer carries names: it is the list of agent ids that orders the peers on the brain's pages.
+
+## 0.2.0-alpha.799
+
+### Patch Changes
+
+- [#1080](https://github.com/rizom-ai/brains/pull/1080) [`9eefbe6`](https://github.com/rizom-ai/brains/commit/9eefbe6f5cda5493d8eb00f8967630b6ff6554a7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A brain that holds seminars answers a live question as a seminar would. Its instructions tell it to put a question about its peers' ideas or texts to them, to give each peer's answer under his name without merging them into one voice, to add no quotation or citation a peer did not give, to say so when a peer had nothing, and to close with where they meet and where they part. The rules come with the seminar capability, so no brain has to carry them in its character.
+
 ## 0.2.0-alpha.798
 
 ### Patch Changes

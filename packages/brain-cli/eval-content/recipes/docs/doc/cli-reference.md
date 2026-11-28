@@ -41,8 +41,8 @@ brain init mybrain --no-interactive
 | `--domain <domain>`         | `{directory}.rizom.ai` | Production domain                                                                                                                                                                                                                                                                                        |
 | `--content-repo <repo>`     | —                      | Git repo for content sync                                                                                                                                                                                                                                                                                |
 | `--backend <name>`          | `none`                 | Secret backend. `none` (default) emits no `@plugin` directive — varlock load resolves every value from `process.env` (in CI, usually GitHub Actions secrets). Bitwarden-backed apps are migrated with `brain secrets:push --push-to bitwarden`, which rewrites `.env.schema` with pinned Bitwarden refs. |
-| `--deploy`                  | `false`                | Include `config/deploy.yml`, Kamal hook, `deploy/Dockerfile`, and publish/deploy GitHub workflows                                                                                                                                                                                                        |
-| `--regen`                   | `false`                | Regenerate generated scaffold artifacts for an existing instance instead of scaffolding from scratch                                                                                                                                                                                                     |
+| `--deploy`                  | `false`                | Include `config/deploy.yml`, the Kamal hook, the config extraction script, `deploy/Dockerfile`, the deploy scripts, and the publish/deploy GitHub workflows                                                                                                                                              |
+| `--regen`                   | `false`                | Only with `--deploy`: rewrite every generated deployment file of an existing instance from the current templates and `.env.schema`, including `config/deploy.yml`. `brain.yaml`, `.env.schema`, and other existing files are kept.                                                                       |
 | `--openai-api-key <key>`    | —                      | Pre-fill `.env` with `OPENAI_API_KEY=<key>`                                                                                                                                                                                                                                                              |
 | `--anthropic-api-key <key>` | —                      | Pre-fill `.env` with `ANTHROPIC_API_KEY=<key>`                                                                                                                                                                                                                                                           |
 | `--google-api-key <key>`    | —                      | Pre-fill `.env` with `GOOGLE_GENERATIVE_AI_API_KEY=<key>`                                                                                                                                                                                                                                                |
@@ -52,21 +52,29 @@ brain init mybrain --no-interactive
 
 **Generated files**
 
-| File                                  | Always                           | With `--deploy`                  |
-| ------------------------------------- | -------------------------------- | -------------------------------- |
-| `brain.yaml`                          | Yes                              | Yes                              |
-| `package.json`                        | Yes                              | Yes                              |
-| `README.md`                           | Yes                              | Yes                              |
-| `.env.example`                        | Yes                              | Yes                              |
-| `.env.schema`                         | Yes                              | Yes                              |
-| `.gitignore`                          | Yes                              | Yes                              |
-| `tsconfig.json`                       | Yes                              | Yes                              |
-| `.env`                                | Only when a key flag is provided | Only when a key flag is provided |
-| `config/deploy.yml`                   | —                                | Yes                              |
-| `.kamal/hooks/pre-deploy`             | —                                | Yes                              |
-| `deploy/Dockerfile`                   | —                                | Yes                              |
-| `.github/workflows/publish-image.yml` | —                                | Yes                              |
-| `.github/workflows/deploy.yml`        | —                                | Yes                              |
+| File                                  | Always                                | With `--deploy`                       |
+| ------------------------------------- | ------------------------------------- | ------------------------------------- |
+| `brain.yaml`                          | Yes                                   | Yes                                   |
+| `package.json`                        | Yes                                   | Yes                                   |
+| `README.md`                           | Yes                                   | Yes                                   |
+| `.env.example`                        | Yes                                   | Yes                                   |
+| `.env.schema`                         | Yes                                   | Yes                                   |
+| `.gitignore`                          | Yes                                   | Yes                                   |
+| `tsconfig.json`                       | Yes                                   | Yes                                   |
+| `seed-content/`                       | Yes                                   | Yes                                   |
+| `src/site.tsx`, `src/theme.css`       | Site recipes (`professional`, `team`) | Site recipes (`professional`, `team`) |
+| `.env`                                | Only when a key is provided           | Only when a key is provided           |
+| `config/deploy.yml`                   | —                                     | Yes                                   |
+| `.kamal/hooks/pre-deploy`             | —                                     | Yes                                   |
+| `scripts/extract-brain-config.rb`     | —                                     | Yes                                   |
+| `deploy/Dockerfile`                   | —                                     | Yes                                   |
+| `deploy/scripts/*.ts`                 | —                                     | Yes                                   |
+| `.github/workflows/publish-image.yml` | —                                     | Yes                                   |
+| `.github/workflows/deploy.yml`        | —                                     | Yes                                   |
+
+The `deploy/scripts/` helpers are the ones the deploy workflow runs: `create-predeploy-backup.ts`, `install-health-watchdog.ts`, `provision-server.ts`, `pull-local-models.ts`, `reload-homeserver.ts`, `update-dns.ts`, `write-ssh-key.ts`, and the shared `helpers.ts`.
+
+Running `brain init` on an existing directory creates only missing files, and refreshes generated deployment files it recognizes as stale; an existing `brain.yaml` keeps its selection and domain.
 
 ### `brain cert:bootstrap`
 
@@ -180,17 +188,15 @@ Start the brain from the current directory.
 ```bash
 cd mybrain
 brain start
-brain start --cli              # boot with the chat REPL attached
 brain start --startup-check    # smoke-test plugin lifecycle and exit
 ```
 
-This boots the configured interfaces and services for the local instance.
+This boots the configured interfaces and services for the local instance. To boot with the chat REPL attached, use [`brain chat`](#brain-chat).
 
 **Options**
 
 | Flag              | Description                                                                                                                                                                                |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `--cli`           | Attach the local chat REPL after boot                                                                                                                                                      |
 | `--startup-check` | Load configured plugins, run `onRegister` and `onReady`, then exit. Does not start daemons or job workers and does not require provider keys. Intended for external plugin CI smoke tests. |
 
 ### `brain chat`
@@ -234,14 +240,43 @@ the canonical explicit-bundle format.
 ```bash
 cd mybrain
 brain config migrate
+brain config migrate --recipe professional
 ```
 
 The command reads `brain.yaml`, prints the proposed canonical YAML, and never writes the
 file. It preserves instance-owned site/theme choices, seed paths, capability additions
-and removals, external plugin declarations, permission overrides, secret references, and
-comments where the YAML syntax permits. Review and apply the output only during the
-coordinated crossover; the canonical runtime path remains inactive during migration
-preparation.
+and removals, plugin config, permission overrides, secret references, and comments where
+the YAML syntax permits. A `brain.yaml` that already lists canonical bundle IDs but has no
+`bundleContract` is ambiguous: pass `--recipe <name>` (`headless`, `personal`,
+`professional`, or `team`) to name the reviewed target. Review the output, then apply it
+deliberately with the matching runtime version.
+
+### `brain assets:migrate`, `brain assets:verify`, `brain assets:reconcile`
+
+Offline maintenance for images and PDFs. Stop the brain first: each command opens the
+local entity database (default `<data dir>/brain.db`, or `--database <path>`) and refuses
+to run while a live process holds it. `--ignore-stale-heartbeat` continues past a lease a
+crash left behind; a fresh lease still refuses.
+
+```bash
+cd mybrain
+brain assets:migrate --dry-run
+brain assets:migrate
+brain assets:verify --brain-data ./brain-data
+brain assets:reconcile --dry-run
+```
+
+- `assets:migrate` moves images and PDFs stored inline in the database into durable
+  assets. `--dry-run` decodes every inline row and reports without writing, and fails
+  while any row would be blocked; a real run refuses to start while any is. Each run is
+  appended to a manifest (default `binary-asset-migration.json` beside the database, or
+  `--manifest <path>`).
+- `assets:verify` checks a migrated database: every image and document reference
+  resolves to one intact asset and no inline rows remain. With `--brain-data <dir>` it
+  also compares each mirrored file in the synced content directory with the stored bytes.
+- `assets:reconcile` restores image and PDF rows and assets from the synced content
+  directory (`--from <dir>`, default `brain-data`). `--dry-run` reports what it would
+  restore. Mismatches and unrecoverable records are reported for an operator.
 
 ### `brain pin`
 
@@ -255,12 +290,21 @@ brain pin
 
 ### `brain tool <toolName> [inputJson]`
 
-Invoke a tool directly.
+Invoke a tool by its exact name, with JSON input, in a local brain booted for the call.
 
 ```bash
 brain tool system_status
 brain tool system_search '{"query":"recent posts"}'
+brain tool system_delete '{"entityType":"note","id":"old-note"}' --yes
+brain tool system_search '{"query":"recent posts"}' --permission public
 ```
+
+| Flag                   | Description                                                                                |
+| ---------------------- | ------------------------------------------------------------------------------------------ |
+| `--yes`                | Approve a confirmation the tool asks for in the same process; without it the command stops |
+| `--permission <level>` | Run the call as `public`, `trusted`, or `admin` (default: Admin, like other CLI commands)  |
+
+Both flags work only with the bundled runtime; a project with its own runner refuses them.
 
 ### `brain help`
 
@@ -283,6 +327,14 @@ brain status
 
 These are resolved from the running brain's tool registry. Available commands depend on selected bundles, additions/removals, and enabled plugins.
 
+Arguments fill the tool's input fields in order, and a flag sets a field by name: `brain build --environment preview` is `brain build preview`. A switch field takes the flag alone, such as `brain sync --full`. A flag that names none of the tool's fields is refused once the brain has found the tool, with the nearest field suggested. A brain-specific command also takes:
+
+| Flag        | Description                                                                                                                                                                                            |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `--preview` | For a command whose tool has an `environment` input, use the preview one: `brain build --preview` builds the preview site, as `brain build preview` does. Any other brain-specific command refuses it. |
+
+Built-in commands refuse `--preview`.
+
 ## Remote mode
 
 Use `--remote` to run brain-specific commands against a deployed brain over MCP HTTP instead of booting a local instance.
@@ -293,14 +345,18 @@ brain --remote https://mybrain.example.com search "topics"
 brain --remote https://mybrain.example.com --token $TOKEN sync
 ```
 
-| Flag              | Description                    |
-| ----------------- | ------------------------------ |
-| `--remote <url>`  | Remote brain base URL          |
-| `--token <token>` | Auth token for remote MCP HTTP |
+| Flag              | Description                                                                         |
+| ----------------- | ----------------------------------------------------------------------------------- |
+| `--remote <url>`  | Remote brain: a bare domain or URL; `/mcp` is appended when missing                 |
+| `--token <token>` | Auth token for remote MCP HTTP; falls back to the `BRAIN_REMOTE_TOKEN` env variable |
+
+Remote mode applies only to brain-specific commands. Built-in commands such as `brain init`, `brain start`, and `brain tool` run in the local process and refuse `--remote` rather than boot a second brain against the same data.
 
 ## Global options
 
-| Flag              | Description  |
-| ----------------- | ------------ |
-| `--help`, `-h`    | Show help    |
-| `--version`, `-v` | Show version |
+| Flag              | Description                                                       |
+| ----------------- | ----------------------------------------------------------------- |
+| `--help`, `-h`    | Show help                                                         |
+| `--version`, `-v` | Show version                                                      |
+| `--remote <url>`  | Run a brain-specific command against a deployed brain (see above) |
+| `--token <token>` | Auth token for `--remote`                                         |

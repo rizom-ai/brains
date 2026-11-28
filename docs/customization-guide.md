@@ -128,7 +128,7 @@ Read next: [Theming Guide](./theming-guide.md).
 
 ## Site and layout customization
 
-A site package is structural. It provides layouts, hand-written routes, schema-first sections, initial content, entity display metadata, and optional static assets. Themes stay separate. Backend behavior belongs in a separate explicitly composed plugin.
+A site package is structural. It provides layouts, hand-written routes, schema-first sections, initial content, entity display metadata, and optional head scripts, static assets, languages, and data sources. Themes stay separate. Backend behavior belongs in a separate explicitly composed plugin.
 
 Generated standalone instances can include:
 
@@ -205,8 +205,10 @@ Supported fields:
 - `label`: singular display label
 - `pluralName`: URL/list label override
 - `layout`: layout key for generated routes
+- `detailTemplate`: template for detail pages, in place of the plugin's own `<type>-detail` template
 - `paginate`
 - `pageSize`
+- `citable`: whether a visitor's answer may cite entries of this type as sources
 - `navigation.show`
 - `navigation.slot`: `primary` or `secondary`
 - `navigation.priority`
@@ -229,7 +231,7 @@ Each section references a registered template and optional data query/content.
 
 ### Layouts
 
-Layouts are React components rendered to static markup. They receive rendered sections and site metadata.
+Layouts are React components rendered to static markup. They receive rendered sections, page metadata, and site metadata. The full prop type is `SiteLayoutProps` from `@rizom/site`.
 
 Conceptual shape:
 
@@ -242,7 +244,8 @@ type LayoutProps = {
   description: string;
   path: string;
   siteInfo: unknown;
-  slots?: unknown;
+  language?: string; // the page's language tag
+  alternates?: { language: string; path: string }[]; // every language the page is built in
 };
 
 export function MyLayout({ sections }: LayoutProps): JSX.Element {
@@ -256,7 +259,7 @@ export function MyLayout({ sections }: LayoutProps): JSX.Element {
 
 Use existing layouts as references:
 
-- `sites/professional/src/layouts/ProfessionalLayout.tsx`
+- `sites/personal/src/layouts/PersonalLayout.tsx`
 - `sites/rizom-ai/src/rizom/runtime/default-layout.tsx`
 
 ### Static assets
@@ -325,7 +328,7 @@ Start with:
 
 ### Interface plugins
 
-Use an interface plugin for transports: MCP, Discord, A2A, or future chat platforms. The runtime hosts HTTP and serves the routes an interface declares.
+Use an interface plugin for transports: MCP, chat platforms such as Discord, Slack, and Matrix, email, or A2A. The runtime hosts HTTP and serves the routes an interface declares.
 
 Rules of thumb:
 
@@ -384,5 +387,5 @@ Prefer targeted workspace checks first when the change is isolated.
 - [Content Management Guide](./content-management.md)
 - [Entity Types Reference](./entity-types-reference.md)
 - [Plugin System](./plugin-system.md)
-- [Plugin Quick Reference](./plugin-quick-reference.md)
+- [Package Authoring Quick Reference](./plugin-quick-reference.md)
 - [Architecture Overview](./architecture-overview.md)

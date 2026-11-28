@@ -1,6 +1,6 @@
 {
   "name": "@rizom/site-rizom-foundation",
-  "version": "0.2.0-alpha.239",
+  "version": "0.2.0-alpha.240",
   "description": "rizom.foundation: the Rizom Foundation's site, told as a story beside its drawing, with Common Sense and the founding-supporters page",
   "type": "module",
   "exports": {
@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "@rizom/site": "0.2.0-alpha.247",
-    "@rizom/site-rizom-ai": "0.2.0-alpha.296"
+    "@rizom/site-rizom-ai": "0.2.0-alpha.297"
   },
   "publishPeerDependencies": {
     "@rizom/brain": ">=0.2.0-alpha.608 <0.3.0",

@@ -1,4 +1,8 @@
 import type { StudioMember } from "../../src/editor-contracts";
+import {
+  studioPaletteSchema,
+  type StudioPalette,
+} from "../../src/palette-contract";
 import type {
   RuntimeStudioWorkspaceData,
   StudioWorkspaceDescriptor,
@@ -686,19 +690,6 @@ export class StudioApi {
     );
   }
 
-  async requestAssist(input: {
-    entityType: string;
-    id: string;
-    instruction: string;
-    selection: string;
-  }): Promise<{ suggestion: string }> {
-    return this.requestJson<{ suggestion: string }>(this.path("assist"), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(input),
-    });
-  }
-
   async requestFieldAssist(input: {
     variant: "summarize" | "tag-suggest";
     entityType: string;
@@ -746,6 +737,15 @@ export class StudioApi {
       this.path("members"),
     );
     return members;
+  }
+
+  /** ⌘K: the pages and entries this caller may open for a query. */
+  async fetchPalette(query: string): Promise<StudioPalette> {
+    return studioPaletteSchema.parse(
+      await this.requestJson<unknown>(
+        this.path(`palette?q=${encodeURIComponent(query.trim())}`),
+      ),
+    );
   }
 
   async fetchSyncStatus(): Promise<SyncStatus> {

@@ -130,40 +130,26 @@ function pageSources(
   }));
 }
 
-/**
- * A peer as the brain's pages show him: the name he is shown under, and his
- * place among the others. A seminar stores the name a peer gives itself and
- * takes its turns by agent id; a page names and orders them as the brain
- * that holds the seminars says.
- */
-export interface ShownPeer {
-  readonly agent: string;
-  readonly name: string;
-}
-
 const ROUNDS = ["opening", "challenge", "rejoinder"] as const;
 
 /**
- * A seminar's page: its fields, its peers by the names and in the order the
- * brain shows them, who stood, every turn round by round (the chair's first,
+ * A seminar's page: its fields, its peers by the names the seminar was held
+ * with and in the order the brain gives (agent ids), who stood, every turn round by round (the chair's first,
  * then the peers' in that order), and where they meet.
  */
 export function seminarPageOf(
   id: string,
   seminar: SeminarParts,
-  peers: readonly ShownPeer[],
+  order: readonly string[],
 ): SeminarPage {
   const place = (agent: string): number => {
-    const index = peers.findIndex((peer) => peer.agent === agent);
-    return index === -1 ? peers.length : index;
+    const index = order.indexOf(agent);
+    return index === -1 ? order.length : index;
   };
   const stored = new Map(
     seminar.turns.map(({ speaker, name }) => [speaker, name]),
   );
-  const shown = (agent: string): string =>
-    peers.find((peer) => peer.agent === agent)?.name ??
-    stored.get(agent) ??
-    agent;
+  const shown = (agent: string): string => stored.get(agent) ?? agent;
   const ordered = seminar.turns
     .map((turn, taken) => ({ turn, taken }))
     .sort(
@@ -209,15 +195,15 @@ export function seminarPageOf(
 
 /**
  * The seminars' pages: every seminar, newest asked first, or one by its id
- * with its neighbors, served as seminar:entities, its peers shown as the
- * brain names and orders them.
+ * with its neighbors, served as seminar:entities, its peers in the order
+ * the brain gives.
  */
 export function seminarDataSource(
   seminar: SeminarDefinition,
-  peers: readonly ShownPeer[] = [],
+  order: readonly string[] = [],
 ): EntityDataSourceDefinition<SeminarDefinition, SeminarPage, SeminarListPage> {
   const seminarPage = (entity: EntityOf<SeminarDefinition>): SeminarPage =>
-    seminarPageOf(entity.id, readSeminar(entity), peers);
+    seminarPageOf(entity.id, readSeminar(entity), order);
   return defineDataSource({
     id: "entities",
     name: "Seminar DataSource",

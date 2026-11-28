@@ -40,29 +40,29 @@ What your team knows is spread across people, channels and shared drives. It lea
 
 ## Invite your people
 
-In Studio, open **Admin** and choose **Add a person**. Give each person a role: **trusted** members can add and edit notes, links, docs and action items; **admins** also publish and delete. Each person gets an email with a link to set up a passkey.
+In Studio, open **Brain → Administration → Invitations** and choose **Add a person**. Give each person a role: **trusted** members can add and edit notes, links, docs and action items; **admins** also publish and delete. Each invitation carries a single-use link to set up a passkey. Once setup email is configured, the brain emails it; otherwise choose manual delivery, copy the link the invitation shows, send it yourself and mark it delivered.
 
-Exact steps: [Interface setup](/docs/interface-setup).
+Exact steps: [Studio](/docs/studio#brain), [Getting started](/docs/getting-started).
 
 ## Connect your channel
 
-Whoever runs the brain can connect it to your Discord or Slack. People then talk to the brain where they already talk to each other, and the brain answers from what the team has shared.
+Whoever runs the brain can connect it to your Discord, Slack or Matrix. People then talk to the brain where they already talk to each other, and the brain answers from what the team has shared.
 
 Exact steps: [Interface setup](/docs/interface-setup).
 
 ## Bring your shared documents
 
-Export documents from your shared drive as Markdown or PDF. Upload the files in chat and ask the brain to keep them as notes. It lists every file with the title it will get, a Markdown file's first heading or else the file name, and asks you once to confirm before it saves them. Each PDF's text is extracted into its note.
+Export documents from your shared drive as Markdown or PDF. Upload the files in the brain's chat, in Studio or in your channel, and ask the brain to keep them as notes. It lists every file with the title it will get, a Markdown file's first top-level `#` heading or else the file name, and asks you once to confirm before it saves them. Each PDF's text is extracted into its note.
 
 Pages that describe how you work, such as onboarding or policies, can be kept as **docs** instead, so they group like a handbook. Paste a page in chat and ask the brain to keep it as a doc in a section, such as Onboarding. It keeps your text and places the page after the others. If you name no section and the docs have several, or none yet, it asks which one. You can also add docs in Studio under **Library**.
 
-Exact steps: [Content management](/docs/content-management).
+Exact steps: [Content management](/docs/content-management), [Studio](/docs/studio#library).
 
 ## Keep track of the work
 
-Ask the brain to add an action item, with an owner from the team and a due date if you have one. The **Board** in Studio shows every item in To do, Doing, Blocked and Done. Blocked items also show up in the Inbox, so nothing stalls quietly.
+Ask the brain to add an action item, with an owner from the team and a due date if you have one. The **Board** in Studio, under **Home**, shows open items in To do, Doing and Blocked, and in Done the items finished in the last 14 days, up to 20. Dropped items leave the board. Blocked items also show up in the admins' Inbox, so nothing stalls quietly.
 
-Exact steps: [Feature overview](/docs/feature-overview).
+Exact steps: [Studio](/docs/studio#home), [Entity types](/docs/entity-types-reference).
 
 ## Ask the team brain
 

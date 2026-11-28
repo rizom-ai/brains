@@ -10,11 +10,7 @@ import { firstSentence, linkedSources } from "../src/templates/seminar-design";
 import { SeminarDetailTemplate } from "../src/templates/seminar-detail";
 import { SeminarListTemplate } from "../src/templates/seminar-list";
 
-const peers = [
-  { agent: "karl.example", name: "Marx" },
-  { agent: "friedrich.example", name: "Nietzsche" },
-  { agent: "sigmund.example", name: "Freud" },
-];
+const order = ["karl.example", "friedrich.example", "sigmund.example"];
 
 const brumaire = {
   id: "book-section:brumaire/i",
@@ -26,19 +22,19 @@ const turns: SeminarTurn[] = [
   {
     round: "opening",
     speaker: "friedrich.example",
-    name: "Friedrich",
+    name: "Nietzsche",
     text: "A people must know when to forget.",
   },
   {
     round: "opening",
     speaker: "karl.example",
-    name: "Karl",
+    name: "Marx",
     text: "History is inherited conditions.",
   },
   {
     round: "opening",
     speaker: "sigmund.example",
-    name: "Sigmund",
+    name: "Freud",
     failed: "sigmund.example did not answer within 90000 ms",
   },
   {
@@ -58,7 +54,7 @@ const turns: SeminarTurn[] = [
   {
     round: "challenge",
     speaker: "karl.example",
-    name: "Karl",
+    name: "Marx",
     to: ["friedrich.example"],
     text: "The dead must be buried (**Brumaire, 3**).",
     sources: [brumaire],
@@ -73,7 +69,7 @@ const turns: SeminarTurn[] = [
   {
     round: "rejoinder",
     speaker: "friedrich.example",
-    name: "Friedrich",
+    name: "Nietzsche",
     to: ["karl.example"],
     text: "Critical history breaks a past in order to live.",
   },
@@ -104,7 +100,7 @@ function seminar(
           }
         : {}),
     },
-    peers,
+    order,
   );
 }
 

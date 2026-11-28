@@ -2,6 +2,7 @@ import type { CommandResult } from "../lib/command-result";
 import type { MCPClient } from "../lib/mcp-client";
 import { getErrorMessage } from "@brains/utils/error";
 import { isPlainRecord } from "@brains/utils/predicates";
+import type { CliToolField } from "@brains/mcp-service";
 
 /** A single tool from the MCP listTools response. */
 export type RemoteTool = Awaited<ReturnType<MCPClient["listTools"]>>[number];
@@ -87,6 +88,14 @@ function mapArgsFromJsonSchema(
   return result;
 }
 
+/** The input fields a remote tool's JSON Schema declares. */
+function remoteToolFields(schema: RemoteTool["inputSchema"]): CliToolField[] {
+  return Object.entries(schema.properties ?? {}).map(([name, property]) => ({
+    name,
+    boolean: getJsonSchemaPropertyType(property) === "boolean",
+  }));
+}
+
 function getJsonSchemaPropertyType(value: unknown): string | undefined {
   if (!isPlainRecord(value)) return undefined;
   const type = value["type"];
@@ -134,7 +143,15 @@ export async function operateRemote(
       };
     }
 
-    const input = mapArgsFromJsonSchema(tool.inputSchema, args, flags);
+    // Imported here, like the MCP client, to keep it off every other command.
+    const { resolveCliToolFlags } = await import("@brains/mcp-service");
+    const resolved = resolveCliToolFlags(
+      commandName,
+      remoteToolFields(tool.inputSchema),
+      flags,
+    );
+    if ("error" in resolved) return { success: false, message: resolved.error };
+    const input = mapArgsFromJsonSchema(tool.inputSchema, args, resolved.flags);
     const result = await client.callTool(tool.name, input);
 
     console.log(result);

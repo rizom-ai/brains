@@ -42,7 +42,9 @@ const rows = [
 ];
 
 describe("the Foundation story", () => {
-  test("keeps its section ids and their route", () => {
+  // The Foundation speaks on rizom.foundation; the templates stay while the
+  // room's copy is still in the content repo.
+  test("keeps its section ids, and rizom.ai no longer routes to them", () => {
     expect(Object.keys(foundationSections.sections)).toEqual([
       "hero",
       "research",
@@ -51,15 +53,9 @@ describe("the Foundation story", () => {
       "support",
       "follow",
     ]);
-    const route = site.routes.find((route) => route.id === "foundation");
-    expect(route?.sections?.map((s) => s.template)).toEqual([
-      "foundation:hero",
-      "foundation:research",
-      "foundation:pullquote",
-      "foundation:chapters",
-      "foundation:support",
-      "foundation:follow",
-    ]);
+    expect(site.routes.find((route) => route.id === "foundation")).toBe(
+      undefined,
+    );
   });
 
   test("opens as the first chapter, with the headline and the standfirst", () => {

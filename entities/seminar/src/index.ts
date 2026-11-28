@@ -43,7 +43,6 @@ export type {
   SeminarListPage,
   SeminarPage,
   SeminarPageTurn,
-  ShownPeer,
 } from "./datasources/seminar-datasource";
 export {
   holdSeminar,

@@ -3,19 +3,13 @@ import { listCanonicalAtprotoLexicons } from "@brains/atproto-contracts";
 import * as pkg from "../src";
 import { rizomAiSite } from "../src/site";
 import { brainOrganism } from "../src/story/brain-organism";
-import { foundationOrganism } from "../src/story/foundation-organism";
 import { livingOrganism } from "../src/story/living-organism";
 import { workOrganism } from "../src/story/work-organism";
 
 describe("rizom.ai's static files", () => {
-  test("the story stylesheet carries all four of its drawings", () => {
+  test("the story stylesheet carries its three drawings", () => {
     const css = rizomAiSite.staticAssets?.["/styles/story.css"] ?? "";
-    for (const drawing of [
-      livingOrganism,
-      brainOrganism,
-      workOrganism,
-      foundationOrganism,
-    ]) {
+    for (const drawing of [livingOrganism, brainOrganism, workOrganism]) {
       expect(css).toContain(drawing.css());
     }
   });

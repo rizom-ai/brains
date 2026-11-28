@@ -2,8 +2,11 @@
 
 Public brain card fed by public declarative data. The Knowledge tab presents public topic projections as a quiet semantic atlas with ranked territory detail rather than exposing internal diagnostics.
 
-The Dashboard route is anonymous-facing and always renders exactly four tabs:
-**Overview**, **Knowledge**, **Network**, and **System**. Overview explains the
+The Dashboard route is anonymous-facing and renders four tabs: **Overview**,
+**Knowledge**, **Network**, and **System**. With `plugins.dashboard.ask: true`
+(default `false`) and a route serving the `ask` role (Web Chat's guest Ask),
+an **Ask** tab follows Overview and mounts the guest conversation from
+`/ask/assets/`; guest admission belongs to Web Chat. Overview explains the
 brain's public identity and ownership boundary, lists public contact doors and
 entity holdings, and shows advertised skills in the mockup's fixed four-card
 composition. Knowledge renders the public topic/corpus projection as a semantic
@@ -16,7 +19,7 @@ Plugin packages declare widgets with `defineDashboardWidget()` from
 `@rizom/brain/services`; the runtime scopes IDs, validates data and views, and
 registers them after plugin setup. Public definitions feed the fixed skills and
 map slots rather than appending generic cards below Overview. Trusted and Admin
-definitions are automatically re-homed into Studio Overview through
+definitions are automatically re-homed into Studio's Home through
 the same semantic registration, so providers do not duplicate views or depend
 on either host.
 

@@ -6,12 +6,10 @@ import { renderHighlightedText } from "./rizom";
 import { ctaSchema } from "./shared";
 
 /**
- * The /foundation room, told as a story: the institutions built for a
- * different century, the research, the pattern, the series and how it is
- * funded, each a chapter beside the drawing the layout supplies (see
- * ./story/foundation-organism). Each section is authored from one zod schema;
- * copy is content-driven, stored as markdown in
- * site-content/foundation/<section>.md, and the section ids stay stable.
+ * The sections of rizom.ai's former /foundation room. The Foundation now
+ * speaks on rizom.foundation (@rizom/site-rizom-foundation) and rizom.ai no
+ * longer routes here; the templates stay registered while the room's copy,
+ * site-content/foundation/<section>.md, is still in the content repo.
  */
 
 const EMPHASIS_CLS = "italic font-[400] text-accent";

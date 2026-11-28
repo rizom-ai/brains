@@ -41,6 +41,7 @@ const recordingFetch: FetchLike = (input) => {
           {
             entityType: "post",
             label: "Posts",
+            singularLabel: "Post",
             isSingleton: false,
             hasBody: true,
             count: 0,
@@ -303,6 +304,7 @@ describe("Studio App transport", () => {
               {
                 entityType: "note",
                 label: "Notes",
+                singularLabel: "Note",
                 isSingleton: false,
                 hasBody: false,
                 count: 1,
@@ -396,6 +398,7 @@ describe("Studio App transport", () => {
               {
                 entityType: "section",
                 label: "Book sections",
+                singularLabel: "Book section",
                 isSingleton: false,
                 hasBody: false,
                 count: conflict ? 2 : 3,
@@ -663,6 +666,7 @@ describe("Studio App transport", () => {
               {
                 entityType: "post",
                 label: "Posts",
+                singularLabel: "Post",
                 isSingleton: false,
                 hasBody: true,
                 count: 0,
@@ -727,6 +731,7 @@ describe("Studio App transport", () => {
               {
                 entityType: "post",
                 label: "Posts",
+                singularLabel: "Post",
                 isSingleton: false,
                 hasBody: true,
                 count: 1,
@@ -821,6 +826,7 @@ describe("Studio App transport", () => {
               {
                 entityType: "profile",
                 label: "Profile",
+                singularLabel: "Profile",
                 isSingleton: true,
                 hasBody: false,
                 count: 1,
@@ -1081,6 +1087,7 @@ describe("Studio App transport", () => {
                 {
                   entityType: "post",
                   label: "Posts",
+                  singularLabel: "Post",
                   count: 2,
                   hierarchy: studioTypeHierarchy("post"),
                   isSingleton: false,
@@ -1309,6 +1316,7 @@ describe("Studio App transport", () => {
               {
                 entityType: "post",
                 label: "Posts",
+                singularLabel: "Post",
                 isSingleton: false,
                 hasBody: false,
                 count: 76,

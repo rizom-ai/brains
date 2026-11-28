@@ -11,7 +11,12 @@ import {
   type AskBoxAvailability,
   type AuthPrincipal,
   type AgentResponse,
+  STUDIO_ENTRY_CONTEXT_SOURCE,
+  parseStudioEntryContextItemId,
+  studioEntryContextContract,
+  type StudioEntryContext,
 } from "@brains/contracts";
+import { entryContextAttachment } from "./entry-context-source";
 import {
   interfaceRuntime,
   withDaemon,
@@ -32,6 +37,7 @@ import {
   type ToolStatusUpdate,
   type ChatAttachment,
   coerceConversationMetadata,
+  permissionToVisibilityScope,
 } from "@brains/sdk/internal/interface-runtime";
 import type { PluginPackageDefinition } from "@brains/sdk";
 import { join } from "path";
@@ -1019,6 +1025,10 @@ class WebChatHost {
     permissionLevel: UserPermissionLevel,
     signal: AbortSignal,
   ): Promise<ChatAttachment | Response> {
+    if (sourceId === STUDIO_ENTRY_CONTEXT_SOURCE) {
+      const entry = await this.readEntryContext(itemId, permissionLevel);
+      return entry ? entryContextAttachment(entry) : inboxContextUnavailable();
+    }
     const source = this.runtime.inbox.getSource(sourceId);
     if (!source?.resolveDetail) return inboxContextUnavailable();
 
@@ -1055,6 +1065,25 @@ class WebChatHost {
     }
   }
 
+  /**
+   * The entry a conversation beside it is about, as Studio reads it for this
+   * permission level; null when it is unreadable or Studio is not installed.
+   */
+  private async readEntryContext(
+    itemId: string,
+    permissionLevel: UserPermissionLevel,
+  ): Promise<StudioEntryContext> {
+    const entry = parseStudioEntryContextItemId(itemId);
+    if (!entry) return null;
+    const result = await this.runtime
+      .request(studioEntryContextContract, {
+        ...entry,
+        visibilityScope: permissionToVisibilityScope(permissionLevel),
+      })
+      .catch(() => null);
+    return result?.status === "answered" ? result.data : null;
+  }
+
   private async handleContextSessionRequest(
     request: Request,
   ): Promise<Response> {
@@ -1072,6 +1101,10 @@ class WebChatHost {
         permissionLevel,
         signal,
       }): Promise<boolean> => {
+        if (sourceId === STUDIO_ENTRY_CONTEXT_SOURCE)
+          return (
+            (await this.readEntryContext(itemId, permissionLevel)) !== null
+          );
         const source = this.runtime.inbox.getSource(sourceId);
         if (!source?.resolveDetail) return false;
         await source.resolveDetail(itemId, { permissionLevel }, signal);

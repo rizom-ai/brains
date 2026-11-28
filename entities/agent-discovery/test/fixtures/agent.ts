@@ -19,6 +19,8 @@ export interface TestAgentInput {
   kind?: "person" | "team" | "organization";
   organization?: string;
   brainName?: string;
+  /** The name the owner shows this peer under. */
+  shownAs?: string;
   url?: string;
   brainDid?: string;
   status?: AgentStatus;
@@ -45,6 +47,7 @@ export function createTestAgent(input: TestAgentInput = {}): AgentEntity {
         ? { organization: input.organization }
         : {}),
       brainName: input.brainName ?? `${name}'s Brain`,
+      ...(input.shownAs !== undefined ? { shownAs: input.shownAs } : {}),
       ...(input.brainDid !== undefined ? { brainDid: input.brainDid } : {}),
       url,
       status: input.status ?? "discovered",
@@ -65,6 +68,7 @@ export function createTestAgent(input: TestAgentInput = {}): AgentEntity {
     }),
     metadata: {
       name,
+      ...(input.shownAs !== undefined ? { shownAs: input.shownAs } : {}),
       url,
       status: input.status ?? "discovered",
       discoveredAt,

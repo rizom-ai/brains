@@ -1,5 +1,188 @@
 # @brains/plugins
 
+## 0.2.0-alpha.806
+
+### Minor Changes
+
+- [#1093](https://github.com/rizom-ai/brains/pull/1093) [`53ff509`](https://github.com/rizom-ai/brains/commit/53ff5094be9e95fbfa5ff39d1e0b153dac72b736) Thanks [@yeehaa123](https://github.com/yeehaa123)! - ⌘K runs the actions a page offers, from any page.
+
+  - A workspace action can be offered in Studio's palette with `palette: true`, when it needs no input and asks for no confirmation. Studio lists it for whoever the workspace admits at the action's permission.
+  - Site's Build preview (trusted) and Content sync's Sync now (admin) are offered. Choosing one runs it and opens its page; if it fails, the palette stays open and says why.
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.806
+  - @brains/content-formatters@0.2.0-alpha.806
+  - @brains/contracts@0.2.0-alpha.806
+  - @brains/site-composition@0.2.0-alpha.806
+  - @brains/utils@0.2.0-alpha.806
+  - @brains/ai-service@0.2.0-alpha.806
+  - @brains/content-service@0.2.0-alpha.806
+  - @brains/conversation-service@0.2.0-alpha.806
+  - @brains/entity-service@0.2.0-alpha.806
+  - @brains/identity-service@0.2.0-alpha.806
+  - @brains/job-queue@0.2.0-alpha.806
+  - @brains/mcp-service@0.2.0-alpha.806
+  - @brains/messaging-service@0.2.0-alpha.806
+  - @brains/recurring-checks@0.2.0-alpha.806
+  - @brains/runtime-state@0.2.0-alpha.806
+  - @brains/templates@0.2.0-alpha.806
+
+## 0.2.0-alpha.805
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.805
+  - @brains/content-formatters@0.2.0-alpha.805
+  - @brains/contracts@0.2.0-alpha.805
+  - @brains/site-composition@0.2.0-alpha.805
+  - @brains/utils@0.2.0-alpha.805
+  - @brains/ai-service@0.2.0-alpha.805
+  - @brains/content-service@0.2.0-alpha.805
+  - @brains/conversation-service@0.2.0-alpha.805
+  - @brains/entity-service@0.2.0-alpha.805
+  - @brains/identity-service@0.2.0-alpha.805
+  - @brains/job-queue@0.2.0-alpha.805
+  - @brains/mcp-service@0.2.0-alpha.805
+  - @brains/messaging-service@0.2.0-alpha.805
+  - @brains/recurring-checks@0.2.0-alpha.805
+  - @brains/runtime-state@0.2.0-alpha.805
+  - @brains/templates@0.2.0-alpha.805
+
+## 0.2.0-alpha.804
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.804
+  - @brains/content-formatters@0.2.0-alpha.804
+  - @brains/contracts@0.2.0-alpha.804
+  - @brains/site-composition@0.2.0-alpha.804
+  - @brains/utils@0.2.0-alpha.804
+  - @brains/ai-service@0.2.0-alpha.804
+  - @brains/content-service@0.2.0-alpha.804
+  - @brains/conversation-service@0.2.0-alpha.804
+  - @brains/entity-service@0.2.0-alpha.804
+  - @brains/identity-service@0.2.0-alpha.804
+  - @brains/job-queue@0.2.0-alpha.804
+  - @brains/mcp-service@0.2.0-alpha.804
+  - @brains/messaging-service@0.2.0-alpha.804
+  - @brains/recurring-checks@0.2.0-alpha.804
+  - @brains/runtime-state@0.2.0-alpha.804
+  - @brains/templates@0.2.0-alpha.804
+
+## 0.2.0-alpha.803
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.803
+  - @brains/content-formatters@0.2.0-alpha.803
+  - @brains/contracts@0.2.0-alpha.803
+  - @brains/site-composition@0.2.0-alpha.803
+  - @brains/utils@0.2.0-alpha.803
+  - @brains/ai-service@0.2.0-alpha.803
+  - @brains/content-service@0.2.0-alpha.803
+  - @brains/conversation-service@0.2.0-alpha.803
+  - @brains/entity-service@0.2.0-alpha.803
+  - @brains/identity-service@0.2.0-alpha.803
+  - @brains/job-queue@0.2.0-alpha.803
+  - @brains/mcp-service@0.2.0-alpha.803
+  - @brains/messaging-service@0.2.0-alpha.803
+  - @brains/recurring-checks@0.2.0-alpha.803
+  - @brains/runtime-state@0.2.0-alpha.803
+  - @brains/templates@0.2.0-alpha.803
+
+## 0.2.0-alpha.802
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.802
+  - @brains/content-formatters@0.2.0-alpha.802
+  - @brains/contracts@0.2.0-alpha.802
+  - @brains/site-composition@0.2.0-alpha.802
+  - @brains/utils@0.2.0-alpha.802
+  - @brains/ai-service@0.2.0-alpha.802
+  - @brains/content-service@0.2.0-alpha.802
+  - @brains/conversation-service@0.2.0-alpha.802
+  - @brains/entity-service@0.2.0-alpha.802
+  - @brains/identity-service@0.2.0-alpha.802
+  - @brains/job-queue@0.2.0-alpha.802
+  - @brains/mcp-service@0.2.0-alpha.802
+  - @brains/messaging-service@0.2.0-alpha.802
+  - @brains/recurring-checks@0.2.0-alpha.802
+  - @brains/runtime-state@0.2.0-alpha.802
+  - @brains/templates@0.2.0-alpha.802
+
+## 0.2.0-alpha.801
+
+### Patch Changes
+
+- Updated dependencies [[`5e2c373`](https://github.com/rizom-ai/brains/commit/5e2c3736ff82b900ecfb6f689fe067b94cb4766c)]:
+  - @brains/contracts@0.2.0-alpha.801
+  - @brains/atproto-contracts@0.2.0-alpha.801
+  - @brains/content-formatters@0.2.0-alpha.801
+  - @brains/site-composition@0.2.0-alpha.801
+  - @brains/ai-service@0.2.0-alpha.801
+  - @brains/content-service@0.2.0-alpha.801
+  - @brains/conversation-service@0.2.0-alpha.801
+  - @brains/entity-service@0.2.0-alpha.801
+  - @brains/identity-service@0.2.0-alpha.801
+  - @brains/job-queue@0.2.0-alpha.801
+  - @brains/mcp-service@0.2.0-alpha.801
+  - @brains/messaging-service@0.2.0-alpha.801
+  - @brains/templates@0.2.0-alpha.801
+  - @brains/recurring-checks@0.2.0-alpha.801
+  - @brains/utils@0.2.0-alpha.801
+  - @brains/runtime-state@0.2.0-alpha.801
+
+## 0.2.0-alpha.800
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.800
+  - @brains/content-formatters@0.2.0-alpha.800
+  - @brains/contracts@0.2.0-alpha.800
+  - @brains/site-composition@0.2.0-alpha.800
+  - @brains/utils@0.2.0-alpha.800
+  - @brains/ai-service@0.2.0-alpha.800
+  - @brains/content-service@0.2.0-alpha.800
+  - @brains/conversation-service@0.2.0-alpha.800
+  - @brains/entity-service@0.2.0-alpha.800
+  - @brains/identity-service@0.2.0-alpha.800
+  - @brains/job-queue@0.2.0-alpha.800
+  - @brains/mcp-service@0.2.0-alpha.800
+  - @brains/messaging-service@0.2.0-alpha.800
+  - @brains/recurring-checks@0.2.0-alpha.800
+  - @brains/runtime-state@0.2.0-alpha.800
+  - @brains/templates@0.2.0-alpha.800
+
+## 0.2.0-alpha.799
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.799
+  - @brains/content-formatters@0.2.0-alpha.799
+  - @brains/contracts@0.2.0-alpha.799
+  - @brains/site-composition@0.2.0-alpha.799
+  - @brains/utils@0.2.0-alpha.799
+  - @brains/ai-service@0.2.0-alpha.799
+  - @brains/content-service@0.2.0-alpha.799
+  - @brains/conversation-service@0.2.0-alpha.799
+  - @brains/entity-service@0.2.0-alpha.799
+  - @brains/identity-service@0.2.0-alpha.799
+  - @brains/job-queue@0.2.0-alpha.799
+  - @brains/mcp-service@0.2.0-alpha.799
+  - @brains/messaging-service@0.2.0-alpha.799
+  - @brains/recurring-checks@0.2.0-alpha.799
+  - @brains/runtime-state@0.2.0-alpha.799
+  - @brains/templates@0.2.0-alpha.799
+
 ## 0.2.0-alpha.798
 
 ### Patch Changes

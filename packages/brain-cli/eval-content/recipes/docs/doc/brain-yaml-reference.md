@@ -65,7 +65,9 @@ brain: brain
 brain: "@rizom/brain/model"
 ```
 
-When omitted, the runtime uses the canonical definition. Explicitly scoped external definition packages remain an advanced authoring surface. Bare legacy names and internal `@brains/*` definition packages are rejected.
+When omitted, the runtime uses the canonical definition. The generated Kamal deploy still needs it: its config step reads `brain` and `domain` from `brain.yaml` and fails when either is missing, so keep the `brain: brain` line that `brain init` writes.
+
+A scoped package name selects an external definition instead (see [Plugins](#plugins)). Bare legacy names and internal `@brains/*` definition packages are rejected.
 
 ### `bundleContract`
 
@@ -81,15 +83,20 @@ The contract is separate from the bundle IDs because names such as `core` and `s
 
 Required for the canonical definition. Select one or more fixed bundles:
 
-- `core` — identity, markdown knowledge, Inbox, MCP stdio, A2A, and agent discovery;
-- `media` — documents and images;
-- `automation` — playbooks and onboarding;
-- `web` — HTTP, auth, account/admin, Dashboard, and CMS;
-- `chat` — platform chat, web chat, email, notifications, and conversation memory;
-- `site` — site metadata, content, building, and analytics;
-- `publishing` — blog, series, portfolio, decks, pipeline, newsletter, and social publishing;
-- `federation` — AT Protocol publication and registry capabilities;
-- `team` — policy-only shared-memory and trusted-collaboration defaults.
+| Bundle       | Members                                                                                                                                             |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `core`       | `profile`, `prompt`, `conflict`, `style-guide`, `directory-sync`, `note`, `refined-note`, `link`, `topics`, `unified-inbox`, `mcp`, `a2a`, `agents` |
+| `media`      | `document`, `image`                                                                                                                                 |
+| `automation` | `playbooks`, `onboarding`                                                                                                                           |
+| `web`        | `auth-service`, `admin`, `dashboard`, `studio`, `webdav`                                                                                            |
+| `chat`       | `chat`, `web-chat`, `ask-content`, `email`, `notifications`, `conversation-memory`, `faq`                                                           |
+| `site`       | `site-info`, `site-content`, `site-builder`, `form`, `analytics`                                                                                    |
+| `publishing` | `blog`, `series`, `portfolio`, `decks`, `content-pipeline`, `social-media`, `newsletter`, `stock-photo`                                             |
+| `federation` | `atproto`, `references`                                                                                                                             |
+| `matrix`     | `matrix-server`, the brain's own Matrix homeserver at its domain                                                                                    |
+| `team`       | no members; shared-memory and trusted-collaboration policy over members selected elsewhere                                                          |
+
+In short: `core` is identity, markdown knowledge, conflicts, the Inbox, MCP stdio, A2A, and agent discovery; `web` is authentication, Admin, Dashboard, Studio, and the WebDAV drive; `chat` is platform chat (Discord, Slack, Matrix), web chat and public Ask, email, notifications, conversation memory, and FAQ capture; `federation` is AT Protocol publication and references to what other brains publish. The lexicon registry (`atproto-registry`) is in no bundle.
 
 Bundle effects compose in canonical definition order, not YAML list order.
 
@@ -109,6 +116,8 @@ add:
 ### `add` / `remove`
 
 Adjust individual catalog members after bundle composition. `remove` closes that member's config, permissions, instructions, and eval contributions.
+
+These catalog members belong to no bundle and are selected only with `add`: `action-board`, `assessment`, `atproto-registry`, `book`, `contact`, `docs`, `email-workflows`, `guides`, `linkedin-import`, `oauth-broker`, `quiz`, `seminar`, and `wishlist`.
 
 ```yaml
 add:
@@ -135,7 +144,7 @@ Override the runtime instance name.
 
 ### `kind`
 
-Select an optional semantic profile kind from the composed catalog. The standard specialized recipes select `professional`, `team`, or `organization`; omit `kind` only when the base profile fields are sufficient. `anchor` controls ownership flavor, while `kind` selects the validated profile field extension.
+Select an optional semantic profile kind from the composed catalog: `professional`, `team`, or `organization`. The `personal` and `professional` recipes select `professional`, the `team` recipe selects `team`, and `headless` sets no kind; omit `kind` only when the base profile fields are sufficient. `anchor` controls ownership flavor, while `kind` selects the validated profile field extension.
 
 ### `domain`, `port`, `database`
 
@@ -147,7 +156,7 @@ How the runtime serves HTTP. Every field is optional.
 
 ```yaml
 http:
-  enabled: true # default: whether the selected bundles include web
+  enabled: true # default: whether a selected bundle hosts HTTP (web, matrix)
   preview: true # default: whether a site builder runs
   hostname: 127.0.0.1 # bind address; default: all interfaces
   productionDistDir: ./dist/site-production # only for a site no site builder writes
@@ -184,7 +193,7 @@ modelRuntime:
   url: http://localhost:11434
 ```
 
-A deployed brain needs no `modelRuntime.url`: when `brain.yaml` names a `local:` model, the generated Kamal deploy pulls it into `/opt/brain-models` on the server, runs a `models` accessory beside the brain and gives the brain its address. A brain without a `local:` model deploys without the accessory.
+A deployed brain needs no `modelRuntime.url`: when `brain.yaml` names a `local:` model, the generated Kamal deploy pulls it into `/opt/brain-models` on the server, runs a `models` accessory beside the brain and gives the brain its address. The accessory is Ollama `0.40.18` with `OLLAMA_CONTEXT_LENGTH=32768`. The deploy pulls the `local:` models named as `model`, `embeddingModel`, `answerModel`, and `visionModel`; a `local:` `imageModel` is not pulled (see below). A brain without a `local:` model deploys without the accessory.
 
 To run EmbeddingGemma 2 on a development machine:
 
@@ -281,18 +290,28 @@ plugins:
     initialSync: true
 ```
 
-External plugins use a scoped package plus nested config:
+`brain.yaml` cannot load an external plugin package. A plugin entry with a `package` field uses the removed alpha contract and fails validation. An external plugin is a declarative package that a brain-definition package composes with `use()` in `defineBrain()`:
 
-```yaml
-plugins:
-  calendar:
-    package: "@acme/brain-plugin-calendar"
-    config:
-      timezone: UTC
-      apiKey: ${CALENDAR_API_KEY}
+```ts
+import calendar from "@acme/brain-plugin-calendar";
+import { defineBrain, defineBundle, use } from "@rizom/brain";
+
+const configuredCalendar = use(calendar, { timezone: "UTC" });
+
+export default defineBrain({
+  name: "acme-brain",
+  plugins: [configuredCalendar],
+  bundles: [defineBundle({ id: "core", members: [configuredCalendar] })],
+});
 ```
 
-External packages do not create policy bundles. They remain instance additions governed by the normal permission surface.
+The instance then names that definition package as `brain`:
+
+```yaml
+brain: "@acme/brain"
+```
+
+See [External Package Authoring](/docs/external-plugin-authoring). Keep secrets in environment interpolation, not in package defaults. External packages do not create policy bundles in the canonical definition.
 
 ## Principals and permissions
 
@@ -337,22 +356,58 @@ Principal seeds are unioned. Effective policy follows plugin, definition, bundle
 
 ```yaml
 plugins:
-  discord:
-    botToken: ${DISCORD_BOT_TOKEN}
+  directory-sync:
+    git:
+      authToken: ${GIT_SYNC_TOKEN}
 ```
 
-Common variables include `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_GENERATIVE_AI_API_KEY`, `GIT_SYNC_TOKEN`, `DISCORD_BOT_TOKEN`, and provider/integration-specific secrets declared by `.env.schema`.
+The generated `.env.schema` declares every variable in the table below except `MCP_AUTH_TOKEN`.
+
+## Integrations
+
+Every integration is optional and stays off until its credentials are set. Some variables are read by the brain directly; the rest take effect only where `brain.yaml` references them.
+
+| Variables                                                                                                                              | Switches on                                                                                                | Wiring                                                                                                    |
+| -------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_GENERATIVE_AI_API_KEY`                                                                  | Models of that provider                                                                                    | Read directly; needed for each provider the configured models use                                         |
+| `GIT_SYNC_TOKEN`                                                                                                                       | Git remote for `directory-sync`                                                                            | `plugins.directory-sync.git.authToken`                                                                    |
+| `SETUP_EMAIL_TO`, `SETUP_EMAIL_API_KEY`, `SETUP_EMAIL_FROM`                                                                            | Setup links, invitations, and email notifications through Resend                                           | Wired by the `personal`, `professional`, and `team` recipes into `auth-service`, `notifications`, `email` |
+| `IMAP_USER`, `IMAP_PASSWORD`                                                                                                           | An inbound mailbox, which the `email-workflows` add-on triages                                             | `plugins.email.imap` (`host`, `port`, `user`, `password`)                                                 |
+| `DISCORD_BOT_TOKEN`, `DISCORD_PUBLIC_KEY`, `DISCORD_APPLICATION_ID`                                                                    | The Discord chat adapter                                                                                   | Read directly when all three are set                                                                      |
+| `SLACK_BOT_TOKEN`, `SLACK_APP_TOKEN`                                                                                                   | The Slack chat adapter                                                                                     | `plugins.chat.adapters.slack`                                                                             |
+| `MATRIX_BASE_URL`, `MATRIX_USER_ID`, `MATRIX_PASSWORD`                                                                                 | The Matrix chat adapter                                                                                    | Read directly; without a password the bot asks the brain's own homeserver                                 |
+| `MATRIX_HOMESERVER_URL`, `MATRIX_SERVER_NAME`, `MATRIX_DATA_DIR`, `MATRIX_PUBLIC_URL`                                                  | The brain's own homeserver (`matrix` bundle)                                                               | Read directly; the generated deploy sets them                                                             |
+| `ATPROTO_APP_PASSWORD`                                                                                                                 | AT Protocol publishing and discovery (`federation`)                                                        | Read directly                                                                                             |
+| `LINKEDIN_ACCESS_TOKEN`, `LINKEDIN_ORGANIZATION_ID`                                                                                    | Publishing social posts to LinkedIn, as a person or an organization                                        | `plugins.social-media.linkedin.accessToken` and `.organizationId`                                         |
+| `LINKEDIN_IMPORT_CLIENT_ID`, `LINKEDIN_IMPORT_CLIENT_SECRET`, or `LINKEDIN_IMPORT_BROKER_SECRET`                                       | The `linkedin-import` add-on, with its own LinkedIn app or through the broker                              | `plugins.linkedin-import.oauth` or `plugins.linkedin-import.broker`                                       |
+| `ACCOUNT_SETTINGS_ENCRYPTION_KEY`                                                                                                      | Encrypted per-account plugin settings; required when a plugin declares them                                | Read directly                                                                                             |
+| `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ANALYTICS_SITE_TAG`, `CLOUDFLARE_ANALYTICS_BEACON_TOKEN`                  | Site traffic snapshots and reports (`analytics`); the beacon token only without Cloudflare automatic setup | `plugins.analytics.cloudflare` (`accountId`, `apiToken`, `siteTag`, `beaconToken`)                        |
+| `UNSPLASH_ACCESS_KEY`                                                                                                                  | Stock-photo search (`stock-photo`)                                                                         | `plugins.stock-photo.apiKey`                                                                              |
+| `BUTTONDOWN_API_KEY`                                                                                                                   | Newsletter delivery through Buttondown                                                                     | `plugins.newsletter.provider` with `type: buttondown`, `apiKey`                                           |
+| `RESEND_API_KEY`, `RESEND_NEWSLETTER_SEGMENT_ID`, `RESEND_NEWSLETTER_FROM`, `RESEND_NEWSLETTER_REPLY_TO`, `RESEND_NEWSLETTER_TOPIC_ID` | Newsletter delivery through Resend                                                                         | `plugins.newsletter.provider` with `type: resend`, `apiKey`, `segmentId`, `from`, `replyTo`, `topicId`    |
+| `MCP_AUTH_TOKEN`                                                                                                                       | A static MCP HTTP token for local development; a production brain refuses it                               | Read directly                                                                                             |
+
+For example, LinkedIn publishing:
+
+```yaml
+plugins:
+  social-media:
+    linkedin:
+      accessToken: ${LINKEDIN_ACCESS_TOKEN}
+```
+
+A deployed container receives only the variables listed under `env.secret` in `config/deploy.yml`. The generated list covers the provider keys, `GIT_SYNC_TOKEN`, the Discord variables, `ATPROTO_APP_PASSWORD`, and `SETUP_EMAIL_*`; add any other integration's variables there and push them with `brain secrets:push` (see the [Deployment Guide](/docs/deployment-guide#configdeployyml)).
 
 ## Recipes
 
 Recipes are scaffold-time conveniences only. `brain init --recipe` expands them into explicit YAML; recipe names have no runtime meaning.
 
-| Recipe         | Expansion                                                                 |
-| -------------- | ------------------------------------------------------------------------- |
-| `headless`     | `core`                                                                    |
-| `personal`     | `core + media + web + chat`                                               |
-| `professional` | `core + media + automation + web + chat + site + publishing + federation` |
-| `team`         | `core + media + automation + web + chat + site + team`, plus `docs`       |
+| Recipe         | Expansion                                                                              |
+| -------------- | -------------------------------------------------------------------------------------- |
+| `headless`     | `core`                                                                                 |
+| `personal`     | `core + media + web + chat`                                                            |
+| `professional` | `core + media + automation + web + chat + site + publishing + federation`              |
+| `team`         | `core + media + automation + web + chat + site + team`, plus `docs` and `action-board` |
 
 Identity, seed content, site, theme, permissions, and secret references remain visible instance-owned choices.
 

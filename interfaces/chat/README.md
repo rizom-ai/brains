@@ -4,7 +4,7 @@ Multi-platform Chat SDK interface for Brains.
 
 ## Status
 
-The chat transport for every brain, replacing the standalone `@brains/discord` interface. Discord is fully supported; Slack support covers a single workspace. Discord and Slack can be configured independently or enabled together in one interface instance.
+The chat transport for every brain, replacing the standalone `@brains/discord` interface. Discord is fully supported; Slack support covers a single workspace; Matrix connects the brain's bot to a homeserver (`MATRIX_BASE_URL`, `MATRIX_USER_ID`, `MATRIX_PASSWORD`; see [Interface Setup](../../docs/interface-setup.md#matrix-adapter)). The adapters can be configured independently or enabled together in one interface instance.
 
 ## Discord configuration
 

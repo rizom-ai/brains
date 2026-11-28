@@ -1,16 +1,7 @@
 /** @jsxImportSource react */
 import * as stylex from "@stylexjs/stylex";
 import { bodyStyles as s } from "./studio-body.styles";
-import { editorClassName } from "./studio-editor.styles";
-import { StudioStatus } from "./studio-status";
-import {
-  Button,
-  Input,
-  NativeSelect,
-  Tabs,
-  TabsList,
-  TabsTrigger,
-} from "@brains/app-ui-react";
+import { Tabs, TabsList, TabsTrigger } from "@brains/app-ui-react";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { markdown } from "@codemirror/lang-markdown";
 import {
@@ -26,13 +17,9 @@ import {
   useEffect,
   useId,
   useRef,
-  useState,
   type ReactElement,
 } from "react";
 import { StudioMarkdown } from "./studio-markdown";
-import type { AgentTarget } from "./api";
-import { useStudioApi } from "./studio-api-context";
-import { errorMessage } from "./ui-utils";
 
 export type BodyMode = "source" | "split" | "preview";
 const BODY_MODES: readonly BodyMode[] = ["source", "split", "preview"];
@@ -102,17 +89,6 @@ const bodyEditorBaseExtensions: Extension[] = [
 export interface SelectionRange {
   from: number;
   to: number;
-}
-
-export function applySuggestionToSelection(
-  value: string,
-  range: SelectionRange,
-  suggestion: string,
-): string {
-  if (range.from < 0 || range.to < range.from || range.to > value.length) {
-    throw new RangeError("Selection range is outside the body");
-  }
-  return `${value.slice(0, range.from)}${suggestion}${value.slice(range.to)}`;
 }
 
 export function createBodyEditorState(
@@ -240,101 +216,27 @@ function CodeMirrorBodySource(props: {
  * Markdown body editor: CodeMirror 6 edits the literal bytes beside a
  * streamdown preview, behind a Source | Split | Preview segment control.
  */
-export const MODEL_ASSIST_TARGET = "model";
-const EMPTY_AGENT_TARGETS: AgentTarget[] = [];
-
-type AgentAskMode = "answer" | "rewrite";
-
-export const AGENT_INSTRUCTION_PRESETS: ReadonlyArray<{
-  label: string;
-  instruction: string;
-  mode: AgentAskMode;
-}> = [
-  { label: "Review", instruction: "Review this selection.", mode: "answer" },
-  {
-    label: "Fact-check",
-    instruction: "Fact-check this selection.",
-    mode: "answer",
-  },
-  {
-    label: "Related",
-    instruction: "What related context do you know?",
-    mode: "answer",
-  },
-  {
-    label: "Rewrite",
-    instruction:
-      "Rewrite this selection. Return only replacement markdown without commentary.",
-    mode: "rewrite",
-  },
-];
-
-type AssistState =
-  | { kind: "idle" }
-  | { kind: "loading" }
-  | { kind: "suggested"; range: SelectionRange; suggestion: string }
-  | {
-      kind: "agent-answer";
-      agentId: string;
-      response: string;
-      range: SelectionRange;
-      replaceSelection: boolean;
-    }
-  | { kind: "error"; message: string };
-
-export function AgentAnswerPanel(props: {
-  agentId: string;
-  response: string;
-  onReplace?: (() => void) | undefined;
-  onDismiss: () => void;
-}): ReactElement {
-  return (
-    <section
-      {...stylex.props(s.suggestion, s.answer)}
-      aria-label="Agent answer"
-    >
-      <div {...stylex.props(s.copy)}>
-        <strong {...stylex.props(s.answerTitle)}>
-          Answer from {props.agentId}
-        </strong>
-        <StudioMarkdown>{props.response}</StudioMarkdown>
-      </div>
-      <span {...stylex.props(s.spacer)} />
-      {props.onReplace && (
-        <Button type="button" onClick={props.onReplace}>
-          Replace selection
-        </Button>
-      )}
-      <Button type="button" variant="ghost" onClick={props.onDismiss}>
-        Dismiss
-      </Button>
-    </section>
-  );
-}
-
 export function BodyEditor(props: {
   value: string;
   mode: BodyMode;
   onChange: (value: string) => void;
   onModeChange: (mode: BodyMode) => void;
-  assist?: {
-    entityType: string;
-    entityId: string;
-    agents?: AgentTarget[];
-  };
+  /** The passage selected in the source, for Ask to be about. */
+  onSelectionChange?:
+    | ((selection: { from: number; to: number; text: string } | null) => void)
+    | undefined;
   readOnly?: boolean;
   /** Stacked editors own their mode controls at every viewport width. */
   singlePane?: boolean;
   /** The document's title, which its preview need not repeat. */
   documentTitle?: string | undefined;
 }): ReactElement {
-  const api = useStudioApi();
   const {
     value,
     mode: requestedMode,
     onChange,
     onModeChange,
-    assist,
+    onSelectionChange,
     readOnly = false,
     singlePane = false,
   } = props;
@@ -345,110 +247,8 @@ export function BodyEditor(props: {
         : "source"
       : requestedMode;
   const panelId = useId();
-  const [selection, setSelection] = useState<SelectionRange | null>(null);
-  const [instruction, setInstruction] = useState("");
-  const [assistTarget, setAssistTarget] = useState(MODEL_ASSIST_TARGET);
-  const [agentAskMode, setAgentAskMode] = useState<AgentAskMode>("answer");
-  const [assistState, setAssistState] = useState<AssistState>({ kind: "idle" });
-  const agents = assist?.agents ?? EMPTY_AGENT_TARGETS;
   const showSource = mode !== "preview";
   const showPreview = mode !== "source";
-  const selectedText = selection
-    ? value.slice(selection.from, selection.to)
-    : "";
-
-  useEffect(() => {
-    if (
-      assistTarget !== MODEL_ASSIST_TARGET &&
-      !agents.some((agent) => agent.id === assistTarget)
-    ) {
-      setAssistTarget(MODEL_ASSIST_TARGET);
-      setAgentAskMode("answer");
-      setAssistState({ kind: "idle" });
-    }
-  }, [agents, assistTarget]);
-
-  const runAssist = useCallback((): void => {
-    if (!assist || !selection || instruction.trim().length === 0) return;
-    const range = selection;
-    setAssistState({ kind: "loading" });
-
-    const request =
-      assistTarget === MODEL_ASSIST_TARGET
-        ? api
-            .requestAssist({
-              entityType: assist.entityType,
-              id: assist.entityId,
-              instruction,
-              selection: selectedText,
-            })
-            .then(({ suggestion }) => {
-              setAssistState({ kind: "suggested", range, suggestion });
-            })
-        : api
-            .requestAgentAnswer({
-              entityType: assist.entityType,
-              id: assist.entityId,
-              agent: assistTarget,
-              instruction,
-              selection: selectedText,
-            })
-            .then(({ agentId, response }) => {
-              setAssistState({
-                kind: "agent-answer",
-                agentId,
-                response,
-                range,
-                replaceSelection: agentAskMode === "rewrite",
-              });
-            });
-
-    request.catch((error: unknown) => {
-      setAssistState({ kind: "error", message: errorMessage(error) });
-    });
-  }, [
-    agentAskMode,
-    api,
-    assist,
-    assistTarget,
-    instruction,
-    selectedText,
-    selection,
-    value,
-  ]);
-
-  const acceptSuggestion = useCallback((): void => {
-    if (assistState.kind !== "suggested") return;
-    try {
-      onChange(
-        applySuggestionToSelection(
-          value,
-          assistState.range,
-          assistState.suggestion,
-        ),
-      );
-      setAssistState({ kind: "idle" });
-    } catch (error: unknown) {
-      setAssistState({ kind: "error", message: errorMessage(error) });
-    }
-  }, [assistState, onChange, value]);
-
-  const replaceWithAgentAnswer = useCallback((): void => {
-    if (assistState.kind !== "agent-answer") return;
-    try {
-      onChange(
-        applySuggestionToSelection(
-          value,
-          assistState.range,
-          assistState.response,
-        ),
-      );
-      setAssistState({ kind: "idle" });
-    } catch (error: unknown) {
-      setAssistState({ kind: "error", message: errorMessage(error) });
-    }
-  }, [assistState, onChange, value]);
-
   return (
     <div {...stylex.props(s.root)}>
       <header {...stylex.props(s.toolbar)}>
@@ -481,126 +281,6 @@ export function BodyEditor(props: {
           words
         </span>
       </header>
-      {assist && showSource && (
-        <section
-          {...stylex.props(s.assist)}
-          data-has-selection={selection ? "true" : "false"}
-          aria-label="AI selection rewrite"
-        >
-          {agents.length > 0 && (
-            <NativeSelect
-              xstyle={s.select}
-              aria-label="Assist target"
-              value={assistTarget}
-              onChange={(event) => {
-                setAssistTarget(event.currentTarget.value);
-                setAgentAskMode("answer");
-                setAssistState({ kind: "idle" });
-              }}
-            >
-              <option value={MODEL_ASSIST_TARGET}>Model</option>
-              {agents.map((agent) => (
-                <option key={agent.id} value={agent.id}>
-                  {agent.label} — {agent.id}
-                </option>
-              ))}
-            </NativeSelect>
-          )}
-          <Input
-            xstyle={s.input}
-            type="text"
-            value={instruction}
-            placeholder={
-              selection
-                ? "Instruction for selected text…"
-                : assistTarget === MODEL_ASSIST_TARGET
-                  ? "Select text to rewrite…"
-                  : "Select text to ask about…"
-            }
-            onChange={(event) => setInstruction(event.currentTarget.value)}
-          />
-          <Button
-            type="button"
-            xstyle={s.run}
-            disabled={
-              !selection ||
-              instruction.trim().length === 0 ||
-              assistState.kind === "loading"
-            }
-            onClick={runAssist}
-          >
-            {assistState.kind === "loading"
-              ? "Thinking…"
-              : assistTarget === MODEL_ASSIST_TARGET
-                ? "Rewrite selection"
-                : "Ask"}
-          </Button>
-          {assistTarget !== MODEL_ASSIST_TARGET && (
-            <span {...stylex.props(s.presets)}>
-              {AGENT_INSTRUCTION_PRESETS.map((preset) => (
-                <Button
-                  key={preset.label}
-                  xstyle={s.preset}
-                  type="button"
-                  size="xs"
-                  variant={
-                    preset.mode === "rewrite" && agentAskMode === "rewrite"
-                      ? "secondary"
-                      : "ghost"
-                  }
-                  aria-pressed={
-                    preset.mode === "rewrite" && agentAskMode === "rewrite"
-                  }
-                  onClick={() => {
-                    setInstruction(preset.instruction);
-                    setAgentAskMode(preset.mode);
-                  }}
-                >
-                  {preset.label}
-                </Button>
-              ))}
-            </span>
-          )}
-          {selection && (
-            <span {...stylex.props(s.assistMeta)}>
-              {selectedText.length} selected chars
-            </span>
-          )}
-        </section>
-      )}
-      {assistState.kind === "suggested" && (
-        <section {...stylex.props(s.suggestion)}>
-          <div {...stylex.props(s.copy)}>
-            <StudioMarkdown>{assistState.suggestion}</StudioMarkdown>
-          </div>
-          <span {...stylex.props(s.spacer)} />
-          <Button type="button" onClick={acceptSuggestion}>
-            Accept
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => setAssistState({ kind: "idle" })}
-          >
-            Discard
-          </Button>
-        </section>
-      )}
-      {assistState.kind === "agent-answer" && (
-        <AgentAnswerPanel
-          agentId={assistState.agentId}
-          response={assistState.response}
-          onReplace={
-            assistState.replaceSelection ? replaceWithAgentAnswer : undefined
-          }
-          onDismiss={() => setAssistState({ kind: "idle" })}
-        />
-      )}
-      {assistState.kind === "error" && (
-        <StudioStatus tone="error" className={editorClassName("", s.status)}>
-          {assistState.message}
-        </StudioStatus>
-      )}
       <div
         {...stylex.props(s.panes, showSource && showPreview && s.split)}
         data-studio-split={showSource && showPreview ? "" : undefined}
@@ -612,7 +292,13 @@ export function BodyEditor(props: {
           <CodeMirrorBodySource
             value={value}
             onChange={onChange}
-            onSelectionChange={setSelection}
+            onSelectionChange={(range) =>
+              onSelectionChange?.(
+                range
+                  ? { ...range, text: value.slice(range.from, range.to) }
+                  : null,
+              )
+            }
             readOnly={readOnly}
           />
         )}

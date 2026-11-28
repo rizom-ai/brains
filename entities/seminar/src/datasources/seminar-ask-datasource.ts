@@ -1,6 +1,5 @@
 import type { ServiceDataSourceDeclaration } from "@brains/sdk/internal/service-runtime";
 import { z } from "@brains/utils/zod";
-import type { ShownPeer } from "./seminar-datasource";
 
 /** The build the Ask source serves, and the shared records it may read. */
 export type SeminarAskBuild = Pick<
@@ -26,20 +25,17 @@ export interface SeminarAskSources {
   name: () => string;
   /** Whether Web Chat serves the guest box for this build. */
   chatAvailable: (build: SeminarAskBuild) => Promise<boolean>;
-  /** The peers a question reaches, as the brain shows them. */
-  peers: readonly ShownPeer[];
+  /** The names of the peers a question reaches, as the brain shows and orders them. */
+  peers: () => Promise<readonly string[]>;
 }
 
 /** The Ask page of a brain, open or closed. */
 export function seminarAskPage(
-  sources: Pick<SeminarAskSources, "name" | "peers">,
+  name: string,
   askBox: boolean,
+  peers: readonly string[],
 ): SeminarAskPage {
-  return {
-    name: sources.name(),
-    askBox,
-    peers: sources.peers.map(({ name }) => name),
-  };
+  return { name, askBox, peers: [...peers] };
 }
 
 /** The Ask source as the brain registers it: `seminar:ask`. */
@@ -53,8 +49,9 @@ export function seminarAskDataSource(
       "The brain's name, the guest box's availability and the peers a question reaches",
     fetch: async (_query, { publishedOnly, sharedState }) =>
       seminarAskPage(
-        sources,
+        sources.name(),
         await sources.chatAvailable({ publishedOnly, sharedState }),
+        await sources.peers(),
       ),
   };
 }

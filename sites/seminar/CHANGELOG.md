@@ -1,5 +1,11 @@
 # @rizom/site-seminar
 
+## 0.2.0-alpha.2
+
+### Patch Changes
+
+- [#1088](https://github.com/rizom-ai/brains/pull/1088) [`49c9689`](https://github.com/rizom-ai/brains/commit/49c9689db3ade60a14c1a37e17a6ef2ce23768ec) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A block quote in a seminar turn or a note is shown as written: the prose style no longer wraps it in quotation marks of its own.
+
 ## 0.2.0-alpha.1
 
 ### Patch Changes

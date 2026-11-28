@@ -124,6 +124,11 @@ export interface WorkspaceActionDefinition<
   readonly label: string;
   readonly confirmation?: WorkspaceActionConfirmation | undefined;
   readonly catalog?: true | undefined;
+  /**
+   * Offered in Studio's ⌘K palette, which runs it from any page. Only an
+   * action that needs no input and asks for no confirmation can be.
+   */
+  readonly palette?: true | undefined;
   readonly input: TInputSchema;
   readonly output: TOutputSchema;
   readonly permission?: UserPermissionLevel | undefined;
@@ -279,6 +284,7 @@ interface WorkspaceActionDeclaration<
   readonly label: string;
   readonly confirmation?: WorkspaceActionConfirmation | undefined;
   readonly catalog?: true | undefined;
+  readonly palette?: true | undefined;
   readonly input: TInputSchema;
   readonly permission?: UserPermissionLevel | undefined;
 }
@@ -330,6 +336,19 @@ export function defineWorkspaceAction<
       definition.permission,
       `Workspace action "${definition.name}"`,
     );
+  }
+  if (definition.palette) {
+    // The palette runs it as chosen: nothing to fill in, nothing to confirm.
+    if (!definition.input.safeParse({}).success) {
+      throw new Error(
+        `Workspace action "${definition.name}" is offered in the palette, so it needs no input`,
+      );
+    }
+    if (definition.confirmation || definition.launch) {
+      throw new Error(
+        `Workspace action "${definition.name}" is offered in the palette, so it asks for no confirmation and launches nothing`,
+      );
+    }
   }
   const { launch, output, ...declared } = definition;
   if (launch) {
