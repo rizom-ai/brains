@@ -1057,7 +1057,7 @@
     },
     "packages/vault-sync": {
       "name": "@brains/vault-sync",
-      "version": "0.2.0-alpha.807",
+      "version": "0.2.0-alpha.808",
       "dependencies": {
         "@brains/utils": "workspace:*",
       },
