@@ -5,6 +5,7 @@ import {
   DriveUnavailableError,
   type DriveClient,
   type PutOptions,
+  type RelatedEntry,
 } from "./drive-client";
 import { getErrorMessage } from "@brains/utils/error";
 import { bytesOf, sameBytes, sha256Hex, textOf } from "./hash";
@@ -61,6 +62,26 @@ export type Notice =
  * up, kept in the vault only, or with another version waiting to be compared.
  */
 export type FileMark = "synced" | "waiting" | "local" | "conflict";
+
+/** An entry the brain holds near a note, as a file of the vault. */
+export interface RelatedNote extends RelatedEntry {
+  /** Whether the vault holds its file, so it can be opened. */
+  inVault: boolean;
+}
+
+/** What the brain says is related to a file, or why it could not be asked. */
+export type RelatedAnswer =
+  | { status: "ok"; entries: RelatedNote[] }
+  /** The file is the vault's only, or has not gone up yet. */
+  | { status: "not-in-brain" }
+  /** The brain is from before it could tell. */
+  | { status: "old-brain" }
+  /** The brain keeps no index of meaning, so it has nothing to tell by. */
+  | { status: "no-index" }
+  | { status: "offline" | "unavailable" | "signed-out" };
+
+/** How many related entries are asked for when the asker does not say. */
+const RELATED_LIMIT = 10;
 
 /** A conflict the person has not chosen a version for yet. */
 export interface OpenConflict {
@@ -333,6 +354,44 @@ export class SyncEngine {
       { ...file, hash },
       known ? { ifMatch: known.etag } : { ifAbsent: true },
     );
+  }
+
+  /**
+   * The entries the brain holds nearest to a file, for showing beside it.
+   * Only a file the brain holds is asked about. This reads and waits on
+   * nothing else: it is not queued behind a sync.
+   */
+  async related(
+    path: string,
+    limit: number = RELATED_LIMIT,
+  ): Promise<RelatedAnswer> {
+    const state = await this.store.load();
+    if (!state.paths[path]) return { status: "not-in-brain" };
+    try {
+      const related = await this.drive.related(path, limit);
+      if (related === "unsupported") return { status: "old-brain" };
+      if (related === "unindexed") return { status: "no-index" };
+      if (!related) return { status: "unavailable" };
+      return {
+        status: "ok",
+        entries: await Promise.all(
+          related.map(async (entry) => ({
+            ...entry,
+            inVault: await this.vault.exists(entry.path),
+          })),
+        ),
+      };
+    } catch (error) {
+      if (error instanceof DriveOfflineError) return { status: "offline" };
+      if (error instanceof DriveAuthError) return { status: "signed-out" };
+      if (
+        error instanceof DriveUnavailableError ||
+        error instanceof DriveMissingError
+      ) {
+        return { status: "unavailable" };
+      }
+      throw error;
+    }
   }
 
   /**

@@ -105,21 +105,4 @@ export const aiRoutes: RouteDefinitionInput[] = [
       },
     ],
   },
-  {
-    id: "work",
-    path: "/work",
-    title: "Rizom Work",
-    description: "Coordination for the AI era",
-    layout: "default",
-    navigation: { show: false },
-    sections: [
-      { id: "hero", template: "work:hero" },
-      { id: "problem", template: "work:problem" },
-      { id: "workshop", template: "work:workshop" },
-      { id: "personas", template: "work:personas" },
-      { id: "quotes", template: "work:quotes" },
-      { id: "roster", template: "work:roster" },
-      { id: "closer", template: "work:closer" },
-    ],
-  },
 ];

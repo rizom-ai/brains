@@ -33,14 +33,14 @@ describe("the one bar", () => {
     const html = bar(renderChrome("/"));
     for (const href of [
       "/brain",
-      "/work",
+      "https://rizom.work",
       "https://rizom.foundation",
       "/writing",
     ]) {
       expect(html).toContain(`href="${href}"`);
     }
-    expect(html).toContain('href="/work#audit"');
-    expect(html).toContain("Book an audit");
+    expect(html).toMatch(/<a href="\/brain#quickstart"[^>]*>Get started<\/a>/);
+    expect(html).not.toContain("Book an audit");
     expect(html).toContain('id="themeToggle"');
     expect(html).toContain('aria-label="Toggle color theme"');
     expect(html).toMatch(/<a href="\/"[^>]*aria-label="Rizom home"/);
@@ -48,9 +48,9 @@ describe("the one bar", () => {
   });
 
   test("marks the current room and no other", () => {
-    const work = bar(renderChrome("/work"));
-    expect(work).toMatch(/href="\/work"[^>]*aria-current="page"/);
-    expect(work.match(/aria-current="page"/g)).toHaveLength(1);
+    const brain = bar(renderChrome("/brain"));
+    expect(brain).toMatch(/href="\/brain"[^>]*aria-current="page"/);
+    expect(brain.match(/aria-current="page"/g)).toHaveLength(1);
     expect(bar(renderChrome("/"))).not.toContain('aria-current="page"');
     expect(bar(renderChrome("/writing"))).toMatch(
       /href="\/writing"[^>]*aria-current="page"/,
@@ -66,17 +66,16 @@ describe("the one bar", () => {
   });
 
   test("keeps the room's light on the page", () => {
-    expect(renderChrome("/work")).toContain('data-room="work"');
     expect(renderChrome("/")).toContain('data-room="brain"');
   });
 });
 
 describe("the story shell", () => {
   test("wraps a story page's sections beside its drawing, with the reading thread", () => {
-    const html = renderChrome("/work");
+    const html = renderChrome("/brain");
     expect(html).toContain('class="story"');
     expect(html).toContain('class="chapters"');
-    expect(html).toContain('class="figure work-org" data-stage="0"');
+    expect(html).toContain('class="figure brain-org" data-stage="0"');
     expect(html).toContain('class="rail"');
     expect(html).toContain('href="/styles/story.css"');
     expect(html).not.toContain("mycelium-rail");
@@ -101,14 +100,11 @@ describe("the story shell", () => {
     expect(html).toContain('href="/styles/story.css"');
   });
 
-  test("tells the Brain and Work rooms beside their drawings, without the old room stylesheet", () => {
+  test("tells the Brain room beside its drawing, without the old room stylesheet", () => {
     const brain = renderChrome("/brain");
     expect(brain).toContain('class="figure brain-org" data-stage="0"');
     expect(brain).not.toContain("brain-page");
     expect(brain).not.toContain("/styles/brain.css");
-    expect(renderChrome("/work")).toContain(
-      'class="figure work-org" data-stage="0"',
-    );
   });
 
   test("leaves pages without a story on the plain shell", () => {
@@ -117,11 +113,9 @@ describe("the story shell", () => {
     expect(html).not.toContain('class="rail"');
   });
 
-  test("the footer names the audit and drops the network", () => {
+  test("the footer drops the network", () => {
     const html = renderChrome("/");
     const footer = html.slice(html.indexOf("<footer"));
-    expect(footer).toContain("The Knowledge Audit");
-    expect(footer).toContain('href="/work#audit"');
     expect(footer).not.toContain('href="/network"');
     expect(footer).not.toContain("The workshop");
   });
@@ -133,11 +127,13 @@ describe("the story shell", () => {
     expect(footer).not.toContain("quiz");
   });
 
-  test("the footer's contact link opens the contact form", () => {
+  test("the footer's way to talk to the practice opens rizom.work's contact form", () => {
     const footer = renderChrome("/").slice(
       renderChrome("/").indexOf("<footer"),
     );
-    expect(footer).toMatch(/<a href="\/contact"[^>]*>Contact<\/a>/);
+    expect(footer).toMatch(
+      /<a href="https:\/\/rizom\.work\/contact"[^>]*>Talk to us<\/a>/,
+    );
     expect(footer).not.toContain("#contact");
   });
 });
@@ -155,5 +151,21 @@ describe("the Foundation, on rizom.foundation", () => {
 
   test("rizom.ai has no Foundation page told beside a drawing", () => {
     expect(renderChrome("/foundation")).not.toContain("<figure");
+  });
+});
+
+// Rizom Work speaks on its own site; rizom.ai sends its readers there.
+describe("Rizom Work, on rizom.work", () => {
+  test("the bar and the footer link rizom.work, not a room here", () => {
+    const html = renderChrome("/");
+    expect(html).not.toMatch(/href="\/work/);
+    const footer = html.slice(html.indexOf("<footer"));
+    expect(footer).toContain('href="https://rizom.work/#hubs"');
+    expect(footer).toContain('href="https://rizom.work/#teams"');
+    expect(footer).not.toContain("The Knowledge Audit");
+  });
+
+  test("rizom.ai has no Work page told beside a drawing", () => {
+    expect(renderChrome("/work")).not.toContain("<figure");
   });
 });

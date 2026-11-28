@@ -69,3 +69,23 @@
 [data-rizom-brain-mark="refused"]::after {
   background-color: var(--text-error);
 }
+
+/* The side panel of entries the brain relates to the open note. */
+.rizom-brain-related-title {
+  margin-bottom: var(--size-4-2);
+  font-weight: var(--font-semibold);
+}
+
+.rizom-brain-related-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--size-4-2);
+  padding: var(--size-2-2) 0;
+}
+
+.rizom-brain-related-type {
+  flex: none;
+  color: var(--text-faint);
+  font-size: var(--font-ui-smaller);
+}

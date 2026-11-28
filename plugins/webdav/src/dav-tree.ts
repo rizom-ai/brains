@@ -9,6 +9,7 @@ import {
 } from "@brains/entity-placement";
 import type { BaseEntity } from "@brains/sdk/internal/entity-runtime";
 import {
+  SemanticIndexingDisabledError,
   assetRefSchema,
   type ContentVisibility,
   type ServiceEntityReads,
@@ -18,6 +19,7 @@ import {
 export type DavReader = Pick<
   ServiceEntityReads,
   | "getEntityTypes"
+  | "nearestToEntity"
   | "getEntityTypeConfig"
   | "fileExtension"
   | "getEntityCounts"
@@ -26,6 +28,19 @@ export type DavReader = Pick<
   | "statAsset"
   | "openAsset"
 >;
+
+/** An entry near another, as the file it is on the drive. */
+export interface RelatedEntry {
+  /** Its path below the drive's root. */
+  path: string;
+  title: string;
+  entityType: string;
+  /** Cosine distance from the entry asked about; nearer is smaller. */
+  distance: number;
+}
+
+/** The brain's own record of edits that lost: never related reading. */
+const CONFLICT_TYPE = "conflict";
 
 export interface DavFolder {
   kind: "folder";
@@ -221,6 +236,66 @@ export class DavTree {
           file.segments.length === folder.length + 1 &&
           folder.every((segment, index) => file.segments[index] === segment),
       );
+  }
+
+  /**
+   * The entries nearest the entry at a path, closest first: entries with
+   * text, as this caller may see them, each as its file on the drive.
+   * Nothing when the path names no entry the caller may see.
+   */
+  async related(
+    segments: string[],
+    limit: number,
+  ): Promise<RelatedEntry[] | "unindexed" | undefined> {
+    const origin = await this.entityAt(segments);
+    if (!origin) return undefined;
+    const nearest = await this.nearestTo(origin.entity, limit);
+    if (nearest === "unindexed") return nearest;
+    // Read again at this caller's scope: only what they may see, and only
+    // what has a file, is named.
+    const entries = await Promise.all(
+      nearest.map(async (near): Promise<RelatedEntry | undefined> => {
+        const entity = await this.reader.getEntityRaw({
+          entityType: near.entityType,
+          id: near.entityId,
+          visibilityScope: this.scope,
+          source: true,
+        });
+        const file = entity ? await this.fileOf(entity) : undefined;
+        if (!entity || !file) return undefined;
+        const title = entity.metadata["title"];
+        return {
+          path: file.segments.join("/"),
+          title: typeof title === "string" && title !== "" ? title : entity.id,
+          entityType: entity.entityType,
+          distance: near.distance,
+        };
+      }),
+    );
+    return entries.filter((entry) => entry !== undefined);
+  }
+
+  /**
+   * What the store holds nearest an entity; `"unindexed"` from a brain
+   * that keeps no index of meaning, which has nothing to measure by.
+   */
+  private async nearestTo(
+    entity: BaseEntity,
+    limit: number,
+  ): Promise<Awaited<ReturnType<DavReader["nearestToEntity"]>> | "unindexed"> {
+    try {
+      return await this.reader.nearestToEntity({
+        origin: { entityType: entity.entityType, entityId: entity.id },
+        types: this.reader
+          .getEntityTypes()
+          .filter((type) => !storesBytes(type) && type !== CONFLICT_TYPE),
+        limit,
+        visibilityScope: this.scope,
+      });
+    } catch (error) {
+      if (error instanceof SemanticIndexingDisabledError) return "unindexed";
+      throw error;
+    }
   }
 
   /** The entity whose file is at a path, if the caller may see it. */

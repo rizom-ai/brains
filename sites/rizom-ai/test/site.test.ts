@@ -11,7 +11,6 @@ describe("@rizom/site-rizom-ai", () => {
       "public-ask",
       "writing",
       "docs",
-      "work",
     ]);
     expect(site.routes[0]?.path).toBe("/");
     // Every page is authored schema-first, so content travels via `sections`.
@@ -58,15 +57,7 @@ describe("@rizom/site-rizom-ai", () => {
     const byId = (id: string): (typeof site.routes)[number] | undefined =>
       site.routes.find((route) => route.id === id);
 
-    expect(byId("work")?.sections?.map((s) => s.id)).toEqual([
-      "hero",
-      "problem",
-      "workshop",
-      "personas",
-      "quotes",
-      "roster",
-      "closer",
-    ]);
+    expect(byId("work")).toBeUndefined();
     expect(byId("foundation")).toBeUndefined();
   });
 
