@@ -138,7 +138,7 @@ describe("public declarative Studio workspace", () => {
     expect(navigation).toMatchObject({
       workspaces: [
         {
-          label: "Overview",
+          label: "Home",
           rendererName: "DeclarativeOperatorWorkspace",
           entityTypes: [],
           badge: 0,
@@ -153,6 +153,7 @@ describe("public declarative Studio workspace", () => {
           rendererName: "DeclarativeOperatorWorkspace",
           entityTypes: [],
         },
+        { label: "History", entityTypes: [] },
       ],
     });
     if (

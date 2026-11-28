@@ -8,8 +8,10 @@ import type {
 export {
   DECLARATIVE_STUDIO_WORKSPACE_RENDERER,
   STUDIO_SECTIONS,
+  type StudioAttentionItem,
   type StudioSection,
   type StudioWorkspaceActor,
+  type StudioWorkspaceAttentionProvider,
   type StudioWorkspaceAlias,
   type StudioWorkspaceRegistration,
   type StudioWorkspaceRegistrationResult,

@@ -4,6 +4,7 @@ import {
   type RuntimeOperatorActionControl,
   type RuntimeStudioOperatorBlock,
   type RuntimeStudioWorkspaceData,
+  type StudioAttentionItem,
   type StudioWorkspaceActor,
   DECLARATIVE_STUDIO_WORKSPACE_RENDERER,
 } from "@brains/sdk/internal/service-runtime";
@@ -143,19 +144,54 @@ function actionRoutes(
   return routes;
 }
 
+/** The accounts that wait on an admin: suspended people and open invitations. */
 function administrationAttention(
   users: readonly {
     status: "active" | "invited" | "suspended";
     invitation?: { state: string } | undefined;
   }[],
-): number {
-  const suspended = users.filter((user) => user.status === "suspended").length;
-  const pendingInvitations = users.filter(
-    (user) =>
-      user.invitation !== undefined &&
-      !["claimed", "expired", "cancelled"].includes(user.invitation.state),
-  ).length;
-  return suspended + pendingInvitations;
+): { suspended: number; pendingInvitations: number } {
+  return {
+    suspended: users.filter((user) => user.status === "suspended").length,
+    pendingInvitations: users.filter(
+      (user) =>
+        user.invitation !== undefined &&
+        !["claimed", "expired", "cancelled"].includes(user.invitation.state),
+    ).length,
+  };
+}
+
+/** Each kind of waiting account as one item Home lists, with its tab. */
+function administrationAttentionItems(counts: {
+  suspended: number;
+  pendingInvitations: number;
+}): StudioAttentionItem[] {
+  return [
+    ...(counts.pendingInvitations > 0
+      ? [
+          {
+            id: "invitations",
+            title: `${counts.pendingInvitations} ${counts.pendingInvitations === 1 ? "invitation" : "invitations"} waiting`,
+            detail: "Not yet accepted.",
+            severity: "info" as const,
+            action: {
+              label: "Review invitations",
+              query: { tab: "invitations" },
+            },
+          },
+        ]
+      : []),
+    ...(counts.suspended > 0
+      ? [
+          {
+            id: "suspended",
+            title: `${counts.suspended} ${counts.suspended === 1 ? "person" : "people"} suspended`,
+            severity: "info" as const,
+            action: { label: "Review people", query: { tab: "people" } },
+          },
+        ]
+      : []),
+  ];
 }
 
 export async function registerAdministrationWorkspace(
@@ -326,9 +362,17 @@ export async function registerAdministrationWorkspace(
       }
       return runChildAction(source, request, actor, signal);
     },
-    badgeProvider: async () =>
-      administrationAttention(
+    badgeProvider: async () => {
+      const counts = administrationAttention(
         await requireAuthBackend(runtime).listAdminUsers(),
+      );
+      return counts.suspended + counts.pendingInvitations;
+    },
+    attentionProvider: async () =>
+      administrationAttentionItems(
+        administrationAttention(
+          await requireAuthBackend(runtime).listAdminUsers(),
+        ),
       ),
   });
 }

@@ -46,6 +46,44 @@ export type StudioWorkspaceBadgeProvider = (
   actor: StudioWorkspaceActor,
 ) => number | undefined | Promise<number | undefined>;
 
+/**
+ * One thing that needs the person, as Home's "Needs you" lists it: what it
+ * is, why, how urgent, and the verb that clears it. The verb opens the
+ * workspace that holds it, with the query named.
+ */
+export const studioAttentionItemSchema: z.ZodObject<
+  {
+    id: z.ZodString;
+    title: z.ZodString;
+    detail: z.ZodOptional<z.ZodString>;
+    severity: z.ZodEnum<{ error: "error"; warn: "warn"; info: "info" }>;
+    action: z.ZodObject<
+      {
+        label: z.ZodString;
+        query: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
+      },
+      z.core.$strict
+    >;
+  },
+  z.core.$strict
+> = z.strictObject({
+  id: z.string().trim().min(1).max(120),
+  title: z.string().trim().min(1).max(200),
+  detail: z.string().trim().min(1).max(500).optional(),
+  severity: z.enum(["error", "warn", "info"]),
+  action: z.strictObject({
+    label: z.string().trim().min(1).max(40),
+    query: z.record(z.string().min(1).max(60), z.string().max(500)).optional(),
+  }),
+});
+
+export type StudioAttentionItem = z.output<typeof studioAttentionItemSchema>;
+
+/** What in a workspace needs the person now; empty when nothing does. */
+export type StudioWorkspaceAttentionProvider = (
+  actor: StudioWorkspaceActor,
+) => readonly StudioAttentionItem[] | Promise<readonly StudioAttentionItem[]>;
+
 type StudioWorkspaceAliasSchema = z.ZodObject<
   {
     id: z.ZodString;
@@ -116,6 +154,12 @@ type StudioWorkspaceRegistrationSchema = z.ZodObject<{
   badgeProvider: z.ZodOptional<
     z.ZodCustom<StudioWorkspaceBadgeProvider, StudioWorkspaceBadgeProvider>
   >;
+  attentionProvider: z.ZodOptional<
+    z.ZodCustom<
+      StudioWorkspaceAttentionProvider,
+      StudioWorkspaceAttentionProvider
+    >
+  >;
 }>;
 
 /**
@@ -167,6 +211,12 @@ export const studioWorkspaceRegistrationSchema: StudioWorkspaceRegistrationSchem
       .custom<StudioWorkspaceBadgeProvider>(
         (value) => typeof value === "function",
         { message: "Expected Studio workspace badge provider function" },
+      )
+      .optional(),
+    attentionProvider: z
+      .custom<StudioWorkspaceAttentionProvider>(
+        (value) => typeof value === "function",
+        { message: "Expected Studio workspace attention provider function" },
       )
       .optional(),
   });

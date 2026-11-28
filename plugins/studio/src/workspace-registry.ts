@@ -1,6 +1,9 @@
 import { SdkError } from "@brains/contracts";
+import { z } from "@brains/utils/zod";
 import {
+  studioAttentionItemSchema,
   studioWorkspaceRegistrationSchema,
+  type StudioAttentionItem,
   type StudioWorkspaceActor,
   type StudioWorkspaceDescriptor,
   type StudioWorkspaceRegistration,
@@ -19,6 +22,15 @@ export interface StoredStudioWorkspace extends Omit<
   dataProvider: StudioWorkspaceRegistration["dataProvider"];
   actionHandler?: StudioWorkspaceRegistration["actionHandler"];
   badgeProvider?: StudioWorkspaceRegistration["badgeProvider"];
+  attentionProvider?: StudioWorkspaceRegistration["attentionProvider"];
+}
+
+/** What one workspace says needs the person, for Home's "Needs you". */
+export interface StudioWorkspaceAttention {
+  workspaceId: string;
+  pluginId: string;
+  label: string;
+  items: StudioAttentionItem[];
 }
 
 const permissionRank: Record<UserPermissionLevel, number> = {
@@ -82,6 +94,7 @@ export class StudioWorkspaceRegistry {
         : sourceEntityTypes;
     const sourceActionHandler = parsed.actionHandler;
     const sourceBadgeProvider = parsed.badgeProvider;
+    const sourceAttentionProvider = parsed.attentionProvider;
     const workspace: StoredStudioWorkspace = {
       id: parsed.id,
       pluginId: parsed.pluginId,
@@ -115,6 +128,16 @@ export class StudioWorkspaceRegistry {
             badgeProvider: async (actor): Promise<number | undefined> => {
               if (!meetsFloor(actor, parsed.permission)) return undefined;
               return sourceBadgeProvider(actor);
+            },
+          }
+        : {}),
+      ...(sourceAttentionProvider
+        ? {
+            attentionProvider: async (
+              actor,
+            ): Promise<readonly StudioAttentionItem[]> => {
+              if (!meetsFloor(actor, parsed.permission)) return [];
+              return sourceAttentionProvider(actor);
             },
           }
         : {}),
@@ -154,6 +177,43 @@ export class StudioWorkspaceRegistry {
       }
     }
     return removed;
+  }
+
+  /** The plugins whose workspaces say for themselves what needs the person. */
+  pluginsWithAttention(): Set<string> {
+    return new Set(
+      Array.from(this.workspaces.values())
+        .filter((workspace) => workspace.attentionProvider !== undefined)
+        .map((workspace) => workspace.pluginId),
+    );
+  }
+
+  /** A plugin's first page the person may open, by priority. */
+  async pageOf(
+    pluginId: string,
+    actor: StudioWorkspaceActor,
+  ): Promise<string | undefined> {
+    const candidates = Array.from(this.workspaces.values())
+      .filter((workspace) => workspace.pluginId === pluginId)
+      .sort((a, b) => a.priority - b.priority || a.id.localeCompare(b.id));
+    for (const workspace of candidates)
+      if (await workspace.accessHandler(actor)) return workspace.id;
+    return undefined;
+  }
+
+  /** What needs the person, from every workspace they may open, by priority. */
+  async listAttention(
+    actor: StudioWorkspaceActor,
+  ): Promise<StudioWorkspaceAttention[]> {
+    const sorted = Array.from(this.workspaces.values()).sort(
+      (a, b) => a.priority - b.priority || a.id.localeCompare(b.id),
+    );
+    const resolved = await Promise.all(
+      sorted.map((workspace) => resolveAttention(workspace, actor)),
+    );
+    return resolved.filter(
+      (entry): entry is StudioWorkspaceAttention => entry !== undefined,
+    );
   }
 
   async listDescriptors(
@@ -196,6 +256,32 @@ export class StudioWorkspaceRegistry {
           return descriptor;
         }),
     );
+  }
+}
+
+/** One workspace's attention, or none when it fails or says nothing. */
+async function resolveAttention(
+  workspace: StoredStudioWorkspace,
+  actor: StudioWorkspaceActor,
+): Promise<StudioWorkspaceAttention | undefined> {
+  if (!workspace.attentionProvider) return undefined;
+  if (!(await workspace.accessHandler(actor))) return undefined;
+  try {
+    const items = z
+      .array(studioAttentionItemSchema)
+      .parse(await workspace.attentionProvider(actor));
+    return items.length > 0
+      ? {
+          workspaceId: workspace.id,
+          pluginId: workspace.pluginId,
+          label: workspace.label,
+          items,
+        }
+      : undefined;
+  } catch {
+    // A source that cannot say what needs the person is left out; Home
+    // keeps the rest.
+    return undefined;
   }
 }
 

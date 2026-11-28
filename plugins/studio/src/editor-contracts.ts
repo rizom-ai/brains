@@ -9,6 +9,7 @@ import type { StudioEntityDisplayMap, StudioTypeHierarchy } from "./config";
 import type { GroupingDefinitionsSnapshot } from "./grouping-definitions-contract";
 import type { StudioWorkspaceRegistry } from "./workspace-registry";
 import type { StudioContext } from "./studio-context";
+import type { StudioHome } from "./home-contract";
 
 export const STUDIO_ENTITY_PAGE_LIMIT = 25;
 
@@ -68,6 +69,13 @@ export interface EditorRouteOptions {
     ((event: AppendAuthAuditEventInput) => Promise<void>) | undefined;
   /** The brain's members, who people fields are assigned from. */
   listMembers?: (() => Promise<StudioMember[]>) | undefined;
+  /** Home for one person: what needs them, what they were doing, what went out. */
+  loadHome?:
+    | ((
+        access: StudioRequestAccess,
+        signal?: AbortSignal,
+      ) => Promise<StudioHome>)
+    | undefined;
 }
 
 /** A brain member as people fields offer them: an id and a name. */

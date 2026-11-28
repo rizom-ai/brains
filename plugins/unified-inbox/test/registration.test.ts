@@ -139,6 +139,7 @@ describe("the unified inbox package's registered surface", () => {
         aliases: workspace.aliases,
         actions: typeof workspace.actionHandler,
         badge: typeof workspace.badgeProvider,
+        attention: typeof workspace.attentionProvider,
       })),
     ).toEqual([
       {
@@ -152,6 +153,7 @@ describe("the unified inbox package's registered surface", () => {
         aliases: undefined,
         actions: "function",
         badge: "function",
+        attention: "function",
       },
     ]);
     expect(

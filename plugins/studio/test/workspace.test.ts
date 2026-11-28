@@ -120,7 +120,7 @@ async function unregisterWorkspace(
 }
 
 describe("optional Studio workspaces", () => {
-  it("lists the built-in Overview and Account workspaces when no provider registers", async () => {
+  it("lists the built-in Home, Account and History workspaces when no provider registers", async () => {
     const shell = createMockShell({ domain: "yeehaa.io" });
     const cookie = await createSessionCookie(shell);
     const plugin = studioPlugin();
@@ -137,6 +137,7 @@ describe("optional Studio workspaces", () => {
     expect(payload.workspaces).toEqual([
       { id: "studio:overview" },
       { id: "studio:account" },
+      { id: "studio:history" },
     ]);
   });
 
@@ -430,6 +431,7 @@ describe("optional Studio workspaces", () => {
         { id: "studio:account" },
         { id: "inbox", urlQuery: true },
         { id: "publishing" },
+        { id: "studio:history" },
       ],
     });
     const payload = await findRoute(plugin, "/studio/api/types").handler(
@@ -589,7 +591,7 @@ describe("optional Studio workspaces", () => {
       {
         id: "studio:overview",
         pluginId: "studio",
-        label: "Overview",
+        label: "Home",
         rendererName: "DeclarativeOperatorWorkspace",
         priority: -100,
         permission: "trusted",
@@ -615,6 +617,16 @@ describe("optional Studio workspaces", () => {
         priority: 40,
         permission: "trusted",
         entityTypes: ["post"],
+        section: "brain",
+      },
+      {
+        id: "studio:history",
+        pluginId: "studio",
+        label: "History",
+        rendererName: "DeclarativeOperatorWorkspace",
+        priority: 1000,
+        permission: "trusted",
+        entityTypes: [],
         section: "brain",
       },
     ]);
@@ -669,6 +681,7 @@ describe("optional Studio workspaces", () => {
       { entityTypes: [] },
       { entityTypes: [] },
       { entityTypes: ["post", "newsletter"] },
+      { entityTypes: [] },
     ]);
   });
 
@@ -762,6 +775,7 @@ describe("optional Studio workspaces", () => {
         { id: "studio:account" },
         { id: "inbox", badge: 7 },
         { id: "broken" },
+        { id: "studio:history" },
       ],
     });
     expect(JSON.stringify(payload)).not.toContain("private badge failure");
@@ -813,6 +827,7 @@ describe("optional Studio workspaces", () => {
         { id: "publishing" },
         { id: "site" },
         { id: "sync" },
+        { id: "studio:history" },
       ],
     });
   });

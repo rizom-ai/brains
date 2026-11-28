@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import type { z } from "@brains/utils/zod";
 
 import { studioAssetManifestSchema as manifestSchema } from "../src/ui-assets";
@@ -117,10 +117,21 @@ describe("Studio split UI assets", () => {
     expect(chatEntry).toBeDefined();
     if (!chatEntry) throw new Error("Missing lazy native Chat asset");
     const chatSource = readFileSync(join(uiDirectory, chatEntry[1]), "utf8");
+    // The Chat client may sit in a chunk shared by lazy readers, such as
+    // Home's conversations; it is never in the entry.
+    const chatClientSource = [
+      chatSource,
+      ...Array.from(chatSource.matchAll(/from"\.\/([^"]+\.js)"/g), (match) =>
+        readFileSync(
+          join(uiDirectory, dirname(chatEntry[1]), match[1] ?? ""),
+          "utf8",
+        ),
+      ),
+    ].join("\n");
 
     expect(entrySource).toContain(chatEntry[0]);
     expect(entrySource).not.toContain("/api/chat");
-    expect(chatSource).toContain("/api/chat");
+    expect(chatClientSource).toContain("/api/chat");
     expect(chatSource).toContain(
       "No messages yet. Your draft stays in the composer until you send it.",
     );

@@ -6,6 +6,7 @@ import type { StudioGrouping } from "../../src/grouping-definitions-contract";
 import type { StudioCollectionQuery } from "../../src/collection-query";
 import { STUDIO_ACCOUNT_WORKSPACE_RENDERER } from "../../src/account-workspace";
 import { STUDIO_CHAT_WORKSPACE_RENDERER } from "../../src/chat-workspace";
+import { STUDIO_OVERVIEW_WORKSPACE_ID } from "../../src/overview-constants";
 import { type AgentTarget, type StudioWorkspaceInfo } from "./api";
 import { visibleFieldValues } from "./entity-fields";
 import { creationIdPath } from "./editor-workflow";
@@ -155,8 +156,10 @@ export function useStudioData(input: StudioDataInput): StudioData {
     activeWorkspace?.rendererName === STUDIO_ACCOUNT_WORKSPACE_RENDERER;
   const activeChat =
     activeWorkspace?.rendererName === STUDIO_CHAT_WORKSPACE_RENDERER;
+  // Home is drawn by the host from its own route, not from a declared view.
   const activeDeclarativeWorkspace =
-    activeWorkspace?.rendererName === "DeclarativeOperatorWorkspace";
+    activeWorkspace?.rendererName === "DeclarativeOperatorWorkspace" &&
+    activeWorkspace.id !== STUDIO_OVERVIEW_WORKSPACE_ID;
   const storedWorkspaceQuery = activeWorkspaceId
     ? workspaceQueries[activeWorkspaceId]
     : undefined;

@@ -32,6 +32,7 @@ import {
 import type { StudioEntityTypeInfo } from "../../src/editor-contracts";
 import type { STUDIO_ACCOUNT_WORKSPACE_RENDERER } from "../../src/account-workspace";
 import type { STUDIO_CHAT_WORKSPACE_RENDERER } from "../../src/chat-workspace";
+import { parseStudioHome, type StudioHome } from "../../src/home-contract";
 
 export type { StudioTypeCapabilities } from "../../src/editor-contracts";
 export type { StudioTypeHierarchy } from "../../src/config";
@@ -593,6 +594,11 @@ export class StudioApi {
       ),
     );
     return entity;
+  }
+
+  /** Home: what needs the person, what they were doing, what went out. */
+  async fetchHome(): Promise<StudioHome> {
+    return parseStudioHome(await this.requestJson<unknown>(this.path("home")));
   }
 
   /** The entries an opened collection holds, such as a series' posts. */

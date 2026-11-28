@@ -120,14 +120,15 @@ async function exerciseSurface(
   }
   if (surface.startsWith("studio-refine"))
     await exerciseStudioRefine(visualCase);
-  if (surface === "studio-overview") await waitForText(page, "What happened");
+  if (surface === "studio-overview") await waitForText(page, "Needs you");
+  if (surface === "studio-history") await waitForText(page, "What happened");
   if (surface === "studio-content-sync") await exerciseContentSync(visualCase);
   if (surface === "studio-site") await exerciseStudioSite(page);
   if (surface === "studio-publishing") await exerciseStudioPublishing(page);
   if (
     surface === "studio-content-sync" ||
     surface === "studio-inbox" ||
-    surface === "studio-overview"
+    surface === "studio-history"
   )
     await verifyRecordTypography(page);
   if (surface === "studio-account") await exerciseStudioAccount(visualCase);

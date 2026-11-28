@@ -40,11 +40,14 @@ import {
   STUDIO_CHAT_ROUTE_PATH,
   STUDIO_CHAT_WORKSPACE_ID,
 } from "./chat-workspace";
+import { loadStudioHome } from "./home-loader";
 import {
+  STUDIO_HISTORY_WORKSPACE_ID,
   STUDIO_OVERVIEW_WORKSPACE_ID,
   StudioOverviewRegistry,
   overviewActivitySchema,
-  createStudioOverviewWorkspace,
+  createStudioHistoryWorkspace,
+  createStudioHomeWorkspace,
   registerStudioOverviewActivity,
 } from "./overview-workspace";
 
@@ -125,6 +128,8 @@ function entityBacklink(entityType: string, entityId: string): string {
 interface StudioState {
   readonly context: StudioContext;
   readonly workspaceRegistry: StudioWorkspaceRegistry;
+  /** The activity feed and the re-homed widgets Home and History read. */
+  readonly overviewRegistry: StudioOverviewRegistry;
   /** The grouping definitions as last read; none until every plugin registered. */
   readonly groupingDefinitions: () => GroupingDefinitionsSnapshot;
   readonly entityDisplay: () => StudioEntityDisplayMap | undefined;
@@ -237,9 +242,13 @@ const studioService = defineServicePlugin({
       visibility: "public",
       requiresActiveSession: true,
     });
-    workspaceRegistry.register(
-      createStudioOverviewWorkspace({ context, registry: overviewRegistry }),
-    );
+    const homeSources = {
+      context,
+      registry: overviewRegistry,
+      workspaces: workspaceRegistry,
+    };
+    workspaceRegistry.register(createStudioHomeWorkspace(homeSources));
+    workspaceRegistry.register(createStudioHistoryWorkspace(homeSources));
     registerStudioOverviewActivity(
       context,
       runtime.listen,
@@ -319,7 +328,8 @@ const studioService = defineServicePlugin({
         if (
           registration.id === STUDIO_ACCOUNT_WORKSPACE_ID ||
           registration.id === STUDIO_CHAT_WORKSPACE_ID ||
-          registration.id === STUDIO_OVERVIEW_WORKSPACE_ID
+          registration.id === STUDIO_OVERVIEW_WORKSPACE_ID ||
+          registration.id === STUDIO_HISTORY_WORKSPACE_ID
         ) {
           throw new SdkError("invalid_input", {
             publicMessage: `Studio workspace id is reserved by the host: ${registration.id}`,
@@ -343,6 +353,7 @@ const studioService = defineServicePlugin({
     return {
       context,
       workspaceRegistry,
+      overviewRegistry,
       entityDisplay,
       // Read paths offer built-in groups, such as series, beside the authored.
       groupingDefinitions: () =>
@@ -375,6 +386,18 @@ export function createStudioPackage(): ServicePackageDefinition<
           await state.context.auth()?.recordAuditEvent(event);
         },
         listMembers: () => state.context.assignableMembers(),
+        loadHome: (access, signal) =>
+          loadStudioHome(
+            {
+              context: state.context,
+              overview: state.overviewRegistry,
+              workspaces: state.workspaceRegistry,
+              entityDisplay: state.entityDisplay(),
+              routePath: config.routePath,
+            },
+            access,
+            signal,
+          ),
       }),
   );
 }

@@ -8,8 +8,12 @@ import {
 } from "@brains/plugins";
 import {
   StudioOverviewRegistry,
-  createStudioOverviewWorkspace,
+  createStudioHistoryWorkspace,
+  createStudioHomeWorkspace,
 } from "../../plugins/studio/src/overview-workspace";
+import { composeStudioHome } from "../../plugins/studio/src/home";
+import type { StudioHome } from "../../plugins/studio/src/home-contract";
+import { StudioWorkspaceRegistry } from "../../plugins/studio/src/workspace-registry";
 import { studioContextOn } from "../../plugins/studio/test/studio-plugins";
 import unifiedInboxPackage from "../../plugins/unified-inbox/src";
 
@@ -24,7 +28,8 @@ export async function createWorkViewFixtures(
   state?: StudioStudyState,
   now: number = Date.now(),
 ): Promise<{
-  overview: () => Promise<unknown>;
+  home: () => Promise<StudioHome>;
+  history: () => Promise<unknown>;
   overviewBadge: () => Promise<number>;
   inbox: (query: Record<string, string>) => Promise<unknown>;
 }> {
@@ -118,11 +123,9 @@ export async function createWorkViewFixtures(
       },
     });
   }
-  const overview = createStudioOverviewWorkspace({
-    context: await studioContextOn(shell),
-    registry,
-    now: (): number => now,
-  });
+  const context = await studioContextOn(shell);
+  const workspaces = new StudioWorkspaceRegistry();
+  const history = createStudioHistoryWorkspace({ context, registry });
   const inboxSources = shell.getInboxRegistry();
   const closed = new Set<string>();
   inboxSources.registerSource("email", {
@@ -195,9 +198,80 @@ export async function createWorkViewFixtures(
   await unifiedInbox.finalizeRegistration?.();
   const workspace = inbox;
   if (!workspace) throw new Error("Inbox fixture did not register");
+  // Home reads what each workspace says needs the person, as Studio does.
+  workspaces.register(workspace);
+  const home = createStudioHomeWorkspace({ context, registry, workspaces });
+  const entries = state === "empty" ? [] : homeEntries(now);
   return {
-    overview: () => overview.dataProvider(actor, {}),
-    overviewBadge: async () => (await overview.badgeProvider?.(actor)) ?? 0,
+    home: async () =>
+      composeStudioHome({
+        now: new Date(now),
+        workspaceAttention: await workspaces.listAttention(actor),
+        pluginsWithAttention: workspaces.pluginsWithAttention(),
+        contributions: await registry.load(actor),
+        failedJobs: registry
+          .listActivity()
+          .filter((item) => item.tone === "error"),
+        drafts: entries.filter((entry) => "updated" in entry),
+        published: entries.filter((entry) => "publishedAt" in entry),
+        facts: {
+          runtime: "operational",
+          degraded: false,
+          activeJobs: 0,
+          failedJobs: 0,
+          version: "1.0.0",
+          interactions: 0,
+          channels: 0,
+          inboxSources: 1,
+          entityTypes: 4,
+        },
+        paths: {
+          workspace: (id, query) =>
+            `/studio/workspaces/${encodeURIComponent(id)}${query ? `?${new URLSearchParams(query)}` : ""}`,
+          pluginPage: (pluginId) =>
+            pluginId === "content-pipeline"
+              ? "/studio/workspaces/content-pipeline%3Apublishing"
+              : undefined,
+          history: "/studio/workspaces/studio%3Ahistory",
+        },
+      }),
+    history: () => history.dataProvider(actor, {}),
+    overviewBadge: async () => (await home.badgeProvider?.(actor)) ?? 0,
     inbox: (query) => workspace.dataProvider(actor, query),
   };
+}
+
+/** Drafts and published posts, dated from the harness clock. */
+function homeEntries(
+  now: number,
+): (StudioHome["drafts"][number] | StudioHome["published"][number])[] {
+  const at = (offset: number): string => new Date(now - offset).toISOString();
+  const post = (
+    id: string,
+    title: string,
+  ): Omit<StudioHome["drafts"][number], "updated"> => ({
+    id,
+    entityType: "posts",
+    typeLabel: "Field note",
+    title,
+    href: `/studio/entities/posts/${id}`,
+  });
+  return [
+    {
+      ...post("field-notes", "Notes from the rhizome"),
+      updated: at(2 * HOUR),
+    },
+    {
+      ...post("quiet-infrastructure", "Quiet infrastructure"),
+      updated: at(26 * HOUR),
+    },
+    {
+      ...post("responsive-console", "A console that travels well"),
+      publishedAt: at(6 * 24 * HOUR),
+    },
+    {
+      ...post("release-log", "Alpha release log"),
+      publishedAt: at(8 * 24 * HOUR),
+    },
+  ];
 }

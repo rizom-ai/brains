@@ -405,6 +405,18 @@ export function createEditorRoutes(
       },
     },
     {
+      path: apiPath("home"),
+      method: "GET",
+      public: true,
+      handler: async (request): Promise<Response> => {
+        const access = await requireTrustedAccess(request);
+        if (access instanceof Response) return access;
+        if (!options.loadHome)
+          return jsonResponse({ error: "Home is unavailable" }, 404);
+        return jsonResponse(await options.loadHome(access, request.signal));
+      },
+    },
+    {
       path: apiPath("schema"),
       method: "GET",
       public: true,

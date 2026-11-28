@@ -103,6 +103,10 @@ function apiRouteRequests(): RouteRequest[] {
       request: (cookie) => request("/studio/api/members", { cookie }),
     },
     {
+      routePath: "/studio/api/home",
+      request: (cookie) => request("/studio/api/home", { cookie }),
+    },
+    {
       routePath: "/studio/api/schema",
       request: (cookie) => request("/studio/api/schema", { cookie }),
     },

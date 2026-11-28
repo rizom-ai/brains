@@ -5,6 +5,7 @@ import type { AnyEntityDefinition } from "../entity/entity-definition-contract";
 import { assertIdentifier } from "../package-definition";
 import {
   STUDIO_SECTIONS,
+  type StudioAttentionItem,
   type StudioSection,
 } from "../contracts/studio-workspace-contracts";
 import type { AnyAccountSettingsDefinition } from "./account-settings-definition-contract";
@@ -201,6 +202,12 @@ export interface StudioWorkspaceDefinition<
   readonly actions: TActions;
   readonly badge?:
     ((context: { readonly data: z.output<TDataSchema> }) => number) | undefined;
+  /** What needs the person now, from the workspace's data; Home lists it. */
+  readonly attention?:
+    | ((context: {
+        readonly data: z.output<TDataSchema>;
+      }) => readonly StudioAttentionItem[])
+    | undefined;
   readonly refresh?:
     | ((context: {
         readonly data: z.output<TDataSchema>;
