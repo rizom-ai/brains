@@ -45,6 +45,36 @@ describe("the chair's prompts", () => {
     ).not.toContain("What you know of the participants");
   });
 
+  it("gives the chair the brain's notes that bear on the question, as its own background", () => {
+    const prompt = chairChallengePrompt({
+      question: "What is religion?",
+      language: "English",
+      openings,
+      notes: [
+        { title: "Religion", text: "All three read religion as an answer." },
+      ],
+    });
+
+    expect(prompt).toContain(
+      "### Religion\n\nAll three read religion as an answer.",
+    );
+    expect(prompt).toContain("They are yours, not the participants'");
+    expect(prompt.indexOf("### Religion")).toBeLessThan(
+      prompt.indexOf("The openings:"),
+    );
+  });
+
+  it("says nothing of notes when none bear on the question", () => {
+    expect(
+      chairChallengePrompt({
+        question: "What is religion?",
+        language: "English",
+        openings,
+        notes: [],
+      }),
+    ).not.toContain("Your own notes");
+  });
+
   it("gives the chair the opening that stood and the challenges made to it", () => {
     const [stands, ...challenges] = openings;
     if (!stands) throw new Error("no opening");

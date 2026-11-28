@@ -63,10 +63,18 @@ const chairRejoinderSchema = z.object({
     ),
 });
 
+/** A note of this brain's that bears on the question. */
+export interface ChairNote {
+  title: string;
+  text: string;
+}
+
 export interface ChairChallengeInput {
   question: string;
   language: string;
   openings: readonly ChairReading[];
+  /** The brain's own notes on the question: background for the chair. */
+  notes?: readonly ChairNote[];
 }
 
 export interface ChairRejoinderInput {
@@ -125,6 +133,15 @@ function guided(guidance: string | undefined): string[] {
   return guidance ? ["What you know of the participants:", guidance, ""] : [];
 }
 
+function noted(notes: readonly ChairNote[] | undefined): string[] {
+  if (!notes || notes.length === 0) return [];
+  return [
+    "Your own notes that bear on the question. They are yours, not the participants': use them to judge who answers the question and what to ask, and put no passage from them to a participant as his own.",
+    "",
+    ...notes.flatMap(({ title, text }) => [`### ${title}`, "", text, ""]),
+  ];
+}
+
 export function chairChallengePrompt(
   input: ChairChallengeInput,
   guidance?: string,
@@ -141,6 +158,7 @@ export function chairChallengePrompt(
     ...guided(guidance),
     `The question: ${input.question}`,
     "",
+    ...noted(input.notes),
     "The openings:",
     "",
     turns(input.openings),
