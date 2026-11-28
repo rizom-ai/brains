@@ -1,7 +1,6 @@
 import {
   CONSOLE_CLIMATE_SCRIPT,
   CONSOLE_FONTS_URL,
-  CONSOLE_PALETTE_SCRIPT,
   CONSOLE_THEME_CSS,
   resolveConsoleThemeCSS,
 } from "@brains/console-theme";
@@ -59,7 +58,6 @@ export function renderEditorShellHtml(options: EditorShellOptions): string {
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="${CONSOLE_FONTS_URL}" rel="stylesheet" />
     <script>${CONSOLE_CLIMATE_SCRIPT}</script>
-    <script>${CONSOLE_PALETTE_SCRIPT}</script>
     <style data-console-theme>
 ${resolveConsoleThemeCSS(options.themeCSS)}
     </style>

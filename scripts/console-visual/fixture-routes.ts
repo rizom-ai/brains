@@ -612,6 +612,32 @@ export function createFixtureRoutes(
   const consoleJump: FixtureRoute = (_request, url) =>
     url.pathname === "/api/console/jump" ? json({ groups: [] }) : undefined;
 
+  // ⌘K in Studio: the pages a trusted member may open before anything is typed.
+  const studioPalette: FixtureRoute = (_request, url) =>
+    url.pathname === "/studio/api/palette"
+      ? json({
+          groups: [
+            {
+              id: "pages",
+              label: "Pages",
+              items: [
+                {
+                  id: "workspace:studio:overview",
+                  title: "Home",
+                  href: "/studio/workspaces/studio%3Aoverview",
+                },
+                {
+                  id: "workspace:content-pipeline:publishing",
+                  title: "Publish",
+                  href: "/studio/workspaces/content-pipeline%3Apublishing",
+                },
+                { id: "chat", title: "Chat", href: "/chat" },
+              ],
+            },
+          ],
+        })
+      : undefined;
+
   const routes: readonly FixtureRoute[] = [
     fixtureImage,
     dashboard,
@@ -636,6 +662,7 @@ export function createFixtureRoutes(
     home,
     syncStatus,
     consoleJump,
+    studioPalette,
   ];
 
   return {
